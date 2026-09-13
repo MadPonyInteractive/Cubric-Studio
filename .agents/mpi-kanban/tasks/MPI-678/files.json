@@ -1,0 +1,19 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/data/projectModel.js",
+    "js/services/projectService.js",
+    "js/state.js",
+    "js/utils/icons.js",
+    "js/shell/navigation.js",
+    "routes/projects.js",
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js",
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.css",
+    "js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js",
+    "js/components/Compounds/MpiMediaPicker/MpiMediaPicker.js",
+    "js/components/Compounds/MpiProjectName/MpiProjectName.js",
+    "js/components/Compounds/MpiProjectName/MpiProjectName.css",
+    "tests/desktop/gallery-archive.spec.js",
+    "docs/gallery.md"
+  ]
+}

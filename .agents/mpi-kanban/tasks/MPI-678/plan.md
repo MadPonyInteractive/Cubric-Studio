@@ -2,6 +2,31 @@
 
 ## Current State
 
+**All three implementation legs are BUILT and machine-verified (2026-09-01).** What remains is
+Fabio's two `user-ux` judgements — the archive must not read as data loss, and the re-centred
+project bar needs eyes. Nothing else is outstanding; the card is in `doing` / `in-progress`
+and should not move to `done` until those two are seen.
+
+Verified: `npm run lint` and `npm run lint:components` clean; `npm test` 853/853;
+`tests/desktop/gallery-archive.spec.js` 3/3; the four related desktop specs
+(`flows-tab-ring`, `gallery-renditions`, `gallery-media-release`, `workspace-sweep`) 15/15.
+The scope gate was mutation-checked — deleting it fails the spec at the first assertion, so the
+test genuinely bites rather than passing on the fixture.
+
+**Two things a fresh session would otherwise re-derive:**
+
+1. **The desktop spec needs its own config.** `npx playwright test tests/desktop/...` picks up the
+   default config, has no `CUBRIC_PORT`, and hunts for a `:3000` window — which is Fabio's live
+   app, so it dies with `shellWindow: no 127.0.0.1:3000 window within 30000ms` and reads like a
+   broken spec. Correct runner:
+   `npx playwright test --config=playwright.desktop.config.js tests/desktop/gallery-archive.spec.js`
+   (its `globalSetup` picks a free port and leaves 3000 alone). The plan's original verify line
+   was wrong about this.
+2. **The archive needed an empty state that the plan did not name.** The gallery has NO
+   grid-level empty state at all, so an empty archive rendered as a blank grid — precisely the
+   "my cards are gone" failure the plan warns about. Added `.mpi-gallery-grid__scope-empty`,
+   scoped to the archive only; the active gallery deliberately still has none.
+
 Project mode: scalable-foundation. Design approved in brainstorm (2026-09-01) — do not re-open it.
 
 The gallery pollutes: generations and imports pile up, and the only way out today is Delete.
@@ -101,17 +126,56 @@ a larger refactor and **not** in this card.
 
 ## Completed
 
-- [ ] Nothing yet.
+- [x] **Archive scope, end to end.** `archived` on the model (`projectModel.js` typedef +
+      `createItemGroup`), the route default (`routes/projects.js`), the `persistGroups()`
+      serializer (`projectService.js`, written explicitly as `g.archived === true` so the field
+      is always present on disk). `gallerySort` gained `scope`, in-memory. Scope gate is the
+      first line of the predicate. `archive` icon added to `icons.js` (none fitted). Toggleable
+      `MpiButton` in the right zone behind a divider, with a loud active state plus an accent
+      underline on the whole tab bar. Context-menu entry after `card-notes`, labelled off
+      `group.archived`. `MpiMediaPicker._collect()` skips archived groups.
+- [x] **Record moved to the project bar, gated to the gallery.** Slot, mount and CSS block gone
+      from `MpiGalleryGrid`; MPI-573's comment block replaced with why it moved rather than left
+      lying. Flows + Record wrapped in `.mpi-project-name__centre`, which now carries the
+      absolute centring. `MpiProjectName` emits `record` and exposes `setRecordVisible`;
+      `navigation.js` binds it to the exported `recordAudioIntoProject()` and gates visibility on
+      the `ASSETS`/`ENTRIES` branch. `MpiGalleryBlock` dropped its `grid.on('record')` handler and
+      the `MpiAudioRecorder` import my change orphaned.
+- [x] **Regression spec** `tests/desktop/gallery-archive.spec.js` — three tests: the scope
+      round trip (including type filters *inside* the archive and the empty state), the
+      state-dependent context-menu label, and `archived` surviving to `project.json` on disk.
+- [x] **`docs/gallery.md`** carries the archive contract and the Record relocation (176 lines,
+      inside the 200 budget).
 
 ## Remaining Work
 
-- Archive scope end to end (flag, state, predicate, toggle, context menu, picker).
-- Record relocation + gallery-only gating.
-- Regression spec.
+- Nothing. Both `user-ux` checks passed with Fabio in the running app (see `validation.md`).
+
+**Rule files updated at close-out, with Fabio's explicit permission (2026-09-01):**
+
+- `.claude/rules/component-events-blocks.md` — the new `archive` emit on `MpiGalleryGrid`.
+- `.claude/rules/component-events-primitives.md` — `record` + `setRecordVisible` on
+  `MpiProjectName`, plus the gallery-only gating rationale. Also added the **`flows` emit,
+  which was missing entirely** — pre-existing drift left by MPI-589, healed while in the file.
+- `.claude/rules/component-state.md` — `gallerySort` gains `scope`, with the
+  additive-`filter`-vs-subtractive-`scope` distinction and the not-persisted rule.
+
+`MpiGalleryGrid`'s removed `record` emit needed no edit: it had never been recorded there.
 
 ## Plan Drift
 
-- None yet.
+- **2026-09-01 — the archive needed an empty state the plan did not budget for.** The plan
+  assumed a loud toggle would carry "you are in Archive". It cannot: the gallery has no
+  grid-level empty state, so an empty archive was a blank grid. Added
+  `.mpi-gallery-grid__scope-empty` (archive-only). Scope creep avoided: the active gallery still
+  has no empty state.
+- **2026-09-01 — the plan's verify command for the desktop spec was wrong.** It named
+  `npx playwright test tests/desktop/gallery-archive.spec.js`, which resolves the default config,
+  gets no `CUBRIC_PORT`, and fails against Fabio's live `:3000` app. Corrected to the
+  `--config=playwright.desktop.config.js` form everywhere.
+- **2026-09-01 — line anchors had drifted ±2** from the plan (predicate 1823 not 1825, Record
+  mount 486 not 485, info toggle 2112 not 2111, CSS grid track 17 not 16). Immaterial; every
+  named symbol resolved.
 
 ## Verification
 

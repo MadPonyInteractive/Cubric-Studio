@@ -29,6 +29,7 @@ import { loadProjectGrid } from './projectUI.js';
 import { Overlays } from '../managers/overlayManager.js';
 import { clientLogger } from '../services/clientLogger.js';
 import { remoteEngineClient } from '../services/remoteEngineClient.js';
+import { recordAudioIntoProject } from '../components/Compounds/MpiAudioRecorder/MpiAudioRecorder.js';
 import { getEngine } from '../services/comfyController.js';
 
 // ── Module-scoped refs ──────────────────────────────────────────────────────
@@ -74,6 +75,16 @@ export function initNavigation(refs) {
     // The bar emits; opening is the shell's business, and `flows:open` already carries
     // the no-engine guard.
     _projectNameInst.on('flows', () => Events.emit('flows:open'));
+
+    // MPI-678: Record moved here from the gallery toolbar. `recordAudioIntoProject()`
+    // is self-contained — it shows the recorder, uploads, and emits `media:imported`
+    // itself — so the shell calls it directly, the way MpiMediaPicker already does.
+    // Visibility is gated to the gallery in _updateBreadcrumb; see the note there.
+    _projectNameInst.on('record', () => {
+        recordAudioIntoProject().catch((err) => {
+            clientLogger.warn('navigation', `recording failed: ${err?.message || err}`);
+        });
+    });
 }
 
 // ── Tab flipper (MPI-378) ───────────────────────────────────────────────────
@@ -255,6 +266,13 @@ function _updateBreadcrumb(page, params) {
         _projectNameInst.el.setGroupLabel('');
         const ps = state.projectStats || { count: 0, bytes: 0 };
         _projectNameInst.el.setStats({ count: ps.count, bytes: ps.bytes, label: 'ASSETS' });
+        // MPI-678: Record is GALLERY-ONLY, and this is the branch that already knows
+        // which page we are on. The ORIGINAL reason is gone (MPI-723): the ItemGroup
+        // build left MpiGalleryBlock for the app-lifetime mediaImportService, so a
+        // recording made from group-history now becomes a card like any other import.
+        // The gate stays only because nobody has decided what Record should DO from
+        // the history page — lifting it is a product call, not a technical one.
+        _projectNameInst.el.setRecordVisible(true);
         refreshProjectStats();
     } else if (page === PAGE_GROUP_HISTORY) {
         const group = state.currentProject?.itemGroups?.find(g => g.id === params.groupId);
@@ -265,6 +283,7 @@ function _updateBreadcrumb(page, params) {
         const initialCount = (hs.groupId === group?.id) ? hs.count : (group?.history?.length || 0);
         const initialBytes = (hs.groupId === group?.id) ? hs.bytes : 0;
         _projectNameInst.el.setStats({ count: initialCount, bytes: initialBytes, label: 'ENTRIES' });
+        _projectNameInst.el.setRecordVisible(false);
         if (group) refreshGroupStats(group);
     }
 }

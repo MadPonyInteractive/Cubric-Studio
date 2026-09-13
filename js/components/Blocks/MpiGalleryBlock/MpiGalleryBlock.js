@@ -27,7 +27,6 @@ import { Events } from '../../../events.js';
 import { openFlowFromReuse } from '../../../services/flowService.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 import { ce, qs, gid } from '../../../utils/dom.js';
-import { recordAudioIntoProject } from '../../Compounds/MpiAudioRecorder/MpiAudioRecorder.js';
 import { navigate, PAGE_LANDING, PAGE_GALLERY, PAGE_GROUP_HISTORY } from '../../../router.js';
 import { extractFilenameFromPath, extractAbsPath, downloadMediaFiles, deleteMediaFiles, resolveMediaUrl } from '../../../utils/mediaActions.js';
 import { describeItem } from '../../../utils/describeAction.js';
@@ -154,25 +153,19 @@ export const MpiGalleryBlock = ComponentFactory.create({
          */
         let _cueAllDispatch = null;
 
-        // ── Record (MPI-573) ──────────────────────────────────────────────────
-        // The button itself lives in the grid's toolbar beside the volume — that
-        // row is the only gallery toolbar that reaches the DOM, because the grid's
-        // mount sets `el.innerHTML` and wipes this block's own header (pre-existing,
-        // left alone). The recorder stays here because the block owns the project;
-        // the ItemGroup a recording becomes is built by mediaImportService, not
-        // here — one app-lifetime listener for every ingest surface (MPI-723).
+        // Record (MPI-573) used to be wired here off a `grid.on('record')`. MPI-678
+        // moved the button to the project bar and the click handler to the shell,
+        // which calls the same exported `recordAudioIntoProject()` directly — the way
+        // MpiMediaPicker already did. This block no longer owns the other half
+        // either: since MPI-723 the ItemGroup a recording becomes is built by
+        // mediaImportService, so the shell's gallery-only gate on Record is a
+        // product decision now, not a technical one.
         //
-        // The gallery is where a recording belongs and the only place it can be
-        // reached today: a clip is project media like any other, and from a card the
-        // user drags it into an LTX audio slot — which is the only way audio reaches
-        // the PromptBox at all. Deliberately NOT gated on the current model's audio
-        // capability; capturing a voice line is worth doing before choosing what will
-        // consume it.
-        grid.on('record', () => {
-            recordAudioIntoProject().catch((err) => {
-                clientLogger.warn('MpiGalleryBlock', `recording failed: ${err?.message || err}`);
-            });
-        });
+        // The gallery is still where a recording belongs: a clip is project media like
+        // any other, and from a card the user drags it into an LTX audio slot — which
+        // is the only way audio reaches the PromptBox at all. Deliberately NOT gated
+        // on the current model's audio capability; capturing a voice line is worth
+        // doing before choosing what will consume it.
 
         const _deletingGroupIds = new Set();
         const _visibleProjectGroups = () =>
@@ -454,6 +447,9 @@ export const MpiGalleryBlock = ComponentFactory.create({
         });
         grid.on('favourite', ({ group }) => {
             updateGroup(group);
+        });
+        grid.on('archive', ({ groups }) => {
+            groups.forEach(group => updateGroup(group));
         });
         grid.on('rename', ({ group }) => {
             updateGroup(group);

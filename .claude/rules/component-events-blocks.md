@@ -15,6 +15,7 @@ EMITS:   `open-group`      `{ group: ItemGroup }`
          `gc-group`        `{ group: ItemGroup }`
          `gc-remove`       `{ groupId: string }`
          `favourite`       `{ group: ItemGroup, favourite: boolean }`
+         `archive`         `{ groups: ItemGroup[], archived: boolean }` (MPI-678) — context-menu **Archive** / **Return to gallery**, labelled off `group.archived` not off the scope. Grid flips the flag on every selected group and re-renders; Block persists via `updateGroup(group)` per group, same path as `favourite`. Multi-select is free: the scope gate makes any visible selection homogeneous.
          `rename`          `{ group: ItemGroup }` — user set `group.customName` via the context-menu **Rename** action (inline MpiInput swaps the card name span; Enter/blur commits, Escape cancels, empty clears to derived). Block persists via `updateGroup(group)`. Precedence `group.customName || derived` at all name read sites.
          `reuse`           `{ positive: string, negative: string }`
          `select`          `{ group: ItemGroup, selected: boolean }`

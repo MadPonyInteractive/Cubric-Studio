@@ -78,13 +78,6 @@
     min-width: 0;
 }
 
-/* The two sliders flex; Record must not (MPI-573). */
-.mpi-gallery-grid__record-slot {
-    display: flex;
-    align-items: center;
-    flex: 0 0 auto;
-}
-
 /* MpiProgressBar ships min-width:160px — two of them plus the icon blow past
    the center track and overlap. Toolbar sliders are deliberately short. */
 .mpi-gallery-grid__zone--center .mpi-progress {
@@ -159,6 +152,74 @@
 /* .mpi-gallery-grid__info-btn-slot {
 
 } */
+
+/* ── Archive scope toggle ────────────────────────────────────────────────── */
+/* Deliberately NOT styled like a filter chip. The chips to its left are one
+   additive single-select row; this is a scope that empties the grid, so it sits
+   behind a divider and reads as a mode switch (MPI-678). */
+
+.mpi-gallery-grid__archive-btn-slot {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    margin-left: 0.5rem;
+    padding-left: 0.6rem;
+    border-left: 1px solid var(--line-soft);
+}
+
+/* Loud on purpose: the archive scope empties the grid, and a quiet toggle would
+   leave that reading as data loss. */
+.mpi-gallery-grid__archive-btn.is-active {
+    color: var(--accent-heat);
+    background: color-mix(in oklch, var(--accent-heat) 18%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--accent-heat) 45%, transparent);
+}
+
+/* Second, larger signal that the grid below is a different scope. */
+.mpi-gallery-grid--archived .mpi-gallery-grid__tabs {
+    border-bottom-color: color-mix(in oklch, var(--accent-heat) 55%, transparent);
+}
+
+/* ── Empty archive ───────────────────────────────────────────────────────── */
+/* Only the ARCHIVE gets an empty state. The active gallery never had one and is
+   not getting one here — but a blank archive is the single way this feature can
+   look like the cards were deleted. */
+
+.mpi-gallery-grid__scope-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 4rem 1.5rem;
+    margin: 0 auto;
+    max-width: 32rem;
+    text-align: center;
+}
+
+.mpi-gallery-grid__scope-empty-icon {
+    display: flex;
+    color: var(--ink-4);
+}
+
+.mpi-gallery-grid__scope-empty-icon .mpi-icon {
+    width: 40px;
+    height: 40px;
+}
+
+.mpi-gallery-grid__scope-empty-title {
+    margin: 0;
+    font-size: var(--t-sm);
+    font-weight: 600;
+    color: var(--ink-2);
+}
+
+.mpi-gallery-grid__scope-empty-hint {
+    margin: 0;
+    font-size: var(--t-xs);
+    line-height: 1.5;
+    color: var(--ink-4);
+}
 
 /* ── Generating card slot ───────────────────────────────────────────────── */
 

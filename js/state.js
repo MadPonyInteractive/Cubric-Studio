@@ -90,7 +90,12 @@ const _state = {
     remoteComfyNeedsRestart: false, // true after a REMOTE (Pod) install — restarts the Pod's ComfyUI, NOT the local one (kept separate so a remote install never restarts a healthy local engine during a dual-engine session)
 
     // ── Gallery organization ───────────────────────────────────────────────────
-    gallerySort: { order: 'newest', filter: 'all' }, // order: 'newest'|'oldest', filter: 'all'|'images'|'videos'|'audios'|'previews'|'favorites'
+    gallerySort: { order: 'newest', filter: 'all', scope: 'active' },
+                                     // order: 'newest'|'oldest', filter: 'all'|'images'|'videos'|'audios'|'previews'|'favorites'
+                                     // scope: 'active'|'archived' — SUBTRACTIVE, unlike the additive `filter`.
+                                     // Deliberately NOT mirrored to Storage: `gallerySort` is in-memory, so the
+                                     // scope resets to 'active' every launch. Nobody should relaunch into a
+                                     // gallery that looks wiped (MPI-678).
     galleryShowInfo: Storage.getGalleryShowInfo(),
                                      // Show/hide model badges and type badges on gallery cards.
                                      // Cross-session; mirrored to localStorage by subscriber below.

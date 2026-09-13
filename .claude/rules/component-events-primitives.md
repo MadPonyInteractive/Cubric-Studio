@@ -308,7 +308,10 @@ LISTENS: (none — internal MpiModal handles `ui:close-all-popups`)
 ### MpiProjectName
 EMITS:   `up`      `{}`
          `gallery` `{}`
+         `flows`   `{}` (MPI-589) — shell answers with `Events.emit('flows:open')`, which carries the no-engine guard
+         `record`  `{}` (MPI-678) — shell calls the exported `recordAudioIntoProject()` directly (it shows the recorder, uploads, and emits `media:imported` itself)
 LISTENS: (none)
+API:     `el.setRecordVisible(visible)` (MPI-678) — **Record is GALLERY-ONLY, and the technical reason is GONE (MPI-723).** It was: `media:imported` built the ItemGroup and its only listener sat inside `MpiGalleryBlock`, so recording from group-history wrote the file + sidecar to disk and created no group. That build is now `js/services/mediaImportService.js`, app-lifetime — a recording made from any page becomes a card. The gate stays as an UNDECIDED PRODUCT QUESTION (what should Record do from inside a history entry?), so do not cite the old reason, and do not lift the gate without asking. Gated on the same `_updateBreadcrumb` branch that sets `ASSETS` vs `ENTRIES`. Flows + Record share one absolutely-centred `.mpi-project-name__centre` group, so Flows sits half a Record button left of true centre in the gallery (accepted; it was dead centre in MPI-589).
 
 ### MpiStartingComfy
 EMITS:   (none)

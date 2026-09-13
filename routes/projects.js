@@ -2044,7 +2044,7 @@ router.post('/project/save-generation', async (req, res) => {
 
         // MPI-623: a 3D Scene card is an image card carrying a `.ply`. `Output_Splat`
         // reports the trainer's own path rather than a save node's file dict, so the
-        // client turned it into a /view URL and the bytes are fetched HERE â€” the same
+        // client turned it into a /view URL and the bytes are fetched HERE — the same
         // authed proxy as the audio above, which is what makes this work on a Pod whose
         // disk the app can never open. `.ply` is the trainer's output format
         // (MpiBrushTrain returns a ply path); the add-from-cards copy derives the
@@ -2061,7 +2061,7 @@ router.post('/project/save-generation', async (req, res) => {
                 splatCompanionPath = dest;
             } catch (splatErr) {
                 await fs.remove(dest).catch(() => {});
-                logger.warn('project', `splat download failed for ${id} â€” card keeps its still, no splatPath: ${splatErr.message}`);
+                logger.warn('project', `splat download failed for ${id} — card keeps its still, no splatPath: ${splatErr.message}`);
             }
         }
 
@@ -2169,7 +2169,7 @@ router.post('/project/save-generation', async (req, res) => {
                 ? _replacePrevGenerationMs + generationMs
                 : (generationMs ?? null),
         };
-        // MPI-623 â€” set only when the `.ply` actually landed above. Same
+        // MPI-623 — set only when the `.ply` actually landed above. Same
         // `/project-file?path=` shape the add-from-cards copy re-points.
         if (splatCompanionPath) {
             metaContent.splatPath = `/project-file?path=${encodeURIComponent(splatCompanionPath)}`;
@@ -2430,6 +2430,7 @@ router.post('/project-media/:projectId/add-from-cards', async (req, res) => {
                 selectedIndex: 0,
                 open:          false,
                 favourite:     false,
+                archived:      false,
                 customName:    null,
                 history:       [id],
             });

@@ -143,7 +143,7 @@ function _addDownloadUrl(e, item) {
  *   'preview:continue'    { group, item } — preview-stage card Continue clicked (branches into new card)
  *   'preview:finish'      { group, item } — preview-stage card Finish clicked (replaces preview with final)
  *   'preview:pop-continue'{ group, item } — Pop clicked while card is queued for Finish
- *   'record'      {}                     — Record button clicked (block owns the recorder)
+ *   'archive'     { groups: [...] }      — groups had `archived` flipped; persist to disk
  *   'cue-all'     { groups, skipped, reason } — queue one job per eligible group on the
  *                                          prompt box's current recipe (block dispatches)
  */
@@ -164,7 +164,6 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     <div class="mpi-gallery-grid__slider-wrap"></div>
                     <span class="mpi-gallery-grid__slider-icon mpi-gallery-grid__volume-icon"></span>
                     <div class="mpi-gallery-grid__volume-wrap"></div>
-                    <div class="mpi-gallery-grid__record-slot"></div>
                 </div>
                 <div class="mpi-gallery-grid__zone mpi-gallery-grid__zone--right">
                     <div class="mpi-gallery-grid__tab-slot" data-filter="all"></div>
@@ -173,6 +172,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     <div class="mpi-gallery-grid__tab-slot" data-filter="audios"></div>
                     <div class="mpi-gallery-grid__tab-slot" data-filter="previews"></div>
                     <div class="mpi-gallery-grid__tab-slot" data-filter="favorites"></div>
+                    <div class="mpi-gallery-grid__archive-btn-slot"></div>
                     <div class="mpi-gallery-grid__info-btn-slot"></div>
                 </div>
             </div>
@@ -483,17 +483,15 @@ export const MpiGalleryGrid = ComponentFactory.create({
             qsa('audio[data-src], video.mpi-group-card__thumb--video', el).forEach(_applyVolume);
         });
 
-        // ── Record (MPI-573) ──────────────────────────────────────────────────
-        // Sits in the media-controls zone beside the volume, not in the filter
-        // zone it used to overlap. The button lives here because this row is the
-        // only toolbar that reaches the DOM — MpiGalleryBlock's own header is
-        // wiped by this component's mount — but the recorder itself stays in the
-        // block, which owns the project and the media:imported round trip.
-        const recordBtn = MpiButton.mount(qs('.mpi-gallery-grid__record-slot', el), {
-            icon: 'mic', label: 'Record', size: 'sm', variant: 'ghost',
-            info: 'Record a clip from your microphone into this project',
-        });
-        recordBtn.on('click', () => emit('record', {}));
+        // MPI-573 mounted Record here, in the centre zone beside the volume,
+        // reasoning that this row was the only gallery toolbar reaching the DOM.
+        // MPI-678 disproved the placement rather than the reasoning: Record is a
+        // PROJECT-level action, not something that changes what the gallery shows,
+        // and its icon+label was the ~6rem of overflow that the two sliders — the
+        // only `flex: 1 1 0` children in a 19rem track — were absorbing, rendering
+        // at ~4rem against a 7rem max-width. It now lives in the project bar beside
+        // Flows (MpiProjectName), where the shell owns both the click and the
+        // gallery-only gating.
 
         // ── Card rendering helper ─────────────────────────────────────────────
 
@@ -1537,6 +1535,11 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         { key: 'reveal',     icon: 'folder',    label: 'Open in file system' },
                         { key: 'rename',     icon: 'edit',      label: 'Rename',     disabled: targetIds.length !== 1 },
                         { key: 'card-notes', icon: 'text',      label: 'Card notes', disabled: targetIds.length !== 1 },
+                        // Labelled off the card's OWN state, not the scope. The scope
+                        // gate makes any visible selection homogeneous — every card in
+                        // view shares one `archived` value — so there is no mixed case
+                        // to resolve here (MPI-678).
+                        { key: 'archive',    icon: 'archive',   label: group.archived ? 'Return to gallery' : 'Archive' },
                         // MPI-310 — single image only: the captioner reads one image
                         // and writes one prompt, so a multi-select has no meaning.
                         { key: 'describe',   icon: 'chat',      label: 'Describe image',
@@ -1557,6 +1560,12 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         if (key === 'reveal')     emit('reveal', { groups: selected });
                         if (key === 'rename')     _startRename();
                         if (key === 'card-notes') emit('card-notes', { group });
+                        if (key === 'archive') {
+                            const next = !group.archived;
+                            selected.forEach(g => { g.archived = next; });
+                            emit('archive', { groups: selected, archived: next });
+                            _rerenderJustified('archive');
+                        }
                         if (key === 'describe')   emit('describe', { group: selected[0] });
                         if (key === 'download')   emit('download', { groups: selected });
                         if (key === 'delete')     emit('delete',   { groups: selected, source: 'context' });
@@ -1932,9 +1941,17 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 const renderReason = [..._pendingRenderReasons].join(',');
                 _pendingRenderReasons.clear();
 
-                const { order, filter } = state.gallerySort;
+                const { order, filter, scope } = state.gallerySort;
+                const wantArchived = scope === 'archived';
 
                 let display = _groups.filter(g => {
+                    // Scope gates FIRST and is subtractive: an archived group is
+                    // absent from every active-scope filter, and the active ones
+                    // are absent from the archive. Because it gates before the
+                    // filter switch, the type tabs, Favs, Previews and sort all
+                    // keep working inside the archive — which is the one bucket
+                    // big enough to need them (MPI-678).
+                    if (!!g.archived !== wantArchived) return false;
                     if (filter === 'images')   return g.type === 'image';
                     if (filter === 'videos')    return g.type === 'video';
                     if (filter === 'audios')    return g.type === 'audio';
@@ -2012,6 +2029,22 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 });
 
                 _cleanupDetachedState(activeIds);
+
+                // An empty ARCHIVE must say so. The active gallery has no empty
+                // state and is not getting one here — but an archive that renders
+                // as a blank grid reads as "my cards are gone", which is the one
+                // way this feature can look like data loss (MPI-678).
+                if (wantArchived && !allGroups.length) {
+                    const emptyEl = document.createElement('div');
+                    emptyEl.className = 'mpi-gallery-grid__scope-empty';
+                    emptyEl.innerHTML = `
+                        <span class="mpi-gallery-grid__scope-empty-icon">${renderIcon('archive', 'lg')}</span>
+                        <p class="mpi-gallery-grid__scope-empty-title">Nothing archived${filter === 'all' ? '' : ' in this filter'}</p>
+                        <p class="mpi-gallery-grid__scope-empty-hint">Right-click a card and choose Archive to put it away. Nothing is deleted — archived cards keep their files and come back whenever you want.</p>
+                    `;
+                    fragment.appendChild(emptyEl);
+                }
+
                 grid.replaceChildren(fragment);
                 if (grid.scrollTop !== prevScrollTop) {
                     const maxScrollTop = Math.max(0, grid.scrollHeight - grid.clientHeight);
@@ -2214,6 +2247,29 @@ export const MpiGalleryGrid = ComponentFactory.create({
             if (document.hidden) _stopOtherGalleryMedia(null);
         }));
 
+        // ── Archive scope toggle ─────────────────────────────────────────────
+        // A SCOPE, not a seventh facet chip — hence a toggle button behind a
+        // divider rather than another tab. `favorites` is additive (a fav still
+        // shows under All); archive is subtractive, so it cannot live in the
+        // same single-select row without costing the type filters inside it.
+
+        const archiveBtnSlot = qs('.mpi-gallery-grid__archive-btn-slot', el);
+        const _isArchived = () => state.gallerySort.scope === 'archived';
+        const _archiveTip = (on) => on
+            ? 'Showing the archive — back to the gallery'
+            : 'Show archived cards';
+        const archiveBtn = MpiButton.mount(archiveBtnSlot, {
+            icon: 'archive', size: 'sm', variant: 'ghost', toggleable: true,
+            active: _isArchived(), info: _archiveTip(_isArchived()),
+            extraClasses: 'mpi-gallery-grid__archive-btn',
+        });
+        archiveBtn.on('click', () => {
+            state.gallerySort = {
+                ...state.gallerySort,
+                scope: _isArchived() ? 'active' : 'archived',
+            };
+        });
+
         // ── Info toggle button ───────────────────────────────────────────────
 
         const infoBtnSlot = qs('.mpi-gallery-grid__info-btn-slot', el);
@@ -2282,8 +2338,20 @@ export const MpiGalleryGrid = ComponentFactory.create({
             });
         }
 
+        function _syncArchiveScope() {
+            const on = _isArchived();
+            archiveBtn.el.setActive?.(on);
+            archiveBtn.el.setAttribute('data-info', _archiveTip(on));
+            el.classList.toggle('mpi-gallery-grid--archived', on);
+        }
+        _syncArchiveScope();
+
         _unsubs.push(Events.on('state:changed', ({ key }) => {
-            if (key === 'gallerySort') { _syncTabActive(); _rerenderJustified('sort'); }
+            if (key === 'gallerySort') {
+                _syncTabActive();
+                _syncArchiveScope();
+                _rerenderJustified('sort');
+            }
         }));
 
         _rerenderJustified('init');

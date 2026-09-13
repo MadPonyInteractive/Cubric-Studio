@@ -100,6 +100,34 @@ Regression spec: `tests/desktop/gallery-media-release.spec.js`. Its fixture uses
 
 Drive seed from desired items-per-row, not pixel: `target = ((containerWidth - (N-1)*gap) / (N * aspectRef)) * 0.92`. `aspectRef` 1.6. Justified-layout per-row rescaling collapses any two seed pairs that land in the same items-per-row band → two adjacent pixel targets produce identical visual output. Current map: `ITEMS_PER_ROW_TARGET { 1:6, 2:4, 3:3, 4:2 }`. Recompute on BOTH slider input AND ResizeObserver.
 
+## Archive is a SCOPE, not a seventh filter chip (MPI-678)
+
+`state.gallerySort` is `{ order, filter, scope }`. `filter` is **additive** — a favourited card still shows under All/Images. `scope` (`'active'|'archived'`) is **subtractive**: an archived group is absent from every active-scope filter and vice versa. That is why archive is not a seventh chip — as a chip it would cost the type filters *inside* the archive, the one bucket big enough to need them.
+
+The gate is the **first** line of the predicate in `_rerenderJustified` (`if (!!g.archived !== wantArchived) return false;`), ahead of the `filter` switch — which is what keeps type tabs, Favs, Previews and sort working in either scope. Moving it into the switch breaks that; `tests/desktop/gallery-archive.spec.js` asserts Images-inside-the-archive for exactly this reason.
+
+`scope` is deliberately **NOT** mirrored to `Storage` — `gallerySort` is in-memory, so it resets to `active` every launch; nobody should relaunch into a gallery that looks wiped. Same reasoning makes the archive the **only** scope with an empty state (`.mpi-gallery-grid__scope-empty`): a blank grid is the single way this reads as deletion. The active gallery has none and did not gain one.
+
+`archived` rides the whole `g.favourite` precedent — `projectModel.js` typedef + `createItemGroup` default, `routes/projects.js` new-group default, the `persistGroups()` serializer, an `updateGroup(group)` handler in `MpiGalleryBlock`. **No new route.** It is a flag flip only: nothing moves on disk, so the GC and orphan sweep never see it, and `N ASSETS` still counts archived cards — the bytes are still spent, so that is the honest number. `MpiMediaPicker._collect()` skips archived groups, so a card you put away stops turning up in Flow slots.
+
+The context-menu entry is labelled off the **card's own** state (`Archive` / `Return to gallery`), never off the scope. The gate guarantees a visible selection is homogeneous, so multi-select comes free via the existing `targetIds` — there is no mixed-state case.
+
+## Import → card: one app-lifetime listener (MPI-723)
+
+Four surfaces emit `media:imported` — the gallery's `MpiMediaDropOverlay`, the PromptBox's own drop handler, `MpiMediaPicker`'s mic card, and `recordAudioIntoProject()`. **`js/services/mediaImportService.js` is the only thing that listens and builds the group**, started once from `js/shell.js` beside `startProjectStats()`. Keep it that way: a second listener inside a Block is exactly the bug this replaced — one Block is mounted at a time, so an import from anywhere else wrote the file and its sidecar to disk and never became a card.
+
+**The service never navigates.** A drop on the history workspace's PromptBox adds the gallery card and leaves the user on the entry they are editing. It does not select, open or toast the new card.
+
+The repaint is NOT its job. `addGroup()` persists and emits `project:group-added`, and `MpiGalleryBlock`'s listener on that event is what repaints the grid — for every add, not just imports. That costs one persist round-trip more than the old optimistic prepend, which is what the `media:import-started` / `media:import-settled` spinner (MPI-671) covers.
+
+## Record lives in the project bar, and is gallery-gated (MPI-678)
+
+Record was in the gallery toolbar's centre zone (MPI-573); it is now an `MpiProjectName` button beside Flows. It is a **project-level** action, not something that changes what the gallery shows, and its icon+label was the ~6rem of overflow the two sliders — the only `flex: 1 1 0` children in a 19rem track — were absorbing.
+
+**The gate is no longer load-bearing (MPI-723).** It was: `media:imported` built the ItemGroup, its only listener was inside `MpiGalleryBlock`, and navigation destroys the outgoing block before mounting the next — so recording from group-history wrote the file and its sidecar to disk and never created the group. That build now lives in `js/services/mediaImportService.js` on an app-lifetime listener, so an import from ANY page becomes a card. The gate is still `setRecordVisible(...)` on the same `_updateBreadcrumb` branch that sets `ASSETS` vs `ENTRIES`, and it stays — but as an undecided product question (what should Record do from a history entry?), not a technical constraint.
+
+Centring moved with it: `.mpi-project-name__flows` was `position: absolute; left: 50%` (MPI-589, so a long project name cannot shove it off-centre). Flows + Record now sit in one absolutely-centred `.mpi-project-name__centre` group, putting Flows half a Record button left of true centre in the gallery. In group-history Record is `display: none`, so Flows returns to dead centre.
+
 ## Card chrome — inverse info mode
 
 `MpiGalleryGrid` card chrome uses inverse `galleryShowInfo` model: info OFF = clean media until hover reveals metadata/actions; info ON = metadata by default, hover hides metadata and shows actions. State/preview/selection badges stay persistent. Local chip/button backgrounds, not card-wide radial scrims. Prompt excerpts stay out of gallery cards; bottom metadata = compact dimensions/time only.

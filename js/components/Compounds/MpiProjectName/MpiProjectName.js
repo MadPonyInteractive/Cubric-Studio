@@ -41,10 +41,13 @@ function _mountButton(props) {
  *   setGalleryLabel(label)             — pass '' to hide (we are at gallery root)
  *   setGroupLabel(label)               — pass '' to hide (we are not inside a group)
  *   setStats({ count, bytes, label })  — update stats; any field optional
+ *   setRecordVisible(visible)          — show/hide Record (gallery-only, MPI-678)
  *
  * Emits:
  *   'up'      {} — up-arrow clicked (navigate up one level)
  *   'gallery' {} — gallery breadcrumb segment clicked
+ *   'flows'   {} — Flows clicked (shell opens the Flow Library)
+ *   'record'  {} — Record clicked (shell owns the recorder)
  */
 export const MpiProjectName = ComponentFactory.create({
     name: 'MpiProjectName',
@@ -109,17 +112,38 @@ export const MpiProjectName = ComponentFactory.create({
         breadcrumb.append(galleryEl, sepEl, groupEl);
         textBlock.append(projectNameEl, breadcrumb);
 
-        // ── Flows (centre) ──────────────────────────────────────────────────────
+        // ── Centre group: Flows + Record ────────────────────────────────────────
         // MPI-589, Fabio's placement: "between the asset count in the gallery and the
         // project name, right at the centre top of the gallery". Absolutely centred on
         // the bar rather than flex-centred, so a long project name cannot shove it off
-        // the middle. Emits — the shell decides what opening Flows means.
+        // the middle.
+        //
+        // MPI-678 put Record beside it, so the ABSOLUTE CENTRING MOVED UP to this
+        // wrapper: the group is dead-centre and Flows now sits half a Record button
+        // left of true centre. That is the accepted cost of taking Record out of the
+        // gallery toolbar's centre zone, where it was squashing both sliders.
+        // Both emit — the shell decides what each one means.
+        const centreGroup = ce('div', { className: 'mpi-project-name__centre' });
+
         const flowsBtn = _mountButton({
             icon: 'layers', label: 'Flows', size: 'sm', variant: 'ghost',
             extraClasses: 'mpi-project-name__flows',
             info: 'Open the Flow Library',
         });
         flowsBtn.addEventListener('click', () => emit('flows', {}));
+
+        // Gallery-only, gated by the shell via `setRecordVisible` (MPI-678). That gate
+        // was load-bearing until MPI-723 moved the ItemGroup build out of
+        // MpiGalleryBlock; a recording from anywhere would become a card now. It is
+        // kept as a product decision, not a technical one — see navigation.js.
+        const recordBtn = _mountButton({
+            icon: 'mic', label: 'Record', size: 'sm', variant: 'ghost',
+            extraClasses: 'mpi-project-name__record',
+            info: 'Record a clip from your microphone into this project',
+        });
+        recordBtn.addEventListener('click', () => emit('record', {}));
+
+        centreGroup.append(flowsBtn, recordBtn);
 
         // ── Stats (right-aligned: rule + count + label · size) ─────────────────
         const statsEl = ce('div', { className: 'mpi-project-name__stats' });
@@ -149,7 +173,7 @@ export const MpiProjectName = ComponentFactory.create({
         }
         _renderStats();
 
-        el.append(backBtn, textBlock, flowsBtn, statsEl);
+        el.append(backBtn, textBlock, centreGroup, statsEl);
 
         // ── Visibility ──────────────────────────────────────────────────────────
 
@@ -190,6 +214,14 @@ export const MpiProjectName = ComponentFactory.create({
         /** @param {string} label — name of previous workspace (e.g. 'PROJECTS', 'GALLERY') */
         el.setBackLabel = (label) => {
             backLabelEl.textContent = String(label || '').toUpperCase();
+        };
+
+        /**
+         * Show or hide Record. Gallery-only: see the centre-group comment above.
+         * @param {boolean} visible
+         */
+        el.setRecordVisible = (visible) => {
+            _toggle(recordBtn, !visible);
         };
 
         /** @param {{ count?: number, bytes?: number, label?: string }} stats */
