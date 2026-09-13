@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-746", "at": "2026-09-13T16:54:15+01:00", "actor": "claude", "column": "todo", "title": "Klein samplers - switch every shipped Klein graph and Flow from euler to lcm"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-746", "at": "2026-09-13T17:06:27+01:00", "actor": "claude", "summary": "Now a member of umbrella MPI-748; phase 1 of its plan."}

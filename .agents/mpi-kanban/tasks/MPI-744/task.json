@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-744",
+  "title": "Klein head swap - replace Qwen in the Head Swap Flow with Flux 2 Klein 4B/9B + the BFS head LoRA",
+  "description": "UMBRELLA: MPI-748 - Head Swap on Klein follow-ups (created 2026-09-13; itself a member of MPI-560). Members and phase order: tasks/MPI-748/plan.md.\n\nReplace Qwen in the Head Swap Flow with Flux 2 Klein 4B/9B + the BFS Head V1 Klein LoRA. The shipped Flow (comfy_workflows/flow_head_swap.json, MPI-299) runs qwen-edit + bfs_head_v5_2511_merged_version_rank_32_fp32 (dep qwen-lora-headswap, 1.2GB) through InpaintCrop/Stitch; Fabio finds it slow and imprecise. Both Klein sizes already ship (int8 convrot). BENCH FIRST, Fabio at the node graph, then /mpi-add-flow. Source: Alissonerdx/BFS-Best-Face-Swap (MIT).\n\nBENCH EVIDENCE 2026-09-13: first Klein 9B run, no crop-stitch, about 20s, result 'not too bad'. Crop-stitch may still improve it.\n\nLORA FACTS (safetensors headers read 2026-09-13):\n- 9B: bfs_head_v1_flux-klein_9b_step3500_rank128 (663MB, epoch 3) vs step3750_rank64 (331MB, epoch 4). Two separate trainings; the README picks neither. The author's later pipeline (LTX v2.0 workflow, 2026-02-17) loads rank128, his earlier Klein workflow the rank64. Start with rank128.\n- 4B: bfs_head_v1_flux-klein_4b (rank 128, 3250 steps) is the README-recommended file. bfs_head_v1.1_optional_flux-klein_4b is NOT in the README: its embedded name is bfs_nsfw_v2_flux_klein_4b_v2 (rank 512, 10k steps). Treat it as an undocumented variant and A/B it against v1.\n- Input order is INVERTED: image 1 = body, image 2 = face. The prompt starts 'head_swap: start with Picture 1 as the base image' (README section BFS Head V1/V2 Flux 2 Klein).\n- Author workflow: workflows/Head Swap V1 Flux 2 Klein 4b_9b (base_distill).json.\n\nOPEN, for Fabio: 4B vs 9B as a tier radio (the Flow's Input_Tier already mirrors qwen tiers); crop-stitch or full frame; keep Qwen as a tier or retire it. Retiring the Qwen LoRA follows docs/playbooks/add-model/README.md section Removing - never delete the DEPS entry.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-13T14:42:47+01:00",
+  "updated_at": "2026-09-13T17:06:27+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

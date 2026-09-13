@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-746",
+  "title": "Klein samplers - switch every shipped Klein graph and Flow from euler to lcm",
+  "description": "UMBRELLA: MPI-748 - Head Swap on Klein follow-ups (created 2026-09-13; itself a member of MPI-560). Members and phase order: tasks/MPI-748/plan.md.\n\nSwitch every shipped Klein graph from the euler sampler to lcm. DECIDED by Fabio 2026-09-13 on bench evidence; this card is the execution plus the per-op verification.\n\nEVIDENCE (Fabio, 2026-09-13):\n- BFS Klein head swap workflow (Alissonerdx/BFS-Best-Face-Swap) ships lcm; euler in the same graph was 'terrible' by comparison.\n- Klein text-to-image: 3 prompts, each at one fixed seed, lcm vs euler = 6 generations. lcm removes the EXTRA LIMBS euler produces, and quality is slightly better.\n\nWHY WE WERE ON EULER: inherited, never measured. The official Comfy-Org templates for distilled Klein 4B and 9B edit use euler / Flux2Scheduler 4 steps / cfg 1, exactly our config (docs/models/klein/README.md, Shipped config). No sampler A/B was ever run on our Klein graphs; the MPI-600 9B bench is euler-only. The BFS graph differs from ours ONLY in the sampler, so the head swap A/B isolated it.\n\nSCOPE (scanned 2026-09-13 across comfy_workflows/**; no sampler is shared with a non-Klein model):\n- Klein image graph, one template generating both sizes via comfy_workflows/scripts/workflow_generation/generate_klein.py -> klein_t2i.json (4B) and klein_9b_t2i.json (9B). KSamplerSelect nodes 24, 112, 171. The template exists TWICE and BOTH must change (Fabio): comfy_workflows/raw/klein_t2i_template.json (the UI-format authoring copy) and comfy_workflows/scripts/workflow_generation/klein_t2i_template.json (API format). Edit both, then REGENERATE; never hand-edit the generated files.\n- LanPaint_KSampler node 652 (the removal path, docs/models/klein/removal.md) also says euler, but it is LanPaint's inner sampler, not a KSamplerSelect. Do NOT flip it blind: A/B removal separately and keep euler there if lcm hurts.\n- Flows on Klein 9B, node 188 KSamplerSelect in raw + runtime each: flow_draw_it_in, flow_object_stamp, flow_scribble.\n- Docs naming euler as the shipped config: docs/models/klein/README.md (Chain + Shipped config), docs/models/klein/removal.md.\n- The Klein head swap Flow (MPI-744) is born on lcm, so it is not in this card.\n\nTRAP: in the Klein graph, Flux2Scheduler.steps and CFGGuider.cfg have input links, so their widget values are dead (docs/models/klein/README.md, WIDGET-VS-LINK). sampler_name is a plain widget, so the change is one value per node, but do not touch steps or cfg while in there.\n\nVERIFY: same-seed lcm vs euler per op that owns a sampler (t2i, edit/i2i, depth, removal) on both sizes, and one run per Flow; the generated diff shows ONLY sampler_name changing; tests/inject-params-titles.test.cjs, scripts/verify-workflow.mjs and validate-injection-rules.mjs green.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-13T16:54:15+01:00",
+  "updated_at": "2026-09-13T17:06:27+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

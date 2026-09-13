@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-748",
+  "title": "Head Swap on Klein follow-ups - lcm samplers, Output_Display, the Klein Head Swap Flow (umbrella)",
+  "description": "UMBRELLA: MPI-560 - The Flow track (member added 2026-09-13). Members and phase order: tasks/MPI-560/plan.md.\n\nUMBRELLA created 2026-09-13 at Fabio's request over the four cards filed in the BFS face swap session: MPI-746 (Klein euler -> lcm), MPI-747 (Output_Display), MPI-744 (Klein Head Swap Flow), MPI-745 (LTX 2.3 video head swap, DEFERRED - may be rejected). Worked ONE CARD AT A TIME across handoffs, in the phase order in plan.md; no parallel batch. The umbrella carries no code and closes when its last non-deferred member does. Adjacent, NOT a member: MPI-348 (Krea2 BFS bench, doing) stays under MPI-560 phase 4.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-13T17:05:46+01:00",
+  "updated_at": "2026-09-13T17:05:46+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

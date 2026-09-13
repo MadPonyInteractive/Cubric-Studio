@@ -28,6 +28,7 @@ member when the phase covering it lands, and say so in its card.
 | MPI-538 | LTX 2.3 lipsync Flow | 3 |
 | MPI-504 | Character sheet — attributes or a reference photo in, a video-reference sheet out (front body HEADLESS). **Bench** | 4 |
 | MPI-348 | Krea2 swap family: face / head / character, co-developed in the node graph. **Bench** | 4 |
+| MPI-748 | **Umbrella** (added 2026-09-13): Head Swap on Klein follow-ups — MPI-746 (Klein `euler` → `lcm`), MPI-747 (`Output_Display`), MPI-744 (Klein Head Swap Flow), MPI-745 (LTX video head swap, deferred). One card per session; order in `tasks/MPI-748/plan.md` | 4 |
 | MPI-259 | Flows v2 — install / multi-model / reuse paths, UI design pass, 2nd flow | 5 |
 | MPI-532 | Community flow packages — data-only folders in `user_flows/`. **Targets 1.6** | 6 |
 

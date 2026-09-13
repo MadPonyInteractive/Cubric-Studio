@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-744", "at": "2026-09-13T14:42:47+01:00", "actor": "claude", "column": "todo", "title": "Klein head swap - replace Qwen in the Head Swap Flow with Flux 2 Klein 4B/9B + the BFS head LoRA"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-744", "at": "2026-09-13T14:43:17+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio is benching it now: first Klein 9B run, no crop-stitch, about 20s, result not too bad. Bench work, owns no repo file yet."}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-744", "at": "2026-09-13T17:06:27+01:00", "actor": "claude", "summary": "Umbrella re-pointed from MPI-560 to MPI-748 (which is itself a MPI-560 member)."}

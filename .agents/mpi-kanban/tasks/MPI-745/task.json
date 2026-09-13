@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-745",
+  "title": "LTX 2.3 video head swap - bench the BFS head swap IC-LoRA v3 as a Flow candidate",
+  "description": "UMBRELLA: MPI-748 - Head Swap on Klein follow-ups (created 2026-09-13; itself a member of MPI-560). Members and phase order: tasks/MPI-748/plan.md.\n\nVideo head swap on our shipped LTX 2.3 with the BFS head swap IC-LoRA from Alissonerdx/BFS-Best-Face-Swap-Video. BENCH FIRST, Fabio at the node graph, then /mpi-add-flow (LTX workflows land as Flows, never ops). Fabio: after the image swaps (Klein, Krea2 MPI-348).\n\nVERSION MAP (verified 2026-09-13 from the model filenames each author workflow loads):\n- ltx-2/ (head_swap_v1_13500_first_frame, v1_8750_first_and_last_frame, v2_multimodes) and the IMAGE repo's bfs_head_swap_v1_ltx2_ic_lora_* files = LTX-2 19B. The author (discussion #9): the v2.0 work will not work on 2.3.\n- ltx-2.3/head_swap_v3_rank_64 (654MB) and head_swap_v3_rank_adaptive_fro_098 (1.36GB) = LTX-2.3 22B. THIS is our target. Workflow: workflows/workflow_ltx2_head_swap_drag_and_drop_v3.0.json - the filename says ltx2 but it loads ltx-2.3-22b-distilled.\n- ltx-2.5/head_swap_ltx25_r128_v1.1 and r64_v1.1 = LTX-2.5 22B distilled (2026-08-24). Needs the engine bump first (MPI-578).\n\nTRAP: all three generations share 48 blocks and dim 4096, so a wrong-version LoRA loads with NO error and simply performs badly. Check the folder it came from, not the load log.\n\nV3 SHAPE (README): V1/V2 anchor identity on a head-swapped frame 0; V3 instead composites the reference face into a side strip on EVERY guide frame (persistent template) and uses an Ollama description as the prompt. The v3.0 workflow also loads a gemma abliterated LoRA. Trigger: head swap. Trained at 768; 768 is the recommended inference resolution.\n\nQUALITY CEILING (author, discussion #21): LTX works but ghosts; the Wan 2.2 Bernini finetune in wan22/ is more consistent but 640px, 16fps and shorter.",
+  "column": "todo",
+  "maturity": "deferred",
+  "status": "active",
+  "created_at": "2026-09-13T14:42:48+01:00",
+  "updated_at": "2026-09-13T17:06:27+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
