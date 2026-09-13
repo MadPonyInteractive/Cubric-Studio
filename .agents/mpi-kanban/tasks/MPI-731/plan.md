@@ -4,6 +4,9 @@
 
 Project mode: scalable-foundation.
 
+**CLOSED 2026-09-13 (session `22ada69c`).** Item 8 landed in `2fbfea22`; item 6 was dropped;
+every other item is done and Fabio-verified. What follows is the plan as it was worked.
+
 Every surface that plays a generated audio result hands the user Chromium's default
 `<audio controls>`: a grey pill with a native slider, native icons and no waveform. MPI-730
 gave the gallery card a real scrub track; the player is the other half and the one the user
@@ -427,6 +430,10 @@ so do NOT wait on its claim `b0bd757e`. In `types.js` add `MpiVolumeControlProps
 fix the stale `MpiWaveformProps` (Fabio approved). Commit ONLY those lines: the file carries
 MPI-728's +13 uncommitted hunk, so build the index blob from HEAD. Then a short "The player"
 section in `docs/gallery-audio-cards.md` (133/200), then `mpi-end-session`.
+- [x] **8. Typedefs + doc** (2026-09-13, `2fbfea22`). `types.js`: `MpiVolumeControlProps`,
+      `MpiProgressBarProps.orientation`, `MpiWaveformProps` corrected. Committed from a hand-built
+      index blob, so MPI-728's uncommitted `MpiOllamaSetupProps` hunk stayed in the tree.
+      `docs/gallery-audio-cards.md` gained "The player"; the `docs/README.md` row names it.
 
 ## Remaining Work
 
@@ -449,7 +456,8 @@ section in `docs/gallery-audio-cards.md` (133/200), then `mpi-end-session`.
       on the bar. 11 passed across `flow-audio-player`, `workspace-sweep`, `mask-persist-roundtrip`.
 - Dead code noticed, not touched: `.mpi-group-history-block__bottom` (template div, its CSS and
   a `focus-mode.css` rule) — nothing mounts there; the PromptBox goes to `#prompt-box-mount`.
-- `js/components/types.js`'s `MpiWaveformProps` typedef is **stale** from MPI-730 — it says
+- **FIXED in item 8 (`2fbfea22`, Fabio approved).** `js/components/types.js`'s
+  `MpiWaveformProps` typedef was **stale** from MPI-730 — it says
   the played layer is an `--accent-heat` tint (it is `--accent-audio` now) and its `seek`
   payload omits `modified`. Not this card's mess and not this card's file to fix; flag it
   to the user, and fold it into item 8 only with permission.

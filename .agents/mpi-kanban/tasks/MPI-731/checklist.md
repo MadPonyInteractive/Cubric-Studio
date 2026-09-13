@@ -4,7 +4,7 @@ Eight items, in order. 1 → 4 are the player; 5 and 6 are the consistency pass 
 for; 7 and 8 close it. Full detail and every trap live in `plan.md` — this is the state, not
 the spec.
 
-- [ ] **Implementation**
+- [x] **Implementation**
   - [x] 1. `MpiProgressBar` gains `orientation: 'vertical'` — additive, horizontal path
         untouched, `writing-mode: vertical-lr` (native in Chromium 142 / Electron 41)
   - [x] 2. `MpiVolumeControl` compound — mute button + hover-reveal vertical volume, owns no
@@ -27,8 +27,10 @@ the spec.
   - [x] 7. `tests/desktop/flow-audio-player.spec.js` + the MPI-727 regression spec + a live
         check in Fabio's own app (Stems + Text to Speech, painted waves, "1" 2026-09-13).
         Item 6 brings its own gallery checks
-  - [ ] 8. Registrations (`preloadStyles.js`, `types.js` — no longer claimed) and
-        `docs/gallery-audio-cards.md` (`MpiVolumeControl.css` preload line already landed with 5)
+  - [x] 8. `types.js` typedefs (`MpiVolumeControlProps`, `MpiProgressBarProps.orientation`, the
+        stale `MpiWaveformProps` fixed with Fabio's OK) and "The player" in
+        `docs/gallery-audio-cards.md`, `2fbfea22`. `preloadStyles.js` needed nothing: all three
+        CSS files were already registered
 
 ## Waiting on nobody
 

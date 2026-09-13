@@ -177,3 +177,21 @@ Card is open. Evidence per item, newest last.
 
 - Text to Speech, single output: one player, painted wave, played through; the halo digits read.
   With the Stems check above, items 4 and 7 are closed on his word.
+
+### 8. Typedefs + doc (2026-09-13, session `22ada69c`, `2fbfea22`)
+
+- `js/components/types.js`: `MpiVolumeControlProps` (props, API and emits from the
+  `MpiVolumeControl.js` header); `MpiProgressBarProps.orientation`; `MpiWaveformProps` corrected
+  to what `MpiWaveform.css:45-46` paints (`--accent-audio`, mixed in oklab) and to the `seek`
+  payload the component header documents (`modified`). Fabio approved the Waveform fix.
+- Hand-built index blob (HEAD + these edits only): `git show --stat 2fbfea22` = 3 files
+  (`types.js`, `docs/gallery-audio-cards.md`, `docs/README.md`). Afterwards
+  `git diff --stat -- js/components/types.js` = `+13`, which is MPI-728's `MpiOllamaSetupProps`
+  hunk, still in the worktree. `npx eslint --max-warnings=0 js/components/types.js` passed
+  (asserted inside the commit script).
+- `docs/gallery-audio-cards.md` "The player" (157/200 lines). Every symbol it names was grepped
+  in `MpiBaseFlow.js` first: `_plainAudioPlayers` :254, `_dockAudioPlayer` :255,
+  `_sharedAudioPlayer` :2347, `_hasViewableResult` :2476, N-output `hotkeys: false` :2760.
+- `js/shell/preloadStyles.js`: no edit needed. `git show HEAD:js/shell/preloadStyles.js` already
+  lists `MpiWaveform.css` :83, `MpiVolumeControl.css` :85, `MpiAudioPlayer.css` :87.
+- `python validate_board.py .` exit 0; the `docs/README.md` row points at `gallery-audio-cards.md`.
