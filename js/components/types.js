@@ -1912,6 +1912,30 @@
  */
 
 /**
+ * @typedef {Object} MpiAudioPlayerProps (Compound — js/components/Compounds/MpiAudioPlayer)
+ * @property {string}  [src]          - Audio URL. Set once; the inner <audio> is never re-pointed
+ * @property {string}  [mask]         - Baked waveform mask (the item's sidecar `thumbPath`).
+ *                                      Omitted → the track paints its fills, no wave, still scrubs
+ * @property {number}  [duration=0]   - Clip length in seconds, painted before metadata lands
+ * @property {boolean} [hotkeys=true] - SPACE / M / volume keys while on screen. false for N
+ *                                      players side by side, or SPACE plays all of them
+ *
+ * play │ MpiWaveform │ MpiVolumeControl, the time laid OVER the waveform: the buttons
+ * are the ends and the waveform is the bar joining them, flush against both and as
+ * tall as they are. NO width of its own — the consumer sets it and the waveform takes
+ * what the buttons leave. A sibling of
+ * MpiVideoControlBar, not a mode of it; mute/volume wiring copied from it.
+ *
+ * Owns ONE <audio>. A consumer that shows the same sound in two places MOVES the
+ * instance: a fresh element with the same src restarts from zero (MPI-727).
+ *
+ * Instance methods (on instance.el):
+ *   getAudioElement()  — the inner <audio>
+ *   setMask(url)       — swap the waveform mask
+ *   destroy()          — pauses, unbinds hotkeys, destroys the sub-components
+ */
+
+/**
  * @typedef {Object} MpiWaveformProps (Compound — js/components/Compounds/MpiWaveform)
  * @property {string} [mask]       - URL of the baked waveform mask (an audio item's
  *                                   sidecar `thumbPath`). Omitted → fills, no wave.

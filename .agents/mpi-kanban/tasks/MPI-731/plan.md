@@ -387,12 +387,16 @@ settled below from the code, not from preference. Do not re-litigate them — bu
       comment): hotkey changes arrive through `setValue` and are not snapshotted. Tests 2 + 3
       extended; both halves falsified.
 
-**Where it stands (2026-09-12, session `18a9cd9e`):** items 1, 2, wheel, 5 and zero-as-muted
-done, verified, Fabio-approved. **Item 5b done too** — Fabio verified live; the rule files
-(`component-mounts.md`, `component-events-blocks.md`) now name `#controls-mount`, with his
-permission. **NEXT: item 3** — `MpiAudioPlayer` as a **very small widget whose width the
-consumer sets**, so it fits a Flow; copy `MpiVideoControlBar`'s `_toggleMute` +
-`_doVolume`-unmutes-on-nonzero wiring. Then item 4 (wire into `MpiBaseFlow`).
+**Where it stands (2026-09-12, session `37864109`, claim `d6489e59`):** items 1, 2, wheel, 5,
+zero-as-muted and 5b done, verified, Fabio-approved. **Item 3 BUILT, uncommitted** —
+`js/components/Compounds/MpiAudioPlayer/` (one row, no width of its own, one `<audio>`,
+`_toggleMute`/`_doVolume` copied from the video bar), plus its `preloadStyles.js` line and
+`MpiAudioPlayerProps` typedef. Spec test 5 green; falsification run in `validation.md`.
+**Fabio looked (2026-09-13): behaviour approved; layout changed** to his "buttons are the ends,
+the waveform is the bar joining them, time on top" (Plan Drift 2026-09-13) — built, 5/5 green,
+falsified. Committed with MPI-733's three Cue-all rule-map lines (message `a57c9fbc`, handed
+over by Fabio). **NEXT: Fabio's second look at the joined layout, then item 4** (wire into
+`MpiBaseFlow`).
 
 ## Remaining Work
 
@@ -498,6 +502,28 @@ consumer sets**, so it fits a Flow; copy `MpiVideoControlBar`'s `_toggleMute` +
   `#tool-container` — directly on top of the PromptBox, where its `bottom: 100%` chrome (the
   expand toggle at `top: -10px`, the op strip) landed. Two parents, so no CSS-only reorder: the
   bar moved to a shell slot instead.
+- **2026-09-12 — item 3 built slightly off its spec, each for a reason.** (a) **The player's own
+  registrations landed WITH it**, not in item 8: `components.md` makes the `preloadStyles.js` line
+  and the typedef part of creating a component, MPI-728's claim is gone, and an unregistered sheet
+  was measured flashing in item 2. Item 8 keeps the rest (`MpiVolumeControlProps`,
+  `MpiProgressBarProps.orientation`, the doc section, the stale `MpiWaveformProps`). (b) **The time
+  reads the clip's LENGTH at rest and ELAPSED once it moves** (voice-note convention), one `mm:ss`,
+  not `cur / dur` — two stamps would eat the waveform at the dock's width. Fabio judges it at the
+  look. (c) **No `ended` special case**: at the end `currentTime === duration`, so the fill is
+  already 1, and nothing here (no `mouseleave`) ever empties it; test 5 asserts it. (d) The flyout
+  info strings drop "(SPACE)"/"(M)" under `hotkeys: false`, same reason as `MpiVolumeControl`'s
+  `info` prop. (e) Cardless extra, handed over by Fabio: MPI-733's three Cue-all lines in
+  `component-events-blocks.md` / `component-mounts.md` (its session could not write them under
+  this card's claim).
+- **2026-09-13 — Fabio's look at item 3: behaviour approved ("it works fine"), layout changed.**
+  The play and mute buttons are the ENDS of the widget and the waveform is the bar that JOINS
+  them: flush against both edges (no row gap), exactly as tall as the buttons
+  (`align-self: stretch`), the bottom layer. The time moved from its own slot ONTO the waveform
+  (`position: absolute`, left, `--ink-1`, `pointer-events: none` so a click on it still scrubs).
+  Row is now `play │ waveform(+time) │ volume`. Test 5's layout block rewritten to match (seams,
+  height, leftover, time on and above the wave, click-through) — do not drift back to a separate
+  time slot. A `display: flex` on the button holders was tried and REMOVED: falsification showed
+  the wave already matches the buttons' height without it.
 
 ## Verification
 

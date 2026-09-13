@@ -648,3 +648,274 @@ test('video Group History: the transport bar sits below the PromptBox and nothin
         await closeApp(app);
     }
 });
+
+/**
+ * Item 3 — `MpiAudioPlayer`, mounted bare against real audio.
+ *
+ * `/voices/child_1.opus` is 11.1s of real speech that `express.static` already serves, so the
+ * spec bakes nothing. It runs MASKLESS — the wave itself only paints in a real app — so what it
+ * proves is the transport: the width is the consumer's and the waveform takes it, and every
+ * control reaches the one `<audio>` and is told the element's state back. Volumes are kept low:
+ * this plays out loud on the machine running it.
+ */
+test('MpiAudioPlayer: one row sized by its consumer, driving one real <audio>', async ({}, testInfo) => {
+    const { app, window, pageErrors } = await launchApp(testInfo);
+
+    try {
+        await window.waitForTimeout(6000);
+        await clearBootModals(window);
+
+        await window.evaluate(async () => {
+            const { MpiAudioPlayer } = await import('/js/components/Compounds/MpiAudioPlayer/MpiAudioPlayer.js');
+            // Pinned low, with room above for the volume flyout. 260px is the result dock.
+            const host = document.createElement('div');
+            host.id = 'mpi731-player-probe';
+            host.style.cssText = 'position:fixed;left:40px;bottom:120px;width:260px;z-index:99999;background:#000';
+            document.body.appendChild(host);
+            const player = MpiAudioPlayer.mount(host, { src: '/voices/child_1.opus', duration: 11 });
+            const audio = player.el.getAudioElement();
+            audio.volume = 0.2;
+            window.__mpi731p = { player, host, audio };
+        });
+
+        // The stylesheet lands async on first mount, and the metadata after the network.
+        await window.waitForFunction(() => {
+            const { player, audio } = window.__mpi731p;
+            return audio.readyState >= 1
+                && getComputedStyle(player.el).display === 'flex'
+                && getComputedStyle(player.el.querySelector('.mpi-volume-control__flyout')).position === 'absolute';
+        }, null, { timeout: 15000 });
+        await window.waitForTimeout(350);
+
+        // ── The row, at three consumer widths ─────────────────────────────────────────────
+        // The buttons are the ends and the waveform is the bar joining them (Fabio, 2026-09-13):
+        // flush against both, as tall as they are, with the time laid ON it.
+        const layout = (w) => window.evaluate((w) => {
+            const { player, host } = window.__mpi731p;
+            host.style.width = `${w}px`;
+            const q = (sel) => player.el.querySelector(sel).getBoundingClientRect();
+            const row = player.el.getBoundingClientRect();
+            const play = q('[data-mount="play"] .mpi-btn');
+            const mute = q('.mpi-volume-control .mpi-btn');
+            const wave = q('.mpi-waveform');
+            const timeEl = player.el.querySelector('.mpi-audio-player__time');
+            const time = timeEl.getBoundingClientRect();
+            // Painted ABOVE the wave: let it take the pointer for one hit-test, then put it back.
+            timeEl.style.pointerEvents = 'auto';
+            const onTop = document.elementFromPoint(time.x + time.width / 2, time.y + time.height / 2) === timeEl;
+            timeEl.style.pointerEvents = '';
+            return {
+                rowWidth: row.width,
+                leftSeam: wave.left - play.right,
+                rightSeam: mute.left - wave.right,
+                heightDiff: Math.abs(wave.height - play.height),
+                centreSpread: Math.abs((wave.y + wave.height / 2) - (play.y + play.height / 2)),
+                leftover: row.width - play.width - mute.width - wave.width,
+                timeOnWave: time.left >= wave.left && time.right <= wave.right
+                    && time.top >= wave.top && time.bottom <= wave.bottom,
+                timeOnTop: onTop,
+                track: wave.width,
+            };
+        }, w);
+
+        const dock = await layout(260);
+        expect(dock.rowWidth, 'the player is exactly as wide as its consumer made it').toBeCloseTo(260, 0);
+        expect(Math.abs(dock.leftSeam), 'the waveform starts right at the play button\'s edge').toBeLessThan(1);
+        expect(Math.abs(dock.rightSeam), 'and ends right at the mute button\'s edge').toBeLessThan(1);
+        expect(dock.heightDiff, 'as tall as the buttons it joins').toBeLessThan(1);
+        expect(dock.centreSpread, 'ONE row, not two').toBeLessThan(2);
+        expect(Math.abs(dock.leftover), 'the waveform takes every pixel the two buttons leave').toBeLessThan(1);
+        expect(dock.timeOnWave, 'the time sits ON the waveform').toBe(true);
+        expect(dock.timeOnTop, 'painted above it, not under it').toBe(true);
+
+        const wide = await layout(480);
+        expect(wide.rowWidth).toBeCloseTo(480, 0);
+        expect(wide.track - dock.track, 'every extra pixel goes to the waveform').toBeCloseTo(220, 0);
+
+        const narrow = await layout(160);
+        expect(narrow.rowWidth, 'no minimum width of its own: a 160px consumer gets a 160px player')
+            .toBeCloseTo(160, 0);
+
+        await layout(260);
+        await window.waitForTimeout(100);
+        await window.locator('#mpi731-player-probe').screenshot({ path: testInfo.outputPath('audio-player-260.png') });
+
+        const st = () => window.evaluate(() => {
+            const { player, audio } = window.__mpi731p;
+            const vc = player.el.querySelector('.mpi-volume-control');
+            return {
+                paused: audio.paused,
+                t: audio.currentTime,
+                ended: audio.ended,
+                muted: audio.muted,
+                volume: Math.round(audio.volume * 100),
+                playActive: player.el.querySelector('[data-mount="play"] .mpi-btn').classList.contains('is-active'),
+                time: player.el.querySelector('.mpi-audio-player__time').textContent,
+                progress: player.el.querySelector('.mpi-waveform').getProgress(),
+                slider: parseFloat(vc.querySelector('.mpi-progress__input').value),
+                muteActive: vc.querySelector('.mpi-btn').classList.contains('is-active'),
+            };
+        });
+
+        const pts = await window.evaluate(() => {
+            const { player } = window.__mpi731p;
+            const c = (sel) => {
+                const r = player.el.querySelector(sel).getBoundingClientRect();
+                return { x: r.x + r.width / 2, y: r.y + r.height / 2, left: r.x, w: r.width };
+            };
+            return { play: c('[data-mount="play"] .mpi-btn'), track: c('.mpi-audio-player__track'), mute: c('.mpi-volume-control .mpi-btn') };
+        });
+
+        const idle = await st();
+        expect(idle.time, 'at rest the time reads the clip\'s LENGTH').toBe('00:11');
+        expect(idle, 'and the volume control shows the element\'s level').toMatchObject({ slider: 20, paused: true, playActive: false });
+
+        // ── Play, and SPACE with the play button still focused from the click ──────────────
+        await window.mouse.click(pts.play.x, pts.play.y);
+        await window.waitForTimeout(1500);
+        const playing = await st();
+        expect(playing, 'the play button plays the audio').toMatchObject({ paused: false, playActive: true });
+        expect(playing.progress, 'and the waveform fills').toBeGreaterThan(0.03);
+        expect(playing.time, 'and the time now reads ELAPSED').not.toBe('00:11');
+
+        await window.keyboard.press('Space');
+        await window.waitForTimeout(300);
+        expect(await st(), 'SPACE pauses — exactly once, not a native click AND a hotkey')
+            .toMatchObject({ paused: true, playActive: false });
+        await window.keyboard.press('Space');
+        await window.waitForTimeout(300);
+        expect(await st(), 'SPACE again plays').toMatchObject({ paused: false, playActive: true });
+
+        // ── Scrub: a click at half the waveform, while it plays ────────────────────────────
+        await window.mouse.click(pts.track.left + pts.track.w * 0.5, pts.track.y);
+        await window.waitForTimeout(250);
+        const scrubbed = await st();
+        // A RANGE, never a point: the clip keeps playing through the settle.
+        expect(scrubbed.t, 'a click at 50% lands in the middle of the clip').toBeGreaterThan(4.5);
+        expect(scrubbed.t).toBeLessThan(7.5);
+        expect(scrubbed.paused, 'and it keeps playing').toBe(false);
+
+        // The time sits ON the wave, so it must not eat the click: a click on it scrubs to near
+        // the start, like the wave beneath it.
+        const timeAt = await window.evaluate(() => {
+            const r = window.__mpi731p.player.el.querySelector('.mpi-audio-player__time').getBoundingClientRect();
+            return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+        });
+        await window.mouse.click(timeAt.x, timeAt.y);
+        await window.waitForTimeout(250);
+        expect((await st()).t, 'a click ON the time scrubs, it does not swallow the click').toBeLessThan(3);
+
+        // ── Volume: hidden until hovered, then mute, wheel, and the element mirrored back ──
+        const flyout = () => window.evaluate(() => {
+            const { player } = window.__mpi731p;
+            const slider = player.el.querySelector('.mpi-volume-control__slider');
+            const r = slider.getBoundingClientRect();
+            return {
+                visibility: getComputedStyle(player.el.querySelector('.mpi-volume-control__flyout')).visibility,
+                height: r.height,
+                reachable: slider.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)),
+            };
+        });
+        expect((await flyout()).visibility, 'the volume flyout is hidden before any hover').toBe('hidden');
+        await window.mouse.move(pts.mute.x, pts.mute.y);
+        await window.waitForTimeout(350);
+        expect(await flyout(), 'hovering mute opens it whole, and the player clips none of it')
+            .toMatchObject({ visibility: 'visible', reachable: true });
+
+        await window.mouse.click(pts.mute.x, pts.mute.y);
+        await window.waitForTimeout(200);
+        expect(await st(), 'mute mutes the AUDIO').toMatchObject({ muted: true, muteActive: true });
+
+        await window.mouse.wheel(0, -100);
+        await window.waitForTimeout(250);
+        expect(await st(), 'raising the volume while muted unmutes, like the video bar')
+            .toMatchObject({ volume: 25, slider: 25, muted: false, muteActive: false });
+
+        await window.mouse.click(pts.mute.x, pts.mute.y);
+        await window.waitForTimeout(200);
+        await window.mouse.click(pts.mute.x, pts.mute.y);
+        await window.waitForTimeout(200);
+        expect(await st(), 'and mute round-trips').toMatchObject({ muted: false, muteActive: false });
+
+        await window.evaluate(() => { window.__mpi731p.audio.volume = 0.1; });
+        await window.waitForTimeout(150);
+        expect(await st(), 'the control follows the ELEMENT, whoever moved it').toMatchObject({ volume: 10, slider: 10 });
+
+        // ── The hotkeys, pointer away and nothing focused ──────────────────────────────────
+        await window.mouse.move(5, 5);
+        await window.evaluate(() => document.activeElement?.blur());
+        await window.keyboard.press('m');
+        await window.waitForTimeout(200);
+        expect(await st(), 'M mutes').toMatchObject({ muted: true, muteActive: true });
+        await window.keyboard.press('m');
+        await window.waitForTimeout(200);
+        expect(await st(), 'M again unmutes').toMatchObject({ muted: false, muteActive: false });
+        await window.keyboard.press('ArrowUp');
+        await window.waitForTimeout(200);
+        expect(await st(), 'arrow up is +10').toMatchObject({ volume: 20, slider: 20 });
+        await window.keyboard.press('ArrowDown');
+        await window.waitForTimeout(200);
+        expect(await st(), 'arrow down is -10').toMatchObject({ volume: 10, slider: 10 });
+
+        // ── The end holds the fill full ─────────────────────────────────────────────────────
+        await window.evaluate(() => {
+            const { audio } = window.__mpi731p;
+            audio.currentTime = Math.max(0, audio.duration - 0.4);
+        });
+        await window.waitForFunction(() => window.__mpi731p.audio.ended, null, { timeout: 5000 });
+        await window.waitForTimeout(200);
+        expect(await st(), 'at the end the waveform stays FULL and the button shows play')
+            .toMatchObject({ ended: true, progress: 1, paused: true, playActive: false });
+
+        // ── A player nobody can see does not answer SPACE ───────────────────────────────────
+        await window.evaluate(() => { window.__mpi731p.host.style.display = 'none'; });
+        await window.keyboard.press('Space');
+        await window.waitForTimeout(400);
+        expect((await st()).paused, 'hidden, SPACE leaves it alone').toBe(true);
+        await window.evaluate(() => { window.__mpi731p.host.style.display = ''; });
+        await window.waitForTimeout(100);
+        await window.keyboard.press('Space');
+        await window.waitForTimeout(400);
+        expect((await st()).paused, 'visible again, SPACE plays it').toBe(false);
+
+        // ── `hotkeys: false`: N players side by side, only one answers SPACE ────────────────
+        const second = await window.evaluate(async () => {
+            const { MpiAudioPlayer } = await import('/js/components/Compounds/MpiAudioPlayer/MpiAudioPlayer.js');
+            const host = document.createElement('div');
+            host.id = 'mpi731-player-probe-2';
+            host.style.cssText = 'position:fixed;left:340px;bottom:120px;width:260px;z-index:99999;background:#000';
+            document.body.appendChild(host);
+            const player = MpiAudioPlayer.mount(host, { src: '/voices/child_1.opus', duration: 11, hotkeys: false });
+            player.el.getAudioElement().volume = 0.1;
+            window.__mpi731p.second = player;
+            const r = player.el.querySelector('[data-mount="play"] .mpi-btn').getBoundingClientRect();
+            return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+        });
+        await window.mouse.click(second.x, second.y);
+        await window.waitForTimeout(800);
+        await window.mouse.move(5, 5);
+        await window.evaluate(() => document.activeElement?.blur());
+        await window.keyboard.press('Space');
+        await window.waitForTimeout(400);
+        expect(await window.evaluate(() => ({
+            first: window.__mpi731p.audio.paused,
+            second: window.__mpi731p.second.el.getAudioElement().paused,
+        })), 'SPACE paused the hotkey player and left the hotkeys:false one playing')
+            .toEqual({ first: true, second: false });
+
+        // ── destroy() stops the sound ───────────────────────────────────────────────────────
+        expect(await window.evaluate(() => {
+            const audio = window.__mpi731p.second.el.getAudioElement();
+            window.__mpi731p.second.destroy();
+            window.__mpi731p.player.destroy();
+            document.getElementById('mpi731-player-probe')?.remove();
+            document.getElementById('mpi731-player-probe-2')?.remove();
+            return audio.paused;
+        }), 'destroying a PLAYING player pauses it').toBe(true);
+        await window.evaluate(() => { delete window.__mpi731p; });
+
+        expect(pageErrors, 'no renderer errors').toEqual([]);
+    } finally {
+        await closeApp(app);
+    }
+});

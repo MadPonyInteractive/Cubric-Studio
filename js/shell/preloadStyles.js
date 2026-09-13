@@ -84,6 +84,7 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Compounds/MpiVideoSurface/MpiVideoSurface.css',
   'js/components/Compounds/MpiVolumeControl/MpiVolumeControl.css',
   'js/components/Compounds/MpiVideoControlBar/MpiVideoControlBar.css',
+  'js/components/Compounds/MpiAudioPlayer/MpiAudioPlayer.css',
   'js/components/Compounds/MpiVoicePicker/MpiVoicePicker.css',
   'js/components/Compounds/MpiFlowResultDock/MpiFlowResultDock.css',
 

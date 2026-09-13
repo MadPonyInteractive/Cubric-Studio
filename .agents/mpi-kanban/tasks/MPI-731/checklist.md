@@ -10,7 +10,9 @@ the spec.
   - [x] 2. `MpiVolumeControl` compound — mute button + hover-reveal vertical volume, owns no
         media element, three consumers (flyout signed off; wheel always on, 5 per tick)
   - [ ] 3. `MpiAudioPlayer` compound — one row, `play │ time │ waveform │ mute`, owns ONE
-        `<audio>`, mounts MPI-730's `MpiWaveform` as its scrub track
+        `<audio>`, mounts MPI-730's `MpiWaveform` as its scrub track (BUILT, committed; behaviour
+        Fabio-approved; layout changed to "waveform joins the buttons, time on top" — waiting on
+        his second look before item 4)
   - [ ] 4. Wire it into the Flow's result pane and floating dock — `_sharedAudioPlayer`
         keyed by URL, MOVED not rebuilt (MPI-727 holds)
   - [x] 5. `MpiVideoControlBar` adopts `MpiVolumeControl` — hotkeys `M` / volume± keep working

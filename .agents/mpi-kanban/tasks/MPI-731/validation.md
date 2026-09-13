@@ -85,3 +85,56 @@ Card is open. Evidence per item, newest last.
 - Screenshots (scratchpad, not committed) matched: bar under the prompt row, flyout over it.
 - `npx playwright test --config=playwright.desktop.config.js tests/desktop/flow-audio-player.spec.js tests/desktop/workspace-sweep.spec.js tests/desktop/mask-persist-roundtrip.spec.js`
   → **11 passed** (54.5s). `npx eslint` clean on the block and the spec.
+
+## 3. MpiAudioPlayer (built; waiting on Fabio's look before item 4)
+
+- New test 5, real window, `/voices/child_1.opus` (11.1s real audio), maskless. Layout at three
+  consumer widths: at 260px the player is 260 wide, order `play │ time │ waveform │ volume`, one
+  row (centre spread < 4px), waveform the widest element; at 480px every extra pixel goes to the
+  waveform (+220); at 160px it is 160px — no minimum width.
+- Transport: at rest the time reads `00:11` (the LENGTH); play → playing, fill > 0.03, time now
+  elapsed; SPACE with the play button still focused from the click pauses EXACTLY once, SPACE
+  again plays; a click at 50% of the track lands `currentTime` in 4.5–7.5s and keeps playing.
+- Volume: flyout hidden before hover, opens whole and reachable on hover (nothing in the player
+  clips it); mute mutes the element; a wheel tick up while muted → volume 25 AND unmuted; mute
+  round-trips; `audio.volume = 0.1` set from outside moves the slider to 10; `M` mutes/unmutes;
+  ArrowUp/ArrowDown ±10.
+- End and teardown: at the end `{ ended, progress 1, paused, play icon }`; `display:none` host →
+  SPACE does nothing, visible again → SPACE plays; a second `hotkeys: false` player keeps playing
+  while SPACE pauses the first; destroying a PLAYING player pauses it; no renderer errors.
+- **Falsified — all 18, one sabotage at a time** (scratchpad `falsify731.cjs`: apply one, run
+  test 5, restore). Each failed at its OWN assertion: track `flex: 0 0 20px` → widest; root
+  `min-width: 240px` → 160px consumer; `flex-direction: column` → row order; `formatTime(t)` →
+  LENGTH at rest; `setProgress(0)` → fills; playPause bound twice → exactly once; no `pause`
+  listener → exactly once; seek gated off → middle of the clip; root `overflow: hidden` → clips
+  none of it; `_toggleMute` no-op → mute mutes; no unmute-on-raise → unmutes; no `setValue`
+  mirror → element's level; no `M` bind → M mutes; `+0` step → arrow up; `ended ? 0` → stays
+  FULL; `_canDrive = true` → hidden SPACE; `hotkeys = true` → hotkeys:false one playing; no
+  `audio.pause()` in destroy → destroying pauses. `RESTORED true`, anchors re-grepped.
+- `npx playwright test --config=playwright.desktop.config.js tests/desktop/flow-audio-player.spec.js`
+  → **5 passed** (57.5s). `npx eslint` clean on `MpiAudioPlayer.js`, the spec, `types.js`,
+  `preloadStyles.js`. Screenshot at 260px (scratchpad): `▶ 00:11 [track] 🔊`, one row.
+- **Not yet proven:** Fabio's look (the user-ux gate before item 4), and a PAINTED wave — the specs
+  run maskless; that is item 7's live check.
+- Cardless extra: MPI-733's three Cue-all rule-map lines, each checked against the code first
+  (`MpiGalleryGrid.js:1507/1557`, `MpiGalleryBlock.js:145/1453/1792`); message `a57c9fbc` resolved.
+
+### 3b. Fabio's look (2026-09-13): behaviour approved, layout changed
+
+- **Fabio: "it works fine"** — the transport behaviour is signed off. Layout change requested: the
+  buttons are the ends, the waveform is the bar joining them, the time sits on it.
+- Built: no row gap; track `align-self: stretch`; waveform absolute inside it; time absolute over
+  it with `pointer-events: none`. Test 5's layout block rewritten; new click-on-the-time assertion.
+- Measured at 260px: left seam and right seam < 1px, wave height == button height (< 1px), wave
+  width == row − both buttons (< 1px), time box inside the wave box and topmost at its centre; a
+  click on the time scrubs to < 3s. 480px: +220 all to the wave; 160px: 160px.
+- **Falsified, 8 sabotages** (scratchpad `falsify731b.cjs`): row gap → starts at play edge; fixed
+  height → as tall as the buttons; root padding → every pixel the buttons leave; `min-width:
+  240px` → no minimum width; time `left: -60px` → sits ON the waveform; time `z-index: -1` →
+  painted above it; no `pointer-events: none` → does not swallow the click. One **STILL-PASSED**:
+  removing `display: flex` on the button holders — so that rule was deleted, and the unused holder
+  classes with it. `RESTORED true`.
+- Final build: `npx playwright test --config=playwright.desktop.config.js tests/desktop/flow-audio-player.spec.js`
+  → **5 passed** (58.1s); `npx eslint --max-warnings=0` clean on the player, `types.js`,
+  `preloadStyles.js`, the spec.
+- **Not yet:** Fabio's second look at the joined layout; a painted wave (item 7's live check).

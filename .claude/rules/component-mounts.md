@@ -31,7 +31,7 @@ Props: none
 
 ## MpiGalleryBlock
 
-- `MpiGalleryGrid`   props: `{ groups: ItemGroup[] }`   slot: top-level workspace container
+- `MpiGalleryGrid`   props: `{ groups: ItemGroup[], getCueContext: () => ({ operation, model }) }`   slot: top-level workspace container
 - `MpiMediaDropOverlay`   props: `{ onDrop({ files: [{ file, mediaType }, ...] }) }` callback   slot: `document.createElement('div')` appended to `el` — full-area OS-file drop target; shown/hidden via window `dragenter`/`dragleave`/`drop` listeners (drag counter prevents flicker); ignores internal `application/mpi-media` drags; `onDrop` loops over files: uploads each, emits `media:imported` per file. PromptBox slots filled up to `_pb.el.remainingCapacity(mediaType)` (per-type); overflow files still become gallery cards but are not injected into the strip.
 - `MpiPromptBox` (Organism)   props: `{ model, modelList: installedImageModels, operation: 't2i', includeNegative: true }`   slot: `gid('prompt-box-mount')` — Block keeps handle in `_pb`, destroys before remount AND in `el.destroy`; only mounted when `installedImageModels.length > 0`
   - `updateContext`: called on `media-change` event — `{ imageCount, videoCount, hasMask: false }`

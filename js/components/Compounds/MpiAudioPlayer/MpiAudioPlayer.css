@@ -1,0 +1,36 @@
+/* MpiAudioPlayer — play │ waveform │ volume, the time laid over the waveform.
+   The waveform is the bar that joins the two buttons: flush against both, exactly as
+   tall as they are, and the bottom layer. No width of its own and no minimum: the
+   consumer sets the width, and the waveform takes whatever the buttons leave. */
+
+.mpi-audio-player {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+/* `align-self: stretch` sizes it to the buttons' height. `flex-basis: 0` and
+   `min-width: 0` let it shrink in a narrow consumer rather than widen the row. */
+.mpi-audio-player__track {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    align-self: stretch;
+}
+
+.mpi-audio-player__wave {
+    position: absolute;
+    inset: 0;
+}
+
+/* On the waveform, not beside it. Click-through, so the whole bar scrubs. */
+.mpi-audio-player__time {
+    position: absolute;
+    top: 50%;
+    left: var(--s-2);
+    transform: translateY(-50%);
+    pointer-events: none;
+    font-size: var(--t-xs);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-1);
+}
