@@ -35,6 +35,31 @@ names but never lettered. **Order is by priority, not by letter.**
 
 ## Current State
 
+**2026-09-13 — MPI-728 IS CLOSED (`c5ea072b`, pushed), and Fabio named what step 1
+still owes.** Language Models (DeepInfra key with live prices, a backend per job, the
+Ollama lifecycle: start, install on click, model download with progress) shipped and
+passed his check in the app. What continues from it, in order:
+
+1. **FLOWS IGNORE THE USER'S LANGUAGE MODELS PICK.** `MpiBaseFlow.js:1344` calls
+   `runComfyEnhance` directly, so every flow Enhance runs the ComfyUI graph whatever
+   the user chose. Deliberate in step 1b (`llmService.js`, `runComfyEnhance` header):
+   the graph is a PIPELINE whose Replace Text / Scrub Negation / Tidy nodes were tuned
+   on GPU runs for a phrase spliced into a longer prompt. Fabio expects flows to
+   follow the pick (2026-09-13), so this is a design job: carry the post-processing to
+   the server backends, or say per flow why it keeps ComfyUI. Brief it before building.
+2. **MPI-728's close-out proposals, NOT applied, each awaiting Fabio's yes:**
+   `docs/llm.md` + a `docs/README.md` row (no LLM doc exists); a "Language models"
+   topic in `project-knowledge-index.md`; `MpiOllamaSetup` in `component-mounts.md`
+   and `component-events-primitives.md`; a What's-new entry in
+   `docs/releases/UNRELEASED.md` (v1.5.0 shipped without any of it; the file sits
+   under an MPI-733 claim, check it first); a dated line on the linuxbox memory.
+3. **MPI-737** (descriptions become backend-choosable; DeepInfra's Gemmas take images)
+   has no `plan.md` yet.
+
+**The agent (step 5) waits for a brainstorm** (Fabio, 2026-09-13: no card yet). Stale
+comment to fix when touching that file: `MpiPromptBox.js:1957` still calls DeepInfra
+the default backend; since MPI-728 the default is ComfyUI.
+
 **2026-09-12 (later) — THE GOAL IS MET, AND STEP 3 IS NOW FULLY CLOSED.** Vision
 enhances on its own, the cord is cut, and Cubric-Prompt is archived on GitHub —
 **Fabio ran `gh repo archive MadPonyInteractive/Cubric-Prompt --yes` himself on
