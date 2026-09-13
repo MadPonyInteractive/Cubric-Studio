@@ -10,6 +10,51 @@ their URLs. There is no test to run.
 
 ## Current State
 
+**2026-09-13 — READ THIS FIRST. Phase 3 ran; long clips now go through core context windows.**
+Older notes below are history; two of them are stale: the card IS in `doing`, and MpiNodes is
+pushed with the pin at 1.2.12 (`dbc6a74c`) — "20a8d4d NOT pushed" is closed.
+
+- **Works (user):** rv2v character swap from ONE reference image, keeping the source motion.
+- **A reference VIDEO is not a motion source.** `source_video` + `reference_video` = **ads2v,
+  content insertion** — ByteDance `assets/testcases/rv2v/rv2v_case2.json`: *"Add the video on
+  the computer."* No Bernini task copies motion from a second clip; `mv2v` is a TEXT-described
+  motion edit on the source (`v2v/v2v_case2.json`, the crouch). Motion transfer stays in the
+  user's Wan Animate workflow; Bernini keeps "edit video with images". **Open decision:** drop
+  the `Input_Video_2` slot from the flow, or relabel it as screen/billboard insertion.
+- "Person from image dances like the clip" = put the dance clip in as SOURCE + the person as a
+  reference image. That is plain rv2v.
+- **Multi-reference rv2v (character = image0, environment = image1) is UNTESTED.** Documented
+  only for r2v (`r2v/r2v.json` uses image4 as the scene); the only rv2v case is one ref. With a
+  source present the image0 index base is unverified upstream. The user's bench now holds the
+  dance clip + `Sofia Rossi .../photo_00004_.png` + `benches.jpg`, with a pasteable prompt in
+  `Input_Positive`.
+- **OOM 14:32, root-caused exactly.** Dance clip 15 s at force_rate 16 -> 237 frames -> 60
+  latent x 1,560 tokens x2 (target + source context) + refs 2,120 + 1,590 = 190,910 tokens;
+  FFN activation 190,910 x 13,824 x 2 B = 4.92 GiB, the log's own "Requested". The 2nd image is
+  0.8%. Batching refs into one slot saves NOTHING (core makes a stream per batch image) and
+  forces one resolution.
+- **Fix wired, UNTESTED — `flow_bernini_video_edit_ctxwin.json`** (the original file untouched,
+  new workflow id). `WanContextWindowsManual` "Context windows (high noise)"#1169 between
+  `Get_high_model#1110` -> `ModelSamplingSD3#738`, and "(low noise)"#1170 between
+  `Get_low_model#1111` -> `#730`: 81 / 30 / standard_uniform / pyramid / freenoise on.
+  `Snap#1070` uncapped. Why it should work: `comfy/model_base.py`
+  `WAN21.resize_cond_for_context_window` ("In-context cond slicing (Bernini)") slices every
+  `context_latents` stream whose temporal length equals the target's, and passes 1-frame refs
+  whole; the causal anchor applies to the cond slice too. ~69k tokens per window. Caveats: node
+  is `is_experimental`; only 6 lightx2v steps to fuse overlaps; ~4 windows = ~4x per step; a
+  `reference_video` of a different length would NOT be sliced.
+- **Next action:** the user runs the ctxwin copy on the 15 s dance clip + both refs. Confirm
+  `Context window 1/N` lines in `G:/ComfyUi/ComfyUI/user/comfyui.log`, then judge fit, seams in
+  the overlap zones, and whether image0/image1 took the right roles.
+- **Custom Mpi chunk/stitch nodes only if windows seam badly.** The Wan Animate loop
+  (`D:/WORK/workflows/New Systems/Wan Animate Local.json`: `easy forLoopStart/End`, loops =
+  `max(ceil(total/(block-overlap))-1,0)`) works because `WanAnimateToVideo` itself takes
+  `continue_motion` + `video_frame_offset` and emits `trim_image`/`trim_latent`. Bernini has
+  neither, so a chunk loop renders each chunk blind to the last.
+- **Still pre-export:** split `Input_Mask_Video#1003` (now `""`, so inert), `#1148`
+  `block_if_empty`, `#1086` `force_rate`. Noticed, not actioned: MpiNodes `bernini.py`
+  `MpiBerniniConditioning.doit` returns 4 values against 3 `RETURN_TYPES`.
+
 **UN-PARKED 2026-09-09/10 — the thesis is PROVEN and Bernini-R is the answer.** The card was
 parked on 2026-09-09 (square mask on the H3/LanPaint route did not rescue it, `brief.md`
 § Square mask) and the board still says `todo`/`planned`, which is now WRONG: real work ran
