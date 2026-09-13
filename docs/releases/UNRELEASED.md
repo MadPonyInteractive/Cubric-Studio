@@ -352,6 +352,13 @@
   five photos give you five upscales or five clips. Cards the operation can't use are skipped
   and counted.
 
+- **The video player's controls now sit below the prompt box, and volume opens from the
+  speaker.** In the History workspace the play, frame and trim bar used to hide behind the
+  prompt box when it opened upward. It now sits underneath, so it is always in reach. Volume
+  is a slider that opens upward when you hover the speaker button, and the mouse wheel over
+  either one turns it up or down. Drag it to zero and the speaker shows muted; click the
+  speaker and your volume comes back to where it was.
+
 ## Fixes
 
 > **A fix to a FLOW does not belong in this section for this release.** Flows debut here, so

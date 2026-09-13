@@ -20,8 +20,8 @@ NOTE:    Bare `<video>` surface + click-to-toggle (skipped on `[data-no-toggle]`
 ### MpiVideoControlBar (Compound — js/components/Compounds/MpiVideoControlBar/)
 EMITS:   `loop-change`  `{ loop: boolean }`
          `range-change` `{ in: number, out: number }` — forwarded from embedded MpiTrimBar (only fires when `showTrim` is true)
-LISTENS: surface events `play/pause/timeupdate/loadedmetadata/volumechange` (via `attachSurface(instance)`)
-HOTKEYS: binds `video.playPause/frame.back/frame.forward/volume.up/volume.down/loop` on `attachSurface`; trim hotkeys `video.trim.in/out/clear` bound only when `showTrim` is true. Unbinds on `detachSurface`/`destroy`.
+LISTENS: surface events `play/pause/timeupdate/loadedmetadata/volumechange` (via `attachSurface(instance)`); its MpiVolumeControl `mute-toggle/input/change`
+HOTKEYS: binds `video.playPause/frame.back/frame.forward/frame.first/frame.last/volume.up/volume.down/mute/loop` on `attachSurface`; trim hotkeys `video.trim.in/out/clear` bound only when `showTrim` is true. Unbinds on `detachSurface`/`destroy`.
 PROPS:   `fps` (default 24), `showTrim` (default true). When `showTrim: false`, MpiTrimBar is not mounted; `setRange`/`setRangeQuiet`/`setPendingTrim` no-op; `getRange()`/`getValue()` return `null`.
 NOTE:    Single horizontal row layout `[left buttons + time] [trim flex:1] [right buttons]`. Mounted full-width by the parent Block (NOT by the viewer). Wired to a surface via `attachSurface(surfaceInstance)`. On every surface `loadedmetadata` resets range to `[0, duration]` UNLESS `setPendingTrim(in, out)` was called first (one-shot). Loop intent is tracked internally; when active range is a strict subset of the clip, native `video.loop` is forced off and the loop is emulated via `timeupdate` (`seek(_in)` at `_out` if loop on; `_pause()` otherwise). Range-loop branch gates on `!video.paused` so frame-step is not re-routed.
 
@@ -33,6 +33,27 @@ EMITS:   `seek`         `{ time: number }` — playhead committed (drag end / tr
          `range-change` `{ in: number, out: number }` — fired alongside in/out commits
 LISTENS: (none — pure pointer drag state)
 NOTE:    Two-handle trim seek bar. Pointer drag coalesces on RAF; commits on `pointerup`. Frame-snap via `Math.round(t*fps)/fps`. Constraints: `0 ≤ in+frame ≤ out ≤ duration`; playhead clamped to `[in, out]`. `seek-preview` enables live-scrub on the host video without re-firing on every RAF tick.
+
+## Audio Compounds (MPI-730 / MPI-731)
+
+### MpiWaveform (Compound — js/components/Compounds/MpiWaveform/)
+EMITS:   `seek` `{ fraction: number, time: number|null, modified: boolean }` — a click across the box; `time` is null with no duration; `modified` = shift/ctrl/meta, which a gallery card reads as select, not scrub
+LISTENS: (none — driven via `setProgress` / `setDuration` / `setMask`)
+NOTE:    Owns no `<audio>`; the consumer drives it and decides what a seek means. Mounted by MpiGalleryGrid (an audio card's thumb) and MpiAudioPlayer. Mask and paint detail: `docs/gallery-audio-cards.md`.
+
+### MpiVolumeControl (Compound — js/components/Compounds/MpiVolumeControl/)
+EMITS:   `input`       `{ value: number }` — 0..100 while dragging, and on every wheel tick
+         `change`      `{ value: number }` — on release, and on every wheel tick
+         `mute-toggle` `{ muted: boolean }` — the state the user asked for
+LISTENS: (none — the consumer calls `setValue` / `setMuted`, both quiet)
+NOTE:    Owns no media. A click on the speaker at level 0 restores the pre-gesture level as `input` + `change`, never `mute-toggle`. The wheel is a root capture listener, 5 per tick. Mounted by MpiVideoControlBar and MpiAudioPlayer.
+
+### MpiAudioPlayer (Compound — js/components/Compounds/MpiAudioPlayer/)
+EMITS:   (none)
+LISTENS: its own `<audio>` `play/pause/timeupdate/loadedmetadata/volumechange`; MpiWaveform `seek`; MpiVolumeControl `mute-toggle/input/change`
+HOTKEYS: binds `video.playPause/mute/volume.up/volume.down` unless `hotkeys: false`, each gated on the player being on screen (`isConnected` + client rects, MPI-585). Unbinds on `destroy`.
+PROPS:   `src` (set once, never re-pointed), `mask`, `duration`, `hotkeys` (default true)
+NOTE:    Sibling of MpiVideoControlBar, not a mode of it. One `<audio>` per instance; MpiBaseFlow MOVES the instance between the result pane and the dock rather than rebuilding it (MPI-727).
 
 ## Organisms
 

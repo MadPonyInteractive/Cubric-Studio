@@ -195,3 +195,17 @@ Card is open. Evidence per item, newest last.
 - `js/shell/preloadStyles.js`: no edit needed. `git show HEAD:js/shell/preloadStyles.js` already
   lists `MpiWaveform.css` :83, `MpiVolumeControl.css` :85, `MpiAudioPlayer.css` :87.
 - `python validate_board.py .` exit 0; the `docs/README.md` row points at `gallery-audio-cards.md`.
+
+### Post-close follow-up (2026-09-13, Fabio approved: "yes to both")
+
+- `.claude/rules/component-mounts.md`: § MpiVideoControlBar's sub-mounts corrected (item 5 turned
+  the volume `MpiProgressBar` and the mute `MpiButton` into `MpiVolumeControl`; 9 video hotkeys,
+  not 6, per `MpiVideoControlBar.js:439-450`); new § MpiVolumeControl and § MpiAudioPlayer;
+  § MpiBaseFlow gains its `MpiAudioPlayer` mount.
+- `.claude/rules/component-events-organisms.md`: MpiVideoControlBar LISTENS / HOTKEYS corrected
+  against `MpiVideoControlBar.js:325-445`; new § Audio Compounds (MpiWaveform, MpiVolumeControl,
+  MpiAudioPlayer).
+- `docs/releases/UNRELEASED.md` § What's new: the video bar below the prompt box and the volume
+  flyout, a released surface (v1.5.0, 2026-09-08, predates both). The Flow player owes no
+  entry: Flows are unreleased.
+- `MpiVideoControlBar.js`: its comment no longer names the gallery as a consumer (item 6 was dropped).

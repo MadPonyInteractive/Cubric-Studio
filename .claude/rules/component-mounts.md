@@ -266,6 +266,7 @@ MpiGalleryGrid is now a Compound that handles both justified layout and card dis
 - `MpiFlowResultDock` (the floating result window, MPI-727)   props: none   slot: `#flow-stage` — **mounted beside the slides, never inside one, and that IS the fix.** The run slide is rebuilt on every navigation, so a result living only there exists only while the user stands on the last step: Fabio played a song, stepped back to read his lyrics, and the sound stopped with the slide. Built at the TOP of `setup` (not beside `_syncDock`) because the seeded-result HEAD probe can clear the window synchronously during mount. Outlives the slide like `MpiModelSettings` — destroyed in `el.destroy()`, not `_teardownSlide()`.
   - **`_syncDock()` is the only writer**, and it is the gate as ONE predicate: a result exists, the flow is open, the user is not on the last step. "The flow is open" needs no test — the window is inside the flow's own stage. Four call sites: `_renderSlide`, `_showResults` and `_forgetResult` (both BEFORE their `if (!_resultMediaEl) return` — that early return IS the off-the-last-step case), and `_run` (Generate is the only thing that replaces a result, so it is the only thing that empties the window).
   - 🔴 **`_syncDock()` must stay SYNCHRONOUS inside `_renderSlide`, after `slidesEl.appendChild(slide)` and BEFORE the `requestAnimationFrame` on the next line.** A media element removed from the document is paused *"once a stable state is reached"* — after the current task, not during it — so the shared `<audio>` re-appended inside that one pass never stops, and the same element moved one tick later does. Only AUDIO is shared (`_sharedAudioPlayer`, keyed by url — ONE `MpiAudioPlayer` instance moved whole, its `<audio>` inside, MPI-731): the spec mutes and loops video and thumbnails images, so `_dockNode` builds fresh elements for those and `MpiVideoViewer` / `MpiVideoControlBar` / `MpiCompareView` are untouched by this. `tests/desktop/flow-result-follows-steps.spec.js` pins it by node identity.
+- `MpiAudioPlayer` (an AUDIO result, MPI-731)   props: `{ src: url, mask: it.thumbPath, duration: it.duration, hotkeys }`   slot: `document.createElement('div')`, built only by `_buildAudioPlayer(url, it, hotkeys)`. A single-output result shares ONE instance through `_sharedAudioPlayer(url, it)` — keyed by URL, `hotkeys: true`, MOVED between the result pane and the dock, never rebuilt (the 🔴 above). An N-output flow builds one per output with `hotkeys: false`: `_plainAudioPlayers` in the pane, `_dockAudioPlayer` in the dock. `_hasViewableResult()` keeps the pane's fit / wheel-zoom / pan off an audio result.
 
 ---
 
@@ -302,7 +303,7 @@ Owns the bare `<video>` element + a sibling **exact-frame canvas overlay** (`.mp
 
 ## MpiVideoControlBar.js (Compound — js/components/Compounds/MpiVideoControlBar — transport + trim)
 
-Owns play/frame±/loop/audio/fullscreen/frames-toggle buttons + time display + (optional) embedded `MpiTrimBar`. Drives a sibling `MpiVideoSurface` via `attachSurface(instance)`. Owns the 6 video hotkeys + 3 trim hotkeys (trim hotkeys only when `showTrim` is true). Hotkeys are bound on `attachSurface`, unbound on `detachSurface`/`destroy`. Loop intent is tracked separately from `video.loop`: when the active range is a strict subset of the clip, native `video.loop` is forced off and the loop is emulated via `timeupdate` (`seek(_in)` at `_out` if loop on; `_pause()` otherwise). Range-loop emulation gates on `!video.paused` so frame-step (which pauses first) is not re-routed.
+Owns play/frame±/loop/fullscreen/frames-toggle buttons + a `MpiVolumeControl` + time display + (optional) embedded `MpiTrimBar`. Drives a sibling `MpiVideoSurface` via `attachSurface(instance)`. Owns the 9 video hotkeys + 3 trim hotkeys (trim hotkeys only when `showTrim` is true). Hotkeys are bound on `attachSurface`, unbound on `detachSurface`/`destroy`. Loop intent is tracked separately from `video.loop`: when the active range is a strict subset of the clip, native `video.loop` is forced off and the loop is emulated via `timeupdate` (`seek(_in)` at `_out` if loop on; `_pause()` otherwise). Range-loop emulation gates on `!video.paused` so frame-step (which pauses first) is not re-routed.
 
 **Layout:** single horizontal row, `[left buttons + time] [trim flex:1] [right buttons]`. Mounted full-width by the parent Block into the shell-level `#controls-mount` (see that mount above); not embedded inside the viewer.
 
@@ -310,8 +311,8 @@ Owns play/frame±/loop/audio/fullscreen/frames-toggle buttons + time display + (
 - `fps` (number, default 24)
 - `showTrim` (boolean, default `true`) — when `false`, no `MpiTrimBar` mount; trim hotkeys/range API become no-ops; `getRange()`/`getValue()` return `null`. Use for audio-only or trim-less surfaces.
 
-- `MpiButton` (play, frame-back, frame-forward, frames-toggle, loop, mute, fullscreen) — slots `[data-mount="play|frame-back|frame-forward|frames-toggle|loop|mute|fullscreen"]`
-- `MpiProgressBar` (volume) — slot `[data-mount="volume"]`
+- `MpiButton` (play, frame-back, frame-forward, frames-toggle, loop, fullscreen) — slots `[data-mount="play|frame-back|frame-forward|frames-toggle|loop|fullscreen"]`
+- `MpiVolumeControl` (mute + vertical volume flyout, MPI-731) — slot `[data-mount="volume"]`; props `{ value: 100, step: 1, info: 'Mute/Unmute (M)' }`. Its `mute-toggle` / `input` / `change` drive the surface, and the surface's `volumechange` echoes back through `setMuted` / `setValue`, so the control never holds the truth.
 - `MpiTrimBar` — slot `[data-mount="trim"]` (only when `showTrim`; props: `{ duration: 0, fps, value: 0, inPoint: 0, outPoint: 0 }`; updated via `setDuration`/`setRangeQuiet`/`setFrameCount` on surface `loadedmetadata`)
 
 **Frame-index coordinate law (MPI-283):** `setFrameCount(n)` is pushed into the trim bar so playhead/handles map in integer-frame space. `_displayTime(currentTime)` snaps to the exact frame's TRUE time (`idx/effFps`) — it does NOT apply the `idx/lastIdx·dur` normalization (that lives only in `MpiTrimBar._pctOf`); applying it in both places shifts the echoed playhead one frame off the drop position. See `docs/video-player.md`.
@@ -325,6 +326,35 @@ Owns play/frame±/loop/audio/fullscreen/frames-toggle buttons + time display + (
 Self-contained 28px track + two trim handles (in/out, ±8px overflow w/ 10×3 caps) + 2px playhead w/ triangle arrow + 12% heat selection fill. Stage tokens only. No internal sub-component mounts. Pointer drag coalesces on RAF; commits on `pointerup`. Track click drags playhead from cursor. **Frame-index mapping (MPI-283):** optional `frameCount` prop + `setFrameCount(n)`; when set, `_snap`/`_pctOf`/`_eventToSeconds` map in integer-frame space (`effFps = frameCount/duration`, position `idx/(frameCount-1)` so frame 0→0% / last→100%) to MATCH `MpiVideoControlBar._displayTime` — this is what removes the playhead drop-then-echo jump. Falls back to `time/duration` when `frameCount` is unset.
 
 **Instance API (on `el`):** `setDuration`, `setFps`, `setValue(Quiet)`, `setRange(Quiet)`, `getValue`, `getRange`, `destroy`. Emits component-local `seek`, `in-change`, `out-change`, `range-change`.
+
+---
+
+## MpiVolumeControl.js (Compound — js/components/Compounds/MpiVolumeControl — mute + vertical volume flyout, MPI-731)
+
+A mute button and a volume flyout that opens UPWARD on `:hover` / `:has(:focus-visible)` of the ROOT, in CSS alone (the root owns the hover so the pointer can travel from the button into the slider). **Owns NO media element:** it reports gestures and is told the resulting state back, because only the consumer knows what a mute means. Mounted by `MpiVideoControlBar` and `MpiAudioPlayer`; the gallery keeps its own volume slider.
+
+- `MpiButton` (mute)   props: `{ icon: 'volumeHigh', iconActive: 'volumeOff', size: 'sm', info: props.info || 'Mute/Unmute', active: muted || value === 0 }`   slot: `[data-mount="mute"]`
+- `MpiProgressBar` (volume)   props: `{ orientation: 'vertical', min: 0, max: 100, step, value, suffix: '%', interactive: true, handle: true, wheel: false, variant: 'primary' }`   slot: `[data-mount="slider"]` inside `.mpi-volume-control__flyout`. `wheel: false` because a CAPTURE wheel listener on the root owns the wheel: 5 per tick over the button and the flyout alike, whatever the drag step.
+
+🔴 **`MpiProgressBar`, NOT `MpiFader`**, although `components.md` routes gain/volume to `MpiFader`. Every consumer binds this to `HTMLMediaElement.volume`, which is linear and clamped to 1.0; `MpiFader` is a dB mix gain whose +12 dB boost half would do nothing here. Do not "fix" it.
+
+**Zero reads as muted:** at level 0 the speaker shows its muted icon, and a click brings back the level the lowering gesture started from, emitted as `input` + `change`, never `mute-toggle`.
+
+**Instance API (on `el`):** `setValue(v)`, `setMuted(b)` (both quiet: the consumer is the truth), `getValue`, `destroy`. Emits component-local `input`, `change`, `mute-toggle`.
+
+---
+
+## MpiAudioPlayer.js (Compound — js/components/Compounds/MpiAudioPlayer — audio transport over the waveform, MPI-731)
+
+`play │ waveform (+ time laid over it) │ volume`, joined: the buttons are the ends and the waveform is the bar between them, as tall as they are. **No width of its own** — the consumer sets it. A SIBLING of `MpiVideoControlBar`, not a mode of it (that bar speaks `MpiVideoSurface`'s private API); its mute/volume wiring is copied here so the two transports behave alike. **Owns ONE `<audio>`**: `src` is set once and never re-pointed, so a consumer showing the same sound somewhere else MOVES the instance (MPI-727). Mounted by `MpiBaseFlow` (see that section).
+
+- `MpiButton` (play)   props: `{ icon: 'play', iconActive: 'pause', size: 'sm', info }`   slot: `[data-mount="play"]`
+- `MpiWaveform`   props: `{ mask, duration }`   slot: `[data-mount="waveform"]`. Driven from the audio's `timeupdate` via `setProgress`; its `seek` sets `currentTime` and keeps playing (`modified` ignored: a player has no selection mode).
+- `MpiVolumeControl`   props: `{ value: 100, step: 1, info }`   slot: `[data-mount="volume"]`
+
+**Hotkeys** (unless `hotkeys: false`; each gated on the player being on screen, MPI-585): `video.playPause`, `video.mute`, `video.volume.up/down` (step 10). Several players side by side pass `hotkeys: false`, or SPACE plays all of them.
+
+**Instance API (on `el`):** `getAudioElement`, `setMask(url)`, `destroy` (pauses, unbinds, destroys the sub-components). No emits.
 
 ---
 
