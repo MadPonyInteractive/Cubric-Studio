@@ -6,16 +6,17 @@
  * ROOT owns the hover rather than the button, so the pointer can travel from the
  * button into the slider without the flyout closing.
  *
- * It owns NO media element, on purpose (MPI-731). The video bar has a real `muted`
- * flag; the gallery treats volume 0 as the mute. Only the consumer knows what a
- * mute means, so this reports gestures and is told the resulting state back —
- * the same split that lets `MpiWaveform` be mounted by a card and a player.
- * Drag step and persistence differ per consumer and stay consumer-side.
+ * It owns NO media element, on purpose (MPI-731). Its two consumers, the video bar
+ * and the audio player, each own theirs, and their hotkeys move the volume without
+ * touching this control. So it reports gestures and is told the resulting state
+ * back (both call `setValue`/`setMuted` from `volumechange`) — the same split that
+ * lets `MpiWaveform` be mounted by a card and a player. The drag step is a prop.
  *
  * The WHEEL is not a consumer choice: it is always on, over the button and the
- * flyout alike, at the gallery's speed — WHEEL_STEP per tick whatever the drag
- * step (Fabio, 2026-09-12). A capture listener on the root takes it before the
- * slider's own wheel handler, which is why the slider mounts with `wheel: false`.
+ * flyout alike, at the speed of the gallery's own volume slider — WHEEL_STEP per
+ * tick whatever the drag step (Fabio, 2026-09-12). A capture listener on the root
+ * takes it before the slider's own wheel handler, which is why the slider mounts
+ * with `wheel: false`.
  *
  * ZERO READS AS MUTED, like the volume controls people know (Fabio, 2026-09-12):
  * the speaker shows its muted icon at level 0 as well as when muted, and clicking it

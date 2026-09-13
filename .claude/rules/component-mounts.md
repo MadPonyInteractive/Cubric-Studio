@@ -209,6 +209,10 @@ MpiGalleryGrid is now a Compound that handles both justified layout and card dis
 - Video element: `muted`, `loop`, `playsInline`, `preload='metadata'` — first frame shows at rest, hover triggers `play()`/`pause()`
 - No canvas/poster extraction — browser/Electron decodes natively
 
+**Audio card rendering (MPI-730):**
+- `MpiWaveform`   props: `{ mask: selected.thumbPath, duration: selected.duration }`   slot: `document.createElement('div')`, swapped in AS the thumb by `_swapThumbToAudio` (it keeps `mpi-group-card__thumb mpi-group-card__thumb--audio` and `draggable`, so drag-into-prompt still binds). ONE instance per card, reused across re-renders through `setMask`/`setDuration` so an in-flight playhead survives; an outgoing one gets `el.destroy()` BEFORE `_replaceThumb` detaches it (destroy removes the node that `replaceWith` still needs).
+- The card owns the `<audio>`, never the component: `timeupdate` drives `setProgress`, `ended` HOLDS the fill at 1. A plain `seek` moves `currentTime` and plays (not at volume 0, the gallery's mute); a `modified` or selection-mode click is a select, never a scrub. Gestures and the traps behind them: `docs/gallery-audio-cards.md`.
+
 **Public API (on `instance.el`):**
 - `setGroups(groups)` — replace all groups and re-render; generating cards flow through `isGenerating` flag
 - `updatePreview(tempId, url)` — push latent preview to generating card during image generation
