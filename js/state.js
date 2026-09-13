@@ -76,7 +76,9 @@ const _state = {
                                // Flow overlay restores its controls on close→reopen. Session-only,
                                // NOT persisted (across-restart restore comes from the sidecar, not
                                // here). ALWAYS top-level replace: state.s_flowInputs = { ...state.s_flowInputs, [id]: {...} }.
-    s_flowResults: {},          // { [flowId]: { items, mode, status, pending } } — the LAST completed
+    s_flowResults: {},          // { [flowId]: { items, mode, status, pending, display } } — the LAST completed
+                               // (`display` = the graph's Output_Display view, MPI-747 — shown instead of
+                               // `items`, and dropped alone when its ComfyUI temp file is gone)
                                // result of that Flow (MPI-587). The twin of s_flowInputs, and for the
                                // same reason: shell.js destroys the MpiBaseFlow on every open/close, so
                                // without this a reopened Flow showed its restored inputs beside an EMPTY

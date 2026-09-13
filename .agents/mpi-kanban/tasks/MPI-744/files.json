@@ -1,1 +1,1 @@
-{"schema":"mpi-kanban/task-files/v1","files":[]}
+{"schema":"mpi-kanban/task-files/v1","files":["comfy_workflows/raw/flow_head_swap.json","comfy_workflows/flow_head_swap.json","js/data/flowsRegistry.js","js/core/operationRegistry.js","docs/playbooks/add-flow/existing-flows/head-swap.md"]}

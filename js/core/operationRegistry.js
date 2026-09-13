@@ -64,7 +64,11 @@ export const OPERATION_REGISTRY = {
     autoMaskImg:  { latestVersion: '1.0', appVersionIntroduced: '0.0.1' },
     resize:       { latestVersion: '1.0', appVersionIntroduced: '0.0.1' },
     resizeVideo:  { latestVersion: '1.1', appVersionIntroduced: '0.0.1' },
-    flowHeadSwap: { latestVersion: '1.0', appVersionIntroduced: '1.1.0' },
+    // `1.1` (MPI-744, 2026-09-13): re-engined from Qwen Edit to FLUX.2 Klein 9B + the BFS
+    // head LoRA, and `Input_Tier` REMOVED with the three-tier switch the graph no longer
+    // carries. Reuse of an older card degrades quietly — `_inject` no-ops on a title that
+    // matches no node — so, like `flowScribObj`, the bump is the record, not a gate.
+    flowHeadSwap: { latestVersion: '1.1', appVersionIntroduced: '1.1.0' },
     flowLtxExtend: { latestVersion: '1.0', appVersionIntroduced: '1.4.2' },
     flowLtxFoley: { latestVersion: '1.0', appVersionIntroduced: '1.4.2' },
     // MPI-504 — the Character Sheet flow and the text-only prompt enhancer any flow can

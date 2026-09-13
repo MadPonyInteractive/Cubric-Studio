@@ -98,13 +98,14 @@
   model the Library already offers — so once you own the model, the flow costs you nothing extra.
   The three video flows all run on LTX 2.3 Balanced, so installing it for one gives you the other
   two. Six flows are the exception and say so on their card: Head Swap adds a head-swap LoRA on
-  top of Qwen Image Edit, and Voice Changer, DramaBox, Text to Speech, Stems and Sound & Music all
+  top of FLUX.2 Klein 9B, and Voice Changer, DramaBox, Text to Speech, Stems and Sound & Music all
   bring their own weights and need no model from the Library at all. The three voice flows share
   weights where they can, so owning one makes the next one smaller.
 
 - **Head Swap** takes a head from one picture and puts it on another. Load the picture you want
   to keep, add the picture with the head you want, draw a square around each head, and run. It
-  runs on Qwen Image Edit with a head-swap LoRA. The square may sit past the edge of the
+  runs on FLUX.2 Klein 9B with a head-swap LoRA, and when it finishes the flow shows both your
+  pictures beside the result while the gallery keeps just the swap. The square may sit past the edge of the
   picture and stretch up to the picture's longest side, so a head near a border — or tall hair,
   or a neck tattoo — can be taken in without the box swallowing whoever is standing next to
   them. The reference head is padded back to square before the model sees it, and what you get

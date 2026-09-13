@@ -1,0 +1,1 @@
+{"schema":"mpi-kanban/files/v1","files":["js/services/commandExecutor.js","js/services/generationService.js","js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js","docs/playbooks/add-flow/ui/result-pane.md","tests/flow-output-display.test.cjs"]}

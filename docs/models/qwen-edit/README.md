@@ -5,7 +5,7 @@
 > Read the file for the topic you're on; don't read all of it.
 >
 > Tracking card: **MPI-300**. Deep research: `.agents/mpi-kanban/tasks/MPI-300/research/`.
-> Blocks **MPI-299** (Head Swap app), which requires this model wired.
+> Backed **MPI-299** (Head Swap) until **MPI-744** moved that flow to Klein 9B (2026-09-13).
 >
 > **MPI-365 (2026-08-02): THREE ops now, one master graph.** `qwen_edit.json` is a
 > one-master-template model — `qwenEdit` and `control` are branches selected by
@@ -38,7 +38,8 @@
 
 **Multi-image composition is the real use case** — pulling a character, face, garment or object
 out of one image and placing it into another, keeping the reference recognisable. That is why
-this model backs **MPI-299** (Head Swap), and why the op declares THREE image slots.
+this model backed **MPI-299** (Head Swap, on Klein 9B since MPI-744), and why the op declares
+THREE image slots.
 
 **Single-image instruction editing is weak.** Verified on one scene, Hyper tier:
 

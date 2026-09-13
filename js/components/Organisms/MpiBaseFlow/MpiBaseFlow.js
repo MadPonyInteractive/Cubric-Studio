@@ -18,6 +18,7 @@ import { activeGenerations } from '../../../services/activeGenerations.js';
 import { createPreviewClipPlayer } from '../../../services/previewClipPlayer.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
+import { isVideoFile } from '../../../utils/file.js';
 import { qs, ce, on } from '../../../utils/dom.js';
 import { renderIcon } from '/js/utils/icons.js';
 import { getStepKind, stepValueToParam, stepValueToMedia, isFrameKind } from './stepKinds.js';
@@ -500,6 +501,14 @@ export const MpiBaseFlow = ComponentFactory.create({
          * @type {Array<Object>|null}
          */
         let _lastResults = _seededResult?.items || null;
+        /**
+         * The `Output_Display` view of the last result (MPI-747), or null. A Flow graph
+         * carrying that node shows THIS instead of the output, in the pane and in the
+         * floating window. Never an item: nothing saves it, and it never counts toward
+         * the several-outputs check.
+         * @type {?Array<{url: string, mediaType: 'image'|'video'}>}
+         */
+        let _lastDisplay = _seededResult?.display || null;
         /** Last status-line copy, replayed when the run slide is rebuilt. */
         let _statusText = _seededResult?.status || '';
         let _runBtn = null;
@@ -541,7 +550,7 @@ export const MpiBaseFlow = ComponentFactory.create({
          * The surface the user last CHOSE with the toggle. Persisted beside
          * `_lastResults` (MPI-587) — a restored result comes back on the surface the
          * user picked for it, not on the flow's default.
-         * @type {?'compare'|'player'}
+         * @type {?'display'|'compare'|'player'}
          */
         let _preferredResultMode = _seededResult?.mode || null;
         /** Pan/zoom state for the result pane — the shared MpiCanvas view model. */
@@ -565,6 +574,16 @@ export const MpiBaseFlow = ComponentFactory.create({
                 fetch(resolveMediaUrl(probePath), { method: 'HEAD' })
                     .then(res => { if (!res.ok) _forgetResult(); })
                     .catch(() => _forgetResult());
+            }
+            // A display is a ComfyUI `/view` URL, and the engine wipes temp on restart,
+            // so it dies long before the saved result does. Its own probe, and a miss
+            // drops ONLY the display: the pane falls back to the result, never to empty.
+            // ComfyUI runs with --enable-cors-header, so the HEAD reads a real status.
+            const displayUrl = _lastDisplay?.[0]?.url;
+            if (displayUrl) {
+                fetch(displayUrl, { method: 'HEAD' })
+                    .then(res => { if (!res.ok) _dropDisplay(displayUrl); })
+                    .catch(() => _dropDisplay(displayUrl));
             }
         }
 
@@ -2423,7 +2442,9 @@ export const MpiBaseFlow = ComponentFactory.create({
             _dockAudioPlayer?.destroy();
             _dockAudioPlayer = null;
             const list = (_lastResults || []).filter(Boolean);
-            const it = list[0];
+            // The display replaces the output in the window too (MPI-747): the window is
+            // the Flow's view of its result, and the gallery already holds the output.
+            const it = list.length ? (_lastDisplay?.[0] || list[0]) : null;
             const path = it?.filePath || it?.url;
             if (!path) {
                 // No result at all: a run just reset it, or the mount probe found the
@@ -2616,7 +2637,7 @@ export const MpiBaseFlow = ComponentFactory.create({
         function _persistResult() {
             const items = (_lastResults || []).filter(Boolean);
             const snap = items.length
-                ? { items, mode: _preferredResultMode, status: _statusText, pending: _hasPending }
+                ? { items, mode: _preferredResultMode, status: _statusText, pending: _hasPending, display: _lastDisplay }
                 : null;
             state.s_flowResults = { ...state.s_flowResults, [flow.id]: snap };
         }
@@ -2624,6 +2645,7 @@ export const MpiBaseFlow = ComponentFactory.create({
         /** Forget the remembered result — its file is gone. Repaints if the pane is live. */
         function _forgetResult() {
             _lastResults = null;
+            _lastDisplay = null;
             _hasPending = false;
             _statusText = '';
             _persistResult();
@@ -2637,17 +2659,32 @@ export const MpiBaseFlow = ComponentFactory.create({
         }
 
         /**
+         * Drop ONLY the display — its temp file is gone (MPI-747). The saved result stays
+         * and repaints in its place. `url` guards a later run's display from a stale probe.
+         * @param {string} url the display URL the probe found dead
+         */
+        function _dropDisplay(url) {
+            if (_lastDisplay?.[0]?.url !== url) return;
+            _lastDisplay = null;
+            _persistResult();
+            _syncDock();
+            if (_resultMediaEl && _lastResults) _showResults(_lastResults, { remember: false });
+        }
+
+        /**
          * Paint ALL final results (multi-output flows produce N items — MPI-259).
          *
          * @param {Object|Array<Object>} items
-         * @param {{remember?: boolean}} [opts] remember:false replays what is already
-         *   stored (a slide rebuild) rather than recording a new result.
+         * @param {{remember?: boolean, display?: ?Array<Object>}} [opts] remember:false
+         *   replays what is already stored (a slide rebuild) rather than recording a new
+         *   result. `display` is recorded with the result — so every clear drops it too.
          */
-        function _showResults(items, { remember = true } = {}) {
+        function _showResults(items, { remember = true, display = null } = {}) {
             if (remember) {
                 // Normalised to an array so the persisted snapshot has ONE shape —
                 // `onComplete` hands a single item for a one-output flow.
                 _lastResults = items == null ? null : (Array.isArray(items) ? items : [items]);
+                _lastDisplay = display?.length ? display : null;
                 _persistResult();
             }
             // BEFORE the early return, deliberately: that return is exactly the
@@ -2677,8 +2714,30 @@ export const MpiBaseFlow = ComponentFactory.create({
                 _showSingleResult(it, path, _defaultResultMode(it));
                 return;
             }
-            _paintPlainResults(withPath);
+            if (_lastDisplay) {
+                // N outputs, one display: it replaces all of them, and there is no single
+                // item a toggle could switch back to.
+                _paintDisplay();
+                _resultMode = 'display';
+            } else {
+                _paintPlainResults(withPath);
+            }
             _syncResultEmpty();
+        }
+
+        /**
+         * `/view` URLs from an `Output_Display` node → display entries (MPI-747). A video
+         * is told apart by its filename, the only thing a ComfyUI file dict carries.
+         * @param {string[]} [urls]
+         * @returns {?Array<{url: string, mediaType: 'image'|'video'}>}
+         */
+        function _displayItems(urls) {
+            if (!urls?.length) return null;
+            return urls.map(url => ({
+                url,
+                mediaType: isVideoFile(new URL(url, window.location.origin).searchParams.get('filename') || '')
+                    ? 'video' : 'image',
+            }));
         }
 
         /** A result item that should play rather than be shown as a still. */
@@ -2698,22 +2757,32 @@ export const MpiBaseFlow = ComponentFactory.create({
         }
 
         /**
-         * Which surface a single result opens on.
+         * The surfaces this single result can go on, in first-paint order.
          *
-         * A declared comparison wins — that is the point of declaring it, and the
-         * player is one click away. Otherwise a video gets the real player and an
-         * image the plain element. An explicit toggle beats both, but only while it
-         * is still POSSIBLE: the same pane replays across slide rebuilds and later
-         * runs, and a remembered 'player' must not be handed an image.
-         * @returns {'compare'|'player'|'plain'}
+         * A display wins (MPI-747) — the graph built it to be looked at instead of the
+         * output. Then a declared comparison — that is the point of declaring it. Then
+         * the real player for a video. The surface toggle cycles through exactly this
+         * list, so a surface that is not POSSIBLE for this result is never offered.
+         * @returns {Array<'display'|'compare'|'player'>}
+         */
+        function _resultModes(it) {
+            const modes = [];
+            if (_lastDisplay) modes.push('display');
+            if (flow.result?.compare && _compareBefore()) modes.push('compare');
+            if (_isVideoResult(it)) modes.push('player');
+            return modes;
+        }
+
+        /**
+         * Which surface a single result opens on: the first possible one, unless the
+         * user's toggle choice is still possible. The same pane replays across slide
+         * rebuilds and later runs, and a remembered 'player' must not be handed an image.
+         * @returns {'display'|'compare'|'player'|'plain'}
          */
         function _defaultResultMode(it) {
-            const canCompare = !!(flow.result?.compare && _compareBefore());
-            const canPlay = _isVideoResult(it);
-            if (_preferredResultMode === 'player' && canPlay) return 'player';
-            if (_preferredResultMode === 'compare' && canCompare) return 'compare';
-            if (canCompare) return 'compare';
-            return canPlay ? 'player' : 'plain';
+            const modes = _resultModes(it);
+            if (modes.includes(_preferredResultMode)) return _preferredResultMode;
+            return modes[0] || 'plain';
         }
 
         /**
@@ -2723,13 +2792,16 @@ export const MpiBaseFlow = ComponentFactory.create({
          *
          * @param {Object} it     the result item
          * @param {string} path   its filePath/url
-         * @param {'compare'|'player'|'plain'} mode
+         * @param {'display'|'compare'|'player'|'plain'} mode
          */
         function _showSingleResult(it, path, mode) {
             _teardownResultSurfaces();
             _resultMediaEl.innerHTML = '';
             _resultSingle = { it, path };
-            if (mode === 'compare' && _mountCompare(it)) {
+            if (mode === 'display' && _lastDisplay) {
+                _paintDisplay();
+                _resultMode = 'display';
+            } else if (mode === 'compare' && _mountCompare(it)) {
                 _resultMode = 'compare';
             } else if (mode === 'player' && _mountPlayer(it, path)) {
                 _resultMode = 'player';
@@ -2739,6 +2811,14 @@ export const MpiBaseFlow = ComponentFactory.create({
             }
             _mountSurfaceToggle(it);
             _syncResultEmpty();
+        }
+
+        /**
+         * Paint the display on the plain media layer (MPI-747) — so it zooms and pans like
+         * any plain result, and a video one gets the looping `<video controls>`.
+         */
+        function _paintDisplay() {
+            _paintPlainResults(_lastDisplay.map(d => ({ it: d, path: d.url })));
         }
 
         /**
@@ -2892,35 +2972,34 @@ export const MpiBaseFlow = ComponentFactory.create({
         }
 
         /**
-         * The compare/player switch — mounted only when BOTH surfaces exist for this
-         * result, i.e. the flow declares a comparison AND the result is a video. One
-         * surface is live at a time: two decoding video pairs behind one frame is
-         * four videos for a picture nobody is looking at.
+         * The surface switch — mounted only when this result has at least TWO possible
+         * surfaces (`_resultModes`), and it steps to the next one. Display + compare
+         * (Head Swap), compare + player (a video upscale), or all three. One surface is
+         * live at a time: two decoding video pairs behind one frame is four videos for a
+         * picture nobody is looking at.
          * @param {Object} it the result item
          */
         function _mountSurfaceToggle(it) {
             if (!_resultFrameEl) return;
-            const canCompare = !!(flow.result?.compare && _compareBefore());
-            if (!canCompare || !_isVideoResult(it)) return;
+            const modes = _resultModes(it);
+            if (modes.length < 2) return;
+            const next = modes[(modes.indexOf(_resultMode) + 1) % modes.length];
+            const copy = {
+                display: { icon: 'image',   label: 'Display', info: 'Show the view this flow assembled' },
+                compare: { icon: 'compare', label: 'Compare', info: 'Compare the result against your source' },
+                player:  { icon: 'play',    label: 'Player',  info: 'Play the result on its own' },
+            }[next];
 
             const host = ce('div', { className: 'mpi-base-flow__result-toggle' });
             _resultFrameEl.appendChild(host);
-            const showingCompare = _resultMode === 'compare';
-            _surfaceToggle = MpiButton.mount(host, {
-                icon:  showingCompare ? 'play' : 'compare',
-                label: showingCompare ? 'Player' : 'Compare',
-                size:  'sm',
-                info:  showingCompare
-                    ? 'Play the result on its own'
-                    : 'Compare the result against your source',
-            });
+            _surfaceToggle = MpiButton.mount(host, { ...copy, size: 'sm' });
             _surfaceToggle.on('click', () => {
                 const single = _resultSingle;
                 if (!single) return;
                 // Remembered so a slide rebuild replays the surface the user chose,
                 // the same way _lastResults replays the result itself — and persisted
                 // with it, so a reopened flow comes back on that surface too.
-                _preferredResultMode = _resultMode === 'compare' ? 'player' : 'compare';
+                _preferredResultMode = next;
                 _showSingleResult(single.it, single.path, _preferredResultMode);
                 _persistResult();
             });
@@ -3312,6 +3391,7 @@ export const MpiBaseFlow = ComponentFactory.create({
             // too, so CLOSING mid-run does not bring the superseded result back
             // (MPI-587) — this path never reaches `_showResults`.
             _lastResults = null;
+            _lastDisplay = null;
             _persistResult();
             // …and take it out of the floating window too, which this path would
             // otherwise leave showing the superseded result for the whole run — the one
@@ -3369,7 +3449,7 @@ export const MpiBaseFlow = ComponentFactory.create({
             }
 
             const res = submitFlowGeneration(flow, { ...inputs, runMediaItems }, {
-                onComplete: ({ item, items } = {}) => {
+                onComplete: ({ item, items, displayUrls } = {}) => {
                     _setRunning(false);
                     _myTempId = null;
                     _setGauge(100);
@@ -3379,7 +3459,7 @@ export const MpiBaseFlow = ComponentFactory.create({
                     // persists the result (MPI-587), and the note belongs in that
                     // snapshot. Nothing in the paint path reads the flag.
                     _hasPending = true;
-                    _showResults(items || item);
+                    _showResults(items || item, { display: _displayItems(displayUrls) });
                     _paintPending();
                     _syncRunUi();
                 },

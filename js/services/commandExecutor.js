@@ -242,7 +242,7 @@ async function _cleanupTrimmedVideoInputs(paths = []) {
  * @typedef {Object} Execution
  * @property {function(string):void}   onPreview  - Called with each latent preview URL
  * @property {function(number):void}   onProgress - Called with 0–1 progress value from ComfyUI
- * @property {function(string[], {latents?: object[], audioUrl?: string|null, promptText?: string|null, splatUrl?: string|null}):void} onComplete - Called with final output URLs and side outputs on success. `promptText` is the string an `Output_prompt` node encoded (null when the workflow has none). `splatUrl` is the `/view` URL of the `.ply` an `Output_Splat` node reported (MPI-623; null when the workflow has none, and null when its path had no `splats/` segment to build a URL from).
+ * @property {function(string[], {latents?: object[], audioUrl?: string|null, promptText?: string|null, splatUrl?: string|null, displayUrls?: string[]}):void} onComplete - Called with final output URLs and side outputs on success. `promptText` is the string an `Output_prompt` node encoded (null when the workflow has none). `splatUrl` is the `/view` URL of the `.ply` an `Output_Splat` node reported (MPI-623; null when the workflow has none, and null when its path had no `splats/` segment to build a URL from). `displayUrls` are the `/view` URLs an `Output_Display` node wrote (MPI-747) — what a Flow shows INSTEAD of the output, never saved; empty when the workflow has none.
  * @property {function(Error):void}    onError    - Called on failure
  * @property {function():void}         cancel     - Interrupt the running generation
  */
@@ -1666,6 +1666,8 @@ export function runCommand(payload) {
         //            still exist on older split graphs — tracked below and muxed
         //            server-side at save time (video is master).
         // Preview-only runs on a multi-stage workflow capture "Output_Preview".
+        // "Output_Display" (MPI-747) is NOT a capture here: it has its own set below
+        // and never becomes a card.
         // The bare "output"/"preview" base string is kept only as a defensive
         // fallback; no shipping workflow titles a capture node without the Output_
         // prefix anymore (tier-1 deprecated, MPI-252).
@@ -1751,6 +1753,18 @@ export function runCommand(payload) {
             )
         );
 
+        // `Output_Display` capture (MPI-747) — an image or video assembled INSIDE the
+        // graph that a Flow shows on its final stage instead of the output (Head Swap:
+        // both inputs beside the result). Never saved: it stays out of `outputNodeIds`,
+        // so it makes no card and no project file. Exact match, and deliberately not an
+        // `Output_Image_2` — every `output_image_*` is a card of its own. A PreviewImage
+        // writing to ComfyUI temp is the expected node; the collector has no type filter.
+        const outputDisplayNodeIds = new Set(
+            Object.keys(workflow).filter(id =>
+                workflow[id]._meta?.title?.toLowerCase() === 'output_display'
+            )
+        );
+
         // Cache-hit dedupe only fires for workflows that do NOT inject a fresh
         // seed. Convention: a seeded workflow has an MpiInt titled `Input_Seed`
         // (the MPI-116 naming law — `_buildParams` injects a random seed into it
@@ -1833,6 +1847,7 @@ export function runCommand(payload) {
         // workflow has one. null everywhere else, which is what keeps a 3D Scene card
         // distinguishable from the ordinary image card it otherwise is (MPI-623).
         let splatOutputUrl = null;
+        const displayOutputUrls = [];
         let _samplingStartFired = false;
         // MPI-208 Phase 2: model-load state is now the store job's phase, not a
         // private closure. `_modelInitializing` is DERIVED — the job sits in
@@ -2031,7 +2046,7 @@ export function runCommand(payload) {
             // is belt-and-suspenders for the fill. Only when stdout drove (local).
             if (_stdoutDriving) { stageProgress.finish(); emitProgress(stageProgress.percent()); }
             closeComfyEventSource();
-            exec.onComplete?.(outputUrls, { latents: latentOutputs, audioUrl: audioOutputUrl, promptText: promptTextOutput, splatUrl: splatOutputUrl });
+            exec.onComplete?.(outputUrls, { latents: latentOutputs, audioUrl: audioOutputUrl, promptText: promptTextOutput, splatUrl: splatOutputUrl, displayUrls: displayOutputUrls });
         };
 
         const onMessage = (msg) => {
@@ -2204,6 +2219,9 @@ export function runCommand(payload) {
                     if (_info) {
                         splatOutputUrl = _buildComfyViewUrl(_info, workingPayload.forceLocal === true);
                     }
+                }
+                if (outputDisplayNodeIds.has(nodeId)) {
+                    _collectComfyOutputUrls(nodeOutput, displayOutputUrls, workingPayload.forceLocal === true);
                 }
             }
         };

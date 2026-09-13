@@ -427,18 +427,14 @@ export const loraDeps = {
         bytes: 236117032,
         sha256: 'a3580f7af2c11d2c9a8867c32807b13284e7c84dde66fddcb29daef0fbdf1fc2',
     },
-    // Flow-only LoRA (MPI-299 Head Swap) — required by the Flow via FlowDef.requiredDeps,
-    // NOT by the qwen-edit model. Folding it into the model would push 1.2GB onto every
-    // Qwen user for one app (MPI-304). Filed here because it IS a LoRA — deps are filed
-    // by KIND, never by owner.
-    //
-    // PRECISION SETTLED (2026-07-18) — see the entry's own comment. Changing it later
-    // means swapping filename/url/size/sha256 here AND re-exporting the workflow (node
-    // 109 LoraLoaderModelOnly names the file); the two must match or the graph fails to
-    // resolve the LoRA at run time. Nothing else references it.
-    //
-    // `url` IS LIVE (uploaded + round-trip verified 2026-07-19), so remote runs and
-    // installs on other machines now work.
+    // ── DEPRECATED (MPI-744, 2026-09-13) ── Head Swap moved to Klein 9B
+    // (`klein-9b-lora-headswap`); nothing requires this any more. KEPT, not deleted: the
+    // orphan sweep reads DEPS, so this entry is what lets it reclaim the 1.2GB from a disk
+    // that already has it (docs/playbooks/add-model/README.md § Removing).
+    // The R2 copy was DELETED at Fabio's call — the Flow never shipped, so no install
+    // points at it — which is why `url` is now the byte-identical upstream: a dead
+    // primary fails `release:deps`. Was required by the Flow via FlowDef.requiredDeps,
+    // never by the qwen-edit model (MPI-304).
     'qwen-lora-headswap': {
         id: 'qwen-lora-headswap',
         name: 'Qwen Edit — Head Swap',
@@ -451,7 +447,7 @@ export const loraDeps = {
         // such file exists officially and merging one ourselves is not worth it while
         // this one works. So the finding is "rank-16 fp16 lost", NOT "fp16 lost".
         filename: 'loras/qwen/bfs_head_v5_2511_merged_version_rank_32_fp32.safetensors',
-        url: 'https://models.cubric.studio/vision/models/loras/qwen/bfs_head_v5_2511_merged_version_rank_32_fp32.safetensors',
+        url: 'https://huggingface.co/Alissonerdx/BFS-Best-Face-Swap/resolve/main/bfs_head_v5_2511_merged_version_rank_32_fp32.safetensors',
         size: '1.12GB',
         bytes: 1206402600,
         // Verified by ROUND TRIP 2026-07-19: downloaded from the URL above and hashed
@@ -462,9 +458,7 @@ export const loraDeps = {
         // Alissonerdx/BFS-Best-Face-Swap carries oid 0a137e61…, identical to the sha256
         // above, under the same filename. Licence MIT. It was the only dep in the
         // catalogue with no `origin`, which is exactly why the 968-repo sweep could not
-        // place it — that author was never a candidate. Byte-identical upstream, so it
-        // needs no re-host, only this second route.
-        mirrorUrl: 'https://huggingface.co/Alissonerdx/BFS-Best-Face-Swap/resolve/main/bfs_head_v5_2511_merged_version_rank_32_fp32.safetensors',
+        // place it — that author was never a candidate. That upstream is `url` now (above).
     },
     'qwen-edit-style-3d': {
         id: 'qwen-edit-style-3d',
@@ -676,6 +670,23 @@ export const loraDeps = {
         size: '304.02MB',
         bytes: 318784864,
         sha256: 'cc369cda4370cde8244e5934ac7323b9d39f0797d729c1931c8c0621692ce91c',
+    },
+    // Flow-only LoRA (MPI-744 Head Swap) — required by the Flow via FlowDef.requiredDeps,
+    // NOT by the klein-9b model, for the reason its Qwen predecessor gave (MPI-304).
+    // rank128/step3500 over the rank64/step3750 twin: two separate trainings, the README
+    // picks neither, and the author's later pipeline loads rank128. The graph loads it at
+    // strength 0.75 — better than 1.0 on Fabio's bench (2026-09-13). The sha256 equals
+    // the upstream blob's `lfs.sha256` (read 2026-09-13), so the upstream IS the mirror.
+    'klein-9b-lora-headswap': {
+        id: 'klein-9b-lora-headswap',
+        name: 'FLUX.2 Klein 9B — Head Swap',
+        origin: 'Alissonerdx/BFS-Best-Face-Swap (MIT) — bfs_head_v1_flux-klein_9b_step3500_rank128',
+        filename: 'loras/flux2-klein/bfs_head_v1_flux-klein_9b_step3500_rank128.safetensors',
+        url: 'https://models.cubric.studio/vision/models/loras/flux2-klein/bfs_head_v1_flux-klein_9b_step3500_rank128.safetensors',
+        mirrorUrl: 'https://huggingface.co/Alissonerdx/BFS-Best-Face-Swap/resolve/main/bfs_head_v1_flux-klein_9b_step3500_rank128.safetensors',
+        size: '632.03MB',
+        bytes: 662729912,
+        sha256: '70d8aaf332d710b905d5085afaa87c3ef577edffd54ffcfadeb8c47a854f9044',
     },
     // ── Klein style LoRAs (MPI-354) ────────────────────────────────────────────
     // 8 style LoRAs behind Input_Style_Selector 1..8 (index 0 = No Style, model passes through).

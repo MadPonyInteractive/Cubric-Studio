@@ -79,6 +79,36 @@ A Flow is an overlay over a workspace that may have its OWN video bar, and video
 bucketed by key — so a bar the user cannot see must not answer the keyboard. That gate lives in
 the player, not here: `docs/video-player.md` § A bar you cannot see.
 
+## The result pane: `Output_Display` shows instead of the output (MPI-747)
+
+**A Flow graph may carry ONE extra image or video node titled `Output_Display`** — a view built
+INSIDE the graph — and the Flow shows it instead of the output (Fabio, 2026-09-13). The gallery
+card is still `Output_Image` / `Output_Video`; the display is never saved, never a card, never a
+project file. Generic: any Flow, image or video, no descriptor key. Head Swap is the first
+consumer (both inputs stacked beside the result).
+
+Why a graph node and not per-flow UI: the layout lives in the workflow, so no Flow ever needs
+its own component to show one.
+
+- **Wiring.** `commandExecutor` collects the node into its own EXACT-title set, kept out of
+  `outputNodeIds`, and hands `displayUrls` to `onComplete`; `generationService` passes them to
+  the flow's callback. A PreviewImage writing to ComfyUI temp is the node to use.
+- **Surfaces.** `_resultModes` is the first-paint order — display, then compare, then player —
+  and the toggle steps through exactly that list, so Head Swap still reaches compare. A run
+  with several outputs and one display paints the display, with no toggle. The floating window
+  (MPI-727) shows the display too.
+- **Reopen.** `s_flowResults` stores it as `display`. ComfyUI wipes temp on restart, so it dies
+  long before the saved result: its own HEAD probe at mount (ComfyUI runs with
+  `--enable-cors-header`), and a miss drops ONLY the display — the pane falls back to the result.
+  Reuse across an app restart has no display, by design (the sidecar holds none).
+
+**Name traps.** `Output_Preview` is taken — the multi-stage preview capture, read only on
+`previewOnly` runs, so a normal run would ignore it silently. `Output_Image_2` is wrong too:
+every `output_image_*` is its own gallery card. A MODEL generator (`generate_*.py`,
+`CAPTURE_TITLES`) prunes nodes not upstream of a listed title — a model op adopting the display
+must add it there or lose it silently; Flow raw graphs convert through `workflow-to-api.mjs`,
+which keeps it. Pinned by `tests/flow-output-display.test.cjs`.
+
 ## The result pane survives close→reopen (MPI-587)
 
 **A finished result is session state, not instance state.** The shell destroys the
@@ -91,7 +121,7 @@ restored inputs beside an EMPTY frame and a finished run read as lost.
 discipline, **last result only** (a run's N outputs are one result; there is no history here):
 
 ```js
-{ items, mode, status, pending }   // mode = the surface the user CHOSE; pending = the note
+{ items, mode, status, pending, display }   // mode = the surface the user CHOSE; pending = the note; display = MPI-747
 ```
 
 - **Four write sites, and that is the complete set.** `_persistResult()` is called from

@@ -31,7 +31,8 @@ test('the gallery addGroup loop is guarded by deferCommit', () => {
 
 test('built groups reach onComplete so a deferred caller can commit them', () => {
     const src = read('js/services/generationService.js');
-    assert.match(src, /callbacks\.onComplete\?\.\(\{ item: firstItem, group: firstGroup, items: builtItems, groups \}\)/);
+    // `groups[,\s}]`, not `groups }`: later fields ride on the same object (MPI-747 displayUrls).
+    assert.match(src, /callbacks\.onComplete\?\.\(\{ item: firstItem, group: firstGroup, items: builtItems, groups[,\s}]/);
     assert.match(src, /deferred: !!opts\.deferCommit/, 'the complete event must declare whether it persisted');
 });
 

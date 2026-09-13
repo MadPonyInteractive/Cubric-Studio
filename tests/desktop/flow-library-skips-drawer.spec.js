@@ -26,12 +26,12 @@ const { launchApp, closeApp } = require('./launch');
  *
  * `s_installedModelIds` is stubbed rather than downloading weights, the same move
  * `flow-reuse-opens-without-model.spec.js` makes. `head-swap` is the fixture because it
- * needs exactly one model (`qwen-edit`) and declares no choosable slot, so availability is
+ * needs exactly one model (`klein-9b`) and declares no choosable slot, so availability is
  * the ONLY variable this spec moves.
  *
  * **THE DEP CACHE MUST BE STUBBED TOO, and leaving it out is a CI-only failure.**
  * `flowAvailability` is `missing.length === 0 && missingDeps.length === 0`, and Head Swap
- * declares two `requiredDeps` (`qwen-lora-headswap`, `comfyui-inpaint-cropandstitch`). Their
+ * declares two `requiredDeps` (`klein-9b-lora-headswap`, `comfyui-inpaint-cropandstitch`). Their
  * status comes from `_flowDepStatusCache`, which a dev machine fills from disk during the
  * model sync — so a developer's box says Ready and a bare CI runner says Get-models, with
  * `s_installedModelIds` stubbed identically in both. This spec went green locally and red on
@@ -85,12 +85,12 @@ test('a Ready flow tile opens the frame; an unready one still opens the drawer',
       };
 
       return {
-        ready: await press(['qwen-edit'], PAGE_GALLERY),
+        ready: await press(['klein-9b'], PAGE_GALLERY),
         notInstalled: await press([], PAGE_GALLERY),
         // Available, but a flow lands as a card in the CURRENT project — from Landing
         // there is none, so `flow:open` would go nowhere and the drawer's disabled Open
         // plus its toast stay the honest answer.
-        onLanding: await press(['qwen-edit'], PAGE_LANDING),
+        onLanding: await press(['klein-9b'], PAGE_LANDING),
       };
     });
 

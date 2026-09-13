@@ -1517,7 +1517,9 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
             Events.emit('generation:complete', { id: _regId, item: firstItem, group: firstGroup, items: builtItems, groups, tempId: _galleryTempId, extraTempIds: _galleryExtraTempIds, scope: 'gallery', deferred: !!opts.deferCommit, cancelled: _wasCancelled() });
             // `groups` reaches the caller so a deferCommit consumer can persist them
             // later; committed runs simply ignore it (they are already in the project).
-            callbacks.onComplete?.({ item: firstItem, group: firstGroup, items: builtItems, groups });
+            // `displayUrls` (MPI-747): what an `Output_Display` node wrote — a Flow shows it
+            // instead of the output. Never an item, so nothing above saved it.
+            callbacks.onComplete?.({ item: firstItem, group: firstGroup, items: builtItems, groups, displayUrls: outputInfo.displayUrls || [] });
         }
 
         // A Stopped run whose output still landed is NOT a completion. ComfyUI's

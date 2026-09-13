@@ -433,8 +433,9 @@ export const FLOWS = [
     // dispatch. Krea2 no longer uses those classes (b3f9a018 dropped its masked-crop
     // path), so that listing was removed and this flow is now the sole declarer.
     //
-    // FIXED-PROMPT flow: the graph has NO Input_Positive/Input_Negative (both baked),
-    // so inputSchema declares no `positive` and the op sets promptRequired:false.
+    // FIXED-PROMPT flow: the instruction is baked in a node titled `HeadSwap_Prompt` —
+    // NEVER `Input_Positive`, which a promptless flow still sends as '' on every run,
+    // wiping it (MPI-744). inputSchema declares no `positive`; promptRequired:false.
     // Boxes are injectionParams (box1/box2 → headSwapInjector), NOT media slots.
     {
         id: 'head-swap',
@@ -446,8 +447,10 @@ export const FLOWS = [
         preview: 'flow-head-swap.webp',
         video: 'flow-head-swap.mp4',
         description: 'Swap a head from one image onto another. Upload the image you want to keep, the image with the head you want, mark each head, and run.',
-        requiredModels: ['qwen-edit'],
-        requiredDeps: ['qwen-lora-headswap', 'comfyui-inpaint-cropandstitch'],
+        // MPI-744: Klein 9B replaced Qwen Edit (Fabio, 2026-09-13 — slow and imprecise).
+        // The head LoRA stays a FLOW dep, never a model dep: 632MB for one flow.
+        requiredModels: ['klein-9b'],
+        requiredDeps: ['klein-9b-lora-headswap', 'comfyui-inpaint-cropandstitch'],
         operation: 'flowHeadSwap',
         workflow: 'flow_head_swap.json',
         mediaType: 'image',
@@ -504,32 +507,9 @@ export const FLOWS = [
                 hint: 'Box the head to use. A close-up portrait works best.',
             },
         ],
-        // The flow's ONE knob, declared (MPI-572) — this plus the two step `param`
-        // bindings above is the whole of what MpiFlowHeadSwap.js used to be, so the
-        // component is gone and this descriptor is now data a manifest could carry.
-        //
-        // Input_Tier is 1-indexed to match the graph's MpiAnySwitch. `note` is the
-        // always-visible cost, `info` the hover gloss.
-        //
-        // Cost is a RELATIVE percentage and NEVER absolute seconds — a baked ETA is
-        // a lie on every GPU but the one it was measured on, while the ratio is a
-        // property of the pipeline. Measured 2026-07-18 (386 s / 100 s / 51 s); the
-        // ratio is NOT derivable from step count, because Quality runs without the
-        // speed LoRA. The label must say TIME — "13%" alone reads as 13% quality.
-        // NO seed UI, ever (existing-flows/head-swap.md); no prompt, both baked.
-        fields: [
-            {
-                id: 'Input_Tier', type: 'radio', label: 'Speed', columns: 3, default: 1,
-                options: [
-                    { v: 1, label: 'Quality', note: 'baseline',
-                      info: 'Baseline time. Full sampling — best edge blending and skin match.' },
-                    { v: 2, label: 'Turbo', note: '~25% of time',
-                      info: '~25% of the time. Half the steps; softer detail in hair.' },
-                    { v: 3, label: 'Hyper', note: '~13% of time',
-                      info: '~13% of the time. Fewest steps — for checking framing, not final work.' },
-                ],
-            },
-        ],
+        // NO `fields` (MPI-744): the Klein graph has one path, so the Qwen-era Speed tier
+        // (`Input_Tier`) went with it. The two step `param` bindings above are the whole
+        // descriptor. NO seed UI, ever (existing-flows/head-swap.md); no prompt, baked.
     },
     // MPI-520 — the first Flow authored with no component at all. Its three controls
     // are DECLARED (MPI-531), so the whole descriptor is data a third-party manifest

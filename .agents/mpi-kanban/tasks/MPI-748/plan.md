@@ -95,6 +95,26 @@ umbrella — open. The umbrella moves `todo -> done` when its last kept member d
 ## Resume here
 
 **Phase 1 (MPI-746) is DONE and committed** (2026-09-13), with its `UNRELEASED.md` line.
-**Fabio asked for the Flow head swap (MPI-744) next.** This plan puts phase 2, MPI-747
-(`Output_Display`), first because the head swap graph carries the display node — confirm the
-order with Fabio at pickup, and MPI-744 still needs his exported raw graph.
+
+**Drift (2026-09-13): phases 2 and 3 run TOGETHER, in one session, at Fabio's call** — the Klein
+Head Swap graph is the live test for `Output_Display`, so neither can be judged alone. Both
+MPI-747 and MPI-744 are in `doing`. Also decided at pickup: `Output_Display` is GENERIC (every
+Flow, image and video), it paints first and the toggle still reaches compare; Qwen is DROPPED
+from Head Swap (no tier), the LoRA is 9B rank128 at 0.75.
+
+**State:** code, graph, deps and docs COMMITTED (handoff 2026-09-13); every automated check green
+(`tasks/MPI-747/validation.md`). The 9B and 4B BFS LoRAs are live on R2, the Qwen BFS LoRA DELETED.
+Fabio's in-app run showed the Display toggle working; `validation.md` § Live is not yet confirmed.
+
+**MPI-744 bench round 2 (after the wiring):** Klein returns the whole head box 5-7 levels darker
+(measured, `MPI-744/research/seam_probe.py`, checklist 15-16). `MpiInpaintHeal` as placed did not
+fix it and KJNodes `ColorMatch` is REJECTED by Fabio (it is why Heal exists — do not suggest it).
+Fabio is now benching a different route: Klein removes the original person to a clean plate, then
+the background-removed new person is composited onto it (checklist 17). The prompt's second
+paragraph is a PLACEHOLDER to be replaced by a description of Picture 1's expression (checklist 18).
+
+**Next:** (1) Fabio confirms MPI-747 § Live — close MPI-747 on it; (2) wait for his new Head Swap
+graph export, re-run `seam_probe.py` on it, then re-sync raw -> runtime and re-wire the FlowDef.
+Still open for MPI-744: 4B option (`v1.1_optional` staged, not `v1`), re-cut the Qwen-era tile +
+hero, bench node still titled `Input_Positive` (raw is retitled `HeadSwap_Prompt`), and whether
+a fresh Generate should reset the result surface to Display.
