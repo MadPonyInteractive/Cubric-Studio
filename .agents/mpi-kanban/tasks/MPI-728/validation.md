@@ -263,7 +263,96 @@ Default, Gemma 4, Gemma 3 12B only, each priced → the billing note sits under 
 **PASSED — Fabio, 2026-09-12**, answering "1" (looks good) to that check. Round 4
 has no open verification; phase 3 is next.
 
-## Phase 3 — NOT STARTED
+## Phase 3 — the Ollama lifecycle (2026-09-13)
 
-The Ollama lifecycle (MPI-8 / MPI-17 ported from Cubric-Prompt) is untouched. A
-user with Ollama running but without the model still gets a raw 404.
+Built: `services/ollamaLifecycle.js` (new), `OllamaEngine.listModels()` / `pull()` +
+`ollamaTagged()` / `ollamaDownloadSize()` in `services/llmEngines.mjs`, four
+`/llm/ollama*` routes and the enhance path in `routes/llm.js`, client calls in
+`js/services/llmService.js`, the new `MpiOllamaSetup` Compound mounted by
+`MpiLlmSettings`, `tests/ollama-lifecycle.test.cjs` (new), one exemption in
+`tests/windows-hide-spawn.test.cjs`.
+
+### Measured before building (Ollama 0.32.14, this box)
+
+- `ollama app.exe` spawned from Node `detached`: server up in 8.5s (`windowsHide`)
+  and 4.4s (without), all 9 models from `H:\OllamaModels` listed, ZERO visible
+  top-level windows either way (EnumWindows over the Ollama pids; sanity 26 visible
+  desktop-wide), and the app outlived the spawning process.
+- Ollama's installer starts `ollama app.exe` at login with no arguments (Startup
+  shortcut). Install footprint 2.8 GB on disk. Registry manifests give sizes before
+  any pull: `gemma4:e4b` 9,608,338,848 B model layer, `dolphin3-abliterated` 4.92 GB.
+
+### Automated
+
+- `npm test` **961/961** (949 + 12 new), `npm run lint` and `npm run lint:components`
+  clean, `tests/windows-hide-spawn.test.cjs` green with the new module in its scan.
+- **Proved RED by mutation, file restored byte-identical after** (scratch script):
+  `serve` spawn without `windowsHide` → guard red; progress from the latest line only
+  → "download progress sums every layer" red; app spawn not detached → "desktop app is
+  launched detached" red; ENOENT read as failed → "ENOENT means not installed" red.
+
+### Live, on an own `app:isolated` instance (:58510), never :3000
+
+- **Installed but stopped (routes):** `POST /llm/ollama/start` → `started` in 4464ms,
+  a second call → `running` (no double launch); `GET /llm/ollama` then reported all
+  four registry models `downloaded: true` (the H: folder, MPI-17 at the source).
+  `ollama app.exe` parent pid 17428 = the isolated server fork; ZERO visible windows.
+- **Installed but stopped (UI):** Ollama stopped, backend set to Ollama, Remote
+  opened: the row mounted, the log shows `ollama start: started`, the row read
+  "Ollama is running, and Gemma 4 (Default) is downloaded and ready." The model
+  list's four Ollama options each read "Downloaded".
+- **Enhance on a stopped Ollama:** `POST /llm/enhance` (ollama, gemma-4-e4b) started
+  it (parent 17428 again) and returned `ok:true`, `model: gemma4:e4b`, a sentence,
+  in 24.0s including start and model load.
+- **Running without the model** — a bare `ollama serve` on an EMPTY scratch store
+  (process-scoped `OLLAMA_MODELS`, the user's H: store untouched):
+  - a real `startPull('all-minilm:22m')` ran to `success`: 45,960,996 of 45,960,996
+    bytes, no error, 4.1s, present afterwards by tagged name;
+  - the row read "Gemma 4 (Default) is not in your Ollama yet, about 8.9GB. Nothing
+    downloads until you press Download." with a Download button, and every model
+    option read "Not downloaded";
+  - `POST /llm/enhance` answered "Gemma 4 (Default) is not downloaded in Ollama yet.
+    Download it in Remote → Language Models." instead of Ollama's 404;
+  - picking Dolphin 3 switched the row to "about 4.6GB"; pressing Download ran real
+    progress for 45s, "41MB of 4.6GB" bar 0% → "1.8GB of 4.6GB" bar 38%;
+  - stopping the scratch server mid-download: the row went "Starting Ollama…" →
+    "Ollama is running, and Dolphin 3 … is downloaded and ready", i.e. it relaunched
+    the user's real app (parent 17428), whose store has the model. Scratch store
+    deleted afterwards.
+
+- **Never stopped on quit:** with the user's real `ollama app.exe` launched by the
+  isolated server (parent 17428), that instance's Electron main was killed WITHOUT a
+  tree kill (its pid checked against the user's :3000 main first). Port closed, server
+  fork gone, `ollama app.exe` still alive and :11434 still answering 200. The user's
+  :3000 kept answering throughout.
+- **Not installed (Windows)** — a second isolated instance (:56298) with a
+  process-scoped empty `LOCALAPPDATA` and Ollama removed from `PATH`, Ollama stopped:
+  `POST /llm/ollama/start` → `{"status":"missing"}` with no process launched;
+  `GET /llm/ollama` → `running:false`, every `downloaded: null`. The row read "Ollama
+  is not installed. It is a free app that runs these models on your own card, and it
+  takes about 3 GB of disk space." with an **Install Ollama** button (row 446×70 flex,
+  button 122×31, progress hidden). Install NOT pressed: it would run real winget.
+
+**Not live-verified:**
+- winget actually installing on a clean Windows machine (same gap Cubric Prompt left),
+  and the row's install-failed branch;
+- the row's "Downloading … failed" branch (the failure above recovered straight to a
+  running Ollama instead);
+- **the Linux leg:** `linuxbox` timed out at its configured 192.168.0.209, and the LAN
+  sweep that finds it was refused by the auto-mode permission classifier. Linux's
+  ENOENT → download-page branch is unit-tested only;
+- macOS entirely.
+
+**Fabio's desktop check PASSED (2026-09-13)**: picking Ollama started Ollama, and
+the rest checked out ("Everything passed"), with two copy calls, both made:
+
+- The Enhancement model dropdown's **"Default" entry is removed**: the default model
+  is selected by name. `/llm/models` now marks it `isDefault`; ephemeral-port smoke
+  → exactly one `isDefault`, `gemma-4-e4b`, matching `defaultModelId`.
+- The "uncensored is not better" hint is **shortened** to: "Uncensored does not mean
+  better: in our tests, uncensored models missed parts of the prompt more often. Pick
+  one only when you need what it will write."
+
+After both: `npm test` 961/961, `npm run lint` and `lint:components` clean.
+**PASSED — Fabio, 2026-09-13**, answering "1" to the copy changes. Phase 3 has no
+open verification, and MPI-728 closes on this.

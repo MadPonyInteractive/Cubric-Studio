@@ -24,9 +24,14 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const DIRS = ['routes', 'services'];
 
-/** Call sites that spawn Electron itself — a GUI-subsystem binary that never gets
- *  a console — so the flag is meaningless there. Keyed by the callee expression. */
-const GUI_BINARY_CALLEES = new Set(['process.execPath']);
+/** Call sites that spawn a GUI-subsystem binary, which never gets a console, so the
+ *  flag is meaningless there. Keyed by the callee expression. */
+const GUI_BINARY_CALLEES = new Set([
+    'process.execPath',
+    // services/ollamaLifecycle.js starts the Ollama desktop app: zero visible
+    // windows measured with and without the flag (MPI-728, 2026-09-13).
+    'ollamaAppExe',
+]);
 
 /** Source files under DIRS, absolute. */
 function sourceFiles() {

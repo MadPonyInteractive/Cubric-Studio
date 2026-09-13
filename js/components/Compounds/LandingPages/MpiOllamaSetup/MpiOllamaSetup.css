@@ -1,0 +1,21 @@
+/* ═══════════════════════════════════════════════════════════════
+   MpiOllamaSetup — the Ollama row under the Language Models
+   backend picker (MPI-728 phase 3). Its text is .mpi-settings__hint
+   from MpiSettings.css; only the layout is here.
+   ═══════════════════════════════════════════════════════════════ */
+
+.mpi-ollama-setup {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+}
+
+.mpi-ollama-setup__progress {
+    align-self: stretch;
+}
+
+/* An empty slot would still take a gap in the column. */
+.mpi-ollama-setup__action:empty {
+    display: none;
+}

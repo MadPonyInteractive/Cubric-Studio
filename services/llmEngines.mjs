@@ -22,7 +22,9 @@
  *    classes still expose the same `chat()` / `complete()` shape, which is what
  *    made them swappable in the first place.
  * 2. **`describeImage()`** — a v1 seam that threw on every backend.
- * 3. **`pull()` / `listModels()`** — never called by the harness.
+ * 3. **`pull()` / `listModels()`** — never called by the harness. Both came back
+ *    in MPI-728 phase 3 for the app's Ollama download row; the harness still does
+ *    not call them.
  *
  * EVERYTHING THE SWEEPS WERE MEASURED ON IS CARRIED VERBATIM: Ollama's
  * `num_ctx: 8192` and `think: false`, the `keep_alive: 0` release, ComfyUI's
@@ -193,6 +195,84 @@ export class OllamaEngine {
     async releaseOwnModels() {
         const loaded = await this.loadedModels();
         await Promise.all(loaded.map((name) => this.unload(name)));
+    }
+
+    /** Installed model names from `GET /api/tags`, spelled as Ollama spells them (`name:tag`). */
+    async listModels() {
+        const res = await fetch(`${this.baseUrl}/api/tags`);
+        if (!res.ok) {
+            throw new Error(`Ollama tags failed: ${res.status} ${res.statusText}`);
+        }
+        const data = await res.json();
+        return (data.models ?? []).map((m) => m.name);
+    }
+
+    /**
+     * Download a model, handing each progress line to `onProgress`. `POST /api/pull`
+     * streams NDJSON: `{status}`, then `{status, digest, total, completed}` per
+     * layer, then `{status: 'success'}`. A failure mid-stream arrives as an
+     * `{error}` LINE on a 200, and a dropped connection simply ends the stream, so
+     * success is the `success` line and nothing else.
+     */
+    async pull(model, onProgress) {
+        const res = await fetch(`${this.baseUrl}/api/pull`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model, stream: true }),
+        });
+        if (!res.ok || !res.body) {
+            const detail = await res.text().catch(() => '');
+            throw new Error(`Ollama pull failed: ${res.status} ${res.statusText} ${detail}`.trim());
+        }
+        let finished = false;
+        const handle = (line) => {
+            if (!line.trim()) return;
+            const msg = JSON.parse(line);
+            if (msg.error) throw new Error(`Ollama pull failed: ${msg.error}`);
+            if (msg.status === 'success') finished = true;
+            onProgress(msg);
+        };
+        const decoder = new TextDecoder();
+        let buf = '';
+        for await (const chunk of res.body) {
+            buf += decoder.decode(chunk, { stream: true });
+            const lines = buf.split('\n');
+            buf = lines.pop();
+            lines.forEach(handle);
+        }
+        handle(buf + decoder.decode());
+        if (!finished) throw new Error(`Ollama pull of ${model} ended before it finished.`);
+    }
+}
+
+/**
+ * Ollama lists an untagged pull under `:latest` (`huihui_ai/dolphin3-abliterated`
+ * is installed as `huihui_ai/dolphin3-abliterated:latest`), so a presence check
+ * compares tagged names. The tag is looked for after the last `/` only.
+ */
+export function ollamaTagged(name) {
+    return name.split('/').pop().includes(':') ? name : `${name}:latest`;
+}
+
+/**
+ * A model's download size in bytes, from Ollama's public registry manifest: the
+ * local API reports nothing until a pull is already running. Sums every layer
+ * (weights, template, licence). `null` on any failure, and 5s at most, because
+ * the settings row waits on it.
+ */
+export async function ollamaDownloadSize(name) {
+    try {
+        const [repoPath, tag] = ollamaTagged(name).split(/:(?=[^/]*$)/);
+        const repo = repoPath.includes('/') ? repoPath : `library/${repoPath}`;
+        const res = await fetch(`https://registry.ollama.ai/v2/${repo}/manifests/${tag}`, {
+            headers: { Accept: 'application/vnd.docker.distribution.manifest.v2+json' },
+            signal: AbortSignal.timeout(5000),
+        });
+        if (!res.ok) return null;
+        const { layers } = await res.json();
+        return layers?.reduce((sum, l) => sum + (l.size || 0), 0) || null;
+    } catch {
+        return null;
     }
 }
 

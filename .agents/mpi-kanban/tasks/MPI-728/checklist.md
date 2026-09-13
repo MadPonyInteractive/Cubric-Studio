@@ -7,4 +7,6 @@ Derived from `plan.md` phase titles at `todo -> doing`.
       and the copy's tone are Fabio's to judge (`Verify mode: user-ux`)
 - [x] price in the DeepInfra model picker (Fabio chose option A, 2026-09-12), and
       DeepSeek/Qwen removed from the list — verified by Fabio in the app
-- [ ] the Ollama lifecycle, ported
+- [x] the Ollama lifecycle, ported — built and driven live 2026-09-13 (start, install
+      row, model presence, download with progress); verified by Fabio in the app,
+      plus his two copy calls (no bare "Default", a short uncensored line)

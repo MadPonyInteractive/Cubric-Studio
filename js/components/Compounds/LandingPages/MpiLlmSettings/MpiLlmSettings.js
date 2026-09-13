@@ -2,6 +2,7 @@ import { ComponentFactory } from '../../../factory.js';
 import { MpiInput } from '../../../Primitives/MpiInput/MpiInput.js';
 import { MpiButton } from '../../../Primitives/MpiButton/MpiButton.js';
 import { MpiDropdown } from '../../../Primitives/MpiDropdown/MpiDropdown.js';
+import { MpiOllamaSetup } from '../MpiOllamaSetup/MpiOllamaSetup.js';
 import { secretsClient } from '../../../../core/secretsClient.js';
 import { clientLogger } from '../../../../services/clientLogger.js';
 import { pluginAvailability } from '../../../../data/pluginsRegistry.js';
@@ -118,6 +119,7 @@ export const MpiLlmSettings = ComponentFactory.create({
                             <div id="mpiSettingsLlmEnhanceModelSlot"></div>
                         </div>
                         <span class="mpi-settings__hint" id="mpiSettingsLlmEnhanceModelNote"></span>
+                        <div id="mpiSettingsLlmOllamaSlot"></div>
 
                         <div class="mpi-settings__form-group">
                             <label class="mpi-settings__field-label">Image descriptions</label>
@@ -129,7 +131,7 @@ export const MpiLlmSettings = ComponentFactory.create({
                     <div class="mpi-settings__subgroup">
                         <span class="mpi-settings__subgroup-title">Before you choose</span>
                         <span class="mpi-settings__hint">A hosted provider will refuse or quietly sanitise material that a local uncensored build will shape for you. If that matters for what you are making, run these locally — it is the only place an uncensored model exists.</span>
-                        <span class="mpi-settings__hint">Uncensored is not a synonym for better. Measured over 30 runs, the uncensored 12B dropped the subject the user actually asked for in 6 runs out of 10, writing a man holding a leash attached to nothing; both shipped models kept it every time. Pick it because you need what it will write, not because it sounds stronger.</span>
+                        <span class="mpi-settings__hint">Uncensored does not mean better: in our tests, uncensored models missed parts of the prompt more often. Pick one only when you need what it will write.</span>
                     </div>
                 </div>`,
 
@@ -137,6 +139,13 @@ export const MpiLlmSettings = ComponentFactory.create({
         let _models = [];
         let _hasKey = false;
         const _insts = [];
+        // Re-rendered on their own, so each is destroyed before it is replaced: a
+        // control cleared with innerHTML alone keeps its listeners alive.
+        let _backendInst = null;
+        let _modelInst = null;
+        let _ollamaInst = null;
+        /** The last `/llm/ollama` reply, for each Ollama model's Downloaded meta. */
+        let _ollama = null;
 
         el.onOpen = () => { _init(el); };
         _init(el);
@@ -155,6 +164,12 @@ export const MpiLlmSettings = ComponentFactory.create({
         function _destroyControls() {
             _insts.forEach(i => i?.el?.destroy?.());
             _insts.length = 0;
+            _backendInst?.el?.destroy?.();
+            _modelInst?.el?.destroy?.();
+            _ollamaInst?.destroy();
+            _backendInst = null;
+            _modelInst = null;
+            _ollamaInst = null;
         }
 
         // ── The DeepInfra key (write-only; the field is cleared after save) ──
@@ -244,6 +259,7 @@ export const MpiLlmSettings = ComponentFactory.create({
         function _renderBackend(root) {
             const slot = qs('#mpiSettingsLlmEnhanceBackendSlot', root);
             if (!slot) return;
+            _backendInst?.el?.destroy?.();
             slot.innerHTML = '';
 
             const options = BACKENDS.map((b) => {
@@ -253,20 +269,21 @@ export const MpiLlmSettings = ComponentFactory.create({
             });
 
             const current = backendPreference();
-            const inst = MpiDropdown.mount(slot, {
+            _backendInst = MpiDropdown.mount(slot, {
                 options,
                 value: current,
                 extraClasses: STACKED,
             });
-            inst.on('change', ({ value }) => {
+            _backendInst.on('change', ({ value }) => {
                 setBackendPreference(value);
                 _paintBackendNote(root, value);
                 _renderModel(root, value);
+                _renderOllama(root, value);
             });
-            _insts.push(inst);
 
             _paintBackendNote(root, current);
             _renderModel(root, current);
+            _renderOllama(root, current);
         }
 
         function _paintBackendNote(root, backend) {
@@ -274,7 +291,7 @@ export const MpiLlmSettings = ComponentFactory.create({
             if (!node) return;
             const NOTES = {
                 deepinfra: 'Runs off your machine entirely. Needs the key above, and your prompt leaves this computer.',
-                ollama: 'Runs on your own card in a second runtime, so it holds VRAM alongside a local generation. Ollama must be installed and running.',
+                ollama: 'Runs on your own card in a second runtime, so it holds VRAM alongside a local generation. Cubric starts Ollama when it is needed; installing it or downloading a model waits for your click below.',
                 comfy: 'Runs in the ComfyUI engine this app already started, and loads one text encoder of its own. Offered on every model.',
             };
             // A backend picked while it could run and unavailable since (the key
@@ -293,6 +310,8 @@ export const MpiLlmSettings = ComponentFactory.create({
             const slot = qs('#mpiSettingsLlmEnhanceModelSlot', root);
             const note = qs('#mpiSettingsLlmEnhanceModelNote', root);
             if (!group || !slot) return;
+            _modelInst?.el?.destroy?.();
+            _modelInst = null;
             slot.innerHTML = '';
 
             // ComfyUI runs one graph with one baked weight, so there is nothing to
@@ -319,30 +338,70 @@ export const MpiLlmSettings = ComponentFactory.create({
                 note.textContent = billed ? 'Billed to your DeepInfra account. One enhance uses about 500 to 4,000 tokens.' : '';
                 note.hidden = !billed;
             }
-            const options = [
-                { value: '', label: 'Default', meta: 'What the app ships with' },
-                ...servable.map(m => ({
+            // NO "Default" ENTRY (Fabio, 2026-09-13): a bare "Default" makes the user ask
+            // what it is. The model the app runs with nothing picked is listed and
+            // selected by NAME instead, and its registry name already says "(Default)".
+            const options = servable.map(m => {
+                // Known only once Ollama answers; no meta beats a guessed one.
+                const downloaded = backend === 'ollama' ? _ollama?.models?.[m.id]?.downloaded : undefined;
+                return {
                     value: m.id,
                     label: m.name,
                     info: m.description,
                     // No price when the fetch failed: none beats a stale one.
                     ...(billed && m.price && { meta: priceLabel(m.price) }),
-                })),
-            ];
-            // A model pinned under the OTHER backend is not servable here. Show the
-            // default rather than a value this dropdown cannot honour; the pin itself
-            // is left alone, so switching back restores it.
+                    ...(typeof downloaded === 'boolean' && { meta: downloaded ? 'Downloaded' : 'Not downloaded' }),
+                };
+            });
+            // Nothing picked, or a model pinned under the OTHER backend (not servable
+            // here): show the default model rather than a value this dropdown cannot
+            // honour. The pin itself is left alone, so switching back restores it.
             const pinned = enhancerModelPreference();
-            const value = servable.some(m => m.id === pinned) ? pinned : '';
+            const fallback = servable.find(m => m.isDefault) || servable[0];
+            const value = servable.some(m => m.id === pinned) ? pinned : fallback.id;
 
-            const inst = MpiDropdown.mount(slot, {
+            _modelInst = MpiDropdown.mount(slot, {
                 options,
                 value,
-                placeholder: 'Default',
                 extraClasses: STACKED,
             });
-            inst.on('change', ({ value: id }) => setEnhancerModelPreference(id || null));
-            _insts.push(inst);
+            _modelInst.on('change', ({ value: id }) => {
+                setEnhancerModelPreference(id || null);
+                _ollamaInst?.el?.setModel?.(id);
+            });
+        }
+
+        // ── The Ollama row, only while Ollama is the backend (MPI-728 phase 3) ──
+        // Starting Ollama, installing it and downloading the chosen model all live in
+        // MpiOllamaSetup; this only mounts it and keeps the model list's Downloaded
+        // metas in step with what it reports.
+        function _renderOllama(root, backend) {
+            const slot = qs('#mpiSettingsLlmOllamaSlot', root);
+            if (!slot) return;
+            if (backend !== 'ollama') {
+                _ollamaInst?.destroy();
+                _ollamaInst = null;
+                _ollama = null;
+                return;
+            }
+            if (_ollamaInst) return;
+
+            const pinned = enhancerModelPreference();
+            _ollamaInst = MpiOllamaSetup.mount(slot, {
+                modelId: _models.some(m => m.ollama && m.id === pinned) ? pinned : '',
+            });
+            // The row reports once a second during a download. Rebuild the model list
+            // only when a model's downloaded state CHANGES, or the dropdown would close
+            // under the user's pointer every second.
+            _ollamaInst.on('state', (state) => {
+                const before = JSON.stringify(_presence(_ollama));
+                _ollama = state;
+                if (JSON.stringify(_presence(state)) !== before) _renderModel(root, 'ollama');
+            });
+        }
+
+        function _presence(state) {
+            return Object.entries(state?.models || {}).map(([id, m]) => [id, m.downloaded]);
         }
 
         // ── Image descriptions (MPI-737 grows this) ─────────────────────────

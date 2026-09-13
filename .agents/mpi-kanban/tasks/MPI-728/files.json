@@ -4,12 +4,16 @@
     "js/services/llmService.js",
     "tests/llm-service.test.cjs",
     "js/components/Compounds/LandingPages/MpiLlmSettings/",
+    "js/components/Compounds/LandingPages/MpiOllamaSetup/",
     "routes/llm.js",
     "services/llmEngines.mjs",
+    "services/ollamaLifecycle.js",
     "js/components/Compounds/LandingPages/MpiSettings/MpiSettings.js",
     "js/components/types.js",
     "js/shell/preloadStyles.js",
     "js/data/modelConstants/models.js",
-    "tests/output-prompt-capture.test.cjs"
+    "tests/output-prompt-capture.test.cjs",
+    "tests/ollama-lifecycle.test.cjs",
+    "tests/windows-hide-spawn.test.cjs"
   ]
 }

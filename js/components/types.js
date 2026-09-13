@@ -964,6 +964,19 @@
  */
 
 /**
+ * @typedef {Object} MpiOllamaSetupProps (Compound — js/components/Compounds/LandingPages/MpiOllamaSetup)
+ * @property {string} [modelId] - Registry id of the chosen enhancement model; empty = the default
+ *
+ * The Ollama row MpiLlmSettings mounts into #mpiSettingsLlmOllamaSlot while Ollama is
+ * the picked backend (MPI-728 phase 3). Mounting STARTS a stopped Ollama; installing
+ * Ollama and downloading the model are buttons, because the user's click is the
+ * consent. Polls `/llm/ollama` once a second only while an install or download runs.
+ *
+ * el.setModel(id) - switch the model the row reports on
+ * Emits: 'state' - the latest `/llm/ollama` reply, so the parent can mark model options
+ */
+
+/**
  * @typedef {Object} MpiHotkeysProps (Compound — js/components/Compounds/LandingPages/mpi-hotkeys)
  * No props required. Static content.
  *

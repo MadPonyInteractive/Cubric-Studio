@@ -9,10 +9,15 @@
  * exists for one reason the renderer cannot cover: **the DeepInfra key lives in
  * the main process and must never reach the renderer.**
  *
- * Three routes:
- *   GET  /llm/status   -> { deepinfra: { hasKey }, ollama: { running }, defaultBackend }
- *   GET  /llm/models   -> { models: [{ id, name, description, ollama, deepinfra, price }] }
- *   POST /llm/enhance  -> { ok, text, backend, model } | { ok:false, error }
+ * The routes:
+ *   GET  /llm/status          -> { deepinfra: { hasKey }, ollama: { running }, defaultBackend }
+ *   GET  /llm/models          -> { models: [{ id, name, description, ollama, deepinfra, isDefault, price }] }
+ *   POST /llm/enhance         -> { ok, text, backend, model } | { ok:false, error }
+ *   GET  /llm/ollama          -> { running, platform, install, defaultModelId,
+ *                                  models: { <id>: { name, downloaded, size, pull } } }
+ *   POST /llm/ollama/start    -> { status: 'running'|'started'|'missing'|'failed' }
+ *   POST /llm/ollama/install  -> { ok }   ok:false = no silent install here, open the download page
+ *   POST /llm/ollama/pull     -> { ok } | { ok:false, error }   body { modelId }
  *
  * HONEST STATE IS PART OF THE CONTRACT: every completion echoes the backend and
  * the model that actually answered, never the one that was asked for. The UI
@@ -20,7 +25,9 @@
  *
  * The backends themselves are `services/llmEngines.mjs` — the SAME clients the
  * Stage 1 recipe harness measures every recipe on. One implementation, so a fix
- * here cannot drift from the instrument that produced the greens.
+ * here cannot drift from the instrument that produced the greens. Starting,
+ * installing and downloading into Ollama is `services/ollamaLifecycle.js` (MPI-728
+ * phase 3), which the harness never touches.
  */
 
 'use strict';
@@ -29,6 +36,7 @@ const express = require('express');
 const router = express.Router();
 const logger = require('./logger');
 const { ask } = require('./forkBridge');
+const ollamaLifecycle = require('../services/ollamaLifecycle');
 
 // `services/llmEngines.mjs` is ESM and this router is CJS, so it loads through a
 // dynamic import — the same thing server.js already does for axios. Cached after
@@ -129,12 +137,110 @@ router.get('/llm/models', async (_req, res) => {
                 description: m.description,
                 ollama: !!m.ollamaName,
                 deepinfra: !!m.deepInfraId,
+                isDefault: m.id === DEFAULT_MODEL_ID,
                 price: (m.deepInfraId && prices?.[m.deepInfraId]) || null,
             })),
         });
     } catch (err) {
         logger.error('system', `llm models failed: ${err && err.message}`);
         res.json({ defaultModelId: null, models: [] });
+    }
+});
+
+/**
+ * Download sizes from Ollama's registry, kept once known. A failure is not kept,
+ * so the next look tries again.
+ */
+const _ollamaSizes = new Map();
+async function ollamaSize(name) {
+    if (_ollamaSizes.has(name)) return _ollamaSizes.get(name);
+    const size = await (await engines()).ollamaDownloadSize(name);
+    if (size) _ollamaSizes.set(name, size);
+    return size;
+}
+
+/**
+ * GET /llm/ollama — Ollama's state, for the settings row (MPI-728 phase 3).
+ *
+ * READ-ONLY: it never starts, installs or downloads anything, so polling it during a
+ * download costs one local probe. `downloaded` is null while Ollama is not running,
+ * because nothing can be known about its store then. `size` is looked up only for a
+ * model that is not downloaded, from Ollama's public registry, which is where the
+ * download itself would come from.
+ */
+router.get('/llm/ollama', async (_req, res) => {
+    try {
+        const { OllamaEngine, MODEL_REGISTRY, DEFAULT_MODEL_ID, ollamaTagged } = await engines();
+        const engine = new OllamaEngine();
+        const running = await engine.isRunning();
+        const installed = running ? new Set(await engine.listModels()) : null;
+        const entries = await Promise.all(MODEL_REGISTRY.filter((m) => m.ollamaName).map(async (m) => {
+            const downloaded = installed ? installed.has(ollamaTagged(m.ollamaName)) : null;
+            return [m.id, {
+                name: m.name,
+                downloaded,
+                size: downloaded === false ? await ollamaSize(m.ollamaName) : null,
+                pull: ollamaLifecycle.pullState(m.ollamaName),
+            }];
+        }));
+        res.json({
+            running,
+            platform: process.platform,
+            install: ollamaLifecycle.installState(),
+            defaultModelId: DEFAULT_MODEL_ID,
+            models: Object.fromEntries(entries),
+        });
+    } catch (err) {
+        logger.error('system', `llm ollama state failed: ${err && err.message}`);
+        res.status(500).json({ error: 'Could not read the state of Ollama.' });
+    }
+});
+
+/** POST /llm/ollama/start — start an installed, stopped Ollama. Never installs. */
+router.post('/llm/ollama/start', async (_req, res) => {
+    const status = await ollamaLifecycle.ensureOllama().catch((err) => {
+        logger.error('system', `ollama start failed: ${err && err.message}`);
+        return 'failed';
+    });
+    logger.info('system', `ollama start: ${status}`);
+    res.json({ status });
+});
+
+/**
+ * POST /llm/ollama/install — install Ollama silently (Windows, winget). Reached only
+ * from the user's own click on "Install Ollama", which is the consent. `ok: false`
+ * means this platform has no silent install: the row opens the download page.
+ */
+router.post('/llm/ollama/install', (_req, res) => {
+    const ok = ollamaLifecycle.installOllama();
+    if (ok) logger.info('system', 'ollama install started (winget)');
+    res.json({ ok });
+});
+
+/**
+ * POST /llm/ollama/pull — download one registry model into the user's own Ollama.
+ * Reached only from the user's click on Download. Returns once the download has
+ * started; its progress is on `GET /llm/ollama`.
+ */
+router.post('/llm/ollama/pull', async (req, res) => {
+    try {
+        const { getModel, DEFAULT_MODEL_ID } = await engines();
+        const asked = req.body && req.body.modelId;
+        const entry = getModel(asked || DEFAULT_MODEL_ID);
+        if (!entry || !entry.ollamaName) {
+            return res.json({ ok: false, error: `No Ollama model for id: ${asked}` });
+        }
+        // A download needs a server to talk to; starting one is not a download.
+        const status = await ollamaLifecycle.ensureOllama();
+        if (status === 'missing' || status === 'failed') {
+            return res.json({ ok: false, error: 'Ollama is not running, so nothing can be downloaded into it.' });
+        }
+        ollamaLifecycle.startPull(entry.ollamaName);
+        logger.info('system', `ollama pull started: ${entry.ollamaName}`);
+        res.json({ ok: true });
+    } catch (err) {
+        logger.error('system', `ollama pull failed to start: ${err && err.message}`);
+        res.json({ ok: false, error: (err && err.message) || 'The download could not start.' });
     }
 });
 
@@ -158,7 +264,7 @@ router.post('/llm/enhance', async (req, res) => {
 
     let backend;
     try {
-        const { OllamaEngine, DeepInfraEngine, getModel, DEFAULT_MODEL_ID } = await engines();
+        const { OllamaEngine, DeepInfraEngine, getModel, DEFAULT_MODEL_ID, ollamaTagged } = await engines();
         backend = asked === 'deepinfra' || asked === 'ollama' ? asked : await defaultBackend();
 
         const entry = getModel(modelId || DEFAULT_MODEL_ID);
@@ -170,16 +276,22 @@ router.post('/llm/enhance', async (req, res) => {
         const model = backend === 'deepinfra' ? entry.deepInfraId : entry.ollamaName;
         if (!model) return res.json({ ok: false, error: `"${entry.name}" has no ${backend} variant.` });
 
-        if (backend === 'ollama' && !(await new OllamaEngine().isRunning())) {
-            return res.json({
-                ok: false,
-                // NOT `ollama serve` (Fabio, 2026-09-12). Ollama ships a desktop app
-                // with a tray icon on every platform we target, so the ordinary fix is
-                // "open it", not "open a terminal". Naming the terminal command first
-                // sends a user who HAS it installed to do the awkward thing, and tells
-                // a user who does NOT have it nothing useful at all.
-                error: 'Ollama is not running. Start Ollama, or install it from ollama.com, or add a DeepInfra key in settings.',
-            });
+        if (backend === 'ollama') {
+            // MPI-728 phase 3: a stopped Ollama is STARTED here, not reported. Starting
+            // an app the user already installed asks nothing of them (Cubric Prompt's
+            // MPI-8 ruling). Installing it, or downloading a multi-GB model, never
+            // happens from an enhance: both are the user's own click in the settings.
+            const status = await ollamaLifecycle.ensureOllama();
+            if (status === 'missing') {
+                return res.json({ ok: false, error: 'Ollama is not installed. Install it in Remote → Language Models, or pick another backend there.' });
+            }
+            if (status === 'failed') {
+                return res.json({ ok: false, error: 'Ollama is installed but did not start. Start it yourself, or pick another backend in Remote → Language Models.' });
+            }
+            // Without this the user gets Ollama's own `404 Not Found`, which names nothing.
+            if (!(await new OllamaEngine().listModels()).includes(ollamaTagged(model))) {
+                return res.json({ ok: false, error: `${entry.name} is not downloaded in Ollama yet. Download it in Remote → Language Models.` });
+            }
         }
 
         const engine = backend === 'deepinfra'

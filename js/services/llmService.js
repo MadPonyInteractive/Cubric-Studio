@@ -267,7 +267,8 @@ export function splitLabelledPrompt(text) {
  * the user chose. An unreachable server answers `[]`, which the picker renders as
  * "the default" rather than as an error — nothing is broken, there is simply
  * nothing to choose between yet. A DeepInfra entry also carries `price`, live
- * from DeepInfra once a key is saved and null otherwise.
+ * from DeepInfra once a key is saved and null otherwise. `isDefault` marks the
+ * model the app runs when the user has picked none.
  */
 export async function enhancerModels() {
     try {
@@ -291,6 +292,49 @@ export function priceLabel(price) {
         return `$${v < 0.1 ? v : v.toFixed(2)}`;
     };
     return `${usd(price.in)} in, ${usd(price.out)} out per 1M tokens`;
+}
+
+/**
+ * Ollama's state for the Language Models row (MPI-728 phase 3): whether it is up,
+ * which registry models are on disk, and any install or download in flight. `null`
+ * when the app server itself did not answer.
+ */
+export async function ollamaState() {
+    try {
+        const res = await fetch('/llm/ollama');
+        return res.ok ? await res.json() : null;
+    } catch {
+        return null;
+    }
+}
+
+/** POST to an Ollama route; an unreachable server resolves `{ ok: false, error }`, never rejects. */
+async function postOllama(url, body = {}) {
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        });
+        return await res.json();
+    } catch (err) {
+        return { ok: false, error: (err && err.message) || 'The app server did not answer.' };
+    }
+}
+
+/** Start Ollama when it is installed and stopped. Never installs anything. */
+export function startOllama() {
+    return postOllama('/llm/ollama/start');
+}
+
+/** Install Ollama silently (Windows, winget). `ok: false` means open the download page instead. */
+export function installOllama() {
+    return postOllama('/llm/ollama/install');
+}
+
+/** Download one registry model into the user's own Ollama. Progress arrives on `ollamaState()`. */
+export function pullOllamaModel(modelId) {
+    return postOllama('/llm/ollama/pull', { modelId });
 }
 
 /** One completion through the server (DeepInfra or Ollama). */

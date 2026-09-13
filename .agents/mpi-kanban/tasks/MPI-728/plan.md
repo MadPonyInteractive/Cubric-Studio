@@ -15,6 +15,30 @@ possible and informed.
 
 ## Current State
 
+**2026-09-13 — CLOSED. PHASE 3 VERIFIED BY FABIO ("1"), with his two copy calls
+made (no bare "Default" in the model list, a short uncensored line). All three
+phases are done; the card moves to `done` at this close-out.** What follows is the
+phase 3 record as it stood before his check.
+
+**2026-09-13, PHASE 3 — BUILT AND DRIVEN LIVE.** The Ollama lifecycle: `services/ollamaLifecycle.js` (new) starts a
+stopped Ollama (on Windows the DESKTOP APP, detached; measured no window, the user's
+own model folder, survives the app quitting), installs it via winget only on the
+user's click, and downloads a registry model into it with summed-layer progress;
+`OllamaEngine.listModels()` / `pull()` came back in `services/llmEngines.mjs`; four
+`/llm/ollama*` routes plus an enhance path that starts Ollama and names a missing
+model instead of Ollama's 404; `MpiOllamaSetup` is the inline row under the backend
+picker (Fabio chose inline + click-is-consent over a toast or a popup). Phase 2's
+dropdowns are now destroyed before re-render (they leaked three listeners each).
+`npm test` 961/961, both lints clean, four mutations proved the new checks RED, and
+every state Fabio's machine can show plus a scratch-store "no model" and a
+fake-`LOCALAPPDATA` "not installed" were driven on isolated instances. Evidence and
+what stayed unverified (winget on a clean box, Linux, macOS): `validation.md`.
+
+**THE SINGLE NEXT ACTION: Fabio's desktop check** (restart the app first, the routes
+are server-side). Then close-out: `docs/llm.md` + a `docs/README.md` line are owed
+(no LLM doc home exists), and the commit must stage the shared `types.js` /
+`preloadStyles.js` by hunk.
+
 **2026-09-12, ROUND 3 — SHIPPED AS `da3b23bc`, pushed. MASTER WAS RED ON THIS CARD
 AND THAT COMMIT IS THE FIX.** `fef67f9d`'s retargeted desktop spec had never been
 run; run here it failed at `:89`, and so had every master CI run since `fef67f9d`.
@@ -460,6 +484,41 @@ Evidence in `validation.md`.
   `Unknown model id` until another model is picked. The "frontier models only in
   the cloud" asymmetry comments went with them. Descriptions via a DeepInfra vision
   model stay MPI-737's (scope items 1-2); a premise correction is noted there.
+- **2026-09-13 phase 3 — ON WINDOWS THE LIFECYCLE STARTS `ollama app.exe`, NOT
+  `ollama serve`.** Prompt's detached `ollama serve` is a console child of a
+  console-less server: a terminal window for the server's whole life, and the pair
+  `tests/windows-hide-spawn.test.cjs` bans. Measured on this box (Ollama 0.32.14),
+  the app spawned from Node `detached`: server up in 4.4-8.5s, all 9 models from
+  `H:\OllamaModels` listed (MPI-17 fixed at the source, the app passes its own
+  folder), ZERO visible windows with AND without `windowsHide`, and it outlives its
+  parent. The guard exempts the callee rather than relaxing the `detached` rule.
+  Prompt's `server.log` read survives only for Windows without the app, and
+  elsewhere `ollama serve` is detached as before.
+- **2026-09-13 phase 3 — nothing at boot, no consent dialog, no remembered "no".**
+  Prompt booted Ollama eagerly because it was that app's only engine; here ComfyUI
+  is the default, so the ladder runs when Ollama is picked or enhanced on. Install
+  and model download are INLINE rows in Remote -> Language Models that start only on
+  the user's click (Fabio, 2026-09-13, chose this over auto-install + toast and over
+  a popup on select). An enhance starts a stopped Ollama but never installs or
+  downloads; it names the missing model instead of Ollama's raw 404.
+- **2026-09-13 phase 3 — the copy's sizes are measured.** Ollama's registry manifest
+  gives a model's size before any pull (`gemma4:e4b` 9.61 GB, `dolphin3-abliterated`
+  4.92 GB); the local API gives nothing until a pull runs. The Ollama install is
+  2.8 GB on disk, so the button says about 3 GB, not Prompt's "about 1 GB".
+- **2026-09-13 phase 3 — the lifecycle is its own file, `services/ollamaLifecycle.js`,**
+  not `services/llmEngines.mjs`: that file is the recipe harness's instrument, and
+  the windows-hide guard scans `.js` only, so a spawn in the `.mjs` would never be
+  checked. The guard also skips dot-preceded calls (`childProcess.spawn(`), so the
+  lifecycle destructures `spawn` / `execFile` on purpose.
+- **2026-09-13 phase 3 review — Fabio's desktop check passed, with two copy calls.**
+  (1) The Enhancement model dropdown's "Default" entry is GONE: a bare "Default"
+  made him ask what it was, even with "Gemma 4 (Default)" right under it. The
+  default model is now selected by name (`isDefault` on `/llm/models`), and a pin the
+  backend cannot serve still shows the default without touching the pin. (2) The
+  "uncensored is not better" hint keeps its point and loses the measurement detail
+  (the 30 runs, the leash): short and plain, per Fabio. This supersedes the Decisions
+  line that put "the 12B's measured subject-drop" in the copy; the numbers stay in
+  MPI-677's `validation.md`.
 
 ## Verification
 
