@@ -6,7 +6,7 @@
         0
       ],
       "inpainted_image": [
-        "169",
+        "282",
         0
       ]
     },
@@ -26,7 +26,6 @@
       "preresize_max_width": 16384,
       "preresize_max_height": 16384,
       "mask_fill_holes": false,
-      "mask_expand_pixels": 0,
       "mask_invert": false,
       "mask_blend_pixels": 32,
       "mask_hipass_filter": 0.1,
@@ -35,7 +34,7 @@
       "extend_down_factor": 1,
       "extend_left_factor": 1,
       "extend_right_factor": 1,
-      "context_from_mask_extend_factor": 1.2,
+      "context_from_mask_extend_factor": 1.1,
       "output_resize_to_target_size": true,
       "output_target_width": 1024,
       "output_target_height": 1024,
@@ -47,6 +46,10 @@
       ],
       "mask": [
         "91",
+        0
+      ],
+      "mask_expand_pixels": [
+        "286",
         0
       ]
     },
@@ -69,7 +72,7 @@
   },
   "79": {
     "inputs": {
-      "string": "C:\\Users\\Fabio\\Downloads\\place_the_redhead_202603310903.png",
+      "string": "C:\\Users\\Fabio\\Documents\\Cubric Vision\\Projects\\test\\Media\\imported_001.jpg",
       "channel": "alpha",
       "block_if_empty": true
     },
@@ -80,7 +83,7 @@
   },
   "81": {
     "inputs": {
-      "string": "C:\\Users\\Fabio\\Downloads\\ComfyUI_temp_pgahf_00044_.png",
+      "string": "C:\\Users\\Fabio\\Documents\\Cubric Vision\\Projects\\test\\Media\\imported_002.webp",
       "channel": "alpha",
       "block_if_empty": true
     },
@@ -105,7 +108,7 @@
     "inputs": {
       "pad": true,
       "image": [
-        "81",
+        "211",
         0
       ],
       "mpi_box": [
@@ -120,10 +123,10 @@
   },
   "90": {
     "inputs": {
-      "width": 1024,
-      "height": 1024,
-      "x": 0,
-      "y": 0
+      "width": 360,
+      "height": 360,
+      "x": 200,
+      "y": 200
     },
     "class_type": "MpiBox",
     "_meta": {
@@ -208,12 +211,9 @@
   },
   "128": {
     "inputs": {
+      "text": "head_swap: start with Picture 1 as the base image, keeping its lighting, environment, and background. remove the head from Picture 1 completely and replace it with the head from Picture 2, strictly preserving the hair, eye color, nose structure of Picture 2. copy the direction of the eye, head rotation, micro expressions from Picture 1, high quality, sharp details, 4k.",
       "clip": [
         "189",
-        0
-      ],
-      "text": [
-        "200",
         0
       ]
     },
@@ -256,7 +256,7 @@
   "142": {
     "inputs": {
       "conditioning": [
-        "128",
+        "156",
         0
       ]
     },
@@ -482,15 +482,6 @@
       "title": "Load Diffusion Model"
     }
   },
-  "200": {
-    "inputs": {
-      "string": "head_swap: start with Picture 1 as the base image, keeping its lighting, environment, and background. remove the head from Picture 1 completely and replace it with the head from Picture 2, strictly preserving the hair, eye color, nose structure of Picture 2. copy the direction of the eye, head rotation, micro expressions from Picture 1, high quality, sharp details, 4k.\n\nDescribe the expression in Picture 1 and copy it to the new image.\n"
-    },
-    "class_type": "MpiText",
-    "_meta": {
-      "title": "HeadSwap_Prompt"
-    }
-  },
   "208": {
     "inputs": {
       "resize_type": "scale total pixels",
@@ -518,6 +509,407 @@
     "class_type": "LoraLoaderModelOnly",
     "_meta": {
       "title": "Load LoRA"
+    }
+  },
+  "211": {
+    "inputs": {
+      "image": [
+        "81",
+        0
+      ],
+      "alpha": [
+        "212",
+        0
+      ]
+    },
+    "class_type": "JoinImageWithAlpha",
+    "_meta": {
+      "title": "Join Image With Alpha"
+    }
+  },
+  "212": {
+    "inputs": {
+      "mask": [
+        "213",
+        0
+      ]
+    },
+    "class_type": "InvertMask",
+    "_meta": {
+      "title": "Invert Mask"
+    }
+  },
+  "213": {
+    "inputs": {
+      "bg_removal_model": [
+        "214",
+        0
+      ],
+      "image": [
+        "81",
+        0
+      ]
+    },
+    "class_type": "RemoveBackground",
+    "_meta": {
+      "title": "Remove Background"
+    }
+  },
+  "214": {
+    "inputs": {
+      "bg_removal_name": "birefnet.safetensors"
+    },
+    "class_type": "LoadBackgroundRemovalModel",
+    "_meta": {
+      "title": "Load Background Removal Model"
+    }
+  },
+  "221": {
+    "inputs": {
+      "bg_removal_model": [
+        "214",
+        0
+      ],
+      "image": [
+        "169",
+        0
+      ]
+    },
+    "class_type": "RemoveBackground",
+    "_meta": {
+      "title": "Remove Background"
+    }
+  },
+  "265": {
+    "inputs": {
+      "blend_factor": 1,
+      "blend_mode": "difference",
+      "image1": [
+        "169",
+        0
+      ],
+      "image2": [
+        "21",
+        1
+      ]
+    },
+    "class_type": "ImageBlend",
+    "_meta": {
+      "title": "Seam: decode - crop"
+    }
+  },
+  "266": {
+    "inputs": {
+      "blend_factor": 1,
+      "blend_mode": "difference",
+      "image1": [
+        "21",
+        1
+      ],
+      "image2": [
+        "169",
+        0
+      ]
+    },
+    "class_type": "ImageBlend",
+    "_meta": {
+      "title": "Seam: crop - decode"
+    }
+  },
+  "267": {
+    "inputs": {
+      "blend_factor": 1,
+      "blend_mode": "screen",
+      "image1": [
+        "265",
+        0
+      ],
+      "image2": [
+        "266",
+        0
+      ]
+    },
+    "class_type": "ImageBlend",
+    "_meta": {
+      "title": "Seam: |difference|"
+    }
+  },
+  "268": {
+    "inputs": {
+      "blur_radius": 2,
+      "sigma": 1,
+      "image": [
+        "267",
+        0
+      ]
+    },
+    "class_type": "ImageBlur",
+    "_meta": {
+      "title": "Seam: despeckle"
+    }
+  },
+  "269": {
+    "inputs": {
+      "channel": "red",
+      "image": [
+        "268",
+        0
+      ]
+    },
+    "class_type": "ImageToMask",
+    "_meta": {
+      "title": "Convert Image to Mask"
+    }
+  },
+  "270": {
+    "inputs": {
+      "channel": "green",
+      "image": [
+        "268",
+        0
+      ]
+    },
+    "class_type": "ImageToMask",
+    "_meta": {
+      "title": "Convert Image to Mask"
+    }
+  },
+  "271": {
+    "inputs": {
+      "channel": "blue",
+      "image": [
+        "268",
+        0
+      ]
+    },
+    "class_type": "ImageToMask",
+    "_meta": {
+      "title": "Convert Image to Mask"
+    }
+  },
+  "272": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "operation": "add",
+      "destination": [
+        "269",
+        0
+      ],
+      "source": [
+        "270",
+        0
+      ]
+    },
+    "class_type": "MaskComposite",
+    "_meta": {
+      "title": "Combine Masks"
+    }
+  },
+  "273": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "operation": "add",
+      "destination": [
+        "272",
+        0
+      ],
+      "source": [
+        "271",
+        0
+      ]
+    },
+    "class_type": "MaskComposite",
+    "_meta": {
+      "title": "Seam: R+G+B change"
+    }
+  },
+  "274": {
+    "inputs": {
+      "value": 0.18,
+      "mask": [
+        "273",
+        0
+      ]
+    },
+    "class_type": "ThresholdMask",
+    "_meta": {
+      "title": "Seam: strong change (drift sums to ~0.07)"
+    }
+  },
+  "275": {
+    "inputs": {
+      "bg_removal_model": [
+        "214",
+        0
+      ],
+      "image": [
+        "21",
+        1
+      ]
+    },
+    "class_type": "RemoveBackground",
+    "_meta": {
+      "title": "Seam: old person (crop)"
+    }
+  },
+  "276": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "operation": "add",
+      "destination": [
+        "221",
+        0
+      ],
+      "source": [
+        "275",
+        0
+      ]
+    },
+    "class_type": "MaskComposite",
+    "_meta": {
+      "title": "Seam: old + new person"
+    }
+  },
+  "277": {
+    "inputs": {
+      "expand": 60,
+      "tapered_corners": true,
+      "mask": [
+        "276",
+        0
+      ]
+    },
+    "class_type": "GrowMask",
+    "_meta": {
+      "title": "Seam: gate"
+    }
+  },
+  "278": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "operation": "multiply",
+      "destination": [
+        "274",
+        0
+      ],
+      "source": [
+        "277",
+        0
+      ]
+    },
+    "class_type": "MaskComposite",
+    "_meta": {
+      "title": "Seam: change x gate"
+    }
+  },
+  "279": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "operation": "subtract",
+      "destination": [
+        "275",
+        0
+      ],
+      "source": [
+        "221",
+        0
+      ]
+    },
+    "class_type": "MaskComposite",
+    "_meta": {
+      "title": "Seam: old minus new (hair that went)"
+    }
+  },
+  "280": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "operation": "add",
+      "destination": [
+        "278",
+        0
+      ],
+      "source": [
+        "279",
+        0
+      ]
+    },
+    "class_type": "MaskComposite",
+    "_meta": {
+      "title": "Seam: region"
+    }
+  },
+  "281": {
+    "inputs": {
+      "expand": 12,
+      "incremental_expandrate": 0,
+      "tapered_corners": true,
+      "flip_input": false,
+      "blur_radius": 12,
+      "lerp_alpha": 1,
+      "decay_factor": 1,
+      "fill_holes": false,
+      "mask": [
+        "280",
+        0
+      ]
+    },
+    "class_type": "GrowMaskWithBlur",
+    "_meta": {
+      "title": "Seam: grow + feather"
+    }
+  },
+  "282": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "resize_source": false,
+      "destination": [
+        "21",
+        1
+      ],
+      "source": [
+        "169",
+        0
+      ],
+      "mask": [
+        "281",
+        0
+      ]
+    },
+    "class_type": "ImageCompositeMasked",
+    "_meta": {
+      "title": "Seam: changed pixels onto the original crop"
+    }
+  },
+  "285": {
+    "inputs": {
+      "mpi_box": [
+        "90",
+        0
+      ]
+    },
+    "class_type": "MpiFromBox",
+    "_meta": {
+      "title": "Box Size"
+    }
+  },
+  "286": {
+    "inputs": {
+      "math_expression": "floor(a * 0.12 + 0.5)",
+      "a": [
+        "285",
+        0
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Return Margin (12% of box)"
     }
   }
 }

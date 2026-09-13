@@ -10,6 +10,11 @@
 
 These pin wiring only; the surfaces are DOM-only.
 
+**CI RED on bb72e0a0, fixed 2026-09-13 (`3dad1396`):** `flow-output-display` failed only on the
+runner. Its `_lastResults = null;\n\s*_lastDisplay` anchor met a CRLF checkout (this tree is LF,
+so local was green). Reproduced with a `readFileSync` preload serving the sources as CRLF, fixed
+to `\r?\n`, then 5/5 under LF and CRLF.
+
 ## Live — PENDING (Fabio, in his own app, Head Swap)
 
 1. Run Head Swap: the final stage shows the Output_Display view (both inputs beside the result).

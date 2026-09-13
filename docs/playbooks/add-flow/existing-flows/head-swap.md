@@ -11,14 +11,16 @@
 
 **Qwen is DROPPED** (Fabio, 2026-09-13: slow and imprecise). The graph runs Klein 9B int8 +
 the BFS head LoRA through crop-stitch, on `lcm` (the Klein sampler rule, MPI-746). First bench
-run ~20 s.
+run ~20 s. Klein darkens the box it returns; a changed-pixels composite takes the seam to 0
+(§ The seam, below).
 
 | Item | State | Notes |
 |---|---|---|
 | LoRA | **SETTLED** 2026-09-13 | `bfs_head_v1_flux-klein_9b_step3500_rank128` at strength **0.75** — better than 1.0 on the bench |
 | R2 upload | **DONE** 2026-09-13 | 9B live, `Content-Length` byte-exact. The 4B file is on R2 too; no graph loads it yet |
 | Qwen LoRA | **R2 copy DELETED** 2026-09-13 | never shipped. Dep entry kept DEPRECATED for the orphan sweep, `url` repointed at the upstream |
-| Klein 4B | **OPEN** | the 4B file staged is `v1.1_optional` (rank 512, embedded name `bfs_nsfw_v2_flux_klein_4b_v2`), NOT the README's `v1` |
+| Klein 4B | **DROPPED** 2026-09-13 | loses identity, and its seam fails on a high-key photo (Fabio). Ship 9B only. The 4B LoRA stays on R2, unloaded |
+| Seam | **SOLVED** 2026-09-13 | changed-pixels composite + expand return, measured 0 on three photos (§ The seam) |
 | Tile + hero | **OPEN** | both were cut from a Qwen run — re-cut via `/mpi-flow-graphics` or keep |
 | RunPod verification | **OPEN** | never run against the remote engine |
 
@@ -72,14 +74,15 @@ that rename lives with the `box` KIND (`stepValueToParam`, `stepKinds.js`).
 | `Output_Image` | PreviewImage | the gallery card |
 | `Output_Display` | PreviewImage | the Flow's view, never saved |
 
-**The prompt is BAKED in a node titled `HeadSwap_Prompt` — never `Input_Positive`.** A Flow
-with no prompt field still sends `Input_Positive: ''` on every run, which wipes a baked
-instruction (the outpaint trap). The first Klein export arrived titled `Input_Positive` and was
-retitled in `raw/` on 2026-09-13; **retitle it at the bench too**, or the next export brings the
-bug back. `tests/flow-output-display.test.cjs` pins it. The BFS Klein prompt order is INVERTED
-from Qwen's: it starts "head_swap: start with Picture 1 as the base image".
+**The prompt is BAKED inline in an UNTITLED `CLIPTextEncode` (node 128) — never title it
+`Input_Positive`:** a promptless Flow still sends `Input_Positive: ''` every run, wiping a baked
+instruction (the outpaint trap); `tests/flow-output-display.test.cjs` pins it. BFS Klein order is
+INVERTED from Qwen's ("head_swap: start with Picture 1 as the base image"). The reference image
+is background-removed (BiRefNet) before encoding.
 
-Also depends on the `comfyui-inpaint-cropandstitch` node pack (Inpaint Crop / Inpaint Stitch).
+**KJNodes (`GrowMaskWithBlur`, `ImageConcanate`) and the `birefnet` weight stay OUT of
+`requiredDeps`:** both install WITH the engine (`.claude/rules/comfy_engine.md`), and the Flow's
+Uninstall frees exactly that list ([../04-overlay-and-shell.md](../04-overlay-and-shell.md)).
 
 ## Dependency — the flow-only LoRA
 
@@ -103,6 +106,33 @@ and it became the catalogue's only single-route dep until Fabio named the repo b
 **Record `<owner>/<repo>` + the upstream filename on every dep you add**;
 [add-model/02-dependencies-r2.md](../../add-model/02-dependencies-r2.md) § `origin` is
 LOAD-BEARING is the rule.
+
+## The seam — Klein returns the whole box darker (SOLVED 2026-09-13)
+
+Klein 9B hands the crop back 5-7 levels darker, uniform across RGB; the stitch blend only
+softens the edge. Colour correction does not fix it: `MpiInpaintHeal` moves nothing (zero-mean
+grain), KJNodes `ColorMatch` mkl still leaves -7/-5/-3 and shifts the head. A slower model does
+not either: base 9B at its template (20 steps, CFG 5) darkens less raw but still shows the box
+edge, at 297 s against 23 s.
+
+The fix is Law 3 of [../blending-into-a-photo.md](../blending-into-a-photo.md) § The three laws,
+adapted: only pixels that CHANGED return, onto the ORIGINAL crop. The `Seam:` nodes:
+
+1. **Change** = `ImageBlend` difference both ways → `screen` → `ImageBlur 2/1.0` → R+G+B
+   `ImageToMask` summed → `ThresholdMask 0.18`. Klein's drift sums to ~0.07; a green-only mask
+   left holes where red hair turned brown.
+2. **Gate** = BiRefNet on the decode + BiRefNet on the original crop, `GrowMask 60`, multiplied
+   into the change; plus old person MINUS new person (hair that went).
+3. `GrowMaskWithBlur 12/12` → `ImageCompositeMasked` decode onto the original crop → stitch.
+4. **Expand return:** Inpaint Crop's `mask_expand_pixels` = `MpiMath floor(a * 0.12 + 0.5)` of
+   the `Input_Box` width, `context_from_mask_extend_factor 1.1`. Without it the stitch cuts new
+   hair at the box bottom.
+
+Measured seam band median 0 on a dark, a bright-room and a high-key photo. Two traps:
+`MpiMath` evaluates `math.*` only, so `int()`/`round()` raise and the node SILENTLY returns 0.0
+(expand return off); `GrowMaskWithBlur` `fill_holes` fills the region to the whole gated area
+and brings the dark decode background back, so leave it off. Evidence and harness: MPI-744
+`checklist.md` § Bench round 3, `research/seam_bench/`.
 
 ## Region selection — settled
 
@@ -160,8 +190,6 @@ trips it, including the face/hand/person detectors already shipped. Not a new ri
   `Mpi Box` consumes unconverted. No conversion anywhere.
 - Whether face detection seeds the initial box, or selection is fully manual in v1.
   (v1 default is the whole image; a step is never invalid.)
-- A Klein 4B option: which 4B file, and whether it comes back as a size choice (an any-of
-  `requiredModels` slot, `docs/playbooks/add-flow/any-of-models.md`).
 - Multi-output: does one run ever produce more than one image?
 
 ## Notes

@@ -433,9 +433,9 @@ export const FLOWS = [
     // dispatch. Krea2 no longer uses those classes (b3f9a018 dropped its masked-crop
     // path), so that listing was removed and this flow is now the sole declarer.
     //
-    // FIXED-PROMPT flow: the instruction is baked in a node titled `HeadSwap_Prompt` —
-    // NEVER `Input_Positive`, which a promptless flow still sends as '' on every run,
-    // wiping it (MPI-744). inputSchema declares no `positive`; promptRequired:false.
+    // FIXED-PROMPT flow: the instruction is baked inline in an UNTITLED CLIPTextEncode —
+    // NEVER title it `Input_Positive`, which a promptless flow still sends as '' on every
+    // run, wiping it (MPI-744). inputSchema declares no `positive`; promptRequired:false.
     // Boxes are injectionParams (box1/box2 → headSwapInjector), NOT media slots.
     {
         id: 'head-swap',

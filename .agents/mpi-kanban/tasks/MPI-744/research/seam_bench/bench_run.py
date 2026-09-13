@@ -1,7 +1,11 @@
 """Seam round 2 on the 8188 bench. Per photo, two prompts from run #97's graph (plate pass dropped):
   box    - crop/stitch as Fabio's bench (returns the box)            tails: D raw decode, C region composite
   expand - crop mask grown so the stitch returns the whole crop       tails: D raw decode, C region composite
-Region gate = new person UNION old person (BiRefNet on decode and on crop), grown."""
+Region gate = new person UNION old person (BiRefNet on decode and on crop), grown.
+Knobs (env): TAG (absolute path keeps PNGs out of the repo), JOBS, MODES, SEED, UNET, DTYPE, STEPS, CFG,
+SAMPLER, TURBO, TURBO_STR, HEADLORA, HEADLORA_STR, LORA=0, THRESH, GATE, FILL (0 = shipped recipe),
+DRY=1 (write each prompt JSON to TAG and queue nothing). Each run also saves <tag>_face.png = the box
+region of the finished result, for faces.py."""
 import json, io, os, sys, time, uuid, urllib.request, urllib.parse
 import numpy as np
 from PIL import Image, ImageFilter, ImageDraw
@@ -17,10 +21,12 @@ JOBS = [  # name, source, box x, y, size
     ('red', DL + r'\place_the_redhead_202603310903.png', 470, 320, 520),
 ]
 CROP, DEC, STITCHER = ['21', 1], ['169', 0], ['21', 0]
+SEED = int(os.environ.get('SEED', 976866873943))
+FACE = {'dark': (230, 280, 510, 560)}  # face rect in source px where the box frames the head loosely; else the box
 
 def build(src, bx, by, bw, mode):
     p = json.load(open(os.path.join(HERE, 'r97', 'prompt.json')))
-    keep = {'6', '21', '79', '81', '88', '89', '90', '91', '128', '134', '140', '142', '144', '149', '154', '155', '156',
+    keep = {'21', '79', '81', '88', '89', '90', '91', '128', '134', '140', '142', '144', '149', '154', '155', '156',
             '158', '161', '165', '169', '177', '178', '187', '189', '191', '194', '209', '211', '212', '213', '214', '221'}
     p = {k: v for k, v in p.items() if k in keep}
     p['79']['inputs']['string'] = src
@@ -41,6 +47,13 @@ def build(src, bx, by, bw, mode):
         p['210'] = {'class_type': 'LoraLoaderModelOnly', '_meta': {'title': 'Turbo'}, 'inputs': {
             'lora_name': os.environ['TURBO'], 'strength_model': float(os.environ.get('TURBO_STR', 1.0)), 'model': p['158']['inputs']['model']}}
         p['158']['inputs']['model'] = ['210', 0]
+    if float(os.environ.get('CFG', 1.0)) > 1.0:
+        # CFG > 1 needs a real uncond: empty prompt + the same reference latents (ConditioningZeroOut overcooks)
+        p['9901'] = {'class_type': 'CLIPTextEncode', '_meta': {'title': 'neg'}, 'inputs': {'text': '', 'clip': ['189', 0]}}
+        p['9902'] = {'class_type': 'ReferenceLatent', '_meta': {'title': 'neg ref1'}, 'inputs': {'conditioning': ['9901', 0], 'latent': ['144', 0]}}
+        p['9903'] = {'class_type': 'ReferenceLatent', '_meta': {'title': 'neg ref2'}, 'inputs': {'conditioning': ['9902', 0], 'latent': ['154', 0]}}
+        p['158']['inputs']['negative'] = ['9903', 0]
+    p['187']['inputs']['int'] = SEED
     p['90']['inputs'].update(x=bx, y=by, width=bw, height=bw)
     if mode == 'expand':
         p['21']['inputs'].update(mask_expand_pixels=round(bw * 0.12), context_from_mask_extend_factor=1.1)
@@ -64,7 +77,7 @@ def build(src, bx, by, bw, mode):
     add('943', 'MaskComposite', destination=['928', 0], source=['942', 0], x=0, y=0, operation='add')
     add('977', 'MaskToImage', mask=['940', 0]); add('978', 'PreviewImage', images=['977', 0])
     add('929', 'GrowMaskWithBlur', mask=['943', 0], expand=12, incremental_expandrate=0.0, tapered_corners=True,
-        flip_input=False, blur_radius=12.0, lerp_alpha=1.0, decay_factor=1.0, fill_holes=os.environ.get('FILL', '1') == '1')
+        flip_input=False, blur_radius=12.0, lerp_alpha=1.0, decay_factor=1.0, fill_holes=os.environ.get('FILL', '0') == '1')
     add('930', 'ImageCompositeMasked', destination=CROP, source=DEC, x=0, y=0, resize_source=False, mask=['929', 0])
     for pre, img in (('94', DEC), ('93', ['930', 0])):
         add(pre + '8', 'InpaintStitchImproved', stitcher=STITCHER, inpainted_image=img)
@@ -134,10 +147,15 @@ for name, src_path, bx, by, bw in [j for j in JOBS if j[0] in os.environ.get('JO
     src = np.asarray(Image.open(src_path).convert('RGB'), np.float32)
     H, W = src.shape[:2]
     for mode in os.environ.get('MODES', 'box,expand').split(','):
+        tag = f'{name}_{mode}_s{SEED}'
+        if os.environ.get('DRY') == '1':
+            json.dump(build(src_path, bx, by, bw, mode), open(os.path.join(OUT, f'{tag}_prompt.json'), 'w'), indent=1)
+            print(tag, 'dry', flush=True)
+            continue
         im, dt = run(build(src_path, bx, by, bw, mode))
-        tag = f'{name}_{mode}'
         for n, v in im.items():
             v.save(os.path.join(OUT, f'{tag}_{n}.png'))
+        im['939'].crop(FACE.get(name, (bx, by, bx + bw, by + bw))).save(os.path.join(OUT, f'{tag}_face.png'))
         crop, dec = np.asarray(im['972'], np.float32), np.asarray(im['971'], np.float32)
         person = np.asarray(im['976'].convert('L'), np.float32) / 255
         region = np.asarray(im['934'].convert('L'), np.float32) / 255

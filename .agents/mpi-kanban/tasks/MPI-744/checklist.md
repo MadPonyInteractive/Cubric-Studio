@@ -29,10 +29,51 @@ score the seam in source space; sampling is deterministic run to run, so any pix
   CFG > 1 NEEDS an empty-text `CLIPTextEncode` negative carrying the same ReferenceLatents —
   `ConditioningZeroOut` overcooks (50st/CFG4 run was garbage, 751 s). ComfyUI's own template
   `image_flux2_klein_image_edit_9b_base.json`: 20 steps, CFG 5, euler. Turbo for 9B = Fabio's call.
-- [ ] 24 - Pending at handoff: `fill_holes` on 9B (apply to Fabio's bench file only if no worse),
-  drag-in proof, base at template values. Then export -> raw -> runtime, deps `birefnet` +
-  `comfyui-kjnodes`. Fabio's graph has the prompt INLINE in CLIPTextEncode 128 (no `HeadSwap_Prompt`
-  / `Input_Positive` title) — re-check the FlowDef's prompt handling against that.
+  **CORRECTION (2026-09-13, read after handoff):** base 9B AT the template (20 st / CFG 5 / euler,
+  empty-text negative) darkens LESS raw on dark_box, 0/-2/-3 (bg |d| 2.83) vs distilled -7/-6/-6,
+  but still shows the box edge by eye, and the region composite takes BOTH to 0/0/0 — at 297 s vs
+  23 s. Base buys nothing once the composite ships. Sheet: 31cf502b scratchpad `bench_base20t/dark_box_zoom.png`.
+- [ ] 24 - Queued runs READ: drag-in graph pixel-identical to the tested recipe (mean 0, max 0);
+  `fill_holes` REJECTED on 9B (fills the region to the whole gated area, bg from the decode again:
+  dark |d| 0.05 -> 1.68, cat 0.04 -> 0.71) — not applied.
+  **Exported 2026-09-13:** Fabio's bench file -> `raw/flow_head_swap.json` (re-indented to 2-space,
+  seam tail re-checked link by link: MpiMath <- Input_Box -> `mask_expand_pixels`, stitch <- 282),
+  runtime via `workflow-to-api.mjs` on 48188 (59 nodes), `validate-injection-rules` + `verify-workflow`
+  green. Prompt inline in untitled CLIPTextEncode 128 = nothing to wipe; placeholder paragraph gone.
+  **Deps NOT added** (handoff was wrong): `birefnet` (engineAsset) and `comfyui-kjnodes` (custom_nodes)
+  are universal engine deps, and `requiredDeps` is what the Flow's Uninstall frees. Live run pending.
+
+## Bench round 4 — base 9B + turbo LoRA (NEXT SESSION, harness ready) — READ FIRST
+
+Fabio 2026-09-13, from a face 2-up (base 20 st / CFG 5 vs distilled, dark photo, ONE seed): distilled
+looks better and its expression is closer to the reference, but base has more face detail and slightly
+better likeness, so base may be over- or undercooked. **Direction: ship base + turbo LoRA, IF the tests
+hold.** One seed proves nothing; every phase runs several.
+
+Read `docs/models/klein/9b.md` § What was benched and REJECTED before spending GPU: MPI-600 (2026-08-22)
+rejected this exact LoRA for kleinEdit (base ~6-7x slower, 0/3 on reference placement, 0.7/0.35 WORSE
+than 1.0). A different op, so not a verdict here, but shipping base means a second 9B weight
+(`flux-2-klein-9b.safetensors`, NOT int8; distilled int8 already peaks ~15 GB on a 16 GB card) plus the
+turbo LoRA, and neither is hosted. One data point exists: base + turbo 1.0 / 4 st / CFG 1, dark box,
+36 s, raw bg shift -4/-9/-17 (distilled -7/-6/-6; the region composite hides raw shift either way).
+
+Harness `research/seam_bench/bench_run.py` (knobs in its docstring: SEED, CFG > 1 negative built
+automatically, FILL=0 default, DRY=1, writes `<tag>_face.png`) + `faces.py` (face grid, one column per
+TAG dir). All configs below were dry-built and checked with `verify-workflow.mjs` against 8188. Set
+TAG to an ABSOLUTE scratchpad path so PNGs stay out of git; wrap every run in
+`gpu_lease.py run --timeout 3600`.
+
+- [ ] 25 - **Phase A — does base + turbo match distilled?** MODES=expand, JOBS dark,cat,red,
+  SEED 976866873943 / 42 / 1234 / 777777, 4 st / CFG 1 / lcm. Distilled = defaults; base + turbo =
+  `UNET=flux-2-klein-9b.safetensors TURBO='Klein\klein_9B_Turbo_r128.safetensors' TURBO_STR=1.0`.
+  24 runs, ~11 min (distilled ~20 s, base + turbo ~36 s). Sheet: `python faces.py <out>.png <distilledDir>
+  <baseTurboDir>`. Fabio judges; never self-judge likeness.
+- [ ] 26 - **Phase B — step x CFG sweep.** Base, SAMPLER=euler: STEPS 12/20/28 x CFG 3/4/5, dark photo,
+  2 seeds = 18 runs, ~90 min (~15 s/step at CFG > 1; 20 st / CFG 5 measured 297 s). 1 seed halves it.
+  **Confirm with Fabio at session start:** sweep base alone, or base + turbo (then TURBO_STR
+  0.5/0.75/1.0 x STEPS 4/8 at CFG 1, ~36-70 s each).
+- [ ] 27 - Decision and its shipping cost: base + turbo = new base-9B dep (size, VRAM on 16 GB, int8?)
+  + turbo LoRA dep + R2, then re-export. The app graph today is DISTILLED (checklist 24).
 
 ## Bench
 

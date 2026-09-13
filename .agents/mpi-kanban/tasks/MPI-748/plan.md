@@ -121,9 +121,22 @@ agent fixed its MpiMath expression there). Decided: **ship Klein 9B only** (4B l
 base 9B / turbo LoRA give no seam benefit at 6-30x the time. Full evidence: `MPI-744/checklist.md`
 § Bench round 3.
 
-**Next:** (1) read the queued bench results (fill_holes on 9B, drag-in proof, base at template
-20 steps / CFG 5) — paths in the handoff; apply `fill_holes` to Fabio's bench file only if 9B
-measures no worse; (2) copy Fabio's bench file to `comfy_workflows/raw/flow_head_swap.json`, verify
-the seam tail against checklist 19, convert, validate, add `birefnet` + `comfyui-kjnodes` to the
-FlowDef deps; (3) MPI-747 § Live + the Display-reset question are still unanswered; (4) tile +
-hero re-cut and the prompt describe step (checklist 14, 18).
+**Session 2026-09-13 (after handoff e414389c) — master GREEN again, graph EXPORTED, uncommitted:**
+- Red CI was MPI-747's test anchoring a bare `\n`; the CI runner checks out CRLF, this tree is LF.
+  Fixed + pushed `3dad1396` (with 553db35f and 1e7a020c).
+- Queued runs read: `fill_holes` REJECTED; base 9B at template darkens less raw but the composite
+  takes both to 0, at 297 s vs 23 s — base buys nothing (checklist 23 corrected).
+- Fabio's bench file exported to `raw/` + runtime (59 nodes), validators green, flow tests 178/178,
+  `npm test` 966/966. The CONVERTED graph ran on 8188 (27 s) and matches Fabio's bench run #125.
+- `birefnet` / `comfyui-kjnodes` NOT added to `requiredDeps` — universal engine deps; the handoff
+  was wrong (head-swap.md explains). `head-swap.md` carries the seam recipe.
+
+**Base vs distilled REOPENED (Fabio, 2026-09-13, from a face 2-up):** distilled looks better and
+matches the reference expression, base has more face detail and likeness. Direction: ship base +
+turbo LoRA if a multi-seed bench holds. That bench runs in a FRESH session: MPI-744 checklist § Bench
+round 4 (items 25-27) holds the phases, commands and time budget; the harness is ready and dry-verified.
+
+**Next:** (1) Bench round 4 Phase A (base + turbo vs distilled, 4 seeds x 3 photos, ~11 min), then
+Phase B after confirming its scope with Fabio; (2) Fabio's live Head Swap run in his app (checklist 12
+= MPI-747 § Live); (3) still owed by Fabio: tile + hero re-cut (14), prompt describe step (18), the
+MPI-747 Display-reset question.
