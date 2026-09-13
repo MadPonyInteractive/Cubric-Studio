@@ -20,11 +20,14 @@
  *   - `comfy` — THE DEFAULT. Local, through the engine that is already running. It runs the
  *     shipped `qwen3vl_4b_prompt_enhancer.json` through the existing
  *     `promptEnhance` operation. OFFERED ON EVERY MODEL: the graph carries its
- *     own `CLIPLoader` (node 9, `qwen3vl_4b_abliterated_fp8_scaled`), so it
- *     never borrows the generation model's encoder and never touched it —
- *     proven 2026-09-12 by running the graph on an idle bench with no
- *     generation model loaded at all. Its only gate is whether the
- *     `qwen3vl-abliterated-clip` dep is installed.
+ *     own `CLIPLoader` (node 9, `qwen3vl_4b_abliterated_fp8_scaled`), proven
+ *     2026-09-12 to run on an idle bench with no generation model loaded at all.
+ *     That loader is a DEFAULT, not a fixture: where the generation model's own
+ *     encoder can run `TextGenerate`, the enhance borrows it instead (Fabio,
+ *     2026-09-13 — Klein's `qwen_3_8b_int8_convrot`), so the weight the
+ *     generation is about to load is the one that writes the prompt
+ *     (`enhancerClipParams`). With nothing to borrow it needs the
+ *     `qwen3vl-abliterated-clip` dep installed.
  *   - `ollama` — local, in a second runtime with its own VRAM. The only backend
  *     that carries an abliterated build.
  *
@@ -337,14 +340,136 @@ export function pullOllamaModel(modelId) {
     return postOllama('/llm/ollama/pull', { modelId });
 }
 
-/** One completion through the server (DeepInfra or Ollama). */
-async function runServerBackend({ prompt, system, backend, modelId }) {
-    const res = await fetch('/llm/enhance', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, system, backend, modelId }),
+/**
+ * The enhancer graph's own text pipeline, read off the graph (MPI-677, 2026-09-13).
+ *
+ * A server backend is only an LLM call; the ComfyUI graph is a PIPELINE. After
+ * `TextGenerate` it runs `Replace Text` (newlines out), `Input_Scrub_Negation` ("no ..."
+ * clauses out) and `Input_Tidy` (a trailing comma or full stop out), and Character
+ * Sheet's recipe lives in the graph's `Input_System_Prompt` node, not in its
+ * declaration. A flow that follows the user's pick to DeepInfra or Ollama has to carry
+ * all of that with it, or it silently changes the instrument it was tuned on.
+ *
+ * READ FROM THE GRAPH, NOT COPIED: the baked values are the defaults, and a caller's
+ * `injectionParams` override them under the same `Title.widget` keys it already sends
+ * to ComfyUI. One source, so tuning the graph on the bench moves both backends.
+ *
+ * @param {object} graph  the API-format enhancer workflow
+ * @returns {object} `Title.widget`-keyed defaults
+ */
+export function enhancerGraphDefaults(graph) {
+    const inputs = (title) => Object.values(graph || {})
+        .find((n) => (n?._meta?.title || '').toLowerCase() === title.toLowerCase())?.inputs || {};
+    return {
+        Input_System_Prompt: inputs('Input_System_Prompt').value,
+        'Replace Text.find': inputs('Replace Text').find,
+        'Replace Text.replace': inputs('Replace Text').replace,
+        'Input_Scrub_Negation.regex_pattern': inputs('Input_Scrub_Negation').regex_pattern,
+        'Input_Tidy.regex_pattern': inputs('Input_Tidy').regex_pattern,
+        'Input_Text_Gen.max_length': inputs('Input_Text_Gen').max_length,
+    };
+}
+
+/**
+ * The graph's three text nodes, in graph order, on text a server backend returned.
+ *
+ * `StringReplace` is Python's `str.replace` (every occurrence). `RegexReplace` defaults
+ * `case_insensitive=True` and `count=0`, hence `gi` — without the `i`, "No scars"
+ * survives a scrub the graph performs. The patterns carry no backreferences, so Python
+ * and JS agree on every construct they use.
+ *
+ * @param {string} text
+ * @param {object} params  `enhancerGraphDefaults` with the caller's overrides spread over it
+ */
+export function postProcessLikeGraph(text, params) {
+    let out = String(text || '');
+    const find = params['Replace Text.find'];
+    if (find) out = out.split(find).join(params['Replace Text.replace'] ?? '');
+    for (const key of ['Input_Scrub_Negation.regex_pattern', 'Input_Tidy.regex_pattern']) {
+        if (params[key]) out = out.replace(new RegExp(params[key], 'gi'), '');
+    }
+    return out.trim();
+}
+
+/** A graph-shaped system prompt (`<|im_start|>system … <|im_start|>user`) as the bare text a chat API takes. */
+export function unwrapChatMl(system) {
+    return String(system || '')
+        .replace(/^\s*<\|im_start\|>system\s*/, '')
+        .replace(/\s*<\|im_end\|>\s*<\|im_start\|>user\s*$/, '')
+        .trim();
+}
+
+/**
+ * CLIP types whose encoder the enhancer graph BORROWS from the generation model (Fabio,
+ * 2026-09-13). Both are Qwen3 LMs carrying `BaseGenerate` in ComfyUI
+ * (`comfy/text_encoders/llama.py`), so `TextGenerate` runs on them, and a generation on
+ * that model loads the same weight anyway — same file AND same type is the cache key
+ * `models.js` measured. `krea2` is the graph's own encoder already; `flux2` is Klein.
+ *
+ * ponytail: an allowlist, not a probe. Boogu (Qwen3-VL 8B) and H3 (Qwen3-VL 32B) would
+ * generate too — Boogu is edit-only and edits never enhance, and a 32B rewrite wants a
+ * speed check first. T5/umT5 must never join: `TextGenerate` raises on them. LTX's
+ * Gemma sits behind a `DualCLIPLoader`, which the single-loader graph cannot take.
+ */
+const BORROWABLE_CLIP_TYPES = new Set(['krea2', 'flux2']);
+
+/**
+ * The enhancer `Load CLIP` params that borrow a generation workflow's encoder, or `{}`
+ * to keep the graph's own.
+ *
+ * @param {object} workflow  the generation model's API-format workflow
+ */
+export function enhancerClipParams(workflow) {
+    const loader = Object.values(workflow || {}).find((n) => n?.class_type === 'CLIPLoader');
+    const { clip_name: clipName, type } = loader?.inputs || {};
+    return typeof clipName === 'string' && BORROWABLE_CLIP_TYPES.has(type)
+        ? { 'Load CLIP.clip_name': clipName, 'Load CLIP.type': type }
+        : {};
+}
+
+/** The generation model's encoder as enhancer params. `{}` on anything unreadable keeps the graph's own 4B. */
+async function borrowedClipParams(model) {
+    // ponytail: the card's first workflow. Every borrowable model runs all its ops from
+    // ONE file; a model whose variants swapped encoders would need the resolved file.
+    const file = Object.values(model?.workflows || {}).find((f) => typeof f === 'string');
+    if (!file) return {};
+    try {
+        const res = await fetch(`/comfy_workflows/${file}`);
+        return res.ok ? enhancerClipParams(await res.json()) : {};
+    } catch (err) {
+        clientLogger.warn('prompt', `[llmService] could not read ${file}, enhancing on the graph's own CLIP: ${err.message}`);
+        return {};
+    }
+}
+
+/** The shipped enhancer graph, fetched once. A failed fetch is not cached. */
+let _enhancerGraph;
+function enhancerGraph() {
+    _enhancerGraph ??= (async () => {
+        const { getUniversalWorkflow } = await import('../data/modelRegistry.js');
+        const file = getUniversalWorkflow(COMFY_ENHANCE_OP);
+        const res = await fetch(`/comfy_workflows/${file}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status} for ${file}`);
+        return res.json();
+    })().catch((err) => {
+        _enhancerGraph = undefined;
+        throw err;
     });
-    return res.json();
+    return _enhancerGraph;
+}
+
+/** One completion through the server (DeepInfra or Ollama). Never rejects: an unreachable server resolves `{ ok: false }`. */
+async function runServerBackend({ prompt, system, backend, modelId, maxTokens }) {
+    try {
+        const res = await fetch('/llm/enhance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt, system, backend, modelId, maxTokens }),
+        });
+        return await res.json();
+    } catch (err) {
+        return { ok: false, error: (err && err.message) || 'The app server did not answer.' };
+    }
 }
 
 /**
@@ -361,14 +486,12 @@ async function runServerBackend({ prompt, system, backend, modelId }) {
  * Sheet's recipe is baked into the graph's `Input_System_Prompt` node, so a caller with
  * nothing to say leaves the baked value standing.
  *
- * WHY THE FLOWS STAY ON THIS BACKEND rather than inheriting the cloud default: the
- * graph is not just an LLM call, it is a PIPELINE — `Replace Text` strips newlines,
- * `Input_Scrub_Negation` deletes "no ..." clauses, `Input_Tidy` eats the trailing full
- * stop because a character phrase is spliced into the middle of a longer sentence. Both
- * flows were tuned on GPU runs against that chain. Routing them to DeepInfra would drop
- * three post-processing nodes and change the instrument without measuring it, which is
- * the trap this repo documents. A flow that wants the cloud opts in by asking for it,
- * after someone has measured the difference.
+ * FLOWS REACH THIS THROUGH `enhanceFlow`, which honours the user's Language Models pick
+ * and lands here only when that pick is ComfyUI (Fabio, 2026-09-13). They used to call
+ * it directly and stay on ComfyUI whatever was picked, because the graph is a PIPELINE —
+ * `Replace Text` strips newlines, `Input_Scrub_Negation` deletes "no ..." clauses,
+ * `Input_Tidy` eats the trailing full stop — and both flows were tuned against it.
+ * `enhanceFlow` carries that pipeline to the server backends instead of dropping it.
  *
  * @param {object}  a
  * @param {string}  a.prompt              the text to rewrite
@@ -408,7 +531,10 @@ export async function runComfyEnhance({ prompt, system, injectionParams, modelId
                     ok: true,
                     text: String(text || '').trim(),
                     backend: 'comfy',
-                    model: 'qwen3vl_4b_abliterated',
+                    // The borrowed encoder when there is one, so the provenance line
+                    // names the weight that actually wrote the prompt.
+                    model: String(injectionParams?.['Load CLIP.clip_name'] || 'qwen3vl_4b_abliterated')
+                        .replace(/\.safetensors$/, ''),
                 }),
                 onError: (err) => resolve({ ok: false, error: (err && err.message) || 'Enhance failed.' }),
                 // `cancelled` so a caller can tell a user's own Stop from a failure and
@@ -419,6 +545,51 @@ export async function runComfyEnhance({ prompt, system, injectionParams, modelId
             { scope: 'gallery' },
         );
     });
+}
+
+/**
+ * A FLOW's enhance, on the backend the user picked in Language Models (MPI-677, 2026-09-13).
+ *
+ * Until this, every flow Enhance ran the ComfyUI graph whatever the user chose, because the
+ * graph is a pipeline and the flows were tuned on it. Fabio: flows follow the pick. So the
+ * pick is honoured and the pipeline travels with it:
+ *
+ *   - `comfy` — unchanged, byte for byte: `runComfyEnhance` with the declaration's params.
+ *   - `deepinfra` / `ollama` — the graph's baked values with the declaration's params over
+ *     them: the system prompt unwrapped from ChatML, `Input_Text_Gen.max_length` as the
+ *     token cap (Music Maker's guard against a measured 1400-token repetition loop), and
+ *     the graph's three text nodes run on the reply by `postProcessLikeGraph`.
+ *
+ * NOT carried, deliberately: the graph's sampler (temperature 0.5, repetition 1.15,
+ * presence 0.6). It was tuned against a 4B; the server models are larger and keep their
+ * provider's defaults. If Music Maker loops on one, carry the penalties then.
+ *
+ * Same arguments and result shape as `runComfyEnhance`, and it never rejects.
+ *
+ * @param {object}  a
+ * @param {string}  a.prompt
+ * @param {object} [a.injectionParams]  the declaration's own params, by node title
+ * @param {string} [a.modelId]          ComfyUI queue pin; the server backends ignore it
+ * @returns {Promise<{ok:boolean, text?:string, backend?:string, model?:string, error?:string, cancelled?:boolean}>}
+ */
+export async function enhanceFlow({ prompt, injectionParams, modelId = null } = {}) {
+    const backend = backendPreference();
+    if (backend === 'comfy') return runComfyEnhance({ prompt, injectionParams, modelId });
+
+    let params;
+    try {
+        params = { ...enhancerGraphDefaults(await enhancerGraph()), ...(injectionParams || {}) };
+    } catch (err) {
+        return { ok: false, error: `The prompt enhancer could not load its recipe: ${err.message}` };
+    }
+    const result = await runServerBackend({
+        prompt,
+        system: unwrapChatMl(params.Input_System_Prompt),
+        backend,
+        modelId: enhancerModelPreference(),
+        maxTokens: params['Input_Text_Gen.max_length'],
+    });
+    return result.ok ? { ...result, text: postProcessLikeGraph(result.text, params) } : result;
 }
 
 /**
@@ -458,7 +629,10 @@ export async function enhance({ prompt, model, recipeKey, mode, backend } = {}) 
     const chosen = chooseBackend({ override: backend ?? backendPreference() });
 
     const result = chosen === 'comfy'
-        ? await runComfyEnhance({ prompt: idea, injectionParams: buildComfyInjectionParams(system) })
+        ? await runComfyEnhance({
+            prompt: idea,
+            injectionParams: { ...buildComfyInjectionParams(system), ...(await borrowedClipParams(model)) },
+        })
         : await runServerBackend({
             prompt: idea,
             system,

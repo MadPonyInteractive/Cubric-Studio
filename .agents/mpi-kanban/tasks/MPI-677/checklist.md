@@ -80,6 +80,13 @@ in the card description are retired; `plan.md` carries the mapping note.
         an SDXL / Pony / Illustrious / Kling card), the operation gate, and Reuse
         **after an app reload** — the one leg nothing has ever driven
 - [ ] Step 1d — Fabio's GPU measurement of the ComfyUI backend *(not a gate)*
+- [ ] Flows follow the Language Models pick; the ComfyUI enhancer borrows the generation
+      model's encoder *(verify mode: `user-ux`)*
+  - [x] Service side: `enhanceFlow`, the graph pipeline mirrored on the server backends,
+        the token cap forwarded, Klein's CLIP borrowed. 966/966, lint clean, 3 mutations RED
+  - [ ] `MpiBaseFlow._runEnhance` calls `enhanceFlow` — HELD on MPI-747's claim `c15cce05`
+  - [ ] Fabio's check in the app (both flows × three backends, Klein prompt box on ComfyUI)
+  - [ ] `MpiClearVram` timing on Klein 9B, with and without the clear *(not a gate)*
 - [x] Step 2 — cut the cord (broker surface + `@cubric/connector` dependency)
   - [x] Deleted `services/brokerBoot.js`, `services/connectorResponder.js`,
         `js/shell/connectorOps.js`, `POST /connector/enhance` and the

@@ -29,8 +29,14 @@ const {
     resolveRecipeId,
     resolveMode,
     COMFY_ENHANCE_OVERRIDES,
+    enhancerGraphDefaults,
+    postProcessLikeGraph,
+    unwrapChatMl,
+    enhancerClipParams,
 } = require('../js/services/llmService.js');
 const { FALLBACK_RECIPE_ID } = require('../js/data/recipes/registry.js');
+
+const WORKFLOW = (file) => JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'comfy_workflows', file), 'utf8'));
 
 const ELIGIBLE = { id: 'krea2', capabilities: { promptEnhance: true } };
 const PLAIN = { id: 'chroma', capabilities: {} };
@@ -114,6 +120,87 @@ function testSystemPromptIsChatMlWrapped() {
     assert.ok(params.Input_System_Prompt.startsWith('<|im_start|>system\n'));
     assert.ok(params.Input_System_Prompt.includes('BE A ROBOT'));
     assert.ok(params.Input_System_Prompt.endsWith('<|im_end|>\n<|im_start|>user'));
+}
+
+// ── A flow on a server backend carries the graph's pipeline (MPI-677, 2026-09-13) ──
+
+function testGraphDefaultsAreReadOffTheGraph() {
+    const d = enhancerGraphDefaults(WORKFLOW('qwen3vl_4b_prompt_enhancer.json'));
+    assert.strictEqual(d['Replace Text.find'], '\n');
+    assert.strictEqual(d['Replace Text.replace'], '');
+    assert.ok(d['Input_Scrub_Negation.regex_pattern'].includes('without'), 'the baked negation scrub');
+    assert.strictEqual(d['Input_Tidy.regex_pattern'], ',\\s*(?=,)|[\\s,.]+$');
+    assert.strictEqual(d['Input_Text_Gen.max_length'], 512);
+    // Character Sheet injects no system prompt: its recipe IS this baked value.
+    assert.ok(d.Input_System_Prompt.startsWith('<|im_start|>system\nYou are a character designer'));
+}
+
+function testServerTextGetsTheGraphPipeline() {
+    const d = enhancerGraphDefaults(WORKFLOW('qwen3vl_4b_prompt_enhancer.json'));
+    // Newline out, a CAPITALISED negation clause out (RegexReplace is case-insensitive
+    // by default), the doubled comma it leaves collapsed, the closing full stop eaten.
+    assert.strictEqual(
+        postProcessLikeGraph('a tall man,\nwearing a coat, NO scars on the face, grey hair.', d),
+        'a tall man,wearing a coat, grey hair');
+    // Music Maker's overrides disable the scrub and narrow the tidy, so an arrangement's
+    // "no drums" and a closing full stop survive. The newline strip still runs: Music
+    // Maker never overrides it, and its blocks are delimited by markers.
+    const music = { ...d, 'Input_Scrub_Negation.regex_pattern': '(?!)', 'Input_Tidy.regex_pattern': '\\s+$' };
+    assert.strictEqual(
+        postProcessLikeGraph('[MOOD] calm, no drums until the verse.\n[VOCAL] soft. ', music),
+        '[MOOD] calm, no drums until the verse.[VOCAL] soft.');
+}
+
+function testChatMlUnwrapsToTheBareRecipe() {
+    const bare = unwrapChatMl(enhancerGraphDefaults(WORKFLOW('qwen3vl_4b_prompt_enhancer.json')).Input_System_Prompt);
+    assert.ok(bare.startsWith('You are a character designer'));
+    assert.ok(bare.endsWith('no markdown.'), bare.slice(-40));
+    assert.ok(!bare.includes('<|im_'), 'a ChatML marker would reach a chat API');
+    // Music Maker's shape: the markers on lines of their own.
+    assert.strictEqual(unwrapChatMl('<|im_start|>system\nBE A PRODUCER\n<|im_end|>\n<|im_start|>user'), 'BE A PRODUCER');
+}
+
+function testTheEnhancerBorrowsKleinsEncoder() {
+    // Fabio, 2026-09-13: on ComfyUI a Klein enhance runs on Klein's own Qwen3, the weight
+    // the generation is about to load, instead of loading a second encoder.
+    assert.deepStrictEqual(enhancerClipParams(WORKFLOW('klein_9b_t2i.json')),
+        { 'Load CLIP.clip_name': 'qwen_3_8b_int8_convrot.safetensors', 'Load CLIP.type': 'flux2' });
+    assert.deepStrictEqual(enhancerClipParams(WORKFLOW('klein_t2i.json')),
+        { 'Load CLIP.clip_name': 'qwen_3_4b.safetensors', 'Load CLIP.type': 'flux2' });
+    // Krea2 already shares the graph's own file, so borrowing it changes nothing.
+    assert.strictEqual(enhancerClipParams(WORKFLOW('krea2_t2i_sfw.json'))['Load CLIP.clip_name'],
+        'qwen3vl_4b_abliterated_fp8_scaled.safetensors');
+    // An encoder TextGenerate raises on is never borrowed, nor a loader the graph cannot take.
+    assert.deepStrictEqual(enhancerClipParams(WORKFLOW('wan22_i2v.json')), {}, 'umT5 must never write a prompt');
+    assert.deepStrictEqual(enhancerClipParams(WORKFLOW('ltx_i2v_t2v.json')), {}, 'a DualCLIPLoader is not borrowable');
+
+    // Both keys must address a real node AND widget: the injector skips a miss silently.
+    const loader = Object.values(WORKFLOW('qwen3vl_4b_prompt_enhancer.json'))
+        .find((n) => n._meta && n._meta.title === 'Load CLIP');
+    assert.ok(loader && 'clip_name' in loader.inputs && 'type' in loader.inputs, 'enhancer graph lost its Load CLIP');
+}
+
+function testEnginesForwardTheTokenCap() {
+    // `complete()` used to drop everything but `{ model, system }`, so a flow's cap read
+    // as one and was none. `chat()` builds its body before its first await, so a stubbed
+    // fetch sees it synchronously.
+    const { OllamaEngine, DeepInfraEngine } = require('../services/llmEngines.mjs');
+    const bodies = [];
+    const realFetch = global.fetch;
+    global.fetch = (_url, init) => {
+        bodies.push(JSON.parse(init.body));
+        return new Promise(() => {});
+    };
+    try {
+        new DeepInfraEngine('key', 'http://stub').complete('p', { model: 'm', system: 's', maxTokens: 77 });
+        new OllamaEngine('http://stub').complete('p', { model: 'm', system: 's', maxTokens: 77 });
+        new DeepInfraEngine('key', 'http://stub').complete('p', { model: 'm' });
+    } finally {
+        global.fetch = realFetch;
+    }
+    assert.strictEqual(bodies[0].max_tokens, 77);
+    assert.strictEqual(bodies[1].options.num_predict, 77);
+    assert.ok(!('max_tokens' in bodies[2]), 'no cap asked, no cap sent');
 }
 
 // ── Recipe resolution (the same contract the broker responder had) ───────────
@@ -238,6 +325,11 @@ const tests = [
     testTheModelCardNoLongerSteersTheBackend,
     testInjectionParamsCarryTheOverrides,
     testSystemPromptIsChatMlWrapped,
+    testGraphDefaultsAreReadOffTheGraph,
+    testServerTextGetsTheGraphPipeline,
+    testChatMlUnwrapsToTheBareRecipe,
+    testTheEnhancerBorrowsKleinsEncoder,
+    testEnginesForwardTheTokenCap,
     testRecipeResolutionAndFallback,
     testModeResolution,
     testSecretsStoreDeepInfraSlot,

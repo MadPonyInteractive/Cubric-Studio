@@ -35,6 +35,43 @@ names but never lettered. **Order is by priority, not by letter.**
 
 ## Current State
 
+**2026-09-13 (later) — FLOWS FOLLOW THE PICK: THE SERVICE SIDE IS BUILT AND TESTED; THE
+FLOW CALL SITE IS HELD ON A PEER'S CLAIM.** Evidence: `validation.md` § Flows follow the pick.
+
+- `enhanceFlow` (`js/services/llmService.js`): `comfy` → `runComfyEnhance`, unchanged.
+  `deepinfra` / `ollama` → the enhancer graph's baked values, READ OFF
+  `qwen3vl_4b_prompt_enhancer.json` at runtime rather than copied (Character Sheet's
+  recipe lives in node 7), with the declaration's params over them: system prompt
+  unwrapped from ChatML, `Input_Text_Gen.max_length` sent as `maxTokens` (the route and
+  both `complete()` twins forward it now), then `postProcessLikeGraph` runs Replace Text
+  / Scrub Negation / Tidy in JS with `gi` (ComfyUI's `RegexReplace` defaults
+  case-insensitive). The graph's sampler is NOT carried; revisit only if Music Maker
+  loops on a server backend.
+- Fabio's addition: on ComfyUI the enhancer BORROWS the generation model's encoder where
+  it can generate. `enhancerClipParams` reads the model's own workflow `CLIPLoader`,
+  allowlist `krea2` / `flux2`, so Klein 9B enhances on `qwen_3_8b_int8_convrot` and 4B on
+  `qwen_3_4b`. Wired into the prompt box's `enhance()`; unit-tested, NOT driven live.
+- `flowsRegistry.js` is not touched: reading the graph replaced a Character Sheet hoist.
+- **THE SINGLE NEXT ACTION:** swap `MpiBaseFlow.js:1344` `runComfyEnhance(` → `enhanceFlow(`
+  (import + the comment block above it) together with `tests/enhance-control.test.cjs:101`.
+  BLOCKED: claim `c15cce05` (MPI-747/744, session `51cbe53b`) holds `MpiBaseFlow.js` and
+  `flowsRegistry.js` with uncommitted edits; message `6ec88fa6` asks for the file. The service
+  side was committed at the handoff, so until the swap lands `enhanceFlow` has no caller and
+  the `runComfyEnhance` header describes the post-swap state — make the swap first.
+- Then Fabio's `user-ux` check: Character Sheet Enhance and Music Maker Generate on
+  DeepInfra, Ollama and ComfyUI; a Klein prompt-box Enhance on ComfyUI (provenance should
+  name `qwen_3_8b_int8_convrot`).
+- Not a gate: the enhancer's node 13 `MpiClearVram` calls `unload_all_models()` after the
+  text is written, so a borrowed encoder is back in RAM before generation starts. Time
+  Klein 9B enhance + generate with and without it before touching MpiNodes.
+- Researched, not built: no abliterated Qwen3-8B exists in int8 convrot. Closest is
+  `ponpoke/flux2-klein-9b-uncensored-text-encoder` (BF16 16.38 GB, licence `other`, gated;
+  Fabio must read it). Swapping one into Klein's workflow changes Klein's IMAGES as well,
+  so it needs a same-seed A/B, not just a conversion.
+- Defaults applied on Fabio's "go": flows follow the pick with no per-flow exception
+  (Character Sheet on DeepInfra included); Boogu left out of borrowing (edit-only). MPI-728's
+  six doc/rule proposals still wait for a per-file yes, at close-out.
+
 **2026-09-13 — MPI-728 IS CLOSED (`c5ea072b`, pushed), and Fabio named what step 1
 still owes.** Language Models (DeepInfra key with live prices, a backend per job, the
 Ollama lifecycle: start, install on click, model download with progress) shipped and
@@ -677,6 +714,13 @@ with ownership `js/data/recipes/corpus.js` + `docs/agent/**` against
 `.claude/skills/cubric-vision/**`, and only once MPI-547 has landed.
 
 ## Plan Drift
+
+- **2026-09-13 — "flows follow the pick" grew a ComfyUI half and lost a file.** Fabio
+  added that a ComfyUI enhance must run on the generation model's own encoder where it can
+  (Klein's `qwen_3_8b_int8_convrot`), so `enhance()` now borrows it — the prompt box, not
+  only flows. The brief's Character Sheet recipe hoist into `flowsRegistry.js` was dropped:
+  a peer claims that file, and reading the graph's baked values at runtime is one source
+  instead of two copies. The `MpiBaseFlow.js` call site is held on the same peer's claim.
 
 - **2026-09-12 — the umbrella grew a member after its goal was met, deliberately.**
   MPI-737 (descriptions) was created on Fabio's explicit ask and belongs to this

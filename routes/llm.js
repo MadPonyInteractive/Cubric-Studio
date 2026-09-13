@@ -247,9 +247,10 @@ router.post('/llm/ollama/pull', async (req, res) => {
 /**
  * POST /llm/enhance — one completion.
  *
- * body: { prompt, system?, backend?, modelId? }
- *   `backend`  'deepinfra' | 'ollama'. Omitted -> `defaultBackend()`.
- *   `modelId`  a neutral id from `MODEL_REGISTRY`. Omitted -> the registry default.
+ * body: { prompt, system?, backend?, modelId?, maxTokens? }
+ *   `backend`   'deepinfra' | 'ollama'. Omitted -> `defaultBackend()`.
+ *   `modelId`   a neutral id from `MODEL_REGISTRY`. Omitted -> the registry default.
+ *   `maxTokens` a positive integer cap on the reply. Omitted -> the provider's own.
  *
  * The ComfyUI backend is deliberately NOT reachable here: it runs as a queued
  * ComfyUI job through the existing `promptEnhance` operation, which the renderer
@@ -257,7 +258,7 @@ router.post('/llm/ollama/pull', async (req, res) => {
  * second dispatch path to the same engine.
  */
 router.post('/llm/enhance', async (req, res) => {
-    const { prompt, system, backend: asked, modelId } = req.body || {};
+    const { prompt, system, backend: asked, modelId, maxTokens: askedMax } = req.body || {};
     if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
         return res.json({ ok: false, error: 'Write a prompt first, then Enhance.' });
     }
@@ -297,10 +298,11 @@ router.post('/llm/enhance', async (req, res) => {
         const engine = backend === 'deepinfra'
             ? new DeepInfraEngine(await deepInfraKey())
             : new OllamaEngine();
-        // `complete()` takes only `{ model, system }` — the engines drop any
-        // other option on the floor, so a `maxTokens` here would read as a cap
-        // and be one only in the harness's own `chat()` path.
-        const result = await engine.complete(prompt, { model, system });
+        // A flow's token cap travels here (`Input_Text_Gen.max_length`, MPI-677): Music
+        // Maker's 800 guards against a measured runaway repetition loop. Anything that
+        // is not a positive integer is no cap, never a zero-length reply.
+        const maxTokens = Number.isInteger(askedMax) && askedMax > 0 ? askedMax : undefined;
+        const result = await engine.complete(prompt, { model, system, maxTokens });
 
         // `result.backend` / `result.model`, not the variables above: the engine
         // reports what actually answered.

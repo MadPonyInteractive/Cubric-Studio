@@ -153,6 +153,7 @@ export class OllamaEngine {
                 ...(opts.system ? [{ role: 'system', content: opts.system }] : []),
                 { role: 'user', content: prompt },
             ],
+            options: { maxTokens: opts.maxTokens },
         });
     }
 
@@ -380,6 +381,7 @@ export class DeepInfraEngine {
                 ...(opts.system ? [{ role: 'system', content: opts.system }] : []),
                 { role: 'user', content: prompt },
             ],
+            options: { maxTokens: opts.maxTokens },
         });
     }
 

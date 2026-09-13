@@ -1138,3 +1138,32 @@ the app** → Reuse. The short prompt returns to the box, the enhancement return
 the overlay, the provenance line names engine and target model. Nine defects across
 three rounds, all fixed. The reload leg could not have passed a day earlier — round 3
 is why.
+
+## Flows follow the pick + the borrowed Klein encoder — service side (2026-09-13)
+
+**Automated, all green:**
+- `npm test` 966/966 (961 before + 5 new in `tests/llm-service.test.cjs`);
+  `tests/enhance-control.test.cjs` 7/7; `tests/inject-params-titles.test.cjs` green.
+- eslint clean on `js/services/llmService.js` and `js/data/modelConstants/models.js`;
+  `node --check routes/llm.js`; `services/llmEngines.mjs` imports.
+- **Three mutations, each RED, each file restored byte-exact** (script in the session
+  scratchpad): `gi` → `g` fails `testServerTextGetsTheGraphPipeline`; dropping the
+  forwarded `maxTokens` from `complete()` fails `testEnginesForwardTheTokenCap`; dropping
+  `flux2` from the borrow list fails `testTheEnhancerBorrowsKleinsEncoder`. The script's
+  first run reported all three SURVIVING — it read stdout, and this runner prints `FAIL`
+  through `console.error`. Fixed and re-run; the RED results are from the second run.
+
+**Facts the design stands on, measured rather than assumed:**
+- ComfyUI `RegexReplace` defaults `case_insensitive=True`, `count=0`; `StringReplace` is
+  `str.replace` — `G:\ComfyUi\ComfyUI\comfy_extras\nodes_string.py` (bench v0.34.2; the
+  app pins v0.34.0).
+- `Qwen3_4B` and `Qwen3_8B` both carry `BaseGenerate` — `comfy/text_encoders/llama.py:1214,1232`
+  — so `TextGenerate` runs on Klein's encoders. Both Klein graphs already carry a
+  `TextGenerate` chain on that loader, baked off.
+- The enhancer's node 13 `MpiClearVram` calls `unload_all_models()` —
+  `ComfyUi-MpiNodes/vram.py:11`. A borrowed encoder therefore goes back to RAM before the
+  generation; the saving is the second encoder's disk load and RAM, not a warm VRAM copy.
+
+**NOT verified:** nothing driven live. The flow path is unreachable until `MpiBaseFlow`
+calls `enhanceFlow` (held on MPI-747's claim `c15cce05`), and the Klein borrow needs a GPU
+run — Fabio's `user-ux` check.
