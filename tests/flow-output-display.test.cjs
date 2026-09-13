@@ -58,7 +58,8 @@ test('MpiBaseFlow paints the display first, persists it, and drops it without th
     assert.ok(!/_lastResults = null/.test(drop[1]), 'a dead display must not take the saved result with it');
     assert.match(drop[1], /_showResults\(_lastResults, \{ remember: false \}\)/);
 
-    assert.match(src, /_lastResults = null;\n\s*_lastDisplay = null;/, 'Generate and a vanished result both clear it');
+    // `\r?\n`: CI checks the tree out CRLF, and a bare `\n` after `;` matches nothing there.
+    assert.match(src, /_lastResults = null;\r?\n\s*_lastDisplay = null;/, 'Generate and a vanished result both clear it');
     assert.match(src, /const it = list\.length \? \(_lastDisplay\?\.\[0\] \|\| list\[0\]\) : null;/,
         'the floating window shows the display too');
 });
