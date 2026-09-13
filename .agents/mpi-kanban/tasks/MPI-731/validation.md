@@ -138,3 +138,42 @@ Card is open. Evidence per item, newest last.
   → **5 passed** (58.1s); `npx eslint --max-warnings=0` clean on the player, `types.js`,
   `preloadStyles.js`, the spec.
 - **Not yet:** Fabio's second look at the joined layout; a painted wave (item 7's live check).
+
+### 3c. Fabio's second look (2026-09-13): time digits near-black
+
+- He mounted the joined layout himself; white `--ink-1` digits vanished into the light wave.
+  Now `--surface-viewer` (oklch 0.20, darkest token). Test 5 re-run: **1 passed** (16.4s).
+
+### 4. Wired into MpiBaseFlow (2026-09-13, session `30b8fe52`, uncommitted)
+
+- `_sharedAudioEl` -> `_sharedAudioPlayer(url, it)`; N-output players in `_plainAudioPlayers` (pane)
+  and `_dockAudioPlayer` (window); dock CSS sizes the player; `tests/flow-result-dock.test.cjs`
+  source contracts re-pointed at the player (src set once inside MpiAudioPlayer).
+- **Bug found and fixed on the way:** the pane's ResizeObserver fit the player as a picture
+  (`isManagedView` left true): measured `matrix(1.4375 ... 0, 215.56)`, player at y=715 below a
+  frame ending at 659, scrub hit the slide, `currentTime` 0. `_hasViewableResult()` now gates fit,
+  wheel-zoom and pan.
+- **New test 6** (`flow-audio-player.spec.js`, real mouse in a real Flow run slide): a travelling
+  scrub moves the playhead and not the player; the wheel over the player does not zoom it.
+- **Falsified:** fit guard absent (pre-fix) -> scrub `t = 0`, player off-frame; pan guard reverted ->
+  player moved **134px**; wheel guard reverted -> **36px** wider. Each restored; `grep SABOTAGE` = 0.
+- Final: `flow-audio-player.spec.js` **6 passed** (1.1m); `flow-result-follows-steps.spec.js`
+  **1 passed** unchanged (same node across two navigations, never pauses, stops on destroy);
+  `npm test` **961/961**; `npx eslint --max-warnings=0` clean on MpiBaseFlow.js + both tests.
+- **Not yet:** Fabio's live check with a real generation (painted wave, scrub, the window takes
+  the same player across a step change). Rule line `component-mounts.md:268` still names
+  `_sharedAudioEl` - needs his permission to edit.
+
+### 4b. Fabio live, Stems flow (2026-09-13)
+
+- Seen in his app: 4 N-output players in the pane, waves PAINTED, one scrubbed mid-clip and
+  playing (teal played layer). Not yet seen: the single-output window move across a step.
+- Time digits: near-black was harder to read over the mid-grey ground. Reverted to `--ink-1` plus
+  a `--surface-viewer` text-shadow halo (reads over light wave and grey surface). CSS-only, no
+  spec re-run; his eyes are the check.
+- Rule rename approved and done: `.claude/rules/component-mounts.md:268` names `_sharedAudioPlayer`.
+
+### 4c. Fabio verified (2026-09-13): "1"
+
+- Text to Speech, single output: one player, painted wave, played through; the halo digits read.
+  With the Stems check above, items 4 and 7 are closed on his word.

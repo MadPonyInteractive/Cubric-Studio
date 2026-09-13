@@ -23,7 +23,10 @@
     inset: 0;
 }
 
-/* On the waveform, not beside it. Click-through, so the whole bar scrubs. */
+/* On the waveform, not beside it. Click-through, so the whole bar scrubs.
+   The ground under the digits is BOTH a light wave and a mid-grey surface, so no single
+   colour reads over both — white vanished into the peaks, near-black into the grey
+   (Fabio, 2026-09-13, tried both). Light digits with a dark halo read over either. */
 .mpi-audio-player__time {
     position: absolute;
     top: 50%;
@@ -33,4 +36,5 @@
     font-size: var(--t-xs);
     font-variant-numeric: tabular-nums;
     color: var(--ink-1);
+    text-shadow: 0 0 2px var(--surface-viewer), 0 0 4px var(--surface-viewer);
 }

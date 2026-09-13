@@ -60,29 +60,33 @@ test('the dock is synced synchronously, never behind the rAF', () => {
     );
 });
 
-test('the audio element is shared and keyed by url, never re-pointed', () => {
+test('the audio player is shared and keyed by url, never re-pointed', () => {
     const src = frame();
 
-    // Same url → the SAME node handed back. This is what survives the move.
+    // Same url → the SAME player handed back. This is what survives the move.
     assert.match(
         src,
-        /function _sharedAudioEl\(url\)\s*\{\s*\n\s*if \(_audioEl && _audioEl\.dataset\.src === url\) return _audioEl;/,
-        '_sharedAudioEl must return the existing element when the url is unchanged',
+        /function _sharedAudioPlayer\(url, it\)\s*\{\s*\n\s*if \(_audioPlayer && _audioPlayer\.el\.dataset\.src === url\) return _audioPlayer\.el;/,
+        '_sharedAudioPlayer must return the existing player when the url is unchanged',
     );
 
     // Re-assigning `src` on the live element is the same restart a fresh element is,
-    // so there must be exactly one place a src is set: construction.
+    // so the player sets it in exactly one place, construction, and nothing here
+    // reaches in to set it again (MPI-731 moved the element inside MpiAudioPlayer).
+    const player = read('js/components/Compounds/MpiAudioPlayer/MpiAudioPlayer.js');
+    assert.equal((player.match(/\.src\s*=/g) || []).length, 1,
+        'MpiAudioPlayer sets its src once — a new file gets a new player, not a re-point');
     assert.ok(
-        !/_audioEl\.src\s*=/.test(src),
-        'never re-assign _audioEl.src — a new file gets a new element, not a re-point',
+        !/getAudioElement\(\)\.src\s*=/.test(src),
+        'never re-point the shared player\'s audio src from the flow',
     );
 
-    // The run slide APPENDS the shared element rather than building its own. This is
+    // The run slide APPENDS the shared player rather than building its own. This is
     // the move back out of the floating window.
     assert.match(
         src,
-        /_resultMediaEl\.appendChild\(withPath\.length === 1\s*\n?\s*\?\s*_sharedAudioEl\(url\)/,
-        '_paintPlainResults must append the shared audio element for a single result',
+        /if \(withPath\.length === 1\) \{\s*\n\s*_resultMediaEl\.appendChild\(_sharedAudioPlayer\(url, it\)\);/,
+        '_paintPlainResults must append the shared audio player for a single result',
     );
 });
 
@@ -111,8 +115,8 @@ test('the dock outlives every slide and dies with the flow', () => {
     const teardown = src.slice(src.indexOf('function _teardownSlide()'));
     const teardownBody = teardown.slice(0, teardown.indexOf('\n        }'));
     assert.ok(
-        !/_audioEl|_dock\b/.test(teardownBody),
-        '_teardownSlide must not touch the dock or the shared audio element',
+        !/_audioPlayer|_dropSharedAudio|_dock\b/.test(teardownBody),
+        '_teardownSlide must not touch the dock or the shared audio player',
     );
 
     // el.destroy is where they both go — a window that outlives its flow, or audio

@@ -288,7 +288,8 @@ settled below from the code, not from preference. Do not re-litigate them — bu
       lost. The trim bar, frame stepping and fullscreen must be untouched — if any of them
       moved, the swap reached past its edge.
 
-- [ ] **6. Consistency: `MpiGalleryGrid` adopts `MpiVolumeControl`** — and the gallery gets
+- [x] **6. DROPPED (Fabio, 2026-09-13) — the gallery keeps its own volume. Spec kept below
+      as the record.** **Consistency: `MpiGalleryGrid` adopts `MpiVolumeControl`** — and the gallery gets
       a real mute button for the first time. Replace the decorative
       `.mpi-gallery-grid__volume-icon` `<span>` + `_paintVolumeIcon()` + the horizontal
       slider in `.mpi-gallery-grid__volume-wrap` with one mount; pass `step: 5, wheel: true`
@@ -387,6 +388,17 @@ settled below from the code, not from preference. Do not re-litigate them — bu
       comment): hotkey changes arrive through `setValue` and are not snapshotted. Tests 2 + 3
       extended; both halves falsified.
 
+- [x] **3. `MpiAudioPlayer`** (committed `536b8db2`; joined layout approved 2026-09-13; time
+      digits `--ink-1` + `--surface-viewer` halo after near-black read worse — Fabio "1").
+
+- [x] **4 + 7. Wired into `MpiBaseFlow`, checked** (2026-09-13, session `30b8fe52`, uncommitted).
+      `_sharedAudioPlayer` / `_buildAudioPlayer` / `_plainAudioPlayers` / `_dockAudioPlayer`;
+      `_hasViewableResult()` keeps fit, wheel-zoom and pan off an audio result (Plan Drift
+      2026-09-13b). Spec 6/6 incl. new pane test 6, MPI-727 spec 1/1 unchanged, node 961/961.
+      **Fabio verified live**: Stems (4 N-output players, painted waves, scrub) and Text to
+      Speech (single output, the move across steps) — "1". Rule line
+      `component-mounts.md:268` renamed with his permission.
+
 **Where it stands (2026-09-12, session `37864109`, claim `d6489e59`):** items 1, 2, wheel, 5,
 zero-as-muted and 5b done, verified, Fabio-approved. **Item 3 BUILT, uncommitted** —
 `js/components/Compounds/MpiAudioPlayer/` (one row, no width of its own, one `<audio>`,
@@ -395,8 +407,22 @@ zero-as-muted and 5b done, verified, Fabio-approved. **Item 3 BUILT, uncommitted
 **Fabio looked (2026-09-13): behaviour approved; layout changed** to his "buttons are the ends,
 the waveform is the bar joining them, time on top" (Plan Drift 2026-09-13) — built, 5/5 green,
 falsified. Committed with MPI-733's three Cue-all rule-map lines (message `a57c9fbc`, handed
-over by Fabio). **NEXT: Fabio's second look at the joined layout, then item 4** (wire into
-`MpiBaseFlow`).
+over by Fabio).
+
+**Where it stands (2026-09-13, session `30b8fe52`, claim `5047d697`):** Fabio's second look
+gave one fix: time legibility. Near-black was worse; now light digits with a dark halo, awaiting
+his look. He saw item 4 live on the Stems flow (4 N-output players, painted waves, a scrub mid-
+clip) and approved the rule rename (`component-mounts.md:268`, done). **Item 4 BUILT, uncommitted, awaiting Fabio's
+live check** — `_sharedAudioPlayer(url, it)` replaces `_sharedAudioEl` (same URL key, the
+player MOVED not rebuilt), `_buildAudioPlayer` adds the pane's sizing class, N-output players
+go to `_plainAudioPlayers` (pane, destroyed in `_teardownResultSurfaces`) or `_dockAudioPlayer`
+(window, replaced at the top of `_syncDock`, destroyed in `el.destroy`). Dock CSS sizes the
+player at 260px. `_hasViewableResult()` gates fit / wheel-zoom / pan off an audio result
+(Plan Drift 2026-09-13b). Verified: `flow-audio-player.spec.js` 6/6 (new test 6 = the pane
+gestures), `flow-result-follows-steps.spec.js` 1/1 unchanged, `npm test` 961/961, eslint
+clean. **Fabio verified it live ("1", 2026-09-13), halo digits included.** **Item 6 DROPPED by
+Fabio (2026-09-13): the gallery keeps its own volume.** **NEXT: item 8** — the doc section is
+free; the `types.js` typedefs wait on MPI-728's live claim `b0bd757e`.
 
 ## Remaining Work
 
@@ -524,6 +550,34 @@ over by Fabio). **NEXT: Fabio's second look at the joined layout, then item 4** 
   height, leftover, time on and above the wave, click-through) — do not drift back to a separate
   time slot. A `display: flex` on the button holders was tried and REMOVED: falsification showed
   the wave already matches the buttons' height without it.
+- **2026-09-13 — second look (session `30b8fe52`, claim `5047d697`): the time digits go
+  near-black.** Fabio mounted the joined layout on the landing page himself; white `--ink-1`
+  digits vanished into the light wave. Tried `--surface-viewer` (oklch 0.20, the darkest token):
+  Fabio found it WORSE over the mid-grey ground, which is both light wave and grey surface, so
+  no flat colour reads over both. Now `--ink-1` with a `--surface-viewer` text-shadow halo.
+  Test 5 green. Item 4 facts checked for the brief: `thumbPath` is ALREADY a
+  `/project-file?path=` URL (`routes/projects.js` `writeAudioWaveform`), so pass it raw like
+  the gallery does; no key collision between `flow.step.*` (arrows left/right) and the
+  player's space / m / arrows up-down. Dock trap to handle in item 4: `__media` sets
+  `line-height: 0` and `justify-content: center`, so the player needs an explicit width
+  there (its waveform is `flex-basis: 0` and collapses in a shrink-to-fit parent).
+- **2026-09-13b — item 4 found the pane's picture viewer treating the player as a picture.**
+  `ViewManager.isManagedView` defaults `true` and the audio branch pinned identity without
+  clearing it, so the frame's ResizeObserver ran `_fitResultView()` on the player's
+  `clientWidth`×`clientHeight` (360×34): scale 517/360 = 1.4375, offsetY 215.56 — exactly the
+  measured matrix — and the media layer's CSS centring added a second offset, parking the
+  player BELOW the frame, clipped and unclickable (a scrub hit the slide; `currentTime` 0).
+  The same frame's `mousedown` pan and wheel-zoom also took the player's gestures. Fix: one
+  predicate `_hasViewableResult()` (not empty, not `.mpi-base-flow__result-audio`) gating
+  fit, wheel and pan. Each of the three falsified: fit (pre-fix run, player off-frame), pan
+  (guard reverted → a scrub moved the player 134px), wheel (reverted → zoomed 36px wider).
+  Likely latent with the native `<audio>` too; the player's real gestures exposed it.
+  New test 6 in `flow-audio-player.spec.js` pins it with real mouse input in a real Flow.
+- **2026-09-13c — item 6 dropped (Fabio: "you don't need to add this to the gallery. It's
+  fine").** `MpiVolumeControl` ships with TWO consumers (the video bar and the player), not
+  three. The gallery keeps its icon + horizontal slider and its volume-0 mute. Nothing built
+  for it, so nothing to revert; MPI-678's uncommitted work in `MpiGalleryGrid.js/.css` is
+  untouched by this card.
 
 ## Verification
 

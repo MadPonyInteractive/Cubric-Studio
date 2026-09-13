@@ -8,6 +8,7 @@ import { MpiCompareView } from '../../Compounds/MpiCompareView/MpiCompareView.js
 import { MpiVideoViewer } from '../MpiVideoViewer/MpiVideoViewer.js';
 import { MpiVideoControlBar } from '../../Compounds/MpiVideoControlBar/MpiVideoControlBar.js';
 import { MpiFlowResultDock } from '../../Compounds/MpiFlowResultDock/MpiFlowResultDock.js';
+import { MpiAudioPlayer } from '../../Compounds/MpiAudioPlayer/MpiAudioPlayer.js';
 import { Events } from '../../../events.js';
 import { state, AUTO_PIXEL_THRESHOLD } from '../../../state.js';
 import { ViewManager } from '../../Primitives/MpiCanvas/managers/ViewManager.js';
@@ -240,11 +241,18 @@ export const MpiBaseFlow = ComponentFactory.create({
         const _dock = MpiFlowResultDock.mount(document.createElement('div'), {});
         qs('#flow-stage', el).appendChild(_dock.el);
         /**
-         * THE ONE audio element, shared by the result pane and the floating window —
-         * see `_sharedAudioEl`. Declared up here for the same reason the dock is.
-         * @type {?HTMLAudioElement}
+         * THE ONE audio player, shared by the result pane and the floating window —
+         * see `_sharedAudioPlayer`. Declared up here for the same reason the dock is.
+         * @type {?Object} a mounted MpiAudioPlayer instance
          */
-        let _audioEl = null;
+        let _audioPlayer = null;
+        /**
+         * The UNSHARED players an N-output flow builds: one per output in the pane
+         * (`_teardownResultSurfaces` destroys them) and one in the window (`_syncDock`
+         * replaces it). Up here too — both can run during setup.
+         */
+        const _plainAudioPlayers = [];
+        let _dockAudioPlayer = null;
 
         /**
          * Stop SPACE from activating a navigation button.
@@ -2317,38 +2325,55 @@ export const MpiBaseFlow = ComponentFactory.create({
 
         // ── The floating result window (MPI-727) ────────────────────────────────
         /**
-         * THE ONE audio element, handed to whichever surface is live.
+         * THE ONE audio player, handed to whichever surface is live.
          *
          * This is the whole card. A media element re-created with the same `src`
          * restarts from zero; the SAME element re-appended somewhere else keeps
          * playing, because removing one from the document runs the pause steps only
          * "once a stable state is reached" — after the current task, not during it.
+         * The player owns that element, so it is the player that moves (MPI-731).
          *
          * So every move below happens inside ONE synchronous `_renderSlide` pass, and
          * none of them may be deferred behind a rAF, a promise or a timeout without
          * bringing the bug straight back.
          *
-         * Keyed by URL: a new run is a new file and so a new element. Re-pointing
-         * `src` would be the same restart the whole card exists to avoid.
+         * Keyed by URL: a new run is a new file and so a new player. Re-pointing
+         * `src` would be the same restart the whole card exists to avoid, which is
+         * why MpiAudioPlayer sets its `src` once and has no API to change it.
          * @param {string} url
-         * @returns {HTMLAudioElement}
+         * @param {Object} it the result item
+         * @returns {HTMLElement} the player's root
          */
-        function _sharedAudioEl(url) {
-            if (_audioEl && _audioEl.dataset.src === url) return _audioEl;
+        function _sharedAudioPlayer(url, it) {
+            if (_audioPlayer && _audioPlayer.el.dataset.src === url) return _audioPlayer.el;
             _dropSharedAudio();
-            _audioEl = ce('audio', {
-                className: 'mpi-base-flow__result-audio', src: url, controls: true,
-            });
-            _audioEl.dataset.src = url;
-            return _audioEl;
+            _audioPlayer = _buildAudioPlayer(url, it, true);
+            _audioPlayer.el.dataset.src = url;
+            return _audioPlayer.el;
         }
 
-        /** Stop and forget the shared element — its result is gone, not merely moved. */
+        /**
+         * A result player. `mpi-base-flow__result-audio` on its root is the pane's
+         * sizing hook. `thumbPath` is already a `/project-file` URL (the baked wave);
+         * null on an item baked before MPI-730, which paints a bar that still scrubs.
+         * @param {string} url
+         * @param {Object} it
+         * @param {boolean} hotkeys false wherever N players share the screen, or SPACE
+         *   plays N songs at once
+         */
+        function _buildAudioPlayer(url, it, hotkeys) {
+            const player = MpiAudioPlayer.mount(document.createElement('div'), {
+                src: url, mask: it?.thumbPath, duration: it?.duration, hotkeys,
+            });
+            player.el.classList.add('mpi-base-flow__result-audio');
+            return player;
+        }
+
+        /** Stop and forget the shared player — its result is gone, not merely moved. */
         function _dropSharedAudio() {
-            if (!_audioEl) return;
-            _audioEl.pause();
-            _audioEl.remove();
-            _audioEl = null;
+            if (!_audioPlayer) return;
+            _audioPlayer.destroy();
+            _audioPlayer = null;
         }
 
         /**
@@ -2368,7 +2393,9 @@ export const MpiBaseFlow = ComponentFactory.create({
         function _dockNode(it, path, shareAudio) {
             const url = resolveMediaUrl(path);
             if (_isAudioResult(it)) {
-                return shareAudio ? _sharedAudioEl(url) : ce('audio', { src: url, controls: true });
+                if (shareAudio) return _sharedAudioPlayer(url, it);
+                _dockAudioPlayer = _buildAudioPlayer(url, it, false);
+                return _dockAudioPlayer.el;
             }
             if (_isVideoResult(it)) {
                 // `muted` set with (not after) `autoplay`, or the autoplay policy
@@ -2388,9 +2415,13 @@ export const MpiBaseFlow = ComponentFactory.create({
          * the flow's own stage, so closing or suspending the flow takes it off screen
          * with everything else.
          *
-         * SYNCHRONOUS BY CONTRACT — see `_sharedAudioEl`.
+         * SYNCHRONOUS BY CONTRACT — see `_sharedAudioPlayer`.
          */
         function _syncDock() {
+            // An N-output flow's window player is rebuilt on every sync, so the last
+            // one goes first. Never the shared player: that one is not kept here.
+            _dockAudioPlayer?.destroy();
+            _dockAudioPlayer = null;
             const list = (_lastResults || []).filter(Boolean);
             const it = list[0];
             const path = it?.filePath || it?.url;
@@ -2436,10 +2467,21 @@ export const MpiBaseFlow = ComponentFactory.create({
             on(media, isVideo ? 'loadedmetadata' : 'load', _fitResultView);
         }
 
+        /**
+         * The pane holds something to LOOK at: not empty, and not an audio player.
+         * A player is a control. Fitting measured its box as if it were a picture, and
+         * the frame's ResizeObserver scaled it straight out of the frame; a pan or a
+         * wheel-zoom would swallow its scrub and its volume drag (MPI-731).
+         */
+        function _hasViewableResult() {
+            const media = _resultMediaEl?.firstElementChild;
+            return !!media && !media.classList.contains('mpi-base-flow__result-audio');
+        }
+
         /** Fit the current media to the frame and paint the transform. */
         function _fitResultView() {
             const media = _resultMediaEl?.firstElementChild;
-            if (!media || !_resultFrameEl) return;
+            if (!_hasViewableResult() || !_resultFrameEl) return;
             const rect = _resultFrameEl.getBoundingClientRect();
             const w = media.naturalWidth || media.videoWidth || media.clientWidth;
             const h = media.naturalHeight || media.videoHeight || media.clientHeight;
@@ -2459,7 +2501,7 @@ export const MpiBaseFlow = ComponentFactory.create({
         /** Wire wheel-zoom-at-cursor, drag-pan and dblclick-to-fit onto the frame. */
         function _bindResultView(frame, unsubs) {
             unsubs.push(on(frame, 'wheel', (e) => {
-                if (!_resultMediaEl?.firstChild) return;
+                if (!_hasViewableResult()) return;
                 e.preventDefault();
                 const rect = frame.getBoundingClientRect();
                 const mx = e.clientX - rect.left;
@@ -2477,7 +2519,7 @@ export const MpiBaseFlow = ComponentFactory.create({
             let panning = false, startX = 0, startY = 0;
             unsubs.push(on(frame, 'mousedown', (e) => {
                 if (e.button !== 0 && e.button !== 1) return;
-                if (!_resultMediaEl?.firstChild) return;
+                if (!_hasViewableResult()) return;
                 // Suppress the browser's native image drag: without it the pane
                 // hands the user a drag ghost offering to drop the image somewhere
                 // else, which is not a thing this pane does.
@@ -2707,24 +2749,25 @@ export const MpiBaseFlow = ComponentFactory.create({
             for (const { it, path } of withPath) {
                 const url = resolveMediaUrl(path);
                 if (_isAudioResult(it)) {
-                    // THE SHARED ELEMENT, appended rather than built (MPI-727) — this
-                    // MOVES the player back out of the floating window, which is what
-                    // keeps a song playing across the step change. A fresh `<audio>`
-                    // here would restart it from zero. An N-output flow is the one
-                    // exception: nothing to share, so each output gets its own.
-                    _resultMediaEl.appendChild(withPath.length === 1
-                        ? _sharedAudioEl(url)
-                        : ce('audio', {
-                            className: 'mpi-base-flow__result-audio',
-                            src: url,
-                            controls: true,
-                        }));
+                    // THE SHARED PLAYER, appended rather than built (MPI-727) — this
+                    // MOVES it back out of the floating window, which is what keeps a
+                    // song playing across the step change. A fresh player here would
+                    // restart it from zero. An N-output flow is the one exception:
+                    // nothing to share, so each output gets its own, hotkeys off.
+                    if (withPath.length === 1) {
+                        _resultMediaEl.appendChild(_sharedAudioPlayer(url, it));
+                    } else {
+                        const player = _buildAudioPlayer(url, it, false);
+                        _plainAudioPlayers.push(player);
+                        _resultMediaEl.appendChild(player.el);
+                    }
                     // A player has no natural pixels for ViewManager to fit, so it is
                     // pinned at identity and the media layer centres it in CSS. Skipping
                     // this would leave the PREVIOUS result's zoom/pan on the transform.
-                    // ponytail: identity instead of its own frame surface (what compare
-                    // and the video player get). Wheel-zoom therefore still reaches the
-                    // control — harmless, but give audio a real surface if that bites.
+                    // `_hasViewableResult` keeps every later fit, zoom and pan off it.
+                    // ponytail: identity + that gate instead of its own frame surface
+                    // (what compare and the video player get); give audio one if the
+                    // gate ever has to grow.
                     _resultView.scale = 1;
                     _resultView.offsetX = 0;
                     _resultView.offsetY = 0;
@@ -2913,6 +2956,9 @@ export const MpiBaseFlow = ComponentFactory.create({
         function _teardownResultSurfaces() {
             _teardownCompare();
             _teardownPlayer();
+            // The N-output players only. The shared one outlives every repaint.
+            _plainAudioPlayers.forEach(p => p.destroy());
+            _plainAudioPlayers.length = 0;
             _surfaceToggle?.destroy?.();
             _surfaceToggle = null;
             _resultMode = 'plain';
@@ -3434,6 +3480,7 @@ export const MpiBaseFlow = ComponentFactory.create({
             // stopped here rather than left playing into a torn-down tree (MPI-727).
             _dock?.el?.destroy?.();
             _dropSharedAudio();
+            _dockAudioPlayer?.destroy();
             _previewPlayer.stop();
             _unsubs.forEach(fn => fn?.());
             // _teardownSlide already dropped the buttons; the overlay outlives them.

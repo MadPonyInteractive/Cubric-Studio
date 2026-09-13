@@ -919,3 +919,113 @@ test('MpiAudioPlayer: one row sized by its consumer, driving one real <audio>', 
         await closeApp(app);
     }
 });
+
+/**
+ * Item 4 — the player inside a real Flow's result pane.
+ *
+ * The pane is a zoom/pan viewer built for pictures: a `mousedown` anywhere on its frame
+ * starts a pan and the wheel zooms. A player is a CONTROL, so scrubbing its waveform or
+ * rolling the wheel over it must move the playhead and leave the player where it is.
+ * `flow-result-follows-steps.spec.js` owns identity across steps; this owns the gestures
+ * once the player has landed in the pane.
+ */
+test('the Flow result pane: a scrub and the wheel drive the player, never pan or zoom it', async ({}, testInfo) => {
+    const { app, window, pageErrors } = await launchApp(testInfo);
+
+    try {
+        await window.waitForTimeout(6000);
+        await clearBootModals(window);
+
+        await window.evaluate(async () => {
+            const { MpiBaseFlow } = await import('/js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+            const { state } = await import('/js/state.js');
+            const flow = {
+                id: 'mpi731-pane-fixture',
+                title: 'Pane fixture',
+                description: 'Pane gestures.',
+                steps: [{
+                    kind: 'fields', role: 'song', tickerLabel: 'Write', title: 'Write',
+                    fields: [{ id: 'Input_Lyrics', type: 'text', rows: 4, label: 'Lyrics', default: '' }],
+                }],
+            };
+            // Absolute, so `resolveMediaUrl` passes it through instead of wrapping it in
+            // `/project-file`, and the mount's HEAD probe finds a real file.
+            state.s_flowResults = {
+                ...state.s_flowResults,
+                [flow.id]: {
+                    items: [{ type: 'audio', mediaType: 'audio', url: `${location.origin}/voices/child_1.opus`, duration: 11 }],
+                    mode: null, status: '', pending: false,
+                },
+            };
+            state.s_flowInputs = {};
+            const host = document.createElement('div');
+            host.style.cssText = 'position:fixed;inset:0;z-index:99999';
+            document.body.appendChild(host);
+            const inst = MpiBaseFlow.mount(document.createElement('div'), { flow, initialInputs: {} });
+            host.appendChild(inst.el);
+            inst.el.open?.();
+            window.__mpi731f = { inst, host, flowId: flow.id };
+            await new Promise(r => setTimeout(r, 600));
+            // inputs → step → run: the pane lives on the last slide.
+            for (let i = 0; i < 2; i++) {
+                inst.el.querySelector('#flow-next')?.click();
+                await new Promise(r => setTimeout(r, 400));
+            }
+        });
+
+        await window.waitForFunction(() => {
+            const p = window.__mpi731f.inst.el.querySelector('.mpi-base-flow__result-media .mpi-audio-player');
+            return !!p && p.querySelector('audio').readyState >= 1 && getComputedStyle(p).display === 'flex';
+        }, null, { timeout: 15000 });
+        await window.waitForTimeout(350);
+
+        const probe = () => window.evaluate(() => {
+            const p = window.__mpi731f.inst.el.querySelector('.mpi-base-flow__result-media .mpi-audio-player');
+            const r = p.getBoundingClientRect();
+            const wave = p.querySelector('.mpi-waveform').getBoundingClientRect();
+            const play = p.querySelector('[data-mount="play"] .mpi-btn').getBoundingClientRect();
+            return {
+                x: r.x, y: r.y, w: r.width,
+                wave: { x: wave.x, y: wave.y, w: wave.width, h: wave.height },
+                play: { x: play.x + play.width / 2, y: play.y + play.height / 2 },
+                t: p.querySelector('audio').currentTime,
+            };
+        });
+        const before = await probe();
+
+        // A scrub that travels, the way a hand does: press at 20%, release at 70%.
+        const y = before.wave.y + before.wave.h / 2;
+        await window.mouse.move(before.wave.x + before.wave.w * 0.2, y);
+        await window.mouse.down();
+        await window.mouse.move(before.wave.x + before.wave.w * 0.7, y, { steps: 8 });
+        await window.mouse.up();
+        await window.waitForTimeout(250);
+        const afterScrub = await probe();
+
+        expect(afterScrub.t, 'the scrub moved the playhead').toBeGreaterThan(1.5);
+        expect(Math.abs(afterScrub.x - before.x), 'a scrub must not PAN the player').toBeLessThan(1);
+        expect(Math.abs(afterScrub.y - before.y), 'a scrub must not PAN the player').toBeLessThan(1);
+
+        await window.mouse.move(before.play.x, before.play.y);
+        await window.mouse.wheel(0, -400);
+        await window.waitForTimeout(250);
+        const afterWheel = await probe();
+
+        expect(Math.abs(afterWheel.w - before.w), 'the wheel over the player must not ZOOM it').toBeLessThan(1);
+        expect(Math.abs(afterWheel.x - before.x), 'the wheel over the player must not move it').toBeLessThan(1);
+
+        await window.evaluate(async () => {
+            const { state } = await import('/js/state.js');
+            const { inst, host, flowId } = window.__mpi731f;
+            inst.el.destroy?.();
+            inst.el.remove();
+            host.remove();
+            delete state.s_flowResults[flowId];
+            delete window.__mpi731f;
+        });
+
+        expect(pageErrors, 'no renderer errors').toEqual([]);
+    } finally {
+        await closeApp(app);
+    }
+});

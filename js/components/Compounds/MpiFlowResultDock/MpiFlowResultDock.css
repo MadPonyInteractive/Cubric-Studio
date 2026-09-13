@@ -39,10 +39,8 @@
     height: auto;
 }
 /* An audio result is a control: it fills the box rather than being sized by it, and
-   the box drops the picture height it has nothing to apply to. Native `<audio>` has
-   a minimum usable width of its own, so the dock is wider in this mode. */
+   the box drops the picture height it has nothing to apply to. The player has no
+   width of its own and its waveform takes what the buttons leave, so the box states
+   one — wider in this mode to give the wave room (MPI-731). */
 .mpi-flow-result-dock__media:has(audio) { width: 260px; }
-.mpi-flow-result-dock__media audio {
-    display: block;
-    width: 100%;
-}
+.mpi-flow-result-dock__media:has(audio) > * { width: 100%; }
