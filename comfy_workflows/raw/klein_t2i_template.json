@@ -1003,7 +1003,7 @@
         "secondTabWidth": 65
       },
       "widgets_values": [
-        "euler"
+        "lcm"
       ]
     },
     {
@@ -2041,7 +2041,7 @@
         "Node name for S&R": "KSamplerSelect"
       },
       "widgets_values": [
-        "euler"
+        "lcm"
       ]
     },
     {
@@ -3682,7 +3682,7 @@
         "Node name for S&R": "KSamplerSelect"
       },
       "widgets_values": [
-        "euler"
+        "lcm"
       ]
     },
     {
@@ -9403,8 +9403,8 @@
         "fixed",
         2,
         1,
-        "euler",
-        "beta",
+        "lcm",
+        "normal",
         0.5,
         5,
         1.8,
@@ -9738,8 +9738,8 @@
         "fixed",
         2,
         1,
-        "euler",
-        "beta",
+        "lcm",
+        "normal",
         0.3,
         "Linear",
         896,
@@ -10303,7 +10303,7 @@
         "fixed",
         4,
         1,
-        "euler",
+        "euler_ancestral",
         "simple",
         1,
         2,

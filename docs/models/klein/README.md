@@ -91,10 +91,17 @@ lazily skipped — which the graph survives only because image loads use
 `MpiLoadImageFromPath` with `block_if_empty: false`. Keep that on every new branch.
 
 Chain: `UNETLoader` → `LoraLoaderModelOnly` → `CFGGuider` → `SamplerCustomAdvanced`,
-with `Flux2Scheduler` sigmas, `KSamplerSelect(euler)`, `CLIPLoader(type=flux2)`
+with `Flux2Scheduler` sigmas, `KSamplerSelect(lcm)`, `CLIPLoader(type=flux2)`
 on `qwen_3_4b`, `VAELoader` on `flux2-vae`.
 
-**Shipped config: cfg 1.0, euler, 4 steps.** At cfg 1.0 there is no classifier-free
+**Shipped config: cfg 1.0, lcm, 4 steps.** **`lcm`, not `euler`, since MPI-746 (2026-09-13).**
+`euler` was inherited from Comfy-Org's official Klein templates and never measured. On Fabio's
+same-seed bench `lcm` removed the extra limbs `euler` produced on t2i (3 prompts, 6 runs). Where a
+node also carries a scheduler widget (detail `MaskDetailerPipe`, upscale `UltimateSDUpscale`) the
+config is **`lcm` + `normal`**, which beat both `euler`/`beta` and `lcm`/`simple`. The exception is
+`LanPaint_KSampler`: its own sampler list has no `lcm`, so it runs **`euler_ancestral`/`simple`**,
+SDXL's LanPaint config, which beat `euler`/`simple` on Fabio's bench.
+At cfg 1.0 there is no classifier-free
 guidance, so the **negative prompt is bit-identical** (max diff 0) and gets
 `ConditioningZeroOut`. For the ModelDef: **`negativePrompt` FALSE**, `turboToggle`
 FALSE. Klein's TE is **Qwen3-4B, an LLM — not CLIP**, so CLIP-era keyword-soup

@@ -202,7 +202,7 @@
   },
   "24": {
     "inputs": {
-      "sampler_name": "euler"
+      "sampler_name": "lcm"
     },
     "class_type": "KSamplerSelect",
     "_meta": {
@@ -533,7 +533,7 @@
   },
   "112": {
     "inputs": {
-      "sampler_name": "euler"
+      "sampler_name": "lcm"
     },
     "class_type": "KSamplerSelect",
     "_meta": {
@@ -985,7 +985,7 @@
   },
   "171": {
     "inputs": {
-      "sampler_name": "euler"
+      "sampler_name": "lcm"
     },
     "class_type": "KSamplerSelect",
     "_meta": {
@@ -1674,8 +1674,8 @@
     "inputs": {
       "steps": 2,
       "cfg": 1,
-      "sampler_name": "euler",
-      "scheduler": "beta",
+      "sampler_name": "lcm",
+      "scheduler": "normal",
       "mode_type": "Linear",
       "mask_blur": 8,
       "tile_padding": 32,
@@ -1745,8 +1745,8 @@
       "mask_mode": true,
       "steps": 2,
       "cfg": 1,
-      "sampler_name": "euler",
-      "scheduler": "beta",
+      "sampler_name": "lcm",
+      "scheduler": "normal",
       "feather": 5,
       "crop_factor": 1.8,
       "drop_size": 10,
@@ -2131,7 +2131,7 @@
   },
   "652": {
     "inputs": {
-      "sampler_name": "euler",
+      "sampler_name": "euler_ancestral",
       "scheduler": "simple",
       "denoise": 1,
       "LanPaint_NumSteps": 2,

@@ -1,0 +1,18 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "comfy_workflows/raw/klein_t2i_template.json",
+    "comfy_workflows/scripts/workflow_generation/klein_t2i_template.json",
+    "comfy_workflows/klein_t2i.json",
+    "comfy_workflows/klein_9b_t2i.json",
+    "comfy_workflows/raw/flow_draw_it_in.json",
+    "comfy_workflows/raw/flow_object_stamp.json",
+    "comfy_workflows/raw/flow_scribble.json",
+    "comfy_workflows/flow_draw_it_in.json",
+    "comfy_workflows/flow_object_stamp.json",
+    "comfy_workflows/flow_scribble.json",
+    "docs/models/klein/README.md",
+    "docs/models/klein/removal.md",
+    "docs/models/lanpaint-inpaint.md"
+  ]
+}

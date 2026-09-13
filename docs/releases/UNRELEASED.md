@@ -280,6 +280,9 @@
   light, style and perspective of everything around it. Removing something now has to be asked
   for by name; see Important changes.
 
+- The FLUX.2 Klein models have slightly better quality and fewer errors, like extra limbs on
+  characters.
+
 - Place puts one picture inside another. Open an image, pick Place from the Composite tools,
   and drop in a second image — a logo, a product, a person cut out of another shot. Drag it
   where you want it, scale and rotate it with the handles, and Apply stamps it down as a new

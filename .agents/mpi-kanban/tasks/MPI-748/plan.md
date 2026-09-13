@@ -37,6 +37,14 @@ runtime twins in `comfy_workflows/`, `docs/models/klein/README.md`, `docs/models
 Gate: the card's VERIFY. The LanPaint removal sampler (node 652) is decided by its own A/B, not
 flipped with the rest. Same-seed comparisons need Fabio's eyes — ask, do not self-judge images.
 
+**Drift at pickup (2026-09-13):** two more Klein samplers carried `euler`/`beta`, missed by the
+card's scan: detail `MaskDetailerPipe` 415 and upscale `UltimateSDUpscale` 405. Fabio benched
+`euler`/`beta` vs `lcm`/`simple` vs `lcm`/`normal`: **`lcm`/`normal` wins** wherever a node has a
+scheduler widget. LanPaint 652 cannot follow — `LanPaint_KSampler`'s own sampler list has no `lcm` —
+so Fabio benched SDXL's LanPaint config and it won: **`euler_ancestral`/`simple`**. Phase 1
+landed on disk and green; next is phase 2, MPI-747. `removal.md` was NOT edited: it is marked history, and its `euler`
+line records the 2026-07-26 measured config.
+
 ## Phase 2: MPI-747 — Output_Display
 
 Before MPI-744 because the Klein Head Swap graph carries the display node: wiring the Flow first
@@ -86,5 +94,7 @@ umbrella — open. The umbrella moves `todo -> done` when its last kept member d
 
 ## Resume here
 
-**Next: phase 1, MPI-746.** Pick it up (`todo -> doing`, `files.json` from the phase 1 ownership
-list), then work its scope and VERIFY. Hand off when it lands.
+**Phase 1 (MPI-746) is DONE and committed** (2026-09-13), with its `UNRELEASED.md` line.
+**Fabio asked for the Flow head swap (MPI-744) next.** This plan puts phase 2, MPI-747
+(`Output_Display`), first because the head swap graph carries the display node — confirm the
+order with Fabio at pickup, and MPI-744 still needs his exported raw graph.

@@ -1985,7 +1985,7 @@
         "Node name for S&R": "KSamplerSelect"
       },
       "widgets_values": [
-        "euler"
+        "lcm"
       ],
       "title": "KSamplerSelect"
     },

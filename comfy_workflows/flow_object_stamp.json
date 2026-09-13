@@ -436,7 +436,7 @@
   },
   "188": {
     "inputs": {
-      "sampler_name": "euler"
+      "sampler_name": "lcm"
     },
     "class_type": "KSamplerSelect",
     "_meta": {

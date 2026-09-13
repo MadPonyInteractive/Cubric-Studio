@@ -62,7 +62,7 @@ which is why **the output is always the size of the input image**, never `Input_
 
 | | SDXL x5 | Krea 2 x2 | Klein |
 |---|---|---|---|
-| sampler | `LanPaint_KSampler` (euler_ancestral, cfg 7, 5 LanPaint steps) then a **hi-res fix**: `MpiLatentUpscale` → a second `KSampler` at denoise 0.4 | `LanPaint_KSampler` (euler), no second pass | see `models/klein/removal.md` |
+| sampler | `LanPaint_KSampler` (euler_ancestral, cfg 7, 5 LanPaint steps) then a **hi-res fix**: `MpiLatentUpscale` → a second `KSampler` at denoise 0.4 | `LanPaint_KSampler` (euler), no second pass | `LanPaint_KSampler` (euler_ancestral / simple, MPI-746), no second pass |
 | steps / cfg | baked | **read from `Get_turbo`** — 8 steps / cfg 1.0 turbo, 15 / 2.0 quality | baked |
 | accelerator LoRA | n/a | the shared `Accelerator Lora` runs at **0.7 on this branch** (`MpiMath "is inpaint"`), 1.0 everywhere else | n/a |
 | style rack | none (no `capabilities.styleLoras`) | live — `styleOps` includes `inpaint` | live |
