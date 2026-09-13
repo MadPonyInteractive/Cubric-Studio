@@ -13,7 +13,7 @@
 | Control | The component | Notes |
 |---|---|---|
 | slider / range | **`MpiProgressBar`** (`interactive: true`, `handle`, `wheel`) | the single source of truth for sliders — EXCEPT a gain fader, see the row below |
-| gain / volume fader | **`MpiFader`** (`orientation`, `unity`, `snap`) | dB scale with a unity (0 dB) detent. NOT `MpiProgressBar` with a dB suffix: 0 dB is the neutral MIDDLE, the fill anchors there so its length is the cut or boost, and `getGain()` returns the linear multiplier (0 at the floor, so it can mute). Pairs with `MpiLevelMeter`, whose 0 dBFS is the CEILING — do not give either one the other's scale |
+| gain / volume fader | **`MpiFader`** (`orientation`, `unity`, `snap`) | dB scale with a unity (0 dB) detent. NOT `MpiProgressBar` with a dB suffix: 0 dB is the neutral MIDDLE, the fill anchors there so its length is the cut or boost, and `getGain()` returns the linear multiplier (0 at the floor, so it can mute). Pairs with `MpiLevelMeter`, whose 0 dBFS is the CEILING — do not give either one the other's scale. A media player's volume is NOT a gain: `HTMLMediaElement.volume` is linear and clamped to 1.0, so use **`MpiVolumeControl`** (mute + vertical 0–100 `MpiProgressBar`, MPI-731) and never swap its slider for this one |
 | select / dropdown | `MpiDropdown` | portals its list to `document.body`, so it survives `overflow: hidden` |
 | checkbox / switch | `MpiCheckbox` | renders its own `<label>` — never nest it inside another one |
 | text / textarea / number | `MpiInput` | `type: 'number'` owns its own clamp, wheel and decimals |

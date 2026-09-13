@@ -209,3 +209,4 @@ Card is open. Evidence per item, newest last.
   flyout, a released surface (v1.5.0, 2026-09-08, predates both). The Flow player owes no
   entry: Flows are unreleased.
 - `MpiVideoControlBar.js`: its comment no longer names the gallery as a consumer (item 6 was dropped).
+- `.claude/rules/components.md` (Fabio approved, 2026-09-13): the gain/volume fader row now routes a media player's volume to `MpiVolumeControl`, so the warning against swapping its slider for `MpiFader` sits where an agent reads first.
