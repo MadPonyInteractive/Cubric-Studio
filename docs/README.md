@@ -68,7 +68,7 @@ NOT mechanically split these):
 | **Op & model selection** (op strip's two mounts, absent-vs-dim gating, op memory, media transitions, model picker, bar order) | [op-model-selection.md](op-model-selection.md) |
 | **Gallery** (cards, thumbnails, drag-drop, hover media) | [gallery.md](gallery.md) |
 | **Gallery selection** (multi-select refresh, click order, Cue all batch queueing) | [gallery-selection.md](gallery-selection.md) |
-| **Audio cards** (the baked waveform mask, MpiWaveform, click-to-seek, the audio accent) | [gallery-audio-cards.md](gallery-audio-cards.md) |
+| **Audio cards + the audio player** (the baked waveform mask, MpiWaveform, click-to-seek, the audio accent, MpiAudioPlayer) | [gallery-audio-cards.md](gallery-audio-cards.md) |
 | **Masking** (layer model, the display-vs-export split, overlay draw, mask storage) | [masking.md](masking.md) |
 | **Canvas tool family** (Mask/Paint/Composite taxonomy, the preview contract, Add/Subtract, who owns which panel, the PromptBox contract) | [masking-tools.md](masking-tools.md) |
 | **SAM3 masking** (click-point + open-vocabulary text tools, their graph branches, the `name:N` trap) | [masking-sam3.md](masking-sam3.md) |

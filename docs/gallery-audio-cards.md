@@ -101,6 +101,30 @@ this for the life of the app (355 is 5° from the surface hue), so no existing
 `color-mix(in oklch, var(--accent-heat) …)` call site proves the pattern safe, and
 `--accent-video` (48) and `--accent-prompt` (102) will hit it too.
 
+## The player — the same wave, with a transport (MPI-731)
+
+A Flow's audio result plays in `MpiAudioPlayer` (`js/components/Compounds/MpiAudioPlayer/`), not
+Chromium's `<audio controls>`: `play │ MpiWaveform │ MpiVolumeControl`, time laid over the wave. It
+is the second mount of the component above, and it needed no route work — a flow result item
+already carries `thumbPath` + `duration`.
+
+- **A sibling of `MpiVideoControlBar`, not a mode of it.** That bar speaks `MpiVideoSurface`'s
+  private API and is mostly frame maths audio never needs. Only its mute/volume wiring is copied,
+  so the two transports behave alike.
+- **One player per URL, MOVED, never rebuilt.** It owns one `<audio>` whose `src` is set once: a
+  fresh element with the same src restarts from zero (MPI-727). `MpiBaseFlow`'s
+  `_sharedAudioPlayer(url, it)` keys by URL, and a single-output result appends that same node to
+  the pane or the floating window, which keeps a song playing across a step change. An N-output
+  flow has nothing to share: each output gets its own player with `hotkeys: false`, or SPACE plays
+  all of them.
+- **The pane's viewer must never act on it.** `_hasViewableResult()` gates fit, wheel-zoom and pan.
+  Without it the pane fitted the player as a picture, pushed it below the frame, and a scrub landed
+  on the slide. `flow-audio-player.spec.js` test 6 falsified each guard; do not remove it.
+- **The volume slider is a vertical `MpiProgressBar`, not `MpiFader`.** It reads like a component
+  rule broken and is not: `HTMLMediaElement.volume` is linear and clamped to 1.0, and `MpiFader` is
+  a dB gain whose boost half would do nothing. `MpiProgressBar` had no vertical option before this
+  card, so nobody is hunting one that "used to be there".
+
 Never reach for `--accent-ok` (`oklch(0.78 0.13 150)`) — close enough to tempt, and it is the
 success/ready semantic; reusing it would tie a brand colour to a status.
 

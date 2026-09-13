@@ -869,6 +869,8 @@
  * @property {boolean} [wheel=false] - Enable mouse wheel support
  * @property {boolean} [handle=false] - Show circular thumb handle on fill position
  * @property {'primary'|'secondary'|'success'|'danger'} [variant='primary'] - Color variant
+ * @property {'horizontal'|'vertical'} [orientation='horizontal'] - Travel direction. Vertical
+ *   fills from the BOTTOM; it is what MpiVolumeControl's flyout mounts (MPI-731)
 */
 
 /**
@@ -1936,6 +1938,39 @@
  */
 
 /**
+ * @typedef {Object} MpiVolumeControlProps (Compound — js/components/Compounds/MpiVolumeControl)
+ * @property {number}  [value=100]          - Initial volume 0..100
+ * @property {boolean} [muted=false]        - Initial mute state
+ * @property {number}  [step=1]             - Slider drag step. The wheel is always 5 per tick
+ * @property {string}  [info='Mute/Unmute'] - Mute button tooltip; a consumer that binds a
+ *                                            hotkey names it here
+ *
+ * A mute button with a vertical volume flyout that opens UPWARD on hover or keyboard
+ * focus of the whole control, in CSS alone. Owns NO media element (MPI-731): it reports
+ * gestures and is told the resulting state back, because only the consumer knows what a
+ * mute means. Mounted by MpiVideoControlBar and MpiAudioPlayer.
+ *
+ * ZERO READS AS MUTED: the speaker shows muted at level 0, and clicking it there brings
+ * back the level the lowering gesture started from — as `input`/`change`, never
+ * `mute-toggle`.
+ *
+ * The slider is MpiProgressBar 0–100 with `orientation: 'vertical'`, NOT MpiFader: every
+ * consumer binds it to the linear, 1.0-clamped `HTMLMediaElement.volume`, and MpiFader is
+ * a dB mix gain whose boost half would do nothing. Do not "fix" this.
+ *
+ * Instance methods (on instance.el):
+ *   setValue(v)        — move the slider; never emits (the consumer is the truth)
+ *   setMuted(b)        — show the muted state; never emits
+ *   getValue()         — current slider value
+ *   destroy()
+ *
+ * Emits (component-local):
+ *   'input'       { value }  — while dragging
+ *   'change'      { value }  — on release
+ *   'mute-toggle' { muted }  — the state the user asked for
+ */
+
+/**
  * @typedef {Object} MpiWaveformProps (Compound — js/components/Compounds/MpiWaveform)
  * @property {string} [mask]       - URL of the baked waveform mask (an audio item's
  *                                   sidecar `thumbPath`). Omitted → fills, no wave.
@@ -1946,8 +1981,8 @@
  * is an alpha MASK (white-on-transparent), never a picture — the component
  * colours it with tokens, which is what buys themes and the fill. Two full-bleed
  * layers split by ONE `clip-path`: unplayed is `--surface-3` + `--ink-2`, played
- * is an `--accent-heat` tint + `--accent-heat`. The BACKGROUND fills as well as
- * the wave, so it reads as a progress bar with the wave inside it.
+ * is an `--accent-audio` tint (mixed in oklab) + `--accent-audio`. The BACKGROUND
+ * fills as well as the wave, so it reads as a progress bar with the wave inside it.
  *
  * The mask is one 21:9 rendition, stretched to whatever box mounts it — a
  * gallery card and a wide transport strip are both the right wave. Do not bake
@@ -1965,8 +2000,10 @@
  *   destroy()          — drop listeners
  *
  * Emits (component-local):
- *   'seek' { fraction, time }  — clicked at `fraction` across the box; `time` is
- *                                seconds, or null when no duration is known.
+ *   'seek' { fraction, time, modified } — clicked at `fraction` across the box; `time`
+ *                                is seconds, or null when no duration is known;
+ *                                `modified` is true for a shift/ctrl/meta click,
+ *                                which a gallery card reads as select, not scrub.
  */
 
 /**
