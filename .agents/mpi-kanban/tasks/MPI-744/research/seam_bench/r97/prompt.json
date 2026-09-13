@@ -1,0 +1,949 @@
+{
+ "6": {
+  "inputs": {
+   "stitcher": [
+    "21",
+    0
+   ],
+   "inpainted_image": [
+    "261",
+    0
+   ]
+  },
+  "class_type": "InpaintStitchImproved",
+  "_meta": {
+   "title": "\u2702\ufe0f Inpaint Stitch"
+  }
+ },
+ "21": {
+  "inputs": {
+   "downscale_algorithm": "lanczos",
+   "upscale_algorithm": "lanczos",
+   "preresize": false,
+   "preresize_mode": "ensure minimum resolution",
+   "preresize_min_width": 1024,
+   "preresize_min_height": 1024,
+   "preresize_max_width": 16384,
+   "preresize_max_height": 16384,
+   "mask_fill_holes": false,
+   "mask_expand_pixels": 0,
+   "mask_invert": false,
+   "mask_blend_pixels": 32,
+   "mask_hipass_filter": 0.1,
+   "extend_for_outpainting": false,
+   "extend_up_factor": 1.0,
+   "extend_down_factor": 1.0,
+   "extend_left_factor": 1.0,
+   "extend_right_factor": 1.0,
+   "context_from_mask_extend_factor": 1.2,
+   "output_resize_to_target_size": true,
+   "output_target_width": 1024,
+   "output_target_height": 1024,
+   "output_padding": "32",
+   "device_mode": "gpu (much faster)",
+   "image": [
+    "79",
+    0
+   ],
+   "mask": [
+    "91",
+    0
+   ]
+  },
+  "class_type": "InpaintCropImproved",
+  "_meta": {
+   "title": "\u2702\ufe0f Inpaint Crop"
+  }
+ },
+ "24": {
+  "inputs": {
+   "images": [
+    "115",
+    0
+   ]
+  },
+  "class_type": "PreviewImage",
+  "_meta": {
+   "title": "Output_Image"
+  }
+ },
+ "79": {
+  "inputs": {
+   "string": "C:\\Users\\Fabio\\Documents\\Cubric Vision\\Projects\\test\\Media\\imported_001.jpg",
+   "channel": "alpha",
+   "block_if_empty": true
+  },
+  "class_type": "MpiLoadImageFromPath",
+  "_meta": {
+   "title": "Input_Image"
+  }
+ },
+ "81": {
+  "inputs": {
+   "string": "C:\\Users\\Fabio\\Documents\\Cubric Vision\\Projects\\test\\Media\\imported_002.webp",
+   "channel": "alpha",
+   "block_if_empty": true
+  },
+  "class_type": "MpiLoadImageFromPath",
+  "_meta": {
+   "title": "Input_Image_2"
+  }
+ },
+ "88": {
+  "inputs": {
+   "width": 1024,
+   "height": 1024,
+   "x": 0,
+   "y": 0
+  },
+  "class_type": "MpiBox",
+  "_meta": {
+   "title": "Input_Box_2"
+  }
+ },
+ "89": {
+  "inputs": {
+   "pad": true,
+   "image": [
+    "211",
+    0
+   ],
+   "mpi_box": [
+    "88",
+    0
+   ]
+  },
+  "class_type": "MpiBoxCrop",
+  "_meta": {
+   "title": "Mpi Box Crop"
+  }
+ },
+ "90": {
+  "inputs": {
+   "width": 360,
+   "height": 360,
+   "x": 200,
+   "y": 200
+  },
+  "class_type": "MpiBox",
+  "_meta": {
+   "title": "Input_Box"
+  }
+ },
+ "91": {
+  "inputs": {
+   "image": [
+    "79",
+    0
+   ],
+   "mpi_box": [
+    "90",
+    0
+   ]
+  },
+  "class_type": "MpiBoxMask",
+  "_meta": {
+   "title": "Mpi Box Mask"
+  }
+ },
+ "115": {
+  "inputs": {
+   "passthrough": [
+    "217",
+    0
+   ]
+  },
+  "class_type": "MpiClearVram",
+  "_meta": {
+   "title": "Mpi Clear Vram"
+  }
+ },
+ "116": {
+  "inputs": {
+   "direction": "down",
+   "match_image_size": true,
+   "image1": [
+    "79",
+    0
+   ],
+   "image2": [
+    "81",
+    0
+   ]
+  },
+  "class_type": "ImageConcanate",
+  "_meta": {
+   "title": "ImageConcanate"
+  }
+ },
+ "117": {
+  "inputs": {
+   "direction": "right",
+   "match_image_size": true,
+   "image1": [
+    "116",
+    0
+   ],
+   "image2": [
+    "24",
+    0
+   ]
+  },
+  "class_type": "ImageConcanate",
+  "_meta": {
+   "title": "ImageConcanate"
+  }
+ },
+ "118": {
+  "inputs": {
+   "images": [
+    "208",
+    0
+   ]
+  },
+  "class_type": "PreviewImage",
+  "_meta": {
+   "title": "Output_Display"
+  }
+ },
+ "128": {
+  "inputs": {
+   "text": "head_swap: start with Picture 1 as the base image, keeping its lighting, environment, and background. remove the head from Picture 1 completely and replace it with the head from Picture 2, strictly preserving the hair, eye color, nose structure of Picture 2. copy the direction of the eye, head rotation, micro expressions from Picture 1, high quality, sharp details, 4k.",
+   "clip": [
+    "189",
+    0
+   ]
+  },
+  "class_type": "CLIPTextEncode",
+  "_meta": {
+   "title": "CLIP Text Encode (Prompt)"
+  }
+ },
+ "134": {
+  "inputs": {
+   "upscale_method": "nearest-exact",
+   "megapixels": 1.0,
+   "resolution_steps": 16,
+   "image": [
+    "21",
+    1
+   ]
+  },
+  "class_type": "ImageScaleToTotalPixels",
+  "_meta": {
+   "title": "Scale Image to Total Pixels"
+  }
+ },
+ "140": {
+  "inputs": {
+   "conditioning": [
+    "128",
+    0
+   ],
+   "latent": [
+    "144",
+    0
+   ]
+  },
+  "class_type": "ReferenceLatent",
+  "_meta": {
+   "title": "Set Reference Latent 1"
+  }
+ },
+ "142": {
+  "inputs": {
+   "conditioning": [
+    "156",
+    0
+   ]
+  },
+  "class_type": "ConditioningZeroOut",
+  "_meta": {
+   "title": "Conditioning Zero Out"
+  }
+ },
+ "144": {
+  "inputs": {
+   "pixels": [
+    "134",
+    0
+   ],
+   "vae": [
+    "191",
+    0
+   ]
+  },
+  "class_type": "VAEEncode",
+  "_meta": {
+   "title": "Encode ref 1"
+  }
+ },
+ "149": {
+  "inputs": {
+   "noise_seed": [
+    "187",
+    0
+   ]
+  },
+  "class_type": "RandomNoise",
+  "_meta": {
+   "title": "RandomNoise"
+  }
+ },
+ "154": {
+  "inputs": {
+   "pixels": [
+    "155",
+    0
+   ],
+   "vae": [
+    "191",
+    0
+   ]
+  },
+  "class_type": "VAEEncode",
+  "_meta": {
+   "title": "Encode ref 2"
+  }
+ },
+ "155": {
+  "inputs": {
+   "upscale_method": "nearest-exact",
+   "megapixels": 1.0,
+   "resolution_steps": 16,
+   "image": [
+    "89",
+    0
+   ]
+  },
+  "class_type": "ImageScaleToTotalPixels",
+  "_meta": {
+   "title": "Scale Image to Total Pixels"
+  }
+ },
+ "156": {
+  "inputs": {
+   "conditioning": [
+    "140",
+    0
+   ],
+   "latent": [
+    "154",
+    0
+   ]
+  },
+  "class_type": "ReferenceLatent",
+  "_meta": {
+   "title": "Set Reference Latent 2"
+  }
+ },
+ "158": {
+  "inputs": {
+   "cfg": 1.0,
+   "model": [
+    "209",
+    0
+   ],
+   "positive": [
+    "156",
+    0
+   ],
+   "negative": [
+    "142",
+    0
+   ]
+  },
+  "class_type": "CFGGuider",
+  "_meta": {
+   "title": "CFGGuider"
+  }
+ },
+ "161": {
+  "inputs": {
+   "noise": [
+    "149",
+    0
+   ],
+   "guider": [
+    "158",
+    0
+   ],
+   "sampler": [
+    "165",
+    0
+   ],
+   "sigmas": [
+    "177",
+    0
+   ],
+   "latent_image": [
+    "144",
+    0
+   ]
+  },
+  "class_type": "SamplerCustomAdvanced",
+  "_meta": {
+   "title": "SamplerCustomAdvanced"
+  }
+ },
+ "165": {
+  "inputs": {
+   "sampler_name": "lcm"
+  },
+  "class_type": "KSamplerSelect",
+  "_meta": {
+   "title": "KSamplerSelect"
+  }
+ },
+ "169": {
+  "inputs": {
+   "samples": [
+    "161",
+    0
+   ],
+   "vae": [
+    "191",
+    0
+   ]
+  },
+  "class_type": "VAEDecode",
+  "_meta": {
+   "title": "VAEDecode"
+  }
+ },
+ "177": {
+  "inputs": {
+   "steps": 4,
+   "width": [
+    "178",
+    0
+   ],
+   "height": [
+    "178",
+    1
+   ]
+  },
+  "class_type": "Flux2Scheduler",
+  "_meta": {
+   "title": "Flux2Scheduler"
+  }
+ },
+ "178": {
+  "inputs": {
+   "image": [
+    "134",
+    0
+   ]
+  },
+  "class_type": "GetImageSize",
+  "_meta": {
+   "title": "Get Image Size"
+  }
+ },
+ "187": {
+  "inputs": {
+   "int": 976866873943
+  },
+  "class_type": "MpiInt",
+  "_meta": {
+   "title": "Input_Seed"
+  }
+ },
+ "189": {
+  "inputs": {
+   "clip_name": "qwen_3_8b_int8_convrot.safetensors",
+   "type": "flux2",
+   "device": "default"
+  },
+  "class_type": "CLIPLoader",
+  "_meta": {
+   "title": "Load CLIP"
+  }
+ },
+ "191": {
+  "inputs": {
+   "vae_name": "flux2-vae.safetensors"
+  },
+  "class_type": "VAELoader",
+  "_meta": {
+   "title": "Load VAE"
+  }
+ },
+ "194": {
+  "inputs": {
+   "unet_name": "flux-2-klein-9b-int8-convrot.safetensors",
+   "weight_dtype": "default"
+  },
+  "class_type": "UNETLoader",
+  "_meta": {
+   "title": "Load Diffusion Model"
+  }
+ },
+ "206": {
+  "inputs": {
+   "images": [
+    "134",
+    0
+   ]
+  },
+  "class_type": "PreviewImage",
+  "_meta": {
+   "title": "Preview Image"
+  }
+ },
+ "207": {
+  "inputs": {
+   "images": [
+    "155",
+    0
+   ]
+  },
+  "class_type": "PreviewImage",
+  "_meta": {
+   "title": "Preview Image"
+  }
+ },
+ "208": {
+  "inputs": {
+   "resize_type": "scale total pixels",
+   "resize_type.megapixels": 2.0,
+   "scale_method": "lanczos",
+   "input": [
+    "117",
+    0
+   ]
+  },
+  "class_type": "ResizeImageMaskNode",
+  "_meta": {
+   "title": "Resize Image/Mask"
+  }
+ },
+ "209": {
+  "inputs": {
+   "lora_name": "flux2-klein\\bfs_head_v1_flux-klein_9b_step3500_rank128.safetensors",
+   "strength_model": 0.75,
+   "model": [
+    "194",
+    0
+   ]
+  },
+  "class_type": "LoraLoaderModelOnly",
+  "_meta": {
+   "title": "Load LoRA"
+  }
+ },
+ "210": {
+  "inputs": {
+   "images": [
+    "21",
+    1
+   ]
+  },
+  "class_type": "PreviewImage",
+  "_meta": {
+   "title": "Preview Image"
+  }
+ },
+ "211": {
+  "inputs": {
+   "image": [
+    "81",
+    0
+   ],
+   "alpha": [
+    "212",
+    0
+   ]
+  },
+  "class_type": "JoinImageWithAlpha",
+  "_meta": {
+   "title": "Join Image With Alpha"
+  }
+ },
+ "212": {
+  "inputs": {
+   "mask": [
+    "213",
+    0
+   ]
+  },
+  "class_type": "InvertMask",
+  "_meta": {
+   "title": "Invert Mask"
+  }
+ },
+ "213": {
+  "inputs": {
+   "bg_removal_model": [
+    "214",
+    0
+   ],
+   "image": [
+    "81",
+    0
+   ]
+  },
+  "class_type": "RemoveBackground",
+  "_meta": {
+   "title": "Remove Background"
+  }
+ },
+ "214": {
+  "inputs": {
+   "bg_removal_name": "birefnet.safetensors"
+  },
+  "class_type": "LoadBackgroundRemovalModel",
+  "_meta": {
+   "title": "Load Background Removal Model"
+  }
+ },
+ "216": {
+  "inputs": {
+   "images": [
+    "169",
+    0
+   ]
+  },
+  "class_type": "PreviewImage",
+  "_meta": {
+   "title": "Preview Image"
+  }
+ },
+ "217": {
+  "inputs": {
+   "color_strength": 0.0,
+   "grain_strength": 1.0,
+   "ring_px": 64,
+   "feather_px": 32,
+   "image": [
+    "6",
+    0
+   ],
+   "mask": [
+    "91",
+    0
+   ]
+  },
+  "class_type": "MpiInpaintHeal",
+  "_meta": {
+   "title": "Mpi Inpaint Heal"
+  }
+ },
+ "221": {
+  "inputs": {
+   "bg_removal_model": [
+    "214",
+    0
+   ],
+   "image": [
+    "169",
+    0
+   ]
+  },
+  "class_type": "RemoveBackground",
+  "_meta": {
+   "title": "Remove Background"
+  }
+ },
+ "223": {
+  "inputs": {
+   "mask": [
+    "221",
+    0
+   ]
+  },
+  "class_type": "InvertMask",
+  "_meta": {
+   "title": "Invert Mask"
+  }
+ },
+ "224": {
+  "inputs": {
+   "image": [
+    "169",
+    0
+   ],
+   "alpha": [
+    "223",
+    0
+   ]
+  },
+  "class_type": "JoinImageWithAlpha",
+  "_meta": {
+   "title": "Join Image With Alpha"
+  }
+ },
+ "225": {
+  "inputs": {
+   "images": [
+    "224",
+    0
+   ]
+  },
+  "class_type": "PreviewImage",
+  "_meta": {
+   "title": "Preview Image"
+  }
+ },
+ "226": {
+  "inputs": {
+   "image": [
+    "169",
+    0
+   ],
+   "alpha": [
+    "221",
+    0
+   ]
+  },
+  "class_type": "JoinImageWithAlpha",
+  "_meta": {
+   "title": "Join Image With Alpha"
+  }
+ },
+ "230": {
+  "inputs": {
+   "images": [
+    "226",
+    0
+   ]
+  },
+  "class_type": "PreviewImage",
+  "_meta": {
+   "title": "Preview Image"
+  }
+ },
+ "234": {
+  "inputs": {
+   "conditioning": [
+    "235",
+    0
+   ],
+   "latent": [
+    "144",
+    0
+   ]
+  },
+  "class_type": "ReferenceLatent",
+  "_meta": {
+   "title": "Set Reference Latent 1"
+  }
+ },
+ "235": {
+  "inputs": {
+   "text": "remove the person from the picture, leaving only the background.",
+   "clip": [
+    "189",
+    0
+   ]
+  },
+  "class_type": "CLIPTextEncode",
+  "_meta": {
+   "title": "CLIP Text Encode (Prompt)"
+  }
+ },
+ "242": {
+  "inputs": {
+   "samples": [
+    "244",
+    0
+   ],
+   "vae": [
+    "191",
+    0
+   ]
+  },
+  "class_type": "VAEDecode",
+  "_meta": {
+   "title": "VAEDecode"
+  }
+ },
+ "244": {
+  "inputs": {
+   "noise": [
+    "245",
+    0
+   ],
+   "guider": [
+    "246",
+    0
+   ],
+   "sampler": [
+    "247",
+    0
+   ],
+   "sigmas": [
+    "248",
+    0
+   ],
+   "latent_image": [
+    "144",
+    0
+   ]
+  },
+  "class_type": "SamplerCustomAdvanced",
+  "_meta": {
+   "title": "SamplerCustomAdvanced"
+  }
+ },
+ "245": {
+  "inputs": {
+   "noise_seed": [
+    "187",
+    0
+   ]
+  },
+  "class_type": "RandomNoise",
+  "_meta": {
+   "title": "RandomNoise"
+  }
+ },
+ "246": {
+  "inputs": {
+   "cfg": 1.0,
+   "model": [
+    "194",
+    0
+   ],
+   "positive": [
+    "234",
+    0
+   ],
+   "negative": [
+    "250",
+    0
+   ]
+  },
+  "class_type": "CFGGuider",
+  "_meta": {
+   "title": "CFGGuider"
+  }
+ },
+ "247": {
+  "inputs": {
+   "sampler_name": "lcm"
+  },
+  "class_type": "KSamplerSelect",
+  "_meta": {
+   "title": "KSamplerSelect"
+  }
+ },
+ "248": {
+  "inputs": {
+   "steps": 4,
+   "width": [
+    "249",
+    0
+   ],
+   "height": [
+    "249",
+    1
+   ]
+  },
+  "class_type": "Flux2Scheduler",
+  "_meta": {
+   "title": "Flux2Scheduler"
+  }
+ },
+ "249": {
+  "inputs": {
+   "image": [
+    "21",
+    1
+   ]
+  },
+  "class_type": "GetImageSize",
+  "_meta": {
+   "title": "Get Image Size"
+  }
+ },
+ "250": {
+  "inputs": {
+   "conditioning": [
+    "234",
+    0
+   ]
+  },
+  "class_type": "ConditioningZeroOut",
+  "_meta": {
+   "title": "Conditioning Zero Out"
+  }
+ },
+ "253": {
+  "inputs": {
+   "images": [
+    "242",
+    0
+   ]
+  },
+  "class_type": "PreviewImage",
+  "_meta": {
+   "title": "Preview Image"
+  }
+ },
+ "256": {
+  "inputs": {
+   "rgthree_comparer": {
+    "images": [
+     {
+      "name": "A",
+      "selected": true,
+      "url": "/api/view?filename=rgthree.compare._temp_orkfq_00025_.png&type=temp&subfolder=&rand=0.6394489179640263"
+     },
+     {
+      "name": "B",
+      "selected": true,
+      "url": "/api/view?filename=rgthree.compare._temp_orkfq_00026_.png&type=temp&subfolder=&rand=0.5126739402826068"
+     }
+    ]
+   },
+   "image_a": [
+    "242",
+    0
+   ],
+   "image_b": [
+    "21",
+    1
+   ]
+  },
+  "class_type": "Image Comparer (rgthree)",
+  "_meta": {
+   "title": "Image Comparer (rgthree)"
+  }
+ },
+ "260": {
+  "inputs": {
+   "images": [
+    "261",
+    0
+   ]
+  },
+  "class_type": "PreviewImage",
+  "_meta": {
+   "title": "Preview Image"
+  }
+ },
+ "261": {
+  "inputs": {
+   "x": 0,
+   "y": 0,
+   "resize_source": false,
+   "destination": [
+    "242",
+    0
+   ],
+   "source": [
+    "225",
+    0
+   ],
+   "mask": [
+    "221",
+    0
+   ]
+  },
+  "class_type": "ImageCompositeMasked",
+  "_meta": {
+   "title": "Image Composite Masked"
+  }
+ }
+}

@@ -4,6 +4,36 @@ LoRA facts and open decisions live in the card description; do not repeat them h
 App wiring ran in the same session as MPI-747 (`Output_Display`) at Fabio's call, 2026-09-13 —
 the Klein graph is that card's live test. Ownership: `files.json`.
 
+## Bench round 3 — the seam fix (2026-09-13) — READ FIRST, supersedes 3, 16 and 17
+
+Measured on 8188 with `research/seam_bench/` (queue a variant of run #97's graph, same seed, then
+score the seam in source space; sampling is deterministic run to run, so any pixel diff is wiring).
+
+- [x] 19 - **The fix, as wired in Fabio's bench file** (`G:\ComfyUi\ComfyUI\user\default\workflows\flow_head_swap.json`):
+  change = `ImageBlend` difference both ways -> `screen` (= abs) -> `ImageBlur 2/1.0` -> R+G+B `ImageToMask`
+  summed with `MaskComposite add` -> `ThresholdMask 0.18` (Klein's darkening sums to ~0.07); gate =
+  BiRefNet(new decode) + BiRefNet(old crop), `GrowMask 60`, multiply; plus old-person MINUS new-person
+  (hair that went); `GrowMaskWithBlur 12/12`; `ImageCompositeMasked` decode onto the ORIGINAL crop
+  -> stitch. Expand return: crop `mask_expand_pixels` = `MpiMath floor(a * 0.12 + 0.5)` of the box
+  width, `context_from_mask_extend_factor 1.1`. Plate pass and `MpiInpaintHeal` removed.
+- [x] 20 - Results (seam band median, bg / body / region edge): dark 0/0/-1, cat 0/0/0, red 0/0/+1.
+  Box return cut the new hair at the box bottom; expand return fixed it. Green-only threshold left
+  holes where red hair became brown (old hair showed through) -> RGB sum fixed it.
+- [x] 21 - ColorMatch mkl wired exactly as Draw It In (ref = crop, target = decode): bg seam still
+  -7/-5/-3 and the head changes (7.7) — measured, not assumed. Fabio's "ColorMatch is crap" was
+  experience, not a rule (he said so); the feedback memory needs rewording — ASK before editing it.
+- [x] 22 - Klein 4B distilled + BFS 4B 0.75: clean on dark/cat, fails red (mask holes, light halo)
+  and loses identity -> **DROPPED, ship 9B only** (Fabio 2026-09-13).
+- [x] 23 - Base 9B / turbo LoRA (anyMODE `klein_9B_Turbo_r128`, = distilled minus base): 0.25/8st/CFG3.5
+  130 s and 0.5/16st/CFG2.5 257 s both still darken -5..-7 (distilled int8: -7/-6/-6 in 23 s).
+  CFG > 1 NEEDS an empty-text `CLIPTextEncode` negative carrying the same ReferenceLatents —
+  `ConditioningZeroOut` overcooks (50st/CFG4 run was garbage, 751 s). ComfyUI's own template
+  `image_flux2_klein_image_edit_9b_base.json`: 20 steps, CFG 5, euler. Turbo for 9B = Fabio's call.
+- [ ] 24 - Pending at handoff: `fill_holes` on 9B (apply to Fabio's bench file only if no worse),
+  drag-in proof, base at template values. Then export -> raw -> runtime, deps `birefnet` +
+  `comfyui-kjnodes`. Fabio's graph has the prompt INLINE in CLIPTextEncode 128 (no `HeadSwap_Prompt`
+  / `Input_Positive` title) — re-check the FlowDef's prompt handling against that.
+
 ## Bench
 
 - [x] 1 - Klein 9B, no crop-stitch: first run about 20s, result "not too bad" (Fabio, 2026-09-13).

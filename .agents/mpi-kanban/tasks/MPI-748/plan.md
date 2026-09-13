@@ -113,8 +113,17 @@ Fabio is now benching a different route: Klein removes the original person to a 
 the background-removed new person is composited onto it (checklist 17). The prompt's second
 paragraph is a PLACEHOLDER to be replaced by a description of Picture 1's expression (checklist 18).
 
-**Next:** (1) Fabio confirms MPI-747 § Live — close MPI-747 on it; (2) wait for his new Head Swap
-graph export, re-run `seam_probe.py` on it, then re-sync raw -> runtime and re-wire the FlowDef.
-Still open for MPI-744: 4B option (`v1.1_optional` staged, not `v1`), re-cut the Qwen-era tile +
-hero, bench node still titled `Input_Positive` (raw is retitled `HeadSwap_Prompt`), and whether
-a fresh Generate should reset the result surface to Display.
+**Round 3 (2026-09-13, handoff e414389c): the SEAM IS SOLVED on the bench, not yet in the app.**
+Region composite + expand return, core nodes + KJNodes `GrowMaskWithBlur` + BiRefNet, no plate
+pass, no Heal — measured seam 0 on three photos (dark / bright room / high-key). Fabio cleaned the
+graph into his bench file `G:\ComfyUi\ComfyUI\user\default\workflows\flow_head_swap.json` (the
+agent fixed its MpiMath expression there). Decided: **ship Klein 9B only** (4B loses identity);
+base 9B / turbo LoRA give no seam benefit at 6-30x the time. Full evidence: `MPI-744/checklist.md`
+§ Bench round 3.
+
+**Next:** (1) read the queued bench results (fill_holes on 9B, drag-in proof, base at template
+20 steps / CFG 5) — paths in the handoff; apply `fill_holes` to Fabio's bench file only if 9B
+measures no worse; (2) copy Fabio's bench file to `comfy_workflows/raw/flow_head_swap.json`, verify
+the seam tail against checklist 19, convert, validate, add `birefnet` + `comfyui-kjnodes` to the
+FlowDef deps; (3) MPI-747 § Live + the Display-reset question are still unanswered; (4) tile +
+hero re-cut and the prompt describe step (checklist 14, 18).
