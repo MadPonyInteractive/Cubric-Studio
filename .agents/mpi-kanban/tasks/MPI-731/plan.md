@@ -391,7 +391,7 @@ settled below from the code, not from preference. Do not re-litigate them — bu
 - [x] **3. `MpiAudioPlayer`** (committed `536b8db2`; joined layout approved 2026-09-13; time
       digits `--ink-1` + `--surface-viewer` halo after near-black read worse — Fabio "1").
 
-- [x] **4 + 7. Wired into `MpiBaseFlow`, checked** (2026-09-13, session `30b8fe52`, uncommitted).
+- [x] **4 + 7. Wired into `MpiBaseFlow`, checked** (2026-09-13, session `30b8fe52`, committed + pushed `839ba065`).
       `_sharedAudioPlayer` / `_buildAudioPlayer` / `_plainAudioPlayers` / `_dockAudioPlayer`;
       `_hasViewableResult()` keeps fit, wheel-zoom and pan off an audio result (Plan Drift
       2026-09-13b). Spec 6/6 incl. new pane test 6, MPI-727 spec 1/1 unchanged, node 961/961.
@@ -412,8 +412,7 @@ over by Fabio).
 **Where it stands (2026-09-13, session `30b8fe52`, claim `5047d697`):** Fabio's second look
 gave one fix: time legibility. Near-black was worse; now light digits with a dark halo, awaiting
 his look. He saw item 4 live on the Stems flow (4 N-output players, painted waves, a scrub mid-
-clip) and approved the rule rename (`component-mounts.md:268`, done). **Item 4 BUILT, uncommitted, awaiting Fabio's
-live check** — `_sharedAudioPlayer(url, it)` replaces `_sharedAudioEl` (same URL key, the
+clip) and approved the rule rename (`component-mounts.md:268`, done). **Item 4 DONE, committed + pushed `839ba065`** — `_sharedAudioPlayer(url, it)` replaces `_sharedAudioEl` (same URL key, the
 player MOVED not rebuilt), `_buildAudioPlayer` adds the pane's sizing class, N-output players
 go to `_plainAudioPlayers` (pane, destroyed in `_teardownResultSurfaces`) or `_dockAudioPlayer`
 (window, replaced at the top of `_syncDock`, destroyed in `el.destroy`). Dock CSS sizes the
@@ -421,8 +420,13 @@ player at 260px. `_hasViewableResult()` gates fit / wheel-zoom / pan off an audi
 (Plan Drift 2026-09-13b). Verified: `flow-audio-player.spec.js` 6/6 (new test 6 = the pane
 gestures), `flow-result-follows-steps.spec.js` 1/1 unchanged, `npm test` 961/961, eslint
 clean. **Fabio verified it live ("1", 2026-09-13), halo digits included.** **Item 6 DROPPED by
-Fabio (2026-09-13): the gallery keeps its own volume.** **NEXT: item 8** — the doc section is
-free; the `types.js` typedefs wait on MPI-728's live claim `b0bd757e`.
+Fabio (2026-09-13): the gallery keeps its own volume.** **NEXT: item 8, in a fresh session**
+(handoff 2026-09-13, context high). Fabio: MPI-728 "is not going to be finished anytime soon",
+so do NOT wait on its claim `b0bd757e`. In `types.js` add `MpiVolumeControlProps` and
+`MpiProgressBarProps.orientation` (neither exists; `MpiAudioPlayerProps` does, ~line 1928) and
+fix the stale `MpiWaveformProps` (Fabio approved). Commit ONLY those lines: the file carries
+MPI-728's +13 uncommitted hunk, so build the index blob from HEAD. Then a short "The player"
+section in `docs/gallery-audio-cards.md` (133/200), then `mpi-end-session`.
 
 ## Remaining Work
 
