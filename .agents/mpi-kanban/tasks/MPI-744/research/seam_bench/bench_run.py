@@ -3,7 +3,8 @@
   expand - crop mask grown so the stitch returns the whole crop       tails: D raw decode, C region composite
 Region gate = new person UNION old person (BiRefNet on decode and on crop), grown.
 Knobs (env): TAG (absolute path keeps PNGs out of the repo), JOBS, MODES, SEED, UNET, DTYPE, STEPS, CFG,
-SAMPLER, TURBO, TURBO_STR, HEADLORA, HEADLORA_STR, LORA=0, THRESH, GATE, FILL (0 = shipped recipe),
+SAMPLER, SCHED (BasicScheduler name, e.g. simple / beta57; unset = Flux2Scheduler), TURBO, TURBO_STR,
+HEADLORA, HEADLORA_STR, LORA=0, THRESH, GATE, FILL (0 = shipped recipe),
 DRY=1 (write each prompt JSON to TAG and queue nothing). Each run also saves <tag>_face.png = the box
 region of the finished result, for faces.py."""
 import json, io, os, sys, time, uuid, urllib.request, urllib.parse
@@ -47,6 +48,9 @@ def build(src, bx, by, bw, mode):
         p['210'] = {'class_type': 'LoraLoaderModelOnly', '_meta': {'title': 'Turbo'}, 'inputs': {
             'lora_name': os.environ['TURBO'], 'strength_model': float(os.environ.get('TURBO_STR', 1.0)), 'model': p['158']['inputs']['model']}}
         p['158']['inputs']['model'] = ['210', 0]
+    if os.environ.get('SCHED'):
+        p['177'] = {'class_type': 'BasicScheduler', '_meta': {'title': 'sched'}, 'inputs': {
+            'model': p['158']['inputs']['model'], 'scheduler': os.environ['SCHED'], 'steps': p['177']['inputs']['steps'], 'denoise': 1.0}}
     if float(os.environ.get('CFG', 1.0)) > 1.0:
         # CFG > 1 needs a real uncond: empty prompt + the same reference latents (ConditioningZeroOut overcooks)
         p['9901'] = {'class_type': 'CLIPTextEncode', '_meta': {'title': 'neg'}, 'inputs': {'text': '', 'clip': ['189', 0]}}

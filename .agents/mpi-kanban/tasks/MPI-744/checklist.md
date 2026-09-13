@@ -68,12 +68,103 @@ TAG to an ABSOLUTE scratchpad path so PNGs stay out of git; wrap every run in
   `UNET=flux-2-klein-9b.safetensors TURBO='Klein\klein_9B_Turbo_r128.safetensors' TURBO_STR=1.0`.
   24 runs, ~11 min (distilled ~20 s, base + turbo ~36 s). Sheet: `python faces.py <out>.png <distilledDir>
   <baseTurboDir>`. Fabio judges; never self-judge likeness.
+  **INVALID AS A BASE TEST (2026-09-13, sha256):** the bench's `C:\AI\diffusion_models\flux-2-klein-9b.safetensors`
+  hashes `0975d6b7…` = BFL `FLUX.2-klein-9B` = the DISTILLED bf16. Base is `FLUX.2-klein-base-9B` /
+  `flux-2-klein-base-9b.safetensors`, `4a54fad7…` — the SAME byte size (18157185168), so only the hash
+  tells them apart. Every "base" run (this item, item 23's 20 st / CFG 5 297 s and the 2-up that
+  reopened base vs distilled) ran distilled bf16; base + turbo = turbo stacked on an already-distilled
+  model, overcooked on lcm, euler and euler_ancestral and WORSE at 8 steps than 4 (Phase B runs 1-3).
+  **RAN 2026-09-13 (session d72a2c80), 24/24.** Distilled 22-24 s, base + turbo 34-40 s. Region composite
+  bg |d|: distilled 0.05-0.07 on all three; base + turbo dark 0.07-0.16, red 0.07-0.10, **cat 0.62-0.99**
+  (raw 2.6-3.1 vs distilled 0.6-1.0: base repaints more background and the change mask passes some).
+  By eye, base + turbo 1.0 on lcm renders posterised, blotchy orange skin and a crunchy hair halo on
+  EVERY seed and photo: a rendering defect, not a likeness call. Fabio's verdict pending. `faces.py` now
+  takes `SRC`/`REF` = `path@x0,y0,x1,y1` columns (expression / likeness) and `ROWS=<job>`.
+  **Base quants (checked 2026-09-13, HF API + safetensors header over a Range request):** BFL official
+  `FLUX.2-klein-base-9b-fp8` 9.57 GB, gated (header unread); `rockerBOO/flux2-klein-base-9b-nvfp4-convrot`
+  6.38 GB, `comfy_quant` (88 NVFP4 + 24 int8 convrot; comfy-kitchen has an eager NVFP4 path for Ada);
+  `vistralis`/`milo01` int8 9.44 GB (same sha256) = ModelOpt layout, no `comfy_quant` -> NOT loadable
+  on the bench's ComfyUI 0.34 (`comfy/utils.py` converts only legacy `scaled_fp8`). Licence: base and
+  distilled are both FLUX Non-Commercial (Winnougan's `apache-2.0` tag is wrong).
+- [ ] 28 - **NEXT SESSION, bench (Fabio 2026-09-13):** r3 (base bf16 + turbo 1.0 + head LoRA 0.75, 8 st,
+  CFG 1, `SAMPLER=lcm SCHED=simple`) AND base alone with `LORA=0` (euler, 20 st, CFG 5) on `JOBS=cat` and
+  `JOBS=red`, seed 42 (+ 976866873943 to match Phase A distilled), ONE run at a time, Read every face + full
+  frame, then per-photo sheets (`faces.py` with `SRC=<photo>@<box>`: cat `215,100,575,460`, red
+  `470,320,990,840`; `REF=...imported_002.webp@210,0,890,680`) against `phaseA_distilled` (session d72a2c80
+  scratchpad is TEMP — re-run distilled if it is gone). Then wire the High tier per item 27, FOLDED INTO
+  THIS CARD (Fabio: no new card).
+- [ ] 26a - **Decided by Fabio 2026-09-13: Balance tier = distilled int8; HIGH tier = base 9B, with an
+  optional Turbo toggle IF base + turbo renders clean.** Phase B = the turbo sweep, ONE run at a time,
+  each face Read before the next. Real base needed first: no base weight on disk (MPI-600's was deleted).
+  Ungated mirrors sha256-IDENTICAL to BFL: fp8 `a9f5028c…` 9567278472 B at `Amberamberamber/flux-2-klein-base-9b-fp8`
+  and `wissxi/…` (header carries `_quantization_metadata` = native ComfyUI load); bf16 `4a54fad7…` at
+  `unsloth/FLUX.2-klein-base-9B`, `SassyDiffusion/…`, `zhangchenxu/…`, `werobronsz/…`. MPI-600's
+  `bertbobson/ComfyUI-INT8_ConvRot` base int8 now 401s. Starting points from a user report Fabio relayed:
+  turbo ~0.5, 10-20 steps, CFG 2-2.5 (CFG > 1 = harness builds the empty-text negative). Distilled bf16 vs
+  int8 at lcm/4/CFG 1 (dark s42): near-identical, bf16 slightly softer.
+- [ ] 26b - **Phase B on the REAL base bf16** (`flux-2-klein-base-9b.safetensors`, sha256 MATCH `4a54fad7…`,
+  from the `unsloth` mirror), dark s42, one run at a time, every face + full frame Read:
+  r1 turbo 1.0 / 8 st / CFG 1 / euler: 66 s (incl. first 18 GB load), seam 0 — CLEAN, no blotches/halo.
+  r2 turbo 0.5 / 8 st / CFG 3.5 / euler: 129 s, seam 0 — clean but smoother, painterly skin, fine
+  texture lost vs r1. Sheet sent: `realbase_r1_dark_s42.png` (session d72a2c80 scratchpad).
+  r3 turbo 1.0 / 8 st / CFG 1 / lcm + `simple` (SCHED): 64 s, seam 0 — clean; head tilt nearer the
+  source, hair tucked behind the ear. 64 s = r1's 66 s, so NOT load time: base bf16 on the 16 GB card
+  runs ~7-8 s/step (distilled int8 ~5 s/step), a High-tier cost to report.
+  r4 turbo 1.0 / 8 st / CFG 1 / lcm + `beta57`: 62 s, seam 0 — clean, near-identical to r3 (both lcm
+  schedulers converge; euler r1 gives a different composition, long loose hair).
+  r5 turbo 0.5 / 8 st / CFG 3 / lcm + `beta57`: 124 s, seam 0 — clean; softer, lower-contrast film look,
+  darker shorter hair. 5/5 real-base configs render clean; which keeps detail + likeness = Fabio's call.
+  r6 base ALONE (no turbo) / euler / 20 st / CFG 5: 292 s, seam 0 — clean; natural soft skin, muted
+  colour, head more upright than the source; composition close to r1, which is punchier. Turbo 1.0 at
+  8 st = ~62 s = ~4.7x faster than base alone. Sheet with all six: `realbase_r1-r6_dark_s42.png` (sent).
+  NOT run: 0.5 / 20 st / CFG 2.5 (costs base-alone time, so no toggle value); 0.25 / 8 st / CFG 3.5.
+  **Next = Fabio picks which config(s) fan out to 3 photos x 2 seeds.**
+  Fabio 2026-09-13, from `realbase_base_r3_r5_dark_s42.png`: base alone at the TEMPLATE's 20 st / CFG 5
+  looks "very undercooked". Queued base alone euler / 30 st / CFG 5 to check; he then decides whether
+  base ships with more steps and a lower CFG.
+  **High tier target (Fabio 2026-09-13): production work, expect an RTX 5090 + ~90 GB system RAM. Time is
+  NOT a criterion — pick on quality.** Base bf16 (18 GB) fits a 32 GB card whole, so this 16 GB bench's
+  ~7-8 s/step (offload) is not representative of that user's speed.
+  base alone euler / 30 st / CFG 5: 434 s, seam 0 — clean, near-IDENTICAL to 20 st (same pose, soft skin,
+  muted colour): converged by 20, so steps at CFG 5 are not the lever. 40 st / CFG 4 queued right after
+  at Fabio's call (cancel if 30 satisfies him). Sheet: `realbase_base20_base30_r3_r5_dark_s42.png`.
+  **Was the BFS head LoRA trained on base? (Fabio's hunch, 2026-09-13)** Metadata: ai-toolkit 0.7.20,
+  `ss_base_model_version = flux2_klein_9b`, no checkpoint path. ai-toolkit's `flux2_klein_9b` arch is
+  labelled "FLUX.2-klein-base-9B" with default `name_or_path` = `black-forest-labs/FLUX.2-klein-base-9B`
+  -> TRAINED on base by default (INFERRED, the path is overridable). The author's own workflow
+  `workflows/Head Swap V1 Flux 2 Klein 4b_9b (base_distill).json` RUNS it on `flux-2-klein-9b.safetensors`
+  (= DISTILLED) / Flux2Scheduler 4 st / CFG 1 / lcm / LoRA 1.0 — our Balance config. So it is tuned
+  and shown on distilled. A/B queued: base alone 20 st / CFG 5 with the head LoRA OFF (`LORA=0`) vs r6.
+  **Fabio 2026-09-13: best = distilled and r3; r3 better on light AND likeness** (face crops only). Full-frame
+  + 2x head sheet `light_distilled_vs_r3_dark_s42.png` sent. Agent's second opinion (one seed, not a
+  verdict): r3 carries the source's warm side key light + falloff and its head tilt; distilled is lit
+  flatter/frontal. Distilled's rounder face and ash-blonde waves sit nearer the reference; r3 goes slimmer
+  and copper-toned. Next if Fabio agrees: r3 on 3 photos x 2 seeds against Phase A's distilled.
+  base alone euler / 40 st / CFG 4: 561 s, seam 0 — clean and near-IDENTICAL to 20 st / CFG 5 and 30 st /
+  CFG 5. Base alone converges to one soft, muted image; steps and CFG 4-5 are not the lever. Sheet:
+  `base_steps_vs_distilled_r3_dark_s42.png`. The LoRA-off A/B (20 st / CFG 5) started right after.
 - [ ] 26 - **Phase B — step x CFG sweep.** Base, SAMPLER=euler: STEPS 12/20/28 x CFG 3/4/5, dark photo,
   2 seeds = 18 runs, ~90 min (~15 s/step at CFG > 1; 20 st / CFG 5 measured 297 s). 1 seed halves it.
   **Confirm with Fabio at session start:** sweep base alone, or base + turbo (then TURBO_STR
   0.5/0.75/1.0 x STEPS 4/8 at CFG 1, ~36-70 s each).
-- [ ] 27 - Decision and its shipping cost: base + turbo = new base-9B dep (size, VRAM on 16 GB, int8?)
-  + turbo LoRA dep + R2, then re-export. The app graph today is DISTILLED (checklist 24).
+- [x] 27 - **DECIDED by Fabio 2026-09-13** (after base alone 20/30/40 st and the LoRA-off A/B: 276 s, same
+  soft look WITH or WITHOUT the head LoRA, so the softness is base + euler, not the LoRA; without it the
+  face drifts further from the reference). Test photo caveat (Fabio): the dark source is heavily edited,
+  painted shadows and a fake background, so no config "relights" it right; r3 is the best so far.
+  - **Balance tier** = distilled 9B int8 (shipping today).
+  - **High tier** = base 9B bf16 (`flux-2-klein-base-9b.safetensors`, 18157185168 B, sha256 `4a54fad7…`).
+    MODEL defaults (prompt box) = 20 st / CFG 5, with a **Turbo button** on the prompt box.
+  - **Flows on High tier = turbo ALWAYS ON with r3's settings**: `klein_9B_Turbo_r128` 1.0, 8 st, CFG 1,
+    `lcm` sampler + `simple` scheduler (BasicScheduler, not Flux2Scheduler), head LoRA 0.75.
+  - Shipping cost: base bf16 18.16 GB + turbo LoRA 1.39 GB = two new deps + R2; target user = RTX 5090.
+  - Reverses `docs/models/klein/9b.md` § REJECTED (MPI-600 turbo) FOR THE HIGH TIER — rewrite that section
+    when wiring, keep the MPI-600 evidence. Not yet run: r3 on cat/red + a second seed.
+  - **Fabio 2026-09-13, from `base_lora_on_off_dark_s42.png`: base works BETTER with the head LoRA OFF.**
+    (The agent read the LoRA-off face as further from the reference; likeness is Fabio's call.) Open for the
+    Flows: does High-tier turbo (r3) also do better without the head LoRA? r3 + `LORA=0` run queued.
+    **r3 + head LoRA OFF: 60 s, seam 0, clean render, but the swap mostly did not happen** — it kept
+    the SOURCE's wet stringy auburn hair, red lipstick and makeup instead of the reference's hair and look.
+    With turbo the head LoRA carries the swap. Sheet: `lora_on_off_r3_and_base_dark_s42.png`.
 
 ## Bench
 

@@ -136,7 +136,30 @@ matches the reference expression, base has more face detail and likeness. Direct
 turbo LoRA if a multi-seed bench holds. That bench runs in a FRESH session: MPI-744 checklist § Bench
 round 4 (items 25-27) holds the phases, commands and time budget; the harness is ready and dry-verified.
 
-**Next:** (1) Bench round 4 Phase A (base + turbo vs distilled, 4 seeds x 3 photos, ~11 min), then
-Phase B after confirming its scope with Fabio; (2) Fabio's live Head Swap run in his app (checklist 12
+**Phase A RAN (session d72a2c80, 2026-09-13):** 24/24; base + turbo 1.0 on lcm renders posterised,
+blotchy skin on every seed and leaks background on cat (numbers + base-quant survey: MPI-744 checklist 25).
+Sheets in that session's scratchpad. Awaiting Fabio's verdict and Phase B scope.
+
+**Phase A was NOT base (sha256):** the bench "base" `flux-2-klein-9b.safetensors` is DISTILLED bf16, so
+turbo stacked on distillation overcooked everything (MPI-744 checklist 25). Fabio decided: Balance =
+distilled int8, HIGH = base 9B (+ Turbo toggle if clean). Real base bf16 (`unsloth` mirror, sha = BFL
+`4a54fad7…`) downloading to `C:\AI\diffusion_models\flux-2-klein-base-9b.safetensors`; Fabio deletes the
+distilled bf16 himself. `bench_run.py` gained `SCHED` (BasicScheduler, e.g. simple / beta57).
+
+**Real base on the bench (sha256 MATCH).** Six single runs on dark s42 (MPI-744 checklist 26b), every one
+clean: base alone 292 s; turbo 1.0 / 8 st / CFG 1 on euler, lcm+simple, lcm+beta57 ~62 s; turbo 0.5 /
+CFG 3-3.5 ~125 s, smoother. Combined sheet sent to Fabio.
+
+**DECIDED (Fabio 2026-09-13, MPI-744 checklist 27):** Balance = distilled int8; High = base 9B bf16 with
+model defaults 20 st / CFG 5 and a Turbo button on the prompt box; Flows on High = turbo always on at r3
+(turbo 1.0 / 8 st / CFG 1 / lcm + simple). Bench work is DONE; what remains is wiring (new base + turbo
+deps, R2, High tier ModelDef + prompt-box turbo, Head Swap Flow tier), which is add-model-playbook scope.
+
+**Fabio (end of session d72a2c80): High-tier wiring FOLDS INTO MPI-744** (no new card). Base without the
+head LoRA looked better to him; r3 without it did NOT swap (checklist 27).
+
+**Next:** (1) bench first (checklist 28): r3 AND base-alone-no-LoRA on the cat + red photos, one run at a
+time, each Read, sheets for Fabio; (2) then wire the High tier per checklist 27 (`/mpi-add-model` +
+head-swap.md); (2) Fabio's live Head Swap run in his app (checklist 12
 = MPI-747 § Live); (3) still owed by Fabio: tile + hero re-cut (14), prompt describe step (18), the
 MPI-747 Display-reset question.
