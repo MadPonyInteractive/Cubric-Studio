@@ -152,7 +152,7 @@ runtime-injection contract: *"the app injects ONLY `Input_*` nodes and reads
 `Output_*`"* (`validate-injection-rules.mjs`). A node the generator stamps at build
 time is not injected at run time, so `Input_VAE` on a baked `VAELoader` advertises a
 control that does not exist. Use a bare descriptive title — `Checkpoint`
-(`generate_sdxl.py`), `PiD_VAE` (`generate_pid.py`), or the node's own default name
+(`generate_sdxl.py`), `PiD_VAE` (the PiD handler, removed 2026-09-13), or the node's own default name
 (`"Load Diffusion Model"`) when it is unique. It passes validation either way, which
 is exactly why it goes unnoticed.
 
@@ -168,5 +168,5 @@ shared `pixel_space` one — so an untitled pair would have stamped `ae.safetens
 the pixel-space loader and left the real VAE on the previous variant's weight. Four
 files that pass `validate-injection-rules.mjs`, load without error, and render wrong.
 **Title the one you bake** before exporting. Assert it in the handler too:
-`generate_pid.py` skips the variant with a `[WARN]` when its title is absent, rather
+the PiD handler skipped the variant with a `[WARN]` when its title was absent, rather
 than writing a half-baked file.

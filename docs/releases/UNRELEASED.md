@@ -67,6 +67,9 @@
   you open this version — a handful of small packages, not the multi-gigabyte reinstall an
   engine change used to mean, and none of your models are touched.
 
+- NVIDIA PiD is staying. Its Model Library tile no longer says it is marked for deprecation.
+  PiD stays a model you pick in the prompt box, and works exactly as it does today.
+
 ## What's new
 
 - **Flows are here, and they are the headline of this release.** A flow is a whole job in one
