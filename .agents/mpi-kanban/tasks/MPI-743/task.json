@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-743",
+  "title": "Flow Library: a refused licence gate is a silent no-op",
+  "description": "Split out of MPI-666, the half of its title it never fixed. downloadService.start() resolves undefined both when the user refuses MpiLicenceGate and when the install succeeds, so MpiFlowLibrary._installMissing() cannot tell them apart and the tile silently falls back to Install after a Cancel or a failed verify probe. Proposed shape: start() returns false on refusal (every other caller awaits and discards the result) and _installMissing reacts to it. Was blocked on MPI-500 owning downloadService.js; MPI-500 is done. Open product call: whether a deliberate Cancel needs a message now that the chip and drawer licence links exist.",
+  "column": "todo",
+  "maturity": "needs-decision",
+  "status": "active",
+  "created_at": "2026-09-13T14:04:15+01:00",
+  "updated_at": "2026-09-13T14:04:15+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

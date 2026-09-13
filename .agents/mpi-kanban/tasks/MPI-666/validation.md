@@ -160,3 +160,20 @@ The screenshot does **not** touch the H3 half. MiniMax Music 3 carries no `terri
 § *Why this card stays in `doing` and not `done`* names precisely those, on Fabio's own call, and
 MPI-591 is still `in-progress`. So this evidence **narrows** the card without closing it: the
 report link is no longer unproven, the territory chip and footer still are.
+
+## 2026-09-13: closed, with two leftovers split into their own cards
+
+Fabio's call: close MPI-666 on the evidence above and give what is left its own cards.
+
+**Checks 3-5 of the H3 check PASSED** in MPI-591's isolated app on 2026-09-02: the drawer's three
+links, the step-0 attribution inside a project, and the gate not firing again on reopen. Evidence
+is in message `2e9ec684` and `tasks/MPI-591/validation.md` § "Phase 5 — in an isolated app".
+
+- **MPI-742**: see checks 1-2 in a running app, meaning the H3 `LICENCE REQUIRED` tile chip and the
+  `REVIEW LICENCE` footer. They are still covered by `tests/flow-licence-surface.test.cjs`, green in
+  `npm test` (961/961) on 2026-09-13. One trap for whoever runs it: with nothing installed, Extend
+  Video's slot resolves to its default LTX, which has no gate, so H3 has to be picked in the drawer
+  first or the tile correctly reads `GET MODELS` and proves nothing.
+- **MPI-743**: the refused-gate no-op. `downloadService.start()` still returns `undefined` when the
+  gate is refused. It is not blocked any more because MPI-500 is `done`. Message `b7e04c19` is resolved
+  and points there.

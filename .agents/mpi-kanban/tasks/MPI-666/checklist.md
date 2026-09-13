@@ -32,7 +32,7 @@ affordance is already data on the `LicenceDescriptor`.
       (name + `poweredBy` + Read / Request authorization / Report links).
 - [x] Footer button reads "Verify licence" when proof is outstanding, matching the Model
       Library's wording for the same promise.
-- [ ] **BLOCKED, filed not taken** — refused-gate outcome. The fix is NOT in this file:
+- [ ] **Moved to MPI-743 (2026-09-13), filed not taken** — refused-gate outcome. The fix is NOT in this file:
       `start()` resolves `undefined` on refusal AND on success (it returns `_installChain`,
       which ends `.then(settle, settle)`), so the two outcomes are literally the same value
       and no call site can tell them apart. One line in `downloadService.js:105`

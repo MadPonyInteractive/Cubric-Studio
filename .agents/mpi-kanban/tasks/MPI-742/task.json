@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-742",
+  "title": "See the H3 licence chip and Review licence footer on Extend Video in a running app",
+  "description": "Split out of MPI-666 so it could close. The territory-licence half of the Flow licence surface has never rendered: with MiniMax H3 picked as Extend Video's model and not installed, the tile must read Licence required (not Get models) and the drawer footer Review licence (not Verify licence). Unreachable on Fabio's machine because H3 is installed, so the tile reads Ready; covered today only by tests/flow-licence-surface.test.cjs. Needs an isolated app on an empty models root, with H3 picked in the drawer, because the slot otherwise resolves to its ungated LTX default. Checks 3-5 already passed in MPI-591's isolated run.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-13T14:04:14+01:00",
+  "updated_at": "2026-09-13T14:04:14+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
