@@ -1,1 +1,2 @@
 {"schema":"mpi-kanban/event/v1","id":"MPI-553","type":"task.created","at":"2026-08-13T21:45:00Z","actor":"claude","summary":"Umbrella created by the project-refresh consolidation sweep."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-553", "at": "2026-09-13T08:30:46+01:00", "actor": "claude-opus-5", "from": "todo", "to": "done", "reason": "Umbrella closed: MPI-580/579 shipped, MPI-507/515 rejected 2026-09-13. See validation.md."}

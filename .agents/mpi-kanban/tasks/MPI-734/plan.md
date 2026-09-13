@@ -8,6 +8,13 @@ the mechanism → migration → removal ordering this card partly reverses.
 
 Project mode: **scalable-foundation**.
 
+**Where this stands, 2026-09-12.** Card in `doing`. Phase 1 research is DONE —
+`research/install-status.md`. **Single next action: the decision gate.** Fabio picks (a), (b)
+or the third shape (c) and answers Q2 (the PromptBox `pid` op) and Q3 (uninstalling PiD with
+paths installed) — research §8. Nothing past the gate starts without his answer. Two findings
+change the picture below: (b) as designed strands the 5.23GB encoder, and no shape can keep the
+single four-loader `pid` graph once a path is removable.
+
 **Fabio's decision, 2026-09-12:** PiD is no longer being deprecated. It keeps its
 `ModelDef` and its Model Library card. Installing PiD installs and activates **all
 four** upscale plugins at once. The four stay individually installable from the
@@ -140,13 +147,15 @@ remove it. MPI-470 and MPI-466 both kept theirs.
 
 ## Completed
 
-- [ ] Nothing yet.
+- [x] **Phase 1 research — `research/install-status.md`, 2026-09-12.** Install status and GC
+      traced for today's flat PiD and for (a), (b) and a third shape (c), every claim naming its
+      file and function. Recommendation (c). The decision gate is still open.
 
 ## Remaining Work
 
 ## Phase 1: Settle the install-status model (research — no code)
 
-- [ ] Trace how model install status is actually derived today — `deriveInstalledOps`
+- [x] Trace how model install status is actually derived today — `deriveInstalledOps`
       in `resolveModelDeps.js`, `installedOpsForContext` and `firstInstalledOp` in
       `modelRegistry`, and `pluginAvailability()`'s `{installed, missing, missingModels}`
       — and write up, for each of (a) and (b), exactly which predicates change, which
@@ -197,7 +206,21 @@ remove it. MPI-470 and MPI-466 both kept theirs.
 
 ## Plan Drift
 
-- None yet.
+- **2026-09-12 — the mechanism this card leans on SHIPPED.** MPI-580 (Upscale-dropdown
+  contribution point) and MPI-579 (LTX Video upscaler) are built and archived; MPI-553's plan
+  still calls its Phase 1 a hole. MPI-507 is no longer blocked on a mechanism.
+- **2026-09-12 — "What PiD is made of" below is WRONG about the encoder.** It says
+  `pluginRequiredDepIds()` keeps `pid-gemma` alive "while any PiD plugin remains installed".
+  The backend's `_pluginRequiredDepIds(exclude)` (`routes/downloadManager.js:388`) protects every
+  DEFINED plugin's deps, so a `pid-gemma` listed by four plugins is never released — 5.23GB
+  stranded. Same false claim in `tasks/MPI-507/brief.md:64-66`. Research §5.
+- **2026-09-12 — Phase 1 found a third shape and a constraint on all of them.** (c) = the model
+  owns the shared base, each plugin owns its path — no predicate or protection change. And the
+  single `pid` graph fails ComfyUI validation once ANY path file is absent. The decision gate now
+  asks (a)/(b)/(c) plus two sub-questions. Research §3, §6, §8.
+- **2026-09-13 — REVERSED BY FABIO; card closed `rejected`.** PiD stays a plain model exactly as
+  it ships today, and the whole plugin plan is dropped, MPI-507 and MPI-515 with it. Only Phase 3
+  shipped: the deprecation badge is off. The research stays as a record. See `validation.md`.
 
 ## Verification
 

@@ -83,8 +83,8 @@ The dropdown already exists — `MpiToolOptionsUpscale`, shared by the image and
 tools via `kind`. A plugin contributes an **entry**, never a new dropdown.
 
 - `upscale.kinds: ['video'] | ['image']` is the whole of the both-kinds
-  generalisation. The LTX upscaler declares `['video']`, the PiD plugins (MPI-507)
-  will declare `['image']`, and neither writes any mechanism.
+  generalisation. The LTX upscaler declares `['video']`; an image upscaler would
+  declare `['image']` and write no mechanism.
 - `upscalePluginsFor(kind)` lists only **installed** contributors. Not installed =
   absent, matching the `describeAction` gate.
 - The option's `value` is the plugin's **dep key** (`plugin:<id>`), which is also

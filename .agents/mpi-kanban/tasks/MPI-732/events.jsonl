@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-732", "at": "2026-09-12T12:27:13+01:00", "actor": "claude", "column": "todo", "title": "Gallery batch cue, and the op-surface corrections it surfaced"}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-732", "type": "task.updated", "at": "2026-09-12T12:30:43+01:00", "actor": "claude", "summary": "Umbrella plan attached: members, phase order, and the one item deliberately not carded."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-732", "at": "2026-09-13T08:30:47+01:00", "actor": "claude-opus-5", "from": "todo", "to": "done", "reason": "Umbrella closed: MPI-735 and MPI-733 done, MPI-734 rejected 2026-09-13. See validation.md."}

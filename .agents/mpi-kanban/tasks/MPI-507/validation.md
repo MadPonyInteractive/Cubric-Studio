@@ -68,3 +68,15 @@ raw source is not accidentally picked up by the new handler.
 Nothing has **executed** these four graphs. The bake is proven correct and the
 graphs pass validation, but no generation has been run against any of them. That
 is a smoke-run concern for when the app side lands.
+
+## Closed REJECTED — Fabio, 2026-09-13
+
+PiD stays a model in the model picker, exactly as it ships today (`nvidia-pid`, the `pid` op,
+the single `nvidia_pid.json` graph). It does not move into the History Upscale dropdown as
+plugins. His reasons: the dropdown move existed to make room for more upscalers there, PiD
+needs prompting, and the plugin shape carried too many unsolved problems.
+
+The app side above never started. If this is ever reopened, read
+`tasks/MPI-734/research/install-status.md` § 5 first: the plugin shape in `brief.md` strands
+the 5.23GB `pid-gemma` for good, because plugin deps are protected per DEFINITION, not per
+install (`_pluginRequiredDepIds`, `routes/downloadManager.js:388`).

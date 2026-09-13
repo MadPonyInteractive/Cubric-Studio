@@ -1,0 +1,55 @@
+# MPI-734 Validation
+
+## Closed REJECTED — Fabio, 2026-09-13
+
+Fabio reversed the plan the morning after the Phase 1 research. PiD stays a plain model in the
+model picker, exactly as it ships today: the flat `nvidia-pid` ModelDef, the `pid` op in the
+PromptBox, and the single `nvidia_pid.json` graph. No plugins, no Upscale-dropdown entries.
+
+His reasons: the dropdown move existed to make room for more upscalers there, PiD needs prompting,
+and the plugin shape carried too many unsolved problems. The research bears that out
+(`research/install-status.md`):
+- (b) strands the 5.23GB encoder.
+- (a) needs operation groups back.
+- Any removable-path shape has to drop the single four-loader graph.
+
+MPI-507 and MPI-515 are rejected with it. The umbrellas MPI-553 and MPI-732 close because no
+member is left.
+
+## What shipped under this card — Phase 3 only: the deprecation badge is off
+
+- **Model.** `js/data/modelConstants/models.js`: `deprecated: true` and its sunset comment
+  removed from `nvidia-pid`. It was the only model carrying the flag, so no tile shows the
+  badge now.
+- **Stale plugin-plan text removed:**
+  - `docs/model-library.md` § Tile flags: the example named MPI-507.
+  - `docs/plugins.md` § Contributing an entry.
+  - The `PluginUpscaleEntry.kinds` JSDoc in `js/data/pluginsRegistry.js`.
+  - Nothing in `docs/models/pid/` mentioned the plan.
+
+### Evidence
+
+- `npm test` — **961 tests, 961 pass, 0 fail.**
+- `npm run lint` — clean (`--max-warnings=0`).
+- `grep -c 'deprecated: true' js/data/modelConstants/models.js` → **0**. `grep -rni 'PiD plugins'
+  docs js` → **0**. No MPI-507 reference left in the four touched files.
+- **Live module import:** `MODELS.find(id === 'nvidia-pid')` reads `deprecated = undefined`,
+  `supportedOps ['pid']`, dependencies still 11. The model itself is otherwise unchanged.
+- **Rendering:** the badge is a straight read of `m.deprecated` into the tile
+  (`MpiModelManager.js` ~758). It was proven from the data, not looked at in a running app. A
+  reload of Fabio's app shows it, because the renderer is served from the tree.
+
+## Kept as a record
+
+`research/install-status.md` stays. It still describes the plugin machinery correctly, and it
+is what to read first if an upscaler plugin ever needs to own shared weights.
+
+## Left for Fabio to decide
+
+MPI-507's generator work is tracked in git and is now dead: nothing in `models.js` resolves it.
+- `comfy_workflows/nvidia_pid_{flux,qwen,sd3,sdxl}.json`
+- `comfy_workflows/raw/nvidia_pid_template.json`
+- `comfy_workflows/scripts/workflow_generation/{generate_pid.py,nvidia_pid_template.json}`
+- the `("nvidia_pid_", "pid")` row in `registry.py:39`
+
+Not deleted without his say-so.

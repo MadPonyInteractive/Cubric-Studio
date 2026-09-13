@@ -14,7 +14,8 @@
  * uiComponent; a right-click action has neither.
  *
  * The one thing a plugin MUST share with an app is GC protection — see
- * `pluginRequiredDepIds()` and its two call sites in routes/downloadManager.js.
+ * `_pluginRequiredDepIds()` in routes/downloadManager.js, which both uninstall guards
+ * (local and remote) call. It protects every DEFINED plugin's deps, installed or not.
  * A dep owned by neither a model nor an app is invisible to both uninstall
  * guards and dies on the next unrelated model uninstall.
  *
@@ -41,9 +42,9 @@
  * @typedef {Object} PluginUpscaleEntry
  * @property {Array<'image'|'video'>} kinds  Which MpiToolOptionsUpscale `kind` lists it.
  *                                   This is the WHOLE of the both-kinds generalisation:
- *                                   the video upscaler (MPI-579) declares `['video']`, the
- *                                   PiD plugins (MPI-507) declare `['image']`, and neither
- *                                   writes any mechanism.
+ *                                   the video upscaler (MPI-579) declares `['video']`; an
+ *                                   image upscaler would declare `['image']` and write no
+ *                                   mechanism.
  * @property {string}   [label]      Dropdown label; falls back to `title`.
  * @property {Object[]} [fields]     Controls revealed when the entry is selected, in the
  *                                   `FlowStepField` vocabulary (flowsRegistry.js, MPI-572)

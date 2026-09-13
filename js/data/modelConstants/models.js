@@ -897,11 +897,6 @@ export const MODELS = [
         // (needs an image + optional prompt). Only op = `pid`. Research + decisions:
         // docs/models/pid/upscaler.md.
         id: 'nvidia-pid',
-        // Sunset: PiD comes back as four plugins on the image-upscale dropdown
-        // (MPI-507). On the release that drops this def, KEEP the pid-* / vae-* /
-        // pid-gemma dep entries - _orphanedDepIds walks DEPS and can only reclaim a
-        // weight that still has an entry (MPI-470/466 both kept theirs).
-        deprecated: true,
         sizeTier: 'low',
         name: 'NVIDIA PiD Upscaler',
         dropdownMeta: 'UPSCALE',
