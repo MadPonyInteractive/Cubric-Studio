@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-756",
+  "title": "Pod disk gate counts an interrupted install's leftovers as used space",
+  "description": "An install killed mid-download (Pod stop, crash) leaves its partial on the volume: aria2 writes <dest>.part, the Hugging Face path stages into <dest>.part.hfstage/. The wrapper's du counts those bytes as used, so the remote disk-full gate refuses the retry for space the retry would reclaim (live 2026-08-10: need 13.3 GB, have 12.0 GB free, for the very dep whose 13.3 GB .part filled the volume). Nothing reclaims .hfstage either: uninstall answers already-absent and the orphan sweep cannot map a staging path to a dep. Facts and measurements: docs/download-manager.md, the HF staging section. Related: MPI-752 (gate bills only known-missing bytes).",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-14T16:28:28+01:00",
+  "updated_at": "2026-09-14T16:28:28+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

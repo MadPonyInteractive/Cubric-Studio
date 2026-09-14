@@ -893,19 +893,19 @@ usage source, MPI-169), `size` (GB) from the RunPod REST volume object matched
 to the pod's `networkVolumeId` (falls back to the sole volume if only one
 exists). `_startRemoteDownload` in `downloadManager.js` gates on it the same
 shape as the LOCAL statfs gate (MPI-99): `toInstall` deps' seed bytes × 1.05 >
-free → reject with a 400 `[Errno 28] No space left on device` BEFORE any
-wrapper install call fires, instead of letting a doomed multi-GB download run
-and die near 100%. Either half unknown (old wrapper, `du` fail, volume
-unresolved) → skip the gate, never false-block. `downloadService.js`'s
-`_firePost` 400-handler must route this through `_isOutOfSpaceError()` to a
-warning TOAST, not the GitHub-report dialog — the same matcher the reactive
-`download:failed` SSE path already used. **MPI-237:** the same telemetry backs
+free → reject with a 400 `{ toast: true, error: "Not enough disk space on the Pod
+volume…" }` BEFORE any wrapper install call fires, instead of letting a doomed
+multi-GB download run and die near 100%. Either half unknown (old wrapper, `du`
+fail, volume unresolved) → skip the gate, never false-block. `downloadService.js`'s
+`_firePost` 400-handler shows that `error` verbatim as a warning TOAST, never the
+GitHub-report dialog: its `err.toast` arm runs BEFORE `_isOutOfSpaceError()`, which
+is now only the fallback for a raw errno with no server-written message (MPI-542). **MPI-237:** the same telemetry backs
 the UI disk bar via `GET /remote/pod/disk`, which returns `{used,total,ephemeral}`
 — total resolved by the pure `resolveDiskTotalBytes(pod, volumeList)` (volume
 size, or ephemeral `containerDiskInGb`).
 
 **MPI-752 — bill only bytes KNOWN to be missing.** `toInstall` also carries deps whose
-install state is UNKNOWN: `remoteModelsCheck` threw (a busy wrapper 524s) or
+install state is UNKNOWN: `remoteModelsCheck` threw (any non-OK status does) or
 `foldBackWrapperStatus` dropped a short answer, and either way `statusResults` is empty, so
 every dep is sent and the wrapper's `already_installed` dedupe sorts it out. The gate used
 to sum that list as-is, billing files already on the volume — offline repro: a 24.55GB
