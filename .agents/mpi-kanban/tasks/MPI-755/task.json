@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-755",
+  "title": "Library headers: disk space used",
+  "description": "Show disk used next to the installed count (Model Library now, Flow Library after). Sum the UNION of on-disk dep ids once, never per-model sizes; decide how the Flows figure treats weights models also own.",
+  "column": "todo",
+  "maturity": "deferred",
+  "status": "active",
+  "created_at": "2026-09-14T13:44:22+01:00",
+  "updated_at": "2026-09-14T13:44:22+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
