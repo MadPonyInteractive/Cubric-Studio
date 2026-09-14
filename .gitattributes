@@ -3,3 +3,10 @@
 # updaters staged into Linux/mac artifacts.
 *.sh        text eol=lf
 *.command   text eol=lf
+
+# JS stays LF on every checkout. The Windows CI runner checks out with autocrlf, so
+# without this a source-contract test that anchors on `\n` passes here and fails there
+# (3dad1396, e4355f6b) — or silently widens a slice and passes on less than it should.
+*.js        text eol=lf
+*.cjs       text eol=lf
+*.mjs       text eol=lf
