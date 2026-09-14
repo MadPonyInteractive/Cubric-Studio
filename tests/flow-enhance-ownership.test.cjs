@@ -148,7 +148,8 @@ test('Enhance refuses before dispatching, and says why, when every target is the
     // reopen bug above.
     const src = frame();
     const body = src.slice(src.indexOf('function _runEnhance('), src.indexOf('async function _autoEnhance('));
-    const guard = body.indexOf('_enhanceTargets(d);\n');
+    // `\r?\n`: CI checks the tree out CRLF, and a bare `\n` after `;` matches nothing there.
+    const guard = body.search(/_enhanceTargets\(d\);\r?\n/);
     assert.ok(guard > 0 && /if \(!targets\.some\(_mayEnhanceWrite\)\)/.test(body),
         '_runEnhance must check its targets are writable');
     assert.ok(guard < body.indexOf('enhanceFlow('), 'the check must come BEFORE the dispatch');
