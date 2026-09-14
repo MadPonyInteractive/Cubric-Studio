@@ -35,6 +35,40 @@ names but never lettered. **Order is by priority, not by letter.**
 
 ## Current State
 
+**2026-09-14 (handoff `6de4b82f`) — 4a DONE, CI LINE ENDINGS CLOSED, 4c WRITTEN BUT NOT VERIFIED.**
+Everything below is committed at this handoff. **THE SINGLE NEXT ACTION: the third cold heal dry
+run** on the reworded Phase 5 (Fabio asked for it in a fresh session). The exact clean-room brief
+is `research/heal-dryrun-brief.md`; the mock card is `research/heal-dryrun-card.md`; re-stage the
+pre-merge recipe with `git -C C:/AI/Mpi/Cubric-Prompt show 02215cc:src/main/recipes/minimax-h3.recipe.ts`.
+Grade against `validation.md` § "Step 4c" (MPI-27's six changes, and what runs 1 and 2 missed).
+Reproduces it → tick 4c in this plan and the checklist. Still misses → report to Fabio, no
+fourth run without him. The runner must never see the answer key; the grader reads it.
+
+**2026-09-14 (later) — STEP 4a SHIPPED IN THE TREE AND VERIFIED, NOT YET COMMITTED.** Evidence:
+`validation.md` § "Step 4a". `docs/agent/runpod-setup.md` and `docs/agent/gallery.md` written,
+every label checked against source; `app:operations` is RENDERED from `commandRegistry.js` +
+`models.js`, not hand-written (Plan Drift). Corpus test 6/6, 7 mutations RED, `npm test`
+970/970, lint clean.
+- **Heal trigger decided (Fabio): a card he files** — not detection. Step 4c's intake is that card.
+- The `SKILL.md` split is still BLOCKED: MPI-556 and MPI-675 are done and archived; MPI-547 is
+  still `todo` and its phase 4 edits `SKILL.md`.
+- **THE SINGLE NEXT ACTION: step 4c, the heal leg.** A skill whose input is a Fabio-filed card
+  naming a green recipe plus its field evidence (`09-field-evidence.md`). Brief it before building;
+  verify with the static dry run against `minimax-h3`'s merged western findings.
+- Noticed, not actioned: four Docs-site labels drifted from the app (listed in `validation.md`);
+  the `extend` op is in no model's `supportedOps`.
+- **CI:** red on `c81de709` (a source search pinned to `\n`, CI checks out CRLF). Instance fixed by
+  the peer in `e4355f6b`; the class closed by `64dfa46d` (`.gitattributes` pins js/cjs/mjs to LF,
+  Fabio's option B), pushed, CI green. `validation.md` § "CI red on c81de709".
+- **Step 4c WRITTEN, NOT VERIFIED.** `create-enhancer-recipe` gained Phase 5 (Heal) in both
+  mirrored copies, and `.claude/rules/engine-recipes.md` was ported from Cubric-Prompt (Fabio's
+  yes) with a README row. Two cold dry runs against MPI-27's by-hand western merge
+  (`validation.md` § "Step 4c"): run 1 missed `[Shot N]` and budgeted sweeps per edit; run 2 found
+  4 of 6 changes but scoped vendor and `model` facts to r2v only. Phase 5 wording fixed after each;
+  the second fix is untested. **Next for 4c: Fabio decides whether a third cold run goes** (same
+  clean room, inputs staged in the session scratchpad — re-stage from `Cubric-Prompt 02215cc` and
+  the findings doc if it has expired).
+
 **2026-09-14 — FLOWS FOLLOW THE PICK: SHIPPED IN THE TREE AND VERIFIED, NOT YET COMMITTED.**
 Evidence: `validation.md` § "The call site, and two defects" and § "The rest of the user-ux
 check". `MpiBaseFlow._runEnhance` calls `enhanceFlow`. Fabio's live check found two defects,
@@ -646,13 +680,17 @@ Not blocking anything above. Each is independently useful.
       from its FILENAME (reading every file to build a listing is the one thing
       this function exists to avoid, and nothing writes front matter yet), and a
       missing `docs/agent/` returns the model half rather than throwing.
-- [ ] **Write the first app-knowledge playbooks** into `docs/agent/` — RunPod
+- [x] **Write the first app-knowledge playbooks** into `docs/agent/` — RunPod
       setup, what each operation does, where the gallery is. The documentation
       website stays the fallback the agent points at. **Verify:** `listCorpus()`
       returns them, each non-empty.
       **Seeded 2026-09-12** with `prompt-enhancement.md`: the overlay's two-box
       contract, what a recipe is and the four jobs, the per-OPERATION enhance
-      exemption, and the three backends. The rest of the list is still open.
+      exemption, and the three backends.
+      **Done 2026-09-14:** `runpod-setup.md` and `gallery.md` hand-written, labels checked
+      against source; "what each operation does" is `app:operations`, RENDERED in
+      `agentCorpus.mjs` from `commandRegistry.js` + `models.js` (see Plan Drift). Asserted in
+      `tests/agent-corpus.test.cjs`, mutation-checked.
 - [ ] **Split `.claude/skills/cubric-vision/SKILL.md`** — 670 lines into a
       ~85-line router plus `projects.md` (~109), `on-disk-format.md` (~181,
       taking §Reference slots because its recovery script is the same shape),
@@ -674,9 +712,10 @@ Not blocking anything above. Each is independently useful.
       **build** leg (playbook steps 0–3, autonomous to twice-green, stopping at
       Fabio's Stage 2). The **heal** leg — playbook `09-field-evidence.md`, the
       return path when a real production contradicts a green recipe — has no
-      skill and no intake path. **Open, for Fabio, when this step is reached:**
-      is heal triggered by a card he files, or by detection (a model version
-      changing in `models.js`)? **Verify:** replay it against `minimax-h3`'s
+      skill and no intake path. **Decided (Fabio, 2026-09-14): heal is triggered
+      by a card he files**, naming the recipe and the field evidence. Detection (a
+      model version changing in `models.js`) is not the trigger; at most a later
+      nudge that files that card. **Verify:** replay it against `minimax-h3`'s
       already-merged western findings as a **static** dry run reproducing the
       edit list made by hand — no sweep, no GPU. Any real sweep runs under the
       GPU lease and must go green **twice**; a single `ALL PASS` is a luck pass,
@@ -737,6 +776,13 @@ with ownership `js/data/recipes/corpus.js` + `docs/agent/**` against
 `.claude/skills/cubric-vision/**`, and only once MPI-547 has landed.
 
 ## Plan Drift
+
+- **2026-09-14 — "what each operation does" is rendered, not written.** Step 4a listed three
+  playbooks as `docs/agent/*.md`. The operations one would restate `commandRegistry.js` (label,
+  info, help) and `models.js` (`supportedOps`) — the drift corpus decision 1 forbids, with 16 ops
+  and nothing to fail when one changes. So it is `app:operations` in `agentCorpus.mjs`, built on
+  `text()`, still lazy. Ops no model runs are skipped (`extend` today) and duplicate display
+  names are collapsed, both caught on the first render.
 
 - **2026-09-13 — "flows follow the pick" grew a ComfyUI half and lost a file.** Fabio
   added that a ComfyUI enhance must run on the generation model's own encoder where it can

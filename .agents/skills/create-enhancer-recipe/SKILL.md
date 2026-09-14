@@ -1,6 +1,6 @@
 ---
 name: create-enhancer-recipe
-description: Author, test and iterate a per-target-model prompt recipe for the Cubric Vision Enhancer. Use when adding support for a new target model (Krea, Veo, Seedance, Kling, Wan, LTX, SDXL, Flux, …), refreshing one for a new model version, or revising an existing draft recipe — the research → draft → autonomous test loop that produces a proven draft recipe plus traceable evidence. Triggers: "add a recipe for X", "support model X in the enhancer", "create an enhancer recipe", "revise the X recipe", "$create-enhancer-recipe".
+description: Author, test, iterate and heal a per-target-model prompt recipe for the Cubric Vision Enhancer. Use when adding support for a new target model (Krea, Veo, Seedance, Kling, Wan, LTX, SDXL, Flux, …), refreshing one for a new model version, revising an existing draft recipe, or healing one when a real production's findings contradict it — the research → draft → autonomous test loop that produces a proven draft recipe plus traceable evidence, and the return path from field evidence. Triggers: "add a recipe for X", "support model X in the enhancer", "create an enhancer recipe", "revise the X recipe", "heal the X recipe", "field evidence for X", "$create-enhancer-recipe".
 ---
 
 # create-enhancer-recipe
@@ -9,11 +9,13 @@ The executable procedure. The reasoning behind every step lives in
 [`docs/recipes/playbook/`](../../../docs/recipes/playbook/README.md) — read it
 once; this skill is the step-by-step you follow each time. The recipe schema is
 [`js/data/recipes/registry.js`](../../../js/data/recipes/registry.js) (source of
-truth, never restated here).
+truth, never restated here). The rules are
+[`.claude/rules/engine-recipes.md`](../../../.claude/rules/engine-recipes.md).
 
 **Input:** a target model name + version. **Output:** a `draft` recipe at
 `js/data/recipes/{model-id}.recipe.js` that has **passed the Stage 1 loop**,
-plus evidence at `docs/recipes/research/{model-id}/`.
+plus evidence at `docs/recipes/research/{model-id}/`. A **heal** starts from a
+card instead — see Phase 5.
 
 ## Hard rules
 
@@ -130,6 +132,76 @@ npm run recipe:test -- <recipe-id> --engine dolphin3-abliterated --judge gemma-3
 Present the four final prompts + `validation.md` to Fabio for Stage 2 rendering
 ([playbook 04](../../../docs/recipes/playbook/04-promote.md)). **Stop there.**
 The `draft → validated` flip is his.
+
+## Phase 5 — Heal: a real production contradicts the recipe
+
+Full reasoning: [playbook 09](../../../docs/recipes/playbook/09-field-evidence.md).
+**The trigger is a card Fabio files** (decided 2026-09-14). Not a model version
+bump, not your own reading of a findings doc. No card, no heal.
+
+**The heal card names four things.** Ask Fabio for any that is missing before
+reading anything else:
+
+- the recipe id;
+- the mode(s) the production **actually shot** — every claim inherits this;
+- the findings path — read in place, never copied into this repo;
+- Fabio's instruction, verbatim — what he wants fixed, and anything ruled out.
+
+1. **Scope first.** Write the production's mode(s) once, at the top of the merge
+   notes in the card's `validation.md`. A finding in a mode the production did
+   not shoot is a **hypothesis** for that mode, never a result — modes share a
+   recipe file and rule consts, which is exactly how a claim drifts across them.
+   **The exception is a fact about the MODEL, not about a mode's output** — its
+   text encoder, a node's inputs. It holds for every mode that runs on the same
+   encoder or node, once you have checked that they do; tag those rows `model`.
+2. **Re-run Phase 0** for the model, and **diff the vendor's documented format
+   against the recipe for EVERY mode the recipe declares**: output sections, cut
+   and timing notation, named fields, vocabulary. Vendor evidence is scoped by
+   the vendor's own document, not by what the production shot — a base-mode
+   guide covers the base modes even when the production never rolled one. A
+   vendor skill published since the recipe was written belongs to the same
+   merge; field evidence alone never surfaces a notation the production did not
+   try.
+3. **Classify every claim against the CURRENT recipe text**, as a table in the
+   card. Two sources feed it, and both are required:
+   - **the findings** — start from the production's own list of prompt-writing
+     rules if it keeps one (a "read before writing" or "verified" section), then
+     its dated entries. Every rule the production states is a row, including
+     where the recipe is silent (`new`);
+   - **the vendor diff from step 2** — one row per difference, per mode.
+
+   | # | Recipe today (quote the rule or const) | Evidence (findings heading + line, or vendor file) | Mode | Basis | Verdict |
+   |---|---|---|---|---|---|
+
+   **Mode** is the mode(s) the row applies to, or `model`. **Basis** is
+   `measured` (rolls, with the count), `vendor` or `inferred`. **Verdict** is
+   `contradicts`, `confirms` or `new`. A claim with no citation does not enter
+   the table. Record the confirmations too, so nobody re-opens them.
+4. **Harvest before editing** — cheap and permanent first, because the sweeps
+   may not finish: the table into the card; a `sources.md` row for the
+   production, in the shape of the rows already there (tier: in-house
+   measurement, Stage 2), in `docs/recipes/research/{model-id}/`; anything that
+   generalises beyond this model proposed for `.claude/rules/engine-recipes.md`
+   — a rule edit needs Fabio's explicit yes.
+5. **Edit the recipe.** Every `contradicts` and `new` row becomes an edit, or a
+   written reason for not making it. **A `model` row's edit lands in every mode
+   that runs on that encoder or node, and a `vendor` row's in every mode the
+   vendor document covers.** Deferring one to another card is a reason only
+   when it names the measurement it waits for. When the notation moves, move `dos`/`donts`
+   with it in **every** mode — they are the judge's grading contract — and
+   replace every ban the old notation needed. An objectively wrong output goes
+   in `forbiddenPatterns`, not `donts`. *One format change per measurement*
+   governs Stage 2: a render roll changes the output format or the content,
+   never both. It does not multiply Stage 1 sweeps.
+6. **Re-sweep every touched mode to green twice, on the final recipe text**
+   (Phase 3). The count is per MODE, not per edit: a merge touching three modes
+   owes six clean sweeps plus the iteration between them (~7 minutes each) — say
+   that number up front. An edit after a mode goes green resets that mode, and
+   a mode whose edits rest on vendor or inference alone owes the same twice.
+   Local sweeps run under the GPU lease; never through `tee`.
+7. **Hand back (Phase 4):** which contradictions are fixed, which modes are
+   green twice, and which changed modes carry **no** field evidence — their
+   edits rest on vendor or inference alone, so read their outputs, not the count.
 
 ## Done
 

@@ -1260,3 +1260,121 @@ itself. None touched his app on :3000 or its engine on 48188.
 VRAM and the models stay loaded (in RAM) and are reused when asked for again. The earlier
 "a borrowed encoder therefore goes back to RAM ... not a warm VRAM copy" reading stands only
 in that sense: no second load from disk. The timing job it motivated is dropped.
+
+## Step 4a — the first app-knowledge playbooks (2026-09-14)
+
+- `docs/agent/runpod-setup.md` and `docs/agent/gallery.md`, written for the agent. Every UI
+  label checked against source (`MpiRunpodSettings.js`, `MpiEngineInstall.js`,
+  `MpiGalleryGrid.js`, `hotkeyRegistry.js`), not copied from the Docs site.
+- `app:operations` is RENDERED in `services/agentCorpus.mjs` from `commandRegistry.js` (label,
+  info, help body) and `models.js` (`supportedOps`), per corpus decision 1: 16 model ops + 9
+  tools. Flows and `promptEnhance` excluded; model names deduped (LTX 2.3 and Boogu Image Edit
+  each appear twice in MODELS); ops no model runs are skipped (`extend`).
+- **Plan verify:** `listCorpus()` returns `app:runpod-setup`, `app:gallery`, `app:operations`,
+  each non-empty: `testTheFirstPlaybooksShip` + `testOperationsIsRenderedFromTheRegistries`.
+  `node tests/agent-corpus.test.cjs` 6/6.
+- Mutations on scratch copies (tracked files untouched): drop first op, drop info, let Flows in,
+  drop a model, keep dead ops, no dedupe -> each RED in the operations test; eager app read ->
+  RED in `testListingReadsNoFiles`; unmutated control green.
+- `npm test` 970/970, exit 0. `npx eslint --max-warnings=0 services/agentCorpus.mjs
+  tests/agent-corpus.test.cjs` clean.
+- Docs-site drift found while checking labels, NOT actioned (sibling Docs repo): the Gallery page
+  lacks the **Audio** filter and the **Archive** menu item; the install screen is now **Remote
+  only -> Set up RunPod** (page: "Skip this - set up RunPod in Settings"); the Settings page lacks
+  the **Skip the local engine install** toggle.
+- **Heal trigger decided (Fabio, 2026-09-14): option A, a card he files.** Detection (a model
+  version change in `models.js`) is not the trigger; it may come later as a nudge that files one.
+
+## CI red on c81de709, and the line-ending class closed (2026-09-14)
+
+- **Cause:** `tests/flow-enhance-ownership.test.cjs` searched `MpiBaseFlow.js` for
+  `_enhanceTargets(d);\n`. The Windows runner checks out with autocrlf and `.gitattributes` pinned
+  only `*.sh`/`*.command`, so the search returned -1 there and passed on this box. Reproduced
+  without touching the tree: the `c81de709` test is 9/9 on LF and fails with CI's exact message
+  ("_runEnhance must check its targets are writable") under a preload that turns every `js/`
+  read into CRLF.
+- **The instance:** fixed by the peer session (7231419c, Fabio's instruction) in `e4355f6b`
+  (`\r?\n`); CI run 34828396585 green. This session released its overlapping claim and did not
+  edit the file.
+- **The class, Fabio's option B:** `64dfa46d` pins `*.js`/`*.cjs`/`*.mjs` to `eol=lf`. All 568
+  are stored LF in the index, so nothing renormalized. Proof: a scratch repo with
+  `core.autocrlf=true` checks `MpiBaseFlow.js` out 3596/3596 lines CRLF under the old attributes
+  and 0 under the new. `git status` in the live tree unchanged by the edit (2 JS lines before and
+  after, both this card's). **CI run 34832501738 green.**
+- Three more tests anchored on `\n` (`auto-mask-inject-titles.test.cjs:25`,
+  `auto-mask-pick-cache.test.cjs:77,120`) were silently widening their slice on CI; with LF
+  checkout they now cut where they were written to.
+
+## Step 4c — the heal leg, and the engine-recipes rule port (2026-09-14)
+
+**In the tree, not committed:**
+
+- `create-enhancer-recipe` gains **Phase 5 — Heal** in both tracked copies
+  (`.agents/skills/…` and `.claude/skills/…`, `diff` identical). The trigger is a card Fabio
+  files (his decision, option A) naming the recipe id, the modes shot, the findings path and his
+  instruction. `description:` gains the heal triggers; the skill list picked the new one up live.
+- `.claude/rules/engine-recipes.md` ported from Cubric-Prompt on Fabio's yes: 546 → ~200 lines.
+  Dropped as Prompt-only: Zod, its engine-readiness UI, its Ollama lifecycle, the broker
+  memory-release contract, and the stale "mode is hardcoded" / "nothing enforces the exemption"
+  sections (Vision has `resolveMode()` and `ENHANCE_EXEMPT_OPS`). Every path and symbol it cites
+  was checked to exist. Row added to `.claude/rules/README.md`; the playbook README's link to the
+  rule, dead since the port, now resolves.
+
+**Verify: a static dry run by a COLD sub-agent**, graded against the by-hand merge — Cubric-Prompt
+MPI-27, `c761448`, `validation.md` § "The recipe changes" (6 changes). This session read that
+answer key, so it could not be the test.
+
+- Inputs: Phase 5 as written, a mock heal card carrying Fabio's real instruction, the pre-merge
+  recipe (`Cubric-Prompt 02215cc`, 669 lines), the findings doc (unchanged since `81c6bec`,
+  2026-08-15 — exactly what the hand merge read), the vendor repo via `gh api`.
+- Barred: the post-merge recipe, `docs/recipes/research/`, the ported rule, all of Cubric-Prompt,
+  the kanban, memory, git history. Every table row and edit had to cite a findings heading + line
+  or a vendor file. No writes, no sweep, no GPU.
+
+**Run 1 — a MISS, and every miss traced to Phase 5's wording, not to the agent.**
+
+| Hand merge | Run 1 |
+|---|---|
+| 1 `[Shot N]` / `At MM:SS.mmm` notation (vendor) | **missed** — Phase 0 read the syntax; it never became an edit |
+| 2 r2v single shot, no mandatory `CUT 1 / TRANSITION / CUT 2` | found — measured + vendor |
+| 3 `wordBudget` from the encoder | found — r2v max 500 (the hand merge re-derived base and ref budgets) |
+| 4 two named sound fields, `N/A` legal | found — t2v/i2v correctly marked vendor-only |
+| 5 the bans that follow from 1 | missed, with 1 |
+| 6 r2v reference rules (job, cite in-sentence, role ban, delivery before dialogue, every second written) | **partial** — role ban and the voice/dialogue syntax only |
+
+Also budgeted 20 sweeps (per edit). No contamination (files-read list checked). Wording fixed:
+
+- step 3 classified only the findings, so vendor rules from step 2 never met the recipe → step 2
+  now diffs the vendor's documented format against the recipe mode by mode, and step 3 requires
+  both sources;
+- step 3 did not start from the production's own rule list → now it does, and every stated rule
+  is a row even where the recipe is silent;
+- step 6's "each edit resets the counter" read as per-edit → the count is per MODE on the final
+  text, and "one format change per measurement" sits where `09` puts it, on Stage 2 rolls;
+- no exception for model-level facts (the shared encoder) → step 1 adds `model` scope;
+- `sources.md` row shape unstated → "in the shape of the rows already there".
+
+**Run 2, on the fixed wording — better, still NOT a reproduction of the hand merge.**
+
+| Hand merge | Run 2 |
+|---|---|
+| 1 `[Shot N]` notation | found in the vendor diff, then **deferred for r2v with a written reason** ("single shot is the default; needs its own roll"). **t2v/i2v never diffed** — the diff table compared the vendor only against r2v, though `base-en.txt` IS the T2VA/I2VA guide |
+| 2 r2v single shot | found — measured + vendor |
+| 3 `wordBudget` from the encoder | row correctly tagged `model`, but the **edit raised r2v's `BUDGET` only**; `BEAT_BUDGET` (t2v/i2v, same encoder) stayed at 230 |
+| 4 two sound fields, `N/A` legal | found for r2v; t2v/i2v deferred to "a separate card" as a hypothesis, though the vendor documents them for those modes |
+| 5 the bans that follow from 1 | n/a — 1 deferred |
+| 6 r2v reference rules | mostly — "give every asset a job" correctly **confirmed** (the pre-merge recipe already had it), inheritance ban, voice-reference + `<d>` syntax; not found: "cite each reference inside its sentence", "every second written" |
+
+Plus one edit the hand merge did not make and the findings support: no mix language (measured
+A/B on two scenes). Sweep budget now per mode (2). Files-read list clean.
+
+**One root cause left, seen in both runs:** the agent read "a finding from a mode the production
+did not shoot is a hypothesis" as "that mode is out of scope", and stretched it to VENDOR evidence
+and to `model` facts. Wording fixed a second time, **not re-run** (the brief allowed one re-run):
+step 2's diff now covers every mode the recipe declares, because vendor evidence is scoped by the
+vendor's document, not by the production; step 5 lands a `model` row's edit in every mode on that
+encoder or node, and a `vendor` row's in every mode the vendor document covers. The two reference
+rules run 2 missed look like reading depth, not wording.
+
+**Status: Phase 5 is written, and two graded cold runs improved it, but it is NOT yet verified to
+reproduce the hand merge.** A third run is Fabio's call.

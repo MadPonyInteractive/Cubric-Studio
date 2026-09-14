@@ -8,7 +8,8 @@
  * - `kind: 'model'` entries are generated per recipe x mode; `text()` renders through
  *   `renderRecipeBrief()`, so a recipe and its brief can never drift.
  * - `kind: 'app'` entries are the markdown in `docs/agent/`; `text()` reads the file.
- * - `text()` is LAZY on both. Listing the corpus is a `readdirSync` and some string
+ *   One more, `app:operations`, is RENDERED from the op and model registries (decision 1).
+ * - `text()` is LAZY on all of them. Listing the corpus is a `readdirSync` and some string
  *   building; the agent pays for content only on what it selects.
  *
  * SERVER-SIDE ON PURPOSE. `js/` is browser code with no `fs`, and the app half of the
@@ -23,6 +24,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { RECIPE_REGISTRY } from '../js/data/recipes/registry.js';
 import { renderRecipeBrief } from '../js/data/recipes/brief.js';
+import { COMMANDS } from '../js/data/commandRegistry.js';
+import { MODELS } from '../js/data/modelConstants/models.js';
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const AGENT_DOCS_DIR = path.join(ROOT, 'docs', 'agent');
@@ -70,7 +73,39 @@ function appEntries() {
         });
 }
 
+// Decision 1: a fact already in a data file is rendered, never restated. What an op does
+// lives in commandRegistry.js (label, info, help) and which models run it in models.js;
+// a hand-written list would drift and nothing would fail. Flows are their own surface
+// (flowsRegistry.js), and promptEnhance is covered by app:prompt-enhancement.
+function renderOperations() {
+    const ops = Object.entries(COMMANDS);
+    const out = [
+        '# Operations', '',
+        'What each operation does and which models run it. The Prompt Box offers only the ops the selected model supports, and only once the media they need is staged.', '',
+    ];
+    for (const [key, cmd] of ops.filter(([, c]) => !c.stub && !c.universal)) {
+        // Set: two MODELS entries can share one display name.
+        const models = [...new Set(MODELS.filter((m) => m.supportedOps.includes(key)).map((m) => m.name))];
+        if (!models.length) continue;   // no model runs it, so the Prompt Box never offers it
+        out.push(`## ${cmd.label} (\`${key}\`)`, '', cmd.info, '',
+            ...(cmd.help?.body ?? []).flatMap((p) => [p, '']),
+            `Models: ${models.join(', ')}`, '');
+    }
+    const tools = ops.filter(([k, c]) => c.universal && !k.startsWith('flow') && k !== 'promptEnhance');
+    out.push('## Tools', '', 'Model-free tools that run on an existing image or video:', '',
+        ...tools.map(([k, c]) => `- ${c.label} (\`${k}\`, ${c.mediaType})`), '');
+    return out.join('\n');
+}
+
+const OPERATIONS_ENTRY = {
+    id: 'app:operations',
+    kind: 'app',
+    title: 'Operations',
+    tags: ['app', 'operations'],
+    text: renderOperations,
+};
+
 /** Every corpus entry, model briefs first. `text()` is unread until called. */
 export function listCorpus() {
-    return [...modelEntries(), ...appEntries()];
+    return [...modelEntries(), ...appEntries(), OPERATIONS_ENTRY];
 }

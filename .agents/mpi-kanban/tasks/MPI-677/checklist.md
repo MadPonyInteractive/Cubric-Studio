@@ -125,4 +125,11 @@ in the card description are retired; `plan.md` carries the mapping note.
         reads and hashes it (`assertConnectorManifest`) — step 5 owns its fate
 - [x] Step 3 — release the repos *(Cubric-Prompt archived 2026-09-12: banner pushed as `35dee06`, GitHub flag set by Fabio)*
 - [ ] Step 4 — the corpus, the skill split (MPI-593 owns it), the build/heal loop
+  - [x] Corpus retrieval path — `services/agentCorpus.mjs` (2026-09-12)
+  - [x] First app-knowledge playbooks — `docs/agent/runpod-setup.md`, `docs/agent/gallery.md`,
+        rendered `app:operations` (2026-09-14)
+  - [ ] Skill split — BLOCKED on MPI-547 (`todo`, its phase 4 edits `SKILL.md`); MPI-556/675 done
+  - [ ] Build/heal loop — heal is triggered by a card Fabio files (decided 2026-09-14, option A).
+        Phase 5 written + `engine-recipes.md` ported; 2 cold dry runs, not yet reproducing the
+        hand merge — third run is Fabio's call
 - [ ] Step 5 — the agent that talks to the user *(gets its own plan when reached)*

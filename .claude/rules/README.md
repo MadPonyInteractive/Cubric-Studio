@@ -19,6 +19,7 @@ sub-agents (`/mpi-brief-rule <name>`).
 | ComfyUI engine & backend (model registry, downloads, python server, engine split) | [comfy_engine.md](comfy_engine.md) |
 | Download system (resumable, IPC/SSE) | [downloads.md](downloads.md) |
 | App versioning (APP/SCHEMA/COMFY) | [versioning.md](versioning.md) |
+| Enhancer recipes + LLM engines (four jobs, `wordBudget` from the encoder, twice-green, field evidence, the per-op exemption) | [engine-recipes.md](engine-recipes.md) |
 | Kanban cards / board / agent messages | [kanban.md](kanban.md) |
 | Committing in the shared tree / co-owned files | [git.md](git.md) |
 

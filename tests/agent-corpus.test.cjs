@@ -4,7 +4,7 @@
 // Run: node tests/agent-corpus.test.cjs
 // No framework — matches the other tests/*.test.cjs in this repo.
 //
-// Three things are worth asserting and nothing else is:
+// Four things are worth asserting and nothing else is:
 //
 //  1. **Every declared mode is reachable.** The corpus is generated from
 //     RECIPE_REGISTRY, so a recipe that gains a mode gains an entry with nobody
@@ -16,12 +16,16 @@
 //     ESM module resolves at call time, so a regression to eager reads fails here.
 //  3. **An `app` entry resolves to real file content**, which is the half that can
 //     break from outside the code (a moved directory, an excluded build path).
+//  4. **`app:operations` covers every op the Prompt Box can offer.** It is rendered
+//     from commandRegistry.js, so an op added there must show up with no doc edit.
 
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 
 const { RECIPE_REGISTRY } = require('../js/data/recipes/registry.js');
+const { COMMANDS } = require('../js/data/commandRegistry.js');
+const { MODELS } = require('../js/data/modelConstants/models.js');
 
 // Patch BEFORE the corpus module is loaded so nothing eager escapes the count.
 let reads = 0;
@@ -84,11 +88,48 @@ function testAnAppEntryResolvesToRealContent() {
     assert.strictEqual(text, realReadFileSync(path.join(AGENT_DOCS_DIR, 'prompt-enhancement.md'), 'utf8'));
 }
 
+function testTheFirstPlaybooksShip() {
+    const entries = listCorpus();
+    for (const id of ['app:runpod-setup', 'app:gallery', 'app:operations']) {
+        const entry = entries.find((e) => e.id === id);
+        assert.ok(entry, `${id} must be in the corpus`);
+        assert.strictEqual(entry.kind, 'app');
+        const text = entry.text();
+        assert.ok(text.startsWith('# ') && text.trim().split('\n').length > 5, `${id} must be a real document, got ${text.length} chars`);
+    }
+}
+
+function testOperationsIsRenderedFromTheRegistries() {
+    const text = listCorpus().find((e) => e.id === 'app:operations').text();
+    const runs = (key) => MODELS.some((m) => m.supportedOps.includes(key));
+    const modelOps = Object.entries(COMMANDS).filter(([, c]) => !c.stub && !c.universal);
+    const offered = modelOps.filter(([key]) => runs(key));
+    assert.ok(offered.length >= 16, `expected every model op, found ${offered.length}`);
+    for (const [key] of modelOps.filter(([k]) => !runs(k))) {
+        assert.ok(!text.includes(`(\`${key}\`)`), `op ${key} has no model to run it, so it must not be listed`);
+    }
+    for (const line of text.split('\n').filter((l) => l.startsWith('Models: '))) {
+        const names = line.slice('Models: '.length).split(', ');
+        assert.strictEqual(new Set(names).size, names.length, `duplicate model in "${line}"`);
+    }
+    for (const [key, cmd] of offered) {
+        assert.ok(text.includes(`## ${cmd.label} (\`${key}\`)`), `op ${key} is offered but missing from app:operations`);
+        assert.ok(text.includes(cmd.info), `op ${key} must carry its registry info, not a rewrite`);
+    }
+    const t2i = text.split('\n## ').find((s) => s.includes('(`t2i`)'));
+    for (const m of MODELS.filter((x) => x.supportedOps.includes('t2i'))) {
+        assert.ok(t2i.includes(m.name), `${m.name} runs t2i but is not listed under it`);
+    }
+    assert.ok(!/\(`flow[A-Z]/.test(text), 'Flows are their own surface, not operations');
+}
+
 const tests = [
     testEveryDeclaredModeIsInTheCorpus,
     testAModelEntryRendersItsBrief,
     testListingReadsNoFiles,
     testAnAppEntryResolvesToRealContent,
+    testTheFirstPlaybooksShip,
+    testOperationsIsRenderedFromTheRegistries,
 ];
 
 let failed = 0;
