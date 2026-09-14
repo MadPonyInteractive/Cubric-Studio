@@ -1,0 +1,12 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/downloadManager.js",
+    "tests/remote-disk-gate-unknown-state.test.cjs",
+    "js/components/Compounds/LandingPages/MpiModelManager/MpiModelManager.js",
+    "js/components/Compounds/LandingPages/MpiModelManager/MpiModelManager.css",
+    "docs/download-manager.md",
+    "docs/model-library.md",
+    "docs/releases/UNRELEASED.md"
+  ]
+}

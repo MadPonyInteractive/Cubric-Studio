@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-752",
+  "title": "Remote disk gate over-counts when install state is unknown; model panel disk split",
+  "description": "A failed or short Pod status pre-check leaves statusResults empty, so the remote disk-full gate counts every dep (shared ones already on the volume included) and refuses installs that fit. Proven offline: H3-ref-shaped deps, 30GB free, check OK starts, check failed blocks at 46.3GB. Fix the gate to count only bytes known to be missing, and show total / on disk / to download in the model detail panel.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-14T12:24:48+01:00",
+  "updated_at": "2026-09-14T15:10:13+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
