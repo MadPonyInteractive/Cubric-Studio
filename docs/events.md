@@ -21,6 +21,7 @@ Defined in `js/events.js` as `MpiEventMap`. Key events:
 | Event | When it fires |
 |---|---|
 | `ui:error` | Request the shell to show an error dialog |
+| `ui:context-menu` | Show `MpiContextMenu` `{ x, y, items, onSelect }`. How a Compound opens one: the tier rule bars it from importing another Compound. `shell.js` is the only listener (MPI-751) |
 | `ui:close-all-popups` | Signal to close all floating UIs. Optional `{ reason: 'overlay-open' }` payload lets long-lived panels (`MpiSlideOver`) ignore the overlay-open pulse |
 | `ui:picker-open` | A dropdown-style picker is opening `{ owner }` (its portalled list node) — every OTHER `MpiDropdown` / `MpiTreePicker` / `MpiStylePicker` closes, so only one is ever open (MPI-728). Needed because each trigger's `stopPropagation()` hides the click from the others' document listeners. Deliberately narrower than `ui:close-all-popups`: `MpiModal` and `MpiPopup` close on that whatever its `reason`, and a picker can sit inside either |
 | `state:changed` | Global reactive state mutation (auto-fired by state Proxy) |

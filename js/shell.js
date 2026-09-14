@@ -27,6 +27,7 @@ import { MpiFlowLibrary } from './components/Compounds/LandingPages/MpiFlowLibra
 import { MpiBaseFlow } from './components/Organisms/MpiBaseFlow/MpiBaseFlow.js';
 import { getFlowById } from './data/flowsRegistry.js';
 import { MpiOkCancel } from './components/Compounds/MpiOkCancel/MpiOkCancel.js';
+import { MpiContextMenu } from './components/Compounds/MpiContextMenu/MpiContextMenu.js';
 import { getModelsByType } from './data/modelRegistry.js';
 import { APP_VERSION } from './core/appVersion.js';
 import { APP_STAGE_LABEL } from './core/appStage.js';
@@ -425,6 +426,9 @@ async function _bootApp() {
   });
   // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener
   Events.on('ui:error',       ({ title, message }) => showError(title, message));
+  // A Compound may not import MpiContextMenu (same tier), so it asks for one here (MPI-751).
+  // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener
+  Events.on('ui:context-menu', MpiContextMenu.show);
 
   // Model Library opens as a full-page overlay (MPI-215). MpiModelManager
   // self-hosts its own MpiOverlay(body); we mount it once (lazy singleton) and

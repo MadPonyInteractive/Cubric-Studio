@@ -32,7 +32,7 @@
  */
 
 import { ComponentFactory } from '../../factory.js';
-import { MpiContextMenu }   from '../MpiContextMenu/MpiContextMenu.js';
+import { Events }           from '../../../events.js';
 import { qs, on }           from '../../../utils/dom.js';
 
 export const MpiMediaSlot = ComponentFactory.create({
@@ -83,7 +83,7 @@ export const MpiMediaSlot = ComponentFactory.create({
             if (props.canPaste?.()) items.push({ key: 'paste', icon: 'paste', label: 'Paste' });
             if (_value) items.push({ key: 'clear', icon: 'trash', label: 'Clear slot', danger: true });
             if (!items.length) return;
-            MpiContextMenu.show({
+            Events.emit('ui:context-menu', {
                 x: e.clientX,
                 y: e.clientY,
                 items,

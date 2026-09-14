@@ -1,5 +1,5 @@
 /**
- * MpiWaveform — a baked audio waveform that fills as it plays (Compound).
+ * MpiWaveform — a baked audio waveform that fills as it plays (Primitive).
  *
  * Paints the `showwavespic` derivative an audio item carries at its sidecar
  * `thumbPath` (see `services/ffmpegThumb.js` → `extractAudioWaveform`). That file
@@ -47,7 +47,7 @@ const _clamp01 = (v) => Math.max(0, Math.min(1, Number(v) || 0));
 
 export const MpiWaveform = ComponentFactory.create({
     name: 'MpiWaveform',
-    css: ['js/components/Compounds/MpiWaveform/MpiWaveform.css'],
+    css: ['js/components/Primitives/MpiWaveform/MpiWaveform.css'],
 
     template: () => `
         <div class="mpi-waveform">

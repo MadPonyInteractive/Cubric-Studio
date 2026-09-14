@@ -34,7 +34,7 @@
 import { ComponentFactory } from '../../factory.js';
 import { qs } from '../../../utils/dom.js';
 import { clientLogger } from '../../../services/clientLogger.js';
-import { MpiContextMenu } from '../MpiContextMenu/MpiContextMenu.js';
+import { Events } from '../../../events.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 import { buildPromptReusePayload, itemHasReusablePrompt } from '../../../utils/promptReuse.js';
@@ -269,7 +269,7 @@ export const MpiHistoryList = ComponentFactory.create({
                     { key: 'reveal',         icon: 'folder',   label: 'Open in file system' },
                     { key: 'delete',         icon: 'trash',    label: 'Delete',         danger: true },
                 );
-                MpiContextMenu.show({
+                Events.emit('ui:context-menu', {
                     x: e.clientX,
                     y: e.clientY,
                     items,

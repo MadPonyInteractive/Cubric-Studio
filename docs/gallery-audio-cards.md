@@ -39,7 +39,7 @@ must stay at **four** hits: the definition plus those three call sites.
 
 ## The paint is a component, because two surfaces need it
 
-`MpiWaveform` (`js/components/Compounds/MpiWaveform/`) — two full-bleed layers split by one
+`MpiWaveform` (`js/components/Primitives/MpiWaveform/`) — two full-bleed layers split by one
 `clip-path`, each painting a **background fill** as well as the mask on a `::after`, so the
 surface reads as a progress bar with the wave inside it rather than as strokes that change
 colour. Plus a playhead rule at the boundary and a dimmer cursor rule tracking the pointer, so

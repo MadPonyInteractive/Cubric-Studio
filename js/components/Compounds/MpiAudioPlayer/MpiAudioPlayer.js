@@ -32,7 +32,7 @@
 
 import { ComponentFactory } from '../../factory.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
-import { MpiWaveform } from '../MpiWaveform/MpiWaveform.js';
+import { MpiWaveform } from '../../Primitives/MpiWaveform/MpiWaveform.js';
 import { MpiVolumeControl } from '../MpiVolumeControl/MpiVolumeControl.js';
 import { formatTime } from '../../../utils/string.js';
 import { qs, on } from '../../../utils/dom.js';

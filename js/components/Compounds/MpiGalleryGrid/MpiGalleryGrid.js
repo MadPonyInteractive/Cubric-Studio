@@ -2,8 +2,7 @@ import { ComponentFactory } from '../../factory.js';
 import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
-import { MpiContextMenu } from '../MpiContextMenu/MpiContextMenu.js';
-import { MpiWaveform } from '../MpiWaveform/MpiWaveform.js';
+import { MpiWaveform } from '../../Primitives/MpiWaveform/MpiWaveform.js';
 import { ce, qs, qsa, on } from '/js/utils/dom.js';
 import { renderIcon } from '/js/utils/icons.js';
 import { removeHistoryEntry } from '../../../data/projectModel.js';
@@ -1518,7 +1517,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     'wrong-media-type': 'No selected card matches the current operation',
                 }[_cue.reason] ?? 'Queue one job per selected card on the current settings';
 
-                MpiContextMenu.show({
+                Events.emit('ui:context-menu', {
                     x: e.clientX,
                     y: e.clientY,
                     items: [

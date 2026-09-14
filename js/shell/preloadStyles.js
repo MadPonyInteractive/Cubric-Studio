@@ -30,6 +30,7 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Primitives/MpiProjectDropOverlay/MpiProjectDropOverlay.css',
   'js/components/Primitives/MpiCheckbox/MpiCheckbox.css',
   'js/components/Primitives/MpiMaskedImagePreview/MpiMaskedImagePreview.css',
+  'js/components/Primitives/MpiWaveform/MpiWaveform.css',
 
   // Compounds
   'js/components/Compounds/MpiContextMenu/MpiContextMenu.css',
@@ -81,7 +82,6 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.css',
   'js/components/Compounds/MpiViewerCorners/MpiViewerCorners.css',
   'js/components/Compounds/MpiTrimBar/MpiTrimBar.css',
-  'js/components/Compounds/MpiWaveform/MpiWaveform.css',
   'js/components/Compounds/MpiVideoSurface/MpiVideoSurface.css',
   'js/components/Compounds/MpiVolumeControl/MpiVolumeControl.css',
   'js/components/Compounds/MpiVideoControlBar/MpiVideoControlBar.css',

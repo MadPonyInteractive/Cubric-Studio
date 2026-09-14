@@ -104,6 +104,7 @@ export const Events = new EventBus();
  * @typedef {Object} MpiEventMap — Canonical event names for Cubric Studio
  *
  * 'ui:error'         { title: string, message: string } — show error dialog (shell listens)
+ * 'ui:context-menu'  { x, y, items, onSelect }         — show MpiContextMenu at the cursor (shell listens)
  * 'ui:success'       { message: string }              — success toast via StatusBar.notify()
  * 'ui:warning'       { message: string }              — warning toast via StatusBar.notify()
  * 'ui:info'          { message: string }              — info toast via StatusBar.notify()

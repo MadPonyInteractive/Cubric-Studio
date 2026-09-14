@@ -1610,6 +1610,8 @@
  *     x, y      — cursor coordinates (fixed positioning)
  *     items     — array of MpiContextMenuItem
  *     onSelect  — callback(key: string) fired on item click; menu self-closes
+ *   A Compound may not import this (same tier): it emits
+ *   Events.emit('ui:context-menu', { x, y, items, onSelect }) and shell.js calls show().
  *
  * @typedef {Object} MpiContextMenuItem
  * @property {string}   key           - Unique identifier emitted to onSelect
@@ -1984,7 +1986,7 @@
  */
 
 /**
- * @typedef {Object} MpiWaveformProps (Compound — js/components/Compounds/MpiWaveform)
+ * @typedef {Object} MpiWaveformProps (Primitive — js/components/Primitives/MpiWaveform)
  * @property {string} [mask]       - URL of the baked waveform mask (an audio item's
  *                                   sidecar `thumbPath`). Omitted → fills, no wave.
  * @property {number} [progress=0] - Initial playhead as a fraction 0..1
