@@ -1,0 +1,26 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".eslint-rules/no-same-tier-component-import.js",
+    "tests/eslint-tier-rule.test.cjs",
+    "js/components/Compounds/MpiWaveform/MpiWaveform.js",
+    "js/components/Compounds/MpiWaveform/MpiWaveform.css",
+    "js/components/Primitives/MpiWaveform/MpiWaveform.js",
+    "js/components/Primitives/MpiWaveform/MpiWaveform.css",
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js",
+    "js/components/Compounds/MpiAudioPlayer/MpiAudioPlayer.js",
+    "js/components/Compounds/MpiHistoryList/MpiHistoryList.js",
+    "js/components/Compounds/MpiMediaSlot/MpiMediaSlot.js",
+    "js/shell.js",
+    "js/events.js",
+    "js/shell/preloadStyles.js",
+    "js/components/types.js",
+    "docs/events.md",
+    "docs/gallery-audio-cards.md",
+    ".claude/rules/component-events-primitives.md",
+    ".claude/rules/component-events-organisms.md",
+    ".claude/rules/component-events-blocks.md",
+    ".claude/rules/component-mounts.md",
+    ".claude/rules/events.md"
+  ]
+}

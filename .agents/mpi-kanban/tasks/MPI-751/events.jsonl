@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-751", "at": "2026-09-14T12:04:56+01:00", "actor": "claude", "column": "todo", "title": "Tier lint rule misses sibling-relative component imports"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-751", "at": "2026-09-14T12:04:56+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fixing the rule to resolve relative paths; violations listed and briefed before any refactor."}

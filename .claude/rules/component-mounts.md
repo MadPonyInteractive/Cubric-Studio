@@ -42,7 +42,7 @@ Props: none
 - `MpiModelPicker` (Compound, MPI-356)   props: none   slot: `document.createElement('div')` — singleton model overlay opened on `ui:open-model-picker` via `el.open({ models, modelId })`. The Block owns the (workspace-filtered) list AND applies the pick — the picker holds no model logic. Its `settings` event opens `MpiModelSettings({ modelId })`.
 
 > **Note:** `MpiModelManager` is NOT mounted here — it is the **Model Library** overlay (MPI-215). It self-hosts an `MpiOverlay(mountTarget:'body')` and shell mounts it once as a lazy singleton, calling `el.open()` on `models:open` (`shell.js`). `MpiGalleryBlock` emits `Events.emit('models:open')`. PromptBox mounts only when `s_installedModelIds.length > 0`; post-install mount is keyed off `state:changed (s_installedModelIds)`, not a `models:closed` event.
-> **Selection:** No `MpiSelectionBar`. Ctrl/Cmd-click toggles card into selection; shift-click range-selects; right-click opens `MpiContextMenu`. `MpiCheckbox` is also removed from cards.
+> **Selection:** No `MpiSelectionBar`. Ctrl/Cmd-click toggles card into selection; shift-click range-selects; right-click opens `MpiContextMenu` via `ui:context-menu` (MPI-751). `MpiCheckbox` is also removed from cards.
 
 ---
 

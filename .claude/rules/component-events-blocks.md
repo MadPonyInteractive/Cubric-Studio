@@ -33,11 +33,12 @@ EMITS:   `open-group`      `{ group: ItemGroup }`
 
          **Preview-stage selection:** Preview cards participate in normal selection (shift / ctrl-click) just like any other gallery card. Right-click opens the context menu without entering selection mode. Only the bare-click "open into history" action is suppressed because previews stay on the gallery surface.
 LISTENS: (none — internal MpiButton tab events handled internally)
+GLOBAL EMITS: `ui:context-menu` `{ x, y, items, onSelect }` — the right-click menu. A Compound may not import `MpiContextMenu`, so `shell.js` shows it (MPI-751)
 API:     `el.setStage2Count(groupId, n)` — write the small `xN` badge on a preview card reflecting how many branching Continue jobs are queued/running.
          `el.setPreviewAssetsWarning(groupId, state)` — write the warning badge on a preview card. `state` is `null` for clear; `{ mode: 'fallback', missing? }` renders an amber "Cold" badge (latent missing, stage-1 will rerun); `{ mode: 'blocked', missing? }` renders a red "Missing" badge and hides the Continue/Finish action row via a card CSS modifier. State Map is re-applied inside `_rerenderJustified` so debounced rebuilds don't drop badges.
          `el.getSelectionOrder()` → `string[]` — selected group ids in click order via Set iteration. Used by Combine handler in MpiGalleryBlock to sequence concat inputs chronologically.
          Card API: `cardEl.setSelectionBadge(n)` — numeric `#N` badge top-center when `_selectedIds.size >= 2`; `0` clears. Re-applied in `_syncCardSelectedState` (every selection mutation) AND in the initial-state branch of `_makeCard` so debounced `_rerenderJustified` keyed-reuse paths stay consistent.
-NOTE:    Tab buttons (order/filter) write directly to `state.gallerySort`; active-state sync via `_syncTabActive()` on `state:changed`. Card selection: ctrl/cmd-click toggles, shift-click range-selects, right-click opens `MpiContextMenu`. Preview cards participate in selection like any other card; "open into history" suppressed. No `MpiSelectionBar` or `MpiCheckbox`.
+NOTE:    Tab buttons (order/filter) write directly to `state.gallerySort`; active-state sync via `_syncTabActive()` on `state:changed`. Card selection: ctrl/cmd-click toggles, shift-click range-selects, right-click opens `MpiContextMenu` via `ui:context-menu`. Preview cards participate in selection like any other card; "open into history" suppressed. No `MpiSelectionBar` or `MpiCheckbox`.
 
 ### MpiPromptBox
 EMITS:   `input`            `{ positive: string, negative: string, activeMode: 'positive'|'negative' }`

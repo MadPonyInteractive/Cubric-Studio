@@ -36,7 +36,7 @@ NOTE:    Two-handle trim seek bar. Pointer drag coalesces on RAF; commits on `po
 
 ## Audio Compounds (MPI-730 / MPI-731)
 
-### MpiWaveform (Compound — js/components/Compounds/MpiWaveform/)
+### MpiWaveform (Primitive — js/components/Primitives/MpiWaveform/)
 EMITS:   `seek` `{ fraction: number, time: number|null, modified: boolean }` — a click across the box; `time` is null with no duration; `modified` = shift/ctrl/meta, which a gallery card reads as select, not scrub
 LISTENS: (none — driven via `setProgress` / `setDuration` / `setMask`)
 NOTE:    Owns no `<audio>`; the consumer drives it and decides what a seek means. Mounted by MpiGalleryGrid (an audio card's thumb) and MpiAudioPlayer. Mask and paint detail: `docs/gallery-audio-cards.md`.
@@ -173,6 +173,7 @@ NOTE:    **The hint line is the panel's ERROR surface.** An image the canvas rej
 PROPS:   `{ label, empty?, canPaste(), readPaste() }`
 EMITS:   `change` `{ url, name }` — filled or cleared. Instance API: `getValue()` / `setValue(v)` / `clear()`.
 LISTENS: (none)
+GLOBAL EMITS: `ui:context-menu` `{ x, y, items, onSelect }` — the right-click menu. A Compound may not import `MpiContextMenu`, so `shell.js` shows it (MPI-751)
 NOTE:    Dumb on purpose: a label, a thumbnail URL and a right-click Paste / Clear whose rows are CONDITIONAL rather than greyed; left-click on an empty slot pastes as a shortcut. What a filled value MEANS belongs to the panel. Filled from `_compositeImage` in `MpiGroupHistoryBlock`, written by **`Send to Composite` on the image-viewer context menu** — the same gesture shape the Video workspace uses for Set as start/end frame. `Copy image` in the history list was the first source and was REMOVED; a filled slot has one origin.
 NOTE:    `.mpi-media-slot__thumb` / `__empty` carry a `display`, so their CSS needs an explicit `[hidden] { display: none }` — a class carrying `display` outranks the UA sheet and BOTH rendered at once when this shipped.
 

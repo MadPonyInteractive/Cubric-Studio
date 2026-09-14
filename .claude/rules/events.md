@@ -64,6 +64,7 @@ myToolBus.emit('result', { imgUrl });
 ## 📋 Common Canonical Events
 *(Always verify in `js/events.js` if unsure)*
 * `ui:error` - Request the shell to show an error dialog
+* `ui:context-menu` - A Compound asks the shell to show `MpiContextMenu` `{ x, y, items, onSelect }`; it may not import that same-tier Compound. `shell.js` is the only listener
 * `ui:close-all-popups` - Signal to close floating UIs and non-modal slide-overs. Optional payload `{ reason: 'overlay-open' }` (fired by `Overlays.request`) marks an overlay-open pulse; long-lived panels (`MpiSlideOver`) ignore that reason so a child modal opening does not close the panel underneath.
 * `state:changed` - Global reactive state mutation
 * `project:changed` - User switched active project

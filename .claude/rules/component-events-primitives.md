@@ -148,6 +148,7 @@ EMITS:   (none — calls `props.onSelect(key)` callback then self-closes)
 LISTENS: `ui:close-all-popups` — self-close
 API:     Static `MpiContextMenu.show({ x, y, items, onSelect })` — portals to body, clamps to viewport, dismisses on outside-click / Escape
 NOTE:    `items` shape: `[{ key, icon?, label, kbd?, separator?, disabled?, danger? }]`. Stage redesign: `kbd` renders right-aligned keyboard hint (3-column grid layout); `separator: true` renders a divider line and ignores other fields.
+NOTE:    Compounds never call `show()` (same tier): MpiGalleryGrid, MpiHistoryList and MpiMediaSlot emit `ui:context-menu` `{ x, y, items, onSelect }`, and `shell.js` is its only listener, calling `show()` (MPI-751). Blocks and the shell call `show()` directly.
 
 ### MpiHistoryList
 EMITS:   `entry-selected`    `{ idx, item }` — card clicked (single-select)
@@ -160,6 +161,7 @@ EMITS:   `entry-selected`    `{ idx, item }` — card clicked (single-select)
          `add-to-gallery`    `{ index: number }` — Add to gallery chosen from context menu (exactly 1 selected)
          `reuse`             `{ positive: string, negative: string }` — Reuse-prompt icon button on a card clicked. Parent emits `workspace:inject-prompts` so PromptBox restores text. Button hidden on cards without `item.prompt` or `item.negativePrompt`.
 LISTENS: (none)
+GLOBAL EMITS: `ui:context-menu` `{ x, y, items, onSelect }` — the right-click menu. A Compound may not import `MpiContextMenu`, so `shell.js` shows it (MPI-751)
 API:     `el.setActiveIndex(idx)` · `el.setGroups(history)` · `el.appendEntry(item)` · `el.removeEntries(indices)` · `el.exitSelectMode()`
          `el.getSelectionOrder()` → `number[]` in chronological click order. Set insertion order alone is fragile across shift-range rebuilds (direction-aware walk in `_rangeSelect` keeps anchor first, target last). First shift-click without prior selection anchors at `_selectedIdx` (the currently-active entry), not at the stale default `_anchor = 0`.
 NOTE:    Selection: plain-click single-selects; ctrl/cmd-click first-time seeds anchor+selection from current active entry then toggles clicked; shift-click range-selects. Right-click NEVER enters selection mode — context menu acts on existing selection if right-clicked card is in it, otherwise acts on right-clicked card alone (ephemeral target; `compare-requested`/`combine-requested`/`delete-selected`/`add-to-gallery` indices reflect that single card). Dev-mode gate: if `APP_CONFIG.dev_mode` truthy, skips `e.preventDefault()` on contextmenu so Electron inspect-element works. Selection-order numeric badge (`#N`) renders on each selected card when `_selection.size >= 2`; hidden below.
