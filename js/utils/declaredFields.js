@@ -396,6 +396,65 @@ export function splitDeclaredValues(fields = [], values = {}) {
 }
 
 /**
+ * The inputs as they RUN when an Enhance was never pressed (MPI-677, 2026-09-14).
+ *
+ * A one-to-one enhance declaration (`from: 'positive', to: 'Input_Positive'`) whose
+ * target is empty runs its SOURCE in the target's place, so an unenhanced Character
+ * Sheet renders the raw brief rather than an empty phrase. Derived from the
+ * declaration, never declared twice, so the pair cannot be wired one-way.
+ *
+ * 🔴 A RUN DETAIL, NEVER THE SNAPSHOT. It used to be applied inside
+ * `MpiBaseFlow._collectInputs`, so the brief was SAVED as the phrase: reopening the flow
+ * or reusing its card put it back in the box as text Enhance did not own, and Enhance —
+ * which never overwrites the user's writing — silently discarded every answer after
+ * that. The result goes to `submitFlowGeneration` as `runInputs`, which is stripped
+ * before `flowInputs` exactly like `runMediaItems`.
+ *
+ * ONE-TO-ONE ONLY. A marker map (`to: {MOOD: …, VOCAL: …}`) has no single destination,
+ * and copying the brief into every block would state it three times in one caption.
+ * Song's brief reaches its graph on its own wire (`Input_Brief`, MPI-664).
+ *
+ * @param {Object[]} decls   enhance declarations
+ * @param {Object}   inputs  a collected snapshot — not mutated
+ * @returns {Object} a copy, each empty one-to-one target filled from its source
+ */
+export function withEnhanceFallback(decls, inputs = {}) {
+    const run = { ...inputs, injectionParams: { ...(inputs.injectionParams || {}) } };
+    (decls || []).forEach((d) => {
+        if (typeof d?.to !== 'string' || typeof d.from !== 'string') return;
+        const bin = isInjectionParam(d.to) ? run.injectionParams : run;
+        if (String(bin[d.to] || '').trim()) return;
+        const src = isInjectionParam(d.from) ? run.injectionParams[d.from] : run[d.from];
+        if (String(src || '').trim()) bin[d.to] = src;
+    });
+    return run;
+}
+
+/**
+ * Targets a SAVED snapshot filled with the fallback's echo — to drop on seed.
+ *
+ * Every snapshot written while the fallback lived in `_collectInputs` (session scratch,
+ * and every Character Sheet sidecar on disk) holds the brief verbatim as the phrase, with
+ * no ownership mark. Dropping that target loses nothing: the same text is still in the
+ * source box, and an empty target runs exactly that text. A target Enhance owns, or one
+ * differing from its source by a single character, is not an echo and stays.
+ *
+ * @param {Object[]}    decls   enhance declarations
+ * @param {Object}      values  field values by id
+ * @param {Set<string>} owned   target ids whose text Enhance wrote
+ * @returns {string[]}
+ */
+export function enhanceEchoTargets(decls, values = {}, owned = new Set()) {
+    return (decls || [])
+        .filter(d => typeof d?.to === 'string' && typeof d.from === 'string' && !owned.has(d.to))
+        .filter((d) => {
+            const to = String(values[d.to] ?? '').trim();
+            return to !== '' && to === String(values[d.from] ?? '').trim();
+        })
+        .map(d => d.to);
+}
+
+/**
  * Every declared field a FlowDef owns, flow-level and step-level together.
  *
  * A field declared on a STEP reaches the op exactly as a flow-level one does

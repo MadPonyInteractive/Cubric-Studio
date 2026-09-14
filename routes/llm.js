@@ -127,13 +127,14 @@ async function deepInfraPrices() {
  */
 router.get('/llm/models', async (_req, res) => {
     try {
-        const { MODEL_REGISTRY, DEFAULT_MODEL_ID } = await engines();
+        const { MODEL_REGISTRY, DEFAULT_MODEL_ID, modelName } = await engines();
         const prices = (await hasDeepInfraKey()) ? await deepInfraPrices() : null;
         res.json({
             defaultModelId: DEFAULT_MODEL_ID,
             models: MODEL_REGISTRY.map((m) => ({
                 id: m.id,
                 name: m.name,
+                names: { ollama: modelName(m, 'ollama'), deepinfra: modelName(m, 'deepinfra') },
                 description: m.description,
                 ollama: !!m.ollamaName,
                 deepinfra: !!m.deepInfraId,
@@ -170,14 +171,14 @@ async function ollamaSize(name) {
  */
 router.get('/llm/ollama', async (_req, res) => {
     try {
-        const { OllamaEngine, MODEL_REGISTRY, DEFAULT_MODEL_ID, ollamaTagged } = await engines();
+        const { OllamaEngine, MODEL_REGISTRY, DEFAULT_MODEL_ID, ollamaTagged, modelName } = await engines();
         const engine = new OllamaEngine();
         const running = await engine.isRunning();
         const installed = running ? new Set(await engine.listModels()) : null;
         const entries = await Promise.all(MODEL_REGISTRY.filter((m) => m.ollamaName).map(async (m) => {
             const downloaded = installed ? installed.has(ollamaTagged(m.ollamaName)) : null;
             return [m.id, {
-                name: m.name,
+                name: modelName(m, 'ollama'),
                 downloaded,
                 size: downloaded === false ? await ollamaSize(m.ollamaName) : null,
                 pull: ollamaLifecycle.pullState(m.ollamaName),
@@ -265,7 +266,7 @@ router.post('/llm/enhance', async (req, res) => {
 
     let backend;
     try {
-        const { OllamaEngine, DeepInfraEngine, getModel, DEFAULT_MODEL_ID, ollamaTagged } = await engines();
+        const { OllamaEngine, DeepInfraEngine, getModel, DEFAULT_MODEL_ID, ollamaTagged, modelName } = await engines();
         backend = asked === 'deepinfra' || asked === 'ollama' ? asked : await defaultBackend();
 
         const entry = getModel(modelId || DEFAULT_MODEL_ID);
@@ -276,6 +277,7 @@ router.post('/llm/enhance', async (req, res) => {
         // letting `model: undefined` reach the wire.
         const model = backend === 'deepinfra' ? entry.deepInfraId : entry.ollamaName;
         if (!model) return res.json({ ok: false, error: `"${entry.name}" has no ${backend} variant.` });
+        const name = modelName(entry, backend);
 
         if (backend === 'ollama') {
             // MPI-728 phase 3: a stopped Ollama is STARTED here, not reported. Starting
@@ -291,7 +293,7 @@ router.post('/llm/enhance', async (req, res) => {
             }
             // Without this the user gets Ollama's own `404 Not Found`, which names nothing.
             if (!(await new OllamaEngine().listModels()).includes(ollamaTagged(model))) {
-                return res.json({ ok: false, error: `${entry.name} is not downloaded in Ollama yet. Download it in Remote → Language Models.` });
+                return res.json({ ok: false, error: `${name} is not downloaded in Ollama yet. Download it in Remote → Language Models.` });
             }
         }
 

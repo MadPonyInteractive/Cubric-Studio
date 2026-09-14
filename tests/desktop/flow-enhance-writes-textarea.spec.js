@@ -112,3 +112,54 @@ test('a programmatic write into a Flow text field reaches the textarea', async (
     await closeApp(app);
   }
 });
+
+/**
+ * MPI-677, 2026-09-14 — Enhance on a phrase the user TYPED must refuse before it runs,
+ * and say why. It used to dispatch anyway (a GPU job, or a billed DeepInfra call) and
+ * then discard the answer in `_writeEnhanced` without a word: a button that visibly did
+ * nothing, which is exactly how the reopen bug hid. Needs no model — the refusal comes
+ * before the dispatch, and the label never reading "Enhancing…" is the proof nothing ran.
+ */
+test('Enhance on a hand-typed phrase refuses before running, and says why', async ({}, testInfo) => {
+  const { app, window } = await launchApp(testInfo);
+
+  try {
+    await window.waitForTimeout(6000);
+    await window.evaluate(async () => {
+      const { Events } = await import('/js/events.js');
+      window.__warnings = [];
+      Events.on('ui:warning', p => window.__warnings.push(p?.message));
+      Events.emit('flow:open', { flowId: 'character-sheet' });
+    });
+    await expect(window.locator('.mpi-base-flow')).toHaveCount(1);
+    await window.evaluate(() => document.querySelector('#flow-next').click());
+
+    const phrase = window.locator(
+      '.mpi-base-flow__field:has(.mpi-base-flow__field-label:text-is("The character phrase")) textarea',
+    );
+    await expect(phrase).toHaveCount(1);
+
+    const labelAfterPress = await window.evaluate(() => {
+      const wrapOf = label => [...document.querySelectorAll('.mpi-base-flow__field')].find(
+        w => w.querySelector('.mpi-base-flow__field-label')?.textContent === label,
+      );
+      const type = (label, text) => {
+        const ta = wrapOf(label).querySelector('textarea');
+        ta.value = text;
+        ta.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+      type('Your character', 'a knight in a dented breastplate');
+      type('The character phrase', 'MY-OWN-PHRASE');
+      const btn = wrapOf('The character phrase').parentElement.querySelector('.mpi-base-flow__field-button');
+      (btn.querySelector('button') || btn).click();
+      return btn.textContent;
+    });
+
+    await expect.poll(() => window.evaluate(() => window.__warnings))
+      .toContain('"The character phrase" is your own text. Clear it first, then Enhance.');
+    await expect(phrase).toHaveValue('MY-OWN-PHRASE');
+    expect(labelAfterPress).not.toContain('Enhancing');
+  } finally {
+    await closeApp(app);
+  }
+});

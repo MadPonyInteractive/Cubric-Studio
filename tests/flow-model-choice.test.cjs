@@ -637,7 +637,7 @@ test('flowService carries the resolved model into the run', () => {
     const src = read('js/services/flowService.js');
     assert.match(
         src,
-        /injectionParams:\s*\{ \.\.\.flowModelParams\(flow\), \.\.\.\(inputs\.injectionParams \|\| \{\}\) \}/,
+        /injectionParams:\s*\{ \.\.\.flowModelParams\(flow\), \.\.\.\(run\.injectionParams \|\| \{\}\) \}/,
         'without this merge the pick never leaves the registry and the graph keeps its baked loader',
     );
     assert.match(

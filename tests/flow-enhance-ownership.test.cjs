@@ -132,3 +132,70 @@ test('the Song enhancer is given the cast, and still not the lyrics', async () =
         assert.ok(declared.has(id), `enhance source ${id} must be a declared field`);
     });
 });
+
+// ── the raw-prompt fallback is a RUN detail (MPI-677, 2026-09-14) ───────────
+//
+// Fabio reopened Character Sheet and found his brief sitting in the phrase box, and
+// Enhance did nothing. The fallback that runs the brief when Enhance was never pressed
+// was applied inside `_collectInputs`, whose output is ALSO the saved snapshot — so the
+// brief came back as a phrase with no ownership mark, and Enhance refused to touch it.
+
+const SHEET = [{ id: 'enhance', action: 'enhance', from: 'positive', to: 'Input_Positive' }];
+
+test('Enhance refuses before dispatching, and says why, when every target is the user\'s text', () => {
+    // The discard in `_writeEnhanced` was silent and came AFTER the run: a paid DeepInfra
+    // call or a GPU job, then a button that did nothing. That silence is what hid the
+    // reopen bug above.
+    const src = frame();
+    const body = src.slice(src.indexOf('function _runEnhance('), src.indexOf('async function _autoEnhance('));
+    const guard = body.indexOf('_enhanceTargets(d);\n');
+    assert.ok(guard > 0 && /if \(!targets\.some\(_mayEnhanceWrite\)\)/.test(body),
+        '_runEnhance must check its targets are writable');
+    assert.ok(guard < body.indexOf('enhanceFlow('), 'the check must come BEFORE the dispatch');
+    assert.match(body, /is'\} your own text\. Clear/, 'the refusal must tell the user what to do');
+    assert.ok(/_mayEnhanceWrite\(d\.to\)/.test(src), '_writeEnhanced keeps its check for text typed mid-run');
+});
+
+test('an unpressed Enhance runs the raw prompt, and the snapshot does not grow it', async () => {
+    const { withEnhanceFallback } = await esm('js/utils/declaredFields.js');
+    const snapshot = { positive: 'a bodybuilder', injectionParams: { Input_Tier: 1 } };
+    const run = withEnhanceFallback(SHEET, snapshot);
+    assert.strictEqual(run.injectionParams.Input_Positive, 'a bodybuilder');
+    assert.strictEqual(run.injectionParams.Input_Tier, 1, 'the rest of the params ride along');
+    assert.ok(!('Input_Positive' in snapshot.injectionParams), 'the snapshot must not be mutated');
+
+    const kept = withEnhanceFallback(SHEET, { positive: 'a', injectionParams: { Input_Positive: 'b' } });
+    assert.strictEqual(kept.injectionParams.Input_Positive, 'b', 'a phrase that exists runs as it is');
+
+    // A marker map has no single destination; Song's brief has its own wire.
+    const music = withEnhanceFallback([{ from: 'positive', to: { MOOD: 'Input_Mood' } }], { positive: 'x' });
+    assert.deepStrictEqual(music.injectionParams, {});
+});
+
+test('a saved snapshot holding the fallback echo drops it, and nothing else', async () => {
+    const { enhanceEchoTargets } = await esm('js/utils/declaredFields.js');
+    assert.deepStrictEqual(enhanceEchoTargets(SHEET, { positive: 'brief ', Input_Positive: 'brief' }), ['Input_Positive']);
+    assert.deepStrictEqual(enhanceEchoTargets(SHEET, { positive: 'brief', Input_Positive: 'brief, tall' }), [],
+        'a phrase the user edited is theirs');
+    assert.deepStrictEqual(enhanceEchoTargets(SHEET, { positive: 'brief', Input_Positive: 'brief' }, new Set(['Input_Positive'])), [],
+        'text Enhance owns is never an echo');
+    assert.deepStrictEqual(enhanceEchoTargets(SHEET, { positive: '', Input_Positive: '' }), []);
+});
+
+test('the snapshot and the run are separated at both ends', () => {
+    const src = frame();
+    const collect = src.slice(src.indexOf('function _collectInputs()'), src.indexOf('// ── Session persistence'));
+    assert.ok(collect.length > 0 && !/_enhanceDecls/.test(collect),
+        '_collectInputs must not apply the enhance fallback — its output is the snapshot Reuse restores');
+    assert.match(src, /const runInputs = withEnhanceFallback\(_enhanceDecls, inputs\);/);
+    assert.match(src, /submitFlowGeneration\(flow, \{ \.\.\.inputs, runMediaItems, runInputs \}/);
+    assert.match(src, /enhanceEchoTargets\(_enhanceDecls, _fieldValues, _enhanceWrote\)/,
+        'the seed must drop a fallback echo saved by an older snapshot');
+
+    const service = fs.readFileSync(repo('js/services/flowService.js'), 'utf8');
+    assert.match(service, /const \{ runMediaItems, runInputs, \.\.\.snapshot \} = inputs;/,
+        '`runInputs` must be stripped before `flowInputs`');
+    assert.match(service, /positive: run\.positive \|\| ''/);
+    assert.match(service, /\.\.\.\(run\.injectionParams \|\| \{\}\)/);
+    assert.match(service, /flowInputs: snapshot,/);
+});

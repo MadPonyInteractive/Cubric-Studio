@@ -1167,3 +1167,96 @@ is why.
 **NOT verified:** nothing driven live. The flow path is unreachable until `MpiBaseFlow`
 calls `enhanceFlow` (held on MPI-747's claim `c15cce05`), and the Klein borrow needs a GPU
 run — Fabio's `user-ux` check.
+
+## The call site, and two defects Fabio's check found (2026-09-14)
+
+**Swap:** `MpiBaseFlow._runEnhance` calls `enhanceFlow`; `tests/enhance-control.test.cjs`
+now also fails if it calls `runComfyEnhance` directly.
+
+**Live, Fabio:** DeepInfra (Gemma 4 26B A4B) × Character Sheet Enhance returned one line,
+no "no …" clause, no trailing full stop. `app.log` shows no ComfyUI prompt that day, so
+the server path answered (the route logs only failures).
+
+**Defect 1 — Enhance dead after reopening Character Sheet.** Fabio reopened the flow:
+the phrase box held his brief verbatim, and Enhance changed nothing. Root cause: the
+"no Enhance pressed → run the raw prompt" fallback was applied inside `_collectInputs`,
+whose output is ALSO the session snapshot (`_persistInputs`) and the sidecar
+`flowInputs`. So the brief was saved as `Input_Positive`, `_seedField` restored it with
+no `enhanceWrote` mark, `_mayEnhanceWrite` read it as the user's writing, and
+`_writeEnhanced` discarded every answer silently. Reuse of any unenhanced card: same.
+- Fix: `withEnhanceFallback` (`js/utils/declaredFields.js`) builds `runInputs`, which
+  `submitFlowGeneration` strips before `flowInputs` exactly like `runMediaItems`.
+  `enhanceEchoTargets` drops an OLD snapshot's echo on seed (target == source verbatim,
+  not Enhance-owned): lossless, the brief is still in its own box.
+- Blast radius, measured by script over `flowsRegistry.js`: only `character-sheet`
+  (`Input_Positive`, both surfaces). `minimax-music` is a marker map (no fallback); no
+  `derived` or step `param` id collides with a visible field.
+
+**Defect 2 — the picker hid which Gemma runs.** One registry entry is `gemma4:e4b` on
+Ollama and `google/gemma-4-26B-A4B-it` on DeepInfra, both labelled "Gemma 4 (Default)".
+`names` per backend + `modelName()`; `/llm/models`, `/llm/ollama` and the enhance route's
+not-downloaded error use it. Provenance already reported the real id.
+
+**Automated:** `npm test` 969/969; lint clean; `node --check routes/llm.js`.
+`tests/flow-model-choice.test.cjs:640` pinned the old `inputs.injectionParams` text and
+was updated to `run.injectionParams` (same merge order, same guard).
+**Five mutations, each RED, each file restored byte-exact** (scratchpad `mutate.py`):
+fallback back in `_collectInputs`; `runInputs` not stripped; echo ignores ownership;
+fallback mutates the snapshot; one name for both backends.
+
+**NOT verified:** the reopen repair and the new labels in the app (needs an app restart:
+`routes/llm.js` and `llmEngines.mjs` are server-side). Ollama, ComfyUI and Music Maker
+still owe Fabio's check.
+
+**Live, Fabio, after the restart — Character Sheet PASSES on all three backends:**
+- Ollama (Gemma 4 E4B): wizard enhanced; editing the brief emptied the phrase (placeholder
+  back, button hot); re-Enhance wrote a new phrase that carries the added "yellow gem".
+- ComfyUI (Qwen3-VL 4B graph): same brief, one line, recipe shape, no trailing stop.
+- Recipe observation, not a code defect: both Ollama E4B phrases added a "gunbelt" (one
+  "a working cowboy's gunbelt and a hunter's quiver") to a wizard. That is rule 4's own
+  example list in the Character Sheet system prompt (`qwen3vl_4b_prompt_enhancer.json`),
+  copied verbatim by the 4B although rule 3 applied (the user named a staff). The 26B and
+  the ComfyUI Qwen did not do it. Changing the recipe changes ComfyUI output too: Fabio's call.
+
+**Refusal message (Fabio: "yes add the feedback message").** `_runEnhance` now checks
+`_enhanceTargets(d).some(_mayEnhanceWrite)` BEFORE dispatching and warns
+`"The character phrase" is your own text. Clear it first, then Enhance.` — no GPU job or
+billed call for an answer that would be discarded. `_writeEnhanced` keeps its own check
+for text typed mid-run. `npm test` 970/970, lint clean; removing the guard turns the new
+test RED (scratchpad `mutate2.py`).
+
+## The rest of the user-ux check, run by the agent at Fabio's request (2026-09-14)
+
+Fabio could no longer reproduce the reopen bug (the phrase came back empty after a
+backend switch and a return, button hot) and asked the agent to run the remaining checks
+itself. None touched his app on :3000 or its engine on 48188.
+
+- **Refusal message — desktop spec, own Electron on port 64414:**
+  `tests/desktop/flow-enhance-writes-textarea.spec.js` 2/2. The new test types the brief
+  and a phrase, presses Enhance, and asserts the exact warning, the phrase untouched, and
+  the label never reading "Enhancing…" (nothing dispatched).
+- **Song (`minimax-music`) on DeepInfra and Ollama — scratchpad `song_backends.mjs`**, the
+  same steps as `enhanceFlow`'s server branch (source text built like
+  `_enhanceSourceText`, graph defaults + Song's params, ChatML unwrapped, cap 800, graph
+  post-processing, `_writeEnhanced`'s marker split), under `gpu_lease.py`. Skips only the
+  `/llm/enhance` hop Character Sheet crossed live. Result `song_result.json`:
+  - DeepInfra `google/gemma-4-26B-A4B-it`, 7.1 s, 1,177 chars: MOOD / VOCAL / ARRANGEMENT
+    all filled, one line.
+  - Ollama `gemma4:e4b`, 10.9 s, 589 chars: all three filled, one line; model unloaded.
+  - The unwrapped system prompt carries no ChatML marker. DeepInfra's reply keeps its
+    closing full stop: Song's `Input_Tidy` is `\s+$` by design (prose, not a spliced phrase).
+- **Klein 9B prompt-box Enhance on ComfyUI — BENCH 8188, scratchpad `klein_bench.mjs`**,
+  injection built exactly as `enhance()` builds it for `klein-9b` (`enhanceRecipe: 'flux'`
+  → recipe `flux-2`, `buildComfyInjectionParams`, `enhancerClipParams(klein_9b_t2i.json)`),
+  under `gpu_lease.py`. `Load CLIP` ran `qwen_3_8b_int8_convrot.safetensors` / `flux2`;
+  status `success`, 65.9 s including the encoder load, no execution error; output one
+  line: "a lighthouse keeper stands alone on a cliffside tower during a violent storm, …".
+  Bench models freed afterwards (`POST /free`).
+- **Song on ComfyUI — not re-run, by reasoning:** `enhanceFlow`'s `comfy` branch is
+  `runComfyEnhance` with the declaration's params, the call Song shipped on (MPI-664),
+  and Character Sheet crossed that exact branch live today.
+
+**Correction, Fabio (2026-09-14):** `MpiClearVram` does NOT unload the models; it releases
+VRAM and the models stay loaded (in RAM) and are reused when asked for again. The earlier
+"a borrowed encoder therefore goes back to RAM ... not a warm VRAM copy" reading stands only
+in that sense: no second load from disk. The timing job it motivated is dropped.

@@ -346,7 +346,7 @@ export const MpiLlmSettings = ComponentFactory.create({
                 const downloaded = backend === 'ollama' ? _ollama?.models?.[m.id]?.downloaded : undefined;
                 return {
                     value: m.id,
-                    label: m.name,
+                    label: m.names?.[backend] || m.name,
                     info: m.description,
                     // No price when the fetch failed: none beats a stale one.
                     ...(billed && m.price && { meta: priceLabel(m.price) }),

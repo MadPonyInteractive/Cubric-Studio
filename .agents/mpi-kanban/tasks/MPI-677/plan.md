@@ -35,6 +35,29 @@ names but never lettered. **Order is by priority, not by letter.**
 
 ## Current State
 
+**2026-09-14 — FLOWS FOLLOW THE PICK: SHIPPED IN THE TREE AND VERIFIED, NOT YET COMMITTED.**
+Evidence: `validation.md` § "The call site, and two defects" and § "The rest of the user-ux
+check". `MpiBaseFlow._runEnhance` calls `enhanceFlow`. Fabio's live check found two defects,
+both fixed: the raw-prompt fallback rode the saved snapshot (Character Sheet's Enhance went
+dead after reopen/Reuse; now `runInputs`, stripped like `runMediaItems`, plus a seed repair
+for old snapshots), and the picker hid which Gemma 4 runs (now E4B on Ollama, 26B A4B on
+DeepInfra). Added at his request: Enhance refuses before dispatching when every target is the
+user's own text, with a message. Everything checked: Character Sheet × 3 backends live; the
+refusal by desktop spec; Song on DeepInfra/Ollama by harness; Klein 9B's borrowed encoder on
+the bench. "Music Maker" is now **Song** (`minimax-music`); Sound & Music has no enhance.
+- Committed and pushed at the 2026-09-14 handoff (`65c81d20`).
+- **THE SINGLE NEXT ACTION: step 4** (§ Step 4 below). Unblocked and disjoint: the first
+  app-knowledge playbooks into `docs/agent/` (verify: `listCorpus()` returns each, non-empty).
+  The `SKILL.md` split is MPI-593's and is SEQUENCED after MPI-547 / MPI-556 / MPI-675 (check
+  the board first). The build/heal loop opens on Fabio's answer: heal triggered by a card he
+  files, or by detection?
+- At close-out, Fabio's per-file yes: `docs/playbooks/add-flow/ui/prompt-enhance.md:58`
+  (fallback now lives in `withEnhanceFallback` / `runInputs`) and `:185` (flows no longer stay
+  on ComfyUI), plus MPI-728's six proposals below.
+- DROPPED, the `MpiClearVram` timing job (Fabio, 2026-09-14): the node only moves weights off
+  the GPU; the models stay loaded and are reused on the next request. So a borrowed encoder
+  costs no second load, and the older note below calling it an unload is superseded.
+
 **2026-09-13 (later) — FLOWS FOLLOW THE PICK: THE SERVICE SIDE IS BUILT AND TESTED; THE
 FLOW CALL SITE IS HELD ON A PEER'S CLAIM.** Evidence: `validation.md` § Flows follow the pick.
 

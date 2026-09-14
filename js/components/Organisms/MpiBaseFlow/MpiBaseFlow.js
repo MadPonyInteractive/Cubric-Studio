@@ -24,11 +24,11 @@ import { renderIcon } from '/js/utils/icons.js';
 import { getStepKind, stepValueToParam, stepValueToMedia, isFrameKind } from './stepKinds.js';
 import { enqueueGeneration, findMissingMediaSlot } from '../../../services/generationService.js';
 import { getCommand } from '../../../data/commandRegistry.js';
-import { runComfyEnhance } from '../../../services/llmService.js';
+import { enhanceFlow } from '../../../services/llmService.js';
 import { flowModelSlots, flowModelIds, setFlowModel } from '../../../data/flowsRegistry.js';
 import { disambiguatedName } from '../../../data/modelRegistry.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
-import { buildField, mapDeclaredValue, isInjectionParam, disabledFieldIds, hiddenFieldIds } from '../../../utils/declaredFields.js';
+import { buildField, mapDeclaredValue, isInjectionParam, disabledFieldIds, hiddenFieldIds, withEnhanceFallback, enhanceEchoTargets } from '../../../utils/declaredFields.js';
 import { buildLicenceRows } from '../../../utils/flowLicences.js';
 
 /**
@@ -1246,6 +1246,15 @@ export const MpiBaseFlow = ComponentFactory.create({
             Array.isArray(seeded.enhanceWrote) ? seeded.enhanceWrote : [],
         );
 
+        // A snapshot saved while the raw-prompt fallback lived in `_collectInputs`
+        // holds the brief verbatim as the phrase, owned by nobody, so Enhance would
+        // refuse it forever (MPI-677, 2026-09-14). Dropping it is lossless: the brief
+        // is still in its own box, and an empty phrase runs exactly that brief.
+        enhanceEchoTargets(_enhanceDecls, _fieldValues, _enhanceWrote).forEach((id) => {
+            delete _fieldValues[id];
+            (_stepRolesById.get(id) || []).forEach((role) => { delete _stepValues[role]?.fields?.[id]; });
+        });
+
         function _paintEnhance() {
             _enhanceDecls.forEach((d) => {
                 const wrap = _liveFields.get(d.id);
@@ -1346,6 +1355,23 @@ export const MpiBaseFlow = ComponentFactory.create({
                 if (!silent) Events.emit('ui:warning', { message: 'Write a prompt first, then Enhance.' });
                 return Promise.resolve();
             }
+            // EVERY TARGET IS THE USER'S OWN TEXT → say so, and spend nothing (Fabio,
+            // 2026-09-14). `_writeEnhanced` would discard the answer anyway, so running
+            // first bought a GPU job or a billed DeepInfra call and then a button that
+            // visibly did nothing, which is how the reopen bug hid. Checked BEFORE the
+            // dispatch; `_writeEnhanced` keeps its own check for text typed mid-run.
+            const targets = _enhanceTargets(d);
+            if (!targets.some(_mayEnhanceWrite)) {
+                if (!silent) {
+                    const byId = new Map(_allDecls.map(f => [f.id, f]));
+                    const names = targets.map(id => `"${byId.get(id)?.label || id}"`);
+                    const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0];
+                    Events.emit('ui:warning', {
+                        message: `${list} ${names.length > 1 ? 'are' : 'is'} your own text. Clear ${names.length > 1 ? 'one' : 'it'} first, then Enhance.`,
+                    });
+                }
+                return Promise.resolve();
+            }
             let _settle;
             const settled = new Promise((res) => { _settle = res; });
             _enhancing = d.id;
@@ -1360,7 +1386,13 @@ export const MpiBaseFlow = ComponentFactory.create({
             // travel one level down now. The op name and the "not in this build" guard
             // moved with the dispatch, which is why the declaration no longer names an
             // operation.
-            runComfyEnhance({
+            //
+            // FOLLOWS THE LANGUAGE MODELS PICK (Fabio, 2026-09-13). `enhanceFlow` runs
+            // the ComfyUI graph only when that is the user's backend; on DeepInfra or
+            // Ollama it reads the graph's baked recipe and replays its Replace Text /
+            // Scrub Negation / Tidy nodes on the reply, so a flow tuned on the graph
+            // gets the same shape of text back. Same arguments, same result shape.
+            enhanceFlow({
                 prompt: source,
                 injectionParams: d.injectionParams,
                 modelId: d.model || null,
@@ -3181,24 +3213,9 @@ export const MpiBaseFlow = ComponentFactory.create({
                 }
             });
 
-            // No Enhance pressed → the RAW prompt is what runs. The fallback is derived
-            // from the enhance declaration rather than declared a second time, so the
-            // pair can never be wired one-way.
+            // The raw-prompt fallback for an unenhanced run is NOT applied here: this is
+            // the snapshot, and the fallback is a run detail. See `_runInputs`.
             //
-            // ONE-TO-ONE DECLARATIONS ONLY. A marker map (`to: {MOOD: …, VOCAL: …}`) has
-            // no single destination for the raw prompt, and copying the brief into all
-            // three would state it three times in one caption. Music Maker needs no
-            // fallback anyway: its brief reaches the graph on its own wire now
-            // (`Input_Brief`, MPI-664 decision A), and its enhancer runs inside Generate
-            // rather than waiting to be pressed, so an unenhanced run is the failure
-            // case and the right shape for it is three empty headings the graph strips.
-            _enhanceDecls.forEach((d) => {
-                if (typeof d.to !== 'string' || typeof d.from !== 'string') return;
-                const bin = isInjectionParam(d.to) ? declaredParams : declared;
-                if (String(bin[d.to] || '').trim()) return;
-                const src = isInjectionParam(d.from) ? declaredParams[d.from] : declared[d.from];
-                if (String(src || '').trim()) bin[d.to] = src;
-            });
             // A button is an ACTION, not a value — a click must not reach the op as
             // `enhance: true`.
             _decls.forEach((f, id) => {
@@ -3448,7 +3465,10 @@ export const MpiBaseFlow = ComponentFactory.create({
                 return;
             }
 
-            const res = submitFlowGeneration(flow, { ...inputs, runMediaItems }, {
+            // `runInputs` beside `runMediaItems`, and for the same reason: the raw prompt
+            // standing in for an unpressed Enhance is what RUNS, never what Reuse restores.
+            const runInputs = withEnhanceFallback(_enhanceDecls, inputs);
+            const res = submitFlowGeneration(flow, { ...inputs, runMediaItems, runInputs }, {
                 onComplete: ({ item, items, displayUrls } = {}) => {
                     _setRunning(false);
                     _myTempId = null;

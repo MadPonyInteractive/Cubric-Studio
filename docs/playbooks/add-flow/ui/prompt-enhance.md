@@ -55,7 +55,8 @@ The three behaviours come off the ONE `action` declaration, so they cannot disag
 | **Enhance is the only writer of `to`** (besides the user typing in it). Generate never enhances. | `_runEnhance` is the only caller that writes `to` |
 | **Editing `from` CLEARS `to`.** The enhanced text was written for the old wording. | `_setFlowField` — visible immediately where `to` is shown |
 | **The button reports which of those is true.** Heat = the current prompt is not enhanced. | `_paintEnhance` — the only readable signal on a surface that hides `to` |
-| **No Enhance pressed → the RAW prompt runs**, on a one-to-one declaration. | `_collectInputs` fills an empty `to` from `from` — string `from`/`to` only; a marker map has no single destination for the brief |
+| **No Enhance pressed → the RAW prompt runs**, on a one-to-one declaration. | `withEnhanceFallback` (`js/utils/declaredFields.js`) fills an empty `to` from `from` in `runInputs`, which `submitFlowGeneration` strips before `flowInputs` like `runMediaItems`. **Never in the snapshot** (MPI-677): saved there, the brief came back as an unowned phrase on reopen/Reuse and Enhance refused it forever. String `from`/`to` only; a marker map has no single destination for the brief |
+| **Enhance never overwrites the user's own text, and says so.** | `_runEnhance` refuses BEFORE dispatching when no target is writable (`_mayEnhanceWrite`) and warns; `_writeEnhanced` keeps its own check for text typed mid-run |
 
 ## No button: enhancing INSIDE Generate (MPI-664)
 
@@ -182,11 +183,14 @@ should split into two steps.
 - **A prompt the user just types.** One `text` field. The pair earns its place only when
   something rewrites the text and the user must see what it wrote.
 - **Enhancing in place.** `MpiPromptBox`'s own enhance control overwrites the prompt box with the
-  result. Since MPI-677 both it and this share ONE dispatch — `runComfyEnhance()` in
-  `js/services/llmService.js` — but they are still different features: the box picks a
-  per-target-model RECIPE and may answer off-GPU on DeepInfra, while a flow injects its OWN recipe
-  and stays on the ComfyUI graph because it depends on that graph's scrub/tidy post-processing.
-  Reuse the dispatch; do not wire a flow into the box's recipe resolution.
+  result. Since MPI-677 both follow the user's Language Models pick (ComfyUI, DeepInfra or
+  Ollama) through `js/services/llmService.js`, but they are still different features: the box
+  picks a per-target-model RECIPE (`enhance()`), while a flow injects its OWN recipe through
+  `enhanceFlow()`. On ComfyUI that runs the enhancer graph as before; on a server backend it
+  reads the graph's baked values, lays the declaration's params over them, and replays the
+  graph's Replace Text / Scrub Negation / Tidy nodes on the reply (`postProcessLikeGraph`), so a
+  flow tuned on the graph gets the same shape of text back. Reuse `enhanceFlow`; do not wire a
+  flow into the box's recipe resolution.
 - **The per-model `enhancePrompt` toggle is GONE** (MPI-677 step 1b). It used to be a third thing
   named "enhance": a boolean control injecting `Input_Enhance_Prompt` so the workflow rewrote the
   prompt inside the graph. Enhancement stopped being a property of the workflow, all four graphs

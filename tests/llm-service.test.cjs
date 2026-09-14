@@ -297,6 +297,19 @@ function testForkBridgeAnswersDeepInfraRequests() {
 
 // ── DeepInfra prices (MPI-728) ───────────────────────────────────────────────
 
+function testModelNamesSayWhichSizeRuns() {
+    // One registry entry is TWO models — Gemma 4 E4B on Ollama, the 26B MoE on DeepInfra —
+    // and a picker reading "Gemma 4 (Default)" on both hid that (Fabio, 2026-09-14).
+    const { getModel, modelName } = require('../services/llmEngines.mjs');
+    const gemma = getModel('gemma-4-e4b');
+    assert.match(modelName(gemma, 'ollama'), /E4B/);
+    assert.match(gemma.ollamaName, /e4b/i, 'the Ollama label must name the tag that runs');
+    assert.match(modelName(gemma, 'deepinfra'), /26B/);
+    assert.match(gemma.deepInfraId, /26B/, 'the DeepInfra label must name the model that runs');
+    // An entry that is one model everywhere keeps its one name.
+    assert.strictEqual(modelName(getModel('gemma-3-12b'), 'deepinfra'), 'Gemma 3 12B');
+}
+
 function testDeepInfraPricesParse() {
     // The `GET /v1/openai/models` shape as returned on 2026-09-12, trimmed. An
     // entry without numeric token prices is left out rather than priced at zero.
@@ -334,6 +347,7 @@ const tests = [
     testModeResolution,
     testSecretsStoreDeepInfraSlot,
     testForkBridgeAnswersDeepInfraRequests,
+    testModelNamesSayWhichSizeRuns,
     testDeepInfraPricesParse,
     testPriceLabel,
 ];

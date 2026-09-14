@@ -53,6 +53,9 @@ export const MODEL_REGISTRY = [
     {
         id: 'gemma-4-e4b',
         name: 'Gemma 4 (Default)',
+        // One entry, two different models: say which one THIS backend runs (Fabio,
+        // 2026-09-14). A 4B and a 26B MoE write noticeably different prompts.
+        names: { ollama: 'Gemma 4 E4B (Default)', deepinfra: 'Gemma 4 26B A4B (Default)' },
         ollamaName: 'gemma4:e4b',
         deepInfraId: 'google/gemma-4-26B-A4B-it',
         description:
@@ -88,6 +91,11 @@ export const DEFAULT_MODEL_ID = MODEL_REGISTRY[0].id;
 /** Look up a model by its neutral registry id. */
 export function getModel(id) {
     return MODEL_REGISTRY.find((m) => m.id === id);
+}
+
+/** A registry entry's name as `backend` serves it; one entry can be two sizes. */
+export function modelName(m, backend) {
+    return m.names?.[backend] || m.name;
 }
 
 // ---------------------------------------------------------------------------

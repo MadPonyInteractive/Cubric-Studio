@@ -98,8 +98,10 @@ function testTheControlHasNoPerModelBranch() {
 
 function testOnlyLlmServiceDispatchesTheEnhancerOp() {
     const flow = SRC('js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
-    assert.ok(flow.includes('runComfyEnhance('),
+    assert.ok(flow.includes('enhanceFlow('),
         'MpiBaseFlow must route its enhance through the shared dispatch');
+    assert.ok(!flow.includes('runComfyEnhance'),
+        'MpiBaseFlow calls the ComfyUI enhancer directly — flows must follow the Language Models pick');
     assert.ok(!/operation:\s*d\.op/.test(flow),
         'MpiBaseFlow still dispatches the enhancer itself — that is the second copy this step removed');
 

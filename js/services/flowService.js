@@ -121,7 +121,15 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // the snapshot has to keep the user's own image plus the rect, or a reuse would
     // outpaint an already-outpainted picture. So `runMediaItems` is stripped here and
     // never reaches `flowInputs`.
-    const { runMediaItems, ...snapshot } = inputs;
+    //
+    // `runInputs` is the same rule for FIELDS (MPI-677, 2026-09-14): the inputs as they
+    // RUN, e.g. with the raw prompt standing in for an enhance target nobody filled.
+    // That fallback once rode in the snapshot, so reopening or reusing Character Sheet
+    // put the brief back into the phrase box as text Enhance did not own — and Enhance,
+    // which never overwrites the user's writing, then silently refused to run again.
+    // A caller with nothing run-only to say omits it and runs its snapshot.
+    const { runMediaItems, runInputs, ...snapshot } = inputs;
+    const run = runInputs || snapshot;
     // ponytail: the chained leg takes NO media. Its graph reads what leg 1 wrote to
     // disk, addressed by name (`Input_Name`), so re-sending the source image would only
     // stage a file nothing loads. One rule, no per-flow knob — a chained leg that DID
@@ -134,15 +142,15 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
         // op per leg, which is why the chain needs no second `workflow` field on FlowDef.
         operation: _leg.operation || flow.operation,
         model: { id: null, mediaType: flow.mediaType || 'image' },
-        positive: inputs.positive || '',
-        negative: inputs.negative || '',
+        positive: run.positive || '',
+        negative: run.negative || '',
         mediaItems,
         // MPI-590: the params that identify WHICH member of an any-of set is running go
         // in FIRST, so a collected field of the same name still wins. Empty `{}` for every
         // flow that declares no `modelParams`. This is the hop that makes the picker real
         // — the same hop `loraModelId` was missing in MPI-504, where the panel saved real
         // slots and the image came back identical.
-        injectionParams: { ...flowModelParams(flow), ...(inputs.injectionParams || {}) },
+        injectionParams: { ...flowModelParams(flow), ...(run.injectionParams || {}) },
         // Which model's LoRA rack fills which PHASE of this flow's graph — one
         // `{ phase, modelId }` per `requiredModels` slot that declared `loras: true`, and
         // `[]` for every flow that declared none. NOT a model selection: it never reaches

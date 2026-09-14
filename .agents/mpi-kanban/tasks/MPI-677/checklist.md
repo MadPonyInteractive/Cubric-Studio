@@ -84,9 +84,23 @@ in the card description are retired; `plan.md` carries the mapping note.
       model's encoder *(verify mode: `user-ux`)*
   - [x] Service side: `enhanceFlow`, the graph pipeline mirrored on the server backends,
         the token cap forwarded, Klein's CLIP borrowed. 966/966, lint clean, 3 mutations RED
-  - [ ] `MpiBaseFlow._runEnhance` calls `enhanceFlow` — HELD on MPI-747's claim `c15cce05`
-  - [ ] Fabio's check in the app (both flows × three backends, Klein prompt box on ComfyUI)
-  - [ ] `MpiClearVram` timing on Klein 9B, with and without the clear *(not a gate)*
+  - [x] `MpiBaseFlow._runEnhance` calls `enhanceFlow` (2026-09-14, after `c15cce05` released)
+  - [x] Found in Fabio's check: the raw-prompt fallback was saved in the snapshot, so a
+        reopened or reused Character Sheet put the brief in the phrase box, unowned, and
+        Enhance discarded every answer. Moved to `runInputs` (stripped like
+        `runMediaItems`); the seed drops an old snapshot's echo. Only Character Sheet had it
+  - [x] Found in Fabio's check: the picker said "Gemma 4 (Default)" on both backends; it
+        now names Gemma 4 E4B on Ollama and Gemma 4 26B A4B on DeepInfra
+  - [x] Fabio asked for it: Enhance refuses BEFORE dispatching when every target is the
+        user's own text, and says so ("... is your own text. Clear it first, then Enhance.")
+  - [x] The check (Fabio in the app, then the agent at his request — see validation.md)
+    - [x] Character Sheet × DeepInfra, Ollama, ComfyUI (Ollama incl. edit → clear → re-Enhance)
+    - [x] The refusal message — desktop spec 2/2
+    - [x] Song (`minimax-music`) × DeepInfra, Ollama (live, harness); ComfyUI by the unchanged
+          branch Character Sheet crossed live. Sound & Music declares no enhance
+    - [x] Klein 9B Enhance on ComfyUI — bench 8188 ran `qwen_3_8b_int8_convrot`, success
+  - [x] ~~`MpiClearVram` timing on Klein 9B~~ DROPPED (Fabio, 2026-09-14): the node frees VRAM
+        only, the models stay loaded and are reused, so there is no reload cost to measure
 - [x] Step 2 — cut the cord (broker surface + `@cubric/connector` dependency)
   - [x] Deleted `services/brokerBoot.js`, `services/connectorResponder.js`,
         `js/shell/connectorOps.js`, `POST /connector/enhance` and the
