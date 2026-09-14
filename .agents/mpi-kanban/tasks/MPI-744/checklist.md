@@ -33,7 +33,7 @@ score the seam in source space; sampling is deterministic run to run, so any pix
   empty-text negative) darkens LESS raw on dark_box, 0/-2/-3 (bg |d| 2.83) vs distilled -7/-6/-6,
   but still shows the box edge by eye, and the region composite takes BOTH to 0/0/0 — at 297 s vs
   23 s. Base buys nothing once the composite ships. Sheet: 31cf502b scratchpad `bench_base20t/dark_box_zoom.png`.
-- [ ] 24 - Queued runs READ: drag-in graph pixel-identical to the tested recipe (mean 0, max 0);
+- [x] 24 - Queued runs READ: drag-in graph pixel-identical to the tested recipe (mean 0, max 0);
   `fill_holes` REJECTED on 9B (fills the region to the whole gated area, bg from the decode again:
   dark |d| 0.05 -> 1.68, cat 0.04 -> 0.71) — not applied.
   **Exported 2026-09-13:** Fabio's bench file -> `raw/flow_head_swap.json` (re-indented to 2-space,
@@ -63,7 +63,7 @@ TAG dir). All configs below were dry-built and checked with `verify-workflow.mjs
 TAG to an ABSOLUTE scratchpad path so PNGs stay out of git; wrap every run in
 `gpu_lease.py run --timeout 3600`.
 
-- [ ] 25 - **Phase A — does base + turbo match distilled?** MODES=expand, JOBS dark,cat,red,
+- [x] 25 - **Phase A — does base + turbo match distilled?** MODES=expand, JOBS dark,cat,red,
   SEED 976866873943 / 42 / 1234 / 777777, 4 st / CFG 1 / lcm. Distilled = defaults; base + turbo =
   `UNET=flux-2-klein-9b.safetensors TURBO='Klein\klein_9B_Turbo_r128.safetensors' TURBO_STR=1.0`.
   24 runs, ~11 min (distilled ~20 s, base + turbo ~36 s). Sheet: `python faces.py <out>.png <distilledDir>
@@ -86,14 +86,27 @@ TAG to an ABSOLUTE scratchpad path so PNGs stay out of git; wrap every run in
   `vistralis`/`milo01` int8 9.44 GB (same sha256) = ModelOpt layout, no `comfy_quant` -> NOT loadable
   on the bench's ComfyUI 0.34 (`comfy/utils.py` converts only legacy `scaled_fp8`). Licence: base and
   distilled are both FLUX Non-Commercial (Winnougan's `apache-2.0` tag is wrong).
-- [ ] 28 - **NEXT SESSION, bench (Fabio 2026-09-13):** r3 (base bf16 + turbo 1.0 + head LoRA 0.75, 8 st,
+- [x] 28 - **Bench (Fabio 2026-09-13):** r3 (base bf16 + turbo 1.0 + head LoRA 0.75, 8 st,
   CFG 1, `SAMPLER=lcm SCHED=simple`) AND base alone with `LORA=0` (euler, 20 st, CFG 5) on `JOBS=cat` and
   `JOBS=red`, seed 42 (+ 976866873943 to match Phase A distilled), ONE run at a time, Read every face + full
   frame, then per-photo sheets (`faces.py` with `SRC=<photo>@<box>`: cat `215,100,575,460`, red
   `470,320,990,840`; `REF=...imported_002.webp@210,0,890,680`) against `phaseA_distilled` (session d72a2c80
   scratchpad is TEMP — re-run distilled if it is gone). Then wire the High tier per item 27, FOLDED INTO
   THIS CARD (Fabio: no new card).
-- [ ] 26a - **Decided by Fabio 2026-09-13: Balance tier = distilled int8; HIGH tier = base 9B, with an
+  **RAN 2026-09-14 (session 7231419c), one run at a time, every face + head region Read.** r3: cat s42 68 s,
+  red s42 64 s, cat s976866873943 64 s, red s976866873943 64 s. Seam 0 on all four (region bg |d| 0.04-0.05),
+  CLEAN renders, no posterisation or halo; the reference's ash-blonde waves + hoop earrings arrive on both
+  photos. On red, r3 skin runs warmer/more orange and glossier than distilled (colour = Fabio's call).
+  Base alone `LORA=0`: cat s42 297 s, red s42 293 s, seam 0, clean render, but the swap did NOT take: cat
+  kept the source's dark updo, red kept the source's red curls, no reference earrings. Same as r3 `LORA=0`
+  on dark, so without the head LoRA neither base nor r3 is a head swap. Its second seed SKIPPED (~10 min
+  GPU, the failure repeated on both photos; run it if Fabio asks).
+  Leftover in BOTH distilled and r3 on red (cause not measured): faint orange strands of the old curly hair
+  on the wall right of the head, and curls at the left shoulder below the new bob.
+  Sheets sent: `sheet_cat_r3_distilled_baseNoLora.png`, `sheet_red_r3_distilled_baseNoLora.png`,
+  `check_red_s42_src_dist_r3_base.png` (session 7231419c scratchpad). **Fabio's verdict: without the LoRA it
+  fails; r3 is never as good as distilled -> base dropped (item 27).**
+- [x] 26a - **Decided by Fabio 2026-09-13: Balance tier = distilled int8; HIGH tier = base 9B, with an
   optional Turbo toggle IF base + turbo renders clean.** Phase B = the turbo sweep, ONE run at a time,
   each face Read before the next. Real base needed first: no base weight on disk (MPI-600's was deleted).
   Ungated mirrors sha256-IDENTICAL to BFL: fp8 `a9f5028c…` 9567278472 B at `Amberamberamber/flux-2-klein-base-9b-fp8`
@@ -102,7 +115,7 @@ TAG to an ABSOLUTE scratchpad path so PNGs stay out of git; wrap every run in
   `bertbobson/ComfyUI-INT8_ConvRot` base int8 now 401s. Starting points from a user report Fabio relayed:
   turbo ~0.5, 10-20 steps, CFG 2-2.5 (CFG > 1 = harness builds the empty-text negative). Distilled bf16 vs
   int8 at lcm/4/CFG 1 (dark s42): near-identical, bf16 slightly softer.
-- [ ] 26b - **Phase B on the REAL base bf16** (`flux-2-klein-base-9b.safetensors`, sha256 MATCH `4a54fad7…`,
+- [x] 26b - **Phase B on the REAL base bf16** (`flux-2-klein-base-9b.safetensors`, sha256 MATCH `4a54fad7…`,
   from the `unsloth` mirror), dark s42, one run at a time, every face + full frame Read:
   r1 turbo 1.0 / 8 st / CFG 1 / euler: 66 s (incl. first 18 GB load), seam 0 — CLEAN, no blotches/halo.
   r2 turbo 0.5 / 8 st / CFG 3.5 / euler: 129 s, seam 0 — clean but smoother, painterly skin, fine
@@ -143,11 +156,11 @@ TAG to an ABSOLUTE scratchpad path so PNGs stay out of git; wrap every run in
   base alone euler / 40 st / CFG 4: 561 s, seam 0 — clean and near-IDENTICAL to 20 st / CFG 5 and 30 st /
   CFG 5. Base alone converges to one soft, muted image; steps and CFG 4-5 are not the lever. Sheet:
   `base_steps_vs_distilled_r3_dark_s42.png`. The LoRA-off A/B (20 st / CFG 5) started right after.
-- [ ] 26 - **Phase B — step x CFG sweep.** Base, SAMPLER=euler: STEPS 12/20/28 x CFG 3/4/5, dark photo,
+- [x] 26 - **NOT RUN: base dropped (item 27).** **Phase B — step x CFG sweep.** Base, SAMPLER=euler: STEPS 12/20/28 x CFG 3/4/5, dark photo,
   2 seeds = 18 runs, ~90 min (~15 s/step at CFG > 1; 20 st / CFG 5 measured 297 s). 1 seed halves it.
   **Confirm with Fabio at session start:** sweep base alone, or base + turbo (then TURBO_STR
   0.5/0.75/1.0 x STEPS 4/8 at CFG 1, ~36-70 s each).
-- [x] 27 - **DECIDED by Fabio 2026-09-13** (after base alone 20/30/40 st and the LoRA-off A/B: 276 s, same
+- [x] 27 - **REVERSED 2026-09-14: Klein 9B base DROPPED, no High tier (last sub-bullet). Was DECIDED by Fabio 2026-09-13** (after base alone 20/30/40 st and the LoRA-off A/B: 276 s, same
   soft look WITH or WITHOUT the head LoRA, so the softness is base + euler, not the LoRA; without it the
   face drifts further from the reference). Test photo caveat (Fabio): the dark source is heavily edited,
   painted shadows and a fake background, so no config "relights" it right; r3 is the best so far.
@@ -165,14 +178,26 @@ TAG to an ABSOLUTE scratchpad path so PNGs stay out of git; wrap every run in
     **r3 + head LoRA OFF: 60 s, seam 0, clean render, but the swap mostly did not happen** — it kept
     the SOURCE's wet stringy auburn hair, red lipstick and makeup instead of the reference's hair and look.
     With turbo the head LoRA carries the swap. Sheet: `lora_on_off_r3_and_base_dark_s42.png`.
+  - **Fabio 2026-09-14, from the checklist 28 sheets: DROP Klein 9B base entirely.** Without the head LoRA
+    it fails, and r3 is never as good as distilled. No High tier, no base bf16 or turbo LoRA deps, no R2
+    upload, no prompt-box Turbo button; Head Swap stays on distilled 9B int8. Nothing had been wired.
+    `docs/models/klein/9b.md` § REJECTED (MPI-600 turbo) stands. The 18 GB base bf16 at
+    `C:\AI\diffusion_models\flux-2-klein-base-9b.safetensors` is no longer needed (Fabio deletes weights himself).
+    **FINAL (Fabio 2026-09-14): Head Swap ships Klein 9B DISTILLED int8 only**, the graph already committed.
+    Every alternative is rejected: Klein 9B base / High tier (this item), Klein 4B (item 22, bad results),
+    Krea (Fabio's own tests, very bad), Qwen (too slow, item 6). R2 checked (`rclone lsl cubric-models`,
+    2026-09-14): neither the base bf16 nor the turbo LoRA was ever uploaded, nothing to delete. Local copies
+    are Fabio's to delete (agents do not hard-delete). Rejection recorded in `head-swap.md` status table
+    and `docs/models/klein/9b.md` § REJECTED. The unloaded 4B BFS LoRA (`bfs_head_v1.1_optional_flux-klein_4b`,
+    1.48 GB, no dep entry) was DELETED from R2 by Fabio 2026-09-14; `rclone lsl` confirms only the 9B LoRA remains.
 
 ## Bench
 
 - [x] 1 - Klein 9B, no crop-stitch: first run about 20s, result "not too bad" (Fabio, 2026-09-13).
 - [x] 2 - Klein 9B LoRA: `step3500_rank128`, at strength **0.75** — better than 1.0 (Fabio's export, 2026-09-13).
-- [ ] 3 - Klein 4B: Fabio staged the undocumented `v1.1_optional` (rank 512), not the README's `v1`. No graph loads either yet.
+- [x] 3 - **DROPPED (item 22).** Klein 4B: Fabio staged the undocumented `v1.1_optional` (rank 512), not the README's `v1`. No graph loads either yet.
 - [x] 4 - Crop-stitch: KEPT in the exported graph.
-- [ ] 5 - Side by side with the old Qwen Head Swap Flow — superseded by the decision in 6; skip unless Fabio wants it.
+- [x] 5 - SKIPPED. Side by side with the old Qwen Head Swap Flow — superseded by the decision in 6; skip unless Fabio wants it.
 - [x] 6 - **DECIDED by Fabio 2026-09-13: Qwen is DROPPED, no tier; lcm sampler.** Graph exported to `comfy_workflows/raw/flow_head_swap.json` with `Output_Display`.
 
 ## App
@@ -182,13 +207,27 @@ TAG to an ABSOLUTE scratchpad path so PNGs stay out of git; wrap every run in
 - [x] 9 - Graph: raw node 200 retitled `Input_Positive` -> `HeadSwap_Prompt` (the promptless-flow wipe); runtime regenerated via `workflow-to-api.mjs`, validators green.
 - [x] 10 - FlowDef: `requiredModels ['klein-9b']`, `requiredDeps ['klein-9b-lora-headswap', 'comfyui-inpaint-cropandstitch']`, Speed radio removed; `flowHeadSwap` 1.1 in both registries.
 - [x] 11 - Docs: `head-swap.md`, `UNRELEASED.md`, qwen-edit README; desktop spec fixture moved to `klein-9b`.
-- [ ] 12 - Fabio's live run in his app (shared with MPI-747 `validation.md` § Live).
-- [ ] 13 - Fabio retitles the bench node `HeadSwap_Prompt`, or the next export brings `Input_Positive` back.
-- [ ] 14 - Tile + hero were cut from a Qwen run: re-cut via `/mpi-flow-graphics`, or keep — ask.
+- [x] 12 - PASSED 2026-09-14 ("works end-to-end", MPI-747 `validation.md` § Live). Fabio's live run in his app (shared with MPI-747 `validation.md` § Live).
+- [x] 13 - STALE (2026-09-14): since the round-3 export the prompt sat in untitled CLIPTextEncode 128, so no `Input_Positive` existed to retitle; bench and repo graphs diffed identical (92 nodes, 99 links). Superseded by 18. (Was: retitle the bench node `HeadSwap_Prompt`, or the next export brings `Input_Positive` back.)
+- [x] 14 - KEPT (Fabio 2026-09-14). Tile + hero were cut from a Qwen run: re-cut via `/mpi-flow-graphics`, or keep — ask.
 
 ## Bench round 2 — the box comes back darker (2026-09-13)
 
 - [x] 15 - MEASURED on bench runs #70-72 (`python research/seam_probe.py`, reads 8188 `/history`, diffs `Output_Image` against the source photo): outside `Input_Box` 0.00 change; just inside its top/left/right edges (background only) **-5 to -7 levels, uniform across RGB**. Klein returns the whole 360x360 box darker and the 32 px stitch blend only softens the edge. Bottom edge +28 R is the new hair/neck, content not defect.
 - [x] 16 - `MpiInpaintHeal` after the stitch at `color 0 / grain 1 / ring 64 / feather 32` changed nothing measurable (grain is zero-mean, cannot move a tone shift). KJNodes `ColorMatch` REJECTED by Fabio: it is why `MpiInpaintHeal` was built. Neither route fixes it.
-- [ ] 17 - Fabio's next approach, at the bench: Klein REMOVES the original person (a clean plate), then the new person, background removed, is composited onto that plate. Re-run `seam_probe.py` on it — the removal pass is a Klein crop too, so check the plate's box edges for the same shift wherever the cutout does not cover them. The wired graph and FlowDef will change again.
-- [ ] 18 - The prompt's second paragraph, "Describe the expression in Picture 1 and copy it to the new image.", is a PLACEHOLDER (Fabio, 2026-09-13): it is meant to be REPLACED by a description of Picture 1's expression. The BFS author's Klein workflow carries a bypassed VLM ShowText branch that produced exactly that text; the README marks the line `[Optional]`. Today the literal sentence reaches the encoder. The Flow needs a describe step on `Input_Image` whose output replaces the paragraph (Vision already ships a VLM describe op, `imageDescribe`) — bench it first.
+- [x] 17 - SUPERSEDED by round 3 (item 19). Fabio's next approach, at the bench: Klein REMOVES the original person (a clean plate), then the new person, background removed, is composited onto that plate. Re-run `seam_probe.py` on it — the removal pass is a Klein crop too, so check the plate's box edges for the same shift wherever the cutout does not cover them. The wired graph and FlowDef will change again.
+- [x] 18 - **VERIFIED by Fabio in his app 2026-09-14:** "EXPRESSION (OPTIONAL)" textarea above Generate; four runs
+  on one plate steered head angle, a menacing look, black eyeliner, wet hair and black and white as typed. Fabio:
+  "this is what was missing", it fixes the issues he hit on real shoots. **WIRED 2026-09-14 (session 7231419c).** Bench graph exported to
+  `raw/` (94 nodes) -> runtime converted against 48188 (61 nodes; only node 128 `text` -> link, +296, +297);
+  validate-injection-rules + verify-workflow green; `flow-output-display` test now pins the join (sabotage: an
+  empty delimiter fails it by name); `npm test` 970/970. FlowDef field `positive` ("Expression (optional)").
+  Same-seed 8188 A/B (dark photo, s42): old graph vs EMPTY field mean |d| 0.60 on 8.6% of pixels (the join's
+  trailing space nudges sampling; identical by eye); empty vs "a big open-mouthed laugh" mean |d| 2.35, the head
+  laughs cleanly, identity and hair kept. Sheet `expr_ab_sheet.png` (session 7231419c scratchpad).
+  **DECIDED 2026-09-14 (Fabio): an OPTIONAL expression field on the Generate step, above
+  the Generate button, hint like "Describe the expression you would like the character to end with", reading as
+  optional. Fabio's bench (saved 09:34) adds `PrimitiveStringMultiline` 296 titled `Input_Positive` (default '')
+  -> `StringConcatenate` 297 (string_a = the baked prompt, string_b = `Input_Positive`, delimiter EMPTY: needs a
+  space or newline) -> CLIPTextEncode 128 `text`. Correction: the placeholder sentence had already left node 128
+  at the round-3 export, so nothing literal reached the encoder.** The prompt's second paragraph, "Describe the expression in Picture 1 and copy it to the new image.", is a PLACEHOLDER (Fabio, 2026-09-13): it is meant to be REPLACED by a description of Picture 1's expression. The BFS author's Klein workflow carries a bypassed VLM ShowText branch that produced exactly that text; the README marks the line `[Optional]`. Today the literal sentence reaches the encoder. The Flow needs a describe step on `Input_Image` whose output replaces the paragraph (Vision already ships a VLM describe op, `imageDescribe`) — bench it first.

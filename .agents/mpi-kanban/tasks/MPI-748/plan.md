@@ -15,7 +15,9 @@ card, not this summary, before starting its phase.
 | MPI-746 | Klein samplers: every shipped Klein graph and Flow from `euler` to `lcm` | 1 | todo |
 | MPI-747 | `Output_Display`: a display-only graph output shown on a Flow's final stage | 2 | todo |
 | MPI-744 | Klein Head Swap Flow: Klein 9B/4B + BFS head LoRA replaces Qwen | 3 | doing (bench) |
-| MPI-745 | LTX 2.3 video head swap, BFS IC-LoRA v3 | — | todo, **deferred** |
+
+**MPI-745** (LTX 2.3 video head swap) was a deferred member until 2026-09-14, when Fabio took it off
+this umbrella to stand as a solo card.
 
 Adjacent, deliberately NOT a member: **MPI-348** (Krea2 BFS bench, `doing`) stays under MPI-560
 phase 4 — it was picked up in the same session but not filed in it.
@@ -82,15 +84,10 @@ Known work inside the phase:
 - `comfyui-inpaint-cropandstitch` stays in `requiredDeps` only if the new graph still calls it.
 - The tile and hero were cut from a Qwen run: re-cut via `/mpi-flow-graphics` or keep — ask.
 
-## Deferred: MPI-745
-
-Picked up only after phases 1–3 land, and Fabio may reject it (a more complex workflow). The card
-holds the LTX-2 / 2.3 / 2.5 version map and the silent-load trap.
-
 ## Closing the umbrella
 
-When phase 3 lands, ask Fabio once: close MPI-745 as `rejected`, or keep it — and with it this
-umbrella — open. The umbrella moves `todo -> done` when its last kept member does.
+MPI-745 is no longer a member (solo card since 2026-09-14). The umbrella moves `todo -> done` when
+MPI-744, its last open member, does.
 
 ## Resume here
 
@@ -158,8 +155,19 @@ deps, R2, High tier ModelDef + prompt-box turbo, Head Swap Flow tier), which is 
 **Fabio (end of session d72a2c80): High-tier wiring FOLDS INTO MPI-744** (no new card). Base without the
 head LoRA looked better to him; r3 without it did NOT swap (checklist 27).
 
-**Next:** (1) bench first (checklist 28): r3 AND base-alone-no-LoRA on the cat + red photos, one run at a
-time, each Read, sheets for Fabio; (2) then wire the High tier per checklist 27 (`/mpi-add-model` +
-head-swap.md); (2) Fabio's live Head Swap run in his app (checklist 12
-= MPI-747 § Live); (3) still owed by Fabio: tile + hero re-cut (14), prompt describe step (18), the
-MPI-747 Display-reset question.
+**Checklist 28 DONE (2026-09-14, session 7231419c):** r3 renders clean on cat + red x 2 seeds, seam 0, and
+brings the reference's hair; base alone WITHOUT the head LoRA does not swap hair on cat or red.
+
+**REVERSED (Fabio 2026-09-14): Klein 9B base DROPPED.** Without the LoRA it fails and r3 is never as good as
+distilled. No High tier; Head Swap stays on distilled 9B int8 (MPI-744 checklist 27). Nothing was wired.
+**FINAL: Head Swap = Klein 9B distilled int8 only** (the committed graph). 4B, base 9B, Krea and Qwen all
+rejected. Neither base bf16 nor turbo LoRA was ever on R2. Bench track CLOSED.
+
+**State 2026-09-14 (session 7231419c):** MPI-747 DONE (live run passed; a fresh Generate keeps the chosen
+surface). MPI-745 left this umbrella as a solo card. MPI-744: item 18, the optional Expression field on the
+Generate step, is WIRED and automated-green (bench graph with `Input_Positive` -> `StringConcatenate` exported and
+converted, test pins the join, npm test 970/970, 8188 A/B shows the text steers the head). Tile + hero KEPT;
+RunPod is a separate all-Flows job (Fabio).
+
+**Next:** Fabio looks at the Expression field in his app (reload); then `/mpi-end-session` closes MPI-744 and
+this umbrella with it (its last open member).

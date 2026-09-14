@@ -17,12 +17,12 @@ run ~20 s. Klein darkens the box it returns; a changed-pixels composite takes th
 | Item | State | Notes |
 |---|---|---|
 | LoRA | **SETTLED** 2026-09-13 | `bfs_head_v1_flux-klein_9b_step3500_rank128` at strength **0.75** — better than 1.0 on the bench |
-| R2 upload | **DONE** 2026-09-13 | 9B live, `Content-Length` byte-exact. The 4B file is on R2 too; no graph loads it yet |
+| R2 upload | **DONE** 2026-09-13 | 9B live, `Content-Length` byte-exact. The 4B file was DELETED from R2 2026-09-14 (4B rejected, no dep entry ever named it) |
 | Qwen LoRA | **R2 copy DELETED** 2026-09-13 | never shipped. Dep entry kept DEPRECATED for the orphan sweep, `url` repointed at the upstream |
-| Klein 4B | **DROPPED** 2026-09-13 | loses identity, and its seam fails on a high-key photo (Fabio). Ship 9B only. The 4B LoRA stays on R2, unloaded |
+| Other engines | **REJECTED** 2026-09-13/14 | Ship Klein 9B DISTILLED only (Fabio). Klein 4B: loses identity, seam fails on a high-key photo; its LoRA deleted from R2. Klein 9B base bf16 (+ turbo LoRA, a "High tier"): never as good as distilled, and without the head LoRA it does not swap (MPI-744 checklist 25-28). Krea: very bad in Fabio's own tests |
 | Seam | **SOLVED** 2026-09-13 | changed-pixels composite + expand return, measured 0 on three photos (§ The seam) |
-| Tile + hero | **OPEN** | both were cut from a Qwen run — re-cut via `/mpi-flow-graphics` or keep |
-| RunPod verification | **OPEN** | never run against the remote engine |
+| Tile + hero | **KEPT** 2026-09-14 | cut from a Qwen run; Fabio keeps them |
+| RunPod verification | **SEPARATE** | not run; a RunPod pass over ALL Flows is its own job (Fabio, 2026-09-14) |
 
 > **Do not repeat this mistake:** MPI-306 Phase 2 was verified "by inspection, not by
 > generating" on the inherited claim that the graph 404s. It did not — locally. The claim
@@ -40,9 +40,8 @@ run ~20 s. Klein darkens the box it returns; a changed-pixels composite takes th
   [../ui/result-pane.md](../ui/result-pane.md) § Output_Display (MPI-747). `result: { compare:
   'image1' }` stays declared (MPI-585) and the surface toggle still reaches it. The BEFORE is the
   plate being KEPT, never `image2`: the head donor shares no framing with the output.
-- **No component, no fields (MPI-572, MPI-744).** The boxes are carousel STEPS (`kind:'box'`)
-  that declare `param: 'box1'` / `'box2'`. See [../ui/box-gizmo.md](../ui/box-gizmo.md) and
-  [../ui/carousel-frame/](../ui/carousel-frame/README.md).
+- **No component; ONE optional field (MPI-572, MPI-744).** Boxes are carousel STEPS (`kind:'box'`, `param: 'box1'` / `'box2'`,
+  [../ui/box-gizmo.md](../ui/box-gizmo.md)); the Generate step carries the Expression text field (`positive` → `Input_Positive`).
 
 ### The UI, as shipped (MPI-306 Phase 2)
 
@@ -53,7 +52,7 @@ Four steps, all DATA on the FlowDef — no per-flow layout code:
 | 0 | Inputs | two slots, labelled `Original` / `Face Reference` (`labels` on the media group) |
 | 1 | Target head | `box` step, role `image1`, `param:'box1'`, `ratio:1` — "Mark where the new head goes" |
 | 2 | Reference head | `box` step, role `image2`, `param:'box2'`, `ratio:1` — "Mark which head to take" |
-| 3 | Generate | Generate → result |
+| 3 | Generate | optional Expression field (`positive`), then Generate → result |
 
 **The box→node mapping is DECLARED on the step (`param`), not written in JS** (MPI-572). The
 frame collects `{[role]: {box}}` and still never learns what a role means; which box masks and
@@ -71,13 +70,14 @@ that rename lives with the `box` KIND (`stepValueToParam`, `stepKinds.js`).
 | `Input_Image_2` | image (path-reading) | reference — the FACE, "Picture 2" |
 | `Input_Box_2` | `Mpi Box` | → `Mpi Box Crop` |
 | `Input_Seed` | int | |
+| `Input_Positive` | `PrimitiveStringMultiline` | the optional Expression text, joined after the baked prompt |
 | `Output_Image` | PreviewImage | the gallery card |
 | `Output_Display` | PreviewImage | the Flow's view, never saved |
 
-**The prompt is BAKED inline in an UNTITLED `CLIPTextEncode` (node 128) — never title it
-`Input_Positive`:** a promptless Flow still sends `Input_Positive: ''` every run, wiping a baked
-instruction (the outpaint trap); `tests/flow-output-display.test.cjs` pins it. BFS Klein order is
-INVERTED from Qwen's ("head_swap: start with Picture 1 as the base image"). The reference image
+**The prompt is BAKED as `string_a` of `StringConcatenate` 297, joined with a space to `Input_Positive`
+296 → `CLIPTextEncode` 128. Never put the instruction IN an `Input_Positive` node:** every run sends
+that title ('' when empty), wiping it (the outpaint trap); `tests/flow-output-display.test.cjs` pins
+the join. BFS Klein order is INVERTED from Qwen's ("head_swap: start with Picture 1…"); the reference
 is background-removed (BiRefNet) before encoding.
 
 **KJNodes (`GrowMaskWithBlur`, `ImageConcanate`) and the `birefnet` weight stay OUT of

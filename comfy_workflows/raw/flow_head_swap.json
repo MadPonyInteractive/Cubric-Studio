@@ -1,8 +1,8 @@
 {
   "id": "ef79f889-3543-4493-af24-aafc09e55f6b",
   "revision": 0,
-  "last_node_id": 295,
-  "last_link_id": 438,
+  "last_node_id": 297,
+  "last_link_id": 441,
   "nodes": [
     {
       "id": 143,
@@ -54,7 +54,7 @@
         54.32552927420602
       ],
       "flags": {},
-      "order": 43,
+      "order": 45,
       "mode": 0,
       "inputs": [
         {
@@ -138,7 +138,7 @@
         98
       ],
       "flags": {},
-      "order": 74,
+      "order": 76,
       "mode": 0,
       "inputs": [
         {
@@ -281,7 +281,7 @@
         58
       ],
       "flags": {},
-      "order": 80,
+      "order": 82,
       "mode": 0,
       "inputs": [
         {
@@ -324,7 +324,7 @@
         58
       ],
       "flags": {},
-      "order": 29,
+      "order": 31,
       "mode": 0,
       "inputs": [
         {
@@ -367,7 +367,7 @@
         415.41379631929055
       ],
       "flags": {},
-      "order": 76,
+      "order": 78,
       "mode": 0,
       "inputs": [
         {
@@ -474,7 +474,7 @@
         78
       ],
       "flags": {},
-      "order": 69,
+      "order": 71,
       "mode": 0,
       "inputs": [
         {
@@ -540,7 +540,7 @@
         106
       ],
       "flags": {},
-      "order": 58,
+      "order": 60,
       "mode": 0,
       "inputs": [
         {
@@ -610,7 +610,7 @@
         124.00000000000003
       ],
       "flags": {},
-      "order": 46,
+      "order": 48,
       "mode": 0,
       "inputs": [
         {
@@ -648,9 +648,7 @@
         "cnr_id": "comfy-core",
         "ver": "0.28.0",
         "Node name for S&R": "GetImageSize"
-      },
-      "widgets_values": [],
-      "widgets_values_named": {}
+      }
     },
     {
       "id": 191,
@@ -714,7 +712,7 @@
         102
       ],
       "flags": {},
-      "order": 37,
+      "order": 38,
       "mode": 0,
       "inputs": [
         {
@@ -910,7 +908,7 @@
         106
       ],
       "flags": {},
-      "order": 28,
+      "order": 30,
       "mode": 0,
       "inputs": [
         {
@@ -989,7 +987,7 @@
         106
       ],
       "flags": {},
-      "order": 27,
+      "order": 29,
       "mode": 0,
       "inputs": [
         {
@@ -1115,7 +1113,7 @@
         102
       ],
       "flags": {},
-      "order": 89,
+      "order": 91,
       "mode": 0,
       "inputs": [
         {
@@ -1190,7 +1188,7 @@
         106
       ],
       "flags": {},
-      "order": 90,
+      "order": 92,
       "mode": 0,
       "inputs": [
         {
@@ -1265,7 +1263,7 @@
         246
       ],
       "flags": {},
-      "order": 47,
+      "order": 49,
       "mode": 2,
       "inputs": [
         {
@@ -1303,7 +1301,7 @@
         246
       ],
       "flags": {},
-      "order": 44,
+      "order": 46,
       "mode": 2,
       "inputs": [
         {
@@ -1341,7 +1339,7 @@
         82
       ],
       "flags": {},
-      "order": 52,
+      "order": 54,
       "mode": 0,
       "inputs": [
         {
@@ -1405,7 +1403,7 @@
         58
       ],
       "flags": {},
-      "order": 64,
+      "order": 66,
       "mode": 0,
       "inputs": [
         {
@@ -1534,7 +1532,7 @@
         58
       ],
       "flags": {},
-      "order": 31,
+      "order": 33,
       "mode": 0,
       "inputs": [
         {
@@ -1670,7 +1668,7 @@
         26
       ],
       "flags": {},
-      "order": 87,
+      "order": 89,
       "mode": 0,
       "inputs": [
         {
@@ -1709,7 +1707,7 @@
         46
       ],
       "flags": {},
-      "order": 49,
+      "order": 51,
       "mode": 0,
       "inputs": [
         {
@@ -1759,7 +1757,7 @@
         46
       ],
       "flags": {},
-      "order": 40,
+      "order": 44,
       "mode": 0,
       "inputs": [
         {
@@ -1803,7 +1801,7 @@
         26
       ],
       "flags": {},
-      "order": 54,
+      "order": 58,
       "mode": 0,
       "inputs": [
         {
@@ -1841,7 +1839,7 @@
         34.407283118970554
       ],
       "flags": {},
-      "order": 71,
+      "order": 73,
       "mode": 0,
       "inputs": [
         {
@@ -1882,7 +1880,7 @@
         52.83909299396464
       ],
       "flags": {},
-      "order": 65,
+      "order": 67,
       "mode": 0,
       "inputs": [
         {
@@ -1932,7 +1930,7 @@
         52.83909299396419
       ],
       "flags": {},
-      "order": 45,
+      "order": 47,
       "mode": 0,
       "inputs": [
         {
@@ -1980,7 +1978,7 @@
         52.83909299396419
       ],
       "flags": {},
-      "order": 60,
+      "order": 62,
       "mode": 0,
       "inputs": [
         {
@@ -2018,64 +2016,6 @@
       "bgcolor": "#353"
     },
     {
-      "id": 128,
-      "type": "CLIPTextEncode",
-      "pos": [
-        9707.28226669663,
-        10459.491630098413
-      ],
-      "size": [
-        383.1066521270004,
-        128.64734328627674
-      ],
-      "flags": {
-        "collapsed": false
-      },
-      "order": 50,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "clip",
-          "name": "clip",
-          "type": "CLIP",
-          "link": 338
-        },
-        {
-          "localized_name": "text",
-          "name": "text",
-          "type": "STRING",
-          "widget": {
-            "name": "text"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "CONDITIONING",
-          "name": "CONDITIONING",
-          "type": "CONDITIONING",
-          "slot_index": 0,
-          "links": [
-            186
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.28.0",
-        "Node name for S&R": "CLIPTextEncode"
-      },
-      "widgets_values": [
-        "head_swap: start with Picture 1 as the base image, keeping its lighting, environment, and background. remove the head from Picture 1 completely and replace it with the head from Picture 2, strictly preserving the hair, eye color, nose structure of Picture 2. copy the direction of the eye, head rotation, micro expressions from Picture 1, high quality, sharp details, 4k."
-      ],
-      "widgets_values_named": {
-        "text": "head_swap: start with Picture 1 as the base image, keeping its lighting, environment, and background. remove the head from Picture 1 completely and replace it with the head from Picture 2, strictly preserving the hair, eye color, nose structure of Picture 2. copy the direction of the eye, head rotation, micro expressions from Picture 1, high quality, sharp details, 4k."
-      },
-      "color": "#232",
-      "bgcolor": "#353"
-    },
-    {
       "id": 236,
       "type": "SetNode",
       "pos": [
@@ -2087,7 +2027,7 @@
         60
       ],
       "flags": {},
-      "order": 32,
+      "order": 34,
       "mode": 0,
       "inputs": [
         {
@@ -2205,7 +2145,7 @@
         60
       ],
       "flags": {},
-      "order": 57,
+      "order": 59,
       "mode": 0,
       "inputs": [
         {
@@ -2301,7 +2241,7 @@
       "flags": {
         "collapsed": true
       },
-      "order": 51,
+      "order": 53,
       "mode": 0,
       "inputs": [
         {
@@ -2351,7 +2291,7 @@
         60
       ],
       "flags": {},
-      "order": 33,
+      "order": 35,
       "mode": 0,
       "inputs": [
         {
@@ -2457,7 +2397,7 @@
         60
       ],
       "flags": {},
-      "order": 34,
+      "order": 36,
       "mode": 0,
       "inputs": [
         {
@@ -2502,7 +2442,7 @@
         102
       ],
       "flags": {},
-      "order": 38,
+      "order": 39,
       "mode": 0,
       "inputs": [
         {
@@ -2574,7 +2514,7 @@
         102
       ],
       "flags": {},
-      "order": 39,
+      "order": 40,
       "mode": 0,
       "inputs": [
         {
@@ -2646,7 +2586,7 @@
         102
       ],
       "flags": {},
-      "order": 53,
+      "order": 55,
       "mode": 0,
       "inputs": [
         {
@@ -2718,7 +2658,7 @@
         100
       ],
       "flags": {},
-      "order": 61,
+      "order": 63,
       "mode": 0,
       "inputs": [
         {
@@ -2786,7 +2726,7 @@
         126
       ],
       "flags": {},
-      "order": 72,
+      "order": 74,
       "mode": 0,
       "inputs": [
         {
@@ -2868,7 +2808,7 @@
         126
       ],
       "flags": {},
-      "order": 75,
+      "order": 77,
       "mode": 0,
       "inputs": [
         {
@@ -2951,7 +2891,7 @@
         100
       ],
       "flags": {},
-      "order": 77,
+      "order": 79,
       "mode": 0,
       "inputs": [
         {
@@ -3006,7 +2946,7 @@
         126
       ],
       "flags": {},
-      "order": 55,
+      "order": 56,
       "mode": 0,
       "inputs": [
         {
@@ -3089,7 +3029,7 @@
         100
       ],
       "flags": {},
-      "order": 63,
+      "order": 64,
       "mode": 0,
       "inputs": [
         {
@@ -3155,7 +3095,7 @@
         126
       ],
       "flags": {},
-      "order": 56,
+      "order": 57,
       "mode": 0,
       "inputs": [
         {
@@ -3238,7 +3178,7 @@
         246
       ],
       "flags": {},
-      "order": 82,
+      "order": 84,
       "mode": 0,
       "inputs": [
         {
@@ -3379,7 +3319,7 @@
         100
       ],
       "flags": {},
-      "order": 86,
+      "order": 88,
       "mode": 2,
       "inputs": [
         {
@@ -3419,7 +3359,7 @@
         128
       ],
       "flags": {},
-      "order": 48,
+      "order": 50,
       "mode": 0,
       "inputs": [
         {
@@ -3488,7 +3428,7 @@
         53.432181401207345
       ],
       "flags": {},
-      "order": 35,
+      "order": 37,
       "mode": 0,
       "inputs": [
         {
@@ -3607,7 +3547,7 @@
         58
       ],
       "flags": {},
-      "order": 17,
+      "order": 16,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -3646,7 +3586,7 @@
         650
       ],
       "flags": {},
-      "order": 59,
+      "order": 61,
       "mode": 0,
       "inputs": [
         {
@@ -3985,7 +3925,7 @@
         86
       ],
       "flags": {},
-      "order": 30,
+      "order": 32,
       "mode": 0,
       "inputs": [
         {
@@ -4046,7 +3986,7 @@
         58
       ],
       "flags": {},
-      "order": 73,
+      "order": 75,
       "mode": 0,
       "inputs": [
         {
@@ -4089,7 +4029,7 @@
         58
       ],
       "flags": {},
-      "order": 20,
+      "order": 17,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -4127,7 +4067,7 @@
         506.760696491634
       ],
       "flags": {},
-      "order": 88,
+      "order": 90,
       "mode": 0,
       "inputs": [
         {
@@ -4168,7 +4108,7 @@
         58.93348174295397
       ],
       "flags": {},
-      "order": 78,
+      "order": 80,
       "mode": 0,
       "inputs": [
         {
@@ -4214,7 +4154,7 @@
         60
       ],
       "flags": {},
-      "order": 21,
+      "order": 18,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -4253,7 +4193,7 @@
         146
       ],
       "flags": {},
-      "order": 83,
+      "order": 85,
       "mode": 0,
       "inputs": [
         {
@@ -4343,7 +4283,7 @@
         58
       ],
       "flags": {},
-      "order": 22,
+      "order": 19,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -4381,7 +4321,7 @@
         58
       ],
       "flags": {},
-      "order": 23,
+      "order": 20,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -4419,7 +4359,7 @@
         100
       ],
       "flags": {},
-      "order": 84,
+      "order": 86,
       "mode": 2,
       "inputs": [
         {
@@ -4460,7 +4400,7 @@
         126
       ],
       "flags": {},
-      "order": 79,
+      "order": 81,
       "mode": 0,
       "inputs": [
         {
@@ -4543,7 +4483,7 @@
         126
       ],
       "flags": {},
-      "order": 81,
+      "order": 83,
       "mode": 0,
       "inputs": [
         {
@@ -4626,7 +4566,7 @@
         58
       ],
       "flags": {},
-      "order": 66,
+      "order": 68,
       "mode": 0,
       "inputs": [
         {
@@ -4680,7 +4620,7 @@
         58
       ],
       "flags": {},
-      "order": 67,
+      "order": 69,
       "mode": 0,
       "inputs": [
         {
@@ -4734,7 +4674,7 @@
         58
       ],
       "flags": {},
-      "order": 68,
+      "order": 70,
       "mode": 0,
       "inputs": [
         {
@@ -4788,7 +4728,7 @@
         58
       ],
       "flags": {},
-      "order": 25,
+      "order": 21,
       "mode": 0,
       "inputs": [
         {
@@ -4882,7 +4822,7 @@
         58
       ],
       "flags": {},
-      "order": 12,
+      "order": 22,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -4918,7 +4858,7 @@
         58
       ],
       "flags": {},
-      "order": 16,
+      "order": 23,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -4958,7 +4898,7 @@
       "flags": {
         "collapsed": false
       },
-      "order": 91,
+      "order": 93,
       "mode": 0,
       "inputs": [
         {
@@ -5002,7 +4942,7 @@
         309.34871440358256
       ],
       "flags": {},
-      "order": 70,
+      "order": 72,
       "mode": 2,
       "inputs": [
         {
@@ -5040,7 +4980,7 @@
         46
       ],
       "flags": {},
-      "order": 62,
+      "order": 65,
       "mode": 0,
       "inputs": [
         {
@@ -5085,7 +5025,7 @@
         58
       ],
       "flags": {},
-      "order": 18,
+      "order": 24,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -5124,7 +5064,7 @@
         378
       ],
       "flags": {},
-      "order": 19,
+      "order": 25,
       "mode": 0,
       "inputs": [
         {
@@ -5214,7 +5154,7 @@
         60
       ],
       "flags": {},
-      "order": 36,
+      "order": 43,
       "mode": 0,
       "inputs": [
         {
@@ -5257,7 +5197,7 @@
         60
       ],
       "flags": {},
-      "order": 24,
+      "order": 26,
       "mode": 0,
       "inputs": [],
       "outputs": [
@@ -5334,7 +5274,7 @@
         46
       ],
       "flags": {},
-      "order": 85,
+      "order": 87,
       "mode": 0,
       "inputs": [
         {
@@ -5369,6 +5309,186 @@
           "input_ue_unconnectable": {},
           "version": "7.5.1"
         }
+      }
+    },
+    {
+      "id": 128,
+      "type": "CLIPTextEncode",
+      "pos": [
+        9707.28226669663,
+        10459.491630098413
+      ],
+      "size": [
+        373.05561792551816,
+        88
+      ],
+      "flags": {
+        "collapsed": false
+      },
+      "order": 52,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "link": 338
+        },
+        {
+          "localized_name": "text",
+          "name": "text",
+          "type": "STRING",
+          "widget": {
+            "name": "text"
+          },
+          "link": 441
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "CONDITIONING",
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "slot_index": 0,
+          "links": [
+            186
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.28.0",
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "text": ""
+      },
+      "color": "#232",
+      "bgcolor": "#353"
+    },
+    {
+      "id": 296,
+      "type": "PrimitiveStringMultiline",
+      "pos": [
+        9042.415022980324,
+        10636.932816315351
+      ],
+      "size": [
+        250.35126855571434,
+        106.19034745283716
+      ],
+      "flags": {},
+      "order": 27,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "value",
+          "name": "value",
+          "type": "STRING",
+          "widget": {
+            "name": "value"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "slot_index": 0,
+          "links": [
+            440
+          ]
+        }
+      ],
+      "title": "Input_Positive",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.31.0",
+        "Node name for S&R": "PrimitiveStringMultiline"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "value": ""
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 297,
+      "type": "StringConcatenate",
+      "pos": [
+        9501.316153966342,
+        10578.809140060872
+      ],
+      "size": [
+        400,
+        200
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 28,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string_a",
+          "name": "string_a",
+          "type": "STRING",
+          "widget": {
+            "name": "string_a"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "string_b",
+          "name": "string_b",
+          "type": "STRING",
+          "widget": {
+            "name": "string_b"
+          },
+          "link": 440
+        },
+        {
+          "localized_name": "delimiter",
+          "name": "delimiter",
+          "type": "STRING",
+          "widget": {
+            "name": "delimiter"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            441
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.34.2",
+        "Node name for S&R": "StringConcatenate"
+      },
+      "widgets_values": [
+        "head_swap: start with Picture 1 as the base image, keeping its lighting, environment, and background. remove the head from Picture 1 completely and replace it with the head from Picture 2, strictly preserving the hair, eye color, nose structure of Picture 2. copy the direction of the eye, head rotation, micro expressions from Picture 1, high quality, sharp details, 4k.",
+        "",
+        " "
+      ],
+      "widgets_values_named": {
+        "string_a": "head_swap: start with Picture 1 as the base image, keeping its lighting, environment, and background. remove the head from Picture 1 completely and replace it with the head from Picture 2, strictly preserving the hair, eye color, nose structure of Picture 2. copy the direction of the eye, head rotation, micro expressions from Picture 1, high quality, sharp details, 4k.",
+        "string_b": "",
+        "delimiter": " "
       }
     }
   ],
@@ -6164,6 +6284,22 @@
       275,
       0,
       "BACKGROUND_REMOVAL"
+    ],
+    [
+      440,
+      296,
+      0,
+      297,
+      1,
+      "STRING"
+    ],
+    [
+      441,
+      297,
+      0,
+      128,
+      1,
+      "STRING"
     ]
   ],
   "groups": [
@@ -6183,10 +6319,10 @@
   "config": {},
   "extra": {
     "ds": {
-      "scale": 0.8140274938684321,
+      "scale": 0.895430243255276,
       "offset": [
-        -14122.81337535892,
-        -9030.61775181451
+        -8438.23618931344,
+        -10323.11719291354
       ]
     },
     "reroutes": [

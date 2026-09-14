@@ -105,7 +105,9 @@
 - **Head Swap** takes a head from one picture and puts it on another. Load the picture you want
   to keep, add the picture with the head you want, draw a square around each head, and run. It
   runs on FLUX.2 Klein 9B with a head-swap LoRA, and when it finishes the flow shows both your
-  pictures beside the result while the gallery keeps just the swap. The square may sit past the edge of the
+  pictures beside the result while the gallery keeps just the swap. An optional field on the last step
+  lets you describe the expression the new head should end with; leave it empty and the swap follows
+  the original picture's expression. The square may sit past the edge of the
   picture and stretch up to the picture's longest side, so a head near a border — or tall hair,
   or a neck tattoo — can be taken in without the box swallowing whoever is standing next to
   them. The reference head is padded back to square before the model sees it, and what you get

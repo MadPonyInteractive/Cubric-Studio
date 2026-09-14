@@ -16,7 +16,8 @@ Swap graph is the first consumer and the live test.
 
 ## Verify
 
-- [ ] 7 - A Flow WITH `Output_Display` shows it on the final stage and lands exactly ONE gallery card (Fabio, in his app, on Head Swap).
+- [x] 7 - A Flow WITH `Output_Display` shows it on the final stage and lands exactly ONE gallery card (Fabio, in his app, on Head Swap). PASSED 2026-09-14: `flowHeadSwap_003` the only new card.
 - [x] 8 - A Flow WITHOUT it is unchanged: `tests/flow-result-compare.test.cjs` green.
-- [ ] 9 - Close -> reopen shows the display; after an engine restart it falls back to the result.
-- [ ] 10 - On Head Swap the toggle still reaches compare.
+- [x] 9 - Close -> reopen shows the display; after an engine restart it falls back to the result. Fabio 2026-09-14: "it works end-to-end".
+- [x] 10 - On Head Swap the toggle still reaches compare. PASSED 2026-09-14 (Compare button on the display).
+- [x] 11 - DECIDED (Fabio 2026-09-14): a fresh Generate does NOT reset the surface to Display; a chosen Compare stays. Today's behaviour is the spec.

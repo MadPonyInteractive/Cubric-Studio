@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-748", "at": "2026-09-13T17:05:46+01:00", "actor": "claude", "column": "todo", "title": "Head Swap on Klein follow-ups - lcm samplers, Output_Display, the Klein Head Swap Flow (umbrella)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-748", "at": "2026-09-14T10:18:15+01:00", "actor": "claude", "from": "todo", "to": "done", "reason": "Umbrella closed: its last open member MPI-744 is done; MPI-746 and MPI-747 done; MPI-745 left as a solo card (validation.md)."}

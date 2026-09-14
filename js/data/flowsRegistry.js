@@ -433,9 +433,11 @@ export const FLOWS = [
     // dispatch. Krea2 no longer uses those classes (b3f9a018 dropped its masked-crop
     // path), so that listing was removed and this flow is now the sole declarer.
     //
-    // FIXED-PROMPT flow: the instruction is baked inline in an UNTITLED CLIPTextEncode —
-    // NEVER title it `Input_Positive`, which a promptless flow still sends as '' on every
-    // run, wiping it (MPI-744). inputSchema declares no `positive`; promptRequired:false.
+    // FIXED-PROMPT flow with ONE optional addition (MPI-744): the head_swap instruction is
+    // baked as `string_a` of a StringConcatenate that joins `Input_Positive` (the Expression
+    // field) after it with a space, then feeds CLIPTextEncode. NEVER put the instruction IN an
+    // `Input_Positive` node: every run sends that title ('' when the field is empty), wiping
+    // it (the outpaint trap); tests/flow-output-display.test.cjs pins the join.
     // Boxes are injectionParams (box1/box2 → headSwapInjector), NOT media slots.
     {
         id: 'head-swap',
@@ -507,9 +509,17 @@ export const FLOWS = [
                 hint: 'Box the head to use. A close-up portrait works best.',
             },
         ],
-        // NO `fields` (MPI-744): the Klein graph has one path, so the Qwen-era Speed tier
-        // (`Input_Tier`) went with it. The two step `param` bindings above are the whole
-        // descriptor. NO seed UI, ever (existing-flows/head-swap.md); no prompt, baked.
+        // ONE optional field (MPI-744, Fabio 2026-09-14): the expression the new head should end
+        // with. Flow-level, so it renders on the Generate step above the button. `positive`
+        // reaches the graph as `Input_Positive`, joined after the baked instruction; empty (the
+        // default) sends ''. The Qwen-era Speed tier (`Input_Tier`) left with Qwen. NO seed UI,
+        // ever (existing-flows/head-swap.md).
+        fields: [
+            {
+                id: 'positive', type: 'text', rows: 3, label: 'Expression (optional)', default: '',
+                placeholder: 'Describe the expression you would like the character to end with',
+            },
+        ],
     },
     // MPI-520 — the first Flow authored with no component at all. Its three controls
     // are DECLARED (MPI-531), so the whole descriptor is data a third-party manifest

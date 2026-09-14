@@ -211,9 +211,12 @@
   },
   "128": {
     "inputs": {
-      "text": "head_swap: start with Picture 1 as the base image, keeping its lighting, environment, and background. remove the head from Picture 1 completely and replace it with the head from Picture 2, strictly preserving the hair, eye color, nose structure of Picture 2. copy the direction of the eye, head rotation, micro expressions from Picture 1, high quality, sharp details, 4k.",
       "clip": [
         "189",
+        0
+      ],
+      "text": [
+        "297",
         0
       ]
     },
@@ -910,6 +913,29 @@
     "class_type": "MpiMath",
     "_meta": {
       "title": "Return Margin (12% of box)"
+    }
+  },
+  "296": {
+    "inputs": {
+      "value": ""
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Input_Positive"
+    }
+  },
+  "297": {
+    "inputs": {
+      "string_a": "head_swap: start with Picture 1 as the base image, keeping its lighting, environment, and background. remove the head from Picture 1 completely and replace it with the head from Picture 2, strictly preserving the hair, eye color, nose structure of Picture 2. copy the direction of the eye, head rotation, micro expressions from Picture 1, high quality, sharp details, 4k.",
+      "delimiter": " ",
+      "string_b": [
+        "296",
+        0
+      ]
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate Text"
     }
   }
 }

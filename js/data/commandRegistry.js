@@ -1003,8 +1003,9 @@ export const commands = {
             { key: 'image1', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image',   required: true },
             { key: 'image2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: true },
         ],
-        // Fixed-prompt outcome app: the graph has NO Input_Positive/Input_Negative — both
-        // prompts are BAKED. Do not add a prompt box for this app.
+        // Fixed-prompt outcome app with one OPTIONAL addition: the head_swap instruction is
+        // BAKED, and `Input_Positive` (the flow's Expression field) is JOINED after it
+        // (MPI-744). No Input_Negative. Do not add a prompt box for this app.
         promptRequired: false,
         universal: true,            // 4th Apps op — flow_head_swap.json, qwen-edit + app LoRA.
         // MpiBox carries FOUR widgets (x/y/width/height); the generic title injector

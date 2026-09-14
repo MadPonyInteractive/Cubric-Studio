@@ -15,7 +15,15 @@ runner. Its `_lastResults = null;\n\s*_lastDisplay` anchor met a CRLF checkout (
 so local was green). Reproduced with a `readFileSync` preload serving the sources as CRLF, fixed
 to `\r?\n`, then 5/5 under LF and CRLF.
 
-## Live — PENDING (Fabio, in his own app, Head Swap)
+## Live — PASSED (Fabio, in his own app, Head Swap, 2026-09-14)
+
+Fabio: "Yeah, it works end-to-end." His screenshots show the Generate stage painting Output_Display
+(both inputs stacked beside the result) with the Compare toggle under it, "Saved to your gallery",
+and exactly ONE new gallery card, `flowHeadSwap_003` (514 x 793, 46 s). A second screenshot after
+a reopen shows the display again. Decision: a fresh Generate does NOT reset to Display; a chosen
+Compare stays (today's behaviour).
+
+Checklist the run covered:
 
 1. Run Head Swap: the final stage shows the Output_Display view (both inputs beside the result).
 2. Exactly ONE new gallery card, and it is the swapped image.
