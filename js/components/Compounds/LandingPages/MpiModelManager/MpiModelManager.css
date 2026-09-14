@@ -417,12 +417,14 @@
     color: var(--ink-2);
 }
 .mpi-detail__disk-val { font-variant-numeric: tabular-nums; }
-/* MPI-752: "X on disk · Y to download" under the Disk total, only when partly present. */
+/* MPI-752: "[X on disk · ]Y to download" under the Disk total, whenever anything is left to download. */
 .mpi-detail__disk-split {
     font-size: var(--t-2xs);
     color: var(--ink-4);
     font-variant-numeric: tabular-nums;
 }
+/* The part the user acts on — what Install will actually fetch. */
+.mpi-detail__disk-todo { color: var(--ink-1); }
 
 /* Licence row (MPI-451) — only rendered for a model with a licence descriptor, so
    every permissively licensed model's drawer is unchanged. This is the standing

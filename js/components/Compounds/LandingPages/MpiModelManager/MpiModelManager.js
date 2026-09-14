@@ -651,8 +651,13 @@ export const MpiModelManager = ComponentFactory.create({
             // MPI-752: the part of that universe already on disk, shared deps another
             // model brought INCLUDED — the opposite of _computePartial's "its own" rule,
             // because this answers "how much will Install download", not "how far along".
+            // No status for the model (not synced yet, or the Pod's answer failed) is
+            // UNKNOWN, not "nothing on disk" — null hides the line instead of billing the
+            // whole model as a download (the same rule the remote disk gate follows).
             const depStatus = getModelDepStatus(model.id);
-            const onDiskBytes = _sizeOf(draftIds.filter(id => _depIsInstalled(depStatus?.get(id))));
+            const onDiskBytes = depStatus
+                ? _sizeOf(draftIds.filter(id => _depIsInstalled(depStatus.get(id))))
+                : null;
 
             const installedOps = _installedOpsOf(model);
             // MPI-209: arch draft ≠ arch-on-disk counts as "changed" (Update
@@ -674,7 +679,7 @@ export const MpiModelManager = ComponentFactory.create({
             if (downloadState === 'idle') partial = _computePartial(model);
 
             return {
-                job, downloadState, isActiveDownload, isBusy, sizeBytes,
+                job, downloadState, isActiveDownload, isBusy, sizeBytes, onDiskBytes,
                 installedOps, installedArch, draftDiffersFromInstalled, anyInstalled, partial,
             };
         }
@@ -882,8 +887,8 @@ export const MpiModelManager = ComponentFactory.create({
                         <span class="mpi-detail__field-label" style="margin:0">Disk</span>
                         <span class="mpi-detail__disk-val">${st.sizeBytes > 0 ? formatBytes(st.sizeBytes) : '—'}</span>
                     </div>
-                    ${st.onDiskBytes > 0 && st.onDiskBytes < st.sizeBytes
-                        ? `<div class="mpi-detail__disk-split">${formatBytes(st.onDiskBytes)} on disk · ${formatBytes(st.sizeBytes - st.onDiskBytes)} to download</div>`
+                    ${st.onDiskBytes !== null && st.onDiskBytes < st.sizeBytes
+                        ? `<div class="mpi-detail__disk-split">${st.onDiskBytes > 0 ? `${formatBytes(st.onDiskBytes)} on disk · ` : ''}<span class="mpi-detail__disk-todo">${formatBytes(st.sizeBytes - st.onDiskBytes)} to download</span></div>`
                         : ''}
                 </div>
                 <div class="mpi-detail__field" id="detail-licence" style="display:none;">

@@ -187,12 +187,15 @@ own original acceptance criterion, and `tests/licence-gate.test.cjs` now pins bo
 ## The Disk row — total, on disk, to download (MPI-752)
 
 The detail panel's Disk value is `_sizeOf(_draftDepIds(model))`, the whole engine-scoped
-universe. Under it, when some but not all of those deps are on disk, a line reads
-`X on disk · Y to download` (`onDiskBytes` in `_modelState`). It counts shared deps another
+universe. Under it, whenever anything is left to download, a line reads `Y to download`,
+prefixed `X on disk · ` when part of it is already there (`onDiskBytes` in `_modelState`);
+a fully present model shows no line. It counts shared deps another
 installed model brought **on purpose** — MiniMax H3 Reference on top of H3 is 50.1GB total,
 28.8GB on disk, 21.4GB to download — the opposite of the partial chip's "its own" rule below.
 The chip answers *how far along is this model*; this line answers *how much will Install
-download*. Do not merge them.
+download*. Do not merge them. **Never SUM `onDiskBytes` across models** for a library-wide
+total: a shared weight counts once per model that declares it. A total is `_sizeOf` over the
+UNION of on-disk dep ids (MPI-755).
 
 ## The partial-install chip — what it means, and what it does NOT (MPI-258, MPI-462, MPI-487)
 
