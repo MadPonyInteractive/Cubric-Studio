@@ -3,6 +3,8 @@
   "files": [
     "routes/projects.js",
     "tests/project-stats-group.test.cjs",
-    "docs/project-integrity.md"
+    "docs/project-integrity.md",
+    "docs/releases/UNRELEASED.md",
+    ".claude/rules/kanban.md"
   ]
 }

@@ -55,3 +55,24 @@ test('group stats count and size items whose filePath carries a cache-bust', asy
         await fs.remove(folderPath);
     }
 });
+
+// The same greedy parse was fixed at three sites across two commits (c2c1c662, then
+// MPI-750); a doc rule did not stop the repeats, so the source is checked instead.
+test('no code parses a /project-file url with a greedy path=(.+)', () => {
+    const root = path.join(__dirname, '..');
+    const offenders = [];
+    for (const dir of ['routes', 'services', 'electron', 'js']) {
+        const abs = path.join(root, dir);
+        if (!fs.existsSync(abs)) continue;
+        for (const rel of fs.readdirSync(abs, { recursive: true })) {
+            if (!/\.[cm]?js$/.test(rel) || rel.includes('node_modules')) continue;
+            fs.readFileSync(path.join(abs, rel), 'utf8').split(/\r?\n/).forEach((line, i) => {
+                const code = line.trim();
+                if (code.includes('path=(.+)') && !code.startsWith('//') && !code.startsWith('*')) {
+                    offenders.push(`${dir}/${rel}:${i + 1}`);
+                }
+            });
+        }
+    }
+    assert.deepEqual(offenders, [], 'use pathFromProjectFileUrl, which stops at `&`');
+});

@@ -386,7 +386,7 @@ parallel at all, and it is the thing a peer greps to find out who holds a file.
 event-log updates:
 
 ```json
-{ "schema": "mpi-kanban/files/v1", "files": ["js/data/modelConstants/models.js", "docs/models/krea2/injection.md"] }
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/data/modelConstants/models.js", "docs/models/krea2/injection.md"] }
 ```
 
 **Only the agent taking the card can write it.** `mpi-execute-parallel` forbids inferring

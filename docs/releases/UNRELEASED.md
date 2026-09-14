@@ -545,3 +545,8 @@
 
 - Download-only Pods no longer fail when one CPU size sells out — the app tries
   the others, and points you at a cheap GPU card if the whole region is full.
+
+- The History workspace shows how many versions a card holds, and how much space they take,
+  again. The top bar could read "0 entries · 0 KB" for a card with several versions, because
+  the app missed each version's file when its saved link ended in a refresh marker. It now
+  finds them, so a card with four versions reads 4 entries and its real size.

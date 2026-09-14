@@ -33,3 +33,14 @@ a repo-wide grep finds no greedy `path=(.+)` parse left.
 After an app restart (routes live in the Node process; a renderer reload is not enough),
 Fabio's own app shows `4 ENTRIES · 4.7 MB` on `test` / `imported_014`. 4877246 bytes is
 4.65 MiB, so it matches the route's answer.
+
+## Close-out follow-ups (approved by Fabio, 2026-09-14)
+
+- `docs/releases/UNRELEASED.md` § Fixes: the readout was a released bug (the cache-bust
+  commit `868f2aae` is in v1.4.2). The replace-branch leak is left out: not exercised
+  end-to-end.
+- `.claude/rules/kanban.md`: the `files.json` example now names `mpi-kanban/task-files/v1`,
+  matching the plugin's `mutate.md`.
+- `tests/project-stats-group.test.cjs`: a second test fails on any greedy `path=(.+)` parse
+  in `routes/`, `services/`, `electron/`, `js/`. Its rule finds the three old sites in
+  `cf13d39c^:routes/projects.js` and none at HEAD.
