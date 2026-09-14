@@ -1,0 +1,8 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/projects.js",
+    "tests/project-stats-group.test.cjs",
+    "docs/project-integrity.md"
+  ]
+}

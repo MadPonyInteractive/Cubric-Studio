@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-750",
+  "title": "History stats readout shows 0 ENTRIES / 0 KB for a populated group",
+  "description": "C:/Program Files/Git/project-stats group mode parses sidecar filePath with a greedy path=(.+)$, which swallows the &v=<mtime> cache-bust, so every item misses and the History bar reads 0/0. Same parser in save-generation replace leaks the old media file.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-14T11:48:17+01:00",
+  "updated_at": "2026-09-14T11:53:12+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

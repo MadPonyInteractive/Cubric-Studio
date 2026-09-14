@@ -252,12 +252,14 @@ If a user deletes a file manually (outside the app), the next project open runs 
 
 **Critical:** When reading the meta file to check if media exists, ALWAYS read the `filePath` field from the `.meta/` JSON — do NOT assume the UUID is the media filename. The UUID might be `6e409682-...` but the actual file could be `t2i_001.png` or `my_custom_name.png`.
 
-**The GC's path parse must be non-greedy.** Freshly-written outputs carry a `&v=<mtime>`
-cache-bust suffix, so a greedy `path=(.+)$` folds `…t2i_001.png&v=178…` into the path,
-`pathExists()` goes false, and the GC deletes a **LIVE** sidecar as an orphan (the just-created
-id is skipped, so the PREVIOUS gen's sidecar dies — gen `t2i_002` kills `t2i_001`'s). Use
-`pathFromProjectFileUrl` (`[?&]path=([^&]+)`, stops at `&`) for `filePath` AND `thumbPath`
-(`c2c1c662`).
+**Every sidecar path parse must stop at `&`.** Outputs carry a `&v=<mtime>` cache-bust
+suffix, so a greedy `path=(.+)$` folds `…t2i_001.png&v=178…` into the path and
+`pathExists()` goes false — silently, never an error. In the GC that deleted a **LIVE** sidecar
+as an orphan (the just-created id is skipped, so the PREVIOUS gen's sidecar dies — gen
+`t2i_002` kills `t2i_001`'s; `c2c1c662`). In `/project-stats` group mode it made the History
+bar read `0 ENTRIES · 0 KB` for a full group, and in the `replaceItemId` path it left the
+replaced media file on disk (MPI-750). Always `pathFromProjectFileUrl`
+(`[?&]path=([^&]+)`), for `filePath` AND `thumbPath`.
 
 ---
 

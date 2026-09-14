@@ -1953,14 +1953,10 @@ router.post('/project/save-generation', async (req, res) => {
                 const prevMetaPath = path.join(metaDir, `${replaceItemId}.json`);
                 if (await fs.pathExists(prevMetaPath)) {
                     const prev = await fs.readJson(prevMetaPath);
-                    if (prev?.filePath) {
-                        const m = prev.filePath.match(/path=(.+)$/);
-                        if (m) _replacePrevMediaPath = decodeURIComponent(m[1]);
-                    }
-                    if (prev?.thumbPath) {
-                        const m = prev.thumbPath.match(/path=(.+)$/);
-                        if (m) _replacePrevThumbPath = decodeURIComponent(m[1]);
-                    }
+                    // MPI-750: stops at `&` — a greedy parse kept the `&v=<mtime>` cache-bust,
+                    // the path never existed, and the replaced media file leaked on disk.
+                    _replacePrevMediaPath = pathFromProjectFileUrl(prev?.filePath);
+                    _replacePrevThumbPath = pathFromProjectFileUrl(prev?.thumbPath);
                     if (Number.isFinite(prev?.generationMs)) {
                         _replacePrevGenerationMs = prev.generationMs;
                     }
@@ -3040,11 +3036,8 @@ router.get('/project-stats/:projectId', async (req, res) => {
                 if (!(await fs.pathExists(metaPath))) continue;
                 let meta;
                 try { meta = await fs.readJson(metaPath); } catch { continue; }
-                let mediaPath = null;
-                if (meta.filePath) {
-                    const m = meta.filePath.match(/path=(.+)$/);
-                    if (m) mediaPath = decodeURIComponent(m[1]);
-                }
+                // MPI-750: stops at `&` — a greedy parse kept the `&v=<mtime>` cache-bust.
+                const mediaPath = pathFromProjectFileUrl(meta.filePath);
                 if (!mediaPath || !(await fs.pathExists(mediaPath))) continue;
                 const stat = await fs.stat(mediaPath);
                 if (!stat.isFile()) continue;
