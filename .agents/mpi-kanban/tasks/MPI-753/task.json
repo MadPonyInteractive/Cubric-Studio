@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-753",
+  "title": "Model Library: rename the Size filter label to Tier",
+  "description": "The LOW / BALANCED / HIGH facet in the Model Library header is labelled Size; it describes the tier, so the label reads Tier.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-14T12:25:10+01:00",
+  "updated_at": "2026-09-14T12:26:34+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

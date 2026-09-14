@@ -68,7 +68,7 @@ export const MpiModelManager = ComponentFactory.create({
                     </div>
                     <span class="mpi-model-library__filter-sep"></span>
                     <div class="mpi-model-library__filter-group">
-                        <span class="mpi-model-library__filter-label">Size</span>
+                        <span class="mpi-model-library__filter-label">Tier</span>
                         <div id="size-filter-slot" style="display:flex;gap:var(--s-3);"></div>
                     </div>
                     <label class="mpi-model-library__search">
