@@ -37,7 +37,7 @@ import {
     baseName as _baseName,
     resolveInfo as _resolveInfo,
     isMissing as _isMissing,
-} from './loraSlotParts.js';
+} from '../../loraSlotParts.js';
 import { Events } from '../../../events.js';
 import { state } from '../../../state.js';
 import {

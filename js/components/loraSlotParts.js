@@ -15,11 +15,15 @@
  * names so each keeps its CSS in its own stylesheet. Everything else — the -2..2
  * range, the 0.05 step, the 2 decimals, the ghost icon button — is identical by
  * construction.
+ *
+ * Lives at the js/components root, in no tier folder: both consumers
+ * (MpiModelSettings, MpiLoraRack) are Compounds, and a Compound may not import
+ * from another Compound (MPI-751). It imports Primitives only.
  */
 
-import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
-import { mountButton } from '../../Primitives/MpiButton/MpiButton.js';
-import { on } from '../../../utils/dom.js';
+import { MpiInput } from './Primitives/MpiInput/MpiInput.js';
+import { mountButton } from './Primitives/MpiButton/MpiButton.js';
+import { on } from '../utils/dom.js';
 
 /**
  * Build the strength-inputs row for one LoRA slot. `kinds` is the model's

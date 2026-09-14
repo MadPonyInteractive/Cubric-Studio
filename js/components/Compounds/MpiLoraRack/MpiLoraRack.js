@@ -42,7 +42,7 @@ import {
     applyBypass,
     baseName,
     isMissing,
-} from '../MpiModelSettings/loraSlotParts.js';
+} from '../../loraSlotParts.js';
 
 const BEM = 'mpi-lora-rack';
 const BYPASSED_CLASS = `${BEM}__row--bypassed`;

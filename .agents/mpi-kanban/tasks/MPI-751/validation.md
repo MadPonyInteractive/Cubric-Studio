@@ -22,3 +22,15 @@ gallery-cue-all 11/11.
   including the new check "the mic and voice cards render only when the slot hands their components in"
   (fails on the old code: an audio picker without props rendered the mic card)
 - Parked rule: 20 hits; no `MpiMediaPicker` hit left
+
+## Fix 6 (2026-09-14) — 20 -> 19 hits
+
+`js/components/Compounds/MpiModelSettings/loraSlotParts.js` -> `js/components/loraSlotParts.js`, beside
+`shaderBackground.js`: no tier folder, imports Primitives only, consumed by two Compounds.
+
+- `npm run lint`: 0
+- `npm test`: 991/991
+- `npx playwright test --config=playwright.desktop.config.js tests/desktop/flow-lora-button.spec.js tests/desktop/model-settings-popup.spec.js`: 3/3
+- Parked rule: 19 hits; no `MpiLoraRack` hit left
+- Not touched: `js/components/Compounds/MpiGalleryToolbar/filterPanel.js:4` still names the old path in a
+  comment. The file is under MPI-749's live claim, so its owner was messaged instead.
