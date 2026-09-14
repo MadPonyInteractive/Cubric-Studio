@@ -28,8 +28,8 @@ a repo-wide grep finds no greedy `path=(.+)` parse left.
   file (`path.normalize` compare) and never on the new `<id>.thumb.jpg/.webp`, so fixing the
   parse cannot delete the fresh output. Not exercised end-to-end (needs a Comfy download).
 
-## Not done
+## UI confirmed (Fabio, 2026-09-14)
 
-- UI readout not driven in an isolated app. The server route was the only source of the 0.
-- The user's running app serves routes from its Node process: it needs an app restart, not
-  a renderer reload, to pick this up.
+After an app restart (routes live in the Node process; a renderer reload is not enough),
+Fabio's own app shows `4 ENTRIES · 4.7 MB` on `test` / `imported_014`. 4877246 bytes is
+4.65 MiB, so it matches the route's answer.
