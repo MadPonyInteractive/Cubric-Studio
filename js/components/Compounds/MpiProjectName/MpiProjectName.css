@@ -7,6 +7,7 @@
 
 .mpi-project-name {
     position: relative;   /* anchors the centred Flows button */
+    container-type: inline-size;   /* the stats cut-off below queries this bar (MPI-749) */
     display: flex;
     align-items: center;
     gap: 0.75rem;
@@ -145,13 +146,39 @@
     display: none;
 }
 
+/* ── Toolbar slot (MPI-749) ─────────────────────────────── */
+/* Takes the free space whether or not anything is mounted in it, so the stats stay
+   pinned right on group-history, where the slot is empty.
+   `max-width` reserves the right half of the bar minus the centre group: `__centre`
+   is absolutely positioned, so flex cannot see it and would let the toolbar slide
+   under Flows + Record instead of shrinking its sliders. 7.25rem = half the Flows +
+   Record group (~96px) + the flex gap + 8px clearance. Measured live, validation.md. */
+
+.mpi-project-name__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-left: auto;
+    min-width: 0;
+    max-width: calc(50% - 7.25rem);
+}
+
+/* Narrow window: the gallery controls win over the N ASSETS · SIZE readout (Fabio,
+   MPI-749: the landing page already shows per-project size). Gated on a MOUNTED
+   toolbar, so group-history always keeps its ENTRIES readout. The width is the BAR's,
+   measured live: tasks/MPI-749/validation.md § Phase 2. */
+@container (max-width: 1400px) {
+    .mpi-project-name__toolbar:not(:empty) ~ .mpi-project-name__stats {
+        display: none;
+    }
+}
+
 /* ── Stats slot (right-aligned: rule + N LABEL · X.X UNIT) ─ */
 
 .mpi-project-name__stats {
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    margin-left: auto;
     font-family: 'JetBrains Mono', monospace;
     font-size: var(--t-2xs);
     letter-spacing: 0.08em;

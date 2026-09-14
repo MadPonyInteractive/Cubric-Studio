@@ -168,7 +168,7 @@ test('one tile per card, captioned exactly as the gallery captions it', async ({
     const galleryNames = await window.evaluate(async (gs) => {
       const { MpiGalleryGrid } = await import('/js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js');
       const { state } = await import('/js/state.js');
-      state.gallerySort = { order: 'newest', filter: 'all', scope: 'active' };
+      state.gallerySort = { ...(await import('/js/utils/galleryFilter.js')).DEFAULT_GALLERY_SORT };
       const host = document.createElement('div');
       host.id = 'pick-grid-host';
       host.style.cssText = 'position:fixed;top:0;left:0;width:1600px;height:900px;z-index:0;';
@@ -190,16 +190,17 @@ test('one tile per card, captioned exactly as the gallery captions it', async ({
   }
 });
 
-test('the type filter reads group.type, like the gallery', async ({}, testInfo) => {
+test('the type filter reads group.type', async ({}, testInfo) => {
   const { app, window } = await launchApp(testInfo);
 
   try {
     await window.waitForTimeout(6000);
     await openPicker(window, fixtureGroups(), 'image');
 
-    // `pick-mixed` is `type: 'video'` and its selected take is an IMAGE. The
-    // gallery files it under Videos; filtering per item would file it under Images
-    // instead, so each tab is asserted in both directions.
+    // `pick-mixed` is `type: 'video'` and its selected take is an IMAGE. The picker
+    // files it under Videos, by group type. The GALLERY kinds a card by its selected
+    // item since MPI-749 and would file it under Images: a known divergence, pinned
+    // here so it changes on purpose. Each tab is asserted in both directions.
     await setFilter(window, 'Videos');
     expect(await captions(window)).toEqual(['Clip with a still selected']);
 

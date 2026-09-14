@@ -71,7 +71,7 @@ from two separate conditionings — so a boolean could not express what the grap
 
 ## MpiProgressBar ships a 160px floor that beats any parent `max-width`
 
-`.mpi-progress { min-width: 160px }` (`js/components/Primitives/MpiProgressBar/MpiProgressBar.css`). A `max-width` on the mount wrapper can never win against it — two bars side by side silently overflow their container and draw ON TOP of each other, which reads as a layout bug in the consumer, not in the primitive. Sizing bars below 160px means overriding `min-width` **scoped to your consumer** (see `.mpi-gallery-grid__zone--center .mpi-progress`), never on the primitive — other consumers rely on the floor.
+`.mpi-progress { min-width: 160px }` (`js/components/Primitives/MpiProgressBar/MpiProgressBar.css`). A `max-width` on the mount wrapper can never win against it — two bars side by side silently overflow their container and draw ON TOP of each other, which reads as a layout bug in the consumer, not in the primitive. Sizing bars below 160px means overriding `min-width` **scoped to your consumer** (see `.mpi-gallery-toolbar__slider .mpi-progress`), never on the primitive — other consumers rely on the floor.
 
 ## MpiRadioGroup emits 'select' not 'change'
 
@@ -192,7 +192,7 @@ A full-width on/off toggle row = `MpiButton { icon:'circle', iconActive:'check',
 
 Three rules the entry carries, each with a reason:
 
-- **The type filter reads `group.type`**, matching `_rerenderJustified` in `MpiGalleryGrid`. A group may hold mixed types, so filtering on the selected item's type instead drops a card out of the very tab the gallery lists it under — the spec's fixture has exactly that card (a `type: 'video'` group whose selected take is an image).
+- **The type filter reads `group.type`.** The gallery no longer does: since MPI-749 it kinds a card by its SELECTED item (`docs/gallery-filters.md`), so a `type: 'video'` group whose selected take is an image lists under Videos here and under Images in the gallery. A known divergence, pinned by the spec's fixture (exactly that card) so it changes on purpose.
 - **The caption is the gallery's label chain** (`customName || item.name || group.name`), which already means *"the title the user typed, else the file name"*: `group.name` is set at creation to the filename stem (`truncateCardName(displayName…)` for a generation, the import's `displayName` otherwise) and `item.name` is null on everything the app makes. So a picker caption comes out byte-identical to the gallery caption beside it, truncation included — the spec asserts that against the grid's own rendered text rather than a literal, so the two cannot drift. **One deliberate divergence:** `createItemGroup`'s `'Untitled Group'` default falls through to the basename here. Nothing in the app writes it (only a legacy or hand-edited `project.json` can) and it is not a title anyone typed.
 - **A card whose selected entry has no `filePath` is skipped**, like an archived one (MPI-678). A pending or failed generation has a card and no file; handing it to a Flow slot resolves to a broken URL.
 

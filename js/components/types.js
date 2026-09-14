@@ -1587,6 +1587,7 @@
  *   setProjectName(name)    — update project name
  *   setGalleryLabel(label)  — pass '' to hide (at gallery root)
  *   setGroupLabel(label)    — pass '' to hide (not inside a group)
+ *   getToolbarSlot()        — empty slot MpiGalleryToolbar mounts into; navigation.js owns it (MPI-749)
  *
  * Emits:
  *   'up'      {} — up-arrow clicked (navigate up one level: group→gallery, gallery→landing)
@@ -1599,6 +1600,27 @@
  * through MpiButton's `setLabel`, and the segment is mounted with a non-empty
  * `text` even when it starts hidden: MpiButton only renders the span setLabel
  * writes into when `props.text` is truthy at mount.
+ */
+
+/**
+ * @typedef {Object} MpiGalleryToolbarProps (Compound — js/components/Compounds/MpiGalleryToolbar, MPI-749)
+ * No props. The gallery's view controls: size slider, volume slider, FILTER, Archive, Info.
+ * Talks to the gallery ONLY through state — `gallerySizeLevel`, `galleryVolume`,
+ * `gallerySort` and `galleryShowInfo` (read + write), `currentProject` (read, for the kind
+ * rows). Mounted by js/shell/navigation.js into `MpiProjectName.el.getToolbarSlot()` on the
+ * gallery page only, destroyed on every other page.
+ *
+ * Instance methods (on instance.el):
+ *   destroy() — drops every state listener and closes the filter panel (removing its portal).
+ *
+ * Emits: nothing.
+ *
+ * FILTER carries `mpi-gallery-toolbar__filter--filtered` (the heat dot) exactly when
+ * `isGalleryFiltered(state.gallerySort)`; its `data-info` is `Filtered: …` from
+ * `describeGalleryFilter`. The panel (filterPanel.js) is an MpiPopup created on open and
+ * removed on close, so the DOM never holds more than one. It never calls `Overlays`: the
+ * grid's 'overlay' media hold must not engage for a panel (docs/gallery.md § Media
+ * suspension). Esc closes it through the app's `overlay.close` hotkey → `ui:close-all-popups`.
  */
 
 /**

@@ -58,6 +58,7 @@ example died with MPI-470's t2v deprecation; the filter stands for the next mult
 Project JSON: `{ id, name, folderPath, createdAt, updatedAt, thumbnail, itemGroups, tutorialSeen, modelSettings, toolSettings }`
 
 - `createImageItem() / createVideoItem()`: Make a media item for a group.
+- **A new media type or sub-kind** (GIF, MIDI, stems) also needs an `ASSET_KINDS` row, or the gallery shows it as a plain image with no filter row of its own: [gallery-filters.md](gallery-filters.md) § Adding a media kind.
 - `createItemGroup()`: Makes a group containing items.
 - `getSelectedItem() / appendToHistory() / promoteHistoryEntry() / removeHistoryEntry()`: History management.
 - `createProject() / updateGroupInProject() / addGroupToProject() / removeGroupFromProject()`: Project-level operations.

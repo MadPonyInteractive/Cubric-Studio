@@ -42,6 +42,7 @@ function _mountButton(props) {
  *   setGroupLabel(label)               — pass '' to hide (we are not inside a group)
  *   setStats({ count, bytes, label })  — update stats; any field optional
  *   setRecordVisible(visible)          — show/hide Record (gallery-only, MPI-678)
+ *   getToolbarSlot()                   — empty slot navigation.js mounts MpiGalleryToolbar into (MPI-749)
  *
  * Emits:
  *   'up'      {} — up-arrow clicked (navigate up one level)
@@ -145,6 +146,13 @@ export const MpiProjectName = ComponentFactory.create({
 
         centreGroup.append(flowsBtn, recordBtn);
 
+        // ── Toolbar slot (MPI-749) ──────────────────────────────────────────────
+        // Empty here: navigation.js mounts MpiGalleryToolbar into it on the gallery
+        // page and empties it everywhere else, so this bar never learns what a gallery
+        // filter is. The slot takes the free space whether or not it holds anything,
+        // which is what keeps the stats pinned right on group-history.
+        const toolbarSlot = ce('div', { className: 'mpi-project-name__toolbar' });
+
         // ── Stats (right-aligned: rule + count + label · size) ─────────────────
         const statsEl = ce('div', { className: 'mpi-project-name__stats' });
         const statsRule  = ce('span', { className: 'mpi-project-name__stats-rule', 'aria-hidden': 'true' });
@@ -173,7 +181,7 @@ export const MpiProjectName = ComponentFactory.create({
         }
         _renderStats();
 
-        el.append(backBtn, textBlock, centreGroup, statsEl);
+        el.append(backBtn, textBlock, centreGroup, toolbarSlot, statsEl);
 
         // ── Visibility ──────────────────────────────────────────────────────────
 
@@ -223,6 +231,8 @@ export const MpiProjectName = ComponentFactory.create({
         el.setRecordVisible = (visible) => {
             _toggle(recordBtn, !visible);
         };
+        /** @returns {HTMLElement} the toolbar slot — see the slot comment above (MPI-749) */
+        el.getToolbarSlot = () => toolbarSlot;
 
         /** @param {{ count?: number, bytes?: number, label?: string }} stats */
         el.setStats = (stats = {}) => {

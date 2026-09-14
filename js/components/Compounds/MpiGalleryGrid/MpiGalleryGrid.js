@@ -1,17 +1,16 @@
 import { ComponentFactory } from '../../factory.js';
-import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiWaveform } from '../../Primitives/MpiWaveform/MpiWaveform.js';
 import { ce, qs, qsa, on } from '/js/utils/dom.js';
 import { renderIcon } from '/js/utils/icons.js';
 import { kindOfItem } from '/js/utils/assetKinds.js';
+import { matchesGallerySort, isGalleryFiltered, DEFAULT_GALLERY_SORT } from '/js/utils/galleryFilter.js';
 import { removeHistoryEntry } from '../../../data/projectModel.js';
 import { getModelById, tierLetterFor } from '../../../data/modelRegistry.js';
 import { getCommand, commandAllowsBranchingContinue, selectCueAllTargets } from '../../../data/commandRegistry.js';
 import { flowModelChoices } from '../../../data/flowsRegistry.js';
 import { state } from '../../../state.js';
-import { Storage } from '../../../core/storage.js';
 import { Events } from '../../../events.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 import { Overlays } from '../../../managers/overlayManager.js';
@@ -153,29 +152,6 @@ export const MpiGalleryGrid = ComponentFactory.create({
 
     template: () => `
         <div class="mpi-gallery-grid">
-            <div class="mpi-gallery-grid__tabs">
-                <div class="mpi-gallery-grid__zone mpi-gallery-grid__zone--left">
-                    <span class="mpi-gallery-grid__zone-label">SORT</span>
-                    <div class="mpi-gallery-grid__tab-slot" data-order="newest"></div>
-                    <div class="mpi-gallery-grid__tab-slot" data-order="oldest"></div>
-                </div>
-                <div class="mpi-gallery-grid__zone mpi-gallery-grid__zone--center">
-                    <span class="mpi-gallery-grid__slider-icon">${renderIcon('grid', 'sm')}</span>
-                    <div class="mpi-gallery-grid__slider-wrap"></div>
-                    <span class="mpi-gallery-grid__slider-icon mpi-gallery-grid__volume-icon"></span>
-                    <div class="mpi-gallery-grid__volume-wrap"></div>
-                </div>
-                <div class="mpi-gallery-grid__zone mpi-gallery-grid__zone--right">
-                    <div class="mpi-gallery-grid__tab-slot" data-filter="all"></div>
-                    <div class="mpi-gallery-grid__tab-slot" data-filter="images"></div>
-                    <div class="mpi-gallery-grid__tab-slot" data-filter="videos"></div>
-                    <div class="mpi-gallery-grid__tab-slot" data-filter="audios"></div>
-                    <div class="mpi-gallery-grid__tab-slot" data-filter="previews"></div>
-                    <div class="mpi-gallery-grid__tab-slot" data-filter="favorites"></div>
-                    <div class="mpi-gallery-grid__archive-btn-slot"></div>
-                    <div class="mpi-gallery-grid__info-btn-slot"></div>
-                </div>
-            </div>
             <div class="mpi-gallery-grid__grid"></div>
         </div>
     `,
@@ -211,7 +187,6 @@ export const MpiGalleryGrid = ComponentFactory.create({
         const _previewWarnings = new Map();
 
         const grid = qs('.mpi-gallery-grid__grid', el);
-        const sliderWrap = qs('.mpi-gallery-grid__slider-wrap', el);
         const EMPTY_IMAGE_SRC = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
 
         /** @type {Array<Function>} */
@@ -376,21 +351,13 @@ export const MpiGalleryGrid = ComponentFactory.create({
             return true;
         }
 
-        // ── Grid size slider (5 levels via MpiProgressBar) ──────────────────────
+        // ── Card size (state.gallerySizeLevel; the slider is in MpiGalleryToolbar) ──
         // GAP also used by justified layout below; declared up here so the
         // slider's _computeCardWidth can use it before the layout section runs.
         const GAP = 8;
 
         // Clamp any persisted level above the new max (was 5 → now 4).
         if (state.gallerySizeLevel > 4) state.gallerySizeLevel = 4;
-
-        const slider = MpiProgressBar.mount(sliderWrap, {
-            min: 1, max: 4, step: 1, value: state.gallerySizeLevel,
-            interactive: true,
-            wheel: true,
-            handle: true,
-            info: 'Size: {value}',
-        });
 
         // Slider level → target items-per-row, converted to the targetRowHeight
         // seed the justified packer wants.
@@ -427,71 +394,25 @@ export const MpiGalleryGrid = ComponentFactory.create({
 
         let _cardWidth = _computeCardWidth(state.gallerySizeLevel);
 
-        slider.on('input', ({ value }) => {
-            state.gallerySizeLevel = value;
-            _cardWidth = _computeCardWidth(value);
-            _rerenderJustified('size');
-        });
-
-        const incrementSlider = () => {
-            const input = qs('.mpi-progress__input', sliderWrap);
-            const currentValue = parseFloat(input.value);
-            const nextValue = Math.min(4, currentValue + 1);
-            input.value = nextValue;
-            input.dispatchEvent(new Event('input'));
+        // The size slider lives in MpiGalleryToolbar (MPI-749), and the grid follows
+        // `state.gallerySizeLevel` in the state listener below. The hotkeys stay bound
+        // for the grid's lifetime and write the same key, so key and slider cannot drift.
+        const _stepSize = (delta) => {
+            state.gallerySizeLevel = Math.min(4, Math.max(1, state.gallerySizeLevel + delta));
         };
+        _unsubs.push(Hotkeys.bind('gallery.size.inc', () => _stepSize(1)));
+        _unsubs.push(Hotkeys.bind('gallery.size.dec', () => _stepSize(-1)));
 
-        const decrementSlider = () => {
-            const input = qs('.mpi-progress__input', sliderWrap);
-            const currentValue = parseFloat(input.value);
-            const nextValue = Math.max(1, currentValue - 1);
-            input.value = nextValue;
-            input.dispatchEvent(new Event('input'));
-        };
-
-        _unsubs.push(Hotkeys.bind('gallery.size.inc', incrementSlider));
-        _unsubs.push(Hotkeys.bind('gallery.size.dec', decrementSlider));
-
-        // ── Playback volume slider ─────────────────────────────────────────────
+        // ── Playback volume (state.galleryVolume) ─────────────────────────────
         // Drives hover/click playback for BOTH card kinds — audio cards and the
         // unmuted hover video. Cards read `_volume` when they create their media
-        // element; live elements are re-set on every slider move.
-        let _volume = Storage.getGalleryVolume();
-        const volumeIcon = qs('.mpi-gallery-grid__volume-icon', el);
+        // element; live elements are re-set when the toolbar slider moves the key
+        // (state listener below, MPI-749).
+        let _volume = state.galleryVolume;
 
         function _applyVolume(media) {
             if (media) media.volume = _volume;
         }
-
-        function _paintVolumeIcon() {
-            if (volumeIcon) volumeIcon.innerHTML = renderIcon(_volume === 0 ? 'volumeOff' : 'volumeHigh', 'sm');
-        }
-        _paintVolumeIcon();
-
-        const volumeSlider = MpiProgressBar.mount(qs('.mpi-gallery-grid__volume-wrap', el), {
-            min: 0, max: 100, step: 5, value: Math.round(_volume * 100),
-            interactive: true,
-            wheel: true,
-            handle: true,
-            info: 'Volume: {value}%',
-        });
-
-        volumeSlider.on('input', ({ value }) => {
-            _volume = value / 100;
-            Storage.setGalleryVolume(_volume);
-            _paintVolumeIcon();
-            qsa('audio[data-src], video.mpi-group-card__thumb--video', el).forEach(_applyVolume);
-        });
-
-        // MPI-573 mounted Record here, in the centre zone beside the volume,
-        // reasoning that this row was the only gallery toolbar reaching the DOM.
-        // MPI-678 disproved the placement rather than the reasoning: Record is a
-        // PROJECT-level action, not something that changes what the gallery shows,
-        // and its icon+label was the ~6rem of overflow that the two sliders — the
-        // only `flex: 1 1 0` children in a 19rem track — were absorbing, rendering
-        // at ~4rem against a 7rem max-width. It now lives in the project bar beside
-        // Flows (MpiProjectName), where the shell owns both the click and the
-        // gallery-only gating.
 
         // ── Card rendering helper ─────────────────────────────────────────────
 
@@ -1956,24 +1877,16 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 const renderReason = [..._pendingRenderReasons].join(',');
                 _pendingRenderReasons.clear();
 
-                const { order, filter, scope } = state.gallerySort;
+                const sort = state.gallerySort;
+                const { order, scope } = sort;
                 const wantArchived = scope === 'archived';
 
-                let display = _groups.filter(g => {
-                    // Scope gates FIRST and is subtractive: an archived group is
-                    // absent from every active-scope filter, and the active ones
-                    // are absent from the archive. Because it gates before the
-                    // filter switch, the type tabs, Favs, Previews and sort all
-                    // keep working inside the archive — which is the one bucket
-                    // big enough to need them (MPI-678).
-                    if (!!g.archived !== wantArchived) return false;
-                    if (filter === 'images')   return g.type === 'image';
-                    if (filter === 'videos')    return g.type === 'video';
-                    if (filter === 'audios')    return g.type === 'audio';
-                    if (filter === 'previews')  return g.history?.[g.selectedIndex]?.stage === 'preview';
-                    if (filter === 'favorites') return g.favourite === true;
-                    return true;
-                });
+                // One predicate, shared with the filter panel (js/utils/galleryFilter.js).
+                // Scope gates FIRST inside it and is subtractive (MPI-678), so kinds, Favs,
+                // Previews and sort all keep working inside the archive. Kind is read off the
+                // SELECTED item, the same call the card's kind chip makes (MPI-749); a
+                // generating placeholder has no item yet, so its group type stands in.
+                let display = _groups.filter(g => matchesGallerySort(g, g.history?.[g.selectedIndex] ?? { type: g.type }, sort));
 
                 display.sort((a, b) => {
                     const ta = new Date(a.createdAt).getTime();
@@ -2045,18 +1958,33 @@ export const MpiGalleryGrid = ComponentFactory.create({
 
                 _cleanupDetachedState(activeIds);
 
-                // An empty ARCHIVE must say so. The active gallery has no empty
-                // state and is not getting one here — but an archive that renders
-                // as a blank grid reads as "my cards are gone", which is the one
-                // way this feature can look like data loss (MPI-678).
+                // An empty ARCHIVE must say so: a blank archive reads as "my cards are
+                // gone", the one way that feature can look like data loss (MPI-678). A
+                // FILTERED gallery showing nothing must say so too, because the filters now
+                // sit behind one button and a blank grid would read as missing assets
+                // (MPI-749). An unfiltered empty active gallery stays blank, as it always has.
+                const filtered = isGalleryFiltered(sort);
                 if (wantArchived && !allGroups.length) {
                     const emptyEl = document.createElement('div');
                     emptyEl.className = 'mpi-gallery-grid__scope-empty';
                     emptyEl.innerHTML = `
                         <span class="mpi-gallery-grid__scope-empty-icon">${renderIcon('archive', 'lg')}</span>
-                        <p class="mpi-gallery-grid__scope-empty-title">Nothing archived${filter === 'all' ? '' : ' in this filter'}</p>
+                        <p class="mpi-gallery-grid__scope-empty-title">Nothing archived${filtered ? ' in this filter' : ''}</p>
                         <p class="mpi-gallery-grid__scope-empty-hint">Right-click a card and choose Archive to put it away. Nothing is deleted — archived cards keep their files and come back whenever you want.</p>
                     `;
+                    fragment.appendChild(emptyEl);
+                } else if (filtered && !allGroups.length) {
+                    const emptyEl = ce('div', { className: 'mpi-gallery-grid__scope-empty' });
+                    emptyEl.innerHTML = `
+                        <img class="mpi-gallery-grid__scope-empty-mascot" src="assets/mascot/idle.png" alt="" draggable="false">
+                        <p class="mpi-gallery-grid__scope-empty-title">No cards match</p>
+                    `;
+                    const showAll = MpiButton.mount(ce('div'), { text: 'Show all', variant: 'secondary', size: 'sm' });
+                    showAll.on('click', () => {
+                        const { order: keepOrder, scope: keepScope } = state.gallerySort;
+                        state.gallerySort = { ...DEFAULT_GALLERY_SORT, order: keepOrder, scope: keepScope };
+                    });
+                    emptyEl.appendChild(showAll.el);
                     fragment.appendChild(emptyEl);
                 }
 
@@ -2262,113 +2190,27 @@ export const MpiGalleryGrid = ComponentFactory.create({
             if (document.hidden) _stopOtherGalleryMedia(null);
         }));
 
-        // ── Archive scope toggle ─────────────────────────────────────────────
-        // A SCOPE, not a seventh facet chip — hence a toggle button behind a
-        // divider rather than another tab. `favorites` is additive (a fav still
-        // shows under All); archive is subtractive, so it cannot live in the
-        // same single-select row without costing the type filters inside it.
+        // ── State the toolbar drives ─────────────────────────────────────────
+        // Sort, filters, archive scope, size, volume and the info toggle are all
+        // controls in MpiGalleryToolbar, in the project bar (MPI-749). The grid only
+        // follows state; the info hotkey stays bound for the grid's lifetime.
 
-        const archiveBtnSlot = qs('.mpi-gallery-grid__archive-btn-slot', el);
-        const _isArchived = () => state.gallerySort.scope === 'archived';
-        const _archiveTip = (on) => on
-            ? 'Showing the archive — back to the gallery'
-            : 'Show archived cards';
-        const archiveBtn = MpiButton.mount(archiveBtnSlot, {
-            icon: 'archive', size: 'sm', variant: 'ghost', toggleable: true,
-            active: _isArchived(), info: _archiveTip(_isArchived()),
-            extraClasses: 'mpi-gallery-grid__archive-btn',
-        });
-        archiveBtn.on('click', () => {
-            state.gallerySort = {
-                ...state.gallerySort,
-                scope: _isArchived() ? 'active' : 'archived',
-            };
-        });
-
-        // ── Info toggle button ───────────────────────────────────────────────
-
-        const infoBtnSlot = qs('.mpi-gallery-grid__info-btn-slot', el);
-        const _infoTip = (on) => on
-            ? 'Hide card info — mouse over shows it (I)'
-            : 'Show card info always — mouse over hides it (I)';
-        const infoBtn = MpiButton.mount(infoBtnSlot, {
-            icon: 'info', size: 'sm', variant: 'ghost', toggleable: true,
-            active: state.galleryShowInfo, info: _infoTip(state.galleryShowInfo),
-        });
-        const _syncInfoTip = () => {
-            infoBtn.el.setAttribute('data-info', _infoTip(state.galleryShowInfo));
-        };
-        const _toggleInfoMode = () => {
+        _unsubs.push(Hotkeys.bind('gallery.info.toggle', () => {
             state.galleryShowInfo = !state.galleryShowInfo;
-        };
-        infoBtn.on('click', _toggleInfoMode);
-        _unsubs.push(Hotkeys.bind('gallery.info.toggle', _toggleInfoMode));
+        }));
         _unsubs.push(Events.on('state:changed', ({ key }) => {
             if (key === 'galleryShowInfo') {
-                infoBtn.el.setActive?.(state.galleryShowInfo);
-                _syncInfoTip();
                 _cardMap.forEach(({ card }) => card.el.setShowInfo?.(state.galleryShowInfo));
-            }
-        }));
-
-        // ── Gallery organize tabs ────────────────────────────────────────────
-
-        const tabsEl = qs('.mpi-gallery-grid__tabs', el);
-        const _tabInstances = [];
-
-        const _tabDefs = [
-            { order: 'newest',    label: 'Newest' },
-            { order: 'oldest',    label: 'Oldest' },
-            { filter: 'all',       label: 'All' },
-            { filter: 'images',    label: 'Images' },
-            { filter: 'videos',    label: 'Videos' },
-            { filter: 'audios',    label: 'Audio' },
-            { filter: 'previews',  label: 'Previews' },
-            { filter: 'favorites', label: 'Favs' },
-        ];
-
-        _tabDefs.forEach(({ order, filter, label }) => {
-            const key  = order ? `[data-order="${order}"]` : `[data-filter="${filter}"]`;
-            const slot = qs(key, tabsEl);
-            if (!slot) return;
-            const initialActive = order
-                ? state.gallerySort.order === order
-                : state.gallerySort.filter === filter;
-            const btn = MpiButton.mount(slot, {
-                text: label, variant: 'ghost', size: 'sm',
-                extraClasses: `mpi-gallery-grid__tab${initialActive ? ' mpi-gallery-grid__tab--active' : ''}`,
-            });
-            btn.on('click', () => {
-                if (order) state.gallerySort = { ...state.gallerySort, order };
-                else       state.gallerySort = { ...state.gallerySort, filter };
-            });
-            _tabInstances.push({ btn, order, filter });
-        });
-
-        function _syncTabActive() {
-            const { order, filter } = state.gallerySort;
-            _tabInstances.forEach(({ btn, order: o, filter: f }) => {
-                const active = o ? o === order : f === filter;
-                btn.el.classList.toggle('mpi-gallery-grid__tab--active', active);
-            });
-        }
-
-        function _syncArchiveScope() {
-            const on = _isArchived();
-            archiveBtn.el.setActive?.(on);
-            archiveBtn.el.setAttribute('data-info', _archiveTip(on));
-            el.classList.toggle('mpi-gallery-grid--archived', on);
-        }
-        _syncArchiveScope();
-
-        _unsubs.push(Events.on('state:changed', ({ key }) => {
-            if (key === 'gallerySort') {
-                _syncTabActive();
-                _syncArchiveScope();
+            } else if (key === 'gallerySort') {
                 _rerenderJustified('sort');
+            } else if (key === 'gallerySizeLevel') {
+                _cardWidth = _computeCardWidth(state.gallerySizeLevel);
+                _rerenderJustified('size');
+            } else if (key === 'galleryVolume') {
+                _volume = state.galleryVolume;
+                qsa('audio[data-src], video.mpi-group-card__thumb--video', el).forEach(_applyVolume);
             }
         }));
-
         _rerenderJustified('init');
 
         // ── Public API ───────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import { Events } from './events.js';
 import { Storage } from './core/storage.js';
+import { DEFAULT_GALLERY_SORT } from './utils/galleryFilter.js';
 
 // Global runtime state. Per-project persistent settings live on state.currentProject
 // (modelSettings, toolSettings) — not here.
@@ -92,9 +93,11 @@ const _state = {
     remoteComfyNeedsRestart: false, // true after a REMOTE (Pod) install — restarts the Pod's ComfyUI, NOT the local one (kept separate so a remote install never restarts a healthy local engine during a dual-engine session)
 
     // ── Gallery organization ───────────────────────────────────────────────────
-    gallerySort: { order: 'newest', filter: 'all', scope: 'active' },
-                                     // order: 'newest'|'oldest', filter: 'all'|'images'|'videos'|'audios'|'previews'|'favorites'
-                                     // scope: 'active'|'archived' — SUBTRACTIVE, unlike the additive `filter`.
+    gallerySort: { ...DEFAULT_GALLERY_SORT },
+                                     // { order, scope, hiddenKinds, favourites, previews }; the contract is
+                                     // js/utils/galleryFilter.js (MPI-749). order: 'newest'|'oldest', hides nothing.
+                                     // scope: 'active'|'archived' — SUBTRACTIVE, gates before every filter.
+                                     // hiddenKinds: EXCLUDED ASSET_KINDS ids; favourites / previews: "only" flags.
                                      // Deliberately NOT mirrored to Storage: `gallerySort` is in-memory, so the
                                      // scope resets to 'active' every launch. Nobody should relaunch into a
                                      // gallery that looks wiped (MPI-678).
@@ -103,6 +106,9 @@ const _state = {
                                      // Cross-session; mirrored to localStorage by subscriber below.
     gallerySizeLevel: Storage.getGallerySizeLevel(),
                                      // 1–4; cross-session, mirrored to localStorage below.
+    galleryVolume: Storage.getGalleryVolume(),
+                                     // 0–1 hover/click playback volume, 0 IS the mute (MPI-749). Cross-session,
+                                     // mirrored below; MpiMediaPicker reads the same Storage key directly.
 
     // ── Project stats (asset count + bytes on disk) ────────────────────────────
     projectStats: { count: 0, bytes: 0 },   // Whole-project totals; refreshed on media add/delete
@@ -254,6 +260,7 @@ Events.on('state:changed', ({ key, value }) => {
     else if (key === 'promptReuseSource') Storage.setPromptReuseSource(value);
     else if (key === 'galleryShowInfo') Storage.setGalleryShowInfo(value);
     else if (key === 'gallerySizeLevel') Storage.setGallerySizeLevel(value);
+    else if (key === 'galleryVolume') Storage.setGalleryVolume(value);
     else if (key === 'notificationPrefs') Storage.setNotificationPrefs(value);
     else if (key === 'floatLatentWindow') Storage.setFloatLatentWindow(value);
     else if (key === 'runpodConfig') Storage.setRunpodConfig(value);

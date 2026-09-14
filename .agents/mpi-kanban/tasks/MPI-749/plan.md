@@ -2,9 +2,19 @@
 
 ## Current State
 
-**Where it stands (2026-09-14, session `73d72ea1`):** Phase 1 DONE, auto-verified ([validation.md](validation.md)).
-Card in Doing. Next: Phase 2 via `mpi-continue` (user-ux, stops for Fabio). Fabio wants the card
-driven phase by phase with a handoff after each phase verifies.
+**Where it stands (2026-09-14, session `d7094888`): DONE.** All three phases verified
+([validation.md](validation.md)); Fabio signed off in his own app and chose the mockup's kind-row order. Phase 3
+was folded into the close-out. The add-a-media-kind path for MPI-759 (GIF) is `docs/gallery-filters.md`
+§ Adding a media kind.
+
+**Phase 2 facts Phase 3 builds on:**
+- `state.gallerySort` = `{ ...DEFAULT_GALLERY_SORT }`; `state.galleryVolume` is Storage-mirrored like `gallerySizeLevel`.
+  The specs still writing `filter:` are the Phase 3 sweep: `gallery-archive.spec.js:60,122`, `media-picker-cards.spec.js:171`.
+- Selectors: `.mpi-gallery-toolbar`, `.mpi-gallery-toolbar__filter` (+ `--filtered` = dot, `aria-expanded`), panel
+  `.mpi-popup--gallery-filter` (exists ONLY while open), rows `.mpi-gallery-toolbar__toggle:has-text("Images")`,
+  filtered empty state `.mpi-gallery-grid__scope-empty-title` = `No cards match` + SHOW ALL `.mpi-btn`.
+- Stats cut-off is a container query on the BAR's width: hidden at ≤ 1400px (rig: bar = window − 32).
+- A real gallery with the real project bar, no GPU: validation.md § Phase 2 "Rig".
 
 **Phase 1 facts Phase 2 builds on:**
 - `js/utils/galleryFilter.js` exports `DEFAULT_GALLERY_SORT` (frozen, `hiddenKinds` too, so spread it),
@@ -87,6 +97,8 @@ and grows a panel).
 ## Completed
 
 - [x] Phase 1: asset kinds, filter logic, card corner icon (2026-09-14, auto-verified, validation.md).
+- [x] Phase 2: filter state and the gallery toolbar in the project bar (2026-09-14, live checks + Fabio's sign-off).
+- [x] Phase 3: panel order, spec migration, new desktop spec, docs incl. adding a media kind (2026-09-14, close-out).
 
 ## Remaining Work
 
@@ -139,11 +151,11 @@ Ownership: `js/state.js`, `js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid
 `js/components/Compounds/MpiProjectName/MpiProjectName.js`, `js/components/Compounds/MpiProjectName/MpiProjectName.css`,
 `js/shell/navigation.js`, `js/managers/hotkeyRegistry.js`, `js/shell/preloadStyles.js`, `js/components/types.js`.
 
-- [ ] **State** — `js/state.js`: `gallerySort` becomes `DEFAULT_GALLERY_SORT`'s shape (still NOT
+- [x] **State** — `js/state.js`: `gallerySort` becomes `DEFAULT_GALLERY_SORT`'s shape (still NOT
   Storage-mirrored; keep the MPI-678 reason in the comment); add `galleryVolume: Storage.getGalleryVolume()`
   and mirror it in the Storage switch beside `gallerySizeLevel` (~`255`). `MpiMediaPicker` keeps reading
   Storage, which the mirror still writes. Replace top-level keys only.
-- [ ] **Grid** — delete the `.mpi-gallery-grid__tabs` row, its CSS, and the sort/filter/archive/info/size/volume
+- [x] **Grid** — delete the `.mpi-gallery-grid__tabs` row, its CSS, and the sort/filter/archive/info/size/volume
   control mounts. Keep the three hotkeys, rewritten to write STATE (`incrementSlider` currently drives
   the slider instance, which no longer exists). Relayout on `state:changed` `gallerySizeLevel` (confirm
   no such listener exists today — `2170` recomputes only on resize); `_volume` follows `galleryVolume`
@@ -152,8 +164,8 @@ Ownership: `js/state.js`, `js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid
   SHOW ALL resets to `{ ...DEFAULT_GALLERY_SORT, order, scope }`) shown ONLY when filtered and zero
   cards are visible — an unfiltered empty gallery stays blank, as docs/gallery.md deliberately keeps it.
   Reuse the `__scope-empty` structure.
-- [ ] **`MpiGalleryToolbar`** — `js/components/Compounds/MpiGalleryToolbar/` (`.js`, `.css`, and a
-  `filterPanel.js` parts file after the `MpiModelSettings/loraSlotParts.js` precedent). Primitives only.
+- [x] **`MpiGalleryToolbar`** — `js/components/Compounds/MpiGalleryToolbar/` (`.js`, `.css`, and a
+  `filterPanel.js` parts file after the `js/components/loraSlotParts.js` precedent, moved there by MPI-751). Primitives only.
   Size slider → `gallerySizeLevel`; volume slider → `galleryVolume` (volume icon swap as the grid did);
   FILTER `MpiButton` (`filter` icon + label, `--filtered` modifier draws the heat dot from
   `isGalleryFiltered`, `data-info` = `Filtered: …` or `Filter and sort`, `aria-expanded`); Archive and
@@ -171,14 +183,14 @@ Ownership: `js/state.js`, `js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid
   `var(--t-fast)` `var(--ease)` opacity + 4px, none under `prefers-reduced-motion`. **Never call
   `Overlays`.** Register the CSS in `js/shell/preloadStyles.js`; document props/emits in
   `js/components/types.js`. **Ask Fabio** before adding it to `js/pages/components.js`.
-- [ ] **Project bar** — `MpiProjectName` gets an empty `.mpi-project-name__toolbar` placed before
+- [x] **Project bar** — `MpiProjectName` gets an empty `.mpi-project-name__toolbar` placed before
   `__stats` and `el.getToolbarSlot()`. `.mpi-project-name { container-type: inline-size }` and one
   `@container (max-width: …)` rule hiding `__stats` only when the slot is non-empty
   (`__toolbar:not(:empty) ~ __stats`), so group-history keeps its ENTRIES readout. The project name
   truncates with an ellipsis. Measure the real cut-off live: the mockup put the stats-visible collision
   at ≈1390px and the cut at 1400px; pick the smallest width where centre, toolbar and stats never
   overlap with a long project name, and record the numbers.
-- [ ] **Navigation** — `_syncGalleryToolbar(page)` in `js/shell/navigation.js`, mirroring `_syncRadial`:
+- [x] **Navigation** — `_syncGalleryToolbar(page)` in `js/shell/navigation.js`, mirroring `_syncRadial`:
   on `PAGE_GALLERY` mount into `_projectNameInst.el.getToolbarSlot()` idempotently (a project switch
   must not double-mount); on `PAGE_GROUP_HISTORY`, `PAGE_LANDING` and the components view destroy it
   and empty the slot. Call it from `_updateBreadcrumb` AND the landing branch of `handleNavigation`.
@@ -202,14 +214,14 @@ Verify mode for this phase: **user-ux** (final).
 Ownership: `tests/desktop/gallery-archive.spec.js`, `tests/desktop/media-picker-cards.spec.js`,
 `tests/desktop/gallery-filter-panel.spec.js`, `docs/gallery.md`, `docs/component-contracts.md`, `docs/data.md`.
 
-- [ ] **Specs** — move `gallery-archive.spec.js` (`60,77,158`) and `media-picker-cards.spec.js` (`169`) to
+- [x] **Specs** — move `gallery-archive.spec.js` (`60,77,158`) and `media-picker-cards.spec.js` (`169`) to
   the new `gallerySort` shape; "Images inside the archive" stays asserted, now via `hiddenKinds`.
   `flows-tab-ring.spec.js` must stay green untouched (it drives the project bar). New
   `gallery-filter-panel.spec.js`: chip on a video card and not on an image card; hiding Images removes
   image cards and lights the dot; Favourites-only; open, leave, auto-close; toolbar gone on
   group-history; stats hidden at 950. Fixture uses REAL shipped media (`comfy_workflows/display/`) —
   a made-up src 404s into the missing-media path (docs/gallery.md).
-- [ ] **Docs** (each ≤200 lines) — `docs/gallery.md`: rewrite "Archive is a SCOPE, not a seventh
+- [x] **Docs** (each ≤200 lines) — `docs/gallery.md`: rewrite "Archive is a SCOPE, not a seventh
   filter chip" for the panel (scope is still the first gate), update "Record lives in the project bar"
   for the toolbar beside the centre group, add "Asset kinds and the filter panel" (the table, the
   selected-item rule, the listed-kinds rule, the toolbar seam and why, the stats cut-off);
@@ -241,6 +253,46 @@ appropriate for this card; run it through `mpi-continue`.
 - 2026-09-14 (Phase 1): the chip also trims `.mpi-group-card__overlay` max-width on `--kind` cards so a long
   name clears it. MPI-751 held a live write claim on `MpiGalleryGrid.js` at session start; it released
   (commits `5a51434c`, `8c77f3aa`) before the grid edit, so no message was needed.
+- 2026-09-14 (Phase 2): **the toolbar ran under Flows + Record below bar ≈ 1010** (at the 950 minimum by ~41px).
+  `__centre` is absolutely positioned, so flex never shrank the toolbar to make room. Fix in the bar that owns the
+  centre: `.mpi-project-name__toolbar { max-width: calc(50% - 7.25rem) }` (half the Flows + Record group + gap +
+  8px). The stats cut stays at 1400: the stats-visible collision measured at bar 1360.
+- 2026-09-14 (Phase 2): **Esc after a keyboard open dropped focus to `<body>`, and `gallery.filter.close` was
+  unreachable.** Hotkey handlers for one key share a single insertion-ordered Set. `overlay.close`
+  (overlayManager.js:24, bound in the singleton's constructor, no `when` gate) always runs first on Escape, calls
+  `closeTopOverlay()`, and on an empty overlay stack emits `ui:close-all-popups` — which closed the panel through the
+  Primitive's `close` emit and unbound the panel's own hotkey before the Set reached it. So its refocus never ran,
+  and removing the focused row dropped focus. Fix: `close()` hands focus to FILTER whenever focus is inside the panel,
+  whichever path closed it. The plan's `gallery.filter.close` registry entry was **deleted**: it could never fire, and
+  the hotkeys page is generated from the registry, so it would have listed a shortcut that does nothing.
+- 2026-09-14 (Phase 2): the panel is created on open and removed on close (not mounted once and toggled), so the
+  DOM holds zero or one portal. `variant: 'gallery-filter'` names the popup modifier, so its width is in force when
+  the Primitive measures and clamps on mount.
+- 2026-09-14 (Phase 2): a generating placeholder has no selected item yet, so the grid predicate and the panel's
+  listed kinds read `history?.[selectedIndex] ?? { type: group.type }` — otherwise a generating video would read as
+  an image and vanish under "hide Images".
+- 2026-09-14 (Phase 2): NONE hides the LISTED kinds only (hiding the whole table would list kinds the project has no
+  cards of, since a hidden kind is always listed). Flag rows use the `heart` / `eye` icons.
+- 2026-09-14 (Phase 2): the rows strip the toggle button's own fill, exactly as `MpiReusePromptDialog.css` does —
+  slightly beyond "consumer CSS only sizes Primitives", but it is the reference row pattern the brief names.
+- 2026-09-14 (Phase 2): the filtered empty state reuses the grid's `mpi-card-mascot-float-corner` keyframe (4px)
+  rather than adding one. The grid's `mpi-gallery-grid--archived` class and the MPI-573 Record comment went with the
+  deleted row (they only described it).
+- 2026-09-14 (Phase 3, folded into close-out): **Fabio chose the mockup order** at the Phase 2 check. Match
+  precedence and display order are now two things: `ASSET_KINDS` rows keep precedence, each row carries
+  `panelOrder`, and `PANEL_KINDS` (Images, Videos, Audio, 3D Scenes) feeds `listedKinds` and
+  `describeGalleryFilter`. The tooltip now reads `Videos, 3D Scenes · Favs`, as the brief wrote it.
+- 2026-09-14 (Phase 3): Fabio asked for the add-a-kind path to be documented for the GIF agent (MPI-759). It is
+  `docs/gallery-filters.md` § Adding a media kind, routed from `docs/README.md` and a pointer in `docs/data.md`
+  § projectModel, plus a new test that every row's icon exists in `icons.js`.
+- 2026-09-14 (Phase 3): the `MpiGalleryToolbar` + `getToolbarSlot` contract lives in `docs/gallery-filters.md`, not
+  `docs/component-contracts.md`, which was already 211 lines (over the 200 budget); that file got two in-line heals
+  only. `docs/data.md` documents the data layer, not state keys, so `gallerySort` is documented in
+  `gallery-filters.md` too. The desktop spec checks the stats cut-off by forcing the BAR's width, not by resizing
+  the Electron window.
+- 2026-09-14 (Phase 3): `media-picker-cards.spec.js`'s "reads group.type, like the gallery" was no longer true —
+  the picker still filters by `group.type`, the gallery now by selected item. Renamed, and the divergence is pinned
+  and documented rather than fixed (the picker is not this card).
 
 ## Verification
 

@@ -12,7 +12,7 @@
  *
  * Relative import only, so Node can load it (tests/gallery-filter.test.cjs).
  */
-import { ASSET_KINDS, kindOfItem } from './assetKinds.js';
+import { PANEL_KINDS, kindOfItem } from './assetKinds.js';
 
 export const DEFAULT_GALLERY_SORT = Object.freeze({
     order: 'newest',
@@ -42,10 +42,10 @@ export function isGalleryFiltered(sort) {
 
 /**
  * Tooltip text for a filtered gallery: the kinds still SHOWN, then the flags
- * (`3D Scenes, Videos · Favs`). Pass the panel's listed kinds so a kind the project
- * has no cards of is not named; defaults to the whole table.
+ * (`Videos, 3D Scenes · Favs`). Pass the panel's listed kinds so a kind the project
+ * has no cards of is not named; defaults to every kind, in panel order.
  */
-export function describeGalleryFilter(sort, kinds = ASSET_KINDS) {
+export function describeGalleryFilter(sort, kinds = PANEL_KINDS) {
     const parts = [];
     if (sort.hiddenKinds?.length) {
         parts.push(kinds.filter(k => !sort.hiddenKinds.includes(k.kind)).map(k => k.label).join(', ') || 'No types');
@@ -56,11 +56,11 @@ export function describeGalleryFilter(sort, kinds = ASSET_KINDS) {
 }
 
 /**
- * The kind rows the filter panel lists, in table order: kinds with a card in the
+ * The kind rows the filter panel lists, in panel order (PANEL_KINDS): kinds with a card in the
  * CURRENT scope, plus any kind currently hidden so it can always be switched back on.
  * `entries` = [{ group, item }], `item` being the group's selected history item.
  */
 export function listedKinds(entries, sort) {
     const present = new Set(entries.filter(e => _inScope(e.group, sort)).map(e => kindOfItem(e.item).kind));
-    return ASSET_KINDS.filter(k => present.has(k.kind) || sort.hiddenKinds?.includes(k.kind));
+    return PANEL_KINDS.filter(k => present.has(k.kind) || sort.hiddenKinds?.includes(k.kind));
 }

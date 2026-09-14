@@ -1,15 +1,14 @@
 // MPI-678 — the gallery archive scope.
 //
-// Archive ships as a SCOPE (`gallerySort.scope`), not a seventh filter chip. That
-// distinction is the whole design and it is what these tests pin:
+// Archive ships as a SCOPE (`gallerySort.scope`), not a filter. That distinction is
+// the whole design and it is what these tests pin:
 //
-//  - `favorites` is ADDITIVE — a fav still shows under All/Images. Archive is
-//    SUBTRACTIVE, so an archived card must be absent from every active-scope filter
-//    and the active cards absent from the archive.
-//  - Because the scope gates BEFORE the filter switch, the type tabs keep working
-//    inside the archive. A seventh chip would have cost exactly that, in the one
-//    bucket big enough to need it. If someone later "simplifies" the gate into the
-//    filter switch, the Images-inside-the-archive assertion is what fails.
+//  - Archive is SUBTRACTIVE: an archived card is absent from every active-scope view
+//    and the active cards are absent from the archive.
+//  - The scope gates FIRST in `matchesGallerySort` (js/utils/galleryFilter.js), so the
+//    kind filter keeps working inside the archive — the one bucket big enough to need
+//    it (MPI-749 moved the kinds behind the FILTER panel as `hiddenKinds`). Move the
+//    gate after the kinds and the Images-inside-the-archive assertion is what fails.
 //  - The persist leg is the part with a server round trip, so it is asserted against
 //    the bytes on disk rather than against the in-memory group.
 const fs = require('fs');
@@ -57,7 +56,7 @@ async function mountGrid(window, groups) {
 
     // The scope is in-memory and resets per launch; set it explicitly so the test
     // never inherits another spec's leftover.
-    state.gallerySort = { order: 'newest', filter: 'all', scope: 'active' };
+    state.gallerySort = { ...(await import('/js/utils/galleryFilter.js')).DEFAULT_GALLERY_SORT };
     window.__arc = { grid: MpiGalleryGrid.mount(host, { groups: gs }), host };
     await new Promise(r => setTimeout(r, 300));
   }, groups);
@@ -106,20 +105,20 @@ test('an archived card leaves the gallery, is reachable under the archive scope,
     await setSort(window, { scope: 'archived' });
     expect(await visibleIds(window)).toEqual(['arc-img-1']);
 
-    // The design claim: the type tabs keep working INSIDE the archive. `Videos`
-    // narrows the archive to nothing; `Images` brings the archived image back.
-    await setSort(window, { filter: 'videos' });
+    // The design claim: the kind filter keeps working INSIDE the archive. Hiding
+    // Images narrows the archive to nothing; hiding Videos brings the image back.
+    await setSort(window, { hiddenKinds: ['image'] });
     expect(await visibleIds(window)).toHaveLength(0);
-    await setSort(window, { filter: 'images' });
+    await setSort(window, { hiddenKinds: ['video'] });
     expect(await visibleIds(window)).toEqual(['arc-img-1']);
 
     // An empty archive must SAY so — a blank grid is the one way this reads as
-    // deletion. (Filtered to videos above, the archive is empty.)
-    await setSort(window, { filter: 'videos' });
-    await expect(window.locator('#arc-host .mpi-gallery-grid__scope-empty')).toBeVisible();
+    // deletion. (Images hidden, the archive is empty, and the copy says filtered.)
+    await setSort(window, { hiddenKinds: ['image'] });
+    await expect(window.locator('#arc-host .mpi-gallery-grid__scope-empty-title')).toHaveText('Nothing archived in this filter');
 
     // Restored: back to the active scope, un-archived, and the grid is whole again.
-    await setSort(window, { filter: 'all', scope: 'active' });
+    await setSort(window, { hiddenKinds: [], scope: 'active' });
     await window.evaluate(async (gs) => {
       window.__arc.grid.el.setGroups(gs);
       await new Promise(r => setTimeout(r, 300));

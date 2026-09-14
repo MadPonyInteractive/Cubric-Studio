@@ -30,6 +30,7 @@ import { Overlays } from '../managers/overlayManager.js';
 import { clientLogger } from '../services/clientLogger.js';
 import { remoteEngineClient } from '../services/remoteEngineClient.js';
 import { recordAudioIntoProject } from '../components/Compounds/MpiAudioRecorder/MpiAudioRecorder.js';
+import { MpiGalleryToolbar } from '../components/Compounds/MpiGalleryToolbar/MpiGalleryToolbar.js';
 import { getEngine } from '../services/comfyController.js';
 
 // ── Module-scoped refs ──────────────────────────────────────────────────────
@@ -37,6 +38,7 @@ import { getEngine } from '../services/comfyController.js';
 let _radialInstance   = null;
 let _radialMount      = null;   // dedicated persistent container for the radial
 let _projectNameInst  = null;
+let _galleryToolbarInst = null;
 let _toolContainer    = null;
 let _appShell         = null;
 let _currentPage      = null;
@@ -161,6 +163,7 @@ export async function handleNavigation(page, params = {}) {
     if (page === PAGE_LANDING) {
         clearHistory();
         Overlays.reset();
+        _syncGalleryToolbar(PAGE_LANDING);
         // Tear down radial so the next project entry re-mounts fresh.
         if (_radialInstance) {
             _radialInstance.destroy?.();
@@ -258,6 +261,7 @@ async function _loadView(page, params = {}, navToken = _navSeq) {
 }
 
 function _updateBreadcrumb(page, params) {
+    _syncGalleryToolbar(params?.view === 'components' ? null : page);
     _currentPage = page;
     _currentGroupId = params?.groupId || null;
     if (page === PAGE_GALLERY) {
@@ -286,6 +290,26 @@ function _updateBreadcrumb(page, params) {
         _projectNameInst.el.setRecordVisible(false);
         if (group) refreshGroupStats(group);
     }
+}
+
+/**
+ * MPI-749: the gallery's view controls (MpiGalleryToolbar) sit in the project bar's
+ * toolbar slot on the GALLERY page only. MpiProjectName is app-lifetime, so this file,
+ * which already gates Record by page, owns the mount. Idempotent: a project switch
+ * re-enters the gallery and must not mount a second toolbar.
+ * @param {string|null} page - null for any non-gallery surface (the components view)
+ */
+function _syncGalleryToolbar(page) {
+    const slot = _projectNameInst?.el.getToolbarSlot?.();
+    if (!slot) return;
+    if (page === PAGE_GALLERY) {
+        if (!_galleryToolbarInst) _galleryToolbarInst = MpiGalleryToolbar.mount(slot, {});
+        return;
+    }
+    if (!_galleryToolbarInst) return;
+    _galleryToolbarInst.el.destroy();
+    _galleryToolbarInst = null;
+    slot.replaceChildren();
 }
 
 // React to stats updates pushed by the stats service.
@@ -419,6 +443,7 @@ async function _importView(view) {
 }
 
 async function _loadComponentsGallery() {
+    _syncGalleryToolbar(null);
     const { ensureTemplate } = await import('../managers/templateManager.js');
     const { initComponentsPage } = await import('../pages/components.js');
 
