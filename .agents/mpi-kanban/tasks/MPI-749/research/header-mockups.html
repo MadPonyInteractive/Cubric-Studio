@@ -1,0 +1,273 @@
+<title>Gallery header mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --surface-0:oklch(0.50 0.022 350);--surface-1:oklch(0.46 0.022 350);--surface-2:oklch(0.42 0.022 350);
+  --surface-3:oklch(0.55 0.024 350);--surface-bar:oklch(0.34 0.022 350);--surface-canvas:oklch(0.28 0.020 350);
+  --ink-1:oklch(0.98 0.008 80);--ink-2:oklch(0.85 0.012 80);--ink-3:oklch(0.66 0.014 80);--ink-4:oklch(0.50 0.018 80);
+  --line:oklch(0.72 0.018 350 / 0.16);--line-soft:oklch(0.72 0.015 350 / 0.08);
+  --heat:oklch(0.72 0.20 6);--frost:oklch(0.82 0.13 220);--on-heat:oklch(0.16 0.02 0);
+  --mono:'JetBrains Mono',ui-monospace,Consolas,monospace;--ease:cubic-bezier(0.16,1,0.3,1);
+}
+*{box-sizing:border-box}
+body{margin:0;background:oklch(0.22 0.018 350);color:var(--ink-2);font-family:var(--mono);padding:24px 20px 64px}
+svg{fill:currentColor;display:block}
+button{font-family:var(--mono);cursor:pointer}
+.page-bar{display:flex;flex-wrap:wrap;gap:20px;align-items:center;margin:0 0 28px}
+.page-bar h1{font-size:15px;font-weight:600;color:var(--ink-1);margin:0 12px 0 0;letter-spacing:-0.01em}
+.seg{display:flex;border:1px solid var(--line)}
+.seg button{font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;padding:5px 9px;color:var(--ink-3);background:none;border:0}
+.seg button.on{background:var(--heat);color:var(--on-heat)}
+.probe{margin:0 0 44px}
+.probe h2{font-size:13px;font-weight:600;color:var(--ink-1);margin:0 0 4px;letter-spacing:.02em}
+.probe p{font-size:12px;line-height:1.5;color:var(--ink-3);margin:0 0 12px;max-width:80ch}
+.fit{width:100%}
+.frame{position:relative;background:var(--surface-canvas);border:1px solid var(--line);transform-origin:0 0}
+.hdr{position:relative;display:flex;align-items:center;gap:14px;height:54px;padding:0 20px;background:linear-gradient(90deg,var(--surface-bar),oklch(0.36 0.03 355));border-bottom:1px solid var(--line-soft)}
+.hdr.sub{height:44px;background:var(--surface-bar)}
+.back{font-size:10px;font-weight:500;letter-spacing:.12em;color:var(--ink-3);text-transform:uppercase;white-space:nowrap}
+.proj{font-size:19px;font-weight:600;color:var(--ink-1);letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:22ch}
+.frame{container-type:inline-size}
+.hdr-a .stats,.hdr-a .vsep-stats{display:flex}
+@container (max-width: 1400px){.hdr-a .stats,.hdr-a .vsep-stats{display:none}}
+.centre{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;gap:26px}
+.act{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:500;letter-spacing:.12em;color:var(--ink-2);text-transform:uppercase;white-space:nowrap}
+.act svg{width:15px;height:15px;color:var(--ink-3)}
+.right{margin-left:auto;display:flex;align-items:center;gap:12px;min-width:0}
+.stats{display:flex;align-items:center;gap:.4rem;font-size:10px;font-weight:500;letter-spacing:.08em;color:var(--ink-1);text-transform:uppercase;white-space:nowrap;font-variant-numeric:tabular-nums}
+.rule{width:48px;height:1px;background:var(--heat);margin-right:.5rem}
+.sep{color:var(--ink-3)}
+.slider{display:flex;align-items:center;gap:9px;min-width:0}
+.slider svg{width:15px;height:15px;color:var(--ink-3);flex:none}
+.track{position:relative;flex:0 1 96px;min-width:44px;height:4px;border-radius:999px;background:oklch(0.72 0.018 350 / .28)}
+.track i{position:absolute;inset:0 auto 0 0;border-radius:999px;background:var(--heat)}
+.track b{position:absolute;top:50%;width:14px;height:14px;border-radius:50%;background:var(--ink-1);transform:translate(-50%,-50%)}
+.vsep{width:1px;height:18px;background:var(--line);flex:none}
+.ibtn{width:28px;height:28px;display:grid;place-items:center;color:var(--ink-3);background:none;border:0;flex:none}
+.ibtn svg{width:16px;height:16px}
+.anchor{position:relative;display:flex;align-items:center;gap:12px}
+.fbtn{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);background:none;border:0;padding:6px 6px;white-space:nowrap;transition:color 200ms var(--ease)}
+.fbtn svg{width:15px;height:15px}
+.fbtn:hover,.fbtn.open{color:var(--ink-1)}
+.fbtn.on{color:var(--ink-1)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--heat);opacity:0;transform:scale(.4);transition:opacity 200ms var(--ease),transform 200ms var(--ease)}
+.on .dot{opacity:1;transform:none}
+.sum{font-size:10px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
+.statbtn{background:none;border:0;padding:6px 4px;display:flex;align-items:center;gap:10px;color:var(--ink-1)}
+.statbtn svg{width:15px;height:15px;color:var(--ink-3)}
+.statbtn:hover svg,.statbtn.open svg,.statbtn.on svg{color:var(--ink-1)}
+.gal{position:relative;padding:12px 20px 14px;display:flex;flex-direction:column;gap:8px;min-height:292px}
+.gal.docked{padding-bottom:70px}
+.rowc{display:flex;gap:8px;height:128px}
+.card{position:relative;flex:var(--f) 1 0;max-width:calc(var(--f) * 190px);background:var(--c);min-width:0}
+.card.audio{background:var(--surface-bar)}
+.card.audio::before{content:'';position:absolute;left:10%;right:10%;top:50%;height:22px;transform:translateY(-50%);background:linear-gradient(var(--frost),var(--frost)) center/100% 1px no-repeat;opacity:.7}
+.badge{position:absolute;right:8px;bottom:8px;width:22px;height:22px;display:grid;place-items:center;color:var(--ink-1);background:color-mix(in oklch,var(--surface-bar) 58%,transparent);border:1px solid color-mix(in oklch,var(--line-soft) 72%,transparent)}
+.badge svg{width:13px;height:13px}
+.fav{position:absolute;right:8px;top:8px;color:var(--heat)}
+.fav svg{width:14px;height:14px}
+.empty{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.empty button{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-1);background:none;border:1px solid var(--ink-1);padding:7px 12px}
+.dock{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:center;gap:14px;padding:6px 12px;background:color-mix(in oklch,var(--surface-bar) 90%,transparent);border:1px solid var(--line)}
+.panel{position:absolute;top:calc(100% + 8px);z-index:20;width:272px;background:var(--surface-1);border:1px solid var(--line);opacity:0;transform:translateY(-4px);pointer-events:none;transition:opacity 200ms var(--ease),transform 200ms var(--ease)}
+.panel.show{opacity:1;transform:none;pointer-events:auto}
+.panel.al-right{right:0}.panel.al-left{left:0}
+.pbar{display:flex;align-items:center;gap:2px;padding:8px 10px;background:var(--surface-bar)}
+.ghost{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-1);background:none;border:0;padding:4px 8px}
+.pbar .seg{margin-left:auto}
+.plist{padding:8px;display:flex;flex-direction:column;gap:4px}
+.prow{display:flex;align-items:center;gap:10px;width:100%;height:30px;padding:0 10px;border:0;text-align:left;font-size:11px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);background:var(--surface-2);transition:background 200ms var(--ease),color 200ms var(--ease)}
+.prow svg{width:14px;height:14px;flex:none}
+.prow .k{margin-left:auto;color:inherit}
+.prow .st{width:28px;text-align:right;font-size:10px;letter-spacing:.08em}
+.prow.on{background:var(--heat);color:var(--on-heat)}
+.plabel{display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);padding:6px 2px 2px}
+.plabel::after{content:'';flex:1;height:1px;background:var(--line)}
+@media (prefers-reduced-motion:reduce){.panel,.dot,.prow,.fbtn{transition:none}}
+</style>
+
+<div class="page-bar">
+  <h1>Gallery header · 3 directions</h1>
+  <div class="seg" id="stateSeg"><button data-v="default" class="on">Default</button><button data-v="filtered">Filtered</button></div>
+  <div class="seg" id="widthSeg"><button data-v="1440" class="on">1440 wide</button><button data-v="950">950 min window</button></div>
+</div>
+
+<section class="probe">
+  <h2>A · One row</h2>
+  <p>The second row is gone. View controls sit between Flows/Record and the stats. Sort moves into the panel. The gallery gets back a full row of height. Narrow-window fallback: when the header is too narrow, the assets · size readout drops out.</p>
+  <div class="fit"><div class="frame">
+    <div class="hdr hdr-a">
+      <span class="back">← Projects</span><span class="proj">test</span>
+      <div class="centre"><span class="act" data-i="layers">Flows</span><span class="act" data-i="mic">Record</span></div>
+      <div class="right">
+        <span class="slider"><span data-i="grid"></span><span class="track"><i style="width:70%"></i><b style="left:70%"></b></span></span>
+        <span class="slider"><span data-i="volume"></span><span class="track"><i style="width:55%"></i><b style="left:55%"></b></span></span>
+        <span class="vsep"></span>
+        <span class="anchor"><button class="fbtn trig" data-align="right"><span data-i="filter"></span>Filter<span class="dot"></span></button></span>
+        <button class="ibtn" data-i="archive" aria-label="Archive"></button>
+        <button class="ibtn" data-i="info" aria-label="Info"></button>
+        <span class="vsep vsep-stats"></span>
+        <span class="stats"><span class="rule"></span><span class="cnt">93 assets</span><span class="sep">·</span>143.1 MB</span>
+      </div>
+    </div>
+    <div class="gal"></div>
+  </div></div>
+</section>
+
+<section class="probe">
+  <h2>B · Two rows, one job each</h2>
+  <p>Row 1 is the project and stays as it is. Row 2 controls what you see: Filter and a readout of what's on take the old Sort spot, the sliders stay centred, Archive and Info stay right. Sort moves into the panel.</p>
+  <div class="fit"><div class="frame">
+    <div class="hdr">
+      <span class="back">← Projects</span><span class="proj">test</span>
+      <div class="centre"><span class="act" data-i="layers">Flows</span><span class="act" data-i="mic">Record</span></div>
+      <div class="right"><span class="stats"><span class="rule"></span><span class="cnt">93 assets</span><span class="sep">·</span>143.1 MB</span></div>
+    </div>
+    <div class="hdr sub">
+      <span class="anchor"><button class="fbtn trig" data-align="left"><span data-i="filter"></span>Filter<span class="dot"></span></button><span class="sum"></span></span>
+      <div class="centre" style="gap:22px">
+        <span class="slider"><span data-i="grid"></span><span class="track" style="flex-basis:110px"><i style="width:70%"></i><b style="left:70%"></b></span></span>
+        <span class="slider"><span data-i="volume"></span><span class="track" style="flex-basis:110px"><i style="width:55%"></i><b style="left:55%"></b></span></span>
+      </div>
+      <div class="right"><button class="ibtn" data-i="archive" aria-label="Archive"></button><button class="ibtn" data-i="info" aria-label="Info"></button></div>
+    </div>
+    <div class="gal"></div>
+  </div></div>
+</section>
+
+<section class="probe">
+  <h2>C · The count is the filter</h2>
+  <p>One row. The asset count opens the panel and reads "12 of 93" while cards are hidden, so the honest number is the indicator. The sliders, Archive and Info move to a slim dock floating at the bottom of the gallery, so the chrome sits at the edges.</p>
+  <div class="fit"><div class="frame">
+    <div class="hdr">
+      <span class="back">← Projects</span><span class="proj">test</span>
+      <div class="centre"><span class="act" data-i="layers">Flows</span><span class="act" data-i="mic">Record</span></div>
+      <div class="right">
+        <span class="anchor"><button class="statbtn trig" data-align="right"><span class="stats"><span class="rule"></span><span class="cnt">93 assets</span><span class="sep">·</span>143.1 MB</span><span data-i="filter"></span><span class="dot"></span></button></span>
+      </div>
+    </div>
+    <div class="gal docked"></div>
+    <div class="dock">
+      <span class="slider"><span data-i="grid"></span><span class="track" style="flex-basis:90px"><i style="width:70%"></i><b style="left:70%"></b></span></span>
+      <span class="slider"><span data-i="volume"></span><span class="track" style="flex-basis:90px"><i style="width:55%"></i><b style="left:55%"></b></span></span>
+      <span class="vsep"></span>
+      <button class="ibtn" data-i="archive" aria-label="Archive"></button>
+      <button class="ibtn" data-i="info" aria-label="Info"></button>
+    </div>
+  </div></div>
+</section>
+
+<div class="panel" id="panel">
+  <div class="pbar">
+    <button class="ghost" id="pAll">All</button><button class="ghost" id="pNone">None</button>
+    <div class="seg" id="orderSeg"><button data-v="newest" class="on">Newest</button><button data-v="oldest">Oldest</button></div>
+  </div>
+  <div class="plist" id="plist"></div>
+</div>
+
+<script>
+const P={
+ image:'<path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>',
+ video:'<path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"/>',
+ audio:'<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>',
+ scene:'<path fill-rule="evenodd" d="M12 2 3 7v10l9 5 9-5V7l-9-5zm0 2.3 6.7 3.7L12 11.7 5.3 8 12 4.3zM5 9.7l6 3.3v6.6l-6-3.3V9.7zm8 9.9V13l6-3.3v6.6l-6 3.3z"/>',
+ check:'<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>',
+ circle:'<path fill-rule="evenodd" d="M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12z"/>',
+ archive:'<path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"/>',
+ info:'<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>',
+ grid:'<path d="M13 13v8h8v-8h-8zM3 21h8v-8H3v8zM3 11h8V3H3v8zM13 3v8h8V3h-8z"/>',
+ volume:'<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>',
+ layers:'<path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5-10-5-10 5zM2 12l10 5 10-5-10-5-10 5z"/>',
+ mic:'<path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>',
+ filter:'<path d="M4.25 5.61C6.27 8.2 10 13 10 13v6c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-6s3.72-4.8 5.74-7.39A.998.998 0 0 0 18.95 4H5.04c-.83 0-1.3.95-.79 1.61z"/>',
+ heart:'<path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>'
+};
+const svg=k=>`<svg viewBox="0 0 24 24" aria-hidden="true">${P[k]}</svg>`;
+document.querySelectorAll('[data-i]').forEach(n=>n.insertAdjacentHTML('afterbegin',svg(n.dataset.i)));
+
+const KINDS=[{k:'image',label:'Images',badge:false},{k:'video',label:'Videos',badge:true},{k:'audio',label:'Audio',badge:false},{k:'scene',label:'3D Scenes',badge:true}];
+const CARDS=[
+ [{k:'image',f:1.5,c:.44},{k:'video',f:1.9,c:.38,fav:1},{k:'image',f:.75,c:.5},{k:'scene',f:1.5,c:.4},{k:'image',f:1,c:.47}],
+ [{k:'audio',f:2.3},{k:'video',f:1.6,c:.42},{k:'image',f:.8,c:.36,fav:1},{k:'video',f:1.2,c:.46,prev:1},{k:'image',f:1.4,c:.41}]
+];
+const TOTAL=CARDS.flat().length;
+const S={hidden:new Set(),fav:false,prev:false,order:'newest'};
+
+document.querySelectorAll('.gal').forEach(g=>{
+  g.innerHTML=CARDS.map(r=>`<div class="rowc">${r.map(c=>{
+    const kind=KINDS.find(x=>x.k===c.k);
+    return `<div class="card ${c.k==='audio'?'audio':''}" data-k="${c.k}" data-fav="${c.fav||0}" data-prev="${c.prev||0}" style="--f:${c.f};--c:oklch(${c.c||.4} 0.03 350)">${c.fav?`<span class="fav">${svg('heart')}</span>`:''}${kind.badge?`<span class="badge" title="${kind.label}">${svg(c.k)}</span>`:''}</div>`;
+  }).join('')}</div>`).join('')+`<div class="empty">No cards match<button class="showall">Show all</button></div>`;
+});
+
+const panel=document.getElementById('panel'), plist=document.getElementById('plist');
+const row=(id,label,on,icon)=>`<button class="prow ${on?'on':''}" data-id="${id}">${svg(on?'check':'circle')}<span>${label}</span>${icon?`<span class="k">${svg(icon)}</span>`:'<span class="k"></span>'}<span class="st">${on?'on':'off'}</span></button>`;
+const isFiltered=()=>S.hidden.size>0||S.fav||S.prev;
+function summary(){
+  const p=[];
+  if(S.hidden.size) p.push(KINDS.filter(x=>!S.hidden.has(x.k)).map(x=>x.label).join(', ')||'No types');
+  if(S.fav) p.push('Favs'); if(S.prev) p.push('Previews');
+  return p.join(' · ');
+}
+function sync(){
+  plist.innerHTML=KINDS.map(x=>row(x.k,x.label,!S.hidden.has(x.k),x.k)).join('')
+    +'<div class="plabel">Only</div>'+row('fav','Favourites',S.fav,'heart')+row('prev','Previews',S.prev,null);
+  document.querySelectorAll('#orderSeg button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.order));
+  let vis=0;
+  document.querySelectorAll('.gal').forEach(g=>{
+    let n=0;
+    g.querySelectorAll('.card').forEach(c=>{
+      const show=!S.hidden.has(c.dataset.k)&&(!S.fav||c.dataset.fav==='1')&&(!S.prev||c.dataset.prev==='1');
+      c.style.display=show?'':'none'; if(show) n++;
+    });
+    g.querySelectorAll('.rowc').forEach(r=>r.style.display=[...r.children].some(c=>c.style.display!=='none')?'':'none');
+    g.querySelector('.empty').style.display=n?'none':'flex'; vis=n;
+  });
+  const f=isFiltered(), shown=Math.round(93*vis/TOTAL);
+  document.querySelectorAll('.trig').forEach(t=>{t.classList.toggle('on',f); t.title=f?'Filtered: '+summary():'Filter and sort';});
+  document.querySelectorAll('.sum').forEach(s=>s.textContent=f?summary():'');
+  document.querySelectorAll('.cnt').forEach(c=>c.textContent=f?`${shown} of 93 assets`:'93 assets');
+}
+plist.addEventListener('click',e=>{
+  const b=e.target.closest('.prow'); if(!b) return;
+  const id=b.dataset.id;
+  if(id==='fav') S.fav=!S.fav; else if(id==='prev') S.prev=!S.prev;
+  else S.hidden.has(id)?S.hidden.delete(id):S.hidden.add(id);
+  sync(); setSeg('stateSeg',null);
+});
+document.getElementById('pAll').onclick=()=>{S.hidden.clear();S.fav=S.prev=false;sync();setSeg('stateSeg','default');};
+document.getElementById('pNone').onclick=()=>{KINDS.forEach(x=>S.hidden.add(x.k));sync();setSeg('stateSeg',null);};
+document.getElementById('orderSeg').onclick=e=>{const b=e.target.closest('button'); if(b){S.order=b.dataset.v;sync();}};
+document.addEventListener('click',e=>{if(e.target.closest('.showall')){S.hidden.clear();S.fav=S.prev=false;sync();setSeg('stateSeg','default');}});
+
+let trigger=null, leaveT=null;
+function openPanel(t){
+  trigger=t; t.parentElement.appendChild(panel);
+  panel.className='panel al-'+t.dataset.align;
+  requestAnimationFrame(()=>panel.classList.add('show')); t.classList.add('open');
+}
+function closePanel(){ panel.classList.remove('show'); trigger?.classList.remove('open'); trigger=null; clearTimeout(leaveT); }
+document.querySelectorAll('.trig').forEach(t=>t.addEventListener('click',e=>{
+  if(panel.contains(e.target)) return;
+  e.stopPropagation(); trigger===t?closePanel():(closePanel(),openPanel(t));
+}));
+panel.addEventListener('mouseenter',()=>clearTimeout(leaveT));
+panel.addEventListener('mouseleave',()=>{leaveT=setTimeout(closePanel,300);});
+panel.addEventListener('click',e=>e.stopPropagation());
+document.addEventListener('click',()=>trigger&&closePanel());
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closePanel();});
+
+function setSeg(id,v){document.querySelectorAll(`#${id} button`).forEach(b=>b.classList.toggle('on',b.dataset.v===v));}
+document.getElementById('stateSeg').onclick=e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  S.hidden.clear(); S.fav=S.prev=false;
+  if(b.dataset.v==='filtered'){S.hidden.add('image');S.hidden.add('audio');}
+  setSeg('stateSeg',b.dataset.v); sync();
+};
+let W=1440;
+function fit(){document.querySelectorAll('.fit').forEach(w=>{const f=w.firstElementChild; f.style.width=W+'px'; const z=Math.min(1,w.clientWidth/W); f.style.zoom=z;});}
+document.getElementById('widthSeg').onclick=e=>{const b=e.target.closest('button'); if(!b) return; W=+b.dataset.v; setSeg('widthSeg',b.dataset.v); fit();};
+addEventListener('resize',fit);
+sync(); fit();
+</script>
