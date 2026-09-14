@@ -11,7 +11,9 @@
 //  - the type filter reads `group.type`. A group may hold mixed types, so
 //    filtering on the selected item's type instead would drop a card out of the
 //    very tab the gallery lists it under — the fixture has exactly that card;
-//  - an audio tile plays on hover and stops on leave.
+//  - an audio tile plays on hover and stops on leave;
+//  - the mic and voice cards render only when the slot passes in the recorder and
+//    voice picker (MPI-751: a Compound may not import another Compound).
 const path = require('path');
 const { test, expect } = require('@playwright/test');
 const { launchApp, closeApp } = require('./launch');
@@ -258,6 +260,56 @@ test('an audio tile plays on hover and stops on leave', async ({}, testInfo) => 
     const stopped = await hover('mouseleave');
     expect(stopped.paused).toBe(true);
     expect(stopped.currentTime).toBe(0);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+test('the mic and voice cards render only when the slot hands their components in', async ({}, testInfo) => {
+  const { app, window } = await launchApp(testInfo);
+
+  try {
+    await window.waitForTimeout(6000);
+
+    // MpiMediaPicker is a Compound and may not import MpiAudioRecorder or
+    // MpiVoicePicker (also Compounds), so MpiBaseFlow passes them as props.
+    const open = (withProps) => window.evaluate(async (wp) => {
+      const [{ MpiMediaPicker }, { MpiVoicePicker }, { recordAudioIntoProject }, { state }] = await Promise.all([
+        import('/js/components/Compounds/MpiMediaPicker/MpiMediaPicker.js'),
+        import('/js/components/Compounds/MpiVoicePicker/MpiVoicePicker.js'),
+        import('/js/components/Compounds/MpiAudioRecorder/MpiAudioRecorder.js'),
+        import('/js/state.js'),
+      ]);
+      window.__pick?.el?.destroy?.();
+      state.currentProject = { id: 'e2e-pick', name: 'E2E Pick', itemGroups: [], modelSettings: {} };
+      const picker = MpiMediaPicker.mount(document.createElement('div'), {
+        mediaType: 'audio',
+        voiceRoute: 'character',
+        onImport: () => {},
+        ...(wp ? { recordAudio: recordAudioIntoProject, voicePicker: MpiVoicePicker } : {}),
+      });
+      picker.el.show();
+      window.__pick = picker;
+      await new Promise(r => setTimeout(r, 250));
+      return {
+        mic: !!document.querySelector('.mpi-media-picker__tile--mic'),
+        voice: !!document.querySelector('.mpi-media-picker__tile--voice'),
+      };
+    }, withProps);
+
+    // Without the props a card would be a dead button, so neither renders.
+    expect(await open(false)).toEqual({ mic: false, voice: false });
+    expect(await open(true)).toEqual({ mic: true, voice: true });
+
+    // The voice card mounts the component it was handed, not an import.
+    const mounted = await window.evaluate(async () => {
+      document.querySelector('.mpi-media-picker__tile--voice').click();
+      for (let i = 0; i < 40 && !document.querySelector('.mpi-voice-picker'); i++) {
+        await new Promise(r => setTimeout(r, 100));
+      }
+      return !!document.querySelector('.mpi-media-picker__voice .mpi-voice-picker');
+    });
+    expect(mounted).toBe(true);
   } finally {
     await closeApp(app);
   }

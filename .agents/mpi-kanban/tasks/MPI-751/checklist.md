@@ -10,5 +10,6 @@
 - [x] Fix 2: Compounds emit `ui:context-menu`, `shell.js` shows `MpiContextMenu` (5a51434c). Lint clean, npm test 972/972, desktop gallery-audio-waveform / flow-audio-player / gallery-archive / gallery-cue-all 11/11. Parked rule: 27 -> 22 hits
 - [x] Rule maps updated for `ui:context-menu` + MpiWaveform tier (user go 2026-09-14): component-events-primitives/blocks/organisms, component-mounts, events.md
 - [x] Parked progress check: `npx eslint -c .agents/mpi-kanban/tasks/MPI-751/rule/tier.eslint.config.cjs js/` (22 hits left)
-- [ ] Fixes 3-9 (awaiting go; recommendations in handoff c33e52cc)
+- [x] Fix 7 (user go 2026-09-14, option a): `MpiMediaPicker` takes `recordAudio` + `voicePicker` props from `MpiBaseFlow` (its only audio consumer); `toWavFile` -> `js/utils/toWavFile.js`. Lint 0, npm test 991/991, desktop media-picker-cards + flow-audio-player 10/10 (new gate check). Parked rule: 22 -> 20 hits
+- [ ] Fixes 3-6, 8, 9 (awaiting go; recommendations in handoff c33e52cc; fix 8 now proposed as 4 -> Organisms + MpiRemote -> Blocks)
 - [ ] Land rule + test from `rule/`, lint clean on the new rule

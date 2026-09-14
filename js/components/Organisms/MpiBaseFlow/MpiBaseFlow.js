@@ -3,6 +3,8 @@ import { MpiOverlay } from '../../Primitives/MpiOverlay/MpiOverlay.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { MpiMediaPicker } from '../../Compounds/MpiMediaPicker/MpiMediaPicker.js';
+import { MpiVoicePicker } from '../../Compounds/MpiVoicePicker/MpiVoicePicker.js';
+import { recordAudioIntoProject } from '../../Compounds/MpiAudioRecorder/MpiAudioRecorder.js';
 import { MpiModelSettings } from '../../Compounds/MpiModelSettings/MpiModelSettings.js';
 import { MpiCompareView } from '../../Compounds/MpiCompareView/MpiCompareView.js';
 import { MpiVideoViewer } from '../MpiVideoViewer/MpiVideoViewer.js';
@@ -880,6 +882,10 @@ export const MpiBaseFlow = ComponentFactory.create({
                 // must not appear on "Your performance", where a stock voice is not the
                 // thing the user performed. Undeclared → undefined → no voice card.
                 voiceRoute: entry.group.voiceLibrary?.[idx] ?? null,
+                // The picker is a Compound and may not import these two Compounds
+                // itself, so the slot's owner hands them in.
+                recordAudio: recordAudioIntoProject,
+                voicePicker: MpiVoicePicker,
                 onPick: ({ filePath }) => {
                     entry.items[idx] = {
                         url: filePath,

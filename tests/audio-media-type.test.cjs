@@ -139,7 +139,7 @@ test('an audio-primary op promotes its Output_Audio to the primary output', () =
 test('a recording is saved as .wav, not in MediaRecorder native container', () => {
     // `.webm` is video by extension everywhere on the server, so a recording kept in
     // its native container would be re-typed to video on the first project reload.
-    const src = read('js/components/Compounds/MpiAudioRecorder/MpiAudioRecorder.js');
+    const src = read('js/utils/toWavFile.js');
     assert.match(src, /'recording\.wav'/, 'the File handed to the caller must be a .wav');
     assert.match(src, /type: 'audio\/wav'/);
     const routes = read('routes/projects.js');

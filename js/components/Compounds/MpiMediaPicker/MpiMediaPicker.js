@@ -6,8 +6,7 @@ import { Storage } from '../../../core/storage.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
 import { qs, ce, on } from '../../../utils/dom.js';
 import { renderIcon } from '/js/utils/icons.js';
-import { recordAudioIntoProject, toWavFile } from '../MpiAudioRecorder/MpiAudioRecorder.js';
-import { MpiVoicePicker } from '../MpiVoicePicker/MpiVoicePicker.js';
+import { toWavFile } from '../../../utils/toWavFile.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 
 /**
@@ -57,7 +56,12 @@ import { clientLogger } from '../../../services/clientLogger.js';
  *        it and no voice card is rendered. Per-SLOT, never per-flow: Voice Changer wants
  *        it on "Target voice" and emphatically not on "Your performance", where offering
  *        a stock voice as the thing you performed would invite converting one library
- *        voice into another. Requires `onImport` — see `_buildVoiceCard`.
+ *        voice into another. Requires `onImport` and `voicePicker` — see `_buildVoiceCard`.
+ * @param {Function} [recordAudio] - () => Promise<{filePath:string}|null>, the mic card's
+ *        recorder (`recordAudioIntoProject`). Omit it and no mic card is rendered.
+ * @param {Object} [voicePicker] - the `MpiVoicePicker` component, mounted by the voice card.
+ *        Both are PROPS, not imports: they are Compounds, and so is this picker, so the
+ *        Organism that opens an audio slot hands them in.
  *
  * Emits:
  * 'pick'   { filePath, mediaType } — a tile was chosen (modal closes)
@@ -293,9 +297,9 @@ export const MpiMediaPicker = ComponentFactory.create({
          *
          * It does NOT go through `onImport`. A recording is not an imported file: the
          * user just made it, it exists nowhere else, and it has to survive as project
-         * media so any later slot (or Flow) can reach it. `recordAudioIntoProject`
-         * saves it exactly as a gallery drop would; only then does it resolve as a
-         * normal PICK, which is what it has become.
+         * media so any later slot (or Flow) can reach it. The `recordAudio` prop
+         * (`recordAudioIntoProject`) saves it exactly as a gallery drop would; only
+         * then does it resolve as a normal PICK, which is what it has become.
          */
         function _buildMicCard() {
             const card = mountButton({
@@ -311,7 +315,7 @@ export const MpiMediaPicker = ComponentFactory.create({
             card.appendChild(icon);
             card.appendChild(label);
             _unsubs.push(on(card, 'click', async () => {
-                const uploaded = await recordAudioIntoProject();
+                const uploaded = await props.recordAudio();
                 if (!uploaded) return;
                 const picked = { filePath: uploaded.filePath, mediaType: 'audio' };
                 props.onPick?.(picked);
@@ -425,7 +429,7 @@ export const MpiMediaPicker = ComponentFactory.create({
             if (_voiceLayer !== layer) return;
 
             body.textContent = '';
-            const picker = MpiVoicePicker.mount(ce('div'), {
+            const picker = props.voicePicker.mount(ce('div'), {
                 manifest,
                 route: props.voiceRoute,
                 // No emotion control here. Voice Changer has no TTS stage, so the emotion set
@@ -591,11 +595,11 @@ export const MpiMediaPicker = ComponentFactory.create({
             // Gated on the SLOT's type, not the active filter: widening the filter to
             // "All media" is the user looking around, not a change of what the slot
             // takes, and a Record card under an image slot would be a dead end.
-            if (slotType === 'audio') grid.appendChild(_buildMicCard());
+            if (slotType === 'audio' && props.recordAudio) grid.appendChild(_buildMicCard());
             // Same gating, plus the slot's own opt-in. `onImport` is required because that
             // is the route a picked voice takes — without it the card would open a library
             // whose selection had nowhere to go.
-            if (slotType === 'audio' && props.voiceRoute && props.onImport) {
+            if (slotType === 'audio' && props.voiceRoute && props.onImport && props.voicePicker) {
                 grid.appendChild(_buildVoiceCard());
             }
 
