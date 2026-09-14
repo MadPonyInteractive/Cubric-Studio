@@ -2,9 +2,19 @@
 
 ## Current State
 
-**Where it stands (2026-09-14, handoff `0a900994`):** planned, nothing implemented, card in To do.
-Next: Phase 1 via `mpi-continue`. Fabio wants the card driven phase by phase with a handoff after
-each phase verifies.
+**Where it stands (2026-09-14, session `73d72ea1`):** Phase 1 DONE, auto-verified ([validation.md](validation.md)).
+Card in Doing. Next: Phase 2 via `mpi-continue` (user-ux, stops for Fabio). Fabio wants the card
+driven phase by phase with a handoff after each phase verifies.
+
+**Phase 1 facts Phase 2 builds on:**
+- `js/utils/galleryFilter.js` exports `DEFAULT_GALLERY_SORT` (frozen, `hiddenKinds` too, so spread it),
+  `matchesGallerySort`, `isGalleryFiltered`, `listedKinds`, and `describeGalleryFilter(sort, kinds = ASSET_KINDS)`.
+  Pass the panel's `listedKinds(...)` result as `kinds` so the tooltip never names a kind the project has none of.
+- `ASSET_KINDS` rows carry `label` (plural, panel rows) and `singular` (card chip `data-info`).
+- The grid chip is `.mpi-group-card__kind`, driven by the card class `mpi-group-card--kind`; the render key carries `kindOfItem(sel).kind`.
+- UI-only live checks: `CUBRIC_E2E=1 npm run app:isolated` skips the local engine gate, so no boot
+  repair can touch the shared engine. Mount `MpiGalleryGrid` standalone via `playwright-cli -s=<name> eval`
+  on `comfy_workflows/display/` media (recipe in validation.md § Phase 1).
 
 **Project mode:** scalable-foundation — full guardrails, no prototype shortcuts.
 
@@ -76,7 +86,7 @@ and grows a panel).
 
 ## Completed
 
-- [ ] Nothing yet.
+- [x] Phase 1: asset kinds, filter logic, card corner icon (2026-09-14, auto-verified, validation.md).
 
 ## Remaining Work
 
@@ -88,13 +98,13 @@ Ownership: `js/utils/assetKinds.js`, `js/utils/galleryFilter.js`, `js/utils/icon
 `js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js`, `js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.css`,
 `tests/asset-kinds.test.cjs`, `tests/gallery-filter.test.cjs`.
 
-- [ ] **`js/utils/assetKinds.js`** — `ASSET_KINDS` exactly as brief § 2, ordered, first match wins:
+- [x] **`js/utils/assetKinds.js`** — `ASSET_KINDS` exactly as brief § 2, ordered, first match wins:
   `scene` (`!!item.splatPath`, `badge:true`, icon `cube`, label `3D Scenes`/`3D Scene`) → `video`
   (`badge:true`) → `audio` (`badge:false`) → `image` (catch-all, `badge:false`). Export
   `kindOfItem(item)` → the row. Takes the ITEM, never the group, and imports nothing that uses a
   browser-absolute path, so Node can load it. `tests/asset-kinds.test.cjs`: splat image → scene;
   video; audio; plain image, `null` and unknown type → image; badge flags per row. **Verify:** `npm test` green on the new file.
-- [ ] **`js/utils/galleryFilter.js`** — imports `assetKinds.js` only. `DEFAULT_GALLERY_SORT`
+- [x] **`js/utils/galleryFilter.js`** — imports `assetKinds.js` only. `DEFAULT_GALLERY_SORT`
   `{ order:'newest', scope:'active', hiddenKinds:[], favourites:false, previews:false }`;
   `matchesGallerySort(group, item, sort)` — scope gate FIRST (`!!group.archived !== (sort.scope === 'archived')`
   → false; MPI-678 ordering), then `hiddenKinds` via `kindOfItem(item)`, then `favourites` (AND),
@@ -104,10 +114,10 @@ Ownership: `js/utils/assetKinds.js`, `js/utils/galleryFilter.js`, `js/utils/icon
   scope ∪ kinds in `hiddenKinds`, in table order. `tests/gallery-filter.test.cjs`: archived gate beats
   every filter; favourite videos; a hidden kind; Oldest filters nothing and is not "filtered"; a hidden
   kind with no cards is still listed; description text. **Verify:** `npm test` green on the new file.
-- [ ] **Icons** — add `filter` and `cube` to `js/utils/icons.js` (24-grid fill paths; the ones in
+- [x] **Icons** — add `filter` and `cube` to `js/utils/icons.js` (24-grid fill paths; the ones in
   `research/header-mockups.html` are acceptable). **Verify:** `renderIcon('filter','sm')` and
   `renderIcon('cube','sm')` return an `<svg>` containing a `<path>` (quick node or in-page check).
-- [ ] **Card corner icon** in `MpiGalleryGrid` — create one `.mpi-group-card__kind` chip in `_makeCard`;
+- [x] **Card corner icon** in `MpiGalleryGrid` — create one `.mpi-group-card__kind` chip in `_makeCard`;
   in `_render` set it from `kindOfItem(selected)`: shown only when `badge`, `renderIcon(kind.icon)`,
   `data-info` = singular label. Add the kind to `_getGroupRenderKey` or a `selectedIndex` switch
   will not repaint it. CSS: bottom-right, same chip treatment as `.mpi-group-card__overlay`
@@ -221,7 +231,16 @@ appropriate for this card; run it through `mpi-continue`.
 
 ## Plan Drift
 
-- None yet.
+- 2026-09-14 (Phase 1): **row ORDER vs the brief's tooltip example.** `ASSET_KINDS` is precedence-ordered
+  (scene → video → audio → image, the catch-all last), and `listedKinds` / `describeGalleryFilter` follow
+  table order. So the tooltip reads `3D Scenes, Videos · Favs`, not the brief's `Videos, 3D Scenes · Favs`,
+  and Phase 2's panel would list 3D Scenes ABOVE Images (the mockup shows Images, Videos, Audio, 3D Scenes).
+  Put it to Fabio at the Phase 2 check. If he wants the mockup's order, it is a one-line display sort in the panel.
+- 2026-09-14 (Phase 1): `describeGalleryFilter` gained an optional `kinds` argument (default: the whole table)
+  so the toolbar tooltip can name only the listed kinds.
+- 2026-09-14 (Phase 1): the chip also trims `.mpi-group-card__overlay` max-width on `--kind` cards so a long
+  name clears it. MPI-751 held a live write claim on `MpiGalleryGrid.js` at session start; it released
+  (commits `5a51434c`, `8c77f3aa`) before the grid edit, so no message was needed.
 
 ## Verification
 

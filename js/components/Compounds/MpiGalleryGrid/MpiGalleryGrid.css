@@ -695,6 +695,38 @@
     opacity: 0.92;
 }
 
+/* ── Bottom-right kind chip (MPI-749) ────────────────────────────────────────
+ * Persistent, like the Notes marker: a video or 3D Scene reads as one with no hover
+ * and in either info mode. The JS sets `--kind` only for badged kinds. Hidden while
+ * that corner belongs to the preview / queued action row or the cooking mascot. */
+
+.mpi-group-card__kind {
+    position: absolute;
+    bottom: 0.6rem;
+    right: 0.7rem;
+    display: none;
+    padding: 4px;
+    background: color-mix(in oklch, var(--surface-bar) 58%, transparent);
+    border: 1px solid color-mix(in oklch, var(--line-soft) 72%, transparent);
+    color: var(--ink-1);
+    z-index: 4;
+}
+
+.mpi-group-card--kind .mpi-group-card__kind {
+    display: flex;
+}
+
+.mpi-group-card--preview .mpi-group-card__kind,
+.mpi-group-card--queued-continue .mpi-group-card__kind,
+.mpi-group-card--mascot-cooking .mpi-group-card__kind {
+    display: none;
+}
+
+/* Keep a long name clear of the chip. */
+.mpi-group-card--kind .mpi-group-card__overlay {
+    max-width: calc(100% - 3.6rem);
+}
+
 /* State-only media overlays. Card information uses local chip backgrounds, not
  * a card-wide radial or bottom scrim. */
 .mpi-group-card__media::before,

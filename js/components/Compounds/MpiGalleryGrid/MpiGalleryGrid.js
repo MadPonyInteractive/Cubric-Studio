@@ -5,6 +5,7 @@ import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiWaveform } from '../../Primitives/MpiWaveform/MpiWaveform.js';
 import { ce, qs, qsa, on } from '/js/utils/dom.js';
 import { renderIcon } from '/js/utils/icons.js';
+import { kindOfItem } from '/js/utils/assetKinds.js';
 import { removeHistoryEntry } from '../../../data/projectModel.js';
 import { getModelById, tierLetterFor } from '../../../data/modelRegistry.js';
 import { getCommand, commandAllowsBranchingContinue, selectCueAllTargets } from '../../../data/commandRegistry.js';
@@ -528,6 +529,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     <span class="mpi-group-card__name"></span>
                     <span class="mpi-group-card__sub"></span>
                 </div>
+                <div class="mpi-group-card__kind"></div>
             `;
 
             wrapper.appendChild(cardEl);
@@ -584,6 +586,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
             const popWrap      = qs('.mpi-group-card__pop-wrap', cardEl);
             const stage2Badge  = qs('.mpi-group-card__stage2-badge', cardEl);
             const assetsBadge  = qs('.mpi-group-card__assets-badge', cardEl);
+            const kindEl       = qs('.mpi-group-card__kind', cardEl);
 
             let _generating = false;
             let _showInfo   = false;
@@ -1363,6 +1366,17 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 _favBtn.el.setActive(_favourite);
                 cardEl.classList.toggle('mpi-group-card--favourited', _favourite);
                 notesWrap.style.display = selected?.notes?.trim() ? '' : 'none';
+
+                // Corner kind chip (MPI-749), read off the SELECTED item through the
+                // same function the gallery filter uses, so icon and filter agree.
+                // Not the `isVideo` checks above: those pick which element to mount.
+                const kind = kindOfItem(selected);
+                cardEl.classList.toggle('mpi-group-card--kind', kind.badge);
+                if (kindEl.dataset.kind !== kind.kind) {
+                    kindEl.dataset.kind = kind.kind;
+                    kindEl.innerHTML = kind.badge ? renderIcon(kind.icon, 'sm') : '';
+                    kindEl.setAttribute('data-info', kind.singular);
+                }
                 reuseWrap.style.display = (itemHasReusablePrompt(selected) || !!findOriginalReusableItem(group)) ? '' : 'none';
 
                 const _isPreview = selected?.stage === 'preview';
@@ -1871,6 +1885,8 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 sel?.thumbPathLg || '',
                 sel?.proxyPath || '',
                 sel?.type || '',
+                // A splat landing on an image item changes the kind chip, not the type.
+                kindOfItem(sel).kind,
                 sel?.stage || '',
                 sel?.operation || '',
                 sel?.modelId || '',
