@@ -107,6 +107,10 @@
  *                                       — such a flow's graph names its SaveAudio node
  *                                       `Output_Audio`, the same title a video's soundtrack uses,
  *                                       and the declared mediaType is what tells the two apart.
+ * @property {'create'|'edit'|'enhance'} type - What the flow DOES to its media: `'create'`
+ *                                       makes new stuff, `'edit'` changes existing stuff,
+ *                                       `'enhance'` improves existing stuff. Exactly one of
+ *                                       the three (always required).
  * @property {Object}   inputSchema    - What the flow collects → injected into the workflow
  * @property {{compare?: string}} [result] - How the RESULT is presented. `compare` names the media
  *                                       ROLE holding the BEFORE — the frame then shows the result
@@ -456,6 +460,7 @@ export const FLOWS = [
         operation: 'flowHeadSwap',
         workflow: 'flow_head_swap.json',
         mediaType: 'image',
+        type: 'edit',
         inputSchema: {
             media: [
                 // `labels` are index-aligned with roles. Slot copy is the APP's to
@@ -554,6 +559,7 @@ export const FLOWS = [
         // field is read only by the tests that check declared fields against node titles.
         workflow: 'flow_ltx_extend.json',
         mediaType: 'video',
+        type: 'create',
         inputSchema: {
             media: [
                 { type: 'video', mode: 'upto', max: 1, roles: ['video1'], labels: ['Video to extend'] },
@@ -651,6 +657,7 @@ export const FLOWS = [
         operation: 'flowLtxFoley',
         workflow: 'flow_ltx_foley.json',
         mediaType: 'video',
+        type: 'edit',
         inputSchema: {
             media: [
                 { type: 'video', mode: 'upto', max: 1, roles: ['video1'], labels: ['Video to score'] },
@@ -722,6 +729,7 @@ export const FLOWS = [
         operation: 'ltxVideoUpscale',
         workflow: 'ltx_video_upscale.json',
         mediaType: 'video',
+        type: 'enhance',
         inputSchema: {
             media: [
                 // Role MATCHES the op's `mediaInputs` key (`inputVideo`), NOT the `video1`
@@ -895,6 +903,7 @@ export const FLOWS = [
         operation: 'flowScribObj',
         workflow: 'flow_draw_it_in.json',
         mediaType: 'image',
+        type: 'edit',
         inputSchema: {
             // ONLY `media` is read here. A `positive: 'string'` key sat in this object
             // and did NOTHING — the frame reads `inputSchema.media` and nothing else,
@@ -1091,6 +1100,7 @@ export const FLOWS = [
         operation: 'flowScribble',
         workflow: 'flow_scribble.json',
         mediaType: 'image',
+        type: 'create',
         inputSchema: {
             // ONE slot, and `mode: 'upto'` makes it genuinely optional (Fabio,
             // 2026-08-26): the user either draws on a blank canvas in the next step or
@@ -1257,6 +1267,7 @@ export const FLOWS = [
         operation: 'flowCharacterSheet',
         workflow: 'flow_character_sheet.json',
         mediaType: 'image',
+        type: 'create',
         // No `inputSchema` at all: this flow collects no media, so step 0 renders its
         // own "This flow needs no input media." beside the hero. No `result.compare`
         // either — there is no BEFORE to reveal against.
@@ -1441,6 +1452,7 @@ export const FLOWS = [
         operation: 'flowOutpaint',
         workflow: 'flow_outpaint.json',
         mediaType: 'image',
+        type: 'create',
         inputSchema: {
             media: [
                 { type: 'image', mode: 'upto', max: 1, roles: ['image1'], labels: ['Image'] },
@@ -1527,6 +1539,7 @@ export const FLOWS = [
         operation: 'flowVoiceChanger',
         workflow: 'flow_voice_changer.json',
         mediaType: 'audio',
+        type: 'edit',
         inputSchema: {
             media: [
                 // ONE group, two roles, index-aligned labels — the head-swap shape.
@@ -1653,6 +1666,7 @@ export const FLOWS = [
         operation: 'flowChatterBox',
         workflow: 'flow_chatter_box.json',
         mediaType: 'audio',
+        type: 'create',
         inputSchema: {
             media: [
                 // ONE slot, and there is no second one. "Convert onto (optional)" was
@@ -1810,6 +1824,7 @@ export const FLOWS = [
         operation: 'flowDramaBox',
         workflow: 'flow_drama_box.json',
         mediaType: 'audio',
+        type: 'create',
         inputSchema: {
             media: [
                 // ONE optional slot. The graph forks on it (MpiAnyChecker#14 selects
@@ -1940,6 +1955,7 @@ export const FLOWS = [
         operation: 'flowStems',
         workflow: 'flow_stems.json',
         mediaType: 'audio',
+        type: 'create',
         inputSchema: {
             media: [
                 { type: 'audio', mode: 'upto', max: 1, roles: ['audio1'] },
@@ -2047,6 +2063,7 @@ export const FLOWS = [
         operation: 'flowObjectStamp',
         workflow: 'flow_object_stamp.json',
         mediaType: 'image',
+        type: 'edit',
         inputSchema: {
             // TWO user slots, unlike Draw It In where `image2` is derived and never
             // offered. Here the object IS an upload — it is the whole point — and the
@@ -2272,6 +2289,7 @@ export const FLOWS = [
         operation: 'flowTextToMusic',
         workflow: 'flow_minimax_music.json',
         mediaType: 'audio',
+        type: 'create',
         // No `inputSchema` at all, and no `result.compare` — there is no BEFORE.
         // THE ENHANCER RUNS INSIDE GENERATE, AND HAS NO BUTTON (Fabio, 2026-09-02:
         // *"the enhancer runs silently, but it only runs if the user has changed the
@@ -2710,6 +2728,7 @@ export const FLOWS = [
         operation: 'flowSoundAndMusic',
         workflow: 'flow_stable_audio.json',
         mediaType: 'audio',
+        type: 'create',
         // NO `steps` AT ALL — the intro, then the run slide, and that is the whole flow
         // (Fabio, 2026-09-05: *"it's going to have two stages: 1. The introduction 2. A
         // small prompt box with a dropdown… and a slider for the length"*). `steps: []`

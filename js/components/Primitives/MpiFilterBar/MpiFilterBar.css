@@ -1,0 +1,89 @@
+/* MpiFilterBar — Primitive (MPI-754)
+   Tag-group + search header row shared by the Model Library and the Flow
+   Library. Owns its own control chrome (bare button/input) outright — ported
+   from the Model Library's row, which used to restate MpiButton/MpiInput
+   chrome from OUTSIDE the Primitive (forbidden). No consumer may restyle the
+   fill/border/hover/focus of `__tag` or `__search-input`; it may only size
+   the bar around it. */
+
+.mpi-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--s-5);
+    flex-wrap: wrap;
+}
+
+.mpi-filter-bar__group {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+}
+
+.mpi-filter-bar__label {
+    font-size: var(--t-2xs);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-4);
+}
+
+.mpi-filter-bar__tags {
+    display: flex;
+    gap: var(--s-3);
+}
+
+/* Filter tag — text-only toggle button. Selected = ink-1 + heat dot. Never a
+   filled button: keeps its own tracking, 4px vertical padding, no hover fill. */
+.mpi-filter-bar__tag {
+    font-family: inherit;
+    font-size: var(--t-xs);
+    font-weight: 400;
+    letter-spacing: 0.14em;
+    color: var(--ink-3);
+    background: none;
+    border: 0;
+    padding: 4px 0;
+    cursor: pointer;
+    transition: color var(--t-base) var(--ease);
+}
+
+.mpi-filter-bar__tag:hover:not(:disabled) { color: var(--ink-1); }
+.mpi-filter-bar__tag[aria-selected="true"] { color: var(--ink-1); }
+.mpi-filter-bar__tag[aria-selected="true"]::after {
+    content: " \25CF"; /* heat dot */
+    color: var(--accent-heat);
+}
+
+.mpi-filter-bar__sep {
+    width: 1px;
+    height: 20px;
+    background: var(--line);
+}
+
+.mpi-filter-bar__search {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    border-bottom: 1px solid var(--ink-4);
+    padding: 6px 0;
+    min-width: 200px;
+}
+
+.mpi-filter-bar__search .mpi-icon { color: var(--ink-4); width: 14px; height: 14px; }
+
+.mpi-filter-bar__search-input {
+    flex: 1;
+    min-width: 0;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    outline: none;
+    padding: 0;
+    color: var(--ink-1);
+    font-family: inherit;
+    font-size: var(--t-sm);
+}
+.mpi-filter-bar__search-input::placeholder { color: var(--ink-4); }
+
+.mpi-filter-bar__trail { flex: none; }

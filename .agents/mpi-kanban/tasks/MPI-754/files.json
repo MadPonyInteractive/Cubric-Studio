@@ -1,0 +1,22 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-754/",
+    "js/data/flowsRegistry.js",
+    "tests/flow-type.test.cjs",
+    "docs/playbooks/add-flow/01-descriptor-and-ops.md",
+    "docs/playbooks/add-flow/README.md",
+    "js/components/Primitives/MpiFilterBar/MpiFilterBar.js",
+    "js/components/Primitives/MpiFilterBar/MpiFilterBar.css",
+    "js/shell/preloadStyles.js",
+    "js/components/types.js",
+    "js/components/Compounds/LandingPages/MpiFlowLibrary/MpiFlowLibrary.js",
+    "js/components/Compounds/LandingPages/MpiFlowLibrary/MpiFlowLibrary.css",
+    "docs/playbooks/add-flow/04-overlay-and-shell.md",
+    "tests/desktop/flow-library-filters.spec.js",
+    "js/components/Compounds/LandingPages/MpiModelManager/MpiModelManager.js",
+    "js/components/Compounds/LandingPages/MpiModelManager/MpiModelManager.css",
+    "docs/model-library.md",
+    "docs/releases/UNRELEASED.md"
+  ]
+}

@@ -85,6 +85,8 @@ cargo-cult install-sync machinery from modelRegistry).
   fields,         // declared run-slide controls (MPI-531) — the SAME `fields` a step declares
   mediaType,      // 'image' | 'video' | 'audio' — the OUTPUT type (always required).
                   // Also picks the Flow Library section the flow lands under (MPI-634).
+  type,           // 'create' | 'edit' | 'enhance' — creates new / edits existing / enhances
+                  //   existing (always required).
   inputSchema,    // { positive?: 'string', media?: [ ...slot groups ] }
 }
 ```

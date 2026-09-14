@@ -31,6 +31,7 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Primitives/MpiCheckbox/MpiCheckbox.css',
   'js/components/Primitives/MpiMaskedImagePreview/MpiMaskedImagePreview.css',
   'js/components/Primitives/MpiWaveform/MpiWaveform.css',
+  'js/components/Primitives/MpiFilterBar/MpiFilterBar.css',
 
   // Compounds
   'js/components/Compounds/MpiContextMenu/MpiContextMenu.css',

@@ -2390,3 +2390,47 @@
  * through `library.assetUrl()`; a manifest path handed straight to `new Audio()` resolves
  * against the page and 404s.
  */
+
+/**
+ * @typedef {Object} MpiFilterBarProps (Primitive — js/components/Primitives/MpiFilterBar, MPI-754)
+ * @property {Array<{key:string,label:string,options:Array<{value:string,label:string}>}>} [groups=[]]
+ *   - One tag group per entry, rendered with a 1px separator BETWEEN groups
+ *     (none before the first or after the last). `options[].value` is the
+ *     raw filter value (never a descriptor property name — e.g. pass
+ *     'image'/'video', not the field name 'mediaType').
+ * @property {string} [searchPlaceholder='Search…'] - Placeholder AND aria-label
+ *   on the search input (the visible placeholder alone is not an accessible
+ *   name).
+ *
+ * Shared by the Model Library and the Flow Library (both Compounds, so they
+ * may not import each other under the tier rule) — a Primitive draws its OWN
+ * `<button>` tags and its OWN `<input>` search field; this is the sanctioned
+ * exception to "never a bare form control", same precedent as MpiRadioGroup /
+ * MpiTreePicker. A consumer may only SIZE the bar, never restate its tag or
+ * input chrome from outside.
+ *
+ * Instance methods (on instance.el):
+ *   setActive(key, values) — replace one group's active Set (Array or Set of
+ *                            values) and update aria-selected on its tags.
+ *                            Does NOT emit 'change' (restoring persisted
+ *                            filters on reopen must not re-trigger the
+ *                            consumer's own filter handler).
+ *   setQuery(q)             — replace the search value (trimmed/lowercased)
+ *                            and update the input. Does NOT emit 'change'.
+ *   appendTrailing(node)    — append a node into the trailing slot (e.g. a
+ *                            Refresh button). APPENDS only, never mounts —
+ *                            never wipes the slot.
+ *   destroy()               — removes every listener this component added.
+ *
+ * Emits:
+ *   'change' { key, active: { [groupKey]: Set }, query }
+ *   `key` is the group key that just toggled, or the literal string
+ *   'search' when the query changed (one convention for both sources).
+ *   `active` is a FRESH COPY of every group's Set, never the internal Set —
+ *   a caller cannot mutate this component's state through the payload.
+ *   `query` is always trimmed and lowercased. Fires on every tag toggle and
+ *   every search keystroke — no debounce.
+ *
+ * Never autofocuses the search input (would steal focus from
+ * tests/desktop/flows-tab-ring.spec.js and any surface that opens the bar).
+ */
