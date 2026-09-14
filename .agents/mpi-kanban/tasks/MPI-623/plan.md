@@ -426,6 +426,22 @@ notes in [research/](research/).
 > 1280 remains the escape hatch at 4.5 GB. **NOT YET VERIFIED BY A BAKE** - that needs the
 > GPU, and the sharpening claim is arithmetic until a run shows it.
 
+> **Session note 2026-09-14 (eighteenth). PARKED FOR WEEKS BEHIND THE RELEASE, AND THE
+> GREEN LIGHT IS NOT GIVEN.** Fabio looked at the bake and rejected the 5 000-step Draft
+> renders as not product quality: **nothing gets wired into Vision until he has seen a
+> finished-tier result.** The 30 000-step held-out render of the **Wan-free control**
+> (`D:\WORK\MPI-623-spike\brush_eval\eval_30000\frame_00000_perspective_00000000.png`) is
+> far better, graffiti legible, but the **Wan pipeline's** `wan_brush_out\wan_30000.ply`
+> (369 MB) has NEVER been rendered from held-out poses. **That comparison is the first job
+> when the card resumes**: Wan 30k vs control 30k, same poses, ~30 min GPU, and only once
+> Fabio says the card is free. Do not show him a Draft tier again.
+>
+> **Paths:** `research/measurements.md` still says `G:\MPI-623-spike`; the data lives at
+> `D:\WORK\MPI-623-spike` (7.5 GB). This session's scratchpad was wiped by a Temp cleanup
+> on 2026-09-14; a peer rebuilt the contact sheet and fly-through into
+> `D:\WORK\MPI-623-spike\3d-scene-8-deliverables\`. Keep anything a later step needs
+> OUTSIDE `%TEMP%`, and never re-run a long bake to replace an output without asking.
+
 **Project mode:** `scalable-foundation`.
 
 A user bakes a Gaussian-splat scene once from a 360 equirect image, then re-enters
