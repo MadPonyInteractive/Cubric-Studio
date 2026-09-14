@@ -11,7 +11,7 @@
  *   3. Add the control ID to the desired operation's components[] in commandRegistry.js
  */
 
-import { MpiOptionSelector, clampQualityTier, defaultQualityTier } from '../../Compounds/MpiOptionSelector/MpiOptionSelector.js';
+import { MpiOptionSelector } from '../../Compounds/MpiOptionSelector/MpiOptionSelector.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { MpiStylePicker } from '../../Primitives/MpiStylePicker/MpiStylePicker.js';
@@ -20,10 +20,16 @@ import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { qsa } from '../../../utils/dom.js';
 import { state } from '../../../state.js';
 import { getOpSettings, getSharedSettings, getModelSettings } from '../../../data/projectModel.js';
-import { getCommandDefault, getCommandComponents, modelShowsStyleRack, modelShowsRatio, modelShowsBatch, CONTROL_TYPES, modelControlTypes } from '../../../data/commandRegistry.js';
+import { getCommandComponents, modelShowsStyleRack, modelShowsRatio, modelShowsBatch, CONTROL_TYPES, modelControlTypes } from '../../../data/commandRegistry.js';
 import { PROMPT_CONTROL_DEFAULTS } from '../../../data/promptControlDefaults.js';
 import { Events } from '../../../events.js';
 import { getModelRatios, usesQualityTier } from '../../../utils/ratios.js';
+// MPI-547 — the qualityTier resolve (per-model bucket wins, legacy shared
+// fallback, else the model's cheapest tier) and the op→model→global default
+// are shared with `js/shell/agentDispatch.js`'s named-param resolver via this
+// ONE module, so an agent submit can never silently resolve a different tier
+// than this control shows (see generationControls.js's own module comment).
+import { resolveEffectiveQualityTier, resolveThreeLayerDefault } from '../../../data/generationControls.js';
 
 // ── Scope helpers ─────────────────────────────────────────────────────────────
 //
@@ -65,13 +71,10 @@ function _resolveDefault(ctrl, controlId, opts) {
     //
     // Op BEFORE model is deliberate: it keeps every existing default exactly where it
     // was, so adding this layer changed nothing for qwenEdit or anything else.
-    if (opts.opName) {
-        const opDefault = getCommandDefault(opts.opName, controlId);
-        if (opDefault !== undefined) return opDefault;
-    }
-    const modelDefault = opts.model?.controlDefaults?.[controlId];
-    if (modelDefault !== undefined) return modelDefault;
-    return ctrl.defaultValue;
+    //
+    // Delegates to generationControls.js (MPI-547) — agentDispatch.js's named-param
+    // resolver needs this exact three-layer order too, so it lives in ONE place now.
+    return resolveThreeLayerDefault(controlId, opts.model, opts.opName, ctrl.defaultValue);
 }
 
 function _emitUpdate(ctrl, opts, key, value) {
@@ -147,21 +150,18 @@ export const PROMPT_BOX_CONTROLS = {
             }
 
             // Tier from the per-model bucket; lazy-fallback to the legacy shared
-            // ratioSelector.qualityTier for projects not yet migrated to SCHEMA 4.
+            // ratioSelector.qualityTier for projects not yet migrated to SCHEMA 4. A
+            // SAVED tier is real intent: clamp it to a tier this model has (a cross-model
+            // carry, LTX 2k/4k → Wan, clamps to 'very_high', Wan's max — NOT 'medium', so
+            // a reused 2K clip doesn't silently drop to mid). With NOTHING saved there is
+            // no intent to preserve, so open on the model's cheapest tier rather than
+            // clamping the shared 'medium' placeholder up to Krea2's 2k. Shared with
+            // agentDispatch.js's named-param resolver via generationControls.js
+            // (MPI-547) — one implementation, not a second copy that can drift.
             const modelBucket = state.currentProject
                 ? getModelSettings(state.currentProject, modelId) : {};
             const sharedBucket = getSharedSettings(state.currentProject || {}, _mediaTypeOf(opts));
-            const savedTier = modelBucket.qualityTier
-                ?? sharedBucket.ratioSelector?.qualityTier;
-            // A SAVED tier is real intent: clamp it to a tier this model has. A
-            // cross-model carry (LTX 2k/4k → Wan) clamps to 'very_high' (Wan's max),
-            // NOT 'medium' — so a reused 2K clip doesn't silently drop to mid.
-            // With NOTHING saved there is no intent to preserve, so open on the
-            // model's cheapest tier rather than clamping the shared 'medium'
-            // placeholder up to Krea2's 2k. If the resolve changed the value, persist it.
-            const initialTier = savedTier != null
-                ? clampQualityTier(modelType, savedTier)
-                : defaultQualityTier(modelType);
+            const initialTier = resolveEffectiveQualityTier(state.currentProject, model);
             const initialRatio = sharedBucket.ratioSelector?.selectedRatio || '1:1';
             // Orientation reaches the tier radio so its per-tier resolution hints read
             // the right table: a 'quality-orientation' model's 2K 16:9 is 1936×1088
@@ -247,16 +247,10 @@ export const PROMPT_BOX_CONTROLS = {
             const savedRatioSettings = saved.ratioSelector || {};
             const initialOrientation = savedRatioSettings.orientation || PROMPT_CONTROL_DEFAULTS.orientation;
             const initialValue = savedRatioSettings.selectedRatio || this.defaultValue;
-            const modelBucket = state.currentProject
-                ? getModelSettings(state.currentProject, modelId) : {};
-            // Same resolve as the qualityTier radio: clamp a SAVED tier, but fall back
-            // to the model's cheapest tier when nothing is saved. Both controls must
-            // agree on a fresh project, or the ratio popup would size for 2k while the
-            // radio reads 1k.
-            const _savedTier = modelBucket.qualityTier ?? savedRatioSettings.qualityTier;
-            const initialQualityTier = _savedTier != null
-                ? clampQualityTier(modelType, _savedTier)
-                : defaultQualityTier(modelType);
+            // Same resolve as the qualityTier radio, via generationControls.js — both
+            // controls must agree on a fresh project, or the ratio popup would size for
+            // 2k while the radio reads 1k.
+            const initialQualityTier = resolveEffectiveQualityTier(state.currentProject, model);
 
             // Mount selector with saved state
             this._instance = MpiOptionSelector.mount(el, {

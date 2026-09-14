@@ -1,0 +1,336 @@
+/**
+ * generationControls.js — DOM-free resolver for the PromptBox controls an agent
+ * submit can name (MPI-547): ratio, qualityTier, turbo (krea2Turbo/h3Turbo),
+ * styleSelect, stylization, batch, seed.
+ *
+ * WHY THIS FILE EXISTS: `js/shell/agentDispatch.js` used to carry its OWN copy of
+ * the ratio/tier resolve (`_plannedSize`, MPI-546) alongside the real one living
+ * inside `PromptBoxControls.js`'s mounted `qualityTier`/`ratio` controls. Two
+ * implementations of "what size does this project want" is exactly the class of
+ * bug MPI-546 shipped three times (duplicate dispatch, invisible run, ignored
+ * ratio — see `.agents/mpi-kanban/tasks/_archived/MPI-546/validation.md`). This
+ * module is the ONE place that logic lives now; `PromptBoxControls.js` and
+ * `agentDispatch.js` both call it instead of recomputing it.
+ *
+ * DOM-FREE BY CONSTRUCTION: every import below (`projectModel.js`, `ratios.js`,
+ * `commandRegistry.js`, `promptControlDefaults.js`, `modelConstants/*`) is pure
+ * data + functions with no DOM/Electron-state dependency, so this file is
+ * `require()`-able from the server (`routes/connector.js`, which validates a
+ * named param with no project open) and `import()`-able from the renderer
+ * (which has the real project). See the module-level comments on each of those
+ * files before assuming otherwise.
+ *
+ * SCOPE: only the seven v1 params Fabio named 2026-09-14 (plan.md § "Open
+ * question... ANSWERED"). The other 15 PROMPT_BOX_CONTROLS entries are out of
+ * v1 scope and are untouched by this file.
+ */
+
+'use strict';
+
+import { getSharedSettings, getModelSettings } from './projectModel.js';
+import {
+    getModelRatios, usesQualityTier, qualityTiersFor, clampQualityTier, defaultQualityTier,
+} from '../utils/ratios.js';
+import { getCommandDefault, modelShowsStyleRack, modelShowsBatch, modelShowsRatio } from './commandRegistry.js';
+import { PROMPT_CONTROL_DEFAULTS } from './promptControlDefaults.js';
+import { MODELS } from './modelConstants/models.js';
+import { canonicalModelId } from './modelConstants/resolveModelDeps.js';
+
+function _mediaTypeOf(model) {
+    return model?.mediaType === 'video' ? 'video' : 'image';
+}
+
+function _err(code, message) {
+    return { ok: false, code, message };
+}
+
+// ── Model lookup (server-safe) ──────────────────────────────────────────────
+
+/**
+ * A model def by id, for callers that cannot use `modelRegistry.js`'s
+ * `getModelById` — that module imports `state.js` + `remoteEngineClient.js`
+ * (renderer-only), so it is unsafe to `require()` from a route. This is the
+ * same lookup (`canonicalModelId` + `MODELS.find`) minus the install-status
+ * machinery `getModelById` layers on top, which `routes/connector.js`'s static
+ * validation never needs.
+ * @param {string} modelId
+ * @returns {object|null}
+ */
+export function findModelDef(modelId) {
+    const canonical = canonicalModelId(String(modelId || ''));
+    return MODELS.find((m) => m.id === canonical) ?? null;
+}
+
+// ── Shared three-layer default (op → model → global) ───────────────────────
+//
+// Lifted out of `PromptBoxControls.js`'s private `_resolveDefault` (MPI-365),
+// which the `qualityTier`/`stylization` control mounts and this file's own
+// `resolveNamedParams` all need identically. `PromptBoxControls.js`'s
+// `_resolveDefault` now delegates here rather than keeping its own copy.
+
+/**
+ * The default a control opens on for `model`+`operation`, most specific first:
+ * an op-level override (`commandRegistry.js` `commands[op].defaults`), then a
+ * model-level override (`ModelDef.controlDefaults`), then `globalDefault`.
+ * @param {string} controlId
+ * @param {object|null} model
+ * @param {string} [operation]
+ * @param {*} globalDefault
+ * @returns {*}
+ */
+export function resolveThreeLayerDefault(controlId, model, operation, globalDefault) {
+    if (operation) {
+        const opDefault = getCommandDefault(operation, controlId);
+        if (opDefault !== undefined) return opDefault;
+    }
+    const modelDefault = model?.controlDefaults?.[controlId];
+    if (modelDefault !== undefined) return modelDefault;
+    return globalDefault;
+}
+
+// ── qualityTier ──────────────────────────────────────────────────────────────
+
+/**
+ * The quality tier actually in effect for `model` in `project` — the same
+ * precedence the mounted `qualityTier`/`ratio` controls use: the per-model
+ * bucket (MPI-133) wins, the legacy `shared.ratioSelector.qualityTier` is the
+ * migration fallback for a project saved before that move, and a project with
+ * neither opens on the model's cheapest tier (never a foreign 'medium').
+ * Returns `null` for a model whose ratio set has no tier axis at all.
+ * @param {object|null} project
+ * @param {object|null} model
+ * @returns {string|null}
+ */
+export function resolveEffectiveQualityTier(project, model) {
+    const modelType = model?.type ?? 'flux';
+    if (!usesQualityTier(modelType)) return null;
+    const modelBucket = getModelSettings(project || {}, model?.id);
+    const sharedBucket = getSharedSettings(project || {}, _mediaTypeOf(model));
+    const saved = modelBucket.qualityTier ?? sharedBucket.ratioSelector?.qualityTier;
+    return saved != null ? clampQualityTier(modelType, saved) : defaultQualityTier(modelType);
+}
+
+/** Is `tier` one this model actually declares? */
+export function isValidQualityTier(model, tier) {
+    const modelType = model?.type;
+    return usesQualityTier(modelType) && qualityTiersFor(modelType).includes(tier);
+}
+
+// ── ratio ────────────────────────────────────────────────────────────────────
+
+/**
+ * Pixel dims for a ratio LABEL against a model TYPE — the pure lookup half of
+ * the resolve, with no project involved. A label is searched across BOTH
+ * orientations (a caller names "9:16" without needing to also know it lives in
+ * the portrait table), so the resolved `orientation` is a return value, not an
+ * input, unless the caller pins one.
+ * @param {string} modelType
+ * @param {{orientation?: string, qualityTier?: string, ratioLabel?: string}} params
+ * @returns {{width: number, height: number, orientation?: string}}
+ */
+export function resolveRatioDimensions(modelType, { orientation, qualityTier, ratioLabel } = {}) {
+    if (!ratioLabel) return { width: 0, height: 0 };
+    const orientations = orientation ? [orientation] : ['portrait', 'landscape'];
+    for (const orient of orientations) {
+        const list = getModelRatios(modelType, orient, qualityTier) || [];
+        const match = list.find((r) => r.label === ratioLabel);
+        if (match) return { width: match.w || 0, height: match.h || 0, orientation: orient };
+    }
+    return { width: 0, height: 0 };
+}
+
+/** Is `label` a real ratio for `model` on `operation`, at ANY tier it declares? */
+export function isValidRatio(model, operation, label) {
+    if (typeof label !== 'string' || !label) return false;
+    if (!modelShowsRatio(model, operation)) return false;
+    const modelType = model?.type ?? 'flux';
+    const tiers = usesQualityTier(modelType) ? qualityTiersFor(modelType) : [undefined];
+    return tiers.some((tier) => ['portrait', 'landscape'].some(
+        (orient) => (getModelRatios(modelType, orient, tier) || []).some((r) => r.label === label),
+    ));
+}
+
+/**
+ * The ratio dims this generation should use: an explicit `overrides.ratioLabel`/
+ * `qualityTier` wins, an unset one falls back to the project's saved
+ * `shared.ratioSelector` (selectedRatio/orientation) and `resolveEffectiveQualityTier`
+ * — the same combination `js/shell/agentDispatch.js`'s old `_plannedSize` computed
+ * inline. Returns `{width:0,height:0}` when nothing resolves (no override, no saved
+ * ratio), which is the honest "let the baked workflow default win" signal MPI-546
+ * relies on — never a guessed size.
+ * @param {object|null} project
+ * @param {object|null} model
+ * @param {{ratioLabel?: string, qualityTier?: string, orientation?: string}} [overrides]
+ * @returns {{width: number, height: number, label: string|null, qualityTier: string|null}}
+ */
+export function resolvePlannedRatio(project, model, overrides = {}) {
+    const modelType = model?.type ?? 'flux';
+    const shared = getSharedSettings(project || {}, _mediaTypeOf(model));
+    const sel = shared?.ratioSelector || {};
+    const qualityTier = overrides.qualityTier ?? resolveEffectiveQualityTier(project, model);
+    const ratioLabel = overrides.ratioLabel ?? sel.selectedRatio;
+    if (!ratioLabel) return { width: 0, height: 0, label: null, qualityTier };
+
+    const dims = resolveRatioDimensions(modelType, {
+        orientation: overrides.orientation ?? sel.orientation,
+        qualityTier,
+        ratioLabel,
+    });
+    return {
+        width: dims.width,
+        height: dims.height,
+        label: (dims.width && dims.height) ? ratioLabel : null,
+        qualityTier,
+    };
+}
+
+// ── turbo (krea2Turbo / h3Turbo) ─────────────────────────────────────────────
+
+/**
+ * Which perModel control id this model's turbo toggle is, or `null` when the
+ * model has neither. Both inject the same `Input_is_Turbo` node title; the
+ * control id only matters for which `modelSettings[id]` bucket key to read/write
+ * (see PromptBoxControls.js's own comment on why they are siblings, not a
+ * shared control).
+ * @param {object|null} model
+ * @returns {'krea2Turbo'|'h3Turbo'|null}
+ */
+export function resolveTurboControlId(model) {
+    if (model?.capabilities?.turboToggle === true) return 'krea2Turbo';
+    if (model?.capabilities?.h3TurboToggle === true) return 'h3Turbo';
+    return null;
+}
+
+// ── styleSelect / stylization ────────────────────────────────────────────────
+
+/** Is `value` a real index into this model's style rack? */
+export function isValidStyleSelect(model, value) {
+    const labels = Array.isArray(model?.styleLoraLabels) ? model.styleLoraLabels : null;
+    return !!labels && Number.isInteger(value) && value >= 0 && value < labels.length;
+}
+
+/** Is `value` a legal stylization strength (0..1)? */
+export function isValidStylization(value) {
+    return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1;
+}
+
+// ── batch ────────────────────────────────────────────────────────────────────
+
+/** Is `value` a legal batch count (1..4, the picker's own range)? */
+export function isValidBatch(value) {
+    return Number.isInteger(value) && value >= 1 && value <= 4;
+}
+
+// ── seed ─────────────────────────────────────────────────────────────────────
+
+/** Is `value` a legal explicit seed (the same range `generateRandomSeed` draws from)? */
+export function isValidSeed(value) {
+    return Number.isInteger(value) && value >= 0 && value < 2 ** 32;
+}
+
+// ── Combined resolve (agent path) ───────────────────────────────────────────
+
+/**
+ * Validate + resolve every v1 named param present in `named` against `model` in
+ * `project`, returning ONE of:
+ *   { ok:true, injectionParams, width, height }
+ *   { ok:false, code, message }
+ *
+ * `project` may be `null` — `routes/connector.js` calls this with no project
+ * (it has none, server-side) purely for the STATIC validation half, discarding
+ * `injectionParams`/`width`/`height` and keeping only `ok`/`code`/`message`. That
+ * is the same function `agentDispatch.js` calls with the real project to get the
+ * actual injection values, so the two can never validate a param differently —
+ * one implementation, not a route-side copy and a renderer-side copy.
+ *
+ * Every control this model/operation actually supports gets an EFFECTIVE value
+ * injected even when `named` left it unset — `named.X ?? the project's own
+ * current setting ?? that control's own default` — because the whole point of
+ * a named param is that an agent run stops silently diverging from what the
+ * PromptBox currently shows (MPI-546's ratio bug, generalised: decision #1 in
+ * plan.md, "unset params keep falling back to the project's state exactly as
+ * today"). A control the model/operation does NOT support is simply skipped,
+ * matching `visibleControlIds` hiding it in the UI.
+ *
+ * @param {object|null} project
+ * @param {object|null} model
+ * @param {string} operation
+ * @param {{ratio?, qualityTier?, turbo?, styleSelect?, stylization?, batch?}} named
+ * @returns {{ok:true, injectionParams:object, width:number, height:number}|{ok:false, code:string, message:string}}
+ */
+export function resolveNamedParams(project, model, operation, named = {}) {
+    const { ratio, qualityTier, turbo, styleSelect, stylization, batch } = named;
+    const injectionParams = {};
+    const modelName = model?.name || model?.id || 'this model';
+
+    // qualityTier gates which ratio table `ratio` is checked against, so it is
+    // validated first.
+    if (qualityTier !== undefined && !isValidQualityTier(model, qualityTier)) {
+        const tiers = usesQualityTier(model?.type) ? qualityTiersFor(model?.type) : [];
+        return _err('INVALID_QUALITY_TIER', tiers.length
+            ? `qualityTier must be one of: ${tiers.join(', ')}.`
+            : `${modelName} has no quality tiers.`);
+    }
+    if (ratio !== undefined && !isValidRatio(model, operation, ratio)) {
+        return _err('INVALID_RATIO', modelShowsRatio(model, operation)
+            ? `ratio "${ratio}" is not a ratio ${modelName} offers.`
+            : `"${operation}" does not size its own output — it has no ratio to set.`);
+    }
+    const ratioDims = resolvePlannedRatio(project, model, { ratioLabel: ratio, qualityTier });
+    if (ratioDims.width && ratioDims.height) {
+        injectionParams.Width = ratioDims.width;
+        injectionParams.Height = ratioDims.height;
+        if (ratioDims.label) injectionParams.Ratio_Label = ratioDims.label;
+    }
+
+    const turboControlId = resolveTurboControlId(model);
+    if (turbo !== undefined) {
+        if (typeof turbo !== 'boolean') return _err('INVALID_TURBO', 'turbo must be a boolean.');
+        if (!turboControlId) return _err('INVALID_TURBO', `${modelName} has no turbo toggle.`);
+        injectionParams.Input_is_Turbo = turbo;
+    } else if (turboControlId) {
+        const saved = getModelSettings(project || {}, model?.id)[turboControlId];
+        injectionParams.Input_is_Turbo = typeof saved === 'boolean'
+            ? saved
+            : !!resolveThreeLayerDefault(turboControlId, model, operation, PROMPT_CONTROL_DEFAULTS[turboControlId]);
+    }
+
+    const showsStyle = modelShowsStyleRack(model, operation);
+    if (styleSelect !== undefined && (!showsStyle || !isValidStyleSelect(model, styleSelect))) {
+        return _err('INVALID_STYLE_SELECT', showsStyle
+            ? `styleSelect must be an integer 0-${(model.styleLoraLabels.length - 1)}.`
+            : `${modelName} has no style rack on "${operation}".`);
+    }
+    if (stylization !== undefined && (!showsStyle || !isValidStylization(stylization))) {
+        return _err('INVALID_STYLIZATION', showsStyle
+            ? 'stylization must be a number between 0 and 1.'
+            : `${modelName} has no style rack on "${operation}".`);
+    }
+    if (showsStyle) {
+        const modelBucket = getModelSettings(project || {}, model?.id);
+        injectionParams['Input_Style_Selector.selector'] = styleSelect !== undefined
+            ? styleSelect
+            : (Number.isInteger(modelBucket.styleSelect) ? modelBucket.styleSelect : PROMPT_CONTROL_DEFAULTS.styleSelect);
+        injectionParams['Input_Style_Selector.strength_model'] = stylization !== undefined
+            ? stylization
+            : (typeof modelBucket.stylization === 'number'
+                ? modelBucket.stylization
+                : resolveThreeLayerDefault('stylization', model, operation, PROMPT_CONTROL_DEFAULTS.stylization));
+    }
+
+    const showsBatch = modelShowsBatch(model, operation);
+    if (batch !== undefined && (!showsBatch || !isValidBatch(batch))) {
+        return _err('INVALID_BATCH', showsBatch
+            ? 'batch must be an integer between 1 and 4.'
+            : `${modelName} does not batch on "${operation}".`);
+    }
+    if (showsBatch) {
+        const sharedBucket = getSharedSettings(project || {}, _mediaTypeOf(model));
+        const savedBatch = Number(sharedBucket.batch);
+        injectionParams.Input_Batch_Size = batch !== undefined
+            ? batch
+            : (Number.isInteger(savedBatch) && savedBatch >= 1 && savedBatch <= 4 ? savedBatch : PROMPT_CONTROL_DEFAULTS.batch);
+    }
+
+    return { ok: true, injectionParams, width: ratioDims.width, height: ratioDims.height };
+}

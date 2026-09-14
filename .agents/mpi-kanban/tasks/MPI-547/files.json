@@ -1,4 +1,17 @@
 {
   "schema": "mpi-kanban/task-files/v1",
-  "files": []
+  "files": [
+    "js/shell/agentDispatch.js",
+    "routes/connector.js",
+    "js/components/Organisms/MpiPromptBox/PromptBoxControls.js",
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+    "js/services/generationService.js",
+    "js/utils/ratios.js",
+    "js/data/generationControls.js",
+    "tests/connector-named-params.test.cjs",
+    "tests/control-snapshot-injection.test.cjs",
+    "tests/reuse-snapshot-defaults.test.cjs",
+    ".claude/skills/cubric-vision/SKILL.md",
+    "docs/generation-lifecycle.md"
+  ]
 }

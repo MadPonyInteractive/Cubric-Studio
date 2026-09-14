@@ -757,6 +757,9 @@ async function _deleteSavedItems(items) {
  *                                       starting at `trimIn` seconds before concatenation.
  * @property {number}   [trimOut]       — optional; when extend=true, slice the source video
  *                                       ending at `trimOut` seconds before concatenation.
+ * @property {number}   [seed]          — explicit seed (MPI-547, agent submits only — no
+ *                                       manual PromptBox control sets this); randomised by
+ *                                       commandExecutor._buildParams when absent.
  */
 
 /**
@@ -844,6 +847,11 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         mediaItems,
         maskDataUrl,
         injectionParams,
+        // MPI-547 — an agent's explicit seed (config.seed). commandExecutor's payload
+        // already documents this field (`_buildParams`'s `seed ?? generateRandomSeed()`);
+        // this whitelist was simply never given a key to forward it through. `undefined`
+        // when absent, so an un-seeded run is unaffected — still randomised downstream.
+        seed: config.seed,
         // A Flow slot that declares `loras: true` fills that PHASE's user LoRA rack from
         // the running model's settings, while the flow still dispatches as an operation
         // with `model.id: null` (flowService.js). Threaded explicitly because this payload

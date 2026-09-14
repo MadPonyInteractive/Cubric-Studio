@@ -157,6 +157,24 @@ through `resolveFlowFieldValues` — the same declared-field dialect the flow fr
 so `derived` is computed after the caller's overrides exactly as it is under a click. The
 producer count does not change: it still hands off to `flowService.submitFlowGeneration`.
 
+**Named params on the model path — ratio/qualityTier/turbo/styleSelect/stylization/batch/seed
+(MPI-547) — resolve through ONE module, not a copy in the route and a copy in the renderer.**
+`js/data/generationControls.js` is DOM-free (pure data + functions — no `state.js`, no
+Electron), so `routes/connector.js` `require()`s it for STATIC validation with no project open
+(an unknown ratio label, a tier the model does not declare, a non-boolean `turbo` — all a named
+error, never a silent fallback), and `js/shell/agentDispatch.js` `import()`s the same module to
+resolve the EFFECTIVE value against the real `state.currentProject` once a job actually reaches
+the renderer. `PromptBoxControls.js`'s own `qualityTier`/`ratio` controls call the identical
+tier-resolve function, so the manual PromptBox and an agent submit can never silently diverge on
+"what tier is this project actually at" the way `agentDispatch`'s old inline copy did (MPI-546
+shipped three separate bugs from exactly that shape of duplication — see
+`.agents/mpi-kanban/tasks/_archived/MPI-546/validation.md`). **Per-generation only, never
+persisted**: an unset named param falls back to the project's OWN current setting (matching what
+a manual Cue press would use), and a given one applies for that run alone — `project.json`'s
+`modelSettings`/`shared` buckets are never written by this path. `seed` is the one addition with
+no PromptBox equivalent (the box has no seed UI by design) — it rides as `config.seed`, a field
+`commandExecutor._buildParams` already read but no caller ever populated before this card.
+
 **Media on that path is BY REFERENCE, and that is the seam holding rather than cracking.** The
 caller stages its own file through `POST /project-media/:id/place-preview-asset` — server-side,
 and it already accepted a plain absolute path — then passes the returned `/project-file?path=…`

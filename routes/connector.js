@@ -28,6 +28,13 @@
  * caller through place-preview-asset, which is what lets an agent supply the voice
  * sample Text to Speech requires.
  *
+ * MPI-547 adds the v1 named params — ratio, qualityTier, turbo, styleSelect,
+ * stylization, batch, seed — a friendly layer over the PromptBox controls, so an
+ * agent can choose a specific size/quality/style per generation instead of only
+ * ever inheriting the open project's. Validated here with no project (this route
+ * has none); resolved against the real one in the renderer
+ * (`js/data/generationControls.js` is the one resolver both sides call).
+ *
  * `POST /connector/generate` IS THE CONTRACT. Dispatch lives in the renderer
  * (`generationService` / `commandExecutor` import components and the DOM), so v1
  * relays the job there over SSE — but callers never see that. If dispatch is ever
@@ -44,6 +51,10 @@ const router = express.Router();
 const { randomUUID } = require('node:crypto');
 
 const logger = require('./logger');
+// DOM-free, require()-able server-side (see its own module comment). The v1
+// named-param resolver both this route and js/shell/agentDispatch.js call — one
+// implementation, not a route-side copy and a renderer-side copy (MPI-547).
+const { findModelDef, resolveNamedParams, isValidSeed } = require('../js/data/generationControls.js');
 
 // --- generation relay state ------------------------------------------------
 
@@ -175,9 +186,20 @@ router.get('/connector/jobs/stream', (req, res) => {
   });
 });
 
+// v1 named params (MPI-547) — a friendly layer over the PromptBox controls an
+// agent submit can now choose per-generation instead of inheriting the open
+// project's. Only meaningful on the modelId branch (a Flow's controls are its
+// own DECLARED `fields`, not these). Validated here, STATICALLY, against the
+// model's own capability data — no project is open here, so an unset param is
+// left off `input` and resolved against the real project by
+// `js/shell/agentDispatch.js`.
+const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'stylization', 'batch'];
+
 /**
  * POST /connector/generate
- * Body, EITHER a model op:  { modelId, operation, positive, negative?, injectionParams? }
+ * Body, EITHER a model op:  { modelId, operation, positive, negative?, injectionParams?,
+ *                              ratio?, qualityTier?, turbo?, styleSelect?, stylization?,
+ *                              batch?, seed? }
  *       OR a Flow (MPI-658): { flowId, fields?, media? }
  *
  * The two are not variants of one shape. A Flow has no model — it dispatches with
@@ -195,15 +217,39 @@ router.get('/connector/jobs/stream', (req, res) => {
  * app currently has open.
  */
 router.post('/connector/generate', async (req, res) => {
-  const { modelId, operation, positive, negative, injectionParams, flowId, fields, media } = req.body || {};
+  const {
+    modelId, operation, positive, negative, injectionParams, flowId, fields, media,
+    ratio, qualityTier, turbo, styleSelect, stylization, batch, seed,
+  } = req.body || {};
 
   const _bad = (message) => res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message } });
+  const _namedErr = (code, message) => res.status(400).json({ ok: false, error: { code, message } });
 
   if (flowId && modelId) {
     return _bad('body.flowId and body.modelId are alternatives — send one, not both.');
   }
   if (!flowId && (!modelId || !operation)) {
     return _bad('body.flowId, or body.modelId and body.operation, are required.');
+  }
+
+  if (!flowId && NAMED_PARAM_KEYS.some((k) => req.body?.[k] !== undefined)) {
+    const model = findModelDef(modelId);
+    if (!model) return _namedErr('UNKNOWN_MODEL', `No model with id "${modelId}".`);
+
+    const named = {};
+    if (ratio !== undefined) named.ratio = ratio;
+    if (qualityTier !== undefined) named.qualityTier = qualityTier;
+    if (turbo !== undefined) named.turbo = turbo;
+    if (styleSelect !== undefined) named.styleSelect = styleSelect;
+    if (stylization !== undefined) named.stylization = stylization;
+    if (batch !== undefined) named.batch = batch;
+
+    // project:null — static validation only, per this route's own comment above.
+    const check = resolveNamedParams(null, model, String(operation), named);
+    if (!check.ok) return _namedErr(check.code, check.message);
+  }
+  if (seed !== undefined && !isValidSeed(seed)) {
+    return _namedErr('INVALID_SEED', 'body.seed must be an integer between 0 and 4294967295.');
   }
 
   const input = flowId
@@ -214,6 +260,13 @@ router.post('/connector/generate', async (req, res) => {
       positive: positive || '',
       negative: negative || '',
       injectionParams: injectionParams || {},
+      ...(ratio !== undefined ? { ratio } : {}),
+      ...(qualityTier !== undefined ? { qualityTier } : {}),
+      ...(turbo !== undefined ? { turbo } : {}),
+      ...(styleSelect !== undefined ? { styleSelect } : {}),
+      ...(stylization !== undefined ? { stylization } : {}),
+      ...(batch !== undefined ? { batch } : {}),
+      ...(seed !== undefined ? { seed } : {}),
     };
 
   const result = await _dispatchToRenderer('generation.submit', input);

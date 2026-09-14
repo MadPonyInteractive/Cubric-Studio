@@ -432,6 +432,45 @@ finishes**, not when it is queued, so expect it to block for as long as the run
 takes (a queued video can be minutes; the route gives up after 30 and the
 generation carries on in the app regardless).
 
+### Named params (v1)
+
+Seven of the PromptBox's controls are reachable by name, without hand-writing a
+node title (MPI-547). **Per-generation only — none of these persist.** A submit
+with `turbo:true` runs turbo once and leaves the project's saved settings
+untouched; the next manual Cue press in the app sees exactly what it did before.
+An unset one falls back to whatever the open project currently has set (the
+same value a manual Cue press would use), never to the workflow's own baked
+default — so a size/quality/style you never asked for cannot silently apply,
+and one you never *un*-asked for cannot silently vanish either.
+
+```bash
+curl -s -X POST "$CUBRIC_URL/connector/generate" \
+  -H 'Content-Type: application/json' \
+  -d '{"modelId":"krea2","operation":"t2i","positive":"a lone rider at dusk",
+       "ratio":"9:16","qualityTier":"2k","turbo":true,"seed":12345}'
+```
+
+| Param | Type | Notes |
+|---|---|---|
+| `ratio` | string | A ratio label the model offers, e.g. `"9:16"` — not orientation-specific, it is matched against both. |
+| `qualityTier` | string | One of the model's own tiers (`krea2`: `1k`/`2k`; `wan`/`ltx`/`h3`: `very_low`…`4k`). Models with no quality axis (`flux`/`sdxl`/`klein`/`chroma`) reject any value here. |
+| `turbo` | boolean | Maps to whichever turbo toggle the model has (`krea2Turbo` or `h3Turbo`) — send the same friendly `turbo` key either way. Rejected on a model with neither. |
+| `styleSelect` | integer | Index into the model's style rack (`styleLoraLabels`), 0 = no style. Rejected on a model/operation with no style rack. |
+| `stylization` | number | 0..1, the selected style's strength. Same style-rack gate as `styleSelect`. |
+| `batch` | integer | 1..4. Rejected on a model/operation that does not batch (e.g. `krea2`, whose two-pass sampler has no batch node). |
+| `seed` | integer | 0..4294967295. Unset stays random — this is the only way to pin one; the PromptBox itself has no seed UI. |
+
+An invalid value is a **named error, never a silent fallback** — an unknown
+ratio label, a tier the model does not declare, a non-boolean `turbo`, an
+out-of-range `styleSelect`/`batch`, all fail the request rather than running
+with something you did not ask for (see the error table below).
+
+`ratio`/`qualityTier`/`turbo`/`styleSelect`/`stylization`/`batch` all merge into
+`injectionParams` under the hood — a raw `injectionParams` key still wins over
+a named one, so `{"ratio":"9:16","injectionParams":{"Width":999,"Height":999}}`
+generates at 999×999. The single resolver behind both the named params and the
+manual PromptBox is `js/data/generationControls.js`.
+
 **`modelId` is the ModelDef id, and it is not the name.** They come from
 `js/data/modelConstants/models.js` (grep `id: '`) - `klein-4b`, not `klein`;
 `minimax-h3-ref2va`, not `minimax-h3`. A wrong one returns `UNKNOWN_MODEL`,
@@ -473,6 +512,13 @@ Failure returns `{"ok": false, "error": {"code": ..., "message": ...}}`:
 | `MEDIA_UNSUPPORTED` | The operation needs image/video input, which this endpoint cannot supply yet. |
 | `CANCELLED` | Cancelled, or produced no output. |
 | `TIMEOUT` | No result in 30 minutes. The generation may still be running. |
+| `INVALID_RATIO` | `ratio` is not a label this model/operation offers. |
+| `INVALID_QUALITY_TIER` | `qualityTier` is not one this model declares (or it has no tier axis at all). |
+| `INVALID_TURBO` | `turbo` is not a boolean, or the model has no turbo toggle. |
+| `INVALID_STYLE_SELECT` | `styleSelect` is out of range, or the model/operation has no style rack. |
+| `INVALID_STYLIZATION` | `stylization` is not 0..1, or the model/operation has no style rack. |
+| `INVALID_BATCH` | `batch` is out of 1..4, or the model/operation does not batch. |
+| `INVALID_SEED` | `seed` is not an integer in 0..4294967295. |
 
 Check `generationSubmit` in `GET /connector/capabilities` to confirm a window is
 listening before submitting.

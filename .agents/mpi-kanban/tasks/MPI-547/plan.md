@@ -70,6 +70,10 @@ that coupling is the wrong direction; the extraction should move the resolver to
 
 ## Open question for the session that picks this up
 
+**ANSWERED (Fabio, 2026-09-14): v1 = the recommended list below** — `ratio`, `qualityTier`,
+`krea2Turbo`/`h3Turbo`, `styleSelect`, `stylization`, `batch`, plus an explicit `seed`.
+Nothing else from the 22.
+
 **Which of the 22 controls are in scope for v1?** Recommend the ones Fabio named plus
 the obvious neighbours: `ratio`, `qualityTier`, `krea2Turbo`/`h3Turbo`, `styleSelect`,
 `stylization`, `batch`, and an explicit `seed`. The video-only and op-specific ones
@@ -111,6 +115,19 @@ request, the placeholder card matches, and `project.json` settings did not chang
 
 **Verify mode:** user-ux — the failures here are visual and the API cannot see them.
 
+## Plan Drift
+
+- 2026-09-14: **The qualityTier "trap" above is stale, and the code it described was the bug.** The
+  mounted `qualityTier` and `ratio` controls read `modelSettings[id].qualityTier` FIRST (per-model since
+  MPI-133) and use `shared.ratioSelector.qualityTier` only as the pre-SCHEMA-4 fallback; `getModelSettings`
+  no longer documents the tier at all. MPI-546's `_plannedSize` did the reverse, so an agent submit could
+  size off a different tier than the one the PromptBox shows. `js/data/generationControls.js`
+  `resolveEffectiveQualityTier` now uses the UI's precedence for all three callers.
+- 2026-09-14: **Unset turbo/style/stylization/batch now follow the project.** Before, an agent submit
+  injected only Width/Height, so those ran at the workflow's baked values while the sidecar recorded the
+  project's. Decision #1 ("unset params fall back to the project's state") is now literally true, which
+  also means a project saved at batch 3 batches an unnamed agent submit 3 times. Raised with Fabio.
+
 ## Inherited traps (read before starting)
 
 - `.agents/mpi-kanban/tasks/MPI-546/validation.md` — all three bugs and how each hid.
@@ -123,6 +140,7 @@ request, the placeholder card matches, and `project.json` settings did not chang
 
 ## Current State
 
-Not started. MPI-546 is `done`; its ratio fix (`ede087b1`) is committed but was never
+Phases 1-4 DONE and verified (2026-09-14, see validation.md). NEXT: phase 5 live smoke. Phase 5 (live smoke)
+needs the real app and stays with Fabio. Ownership: `files.json`. Old note: MPI-546 is `done`; its ratio fix (`ede087b1`) is committed but was never
 verified live — **confirm a square 1024x1024 on the first run of this card** before
 building on top of it.

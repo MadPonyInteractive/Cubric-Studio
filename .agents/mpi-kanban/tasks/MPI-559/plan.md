@@ -95,4 +95,7 @@ share `routes/engine.js` / `routes/gitProvision.js`. Derive ownership from each 
 
 ## Plan Drift
 
-(none yet)
+- 2026-09-14: PARKED (`deferred`) by Fabio. Phase 1 as written cannot pass on the Linux box: it has no
+  AVX2, so ComfyUI never finishes booting and no generation is possible, and it thermally shut down
+  twice mid-install on 2026-08-10 (memory `tool_drive_a_remote_test_box_over_ssh`). The phase needs a
+  different Linux machine, or a narrower install-only goal agreed first.

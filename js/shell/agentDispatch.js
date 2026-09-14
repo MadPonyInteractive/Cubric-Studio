@@ -22,6 +22,12 @@
  * A submit runs in `state.currentProject` and nothing server-side can change it,
  * so without this an agent that created a project generated into the PREVIOUS
  * one — successfully, with `ok: true`, into the wrong gallery.
+ *
+ * MPI-547 adds the v1 named params (ratio/qualityTier/turbo/styleSelect/
+ * stylization/batch/seed) — resolved through `js/data/generationControls.js`,
+ * NOT reimplemented here. That module is DOM-free and also runs server-side
+ * (`routes/connector.js`'s static validation), so this file's only job is
+ * calling it with the real `state.currentProject`.
  */
 
 import { enqueueGeneration, findMissingMediaSlot } from '../services/generationService.js';
@@ -32,43 +38,9 @@ import { getModelById, isOperationInstalled } from '../data/modelRegistry.js';
 import { getFlowById, flowAvailability } from '../data/flowsRegistry.js';
 import { resolveFlowFieldValues, flowDeclaredFields } from '../utils/declaredFields.js';
 import { getCommandMediaInputs } from '../data/commandRegistry.js';
-import { getSharedSettings } from '../data/projectModel.js';
-import { getModelRatios } from '../utils/ratios.js';
+import { resolveNamedParams, isValidSeed } from '../data/generationControls.js';
 import { state } from '../state.js';
 import { clientLogger } from '../services/clientLogger.js';
-
-/**
- * The generation's size, resolved from the project's SAVED ratio — the same state
- * the PromptBox shows and Reuse restores.
- *
- * This is INJECTED, not just used to size the card. The workflow bakes its own
- * `Input_Width`/`Input_Height` (krea2 t2i ships 768x1344 authoring residue), and the
- * injector only overrides them when `injectionParams` carries Width/Height. The
- * PromptBox always resolves the ratio before dispatch; an agent submit sends no
- * injectionParams, so without this every agent generation silently ignored the
- * project's ratio and came out at the workflow default — five 9:16 images in a
- * project set to 1:1, with nothing in the sidecar to explain why.
- *
- * The mismatched placeholder padding was the visible half of that; the wrong output
- * size was the real half.
- *
- * Returns 0/0 when no ratio is saved, which leaves the baked default in place and
- * tells the grid to adopt the finished aspect — the honest answer, not a guess.
- */
-function _plannedSize(model, injectionParams = {}) {
-    if (injectionParams.Width && injectionParams.Height) {
-        return { width: injectionParams.Width, height: injectionParams.Height };
-    }
-    const shared = getSharedSettings(state.currentProject, model.mediaType || 'image');
-    const sel = shared?.ratioSelector;
-    if (!sel) return { width: 0, height: 0 };
-    // qualityTier is SHARED state, not per-model (projectModel.js § getModelSettings).
-    // A `qualityTier` key does appear inside modelSettings[id] on real projects — it
-    // is leftover, and reading it there would silently size off a stale tier.
-    const list = getModelRatios(model.type, sel.orientation, sel.qualityTier) || [];
-    const match = list.find(r => r.label === sel.selectedRatio);
-    return { width: match?.w || 0, height: match?.h || 0 };
-}
 
 let _source = null;
 /** Job ids already reported — the "one result out" half of the contract. */
@@ -102,7 +74,10 @@ function _submitGeneration(jobId, input = {}) {
     // the caller asks for a generation, and `flowId` is what says which kind.
     if (input.flowId) return _submitFlow(jobId, input);
 
-    const { modelId, operation, positive = '', negative = '', injectionParams = {} } = input;
+    const {
+        modelId, operation, positive = '', negative = '', injectionParams = {},
+        ratio, qualityTier, turbo, styleSelect, stylization, batch, seed,
+    } = input;
 
     if (!state.currentProject) {
         return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision. Open one first.');
@@ -129,9 +104,27 @@ function _submitGeneration(jobId, input = {}) {
             `"${operation}" needs ${needsMedia.map(s => s.mediaType).join(' + ')} input, which this endpoint cannot supply yet.`);
     }
 
-    // Resolve BEFORE building the config — the size is injected into the graph, not
-    // just used to draw the card, so both must agree by construction.
-    const { width, height } = _plannedSize(model, injectionParams);
+    if (seed !== undefined && !isValidSeed(seed)) {
+        return _fail(jobId, 'INVALID_SEED', 'seed must be an integer between 0 and 4294967295.');
+    }
+
+    // MPI-547 — the v1 named params (ratio/qualityTier/turbo/styleSelect/stylization/
+    // batch). `routes/connector.js` already ran the same static validation with no
+    // project (see generationControls.js's own comment); this call resolves the
+    // EFFECTIVE value against the real open project, so an unset param falls back to
+    // what the PromptBox currently shows rather than the workflow's baked default —
+    // the same fix MPI-546 made for ratio alone, generalised to the whole v1 set.
+    const named = resolveNamedParams(state.currentProject, model, operation,
+        { ratio, qualityTier, turbo, styleSelect, stylization, batch });
+    if (!named.ok) {
+        return _fail(jobId, named.code, named.message);
+    }
+
+    // Raw injectionParams is the documented escape hatch and always wins over the
+    // resolved named values (plan.md decision #3).
+    const mergedInjection = { ...named.injectionParams, ...injectionParams };
+    const width = mergedInjection.Width || 0;
+    const height = mergedInjection.Height || 0;
 
     const config = {
         operation,
@@ -139,9 +132,9 @@ function _submitGeneration(jobId, input = {}) {
         positive,
         negative,
         mediaItems: [],
-        injectionParams: (width && height)
-            ? { Width: width, Height: height, ...injectionParams }
-            : injectionParams,
+        // Explicit only — an unset seed must stay random, never pinned to 0.
+        ...(seed !== undefined ? { seed } : {}),
+        injectionParams: mergedInjection,
     };
 
     // A gallery gen MUST carry a tempId + placeholderGroup or the run is invisible
