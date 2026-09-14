@@ -374,6 +374,13 @@
 > History workspace and the minimised preview window. The last two are real released bugs and
 > the entry is worth keeping; the Flow clause is the part to drop when folding.
 
+- Installing a model on a Pod no longer says the volume is full when most of that model is
+  already there. If the app could not read which files the Pod already had, it counted every
+  file as a new download, so MiniMax H3 Reference asked for its full 50 GB on a volume that
+  already held the 29 GB it shares with MiniMax H3, and needed only about 21 GB more. The
+  model panel now also shows how much of a model is already on disk and how much is left to
+  download.
+
 - Krea 2 Image to Image works on your whole picture instead of a patch of it. Your input was
   cut down to the size you picked rather than scaled into it, so a 4000-pixel photo asked for
   a 1024 square handed the model a 1024-pixel square cut out of the middle and threw the rest

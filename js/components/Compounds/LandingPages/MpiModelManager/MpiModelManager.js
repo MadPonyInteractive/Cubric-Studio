@@ -646,7 +646,13 @@ export const MpiModelManager = ComponentFactory.create({
 
             // Sizes: the engine-scoped universe under the selected arch — a Pod must
             // show the current-engine footprint, not bf16+GGUF (MPI-163).
-            const sizeBytes = _sizeOf(_draftDepIds(model));
+            const draftIds = _draftDepIds(model);
+            const sizeBytes = _sizeOf(draftIds);
+            // MPI-752: the part of that universe already on disk, shared deps another
+            // model brought INCLUDED — the opposite of _computePartial's "its own" rule,
+            // because this answers "how much will Install download", not "how far along".
+            const depStatus = getModelDepStatus(model.id);
+            const onDiskBytes = _sizeOf(draftIds.filter(id => _depIsInstalled(depStatus?.get(id))));
 
             const installedOps = _installedOpsOf(model);
             // MPI-209: arch draft ≠ arch-on-disk counts as "changed" (Update
@@ -876,6 +882,9 @@ export const MpiModelManager = ComponentFactory.create({
                         <span class="mpi-detail__field-label" style="margin:0">Disk</span>
                         <span class="mpi-detail__disk-val">${st.sizeBytes > 0 ? formatBytes(st.sizeBytes) : '—'}</span>
                     </div>
+                    ${st.onDiskBytes > 0 && st.onDiskBytes < st.sizeBytes
+                        ? `<div class="mpi-detail__disk-split">${formatBytes(st.onDiskBytes)} on disk · ${formatBytes(st.sizeBytes - st.onDiskBytes)} to download</div>`
+                        : ''}
                 </div>
                 <div class="mpi-detail__field" id="detail-licence" style="display:none;">
                     <span class="mpi-detail__field-label">Licence</span>

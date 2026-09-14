@@ -904,6 +904,18 @@ the UI disk bar via `GET /remote/pod/disk`, which returns `{used,total,ephemeral
 — total resolved by the pure `resolveDiskTotalBytes(pod, volumeList)` (volume
 size, or ephemeral `containerDiskInGb`).
 
+**MPI-752 — bill only bytes KNOWN to be missing.** `toInstall` also carries deps whose
+install state is UNKNOWN: `remoteModelsCheck` threw (a busy wrapper 524s) or
+`foldBackWrapperStatus` dropped a short answer, and either way `statusResults` is empty, so
+every dep is sent and the wrapper's `already_installed` dedupe sorts it out. The gate used
+to sum that list as-is, billing files already on the volume — offline repro: a 24.55GB
+shared encoder on the volume plus a 19.53GB transformer, 27.9GB free, refused at 46.3GB. It
+now sums only deps with a fresh status entry, and never a `requirementsOnly` node re-run
+(pip on a present folder moves no bytes). Unknown state bills nothing — the same
+never-false-block rule as unknown free space; a truly full volume still fails reactively
+(wrapper ENOSPC fast-fail). The local gate has no twin: its state is a disk stat. Pinned by
+`tests/remote-disk-gate-unknown-state.test.cjs`.
+
 **Why the reactive-only catch used to miss it live:** MPI-136 (stall/speed-limit
 abort + httpx chunk-deadline) can make a genuinely-full volume manifest as a
 "peer closed connection" / "download stalled" error on the Pod wrapper BEFORE a

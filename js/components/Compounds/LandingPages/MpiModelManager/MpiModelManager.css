@@ -417,6 +417,12 @@
     color: var(--ink-2);
 }
 .mpi-detail__disk-val { font-variant-numeric: tabular-nums; }
+/* MPI-752: "X on disk · Y to download" under the Disk total, only when partly present. */
+.mpi-detail__disk-split {
+    font-size: var(--t-2xs);
+    color: var(--ink-4);
+    font-variant-numeric: tabular-nums;
+}
 
 /* Licence row (MPI-451) — only rendered for a model with a licence descriptor, so
    every permissively licensed model's drawer is unchanged. This is the standing

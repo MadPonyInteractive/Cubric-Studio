@@ -184,6 +184,16 @@ own original acceptance criterion, and `tests/licence-gate.test.cjs` now pins bo
 
 `model.installed` is derived by statting disk (`syncModelInstalled` → `/comfy/models/check`), not stored. So a "keep files but forget install" uninstall is unrepresentable: keep the weights → resync re-flags the model INSTALLED → card never leaves the Installed section, no install button. The old `MpiOkCancel` "Also delete model files from disk" checkbox (`deleteFiles=false`) was exactly this dead no-op (starkest on SDXL, whose only non-universal dep is its checkpoint; the other 3 deps are always-kept universals). Removed from the Uninstall dialog — `on('ok')` now passes `deleteFiles=true` unconditionally. Backend `deleteFiles` param + all guards (universal / shared / outside-managed-root / pip) left intact; it just always receives `true`. Don't re-add a keep-files toggle without a real persisted install record separate from disk-stat.
 
+## The Disk row — total, on disk, to download (MPI-752)
+
+The detail panel's Disk value is `_sizeOf(_draftDepIds(model))`, the whole engine-scoped
+universe. Under it, when some but not all of those deps are on disk, a line reads
+`X on disk · Y to download` (`onDiskBytes` in `_modelState`). It counts shared deps another
+installed model brought **on purpose** — MiniMax H3 Reference on top of H3 is 50.1GB total,
+28.8GB on disk, 21.4GB to download — the opposite of the partial chip's "its own" rule below.
+The chip answers *how far along is this model*; this line answers *how much will Install
+download*. Do not merge them.
+
 ## The partial-install chip — what it means, and what it does NOT (MPI-258, MPI-462, MPI-487)
 
 `_computePartial(model)` in `MpiModelManager.js` draws the state row under an *idle*

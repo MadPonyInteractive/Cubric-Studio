@@ -2868,8 +2868,15 @@ async function _startRemoteDownload(modelId, dependencies, res) {
     // toInstall need NEW space; a 5% margin covers .part overhead. Unknown free
     // space (old wrapper / du fail / size unresolved) → skip the gate, never
     // false-block. seedBytes = declared size, known NOW (totalBytes is still 0).
-    const remoteNeededBytes = toInstall.reduce(
-      (sum, d) => sum + _parseSizeToBytes(d.size), 0);
+    // MPI-752: bill only bytes KNOWN to be missing. A dep with no fresh status entry
+    // (pre-check threw, or foldBackWrapperStatus dropped a short answer) is UNKNOWN,
+    // not absent — it is still sent, and the wrapper's already_installed dedupe sorts
+    // it out, but billing it refuses installs that fit (MiniMax H3 Reference would be
+    // billed the 29GB it shares with an installed H3). A requirementsOnly node re-runs
+    // pip; no bytes move.
+    const remoteNeededBytes = toInstall
+      .filter(d => statusResults[d.id] && !d.requirementsOnly)
+      .reduce((sum, d) => sum + _parseSizeToBytes(d.size), 0);
     if (remoteNeededBytes > 0) {
       let freeInfo = null;
       try {
