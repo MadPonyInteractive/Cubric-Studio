@@ -43,6 +43,8 @@ names but never lettered. **Order is by priority, not by letter.**
   only: Image descriptions' backends are MPI-737's), a dated line on the linuxbox memory.
 - `in-flight.md`: MPI-198/249 stay blocked on Linux (the box cannot provision a local engine).
 - Found at dispatch: MPI-526 was a stale umbrella (MPI-500 and MPI-499 both shipped); closed.
+- All of it committed and pushed in `720e15bb`. `docs/llm.md` was checked against code by the
+  orchestrator; the brief's "NSFW never reaches DeepInfra" premise was stale (MPI-728 removed it).
 **THE SINGLE NEXT ACTION:** step 1c, Fabio's user-ux pass in the app (see checklist). Then
 `mpi-end-session`. Step 1d stays open and is not a gate.
 
