@@ -164,17 +164,24 @@ reading anything else:
    try.
 3. **Classify every claim against the CURRENT recipe text**, as a table in the
    card. Two sources feed it, and both are required:
-   - **the findings** — start from the production's own list of prompt-writing
-     rules if it keeps one (a "read before writing" or "verified" section), then
-     its dated entries. Every rule the production states is a row, including
-     where the recipe is silent (`new`);
-   - **the vendor diff from step 2** — one row per difference, per mode.
+   - **the findings, walked rather than sampled** — go through the production's
+     rule sections (a "read before writing" or "verified" section) heading by
+     heading, then every dated entry, and write one row per rule each states:
+     rules the recipe already follows (`confirms`), rules it breaks
+     (`contradicts`) and rules where it is silent (`new`). Judging which rules
+     matter is step 5's job, not the table's — a rule that never becomes a row
+     is one no edit gets checked against;
+   - **the vendor diff from step 2** — every difference it found is a row, one
+     per mode, including any you expect to defer. Deferring is step 5's call,
+     made on a row; a difference that never becomes a row is never decided.
 
    | # | Recipe today (quote the rule or const) | Evidence (findings heading + line, or vendor file) | Mode | Basis | Verdict |
    |---|---|---|---|---|---|
 
    **Mode** is the mode(s) the row applies to, or `model`. **Basis** is
-   `measured` (rolls, with the count), `vendor` or `inferred`. **Verdict** is
+   `measured` (rolls, with the count — rolls that tested THIS rule, not a
+   neighbour of it), `vendor` or `inferred`; a vendor syntax the findings call
+   untested is `vendor` in every mode. **Verdict** is
    `contradicts`, `confirms` or `new`. A claim with no citation does not enter
    the table. Record the confirmations too, so nobody re-opens them.
 4. **Harvest before editing** — cheap and permanent first, because the sweeps
@@ -186,13 +193,27 @@ reading anything else:
 5. **Edit the recipe.** Every `contradicts` and `new` row becomes an edit, or a
    written reason for not making it. **A `model` row's edit lands in every mode
    that runs on that encoder or node, and a `vendor` row's in every mode the
-   vendor document covers.** Deferring one to another card is a reason only
-   when it names the measurement it waits for. When the notation moves, move `dos`/`donts`
+   vendor document covers.** **A notation the vendor documents replaces the
+   recipe's own in THIS merge** — cut and shot markers, timing stamps, named
+   fields — in every mode that document covers: the recipe's notation was a
+   guess, the vendor's is the specification (Phase 0). A format the recipe
+   already rejects with a written reason stays rejected unless the evidence
+   answers that reason — and the rejection covers only what its reason names,
+   never syntax the findings measured on its own. Deferring a row to another
+   card is a reason only when it names a measurement this heal cannot run — a
+   Stage 2 render, or a decision of Fabio's QUOTED from the card or the
+   findings, never inferred. A Stage 1 sweep is never that measurement: step 6
+   runs it on this merge. **A vendor notation row is never deferred, not even
+   to a Stage 2 render** — the notation sentence above already decided it, and
+   the vendor document is its evidence. **Before writing any edit, check it against every
+   `confirms` row:** an edit that would break a confirmed rule is not made — it
+   is a conflict, resolved in the table first. When the notation moves, move `dos`/`donts`
    with it in **every** mode — they are the judge's grading contract — and
    replace every ban the old notation needed. An objectively wrong output goes
    in `forbiddenPatterns`, not `donts`. *One format change per measurement*
-   governs Stage 2: a render roll changes the output format or the content,
-   never both. It does not multiply Stage 1 sweeps.
+   is a Stage 2 rule about render rolls: a roll changes the output format or
+   the content, never both. It never defers a heal edit, and it does not
+   multiply Stage 1 sweeps.
 6. **Re-sweep every touched mode to green twice, on the final recipe text**
    (Phase 3). The count is per MODE, not per edit: a merge touching three modes
    owes six clean sweeps plus the iteration between them (~7 minutes each) — say

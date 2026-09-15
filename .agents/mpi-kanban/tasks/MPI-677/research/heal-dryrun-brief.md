@@ -1,12 +1,15 @@
 # Heal dry run — the clean-room brief (MPI-677 step 4c)
 
-Used for runs 1 and 2 on 2026-09-14; grading in `../validation.md` § "Step 4c". Re-use it
-verbatim so runs stay comparable.
+**v2 (2026-09-14, runs 6a–6c).** v1 ran runs 1–5 the same day (committed at `6c6b1a46`; grading
+in `../validation.md` § "Step 4c"). Five single runs on five wordings did not converge, so v2
+changes the TEST, not the wording (Fabio, option 2): the classification table goes to its own
+file with no length cap, three runs go in parallel on one wording, each into its own folder, and
+a pass is a pattern across the three (see the pass bar). Everything else is v1, verbatim.
 
 ## Stage the inputs first (the orchestrating session does this)
 
 1. Pick a fresh folder in YOUR session scratchpad — call it `<SCRATCH>` below — and create
-   `<SCRATCH>/heal-dryrun/`.
+   `<SCRATCH>/heal-dryrun/`, plus one empty output folder per run: `run-a/`, `run-b/`, `run-c/`.
 2. Copy `research/heal-dryrun-card.md` to `<SCRATCH>/heal-dryrun/heal-card.md`.
 3. `git -C C:/AI/Mpi/Cubric-Prompt show 02215cc:src/main/recipes/minimax-h3.recipe.ts >
    <SCRATCH>/heal-dryrun/premerge-minimax-h3.recipe.ts` (669 lines). Write the path out literally —
@@ -14,8 +17,9 @@ verbatim so runs stay comparable.
 4. The findings doc is read in place; it has not changed since `81c6bec` (2026-08-15), so it is
    exactly what the hand merge read. Re-check with
    `git -C C:/AI/Mpi/MadPony-Identity log -1 --format=%h -- production/cubric-western/findings/h3-prompting.md`.
-5. Dispatch ONE `general-purpose` agent in the background with the prompt below, `<SCRATCH>`
-   replaced by the literal path. Do not add hints from the answer key.
+5. Dispatch THREE `general-purpose` agents in parallel, in the background, with the prompt below —
+   `<SCRATCH>` replaced by the literal path and `<RUN>` by `run-a`, `run-b`, `run-c`, nothing else
+   changed. Do not add hints from the answer key.
 
 ## The prompt
 
@@ -47,14 +51,16 @@ They contain the answer this dry run is graded against:
 - `C:\AI\Mpi\Cubric-Vision\.claude\rules\engine-recipes.md`
 - anything under `C:\AI\Mpi\Cubric-Prompt\` (files, kanban cards, git history)
 - anything under `C:\AI\Mpi\Cubric-Vision\.agents\mpi-kanban\`
-- any other file under `<SCRATCH>` besides the two inputs above
+- any other file under `<SCRATCH>` besides the two inputs above and your own two output files
+  (other runs are writing next to you — never open another `run-*` folder)
 - any `~/.claude` memory file
 - `git log` / `git show` / `git blame` in ANY repo
 - do not grep the Cubric-Vision repo for "western", "h3" or "minimax".
 If you find yourself needing one of these, stop and say so in the report instead.
 
 ### Hard constraints
-- Write NOTHING in any repo. The only file you may create is `<SCRATCH>\heal-dryrun\result.md`.
+- Write NOTHING in any repo. The only files you may create are `<SCRATCH>\heal-dryrun\<RUN>\result.md`
+  and `<SCRATCH>\heal-dryrun\<RUN>\table.md`.
 - No test harness, no `npm`, no LLM calls, no GPU, no app, no network except the `gh api` reads
   above.
 - Never touch http://localhost:3000 or any running app.
@@ -85,7 +91,9 @@ contradicted behaviour, not add a ban on its symptom.)
 2. **Phase 0 and the vendor diff** — what the vendor repo holds; the diff of the vendor's documented
    format against the recipe for every mode the recipe declares (step 2); what you would adopt,
    reject, and why.
-3. **Classification table** — the step 3 table, fed by BOTH sources, confirmations included.
+3. **Classification table** — the step 3 table, fed by BOTH sources, confirmations included, written
+   to `<SCRATCH>\heal-dryrun\<RUN>\table.md` with NO length cap. In `result.md` give only its row
+   count and the findings sections you walked.
 4. **Proposed recipe edits, in order** — for each: what changes in the recipe (name the
    const/field/mode), which mode(s), basis, citation, FORMAT or CONTENT. Every `contradicts`/`new`
    row must map to an edit or a written reason for not making it. Mark any edit to a mode the
@@ -98,9 +106,9 @@ contradicted behaviour, not add a ban on its symptom.)
 8. **Procedure gaps** — anywhere Phase 5 was ambiguous, missing a step, or pushed you toward a
    mistake.
 
-Keep `result.md` under ~240 lines. When done, reply with a 5-line summary: number of
-contradictions, number of proposed edits, modes touched, sweeps owed, and whether you had to stop
-on any forbidden file.
+Keep `result.md` (not `table.md`) under ~240 lines. When done, reply with a 5-line summary: number
+of table rows, number of contradictions, number of proposed edits, modes touched and sweeps owed,
+and whether you had to stop on any forbidden file.
 
 ## Pass bar (for the grader, not the agent)
 
@@ -109,3 +117,10 @@ mode and basis; applies the `model`-scoped budget and the vendor-backed notation
 to t2v/i2v, not r2v alone; finds 1 (`[Shot N]`) through the vendor diff, with 5 (the bans it
 retires) following; claims no t2v/i2v change as measured; harvests before editing; budgets sweeps
 per mode; files-read list clean.
+
+**v2 — the pattern across runs 6a–6c, fixed BEFORE dispatch.** PASS = every one of the six changes
+meets the bar above in at least 2 of the 3 runs, AND no run proposes an edit that breaks a
+measured rule, AND no run defers a row on a misread citation or an unquoted "decision of Fabio's",
+AND every files-read list is clean. Diagnosis for each change on a miss: found in 1 of 3 = the
+wording cannot hold it reliably; found in 0 of 3 = a wording or structure gap, the case for a
+separate rule-inventory pass before classification (option 3).

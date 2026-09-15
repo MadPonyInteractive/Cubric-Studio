@@ -35,6 +35,57 @@ names but never lettered. **Order is by priority, not by letter.**
 
 ## Current State
 
+**2026-09-14 (run 5 graded) — 4c NOT VERIFIED, THE REWORD LOOP IS NOT CONVERGING, BACK TO
+FABIO.** Evidence: `validation.md` § "Step 4c", runs 3–5 and the five-run scorecard.
+- **Rewords 3 and 4** (Phase 5 steps 3 and 5) are on disk in both skill copies, identical and
+  NOT committed.
+- **Run 4** found change 1 (`[Shot N]`) for the first time.
+- **Run 5, on reword 4,** lost changes 1 and 3 again and still missed 6.
+- **Every reword closed its target, and something else fell out.** With one sample per
+  wording, the run-to-run variance is bigger than the reword's effect.
+- **Two defects stand either way.** Step 5 contradicts itself: vendor notation "replaces … in
+  THIS merge", yet a deferral may name "a Stage 2 render". And the brief's ~240-line cap
+  fights step 3's heading-by-heading walk: runs 3–5 produced 12, 16 and 11 rows.
+
+**Fabio chose option 2: change the test, not the wording.**
+- **Reword 5** (step 5: a vendor notation row is never deferred) is in both skill copies,
+  identical and NOT committed.
+- **Brief v2:** table in its own uncapped `table.md`, three parallel runs, and a pattern pass
+  bar fixed before dispatch. `research/heal-dryrun-brief.md` is NOT committed.
+
+**RUNS 6a–6c GRADED: a MISS, but the gap narrowed** (`validation.md` § "Runs 6a–6c").
+- **Held 3 of 3:** changes 1, 2 and 4.
+- **Held 2 of 3:** change 5.
+- **Held 0 of 3:** change 3 (the budget) and change 6 in full ("every second written" 0 of 3,
+  the role ban 1 of 3).
+- **6a** also defers `<Subject N>` on an unquoted "Fabio's call".
+- **6b** confirms a role ban the recipe does not contain.
+- **Uncapping the table was the lever:** 31, 30 and 46 rows, against 11–16 before.
+- **Diagnosis, fixed before dispatch:**
+  - The budget is a wording gap: step 1 never says what a model fact does to values sized to the
+    old limit.
+  - The buried portable rules and the unchecked "Recipe today" quote are a structure gap, which
+    is the case for option 3.
+
+**Fabio chose option 3 (2026-09-15). THE SINGLE NEXT ACTION, in a fresh session:**
+1. **Split Phase 5 step 3 into two passes.** First, an inventory of every rule the findings state
+   (heading, line, exact quote), including bold rule sentences inside dated entries ("Portable
+   rule", L995–997). Then the classification, where a row may say `confirms` only after its
+   "Recipe today" quote has been found verbatim in the recipe.
+2. **Step 1:** a `model` fact contradicts every recipe value SIZED to the limit it overturns, so
+   `wordBudget` becomes a contradicts row in every mode on that encoder.
+3. **Scope reword 5:** "never deferred" covers only a vendor notation that REPLACES one the recipe
+   already has, not a vendor label the recipe has no counterpart for (`<Subject N>`).
+4. **Edit both skill copies identically**, then re-run brief v2's three-run pattern in fresh
+   `run-*` folders under the NEW session's scratchpad (re-stage the inputs per the brief's
+   steps 1–4), graded on the same bar.
+
+4c is NOT ticked. Keep what goes to Fabio short: verdict, one decision, recommendation.
+- **Fabio, 2026-09-14:** RunPod cards run ONE at a time. The Linux box is off until he turns
+  it on, does remote-only work (a ComfyUI install shuts it down), and its tests ride the next
+  release. So MPI-559 Phase 1 (local engine + a generation on that box) cannot run as
+  written. That is another card's plan: noticed, not edited.
+
 **2026-09-14 (handoff `6de4b82f`) — 4a DONE, CI LINE ENDINGS CLOSED, 4c WRITTEN BUT NOT VERIFIED.**
 Everything below is committed at this handoff. **THE SINGLE NEXT ACTION: the third cold heal dry
 run** on the reworded Phase 5 (Fabio asked for it in a fresh session). The exact clean-room brief

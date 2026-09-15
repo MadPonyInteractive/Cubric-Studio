@@ -1378,3 +1378,290 @@ rules run 2 missed look like reading depth, not wording.
 
 **Status: Phase 5 is written, and two graded cold runs improved it, but it is NOT yet verified to
 reproduce the hand merge.** A third run is Fabio's call.
+
+**Run 3, on the second rewording (Fabio asked for it, 2026-09-14) — still NOT a reproduction.**
+One cold `general-purpose` agent, the brief's prompt verbatim with only `<SCRATCH>` filled in.
+Inputs re-staged: card copied, `Cubric-Prompt 02215cc` → 669 lines, findings still `81c6bec`,
+both skill copies `diff`-identical and committed. Result: 192 lines, 12 table rows, 7 edits.
+
+| Hand merge | Run 3 |
+|---|---|
+| 1 `[Shot N]` notation | **missed, third run running.** Seen in the t2v/i2v vendor diff and in findings L217–220, then deferred in EVERY mode: r2v keeps `CUT 1 / TRANSITION / CUT 2` because moving notation "at the same time is a second format change and must wait for its own card and measurement"; t2v/i2v "untested in any mode". It never became a step 3 row, so step 5 never had to turn it into an edit |
+| 2 r2v single shot | found — r2v, measured + vendor (§ Shot count is the user's, L83–95) |
+| 3 `wordBudget` from the encoder | **fixed since run 2:** row tagged `model`, edit lands on BOTH `BUDGET` (r2v) and `BEAT_BUDGET` (t2v/i2v). Direction only: `max` left blank for Fabio, where the hand merge took 400/600 from the vendor docs |
+| 4 two sound fields, `N/A` legal | **fixed since run 2:** r2v measured (L221–230, two seeds) + vendor; t2v/i2v in Edit B and in the sweep budget, labelled vendor-only, "read their outputs". But the report's own §2 calls the t2v/i2v half "Deferred", which contradicts its edit list |
+| 5 the bans that follow from 1 | missed, with 1 |
+| 6 r2v reference rules | partial. Cite-in-sentence correctly **confirmed** (pre-merge L619 has it); give-every-asset-a-job is already in pre-merge (L575, L610), not rowed; delivery-before-dialogue and `<d>` syntax found (Edits D, E). **Missed:** the inheritance/role ban (findings L126, L151–152, which run 2 found) and "every second written" (L997, L1269) |
+
+The rest of the pass bar holds: no t2v/i2v change claimed as measured, harvest listed before
+edits, sweeps per mode (3 × 2 = 6), files-read list clean (six files, three read-only `gh api`
+calls). Citations spot-checked: L61, L75, L83–95 and L221–230 are correct. One heading is wrong:
+the sound-field bullets sit under `## Open questions`, and the report cites them as "Verified".
+Two edits go beyond the hand merge, and the evidence supports both: a voice reference must not
+contain its own line (§ 2026-08-13, L1272, Edit F), and 8 vendor camera terms in every mode
+(`base-en.txt` §4.3, Edit G, labelled vendor).
+
+**Verdict: MISS.** Run 2's root cause is closed: vendor and `model` evidence now reach t2v/i2v.
+What remains is change 1, missed in all three runs, and this run gives the reason in its own
+words. It read step 5's *"One format change per measurement"* as grounds to defer a vendor
+notation, though the same sentence limits that rule to Stage 2 and says it "does not multiply
+Stage 1 sweeps". Two more openings let the deferral through. The notation difference sat in the
+step 2 diff but never became a step 3 row, though step 3 asks for one row per difference, per
+mode. And step 5's "a reason only when it names the measurement it waits for" accepted "its own
+card and measurement", which is really a Stage 1 sweep.
+
+Candidate wording fix, **NOT made** (no fourth run without Fabio). Step 5: a vendor-documented
+notation that differs from the recipe's replaces it in this merge, in every mode the document
+covers. The one-format-change rule never defers a Stage 1 edit, and a sweep is not a measurement
+a deferral can name. Step 3: every row of the step 2 diff enters the table before step 5 reads it.
+
+Procedure gaps the runner raised that are worth keeping:
+1. A vendor doc can hold both input syntax and a rewriter's intermediate format (H3's
+   six-section shape), and Phase 5 does not say which layer the diff targets.
+2. Nothing says whether a deferred edit still counts its mode as touched.
+3. Nothing covers an edit whose value needs a measurement the findings lack (the budget `max`).
+
+One defect is the brief's, not Phase 5's: step 4's "`sources.md` row in the shape of the rows
+already there" cannot be followed while `docs/recipes/research/` is forbidden.
+
+**Status: 4c NOT ticked. Back to Fabio:** reword steps 3 and 5 and run a fourth, or accept
+Phase 5 as it stands with change 1 recorded as a known miss.
+
+**Reword 3 (Fabio: "reword", 2026-09-14), then Run 4 on the same brief.** Both skill copies,
+`diff`-identical:
+- **Step 3:** every step 2 difference becomes a row, one per mode, including those you expect
+  to defer. "A difference that never becomes a row is never decided."
+- **Step 5, notation:** a notation the vendor documents replaces the recipe's own in this
+  merge, in every mode the document covers.
+- **Step 5, rejections:** a format the recipe already rejects with a written reason stays
+  rejected unless the evidence answers that reason. This is the runner's gap 1, the vendor's
+  six-section rewriter shape.
+- **Step 5, deferrals:** a deferral must name a measurement the heal cannot run (a Stage 2
+  render, or a decision of Fabio's), never a Stage 1 sweep.
+- **Step 5, format changes:** *one format change per measurement* is a Stage 2 rule that never
+  defers a heal edit.
+
+Not addressed by wording: the role ban and "every second written", which look like reading
+depth. The brief stays verbatim, so its `sources.md` defect stands. Run 3's `result.md` was
+moved out of the staging folder (to `heal-run3-result.md`) so run 4 cannot overwrite it.
+
+**Run 4, on reword 3 — change 1 FOUND for the first time, still NOT a full reproduction.**
+Same brief verbatim, same staged inputs. Result: 236 lines, 16 rows, 6 edits (A–F), 2 deferrals.
+
+| Hand merge | Run 4 |
+|---|---|
+| 1 `[Shot N]` notation | **found in every mode, through the vendor diff:** rows 2/7/8, Edits A (r2v), E (t2v), F (i2v). Reword 3 closed this. One flaw: r2v's notation is labelled "measured (24 clips)", but findings L215–216 say whether the syntax changes output "is untested"; the 24 clips were single-cut prose. Hand merge basis: vendor |
+| 2 r2v single shot | found — r2v, measured + vendor (row 1, Edit A) |
+| 3 `wordBudget` from the encoder | found — rows 4/9 tagged `model`, Edit D on `BUDGET` (r2v → 120–500) and `BEAT_BUDGET` (t2v/i2v max → 400), sized from the vendor's 350–500 target. Hand merge: `BASE` 50–400, `REF` 200–600 |
+| 4 two sound fields, `N/A` legal | found — r2v measured (S14, two seeds) + vendor; t2v/i2v rows 5/6 vendor-only; Edit B in every mode |
+| 5 the bans that follow from 1 | follows, unspecified — Edits E/F retire `LONE_TIMESTAMP` / `UNMARKED_BEATS` / `REPEATED_SPAN` "with equivalent patterns"; no stamped-`[Shot 1]` ban named, no ban on r2v's retired `CUT 1:` markers |
+| 6 r2v reference rules | **missed.** No row for job or cite-in-sentence (both already in the pre-merge recipe), the inheritance/role ban (L126), delivery-before-dialogue (§ 2026-08-13, L1352) or every second written (L997, L1269). Run 3 had delivery-before-dialogue |
+
+The rest of the pass bar holds: no t2v/i2v change claimed as measured, harvest before edits,
+sweeps per mode (6), files-read list clean (six files, three `gh api` reads). Citations
+spot-checked: L63, L75, L146, L222–230 and L999–1006 are correct. Row 1's "line 200" is really
+L206, under `## Open questions`.
+
+**Two new faults, and both are worse than a miss:**
+
+- **An edit that breaks a measured rule.** Edit B puts the constraint line BEFORE the two
+  sound fields. Findings § Three traps, L136–142, is measured: "one camera line, one audio
+  line, one constraint line, in that order, nothing after". The hand merge kept the constraint
+  line last. Run 4 never made trap 1 a row (run 3 had it as a confirm), so nothing checked the
+  edit against it.
+- **A deferral resting on an invented decision.** Row 12 (`<d>` dialogue tags, `(Sx)` speaker
+  IDs, audio reuse vs reference) is deferred as "part of the six-section format … that Fabio
+  has not authorised adopting", citing L1343. But L1339–1344 defers only the six-section OUTPUT
+  FORMAT. The dialogue syntax is measured in L1306–1337 (two prose rolls failed, two syntax
+  rolls worked), and no input records any decision of Fabio's. Reword 3's "a decision of
+  Fabio's" opened the door, and the runner flagged its own doubt (its gap 3).
+
+**Verdict: MISS on the pass bar (change 6), though change 1 is now fixed.** The root cause left
+is step 3, and it shows in all four runs. The agent builds the table from what it judges
+important instead of walking the production's rule sections. Measured rules that the recipe
+already honours, or that sit in dated entries, never become rows, and a confirm that never
+became a row cannot stop an edit that breaks it (Edit B).
+
+Candidate wording fix, **NOT made**:
+- **Step 3:** walk the findings' Verified and rule sections heading by heading, one row per
+  stated rule, confirms included. Then check every proposed edit against the `confirms` rows;
+  an edit that would break one is a contradiction to resolve, not a merge.
+- **Step 5:** "a decision of Fabio's" means one quoted from the card or the findings, never
+  inferred. A vendor syntax the findings call untested has basis `vendor`, whatever mode it
+  lands in.
+
+One confound: the brief caps `result.md` at ~240 lines, and runs 3 and 4 both ran close to that
+cap. A limit a real heal does not have may be squeezing the table, but testing that means
+changing the brief, which breaks comparability with runs 1–4.
+
+**Status: 4c NOT ticked. Back to Fabio.**
+
+**Reword 4 (Fabio: option 1, 2026-09-14), then Run 5 on the same brief.** Both skill copies,
+`diff`-identical, applied by one script with an exact-match assert per replacement:
+- **Step 3, findings source:** "walked rather than sampled". Go through the rule sections
+  heading by heading, then every dated entry, one row per rule, with `confirms`,
+  `contradicts` and `new` all required. "Judging which rules matter is step 5's job, not the
+  table's."
+- **Step 3, `measured` basis:** means rolls that tested THIS rule, not a neighbour of it. A
+  vendor syntax the findings call untested is `vendor` in every mode.
+- **Step 5, rejections:** a written rejection covers only what its reason names, never syntax
+  the findings measured on its own.
+- **Step 5, deferrals:** a "decision of Fabio's" used as a deferral must be QUOTED from the
+  card or the findings, never inferred.
+- **Step 5, confirms check:** before writing any edit, check it against every `confirms` row.
+  An edit that would break one is not made, and the conflict is resolved in the table first.
+
+Run 4's result moved to `heal-run4-result.md`. The brief is unchanged, so its ~240-line cap
+confound stands.
+
+**Run 5, on reword 4 — a MISS, and a regression from run 4.** Same brief, same inputs. Result:
+204 lines, 11 rows, 3 edits, 2 deferrals.
+
+| Hand merge | Run 5 |
+|---|---|
+| 1 `[Shot N]` | **missed again**, deferred in every mode, on two reasons that are both wrong. "Findings explicitly defer this A/B": L239–241 says the opposite, that `[Shot N]` and the sound sections "were adopted surgically", and only the six-section rewrite is deferred. "Belongs in its own card after at least one Stage 2 roll": step 5's deferral clause ("a Stage 2 render") lets that through, against step 5's own "replaces the recipe's own in THIS merge" |
+| 2 r2v single shot | found — Edit B, measured + vendor. Keeps `CUT 1 / TRANSITION / CUT 2` for multi-shot |
+| 3 `wordBudget` | **missed** — row 11 records `wordBudget.max: 230` as `confirms`, citing the very passage (L71–81) that calls the ceiling "not real" and warns the enhancer condenses to it |
+| 4 two sound fields | found — Edit C in every mode, t2v/i2v vendor-only |
+| 5 bans | missed, with 1 |
+| 6 r2v reference rules | missed — not one of them is a row |
+
+The rest of the pass bar holds: no t2v/i2v change claimed as measured, harvest before edits,
+sweeps per mode (6), files-read list clean (it adds the vendor's own `SKILL.md`, which the brief
+allows). Citations spot-checked: trap 3 at L155–159 and the six-section quote at L241 are
+correct. Row 7's "measured (24 clips)" is inflated, because trap 2 (L144–149) rests on one
+Cubric Prompt sweep.
+
+**Step 3's walk was not done.** 11 rows from a 1,854-line findings doc gave the new confirms
+check almost nothing to check against.
+
+**Five runs, scored on the six changes:**
+
+| Run (on) | 1 `[Shot N]` | 2 single shot | 3 budget | 4 sound fields | 5 bans | 6 ref rules |
+|---|---|---|---|---|---|---|
+| 1 (reword 0) | ✗ | ✓ | r2v only | ✓ | ✗ | partial |
+| 2 (reword 1) | ✗ | ✓ | r2v only | r2v only | ✗ | mostly |
+| 3 (reword 2) | ✗ | ✓ | ✓ | ✓ | ✗ | partial |
+| 4 (reword 3) | ✓ | ✓ | ✓ | ✓ | loose | ✗ |
+| 5 (reword 4) | ✗ | ✓ | ✗ | ✓ | ✗ | ✗ |
+
+**Verdict: MISS, and the reword loop is not converging.** Each reword closed its target in the
+next run while something else fell out. Reword 4 only ADDED requirements, and run 5 still lost
+two changes that run 4 had. With one sample per wording, run-to-run variance is bigger than the
+effect of a reword, so another single run cannot tell a better wording from a lucky one.
+
+**Two defects stand whatever comes next:**
+- **Step 5 contradicts itself.** "A notation the vendor documents replaces the recipe's own in
+  THIS merge" sits against "deferring … a Stage 2 render", and run 5 took the second.
+- **The brief fights step 3.** A heading-by-heading walk of 1,854 lines is many dozens of rows,
+  but the brief caps the whole report at ~240 lines. Runs 3–5 produced 12, 16 and 11 rows.
+
+**Options for Fabio (recorded, none taken):**
+1. **Fix the step 5 contradiction, stop testing, close 4c as a documented partial.** A heal's
+   table reaches Fabio on the card before any sweep, so a missed row is caught there, not in a
+   shipped recipe. Cheapest option; 4c closes as written and graded five times, not reproduced.
+2. **Change the test, not the wording.** Fix the step 5 contradiction, move the table out to
+   its own uncapped file, and run THREE cold agents in parallel on one wording, then grade the
+   pattern. This measures the variance instead of guessing at it (~3 × 150k subagent tokens).
+3. **Make step 3 mechanical.** Split it into a rule inventory first (every stated rule, quoted,
+   with heading + line, as its own file), then classification against it, so a skipped rule
+   shows up missing from a file. Then test it the way option 2 does.
+
+Recommended: option 2, and option 3 only if uncapped runs still skip rules.
+
+**Status: 4c NOT ticked. Back to Fabio, and no sixth run without him.** The run 3–5 results are
+in the session scratchpad as `heal-run{3,4,5}-result.md`.
+
+**Fabio chose option 2 (2026-09-14): change the test, not the wording.**
+
+- **Reword 5, step 5 only**, both copies `diff`-identical: "A vendor notation row is never
+  deferred, not even to a Stage 2 render — the notation sentence above already decided it, and
+  the vendor document is its evidence." This closes run 5's escape.
+- **Brief v2** (`research/heal-dryrun-brief.md`; v1 kept at `6c6b1a46`):
+  - the classification table goes to its own `table.md` with no length cap;
+  - three runs (6a, 6b, 6c) go in parallel on one wording, each writing only to its own `run-*`
+    folder and forbidden to open the others;
+  - the pass bar is a pattern, fixed BEFORE dispatch: each of the six changes in at least 2 of 3
+    runs, no edit breaking a measured rule, no deferral on a misread citation or an unquoted
+    decision, every files-read list clean.
+  - A change found in 1 of 3 means the wording cannot hold it reliably. A change found in 0 of 3
+    means a wording or structure gap, which is the case for option 3.
+
+**Runs 6a–6c (brief v2, reword 5), graded against the pattern bar fixed before dispatch.** Three
+cold runs went in parallel on one wording, each writing only its own `run-*` folder. Tables came
+back at 31, 30 and 46 rows (runs 3–5: 12, 16, 11). Every files-read list is clean; 6a and 6b
+also read the vendor's own `SKILL.md`, which the brief allows.
+
+| Change | 6a | 6b | 6c | Held |
+|---|---|---|---|---|
+| 1 `[Shot N]`, every mode, via the vendor diff | ✓ | ✓ | ✓ | **3/3** |
+| 2 r2v single shot | ✓ | ✓ | ✓ | **3/3** |
+| 3 `wordBudget` from the encoder, every mode | partial — r2v → 400 tagged r2v, not `model`; t2v/i2v "raise to 300" filed under "Deferred rows" | ✗ — "about the MODEL's ceiling, not the enhancer's output budget"; notes only | ✗ — notes only; value deferred to "a new Stage 1 measurement", which step 5 rules out | **0/3** |
+| 4 two sound fields, `N/A`, every mode | ✓ | ✓ | ✓ | **3/3** |
+| 5 the bans that follow from 1 | loose — drops the span placeholder bans, adds an `At MM:SS.mmm` placeholder ban | follows — names `SPAN` / `LONE_TIMESTAMP` / `UNMARKED_BEATS` / `REPEATED_SPAN` for rewrite; a lone shot is `[Shot 1]` with no `At` | follows — bans the retired `CUT 1:` / `CUT 2:` and rewrites the span regexes | **2/3** (none names a stamped-`[Shot 1]` ban) |
+| 6 r2v reference rules | 3/5 | 3/5 | 4/5 | **0/3 in full** |
+
+Change 6 by sub-rule:
+
+| Sub-rule | Held | Note |
+|---|---|---|
+| job | 3/3 | correct confirms |
+| cite inside the sentence | 3/3 | correct confirms |
+| delivery before the `<d>` tag | 3/3 | L1375 |
+| inheritance/role ban | **1/3** | 6c Edit D only |
+| every second written | **0/3** | L997, L1269 |
+
+Also held 3/3: no t2v/i2v change claimed as measured, the constraint line stays last (no repeat
+of run 4's Edit B), harvest listed before edits, and sweeps budgeted per mode (6).
+
+**Faults:**
+- **6a** defers `<Subject N>` as "Fabio's call": unquoted, and on a Stage 2 A/B that reword 5
+  forbids for a vendor notation. That alone breaks the strict bar.
+- **6b R24 confirms a rule the recipe does not contain.** Its "Recipe today" column quotes
+  `CONSTRAINT_RULE` as saying "The one exception is a role ban". A `grep` of the pre-merge recipe
+  finds no "role ban", no "one exception" and no inheritance ban anywhere. So the role ban reads
+  as already shipped, and no edit adds it. 6c's row 19 repeats the same false quote, but 6c made
+  the edit anyway.
+- **6b R17** rejects the base-mode `integrated_multimodal_description:` as "part of the
+  six-section format". That reason covers only the r2v rewriter shape, and 6a and 6c adopted the
+  field.
+- **Basis inflation in 3/3:** every run labels r2v's `[Shot N]` "measured", but findings
+  L215–216 say it is untested whether the syntax changes output. Reword 4's "rolls that tested
+  THIS rule" did not hold.
+- **Reword 5 overreaches on `<Subject N>`.** Its "never deferred" pushed 6b to adopt a vendor
+  label the hand merge left out, while 6a and 6c deferred it. The rule does not separate a
+  notation that REPLACES one the recipe has from one the recipe has no counterpart for.
+
+**Verdict: MISS on the pattern bar, but the gap is far narrower than in runs 1–5.** Uncapping the
+table did it: the reference rules and the constraint-last rule came back once the table had room.
+
+**Diagnosis, by the rule fixed before dispatch (0 of 3 = a wording or structure gap):**
+- **Change 3 is a wording gap.** All three runs read the encoder fact and then treated "the
+  model's ceiling" as separate from "the enhancer's budget". Step 1's `model` exception says a
+  model fact holds in every mode, but never that it contradicts every recipe value SIZED to the
+  limit it overturns. Findings L78–81 say exactly that: the enhancer condenses prompts to fit the
+  fake ceiling.
+- **"Every second written" and the role ban are a structure gap.** One sits as a bold "Portable
+  rule" inside a dated entry (L995–997), the other inside `### The prompt shape` (L126). Tables
+  of 30–46 rows still skipped them, and 6b's confirm rested on a quote nobody checked against the
+  recipe. That is option 3's case: a rule inventory as its own pass, and every "Recipe today"
+  quote verified verbatim against the recipe before a row can say `confirms`.
+
+**Options for Fabio (none taken):**
+1. **Option 3 now.** Split step 3 into two passes: first an inventory of every stated rule
+   (heading, line, quote, including bold rule sentences in dated entries), then classification,
+   with every "Recipe today" quote checked verbatim. Add the step 1 budget wording, and scope
+   reword 5 to a notation that replaces an existing one. Re-test with brief v2's three-run
+   pattern.
+2. **Close 4c as a documented partial.** Phase 5 reliably carries notation, shot count and sound
+   fields (3/3) and most of the reference rules. Write the two known gaps into step 7's hand-back
+   as checks for Fabio: the budget, and portable rules in dated entries.
+
+**Recommended: option 1.** The diagnosis fixed before dispatch points there, and both gaps are
+specific.
+
+**Status: 4c NOT ticked. Back to Fabio.** The results are in
+`<scratchpad>/heal-dryrun/run-{a,b,c}/`.
+
+**Fabio chose option 1, the option 3 build (2026-09-15).** It is handed to a fresh session; the
+plan's Current State holds the four steps.
