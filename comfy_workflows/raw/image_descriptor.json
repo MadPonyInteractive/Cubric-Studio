@@ -177,7 +177,7 @@
           ]
         }
       ],
-      "title": "Text String (System Prompt)",
+      "title": "Input_Describe_Prompt",
       "properties": {
         "Node name for S&R": "PrimitiveStringMultiline",
         "cnr_id": "comfy-core",
