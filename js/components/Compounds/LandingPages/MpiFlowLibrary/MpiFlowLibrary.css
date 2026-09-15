@@ -1,7 +1,7 @@
 /* ═══════════════════════════════════════════════════════════════
    MpiFlowLibrary — Flow Library (MPI-256)
 
-   A dev-gated clone of the Model Library skeleton (MpiModelManager),
+   A clone of the Model Library skeleton (MpiModelManager),
    stripped to flow scope: a contact-sheet grid of flow tiles + a
    right-drawer detail panel with required-models install state and one
    Open/Install footer button.
@@ -92,10 +92,17 @@
     line-height: 1;
     margin: 0 0 var(--s-2);
 }
+/* Same spacing as the Model Library's sub-line: the filter row (MpiFilterBar,
+   MPI-754) sits under it, so the gap is the one MMc gives its own. */
 .mpi-flow-library__sub {
     font-size: var(--t-sm);
     color: var(--ink-3);
-    margin: 0;
+    margin: 0 0 var(--s-4);
+}
+/* The installed count, restated from `.mpi-model-library__count` — borrowing another
+   component's class across the boundary is the trap docs/component-contracts.md names. */
+.mpi-flow-library__count {
+    color: var(--accent-heat);
 }
 
 .mpi-flow-library__body {

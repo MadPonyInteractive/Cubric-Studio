@@ -2,6 +2,7 @@ import { ComponentFactory } from '../../../factory.js';
 import { MpiOverlay } from '../../../Primitives/MpiOverlay/MpiOverlay.js';
 import { MpiButton } from '../../../Primitives/MpiButton/MpiButton.js';
 import { MpiTileSheet } from '../../../Primitives/MpiTileSheet/MpiTileSheet.js';
+import { MpiFilterBar } from '../../../Primitives/MpiFilterBar/MpiFilterBar.js';
 import { Events } from '../../../../events.js';
 import { state } from '../../../../state.js';
 import {
@@ -36,7 +37,7 @@ const MEDIA_SECTIONS = [
 /**
  * MpiFlowLibrary — the Flow Library overlay (MPI-256).
  *
- * A dev-gated clone of the Model Library skeleton (MpiModelManager), stripped to
+ * A clone of the Model Library skeleton (MpiModelManager), stripped to
  * flow scope: a contact-sheet grid of flow tiles (preview + title + an availability
  * badge derived from `flowAvailability`) with a right-drawer detail panel carrying
  * the description, the required-models install state, and ONE footer button —
@@ -45,10 +46,15 @@ const MEDIA_SECTIONS = [
  *
  * Flows have NO disk-presence concept of their own: availability is read-only over
  * `state.s_installedModelIds`. So there are no ops/arch toggles, no VRAM table, no
- * media/size filters, no pod-disk bar, and no re-sync/refresh machinery — the whole
+ * pod-disk bar, and no re-sync/refresh machinery — the whole
  * install state derives from the installed-model set, which the shared model
  * download flow already keeps current. `download:*` events therefore only re-derive
  * badges in place (_patchTile), never a full re-render (MPI-235 discipline).
+ *
+ * The head matches the Model Library's (MPI-754): an accented installed count over
+ * ALL flows, then the shared MpiFilterBar — Media (Image/Video/Audio), Type
+ * (Create/Edit/Enhance) and a search over title + description. Filters and search
+ * narrow the grid only; the count, the badge patches and the detail drawer ignore them.
  *
  * `canOpen = (state.currentPage === PAGE_GALLERY)`: flows land as gallery cards in
  * the current project, so Open is only meaningful inside a project's Gallery. On
@@ -97,6 +103,11 @@ export const MpiFlowLibrary = ComponentFactory.create({
         // goes through sheet.el.patchState(id, html) — a flow lives in exactly one sheet,
         // so the patch is a blind fan-out and the sheets that don't hold it no-op.
         const _sheets = [];
+        // MPI-754 — preview <img> elements that OUTLIVE a grid rebuild, the Model
+        // Library's MPI-394 cache. A filter tag or a search keystroke rebuilds every
+        // sheet, and a fresh lazy <img> has no pixels, so without this the grid blanks
+        // on each letter typed. The sheets are re-created per render, so it lives here.
+        const _previewCache = new Map();
         // Footer MpiButton instances in the OPEN detail panel — torn down on
         // close/reopen (they own their own DOM listeners).
         let _detailBtns = [];
@@ -130,6 +141,44 @@ export const MpiFlowLibrary = ComponentFactory.create({
         // that gallery down and rebuild it for nothing (navigation.js ~110).
         _unsubs.push(on(backBtn.el, 'click', () => el.close()));
         qs('.mpi-flow-library__head', el).prepend(backBtn.el);
+
+        // ── Filters + search (MPI-754) ────────────────────────────────────────
+        // The Model Library's header row, from the Primitive both libraries share.
+        // Selections live in this closure and in the bar's own DOM, neither of which a
+        // render touches: shell.js mounts the library once and reuses it (~491), so a
+        // selection survives close → reopen with no restore step. An empty group means
+        // "all"; a flow shows only when it matches EVERY group that has a selection, so
+        // an "Other"-media flow drops out while Media is set.
+        let _filters = { media: new Set(), type: new Set() };
+        let _query = '';
+        const filterBar = MpiFilterBar.mount(ce('div'), {
+            groups: [
+                { key: 'media', label: 'Media', options: MEDIA_SECTIONS.map(s => ({ value: s.media, label: s.label })) },
+                {
+                    key: 'type', label: 'Type', options: [
+                        { value: 'create', label: 'Create' },
+                        { value: 'edit', label: 'Edit' },
+                        { value: 'enhance', label: 'Enhance' },
+                    ],
+                },
+            ],
+            searchPlaceholder: 'Search flows…',
+        });
+        // No debounce: a rebuild per keystroke is cheap once `_previewCache` hands the
+        // decoded previews back. Never autofocus the search — Tab is swallowed while
+        // typing, and Tab is how the user leaves this overlay (flows-tab-ring.spec.js).
+        filterBar.on('change', ({ active, query }) => {
+            _filters = active;
+            _query = query;
+            renderList();
+        });
+        qs('.mpi-flow-library__head', el).appendChild(filterBar.el);
+
+        function _matchesFilters(flow) {
+            if (_filters.media.size && !_filters.media.has(flow.mediaType)) return false;
+            if (_filters.type.size && !_filters.type.has(flow.type)) return false;
+            return !_query || `${flow.title} ${flow.description || ''}`.toLowerCase().includes(_query);
+        }
 
         // ── Availability badge (chip) for a tile / section sort ──────────────
         function _badgeHtml(flow) {
@@ -632,7 +681,10 @@ export const MpiFlowLibrary = ComponentFactory.create({
             head.innerHTML = `${renderIcon(icon, 'sm')}<span>${label}</span><span class="mpi-flow-library__media-head-n">${items.length}</span>`;
             bodySlot.appendChild(head);
 
-            const sheet = MpiTileSheet.mount(ce('div'), { items: items.map(_tileItem) });
+            const sheet = MpiTileSheet.mount(ce('div'), {
+                items: items.map(_tileItem),
+                previewCache: _previewCache,
+            });
             sheet.on('select', ({ item }) => _pick(item.source));
             _sheets.push(sheet);
             bodySlot.appendChild(sheet.el);
@@ -647,8 +699,10 @@ export const MpiFlowLibrary = ComponentFactory.create({
         function _renderSub() {
             const flows = listFlows();
             const readyN = flows.filter(a => flowAvailability(a).available).length;
-            subEl.textContent = flows.length
-                ? `${readyN} ready · ${flows.length - readyN} need models`
+            // Counts ALL flows, never the filtered view — the Model Library's rule. Only
+            // numbers are interpolated into the markup.
+            subEl.innerHTML = flows.length
+                ? `<span class="mpi-flow-library__count">${readyN} installed</span> · ${flows.length - readyN} available — install a flow and its models fetch automatically.`
                 : 'No flows yet.';
         }
 
@@ -667,14 +721,26 @@ export const MpiFlowLibrary = ComponentFactory.create({
                 return;
             }
 
+            // The one place the filters apply (MPI-754). After the empty-registry check,
+            // so the two messages never mix: that one means nothing ships, this one means
+            // the user's own filters hid everything.
+            const visible = flows.filter(_matchesFilters);
+            if (!visible.length) {
+                bodySlot.appendChild(ce('div', {
+                    className: 'mpi-flow-library__empty',
+                    textContent: 'No flows match — clear filters or search.',
+                }));
+                return;
+            }
+
             for (const { media, label } of MEDIA_SECTIONS) {
-                _block(flows.filter(f => f.mediaType === media), label, media);
+                _block(visible.filter(f => f.mediaType === media), label, media);
             }
             // A flow whose mediaType matches no section still gets a grid rather than
             // silently vanishing from the library — the sections are a VIEW over the
             // registry, not a filter on it.
             _block(
-                flows.filter(f => !MEDIA_SECTIONS.some(s => s.media === f.mediaType)),
+                visible.filter(f => !MEDIA_SECTIONS.some(s => s.media === f.mediaType)),
                 'Other', 'info',
             );
         }
@@ -779,6 +845,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
             _destroyDetailBtns();
             closeBtn?.el?.destroy?.();
             backBtn?.el?.destroy?.();
+            filterBar?.el?.destroy?.();
             _confirmDialog?.el?.destroy?.();
             overlay?.el?.destroy?.();
         };

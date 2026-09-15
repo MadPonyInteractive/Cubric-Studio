@@ -7,7 +7,7 @@ overlay/status-bar/z-order gotchas. Read [README](README.md) first.
 
 | Component | Tier | File | Role |
 |---|---|---|---|
-| `MpiFlowLibrary` | Compound | `js/components/Compounds/LandingPages/MpiFlowLibrary/` | Picker overlay. Body-mode MpiOverlay, tile grid + availability badge, detail slide-over for a flow that is NOT ready yet |
+| `MpiFlowLibrary` | Compound | `js/components/Compounds/LandingPages/MpiFlowLibrary/` | Picker overlay. Body-mode MpiOverlay, installed count + filter row (`MpiFilterBar`), tile grid + availability badge, detail slide-over for a flow that is NOT ready yet |
 | `MpiBaseFlow` | Organism | `js/components/Organisms/MpiBaseFlow/` | Shared Flow frame (COMPOSITION, not inheritance). `main-area` MpiOverlay; header + Back, media slots (from `inputSchema.media`), declared `fields`, Run, result pane |
 
 `MpiBaseFlow` and `MpiFlowLibrary` both use the **MpiOverlay primitive**; they do NOT reimplement
@@ -29,7 +29,7 @@ available to every flow ever written, including ones you will never see.
 
 ```
 Gallery "Flows" bar button | Landing "Flows" nav | Tab | (dev) Ctrl+Tab radial → flows:open
-  → MpiFlowLibrary overlay (grid + availability badges)
+  → MpiFlowLibrary overlay (count + Media/Type/search filters + grid + availability badges)
     → tile → _pick()
        ├─ Ready AND in the Gallery → flow:open {flowId} DIRECTLY (MPI-638)
        └─ else → drawer (description + download picker + install state + Install /
@@ -51,6 +51,14 @@ modes are silent — too eager mounts a frame that dies at Generate with no Inst
 screen, too shy just never gets better — so the branch has a desktop probe,
 `tests/desktop/flow-library-skips-drawer.spec.js`, both halves mutation-checked. The drawer's LoRA
 cogwheel left with it ([ui/lora-rack.md](ui/lora-rack.md)).
+
+## The header — count, filters, search (MPI-754)
+
+`MpiFilterBar` (shared with the Model Library): Media = `mediaType`, Type = `type`, search over
+title + description. Filters apply at ONE point (`renderList`'s `visible`); the count, `_patchTile`
+and the drawer read unfiltered `listFlows()`. No debounce — cheap only because `_previewCache`
+hands decoded `<img>`s back (MPI-394). Never autofocus search: it swallows Tab. Pinned by
+`tests/desktop/flow-library-filters.spec.js`.
 
 ## The licence surface — on BOTH sides of the skip (MPI-666)
 

@@ -38,6 +38,11 @@
     font-size: var(--t-xs);
     font-weight: 400;
     letter-spacing: 0.14em;
+    /* The Model Library's tags were MpiButtons and inherited uppercase from `.mpi-btn`;
+       the port dropped it (MPI-754 Phase 2 side-by-side). The bar owns it now. */
+    text-transform: uppercase;
+    white-space: nowrap;
+    user-select: none;
     color: var(--ink-3);
     background: none;
     border: 0;
