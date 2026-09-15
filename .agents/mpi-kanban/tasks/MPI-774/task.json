@@ -4,10 +4,15 @@
   "title": "In-app agent, slice A",
   "description": "MPI-677 step 5, spun out: an Agent|Prompt toggle turns the prompt box into a chat with a server-side agent that recommends/installs models, generates via the connector (models + Flows), sees images, and auto-compacts. Design approved 2026-09-15, see brief.md.",
   "column": "todo",
-  "maturity": "idea",
+  "maturity": "planned",
   "status": "active",
+  "attention": {
+    "state": "cleared",
+    "reason": "Fabio accepted D1-D3 as recommended (2026-09-15): look on ComfyUI first, install Yes/No card, whole replies per turn.",
+    "updated_at": "2026-09-15T15:50:09Z"
+  },
   "created_at": "2026-09-15T16:05:25+01:00",
-  "updated_at": "2026-09-15T16:05:25+01:00",
+  "updated_at": "2026-09-15T15:50:09Z",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
