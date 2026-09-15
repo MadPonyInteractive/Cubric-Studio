@@ -126,7 +126,7 @@ mpi-hotkeys stay in `Compounds/LandingPages/`.
 - Miss caught by the suite, not the grep: `tests/flow-licence-surface.test.cjs` splits its `path.join`
   over a line break, so `'Compounds', 'LandingPages',` and `'MpiFlowLibrary'` sat on different lines.
   `npm test` failed ENOENT on the old path; fixed.
-- NOT updated: `.claude/rules/component-events-primitives.md:263` still names
+- NOT updated: `.claude/rules/component-events-primitives.md:263` (269 after 54f4438a) still names
   `(Compound — js/components/Compounds/LandingPages/MpiModelManager/...)`. Rule file: waits on Fabio's go.
 - NOT updated: `resources/cubric/update-manifest.json` is release-generated (it still lists the
   pre-b1f2de34 `Organisms/MpiBaseFlow` paths too).
@@ -143,3 +143,12 @@ Evidence:
 - `npx playwright test --config=playwright.desktop.config.js` flow-library-filters, flow-library-skips-drawer,
   flow-uninstall-button, flows-tab-ring, runpod-settings-extract: 8/8 (ran before the licence-surface test
   fix and the rule landing; neither touches runtime js)
+
+## Close-out (2026-09-15)
+
+- `.claude/rules/component-events-primitives.md:269` MpiModelManager heading -> `(Organism — js/components/Organisms/...)`
+  (Fabio's go).
+- CI run 34943019470 on 7eb297c9 (fix 8 + landed rule): success.
+- Compare overlay (fixes 5+9) closed on mechanical evidence, not a visual pass: the move changed its folder only;
+  the repo-wide resolver found every import and its `css:` path, and the history-block specs load
+  `MpiGroupHistoryBlock`, which imports it. No spec OPENS the overlay.

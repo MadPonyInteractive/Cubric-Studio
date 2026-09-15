@@ -266,7 +266,7 @@ LISTENS: `settings:model:update` `{ key: 'loras' }` — filtered to its own `mod
 FLAG:    **No `state:changed` subscription, deliberately.** projectService debounces ~300ms and assigns `state.currentProject` INSIDE the timer, so a listener on that key re-enters on its own echo — the loop that made MpiModelSettings unclosable in MPI-356. Every re-read is guarded by `_dirtyFor`, which keeps the held value while this rack's own write is still in flight; without it `_refreshOpSlot` (which runs on EVERY op change) would revert a strength typed less than 300ms earlier.
 FLAG:    Read-only over the SET — no picker, no add, no clear. `el.refresh()` exists for the one writer its listener cannot hear: Reuse Prompt writes `loras` straight into the project (`projectService.applyPromptReuseSettings`) and arrives via `el.refreshControls()` → `_refreshOpSlot` → `setModel`.
 
-### MpiModelManager — the Model Library overlay (Compound — js/components/Compounds/LandingPages/MpiModelManager/MpiModelManager.js)
+### MpiModelManager — the Model Library overlay (Organism — js/components/Organisms/MpiModelManager/MpiModelManager.js)
 EMITS:   (none — the hosted MpiOverlay owns its own `close` + `ui:close-all-popups` handling)
 LISTENS: `state:changed` `{ key: 's_installedModelIds' }` — re-renders the tile grid when install state changes
          `remote:connection` `{ connected, phase, vramGb }` — engine switch → re-render + re-sync (drives VRAM table + Pause visibility)
