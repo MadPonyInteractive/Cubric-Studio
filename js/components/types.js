@@ -1062,9 +1062,9 @@
  *
  * Takes no props. The Model Library (MPI-215): self-hosts a full-page
  * MpiOverlay(body) styled as a dark contact sheet — lean preview tiles split
- * into Installed/Available × Image/Video sub-grids, with Media/Size/search
- * filters and a right-drawer detail panel (an absolute child of the overlay)
- * carrying description, Operations toggles, GPU-weight arch toggles, VRAM→RAM
+ * into Installed/Available × Image/Video sub-grids, with the MpiFilterBar row
+ * (MPI-754) and a right-drawer detail panel (an absolute child of the overlay)
+ * carrying description, GPU-weight arch toggles, VRAM→RAM
  * trade table, disk footprint, and Install/Update/Uninstall. Owns all model
  * logic: refresh, install, pause/resume/cancel, uninstall confirmation, and
  * download:* subs.
@@ -1081,15 +1081,16 @@
 /**
  * @typedef {Object} MpiFlowLibraryProps (Compound — js/components/Compounds/LandingPages/MpiFlowLibrary)
  *
- * Takes no props. The Flow Library (MPI-256, dev-gated): a clone of the Model
+ * Takes no props. The Flow Library (MPI-256): a clone of the Model
  * Library skeleton stripped to flow scope. Self-hosts a full-page MpiOverlay(body)
  * as a dark contact sheet of flow tiles (preview + title + availability badge from
  * flowAvailability, read-only over s_installedModelIds), with a right-drawer detail
  * panel carrying the description, the required-models install state, and ONE footer
  * button — all-installed → Open (emits `flow:open`, Gallery-only), missing → Install
  * (drives each missing model's own dependency download). No ops/arch toggles, VRAM
- * table, filters, or re-sync — availability derives entirely from the installed set,
+ * table, or re-sync — availability derives entirely from the installed set,
  * so download:* events only re-derive badges in place (never a full re-render).
+ * Head: accented installed count + MpiFilterBar (Media/Type/search, MPI-754).
  *
  * Opened via: Events.emit('flows:open') → shell mounts it once and calls el.open().
  * Emits: `flow:open` {flowId} when Open is clicked in the Gallery.

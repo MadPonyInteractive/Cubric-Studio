@@ -2,7 +2,7 @@ import { ComponentFactory } from '../../../factory.js';
 import { MpiOverlay } from '../../../Primitives/MpiOverlay/MpiOverlay.js';
 import { MpiOkCancel } from '../../MpiOkCancel/MpiOkCancel.js';
 import { MpiButton, mountButton } from '../../../Primitives/MpiButton/MpiButton.js';
-import { MpiInput } from '../../../Primitives/MpiInput/MpiInput.js';
+import { MpiFilterBar } from '../../../Primitives/MpiFilterBar/MpiFilterBar.js';
 import { MpiTileSheet } from '../../../Primitives/MpiTileSheet/MpiTileSheet.js';
 import { MpiPopup } from '../../../Primitives/MpiPopup/MpiPopup.js';
 import { MpiBadge } from '../../../Primitives/MpiBadge/MpiBadge.js';
@@ -32,8 +32,8 @@ import { tradeTable, sizeToGb } from '../../../../data/modelConstants/footprint.
  * Self-hosts a full-page MpiOverlay (body mode) styled as a dark contact-sheet:
  * a grid of LEAN tiles (preview thumb + name + inline install state), split into
  * Installed / Available sections, each with an Image sub-grid (4:5) then a Video
- * sub-grid (16:9) so rows align. Media (Image/Video) + Size (L/B/H) + live search
- * filters compose. Clicking a tile opens a right-drawer DETAIL panel (an absolute
+ * sub-grid (16:9) so rows align. Media (Image/Video) + Tier + live search filters
+ * compose, in the MpiFilterBar row shared with the Flow Library. Clicking a tile opens a right-drawer DETAIL panel (an absolute
  * child of the overlay, so it stacks above it) carrying the full per-model
  * controls: description, GPU-weight arch toggles, VRAM→RAM trade table, disk
  * footprint, and Install / Update / Uninstall.
@@ -61,22 +61,6 @@ export const MpiModelManager = ComponentFactory.create({
                 <h1 class="mpi-model-library__title">Model Library</h1>
                 <p class="mpi-model-library__sub" id="lib-sub"></p>
                 <div class="mpi-model-library__disk" id="lib-disk-slot"></div>
-                <div class="mpi-model-library__filters">
-                    <div class="mpi-model-library__filter-group">
-                        <span class="mpi-model-library__filter-label">Media</span>
-                        <div id="media-filter-slot" style="display:flex;gap:var(--s-3);"></div>
-                    </div>
-                    <span class="mpi-model-library__filter-sep"></span>
-                    <div class="mpi-model-library__filter-group">
-                        <span class="mpi-model-library__filter-label">Tier</span>
-                        <div id="size-filter-slot" style="display:flex;gap:var(--s-3);"></div>
-                    </div>
-                    <label class="mpi-model-library__search">
-                        ${renderIcon('search', 'sm')}
-                        <span class="mpi-model-library__search-slot" id="lib-search-slot"></span>
-                    </label>
-                    <div class="mpi-model-library__refresh" id="refresh-btn-slot"></div>
-                </div>
             </div>
             <div class="mpi-model-library__body" id="body-slot"></div>
 
@@ -94,19 +78,7 @@ export const MpiModelManager = ComponentFactory.create({
 
     setup: (el) => {
         const bodySlot = qs('#body-slot', el);
-        const refreshSlot = qs('#refresh-btn-slot', el);
         const subEl = qs('#lib-sub', el);
-
-        // The search field is an MpiInput mounted into a slot inside the label, so the
-        // leading icon survives — mount() replaces its container's contents (MPI-588).
-        // The id stays on the real <input>, which is what the listener below binds to.
-        const _searchInst = MpiInput.mount(qs('#lib-search-slot', el), {
-            type: 'text',
-            placeholder: 'Search models…',
-        });
-        const searchInput = qs('.mpi-input__field', _searchInst.el);
-        searchInput.id = 'lib-search';
-        searchInput.setAttribute('autocomplete', 'off');
 
         const _detailCloseBtn = MpiButton.mount(qs('#detail-close-slot', el), {
             icon: 'close',
@@ -136,7 +108,7 @@ export const MpiModelManager = ComponentFactory.create({
         overlay.on('close', () => { _closeDetail(); });
 
         // ── Media filter (Image / Video) — reads model.mediaType directly ─────
-        const _mediaActive = new Set();   // 'image' | 'video'; empty = all
+        let _mediaActive = new Set();     // 'image' | 'video'; empty = all
 
         // ── Live search query (name / dropdownMeta) ───────────────────────────
         let _searchQuery = '';
@@ -156,7 +128,7 @@ export const MpiModelManager = ComponentFactory.create({
         // the highlight is suppressed until it resolves.
         const TIER_WORD = { low: 'Low', balanced: 'Balanced', high: 'High' };
         const TIER_ORDER = ['low', 'balanced', 'high'];
-        const _filterActive = new Set();      // subset of TIER_ORDER; empty = all
+        let _filterActive = new Set();        // subset of TIER_ORDER; empty = all
         let _userVramGb = null;               // local box VRAM (GB); from /system/stats
         let _remoteVramGb = null;             // connected Pod VRAM (GB); from remote:connection
         let _remotePhase = null;              // 'connecting' etc. while not yet live; null = live
@@ -187,55 +159,32 @@ export const MpiModelManager = ComponentFactory.create({
         // The model whose detail panel is currently open (null = closed).
         let _activeDetail = null;
 
-        // ── Refresh button ───────────────────────────────────────────────────
-        const refreshBtn = MpiButton.mount(refreshSlot, {
+        // ── Filters + search + Refresh (MPI-754) ─────────────────────────────
+        // The header row shared with the Flow Library. Multi-select per group; empty
+        // group = show all. Media reads model.mediaType (MPI-215); Tier is the MPI-168
+        // size-tier filter; search matches name / dropdownMeta. A change replaces the
+        // Sets + query and force-rebuilds the grid (the filter change IS the sig change).
+        const filterBar = MpiFilterBar.mount(ce('div'), {
+            groups: [
+                { key: 'media', label: 'Media', options: [{ value: 'image', label: 'Image' }, { value: 'video', label: 'Video' }] },
+                { key: 'tier', label: 'Tier', options: TIER_ORDER.map(tier => ({ value: tier, label: TIER_WORD[tier] })) },
+            ],
+            searchPlaceholder: 'Search models…',
+        });
+        filterBar.on('change', ({ active, query }) => {
+            _mediaActive = active.media;
+            _filterActive = active.tier;
+            _searchQuery = query;
+            renderList({ force: true });
+        });
+        qs('.mpi-model-library__head', el).appendChild(filterBar.el);
+
+        const refreshBtn = MpiButton.mount(ce('div'), {
             icon: 'refresh', variant: 'ghost', size: 'md',
             info: 'Refresh model state from disk',
         });
+        filterBar.el.appendTrailing(refreshBtn.el);
         _unsubs.push(on(refreshBtn.el, 'click', () => { awaitReSync(); }));
-
-        // ── Filter tags (Media + Size) ───────────────────────────────────────
-        // Lightweight text toggles with aria-selected + a heat dot (matches the
-        // mockup). Multi-select per group; empty group = show all. Media reads
-        // model.mediaType (MPI-215); Size is the MPI-168 tier filter. A tag click
-        // flips membership in its Set and force-rebuilds the grid (the filter change
-        // IS the sig change).
-        const _mkTag = (label, isActive, onToggle) => {
-            const btn = mountButton({
-                text: label,
-                variant: 'ghost',
-                size: 'sm',
-                extraClasses: 'mpi-model-library__tag',
-            });
-            btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-            _unsubs.push(on(btn, 'click', () => {
-                const next = btn.getAttribute('aria-selected') !== 'true';
-                btn.setAttribute('aria-selected', next ? 'true' : 'false');
-                onToggle(next);
-                renderList({ force: true });
-            }));
-            return btn;
-        };
-
-        const mediaFilterSlot = qs('#media-filter-slot', el);
-        [['image', 'Image'], ['video', 'Video']].forEach(([value, label]) => {
-            mediaFilterSlot.appendChild(_mkTag(label, false, on => {
-                if (on) _mediaActive.add(value); else _mediaActive.delete(value);
-            }));
-        });
-
-        const sizeFilterSlot = qs('#size-filter-slot', el);
-        TIER_ORDER.forEach(tier => {
-            sizeFilterSlot.appendChild(_mkTag(TIER_WORD[tier], false, on => {
-                if (on) _filterActive.add(tier); else _filterActive.delete(tier);
-            }));
-        });
-
-        // Live search — filters on name / dropdownMeta, case-insensitive.
-        _unsubs.push(on(searchInput, 'input', () => {
-            _searchQuery = (searchInput.value || '').trim().toLowerCase();
-            renderList({ force: true });
-        }));
 
         // ── Computed VRAM↔RAM trade table (MPI-168) — inline in the detail panel ──
         // Rows come from footprint.js tradeTable() — the real curve, never hardcoded.
@@ -1659,6 +1608,7 @@ export const MpiModelManager = ComponentFactory.create({
             _podDiskBar?.destroy?.(); // MPI-237
             _destroyAllCards();
             _destroyDetailToggles();
+            filterBar?.el?.destroy?.();
             _confirmDialog?.el?.destroy?.();
             overlay?.el?.destroy?.();
         };

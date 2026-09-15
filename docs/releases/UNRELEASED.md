@@ -77,7 +77,9 @@
   finished result — no workspace to assemble, no settings to know. Open the Flow Library from
   the Flows button at the top of the gallery, from the landing page, or with Tab, which cycles
   the gallery, your last card and the flow you have open, so you can step out to check a
-  picture and land back where you left off. Fourteen to start with:
+  picture and land back where you left off. The Library filters flows by Image, Video or Audio and
+  by what they do (create, edit or enhance), searches their names and descriptions, and counts
+  the ones you have installed. Fourteen to start with:
 
   - **Head Swap** — put one picture's head on another
   - **Extend Video** — carry on past the last frame

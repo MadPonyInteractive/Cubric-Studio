@@ -125,6 +125,14 @@ consumer-owned because the sheets themselves are re-created each render. An elem
 `error` is evicted so the placeholder gradient still works. Any new surface that remounts sheets
 on a state change must pass a cache; a one-shot sheet does not need one.
 
+## Header row — the shared `MpiFilterBar` (MPI-754)
+
+Media/Tier tags, search and Refresh are one `MpiFilterBar` Primitive; the Flow Library mounts the same
+Primitive with its own groups (Media/Type) and no Refresh. The bar owns the tag and search chrome; `MpiModelManager.css` must not restyle it. Filter
+state (`_mediaActive`, `_filterActive`, `_searchQuery`) stays in `MpiModelManager` and must stay in
+`_listSignature()`, or a filter change stops rebuilding the grid. Refresh sits in the bar's trailing
+slot via `el.appendTrailing` (append, never mount). The count covers all `MODELS`, never the filtered set.
+
 Video previews also carry a `poster` by filename convention (`foo.mp4` → `foo.webp`, generated
 into `comfy_workflows/display/`): `ltx23_high_preview.mp4` is 40MB, so without a poster the
 browser must pull its moov atom before it can show any frame. A missing poster file is a no-op.

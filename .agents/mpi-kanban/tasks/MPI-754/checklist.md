@@ -2,4 +2,4 @@
 
 - [x] Foundations: flow type field and MpiFilterBar
 - [x] Flow Library header
-- [ ] Model Library onto MpiFilterBar
+- [x] Model Library onto MpiFilterBar
