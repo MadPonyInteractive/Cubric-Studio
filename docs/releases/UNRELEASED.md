@@ -573,3 +573,6 @@
   volume read 51.2 GB in the warning and 55 GB on the bar. Model, volume, download and project
   sizes now all use the 1,000,000,000 figure. Windows File Explorer still uses the larger one,
   so a model looks about 7% smaller there than in the app.
+
+- Cancelling a model download right as it starts now stops it. A cancel in its first moments
+  could let the download carry on anyway.
