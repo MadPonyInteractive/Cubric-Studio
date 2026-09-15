@@ -10,4 +10,4 @@
 - [x] Wrapper delete removes .part.hfstage
 - [x] docs/download-manager.md HF staging consequences updated
 - [x] Wrapper self-check `test_partial_reclaim.py` passes after the fix (user-run 2026-09-15)
-- [ ] Live Pod leg (user-run): publish-runtime dev, interrupt HF install, retry passes gate
+- [x] Live Pod leg (user-run): publish-runtime dev, interrupt HF install, retry passes gate (2026-09-15, 43.8 GB leftovers vs 5.08 GB free, installed)

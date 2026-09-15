@@ -38,9 +38,12 @@ an in-flight model's deps may classify as orphaned).
   subset ran and passed. Card stays in doing.
 - 2026-09-15: user ran `test_partial_reclaim.py` -> all assertions passed. Offline side
   complete; wrapper + app committed at handoff.
-- Next: live Pod leg on the DEV runtime channel (`./publish-runtime.sh dev`, restart Pod,
-  interrupt an HF-primary install, retry must pass the gate, uninstall removes the stage
-  tree), then `mpi-end-session`. Docs are already updated.
+- 2026-09-15: live Pod leg PASSED on the dev channel (CPU download Pod, MiniMax H3 Reference
+  stopped at ~33.5 GB, 43.8 GB leftovers vs 5.08 GB free, retry installed). No stage tree
+  occurred live; that half rests on `test_partial_reclaim.py`. Details in `validation.md`.
+- Next: `mpi-end-session`. Push `c5e1fd51` (master CI green again at `41e16330`). Before
+  closing, run full `npm test`: MPI-754's session saw `tests/local-disk-gate-partial.test.cjs`
+  fail in the full suite while passing alone. Wrapper stays on dev until promoted.
 
 ## Remaining Work
 
