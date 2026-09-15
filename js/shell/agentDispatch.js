@@ -24,7 +24,7 @@
  * one — successfully, with `ok: true`, into the wrong gallery.
  *
  * MPI-547 adds the v1 named params (ratio/qualityTier/turbo/styleSelect/
- * stylization/batch/seed) — resolved through `js/data/generationControls.js`,
+ * stylization/seed; batch is pinned to 1) — resolved through `js/data/generationControls.js`,
  * NOT reimplemented here. That module is DOM-free and also runs server-side
  * (`routes/connector.js`'s static validation), so this file's only job is
  * calling it with the real `state.currentProject`.
@@ -76,7 +76,7 @@ function _submitGeneration(jobId, input = {}) {
 
     const {
         modelId, operation, positive = '', negative = '', injectionParams = {},
-        ratio, qualityTier, turbo, styleSelect, stylization, batch, seed,
+        ratio, qualityTier, turbo, styleSelect, stylization, seed,
     } = input;
 
     if (!state.currentProject) {
@@ -109,13 +109,13 @@ function _submitGeneration(jobId, input = {}) {
     }
 
     // MPI-547 — the v1 named params (ratio/qualityTier/turbo/styleSelect/stylization/
-    // batch). `routes/connector.js` already ran the same static validation with no
+    // batch pinned to 1). `routes/connector.js` already ran the same static validation with no
     // project (see generationControls.js's own comment); this call resolves the
     // EFFECTIVE value against the real open project, so an unset param falls back to
     // what the PromptBox currently shows rather than the workflow's baked default —
     // the same fix MPI-546 made for ratio alone, generalised to the whole v1 set.
     const named = resolveNamedParams(state.currentProject, model, operation,
-        { ratio, qualityTier, turbo, styleSelect, stylization, batch });
+        { ratio, qualityTier, turbo, styleSelect, stylization });
     if (!named.ok) {
         return _fail(jobId, named.code, named.message);
     }

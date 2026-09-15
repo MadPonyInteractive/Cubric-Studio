@@ -434,7 +434,7 @@ generation carries on in the app regardless).
 
 ### Named params (v1)
 
-Seven of the PromptBox's controls are reachable by name, without hand-writing a
+Six of the PromptBox's controls are reachable by name, without hand-writing a
 node title (MPI-547). **Per-generation only — none of these persist.** A submit
 with `turbo:true` runs turbo once and leaves the project's saved settings
 untouched; the next manual Cue press in the app sees exactly what it did before.
@@ -457,15 +457,20 @@ curl -s -X POST "$CUBRIC_URL/connector/generate" \
 | `turbo` | boolean | Maps to whichever turbo toggle the model has (`krea2Turbo` or `h3Turbo`) — send the same friendly `turbo` key either way. Rejected on a model with neither. |
 | `styleSelect` | integer | Index into the model's style rack (`styleLoraLabels`), 0 = no style. Rejected on a model/operation with no style rack. |
 | `stylization` | number | 0..1, the selected style's strength. Same style-rack gate as `styleSelect`. |
-| `batch` | integer | 1..4. Rejected on a model/operation that does not batch (e.g. `krea2`, whose two-pass sampler has no batch node). |
 | `seed` | integer | 0..4294967295. Unset stays random — this is the only way to pin one; the PromptBox itself has no seed UI. |
 
 An invalid value is a **named error, never a silent fallback** — an unknown
 ratio label, a tier the model does not declare, a non-boolean `turbo`, an
-out-of-range `styleSelect`/`batch`, all fail the request rather than running
+out-of-range `styleSelect`, all fail the request rather than running
 with something you did not ask for (see the error table below).
 
-`ratio`/`qualityTier`/`turbo`/`styleSelect`/`stylization`/`batch` all merge into
+**No `batch`. Want three images? Send three submits.** An agent submit always
+runs at batch 1, whatever the open project's batch control says, and a body
+carrying `batch` is refused with `BATCH_UNSUPPORTED`. A batch of N holds N
+images in VRAM at once; N submits queue and each holds one. Each request blocks
+until its own run finishes, so fire them together and collect N results.
+
+`ratio`/`qualityTier`/`turbo`/`styleSelect`/`stylization` all merge into
 `injectionParams` under the hood — a raw `injectionParams` key still wins over
 a named one, so `{"ratio":"9:16","injectionParams":{"Width":999,"Height":999}}`
 generates at 999×999. The single resolver behind both the named params and the
@@ -517,7 +522,7 @@ Failure returns `{"ok": false, "error": {"code": ..., "message": ...}}`:
 | `INVALID_TURBO` | `turbo` is not a boolean, or the model has no turbo toggle. |
 | `INVALID_STYLE_SELECT` | `styleSelect` is out of range, or the model/operation has no style rack. |
 | `INVALID_STYLIZATION` | `stylization` is not 0..1, or the model/operation has no style rack. |
-| `INVALID_BATCH` | `batch` is out of 1..4, or the model/operation does not batch. |
+| `BATCH_UNSUPPORTED` | The body carried `batch`. Agent submits always run batch 1: send N submits instead. |
 | `INVALID_SEED` | `seed` is not an integer in 0..4294967295. |
 
 Check `generationSubmit` in `GET /connector/capabilities` to confirm a window is

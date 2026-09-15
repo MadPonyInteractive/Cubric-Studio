@@ -127,6 +127,12 @@ request, the placeholder card matches, and `project.json` settings did not chang
   injected only Width/Height, so those ran at the workflow's baked values while the sidecar recorded the
   project's. Decision #1 ("unset params fall back to the project's state") is now literally true, which
   also means a project saved at batch 3 batches an unnamed agent submit 3 times. Raised with Fabio.
+- 2026-09-15: **Fabio: agents never batch.** A batch of N holds N latents in VRAM at once; N queued
+  submits hold one. `batch` is out of the named params, agent runs pin `Input_Batch_Size` to 1, and a
+  `batch` field is a named error (`BATCH_UNSUPPORTED`). Supersedes the batch half of the bullet above.
+- 2026-09-15: **Phase 5 found a seed bug older than this card** (b07a30cc, shipped v1.1.0): sidecars
+  record -1 and a caller's `injectionParams.Seed` is dropped for a random one. Same primitive as the
+  `seed` param, so fixed here in `commandExecutor._buildParams`. Detail in validation.md.
 
 ## Inherited traps (read before starting)
 
@@ -140,7 +146,7 @@ request, the placeholder card matches, and `project.json` settings did not chang
 
 ## Current State
 
-Phases 1-4 DONE and verified (2026-09-14, see validation.md). NEXT: phase 5 live smoke. Phase 5 (live smoke)
-needs the real app and stays with Fabio. Ownership: `files.json`. Old note: MPI-546 is `done`; its ratio fix (`ede087b1`) is committed but was never
-verified live — **confirm a square 1024x1024 on the first run of this card** before
-building on top of it.
+ALL PHASES DONE (2026-09-15). Phase 5 PASS on run 2 after the batch change and the seed fix: sidecar
+seed recorded, batch refused live, pixels/turbo/tier/project.json all pass, Fabio saw the placeholder.
+Nothing remains but closing the card. Ownership: `files.json`. The MPI-546 square-1024 note is moot:
+run 1 proved an explicit non-default ratio and tier land in the pixels.

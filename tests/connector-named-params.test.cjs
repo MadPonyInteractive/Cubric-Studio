@@ -2,7 +2,7 @@
 
 /**
  * MPI-547 — the v1 named params on `POST /connector/generate` (ratio, qualityTier,
- * turbo, styleSelect, stylization, batch, seed) plus the Phase-1 resolver they and
+ * turbo, styleSelect, stylization, seed) plus the Phase-1 resolver they and
  * `PromptBoxControls.js` both call now instead of each carrying their own copy
  * (`js/data/generationControls.js`).
  *
@@ -106,8 +106,7 @@ const postJson = (url, body) => fetch(url, {
 }).then((r) => r.json().then((json) => ({ status: r.status, json })));
 
 // A model with a ratio + quality-tier axis, a turbo toggle and a style rack
-// (`js/data/modelConstants/models.js` id 'krea2'), but `capabilities.batch: false` —
-// deliberately used for the batch INVALID path.
+// (`js/data/modelConstants/models.js` id 'krea2').
 const KREA2 = { modelId: 'krea2', operation: 't2i' };
 // A model with NO turbo toggle and NO style rack, but batch enabled on t2i
 // (`batchOps: ['t2i']`) and no quality-tier axis at all — the mirror image of
@@ -218,36 +217,28 @@ test('stylization: out of the 0..1 range is a named error', async () => {
     } finally { await stop(); }
 });
 
-test('batch: a model with batch disabled is a named error', async () => {
+// Agents never batch (Fabio, 2026-09-15): a batch of N holds N latents in VRAM at
+// once, N queued submits hold one. A `batch` field is refused by name, even 1, so an
+// agent learns the rule instead of having a value silently dropped.
+test('batch: any batch field is refused by name, even on a model that batches', async () => {
     const { base, stop } = await startServer();
     try {
         const { status, json } = await postJson(`${base}/connector/generate`,
-            { ...KREA2, batch: 2 }); // krea2 capabilities.batch === false
+            { ...SDXL, batch: 2 });
         assert.equal(status, 400);
-        assert.equal(json.error.code, 'INVALID_BATCH');
+        assert.equal(json.error.code, 'BATCH_UNSUPPORTED');
     } finally { await stop(); }
 });
 
-test('batch: out of the 1..4 range is a named error on a model that DOES batch', async () => {
-    const { base, stop } = await startServer();
-    try {
-        const { status, json } = await postJson(`${base}/connector/generate`,
-            { ...SDXL, batch: 10 });
-        assert.equal(status, 400);
-        assert.equal(json.error.code, 'INVALID_BATCH');
-    } finally { await stop(); }
-});
+test('batch: a project saved at batch 3 still runs an agent submit at batch 1', () => {
+    const sdxl = MODELS.find((m) => m.id === SDXL.modelId);
+    assert.ok(sdxl, 'fixture guard: sdxl-realistic is still a shipped model');
 
-test('batch: a valid count on a model that batches reaches the job input', async () => {
-    const { base, stop } = await startServer();
-    const renderer = await fakeRenderer(base);
-    try {
-        const pending = postJson(`${base}/connector/generate`, { ...SDXL, batch: 3 });
-        const frame = await renderer.readFrame();
-        assert.equal(frame.data.input.batch, 3);
-        await postJson(`${base}/connector/jobs/${frame.data.jobId}/result`, { ok: true, output: {} });
-        assert.equal((await pending).json.ok, true);
-    } finally { renderer.close(); await stop(); }
+    const project = { shared: { image: { batch: 3 } } };
+    const result = resolveNamedParams(project, sdxl, 't2i', {});
+
+    assert.equal(result.ok, true);
+    assert.equal(result.injectionParams.Input_Batch_Size, 1);
 });
 
 test('seed: a non-integer is a named error', async () => {

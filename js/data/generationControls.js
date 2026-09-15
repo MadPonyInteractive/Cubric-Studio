@@ -1,7 +1,7 @@
 /**
  * generationControls.js — DOM-free resolver for the PromptBox controls an agent
  * submit can name (MPI-547): ratio, qualityTier, turbo (krea2Turbo/h3Turbo),
- * styleSelect, stylization, batch, seed.
+ * styleSelect, stylization, seed. Not batch: an agent submit always runs batch 1.
  *
  * WHY THIS FILE EXISTS: `js/shell/agentDispatch.js` used to carry its OWN copy of
  * the ratio/tier resolve (`_plannedSize`, MPI-546) alongside the real one living
@@ -20,7 +20,7 @@
  * (which has the real project). See the module-level comments on each of those
  * files before assuming otherwise.
  *
- * SCOPE: only the seven v1 params Fabio named 2026-09-14 (plan.md § "Open
+ * SCOPE: only the v1 params Fabio named 2026-09-14 (plan.md § "Open
  * question... ANSWERED"). The other 15 PROMPT_BOX_CONTROLS entries are out of
  * v1 scope and are untouched by this file.
  */
@@ -214,13 +214,6 @@ export function isValidStylization(value) {
     return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 1;
 }
 
-// ── batch ────────────────────────────────────────────────────────────────────
-
-/** Is `value` a legal batch count (1..4, the picker's own range)? */
-export function isValidBatch(value) {
-    return Number.isInteger(value) && value >= 1 && value <= 4;
-}
-
 // ── seed ─────────────────────────────────────────────────────────────────────
 
 /** Is `value` a legal explicit seed (the same range `generateRandomSeed` draws from)? */
@@ -255,11 +248,11 @@ export function isValidSeed(value) {
  * @param {object|null} project
  * @param {object|null} model
  * @param {string} operation
- * @param {{ratio?, qualityTier?, turbo?, styleSelect?, stylization?, batch?}} named
+ * @param {{ratio?, qualityTier?, turbo?, styleSelect?, stylization?}} named
  * @returns {{ok:true, injectionParams:object, width:number, height:number}|{ok:false, code:string, message:string}}
  */
 export function resolveNamedParams(project, model, operation, named = {}) {
-    const { ratio, qualityTier, turbo, styleSelect, stylization, batch } = named;
+    const { ratio, qualityTier, turbo, styleSelect, stylization } = named;
     const injectionParams = {};
     const modelName = model?.name || model?.id || 'this model';
 
@@ -318,19 +311,10 @@ export function resolveNamedParams(project, model, operation, named = {}) {
                 : resolveThreeLayerDefault('stylization', model, operation, PROMPT_CONTROL_DEFAULTS.stylization));
     }
 
-    const showsBatch = modelShowsBatch(model, operation);
-    if (batch !== undefined && (!showsBatch || !isValidBatch(batch))) {
-        return _err('INVALID_BATCH', showsBatch
-            ? 'batch must be an integer between 1 and 4.'
-            : `${modelName} does not batch on "${operation}".`);
-    }
-    if (showsBatch) {
-        const sharedBucket = getSharedSettings(project || {}, _mediaTypeOf(model));
-        const savedBatch = Number(sharedBucket.batch);
-        injectionParams.Input_Batch_Size = batch !== undefined
-            ? batch
-            : (Number.isInteger(savedBatch) && savedBatch >= 1 && savedBatch <= 4 ? savedBatch : PROMPT_CONTROL_DEFAULTS.batch);
-    }
+    // Agents never batch (Fabio, 2026-09-15): a batch of N holds N latents in VRAM at
+    // once, N queued submits hold one. So an agent run pins batch to 1 instead of
+    // inheriting a project saved at 3; the route refuses a `batch` field by name.
+    if (modelShowsBatch(model, operation)) injectionParams.Input_Batch_Size = 1;
 
     return { ok: true, injectionParams, width: ratioDims.width, height: ratioDims.height };
 }

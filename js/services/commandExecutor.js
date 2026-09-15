@@ -604,7 +604,9 @@ export async function prefetchInstalledModels() {
  */
 function _buildParams(payload) {
     const { positive, negative, negativeAudio, seed, mediaItems = [], injectionParams = {} } = payload;
-    const resolvedSeed = seed ?? ComfyUIController.generateRandomSeed();
+    // A caller's bare `Seed` (Reuse, the frozen preview seed) must win here: the alias
+    // loop at the end only fills `Input_Seed` when absent, so it would drop it for this.
+    const resolvedSeed = injectionParams.Seed ?? seed ?? ComfyUIController.generateRandomSeed();
 
     const params = {
         Input_Positive: positive || '',
@@ -1491,7 +1493,7 @@ export function runCommand(payload) {
         if (await _abortedBail(tempTrimInputPaths)) return;
 
         const params = _buildParams(workingPayload);
-        exec.seed = params.Seed ?? null;
+        exec.seed = params.Input_Seed ?? null;
 
         // Guard: block submission if a selected LoRA/upscale model is not in any
         // of the configured model folders — the loader would fail with a cryptic

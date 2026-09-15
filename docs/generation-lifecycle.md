@@ -157,8 +157,8 @@ through `resolveFlowFieldValues` — the same declared-field dialect the flow fr
 so `derived` is computed after the caller's overrides exactly as it is under a click. The
 producer count does not change: it still hands off to `flowService.submitFlowGeneration`.
 
-**Named params on the model path — ratio/qualityTier/turbo/styleSelect/stylization/batch/seed
-(MPI-547) — resolve through ONE module, not a copy in the route and a copy in the renderer.**
+**Named params on the model path — ratio/qualityTier/turbo/styleSelect/stylization/seed
+(MPI-547; batch is pinned to 1, an agent queues N submits instead) — resolve through ONE module, not a copy in the route and a copy in the renderer.**
 `js/data/generationControls.js` is DOM-free (pure data + functions — no `state.js`, no
 Electron), so `routes/connector.js` `require()`s it for STATIC validation with no project open
 (an unknown ratio label, a tier the model does not declare, a non-boolean `turbo` — all a named

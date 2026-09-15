@@ -12,6 +12,8 @@
     "tests/control-snapshot-injection.test.cjs",
     "tests/reuse-snapshot-defaults.test.cjs",
     ".claude/skills/cubric-vision/SKILL.md",
-    "docs/generation-lifecycle.md"
+    "docs/generation-lifecycle.md",
+    "js/services/commandExecutor.js",
+    "tests/seed-uint32-range.test.cjs"
   ]
 }

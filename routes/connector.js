@@ -29,7 +29,7 @@
  * sample Text to Speech requires.
  *
  * MPI-547 adds the v1 named params — ratio, qualityTier, turbo, styleSelect,
- * stylization, batch, seed — a friendly layer over the PromptBox controls, so an
+ * stylization, seed — a friendly layer over the PromptBox controls, so an
  * agent can choose a specific size/quality/style per generation instead of only
  * ever inheriting the open project's. Validated here with no project (this route
  * has none); resolved against the real one in the renderer
@@ -193,13 +193,13 @@ router.get('/connector/jobs/stream', (req, res) => {
 // model's own capability data — no project is open here, so an unset param is
 // left off `input` and resolved against the real project by
 // `js/shell/agentDispatch.js`.
-const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'stylization', 'batch'];
+const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'stylization'];
 
 /**
  * POST /connector/generate
  * Body, EITHER a model op:  { modelId, operation, positive, negative?, injectionParams?,
  *                              ratio?, qualityTier?, turbo?, styleSelect?, stylization?,
- *                              batch?, seed? }
+ *                              seed? }
  *       OR a Flow (MPI-658): { flowId, fields?, media? }
  *
  * The two are not variants of one shape. A Flow has no model — it dispatches with
@@ -232,6 +232,11 @@ router.post('/connector/generate', async (req, res) => {
     return _bad('body.flowId, or body.modelId and body.operation, are required.');
   }
 
+  // Agents never batch (Fabio, 2026-09-15): N queued submits, not a batch of N that
+  // holds N latents in VRAM at once. Refused by name rather than silently run at 1.
+  if (batch !== undefined) {
+    return _namedErr('BATCH_UNSUPPORTED', 'Agent submits always run batch 1. Send N separate submits instead; they queue.');
+  }
   if (!flowId && NAMED_PARAM_KEYS.some((k) => req.body?.[k] !== undefined)) {
     const model = findModelDef(modelId);
     if (!model) return _namedErr('UNKNOWN_MODEL', `No model with id "${modelId}".`);
@@ -242,7 +247,6 @@ router.post('/connector/generate', async (req, res) => {
     if (turbo !== undefined) named.turbo = turbo;
     if (styleSelect !== undefined) named.styleSelect = styleSelect;
     if (stylization !== undefined) named.stylization = stylization;
-    if (batch !== undefined) named.batch = batch;
 
     // project:null — static validation only, per this route's own comment above.
     const check = resolveNamedParams(null, model, String(operation), named);
@@ -265,7 +269,6 @@ router.post('/connector/generate', async (req, res) => {
       ...(turbo !== undefined ? { turbo } : {}),
       ...(styleSelect !== undefined ? { styleSelect } : {}),
       ...(stylization !== undefined ? { stylization } : {}),
-      ...(batch !== undefined ? { batch } : {}),
       ...(seed !== undefined ? { seed } : {}),
     };
 

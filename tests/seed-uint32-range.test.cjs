@@ -60,3 +60,21 @@ test('the Voice Changer graph really does take its seed from Input_Seed', () => 
     assert.strictEqual(seedNode?._meta?.title, 'Input_Seed',
         'the seed node must keep the Input_Seed title — that title is how _buildParams finds it');
 });
+
+// b07a30cc renamed `Seed` to `Input_Seed` in `_buildParams` and left two readers behind.
+// The bare-key alias loop only fills `Input_Seed` when it is ABSENT, and `_buildParams` has
+// already set it to a random seed, so a caller's `injectionParams.Seed` (Reuse, the frozen
+// preview seed) was deleted and a random one ran. And `exec.seed` read `params.Seed`, which
+// that loop always deletes, so every sidecar recorded -1. Found by MPI-547's live smoke: a
+// graph that ran `Input_Seed: 12345` wrote `seed: -1`.
+test('a caller-sent injectionParams.Seed wins over the random seed', () => {
+    const src = read('js/services/commandExecutor.js');
+    assert.match(src, /const resolvedSeed = injectionParams\.Seed \?\? seed \?\? ComfyUIController\.generateRandomSeed\(\);/,
+        '_buildParams must resolve injectionParams.Seed before rolling a random Input_Seed');
+});
+
+test('exec.seed records the seed that was injected, not a key the alias loop deletes', () => {
+    const src = read('js/services/commandExecutor.js');
+    assert.match(src, /exec\.seed = params\.Input_Seed \?\? null;/);
+    assert.doesNotMatch(src, /params\.Seed\b/, 'bare Seed never survives _buildParams');
+});
