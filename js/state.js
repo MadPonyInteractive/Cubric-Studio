@@ -12,6 +12,11 @@ const _state = {
     previousPage: null,
     previousParams: {},
 
+    // ── Screen (MPI-766) ──────────────────────────────────────────────────────
+    screenClear: false,         // true once boot has settled AND no blocking overlay covers the
+                               // screen. Owned by js/shell/screenClearService.js: read it at
+                               // mount and react via Events.onState('screenClear').
+
     // ── ComfyUI engine ────────────────────────────────────────────────────────
     comfyRootPath: null,        // Custom path to an external ComfyUI installation
     allComfyWorkflows: [],      // Workflow registry used by comfyController for id→file lookup

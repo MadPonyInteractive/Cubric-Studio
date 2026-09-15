@@ -97,7 +97,7 @@ export function initProjectUI() {
     });
   }
 
-  // ── "+ New project" CTA in hero ────────────────────────────────────────────
+  // ── Picker foot: "+ New project" + "Open folder" (MPI-766 moved both out of the hero) ──
   const ctaSlot = gid('newProjectBtn');
   if (ctaSlot) {
     const triggerBtn = MpiButton.mount(ctaSlot, {
@@ -108,7 +108,6 @@ export function initProjectUI() {
     triggerBtn.on('click', _openNewProjectDialog);
   }
 
-  // ── "Open folder" — hero CTA (secondary) + picker footer ─────────────────
   const _openFolder = async () => {
     try {
       const { ipcRenderer } = window.require('electron');
@@ -120,24 +119,14 @@ export function initProjectUI() {
   };
 
   if (typeof window.require === 'function') {
-    const heroFolderSlot = gid('openFolderHeroBtn');
-    if (heroFolderSlot) {
-      const heroFolderBtn = MpiButton.mount(heroFolderSlot, {
+    const folderSlot = gid('openFolderBtn');
+    if (folderSlot) {
+      const folderBtn = MpiButton.mount(folderSlot, {
         text: 'Open folder',
         variant: 'outline',
         size: 'md',
       });
-      heroFolderBtn.on('click', _openFolder);
-    }
-
-    const pickerFolderSlot = gid('openFolderBtn');
-    if (pickerFolderSlot) {
-      const pickerFolderBtn = MpiButton.mount(pickerFolderSlot, {
-        text: 'Open folder…',
-        variant: 'outline',
-        size: 'md',
-      });
-      pickerFolderBtn.on('click', _openFolder);
+      folderBtn.on('click', _openFolder);
     }
   }
 

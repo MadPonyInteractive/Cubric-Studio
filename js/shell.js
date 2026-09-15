@@ -41,6 +41,8 @@ import { initAgentDispatch } from './shell/agentDispatch.js';
 import { initProjectUI, loadProjectGrid } from './shell/projectUI.js';
 import { initHeroStats } from './shell/heroStats.js';
 import { initHeroQuote } from './shell/heroQuote.js';
+import { initHeroCrew } from './shell/heroCrew.js';
+import { initScreenClearService } from './shell/screenClearService.js';
 import { start as startProjectStats } from './services/projectStatsService.js';
 import { start as startMediaImport } from './services/mediaImportService.js';
 import { triggerMemoryRelease, bindMemoryHotkeys } from './shell/memoryOps.js';
@@ -192,6 +194,8 @@ export async function initShell() {
   initProjectUI();
   initHeroStats();
   initHeroQuote();   // MPI-696 — one draw per boot, never per navigation
+  initScreenClearService();  // MPI-766 — state.screenClear: booted, and nothing covers the screen
+  initHeroCrew();    // MPI-766 — mounts with the landing page, destroyed when it leaves
   startProjectStats();
   startMediaImport();  // MPI-723 - the media:imported -> ItemGroup build, app-lifetime
   StatusBar.init();
@@ -375,6 +379,10 @@ async function _bootApp() {
   } else {
     _maybeShowChangelog();
   }
+
+  // MPI-766: the startup dialogs above have had their say — any still open cover the
+  // page. screenClearService turns this into `state.screenClear`.
+  Events.emit('shell:booted');
 
   // Wire startup modal to comfy engine events (MPI-74 P6: engine-tagged + non-
   // blocking when the OTHER engine is mid-gen). comfyController emits these with

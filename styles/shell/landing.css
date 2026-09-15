@@ -21,29 +21,273 @@
   position: relative;
   overflow: hidden;
   background: var(--surface-canvas);
+  /* MPI-766: the hero scale, 1 at the 1120×1000 reference hero. The hero is 7/12
+     of the window (the grid above) by the window minus the titlebar, so it reads
+     the VIEWPORT. Never `container-type: size` here: under a size container every
+     text change in the hero (the quote, the live stats) re-ran the crew's entrance
+     animation. Measured 2026-09-15, gone without the container. The crew's own
+     scale, --crew-k, is set by heroCrew.js: it also has to fit under the headline. */
+  --hero-k: min(calc(100vw / 1920px), calc((100vh - var(--titlebar-h)) / 1000px));
 }
 
-.mpi-landing__hero-bg {
+/* ── Crew stage (MPI-766) ──────────────────────────────────────────────────────
+   A fixed 1120×1000 composition (the hero column at the 1920×1032 reference
+   window) scaled as ONE unit to fit the hero, so the row never reflows. Every
+   px below is in that reference space; the floor line is y = 840. Members are
+   built by js/shell/heroCrew.js. */
+.mpi-landing__crew {
   position: absolute;
-  inset: 0;
-  background-image: url('../../assets/hero-bg.jpeg');
-  background-size: cover;
-  background-position: center;
-  opacity: 0.35;
+  left: 50%;
+  /* The floor stays 160px above the hero's bottom at every scale: that band holds
+     the labels and the stats foot, and neither shrinks. */
+  bottom: calc(160px * (1 - var(--crew-k, var(--hero-k))));
+  width: 1120px;
+  height: 1000px;
+  translate: -50% 0;
+  scale: var(--crew-k, var(--hero-k));
+  transform-origin: 50% 100%;
+}
+
+/* heroCrew.js fits --crew-k into the room under the headline, then drops what no
+   longer fits: the role lines, then the names, and only with no room at all the crew. */
+.mpi-landing__crew--hidden,
+.mpi-landing__crew--no-names .mpi-landing__crew-label,
+.mpi-landing__crew--no-roles .mpi-landing__crew-role {
+  display: none;
+}
+
+/* heroCrew.js holds the entrance until boot has settled and nothing covers the landing:
+   paused, it waits on its first frame, and a cover arriving mid-entrance pauses it there. */
+.mpi-landing__crew--held .mpi-landing__crew-light,
+.mpi-landing__crew--held .mpi-landing__crew-pool,
+.mpi-landing__crew--held .mpi-landing__crew-member {
+  animation-play-state: paused;
+}
+
+/* Spotlight cone onto Studio. The blur sits on the parent: a filter on the
+   clipped element itself would be clipped back to a hard edge. */
+.mpi-landing__crew-light {
+  position: absolute;
+  left: 560px;
+  top: -60px;
+  width: 1040px;
+  height: 960px;
+  translate: -50% 0;
+  filter: blur(26px);
   pointer-events: none;
 }
 
-.mpi-landing__hero-grad {
+.mpi-landing__crew-light::before {
+  content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    to bottom,
-    color-mix(in oklch, var(--surface-canvas) 80%, transparent) 0%,
-    color-mix(in oklch, var(--surface-canvas) 50%, transparent) 40%,
-    color-mix(in oklch, var(--surface-canvas) 85%, transparent) 100%
-  );
+  clip-path: polygon(43% 0, 57% 0, 87% 100%, 13% 100%);
+  background: linear-gradient(to bottom, transparent 0%, var(--line) 78%, var(--line-soft) 100%);
+}
+
+.mpi-landing__crew-pool {
+  position: absolute;
+  left: 560px;
+  top: 780px;
+  width: 1040px;
+  height: 160px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in oklch, var(--surface-2) 75%, transparent), transparent);
   pointer-events: none;
 }
+
+.mpi-landing__crew-floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 840px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--line) 18%, var(--line) 82%, transparent);
+}
+
+/* Bottom-anchored on the floor, centred on x. Studio stands in front of Vision
+   and Video, which stand in front of Prompt and Audio. */
+.mpi-landing__crew-member {
+  position: absolute;
+  top: calc(840px - var(--crew-h));
+  left: var(--crew-x);
+  height: var(--crew-h);
+  margin: 0;
+  translate: -50% 0;
+  z-index: 2;
+  cursor: pointer;
+}
+
+.mpi-landing__crew-member--prompt {
+  --crew-x: 118px;
+  --crew-h: 210px;
+  --crew-accent: var(--prompt-accent);
+  z-index: 1;
+}
+
+.mpi-landing__crew-member--vision {
+  --crew-x: 318px;
+  --crew-h: 260px;
+  --crew-accent: var(--vision-accent);
+}
+
+.mpi-landing__crew-member--studio {
+  --crew-x: 560px;
+  --crew-h: 360px;
+  --crew-accent: var(--hub-accent);
+  z-index: 3;
+}
+
+.mpi-landing__crew-member--video {
+  --crew-x: 802px;
+  --crew-h: 260px;
+  --crew-accent: var(--video-accent);
+}
+
+.mpi-landing__crew-member--audio {
+  --crew-x: 996px;
+  --crew-h: 210px;
+  --crew-accent: var(--accent-audio);
+  z-index: 1;
+}
+
+/* Contact shadow under the feet. */
+.mpi-landing__crew-member::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 62%;
+  height: 14px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, oklch(from var(--surface-canvas) calc(l * 0.5) c h / 0.55), transparent);
+  z-index: -1;
+}
+
+/* Floor glow in the character's accent, on hover or while it greets. */
+.mpi-landing__crew-member::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -34px;
+  width: 140%;
+  height: 70px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--crew-accent) 40%, transparent), transparent);
+  opacity: 0;
+  transition: opacity var(--t-slow) var(--ease);
+  z-index: -1;
+  pointer-events: none;
+}
+
+.mpi-landing__crew-member:hover::before,
+.mpi-landing__crew-member--awake::before {
+  opacity: 1;
+}
+
+.mpi-landing__crew-lift,
+.mpi-landing__crew-float {
+  display: block;
+  height: 100%;
+}
+
+.mpi-landing__crew-lift {
+  transition: transform var(--t-slow) var(--ease);
+}
+
+.mpi-landing__crew-member:hover .mpi-landing__crew-lift {
+  transform: translateY(-8px);
+}
+
+.mpi-landing__crew-float {
+  animation: mpi-landing-crew-float 4s ease-in-out var(--crew-phase, 0s) infinite;
+}
+
+.mpi-landing__crew-img {
+  display: block;
+  height: 100%;
+  width: auto;
+  user-select: none;
+  pointer-events: none;
+}
+
+.mpi-landing__crew-label {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 22px);
+  translate: -50% 0;
+  /* Undo the stage scale: the label sits where the stage puts it, at its own size. */
+  scale: calc(1 / var(--crew-k, var(--hero-k)));
+  transform-origin: 50% 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  white-space: nowrap;
+}
+
+.mpi-landing__crew-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-family: var(--font-wordmark);
+  font-size: var(--t-md);
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  color: var(--ink-1);
+  transition: color var(--t-base) var(--ease);
+}
+
+.mpi-landing__crew-name::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: var(--r-pill);
+  background: var(--crew-accent);
+}
+
+.mpi-landing__crew-member:hover .mpi-landing__crew-name,
+.mpi-landing__crew-member--awake .mpi-landing__crew-name {
+  color: var(--crew-accent);
+}
+
+.mpi-landing__crew-role {
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}
+
+/* Entrance: the light comes up, Studio rises, the crew steps out from behind it.
+   Transform only, `backwards` fill: a delayed member waits offset but VISIBLE —
+   a keyframe from opacity 0 shows nothing at all if it never runs. */
+.mpi-landing__crew-light,
+.mpi-landing__crew-pool {
+  animation: mpi-landing-crew-fade 1.1s var(--ease) backwards;
+}
+
+.mpi-landing__crew-member--studio { animation: mpi-landing-crew-rise 0.9s var(--ease) 0.3s backwards; }
+.mpi-landing__crew-member--vision { animation: mpi-landing-crew-out-left 0.8s var(--ease) 0.6s backwards; }
+.mpi-landing__crew-member--video  { animation: mpi-landing-crew-out-right 0.8s var(--ease) 0.6s backwards; }
+.mpi-landing__crew-member--prompt { animation: mpi-landing-crew-out-left 0.8s var(--ease) 0.78s backwards; }
+.mpi-landing__crew-member--audio  { animation: mpi-landing-crew-out-right 0.8s var(--ease) 0.78s backwards; }
+
+@keyframes mpi-landing-crew-float     { 50% { transform: translateY(-3px); } }
+@keyframes mpi-landing-crew-fade      { from { opacity: 0; } }
+@keyframes mpi-landing-crew-rise      { from { transform: translateY(36px); } }
+@keyframes mpi-landing-crew-out-left  { from { transform: translateX(90px); } }
+@keyframes mpi-landing-crew-out-right { from { transform: translateX(-90px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .mpi-landing__crew-light,
+  .mpi-landing__crew-pool,
+  .mpi-landing__crew-member,
+  .mpi-landing__crew-float {
+    animation: none;
+  }
+}
+
 
 .mpi-landing__hero-inner {
   position: relative;
@@ -53,6 +297,8 @@
   height: 100%;
   padding: var(--s-5) var(--s-6) var(--s-5) var(--s-6);
   padding-top: var(--s-4);
+  /* MPI-766: paints over the crew, but lets the pointer through to it. */
+  pointer-events: none;
 }
 
 /* Top bar: version + nav */
@@ -85,6 +331,7 @@
 .mpi-landing__hero-nav {
   display: flex;
   gap: var(--s-5);
+  pointer-events: auto;
 }
 
 .mpi-landing__hero-nav-item {
@@ -108,12 +355,15 @@
   gap: var(--s-3);
   max-width: 800px;
   flex: 1;
-  justify-content: center;
+  /* MPI-766: top-aligned, so the crew owns the bottom of the hero. The headline
+     scales with the stage, or a short window stacks it straight into Studio. */
+  justify-content: flex-start;
+  padding-top: calc(var(--s-7) * var(--hero-k));
 }
 
 .mpi-landing__headline h1 {
   font-family: var(--font-main);
-  font-size: var(--t-3xl);
+  font-size: calc(var(--t-3xl) * var(--hero-k));
   font-weight: 700;
   letter-spacing: -0.04em;
   line-height: 0.92;
@@ -127,14 +377,17 @@
 }
 
 .mpi-landing__headline p {
-  font-size: var(--t-lg);
+  /* MPI-766: scales with the stage, narrow enough that a three-line quote still
+     clears Studio's head. Floored, because a short window hides the crew and
+     would otherwise shrink the quote past reading. */
+  font-size: max(var(--t-sm), calc(var(--t-lg) * var(--hero-k)));
   color: var(--ink-2);
   line-height: 1.6;
-  max-width: 480px;
+  max-width: max(260px, calc(400px * var(--hero-k)));
 }
 
 /* MPI-696: the blurb slot now carries a rotating quote. Fixed min-height so a one-line
-   quote and a three-line one do not shove the CTA row up and down between launches. */
+   quote and a three-line one never move what sits below it between launches. */
 .mpi-landing__quote {
   display: flex;
   flex-direction: column;
@@ -153,13 +406,6 @@
   text-transform: uppercase;
   color: var(--ink-3);
   font-style: normal;
-}
-
-/* CTA row */
-.mpi-landing__cta {
-  display: flex;
-  gap: var(--s-2);
-  margin-top: var(--s-3);
 }
 
 /* Bottom stats row */
@@ -390,8 +636,12 @@
 }
 
 /* ── Picker footer ─────────────────────────────────────────────────────────── */
+/* MPI-766: both project actions live here, side by side in two equal columns. */
 .mpi-landing__picker-foot {
   flex-shrink: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-2);
   padding-top: var(--s-3);
 }
 

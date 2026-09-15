@@ -60,8 +60,13 @@
 
       <!-- ── Hero (left 7fr) ──────────────────────────────────────────────── -->
       <section class="mpi-landing__hero">
-        <div class="mpi-landing__hero-bg" aria-hidden="true"></div>
-        <div class="mpi-landing__hero-grad" aria-hidden="true"></div>
+        <!-- crew stage (MPI-766): one 1120×1000 unit, scaled to the hero; members built by heroCrew.js -->
+        <div class="mpi-landing__crew">
+          <div class="mpi-landing__crew-light" aria-hidden="true"></div>
+          <div class="mpi-landing__crew-pool" aria-hidden="true"></div>
+          <div class="mpi-landing__crew-floor" aria-hidden="true"></div>
+          <div class="mpi-landing__crew-members" id="heroCrew"></div>
+        </div>
         <div class="mpi-landing__hero-inner">
 
           <!-- top bar: version left, nav right -->
@@ -70,7 +75,7 @@
             <nav class="mpi-landing__hero-nav" id="landingActions"></nav>
           </div>
 
-          <!-- headline + CTA -->
+          <!-- headline + quote -->
           <div class="mpi-landing__headline">
             <span class="mpi-landing__kicker">your machine, your studio</span>
             <h1>Generate.<br>Refine.<br> <em>Own it.</em></h1>
@@ -78,10 +83,6 @@
               <span class="mpi-landing__quote-text" id="heroQuoteText"></span>
               <span class="mpi-landing__quote-by" id="heroQuoteBy"></span>
             </p>
-            <div class="mpi-landing__cta">
-              <div id="newProjectBtn"></div>
-              <div id="openFolderHeroBtn"></div>
-            </div>
           </div>
 
           <!-- bottom stats -->
@@ -113,7 +114,10 @@
           <!-- Populated by JS -->
           <div class="mpi-landing__loading"><div class="spinner"></div></div>
         </div>
-        <div class="mpi-landing__picker-foot" id="openFolderBtn"></div>
+        <div class="mpi-landing__picker-foot">
+          <div id="newProjectBtn"></div>
+          <div id="openFolderBtn"></div>
+        </div>
       </aside>
 
     </div>

@@ -85,6 +85,16 @@
      enough to tempt and would tie a brand colour to a status semantic. */
   --accent-audio:    oklch(0.84 0.11 170);   /* greenish-cyan — Cubric Audio */
 
+  /* Family identity colours (MPI-766, the landing crew). Same source as
+     --accent-audio; values from MPI-736's token table. Identity only — a
+     mascot's label dot and floor glow, never an action colour. Vision's is a
+     literal on purpose: MPI-736 points --accent-heat at ink on shared
+     surfaces, and Vision's dot must stay rose when it does. */
+  --hub-accent:      oklch(0.78 0.028 80);   /* cream — Studio */
+  --vision-accent:   oklch(0.76 0.17 355);   /* rose — Vision */
+  --prompt-accent:   oklch(0.88 0.13 102);   /* yellow — Prompt */
+  --video-accent:    oklch(0.78 0.15 48);    /* orange — Video */
+
   /* Type scale */
   --t-2xs:     10px;
   --t-xs:      11px;

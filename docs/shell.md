@@ -115,6 +115,25 @@ The three landing-hero footer slots: GPU/engine (`/system/gpu-info` + `remote:co
 
 So the slot renders `—` whenever `hasNoEngine()` (`js/services/engineGate.js`, the same predicate behind the three no-engine door guards) is true, and the real count otherwise. Zero is only shown when an engine actually answered. `engine:ready` and the remote connect/disconnect **edge** repaint it, because an engine arriving can make the count knowable without the installed SET changing, and the `models:checked` emit is diff-gated in `modelRegistry.js`. The connection repaint is edge-gated on purpose: the status heartbeat re-emits `{connected:true}` every ~5s and `hasNoEngine()` refreshes the Pod each call.
 
+## heroCrew.js (`js/shell/heroCrew.js`)
+
+The landing hero's mascot crew (MPI-766): Prompt, Vision, Studio, Video and Audio on a lit stage, Studio centre. Layout, entrance and the 3px float are CSS (`styles/shell/landing.css`, `.mpi-landing__crew*`); the module builds the members and swaps poses — hover = greet, click = happy for 1.4s, one ambient greet every 3.2s (none under reduced motion).
+
+- **It follows the PAGE, not a mount.** The landing is never unmounted (`_showLanding` / `_showShell` only toggle `.hide`), so `initHeroCrew()` subscribes to `currentPage`: the crew mounts on landing and is destroyed anywhere else. Destroy clears every timer, removes every listener and empties `#heroCrew`; the entrance replays on each return because the members are new.
+- **The entrance waits until the screen is clear.** The crew mounts paused (`--held`) and plays once `state.screenClear` is true (screenClearService.js, below). A cover arriving mid-entrance pauses it where it is, and the first release also starts the ambient greeting.
+- **`_poseSrc(key, pose)` is the only code that knows a mascot file** — `assets/mascot/<key>/<pose>.webp`, 620px tall, each character's poses sharing one registration box so a swap never shifts the body. The stills are placeholders for animated alpha WebM loops (VP9; not GIF, whose 1-bit transparency fringes the dark outline), which replace that function, not the layout.
+- **A loop must be released, not hidden.** Destroy pauses every `video` in the layer, removes its `src` and calls `load()`. A hidden playing video keeps its decoder.
+- **The stage is one 1120×1000 unit** (the hero at the 1920×1032 reference window), scaled as a whole so the row never reflows. Two scales: the headline reads `--hero-k` = `min(100vw / 1920px, (100vh - --titlebar-h) / 1000px)` in CSS, and the crew reads `--crew-k`, which `_fit()` sets from a `ResizeObserver` on the hero and the quote: never past 1, never wider than the hero, and small enough that Vision's head clears the quote and Studio's clears the headline. The floor stays 160px above the hero's bottom at every scale (the labels and stats foot do not shrink). Below 0.66 the role lines drop out, below 0.41 the names, below 0.25 the crew (label widths measured against the closest pair of characters). **Never make the hero a size container to get a scale:** under `container-type: size`, every text change inside the hero (the quote, a heroStats repaint) restarts the crew's entrance animations. Measured with `getAnimations()`; a separate container frame around the crew restarted them too. `hero-inner` is `pointer-events: none` with the nav re-enabled: the headline paints over the crew and the crew still gets the pointer.
+- Label dots and floor glows read the family identity tokens in `01_base.css` (`--hub-accent`, `--vision-accent`, `--prompt-accent`, `--video-accent`, `--accent-audio`). Identity only, never an action colour (MPI-736).
+
+## screenClearService.js (`js/shell/screenClearService.js`)
+
+One reusable signal for "the app has booted and nothing covers the screen" (MPI-766). `state.screenClear` is `false` until `_bootApp` emits `shell:booted` (past the engine gate, the 18+ notice and the changelog), then follows the screen: `false` while a blocking overlay is up, `true` when it is gone. Read it at mount and react with `Events.onState('screenClear', fn)`; a one-shot event would be missed by anything that mounts late.
+
+- **Covered = either source.** The `Overlays` stack is not empty (every `MpiModal` and `MpiOverlay`, main-area ones included), or a backdrop sits directly on `<body>` (`.mpi-modal-backdrop`, `.mpi-overlay-backdrop`). The second is how `MpiStartingComfy` covers the screen: it portals its own backdrop and bypasses `Overlays` on purpose.
+- **A close-then-open handoff never reads as clear.** The 18+ notice's Continue hides it and opens the changelog one animation frame later (MPI-333, so the backdrops never stack). A microtask recompute DID report `true` in that gap (measured); the service now recomputes on the next frame, after the changelog's own frame callback. A hidden window runs no frames, so the signal also waits until the app can be seen.
+- First consumer: the landing crew's entrance (`heroCrew.js`).
+
 ## projectUI.js (`js/shell/projectUI.js`)
 
 Project-scoped UI elements — project name display, breadcrumb, up-arrow navigation.
