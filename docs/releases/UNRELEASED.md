@@ -383,6 +383,13 @@
   model panel now also shows how much of a model is already on disk and how much is left to
   download.
 
+- A model whose install was cut short can be installed again on a nearly full disk. Stopping
+  a Pod mid-download, or a crash, leaves the half-downloaded files behind, and the space check
+  counted them as used space on top of the full download, so the retry was refused for room it
+  would have taken back: 13.3 GB needed and 12.0 GB free, for the very file whose 13.3 GB
+  partial download had filled the volume. The check now counts those leftovers as space the
+  retry reclaims, on the Pod and on your own machine.
+
 - Krea 2 Image to Image works on your whole picture instead of a patch of it. Your input was
   cut down to the size you picked rather than scaled into it, so a 4000-pixel photo asked for
   a 1024 square handed the model a 1024-pixel square cut out of the middle and threw the rest
