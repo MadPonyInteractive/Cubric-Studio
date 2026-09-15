@@ -1746,3 +1746,44 @@ covers; rules inside dated entries are in the inventory; every `confirms` quote 
 recipe; rules stated in passing are rows. Both skill copies `diff`-identical. 4c is ticked on this
 basis. **Phase 5 is NOT verified to reproduce the MPI-27 hand merge**, and no further dry run is
 planned.
+
+## Close-out yeses — 2026-09-15 (Fabio: "yes to all")
+
+Each proposal was checked against disk before it went to Fabio, then applied:
+
+1. `docs/playbooks/add-flow/ui/prompt-enhance.md` :58 and :185: already committed in `c81de709`.
+   Kept. The symbols they name exist: `withEnhanceFallback` (`js/utils/declaredFields.js:421`),
+   `postProcessLikeGraph` / `enhanceFlow` (`js/services/llmService.js:384` / `:575`).
+2. `docs/llm.md` (new) + one `docs/README.md` row: no LLM doc existed (`ls docs/llm.md` failed,
+   no `llm` hit in the README). Written by a background worker; its verification is recorded below.
+3. `project-knowledge-index.md`: a "Language models" topic, none existed.
+4. `.claude/rules/component-mounts.md`: the `MpiOllamaSetup` mount (slot, props, destroy, the
+   `state`-driven rebuild) appended to the `MpiLlmSettings` line; no rule file named it before.
+5. `.claude/rules/component-events-primitives.md`: an `MpiOllamaSetup` section (component-local
+   `state` emit at `MpiOllamaSetup.js:79`, `el.setModel`, `el.destroy`).
+6. `docs/releases/UNRELEASED.md`: one What's-new entry. `js/data/releaseNotes.js` had zero hits for
+   Ollama / DeepInfra / language model, so no shipped note ever named it. Scoped to Prompt
+   enhancement: Image descriptions' backends are MPI-737's. UI labels checked in code ("Remote"
+   menu item `js/shell/projectUI.js:87`, "Language Models" / "Prompt enhancement" headings).
+7. Memory `in-flight.md`: MPI-198/249 now read BLOCKED on Linux (needs a local engine the box
+   cannot provision); `MEMORY.md` hook reworded to match.
+8. Memory `tool_drive_a_remote_test_box_over_ssh.md`: dated 2026-09-13 line, a timeout means OFF.
+
+`git diff --stat` on items 3-6: 23 insertions, 1 line changed, nothing else. Board validator passed.
+
+Also closed on the way: **MPI-526** (stale umbrella, both members shipped), evidence in its own
+`validation.md`.
+
+**`docs/llm.md` checked by the orchestrator, not taken on the worker's word.** Under the 200-line
+cap. Every backticked path exists (the two IPC channel shorthands verified at
+`main/secretsStore.js:267-276`); all 45 backticked symbols grep-resolve. Spot-checked in code:
+Image descriptions offers ComfyUI only (`MpiLlmSettings.js` `_renderDescribe`), `defaultBackend()`
+= DeepInfra if a key else Ollama (`routes/llm.js:78`), safeStorage + AES-256-GCM fallback, the
+"sub-10s render past 3 minutes" VRAM note (`routes/llm.js:323`), `Input_Seed` randomised
+(`llmService.js:525`). Two fixes applied: the `routes/llm.js` role row (it also drives Ollama), and
+`gemma-4-e4b` is a different model per backend (E4B on Ollama, 26B A4B on DeepInfra).
+**The brief's NSFW premise was stale and the worker caught it:** MPI-728 removed the automatic
+NSFW-to-local routing on purpose (`llmService.js` header, ~L118-135); the doc states the real rule,
+a UI warning with the user's pick deciding. The step 1a checklist line is annotated accordingly.
+Noticed, not actioned: a comment in `routes/llm.js` names `releaseLocalModels`; the call is
+`OllamaEngine.releaseOwnModels()`.

@@ -126,6 +126,13 @@ Topic-to-files map. Match the topic closest to the current task and read the lis
 - **Memory:** none — the "drive downloads over HTTP in BOTH directions (status/active GETs, install/uninstall POSTs), so a download bug does not need the app open" note moved into `docs/download-manager.md` with MPI-574 (2026-08-17); it was memory `tool_read_download_state_without_console.md`
 - **Also:** `docs/models-path.md` (where weights land and how the path is resolved)
 
+### Language models (prompt enhance, image descriptions)
+
+- **Read first:** `docs/llm.md` (per-job backends ComfyUI / DeepInfra / Ollama, the `/llm/*` routes, the DeepInfra key slot, the Ollama lifecycle)
+- **Rules:** `.claude/rules/component-events-primitives.md` § MpiLlmSettings and § MpiOllamaSetup; `.claude/rules/component-mounts.md` (the Remote panel mounts)
+- **Memory:** none
+- **Also:** `docs/playbooks/add-flow/ui/prompt-enhance.md` (how a Flow declares Enhance)
+
 ### Project data & integrity
 
 - **Read first:** `docs/project-integrity.md`, `docs/data.md`

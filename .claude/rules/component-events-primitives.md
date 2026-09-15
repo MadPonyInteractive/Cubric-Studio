@@ -215,6 +215,12 @@ LISTENS: (none)
 API:     `el.onOpen()` — rebuilds every control from scratch (key status, `/llm/models`, plugin install state); forwarded by MpiRemote.
 NOTE:    The Language Models section, one row PER JOB (Prompt enhancement, Image descriptions; the agent arrives as a third). Backend dropdown = DeepInfra / Ollama / ComfyUI with NO automatic entry; the default is ComfyUI (`backendPreference()` in `js/services/llmService.js`, localStorage `cubric.llm.backend`). An entry that cannot run stays LISTED but `disabled` — DeepInfra until a key is saved, ComfyUI until the `image-describer` plugin is installed — and a pinned backend that later becomes unavailable is shown as-is with a note, never swapped. The DeepInfra key is write-only through `secretsClient` (never read back, no state key). The enhancement-model dropdown sits UNDER the backend and hides for ComfyUI. "New to DeepInfra?" promo links `https://deepinfra.com/dash` (`.mpi-settings__signup`, shared with RunPod).
 
+### MpiOllamaSetup *(Compound, mounted by MpiLlmSettings; MPI-728)*
+EMITS:   `state` via the component-local `emit` (read with `inst.on('state', fn)`, NOT `Events`): the `/llm/ollama` state after every read, about once a second while a start, install or download is running.
+LISTENS: (none)
+API:     `el.setModel(id)`: points the row at another Ollama model and re-reads the state. `el.destroy()`: stops the poll and destroys its button and progress bar.
+NOTE:    The inline Ollama row under the backend picker, mounted at `#mpiSettingsLlmOllamaSlot` ONLY while Ollama is the picked backend. Mounting it STARTS a stopped Ollama (no consent needed for an app the user installed); installing Ollama and downloading a model are buttons, and the click is the consent: no toast, no popup. The work runs in the server (`services/ollamaLifecycle.js`), so closing the panel does not stop a download, and the row picks the progress back up when it opens.
+
 ### MpiRunpodSettings *(content section — mounted by MpiRemote since MPI-728; MPI-177 extraction from MpiSettings)*
 EMITS:   `remote:wait-start`  `{ gpuType, datacenter }` — MPI-110: ask the shell to start an auto-retry wait for an out-of-stock GPU (Connect pressed with `autoRetry` on + GPU not in stock, or a mid-connect snipe). The WAIT LOOP lives in shell.js (`_initGpuWaitBridge`), NOT here, so it survives navigating away from Settings.
          `remote:wait-cancel` `{}` — MPI-110: Cancel pressed while waiting → stop the shell wait (no Pod was created, so no teardown).

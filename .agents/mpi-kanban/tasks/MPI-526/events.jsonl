@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "id": "mpi-526-created", "type": "task.created", "at": "2026-08-10T22:10:00Z", "task": "MPI-526", "summary": "Umbrella created by the consolidation sweep over MPI-500, MPI-499."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-526", "at": "2026-09-15T19:33:14+01:00", "actor": "claude", "from": "todo", "to": "done", "reason": "Closed: both members shipped (MPI-500 permanent delete + Recycle Bin toggle; MPI-499 test disk leak, archived done). Evidence in validation.md. Fabio approved 2026-09-15."}

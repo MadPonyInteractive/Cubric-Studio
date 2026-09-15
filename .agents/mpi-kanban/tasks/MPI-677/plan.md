@@ -35,7 +35,18 @@ names but never lettered. **Order is by priority, not by letter.**
 
 ## Current State
 
-**2026-09-15 (latest) — STEP 5 SPUN OUT AS MPI-774 (Fabio). DESIGN APPROVED IN BRAINSTORM, NOT
+**2026-09-15 (latest) — CLOSE-OUT YESES GIVEN AND APPLIED (Fabio: "yes to all").**
+- `prompt-enhance.md` :58 / :185 were already on master (`c81de709`); kept, code matches.
+- MPI-728's proposals: `docs/llm.md` + `docs/README.md` row (background worker), a Language models
+  topic in `project-knowledge-index.md`, `MpiOllamaSetup` in `component-mounts.md` and
+  `component-events-primitives.md`, a What's-new entry in `UNRELEASED.md` (prompt enhancement
+  only: Image descriptions' backends are MPI-737's), a dated line on the linuxbox memory.
+- `in-flight.md`: MPI-198/249 stay blocked on Linux (the box cannot provision a local engine).
+- Found at dispatch: MPI-526 was a stale umbrella (MPI-500 and MPI-499 both shipped); closed.
+**THE SINGLE NEXT ACTION:** step 1c, Fabio's user-ux pass in the app (see checklist). Then
+`mpi-end-session`. Step 1d stays open and is not a gate.
+
+**2026-09-15 (earlier) — STEP 5 SPUN OUT AS MPI-774 (Fabio). DESIGN APPROVED IN BRAINSTORM, NOT
 COMMITTED.** Fabio: step 5 takes its own card, *"otherwise it's too many cards waiting on too many
 cards"*; he runs it in a separate session. MPI-774 `brief.md` holds the approved slice A design:
 an Agent | Prompt toggle, a server-side loop over the connector, plain OpenAI-compatible calls with
