@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["routes/downloadManager.js", "tests/download-completion.test.cjs", "docs/download-manager.md"] }

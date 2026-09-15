@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-764", "at": "2026-09-15T13:28:33+01:00", "actor": "claude", "column": "todo", "title": "Fix flaky ENOTEMPTY teardown in local-disk-gate-partial test: cancelAllDownloads resolves before downloader file work settles"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-764", "at": "2026-09-15T13:44:40+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "root cause traced; fix in FileDownloader + cancelAllDownloads"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-764", "at": "2026-09-15T13:56:17+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "fixed in 5791398d; evidence in validation.md"}
