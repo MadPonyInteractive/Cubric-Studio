@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-759", "at": "2026-09-14T16:58:21+01:00", "actor": "claude", "column": "todo", "title": "GIF as its own gallery asset kind"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-759", "at": "2026-09-15T13:41:26+01:00", "actor": "claude", "note": "rescoped to the gallery side in the GIF brainstorm; decisions taken (hover-play, own icon); maturity needs-decision -> blocked on MPI-749"}

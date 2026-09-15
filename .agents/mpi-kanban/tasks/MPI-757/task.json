@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-757",
+  "title": "GIF workspace: frames, cut-out, Make GIF, GIF Maker",
+  "description": "UMBRELLA over the GIF workspace (brainstorm with Fabio 2026-09-14/15): a dedicated GIF history workspace built on full-colour frames, a SAM3 cut-out, timing/transform/export tools, Make GIF from a gallery selection, and GIF Maker from video. Members and phase order: tasks/MPI-757/plan.md.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-14T16:57:46+01:00",
+  "updated_at": "2026-09-15T13:41:26+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

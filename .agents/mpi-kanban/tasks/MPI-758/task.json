@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-758",
+  "title": "Remove Background on video",
+  "description": "UMBRELLA: MPI-757 - Video cut-outs and GIFs (created 2026-09-14). Members and phase order: tasks/MPI-757/plan.md. Every frame of the current clip (trim honoured, audio kept) through the existing BiRefNet graph, landing as a new video history entry.",
+  "column": "done",
+  "maturity": "rejected",
+  "status": "done",
+  "created_at": "2026-09-14T16:58:20+01:00",
+  "updated_at": "2026-09-15T13:38:15+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

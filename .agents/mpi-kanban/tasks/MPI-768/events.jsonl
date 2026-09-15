@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-768", "at": "2026-09-15T13:37:28+01:00", "actor": "claude", "column": "todo", "title": "GIF frames store and builder"}

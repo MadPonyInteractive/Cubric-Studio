@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-758", "at": "2026-09-14T16:58:20+01:00", "actor": "claude", "column": "todo", "title": "Remove Background on video"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-758", "at": "2026-09-15T13:38:15+01:00", "actor": "claude", "from": "todo", "to": "done", "reason": "Rejected in the MPI-757 brainstorm: background removal scoped to GIFs only (SAM3 cut-out, MPI-771)"}

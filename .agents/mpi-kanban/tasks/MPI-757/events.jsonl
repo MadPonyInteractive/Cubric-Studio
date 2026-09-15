@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-757", "at": "2026-09-14T16:57:46+01:00", "actor": "claude", "column": "todo", "title": "Video cut-outs and GIFs: background removal, GIF assets, GIF Maker"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-757", "at": "2026-09-15T13:41:26+01:00", "actor": "claude", "note": "redesigned in the GIF brainstorm: retitled, plan rewritten with 13 decisions and 8 members (MPI-768..773 created, MPI-758 rejected)"}

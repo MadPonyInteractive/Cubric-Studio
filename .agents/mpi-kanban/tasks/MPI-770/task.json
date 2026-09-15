@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-770",
+  "title": "Make GIF from selected images",
+  "description": "UMBRELLA: MPI-757 - GIF workspace (created 2026-09-14). Members and phase order: tasks/MPI-757/plan.md. Gallery right-click Make GIF: click order, fitted to the first image, 10 fps, 1024 output, opens in the GIF workspace.",
+  "column": "todo",
+  "maturity": "blocked",
+  "status": "active",
+  "created_at": "2026-09-15T13:37:29+01:00",
+  "updated_at": "2026-09-15T13:37:29+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
