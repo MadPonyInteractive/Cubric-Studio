@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-756", "at": "2026-09-14T16:28:28+01:00", "actor": "claude", "column": "todo", "title": "Pod disk gate counts an interrupted install's leftovers as used space"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-756", "at": "2026-09-15T07:53:22+01:00", "actor": "28f4883f-7cbe-4fc1-9d6a-93c6d5eaa3ef", "from": "todo", "to": "doing", "reason": "Root fix briefed and approved: gates credit a dep's own interrupted-install leftovers"}

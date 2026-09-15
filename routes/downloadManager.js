@@ -1896,9 +1896,16 @@ router.post('/comfy/models/download/start', async (req, res) => {
     // download). Summing totalBytes made neededBytes 0, the gate never fired, the
     // download started anyway, and the first write to a full disk crashed the
     // server with an unhandled ENOSPC. (MPI-140; was the MPI-99 gate's blind spot.)
-    const neededBytes = modelJob.deps
-        .filter(d => d.status === 'queued')
-        .reduce((sum, d) => sum + (d.totalBytes || d.seedBytes || 0), 0);
+    // MPI-756: a queued dep's resumable partial is already on the disk statfs measures, and
+    // download() either resumes it in place or removes it before starting clean
+    // (override:true, never a " (1)" sibling), so it is not new space. Read it here rather
+    // than trusting downloadedBytes: a dep job created after a restart never passed the
+    // reset branch above that credits it. getPartialBytes is 0 unless marker-blessed.
+    let neededBytes = 0;
+    for (const d of modelJob.deps.filter(d => d.status === 'queued')) {
+        const partial = d.localPath ? await getPartialBytes(d.localPath) : 0;
+        neededBytes += Math.max(0, (d.totalBytes || d.seedBytes || 0) - partial);
+    }
     if (neededBytes > 0) {
         const targetDir = customRoot || defaultModelsRoot;
         const freeBytes = await _freeDiskBytes(targetDir);
@@ -2874,9 +2881,15 @@ async function _startRemoteDownload(modelId, dependencies, res) {
     // it out, but billing it refuses installs that fit (MiniMax H3 Reference would be
     // billed the 29GB it shares with an installed H3). A requirementsOnly node re-runs
     // pip; no bytes move.
+    // MPI-756: credit each dep's own interrupted-install leftovers (`<dest>.part`,
+    // `<dest>.part.hfstage/`, as `reclaimBytes`). They are already inside the `used` that
+    // free space subtracts, and every wrapper install path frees them before it writes, so
+    // billing the full size counted them twice. Per dep and floored at 0: one dep's
+    // leftovers never pay for another dep that may start first. An old wrapper sends no
+    // reclaimBytes and is credited nothing.
     const remoteNeededBytes = toInstall
       .filter(d => statusResults[d.id] && !d.requirementsOnly)
-      .reduce((sum, d) => sum + _parseSizeToBytes(d.size), 0);
+      .reduce((sum, d) => sum + Math.max(0, _parseSizeToBytes(d.size) - (statusResults[d.id].reclaimBytes || 0)), 0);
     if (remoteNeededBytes > 0) {
       let freeInfo = null;
       try {

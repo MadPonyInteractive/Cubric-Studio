@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["routes/downloadManager.js", "tests/remote-disk-gate-unknown-state.test.cjs", "tests/local-disk-gate-partial.test.cjs", "tests/disk-full-message.test.cjs", "docs/download-manager.md", "../mpi-ci/cubric-vision-pod/wrapper/wrapper.py", "../mpi-ci/cubric-vision-pod/wrapper/test_partial_reclaim.py"] }

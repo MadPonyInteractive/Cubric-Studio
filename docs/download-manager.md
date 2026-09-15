@@ -913,8 +913,25 @@ shared encoder on the volume plus a 19.53GB transformer, 27.9GB free, refused at
 now sums only deps with a fresh status entry, and never a `requirementsOnly` node re-run
 (pip on a present folder moves no bytes). Unknown state bills nothing — the same
 never-false-block rule as unknown free space; a truly full volume still fails reactively
-(wrapper ENOSPC fast-fail). The local gate has no twin: its state is a disk stat. Pinned by
-`tests/remote-disk-gate-unknown-state.test.cjs`.
+(wrapper ENOSPC fast-fail). The local gate has no twin of THIS bug: its state is a disk stat.
+Pinned by `tests/remote-disk-gate-unknown-state.test.cjs`.
+
+**MPI-756 — credit a dep's own leftovers, on both gates.** An interrupted install's bytes are
+already inside the figure free space comes from (`du` used on the Pod, statfs locally), and
+every install path frees or resumes them before it writes, so billing a dep's full size
+counted them twice. Remote: `/wrapper/models/status` returns `reclaimBytes` per missing weight
+dep — ALLOCATED bytes (`st_blocks`, the same accounting as `/wrapper/disk`'s `du`) of
+`<dest>.part` plus the whole `<dest>.part.hfstage/` tree. `partialBytes` is unchanged: the
+APPARENT size of `.part` alone, inflated for aria2's sparse file, so never credit it. The gate
+bills `max(0, size − reclaimBytes)` per dep — floored, so one dep's leftovers never pay for
+another that may start first — and an old wrapper that sends no field is credited nothing.
+`_download_hf` deletes a stale `.part` at start, beside its stage rmtree, so an HF install
+never holds both. Local: the gate bills `max(0, size − getPartialBytes(localPath))` per queued
+dep — marker-blessed only, and `FileDownloader` either resumes that file or removes it
+(`override:true`, never a `(1)` sibling). It reads the partial itself because a dep job built
+after a restart never passes the reset branch that seeds `downloadedBytes`. Pinned by
+`tests/local-disk-gate-partial.test.cjs`, the reclaim cases in
+`tests/remote-disk-gate-unknown-state.test.cjs`, and the wrapper's `test_partial_reclaim.py`.
 
 **Why the reactive-only catch used to miss it live:** MPI-136 (stall/speed-limit
 abort + httpx chunk-deadline) can make a genuinely-full volume manifest as a
@@ -1133,17 +1150,20 @@ while anything is downloading.**
 
 Consequences that cost a live session on 2026-08-10:
 
-- **An interrupted install strands its staging on the volume and nothing sweeps it.** A Pod
-  STOP kills the container before `_download_hf`'s `shutil.rmtree(stage)` runs, so the tree
-  survives — 11.5GB of it after one killed 24.55GB install. `POST /comfy/models/uninstall`
-  for that same dep answered `already-absent` (it removes `dest` and `dest + ".part"`, not
-  the `.hfstage` directory) and the app's orphan sweep maps volume files to deps, so an
-  unmappable staging path is invisible to it too.
-- **The disk gate counts a dep's own stranded `.part` against its retry.** aria2 removes the
-  old `.part` at the start of the next install ("clean slate", MPI-136) — but the app's
-  free-space gate runs before that and refuses the retry for space the install is about to
-  reclaim. Live: `remote install blocked — volume full: need 13.3 GB, have 12.0 GB free`
-  for the very dep whose 13.3GB `.part` was the thing occupying the volume.
+- **An interrupted install strands its staging on the volume.** A Pod STOP kills the
+  container before `_download_hf`'s `shutil.rmtree(stage)` runs, so the tree survives —
+  11.5GB of it after one killed 24.55GB install. Until MPI-756 `POST /comfy/models/uninstall`
+  for that dep answered `already-absent` (the wrapper's delete removed `dest` and
+  `dest + ".part"`, not the `.hfstage` directory); it now removes the stage tree too. The
+  orphan sweep still never sees it — it maps volume files to deps and only deletes deps the
+  status check reports `installed === true` — so a stranded stage is reclaimed by the retry
+  (`_download_hf` rmtrees it first) or by an uninstall of that dep.
+- **Both disk gates billed a dep's own leftovers against its retry (fixed, MPI-756).** aria2
+  removes the old `.part` at the start of the next install ("clean slate", MPI-136), but the
+  free-space gate ran before that and refused the retry for space the install was about to
+  reclaim. Live: `remote install blocked — volume full: need 13.3 GB, have 12.0 GB free` for
+  the very dep whose 13.3GB `.part` was the thing occupying the volume. The credit rule is
+  under the remote pre-flight gate, beside MPI-752.
 
 ## A blip is not a verdict — same-url retry (MPI-460)
 

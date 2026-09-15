@@ -117,3 +117,37 @@ test('a requirements-only node re-run is not billed as a download', async () => 
     const res = await install(modelId, [node, transformer]);
     assert.equal(res.code, 200, `a pip re-run was billed as 20GB of download — ${res.body?.error}`);
 });
+
+// MPI-756 — an install killed mid-download (Pod stop) leaves its bytes on the volume:
+// `<dest>.part` from aria2, `<dest>.part.hfstage/` from the Hugging Face path. Those bytes
+// are already inside the `used` the free figure subtracts, and the retry frees them before
+// it writes (aria2 deletes the `.part`, the HF path rmtrees its stage), so billing the full
+// size counts them twice. Live 2026-08-10: "need 13.3 GB, have 12.0 GB free" for the very
+// dep whose 13.3GB partial was the thing filling the volume.
+const GIB = 1024 ** 3;
+const volumeHoldsLeftovers = (reclaim) => async (models) => ({
+    results: Object.fromEntries(models.map(m => [m.id, {
+        deps: m.deps.map(d => ({
+            id: d.id, installed: false, partialBytes: 0,
+            ...(d.id in reclaim ? { reclaimBytes: reclaim[d.id] } : {}),
+        })),
+    }])),
+});
+
+test("a dep's own stranded leftovers are credited against its retry", async () => {
+    const { modelId, encoder, transformer } = h3RefShape();
+    // The encoder's whole file is already staged on the volume from the killed install.
+    statusCheck = volumeHoldsLeftovers({ [encoder.id]: 24.55 * GIB });
+    const res = await install(modelId, [encoder, transformer]);
+    assert.equal(
+        res.code, 200,
+        `REGRESSION (MPI-756): the retry was billed for bytes it reclaims — ${res.body?.error}`,
+    );
+});
+
+test('a wrapper that reports no reclaimBytes credits nothing (old runtime)', async () => {
+    const { modelId, encoder, transformer } = h3RefShape();
+    statusCheck = volumeHoldsLeftovers({});
+    const res = await install(modelId, [encoder, transformer]);
+    assert.equal(res.code, 400, 'a 46.3GB need with 27.9GB free and no credit must be refused');
+});
