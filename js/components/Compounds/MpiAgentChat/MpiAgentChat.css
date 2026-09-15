@@ -1,0 +1,238 @@
+/* BEM Block — mpi-agent-chat */
+
+/* ── Float animation for waiting mascot ─────────────────────────────────── */
+@keyframes mpi-agent-float {
+    0%   { transform: translateY(0); }
+    50%  { transform: translateY(calc(var(--s-2) * -1)); }
+    100% { transform: translateY(0); }
+}
+
+/* ── Root ────────────────────────────────────────────────────────────────── */
+.mpi-agent-chat {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-3);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* ── Mascot ──────────────────────────────────────────────────────────────── */
+.mpi-agent-chat__mascot-wrap {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    padding: var(--s-2) 0;
+    flex-shrink: 0;
+}
+
+.mpi-agent-chat__mascot {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    flex-shrink: 0;
+    border-radius: var(--r-sm);
+}
+
+.mpi-agent-chat__mascot--waiting {
+    animation: mpi-agent-float 1.4s var(--ease) infinite;
+}
+
+.mpi-agent-chat__mascot-label {
+    color: var(--ink-3);
+    font-size: var(--t-sm);
+}
+
+/* ── Transcript ──────────────────────────────────────────────────────────── */
+.mpi-agent-chat__transcript {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-3);
+    overflow-y: auto;
+    max-height: 320px;
+    padding-right: var(--s-1);
+}
+
+.mpi-agent-chat--standalone .mpi-agent-chat__transcript {
+    max-height: none;
+    flex: 1 1 auto;
+    min-height: 120px;
+}
+
+/* ── Entry types ─────────────────────────────────────────────────────────── */
+
+/* User bubble — right-aligned */
+.mpi-agent-chat__entry--user {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.mpi-agent-chat__bubble {
+    max-width: 78%;
+    padding: var(--s-2) var(--s-3);
+    border-radius: var(--r-md);
+    font-size: var(--t-sm);
+    line-height: 1.5;
+    background: var(--accent-heat);
+    color: var(--ink-1);
+    word-break: break-word;
+}
+
+/* Agent message — markdown */
+.mpi-agent-chat__entry--message {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+/* Tool status line */
+.mpi-agent-chat__entry--tool {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    font-size: var(--t-xs);
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.mpi-agent-chat__entry--tool::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ink-3);
+    flex-shrink: 0;
+}
+
+.mpi-agent-chat__entry--tool--done::before {
+    background: var(--accent-ok, var(--accent-heat));
+}
+
+.mpi-agent-chat__entry--tool--failed::before {
+    background: var(--accent-warn);
+}
+
+/* Compacting notice */
+.mpi-agent-chat__entry--compacting {
+    display: flex;
+    justify-content: center;
+    padding: var(--s-1) var(--s-3);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--r-md);
+    font-size: var(--t-xs);
+    color: var(--ink-3);
+    font-style: italic;
+}
+
+/* Error line */
+.mpi-agent-chat__entry--error {
+    font-size: var(--t-sm);
+    color: var(--accent-warn);
+    padding: var(--s-1) 0;
+}
+
+/* Install confirm card */
+.mpi-agent-chat__confirm-card {
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--r-md);
+    padding: var(--s-3) var(--s-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    max-width: 360px;
+}
+
+.mpi-agent-chat__confirm-title {
+    font-size: var(--t-sm);
+    color: var(--ink-1);
+    font-weight: 600;
+}
+
+.mpi-agent-chat__confirm-size {
+    font-size: var(--t-xs);
+    color: var(--ink-3);
+}
+
+.mpi-agent-chat__confirm-actions {
+    display: flex;
+    gap: var(--s-2);
+    margin-top: var(--s-1);
+}
+
+/* Result card */
+.mpi-agent-chat__result-card {
+    width: 120px;
+    height: 80px;
+    border: 2px solid var(--accent-heat);
+    border-radius: var(--r-sm);
+    overflow: hidden;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: opacity var(--t-fast) var(--ease);
+}
+
+.mpi-agent-chat__result-card:hover {
+    opacity: 0.85;
+}
+
+.mpi-agent-chat__result-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Result row (may have multiple cards) */
+.mpi-agent-chat__entry--result {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+}
+
+/* ── Standalone input row ─────────────────────────────────────────────────── */
+.mpi-agent-chat__input-row {
+    display: flex;
+    gap: var(--s-2);
+    align-items: flex-end;
+    border-top: 1px solid var(--line-soft);
+    padding-top: var(--s-3);
+    flex-shrink: 0;
+}
+
+.mpi-agent-chat__input-wrap {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.mpi-agent-chat__input-row .mpi-agent-chat__send-btn {
+    flex-shrink: 0;
+}
+
+/* Attachments preview strip */
+.mpi-agent-chat__attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-1);
+    padding-bottom: var(--s-1);
+}
+
+.mpi-agent-chat__attachment-thumb {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: var(--r-sm);
+    border: 1px solid var(--line-soft);
+    cursor: pointer;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.mpi-agent-chat__empty {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    color: var(--ink-3);
+    font-size: var(--t-sm);
+    padding: var(--s-3) 0;
+}

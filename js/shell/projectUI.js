@@ -25,7 +25,8 @@ import { MpiProjectDropOverlay } from '../components/Primitives/MpiProjectDropOv
 import { MpiSettings } from '../components/Compounds/LandingPages/MpiSettings/MpiSettings.js';
 import { MpiRemote } from '../components/Blocks/MpiRemote/MpiRemote.js';
 import { MpiHotkeys } from '../components/Compounds/LandingPages/mpi-hotkeys/mpi-hotkeys.js';
-import { MpiAbout } from '../components/Compounds/LandingPages/MpiAbout/MpiAbout.js';
+import { MpiAbout }      from '../components/Compounds/LandingPages/MpiAbout/MpiAbout.js';
+import { MpiAgentChat } from '../components/Compounds/MpiAgentChat/MpiAgentChat.js';
 import '../components/Compounds/MpiSlideOver/MpiSlideOver.js';
 
 // DOM refs
@@ -162,6 +163,13 @@ export function initProjectUI() {
       });
       // initProjectUI runs once at boot — no teardown needed.
     }
+  }
+
+  // ── MPI-774: standalone agent chat on landing page ─────────────────────────
+  const agentSlot = gid('landingAgentSlot');
+  if (agentSlot) {
+    MpiAgentChat.mount(agentSlot, { standalone: true });
+    // initProjectUI runs once — el.destroy() is never needed here.
   }
 }
 

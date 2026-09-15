@@ -674,12 +674,11 @@ not from an assumed source-tree path.
 
 ## Connector Manifest
 
-Vision is a **live connector responder** (MPI-5) — it was manifest-only through MPI-8, and that
-is history, not the current contract. `@cubric/connector` is a `file:` dependency on
-`../Cubric-Studio/packages/connector` (`package.json`), loaded via dynamic `import()` in
-`services/brokerBoot.js` + `services/connectorResponder.js`, and Vision answers
-`system.memory.release` by freeing VRAM through its own `/comfy/unload` route. Everything is
-best-effort: no broker, no responder, Vision still runs standalone.
+Vision is **no longer a broker responder**. MPI-677 step 2 (`3b8052d6`) removed the
+`@cubric/connector` dependency, `services/brokerBoot.js` and `services/connectorResponder.js`, so
+nothing answers `system.memory.release` any more. Vision's connector surface is its own HTTP
+routes (`routes/connector.js`; `GET /connector/capabilities` is the live answer), and the manifest
+lists only what those routes serve (MPI-774).
 
 **The ownership boundary has not moved.** The Cubric Studio hub owns the contract and the
 runtime — `@cubric/connector` and `@cubric/broker` — and product apps consume them. Never move
@@ -696,9 +695,8 @@ Smoke assertions (`assertConnectorManifest` in `scripts/build-portable.mjs`):
 
 - `appId` is `cubric.vision`.
 - `protocolVersion` is `0.1.0`.
-- `capabilities` includes `system.memory.release` — this **replaced** the old
-  `metadata.manifestOnly === true` assertion, which would now fail (the shipped manifest says
-  `manifestOnly: false`).
+- `capabilities` includes `generation.submit`, the capability `POST /connector/generate` serves
+  (MPI-774). It replaced `system.memory.release`, which was asserted after its responder was gone.
 
 The `file:` dependency on a sibling repo is why `assertNoDanglingSymlinks(appRoot)` sweeps the
 WHOLE staged app tree (MPI-416): npm leaves a symlink for it, `copyAppTree`/`ditto` faithfully

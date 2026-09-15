@@ -145,6 +145,107 @@ export const secretsClient = {
         }
     },
 
+    // ── Endpoint profiles (MPI-774 agent) ───────────────────────────────────
+    // Keys follow the same write-only contract: set / has / clear, no get.
+    // The forked server reads the key over the fork bridge. The deepinfra preset
+    // reuses the existing DeepInfra slot — a user never enters the same key twice.
+
+    /**
+     * Returns all profiles (presets + user-saved) without keys.
+     * @returns {Promise<Array<{id,name,baseURL,model,contextWindow}>>}
+     */
+    async listEndpointProfiles() {
+        const ipc = _ipc();
+        if (!ipc) return [];
+        try {
+            const res = await ipc.invoke('secrets:list-endpoint-profiles');
+            return res?.profiles || [];
+        } catch (err) {
+            clientLogger.error('settings', '[secretsClient] list-endpoint-profiles failed', err);
+            return [];
+        }
+    },
+
+    /**
+     * Saves (creates or overwrites) a profile.
+     * @param {{id,name,baseURL,model,contextWindow}} profile
+     * @returns {Promise<{ok:boolean,reason?:string}>}
+     */
+    async saveEndpointProfile(profile) {
+        const ipc = _ipc();
+        if (!ipc) return { ok: false, error: 'ipc_unavailable' };
+        try {
+            return await ipc.invoke('secrets:save-endpoint-profile', profile);
+        } catch (err) {
+            clientLogger.error('settings', '[secretsClient] save-endpoint-profile failed', err);
+            return { ok: false, error: 'ipc_error' };
+        }
+    },
+
+    /**
+     * Deletes a profile and its key.
+     * @param {string} profileId
+     * @returns {Promise<{ok:boolean}>}
+     */
+    async deleteEndpointProfile(profileId) {
+        const ipc = _ipc();
+        if (!ipc) return { ok: false };
+        try {
+            return await ipc.invoke('secrets:delete-endpoint-profile', { profileId });
+        } catch (err) {
+            clientLogger.error('settings', '[secretsClient] delete-endpoint-profile failed', err);
+            return { ok: false };
+        }
+    },
+
+    /**
+     * Encrypts and stores the key for a profile, bound to its current base URL.
+     * @param {string} profileId
+     * @param {string} key
+     * @returns {Promise<{ok:boolean,weakEncryption?:boolean,error?:string}>}
+     */
+    async setEndpointKey(profileId, key) {
+        const ipc = _ipc();
+        if (!ipc) return { ok: false, error: 'ipc_unavailable' };
+        try {
+            return await ipc.invoke('secrets:set-endpoint-key', { profileId, key });
+        } catch (err) {
+            clientLogger.error('settings', '[secretsClient] set-endpoint-key failed', err);
+            return { ok: false, error: 'ipc_error' };
+        }
+    },
+
+    /**
+     * @param {string} profileId
+     * @returns {Promise<boolean>} True when a key is stored for this profile.
+     */
+    async hasEndpointKey(profileId) {
+        const ipc = _ipc();
+        if (!ipc) return false;
+        try {
+            const res = await ipc.invoke('secrets:has-endpoint-key', { profileId });
+            return !!res?.has;
+        } catch (err) {
+            clientLogger.error('settings', '[secretsClient] has-endpoint-key failed', err);
+            return false;
+        }
+    },
+
+    /**
+     * @param {string} profileId
+     * @returns {Promise<{ok:boolean}>}
+     */
+    async clearEndpointKey(profileId) {
+        const ipc = _ipc();
+        if (!ipc) return { ok: false };
+        try {
+            return await ipc.invoke('secrets:clear-endpoint-key', { profileId });
+        } catch (err) {
+            clientLogger.error('settings', '[secretsClient] clear-endpoint-key failed', err);
+            return { ok: false };
+        }
+    },
+
     /** @returns {Promise<{available: boolean, platform: string}>} */
     async encryptionStatus() {
         const ipc = _ipc();

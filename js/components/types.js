@@ -11,6 +11,22 @@
 'use strict';
 
 /**
+ * @typedef {Object} MpiAgentChatProps (Compound — js/components/Compounds/MpiAgentChat)
+ * @property {boolean} [standalone=false]
+ *   When true, renders its own input row (textarea + send button + image drag-and-drop).
+ *   When false, the host (MpiPromptBox) provides input via el.sendMessage().
+ *
+ * Instance methods (on el):
+ *   el.sendMessage(text, attachments)  — append user turn and POST /agent/message.
+ *                                        attachments = [{dataUrl, name}]
+ *   el.setWorking(bool)                — force-set the mascot working state.
+ *   el.destroy()                       — unsub all listeners, close SSE stream.
+ *
+ * Emits:
+ *   'working' { working: boolean }     — mirrors agent:working SSE event.
+ */
+
+/**
  * @typedef {Object} MpiCanvasProps (Primitive — js/components/Primitives/MpiCanvas)
  * @property {(size: number) => void} [onBrushSizeChange] - Called when brush size changes via wheel in mask mode
  * @property {(type: string) => void} [onBrushTypeChange] - Called when brush type changes via hotkey (b/e)

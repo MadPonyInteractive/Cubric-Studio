@@ -63,6 +63,7 @@ const { cleanComfyUITempFiles } = require('./routes/shared');
 const connectorRoutes = require('./routes/connector');
 const licenceRoutes = require('./routes/licences');
 const llmRoutes = require('./routes/llm');
+const agentRoutes = require('./routes/agent');  // MPI-774
 
 console.log('[server.js] App initialization started');
 logger.info('system', 'Server initialization started');
@@ -85,6 +86,7 @@ app.use(remoteEngineRoutes);
 app.use(connectorRoutes);
 app.use(licenceRoutes);
 app.use(llmRoutes);
+app.use(agentRoutes);  // MPI-774
 
 process.on('SIGTERM', () => { cancelAllDownloads(); cleanComfyUITempFiles(); process.exit(0); });
 process.on('SIGINT', () => { cancelAllDownloads(); cleanComfyUITempFiles(); process.exit(0); });

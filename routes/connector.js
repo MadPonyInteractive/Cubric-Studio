@@ -3,6 +3,16 @@
 /**
  * routes/connector.js — Vision's external-caller HTTP surface (MPI-5).
  *
+ * MPI-774 adds the agent tool routes (in-app agent):
+ *   GET  /connector/models           → relay model/flow list + hardware fit
+ *   GET  /connector/knowledge[/:id]  → agent corpus
+ *   POST /connector/install          → start download of missing deps
+ *   POST /connector/describe         → crop + relay imageDescribe
+ *
+ * These relay to the renderer (install state, plugin availability, generation
+ * queue) via the existing SSE job mechanism, then add server-side data.
+ *
+ *
  * MPI-677 cut the broker out of this file. It used to carry a `prompt.enhance`
  * caller pair — `POST /connector/enhance` plus a `promptEnhance` flag on
  * /connector/capabilities — that reached Cubric Prompt over the Cubric hub
@@ -49,12 +59,141 @@
 const express = require('express');
 const router = express.Router();
 const { randomUUID } = require('node:crypto');
+const os = require('node:os');
+const path = require('node:path');
+const { execFile } = require('node:child_process');
+const fs = require('fs-extra');
 
 const logger = require('./logger');
 // DOM-free, require()-able server-side (see its own module comment). The v1
 // named-param resolver both this route and js/shell/agentDispatch.js call — one
 // implementation, not a route-side copy and a renderer-side copy (MPI-547).
 const { findModelDef, resolveNamedParams, isValidSeed } = require('../js/data/generationControls.js');
+const { isRemoteActive } = require('./remoteModels');
+const { resolveDownloadConfig } = require('./platformEngine');
+const { checkOnline } = require('./netCheck');
+// sharp is an optional peer during testing — guard against it being absent so
+// unit tests that do not exercise image crop can still import this module.
+let _sharp = null;
+function _getSharp() {
+    if (!_sharp) _sharp = require('sharp');
+    return _sharp;
+}
+
+// ESM modules cached after first import (dynamic import() is fine in CJS on Node 12+).
+let _footprintMod = null;
+let _depsMod = null;
+let _corpusMod = null;
+async function _footprint() {
+    if (!_footprintMod) _footprintMod = await import('../js/data/modelConstants/footprint.js');
+    return _footprintMod;
+}
+async function _getDeps() {
+    if (!_depsMod) _depsMod = await import('../js/data/modelConstants/dependencies.js');
+    return _depsMod.DEPS;
+}
+async function _getCorpusEntries() {
+    if (!_corpusMod) _corpusMod = await import('../services/agentCorpus.mjs');
+    return _corpusMod.listCorpus();
+}
+
+// Agent crops dir: server-side staging area for image crops before describe.
+// Use APP_USER_DATA when available (Electron); fall back to os.tmpdir() for
+// standalone tests. Wiped on reset by routes/agent.js (W2).
+function _agentCropsDir() {
+    return process.env.APP_USER_DATA
+        ? path.join(process.env.APP_USER_DATA, 'agent', 'crops')
+        : path.join(os.tmpdir(), 'cubric-agent', 'crops');
+}
+
+// ── Hardware helper ────────────────────────────────────────────────────────────
+
+/**
+ * Get a quick VRAM reading from nvidia-smi (MB → GB). Returns null on failure.
+ * This is a best-effort probe — a missing GPU or a non-NVIDIA GPU both return null.
+ */
+function _nvidiaSmiVram() {
+    return new Promise((resolve) => {
+        execFile(
+            'nvidia-smi',
+            ['--query-gpu=memory.total', '--format=csv,noheader,nounits'],
+            { windowsHide: true, timeout: 3000 },
+            (err, stdout) => {
+                if (err || !stdout) return resolve(null);
+                const mb = parseInt(stdout.trim(), 10);
+                resolve(Number.isFinite(mb) && mb > 0 ? mb / 1024 : null);
+            },
+        );
+    });
+}
+
+/**
+ * Fetch hardware info for the active engine.
+ * Local: GPU from resolveDownloadConfig + nvidia-smi VRAM + os.totalmem.
+ * Remote: pod specs via GET /remote/pod/specs on loopback.
+ */
+async function _getHardwareInfo() {
+    const port = Number(process.env.CUBRIC_PORT) || 3000;
+    if (isRemoteActive()) {
+        try {
+            const res = await fetch(`http://127.0.0.1:${port}/remote/pod/specs`);
+            if (res.ok) {
+                const d = await res.json();
+                return {
+                    gpuName: d.gpuName || null,
+                    vramGb: typeof d.vramGb === 'number' ? d.vramGb : null,
+                    ramGb: typeof d.ramGb === 'number' ? d.ramGb : Math.round(os.totalmem() / (1024 ** 3)),
+                };
+            }
+        } catch (_) { /* fall through to local */ }
+    }
+    const [cfg, vramGb] = await Promise.all([
+        resolveDownloadConfig().catch(() => null),
+        _nvidiaSmiVram(),
+    ]);
+    return {
+        gpuName: cfg?.gpu?.name || null,
+        vramGb,
+        ramGb: Math.round(os.totalmem() / (1024 ** 3)),
+    };
+}
+
+// ── Coordinate mapping (MPI-774) ───────────────────────────────────────────────
+
+/**
+ * Map a point from the describer's scaled-input space back to original image pixels.
+ *
+ * The describer scales the crop (or the whole image when no crop) to ~1 MP via
+ * node 41 `ImageScaleToTotalPixels` (steps of 16). A coordinate in that scaled
+ * input maps to the original as:
+ *   x_orig = cropX + x_in * cropWidth / inputWidth
+ *   y_orig = cropY + y_in * cropHeight / inputHeight
+ *
+ * No crop: cropX/cropY = 0, cropWidth/cropHeight = origWidth/origHeight.
+ *
+ * The raw answer format and coordinate space (pixels vs 0-1000 normalised) are
+ * determined from Phase 4's measured answers; this function handles the pixel case.
+ * **The box parser waits for Phase 4 — do not extend this for Phase 1.**
+ *
+ * @param {{ x: number, y: number }} point  Point in the describer's input space.
+ * @param {{ crop?: {x,y,width,height}, inputWidth: number, inputHeight: number,
+ *            origWidth: number, origHeight: number }} opts
+ * @returns {{ x: number, y: number }}  Point in original image pixels.
+ */
+function mapFromDescribeSpace(point, { crop, inputWidth, inputHeight, origWidth, origHeight }) {
+    const srcX = crop ? crop.x : 0;
+    const srcY = crop ? crop.y : 0;
+    const srcW = crop ? crop.width : origWidth;
+    const srcH = crop ? crop.height : origHeight;
+    return {
+        x: srcX + point.x * srcW / inputWidth,
+        y: srcY + point.y * srcH / inputHeight,
+    };
+}
+// Attached to the router so require('../routes/connector').mapFromDescribeSpace works
+// regardless of module.exports being reassigned to router below.
+// (module.exports = router overrides the exports reference, so we attach here pre-hoc.)
+router.mapFromDescribeSpace = mapFromDescribeSpace;
 
 // --- generation relay state ------------------------------------------------
 
@@ -219,7 +358,7 @@ const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'styli
 router.post('/connector/generate', async (req, res) => {
   const {
     modelId, operation, positive, negative, injectionParams, flowId, fields, media,
-    ratio, qualityTier, turbo, styleSelect, stylization, batch, seed,
+    ratio, qualityTier, turbo, styleSelect, stylization, batch, seed, params,
   } = req.body || {};
 
   const _bad = (message) => res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message } });
@@ -257,7 +396,8 @@ router.post('/connector/generate', async (req, res) => {
   }
 
   const input = flowId
-    ? { flowId: String(flowId), fields: fields || {}, media: Array.isArray(media) ? media : [] }
+    ? { flowId: String(flowId), fields: fields || {}, media: Array.isArray(media) ? media : [],
+        ...(params && typeof params === 'object' ? { params } : {}) }
     : {
       modelId: String(modelId),
       operation: String(operation),
@@ -316,6 +456,205 @@ router.post('/connector/open-project', async (req, res) => {
 router.post('/connector/jobs/:id/result', (req, res) => {
   const settled = _settleJob(req.params.id, req.body || {});
   res.json({ received: settled });
+});
+
+// ── Agent tool routes (MPI-774) ────────────────────────────────────────────────
+
+/**
+ * GET /connector/models
+ *
+ * Returns the full model + flow catalogue with install state (from the renderer),
+ * hardware fit (from footprint.js tradeTable), and the download size of any
+ * missing deps. Errors: APP_UNAVAILABLE.
+ */
+router.get('/connector/models', async (req, res) => {
+  const listResult = await _dispatchToRenderer('agent.list-models', {});
+  if (!listResult.ok) return res.json(listResult);
+
+  const { engine, models: rawModels, flows } = listResult.output || {};
+
+  // Hardware and footprint are best-effort; failures → null, never a 500.
+  let hardware = { gpuName: null, vramGb: null, ramGb: null };
+  let fp = null;
+  let DEPS = null;
+  try {
+    [hardware, fp, DEPS] = await Promise.all([_getHardwareInfo(), _footprint(), _getDeps()]);
+  } catch (_) { /* serve without fit if anything goes wrong */ }
+
+  const { tradeTable, sizeToGb } = fp || {};
+
+  const models = (rawModels || []).map(m => {
+    let fit = null;
+    let missingDownloadGb = 0;
+
+    if (tradeTable && sizeToGb && DEPS) {
+      // Find the full ModelDef so tradeTable can read its weight sizes.
+      // Dynamic import of MODELS would be cleaner but costs ~200ms; look it up by
+      // matching the id from the renderer's slim entry.
+      try {
+        const modelDef = findModelDef(m.id);
+        if (modelDef) {
+          const table = tradeTable(modelDef, engine || null, hardware.vramGb);
+          const userRow = table.rows.find(r => r.isUserRow) || table.rows[0];
+          fit = {
+            floorVramGb: table.vramFloor,
+            ramGbAtYourVram: userRow ? userRow.ram : null,
+            runs: userRow ? userRow.isUserRow : false,
+          };
+        }
+      } catch (_) { /* no fit */ }
+
+      missingDownloadGb = (m.missingDepIds || []).reduce((sum, id) => {
+        const dep = DEPS[id];
+        return sum + (dep?.size ? sizeToGb(dep.size) : 0);
+      }, 0);
+    }
+
+    const { missingDepIds, ...rest } = m;
+    return { ...rest, missingDownloadGb: Math.round(missingDownloadGb * 100) / 100, ...(fit ? { fit } : {}) };
+  });
+
+  res.json({ ok: true, engine: engine || 'local', hardware, models, flows: flows || [] });
+});
+
+/**
+ * GET /connector/knowledge
+ * Returns the corpus index: `{ ok, entries: [{ id, kind, title, tags }] }`.
+ */
+router.get('/connector/knowledge', async (_req, res) => {
+  try {
+    const entries = await _getCorpusEntries();
+    res.json({
+      ok: true,
+      entries: entries.map(({ id, kind, title, tags }) => ({ id, kind, title, tags })),
+    });
+  } catch (err) {
+    logger.error('connector', 'knowledge list failed', err);
+    res.json({ ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
+  }
+});
+
+/**
+ * GET /connector/knowledge/:id
+ * Returns one corpus entry's text: `{ ok, id, title, text }`.
+ * Error: UNKNOWN_ENTRY.
+ */
+router.get('/connector/knowledge/:id', async (req, res) => {
+  try {
+    const entries = await _getCorpusEntries();
+    const entry = entries.find(e => e.id === req.params.id);
+    if (!entry) {
+      return res.json({ ok: false, error: { code: 'UNKNOWN_ENTRY', message: `No corpus entry "${req.params.id}".` } });
+    }
+    res.json({ ok: true, id: entry.id, title: entry.title, text: entry.text() });
+  } catch (err) {
+    logger.error('connector', 'knowledge fetch failed', err);
+    res.json({ ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
+  }
+});
+
+/**
+ * POST /connector/install { modelId }
+ *
+ * Starts downloading any missing deps for a model. Returns immediately with
+ * `{ ok, modelId, downloadGb, started: true }`. Progress via
+ * `GET /comfy/downloads/status`. Errors: BAD_REQUEST, UNKNOWN_MODEL,
+ * ALREADY_INSTALLED, OFFLINE, APP_UNAVAILABLE.
+ */
+router.post('/connector/install', async (req, res) => {
+  const { modelId } = req.body || {};
+  if (!modelId) {
+    return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'body.modelId is required.' } });
+  }
+
+  if (!findModelDef(modelId)) {
+    return res.json({ ok: false, error: { code: 'UNKNOWN_MODEL', message: `No model with id "${modelId}".` } });
+  }
+
+  if (!(await checkOnline())) {
+    return res.json({ ok: false, error: { code: 'OFFLINE', message: 'The host appears to be offline.' } });
+  }
+
+  const result = await _dispatchToRenderer('agent.install-model', { modelId });
+  if (!result.ok) {
+    logger.warn('connector', `install ${modelId}: ${result.error?.code}`);
+  }
+  // The renderer wraps its output in { ok, output: { modelId, downloadGb, started } }.
+  // Unwrap one level so the caller gets the flat shape the contract specifies.
+  if (result.ok && result.output) return res.json({ ok: true, ...result.output });
+  res.json(result);
+});
+
+/**
+ * POST /connector/describe { imagePath, question?, crop? }
+ *
+ * Optional crop: cut the image with sharp to the agent crops dir, then relay
+ * to the renderer's `agent.describe` capability. Returns `{ ok, output: { text } }`.
+ * Errors: BAD_REQUEST, IMAGE_NOT_FOUND, CROP_OUT_OF_BOUNDS, DESCRIBER_MISSING,
+ * APP_UNAVAILABLE, RUNTIME_ERROR, TIMEOUT.
+ */
+router.post('/connector/describe', async (req, res) => {
+  const { imagePath, question, crop } = req.body || {};
+
+  if (!imagePath) {
+    return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'body.imagePath is required.' } });
+  }
+
+  // Validate crop fields when provided.
+  if (crop !== undefined) {
+    if (!crop || typeof crop !== 'object') {
+      return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'body.crop must be an object {x,y,width,height}.' } });
+    }
+    const { x, y, width, height } = crop;
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(width) || !Number.isFinite(height)
+        || width <= 0 || height <= 0) {
+      return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'crop.x/y/width/height must be finite numbers; width/height must be positive.' } });
+    }
+  }
+
+  // Verify the source image exists.
+  const srcExists = await fs.pathExists(imagePath);
+  if (!srcExists) {
+    return res.json({ ok: false, error: { code: 'IMAGE_NOT_FOUND', message: `File not found: ${imagePath}` } });
+  }
+
+  let effectivePath = imagePath;
+
+  if (crop) {
+    try {
+      const cropsDir = _agentCropsDir();
+      await fs.ensureDir(cropsDir);
+      const outPath = path.join(cropsDir, `${randomUUID()}.jpg`);
+      const sharp = _getSharp();
+
+      // Get source dimensions for out-of-bounds check.
+      const meta = await sharp(imagePath).metadata();
+      const srcW = meta.width || 0;
+      const srcH = meta.height || 0;
+      const { x, y, width, height } = crop;
+
+      if (x < 0 || y < 0 || x + width > srcW || y + height > srcH) {
+        return res.json({ ok: false, error: { code: 'CROP_OUT_OF_BOUNDS',
+          message: `crop (${x},${y},${width},${height}) extends outside image (${srcW}×${srcH}).` } });
+      }
+
+      await sharp(imagePath)
+        .extract({ left: Math.round(x), top: Math.round(y), width: Math.round(width), height: Math.round(height) })
+        .jpeg({ quality: 92 })
+        .toFile(outPath);
+      effectivePath = outPath;
+    } catch (err) {
+      logger.error('connector', 'describe crop failed', err);
+      return res.json({ ok: false, error: { code: 'RUNTIME_ERROR', message: `Crop failed: ${err.message}` } });
+    }
+  }
+
+  const result = await _dispatchToRenderer('agent.describe', { imagePath: effectivePath, question });
+
+  if (!result.ok) {
+    logger.warn('connector', `describe failed: ${result.error?.code}`);
+  }
+  res.json(result);
 });
 
 module.exports = router;

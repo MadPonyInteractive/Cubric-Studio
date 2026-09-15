@@ -28,17 +28,27 @@
  * NOT reimplemented here. That module is DOM-free and also runs server-side
  * (`routes/connector.js`'s static validation), so this file's only job is
  * calling it with the real `state.currentProject`.
+ *
+ * MPI-774 adds agent capabilities: `agent.list-models`, `agent.install-model`,
+ * `agent.describe`. These build on renderer-only state (install status, plugin
+ * availability) and the existing download / enqueue paths, so they live here.
  */
 
 import { enqueueGeneration, findMissingMediaSlot } from '../services/generationService.js';
 import { submitFlowGeneration } from '../services/flowService.js';
 import { openProject } from '../services/projectService.js';
 import { navigate, PAGE_GALLERY } from '../router.js';
-import { getModelById, isOperationInstalled } from '../data/modelRegistry.js';
-import { getFlowById, flowAvailability } from '../data/flowsRegistry.js';
+import { MODELS, getModelById, isOperationInstalled, getModelDepStatus } from '../data/modelRegistry.js';
+import { DEPS } from '../data/modelConstants/dependencies.js';
+import { resolveFullUniverse } from '../data/modelConstants/resolveModelDeps.js';
+import { sizeToGb } from '../data/modelConstants/footprint.js';
+import { getFlowById, listFlows, flowAvailability } from '../data/flowsRegistry.js';
 import { resolveFlowFieldValues, flowDeclaredFields } from '../utils/declaredFields.js';
 import { getCommand } from '../data/commandRegistry.js';
 import { resolveNamedParams, isValidSeed, resolveAgentMedia } from '../data/generationControls.js';
+import { pluginAvailability } from '../data/pluginsRegistry.js';
+import { downloadService } from '../services/downloadService.js';
+import { remoteEngineClient } from '../services/remoteEngineClient.js';
 import { state } from '../state.js';
 import { clientLogger } from '../services/clientLogger.js';
 
@@ -209,7 +219,7 @@ function _submitGeneration(jobId, input = {}) {
  * audio lands in the same content-addressed store a dropped file does.
  */
 function _submitFlow(jobId, input = {}) {
-    const { flowId, fields = {}, media = [] } = input;
+    const { flowId, fields = {}, media = [], params = {} } = input;
 
     if (!state.currentProject) {
         return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision. Open one first.');
@@ -249,12 +259,41 @@ function _submitFlow(jobId, input = {}) {
             `${flow.title} needs ${missingSlot.mediaType} in its "${missingSlot.key}" slot.`);
     }
 
-    const { inputs, injectionParams, unknown } = resolveFlowFieldValues(flow, fields);
+    // Validate and merge box `params` (MPI-774). Each key in `params` must name
+    // a step with `kind: 'box'` and a matching `param` id; the box values are
+    // integers; ratio:1 steps require a square box; bounds are checked unless the
+    // step declares `overflow: 'allow'` or image dimensions are unavailable.
+    const boxParamValidation = validateBoxParams(flow, params, mediaItems);
+    if (!boxParamValidation.ok) {
+        return _fail(jobId, boxParamValidation.code, boxParamValidation.message);
+    }
+
+    const { inputs, injectionParams: fieldInjection, unknown } = resolveFlowFieldValues(flow, fields);
     if (unknown.length) {
         const known = flowDeclaredFields(flow).map(f => f.id).join(', ');
         return _fail(jobId, 'BAD_REQUEST',
             `${flow.title} declares no field ${unknown.map(k => `"${k}"`).join(', ')}. Fields: ${known || 'none'}.`);
     }
+
+    // Merge box params into injectionParams: each box key becomes its Input_ title
+    // exactly as the workflow expects (agentDispatch._buildParams does the rename,
+    // but flow submissions go through submitFlowGeneration directly, so inject with
+    // the `Input_` prefix — matching the node titles the flow declares).
+    const boxInjection = {};
+    const boxSteps = (flow.steps || []).filter(s => s.kind === 'box' && s.param);
+    for (const [key, val] of Object.entries(params)) {
+        const step = boxSteps.find(s => s.param === key);
+        if (step) {
+            // Find the matching Input_Box node title from the workflow:
+            // Head Swap uses Input_Box and Input_Box_2. The step's `role` correlates
+            // to image1→Input_Box, image2→Input_Box_2, but future flows may differ.
+            // Safest: pass through with the key as-is and let commandExecutor's rename
+            // pass (box1→Input_Box, box2→Input_Box_2). Values match MpiBox shape.
+            boxInjection[key] = val;
+        }
+    }
+
+    const injectionParams = { ...fieldInjection, ...boxInjection };
 
     const queued = submitFlowGeneration(flow, {
         ...inputs,
@@ -317,10 +356,207 @@ async function _openProject(jobId, input = {}) {
     });
 }
 
+/**
+ * Validate the `params` object against a flow's box steps (MPI-774).
+ * Returns `{ ok: true }` or `{ ok: false, code, message }`.
+ * Pure function — no side effects, exported for tests.
+ *
+ * @param {object} flow         FlowDef
+ * @param {object} params       e.g. `{ box1: { x, y, width, height } }`
+ * @param {object[]} mediaItems Resolved media array; used for bounds check when dims available.
+ */
+export function validateBoxParams(flow, params, mediaItems = []) {
+    if (!params || !Object.keys(params).length) return { ok: true };
+    const boxSteps = (flow.steps || []).filter(s => s.kind === 'box' && s.param);
+    const knownParams = new Set(boxSteps.map(s => s.param));
+    for (const [key, val] of Object.entries(params)) {
+        if (!knownParams.has(key)) {
+            return {
+                ok: false, code: 'UNKNOWN_PARAM',
+                message: `"${key}" is not a box param of ${flow.title}. Known: ${[...knownParams].join(', ') || 'none'}.`,
+            };
+        }
+        const step = boxSteps.find(s => s.param === key);
+        if (!val || typeof val !== 'object') {
+            return { ok: false, code: 'INVALID_BOX', message: `${key}: expected an object {x,y,width,height}.` };
+        }
+        const { x, y, width, height } = val;
+        if (!Number.isInteger(x) || !Number.isInteger(y) || !Number.isInteger(width) || !Number.isInteger(height)) {
+            return { ok: false, code: 'INVALID_BOX', message: `${key}: x, y, width, height must be integers.` };
+        }
+        if (width <= 0 || height <= 0) {
+            return { ok: false, code: 'INVALID_BOX', message: `${key}: width and height must be positive.` };
+        }
+        if (step.ratio === 1 && width !== height) {
+            return { ok: false, code: 'INVALID_BOX', message: `${key}: box must be square (got ${width}×${height}).` };
+        }
+        // Bounds check: skip when overflow is allowed, or when image dims are unavailable.
+        if (step.overflow !== 'allow') {
+            const roleMedia = mediaItems.find(m => m.source === step.role || m.role === step.role);
+            const imgW = roleMedia?.pixelDimensions?.w;
+            const imgH = roleMedia?.pixelDimensions?.h;
+            if (Number.isFinite(imgW) && Number.isFinite(imgH)) {
+                if (x < 0 || y < 0 || x + width > imgW || y + height > imgH) {
+                    return {
+                        ok: false, code: 'INVALID_BOX',
+                        message: `${key}: box (${x},${y},${width},${height}) extends outside the image (${imgW}×${imgH}).`,
+                    };
+                }
+            }
+        }
+    }
+    return { ok: true };
+}
+
+// ── Agent capabilities (MPI-774) ──────────────────────────────────────────────
+
+/**
+ * `agent.list-models` — build the full model/flow list with current install state.
+ * Called by GET /connector/models; the route adds hardware fit + download sizes.
+ */
+function _listModels(jobId) {
+    const engine = remoteEngineClient.effectiveEngine();
+
+    const models = MODELS.map(model => {
+        const ops = (model.supportedOps || []).map(op => ({
+            op,
+            installed: isOperationInstalled(model, op),
+        }));
+
+        // Compute missing dep IDs for this engine so the route can sum their sizes.
+        const allDepIds = resolveFullUniverse(model, null, engine);
+        const depStatus = getModelDepStatus(model.id);
+        const missingDepIds = allDepIds.filter(id => {
+            if (!depStatus) return true; // no cache = assume missing
+            const s = depStatus.get(id);
+            return s !== true && (typeof s !== 'object' || s?.installed !== true);
+        }).filter(id => {
+            // Skip custom_nodes and json config entries — they aren't downloaded as
+            // weights and have no meaningful byte size to sum.
+            const dep = DEPS[id];
+            return dep && dep.size && dep.type !== 'custom_nodes' && dep.type !== 'json';
+        });
+
+        return {
+            id: model.id,
+            name: model.name,
+            type: model.mediaType,
+            installed: isOperationInstalled(model, null),
+            ops,
+            missingDepIds,
+        };
+    });
+
+    const flows = listFlows().map(flow => {
+        const avail = flowAvailability(flow);
+        const boxSteps = (flow.steps || []).filter(s => s.kind === 'box' && s.param);
+        return {
+            id: flow.id,
+            title: flow.title,
+            operation: flow.operation,
+            installed: avail.available,
+            fields: (flow.fields || []).map(f => f.id),
+            boxParams: boxSteps.map(s => ({
+                param: s.param,
+                role: s.role,
+                ...(Number.isFinite(s.ratio) ? { ratio: s.ratio } : {}),
+                ...(s.overflow === 'allow' ? { overflow: 'allow' } : {}),
+            })),
+        };
+    });
+
+    return _report(jobId, { ok: true, output: { engine, models, flows } });
+}
+
+/**
+ * `agent.install-model` — start the download of any missing deps for a model.
+ * Called by POST /connector/install; the route has already validated the model id
+ * exists and that the app is online.
+ */
+async function _installModel(jobId, input = {}) {
+    const { modelId } = input;
+    const model = getModelById(modelId);
+    if (!model) return _fail(jobId, 'UNKNOWN_MODEL', `No model with id "${modelId}".`);
+
+    const engine = remoteEngineClient.effectiveEngine();
+    const allDepIds = resolveFullUniverse(model, null, engine);
+    const depStatus = getModelDepStatus(model.id);
+
+    const missingDepIds = allDepIds.filter(id => {
+        if (!depStatus) return true;
+        const s = depStatus.get(id);
+        return s !== true && (typeof s !== 'object' || s?.installed !== true);
+    });
+
+    const missingDeps = missingDepIds.map(id => DEPS[id]).filter(Boolean);
+    if (!missingDeps.length) {
+        return _report(jobId, { ok: false, error: { code: 'ALREADY_INSTALLED', message: `${model.name} is already installed.` } });
+    }
+
+    const downloadGb = missingDeps.reduce((sum, dep) => sum + (dep.size ? sizeToGb(dep.size) : 0), 0);
+
+    try {
+        await downloadService.start(model.id, missingDeps);
+    } catch (err) {
+        return _fail(jobId, 'RUNTIME_ERROR', err?.message || 'Download start failed.');
+    }
+
+    return _report(jobId, { ok: true, output: { modelId, downloadGb: Math.round(downloadGb * 10) / 10, started: true } });
+}
+
+/**
+ * `agent.describe` — run the image describer with an optional injected question.
+ * The imagePath (possibly a cropped file) is passed by the server-side route.
+ * Returns `{ text }` via onText. Errors: DESCRIBER_MISSING, RUNTIME_ERROR.
+ */
+function _describeImage(jobId, input = {}) {
+    const { imagePath, question } = input;
+    if (!imagePath) return _fail(jobId, 'BAD_REQUEST', 'imagePath is required.');
+
+    const plugin = pluginAvailability('image-describer');
+    if (!plugin.installed) {
+        return _fail(jobId, 'DESCRIBER_MISSING',
+            'The Image Describer plugin is not installed. Enable it in the Model Library (Plugins).');
+    }
+
+    // A question injects a whole ChatML string into Input_Describe_Prompt,
+    // matching the llmService.js Input_System_Prompt wrapping precedent (MPI-774).
+    // No question → no injection, and the graph runs today's caption instruction.
+    const injectionParams = question
+        ? { Input_Describe_Prompt: `<|im_start|>system\n${question}<|im_end|>\n<|im_start|>user` }
+        : {};
+
+    const queued = enqueueGeneration(
+        {
+            operation: 'imageDescribe',
+            model: { id: null, mediaType: 'image' },
+            positive: '',
+            negative: '',
+            mediaItems: [{ url: imagePath, mediaType: 'image', source: 'gallery' }],
+            injectionParams,
+        },
+        {
+            onText: (text) => _report(jobId, { ok: true, output: { text } }),
+            onError: () => _fail(jobId, 'RUNTIME_ERROR',
+                'The description failed. See the app log for the cause.'),
+            onCancel: () => _fail(jobId, 'CANCELLED', 'The description was cancelled.'),
+        },
+        { scope: 'gallery' },
+    );
+
+    if (!queued) {
+        return _fail(jobId, 'REJECTED', 'Vision rejected the describe job before it entered the queue.');
+    }
+    return null;
+}
+
 /** Capability name → handler. The relay carries nothing else. */
 const _HANDLERS = {
     'generation.submit': _submitGeneration,
     'project.open': _openProject,
+    'agent.list-models': _listModels,
+    'agent.install-model': _installModel,
+    'agent.describe': _describeImage,
 };
 
 /**

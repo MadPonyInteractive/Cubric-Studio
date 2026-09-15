@@ -81,6 +81,11 @@ export const STORAGE_KEYS = {
   // MPI-696: landing-hero quote deck — { order: number[], pos } . A shuffled deck,
   // not a last-shown index, so every quote is dealt once before any repeats.
   HERO_QUOTE_DECK: 'mpi_hero_quote_deck',
+
+  // MPI-774: in-app agent — { profileId, mode }. NON-secret: endpoint keys live in
+  // the main process (secrets:* IPC), never here. Written by the MpiLlmSettings Agent
+  // row, read by agentService.js when it sends a message.
+  AGENT_PREFS: 'mpi_agent_prefs',
 };
 
 // --- sessionStorage keys ---

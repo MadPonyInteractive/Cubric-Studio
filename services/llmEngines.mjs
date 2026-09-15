@@ -369,14 +369,24 @@ export class DeepInfraEngine {
                 }),
                 ...(req.options?.maxTokens !== undefined && { max_tokens: req.options.maxTokens }),
                 ...(req.options?.stop !== undefined && { stop: req.options.stop }),
+                // Agent tool-call support (MPI-774). When no tools are supplied the body is
+                // identical to the original, so every existing enhance caller is unaffected.
+                ...(Array.isArray(req.tools) && req.tools.length && { tools: req.tools }),
             }),
         });
         if (!res.ok) {
             throw new Error(`DeepInfra chat failed: ${res.status} ${res.statusText}`);
         }
         const data = await res.json();
+        const msg = data.choices?.[0]?.message;
         return {
-            text: data.choices?.[0]?.message?.content ?? '',
+            text: msg?.content ?? '',
+            // toolCalls: present only when the model called a tool; callers that
+            // destructure { text } are unaffected — they never see undefined keys.
+            ...(msg?.tool_calls?.length && { toolCalls: msg.tool_calls }),
+            // usage: prompt_tokens / completion_tokens / total_tokens / cached_tokens /
+            // estimated_cost from DeepInfra. Needed by the agent loop's compaction trigger.
+            usage: data.usage ?? null,
             model: req.model,
             backend: this.backend,
         };

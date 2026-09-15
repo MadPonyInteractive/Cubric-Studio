@@ -1,7 +1,7 @@
 /* BEM Block naming — mpi-prompt-box */
 .mpi-prompt-box {
     display: grid;
-    grid-template-columns: auto 1fr auto auto auto auto auto;
+    grid-template-columns: auto 1fr auto auto auto auto auto auto;
     align-items: end;
     gap: var(--s-2);
     background: var(--surface-bar);
@@ -106,8 +106,28 @@
     flex-shrink: 0;
 }
 
+.mpi-prompt-box__col--mode {
+    flex-shrink: 0;
+}
+
 .mpi-prompt-box__col--run {
     flex-shrink: 0;
+}
+
+/* MPI-774: agent chat panel — absolutely positioned above the bar */
+.mpi-prompt-box__agent-panel {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    background: var(--surface-bar);
+    border-top: 1px solid var(--line-soft);
+    padding: var(--s-3) var(--s-6);
+    max-height: 400px;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    z-index: 1;
 }
 
 /* Strip MpiInput chrome in prompt col — textarea is bare underline field */

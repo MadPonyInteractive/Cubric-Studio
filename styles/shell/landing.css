@@ -408,6 +408,17 @@
   font-style: normal;
 }
 
+/* MPI-774: standalone agent chat slot (sits between headline and stats foot) */
+.mpi-landing__agent-slot {
+  flex-shrink: 0;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: var(--s-2) 0;
+  /* hero-inner has pointer-events:none to let clicks through to the crew;
+     restore them here so the agent input is interactive. */
+  pointer-events: auto;
+}
+
 /* Bottom stats row */
 .mpi-landing__hero-foot {
   display: flex;

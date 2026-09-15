@@ -109,6 +109,17 @@ export const DEFAULT_RUNPOD_CONFIG = Object.freeze({
   minRamGb: 80,
 });
 
+// MPI-774: the in-app agent's endpoint profile and mode. `deepinfra` is the
+// recommended preset's id (MpiLlmSettings Agent row). Mode is 'auto' | 'ask'.
+export const DEFAULT_AGENT_PREFS = Object.freeze({ profileId: 'deepinfra', mode: 'auto' });
+
+function normalizeAgentPrefs(value = {}) {
+  return {
+    profileId: typeof value?.profileId === 'string' && value.profileId ? value.profileId : DEFAULT_AGENT_PREFS.profileId,
+    mode: value?.mode === 'ask' ? 'ask' : 'auto',
+  };
+}
+
 // Idle-watchdog floor/default in seconds (mirrors MpiSettings IDLE_FLOOR_MIN /
 // IDLE_DEFAULT_S). A missing/corrupt value heals to the default; a sub-floor
 // value clamps up so the wrapper env never gets an out-of-range timeout.
@@ -285,6 +296,10 @@ export const Storage = {
   // different-length quote list is discarded there), so nothing is normalised here.
   getHeroQuoteDeck: () => get(STORAGE_KEYS.HERO_QUOTE_DECK, null),
   setHeroQuoteDeck: (v) => set(STORAGE_KEYS.HERO_QUOTE_DECK, v),
+
+  // MPI-774: { profileId, mode } for the in-app agent. Never a key.
+  getAgentPrefs: () => normalizeAgentPrefs(get(STORAGE_KEYS.AGENT_PREFS, DEFAULT_AGENT_PREFS)),
+  setAgentPrefs: (v) => set(STORAGE_KEYS.AGENT_PREFS, normalizeAgentPrefs(v)),
 };
 
 export const Session = {

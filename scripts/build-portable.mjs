@@ -692,12 +692,12 @@ function assertConnectorManifest(manifest) {
   const errors = [];
   if (manifest.appId !== 'cubric.vision') errors.push('appId must be cubric.vision');
   if (manifest.protocolVersion !== '0.1.0') errors.push('protocolVersion must be 0.1.0');
-  // Vision is now a live connector responder (MPI-5): it provides
-  // system.memory.release. The old manifestOnly:true assertion is replaced by
-  // asserting the live capability is advertised.
-  const hasMemoryRelease = Array.isArray(manifest.capabilities)
-    && manifest.capabilities.some((c) => c.id === 'system.memory.release');
-  if (!hasMemoryRelease) errors.push('capabilities must include system.memory.release');
+  // MPI-774: assert the generation relay capability that is actually served.
+  // `system.memory.release` was listed in the manifest but was never implemented;
+  // the manifest now only lists served capabilities (MPI-774 truthfulness pass).
+  const hasGenerationSubmit = Array.isArray(manifest.capabilities)
+    && manifest.capabilities.some((c) => c.id === 'generation.submit');
+  if (!hasGenerationSubmit) errors.push('capabilities must include generation.submit');
   if (errors.length) {
     throw new Error(`Connector manifest smoke assertions failed: ${errors.join('; ')}`);
   }

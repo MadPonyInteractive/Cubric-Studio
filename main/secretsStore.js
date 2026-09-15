@@ -188,6 +188,122 @@ function clearDeepInfraKey() {
   return { ok: true };
 }
 
+// --- Endpoint profiles (MPI-774 agent) ----------------------------------------
+// Five presets (deepinfra, openrouter, openai, ollama, custom). User edits are
+// saved as overrides keyed by profile id. The deepinfra key is the existing
+// DeepInfra slot — a user never enters it twice.
+
+const DEEPINFRA_BASE_URL = 'https://api.deepinfra.com/v1/openai';
+
+const ENDPOINT_PRESETS = [
+  { id: 'deepinfra',   name: 'DeepInfra',           baseURL: DEEPINFRA_BASE_URL,                  model: 'deepseek-ai/DeepSeek-V4-Flash-0731', contextWindow: 1048576 },
+  { id: 'openrouter',  name: 'OpenRouter',           baseURL: 'https://openrouter.ai/api/v1',      model: 'openai/gpt-4o-mini',                 contextWindow: 128000  },
+  { id: 'openai',      name: 'OpenAI',               baseURL: 'https://api.openai.com/v1',         model: 'gpt-4o-mini',                        contextWindow: 128000  },
+  { id: 'ollama',      name: 'Ollama (local)',        baseURL: 'http://localhost:11434/v1',         model: '',                                   contextWindow: 8192    },
+  { id: 'custom',      name: 'Custom',               baseURL: '',                                  model: '',                                   contextWindow: 8192    },
+];
+
+function _getEndpointProfile(profileId) {
+  const preset = ENDPOINT_PRESETS.find(p => p.id === profileId) || null;
+  const data = _read();
+  const saved = ((data.endpointProfiles || {})[profileId]) || null;
+  if (!preset && !saved) return null;
+  return Object.assign({}, preset || {}, saved || {});
+}
+
+function listEndpointProfiles() {
+  const data = _read();
+  const saved = data.endpointProfiles || {};
+  const result = ENDPOINT_PRESETS.map(preset => Object.assign({}, preset, saved[preset.id] || {}));
+  const presetIds = new Set(ENDPOINT_PRESETS.map(p => p.id));
+  for (const [id, p] of Object.entries(saved)) {
+    if (!presetIds.has(id)) result.push(Object.assign({}, p));
+  }
+  return result;
+}
+
+function saveEndpointProfile(profile) {
+  if (!profile || !profile.id || typeof profile.id !== 'string') return { ok: false, reason: 'invalid' };
+  const data = _read();
+  if (!data.endpointProfiles) data.endpointProfiles = {};
+  data.endpointProfiles[profile.id] = {
+    id: String(profile.id),
+    name: String(profile.name || ''),
+    baseURL: String(profile.baseURL || ''),
+    model: String(profile.model || ''),
+    contextWindow: Number(profile.contextWindow) || 0,
+  };
+  _write(data);
+  _log('info', 'Endpoint profile saved');
+  return { ok: true };
+}
+
+function deleteEndpointProfile(profileId) {
+  if (!profileId) return { ok: false, reason: 'invalid' };
+  const data = _read();
+  if (data.endpointProfiles) delete data.endpointProfiles[profileId];
+  if (data.endpointKeyData) delete data.endpointKeyData[profileId];
+  _write(data);
+  _log('info', 'Endpoint profile deleted');
+  return { ok: true };
+}
+
+// Keys are bound to the base URL they were saved with. Editing a profile's URL
+// makes its key unusable until it is entered again (the fork bridge returns null).
+// The deepinfra key lives in the existing deepInfraApiKey slot; all others are
+// in endpointKeyData[profileId] = { <encrypted fields>, boundURL }.
+
+function setEndpointKey(profileId, plainKey) {
+  if (!plainKey || typeof plainKey !== 'string') return { ok: false, reason: 'empty' };
+  const profile = _getEndpointProfile(profileId);
+  if (!profile) return { ok: false, reason: 'unknown_profile' };
+  const weak = !_encryptionAvailable();
+  if (profileId === 'deepinfra') {
+    const res = setDeepInfraKey(plainKey);
+    if (!res.ok) return res;
+    const data = _read();
+    data.deepInfraKeyBoundURL = profile.baseURL;
+    _write(data);
+    return { ok: true, weakEncryption: weak };
+  }
+  const data = _read();
+  if (!data.endpointKeyData) data.endpointKeyData = {};
+  data.endpointKeyData[profileId] = { keyField: _encrypt(plainKey), boundURL: profile.baseURL };
+  _write(data);
+  _log('info', 'Endpoint key stored');
+  return { ok: true, weakEncryption: weak };
+}
+
+function hasEndpointKey(profileId) {
+  if (profileId === 'deepinfra') return hasDeepInfraKey();
+  const data = _read();
+  return !!((data.endpointKeyData || {})[profileId]);
+}
+
+function getEndpointKey(profileId) {
+  // main-process only; never exposed via a renderer IPC get channel.
+  if (profileId === 'deepinfra') return getDeepInfraKey();
+  const data = _read();
+  const keyData = (data.endpointKeyData || {})[profileId];
+  if (!keyData) return null;
+  return _decrypt(keyData.keyField);
+}
+
+function clearEndpointKey(profileId) {
+  if (profileId === 'deepinfra') {
+    clearDeepInfraKey();
+    const data = _read();
+    delete data.deepInfraKeyBoundURL;
+    _write(data);
+    return { ok: true };
+  }
+  const data = _read();
+  if (data.endpointKeyData) delete data.endpointKeyData[profileId];
+  _write(data);
+  _log('info', 'Endpoint key cleared');
+  return { ok: true };
+}
+
 function setWrapperToken(token, podId) {
   const data = _read();
   data.wrapperToken = _encrypt(token);
@@ -248,6 +364,24 @@ function init({ app, safeStorage, ipcMain, logger }) {
     ipcMain.handle('secrets:clear-wrapper-token', () => {
       try { return clearWrapperToken(); } catch { return { ok: false }; }
     });
+    // Endpoint profiles (agent, MPI-774). Keys are set/checked/cleared only;
+    // there is deliberately NO renderer-readable get channel for endpoint keys.
+    ipcMain.handle('secrets:list-endpoint-profiles', () => ({ profiles: listEndpointProfiles() }));
+    ipcMain.handle('secrets:save-endpoint-profile', (_e, profile) => {
+      try { return saveEndpointProfile(profile); } catch { return { ok: false, reason: 'error' }; }
+    });
+    ipcMain.handle('secrets:delete-endpoint-profile', (_e, { profileId } = {}) => {
+      try { return deleteEndpointProfile(profileId); } catch { return { ok: false }; }
+    });
+    ipcMain.handle('secrets:set-endpoint-key', (_e, { profileId, key } = {}) => {
+      try { return setEndpointKey(profileId, key); } catch { return { ok: false, reason: 'error' }; }
+    });
+    ipcMain.handle('secrets:has-endpoint-key', (_e, { profileId } = {}) => ({
+      has: !!profileId && hasEndpointKey(profileId),
+    }));
+    ipcMain.handle('secrets:clear-endpoint-key', (_e, { profileId } = {}) => {
+      try { return clearEndpointKey(profileId); } catch { return { ok: false }; }
+    });
   }
 }
 
@@ -284,6 +418,30 @@ function registerForkBridge(serverProcess) {
     } else if (msg.type === 'secrets:clear-wrapper-token-request') {
       try { clearWrapperToken(); } catch { /* noop */ }
       serverProcess.send({ type: 'secrets:clear-wrapper-token-response', id: msg.id, ok: true });
+    } else if (msg.type === 'secrets:get-endpoint-profile-request') {
+      // Returns the profile and its decrypted key together. Key is null when its
+      // bound URL differs from the profile's current baseURL (the user edited the
+      // profile's URL after saving the key — the key is no longer safe to use).
+      let profile = null;
+      let key = null;
+      try {
+        profile = _getEndpointProfile(msg.profileId);
+        if (profile) {
+          if (msg.profileId === 'deepinfra') {
+            const data = _read();
+            const boundURL = data.deepInfraKeyBoundURL || DEEPINFRA_BASE_URL;
+            const dk = getDeepInfraKey();
+            key = (dk !== null && profile.baseURL === boundURL) ? dk : null;
+          } else {
+            const data = _read();
+            const keyData = (data.endpointKeyData || {})[msg.profileId];
+            if (keyData && keyData.boundURL === profile.baseURL) {
+              key = _decrypt(keyData.keyField);
+            }
+          }
+        }
+      } catch { profile = null; key = null; }
+      serverProcess.send({ type: 'secrets:get-endpoint-profile-response', id: msg.id, profile, key });
     }
   });
 }
@@ -304,4 +462,14 @@ module.exports = {
   getWrapperToken,
   clearWrapperToken,
   encryptionStatus,
+  // Endpoint profiles (MPI-774 agent)
+  ENDPOINT_PRESETS,
+  DEEPINFRA_BASE_URL,
+  listEndpointProfiles,
+  saveEndpointProfile,
+  deleteEndpointProfile,
+  setEndpointKey,
+  hasEndpointKey,
+  getEndpointKey,
+  clearEndpointKey,
 };

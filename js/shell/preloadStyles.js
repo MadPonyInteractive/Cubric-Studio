@@ -34,6 +34,7 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Primitives/MpiFilterBar/MpiFilterBar.css',
 
   // Compounds
+  'js/components/Compounds/MpiAgentChat/MpiAgentChat.css',
   'js/components/Compounds/MpiContextMenu/MpiContextMenu.css',
   'js/components/Compounds/MpiOptionSelector/MpiOptionSelector.css',
   'js/components/Compounds/MpiOkCancel/MpiOkCancel.css',

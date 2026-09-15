@@ -7,16 +7,52 @@
 **Evidence behind this plan:** `research/investigation.md` - verified facts with file:line, the
 seven investigator claims that turned out wrong, and a live orchestrator probe.
 
-**Where it stands (2026-09-15, session e2ae3500, handoff):** **Phase 0 is DONE.** Card in doing.
-`docs/agent-chat.md` is the contract (routed from `docs/README.md`). Node 38 of
-`image_descriptor.json` is `Input_Describe_Prompt` (raw `aff97551`, runtime synced, verified in
-`validation.md`). **Next: Parallel Batch 1** with `mpi-execute-parallel`, GPU-free by design
-(Fabio's GPU is busy with video agents). Before dispatch: one `mpi-message` to MPI-677's owner
-naming the shared paths (MPI-677 still `doing`). **W4 builds everything EXCEPT the landing slot**
-(Fabio, 2026-09-15): MPI-766's claim on `js/shell/projectUI.js` / `styles/shell/landing.css` is
-still `claimed` though its session closed; the landing entry waits for MPI-766 to close.
-**MPI-766 went live in a peer session the same day** (claims `js/shell/projectUI.js`,
-`styles/shell/landing.css`, `assets/mascot/**`): W4's landing slot waits for it or coordinates.
+**Where it stands (2026-09-15, session 5be4be69):** Phase 0 and **Parallel Batch 1 are DONE and
+verified** (evidence in `validation.md` § Parallel Batch 1; nothing committed yet). All four
+workers' claims are released; coordination task `beec8285` is `needs_integration`. **Next: Phase 3**,
+in a fresh session (claims do not carry across sessions; take new ones). Start with the three
+carried integration items, before wiring end to end:
+1. `services/agentTools.mjs` `resolveImageRef` trusts any model-supplied path -> restrict to this
+   session's attachments and result `filePath`s (a trust boundary, not polish).
+2. Attachments used by `generate` are passed as a raw staged path -> place them via
+   `POST /project-media/:id/place-preview-asset` per contract § Tools.
+3. Box bounds in `validateBoxParams` never run on a real submit (`resolveAgentMedia` items carry no
+   `pixelDimensions`) -> read dims where the path is known, or drop the branch.
+Then the `npm run app:isolated` wiring run, which also re-probes the `/connector/*` routes W1 only
+probed in a prior context. GPU stays off-limits until Phase 4.
+
+**Batch 1 running notes (orchestrator re-verified each report on disk, never took one on trust):**
+- **W3 done.** 8/8 + llm-service 18/18. Its in-test "mutation" was a simulation, so the binding check
+  was broken in the REAL handler: red, then byte-identical restore green. **Defect fixed:** its writes
+  turned `main/secretsStore.js` + `js/core/secretsClient.js` CRLF (HEAD is LF; `git diff --stat`
+  hides it) - reverted to LF. Claim `complete`.
+- **W2 done.** agent-loop 13/13 (+1 live test skipped without key; worker's live run: `list_models`
+  called, 1,351 prompt tokens, 7.1 s). llmEngines consumers 13/13. Gate removed in the REAL loop ->
+  2 red; restored -> green. Line endings clean. Claim `needs_integration` for two items W2 reported
+  as "no deviation" but are:
+  1. **Trust boundary:** `agentTools.resolveImageRef` treats any non-`att_` string the MODEL emits
+     as an absolute path, so `look`/`generate` can be pointed at any file on disk (a key file) and
+     ship it to the engine, which may be a remote Pod. Restrict to this session's attachments and
+     result `filePath`s.
+  2. **Contract:** attachments go to `generate` as a raw staged path in `media[].url`, not copied
+     into the project via `place-preview-asset` (contract § Tools). Fix against W1's media shape.
+  Also for the UX pass: an unanswered install card keeps the turn `working` (BUSY) until Yes/No or
+  `/agent/reset`.
+- **W1 done.** connector tools 14/14, eslint clean (one unused `eslint-disable` removed). CRLF churn
+  on `routes/connector.js` + `scripts/build-portable.mjs` reverted to LF. Real mutations in
+  `validateBoxParams`: UNKNOWN_PARAM, integers, square -> red; **bounds stayed GREEN** - its test
+  only asserted the in-bounds case (name lied). Test now asserts the rejection + the `overflow:
+  'allow'` pass; mutation re-run pending. **Phase 3 item:** `resolveAgentMedia` items carry no
+  `pixelDimensions`, so the bounds check never runs on a real submit (no shipped flow needs it yet:
+  both Head Swap steps allow overflow) - read dims where the path is known, or drop the branch.
+  **Manifest:** W1 was right, and the release doc was wrong: MPI-677 step 2 (`3b8052d6`) removed the
+  broker responder, so `system.memory.release` is unserved; `docs/releases/portable-distribution-contract.md`
+  § Connector Manifest still described the responder - orchestrator fixes it.
+- **W4 done.** lint:components clean. CRLF churn on `MpiPromptBox.js/.css` reverted. Raw
+  `es.addEventListener` in `agentService.js` -> `on()` (dom.js takes any EventTarget). **Ownership
+  breach:** W4 wrote the landing slot `<div>` into `index.html` (not owned; no live claim held it) -
+  accepted as integrator, claimed. W4 did NOT run its desktop spec (it wrongly thought the runner
+  would touch `:3000`); the orchestrator runs it with a private `--output`.
 
 **Card tags:** RunPod **no** (slice A never touches a Pod). Linux box **no**. GPU **yes**, Phase 4
 only (live generations and looks; `/connector/generate` is a `guard-gpu` pattern, so take the
@@ -145,7 +181,7 @@ with fake tools), W2<->W3 at the fork-bridge message and `/agent/probe` (W3 stub
 at the SSE contract (W4 stubs `fetch`/`EventSource`). `server.js` is touched by W2 alone, one
 mount line.
 
-- [ ] **W1 - connector growth.** Ownership: `routes/connector.js`, `js/shell/agentDispatch.js`,
+- [x] **W1 - connector growth.** Ownership: `routes/connector.js`, `js/shell/agentDispatch.js`,
   `resources/cubric/connector-manifest.json`, `scripts/build-portable.mjs`
   (`assertConnectorManifest` only), `tests/connector-agent-tools.test.cjs` (new),
   `.claude/skills/cubric-vision/generating.md`. Briefings: `comfy_injection`, `comfy_engine`,
@@ -173,7 +209,7 @@ mount line.
   lint`; an isolated `npm run server` on its own port answers every new route with its own
   `BAD_REQUEST` on an empty body (never `:3000`).
 
-- [ ] **W2 - the loop.** Ownership: `services/llmEngines.mjs` (`DeepInfraEngine.chat` only),
+- [x] **W2 - the loop.** Ownership: `services/llmEngines.mjs` (`DeepInfraEngine.chat` only),
   `services/agentLoop.mjs` (new), `services/agentTools.mjs` (new), `routes/agent.js` (new),
   `server.js` (one mount line), `tests/agent-loop.test.cjs` (new). Briefings: `root-cause`
   (Snapshot only otherwise). Work:
@@ -198,7 +234,7 @@ mount line.
   no-tools model without retrying. Plus one live DeepInfra run of the loop against fake tools
   (key in the process env, same shell call).
 
-- [ ] **W3 - the Agent row and endpoint keys.** Ownership: `main/secretsStore.js`,
+- [x] **W3 - the Agent row and endpoint keys.** Ownership: `main/secretsStore.js`,
   `js/core/secretsClient.js`, `js/components/Organisms/MpiLlmSettings/**`,
   `tests/secrets-endpoint-profiles.test.cjs` (new). Briefings: `components`, `dos_and_donts`.
   Work:
@@ -214,7 +250,7 @@ mount line.
   exists for endpoint keys; a key saved for URL A is refused for the same profile edited to
   URL B (flip the check -> red); `npm run lint:components`.
 
-- [ ] **W4 - the chat.** Ownership: `js/components/Organisms/MpiPromptBox/**`,
+- [x] **W4 - the chat.** Ownership: `js/components/Organisms/MpiPromptBox/**`,
   `js/components/Compounds/MpiAgentChat/**` (new), `js/services/agentService.js` (new),
   `js/shell/preloadStyles.js` (its css line), `js/components/types.js` (its props),
   `js/shell/projectUI.js` and `styles/shell/landing.css` (the landing slot only),
@@ -296,6 +332,16 @@ mount line.
   need it. (3) The describer question is ONE retitle (node 38 -> `Input_Describe_Prompt`) and the
   route injects a whole ChatML string, the `llmService.js` `Input_System_Prompt` precedent; no new
   graph nodes, and no injection keeps today's caption byte for byte.
+- 2026-09-15 (Batch 1 dispatch, session 5be4be69): (1) **MPI-766 closed** (card `done`, claim
+  `766c1a1e` `complete`), so W4 got the landing slot after all. (2) W3 writes the agent pick and
+  W4 reads it, which would make one worker depend on the other. The orchestrator added
+  `Storage.getAgentPrefs()/setAgentPrefs({profileId, mode})` (`js/core/storage.js` +
+  `STORAGE_KEYS.AGENT_PREFS`, default `{profileId: 'deepinfra', mode: 'auto'}`) before dispatch,
+  so both import an existing helper. (3) The fork-bridge handler and `ipcMain` channels both live
+  in `main/secretsStore.js` (no preload whitelist), so W3 owns both ends. (4) MPI-677 has no live
+  session; message `b59959d0` names the shared paths for whoever resumes it. (5) Workers write no
+  `state/` records (four agents writing `index.json` at once would race); the orchestrator wrote
+  one claim per worker and files any blocked-file messages at integration.
 
 ## Verification
 
