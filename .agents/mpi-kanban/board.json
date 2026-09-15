@@ -4,6 +4,7 @@
   "columns": {
     "todo": [
       "MPI-774",
+      "MPI-766",
       "MPI-559",
       "MPI-755",
       "MPI-745",
