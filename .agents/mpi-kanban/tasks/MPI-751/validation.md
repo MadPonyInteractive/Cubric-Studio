@@ -107,3 +107,39 @@ every push through `.husky/pre-push`.
   The spec (c7bfb93c, 2026-08-27) only had its MpiBaseFlow path string changed here, and it asserts the slide
   OVERFLOWS, a layout measurement. Read as a flake under full-suite load, not a regression. If CI reddens on it,
   capture the message before changing anything.
+
+## Fix 8 + rule landed (2026-09-15, session ee0a88e8) — 6 -> 0 hits
+
+Gate: MPI-754 Phase 3 committed e9063a7a (07:32Z), `js/components/Compounds/LandingPages` + `types.js` clean,
+no live claim. CI run 34940860825 on 16e8dd67: success. Fresh claim 480469dd.
+
+Flat, per Fabio: MpiFlowLibrary, MpiModelManager, MpiRunpodSettings (import the Compound MpiOkCancel) and
+MpiLlmSettings (imports the Compound MpiOllamaSetup) -> `Organisms/<Name>/`. MpiRemote then imports two
+Organisms; only `projectUI.js` mounts it -> `Blocks/MpiRemote/`. MpiSettings, MpiAbout, MpiOllamaSetup and
+mpi-hotkeys stay in `Compounds/LandingPages/`.
+
+- One script: exact-count asserts per file before any write; every relative specifier inside the moved
+  folders re-resolved from its new home (73 rewired); CRLF preserved; plain rename.
+- Paths updated in 23 files: the 5 components (`css:` + imports), `shell.js`, `projectUI.js`,
+  `preloadStyles.js` (in place), `types.js` (paths + tier words), 3 add-flow playbook docs,
+  `docs/workspaces.md`, 6 unit tests, 4 desktop specs.
+- Miss caught by the suite, not the grep: `tests/flow-licence-surface.test.cjs` splits its `path.join`
+  over a line break, so `'Compounds', 'LandingPages',` and `'MpiFlowLibrary'` sat on different lines.
+  `npm test` failed ENOENT on the old path; fixed.
+- NOT updated: `.claude/rules/component-events-primitives.md:263` still names
+  `(Compound — js/components/Compounds/LandingPages/MpiModelManager/...)`. Rule file: waits on Fabio's go.
+- NOT updated: `resources/cubric/update-manifest.json` is release-generated (it still lists the
+  pre-b1f2de34 `Organisms/MpiBaseFlow` paths too).
+- Rule landed: `rule/no-same-tier-component-import.js` -> `.eslint-rules/` (62 changed lines vs HEAD),
+  `rule/eslint-tier-rule.test.cjs` -> `tests/`.
+
+Evidence:
+- Parked rule before landing: 0 hits (was 6)
+- Repo-wide resolver (every relative import in `js/**`, every `css:` entry, 104 preload entries,
+  193 test/doc path literals): 8 misses before AND after the move, identical, all pre-existing JSDoc/comment text
+- `npm run lint` with the landed rule: 0
+- `node --test tests/eslint-tier-rule.test.cjs`: 16/16
+- `npm test`: 1036/1036
+- `npx playwright test --config=playwright.desktop.config.js` flow-library-filters, flow-library-skips-drawer,
+  flow-uninstall-button, flows-tab-ring, runpod-settings-extract: 8/8 (ran before the licence-surface test
+  fix and the rule landing; neither touches runtime js)
