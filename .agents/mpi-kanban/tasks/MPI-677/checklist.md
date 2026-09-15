@@ -50,7 +50,9 @@ in the card description are retired; `plan.md` carries the mapping note.
         13 s to a proper character phrase; Music Maker's `auto` enhance completed on the
         engine with its three-marker output (`[MOOD]`/`[VOCAL]`/`[ARRANGEMENT]`) and was
         cancelled before the music graph — no song rendered, no card written
-- [ ] Step 1c — the overlay *(verify mode: `user-ux` — it ends with Fabio, not a green test)*
+- [x] Step 1c — the overlay *(verify mode: `user-ux` — it ends with Fabio, not a green test)*
+      *(closed 2026-09-12 by Fabio's own pass, `de74431b`; this box was left unticked and
+      re-read as owed until close-out, 2026-09-15 — see validation.md § Close-out)*
   - [x] Short prompt above, Enhance, editable enhanced text below, OK / Cancel; the
         box keeps only the short prompt (`MpiEnhanceDialog`, a new Compound). The
         iteration loop is structural: Enhance always reads the UPPER box, so nothing
@@ -71,7 +73,9 @@ in the card description are retired; `plan.md` carries the mapping note.
         **Reuse was driven from `buildPromptReusePayload()` into `injectPrompts()` — the
         whole chain except the sidecar write/read, which needs a real generation and a
         reload. That leg is unit-tested and source-asserted, not driven**
-  - [ ] **Fabio's user-ux pass — the gate, and the only thing left on step 1c.**
+  - [x] **Fabio's user-ux pass — the gate, and the only thing left on step 1c.**
+        **CLOSED 2026-09-12** (validation.md § "Step 1c — CLOSED"). The text below is the
+        2026-09-11 state, kept as history.
         Everything under the UI is proven; what is owed is a person looking at it.
         **UNDERWAY 2026-09-11, two defects found and fixed** (validation.md):
         provenance was dropped on reopen, taking the fallback warning with it

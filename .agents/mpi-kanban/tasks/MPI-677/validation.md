@@ -1787,3 +1787,27 @@ NSFW-to-local routing on purpose (`llmService.js` header, ~L118-135); the doc st
 a UI warning with the user's pick deciding. The step 1a checklist line is annotated accordingly.
 Noticed, not actioned: a comment in `routes/llm.js` names `releaseLocalModels`; the call is
 `OllamaEngine.releaseOwnModels()`.
+
+## Close-out — 2026-09-15: step 1c had already closed, and the card closes
+
+Checked before re-running anything:
+
+- `git log -S "Step 1c — CLOSED" -- validation.md` → `de74431b` (2026-09-12), "step 1c closes, …".
+  Its `--stat` names plan.md and validation.md only; checklist.md kept `[ ]` on step 1c.
+- The later "1c is owed" lines trace to that box: a 2026-09-15 plan block reads "Per the
+  checklist that is …", and handoff 7b777f9e copied its four checks.
+- Covered by Fabio's own rounds (this file): reopen (round 1, item 1), the negative box (round 2
+  items 7–8, round 2b), and Reuse after an app restart (§ Step 1c — CLOSED). Driven by an agent
+  only (2026-09-10, port 3199): `OK → reopen` and the operation gate. **`OK → reopen → Cancel →
+  reopen` was never driven by anyone** (§ "A test-script defect that was mine"); it rests on the
+  source: `MpiPromptBox.js` wires the dialog's `cancel` to `_close` only, and `_enhanced` is
+  assigned only on `apply`, the draft seed, the staleness check and Reuse. Caught by the
+  close-out claim audit, after Fabio had been told an agent drove it.
+- Fabio, 2026-09-15, shown the above: skip the re-run, go ahead with close-out. A re-run today
+  would also have exercised MPI-774 Batch 1's uncommitted `MpiPromptBox` edits.
+- Fabio, same message: nothing here tests the vision model; its smoke belongs to MPI-737 once
+  the model is incorporated.
+
+Closes on steps 1–4 ticked, step 5 spun out as MPI-774. Left open, not gates: step 1d, and the
+`connector-manifest.json` line (MPI-774 owns it). `validate_board.py .` → "Board validation
+passed." before the move.

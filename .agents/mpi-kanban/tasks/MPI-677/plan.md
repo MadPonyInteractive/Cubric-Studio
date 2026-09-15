@@ -35,6 +35,15 @@ names but never lettered. **Order is by priority, not by letter.**
 
 ## Current State
 
+**2026-09-15 (close-out) — STEP 1C HAD ALREADY CLOSED; MPI-677 CLOSES ON STEPS 1–4.** Resuming
+handoff 7b777f9e to ask Fabio for step 1c's user-ux pass found validation.md § "Step 1c — CLOSED
+(2026-09-12)": Fabio drove new prompt → Enhance → OK → generate → restart → Reuse himself
+(`de74431b`). That commit never ticked checklist.md, and today's sessions re-derived four "owed"
+checks from the unticked box. Fabio agreed to skip the re-run; box ticked, card moved to done.
+Left open, not gates: step 1d (Fabio's GPU measurement). The vision-model smoke belongs to MPI-737
+once it is incorporated (Fabio). MPI-737 (todo) and MPI-774 (doing) carry on as their own cards;
+MPI-593 stays deferred.
+
 **2026-09-15 (latest) — CLOSE-OUT YESES GIVEN AND APPLIED (Fabio: "yes to all").**
 - `prompt-enhance.md` :58 / :185 were already on master (`c81de709`); kept, code matches.
 - MPI-728's proposals: `docs/llm.md` + `docs/README.md` row (background worker), a Language models
@@ -898,6 +907,10 @@ with ownership `js/data/recipes/corpus.js` + `docs/agent/**` against
 `.claude/skills/cubric-vision/**`, and only once MPI-547 has landed.
 
 ## Plan Drift
+
+- **2026-09-15 — a closed user-ux gate was re-asked.** `de74431b` closed step 1c in plan.md and
+  validation.md but left the checklist box `[ ]`; pickup reads the checklist, so the handoff
+  carried four checks for a step Fabio had passed three days earlier. Ticked at close-out.
 
 - **2026-09-15 — step 5 left this card.** Brainstormed with Fabio and spun out as MPI-774, so
   MPI-677 closes on steps 1–4. Two things § Step 5 left open are decided there: the dispatch path
