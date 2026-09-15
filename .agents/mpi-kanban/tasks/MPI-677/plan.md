@@ -35,18 +35,28 @@ names but never lettered. **Order is by priority, not by letter.**
 
 ## Current State
 
-**2026-09-15 (later) — 4c CLOSED AS A DOCUMENTED PARTIAL (Fabio: option 1).** Phase 5 step 7
-now puts four checks on the card for Fabio (notation in every vendor-covered mode, rules inside
-dated entries, `confirms` quotes really in the recipe, rules stated in passing). Both skill copies
-`diff`-identical. NOT committed: both skill copies, the brief v2.1, plan, checklist, validation.
-**THE SINGLE NEXT ACTION:** commit via `mpi-handoff` or `mpi-end-session`. What is left on the card:
-- 4b, the `cubric-vision` `SKILL.md` split. **MPI-547 is now `done`, so its block is gone**, but
-  MPI-593 owns the split: check it first.
+**2026-09-15 (latest) — 4b DONE AS MPI-593 STEP 1, VERIFIED, COMMITTED WITH THIS HANDOFF.** The
+`cubric-vision` `SKILL.md` (721 lines) is now a 108-line router plus `projects.md`,
+`on-disk-format.md`, `generating.md`, `flows.md` and `engine-and-remote.md`, all ≤200.
+§ Connector was rewritten to what `routes/connector.js` serves: it still advertised
+`/connector/enhance`, which this card's step 2 deleted. Evidence:
+`tasks/MPI-593/validation.md`.
+MPI-593 is back in `todo` / `deferred` (Fabio): the CLI is not needed for release 2.0, so it is
+off this card's path.
+**THE SINGLE NEXT ACTION:** ask Fabio which item to take. Step 4 is fully ticked. What is left
+on the card:
+- Step 1c: Fabio's user-ux pass. Per the checklist that is OK → reopen → Cancel → reopen, the
+  separate-field negative, the operation gate, and Reuse after an app reload.
 - Step 5 waits for a brainstorm.
 - Close-out needs Fabio's per-file yes on:
   - `prompt-enhance.md` :58 and :185;
   - MPI-728's six proposals;
   - the `in-flight.md` update.
+
+**2026-09-15 (later) — 4c CLOSED AS A DOCUMENTED PARTIAL (Fabio: option 1).** Phase 5 step 7
+now puts four checks on the card for Fabio (notation in every vendor-covered mode, rules inside
+dated entries, `confirms` quotes really in the recipe, rules stated in passing). Both skill copies
+`diff`-identical. Committed and pushed in `43532f36`.
 
 **2026-09-15 — OPTION 3 BUILT AND GRADED: runs 7a–7c MISS, BACK TO FABIO.** Evidence:
 `validation.md` § "Option 3 built … runs 7a–7c". Both skill copies `diff`-identical and the brief at
@@ -769,7 +779,9 @@ Not blocking anything above. Each is independently useful.
       against source; "what each operation does" is `app:operations`, RENDERED in
       `agentCorpus.mjs` from `commandRegistry.js` + `models.js` (see Plan Drift). Asserted in
       `tests/agent-corpus.test.cjs`, mutation-checked.
-- [ ] **Split `.claude/skills/cubric-vision/SKILL.md`** — 670 lines into a
+- [x] **Split `.claude/skills/cubric-vision/SKILL.md`** — **DONE 2026-09-15 as MPI-593 step 1**
+      (evidence `tasks/MPI-593/validation.md`). Landed as FIVE files, not four: dispatch and Flows
+      had grown to 125 lines each, so `flows.md` split off `generating.md`. As planned — 670 lines into a
       ~85-line router plus `projects.md` (~109), `on-disk-format.md` (~181,
       taking §Reference slots because its recovery script is the same shape),
       `generating.md` (~196, the tightest), `engine-and-remote.md` (~74). Router

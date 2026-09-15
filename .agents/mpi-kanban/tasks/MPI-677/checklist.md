@@ -124,12 +124,13 @@ in the card description are retired; `plan.md` carries the mapping note.
         capabilities nothing serves. Left in place because the portable build
         reads and hashes it (`assertConnectorManifest`) — step 5 owns its fate
 - [x] Step 3 — release the repos *(Cubric-Prompt archived 2026-09-12: banner pushed as `35dee06`, GitHub flag set by Fabio)*
-- [ ] Step 4 — the corpus, the skill split (MPI-593 owns it), the build/heal loop
+- [x] Step 4 — the corpus, the skill split (MPI-593 owns it), the build/heal loop
   - [x] Corpus retrieval path — `services/agentCorpus.mjs` (2026-09-12)
   - [x] First app-knowledge playbooks — `docs/agent/runpod-setup.md`, `docs/agent/gallery.md`,
         rendered `app:operations` (2026-09-14)
-  - [ ] Skill split — MPI-547 now `done` (2026-09-15), so no longer blocked by it; MPI-593 (`todo`)
-        owns the split, check it first; MPI-556/675 done
+  - [x] Skill split — done 2026-09-15 as MPI-593 step 1: a 108-line router plus five files, all
+        ≤200, and § Connector rewritten to what `routes/connector.js` serves. Verified by script,
+        see `tasks/MPI-593/validation.md`
   - [x] Build/heal loop — heal is triggered by a card Fabio files (decided 2026-09-14, option A).
         Phase 5 written + `engine-recipes.md` ported. CLOSED 2026-09-15 as a documented partial
         (Fabio, option 1) after seven graded cold dry runs: shot count, budget, sound fields hold

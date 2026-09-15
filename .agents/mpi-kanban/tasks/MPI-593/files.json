@@ -1,0 +1,8 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".claude/skills/cubric-vision/**",
+    ".agents/mpi-kanban/project-knowledge-index.md",
+    "docs/playbooks/add-flow/06-preview-image.md"
+  ]
+}
