@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-765",
+  "title": "Connector: reference images on agent model submits",
+  "description": "Agents cannot supply images to model ops (kleinEdit, i2v, ref2v): the connector's modelId branch hardcodes mediaItems [] and refuses media ops with MEDIA_UNSUPPORTED. Accept media [{role,url}] like the Flow path. Blocks MadPony-Identity MPI-78 character sheets.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-09-15T13:30:40+01:00",
+  "updated_at": "2026-09-15T13:37:45+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

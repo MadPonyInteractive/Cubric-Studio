@@ -15,8 +15,8 @@ curl -s -X POST "$CUBRIC_URL/connector/generate" \
   -d '{"modelId":"krea2","operation":"t2i","positive":"a lone rider at dusk"}'
 ```
 
-Body: `modelId` and `operation` are required; `positive`, `negative` and
-`injectionParams` are optional. **The request resolves when the generation
+Body: `modelId` and `operation` are required; `positive`, `negative`,
+`injectionParams` and `media` (reference images, see below) are optional. **The request resolves when the generation
 finishes**, not when it is queued, so expect it to block for as long as the run
 takes (a queued video can be minutes; the route gives up after 30 and the
 generation carries on in the app regardless).
@@ -103,7 +103,9 @@ Failure returns `{"ok": false, "error": {"code": ..., "message": ...}}`:
 | `NO_PROJECT` | No project is open. The run uses whatever project the app has open — it never switches for you. |
 | `UNKNOWN_MODEL` | No model with that id. |
 | `OP_UNAVAILABLE` | The model does not support that operation, or its weights are not installed. |
-| `MEDIA_UNSUPPORTED` | The operation needs image/video input, which this endpoint cannot supply yet. |
+| `MEDIA_REQUIRED` | A required media slot is empty. Names the slot. |
+| `MASK_UNSUPPORTED` | The operation needs a painted mask (`inpaint`, `detail`), which has no agent form. |
+| `BAD_REQUEST` | A media role the operation does not have (the message lists its roles), a media entry with no `url`, or one role given twice. |
 | `CANCELLED` | Cancelled, or produced no output. |
 | `TIMEOUT` | No result in 30 minutes. The generation may still be running. |
 | `INVALID_RATIO` | `ratio` is not a label this model/operation offers. |
@@ -117,12 +119,42 @@ Failure returns `{"ok": false, "error": {"code": ..., "message": ...}}`:
 Check `generationSubmit` in `GET /connector/capabilities` to confirm a window is
 listening before submitting.
 
+### Supplying images and video (reference inputs)
+
+An op that takes media (Klein's `kleinEdit`, `i2i`, `upscale`, `i2v`, the
+reference-to-video ops) takes it as `media: [{ role, url }]`, the same shape a
+Flow takes (MPI-765). **By reference, never bytes:** stage each file first with
+`place-preview-asset` ([flows.md](flows.md) § Supplying your own audio, image or
+video; it takes a plain absolute path) and pass back the `filePath` it returns.
+
+```bash
+curl -s -X POST "$CUBRIC_URL/connector/generate" \
+  -H 'Content-Type: application/json' \
+  -d '{"modelId":"klein-9b","operation":"kleinEdit",
+       "positive":"Put the fox from Image 2 sitting beside her on the bench.",
+       "media":[{"role":"inputImage","url":"<filePath of the image to edit>"},
+                {"role":"inputImage2","url":"<filePath of the reference>"}]}'
+```
+
+**`role` is the op's slot key**, from `mediaInputs` on the op in
+`js/data/commandRegistry.js` (grep `kleinEdit: {`); an op declaring
+`requiresImages: N` instead has `inputImage`, `inputImage2`, and so on. A wrong
+role is refused and the message lists the real ones, so one bad submit tells you
+the vocabulary.
+
+- **Order is the slot's, not yours.** Klein Edit's `inputImage` is the picture that
+  gets edited; `inputImage2` and `inputImage3` are optional references ("Image 2",
+  "Image 3" in the prompt). Entries are sorted into declared slot order whatever
+  order you send them in.
+- **Required slots are checked before anything queues.** `MEDIA_REQUIRED` names the
+  empty one. Optional slots may be left off.
+- **Klein Edit follows the SOURCE image size.** `ratio` is refused on it; size the
+  image you stage.
+
 ### What it does not do yet
 
-- **No media inputs on the MODEL path.** `modelId` + `operation` is text-to-image
-  and text-to-video only — an op with a required image/video slot is rejected by
-  name with `MEDIA_UNSUPPORTED`. **The FLOW path does take media** ([flows.md](flows.md)),
-  so an op refused here may well be reachable as a Flow.
+- **No mask.** `inpaint` and `detail` need a painted mask and are refused with
+  `MASK_UNSUPPORTED`.
 - **No job status or cancellation.** One submit, one result.
 
 Project switching is no longer on this list — `POST /connector/open-project`

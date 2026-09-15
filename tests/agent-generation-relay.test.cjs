@@ -214,3 +214,67 @@ test('capabilities reports generationSubmit only while a renderer is subscribed'
     await stop();
   }
 });
+
+// ── Media on a model submit (MPI-765) ───────────────────────────────────────
+//
+// The modelId branch hardcoded `mediaItems: []` and refused every op with a required
+// image slot (MEDIA_UNSUPPORTED), so Klein Edit and every reference-driven op were
+// unreachable from an agent. The renderer handler imports the DOM; the resolver it
+// delegates to (`generationControls.js`) does not, which is why it is tested here.
+
+const { findModelDef, resolveAgentMedia } = require('../js/data/generationControls.js');
+
+test('a modelId submit relays media; a text submit carries no media key', async () => {
+  const { base, stop } = await startServer();
+  const renderer = await fakeRenderer(base);
+  try {
+    const media = [{ role: 'inputImage', url: '/project-file?path=C%3A%2Fp%2FMedia%2F.preview-assets%2Fa.png' }];
+    const pending = postJson(`${base}/connector/generate`, {
+      modelId: 'klein-9b', operation: 'kleinEdit', positive: 'turn him', media,
+    });
+    const frame = await renderer.readFrame();
+    // Dropped here, the renderer sees no image and answers MEDIA_REQUIRED for one the caller sent.
+    assert.deepEqual(frame.data.input.media, media);
+    await postJson(`${base}/connector/jobs/${frame.data.jobId}/result`, { ok: true, output: {} });
+    assert.equal((await pending).json.ok, true);
+
+    const textPending = postJson(`${base}/connector/generate`, { modelId: 'krea2', operation: 't2i', media: [] });
+    const textFrame = await renderer.readFrame();
+    assert.equal('media' in textFrame.data.input, false);
+    await postJson(`${base}/connector/jobs/${textFrame.data.jobId}/result`, { ok: true, output: {} });
+    await textPending;
+  } finally {
+    renderer.close();
+    await stop();
+  }
+});
+
+test('media comes back in DECLARED slot order, whatever order the caller sent', () => {
+  // Klein Edit's slots are ordinal: injection strips the role and item order is the
+  // meaning. Returned in the caller's order, the REFERENCE gets edited — with ok:true.
+  const r = resolveAgentMedia('kleinEdit', findModelDef('klein-9b'), [
+    { role: 'inputImage2', url: '/ref.png' },
+    { role: 'inputImage', url: '/plate.png' },
+  ]);
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.mediaItems.map((m) => [m.role, m.url, m.mediaType]), [
+    ['inputImage', '/plate.png', 'image'],
+    ['inputImage2', '/ref.png', 'image'],
+  ]);
+});
+
+test('a bad media entry is a named BAD_REQUEST, never a silent drop', () => {
+  const klein = findModelDef('klein-9b');
+  const unknown = resolveAgentMedia('kleinEdit', klein, [{ role: 'image1', url: '/a.png' }]);
+  assert.equal(unknown.code, 'BAD_REQUEST');
+  assert.match(unknown.message, /inputImage, inputImage2, inputImage3/);
+
+  assert.equal(resolveAgentMedia('kleinEdit', klein, [{ role: 'inputImage' }]).code, 'BAD_REQUEST');
+
+  // Given twice, the executor's type fallback routes the second copy into the next
+  // slot, so a 1-image edit silently gets a different picture as its reference.
+  const twice = resolveAgentMedia('kleinEdit', klein, [
+    { role: 'inputImage', url: '/a.png' }, { role: 'inputImage', url: '/b.png' },
+  ]);
+  assert.equal(twice.code, 'BAD_REQUEST');
+});

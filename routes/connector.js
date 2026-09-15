@@ -199,7 +199,7 @@ const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'styli
  * POST /connector/generate
  * Body, EITHER a model op:  { modelId, operation, positive, negative?, injectionParams?,
  *                              ratio?, qualityTier?, turbo?, styleSelect?, stylization?,
- *                              seed? }
+ *                              seed?, media? }
  *       OR a Flow (MPI-658): { flowId, fields?, media? }
  *
  * The two are not variants of one shape. A Flow has no model — it dispatches with
@@ -264,6 +264,9 @@ router.post('/connector/generate', async (req, res) => {
       positive: positive || '',
       negative: negative || '',
       injectionParams: injectionParams || {},
+      // MPI-765: same `[{ role, url }]` a Flow takes. Omitted when empty so a text
+      // submit's job input keeps its exact pre-media shape.
+      ...(Array.isArray(media) && media.length ? { media } : {}),
       ...(ratio !== undefined ? { ratio } : {}),
       ...(qualityTier !== undefined ? { qualityTier } : {}),
       ...(turbo !== undefined ? { turbo } : {}),

@@ -31,7 +31,10 @@ import { getSharedSettings, getModelSettings } from './projectModel.js';
 import {
     getModelRatios, usesQualityTier, qualityTiersFor, clampQualityTier, defaultQualityTier,
 } from '../utils/ratios.js';
-import { getCommandDefault, modelShowsStyleRack, modelShowsBatch, modelShowsRatio } from './commandRegistry.js';
+import {
+    getCommandDefault, modelShowsStyleRack, modelShowsBatch, modelShowsRatio,
+    getCommandMediaInputs, filterMediaInputsForModel,
+} from './commandRegistry.js';
 import { PROMPT_CONTROL_DEFAULTS } from './promptControlDefaults.js';
 import { MODELS } from './modelConstants/models.js';
 import { canonicalModelId } from './modelConstants/resolveModelDeps.js';
@@ -317,4 +320,48 @@ export function resolveNamedParams(project, model, operation, named = {}) {
     if (modelShowsBatch(model, operation)) injectionParams.Input_Batch_Size = 1;
 
     return { ok: true, injectionParams, width: ratioDims.width, height: ratioDims.height };
+}
+
+// ── media (agent path) ───────────────────────────────────────────────────────
+
+/**
+ * Turn an agent's `media: [{ role, url }]` into the `mediaItems` a dispatch takes,
+ * resolved through the op's own declared slots (MPI-765). One implementation for
+ * both branches of `agentDispatch.js` — the model op and the Flow.
+ *
+ * The op owns the slot vocabulary (`key` + `mediaType`); the caller only names a
+ * role. Resolving through the op rather than trusting a caller-sent mediaType is
+ * what keeps a wav from being announced as an image and failing in the graph.
+ *
+ * Items come back in the op's DECLARED slot order, not the caller's. Klein Edit's
+ * slots are `ordinal`: `stripOrdinalMediaRoles` drops the role at injection and item
+ * order becomes the meaning, so `inputImage2` sent before `inputImage` would
+ * otherwise swap which image gets edited — with ok:true.
+ *
+ * `model` null = a Flow, whose declared slots are the contract as they stand
+ * (`filterMediaInputsForModel`). A model drops the slots it cannot take (WAN's audio).
+ *
+ * @param {string} operation
+ * @param {object|null} model
+ * @param {Array<{role:string, url:string}>} media
+ * @returns {{ok:true, mediaItems:Array}|{ok:false, code:string, message:string}}
+ */
+export function resolveAgentMedia(operation, model, media = []) {
+    const slots = filterMediaInputsForModel(getCommandMediaInputs(operation), model);
+    const mediaItems = [];
+    for (const m of (Array.isArray(media) ? media : [])) {
+        const slot = slots.find(s => s.key === m?.role);
+        if (!slot) {
+            return _err('BAD_REQUEST',
+                `"${operation}" has no media role "${m?.role}". Roles: ${slots.map(s => s.key).join(', ') || 'none'}.`);
+        }
+        if (!m.url) return _err('BAD_REQUEST', `Media role "${m.role}" has no url.`);
+        if (mediaItems.some(item => item.role === slot.key)) {
+            return _err('BAD_REQUEST', `Media role "${m.role}" was given twice.`);
+        }
+        mediaItems.push({ url: m.url, mediaType: slot.mediaType, role: slot.key, source: model ? 'agent' : 'flow-agent' });
+    }
+    const order = key => slots.findIndex(s => s.key === key);
+    mediaItems.sort((a, b) => order(a.role) - order(b.role));
+    return { ok: true, mediaItems };
 }

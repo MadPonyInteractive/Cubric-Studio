@@ -37,8 +37,8 @@ import { navigate, PAGE_GALLERY } from '../router.js';
 import { getModelById, isOperationInstalled } from '../data/modelRegistry.js';
 import { getFlowById, flowAvailability } from '../data/flowsRegistry.js';
 import { resolveFlowFieldValues, flowDeclaredFields } from '../utils/declaredFields.js';
-import { getCommandMediaInputs } from '../data/commandRegistry.js';
-import { resolveNamedParams, isValidSeed } from '../data/generationControls.js';
+import { getCommand } from '../data/commandRegistry.js';
+import { resolveNamedParams, isValidSeed, resolveAgentMedia } from '../data/generationControls.js';
 import { state } from '../state.js';
 import { clientLogger } from '../services/clientLogger.js';
 
@@ -75,7 +75,7 @@ function _submitGeneration(jobId, input = {}) {
     if (input.flowId) return _submitFlow(jobId, input);
 
     const {
-        modelId, operation, positive = '', negative = '', injectionParams = {},
+        modelId, operation, positive = '', negative = '', injectionParams = {}, media = [],
         ratio, qualityTier, turbo, styleSelect, stylization, seed,
     } = input;
 
@@ -96,12 +96,24 @@ function _submitGeneration(jobId, input = {}) {
             `"${operation}" is not available on ${model.name || modelId} — unsupported, or its weights are not installed.`);
     }
 
-    // v1 is text-only. Reject a media op by name rather than letting the enqueue
-    // guard cancel it, which would report a bare "rejected" the agent can't act on.
-    const needsMedia = getCommandMediaInputs(operation).filter(slot => slot.required !== false);
-    if (needsMedia.length) {
-        return _fail(jobId, 'MEDIA_UNSUPPORTED',
-            `"${operation}" needs ${needsMedia.map(s => s.mediaType).join(' + ')} input, which this endpoint cannot supply yet.`);
+    // A painted mask has no agent form. Refused by name: the enqueue guard would toast
+    // and cancel instead, which reaches the agent as a bare CANCELLED it can't act on.
+    if (getCommand(operation)?.requiresMask) {
+        return _fail(jobId, 'MASK_UNSUPPORTED',
+            `"${operation}" needs a painted mask, which this endpoint cannot supply.`);
+    }
+
+    // MPI-765: media by reference, resolved exactly as the Flow branch resolves it.
+    // Checked here for the same reason as the op: the enqueue guard's refusal is a toast.
+    const resolvedMedia = resolveAgentMedia(operation, model, media);
+    if (!resolvedMedia.ok) {
+        return _fail(jobId, resolvedMedia.code, resolvedMedia.message);
+    }
+    const { mediaItems } = resolvedMedia;
+    const missingSlot = findMissingMediaSlot(operation, mediaItems);
+    if (missingSlot) {
+        return _fail(jobId, 'MEDIA_REQUIRED',
+            `"${operation}" needs ${missingSlot.mediaType} in its "${missingSlot.key}" slot.`);
     }
 
     if (seed !== undefined && !isValidSeed(seed)) {
@@ -131,7 +143,7 @@ function _submitGeneration(jobId, input = {}) {
         model,
         positive,
         negative,
-        mediaItems: [],
+        mediaItems,
         // Explicit only — an unset seed must stay random, never pinned to 0.
         ...(seed !== undefined ? { seed } : {}),
         injectionParams: mergedInjection,
@@ -223,22 +235,13 @@ function _submitFlow(jobId, input = {}) {
             `${flow.title} is not installed — missing: ${absent.join(', ') || 'required files'}.`);
     }
 
-    // The op owns the slot vocabulary (`key` + `mediaType`); the caller names a
-    // role. Resolving through the op rather than trusting a caller-sent mediaType
-    // is what keeps a wav from being announced as an image and failing in the graph.
-    const slots = getCommandMediaInputs(flow.operation);
-    const mediaItems = [];
-    for (const m of (Array.isArray(media) ? media : [])) {
-        const slot = slots.find(s => s.key === m?.role);
-        if (!slot) {
-            return _fail(jobId, 'BAD_REQUEST',
-                `"${flow.operation}" has no media role "${m?.role}". Roles: ${slots.map(s => s.key).join(', ') || 'none'}.`);
-        }
-        if (!m.url) {
-            return _fail(jobId, 'BAD_REQUEST', `Media role "${m.role}" has no url.`);
-        }
-        mediaItems.push({ url: m.url, mediaType: slot.mediaType, role: slot.key, source: 'flow-agent' });
+    // The op owns the slot vocabulary; the caller names a role. One resolver for both
+    // branches (generationControls.js § resolveAgentMedia).
+    const resolvedMedia = resolveAgentMedia(flow.operation, null, media);
+    if (!resolvedMedia.ok) {
+        return _fail(jobId, resolvedMedia.code, resolvedMedia.message);
     }
+    const { mediaItems } = resolvedMedia;
 
     // The SHARED predicate, not a copy — three guards answering "is a required slot
     // empty?" must never be able to disagree (generationService § findMissingMediaSlot).
