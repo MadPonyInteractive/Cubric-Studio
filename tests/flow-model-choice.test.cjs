@@ -606,7 +606,7 @@ test('the RUN slide picker offers INSTALLED candidates only (MPI-638)', () => {
     // "download that one instead" — so an unfiltered picker inside an OPEN flow would let
     // someone flip that flow to unavailable and meet a toast at Generate, with no Install
     // button anywhere on the slide to recover with.
-    const src = read('js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+    const src = read('js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
     assert.match(src, /const choices = slot\.models\.filter\(id => installed\.includes\(id\)\)/,
         'the run-slide picker must filter candidates to the installed set');
     assert.match(src, /const showPick = choices\.length > 1;/,
@@ -878,7 +878,7 @@ test('two candidates sharing a NAME are told apart in the picker (MPI-567)', asy
 
     for (const src of [
         read('js/components/Compounds/LandingPages/MpiFlowLibrary/MpiFlowLibrary.js'),
-        read('js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js'),
+        read('js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js'),
     ]) {
         assert.match(src, /disambiguatedName\(/,
             'both pickers must go through the shared helper, not re-derive the letter');

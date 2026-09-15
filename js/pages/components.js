@@ -47,7 +47,7 @@ import { MpiAutoMaskThumbs } from '../components/Compounds/MpiAutoMaskThumbs/Mpi
 import { MpiViewerCorners } from '../components/Compounds/MpiViewerCorners/MpiViewerCorners.js';
 import { MpiTrimBar } from '../components/Compounds/MpiTrimBar/MpiTrimBar.js';
 import { MpiVideoSurface } from '../components/Compounds/MpiVideoSurface/MpiVideoSurface.js';
-import { MpiVideoControlBar } from '../components/Compounds/MpiVideoControlBar/MpiVideoControlBar.js';
+import { MpiVideoControlBar } from '../components/Organisms/MpiVideoControlBar/MpiVideoControlBar.js';
 
 // Organisms
 

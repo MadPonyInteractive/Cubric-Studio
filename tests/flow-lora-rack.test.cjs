@@ -139,7 +139,7 @@ test('settingsModel is retired everywhere, not just at its declaration', () => {
     // `settingsModel` would read as wired and inject nothing at all.
     for (const p of ['js/data/flowsRegistry.js', 'js/services/flowService.js',
         'js/services/generationService.js', 'js/services/commandExecutor.js',
-        'js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js']) {
+        'js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js']) {
         const src = read(p);
         assert.doesNotMatch(src, /^\s*settingsModel:/m, `${p} still DECLARES settingsModel`);
         assert.doesNotMatch(src, /flowSettingsModel\(/, `${p} still CALLS flowSettingsModel`);
@@ -194,7 +194,7 @@ test('the RUN slide carries the per-slot cogwheels, beside the output (MPI-613/6
     // LoRA choice is a COMPARE decision. From the slide-over, changing one costs six
     // navigations with the result and the control at opposite ends of the app. MPI-638
     // moved the MODEL DROPDOWN here for the same reason and paired the two.
-    const src = read('js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+    const src = read('js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
 
     assert.match(src, /const slots = flowModelSlots\(flow\)/,
         'the frame must render the flow\'s DECLARED slots, not a per-flow hardcode');

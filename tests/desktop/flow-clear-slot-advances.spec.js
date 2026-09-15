@@ -38,7 +38,7 @@ test('clearing a filled media slot still advances into the gizmo step', async ({
       const errs = [];
       window.addEventListener('error', e => errs.push(String(e.message)));
 
-      const { MpiBaseFlow } = await import('/js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+      const { MpiBaseFlow } = await import('/js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
       const { getFlowById } = await import('/js/data/flowsRegistry.js');
       const flow = getFlowById('scribble');
 
@@ -127,7 +127,7 @@ test('a blankOnly field is disabled with media and live without', async ({}, tes
     await expect(window).toHaveURL(SHELL_URL_RE);
 
     const result = await window.evaluate(async () => {
-      const { MpiBaseFlow } = await import('/js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+      const { MpiBaseFlow } = await import('/js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
       const { getFlowById } = await import('/js/data/flowsRegistry.js');
       const { state } = await import('/js/state.js');
       const flow = getFlowById('scribble');

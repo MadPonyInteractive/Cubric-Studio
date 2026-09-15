@@ -46,7 +46,7 @@ test('the run slide pairs a model dropdown with its cogwheel, and the cogwheel f
     await window.waitForTimeout(6000);
 
     await window.evaluate(async () => {
-      const { MpiBaseFlow } = await import('/js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+      const { MpiBaseFlow } = await import('/js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
       const { getFlowById } = await import('/js/data/flowsRegistry.js');
       const { state } = await import('/js/state.js');
 
@@ -173,7 +173,7 @@ test('a one-candidate slot states its model in a box, and the box is not a contr
     await window.waitForTimeout(6000);
 
     const box = await window.evaluate(async () => {
-      const { MpiBaseFlow } = await import('/js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+      const { MpiBaseFlow } = await import('/js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
       const { getFlowById } = await import('/js/data/flowsRegistry.js');
       const { state } = await import('/js/state.js');
 

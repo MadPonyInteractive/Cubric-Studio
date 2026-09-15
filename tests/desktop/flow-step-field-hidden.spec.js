@@ -33,7 +33,7 @@ test('a step field obeys hiddenWhen, and the pick is what moves it', async ({}, 
     await window.waitForTimeout(6000);
 
     const result = await window.evaluate(async () => {
-      const { MpiBaseFlow } = await import('/js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+      const { MpiBaseFlow } = await import('/js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
       const { state } = await import('/js/state.js');
 
       const PICKED = 'model-alpha';

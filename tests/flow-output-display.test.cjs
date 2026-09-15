@@ -41,7 +41,7 @@ test('the gallery completion hands displayUrls to the Flow', () => {
 });
 
 test('MpiBaseFlow paints the display first, persists it, and drops it without the result', () => {
-    const src = read('js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+    const src = read('js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
     assert.match(src, /_showResults\(items \|\| item, \{ display: _displayItems\(displayUrls\) \}\)/);
 
     const modes = src.match(/function _resultModes\(it\) \{([\s\S]*?)\n        \}/);

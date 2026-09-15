@@ -391,7 +391,7 @@ test('MpiVideoControlBar drives a real video through MpiVolumeControl: click, wh
 
         const layout = await window.evaluate(async () => {
             const { MpiVideoSurface } = await import('/js/components/Compounds/MpiVideoSurface/MpiVideoSurface.js');
-            const { MpiVideoControlBar } = await import('/js/components/Compounds/MpiVideoControlBar/MpiVideoControlBar.js');
+            const { MpiVideoControlBar } = await import('/js/components/Organisms/MpiVideoControlBar/MpiVideoControlBar.js');
 
             const host = document.createElement('div');
             host.id = 'mpi731-bar-probe';
@@ -666,7 +666,7 @@ test('MpiAudioPlayer: one row sized by its consumer, driving one real <audio>', 
         await clearBootModals(window);
 
         await window.evaluate(async () => {
-            const { MpiAudioPlayer } = await import('/js/components/Compounds/MpiAudioPlayer/MpiAudioPlayer.js');
+            const { MpiAudioPlayer } = await import('/js/components/Organisms/MpiAudioPlayer/MpiAudioPlayer.js');
             // Pinned low, with room above for the volume flyout. 260px is the result dock.
             const host = document.createElement('div');
             host.id = 'mpi731-player-probe';
@@ -880,7 +880,7 @@ test('MpiAudioPlayer: one row sized by its consumer, driving one real <audio>', 
 
         // ── `hotkeys: false`: N players side by side, only one answers SPACE ────────────────
         const second = await window.evaluate(async () => {
-            const { MpiAudioPlayer } = await import('/js/components/Compounds/MpiAudioPlayer/MpiAudioPlayer.js');
+            const { MpiAudioPlayer } = await import('/js/components/Organisms/MpiAudioPlayer/MpiAudioPlayer.js');
             const host = document.createElement('div');
             host.id = 'mpi731-player-probe-2';
             host.style.cssText = 'position:fixed;left:340px;bottom:120px;width:260px;z-index:99999;background:#000';
@@ -937,7 +937,7 @@ test('the Flow result pane: a scrub and the wheel drive the player, never pan or
         await clearBootModals(window);
 
         await window.evaluate(async () => {
-            const { MpiBaseFlow } = await import('/js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+            const { MpiBaseFlow } = await import('/js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
             const { state } = await import('/js/state.js');
             const flow = {
                 id: 'mpi731-pane-fixture',

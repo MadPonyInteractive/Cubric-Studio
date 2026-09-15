@@ -4,7 +4,7 @@ import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { ShapeManager } from '../../Primitives/MpiCanvas/managers/ShapeManager.js';
 import { CompositeManager } from '../../Primitives/MpiCanvas/managers/CompositeManager.js';
 import { ViewManager } from '../../Primitives/MpiCanvas/managers/ViewManager.js';
-import { composeObjectAlpha } from '../MpiStepCutout/MpiStepCutout.js';
+import { composeObjectAlpha } from '../../../utils/maskUtils.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 import { qs, on } from '../../../utils/dom.js';

@@ -35,7 +35,7 @@ test('an overflowing step slide can still be scrolled to its top', async ({}, te
     await expect(window).toHaveURL(SHELL_URL_RE);
 
     const result = await window.evaluate(async () => {
-      const { MpiBaseFlow } = await import('/js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+      const { MpiBaseFlow } = await import('/js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
       const { getFlowById } = await import('/js/data/flowsRegistry.js');
       const flow = getFlowById('object-stamp');
       if (!flow) return { missingFlow: true };

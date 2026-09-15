@@ -22,7 +22,7 @@ const path = require('node:path');
 
 const repo = p => path.join(__dirname, '..', p);
 const read = p => fs.readFileSync(repo(p), 'utf8');
-const kinds = () => import('file://' + repo('js/components/Organisms/MpiBaseFlow/stepKinds.js').replace(/\\/g, '/'));
+const kinds = () => import('file://' + repo('js/components/Blocks/MpiBaseFlow/stepKinds.js').replace(/\\/g, '/'));
 
 test('the box adapter renames w/h and passes coords unconverted', async () => {
     const { stepValueToParam } = await kinds();
@@ -45,7 +45,7 @@ test('nothing to send yields null, so the node keeps its baked default', async (
 });
 
 test('the frame binds declared params and omits the nulls', () => {
-    const src = read('js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+    const src = read('js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
 
     assert.match(src, /if \(!step\?\.param \|\| !step\.role\) return;/,
         'a step with no `param` must contribute nothing');
@@ -102,7 +102,7 @@ test('Head Swap declares both box bindings, so it needs no component to translat
 });
 
 test('a step hint renders as LINES, and a mode-keyed one never shows the wrong mode (MPI-596)', () => {
-    const frame = read('js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+    const frame = read('js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
 
     // The hint was ONE centred <p> fed by textContent, so a step with anything to say
     // rendered as an unbroken wall (Fabio, 2026-08-27). Lines now, one <p> each.

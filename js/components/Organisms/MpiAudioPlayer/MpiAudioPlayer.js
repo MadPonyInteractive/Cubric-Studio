@@ -1,5 +1,5 @@
 /**
- * MpiAudioPlayer — an audio transport over a baked waveform (Compound).
+ * MpiAudioPlayer — an audio transport over a baked waveform (Organism).
  *
  * `play │ waveform │ volume`, the time laid OVER the waveform. The two buttons are the
  * ends of the widget and the waveform is the bar that joins them (Fabio, 2026-09-13):
@@ -33,7 +33,7 @@
 import { ComponentFactory } from '../../factory.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiWaveform } from '../../Primitives/MpiWaveform/MpiWaveform.js';
-import { MpiVolumeControl } from '../MpiVolumeControl/MpiVolumeControl.js';
+import { MpiVolumeControl } from '../../Compounds/MpiVolumeControl/MpiVolumeControl.js';
 import { formatTime } from '../../../utils/string.js';
 import { qs, on } from '../../../utils/dom.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
@@ -43,7 +43,7 @@ const HOTKEY_VOLUME_STEP = 10;
 
 export const MpiAudioPlayer = ComponentFactory.create({
     name: 'MpiAudioPlayer',
-    css: ['js/components/Compounds/MpiAudioPlayer/MpiAudioPlayer.css'],
+    css: ['js/components/Organisms/MpiAudioPlayer/MpiAudioPlayer.css'],
 
     template: () => `
         <div class="mpi-audio-player">

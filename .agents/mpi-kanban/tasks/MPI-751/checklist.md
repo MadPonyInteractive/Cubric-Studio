@@ -13,6 +13,6 @@
 - [x] Fix 7 (user go 2026-09-14, option a): `MpiMediaPicker` takes `recordAudio` + `voicePicker` props from `MpiBaseFlow` (its only audio consumer); `toWavFile` -> `js/utils/toWavFile.js`. Lint 0, npm test 991/991, desktop media-picker-cards + flow-audio-player 10/10 (new gate check). Parked rule: 22 -> 20 hits
 - [x] Fix 6 (user go 2026-09-14): `loraSlotParts.js` -> `js/components/` root (imports Primitives only; consumers MpiModelSettings + MpiLoraRack). Lint 0, npm test 991/991, desktop flow-lora-button + model-settings-popup 3/3. Parked rule: 20 -> 19 hits
 - [x] Fixes 5 + 9 (Fabio: "your pick", 2026-09-15): `MpiCompareOverlay` -> Organisms, `MpiMaskedImagePreview` -> Compounds. Lint 0, npm test 1016/1016, desktop mask-persist-roundtrip 3/3. Parked rule: 19 -> 17 hits. Compare overlay visual check with Fabio pending
-- [ ] Fixes 3+4 (coupled; MpiBaseFlow.js free since MPI-677 committed c81de709)
+- [x] Fixes 3+4 (2026-09-15): `MpiAudioPlayer` + `MpiVideoControlBar` -> Organisms, `MpiBaseFlow` (+ `stepKinds.js`) -> Blocks, `composeObjectAlpha` -> `js/utils/maskUtils.js`. Lint 0, npm test 1016/1016, desktop 9 flow specs 16/16 + mask-persist-roundtrip / gallery-renditions 9/9. Parked rule: 17 -> 6 hits (all fix 8)
 - [ ] Fix 8 (4 LandingPages -> Organisms, MpiRemote -> Blocks): blocked, MPI-754 holds MpiFlowLibrary.js/.css with uncommitted edits
 - [ ] Land rule + test from `rule/`, lint clean on the new rule

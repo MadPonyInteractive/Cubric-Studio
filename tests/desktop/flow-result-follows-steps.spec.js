@@ -33,7 +33,7 @@ test('an audio result rides the floating window across steps and never stops', a
     await window.waitForTimeout(6000);
 
     const result = await window.evaluate(async () => {
-      const { MpiBaseFlow } = await import('/js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+      const { MpiBaseFlow } = await import('/js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
       const { state } = await import('/js/state.js');
 
       // Two seconds of a real tone as a data: URL — `resolveMediaUrl` passes `data:`

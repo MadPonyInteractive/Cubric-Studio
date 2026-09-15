@@ -98,7 +98,7 @@ const fs = require('node:fs');
 const read = p => fs.readFileSync(repo(p), 'utf8');
 
 test('the Flow result pane shows video on the REAL player, not a bare <video controls>', () => {
-    const src = read('js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+    const src = read('js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
     assert.match(src, /import \{ MpiVideoViewer \}/,
         'MpiBaseFlow must mount MpiVideoViewer for a video result');
     assert.match(src, /import \{ MpiVideoControlBar \}/,
@@ -110,7 +110,7 @@ test('the Flow result pane shows video on the REAL player, not a bare <video con
 });
 
 test('a video control bar the user cannot see does not answer the keyboard', () => {
-    const src = read('js/components/Compounds/MpiVideoControlBar/MpiVideoControlBar.js');
+    const src = read('js/components/Organisms/MpiVideoControlBar/MpiVideoControlBar.js');
     // hotkeyManager buckets handlers by KEY, not by registry id, so every bar bound
     // to `space` fires at once. MpiOverlay stashes rather than destroys, so a Group
     // History bar survives under an open Flow: without this gate one space press

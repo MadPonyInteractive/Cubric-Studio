@@ -97,7 +97,7 @@ function testTheControlHasNoPerModelBranch() {
 // ── 3. One dispatch to the enhancer graph ────────────────────────────────────
 
 function testOnlyLlmServiceDispatchesTheEnhancerOp() {
-    const flow = SRC('js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+    const flow = SRC('js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
     assert.ok(flow.includes('enhanceFlow('),
         'MpiBaseFlow must route its enhance through the shared dispatch');
     assert.ok(!flow.includes('runComfyEnhance'),

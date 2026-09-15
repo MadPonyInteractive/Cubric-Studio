@@ -645,7 +645,7 @@
  */
 
 /**
- * @typedef {Object} MpiVideoControlBarProps (Compound — js/components/Compounds/MpiVideoControlBar)
+ * @typedef {Object} MpiVideoControlBarProps (Organism — js/components/Organisms/MpiVideoControlBar)
  * @property {number}  [fps=24]      - Frame rate for time display + trim snapping
  * @property {boolean} [showTrim=true] - When false, the embedded MpiTrimBar is
  *                                       not mounted; trim hotkeys (I/O/X) and
@@ -1101,7 +1101,7 @@
  */
 
 /**
- * @typedef {Object} MpiBaseFlowProps (Organism — js/components/Organisms/MpiBaseFlow)
+ * @typedef {Object} MpiBaseFlowProps (Block — js/components/Blocks/MpiBaseFlow)
  * @property {import('../data/flowsRegistry.js').FlowDef} flow - The flow descriptor.
  * @property {Object} [initialInputs] - Optional seed inputs (overridden by
  *   state.s_flowInputs[flow.id] when present).
@@ -1304,7 +1304,7 @@
  * decoration: the canvas is cleared where alpha is 0, so without it a white object is
  * indistinguishable from a removed background.
  *
- * Exports `composeObjectAlpha`, the shared composite law — MpiStepPlace runs the SAME
+ * Composes with `composeObjectAlpha` (`js/utils/maskUtils.js`), the shared composite law — MpiStepPlace runs the SAME
  * function to preview what this stage produced, so the two canvases cannot disagree.
  *
  * Instance methods (on instance.el):
@@ -1352,7 +1352,7 @@
  * 🔴 `sourceValue` IS THE SEAM AND IT HAS TO BE. `source` resolves from _mediaGroups —
  * the user's own inputs — so it is always the object as UPLOADED; the cut object is
  * derived at Run and never enters that map. So the preview is composed here through
- * `composeObjectAlpha`, the cutout stage's own function. The masks are NOT copied into
+ * `composeObjectAlpha`, the function the cutout stage composes with. The masks are NOT copied into
  * this step's value: they belong to the cutout step, are persisted once in its
  * snapshot, and re-derive from there on Reuse.
  *
@@ -1951,7 +1951,7 @@
  */
 
 /**
- * @typedef {Object} MpiAudioPlayerProps (Compound — js/components/Compounds/MpiAudioPlayer)
+ * @typedef {Object} MpiAudioPlayerProps (Organism — js/components/Organisms/MpiAudioPlayer)
  * @property {string}  [src]          - Audio URL. Set once; the inner <audio> is never re-pointed
  * @property {string}  [mask]         - Baked waveform mask (the item's sidecar `thumbPath`).
  *                                      Omitted → the track paints its fills, no wave, still scrubs
@@ -2076,7 +2076,7 @@
  */
 
 /**
- * @typedef {Object} MpiVideoControlBarProps (Compound — js/components/Compounds/MpiVideoControlBar)
+ * @typedef {Object} MpiVideoControlBarProps (Organism — js/components/Organisms/MpiVideoControlBar)
  * @property {number} [fps=24]
  *
  * Transport + trim row for video. Mounts MpiTrimBar internally + the

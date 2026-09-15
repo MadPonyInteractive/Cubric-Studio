@@ -1,5 +1,5 @@
 /**
- * MpiVideoControlBar — video transport + trim controls (Compound).
+ * MpiVideoControlBar — video transport + trim controls (Organism).
  *
  * Owns play/frame±/loop/audio/fullscreen/frames-toggle buttons, time
  * display, and an embedded MpiTrimBar. Drives an attached MpiVideoSurface
@@ -31,15 +31,15 @@
 
 import { ComponentFactory } from '../../factory.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
-import { MpiTrimBar } from '../MpiTrimBar/MpiTrimBar.js';
-import { MpiVolumeControl } from '../MpiVolumeControl/MpiVolumeControl.js';
+import { MpiTrimBar } from '../../Compounds/MpiTrimBar/MpiTrimBar.js';
+import { MpiVolumeControl } from '../../Compounds/MpiVolumeControl/MpiVolumeControl.js';
 import { formatTime } from '../../../utils/string.js';
 import { qs } from '../../../utils/dom.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 
 export const MpiVideoControlBar = ComponentFactory.create({
     name: 'MpiVideoControlBar',
-    css: ['js/components/Compounds/MpiVideoControlBar/MpiVideoControlBar.css'],
+    css: ['js/components/Organisms/MpiVideoControlBar/MpiVideoControlBar.css'],
 
     template: () => `
         <div class="mpi-video-control-bar" data-no-toggle>

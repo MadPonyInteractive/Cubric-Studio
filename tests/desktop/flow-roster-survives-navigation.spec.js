@@ -36,7 +36,7 @@ test('a voice roster and a text field both survive a close and reopen', async ({
     await window.waitForTimeout(6000);
 
     const result = await window.evaluate(async () => {
-      const { MpiBaseFlow } = await import('/js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+      const { MpiBaseFlow } = await import('/js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
       const { state } = await import('/js/state.js');
 
       // A `fields`-kind step with no `inputSchema`, so nothing gates the mount on a

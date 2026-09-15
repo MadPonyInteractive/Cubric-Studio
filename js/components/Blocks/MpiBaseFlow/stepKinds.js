@@ -1,9 +1,9 @@
-import { MpiStepBox } from '../MpiStepBox/MpiStepBox.js';
-import { MpiStepPreview } from '../MpiStepPreview/MpiStepPreview.js';
-import { MpiStepCrop, composePaddedImage } from '../MpiStepCrop/MpiStepCrop.js';
-import { MpiStepPaint, composePaintLayer, composePaintComposite } from '../MpiStepPaint/MpiStepPaint.js';
-import { MpiStepCutout, composeCutObject } from '../MpiStepCutout/MpiStepCutout.js';
-import { MpiStepPlace, composePlacedObject } from '../MpiStepPlace/MpiStepPlace.js';
+import { MpiStepBox } from '../../Organisms/MpiStepBox/MpiStepBox.js';
+import { MpiStepPreview } from '../../Organisms/MpiStepPreview/MpiStepPreview.js';
+import { MpiStepCrop, composePaddedImage } from '../../Organisms/MpiStepCrop/MpiStepCrop.js';
+import { MpiStepPaint, composePaintLayer, composePaintComposite } from '../../Organisms/MpiStepPaint/MpiStepPaint.js';
+import { MpiStepCutout, composeCutObject } from '../../Organisms/MpiStepCutout/MpiStepCutout.js';
+import { MpiStepPlace, composePlacedObject } from '../../Organisms/MpiStepPlace/MpiStepPlace.js';
 
 /**
  * STEP_KINDS — the step-kind registry (MPI-306 Phase 1).

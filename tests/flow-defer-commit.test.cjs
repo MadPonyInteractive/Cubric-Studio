@@ -44,7 +44,7 @@ test('flow runs commit on completion and send NO gallery placeholder', () => {
 });
 
 test('the Apply affordance is fully gone from the flow frame', () => {
-    const src = read('js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+    const src = read('js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
     // Orphans left behind by a half-revert would still render or still be declared.
     assert.ok(!/_pendingGroups/.test(src), '_pendingGroups must be gone');
     assert.ok(!/_applyRow/.test(src), '_applyRow must be gone');

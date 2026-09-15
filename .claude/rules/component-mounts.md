@@ -323,7 +323,7 @@ Owns the bare `<video>` element + a sibling **exact-frame canvas overlay** (`.mp
 
 ---
 
-## MpiVideoControlBar.js (Compound — js/components/Compounds/MpiVideoControlBar — transport + trim)
+## MpiVideoControlBar.js (Organism — js/components/Organisms/MpiVideoControlBar — transport + trim)
 
 Owns play/frame±/loop/fullscreen/frames-toggle buttons + a `MpiVolumeControl` + time display + (optional) embedded `MpiTrimBar`. Drives a sibling `MpiVideoSurface` via `attachSurface(instance)`. Owns the 9 video hotkeys + 3 trim hotkeys (trim hotkeys only when `showTrim` is true). Hotkeys are bound on `attachSurface`, unbound on `detachSurface`/`destroy`. Loop intent is tracked separately from `video.loop`: when the active range is a strict subset of the clip, native `video.loop` is forced off and the loop is emulated via `timeupdate` (`seek(_in)` at `_out` if loop on; `_pause()` otherwise). Range-loop emulation gates on `!video.paused` so frame-step (which pauses first) is not re-routed.
 
@@ -366,7 +366,7 @@ A mute button and a volume flyout that opens UPWARD on `:hover` / `:has(:focus-v
 
 ---
 
-## MpiAudioPlayer.js (Compound — js/components/Compounds/MpiAudioPlayer — audio transport over the waveform, MPI-731)
+## MpiAudioPlayer.js (Organism — js/components/Organisms/MpiAudioPlayer — audio transport over the waveform, MPI-731)
 
 `play │ waveform (+ time laid over it) │ volume`, joined: the buttons are the ends and the waveform is the bar between them, as tall as they are. **No width of its own** — the consumer sets it. A SIBLING of `MpiVideoControlBar`, not a mode of it (that bar speaks `MpiVideoSurface`'s private API); its mute/volume wiring is copied here so the two transports behave alike. **Owns ONE `<audio>`**: `src` is set once and never re-pointed, so a consumer showing the same sound somewhere else MOVES the instance (MPI-727). Mounted by `MpiBaseFlow` (see that section).
 

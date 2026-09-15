@@ -32,7 +32,7 @@ test('typing @ in the Lyrics box inserts a bracketed section tag on its own line
     await window.waitForTimeout(6000);
 
     const result = await window.evaluate(async () => {
-      const { MpiBaseFlow } = await import('/js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+      const { MpiBaseFlow } = await import('/js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
       const { state } = await import('/js/state.js');
       const flowsMod = await import('/js/data/flowsRegistry.js');
 

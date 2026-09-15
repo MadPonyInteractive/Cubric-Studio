@@ -30,7 +30,7 @@ const repo = p => path.join(__dirname, '..', p);
 const read = p => fs.readFileSync(repo(p), 'utf8');
 const esm = p => import('file://' + repo(p).replace(/\\/g, '/'));
 
-const frame = () => read('js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+const frame = () => read('js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
 
 // ── Bug 1 — inputs are persisted on CHANGE, not only at dispatch ─────────────
 

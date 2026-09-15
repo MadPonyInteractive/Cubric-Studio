@@ -75,3 +75,54 @@ export function hasMaskContent(maskCanvas) {
         return false;
     }
 }
+
+/**
+ * The object's ORIGINAL pixels wearing the composited alpha.
+ *
+ * `alpha = (bgMask OR manual) AND NOT subtract` — the one place the two layers
+ * meet. It runs at dispatch and at draw time from the SAME function so the canvas
+ * cannot show something the run will not receive, and it runs in `MpiStepPlace`
+ * too, which composes its preview from THIS step's reported value.
+ *
+ * RGB always comes from `rgb`, never from `bgMask`: a Restore stroke has to
+ * reveal real pixels, and a cut-out PNG's colour under alpha 0 is encoder-
+ * dependent (memory `tools/image-alpha-flatten.md`).
+ *
+ * @param {CanvasImageSource} rgb the object as the user supplied it
+ * @param {CanvasImageSource|null} bgMask the cut-out, read for its ALPHA only; null
+ *   means Remove Background is off, and the base alpha is the whole rectangle
+ * @param {CanvasImageSource|null} manual white where the user restored
+ * @param {CanvasImageSource|null} subtract white where the user erased
+ * @param {number} w object px
+ * @param {number} h object px
+ * @returns {HTMLCanvasElement}
+ */
+export function composeObjectAlpha(rgb, bgMask, manual, subtract, w, h) {
+    const stencil = document.createElement('canvas');
+    stencil.width = w;
+    stencil.height = h;
+    const sc = stencil.getContext('2d');
+    if (bgMask) sc.drawImage(bgMask, 0, 0, w, h);
+    else {
+        // Any opaque colour: only the alpha channel of this canvas is ever read.
+        sc.fillStyle = 'rgba(255, 255, 255, 1)';
+        sc.fillRect(0, 0, w, h);
+    }
+    // Restore adds alpha, erase removes it — and erase runs LAST so a pixel the
+    // user rubbed out stays out whether the cut-out or a restore stroke put it there.
+    if (manual) sc.drawImage(manual, 0, 0, w, h);
+    if (subtract) {
+        sc.globalCompositeOperation = 'destination-out';
+        sc.drawImage(subtract, 0, 0, w, h);
+        sc.globalCompositeOperation = 'source-over';
+    }
+
+    const out = document.createElement('canvas');
+    out.width = w;
+    out.height = h;
+    const oc = out.getContext('2d');
+    oc.drawImage(rgb, 0, 0, w, h);
+    oc.globalCompositeOperation = 'destination-in';
+    oc.drawImage(stencil, 0, 0, w, h);
+    return out;
+}

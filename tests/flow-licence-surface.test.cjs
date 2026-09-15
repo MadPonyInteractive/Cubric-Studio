@@ -46,7 +46,7 @@ const src = () => fs.readFileSync(SRC, 'utf8');
 // Flow surfaces import, so the anchors follow them there.
 const MODULE = path.join(__dirname, '..', 'js', 'utils', 'flowLicences.js');
 const mod = () => fs.readFileSync(MODULE, 'utf8');
-const BASE_FLOW = path.join(__dirname, '..', 'js', 'components', 'Organisms',
+const BASE_FLOW = path.join(__dirname, '..', 'js', 'components', 'Blocks',
     'MpiBaseFlow', 'MpiBaseFlow.js');
 
 async function load() {

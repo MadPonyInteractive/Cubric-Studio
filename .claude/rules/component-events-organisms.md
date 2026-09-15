@@ -17,7 +17,7 @@ EMITS:   `play`           `{ time: number }`
 LISTENS: (none — driven externally via instance API)
 NOTE:    Bare `<video>` surface + click-to-toggle (skipped on `[data-no-toggle]` ancestors). Owns no transport UI; MpiVideoControlBar drives via `attachSurface(instance)`. Preserves loop-disable/seeked-restore + frame-step wrap-on-loop semantics. `frameStep(dir, range?)` operates in integer frame space and accepts `{ rangeIn, rangeOut, loop }`; out timestamp is inclusive (`round(hi*fps)` is the last visible frame).
 
-### MpiVideoControlBar (Compound — js/components/Compounds/MpiVideoControlBar/)
+### MpiVideoControlBar (Organism — js/components/Organisms/MpiVideoControlBar/)
 EMITS:   `loop-change`  `{ loop: boolean }`
          `range-change` `{ in: number, out: number }` — forwarded from embedded MpiTrimBar (only fires when `showTrim` is true)
 LISTENS: surface events `play/pause/timeupdate/loadedmetadata/volumechange` (via `attachSurface(instance)`); its MpiVolumeControl `mute-toggle/input/change`
@@ -48,7 +48,7 @@ EMITS:   `input`       `{ value: number }` — 0..100 while dragging, and on eve
 LISTENS: (none — the consumer calls `setValue` / `setMuted`, both quiet)
 NOTE:    Owns no media. A click on the speaker at level 0 restores the pre-gesture level as `input` + `change`, never `mute-toggle`. The wheel is a root capture listener, 5 per tick. Mounted by MpiVideoControlBar and MpiAudioPlayer.
 
-### MpiAudioPlayer (Compound — js/components/Compounds/MpiAudioPlayer/)
+### MpiAudioPlayer (Organism — js/components/Organisms/MpiAudioPlayer/)
 EMITS:   (none)
 LISTENS: its own `<audio>` `play/pause/timeupdate/loadedmetadata/volumechange`; MpiWaveform `seek`; MpiVolumeControl `mute-toggle/input/change`
 HOTKEYS: binds `video.playPause/mute/volume.up/volume.down` unless `hotkeys: false`, each gated on the player being on screen (`isConnected` + client rects, MPI-585). Unbinds on `destroy`.

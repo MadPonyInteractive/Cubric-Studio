@@ -103,7 +103,7 @@ this for the life of the app (355 is 5° from the surface hue), so no existing
 
 ## The player — the same wave, with a transport (MPI-731)
 
-A Flow's audio result plays in `MpiAudioPlayer` (`js/components/Compounds/MpiAudioPlayer/`), not
+A Flow's audio result plays in `MpiAudioPlayer` (`js/components/Organisms/MpiAudioPlayer/`), not
 Chromium's `<audio controls>`: `play │ MpiWaveform │ MpiVolumeControl`, time laid over the wave. It
 is the second mount of the component above, and it needed no route work — a flow result item
 already carries `thumbPath` + `duration`.

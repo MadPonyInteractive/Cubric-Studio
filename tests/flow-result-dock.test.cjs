@@ -37,7 +37,7 @@ const path = require('node:path');
 
 const repo = p => path.join(__dirname, '..', p);
 const read = p => fs.readFileSync(repo(p), 'utf8');
-const frame = () => read('js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js');
+const frame = () => read('js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js');
 
 test('the dock is synced synchronously, never behind the rAF', () => {
     const src = frame();
@@ -73,7 +73,7 @@ test('the audio player is shared and keyed by url, never re-pointed', () => {
     // Re-assigning `src` on the live element is the same restart a fresh element is,
     // so the player sets it in exactly one place, construction, and nothing here
     // reaches in to set it again (MPI-731 moved the element inside MpiAudioPlayer).
-    const player = read('js/components/Compounds/MpiAudioPlayer/MpiAudioPlayer.js');
+    const player = read('js/components/Organisms/MpiAudioPlayer/MpiAudioPlayer.js');
     assert.equal((player.match(/\.src\s*=/g) || []).length, 1,
         'MpiAudioPlayer sets its src once — a new file gets a new player, not a re-point');
     assert.ok(

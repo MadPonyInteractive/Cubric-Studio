@@ -12,7 +12,7 @@ import { ComponentFactory } from '../../factory.js';
 import { MpiHistoryTools } from '../../Compounds/MpiHistoryTools/MpiHistoryTools.js';
 import { MpiCanvasViewer } from '../../Organisms/MpiCanvasViewer/MpiCanvasViewer.js';
 import { MpiVideoViewer } from '../../Organisms/MpiVideoViewer/MpiVideoViewer.js';
-import { MpiVideoControlBar } from '../../Compounds/MpiVideoControlBar/MpiVideoControlBar.js';
+import { MpiVideoControlBar } from '../../Organisms/MpiVideoControlBar/MpiVideoControlBar.js';
 import { MpiHistoryList } from '../../Compounds/MpiHistoryList/MpiHistoryList.js';
 import { MpiToolOptionsCrop } from '../../Organisms/MpiToolOptionsCrop/MpiToolOptionsCrop.js';
 import { MpiToolOptionsMaskBrush } from '../../Organisms/MpiToolOptionsMaskBrush/MpiToolOptionsMaskBrush.js';

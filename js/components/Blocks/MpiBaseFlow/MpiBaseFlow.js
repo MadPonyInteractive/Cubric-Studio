@@ -7,10 +7,10 @@ import { MpiVoicePicker } from '../../Compounds/MpiVoicePicker/MpiVoicePicker.js
 import { recordAudioIntoProject } from '../../Compounds/MpiAudioRecorder/MpiAudioRecorder.js';
 import { MpiModelSettings } from '../../Compounds/MpiModelSettings/MpiModelSettings.js';
 import { MpiCompareView } from '../../Compounds/MpiCompareView/MpiCompareView.js';
-import { MpiVideoViewer } from '../MpiVideoViewer/MpiVideoViewer.js';
-import { MpiVideoControlBar } from '../../Compounds/MpiVideoControlBar/MpiVideoControlBar.js';
+import { MpiVideoViewer } from '../../Organisms/MpiVideoViewer/MpiVideoViewer.js';
+import { MpiVideoControlBar } from '../../Organisms/MpiVideoControlBar/MpiVideoControlBar.js';
 import { MpiFlowResultDock } from '../../Compounds/MpiFlowResultDock/MpiFlowResultDock.js';
-import { MpiAudioPlayer } from '../../Compounds/MpiAudioPlayer/MpiAudioPlayer.js';
+import { MpiAudioPlayer } from '../../Organisms/MpiAudioPlayer/MpiAudioPlayer.js';
 import { Events } from '../../../events.js';
 import { state, AUTO_PIXEL_THRESHOLD } from '../../../state.js';
 import { ViewManager } from '../../Primitives/MpiCanvas/managers/ViewManager.js';
@@ -183,7 +183,7 @@ function _mountButton(props, children = '') {
 
 export const MpiBaseFlow = ComponentFactory.create({
     name: 'MpiBaseFlow',
-    css: ['js/components/Organisms/MpiBaseFlow/MpiBaseFlow.css'],
+    css: ['js/components/Blocks/MpiBaseFlow/MpiBaseFlow.css'],
 
     template: (props) => `
         <div class="mpi-base-flow">

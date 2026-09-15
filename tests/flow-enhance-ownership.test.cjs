@@ -24,7 +24,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const repo = p => path.join(__dirname, '..', p);
-const frame = () => fs.readFileSync(repo('js/components/Organisms/MpiBaseFlow/MpiBaseFlow.js'), 'utf8');
+const frame = () => fs.readFileSync(repo('js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js'), 'utf8');
 const esm = p => import('file://' + repo(p).replace(/\\/g, '/'));
 
 test('the snapshot carries enhancer ownership out', () => {

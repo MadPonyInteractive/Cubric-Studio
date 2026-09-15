@@ -53,4 +53,29 @@ gallery-cue-all 11/11.
 - `npx playwright test --config=playwright.desktop.config.js tests/desktop/mask-persist-roundtrip.spec.js`: 3/3
   (prompt-mode preview mounts from the new path)
 - Parked rule: 17 hits; no `MpiCompareOverlay` / `MpiMaskedImagePreview` hit left
-- No spec opens the compare overlay: visual check in Fabio's app pending
+- No spec opens the compare overlay; a script resolving every import, `css:` and preload path in the touched
+  files found 0 missing, and the history-block specs below load `MpiGroupHistoryBlock`, which imports it
+
+## Fixes 3 + 4 (2026-09-15, session 088b3125) — 17 -> 6 hits
+
+Coupled: AudioPlayer and VideoControlBar compose the Compound `MpiVolumeControl` (which imports Primitives,
+so it cannot drop a tier), so they go UP to Organisms, and that makes `MpiBaseFlow` (an Organism importing
+them, `MpiVideoViewer` and the six step Organisms) the next hit, so it goes up to Blocks, where only
+`shell.js` imports it. `stepKinds.js` travels with it. `MpiTrimBar` stays a Compound (an Organism may import it).
+
+- `composeObjectAlpha` (+ its JSDoc) moved verbatim from `MpiStepCutout.js` to `js/utils/maskUtils.js`
+  beside `alphaStencil`; MpiStepCutout (2 call sites) and MpiStepPlace import it from there.
+- Paths updated in 36 files: importers, `shell.js`, `preloadStyles.js` (in place), `types.js` tier words +
+  prose, 10 unit tests + 9 desktop specs that read or import the MpiBaseFlow path (one via `path.join`
+  segments), `docs/playbooks/add-flow/README.md`, `docs/gallery-audio-cards.md`, component maps.
+- NOT updated: `docs/playbooks/add-flow/04-overlay-and-shell.md:11` still says `Organisms/MpiBaseFlow`. The
+  file is under MPI-754's claim with uncommitted edits; its owner was messaged.
+
+- `npm run lint`: 0
+- `npm test`: 1016/1016
+- Repo-wide path check over 258 js files + 104 preload entries: 0 real misses (9 hits are pre-existing JSDoc prose)
+- `npx playwright test --config=playwright.desktop.config.js` flow-audio-player, flow-clear-slot-advances,
+  flow-lora-button, flow-result-follows-steps, flow-roster-survives-navigation, flow-section-tag-picker,
+  flow-slide-scroll-reaches-top, flow-step-field-hidden, flow-step-gate: 16/16
+- Same config, mask-persist-roundtrip + gallery-renditions (load the history block): 9/9
+- Parked rule: 6 hits, all fix 8 (LandingPages), blocked on MPI-754's uncommitted MpiFlowLibrary edits
