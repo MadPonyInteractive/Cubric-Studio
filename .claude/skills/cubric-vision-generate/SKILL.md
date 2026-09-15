@@ -200,3 +200,13 @@ project, then generating into it).
 It **runs on the engine and produces nothing in the UI** — no card, no history
 entry, no `.meta` record. The picture exists and the project never learns about
 it. Use `/connector/generate`.
+
+## Agent tool routes (MPI-774)
+
+`GET /connector/models` — `{ ok, engine, hardware: {gpuName,vramGb,ramGb}, models, flows }`. Each model has `installed`, `ops`, `missingDownloadGb`, and `fit: {floorVramGb, ramGbAtYourVram, runs}`. Requires a Vision window (`APP_UNAVAILABLE` otherwise).
+
+`GET /connector/knowledge` — corpus index `{ ok, entries: [{id,kind,title,tags}] }`. `GET /connector/knowledge/:id` — one entry with `text`. Error: `UNKNOWN_ENTRY`.
+
+`POST /connector/install { modelId }` — starts downloading missing deps. Returns `{ ok, modelId, downloadGb, started: true }`. Non-blocking; track via `GET /comfy/downloads/status`. Errors: `BAD_REQUEST`, `UNKNOWN_MODEL`, `ALREADY_INSTALLED`, `OFFLINE`, `APP_UNAVAILABLE`.
+
+`POST /connector/describe { imagePath, question?, crop? }` — runs the image describer. `crop` = `{x,y,width,height}` in original pixels; the route crops with sharp first. `question` injects a ChatML string into `Input_Describe_Prompt`. Returns `{ ok, output: { text } }`. Errors: `BAD_REQUEST`, `IMAGE_NOT_FOUND`, `CROP_OUT_OF_BOUNDS`, `DESCRIBER_MISSING`, `APP_UNAVAILABLE`, `RUNTIME_ERROR`, `TIMEOUT`.

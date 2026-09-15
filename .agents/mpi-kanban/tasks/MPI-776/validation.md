@@ -53,10 +53,19 @@ updated there, commit `720db52`.
 ## Shared tree
 
 `routes/connector.js`, `js/shell/agentDispatch.js` and the generate skill (formerly
-`cubric-vision/generating.md`) also carry MPI-774's uncommitted Batch 1 work. They were
-committed as HEAD-based blobs holding MPI-776 only; MPI-774's hunks, including its
-`## Agent tool routes (MPI-774)` section now in `cubric-vision-generate/SKILL.md`, stay
-uncommitted in the worktree. MPI-774 was messaged.
+`cubric-vision/generating.md`) carried MPI-774's Batch 1 work, uncommitted when MPI-776
+started. They were committed as blobs of HEAD plus MPI-776's content-anchored edits.
+MPI-774 committed its Batch 1 (`4cfc489e`) between MPI-776's dry run and its commit, so
+those blobs were built on HEAD with that work already in it: nothing of MPI-774's was
+reverted. The one casualty was its `## Agent tool routes (MPI-774)` section, committed
+into `generating.md` by `4cfc489e` and stripped by the MPI-776 move as if it were still
+uncommitted; a follow-up commit restores it verbatim in
+`cubric-vision-generate/SKILL.md`.
+
+`validate_board.py` on the MPI-776 commit reports MPI-702 (board column `done`, card still
+`in-progress`/`active`) and an orphan `tasks/MPI-765` folder. The parent commit
+`f3b88c1e` reports the same four lines, so they predate MPI-776 and are left to their
+owners.
 
 ## Left for others
 
