@@ -37,3 +37,19 @@
 > and the matching Pod-image move. Like 1.4.3 this was cut from the `1.4.2`
 > maintenance branch, so it carried the H3 + non-Flow image work and never master's
 > Flow backlog.
+
+<!--
+Gate 0 re-run against v1.5.0 on 2026-09-15 (MPI-761):
+  - Inpaint guide: v1.5.0's `commands.inpaint.help` says "The model can NOT see what is
+    under your mask" and "Leave the prompt EMPTY to remove", while all nine inpaint graphs
+    it ships run LanPaint_KSampler. v1.4.4's klein_t2i.json has 0 LanPaint nodes and
+    v1.5.0's has 1, so the old copy was TRUE through 1.4.4 and wrong from 1.5.0 on:
+    "since 1.5.0" is accurate. Text ported from master's c7493555 (MPI-367).
+-->
+
+## Fixes
+
+- The Inpaint guide now describes how Inpaint actually works. Since 1.5.0 the model sees
+  the whole picture under your mask, an empty prompt does nothing, and removing something
+  means naming it, for example "remove the tattoo". The guide still said the opposite of
+  all three. The Detail guide, which compared itself to Inpaint, is corrected too.
