@@ -3,8 +3,8 @@
   "id": "MPI-774",
   "title": "In-app agent, slice A",
   "description": "MPI-677 step 5, spun out: an Agent|Prompt toggle turns the prompt box into a chat with a server-side agent that recommends/installs models, generates via the connector (models + Flows), sees images, and auto-compacts. Design approved 2026-09-15, see brief.md.",
-  "column": "todo",
-  "maturity": "planned",
+  "column": "doing",
+  "maturity": "in-progress",
   "status": "active",
   "attention": {
     "state": "cleared",
@@ -12,7 +12,7 @@
     "updated_at": "2026-09-15T15:50:09Z"
   },
   "created_at": "2026-09-15T16:05:25+01:00",
-  "updated_at": "2026-09-15T15:50:09Z",
+  "updated_at": "2026-09-15T17:07:42Z",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -22,5 +22,6 @@
     "events": "events.jsonl",
     "handoffs": "handoffs/",
     "research": "research/"
-  }
+  },
+  "activeSessionTitle": "MPI-774 Phase 0 - contract doc and describer question"
 }

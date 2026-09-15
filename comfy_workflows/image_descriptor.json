@@ -59,7 +59,7 @@
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
-      "title": "Text String (System Prompt)"
+      "title": "Input_Describe_Prompt"
     }
   },
   "41": {

@@ -7,10 +7,14 @@
 **Evidence behind this plan:** `research/investigation.md` - verified facts with file:line, the
 seven investigator claims that turned out wrong, and a live orchestrator probe.
 
-**Where it stands (2026-09-15, handoff):** planning done, D1-D3 settled, nothing implemented;
-card still in To do. Next is Phase 0: write `docs/agent-chat.md` (the contract), then hand Fabio
-the raw node list for `image_descriptor.json`. Batch 1 needs both. Moving the card to doing
-(with `checklist.md` and `files.json`) comes before the first code edit.
+**Where it stands (2026-09-15, session e2ae3500, handoff):** **Phase 0 is DONE.** Card in doing.
+`docs/agent-chat.md` is the contract (routed from `docs/README.md`). Node 38 of
+`image_descriptor.json` is `Input_Describe_Prompt` (raw `aff97551`, runtime synced, verified in
+`validation.md`). **Next: Parallel Batch 1** with `mpi-execute-parallel`, GPU-free by design
+(Fabio's GPU is busy with video agents). Before dispatch: one `mpi-message` to MPI-677's owner
+naming the shared paths (MPI-677 still `doing`). **W4 builds everything EXCEPT the landing slot**
+(Fabio, 2026-09-15): MPI-766's claim on `js/shell/projectUI.js` / `styles/shell/landing.css` is
+still `claimed` though its session closed; the landing entry waits for MPI-766 to close.
 **MPI-766 went live in a peer session the same day** (claims `js/shell/projectUI.js`,
 `styles/shell/landing.css`, `assets/mascot/**`): W4's landing slot waits for it or coordinates.
 
@@ -110,7 +114,7 @@ D3."*
 - [x] **Get D1-D3 from Fabio.** Record his words under § Decisions; revise the plan where he
   overrides. **Verify:** § Decisions carries his answer for each, dated. *Done 2026-09-15: all
   three accepted as recommended, no revision.*
-- [ ] **Write the contract, `docs/agent-chat.md`** (new subsystem doc, routed from
+- [x] **Write the contract, `docs/agent-chat.md`** (new subsystem doc, routed from
   `docs/README.md`, 200 lines max). It holds: the JSON schema of every tool; each new route's
   request/response and error codes (`/connector/models`, `/connector/knowledge[/:id]`,
   `/connector/install`, `/connector/describe`, Flow `params`, and `/agent/message`,
@@ -121,7 +125,7 @@ D3."*
   chat are staged (an agent scratch dir; copied into the project only when a generate uses them).
   **Verify:** a table in the doc maps brief items 1-15 to a route, an event or a UI element with
   no gaps; every tool in brief § Architecture has a schema; `docs/README.md` routes to it.
-- [ ] **The describer question (D1).** Deliver the raw node list (file, node id, widget index) so
+- [x] **The describer question (D1).** Deliver the raw node list (file, node id, widget index) so
   a question can be injected while the right-click caption keeps its current instruction. Fabio
   edits `comfy_workflows/raw/image_descriptor.json`; the agent runs
   `node scripts/sync-raw-workflows.mjs`. Do not hand-edit workflow JSON. **Verify:** the synced
@@ -285,7 +289,13 @@ mount line.
 
 ## Plan Drift
 
-- None yet.
+- 2026-09-15 (contract written): three refinements, all recorded in `docs/agent-chat.md`.
+  (1) Flow box `params` stay inside the image **unless the step declares `overflow: 'allow'`**
+  (both Head Swap steps do), not always. (2) `POST /agent/message` carries the renderer's open
+  `project` at send time: the server holds no open-project state, and staging plus `NO_PROJECT`
+  need it. (3) The describer question is ONE retitle (node 38 -> `Input_Describe_Prompt`) and the
+  route injects a whole ChatML string, the `llmService.js` `Input_System_Prompt` precedent; no new
+  graph nodes, and no injection keeps today's caption byte for byte.
 
 ## Verification
 
