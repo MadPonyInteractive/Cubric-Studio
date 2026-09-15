@@ -12,5 +12,7 @@
 - [x] Parked progress check: `npx eslint -c .agents/mpi-kanban/tasks/MPI-751/rule/tier.eslint.config.cjs js/` (22 hits left)
 - [x] Fix 7 (user go 2026-09-14, option a): `MpiMediaPicker` takes `recordAudio` + `voicePicker` props from `MpiBaseFlow` (its only audio consumer); `toWavFile` -> `js/utils/toWavFile.js`. Lint 0, npm test 991/991, desktop media-picker-cards + flow-audio-player 10/10 (new gate check). Parked rule: 22 -> 20 hits
 - [x] Fix 6 (user go 2026-09-14): `loraSlotParts.js` -> `js/components/` root (imports Primitives only; consumers MpiModelSettings + MpiLoraRack). Lint 0, npm test 991/991, desktop flow-lora-button + model-settings-popup 3/3. Parked rule: 20 -> 19 hits
-- [ ] Fixes 3-5, 8, 9 (awaiting go; recommendations in handoff c33e52cc; fix 8 now proposed as 4 -> Organisms + MpiRemote -> Blocks; 5/8/9 edit preloadStyles.js, held by MPI-749)
+- [x] Fixes 5 + 9 (Fabio: "your pick", 2026-09-15): `MpiCompareOverlay` -> Organisms, `MpiMaskedImagePreview` -> Compounds. Lint 0, npm test 1016/1016, desktop mask-persist-roundtrip 3/3. Parked rule: 19 -> 17 hits. Compare overlay visual check with Fabio pending
+- [ ] Fixes 3+4 (coupled; MpiBaseFlow.js free since MPI-677 committed c81de709)
+- [ ] Fix 8 (4 LandingPages -> Organisms, MpiRemote -> Blocks): blocked, MPI-754 holds MpiFlowLibrary.js/.css with uncommitted edits
 - [ ] Land rule + test from `rule/`, lint clean on the new rule

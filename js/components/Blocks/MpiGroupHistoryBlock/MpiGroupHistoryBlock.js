@@ -71,7 +71,7 @@ import { MpiModelPicker } from '../../Compounds/MpiModelPicker/MpiModelPicker.js
 import { MpiMediaDropOverlay } from '../../Primitives/MpiMediaDropOverlay/MpiMediaDropOverlay.js';
 import { uploadMediaFile } from '../../../services/mediaUploadService.js';
 import { MpiToast } from '../../Primitives/MpiToast/MpiToast.js';
-import { MpiCompareOverlay } from '../../Compounds/MpiCompareOverlay/MpiCompareOverlay.js';
+import { MpiCompareOverlay } from '../../Organisms/MpiCompareOverlay/MpiCompareOverlay.js';
 import { MpiContextMenu } from '../../Compounds/MpiContextMenu/MpiContextMenu.js';
 import { MpiOkCancel } from '../../Compounds/MpiOkCancel/MpiOkCancel.js';
 import { MpiReusePromptDialog } from '../../Compounds/MpiReusePromptDialog/MpiReusePromptDialog.js';

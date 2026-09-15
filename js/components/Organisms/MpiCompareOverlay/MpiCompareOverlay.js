@@ -1,5 +1,5 @@
 /**
- * MpiCompareOverlay — the History surface for a before/after comparison (Compound)
+ * MpiCompareOverlay — the History surface for a before/after comparison (Organism)
  *
  * A full #tool-container takeover that shows two selected media items in
  * MpiCompareView. It owns the TAKEOVER and nothing else: the labels, the canvas,
@@ -23,12 +23,12 @@
 
 import { ComponentFactory } from '../../factory.js';
 import { MpiOverlay }       from '../../Primitives/MpiOverlay/MpiOverlay.js';
-import { MpiCompareView }   from '../MpiCompareView/MpiCompareView.js';
+import { MpiCompareView }   from '../../Compounds/MpiCompareView/MpiCompareView.js';
 import { qs }               from '../../../utils/dom.js';
 
 export const MpiCompareOverlay = ComponentFactory.create({
     name: 'MpiCompareOverlay',
-    css:  ['js/components/Compounds/MpiCompareOverlay/MpiCompareOverlay.css'],
+    css:  ['js/components/Organisms/MpiCompareOverlay/MpiCompareOverlay.css'],
 
     template: () => `
         <div class="mpi-compare-overlay">

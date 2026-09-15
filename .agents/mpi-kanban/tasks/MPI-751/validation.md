@@ -34,3 +34,23 @@ gallery-cue-all 11/11.
 - Parked rule: 19 hits; no `MpiLoraRack` hit left
 - Not touched: `js/components/Compounds/MpiGalleryToolbar/filterPanel.js:4` still names the old path in a
   comment. The file is under MPI-749's live claim, so its owner was messaged instead.
+
+## Fixes 5 + 9 (2026-09-15, session 088b3125) — 19 -> 17 hits
+
+- Fix 5: `Compounds/MpiCompareOverlay` -> `Organisms/` (it composes Compound `MpiCompareView`). Importers:
+  `MpiGalleryBlock.js`, `MpiGroupHistoryBlock.js`, `js/pages/components.js`.
+- Fix 9: `Primitives/MpiMaskedImagePreview` -> `Compounds/` (it composes Primitive `MpiCanvas`'s
+  `ViewManager`). Importer: `MpiCanvasViewer.js`.
+- Both: `preloadStyles.js` renamed in place (keeps cascade order), `types.js` typedef comments, header
+  tier words, rule maps (`component-mounts.md` header; the `MpiCompareOverlay` events entry moved from
+  `component-events-primitives.md` to `component-events-organisms.md`).
+- Trap: each component also names its own stylesheet in `ComponentFactory` `css: [...]`. Lint and
+  `npm test` stayed green with the OLD folder there; only a repo-wide grep for the old path caught it.
+  Grep the old path after any tier move, not just `import` lines.
+
+- `npm run lint`: 0 (plus eslint on all 7 touched files after the css fix)
+- `npm test`: 1016/1016
+- `npx playwright test --config=playwright.desktop.config.js tests/desktop/mask-persist-roundtrip.spec.js`: 3/3
+  (prompt-mode preview mounts from the new path)
+- Parked rule: 17 hits; no `MpiCompareOverlay` / `MpiMaskedImagePreview` hit left
+- No spec opens the compare overlay: visual check in Fabio's app pending

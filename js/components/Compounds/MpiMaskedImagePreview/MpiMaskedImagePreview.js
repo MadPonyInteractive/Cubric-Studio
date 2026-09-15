@@ -1,5 +1,5 @@
 /**
- * MpiMaskedImagePreview — Lightweight image + mask preview for Prompt tool mode (Primitive)
+ * MpiMaskedImagePreview — Lightweight image + mask preview for Prompt tool mode (Compound)
  *
  * Two <img> elements in a CSS-transform stack. No canvas GPU backing.
  * Pan/zoom via ViewManager (same model as MpiCanvas). Mask shown as
@@ -21,13 +21,13 @@
  */
 
 import { ComponentFactory } from '../../factory.js';
-import { ViewManager }       from '../MpiCanvas/managers/ViewManager.js';
+import { ViewManager }       from '../../Primitives/MpiCanvas/managers/ViewManager.js';
 import { qs }                from '../../../utils/dom.js';
 import { AUTO_PIXEL_THRESHOLD } from '../../../state.js';
 
 export const MpiMaskedImagePreview = ComponentFactory.create({
     name: 'MpiMaskedImagePreview',
-    css: ['js/components/Primitives/MpiMaskedImagePreview/MpiMaskedImagePreview.css'],
+    css: ['js/components/Compounds/MpiMaskedImagePreview/MpiMaskedImagePreview.css'],
 
     template: () => `
         <div class="mpi-masked-preview">

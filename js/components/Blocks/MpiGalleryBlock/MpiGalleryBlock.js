@@ -13,7 +13,7 @@
 import { ComponentFactory } from '../../factory.js';
 import { MpiGalleryGrid } from '../../Compounds/MpiGalleryGrid/MpiGalleryGrid.js';
 import { MpiMediaDropOverlay } from '../../Primitives/MpiMediaDropOverlay/MpiMediaDropOverlay.js';
-import { MpiCompareOverlay } from '../../Compounds/MpiCompareOverlay/MpiCompareOverlay.js';
+import { MpiCompareOverlay } from '../../Organisms/MpiCompareOverlay/MpiCompareOverlay.js';
 import { MpiOkCancel } from '../../Compounds/MpiOkCancel/MpiOkCancel.js';
 import { MpiModelSettings } from '../../Compounds/MpiModelSettings/MpiModelSettings.js';
 import { MpiModelPicker } from '../../Compounds/MpiModelPicker/MpiModelPicker.js';

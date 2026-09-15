@@ -45,7 +45,7 @@
  */
 
 /**
- * @typedef {Object} MpiMaskedImagePreviewProps (Primitive — js/components/Primitives/MpiMaskedImagePreview)
+ * @typedef {Object} MpiMaskedImagePreviewProps (Compound — js/components/Compounds/MpiMaskedImagePreview)
  * No props required.
  *
  * Lightweight image + mask preview for Prompt tool mode. Two <img> elements in a
@@ -1857,7 +1857,7 @@
  */
 
 /**
- * @typedef {Object} MpiCompareOverlayProps (Compound — js/components/Compounds/MpiCompareOverlay)
+ * @typedef {Object} MpiCompareOverlayProps (Organism — js/components/Organisms/MpiCompareOverlay)
  * No props required at mount time.
  *
  * The History TAKEOVER around MpiCompareView — it owns the overlay and nothing else.

@@ -35,7 +35,7 @@
 
 import { ComponentFactory } from '../../factory.js';
 import { MpiCanvas } from '../../Primitives/MpiCanvas/MpiCanvas.js';
-import { MpiMaskedImagePreview } from '../../Primitives/MpiMaskedImagePreview/MpiMaskedImagePreview.js';
+import { MpiMaskedImagePreview } from '../../Compounds/MpiMaskedImagePreview/MpiMaskedImagePreview.js';
 import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
 import { MpiAutoMaskThumbs } from '../../Compounds/MpiAutoMaskThumbs/MpiAutoMaskThumbs.js';
 import { MpiViewerCorners } from '../../Compounds/MpiViewerCorners/MpiViewerCorners.js';

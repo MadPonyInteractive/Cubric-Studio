@@ -57,6 +57,10 @@ NOTE:    Sibling of MpiVideoControlBar, not a mode of it. One `<audio>` per inst
 
 ## Organisms
 
+### MpiCompareOverlay (Organism — js/components/Organisms/MpiCompareOverlay/)
+EMITS:   `close` `{}`
+LISTENS: (forwarded from internal MpiOverlay 'close')
+
 ### MpiVideoViewer (Organism — js/components/Organisms/MpiVideoViewer/)
 EMITS:   `play`, `pause`, `ended`, `timeupdate` — forwarded from MpiVideoSurface
          `change`        `{ volume, muted }` — forwarded from surface `volumechange`

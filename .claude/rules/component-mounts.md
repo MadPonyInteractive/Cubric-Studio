@@ -11,7 +11,7 @@ Props: `{ onBrushSizeChange?: fn, onBrushTypeChange?: fn }`
 
 ---
 
-## MpiMaskedImagePreview (Primitive: lightweight prompt-mode image preview)
+## MpiMaskedImagePreview (Compound: lightweight prompt-mode image preview)
 
 DOM structure: `.mpi-masked-preview` root (overflow:hidden) → `.mpi-masked-preview__stack` (CSS-transform pan/zoom, sized to image-native px) → `img.mpi-masked-preview__base` + `img.mpi-masked-preview__masked` (CSS `mask-image` overlay).
 

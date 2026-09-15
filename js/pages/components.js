@@ -42,7 +42,7 @@ import { MpiNewProject } from '../components/Compounds/MpiNewProject/MpiNewProje
 import { MpiStartingComfy } from '../components/Compounds/MpiStartingComfy/MpiStartingComfy.js';
 import { MpiEngineInstall } from '../components/Compounds/MpiEngineInstall/MpiEngineInstall.js';
 import { MpiErrorDialog } from '../components/Compounds/MpiErrorDialog/MpiErrorDialog.js';
-import { MpiCompareOverlay } from '../components/Compounds/MpiCompareOverlay/MpiCompareOverlay.js';
+import { MpiCompareOverlay } from '../components/Organisms/MpiCompareOverlay/MpiCompareOverlay.js';
 import { MpiAutoMaskThumbs } from '../components/Compounds/MpiAutoMaskThumbs/MpiAutoMaskThumbs.js';
 import { MpiViewerCorners } from '../components/Compounds/MpiViewerCorners/MpiViewerCorners.js';
 import { MpiTrimBar } from '../components/Compounds/MpiTrimBar/MpiTrimBar.js';

@@ -29,7 +29,7 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Primitives/MpiMediaDropOverlay/MpiMediaDropOverlay.css',
   'js/components/Primitives/MpiProjectDropOverlay/MpiProjectDropOverlay.css',
   'js/components/Primitives/MpiCheckbox/MpiCheckbox.css',
-  'js/components/Primitives/MpiMaskedImagePreview/MpiMaskedImagePreview.css',
+  'js/components/Compounds/MpiMaskedImagePreview/MpiMaskedImagePreview.css',
   'js/components/Primitives/MpiWaveform/MpiWaveform.css',
   'js/components/Primitives/MpiFilterBar/MpiFilterBar.css',
 
@@ -75,7 +75,7 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Compounds/MpiLicenceGate/MpiLicenceGate.css',
   'js/components/Compounds/MpiOpHelpDialog/MpiOpHelpDialog.css',
   'js/components/Compounds/MpiCompareView/MpiCompareView.css',
-  'js/components/Compounds/MpiCompareOverlay/MpiCompareOverlay.css',
+  'js/components/Organisms/MpiCompareOverlay/MpiCompareOverlay.css',
   'js/components/Compounds/MpiHistoryTools/MpiHistoryTools.css',
   'js/components/Compounds/MpiAutoMaskThumbs/MpiAutoMaskThumbs.css',
   'js/components/Compounds/MpiMaskDetectRow/MpiMaskDetectRow.css',
