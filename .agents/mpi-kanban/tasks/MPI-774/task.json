@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-774",
+  "title": "In-app agent, slice A",
+  "description": "MPI-677 step 5, spun out: an Agent|Prompt toggle turns the prompt box into a chat with a server-side agent that recommends/installs models, generates via the connector (models + Flows), sees images, and auto-compacts. Design approved 2026-09-15, see brief.md.",
+  "column": "todo",
+  "maturity": "idea",
+  "status": "active",
+  "created_at": "2026-09-15T16:05:25+01:00",
+  "updated_at": "2026-09-15T16:05:25+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

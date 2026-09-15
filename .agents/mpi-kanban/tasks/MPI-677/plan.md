@@ -35,7 +35,19 @@ names but never lettered. **Order is by priority, not by letter.**
 
 ## Current State
 
-**2026-09-15 (latest) — 4b DONE AS MPI-593 STEP 1, VERIFIED, COMMITTED WITH THIS HANDOFF.** The
+**2026-09-15 (latest) — STEP 5 SPUN OUT AS MPI-774 (Fabio). DESIGN APPROVED IN BRAINSTORM, NOT
+COMMITTED.** Fabio: step 5 takes its own card, *"otherwise it's too many cards waiting on too many
+cards"*; he runs it in a separate session. MPI-774 `brief.md` holds the approved slice A design:
+an Agent | Prompt toggle, a server-side loop over the connector, plain OpenAI-compatible calls with
+named profiles, eyes through MPI-737 Image descriptions job (a text-only DeepSeek-V4-Flash-0731 orchestrator), auto-compact at 50% / 30%. **MPI-677 no longer waits on step 5.**
+**THE SINGLE NEXT ACTION:** ask Fabio which of the two remaining items to take:
+- Step 1c: Fabio's user-ux pass (OK → reopen → Cancel → reopen, the separate-field negative, the
+  operation gate, Reuse after an app reload).
+- Close-out: Fabio's per-file yes on `prompt-enhance.md` :58 and :185, MPI-728's six proposals, and
+  the `in-flight.md` update.
+Step 1d (Fabio's GPU measurement) stays open and is not a gate.
+
+**2026-09-15 (earlier) — 4b DONE AS MPI-593 STEP 1, VERIFIED, COMMITTED WITH THIS HANDOFF.** The
 `cubric-vision` `SKILL.md` (721 lines) is now a 108-line router plus `projects.md`,
 `on-disk-format.md`, `generating.md`, `flows.md` and `engine-and-remote.md`, all ≤200.
 § Connector was rewritten to what `routes/connector.js` serves: it still advertised
@@ -822,6 +834,9 @@ failing sweep reads as exit 0.
 
 ## Step 5 — the agent that talks to the user
 
+**Spun out 2026-09-15 as MPI-774.** Its `brief.md` is the spec now; the sketch below is kept as
+history and loses wherever the two differ. MPI-677 does not wait on it.
+
 Last. `brief.md` § "The product shape" is the spec; its constraints are locked
 there and not re-argued: the **user is the gate at every step**, **project is
 durable state, not the transcript**, **the agent reads corpora rather than
@@ -871,6 +886,10 @@ with ownership `js/data/recipes/corpus.js` + `docs/agent/**` against
 
 ## Plan Drift
 
+- **2026-09-15 — step 5 left this card.** Brainstormed with Fabio and spun out as MPI-774, so
+  MPI-677 closes on steps 1–4. Two things § Step 5 left open are decided there: the dispatch path
+  (a server-side loop whose tools are the connector contract) and the models (a text-only DeepSeek-V4-Flash-0731
+  orchestrator whose eyes are MPI-737's Image descriptions job, not one model doing both). The `connector-manifest.json` question moves with it.
 - **2026-09-14 — "what each operation does" is rendered, not written.** Step 4a listed three
   playbooks as `docs/agent/*.md`. The operations one would restate `commandRegistry.js` (label,
   info, help) and `models.js` (`supportedOps`) — the drift corpus decision 1 forbids, with 16 ops

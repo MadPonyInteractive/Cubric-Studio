@@ -122,7 +122,7 @@ in the card description are retired; `plan.md` carries the mapping note.
   - [ ] *Not a gate, recorded in validation.md:*
         `resources/cubric/connector-manifest.json` still advertises four broker
         capabilities nothing serves. Left in place because the portable build
-        reads and hashes it (`assertConnectorManifest`) — step 5 owns its fate
+        reads and hashes it (`assertConnectorManifest`) — MPI-774 (step 5, spun out) owns its fate
 - [x] Step 3 — release the repos *(Cubric-Prompt archived 2026-09-12: banner pushed as `35dee06`, GitHub flag set by Fabio)*
 - [x] Step 4 — the corpus, the skill split (MPI-593 owns it), the build/heal loop
   - [x] Corpus retrieval path — `services/agentCorpus.mjs` (2026-09-12)
@@ -136,4 +136,5 @@ in the card description are retired; `plan.md` carries the mapping note.
         (Fabio, option 1) after seven graded cold dry runs: shot count, budget, sound fields hold
         3/3; step 7 puts the four repeatedly missed checks on the card for Fabio. Not verified to
         reproduce the MPI-27 hand merge.
-- [ ] Step 5 — the agent that talks to the user *(gets its own plan when reached)*
+- [x] Step 5 — the agent that talks to the user: **spun out 2026-09-15 as MPI-774** (Fabio), design
+      approved in brainstorm; MPI-677 no longer waits on it
