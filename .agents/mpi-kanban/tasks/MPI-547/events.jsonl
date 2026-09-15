@@ -7,3 +7,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "checklist.updated", "id": "MPI-547", "at": "2026-09-14T16:33:42Z", "actor": "session:144809aa", "summary": "Phases 1-4 done"}
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-547", "at": "2026-09-14T16:33:42Z", "actor": "session:144809aa", "summary": "Phases 1-4 evidence: lint 0, npm test 1015/1015, named-params 22/22, desktop 67/69 (2 unrelated)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-547", "at": "2026-09-14T16:33:42Z", "actor": "session:144809aa", "summary": "maturity validating; attention required for phase 5 live smoke"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-547", "at": "2026-09-15T07:37:29+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Phase 5 PASS on the user's app; batch pin and seed fix committed in bd8c87b3"}

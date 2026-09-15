@@ -100,3 +100,10 @@ every push through `.husky/pre-push`.
   waveform, not chrome painted over it". With the host moved -> spec 1/1.
 - Blast radius: 5 desktop specs mount a `top:0` fixed host; only this one reads pixels (the renditions
   spec asserts DOM), and no testing doc recommends the pattern.
+- Full desktop suite before pushing over the red (`npx playwright test --config=playwright.desktop.config.js`,
+  tree at 16e8dd67 plus peers' uncommitted MPI-754 Phase 3 / MPI-756 edits): 68 passed, 1 failed —
+  `flow-slide-scroll-reaches-top`. Its error text was not captured (the run's output filter kept only the
+  summary). Same committed code then passed it 5/5: alone 1/1, `--repeat-each=3` 3/3, and in the 9-flow batch.
+  The spec (c7bfb93c, 2026-08-27) only had its MpiBaseFlow path string changed here, and it asserts the slide
+  OVERFLOWS, a layout measurement. Read as a flake under full-suite load, not a regression. If CI reddens on it,
+  capture the message before changing anything.
