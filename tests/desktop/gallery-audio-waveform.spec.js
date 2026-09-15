@@ -106,7 +106,8 @@ test('an audio card paints its baked waveform and fills as it plays', async ({},
 
             const host = document.createElement('div');
             host.id = 'mpi730-host';
-            host.style.cssText = 'position:fixed;top:0;left:0;width:1200px;height:800px;z-index:9000;background:#000;';
+            // Below the titlebar, which is fixed at z-index 9999 and would paint over the card's top edge.
+            host.style.cssText = 'position:fixed;top:var(--titlebar-h);left:0;width:1200px;height:800px;z-index:9000;background:#000;';
             document.body.appendChild(host);
 
             const groups = [{
@@ -166,6 +167,15 @@ test('an audio card paints its baked waveform and fills as it plays', async ({},
         await setProgress(0);
         const box = await waveEl.boundingBox();
         const W = Math.floor(box.width), H = Math.floor(box.height);
+        // Every band below starts at the card's TOP edge, where app chrome can sit over it.
+        // A host at top:0 once put that edge under the fixed titlebar (z-index 9999) — MPI-749
+        // dropped the grid's toolbar row, which had been pushing cards clear of it — and both
+        // "fill" samples read the titlebar, so step 4 failed and step 3 passed for the wrong
+        // reason. An element screenshot captures whatever is painted in the box.
+        const topLeftIsWave = await window.evaluate(({ x, y }) =>
+            !!document.elementFromPoint(x, y)?.closest('#mpi730-host .mpi-waveform'),
+            { x: box.x + 3, y: box.y + 3 });
+        expect(topLeftIsWave, 'the sampled top band must be the waveform, not chrome painted over it').toBe(true);
         const restPng = await waveEl.screenshot();
         const centreBand = await meanOf(restPng, { left: 0, top: Math.floor(H * 0.45), width: W, height: Math.floor(H * 0.1) });
         const topBand    = await meanOf(restPng, { left: 0, top: 2, width: W, height: Math.floor(H * 0.08) });

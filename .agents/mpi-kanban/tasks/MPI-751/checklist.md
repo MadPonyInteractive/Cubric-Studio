@@ -14,5 +14,6 @@
 - [x] Fix 6 (user go 2026-09-14): `loraSlotParts.js` -> `js/components/` root (imports Primitives only; consumers MpiModelSettings + MpiLoraRack). Lint 0, npm test 991/991, desktop flow-lora-button + model-settings-popup 3/3. Parked rule: 20 -> 19 hits
 - [x] Fixes 5 + 9 (Fabio: "your pick", 2026-09-15): `MpiCompareOverlay` -> Organisms, `MpiMaskedImagePreview` -> Compounds. Lint 0, npm test 1016/1016, desktop mask-persist-roundtrip 3/3. Parked rule: 19 -> 17 hits. Compare overlay visual check with Fabio pending
 - [x] Fixes 3+4 (2026-09-15): `MpiAudioPlayer` + `MpiVideoControlBar` -> Organisms, `MpiBaseFlow` (+ `stepKinds.js`) -> Blocks, `composeObjectAlpha` -> `js/utils/maskUtils.js`. Lint 0, npm test 1016/1016, desktop 9 flow specs 16/16 + mask-persist-roundtrip / gallery-renditions 9/9. Parked rule: 17 -> 6 hits (all fix 8)
+- [x] Master red since 83715ebe (Fabio 2026-09-15: MPI-749's session is archived, fix it here): `gallery-audio-waveform.spec.js` host sat under the fixed titlebar once MPI-749 removed the grid's toolbar row. Host moved to `top: var(--titlebar-h)` + an `elementFromPoint` guard (fails by name on the old fixture). Spec 1/1
 - [ ] Fix 8 (4 LandingPages -> Organisms, MpiRemote -> Blocks): blocked, MPI-754 holds MpiFlowLibrary.js/.css with uncommitted edits
 - [ ] Land rule + test from `rule/`, lint clean on the new rule

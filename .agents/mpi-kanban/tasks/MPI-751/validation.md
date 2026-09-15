@@ -79,3 +79,24 @@ them, `MpiVideoViewer` and the six step Organisms) the next hit, so it goes up t
   flow-slide-scroll-reaches-top, flow-step-field-hidden, flow-step-gate: 16/16
 - Same config, mask-persist-roundtrip + gallery-renditions (load the history block): 9/9
 - Parked rule: 6 hits, all fix 8 (LandingPages), blocked on MPI-754's uncommitted MpiFlowLibrary edits
+
+## Master red since 83715ebe: gallery-audio-waveform (2026-09-15, Fabio's call)
+
+MPI-749's session is archived, so nobody else would ever turn master green, and a red master blocks
+every push through `.husky/pre-push`.
+
+- Symptom: step 4 "the played half tints the card background toward the audio accent", expected > -6.35,
+  received -12.85, identical in CI and locally (so deterministic, not timing).
+- Root cause: the fixture host was `position:fixed; top:0; z-index:9000`. `.titlebar`
+  (`styles/shell/titlebar.css`) is `position:fixed; height:var(--titlebar-h); z-index:9999`. While the grid
+  had its own toolbar row the cards started ~45px down, clear of it; MPI-749 (83715ebe) moved that toolbar
+  into the project bar, the card rose to the host's top edge, and the titlebar painted over the top 32px.
+  Both "fill" bands (top 2px .. 8% of height) were reading the titlebar (g-r about -13) on both halves.
+  Step 3's "ink brighter than the top band" had been passing against the titlebar too. The product was
+  never broken: the failure screenshot shows the played half tinted.
+- Fix: host at `top: var(--titlebar-h)`, plus a guard before any sampling that
+  `document.elementFromPoint` at the band's top-left lands inside the waveform.
+- Proof: guard added alone first, on the old fixture -> fails with "the sampled top band must be the
+  waveform, not chrome painted over it". With the host moved -> spec 1/1.
+- Blast radius: 5 desktop specs mount a `top:0` fixed host; only this one reads pixels (the renditions
+  spec asserts DOM), and no testing doc recommends the pattern.
