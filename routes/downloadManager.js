@@ -770,6 +770,13 @@ class FileDownloader {
         // final digest for _verifySha256's in-memory fast path; null → disk re-read.
         this._streamHash = null;
         this._streamHashHex = null;
+        // MPI-764 — download() is several awaits long (dir, partial stat, marker read and
+        // write) before it starts a stream, and a stop landing in that window stopped
+        // nothing: the start went ahead AFTER the cancel. cancel()/stopKeep() set _stopped,
+        // which download() checks before starting, and wait out _starting (the in-flight
+        // prelude) so its file writes land before theirs.
+        this._stopped = false;
+        this._starting = null;
     }
 
     _bindEvents() {
@@ -1104,7 +1111,12 @@ class FileDownloader {
         this._bindEvents();
     }
 
-    async download() {
+    download() {
+        this._starting = this._startStream();
+        return this._starting;
+    }
+
+    async _startStream() {
         await this._ensureDownloader();
         // MPI-317: a marker-blessed partial (stall/crash/shutdown left both the file
         // AND its .cubricdl marker) resumes via an explicit Range request — see the
@@ -1133,6 +1145,7 @@ class FileDownloader {
             // failover exists to preserve. The hash can decide it, and does.
             sha256: this.depJob.sha256Expected || null,
         });
+        if (this._stopped) return; // MPI-764 — a stop during the prelude wins
         if (partial.resumable && _shouldResumePartial({ sha256: markerSha, url: markerUrl }, this.depJob)) {
             this.depJob.downloadedBytes = partial.downloaded;
             logger.info('download', `resuming ${this.depJob.id} from ${(partial.downloaded / 1e9).toFixed(2)}GB on disk`);
@@ -1158,6 +1171,7 @@ class FileDownloader {
         // driver string — which is a large part of why the MPI-427 reporter read a
         // network condition as the app crashing. The resume path was guarded; this one
         // was not (MPI-427).
+        if (this._stopped) return; // MPI-764 — the discard above awaits; a stop may have landed
         this._downloader.start().catch(() => {});
     }
 
@@ -1165,7 +1179,9 @@ class FileDownloader {
     // marker. stop() itself no longer removes anything (removeOnStop:false), so
     // the deletion here is the only one on this path.
     async cancel() {
+        this._stopped = true;
         clearTimeout(this._retryTimer);  // MPI-460 — a pending retry must not outlive the cancel
+        await this._starting?.catch(() => {});  // MPI-764 — nor may a start still in its prelude
         if (this._downloader) {
             await this._downloader.stop().catch(() => false);
         }
@@ -1177,7 +1193,9 @@ class FileDownloader {
     // next app start resumes via Range. Used by cancelAllDownloads (SIGTERM/SIGINT),
     // never by the user-cancel route.
     async stopKeep() {
+        this._stopped = true;
         clearTimeout(this._retryTimer);  // MPI-460 — shutdown outranks a pending retry
+        await this._starting?.catch(() => {});  // MPI-764 — and a start still in its prelude
         if (this._downloader) {
             await this._downloader.stop().catch(() => false);
         }
@@ -3592,8 +3610,9 @@ function cancelAllDownloads() {
     // MPI-317: shutdown is an ACCIDENT for the download, not user intent — stop the
     // streams but KEEP partials + markers so the next app start resumes via Range.
     // stopKeep(), never cancel() (which deletes).
+    const stops = [];
     for (const [, downloader] of _activeDownloaders) {
-        downloader.stopKeep().catch(() => {});
+        stops.push(downloader.stopKeep().catch(() => {}));
     }
     _activeDownloaders.clear();
     for (const [, job] of _modelJobs) {
@@ -3605,6 +3624,10 @@ function cancelAllDownloads() {
     store.clear();
     reconciler.stop();
     _broadcast('download:cancelled', { all: true });
+    // MPI-764 — settles once every stop has, a start still in its prelude included, so a
+    // caller that deletes or reads the models root next finds nothing still writing.
+    // server.js need not wait: SIGTERM exits, and the ENOSPC handler only needs the streams down.
+    return Promise.all(stops);
 }
 
 // ── Universal Workflow Deps Installer ─────────────────────────────────────────

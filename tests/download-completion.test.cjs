@@ -151,6 +151,38 @@ async function testDownloaderCancelUsesStop() {
     });
 }
 
+// MPI-764 — download() is several awaits long before it starts a stream. A cancel or a
+// shutdown stop landing inside that window stopped nothing and the stream started anyway,
+// after it: a cancelled dep kept downloading, and a test removing the models root lost the
+// race to the prelude's marker write (ENOTEMPTY in local-disk-gate-partial). A stop must win.
+async function testStopDuringStartPreludeWins() {
+    for (const stopName of ['cancel', 'stopKeep']) {
+        await withTempDir(async (dir) => {
+            const file = path.join(dir, `${stopName}.bin`);
+            await fs.writeFile(file, 'existing-bytes');
+            await markDownloadInProgress(file, { depId: `${stopName}-dep` });
+            const depJob = { id: `${stopName}-dep`, url: 'https://example.invalid/file', downloadedBytes: 0 };
+            const downloader = new FileDownloader(depJob, file);
+            const calls = [];
+            downloader._downloader = {
+                start: () => { calls.push('start'); return Promise.resolve(true); },
+                resumeFromFile: () => { calls.push('resumeFromFile'); return Promise.resolve(); },
+                stop: () => { calls.push('stop'); return Promise.resolve(true); },
+            };
+
+            const starting = downloader.download(); // not awaited: the stop lands in its prelude
+            await downloader[stopName]();
+            await starting;
+
+            assert.deepStrictEqual(calls, ['stop'], `${stopName}() during the start prelude let the stream start`);
+            if (stopName === 'cancel') {
+                // cancel() deletes the marker; the prelude must not write it back afterwards.
+                assert.strictEqual(await fs.pathExists(getDownloadMarkerPath(file)), false);
+            }
+        });
+    }
+}
+
 // MPI-317 F5 — once the reconciler has settled the store job to a terminal state
 // (disk truth on a resumed install), the legacy map's trailing status walk
 // (downloading→installing→complete) must keep driving its work WITHOUT pushing
@@ -249,6 +281,7 @@ async function testDepInstalledBranchesOnType() {
     await testDownloaderStartsWhenNoPartialExists();
     await testDownloaderDoesNotResumeUnmarkedExistingFile();
     await testDownloaderCancelUsesStop();
+    await testStopDuringStartPreludeWins();
     await testMapWalkDoesNotFightSettledStore();
     console.log('download-completion tests passed');
 })().catch((err) => {
