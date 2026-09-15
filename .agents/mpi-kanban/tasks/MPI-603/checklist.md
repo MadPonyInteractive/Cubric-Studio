@@ -13,6 +13,7 @@
 - [x] Release note bullet in `docs/releases/UNRELEASED.md` (§ Important changes) - a user's disk loses 72MB on update, that is user-visible
 
 - [ ] Ship a release without the dep - until a build is out, released 1.4.0 installs still fetch it
+  - 2026-09-15: **1.5.0 does NOT count.** Its line was cut from 1.4.2 and `7d72f0b6` was never ported, so v1.5.0 `models.js` still lists `klein-lora-outpaint` in Klein 4B's deps (no 1.5.0 graph loads it - LanPaint is in `klein_t2i`/`klein_9b_t2i`). The first release cut from master is the one; a 1.5.x hotfix carries the drop only if `7d72f0b6` is ported. Weight still on R2 and HF as of this date.
 - [ ] ONLY THEN delete from R2 and HF (`rclone deletefile --s3-no-check-bucket`, verify HTTP 404). Re-uploadable from `G:\CubricModels`.
 
 - [x] Character Sheet head-removal rework synced 2026-08-28 - API twin regenerated against 48188, `flow-model-choice` test re-pinned to properties, `existing-flows/character-sheet.md` written, stale LanPaint claims corrected (9400cc9b)
