@@ -323,7 +323,7 @@ router.post('/llm/enhance', async (req, res) => {
         // LLM alongside a video generation took a sub-10s render past 3 minutes,
         // because once VRAM is exhausted every token crosses PCIe. `keep_alive:0`
         // on EVERY exit path, failures included. The cloud backend holds no local
-        // VRAM, so `releaseLocalModels` is a no-op there.
+        // VRAM, so the `releaseOwnModels()` call below is skipped there.
         if (backend === 'ollama') {
             try {
                 const { OllamaEngine } = await engines();
