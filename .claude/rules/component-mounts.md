@@ -261,9 +261,17 @@ MpiGalleryGrid is now a Compound that handles both justified layout and card dis
 
 ---
 
+## MpiModelManager.js (internal mounts — header row only, MPI-754)
+
+- `MpiFilterBar`   props: `{ groups: [media: image/video, tier: TIER_ORDER × TIER_WORD (low/balanced/high)], searchPlaceholder:'Search models…' }`   slot: `ce('div')`, then appended into `.mpi-model-library__head` after `#lib-disk-slot`. `change` → replaces `_mediaActive` / `_filterActive` / `_searchQuery` → `renderList({ force: true })`; all three must stay in `_listSignature()` or a filter change stops rebuilding. Destroyed in `el.destroy()`.
+- `MpiButton` (Refresh)   props: `{ icon:'refresh', variant:'ghost', size:'md', info:'Refresh model state from disk' }`   slot: `ce('div')`, then `filterBar.el.appendTrailing(...)` — append, never mount. Click → `awaitReSync()`, which sets and clears its `loading` attribute.
+
+---
+
 ## MpiFlowLibrary.js (internal mounts, MPI-256)
 
 - `MpiOverlay`   props: `{ closable: true, mountTarget: 'body' }`   slot: `document.createElement('div')`
+- `MpiFilterBar` (header filters, MPI-754)   props: `{ groups: [media: image/video/audio, type: create/edit/enhance], searchPlaceholder:'Search flows…' }`   slot: `ce('div')`, then appended into `.mpi-flow-library__head` under the subtitle — mounted once in setup, so selections survive close → reopen. `change` → `renderList()`; filters apply to the visible list only (the count, `_patchTile` and the drawer read unfiltered `listFlows()`). Destroyed in `el.destroy()`.
 - `MpiButton` (**back to the Gallery**, MPI-729)   props: `{ icon:'back', label:'Gallery', size:'sm', variant:'ghost', extraClasses:'mpi-flow-library__back' }`   slot: `ce('div')`, then `prepend`ed into `.mpi-flow-library__head` — the same Primitive and chrome as `MpiBaseFlow`'s own `← Flows` chip, so the breadcrumb reads the same at both ends, and CSS-nudged onto that chip's exact `y` so the cursor does not travel. Click is `el.close()`, NOT a `navigate()`: hiding the overlay has already restored the gallery underneath. **Its visibility is re-derived in `el.open()`, never in `setup`** — shell mounts this component once and reuses the instance (see the singleton note above), so a setup-time `state.currentPage` read would freeze at whatever page the FIRST open happened on. Hidden on Landing, where closing returns to Landing and the overlay's X is the only exit that makes sense.
 - `MpiTileSheet` (one per output-type section, MPI-634)   props: `{ items }`   slot: appended to `#flow-body-slot`. Its `select` goes to `_pick`, NOT straight to `openDetail` — see the MPI-638 note on the singleton entry above.
 - `MpiDropdown` (model pick, MPI-590/599)   props: `{ options: <ALL candidates in the slot, installed or not>, value: <the resolved id> }`   slot: `#flow-detail-model-<i>` — ONE per CHOOSABLE slot (`flowModelChoices`). **Offering uninstalled candidates is the point:** this drawer asks "which one do I download". The run slide's twin asks "which one do I run" and filters to installed — do not make the two match. The field caption is the slot's `label` only when the flow declares 2+ slots, else the generic `Model` (MPI-638).

@@ -38,6 +38,12 @@ EMITS:   `change` `{ value: string, label: string }`
          (bus) `ui:picker-open` `{ owner }` — on open, so every OTHER open picker closes (MPI-728; the trigger's `stopPropagation()` hides the click from their document listeners)
 LISTENS: `ui:picker-open` — closes unless `owner` is its own list · `ui:close-all-popups` — closes (also document click + MutationObserver for cleanup)
 
+### MpiFilterBar
+EMITS:   `change` `{ key: groupKey|'search', active: { [groupKey]: Set }, query: string }` (DOM event `mpifilterbar:change`; `active` holds COPIES, `query` is trimmed + lowercased)
+LISTENS: (none)
+API:     `el.setActive(key, values)` / `el.setQuery(q)` — silent, never emit · `el.appendTrailing(node)` — APPENDS into the trailing slot, never mounts · `el.destroy()`
+NOTE:    Shared header row of the Model Library (groups media + tier, Refresh in the trail) and the Flow Library (media + type), MPI-754. Draws its OWN `<button>` tags and `<input>` and owns their chrome — a consumer must not restyle `.mpi-filter-bar__tag` / `__search-input`. Takes option VALUES, never a descriptor property name. Factory `instance.on('change')` returns no unsubscribe: teardown is `bar.el.destroy()` in the consumer's `el.destroy`.
+
 ### MpiTreePicker
 EMITS:   `change` `{ value: string, label: string }`
          (bus) `ui:picker-open` `{ owner }` — on open (MPI-728, same contract as MpiDropdown)
@@ -280,9 +286,9 @@ API:     `el.open()` — shows the hosted overlay + re-syncs installed state + o
          `el.destroy()` — tears down subscriptions, tiles, detail toggles, the uninstall dialog, and the hosted overlay
 PATTERN: MPI-215 — self-hosts `MpiOverlay(mountTarget:'body')` styled as a dark contact sheet. Lean tiles
          (Map by modelId, patched in place) split into Installed/Available × Image(4:5)/Video(16:9) sub-grids;
-         Media/Size/search filters compose. Clicking a tile opens a right-drawer detail panel (absolute child of
+         Media/Tier/search filters compose (shared `MpiFilterBar`, MPI-754). Clicking a tile opens a right-drawer detail panel (absolute child of
          the overlay — stacks above it, reuses MpiSlideOver's CSS chrome, NOT its singleton) carrying description,
-         op toggles (MPI-122), arch toggles (MPI-200/209), inline VRAM→RAM table (MPI-168), disk, and
+         arch toggles (MPI-200/209), inline VRAM→RAM table (MPI-168), disk, and
          Install/Update/Uninstall. Detail video autoplays; click → native `requestFullscreen()` (Escape exits FS only).
          Opened via `models:open` (shell mounts once + `el.open()`); also the project-page `Models` nav action + dev gallery.
 
