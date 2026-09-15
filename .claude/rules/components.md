@@ -86,6 +86,7 @@ You MUST follow Atomic Design principles. **NEVER "import up".**
 * **Tier 2 (Compounds):** Cards, forms, toolbars. (Can only import Primitives).
 * **Tier 3 (Organisms):** Rich widgets that compose multiple Compounds. (Can import Primitives + Compounds). Examples: `MpiCanvasViewer`, `MpiVideoViewer`.
 * **Tier 4 (Blocks):** Sidebars, grids, workspace coordinators. (Can import Primitives, Compounds, and Organisms).
+* **Moving a component to another tier** (what `mpi/no-same-tier-component-import` asks for): move the folder, then (1) re-point every relative import inside it from its new depth; (2) fix its own `css: [...]` path, its `js/shell/preloadStyles.js` entry and its `types.js` tier word + path. A wrong `css:` path passes lint AND `npm test`, so check it by hand; (3) grep the OLD path repo-wide, including `path.join` segment lists (`'Compounds', 'LandingPages', 'MpiX'`), which tests split across lines; (4) `npm test` fails ENOENT on a test path the grep missed (MPI-751).
 
 > **Note on complexity:** Organisms like `MpiPromptBox` and Blocks can be substantially more complex than Primitives and most Compounds. They own multiple mount points, conditional sub-component rendering, and dynamic operation switching. Approach debugging and modifications carefully — trace all mount targets before making changes.
 >
