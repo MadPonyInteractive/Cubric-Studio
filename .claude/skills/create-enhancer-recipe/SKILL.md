@@ -154,6 +154,12 @@ reading anything else:
    **The exception is a fact about the MODEL, not about a mode's output** — its
    text encoder, a node's inputs. It holds for every mode that runs on the same
    encoder or node, once you have checked that they do; tag those rows `model`.
+   **A `model` fact that overturns a limit contradicts every recipe value SIZED
+   to that limit** — `wordBudget` first, and any cap or const derived from it —
+   in every mode on that encoder or node. Each is its own `contradicts` row,
+   never a note about the model: the enhancer writes to the recipe's number,
+   not to the model's. An exact value you cannot measure here is not a deferral
+   — size it from the fact or the vendor document, and step 6 tests it.
 2. **Re-run Phase 0** for the model, and **diff the vendor's documented format
    against the recipe for EVERY mode the recipe declares**: output sections, cut
    and timing notation, named fields, vocabulary. Vendor evidence is scoped by
@@ -162,21 +168,37 @@ reading anything else:
    vendor skill published since the recipe was written belongs to the same
    merge; field evidence alone never surfaces a notation the production did not
    try.
-3. **Classify every claim against the CURRENT recipe text**, as a table in the
-   card. Two sources feed it, and both are required:
-   - **the findings, walked rather than sampled** — go through the production's
-     rule sections (a "read before writing" or "verified" section) heading by
-     heading, then every dated entry, and write one row per rule each states:
-     rules the recipe already follows (`confirms`), rules it breaks
-     (`contradicts`) and rules where it is silent (`new`). Judging which rules
-     matter is step 5's job, not the table's — a rule that never becomes a row
-     is one no edit gets checked against;
-   - **the vendor diff from step 2** — every difference it found is a row, one
-     per mode, including any you expect to defer. Deferring is step 5's call,
-     made on a row; a difference that never becomes a row is never decided.
+3. **Inventory, then classify: two passes, both written into the card.** A
+   table built from what looks important skips rules, and a rule that never
+   becomes a row is one no edit gets checked against. The inventory turns a
+   skipped rule into a missing number.
 
-   | # | Recipe today (quote the rule or const) | Evidence (findings heading + line, or vendor file) | Mode | Basis | Verdict |
-   |---|---|---|---|---|---|
+   **3a. The rule inventory, from the findings and the step 2 diff, not the
+   recipe.** Walk the production's rule sections (a "read before writing" or
+   "verified" section) heading by heading, then EVERY dated entry to the end of
+   the file. Write one numbered line per rule stated: heading, line, and the
+   rule quoted exactly. A rule is any sentence telling a prompt writer what to
+   write or not write, wherever it sits: a bold rule sentence or a rule
+   subheading inside a dated entry, and a rule stated in passing inside a
+   descriptive section, count the same as a bullet under "verified". Nothing is
+   left out for seeming minor, already handled or specific to one shot; judging
+   is step 5's job. Then add every difference the step 2 vendor diff found, one
+   line per mode, including any you expect to defer; a difference that never
+   becomes a line is never decided. End the inventory with its count.
+
+   **3b. Classify every inventory line against the CURRENT recipe text.** Every
+   line gets a row, and several lines may share a row that lists all their
+   numbers: rules the recipe already follows (`confirms`), rules it breaks
+   (`contradicts`), rules where it is silent (`new`). **Quote, then search, then
+   classify:** the "Recipe today" cell is text copied from the recipe, and you
+   search the recipe for that exact text before writing the row. A row says
+   `confirms` or `contradicts` only when its quote is found verbatim and says
+   what the verdict claims; a quote you cannot find means the recipe is silent,
+   `new`, whatever you remember reading. A paraphrase never goes in that cell.
+   When the table is done, every inventory number appears in it.
+
+   | # | Inventory # | Recipe today (verbatim quote, found in the recipe) | Evidence (findings heading + line, or vendor file) | Mode | Basis | Verdict |
+   |---|---|---|---|---|---|---|
 
    **Mode** is the mode(s) the row applies to, or `model`. **Basis** is
    `measured` (rolls, with the count — rolls that tested THIS rule, not a
@@ -203,9 +225,11 @@ reading anything else:
    card is a reason only when it names a measurement this heal cannot run — a
    Stage 2 render, or a decision of Fabio's QUOTED from the card or the
    findings, never inferred. A Stage 1 sweep is never that measurement: step 6
-   runs it on this merge. **A vendor notation row is never deferred, not even
-   to a Stage 2 render** — the notation sentence above already decided it, and
-   the vendor document is its evidence. **Before writing any edit, check it against every
+   runs it on this merge. **A vendor notation that replaces one the recipe
+   already has is never deferred, not even to a Stage 2 render** — the notation
+   sentence above already decided it, and the vendor document is its evidence.
+   A vendor label with no counterpart in the recipe replaces nothing: it is an
+   ordinary `new` row, adopted or deferred on the rules above. **Before writing any edit, check it against every
    `confirms` row:** an edit that would break a confirmed rule is not made — it
    is a conflict, resolved in the table first. When the notation moves, move `dos`/`donts`
    with it in **every** mode — they are the judge's grading contract — and
@@ -223,6 +247,18 @@ reading anything else:
 7. **Hand back (Phase 4):** which contradictions are fixed, which modes are
    green twice, and which changed modes carry **no** field evidence — their
    edits rest on vendor or inference alone, so read their outputs, not the count.
+   **Then put four checks on the card for Fabio.** Cold dry runs of this phase
+   (MPI-677 step 4c, seven graded runs) missed each of these repeatedly, so a
+   heal is not trusted on them until he has looked:
+   - **Notation moved in every mode the vendor document covers**, not only in
+     the mode the production shot.
+   - **Rules inside dated entries are in the inventory** — spot-check the
+     findings' later entries against it; a stretch called "no rules" is where
+     they go missing.
+   - **Every `confirms` quote is really in the recipe** — a sentence read in the
+     playbook or the findings gets remembered as recipe text.
+   - **Rules stated in passing are rows** — a ban inside a description of the
+     prompt's shape, a bold rule sentence at the end of an entry.
 
 ## Done
 

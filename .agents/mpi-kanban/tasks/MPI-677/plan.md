@@ -35,6 +35,33 @@ names but never lettered. **Order is by priority, not by letter.**
 
 ## Current State
 
+**2026-09-15 (later) — 4c CLOSED AS A DOCUMENTED PARTIAL (Fabio: option 1).** Phase 5 step 7
+now puts four checks on the card for Fabio (notation in every vendor-covered mode, rules inside
+dated entries, `confirms` quotes really in the recipe, rules stated in passing). Both skill copies
+`diff`-identical. NOT committed: both skill copies, the brief v2.1, plan, checklist, validation.
+**THE SINGLE NEXT ACTION:** commit via `mpi-handoff` or `mpi-end-session`. What is left on the card:
+- 4b, the `cubric-vision` `SKILL.md` split. **MPI-547 is now `done`, so its block is gone**, but
+  MPI-593 owns the split: check it first.
+- Step 5 waits for a brainstorm.
+- Close-out needs Fabio's per-file yes on:
+  - `prompt-enhance.md` :58 and :185;
+  - MPI-728's six proposals;
+  - the `in-flight.md` update.
+
+**2026-09-15 — OPTION 3 BUILT AND GRADED: runs 7a–7c MISS, BACK TO FABIO.** Evidence:
+`validation.md` § "Option 3 built … runs 7a–7c". Both skill copies `diff`-identical and the brief at
+v2.1, all NOT committed.
+- **Closed:** the budget (0/3 → 3/3). Also held 3/3: single shot, sound fields.
+- **Fell out:** `[Shot N]` in every mode (3/3 → 1/3). 7a and 7c deferred t2v/i2v notation against
+  step 5.
+- **Still missing:** every second written (0/3). The walk skips dated entries L241–999.
+- **Quote check:** two runs confirm a role ban quoted from `playbook/09-field-evidence.md:106`,
+  not from the recipe.
+- 7c rejects `<Subject N>` on a misread "Fabio decision" (L1340–1344).
+- **Options:** (1, recommended) close 4c as a documented partial, with the gaps written into step 7
+  as card checks; (2) one more structural round (inventory lists every entry or `none`, no
+  cross-mode rows, `confirms` gives a recipe line). **Next: Fabio's pick.**
+
 **2026-09-14 (run 5 graded) — 4c NOT VERIFIED, THE REWORD LOOP IS NOT CONVERGING, BACK TO
 FABIO.** Evidence: `validation.md` § "Step 4c", runs 3–5 and the five-run scorecard.
 - **Rewords 3 and 4** (Phase 5 steps 3 and 5) are on disk in both skill copies, identical and
@@ -759,7 +786,11 @@ Not blocking anything above. Each is independently useful.
       **Sequence it, never batch it:** `MPI-547`'s plan
       (`tasks/MPI-547/plan.md:99`) edits `§ Dispatching a generation`, and
       `MPI-556` + `MPI-675` both claim `SKILL.md` in `files.json`.
-- [ ] **The recipe build/heal loop.** `create-enhancer-recipe` already covers the
+- [x] **The recipe build/heal loop.** **CLOSED 2026-09-15 as a documented partial (Fabio, option
+      1):** Phase 5 was written and graded over seven cold runs; it reliably carries shot count,
+      budget and sound fields, and step 7 now puts the four repeatedly missed checks on the card
+      for Fabio. Not verified to reproduce the hand merge. `validation.md` § "runs 7a–7c".
+      `create-enhancer-recipe` already covers the
       **build** leg (playbook steps 0–3, autonomous to twice-green, stopping at
       Fabio's Stage 2). The **heal** leg — playbook `09-field-evidence.md`, the
       return path when a real production contradicts a green recipe — has no

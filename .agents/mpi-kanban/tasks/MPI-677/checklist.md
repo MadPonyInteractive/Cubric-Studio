@@ -128,8 +128,11 @@ in the card description are retired; `plan.md` carries the mapping note.
   - [x] Corpus retrieval path — `services/agentCorpus.mjs` (2026-09-12)
   - [x] First app-knowledge playbooks — `docs/agent/runpod-setup.md`, `docs/agent/gallery.md`,
         rendered `app:operations` (2026-09-14)
-  - [ ] Skill split — BLOCKED on MPI-547 (`todo`, its phase 4 edits `SKILL.md`); MPI-556/675 done
-  - [ ] Build/heal loop — heal is triggered by a card Fabio files (decided 2026-09-14, option A).
-        Phase 5 written + `engine-recipes.md` ported; 2 cold dry runs, not yet reproducing the
-        hand merge — third run is Fabio's call
+  - [ ] Skill split — MPI-547 now `done` (2026-09-15), so no longer blocked by it; MPI-593 (`todo`)
+        owns the split, check it first; MPI-556/675 done
+  - [x] Build/heal loop — heal is triggered by a card Fabio files (decided 2026-09-14, option A).
+        Phase 5 written + `engine-recipes.md` ported. CLOSED 2026-09-15 as a documented partial
+        (Fabio, option 1) after seven graded cold dry runs: shot count, budget, sound fields hold
+        3/3; step 7 puts the four repeatedly missed checks on the card for Fabio. Not verified to
+        reproduce the MPI-27 hand merge.
 - [ ] Step 5 — the agent that talks to the user *(gets its own plan when reached)*

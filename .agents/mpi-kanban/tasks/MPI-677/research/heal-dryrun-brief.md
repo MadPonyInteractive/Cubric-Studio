@@ -6,6 +6,10 @@ changes the TEST, not the wording (Fabio, option 2): the classification table go
 file with no length cap, three runs go in parallel on one wording, each into its own folder, and
 a pass is a pattern across the three (see the pass bar). Everything else is v1, verbatim.
 
+**v2.1 (2026-09-15, runs 7a–7c, Phase 5 option 3).** One change: output section 3 now names the
+step 3a inventory as well as the 3b table, both into `table.md`, because Phase 5 split step 3 in
+two. The inputs, the forbidden list and the pass bar are v2's, unchanged.
+
 ## Stage the inputs first (the orchestrating session does this)
 
 1. Pick a fresh folder in YOUR session scratchpad — call it `<SCRATCH>` below — and create
@@ -91,9 +95,10 @@ contradicted behaviour, not add a ban on its symptom.)
 2. **Phase 0 and the vendor diff** — what the vendor repo holds; the diff of the vendor's documented
    format against the recipe for every mode the recipe declares (step 2); what you would adopt,
    reject, and why.
-3. **Classification table** — the step 3 table, fed by BOTH sources, confirmations included, written
-   to `<SCRATCH>\heal-dryrun\<RUN>\table.md` with NO length cap. In `result.md` give only its row
-   count and the findings sections you walked.
+3. **Classification table** — the step 3 inventory (3a) and then the table (3b), fed by BOTH
+   sources, confirmations included, both written to `<SCRATCH>\heal-dryrun\<RUN>\table.md` with NO
+   length cap. In `result.md` give only the inventory count, the table's row count and the findings
+   sections you walked.
 4. **Proposed recipe edits, in order** — for each: what changes in the recipe (name the
    const/field/mode), which mode(s), basis, citation, FORMAT or CONTENT. Every `contradicts`/`new`
    row must map to an edit or a written reason for not making it. Mark any edit to a mode the

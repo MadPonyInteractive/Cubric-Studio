@@ -1665,3 +1665,84 @@ specific.
 
 **Fabio chose option 1, the option 3 build (2026-09-15).** It is handed to a fresh session; the
 plan's Current State holds the four steps.
+
+**Option 3 built (2026-09-15), then runs 7a–7c on brief v2.1.** Both skill copies `diff`-identical,
+not committed:
+- **Step 1:** a `model` fact that overturns a limit contradicts every recipe value sized to it
+  (`wordBudget` first), in every mode on that encoder. An unmeasurable exact value is not a deferral.
+- **Step 3 split.** 3a is the inventory: heading, line, exact quote; rules inside dated entries and
+  descriptive sections count; vendor diff one line per mode; ends with a count. 3b is the
+  classification: every inventory number lands in the table, and "Recipe today" is quoted and
+  searched verbatim before `confirms`/`contradicts`. New `Inventory #` column.
+- **Reword 5 scoped:** "never deferred" covers a vendor notation that replaces one the recipe has.
+  A vendor label with no counterpart is an ordinary `new` row.
+- **Brief v2.1:** output section 3 names the inventory too. Inputs, forbidden list and bar unchanged.
+  Re-staged in this session's scratchpad: card, `02215cc` → 669 lines, findings still `81c6bec`.
+
+Inventories 49 / 58 / 41 (7c never wrote its list out, only an `Inv #` column); tables 25 / 30 / 37
+rows. Every files-read list is clean (7a and 7b also read the vendor `SKILL.md`, allowed).
+
+| Change | 7a | 7b | 7c | Held |
+|---|---|---|---|---|
+| 1 `[Shot N]`, every mode | r2v only — t2v's span notation is `contradicts` in its own diff, then folded into an r2v-tagged row and never edited | ✓ Edits 3 + 9; r2v basis `vendor` | r2v only — t2v/i2v filed `new`, declined on "prior Stage 1 sweeps" and a Stage 2 render | **1/3** |
+| 2 r2v single shot | ✓ | ✓ | ✓ | 3/3 |
+| 3 `wordBudget`, every mode | ✓ `model`, 500 | ✓ `model`, 500 | ✓ both consts, 400 | **3/3** (was 0/3) |
+| 4 sound fields, `N/A`, every mode | ✓ | ✓ | ✓ | 3/3 |
+| 5 the bans that follow from 1 | r2v only | follows, loose — retires the three span bans, adds a placeholder ban, drops `CUT 1:` rather than banning it | r2v only | **1/3** |
+| 6 r2v reference rules | 3/5 | 4/5 | 3/5 | **0/3 in full** |
+
+Change 6 by sub-rule: job 3/3; cite inside the sentence 3/3; delivery before `<d>` 2/3 (7a gives
+the syntax, not the placement); role/inheritance ban **2/3** (was 1/3 — 7a Edit 7, 7b row 29);
+every second written **0/3**. Also 3/3: harvest before edits, sweeps per mode (6), constraint line
+stays last.
+
+**Faults:**
+- **The quote check failed on the one row it was built for.** 7b R19 and 7c R14 confirm
+  `CONSTRAINT_RULE` as saying "The one exception is a **role ban**". The pre-merge recipe has no
+  such sentence (`CONSTRAINT_RULE` is L67; a Python substring count gives 0). It is verbatim in
+  `docs/recipes/playbook/09-field-evidence.md:106`, which the procedure sends every runner to read —
+  the source of 6b's identical false quote too. Every other "Recipe today" quote in the three tables
+  was checked and is real, so the runners did search; they did not search this one.
+- **7a row 15** confirms the location inheritance ban on a real quote that only gives each
+  reference a job. Edit 7 adds the ban anyway.
+- **7c rejects `<Subject N>` on "Fabio's quoted decision", L1340–1344.** Those lines defer the
+  six-section format, are not Fabio's words, and never mention `<Subject N>`. A misread citation:
+  this alone breaks the strict bar.
+- **7a and 7c defer t2v/i2v notation** although the recipe has its own (`Shot 1 [0s-` ×5,
+  `Timeline:`), so step 5's never-deferred clause applies. That is change 1 falling from 3/3 to 1/3.
+- **The walk still skips dated entries.** 7a's inventory jumps from L241 to L999 ("2026-08-11 to
+  2026-08-12 … no prompt-format rules"); 7b's from L240 to L999. L995–997 ("Portable rule … every
+  second of the clip has something written for it") is in none of the three.
+- Basis inflation down to 1/3: 7c R34 labels `[Shot N]` "measured (S14 confirmed)", but S14 tested
+  the sound fields. 7a and 7b label r2v's notation edit `vendor`.
+
+**Verdict: MISS on the v2 pattern bar.**
+
+**Diagnosis:**
+- Step 1's wording closed the budget, 0/3 → 3/3.
+- The inventory did not force the walk. A runner can still call a stretch of dated entries "no rules"
+  without listing it, so a skipped entry is invisible rather than a missing number.
+- 3b's "several lines may share a row" let 7a fold a t2v/i2v vendor line into an r2v-tagged row, and
+  the mode fell out with it.
+- The quote check is self-reported. A runner that believes it has seen a sentence reports it found.
+- As in runs 3–5, the round closed its targets and something else fell out (change 1: 3/3 → 1/3).
+
+**Options for Fabio (none taken):**
+1. **Close 4c as a documented partial.** Phase 5 carries shot count, budget and sound fields 3/3.
+   Write the known gaps into step 7's hand-back as checks on the card: t2v/i2v notation moved, rules
+   inside dated entries, each `confirms` quote's recipe line, the reference rules.
+2. **One more structural round.** The inventory lists every heading and dated entry with its rules
+   or `none`; a vendor line never shares a row across modes; a `confirms` row gives the recipe line
+   its quote sits on. Re-run three.
+
+**Recommended: option 1.** Seven graded runs show variance bigger than any wording's effect, and the
+table reaches Fabio on the card before any sweep, which is where a missed row gets caught.
+
+**Status: 4c NOT ticked. Back to Fabio.** Results in `<scratchpad>/heal-dryrun/run-{a,b,c}/`.
+
+**Fabio chose option 1 (2026-09-15): 4c closes as a documented partial.** Phase 5 step 7 now
+ends with four checks put on the card for Fabio: notation moved in every mode the vendor document
+covers; rules inside dated entries are in the inventory; every `confirms` quote is really in the
+recipe; rules stated in passing are rows. Both skill copies `diff`-identical. 4c is ticked on this
+basis. **Phase 5 is NOT verified to reproduce the MPI-27 hand merge**, and no further dry run is
+planned.
