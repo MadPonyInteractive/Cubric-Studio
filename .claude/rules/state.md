@@ -141,8 +141,8 @@ PromptBoxControls own the scope decision via their `scope: 'shared' | 'perOp'` f
 
 ## Gallery View Prefs
 
-`state.gallerySizeLevel` (int `1–4`, default `3`) and `state.galleryShowInfo` (boolean, default `false`) control the gallery card-size slider and the info-mode (card badges) toggle.
+`state.gallerySizeLevel` (int `1–4`, default `3`) and `state.galleryShowInfo` (boolean, default `false`) control the gallery card-size slider and the info-mode (card badges) toggle; `state.galleryVolume` (0–1, default `0.8`, 0 = mute) is the hover/click playback volume (MPI-749).
 
-- Persisted to `localStorage` via `Storage.getGallerySizeLevel` / `setGallerySizeLevel` (key `mpi_gallery_size_level`, getter clamps 1–4) and `Storage.getGalleryShowInfo` / `setGalleryShowInfo` (key `mpi_gallery_show_info`). Hydrated into `state` at module init in `js/state.js`.
-- `state:changed` subscriber in `state.js` mirrors both writes to Storage. Source of truth is the proxy field; localStorage is the cold-start mirror.
-- `MpiGalleryGrid` reads the fields on mount (slider seed + info-btn active state) and writes them from the slider `input` handler and info-btn click — never poke `Storage` directly from the component.
+- Persisted to `localStorage` via `Storage.getGallerySizeLevel` / `setGallerySizeLevel` (key `mpi_gallery_size_level`, getter clamps 1–4) and `Storage.getGalleryShowInfo` / `setGalleryShowInfo` (key `mpi_gallery_show_info`), and `Storage.getGalleryVolume` / `setGalleryVolume` (key `mpi_gallery_volume`, clamped 0–1). Hydrated into `state` at module init in `js/state.js`.
+- `state:changed` subscriber in `state.js` mirrors all three writes to Storage. Source of truth is the proxy field; localStorage is the cold-start mirror.
+- `MpiGalleryToolbar` (the project bar, MPI-749) seeds its sliders and Info toggle from the fields and writes them; `MpiGalleryGrid` follows `state:changed` (relayout, volume sweep, card info) and writes size and info from the `+` / `-` / `I` hotkeys — never poke `Storage` directly from a component.

@@ -181,10 +181,29 @@ Pan/zoom transform targets the actual `.mpi-video-surface__video` element, not `
 - `MpiFlowLibrary` (the **Flow Library** overlay, MPI-256)   props: none   slot: `document.createElement('div')` — lazy singleton mounted by shell on first `flows:open`; self-hosts an `MpiOverlay(mountTarget:'body')` + a right-drawer detail panel. Tiles come from the shared `MpiTileSheet` Primitive (MPI-356 — it owns the `.mpi-tile*` CSS and the sheet grid for all three surfaces: Model Library, Flow Library, model picker; consumers keep their own state logic and pass the state row in as HTML). `.mpi-detail*` is still a GLOBAL selector borrowed from MpiModelManager.css. Shell calls `el.open()` each time. **No longer dev-gated (MPI-589)** — `flows:open` is emitted by the Landing nav, the gallery bar's Flows button and the Tab ring, all user routes; only the **Ctrl+Tab dev radial** is still `APP_CONFIG.dev_mode`-gated (MPI-338 moved it off the main Tab radial). **A tile press does not always open the drawer (MPI-638):** `_pick` emits `flow:open` DIRECTLY when the flow is available AND `state.currentPage === PAGE_GALLERY`; the drawer is for an unready flow (Install lives there) or for Landing (where `flow:open` would land nowhere).
 - `MpiBaseFlow` (the **Flow** overlay frame, MPI-256)   props: `{ flow: FlowDef, initialInputs?: Object }`   slot: `document.createElement('div')` — mounted by shell on `flow:open {flowId}` with the resolved descriptor **and nothing else** (destroys any prior active Flow first). **There is no per-Flow component (MPI-572):** the `uiComponent` prop, the name→blueprint map and `MpiFlowHeadSwap` are all deleted, because a component cannot ride in a third-party Flow manifest. Self-hosts an `MpiOverlay(mountTarget:'main-area')`. `el.open()` shows it; Back-to-Library = `el.close()` + `flows:open`. CLOSING DESTROYS IT (MPI-345): the frame re-emits its overlay's `close` and the shell destroys the instance one tick later — a hidden-but-alive Flow kept its global `generation.run` hotkey and queued a phantom generation on the next Ctrl+Enter. Inputs survive in `state.s_flowInputs`, and every open remounts fresh.
 - `MpiMemoryMonitor`   props: none   slot: `#memory-monitor-mount`
-- `MpiProjectName`     props: `{ projectName }`   slot: `#project-name-mount`
+- `MpiProjectName`     props: `{ projectName }`   slot: `#project-name-mount` — exposes `el.getToolbarSlot()` (`.mpi-project-name__toolbar`); `js/shell/navigation.js` `_syncGalleryToolbar` mounts `MpiGalleryToolbar` (props `{}`) into it on the gallery page only, and destroys it + empties the slot on group-history, landing and the components view (MPI-749)
 - `#prompt-box-mount` slot   declared in `index.html` at `#app-shell` level — Blocks (Gallery, History) mount `MpiPromptBox` Organism into it directly; slot persists across workspace switches, so each Block MUST destroy its prior `_pb` handle before remount AND in `el.destroy`.
 
 > **Rule:** Never mount any of the above singletons inside workspace Blocks. Use Events to trigger them.
+
+---
+
+## MpiGalleryToolbar.js (Compound: the gallery's view controls in the project bar, MPI-749)
+
+Mounted by `js/shell/navigation.js` into `MpiProjectName.el.getToolbarSlot()`, gallery page only. Talks to the grid ONLY through state. Details: `docs/gallery-filters.md`.
+
+**Primitives mounted:**
+- `MpiProgressBar` (size)   props: `{ min:1, max:4, step:1, value: state.gallerySizeLevel, interactive:true, wheel:true, handle:true, info:'Size: {value}' }`   slot: `.mpi-gallery-toolbar__slider--size`
+- `MpiProgressBar` (volume)   props: `{ min:0, max:100, step:5, value: galleryVolume × 100, interactive:true, wheel:true, handle:true, info:'Volume: {value}%' }`   slot: `.mpi-gallery-toolbar__slider--volume`
+- `MpiButton` (FILTER)   props: `{ icon:'filter', label:'Filter', size:'sm', variant:'ghost', extraClasses:'mpi-gallery-toolbar__filter' }`   slot: `.mpi-gallery-toolbar__filter-slot` — `--filtered` modifier = the heat dot; `aria-expanded` follows the panel
+- `MpiButton` (Archive)   props: `{ icon:'archive', size:'sm', variant:'ghost', toggleable:true, active, info, extraClasses:'mpi-gallery-toolbar__archive' }`   slot: `.mpi-gallery-toolbar__archive-slot`
+- `MpiButton` (Info)   props: `{ icon:'info', size:'sm', variant:'ghost', toggleable:true, active, info }`   slot: `.mpi-gallery-toolbar__info-slot`
+
+**Filter panel (`filterPanel.js`) — created on open, removed on close:**
+- `MpiPopup`   props: `{ active:true, position:'bottom', variant:'gallery-filter', triggerEl: FILTER }`   slot: `ce('div')` — portals to `<body>`
+- `MpiButton` ×2 (ALL / NONE)   props: `{ text, variant:'ghost', size:'sm' }`   slot: `ce('div')` → `.mpi-gallery-toolbar__panel-bulk`
+- `MpiRadioGroup` (Newest / Oldest)   props: `{ options, value: state.gallerySort.order, name:'Sort order', size:'sm' }`   slot: `.mpi-gallery-toolbar__panel-order`
+- `MpiButton` per row   props: `{ icon:'circle', iconActive:'check', label, labelPosition:'right', size:'sm', variant:'secondary', extraClasses:'mpi-gallery-toolbar__toggle' }`   slot: `ce('div')` → `.mpi-gallery-toolbar__row` — one per `listedKinds` kind, then Favourites and Previews
 
 ---
 
@@ -193,9 +212,8 @@ Pan/zoom transform targets the actual `.mpi-video-surface__video` element, not `
 MpiGalleryGrid is now a Compound that handles both justified layout and card display (logic merged from deleted MpiGroupCard).
 
 **Primitives mounted:**
-- `MpiProgressBar` (size slider)   props: `{ min:1, max:5, step:1, value:3, interactive:true, wheel:true, info:'Size: {value}' }`   slot: `.mpi-gallery-grid__slider-wrap`
-- `MpiButton` (info toggle)   props: `{ icon:'info', size:'sm', variant:'ghost', toggleable:true, active, info }`   slot: `.mpi-gallery-grid__info-btn-slot`
-- `MpiButton` ×6 (tab buttons)   props: `{ text, variant:'ghost', size:'sm', extraClasses:'mpi-gallery-grid__tab[ mpi-gallery-grid__tab--active]' }`   slot: `.mpi-gallery-grid__tab-slot[data-order]` / `.mpi-gallery-grid__tab-slot[data-filter]` — active class toggled via `_syncTabActive()` on `state.gallerySort` change; click handlers write to `state.gallerySort`
+- No toolbar controls (MPI-749): size, volume, FILTER, Archive and Info are `MpiGalleryToolbar`, in the project bar; the grid follows state.
+- `MpiButton` (SHOW ALL)   props: `{ text:'Show all', variant:'secondary', size:'sm' }`   slot: `ce('div')`, appended into `.mpi-gallery-grid__scope-empty` only when a filter hides every card — resets kinds + flags, keeps `order` and `scope`
 - `MpiCheckbox` (card selection)   props: `{ checked: false }`   slot: `.mpi-group-card__select-wrap` — mounted per card inside `_makeCard()`; `on('change')` drives selection state
 
 **Card rendering:**
