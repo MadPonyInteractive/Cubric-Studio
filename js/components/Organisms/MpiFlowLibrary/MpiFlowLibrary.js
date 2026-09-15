@@ -14,6 +14,7 @@ import { MpiOkCancel } from '../../Compounds/MpiOkCancel/MpiOkCancel.js';
 import { getModelById, getModelDependencies, disambiguatedName, reSyncInstalledModels } from '../../../data/modelRegistry.js';
 import { downloadService } from '../../../services/downloadService.js';
 import { sizeToGb } from '../../../data/modelConstants/footprint.js';
+import { formatBytes } from '../../../utils/formatBytes.js';
 import { DEPS } from '../../../data/modelConstants/dependencies.js';
 import { PAGE_GALLERY } from '../../../router.js';
 import { qs, ce, on } from '../../../utils/dom.js';
@@ -291,12 +292,14 @@ export const MpiFlowLibrary = ComponentFactory.create({
             return (flow.requiredDeps || []).map(id => DEPS[id]).filter(Boolean);
         }
 
+        // sizeToGb counts 1024-based GB (how dep size strings are measured); formatBytes
+        // takes bytes and prints decimal GB (MPI-763).
         function _uninstallFlow(flow) {
             const deps = _ownDeps(flow);
             if (!deps.length) return;
             const gb = deps.reduce((n, d) => n + sizeToGb(d.size), 0);
             _showConfirm(
-                `Uninstall ${flow.title}? ${gb ? `${gb.toFixed(1)}GB` : 'Its files'} will be freed. `
+                `Uninstall ${flow.title}? ${gb ? formatBytes(gb * 1024 ** 3) : 'Its files'} will be freed. `
                 + 'Files shared with another installed flow will be kept.',
                 async () => {
                     await downloadService.uninstall(flowDepKey(flow.id), deps, true);
@@ -399,7 +402,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
             if (!deps.length) return '';
             const done = !flowAvailability(flow).missingDeps.length;
             const gb = deps.reduce((n, d) => n + sizeToGb(d.size), 0);
-            const label = gb ? `Extra dependencies (${gb.toFixed(1)}GB)` : 'Extra dependencies';
+            const label = gb ? `Extra dependencies (${formatBytes(gb * 1024 ** 3)})` : 'Extra dependencies';
             return _rowHtml(label, done);
         }
 

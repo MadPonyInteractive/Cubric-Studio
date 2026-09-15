@@ -286,10 +286,12 @@ difference between hunting for a 96 GB instance and taking whatever is in stock.
   `/remote/pod/disk` resolves the denominator server-side via the pure
   `resolveDiskTotalBytes(pod, volumeList)` (volume size, or ephemeral
   `containerDiskInGb`) and returns `{used,total,ephemeral}`; a null total hides the bar.
-  **Units (MPI-756, measured).** RunPod sizes a volume in DECIMAL GB and so does the bar
-  (`total` 60000000000 for a 60 GB volume, bar "54.5GB / 60GB"), but the disk-full toast
-  prints BINARY GB: a 55 GB volume read "49.6 GB free of 51.2 GB". Size a test volume against
-  the toast's number, not the console's.
+  **Units (MPI-756 measured, MPI-763 unified).** Every storage GB the app prints is DECIMAL,
+  like RunPod: the bar (`total` 60000000000 for a 60 GB volume, "54.5GB / 60GB"), the
+  disk-full toast, the `free space` log lines and model sizes. Before MPI-763 the toast and
+  logs printed BINARY GB (a 55 GB volume read "49.6 GB free of 51.2 GB"), so an older
+  `app.log` reads ~7% low against a newer one. Dep `size` strings are still measured
+  1024-based and parsed that way; only the display converts. RAM and VRAM stay binary.
 - **Hot-store: fits-VRAM weights are staged volume→container-disk (MPI-194, MPI-329).** The
   network volume reads at ~750 MB/s AND aimdo pins ~90% of host RAM (`Enabled pinned memory`
   ~231 GB), so the page cache can't hold a model → EVERY model switch random-reads the volume

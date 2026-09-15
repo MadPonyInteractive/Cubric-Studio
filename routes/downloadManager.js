@@ -1135,7 +1135,7 @@ class FileDownloader {
         });
         if (partial.resumable && _shouldResumePartial({ sha256: markerSha, url: markerUrl }, this.depJob)) {
             this.depJob.downloadedBytes = partial.downloaded;
-            logger.info('download', `resuming ${this.depJob.id} from ${(partial.downloaded / 1073741824).toFixed(2)}GB on disk`);
+            logger.info('download', `resuming ${this.depJob.id} from ${(partial.downloaded / 1e9).toFixed(2)}GB on disk`);
             // Not awaited (same idiom as start() below): the promise resolves only
             // when the whole download finishes — events drive completion. Errors
             // surface through the 'error' handler; the catch just silences the
@@ -1973,7 +1973,8 @@ async function _freeDiskBytes(dir) {
 }
 
 function _fmtGb(bytes) {
-    return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
+    // Decimal GB (1e9 bytes), the unit RunPod, Hugging Face and macOS print. (MPI-763)
+    return `${(bytes / 1e9).toFixed(1)} GB`;
 }
 
 // ── Free-space telemetry (MPI-716) ─────────────────────────────────────────────

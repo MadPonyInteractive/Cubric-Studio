@@ -48,6 +48,7 @@ test('a deps-only flow offers Uninstall, and sends its OWN deps under the flow k
       const { getFlowById, setFlowDepStatus, flowModelIds } = await import('/js/data/flowsRegistry.js');
       const { DEPS } = await import('/js/data/modelConstants/dependencies.js');
       const { sizeToGb } = await import('/js/data/modelConstants/footprint.js');
+      const { formatBytes } = await import('/js/utils/formatBytes.js');
 
       const DEPS_FLOW = 'minimax-music';   // no requiredModels — its whole footprint is its own
       const MODELS_FLOW = 'outpaint';      // one model, no own deps — the negative case
@@ -64,7 +65,7 @@ test('a deps-only flow offers Uninstall, and sends its OWN deps under the flow k
       const expectedGb = (id) => {
         const gb = ownDeps(id).map(d => DEPS[d]).filter(Boolean)
           .reduce((n, d) => n + sizeToGb(d.size), 0);
-        return gb ? `${gb.toFixed(1)}GB` : 'Its files';
+        return gb ? formatBytes(gb * 1024 ** 3) : 'Its files';
       };
 
       // Capture the uninstall POST instead of performing it. Everything else falls

@@ -535,7 +535,7 @@ async function _runEngineDownload(chosenModelsRoot) {
         if (missingDeps.length > 0) {
             logger.info('engine', `Calculating size for ${missingDeps.length} UW deps...`);
             const uwDepsTotalBytes = await getUniversalWorkflowDepsTotalSize(missingDeps);
-            logger.info('engine', `UW deps total size: ${(uwDepsTotalBytes / 1024 / 1024 / 1024).toFixed(2)} GB`);
+            logger.info('engine', `UW deps total size: ${(uwDepsTotalBytes / 1e9).toFixed(2)} GB`);
         }
 
         // ── Provision engine binaries (platform-specific) ───────────────────────

@@ -168,7 +168,7 @@ export const MpiProjectName = ComponentFactory.create({
 
         function _formatBytes(b) {
             if (!b || b < 1) return '0 KB';
-            const KB = 1024, MB = KB * 1024, GB = MB * 1024;
+            const KB = 1000, MB = KB * 1000, GB = MB * 1000; // decimal, like formatBytes (MPI-763)
             if (b >= GB) return `${(b / GB).toFixed(1)} GB`;
             if (b >= MB) return `${(b / MB).toFixed(1)} MB`;
             return `${Math.max(1, Math.round(b / KB))} KB`;

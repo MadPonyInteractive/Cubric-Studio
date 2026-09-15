@@ -790,7 +790,7 @@ export const MpiModelManager = ComponentFactory.create({
             if (!job || !job.totalBytes || job.indeterminate || job.phase === 'verifying') return '';
             if (!['downloading', 'installing', 'pending', 'queued'].includes(job.status)) return '';
             if (!(job.downloadedBytes > 0) || !job.speed) return '';
-            const gb = b => (b / 1073741824).toFixed(1);
+            const gb = b => (b / 1e9).toFixed(1);
             let eta = '';
             const rate = _speedToBytes(job.speed);
             if (rate > 0 && job.totalBytes > job.downloadedBytes) {
@@ -1216,12 +1216,14 @@ export const MpiModelManager = ComponentFactory.create({
                 .filter(job => job && !['complete', 'failed', 'cancelled'].includes(job.status));
         }
 
+        // sizeToGb counts 1024-based GB (how dep size strings are measured); formatBytes
+        // takes bytes and prints decimal GB (MPI-763).
         function _pluginTile(plugin) {
             const { installed } = pluginAvailability(plugin);
             const live = _pluginJobs(plugin);
             const busy = live.length > 0;
             const gb = _pluginGb(plugin);
-            const size = gb ? `${gb.toFixed(1)}GB` : '';
+            const size = gb ? formatBytes(gb * 1024 ** 3) : '';
 
             const tile = ce('div', { className: 'mpi-plugin-row' });
             const info = ce('div', { className: 'mpi-plugin-row__info' });
@@ -1289,7 +1291,7 @@ export const MpiModelManager = ComponentFactory.create({
             const deps = (plugin.requiredDeps || []).map(id => DEPS[id]).filter(Boolean);
             if (!deps.length) return;
             _showConfirm(
-                `Uninstall ${plugin.title}?\n• ${deps.map(d => d.size).filter(Boolean).join(' + ')} will be freed.\n• Files shared with other installed models will be kept.`,
+                `Uninstall ${plugin.title}?\n• ${deps.filter(d => d.size).map(d => formatBytes(sizeToGb(d.size) * 1024 ** 3)).join(' + ')} will be freed.\n• Files shared with other installed models will be kept.`,
                 async (deleteFiles) => {
                     // The plugin's own key is what lets the server-side guard release
                     // this weight — see _pluginRequiredDepIds(excludeUninstallId) in

@@ -566,3 +566,10 @@
   again. The top bar could read "0 entries · 0 KB" for a card with several versions, because
   the app missed each version's file when its saved link ended in a refresh marker. It now
   finds them, so a card with four versions reads 4 entries and its real size.
+
+- Disk sizes use the same gigabytes as RunPod and Hugging Face. The warning when an install
+  does not fit, and model sizes in the Library, counted a gigabyte as 1,073,741,824 bytes,
+  while the Pod disk bar and your RunPod volume size count 1,000,000,000, so one 55 GB
+  volume read 51.2 GB in the warning and 55 GB on the bar. Model, volume, download and project
+  sizes now all use the 1,000,000,000 figure. Windows File Explorer still uses the larger one,
+  so a model looks about 7% smaller there than in the app.
