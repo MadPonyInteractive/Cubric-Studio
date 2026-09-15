@@ -173,7 +173,7 @@
     justify-self: start;
 }
 
-/* ── Disconnect choice popup (Terminate vs Delete, Step 4.3.2) ───── */
+/* ── Disconnect choice popup (Stop Pod vs Delete, Step 4.3.2) ───── */
 .mpi-settings__disconnect {
     display: flex;
     flex-direction: column;

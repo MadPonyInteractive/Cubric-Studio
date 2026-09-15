@@ -88,7 +88,7 @@ Community Cloud is unsupported (unstable/limited for this use case).
   **delete-on-quit** pref. OFF (default) = `stopPod` (EXITED, warm-resumable, no GPU bill);
   ON = delete every `cubric-vision` Pod. `main.js` teardown timeout is **30s** (a slow
   RunPod delete aborted at 8s once and left a Pod running).
-- **Disconnect** (Settings): 3-button popup — **Terminate** (stop warm), **Delete Pod**,
+- **Disconnect** (Settings): 3-button popup — **Stop Pod** (stop warm), **Delete Pod**,
   **Cancel**. Both stop/delete flip backend `_mode.active = false` (podId preserved) so
   `isRemoteActive()` returns false and local generation resumes.
 - **Untracked-death self-heal (MPI-239):** when a CONNECTED Pod dies with no user

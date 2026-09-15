@@ -257,8 +257,8 @@ are eligible.
 | 729 | Connect endpoint threw | Could not reach the Pod connect endpoint. | warning | eligible |
 | 779 | Cancel during auto-retry wait | Stopped waiting for the GPU. | info | eligible |
 | 796 | Cancel mid-create (Pod deleted) | Connection cancelled. | info | eligible |
-| 859 | Terminate failed | Could not terminate the Pod. | warning | eligible |
-| 862 | Terminate ok (kept warm) | Pod terminated (kept warm) | success | eligible |
+| 859 | Stop failed | Could not stop the Pod. | warning | eligible |
+| 862 | Stop ok (kept warm) | Pod stopped (kept warm) | success | eligible |
 | 894 | Delete failed | Could not delete the Pod. | warning | eligible |
 | 897 | Delete ok | Pod deleted | success | eligible |
 

@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-767", "at": "2026-09-15T13:36:52+01:00", "actor": "claude", "column": "todo", "title": "Disconnect popup: rename 'Terminate' to 'Stop Pod' (RunPod's own words)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-767", "at": "2026-09-15T13:36:52+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "MPI-762 closed and released the file; starting the rename"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-767", "at": "2026-09-15T13:38:33+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Stop Pod rename shipped; eslint clean, diff wording-only"}

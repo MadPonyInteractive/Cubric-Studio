@@ -877,10 +877,10 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok || data.stopped === false) {
                     _setEngineHint(root, 'Could not stop the Pod — check the RunPod console.', true);
-                    Events.emit('ui:warning', { message: 'Could not terminate the Pod.' });
+                    Events.emit('ui:warning', { message: 'Could not stop the Pod.' });
                 } else {
                     _setEngineHint(root, 'Pod stopped (GPU billing ended).');
-                    Events.emit('ui:success', { message: 'Pod terminated (kept warm)' });
+                    Events.emit('ui:success', { message: 'Pod stopped (kept warm)' });
                 }
                 state.runpodConfig = { ..._runpodCfg(), wasConnected: false };
             } catch (err) {
@@ -933,7 +933,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
         }
 
         // Disconnect popup (Step 4.3.2): the user chooses how to release the Pod.
-        //   Terminate (primary) → STOP/EXITED, warm-resumable, bills only volume +
+        //   Stop Pod (primary) → STOP/EXITED, warm-resumable, bills only volume +
         //     reserved container disk (a small fee), no GPU.
         //   Delete → remove the Pod, frees the card + container disk, lets the
         //     volume be deleted later; next Connect is a cold create.
@@ -948,8 +948,8 @@ export const MpiRunpodSettings = ComponentFactory.create({
             box.appendChild(ce('div', {
                 className: 'mpi-settings__disconnect-text',
                 textContent:
-                    'Terminate keeps the Pod ready to resume quickly and bills only storage ' +
-                    '(volume + reserved container disk) — a small fee. Delete removes the Pod, ' +
+                    'Stop Pod keeps the Pod ready to resume quickly and bills only storage ' +
+                    '(volume + reserved container disk) — a small fee. Delete Pod removes the Pod, ' +
                     'ending all billing except the volume, but the next connection is a slower ' +
                     'cold start. Your volume and installed models are kept either way.',
             }));
@@ -958,17 +958,17 @@ export const MpiRunpodSettings = ComponentFactory.create({
             modal.el.appendChild(box);
 
             const close = () => modal.el.hide();
-            const terminateBtn = MpiButton.mount(ce('div'), { text: 'Terminate', variant: 'primary', size: 'sm' });
+            const stopBtn = MpiButton.mount(ce('div'), { text: 'Stop Pod', variant: 'primary', size: 'sm' });
             const deleteBtn = MpiButton.mount(ce('div'), { text: 'Delete Pod', variant: 'danger', size: 'sm' });
             const cancelBtn = MpiButton.mount(ce('div'), { text: 'Cancel', variant: 'secondary', size: 'sm' });
-            terminateBtn.on('click', () => { close(); _disconnectEngine(root); });
+            stopBtn.on('click', () => { close(); _disconnectEngine(root); });
             deleteBtn.on('click', () => { close(); _deletePodAndDisconnect(root); });
             cancelBtn.on('click', close);
-            // Enter confirms the primary (Terminate) action.
+            // Enter confirms the primary (Stop Pod) action.
             modal.on('confirm', () => { close(); _disconnectEngine(root); });
             actions.appendChild(cancelBtn.el);
             actions.appendChild(deleteBtn.el);
-            actions.appendChild(terminateBtn.el);
+            actions.appendChild(stopBtn.el);
             modal.el.show();
         }
 
@@ -1350,7 +1350,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
             _teardownDiskBar();
 
             // MPI-78: "Any region" mode has no network volume — instead the user sizes
-            // the ephemeral container disk the models download into (lost on Terminate).
+            // the ephemeral container disk the models download into (wiped on Stop).
             if (_isAnyRegion(cfg)) {
                 if (cfg.volumeId) state.runpodConfig = { ..._runpodCfg(), volumeId: null };
                 const wrap = ce('div', { className: 'mpi-settings__volume-row' });
@@ -1376,7 +1376,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 });
                 const warn = ce('div', {
                     className: 'mpi-settings__hint mpi-settings__hint--warn',
-                    textContent: 'Ephemeral — models download each session and are deleted when you Terminate the Pod. No storage bill between sessions. Size the disk for the models you plan to install. First generation includes a one-time accelerator compile (a few minutes).',
+                    textContent: 'Ephemeral — models download each session and are deleted when you stop or delete the Pod. No storage bill between sessions. Size the disk for the models you plan to install. First generation includes a one-time accelerator compile (a few minutes).',
                 });
                 volumeSlot.appendChild(warn);
                 // MPI-237: ephemeral pods use the container disk (/cubric-data), not a

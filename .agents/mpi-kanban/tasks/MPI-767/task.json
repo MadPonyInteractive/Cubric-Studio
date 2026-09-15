@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-767",
+  "title": "Disconnect popup: rename 'Terminate' to 'Stop Pod' (RunPod's own words)",
+  "description": "The Disconnect popup's primary button says Terminate but STOPS the Pod; in RunPod, Terminate means delete. Rename button, popup copy, toasts, Any-region hint and docs to Stop Pod. Wording only.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-15T13:36:52+01:00",
+  "updated_at": "2026-09-15T13:38:33+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
