@@ -367,6 +367,12 @@
   either one turns it up or down. Drag it to zero and the speaker shows muted; click the
   speaker and your volume comes back to where it was.
 
+- **The landing page has a new crew.** The dragon backdrop is gone. The five Cubric mascots,
+  Prompt, Vision, Studio, Video and Audio, now stand on a lit stage with Studio in the centre
+  and a rotating quote under the headline. Hover one and it greets you; click it for a happy
+  pose. The crew shrinks to fit your window and waits for any startup dialog to close before
+  it walks on. New project and Open folder now sit at the foot of your project list.
+
 ## Fixes
 
 > **A fix to a FLOW does not belong in this section for this release.** Flows debut here, so

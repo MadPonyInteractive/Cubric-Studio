@@ -92,8 +92,11 @@ Built as `state.screenClear` (`js/shell/screenClearService.js`, fed by `shell:bo
   Leaving and re-entering the landing while it is up: 0 members after destroy, 5 new members
   paused at 0ms. `comfy:ready`: true, the entrance runs, 0 backdrops.
 
-## Waiting on Fabio (`user-ux`): the entrance hold
+## 2026-09-15: Fabio verified the entrance hold (`user-ux`)
 
-Only visible on a launch that shows overlays (a fresh profile shows the engine gate, the 18+ notice
-and the changelog): the crew waits, still, behind them, and its entrance starts when the last
-one closes.
+Only visible on a launch that shows overlays, so it ran in a separate visible isolated instance on
+a fresh profile with empty scratch engine and models roots (`app:isolated`, port 57961, never
+`:3000`). He clicked "Remote only" on the engine gate (the log records the RunPod escape hatch at
+17:00:31Z, no install), "Continue" on the 18+ notice and "Done" on the changelog, and confirmed
+the crew waits, still, behind them and plays its entrance only when the last one closes:
+**verified ("it's verified. Looks good.")**.

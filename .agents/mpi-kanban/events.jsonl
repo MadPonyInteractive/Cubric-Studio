@@ -4241,3 +4241,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "checklist.updated", "id": "MPI-766", "at": "2026-09-15T17:50:06+01:00", "actor": "claude-b2d56386", "summary": "Implementation checked; Validation open."}
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-766", "at": "2026-09-15T17:50:06+01:00", "actor": "claude-b2d56386", "summary": "Agent checks passed (lint, unit, geometry, breakpoints, teardown, reduced motion, Electron picker foot). Waiting on Fabio's look-and-motion check."}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-766", "at": "2026-09-15T17:50:06+01:00", "actor": "claude-b2d56386", "changes": {"maturity": "validating"}}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-766", "at": "2026-09-15T18:03:33+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Validated: agent checks passed; Fabio verified the look, the scaling and the entrance hold (validation.md)."}
