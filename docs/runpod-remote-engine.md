@@ -264,6 +264,13 @@ difference between hunting for a 96 GB instance and taking whatever is in stock.
   it silently into `autoRetry`, which by construction can only bill while the app is open.
 - **Delete a volume only after deleting its attached Pod** — RunPod refuses to delete an
   attached volume even when the Pod is EXITED. Settings deletes the tracked Pod first.
+- **Grow a volume from Settings (MPI-762).** `PATCH /runpod/volumes/:id` → REST
+  `PATCH /networkvolumes/{id}` with `{size}` only. RunPod refuses a size not larger than the
+  current one (a volume never shrinks) and caps it at 4000 GB, so the field floors at the
+  current size. A RUNNING Pod sees the new quota with no restart (user-observed on console
+  resizes), and the disk bar + disk gate re-read `size` on every call. Sizes are decimal GB,
+  same as the badge and bar. A GPU Pod's container disk was mirrored to the OLD size at
+  create (MPI-329), so until the next create it is smaller than the volume.
 - **No volume USED-bytes from RunPod (MPI-169).** REST `/networkvolumes` returns only
   `{id,name,size,dataCenterId}` (size = the configured quota); GraphQL `NetworkVolume`
   rejects `used`/`usedBytes`/`consumedBytes`/`currentPerGBUsage`. The ONLY truthful used

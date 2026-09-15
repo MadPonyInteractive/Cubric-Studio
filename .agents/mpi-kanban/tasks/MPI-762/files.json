@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["routes/runpodRemote.js", "js/components/Organisms/MpiRunpodSettings/MpiRunpodSettings.js", "js/components/Organisms/MpiRunpodSettings/MpiRunpodSettings.css", "tests/runpod-volume-update.test.cjs", "docs/runpod-remote-engine.md"] }

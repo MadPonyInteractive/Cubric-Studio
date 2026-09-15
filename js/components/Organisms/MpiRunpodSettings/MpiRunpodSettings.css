@@ -103,6 +103,25 @@
     flex-shrink: 0;
 }
 
+/* MPI-762: grow row under the volume badge: Size (GB) [ 150 ] [Update] */
+.mpi-settings__volume-grow {
+    margin-top: var(--s-2);
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    font-size: var(--t-sm);
+}
+.mpi-settings__volume-grow-label,
+.mpi-settings__volume-grow-btn {
+    flex-shrink: 0;
+}
+/* Hug the field, same as the min-RAM input above. */
+.mpi-settings__volume-grow-input {
+    width: auto;
+    flex-shrink: 0;
+    display: flex;
+}
+
 /* Volume badge: derived from the selected DC (the volume there, or None). */
 .mpi-settings__volume-badge {
     display: flex;

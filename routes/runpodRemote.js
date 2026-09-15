@@ -20,6 +20,7 @@
  *   GET  /runpod/volumes               — list network volumes
  *   POST /runpod/volumes               — create network volume
  *   DELETE /runpod/volumes/:id         — delete network volume
+ *   PATCH /runpod/volumes/:id          — grow network volume ({ size } only)
  *   POST /runpod/templates             — create template
  */
 
@@ -248,6 +249,10 @@ const client = {
   async deleteVolume(apiKey, id) {
     return _rest(apiKey, 'DELETE', `/networkvolumes/${id}`);
   },
+  // MPI-762: grow a volume. RunPod refuses a size not larger than the current one.
+  async updateVolume(apiKey, id, size) {
+    return _rest(apiKey, 'PATCH', `/networkvolumes/${id}`, { size });
+  },
   async createTemplate(apiKey, spec) {
     return _rest(apiKey, 'POST', '/templates', spec);
   },
@@ -351,6 +356,19 @@ router.delete('/runpod/volumes/:id', (req, res) =>
     const r = await client.deleteVolume(key, req.params.id);
     res.status(r.ok ? 200 : r.status).json(r.json);
   }));
+
+// MPI-762: grow a volume. Only a whole-number size reaches RunPod (its cap is 4000 GB);
+// RunPod refuses one not larger than the current size, so grow-only is enforced there.
+router.patch('/runpod/volumes/:id', (req, res) => {
+  const size = req.body?.size;
+  if (!Number.isInteger(size) || size <= 0 || size > 4000) {
+    return res.status(400).json({ error: 'invalid_size', message: 'Size must be a whole number of GB from 1 to 4000.' });
+  }
+  return _withKey(res, async (key) => {
+    const r = await client.updateVolume(key, req.params.id, size);
+    res.status(r.ok ? 200 : r.status).json(r.json);
+  });
+});
 
 router.post('/runpod/templates', (req, res) =>
   _withKey(res, async (key) => {

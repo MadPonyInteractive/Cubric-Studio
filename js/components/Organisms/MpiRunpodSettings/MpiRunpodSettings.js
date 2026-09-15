@@ -1011,6 +1011,8 @@ export const MpiRunpodSettings = ComponentFactory.create({
         const DISK_DEFAULT_GB = 100;
         const DISK_MIN_GB = 20;
         const DISK_MAX_GB = 500;
+        const VOLUME_RATE = 0.07;   // USD per GB per month (RunPod network-volume storage)
+        const VOLUME_MAX_GB = 4000; // RunPod's REST cap for a network volume
         function _diskGbFromCfg(cfg) {
             const n = Math.round(Number((cfg || _runpodCfg()).containerDiskGb));
             if (!Number.isFinite(n)) return DISK_DEFAULT_GB;
@@ -1432,7 +1434,78 @@ export const MpiRunpodSettings = ComponentFactory.create({
             // wrapper (du) via /remote/pod/disk; total now resolved server-side. Mount
             // unconditionally — the helper hides itself until a Pod reports usage. (An
             // idle/unconnected DC → total-only badge above, bar stays hidden.)
+            if (vol) _renderVolumeGrow(root, volumeSlot, vol);
             _mountDiskBar(volumeSlot);
+        }
+
+        // MPI-762: size field + Update under the volume badge. Increase-only (RunPod
+        // refuses a shrink), so the field floors at the current size and Update only
+        // enables above it. A running Pod sees the new size with no restart.
+        function _renderVolumeGrow(root, host, vol) {
+            const current = Number(vol.size) || 0;
+            const row = ce('div', { className: 'mpi-settings__volume-grow' });
+            const label = ce('label', { className: 'mpi-settings__volume-grow-label', textContent: 'Size (GB)' });
+            const inputHost = ce('div', { className: 'mpi-settings__volume-grow-input' });
+            row.appendChild(label);
+            row.appendChild(inputHost);
+            host.appendChild(row);
+            const sizeInst = MpiInput.mount(inputHost, {
+                type: 'number',
+                min: current,
+                max: VOLUME_MAX_GB,
+                step: 10,
+                value: current,
+                size: 'sm',
+            });
+            const updateBtn = MpiButton.mount(ce('div'), {
+                text: 'Update',
+                variant: 'secondary',
+                size: 'sm',
+                disabled: true,
+                extraClasses: 'mpi-settings__volume-grow-btn',
+            });
+            row.appendChild(updateBtn.el);
+
+            let target = null; // whole GB above the current size, or null
+            const sync = ({ value }) => {
+                const n = Number(value);
+                target = Number.isInteger(n) && n > current && n <= VOLUME_MAX_GB ? n : null;
+                updateBtn.el.setDisabled(target === null);
+            };
+            sizeInst.on('input', sync);
+            sizeInst.on('change', sync);
+            updateBtn.on('click', () => {
+                if (target !== null) _confirmGrowVolume(root, vol, target);
+            });
+        }
+
+        function _confirmGrowVolume(root, vol, size) {
+            const dialog = MpiOkCancel.mount(ce('div'), {
+                title: 'Grow network volume',
+                text: `Grow "${vol.name || vol.id}" from ${vol.size} GB to ${size} GB? Storage then bills ~$${(size * VOLUME_RATE).toFixed(2)}/month. A network volume cannot be shrunk later.`,
+                okLabel: 'Update',
+            });
+            dialog.on('ok', async () => {
+                try {
+                    const res = await fetch(`/runpod/volumes/${vol.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ size }),
+                    });
+                    if (!res.ok) {
+                        const data = await res.json().catch(() => null);
+                        Events.emit('ui:error', { title: 'Volume not updated', message: _runpodErrText(data, res.status) });
+                        return;
+                    }
+                    clientLogger.info('settings', `[RunPod] volume ${vol.id} grown ${vol.size} -> ${size} GB`);
+                    await _reloadRunpodVolumes();
+                    _renderRunpodVolume(root);
+                } catch (err) {
+                    clientLogger.error('settings', '[MpiSettings] volume update failed', err);
+                    Events.emit('ui:error', { title: 'Volume not updated', message: 'Could not reach RunPod.' });
+                }
+            });
+            dialog.el.show();
         }
 
         // MPI-237: mount the shared Pod disk-usage bar into `host`, tearing down any
@@ -1459,18 +1532,17 @@ export const MpiRunpodSettings = ComponentFactory.create({
             }
             const dc = (_runpodAvailability?.dataCenters || []).find(d => d.id === cfg.datacenter);
             const dcName = dc?.name || cfg.datacenter;
-            const RATE = 0.07; // USD per GB per month (RunPod network-volume storage)
 
             // Live cost line for a given size. Reads as "150 GB → $10.50/mo · $0.35/day".
             const costLine = (raw) => {
                 const size = parseInt(String(raw || '').trim(), 10);
                 if (!Number.isInteger(size) || size <= 0) return 'Enter a size in GB to see the cost.';
-                const perMonth = size * RATE;
+                const perMonth = size * VOLUME_RATE;
                 const perDay = perMonth / 30;
                 return `${size} GB → $${perMonth.toFixed(2)}/mo · $${perDay.toFixed(2)}/day`;
             };
 
-            const baseText = `Creates a RunPod network volume in ${dcName}. Storage bills on your RunPod account until you delete it (~$${RATE.toFixed(2)}/GB per month).`;
+            const baseText = `Creates a RunPod network volume in ${dcName}. Storage bills on your RunPod account until you delete it (~$${VOLUME_RATE.toFixed(2)}/GB per month).`;
             const dialog = MpiOkCancel.mount(ce('div'), {
                 title: 'Create network volume',
                 text: `${baseText}\n\n${costLine('150')}`,

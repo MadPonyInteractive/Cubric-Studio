@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-763", "at": "2026-09-15T12:53:30+01:00", "actor": "claude", "column": "todo", "title": "Show every GB in decimal units: disk-full toasts, free-space logs and model sizes still print binary GB"}

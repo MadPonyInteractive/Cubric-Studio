@@ -1,1 +1,6 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-762", "at": "2026-09-15T12:17:41+01:00", "actor": "claude", "column": "todo", "title": "Remote settings: grow the network volume from the app (increase-only size field + Update)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-762", "at": "2026-09-15T12:27:32+01:00", "actor": "claude", "from": "todo", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "checklist.updated", "id": "MPI-762", "at": "2026-09-15T12:36:33+01:00", "actor": "claude", "summary": "Backend, test, UI, docs and isolated-app check done; user live check remains."}
+{"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-762", "at": "2026-09-15T12:36:33+01:00", "actor": "claude", "summary": "Agent checks passed (node test 3/3, regression 29/29, eslint, isolated Electron). Awaiting user live grow."}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-762", "at": "2026-09-15T12:36:33+01:00", "actor": "claude", "maturity": "validating", "summary": "Maturity in-progress -> validating."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-762", "at": "2026-09-15T12:53:31+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Agent checks passed and user grew a real volume to 70 GB from Remote settings."}
