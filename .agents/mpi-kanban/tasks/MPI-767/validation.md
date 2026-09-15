@@ -10,4 +10,5 @@ Wording-only change; no behaviour touched (same handlers, same endpoints).
 - No test or lint rule pins these strings (grep of tests/, scripts/, .eslint-rules/).
 - Any-region hint now says models are deleted when you stop or delete the Pod; Stop wipes the
   container disk per docs/builder/03-spin-and-install.md (Restart vs Stop vs Terminate table).
-- Not checked: a live look at the popup. The button label is shorter than before, so no layout risk.
+- Live check (Fabio, 2026-09-15, own app after reload): popup reads Stop Pod / Delete Pod / Cancel
+  with the new copy. Verified.
