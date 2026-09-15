@@ -1811,3 +1811,34 @@ Checked before re-running anything:
 Closes on steps 1–4 ticked, step 5 spun out as MPI-774. Left open, not gates: step 1d, and the
 `connector-manifest.json` line (MPI-774 owns it). `validate_board.py .` → "Board validation
 passed." before the move.
+
+## Step 1c — `OK → reopen → Cancel → reopen`, driven live (2026-09-15)
+
+The one sequence the close-out audit found never driven. Fabio: "Yeah, you can do that with
+the deepinfra key." The card stays done.
+
+**Rig.** Own server, `CUBRIC_PORT=3199 node server.js`, `DEEPINFRA_API_KEY` exported in the same
+call; `/llm/status` → `{"deepinfra":{"hasKey":true},…,"defaultBackend":"deepinfra"}`. No Electron
+and no renderer boot, so no `/comfy/start` and no `/engine/repair-deps`: the real `MpiPromptBox`
+mounted on a `/package.json` host page in `playwright-cli`, `sdxl-realistic`, op `t2i`, prompt
+`a lighthouse at dusk`. `localStorage['cubric.llm.backend']` pinned to `deepinfra` first, because
+the client default is `comfy` (a queued job on Fabio's engine). Every user action was a real
+pointer `click`; reads were `eval`s of the dialog's textareas and `getRunPayload()`.
+
+Caveat, stated to Fabio before the run: this tree carries MPI-774 Batch 1's uncommitted
+`MpiPromptBox.js` edits, so the run exercised that WIP too.
+
+| Step | Result |
+|---|---|
+| Control: Enhance → **Cancel** (no OK) → reopen | lower box `""`, note `""`, control not active, `positive` = the short prompt, `sourcePrompt` null. Cancel discards an unapproved enhancement, as designed |
+| Enhance | 169-char SDXL tag string + negative `bad hands 5, bad dream, unrealistic dream:1.2, big eyes, camera`; note `Enhanced by google/gemma-4-26B-A4B-it for SDXL Realistic.` |
+| **OK** | dialog gone; control `is-active`; box shows `a lighthouse at dusk`; `positive` === the enhancement, `sourcePrompt` = the short prompt, `negative` === the enhanced negative |
+| **reopen** | lower box === the enhancement, negative box === the negative, note restored |
+| **Cancel** | dialog gone; control still `is-active`; payload unchanged (all three equalities hold) |
+| **reopen** | lower box === the enhancement (169 chars), negative box visible and ===, note restored |
+
+Equalities are strict `===` against the text captured in the dialog before OK. At the wire,
+`window.fetch` wrapped before mount: `/agent/history` (MPI-774's chat panel), `/llm/enhance` ×2,
+**zero `/comfy`**. So *Cancel is non-destructive to an ALREADY-APPROVED enhancement* is now driven,
+not source-backed. Fabio's :3000 and the engine on :48188 were not contacted; the 3199 server was
+stopped afterwards.
