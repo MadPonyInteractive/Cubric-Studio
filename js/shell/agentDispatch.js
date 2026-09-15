@@ -110,11 +110,6 @@ function _submitGeneration(jobId, input = {}) {
         return _fail(jobId, resolvedMedia.code, resolvedMedia.message);
     }
     const { mediaItems } = resolvedMedia;
-    const missingSlot = findMissingMediaSlot(operation, mediaItems);
-    if (missingSlot) {
-        return _fail(jobId, 'MEDIA_REQUIRED',
-            `"${operation}" needs ${missingSlot.mediaType} in its "${missingSlot.key}" slot.`);
-    }
 
     if (seed !== undefined && !isValidSeed(seed)) {
         return _fail(jobId, 'INVALID_SEED', 'seed must be an integer between 0 and 4294967295.');

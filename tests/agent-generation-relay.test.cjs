@@ -278,3 +278,12 @@ test('a bad media entry is a named BAD_REQUEST, never a silent drop', () => {
   ]);
   assert.equal(twice.code, 'BAD_REQUEST');
 });
+
+test('a required slot is filled BY ROLE: a reference alone is MEDIA_REQUIRED', () => {
+  // The shared predicate takes any image for a required image slot. On this path that
+  // let a lone `inputImage2` through, and ordinal injection made the reference the
+  // picture being edited, with ok:true. Caught live on the first real run.
+  const r = resolveAgentMedia('kleinEdit', findModelDef('klein-9b'), [{ role: 'inputImage2', url: '/ref.png' }]);
+  assert.equal(r.code, 'MEDIA_REQUIRED');
+  assert.match(r.message, /"inputImage"/);
+});

@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-765", "at": "2026-09-15T13:30:40+01:00", "actor": "claude", "column": "todo", "title": "Connector: reference images on agent model submits"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-765", "at": "2026-09-15T13:31:47+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "implementing media on agent model submits"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-765", "at": "2026-09-15T13:37:45+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "code + tests shipped; live kleinEdit dispatch needs app restart"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-765", "at": "2026-09-15T14:03:29+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "shipped 435fa5cc + role fix; live kleinEdit verified in user app"}

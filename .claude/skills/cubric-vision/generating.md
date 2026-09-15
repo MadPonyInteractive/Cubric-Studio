@@ -146,8 +146,9 @@ the vocabulary.
   gets edited; `inputImage2` and `inputImage3` are optional references ("Image 2",
   "Image 3" in the prompt). Entries are sorted into declared slot order whatever
   order you send them in.
-- **Required slots are checked before anything queues.** `MEDIA_REQUIRED` names the
-  empty one. Optional slots may be left off.
+- **Required slots are checked BY ROLE before anything queues.** `MEDIA_REQUIRED`
+  names the empty one: a reference sent alone as `inputImage2` does not stand in for
+  the `inputImage` being edited. Optional slots may be left off.
 - **Klein Edit follows the SOURCE image size.** `ratio` is refused on it; size the
   image you stage.
 

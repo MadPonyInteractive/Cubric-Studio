@@ -361,6 +361,14 @@ export function resolveAgentMedia(operation, model, media = []) {
         }
         mediaItems.push({ url: m.url, mediaType: slot.mediaType, role: slot.key, source: model ? 'agent' : 'flow-agent' });
     }
+    // Roles are explicit here, so a required slot is filled BY ROLE. The shared
+    // `findMissingMediaSlot` also accepts any item of the slot's type, which suits an
+    // unroled PromptBox chip; on this path it let a lone `inputImage2` through, and
+    // ordinal injection then made the REFERENCE the picture being edited (caught live).
+    const missing = slots.find(s => s.required !== false && !mediaItems.some(item => item.role === s.key));
+    if (missing) {
+        return _err('MEDIA_REQUIRED', `"${operation}" needs ${missing.mediaType} in its "${missing.key}" slot.`);
+    }
     const order = key => slots.findIndex(s => s.key === key);
     mediaItems.sort((a, b) => order(a.role) - order(b.role));
     return { ok: true, mediaItems };
