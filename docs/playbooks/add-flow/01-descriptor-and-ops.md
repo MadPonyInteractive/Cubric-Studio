@@ -199,7 +199,7 @@ Half of this is already free, half is not:
   the model directly is not re-prompted by the flow.
 - **NOT free — the standing licence row.** `MpiModelManager`'s detail drawer renders the
   licence name, the required `poweredBy` attribution, and the licence / authorization /
-  report-misuse links ([MpiModelManager.js](../../../js/components/Compounds/LandingPages/MpiModelManager/MpiModelManager.js), `#detail-licence-row`).
+  report-misuse links ([MpiModelManager.js](../../../js/components/Organisms/MpiModelManager/MpiModelManager.js), `#detail-licence-row`).
   **`MpiFlowLibrary`'s drawer has no equivalent** — it reuses the same `.mpi-detail__*`
   classes, so the markup ports directly, but nobody has needed it yet.
 

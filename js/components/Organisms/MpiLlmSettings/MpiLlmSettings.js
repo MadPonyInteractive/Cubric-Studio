@@ -1,11 +1,11 @@
-import { ComponentFactory } from '../../../factory.js';
-import { MpiInput } from '../../../Primitives/MpiInput/MpiInput.js';
-import { MpiButton } from '../../../Primitives/MpiButton/MpiButton.js';
-import { MpiDropdown } from '../../../Primitives/MpiDropdown/MpiDropdown.js';
-import { MpiOllamaSetup } from '../MpiOllamaSetup/MpiOllamaSetup.js';
-import { secretsClient } from '../../../../core/secretsClient.js';
-import { clientLogger } from '../../../../services/clientLogger.js';
-import { pluginAvailability } from '../../../../data/pluginsRegistry.js';
+import { ComponentFactory } from '../../factory.js';
+import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
+import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
+import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
+import { MpiOllamaSetup } from '../../Compounds/LandingPages/MpiOllamaSetup/MpiOllamaSetup.js';
+import { secretsClient } from '../../../core/secretsClient.js';
+import { clientLogger } from '../../../services/clientLogger.js';
+import { pluginAvailability } from '../../../data/pluginsRegistry.js';
 import {
     backendPreference,
     setBackendPreference,
@@ -13,8 +13,8 @@ import {
     setEnhancerModelPreference,
     enhancerModels,
     priceLabel,
-} from '../../../../services/llmService.js';
-import { qs } from '../../../../utils/dom.js';
+} from '../../../services/llmService.js';
+import { qs } from '../../../utils/dom.js';
 
 /**
  * MpiLlmSettings — the Language Models section of the Remote panel.
@@ -76,7 +76,7 @@ const BACKENDS = [
 
 export const MpiLlmSettings = ComponentFactory.create({
     name: 'MpiLlmSettings',
-    css: ['js/components/Compounds/LandingPages/MpiLlmSettings/MpiLlmSettings.css'],
+    css: ['js/components/Organisms/MpiLlmSettings/MpiLlmSettings.css'],
 
     template: () => `
                 <div class="mpi-settings__section">

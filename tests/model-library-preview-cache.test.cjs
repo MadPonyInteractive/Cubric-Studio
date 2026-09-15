@@ -21,7 +21,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const SHEET_JS = path.join(__dirname, '..', 'js', 'components', 'Primitives', 'MpiTileSheet', 'MpiTileSheet.js');
-const MANAGER_JS = path.join(__dirname, '..', 'js', 'components', 'Compounds', 'LandingPages', 'MpiModelManager', 'MpiModelManager.js');
+const MANAGER_JS = path.join(__dirname, '..', 'js', 'components', 'Organisms', 'MpiModelManager', 'MpiModelManager.js');
 
 // Comments explain the OLD behaviour, so they must not satisfy or trip any assertion.
 const stripComments = src => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');

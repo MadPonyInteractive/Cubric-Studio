@@ -23,7 +23,7 @@ import { MpiButton } from '../components/Primitives/MpiButton/MpiButton.js';
 import { MpiContextMenu } from '../components/Compounds/MpiContextMenu/MpiContextMenu.js';
 import { MpiProjectDropOverlay } from '../components/Primitives/MpiProjectDropOverlay/MpiProjectDropOverlay.js';
 import { MpiSettings } from '../components/Compounds/LandingPages/MpiSettings/MpiSettings.js';
-import { MpiRemote } from '../components/Compounds/LandingPages/MpiRemote/MpiRemote.js';
+import { MpiRemote } from '../components/Blocks/MpiRemote/MpiRemote.js';
 import { MpiHotkeys } from '../components/Compounds/LandingPages/mpi-hotkeys/mpi-hotkeys.js';
 import { MpiAbout } from '../components/Compounds/LandingPages/MpiAbout/MpiAbout.js';
 import '../components/Compounds/MpiSlideOver/MpiSlideOver.js';

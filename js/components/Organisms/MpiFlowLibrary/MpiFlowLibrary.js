@@ -1,25 +1,25 @@
-import { ComponentFactory } from '../../../factory.js';
-import { MpiOverlay } from '../../../Primitives/MpiOverlay/MpiOverlay.js';
-import { MpiButton } from '../../../Primitives/MpiButton/MpiButton.js';
-import { MpiTileSheet } from '../../../Primitives/MpiTileSheet/MpiTileSheet.js';
-import { MpiFilterBar } from '../../../Primitives/MpiFilterBar/MpiFilterBar.js';
-import { Events } from '../../../../events.js';
-import { state } from '../../../../state.js';
+import { ComponentFactory } from '../../factory.js';
+import { MpiOverlay } from '../../Primitives/MpiOverlay/MpiOverlay.js';
+import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
+import { MpiTileSheet } from '../../Primitives/MpiTileSheet/MpiTileSheet.js';
+import { MpiFilterBar } from '../../Primitives/MpiFilterBar/MpiFilterBar.js';
+import { Events } from '../../../events.js';
+import { state } from '../../../state.js';
 import {
     listFlows, flowAvailability, getFlowDependencies, flowDepKey,
     flowModelIds, flowModelChoices, flowModelSlots, setFlowModel,
-} from '../../../../data/flowsRegistry.js';
-import { MpiDropdown } from '../../../Primitives/MpiDropdown/MpiDropdown.js';
-import { MpiOkCancel } from '../../MpiOkCancel/MpiOkCancel.js';
-import { getModelById, getModelDependencies, disambiguatedName, reSyncInstalledModels } from '../../../../data/modelRegistry.js';
-import { downloadService } from '../../../../services/downloadService.js';
-import { sizeToGb } from '../../../../data/modelConstants/footprint.js';
-import { DEPS } from '../../../../data/modelConstants/dependencies.js';
-import { PAGE_GALLERY } from '../../../../router.js';
-import { qs, ce, on } from '../../../../utils/dom.js';
-import { renderIcon } from '../../../../utils/icons.js';
-import { hasAcceptedLicence } from '../../../../data/modelConstants/licences.js';
-import { flowInstallKeys, flowLicences, buildLicenceRows } from '../../../../utils/flowLicences.js';
+} from '../../../data/flowsRegistry.js';
+import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
+import { MpiOkCancel } from '../../Compounds/MpiOkCancel/MpiOkCancel.js';
+import { getModelById, getModelDependencies, disambiguatedName, reSyncInstalledModels } from '../../../data/modelRegistry.js';
+import { downloadService } from '../../../services/downloadService.js';
+import { sizeToGb } from '../../../data/modelConstants/footprint.js';
+import { DEPS } from '../../../data/modelConstants/dependencies.js';
+import { PAGE_GALLERY } from '../../../router.js';
+import { qs, ce, on } from '../../../utils/dom.js';
+import { renderIcon } from '../../../utils/icons.js';
+import { hasAcceptedLicence } from '../../../data/modelConstants/licences.js';
+import { flowInstallKeys, flowLicences, buildLicenceRows } from '../../../utils/flowLicences.js';
 
 /**
  * Output-type sections, in render order (MPI-634). A flow's tile is the same 4/5
@@ -65,7 +65,7 @@ const MEDIA_SECTIONS = [
  */
 export const MpiFlowLibrary = ComponentFactory.create({
     name: 'MpiFlowLibrary',
-    css: ['js/components/Compounds/LandingPages/MpiFlowLibrary/MpiFlowLibrary.css'],
+    css: ['js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.css'],
 
     template: () => `
         <div class="mpi-flow-library">

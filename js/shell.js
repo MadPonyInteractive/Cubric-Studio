@@ -22,8 +22,8 @@ import { MpiErrorDialog } from './components/Compounds/MpiErrorDialog/MpiErrorDi
 import { MpiStartingComfy } from './components/Compounds/MpiStartingComfy/MpiStartingComfy.js';
 import { MpiEngineInstall } from './components/Compounds/MpiEngineInstall/MpiEngineInstall.js';
 import { MpiChangelogDialog } from './components/Compounds/MpiChangelogDialog/MpiChangelogDialog.js';
-import { MpiModelManager } from './components/Compounds/LandingPages/MpiModelManager/MpiModelManager.js';
-import { MpiFlowLibrary } from './components/Compounds/LandingPages/MpiFlowLibrary/MpiFlowLibrary.js';
+import { MpiModelManager } from './components/Organisms/MpiModelManager/MpiModelManager.js';
+import { MpiFlowLibrary } from './components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js';
 import { MpiBaseFlow } from './components/Blocks/MpiBaseFlow/MpiBaseFlow.js';
 import { getFlowById } from './data/flowsRegistry.js';
 import { MpiOkCancel } from './components/Compounds/MpiOkCancel/MpiOkCancel.js';

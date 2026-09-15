@@ -1,30 +1,30 @@
-import { ComponentFactory } from '../../../factory.js';
-import { MpiOverlay } from '../../../Primitives/MpiOverlay/MpiOverlay.js';
-import { MpiOkCancel } from '../../MpiOkCancel/MpiOkCancel.js';
-import { MpiButton, mountButton } from '../../../Primitives/MpiButton/MpiButton.js';
-import { MpiFilterBar } from '../../../Primitives/MpiFilterBar/MpiFilterBar.js';
-import { MpiTileSheet } from '../../../Primitives/MpiTileSheet/MpiTileSheet.js';
-import { MpiPopup } from '../../../Primitives/MpiPopup/MpiPopup.js';
-import { MpiBadge } from '../../../Primitives/MpiBadge/MpiBadge.js';
-import { Events } from '../../../../events.js';
-import { state } from '../../../../state.js';
-import { MODELS, reSyncInstalledModels, getModelDepStatus, getModelDependencies } from '../../../../data/modelRegistry.js';
-import { DEPS } from '../../../../data/modelConstants/dependencies.js';
-import { PLUGINS, pluginDepKey, pluginAvailability } from '../../../../data/pluginsRegistry.js';
-import { FLOWS, flowDepKey } from '../../../../data/flowsRegistry.js';
+import { ComponentFactory } from '../../factory.js';
+import { MpiOverlay } from '../../Primitives/MpiOverlay/MpiOverlay.js';
+import { MpiOkCancel } from '../../Compounds/MpiOkCancel/MpiOkCancel.js';
+import { MpiButton, mountButton } from '../../Primitives/MpiButton/MpiButton.js';
+import { MpiFilterBar } from '../../Primitives/MpiFilterBar/MpiFilterBar.js';
+import { MpiTileSheet } from '../../Primitives/MpiTileSheet/MpiTileSheet.js';
+import { MpiPopup } from '../../Primitives/MpiPopup/MpiPopup.js';
+import { MpiBadge } from '../../Primitives/MpiBadge/MpiBadge.js';
+import { Events } from '../../../events.js';
+import { state } from '../../../state.js';
+import { MODELS, reSyncInstalledModels, getModelDepStatus, getModelDependencies } from '../../../data/modelRegistry.js';
+import { DEPS } from '../../../data/modelConstants/dependencies.js';
+import { PLUGINS, pluginDepKey, pluginAvailability } from '../../../data/pluginsRegistry.js';
+import { FLOWS, flowDepKey } from '../../../data/flowsRegistry.js';
 import {
     resolveFullUniverse, deriveInstalledOps,
     archVariantOptions, variantDepsOf, dedupeStable,
-} from '../../../../data/modelConstants/resolveModelDeps.js';
-import { downloadService } from '../../../../services/downloadService.js';
-import { remoteEngineClient } from '../../../../services/remoteEngineClient.js';
-import { mountPodDiskBar } from '../../../../services/podDiskBar.js';
-import { getModelLicence, hasAcceptedLicence } from '../../../../data/modelConstants/licences.js';
-import { qs, qsa, ce, on } from '../../../../utils/dom.js';
+} from '../../../data/modelConstants/resolveModelDeps.js';
+import { downloadService } from '../../../services/downloadService.js';
+import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
+import { mountPodDiskBar } from '../../../services/podDiskBar.js';
+import { getModelLicence, hasAcceptedLicence } from '../../../data/modelConstants/licences.js';
+import { qs, qsa, ce, on } from '../../../utils/dom.js';
 import { renderIcon } from '/js/utils/icons.js';
-import { openExternal } from '../../../../utils/openExternal.js';
-import { formatBytes } from '../../../../utils/formatBytes.js';
-import { tradeTable, sizeToGb } from '../../../../data/modelConstants/footprint.js';
+import { openExternal } from '../../../utils/openExternal.js';
+import { formatBytes } from '../../../utils/formatBytes.js';
+import { tradeTable, sizeToGb } from '../../../data/modelConstants/footprint.js';
 
 /**
  * MpiModelManager — the Model Library (MPI-215).
@@ -53,7 +53,7 @@ import { tradeTable, sizeToGb } from '../../../../data/modelConstants/footprint.
  */
 export const MpiModelManager = ComponentFactory.create({
     name: 'MpiModelManager',
-    css: ['js/components/Compounds/LandingPages/MpiModelManager/MpiModelManager.css'],
+    css: ['js/components/Organisms/MpiModelManager/MpiModelManager.css'],
 
     template: () => `
         <div class="mpi-model-library">

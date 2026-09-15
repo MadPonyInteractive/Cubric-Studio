@@ -48,7 +48,7 @@ test('a Ready flow tile opens the frame; an unready one still opens the drawer',
 
     const result = await window.evaluate(async () => {
       const { MpiFlowLibrary } = await import(
-        '/js/components/Compounds/LandingPages/MpiFlowLibrary/MpiFlowLibrary.js');
+        '/js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js');
       const { Events } = await import('/js/events.js');
       const { state } = await import('/js/state.js');
       const { PAGE_GALLERY, PAGE_LANDING } = await import('/js/router.js');

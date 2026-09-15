@@ -30,7 +30,7 @@ test('Flow Library filters, search and count compose, persist, and tear down', a
 
     const r = await window.evaluate(async () => {
       const { MpiFlowLibrary } = await import(
-        '/js/components/Compounds/LandingPages/MpiFlowLibrary/MpiFlowLibrary.js');
+        '/js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js');
       const { listFlows } = await import('/js/data/flowsRegistry.js');
 
       const lib = MpiFlowLibrary.mount(document.createElement('div'));

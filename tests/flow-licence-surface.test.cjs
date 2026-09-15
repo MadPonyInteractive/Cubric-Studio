@@ -39,7 +39,7 @@ globalThis.localStorage = {
     clear: () => store.clear(),
 };
 
-const SRC = path.join(__dirname, '..', 'js', 'components', 'Compounds', 'LandingPages',
+const SRC = path.join(__dirname, '..', 'js', 'components', 'Organisms',
     'MpiFlowLibrary', 'MpiFlowLibrary.js');
 const src = () => fs.readFileSync(SRC, 'utf8');
 // MPI-666 phase 2: the helpers moved out of the component closure into a module both

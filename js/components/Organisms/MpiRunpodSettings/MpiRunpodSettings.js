@@ -1,19 +1,19 @@
-import { ComponentFactory } from '../../../factory.js';
-import { MpiInput } from '../../../Primitives/MpiInput/MpiInput.js';
-import { MpiCheckbox } from '../../../Primitives/MpiCheckbox/MpiCheckbox.js';
-import { MpiButton } from '../../../Primitives/MpiButton/MpiButton.js';
-import { MpiDropdown } from '../../../Primitives/MpiDropdown/MpiDropdown.js';
-import { mountPodDiskBar } from '../../../../services/podDiskBar.js';
-import { MpiOkCancel } from '../../../Compounds/MpiOkCancel/MpiOkCancel.js';
-import { MpiModal } from '../../../Primitives/MpiModal/MpiModal.js';
-import { state } from '../../../../state.js';
-import { Events } from '../../../../events.js';
-import { Storage } from '../../../../core/storage.js';
-import { secretsClient } from '../../../../core/secretsClient.js';
-import { clientLogger } from '../../../../services/clientLogger.js';
-import { ce, qs } from '../../../../utils/dom.js';
-import { isStockRefusal } from '../../../../utils/runpodErrorClassify.js';
-import { APP_CONFIG } from '../../../../../dev_configs/app_config.js';
+import { ComponentFactory } from '../../factory.js';
+import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
+import { MpiCheckbox } from '../../Primitives/MpiCheckbox/MpiCheckbox.js';
+import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
+import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
+import { mountPodDiskBar } from '../../../services/podDiskBar.js';
+import { MpiOkCancel } from '../../Compounds/MpiOkCancel/MpiOkCancel.js';
+import { MpiModal } from '../../Primitives/MpiModal/MpiModal.js';
+import { state } from '../../../state.js';
+import { Events } from '../../../events.js';
+import { Storage } from '../../../core/storage.js';
+import { secretsClient } from '../../../core/secretsClient.js';
+import { clientLogger } from '../../../services/clientLogger.js';
+import { ce, qs } from '../../../utils/dom.js';
+import { isStockRefusal } from '../../../utils/runpodErrorClassify.js';
+import { APP_CONFIG } from '../../../../dev_configs/app_config.js';
 
 /**
  * MpiRunpodSettings — the RunPod Remote Engine section of the Settings panel.
@@ -32,7 +32,7 @@ import { APP_CONFIG } from '../../../../../dev_configs/app_config.js';
  */
 export const MpiRunpodSettings = ComponentFactory.create({
     name: 'MpiRunpodSettings',
-    css: ['js/components/Compounds/LandingPages/MpiRunpodSettings/MpiRunpodSettings.css'],
+    css: ['js/components/Organisms/MpiRunpodSettings/MpiRunpodSettings.css'],
 
     template: () => `
                 <div class="mpi-settings__section">
@@ -692,7 +692,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
                 let _wsOk = _downloadMode; // download Pods have no WS — ready == connected
                 if (!_downloadMode) {
                     try {
-                        const { ComfyUIController } = await import('../../../../services/comfyController.js');
+                        const { ComfyUIController } = await import('../../../services/comfyController.js');
                         _wsOk = await ComfyUIController.ensureWsConnected();
                     } catch (_) { /* fall through to the still-connecting notice */ }
                 }

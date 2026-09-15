@@ -89,7 +89,7 @@ test('the REMOTE Pod port stays on 8188', () => {
     assert.match(read('routes/remotePodLifecycle.js'), /spec\.ports\.push\('8188\/http'\)/,
         'the Pod must still expose 8188 (MPI-434 moved the LOCAL engine only)');
     assert.match(
-        read('js/components/Compounds/LandingPages/MpiRunpodSettings/MpiRunpodSettings.js'),
+        read('js/components/Organisms/MpiRunpodSettings/MpiRunpodSettings.js'),
         /\$\{podId\}-8188\.proxy\.runpod\.net/,
         'the RunPod proxy link must still target 8188 (MPI-434 moved the LOCAL engine only)');
 });

@@ -928,7 +928,7 @@
  */
 
 /**
- * @typedef {Object} MpiRunpodSettingsProps (Compound — js/components/Compounds/LandingPages/MpiRunpodSettings)
+ * @typedef {Object} MpiRunpodSettingsProps (Organism — js/components/Organisms/MpiRunpodSettings)
  * No props required — reads state.runpodConfig + secretsClient internally (MPI-177 extraction).
  *
  * The RunPod Remote Engine section of the REMOTE panel (it moved out of Settings
@@ -939,7 +939,7 @@
  */
 
 /**
- * @typedef {Object} MpiRemoteProps (Compound — js/components/Compounds/LandingPages/MpiRemote)
+ * @typedef {Object} MpiRemoteProps (Block — js/components/Blocks/MpiRemote)
  * No props required. Content component for MpiSlideOver, and it owns no controls
  * of its own — it mounts MpiLlmSettings and MpiRunpodSettings and forwards
  * el.onOpen() to both (MPI-728).
@@ -951,7 +951,7 @@
  */
 
 /**
- * @typedef {Object} MpiLlmSettingsProps (Compound — js/components/Compounds/LandingPages/MpiLlmSettings)
+ * @typedef {Object} MpiLlmSettingsProps (Organism — js/components/Organisms/MpiLlmSettings)
  * No props required — reads the `cubric.llm.*` preferences, secretsClient and
  * `/llm/models` internally (MPI-728).
  *
@@ -1058,7 +1058,7 @@
  */
 
 /**
- * @typedef {Object} MpiModelManagerProps (Compound — js/components/Compounds/LandingPages/MpiModelManager)
+ * @typedef {Object} MpiModelManagerProps (Organism — js/components/Organisms/MpiModelManager)
  *
  * Takes no props. The Model Library (MPI-215): self-hosts a full-page
  * MpiOverlay(body) styled as a dark contact sheet — lean preview tiles split
@@ -1079,7 +1079,7 @@
  */
 
 /**
- * @typedef {Object} MpiFlowLibraryProps (Compound — js/components/Compounds/LandingPages/MpiFlowLibrary)
+ * @typedef {Object} MpiFlowLibraryProps (Organism — js/components/Organisms/MpiFlowLibrary)
  *
  * Takes no props. The Flow Library (MPI-256): a clone of the Model
  * Library skeleton stripped to flow scope. Self-hosts a full-page MpiOverlay(body)

@@ -7,7 +7,7 @@ overlay/status-bar/z-order gotchas. Read [README](README.md) first.
 
 | Component | Tier | File | Role |
 |---|---|---|---|
-| `MpiFlowLibrary` | Compound | `js/components/Compounds/LandingPages/MpiFlowLibrary/` | Picker overlay. Body-mode MpiOverlay, installed count + filter row (`MpiFilterBar`), tile grid + availability badge, detail slide-over for a flow that is NOT ready yet |
+| `MpiFlowLibrary` | Organism | `js/components/Organisms/MpiFlowLibrary/` | Picker overlay. Body-mode MpiOverlay, installed count + filter row (`MpiFilterBar`), tile grid + availability badge, detail slide-over for a flow that is NOT ready yet |
 | `MpiBaseFlow` | Block | `js/components/Blocks/MpiBaseFlow/` | Shared Flow frame (COMPOSITION, not inheritance). `main-area` MpiOverlay; header + Back, media slots (from `inputSchema.media`), declared `fields`, Run, result pane |
 
 `MpiBaseFlow` and `MpiFlowLibrary` both use the **MpiOverlay primitive**; they do NOT reimplement

@@ -109,7 +109,7 @@ test('boot clears a stale skipLocalEngine when an engine is installed', () => {
 
 test('Settings greys the switch out once an engine is installed', () => {
     const src = fs.readFileSync(
-        path.join(__dirname, '..', 'js/components/Compounds/LandingPages/MpiRunpodSettings/MpiRunpodSettings.js'),
+        path.join(__dirname, '..', 'js/components/Organisms/MpiRunpodSettings/MpiRunpodSettings.js'),
         'utf8',
     );
 

@@ -36,7 +36,7 @@ test('remote slide-over renders the extracted RunPod section', async ({}, testIn
     const openRemote = () => window.evaluate(async () => {
       const [{ Events }, { MpiRemote }] = await Promise.all([
         import('/js/events.js'),
-        import('/js/components/Compounds/LandingPages/MpiRemote/MpiRemote.js'),
+        import('/js/components/Blocks/MpiRemote/MpiRemote.js'),
       ]);
       Events.emit('slide-over:open', { title: 'Remote', component: MpiRemote });
     });

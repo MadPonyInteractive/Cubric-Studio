@@ -170,7 +170,7 @@ test('the slide-over has NO cogwheel — the rack lives on the run slide only (M
     // renders this drawer, so the only flow that reaches it is one whose weights are NOT
     // on disk — and a LoRA rack for a model the user has not downloaded configures
     // nothing. Re-adding one here brings back the duplication, not a feature.
-    const src = read('js/components/Compounds/LandingPages/MpiFlowLibrary/MpiFlowLibrary.js');
+    const src = read('js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js');
     assert.ok(!/flow-detail-loras-/.test(src),
         'the drawer must not render a cogwheel host — the rack moved to the run slide');
     assert.ok(!/ui:open-model-settings/.test(src),
@@ -240,7 +240,7 @@ test('opening the LoRA panel does not close the slide-over underneath it', () =>
     // user came back from the LoRA rack to the bare grid and had to find their flow again
     // (Fabio, MPI-608). The drawer is a long-lived panel and must ignore that pulse, which
     // is exactly what MpiOverlay and MpiSlideOver already do.
-    const src = read('js/components/Compounds/LandingPages/MpiFlowLibrary/MpiFlowLibrary.js');
+    const src = read('js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js');
     assert.match(
         src,
         /Events\.on\('ui:close-all-popups', \(payload\) => \{\s*if \(payload\?\.reason === 'overlay-open'\) return;/,

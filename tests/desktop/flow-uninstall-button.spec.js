@@ -41,7 +41,7 @@ test('a deps-only flow offers Uninstall, and sends its OWN deps under the flow k
 
     const result = await window.evaluate(async () => {
       const { MpiFlowLibrary } = await import(
-        '/js/components/Compounds/LandingPages/MpiFlowLibrary/MpiFlowLibrary.js');
+        '/js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js');
       const { Events } = await import('/js/events.js');
       const { state } = await import('/js/state.js');
       const { PAGE_LANDING } = await import('/js/router.js');

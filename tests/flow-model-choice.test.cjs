@@ -546,7 +546,7 @@ test('the Flow Library renders the picker and reads RESOLVED ids', () => {
     // the wiring — a drawer that stops mounting the picker silently pins every user to
     // the first candidate, and one that reads `flow.requiredModels` raw renders a slot
     // object as a model row.
-    const src = read('js/components/Compounds/LandingPages/MpiFlowLibrary/MpiFlowLibrary.js');
+    const src = read('js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js');
     assert.match(src, /_mountModelChoice\(flow\);/, 'the picker is declared but never mounted');
     assert.match(src, /setFlowModel\(flow\.id, value\)/, 'the pick must be recorded, not just displayed');
     assert.ok(!/flow\.requiredModels/.test(src),
@@ -582,7 +582,7 @@ test('an INSTALLED flow opens straight into its frame, skipping the drawer (MPI-
     //   not available  → Install / the aggregated bar / Cancel-all / the download picker
     //   not in Gallery → `flow:open` would land nowhere; flows become cards in the
     //                    current project, so the disabled Open + its toast stay honest.
-    const src = read('js/components/Compounds/LandingPages/MpiFlowLibrary/MpiFlowLibrary.js');
+    const src = read('js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js');
     assert.match(src, /sheet\.on\('select', \(\{ item \}\) => _pick\(item\.source\)\)/,
         'a tile press must route through _pick, not straight into openDetail');
     assert.match(
@@ -627,7 +627,7 @@ test('the RUN slide picker offers INSTALLED candidates only (MPI-638)', () => {
     // the choice can still be acted on.
     assert.match(src, /options: choices\.map\(/,
         'the run slide lists the INSTALLED candidates');
-    const lib = read('js/components/Compounds/LandingPages/MpiFlowLibrary/MpiFlowLibrary.js');
+    const lib = read('js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js');
     assert.match(lib, /options: slot\.models\.map\(/,
         'the drawer lists EVERY candidate — MPI-599 offers what is not installed and only '
         + 'annotates it, because that is where the user chooses what to download');
@@ -877,7 +877,7 @@ test('two candidates sharing a NAME are told apart in the picker (MPI-567)', asy
         'the install-gated helper here would hide the letter for the uninstalled candidate');
 
     for (const src of [
-        read('js/components/Compounds/LandingPages/MpiFlowLibrary/MpiFlowLibrary.js'),
+        read('js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js'),
         read('js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js'),
     ]) {
         assert.match(src, /disambiguatedName\(/,

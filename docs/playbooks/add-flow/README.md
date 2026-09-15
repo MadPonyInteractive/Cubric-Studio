@@ -149,7 +149,7 @@ Flow-specific additions:
 
 - `js/data/flowsRegistry.js` — registry + availability
 - `js/services/flowService.js` — `submitFlowGeneration`, `openFlowFromReuse`
-- `js/components/Compounds/LandingPages/MpiFlowLibrary/` — the picker overlay
+- `js/components/Organisms/MpiFlowLibrary/` — the picker overlay
 - `js/components/Blocks/MpiBaseFlow/` — the Flow frame (renders media slots, Run, result pane)
 - `comfy_workflows/flow_*.json` — flow workflows (resolved case-insensitively)
 - `state.s_flowInputs` — session-only per-flow input snapshot

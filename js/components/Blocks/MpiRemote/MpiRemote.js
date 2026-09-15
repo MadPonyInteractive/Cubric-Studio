@@ -1,7 +1,7 @@
-import { ComponentFactory } from '../../../factory.js';
-import { MpiLlmSettings } from '../MpiLlmSettings/MpiLlmSettings.js';
-import { MpiRunpodSettings } from '../MpiRunpodSettings/MpiRunpodSettings.js';
-import { qs } from '../../../../utils/dom.js';
+import { ComponentFactory } from '../../factory.js';
+import { MpiLlmSettings } from '../../Organisms/MpiLlmSettings/MpiLlmSettings.js';
+import { MpiRunpodSettings } from '../../Organisms/MpiRunpodSettings/MpiRunpodSettings.js';
+import { qs } from '../../../utils/dom.js';
 
 /**
  * MpiRemote — the "Remote" slide-over: the two sections that are about somebody
@@ -13,7 +13,7 @@ import { qs } from '../../../../utils/dom.js';
  * Neither belongs there, so both MOVED here rather than being duplicated: each
  * section now lives in exactly one panel.
  *
- * It owns no controls of its own. Both children are Compounds mounted once, with
+ * It owns no controls of its own. Both children are Organisms mounted once, with
  * `onOpen` forwarded so they re-read on every open — the same contract
  * `MpiSettings` has with `MpiRunpodSettings` since MPI-177, which is why the move
  * is pure relocation and neither child changed.
@@ -27,7 +27,7 @@ import { qs } from '../../../../utils/dom.js';
  */
 export const MpiRemote = ComponentFactory.create({
     name: 'MpiRemote',
-    css: ['js/components/Compounds/LandingPages/MpiRemote/MpiRemote.css'],
+    css: ['js/components/Blocks/MpiRemote/MpiRemote.css'],
 
     template: () => `
         <div class="mpi-settings mpi-remote">
