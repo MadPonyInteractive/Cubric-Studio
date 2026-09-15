@@ -1,7 +1,20 @@
+---
+name: cubric-vision-engine
+description: Control the ComfyUI engine behind a running Cubric Vision app, and its RunPod remote GPU, over the local HTTP API - engine status, start, stop and VRAM unload, model folders and presence checks, creating, reconnecting, stopping and deleting a remote pod (a pod bills while it exists), pod cost, RAM, VRAM and disk telemetry, plus system, GPU, log and shell-integration routes. Use when asked to start or stop the engine or a remote pod, free VRAM, check which model files are present, or read pod cost and disk usage. Part of the cubric-vision skill family.
+user-invocable: true
+metadata: {"openclaw":{"emoji":"👁️","os":["win32","darwin","linux"],"requires":{"anyBins":["curl"]},"primaryEnv":"CUBRIC_URL"}}
+---
+
 # Cubric Vision: engine, RunPod and system
 
-Part of the `cubric-vision` skill. The base URL, the liveness check and the
-whole-prompts rule are in [SKILL.md](SKILL.md): read that first.
+## Before anything else
+
+Part of the Cubric Vision skill family; the entry point is the `cubric-vision` skill
+([../cubric-vision/SKILL.md](../cubric-vision/SKILL.md)). Base URL `$CUBRIC_URL`,
+default `http://127.0.0.1:3000`. Nearly every route is `POST` with a JSON body. Check
+the app is up first with `curl -s -m 3 "$CUBRIC_URL/comfy/status"`: a refused
+connection means Vision is not running. There is no auth on loopback; remote-pod tokens
+are attached server-side, so never ask a user for one.
 
 ## Engine control
 

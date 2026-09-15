@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-776",
+  "title": "Agent card naming: rename-card route, cardName on generate, split the cubric-vision skill",
+  "description": "Agents can name gallery cards through the app (rename-card connector route, cardName on the generate route) and the cubric-vision skill becomes a family of focused skills.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-15T20:18:10+01:00",
+  "updated_at": "2026-09-15T20:37:23+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

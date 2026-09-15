@@ -1649,6 +1649,14 @@ export const MpiGalleryBlock = ComponentFactory.create({
             grid.el.setGroups([..._leadingGroups(), ..._visibleProjectGroups()]);
         }));
 
+        // A group changed from OUTSIDE the grid (an agent renaming a card, MPI-776)
+        // persisted and repainted nothing: the inline rename paints its own label, and
+        // the grid's render key carries `name`, not `customName`, so no rebuild notices.
+        _unsubs.push(Events.on('project:group-updated', ({ group }) => {
+            if (!group || _deletingGroupIds.has(group.id)) return;
+            grid.el.refreshGroup(group);
+        }));
+
         _unsubs.push(Events.on('generation:error', ({ id, tempId: tid, extraTempIds = [] }) => {
             const _bridged = _stoppedPendingComplete.delete(id);
             if (!_myGenIds.has(id) && !_bridged) return;

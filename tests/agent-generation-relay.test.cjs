@@ -189,6 +189,77 @@ test('a job goes to ONE renderer only — never broadcast', async () => {
   }
 });
 
+// ── Card naming (MPI-776) ───────────────────────────────────────────────────
+//
+// While a project is open the renderer owns its itemGroups and writes the whole
+// array back on every save, so a name has to travel the relay like open-project.
+
+test('rename-card relays card.rename; a null name reaches the renderer to clear it', async () => {
+  const { base, stop } = await startServer();
+  const renderer = await fakeRenderer(base);
+  try {
+    const pending = postJson(`${base}/connector/rename-card`, { groupId: 'g-1', name: 'Marshall' });
+    const frame = await renderer.readFrame();
+    assert.equal(frame.data.capability, 'card.rename');
+    assert.deepEqual(frame.data.input, { groupId: 'g-1', name: 'Marshall' });
+    await postJson(`${base}/connector/jobs/${frame.data.jobId}/result`, {
+      ok: true, output: { groupId: 'g-1', cardName: 'Marshall', displayName: 'Marshall' },
+    });
+    const { json } = await pending;
+    assert.equal(json.ok, true);
+    assert.equal(json.output.cardName, 'Marshall');
+
+    const clearing = postJson(`${base}/connector/rename-card`, { groupId: 'g-1', name: null });
+    const clearFrame = await renderer.readFrame();
+    assert.equal(clearFrame.data.input.name, null);
+    await postJson(`${base}/connector/jobs/${clearFrame.data.jobId}/result`, { ok: true, output: {} });
+    assert.equal((await clearing).json.ok, true);
+  } finally {
+    renderer.close();
+    await stop();
+  }
+});
+
+test('rename-card refuses a missing groupId or name before relaying anything', async () => {
+  // No renderer subscribed: a body that got past validation would answer APP_UNAVAILABLE.
+  const { base, stop } = await startServer();
+  try {
+    const noId = await postJson(`${base}/connector/rename-card`, { name: 'Marshall' });
+    assert.equal(noId.status, 400);
+    assert.equal(noId.json.error.code, 'BAD_REQUEST');
+
+    const noName = await postJson(`${base}/connector/rename-card`, { groupId: 'g-1' });
+    assert.equal(noName.status, 400);
+    assert.equal(noName.json.error.code, 'BAD_REQUEST');
+  } finally {
+    await stop();
+  }
+});
+
+test('generate relays cardName on both branches and refuses a non-string one', async () => {
+  const { base, stop } = await startServer();
+  const renderer = await fakeRenderer(base);
+  try {
+    for (const body of [
+      { modelId: 'krea2', operation: 't2i', positive: 'a rider', cardName: 'Rider at dusk' },
+      { flowId: 'drama-box', fields: { positive: 'Hello.' }, cardName: 'Welcome line' },
+    ]) {
+      const pending = postJson(`${base}/connector/generate`, body);
+      const frame = await renderer.readFrame();
+      assert.equal(frame.data.input.cardName, body.cardName);
+      await postJson(`${base}/connector/jobs/${frame.data.jobId}/result`, { ok: true, output: {} });
+      await pending;
+    }
+
+    const bad = await postJson(`${base}/connector/generate`, { modelId: 'krea2', operation: 't2i', cardName: 7 });
+    assert.equal(bad.status, 400);
+    assert.equal(bad.json.error.code, 'INVALID_CARD_NAME');
+  } finally {
+    renderer.close();
+    await stop();
+  }
+});
+
 test('a result for an unknown job id is a no-op, never an error', async () => {
   const { base, stop } = await startServer();
   try {

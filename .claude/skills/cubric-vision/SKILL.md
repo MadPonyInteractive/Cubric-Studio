@@ -1,6 +1,6 @@
 ---
 name: cubric-vision
-description: Drive a running Cubric Vision desktop app from an agent over its local HTTP API - list and create projects, add and read media, inspect and edit generation metadata, control the ComfyUI engine, and create, monitor and stop a RunPod remote GPU. Use when asked to work with a Cubric Vision project, add or fetch assets from one, check what a project contains, start or stop the engine or a remote pod, read pod cost and disk telemetry, or automate any Vision workflow. Also covers the on-disk project format so a project can be read without the app running - including how to recover the exact prompt, negative prompt, model and settings behind any generated image from its sidecar (they are NOT in the PNG and NOT in project.json), which is the read to do before advising on any prompt. Read this skill before helping a user iterate on a generation: it sets the rule that prompts are handed back whole and pasteable, never as fragments to splice. Dispatches image and video generations that land as real gallery cards, including edits, image-to-video and reference-image ops fed with your own images (Klein Edit with up to three references) - see Dispatching a generation. Also runs Flows, which is how TEXT-TO-SPEECH is reached: use this skill whenever asked to generate speech, a voice-over, a spoken line, a narration or any audio from text with Cubric Vision, or to clone or match a voice from a sample - the two TTS surfaces are Flows and not models, so they are unreachable by model id. Covers supplying your own audio, image or video file to a generation from another repo, by staging it into the project first.
+description: Drive a running Cubric Vision desktop app from an agent over its local HTTP API. The entry point of the Cubric Vision skill family - connection and liveness check, projects (list, create, open one so a generation lands there), media routes, and naming gallery cards so you and the user can refer to a card by a real name instead of t2i_001 and t2i_008. Use when asked to work with a Cubric Vision project, add or fetch assets from one, check what a project contains, rename a card, or automate any Vision workflow. Sets the rule that prompts are handed back whole and pasteable, never as fragments to splice. Sibling skills - cubric-vision-generate (image and video generations, edits, reference images), cubric-vision-flows (Flows and text-to-speech), cubric-vision-project-files (reading a project with no app running, recovering the prompt behind an image), cubric-vision-engine (ComfyUI engine, RunPod remote GPU, system routes).
 user-invocable: true
 metadata: {"openclaw":{"emoji":"👁️","os":["win32","darwin","linux"],"requires":{"anyBins":["curl"]},"primaryEnv":"CUBRIC_URL"}}
 ---
@@ -10,9 +10,9 @@ metadata: {"openclaw":{"emoji":"👁️","os":["win32","darwin","linux"],"requir
 Cubric Vision runs an Express backend on loopback. Everything below is reachable
 with plain HTTP from any agent on the same machine, no SDK and no MCP server.
 
-This skill is one of a family. Cubric Studio is the agentic hub that orchestrates
-the Cubric apps through skills like this one; each app gets its own, in the same
-shape.
+This skill is the entry point of a family, one skill per job, so each loads only when
+its task comes up. Cubric Studio is the agentic hub that orchestrates the Cubric apps
+through skills like these; each app gets its own, in the same shape.
 
 ## Before anything else
 
@@ -46,32 +46,34 @@ under time pressure, and a wrong splice burns a paid generation.
 
 This applies to the negative prompt too, and it applies when the change is
 trivial. If you do not have the current prompt text, **read it from the sidecar
-first** (see [on-disk-format.md](on-disk-format.md) § Recovering the prompt behind an
-image) rather than asking the user to paste it.
+first** (the `cubric-vision-project-files` skill,
+[§ Recovering the prompt behind an image](../cubric-vision-project-files/SKILL.md))
+rather than asking the user to paste it.
 
 Say what changed in one line *after* the blocks, never instead of them.
 
-## Where everything else lives
+## The family
 
-Each file is self-contained. Open the one the task needs, not all of them.
+Each skill is self-contained. Load the one the task needs, not all of them.
 
-| Task | Read |
+| Task | Skill |
 |---|---|
-| Projects: list, create, open one, update the record; the media routes | [projects.md](projects.md) |
-| A project with no app running: `project.json`, sidecars, naming vs notes, **recovering the prompt behind an image**, the reference-slot load list | [on-disk-format.md](on-disk-format.md) |
-| Dispatching a generation: `/connector/generate`, named params, **reference images on a model op**, error codes, the `modelId` trap | [generating.md](generating.md) |
-| Running a Flow and text-to-speech, including supplying your own audio, image or video | [flows.md](flows.md) |
-| Engine control, the RunPod remote engine (a pod bills while it exists), system and shell routes | [engine-and-remote.md](engine-and-remote.md) |
+| Projects: list, create, open one, update the record; the media routes; **naming cards** | this one, [projects.md](projects.md) |
+| Dispatching a generation: `/connector/generate`, named params, `cardName`, **reference images on a model op**, error codes, the `modelId` trap | `cubric-vision-generate` ([SKILL.md](../cubric-vision-generate/SKILL.md)) |
+| Running a Flow and text-to-speech, including supplying your own audio, image or video | `cubric-vision-flows` ([SKILL.md](../cubric-vision-flows/SKILL.md)) |
+| A project with no app running: `project.json`, sidecars, naming vs notes, **recovering the prompt behind an image**, the reference-slot load list | `cubric-vision-project-files` ([SKILL.md](../cubric-vision-project-files/SKILL.md)) |
+| Engine control, the RunPod remote engine (a pod bills while it exists), system and shell routes | `cubric-vision-engine` ([SKILL.md](../cubric-vision-engine/SKILL.md)) |
 
 ## Connector
 
-`/connector/*` is the agent's generation surface. Three routes are yours:
+`/connector/*` is the agent's generation surface. Four routes are yours:
 
 | Verb | Path | Purpose |
 |---|---|---|
 | GET | `/connector/capabilities` | `{"generationSubmit": true}` when an app window is listening, so a submit has somewhere to land |
-| POST | `/connector/generate` | Run a model op or a Flow into a real gallery card: [generating.md](generating.md), [flows.md](flows.md) |
+| POST | `/connector/generate` | Run a model op or a Flow into a real gallery card: `cubric-vision-generate`, `cubric-vision-flows` |
 | POST | `/connector/open-project` | Make a project the open one before generating: [projects.md](projects.md) |
+| POST | `/connector/rename-card` | Name a gallery card, or clear its name: [projects.md](projects.md) § Naming cards |
 
 `/connector/jobs/stream` and `/connector/jobs/:id/result` are the app window's own
 relay, never an agent's. There is no `/connector/enhance` any more, and no

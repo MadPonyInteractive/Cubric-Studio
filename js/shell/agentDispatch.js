@@ -23,6 +23,11 @@
  * so without this an agent that created a project generated into the PREVIOUS
  * one — successfully, with `ok: true`, into the wrong gallery.
  *
+ * MPI-776 adds `card.rename`, and `cardName` on a submit, for the same reason: while
+ * a project is open this renderer owns its `itemGroups` and `persistGroups` writes the
+ * whole array back on every mutation, so an agent that edits `project.json` directly
+ * is silently overwritten on the next save.
+ *
  * MPI-547 adds the v1 named params (ratio/qualityTier/turbo/styleSelect/
  * stylization/seed; batch is pinned to 1) — resolved through `js/data/generationControls.js`,
  * NOT reimplemented here. That module is DOM-free and also runs server-side
@@ -36,7 +41,7 @@
 
 import { enqueueGeneration, findMissingMediaSlot } from '../services/generationService.js';
 import { submitFlowGeneration } from '../services/flowService.js';
-import { openProject } from '../services/projectService.js';
+import { openProject, renameGroup } from '../services/projectService.js';
 import { navigate, PAGE_GALLERY } from '../router.js';
 import { MODELS, getModelById, isOperationInstalled, getModelDepStatus } from '../data/modelRegistry.js';
 import { DEPS } from '../data/modelConstants/dependencies.js';
@@ -72,6 +77,29 @@ async function _report(jobId, payload) {
 }
 
 const _fail = (jobId, code, message) => _report(jobId, { ok: false, error: { code, message } });
+
+/**
+ * Report a finished generation. A `cardName` (MPI-776) is applied first, through the
+ * same `renameGroup` the rename route uses, so the reply describes the named card.
+ * The gallery path awaits `addGroup` before it calls `onComplete`, so the card is
+ * already in the project here.
+ */
+async function _reportDone(jobId, { item, group }, cardName) {
+    const named = cardName !== undefined && group?.id ? await renameGroup(group.id, cardName) : null;
+    return _report(jobId, {
+        ok: true,
+        output: {
+            itemId: item?.id,
+            groupId: group?.id,
+            type: item?.type,
+            filePath: item?.filePath,
+            seed: item?.seed,
+            pixelDimensions: item?.pixelDimensions,
+            generationMs: item?.generationMs,
+            ...(named ? { cardName: named.customName } : {}),
+        },
+    });
+}
 
 /**
  * Run one `generation.submit` job. Every exit path reports exactly once — an
@@ -175,18 +203,7 @@ function _submitGeneration(jobId, input = {}) {
     };
 
     const queued = enqueueGeneration(config, {
-        onComplete: ({ item, group }) => _report(jobId, {
-            ok: true,
-            output: {
-                itemId: item?.id,
-                groupId: group?.id,
-                type: item?.type,
-                filePath: item?.filePath,
-                seed: item?.seed,
-                pixelDimensions: item?.pixelDimensions,
-                generationMs: item?.generationMs,
-            },
-        }),
+        onComplete: (done) => _reportDone(jobId, done, input.cardName),
         // An `outputKind: 'text'` op produces a caption and no item (MPI-310).
         onText: (text) => _report(jobId, { ok: true, output: { text } }),
         onError: () => _fail(jobId, 'RUNTIME_ERROR',
@@ -300,18 +317,7 @@ function _submitFlow(jobId, input = {}) {
         mediaItems,
         ...(Object.keys(injectionParams).length ? { injectionParams } : {}),
     }, {
-        onComplete: ({ item, group }) => _report(jobId, {
-            ok: true,
-            output: {
-                itemId: item?.id,
-                groupId: group?.id,
-                type: item?.type,
-                filePath: item?.filePath,
-                seed: item?.seed,
-                pixelDimensions: item?.pixelDimensions,
-                generationMs: item?.generationMs,
-            },
-        }),
+        onComplete: (done) => _reportDone(jobId, done, input.cardName),
         onText: (text) => _report(jobId, { ok: true, output: { text } }),
         onError: () => _fail(jobId, 'RUNTIME_ERROR',
             'The generation failed. See the app log for the cause.'),
@@ -352,6 +358,32 @@ async function _openProject(jobId, input = {}) {
             folderPath: state.currentProject?.folderPath,
             name: state.currentProject?.name,
             groupCount: state.currentProject?.itemGroups?.length ?? 0,
+        },
+    });
+}
+
+/**
+ * Run one `card.rename` job (MPI-776). Through this renderer and never a write to
+ * `project.json`: while a project is open the renderer owns its `itemGroups`, and the
+ * next save writes the whole array back over any edit made on disk.
+ */
+async function _renameCard(jobId, input = {}) {
+    const { groupId, name } = input;
+    if (!state.currentProject) {
+        return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision. Open one first.');
+    }
+    const group = await renameGroup(groupId, name);
+    if (!group) {
+        return _fail(jobId, 'NO_SUCH_CARD',
+            `No card "${groupId}" in the open project "${state.currentProject.name}". Open the project it belongs to first.`);
+    }
+    const selected = group.history?.[group.selectedIndex];
+    return _report(jobId, {
+        ok: true,
+        output: {
+            groupId: group.id,
+            cardName: group.customName,
+            displayName: group.customName || selected?.name || group.name,
         },
     });
 }
@@ -554,6 +586,7 @@ function _describeImage(jobId, input = {}) {
 const _HANDLERS = {
     'generation.submit': _submitGeneration,
     'project.open': _openProject,
+    'card.rename': _renameCard,
     'agent.list-models': _listModels,
     'agent.install-model': _installModel,
     'agent.describe': _describeImage,

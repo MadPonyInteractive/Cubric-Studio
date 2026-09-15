@@ -1,4 +1,4 @@
-# Cubric Vision: projects and media
+# Cubric Vision: projects, media and cards
 
 Part of the `cubric-vision` skill. The base URL, the liveness check and the
 whole-prompts rule are in [SKILL.md](SKILL.md): read that first.
@@ -93,6 +93,40 @@ project and the response says `"ok": true` either way.
 Errors: `BAD_REQUEST` (no `folderPath`), `NO_SUCH_PROJECT` (nothing readable
 there — the message carries the underlying reason), `APP_UNAVAILABLE` (no window
 listening).
+
+## Naming cards
+
+Name a card whenever you and the user will talk about it. "Rider at dusk" survives a
+conversation; `t2i_017` and `t2i_018` get swapped.
+
+```bash
+curl -s -X POST "$CUBRIC_URL/connector/rename-card" \
+  -H 'Content-Type: application/json' \
+  -d '{"groupId":"<card id>","name":"Rider at dusk"}'
+```
+
+`groupId` is the card: `output.groupId` from `/connector/generate`, or an
+`itemGroups[].id` in `project.json`. `name` is required and trimmed; `null` or a blank
+string clears it, and the card shows its generated name again. The gallery repaints at
+once, as if the user had renamed it inline. Returns
+`{"ok": true, "output": {groupId, cardName, displayName}}`, where `displayName` is what
+the card now shows.
+
+To name a card as it is made, pass `cardName` on `/connector/generate` instead, on a
+model op or a Flow (the `cubric-vision-generate` skill, § Naming the card).
+
+**Never write `customName` into `project.json` yourself while the project is open.**
+The app holds the open project's cards in memory and writes the whole list back over
+the file on every change - a favourite, a finished generation - so the edit is silently
+undone on the next save. Go through the route.
+
+A name is a label, not a filename: the file on disk stays `t2i_017.png` (the
+`cubric-vision-project-files` skill,
+[§ Naming and notes](../cubric-vision-project-files/SKILL.md)).
+
+Errors: `BAD_REQUEST` (no `groupId`, or `name` neither a string nor `null`),
+`NO_PROJECT`, `NO_SUCH_CARD` (not in the project the app has open - open that project
+first with `/connector/open-project`), `APP_UNAVAILABLE`.
 
 ## Media
 

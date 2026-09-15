@@ -126,11 +126,16 @@ Dispatch cannot move to the server and that is not laziness: `generationService`
 the renderer over an always-on SSE stream (`/connector/jobs/stream`) and the renderer POSTs the
 outcome back to `/connector/jobs/:id/result`, which settles the caller's held HTTP response.
 
-**The relay carries TWO capabilities, and that is not a crack in the rule above.** MPI-592 added
+**The relay carries more than one capability, and that is not a crack in the rule above.** MPI-592 added
 `project.open` beside `generation.submit`, for the same reason dispatch itself is renderer-side:
 `openProject` reconciles and hydrates through renderer state, and a submit runs in
 `state.currentProject`, which nothing server-side can set. Without it an agent that created a
-project generated into the PREVIOUS one — successfully, `ok: true`, into the wrong gallery. The
+project generated into the PREVIOUS one — successfully, `ok: true`, into the wrong gallery.
+MPI-776 added `card.rename` (and `cardName` on a submit) for the same reason again: while a
+project is open the renderer owns its `itemGroups` and `persistGroups` writes the whole array
+back on every mutation, so a card name written to `project.json` from outside is overwritten on
+the next save. It goes through `projectService.renameGroup`, and `MpiGalleryBlock` repaints the
+card on `project:group-updated`. The
 rule is **dumb per job**, not one-capability: each is still one job shape in, one result shape
 out. A second verb is fine; a verb that needs progress, status or cancellation is the thing that
 would make the throwaway load-bearing.

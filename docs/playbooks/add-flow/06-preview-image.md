@@ -135,8 +135,8 @@ Three rules the shipped flows proved:
 
 The honest plate for a flow is **a real run of that flow** in the app; take the
 files off disk. For a purely generated plate (a background, a subject), the
-`cubric-vision` skill's connector route dispatches Krea2 and lands a real gallery
-card with its sidecar — see `.claude/skills/cubric-vision/generating.md` § Dispatching
+`cubric-vision-generate` skill's connector route dispatches Krea2 and lands a real gallery
+card with its sidecar — see `.claude/skills/cubric-vision-generate/SKILL.md` § Dispatching
 a generation for the call, the error codes and the `injectionParams` rules
 (`Width` / `Height`). It cannot supply media inputs yet, so the transform leg is
 always a UI run.

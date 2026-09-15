@@ -475,6 +475,27 @@ export async function updateGroup(group) {
 }
 
 /**
+ * Set or clear a card's user-facing name (`customName`), persist, and emit (MPI-776).
+ * Looks the group up INSIDE the mutation queue: a group object the caller captured
+ * can be stale by the time a mutation queued ahead of it applies, and writing that
+ * copy back through `updateGroup` would undo the mutation.
+ * @param {string} groupId
+ * @param {string|null} customName - blank or null clears it; the derived name shows again
+ * @returns {Promise<Object|null>} the updated group, or null when the open project has no such card
+ */
+export async function renameGroup(groupId, customName) {
+    return _enqueueMutation(async () => {
+        const group = state.currentProject?.itemGroups?.find(g => g.id === groupId);
+        if (!group) return null;
+        const updated = { ...group, customName: customName?.trim() || null };
+        state.currentProject = updateGroupInProject(state.currentProject, updated);
+        await persistGroups();
+        Events.emit('project:group-updated', { group: updated });
+        return updated;
+    });
+}
+
+/**
  * Remove a group from the current project, persist, and emit.
  * @param {string} groupId
  */

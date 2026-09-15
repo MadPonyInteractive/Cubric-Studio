@@ -178,10 +178,10 @@ Topic-to-files map. Match the topic closest to the current task and read the lis
 
 ### Agent-facing HTTP API (connector, generation dispatch)
 
-- **Read first:** `.claude/skills/cubric-vision/generating.md` § "Dispatching a generation", `docs/generation-lifecycle.md` § "An agent is the THIRD producer"
+- **Read first:** `.claude/skills/cubric-vision-generate/SKILL.md` § "Dispatching a generation", `docs/generation-lifecycle.md` § "An agent is the THIRD producer"
 - **Also:** `routes/connector.js` header comment (route-is-the-contract seam), `js/shell/agentDispatch.js`
 - **Memory:** `project_cli_anything_is_the_cli_wrapper.md`, `feedback_verify_ui_driving_apis_live.md`
-- **Notes:** `generation.submit` (MPI-546) lets an agent dispatch through the SAME queue the PromptBox uses — real gallery card, not a bare `/proxy/prompt`. `project.open` (MPI-592) is the second relay capability: a submit runs in `state.currentProject` and nothing server-side can set it, so an agent that CREATED a project must open it or the output lands in the previous one behind an `ok: true`. MPI-547 (open) adds named parameters (ratio/quality/turbo/style); today an agent only inherits the open project's settings. MPI-593 (backlog) is the delivery question — the skill is not in the portable build, so no installed app carries it.
+- **Notes:** `generation.submit` (MPI-546) lets an agent dispatch through the SAME queue the PromptBox uses — real gallery card, not a bare `/proxy/prompt`. `project.open` (MPI-592) is the second relay capability: a submit runs in `state.currentProject` and nothing server-side can set it, so an agent that CREATED a project must open it or the output lands in the previous one behind an `ok: true`. `card.rename` (MPI-776) is relayed for the same reason: the renderer owns the open project's `itemGroups` and rewrites the whole array on every save, so a card name written to `project.json` from outside is lost. MPI-547 (open) adds named parameters (ratio/quality/turbo/style); today an agent only inherits the open project's settings. MPI-593 (backlog) is the delivery question — the skill is not in the portable build, so no installed app carries it.
 
 ### Cross-project / product
 

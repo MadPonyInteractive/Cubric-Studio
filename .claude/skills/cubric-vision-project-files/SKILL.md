@@ -1,7 +1,19 @@
+---
+name: cubric-vision-project-files
+description: Read a Cubric Vision project folder with no app running - project.json cards with their history and selectedIndex, Media/.meta sidecars, card names versus filenames, card notes, and project.md. Recovers the exact prompt, negative prompt, model, seed and settings behind any generated image from its sidecar; they are NOT in the PNG and NOT in project.json. Do that read before advising on any prompt, and hand prompts back whole and pasteable, never as fragments. Also recovers the numbered reference-image load list behind a generation. Use when asked what prompt made an image, why two generations differ, what a project contains on disk, or to survey a project cheaply through its thumbnails. Part of the cubric-vision skill family.
+user-invocable: true
+metadata: {"openclaw":{"emoji":"👁️","os":["win32","darwin","linux"],"requires":{"anyBins":["curl"]},"primaryEnv":"CUBRIC_URL"}}
+---
+
 # Cubric Vision: the on-disk format
 
-Part of the `cubric-vision` skill. The base URL, the liveness check and the
-whole-prompts rule are in [SKILL.md](SKILL.md): read that first.
+## Before anything else
+
+Part of the Cubric Vision skill family; the entry point is the `cubric-vision` skill
+([../cubric-vision/SKILL.md](../cubric-vision/SKILL.md)). Reading these files needs no
+app. The routes mentioned here do: base URL `$CUBRIC_URL`, default
+`http://127.0.0.1:3000`, liveness check `curl -s -m 3 "$CUBRIC_URL/comfy/status"`.
+Any prompt you hand back to a user is the whole text, pasteable, never a fragment.
 
 ## The on-disk format
 
@@ -69,6 +81,13 @@ disk, permanently. Renaming a card in the gallery sets `customName` on the
 **group in `project.json`** and moves nothing; the sidecar's `filePath` still
 resolves to the original file.
 
+**An agent renames a card through the app, never by writing `project.json`.** Use
+`POST /connector/rename-card` ([../cubric-vision/projects.md](../cubric-vision/projects.md)
+§ Naming cards), or `cardName` on the generate call that makes it. While the project is
+open, the app holds its cards in memory and writes the whole list back over
+`project.json` on every change, so a `customName` written to the file by hand is
+silently undone on the next save.
+
 So **anything outside the app must cite the app's filename**, and no script may
 assume a user-chosen name exists on disk. A card renamed to "Marshall" is still
 `t2i_017.png`. Only files a user saves into `Media/` by hand — composites built
@@ -89,8 +108,8 @@ curl -s -X POST "$CUBRIC_URL/project-media/$PROJECT_ID/update-meta?folderPath=<u
 in the body returns a bare `400 folderPath, updates and (itemId or filename)
 required`, which reads like a missing field rather than a misplaced one. It is
 also inconsistent with `/project-notes` and `/project-notes/save` in
-[projects.md](projects.md), which both take `folderPath` **in the body**. Check
-which one you are calling.
+[../cubric-vision/projects.md](../cubric-vision/projects.md), which both take
+`folderPath` **in the body**. Check which one you are calling.
 
 They land in `Media/.meta/<uuid>.json` and travel with the folder when a project
 is shared. The consequence: **iterate that card again and the new history item

@@ -31,6 +31,12 @@
  * A submit runs in whatever project the app has open, so an agent that created a
  * project used to generate into the previous one and be told `ok: true`.
  *
+ * MPI-776 adds card naming, relayed for the same reason:
+ *   POST /connector/rename-card     -> set or clear a card's name in the open project
+ * plus `cardName` on /connector/generate. While a project is open the renderer owns
+ * its `itemGroups` and writes the whole array back on every mutation, so an agent that
+ * edits project.json directly is silently overwritten on the next save.
+ *
  * MPI-658 adds `flowId` to the same submit. It is not a convenience: a Flow runs
  * with `model.id: null`, so `modelId` could never reach one and EVERY Flow was
  * unreachable from an agent — including both text-to-speech surfaces, which are
@@ -394,6 +400,11 @@ router.post('/connector/generate', async (req, res) => {
   if (seed !== undefined && !isValidSeed(seed)) {
     return _namedErr('INVALID_SEED', 'body.seed must be an integer between 0 and 4294967295.');
   }
+  // MPI-776: names the card once the run lands, on either branch.
+  const { cardName } = req.body || {};
+  if (cardName !== undefined && typeof cardName !== 'string') {
+    return _namedErr('INVALID_CARD_NAME', 'body.cardName must be a string: the name the gallery card gets when the run lands.');
+  }
 
   const input = flowId
     ? { flowId: String(flowId), fields: fields || {}, media: Array.isArray(media) ? media : [],
@@ -414,6 +425,8 @@ router.post('/connector/generate', async (req, res) => {
       ...(stylization !== undefined ? { stylization } : {}),
       ...(seed !== undefined ? { seed } : {}),
     };
+
+  if (cardName !== undefined) input.cardName = cardName;
 
   const result = await _dispatchToRenderer('generation.submit', input);
 
@@ -445,6 +458,38 @@ router.post('/connector/open-project', async (req, res) => {
 
   if (!result.ok) {
     logger.warn('system', `connector open-project failed: ${result.error?.code} ${result.error?.message}`);
+  }
+  res.json(result);
+});
+
+/**
+ * POST /connector/rename-card — set or clear a gallery card's name (MPI-776).
+ *
+ * `groupId` is the card: `output.groupId` from /connector/generate, or an
+ * `itemGroups[].id` in project.json. `name` is required; null or blank clears it and
+ * the card shows its generated name again, same as clearing the inline rename. The
+ * card must be in the project the app has open.
+ */
+router.post('/connector/rename-card', async (req, res) => {
+  const { groupId, name } = req.body || {};
+
+  if (!groupId || typeof groupId !== 'string') {
+    return res.status(400).json({
+      ok: false,
+      error: { code: 'BAD_REQUEST', message: 'body.groupId is required.' },
+    });
+  }
+  if (name !== null && typeof name !== 'string') {
+    return res.status(400).json({
+      ok: false,
+      error: { code: 'BAD_REQUEST', message: 'body.name must be a string, or null to clear the name.' },
+    });
+  }
+
+  const result = await _dispatchToRenderer('card.rename', { groupId, name });
+
+  if (!result.ok) {
+    logger.warn('system', `connector rename-card failed: ${result.error?.code} ${result.error?.message}`);
   }
   res.json(result);
 });
