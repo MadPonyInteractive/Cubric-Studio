@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["../Cubric-Vision-1.4.x/js/data/commandRegistry.js", "../Cubric-Vision-1.4.x/tests/op-strip-availability.test.cjs", "../Cubric-Vision-1.4.x/docs/releases/UNRELEASED.md"] }
