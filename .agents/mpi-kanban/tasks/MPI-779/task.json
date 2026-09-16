@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-779",
+  "title": "Fork SIGTERM/SIGINT skips server cleanup: shared.js exits first",
+  "description": "routes/shared.js signal handlers call process.exit() before server.js's, so cancelAllDownloads + engine scratch cleanup never run; one ordered shutdown path.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-16T12:50:16+01:00",
+  "updated_at": "2026-09-16T12:54:03+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

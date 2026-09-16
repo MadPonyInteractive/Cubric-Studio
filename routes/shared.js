@@ -175,13 +175,29 @@ function stopComfyUI() {
     }
 }
 
-// Ensure child processes die if the node server shuts down
-['exit', 'SIGINT', 'SIGTERM'].forEach(signal => {
-    process.on(signal, () => {
-        if (processState.activeComfyProcess) processState.activeComfyProcess.kill('SIGKILL');
-        if (signal !== 'exit') process.exit();
-    });
+// Ensure the engine dies with the server, whatever ended it.
+process.on('exit', () => {
+    if (processState.activeComfyProcess) processState.activeComfyProcess.kill('SIGKILL');
 });
+
+/**
+ * The server fork's ONE SIGINT/SIGTERM path (MPI-779), installed by server.js. This
+ * module used to take both signals at require time and exit, so a handler server.js
+ * registered after requiring it never ran. Order: stop the server's own work, empty the
+ * engine scratch while the handle still says we own it (cleanComfyUITempFiles reads it),
+ * then kill the engine, which nulls the handle.
+ * @param {Function} stopServerWork - sync; its promise, if any, is not awaited
+ */
+function installShutdown(stopServerWork) {
+    for (const signal of ['SIGINT', 'SIGTERM']) {
+        process.on(signal, () => {
+            stopServerWork();
+            cleanComfyUITempFiles();
+            stopComfyUI();
+            process.exit(0);
+        });
+    }
+}
 
 // ── Download Helper ───────────────────────────────────────────────────────────
 
@@ -969,6 +985,7 @@ module.exports = {
     COMFYUI_PORT,
     processState,
     stopComfyUI,
+    installShutdown,
     streamDownload,
     stripImageMetadata,
     runPipCommand,

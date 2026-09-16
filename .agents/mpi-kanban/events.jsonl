@@ -4322,3 +4322,6 @@
 {"schema": "mpi-kanban/event/v1", "type": "checklist.updated", "id": "MPI-737", "at": "2026-09-16T11:10:06Z", "actor": "claude:6cdd36a9", "summary": "checklist.md derived from plan phases; Phase 0 gate checked (validation.md). files.json written at the todo->doing move (17 paths, from the plan Ownership lines + Phase 3/4 file lists)."}
 {"schema": "mpi-kanban/event/v1", "type": "checklist.updated", "id": "MPI-737", "at": "2026-09-16T11:41:20Z", "actor": "claude:6cdd36a9", "summary": "Parallel batch checked (server + renderer seams)."}
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-737", "at": "2026-09-16T11:41:20Z", "actor": "claude:6cdd36a9", "summary": "Batch verified: 20/20 describe, 29/29 service, npm test 1163 pass 0 fail, lint clean, live describe+enhance on a private server."}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-779", "at": "2026-09-16T12:50:16+01:00", "actor": "claude", "column": "todo", "title": "Fork SIGTERM/SIGINT skips server cleanup: shared.js exits first"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-779", "at": "2026-09-16T12:50:59+01:00", "actor": "claude", "from": "todo", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-779", "at": "2026-09-16T12:54:03+01:00", "actor": "claude", "from": "doing", "to": "done"}

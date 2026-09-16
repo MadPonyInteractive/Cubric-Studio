@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["routes/shared.js", "server.js", "tests/fork-shutdown.test.cjs", "docs/worktrees.md"] }

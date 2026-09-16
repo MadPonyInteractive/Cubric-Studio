@@ -65,7 +65,7 @@ const { router: downloadManagerRoutes, cancelAllDownloads, logBootDiskSpace } = 
 const { router: runpodRemoteRoutes } = require('./routes/runpodRemote');
 const { router: remoteEngineRoutes } = require('./routes/remoteEngine');
 const { router: remoteProxyRoutes } = require('./routes/remoteProxy');
-const { cleanComfyUITempFiles } = require('./routes/shared');
+const { installShutdown } = require('./routes/shared');
 const connectorRoutes = require('./routes/connector');
 const licenceRoutes = require('./routes/licences');
 const llmRoutes = require('./routes/llm');
@@ -100,8 +100,7 @@ app.use(licenceRoutes);
 app.use(llmRoutes);
 app.use(agentRoutes);  // MPI-774
 
-process.on('SIGTERM', () => { cancelAllDownloads(); cleanComfyUITempFiles(); process.exit(0); });
-process.on('SIGINT', () => { cancelAllDownloads(); cleanComfyUITempFiles(); process.exit(0); });
+installShutdown(cancelAllDownloads);  // MPI-779
 
 // A single stray async rejection must NOT kill the whole server — it also hosts
 // the ComfyUI proxy, project, and generation routes. The trigger we hit: a
