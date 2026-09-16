@@ -1,0 +1,17 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/gifTransform.js",
+    "routes/gifToVideo.js",
+    "tests/gif-transform.test.cjs",
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+    "js/components/Compounds/MpiHistoryTools/MpiHistoryTools.js",
+    "js/components/Organisms/MpiGifViewer/",
+    "js/components/Organisms/MpiToolOptionsCrop/",
+    "js/shell/preloadStyles.js",
+    "js/components/types.js",
+    "tests/desktop/gif-transform.spec.js",
+    "docs/crop.md",
+    "docs/gif.md"
+  ]
+}

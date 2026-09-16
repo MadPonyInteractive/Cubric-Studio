@@ -544,6 +544,7 @@ export const MpiPromptBox = ComponentFactory.create({
                 itemId: uploaded.itemId,
                 thumbPath: uploaded.thumbPath,
                 pixelDimensions: uploaded.pixelDimensions,
+                gif: uploaded.gif,
                 mediaType,
             });
         }

@@ -26,3 +26,34 @@ Integration (orchestrator):
 **Still open (UI half, Batch 3):** the cut-out tool group, and the local-engine AND RunPod eye check
 with Fabio (user-ux). The RunPod run rents a GPU, so it needs Fabio's go.
 `docs/masking-sam3.md` sits at 242 lines, over the 200 guidance. Split it when the UI half next edits it.
+
+## 2026-09-16 - UI half (MPI-757 Batch 3), automated checks green; user-ux check OPEN
+
+| Check | Command | Result |
+|---|---|---|
+| Desktop specs (orchestrator) | `npx playwright test --config=playwright.desktop.config.js tests/desktop/gif-cutout.spec.js tests/desktop/history-modes.spec.js ... --output=<scratchpad>/pw-orch` | gif-cutout 2/2, history-modes pass |
+| Component lint | `npm run lint:components` | clean |
+| Full node suite (orchestrator) | `node --test "tests/*.test.cjs"` | 1141 pass, 0 fail, 1 skipped |
+| Bite checks (worker) | chip guard flipped; `_handleGifCutoutApply` POST URL broken | each red, restored green |
+
+`tests/desktop/gif-cutout.spec.js` test 2 is a real round trip with ONLY the GPU faked: the page patches
+`getEngine(false/true).runWorkflow` and `.httpBase` on the live `comfyController.js` module, and a tiny
+Node HTTP server stands in for `/view`. The rest is real: `/create-project`, uploads, `POST /gif/make`,
+`/gif-cutout/source` (ffmpeg), Track (the stamped prompt reaches `Input_Text_Prompt.text`; a chip drop
+re-dispatches `object_indices` '0,2,3' on the SAME video), Cut out through `/gif-cutout/apply` and
+`/gif/ensure-frames`. Asserts: one new history entry, the sidecar `gif.frames` count, and a
+`Media/.gif-frames/` PNG with alpha 255 inside the mask and 0 outside.
+
+Decisions: no cancel hook for `/gif-cutout/source` temp videos (self-sweep; reasoning in
+`docs/masking-sam3-gif.md`). `docs/masking-sam3.md` split: 242 -> 201 lines, GIF part in the new
+`docs/masking-sam3-gif.md` (listed in docs/README.md).
+
+Integration (orchestrator): the stale gif-rail assertions in `tests/desktop/history-modes.spec.js` and
+`tests/desktop/gif-workspace.spec.js` now expect 1 slot (the cut-out group).
+**NOT DONE, blocked on a live MPI-774 claim:** the `preloadStyles.js` line and the
+`MpiToolOptionsGifCutoutProps` typedef (+ `setMaskTint` / `setMaskOverlay` lines) in `types.js`.
+`guard-claim` refused both. MPI-774 was messaged (bb83d121). The component loads its own CSS, so
+nothing breaks meanwhile; both hunks must land before the commit.
+
+**OPEN (user-ux):** Fabio masks a real mascot GIF by name on the local engine AND on RunPod (renting
+the Pod needs his go): shadow not in the mask, transparent background, no edge flicker worth fixing.

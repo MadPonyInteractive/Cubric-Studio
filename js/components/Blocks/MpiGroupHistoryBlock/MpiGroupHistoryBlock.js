@@ -32,6 +32,7 @@ import { MpiToolOptionsRemoveBg } from '../../Organisms/MpiToolOptionsRemoveBg/M
 import { MpiToolOptionsInterpolate } from '../../Organisms/MpiToolOptionsInterpolate/MpiToolOptionsInterpolate.js';
 import { MpiToolOptionsResize } from '../../Organisms/MpiToolOptionsResize/MpiToolOptionsResize.js';
 import { MpiToolOptionsGif } from '../../Organisms/MpiToolOptionsGif/MpiToolOptionsGif.js';
+import { MpiToolOptionsGifCutout } from '../../Organisms/MpiToolOptionsGifCutout/MpiToolOptionsGifCutout.js';
 import { MpiToolOptionsPrompt } from '../../Organisms/MpiToolOptionsPrompt/MpiToolOptionsPrompt.js';
 import { MpiPromptBox } from '../../Organisms/MpiPromptBox/MpiPromptBox.js';
 import { MpiQueuePanel } from '../../Compounds/MpiQueuePanel/MpiQueuePanel.js';
@@ -120,6 +121,7 @@ const TOOL_OPTIONS_REGISTRY = {
     resize:       MpiToolOptionsResize,
     resizeVideo:  MpiToolOptionsResize,
     exportGif:    MpiToolOptionsGif,
+    gifCutout:    MpiToolOptionsGifCutout,
 };
 
 /** Any tool in the mask family. One rail icon per masking method (MPI-371),
@@ -510,7 +512,19 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             gifControlBar = MpiGifControlBar.mount(barWrap, {});
             gifControlBar.el.attachViewer(viewer);
 
-            _unsubs.push(viewer.on('frame-change', ({ idx }) => frameStrip.el.setCurrentIndex(idx)));
+            // `_options` is declared below (mountOptions section) but this
+            // callback only ever RUNS on a later frame-change event, by which
+            // point it is assigned — MPI-771's cut-out panel is the only
+            // current `onFrameChange` implementer; `?.()` no-ops for every
+            // other gif tool. One persistent subscription for the viewer's
+            // whole lifetime, not one per tool-rail visit: the factory's
+            // `instance.on()` has no per-listener unsubscribe, only
+            // `destroy()`, so a panel that (re)subscribed on its own mount
+            // would leak a listener per visit.
+            _unsubs.push(viewer.on('frame-change', ({ idx }) => {
+                frameStrip.el.setCurrentIndex(idx);
+                _options?.el.onFrameChange?.();
+            }));
             _unsubs.push(frameStrip.on('frame-select', ({ index }) => viewer.el.setFrameIndex(index)));
             _unsubs.push(frameStrip.on('scrub',        ({ index }) => viewer.el.setFrameIndex(index)));
             // Staged reorder/delete (plan decision 10): the strip mutates its
@@ -635,6 +649,68 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             } catch (err) {
                 clientLogger.warn('MpiGroupHistoryBlock', `gif entry save failed: ${err?.message || err}`);
                 _showToast('GIF save failed: ' + err.message, 'error');
+            } finally {
+                viewer.el.setGenerating?.(false);
+            }
+        }
+
+        /**
+         * Cut-out tool's Apply (MPI-771 UI half) -> POST /gif-cutout/apply. The
+         * panel already validated `payload.frames`/`payload.masks` against the
+         * CURRENT frame list before emitting — this only owns the network call
+         * and appending the result, same shape `_handleGifStripSave`'s 'new'
+         * branch uses (`appendToHistory` + `_setCurrentIdx`), because the route
+         * returns a fresh `{hash, delay}`-only entry (no `url`/`thumbUrl`) the
+         * same way `/gif/entry` does.
+         */
+        async function _handleGifCutoutApply(payload) {
+            const project = state.currentProject;
+            const currentItem = _group.history[_currentIdx];
+            if (!project?.folderPath || !currentItem) return;
+            const { frames, masks, adjust, invert } = payload || {};
+            if (!Array.isArray(frames) || !frames.length || !Array.isArray(masks) || masks.length !== frames.length) return;
+
+            viewer.el.setGenerating?.(true);
+            try {
+                const res = await fetch('/gif-cutout/apply', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        folderPath: project.folderPath,
+                        frames,
+                        loop: currentItem.gif?.loop ?? 0,
+                        output: currentItem.gif?.output || { maxEdge: 1024, colours: 256, edgeColour: null },
+                        masks,
+                        adjust,
+                        invert,
+                        sourceItemId: currentItem.id,
+                        sourceGroupId: _group.id,
+                    }),
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
+
+                const urlRes = await fetch('/gif/ensure-frames', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ folderPath: project.folderPath, itemId: data.item.id }),
+                });
+                const urlData = await urlRes.json();
+                const item = (urlRes.ok && urlData.success) ? { ...data.item, gif: urlData.gif } : data.item;
+
+                _group = appendToHistory(_group, item);
+                _setCurrentIdx(_group.selectedIndex);
+                historyList.el.appendEntry(item);
+                _persistGroup();
+                viewer.el.loadFrames(item.gif?.frames || [], { loop: item.gif?.loop ?? 0 });
+                viewer.el.setGifUrl(resolveMediaUrl(item.filePath));
+                viewer.el.setMaskTint?.(null);
+                gifControlBar?.el.setFrameCount(item.gif?.frames?.length || 0);
+                frameStrip?.el.commit(item.gif?.frames || []);
+                _showToast('Cut-out saved', 'success');
+            } catch (err) {
+                clientLogger.warn('MpiGroupHistoryBlock', `gif cutout apply failed: ${err?.message || err}`);
+                _showToast('Cut-out failed: ' + err.message, 'error');
             } finally {
                 viewer.el.setGenerating?.(false);
             }
@@ -777,6 +853,14 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             // active trim range resolved here.
             if (mode === 'exportGif') _options.el.setEncoder?.(_encodeGif);
 
+            // MPI-771: the cut-out panel dispatches SAM3 itself (only needs the
+            // project + the viewer's own frames) but has no Block-internal state,
+            // so it only EMITS a tint/overlay for the surfaces that hold it.
+            if (mode === 'gifCutout') {
+                _options.on?.('mask-tint',    ({ url })   => viewer.el.setMaskTint?.(url));
+                _options.on?.('mask-overlay', ({ masks }) => frameStrip?.el.setMaskOverlay?.(masks));
+            }
+
             // Options compounds emit 'apply'; mediator routes to _handleApply.
             _options.on?.('apply', (payload) => _handleApply(mode, payload));
 
@@ -852,6 +936,9 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             if (mode === 'exportGif') {
                 return _handleGifExport(payload || {});
             }
+            if (mode === 'gifCutout') {
+                return _handleGifCutoutApply(payload || {});
+            }
         }
 
         const TOOL_LABELS = {
@@ -865,6 +952,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             interpolate: 'Interpolate',
             resize: 'Resize', resizeVideo: 'Resize',
             exportGif: 'Export GIF',
+            gifCutout: 'Cut-out',
         };
 
         // Video viewer top-right chip strip: [op] · [mm:ss] · [Nfps].

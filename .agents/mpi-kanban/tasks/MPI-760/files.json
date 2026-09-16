@@ -1,0 +1,13 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/gifMaker.js",
+    "tests/gif-maker.test.cjs",
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+    "js/components/Compounds/MpiHistoryTools/MpiHistoryTools.js",
+    "js/components/Organisms/MpiToolOptionsGif/",
+    "tests/desktop/gif-maker.spec.js",
+    "docs/gif.md",
+    "docs/video-player.md"
+  ]
+}

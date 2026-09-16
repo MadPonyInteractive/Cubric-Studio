@@ -170,3 +170,13 @@ route files (`routes/gifMake.js`, `routes/gifMaker.js`) that write frames via
 `services/gifFrames.js` and then call `buildGif()` directly — they do not
 route through `POST /gif/entry`. MPI-771 (cut-out) and MPI-772/773 (timing,
 transform) all read/write the same `gif` field shape documented here.
+
+## Cut-out (MPI-771)
+
+`gif` mode's first tool group: SAM3 video tracking by name, into a new alpha-cut
+entry via `POST /gif-cutout/apply` (own route, not `/gif/entry` — it lands the
+result the same way, `appendToHistory` + `_setCurrentIdx`, but the cut needs the
+per-frame mask batch a plain entry write never takes). Graph, runner and the
+`MpiToolOptionsGifCutout` panel (Track → read the numbered preview → chips → Mask
+Adjust/Invert → Cut out), plus the viewer/strip tint preview:
+[masking-sam3-gif.md](masking-sam3-gif.md).

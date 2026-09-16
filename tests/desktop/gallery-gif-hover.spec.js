@@ -2,7 +2,7 @@ const { test, expect } = require('@playwright/test');
 const { launchApp, closeApp } = require('./launch');
 
 /**
- * MPI-759 — GIF as its own gallery kind: still until hover, hover plays.
+ * MPI-759 (reopened) — GIF as its own gallery kind: still until hover, hover plays.
  *
  * A GIF card paints the WebP rendition like any image at rest — never the built
  * .gif itself, at any card size — and only an explicit hover mounts the .gif,
@@ -19,6 +19,28 @@ const { launchApp, closeApp } = require('./launch');
  * (sharp: pages 2, delay [100,100], loop 0) by the throwaway script this comment
  * names for provenance, not because the test depends on it existing:
  * scratchpad/w759/make_gif.js.
+ *
+ * REOPENED 2026-09-16 — the "hover mounts / leave demotes" test below originally
+ * drove the hover with `dispatchEvent(new MouseEvent('mouseenter', {bubbles:true}))`
+ * called directly on the card element. That bypasses hit-testing entirely, so it
+ * cannot see two real gaps a genuine `locator.hover()` (real cursor, real hit-test)
+ * exposes: (1) a fresh Electron profile's 18+/changelog `.mpi-modal-backdrop` sits
+ * above the whole window and swallows every real pointer event — `clearBootModals`
+ * below, same pattern gallery-audio-waveform.spec.js already uses; (2) the actual
+ * ROOT CAUSE — see the third test — `kindOfItem` (js/utils/assetKinds.js) never
+ * classified a REAL card as `gif` unless it carried the MPI-768 `gif` field, because
+ * its filename-fallback regex tested the WRAPPED `/project-file?path=...` URL
+ * (and, once cache-busted by a reload, `&v=<mtime>` after it) instead of the path it
+ * wraps. Nothing in the original dispatchEvent-driven test or in
+ * tests/asset-kinds.test.cjs's bare `/Media/mascot.gif` fixtures ever built that
+ * shape, so the regex's brokenness against a real URL went unseen. A card that
+ * `kindOfItem` calls `image` never gets `_ensureVideoHoverBindings()` called on it
+ * (MpiGalleryGrid.js `_render()`) — no mouseenter/mouseleave listener is ever bound,
+ * so a real hover does nothing, which is exactly Fabio's report. This is the
+ * anticipated "extraction failed" shape too (routes/projects.js: a failed
+ * `extractFramesFromGif` leaves the import "a plain animated GIF, just without a
+ * frames store" — no `gif` field, filename match is the ONLY thing left standing
+ * between that card and the plain `image` row.
  */
 test.setTimeout(90000);
 
@@ -26,8 +48,19 @@ const SMALL = 'flow-scribble';
 const LARGE = 'flow-outpaint';
 const GIF_SRC = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH/C05FVFNDQVBFMi4wAwEAAAAh+QQACgAAACwAAAAAAQABAAACAkQBACH5BAAKAAAALAAAAAABAAEAAAICTAEAOw==';
 
-async function mountGif(window, { level = 4, thumbPathLg = `/comfy_workflows/display/${LARGE}.webp` } = {}) {
-  return window.evaluate(async ({ lvl, lg, gifSrc }) => {
+// A production `/project-file?path=<abs path>` wrapper, cache-busted the way
+// `projectFileUrlBusted` (routes/projects.js) stamps every upload/import sidecar,
+// and the shape a reloaded project's item lands back in after the client
+// reconciler re-hydrates it from that sidecar (js/managers/projectReconciler.js).
+// Deliberately does NOT decode to anything on disk — the point is that
+// classification (and so whether a hover overlay ever gets wired at all) must not
+// depend on the file actually resolving.
+const REAL_GIF_URL = `/project-file?path=${encodeURIComponent('C:\\FakeProject\\Media\\mascot_001.gif')}&v=1758000000000`;
+
+const DEFAULT_GIF_FIELD = { frames: [{ hash: 'a', delay: 10 }, { hash: 'b', delay: 10 }], loop: 0, output: 'mascot.gif' };
+
+async function mountGif(window, { level = 4, thumbPathLg = `/comfy_workflows/display/${LARGE}.webp`, gifSrc = GIF_SRC, gifField = DEFAULT_GIF_FIELD } = {}) {
+  return window.evaluate(async ({ lvl, lg, gifSrc, gifField }) => {
     const { MpiGalleryGrid } = await import('/js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js');
     const { state } = await import('/js/state.js');
     window.__mpi759?.grid?.el?.destroy?.();
@@ -47,7 +80,9 @@ async function mountGif(window, { level = 4, thumbPathLg = `/comfy_workflows/dis
         type: 'image',
         // MPI-768's shape: a truthy `gif` field, `type` stays 'image' — the
         // field's inner shape never matters to the kind match, only truthiness.
-        gif: { frames: [{ hash: 'a', delay: 10 }, { hash: 'b', delay: 10 }], loop: 0, output: 'mascot.gif' },
+        // `gifField: null` exercises the filename-fallback branch instead (a
+        // legacy import whose frame extraction failed, or one predating MPI-768).
+        gif: gifField,
         filePath: gifSrc,
         thumbPath: '/comfy_workflows/display/flow-scribble.webp',
         thumbPathLg: lg,
@@ -57,7 +92,22 @@ async function mountGif(window, { level = 4, thumbPathLg = `/comfy_workflows/dis
 
     state.gallerySizeLevel = lvl;
     window.__mpi759 = { grid: MpiGalleryGrid.mount(host, { groups }), host };
-  }, { lvl: level, lg: thumbPathLg, gifSrc: GIF_SRC });
+  }, { lvl: level, lg: thumbPathLg, gifSrc, gifField });
+}
+
+/** Clear the 18+ / changelog boot modals (see gallery-audio-waveform.spec.js) — a
+ * fresh CUBRIC_E2E_USER_DATA profile has not acknowledged them, and they sit above
+ * everything with pointer-events, which a synthetic dispatchEvent never notices but
+ * a real `locator.hover()` correctly refuses to click through. */
+async function clearBootModals(window) {
+  const backdrops = () => window.evaluate(() => document.querySelectorAll('.mpi-modal-backdrop').length);
+  const cont = window.locator('.mpi-modal-backdrop button:has-text("Continue")').first();
+  if (await cont.count()) await cont.click({ timeout: 5000 }).catch(() => {});
+  for (let i = 0; i < 8 && await backdrops() > 0; i++) {
+    await window.keyboard.press('Escape');
+    await window.waitForTimeout(400);
+  }
+  expect(await backdrops(), 'the boot modals must be gone before a real hover can reach a card').toBe(0);
 }
 
 test('a GIF card is still at every slider size — the .gif never mounts from the ladder', async ({}, testInfo) => {
@@ -99,11 +149,12 @@ test('a GIF card is still at every slider size — the .gif never mounts from th
   }
 });
 
-test('hover mounts the .gif; leave and the grid demote unmount it again', async ({}, testInfo) => {
+test('a REAL mouse hover mounts the .gif; leaving and the grid demote unmount it again', async ({}, testInfo) => {
   const { app, window } = await launchApp(testInfo);
 
   try {
     await window.waitForTimeout(6000);
+    await clearBootModals(window);
     await mountGif(window, { level: 4 });
     await expect.poll(() => window.evaluate(
       () => document.querySelector('#mpi759-host img.mpi-group-card__thumb')?.getAttribute('src') || ''))
@@ -116,30 +167,82 @@ test('hover mounts the .gif; leave and the grid demote unmount it again', async 
     expect(await overlaySrc()).toBe('');
 
     // Viewport entry alone must never mount it — the same `cardEl.promoteVideo()`
-    // the grid's IntersectionObserver calls on scroll-into-view, with no
-    // explicit hover (MPI-759's "still until hover, hover plays").
+    // the grid's IntersectionObserver calls on scroll-into-view, with no explicit
+    // hover (MPI-759's "still until hover, hover plays"). Deliberately a direct
+    // method call, not a hover: this is the NON-hover path.
     await window.evaluate((sel) => document.querySelector(sel).promoteVideo(), CARD_SEL);
     expect(await overlaySrc(), 'viewport entry alone must not mount the .gif').toBe('');
 
-    // A real hover does.
-    await window.evaluate(
-      (sel) => document.querySelector(sel).dispatchEvent(new MouseEvent('mouseenter', { bubbles: true })), CARD_SEL);
+    // A REAL cursor hover does — real hit-testing, not a synthetic dispatchEvent
+    // aimed straight at the element (which would never notice a boot modal, an
+    // overlapping sibling, or any other real-pointer obstruction).
+    await window.mouse.move(2, 2); // park the OS cursor away first
+    await window.waitForTimeout(200);
+    await window.locator(CARD_SEL).first().hover();
     await expect.poll(overlaySrc).toContain('data:image/gif');
 
     // Leaving demotes back to the still — an <img> has no paused-at-frame-0
     // state to keep mounted for a cheap replay the way a video's overlay does.
-    await window.evaluate(
-      (sel) => document.querySelector(sel).dispatchEvent(new MouseEvent('mouseleave', { bubbles: true })), CARD_SEL);
+    await window.mouse.move(2, 2);
     await expect.poll(overlaySrc).toBe('');
 
     // Scroll-out / suspension demote rides the exact same `demoteVideo` hook the
     // grid's own observers and `_releaseMedia` call — a hovered card must yield
     // to it just as a promoted video does.
-    await window.evaluate(
-      (sel) => document.querySelector(sel).dispatchEvent(new MouseEvent('mouseenter', { bubbles: true })), CARD_SEL);
+    await window.locator(CARD_SEL).first().hover();
     await expect.poll(overlaySrc).toContain('data:image/gif');
     await window.evaluate((sel) => document.querySelector(sel).demoteVideo(), CARD_SEL);
     expect(await overlaySrc(), 'the grid demote hook must unmount the .gif overlay').toBe('');
+  } finally {
+    await window.evaluate(() => {
+      window.__mpi759?.grid?.el?.destroy?.();
+      window.__mpi759?.host?.remove();
+      delete window.__mpi759;
+    }).catch(() => {});
+    await closeApp(app);
+  }
+});
+
+test('a real /project-file URL busted by a reload still hovers, even with no gif field', async ({}, testInfo) => {
+  const { app, window } = await launchApp(testInfo);
+
+  try {
+    await window.waitForTimeout(6000);
+    await clearBootModals(window);
+    // No `gif` field (extraction failed, or a legacy import that predates MPI-768)
+    // and a real, cache-busted `/project-file?path=...&v=...` filePath — the shape
+    // a project reload's reconciler hands back, and the shape the original
+    // `/\.gif$/i.test(item.filePath)` fallback never matched (it tested the
+    // wrapper's tail, `&v=1758000000000`, not the `.gif` the path it wraps ends
+    // in). kindOfItem must still call this a GIF from the filename alone, or the
+    // card never gets `_ensureVideoHoverBindings()` wired at all and a real hover
+    // does nothing — Fabio's exact report.
+    await mountGif(window, { level: 4, gifSrc: REAL_GIF_URL, gifField: null });
+
+    // The corner badge is the cheapest external signal that kindOfItem actually
+    // classified this card as `gif` rather than falling through to `image`
+    // (`.mpi-group-card__kind[data-kind]`, MpiGalleryGrid.js `_render()`).
+    await expect.poll(() => window.evaluate(
+      () => document.querySelector('#mpi759-host .mpi-group-card__kind')?.dataset.kind))
+      .toBe('gif');
+
+    const CARD_SEL = '#mpi759-host .mpi-group-card';
+    const overlayExists = () => window.evaluate(
+      () => !!document.querySelector('#mpi759-host .mpi-group-card__thumb--hover-video'));
+
+    expect(await overlayExists(), 'no hover overlay before any hover').toBe(false);
+
+    await window.mouse.move(2, 2);
+    await window.waitForTimeout(200);
+    await window.locator(CARD_SEL).first().hover();
+    // The overlay element must get CREATED (a wrong `image` classification never
+    // calls `_ensureVideoHoverBindings`, so no mouseenter listener exists and
+    // nothing mounts at all — regardless of whether the fake path 404s).
+    await expect.poll(overlayExists, 'a real hover must mount the overlay even though this filePath never resolves').toBe(true);
+
+    const overlaySrc = await window.evaluate(
+      () => document.querySelector('#mpi759-host .mpi-group-card__thumb--hover-video')?.getAttribute('src') || '');
+    expect(overlaySrc).toBe(REAL_GIF_URL);
   } finally {
     await window.evaluate(() => {
       window.__mpi759?.grid?.el?.destroy?.();

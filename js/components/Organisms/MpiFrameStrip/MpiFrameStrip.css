@@ -47,6 +47,21 @@
     pointer-events: none;
 }
 
+/* MPI-771 (UI half) — cut-out tool tint, clipped to the tracked mask PNG via
+   CSS `mask-image` (set inline per thumb, `MpiToolOptionsGifCutout` owns the
+   URL). Read-only preview so a scrub reveals flicker; no UndoStack entry. */
+.mpi-frame-strip__thumb-tint {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: var(--accent-heat);
+    opacity: 0.45;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+}
+
 .mpi-frame-strip__thumb.is-current {
     border-color: var(--accent-heat);
 }

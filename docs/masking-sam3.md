@@ -197,46 +197,5 @@ widget — which is also why no `MpiText` relay is needed here: the encoder is n
   hole-filling by default. Keep it that way: the day it becomes a flag on an existing node, or
   a default in a shipped template, it IS the third copy.
 
----
-
-## Video tracking — GIF cut-out by name (MPI-771)
-
-Same checkpoint, its **video tracker** instead of the single-image detector.
-`comfy_workflows/raw/gif_cutout_sam3.json` / `gif_cutout_sam3.json`
-(op `gifCutoutSam3`, agent-authored with Fabio's explicit permission,
-2026-09-15 — the one exception to "the user edits workflows, the agent
-syncs"): `MpiLoadVideo` (`Input_Video`, ONE video frame per GIF frame, E7 in
-the MPI-757 plan) → `SAM3_VideoTrack` (images + `Input_Text_Prompt`
-conditioning from the SAM3 checkpoint's own CLIP) → `SAM3_TrackToMask`
-(`Input_Object_Indices`) → `Output_Mask` (one mask image PER FRAME, same
-order as the input video) + `SAM3_TrackPreview` → `Output_Preview` (a
-numbered debug video — SAM3 has no per-object mask output, so this is how a
-human reads which tracked index is which object).
-
-- **`Input_Object_Indices` needs the DOTTED injection form.** `object_indices`
-  is not in `comfyController.js`'s generic `_inject` target list (`value`,
-  `text`, `int`, …), so the key must be `'Input_Object_Indices.object_indices'`
-  (MPI-359), exactly like `'Input_Text_Prompt.text'` above — a bare
-  `Input_Object_Indices` key silently sets nothing.
-- **Re-dispatching a different `object_indices` is CHEAP.** ComfyUI caches
-  `SAM3_VideoTrack` by its own inputs; changing only the downstream
-  `SAM3_TrackToMask` widget re-executes just that node, not the tracker. This
-  is the opposite of MPI-421's SEGS picker (removed because a chip toggle
-  re-ran the whole detect) — here a chip toggle is free, so a future UI may
-  re-dispatch per toggle instead of needing a client-side OR of pre-fetched
-  per-object masks.
-- **`max_objects` / `detection_threshold` / `detect_interval` are fixed graph
-  literals** (4, 0.5, 1 — the node's own defaults; `detect_interval: 1` tracks
-  every frame, per the brief's "less flicker" requirement), not app-injected —
-  same pattern as the image branches' `threshold`/`refine_iterations` above.
-- **Runner:** `runGifCutoutTrack()` beside `runAutoMask`
-  (`js/services/commandExecutor.js`) — both engines run the identical graph
-  through `getEngine(forceLocal)`, no local-only shortcut. Live-verified
-  2026-09-16 on a real 30-frame extract of a real mascot clip with the bare
-  text prompt `"robot"`: 30 masks back for 30 frames, each a clean silhouette.
-- **`routes/gifCutout.js`** (not `routes/gif.js`'s `POST /gif/entry`) owns
-  everything else non-GPU: `POST /gif-cutout/source` builds the temp track
-  video this runner needs (E7) and `POST /gif-cutout/apply` bakes the
-  returned masks into each frame's alpha and lands a new entry. Full request/
-  response contracts, the codec choice and the flatten-before-encode
-  reasoning are in that file's own header comment, not duplicated here.
+**Video tracking** (GIF cut-out by name, MPI-771) is the same checkpoint's video tracker —
+moved to its own file when this one passed 200 lines: [masking-sam3-gif.md](masking-sam3-gif.md).

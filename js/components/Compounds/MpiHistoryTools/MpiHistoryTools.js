@@ -23,8 +23,8 @@
  *
  * Props:
  * @param {'image'|'video'|'gif'} mode - Determines the built-in tool list.
- *   `gif` (MPI-769) is empty-but-routed — its rail renders nothing until a
- *   later card (cut-out, timing/output, transform/export) adds tool defs.
+ *   `gif` (MPI-769) was empty-but-routed; MPI-771 lands its first group
+ *   (Cut-out). Timing/output and transform/export still land later.
  *
  * Instance methods (on instance.el):
  *   setMode(mode)      — programmatically activate a mode; emits 'activate { mode }'.
@@ -184,11 +184,21 @@ const VIDEO_TOOLS = [
     },
 ];
 
-// MPI-769: `gif` is empty-but-routed. Its tool panels land in later cards
-// (cut-out MPI-771, timing/output MPI-772, transform/export MPI-773) — this
-// card only makes `gif` a valid mode so a GIF card's rail renders nothing
-// instead of falling back to the image list.
-const GIF_TOOLS = [];
+// MPI-769 made `gif` a valid mode with an empty rail. MPI-771 lands the first
+// tool: the cut-out group (SAM3 by name, Adjust, Invert, Cut out — one panel,
+// `js/components/Organisms/MpiToolOptionsGifCutout`). Timing/output (MPI-772)
+// and transform/export (MPI-773) still land later.
+const GIF_TOOLS = [
+    {
+        mode: 'cutout',
+        label: 'Cut-out',
+        group: [
+            // 'eraser' reused from removeBackground (MPI-425 precedent above) —
+            // both are "cut the subject out of its background" jobs.
+            { mode: 'gifCutout', icon: 'eraser', info: 'Cut-out' },
+        ],
+    },
+];
 
 const TOOL_LISTS = { image: IMAGE_TOOLS, video: VIDEO_TOOLS, gif: GIF_TOOLS };
 

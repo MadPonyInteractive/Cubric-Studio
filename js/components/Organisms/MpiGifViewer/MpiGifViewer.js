@@ -39,6 +39,14 @@
  *                                            shown when preview mode is on
  *   setPreview(bool) / togglePreview() / isPreview()
  *   setGenerating(bool) / setLoading(bool) — spinner, OR'd like every viewer
+ *   setMaskTint(url|null)                  — MPI-771 (UI half): tint the CURRENT
+ *                                            frame with a mask PNG via CSS
+ *                                            `mask-image` on a solid overlay —
+ *                                            a read-only preview, not a canvas/
+ *                                            paint layer, so no UndoStack entry
+ *                                            applies (docs/masking-sam3-gif.md).
+ *                                            Owned by the cut-out tool panel;
+ *                                            `null` clears it.
  *   destroy()
  *
  * The Block wires the control bar / frame strip to this component's own
@@ -69,7 +77,10 @@ export const MpiGifViewer = ComponentFactory.create({
     template: () => `
         <div class="mpi-gif-viewer" data-mode="frames">
             <div class="mpi-gif-viewer__stage">
-                <img class="mpi-gif-viewer__frame" alt="" />
+                <div class="mpi-gif-viewer__frame-wrap">
+                    <img class="mpi-gif-viewer__frame" alt="" />
+                    <div class="mpi-gif-viewer__mask-tint" id="mask-tint"></div>
+                </div>
                 <img class="mpi-gif-viewer__preview" alt="" hidden />
                 <div class="mpi-gif-viewer__spinner" id="spinner-wrap"></div>
             </div>
@@ -77,7 +88,9 @@ export const MpiGifViewer = ComponentFactory.create({
     `,
 
     setup: (el, props, emit) => {
+        const frameWrap  = qs('.mpi-gif-viewer__frame-wrap', el);
         const frameImg   = qs('.mpi-gif-viewer__frame', el);
+        const maskTintEl = qs('#mask-tint', el);
         const previewImg = qs('.mpi-gif-viewer__preview', el);
         const spinnerWrap = qs('#spinner-wrap', el);
         MpiSpinner.mount(spinnerWrap, { size: 'lg', variant: 'primary' });
@@ -221,10 +234,12 @@ export const MpiGifViewer = ComponentFactory.create({
                 _stopPlayback();
                 previewImg.src = _gifUrl || '';
                 previewImg.hidden = !_gifUrl;
-                frameImg.hidden = true;
+                // Hide the whole wrap, tint included — a mask preview means
+                // nothing over the built (256-colour) `.gif`.
+                frameWrap.hidden = true;
             } else {
                 previewImg.hidden = true;
-                frameImg.hidden = false;
+                frameWrap.hidden = false;
             }
             emit('preview-change', { preview: _preview });
         };
@@ -233,6 +248,22 @@ export const MpiGifViewer = ComponentFactory.create({
 
         el.setGenerating = (on) => { _isGenerating = !!on; _syncSpinner(); };
         el.setLoading    = (on) => { _isLoading = !!on; _syncSpinner(); };
+
+        // MPI-771 (UI half): a solid overlay clipped to the mask PNG via CSS
+        // `mask-image`, sized to the frame img's own rendered box by
+        // `.mpi-gif-viewer__frame-wrap` (docs/masking-sam3-gif.md) — read-only
+        // preview, never a canvas layer, so no UndoStack entry applies.
+        el.setMaskTint = (url) => {
+            if (url) {
+                maskTintEl.style.webkitMaskImage = `url("${url}")`;
+                maskTintEl.style.maskImage = `url("${url}")`;
+                maskTintEl.classList.add('mpi-gif-viewer__mask-tint--visible');
+            } else {
+                maskTintEl.classList.remove('mpi-gif-viewer__mask-tint--visible');
+                maskTintEl.style.webkitMaskImage = '';
+                maskTintEl.style.maskImage = '';
+            }
+        };
 
         let _destroyed = false;
         el.destroy = () => {

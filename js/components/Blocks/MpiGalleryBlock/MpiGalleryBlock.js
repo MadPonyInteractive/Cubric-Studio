@@ -225,6 +225,7 @@ export const MpiGalleryBlock = ComponentFactory.create({
                         duration: uploaded.duration,
                         frameCount: uploaded.frameCount,
                         hasAudio: uploaded.hasAudio,
+                        gif: uploaded.gif,
                         mediaType,
                     });
                     if (inject) {

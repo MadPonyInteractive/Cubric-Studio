@@ -111,8 +111,8 @@ test('gif workspace: no PromptBox; play/step/scrub keep the strip centred; reord
 
     // Plan scope item 6 — no model generates a GIF in v1.
     expect(await window.evaluate(() => !!document.querySelector('#prompt-box-mount .mpi-prompt-box'))).toBe(false);
-    // MPI-769 scope — empty-but-routed tool list, no rail buttons yet.
-    expect(await window.evaluate(() => document.querySelectorAll('.mpi-history-tools__slot').length)).toBe(0);
+    // gif's own tool list: the cut-out group (MPI-771), not image's or video's.
+    expect(await window.evaluate(() => document.querySelectorAll('.mpi-history-tools__slot').length)).toBe(1);
 
     let c = await readCounter(window);
     expect(c.cur).toBe('0000');

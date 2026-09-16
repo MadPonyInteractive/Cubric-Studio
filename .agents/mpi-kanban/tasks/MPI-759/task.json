@@ -3,11 +3,11 @@
   "id": "MPI-759",
   "title": "GIF as its own gallery asset kind",
   "description": "UMBRELLA: MPI-757 - GIF workspace (created 2026-09-14). Members and phase order: tasks/MPI-757/plan.md. GIF kind row and icon (card chip and filter panel); every GIF card stays still until hover, and hover plays the built .gif. Waits on MPI-749.",
-  "column": "done",
-  "maturity": "complete",
-  "status": "done",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
   "created_at": "2026-09-14T16:58:21+01:00",
-  "updated_at": "2026-09-16T09:25:32+01:00",
+  "updated_at": "2026-09-16T11:05:05Z",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -17,5 +17,10 @@
     "events": "events.jsonl",
     "handoffs": "handoffs/",
     "research": "research/"
+  },
+  "attention": {
+    "state": "required",
+    "reason": "Needs Fabio's eye check (see validation.md)",
+    "updated_at": "2026-09-16T11:05:05Z"
   }
 }

@@ -146,8 +146,8 @@ test('image, video and gif groups each mount their own viewer, rail and control 
     expect(dom.videoViewer).toBe(false);
     expect(dom.gifBar).toBe(true);
     expect(dom.frameStrip).toBe(true);
-    // MPI-769 scope: gif's tool list is empty-but-routed — no rail buttons yet.
-    expect(dom.railSlots).toBe(0);
+    // gif's own tool list: the cut-out group (MPI-771), not image's or video's.
+    expect(dom.railSlots).toBe(1);
     // Plan scope item 6: no model generates a GIF in v1.
     expect(dom.promptBox).toBe(false);
   } finally {

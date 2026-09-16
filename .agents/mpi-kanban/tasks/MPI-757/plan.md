@@ -35,9 +35,33 @@ investigators got wrong: [research/2026-09-15-investigation.md](research/2026-09
   verified live (30 real frames through the mounted routes gave 30 masks); the card stays `doing` for its UI
   half. Integration fixed `buildGif` (see drift), mounted both routes, registered `gifCutoutSam3`, and
   added `tests/desktop/gif-make.spec.js` (real app, no stubs). Evidence: each card's `validation.md`.
-- **Next action:** Batch 3 via `mpi-execute-parallel`: MPI-771 UI half, plus the server halves of MPI-773
-  and MPI-760. MPI-773 and MPI-760 move todo -> doing with `files.json` (both halves) first. MPI-771's UI
-  half contract is in its `validation.md` and the `routes/gifCutout.js` header.
+- **2026-09-16 ~09:50Z: Batch 3 dispatched** (session bfa79224): MPI-771 UI half, MPI-773 and MPI-760
+  server halves (both moved todo -> doing, `files.json` lists both halves), plus a fourth worker for
+  the reopened MPI-759 (Fabio: GIF cards do not play on hover in his app). `js/components/types.js` and
+  `js/shell/preloadStyles.js` are under a live MPI-774 claim, so the MPI-771 worker does NOT edit them:
+  the orchestrator adds those two registration hunks at integration and tells MPI-774.
+- **2026-09-16 ~11:05Z: Batch 3 integrated, NOT COMMITTED.** All four halves landed and every automated
+  check is green (evidence in each card's `validation.md`). The three routes are mounted in `server.js`.
+  MPI-773 and MPI-760 stay `doing/in-progress` for their UI halves. MPI-771 and the reopened MPI-759 are
+  `doing/validating` with attention: they need Fabio's eye check (MPI-771: mask a real mascot GIF by name
+  on the local engine, then on RunPod with his go; MPI-759: hover a GIF card after a reload).
+  **Landed at handoff after MPI-774 released its claim (was blocked):** the `MpiToolOptionsGifCutout` registration hunks, plus the PromptBox `gif` line and the `js/events.js` payload comment. History of the block: (a `preloadStyles.js`
+  line; the typedef plus `setMaskTint`/`setMaskOverlay` lines in `types.js`, text in MPI-771's worker
+  report and `validation.md`). `guard-claim` refuses both files while MPI-774's claim 4a387ed9 is live.
+  Messages bb83d121 and 9aec0dd9 (the PromptBox `gif` line) are open to MPI-774. Commit Batch 3 by
+  pathspec, `server.js` by hunk.
+- **2026-09-16 ~11:30Z: Fabio's eye check, both FAILED/REDIRECTED. Batch 3 committed at handoff.**
+  (a) MPI-759: after an app RESTART, previously made GIFs still do not play on hover in the gallery.
+  They DO loop in the project (landing) cards and the history cards. So the `assetKinds` fix covered a
+  real bug but not his case: his Make GIF cards carry `gif` in the sidecar, so they already classify as
+  `gif`. The hover path itself fails for them in the real app while the spec passes. Root cause unknown.
+  (b) MPI-771 cut-out: Fabio redirected the design (Decision 14 below). His screenshots also show
+  cut-out entries listing `?×?` dimensions (no `pixelDimensions` on the `/gif-cutout/apply` item), a
+  black `gif_003` thumbnail, and a mask with holes where the woman and the dog overlap.
+- **Next action:** MPI-759 root cause in the real app first (he can reload for you; read
+  `%APPDATA%\Cubric Vision\logs\app.log` filtered, never drive `:3000`). Then redesign the MPI-771 UI half
+  per Decision 14 (plan it with Fabio before coding: it needs a per-frame mask layer and brush). Phase 4
+  waits until the cut-out design settles.
 
 ## What we are building
 
@@ -63,6 +87,7 @@ cut-out) ever passes through 256 colours.
 | 11 | Cut-out = SAM3 by name with video tracking, Mask Adjust across frames, Invert, cut into alpha. No BiRefNet. No batching in v1: Fabio masks 15 s 24 fps videos with SAM3 with no memory issue. |
 | 12 | The agent authors the SAM3 GIF graph itself, modelled on the existing SAM3 graph (explicit permission, 2026-09-15). |
 | 13 | GIF Maker (video workspace) creates a new GIF card, not a history entry in the video card. |
+| 14 | (2026-09-16, after the first cut-out eye check) Cut-out gets a different system. Drop the count input (the 0-3 object chips replace it). Object numbers may not stay the same object from frame to frame, so a track is not the final mask. Offer **Track All** and **Track Single Frame**; the user then steps frame to frame and fixes the mask with a **mask brush** (a separate tool), e.g. where the woman and the dog overlap. Details still to design with Fabio. |
 
 ## Members
 
@@ -257,7 +282,7 @@ Phase 2 verify mode: `user-ux` for MPI-769 only; the other two `auto`.
 Orchestrator after the workers: mount `routes/gifTransform.js`, `routes/gifToVideo.js` and
 `routes/gifMaker.js` in `server.js`.
 
-- [ ] **MPI-771 (UI half) Cut-out tool group.** Mask by name (text + count, chips to keep or drop),
+- [x] **MPI-771 (UI half) Cut-out tool group.** (automated green 2026-09-16; user-ux open) Mask by name (text + count, chips to keep or drop),
   Mask Adjust set once for all frames with a current-frame preview reusing
   `MpiToolOptionsMaskAdjust`'s math, Invert, Cut out -> new entry via `routes/gifCutout.js`. Tint on
   the viewer and strip thumbnails so flicker shows while scrubbing. The mask lives until applied or
@@ -272,7 +297,7 @@ Orchestrator after the workers: mount `routes/gifTransform.js`, `routes/gifToVid
   **user-ux**: on a real mascot GIF Fabio masks the mascot by name, the ground shadow is not in the
   mask, Cut out gives a transparent background, scrubbing shows no edge flicker worth fixing, on the
   local engine AND on RunPod (Fabio's go to rent the Pod; RunPod cards run one at a time).
-- [ ] **MPI-773 (server half) transform and GIF to Video routes.** `routes/gifTransform.js`: Crop
+- [x] **MPI-773 (server half) transform and GIF to Video routes.** `routes/gifTransform.js`: Crop
   (one rectangle, every frame) and Resize (one size) -> new frames -> new entry.
   `routes/gifToVideo.js`: frames + delays -> constant 30 fps h264 MP4 at frame size (even
   dimensions), frames repeated to hold each delay, transparent areas filled with a background colour
@@ -282,7 +307,7 @@ Orchestrator after the workers: mount `routes/gifTransform.js`, `routes/gifToVid
   `node --test "tests/gif-transform.test.cjs"`: crop 9:16 then GIF to Video on three 3 s frames gives a
   30 fps MP4 of about 9 s with even dimensions, poster and proxy written, and a sampled video pixel
   matches the source frame within codec tolerance (not a 256-colour palette value).
-- [ ] **MPI-760 (server half) GIF Maker route.** `routes/gifMaker.js`: a video item + fps + trim range
+- [x] **MPI-760 (server half) GIF Maker route.** `routes/gifMaker.js`: a video item + fps + trim range
   -> full-resolution frames through `services/gifFrames.js` -> built `.gif` at the size preset -> a
   new GIF item and sidecar (a new card, decision 13). `routes/videoGif.js` stays as the preview
   encoder. Ownership: `routes/gifMaker.js` (new), `tests/gif-maker.test.cjs` (new). Briefings:
@@ -367,6 +392,24 @@ Phase 5 verify mode: `auto`.
   live track used an existing MP4), so the worker went back to add it.
 - 2026-09-16 (Fabio, after his eye check): Make GIF holds each still 1 s (delay 100), not 10 fps. 10 fps
   flashed unrelated images (a seizure risk). Decision 8 (no prompt) stands.
+- 2026-09-16 (Batch 3): Fabio reports GIF cards do not play on hover in the gallery, which is decision 5
+  and MPI-759's own Verify ("hover mounts it"). MPI-759 reopened (done -> doing) and a fourth Batch 3
+  worker owns the fix; its footprint (gallery grid, renditions) is disjoint from the other three.
+- 2026-09-16 (Batch 3): orchestrator review sent two workers back. MPI-760: `480xauto`/`autox480` name a
+  WIDTH/HEIGHT (videoGif.js), not a longest-edge cap, so the route derives `buildGif`'s box from the
+  frame aspect. MPI-773: per-frame delay rounding to 30 fps drifted (delay 5 +33%, delay 7 -5%), so it
+  now rounds the running total. Both got a test that was red first.
+- 2026-09-16 (Batch 3): the MPI-759 root cause was `assetKinds.js` matching `.gif` against the wrapped
+  `/project-file?path=` URL. The import chain also dropped the upload's `gif` field (fixed in
+  `mediaUploadService.js`, `mediaImportService.js`, the gallery drop emitter and `docs/events.md`).
+- 2026-09-16 (Batch 3): the new cut-out group made two gif-rail assertions stale (`history-modes.spec.js`,
+  `gif-workspace.spec.js`: 0 -> 1 slot); the orchestrator fixed both. MPI-773/760 UI halves must update
+  them again when they add tools.
+- 2026-09-16 (Batch 3): the MPI-771 spec reaches a real Cut out by faking only the GPU: it patches
+  `getEngine().runWorkflow`/`httpBase` in the page and serves masks from a Node HTTP stub. Later GIF
+  specs that need an engine result can reuse that seam.
+- 2026-09-16 (Batch 3): `tests/desktop/media-import-outside-gallery.spec.js` fails intermittently in long
+  desktop runs (a ~15 s whole-server stall; details in MPI-759 `validation.md`). Not this work; reported.
 - 2026-09-16 (Batch 2): `routes/gifMake.js` writes its own sidecar and returns a raw descriptor
   (the `/combine-videos` precedent) rather than going through `/gif/entry`.
 

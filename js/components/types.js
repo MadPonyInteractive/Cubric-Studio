@@ -214,6 +214,33 @@
  */
 
 /**
+ * @typedef {Object} MpiToolOptionsGifCutoutProps (Organism — js/components/Organisms/MpiToolOptionsGifCutout)
+ * @property {Object} viewer - MpiGifViewer instance
+ *
+ * MPI-771 (UI half). SAM3 video tracking by name across every frame, into a new
+ * alpha-cut entry: Track (dispatches `runGifCutoutTrack` directly, no Block
+ * context needed) -> read SAM3_TrackPreview's numbered debug video -> 4 fixed
+ * object chips (max_objects is a graph literal) to keep/drop, each toggle a
+ * cheap re-dispatch (SAM3_VideoTrack is cached) -> Mask Adjust (Grow/Shrink,
+ * live-previewed on the CURRENT frame via the same managers/distanceField.js
+ * functions the server runs) + Fill Holes + Invert, set once for every frame ->
+ * Cut out. The panel dispatches SAM3 itself but does NOT commit a history entry:
+ * Cut out only emits; the Block posts POST /gif-cutout/apply and appends the
+ * result (MpiGroupHistoryBlock._handleGifCutoutApply, same shape as the frame
+ * strip's own Apply).
+ *
+ * Requires viewer.el: getFrames(), getFrameIndex()
+ *
+ * Emits:
+ *   'mask-tint'    { url: string|null }     — current-frame ADJUSTED preview;
+ *                    Block hands to viewer.el.setMaskTint(url)
+ *   'mask-overlay' { masks: string[]|null } — every frame's RAW tracked mask,
+ *                    index-aligned; Block hands to frameStrip.el.setMaskOverlay(masks)
+ *   'apply' { frames, masks, adjust: {grow, fillHoles}, invert } — Cut out
+ *            pressed and the frame signature still matches the last Track
+ */
+
+/**
  * @typedef {Object} MpiToolOptionsPromptProps (Organism — js/components/Organisms/MpiToolOptionsPrompt)
  * @property {Object} promptBox - Live MpiPromptBox instance handle (mount return)
  * @property {Object} project - Current project { id, folderPath } for thumb drop uploads
@@ -2500,6 +2527,8 @@
  *                                       when preview mode is on
  *   setPreview(bool) / togglePreview() / isPreview()
  *   setGenerating(bool) / setLoading(bool)
+ *   setMaskTint(url|null)             — MPI-771: tint the current frame via
+ *                                       CSS mask-image; null clears it
  *   destroy()
  *
  * Emits:
@@ -2565,6 +2594,8 @@
  *                            both become `frames`, the marker resets to
  *                            frame 0 (matching the paired
  *                            `viewer.el.loadFrames()` call), pill hides.
+ *   setMaskOverlay(masks|null) — MPI-771: tint visible thumbs, index-aligned
+ *                            (not hash-keyed); cleared by setFrames()/commit().
  *   destroy()
  *
  * Emits:

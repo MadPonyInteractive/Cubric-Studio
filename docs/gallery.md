@@ -106,6 +106,28 @@ mounted at any slider size (including the no-large-rendition clamp case),
 viewport entry alone never mounts it, a real hover does, leave and the demote
 hook both unmount it.
 
+**Reopened 2026-09-16 — the filename fallback never matched a real card.**
+Every `filePath` the client holds is server-wrapped as
+`/project-file?path=<encoded abs path>`, and a reloaded project's item comes
+back additionally cache-busted (`&v=<mtime>`, `projectFileUrlBusted` in
+`routes/projects.js`) by the client reconciler (`js/managers/projectReconciler.js`)
+that re-hydrates `history` from the on-disk sidecar on every project open. The
+original `/\.gif$/i.test(item.filePath)` fallback tested that whole wrapped
+string, which never ends in `.gif` — so a legacy import whose `gif` field is
+absent (frame extraction failed — an anticipated case, `routes/projects.js`:
+"the card still lands as a plain animated GIF, just without a frames store" —
+or one that predates MPI-768) fell through to the plain `image` row. An
+`image`-kinded card never gets `_ensureVideoHoverBindings()` called
+(`MpiGalleryGrid.js` `_render()`), so no mouseenter/mouseleave listener exists
+at all and a real hover does nothing — the still-until-hover contract was
+never wired for that card, not merely suspended. `kindOfItem`
+(`js/utils/assetKinds.js`) now decodes the `path=` query value before matching
+the extension (`_underlyingPath`), so the fallback fires on the real filename
+regardless of the wrapper or a reload's cache-bust. Neither the original
+`dispatchEvent`-driven spec nor `tests/asset-kinds.test.cjs`'s bare
+`/Media/mascot.gif` fixtures ever built the wrapped shape, which is why the
+regression shipped past both.
+
 ## Media suspension — the gallery hands its VRAM back (MPI-631)
 
 A promoted hover `<video>` is `preload="auto"`, so it holds a decoder and its decode surfaces for as long as the element exists. Promotion used to be a **one-way ratchet** — the promote `IntersectionObserver` called `unobserve` the moment a card promoted — so every video card that ever scrolled past kept its decoder for the life of the grid. Measured on a 161-asset project (RTX 4060 Ti, engine not running): Vision held **410 MB** of dedicated VRAM idle on landing and **1858 MB** after one scroll through the gallery, byte-identical for 13 idle minutes with zero decay. Entering the History workspace dropped it to **404 MB** — navigating away destroys the grid, which was the only thing that ever released it.

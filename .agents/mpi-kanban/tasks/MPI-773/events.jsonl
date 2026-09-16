@@ -1,1 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-773", "at": "2026-09-15T13:37:31+01:00", "actor": "claude", "column": "todo", "title": "GIF transform and export tools"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-773", "at": "2026-09-16T10:49:10+01:00", "actor": "claude:bfa79224", "from": "todo", "to": "doing", "reason": "MPI-757 Batch 3: server half (gifTransform, gifToVideo) started; files.json lists both halves."}
+{"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-773", "at": "2026-09-16T10:03:58Z", "actor": "claude:bfa79224", "summary": "Server half verified (MPI-757 Batch 3); see validation.md."}
+{"schema": "mpi-kanban/event/v1", "type": "checklist.updated", "id": "MPI-773", "at": "2026-09-16T10:03:58Z", "actor": "claude:bfa79224", "summary": "Server half items checked."}

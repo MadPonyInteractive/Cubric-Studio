@@ -35,7 +35,7 @@ function _sourcePathFor(file) {
  * @param {Object} [opts]
  * @param {string} [opts.filenamePrefix='imported'] - Filename prefix (e.g. 'snapshot') before _NNN.<ext>
  * @param {string} [opts.operation='imported'] - Sidecar operation field (e.g. 'snapshot')
- * @returns {Promise<{filePath: string, filename: string, itemId: string, thumbPath: string|null, thumbPathLg: string|null, proxyPath: string|null, pixelDimensions: {w: number, h: number}, fps: number|null, duration: number|null, frameCount: number|null, hasAudio: boolean|null}|null>}
+ * @returns {Promise<{filePath: string, filename: string, itemId: string, thumbPath: string|null, thumbPathLg: string|null, proxyPath: string|null, pixelDimensions: {w: number, h: number}, fps: number|null, duration: number|null, frameCount: number|null, hasAudio: boolean|null, gif: object|null}|null>}
  */
 export async function uploadMediaFile(file, mediaType, projectFolderPath, projectId, opts = {}) {
     if (!projectFolderPath || !projectId) {
@@ -97,6 +97,9 @@ export async function uploadMediaFile(file, mediaType, projectFolderPath, projec
             duration:   data.duration   ?? null,
             frameCount: data.frameCount ?? null,
             hasAudio:   data.hasAudio   ?? null,
+            // A `.gif` import's frames store entry (MPI-768), so the live item
+            // matches its sidecar before any reload (MPI-759).
+            gif:        data.gif        ?? null,
         };
     } catch (e) {
         clientLogger.warn('mediaUploadService', 'Media save failed:', e);

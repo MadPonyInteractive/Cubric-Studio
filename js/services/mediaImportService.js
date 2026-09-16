@@ -28,7 +28,7 @@ import {
     appendToHistory,
 } from '../data/projectModel.js';
 
-function _buildGroup({ url, filename, itemId, thumbPath, thumbPathLg, proxyPath, mediaType, pixelDimensions, fps, duration, frameCount, hasAudio }) {
+function _buildGroup({ url, filename, itemId, thumbPath, thumbPathLg, proxyPath, mediaType, pixelDimensions, fps, duration, frameCount, hasAudio, gif }) {
     const isVideo = mediaType === 'video';
     const isAudio = mediaType === 'audio';
     const dims = pixelDimensions?.w > 0 && pixelDimensions?.h > 0
@@ -71,6 +71,7 @@ function _buildGroup({ url, filename, itemId, thumbPath, thumbPathLg, proxyPath,
             uploaded: true,
             operation: 'imported',
             pixelDimensions: dims || { w: 0, h: 0 },
+            gif: gif ?? null,
         });
 
     const group = createItemGroup(mediaType, {

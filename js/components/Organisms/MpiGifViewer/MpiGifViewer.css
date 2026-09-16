@@ -18,13 +18,59 @@
     background: transparent;
 }
 
-.mpi-gif-viewer__frame,
 .mpi-gif-viewer__preview {
     max-width: 100%;
     max-height: 100%;
     width: auto;
     height: auto;
     object-fit: contain;
+}
+
+/* Wraps just the frame img so the mask tint (below) can sit at inset:0 and land
+   on the SAME rendered box the letterboxed <img> occupies, not the whole stage.
+   `height: 100%` is load-bearing: it gives the wrap a DEFINITE height (a flex
+   item's percentage height resolves against the flex container regardless of
+   the item's own display type), which is what lets the img's `max-height: 100%`
+   resolve inside it — an auto-height wrap would leave that percentage
+   unconstrained and the frame would render at its full intrinsic size. */
+.mpi-gif-viewer__frame-wrap {
+    position: relative;
+    height: 100%;
+    max-width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mpi-gif-viewer__frame {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+
+/* MPI-771 (UI half) — a solid tint clipped to the current frame's mask PNG via
+   CSS `mask-image`. `mask-size: 100% 100%` stretches to this div's OWN box
+   rather than "contain": the box already equals the frame img's rendered
+   letterboxed box (the wrap above), so a second containment pass would only
+   risk double letterboxing on a rounding mismatch. */
+.mpi-gif-viewer__mask-tint {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: var(--accent-heat);
+    opacity: 0;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    transition: opacity var(--t-fast) var(--ease);
+}
+
+.mpi-gif-viewer__mask-tint--visible {
+    opacity: 0.45;
 }
 
 /* ── Load/generation spinner — centred over the stage ───────────────────── */

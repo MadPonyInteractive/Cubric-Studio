@@ -23,6 +23,27 @@
  * No imports: `MpiGalleryGrid.js` reaches utils by absolute browser path, which Node
  * cannot resolve, so the rule lives here to stay testable (tests/asset-kinds.test.cjs).
  */
+
+/**
+ * Every `filePath` the client ever sees is wrapped by the server as
+ * `/project-file?path=<encoded abs path>` — `projectFileUrlBusted` (routes/projects.js)
+ * appends `&v=<mtime>` to it for every upload/import, so the raw string NEVER ends in
+ * `.gif`: it ends in the cache-bust digits. A legacy `.gif` import's `gif` field is also
+ * routinely absent client-side (the shared `media:imported` listener does not carry it
+ * through — MPI-759 follow-up), which made the filename fallback below the ONLY thing
+ * standing between a real imported GIF and the plain `image` row, and it was matching
+ * against the wrapper string instead of the path it wraps — so it never fired for a
+ * single real card, only for the bare-path shape unit tests hand-wrote (verified
+ * 2026-09-16: MPI-759 reopened). Decode the `path=` query value first; fall back to the
+ * raw string for anything not shaped like the wrapper (a bare path, already-decoded, or
+ * absent).
+ */
+function _underlyingPath(filePath) {
+    const m = /[?&]path=([^&]+)/.exec(filePath || '');
+    if (!m) return filePath || '';
+    try { return decodeURIComponent(m[1]); } catch (_) { return m[1]; }
+}
+
 export const ASSET_KINDS = Object.freeze([
     { kind: 'scene', label: '3D Scenes', singular: '3D Scene', icon: 'cube',  badge: true,  panelOrder: 5, match: (item) => !!item?.splatPath },
     { kind: 'video', label: 'Videos',    singular: 'Video',    icon: 'video', badge: true,  panelOrder: 3, match: (item) => item?.type === 'video' },
@@ -32,7 +53,7 @@ export const ASSET_KINDS = Object.freeze([
     // legacy import has none but a `filePath` ending `.gif` (matched
     // case-insensitively). Either is enough — the field's inner shape never matters
     // here.
-    { kind: 'gif',   label: 'GIFs',      singular: 'GIF',      icon: 'gif',   badge: true,  panelOrder: 2, match: (item) => !!item?.gif || (item?.type === 'image' && /\.gif$/i.test(item?.filePath || '')) },
+    { kind: 'gif',   label: 'GIFs',      singular: 'GIF',      icon: 'gif',   badge: true,  panelOrder: 2, match: (item) => !!item?.gif || (item?.type === 'image' && /\.gif$/i.test(_underlyingPath(item?.filePath))) },
     { kind: 'image', label: 'Images',    singular: 'Image',    icon: 'image', badge: false, panelOrder: 1, match: () => true },
 ]);
 
