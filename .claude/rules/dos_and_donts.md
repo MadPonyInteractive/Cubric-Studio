@@ -11,6 +11,7 @@
 - **Icon stroke is auto-detected — never pass `stroke: true` to `MpiButton`.** Name icons with `ratio_` prefix or `_stroke` suffix and `renderIcon()` handles stroke automatically.
 - **Never use raw `document.querySelector`.** Use `js/utils/dom.js` shorthands.
 - **BEM naming is mandatory.** Format: `.mpi-block__element--modifier`.
+- **Never remove an element only on `transitionend`.** It never fires when a class flip starts no transition (e.g. closed before the open transition painted a frame). Wait on `Promise.allSettled(el.getAnimations().filter(a => a instanceof CSSTransition).map(a => a.finished))` instead (MPI-788).
 - **For image surfaces: prefer CSS `transform` on a stack element over `ctx.translate/scale`.** CSS transform uses the GPU compositor — no re-rasterize per frame. `ctx` transforms belong only to screen-UI overlays drawn in container px.
 - **Check `js/utils/` before writing any generic logic** — `async.js`, `file.js`, `images.js`, `video.js`, `mediaDimensions.js`, `string.js`, `ratios.js`, `markdown.js` may already do what you need.
 - **Never hand-roll markdown.** `js/utils/markdown.js` is the ONE renderer (`marked` parses, `DOMPurify` sanitizes): `renderMarkdown(src)` for a document, `renderInlineMarkdown(src)` for a single line with no `<p>` wrapper, `renderMarkdownInto(el, src)` + `wireMarkdownLinks(el)` for a live pane. Never `innerHTML` markdown output that did not go through it — notes arrive inside project folders the user may not have written. Style the result with the shared `.mpi-md` block in `styles/markdown.css`; do not restyle headings/tables per component.
@@ -83,6 +84,14 @@ A class carrying `display` **outranks** the UA sheet's `[hidden] { display: none
 - Toggling a modifier class instead of `hidden` is equally fine; what is never fine is `hidden` alone against a `display` you wrote.
 
 **This has shipped three times** (MPI-382 inert slider rows, MPI-373 twice — the second time with warning comments about it sitting in the same file). If you write `hidden`, grep your own `.css` for that element's `display` in the same edit.
+
+### 🔴 Never remove an element ONLY on `transitionend`
+`transitionend` fires only if a transition actually RUNS, and a class flip does not guarantee one. If the computed value already equals the target, nothing runs and the event never comes. The common case: an element opened and closed before its open transition has painted a frame is still at its start values, so the close changes nothing.
+
+- Wait on the element's real transitions instead: `Promise.allSettled(el.getAnimations().filter(a => a instanceof CSSTransition).map(a => a.finished))`, called right after the class change (`getAnimations()` flushes style, so it sees the transitions that change started). No transitions = the promise settles at once; a cancelled one settles too.
+- No `setTimeout` backstop in new code: it hides the missing transition instead of handling it.
+
+**It bit MPI-784's click-to-dismiss:** a toast clicked while its fade-in was still pending stayed invisible in the stack forever, holding a slot, so every toast queued behind it stayed hidden (MPI-788, `MpiToast.js`). `MpiSlideOver` still uses the older 400 ms timeout backstop.
 
 ---
 

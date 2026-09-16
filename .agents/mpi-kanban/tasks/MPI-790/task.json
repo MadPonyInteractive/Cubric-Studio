@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-790",
+  "title": "Rule: never remove an element only on transitionend",
+  "description": "Add the MPI-788 lesson to .claude/rules/dos_and_donts.md (user-approved): wait on getAnimations(), not transitionend.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-16T23:06:17+01:00",
+  "updated_at": "2026-09-16T23:07:15+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
