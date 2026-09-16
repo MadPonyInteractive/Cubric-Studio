@@ -1,7 +1,7 @@
 # Gallery kinds, the FILTER panel and the gallery toolbar
 
-MPI-749. What a gallery card IS (its **kind**), how the gallery filters and sorts, and the
-toolbar in the project bar that drives both. Archive as a scope lives in
+MPI-749. What a gallery card IS (its **kind**), how the gallery filters and sorts, the card
+**marks** (MPI-785), and the toolbar in the project bar that drives the filter. Archive as a scope lives in
 [gallery.md](gallery.md) § Archive. Verify a named file/function still exists before relying
 on an entry.
 
@@ -15,6 +15,7 @@ on an entry.
 | `icon` | a key in `js/utils/icons.js`; the chip and the panel row both render it |
 | `badge` | `true` = the card shows the bottom-right kind chip |
 | `panelOrder` | the order the panel lists rows and the tooltip names them (`PANEL_KINDS`) |
+| `type` | the media slot the kind can fill; the media picker opens a slot with every other kind hidden |
 
 - **Row order is match precedence, and the first match wins.** A kind that is a special case
   of another sits ABOVE it: a 3D Scene is an image item carrying `splatPath`, so `scene` is
@@ -26,8 +27,8 @@ on an entry.
   and the panel pass `{ type: group.type }` in its place.
 - `badge: false` means the card already reads as itself: unmarked is a picture, and an audio
   card's waveform says audio.
-- `MpiMediaPicker` does NOT read this table: its type tabs still filter by `group.type`
-  (`tests/desktop/media-picker-cards.spec.js` pins that divergence).
+- `MpiMediaPicker` reads it through the same filter (below), so a card lists under the same
+  kind in the picker as in the gallery (`tests/desktop/media-picker-cards.spec.js`).
 
 ## Adding a media kind (GIF, MIDI, stems, characters…)
 
@@ -42,8 +43,8 @@ kind is visible by default. Skip the row and nothing errors: the item silently l
    (`type: 'image'`, matched by a truthy `gif` field or a legacy `.gif` filename —
    see [gallery.md](gallery.md) § GIF cards for how the card then paints it).
 2. **Add the row** to `ASSET_KINDS`, ABOVE any row it would otherwise fall into (a GIF that is
-   `type: 'image'` goes above `image`), with `label`, `singular`, `badge`, and a `panelOrder`
-   where it should list (renumber the others if it goes in between).
+   `type: 'image'` goes above `image`), with `label`, `singular`, `type`, `badge`, and a
+   `panelOrder` where it should list (renumber the others if it goes in between).
 3. **Add its icon** to `js/utils/icons.js`, a 24-unit fill path like its neighbours.
    `renderIcon` falls back silently on a missing key; `tests/asset-kinds.test.cjs` fails instead.
 4. **Update the tests.** `tests/asset-kinds.test.cjs`: the match, the precedence case, the
@@ -55,25 +56,51 @@ kind is visible by default. Skip the row and nothing errors: the item silently l
 
 ## The filter contract: `gallerySort` (`js/utils/galleryFilter.js`)
 
-`state.gallerySort = { order, scope, hiddenKinds, favourites, previews }`, starting from the
-frozen `DEFAULT_GALLERY_SORT` (spread it — its array is frozen too). In-memory by design: a
+`state.gallerySort = { order, scope, hiddenKinds, marks, previews }`, starting from the
+frozen `DEFAULT_GALLERY_SORT` (spread it — its arrays are frozen too). In-memory by design: a
 launch never opens into a filtered-looking gallery (MPI-678). Replace the top-level key, never
 mutate it.
 
 - `matchesGallerySort(group, item, sort)` is the grid's only predicate: **scope first**
-  (subtractive), then `hiddenKinds` via `kindOfItem(item)`, then the `favourites` and
-  `previews` "only" flags, ANDed. `order` hides nothing.
+  (subtractive), then `hiddenKinds` via `kindOfItem(item)`, then the `marks` "only" list (the
+  card's mark is one of them — marks OR together) and the `previews` "only" flag, ANDed. `order` hides nothing.
 - `isGalleryFiltered(sort)` — any hidden kind or flag. It drives the FILTER heat dot and the
   empty states; Oldest does not count.
 - `listedKinds(entries, sort)` — the panel's rows: kinds with a card in the CURRENT scope,
   plus every hidden kind (so a hidden kind can always be switched back on), in panel order.
   NONE hides the listed kinds only.
-- `describeGalleryFilter(sort, listed)` — `Videos, 3D Scenes · Favs`, shown as `Filtered: …`.
-  Pass the listed kinds, or it names kinds the project has no cards of.
+- `describeGalleryFilter(sort, listed)` — `Videos, 3D Scenes · Dots, Squares`, shown as
+  `Filtered: …`. Pass the listed kinds, or it names kinds the project has no cards of.
+- `byGalleryOrder(order)` — the createdAt comparator the grid and the media picker share.
+
+## Card marks (MPI-785)
+
+The card's top-right mark replaced the heart: a small **dot**, **square** or **triangle**
+(`CARD_MARKS` in `galleryFilter.js`, icons `mark_*`). It is stored in the existing
+`group.favourite` field — the mark id, or `false` — so persistence is the old favourite path
+unchanged (`persistGroups`, the `favourite` grid event → `updateGroup`). **Always read it
+through `markOf(group)`**: a project saved before marks stores the heart as `true`, which
+reads as a dot, and anything unknown reads as unmarked.
+
+- **Click** toggles the dot; **hold** (`MARK_HOLD_MS`, 400 ms) opens a shape menu under the
+  button (`MpiGalleryGrid/cardMarkMenu.js`). Release over a shape or click one. The release
+  that ends a hold on the button is swallowed, or it would toggle the dot straight back off.
+- The panel's **Only** rows are Dots, Squares, Triangles, then Previews.
+- The media picker shows a tile's mark read-only and filters by it.
 
 Empty states: the archive says `Nothing archived` (`… in this filter` when filtered). A
 filtered active gallery showing nothing gets the mascot, `No cards match` and SHOW ALL, which
 resets kinds and flags but keeps `order` and `scope`. An unfiltered empty gallery stays blank.
+
+## The FILTER panel, shared: `js/components/galleryFilterPanel.js`
+
+`mountGalleryFilter(slot, { getSort, setSort, getEntries })` mounts the FILTER button and wires
+its panel. It is a top-level parts file (the `loraSlotParts.js` precedent) because both hosts
+are Compounds, which may not import each other. The sort defaults to `state.gallerySort`;
+`MpiMediaPicker` passes a local one. The host calls `refresh()` when the sort or its cards
+change from outside. CSS: `galleryFilterPanel.css`, block `mpi-gallery-filter`, loaded through
+both hosts' `css:` lists. The panel lifts its z-index above a host that sits above
+MpiPopup's own 9999 (the picker's modal).
 
 ## The gallery toolbar: `MpiGalleryToolbar` in the project bar
 
@@ -87,7 +114,7 @@ Size slider, volume slider, FILTER, Archive, Info. It replaced the grid's second
   `MpiProjectName.el.getToolbarSlot()` on the gallery page and destroys it on every other page,
   idempotently. Why here: a Compound may not import a Compound, so neither the grid nor the bar
   can host it, and `MpiGalleryBlock` was claimed by MPI-623.
-- **The panel** (`filterPanel.js`) is an `MpiPopup` CREATED on open and REMOVED on close, so
+- **The panel** (`galleryFilterPanel.js`) is an `MpiPopup` CREATED on open and REMOVED on close, so
   the DOM holds zero or one. It never calls `Overlays`: an overlay puts the grid's media on its
   `'overlay'` hold ([gallery.md](gallery.md) § Media suspension). It closes 300 ms after the
   pointer leaves it (re-entering cancels), on an outside pointerdown, and on
@@ -107,6 +134,7 @@ Size slider, volume slider, FILTER, Archive, Info. It replaced the grid's second
 
 ## Tests
 
-- `tests/asset-kinds.test.cjs`, `tests/gallery-filter.test.cjs` — the table and the contract (Node).
-- `tests/desktop/gallery-filter-panel.spec.js` — chips, panel, dot, SHOW ALL, group-history, the stats cut-off.
+- `tests/asset-kinds.test.cjs`, `tests/gallery-filter.test.cjs` — the table, the contract and the marks (Node).
+- `tests/desktop/gallery-filter-panel.spec.js` — chips, card marks (click, hold, persisted), panel, dot, SHOW ALL, group-history, the stats cut-off.
+- `tests/desktop/media-picker-cards.spec.js` — the shared panel on the picker's local sort, slot preselection, tile marks.
 - `tests/desktop/gallery-archive.spec.js` — the scope gates before the kinds.

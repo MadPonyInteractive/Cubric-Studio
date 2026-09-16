@@ -27,39 +27,10 @@
     color: var(--ink-2);
 }
 
-/* ── filter tabs ───────────────────────────────────────────────────────── */
+/* ── FILTER (galleryFilterPanel.js, MPI-785) ─────────────────────────────── */
 .mpi-media-picker__filters {
     display: flex;
-    gap: var(--s-1);
-}
-
-/* Sentence-case tabs, not labelled buttons. The `.mpi-btn` prefixes beat the
-   Primitive's own single-class rules without depending on stylesheet order, and the
-   type resets undo its uppercase/600/tracking (MPI-588). */
-.mpi-btn.mpi-media-picker__filter {
-    padding: var(--s-2) var(--s-3);
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 0;
-    color: var(--ink-3);
-    font-size: 13px;
-    font-weight: 400;
-    text-transform: none;
-    letter-spacing: normal;
-}
-
-.mpi-btn.mpi-btn--ghost.mpi-media-picker__filter:hover:not(:disabled) {
-    background: transparent;
-    color: var(--ink-1);
-}
-
-/* Both selectors, so the active plate survives a hover — the ghost hover rule
-   (0,3,1) would otherwise blank its background. */
-.mpi-btn.mpi-btn--ghost.mpi-media-picker__filter--active,
-.mpi-btn.mpi-btn--ghost.mpi-media-picker__filter--active:hover:not(:disabled) {
-    background: var(--surface-2);
-    border-color: var(--line);
-    color: var(--ink-1);
+    align-items: center;
 }
 
 /* auto-fill, not auto-fit: a single result keeps its tile size instead of
@@ -170,6 +141,21 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* ── card mark (MPI-785) ───────────────────────────────────────────────── */
+/* Read-only: the card's gallery mark, top-left, clear of the expand chip. Same scrim
+   as the chip so a dot reads on any frame. */
+.mpi-media-picker__mark {
+    position: absolute;
+    top: var(--s-2);
+    left: var(--s-2);
+    display: flex;
+    padding: 2px;
+    background: oklch(0.15 0 0 / 0.62);
+    border-radius: 4px;
+    color: var(--accent-heat);
+    pointer-events: none;
 }
 
 /* ── expand ────────────────────────────────────────────────────────────── */

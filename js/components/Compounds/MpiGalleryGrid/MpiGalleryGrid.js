@@ -5,7 +5,8 @@ import { MpiWaveform } from '../../Primitives/MpiWaveform/MpiWaveform.js';
 import { ce, qs, qsa, on } from '/js/utils/dom.js';
 import { renderIcon } from '/js/utils/icons.js';
 import { kindOfItem } from '/js/utils/assetKinds.js';
-import { matchesGallerySort, isGalleryFiltered, DEFAULT_GALLERY_SORT } from '/js/utils/galleryFilter.js';
+import { matchesGallerySort, isGalleryFiltered, byGalleryOrder, markOf, markIcon, DEFAULT_GALLERY_SORT } from '/js/utils/galleryFilter.js';
+import { wireCardMark, closeCardMarkMenu } from './cardMarkMenu.js';
 import { removeHistoryEntry } from '../../../data/projectModel.js';
 import { getModelById, tierLetterFor } from '../../../data/modelRegistry.js';
 import { getCommand, commandAllowsBranchingContinue, selectCueAllTargets } from '../../../data/commandRegistry.js';
@@ -511,21 +512,31 @@ export const MpiGalleryGrid = ComponentFactory.create({
 
             let _generating = false;
             let _showInfo   = false;
-            let _favourite  = group?.favourite || false;
+            let _mark       = markOf(group);
 
+            // Card mark (MPI-785, was the heart): click = dot, hold = pick a shape
+            // (cardMarkMenu.js). `group.favourite` stores the mark id, or false.
             const _favBtn = MpiButton.mount(favWrap, {
-                icon: 'heartOutline', iconActive: 'heart',
-                toggleable: true, active: _favourite,
-                size: 'sm', variant: 'ghost', info: 'Favourite',
+                icon: markIcon(_mark), active: !!_mark,
+                size: 'sm', variant: 'ghost', info: 'Mark (hold for more shapes)',
             });
 
-            _favBtn.on('toggle', ({ active }) => {
-                _favourite = active;
-                if (group) {
-                    group.favourite = active;
-                    emit('favourite', { group, favourite: active });
-                }
-                cardEl.classList.toggle('mpi-group-card--favourited', active);
+            const _paintMark = () => {
+                _favBtn.el.setIcon(markIcon(_mark));
+                _favBtn.el.setActive(!!_mark);
+                cardEl.classList.toggle('mpi-group-card--favourited', !!_mark);
+            };
+
+            const _unwireMark = wireCardMark(_favBtn.el, {
+                getMark: () => _mark,
+                setMark: (id) => {
+                    _mark = id;
+                    _paintMark();
+                    if (group) {
+                        group.favourite = id || false;
+                        emit('favourite', { group, favourite: group.favourite });
+                    }
+                },
             });
 
             // Notes marker — persistent (not hover-revealed) and shown only when the
@@ -1342,9 +1353,8 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     });
                 }
 
-                _favourite = group?.favourite || false;
-                _favBtn.el.setActive(_favourite);
-                cardEl.classList.toggle('mpi-group-card--favourited', _favourite);
+                _mark = markOf(group);
+                _paintMark();
                 notesWrap.style.display = selected?.notes?.trim() ? '' : 'none';
 
                 // Corner kind chip (MPI-749), read off the SELECTED item through the
@@ -1804,6 +1814,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 _generating = false;
                 _previewPlayer.stop();
                 _stopMascotFlip();
+                _unwireMark();
             };
 
             _render();
@@ -1873,7 +1884,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 group?.name || '',
                 group?.type || '',
                 group?.selectedIndex ?? '',
-                group?.favourite ? 'fav' : '',
+                markOf(group) || '',
                 group?.isGenerating ? 'generating' : '',
                 group?.isImporting ? 'importing' : '',
                 sel?.id || '',
@@ -1961,17 +1972,13 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 const wantArchived = scope === 'archived';
 
                 // One predicate, shared with the filter panel (js/utils/galleryFilter.js).
-                // Scope gates FIRST inside it and is subtractive (MPI-678), so kinds, Favs,
+                // Scope gates FIRST inside it and is subtractive (MPI-678), so kinds, marks,
                 // Previews and sort all keep working inside the archive. Kind is read off the
                 // SELECTED item, the same call the card's kind chip makes (MPI-749); a
                 // generating placeholder has no item yet, so its group type stands in.
                 let display = _groups.filter(g => matchesGallerySort(g, g.history?.[g.selectedIndex] ?? { type: g.type }, sort));
 
-                display.sort((a, b) => {
-                    const ta = new Date(a.createdAt).getTime();
-                    const tb = new Date(b.createdAt).getTime();
-                    return order === 'newest' ? tb - ta : ta - tb;
-                });
+                display.sort(byGalleryOrder(order));
 
                 const generatingGroups = display.filter(g => g.isGenerating);
                 const normalGroups     = display.filter(g => !g.isGenerating);
@@ -2420,6 +2427,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
             if (_escUnsub) { _escUnsub(); _escUnsub = null; }
             _cardMap.forEach(({ card }) => card.el.destroy?.());
             _cardMap.clear();
+            closeCardMarkMenu();
         };
     }
 });

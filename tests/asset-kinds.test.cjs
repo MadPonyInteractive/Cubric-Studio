@@ -77,6 +77,7 @@ test('every kind row is complete: a unique id, both labels, and an icon that exi
     assert.strictEqual(new Set(ASSET_KINDS.map(k => k.kind)).size, ASSET_KINDS.length);
     for (const k of ASSET_KINDS) {
         assert.ok(k.label && k.singular, `${k.kind} needs label and singular`);
+        assert.ok(['image', 'video', 'audio'].includes(k.type), `${k.kind}: type '${k.type}' is not a media slot type`);
         assert.ok(ICONS[k.icon], `${k.kind}: icon '${k.icon}' is not in js/utils/icons.js`);
         assert.strictEqual(typeof k.match, 'function');
     }

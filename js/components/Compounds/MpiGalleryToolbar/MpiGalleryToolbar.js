@@ -3,10 +3,9 @@ import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
 import { qs } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
-import { isGalleryFiltered, describeGalleryFilter } from '../../../utils/galleryFilter.js';
 import { state } from '../../../state.js';
 import { Events } from '../../../events.js';
-import { mountFilterPanel, currentListedKinds } from './filterPanel.js';
+import { mountGalleryFilter } from '../../galleryFilterPanel.js';
 
 /**
  * MpiGalleryToolbar — the gallery's view controls, in the project bar (MPI-749).
@@ -21,6 +20,9 @@ import { mountFilterPanel, currentListedKinds } from './filterPanel.js';
  * State: `gallerySizeLevel`, `galleryVolume`, `gallerySort`, `galleryShowInfo` (read +
  * write); `currentProject` (read — which kind rows the FILTER panel lists).
  *
+ * FILTER and its panel are js/components/galleryFilterPanel.js, shared with MpiMediaPicker
+ * (MPI-785); here they run on `state.gallerySort`.
+ *
  * Props: none.
  *
  * Instance methods (on instance.el):
@@ -30,7 +32,10 @@ import { mountFilterPanel, currentListedKinds } from './filterPanel.js';
  */
 export const MpiGalleryToolbar = ComponentFactory.create({
     name: 'MpiGalleryToolbar',
-    css: ['js/components/Compounds/MpiGalleryToolbar/MpiGalleryToolbar.css'],
+    css: [
+        'js/components/Compounds/MpiGalleryToolbar/MpiGalleryToolbar.css',
+        'js/components/galleryFilterPanel.css',
+    ],
 
     template: () => `
         <div class="mpi-gallery-toolbar">
@@ -74,39 +79,8 @@ export const MpiGalleryToolbar = ComponentFactory.create({
         });
         volumeSlider.on('input', ({ value }) => { state.galleryVolume = value / 100; });
 
-        // ── FILTER + its panel ──────────────────────────────────────────────────
-        // The heat dot is the header's own "active = heat dot" rule (DESIGN.md § Tags):
-        // filters behind a button must never read as missing assets. Oldest hides
-        // nothing, so it never lights it (isGalleryFiltered).
-        const filterBtn = MpiButton.mount(qs('.mpi-gallery-toolbar__filter-slot', el), {
-            icon: 'filter', label: 'Filter', size: 'sm', variant: 'ghost',
-            extraClasses: 'mpi-gallery-toolbar__filter',
-        });
-        filterBtn.el.setAttribute('aria-haspopup', 'true');
-        filterBtn.el.setAttribute('aria-expanded', 'false');
-
-        const panel = mountFilterPanel(filterBtn.el, {
-            onOpenChange: (open) => {
-                filterBtn.el.setAttribute('aria-expanded', String(open));
-                filterBtn.el.classList.toggle('mpi-gallery-toolbar__filter--open', open);
-            },
-        });
-
-        filterBtn.on('click', ({ originalEvent }) => {
-            if (panel.isOpen()) { panel.close(); return; }
-            // Enter/Space fire a click with detail 0 — a keyboard open moves focus in.
-            panel.open({ focusFirst: originalEvent?.detail === 0 });
-        });
-
-        const _syncFilter = () => {
-            const sort = state.gallerySort;
-            const filtered = isGalleryFiltered(sort);
-            filterBtn.el.classList.toggle('mpi-gallery-toolbar__filter--filtered', filtered);
-            filterBtn.el.setAttribute('data-info', filtered
-                ? `Filtered: ${describeGalleryFilter(sort, currentListedKinds(sort))}`
-                : 'Filter and sort');
-        };
-        _syncFilter();
+        // ── FILTER + its panel (shared with MpiMediaPicker) ─────────────────────
+        const filter = mountGalleryFilter(qs('.mpi-gallery-toolbar__filter-slot', el));
 
         // ── Archive scope toggle ────────────────────────────────────────────────
         // A SCOPE, not a filter (MPI-678): it empties the grid, so it stays its own
@@ -150,15 +124,15 @@ export const MpiGalleryToolbar = ComponentFactory.create({
             } else if (key === 'gallerySort') {
                 archiveBtn.el.setActive(_isArchived());
                 archiveBtn.el.setAttribute('data-info', _archiveTip(_isArchived()));
-                _syncFilter();
+                filter.refresh();
             } else if (key === 'currentProject') {
-                _syncFilter();
+                filter.refresh();
             }
         }));
 
         el.destroy = () => {
             _unsubs.forEach(fn => fn());
-            panel.destroy();
+            filter.destroy();
         };
     }
 });

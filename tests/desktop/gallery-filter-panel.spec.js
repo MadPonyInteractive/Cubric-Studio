@@ -11,6 +11,8 @@
 //  - navigation mounts the toolbar into MpiProjectName on the gallery page ONLY; a leak
 //    onto group-history puts gallery controls over a history entry.
 //  - The stats readout yields to the toolbar only below the measured bar width.
+// MPI-785: the heart became a card MARK. A click marks a dot, a hold opens the shape
+// menu, the pick reaches project.json, and a legacy `favourite: true` reads as a dot.
 // Fixture media is REAL shipped media: a src that 404s takes the missing-media path
 // (docs/gallery.md), which empties the card and makes a passing build read as broken.
 const fs = require('fs');
@@ -33,9 +35,10 @@ function fixtureGroups() {
   });
   return [
     g('img1', 1, 'image', 'flow-head-swap.webp', 'flow-head-swap.webp'),
-    g('img2', 2, 'image', 'flow-outpaint.webp', 'flow-outpaint.webp', { favourite: true }),
-    g('vid1', 3, 'video', 'flow-drama-box.mp4', 'flow-drama-box.webp'),
-    g('vid2', 4, 'video', 'flow-ltx-extend.mp4', 'flow-ltx-extend.webp', { favourite: true }),
+    g('img2', 2, 'image', 'flow-outpaint.webp', 'flow-outpaint.webp', { favourite: 'square' }),
+    // A pre-MPI-785 heart: must read as a dot.
+    g('vid1', 3, 'video', 'flow-drama-box.mp4', 'flow-drama-box.webp', { favourite: true }),
+    g('vid2', 4, 'video', 'flow-ltx-extend.mp4', 'flow-ltx-extend.webp', { favourite: 'square' }),
     g('scene1', 5, 'image', 'flow-character-sheet.webp', 'flow-character-sheet.webp', { item: { splatPath: '/none.ply' } }),
     // No selected item at all, so its kind comes from the `{ type: group.type }` fallback.
     // It is also the card the group-history step opens: the history workspace resolves an
@@ -95,20 +98,41 @@ function statsShownAt(window, width) {
   }, width);
 }
 
+// How long a save may take to reach disk. Not the save's own cost (it lands in ~15 ms
+// on its own): the Projects landing page leaves its preview <video>s mounted behind the
+// gallery, they hold the renderer's HTTP connections to the app server, and the
+// /update-project POST waits 5-15 s for one to free up. Measured for MPI-785 by
+// unloading those videos, after which the same save landed inside a second.
+const SAVE_WAIT = { timeout: 30000 };
+
+/** The persisted `favourite` of one group, straight off project.json. */
+function savedMark(folderPath, id) {
+  const saved = JSON.parse(fs.readFileSync(path.join(folderPath, 'project.json'), 'utf8'));
+  return saved.itemGroups.find(g => g.id === id)?.favourite;
+}
+
+/** Path data of the icon a card's mark button is drawing. */
+function markDrawn(window, id) {
+  return window.evaluate((gid) => document
+    .querySelector(`.mpi-gallery-grid__row-wrap[data-group-id="${gid}"] .mpi-group-card__fav-wrap .mpi-ibtn__icon svg`)
+    ?.innerHTML.replace(/\s+/g, ' ').trim(), id);
+}
+
 test('kind chips, the FILTER panel and the gallery toolbar in the project bar', async ({}, testInfo) => {
   const { app, window, pageErrors } = await launchApp(testInfo);
   try {
     await releaseBootGate(window);
+    const project = makeProject(testInfo);
     await window.evaluate(async (p) => {
       const { state } = await import('/js/state.js');
       state.currentProject = p;
-    }, makeProject(testInfo));
+    }, project);
     await go(window, 'PAGE_GALLERY');
     await expect.poll(() => cards(window)).toEqual(ALL);
 
-    const filter = window.locator('.mpi-gallery-toolbar__filter');
+    const filter = window.locator('.mpi-gallery-toolbar .mpi-gallery-filter__button');
     const panel = window.locator('.mpi-popup--gallery-filter');
-    const row = (label) => window.locator('.mpi-gallery-toolbar__toggle', { hasText: label });
+    const row = (label) => window.locator('.mpi-gallery-filter__toggle', { hasText: label });
 
     await test.step('the toolbar is in the project bar and the grid lost its second row', async () => {
       await expect(window.locator('.mpi-project-name__toolbar .mpi-gallery-toolbar')).toHaveCount(1);
@@ -124,25 +148,64 @@ test('kind chips, the FILTER panel and the gallery toolbar in the project bar', 
       expect(chips).toEqual({ empty1: false, img1: false, img2: false, scene1: true, vid1: true, vid2: true });
     });
 
+    await test.step('card marks: a legacy heart is a dot, click marks a dot, hold picks a shape', async () => {
+      const markBtn = (id) => window.locator(
+        `.mpi-gallery-grid__row-wrap[data-group-id="${id}"] .mpi-group-card__fav-wrap .mpi-btn`);
+      const menu = window.locator('.mpi-popup--card-mark');
+      const DOT = '<circle cx="12" cy="12" r="5"></circle>';
+      const TRIANGLE = '<path d="M12 6.5l6 10.5H6z"></path>';
+
+      expect(await markDrawn(window, 'vid1')).toBe(DOT);
+      await expect(markBtn('vid1')).toHaveClass(/is-active/);
+
+      // Click = dot, click again = none.
+      await markBtn('img1').click();
+      expect(await markDrawn(window, 'img1')).toBe(DOT);
+      await expect.poll(() => savedMark(project.folderPath, 'img1'), SAVE_WAIT).toBe('dot');
+      await markBtn('img1').click();
+      await expect(markBtn('img1')).not.toHaveClass(/is-active/);
+      await expect.poll(() => savedMark(project.folderPath, 'img1'), SAVE_WAIT).toBe(false);
+
+      // Hold = the menu; releasing on the button itself changes nothing.
+      await markBtn('img1').hover();
+      await window.mouse.down();
+      await expect(menu).toHaveCount(1, { timeout: 2000 });
+      await window.mouse.up();
+      await expect(menu).toHaveCount(1);
+      await expect(markBtn('img1')).not.toHaveClass(/is-active/);
+      await expect(menu.locator('.mpi-gallery-grid__mark-option')).toHaveCount(3);
+
+      await menu.locator('[aria-label="Triangle"]').click();
+      await expect(menu).toHaveCount(0);
+      expect(await markDrawn(window, 'img1')).toBe(TRIANGLE);
+      await expect.poll(() => savedMark(project.folderPath, 'img1'), SAVE_WAIT).toBe('triangle');
+      // No card opened on the way (the history page would have unmounted the grid).
+      expect(await cards(window)).toEqual(ALL);
+    });
+
     await test.step('hiding Images removes the image cards, keeps the scene and lights the dot', async () => {
-      await expect(filter).not.toHaveClass(/mpi-gallery-toolbar__filter--filtered/);
+      await expect(filter).not.toHaveClass(/mpi-gallery-filter__button--filtered/);
       await filter.click();
       await expect(panel).toHaveCount(1);
-      const rows = await window.evaluate(() => [...document.querySelectorAll('.mpi-gallery-toolbar__row')]
+      const rows = await window.evaluate(() => [...document.querySelectorAll('.mpi-gallery-filter__row')]
         .map(r => r.textContent.replace(/\s+/g, ' ').trim()));
-      expect(rows).toEqual(['Images On', 'Videos On', '3D Scenes On', 'Favourites Off', 'Previews Off']);
+      expect(rows).toEqual(['Images On', 'Videos On', '3D Scenes On', 'Dots Off', 'Squares Off', 'Triangles Off', 'Previews Off']);
 
       await row('Images').click();
       await expect(panel).toHaveCount(1); // a row click keeps the panel open
       await expect.poll(() => cards(window)).toEqual(['scene1', 'vid1', 'vid2']);
-      await expect(filter).toHaveClass(/mpi-gallery-toolbar__filter--filtered/);
+      await expect(filter).toHaveClass(/mpi-gallery-filter__button--filtered/);
       await expect(filter).toHaveAttribute('data-info', 'Filtered: Videos, 3D Scenes');
     });
 
-    await test.step('Favourites only is ANDed with the hidden kind', async () => {
-      await row('Favourites').click();
+    await test.step('a mark filter is ANDed with the hidden kind, and marks OR together', async () => {
+      await row('Squares').click();
       await expect.poll(() => cards(window)).toEqual(['vid2']);
-      await expect(filter).toHaveAttribute('data-info', 'Filtered: Videos, 3D Scenes · Favs');
+      await expect(filter).toHaveAttribute('data-info', 'Filtered: Videos, 3D Scenes · Squares');
+      await row('Dots').click();
+      await expect.poll(() => cards(window)).toEqual(['vid1', 'vid2']);
+      await row('Dots').click();
+      await expect.poll(() => cards(window)).toEqual(['vid2']);
     });
 
     await test.step('leaving the panel closes it, and no portal is left behind', async () => {
@@ -159,7 +222,7 @@ test('kind chips, the FILTER panel and the gallery toolbar in the project bar', 
       await expect(panel).toHaveCount(0);
       await window.locator('.mpi-gallery-grid__scope-empty .mpi-btn').click();
       await expect.poll(() => cards(window)).toEqual(ALL);
-      await expect(filter).not.toHaveClass(/mpi-gallery-toolbar__filter--filtered/);
+      await expect(filter).not.toHaveClass(/mpi-gallery-filter__button--filtered/);
     });
 
     await test.step('the stats readout yields only below the cut, and nothing overlaps at a 950 window', async () => {

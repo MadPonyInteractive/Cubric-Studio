@@ -175,7 +175,7 @@ export function createAudioItem(overrides = {}) {
  * @property {number}         selectedIndex - Index into `history` of the current selected entry
  * @property {MediaItem[]}    history      - Append-only stack, index 0 = oldest
  * @property {boolean}        open         - Whether the group is expanded in the gallery (UI hint)
- * @property {boolean}        [favourite=false] - Whether this group is marked as a favourite
+ * @property {false|'dot'|'square'|'triangle'|true} [favourite=false] - The card's mark (MPI-785), or false. Legacy `true` (the old heart) reads as 'dot' — always read it through `markOf()` in js/utils/galleryFilter.js.
  * @property {boolean}        [archived=false]  - Whether this group is put away in the gallery's archive scope. Subtractive: an archived group is hidden from every active-scope filter and from the media picker. A flag flip only — nothing moves on disk.
  * @property {string|null}    [customName=null] - User-assigned card name; overrides the derived label when set. Null = fall back to derived.
  */

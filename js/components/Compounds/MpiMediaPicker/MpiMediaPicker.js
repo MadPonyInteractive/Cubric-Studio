@@ -8,6 +8,11 @@ import { qs, ce, on } from '../../../utils/dom.js';
 import { renderIcon } from '/js/utils/icons.js';
 import { toWavFile } from '../../../utils/toWavFile.js';
 import { clientLogger } from '../../../services/clientLogger.js';
+import {
+    DEFAULT_GALLERY_SORT, matchesGallerySort, listedKinds, isGalleryFiltered,
+    byGalleryOrder, markOf, markIcon,
+} from '../../../utils/galleryFilter.js';
+import { mountGalleryFilter } from '../../galleryFilterPanel.js';
 
 /**
  * MpiMediaPicker — pick media the project ALREADY holds, or bring one in (Compound)
@@ -33,9 +38,12 @@ import { clientLogger } from '../../../services/clientLogger.js';
  * The cost is that a non-selected take is no longer reachable from here: select
  * it on the card in the gallery first, then open the slot.
  *
- * ORDERING is the gallery's own, at the moment the picker opens — deliberately
- * NOT a sort control. The user has just been looking at the gallery; the order
- * they last saw is the order they are thinking in.
+ * FILTERING is the gallery's own (MPI-785): the same FILTER button and panel
+ * (js/components/galleryFilterPanel.js) and the same contract
+ * (js/utils/galleryFilter.js) — kinds, card marks, previews, Newest/Oldest — run on a
+ * LOCAL sort object, so narrowing a slot never refilters the gallery behind it. It
+ * opens on the gallery's order, with every kind that cannot fill the slot hidden;
+ * the user can switch them back on. Tiles show the card's mark, read-only.
  *
  * Usage:
  *   const picker = MpiMediaPicker.mount(document.createElement('div'), {
@@ -46,8 +54,8 @@ import { clientLogger } from '../../../services/clientLogger.js';
  *   picker.el.show();
  *
  * Props:
- * @param {'image'|'video'|'audio'} [mediaType='image'] - The slot's type. Preselects
- *        the matching filter tab; the user can still widen it to see everything.
+ * @param {'image'|'video'|'audio'} [mediaType='image'] - The slot's type. The filter
+ *        opens with every other kind hidden; the user can still widen it.
  * @param {Function} [onPick] - (item:{filePath:string,mediaType:string}) => void
  * @param {Function} [onImport] - (files:File[]) => void — from the upload card.
  *        Omit it and the upload card is not rendered.
@@ -70,22 +78,18 @@ import { clientLogger } from '../../../services/clientLogger.js';
  * 'cancel' {}                      — Cancel pressed (NOT on Escape/backdrop)
  */
 
-const FILTERS = [
-    { id: 'all', label: 'All media' },
-    { id: 'image', label: 'Images' },
-    { id: 'video', label: 'Videos' },
-    { id: 'audio', label: 'Audio' },
-];
-
 export const MpiMediaPicker = ComponentFactory.create({
     name: 'MpiMediaPicker',
-    css: ['js/components/Compounds/MpiMediaPicker/MpiMediaPicker.css'],
+    css: [
+        'js/components/Compounds/MpiMediaPicker/MpiMediaPicker.css',
+        'js/components/galleryFilterPanel.css',
+    ],
 
     template: () => `
         <div class="mpi-media-picker" role="dialog" aria-modal="true" aria-label="Choose media">
             <div class="mpi-media-picker__head">
                 <div class="mpi-media-picker__title">Choose media</div>
-                <div class="mpi-media-picker__filters" id="filters-slot" role="tablist"></div>
+                <div class="mpi-media-picker__filters" id="filters-slot"></div>
             </div>
             <div class="mpi-media-picker__grid" id="grid-slot"></div>
             <div class="mpi-media-picker__actions" id="actions-slot"></div>
@@ -94,7 +98,6 @@ export const MpiMediaPicker = ComponentFactory.create({
     setup: (el, props, emit) => {
         const _unsubs = [];
         const slotType = props.mediaType || 'image';
-        let _filter = slotType;
         let _preview = null;
 
         /** Real basename out of a `/project-file?path=<urlencoded absolute path>` URL. */
@@ -135,38 +138,41 @@ export const MpiMediaPicker = ComponentFactory.create({
         }
 
         /**
-         * Every gallery CARD matching the active filter, in the GALLERY's order.
-         *
-         * One entry per ItemGroup, not one per history entry (MPI-693) — see the
-         * component header for why.
-         *
-         * The filter reads `group.type`, matching `_rerenderJustified` in
-         * `MpiGalleryGrid`. A group may hold mixed types, so filtering on the
-         * selected item's type instead would drop a card out of the very tab the
-         * gallery lists it under.
+         * Every gallery CARD the picker can offer, as `{ group, item }` — one entry
+         * per ItemGroup, its SELECTED entry, not one per history entry (MPI-693); see
+         * the component header for why.
          *
          * A card whose SELECTED entry has no `filePath` is skipped — a pending or
          * failed generation has a card but no file, and handing one to a Flow slot
-         * would resolve to a broken URL.
+         * would resolve to a broken URL. Archived cards stay out through the sort's
+         * `scope`, which is always 'active' here (MPI-678).
          */
+        function _entries() {
+            return (state.currentProject?.itemGroups || [])
+                .map(group => ({ group, item: group.history?.[group.selectedIndex] }))
+                .filter(({ item }) => item?.filePath);
+        }
+
+        // The picker's own sort (MPI-785). Kind is read off the selected ITEM, the way
+        // the gallery reads it, so a tile sits under the same filter row as its card.
+        let _sort = {
+            ...DEFAULT_GALLERY_SORT,
+            order: state.gallerySort.order,
+            hiddenKinds: listedKinds(_entries(), DEFAULT_GALLERY_SORT)
+                .filter(k => k.type !== slotType).map(k => k.kind),
+        };
+
+        /** The entries the sort shows, in its order, ready to tile. */
         function _collect() {
-            const groups = state.currentProject?.itemGroups || [];
-            const out = [];
-            for (const group of groups) {
-                // Archived media is put away everywhere, not just in the gallery —
-                // otherwise a card you archived keeps turning up in Flow slots
-                // (MPI-678).
-                if (group.archived) continue;
-                if (_filter !== 'all' && group.type !== _filter) continue;
-                const item = group.history?.[group.selectedIndex];
-                if (!item?.filePath) continue;
-                out.push({
+            return _entries()
+                .filter(({ group, item }) => matchesGallerySort(group, item, _sort))
+                .sort((x, y) => byGalleryOrder(_sort.order)(x.group, y.group))
+                .map(({ group, item }) => ({
                     item,
                     type: item.type || group.type || 'image',
                     label: _cardLabel(group, item),
-                });
-            }
-            return out;
+                    mark: markOf(group),
+                }));
         }
 
         // The MODAL wraps the content, not the other way round: MpiModal portals
@@ -512,7 +518,7 @@ export const MpiMediaPicker = ComponentFactory.create({
         }
 
         function _buildTile(entry) {
-            const { item, type, label: name } = entry;
+            const { item, type, label: name, mark } = entry;
 
             const tile = ce('div', { className: 'mpi-media-picker__tile' });
 
@@ -580,6 +586,13 @@ export const MpiMediaPicker = ComponentFactory.create({
             }));
             tile.appendChild(expand);
 
+            if (mark) {
+                tile.appendChild(ce('span', {
+                    className: 'mpi-media-picker__mark',
+                    innerHTML: renderIcon(markIcon(mark), 'sm'),
+                }));
+            }
+
             const caption = ce('div', { className: 'mpi-media-picker__name' });
             caption.textContent = name;
             tile.appendChild(caption);
@@ -605,45 +618,25 @@ export const MpiMediaPicker = ComponentFactory.create({
 
             if (!entries.length) {
                 const empty = ce('div', { className: 'mpi-media-picker__empty' });
-                empty.textContent = _filter === 'all'
-                    ? 'This project has no media yet.'
-                    : `This project has no ${_filter} yet.`;
+                empty.textContent = isGalleryFiltered(_sort) && _entries().length
+                    ? 'No media matches this filter.'
+                    : 'This project has no media yet.';
                 grid.appendChild(empty);
                 return;
             }
             entries.forEach(entry => grid.appendChild(_buildTile(entry)));
         }
 
-        // ── filter tabs ──
-        const filtersSlot = qs('#filters-slot', el);
-        const _tabs = new Map();
-        FILTERS.forEach(({ id, label }) => {
-            const tab = mountButton({
-                text: label,
-                variant: 'ghost',
-                size: 'sm',
-                extraClasses: 'mpi-media-picker__filter',
-            });
-            tab.setAttribute('role', 'tab');
-            _unsubs.push(on(tab, 'click', () => {
-                if (_filter === id) return;
-                _filter = id;
-                _syncTabs();
+        // ── FILTER — the gallery's own button and panel, on the local sort ──
+        const filter = mountGalleryFilter(qs('#filters-slot', el), {
+            getSort: () => _sort,
+            setSort: (patch) => {
+                _sort = { ..._sort, ...patch };
                 _render();
-            }));
-            _tabs.set(id, tab);
-            filtersSlot.appendChild(tab);
+            },
+            getEntries: _entries,
         });
 
-        function _syncTabs() {
-            _tabs.forEach((tab, id) => {
-                const active = id === _filter;
-                tab.classList.toggle('mpi-media-picker__filter--active', active);
-                tab.setAttribute('aria-selected', String(active));
-            });
-        }
-
-        _syncTabs();
         _render();
 
         const cancel = MpiButton.mount(qs('#actions-slot', el), {
@@ -655,6 +648,7 @@ export const MpiMediaPicker = ComponentFactory.create({
         el.hide = () => { _closePreview(); _closeVoiceLibrary(); modal.el.hide(); };
 
         el.destroy = () => {
+            filter.destroy();
             _closePreview();
             _closeVoiceLibrary();
             _stopPickerAudio();

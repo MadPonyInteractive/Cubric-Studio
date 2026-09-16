@@ -826,7 +826,8 @@
  * @typedef {Object} MpiIconProps
  * @property {string} [name='info'] - Key from the ICONS registry.
  *   Fill icons: generate, play, pause, stop, check, close, plus, minus, trash, edit, copy,
- *     download, upload, refresh, search, heart, enhance, bolt, sparkle, layers,
+ *     download, upload, refresh, search, mark_dot, mark_square, mark_triangle, mark_none,
+ *     enhance, bolt, sparkle, layers,
  *     media, image, compare, crop, resize, chat, text, translate, folder, settings, help, info, grid,
  *     video, audio, upscaler, detailer, mask, unload, menu, back, chevronDown, chevronRight,
  *     volumeOff, volumeLow, volumeHigh, negative.
@@ -1546,7 +1547,10 @@
 
 /**
  * @typedef {Object} MpiMediaPickerProps (Compound — js/components/Compounds/MpiMediaPicker)
- * @property {'image'|'video'|'audio'} [mediaType='image'] - Only history items of this type are listed.
+ * @property {'image'|'video'|'audio'} [mediaType='image'] - The slot's type. The picker's FILTER
+ *                                 (the gallery's own panel, js/components/galleryFilterPanel.js,
+ *                                 on a local sort — MPI-785) opens with every kind that cannot
+ *                                 fill this slot hidden; the user can widen it.
  * @property {Function} [onPick] - (item: {filePath: string, mediaType: string}) => void.
  *                                 Called before the modal hides. The media is ALREADY in the
  *                                 project and on disk, so the caller takes the path as-is —
@@ -1663,12 +1667,14 @@
  *
  * Emits: nothing.
  *
- * FILTER carries `mpi-gallery-toolbar__filter--filtered` (the heat dot) exactly when
- * `isGalleryFiltered(state.gallerySort)`; its `data-info` is `Filtered: …` from
- * `describeGalleryFilter`. The panel (filterPanel.js) is an MpiPopup created on open and
- * removed on close, so the DOM never holds more than one. It never calls `Overlays`: the
- * grid's 'overlay' media hold must not engage for a panel (docs/gallery.md § Media
- * suspension). Esc closes it through the app's `overlay.close` hotkey → `ui:close-all-popups`.
+ * FILTER and its panel are `mountGalleryFilter` (js/components/galleryFilterPanel.js),
+ * shared with MpiMediaPicker (MPI-785); here it runs on `state.gallerySort`. FILTER carries
+ * `mpi-gallery-filter__button--filtered` (the heat dot) exactly when
+ * `isGalleryFiltered(sort)`; its `data-info` is `Filtered: …` from `describeGalleryFilter`.
+ * The panel is an MpiPopup created on open and removed on close, so the DOM never holds
+ * more than one. It never calls `Overlays`: the grid's 'overlay' media hold must not engage
+ * for a panel (docs/gallery.md § Media suspension). Esc closes it through the app's
+ * `overlay.close` hotkey → `ui:close-all-popups`.
  */
 
 /**
@@ -1732,7 +1738,8 @@
  *   'open-group'  { group }       — user clicked a card (navigate to group history)
  *   'select'      { group, selected }  — checkbox toggled; selection mode managed by parent
  *   'reuse'       { current, original, group } — reuse prompt button clicked; payloads include prompt/model/settings/media
- *   'favourite'   { group, favourite } — favourite button toggled
+ *   'favourite'   { group, favourite } — card mark changed; `favourite` is the mark id
+ *                                       ('dot'|'square'|'triangle') or false (MPI-785)
  *   'media-missing' { group, itemId } — image file missing (404); parent handles GC
  *   'compare'     { groups }      — compare 2 selected groups
  *   'download'    { groups }      — download selected groups

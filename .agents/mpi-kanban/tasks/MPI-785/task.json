@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-785",
+  "title": "Card marks: dot, square, triangle replace the heart; shared filter in the media picker",
+  "description": "Hold the card mark button to pick a shape (click = dot); FILTER filters by mark; MpiMediaPicker gets the same FILTER panel and shows marks.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-09-16T21:24:12+01:00",
+  "updated_at": "2026-09-16T21:48:10+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

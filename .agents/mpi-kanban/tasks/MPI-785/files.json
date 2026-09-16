@@ -1,0 +1,28 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/utils/galleryFilter.js",
+    "js/utils/assetKinds.js",
+    "js/utils/icons.js",
+    "js/components/galleryFilterPanel.js",
+    "js/components/galleryFilterPanel.css",
+    "js/components/Compounds/MpiGalleryToolbar/filterPanel.js",
+    "js/components/Compounds/MpiGalleryToolbar/MpiGalleryToolbar.js",
+    "js/components/Compounds/MpiGalleryToolbar/MpiGalleryToolbar.css",
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js",
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.css",
+    "js/components/Compounds/MpiGalleryGrid/cardMarkMenu.js",
+    "js/components/Compounds/MpiMediaPicker/MpiMediaPicker.js",
+    "js/components/Compounds/MpiMediaPicker/MpiMediaPicker.css",
+    "js/components/types.js",
+    "js/data/projectModel.js",
+    "js/state.js",
+    "tests/gallery-filter.test.cjs",
+    "tests/asset-kinds.test.cjs",
+    "tests/desktop/gallery-filter-panel.spec.js",
+    "tests/desktop/media-picker-cards.spec.js",
+    "docs/gallery-filters.md",
+    "docs/gallery.md",
+    "docs/component-contracts.md"
+  ]
+}

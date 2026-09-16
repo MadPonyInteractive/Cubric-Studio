@@ -99,10 +99,11 @@ const _state = {
 
     // ── Gallery organization ───────────────────────────────────────────────────
     gallerySort: { ...DEFAULT_GALLERY_SORT },
-                                     // { order, scope, hiddenKinds, favourites, previews }; the contract is
+                                     // { order, scope, hiddenKinds, marks, previews }; the contract is
                                      // js/utils/galleryFilter.js (MPI-749). order: 'newest'|'oldest', hides nothing.
                                      // scope: 'active'|'archived' — SUBTRACTIVE, gates before every filter.
-                                     // hiddenKinds: EXCLUDED ASSET_KINDS ids; favourites / previews: "only" flags.
+                                     // hiddenKinds: EXCLUDED ASSET_KINDS ids; marks: "only" CARD_MARKS ids;
+                                     // previews: "only" flag.
                                      // Deliberately NOT mirrored to Storage: `gallerySort` is in-memory, so the
                                      // scope resets to 'active' every launch. Nobody should relaunch into a
                                      // gallery that looks wiped (MPI-678).

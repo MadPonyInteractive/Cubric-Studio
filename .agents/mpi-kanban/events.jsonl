@@ -4345,3 +4345,6 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-784", "at": "2026-09-16T20:46:04+01:00", "actor": "claude", "column": "todo", "title": "Click a toast to dismiss it immediately"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-784", "at": "2026-09-16T20:46:56+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-784", "at": "2026-09-16T20:48:33+01:00", "actor": "claude", "from": "doing", "to": "done"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-785", "at": "2026-09-16T21:24:12+01:00", "actor": "claude", "column": "todo", "title": "Card marks: dot, square, triangle replace the heart; shared filter in the media picker"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-785", "at": "2026-09-16T21:24:37+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Starting implementation"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-785", "at": "2026-09-16T21:48:10+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Built and tested; waiting on Fabio's look-and-feel check"}

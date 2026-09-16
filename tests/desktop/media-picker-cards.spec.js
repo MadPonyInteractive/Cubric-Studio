@@ -8,9 +8,11 @@
 //  - the caption is the GALLERY's label — asserted against the text
 //    `MpiGalleryGrid` renders for the same groups, not against a hard-coded
 //    string, so the two cannot quietly drift apart later;
-//  - the type filter reads `group.type`. A group may hold mixed types, so
-//    filtering on the selected item's type instead would drop a card out of the
-//    very tab the gallery lists it under — the fixture has exactly that card;
+//  - the filter is the GALLERY's (MPI-785): the shared FILTER panel on a local
+//    sort, kinding a card by its SELECTED item like the gallery does — the
+//    fixture's video group holding a still is filed under Images in both — and
+//    opening with every kind that cannot fill the slot hidden;
+//  - a tile shows its card's mark, and the mark rows filter by it;
 //  - an audio tile plays on hover and stops on leave;
 //  - the mic and voice cards render only when the slot passes in the recorder and
 //    voice picker (MPI-751: a Compound may not import another Compound).
@@ -55,7 +57,7 @@ function fixtureGroups() {
   return [
     {
       id: 'pick-named', type: 'image', name: 'named_file_stem', customName: 'Hero shot',
-      createdAt: '2026-09-01T10:00:00Z', selectedIndex: 1, archived: false,
+      createdAt: '2026-09-01T10:00:00Z', selectedIndex: 1, archived: false, favourite: 'square',
       history: [
         item('pick-named-0', 'image', STILL),
         item('pick-named-1', 'image', STILL),
@@ -107,6 +109,9 @@ async function openPicker(window, groups, mediaType) {
       import('/js/components/Compounds/MpiMediaPicker/MpiMediaPicker.js'),
       import('/js/state.js'),
     ]);
+    // hide() first: MpiModal.destroy() drops listeners but leaves a SHOWN modal in the
+    // DOM, and its tiles would be counted with the next picker's.
+    window.__pick?.el?.hide?.();
     window.__pick?.el?.destroy?.();
     state.currentProject = { id: 'e2e-pick', name: 'E2E Pick', itemGroups: gs, modelSettings: {} };
     const picker = MpiMediaPicker.mount(document.createElement('div'), { mediaType: type });
@@ -122,12 +127,21 @@ function captions(window) {
     [...document.querySelectorAll('.mpi-media-picker__name')].map(el => el.textContent));
 }
 
-/** Click one of the four filter tabs by its label. Driven in-page, not by locator. */
-async function setFilter(window, label) {
-  await window.evaluate(async (want) => {
-    const tab = [...document.querySelectorAll('.mpi-media-picker__filter')]
+/**
+ * Open the picker's FILTER panel (if closed) and click one row or bulk button by its
+ * label. Driven in-page, not by locator. Never Escape to close it: Escape closes the
+ * picker's modal too.
+ */
+async function panelClick(window, label) {
+  return window.evaluate(async (want) => {
+    if (!document.querySelector('.mpi-popup--gallery-filter')) {
+      document.querySelector('.mpi-media-picker .mpi-gallery-filter__button').click();
+      await new Promise(r => setTimeout(r, 150));
+    }
+    const target = [...document.querySelectorAll(
+      '.mpi-popup--gallery-filter .mpi-gallery-filter__toggle, .mpi-popup--gallery-filter .mpi-gallery-filter__panel-bulk .mpi-btn')]
       .find(b => b.textContent.trim() === want);
-    tab.click();
+    target.click();
     await new Promise(r => setTimeout(r, 200));
   }, label);
 }
@@ -138,7 +152,6 @@ test('one tile per card, captioned exactly as the gallery captions it', async ({
   try {
     await window.waitForTimeout(6000); // shell boot settles
     await openPicker(window, fixtureGroups(), 'image');
-    await setFilter(window, 'All media');
 
     const shown = await captions(window);
 
@@ -190,24 +203,56 @@ test('one tile per card, captioned exactly as the gallery captions it', async ({
   }
 });
 
-test('the type filter reads group.type', async ({}, testInfo) => {
+test('the gallery filter runs on the picker, kinded by the selected item, on its own sort', async ({}, testInfo) => {
   const { app, window } = await launchApp(testInfo);
 
   try {
     await window.waitForTimeout(6000);
+
+    // `pick-mixed` is `type: 'video'` with an IMAGE selected. The gallery kinds a card
+    // by its selected item (MPI-749), and so does the picker now: an image slot lists it.
     await openPicker(window, fixtureGroups(), 'image');
-
-    // `pick-mixed` is `type: 'video'` and its selected take is an IMAGE. The picker
-    // files it under Videos, by group type. The GALLERY kinds a card by its selected
-    // item since MPI-749 and would file it under Images: a known divergence, pinned
-    // here so it changes on purpose. Each tab is asserted in both directions.
-    await setFilter(window, 'Videos');
-    expect(await captions(window)).toEqual(['Clip with a still selected']);
-
-    await setFilter(window, 'Images');
     const images = await captions(window);
-    expect(images).toHaveLength(3);
-    expect(images).not.toContain('Clip with a still selected');
+    expect(images).toHaveLength(4);
+    expect(images).toContain('Clip with a still selected');
+
+    // The mark shows on its tile, and only there.
+    const marks = await window.evaluate(() => [...document.querySelectorAll('.mpi-media-picker__tile')]
+      .filter(t => t.querySelector('.mpi-media-picker__mark'))
+      .map(t => t.querySelector('.mpi-media-picker__name').textContent));
+    expect(marks).toEqual(['Hero shot']);
+
+    // The panel sits ABOVE the picker's modal (MpiPopup's own z-index is under it).
+    await panelClick(window, 'Squares');
+    expect(await captions(window)).toEqual(['Hero shot']);
+    const onTop = await window.evaluate(() => {
+      const row = document.querySelector('.mpi-popup--gallery-filter .mpi-gallery-filter__row');
+      const r = row.getBoundingClientRect();
+      return row.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+    });
+    expect(onTop).toBe(true);
+    await panelClick(window, 'Squares');
+    expect(await captions(window)).toHaveLength(4);
+
+    // A video slot opens with the image kind hidden: nothing to show, and it says so.
+    await openPicker(window, fixtureGroups(), 'video');
+    expect(await captions(window)).toEqual([]);
+    const state0 = await window.evaluate(() => ({
+      empty: document.querySelector('.mpi-media-picker__empty')?.textContent,
+      dot: document.querySelector('.mpi-media-picker .mpi-gallery-filter__button')
+        .classList.contains('mpi-gallery-filter__button--filtered'),
+    }));
+    expect(state0).toEqual({ empty: 'No media matches this filter.', dot: true });
+
+    // Widening it is the user's call, and it never touches the gallery's own sort.
+    await panelClick(window, 'All');
+    expect(await captions(window)).toHaveLength(4);
+    const gallerySort = await window.evaluate(async () => {
+      const { state } = await import('/js/state.js');
+      return state.gallerySort;
+    });
+    expect(gallerySort.hiddenKinds).toEqual([]);
+    expect(gallerySort.marks).toEqual([]);
   } finally {
     await closeApp(app);
   }

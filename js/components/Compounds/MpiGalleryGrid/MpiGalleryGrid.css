@@ -409,6 +409,18 @@
     border-color: transparent;
 }
 
+/* ── Card mark shape menu (MPI-785, cardMarkMenu.js) ─────────────────────────
+   Opens under the mark button on a hold. MpiPopup portals to <body>, so these are
+   top-level selectors. The current shape carries the ghost button's heat is-active. */
+.mpi-popup.mpi-popup--card-mark {
+    padding: var(--s-1);
+}
+
+.mpi-gallery-grid__mark-menu {
+    display: flex;
+    gap: 2px;
+}
+
 /* ── Top-left badge (model · operation / IMPORTED / video source · 5S) ─────── */
 
 .mpi-group-card__top-badge {
