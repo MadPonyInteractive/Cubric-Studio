@@ -34,7 +34,7 @@
  * an unlisted mutation is a silent hole in Ctrl+Z.
  */
 
-import { stampDab, strokeDabs } from './brushDab.js';
+import { stampDab, strokeDabs, strokeBox } from './brushDab.js';
 
 /**
  * Same cap as MaskManager's, and for the same reason: this layer is CONSUMED as a
@@ -187,11 +187,14 @@ export class CompositeManager {
         const r = (this.brushSize * s) / 2;
         const op = this.brushType === 'eraser' ? 'source-over' : 'destination-out';
 
-        strokeDabs(this._lastDab, to, r, (x, y) => {
+        const from = this._lastDab;
+        strokeDabs(from, to, r, (x, y) => {
             this._growStrokeBox(x, y, r);
             stampDab(this.holeCtx, x, y, r, op, HOLE_FILL);
         });
         this._lastDab = to;
+        // The image-px box this move touched — all MpiCanvas repaints for it (MPI-787).
+        return strokeBox(from, to, r, s);
     }
 
     /**

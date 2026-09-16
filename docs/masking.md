@@ -109,7 +109,27 @@ behind. Composes with `displayInverted` (backdrop and mask swap together); green
 or pick state vanishes. `maskOpacity` is ignored while B/W is on, so the strip's opacity slider goes
 inert rather than making grey mush.
 
-Both recolours go through `_recolorMaskLayer(src, color, W, H)`, filling `source-atop` inside a
+### A brush move repaints its BOX, not the frame (MPI-787)
+
+The overlay and base canvases are IMAGE-sized; the `MASK_MAX_EDGE` cap above covers only the
+working layers. So a full `draw()` per `mousemove` re-rasterises two 8.8 MP canvases for a 2960²
+image — free on a GPU canvas, but on a CPU-drawn one (a weak or blocklisted local GPU, e.g. a
+RunPod user's box) it held the brush to ~21 fps, and MPI-375's image-sized paint layer, blended
+every frame even when empty, added ~9 ms per move. Few frames = few mouse samples, and
+`strokeDabs` joins them with straight segments: the stroke reads as **jagged**.
+
+Now each brush manager's `paint()` returns the image-px box the move touched
+(`brushDab.strokeBox`), and `InputController` sends it to `drawStroke(box)`, which runs
+`_renderOverlay(clip)` inside it, skips the base (a stroke never changes it), and redraws the
+screen UI. A bare hover redraws the screen UI alone; every other move keeps the full `draw()`.
+Measured on the same input with acceleration off: 23.5 → 74.6 fps (vsync). **Any new overlay step
+must depend on its own layer's pixels only** — one that reads the overlay breaks the clip.
+
+The clip is not bit-exact against a full redraw when a layer is RESAMPLED (the upscaled mask:
+≤12/255 alpha on an antialiased edge; grid dashes: ≤3/255) — Skia starts its sampling step at the
+clip edge. It is exact at 1:1, and `mouseup` does a full `draw()`, so it never outlives the stroke.
+
+Both recolours go through `_recolorMaskLayer(src, color, W, H, clip)`, filling `source-atop` inside a
 **scratch buffer** — load-bearing, since filling on the overlay would recolour the comparison layer
 underneath. The buffer is reused across frames and across both calls in one frame (safe: `drawImage`
 copies synchronously). Canvas colours are module constants mirroring `styles/01_base.css` tokens

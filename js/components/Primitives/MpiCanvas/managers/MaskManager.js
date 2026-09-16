@@ -37,7 +37,7 @@
  */
 
 import { alphaStencil } from '../../../../utils/maskUtils.js';
-import { stampDab, strokeDabs, dabExtent, DEFAULT_BRUSH_PRESET } from './brushDab.js';
+import { stampDab, strokeDabs, strokeBox, dabExtent, DEFAULT_BRUSH_PRESET } from './brushDab.js';
 import { signedSquaredDistanceField, rangeFor, writeRange } from './distanceField.js';
 import { holeFlood, regionCanvas } from './holeFlood.js';
 
@@ -329,9 +329,12 @@ export class MaskManager {
         // Interpolate from the previous sample (MPI-375). One dab per mousemove left
         // holes in any drag faster than the brush is wide; the shared spacing closes
         // them for the paint layer and the mask brush alike, and the preset owns it.
-        strokeDabs(this._lastDab, to, r, stamp, preset);
+        const from = this._lastDab;
+        strokeDabs(from, to, r, stamp, preset);
         this._lastDab = to;
         this._recomposite();
+        // The image-px box this move touched — all MpiCanvas repaints for it (MPI-787).
+        return strokeBox(from, to, reach, s);
     }
 
     /**

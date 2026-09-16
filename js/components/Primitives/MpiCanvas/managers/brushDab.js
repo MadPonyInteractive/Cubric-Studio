@@ -274,6 +274,32 @@ export function strokeDabs(from, to, r, stamp, preset) {
     stamp(to.x, to.y);
 }
 
+/**
+ * The IMAGE-px box one `strokeDabs(from, to)` walk can have touched (MPI-787) — what
+ * `MpiCanvas` repaints for that pointer move instead of its whole image-sized overlay.
+ *
+ * Every dab sits on the segment, so the segment's box grown by the dab's real `reach`
+ * holds all of them. The 2 extra layer px cover the antialiased rim, and the bilinear
+ * upscale of a layer smaller than the overlay, which bleeds a changed pixel into its
+ * neighbours.
+ *
+ * @param {{x:number,y:number}|null} from - previous sample, layer px; null on the first dab
+ * @param {{x:number,y:number}} to - current sample, layer px
+ * @param {number} reach - the dab's `dabExtent()`, layer px
+ * @param {number} scale - layer px per image px
+ * @returns {{x:number,y:number,w:number,h:number}}
+ */
+export function strokeBox(from, to, reach, scale) {
+    const a = from || to;
+    const pad = reach + 2;
+    return {
+        x: (Math.min(a.x, to.x) - pad) / scale,
+        y: (Math.min(a.y, to.y) - pad) / scale,
+        w: (Math.abs(to.x - a.x) + 2 * pad) / scale,
+        h: (Math.abs(to.y - a.y) + 2 * pad) / scale,
+    };
+}
+
 /* ── The brush cursor ─────────────────────────────────────────────────────────
  *
  * The ring drawn UNDER the pointer, which is the only thing telling the user how

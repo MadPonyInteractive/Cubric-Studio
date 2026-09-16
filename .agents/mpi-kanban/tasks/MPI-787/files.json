@@ -1,0 +1,9 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": [
+  "js/components/Primitives/MpiCanvas/MpiCanvas.js",
+  "js/components/Primitives/MpiCanvas/managers/InputController.js",
+  "js/components/Primitives/MpiCanvas/managers/MaskManager.js",
+  "js/components/Primitives/MpiCanvas/managers/PaintManager.js",
+  "js/components/Primitives/MpiCanvas/managers/CompositeManager.js",
+  "js/components/Primitives/MpiCanvas/managers/brushDab.js",
+  "docs/masking.md"
+] }

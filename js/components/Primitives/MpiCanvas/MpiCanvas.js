@@ -218,6 +218,8 @@ class _CanvasCore {
             { view: this.view, mask: this.mask, comparison: this.comparison, crop: this.crop, paint: this.paint, shape: this.shape, comp: this.comp, undo: this.undoStack },
             {
                 onDraw: () => { this._applyTransform(); this.draw(); },
+                onStrokeDraw: (box) => this.drawStroke(box),
+                onCursorDraw: () => { if (this.overlayCanvas.width) this._renderScreenUI(); },
                 onResetView: () => this.resetView(),
                 onSliderChange: (pos) => { this.canvas.dataset.sliderPos = pos; },
                 onBrushSizeChange: this.options.onBrushSizeChange,
@@ -827,6 +829,32 @@ class _CanvasCore {
     }
 
     /**
+     * One brush move (MPI-787): repaint the overlay inside the box the stroke touched,
+     * plus the screen UI for the ring. The base is skipped — a stroke never changes it.
+     *
+     * `draw()` repaints both image-sized canvases edge to edge. MPI-214 capped the mask's
+     * working LAYERS at 1536 but left that display path full-frame, so on a CPU-drawn
+     * canvas (a weak or blocklisted GPU) a 2960px image held the brush to ~21fps, and
+     * few frames means few mouse samples joined by straight segments — the stroke
+     * looked jagged. Clipping to the box measured 74fps on the same input.
+     *
+     * @param {{x:number,y:number,w:number,h:number}} box image px
+     */
+    drawStroke(box) {
+        const W = this.overlayCanvas.width;
+        const H = this.overlayCanvas.height;
+        if (!W || !this.img?.width) return;
+        // The overlay is the image clamped to MAX_TEXTURE_SIZE, so image px are scaled.
+        const k = W / this.img.width;
+        const x0 = Math.max(0, Math.floor(box.x * k));
+        const y0 = Math.max(0, Math.floor(box.y * k));
+        const x1 = Math.min(W, Math.ceil((box.x + box.w) * k));
+        const y1 = Math.min(H, Math.ceil((box.y + box.h) * k));
+        if (x1 > x0 && y1 > y0) this._renderOverlay({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
+        this._renderScreenUI();
+    }
+
+    /**
      * A crop rect bigger than the image would sit half off-screen under the
      * managed fit, so while cropping the view frames image ∪ crop instead
      * (MPI-383).
@@ -855,11 +883,25 @@ class _CanvasCore {
         ctx.drawImage(src, 0, 0, this.baseCanvas.width, this.baseCanvas.height);
     }
 
-    _renderOverlay() {
+    /**
+     * @param {{x:number,y:number,w:number,h:number}|null} [clip] overlay px. Set, every
+     *   layer below repaints inside it and nothing outside is touched (`drawStroke`).
+     *   That is exact only because each step is a function of its layer's pixels alone —
+     *   a new step that reads what is already on the overlay breaks it.
+     */
+    _renderOverlay(clip = null) {
         const ctx = this.overlayCtx;
         const W = this.overlayCanvas.width;
         const H = this.overlayCanvas.height;
-        ctx.clearRect(0, 0, W, H);
+        ctx.save();
+        if (clip) {
+            ctx.beginPath();
+            ctx.rect(clip.x, clip.y, clip.w, clip.h);
+            ctx.clip();
+            ctx.clearRect(clip.x, clip.y, clip.w, clip.h);
+        } else {
+            ctx.clearRect(0, 0, W, H);
+        }
 
         // 0. Composite reveal (MPI-373) — image 2 showing through the hole cut in
         // image 1. FIRST, while the overlay is still empty, which is the whole trick:
@@ -925,9 +967,9 @@ class _CanvasCore {
                 // the mask, never on top of it: showing both would have the user
                 // judging the old shape and the proposed one at once. The real
                 // layers are untouched until Apply — this is the whole preview.
-                ctx.drawImage(this._recolorMaskLayer(this.mask.adjustCanvas, MASK_AUTO_FILL, W, H), 0, 0);
+                ctx.drawImage(this._recolorMaskLayer(this.mask.adjustCanvas, MASK_AUTO_FILL, W, H, clip), 0, 0);
             } else if (this.mask.displayInverted) {
-                ctx.drawImage(this._recolorMaskLayer(this.mask.maskCanvas, MASK_INVERT_FILL, W, H), 0, 0);
+                ctx.drawImage(this._recolorMaskLayer(this.mask.maskCanvas, MASK_INVERT_FILL, W, H, clip), 0, 0);
             } else {
                 ctx.drawImage(this.mask.maskCanvas, 0, 0, W, H);
             }
@@ -936,7 +978,7 @@ class _CanvasCore {
             // already-painted area is invisible and the user cannot see what the
             // run returned. DISPLAY ONLY: every export still reads maskCanvas.
             if (this.mask.hasAutoLayer) {
-                ctx.drawImage(this._recolorMaskLayer(this.mask.autoCanvas, MASK_AUTO_FILL, W, H), 0, 0);
+                ctx.drawImage(this._recolorMaskLayer(this.mask.autoCanvas, MASK_AUTO_FILL, W, H, clip), 0, 0);
             }
             ctx.globalAlpha = 1;
         }
@@ -952,6 +994,7 @@ class _CanvasCore {
         if (this.gridH > 1 || this.gridV > 1) {
             this._drawGridOverlay();
         }
+        ctx.restore();
     }
 
     _renderScreenUI() {
@@ -1003,17 +1046,24 @@ class _CanvasCore {
      *  the source-atop fill cannot touch what is already on the overlay (the
      *  comparison layer draws first). The buffer is reused across frames AND
      *  across both calls in one frame — safe because drawImage copies
-     *  synchronously before the next call overwrites it. */
-    _recolorMaskLayer(src, color, W, H) {
+     *  synchronously before the next call overwrites it. With a `clip` only that
+     *  rect is rebuilt; the rest is stale, which is safe because the caller draws
+     *  the buffer through the same clip (MPI-787). */
+    _recolorMaskLayer(src, color, W, H, clip = null) {
         const buf = this._maskTintBuf || (this._maskTintBuf = document.createElement('canvas'));
         if (buf.width !== W || buf.height !== H) { buf.width = W; buf.height = H; }
         const bctx = buf.getContext('2d');
-        bctx.clearRect(0, 0, W, H);
+        const r = clip || { x: 0, y: 0, w: W, h: H };
+        bctx.save();
+        bctx.beginPath();
+        bctx.rect(r.x, r.y, r.w, r.h);
+        bctx.clip();
+        bctx.clearRect(r.x, r.y, r.w, r.h);
         bctx.drawImage(src, 0, 0, W, H);
         bctx.globalCompositeOperation = 'source-atop';
         bctx.fillStyle = color;
-        bctx.fillRect(0, 0, W, H);
-        bctx.globalCompositeOperation = 'source-over';
+        bctx.fillRect(r.x, r.y, r.w, r.h);
+        bctx.restore();
         return buf;
     }
 

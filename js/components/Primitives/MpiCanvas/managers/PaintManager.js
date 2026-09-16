@@ -24,7 +24,7 @@
  */
 
 import { alphaStencil } from '../../../../utils/maskUtils.js';
-import { stampDab, strokeDabs, dabExtent, DEFAULT_BRUSH_PRESET } from './brushDab.js';
+import { stampDab, strokeDabs, strokeBox, dabExtent, DEFAULT_BRUSH_PRESET } from './brushDab.js';
 import { fieldOverContent, rangeFor, writeRange } from './distanceField.js';
 import { holeFlood, regionCanvas } from './holeFlood.js';
 
@@ -197,11 +197,14 @@ export class PaintManager {
         // outside r and an undo box grown for r would leave those pixels behind.
         const reach = dabExtent(r, preset);
 
-        strokeDabs(this._lastDab, to, r, (x, y) => {
+        const from = this._lastDab;
+        strokeDabs(from, to, r, (x, y) => {
             this._growStrokeBox(x, y, reach);
             stampDab(this.paintCtx, x, y, r, op, this.color, preset);
         }, preset);
         this._lastDab = to;
+        // The image-px box this move touched — all MpiCanvas repaints for it (MPI-787).
+        return strokeBox(from, to, reach, s);
     }
 
     /**

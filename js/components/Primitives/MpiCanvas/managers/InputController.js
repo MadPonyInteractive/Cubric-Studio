@@ -18,6 +18,8 @@ import { Hotkeys } from '/js/managers/hotkeyManager.js';
 /**
  * @typedef {Object} InputOptions
  * @property {() => void} onDraw
+ * @property {(box: {x:number,y:number,w:number,h:number}) => void} onStrokeDraw - image-px box
+ * @property {() => void} onCursorDraw
  * @property {() => void} onResetView
  * @property {(pos: number) => void} [onSliderChange]
  * @property {(size: number) => void} [onBrushSizeChange]
@@ -274,6 +276,9 @@ export class InputController {
             this.currentMouseY = c.y;
             const { view, mask, comparison, crop, paint, shape, comp } = this.managers;
             this._altHeld = !!e.altKey;
+            /** Image-px box a brush stroke touched on this move (MPI-787). */
+            let dirty = null;
+            let hoverOnly = false;
 
             if (comparison.isDraggingSlider) {
                 const containerW = this.container.getBoundingClientRect().width || 1;
@@ -289,20 +294,29 @@ export class InputController {
                 shape.drag(i.x, i.y, e.shiftKey);
             } else if (mask.isDrawingMask) {
                 const i = this._getImageCoords(e);
-                mask.paint(i.x, i.y);
+                dirty = mask.paint(i.x, i.y);
             } else if (paint?.isDrawing) {
                 const i = this._getImageCoords(e);
-                paint.paint(i.x, i.y);
+                dirty = paint.paint(i.x, i.y);
             } else if (comp?.isDrawing) {
                 const i = this._getImageCoords(e);
-                comp.paint(i.x, i.y);
+                dirty = comp.paint(i.x, i.y);
             } else if (this.isPanning) {
                 view.offsetX = e.clientX - this.startPanX;
                 view.offsetY = e.clientY - this.startPanY;
+            } else {
+                hoverOnly = true;
             }
 
             this.updateCursor();
-            this.options.onDraw();
+            // MPI-787: repaint only what this move changed. A full draw repaints both
+            // image-sized canvases edge to edge, which on a CPU-drawn canvas held a
+            // 2960px mask stroke to ~21fps — and this listener is on WINDOW, so a bare
+            // hover over any panel paid it too. A stroke changes only its own box; a
+            // hover changes only the cursor ring. Everything else keeps the full draw.
+            if (dirty) this.options.onStrokeDraw(dirty);
+            else if (hoverOnly) this.options.onCursorDraw();
+            else this.options.onDraw();
         };
         window.addEventListener('mousemove', this._boundHandlers.mousemove);
 
