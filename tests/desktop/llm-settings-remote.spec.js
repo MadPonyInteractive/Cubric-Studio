@@ -23,9 +23,16 @@ test('Remote rows list the connection models, recommended first', async ({}, tes
   try {
     await window.evaluate((models) => {
       const realFetch = window.fetch.bind(window);
-      window.fetch = (url, opts) => (String(url).startsWith('/llm/connection/models')
-        ? Promise.resolve({ ok: true, json: async () => ({ ok: true, profileId: 'deepinfra', models }) })
-        : realFetch(url, opts));
+      // Each init pass starts with one `/llm/models` request, sent before its first await.
+      window.__llmModelsCalls = 0;
+      window.fetch = (url, opts) => {
+        const path = String(url);
+        if (path.startsWith('/llm/connection/models')) {
+          return Promise.resolve({ ok: true, json: async () => ({ ok: true, profileId: 'deepinfra', models }) });
+        }
+        if (path.startsWith('/llm/models')) window.__llmModelsCalls++;
+        return realFetch(url, opts);
+      };
       localStorage.setItem('cubric.llm.backend', 'endpoint');
       localStorage.setItem('cubric.llm.describeBackend', 'endpoint');
       localStorage.removeItem('cubric.llm.endpointModel');
@@ -40,6 +47,11 @@ test('Remote rows list the connection models, recommended first', async ({}, tes
       ]);
       Events.emit('slide-over:open', { title: 'Remote', component: MpiRemote });
     });
+    // MPI-789 (CI run 35150684500): the panel ran TWO init passes per open. When their
+    // replies crossed, the late pass rebuilt every row after this spec had opened a
+    // dropdown, and the list below resolved to 0 elements. Both requests go out inside
+    // the emit, so the count is final here: no wait, and no dependence on reply order.
+    expect(await window.evaluate(() => window.__llmModelsCalls), 'one open must run one init pass').toBe(1);
 
     const label = (slot) => window.locator(`${slot} .mpi-dropdown__label`);
     const openList = window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option-label');

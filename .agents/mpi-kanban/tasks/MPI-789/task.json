@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-789",
+  "title": "llm-settings-remote spec red on CI: Remote panel inits twice",
+  "description": "CI run 35150684500: the opened model dropdown was destroyed by a second init pass. MpiLlmSettings runs _init in setup AND onOpen; fix the double init.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-16T22:59:22+01:00",
+  "updated_at": "2026-09-16T22:59:36+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

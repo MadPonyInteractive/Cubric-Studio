@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/components/Organisms/MpiLlmSettings/MpiLlmSettings.js", "tests/desktop/llm-settings-remote.spec.js", "docs/llm.md"] }

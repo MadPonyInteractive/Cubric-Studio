@@ -131,6 +131,10 @@ errorCode?, error?, cancelled? }`, never rejects. Both callers use it: the right
 
 ## Settings (`MpiLlmSettings`)
 
+**One init per open: `el.onOpen` only.** `MpiSlideOver` calls it right after mount; an extra `_init`
+in `setup` (removed, MPI-789) ran two passes per open, and when their `/llm/models` replies crossed,
+the late pass rebuilt every row under a dropdown the user had just opened (CI-only red).
+
 One `GET /llm/connection/models` fetch per render (`_refreshModels`) feeds every Remote model
 dropdown through `_remoteModelOptions(job, saved, filter)`: recommended-for-that-job first, labelled
 "(recommended)". Remote is greyed only on `NO_KEY` / `NO_PROFILE` (`_remoteBlocked`); an unreachable

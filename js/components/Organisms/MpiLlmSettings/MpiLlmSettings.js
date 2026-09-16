@@ -211,8 +211,10 @@ export const MpiLlmSettings = ComponentFactory.create({
          */
         let _remote;
 
+        // The ONE init: MpiSlideOver calls onOpen right after mount (via MpiRemote). Also
+        // calling `_init` here ran two passes per open, and when their `/llm/models`
+        // replies crossed, the late pass rebuilt every row under an open dropdown (MPI-789).
         el.onOpen = () => { _init(el); };
-        _init(el);
 
         /** Every control is re-read from scratch on each open — no cached view state. */
         async function _init(root) {
