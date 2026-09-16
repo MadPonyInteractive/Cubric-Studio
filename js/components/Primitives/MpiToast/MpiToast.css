@@ -38,6 +38,7 @@
        it here would clip the overhanging mascot. */
     overflow: visible;
     pointer-events: auto;
+    cursor: pointer; /* click dismisses */
     user-select: none;
     opacity: 0;
     transform: translateY(-18px);

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-784",
+  "title": "Click a toast to dismiss it immediately",
+  "description": "Clicking an MpiToast does nothing today; it waits out its timer. Click should dismiss at once.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-16T20:46:04+01:00",
+  "updated_at": "2026-09-16T20:48:33+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

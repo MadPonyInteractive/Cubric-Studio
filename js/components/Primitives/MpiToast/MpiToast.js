@@ -1,5 +1,5 @@
 import { ComponentFactory } from '../../factory.js';
-import { qs, qsa } from '../../../utils/dom.js';
+import { qs, qsa, on } from '../../../utils/dom.js';
 import { readingTimeMs } from '../../../utils/string.js';
 import { Storage } from '../../../core/storage.js';
 
@@ -202,6 +202,9 @@ export const MpiToast = ComponentFactory.create({
             }, { once: true });
         };
         el._dismissFn = dismiss;
+        // Click anywhere on the toast = dismiss now. Listener is on the toast's own
+        // node, so it dies with it — no teardown to run.
+        on(el, 'click', dismiss);
 
         const container = _getStackContainer();
         // Burst-start chime: toasts ring by DEFAULT (props.sound !== false). The
