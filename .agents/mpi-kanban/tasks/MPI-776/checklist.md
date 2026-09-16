@@ -8,4 +8,4 @@
 - [x] Skill family: core `cubric-vision` + generate / flows / project-files / engine
 - [x] Doc sites citing the moved skill files, `docs/generation-lifecycle.md` (`docs/events.md` needed no change)
 - [x] Commit: blobs for the three MPI-774-shared files, pathspec for the rest
-- [ ] `.claude/rules/component-events-blocks.md` (new gallery listener): asked at close-out, needs explicit permission
+- [x] `.claude/rules/component-events-blocks.md` (new gallery listener): asked at close-out, permission given 2026-09-16
