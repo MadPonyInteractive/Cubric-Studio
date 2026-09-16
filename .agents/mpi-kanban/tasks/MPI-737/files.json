@@ -1,0 +1,19 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": [
+  "routes/llm.js",
+  "services/llmEngines.mjs",
+  "tests/llm-describe.test.cjs",
+  "tests/llm-service.test.cjs",
+  "js/services/llmService.js",
+  "js/utils/describeAction.js",
+  "js/shell/agentDispatch.js",
+  "js/services/commandExecutor.js",
+  "js/components/Organisms/MpiLlmSettings/",
+  "js/components/types.js",
+  "tests/desktop/runpod-settings-extract.spec.js",
+  "docs/llm.md",
+  "docs/agent/prompt-enhancement.md",
+  "docs/playbooks/add-flow/ui/prompt-enhance.md",
+  "docs/agent-chat.md",
+  "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+  "docs/releases/UNRELEASED.md"
+] }

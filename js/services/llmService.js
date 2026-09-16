@@ -1,7 +1,7 @@
 // js/services/llmService.js
 
 /**
- * llmService — Vision's own prompt enhancement (MPI-677 step 1a).
+ * llmService — Vision's own prompt enhancement and image description (MPI-677, MPI-737).
  *
  * THIS IS WHAT RETIRES CUBRIC PROMPT. The Enhance button used to call out over
  * the broker to a sibling app; the recipe layer landed here in MPI-35, so the
@@ -10,13 +10,16 @@
  * replaced; step 1b repointed the button and step 2 DELETED it, along with the
  * broker boot, the connector responder and the `@cubric/connector` dependency.
  *
- * THREE BACKENDS, AND THE CHOICE IS THE USER'S (MPI-728). Fabio, 2026-09-12:
+ * THREE BACKENDS, AND THE CHOICE IS THE USER'S (MPI-728/MPI-737). Fabio, 2026-09-12:
  * the dropdown is about WHERE THE WORK RUNS, not which model is smartest — a
  * user generating on a RunPod pod enhances locally because the card is idle, and
  * a user generating locally pushes enhancement to the cloud to keep VRAM free.
  * `chooseBackend` honours that pick, and with no pick the answer is `comfy`.
  *
- *   - `deepinfra` — needs a stored key. Off-GPU, no queue wait, no VRAM at all.
+ *   - `endpoint` (MPI-737; previously `deepinfra` — stored values migrate on read)
+ *     — any OpenAI-compatible endpoint via the shared Remote connection. Off-GPU,
+ *     no queue wait, no VRAM at all. Image descriptions also use this path
+ *     (`describeImage`), skipping the ComfyUI queue entirely.
  *   - `comfy` — THE DEFAULT. Local, through the engine that is already running. It runs the
  *     shipped `qwen3vl_4b_prompt_enhancer.json` through the existing
  *     `promptEnhance` operation. OFFERED ON EVERY MODEL: the graph carries its
@@ -31,13 +34,14 @@
  *   - `ollama` — local, in a second runtime with its own VRAM. The only backend
  *     that carries an abliterated build.
  *
- * The cloud key lives in the main process and is resolved by `routes/llm.js`.
+ * The endpoint key lives in the main process and is resolved by `routes/llm.js`.
  * Nothing here ever sees it.
  */
 
 import { resolveRecipe, FALLBACK_RECIPE_ID, getRecipe } from '../data/recipes/registry.js';
 import { composeSystemPrompt } from '../data/recipes/styles.js';
 import { clientLogger } from './clientLogger.js';
+import { Storage } from '../core/storage.js';
 
 /** The mode every image recipe declares, and the base mode of the video ones. */
 const DEFAULT_MODE = 't2v';
@@ -45,11 +49,16 @@ const DEFAULT_MODE = 't2v';
 /** The registered ComfyUI operation that runs `qwen3vl_4b_prompt_enhancer.json`. */
 export const COMFY_ENHANCE_OP = 'promptEnhance';
 
-/** Per-viewer backend override, when the user has pinned one. */
+/** Per-viewer backend override for enhancement, when the user has pinned one. */
 const BACKEND_PREF_KEY = 'cubric.llm.backend';
 
 /** Per-viewer enhancer-model choice, under whichever backend is running it. */
 const ENHANCER_MODEL_PREF_KEY = 'cubric.llm.enhancerModel';
+
+/** Per-viewer describe-backend choice (MPI-737). Default: 'comfy'. */
+const DESCRIBE_BACKEND_PREF_KEY = 'cubric.llm.describeBackend';
+/** Per-viewer describe model, under whichever backend is running descriptions. */
+const DESCRIBE_MODEL_PREF_KEY = 'cubric.llm.describeModel';
 
 /**
  * MPI-35 phase 2's overrides on the shipped enhancer graph.
@@ -112,6 +121,9 @@ export function buildComfyInjectionParams(systemPrompt) {
 /** With no pick, the engine the app already runs (Fabio, 2026-09-12). */
 const DEFAULT_BACKEND = 'comfy';
 
+/** With no describe-backend pick, use the engine already running. */
+const DEFAULT_DESCRIBE_BACKEND = 'comfy';
+
 /**
  * Which backend runs this enhance — the user's pick, or `comfy`.
  *
@@ -135,19 +147,68 @@ const DEFAULT_BACKEND = 'comfy';
  *    key nor a running Ollama moves the answer any more.
  *
  * @param {object}  a
- * @param {string} [a.override]  the user's choice ('deepinfra'|'ollama'|'comfy'); anything else is no choice
+ * @param {string} [a.override]  the user's choice ('endpoint'|'ollama'|'comfy'); anything else is no choice.
+ *                               'deepinfra' is also accepted for backward compatibility (migrated to 'endpoint').
  */
 export function chooseBackend({ override } = {}) {
-    return override === 'comfy' || override === 'deepinfra' || override === 'ollama' ? override : DEFAULT_BACKEND;
+    // D2 (MPI-737): 'deepinfra' stored values map to 'endpoint' in code.
+    const resolved = override === 'deepinfra' ? 'endpoint' : override;
+    return resolved === 'comfy' || resolved === 'endpoint' || resolved === 'ollama' ? resolved : DEFAULT_BACKEND;
 }
 
-/** The user's backend: ComfyUI until they pick another. */
+/** The user's enhancement backend: ComfyUI until they pick another.
+ *  MPI-737: a stored 'deepinfra' value is migrated to 'endpoint' and persisted. */
 export function backendPreference() {
     try {
-        return chooseBackend({ override: localStorage.getItem(BACKEND_PREF_KEY) });
+        const stored = localStorage.getItem(BACKEND_PREF_KEY);
+        // D2 migration: 'deepinfra' is now 'endpoint'; persist so Phase 3 settings see the right value.
+        if (stored === 'deepinfra') {
+            setBackendPreference('endpoint');
+            return 'endpoint';
+        }
+        return chooseBackend({ override: stored });
     } catch {
         return DEFAULT_BACKEND;   // private window / storage disabled
     }
+}
+
+/** Which describe backend is valid (comfy | endpoint). */
+function chooseDescribeBackend({ override } = {}) {
+    return override === 'comfy' || override === 'endpoint' ? override : DEFAULT_DESCRIBE_BACKEND;
+}
+
+/** The user's describe backend: ComfyUI until they pick another. */
+export function describeBackendPreference() {
+    try {
+        return chooseDescribeBackend({ override: localStorage.getItem(DESCRIBE_BACKEND_PREF_KEY) });
+    } catch {
+        return DEFAULT_DESCRIBE_BACKEND;
+    }
+}
+
+/** Pin a describe backend, or pass falsy to go back to the default. */
+export function setDescribeBackendPreference(backend) {
+    try {
+        if (backend) localStorage.setItem(DESCRIBE_BACKEND_PREF_KEY, backend);
+        else localStorage.removeItem(DESCRIBE_BACKEND_PREF_KEY);
+    } catch { /* storage disabled */ }
+}
+
+/** The user's describe model, or undefined for the endpoint default. */
+export function describeModelPreference() {
+    try {
+        return localStorage.getItem(DESCRIBE_MODEL_PREF_KEY) || undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+/** Pin a describe model id, or pass falsy to use the endpoint default. */
+export function setDescribeModelPreference(id) {
+    try {
+        if (id) localStorage.setItem(DESCRIBE_MODEL_PREF_KEY, id);
+        else localStorage.removeItem(DESCRIBE_MODEL_PREF_KEY);
+    } catch { /* storage disabled */ }
 }
 
 /** Pin a backend, or pass a falsy value to go back to the default. */
@@ -168,12 +229,40 @@ export function setBackendPreference(backend) {
  * (`"<model>" has no <backend> variant.`). Swallowing it here would turn the
  * user's explicit pick into a silent fall-back to something else — the exact
  * defect this card deleted.
+ *
+ * MPI-737: On the endpoint branch, a stored MODEL_REGISTRY id (e.g. 'gemma-4-e4b')
+ * is resolved to its raw endpoint model id via `_resolveEndpointModelId` before
+ * being sent to the server. Phase 3 settings will write raw endpoint ids directly.
  */
 export function enhancerModelPreference() {
     try {
         return localStorage.getItem(ENHANCER_MODEL_PREF_KEY) || undefined;
     } catch {
         return undefined;   // private window / storage disabled
+    }
+}
+
+/**
+ * Resolve a stored MODEL_REGISTRY id to the raw endpoint model id needed by the
+ * endpoint branch of `/llm/enhance`.
+ *
+ * The mapping comes from GET /llm/models `deepInfraId`; a registry entry with no
+ * DeepInfra variant is returned unchanged, and the endpoint names the bad id.
+ * A value that is already a raw endpoint id (contains '/' or ':') is passed as-is.
+ *
+ * @param {string|undefined} modelId  the stored pref value
+ * @returns {Promise<string|undefined>}
+ */
+async function _resolveEndpointModelId(modelId) {
+    if (!modelId) return undefined;
+    // Already a raw endpoint id (e.g. 'google/gemma-4-26B-A4B-it').
+    if (modelId.includes('/') || modelId.includes(':')) return modelId;
+    try {
+        const models = await enhancerModels();
+        const entry = models.find((m) => m.id === modelId);
+        return entry?.deepInfraId || modelId;
+    } catch {
+        return modelId;
     }
 }
 
@@ -458,15 +547,28 @@ function enhancerGraph() {
     return _enhancerGraph;
 }
 
-/** One completion through the server (DeepInfra or Ollama). Never rejects: an unreachable server resolves `{ ok: false }`. */
-async function runServerBackend({ prompt, system, backend, modelId, maxTokens }) {
+/**
+ * One completion through the server (endpoint or Ollama). Never rejects: an unreachable server resolves `{ ok: false }`.
+ *
+ * MPI-737: on the endpoint branch, `profileId` (from `Storage.getLlmConnection()`)
+ * is sent so the route can resolve the connection without the renderer touching the key.
+ */
+async function runServerBackend({ prompt, system, backend, modelId, maxTokens, profileId }) {
     try {
         const res = await fetch('/llm/enhance', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt, system, backend, modelId, maxTokens }),
+            body: JSON.stringify({
+                prompt, system, backend, modelId, maxTokens,
+                ...(backend === 'endpoint' && profileId ? { profileId } : {}),
+            }),
         });
-        return await res.json();
+        const body = await res.json();
+        // The endpoint branch answers with the connection routes' `{ code, message }`
+        // envelope; every enhance caller shows `error` as text.
+        return body.ok || typeof body.error !== 'object' || !body.error
+            ? body
+            : { ...body, error: body.error.message, errorCode: body.error.code };
     } catch (err) {
         return { ok: false, error: (err && err.message) || 'The app server did not answer.' };
     }
@@ -582,12 +684,15 @@ export async function enhanceFlow({ prompt, injectionParams, modelId = null } = 
     } catch (err) {
         return { ok: false, error: `The prompt enhancer could not load its recipe: ${err.message}` };
     }
+    const rawModelId = enhancerModelPreference();
+    const resolvedModelId = backend === 'endpoint' ? await _resolveEndpointModelId(rawModelId) : rawModelId;
     const result = await runServerBackend({
         prompt,
         system: unwrapChatMl(params.Input_System_Prompt),
         backend,
-        modelId: enhancerModelPreference(),
+        modelId: resolvedModelId,
         maxTokens: params['Input_Text_Gen.max_length'],
+        ...(backend === 'endpoint' ? { profileId: Storage.getLlmConnection().profileId } : {}),
     });
     return result.ok ? { ...result, text: postProcessLikeGraph(result.text, params) } : result;
 }
@@ -628,6 +733,9 @@ export async function enhance({ prompt, model, recipeKey, mode, backend } = {}) 
 
     const chosen = chooseBackend({ override: backend ?? backendPreference() });
 
+    const rawModelId = enhancerModelPreference();
+    const resolvedModelId = chosen === 'endpoint' ? await _resolveEndpointModelId(rawModelId) : rawModelId;
+
     const result = chosen === 'comfy'
         ? await runComfyEnhance({
             prompt: idea,
@@ -637,7 +745,8 @@ export async function enhance({ prompt, model, recipeKey, mode, backend } = {}) 
             prompt: idea,
             system,
             backend: chosen,
-            modelId: enhancerModelPreference(),
+            modelId: resolvedModelId,
+            ...(chosen === 'endpoint' ? { profileId: Storage.getLlmConnection().profileId } : {}),
         });
 
     if (!result.ok) {
@@ -662,4 +771,125 @@ export async function enhance({ prompt, model, recipeKey, mode, backend } = {}) 
             ? `No enhancer recipe for "${recipeKey ?? model?.enhanceRecipe ?? model?.type ?? '(none)'}" — used "${recipeId}".`
             : undefined,
     };
+}
+
+/**
+ * Build the `injectionParams` for a ComfyUI image description with an optional question.
+ *
+ * The node `Input_Describe_Prompt` is ChatML-wrapped for the same reason
+ * `Input_System_Prompt` is in `buildComfyInjectionParams`: the graph concatenates
+ * it with the user text and expects the role markers to already be present.
+ * No question → empty params, and the graph uses its own baked caption instruction.
+ *
+ * @param {string|undefined} question
+ * @returns {object}  injectionParams suitable for `enqueueGeneration`
+ */
+export function buildDescribeInjectionParams(question) {
+    if (!question) return {};
+    return { Input_Describe_Prompt: `<|im_start|>system\n${question}<|im_end|>\n<|im_start|>user` };
+}
+
+/**
+ * THE ONE DESCRIBE SWITCH POINT (MPI-737).
+ *
+ * Describes an image through either the ComfyUI queue or the endpoint, depending
+ * on the user's `cubric.llm.describeBackend` preference. The caller never
+ * enqueues directly; it calls this and handles the result.
+ *
+ * DECISION D1 (Fabio, 2026-09-16): on failure, say so plainly — NEVER fall back
+ * silently to ComfyUI or any other backend. Each caller surfaces the error:
+ * the right-click path shows a toast; the agent path returns the error text so
+ * the agent can suggest switching.
+ *
+ *   - comfy: plugin check → `enqueueGeneration('imageDescribe')` with the
+ *     ChatML-wrapped question in `Input_Describe_Prompt` (node 38). Text lands
+ *     in the prompt box via `workspace:inject-prompts` (the caller emits this on
+ *     ok). Waits in the queue behind any running generation.
+ *   - endpoint: `POST /llm/describe` with `profileId` from
+ *     `Storage.getLlmConnection()` and the describe model pref. NOT queued —
+ *     never waits behind a generation.
+ *
+ * @param {object}  a
+ * @param {string}  a.imagePath   URL or absolute filesystem path of the image.
+ *                                ComfyUI takes URLs; the server route takes paths
+ *                                (it can also decode a /project-file?path= URL).
+ * @param {string} [a.question]   optional question/instruction to replace the default caption prompt
+ * @param {object} [a.crop]       `{x,y,width,height}` crop hint for the endpoint route
+ * @param {string} [a.scope]      generation scope ('gallery' | 'groupHistory')
+ * @param {object} [a.group]      owning group, for the ComfyUI queue context
+ * @returns {Promise<{ok:boolean, via:'comfy'|'endpoint', text?:string, errorCode?:string, error?:string, cancelled?:boolean}>}
+ *          Never rejects. On failure: `error` is a human-readable message. `via` names the
+ *          backend that ran, so a caller can point at the right place to fix it.
+ */
+export async function describeImage({ imagePath, question, crop, scope, group } = {}) {
+    const backend = describeBackendPreference();
+
+    if (backend === 'endpoint') {
+        const { profileId } = Storage.getLlmConnection();
+        const modelId = describeModelPreference();
+        try {
+            const res = await fetch('/llm/describe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    profileId,
+                    ...(modelId ? { modelId } : {}),
+                    imagePath,
+                    ...(question ? { question } : {}),
+                    ...(crop ? { crop } : {}),
+                }),
+            });
+            const body = await res.json();
+            if (!body.ok) {
+                const msg = (typeof body.error === 'object' ? body.error?.message : body.error)
+                    || 'The description failed.';
+                const code = (typeof body.error === 'object' ? body.error?.code : undefined);
+                return { ok: false, via: 'endpoint', ...(code ? { errorCode: code } : {}), error: msg };
+            }
+            return { ...body, via: 'endpoint' };
+        } catch (err) {
+            return { ok: false, via: 'endpoint', error: (err && err.message) || 'The app server did not answer.' };
+        }
+    }
+
+    // comfy branch
+    const { pluginAvailability, getPlugin } = await import('../data/pluginsRegistry.js');
+    const PLUGIN_ID = 'image-describer';
+    if (!pluginAvailability(PLUGIN_ID).installed) {
+        const title = getPlugin(PLUGIN_ID)?.title || 'Image Describer';
+        return {
+            ok: false,
+            via: 'comfy',
+            errorCode: 'DESCRIBER_MISSING',
+            error: `${title} is not installed — add it from the Model Library (Plugins).`,
+        };
+    }
+
+    const { enqueueGeneration } = await import('./generationService.js');
+    const injectionParams = buildDescribeInjectionParams(question);
+    const queueOpts = group
+        ? { existingGroup: group, scope: scope || 'groupHistory', groupId: group.id }
+        : { scope: scope || 'gallery' };
+
+    return new Promise((resolve) => {
+        const queued = enqueueGeneration(
+            {
+                operation: 'imageDescribe',
+                model: { id: null, mediaType: 'image' },
+                positive: '',
+                negative: '',
+                mediaItems: [{ url: imagePath, mediaType: 'image', source: scope || 'gallery' }],
+                injectionParams,
+            },
+            {
+                onText: (text) => resolve({ ok: true, via: 'comfy', text: String(text || '').trim() }),
+                onError: (err) => resolve({ ok: false, via: 'comfy', error: (err && err.message) || 'The description failed.' }),
+                onCancel: () => resolve({ ok: false, via: 'comfy', cancelled: true, error: 'The description was cancelled.' }),
+            },
+            queueOpts,
+        );
+        if (!queued) {
+            resolve({ ok: false, via: 'comfy', errorCode: 'REJECTED', error: 'Vision rejected the describe job before it entered the queue.' });
+        }
+    });
 }

@@ -23,6 +23,14 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
+// Mock localStorage for tests that exercise pref functions.
+const _ls = {};
+global.localStorage = {
+    getItem:    (k) => Object.prototype.hasOwnProperty.call(_ls, k) ? _ls[k] : null,
+    setItem:    (k, v) => { _ls[k] = String(v); },
+    removeItem: (k) => { delete _ls[k]; },
+};
+
 const {
     chooseBackend,
     buildComfyInjectionParams,
@@ -33,6 +41,16 @@ const {
     postProcessLikeGraph,
     unwrapChatMl,
     enhancerClipParams,
+    backendPreference,
+    setBackendPreference,
+    describeBackendPreference,
+    setDescribeBackendPreference,
+    describeModelPreference,
+    setDescribeModelPreference,
+    buildDescribeInjectionParams,
+    describeImage,
+    enhance,
+    setEnhancerModelPreference,
 } = require('../js/services/llmService.js');
 const { FALLBACK_RECIPE_ID } = require('../js/data/recipes/registry.js');
 
@@ -56,12 +74,14 @@ function testComfyIsTheDefault() {
 }
 
 function testExplicitOverrideWins() {
-    assert.strictEqual(chooseBackend({ model: PLAIN, override: 'deepinfra' }), 'deepinfra');
+    // MPI-737 D2: 'deepinfra' stored values migrate to 'endpoint'.
+    assert.strictEqual(chooseBackend({ model: PLAIN, override: 'deepinfra' }), 'endpoint');
+    assert.strictEqual(chooseBackend({ model: PLAIN, override: 'endpoint' }), 'endpoint');
     assert.strictEqual(chooseBackend({ model: PLAIN, override: 'ollama' }), 'ollama');
     assert.strictEqual(chooseBackend({ model: ELIGIBLE, override: 'comfy' }), 'comfy');
     // An override is honoured on any model, including one the user knows wants
     // shaping a hosted provider would sanitise — they asked for it in as many words.
-    assert.strictEqual(chooseBackend({ model: { id: 'sdxl-nsfw' }, override: 'deepinfra' }), 'deepinfra');
+    assert.strictEqual(chooseBackend({ model: { id: 'sdxl-nsfw' }, override: 'endpoint' }), 'endpoint');
 }
 
 function testComfyIsOfferedOnEveryModel() {
@@ -329,6 +349,179 @@ function testPriceLabel() {
     assert.strictEqual(priceLabel({ in: 0.0015, out: 2.5 }), '$0.0015 in, $2.50 out per 1M tokens');
 }
 
+// ── MPI-737: backend migration, describe prefs, describeImage branches ────────
+
+function testChooseBackendAcceptsEndpoint() {
+    // D2 (MPI-737): 'endpoint' is the code value for the Remote backend.
+    assert.strictEqual(chooseBackend({ override: 'endpoint' }), 'endpoint');
+    // 'deepinfra' stored values map to 'endpoint' in chooseBackend.
+    assert.strictEqual(chooseBackend({ override: 'deepinfra' }), 'endpoint');
+    // Other backends unaffected.
+    assert.strictEqual(chooseBackend({ override: 'comfy' }), 'comfy');
+    assert.strictEqual(chooseBackend({ override: 'ollama' }), 'ollama');
+    assert.strictEqual(chooseBackend(), 'comfy', 'default still comfy');
+}
+
+function testBackendPreferenceMigratesDeepInfra() {
+    // D2 migration: a stored 'deepinfra' value is transparently mapped to
+    // 'endpoint' and the migrated value is persisted so Phase 3 settings read it.
+    delete _ls['cubric.llm.backend'];
+    setBackendPreference('deepinfra');
+    assert.strictEqual(_ls['cubric.llm.backend'], 'deepinfra', 'confirm storage before migration');
+    const result = backendPreference();
+    assert.strictEqual(result, 'endpoint', 'stored deepinfra migrates to endpoint on read');
+    assert.strictEqual(_ls['cubric.llm.backend'], 'endpoint', 'migrated value is persisted');
+    // Clean up.
+    delete _ls['cubric.llm.backend'];
+}
+
+function testBackendPreferenceReturnsEndpointDirectly() {
+    delete _ls['cubric.llm.backend'];
+    setBackendPreference('endpoint');
+    assert.strictEqual(backendPreference(), 'endpoint');
+    delete _ls['cubric.llm.backend'];
+}
+
+function testDescribeBackendPreference() {
+    delete _ls['cubric.llm.describeBackend'];
+    // Default is comfy.
+    assert.strictEqual(describeBackendPreference(), 'comfy', 'default describe backend');
+    setDescribeBackendPreference('endpoint');
+    assert.strictEqual(describeBackendPreference(), 'endpoint');
+    setDescribeBackendPreference(null);
+    assert.strictEqual(describeBackendPreference(), 'comfy', 'falsy clears to default');
+    delete _ls['cubric.llm.describeBackend'];
+}
+
+function testDescribeModelPreference() {
+    delete _ls['cubric.llm.describeModel'];
+    assert.strictEqual(describeModelPreference(), undefined, 'default is undefined');
+    setDescribeModelPreference('some-model-id');
+    assert.strictEqual(describeModelPreference(), 'some-model-id');
+    setDescribeModelPreference('');
+    assert.strictEqual(describeModelPreference(), undefined, 'empty string → undefined');
+    delete _ls['cubric.llm.describeModel'];
+}
+
+function testBuildDescribeInjectionParamsChatMlWrapping() {
+    // Verify the ChatML wrapping for the comfy-path question injection.
+    const params = buildDescribeInjectionParams('What color is the hat?');
+    assert.ok('Input_Describe_Prompt' in params, 'must set Input_Describe_Prompt');
+    assert.ok(params.Input_Describe_Prompt.startsWith('<|im_start|>system\n'));
+    assert.ok(params.Input_Describe_Prompt.includes('What color is the hat?'));
+    assert.ok(params.Input_Describe_Prompt.endsWith('<|im_end|>\n<|im_start|>user'));
+    // No question → empty params (graph uses its own baked caption instruction).
+    assert.deepStrictEqual(buildDescribeInjectionParams(), {});
+    assert.deepStrictEqual(buildDescribeInjectionParams(''), {});
+}
+
+function testEnhancerModelMigrationViaModelsEndpoint() {
+    // A stored MODEL_REGISTRY id reaches the endpoint as its raw deepInfraId,
+    // mapped through GET /llm/models.
+    const realFetch = global.fetch;
+    const enhanceBodies = [];
+    global.fetch = (url, init) => {
+        if (url === '/llm/models') {
+            return Promise.resolve({ ok: true, json: () => Promise.resolve({
+                models: [{ id: 'gemma-4-e4b', deepInfraId: 'google/gemma-4-26B-A4B-it' }],
+            }) });
+        }
+        if (url === '/llm/enhance') enhanceBodies.push(JSON.parse(init.body));
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, text: 'a cat', backend: 'deepinfra', model: 'm' }) });
+    };
+    setEnhancerModelPreference('gemma-4-e4b');
+    return enhance({ prompt: 'a cat', model: PLAIN, backend: 'endpoint' }).then((res) => {
+        assert.strictEqual(res.ok, true, JSON.stringify(res));
+        assert.strictEqual(enhanceBodies.length, 1, 'exactly one /llm/enhance call');
+        assert.strictEqual(enhanceBodies[0].backend, 'endpoint');
+        assert.strictEqual(enhanceBodies[0].modelId, 'google/gemma-4-26B-A4B-it', 'registry id was not mapped');
+        assert.ok(enhanceBodies[0].profileId, 'profileId must be sent on the endpoint branch');
+    }).finally(() => {
+        setEnhancerModelPreference(undefined);
+        global.fetch = realFetch;
+    });
+}
+
+function testEnhanceEndpointErrorIsText() {
+    // The endpoint branch answers { code, message }; every enhance caller shows `error` as text.
+    const realFetch = global.fetch;
+    global.fetch = (url) => Promise.resolve({ ok: true, json: () => Promise.resolve(url === '/llm/models'
+        ? { models: [] }
+        : { ok: false, error: { code: 'NO_KEY', message: 'No API key saved for this connection.' } }) });
+    return enhance({ prompt: 'a cat', model: PLAIN, backend: 'endpoint' }).then((res) => {
+        assert.strictEqual(res.ok, false);
+        assert.strictEqual(typeof res.error, 'string', `error must be text, got ${JSON.stringify(res.error)}`);
+        assert.strictEqual(res.errorCode, 'NO_KEY');
+    }).finally(() => {
+        global.fetch = realFetch;
+    });
+}
+
+function testDescribeImageEndpointBranch() {
+    // Endpoint: POST body carries profileId + imagePath; no enqueueGeneration call.
+    const realFetch = global.fetch;
+    const bodies = [];
+    global.fetch = (url, init) => {
+        if (url === '/llm/describe') bodies.push(JSON.parse(init.body));
+        return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ ok: true, text: 'a red hat', backend: 'deepinfra', model: 'm' }),
+        });
+    };
+    setDescribeBackendPreference('endpoint');
+    setDescribeModelPreference('some-vision-model');
+    return describeImage({ imagePath: '/projects/p1/image.jpg', question: 'What is in the image?' }).then((res) => {
+        assert.strictEqual(res.ok, true);
+        assert.strictEqual(res.text, 'a red hat');
+        assert.strictEqual(res.via, 'endpoint');
+        assert.strictEqual(bodies.length, 1, 'exactly one /llm/describe call');
+        const body = bodies[0];
+        assert.ok('profileId' in body, 'profileId required for endpoint');
+        assert.strictEqual(body.imagePath, '/projects/p1/image.jpg');
+        assert.strictEqual(body.question, 'What is in the image?');
+        assert.strictEqual(body.modelId, 'some-vision-model');
+        delete _ls['cubric.llm.describeBackend'];
+        delete _ls['cubric.llm.describeModel'];
+    }).finally(() => {
+        global.fetch = realFetch;
+    });
+}
+
+function testDescribeImageEndpointErrorNoFallback() {
+    // D1: an endpoint error surfaces cleanly and does NOT fall back to ComfyUI.
+    // Verified by: ok:false result has error text, and imagePath goes to /llm/describe,
+    // not to any ComfyUI queue call (no enqueueGeneration invoked).
+    const realFetch = global.fetch;
+    global.fetch = (_url) => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ ok: false, error: { code: 'NO_KEY', message: 'No API key saved.' } }),
+    });
+    setDescribeBackendPreference('endpoint');
+    return describeImage({ imagePath: '/img.jpg' }).then((res) => {
+        assert.strictEqual(res.ok, false, 'must return failure');
+        assert.strictEqual(res.errorCode, 'NO_KEY');
+        assert.strictEqual(res.via, 'endpoint', 'the caller points at Remote settings only for an endpoint failure');
+        assert.ok(res.error.includes('No API key'), `error message: ${res.error}`);
+        delete _ls['cubric.llm.describeBackend'];
+    }).finally(() => {
+        global.fetch = realFetch;
+    });
+}
+
+function testDescribeImageComfyPluginMissing() {
+    // comfy: if the Image Describer plugin is not installed, return DESCRIBER_MISSING.
+    // This does not call enqueueGeneration.
+    delete _ls['cubric.llm.describeBackend'];
+    // describeBackendPreference() returns 'comfy' by default.
+    // pluginAvailability in Node.js returns { installed: false } (state is empty).
+    return describeImage({ imagePath: '/img.jpg' }).then((res) => {
+        assert.strictEqual(res.ok, false);
+        assert.strictEqual(res.errorCode, 'DESCRIBER_MISSING');
+        assert.strictEqual(res.via, 'comfy');
+        assert.ok(res.error.includes('not installed'), `error: ${res.error}`);
+    });
+}
+
 // ── Runner ───────────────────────────────────────────────────────────────────
 
 const tests = [
@@ -350,19 +543,37 @@ const tests = [
     testModelNamesSayWhichSizeRuns,
     testDeepInfraPricesParse,
     testPriceLabel,
+    // MPI-737 additions
+    testChooseBackendAcceptsEndpoint,
+    testBackendPreferenceMigratesDeepInfra,
+    testBackendPreferenceReturnsEndpointDirectly,
+    testDescribeBackendPreference,
+    testDescribeModelPreference,
+    testBuildDescribeInjectionParamsChatMlWrapping,
+    testEnhancerModelMigrationViaModelsEndpoint,
+    testEnhanceEndpointErrorIsText,
+    testDescribeImageEndpointBranch,
+    testDescribeImageEndpointErrorNoFallback,
+    testDescribeImageComfyPluginMissing,
 ];
 
 let failed = 0;
-for (const t of tests) {
-    try {
-        t();
-        console.log(`  ok  ${t.name}`);
-    } catch (err) {
-        failed++;
-        console.error(`  FAIL ${t.name}\n    ${err.message}`);
+
+// Run each test, handling both sync and async (Promise-returning) functions.
+async function runAll() {
+    for (const t of tests) {
+        try {
+            await t();
+            console.log(`  ok  ${t.name}`);
+        } catch (err) {
+            failed++;
+            console.error(`  FAIL ${t.name}\n    ${err.message}`);
+        }
     }
+    console.log(failed
+        ? `\n${failed} of ${tests.length} llm service tests FAILED.`
+        : `\nAll ${tests.length} llm service tests passed.`);
+    if (failed) process.exitCode = 1;
 }
-console.log(failed
-    ? `\n${failed} of ${tests.length} llm service tests FAILED.`
-    : `\nAll ${tests.length} llm service tests passed.`);
-if (failed) process.exitCode = 1;
+
+runAll();

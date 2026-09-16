@@ -7,22 +7,37 @@ settings UI); the maps below are theirs, line numbers as of that day - re-grep b
 ## Current State
 
 - **Project mode:** scalable-foundation.
-- **2026-09-16, where it stands:** planned, not started. D1-D3 decided. MPI-774 accepted the split
-  (message `0fb6f49d`) and was told of the decisions, the table-shape drift and two bugs in its
-  in-flight storage / Agent-row work (message `4449a649`). **Next action: Phase 0** - wait for MPI-774's
-  reply that its connection section is committed, then check HEAD.
-- **Card is BLOCKED on MPI-774's connection section** (Phase 0). Three files are shared and must
-  be edited in sequence, never in parallel with MPI-774: `js/components/Organisms/MpiLlmSettings/MpiLlmSettings.js`,
-  `routes/llm.js`, `services/llmEngines.mjs`.
-- **What MPI-774 has in the tree (2026-09-16, partly uncommitted):** `resolveConnection(profileId, ask)`
+- **2026-09-16 ~11:45Z, where it stands:** Phase 0 PASSED on HEAD `b8c293ff`; the **parallel batch is
+  DONE, integrated and verified** (evidence: `validation.md`), UNCOMMITTED in the tree (claim `2a0d4794`,
+  session `6cdd36a9`). **Next action: Phase 3** (settings rows, user-ux) - first re-check the live claim
+  MPI-757 holds on `js/components/types.js` (Phase 3 needs `MpiLlmSettingsProps`).
+- **Renderer API Phase 3 builds on** (all exported from `js/services/llmService.js`):
+  `describeBackendPreference()` / `setDescribeBackendPreference('comfy'|'endpoint')` (key
+  `cubric.llm.describeBackend`, default `comfy`); `describeModelPreference()` / `setDescribeModelPreference(id)`
+  (key `cubric.llm.describeModel`, raw endpoint id; empty = the server uses `recommendedModel(profileId,'describe')`);
+  `backendPreference()` / `setBackendPreference('comfy'|'endpoint'|'ollama')` (stored `'deepinfra'` is
+  migrated to `'endpoint'` and persisted on read); `enhancerModelPreference()` / `setEnhancerModelPreference(id)`
+  (a registry id maps to `deepInfraId` via `/llm/models`; a raw id passes through; empty = server uses
+  `recommendedModel(profileId,'enhance')`). `describeImage({imagePath, question, crop, scope, group})` ->
+  `{ ok, via:'comfy'|'endpoint', text?, errorCode?, error?, cancelled? }`, never rejects.
+- **Picks (live-checked 2026-09-16):** deepinfra describe = `meta-llama/Llama-4-Scout-17B-16E-Instruct`
+  (not abliterated - Phase 3 copy must say a hosted model may refuse adult images); enhance =
+  `google/gemma-4-26B-A4B-it`, `google/gemma-3-12b-it` (the registry's deepInfraIds). DeepInfra vision
+  models ARE tagged `chat`, so `listRemoteModels`' filter keeps them; 107 models listed.
+- **Still in `routes/llm.js` for Phase 3/4 to retire:** the `'deepinfra'` value on `/llm/enhance`,
+  `defaultBackend()` and the DeepInfra-shaped `/llm/status` (only `llm.js` itself calls `defaultBackend`;
+  `MpiLlmSettings.js` uses `secretsClient.hasDeepInfraKey()`, not `/llm/status`) - grep callers first.
+- MPI-774's connection section is committed and its claims are `complete`; the three shared files are
+  ours to edit now. MPI-774's next session (Phase 3b) may touch `services/agentCorpus.mjs` and the agent
+  system prompt only - re-check claims before Phase 3 anyway.
+- **What MPI-774 had in the tree (2026-09-16, before it committed; the HEAD shape is under Plan Drift):** `resolveConnection(profileId, ask)`
   (`llmEngines.mjs` ~406), `listRemoteModels({presetId, baseURL, key})` (~363, returns
   `{id, contextWindow, vision, recommendedFor}`), `RECOMMENDED_REMOTE_MODELS` (~343, agent row only),
   `Storage.getLlmConnection()` / `LLM_CONNECTION = 'mpi_llm_connection'` default `{profileId:'deepinfra'}`
   (`js/core/storage.js`, `storageKeys.js`), endpoint profiles + keys in `main/secretsStore.js` (~198-297,
   fork bridge `get-endpoint-profile-request` ~421). **Not there yet:** `/llm/connection/probe`,
   `/llm/connection/models`, connection-only profiles (they still carry `model`/`contextWindow`).
-- **Table-shape drift to settle in Phase 0:** the contract says `{preset: {agent:[], enhance:[], describe:[]}}`;
-  the code has `{preset: [{id, jobs[], contextWindow}]}`. Build against whatever MPI-774 commits.
+- **Table shape:** settled in Phase 0 - the array form (Plan Drift).
 - **Key migration is already zero-copy:** the `deepinfra` profile reads the old `deepInfraApiKey` slot
   (`secretsStore.js` ~261-297, ~432). What remains is UI removal and pref migration.
 - **Today's enhance:** `llmService.js` prefs `cubric.llm.backend` (default `comfy`, values
@@ -68,12 +83,16 @@ settings UI); the maps below are theirs, line numbers as of that day - re-grep b
 ## Completed
 
 - [x] Spec (`brief.md`), ownership split agreed with MPI-774 by message, investigation. 2026-09-16.
+- [x] Phase 0 gate (HEAD `b8c293ff`). 2026-09-16.
+- [x] Parallel batch: `/llm/describe`, endpoint enhance, honest engine label, recommended rows;
+  `describeImage` switch point, pref migration, dead `runImageDescribe` deleted; integration fixes
+  (Plan Drift). 2026-09-16.
 
 ## Remaining Work
 
 ## Phase 0: Gate - MPI-774's connection section is committed
 
-- [ ] Confirm on `HEAD` (not the working tree): `/llm/connection/probe` and `/llm/connection/models`
+- [x] Confirm on `HEAD` (not the working tree): `/llm/connection/probe` and `/llm/connection/models`
   exist in `routes/llm.js`; profiles are connection-only; `Storage.getLlmConnection()` is committed;
   the final `RECOMMENDED_REMOTE_MODELS` shape. Read MPI-774's `plan.md` Current State and any reply on
   message `0fb6f49d`. Re-read `state/index.json` claims on the three shared files; if MPI-774 still
@@ -92,7 +111,7 @@ The route contract below is fixed here so both halves can be built at once and v
 **Contract - `POST /llm/enhance`** additionally accepts `backend:'endpoint'` + `profileId` + a raw
 endpoint `modelId` (no MODEL_REGISTRY lookup on that branch); `comfy`/`ollama` unchanged.
 
-- [ ] **Server: remote enhance + describe.** In `routes/llm.js`: the `endpoint` branch of
+- [x] **Server: remote enhance + describe.** In `routes/llm.js`: the `endpoint` branch of
   `/llm/enhance` building its engine from `resolveConnection(profileId, ask)`; the new `/llm/describe`
   (resolve connection -> read the image from disk -> `crop` if given -> `sharp` downscale to <= 1 MP in
   16-px steps, matching `image_descriptor.json` node 41 so `mapFromDescribeSpace` stays valid -> JPEG
@@ -115,7 +134,7 @@ endpoint `modelId` (no MODEL_REGISTRY lookup on that branch); `comfy`/`ollama` u
   `/llm/enhance` with `backend:'endpoint'` returns `backend` naming the profile, not `'deepinfra'`
   hardcoded.
 
-- [ ] **Renderer: one describe switch point + pref migration.** In `js/services/llmService.js`:
+- [x] **Renderer: one describe switch point + pref migration.** In `js/services/llmService.js`:
   `chooseBackend` accepts `endpoint`; `backendPreference()` maps a stored `'deepinfra'` to `'endpoint'`
   and `enhancerModelPreference()` maps a stored MODEL_REGISTRY id to its `deepInfraId` for the endpoint
   branch; per-job endpoint model prefs (`cubric.llm.enhancerModel` keeps its key, new
@@ -174,7 +193,61 @@ cleanly; otherwise run server first, renderer second.
 
 ## Plan Drift
 
-- None yet.
+- **2026-09-16 - Phase 0: the shape MPI-774 committed (`b8c293ff`), build against THIS:**
+  - `RECOMMENDED_REMOTE_MODELS` (`llmEngines.mjs:343`) = `{ [presetId]: [{ id, jobs: ('agent'|'enhance'|'describe')[], contextWindow? }] }`
+    - the ARRAY form; the object form in message `0fb6f49d` is superseded. `deepinfra` carries one
+    agent entry; `openrouter`/`openai` are empty; `custom`/`ollama` absent. Helper
+    `recommendedModel(presetId, job)` -> first id or `''` (`:394`). Adding an enhance/describe row =
+    push `{ id, jobs: ['enhance'] }` (or add the job to an existing entry's `jobs`).
+  - `listRemoteModels({presetId, baseURL, key})` (`:363`) -> `[{ id, contextWindow: number|null,
+    vision: boolean|null, recommendedFor: string[] }]`, recommended first. **A tagged catalogue
+    (DeepInfra) is cut to entries tagged `chat`** - if DeepInfra's vision models are not also tagged
+    `chat`, the describe dropdown comes up empty; the server task checks this live and widens the
+    filter to keep `vision`/`vlm` if needed.
+  - `resolveConnection(profileId, ask)` (`:406`) -> `{ profile: {id,name,baseURL}|null, key|null }`;
+    stored key, then `DEEPINFRA_API_KEY` for the deepinfra preset only while its URL is DeepInfra's.
+    The one server-side resolver - `/llm/describe` and the endpoint enhance branch use it.
+  - Routes (`routes/llm.js:186`, `:198`): `POST /llm/connection/probe {profileId}` ->
+    `{ok, latencyMs, modelCount}`; `GET /llm/connection/models?profileId=` -> `{ok, profileId, models}`;
+    errors `BAD_REQUEST | NO_PROFILE | NO_KEY (ollama exempt) | ENDPOINT_ERROR + status` via
+    `_connectionError` / `_connectionModels` - reuse them for `/llm/describe`'s profile errors.
+  - `Storage.getLlmConnection()` -> `{ profileId }` (default `'deepinfra'`), `setLlmConnection`;
+    `Storage.getAgentPrefs()` -> `{ model, mode }`.
+  - Settings: connection block (`#mpiSettingsConnProfileSlot`, `...ConnUrl...`, `...ConnKey...`,
+    `...ConnProbe...`) sits above the Account block; Agent row = `#mpiSettingsAgentBackendSlot`
+    (dropdown value `'remote'`, label Remote) + `#mpiSettingsAgentModelSlot`. MPI-774 invites renaming
+    that row-local value to `'endpoint'` when Phase 3 touches it.
+  - `agentTools.look` no longer times out at 60 s (uses the route's 30 min budget); `agentDispatch._listModels`
+    changed in `b8c293ff`, `_describeImage` did not.
+- **2026-09-16 - batch test split (resolves "split `tests/llm-service.test.cjs` cleanly"):** the server
+  task writes ALL its assertions (describe + endpoint enhance + engine label) in the new
+  `tests/llm-describe.test.cjs` and does not edit `tests/llm-service.test.cjs`; the renderer task owns
+  `tests/llm-service.test.cjs` whole. The server task must keep `DeepInfraEngine(apiKey, baseUrl)`
+  call-compatible (`llm-service.test.cjs:183-197` constructs it), so both run in parallel.
+- **2026-09-16 - integration fixes (orchestrator, after both workers reported):**
+  - **Seam bug:** the right-click path sends an item's `filePath`, which is a `/project-file?path=` URL,
+    but `/llm/describe` only accepted a disk path, so every Remote right-click describe would have been
+    BAD_IMAGE (neither worker could see it: one tested a real path, the other a stubbed fetch). The route
+    now decodes the URL and refuses a relative path. ponytail note in the route: the same decode lives
+    un-exported in `routes/projects.js`, `gif.js`, `gifMake.js`.
+  - **Key boundary:** `DeepInfraEngine.resolveKey` fell back to `DEEPINFRA_API_KEY` for ANY base URL, so a
+    keyless connection (Ollama `/v1`) either threw "API key missing" or sent the DeepInfra key to another
+    host. Now only a DeepInfra URL (or none) borrows the env key; a keyless connection sends no
+    `Authorization`. Fixed in the engine, so MPI-774's `agentLoop.mjs` call sites get it too.
+  - No model picked -> both endpoint routes use `recommendedModel(profileId, job)` instead of BAD_REQUEST.
+  - `/llm/enhance`'s endpoint `{code,message}` error is flattened to text in `runServerBackend` (every
+    enhance caller renders `error` as a string); `GET /llm/models` now carries `deepInfraId` (renderer
+    message `c818c65e`, resolved).
+  - `describeImage` results carry `via`; the right-click toast points at Remote settings only for an
+    endpoint failure, keeps the Model Library warning for DESCRIBER_MISSING, and stays silent for a
+    ComfyUI run failure (the generation pipeline reports it) - as before the batch. The agent keeps
+    `CANCELLED` for a cancelled ComfyUI describe.
+  - Removed `/llm/describe`'s hardcoded fallback instruction (a copy of node 38): a node 38 that stops
+    parsing now fails with RUNTIME_ERROR. Static import of `describeImage` in `agentDispatch.js`, orphaned
+    `pluginAvailability` import dropped. The renderer worker's "migration" test never exercised the
+    migration; replaced with one that goes through `enhance()`.
+  - Kept as built: describe only DOWNSCALES (node 41 also upscales small images); harmless because
+    `mapFromDescribeSpace` takes the actual input size.
 
 ## Verification
 

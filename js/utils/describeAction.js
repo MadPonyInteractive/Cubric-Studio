@@ -1,11 +1,15 @@
 /**
  * describeAction.js — run the image captioner on one item and drop the result in
- * the prompt box (MPI-310).
+ * the prompt box (MPI-310, MPI-737).
  *
  * Lives here rather than in each block because the gallery grid and the history
- * list both need it and the logic is identical: gate on the plugin being
- * installed, queue a normal generation, write the caption into the prompt box.
- * The two blocks differ only in how they find the item, which is the caller's job.
+ * list both need it and the logic is identical: validate the item, call the ONE
+ * describe switch point (`llmService.describeImage`), write the caption into the
+ * prompt box on success.
+ *
+ * The describe backend (ComfyUI or Remote) and the plugin/connection check are
+ * handled inside `describeImage` — the caller's job is item validation only.
+ * D1 (MPI-737): on failure a toast names the reason; nothing falls back silently.
  *
  * The caption lands in the prompt box (editable) rather than being stored on the
  * item, because the point is to give a human an accurate starting point to edit
@@ -13,21 +17,18 @@
  */
 
 import { Events } from '../events.js';
-import { enqueueGeneration } from '../services/generationService.js';
 import { resolveMediaUrl } from './mediaActions.js';
-import { pluginAvailability, getPlugin } from '../data/pluginsRegistry.js';
 import { clientLogger } from '../services/clientLogger.js';
-
-const PLUGIN_ID = 'image-describer';
+import { describeImage } from '../services/llmService.js';
 
 /**
- * Queue a caption run for one history item.
+ * Queue or dispatch a caption run for one history item.
  *
  * @param {{filePath?: string, type?: string}} item  The item to describe.
  * @param {Object}  [opts]
  * @param {Object}  [opts.group]   Owning group, when called from a group context.
  * @param {string}  [opts.scope]   'gallery' | 'groupHistory'.
- * @returns {boolean} true when a job was queued.
+ * @returns {boolean} true when a job was submitted (may still fail asynchronously).
  */
 export function describeItem(item, opts = {}) {
     if (!item?.filePath) {
@@ -41,39 +42,33 @@ export function describeItem(item, opts = {}) {
         return false;
     }
 
-    // The encoder is a plugin weight the user installs deliberately. Point at the
-    // place that can actually fix it rather than failing deep inside ComfyUI with
-    // a "clip not found".
-    if (!pluginAvailability(PLUGIN_ID).installed) {
-        const title = getPlugin(PLUGIN_ID)?.title || 'Image Describer';
-        Events.emit('ui:warning', {
-            message: `${title} is not installed — add it from the Model Library (Plugins).`,
-        });
-        return false;
-    }
+    describeImage({
+        imagePath: resolveMediaUrl(item.filePath),
+        scope: opts.scope || 'gallery',
+        group: opts.group,
+    }).then((result) => {
+        if (result.ok) {
+            Events.emit('workspace:inject-prompts', { positive: result.text });
+            Events.emit('ui:success', { message: 'Description added to the prompt.' });
+        } else if (!result.cancelled) {
+            // D1: say so plainly, never fall back silently, and point at what fixes it.
+            const msg = result.error || 'The description failed.';
+            clientLogger.warn('describe', `[describeAction] ${result.via} ${result.errorCode || ''} ${msg}`);
+            if (result.via === 'endpoint') {
+                const fixInSettings = !['BAD_IMAGE', 'BAD_REQUEST'].includes(result.errorCode);
+                Events.emit('ui:error', {
+                    title: 'Image Description Failed',
+                    message: fixInSettings ? `${msg} Check Settings > Remote > Language Models.` : msg,
+                });
+            } else if (result.errorCode === 'DESCRIBER_MISSING') {
+                // The encoder is a plugin weight the user installs deliberately.
+                Events.emit('ui:warning', { message: msg });
+            }
+            // A ComfyUI run that fails is already reported by the generation pipeline.
+        }
+    }).catch((err) => {
+        clientLogger.error('describe', 'describeImage threw unexpectedly', err);
+    });
 
-    enqueueGeneration(
-        {
-            operation: 'imageDescribe',
-            model: { id: null, mediaType: 'image' },
-            positive: '',
-            negative: '',
-            mediaItems: [{ url: resolveMediaUrl(item.filePath), mediaType: 'image', source: opts.scope || 'gallery' }],
-            injectionParams: {},
-        },
-        {
-            // A text op never fires onComplete — see GenerationCallbacks.onText.
-            onText: (caption) => {
-                Events.emit('workspace:inject-prompts', { positive: caption });
-                Events.emit('ui:success', { message: 'Description added to the prompt.' });
-            },
-            onError: (err) => {
-                clientLogger.error('describe', 'image describe failed', err);
-            },
-        },
-        opts.group
-            ? { existingGroup: opts.group, scope: opts.scope || 'groupHistory', groupId: opts.group.id }
-            : { scope: opts.scope || 'gallery' },
-    );
     return true;
 }

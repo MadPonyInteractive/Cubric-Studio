@@ -11,8 +11,11 @@
  *
  * The routes:
  *   GET  /llm/status          -> { deepinfra: { hasKey }, ollama: { running }, defaultBackend }
- *   GET  /llm/models          -> { models: [{ id, name, description, ollama, deepinfra, isDefault, price }] }
+ *   GET  /llm/models          -> { models: [{ id, name, description, ollama, deepinfra, deepInfraId, isDefault, price }] }
  *   POST /llm/enhance         -> { ok, text, backend, model } | { ok:false, error }
+ *                                backend:'endpoint' + profileId -> the shared connection, error { code, message }
+ *   POST /llm/describe        -> { ok, text, backend, model } | { ok:false, error:{ code, message } }
+ *                                body { profileId, modelId?, imagePath, question?, crop? } (MPI-737)
  *   GET  /llm/ollama          -> { running, platform, install, defaultModelId,
  *                                  models: { <id>: { name, downloaded, size, pull } } }
  *   POST /llm/ollama/start    -> { status: 'running'|'started'|'missing'|'failed' }
@@ -38,10 +41,20 @@
 'use strict';
 
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
 const router = express.Router();
 const logger = require('./logger');
 const { ask } = require('./forkBridge');
 const ollamaLifecycle = require('../services/ollamaLifecycle');
+
+// sharp is a project dependency; loaded lazily so test runs that do not exercise
+// image operations can still import this router without a native binary around.
+let _sharp = null;
+function _getSharp() {
+    if (!_sharp) _sharp = require('sharp');
+    return _sharp;
+}
 
 // `services/llmEngines.mjs` is ESM and this router is CJS, so it loads through a
 // dynamic import — the same thing server.js already does for axios. Cached after
@@ -143,6 +156,9 @@ router.get('/llm/models', async (_req, res) => {
                 description: m.description,
                 ollama: !!m.ollamaName,
                 deepinfra: !!m.deepInfraId,
+                // The raw DeepInfra id: the renderer maps a stored registry pick to it
+                // on the Remote (endpoint) branch (MPI-737).
+                deepInfraId: m.deepInfraId || null,
                 isDefault: m.id === DEFAULT_MODEL_ID,
                 price: (m.deepInfraId && prices?.[m.deepInfraId]) || null,
             })),
@@ -313,14 +329,41 @@ router.post('/llm/ollama/pull', async (req, res) => {
  * second dispatch path to the same engine.
  */
 router.post('/llm/enhance', async (req, res) => {
-    const { prompt, system, backend: asked, modelId, maxTokens: askedMax } = req.body || {};
+    const { prompt, system, backend: asked, modelId, maxTokens: askedMax, profileId } = req.body || {};
     if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
         return res.json({ ok: false, error: 'Write a prompt first, then Enhance.' });
     }
 
     let backend;
     try {
-        const { OllamaEngine, DeepInfraEngine, getModel, DEFAULT_MODEL_ID, ollamaTagged, modelName } = await engines();
+        const { OllamaEngine, DeepInfraEngine, getModel, DEFAULT_MODEL_ID, ollamaTagged, modelName, resolveConnection, recommendedModel } = await engines();
+
+        // ── Endpoint branch (MPI-737): raw modelId, no MODEL_REGISTRY lookup ────
+        if (asked === 'endpoint') {
+            if (!profileId || typeof profileId !== 'string') {
+                return res.json({ ok: false, error: { code: 'BAD_REQUEST', message: 'profileId is required for backend:endpoint.' } });
+            }
+            const { profile, key } = await resolveConnection(profileId, ask);
+            if (!profile || !profile.baseURL) return void _connectionError(res, 'NO_PROFILE', 'Connection not found, or it has no base URL.');
+            if (!key && profileId !== 'ollama') return void _connectionError(res, 'NO_KEY', 'No API key saved for this connection.');
+            // No pick yet -> the connection's recommended enhancer (exact ids per preset).
+            const model = (typeof modelId === 'string' && modelId) || recommendedModel(profileId, 'enhance');
+            if (!model) {
+                return res.json({ ok: false, error: { code: 'BAD_REQUEST',
+                    message: 'No enhancement model is picked for this connection. Pick one in Settings > Remote > Language Models.' } });
+            }
+            try {
+                const engine = new DeepInfraEngine(key, profile.baseURL, profile);
+                const maxTokens = Number.isInteger(askedMax) && askedMax > 0 ? askedMax : undefined;
+                const result = await engine.complete(prompt, { model, system, maxTokens });
+                return res.json({ ok: true, text: String(result.text || '').trim(), backend: result.backend, model: result.model });
+            } catch (err) {
+                logger.error('system', `llm enhance (endpoint) failed: ${err && err.message}`);
+                return void _connectionError(res, 'ENDPOINT_ERROR', (err && err.message) || 'Endpoint enhance failed.', err && err.status);
+            }
+        }
+        // ── End endpoint branch ──────────────────────────────────────────────────
+
         backend = asked === 'deepinfra' || asked === 'ollama' ? asked : await defaultBackend();
 
         const entry = getModel(modelId || DEFAULT_MODEL_ID);
@@ -384,6 +427,201 @@ router.post('/llm/enhance', async (req, res) => {
                 await new OllamaEngine().releaseOwnModels();
             } catch { /* server gone / already empty — nothing was held either way */ }
         }
+    }
+});
+
+// ── Image description via a remote vision model (MPI-737) ──────────────────
+//
+// Reads the default instruction from the shipped ComfyUI workflow at runtime so
+// the system prompt stays in sync with the local ComfyUI describe path.  The
+// node 41 resize (1 MP, 16-px steps, nearest-exact) is matched here so that
+// mapFromDescribeSpace coordinate mapping stays valid when coordinates land.
+
+/** Path to the workflow that carries the default describe instruction. */
+const IMAGE_DESCRIPTOR_WORKFLOW = path.join(__dirname, '..', 'comfy_workflows', 'image_descriptor.json');
+
+/** Node ID for Input_Describe_Prompt inside image_descriptor.json. */
+const DESCRIBE_PROMPT_NODE = '38';
+
+/** Maximum total pixels to send to a vision model — 1 MP, matching node 41. */
+const DESCRIBE_MAX_PIXELS = 1_000_000;
+
+/** Resize step in pixels — must match node 41's resolution_steps:16. */
+const DESCRIBE_STEP = 16;
+
+/**
+ * Parse the ChatML in image_descriptor.json node 38 into { system, userText }.
+ * The full ChatML is a ComfyUI-only construct: we extract the plain-text parts.
+ * Returns null if the node is absent or the value is unparseable.
+ */
+function _parseDescribePrompt() {
+    try {
+        const wf = JSON.parse(fs.readFileSync(IMAGE_DESCRIPTOR_WORKFLOW, 'utf8'));
+        const value = wf[DESCRIBE_PROMPT_NODE]?.inputs?.value;
+        if (typeof value !== 'string') return null;
+        // Extract system content: between <|im_start|>system\n and first <|im_end|>
+        const sysMatch = value.match(/<\|im_start\|>system\n([\s\S]*?)<\|im_end\|>/);
+        const system = sysMatch ? sysMatch[1].trim() : null;
+        // Extract user text: last <|im_start|>user\n block, strip vision markers, trim
+        const userMatch = value.match(/<\|im_start\|>user\n([\s\S]*?)<\|im_end\|>/);
+        const rawUser = userMatch ? userMatch[1] : '';
+        // Remove ComfyUI vision markers (not sent to OpenAI-compatible endpoints)
+        const userText = rawUser.replace(/<\|vision_start\|>.*?<\|vision_end\|>/gs, '').trim();
+        return { system, userText };
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * POST /llm/describe — describe an image using the configured remote vision model.
+ *
+ * body: { profileId, modelId, imagePath, question?, crop? }
+ *   `profileId`  connection preset id ('deepinfra', 'openrouter', …)
+ *   `modelId`    raw endpoint model id (e.g. 'meta-llama/Llama-4-Scout-17B-16E-Instruct')
+ *   `imagePath`  absolute path to the source image on disk
+ *   `question`   optional: replaces the default instruction as plain text
+ *   `crop`       optional: { x, y, width, height } in source pixels
+ *
+ * Returns: { ok:true, text, backend, model }
+ * Errors:  { ok:false, error:{ code, message } }
+ *   BAD_REQUEST   — missing required field or invalid crop object
+ *   NO_PROFILE    — profileId not found or has no base URL
+ *   NO_KEY        — key required but not stored
+ *   BAD_IMAGE     — file not found, unreadable, or crop out of bounds
+ *   NOT_VISION    — endpoint returned 4xx indicating the model rejects images
+ *   ENDPOINT_ERROR — any other upstream failure
+ */
+router.post('/llm/describe', async (req, res) => {
+    const { profileId, modelId, imagePath, question, crop } = req.body || {};
+
+    if (!profileId || typeof profileId !== 'string') {
+        return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'profileId is required.' } });
+    }
+    if (modelId !== undefined && (!modelId || typeof modelId !== 'string')) {
+        return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'modelId must be a non-empty string.' } });
+    }
+    if (!imagePath || typeof imagePath !== 'string') {
+        return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'imagePath is required.' } });
+    }
+
+    // Validate crop fields when provided (same rules as POST /connector/describe).
+    if (crop !== undefined) {
+        if (!crop || typeof crop !== 'object') {
+            return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'crop must be an object {x,y,width,height}.' } });
+        }
+        const { x, y, width, height } = crop;
+        if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(width) || !Number.isFinite(height)
+                || width <= 0 || height <= 0) {
+            return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'crop.x/y/width/height must be finite numbers; width/height must be positive.' } });
+        }
+    }
+
+    // ── Resolve connection ────────────────────────────────────────────────────
+    const { resolveConnection, DeepInfraEngine, recommendedModel } = await engines();
+    const { profile, key } = await resolveConnection(profileId, ask);
+    if (!profile || !profile.baseURL) return void _connectionError(res, 'NO_PROFILE', 'Connection not found, or it has no base URL.');
+    if (!key && profileId !== 'ollama') return void _connectionError(res, 'NO_KEY', 'No API key saved for this connection.');
+    // No pick yet -> the connection's recommended describer (exact ids per preset).
+    const model = modelId || recommendedModel(profileId, 'describe');
+    if (!model) {
+        return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST',
+            message: 'No image-description model is picked for this connection. Pick one in Settings > Remote > Language Models.' } });
+    }
+
+    // ── Read and pre-process the image ───────────────────────────────────────
+    // The gallery right-click sends an item's `/project-file?path=` URL; the agent's
+    // `look` sends an absolute path. Anything else (a relative path) is refused.
+    // ponytail: same decode as routes/projects.js pathFromProjectFileUrl (not exported;
+    // gif.js and gifMake.js carry copies too) - one shared helper if a fifth appears.
+    const pathMatch = imagePath.match(/[?&]path=([^&]+)/);
+    const srcPath = pathMatch ? decodeURIComponent(pathMatch[1]) : imagePath;
+    if (!path.isAbsolute(srcPath) || !fs.existsSync(srcPath)) {
+        return res.json({ ok: false, error: { code: 'BAD_IMAGE', message: `File not found: ${srcPath}` } });
+    }
+
+    let imgBuffer;
+    try {
+        const sharp = _getSharp();
+        let pipeline = sharp(srcPath);
+
+        // Apply crop if given (validate out-of-bounds here where we have dimensions).
+        if (crop) {
+            const meta = await sharp(srcPath).metadata();
+            const srcW = meta.width || 0;
+            const srcH = meta.height || 0;
+            const { x, y, width, height } = crop;
+            if (x < 0 || y < 0 || x + width > srcW || y + height > srcH) {
+                return res.json({ ok: false, error: { code: 'BAD_IMAGE',
+                    message: `crop (${x},${y},${width},${height}) extends outside image (${srcW}x${srcH}).` } });
+            }
+            pipeline = sharp(srcPath).extract({
+                left: Math.round(x), top: Math.round(y),
+                width: Math.round(width), height: Math.round(height),
+            });
+        }
+
+        // Get post-crop dimensions for the downscale calculation.
+        const { data: rawBuf, info } = await pipeline.raw().toBuffer({ resolveWithObject: true });
+        const srcW = info.width;
+        const srcH = info.height;
+
+        // Downscale to ≤ 1 MP in 16-px steps (nearest-exact), matching node 41.
+        // Only downscale; images already within the limit are kept at native size.
+        // Uses floor (not round) so the product is guaranteed ≤ DESCRIBE_MAX_PIXELS
+        // after rounding, keeping mapFromDescribeSpace coordinate mapping valid.
+        let resizePipeline = sharp(rawBuf, { raw: { width: srcW, height: srcH, channels: info.channels } });
+        if (srcW * srcH > DESCRIBE_MAX_PIXELS) {
+            const scale = Math.sqrt(DESCRIBE_MAX_PIXELS / (srcW * srcH));
+            const newW = Math.max(DESCRIBE_STEP, Math.floor(srcW * scale / DESCRIBE_STEP) * DESCRIBE_STEP);
+            const newH = Math.max(DESCRIBE_STEP, Math.floor(srcH * scale / DESCRIBE_STEP) * DESCRIBE_STEP);
+            resizePipeline = resizePipeline.resize(newW, newH, { fit: 'fill', kernel: 'nearest' });
+        }
+        imgBuffer = await resizePipeline.jpeg({ quality: 85 }).toBuffer();
+    } catch (err) {
+        logger.error('system', `llm describe image processing failed: ${err && err.message}`);
+        return res.json({ ok: false, error: { code: 'BAD_IMAGE', message: `Image could not be read: ${err && err.message}` } });
+    }
+
+    // ── Build the chat messages ───────────────────────────────────────────────
+    const b64 = imgBuffer.toString('base64');
+    const imageContentPart = { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${b64}` } };
+
+    let messages;
+    if (question) {
+        // A question replaces the default instruction as plain text (no ChatML wrapping).
+        messages = [{ role: 'user', content: [imageContentPart, { type: 'text', text: question }] }];
+    } else {
+        // Default: extract system + user text from image_descriptor.json node 38 at runtime.
+        // No copied fallback: a shipped graph that stops parsing must fail loudly,
+        // not drift away from the ComfyUI describer unnoticed.
+        const parsed = _parseDescribePrompt();
+        if (!parsed?.system || !parsed.userText) {
+            logger.error('system', 'llm describe: image_descriptor.json node 38 did not parse');
+            return res.status(500).json({ ok: false, error: { code: 'RUNTIME_ERROR',
+                message: 'The describe instruction (image_descriptor.json node 38) is missing or unreadable.' } });
+        }
+        messages = [
+            { role: 'system', content: parsed.system },
+            { role: 'user', content: [imageContentPart, { type: 'text', text: parsed.userText }] },
+        ];
+    }
+
+    // ── Call the vision model ─────────────────────────────────────────────────
+    try {
+        const engine = new DeepInfraEngine(key, profile.baseURL, profile);
+        const data = await engine.chat({ model, messages });
+        res.json({ ok: true, text: String(data.text || '').trim(), backend: data.backend, model: data.model });
+    } catch (err) {
+        // A 4xx that names image/vision input means the model is not a vision model.
+        if (err.status >= 400 && err.status < 500) {
+            const detail = (err.bodyText || err.message || '').toLowerCase();
+            if (detail.includes('image') || detail.includes('vision') || detail.includes('visual') || detail.includes('multimodal')) {
+                return void _connectionError(res, 'NOT_VISION', 'This model does not accept image input. Pick a vision-capable model.');
+            }
+        }
+        logger.error('system', `llm describe failed: ${err && err.message}`);
+        return void _connectionError(res, 'ENDPOINT_ERROR', (err && err.message) || 'Describe failed.', err && err.status);
     }
 });
 

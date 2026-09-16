@@ -338,11 +338,17 @@ export async function fetchDeepInfraPrices() {
  * providers (one vendor's id means nothing on another). `jobs` names the rows that
  * hint the model: 'agent' | 'enhance' | 'describe'. `contextWindow` is only for
  * entries whose endpoint may not report one. Custom and Ollama get no hints.
- * MPI-774 fills `agent` (the model the harness proved); MPI-737 fills the rest.
+ * MPI-774 fills `agent` (the model the harness proved); MPI-737 fills enhance and
+ * describe (enhance ids from MODEL_REGISTRY.deepInfraId; describe chosen by live
+ * call on 2026-09-16 — meta-llama/Llama-4-Scout-17B-16E-Instruct accepted a ~1 MP
+ * JPEG and returned a named subject).
  */
 export const RECOMMENDED_REMOTE_MODELS = {
     deepinfra: [
         { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', jobs: ['agent'], contextWindow: 1_048_576 },
+        { id: 'google/gemma-4-26B-A4B-it', jobs: ['enhance'], contextWindow: 262_144 },
+        { id: 'google/gemma-3-12b-it', jobs: ['enhance'], contextWindow: 131_072 },
+        { id: 'meta-llama/Llama-4-Scout-17B-16E-Instruct', jobs: ['describe'], contextWindow: 327_680 },
     ],
     openrouter: [],
     openai: [],
@@ -420,35 +426,50 @@ export async function resolveConnection(profileId, ask) {
 }
 
 export class DeepInfraEngine {
-    backend = 'deepinfra';
-
-    /** @param apiKey explicit key; defaults to `DEEPINFRA_API_KEY`, resolved
-     *  lazily per request so a key set after construction still works. */
-    constructor(apiKey, baseUrl) {
+    /**
+     * @param apiKey   Explicit API key; falls back to DEEPINFRA_API_KEY env var.
+     * @param baseUrl  Override base URL; falls back to CUBRIC_OPENAI_BASE_URL / DEEPINFRA.
+     * @param profile  Optional endpoint profile from resolveConnection:
+     *   { id, name, baseURL }. When provided, `backend` reports the profile id
+     *   and error messages name the profile. Keeps the two-arg call-site
+     *   (`new DeepInfraEngine(key, url)`) fully compatible.
+     */
+    constructor(apiKey, baseUrl, profile = null) {
         this.apiKey = apiKey;
         this.baseUrl = baseUrl;
+        this._profile = profile;
+        // Report honest backend: the profile's preset id, or 'deepinfra' for the
+        // legacy direct-key path. Read by callers after chat() / complete() returns.
+        this.backend = profile ? (profile.id || 'deepinfra') : 'deepinfra';
     }
 
     resolveBaseUrl() {
         return this.baseUrl ?? process.env[BASE_URL_ENV] ?? DEEPINFRA_BASE_URL;
     }
 
+    /** The key to send, or null for a keyless connection (Ollama /v1). Only a
+     *  DeepInfra URL may fall back to `DEEPINFRA_API_KEY`: an explicit other host
+     *  never receives it (the `resolveConnection` rule), and the routes have
+     *  already refused a keyless connection that needs a key (NO_KEY). */
     resolveKey() {
-        const key = this.apiKey ?? process.env['DEEPINFRA_API_KEY'];
-        if (!key) {
+        const deepInfraHost = this.baseUrl == null || this.baseUrl === DEEPINFRA_BASE_URL;
+        const key = this.apiKey ?? (deepInfraHost ? process.env['DEEPINFRA_API_KEY'] : null);
+        if (!key && deepInfraHost) {
+            const label = this._profile ? (this._profile.name || this._profile.id || 'endpoint') : 'DeepInfra';
             throw new Error(
-                'DeepInfra API key missing: set DEEPINFRA_API_KEY or pass it to DeepInfraEngine.',
+                `${label} API key missing: set DEEPINFRA_API_KEY or pass it to DeepInfraEngine.`,
             );
         }
-        return key;
+        return key || null;
     }
 
     async chat(req) {
+        const key = this.resolveKey();
         const res = await fetch(`${this.resolveBaseUrl()}/chat/completions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${this.resolveKey()}`,
+                ...(key && { Authorization: `Bearer ${key}` }),
             },
             body: JSON.stringify({
                 model: req.model,
@@ -465,7 +486,15 @@ export class DeepInfraEngine {
             }),
         });
         if (!res.ok) {
-            throw new Error(`DeepInfra chat failed: ${res.status} ${res.statusText}`);
+            // Read the body so callers can detect NOT_VISION (a 4xx with a message
+            // naming image/vision input). This is additive — callers that only read
+            // `err.message` are unaffected.
+            const bodyText = await res.text().catch(() => '');
+            const label = this._profile ? (this._profile.name || this._profile.id || 'endpoint') : 'DeepInfra';
+            const err = new Error(`${label} chat failed: ${res.status} ${res.statusText}`);
+            err.status = res.status;
+            err.bodyText = bodyText;
+            throw err;
         }
         const data = await res.json();
         const msg = data.choices?.[0]?.message;
@@ -507,7 +536,7 @@ export class DeepInfraEngine {
         }
         try {
             const res = await fetch(`${this.resolveBaseUrl()}/models`, {
-                headers: { Authorization: `Bearer ${key}` },
+                headers: key ? { Authorization: `Bearer ${key}` } : {},
             });
             return res.ok;
         } catch {

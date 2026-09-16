@@ -51,7 +51,7 @@ import { getFlowById, listFlows, flowAvailability } from '../data/flowsRegistry.
 import { resolveFlowFieldValues, flowDeclaredFields } from '../utils/declaredFields.js';
 import { getCommand } from '../data/commandRegistry.js';
 import { resolveNamedParams, isValidSeed, resolveAgentMedia, namedParamsFor } from '../data/generationControls.js';
-import { pluginAvailability } from '../data/pluginsRegistry.js';
+import { describeImage } from '../services/llmService.js';
 import { downloadService } from '../services/downloadService.js';
 import { remoteEngineClient } from '../services/remoteEngineClient.js';
 import { state } from '../state.js';
@@ -536,47 +536,24 @@ async function _installModel(jobId, input = {}) {
 /**
  * `agent.describe` — run the image describer with an optional injected question.
  * The imagePath (possibly a cropped file) is passed by the server-side route.
- * Returns `{ text }` via onText. Errors: DESCRIBER_MISSING, RUNTIME_ERROR.
+ * Returns `{ text }` via _report. Errors: DESCRIBER_MISSING, REJECTED, CANCELLED, RUNTIME_ERROR
+ * (ComfyUI) or the /llm/describe codes NO_PROFILE, NO_KEY, NOT_VISION, BAD_IMAGE, ENDPOINT_ERROR (Remote).
+ *
+ * MPI-737: delegates to `llmService.describeImage` — the ONE describe switch
+ * point — so the agent automatically uses whichever backend the user chose
+ * (ComfyUI or Remote). D1: on failure, the error text goes back to the agent.
  */
-function _describeImage(jobId, input = {}) {
+async function _describeImage(jobId, input = {}) {
     const { imagePath, question } = input;
     if (!imagePath) return _fail(jobId, 'BAD_REQUEST', 'imagePath is required.');
 
-    const plugin = pluginAvailability('image-describer');
-    if (!plugin.installed) {
-        return _fail(jobId, 'DESCRIBER_MISSING',
-            'The Image Describer plugin is not installed. Enable it in the Model Library (Plugins).');
+    const result = await describeImage({ imagePath, question, scope: 'gallery' });
+    if (result.ok) {
+        return _report(jobId, { ok: true, output: { text: result.text } });
     }
-
-    // A question injects a whole ChatML string into Input_Describe_Prompt,
-    // matching the llmService.js Input_System_Prompt wrapping precedent (MPI-774).
-    // No question → no injection, and the graph runs today's caption instruction.
-    const injectionParams = question
-        ? { Input_Describe_Prompt: `<|im_start|>system\n${question}<|im_end|>\n<|im_start|>user` }
-        : {};
-
-    const queued = enqueueGeneration(
-        {
-            operation: 'imageDescribe',
-            model: { id: null, mediaType: 'image' },
-            positive: '',
-            negative: '',
-            mediaItems: [{ url: imagePath, mediaType: 'image', source: 'gallery' }],
-            injectionParams,
-        },
-        {
-            onText: (text) => _report(jobId, { ok: true, output: { text } }),
-            onError: () => _fail(jobId, 'RUNTIME_ERROR',
-                'The description failed. See the app log for the cause.'),
-            onCancel: () => _fail(jobId, 'CANCELLED', 'The description was cancelled.'),
-        },
-        { scope: 'gallery' },
-    );
-
-    if (!queued) {
-        return _fail(jobId, 'REJECTED', 'Vision rejected the describe job before it entered the queue.');
-    }
-    return null;
+    const code = result.errorCode || (result.cancelled ? 'CANCELLED' : 'RUNTIME_ERROR');
+    const message = result.error || 'The description failed. See the app log for the cause.';
+    return _fail(jobId, code, message);
 }
 
 /** Capability name → handler. The relay carries nothing else. */
