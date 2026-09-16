@@ -59,6 +59,11 @@ export const ICONS = {
     'crop': '<path d="M7 1L5 3v14c0 1.1.9 2 2 2h14l2-2V3l-2-2H7zm14 16H7V3h14v14zM9 5h10v10H9V5zm2 2v6h6V7h-6z"/>',
     'video': '<path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"/>',
     'audio': '<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z"/>',
+    // GIF (MPI-759): a framed loop — a picture that plays on a cycle, rather than
+    // video's one-shot forward triangle. Frame is a hollow ring (evenodd, outer
+    // rect minus inner rect); the loop-arrow path is `refresh` scaled 0.6 about
+    // its own centre (12,12) to sit inside the frame's window.
+    'gif': '<path fill-rule="evenodd" d="M2 3h20v18H2V3zm2 2v14h16V5H4z"/><path transform="translate(12,12) scale(0.6) translate(-12,-12)" d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>',
     'filter': '<path d="M4.25 5.61C6.27 8.2 10 13 10 13v6c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-6s3.72-4.8 5.74-7.39A.998.998 0 0 0 18.95 4H5.04c-.83 0-1.3.95-.79 1.61z"/>',
     'cube': '<path fill-rule="evenodd" d="M12 2 3 7v10l9 5 9-5V7l-9-5zm0 2.3 6.7 3.7L12 11.7 5.3 8 12 4.3zM5 9.7l6 3.3v6.6l-6-3.3V9.7zm8 9.9V13l6-3.3v6.6l-6 3.3z"/>',
     'mic': '<path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>',

@@ -38,8 +38,9 @@ kind is visible by default. Skip the row and nothing errors: the item silently l
 
 1. **Decide the data first.** Prefer a sub-kind matched off the item over a new media `type`:
    a new `type` reaches every `type === 'image'` / `'video'` branch in `js/` and `routes/`.
-   The 3D Scene (`splatPath`) is the precedent; MPI-759 plans GIF the same way
-   (`type: 'image'`, matched by a `.gif` file).
+   The 3D Scene (`splatPath`) is the precedent; MPI-759 added GIF the same way
+   (`type: 'image'`, matched by a truthy `gif` field or a legacy `.gif` filename —
+   see [gallery.md](gallery.md) § GIF cards for how the card then paints it).
 2. **Add the row** to `ASSET_KINDS`, ABOVE any row it would otherwise fall into (a GIF that is
    `type: 'image'` goes above `image`), with `label`, `singular`, `badge`, and a `panelOrder`
    where it should list (renumber the others if it goes in between).

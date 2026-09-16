@@ -36,6 +36,7 @@ const { probeVideo, probeAudio } = require('../services/ffprobeVideo');
 const { extractImageThumb, extractVideoThumb, extractVideoProxy, extractAudioWaveform, writeVideoDerivatives, imageThumbPath, videoProxyPath, IMAGE_RENDITION_PX, VIDEO_PROXY_HEIGHT } = require('../services/ffmpegThumb');
 const { ffmpegPath, ffprobePath, quote } = require('../services/ffmpegBinary');
 const { muxAudioIntoVideo, mixAudioFiles } = require('../services/ffmpegMux');
+const { extractFramesFromGif, copyGifFrames, sweepGifFrames } = require('../services/gifFrames');
 const { SCHEMA_VERSION } = require('../js/migrations/projectMigrations');
 
 const projectJsonQueues = new Map();
@@ -1169,6 +1170,12 @@ router.delete('/project-media/:projectId/:filename', async (req, res) => {
             // NOT touch it. The old per-item `.preview-assets/<itemId>/` folder delete
             // (the reuse-404 root, MPI-225 band-aided) is removed. Only the manual
             // Cleanup command wipes the flat store.
+
+            // MPI-768: UNLIKE preview-assets, a GIF's frame store is swept on every
+            // delete — free any frame no remaining sidecar in this project (archived
+            // included) still references. sweepGifFrames is a no-op read before it
+            // touches anything when this project never had a `.gif-frames` dir.
+            await sweepGifFrames(mediaDir);
         }
 
         // Guard: only unlink the on-disk file when it still belongs to THIS
@@ -1499,6 +1506,18 @@ router.post('/project-media/:projectId/upload', async (req, res) => {
             // Image: downscale to gallery renditions so scrolling 100+ 4K cards
             // doesn't decode full-res per card (MPI-319, ladder MPI-633).
             await writeImageRenditions(filePath, metaDir, id, metaContent, metaContent.pixelDimensions?.w);
+            // MPI-768: a NEW `.gif` import extracts its frames EAGERLY, unlike a
+            // legacy `.gif` already on disk (that extracts lazily, on first open —
+            // POST /gif/ensure-frames). A failed extraction must not fail the
+            // import itself: the card still lands as a plain animated GIF, just
+            // without a frames store until the workspace opens it once.
+            if (/\.gif$/i.test(finalFileName)) {
+                try {
+                    metaContent.gif = await extractFramesFromGif(filePath, mediaDir);
+                } catch (gifErr) {
+                    logger.warn('project', `gif frame extraction failed for ${finalFileName}: ${gifErr.message}`);
+                }
+            }
         }
         await fs.writeJson(metaPath, metaContent, { spaces: 2 });
         res.json({
@@ -1509,6 +1528,7 @@ router.post('/project-media/:projectId/upload', async (req, res) => {
             thumbPath: metaContent.thumbPath || null,
             thumbPathLg: metaContent.thumbPathLg || null,
             proxyPath: metaContent.proxyPath || null,
+            gif: metaContent.gif || null,
             // Video probe results so the client shows fps/duration immediately
             // without waiting for a reload + sidecar reconcile (MPI-83 Bug 2).
             fps:        metaContent.fps        ?? null,
@@ -2416,6 +2436,15 @@ router.post('/project-media/:projectId/add-from-cards', async (req, res) => {
                 delete meta.splatPath;
             }
 
+            // MPI-768: a GIF card's `gif.frames` are hashes into the SOURCE
+            // project's content-addressed `.gif-frames` store — the sidecar clone
+            // above carries the field wholesale, but without copying the actual
+            // frame files (+ thumbs) the copy would 404 the moment the source
+            // project is deleted, same class of bug splatPath has above.
+            if (meta.gif && Array.isArray(meta.gif.frames) && meta.gif.frames.length) {
+                await copyGifFrames(path.dirname(srcMedia), mediaDir, meta.gif);
+            }
+
             await fs.writeJson(path.join(metaDir, `${id}.json`), meta, { spaces: 2 });
 
             newGroups.push({
@@ -2811,11 +2840,12 @@ router.get('/load-meta', (req, res) => {
  * Deletes a .meta/<uuid>.json file.
  * Query: id=<uuid>, folderPath=<project folder path>
  */
-router.delete('/delete-meta', (req, res) => {
+router.delete('/delete-meta', async (req, res) => {
     const { id, folderPath } = req.query;
     if (!id || !folderPath) return res.status(400).json({ error: 'Missing params' });
 
-    const metaDir  = path.join(folderPath, 'Media', '.meta');
+    const mediaDir = path.join(folderPath, 'Media');
+    const metaDir  = path.join(mediaDir, '.meta');
     const metaPath = path.join(metaDir, `${id}.json`);
 
     // Remove companion video first-frame thumb referenced by the sidecar
@@ -2823,6 +2853,9 @@ router.delete('/delete-meta', (req, res) => {
     // `<id>.thumb.jpg` path for older sidecars / missing thumbPath.
     if (fs.existsSync(metaPath)) fs.removeSync(metaPath);
     removeItemThumbs(metaDir, id);
+    // MPI-768: same sweep hook as DELETE /project-media/:projectId/:filename —
+    // this path deletes a sidecar too, so a GIF's frames can be freed here.
+    await sweepGifFrames(mediaDir);
     res.json({ success: true });
 });
 

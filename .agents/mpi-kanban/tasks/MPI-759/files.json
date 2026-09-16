@@ -1,0 +1,15 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/utils/assetKinds.js",
+    "js/utils/icons.js",
+    "js/utils/galleryRenditions.js",
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js",
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.css",
+    "tests/asset-kinds.test.cjs",
+    "tests/gallery-renditions.test.cjs",
+    "tests/desktop/gallery-gif-hover.spec.js",
+    "docs/gallery.md",
+    "docs/gallery-filters.md"
+  ]
+}

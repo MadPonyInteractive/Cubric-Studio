@@ -70,8 +70,8 @@ test('listed kinds: present in the current scope, plus a hidden kind with no car
 });
 
 test('the description names the kinds still shown, then the flags', () => {
-    assert.strictEqual(F.describeGalleryFilter(sort({ hiddenKinds: ['image', 'audio'], favourites: true })), 'Videos, 3D Scenes · Favs');
-    assert.strictEqual(F.describeGalleryFilter(sort({ hiddenKinds: ['scene', 'video', 'audio', 'image'] })), 'No types');
+    assert.strictEqual(F.describeGalleryFilter(sort({ hiddenKinds: ['image', 'audio'], favourites: true })), 'GIFs, Videos, 3D Scenes · Favs');
+    assert.strictEqual(F.describeGalleryFilter(sort({ hiddenKinds: ['scene', 'video', 'audio', 'gif', 'image'] })), 'No types');
     assert.strictEqual(F.describeGalleryFilter(sort({ previews: true })), 'Previews');
     const s = sort({ hiddenKinds: ['image'] });
     const listed = F.listedKinds([{ group: {}, item: VID }, { group: {}, item: IMG }], s);

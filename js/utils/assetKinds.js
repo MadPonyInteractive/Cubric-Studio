@@ -24,9 +24,15 @@
  * cannot resolve, so the rule lives here to stay testable (tests/asset-kinds.test.cjs).
  */
 export const ASSET_KINDS = Object.freeze([
-    { kind: 'scene', label: '3D Scenes', singular: '3D Scene', icon: 'cube',  badge: true,  panelOrder: 4, match: (item) => !!item?.splatPath },
-    { kind: 'video', label: 'Videos',    singular: 'Video',    icon: 'video', badge: true,  panelOrder: 2, match: (item) => item?.type === 'video' },
-    { kind: 'audio', label: 'Audio',     singular: 'Audio',    icon: 'audio', badge: false, panelOrder: 3, match: (item) => item?.type === 'audio' },
+    { kind: 'scene', label: '3D Scenes', singular: '3D Scene', icon: 'cube',  badge: true,  panelOrder: 5, match: (item) => !!item?.splatPath },
+    { kind: 'video', label: 'Videos',    singular: 'Video',    icon: 'video', badge: true,  panelOrder: 3, match: (item) => item?.type === 'video' },
+    { kind: 'audio', label: 'Audio',     singular: 'Audio',    icon: 'audio', badge: false, panelOrder: 4, match: (item) => item?.type === 'audio' },
+    // MPI-759: a GIF is an image item, never a fourth media `type` — same precedent
+    // as the 3D Scene's `splatPath`. MPI-768 items carry a truthy `gif` field; a
+    // legacy import has none but a `filePath` ending `.gif` (matched
+    // case-insensitively). Either is enough — the field's inner shape never matters
+    // here.
+    { kind: 'gif',   label: 'GIFs',      singular: 'GIF',      icon: 'gif',   badge: true,  panelOrder: 2, match: (item) => !!item?.gif || (item?.type === 'image' && /\.gif$/i.test(item?.filePath || '')) },
     { kind: 'image', label: 'Images',    singular: 'Image',    icon: 'image', badge: false, panelOrder: 1, match: () => true },
 ]);
 

@@ -61,6 +61,51 @@ The demote is kept: it bounds the working set and leaves the off-screen entries 
 
 **WebP, because JPG has no alpha — and the symptom is NOT a white backdrop (MPI-627).** Background removal writes its mask into the ALPHA channel and leaves the source RGB untouched, so flattening that PNG into a JPG thumb restored the **original image whole**, backdrop and drop-shadow included: the card looked like the pre-removal import while the viewer (full-res `filePath`) showed the cut-out. WebP keeps alpha, so the cut-out composites over `.mpi-group-card__media`'s `--surface-3`, and it is also *smaller* than the JPG it replaced (512px measured: 30 KB vs 44 KB photo). The backfill above therefore **replaces** a legacy `.thumb.jpg` whose source is `.png/.webp/.avif/.gif` (a JPG source can never carry alpha, so it keeps its thumb) and deletes the stale jpg — which is why the backfill patches on a CHANGED value rather than on a missing thumbPath; an item left holding the deleted URL would 404 its card until the next project load. Its map is `{ itemId: { thumbPath, thumbPathLg, proxyPath } }` (MPI-633) — a string value could not express the common case, an item whose `thumbPath` is already right and whose large rendition is the only new thing, which compares equal and never reaches the card. Test: `tests/image-thumb-alpha.test.cjs` (asserts a transparent pixel survives the downscale — the extension is not the thing that matters).
 
+## GIF cards — still until hover, hover mounts the file (MPI-759)
+
+A GIF is `kindOfItem` `gif`, but stays `type: 'image'` and rides the plain image
+render path: `_render()` mounts its WebP rendition (`thumbPath` / `thumbPathLg`,
+same ladder as any image) as the resting still, never the built `.gif` — that
+file only ever reaches the card through hover.
+
+**Why this needed its own fix.** `pickImageRendition` falls back to `filePath`
+when a card's box is bigger than the largest written rendition (no `.1280.webp`
+above the source). For a plain image that is correct; for a GIF `filePath` IS
+the animated file, so a card wider than 1280 device px used to mount and
+animate it while a narrower one stayed still — "plays only at some slider
+sizes" was really the ladder's `filePath` fallback firing on a source that
+happens to animate. `_imageSrcFor` in `MpiGalleryGrid.js` now passes
+`allowSource: false` for a gif kind, exactly like a video's `filePath` is
+already never a legal `<img>` fallback (MPI-689) — the single call site fixes
+every box size and every card at once.
+
+**Hover rides the video hover pair, not a new mechanism.** `_promoteVideo` /
+`_removeHoverVideo` gained an `isGif` branch: on an explicit hover it appends an
+`<img class="mpi-group-card__thumb--hover-video mpi-group-card__thumb--gif">`
+pointing at the item's `filePath` (the built `.gif`) over the still, reusing the
+fade-in (`--hover-video-ready`) and z-index the video overlay already has.
+Two differences from a video, both because an `<img>` has no `play()`/`pause()`:
+
+- **Viewport entry never promotes it.** The grid's `promoteObserver` calls
+  `cardEl.promoteVideo()` unconditionally as a card scrolls into view (a video
+  wants that — it fades in a sharper paused frame at rest); a GIF `<img>`
+  starts animating the instant it loads, so `_promoteVideo` refuses a GIF
+  unless the caller passes `{ userHover: true }`. Only `_onCardEnter` (a real
+  hover) does.
+- **Leaving always demotes fully**, never pauses-and-keeps-mounted. A video
+  overlay stays in the DOM paused at frame 0 for a cheap replay; a GIF has no
+  such state, so `_onCardLeave` calls `_removeHoverVideo()` unconditionally and
+  a fresh `<img>` is created on the next hover.
+
+Scroll-out (`demoteObserver`) and the whole-grid suspension holds
+(`_mediaHolds`, `_releaseMedia`) call the same `cardEl.demoteVideo()` hook a
+promoted video answers to, so a hovered GIF yields to both for free.
+
+Regression spec: `tests/desktop/gallery-gif-hover.spec.js` — no `.gif` src
+mounted at any slider size (including the no-large-rendition clamp case),
+viewport entry alone never mounts it, a real hover does, leave and the demote
+hook both unmount it.
+
 ## Media suspension — the gallery hands its VRAM back (MPI-631)
 
 A promoted hover `<video>` is `preload="auto"`, so it holds a decoder and its decode surfaces for as long as the element exists. Promotion used to be a **one-way ratchet** — the promote `IntersectionObserver` called `unobserve` the moment a card promoted — so every video card that ever scrolled past kept its decoder for the life of the grid. Measured on a 161-asset project (RTX 4060 Ti, engine not running): Vision held **410 MB** of dedicated VRAM idle on landing and **1858 MB** after one scroll through the gallery, byte-identical for 13 idle minutes with zero decay. Entering the History workspace dropped it to **404 MB** — navigating away destroys the grid, which was the only thing that ever released it.

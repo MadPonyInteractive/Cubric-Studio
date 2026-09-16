@@ -43,9 +43,14 @@ const generateId = () => crypto.randomUUID();
  */
 
 /**
+ * @typedef {{hash: string, delay: number}} GifFrameRef
+ */
+
+/**
  * @typedef {MediaItemBase & {
  *   pixelDimensions: {w: number, h: number},
  *   splatPath?: string|null,
+ *   gif?: {frames: GifFrameRef[], loop: number, output: {maxEdge: number, colours: number|null, edgeColour: string|null}}|null,
  * }} ImageItem
  */
 
@@ -94,6 +99,7 @@ export function createImageItem(overrides = {}) {
         pixelDimensions:  { w: 0, h: 0 },
         generationMs:     null,
         splatPath:        null,   // MPI-623 — set only on 3D Scene cards
+        gif:              null,   // MPI-768 — set only on a GIF card (see docs/gif.md)
         ...overrides,
     };
 }

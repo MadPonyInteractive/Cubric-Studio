@@ -70,6 +70,7 @@ NOT mechanically split these):
 | **Gallery selection** (multi-select refresh, click order, Cue all batch queueing) | [gallery-selection.md](gallery-selection.md) |
 | **Audio cards + the audio player** (the baked waveform mask, MpiWaveform, click-to-seek, the audio accent, MpiAudioPlayer) | [gallery-audio-cards.md](gallery-audio-cards.md) |
 | **Gallery kinds, filter panel + toolbar** (`ASSET_KINDS` — **adding a media kind like GIF**, `gallerySort`, the FILTER panel, `MpiGalleryToolbar` in the project bar) | [gallery-filters.md](gallery-filters.md) |
+| **GIF** (frames store, content-addressed + swept; the two-pass-palette-then-GCE-patch build; `gif` sidecar field; `routes/gif.js`) | [gif.md](gif.md) |
 | **Masking** (layer model, the display-vs-export split, overlay draw, mask storage) | [masking.md](masking.md) |
 | **Canvas tool family** (Mask/Paint/Composite taxonomy, the preview contract, Add/Subtract, who owns which panel, the PromptBox contract) | [masking-tools.md](masking-tools.md) |
 | **SAM3 masking** (click-point + open-vocabulary text tools, their graph branches, the `name:N` trap) | [masking-sam3.md](masking-sam3.md) |

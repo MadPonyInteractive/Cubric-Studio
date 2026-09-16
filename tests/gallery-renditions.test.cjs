@@ -82,6 +82,19 @@ test('a VIDEO poster never falls back to filePath — that would paint a video i
     assert.strictEqual(pickImageRendition({ filePath: '/project-file?path=x.mp4' }, 775, { allowSource: false }), '');
 });
 
+test('a GIF card never falls back to the .gif source, only to its WebP thumb (MPI-759)', () => {
+    // The still is the WebP rendition like any image; only an explicit hover
+    // mounts the built .gif (MpiGalleryGrid.js's _imageSrcFor passes
+    // `allowSource: false` for a gif-kind item, same param video already uses
+    // for its own filePath). No new picker behaviour — this pins the caller's
+    // contract against a regression in either side.
+    const gif = { thumbPath: SMALL, thumbPathLg: null, filePath: '/project-file?path=x.gif' };
+    assert.strictEqual(pickImageRendition(gif, 775, { allowSource: false }), SMALL);
+    assert.strictEqual(pickImageRendition(gif, 0, { allowSource: false }), SMALL);
+    const laddered = { ...gif, thumbPathLg: LARGE };
+    assert.strictEqual(pickImageRendition(laddered, 775, { allowSource: false }), LARGE);
+});
+
 test('a missing item never throws and never yields undefined', () => {
     assert.strictEqual(pickImageRendition(null, 775), '');
     assert.strictEqual(pickImageRendition({}, 775), '');

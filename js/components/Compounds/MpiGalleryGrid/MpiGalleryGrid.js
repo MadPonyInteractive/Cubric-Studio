@@ -933,9 +933,13 @@ export const MpiGalleryGrid = ComponentFactory.create({
             function _imageSrcFor(selected) {
                 const isVideo = selected?.type === 'video'
                     || (group?.type === 'video' && selected?.type !== 'image');
-                // A video's `filePath` is a video, so it is not a legal fallback for
-                // the `<img>` this feeds — see pickImageRendition's `allowSource`.
-                return pickImageRendition(selected, _imgPromoted ? _boxPx : 0, { allowSource: !isVideo });
+                // A GIF's `filePath` IS the animated file (MPI-759): the resting card
+                // is still until hover, so the ladder must never fall through to it
+                // any more than a video's `filePath` is a legal `<img>` fallback.
+                const isGif = !isVideo && kindOfItem(selected)?.kind === 'gif';
+                // Neither `filePath` is a legal fallback for the `<img>` this feeds —
+                // see pickImageRendition's `allowSource`.
+                return pickImageRendition(selected, _imgPromoted ? _boxPx : 0, { allowSource: !isVideo && !isGif });
             }
 
             function _applyImageRendition() {
@@ -1013,6 +1017,9 @@ export const MpiGalleryGrid = ComponentFactory.create({
             // swapped it since binding.
             function _videoHoverPlay() {
                 if (!_videoThumb) return;
+                // A GIF hover overlay is an <img> — mounting it IS the play, there is
+                // no play() to call (MPI-759).
+                if (typeof _videoThumb.play !== 'function') return;
                 // Volume 0 = mute: the clip still previews, just silently. Above
                 // 0, stop any other playing card first so this is the only sound.
                 if (_volume > 0) {
@@ -1027,6 +1034,14 @@ export const MpiGalleryGrid = ComponentFactory.create({
 
             function _onCardLeave() {
                 if (!_videoThumb) return;
+                if (typeof _videoThumb.pause !== 'function') {
+                    // GIF: an <img> has no paused-at-frame-0 state to rewind to, so
+                    // leaving always demotes back to the still (MPI-759) — mounting a
+                    // fresh one on the next hover is the whole design, unlike a
+                    // video's cheap paused-and-kept-mounted replay.
+                    _removeHoverVideo();
+                    return;
+                }
                 _videoThumb.pause();
                 _videoThumb.muted = true; // re-mute so it never plays sound off-hover
                 try { _videoThumb.currentTime = 0; } catch (_) {}
@@ -1049,8 +1064,35 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 const sel = group?.history?.[group.selectedIndex];
                 const isVideo = sel?.type === 'video'
                     || (group?.type === 'video' && sel?.type !== 'image');
-                if (!isVideo) return;
+                const isGif = !isVideo && kindOfItem(sel)?.kind === 'gif';
+                if (!isVideo && !isGif) return;
+                // A GIF has no loaded-but-not-playing state the way <video> does —
+                // mounting the <img> starts it animating immediately. Viewport entry
+                // (this function's other caller, `promoteObserver`, and the
+                // suspension-resume sweep) must never trigger that; only an explicit
+                // hover may (MPI-759's "still until hover, hover plays").
+                if (isGif && !opts?.userHover) return;
                 _videoPromoted = true;
+
+                if (isGif) {
+                    const img = document.createElement('img');
+                    img.className = 'mpi-group-card__thumb mpi-group-card__thumb--hover-video mpi-group-card__thumb--gif';
+                    img.alt = '';
+                    img.draggable = false;
+                    img.addEventListener('load', () => {
+                        cardEl.classList.remove('mpi-group-card--missing');
+                        img.classList.add('mpi-group-card__thumb--hover-video-ready');
+                    });
+                    img.addEventListener('error', () => {
+                        cardEl.classList.add('mpi-group-card--missing');
+                        const s = group?.history?.[group.selectedIndex];
+                        emit('media-missing', { group, itemId: s?.id });
+                    });
+                    qs('.mpi-group-card__media', cardEl)?.appendChild(img);
+                    img.src = _videoSrc;
+                    _videoThumb = img;
+                    return;
+                }
 
                 const v = document.createElement('video');
                 v.className = 'mpi-group-card__thumb mpi-group-card__thumb--video mpi-group-card__thumb--hover-video';
@@ -1091,7 +1133,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
             function _removeHoverVideo() {
                 if (!_videoThumb) return;
                 if (_videoThumb.classList.contains('mpi-group-card__thumb--hover-video')) {
-                    _videoThumb.pause();
+                    if (typeof _videoThumb.pause === 'function') _videoThumb.pause();
                     _videoThumb.remove();
                     _videoThumb = null;
                     _videoPromoted = false;
@@ -1160,9 +1202,15 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 if (src) {
                     const isVideo = selected?.type === 'video' || (group.type === 'video' && selected?.type !== 'image');
                     const isAudio = selected?.type === 'audio' || group.type === 'audio';
-                    if (!isVideo) {
-                        // Reaching non-video render path — drop any video state
-                        // from a prior selection so hover doesn't replay it.
+                    // MPI-759: a GIF is `type: 'image'`, so it never trips `isVideo`
+                    // above — it rides the same still-until-hover overlay
+                    // (_promoteVideo/_removeHoverVideo) as a video, just with the
+                    // built `.gif` itself as the hover source instead of a proxy.
+                    const isGif = !isVideo && !isAudio && kindOfItem(selected)?.kind === 'gif';
+                    if (!isVideo && !isGif) {
+                        // Reaching a render path that owns neither a <video> decoder
+                        // nor a hover-mounted .gif — drop any hover state a prior
+                        // selection left so hovering doesn't replay it.
                         _removeHoverVideo();
                         _videoSrc = null;
                     }
@@ -1191,6 +1239,17 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         // this path always did. Older items without one fall back to
                         // filePath.
                         _swapThumbToImage(_imageSrcFor(selected), selected);
+                        if (isGif) {
+                            // Still until hover, hover plays (MPI-759). The WebP
+                            // rendition above is the resting state; hovering mounts
+                            // the built .gif itself through the same promote/demote
+                            // pair a video hover uses, never through the ladder.
+                            if (_videoSrc !== src) {
+                                _removeHoverVideo();
+                                _videoSrc = src;
+                            }
+                            _ensureVideoHoverBindings();
+                        }
                     }
                 } else {
                     _swapThumbToEmpty();

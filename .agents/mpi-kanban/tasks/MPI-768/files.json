@@ -1,0 +1,14 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "services/gifFrames.js",
+    "routes/gif.js",
+    "server.js",
+    "routes/projects.js",
+    "js/data/projectModel.js",
+    "tests/gif-frames.test.cjs",
+    "docs/gif.md",
+    "docs/README.md",
+    "docs/project-integrity.md"
+  ]
+}

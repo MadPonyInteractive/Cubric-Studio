@@ -23,8 +23,13 @@ investigators got wrong: [research/2026-09-15-investigation.md](research/2026-09
   and ffprobe `pkt_duration` both match a real block walk.
 - **MPI-749 is `done`**, so MPI-759 is no longer waiting (its card still says `blocked`; the umbrella
   does not move members, `beginImplementation` fixes it when phase 1 starts).
-- **Next action:** `mpi-continue` MPI-757 -> Batch 1 (MPI-768 + MPI-759) routes to
-  `mpi-execute-parallel`.
+- **2026-09-15 ~19:50Z: Batch 1 LANDED, NOT COMMITTED.** MPI-768 `done`. MPI-759 `doing/validating`:
+  every automated check green, but the hover-tour VRAM number was NOT RUN (the MPI-633 rigs no longer
+  exist); Fabio decides rebuild vs waive. The integrator fixed `tests/gallery-filter.test.cjs` drift.
+  Evidence: each card's `validation.md`. `server.js` must be committed BY HUNK: MPI-774's uncommitted
+  `agentRoutes` lines in it are not ours.
+- **Next action:** commit Batch 1 (`mpi-handoff`), then Batch 2 (MPI-769 + MPI-770 + MPI-771 engine
+  half). Re-read `state/index.json` first: MPI-774 held `preloadStyles.js` / `types.js` at 19:09Z.
 
 ## What we are building
 
@@ -137,7 +142,7 @@ editing. Desktop specs always run with a private `--output=<scratchpad>` dir. Ne
 
 ## Parallel Batch: Phase 1 - frames store and gallery kind
 
-- [ ] **MPI-768 GIF frames store and builder.** `services/gifFrames.js` per E1-E5: content-addressed
+- [x] **MPI-768 GIF frames store and builder.** `services/gifFrames.js` per E1-E5: content-addressed
   `Media/.gif-frames/<sha256>.png` + per-frame thumbnail, extract (legacy lazy + at import),
   build, entry write (`update` / `new`), sweep. `routes/gif.js` core routes; mount it in `server.js`
   (only server.js editor in this batch). Import hook in `POST /project-media/:projectId/upload`
@@ -152,7 +157,7 @@ editing. Desktop specs always run with a private `--output=<scratchpad>` dir. Ne
   on a variable-delay GIF, dedup (identical frames written once), sweep deletes only unreferenced
   frames (an archived-card reference survives), Update writes a new `.gif` name, legacy `.gif`
   extracts lazily, add-from-cards copies frames; then `node --test "tests/*.test.cjs"` stays green.
-- [ ] **MPI-759 GIF as its own gallery asset kind.** Row `gif` above `image` (match `item.gif` OR an
+- [x] **MPI-759 GIF as its own gallery asset kind.** Row `gif` above `image` (match `item.gif` OR an
   image whose file ends `.gif`), badge on, a new 24-unit FILL icon (docs/gallery-filters.md § Adding
   a media kind). GIF cards never mount the `.gif` from the rendition ladder (the
   `pickImageRendition(..., { allowSource })` call at `MpiGalleryGrid.js:938`); hover mounts the file
@@ -331,6 +336,15 @@ Phase 5 verify mode: `auto`.
   `operation_registry.json` are not hand-edited (E8); `add-from-cards` must copy frames (E4).
 - 2026-09-15: server halves of 771, 773 and 760 moved one batch earlier (disjoint files); the UI
   order is unchanged.
+- 2026-09-15 (Batch 1): MPI-768 serves frame and thumb URLs through the existing `/project-file`
+  route, not a dedicated one (E3). `output.edgeColour: null` means an opaque build with no explicit
+  alpha flatten: MPI-772 must flatten transparent pixels onto a chosen background and pin it with a
+  pixel assertion (memory `tools/image-alpha-flatten.md`); MPI-770's transparent padding meets it first.
+- 2026-09-15 (Batch 1): the MPI-633 VRAM rigs were deleted at that card's close-out and the desktop
+  harness runs `--disable-gpu`, so MPI-759's hover-tour number was not produced. Any later Verify that
+  needs VRAM needs a new instrument.
+- 2026-09-15 (Batch 1): the new kind row broke `tests/gallery-filter.test.cjs` fixtures (in neither
+  worker's ownership); the orchestrator fixed both lines at integration.
 
 ## Verification
 
