@@ -1,1 +1,2 @@
 {"schema":"mpi-kanban/event/v1","id":"MPI-561","type":"task.created","at":"2026-08-14T00:26:00Z","actor":"claude","summary":"Umbrella created by the consolidation sweep."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-561", "at": "2026-09-16T09:22:30+01:00", "actor": "claude", "from": "todo", "to": "done", "reason": "Umbrella empty: MPI-556 and MPI-547 both done. Closed on Fabio's call 2026-09-16."}
