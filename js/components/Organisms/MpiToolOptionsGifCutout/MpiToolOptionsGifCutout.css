@@ -16,10 +16,6 @@
     min-width: 0;
 }
 
-.mpi-tool-options-gif-cutout__count {
-    flex: 0 0 auto;
-}
-
 .mpi-tool-options-gif-cutout__info {
     margin: 0;
     padding: var(--s-2);

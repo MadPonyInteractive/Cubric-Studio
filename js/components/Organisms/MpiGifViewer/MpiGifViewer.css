@@ -42,6 +42,18 @@
     justify-content: center;
 }
 
+/* The class above sets `display`, which outranks the UA `[hidden]` rule. */
+.mpi-gif-viewer__frame-wrap[hidden] {
+    display: none;
+}
+
+/* MPI-771 Mask Brush: an MpiCanvas over the whole stage, showing the current
+   frame with its mask layers. The frame img hides while it is up. */
+.mpi-gif-viewer__edit {
+    position: absolute;
+    inset: 0;
+}
+
 .mpi-gif-viewer__frame {
     display: block;
     max-width: 100%;
@@ -51,11 +63,11 @@
     object-fit: contain;
 }
 
-/* MPI-771 (UI half) — a solid tint clipped to the current frame's mask PNG via
-   CSS `mask-image`. `mask-size: 100% 100%` stretches to this div's OWN box
-   rather than "contain": the box already equals the frame img's rendered
-   letterboxed box (the wrap above), so a second containment pass would only
-   risk double letterboxing on a rounding mismatch. */
+/* MPI-771 — a solid tint clipped to the current frame's mask PNG via CSS
+   `mask-image`. The wrap is only as wide as the img but always full height, so
+   a frame shorter than the stage (landscape, or smaller than the stage) sits
+   letterboxed inside it. `contain` + centre lands the mask on exactly that box;
+   `100% 100%` stretched it down the whole wrap. */
 .mpi-gif-viewer__mask-tint {
     position: absolute;
     inset: 0;
@@ -64,8 +76,10 @@
     opacity: 0;
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
-    -webkit-mask-size: 100% 100%;
-    mask-size: 100% 100%;
+    -webkit-mask-size: contain;
+    mask-size: contain;
+    -webkit-mask-position: center;
+    mask-position: center;
     transition: opacity var(--t-fast) var(--ease);
 }
 

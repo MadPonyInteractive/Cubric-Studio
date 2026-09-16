@@ -274,6 +274,7 @@ test('POST /gif-cutout/apply: frame store gains only the cut frames', async () =
             assert.equal(res.success, true, `apply failed: ${res.error}`);
             assert.equal(res.item.gif.frames.length, 2);
             assert.deepEqual(res.item.gif.frames.map((f) => f.delay), [10, 20]);
+            assert.deepEqual(res.item.pixelDimensions, { w: 6, h: 6 }, 'never {w:0,h:0}, which lists as ?×?');
 
             const newHashes = res.item.gif.frames.map((f) => f.hash);
             // The cut frames carry alpha now — content differs from the opaque

@@ -10,3 +10,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "checklist.updated", "id": "MPI-759", "at": "2026-09-16T11:05:05Z", "actor": "claude:bfa79224", "summary": "Batch 3 items checked."}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-759", "at": "2026-09-16T11:05:05Z", "actor": "claude:bfa79224", "summary": "maturity -> validating; attention required (user check)."}
 {"schema": "mpi-kanban/event/v1", "type": "attention.required", "id": "MPI-759", "at": "2026-09-16T11:05:05Z", "actor": "claude:bfa79224", "reason": "Needs Fabio's eye check (see validation.md)"}
+{"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-759", "at": "2026-09-16T12:20:52Z", "actor": "claude:cc23c073", "summary": "Reopened again: GIF hover overlay held at opacity 0 by the poster load gate; CSS fixed, outcome assertion added, real-card repro animates. Waiting on Fabio's reload check."}

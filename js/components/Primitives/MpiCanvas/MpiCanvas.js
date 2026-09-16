@@ -1503,6 +1503,8 @@ class _CanvasCore {
     getSubtractURL()        { return this.mask.getSubtractURL(); }
     async setManualFromDataURL(url)   { await this.mask.setManualFromDataURL(url); this.draw(); }
     async setSubtractFromDataURL(url) { await this.mask.setSubtractFromDataURL(url); this.draw(); }
+    /** MPI-771: the un-painted mask under the brush layers (a GIF frame's track). A load. */
+    async setMaskBase(url)       { await this.mask.setBaseFromDataURL(url); this.draw(); }
     setAutoPickMasks(map)        { this.mask.setAutoPickMasks(map); this.draw(); }
     setSelectedAutoPicks(set)    { this.mask.setSelectedAutoPicks(set); this.draw(); }
     clearAutoPicks()             { this.mask.clearAutoPicks(); this.draw(); }
@@ -1570,7 +1572,7 @@ export const MpiCanvas = ComponentFactory.create({
             'setMaskingMode','setBrushSize','setBrushType','setBrushPreset','flipMaskColor',
             'setMaskInverted','isMaskInverted','setMaskBwView','isMaskBwView','setMaskPaintEnabled',
             'setMaskOpacity','clearMask','getMaskDataURL',
-            'getManualURL','getSubtractURL','setManualFromDataURL','setSubtractFromDataURL',
+            'getManualURL','getSubtractURL','setManualFromDataURL','setSubtractFromDataURL','setMaskBase',
             'setAutoPickMasks','setSelectedAutoPicks','clearAutoPicks','bakeAutoPicksInto',
             'beginMaskAdjust','previewMaskAdjust','applyMaskAdjust','endMaskAdjust','hasMaskAdjustPreview','fillMaskHoles',
             'undoMask','redoMask','clearMaskUndo','canUndoMask','canRedoMask','getUndoStats',

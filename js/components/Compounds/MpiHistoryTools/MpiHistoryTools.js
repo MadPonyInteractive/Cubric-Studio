@@ -196,6 +196,10 @@ const GIF_TOOLS = [
             // 'eraser' reused from removeBackground (MPI-425 precedent above) —
             // both are "cut the subject out of its background" jobs.
             { mode: 'gifCutout', icon: 'eraser', info: 'Cut-out' },
+            // MPI-771 (Decision 14): fix a frame's cut-out mask by hand. Its own
+            // mode, not `maskBrush`: that one belongs to the image mask family
+            // (`_MASK_TOOLS` in the Block) and its canvas bridges.
+            { mode: 'gifMaskBrush', icon: 'brush', info: 'Mask Brush' },
         ],
     },
 ];

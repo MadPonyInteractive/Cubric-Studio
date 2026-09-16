@@ -122,8 +122,8 @@ test('gif cutout panel: routes, mounts with the right initial state, and drives 
       return {
         mounted: !!panel,
         promptField: !!document.querySelector('.mpi-tool-options-gif-cutout #prompt-slot .mpi-input'),
-        countField: !!document.querySelector('.mpi-tool-options-gif-cutout #count-slot .mpi-input'),
-        trackBtnText: document.querySelector('.mpi-tool-options-gif-cutout #track-slot button .mpi-btn__text, .mpi-tool-options-gif-cutout #track-slot button .mpi-ibtn__label')?.textContent,
+        countField: !!document.querySelector('.mpi-tool-options-gif-cutout .mpi-input[type="number"], .mpi-tool-options-gif-cutout input[type="number"]'),
+        trackBtnTexts: [...document.querySelectorAll('.mpi-tool-options-gif-cutout #track-slot button')].map(b => b.textContent.trim()),
         previewHidden: document.querySelector('.mpi-tool-options-gif-cutout #preview-wrap')?.hidden,
         adjustHidden: document.querySelector('.mpi-tool-options-gif-cutout #adjust-section')?.hidden,
         chipCount: document.querySelectorAll('.mpi-tool-options-gif-cutout #chips-slot .mpi-checkbox__input').length,
@@ -132,8 +132,8 @@ test('gif cutout panel: routes, mounts with the right initial state, and drives 
     });
     expect(dom.mounted).toBe(true);
     expect(dom.promptField).toBe(true);
-    expect(dom.countField).toBe(true);
-    expect(dom.trackBtnText).toBe('Track');
+    expect(dom.countField, 'no count input (plan Decision 14): the chips are the count').toBe(false);
+    expect(dom.trackBtnTexts).toEqual(['Track All', 'Track Single Frame']);
     expect(dom.previewHidden, 'preview/chips stay hidden before a Track run').toBe(true);
     expect(dom.adjustHidden, 'Mask Adjust stays hidden before a Track run').toBe(true);
     // The 4 chips exist from mount (OBJECT_SLOTS === max_objects, a fixed graph
@@ -175,7 +175,7 @@ test('gif cutout panel: routes, mounts with the right initial state, and drives 
       input.value = 'mascot';
       input.dispatchEvent(new Event('input', { bubbles: true }));
     });
-    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #track-slot button').click());
+    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #track-all-slot button').click());
     await expect.poll(() => window.evaluate(() => window.__mpi771.sourceCalls.length)).toBe(1);
     const call = await window.evaluate(() => window.__mpi771.sourceCalls[0]);
     expect(call.folderPath).toBe('C:/tmp/gif-cutout-test');
@@ -231,16 +231,58 @@ async function circleMaskPng(w, h, r) {
  *  for `mask_*` filenames, the preview PNG for anything else. The REAL
  *  Express server (a different OS process) fetches from this over loopback
  *  exactly as it would fetch a real ComfyUI `/view` URL. */
-function startMaskServer(maskBuf, previewBuf) {
+function startMaskServer(maskBuf, previewBuf, emptyBuf) {
   return new Promise((resolve) => {
     const server = http.createServer((req, res) => {
       const u = new URL(req.url, 'http://127.0.0.1');
       const filename = u.searchParams.get('filename') || '';
-      res.writeHead(200, { 'Content-Type': 'image/png' });
-      res.end(filename.startsWith('mask_') ? maskBuf : previewBuf);
+      // CORS like the real engine: the app starts ComfyUI with
+      // `--enable-cors-header` (routes/comfy.js), and the tint and the brush's
+      // base layer read mask pixels through `crossOrigin` images.
+      res.writeHead(200, { 'Content-Type': 'image/png', 'Access-Control-Allow-Origin': '*' });
+      // `mask_empty_*` = a track that found nothing (all black).
+      res.end(filename.startsWith('mask_empty_') ? emptyBuf
+        : filename.startsWith('mask_') ? maskBuf : previewBuf);
     });
     server.listen(0, '127.0.0.1', () => resolve(server));
   });
+}
+
+/** Click one gif-rail tool by its tooltip ('Cut-out', 'Mask Brush'). */
+async function openRailTool(window, info) {
+  await window.evaluate((name) => {
+    document.querySelector(`.mpi-history-tools__slot[data-mode="cutout"] .mpi-history-tools__btn[data-info="${name}"] button`).click();
+  }, info);
+}
+
+/** The Mask Brush canvas holds the viewer's CURRENT frame and is armed. */
+async function waitEditFrame(window) {
+  await expect.poll(() => window.evaluate(() => {
+    const cv = document.querySelector('.mpi-gif-viewer__edit .mpi-canvas');
+    const shown = document.querySelector('.mpi-gif-viewer__frame')?.getAttribute('src');
+    const loaded = cv?.querySelector('canvas[data-media-url]')?.dataset.mediaUrl;
+    return !!cv && cv.activeMode === 'mask' && !!shown && loaded === shown;
+  }), { timeout: 15000 }).toBe(true);
+}
+
+/** A real mouse dab at image px (x, y) on the Mask Brush canvas. */
+async function strokeAt(window, x, y) {
+  const pt = await window.evaluate(({ x, y }) => {
+    const cv = document.querySelector('.mpi-gif-viewer__edit .mpi-canvas');
+    const r = cv.getBoundingClientRect();
+    return { x: r.left + cv.offsetX + (x + 0.5) * cv.scale, y: r.top + cv.offsetY + (y + 0.5) * cv.scale };
+  }, { x, y });
+  await window.mouse.move(pt.x, pt.y);
+  await window.mouse.down();
+  await window.mouse.move(pt.x + 1, pt.y);
+  await window.mouse.up();
+}
+
+/** Select a frame through the strip, the way a user steps frames. */
+async function gotoFrame(window, idx) {
+  await window.locator(`.mpi-frame-strip__thumb[data-index="${idx}"]`).click();
+  await expect.poll(() => window.evaluate((i) =>
+    document.querySelector('.mpi-frame-strip__thumb.is-current')?.dataset.index === String(i), idx)).toBe(true);
 }
 
 test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine faked, everything else real)', async ({}, testInfo) => {
@@ -358,12 +400,13 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     const RADIUS = 20;
     const maskBuf = await circleMaskPng(SZ, SZ, RADIUS);
     const previewBuf = await solidPng(128, 128, 128, 16, 16);
-    maskServer = await startMaskServer(maskBuf, previewBuf);
+    const emptyBuf = await solidPng(0, 0, 0, SZ, SZ);
+    maskServer = await startMaskServer(maskBuf, previewBuf, emptyBuf);
     const maskPort = maskServer.address().port;
 
     await window.evaluate(async ({ port, frameCount }) => {
       const { getEngine } = await import('/js/services/comfyController.js');
-      window.__mpi771 = { runParams: [] };
+      window.__mpi771 = { runParams: [], maskPrefix: 'mask_' };
       const fakeRunWorkflow = async (workflow, params, onMessage) => {
         window.__mpi771.runParams.push(params);
         const findId = (title) => Object.keys(workflow).find(
@@ -371,7 +414,7 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
         const previewId = findId('output_preview');
         const maskId = findId('output_mask');
         onMessage({ type: 'executed', data: { node: previewId, output: { images: [{ filename: 'preview.png', type: 'output', subfolder: '' }] } } });
-        const images = Array.from({ length: frameCount }, (_, i) => ({ filename: `mask_${i}.png`, type: 'output', subfolder: '' }));
+        const images = Array.from({ length: frameCount }, (_, i) => ({ filename: `${window.__mpi771.maskPrefix}${i}.png`, type: 'output', subfolder: '' }));
         onMessage({ type: 'executed', data: { node: maskId, output: { images } } });
         return { success: true, images: [] };
       };
@@ -383,16 +426,38 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
       }
     }, { port: maskPort, frameCount: gifInfo.frameCount });
 
-    // ── Open Cut-out, run Track for real ────────────────────────────────
-    await window.evaluate(() => {
-      document.querySelector('.mpi-history-tools__slot[data-mode="cutout"] .mpi-history-tools__btn button').click();
-    });
+    // ── Open Cut-out: nothing to cut yet ────────────────────────────────
+    await openRailTool(window, 'Cut-out');
     await window.evaluate(() => {
       const input = document.querySelector('.mpi-tool-options-gif-cutout #prompt-slot input');
       input.value = 'mascot';
       input.dispatchEvent(new Event('input', { bubbles: true }));
     });
-    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #track-slot button').click());
+    // The name persists through the shared 300 ms settings debounce
+    // (projectService `_enqueueToolUpdate`); the panel is about to remount.
+    await expect.poll(() => window.evaluate(async () => {
+      const { state } = await import('/js/state.js');
+      return state.currentProject?.toolSettings?.gifCutout?.textPrompt;
+    })).toBe('mascot');
+    expect(await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #cutout-slot button')?.disabled),
+      'Cut out starts disabled — no mask on any frame').toBe(true);
+
+    // ── Brush BEFORE any track (Fabio: the brush works with no track) ────
+    // Frame 0: paint a dab in the corner, outside where the track will land.
+    await openRailTool(window, 'Mask Brush');
+    await waitEditFrame(window);
+    await window.evaluate(() => document.querySelector('.mpi-gif-viewer__edit .mpi-canvas').setBrushSize(8));
+    await strokeAt(window, 6, 6);
+
+    // Back to Cut-out: leaving the brush saved frame 0, so there is a mask now.
+    await openRailTool(window, 'Cut-out');
+    await expect.poll(() => window.evaluate(() =>
+      document.querySelectorAll('.mpi-frame-strip__thumb--edited').length)).toBe(1);
+    await expect.poll(() => window.evaluate(() =>
+      document.querySelector('.mpi-tool-options-gif-cutout #cutout-slot button')?.disabled)).toBe(false);
+
+    // ── Track All ────────────────────────────────────────────────────────
+    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #track-all-slot button').click());
 
     // Real /gif-cutout/source (real ffmpeg) runs before the (faked) engine
     // call, so give it real time.
@@ -400,9 +465,9 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     let runParams = await window.evaluate(() => window.__mpi771.runParams[0]);
     expect(typeof runParams.Input_Video, 'a real temp track video path').toBe('string');
     expect(runParams.Input_Video.length).toBeGreaterThan(0);
-    // Count 1 (default) never stamps — bare name IS the SAM3 tokenizer's `:1`
-    // (js/utils/maskTextPrompt.js).
-    expect(runParams['Input_Text_Prompt.text']).toBe('mascot');
+    // No count input: every name is stamped with the 4 object slots
+    // (js/utils/maskTextPrompt.js; a bare name finds ONE object).
+    expect(runParams['Input_Text_Prompt.text']).toBe('mascot:4');
     expect(runParams['Input_Object_Indices.object_indices'], 'every chip starts kept -> empty string').toBe('');
 
     await expect.poll(
@@ -410,7 +475,11 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
       { timeout: 15000 }
     ).toBe(false);
     expect(await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #preview-wrap')?.hidden)).toBe(false);
-    expect(await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #cutout-slot button')?.disabled)).toBe(false);
+    // Every frame now carries a tint; the brushed frame keeps its marker.
+    await expect.poll(() => window.evaluate(() =>
+      document.querySelectorAll('.mpi-frame-strip__thumb-tint').length)).toBe(3);
+    expect(await window.evaluate(() => document.querySelectorAll('.mpi-frame-strip__thumb--edited').length),
+      'a re-track keeps the brush fix').toBe(1);
 
     // ── Toggle a chip -> cheap re-dispatch, real object_indices ─────────
     await window.evaluate(() => {
@@ -425,15 +494,34 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     // engine note "re-dispatching object_indices is cheap" (docs/masking-sam3-gif.md).
     expect(runParams.Input_Video).toBe(await window.evaluate(() => window.__mpi771.runParams[0].Input_Video));
 
-    // Keep chip 1 back on for the real Cut-out below (indices do not change
-    // which pixels the FAKED engine returns, but '' matches the plan's own
-    // "every object kept" default and keeps this assertion simple).
+    // Keep chip 1 back on ('' = every object kept, the default).
     await window.evaluate(() => {
       const input = document.querySelectorAll('.mpi-tool-options-gif-cutout #chips-slot .mpi-checkbox__input')[1];
       input.checked = true;
       input.dispatchEvent(new Event('change', { bubbles: true }));
     });
     await expect.poll(() => window.evaluate(() => window.__mpi771.runParams.length), { timeout: 15000 }).toBe(3);
+
+    // ── Track Single Frame on frame 2: it finds nothing there ────────────
+    await gotoFrame(window, 2);
+    await window.evaluate(() => { window.__mpi771.maskPrefix = 'mask_empty_'; });
+    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #track-frame-slot button').click());
+    await expect.poll(() => window.evaluate(() => window.__mpi771.runParams.length), { timeout: 30000 }).toBe(4);
+    runParams = await window.evaluate(() => window.__mpi771.runParams[3]);
+    expect(runParams.Input_Video, 'a one-frame source video, not the full one')
+      .not.toBe(await window.evaluate(() => window.__mpi771.runParams[0].Input_Video));
+    await expect.poll(() => window.evaluate(() =>
+      document.querySelectorAll('.mpi-frame-strip__thumb-tint').length), { timeout: 15000 }).toBe(3);
+
+    // ── Brush frame 1: erase the centre of its track ─────────────────────
+    await openRailTool(window, 'Mask Brush');
+    await gotoFrame(window, 1);
+    await waitEditFrame(window);
+    await window.evaluate(() => document.querySelector('.mpi-tool-options-mask-brush .mpi-radio-group__btn[data-value="eraser"]').click());
+    await strokeAt(window, Math.floor(SZ / 2), Math.floor(SZ / 2));
+    await openRailTool(window, 'Cut-out');
+    await expect.poll(() => window.evaluate(() =>
+      document.querySelectorAll('.mpi-frame-strip__thumb--edited').length)).toBe(2);
 
     // ── Cut out -> real POST /gif-cutout/apply, real new history entry ──
     const historyLenNow = () => window.evaluate(async (gid) => {
@@ -452,6 +540,7 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     }, gifInfo.groupId);
     expect(newEntry.gif?.frames?.length, 'the cut entry keeps every frame').toBe(3);
     expect(newEntry.operation).toBe('gifCutout');
+    expect(newEntry.pixelDimensions, 'never {0,0} (the ?×? bug)').toEqual({ w: SZ, h: SZ });
 
     // ── Sidecar on disk ──────────────────────────────────────────────────
     const sidecarPath = path.join(projectFolderPath, 'Media', '.meta', `${newEntry.id}.json`);
@@ -459,14 +548,24 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     const sidecar = await fs.readJson(sidecarPath);
     expect(sidecar.gif?.frames?.length).toBe(3);
 
-    // ── One cut frame's alpha: opaque inside the circle, transparent outside ──
-    const hash0 = sidecar.gif.frames[0].hash;
-    const framePath = path.join(projectFolderPath, 'Media', '.gif-frames', `${hash0}.png`);
-    expect(await fs.pathExists(framePath), 'the cut frame PNG must exist on disk').toBe(true);
-    const { data, info } = await sharp(framePath).raw().toBuffer({ resolveWithObject: true });
-    const alphaAt = (x, y) => data[(y * info.width + x) * info.channels + 3];
-    expect(alphaAt(Math.floor(SZ / 2), Math.floor(SZ / 2)), 'centre (inside the circle) must be opaque').toBe(255);
-    expect(alphaAt(2, 2), 'corner (outside the circle) must be transparent').toBe(0);
+    // ── Each cut frame's alpha follows ITS mask ──────────────────────────
+    const alphaOf = async (frameIdx) => {
+      const hash = sidecar.gif.frames[frameIdx].hash;
+      const framePath = path.join(projectFolderPath, 'Media', '.gif-frames', `${hash}.png`);
+      expect(await fs.pathExists(framePath), `cut frame ${frameIdx} must exist on disk`).toBe(true);
+      const { data, info } = await sharp(framePath).raw().toBuffer({ resolveWithObject: true });
+      return (x, y) => data[(y * info.width + x) * info.channels + 3];
+    };
+    const C = Math.floor(SZ / 2);
+    const f0 = await alphaOf(0);
+    expect(f0(C, C), 'frame 0: tracked centre kept').toBe(255);
+    expect(f0(6, 6), 'frame 0: the brushed corner survived Track All').toBe(255);
+    expect(f0(SZ - 7, SZ - 7), 'frame 0: an untouched corner is cut').toBe(0);
+    const f1 = await alphaOf(1);
+    expect(f1(C, C), 'frame 1: the erased centre is cut').toBe(0);
+    expect(f1(C, C - 16), 'frame 1: the rest of its track is kept').toBe(255);
+    const f2 = await alphaOf(2);
+    expect(f2(C, C), 'frame 2: its single-frame track found nothing').toBe(0);
 
     await new Promise((r) => maskServer.close(r));
     maskServer = null;
@@ -474,5 +573,64 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     if (maskServer) await new Promise((r) => maskServer.close(r));
     if (app) await closeApp(app);
     if (projectFolderPath) await fs.remove(projectFolderPath).catch(() => {});
+  }
+});
+
+// ── Test 3 — the BASE layer's pixel rules (plan E9), real Chromium canvases ──
+
+test('mask base layer: shows as mask, erase removes it, paint restores it, clear hides it and undo brings it back', async ({}, testInfo) => {
+  const { app, window } = await launchApp(testInfo);
+  try {
+    const r = await window.evaluate(async () => {
+      const { MaskManager } = await import('/js/components/Primitives/MpiCanvas/managers/MaskManager.js');
+      const { UndoStack } = await import('/js/components/Primitives/MpiCanvas/managers/UndoStack.js');
+      const mm = new MaskManager();
+      mm.undo = new UndoStack();
+      mm.init(20, 20);
+
+      // An engine-style mask: opaque, white left half on black.
+      const src = document.createElement('canvas');
+      src.width = src.height = 20;
+      const sctx = src.getContext('2d');
+      sctx.fillStyle = 'black';
+      sctx.fillRect(0, 0, 20, 20);
+      sctx.fillStyle = 'white';
+      sctx.fillRect(0, 0, 10, 20);
+      await mm.setBaseFromDataURL(src.toDataURL('image/png'));
+
+      const a = (x, y) => mm.maskCtx.getImageData(x, y, 1, 1).data[3];
+      const dab = (type, x, y) => { mm.brushType = type; mm.brushSize = 4; mm.takeStrokeBox(); mm.paint(x, y); mm.takeStrokeBox(); };
+      const out = { base: [a(3, 10), a(15, 10)], undoDepthAfterLoad: mm.undo.depth };
+
+      dab('eraser', 3, 10);
+      out.erased = a(3, 10);
+      dab('brush', 3, 10);
+      out.repainted = a(3, 10);
+      dab('brush', 15, 10);
+      out.paintedOutside = a(15, 10);
+
+      mm.clear();
+      out.cleared = [a(6, 5), a(15, 10)];
+      out.undone = mm.undo.undo();
+      mm.refresh();
+      out.afterUndo = [a(6, 5), a(15, 10)];
+
+      mm.init(20, 20);
+      out.afterReload = a(6, 5);
+      mm.destroy();
+      return out;
+    });
+
+    expect(r.base, 'luma becomes coverage: white half masked, black half not').toEqual([255, 0]);
+    expect(r.undoDepthAfterLoad, 'loading a base is not an undoable edit').toBe(0);
+    expect(r.erased, 'erase removes base pixels').toBe(0);
+    expect(r.repainted, 'paint puts them back').toBe(255);
+    expect(r.paintedOutside, 'paint adds outside the base').toBe(255);
+    expect(r.cleared, 'clear hides base and paint alike').toEqual([0, 0]);
+    expect(r.undone).toBe(true);
+    expect(r.afterUndo, 'undo brings both back').toEqual([255, 255]);
+    expect(r.afterReload, 'a new image drops the base').toBe(0);
+  } finally {
+    await closeApp(app);
   }
 });

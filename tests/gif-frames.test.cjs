@@ -321,6 +321,20 @@ test('gif entry Update rewrites the current item under a NEW filename (E5)', asy
 
         const onDisk = await fs.readJson(path.join(metaDir, 'item1.json'));
         assert.equal(onDisk.gif.frames.length, 2);
+        // The history list shows `?×?` for {w:0,h:0}: both modes read the first frame's size.
+        assert.deepEqual(onDisk.pixelDimensions, { w: 32, h: 24 });
+
+        const added = await fetch(`http://127.0.0.1:${server.address().port}/gif/entry`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                folderPath: root, mode: 'new',
+                frames: [{ hash: h2, delay: 10 }],
+                loop: 0, output: { maxEdge: 1024, colours: 256, edgeColour: null },
+            }),
+        }).then(r => r.json());
+        assert.equal(added.success, true, `new entry failed: ${added.error}`);
+        assert.deepEqual(added.item.pixelDimensions, { w: 32, h: 24 });
     } finally {
         await new Promise(r => server.close(r));
         await fs.remove(root);

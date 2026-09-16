@@ -122,6 +122,9 @@ const TOOL_OPTIONS_REGISTRY = {
     resizeVideo:  MpiToolOptionsResize,
     exportGif:    MpiToolOptionsGif,
     gifCutout:    MpiToolOptionsGifCutout,
+    // MPI-771: the image Brush panel as-is — MpiGifViewer implements the same
+    // enterMode/exitMode + MpiMaskStrip surface over one frame at a time.
+    gifMaskBrush: MpiToolOptionsMaskBrush,
 };
 
 /** Any tool in the mask family. One rail icon per masking method (MPI-371),
@@ -525,6 +528,13 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 frameStrip.el.setCurrentIndex(idx);
                 _options?.el.onFrameChange?.();
             }));
+            // MPI-771: the viewer owns the per-frame cut-out masks; the strip
+            // mirrors them and the cut-out panel re-reads them.
+            _unsubs.push(viewer.on('masks-change', ({ overlay, edited, cleared }) => {
+                frameStrip.el.setMaskOverlay(overlay, edited);
+                _options?.el.onMasksChange?.();
+                if (cleared) _showToast('The frames changed, so the cut-out masks were cleared', 'info');
+            }));
             _unsubs.push(frameStrip.on('frame-select', ({ index }) => viewer.el.setFrameIndex(index)));
             _unsubs.push(frameStrip.on('scrub',        ({ index }) => viewer.el.setFrameIndex(index)));
             // Staged reorder/delete (plan decision 10): the strip mutates its
@@ -853,12 +863,10 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             // active trim range resolved here.
             if (mode === 'exportGif') _options.el.setEncoder?.(_encodeGif);
 
-            // MPI-771: the cut-out panel dispatches SAM3 itself (only needs the
-            // project + the viewer's own frames) but has no Block-internal state,
-            // so it only EMITS a tint/overlay for the surfaces that hold it.
+            // MPI-771: the cut-out panel dispatches SAM3 itself and keeps its masks
+            // on the viewer; it only EMITS the current-frame tint the viewer shows.
             if (mode === 'gifCutout') {
-                _options.on?.('mask-tint',    ({ url })   => viewer.el.setMaskTint?.(url));
-                _options.on?.('mask-overlay', ({ masks }) => frameStrip?.el.setMaskOverlay?.(masks));
+                _options.on?.('mask-tint', ({ url }) => viewer.el.setMaskTint?.(url));
             }
 
             // Options compounds emit 'apply'; mediator routes to _handleApply.
@@ -953,6 +961,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             resize: 'Resize', resizeVideo: 'Resize',
             exportGif: 'Export GIF',
             gifCutout: 'Cut-out',
+            gifMaskBrush: 'Mask Brush',
         };
 
         // Video viewer top-right chip strip: [op] · [mm:ss] · [Nfps].

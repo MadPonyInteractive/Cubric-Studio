@@ -47,6 +47,29 @@
  *                                            applies (docs/masking-sam3-gif.md).
  *                                            Owned by the cut-out tool panel;
  *                                            `null` clears it.
+ *
+ * Cut-out masks (MPI-771, plan Decision 14) — per frame POSITION, emptied when
+ * the frame list changes (`gifFrameMasks.js`):
+ *   setTrackMasks(urls) / setTrackMask(idx, url) — engine masks (Track All /
+ *                                            Track Single Frame). Brush fixes stay.
+ *   getFrameMaskURL(idx)                   — Promise: what `idx` would cut with
+ *                                            (a composed B/W PNG when it was
+ *                                            brushed, the track URL, or null)
+ *   getCutMasks()                          — Promise: one mask per frame for
+ *                                            `/gif-cutout/apply` (an empty frame
+ *                                            sends a 1x1 black PNG)
+ *   hasFrameMasks()
+ *   enterMode('mask'|'none') / exitMode()  — the Mask Brush: an MpiCanvas over
+ *                                            the stage holding the current frame,
+ *                                            its track as the BASE layer and its
+ *                                            brush layers. Pauses and blocks
+ *                                            playback; stepping frames saves and
+ *                                            reloads, keeping a zoomed view.
+ *   setMaskBrushMode, setMaskBrushPreset, setMaskInverted, isMaskInverted,
+ *   setMaskBwView, isMaskBwView, setMaskPaintEnabled, setMaskOpacity,
+ *   clearMask                              — the `MpiMaskStrip` surface, so the
+ *                                            image-mode `MpiToolOptionsMaskBrush`
+ *                                            drives this viewer unchanged.
  *   destroy()
  *
  * The Block wires the control bar / frame strip to this component's own
@@ -57,11 +80,17 @@
  *   'frame-change' { idx, frame } — index changed (step, scrub, playback)
  *   'play' / 'pause' / 'ended'
  *   'preview-change' { preview }
+ *   'masks-change' { overlay, edited } — per-position mask URLs for the strip
+ *                                   tint, and the brushed positions
  */
 
 import { ComponentFactory } from '../../factory.js';
 import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
+import { MpiCanvas } from '../../Primitives/MpiCanvas/MpiCanvas.js';
+import { MaskManager } from '../../Primitives/MpiCanvas/managers/MaskManager.js';
+import { clientLogger } from '../../../services/clientLogger.js';
 import { qs } from '../../../utils/dom.js';
+import { GifFrameMasks } from './gifFrameMasks.js';
 
 /** Frames kept decoded around the current index, each side. */
 const CACHE_RADIUS = 6;
@@ -82,6 +111,7 @@ export const MpiGifViewer = ComponentFactory.create({
                     <div class="mpi-gif-viewer__mask-tint" id="mask-tint"></div>
                 </div>
                 <img class="mpi-gif-viewer__preview" alt="" hidden />
+                <div class="mpi-gif-viewer__edit" id="edit-slot" hidden></div>
                 <div class="mpi-gif-viewer__spinner" id="spinner-wrap"></div>
             </div>
         </div>
@@ -93,7 +123,20 @@ export const MpiGifViewer = ComponentFactory.create({
         const maskTintEl = qs('#mask-tint', el);
         const previewImg = qs('.mpi-gif-viewer__preview', el);
         const spinnerWrap = qs('#spinner-wrap', el);
+        const editSlot   = qs('#edit-slot', el);
         MpiSpinner.mount(spinnerWrap, { size: 'lg', variant: 'primary' });
+
+        const _masks = new GifFrameMasks();
+        /** Mask Brush surface (MPI-771) — mounted only while the tool is up. */
+        let _canvas = null;
+        let _editing = false;
+        /** Position whose layers the canvas holds; -1 while a frame is loading. */
+        let _editIdx = -1;
+        let _editToken = 0;
+        /** The canvas layers changed since they were loaded or saved. */
+        let _dirty = false;
+        /** Brush size outlives one visit to the tool, as it does on the image canvas. */
+        let _brushSize = null;
 
         /** @type {Array<{hash:string, url:string, thumbUrl:string, delay:number}>} */
         let _frames = [];
@@ -135,6 +178,7 @@ export const MpiGifViewer = ComponentFactory.create({
             const f = _frames[_index];
             if (!f) return;
             frameImg.src = f.url;
+            if (_editing) _loadEditFrame(_index);
             emit('frame-change', { idx: _index, frame: f });
         }
 
@@ -177,6 +221,7 @@ export const MpiGifViewer = ComponentFactory.create({
             _loop = Number.isFinite(+loop) ? +loop : 0;
             _index = 0;
             _cache.clear();
+            _syncMasks(false);
             if (_frames.length) {
                 _preloadWindow(0);
                 _render();
@@ -189,6 +234,7 @@ export const MpiGifViewer = ComponentFactory.create({
             let idx = _frames.findIndex(f => f.hash === prevHash);
             if (idx === -1) idx = Math.min(_index, Math.max(0, _frames.length - 1));
             _index = idx;
+            _syncMasks(true);
             _preloadWindow(_index);
             if (_frames.length) _render();
         };
@@ -209,7 +255,8 @@ export const MpiGifViewer = ComponentFactory.create({
         el.stepFrame = (delta) => el.setFrameIndex(_index + (Number(delta) || 0));
 
         el.play = () => {
-            if (_playing || _preview || _frames.length < 2) return;
+            // Playing would reload the brush canvas every frame.
+            if (_playing || _preview || _editing || _frames.length < 2) return;
             _playing = true;
             _playsDone = 0;
             emit('play');
@@ -229,6 +276,7 @@ export const MpiGifViewer = ComponentFactory.create({
         el.setPreview = (on) => {
             const next = !!on;
             if (next === _preview) return;
+            if (next && _editing) return; // the brush paints frames, not the built file
             _preview = next;
             if (_preview) {
                 _stopPlayback();
@@ -265,9 +313,214 @@ export const MpiGifViewer = ComponentFactory.create({
             }
         };
 
+        // ── Cut-out masks (MPI-771, plan E10) ────────────────────────────
+
+        function _emitMasks(cleared = false) {
+            emit('masks-change', {
+                overlay: _masks.hasAny() ? _masks.overlay(_frames.length) : null,
+                edited: _masks.editedIndices(),
+                cleared,
+            });
+        }
+
+        /**
+         * A different frame list makes every position-keyed mask meaningless.
+         * `announce`: a staged reorder/delete threw masks away (a new entry did not).
+         */
+        function _syncMasks(announce) {
+            if (!_masks.sync(_frames)) return;
+            // The canvas still holds the old position's layers — never save them
+            // into the new list.
+            _editIdx = -1;
+            _dirty = false;
+            _emitMasks(announce);
+        }
+
+        /**
+         * Rebuild a brushed position's composite after its track changed. The
+         * one compositor is `MaskManager`, run headless here.
+         */
+        async function _recompose(idx) {
+            const edits = _masks.edits.get(idx);
+            const f = _frames[idx];
+            if (!edits || !f) return null;
+            const img = new Image();
+            img.src = f.url;
+            await img.decode();
+            const mm = new MaskManager();
+            try {
+                mm.init(img.naturalWidth, img.naturalHeight);
+                await mm.setBaseFromDataURL(_masks.track.get(idx) || null);
+                await mm.setManualFromDataURL(edits.manual);
+                await mm.setSubtractFromDataURL(edits.subtract);
+                if (_masks.edits.get(idx) !== edits) return null; // list changed meanwhile
+                const url = mm.getURL('black', 'white');
+                _masks.composed.set(idx, url);
+                return url;
+            } finally {
+                mm.destroy();
+            }
+        }
+
+        async function _recomposeStale() {
+            for (const i of _masks.editedIndices()) {
+                if (i === _editIdx || _masks.maskFor(i) !== undefined) continue;
+                try { await _recompose(i); } catch (err) {
+                    clientLogger.warn('MpiGifViewer', `mask recompose failed: ${err?.message || err}`);
+                }
+            }
+            _emitMasks();
+        }
+
+        /** The canvas frame's track changed under its brush layers. */
+        function _refreshEditBase() {
+            if (!_canvas || _editIdx < 0) return;
+            const idx = _editIdx;
+            _canvas.el.setMaskBase(_masks.track.get(idx) || null).then(() => {
+                if (_editIdx !== idx || !_masks.hasEdits(idx)) return;
+                _dirty = true; // its composite depends on the base
+                _saveEdit();
+            }).catch(err => clientLogger.warn('MpiGifViewer', `mask base load failed: ${err?.message || err}`));
+        }
+
+        el.setTrackMasks = (urls) => {
+            _masks.setTrackAll(urls);
+            _refreshEditBase();
+            _emitMasks();
+            _recomposeStale();
+        };
+
+        el.setTrackMask = (idx, url) => {
+            _masks.setTrack(idx, url);
+            if (idx === _editIdx) _refreshEditBase();
+            else if (_masks.hasEdits(idx)) _recomposeStale();
+            _emitMasks();
+        };
+
+        el.hasFrameMasks = () => _masks.hasAny();
+
+        el.getFrameMaskURL = async (idx) => {
+            if (idx === _editIdx) _saveEdit();
+            const m = _masks.maskFor(idx);
+            return m === undefined ? _recompose(idx) : m;
+        };
+
+        let _emptyMask = null;
+        el.getCutMasks = async () => {
+            _saveEdit();
+            if (!_emptyMask) {
+                // `routes/gifCutout.js` resizes a mask to its frame, so 1x1 black
+                // is "nothing kept" at any size.
+                const c = document.createElement('canvas');
+                c.width = c.height = 1;
+                const ctx = c.getContext('2d');
+                ctx.fillStyle = 'oklch(0 0 0)';
+                ctx.fillRect(0, 0, 1, 1);
+                _emptyMask = c.toDataURL('image/png');
+            }
+            const out = [];
+            for (let i = 0; i < _frames.length; i++) out.push((await el.getFrameMaskURL(i)) || _emptyMask);
+            return out;
+        };
+
+        // ── Mask Brush edit mode ─────────────────────────────────────────
+
+        function _saveEdit() {
+            if (!_canvas || _editIdx < 0 || !_dirty) return;
+            const manual = _canvas.el.getManualURL();
+            const subtract = _canvas.el.getSubtractURL();
+            const composed = (manual || subtract) ? _canvas.el.getMaskDataURL('black', 'white') : null;
+            _masks.setEdits(_editIdx, { manual, subtract, composed });
+            _dirty = false;
+            _emitMasks();
+        }
+
+        async function _loadEditFrame(idx) {
+            if (!_canvas) return;
+            _saveEdit();
+            const token = ++_editToken;
+            _editIdx = -1;
+            const f = _frames[idx];
+            if (!f) return;
+            const cv = _canvas.el;
+            // Frames share one size, so a zoomed or panned view carries over.
+            const view = cv.isManagedView ? null : { scale: cv.scale, x: cv.offsetX, y: cv.offsetY };
+            try {
+                await cv.loadImage(f.url);
+                if (token !== _editToken) return;
+                if (view) {
+                    cv.isManagedView = false;
+                    cv.scale = view.scale;
+                    cv.offsetX = view.x;
+                    cv.offsetY = view.y;
+                    cv.resize();
+                }
+                const edits = _masks.edits.get(idx);
+                await cv.setMaskBase(_masks.track.get(idx) || null);
+                if (edits?.manual) await cv.setManualFromDataURL(edits.manual);
+                if (edits?.subtract) await cv.setSubtractFromDataURL(edits.subtract);
+                if (token !== _editToken) return;
+                // loadImage() drops every mode; arm painting once the layers are in.
+                cv.activeMode = 'mask';
+                _editIdx = idx;
+                _dirty = false;
+            } catch (err) {
+                clientLogger.warn('MpiGifViewer', `mask frame load failed: ${err?.message || err}`);
+            }
+        }
+
+        function _enterEdit() {
+            if (_editing || _destroyed) return;
+            _stopPlayback();
+            el.setPreview(false);
+            _editing = true;
+            editSlot.hidden = false;
+            frameWrap.hidden = true;
+            _canvas = MpiCanvas.mount(editSlot, { onMaskStrokeEnd: () => { _dirty = true; } });
+            if (_brushSize) _canvas.el.setBrushSize(_brushSize);
+            _loadEditFrame(_index);
+        }
+
+        function _exitEdit() {
+            if (!_editing) return;
+            _saveEdit();
+            _editToken++;
+            _brushSize = _canvas?.el.brushSize ?? _brushSize;
+            _canvas?.destroy();
+            _canvas = null;
+            _editing = false;
+            _editIdx = -1;
+            editSlot.hidden = true;
+            frameWrap.hidden = _preview;
+        }
+
+        el.enterMode = (mode) => { if (mode === 'mask') _enterEdit(); else _exitEdit(); };
+        el.exitMode = () => _exitEdit();
+        el.isMaskEditing = () => _editing;
+
+        // The MpiMaskStrip surface (`dest: 'mask'`), forwarded to the canvas.
+        el.setMaskBrushMode = (mode) => {
+            if (mode === 'brush' || mode === 'eraser') _canvas?.el.setBrushType(mode);
+        };
+        el.setMaskBrushPreset  = (id) => _canvas?.el.setBrushPreset(id);
+        el.setMaskInverted     = (v) => _canvas?.el.setMaskInverted(v);
+        el.isMaskInverted      = () => !!_canvas?.el.isMaskInverted();
+        el.setMaskBwView       = (v) => _canvas?.el.setMaskBwView(v);
+        el.isMaskBwView        = () => !!_canvas?.el.isMaskBwView();
+        el.setMaskPaintEnabled = (v) => _canvas?.el.setMaskPaintEnabled(v);
+        el.setMaskOpacity      = (v) => _canvas?.el.setMaskOpacity(v);
+        /** This frame only. With a track it erases over it, so Ctrl+Z restores it. */
+        el.clearMask = () => {
+            if (!_canvas || _editIdx < 0) return;
+            _canvas.el.clearMask();
+            _dirty = true;
+            _saveEdit();
+        };
+
         let _destroyed = false;
         el.destroy = () => {
             if (_destroyed) return;
+            _exitEdit();
             _destroyed = true;
             _stopPlayback();
             _cache.clear();

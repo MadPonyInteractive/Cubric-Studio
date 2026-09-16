@@ -58,7 +58,40 @@ investigators got wrong: [research/2026-09-15-investigation.md](research/2026-09
   (b) MPI-771 cut-out: Fabio redirected the design (Decision 14 below). His screenshots also show
   cut-out entries listing `?×?` dimensions (no `pixelDimensions` on the `/gif-cutout/apply` item), a
   black `gif_003` thumbnail, and a mask with holes where the woman and the dog overlap.
-- **Next action:** MPI-759 root cause in the real app first (he can reload for you; read
+- **2026-09-16 ~12:20Z (session cc23c073): MPI-759 fixed again, NOT COMMITTED.** The hover `<img>` carries
+  the poster's `mpi-group-card__thumb` class, so the poster's "hide until loaded" rule held it at opacity 0;
+  proven on a copy of Fabio's real card (1 distinct frame -> 2). One CSS selector + an opacity assertion
+  (red first). Also `/gif/entry` and `/gif-cutout/apply` stamped `pixelDimensions {0,0}` (the `?×?`):
+  both read the first frame now (`frameDimensions`). Evidence: MPI-759 and MPI-771 `validation.md`.
+  Waiting on Fabio's reload + hover. Decision 14 details agreed; Phase 3b below is the build.
+- **2026-09-16 ~12:55Z: Phase 3b BUILT, NOT COMMITTED, all automated checks green** (MPI-771 `validation.md`).
+  Waiting on Fabio's user-ux check in his app (Ctrl+R picks the code up). Then: RunPod check with his go,
+  land the `types.js` hunk when MPI-737 releases it, ask about `.claude/rules/` component maps at close-out,
+  then Phase 4.
+- **2026-09-16 ~13:10Z: Fabio's check (after Ctrl+R only, NOT a restart).** MPI-759: hover PLAYS in his
+  app — confirmed, close it at close-out. MPI-771: works but the experience "wasn't that great". To fix
+  next, root cause first (his screenshots: `GIF Tests` project, `imported_015`, 30 frames 320x320):
+  1. **BUG — trim bar collapsed + staged frame changes.** Sequence: Track Single Frame, then Track All
+     ("logo"), then Mask Brush: the control bar's trim range shrank to ~4-5 frames, play did nothing, and
+     the strip pill showed "8 frame changes" he never meant to make. Suspect a hotkey/pointer path in
+     brush mode staging strip deletes or moving trim handles (the canvas and the strip/control bar share
+     keys and drags). A staged change also EMPTIES every mask (`gifFrameMasks.sync`), which may be why
+     his fixes vanished. **Likely source of the "8 frame changes" (Fabio, follow-up):** he click-dragged
+     the strip, as users will, which REORDERS frames (staged); his cursor then hit the pill's Update, which
+     rewrote the entry and dropped every mask. Decide: strip drag should scrub, not reorder, at least while
+     a mask tool is up; and a save that would discard masks must not be one stray click.
+  2. **UX — no Apply where he expected one.** In Mask Brush he pressed the strip pill's APPLY and got
+     gif_005 = the same frames, no mask (that pill saves the staged frame list). Only Cut-out's "Cut out"
+     bakes masks. Make the commit obvious from the brush (e.g. a Cut out action there) and keep the
+     strip pill from reading as the mask's Apply.
+  3. **Move the strip's Update/Apply pill up** — it covers the right end of the strip.
+  4. **Cut-out mode: the frame should FILL the stage** (a 320px GIF shows tiny; `MpiGifViewer`'s img only
+     shrinks). Zoom already works in Mask Brush (MpiCanvas); Cut-out needs fit, not zoom.
+  5. **Play/Pause is blocked in Mask Brush** (deliberate: playing would reload the canvas every frame);
+     step works. Fabio was unsure — decide with him (e.g. play the frames with the mask overlay, no canvas).
+  6. gif_005 lists `?×?`: `routes/gif.js`'s dims fix is SERVER code, which Ctrl+R does not reload. An app
+     restart is needed for route changes; tell him, then re-check.
+- **Next action (superseded, kept for the record):** MPI-759 root cause in the real app first (he can reload for you; read
   `%APPDATA%\Cubric Vision\logs\app.log` filtered, never drive `:3000`). Then redesign the MPI-771 UI half
   per Decision 14 (plan it with Fabio before coding: it needs a per-frame mask layer and brush). Phase 4
   waits until the cut-out design settles.
@@ -87,7 +120,7 @@ cut-out) ever passes through 256 colours.
 | 11 | Cut-out = SAM3 by name with video tracking, Mask Adjust across frames, Invert, cut into alpha. No BiRefNet. No batching in v1: Fabio masks 15 s 24 fps videos with SAM3 with no memory issue. |
 | 12 | The agent authors the SAM3 GIF graph itself, modelled on the existing SAM3 graph (explicit permission, 2026-09-15). |
 | 13 | GIF Maker (video workspace) creates a new GIF card, not a history entry in the video card. |
-| 14 | (2026-09-16, after the first cut-out eye check) Cut-out gets a different system. Drop the count input (the 0-3 object chips replace it). Object numbers may not stay the same object from frame to frame, so a track is not the final mask. Offer **Track All** and **Track Single Frame**; the user then steps frame to frame and fixes the mask with a **mask brush** (a separate tool), e.g. where the woman and the dog overlap. Details still to design with Fabio. |
+| 14 | (2026-09-16, after the first cut-out eye check) Cut-out gets a different system. Drop the count input (the 0-3 object chips replace it). Object numbers may not stay the same object from frame to frame, so a track is not the final mask. Offer **Track All** and **Track Single Frame**; the user then steps frame to frame and fixes the mask with a **mask brush** (a separate tool), e.g. where the woman and the dog overlap. Agreed details (chat, same day): each frame's mask is two layers, the track underneath and brush add/erase on top; a re-track replaces only the track, brush fixes survive; the brush also works with no track (paint a mask from scratch); edited frames get a strip marker; Mask Adjust stays one setting for all frames; Ctrl+Z as in image masking. |
 
 ## Members
 
@@ -316,6 +349,45 @@ Orchestrator after the workers: mount `routes/gifTransform.js`, `routes/gifToVid
   longest edge at the preset.
 
 Phase 3 verify mode: `user-ux` for MPI-771; the server halves `auto`.
+
+## Phase 3b: cut-out redesign (Decision 14, serial, this session)
+
+One coherent flow across the viewer, two panels and the canvas layer model, so no batch.
+
+- **E9 - the track is a BASE layer in `MaskManager`.** `mask = (base OR manual) AND NOT subtract`.
+  `setBaseFromDataURL()` converts the engine's greyscale mask (luma) to alpha and is a LOAD (no undo
+  entry). A dab already writes both manual and subtract, so erase removes track pixels and paint
+  restores them with no new rule. `clear()` with a base fills subtract instead of only wiping, one undo
+  entry. Image mode never sets a base, so its behaviour and the `_buildCompositeFromTemp` twin are
+  unchanged. Live display for free: the canvas draws `maskCanvas`.
+- **E10 - `MpiGifViewer` owns the per-frame masks** (`Organisms/MpiGifViewer/gifFrameMasks.js`):
+  track URL per frame position, brush layers (working-res PNG data URLs) per edited position, keyed to
+  the frame-list signature (a reorder clears them, as the track already required). Offline compose goes
+  through a headless `MaskManager` so there is ONE compositor. Edit mode mounts `MpiCanvas` over the
+  frame (loads the frame, then base/manual/subtract), keeps the view across frame steps, pauses and
+  blocks playback. The viewer implements the `MpiMaskStrip` surface, so the Mask Brush tool is the
+  image-mode `MpiToolOptionsMaskBrush` unchanged, under mode `gifMaskBrush` (not in `_MASK_TOOLS`).
+  Emits `masks-change` for the strip overlay + edited markers.
+- **E11 - Track Single Frame** is the same graph and runner on a one-frame source video; its mask
+  replaces that position's track. The chips re-dispatch the LAST scope (all or that frame).
+- Cut out sends the track URL for untouched frames and a composed B/W PNG for edited ones; a frame
+  with neither gets an empty (black) mask.
+
+- [x] E9 base layer + `MpiCanvas` passthrough. **Verify:** desktop spec pixel checks (base shows,
+  erase removes it, paint restores, clear hides it and Ctrl+Z brings it back).
+- [x] E10 viewer store + edit mode + strip surface; Mask Brush rail entry; strip markers.
+- [x] Cut-out panel: count input gone, Track All / Track Single Frame, masks from the viewer.
+- [x] `tests/desktop/gif-cutout.spec.js` updated + a brush round trip (paint on one frame with no
+  track, Cut out, that frame's alpha follows the stroke); `npm run lint:components`; node suite.
+- [x] Docs: `docs/masking.md` (base layer), `docs/masking-undo.md` (a load), `docs/masking-sam3-gif.md`
+  (tool group rewritten). **types.js typedefs PENDING** (MPI-737 claim): `tasks/MPI-771/types-hunk.md`.
+- [ ] user-ux: Fabio fixes an overlap on a real GIF (local engine, then RunPod with his go).
+
+Ownership: `MaskManager.js`, `MpiCanvas.js`, `Organisms/MpiGifViewer/`, `Organisms/MpiFrameStrip/`,
+`Organisms/MpiToolOptionsGifCutout/`, `Organisms/MpiToolOptionsMaskBrush/` (doc only),
+`Compounds/MpiHistoryTools/MpiHistoryTools.js`, `Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js`,
+`js/components/types.js`, `tests/desktop/gif-cutout.spec.js`, `tests/desktop/history-modes.spec.js`,
+`tests/desktop/gif-workspace.spec.js`, the three docs above.
 
 ## Phase 4: timing tools, then transform UI (serial)
 

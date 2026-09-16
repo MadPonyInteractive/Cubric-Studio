@@ -30,6 +30,7 @@ const {
     extractFramesFromGif,
     buildGif,
     frameExists,
+    frameDimensions,
     frameAbsPath,
     frameThumbAbsPath,
     sweepGifFrames,
@@ -177,6 +178,7 @@ router.post('/gif/entry', async (req, res) => {
 
             meta.filePath = projectFileUrlBusted(outputPath);
             meta.displayName = finalName.replace(/\.[^.]+$/, '');
+            meta.pixelDimensions = await frameDimensions(mediaDir, gifEntry.frames[0].hash);
             meta.gif = gifEntry;
             await extractImageThumb(outputPath, path.join(metaDir, `${itemId}.thumb.jpg`), { width: IMAGE_RENDITION_PX.small });
             meta.thumbPath = projectFileUrl(imageThumbPath(path.join(metaDir, `${itemId}.thumb.jpg`), { width: IMAGE_RENDITION_PX.small }));
@@ -210,7 +212,7 @@ router.post('/gif/entry', async (req, res) => {
             createdAt: new Date().toISOString(),
             name: null,
             uploaded: false,
-            pixelDimensions: { w: 0, h: 0 },
+            pixelDimensions: await frameDimensions(mediaDir, gifEntry.frames[0].hash),
             generationMs: null,
             gif: gifEntry,
             sourceItemId: sourceItemId || null,

@@ -104,6 +104,17 @@ function frameExists(mediaDir, hash) {
 }
 
 /**
+ * An entry's `pixelDimensions`: its FIRST frame's size, the canvas every later
+ * frame is fitted to (Make GIF's first-clicked image sets it). Routes that land
+ * an entry from existing frames read it here rather than stamping `{w:0,h:0}`,
+ * which the history list renders as `?×?`.
+ */
+async function frameDimensions(mediaDir, hash) {
+    const { width, height } = await sharp(frameAbsPath(mediaDir, hash)).metadata();
+    return { w: width || 0, h: height || 0 };
+}
+
+/**
  * Write one frame into the content-addressed store. A no-op (besides the hash)
  * when the content already exists — this is what makes "identical frames
  * written once" true for a reorder/retime edit that touches no pixels.
@@ -440,6 +451,7 @@ module.exports = {
     hashBuffer,
     totalPlaysToRawLoop,
     frameExists,
+    frameDimensions,
     writeFrame,
     extractFramesFromGif,
     buildGif,

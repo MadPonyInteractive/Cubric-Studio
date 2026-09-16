@@ -57,4 +57,31 @@ timing probe showed the whole server stalled (even `/system/stats` polls finishe
 import chain itself was fine (`project:group-added`, then the card 20 ms later). The spec's fixed 2 s
 sleep loses that race. Both handlers involved are async; cause not found; not this batch.
 
-**OPEN:** Fabio reloads his app and hovers a GIF card (a quick look; the spec reproduces a real hover).
+**SUPERSEDED (below):** Fabio's check after this fix still failed.
+
+## 2026-09-16 - Reopened again: hover mounted the GIF but it stayed invisible (fixed)
+
+Fabio: after an app restart his GIF cards still did not play on hover. His cards already carry the
+`gif` field, so the `assetKinds` fix above did not apply to them.
+
+Root cause, reproduced on a copy of his real card (`test` project, group `ebffeb9f`, gif_001-004) in a
+private desktop instance with a real cursor hover (scratchpad `repro759/repro759.spec.js`): the hover
+DID mount the `.gif` overlay and it DID get `--hover-video-ready`, but its computed opacity stayed `0`.
+The overlay is an `<img>` carrying the poster's `mpi-group-card__thumb` class, so the poster's
+load gate `.mpi-group-card img.mpi-group-card__thumb:not(.mpi-group-card__thumb--loaded)` (specificity
+0,3,1) matched it and beat the overlay's ready rule (0,2,0). A video overlay is a `<video>`, so it never
+matched. Every GIF card was invisible on hover since Batch 1; the specs asserted only the `src`.
+Fix: the load gate excludes `.mpi-group-card__thumb--hover-video` (`MpiGalleryGrid.css`).
+
+| Check | Command | Result |
+|---|---|---|
+| Real card, before fix | `npx playwright test --config=<scratchpad>/repro759/pw.config.js` (8 screenshots of the hovered card, 70 ms apart) | overlay opacity `0`, 1 distinct frame |
+| Real card, fix patched in-page | same, `REPRO_FIX=1` | opacity `1`, 2 distinct frames |
+| Real card, repo fix | same; `REPRO_SEL=0` for gif_001 | 2 distinct frames (gif_004, 2 pages); 3 (gif_001, 3 pages) |
+| New outcome assertion, red first | `npx playwright test --config=playwright.desktop.config.js tests/desktop/gallery-gif-hover.spec.js -g "REAL mouse" --output=<scratchpad>` | before fix: `Expected "1", Received "0"`; after: pass |
+| GIF + gallery desktop specs | `npx playwright test --config=playwright.desktop.config.js tests/desktop/gallery-gif-hover.spec.js tests/desktop/gif-make.spec.js tests/desktop/gif-workspace.spec.js tests/desktop/gif-cutout.spec.js tests/desktop/gallery-renditions.spec.js --output=<scratchpad>` | 13/13 pass |
+| Full node suite | `node --test "tests/*.test.cjs"` | 1189 pass, 1 fail, 1 skipped; the fail is `tests/agent-corpus.test.cjs`, which carries a peer's uncommitted edits and passes alone (`node --test tests/agent-corpus.test.cjs`) |
+| Component lint | `npm run lint:components` | clean |
+
+**CLOSED BY FABIO (chat, 2026-09-16 ~13:10Z):** after Ctrl+R, "hovering cards now work" in his app.
+The card can move to done at close-out on this evidence.

@@ -27,13 +27,20 @@ whole-image path.
 |---|---|---|
 | `manualCanvas` | brush strokes — white where painted | `paint()`, `bakeAutoPicksInto('manual')` |
 | `subtractCanvas` | eraser strokes — white where erased | `paint()`, `bakeAutoPicksInto('subtract')` |
-| `maskCanvas` | **the mask** = `manual AND NOT subtract` | `_recomposite()` |
+| `baseCanvas` | a mask nobody painted (MPI-771: a GIF frame's SAM3 track), engine luma as alpha | `setBaseFromDataURL()` — a load; `init()` drops it |
+| `maskCanvas` | **the mask** = `(base OR manual) AND NOT subtract` | `_recomposite()` |
 | `autoCanvas` | **display only** = `⋃autoPickMasks[selected]` — where an un-Added detection lives | `_recompositeAuto()` |
 
 `autoPickMasks` is a RAM-only `Map<pickIndex, ImageBitmap|Canvas>` of the last detect run;
 `selectedAutoPicks` is the `Set<number>` of chosen thumbs. A brush dab writes **both** layers —
 paint sets manual white and clears subtract (un-erase), erase does the reverse.
 `bakeAutoPicksInto()` mirrors that exactly, which is why Add/Subtract composes with the brush.
+
+**The base is mask content, a pick is not.** Only the GIF Mask Brush sets a base
+([masking-sam3-gif.md](masking-sam3-gif.md)); image mode never does, so its compositor and the
+`_buildCompositeFromTemp()` twin below are unchanged by it. The dab rule above already makes erase
+remove base pixels and paint restore them. `clear()` over a base fills subtract rather than wiping,
+because the base is not on the undo stack.
 
 ### A detection is NOT mask content until Add (MPI-426)
 

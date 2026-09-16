@@ -1,45 +1,36 @@
 /**
- * MpiToolOptionsGifCutout — Organism: the GIF cut-out tool group (MPI-771 UI half).
+ * MpiToolOptionsGifCutout — Organism: the GIF cut-out tool group (MPI-771).
  *
- * SAM3 video tracking by name, across every frame of the CURRENT GIF entry, into a
- * new alpha-cut entry. The engine gives back one MERGED mask per frame — no
- * per-object output (`docs/masking-sam3-gif.md`) — so the flow reads:
+ * SAM3 video tracking by name into a new alpha-cut entry. A track is a STARTING
+ * POINT (plan Decision 14): object numbers need not stay the same object from
+ * frame to frame, so the user fixes frames by hand with the Mask Brush, a
+ * separate tool. The masks themselves live on the viewer (`MpiGifViewer`,
+ * per frame position), which is how this panel and the brush share them.
  *
- *   1. Track: name the object, run once with every object kept (`objectIndices: ''`)
- *      and read `SAM3_TrackPreview`'s numbered debug video to see which index is
- *      which object.
- *   2. Toggle the fixed 4 object chips (`max_objects` is a graph literal) to keep
- *      or drop — each toggle RE-dispatches, which is cheap: `SAM3_VideoTrack` is
- *      cached by ComfyUI, so only the downstream mask node re-executes.
- *   3. Mask Adjust (Grow/Shrink) + Fill Holes + Invert — set ONCE for every frame;
- *      the CURRENT frame gets a live tint preview, built with the exact same
- *      `distanceField.js` functions `routes/gifCutout.js` runs server-side on
- *      every frame at Cut-out time (grow/shrink only; Fill Holes has no live
- *      preview — it is cheap and deterministic, so a preview would not change
- *      the decision to use it).
- *   4. Cut out -> `POST /gif-cutout/apply` (via the Block, which owns appending
- *      the result into the open group's history — same shape as the frame
- *      strip's own Apply, `MpiGroupHistoryBlock._handleGifStripSave`).
- *
- * This panel does the SAM3 dispatch itself (`runGifCutoutTrack`, beside
- * `runAutoMask`) — it only needs `state.currentProject.folderPath` and the
- * viewer's own frame list, no Block-internal state. It does NOT know how to
- * commit a new history entry, so Cut-out only EMITS; the Block appends it
- * (same division as every other tool's 'apply').
- *
- * Tint preview: emits 'mask-tint' (current-frame, ADJUSTED) for the Block to
- * hand to `viewer.el.setMaskTint()`, and 'mask-overlay' (every frame, RAW) for
- * `frameStrip.el.setMaskOverlay()` — raw is enough there, its only job is
- * letting a scrub reveal flicker between frames, not previewing the cut.
+ *   1. Track All: name the object, track it across every frame. Track Single
+ *      Frame: the same graph on a one-frame video, replacing only the current
+ *      frame's track. Either replaces TRACKS only; brush fixes survive.
+ *   2. The numbered preview (`SAM3_TrackPreview`) says which index is which
+ *      object; the 4 chips keep or drop them. A toggle re-dispatches the LAST
+ *      scope, which is cheap: `SAM3_VideoTrack` is cached, only the mask node
+ *      re-runs. There is no count input: each name is stamped `name:4`, the
+ *      same 4 as the chips (`max_objects`, a graph literal). A bare name finds
+ *      ONE object (docs/masking-sam3.md).
+ *   3. Mask Adjust (Grow/Shrink) + Fill Holes + Invert — set ONCE for every
+ *      frame; the current frame gets a live tint built with the same
+ *      `distanceField.js` functions `routes/gifCutout.js` runs at Cut-out time.
+ *   4. Cut out -> emits `apply`; the Block posts `/gif-cutout/apply` and
+ *      appends the entry (same division as every other tool's 'apply').
  *
  * Props:
  * @param {object} viewer - MpiGifViewer instance
  *
+ * Block hooks (on el): `onFrameChange()`, `onMasksChange()` — the Block owns
+ * the one subscription to each viewer event and forwards here.
+ *
  * Emits:
- *   'mask-tint'    { url: string|null }   — current-frame adjusted preview
- *   'mask-overlay' { masks: string[]|null } — every frame's raw tracked mask
- *   'apply' { frames, masks, adjust, invert } — Cut-out pressed; Block posts
- *            /gif-cutout/apply and appends the result to history.
+ *   'mask-tint' { url: string|null } — current-frame adjusted preview
+ *   'apply' { frames, masks, adjust, invert } — Cut-out pressed
  */
 
 import { ComponentFactory } from '../../factory.js';
@@ -61,7 +52,12 @@ import { qs } from '../../../utils/dom.js';
 /** `SAM3_TrackToMask`'s `max_objects` is a fixed graph literal (docs/masking-sam3-gif.md). */
 const OBJECT_SLOTS = 4;
 const MAX_R = 50;
-const DEFAULTS = { textPrompt: '', textCount: 1 };
+/** Decoded masks kept for the tint; composed masks are data URLs, so keys can be big. */
+const DECODE_CACHE = 8;
+const DEFAULTS = { textPrompt: '' };
+
+/** A frame list's identity: its hashes in order (masks are per position). */
+const frameSignature = (frames) => frames.map(f => f.hash).join('|');
 
 export const MpiToolOptionsGifCutout = ComponentFactory.create({
     name: 'MpiToolOptionsGifCutout',
@@ -70,14 +66,14 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
     template: () => `
         <div class="mpi-tool-options-gif-cutout">
             <p class="mpi-tool-options-gif-cutout__info">
-                Name what to cut out — <b>mascot</b>, <b>logo</b>. Track finds it across
-                every frame; read the numbered preview below, then keep or drop objects.
+                Name what to cut out — <b>mascot</b>, <b>logo</b>. A track is a starting
+                point: step through the frames and fix any of them with the <b>Mask Brush</b>.
             </p>
-            <div class="mpi-tool-options-gif-cutout__row">
-                <div class="mpi-tool-options-gif-cutout__prompt" id="prompt-slot"></div>
-                <div class="mpi-tool-options-gif-cutout__count"  id="count-slot"></div>
+            <div class="mpi-tool-options-gif-cutout__prompt" id="prompt-slot"></div>
+            <div class="mpi-tool-options-gif-cutout__row" id="track-slot">
+                <div id="track-all-slot"></div>
+                <div id="track-frame-slot"></div>
             </div>
-            <div id="track-slot"></div>
 
             <div class="mpi-tool-options-gif-cutout__preview" id="preview-wrap" hidden>
                 <div class="mpi-tool-options-gif-cutout__section-label">Tracked objects</div>
@@ -105,40 +101,34 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
     setup: (el, props, emit) => {
         const { viewer } = props;
         const _children = [];
-        const _unsubs = [];
 
         const settings = { ...DEFAULTS, ...getToolSettings(state.currentProject || {}, 'gifCutout', DEFAULTS) };
-        let _raw   = typeof settings.textPrompt === 'string' ? settings.textPrompt : '';
-        let _count = Math.max(1, Math.round(Number(settings.textCount) || 1));
+        let _raw = typeof settings.textPrompt === 'string' ? settings.textPrompt : '';
 
-        /** Kept object indices (default: every slot — matches the first Track's
-         *  empty `objectIndices`, "keep everything"). */
+        /** Kept object indices (default: every slot — "keep everything"). */
         const _selected = new Set(Array.from({ length: OBJECT_SLOTS }, (_, i) => i));
 
         let _busy = false;
         let _trackExec = null;
-        /** Cached temp-video encode (E7) — reused across a chip re-dispatch, which
-         *  only changes the downstream mask node (docs/masking-sam3-gif.md). */
-        let _videoPath = null;
-        let _videoSignature = '';
-        /** Per-frame RAW mask URLs from the last successful Track, in frame order —
-         *  paired 1:1 with `_videoSignature`'s frame list. */
-        let _masks = null;
+        /** What the chips re-dispatch: 'all', or the frame { idx, hash } last tracked alone. */
+        let _lastScope = null;
+        /** Temp source videos by frame signature — a chip re-dispatch reuses one. */
+        const _videos = new Map();
         let _grow = 0;
         let _fillHoles = false;
         let _invert = false;
         let _destroyed = false;
 
-        /** Raw (unadjusted) decoded alpha per mask URL — decode once, reuse across
-         *  every slider tick and every re-visit of the same frame while scrubbing. */
+        /** Raw decoded alpha, then its distance field, per mask URL (small LRU). */
         const _alphaCache = new Map(); // url -> { width, height, alpha: Uint8Array }
-        /** Distance field per mask URL, built lazily from the cached alpha — the
-         *  SAME "build once, range-test on every slider move" split
-         *  MpiToolOptionsMaskAdjust uses, just re-keyed by mask URL instead of by
-         *  tool-entry (a GIF has many frames, each with its own field). */
         const _fieldCache = new Map(); // url -> Float32Array
+        const _remember = (map, key, value) => {
+            map.set(key, value);
+            if (map.size > DECODE_CACHE) map.delete(map.keys().next().value);
+            return value;
+        };
 
-        // ── Name + count (mirrors MpiToolOptionsMaskText) ──────────────────────
+        // ── Name ────────────────────────────────────────────────────────────
 
         const promptInput = MpiInput.mount(qs('#prompt-slot', el), {
             type: 'text', value: _raw, placeholder: 'mascot, logo',
@@ -150,33 +140,33 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         });
         _children.push(promptInput);
 
-        const countInput = MpiInput.mount(qs('#count-slot', el), {
-            type: 'number', value: _count, min: 1, max: 20, step: 1, size: 'sm',
-            info: 'How many of them to find',
-        });
-        countInput.on('change', ({ value }) => {
-            _count = value;
-            Events.emit('settings:tool:update', { toolKey: 'gifCutout', key: 'textCount', value });
-        });
-        _children.push(countInput);
+        // ── Track All / Track Single Frame — the running one turns into Stop ──
 
-        // ── Track / Stop — one button re-mounted, MpiMaskDetectRow's precedent
-        // (a text-mode button here, so its own click handler drives busy state
-        // instead of the toggleable icon-button path) ─────────────────────────
-
-        const trackSlot = qs('#track-slot', el);
-        let trackBtn = null;
-        function _mountTrackBtn() {
-            trackBtn?.destroy?.();
-            trackBtn = MpiButton.mount(trackSlot, _busy
-                ? { label: 'Stop', icon: 'stop', size: 'sm', variant: 'danger', info: 'Stop tracking' }
-                : { label: 'Track', icon: 'search', size: 'sm', variant: 'primary', info: 'Track the named object across every frame' });
-            trackBtn.on('click', () => {
-                if (_busy) { _trackExec?.cancel?.(); return; }
-                _runTrack();
-            });
+        const trackBtns = { all: null, frame: null };
+        const TRACK_BTN = {
+            all:   { slot: '#track-all-slot',   label: 'Track All',          icon: 'search', info: 'Track the named object across every frame' },
+            frame: { slot: '#track-frame-slot', label: 'Track Single Frame', icon: 'search', info: 'Track it on this frame only; the other frames keep their masks' },
+        };
+        let _runningKind = null;
+        function _mountTrackBtns() {
+            for (const kind of ['all', 'frame']) {
+                const def = TRACK_BTN[kind];
+                trackBtns[kind]?.destroy?.();
+                const stop = _busy && _runningKind === kind;
+                trackBtns[kind] = MpiButton.mount(qs(def.slot, el), stop
+                    ? { label: 'Stop', icon: 'stop', size: 'sm', variant: 'danger', info: 'Stop tracking' }
+                    : { label: def.label, icon: def.icon, size: 'sm', variant: kind === 'all' ? 'primary' : 'secondary', info: def.info });
+                if (_busy && !stop) trackBtns[kind].el.setDisabled?.(true);
+                trackBtns[kind].on('click', () => {
+                    if (stop) { _trackExec?.cancel?.(); return; }
+                    const frames = viewer.el.getFrames();
+                    if (kind === 'all') { _runTrack('all'); return; }
+                    const idx = viewer.el.getFrameIndex();
+                    if (frames[idx]) _runTrack({ idx, hash: frames[idx].hash });
+                });
+            }
         }
-        _mountTrackBtn();
+        _mountTrackBtns();
 
         // ── Preview video — MpiVideoSurface, the numbered debug loop ───────────
 
@@ -206,7 +196,7 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                     StatusBar.notify('At least one object must stay kept', 'warning');
                     return;
                 }
-                if (_masks) _runTrack({ reencode: false });
+                if (_lastScope) _runTrack(_lastScope);
             });
             chipEls.push(chip);
             _children.push(chip);
@@ -247,66 +237,74 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
 
         const cutoutBtn = MpiButton.mount(qs('#cutout-slot', el), {
             label: 'Cut out', icon: 'eraser', size: 'sm', variant: 'primary',
-            info: 'Bake the mask into every frame’s alpha and save a new entry',
+            info: 'Bake the masks into every frame’s alpha and save a new entry',
         });
         cutoutBtn.on('click', () => _runCutout());
         _children.push(cutoutBtn);
-        cutoutBtn.el.setDisabled?.(true);
+
+        /** Adjust and Cut out need a mask on at least one frame — tracked or brushed. */
+        function _syncHasMasks() {
+            const has = !!viewer.el.hasFrameMasks?.();
+            qs('#adjust-section', el).hidden = !has;
+            cutoutBtn.el.setDisabled?.(!has || _busy);
+        }
+        _syncHasMasks();
 
         // ── Track dispatch ───────────────────────────────────────────────────
-
-        function _frameSignature(frames) {
-            return frames.map(f => f.hash).join('|');
-        }
 
         function _indicesString() {
             return _selected.size >= OBJECT_SLOTS ? '' : [...(_selected)].sort((a, b) => a - b).join(',');
         }
 
-        async function _encodeSource(frames) {
-            const project = state.currentProject;
+        async function _sourceVideo(frames) {
+            const sig = frameSignature(frames);
+            if (_videos.has(sig)) return _videos.get(sig);
             const res = await fetch('/gif-cutout/source', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    folderPath: project.folderPath,
+                    folderPath: state.currentProject.folderPath,
                     frames: frames.map(f => ({ hash: f.hash, delay: f.delay })),
                 }),
             });
             const data = await res.json();
             if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
+            _videos.set(sig, data.videoPath);
             return data.videoPath;
         }
 
-        async function _runTrack({ reencode } = {}) {
+        function _setBusy(on, kind = null) {
+            _busy = on;
+            _runningKind = on ? kind : null;
+            _mountTrackBtns();
+            chipEls.forEach(c => c.el.setDisabled?.(on));
+            _syncHasMasks();
+        }
+
+        /** @param {'all'|{idx:number, hash:string}} scope */
+        async function _runTrack(scope) {
             if (_destroyed || _busy) return;
             const raw = _raw.trim();
             if (!raw) { StatusBar.notify('Name what to cut out first', 'warning'); return; }
             const frames = viewer.el.getFrames();
             if (!frames.length) { StatusBar.notify('No frames to track', 'warning'); return; }
-            const project = state.currentProject;
-            if (!project?.folderPath) return;
+            if (!state.currentProject?.folderPath) return;
 
-            const sig = _frameSignature(frames);
-            _busy = true;
-            _mountTrackBtn();
-            chipEls.forEach(c => c.el.setDisabled?.(true));
+            const single = scope !== 'all';
+            // A single-frame scope is only valid while that frame still sits there.
+            if (single && frames[scope.idx]?.hash !== scope.hash) { _lastScope = null; return; }
+            const listSig = frameSignature(frames);
+            _setBusy(true, single ? 'frame' : 'all');
 
             try {
-                if (reencode !== false || sig !== _videoSignature) {
-                    _videoPath = await _encodeSource(frames);
-                    _videoSignature = sig;
-                    _masks = null;
-                    emit('mask-overlay', { masks: null });
-                }
-
-                const stamped = stampDetectionCount(raw, _count);
+                const videoPath = await _sourceVideo(single ? [frames[scope.idx]] : frames);
                 const exec = runGifCutoutTrack({
-                    videoPath: _videoPath,
-                    textPrompt: stamped,
+                    videoPath,
+                    textPrompt: stampDetectionCount(raw, OBJECT_SLOTS),
                     objectIndices: _indicesString(),
                 });
                 _trackExec = exec;
+                _lastScope = scope;
                 exec.onPreview = (url) => {
                     if (_destroyed || _trackExec !== exec) return;
                     previewVideo.el._setSrc(url);
@@ -314,12 +312,13 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                 };
                 exec.onMasks = (urls) => {
                     if (_destroyed || _trackExec !== exec) return;
-                    _masks = urls;
+                    if (frameSignature(viewer.el.getFrames()) !== listSig) {
+                        StatusBar.notify('The frames changed while tracking — track again', 'warning');
+                        return;
+                    }
                     previewWrap.hidden = false;
-                    qs('#adjust-section', el).hidden = false;
-                    cutoutBtn.el.setDisabled?.(false);
-                    emit('mask-overlay', { masks: _masks });
-                    _updateCurrentTint();
+                    if (single) viewer.el.setTrackMask(scope.idx, urls[0] || null);
+                    else viewer.el.setTrackMasks(urls);
                 };
                 exec.onError = (err) => {
                     if (_destroyed) return;
@@ -327,15 +326,11 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                 };
                 exec.onDone = () => {
                     if (_destroyed) return;
-                    _busy = false;
                     _trackExec = null;
-                    _mountTrackBtn();
-                    chipEls.forEach(c => c.el.setDisabled?.(false));
+                    _setBusy(false);
                 };
             } catch (err) {
-                _busy = false;
-                _mountTrackBtn();
-                chipEls.forEach(c => c.el.setDisabled?.(false));
+                _setBusy(false);
                 clientLogger.warn('MpiToolOptionsGifCutout', 'source encode failed', err);
                 StatusBar.notify('Could not prepare the track video: ' + err.message, 'error');
             }
@@ -363,45 +358,38 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const n = canvas.width * canvas.height;
             const alpha = new Uint8Array(n);
-            // The mask arrives as a plain greyscale-as-RGB PreviewImage (full alpha,
-            // white = mask) — same source `applyMaskAlpha()` reads server-side, so
-            // luma stands in for coverage here the way its own greyscale() pass does.
+            // Engine and composed masks are both opaque greyscale (white = mask),
+            // the source `applyMaskAlpha()` reads server-side, so luma is coverage.
             for (let i = 0; i < n; i++) {
                 alpha[i] = Math.round(0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2]);
             }
-            const entry = { width: canvas.width, height: canvas.height, alpha };
-            _alphaCache.set(url, entry);
-            return entry;
+            return _remember(_alphaCache, url, { width: canvas.width, height: canvas.height, alpha });
         }
 
         function _fieldFor(url, entry) {
-            let field = _fieldCache.get(url);
+            const field = _fieldCache.get(url);
             if (field) return field;
             const { width, height, alpha } = entry;
             const rgba = new Uint8ClampedArray(width * height * 4);
             for (let i = 0; i < alpha.length; i++) rgba[i * 4 + 3] = alpha[i];
-            field = signedSquaredDistanceField(rgba, width, height);
-            _fieldCache.set(url, field);
-            return field;
+            return _remember(_fieldCache, url, signedSquaredDistanceField(rgba, width, height));
         }
 
         let _tintToken = 0;
         async function _updateCurrentTint() {
             if (_destroyed) return;
             const token = ++_tintToken;
-            if (!_masks) { emit('mask-tint', { url: null }); return; }
-            const idx = viewer.el.getFrameIndex();
-            const url = _masks[idx];
-            if (!url) { emit('mask-tint', { url: null }); return; }
-
+            let url = null;
             let entry;
             try {
-                entry = await _loadAlpha(url);
+                url = await viewer.el.getFrameMaskURL(viewer.el.getFrameIndex());
+                if (url) entry = await _loadAlpha(url);
             } catch (err) {
                 clientLogger.warn('MpiToolOptionsGifCutout', 'mask decode failed', err);
                 return;
             }
             if (_destroyed || token !== _tintToken) return;
+            if (!url) { emit('mask-tint', { url: null }); return; }
 
             const { width, height, alpha } = entry;
             let out = alpha;
@@ -434,27 +422,34 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             emit('mask-tint', { url: canvas.toDataURL('image/png') });
         }
 
-        // The Block owns the ONE persistent `viewer.on('frame-change', ...)`
-        // subscription for this viewer's whole lifetime (`MpiGroupHistoryBlock`)
-        // and forwards into whichever tool panel is mounted — the factory's own
-        // `instance.on()` has no per-listener unsubscribe (only `destroy()`
-        // clears it), so a panel that (re)subscribed directly here on every
-        // mount would leak one listener per tool-rail visit for as long as the
-        // viewer itself lives.
+        // The Block owns the ONE persistent subscription to each viewer event for
+        // the viewer's whole lifetime and forwards here — the factory's own
+        // `instance.on()` has no per-listener unsubscribe, so a panel that
+        // (re)subscribed on every mount would leak one listener per rail visit.
         el.onFrameChange = () => _updateCurrentTint();
+        el.onMasksChange = () => {
+            _syncHasMasks();
+            _updateCurrentTint();
+        };
+        _updateCurrentTint();
 
         // ── Cut out ──────────────────────────────────────────────────────────
 
-        function _runCutout() {
-            if (_destroyed || _busy || !_masks) return;
+        async function _runCutout() {
+            if (_destroyed || _busy || !viewer.el.hasFrameMasks?.()) return;
             const frames = viewer.el.getFrames();
-            if (_frameSignature(frames) !== _videoSignature) {
-                StatusBar.notify('The frame list changed — run Track again first', 'warning');
+            let masks;
+            try {
+                masks = await viewer.el.getCutMasks();
+            } catch (err) {
+                clientLogger.warn('MpiToolOptionsGifCutout', 'mask compose failed', err);
+                StatusBar.notify('Could not prepare the masks: ' + err.message, 'error');
                 return;
             }
+            if (_destroyed || frameSignature(viewer.el.getFrames()) !== frameSignature(frames)) return;
             emit('apply', {
                 frames: frames.map(f => ({ hash: f.hash, delay: f.delay })),
-                masks: _masks.slice(),
+                masks,
                 adjust: { grow: _grow, fillHoles: _fillHoles },
                 invert: _invert,
             });
@@ -467,11 +462,9 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             if (_raf) cancelAnimationFrame(_raf);
             _trackExec?.cancel?.();
             emit('mask-tint', { url: null });
-            emit('mask-overlay', { masks: null });
-            // trackBtn is re-mounted outside `_children` (its own var, per
-            // `_mountTrackBtn`); cutoutBtn is destroyed via `_children` below.
-            trackBtn?.destroy?.();
-            _unsubs.forEach(fn => fn?.());
+            // The track buttons are re-mounted outside `_children` (_mountTrackBtns).
+            trackBtns.all?.destroy?.();
+            trackBtns.frame?.destroy?.();
             _children.forEach(c => c.destroy?.());
         };
     },

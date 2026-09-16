@@ -9,7 +9,8 @@
  * the whole tool, and it stays that way — brush size lives on the canvas wheel.
  *
  * Props:
- * @param {object} viewer - MpiCanvasViewer instance
+ * @param {object} viewer - MpiCanvasViewer instance, or MpiGifViewer (MPI-771
+ *   `gifMaskBrush`: it implements the same surface over one frame at a time)
  *
  * Requires on viewer.el:
  *   enterMode('mask'), exitMode(), evaluateMask(), setMaskPointsMode()

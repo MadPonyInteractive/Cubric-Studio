@@ -30,15 +30,16 @@
  *                              committed both become `frames`, the marker
  *                              resets to frame 0 (matching the Block's paired
  *                              `viewer.el.loadFrames()` call), pill hides.
- *   setMaskOverlay(masks|null) — MPI-771 (UI half): tint each visible thumb
+ *   setMaskOverlay(masks|null, edited = []) — MPI-771: tint each visible thumb
  *                              with `masks[i]` (index-aligned to the last
  *                              `setFrames()` call — a cut-out mask is per
  *                              tracked frame POSITION, not per content hash,
  *                              so this is index-keyed where every other API
- *                              here is content-keyed). Read-only preview so a
- *                              scrub reveals flicker between frames; `null`
- *                              clears it. No UndoStack entry — see
- *                              docs/masking-sam3-gif.md.
+ *                              here is content-keyed), and mark the `edited`
+ *                              positions (hand-fixed with the Mask Brush).
+ *                              Read-only preview so a scrub reveals flicker
+ *                              between frames; `null` clears it. No UndoStack
+ *                              entry — see docs/masking-sam3-gif.md.
  *   destroy()
  *
  * Emits:
@@ -109,6 +110,8 @@ export const MpiFrameStrip = ComponentFactory.create({
          *  other list here) because a tracked mask belongs to a frame
          *  POSITION, not its content. */
         let _maskOverlay = null;
+        /** Positions whose mask was fixed with the Mask Brush — same keying. */
+        let _edited = new Set();
 
         // ── Diff / pill ──────────────────────────────────────────────────
 
@@ -154,6 +157,7 @@ export const MpiFrameStrip = ComponentFactory.create({
                 img.alt = '';
                 img.draggable = false;
                 d.appendChild(img);
+                if (_edited.has(i)) d.classList.add('mpi-frame-strip__thumb--edited');
                 const maskUrl = _maskOverlay?.[i];
                 if (maskUrl) {
                     const tint = document.createElement('div');
@@ -183,6 +187,7 @@ export const MpiFrameStrip = ComponentFactory.create({
             // A full reload invalidates any tint the cut-out tool pushed — its
             // masks are keyed to the PREVIOUS list's positions.
             _maskOverlay = null;
+            _edited = new Set();
             _currentIndex = Math.max(0, Math.min(_staged.length - 1, currentIndex || 0));
             _windowEnd = -1; // force a full re-render
             _ensureWindow(_currentIndex);
@@ -208,8 +213,9 @@ export const MpiFrameStrip = ComponentFactory.create({
 
         el.getStagedFrames = () => _staged.slice();
 
-        el.setMaskOverlay = (masks) => {
+        el.setMaskOverlay = (masks, edited = []) => {
             _maskOverlay = Array.isArray(masks) ? masks : null;
+            _edited = new Set(edited);
             _renderWindow();
         };
 
@@ -220,6 +226,7 @@ export const MpiFrameStrip = ComponentFactory.create({
             // Same as setFrames() above — a saved revision invalidates any tint
             // keyed to the pre-save positions.
             _maskOverlay = null;
+            _edited = new Set();
             // The Block reloads the saved entry into the viewer via
             // `loadFrames()` (a fresh `.gif` revision, new sequenced file per
             // E5), which always resets ITS index to 0 — match it here, or the

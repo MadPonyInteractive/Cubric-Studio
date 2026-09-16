@@ -5,7 +5,7 @@ detector branch pushed that doc past 200 lines. Read that file first for the mod
 the click-point and open-vocabulary text tools, and the `name:N` count trap
 (`js/utils/maskTextPrompt.js`) this branch reuses unchanged. Related:
 [gif.md](gif.md) (the frame store, `gif` sidecar field) and
-[masking.md](masking.md) (layer model, undo — neither applies here, see below).
+[masking.md](masking.md) (layer model and undo; the Mask Brush below adds a BASE layer to it).
 
 ## The graph — `comfy_workflows/raw/gif_cutout_sam3.json` / `gif_cutout_sam3.json`
 
@@ -51,71 +51,68 @@ which tracked index is which object.
   alpha and lands a new entry. Full request/response contracts, the codec choice and
   the flatten-before-encode reasoning are in that file's own header comment.
 
-## The tool group — `MpiToolOptionsGifCutout` (MPI-771 UI half)
+## The two tools — Cut-out and Mask Brush (MPI-771, plan Decision 14)
 
-One panel in the `gif` history mode's rail (`Compounds/MpiHistoryTools` `GIF_TOOLS`,
-mode `gifCutout`), reached because per-object masks do not exist server-side:
+A track is a STARTING POINT: object numbers need not stay the same object from frame to
+frame, so the user fixes frames by hand. The `gif` rail's Cut-out group
+(`Compounds/MpiHistoryTools` `GIF_TOOLS`) therefore holds two modes, and the masks live on
+the VIEWER so both reach them.
 
-1. **Track** — name the object (+ count, stamped `name:N` the same way the text
-   detector reads it), dispatch once with `objectIndices: ''` ("keep everything").
-   `runGifCutoutTrack` is called directly from the panel — it only needs
-   `state.currentProject.folderPath` and `viewer.el.getFrames()`, no Block state — but
-   `POST /gif-cutout/apply` (a new history entry) is Block-owned, same division as
-   every other tool's `'apply'` event.
-2. **Read the preview** (`Output_Preview`, shown via `MpiVideoSurface`) to see which
-   numbered index is which object.
-3. **Chips** — 4 fixed checkboxes (`OBJECT_SLOTS`, matching `max_objects`), default
-   all kept. Unchecking one re-dispatches `runGifCutoutTrack` with the SAME cached
-   temp video (encoded once per frame-list signature) and the new `objectIndices`
-   list — cheap, per the graph note above. Sending `''` when every chip is kept
-   (rather than the literal list) matches the first Track call exactly. At least one
-   chip must stay checked: `''` means "keep everything" server-side, the opposite of
-   "keep nothing", so an all-unchecked state cannot be expressed and is refused
-   client-side.
-4. **Mask Adjust (Grow/Shrink) + Fill Holes + Invert**, set once for every frame.
-   Grow/Shrink gets a LIVE preview on the current frame only, built with the exact
-   same `managers/distanceField.js` functions (`signedSquaredDistanceField`,
-   `rangeFor`, `writeRange`) `routes/gifCutout.js`'s `applyMaskAlpha()` runs
-   server-side — decoded once per mask URL into a cached raw alpha + distance field,
-   then every slider tick is a cheap range test over the cached field (the same
-   "build once, range-test many" split `MpiToolOptionsMaskAdjust` uses, just re-keyed
-   per mask URL instead of per tool-entry, because a GIF has many frames). Fill Holes
-   has no live preview — it is cheap and deterministic at apply time, so a preview
-   would not change the decision to turn it on.
-5. **Cut out** — the panel validates the CURRENT `viewer.el.getFrames()` list still
-   matches the frame signature the last Track ran against (a stale mismatch, e.g.
-   after a strip reorder, is refused with a toast asking to Track again — masks are
-   per frame POSITION, not per content hash, so a reorder invalidates them), then
-   emits `{ frames, masks, adjust, invert }`. The Block posts `/gif-cutout/apply` and
-   appends the result via `appendToHistory` + `_setCurrentIdx`
-   (`MpiGroupHistoryBlock._handleGifCutoutApply`, same shape as the frame strip's own
-   Apply, `_handleGifStripSave`'s `'new'` branch) — never through `/gif/entry`.
+### Where the masks live — `MpiGifViewer` + `gifFrameMasks.js`
 
-## Tint preview — not a mask/paint layer, no UndoStack entry
+Per frame POSITION, because a track belongs to a position: `track` (engine URL), `edits`
+(the brush's manual/subtract layers as working-res alpha PNGs) and `composed` (the B/W PNG
+the canvas exported when the edits were saved). The whole store is tied to the frame list's
+signature: a strip reorder/delete empties it (the Block toasts), a different entry does too
+(silently). `getCutMasks()` sends the track URL for an untouched frame, the composite for a
+brushed one, a 1x1 black PNG for a frame with neither (`applyMaskAlpha()` resizes a mask to
+its frame). A re-track replaces TRACKS only (Fabio: brush fixes survive); a brushed frame's
+composite is then stale and is rebuilt through a headless `MaskManager`, so there is ONE
+compositor. The viewer emits `masks-change { overlay, edited, cleared }`; the Block feeds
+`MpiFrameStrip.el.setMaskOverlay(overlay, edited)` (tint + a dot on brushed frames) and the
+Cut-out panel's `onMasksChange()`.
 
-The panel emits two read-only previews so scrubbing reveals flicker before Cut-out
-commits anything:
+### Mask Brush — mode `gifMaskBrush`
 
-- `'mask-tint' { url }` — the CURRENT frame's ADJUSTED mask (grow/shrink + invert
-  applied client-side, per above) → `MpiGifViewer.el.setMaskTint(url)`. A solid
-  `--accent-heat` div clipped to the mask PNG via CSS `mask-image`, sitting inside a
-  new `.mpi-gif-viewer__frame-wrap` sized to the frame `<img>`'s own letterboxed box
-  (percentage-height-on-a-flex-item is what makes that sizing work; see the CSS
-  comment).
-- `'mask-overlay' { masks }` — every frame's RAW (unadjusted) tracked mask, index-aligned
-  to the last `setFrames()` call → `MpiFrameStrip.el.setMaskOverlay(masks)`, one tint
-  div per visible thumb. Index-keyed rather than hash-keyed (unlike every other
-  frame-strip API) because a tracked mask belongs to a frame POSITION.
+The image-mode `MpiToolOptionsMaskBrush`, unchanged: `MpiGifViewer` implements its
+`enterMode('mask')` / `exitMode()` and the whole `MpiMaskStrip` surface. `enterMode` mounts an
+`MpiCanvas` over the stage holding the current frame, its track as the BASE layer
+([masking.md](masking.md)) and its brush layers; stepping frames saves and reloads, keeping a
+zoomed view and the brush size. Playback and the GIF preview are off while it is up. Undo is
+per frame visit (`loadImage` clears the stack). Its own mode, not `maskBrush`: that one is in
+the Block's `_MASK_TOOLS` and drives image-canvas bridges. The brush works with no track at
+all (paint a mask from scratch).
 
-**This is deliberately NOT `docs/masking.md`'s layer model.** There is no
-`manualCanvas`/`subtractCanvas`, no brush, nothing the user paints — the mask is
-server-computed and the tint is a read-only preview of it, so the Critical Rules'
-UndoStack requirement ("mutating a mask/paint layer needs an entry first") does not
-apply: nothing here is mutated, only displayed. The mask itself "lives" only as the
-panel's own `_masks` array, cleared on `el.destroy()` (leaving the tool, switching
-history entries, or leaving the workspace all tear the Block down) — matching
-`masking.md`'s "the mask lives until applied or the workspace is left" for the
-canvas mask family, by the same instinct, through different means.
+### Cut-out — `MpiToolOptionsGifCutout`
+
+1. **Track All / Track Single Frame.** `runGifCutoutTrack` is called from the panel; the
+   single-frame run is the same graph on a one-frame source video, and replaces only that
+   position's track. There is **no count input**: each name is stamped `name:4`, the same 4
+   as the chips (`OBJECT_SLOTS` = `max_objects`), because a bare name finds ONE object
+   ([masking-sam3.md](masking-sam3.md) § the `name:N` trap). Source videos are cached per
+   frame signature. Results that land after the frame list changed are dropped.
+2. **Read the preview** (`Output_Preview`, via `MpiVideoSurface`) for which index is which.
+3. **Chips** — 4 checkboxes, default all kept. A toggle re-dispatches the LAST scope (all,
+   or that one frame) with the cached video — cheap, per the graph note above. `''` when all
+   are kept; at least one must stay checked (`''` means "keep everything" server-side).
+4. **Mask Adjust (Grow/Shrink) + Fill Holes + Invert**, set once for every frame, shown when
+   any frame has a mask. Grow/Shrink previews LIVE on the current frame with the same
+   `managers/distanceField.js` functions `applyMaskAlpha()` runs, over
+   `viewer.el.getFrameMaskURL(idx)` (a small LRU of decoded masks and fields; composed masks
+   are data URLs). Fill Holes has no preview.
+5. **Cut out** — `viewer.el.getCutMasks()`, then emits `{ frames, masks, adjust, invert }`; the
+   Block posts `/gif-cutout/apply` and appends the entry (`_handleGifCutoutApply`), never
+   through `/gif/entry`.
+
+### Tints
+
+- `'mask-tint' { url }` — the current frame's ADJUSTED mask as white-with-alpha →
+  `MpiGifViewer.el.setMaskTint(url)`: an `--accent-heat` div clipped by CSS `mask-image`,
+  `contain` + centred, because the wrap is full height and a short frame sits letterboxed in it.
+- The strip tint uses `mask-mode: luminance` (engine and composed masks are opaque B/W) and
+  `cover` sizing to match the thumb's `object-fit: cover`.
+- Mask URLs from the engine are cross-origin; reading their pixels (tint, base layer) relies on
+  ComfyUI running with `--enable-cors-header`, which the app sets (`routes/comfy.js`).
 
 ## Temp source video — no cancel hook (decision, MPI-771 UI half)
 

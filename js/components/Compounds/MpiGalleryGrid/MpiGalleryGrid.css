@@ -171,7 +171,10 @@
     transition: opacity 0.2s ease;
 }
 
-.mpi-group-card img.mpi-group-card__thumb:not(.mpi-group-card__thumb--loaded),
+/* The poster's own load gate. A GIF's hover overlay is also an <img> with the
+ * `__thumb` class (MPI-759) and fades on `--hover-video-ready` below instead, so
+ * it must not match here: this selector outranks that one and held it at 0. */
+.mpi-group-card img.mpi-group-card__thumb:not(.mpi-group-card__thumb--loaded):not(.mpi-group-card__thumb--hover-video),
 .mpi-group-card img.mpi-group-card__preview-img:not(.mpi-group-card__preview-img--loaded) {
     opacity: 0;
 }

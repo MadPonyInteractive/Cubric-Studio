@@ -72,6 +72,18 @@ export class MaskManager {
         this.selectedAutoPicks = new Set();
 
         /**
+         * BASE layer (MPI-771): a mask the user did not paint — a GIF frame's SAM3
+         * track — sitting UNDER the brush layers. It is mask content, unlike an
+         * auto pick: `mask = (base OR manual) AND NOT subtract`. Because every dab
+         * already writes both layers, erase removes base pixels and paint puts them
+         * back with no rule of its own. Set only by `setBaseFromDataURL()`, a LOAD;
+         * image mode never sets it, so `hasBase` is false there.
+         */
+        this.baseCanvas = document.createElement('canvas');
+        this.baseCtx = this.baseCanvas.getContext('2d', { willReadFrequently: true });
+        this.hasBase = false;
+
+        /**
          * Adjust preview (MPI-382). A PREVIEW, not a layer: it is drawn in the
          * pending green instead of the mask and never exported, so leaving the
          * tool without pressing Apply loses it — the preview contract
@@ -154,6 +166,10 @@ export class MaskManager {
         this.maskCanvas.height = h;
         this.autoCanvas.width = w;
         this.autoCanvas.height = h;
+        // Resizing wipes it; a base belongs to the image it was loaded for.
+        this.baseCanvas.width = w;
+        this.baseCanvas.height = h;
+        this.hasBase = false;
         // A new image means a new history. Undo must never reach across two
         // entries, and the wipe below is a load, not an edit the user can undo.
         this.undo?.clear();
@@ -226,6 +242,12 @@ export class MaskManager {
         if (record) this._recordUndo();
         if (this.manualCtx) this.manualCtx.clearRect(0, 0, this.manualCanvas.width, this.manualCanvas.height);
         if (this.subtractCtx) this.subtractCtx.clearRect(0, 0, this.subtractCanvas.width, this.subtractCanvas.height);
+        // The base is not an undoable layer, so "clear" erases OVER it instead of
+        // wiping it: a full subtract hides it now and Ctrl+Z brings it back.
+        if (this.hasBase && this.subtractCtx) {
+            this.subtractCtx.fillStyle = 'rgba(255, 255, 255, 1)';
+            this.subtractCtx.fillRect(0, 0, this.subtractCanvas.width, this.subtractCanvas.height);
+        }
         this.autoPickMasks.clear();
         this.selectedAutoPicks.clear();
         this.points = [];
@@ -348,8 +370,9 @@ export class MaskManager {
         this.maskCtx.save();
         this.maskCtx.clearRect(0, 0, w, h);
 
-        // manual AND NOT subtract — destination-out punches subtract holes
+        // (base OR manual) AND NOT subtract — destination-out punches subtract holes
         this.maskCtx.globalCompositeOperation = 'source-over';
+        if (this.hasBase) this.maskCtx.drawImage(this.baseCanvas, 0, 0);
         this.maskCtx.drawImage(this.manualCanvas, 0, 0);
         this.maskCtx.globalCompositeOperation = 'destination-out';
         this.maskCtx.drawImage(this.subtractCanvas, 0, 0);
@@ -444,6 +467,43 @@ export class MaskManager {
             img.onerror = (err) => reject(err);
             img.src = dataUrl;
         });
+    }
+
+    /**
+     * Load the BASE layer from an engine mask (greyscale, white = mask, full
+     * alpha): luma becomes coverage, the same reading `routes/gifCutout.js`'s
+     * `applyMaskAlpha()` gives it. A LOAD — no undo entry. `null` drops it.
+     * @param {string|null} url
+     */
+    async setBaseFromDataURL(url) {
+        if (!url) { this.clearBase(); return; }
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = url;
+        });
+        if (!this.baseCtx) return; // destroyed while decoding
+        const { width: w, height: h } = this.baseCanvas;
+        this.baseCtx.clearRect(0, 0, w, h);
+        this.baseCtx.drawImage(img, 0, 0, w, h);
+        const px = this.baseCtx.getImageData(0, 0, w, h);
+        const d = px.data;
+        for (let i = 0; i < d.length; i += 4) {
+            const luma = Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]);
+            d[i] = d[i + 1] = d[i + 2] = 255;
+            d[i + 3] = Math.round(luma * d[i + 3] / 255);
+        }
+        this.baseCtx.putImageData(px, 0, 0);
+        this.hasBase = true;
+        this._recomposite();
+    }
+
+    clearBase() {
+        if (this.baseCtx) this.baseCtx.clearRect(0, 0, this.baseCanvas.width, this.baseCanvas.height);
+        this.hasBase = false;
+        this._recomposite();
     }
 
     setAutoPickMasks(map) {
@@ -810,12 +870,15 @@ export class MaskManager {
 
     destroy() {
         this.endAdjust();
-        for (const c of [this.manualCanvas, this.subtractCanvas, this.maskCanvas, this.autoCanvas]) {
+        for (const c of [this.manualCanvas, this.subtractCanvas, this.maskCanvas, this.autoCanvas, this.baseCanvas]) {
             if (c) {
                 c.width = 0;
                 c.height = 0;
             }
         }
+        this.baseCanvas = null;
+        this.baseCtx = null;
+        this.hasBase = false;
         this.manualCanvas = null;
         this.manualCtx = null;
         this.subtractCanvas = null;

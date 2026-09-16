@@ -181,6 +181,15 @@ test('a REAL mouse hover mounts the .gif; leaving and the grid demote unmount it
     await window.locator(CARD_SEL).first().hover();
     await expect.poll(overlaySrc).toContain('data:image/gif');
 
+    // Mounted is not SEEN. The overlay is an `<img>` carrying the poster's
+    // `mpi-group-card__thumb` class, so the poster's "hide until loaded" rule
+    // (MpiGalleryGrid.css) held it at opacity 0 forever while every src check
+    // above passed — Fabio's second MPI-759 reopen. Assert the painted outcome.
+    await expect.poll(() => window.evaluate(() => {
+      const el = document.querySelector('#mpi759-host img.mpi-group-card__thumb--hover-video');
+      return el ? getComputedStyle(el).opacity : 'absent';
+    }), { message: 'the hovered .gif overlay must actually be visible' }).toBe('1');
+
     // Leaving demotes back to the still — an <img> has no paused-at-frame-0
     // state to keep mounted for a cheap replay the way a video's overlay does.
     await window.mouse.move(2, 2);

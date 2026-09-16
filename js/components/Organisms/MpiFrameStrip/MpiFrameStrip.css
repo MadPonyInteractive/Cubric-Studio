@@ -47,19 +47,39 @@
     pointer-events: none;
 }
 
-/* MPI-771 (UI half) — cut-out tool tint, clipped to the tracked mask PNG via
-   CSS `mask-image` (set inline per thumb, `MpiToolOptionsGifCutout` owns the
-   URL). Read-only preview so a scrub reveals flicker; no UndoStack entry. */
+/* MPI-771 — cut-out tint, clipped to each frame's mask PNG via CSS
+   `mask-image` (set inline per thumb from the viewer's `masks-change`).
+   `luminance`: engine masks and composed masks are opaque B/W, so the default
+   alpha mode would tint the whole thumb. Sized like the thumb's
+   `object-fit: cover` so the tint lands on the pixels it describes.
+   Read-only preview so a scrub reveals flicker; no UndoStack entry. */
 .mpi-frame-strip__thumb-tint {
     position: absolute;
     inset: 0;
     pointer-events: none;
     background: var(--accent-heat);
     opacity: 0.45;
+    mask-mode: luminance;
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
-    -webkit-mask-size: 100% 100%;
-    mask-size: 100% 100%;
+    -webkit-mask-size: cover;
+    mask-size: cover;
+    -webkit-mask-position: center;
+    mask-position: center;
+}
+
+/* A frame whose mask was fixed by hand (MPI-771 Mask Brush). */
+.mpi-frame-strip__thumb--edited::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-ok);
+    box-shadow: 0 0 0 1px var(--surface-canvas);
+    pointer-events: none;
 }
 
 .mpi-frame-strip__thumb.is-current {

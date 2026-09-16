@@ -61,6 +61,7 @@ If you write code that mutates `manualCanvas`, `subtractCanvas` or the RGBA `pai
 | **Layer-wide, one shot** — a bake, a Clear, a grow/shrink release | `this._recordUndo()` **before** mutating, and **after** any early-return guard so a no-op cannot push an empty entry |
 | **A gesture** — a stroke, a drag with a start and an end | `undo.begin(mgr.undoLayers())` at the start · accumulate the dirty box · `undo.commit(mgr.takeStrokeBox())` at the end · `undo.abort()` if it produced nothing |
 | **A LOAD that replaces the layers** — `setManual/Subtract/PaintFromDataURL`, `init` | record **nothing**, and clear the stack. A load is not an edit the user could have undone |
+| **The BASE layer** — `setBaseFromDataURL` / `clearBase` (MPI-771, a GIF frame's track) | record **nothing**: it is never on the stack. That is why `clear()` over a base erases (fills subtract) instead of wiping it — one undo entry brings the base back |
 
 `mgr` is whichever manager owns the destination — `MaskManager` or `PaintManager`; both expose
 `undoLayers()` / `takeStrokeBox()` / `_recordUndo()` with the same meanings, which is what lets
