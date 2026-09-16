@@ -65,6 +65,10 @@ at pickup.
         replaced. Verify by updating a real Linux install in place, per MPI-559 phase 1.
 - [ ] **MPI-516** — port the three-signal destroyed-prompt detector, WITH its false-positive guard.
 - [ ] **MPI-575** — measure the LTX preview junk-frame path on a live foley/extend run, then fix.
+- [ ] **MPI-780** — paid Flows (umbrella): Head Swap and DramaBox leave the app and are sold
+      as `user_flows/` packages, which needs MPI-532's loader, then MPI-781 packages the two
+      (added 2026-09-16, Fabio: "it blocks 2.0"). The known-issue fallback below does not fit
+      this one: shipping the two inside the app gives them away for free. Ask Fabio.
 - [ ] Every Gate A card that did not clear has a known-issue bullet written.
 
 ## Gate B — must verify (no code expected)

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-781",
+  "title": "Package Head Swap and DramaBox as sellable Flow packages and take them out of the app",
+  "description": "UMBRELLA: MPI-780 - Paid Flows for 2.0 (phase 2, 2026-09-16). Members and phase order: tasks/MPI-780/plan.md. Needs MPI-532's user_flows/ loader first. Author both Flows as data-only packages in their own private repo, remove them from the app bundle, and hand Fabio the two folders to upload to Gumroad. Scope: tasks/MPI-780/brief.md.",
+  "column": "todo",
+  "maturity": "blocked",
+  "status": "active",
+  "created_at": "2026-09-16T13:38:10+01:00",
+  "updated_at": "2026-09-16T13:38:10+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

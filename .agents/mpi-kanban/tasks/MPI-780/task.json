@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-780",
+  "title": "Paid Flows for 2.0 - Head Swap and DramaBox sold as their own Gumroad products",
+  "description": "UMBRELLA - GATE: MPI-595 Gate A, blocks 2.0. Head Swap and DramaBox become separate one-time Gumroad products (first 100 buyers of each free), sold as user_flows/ packages delivered by Gumroad (option B, Fabio 2026-09-16) - no in-app key. Stems stays free. Phase 1 MPI-532 (the loader), phase 2 MPI-781 (package the two, remove them from the app). Members and phases: plan.md. Decisions: brief.md.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-16T13:08:57+01:00",
+  "updated_at": "2026-09-16T12:38:10Z",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
