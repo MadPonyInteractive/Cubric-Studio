@@ -360,14 +360,18 @@
   five photos give you five upscales or five clips. Cards the operation can't use are skipped
   and counted.
 
-- **Choose which language model enhances your prompts.** The Remote panel has a new Language
-  Models section, and Prompt enhancement can run on ComfyUI (the engine you already generate
-  with), on DeepInfra in the cloud, or on Ollama, a free app that runs these models on your own
-  card. ComfyUI is the default and needs nothing new. DeepInfra uses your own API key, which is
-  saved on this computer and never shown again. Pick Ollama and Vision starts it for you; if it
-  isn't installed yet, or the model you picked isn't downloaded, the panel gives you a button for
-  it and shows the progress, and closing the panel doesn't stop a download. Enhance in the prompt
-  box and Enhance inside a flow both follow your pick.
+- **Choose where your prompts are enhanced and your images described.** The Remote panel has a
+  new Language Models section. Prompt enhancement can run on ComfyUI (the engine you already
+  generate with), on Remote, or on Ollama, a free app that runs these models on your own card.
+  Image descriptions can run on ComfyUI or on Remote. Remote is one connection you set up once:
+  DeepInfra, OpenRouter, OpenAI or any compatible address, with your own API key, which is saved
+  on this computer and never shown again. Each job then picks its own model from that provider's
+  list, with the ones we test on marked recommended. Remote uses none of your VRAM, and a
+  description sent there never waits behind a generation. A hosted model may refuse adult
+  material. ComfyUI stays the default and needs nothing new. Pick Ollama and Vision starts it for
+  you; if it isn't installed yet, or the model you picked isn't downloaded, the panel gives you a
+  button for it and shows the progress, and closing the panel doesn't stop a download. Enhance in
+  the prompt box and Enhance inside a flow both follow your pick.
 
 - **The video player's controls now sit below the prompt box, and volume opens from the
   speaker.** In the History workspace the play, frame and trim bar used to hide behind the

@@ -49,3 +49,45 @@ moved under the provider pick (Fabio's ask). Drift fix: Remote enhance model has
   `Remote · <provider>` (`#mpiSettingsAgentBackend`, `.mpi-settings__fixed-value`), no dropdown.
 - Re-verified: both desktop specs -> 2 passed (new assertions: fixed agent label, key group hidden on Ollama);
   `npm test` -> 1191 tests, 1190 pass, 0 fail; eslint clean. Fabio has NOT yet looked at the three tweaks.
+- 2026-09-16 (session `5da6c574`): Fabio looked at the three tweaks in his app - "they're all good. They all pass."
+
+## Phase 4 - docs + orphans (2026-09-16, auto) - PASSED
+
+Session `5da6c574`, claim `d27875c1`. Fabio chose option A (retire the whole DeepInfra-only chain) and said yes to the
+three rule files.
+
+- Retired: `priceLabel` + its test, the `/llm/models` price fetch (`fetchDeepInfraPrices` kept: `scripts/agent-test.mjs`
+  uses it), `GET /llm/status` (0 callers in Vision, Studio, Prompt), `defaultBackend()`, the `deepinfra` branch of
+  `/llm/enhance` (it now REQUIRES `endpoint|ollama`), the route's `deepInfraKey()`/`hasDeepInfraKey()`, the fork-bridge
+  `secrets:{get,has}-deepinfra-key-request` handlers, `secretsClient.{set,has,clear}DeepInfraKey` and their three IPC
+  channels. The main-process `deepInfraApiKey` slot and its functions stay (the `deepinfra` profile reads them).
+- Bug folded in: `enhanceFlow` sent the Ollama registry pick (mapped via deepInfraId) to Remote, ignoring
+  `cubric.llm.endpointModel`; `enhance()` and `enhanceFlow()` now share `_endpointEnhanceModel(profileId)`. New
+  `testFlowEnhanceSendsTheRemotePick` FAILED against the old line ("a Flow must send the Remote pick"), passes on the fix.
+- `node tests/llm-service.test.cjs` -> "All 29 llm service tests passed." (priceLabel test out, flow test in; the IPC
+  test asserts no `deepinfra` channel and no key `get` channel; the fork-bridge test asserts the retired request gets
+  no answer and the deepinfra profile request returns the slot's key).
+- `node --test tests/llm-describe.test.cjs tests/llm-connection.test.cjs` -> pass 27, fail 0, incl. the new case:
+  `backend:'deepinfra'` and no backend are both refused with "'endpoint' or 'ollama'".
+  `node tests/secrets-endpoint-profiles.test.cjs` -> 8/8.
+- `npx eslint` on the 7 changed JS files -> clean. `npm test` -> tests 1192, pass 1191, fail 0, skipped 1.
+- `rg -n -i deepinfra js/ routes/ docs/`: what remains is presets / `DEFAULT_LLM_CONNECTION`, slot comments, the
+  `deepInfraId` legacy mapping, `DeepInfraEngine` (engine internal), the sign-up box, and copy naming DeepInfra as a
+  provider. Left alone: `docs/proprietary-models-research/00-cubric-vision-integration-points.md:78` (dated research).
+- Docs: `docs/llm.md` rewritten (172 lines); `docs/agent/prompt-enhancement.md`, `docs/playbooks/add-flow/ui/prompt-enhance.md`,
+  `docs/agent-chat.md` (describe lines), `docs/README.md` router row; the `UNRELEASED.md` Language Models bullet rewritten
+  (it never shipped). Rule files, with Fabio's yes: `engine-recipes.md`, `component-events-primitives.md`, `component-mounts.md`.
+- Desktop specs not re-run: no settings code changed, and the removed `secretsClient` methods and `priceLabel` have no importer.
+- Still open: Verification 2 (describe not in the Cue during a generation), 4 (agent `look` on Remote),
+  5 (keyless Remote fails plainly).
+
+### End-to-end checks - Fabio's screenshots (2026-09-16 ~13:40Z)
+
+- **Step 4, Remote half: PASSED.** The agent's "Describe this image." with an attached picture shows
+  "LOOKING AT IMAGE" and a full description, in a project panel ("1.4 media", "GIF Tests") and on the
+  landing chat. The ComfyUI half (descriptions on ComfyUI, `look` still answers) is not shown yet.
+- **Step 5, settings half: PASSED.** With the key cleared ("No API key saved."), Prompt enhancement stays
+  on Remote with "Remote is not set up: the connection above needs a provider and an API key. Finish it,
+  or pick another backend." and the model dropdown reads "Connect first". Not shown yet: a describe or
+  enhance actually attempted in that state failing with the D1 message.
+- **Step 2: not shown yet.**

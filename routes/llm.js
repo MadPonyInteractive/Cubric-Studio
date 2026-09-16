@@ -6,14 +6,14 @@
  * This is the local replacement. Nothing here knows about recipes — the renderer
  * (`js/services/llmService.js`) resolves the recipe and sends the finished system
  * prompt, because `js/data/recipes/` is ESM the renderer already loads. This half
- * exists for one reason the renderer cannot cover: **the DeepInfra key lives in
- * the main process and must never reach the renderer.**
+ * exists for what the renderer cannot cover: **a connection's key lives in the
+ * main process and must never reach the renderer**, and Ollama is driven from here.
  *
  * The routes:
- *   GET  /llm/status          -> { deepinfra: { hasKey }, ollama: { running }, defaultBackend }
- *   GET  /llm/models          -> { models: [{ id, name, description, ollama, deepinfra, deepInfraId, isDefault, price }] }
+ *   GET  /llm/models          -> { models: [{ id, name, names, description, ollama, deepinfra, deepInfraId, isDefault }] }
  *   POST /llm/enhance         -> { ok, text, backend, model } | { ok:false, error }
- *                                backend:'endpoint' + profileId -> the shared connection, error { code, message }
+ *                                backend 'endpoint' | 'ollama' (required); on 'endpoint'
+ *                                + profileId -> the shared connection, error { code, message }
  *   POST /llm/describe        -> { ok, text, backend, model } | { ok:false, error:{ code, message } }
  *                                body { profileId, modelId?, imagePath, question?, crop? } (MPI-737)
  *   GET  /llm/ollama          -> { running, platform, install, defaultModelId,
@@ -66,87 +66,16 @@ function engines() {
 }
 
 /**
- * The DeepInfra key, or null. Order: the user's stored key (main process,
- * safeStorage, over the fork bridge) then `DEEPINFRA_API_KEY` from the
- * environment — which is what a dev run and the recipe harness use. The value
- * never leaves this module: it is handed straight to the engine and is not
- * logged, cached on disk, or returned by any route.
- */
-async function deepInfraKey() {
-    const m = await ask('secrets:get-deepinfra-key-request', {});
-    return (m && m.value) || process.env.DEEPINFRA_API_KEY || null;
-}
-
-/** Presence only — asked on every readiness poll, so it must not move the key. */
-async function hasDeepInfraKey() {
-    const m = await ask('secrets:has-deepinfra-key-request', {});
-    if (m && typeof m.has === 'boolean') return m.has || !!process.env.DEEPINFRA_API_KEY;
-    return !!process.env.DEEPINFRA_API_KEY;
-}
-
-/**
- * Which backend a request without an explicit choice runs on.
- *
- * DeepInfra when a key is present, Ollama otherwise (Fabio, 2026-09-08: with a
- * key connected there is no GPU tax on any model, which is what let the enhance
- * control collapse to one path). This resolves SERVER-side because only this
- * process can see the key — the renderer is told the answer, never the reason
- * it could compute it itself.
- */
-async function defaultBackend() {
-    return (await hasDeepInfraKey()) ? 'deepinfra' : 'ollama';
-}
-
-router.get('/llm/status', async (_req, res) => {
-    try {
-        const { OllamaEngine } = await engines();
-        const [hasKey, running] = await Promise.all([
-            hasDeepInfraKey(),
-            new OllamaEngine().isRunning(),
-        ]);
-        res.json({
-            deepinfra: { hasKey },
-            ollama: { running },
-            defaultBackend: hasKey ? 'deepinfra' : 'ollama',
-        });
-    } catch (err) {
-        logger.error('system', `llm status failed: ${err && err.message}`);
-        // A probe failure is "not ready", never a 500 the caller has to branch on.
-        res.json({ deepinfra: { hasKey: false }, ollama: { running: false }, defaultBackend: 'ollama' });
-    }
-});
-
-/**
- * DeepInfra's prices, kept for the life of the process once a fetch succeeds. A
- * failure is not kept, so the next panel open tries again.
- * ponytail: a mid-session reprice shows after a restart; add a TTL if that matters.
- */
-let _prices = null;
-async function deepInfraPrices() {
-    if (!_prices) _prices = engines().then((e) => e.fetchDeepInfraPrices());
-    const prices = await _prices;
-    if (!prices) _prices = null;
-    return prices;
-}
-
-/**
- * GET /llm/models — the enhancer LLM catalogue, for the settings picker.
+ * GET /llm/models — the Ollama enhancer catalogue, for the settings picker.
  *
  * MPI-728. The registry lives in `services/llmEngines.mjs`, which is server-side
- * ESM the renderer cannot import, so the picker asks for it here. Coverage is
- * reported per backend rather than as one list, because it is ASYMMETRIC on
- * purpose — abliterated builds exist only locally — and the dropdown has to
- * filter to the backend the user picked instead
- * of offering a model that backend cannot serve.
- *
- * `price` is DeepInfra's live `{ in, out }` in USD per 1M tokens, or null. It is
- * fetched ONLY once a key is saved, so a user who never chose the cloud makes no
- * call to it, and even then no key is sent: the catalogue is public.
+ * ESM the renderer cannot import, so the picker asks for it here. Remote models
+ * are NOT here: they come from the connection itself (`/llm/connection/models`).
+ * `deepInfraId` survives only to map a pre-MPI-737 DeepInfra pick.
  */
 router.get('/llm/models', async (_req, res) => {
     try {
         const { MODEL_REGISTRY, DEFAULT_MODEL_ID, modelName } = await engines();
-        const prices = (await hasDeepInfraKey()) ? await deepInfraPrices() : null;
         res.json({
             defaultModelId: DEFAULT_MODEL_ID,
             models: MODEL_REGISTRY.map((m) => ({
@@ -160,7 +89,6 @@ router.get('/llm/models', async (_req, res) => {
                 // on the Remote (endpoint) branch (MPI-737).
                 deepInfraId: m.deepInfraId || null,
                 isDefault: m.id === DEFAULT_MODEL_ID,
-                price: (m.deepInfraId && prices?.[m.deepInfraId]) || null,
             })),
         });
     } catch (err) {
@@ -318,9 +246,12 @@ router.post('/llm/ollama/pull', async (req, res) => {
 /**
  * POST /llm/enhance — one completion.
  *
- * body: { prompt, system?, backend?, modelId?, maxTokens? }
- *   `backend`   'deepinfra' | 'ollama'. Omitted -> `defaultBackend()`.
- *   `modelId`   a neutral id from `MODEL_REGISTRY`. Omitted -> the registry default.
+ * body: { prompt, system?, backend, modelId?, maxTokens?, profileId? }
+ *   `backend`   'endpoint' | 'ollama', required. There is no server-side default:
+ *               the pick is the user's, and the renderer always sends it.
+ *   `modelId`   endpoint: a raw provider id, omitted -> the connection's recommended
+ *               enhancer. ollama: a neutral `MODEL_REGISTRY` id, omitted -> the default.
+ *   `profileId` endpoint only: the shared connection (MPI-774) to run on.
  *   `maxTokens` a positive integer cap on the reply. Omitted -> the provider's own.
  *
  * The ComfyUI backend is deliberately NOT reachable here: it runs as a queued
@@ -329,17 +260,23 @@ router.post('/llm/ollama/pull', async (req, res) => {
  * second dispatch path to the same engine.
  */
 router.post('/llm/enhance', async (req, res) => {
-    const { prompt, system, backend: asked, modelId, maxTokens: askedMax, profileId } = req.body || {};
+    const { prompt, system, backend, modelId, maxTokens: askedMax, profileId } = req.body || {};
     if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
         return res.json({ ok: false, error: 'Write a prompt first, then Enhance.' });
     }
+    if (backend !== 'endpoint' && backend !== 'ollama') {
+        return res.json({ ok: false, error: `Unknown enhance backend "${backend}": send 'endpoint' or 'ollama'.` });
+    }
+    // A flow's token cap travels here (`Input_Text_Gen.max_length`, MPI-677): Music
+    // Maker's 800 guards against a measured runaway repetition loop. Anything that
+    // is not a positive integer is no cap, never a zero-length reply.
+    const maxTokens = Number.isInteger(askedMax) && askedMax > 0 ? askedMax : undefined;
 
-    let backend;
     try {
         const { OllamaEngine, DeepInfraEngine, getModel, DEFAULT_MODEL_ID, ollamaTagged, modelName, resolveConnection, recommendedModel } = await engines();
 
         // ── Endpoint branch (MPI-737): raw modelId, no MODEL_REGISTRY lookup ────
-        if (asked === 'endpoint') {
+        if (backend === 'endpoint') {
             if (!profileId || typeof profileId !== 'string') {
                 return res.json({ ok: false, error: { code: 'BAD_REQUEST', message: 'profileId is required for backend:endpoint.' } });
             }
@@ -354,7 +291,6 @@ router.post('/llm/enhance', async (req, res) => {
             }
             try {
                 const engine = new DeepInfraEngine(key, profile.baseURL, profile);
-                const maxTokens = Number.isInteger(askedMax) && askedMax > 0 ? askedMax : undefined;
                 const result = await engine.complete(prompt, { model, system, maxTokens });
                 return res.json({ ok: true, text: String(result.text || '').trim(), backend: result.backend, model: result.model });
             } catch (err) {
@@ -362,46 +298,34 @@ router.post('/llm/enhance', async (req, res) => {
                 return void _connectionError(res, 'ENDPOINT_ERROR', (err && err.message) || 'Endpoint enhance failed.', err && err.status);
             }
         }
-        // ── End endpoint branch ──────────────────────────────────────────────────
-
-        backend = asked === 'deepinfra' || asked === 'ollama' ? asked : await defaultBackend();
+        // ── Ollama (local, managed) ──────────────────────────────────────────────
 
         const entry = getModel(modelId || DEFAULT_MODEL_ID);
         if (!entry) return res.json({ ok: false, error: `Unknown model id: ${modelId}` });
-        // Backend coverage is asymmetric ON PURPOSE — abliterated builds exist
-        // only locally — so a valid id can
-        // still be unreachable on the chosen backend. Say which, rather than
-        // letting `model: undefined` reach the wire.
-        const model = backend === 'deepinfra' ? entry.deepInfraId : entry.ollamaName;
-        if (!model) return res.json({ ok: false, error: `"${entry.name}" has no ${backend} variant.` });
-        const name = modelName(entry, backend);
+        // An entry need not carry an Ollama build (`ollamaName` is optional), so a
+        // valid id can still have none. Say which, rather than letting
+        // `model: undefined` reach the wire.
+        const model = entry.ollamaName;
+        if (!model) return res.json({ ok: false, error: `"${entry.name}" has no ollama variant.` });
+        const name = modelName(entry, 'ollama');
 
-        if (backend === 'ollama') {
-            // MPI-728 phase 3: a stopped Ollama is STARTED here, not reported. Starting
-            // an app the user already installed asks nothing of them (Cubric Prompt's
-            // MPI-8 ruling). Installing it, or downloading a multi-GB model, never
-            // happens from an enhance: both are the user's own click in the settings.
-            const status = await ollamaLifecycle.ensureOllama();
-            if (status === 'missing') {
-                return res.json({ ok: false, error: 'Ollama is not installed. Install it in Remote → Language Models, or pick another backend there.' });
-            }
-            if (status === 'failed') {
-                return res.json({ ok: false, error: 'Ollama is installed but did not start. Start it yourself, or pick another backend in Remote → Language Models.' });
-            }
-            // Without this the user gets Ollama's own `404 Not Found`, which names nothing.
-            if (!(await new OllamaEngine().listModels()).includes(ollamaTagged(model))) {
-                return res.json({ ok: false, error: `${name} is not downloaded in Ollama yet. Download it in Remote → Language Models.` });
-            }
+        // MPI-728 phase 3: a stopped Ollama is STARTED here, not reported. Starting
+        // an app the user already installed asks nothing of them (Cubric Prompt's
+        // MPI-8 ruling). Installing it, or downloading a multi-GB model, never
+        // happens from an enhance: both are the user's own click in the settings.
+        const status = await ollamaLifecycle.ensureOllama();
+        if (status === 'missing') {
+            return res.json({ ok: false, error: 'Ollama is not installed. Install it in Remote → Language Models, or pick another backend there.' });
+        }
+        if (status === 'failed') {
+            return res.json({ ok: false, error: 'Ollama is installed but did not start. Start it yourself, or pick another backend in Remote → Language Models.' });
+        }
+        // Without this the user gets Ollama's own `404 Not Found`, which names nothing.
+        if (!(await new OllamaEngine().listModels()).includes(ollamaTagged(model))) {
+            return res.json({ ok: false, error: `${name} is not downloaded in Ollama yet. Download it in Remote → Language Models.` });
         }
 
-        const engine = backend === 'deepinfra'
-            ? new DeepInfraEngine(await deepInfraKey())
-            : new OllamaEngine();
-        // A flow's token cap travels here (`Input_Text_Gen.max_length`, MPI-677): Music
-        // Maker's 800 guards against a measured runaway repetition loop. Anything that
-        // is not a positive integer is no cap, never a zero-length reply.
-        const maxTokens = Number.isInteger(askedMax) && askedMax > 0 ? askedMax : undefined;
-        const result = await engine.complete(prompt, { model, system, maxTokens });
+        const result = await new OllamaEngine().complete(prompt, { model, system, maxTokens });
 
         // `result.backend` / `result.model`, not the variables above: the engine
         // reports what actually answered.
@@ -626,4 +550,3 @@ router.post('/llm/describe', async (req, res) => {
 });
 
 module.exports = router;
-module.exports.defaultBackend = defaultBackend;

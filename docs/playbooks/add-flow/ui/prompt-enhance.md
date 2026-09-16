@@ -183,7 +183,7 @@ should split into two steps.
 - **A prompt the user just types.** One `text` field. The pair earns its place only when
   something rewrites the text and the user must see what it wrote.
 - **Enhancing in place.** `MpiPromptBox`'s own enhance control overwrites the prompt box with the
-  result. Since MPI-677 both follow the user's Language Models pick (ComfyUI, DeepInfra or
+  result. Since MPI-677 both follow the user's Language Models pick (ComfyUI, Remote or
   Ollama) through `js/services/llmService.js`, but they are still different features: the box
   picks a per-target-model RECIPE (`enhance()`), while a flow injects its OWN recipe through
   `enhanceFlow()`. On ComfyUI that runs the enhancer graph as before; on a server backend it

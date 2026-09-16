@@ -99,10 +99,12 @@
     height: 100%;
 }
 
+/* The panel has edges (the standalone chat does not): inset the text to the header's gutter. */
 #agent-panel-mount .mpi-agent-chat__transcript {
     flex: 1 1 auto;
     max-height: none;
     overflow-y: auto;
+    padding-inline: var(--s-3);
 }
 
 /* ── Entry types ─────────────────────────────────────────────────────────── */

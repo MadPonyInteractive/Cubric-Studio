@@ -50,6 +50,7 @@ const {
     buildDescribeInjectionParams,
     describeImage,
     enhance,
+    enhanceFlow,
     setEnhancerModelPreference,
     setEndpointModelPreference,
 } = require('../js/services/llmService.js');
@@ -257,11 +258,13 @@ function testSecretsStoreDeepInfraSlot() {
         const channels = [];
         store.init({ app: null, safeStorage: null, ipcMain: { handle: (c) => channels.push(c) }, logger: null });
 
-        // THE INVARIANT: set / presence / clear, and no way to read it back.
-        assert.ok(channels.includes('secrets:set-deepinfra-key'));
-        assert.ok(channels.includes('secrets:has-deepinfra-key'));
-        assert.ok(channels.includes('secrets:clear-deepinfra-key'));
-        const leaky = channels.filter((c) => /deepinfra/i.test(c) && /get/i.test(c));
+        // THE INVARIANT: the renderer reaches this slot only as the `deepinfra`
+        // connection's key (set / presence / clear), and no channel reads a key back.
+        assert.ok(channels.includes('secrets:set-endpoint-key'));
+        assert.ok(channels.includes('secrets:has-endpoint-key'));
+        assert.ok(channels.includes('secrets:clear-endpoint-key'));
+        assert.deepStrictEqual(channels.filter((c) => /deepinfra/i.test(c)), [], 'MPI-737 retired the DeepInfra-only channels');
+        const leaky = channels.filter((c) => /key/i.test(c) && /get/i.test(c));
         assert.deepStrictEqual(leaky, [], `renderer-readable key channel registered: ${leaky.join(', ')}`);
 
         assert.strictEqual(store.hasDeepInfraKey(), false);
@@ -305,11 +308,14 @@ function testForkBridgeAnswersDeepInfraRequests() {
         store.registerForkBridge({ on: (_e, fn) => { handler = fn; }, send: (m) => sent.push(m) });
         assert.ok(handler, 'registerForkBridge did not subscribe');
 
-        handler({ type: 'secrets:has-deepinfra-key-request', id: 'a' });
-        handler({ type: 'secrets:get-deepinfra-key-request', id: 'b' });
+        // The server reads the slot as the `deepinfra` connection's key; the old
+        // DeepInfra-only requests are gone and get no answer.
+        handler({ type: 'secrets:get-deepinfra-key-request', id: 'a' });
+        handler({ type: 'secrets:get-endpoint-profile-request', id: 'b', profileId: 'deepinfra' });
 
-        assert.deepStrictEqual(sent[0], { type: 'secrets:has-deepinfra-key-response', id: 'a', has: true });
-        assert.deepStrictEqual(sent[1], { type: 'secrets:get-deepinfra-key-response', id: 'b', value: 'bridge-key-789' });
+        assert.strictEqual(sent.length, 1, `retired request answered: ${JSON.stringify(sent)}`);
+        assert.strictEqual(sent[0].id, 'b');
+        assert.strictEqual(sent[0].key, 'bridge-key-789');
     } finally {
         if (prevUserData === undefined) delete process.env.APP_USER_DATA;
         else process.env.APP_USER_DATA = prevUserData;
@@ -343,12 +349,6 @@ function testDeepInfraPricesParse() {
     ] });
     assert.deepStrictEqual(prices, { 'google/gemma-4-26B-A4B-it': { in: 0.07, out: 0.33999999999999997 } });
     assert.deepStrictEqual(parseDeepInfraPrices(null), {});
-}
-
-function testPriceLabel() {
-    const { priceLabel } = require('../js/services/llmService.js');
-    assert.strictEqual(priceLabel({ in: 0.07, out: 0.33999999999999997 }), '$0.07 in, $0.34 out per 1M tokens');
-    assert.strictEqual(priceLabel({ in: 0.0015, out: 2.5 }), '$0.0015 in, $2.50 out per 1M tokens');
 }
 
 // ── MPI-737: backend migration, describe prefs, describeImage branches ────────
@@ -478,6 +478,44 @@ function testEnhanceEndpointErrorIsText() {
     });
 }
 
+function testFlowEnhanceSendsTheRemotePick() {
+    // A Flow's Enhance used to send the OLLAMA pick (mapped through deepInfraId) to
+    // Remote, whatever the Remote dropdown said: the bug enhance() had already fixed.
+    const realFetch = global.fetch;
+    const bodies = [];
+    global.fetch = (url, init) => {
+        if (String(url).startsWith('/comfy_workflows/')) {
+            const graph = WORKFLOW(String(url).slice('/comfy_workflows/'.length));
+            return Promise.resolve({ ok: true, json: () => Promise.resolve(graph) });
+        }
+        if (url === '/llm/enhance') bodies.push(JSON.parse(init.body));
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true, text: 'a cat', backend: 'b', model: 'm', models: [] }) });
+    };
+    setBackendPreference('endpoint');
+    setEnhancerModelPreference('gemma-4-e4b');
+    setEndpointModelPreference('meta-llama/Some-Model');
+    return enhanceFlow({ prompt: 'a cat' }).then((res) => {
+        assert.strictEqual(res.ok, true, JSON.stringify(res));
+        assert.strictEqual(bodies[0].modelId, 'meta-llama/Some-Model', 'a Flow must send the Remote pick');
+        assert.strictEqual(bodies[0].profileId, 'deepinfra');
+        setEndpointModelPreference(undefined);
+        Storage.setLlmConnection({ profileId: 'openrouter' });
+        return enhanceFlow({ prompt: 'a cat' });
+    }).then(() => {
+        assert.strictEqual(bodies[1].modelId, undefined, 'the Ollama pick must not reach another provider');
+        setBackendPreference('ollama');
+        return enhanceFlow({ prompt: 'a cat' });
+    }).then(() => {
+        assert.strictEqual(bodies[2].modelId, 'gemma-4-e4b', 'Ollama keeps its registry pick');
+    }).finally(() => {
+        delete _ls['cubric.llm.backend'];
+        setEnhancerModelPreference(undefined);
+        setEndpointModelPreference(undefined);
+        Storage.setLlmConnection({ profileId: 'deepinfra' });
+        global.fetch = realFetch;
+    });
+}
+
 function testDescribeImageEndpointBranch() {
     // Endpoint: POST body carries profileId + imagePath; no enqueueGeneration call.
     const realFetch = global.fetch;
@@ -563,7 +601,6 @@ const tests = [
     testForkBridgeAnswersDeepInfraRequests,
     testModelNamesSayWhichSizeRuns,
     testDeepInfraPricesParse,
-    testPriceLabel,
     // MPI-737 additions
     testChooseBackendAcceptsEndpoint,
     testBackendPreferenceMigratesDeepInfra,
@@ -573,6 +610,7 @@ const tests = [
     testBuildDescribeInjectionParamsChatMlWrapping,
     testEnhancerModelMigrationViaModelsEndpoint,
     testEnhanceEndpointErrorIsText,
+    testFlowEnhanceSendsTheRemotePick,
     testDescribeImageEndpointBranch,
     testDescribeImageEndpointErrorNoFallback,
     testDescribeImageComfyPluginMissing,

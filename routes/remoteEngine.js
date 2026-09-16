@@ -23,8 +23,8 @@ const { isNetworkDownError } = require('./netCheck');
 const { ask: _ask } = require('./forkBridge');
 
 // --- fork bridge (child -> main request/response by id) ---------------------
-// Moved to ./forkBridge.js in MPI-677 step 1a so the enhance route can ask for
-// the DeepInfra key over the SAME single listener. Behaviour is unchanged.
+// Moved to ./forkBridge.js in MPI-677 step 1a so the LLM routes can ask for
+// their connection keys over the SAME single listener. Behaviour is unchanged.
 
 async function getRunPodApiKey() {
   const m = await _ask('secrets:get-api-key-request', {});

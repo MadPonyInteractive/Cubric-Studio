@@ -264,3 +264,8 @@ in this card.
   rendering-only constraint line. First run caught the agent pasting the H3 guide's worked example
   verbatim, because that example WAS a sample request (SDXL's too): both guide examples were
   replaced with requests the samples do not use, and the rerun shows a written adaptation.
+
+## Phase 3b item 3 - Fabio (2026-09-16, recorded by MPI-737 session 5da6c574)
+
+- Fabio screenshots: the panel sits BELOW the "<- PROJECTS" row; `look` answered on Remote in a project and on the landing page. His note: the transcript text touches the panel edge.
+- Fixed: `MpiAgentChat.css` `#agent-panel-mount .mpi-agent-chat__transcript { padding-inline: var(--s-3) }` (the header gutter). `npx playwright test --config=playwright.desktop.config.js tests/desktop/agent-chat.spec.js --output=<scratchpad>` -> 19 passed. Awaiting his reload to close item 3.

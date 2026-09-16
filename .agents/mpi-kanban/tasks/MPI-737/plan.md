@@ -7,13 +7,18 @@ settings UI); the maps below are theirs, line numbers as of that day - re-grep b
 ## Current State
 
 - **Project mode:** scalable-foundation.
-- **2026-09-16 ~13:10Z, where it stands:** Phase 3 DONE - Fabio checked it in his app and ran Remote describe +
-  enhance for real (`validation.md`). His three follow-up tweaks are built and spec-verified (sign-up box at the top
-  of Remote connection; key group hidden for the keyless Ollama preset; Agent backend = fixed label
-  `#mpiSettingsAgentBackend`, no dropdown) - he has not looked at them yet. **Next action: Phase 4** (docs + retire the
-  orphans listed under Plan Drift), and ask Fabio to glance at the three tweaks on his next reload. Then the
-  remaining Verification steps (2: describe not in the Cue during a generation; 4: agent `look` on Remote;
-  5: keyless Remote fails plainly).
+- **2026-09-16 ~13:25Z, where it stands:** Phases 0-4 DONE. Phase 3 + its three tweaks verified by Fabio in his app;
+  Phase 4 (docs, rule files with his yes, orphan chain option A, `enhanceFlow` model fix) auto-verified
+  (`validation.md`). **Next action:** the rest of the end-to-end checks with Fabio. His screenshots already
+  passed step 4's Remote half and step 5's settings half. Still open: step 2 (a Remote describe during a
+  local generation lands in the prompt box, no Cue job), step 4's ComfyUI half, and step 5's attempt (a
+  describe/enhance on keyless Remote fails with the D1 message). Then `mpi-end-session` (brief's four
+  points one by one). The same session also took MPI-774 feedback (that card's plan, Phase 3c).
+- **Open ask from Fabio (2026-09-16), NOT built:** a Remote describe shows no progress (a ComfyUI describe shows in
+  the status bar). He expects to use one of the mascot animations "that we will implement soon". Needs his call at
+  close-out: fold into this card, or a new card once the mascot animations exist.
+- **`/llm/enhance` now REQUIRES `backend: 'endpoint'|'ollama'`** - no server default, no `deepinfra` branch. An
+  external caller relying on the old default gets an error naming the two values.
 - **Phase 3 shape (for Phase 4 docs):** one `/llm/connection/models` fetch per render (`_refreshModels`) feeds the
   Enhancement, Image descriptions and Agent model dropdowns via `_remoteModelOptions(job, saved, filter)`; Remote is
   greyed only on NO_KEY / NO_PROFILE (`_remoteBlocked`), an unreachable endpoint stays pickable with the error in the
@@ -32,9 +37,6 @@ settings UI); the maps below are theirs, line numbers as of that day - re-grep b
   (not abliterated - Phase 3 copy must say a hosted model may refuse adult images); enhance =
   `google/gemma-4-26B-A4B-it`, `google/gemma-3-12b-it` (the registry's deepInfraIds). DeepInfra vision
   models ARE tagged `chat`, so `listRemoteModels`' filter keeps them; 107 models listed.
-- **Still in `routes/llm.js` for Phase 3/4 to retire:** the `'deepinfra'` value on `/llm/enhance`,
-  `defaultBackend()` and the DeepInfra-shaped `/llm/status` (only `llm.js` itself calls `defaultBackend`;
-  `MpiLlmSettings.js` uses `secretsClient.hasDeepInfraKey()`, not `/llm/status`) - grep callers first.
 - MPI-774's connection section is committed and its claims are `complete`; the three shared files are
   ours to edit now. MPI-774's next session (Phase 3b) may touch `services/agentCorpus.mjs` and the agent
   system prompt only - re-check claims before Phase 3 anyway.
@@ -93,7 +95,8 @@ settings UI); the maps below are theirs, line numbers as of that day - re-grep b
 - [x] Spec (`brief.md`), ownership split agreed with MPI-774 by message, investigation. 2026-09-16.
 - [x] Phase 0 gate (HEAD `b8c293ff`). 2026-09-16.
 - [x] Phase 3: settings rows - Remote on Enhancement + Image descriptions with model dropdowns, Account block gone,
-  Remote enhance model on its own pref; Fabio verified in the app, then three tweaks. 2026-09-16.
+  Remote enhance model on its own pref; Fabio verified in the app, then three tweaks (also verified). 2026-09-16.
+- [x] Phase 4: docs + rule files + orphan chain + `enhanceFlow` model fix (Plan Drift). 2026-09-16.
 - [x] Parallel batch: `/llm/describe`, endpoint enhance, honest engine label, recommended rows;
   `describeImage` switch point, pref migration, dead `runImageDescribe` deleted; integration fixes
   (Plan Drift). 2026-09-16.
@@ -191,7 +194,7 @@ cleanly; otherwise run server first, renderer second.
 
 ## Phase 4: Docs and stale copy
 
-- [ ] Rewrite `docs/llm.md` (jobs x backends table with Remote, `/llm/describe`, the endpoint branch,
+- [x] (2026-09-16, auto) Rewrite `docs/llm.md` (jobs x backends table with Remote, `/llm/describe`, the endpoint branch,
   the "descriptions are ComfyUI-only" rule at ~136 removed), `docs/agent/prompt-enhancement.md` ~59,
   `docs/playbooks/add-flow/ui/prompt-enhance.md` ~186, `docs/agent-chat.md` ~166-182 (only the
   describe-backend lines; MPI-774 owns the rest), stale comments (`MpiPromptBox.js` ~1976,
@@ -203,6 +206,13 @@ cleanly; otherwise run server first, renderer second.
 
 ## Plan Drift
 
+- **2026-09-16 - Phase 4: wider than the doc pass.** (1) Fabio chose option A: with 0 callers found (Vision, Studio,
+  Prompt), `/llm/status`, `defaultBackend()`, the `deepinfra` branch of `/llm/enhance`, the route's key helpers and
+  the two `secrets:{get,has}-deepinfra-key-request` bridge handlers went along with the listed orphans; the route now
+  requires `endpoint|ollama`. (2) Bug: `enhanceFlow` still sent the Ollama pick to Remote (Phase 3 fixed only
+  `enhance()`); one helper `_endpointEnhanceModel(profileId)` now serves both. (3) The unshipped MPI-728
+  `UNRELEASED.md` bullet said "DeepInfra", so it was rewritten instead of adding a second one. (4) Stale comments in
+  `routes/forkBridge.js`, `routes/remoteEngine.js` and the `docs/README.md` router row were fixed too (claim extended).
 - **2026-09-16 - Phase 3: Remote enhance model got its OWN pref.** `cubric.llm.enhancerModel` held Ollama's registry id
   AND would have held the Remote raw id, so a Remote pick reached Ollama as an unknown id while the Ollama dropdown
   showed the default. New `endpointModelPreference()` / `setEndpointModelPreference()` (key `cubric.llm.endpointModel`);

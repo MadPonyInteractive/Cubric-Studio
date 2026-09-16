@@ -53,7 +53,7 @@ export const COMFY_ENHANCE_OP = 'promptEnhance';
 const BACKEND_PREF_KEY = 'cubric.llm.backend';
 
 /** Per-viewer enhancer-model choice for Ollama: a MODEL_REGISTRY id. Before MPI-737
- *  it also held the DeepInfra pick, which is why the endpoint branch still reads it. */
+ *  it also held the DeepInfra pick, which is why `_endpointEnhanceModel` still reads it. */
 const ENHANCER_MODEL_PREF_KEY = 'cubric.llm.enhancerModel';
 /** Per-viewer enhancer model on Remote: a raw endpoint id (MPI-737). Its own key,
  *  or a Remote pick would reach Ollama as an id Ollama has never heard of. */
@@ -296,6 +296,17 @@ export function setEndpointModelPreference(id) {
 }
 
 /**
+ * The model a Remote enhance sends, for BOTH `enhance()` and `enhanceFlow()`. The Remote
+ * pick first; else a pre-MPI-737 DeepInfra pick (a registry id) mapped to its
+ * `deepInfraId`, which means something only on the DeepInfra connection. Anywhere else,
+ * undefined -> the server's recommended model for the connection.
+ */
+async function _endpointEnhanceModel(profileId) {
+    return endpointModelPreference()
+        ?? (profileId === 'deepinfra' ? await _resolveEndpointModelId(enhancerModelPreference()) : undefined);
+}
+
+/**
  * Resolve a caller's recipe key exactly as the broker responder used to: exact
  * id, then family alias, then the pinned fallback.
  *
@@ -379,9 +390,8 @@ export function splitLabelledPrompt(text) {
  * because coverage is asymmetric on purpose and the picker filters by the backend
  * the user chose. An unreachable server answers `[]`, which the picker renders as
  * "the default" rather than as an error — nothing is broken, there is simply
- * nothing to choose between yet. A DeepInfra entry also carries `price`, live
- * from DeepInfra once a key is saved and null otherwise. `isDefault` marks the
- * model the app runs when the user has picked none.
+ * nothing to choose between yet. `isDefault` marks the model the app runs when
+ * the user has picked none; `deepInfraId` maps a pre-MPI-737 pick for Remote.
  */
 export async function enhancerModels() {
     try {
@@ -392,19 +402,6 @@ export async function enhancerModels() {
     } catch {
         return [];
     }
-}
-
-/**
- * A DeepInfra `{ in, out }` price (USD per 1M tokens) as the picker's meta line,
- * `$0.07 in, $0.34 out per 1M tokens`. Three significant figures, so the API's
- * `0.33999999999999997` reads $0.34 and a sub-cent price never rounds to $0.00.
- */
-export function priceLabel(price) {
-    const usd = (n) => {
-        const v = Number(n.toPrecision(3));
-        return `$${v < 0.1 ? v : v.toFixed(2)}`;
-    };
-    return `${usd(price.in)} in, ${usd(price.out)} out per 1M tokens`;
 }
 
 /**
@@ -457,7 +454,7 @@ export function pullOllamaModel(modelId) {
  * `TextGenerate` it runs `Replace Text` (newlines out), `Input_Scrub_Negation` ("no ..."
  * clauses out) and `Input_Tidy` (a trailing comma or full stop out), and Character
  * Sheet's recipe lives in the graph's `Input_System_Prompt` node, not in its
- * declaration. A flow that follows the user's pick to DeepInfra or Ollama has to carry
+ * declaration. A flow that follows the user's pick to Remote or Ollama has to carry
  * all of that with it, or it silently changes the instrument it was tuned on.
  *
  * READ FROM THE GRAPH, NOT COPIED: the baked values are the defaults, and a caller's
@@ -678,7 +675,7 @@ export async function runComfyEnhance({ prompt, system, injectionParams, modelId
  * pick is honoured and the pipeline travels with it:
  *
  *   - `comfy` — unchanged, byte for byte: `runComfyEnhance` with the declaration's params.
- *   - `deepinfra` / `ollama` — the graph's baked values with the declaration's params over
+ *   - `endpoint` / `ollama` — the graph's baked values with the declaration's params over
  *     them: the system prompt unwrapped from ChatML, `Input_Text_Gen.max_length` as the
  *     token cap (Music Maker's guard against a measured 1400-token repetition loop), and
  *     the graph's three text nodes run on the reply by `postProcessLikeGraph`.
@@ -705,15 +702,14 @@ export async function enhanceFlow({ prompt, injectionParams, modelId = null } = 
     } catch (err) {
         return { ok: false, error: `The prompt enhancer could not load its recipe: ${err.message}` };
     }
-    const rawModelId = enhancerModelPreference();
-    const resolvedModelId = backend === 'endpoint' ? await _resolveEndpointModelId(rawModelId) : rawModelId;
+    const { profileId } = Storage.getLlmConnection();
     const result = await runServerBackend({
         prompt,
         system: unwrapChatMl(params.Input_System_Prompt),
         backend,
-        modelId: resolvedModelId,
+        modelId: backend === 'endpoint' ? await _endpointEnhanceModel(profileId) : enhancerModelPreference(),
         maxTokens: params['Input_Text_Gen.max_length'],
-        ...(backend === 'endpoint' ? { profileId: Storage.getLlmConnection().profileId } : {}),
+        ...(backend === 'endpoint' ? { profileId } : {}),
     });
     return result.ok ? { ...result, text: postProcessLikeGraph(result.text, params) } : result;
 }
@@ -755,11 +751,7 @@ export async function enhance({ prompt, model, recipeKey, mode, backend } = {}) 
     const chosen = chooseBackend({ override: backend ?? backendPreference() });
 
     const { profileId } = Storage.getLlmConnection();
-    const resolvedModelId = chosen !== 'endpoint' ? enhancerModelPreference()
-        : endpointModelPreference()
-        // A pre-MPI-737 DeepInfra pick is a registry id; its deepInfraId only means
-        // something on DeepInfra. Anywhere else: '' -> the server's recommended model.
-        ?? (profileId === 'deepinfra' ? await _resolveEndpointModelId(enhancerModelPreference()) : undefined);
+    const resolvedModelId = chosen === 'endpoint' ? await _endpointEnhanceModel(profileId) : enhancerModelPreference();
 
     const result = chosen === 'comfy'
         ? await runComfyEnhance({

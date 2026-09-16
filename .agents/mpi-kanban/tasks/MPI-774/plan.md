@@ -7,7 +7,15 @@
 **Evidence behind this plan:** `research/investigation.md` - verified facts with file:line, the
 seven investigator claims that turned out wrong, and a live orchestrator probe.
 
-**Where it stands (2026-09-16, session 105b3570, handed off):** Phase 3b is BUILT, VERIFIED and
+**Where it stands (2026-09-16 ~13:45Z, MPI-737 session 5da6c574 took Fabio's agent feedback; session
+6fd51047 closed without changes):** Fabio's screenshots show the panel BELOW the "<- PROJECTS" row and
+`look` answering on Remote, in a project and on the landing page. His one layout note, text touching
+the panel edge, is fixed (`MpiAgentChat.css`: panel transcript `padding-inline: var(--s-3)`,
+agent-chat spec 19/19) and waits on his reload; then item 3 is done. **Next: Phase 3c** (one
+conversation per project + the landing agent's project jobs): get Fabio's D4-D6 answers first, then
+build. Phase 4 (GPU) after 3c. The older note below is kept for its detail.
+
+**Earlier (2026-09-16, session 105b3570, handed off):** Phase 3b is BUILT, VERIFIED and
 COMMITTED (evidence: `validation.md` § Phase 3b): items 1, 2, 4, 5 done; **item 3 (panel below the
 topbar, 420px) waits only on Fabio's eyes** (reload his app, toggle Agent mode, look at the panel
 under the "<- PROJECTS" row). Harness 13/13 x3, every flip bites; H3 samples 150/190 words with shot
@@ -430,6 +438,9 @@ the landing rearrange (`user-ux`).*
   52px. Start it BELOW the topbar and the nav chips so they keep their own area, and widen it by
   100px (320 -> 420, `styles/shell/workspace.css` `#agent-panel-mount.agent-panel-mount--open`).
   Verify: the real-panel desktop test (width assertion) + a screenshot for Fabio.
+  **Fabio 2026-09-16:** position OK (his screenshots); "the chat window should have some padding so
+  that the letters are not straight up touching the edges" -> fixed in `MpiAgentChat.css`
+  (`#agent-panel-mount` transcript `padding-inline: var(--s-3)`, the header's gutter), awaiting his reload.
 - [x] **4. Update `.claude/rules/`** (Fabio said yes, 2026-09-16): the component maps for the new
   wiring (events `agent:*` + `agent:send`, state `agentMode`, the `#agent-panel-mount` shell mount,
   `MpiAgentChat` bus subscription, `MpiLlmSettings` connection block). Use the
@@ -441,6 +452,63 @@ the landing rearrange (`user-ux`).*
   when it is read (project open / first turn, via the app-state line), tools (`read_memory`,
   `write_memory` scoped to that folder only; NO delete, item 1), size caps, and whether the user sees
   it in the app. Writes go through a route, never a direct `fs` write from the loop.
+
+## Phase 3c: One conversation per project, and the landing agent's jobs (Fabio, 2026-09-16)
+
+*Taken by MPI-737 session 5da6c574 from Fabio's feedback; nothing built yet except the padding
+(item 3 above). Verify mode: auto for the code, user-ux for the end check. Decide D4-D6 with Fabio
+BEFORE building. Re-grep every line number.*
+
+Fabio, verbatim in intent: "each project has its own [short] recall ... if I change to another project, I
+don't want to see the same conversation ... I'm not saying unload the model". And on the landing page
+the agent should: create or open a project; on "create an image" with no project, make one (named
+"New Project" or similar) and generate there; on "let's start a new project, the goal is X", create it,
+open it, and start a memory file about the project.
+
+**Facts (checked 2026-09-16):** `routes/agent.js` holds ONE `AgentLoop` (`defaultLoop`,
+`services/agentLoop.mjs:989`); its state is all per-conversation (`_messages`, `_history`, `_images`,
+`_groups`, `_notes`, `_notesProject`, `_readIds`, `_pendingConfirm`, `_working`) plus the SSE
+`_subscribers`. `POST /agent/message` already carries `project`. `open_project` exists
+(`/connector/open-project`), user-given path only (prompt rule, `agentLoop.mjs` ~450). Projects are
+created by `POST /create-project { name, folderPath? }` (`routes/projects.js:769`: default root
+`getProjectsRoot()`, a taken name gets `_<8 hex>`, writes `project.json` + `project.md`) and listed by
+`POST /list-projects` (`:820`). Neither is a connector route or an agent tool. The renderer's
+project switch is `project:changed` (`js/events.js:126`).
+
+**Decisions for Fabio (recommendations first):**
+- **D4 - One turn at a time, app-wide?** Recommended: YES. `BUSY` stays global: one model conversation
+  runs at a time; a turn started in project A finishes in A's transcript even if you switch to B.
+  Alternative: a turn per project in parallel (more spend, more edge cases).
+- **D5 - The landing chat opens or creates a project: where does the conversation go?** Recommended:
+  it MOVES into that project when the project has no conversation yet (always true for a new one), and
+  the landing chat starts fresh. An existing project keeps its own conversation; the agent carries your
+  request over in one line. Alternative: the landing conversation stays on the landing page.
+- **D6 - Does a project's conversation survive an app restart?** Recommended: NO, as brief item 14
+  says; the `<project>/Agent/` notes are the memory that survives. Alternative: save it in the project.
+
+- [ ] **A. One conversation per project.** Server: `routes/agent.js` keeps a `Map` of loops keyed by
+  the project's `folderPath` (`''` = the landing page); `/agent/message` routes by `project`;
+  `/agent/history`, `/agent/reset` take `?project=`; `/agent/confirm` and `/agent/attachment/:id` find
+  the owning loop; `/agent/probe` stays loop-free. ONE `/agent/stream` for all: the subscribers move to
+  the router (one broadcaster handed to every loop) and every event carries its `session` key.
+  Attachments: a reset wipes only that conversation's files. Renderer: `agentService` sends, reads
+  history and resets with the key (open project, or `''` on landing); `MpiAgentChat` ignores events of
+  another session and re-renders from history on `project:changed`. D4/D5/D6 as answered.
+  **Verify:** unit test, two projects keep separate histories and `BUSY` follows D4; desktop spec,
+  switch project -> empty transcript, switch back -> it returns; landing and project chats differ;
+  `npm test`, `npm run agent:test` 13/13.
+- [ ] **B. The landing agent's project jobs.** Connector routes `GET /connector/projects` (over
+  `/list-projects`) and `POST /connector/create-project { name }` (over `/create-project`, default root
+  only, never overwrites), and tools `list_projects` / `create_project`. `open_project` then takes a
+  path from `list_projects` or from the user, never an invented one. Prompt rules: open by name; "make
+  X" with no project -> create "New Project" (a taken name gets the route's suffix), open it, generate;
+  "start a new project, the goal is X" -> name it from the goal, create, open, then `write_memory` a
+  project-brief note (goal, look, decisions so far). No delete anywhere: extend
+  `tests/agent-no-delete.test.cjs`'s allowlist by exactly these two routes. Docs: `docs/agent-chat.md`
+  tools + routes, `resources/cubric/connector-manifest.json` if it lists routes.
+  **Verify:** route tests (create never overwrites, list returns folderPaths); harness +3 cases (open
+  by name, create-then-generate, new project with a brief note), each with a `--bite` flip; then
+  Fabio on his landing page.
 
 ## Phase 4: Live on the GPU
 
@@ -475,6 +543,12 @@ the landing rearrange (`user-ux`).*
 
 ## Plan Drift
 
+- 2026-09-16 (~13:45Z, MPI-737 session 5da6c574): Fabio gave his agent feedback in the MPI-737
+  window after MPI-774's own session (6fd51047) closed with no changes. Folded in here, not a new card:
+  the panel padding (item 3, fixed) and Phase 3c (one conversation per project; landing agent creates
+  and opens projects). Phase 3c goes BEFORE Phase 4. MPI-737 also changed code this card reads:
+  `/llm/enhance` now requires `backend`, and the `secretsClient` DeepInfra-key methods are gone (no
+  agent caller used them).
 - 2026-09-16 (Phase 3b start, session 105b3570): (1) `files.json` named the moved
   `cubric-vision/generating.md` (MPI-776 split it into `cubric-vision-generate/SKILL.md`): repointed,
   and Phase 3's unlisted files added. (2) **`.claude/` is excluded from the portable build**

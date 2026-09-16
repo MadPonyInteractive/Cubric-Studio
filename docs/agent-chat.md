@@ -99,10 +99,10 @@ CLI agent's user is its own gate. Errors: `BAD_REQUEST`, `UNKNOWN_MODEL`, `ALREA
 
 **`POST /connector/describe { imagePath, question?, crop? }`** -> `{ ok, output: { text, box? } }`.
 `imagePath` absolute; a `crop` is cut with `sharp` to the agent dir first. No `question` = today's
-caption instruction; a `question` injects a whole ChatML string into `Input_Describe_Prompt`. Relayed
-as the model-free text op `imageDescribe`; `box` waits for Phase 4's measured answers. Errors:
-`BAD_REQUEST`, `IMAGE_NOT_FOUND`, `CROP_OUT_OF_BOUNDS`, `DESCRIBER_MISSING` (no Image Describer
-plugin), `APP_UNAVAILABLE`, `RUNTIME_ERROR`, `TIMEOUT`.
+caption instruction. Relayed as `agent.describe` to `llmService.describeImage`, which runs the user's
+Image descriptions pick ([llm.md](llm.md)); `box` waits for Phase 4's measured answers. Errors:
+`BAD_REQUEST`, `IMAGE_NOT_FOUND`, `CROP_OUT_OF_BOUNDS`, `DESCRIBER_MISSING` (ComfyUI, no Image Describer
+plugin), the Remote codes (`NO_KEY`, `NOT_VISION`, ...), `APP_UNAVAILABLE`, `RUNTIME_ERROR`, `TIMEOUT`.
 
 **`POST /connector/generate`, Flow `params`** `{ box1: { x, y, width, height } }`: checked against
 the flow's `kind: 'box'` steps (known `param`, integers, square when `ratio: 1`), merged into
@@ -172,7 +172,7 @@ Can this model call a tool? One tiny call with one tool, **never retried without
 - **Attachments** are staged in `<APP_USER_DATA>/agent/attachments/` (`os.tmpdir()/cubric-agent`
   when standalone), wiped at server start and on reset. Crops go to `.../agent/crops/`.
 
-## The shared LLM connection (every Remote job; MPI-737 builds its rows on it)
+## The shared LLM connection (every Remote job; the Enhancement/Descriptions side is llm.md)
 
 A profile is a CONNECTION: `{ id, name, baseURL }` + a write-only key (`main/secretsStore.js`); presets
 DeepInfra (the existing key slot), OpenRouter, OpenAI, Ollama `/v1`, custom. ONE pick,

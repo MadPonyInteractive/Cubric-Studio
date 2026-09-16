@@ -1971,8 +1971,8 @@ export const MpiPromptBox = ComponentFactory.create({
         // there is no longer a second app for it to be conditional on.
         //
         // NO PER-MODEL BRANCH, deliberately. `krea2` and `chroma` take the identical
-        // code path: llmService picks the backend (DeepInfra by default — off-GPU, no
-        // queue wait — with the in-graph encoder or Ollama locally) and
+        // code path: llmService runs the backend the user picked in Language Models
+        // (ComfyUI by default; Remote off-GPU with no queue wait; or Ollama) and
         // `resolveRecipe()` picks the recipe. The in-graph `Input_Enhance_Prompt`
         // toggle is GONE for the same reason: enhancement stopped being a property of
         // the workflow and became its own thing, which is what makes one path possible.

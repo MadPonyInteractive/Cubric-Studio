@@ -393,6 +393,27 @@ test('POST /llm/enhance endpoint branch: NO_PROFILE when connection is not found
     }
 });
 
+test('POST /llm/enhance: the retired deepinfra backend and a missing backend are refused, not defaulted', async () => {
+    // Before Phase 4 both ran on DeepInfra through defaultBackend(); the pick is the user's now.
+    const restore = stubUpstream(async () => { throw new Error('should not reach upstream'); });
+    try {
+        await withServer(async (base) => {
+            for (const backend of ['deepinfra', undefined]) {
+                const res = await fetch(`${base}/llm/enhance`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ backend, prompt: 'hi' }),
+                });
+                const body = await res.json();
+                assert.equal(body.ok, false);
+                assert.match(body.error, /'endpoint' or 'ollama'/);
+            }
+        });
+    } finally {
+        restore();
+    }
+});
+
 // ── Engine honest backend label ───────────────────────────────────────────────
 
 test('DeepInfraEngine reports honest backend when constructed with a profile', async () => {

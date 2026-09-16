@@ -54,13 +54,14 @@ The exemption is **per operation, not per model**:
 
 ## Backends
 
-Three, chosen automatically and pinnable:
+Three, and the user picks one in Remote > Language Models. Nothing picks for them:
 
-- **DeepInfra** (cloud) — the default when a key is set. No local VRAM, no queue.
-- **Ollama** (local) — the fallback, and the only path for uncensored work: no hosted
-  provider carries an abliterated build.
-- **ComfyUI** (in-graph) — used for an uncensored model that ships its own encoder. It
-  is a queued job, so it waits behind a running generation.
+- **ComfyUI** (in-graph) — the default. Uncensored, local or on the Pod. It is a queued
+  job, so it waits behind a running generation.
+- **Remote** — the user's one OpenAI-compatible connection (DeepInfra, OpenRouter,
+  OpenAI, a custom URL). No local VRAM, no queue. A hosted model may refuse adult material.
+- **Ollama** (local) — a second local runtime that Vision starts and unloads. It carries
+  the abliterated builds.
 
 The completion always reports which backend and model actually answered. Show it
 truthfully; never imply local when the cloud ran.

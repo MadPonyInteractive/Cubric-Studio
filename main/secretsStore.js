@@ -154,11 +154,12 @@ function clearApiKey() {
   return { ok: true };
 }
 
-// --- DeepInfra (the cloud prompt enhancer, MPI-677 step 1a) -----------------
+// --- DeepInfra key slot (MPI-677 step 1a) -----------------------------------
 // ITS OWN SLOT, never the RunPod one. They are different vendors, different
 // consequences of a leak, and a user may hold one and not the other — sharing
 // `runpodApiKey` would silently authenticate DeepInfra with a RunPod key and
-// report the failure as "enhance is down".
+// report the failure as "enhance is down". Since MPI-737 it is reached only as
+// the `deepinfra` connection profile's key (below); no IPC channel names it.
 
 function setDeepInfraKey(plainKey) {
   if (!plainKey || typeof plainKey !== 'string') {
@@ -349,12 +350,6 @@ function init({ app, safeStorage, ipcMain, logger }) {
     ipcMain.handle('secrets:has-api-key', () => ({ has: hasApiKey() }));
     ipcMain.handle('secrets:clear-api-key', () => clearApiKey());
     ipcMain.handle('secrets:encryption-status', () => encryptionStatus());
-    // DeepInfra: set / has / clear only. There is deliberately NO get channel —
-    // the renderer must never hold the key, and the forked server resolves it
-    // over the fork bridge below.
-    ipcMain.handle('secrets:set-deepinfra-key', (_e, { key } = {}) => setDeepInfraKey(key));
-    ipcMain.handle('secrets:has-deepinfra-key', () => ({ has: hasDeepInfraKey() }));
-    ipcMain.handle('secrets:clear-deepinfra-key', () => clearDeepInfraKey());
     // Wrapper token is write-only from the renderer (keyed to a podId). There is
     // deliberately no renderer get channel — the forked server resolves it via
     // the fork bridge. Used by Phase 4 in-app Pod-create and the manual store path.
@@ -399,16 +394,6 @@ function registerForkBridge(serverProcess) {
       let value = null;
       try { value = getApiKey(); } catch { value = null; }
       serverProcess.send({ type: 'secrets:get-api-key-response', id: msg.id, value });
-    } else if (msg.type === 'secrets:get-deepinfra-key-request') {
-      let value = null;
-      try { value = getDeepInfraKey(); } catch { value = null; }
-      serverProcess.send({ type: 'secrets:get-deepinfra-key-response', id: msg.id, value });
-    } else if (msg.type === 'secrets:has-deepinfra-key-request') {
-      // Presence only — this is what the enhance route's readiness probe asks,
-      // so the key itself never crosses the channel just to answer "is it set?".
-      let has = false;
-      try { has = hasDeepInfraKey(); } catch { has = false; }
-      serverProcess.send({ type: 'secrets:has-deepinfra-key-response', id: msg.id, has });
     } else if (msg.type === 'secrets:get-wrapper-token-request') {
       let value = null;
       try { value = getWrapperToken(msg.podId); } catch { value = null; }

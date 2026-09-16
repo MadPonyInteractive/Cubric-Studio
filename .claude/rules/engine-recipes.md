@@ -11,10 +11,12 @@ engine model is a file or an entry, never a new branch at a call site.
 
 ## Three decoupled axes — never conflate them
 
-- **Engine** — *which LLM rewrites.* `services/llmEngines.mjs`: Ollama, ComfyUI, DeepInfra, and
-  `MODEL_REGISTRY` (a neutral `id` plus `ollamaName` and/or `deepInfraId`). One implementation,
-  two consumers: the app's route (`routes/llm.js`) and the Stage 1 harness
-  (`scripts/recipe-test.mjs`). The user picks a backend per job in Language Models settings.
+- **Engine** — *which LLM rewrites.* `services/llmEngines.mjs`: Ollama, ComfyUI, any
+  OpenAI-compatible endpoint (`DeepInfraEngine`, the app's "Remote" connection), and
+  `MODEL_REGISTRY` (a neutral `id` plus `ollamaName` and/or `deepInfraId`; in the app it is the
+  Ollama catalogue, Remote models come from the connection). One implementation, two consumers:
+  the app's route (`routes/llm.js`) and the Stage 1 harness (`scripts/recipe-test.mjs`). The
+  user picks a backend per job in Language Models settings ([docs/llm.md](../../docs/llm.md)).
 - **Recipe** — *which target model's syntax to rewrite toward.* `js/data/recipes/{id}.recipe.js`
   plus one line in `registry.js`.
 - **Style / register** — *how directed the image is:* `cinematic` / `general` / `candid`,

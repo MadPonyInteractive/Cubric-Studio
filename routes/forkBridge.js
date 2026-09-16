@@ -6,7 +6,7 @@
  * message pairs keyed by a random id; this is the child half.
  *
  * Extracted verbatim from `routes/remoteEngine.js` (MPI-677 step 1a) because the
- * enhance route needs the same channel for the DeepInfra key. There is ONE
+ * LLM routes need the same channel for their connection keys. There is ONE
  * `process.on('message')` listener for all callers — a second listener would see
  * every message and drop the ones it does not own, which works only until
  * someone reads the code and believes otherwise.
