@@ -56,11 +56,13 @@ so the rebuild reproduces the shipped 1.6.0.
 - Engine pins (`node_lock.json`, `system_dependencies.json`) unchanged since `df2400bf`, so the
   first launch installs nothing new.
 
+- **In the field (2026-09-16, reported by Fabio):** the tester applied the delta over his
+  1.6.0 install and the update succeeded.
+
 ## Not done
 
-- The patched app was not launched. The build is byte-identical to the full 1.6.1 stage,
-  so a launch would test master's boot, which Fabio accepted as is.
-- Handover is Fabio's: send the zip and the note.
+- The patched app was not launched here. The build is byte-identical to the full 1.6.1
+  stage, so a launch would only test master's boot, which Fabio accepted as is.
 
 ## Owed later
 
