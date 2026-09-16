@@ -1,0 +1,12 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-782/",
+    "js/core/appVersion.js",
+    "package.json",
+    "package-lock.json",
+    "js/data/releaseNotes.js",
+    "docs/releases/.approved-1.6.1.json"
+  ],
+  "note": "The version stamp and its approval token are the only source edits. The build itself runs in the detached worktree D:/tmp/cv-720 and writes to D:/CubricStudio/Vision/Builds; --no-source-manifest keeps it off resources/cubric/update-manifest.json."
+}
