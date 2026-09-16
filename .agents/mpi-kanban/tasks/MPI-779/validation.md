@@ -32,3 +32,7 @@ exit was the defect; the handler order only exposed it.
 
 Not testable on Windows: a real OS SIGTERM (Windows terminates without running handlers),
 which is why main.js's before-quit clean stays the Windows path.
+
+## Follow-up
+
+Rule drift fixed on the user's go: `.claude/rules/comfy_injection_multistage.md` said the scratch clean ran on "SIGTERM/SIGINT, `server.js`" for every instance. It now names the owner gate (MPI-778) and both callers: main.js `before-quit`, and the fork's `installShutdown` before the engine kill.

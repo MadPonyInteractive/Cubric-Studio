@@ -109,8 +109,10 @@ T2V previews carry no snapshots, so only latent state gates them.
 dims, the full `injectionParams` map, media items) so the final matches the preview's
 intent — see [docs/project-integrity.md](../../docs/project-integrity.md).
 
-Engine `input/` copies are not cleaned per run. `cleanComfyUITempFiles` empties `input/` and
-`output/` on app exit (SIGTERM/SIGINT, `server.js`). Mid-session bloat is bounded by uuid
+Engine `input/` copies are not cleaned per run. `input/` and `output/` are emptied on exit,
+and only by the instance that spawned the engine (`routes/engineScratch.js`, MPI-778):
+main.js from `before-quit`, and the server fork from `installShutdown` (`routes/shared.js`)
+on SIGTERM/SIGINT, before it kills the engine (MPI-779). Mid-session bloat is bounded by uuid
 uniqueness — one staged latent per preview, overwritten on rerun.
 
 ## Traps

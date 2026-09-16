@@ -1,3 +1,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-779", "at": "2026-09-16T12:50:16+01:00", "actor": "claude", "column": "todo", "title": "Fork SIGTERM/SIGINT skips server cleanup: shared.js exits first"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-779", "at": "2026-09-16T12:50:59+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-779", "at": "2026-09-16T12:54:03+01:00", "actor": "claude", "from": "doing", "to": "done"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-779", "at": "2026-09-16T12:57:08+01:00", "actor": "claude", "from": "done", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-779", "at": "2026-09-16T12:57:25+01:00", "actor": "claude", "from": "doing", "to": "done"}
