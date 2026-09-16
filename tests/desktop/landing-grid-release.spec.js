@@ -5,7 +5,7 @@
 // Chromium idle-suspends it ~15s later. The app server is HTTP/1.1 on one host, and the
 // renderer already holds three EventSource streams of Chromium's six connections, so three
 // such clips stalled every fetch behind the gallery: a save sat queued for 14.9s in 6 of 10
-// real-app runs (0 of 10 with the release).
+// real-app runs (0 of 16 with the release).
 //
 // This spec does not reproduce the stall itself: under CUBRIC_E2E the GPU is off, and with
 // the fix removed the same clips held their connections in none of 9 runs. It pins the

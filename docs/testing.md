@@ -5,7 +5,7 @@ them and neither may be red when the release is approved.
 
 ```sh
 npm test               # unit suite — node --test "tests/**/*.test.cjs", ~9s
-npm run test:desktop   # Playwright/Electron UI specs — ~1.2 min
+npm run test:desktop   # Playwright/Electron UI specs — ~10 min (102 tests, 2026-09-16)
 ```
 
 `node --test tests/` (the directory form) does NOT work: Node treats the path as a
