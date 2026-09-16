@@ -11,8 +11,13 @@ import {
     setBackendPreference,
     enhancerModelPreference,
     setEnhancerModelPreference,
+    endpointModelPreference,
+    setEndpointModelPreference,
+    describeBackendPreference,
+    setDescribeBackendPreference,
+    describeModelPreference,
+    setDescribeModelPreference,
     enhancerModels,
-    priceLabel,
 } from '../../../services/llmService.js';
 import { qs } from '../../../utils/dom.js';
 import { Storage } from '../../../core/storage.js';
@@ -22,31 +27,25 @@ import { Storage } from '../../../core/storage.js';
  *
  * THE SECTION IS ABOUT THE LANGUAGE MODEL, NOT ABOUT ONE BUTTON (Fabio,
  * 2026-09-12). An earlier draft was written entirely around prompt enhancement
- * and read as if that were the only job. It is not: an LLM already writes image
- * descriptions here too, and the agent is a third job arriving later. So the
- * section is per-JOB — one row each — and the copy talks about the models rather
- * than about Enhance.
+ * and read as if that were the only job. It is not: an LLM writes image
+ * descriptions here too, and drives the agent. So the section is per-JOB — one
+ * row each — and the copy talks about the models rather than about Enhance.
  *
  * THE CHOICE IS WHERE THE WORK RUNS, NOT WHICH ANSWER IS BETTER. His two cases
  * are the spec: generating on a RunPod pod, enhance locally because the card is
- * idle; generating locally, push it to the cloud so it costs no VRAM. Every entry
+ * idle; generating locally, push it to Remote so it costs no VRAM. Every entry
  * is labelled with what it COSTS, and the model choice sits UNDER the backend.
  *
- * THE JOBS, and what each can honestly offer today:
- *   - **Enhancement** — all three backends. Live.
- *   - **Descriptions** — ComfyUI only, and that is a MEASURED limit rather than a
- *     missing feature: `MODEL_REGISTRY` (`services/llmEngines.mjs`) is four models
- *     and every one is TEXT-ONLY, so neither DeepInfra nor Ollama has anything
- *     that can look at an image. The row says so instead of offering a choice
- *     that would break "Describe image". **MPI-737 owns growing it**, by putting
- *     a vision-capable entry in the registry and routing `imageDescribe` through
- *     the chosen backend.
- *   - **Agent** — MPI-774. Remote only: the model is picked from the shared
- *     connection's list, recommended first.
- *
- * THE REMOTE CONNECTION IS SHARED (MPI-774, Fabio 2026-09-16): one provider + key
- * at the top, every job that runs on Remote uses it. MPI-737 relabels the other
- * two rows to "Remote" and drops the DeepInfra-only Account block below.
+ * ONE REMOTE CONNECTION FOR EVERY JOB (MPI-774 + MPI-737, Fabio 2026-09-16): the
+ * provider + key at the top; "Remote" in any row means that connection, never a
+ * vendor name. The connection's model list is fetched ONCE per render
+ * (`_refreshModels`) and every row's model dropdown reads it, recommended first.
+ *   - **Enhancement** — ComfyUI / Ollama / Remote.
+ *   - **Image descriptions** — ComfyUI / Remote (a vision model on the endpoint).
+ *   - **Agent** — Remote only.
+ * The DeepInfra-only Account block is gone; the deepinfra preset reads the key
+ * saved there, so nobody re-enters it. Its sign-up box stays, at the top of the
+ * connection, because DeepInfra is the provider we recommend (Fabio 2026-09-16).
  *
  * WHAT IS DELIBERATELY NOT HERE: any notion of an "uncensored model" (MPI-728 —
  * a LoRA the user downloads makes any model uncensored, so it was never a fact
@@ -61,8 +60,8 @@ const ENHANCER_PLUGIN_ID = 'image-describer';
 /**
  * `mpi-dropdown--stacked` puts each option's meta on its OWN line with no
  * ellipsis cap. Without it the cost labels — the entire reason these entries read
- * as a placement choice — truncate to "CLOUD W…" and "NO VRAM…" in the panel's
- * width, which is the MPI-620 defect MpiDropdown's own comment warns about.
+ * as a placement choice — truncate in the panel's width, which is the MPI-620
+ * defect MpiDropdown's own comment warns about.
  */
 const STACKED = 'mpi-dropdown--stacked';
 
@@ -70,14 +69,18 @@ const STACKED = 'mpi-dropdown--stacked';
  * THREE ENTRIES AND NO "AUTOMATIC" (Fabio, 2026-09-12): the RunPod section has no
  * automatic entry, so neither does this, and with nothing picked it is ComfyUI
  * (`backendPreference()`). An entry that cannot run yet stays LISTED but greyed
- * rather than vanishing — DeepInfra until a key is saved, ComfyUI until its plugin
- * is installed — because the list is also how a user learns what exists.
+ * rather than vanishing — Remote until the connection has a key, ComfyUI until its
+ * plugin is installed — because the list is also how a user learns what exists.
+ * `endpoint` is the code value for Remote: 'remote' already means the RunPod lane.
  */
-const BACKENDS = [
-    { value: 'deepinfra', label: 'DeepInfra (cloud)', meta: 'No VRAM, needs a key' },
-    { value: 'ollama',    label: 'Ollama (local)',    meta: 'A second runtime, its own VRAM' },
-    { value: 'comfy',     label: 'ComfyUI (local)',   meta: 'Reuses the engine already running' },
+const REMOTE    = { value: 'endpoint', label: 'Remote',          meta: 'No VRAM, runs on the connection above' };
+const COMFY     = { value: 'comfy',    label: 'ComfyUI (local)', meta: 'Reuses the engine already running' };
+const BACKENDS  = [
+    REMOTE,
+    { value: 'ollama', label: 'Ollama (local)', meta: 'A second runtime, its own VRAM' },
+    COMFY,
 ];
+const DESCRIBERS = [REMOTE, COMFY];
 
 export const MpiLlmSettings = ComponentFactory.create({
     name: 'MpiLlmSettings',
@@ -86,10 +89,17 @@ export const MpiLlmSettings = ComponentFactory.create({
     template: () => `
                 <div class="mpi-settings__section">
                     <h3 class="mpi-settings__section-title">Language Models</h3>
-                    <span class="mpi-settings__hint">Cubric uses a language model for the writing jobs around a generation — rewriting a short idea into a full prompt, and describing an image you hand it. Each job below chooses which machine runs it. You always see the result before it is used.</span>
+                    <span class="mpi-settings__hint">Cubric uses a language model for the writing jobs around a generation — rewriting a short idea into a full prompt, describing an image you hand it, and the agent. Each job below chooses which machine runs it. You always see the result before it is used.</span>
 
                     <div class="mpi-settings__subgroup">
                         <span class="mpi-settings__subgroup-title">Remote connection</span>
+                        <div class="mpi-settings__signup">
+                            <div class="mpi-settings__signup-copy">
+                                <span class="mpi-settings__signup-kicker">New to DeepInfra?</span>
+                                <span class="mpi-settings__signup-text">It is the provider we recommend and test on. Create an account, make an API key in your DeepInfra dashboard, then pick DeepInfra as the provider below and paste the key. What you run is billed to your DeepInfra account.</span>
+                            </div>
+                            <a class="mpi-settings__signup-link" href="https://deepinfra.com/dash" target="_blank" rel="noopener noreferrer">Open DeepInfra dashboard</a>
+                        </div>
                         <span class="mpi-settings__hint">One connection for every job that runs on Remote. Pick the provider, add its API key, then test it. The key is stored by the desktop app and is never readable back.</span>
                         <div class="mpi-settings__form-group">
                             <label class="mpi-settings__field-label">Provider</label>
@@ -103,7 +113,7 @@ export const MpiLlmSettings = ComponentFactory.create({
                                 <div id="mpiSettingsConnUrlSaveSlot"></div>
                             </div>
                         </div>
-                        <div class="mpi-settings__form-group">
+                        <div class="mpi-settings__form-group" id="mpiSettingsConnKeyGroup">
                             <label class="mpi-settings__field-label">API key</label>
                             <div class="mpi-settings__folder-row">
                                 <div id="mpiSettingsConnKeySlot" class="mpi-settings__folder-input"></div>
@@ -119,29 +129,8 @@ export const MpiLlmSettings = ComponentFactory.create({
                     </div>
 
                     <div class="mpi-settings__subgroup">
-                        <span class="mpi-settings__subgroup-title">Account</span>
-                        <span class="mpi-settings__hint">Only needed for the cloud backend. The key is stored by the desktop app and is never readable back — clear it and save a new one to change it.</span>
-                        <div class="mpi-settings__signup">
-                            <div class="mpi-settings__signup-copy">
-                                <span class="mpi-settings__signup-kicker">New to DeepInfra?</span>
-                                <span class="mpi-settings__signup-text">Create an account, then make an API key in your DeepInfra dashboard and paste it below. What you run is billed to your DeepInfra account.</span>
-                            </div>
-                            <a class="mpi-settings__signup-link" href="https://deepinfra.com/dash" target="_blank" rel="noopener noreferrer">Open DeepInfra dashboard</a>
-                        </div>
-                        <div class="mpi-settings__form-group">
-                            <label class="mpi-settings__field-label">DeepInfra API key</label>
-                            <div class="mpi-settings__folder-row">
-                                <div id="mpiSettingsLlmKeySlot" class="mpi-settings__folder-input"></div>
-                                <div id="mpiSettingsLlmKeySaveSlot"></div>
-                                <div id="mpiSettingsLlmKeyClearSlot"></div>
-                            </div>
-                            <span class="mpi-settings__hint" id="mpiSettingsLlmKeyStatus"></span>
-                        </div>
-                    </div>
-
-                    <div class="mpi-settings__subgroup">
                         <span class="mpi-settings__subgroup-title">Where each job runs</span>
-                        <span class="mpi-settings__hint">This is about which machine does the work, not which answer is better. Generating on a RunPod pod? Run these locally — your own card is idle. Generating locally? Push them to the cloud and keep the VRAM for the picture.</span>
+                        <span class="mpi-settings__hint">This is about which machine does the work, not which answer is better. Generating on a RunPod pod? Run these locally — your own card is idle. Generating locally? Run them on Remote and keep the VRAM for the picture.</span>
 
                         <div class="mpi-settings__form-group">
                             <label class="mpi-settings__field-label">Prompt enhancement</label>
@@ -162,9 +151,15 @@ export const MpiLlmSettings = ComponentFactory.create({
                             <span class="mpi-settings__hint" id="mpiSettingsLlmDescribeNote"></span>
                         </div>
 
+                        <div class="mpi-settings__form-group" id="mpiSettingsLlmDescribeModelGroup">
+                            <label class="mpi-settings__field-label">Description model</label>
+                            <div id="mpiSettingsLlmDescribeModelSlot"></div>
+                        </div>
+                        <span class="mpi-settings__hint" id="mpiSettingsLlmDescribeModelNote"></span>
+
                         <div class="mpi-settings__form-group">
                             <label class="mpi-settings__field-label">Agent</label>
-                            <div id="mpiSettingsAgentBackendSlot"></div>
+                            <div id="mpiSettingsAgentBackend" class="mpi-settings__fixed-value"></div>
                         </div>
                         <div class="mpi-settings__form-group">
                             <label class="mpi-settings__field-label">Agent model</label>
@@ -190,14 +185,15 @@ export const MpiLlmSettings = ComponentFactory.create({
                 </div>`,
 
     setup: (el) => {
+        /** MODEL_REGISTRY entries, for the Ollama model list. */
         let _models = [];
-        let _hasKey = false;
-        const _insts = [];
         // Re-rendered on their own, so each is destroyed before it is replaced: a
         // control cleared with innerHTML alone keeps its listeners alive.
         let _backendInst = null;
         let _modelInst = null;
         let _ollamaInst = null;
+        let _describeInst = null;
+        let _describeModelInst = null;
         /** The last `/llm/ollama` reply, for each Ollama model's Downloaded meta. */
         let _ollama = null;
         // The shared connection: the provider pick, the controls that depend on it
@@ -206,7 +202,14 @@ export const MpiLlmSettings = ComponentFactory.create({
         const _connInsts = [];
         let _agentModelInst = null;
         let _detailsSeq = 0;
-        let _agentModelSeq = 0;
+        let _modelsSeq = 0;
+        /** The picked connection profile `{ id, name, baseURL }`, or null. */
+        let _profile = null;
+        /**
+         * The `/llm/connection/models` reply every Remote row reads:
+         * undefined = still loading, null = the app server did not answer.
+         */
+        let _remote;
 
         el.onOpen = () => { _init(el); };
         _init(el);
@@ -214,104 +217,17 @@ export const MpiLlmSettings = ComponentFactory.create({
         /** Every control is re-read from scratch on each open — no cached view state. */
         async function _init(root) {
             _destroyControls();
-            _renderKeyField(root);
-            _renderDescribe(root);
+            _remote = undefined;
             _models = await enhancerModels();
-            // Key status FIRST: the backend dropdown greys DeepInfra on it.
-            await _refreshKeyStatus(root);
-            _renderBackend(root);
             await _initConnection(root);
         }
 
         function _destroyControls() {
-            _insts.forEach(i => i?.el?.destroy?.());
-            _insts.length = 0;
-            _backendInst?.el?.destroy?.();
-            _modelInst?.el?.destroy?.();
-            _ollamaInst?.destroy();
-            _connProfileInst?.destroy();
-            _connInsts.forEach(i => i.destroy());
+            [_backendInst, _modelInst, _ollamaInst, _describeInst, _describeModelInst,
+                _connProfileInst, _agentModelInst, ..._connInsts].forEach(i => i?.destroy());
             _connInsts.length = 0;
-            _agentModelInst?.destroy();
-            _backendInst = null;
-            _modelInst = null;
-            _ollamaInst = null;
-            _connProfileInst = null;
-            _agentModelInst = null;
-        }
-
-        // ── The DeepInfra key (write-only; the field is cleared after save) ──
-        // `MpiRunpodSettings`'s shape verbatim: disabled with a "Desktop app only"
-        // placeholder in a browser, never read back, and no state.js key — the
-        // renderer must not be able to hold the value even in memory.
-        function _renderKeyField(root) {
-            const keySlot = qs('#mpiSettingsLlmKeySlot', root);
-            const saveSlot = qs('#mpiSettingsLlmKeySaveSlot', root);
-            const clearSlot = qs('#mpiSettingsLlmKeyClearSlot', root);
-            if (!keySlot || !saveSlot || !clearSlot) return;
-            keySlot.innerHTML = '';
-            saveSlot.innerHTML = '';
-            clearSlot.innerHTML = '';
-
-            const available = secretsClient.isAvailable();
-            // A FORMAT HINT, not an instruction — the RunPod field's `rpa_...` is the
-            // house shape, and it tells the user what they are looking for in their
-            // account rather than restating the button beside it.
-            const keyInst = MpiInput.mount(keySlot, {
-                type: 'password',
-                placeholder: available ? 'di_...' : 'Desktop app only',
-                disabled: !available,
-            });
-            _insts.push(keyInst);
-
-            const saveInst = MpiButton.mount(saveSlot, { text: 'Save', variant: 'secondary', size: 'sm' });
-            saveInst.on('click', async () => {
-                const field = qs('.mpi-input__field', keyInst.el);
-                const key = (field?.value || '').trim();
-                if (!key) return;
-                const res = await secretsClient.setDeepInfraKey(key);
-                if (field) field.value = '';
-                if (!res?.ok) {
-                    _setKeyStatus(root, 'Failed to save the DeepInfra key.');
-                    return;
-                }
-                // Prices come back only once a key is saved, so the list is re-read.
-                _models = await enhancerModels();
-                await _refreshKeyStatus(root);
-                _renderBackend(root);
-            });
-            _insts.push(saveInst);
-
-            const clearInst = MpiButton.mount(clearSlot, { text: 'Clear', variant: 'secondary', size: 'sm' });
-            clearInst.on('click', async () => {
-                await secretsClient.clearDeepInfraKey();
-                await _refreshKeyStatus(root);
-                _renderBackend(root);
-            });
-            _insts.push(clearInst);
-        }
-
-        function _setKeyStatus(root, text) {
-            const node = qs('#mpiSettingsLlmKeyStatus', root);
-            if (node) node.textContent = text;
-        }
-
-        /** Paints the status line and records `_hasKey`, which gates the DeepInfra entry. */
-        async function _refreshKeyStatus(root) {
-            _hasKey = false;
-            if (!secretsClient.isAvailable()) {
-                _setKeyStatus(root, 'Saving a key requires the desktop app.');
-                return;
-            }
-            try {
-                _hasKey = !!(await secretsClient.hasDeepInfraKey());
-                _setKeyStatus(root, _hasKey
-                    ? 'API key is saved.'
-                    : 'No API key saved — the cloud backend is unavailable until one is.');
-            } catch (err) {
-                clientLogger.warn('settings', '[MpiLlmSettings] key presence check failed', err);
-                _setKeyStatus(root, 'Could not read the key status.');
-            }
+            _backendInst = _modelInst = _ollamaInst = _describeInst = _describeModelInst = null;
+            _connProfileInst = _agentModelInst = null;
         }
 
         /**
@@ -323,16 +239,39 @@ export const MpiLlmSettings = ComponentFactory.create({
             return pluginAvailability(ENHANCER_PLUGIN_ID).installed;
         }
 
+        /**
+         * Can a job run on Remote right now? Only a connection that is not set up
+         * greys the entry; an endpoint that is merely unreachable stays pickable
+         * and its model list says what went wrong.
+         */
+        function _remoteBlocked() {
+            const code = _remote?.error?.code;
+            if (code === 'NO_KEY') return 'Add an API key to the connection above';
+            if (code === 'NO_PROFILE') return 'Finish the connection above';
+            return '';
+        }
+
+        /** Remote's dropdown entry, with what it runs on or why it cannot. */
+        function _remoteOption() {
+            const blocked = _remoteBlocked();
+            if (blocked) return { ...REMOTE, disabled: true, meta: blocked };
+            if (_remote === undefined) return { ...REMOTE, meta: 'Checking the connection…' };
+            return { ...REMOTE, meta: `No VRAM, runs on ${_profile?.name || 'the connection above'}` };
+        }
+
+        function _comfyOption() {
+            return _comfyInstalled() ? COMFY : { ...COMFY, disabled: true, meta: 'Install the Image Describer plugin' };
+        }
+
         // ── Prompt enhancement ──────────────────────────────────────────────
         function _renderBackend(root) {
             const slot = qs('#mpiSettingsLlmEnhanceBackendSlot', root);
             if (!slot) return;
-            _backendInst?.el?.destroy?.();
-            slot.innerHTML = '';
+            _backendInst?.destroy();
 
             const options = BACKENDS.map((b) => {
-                if (b.value === 'deepinfra' && !_hasKey) return { ...b, disabled: true, meta: 'Save an API key above first' };
-                if (b.value === 'comfy' && !_comfyInstalled()) return { ...b, disabled: true, meta: 'Install the Image Describer plugin' };
+                if (b === REMOTE) return _remoteOption();
+                if (b === COMFY) return _comfyOption();
                 return b;
             });
 
@@ -355,21 +294,23 @@ export const MpiLlmSettings = ComponentFactory.create({
         }
 
         function _paintBackendNote(root, backend) {
-            const node = qs('#mpiSettingsLlmEnhanceBackendNote', root);
-            if (!node) return;
             const NOTES = {
-                deepinfra: 'Runs off your machine entirely. Needs the key above, and your prompt leaves this computer.',
+                endpoint: 'Runs on the provider connected above, off your machine entirely, so it costs no VRAM. Your prompt leaves this computer.',
                 ollama: 'Runs on your own card in a second runtime, so it holds VRAM alongside a local generation. Cubric starts Ollama when it is needed; installing it or downloading a model waits for your click below.',
                 comfy: 'Runs in the ComfyUI engine this app already started, and loads one text encoder of its own. Offered on every model.',
             };
-            // A backend picked while it could run and unavailable since (the key
-            // cleared, the plugin removed) stays selected. Swapping it would turn the
-            // user's pick into a quiet substitution, so the line says what is missing.
-            const MISSING = {
-                deepinfra: !_hasKey && 'Needs an API key, and none is saved. Save one above, or pick another backend.',
-                comfy: !_comfyInstalled() && 'Needs the Image Describer plugin, which is not installed. Install it, or pick another backend.',
-            };
-            node.textContent = MISSING[backend] || NOTES[backend];
+            _setText(root, '#mpiSettingsLlmEnhanceBackendNote', _missing(backend) || NOTES[backend]);
+        }
+
+        /**
+         * A backend picked while it could run and unavailable since (the key
+         * cleared, the plugin removed) stays selected. Swapping it would turn the
+         * user's pick into a quiet substitution, so the note says what is missing.
+         */
+        function _missing(backend) {
+            if (backend === 'endpoint' && _remoteBlocked()) return 'Remote is not set up: the connection above needs a provider and an API key. Finish it, or pick another backend.';
+            if (backend === 'comfy' && !_comfyInstalled()) return 'Needs the Image Describer plugin, which is not installed. Install it, or pick another backend.';
+            return '';
         }
 
         // ── The enhancement model, UNDER the chosen backend ──────────────────
@@ -378,52 +319,51 @@ export const MpiLlmSettings = ComponentFactory.create({
             const slot = qs('#mpiSettingsLlmEnhanceModelSlot', root);
             const note = qs('#mpiSettingsLlmEnhanceModelNote', root);
             if (!group || !slot) return;
-            _modelInst?.el?.destroy?.();
+            _modelInst?.destroy();
             _modelInst = null;
-            slot.innerHTML = '';
+
+            if (backend === 'endpoint') {
+                _modelInst = _renderRemoteModel({
+                    group, slot, note, job: 'enhance',
+                    value: endpointModelPreference(),
+                    onPick: setEndpointModelPreference,
+                    // The recipe system prompts measure ~450 to ~3,400 tokens (MPI-728).
+                    notes: {
+                        tested: 'The recommended models are the ones we test enhancement on. A hosted provider bills per token; one enhance uses about 500 to 4,000.',
+                        untested: 'We have not tested enhancement on this provider. Pick any chat model. A hosted provider bills per token; one enhance uses about 500 to 4,000.',
+                    },
+                });
+                return;
+            }
 
             // ComfyUI runs one graph with one baked weight, so there is nothing to
             // choose. The LABEL hides with the control: a field label with no field
             // under it is what the first draft shipped.
-            const servable = _models.filter(m => (backend === 'deepinfra' ? m.deepinfra : m.ollama));
+            const servable = _models.filter(m => m.ollama);
             const reason = backend === 'comfy'
                 ? 'ComfyUI runs one enhancer — the weight its graph loads — so there is nothing to pick.'
                 : !servable.length
                     ? 'The model list is unavailable — enhancement will use the default.'
                     : '';
+            group.hidden = !!reason;
+            if (note) { note.textContent = reason; note.hidden = !reason; }
+            if (reason) return;
 
-            if (reason) {
-                group.hidden = true;
-                if (note) { note.textContent = reason; note.hidden = false; }
-                return;
-            }
-
-            group.hidden = false;
-            // The cloud bills per token, so its note says how many an enhance takes:
-            // the recipe system prompts measure ~450 to ~3,400 tokens (MPI-728).
-            const billed = backend === 'deepinfra';
-            if (note) {
-                note.textContent = billed ? 'Billed to your DeepInfra account. One enhance uses about 500 to 4,000 tokens.' : '';
-                note.hidden = !billed;
-            }
             // NO "Default" ENTRY (Fabio, 2026-09-13): a bare "Default" makes the user ask
             // what it is. The model the app runs with nothing picked is listed and
             // selected by NAME instead, and its registry name already says "(Default)".
             const options = servable.map(m => {
                 // Known only once Ollama answers; no meta beats a guessed one.
-                const downloaded = backend === 'ollama' ? _ollama?.models?.[m.id]?.downloaded : undefined;
+                const downloaded = _ollama?.models?.[m.id]?.downloaded;
                 return {
                     value: m.id,
-                    label: m.names?.[backend] || m.name,
+                    label: m.names?.ollama || m.name,
                     info: m.description,
-                    // No price when the fetch failed: none beats a stale one.
-                    ...(billed && m.price && { meta: priceLabel(m.price) }),
                     ...(typeof downloaded === 'boolean' && { meta: downloaded ? 'Downloaded' : 'Not downloaded' }),
                 };
             });
-            // Nothing picked, or a model pinned under the OTHER backend (not servable
-            // here): show the default model rather than a value this dropdown cannot
-            // honour. The pin itself is left alone, so switching back restores it.
+            // Nothing picked, or a pre-MPI-737 DeepInfra-only pick: show the default
+            // model rather than a value this dropdown cannot honour.
             const pinned = enhancerModelPreference();
             const fallback = servable.find(m => m.isDefault) || servable[0];
             const value = servable.some(m => m.id === pinned) ? pinned : fallback.id;
@@ -472,15 +412,115 @@ export const MpiLlmSettings = ComponentFactory.create({
             return Object.entries(state?.models || {}).map(([id, m]) => [id, m.downloaded]);
         }
 
+        // ── Image descriptions (MPI-737) ────────────────────────────────────
+        // Two placements: ComfyUI rides the generation queue (locally or on the
+        // Pod) and is uncensored; Remote costs no VRAM and never waits behind a
+        // generation, but a hosted model may refuse an adult image.
+        function _renderDescribe(root) {
+            const slot = qs('#mpiSettingsLlmDescribeBackendSlot', root);
+            if (!slot) return;
+            _describeInst?.destroy();
+
+            const current = describeBackendPreference();
+            _describeInst = MpiDropdown.mount(slot, {
+                options: DESCRIBERS.map(b => (b === REMOTE ? _remoteOption() : _comfyOption())),
+                value: current,
+                extraClasses: STACKED,
+            });
+            _describeInst.on('change', ({ value }) => {
+                setDescribeBackendPreference(value);
+                _paintDescribe(root, value);
+            });
+            _paintDescribe(root, current);
+        }
+
+        function _paintDescribe(root, backend) {
+            const NOTES = {
+                endpoint: 'Runs on the provider connected above: no local VRAM, and it never waits behind a generation. A hosted model may refuse to describe an adult image; ComfyUI is the uncensored describer.',
+                comfy: 'Runs in ComfyUI, on this machine or on your RunPod pod, and waits its turn behind generations in the Cue. The model it runs is uncensored.',
+            };
+            _setText(root, '#mpiSettingsLlmDescribeNote', _missing(backend) || NOTES[backend]);
+
+            const group = qs('#mpiSettingsLlmDescribeModelGroup', root);
+            const slot = qs('#mpiSettingsLlmDescribeModelSlot', root);
+            const note = qs('#mpiSettingsLlmDescribeModelNote', root);
+            if (!group || !slot) return;
+            _describeModelInst?.destroy();
+            _describeModelInst = null;
+            if (backend !== 'endpoint') {
+                // The ComfyUI graph loads one baked describer: nothing to pick.
+                group.hidden = true;
+                if (note) note.hidden = true;
+                return;
+            }
+            // Only models that can see: the endpoint's own `vision` flag where it
+            // reports one; a catalogue that reports none is listed whole, with a note.
+            const flagged = (_remote?.models || []).some(m => m.vision !== null);
+            _describeModelInst = _renderRemoteModel({
+                group, slot, note, job: 'describe',
+                value: describeModelPreference(),
+                onPick: setDescribeModelPreference,
+                filter: flagged ? (m => m.vision || m.recommendedFor.includes('describe')) : null,
+                notes: {
+                    tested: 'The recommended model is the one we test descriptions on. Only models that can see an image are listed.',
+                    untested: flagged
+                        ? 'We have not tested descriptions on this provider. Only models that can see an image are listed.'
+                        : 'This provider does not say which models can see an image. Pick one that can, or describing will fail with the provider\'s error.',
+                },
+            });
+        }
+
+        // ── One Remote model dropdown, for any job ───────────────────────────
+
+        /**
+         * Mounts `job`'s model dropdown on the shared connection list: recommended
+         * first as "(recommended) <id>", the context window as meta. An empty pick
+         * shows the recommended model, which is what the server runs for ''.
+         * Returns the instance, or null when there is nothing to mount yet.
+         */
+        function _renderRemoteModel({ group, slot, note, job, value: saved, onPick, filter = null, notes }) {
+            group.hidden = false;
+            const say = (text) => { if (note) { note.textContent = text; note.hidden = !text; } };
+            if (_remote === undefined) {
+                say('Loading the connection\'s models…');
+                return null;
+            }
+            const { options, value, recommended } = _remoteModelOptions(job, saved, filter);
+            const inst = MpiDropdown.mount(slot, {
+                options,
+                value,
+                placeholder: _remote?.ok ? 'Select a model' : 'Connect first',
+                disabled: !_remote?.ok,
+                extraClasses: STACKED,
+            });
+            inst.on('change', ({ value: id }) => onPick(id));
+            say(_remote?.ok ? (recommended ? notes.tested : notes.untested) : _errorText(_remote));
+            return inst;
+        }
+
+        /** `{ options, value, recommended }` for `job` from the connection list. */
+        function _remoteModelOptions(job, saved, filter) {
+            const models = (_remote?.ok ? _remote.models : []).filter(m => !filter || filter(m));
+            const isRec = m => m.recommendedFor.includes(job);
+            const rec = models.filter(isRec);
+            const value = saved || rec[0]?.id || '';
+            const options = [
+                ...rec.map(m => ({ value: m.id, label: `(recommended) ${m.id}`, meta: _windowLabel(m) })),
+                ...models.filter(m => !isRec(m)).map(m => ({ value: m.id, label: m.id, meta: _windowLabel(m) })),
+            ];
+            // A pick the endpoint no longer lists stays visible rather than silently changing.
+            if (value && _remote?.ok && !options.some(o => o.value === value)) options.unshift({ value, label: value, meta: 'Not listed' });
+            return { options, value, recommended: rec.length > 0 };
+        }
+
         // ── Remote connection (MPI-774) — ONE for every job that runs on Remote ──
         // The provider, its base URL (Custom only), its write-only key, and a test
         // that spends no tokens. The pick is `Storage.getLlmConnection()`; the key
-        // lives in the main process. Job rows read the connection's models from
-        // `GET /llm/connection/models`, recommended first — MPI-737 builds the
-        // Enhancement and Image descriptions rows on the same list.
+        // lives in the main process. Every job row reads the connection's models
+        // from `GET /llm/connection/models`, recommended first.
 
         const PROFILE_NOTES = {
-            deepinfra:  'Recommended. Runs off your machine, so it costs no VRAM. Uses the same key as the DeepInfra account below.',
+            deepinfra:  'Recommended. Runs off your machine, so it costs no VRAM.',
             openrouter: 'A gateway to many providers\' models. Needs an OpenRouter API key.',
             openai:     'OpenAI\'s own endpoint. Needs an OpenAI API key.',
             ollama:     'Your local Ollama runtime, through its /v1 endpoint. Untested with the agent, and it needs its own VRAM beside any running generation.',
@@ -508,15 +548,37 @@ export const MpiLlmSettings = ComponentFactory.create({
             const seq = ++_detailsSeq;
             _connInsts.forEach(i => i.destroy());
             _connInsts.length = 0;
-            const profile = profiles.find(p => p.id === profileId) || null;
-            _renderConnUrl(root, profiles, profile, profileId);
+            _profile = profiles.find(p => p.id === profileId) || null;
+            _renderConnUrl(root, _profile, profileId);
             await _renderConnKey(root, profileId);
             if (seq !== _detailsSeq) return;
             _renderConnProbe(root, profileId);
-            _renderAgentBackend(root, profile);
+            _renderAgentBackend(root);
             _renderAgentMode(root);
             _renderAgentProbe(root, profileId);
-            await _renderAgentModel(root, profileId);
+            await _refreshModels(root, profileId);
+        }
+
+        /**
+         * Re-reads the connection's models once and repaints every row that shows
+         * them — the Remote entries, their model dropdowns and the agent's. Rows
+         * paint a loading state first, so a slow endpoint never leaves them blank.
+         */
+        async function _refreshModels(root, profileId) {
+            const seq = ++_modelsSeq;
+            _remote = undefined;
+            _paintRows(root);
+            const json = await _getJson(`/llm/connection/models?profileId=${encodeURIComponent(profileId)}`);
+            // A newer render (a provider change, a saved key) started while this one waited.
+            if (seq !== _modelsSeq) return;
+            _remote = json;
+            _paintRows(root);
+        }
+
+        function _paintRows(root) {
+            _renderBackend(root);
+            _renderDescribe(root);
+            _renderAgentModel(root);
         }
 
         function _renderConnProfile(root, profiles, profileId) {
@@ -539,7 +601,7 @@ export const MpiLlmSettings = ComponentFactory.create({
             if (note) note.textContent = PROFILE_NOTES[profileId] || '';
         }
 
-        function _renderConnUrl(root, profiles, profile, profileId) {
+        function _renderConnUrl(root, profile, profileId) {
             const group = qs('#mpiSettingsConnUrlGroup', root);
             const slot = qs('#mpiSettingsConnUrlSlot', root);
             const saveSlot = qs('#mpiSettingsConnUrlSaveSlot', root);
@@ -567,6 +629,11 @@ export const MpiLlmSettings = ComponentFactory.create({
             const clearSlot = qs('#mpiSettingsConnKeyClearSlot', root);
             if (!keySlot || !saveSlot || !clearSlot) return;
 
+            // Ollama's /v1 answers without a key (`routes/llm.js` exempts it): no field.
+            const keyless = profileId === 'ollama';
+            qs('#mpiSettingsConnKeyGroup', root)?.classList.toggle('hide', keyless);
+            if (keyless) return;
+
             const available = secretsClient.isAvailable();
             const keyInst = _conn(MpiInput.mount(keySlot, {
                 type: 'password',
@@ -581,13 +648,13 @@ export const MpiLlmSettings = ComponentFactory.create({
                 const res = await secretsClient.setEndpointKey(profileId, key);
                 if (field) field.value = '';
                 _setText(root, '#mpiSettingsConnKeyStatus', res?.ok ? 'API key saved.' : 'Failed to save the key.');
-                if (res?.ok) await _renderAgentModel(root, profileId);
+                if (res?.ok) await _refreshModels(root, profileId);
             });
             const clearInst = _conn(MpiButton.mount(clearSlot, { text: 'Clear', variant: 'secondary', size: 'sm' }));
             clearInst.on('click', async () => {
                 await secretsClient.clearEndpointKey(profileId);
                 _setText(root, '#mpiSettingsConnKeyStatus', 'No API key saved.');
-                await _renderAgentModel(root, profileId);
+                await _refreshModels(root, profileId);
             });
 
             if (!available) {
@@ -614,59 +681,42 @@ export const MpiLlmSettings = ComponentFactory.create({
                 _setText(root, '#mpiSettingsConnProbeResult', json?.ok
                     ? `Connected · ${json.modelCount} models · ${json.latencyMs} ms`
                     : _errorText(json));
-                if (json?.ok) await _renderAgentModel(root, profileId);
+                if (json?.ok) await _refreshModels(root, profileId);
             });
         }
 
         // ── Agent row — backend "Remote", the model on the connection, mode ──
 
-        function _renderAgentBackend(root, profile) {
-            const slot = qs('#mpiSettingsAgentBackendSlot', root);
-            if (!slot) return;
-            // One real option: the agent only runs on the remote connection.
-            _conn(MpiDropdown.mount(slot, {
-                options: [{ value: 'remote', label: 'Remote', meta: profile?.name || 'No connection' }],
-                value: 'remote',
-                extraClasses: STACKED,
-            }));
+        function _renderAgentBackend(root) {
+            // A fixed value, not a dropdown (Fabio 2026-09-16): the agent only runs on
+            // the Remote connection, so there is nothing to pick.
+            _setText(root, '#mpiSettingsAgentBackend', `Remote · ${_profile?.name || 'No connection'}`);
         }
 
-        async function _renderAgentModel(root, profileId) {
+        function _renderAgentModel(root) {
             const slot = qs('#mpiSettingsAgentModelSlot', root);
             if (!slot) return;
-            const seq = ++_agentModelSeq;
             _agentModelInst?.destroy();
             _agentModelInst = null;
-            _setText(root, '#mpiSettingsAgentModelNote', 'Loading the connection\'s models…');
-
-            const json = await _getJson(`/llm/connection/models?profileId=${encodeURIComponent(profileId)}`);
-            const models = json?.ok ? json.models : [];
-            const recommended = models.filter(m => m.recommendedFor.includes('agent'));
-            const saved = Storage.getAgentPrefs().model;
+            if (_remote === undefined) {
+                _setText(root, '#mpiSettingsAgentModelNote', 'Loading the connection\'s models…');
+                return;
+            }
             // '' = the recommended model, resolved server-side too; shown as that model.
-            const value = saved || recommended[0]?.id || '';
-            const options = [
-                ...recommended.map(m => ({ value: m.id, label: `(recommended) ${m.id}`, meta: _windowLabel(m) })),
-                ...models.filter(m => !m.recommendedFor.includes('agent')).map(m => ({ value: m.id, label: m.id, meta: _windowLabel(m) })),
-            ];
-            // A pick the endpoint no longer lists stays visible rather than silently changing.
-            if (value && !options.some(o => o.value === value)) options.unshift({ value, label: value, meta: 'Not listed' });
-
-            // A newer render (a provider change, a saved key) started while this one waited.
-            if (seq !== _agentModelSeq) return;
+            const { options, value, recommended } = _remoteModelOptions('agent', Storage.getAgentPrefs().model, null);
             _agentModelInst = MpiDropdown.mount(slot, {
                 options,
                 value,
-                placeholder: json?.ok ? 'Select a model' : 'Connect first',
-                disabled: !json?.ok,
+                placeholder: _remote?.ok ? 'Select a model' : 'Connect first',
+                disabled: !_remote?.ok,
                 extraClasses: STACKED,
             });
             _agentModelInst.on('change', ({ value: model }) => {
                 Storage.setAgentPrefs({ ...Storage.getAgentPrefs(), model });
             });
-            _setText(root, '#mpiSettingsAgentModelNote', json?.ok
-                ? (recommended.length ? 'The recommended model is the one we test the agent on.' : 'We have not tested the agent on this provider. Pick a model that can call tools, then use Test tool use.')
-                : _errorText(json));
+            _setText(root, '#mpiSettingsAgentModelNote', _remote?.ok
+                ? (recommended ? 'The recommended model is the one we test the agent on.' : 'We have not tested the agent on this provider. Pick a model that can call tools, then use Test tool use.')
+                : _errorText(_remote));
         }
 
         function _renderAgentMode(root) {
@@ -731,38 +781,6 @@ export const MpiLlmSettings = ComponentFactory.create({
             } catch (err) {
                 clientLogger.warn('settings', `[MpiLlmSettings] POST ${url} failed`, err);
                 return null;
-            }
-        }
-
-        // ── Image descriptions (MPI-737 grows this) ─────────────────────────
-        // ONE real option today, and the dropdown is shown rather than hidden so the
-        // section reads as what it is: a list of jobs, each with a placement. The
-        // limit is measured, not missing plumbing — every model in the registry is
-        // text-only, so no hosted or Ollama backend can look at an image at all.
-        function _renderDescribe(root) {
-            const slot = qs('#mpiSettingsLlmDescribeBackendSlot', root);
-            const note = qs('#mpiSettingsLlmDescribeNote', root);
-            if (!slot) return;
-            slot.innerHTML = '';
-
-            const installed = _comfyInstalled();
-            const inst = MpiDropdown.mount(slot, {
-                options: [{
-                    value: 'comfy',
-                    label: 'ComfyUI (local)',
-                    meta: installed ? 'Reuses the engine already running' : 'Install the Image Describer plugin',
-                    disabled: !installed,
-                }],
-                value: 'comfy',
-                placeholder: 'ComfyUI (local)',
-                extraClasses: STACKED,
-            });
-            _insts.push(inst);
-
-            if (note) {
-                note.textContent = installed
-                    ? 'Only ComfyUI can do this today — describing an image needs a model that can see one, and neither cloud nor Ollama carries one yet.'
-                    : 'Needs the Image Describer plugin. Describing an image needs a model that can see one, and only the local ComfyUI graph carries it.';
             }
         }
 

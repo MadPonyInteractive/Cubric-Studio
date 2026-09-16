@@ -7,10 +7,18 @@ settings UI); the maps below are theirs, line numbers as of that day - re-grep b
 ## Current State
 
 - **Project mode:** scalable-foundation.
-- **2026-09-16 ~11:45Z, where it stands:** Phase 0 PASSED on HEAD `b8c293ff`; the **parallel batch is
-  DONE, integrated and verified** (evidence: `validation.md`), UNCOMMITTED in the tree (claim `2a0d4794`,
-  session `6cdd36a9`). **Next action: Phase 3** (settings rows, user-ux) - first re-check the live claim
-  MPI-757 holds on `js/components/types.js` (Phase 3 needs `MpiLlmSettingsProps`).
+- **2026-09-16 ~13:10Z, where it stands:** Phase 3 DONE - Fabio checked it in his app and ran Remote describe +
+  enhance for real (`validation.md`). His three follow-up tweaks are built and spec-verified (sign-up box at the top
+  of Remote connection; key group hidden for the keyless Ollama preset; Agent backend = fixed label
+  `#mpiSettingsAgentBackend`, no dropdown) - he has not looked at them yet. **Next action: Phase 4** (docs + retire the
+  orphans listed under Plan Drift), and ask Fabio to glance at the three tweaks on his next reload. Then the
+  remaining Verification steps (2: describe not in the Cue during a generation; 4: agent `look` on Remote;
+  5: keyless Remote fails plainly).
+- **Phase 3 shape (for Phase 4 docs):** one `/llm/connection/models` fetch per render (`_refreshModels`) feeds the
+  Enhancement, Image descriptions and Agent model dropdowns via `_remoteModelOptions(job, saved, filter)`; Remote is
+  greyed only on NO_KEY / NO_PROFILE (`_remoteBlocked`), an unreachable endpoint stays pickable with the error in the
+  model note; describe list = `vision` models (+ the describe recommendation), whole list with a note when the
+  endpoint reports no `vision` flags.
 - **Renderer API Phase 3 builds on** (all exported from `js/services/llmService.js`):
   `describeBackendPreference()` / `setDescribeBackendPreference('comfy'|'endpoint')` (key
   `cubric.llm.describeBackend`, default `comfy`); `describeModelPreference()` / `setDescribeModelPreference(id)`
@@ -84,6 +92,8 @@ settings UI); the maps below are theirs, line numbers as of that day - re-grep b
 
 - [x] Spec (`brief.md`), ownership split agreed with MPI-774 by message, investigation. 2026-09-16.
 - [x] Phase 0 gate (HEAD `b8c293ff`). 2026-09-16.
+- [x] Phase 3: settings rows - Remote on Enhancement + Image descriptions with model dropdowns, Account block gone,
+  Remote enhance model on its own pref; Fabio verified in the app, then three tweaks. 2026-09-16.
 - [x] Parallel batch: `/llm/describe`, endpoint enhance, honest engine label, recommended rows;
   `describeImage` switch point, pref migration, dead `runImageDescribe` deleted; integration fixes
   (Plan Drift). 2026-09-16.
@@ -159,7 +169,7 @@ cleanly; otherwise run server first, renderer second.
 
 ## Phase 3: Settings rows (user-ux)
 
-- [ ] `MpiLlmSettings.js` (after the batch; MPI-774's connection block sits at the top): Enhancement
+- [x] (Fabio verified 2026-09-16) `MpiLlmSettings.js` (after the batch; MPI-774's connection block sits at the top): Enhancement
   backends ComfyUI / Ollama / **Remote** (`endpoint`; disabled with a note when the shared connection has
   no key - `secretsClient.hasEndpointKey(profileId)`); when Remote, the model dropdown fills from
   `GET /llm/connection/models?profileId=` via `el.setOptions`, `recommendedFor` containing `enhance`
@@ -192,6 +202,14 @@ cleanly; otherwise run server first, renderer second.
   engine-internal hits, each read and justified.
 
 ## Plan Drift
+
+- **2026-09-16 - Phase 3: Remote enhance model got its OWN pref.** `cubric.llm.enhancerModel` held Ollama's registry id
+  AND would have held the Remote raw id, so a Remote pick reached Ollama as an unknown id while the Ollama dropdown
+  showed the default. New `endpointModelPreference()` / `setEndpointModelPreference()` (key `cubric.llm.endpointModel`);
+  `enhance()` reads it on the endpoint branch, else maps the legacy registry pin via `deepInfraId` ONLY when the
+  connection is `deepinfra` (a deepInfraId means nothing on another provider). Orphaned by Phase 3, retire in Phase 4:
+  `priceLabel` (+ its test) and the `/llm/models` price fetch, `secretsClient.setDeepInfraKey/hasDeepInfraKey/clearDeepInfraKey`
+  and their `secrets:*-deepinfra-key` IPC channels (the deepinfra PROFILE still reads that slot in main - keep the slot).
 
 - **2026-09-16 - Phase 0: the shape MPI-774 committed (`b8c293ff`), build against THIS:**
   - `RECOMMENDED_REMOTE_MODELS` (`llmEngines.mjs:343`) = `{ [presetId]: [{ id, jobs: ('agent'|'enhance'|'describe')[], contextWindow? }] }`

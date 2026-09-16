@@ -21,6 +21,8 @@ test('remote slide-over renders the extracted RunPod section', async ({}, testIn
 
   const env = { ...process.env };
   delete env.ELECTRON_RUN_AS_NODE;
+  // A dev shell with the env key would make the connection look set up.
+  delete env.DEEPINFRA_API_KEY;
   env.CUBRIC_E2E = '1';
   env.CUBRIC_E2E_USER_DATA = userDataDir;
 
@@ -69,21 +71,26 @@ test('remote slide-over renders the extracted RunPod section', async ({}, testIn
     await expect(window.locator('#mpiSettingsRunpodSkipEngineGroup')).toBeVisible();
 
     // Non-RunPod half of MpiRemote still initialises: the Language Models section
-    // above it renders and its own key-status hint is populated (MPI-728).
+    // above it renders and its shared connection's key-status hint is populated
+    // (MPI-728; the DeepInfra-only key field went with MPI-737).
     await expect(window.locator('#mpiRemoteLlmMount .mpi-settings__section-title')).toHaveText('Language Models');
-    await expect(window.locator('#mpiSettingsLlmKeyStatus')).not.toHaveText('', { timeout: 10000 });
+    await expect(window.locator('#mpiSettingsConnKeyStatus')).not.toHaveText('', { timeout: 10000 });
+    await expect(window.locator('#mpiSettingsLlmKeyStatus')).toHaveCount(0);
 
     // Three backends, no "Automatic", ComfyUI by default (Fabio, 2026-09-12: the
-    // RunPod section has no automatic entry either). A fresh E2E profile has no
-    // DeepInfra key, so that entry is LISTED but greyed, not missing. The option
-    // list portals to <body> on first open, so it only exists once opened.
+    // RunPod section has no automatic entry either). The cloud entry is "Remote",
+    // never a vendor name (MPI-737), and a fresh E2E profile's connection has no
+    // key, so it is LISTED but greyed, not missing — once the connection's model
+    // list has answered NO_KEY. The option list portals to <body> on first open,
+    // so it only exists once opened.
     const backendSlot = '#mpiSettingsLlmEnhanceBackendSlot';
     await expect(window.locator(`${backendSlot} .mpi-dropdown__label`)).toHaveText('ComfyUI (local)');
+    await expect(window.locator('#mpiSettingsAgentModelNote')).toHaveText(/API key/, { timeout: 10000 });
     const toggleBackend = () => window.evaluate((sel) => document.querySelector(sel).click(), `${backendSlot} .mpi-dropdown__trigger`);
     await toggleBackend();
     const backendOptions = window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option');
-    await expect(backendOptions).toHaveText([/DeepInfra/, /Ollama/, /ComfyUI/]);
-    await expect(window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option[data-value="deepinfra"]')).toHaveClass(/is-disabled/);
+    await expect(backendOptions).toHaveText([/Remote/, /Ollama/, /ComfyUI/]);
+    await expect(window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option[data-value="endpoint"]')).toHaveClass(/is-disabled/);
     await toggleBackend();
 
     // And the move was a MOVE: neither section is left behind in Settings.

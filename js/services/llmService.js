@@ -52,8 +52,12 @@ export const COMFY_ENHANCE_OP = 'promptEnhance';
 /** Per-viewer backend override for enhancement, when the user has pinned one. */
 const BACKEND_PREF_KEY = 'cubric.llm.backend';
 
-/** Per-viewer enhancer-model choice, under whichever backend is running it. */
+/** Per-viewer enhancer-model choice for Ollama: a MODEL_REGISTRY id. Before MPI-737
+ *  it also held the DeepInfra pick, which is why the endpoint branch still reads it. */
 const ENHANCER_MODEL_PREF_KEY = 'cubric.llm.enhancerModel';
+/** Per-viewer enhancer model on Remote: a raw endpoint id (MPI-737). Its own key,
+ *  or a Remote pick would reach Ollama as an id Ollama has never heard of. */
+const ENDPOINT_MODEL_PREF_KEY = 'cubric.llm.endpointModel';
 
 /** Per-viewer describe-backend choice (MPI-737). Default: 'comfy'. */
 const DESCRIBE_BACKEND_PREF_KEY = 'cubric.llm.describeBackend';
@@ -230,9 +234,9 @@ export function setBackendPreference(backend) {
  * user's explicit pick into a silent fall-back to something else — the exact
  * defect this card deleted.
  *
- * MPI-737: On the endpoint branch, a stored MODEL_REGISTRY id (e.g. 'gemma-4-e4b')
- * is resolved to its raw endpoint model id via `_resolveEndpointModelId` before
- * being sent to the server. Phase 3 settings will write raw endpoint ids directly.
+ * MPI-737: Remote has its own pref (`endpointModelPreference`). This one is read
+ * on the endpoint branch only as a pre-MPI-737 DeepInfra pick, mapped to its
+ * `deepInfraId` by `_resolveEndpointModelId`, and only on the DeepInfra connection.
  */
 export function enhancerModelPreference() {
     try {
@@ -272,6 +276,23 @@ export function setEnhancerModelPreference(id) {
         if (id) localStorage.setItem(ENHANCER_MODEL_PREF_KEY, id);
         else localStorage.removeItem(ENHANCER_MODEL_PREF_KEY);
     } catch { /* storage disabled — the choice just does not persist */ }
+}
+
+/** The user's Remote enhancer model (a raw endpoint id), or undefined. */
+export function endpointModelPreference() {
+    try {
+        return localStorage.getItem(ENDPOINT_MODEL_PREF_KEY) || undefined;
+    } catch {
+        return undefined;
+    }
+}
+
+/** Pin a Remote enhancer model, or pass falsy for the connection's recommended one. */
+export function setEndpointModelPreference(id) {
+    try {
+        if (id) localStorage.setItem(ENDPOINT_MODEL_PREF_KEY, id);
+        else localStorage.removeItem(ENDPOINT_MODEL_PREF_KEY);
+    } catch { /* storage disabled */ }
 }
 
 /**
@@ -733,8 +754,12 @@ export async function enhance({ prompt, model, recipeKey, mode, backend } = {}) 
 
     const chosen = chooseBackend({ override: backend ?? backendPreference() });
 
-    const rawModelId = enhancerModelPreference();
-    const resolvedModelId = chosen === 'endpoint' ? await _resolveEndpointModelId(rawModelId) : rawModelId;
+    const { profileId } = Storage.getLlmConnection();
+    const resolvedModelId = chosen !== 'endpoint' ? enhancerModelPreference()
+        : endpointModelPreference()
+        // A pre-MPI-737 DeepInfra pick is a registry id; its deepInfraId only means
+        // something on DeepInfra. Anywhere else: '' -> the server's recommended model.
+        ?? (profileId === 'deepinfra' ? await _resolveEndpointModelId(enhancerModelPreference()) : undefined);
 
     const result = chosen === 'comfy'
         ? await runComfyEnhance({
@@ -746,7 +771,7 @@ export async function enhance({ prompt, model, recipeKey, mode, backend } = {}) 
             system,
             backend: chosen,
             modelId: resolvedModelId,
-            ...(chosen === 'endpoint' ? { profileId: Storage.getLlmConnection().profileId } : {}),
+            ...(chosen === 'endpoint' ? { profileId } : {}),
         });
 
     if (!result.ok) {

@@ -34,3 +34,16 @@
     text-overflow: clip;
     justify-self: start;
 }
+
+/* ── A fixed value in a box ────────────────────────────────────────────────
+   The Agent row has exactly one backend, so it shows it rather than offering a
+   dropdown with nothing to choose. Same box as MpiDropdown's trigger, minus the
+   chevron and the pointer, so the rows still line up. */
+.mpi-settings__fixed-value {
+    background: var(--surface-2);
+    border: 1px solid var(--ink-3);
+    border-radius: var(--r-1);
+    padding: 10px 14px;
+    color: var(--ink-1);
+    font-size: var(--t-sm);
+}

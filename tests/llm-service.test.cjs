@@ -51,7 +51,9 @@ const {
     describeImage,
     enhance,
     setEnhancerModelPreference,
+    setEndpointModelPreference,
 } = require('../js/services/llmService.js');
+const { Storage } = require('../js/core/storage.js');
 const { FALLBACK_RECIPE_ID } = require('../js/data/recipes/registry.js');
 
 const WORKFLOW = (file) => JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'comfy_workflows', file), 'utf8'));
@@ -436,8 +438,27 @@ function testEnhancerModelMigrationViaModelsEndpoint() {
         assert.strictEqual(enhanceBodies[0].backend, 'endpoint');
         assert.strictEqual(enhanceBodies[0].modelId, 'google/gemma-4-26B-A4B-it', 'registry id was not mapped');
         assert.ok(enhanceBodies[0].profileId, 'profileId must be sent on the endpoint branch');
+    }).then(() => {
+        // A Remote pick has its own key and wins; the Ollama pick is not sent to Remote,
+        // and the Remote pick is not sent to Ollama.
+        setEndpointModelPreference('meta-llama/Some-Model');
+        return enhance({ prompt: 'a cat', model: PLAIN, backend: 'endpoint' });
+    }).then(() => {
+        assert.strictEqual(enhanceBodies[1].modelId, 'meta-llama/Some-Model');
+        return enhance({ prompt: 'a cat', model: PLAIN, backend: 'ollama' });
+    }).then(() => {
+        assert.strictEqual(enhanceBodies[2].modelId, 'gemma-4-e4b', 'Ollama keeps its registry pick');
+    }).then(() => {
+        // Off DeepInfra, a legacy registry pick means nothing: send no model.
+        setEndpointModelPreference(undefined);
+        Storage.setLlmConnection({ profileId: 'openrouter' });
+        return enhance({ prompt: 'a cat', model: PLAIN, backend: 'endpoint' });
+    }).then(() => {
+        assert.strictEqual(enhanceBodies[3].modelId, undefined, 'a deepInfraId must not reach another provider');
     }).finally(() => {
         setEnhancerModelPreference(undefined);
+        setEndpointModelPreference(undefined);
+        Storage.setLlmConnection({ profileId: 'deepinfra' });
         global.fetch = realFetch;
     });
 }

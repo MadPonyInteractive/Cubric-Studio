@@ -995,15 +995,19 @@
 
 /**
  * @typedef {Object} MpiLlmSettingsProps (Organism — js/components/Organisms/MpiLlmSettings)
- * No props required — reads the `cubric.llm.*` preferences, secretsClient and
- * `/llm/models` internally (MPI-728).
+ * No props required — reads the `cubric.llm.*` preferences, Storage's LLM
+ * connection and agent prefs, secretsClient, `/llm/models` and
+ * `/llm/connection/models` internally (MPI-728, MPI-774, MPI-737).
  *
- * The Language Models section of the Remote panel: the write-only DeepInfra key,
- * and one dropdown PER JOB naming BACKENDS rather than model ids, because the
- * choice is where the work runs. Enhancement and Image descriptions ship; the
- * agent is a third row later (MPI-677 step 5). Mounted once by MpiRemote into
+ * The Language Models section of the Remote panel: ONE shared Remote connection
+ * (provider, write-only key, probe), then one dropdown PER JOB naming BACKENDS
+ * rather than model ids, because the choice is where the work runs —
+ * Enhancement (Remote / Ollama / ComfyUI), Image descriptions (Remote / ComfyUI)
+ * and Agent (Remote only, shown as a fixed label). Each Remote row carries a
+ * model dropdown filled from the connection, recommended first. The API key
+ * field hides for the keyless Ollama preset. Mounted once by MpiRemote into
  * #mpiRemoteLlmMount, which forwards el.onOpen() each panel open and calls
- * destroy() with its own. MPI-737 grows the descriptions row past its one option.
+ * destroy() with its own.
  */
 
 /**
