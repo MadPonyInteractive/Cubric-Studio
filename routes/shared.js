@@ -21,6 +21,7 @@ const { pipeline } = require('stream/promises');
 const { exec, spawn } = require('child_process');
 const { COMFY_DIR, getPythonBin, getComfyPath, getEngineRoot } = require('./platformEngine');
 const { buildExtraModelPathsYaml } = require('./yamlHelper');
+const { cleanEngineScratch } = require('./engineScratch');
 
 const _require = createRequire(__filename);
 
@@ -951,17 +952,11 @@ async function getUniversalWorkflowDepsTotalSize(missingDepIds) {
 }
 
 /**
- * Empties ComfyUI's input/ and output/ temp folders.
+ * Empties ComfyUI's input/ and output/ temp folders, only when this fork spawned the
+ * engine (MPI-778, routes/engineScratch.js). The server-side twin of main.js's quit cleanup.
  */
-async function cleanComfyUITempFiles() {
-    const inputDir = getComfyPath(ENGINE_ROOT, 'input');
-    const outputDir = getComfyPath(ENGINE_ROOT, 'output');
-    for (const dir of [inputDir, outputDir]) {
-        if (await fs.pathExists(dir)) {
-            await fs.emptyDir(dir);
-            logger.info('comfy', `Cleaned temp folder: ${dir}`);
-        }
-    }
+function cleanComfyUITempFiles() {
+    return cleanEngineScratch(ENGINE_ROOT, !!processState.activeComfyProcess, logger);
 }
 
 module.exports = {

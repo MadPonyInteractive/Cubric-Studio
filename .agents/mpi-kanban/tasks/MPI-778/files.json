@@ -1,0 +1,12 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "main.js",
+    "routes/comfy.js",
+    "routes/shared.js",
+    "routes/engineScratch.js",
+    "tests/engine-scratch.test.cjs",
+    "tests/desktop/engine-scratch-quit.spec.js",
+    "docs/worktrees.md"
+  ]
+}

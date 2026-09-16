@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-778", "at": "2026-09-16T12:21:21+01:00", "actor": "claude", "column": "todo", "title": "Quit cleanup empties the SHARED engine input/output"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-778", "at": "2026-09-16T12:22:10+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fixing the quit cleanup ownership gate"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-778", "at": "2026-09-16T12:38:00+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Owner-gated quit cleanup shipped; desktop spec red->green, node test, IPC harness"}

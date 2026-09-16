@@ -423,6 +423,13 @@ function requestEngineRestart(reason) {
 
 let _restartWatch = null;
 
+// MPI-778: main.js empties the engine's input/output on quit only when this instance
+// owns the engine, and only this fork knows that. Mirror every change of the handle.
+// `process.connected` is undefined when the server runs standalone (no Electron main).
+function _reportEngineOwnership() {
+    if (process.connected) process.send({ type: 'engine-owner', owned: !!processState.activeComfyProcess });
+}
+
 /** Owner-side: watch for another instance's restart request. `spawnedAt` dates OUR process. */
 function _watchForRestartRequests(spawnedAt) {
     clearInterval(_restartWatch);
@@ -616,6 +623,7 @@ router.post('/comfy/start', async (req, res) => {
         // We own the engine now, so we are the one that can honour another
         // instance's restart request (MPI-484).
         _watchForRestartRequests(Date.now());
+        _reportEngineOwnership();
         processState.activeComfyProcess.stdout.on('data', (d) => _handleComfyOutput('info', d));
         processState.activeComfyProcess.stderr.on('data', (d) => _handleComfyOutput('warn', d));
         processState.activeComfyProcess.on('exit', (code, signal) => {
@@ -635,6 +643,7 @@ router.post('/comfy/start', async (req, res) => {
             // for one. Whoever spawns next arms their own watcher (MPI-484).
             clearInterval(_restartWatch);
             _restartWatch = null;
+            _reportEngineOwnership();
         });
 
         res.json({ success: true, ...(depsWarning ? { depsWarning } : {}) });

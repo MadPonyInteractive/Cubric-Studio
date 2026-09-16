@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-778",
+  "title": "Quit cleanup empties the SHARED engine input/output",
+  "description": "main.js cleanSessionTempFolders() empties engine input/ and output/ on every quit, including E2E and app:isolated instances that never started the engine, deleting a live instance's staged inputs and uncollected outputs. Gate it on engine ownership (MPI-484).",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-16T12:21:21+01:00",
+  "updated_at": "2026-09-16T12:38:00+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

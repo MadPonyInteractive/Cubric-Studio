@@ -4,7 +4,8 @@ const fs = require('fs');
 const { randomUUID } = require('crypto');
 const { fork, spawn } = require('child_process');
 const logger = require('./routes/logger');
-const { getComfyPath, getEngineRoot } = require('./routes/platformEngine');
+const { getEngineRoot } = require('./routes/platformEngine');
+const { cleanEngineScratch } = require('./routes/engineScratch');
 const secretsStore = require('./main/secretsStore');
 const floatLatent = require('./main/floatLatentWindow.cjs');
 
@@ -230,18 +231,7 @@ async function confirmQuitWithActiveDownloads() {
 }
 
 function cleanSessionTempFolders() {
-  const ENGINE_ROOT = getEngineRoot();
-  const inputDir = getComfyPath(ENGINE_ROOT, 'input');
-  const outputDir = getComfyPath(ENGINE_ROOT, 'output');
-  for (const dir of [inputDir, outputDir]) {
-    if (fs.existsSync(dir)) {
-      // Empty the directory contents without removing the directory itself
-      for (const entry of fs.readdirSync(dir)) {
-        fs.rmSync(path.join(dir, entry), { recursive: true, force: true });
-      }
-      logger.info('comfy', `Cleaned temp folder: ${dir}`);
-    }
-  }
+  cleanEngineScratch(getEngineRoot(), engineOwnedHere, logger);
 
   if (fs.existsSync(MASK_TEMP_ROOT)) {
     try {
@@ -314,6 +304,9 @@ let quitDownloadWarningAccepted = false;
 let quitDownloadWarningInProgress = false;
 // True once shutdown starts, so the server fork's exit is not read as a crash.
 let isQuitting = false;
+// True while THIS instance's server fork owns the running engine (MPI-778). Every
+// instance on a checkout shares one engine, so only the owner may empty its input/output.
+let engineOwnedHere = false;
 
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
@@ -986,6 +979,12 @@ app.on('ready', () => {
         logger.error('system', 'reveal-item bridge error', err);
         serverProcess.send?.({ type: 'reveal-item-result', id: msg.id, ok: false, error: err.message });
       }
+      return;
+    }
+
+    // MPI-778: the fork reports whether it spawned the engine; the quit cleanup reads it.
+    if (msg && typeof msg === 'object' && msg.type === 'engine-owner') {
+      engineOwnedHere = msg.owned === true;
       return;
     }
 
