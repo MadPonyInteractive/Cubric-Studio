@@ -46,6 +46,25 @@ export const RELEASE_NOTES = {
   // build does read it. It is NOT the 2.0 changelog: docs/releases/UNRELEASED.md
   // still owns that. Once APP_VERSION passes 1.6.0 this entry is inert (lookup is
   // by exact key) and can be deleted with the matching .approved-1.6.0.json token.
+  '1.6.1': {
+    version: '1.6.1',
+    whatIsNew: [
+      'GIF workspace: make a GIF from your cards, and cut a subject out frame by frame with a Mask Brush.',
+      'Gallery filters by kind, and a card can be archived without deleting it.',
+      'An agent chat panel in the gallery, running on a shared language model connection.',
+      'Head Swap has an optional Expression field.',
+      'Audio cards draw their waveform and play in a new audio player.',
+      'The Flow Library header has filters, search and a count.',
+    ],
+    breakingChanges: [],
+    importantChanges: [
+      'This is a preview build of the development line, not a public release, and some of what is in it is still being built. It is numbered 1.6.1 so it sits above 1.6.0 and below the next release, and you will still be offered the real 2.0 update when it ships.',
+    ],
+    fixes: [],
+    engineNotes: [
+      'The ComfyUI engine and its custom nodes are unchanged from 1.6.0.',
+    ],
+  },
   '1.6.0': {
     version: '1.6.0',
     whatIsNew: [],
