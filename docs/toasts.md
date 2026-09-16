@@ -20,6 +20,13 @@ Three entry paths, one renderer (`MpiToast` in a shared `.mpi-toast-stack`, cap 
    `download:complete`, `remote:connection`. Each either fires an **OS notification** (window
    unfocused + pref on) OR an in-app `StatusBar.notify` — never both (split on `document.hasFocus()`).
 
+**Leaving waits on the toast's real transitions, never on `transitionend` (MPI-788).** A click
+dismisses (MPI-784); `dismiss()` then waits only for the `CSSTransition`s that
+`el.getAnimations()` reports, so a close that starts no fade is removed at once. That case is
+real: clicked before the open fade has painted a frame, opacity is still 0 and closing changes
+nothing. Waiting on `transitionend` there left the toast invisible in the stack forever, holding
+one of the two slots, so every toast queued behind it stayed hidden.
+
 Backend routes never toast directly — they push SSE events (`/comfy/downloads/stream`,
 `/concat/events/stream`) that the frontend service layer converts into `ui:*` emits.
 

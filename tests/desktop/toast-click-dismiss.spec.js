@@ -57,6 +57,23 @@ test('clicking a toast dismisses it immediately and promotes the queued one', as
     await expect(toast('three')).toHaveCount(0, { timeout: 1000 });
 
     expect(await window.evaluate(() => window.__toastCloses)).toEqual(['one', 'two', 'three']);
+
+    // MPI-788: a click before the open fade has painted a frame. Opacity is still 0, so
+    // the close asks for no change, no transition runs, and a toast waiting on
+    // `transitionend` stayed invisible in the stack forever. The real click above hit this
+    // only when boot kept the renderer busy (3 of 4 local runs); a click in the same task
+    // as the mount hits it every time.
+    expect(await window.evaluate(async () => {
+      const { MpiToast } = await import('/js/components/Primitives/MpiToast/MpiToast.js');
+      const wrap = document.createElement('div');
+      document.body.appendChild(wrap);
+      const t = MpiToast.mount(wrap, { message: 'clickme early', duration: 60000, sound: false });
+      const closed = new Promise(r => t.on('close', () => { wrap.remove(); r('closed'); }));
+      t.el.click();
+      return Promise.race([closed, new Promise(r => setTimeout(() => r('stuck'), 1000))]);
+    }), 'REGRESSION: a toast clicked before its open fade never left').toBe('closed');
+    await expect(toast('early')).toHaveCount(0);
+
     expect(pageErrors).toEqual([]);
     expect(consoleErrors).toEqual([]);
   } finally {

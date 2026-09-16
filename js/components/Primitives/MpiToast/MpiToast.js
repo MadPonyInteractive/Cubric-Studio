@@ -189,7 +189,14 @@ export const MpiToast = ComponentFactory.create({
             _armOldest();
             el.classList.remove('mpi-toast--open');
             el.classList.add('mpi-toast--closing');
-            el.addEventListener('transitionend', () => {
+            // Wait for the close fade only if one actually runs. A click that lands before
+            // the OPEN fade has painted a frame finds opacity still at 0, so closing asks
+            // for no change: no transition runs and `transitionend` never fires. Waiting on
+            // that event left the toast invisible in --closing forever, holding a slot the
+            // queue never got back (MPI-788). getAnimations() flushes style, so it sees the
+            // transitions this class change started; allSettled also covers a cancelled one.
+            const fades = el.getAnimations().filter(a => a instanceof CSSTransition);
+            Promise.allSettled(fades.map(a => a.finished)).then(() => {
                 observer.disconnect();
                 // We reparent el into the shared stack container during setup, so
                 // the caller's `close` handler (which removes its own wrapper)
@@ -199,7 +206,7 @@ export const MpiToast = ComponentFactory.create({
                 emit('close');
                 // Slot freed — promote the next queued toast.
                 _drainQueue();
-            }, { once: true });
+            });
         };
         el._dismissFn = dismiss;
         // Click anywhere on the toast = dismiss now. Listener is on the toast's own
