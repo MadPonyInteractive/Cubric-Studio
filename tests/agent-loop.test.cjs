@@ -121,23 +121,24 @@ async function makeLoop({ engineResponses = [], toolOpts = {}, resolveEndpointOv
     const tools = makeFakeTools(toolOpts);
     const engine = makeFakeEngine(engineResponses);
 
+    // A connection only: the model comes from the message (or the preset's
+    // recommendation), the window from the lookup.
     const endpointProfile = {
         id: 'deepinfra',
         name: 'DeepInfra',
         baseURL: 'https://api.deepinfra.com/v1/openai',
-        model: 'deepseek-ai/DeepSeek-V4-Flash-0731',
-        contextWindow,
     };
 
     const loop = new AgentLoop({
         tools,
         resolveEndpoint: resolveEndpointOverride || (async () => ({ profile: endpointProfile, key: 'fake-key' })),
+        lookupContextWindow: async () => contextWindow,
     });
 
     // Patch: inject fake engine so the loop uses it instead of DeepInfraEngine
     loop._fakeEngine = engine;
     const origRunTurn = loop.runTurn.bind(loop);
-    loop.runTurn = async function(text, attachments, project, mode, profileId, turnId) {
+    loop.runTurn = async function(text, attachments, project, mode, profileId, turnId, opts) {
         // Intercept the engine construction inside the loop
         const origResolve = loop._resolveEndpoint.bind(loop);
         loop._resolveEndpoint = async () => ({ profile: endpointProfile, key: 'fake-key' });
@@ -146,7 +147,7 @@ async function makeLoop({ engineResponses = [], toolOpts = {}, resolveEndpointOv
         const origChatProto = DeepInfraEngine.prototype.chat;
         DeepInfraEngine.prototype.chat = engine.chat;
         try {
-            await origRunTurn(text, attachments, project, mode, profileId, turnId);
+            await origRunTurn(text, attachments, project, mode, profileId, turnId, opts);
         } finally {
             DeepInfraEngine.prototype.chat = origChatProto;
             loop._resolveEndpoint = origResolve;
@@ -154,7 +155,7 @@ async function makeLoop({ engineResponses = [], toolOpts = {}, resolveEndpointOv
     };
 
     // Patch probe similarly
-    loop.probe = async function(profileId) {
+    loop.probe = async function(profileId, model) {
         const { DeepInfraEngine } = await import('../services/llmEngines.mjs');
         const origChatProto = DeepInfraEngine.prototype.chat;
         DeepInfraEngine.prototype.chat = engine.chat;
@@ -162,7 +163,7 @@ async function makeLoop({ engineResponses = [], toolOpts = {}, resolveEndpointOv
         loop._resolveEndpoint = async () => ({ profile: endpointProfile, key: 'fake-key' });
         try {
             const AgentLoop = await loadAgentLoop();
-            return await AgentLoop.prototype.probe.call(loop, profileId);
+            return await AgentLoop.prototype.probe.call(loop, profileId, model);
         } finally {
             DeepInfraEngine.prototype.chat = origChatProto;
             loop._resolveEndpoint = origResolve;
@@ -505,6 +506,107 @@ describe('(f) endpoint key resolution', () => {
             if (prev === undefined) delete process.env.DEEPINFRA_API_KEY;
             else process.env.DEEPINFRA_API_KEY = prev;
         }
+    });
+});
+
+// ---------------------------------------------------------------------------
+// (g) the agent's model on the shared connection, its window, its attachments
+// ---------------------------------------------------------------------------
+
+describe('(g) model and context window', () => {
+    test('the model picked for the agent is the one the engine is called with', async () => {
+        const { loop } = await makeLoop({ engineResponses: [{ text: 'hi' }] });
+        await loop.runTurn('Hello', [], null, 'auto', 'deepinfra', 't-pick', { model: 'vendor/picked-model' });
+        assert.equal(loop._fakeEngine.calls[0].model, 'vendor/picked-model');
+    });
+
+    test('no pick = the connection\'s recommended agent model', async () => {
+        const { loop } = await makeLoop({ engineResponses: [{ text: 'hi' }] });
+        await loop.runTurn('Hello', [], null, 'auto', 'deepinfra', 't-rec');
+        assert.equal(loop._fakeEngine.calls[0].model, 'deepseek-ai/DeepSeek-V4-Flash-0731');
+    });
+
+    test('no pick and no recommendation = NO_MODEL, and nothing is spent', async () => {
+        const { loop, fakeRes } = await makeLoop({
+            engineResponses: [{ text: 'hi' }],
+            resolveEndpointOverride: async () => ({ profile: { id: 'custom', name: 'Custom', baseURL: 'http://x/v1' }, key: 'k' }),
+        });
+        // The helper swaps resolveEndpoint for its DeepInfra profile during runTurn, but the
+        // model comes from the PRESET ID, which is what matters here.
+        await loop.runTurn('Hello', [], null, 'auto', 'custom', 't-none');
+        const err = fakeRes.events.find((e) => e.event === 'agent:error');
+        assert.equal(err?.data.code, 'NO_MODEL');
+        assert.equal(loop._fakeEngine.calls.length, 0);
+    });
+
+    test('context window: our table, then the endpoint list (cached), then the fallback', async () => {
+        const AgentLoop = await loadAgentLoop();
+        const { FALLBACK_CONTEXT_WINDOW } = await import('../services/llmEngines.mjs');
+        const loop = new AgentLoop({ tools: makeFakeTools() });
+        const profile = { id: 'deepinfra', baseURL: 'https://api.example/v1' };
+        const origFetch = global.fetch;
+        let fetches = 0;
+        global.fetch = async () => {
+            fetches++;
+            return { ok: true, json: async () => ({ data: [{ id: 'big/model', metadata: { context_length: 262144, tags: ['chat'] } }] }) };
+        };
+        try {
+            assert.equal(await loop._contextWindowFor('deepinfra', 'deepseek-ai/DeepSeek-V4-Flash-0731', profile, 'k'), 1_048_576);
+            assert.equal(fetches, 0, 'a table hit needs no request');
+            assert.equal(await loop._contextWindowFor('deepinfra', 'big/model', profile, 'k'), 262144);
+            assert.equal(await loop._contextWindowFor('deepinfra', 'big/model', profile, 'k'), 262144);
+            assert.equal(fetches, 1, 'the endpoint answer is cached for the session');
+            assert.equal(await loop._contextWindowFor('deepinfra', 'unknown/model', profile, 'k'), FALLBACK_CONTEXT_WINDOW);
+            global.fetch = async () => { throw new Error('offline'); };
+            assert.equal(await loop._contextWindowFor('openai', 'gpt-x', profile, 'k'), FALLBACK_CONTEXT_WINDOW);
+        } finally {
+            global.fetch = origFetch;
+        }
+    });
+
+    test('every user turn tells the model which project is open, or that none is', async () => {
+        const { loop } = await makeLoop({ engineResponses: [{ text: 'a' }, { text: 'b' }] });
+        await loop.runTurn('first', [], { folderPath: 'C:/P/Fox', name: 'Fox' }, 'auto', 'deepinfra', 't-open');
+        await loop.runTurn('second', [], null, 'auto', 'deepinfra', 't-none');
+        const users = loop._messages.filter((m) => m.role === 'user').map((m) => m.content);
+        assert.match(users[0], /project "Fox" is open\./);
+        assert.doesNotMatch(users[0], /C:\/P\/Fox/, 'the folder path invites the model to look at it or reopen it');
+        assert.match(users[0], /first$/);
+        assert.match(users[1], /no project is open/);
+        assert.match(users[1], /Images you can look at: none\./);
+        // The chat shows what the user typed, not the state line.
+        assert.deepEqual(loop.getHistory().entries.filter((e) => e.kind === 'user').map((e) => e.text), ['first', 'second']);
+    });
+
+    test('the state line lists exactly the image refs look can resolve', async () => {
+        const { loop } = await makeLoop({ engineResponses: [{ text: 'a' }] });
+        loop._registerResult('/project-file?path=%2Fp%2Fold.png');
+        await loop.runTurn('look', [{ id: 'att_9', name: 'cat.png', filePath: '/tmp/att_9.png' }], null, 'auto', 'deepinfra', 't-refs');
+        const line = loop._messages.find((m) => m.role === 'user').content.split('\n')[0];
+        assert.match(line, /Images you can look at: \/project-file\?path=%2Fp%2Fold\.png, att_9 \(cat\.png\)\./);
+    });
+
+    test('a project opened mid-turn is the one a later generate in that turn lands in', async () => {
+        const engineResponses = [
+            { toolCalls: [{ id: 'o1', type: 'function', function: { name: 'open_project', arguments: JSON.stringify({ folderPath: 'C:/P/Given' }) } }] },
+            { toolCalls: [{ id: 'g1', type: 'function', function: { name: 'generate', arguments: JSON.stringify({ modelId: 'm', operation: 't2i', prompt: 'x' }) } }] },
+            { text: 'started' },
+        ];
+        const { loop, tools } = await makeLoop({ engineResponses });
+        tools.openProject = async (folderPath) => ({ ok: true, output: { folderPath, name: 'Given', groupCount: 0 } });
+        await loop.runTurn('open C:/P/Given and make one', [], null, 'auto', 'deepinfra', 't-mid');
+        assert.equal(tools.calls.generate.length, 1, 'generate reached the app instead of NO_PROJECT');
+    });
+
+    test('attachmentPath serves only this session\'s attachments, never a result or a stranger', async () => {
+        const AgentLoop = await loadAgentLoop();
+        const loop = new AgentLoop({ tools: makeFakeTools() });
+        loop._images.set('att_1', { path: '/tmp/att_1.png', kind: 'attachment' });
+        loop._registerResult('/project-file?path=%2Fp%2Fresult.png');
+        assert.equal(loop.attachmentPath('att_1'), '/tmp/att_1.png');
+        assert.equal(loop.attachmentPath('/project-file?path=%2Fp%2Fresult.png'), null);
+        assert.equal(loop.attachmentPath('att_2'), null);
+        assert.equal(loop.attachmentPath('C:/Users/me/.secrets/key.txt'), null);
     });
 });
 

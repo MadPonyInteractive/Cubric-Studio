@@ -36,6 +36,8 @@
  * vite-node, no build step. The recipes it reads are the ported ones in
  * `js/data/recipes/`, not a copy. The backends live in `./recipe-engines.mjs`.
  */
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { getRecipe } from '../js/data/recipes/registry.js';
 import {
     avoidedTerms,
@@ -164,8 +166,9 @@ function hasTerm(out, term) {
     return new RegExp(`\\b${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(out);
 }
 
-/** Objective checks — no model opinion involved. */
-function runChecks(tier, input, out, mode, style, isRegisterTier) {
+/** Objective checks — no model opinion involved. Exported for scripts/agent-test.mjs, which
+ *  runs the agent's generate prompts through the same bar (MPI-774). */
+export function runChecks(tier, input, out, mode, style, isRegisterTier) {
     const n = words(out);
     const checks = [
         { name: 'non-empty', ok: out.trim().length > 0, detail: `${n} words` },
@@ -518,13 +521,17 @@ async function releaseVram() {
     }
 }
 
-for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
+// The CLI runs only when this file IS the command: agent-test.mjs imports runChecks.
+// ponytail: case-insensitive for Windows (a `c:\ai` cwd vs a `C:\AI` module url); a symlinked entry would miss.
+const isCli = !!process.argv[1] && path.resolve(process.argv[1]).toLowerCase() === fileURLToPath(import.meta.url).toLowerCase();
+
+for (const sig of isCli ? ['SIGINT', 'SIGTERM', 'SIGHUP'] : []) {
     process.on(sig, () => {
         void releaseVram().then(() => process.exit(130));
     });
 }
 
-void main().catch(async (err) => {
+if (isCli) void main().catch(async (err) => {
     // Most likely cause in practice: Ollama was stopped mid-run to free VRAM for
     // another app. Say so plainly instead of dumping an undici socket trace.
     console.error(`\nRun aborted: ${err.message}`);

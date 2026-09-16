@@ -42,6 +42,38 @@
     font-size: var(--t-sm);
 }
 
+/* ── Panel header (panel mode only — standalone shows mascot instead) ──────── */
+.mpi-agent-chat__header {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    padding: var(--s-2) var(--s-3);
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--line-soft);
+}
+
+.mpi-agent-chat__header-label {
+    font-size: var(--t-sm);
+    font-weight: 600;
+    color: var(--ink-2);
+    flex: 1;
+}
+
+/* Working indicator dot */
+.mpi-agent-chat__working-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--line);
+    flex-shrink: 0;
+    transition: background var(--t-fast) var(--ease);
+}
+
+.mpi-agent-chat__working-dot--on {
+    background: var(--accent-heat);
+    animation: mpi-agent-float 1.4s var(--ease) infinite;
+}
+
 /* ── Transcript ──────────────────────────────────────────────────────────── */
 .mpi-agent-chat__transcript {
     display: flex;
@@ -50,12 +82,27 @@
     overflow-y: auto;
     max-height: 320px;
     padding-right: var(--s-1);
+    /* Bottom padding so the last entry can scroll clear of the image-chip strip
+     * which floats (bottom:100%) above the prompt box at z-index 40. */
+    padding-bottom: var(--s-8, 4rem);
 }
 
 .mpi-agent-chat--standalone .mpi-agent-chat__transcript {
     max-height: none;
     flex: 1 1 auto;
     min-height: 120px;
+    padding-bottom: var(--s-3);
+}
+
+/* Panel mode: fill available height */
+#agent-panel-mount .mpi-agent-chat {
+    height: 100%;
+}
+
+#agent-panel-mount .mpi-agent-chat__transcript {
+    flex: 1 1 auto;
+    max-height: none;
+    overflow-y: auto;
 }
 
 /* ── Entry types ─────────────────────────────────────────────────────────── */

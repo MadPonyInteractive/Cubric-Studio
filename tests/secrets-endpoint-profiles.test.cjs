@@ -269,13 +269,11 @@ function testListEndpointProfilesIncludesAllPresets() {
         for (const expected of ['deepinfra', 'openrouter', 'openai', 'ollama', 'custom']) {
             assert.ok(ids.includes(expected), `preset "${expected}" missing from listEndpointProfiles()`);
         }
-        // Every profile must carry the required shape fields.
+        // A profile is a CONNECTION: exactly id, name, baseURL. The model is each
+        // job's own pick (MPI-774 shared connection), so it must not ride along.
         for (const p of profiles) {
-            assert.ok(typeof p.id === 'string' && p.id, `profile missing id: ${JSON.stringify(p)}`);
-            assert.ok(typeof p.name === 'string',         `profile missing name: ${p.id}`);
-            assert.ok(typeof p.baseURL === 'string',      `profile missing baseURL: ${p.id}`);
-            assert.ok(typeof p.model === 'string',        `profile missing model: ${p.id}`);
-            assert.ok(typeof p.contextWindow === 'number', `profile missing contextWindow: ${p.id}`);
+            assert.deepEqual(Object.keys(p).sort(), ['baseURL', 'id', 'name'], `profile shape: ${JSON.stringify(p)}`);
+            assert.ok(p.id, `profile missing id: ${JSON.stringify(p)}`);
         }
     } finally {
         if (prevUserData === undefined) delete process.env.APP_USER_DATA;
@@ -290,9 +288,10 @@ function testSaveAndDeleteUserProfile() {
     process.env.APP_USER_DATA = dir;
     try {
         const store = freshStore(dir);
+        // A model saved by an older caller is dropped, not stored.
         store.saveEndpointProfile({ id: 'my-llm', name: 'My LLM', baseURL: 'https://my.example.com/v1', model: 'llama-3', contextWindow: 8192 });
         let profiles = store.listEndpointProfiles();
-        assert.ok(profiles.some(p => p.id === 'my-llm'), 'user-saved profile should appear in list');
+        assert.deepEqual(profiles.find(p => p.id === 'my-llm'), { id: 'my-llm', name: 'My LLM', baseURL: 'https://my.example.com/v1' });
 
         store.deleteEndpointProfile('my-llm');
         profiles = store.listEndpointProfiles();

@@ -41,8 +41,12 @@ import { Storage } from '../../../core/storage.js';
  *     that would break "Describe image". **MPI-737 owns growing it**, by putting
  *     a vision-capable entry in the registry and routing `imageDescribe` through
  *     the chosen backend.
- *   - **Agent** — MPI-677 step 5. Not built; the section is shaped to take it as
- *     a third row without being rearranged.
+ *   - **Agent** — MPI-774. Remote only: the model is picked from the shared
+ *     connection's list, recommended first.
+ *
+ * THE REMOTE CONNECTION IS SHARED (MPI-774, Fabio 2026-09-16): one provider + key
+ * at the top, every job that runs on Remote uses it. MPI-737 relabels the other
+ * two rows to "Remote" and drops the DeepInfra-only Account block below.
  *
  * WHAT IS DELIBERATELY NOT HERE: any notion of an "uncensored model" (MPI-728 —
  * a LoRA the user downloads makes any model uncensored, so it was never a fact
@@ -83,6 +87,36 @@ export const MpiLlmSettings = ComponentFactory.create({
                 <div class="mpi-settings__section">
                     <h3 class="mpi-settings__section-title">Language Models</h3>
                     <span class="mpi-settings__hint">Cubric uses a language model for the writing jobs around a generation — rewriting a short idea into a full prompt, and describing an image you hand it. Each job below chooses which machine runs it. You always see the result before it is used.</span>
+
+                    <div class="mpi-settings__subgroup">
+                        <span class="mpi-settings__subgroup-title">Remote connection</span>
+                        <span class="mpi-settings__hint">One connection for every job that runs on Remote. Pick the provider, add its API key, then test it. The key is stored by the desktop app and is never readable back.</span>
+                        <div class="mpi-settings__form-group">
+                            <label class="mpi-settings__field-label">Provider</label>
+                            <div id="mpiSettingsConnProfileSlot"></div>
+                            <span class="mpi-settings__hint" id="mpiSettingsConnProfileNote"></span>
+                        </div>
+                        <div class="mpi-settings__form-group" id="mpiSettingsConnUrlGroup">
+                            <label class="mpi-settings__field-label">Base URL</label>
+                            <div class="mpi-settings__folder-row">
+                                <div id="mpiSettingsConnUrlSlot" class="mpi-settings__folder-input"></div>
+                                <div id="mpiSettingsConnUrlSaveSlot"></div>
+                            </div>
+                        </div>
+                        <div class="mpi-settings__form-group">
+                            <label class="mpi-settings__field-label">API key</label>
+                            <div class="mpi-settings__folder-row">
+                                <div id="mpiSettingsConnKeySlot" class="mpi-settings__folder-input"></div>
+                                <div id="mpiSettingsConnKeySaveSlot"></div>
+                                <div id="mpiSettingsConnKeyClearSlot"></div>
+                            </div>
+                            <span class="mpi-settings__hint" id="mpiSettingsConnKeyStatus"></span>
+                        </div>
+                        <div class="mpi-settings__form-group">
+                            <div id="mpiSettingsConnProbeSlot"></div>
+                            <span class="mpi-settings__hint" id="mpiSettingsConnProbeResult"></span>
+                        </div>
+                    </div>
 
                     <div class="mpi-settings__subgroup">
                         <span class="mpi-settings__subgroup-title">Account</span>
@@ -130,36 +164,17 @@ export const MpiLlmSettings = ComponentFactory.create({
 
                         <div class="mpi-settings__form-group">
                             <label class="mpi-settings__field-label">Agent</label>
-                            <div id="mpiSettingsAgentProfileSlot"></div>
-                            <span class="mpi-settings__hint" id="mpiSettingsAgentProfileNote"></span>
-                        </div>
-                        <div class="mpi-settings__form-group" id="mpiSettingsAgentCustomUrlGroup">
-                            <label class="mpi-settings__field-label">Agent base URL</label>
-                            <div class="mpi-settings__folder-row">
-                                <div id="mpiSettingsAgentBaseUrlSlot" class="mpi-settings__folder-input"></div>
-                                <div id="mpiSettingsAgentBaseUrlSaveSlot"></div>
-                            </div>
+                            <div id="mpiSettingsAgentBackendSlot"></div>
                         </div>
                         <div class="mpi-settings__form-group">
                             <label class="mpi-settings__field-label">Agent model</label>
-                            <div class="mpi-settings__folder-row">
-                                <div id="mpiSettingsAgentModelSlot" class="mpi-settings__folder-input"></div>
-                                <div id="mpiSettingsAgentModelSaveSlot"></div>
-                            </div>
+                            <div id="mpiSettingsAgentModelSlot"></div>
+                            <span class="mpi-settings__hint" id="mpiSettingsAgentModelNote"></span>
                         </div>
                         <div class="mpi-settings__form-group">
                             <label class="mpi-settings__field-label">Agent mode</label>
                             <div id="mpiSettingsAgentModeSlot"></div>
                             <span class="mpi-settings__hint">Auto: the agent picks settings for a generation without asking. Ask first: it asks about every setting before generating. Installs always ask in both modes.</span>
-                        </div>
-                        <div class="mpi-settings__form-group" id="mpiSettingsAgentKeyGroup">
-                            <label class="mpi-settings__field-label">Agent API key</label>
-                            <div class="mpi-settings__folder-row">
-                                <div id="mpiSettingsAgentKeySlot" class="mpi-settings__folder-input"></div>
-                                <div id="mpiSettingsAgentKeySaveSlot"></div>
-                                <div id="mpiSettingsAgentKeyClearSlot"></div>
-                            </div>
-                            <span class="mpi-settings__hint" id="mpiSettingsAgentKeyStatus"></span>
                         </div>
                         <div class="mpi-settings__form-group">
                             <div id="mpiSettingsAgentProbeSlot"></div>
@@ -185,8 +200,13 @@ export const MpiLlmSettings = ComponentFactory.create({
         let _ollamaInst = null;
         /** The last `/llm/ollama` reply, for each Ollama model's Downloaded meta. */
         let _ollama = null;
-        let _agentProfileInst = null;
-        let _agentModeInst = null;
+        // The shared connection: the provider pick, the controls that depend on it
+        // (rebuilt on every pick), and the async agent model list.
+        let _connProfileInst = null;
+        const _connInsts = [];
+        let _agentModelInst = null;
+        let _detailsSeq = 0;
+        let _agentModelSeq = 0;
 
         el.onOpen = () => { _init(el); };
         _init(el);
@@ -200,7 +220,7 @@ export const MpiLlmSettings = ComponentFactory.create({
             // Key status FIRST: the backend dropdown greys DeepInfra on it.
             await _refreshKeyStatus(root);
             _renderBackend(root);
-            await _initAgent(root);
+            await _initConnection(root);
         }
 
         function _destroyControls() {
@@ -209,13 +229,15 @@ export const MpiLlmSettings = ComponentFactory.create({
             _backendInst?.el?.destroy?.();
             _modelInst?.el?.destroy?.();
             _ollamaInst?.destroy();
-            _agentProfileInst?.el?.destroy?.();
-            _agentModeInst?.el?.destroy?.();
+            _connProfileInst?.destroy();
+            _connInsts.forEach(i => i.destroy());
+            _connInsts.length = 0;
+            _agentModelInst?.destroy();
             _backendInst = null;
             _modelInst = null;
             _ollamaInst = null;
-            _agentProfileInst = null;
-            _agentModeInst = null;
+            _connProfileInst = null;
+            _agentModelInst = null;
         }
 
         // ── The DeepInfra key (write-only; the field is cleared after save) ──
@@ -450,251 +472,266 @@ export const MpiLlmSettings = ComponentFactory.create({
             return Object.entries(state?.models || {}).map(([id, m]) => [id, m.downloaded]);
         }
 
-        // ── Agent row ────────────────────────────────────────────────────────
-        // Profile pick, model, mode, key (write-only), and Probe. Prefs are in
-        // Storage.getAgentPrefs() / setAgentPrefs(); keys in secretsStore via IPC.
+        // ── Remote connection (MPI-774) — ONE for every job that runs on Remote ──
+        // The provider, its base URL (Custom only), its write-only key, and a test
+        // that spends no tokens. The pick is `Storage.getLlmConnection()`; the key
+        // lives in the main process. Job rows read the connection's models from
+        // `GET /llm/connection/models`, recommended first — MPI-737 builds the
+        // Enhancement and Image descriptions rows on the same list.
+
+        const PROFILE_NOTES = {
+            deepinfra:  'Recommended. Runs off your machine, so it costs no VRAM. Uses the same key as the DeepInfra account below.',
+            openrouter: 'A gateway to many providers\' models. Needs an OpenRouter API key.',
+            openai:     'OpenAI\'s own endpoint. Needs an OpenAI API key.',
+            ollama:     'Your local Ollama runtime, through its /v1 endpoint. Untested with the agent, and it needs its own VRAM beside any running generation.',
+            custom:     'Any OpenAI-compatible endpoint. Enter its base URL below.',
+        };
 
         const AGENT_MODE_OPTIONS = [
             { value: 'auto', label: 'Auto',       meta: 'Picks settings and generates without asking' },
             { value: 'ask',  label: 'Ask first',  meta: 'Asks about every setting before generating'  },
         ];
 
-        /** Per-profile hint shown under the endpoint dropdown. */
-        function _agentProfileNote(profileId) {
-            const notes = {
-                deepinfra:  'Recommended — runs off your machine, no VRAM. Uses the same key as the DeepInfra cloud backend above.',
-                openrouter: 'Community gateway to many models. Needs an OpenRouter API key.',
-                openai:     'OpenAI\'s own endpoint. Needs an API key.',
-                ollama:     'Your local Ollama runtime — untested with this agent. Needs its own VRAM alongside any running generation.',
-                custom:     'Any OpenAI-compatible endpoint. Enter the base URL below.',
-            };
-            return notes[profileId] || '';
-        }
+        /** Track a control that belongs to the current provider; see _renderConnDetails. */
+        function _conn(inst) { _connInsts.push(inst); return inst; }
 
-        async function _initAgent(root) {
-            // Destroy any previous agent controls
-            _agentProfileInst?.el?.destroy?.();
-            _agentModeInst?.el?.destroy?.();
-            _agentProfileInst = null;
-            _agentModeInst = null;
-
+        async function _initConnection(root) {
             const profiles = await secretsClient.listEndpointProfiles();
-            const prefs = Storage.getAgentPrefs();
-
-            _renderAgentProfile(root, profiles, prefs);
-            _renderAgentCustomUrl(root, profiles, prefs.profileId);
-            _renderAgentModel(root, profiles, prefs.profileId);
-            _renderAgentMode(root, prefs.mode);
-            await _renderAgentKey(root, prefs.profileId);
-            _renderAgentProbe(root, prefs.profileId);
+            const { profileId } = Storage.getLlmConnection();
+            _renderConnProfile(root, profiles, profileId);
+            await _renderConnDetails(root, profiles, profileId);
         }
 
-        function _renderAgentProfile(root, profiles, prefs) {
-            const slot = qs('#mpiSettingsAgentProfileSlot', root);
+        /** Everything that depends on the provider pick, rebuilt when it changes. */
+        async function _renderConnDetails(root, profiles, profileId) {
+            // A later pick supersedes this render; its own pass mounts the controls.
+            const seq = ++_detailsSeq;
+            _connInsts.forEach(i => i.destroy());
+            _connInsts.length = 0;
+            const profile = profiles.find(p => p.id === profileId) || null;
+            _renderConnUrl(root, profiles, profile, profileId);
+            await _renderConnKey(root, profileId);
+            if (seq !== _detailsSeq) return;
+            _renderConnProbe(root, profileId);
+            _renderAgentBackend(root, profile);
+            _renderAgentMode(root);
+            _renderAgentProbe(root, profileId);
+            await _renderAgentModel(root, profileId);
+        }
+
+        function _renderConnProfile(root, profiles, profileId) {
+            const slot = qs('#mpiSettingsConnProfileSlot', root);
+            const note = qs('#mpiSettingsConnProfileNote', root);
             if (!slot) return;
-            _agentProfileInst?.el?.destroy?.();
-            slot.innerHTML = '';
-
-            const options = profiles.map(p => ({
-                value: p.id,
-                label: p.name,
-                ...(p.id === 'ollama' && { meta: 'Untested — needs its own VRAM' }),
-            }));
-
-            _agentProfileInst = MpiDropdown.mount(slot, {
-                options,
-                value: prefs.profileId,
+            _connProfileInst?.destroy();
+            _connProfileInst = MpiDropdown.mount(slot, {
+                options: profiles.map(p => ({ value: p.id, label: p.name || p.id })),
+                value: profileId,
+                placeholder: secretsClient.isAvailable() ? 'Select…' : 'Desktop app only',
+                disabled: !secretsClient.isAvailable(),
                 extraClasses: STACKED,
             });
-            _agentProfileInst.on('change', async ({ value: profileId }) => {
-                const currentPrefs = Storage.getAgentPrefs();
-                Storage.setAgentPrefs({ profileId, mode: currentPrefs.mode });
-                const note = qs('#mpiSettingsAgentProfileNote', root);
-                if (note) note.textContent = _agentProfileNote(profileId);
-                const freshProfiles = await secretsClient.listEndpointProfiles();
-                _renderAgentCustomUrl(root, freshProfiles, profileId);
-                _renderAgentModel(root, freshProfiles, profileId);
-                await _renderAgentKey(root, profileId);
-                _renderAgentProbe(root, profileId);
+            _connProfileInst.on('change', async ({ value }) => {
+                Storage.setLlmConnection({ profileId: value });
+                if (note) note.textContent = PROFILE_NOTES[value] || '';
+                await _renderConnDetails(root, await secretsClient.listEndpointProfiles(), value);
             });
-
-            const note = qs('#mpiSettingsAgentProfileNote', root);
-            if (note) note.textContent = _agentProfileNote(prefs.profileId);
+            if (note) note.textContent = PROFILE_NOTES[profileId] || '';
         }
 
-        function _renderAgentCustomUrl(root, profiles, profileId) {
-            const group = qs('#mpiSettingsAgentCustomUrlGroup', root);
-            const slot  = qs('#mpiSettingsAgentBaseUrlSlot', root);
-            const saveSlot = qs('#mpiSettingsAgentBaseUrlSaveSlot', root);
+        function _renderConnUrl(root, profiles, profile, profileId) {
+            const group = qs('#mpiSettingsConnUrlGroup', root);
+            const slot = qs('#mpiSettingsConnUrlSlot', root);
+            const saveSlot = qs('#mpiSettingsConnUrlSaveSlot', root);
             if (!group || !slot || !saveSlot) return;
+            group.classList.toggle('hide', profileId !== 'custom');
+            if (profileId !== 'custom') return;
 
-            // Only show for the 'custom' profile.
-            const isCustom = profileId === 'custom';
-            group.hidden = !isCustom;
-            slot.innerHTML = '';
-            saveSlot.innerHTML = '';
-            if (!isCustom) return;
-
-            const profile = profiles.find(p => p.id === 'custom') || { baseURL: '' };
-            const urlInst = MpiInput.mount(slot, {
+            const urlInst = _conn(MpiInput.mount(slot, {
                 type: 'text',
                 placeholder: 'https://my-llm.example.com/v1',
-                value: profile.baseURL || '',
-            });
-            _insts.push(urlInst);
-
-            const saveInst = MpiButton.mount(saveSlot, { text: 'Save', variant: 'secondary', size: 'sm' });
+                value: profile?.baseURL || '',
+            }));
+            const saveInst = _conn(MpiButton.mount(saveSlot, { text: 'Save', variant: 'secondary', size: 'sm' }));
             saveInst.on('click', async () => {
-                const field = qs('.mpi-input__field', urlInst.el);
-                const baseURL = (field?.value || '').trim();
-                const cur = profiles.find(p => p.id === 'custom') || { id: 'custom', name: 'Custom', model: '', contextWindow: 8192 };
-                await secretsClient.saveEndpointProfile({ ...cur, baseURL });
-                const freshProfiles = await secretsClient.listEndpointProfiles();
-                await _renderAgentKey(root, 'custom');
-                _renderAgentProbe(root, 'custom');
-                _renderAgentCustomUrl(root, freshProfiles, 'custom');
-            });
-            _insts.push(saveInst);
-        }
-
-        function _renderAgentModel(root, profiles, profileId) {
-            const slot    = qs('#mpiSettingsAgentModelSlot', root);
-            const saveSlot = qs('#mpiSettingsAgentModelSaveSlot', root);
-            if (!slot || !saveSlot) return;
-            slot.innerHTML = '';
-            saveSlot.innerHTML = '';
-
-            const profile = profiles.find(p => p.id === profileId);
-            const modelInst = MpiInput.mount(slot, {
-                type: 'text',
-                placeholder: 'model id',
-                value: profile?.model || '',
-                disabled: !secretsClient.isAvailable(),
-            });
-            _insts.push(modelInst);
-
-            const saveInst = MpiButton.mount(saveSlot, { text: 'Save', variant: 'secondary', size: 'sm' });
-            saveInst.on('click', async () => {
-                if (!secretsClient.isAvailable()) return;
-                const field = qs('.mpi-input__field', modelInst.el);
-                const model = (field?.value || '').trim();
-                const cur = profile || { id: profileId, name: profileId, baseURL: '', contextWindow: 8192 };
-                await secretsClient.saveEndpointProfile({ ...cur, model });
-            });
-            _insts.push(saveInst);
-        }
-
-        function _renderAgentMode(root, mode) {
-            const slot = qs('#mpiSettingsAgentModeSlot', root);
-            if (!slot) return;
-            _agentModeInst?.el?.destroy?.();
-            slot.innerHTML = '';
-
-            _agentModeInst = MpiDropdown.mount(slot, {
-                options: AGENT_MODE_OPTIONS,
-                value: mode,
-                extraClasses: STACKED,
-            });
-            _agentModeInst.on('change', ({ value: newMode }) => {
-                const currentPrefs = Storage.getAgentPrefs();
-                Storage.setAgentPrefs({ profileId: currentPrefs.profileId, mode: newMode });
+                const baseURL = (qs('.mpi-input__field', urlInst.el)?.value || '').trim();
+                await secretsClient.saveEndpointProfile({ id: profileId, name: profile?.name || 'Custom', baseURL });
+                // A key is bound to the URL it was saved with, so its status moves too.
+                await _renderConnDetails(root, await secretsClient.listEndpointProfiles(), profileId);
             });
         }
 
-        async function _renderAgentKey(root, profileId) {
-            const group     = qs('#mpiSettingsAgentKeyGroup', root);
-            const keySlot   = qs('#mpiSettingsAgentKeySlot', root);
-            const saveSlot  = qs('#mpiSettingsAgentKeySaveSlot', root);
-            const clearSlot = qs('#mpiSettingsAgentKeyClearSlot', root);
-            if (!group || !keySlot || !saveSlot || !clearSlot) return;
-            keySlot.innerHTML = '';
-            saveSlot.innerHTML = '';
-            clearSlot.innerHTML = '';
+        async function _renderConnKey(root, profileId) {
+            const keySlot   = qs('#mpiSettingsConnKeySlot', root);
+            const saveSlot  = qs('#mpiSettingsConnKeySaveSlot', root);
+            const clearSlot = qs('#mpiSettingsConnKeyClearSlot', root);
+            if (!keySlot || !saveSlot || !clearSlot) return;
 
             const available = secretsClient.isAvailable();
-            const keyInst = MpiInput.mount(keySlot, {
+            const keyInst = _conn(MpiInput.mount(keySlot, {
                 type: 'password',
                 placeholder: available ? 'API key' : 'Desktop app only',
                 disabled: !available,
-            });
-            _insts.push(keyInst);
-
-            const saveInst = MpiButton.mount(saveSlot, { text: 'Save', variant: 'secondary', size: 'sm' });
+            }));
+            const saveInst = _conn(MpiButton.mount(saveSlot, { text: 'Save', variant: 'secondary', size: 'sm' }));
             saveInst.on('click', async () => {
                 const field = qs('.mpi-input__field', keyInst.el);
                 const key = (field?.value || '').trim();
                 if (!key) return;
                 const res = await secretsClient.setEndpointKey(profileId, key);
                 if (field) field.value = '';
-                _setAgentKeyStatus(root, res?.ok ? 'API key saved.' : 'Failed to save the key.');
+                _setText(root, '#mpiSettingsConnKeyStatus', res?.ok ? 'API key saved.' : 'Failed to save the key.');
+                if (res?.ok) await _renderAgentModel(root, profileId);
             });
-            _insts.push(saveInst);
-
-            const clearInst = MpiButton.mount(clearSlot, { text: 'Clear', variant: 'secondary', size: 'sm' });
+            const clearInst = _conn(MpiButton.mount(clearSlot, { text: 'Clear', variant: 'secondary', size: 'sm' }));
             clearInst.on('click', async () => {
                 await secretsClient.clearEndpointKey(profileId);
-                _setAgentKeyStatus(root, 'No API key saved.');
+                _setText(root, '#mpiSettingsConnKeyStatus', 'No API key saved.');
+                await _renderAgentModel(root, profileId);
             });
-            _insts.push(clearInst);
 
-            await _refreshAgentKeyStatus(root, profileId);
-        }
-
-        function _setAgentKeyStatus(root, text) {
-            const node = qs('#mpiSettingsAgentKeyStatus', root);
-            if (node) node.textContent = text;
-        }
-
-        async function _refreshAgentKeyStatus(root, profileId) {
-            if (!secretsClient.isAvailable()) {
-                _setAgentKeyStatus(root, 'Saving a key requires the desktop app.');
+            if (!available) {
+                _setText(root, '#mpiSettingsConnKeyStatus', 'Saving a key requires the desktop app.');
                 return;
             }
             try {
                 const has = await secretsClient.hasEndpointKey(profileId);
-                _setAgentKeyStatus(root, has ? 'API key is saved.' : 'No API key saved.');
+                _setText(root, '#mpiSettingsConnKeyStatus', has ? 'API key is saved.' : 'No API key saved.');
             } catch (err) {
-                clientLogger.warn('settings', '[MpiLlmSettings] agent key presence check failed', err);
-                _setAgentKeyStatus(root, 'Could not read the key status.');
+                clientLogger.warn('settings', '[MpiLlmSettings] connection key presence check failed', err);
+                _setText(root, '#mpiSettingsConnKeyStatus', 'Could not read the key status.');
             }
         }
 
-        function _renderAgentProbe(root, profileId) {
-            const slot   = qs('#mpiSettingsAgentProbeSlot', root);
-            const result = qs('#mpiSettingsAgentProbeResult', root);
+        function _renderConnProbe(root, profileId) {
+            const slot = qs('#mpiSettingsConnProbeSlot', root);
             if (!slot) return;
-            slot.innerHTML = '';
-            if (result) result.textContent = '';
-
-            const probeInst = MpiButton.mount(slot, { text: 'Probe endpoint', variant: 'secondary', size: 'sm' });
+            _setText(root, '#mpiSettingsConnProbeResult', '');
+            const probeInst = _conn(MpiButton.mount(slot, { text: 'Test connection', variant: 'secondary', size: 'sm' }));
             probeInst.on('click', async () => {
-                if (result) result.textContent = 'Probing…';
-                try {
-                    const res = await fetch('/agent/probe', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ profileId }),
-                    });
-                    const json = await res.json();
-                    if (json?.ok) {
-                        const { tools, model, latencyMs, message } = json;
-                        if (result) result.textContent = [
-                            tools ? 'Tools: yes' : 'Tools: no',
-                            model ? `Model: ${model}` : '',
-                            latencyMs != null ? `${latencyMs} ms` : '',
-                            message || '',
-                        ].filter(Boolean).join(' · ');
-                    } else {
-                        const code = json?.error?.code || 'error';
-                        const msg  = json?.error?.message || 'Probe failed.';
-                        if (result) result.textContent = `${code}: ${msg}`;
-                    }
-                } catch (err) {
-                    clientLogger.warn('settings', '[MpiLlmSettings] agent probe failed', err);
-                    if (result) result.textContent = 'Could not reach the server.';
-                }
+                _setText(root, '#mpiSettingsConnProbeResult', 'Testing…');
+                const json = await _postJson('/llm/connection/probe', { profileId });
+                _setText(root, '#mpiSettingsConnProbeResult', json?.ok
+                    ? `Connected · ${json.modelCount} models · ${json.latencyMs} ms`
+                    : _errorText(json));
+                if (json?.ok) await _renderAgentModel(root, profileId);
             });
-            _insts.push(probeInst);
+        }
+
+        // ── Agent row — backend "Remote", the model on the connection, mode ──
+
+        function _renderAgentBackend(root, profile) {
+            const slot = qs('#mpiSettingsAgentBackendSlot', root);
+            if (!slot) return;
+            // One real option: the agent only runs on the remote connection.
+            _conn(MpiDropdown.mount(slot, {
+                options: [{ value: 'remote', label: 'Remote', meta: profile?.name || 'No connection' }],
+                value: 'remote',
+                extraClasses: STACKED,
+            }));
+        }
+
+        async function _renderAgentModel(root, profileId) {
+            const slot = qs('#mpiSettingsAgentModelSlot', root);
+            if (!slot) return;
+            const seq = ++_agentModelSeq;
+            _agentModelInst?.destroy();
+            _agentModelInst = null;
+            _setText(root, '#mpiSettingsAgentModelNote', 'Loading the connection\'s models…');
+
+            const json = await _getJson(`/llm/connection/models?profileId=${encodeURIComponent(profileId)}`);
+            const models = json?.ok ? json.models : [];
+            const recommended = models.filter(m => m.recommendedFor.includes('agent'));
+            const saved = Storage.getAgentPrefs().model;
+            // '' = the recommended model, resolved server-side too; shown as that model.
+            const value = saved || recommended[0]?.id || '';
+            const options = [
+                ...recommended.map(m => ({ value: m.id, label: `(recommended) ${m.id}`, meta: _windowLabel(m) })),
+                ...models.filter(m => !m.recommendedFor.includes('agent')).map(m => ({ value: m.id, label: m.id, meta: _windowLabel(m) })),
+            ];
+            // A pick the endpoint no longer lists stays visible rather than silently changing.
+            if (value && !options.some(o => o.value === value)) options.unshift({ value, label: value, meta: 'Not listed' });
+
+            // A newer render (a provider change, a saved key) started while this one waited.
+            if (seq !== _agentModelSeq) return;
+            _agentModelInst = MpiDropdown.mount(slot, {
+                options,
+                value,
+                placeholder: json?.ok ? 'Select a model' : 'Connect first',
+                disabled: !json?.ok,
+                extraClasses: STACKED,
+            });
+            _agentModelInst.on('change', ({ value: model }) => {
+                Storage.setAgentPrefs({ ...Storage.getAgentPrefs(), model });
+            });
+            _setText(root, '#mpiSettingsAgentModelNote', json?.ok
+                ? (recommended.length ? 'The recommended model is the one we test the agent on.' : 'We have not tested the agent on this provider. Pick a model that can call tools, then use Test tool use.')
+                : _errorText(json));
+        }
+
+        function _renderAgentMode(root) {
+            const slot = qs('#mpiSettingsAgentModeSlot', root);
+            if (!slot) return;
+            const inst = _conn(MpiDropdown.mount(slot, {
+                options: AGENT_MODE_OPTIONS,
+                value: Storage.getAgentPrefs().mode,
+                extraClasses: STACKED,
+            }));
+            inst.on('change', ({ value: mode }) => {
+                Storage.setAgentPrefs({ ...Storage.getAgentPrefs(), mode });
+            });
+        }
+
+        function _renderAgentProbe(root, profileId) {
+            const slot = qs('#mpiSettingsAgentProbeSlot', root);
+            if (!slot) return;
+            _setText(root, '#mpiSettingsAgentProbeResult', '');
+            const probeInst = _conn(MpiButton.mount(slot, { text: 'Test tool use', variant: 'secondary', size: 'sm' }));
+            probeInst.on('click', async () => {
+                _setText(root, '#mpiSettingsAgentProbeResult', 'Testing… (one small request)');
+                const json = await _postJson('/agent/probe', { profileId, model: Storage.getAgentPrefs().model });
+                _setText(root, '#mpiSettingsAgentProbeResult', json?.ok
+                    ? [json.tools ? 'Tools: yes' : 'Tools: no', json.model, `${json.latencyMs} ms`, json.message].filter(Boolean).join(' · ')
+                    : _errorText(json));
+            });
+        }
+
+        /** "1M context" — the window the agent compacts against. */
+        function _windowLabel(m) {
+            if (!m.contextWindow) return '';
+            return m.contextWindow >= 1_000_000
+                ? `${Math.round(m.contextWindow / 1_048_576)}M context`
+                : `${Math.round(m.contextWindow / 1024)}K context`;
+        }
+
+        function _errorText(json) {
+            if (!json) return 'Could not reach the app server.';
+            const code = json.error?.code;
+            if (code === 'NO_KEY') return 'Add an API key for this provider first.';
+            if (code === 'NO_PROFILE') return 'This provider has no base URL yet.';
+            return `${code || 'Error'}: ${json.error?.message || 'the request failed.'}`;
+        }
+
+        function _setText(root, selector, text) {
+            const node = qs(selector, root);
+            if (node) node.textContent = text;
+        }
+
+        async function _getJson(url) {
+            try { return await (await fetch(url)).json(); } catch (err) {
+                clientLogger.warn('settings', `[MpiLlmSettings] GET ${url} failed`, err);
+                return null;
+            }
+        }
+
+        async function _postJson(url, body) {
+            try {
+                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                return await res.json();
+            } catch (err) {
+                clientLogger.warn('settings', `[MpiLlmSettings] POST ${url} failed`, err);
+                return null;
+            }
         }
 
         // ── Image descriptions (MPI-737 grows this) ─────────────────────────

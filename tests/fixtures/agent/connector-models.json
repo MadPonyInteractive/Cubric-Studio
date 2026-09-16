@@ -1,0 +1,2241 @@
+{
+  "ok": true,
+  "engine": "local",
+  "hardware": {
+    "gpuName": "NVIDIA GeForce RTX 4060 Ti",
+    "vramGb": 15.99609375,
+    "ramGb": 64
+  },
+  "models": [
+    {
+      "id": "sdxl-realistic",
+      "name": "SDXL Realistic",
+      "type": "image",
+      "installed": true,
+      "ops": [
+        {
+          "op": "t2i",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "i2i",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "control",
+          "installed": true,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "inpaint",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "upscale",
+          "installed": true,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "detail",
+          "installed": true,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        }
+      ],
+      "missingDownloadGb": 0,
+      "fit": {
+        "floorVramGb": 8,
+        "ramGbAtYourVram": 0,
+        "runs": true
+      }
+    },
+    {
+      "id": "sdxl-nsfw",
+      "name": "SDXL NSFW",
+      "type": "image",
+      "installed": false,
+      "ops": [
+        {
+          "op": "t2i",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "i2i",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "control",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "inpaint",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "upscale",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "detail",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        }
+      ],
+      "missingDownloadGb": 6.46,
+      "fit": {
+        "floorVramGb": 8,
+        "ramGbAtYourVram": 0,
+        "runs": true
+      }
+    },
+    {
+      "id": "ill-anime-beauty",
+      "name": "ILL Anime Beauty",
+      "type": "image",
+      "installed": false,
+      "ops": [
+        {
+          "op": "t2i",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "i2i",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "control",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "inpaint",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "upscale",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "detail",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        }
+      ],
+      "missingDownloadGb": 6.46,
+      "fit": {
+        "floorVramGb": 8,
+        "ramGbAtYourVram": 0,
+        "runs": true
+      }
+    },
+    {
+      "id": "ill-anime",
+      "name": "ILL Anime",
+      "type": "image",
+      "installed": true,
+      "ops": [
+        {
+          "op": "t2i",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "i2i",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "control",
+          "installed": true,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "inpaint",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "upscale",
+          "installed": true,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "detail",
+          "installed": true,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        }
+      ],
+      "missingDownloadGb": 0,
+      "fit": {
+        "floorVramGb": 8,
+        "ramGbAtYourVram": 0,
+        "runs": true
+      }
+    },
+    {
+      "id": "pony-mix",
+      "name": "PONY Mix",
+      "type": "image",
+      "installed": false,
+      "ops": [
+        {
+          "op": "t2i",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "i2i",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "control",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "inpaint",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "upscale",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "detail",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        }
+      ],
+      "missingDownloadGb": 6.62,
+      "fit": {
+        "floorVramGb": 8,
+        "ramGbAtYourVram": 0,
+        "runs": true
+      }
+    },
+    {
+      "id": "chroma-flash",
+      "name": "Chroma Flash",
+      "type": "image",
+      "installed": false,
+      "ops": [
+        {
+          "op": "t2i",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "B&W Sketch",
+              "Lenovo",
+              "Brushwork",
+              "Anime"
+            ]
+          }
+        },
+        {
+          "op": "i2i",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "B&W Sketch",
+              "Lenovo",
+              "Brushwork",
+              "Anime"
+            ]
+          }
+        },
+        {
+          "op": "control",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "B&W Sketch",
+              "Lenovo",
+              "Brushwork",
+              "Anime"
+            ]
+          }
+        },
+        {
+          "op": "upscale",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "B&W Sketch",
+              "Lenovo",
+              "Brushwork",
+              "Anime"
+            ]
+          }
+        },
+        {
+          "op": "detail",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "B&W Sketch",
+              "Lenovo",
+              "Brushwork",
+              "Anime"
+            ]
+          }
+        }
+      ],
+      "missingDownloadGb": 30.94,
+      "fit": {
+        "floorVramGb": 8,
+        "ramGbAtYourVram": 20,
+        "runs": true
+      }
+    },
+    {
+      "id": "chroma-hyper",
+      "name": "Chroma Hyper",
+      "type": "image",
+      "installed": false,
+      "ops": [
+        {
+          "op": "t2i",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "B&W Sketch",
+              "Lenovo",
+              "Brushwork",
+              "Anime"
+            ]
+          }
+        },
+        {
+          "op": "i2i",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "B&W Sketch",
+              "Lenovo",
+              "Brushwork",
+              "Anime"
+            ]
+          }
+        },
+        {
+          "op": "control",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "B&W Sketch",
+              "Lenovo",
+              "Brushwork",
+              "Anime"
+            ]
+          }
+        },
+        {
+          "op": "upscale",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "B&W Sketch",
+              "Lenovo",
+              "Brushwork",
+              "Anime"
+            ]
+          }
+        },
+        {
+          "op": "detail",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "B&W Sketch",
+              "Lenovo",
+              "Brushwork",
+              "Anime"
+            ]
+          }
+        }
+      ],
+      "missingDownloadGb": 22.93,
+      "fit": {
+        "floorVramGb": 8,
+        "ramGbAtYourVram": 12,
+        "runs": true
+      }
+    },
+    {
+      "id": "krea2",
+      "name": "Krea 2",
+      "type": "image",
+      "installed": true,
+      "ops": [
+        {
+          "op": "t2i",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [
+              "1k",
+              "2k"
+            ],
+            "turbo": true,
+            "styles": [
+              "None",
+              "Dark Brush",
+              "Dot Matrix",
+              "Kids Drawing",
+              "Neon Drip",
+              "Rainy Window",
+              "Retro Anime",
+              "Soft Water Color",
+              "Sunset Blur",
+              "Vintage Tarot",
+              "MidJourney"
+            ]
+          }
+        },
+        {
+          "op": "i2i",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [
+              "1k",
+              "2k"
+            ],
+            "turbo": true,
+            "styles": [
+              "None",
+              "Dark Brush",
+              "Dot Matrix",
+              "Kids Drawing",
+              "Neon Drip",
+              "Rainy Window",
+              "Retro Anime",
+              "Soft Water Color",
+              "Sunset Blur",
+              "Vintage Tarot",
+              "MidJourney"
+            ]
+          }
+        },
+        {
+          "op": "control",
+          "installed": true,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [
+              "1k",
+              "2k"
+            ],
+            "turbo": true,
+            "styles": [
+              "None",
+              "Dark Brush",
+              "Dot Matrix",
+              "Kids Drawing",
+              "Neon Drip",
+              "Rainy Window",
+              "Retro Anime",
+              "Soft Water Color",
+              "Sunset Blur",
+              "Vintage Tarot",
+              "MidJourney"
+            ]
+          }
+        },
+        {
+          "op": "krea2Edit",
+          "installed": true,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [
+              "1k",
+              "2k"
+            ],
+            "turbo": true,
+            "styles": [
+              "None",
+              "Dark Brush",
+              "Dot Matrix",
+              "Kids Drawing",
+              "Neon Drip",
+              "Rainy Window",
+              "Retro Anime",
+              "Soft Water Color",
+              "Sunset Blur",
+              "Vintage Tarot",
+              "MidJourney"
+            ]
+          }
+        },
+        {
+          "op": "inpaint",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [
+              "1k",
+              "2k"
+            ],
+            "turbo": true,
+            "styles": [
+              "None",
+              "Dark Brush",
+              "Dot Matrix",
+              "Kids Drawing",
+              "Neon Drip",
+              "Rainy Window",
+              "Retro Anime",
+              "Soft Water Color",
+              "Sunset Blur",
+              "Vintage Tarot",
+              "MidJourney"
+            ]
+          }
+        },
+        {
+          "op": "upscale",
+          "installed": true,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [
+              "1k",
+              "2k"
+            ],
+            "turbo": true,
+            "styles": [
+              "None",
+              "Dark Brush",
+              "Dot Matrix",
+              "Kids Drawing",
+              "Neon Drip",
+              "Rainy Window",
+              "Retro Anime",
+              "Soft Water Color",
+              "Sunset Blur",
+              "Vintage Tarot",
+              "MidJourney"
+            ]
+          }
+        },
+        {
+          "op": "detail",
+          "installed": true,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [
+              "1k",
+              "2k"
+            ],
+            "turbo": true,
+            "styles": [
+              "None",
+              "Dark Brush",
+              "Dot Matrix",
+              "Kids Drawing",
+              "Neon Drip",
+              "Rainy Window",
+              "Retro Anime",
+              "Soft Water Color",
+              "Sunset Blur",
+              "Vintage Tarot",
+              "MidJourney"
+            ]
+          }
+        }
+      ],
+      "missingDownloadGb": 0,
+      "fit": {
+        "floorVramGb": 8,
+        "ramGbAtYourVram": 12,
+        "runs": true
+      }
+    },
+    {
+      "id": "krea2-nsfw",
+      "name": "Krea 2 NSFW",
+      "type": "image",
+      "installed": false,
+      "ops": [
+        {
+          "op": "t2i",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [
+              "1k",
+              "2k"
+            ],
+            "turbo": true,
+            "styles": [
+              "None",
+              "Dark Brush",
+              "Dot Matrix",
+              "Kids Drawing",
+              "Neon Drip",
+              "Rainy Window",
+              "Retro Anime",
+              "Soft Water Color",
+              "Sunset Blur",
+              "Vintage Tarot",
+              "MidJourney"
+            ]
+          }
+        },
+        {
+          "op": "i2i",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [
+              "1k",
+              "2k"
+            ],
+            "turbo": true,
+            "styles": [
+              "None",
+              "Dark Brush",
+              "Dot Matrix",
+              "Kids Drawing",
+              "Neon Drip",
+              "Rainy Window",
+              "Retro Anime",
+              "Soft Water Color",
+              "Sunset Blur",
+              "Vintage Tarot",
+              "MidJourney"
+            ]
+          }
+        },
+        {
+          "op": "control",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [
+              "1k",
+              "2k"
+            ],
+            "turbo": true,
+            "styles": [
+              "None",
+              "Dark Brush",
+              "Dot Matrix",
+              "Kids Drawing",
+              "Neon Drip",
+              "Rainy Window",
+              "Retro Anime",
+              "Soft Water Color",
+              "Sunset Blur",
+              "Vintage Tarot",
+              "MidJourney"
+            ]
+          }
+        },
+        {
+          "op": "krea2Edit",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [
+              "1k",
+              "2k"
+            ],
+            "turbo": true,
+            "styles": [
+              "None",
+              "Dark Brush",
+              "Dot Matrix",
+              "Kids Drawing",
+              "Neon Drip",
+              "Rainy Window",
+              "Retro Anime",
+              "Soft Water Color",
+              "Sunset Blur",
+              "Vintage Tarot",
+              "MidJourney"
+            ]
+          }
+        },
+        {
+          "op": "inpaint",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [
+              "1k",
+              "2k"
+            ],
+            "turbo": true,
+            "styles": [
+              "None",
+              "Dark Brush",
+              "Dot Matrix",
+              "Kids Drawing",
+              "Neon Drip",
+              "Rainy Window",
+              "Retro Anime",
+              "Soft Water Color",
+              "Sunset Blur",
+              "Vintage Tarot",
+              "MidJourney"
+            ]
+          }
+        },
+        {
+          "op": "upscale",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [
+              "1k",
+              "2k"
+            ],
+            "turbo": true,
+            "styles": [
+              "None",
+              "Dark Brush",
+              "Dot Matrix",
+              "Kids Drawing",
+              "Neon Drip",
+              "Rainy Window",
+              "Retro Anime",
+              "Soft Water Color",
+              "Sunset Blur",
+              "Vintage Tarot",
+              "MidJourney"
+            ]
+          }
+        },
+        {
+          "op": "detail",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [
+              "1k",
+              "2k"
+            ],
+            "turbo": true,
+            "styles": [
+              "None",
+              "Dark Brush",
+              "Dot Matrix",
+              "Kids Drawing",
+              "Neon Drip",
+              "Rainy Window",
+              "Retro Anime",
+              "Soft Water Color",
+              "Sunset Blur",
+              "Vintage Tarot",
+              "MidJourney"
+            ]
+          }
+        }
+      ],
+      "missingDownloadGb": 12.25,
+      "fit": {
+        "floorVramGb": 8,
+        "ramGbAtYourVram": 12,
+        "runs": true
+      }
+    },
+    {
+      "id": "nvidia-pid",
+      "name": "NVIDIA PiD Upscaler",
+      "type": "image",
+      "installed": false,
+      "ops": [
+        {
+          "op": "pid",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        }
+      ],
+      "missingDownloadGb": 15.81,
+      "fit": {
+        "floorVramGb": 8,
+        "ramGbAtYourVram": 4,
+        "runs": true
+      }
+    },
+    {
+      "id": "klein-4b",
+      "name": "FLUX.2 Klein 4B",
+      "type": "image",
+      "installed": true,
+      "ops": [
+        {
+          "op": "t2i",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "Muppets",
+              "Cartoon",
+              "Jojo",
+              "Anime",
+              "Chibi",
+              "Doodle",
+              "Vintage",
+              "Aesthetic"
+            ]
+          }
+        },
+        {
+          "op": "i2i",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "Muppets",
+              "Cartoon",
+              "Jojo",
+              "Anime",
+              "Chibi",
+              "Doodle",
+              "Vintage",
+              "Aesthetic"
+            ]
+          }
+        },
+        {
+          "op": "control",
+          "installed": true,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "Muppets",
+              "Cartoon",
+              "Jojo",
+              "Anime",
+              "Chibi",
+              "Doodle",
+              "Vintage",
+              "Aesthetic"
+            ]
+          }
+        },
+        {
+          "op": "kleinEdit",
+          "installed": true,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "Muppets",
+              "Cartoon",
+              "Jojo",
+              "Anime",
+              "Chibi",
+              "Doodle",
+              "Vintage",
+              "Aesthetic"
+            ]
+          }
+        },
+        {
+          "op": "inpaint",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "Muppets",
+              "Cartoon",
+              "Jojo",
+              "Anime",
+              "Chibi",
+              "Doodle",
+              "Vintage",
+              "Aesthetic"
+            ]
+          }
+        },
+        {
+          "op": "detail",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "Muppets",
+              "Cartoon",
+              "Jojo",
+              "Anime",
+              "Chibi",
+              "Doodle",
+              "Vintage",
+              "Aesthetic"
+            ]
+          }
+        },
+        {
+          "op": "upscale",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "Muppets",
+              "Cartoon",
+              "Jojo",
+              "Anime",
+              "Chibi",
+              "Doodle",
+              "Vintage",
+              "Aesthetic"
+            ]
+          }
+        }
+      ],
+      "missingDownloadGb": 0,
+      "fit": {
+        "floorVramGb": 8,
+        "ramGbAtYourVram": 0,
+        "runs": true
+      }
+    },
+    {
+      "id": "klein-9b",
+      "name": "FLUX.2 Klein 9B",
+      "type": "image",
+      "installed": true,
+      "ops": [
+        {
+          "op": "t2i",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "Storybook",
+              "Comic",
+              "Anime",
+              "Chibi",
+              "Doodle",
+              "Vintage",
+              "Watercolour"
+            ]
+          }
+        },
+        {
+          "op": "i2i",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "Storybook",
+              "Comic",
+              "Anime",
+              "Chibi",
+              "Doodle",
+              "Vintage",
+              "Watercolour"
+            ]
+          }
+        },
+        {
+          "op": "control",
+          "installed": true,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "Storybook",
+              "Comic",
+              "Anime",
+              "Chibi",
+              "Doodle",
+              "Vintage",
+              "Watercolour"
+            ]
+          }
+        },
+        {
+          "op": "kleinEdit",
+          "installed": true,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "Storybook",
+              "Comic",
+              "Anime",
+              "Chibi",
+              "Doodle",
+              "Vintage",
+              "Watercolour"
+            ]
+          }
+        },
+        {
+          "op": "inpaint",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "Storybook",
+              "Comic",
+              "Anime",
+              "Chibi",
+              "Doodle",
+              "Vintage",
+              "Watercolour"
+            ]
+          }
+        },
+        {
+          "op": "detail",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "Storybook",
+              "Comic",
+              "Anime",
+              "Chibi",
+              "Doodle",
+              "Vintage",
+              "Watercolour"
+            ]
+          }
+        },
+        {
+          "op": "upscale",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "Storybook",
+              "Comic",
+              "Anime",
+              "Chibi",
+              "Doodle",
+              "Vintage",
+              "Watercolour"
+            ]
+          }
+        }
+      ],
+      "missingDownloadGb": 0,
+      "fit": {
+        "floorVramGb": 8,
+        "ramGbAtYourVram": 8,
+        "runs": true
+      }
+    },
+    {
+      "id": "boogu-edit-high",
+      "name": "Boogu Image Edit",
+      "type": "image",
+      "installed": false,
+      "ops": [
+        {
+          "op": "edit",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        }
+      ],
+      "missingDownloadGb": 29.34,
+      "fit": {
+        "floorVramGb": 8,
+        "ramGbAtYourVram": 16,
+        "runs": true
+      }
+    },
+    {
+      "id": "boogu-edit-balanced",
+      "name": "Boogu Image Edit",
+      "type": "image",
+      "installed": false,
+      "ops": [
+        {
+          "op": "edit",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "3:4",
+              "4:5",
+              "5:8",
+              "9:16",
+              "4:3",
+              "5:4",
+              "8:5",
+              "16:9"
+            ],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": []
+          }
+        }
+      ],
+      "missingDownloadGb": 20.76,
+      "fit": {
+        "floorVramGb": 8,
+        "ramGbAtYourVram": 8,
+        "runs": true
+      }
+    },
+    {
+      "id": "wan-22",
+      "name": "Wan 2.2 Smooth",
+      "type": "video",
+      "installed": false,
+      "ops": [
+        {
+          "op": "i2v_ms",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "9:16",
+              "16:9",
+              "21:9"
+            ],
+            "qualityTiers": [
+              "very_low",
+              "low",
+              "medium",
+              "high",
+              "very_high"
+            ],
+            "turbo": false,
+            "styles": []
+          }
+        }
+      ],
+      "missingDownloadGb": 33.15,
+      "fit": {
+        "floorVramGb": 12,
+        "ramGbAtYourVram": 20,
+        "runs": true
+      }
+    },
+    {
+      "id": "ltx-23",
+      "name": "LTX 2.3",
+      "type": "video",
+      "installed": false,
+      "ops": [
+        {
+          "op": "t2v_ms",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "9:16",
+              "16:9",
+              "21:9"
+            ],
+            "qualityTiers": [
+              "very_low",
+              "low",
+              "medium",
+              "high",
+              "very_high",
+              "2k",
+              "4k"
+            ],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "i2v_ms",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "9:16",
+              "16:9",
+              "21:9"
+            ],
+            "qualityTiers": [
+              "very_low",
+              "low",
+              "medium",
+              "high",
+              "very_high",
+              "2k",
+              "4k"
+            ],
+            "turbo": false,
+            "styles": []
+          }
+        }
+      ],
+      "missingDownloadGb": 57.76,
+      "fit": {
+        "floorVramGb": 16,
+        "ramGbAtYourVram": 44,
+        "runs": true
+      }
+    },
+    {
+      "id": "ltx-23-balanced",
+      "name": "LTX 2.3",
+      "type": "video",
+      "installed": false,
+      "ops": [
+        {
+          "op": "t2v_ms",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "9:16",
+              "16:9",
+              "21:9"
+            ],
+            "qualityTiers": [
+              "very_low",
+              "low",
+              "medium",
+              "high",
+              "very_high",
+              "2k",
+              "4k"
+            ],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "i2v_ms",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "9:16",
+              "16:9",
+              "21:9"
+            ],
+            "qualityTiers": [
+              "very_low",
+              "low",
+              "medium",
+              "high",
+              "very_high",
+              "2k",
+              "4k"
+            ],
+            "turbo": false,
+            "styles": []
+          }
+        }
+      ],
+      "missingDownloadGb": 38.87,
+      "fit": {
+        "floorVramGb": 12,
+        "ramGbAtYourVram": 28,
+        "runs": true
+      }
+    },
+    {
+      "id": "minimax-h3",
+      "name": "MiniMax H3",
+      "type": "video",
+      "installed": true,
+      "ops": [
+        {
+          "op": "t2v_ms",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "9:16",
+              "16:9",
+              "21:9"
+            ],
+            "qualityTiers": [
+              "very_low",
+              "low",
+              "medium",
+              "high",
+              "very_high",
+              "2k",
+              "4k"
+            ],
+            "turbo": true,
+            "styles": []
+          }
+        },
+        {
+          "op": "i2v_ms",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "9:16",
+              "16:9",
+              "21:9"
+            ],
+            "qualityTiers": [
+              "very_low",
+              "low",
+              "medium",
+              "high",
+              "very_high",
+              "2k",
+              "4k"
+            ],
+            "turbo": true,
+            "styles": []
+          }
+        }
+      ],
+      "missingDownloadGb": 0,
+      "fit": {
+        "floorVramGb": 12,
+        "ramGbAtYourVram": 36,
+        "runs": true
+      }
+    },
+    {
+      "id": "minimax-h3-ref2va",
+      "name": "MiniMax H3 Reference",
+      "type": "video",
+      "installed": true,
+      "ops": [
+        {
+          "op": "ref2v_ms",
+          "installed": true,
+          "params": {
+            "ratios": [
+              "1:1",
+              "9:16",
+              "16:9",
+              "21:9"
+            ],
+            "qualityTiers": [
+              "very_low",
+              "low",
+              "medium",
+              "high",
+              "very_high",
+              "2k",
+              "4k"
+            ],
+            "turbo": true,
+            "styles": []
+          }
+        }
+      ],
+      "missingDownloadGb": 0,
+      "fit": {
+        "floorVramGb": 12,
+        "ramGbAtYourVram": 36,
+        "runs": true
+      }
+    },
+    {
+      "id": "wan22-5b",
+      "name": "Wan 2.2 5B",
+      "type": "video",
+      "installed": false,
+      "ops": [
+        {
+          "op": "t2v",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "9:16",
+              "16:9",
+              "21:9"
+            ],
+            "qualityTiers": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "turbo": false,
+            "styles": []
+          }
+        },
+        {
+          "op": "i2v",
+          "installed": false,
+          "params": {
+            "ratios": [
+              "1:1",
+              "9:16",
+              "16:9",
+              "21:9"
+            ],
+            "qualityTiers": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "turbo": false,
+            "styles": []
+          }
+        }
+      ],
+      "missingDownloadGb": 17.2,
+      "fit": {
+        "floorVramGb": 8,
+        "ramGbAtYourVram": 4,
+        "runs": true
+      }
+    },
+    {
+      "id": "qwen-edit",
+      "name": "Qwen Image Edit",
+      "type": "image",
+      "installed": false,
+      "ops": [
+        {
+          "op": "qwenEdit",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "Illustration",
+              "Anime 3D",
+              "Anime 2D",
+              "Anime Zankuro",
+              "3D",
+              "Caricature",
+              "SnapShot"
+            ]
+          }
+        },
+        {
+          "op": "control",
+          "installed": false,
+          "params": {
+            "ratios": [],
+            "qualityTiers": [],
+            "turbo": false,
+            "styles": [
+              "None",
+              "Illustration",
+              "Anime 3D",
+              "Anime 2D",
+              "Anime Zankuro",
+              "3D",
+              "Caricature",
+              "SnapShot"
+            ]
+          }
+        }
+      ],
+      "missingDownloadGb": 31.81,
+      "fit": {
+        "floorVramGb": 12,
+        "ramGbAtYourVram": 20,
+        "runs": true
+      }
+    }
+  ],
+  "flows": [
+    {
+      "id": "head-swap",
+      "title": "Head Swap",
+      "operation": "flowHeadSwap",
+      "installed": true,
+      "fields": [
+        "positive"
+      ],
+      "boxParams": [
+        {
+          "param": "box1",
+          "role": "image1",
+          "ratio": 1,
+          "overflow": "allow"
+        },
+        {
+          "param": "box2",
+          "role": "image2",
+          "ratio": 1,
+          "overflow": "allow"
+        }
+      ]
+    },
+    {
+      "id": "ltx-extend",
+      "title": "Extend Video",
+      "operation": "flowLtxExtend",
+      "installed": true,
+      "fields": [
+        "Input_Duration",
+        "Input_is_Turbo"
+      ],
+      "boxParams": []
+    },
+    {
+      "id": "ltx-foley",
+      "title": "Add Foley",
+      "operation": "flowLtxFoley",
+      "installed": false,
+      "fields": [],
+      "boxParams": []
+    },
+    {
+      "id": "ltx-upscale",
+      "title": "Upscale Video",
+      "operation": "ltxVideoUpscale",
+      "installed": false,
+      "fields": [
+        "positive",
+        "Input_Denoise",
+        "Input_Prompt_Strength"
+      ],
+      "boxParams": []
+    },
+    {
+      "id": "scribble-object",
+      "title": "Draw It In",
+      "operation": "flowScribObj",
+      "installed": true,
+      "fields": [],
+      "boxParams": [
+        {
+          "param": "box1",
+          "role": "image1",
+          "overflow": "allow"
+        }
+      ]
+    },
+    {
+      "id": "scribble",
+      "title": "Scribble",
+      "operation": "flowScribble",
+      "installed": true,
+      "fields": [],
+      "boxParams": []
+    },
+    {
+      "id": "character-sheet",
+      "title": "Character Sheet",
+      "operation": "flowCharacterSheet",
+      "installed": true,
+      "fields": [
+        "positive",
+        "enhance",
+        "Input_Recipe",
+        "Input_Quality",
+        "Input_is_Turbo",
+        "Input_Remove_Head"
+      ],
+      "boxParams": []
+    },
+    {
+      "id": "outpaint",
+      "title": "Outpaint",
+      "operation": "flowOutpaint",
+      "installed": true,
+      "fields": [
+        "Input_is_Turbo"
+      ],
+      "boxParams": []
+    },
+    {
+      "id": "voice-changer",
+      "title": "Voice Changer",
+      "operation": "flowVoiceChanger",
+      "installed": false,
+      "fields": [],
+      "boxParams": []
+    },
+    {
+      "id": "chatter-box",
+      "title": "Text to Speech",
+      "operation": "flowChatterBox",
+      "installed": false,
+      "fields": [
+        "positive",
+        "Input_Language.language"
+      ],
+      "boxParams": []
+    },
+    {
+      "id": "drama-box",
+      "title": "DramaBox",
+      "operation": "flowDramaBox",
+      "installed": true,
+      "fields": [
+        "positive",
+        "Input_Duration"
+      ],
+      "boxParams": []
+    },
+    {
+      "id": "stems",
+      "title": "Stems",
+      "operation": "flowStems",
+      "installed": true,
+      "fields": [
+        "Input_Get_Bass",
+        "Input_Get_Drums",
+        "Input_Get_Other",
+        "Input_Get_Vocals",
+        "combine"
+      ],
+      "boxParams": []
+    },
+    {
+      "id": "object-stamp",
+      "title": "Object Stamp",
+      "operation": "flowObjectStamp",
+      "installed": true,
+      "fields": [],
+      "boxParams": []
+    },
+    {
+      "id": "minimax-music",
+      "title": "Song",
+      "operation": "flowTextToMusic",
+      "installed": false,
+      "fields": [
+        "positive",
+        "Input_Style",
+        "Input_Style_Custom",
+        "Input_Bpm",
+        "Input_Duration",
+        "Input_Low_Vram",
+        "Input_Mood",
+        "Input_Vocal",
+        "Input_Arrangement"
+      ],
+      "boxParams": []
+    },
+    {
+      "id": "sound-and-music",
+      "title": "Sound & Music",
+      "operation": "flowSoundAndMusic",
+      "installed": true,
+      "fields": [
+        "positive",
+        "Input_Category",
+        "Input_Duration"
+      ],
+      "boxParams": []
+    }
+  ]
+}

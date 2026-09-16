@@ -145,14 +145,14 @@ export const secretsClient = {
         }
     },
 
-    // ── Endpoint profiles (MPI-774 agent) ───────────────────────────────────
+    // ── Endpoint profiles: the shared LLM connection (MPI-774) ───────────────
     // Keys follow the same write-only contract: set / has / clear, no get.
     // The forked server reads the key over the fork bridge. The deepinfra preset
     // reuses the existing DeepInfra slot — a user never enters the same key twice.
 
     /**
      * Returns all profiles (presets + user-saved) without keys.
-     * @returns {Promise<Array<{id,name,baseURL,model,contextWindow}>>}
+     * @returns {Promise<Array<{id,name,baseURL}>>}
      */
     async listEndpointProfiles() {
         const ipc = _ipc();
@@ -168,7 +168,7 @@ export const secretsClient = {
 
     /**
      * Saves (creates or overwrites) a profile.
-     * @param {{id,name,baseURL,model,contextWindow}} profile
+     * @param {{id,name,baseURL}} profile
      * @returns {Promise<{ok:boolean,reason?:string}>}
      */
     async saveEndpointProfile(profile) {

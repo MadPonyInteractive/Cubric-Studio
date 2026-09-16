@@ -119,7 +119,9 @@ function _fit() {
         (above - (quote.getBoundingClientRect().bottom - box.top)) / VISION_H,
         (above - (h1.getBoundingClientRect().bottom - box.top)) / STUDIO_H,
     ));
-    stage.style.setProperty('--crew-k', k.toFixed(3));
+    // On the HERO, not the stage: the agent slot beside the headline bounds itself by the
+    // crew's head line, and it is the stage's sibling, so a var on the stage never reached it.
+    hero.style.setProperty('--crew-k', k.toFixed(3));
     stage.classList.toggle('mpi-landing__crew--hidden', k < CREW_MIN);
     stage.classList.toggle('mpi-landing__crew--no-names', k < NAMES_MIN);
     stage.classList.toggle('mpi-landing__crew--no-roles', k < ROLES_MIN);

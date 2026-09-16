@@ -8,9 +8,10 @@
  *   GET  /agent/stream    — SSE: agent:working, agent:message, agent:tool,
  *                           agent:confirm, agent:result, agent:compacting, agent:error
  *   GET  /agent/history   — full session history + current working / confirm state
+ *   GET  /agent/attachment/:id — the staged image behind a history attachment id
  *   POST /agent/confirm   — respond to an install confirmation card
  *   POST /agent/reset     — clear the session and wipe the attachment dir
- *   POST /agent/probe     — one tiny call to test an endpoint profile + key
+ *   POST /agent/probe     — can the agent's model call a tool on the connection?
  *
  * Every route answers { ok: true, ... } or { ok: false, error: { code, message } }.
  * Malformed bodies → HTTP 400 BAD_REQUEST.
@@ -65,7 +66,7 @@ const _bad = (res, message) =>
 // ---------------------------------------------------------------------------
 
 router.post('/agent/message', async (req, res) => {
-    const { text, attachments, project, mode, profileId } = req.body || {};
+    const { text, attachments, project, mode, profileId, model } = req.body || {};
 
     if (!text && !(Array.isArray(attachments) && attachments.length)) {
         return _bad(res, 'body.text or body.attachments is required.');
@@ -75,6 +76,9 @@ router.post('/agent/message', async (req, res) => {
     }
     if (mode !== 'auto' && mode !== 'ask') {
         return _bad(res, "body.mode must be 'auto' or 'ask'.");
+    }
+    if (model !== undefined && typeof model !== 'string') {
+        return _bad(res, 'body.model must be a string.');
     }
 
     let loop;
@@ -116,7 +120,7 @@ router.post('/agent/message', async (req, res) => {
     // Run the turn asynchronously. The STAGED records go in, not the raw data URLs:
     // staging them a second time would give the chat and the model different ids for
     // the same picture, and the loop registers these ids as the images it may read.
-    loop.runTurn(text || '', stagedAttachments, project || null, mode, profileId, turnId)
+    loop.runTurn(text || '', stagedAttachments, project || null, mode, profileId, turnId, { model })
         .catch((err) => logger.error('agent', `runTurn unhandled: ${err.message}`));
 });
 
@@ -156,6 +160,23 @@ router.get('/agent/history', async (_req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// GET /agent/attachment/:id
+// ---------------------------------------------------------------------------
+
+// History keeps an attachment as { id, name } only, so a remounted chat asks for
+// the picture by id. Served only for this session's own attachment ids (the same
+// allowlist `look` resolves through), never a path the caller names.
+router.get('/agent/attachment/:id', async (req, res) => {
+    let loop;
+    try { loop = await getLoop(); } catch {
+        return res.status(404).end();
+    }
+    const filePath = loop.attachmentPath(req.params.id);
+    if (!filePath) return res.status(404).end();
+    res.sendFile(filePath, (err) => { if (err && !res.headersSent) res.status(404).end(); });
+});
+
+// ---------------------------------------------------------------------------
 // POST /agent/confirm
 // ---------------------------------------------------------------------------
 
@@ -191,7 +212,7 @@ router.post('/agent/reset', async (_req, res) => {
 // ---------------------------------------------------------------------------
 
 router.post('/agent/probe', async (req, res) => {
-    const { profileId } = req.body || {};
+    const { profileId, model } = req.body || {};
     if (!profileId) return _bad(res, 'body.profileId is required.');
 
     let loop;
@@ -199,7 +220,7 @@ router.post('/agent/probe', async (req, res) => {
         return res.json({ ok: false, error: { code: 'ENDPOINT_ERROR', message: err.message } });
     }
 
-    const result = await loop.probe(profileId);
+    const result = await loop.probe(profileId, typeof model === 'string' ? model : '');
     res.json(result);
 });
 

@@ -408,38 +408,79 @@
   font-style: normal;
 }
 
-/* MPI-774: the standalone agent chat, parked in the hero's empty right-hand corner.
-   NOT a full-width band between headline and foot, which is where it shipped: at full
-   width it lay across the whole crew stage, and its `pointer-events: auto` swallowed
-   every hover the characters underneath were listening for, while its own mascot sat
-   on top of theirs (Fabio, 2026-09-16).
+/* MPI-774: the standalone agent chat, in the empty band to the RIGHT of the headline
+   (Fabio, 2026-09-16). Two earlier homes failed: a full-width band between headline and
+   foot lay across the crew and its `pointer-events: auto` ate every character's hover;
+   a corner panel lifted over the crew's shoulders still sat on the stage while the
+   whole right side of the headline stood empty.
 
-   Lifted clear of the crew's heads rather than layered over them: the floor line sits
-   160px above the hero bottom at EVERY scale (see `.mpi-landing__crew`), and the
-   tallest character the panel's own column spans is Video at 260 stage px, so a foot
-   at 160 + 260×k clears every head underneath it. */
+   The slot is the BAND, not the panel: its top is the headline's first line (an anchor,
+   because the slot is a sibling of the headline and the rows above it have no fixed
+   height), its bottom is the crew's head line. The floor sits 160px above the hero
+   bottom at every scale (`.mpi-landing__crew`), and at narrow windows this column
+   reaches over Studio, the tallest member at 360 stage px, so 160 + 360×k clears every
+   head. `--crew-k` is set on the hero by heroCrew.js for this reason. The band ignores
+   the pointer; only the panel inside it takes it, so its empty lower part never shadows
+   a character. */
+.mpi-landing__headline h1 {
+  anchor-name: --mpi-hero-headline;
+}
+
 .mpi-landing__agent-slot {
   position: absolute;
+  position-anchor: --mpi-hero-headline;
+  top: anchor(top);
   right: var(--s-6);
-  bottom: calc(160px + 260px * var(--crew-k, var(--hero-k)) + var(--s-5));
-  width: clamp(260px, 32%, 400px);
-  max-height: 40vh;
+  bottom: calc(160px + 360px * var(--crew-k, var(--hero-k)) + var(--s-5));
+  width: clamp(260px, 36%, 420px);
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  /* hero-inner has pointer-events:none to let clicks through to the crew;
-     restore them here so the agent input is interactive. */
+  pointer-events: none;
+}
+
+.mpi-landing__agent-slot .mpi-agent-chat {
+  max-height: 100%;
+  min-height: 0;
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--line);
   pointer-events: auto;
 }
 
-/* In the corner it is a prompt box, not a chat window: the transcript takes room only
-   once there is something in it, so the mascot sits ON the box rather than floating a
-   third of the hero above it. `flex: 1 1 auto` (the standalone default) gives an empty
-   transcript the whole panel. */
+/* A prompt box first, a chat window once there is a conversation: the transcript takes
+   room only when it has something in it, and then scrolls inside the band. */
 .mpi-landing__agent-slot .mpi-agent-chat__transcript {
   flex: 0 1 auto;
   min-height: 0;
-  max-height: 32vh;
+  max-height: none;
+}
+
+/* The line beside the headline speaks at the picker heading's size ("Pick up where you
+   left off."), so the hero reads as two ways in at one tier below the headline, not as
+   a widget parked next to it. It also carries the live state ("Thinking…"). */
+.mpi-landing__agent-slot .mpi-agent-chat__mascot-label {
+  font-family: var(--font-main);
+  font-size: max(var(--t-lg), calc(var(--t-xl) * var(--hero-k)));
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--ink-1);
+  text-wrap: balance;
+}
+
+.mpi-landing__agent-slot .mpi-agent-chat__mascot {
+  width: max(40px, calc(64px * var(--hero-k)));
+  height: max(40px, calc(64px * var(--hero-k)));
+}
+
+/* The panel's own top rule already separates it; a second rule over the input doubles it. */
+.mpi-landing__agent-slot .mpi-agent-chat__input-row {
+  border-top: 0;
+  padding-top: 0;
+}
+
+/* Room for a real ask, not a search field: three lines before it starts to grow. */
+.mpi-landing__agent-slot .mpi-agent-chat__input-wrap .mpi-input__field {
+  min-height: calc(3lh + var(--s-4));
 }
 
 .mpi-landing__agent-slot .mpi-agent-chat__transcript:empty {

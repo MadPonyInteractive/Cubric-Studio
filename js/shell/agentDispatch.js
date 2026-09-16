@@ -50,7 +50,7 @@ import { sizeToGb } from '../data/modelConstants/footprint.js';
 import { getFlowById, listFlows, flowAvailability } from '../data/flowsRegistry.js';
 import { resolveFlowFieldValues, flowDeclaredFields } from '../utils/declaredFields.js';
 import { getCommand } from '../data/commandRegistry.js';
-import { resolveNamedParams, isValidSeed, resolveAgentMedia } from '../data/generationControls.js';
+import { resolveNamedParams, isValidSeed, resolveAgentMedia, namedParamsFor } from '../data/generationControls.js';
 import { pluginAvailability } from '../data/pluginsRegistry.js';
 import { downloadService } from '../services/downloadService.js';
 import { remoteEngineClient } from '../services/remoteEngineClient.js';
@@ -444,9 +444,12 @@ function _listModels(jobId) {
     const engine = remoteEngineClient.effectiveEngine();
 
     const models = MODELS.map(model => {
+        // `params`: what the agent may set on this op, so it never guesses a turbo
+        // or a tier the model lacks (namedParamsFor mirrors resolveNamedParams).
         const ops = (model.supportedOps || []).map(op => ({
             op,
             installed: isOperationInstalled(model, op),
+            params: namedParamsFor(model, op),
         }));
 
         // Compute missing dep IDs for this engine so the route can sum their sizes.

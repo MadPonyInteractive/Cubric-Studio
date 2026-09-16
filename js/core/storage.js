@@ -111,13 +111,24 @@ export const DEFAULT_RUNPOD_CONFIG = Object.freeze({
 
 // MPI-774: the in-app agent's endpoint profile and mode. `deepinfra` is the
 // recommended preset's id (MpiLlmSettings Agent row). Mode is 'auto' | 'ask'.
-export const DEFAULT_AGENT_PREFS = Object.freeze({ profileId: 'deepinfra', mode: 'auto' });
+export const DEFAULT_AGENT_PREFS = Object.freeze({ model: '', mode: 'auto' });
 
 function normalizeAgentPrefs(value = {}) {
   return {
-    profileId: typeof value?.profileId === 'string' && value.profileId ? value.profileId : DEFAULT_AGENT_PREFS.profileId,
+    model: typeof value?.model === 'string' ? value.model : DEFAULT_AGENT_PREFS.model,
     mode: value?.mode === 'ask' ? 'ask' : 'auto',
   };
+}
+
+export const DEFAULT_LLM_CONNECTION = Object.freeze({ profileId: 'deepinfra' });
+
+// No connection saved yet -> the profile the agent row picked before the connection
+// was shared (it lived in AGENT_PREFS), so an existing pick survives the move.
+function readLlmConnection() {
+  const saved = get(STORAGE_KEYS.LLM_CONNECTION, null);
+  const legacy = get(STORAGE_KEYS.AGENT_PREFS, null)?.profileId;
+  const profileId = saved?.profileId || legacy;
+  return { profileId: typeof profileId === 'string' && profileId ? profileId : DEFAULT_LLM_CONNECTION.profileId };
 }
 
 // Idle-watchdog floor/default in seconds (mirrors MpiSettings IDLE_FLOOR_MIN /
@@ -300,6 +311,8 @@ export const Storage = {
   // MPI-774: { profileId, mode } for the in-app agent. Never a key.
   getAgentPrefs: () => normalizeAgentPrefs(get(STORAGE_KEYS.AGENT_PREFS, DEFAULT_AGENT_PREFS)),
   setAgentPrefs: (v) => set(STORAGE_KEYS.AGENT_PREFS, normalizeAgentPrefs(v)),
+  getLlmConnection: readLlmConnection,
+  setLlmConnection: (v) => set(STORAGE_KEYS.LLM_CONNECTION, { profileId: String(v?.profileId || DEFAULT_LLM_CONNECTION.profileId) }),
 };
 
 export const Session = {

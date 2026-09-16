@@ -4,6 +4,7 @@ Derived from `plan.md` phases (2026-09-15).
 
 - [x] Decisions, contract, describer question
 - [x] Batch 1: four foundations
-- [ ] Integration and scripted harness
+- [x] Integration and scripted harness
+- [ ] Fabio's round: no deletes, skills for the agent, panel layout, rules, project memory
 - [ ] Live on the GPU
 - [ ] Fabio's pass

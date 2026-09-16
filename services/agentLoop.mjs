@@ -13,13 +13,20 @@
  *   tool result; when the HTTP call settles, agent:result is emitted.
  * - Compaction at 50% (or 30% for windows ≥ 1M) of prompt_tokens / contextWindow,
  *   from the provider's own usage. No tokenizer.
- * - Endpoint profile + key come from the fork bridge (W3 owns the main-process
- *   handler). Standalone fallback: for the 'deepinfra' preset, DEEPINFRA_API_KEY
- *   env var — the same path llm.js already uses standalone.
+ * - The connection (profile + key) is the SHARED one every LLM job uses
+ *   (`resolveConnection`, llmEngines.mjs). The model is the agent's own pick,
+ *   sent with each message; '' means the connection's recommended agent model.
  */
 
 import crypto from 'crypto';
-import { DeepInfraEngine } from './llmEngines.mjs';
+import {
+    DeepInfraEngine,
+    resolveConnection,
+    recommendedModel,
+    listRemoteModels,
+    RECOMMENDED_REMOTE_MODELS,
+    FALLBACK_CONTEXT_WINDOW,
+} from './llmEngines.mjs';
 import * as realTools from './agentTools.mjs';
 
 // ---------------------------------------------------------------------------
@@ -89,7 +96,7 @@ const TOOL_DEFS = [
                         type: 'array',
                         items: {
                             type: 'object',
-                            properties: { role: { type: 'string' }, image: { type: 'string', description: 'Attachment id (att_xxx) or result filePath.' } },
+                            properties: { role: { type: 'string' }, image: { type: 'string', description: 'One of the refs the App state line lists as images you can look at.' } },
                             required: ['role', 'image'],
                         },
                     },
@@ -102,11 +109,11 @@ const TOOL_DEFS = [
         type: 'function',
         function: {
             name: 'look',
-            description: 'Describe an image. Pass an attachment id (att_xxx) or a result filePath. Optionally ask a specific question, crop to a region, or request a bounding box.',
+            description: 'Describe a still image the App state line lists. Optionally ask a specific question, crop to a region, or request a bounding box. It cannot open videos, folders or any other path.',
             parameters: {
                 type: 'object',
                 properties: {
-                    image: { type: 'string', description: 'Attachment id (att_xxx) or result filePath.' },
+                    image: { type: 'string', description: 'One of the refs the App state line lists as images you can look at. Nothing else resolves.' },
                     question: { type: 'string' },
                     crop: {
                         type: 'object',
@@ -140,15 +147,6 @@ const TOOL_DEFS = [
 // Max tool calls the model may make in one user turn before STEP_LIMIT.
 const MAX_STEPS = 8;
 
-// DeepInfra preset profile (standalone fallback for 'deepinfra' profileId).
-const DEEPINFRA_PRESET = {
-    id: 'deepinfra',
-    name: 'DeepInfra',
-    baseURL: 'https://api.deepinfra.com/v1/openai',
-    model: 'deepseek-ai/DeepSeek-V4-Flash-0731',
-    contextWindow: 1_048_576,
-};
-
 // ---------------------------------------------------------------------------
 // AgentLoop class — injectable for tests
 // ---------------------------------------------------------------------------
@@ -158,10 +156,14 @@ export class AgentLoop {
      * @param {object} [opts]
      * @param {object} [opts.tools]         Connector tool implementation (defaults to agentTools.mjs).
      * @param {function} [opts.resolveEndpoint] (profileId) => { profile, key } overrides fork bridge.
+     * @param {function} [opts.lookupContextWindow] (profileId, model, profile, key) => number|null,
+     *        overrides the table + endpoint lookup.
      */
-    constructor({ tools, resolveEndpoint } = {}) {
+    constructor({ tools, resolveEndpoint, lookupContextWindow } = {}) {
         this._tools = tools || realTools;
         this._resolveEndpointOverride = resolveEndpoint || null;
+        this._lookupContextWindowOverride = lookupContextWindow || null;
+        this._contextWindows = new Map(); // `${profileId}\n${model}` -> number
 
         // Session state
         this._messages = [];       // LLM context (system + turns)
@@ -169,7 +171,7 @@ export class AgentLoop {
         this._working = false;
         this._pendingConfirm = null; // { confirmId, resolve }
         this._lastUsage = null;    // provider usage from last response
-        this._contextWindow = 0;   // from active profile
+        this._contextWindow = 0;   // of the model the last turn ran on
 
         // Every image this session is allowed to reach: attachment ids the user
         // sent, and the outputs its own generations produced. See _resolveImage.
@@ -247,6 +249,26 @@ export class AgentLoop {
         return this._images.get(ref) || null;
     }
 
+    /** The staged file behind one of this session's attachment ids, or null. */
+    attachmentPath(id) {
+        const img = this._resolveImage(id);
+        return img && img.kind === 'attachment' ? img.path : null;
+    }
+
+    /**
+     * The line that opens every user turn: where a generation lands, and the only image
+     * refs `look`/`generate` resolve (the `_images` allowlist, so the two cannot differ).
+     * ponytail: the latest 8 refs; a longer session lists what it most likely means.
+     */
+    _appStateLine(project) {
+        const where = project
+            ? `project "${project.name}" is open. Generations land there.`
+            : 'no project is open. A generation needs one: ask the user to open or create a project.';
+        const refs = [...this._images.entries()].slice(-8)
+            .map(([ref, img]) => (img.kind === 'attachment' ? `${ref} (${img.name || 'attachment'})` : ref));
+        return `[App state: ${where} Images you can look at: ${refs.length ? refs.join(', ') : 'none'}.]`;
+    }
+
     /** Register a generation's output so a later `look` or reference can name it. */
     _registerResult(filePath) {
         if (!filePath || typeof filePath !== 'string') return;
@@ -260,29 +282,36 @@ export class AgentLoop {
     async _resolveEndpoint(profileId) {
         // Injected override (tests or probe)
         if (this._resolveEndpointOverride) return this._resolveEndpointOverride(profileId);
+        return resolveConnection(profileId, this._forkAsk || null);
+    }
 
-        // Fork bridge (Electron)
-        let profile = null;
-        let key = null;
-        if (this._forkAsk) {
-            const m = await this._forkAsk('secrets:get-endpoint-profile-request', { profileId });
-            if (m) { profile = m.profile || null; key = m.key || null; }
+    /** The agent's pick, or the connection's recommended agent model, or ''. */
+    _resolveModel(profileId, model) {
+        return (typeof model === 'string' && model.trim()) || recommendedModel(profileId, 'agent');
+    }
+
+    /**
+     * The model's context window, which sets the compaction threshold: our table,
+     * then the endpoint's own `/models` entry (cached for the session), then
+     * FALLBACK_CONTEXT_WINDOW. A failed lookup is not cached, so the next turn asks again.
+     */
+    async _contextWindowFor(profileId, model, profile, key) {
+        if (this._lookupContextWindowOverride) {
+            return (await this._lookupContextWindowOverride(profileId, model, profile, key)) || FALLBACK_CONTEXT_WINDOW;
         }
-
-        // The 'deepinfra' preset reuses DEEPINFRA_API_KEY when no key is stored — the
-        // order `routes/llm.js` already uses (stored key first, then the environment),
-        // and NOT an Electron-vs-standalone split: a dev run and the harness run inside
-        // Electron too, where an early return on the bridge's empty answer made the
-        // environment key unreachable. Only ever sent to DeepInfra's own base URL, so an
-        // edited profile cannot point the user's key at another host.
-        if (!key && profileId === 'deepinfra' && process.env.DEEPINFRA_API_KEY) {
-            const effective = profile || DEEPINFRA_PRESET;
-            if (effective.baseURL === DEEPINFRA_PRESET.baseURL) {
-                return { profile: effective, key: process.env.DEEPINFRA_API_KEY };
+        const known = (RECOMMENDED_REMOTE_MODELS[profileId] || []).find((r) => r.id === model)?.contextWindow;
+        if (known) return known;
+        const cacheKey = `${profileId}\n${model}`;
+        if (this._contextWindows.has(cacheKey)) return this._contextWindows.get(cacheKey);
+        try {
+            const models = await listRemoteModels({ presetId: profileId, baseURL: profile.baseURL, key });
+            const found = models.find((m) => m.id === model)?.contextWindow;
+            if (found) {
+                this._contextWindows.set(cacheKey, found);
+                return found;
             }
-        }
-
-        return { profile, key };
+        } catch { /* fall through to the conservative default */ }
+        return FALLBACK_CONTEXT_WINDOW;
     }
 
     /** Set the fork bridge ask function (called by routes/agent.js after import). */
@@ -305,12 +334,18 @@ export class AgentLoop {
 
         const modeRules =
             mode === 'auto'
-                ? `Mode: Auto. Proceed when the goal is clear without asking about settings. For images: use turbo: true where the model offers it. For video: use qualityTier 'medium' and turbo: true where offered. Omit any param the model does not support.`
+                ? `Mode: Auto. Proceed when the goal is clear without asking about settings. For images: use turbo: true where the op offers it. For video: use qualityTier 'medium' and turbo: true where the op offers them.`
                 : `Mode: Ask first. Ask the user about every model setting before generating.`;
 
         return `You are Cubric, a helpful assistant built into Cubric Vision, a desktop AI image and video tool.
 
 ${modeRules}
+
+Model rule: pick a model whose op is installed (ops[].installed in list_models). If none fits, say an install is needed and offer one with install_model.
+
+Settings rule: each op in list_models carries params: the only ratio, qualityTier, turbo and styleSelect values that op accepts (styleSelect is the index into params.styles). Never send a value it does not list, and leave out a param it does not offer.
+
+Looking rule: before you comment on, judge or describe any image, call look on it. look only takes a ref the App state line lists under images you can look at; it cannot open a video, a folder or any other path, and with none listed there is nothing to look at. If look reports a refusal (the describer declined to describe the image), tell the user it refused, and suggest switching Image descriptions to the local ComfyUI describer (Settings > Remote > Language Models), which runs on their machine and does not refuse.
 
 Installation rule: Always call install_model to show the user a Yes / No confirmation card. Never install a model without a Yes from the user, regardless of mode.
 
@@ -481,7 +516,8 @@ ${knowledgeIndex}`.trim();
         return pt >= this._contextWindow * threshold;
     }
 
-    async _compact(turnId, profile) {
+    /** @param {{model: string, baseURL: string, key: string}} endpoint */
+    async _compact(turnId, endpoint) {
         this._emit('agent:compacting', { turnId, on: true });
         try {
             // Ask the model to write a handoff
@@ -492,8 +528,8 @@ ${knowledgeIndex}`.trim();
                     content: 'Write a compact handoff covering: goal, decisions made, outputs generated (model, settings, results), current model and settings, and any open question. This will restart the session context.',
                 },
             ];
-            const engine = new DeepInfraEngine(profile.key, profile.baseURL);
-            const handoffRes = await engine.chat({ model: profile.model, messages: handoffMessages });
+            const engine = new DeepInfraEngine(endpoint.key, endpoint.baseURL);
+            const handoffRes = await engine.chat({ model: endpoint.model, messages: handoffMessages });
             const handoffText = handoffRes.text || '';
 
             // Rebuild messages: system + handoff + last 4 user turns
@@ -539,23 +575,28 @@ ${knowledgeIndex}`.trim();
     // Run a turn (called by POST /agent/message)
     // -------------------------------------------------------------------------
 
-    async runTurn(text, attachments, project, mode, profileId, turnId) {
+    async runTurn(text, attachments, project, mode, profileId, turnId, { model: pickedModel } = {}) {
         this._working = true;
         this._lastMode = mode;
         this._emit('agent:working', { turnId, working: true });
 
         try {
-            // Resolve profile and key
+            // Resolve the shared connection, then the agent's model on it
             const { profile, key } = await this._resolveEndpoint(profileId);
             if (!profile) {
-                this._emit('agent:error', { turnId, code: 'NO_PROFILE', message: 'Endpoint profile not found.' });
+                this._emit('agent:error', { turnId, code: 'NO_PROFILE', message: 'Connection not found. Pick one in Settings → Remote → Language Models.' });
                 return;
             }
             if (!key) {
-                this._emit('agent:error', { turnId, code: 'NO_KEY', message: 'No API key found for this profile. Add a key in Settings → Agent.' });
+                this._emit('agent:error', { turnId, code: 'NO_KEY', message: 'No API key for this connection. Add one in Settings → Remote → Language Models.' });
                 return;
             }
-            this._contextWindow = profile.contextWindow || 1_048_576;
+            const model = this._resolveModel(profileId, pickedModel);
+            if (!model) {
+                this._emit('agent:error', { turnId, code: 'NO_MODEL', message: 'No agent model picked for this connection. Pick one in Settings → Remote → Language Models.' });
+                return;
+            }
+            this._contextWindow = await this._contextWindowFor(profileId, model, profile, key);
 
             // Init session on first turn
             if (this._messages.length === 0) {
@@ -575,13 +616,18 @@ ${knowledgeIndex}`.trim();
 
             for (const att of (Array.isArray(attachments) ? attachments : [])) {
                 if (att.id && att.filePath) {
-                    this._images.set(att.id, { path: att.filePath, kind: 'attachment' });
+                    this._images.set(att.id, { path: att.filePath, kind: 'attachment', name: att.name });
                     stagedAttachments.push({ id: att.id, name: att.name });
                     contentParts.push({ type: 'text', text: `[Attached image: ${att.name} (id: ${att.id})]` });
                 } else {
                     contentParts.push({ type: 'text', text: `[Attachment ${att.name} could not be staged: ${att.error || 'unknown error'}]` });
                 }
             }
+
+            // The model cannot see the app, so every turn opens with what it can reach.
+            // Without it the model guessed folder paths, claimed no project was open while
+            // one was, and passed look the literal "result filePath" (agent-test, 2026-09-16).
+            contentParts.unshift({ type: 'text', text: this._appStateLine(project) });
 
             // Add user message to LLM context (plain text for OpenAI compat)
             const userContent = contentParts.map((p) => p.text).join('\n');
@@ -596,7 +642,7 @@ ${knowledgeIndex}`.trim();
             // Agentic loop
             let steps = 0;
             while (steps <= MAX_STEPS) {
-                const llmRes = await engine.chat({ model: profile.model, messages: this._messages, tools: TOOL_DEFS });
+                const llmRes = await engine.chat({ model, messages: this._messages, tools: TOOL_DEFS });
                 this._lastUsage = llmRes.usage;
 
                 const toolCalls = llmRes.toolCalls;
@@ -633,6 +679,12 @@ ${knowledgeIndex}`.trim();
                     let toolStatus = 'done';
                     try {
                         resultText = await this._executeTool(toolName, args, turnId, project);
+                        // The app now has this project open, so a generate later in the same
+                        // turn lands there instead of answering NO_PROJECT.
+                        if (toolName === 'open_project') {
+                            const opened = JSON.parse(resultText);
+                            if (opened?.ok && opened.output?.folderPath) project = { folderPath: opened.output.folderPath, name: opened.output.name };
+                        }
                     } catch (err) {
                         resultText = JSON.stringify({ ok: false, error: { code: 'TOOL_ERROR', message: err.message } });
                         toolStatus = 'failed';
@@ -652,7 +704,7 @@ ${knowledgeIndex}`.trim();
 
             // Compaction check
             if (this._shouldCompact()) {
-                await this._compact(turnId, { model: profile.model, baseURL: profile.baseURL, key });
+                await this._compact(turnId, { model, baseURL: profile.baseURL, key });
             }
         } catch (err) {
             this._emit('agent:error', { turnId, code: 'ENDPOINT_ERROR', message: err.message });
@@ -702,10 +754,14 @@ ${knowledgeIndex}`.trim();
     // Probe (POST /agent/probe)
     // -------------------------------------------------------------------------
 
-    async probe(profileId) {
+    /** Can the agent's model call a tool on this connection? (`POST /llm/connection/probe`
+     *  is the job-agnostic reachability check; this one is the agent's own.) */
+    async probe(profileId, pickedModel) {
         const { profile, key } = await this._resolveEndpoint(profileId);
-        if (!profile) return { ok: false, error: { code: 'NO_PROFILE', message: 'Profile not found.' } };
-        if (!key) return { ok: false, error: { code: 'NO_KEY', message: 'No API key found for this profile.' } };
+        if (!profile) return { ok: false, error: { code: 'NO_PROFILE', message: 'Connection not found.' } };
+        if (!key) return { ok: false, error: { code: 'NO_KEY', message: 'No API key for this connection.' } };
+        const model = this._resolveModel(profileId, pickedModel);
+        if (!model) return { ok: false, error: { code: 'NO_MODEL', message: 'No agent model picked for this connection.' } };
 
         const start = Date.now();
         try {
@@ -719,7 +775,7 @@ ${knowledgeIndex}`.trim();
                 },
             }];
             const res = await engine.chat({
-                model: profile.model,
+                model,
                 messages: [
                     { role: 'system', content: 'You are a helpful assistant.' },
                     { role: 'user', content: 'List models.' },
@@ -731,7 +787,7 @@ ${knowledgeIndex}`.trim();
             return {
                 ok: true,
                 tools: hasToolCall,
-                model: profile.model,
+                model,
                 latencyMs,
                 message: hasToolCall
                     ? `Connected. Model called a tool in ${latencyMs} ms.`

@@ -20,6 +20,7 @@
     "release:approve": "node scripts/release-notes-approval.mjs approve",
     "release:notes": "node scripts/release-notes-approval.mjs show",
     "recipe:test": "node scripts/recipe-test.mjs",
+    "agent:test": "node scripts/agent-test.mjs",
     "test": "node --test \"tests/**/*.test.cjs\"",
     "test:desktop": "playwright test --config=playwright.desktop.config.js",
     "lint": "eslint js/ --max-warnings=0",

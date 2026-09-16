@@ -1,20 +1,21 @@
 # Agent chat — the in-app agent contract (MPI-774, slice A)
 
-The in-app agent: an Agent | Prompt toggle turns `MpiPromptBox` into a chat with a
-**server-side** loop that recommends and installs models, generates through the connector,
-sees images through the describer, and compacts itself. Spec: `.agents/mpi-kanban/tasks/MPI-774/brief.md`.
-
-**Written as the contract BEFORE the code (Phase 0, 2026-09-15).** Batch 1 workers build against
-it; rewrite it to current truth when the card closes.
+An Agent | Prompt toggle turns the prompt box into a chat with a **server-side** loop that recommends
+and installs models, generates through the connector, sees images through the describer, and compacts
+itself. Spec: `.agents/mpi-kanban/tasks/MPI-774/brief.md`. Contract first (2026-09-15), kept current.
 
 ## Shape
 
 - **Loop** `services/agentLoop.mjs`, mounted by `routes/agent.js`. One session, in server memory.
 - **Tools are connector routes.** `services/agentTools.mjs` is a fetch table over loopback, so a
   CLI agent (MPI-593) gets the same surface. No second dispatch path (`routes/connector.js` header).
-- **Chat** `js/components/Compounds/MpiAgentChat/`, inside `MpiPromptBox` in Agent mode, plus one
-  landing slot. `js/services/agentService.js` POSTs messages, listens on `/agent/stream`, and
-  re-renders from `/agent/history` on mount (Landing -> Gallery -> History keeps the chat).
+- **Chat** `js/components/Compounds/MpiAgentChat/`, twice: the landing slot (standalone, beside the
+  headline) and a shell panel `#agent-panel-mount` (`js/shell/agentPanel.js`) LEFT of the workspace,
+  open while `state.agentMode` is true (the PromptBox toggle, between the text field and Enhance).
+  The panel pushes `#tool-container` right; the PromptBox sends with `agent:send`, its image chips
+  as attachments. Each chat re-renders from `/agent/history` on mount (history `kind`, not `role`).
+- **One stream.** `agentService.agentInitStream()` (shell boot) opens the only `/agent/stream` and
+  re-emits every `agent:*` event on `Events`; chats, and the later mascot animations, subscribe there.
 - **Keys** stay in `main/secretsStore.js`; the server reads them over the fork bridge
   (`routes/forkBridge.js` `ask`). The renderer can set, test and clear, never read.
 
@@ -25,7 +26,7 @@ connector's envelope. A malformed body is HTTP 400 `BAD_REQUEST`; everything els
 
 | # | Brief item | Route / event / UI |
 |---|---|---|
-| 1 | Toggle, Enter sends, drop images, landing entry | `MpiPromptBox` toggle; `MpiAgentChat`; landing slot; `POST /agent/message` with `project: null` |
+| 1 | Toggle, Enter sends, drop images, landing entry | `MpiPromptBox` toggle -> `state.agentMode`; shell panel; landing slot; `POST /agent/message` with `project: null` |
 | 2 | Mascot always in the box | `idle.png` / `waiting.png` in `MpiAgentChat`, flipped by `agent:working` |
 | 3 | Knows models, ops, fit, docs | `list_models` -> `GET /connector/models`; `read_knowledge` -> `GET /connector/knowledge[/:id]` |
 | 4 | Recommends; VRAM<->RAM trade | `fit` on `GET /connector/models` (`footprint.js` `tradeTable`) |
@@ -44,8 +45,7 @@ connector's envelope. A malformed body is HTTP 400 `BAD_REQUEST`; everything els
 
 ## Tools (what the model sees)
 
-JSON Schema `parameters`, OpenAI `tools` format. A tool the model invents is refused with
-`UNKNOWN_TOOL` in the tool result, never guessed at.
+JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused with `UNKNOWN_TOOL`.
 
 | Tool | Parameters | Executes |
 |---|---|---|
@@ -56,30 +56,26 @@ JSON Schema `parameters`, OpenAI `tools` format. A tool the model invents is ref
 | `look` | `{ image: string, question?: string, crop?: {x,y,width,height}, box?: boolean }`, `image` required | `POST /connector/describe` |
 | `open_project` | `{ folderPath: string }` required | `POST /connector/open-project` |
 
-- `image` / `media[].image` is a chat attachment id (`att_1`) or a result `filePath`, **and
-  nothing else**: the loop keeps the session's attachment ids and its own generations' output
-  paths, and any other string the model emits is refused with `IMAGE_NOT_FOUND` rather than read
-  off the user's disk (the engine may be a remote Pod). The loop resolves it: an attachment is
-  copied into the project with `POST /project-media/:id/place-preview-asset?folderPath=` **only
-  when a generate uses it** (the route's `dataUrl` takes a plain absolute path), and its returned
-  url becomes `media[].url`; a result is passed as `/project-file?path=<filePath>`. `crop` and
-  `box` are in ORIGINAL pixels.
-- `generate` refuses by name before any spend when `project` is null: `NO_PROJECT`, and the
-  agent asks for a project.
+- `image` / `media[].image` is a ref from the `_images` allowlist (this session's attachment ids,
+  its own results' `filePath`s), **nothing else**: any other string is `IMAGE_NOT_FOUND`, never
+  read off disk (the engine may be a remote Pod). An attachment is copied into the project with
+  `POST /project-media/:id/place-preview-asset?folderPath=` **only when a generate uses it**; a
+  result goes as `/project-file?path=`. `crop` and `box` are in ORIGINAL pixels.
+- `generate` refuses by name before any spend when `project` is null: `NO_PROJECT`.
 
 ## Connector routes (W1, `routes/connector.js`)
 
 **`GET /connector/models`** -> `{ ok, engine: 'local'|'remote', hardware: { gpuName, vramGb, ramGb },
-models: [{ id, name, type, installed, ops: [{ op, installed }], missingDownloadGb,
-fit: { floorVramGb, ramGbAtYourVram, runs } }], flows: [{ id, title, operation, installed,
-fields: [id], boxParams: [{ param, role, ratio, overflow }] }] }`. Install state and ops come from
-the renderer over a new relay capability (the payload builder is renderer-only, `modelRegistry.js`);
-hardware from `GET /system/gpu-info` locally, `GET /remote/pod/specs` when remote is active.
+models: [{ id, name, type, installed, ops: [{ op, installed, params: { ratios, qualityTiers, turbo,
+styles } }], missingDownloadGb, fit: { floorVramGb, ramGbAtYourVram, runs } }], flows: [{ id, title,
+operation, installed, fields: [id], boxParams: [{ param, role, ratio, overflow }] }] }`. `params` is
+`generationControls.namedParamsFor`: exactly what `resolveNamedParams` accepts on that op
+(`tests/agent-model-params.test.cjs`). Install state and ops come from the renderer relay; hardware
+from `GET /system/gpu-info` locally, `GET /remote/pod/specs` when remote is active.
 Errors: `APP_UNAVAILABLE`.
 
-**`GET /connector/knowledge`** -> `{ ok, entries: [{ id, kind, title, tags }] }`;
-**`GET /connector/knowledge/:id`** -> `{ ok, id, title, text }`. Source: `services/agentCorpus.mjs`
-`listCorpus()`. Errors: `UNKNOWN_ENTRY`.
+**`GET /connector/knowledge[/:id]`** -> `{ ok, entries: [{ id, kind, title, tags }] }` / `{ ok, id,
+title, text }`. Source: `services/agentCorpus.mjs` `listCorpus()`. Errors: `UNKNOWN_ENTRY`.
 
 **`POST /connector/install { modelId }`** -> `{ ok, modelId, downloadGb, started: true }`. Starts
 the missing deps' download and returns; progress is `GET /comfy/downloads/status`. No gate here: a
@@ -109,9 +105,13 @@ resolved url). Merged into `injectionParams`. Errors: `UNKNOWN_PARAM`, `INVALID_
 ## Agent routes (W2, `routes/agent.js`)
 
 **`POST /agent/message { text, attachments?: [{ name, dataUrl }], project: { folderPath, name } | null,
-mode: 'auto'|'ask', profileId }`** -> `{ ok, turnId, attachments: [{ id, name }] }`, at once. The reply
-arrives on the stream. `project` is the renderer's open project at send time. Errors: `BAD_REQUEST`,
-`NO_PROFILE`, `NO_KEY`, `BUSY` (a turn is running).
+mode: 'auto'|'ask', profileId, model? }`** -> `{ ok, turnId, attachments: [{ id, name }] }`, at once. The
+reply arrives on the stream. `project` is the renderer's open project at send time; `profileId` is the
+shared connection (`Storage.getLlmConnection()`), `model` the agent's pick (`''` = the preset's
+recommended agent model). Errors: `BAD_REQUEST`, `NO_PROFILE`, `BUSY`; on the stream `NO_KEY`, `NO_MODEL`.
+
+**`GET /agent/attachment/:id`** -> the staged file of THIS session's attachment id (history keeps only
+`{ id, name }`); 404 for anything else, a result path included.
 
 **`GET /agent/stream`** — SSE, `event: <name>` + `data: <json>`. Vocabulary below.
 
@@ -126,9 +126,9 @@ Errors: `UNKNOWN_CONFIRM` (stale or already answered).
 
 **`POST /agent/reset`** -> `{ ok }`. Drops the session and the attachment dir.
 
-**`POST /agent/probe { profileId }`** -> `{ ok, tools: boolean, model, latencyMs, message }`. One
-tiny call carrying one tool. A model that cannot call tools is reported, **never retried without
-the tool**. Errors: `NO_PROFILE`, `NO_KEY`, `ENDPOINT_ERROR` (with `status`).
+**`POST /agent/probe { profileId, model? }`** -> `{ ok, tools: boolean, model, latencyMs, message }`.
+The AGENT's check (can this model call a tool?): one tiny call carrying one tool, **never retried
+without it**. Errors: `NO_PROFILE`, `NO_KEY`, `NO_MODEL`, `ENDPOINT_ERROR` (with `status`).
 
 ## SSE events (`/agent/stream`)
 
@@ -144,13 +144,17 @@ the tool**. Errors: `NO_PROFILE`, `NO_KEY`, `ENDPOINT_ERROR` (with `status`).
 
 ## Loop rules (W2)
 
-- **System prompt:** role; mode rules (Auto: image `turbo: true` where offered, video
-  `qualityTier: 'medium'` + turbo where offered, ask only when the goal is unclear; Ask first: ask
-  about every setting); installs always ask; the honest limits (no video watching, no audio, no
-  mask painting, no History tools, no RunPod, no memory across restarts, sees only what `look`
-  reported); the knowledge index.
-- **Project rule:** `open_project` only takes a path the USER gave. With no project open the agent
-  says so and asks; it never guesses a folder (it guessed two on the first live run).
+- **System prompt:** role; mode (Auto: turbo on images, `medium` + turbo on video, where the op's
+  `params` offer them; Ask first: ask about every setting); model rule (an installed op, else offer
+  an install); settings rule (only values in `params`); looking rule (`look` before any comment on
+  an image, only on attachment ids and own results; a refusal -> say so, suggest the local
+  describer); installs always ask; the honest limits; the knowledge index.
+- **App-state line** opens every user message: the open project by NAME (a shown path got looked
+  at) or none, and "Images you can look at:" = the `_images` allowlist (the model had passed `look`
+  the schema's words "result filePath"). A successful `open_project` updates the project for the
+  rest of the turn; it only takes a path the USER gave.
+- **Harness:** `npm run agent:test` (9 cases x 3, real model, fake tools from
+  `tests/fixtures/agent/`; `--bite` proves each assertion, `--samples <md>` writes prompts to read).
 - **Bounded steps:** at most 8 tool calls per user turn, then `agent:error STEP_LIMIT`.
 - **Generate** is fired, not awaited. On settle: `agent:result`, the tool result is appended, and
   an image result gets a `look`. No regeneration on its own judgement.
@@ -161,26 +165,29 @@ the tool**. Errors: `NO_PROFILE`, `NO_KEY`, `ENDPOINT_ERROR` (with `status`).
 - **Attachments** are staged in `<APP_USER_DATA>/agent/attachments/` (`os.tmpdir()/cubric-agent`
   when standalone), wiped at server start and on reset. Crops go to `.../agent/crops/`.
 
-## Endpoint profiles and keys (W3)
+## The shared LLM connection (every Remote job; MPI-737 builds its rows on it)
 
-Profile: `{ id, name, baseURL, model, contextWindow }`. Presets: DeepInfra (recommended,
-`deepseek-ai/DeepSeek-V4-Flash-0731`, 1,048,576; **reuses the existing DeepInfra slot**), OpenRouter,
-OpenAI, Ollama `/v1` (untested, VRAM caveat), custom.
+A profile is a CONNECTION: `{ id, name, baseURL }` + a write-only key, in `main/secretsStore.js`.
+Presets: DeepInfra (reuses the existing DeepInfra key slot), OpenRouter, OpenAI, Ollama `/v1`, custom.
+The pick is ONE renderer pref, `Storage.getLlmConnection()`; each job keeps its own model
+(`Storage.getAgentPrefs()` -> `{ model, mode }`). Settings: the connection block tops Remote >
+Language Models; the Agent row is "Remote" + a model dropdown (recommended first) + mode + tool test.
 
-- **A key is bound to the `baseURL` it was saved with.** Editing the profile's URL makes the key
-  unusable until it is entered again, so the renderer can never point a stored key at a new host.
-- **IPC (renderer):** `secrets:list-endpoint-profiles` (no keys), `secrets:save-endpoint-profile`,
-  `secrets:delete-endpoint-profile`, `secrets:set-endpoint-key { profileId, key }`,
-  `secrets:has-endpoint-key { profileId }`, `secrets:clear-endpoint-key { profileId }`. **No get.**
-- **Fork bridge (server):** `secrets:get-endpoint-profile-request { profileId }` ->
-  `secrets:get-endpoint-profile-response { id, profile | null, key | null }`; `key` is null when its
-  bound URL differs from `profile.baseURL`.
-- **Key order for the `deepinfra` preset: the stored key, then `DEEPINFRA_API_KEY`** — the same
-  order `routes/llm.js` uses, in Electron as well as standalone (a dev run and the harness run
-  inside Electron too). The environment key is only ever used while the profile's `baseURL` is
-  still DeepInfra's.
-- **`DeepInfraEngine.chat`** forwards `tools` and returns `toolCalls` and `usage` beside `text`;
-  existing enhance callers are unchanged.
+- **A key is bound to the `baseURL` it was saved with**; an edited URL needs the key again.
+  IPC `secrets:{list,save,delete}-endpoint-profile(s)`, `secrets:{set,has,clear}-endpoint-key`,
+  **no get**. The server reads profile + key over the fork bridge (`get-endpoint-profile-request`).
+- **`resolveConnection(profileId, ask)`** (`services/llmEngines.mjs`) is the one resolver: stored key,
+  then `DEEPINFRA_API_KEY` for the `deepinfra` preset only while its URL is still DeepInfra's.
+- **`POST /llm/connection/probe { profileId }`** -> `{ ok, latencyMs, modelCount }` (a `GET /models`,
+  no tokens). **`GET /llm/connection/models?profileId=`** -> `{ ok, profileId, models: [{ id,
+  contextWindow, vision, recommendedFor[] }] }`, recommended first; a tagged catalogue (DeepInfra) is
+  cut to `chat` models. Errors `BAD_REQUEST` (400), `NO_PROFILE`, `NO_KEY` (not for `ollama`),
+  `ENDPOINT_ERROR` + `status`. Tests: `tests/llm-connection.test.cjs`.
+- **`RECOMMENDED_REMOTE_MODELS`**: `{ [presetId]: [{ id, jobs: ('agent'|'enhance'|'describe')[],
+  contextWindow? }] }`, exact ids, no cross-provider matching. MPI-774 fills `agent`.
+- **The agent's context window** (compaction): that table, else the endpoint's own entry (cached for
+  the session), else `FALLBACK_CONTEXT_WINDOW` (32,768, conservative).
+- **`DeepInfraEngine.chat`** forwards `tools` and returns `toolCalls` and `usage` beside `text`.
 
 ## `look` coordinates
 

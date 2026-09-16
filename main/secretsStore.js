@@ -188,36 +188,43 @@ function clearDeepInfraKey() {
   return { ok: true };
 }
 
-// --- Endpoint profiles (MPI-774 agent) ----------------------------------------
-// Five presets (deepinfra, openrouter, openai, ollama, custom). User edits are
-// saved as overrides keyed by profile id. The deepinfra key is the existing
-// DeepInfra slot — a user never enters it twice.
+// --- Endpoint profiles: the shared LLM connection (MPI-774, used by every job) --
+// A profile is a CONNECTION only: { id, name, baseURL } plus its key. Which model
+// runs is each job's own pick, never the profile's. Five presets (deepinfra,
+// openrouter, openai, ollama, custom); user edits are saved as overrides keyed by
+// profile id. The deepinfra key is the existing DeepInfra slot — a user never
+// enters it twice, and a key saved before MPI-774 counts as bound to DeepInfra.
 
 const DEEPINFRA_BASE_URL = 'https://api.deepinfra.com/v1/openai';
 
 const ENDPOINT_PRESETS = [
-  { id: 'deepinfra',   name: 'DeepInfra',           baseURL: DEEPINFRA_BASE_URL,                  model: 'deepseek-ai/DeepSeek-V4-Flash-0731', contextWindow: 1048576 },
-  { id: 'openrouter',  name: 'OpenRouter',           baseURL: 'https://openrouter.ai/api/v1',      model: 'openai/gpt-4o-mini',                 contextWindow: 128000  },
-  { id: 'openai',      name: 'OpenAI',               baseURL: 'https://api.openai.com/v1',         model: 'gpt-4o-mini',                        contextWindow: 128000  },
-  { id: 'ollama',      name: 'Ollama (local)',        baseURL: 'http://localhost:11434/v1',         model: '',                                   contextWindow: 8192    },
-  { id: 'custom',      name: 'Custom',               baseURL: '',                                  model: '',                                   contextWindow: 8192    },
+  { id: 'deepinfra',  name: 'DeepInfra',      baseURL: DEEPINFRA_BASE_URL },
+  { id: 'openrouter', name: 'OpenRouter',     baseURL: 'https://openrouter.ai/api/v1' },
+  { id: 'openai',     name: 'OpenAI',         baseURL: 'https://api.openai.com/v1' },
+  { id: 'ollama',     name: 'Ollama (local)', baseURL: 'http://localhost:11434/v1' },
+  { id: 'custom',     name: 'Custom',         baseURL: '' },
 ];
+
+/** The connection fields only — a model or window saved before MPI-774 is dropped. */
+function _connectionFields(p) {
+  return { id: String(p.id), name: String(p.name || ''), baseURL: String(p.baseURL || '') };
+}
 
 function _getEndpointProfile(profileId) {
   const preset = ENDPOINT_PRESETS.find(p => p.id === profileId) || null;
   const data = _read();
   const saved = ((data.endpointProfiles || {})[profileId]) || null;
   if (!preset && !saved) return null;
-  return Object.assign({}, preset || {}, saved || {});
+  return _connectionFields(Object.assign({}, preset || {}, saved || {}));
 }
 
 function listEndpointProfiles() {
   const data = _read();
   const saved = data.endpointProfiles || {};
-  const result = ENDPOINT_PRESETS.map(preset => Object.assign({}, preset, saved[preset.id] || {}));
+  const result = ENDPOINT_PRESETS.map(preset => _connectionFields(Object.assign({}, preset, saved[preset.id] || {})));
   const presetIds = new Set(ENDPOINT_PRESETS.map(p => p.id));
   for (const [id, p] of Object.entries(saved)) {
-    if (!presetIds.has(id)) result.push(Object.assign({}, p));
+    if (!presetIds.has(id)) result.push(_connectionFields(p));
   }
   return result;
 }
@@ -226,13 +233,7 @@ function saveEndpointProfile(profile) {
   if (!profile || !profile.id || typeof profile.id !== 'string') return { ok: false, reason: 'invalid' };
   const data = _read();
   if (!data.endpointProfiles) data.endpointProfiles = {};
-  data.endpointProfiles[profile.id] = {
-    id: String(profile.id),
-    name: String(profile.name || ''),
-    baseURL: String(profile.baseURL || ''),
-    model: String(profile.model || ''),
-    contextWindow: Number(profile.contextWindow) || 0,
-  };
+  data.endpointProfiles[profile.id] = _connectionFields(profile);
   _write(data);
   _log('info', 'Endpoint profile saved');
   return { ok: true };
@@ -364,7 +365,7 @@ function init({ app, safeStorage, ipcMain, logger }) {
     ipcMain.handle('secrets:clear-wrapper-token', () => {
       try { return clearWrapperToken(); } catch { return { ok: false }; }
     });
-    // Endpoint profiles (agent, MPI-774). Keys are set/checked/cleared only;
+    // Endpoint profiles (the shared LLM connection, MPI-774). Keys are set/checked/cleared only;
     // there is deliberately NO renderer-readable get channel for endpoint keys.
     ipcMain.handle('secrets:list-endpoint-profiles', () => ({ profiles: listEndpointProfiles() }));
     ipcMain.handle('secrets:save-endpoint-profile', (_e, profile) => {

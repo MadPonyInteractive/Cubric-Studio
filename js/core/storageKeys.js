@@ -82,10 +82,14 @@ export const STORAGE_KEYS = {
   // not a last-shown index, so every quote is dealt once before any repeats.
   HERO_QUOTE_DECK: 'mpi_hero_quote_deck',
 
-  // MPI-774: in-app agent — { profileId, mode }. NON-secret: endpoint keys live in
-  // the main process (secrets:* IPC), never here. Written by the MpiLlmSettings Agent
-  // row, read by agentService.js when it sends a message.
+  // MPI-774: in-app agent — { model, mode }. `model` '' = the connection's recommended
+  // agent model. Written by the MpiLlmSettings Agent row, read by agentService.js.
+  // (Before the shared connection it also held `profileId`; LLM_CONNECTION reads that.)
   AGENT_PREFS: 'mpi_agent_prefs',
+
+  // MPI-774 / MPI-737: the ONE remote LLM connection every job uses — { profileId }.
+  // NON-secret: endpoint keys live in the main process (secrets:* IPC), never here.
+  LLM_CONNECTION: 'mpi_llm_connection',
 };
 
 // --- sessionStorage keys ---

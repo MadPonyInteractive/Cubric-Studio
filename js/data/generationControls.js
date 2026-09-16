@@ -204,6 +204,37 @@ export function resolveTurboControlId(model) {
     return null;
 }
 
+// ── What an agent may set (MPI-774) ──────────────────────────────────────────
+
+/**
+ * The v1 named params `model` offers on `operation`, as `GET /connector/models`
+ * lists them per op. Every value here passes `resolveNamedParams`, and a param it
+ * leaves out is one that refuses: built on the validator's own helpers so the two
+ * cannot disagree. Without it "turbo where offered" was unanswerable, and an agent
+ * learned each model's controls by collecting INVALID_* errors.
+ * @param {object|null} model
+ * @param {string} operation
+ * @returns {{ratios: string[], qualityTiers: string[], turbo: boolean, styles: string[]}}
+ */
+export function namedParamsFor(model, operation) {
+    const modelType = model?.type ?? 'flux';
+    const qualityTiers = usesQualityTier(modelType) ? [...qualityTiersFor(modelType)] : [];
+    const ratios = new Set();
+    if (modelShowsRatio(model, operation)) {
+        for (const tier of (qualityTiers.length ? qualityTiers : [undefined])) {
+            for (const orient of ['portrait', 'landscape']) {
+                for (const r of getModelRatios(modelType, orient, tier) || []) ratios.add(r.label);
+            }
+        }
+    }
+    return {
+        ratios: [...ratios],
+        qualityTiers,
+        turbo: !!resolveTurboControlId(model),
+        styles: modelShowsStyleRack(model, operation) ? [...model.styleLoraLabels] : [],
+    };
+}
+
 // ── styleSelect / stylization ────────────────────────────────────────────────
 
 /** Is `value` a real index into this model's style rack? */

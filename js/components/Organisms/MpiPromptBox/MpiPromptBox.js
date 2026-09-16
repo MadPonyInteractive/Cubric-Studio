@@ -23,7 +23,6 @@ import { Hotkeys } from '../../../managers/hotkeyManager.js';
 import { activeGenerations } from '../../../services/activeGenerations.js';
 import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
 import { MpiEnhanceDialog } from '../../Compounds/MpiEnhanceDialog/MpiEnhanceDialog.js';
-import { MpiAgentChat }     from '../../Compounds/MpiAgentChat/MpiAgentChat.js';
 
 /**
  * MpiPromptBox — Prompt input Block with self-composing operation slots.
@@ -84,16 +83,14 @@ export const MpiPromptBox = ComponentFactory.create({
 
             <div class="mpi-prompt-box__op-strip" id="op-strip-slot"></div>
 
-            <!-- MPI-774: agent chat panel — absolutely positioned above the bar -->
-            <div class="mpi-prompt-box__agent-panel hide" id="agent-panel-slot"></div>
-
             <div class="mpi-prompt-box__col mpi-prompt-box__col--neg" id="bottom-neg-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--prompt" id="textarea-slot"></div>
+            <!-- MPI-774: agent toggle sits directly after the text field, before enhance -->
+            <div class="mpi-prompt-box__col mpi-prompt-box__col--mode" id="mode-toggle-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--enhance hide" id="enhance-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--settings" id="settings-badge-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--cog" id="settings-cog-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--engine hide" id="engine-toggle-slot"></div>
-            <div class="mpi-prompt-box__col mpi-prompt-box__col--mode" id="mode-toggle-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--run" id="bottom-right-slot"></div>
         </div>
     `,
@@ -101,8 +98,8 @@ export const MpiPromptBox = ComponentFactory.create({
     setup: (el, props, emit) => {
         let isExpansionLocked = state.promptExpanded === false;
         // MPI-774: agent mode toggle. When true, Enter=send to agent (not generation).
-        let _agentMode = false;
-        let _agentChatInst = null;
+        // Initialized from global state so mode survives workspace navigation.
+        let _agentMode = state.agentMode === true;
         // MPI-474: the box cycles through THREE fields, not two. A boolean could not
         // carry the third, and the audio negative is a genuinely separate prompt —
         // LTX's NAG patches video cross-attention and audio cross-attention from two
@@ -2352,23 +2349,44 @@ export const MpiPromptBox = ComponentFactory.create({
         _renderRunCluster();
 
         // ── MPI-774: Agent | Prompt toggle ─────────────────────────────────────
-        const _agentPanelEl = qs('#agent-panel-slot', el);
         const _modeToggleSlot = qs('#mode-toggle-slot', el);
 
         function _setAgentMode(on_) {
             _agentMode = on_;
             el.classList.toggle('mpi-prompt-box--agent-mode', on_);
-            if (_agentPanelEl) _agentPanelEl.classList.toggle('hide', !on_);
+            // Write to global state so the shell panel and any remount can react.
+            state.agentMode = on_;
         }
 
-        function _sendAgentTurn() {
-            if (!_agentChatInst) return;
+        async function _sendAgentTurn() {
             const text = textareaEl ? textareaEl.value.trim() : '';
             if (!text) return;
-            _agentChatInst.el.sendMessage(text, []);
+
+            // Gather image chips from the prompt box and convert to dataUrls.
+            const imageItems = el.getMediaItems().filter(m => m.mediaType === 'image');
+            const attachments = (await Promise.all(imageItems.map(async (item) => {
+                try {
+                    const res = await window.fetch(item.url);
+                    const blob = await res.blob();
+                    return await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => resolve({
+                            dataUrl: ev.target.result,
+                            name: item.name || item.url.split('/').pop() || 'image.jpg',
+                        });
+                        reader.onerror = reject;
+                        reader.readAsDataURL(blob);
+                    });
+                } catch { return null; }
+            }))).filter(Boolean);
+
+            // Route through the bus — no direct method call on the panel instance.
+            Events.emit('agent:send', { text, attachments });
             if (textareaEl) textareaEl.value = '';
             _writeMode('');
             _saveDraft();
+            // Clear the chips that were attached (non-pinned).
+            if (imageItems.length) el.clearMedia();
         }
 
         if (_modeToggleSlot) {
@@ -2378,14 +2396,20 @@ export const MpiPromptBox = ComponentFactory.create({
                 size: 'sm',
                 variant: 'ghost',
                 toggleable: true,
-                active: false,
+                active: _agentMode,
             });
             modeBtn.on('click', (data) => _setAgentMode(data.active));
             _unsubs.push(() => modeBtn.destroy?.());
-        }
 
-        if (_agentPanelEl) {
-            _agentChatInst = MpiAgentChat.mount(_agentPanelEl, { standalone: false });
+            // Sync button when state.agentMode changes from another component
+            // (e.g. a future control or from navigation restoring state).
+            _unsubs.push(Events.onState('agentMode', (val) => {
+                if (val !== _agentMode) {
+                    _agentMode = val;
+                    el.classList.toggle('mpi-prompt-box--agent-mode', val);
+                    modeBtn.el.setActive?.(val);
+                }
+            }));
         }
 
         // ── Run / Stop / Loop hotkeys ──────────────────────────────────────────
@@ -2564,8 +2588,6 @@ export const MpiPromptBox = ComponentFactory.create({
         // ── Cleanup ─────────────────────────────────────────────────────────────
         el.destroy = () => {
             _unsubs.forEach(fn => fn());
-            _agentChatInst?.el?.destroy?.();
-            _agentChatInst = null;
             _negBtn?.destroy?.();
             for (const strip of _opStrips) strip.destroy?.();
             _opStrips = [];

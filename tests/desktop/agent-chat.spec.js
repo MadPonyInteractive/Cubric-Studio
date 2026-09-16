@@ -16,7 +16,7 @@ const { launchApp, closeApp } = require('./launch');
 // ── In-page stub installer ────────────────────────────────────────────────────
 
 async function installStubs(window) {
-  await window.evaluate(() => {
+  await window.evaluate(async () => {
     // 18+ gate — spec uses localStorage key directly
     localStorage.setItem('mpi_maturity_acknowledged', 'true');
 
@@ -36,12 +36,14 @@ async function installStubs(window) {
       return { ok: false, json: async () => ({}) };
     };
 
-    // EventSource stub
+    // The chat listens on the app bus, fed by ONE EventSource the shell opened at boot
+    // (agentService.agentInitStream, bridge covered by tests/agent-service-bus.test.cjs).
+    // That stream predates this stub, so an SSE event is simulated where the chat reads it.
+    const { Events } = await import('/js/events.js');
+    window.__fireSse = (name, data) => Events.emit(name, data);
+
+    // EventSource stub (for anything opened after this point)
     window.__sseListeners = {};
-    window.__fireSse = (name, data) => {
-      const listeners = window.__sseListeners[name] || [];
-      listeners.forEach(fn => fn({ data: JSON.stringify(data) }));
-    };
     window.EventSource = class {
       constructor() {}
       addEventListener(name, fn) {
@@ -324,36 +326,6 @@ test('landing page has #landingAgentSlot with agent chat', async ({}, testInfo) 
 // Part 2 — MpiPromptBox Agent|Prompt toggle surface
 // ─────────────────────────────────────────────────────────────────────────────
 
-test('PromptBox mode toggle shows agent panel; toggling back hides it', async ({}, testInfo) => {
-  test.setTimeout(90000);
-  const { app, window, pageErrors } = await launchApp(testInfo);
-  try {
-    await installStubs(window);
-    await bootAndMountPromptBox(window);
-
-    const modeBtn = window.locator('#e2e-pb-host .mpi-prompt-box__col--mode .mpi-ibtn');
-    await expect(modeBtn).toBeVisible();
-
-    const panel = window.locator('#e2e-pb-host .mpi-prompt-box__agent-panel');
-    // Initially hidden
-    await expect(panel).not.toBeVisible();
-
-    // Toggle ON — agent panel should appear
-    await modeBtn.click();
-    await window.waitForTimeout(200);
-    await expect(panel).toBeVisible();
-
-    // Toggle OFF — agent panel hidden again (Prompt mode restored)
-    await modeBtn.click();
-    await window.waitForTimeout(200);
-    await expect(panel).not.toBeVisible();
-
-    expect(pageErrors).toEqual([]);
-  } finally {
-    await closeApp(app);
-  }
-});
-
 test('PromptBox agent mode: Enter sends exactly one POST /agent/message', async ({}, testInfo) => {
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);
@@ -518,13 +490,164 @@ test('Mascot flips back to idle when agent:working false follows true', async ({
   }
 });
 
-test('POST /agent/message body carries mode and profileId from getAgentPrefs', async ({}, testInfo) => {
+// ─────────────────────────────────────────────────────────────────────────────
+// Part 4 — MPI-774 panel layout, toggle position, history replay
+// ─────────────────────────────────────────────────────────────────────────────
+
+test('toggle sits between textarea-slot and enhance-slot in the prompt bar', async ({}, testInfo) => {
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);
   try {
-    // Seed agent prefs BEFORE stubs so agentService reads them at send-time
+    await installStubs(window);
+    await bootAndMountPromptBox(window);
+
+    // Verify DOM order: textarea-slot → mode-toggle-slot → enhance-slot
+    const order = await window.evaluate(() => {
+      const pb = document.querySelector('#e2e-pb-host .mpi-prompt-box');
+      const slots = Array.from(pb.children).map(c => c.id).filter(id => [
+        'textarea-slot', 'mode-toggle-slot', 'enhance-slot',
+      ].includes(id));
+      return slots;
+    });
+
+    expect(order[0]).toBe('textarea-slot');
+    expect(order[1]).toBe('mode-toggle-slot');
+    expect(order[2]).toBe('enhance-slot');
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+test('agent panel: the real shell mount is closed by default, opens from the toggle and pushes the workspace right', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await installStubs(window);
+    await bootAndMountPromptBox(window);
+
+    // The shell (js/shell.js -> initAgentPanel) mounted the chat into #agent-panel-mount at
+    // boot. Show the app shell as an open project would, and measure the REAL layout.
+    const measure = () => window.evaluate(() => {
+      const panel = document.getElementById('agent-panel-mount');
+      const tools = document.getElementById('tool-container');
+      return {
+        chat: !!panel.querySelector('.mpi-agent-chat'),
+        open: panel.classList.contains('agent-panel-mount--open'),
+        panelWidth: Math.round(panel.getBoundingClientRect().width),
+        toolsLeft: Math.round(tools.getBoundingClientRect().left),
+      };
+    });
+    await window.evaluate(async () => {
+      document.getElementById('app-shell').classList.remove('hide');
+      const { state } = await import('/js/state.js');
+      window.__testState = state;
+      state.agentMode = false;
+    });
+    await window.waitForTimeout(500);
+
+    const closed = await measure();
+    expect(closed.chat).toBe(true);
+    expect(closed.open).toBe(false);
+    expect(closed.panelWidth).toBe(0);
+
+    const toggle = window.locator('#e2e-pb-host .mpi-prompt-box__col--mode .mpi-ibtn');
+    await toggle.click();
+    await window.waitForTimeout(600); // width transition is --t-base
+    expect(await window.evaluate(() => window.__testState.agentMode)).toBe(true);
+
+    const opened = await measure();
+    expect(opened.open).toBe(true);
+    expect(opened.panelWidth).toBeGreaterThan(200);
+    expect(opened.toolsLeft - closed.toolsLeft).toBe(opened.panelWidth);
+
+    await toggle.click();
+    await window.waitForTimeout(600);
+    const toggled = await measure();
+    expect(await window.evaluate(() => window.__testState.agentMode)).toBe(false);
+    expect(toggled.panelWidth).toBe(0);
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+test('history replay: user + agent entries visible after remount (kind-based, not role-based)', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
     await window.evaluate(() => {
-      localStorage.setItem('mpi_agent_prefs', JSON.stringify({ profileId: 'openrouter', mode: 'ask' }));
+      localStorage.setItem('mpi_maturity_acknowledged', 'true');
+
+      // Stub fetch with history containing kind:'user' and kind:'agent'
+      window.__fetchCalls = [];
+      window.fetch = async (url, opts) => {
+        window.__fetchCalls.push({ url, body: opts && opts.body ? JSON.parse(opts.body) : undefined });
+        if (url === '/agent/history') {
+          return {
+            ok: true,
+            json: async () => ({
+              ok: true,
+              working: false,
+              pendingConfirm: null,
+              entries: [
+                { id: 'u1', kind: 'user', text: 'Hello agent', attachments: [] },
+                { id: 'a1', kind: 'agent', text: 'Hello user!' },
+              ],
+            }),
+          };
+        }
+        if (url === '/agent/message') {
+          return { ok: true, json: async () => ({ ok: true, turnId: 't1', attachments: [] }) };
+        }
+        return { ok: false, json: async () => ({}) };
+      };
+      // SSE stub
+      window.__sseListeners = {};
+      window.__fireSse = (name, data) => {
+        (window.__sseListeners[name] || []).forEach(fn => fn({ data: JSON.stringify(data) }));
+      };
+      window.EventSource = class {
+        constructor() {}
+        addEventListener(name, fn) {
+          window.__sseListeners[name] = window.__sseListeners[name] || [];
+          window.__sseListeners[name].push(fn);
+        }
+        close() {}
+      };
+    });
+
+    await bootAndMountChat(window, true);
+
+    // Wait for history to load
+    await window.waitForTimeout(500);
+
+    // Both entries should be visible
+    const userBubble = window.locator('#e2e-agent-host .mpi-agent-chat__entry--user');
+    await expect(userBubble).toBeVisible();
+    await expect(userBubble).toContainText('Hello agent');
+
+    const agentMsg = window.locator('#e2e-agent-host .mpi-agent-chat__entry--message');
+    await expect(agentMsg).toBeVisible();
+    await expect(agentMsg).toContainText('Hello user!');
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+test('POST /agent/message body carries mode from getAgentPrefs and profileId from getLlmConnection', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    // Seed prefs BEFORE stubs so agentService reads them at send-time.
+    // profileId now lives in mpi_llm_connection (getLlmConnection); mode in mpi_agent_prefs.
+    await window.evaluate(() => {
+      localStorage.setItem('mpi_agent_prefs', JSON.stringify({ mode: 'ask' }));
+      localStorage.setItem('mpi_llm_connection', JSON.stringify({ profileId: 'openrouter' }));
     });
     await installStubs(window);
     await bootAndMountChat(window, true);

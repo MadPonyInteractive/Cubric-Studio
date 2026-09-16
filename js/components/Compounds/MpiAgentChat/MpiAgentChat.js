@@ -3,16 +3,18 @@
  *
  * Props:
  *   standalone {boolean}  — true → renders its own input row + send button.
- *                           false/absent → the host provides input (MpiPromptBox).
+ *                           false/absent → the host (agentPanel.js) provides input
+ *                           via MpiPromptBox in agent mode, routed through the
+ *                           'agent:send' event on the app bus.
  *
  * Public API (on el):
- *   el.sendMessage(text, attachments)  — append a user turn and send.
- *   el.setWorking(bool)                — set the agent:working state externally
- *                                        (used by MpiPromptBox integration).
- *   el.destroy()                       — teardown (unsub + close SSE).
+ *   el.setWorking(bool)                — set the agent:working state externally.
+ *   el.destroy()                       — teardown (unsub, no SSE to close — shared singleton).
  *
  * SSE events consumed: agent:working, agent:message, agent:tool, agent:confirm,
  *                       agent:result, agent:compacting, agent:error.
+ * These are bridged from SSE to the app bus by agentService.agentInitStream().
+ * This component subscribes via Events.on — it never opens its own EventSource.
  *
  * Brief item 12: agent:tool.label is the only text shown — args.prompt is NEVER
  * rendered here.
@@ -31,7 +33,6 @@ import {
     agentSendMessage,
     agentGetHistory,
     agentPostConfirm,
-    agentOpenStream,
 } from '../../../services/agentService.js';
 
 export const MpiAgentChat = ComponentFactory.create({
@@ -41,7 +42,14 @@ export const MpiAgentChat = ComponentFactory.create({
     template: (props) => `
         <div class="mpi-agent-chat${props.standalone ? ' mpi-agent-chat--standalone' : ''}">
 
-            <!-- Mascot -->
+            <!-- Compact header: label + working indicator (panel mode) -->
+            ${!props.standalone ? `
+            <div class="mpi-agent-chat__header" id="ac-header">
+                <span class="mpi-agent-chat__header-label">Agent</span>
+                <span class="mpi-agent-chat__working-dot" id="ac-working-dot"></span>
+            </div>
+            ` : `
+            <!-- Mascot (standalone landing mode only) -->
             <div class="mpi-agent-chat__mascot-wrap">
                 <img
                     class="mpi-agent-chat__mascot"
@@ -52,6 +60,7 @@ export const MpiAgentChat = ComponentFactory.create({
                 />
                 <span class="mpi-agent-chat__mascot-label" id="ac-mascot-label">Ask me anything</span>
             </div>
+            `}
 
             <!-- Transcript -->
             <div class="mpi-agent-chat__transcript" id="ac-transcript"></div>
@@ -70,28 +79,33 @@ export const MpiAgentChat = ComponentFactory.create({
 
     setup: (el, props, emit) => {
         const _unsubs = [];
-        let _closeStream = null;
         let _working = false;
         /** @type {Array<{dataUrl:string, name:string}>} */
         let _pendingAttachments = [];
 
         const mascotEl   = qs('#ac-mascot',        el);
         const labelEl    = qs('#ac-mascot-label',  el);
+        const workingDot = qs('#ac-working-dot',   el);
         const transcript = qs('#ac-transcript',    el);
 
-        // ── Mascot helpers ────────────────────────────────────────────────────
+        // ── Working state helpers ─────────────────────────────────────────────
         function _setWorking(working) {
             _working = working;
-            if (!mascotEl) return;
-            if (working) {
-                mascotEl.src = 'assets/mascot/waiting.png';
-                mascotEl.classList.add('mpi-agent-chat__mascot--waiting');
-                if (labelEl) labelEl.textContent = 'Thinking…';
-            } else {
-                mascotEl.src = 'assets/mascot/idle.png';
-                mascotEl.classList.remove('mpi-agent-chat__mascot--waiting');
-                if (labelEl) labelEl.textContent = 'Ask me anything';
+            // Panel mode: toggle working dot
+            if (workingDot) workingDot.classList.toggle('mpi-agent-chat__working-dot--on', working);
+            // Standalone mode: mascot flip
+            if (mascotEl) {
+                if (working) {
+                    mascotEl.src = 'assets/mascot/waiting.png';
+                    mascotEl.classList.add('mpi-agent-chat__mascot--waiting');
+                    if (labelEl) labelEl.textContent = 'Thinking…';
+                } else {
+                    mascotEl.src = 'assets/mascot/idle.png';
+                    mascotEl.classList.remove('mpi-agent-chat__mascot--waiting');
+                    if (labelEl) labelEl.textContent = 'Ask me anything';
+                }
             }
+            emit('working', { working });
         }
 
         // ── Scroll helpers ────────────────────────────────────────────────────
@@ -107,10 +121,11 @@ export const MpiAgentChat = ComponentFactory.create({
             div.className = 'mpi-agent-chat__entry mpi-agent-chat__entry--user';
             const bubble = document.createElement('div');
             bubble.className = 'mpi-agent-chat__bubble';
-            bubble.textContent = text;
+            if (text) bubble.textContent = text;
             // Show image attachments in the bubble
             if (attachments && attachments.length) {
                 attachments.forEach(({ dataUrl, name }) => {
+                    if (!dataUrl) return;
                     const img = document.createElement('img');
                     img.src = dataUrl;
                     img.alt = name || 'attachment';
@@ -262,45 +277,67 @@ export const MpiAgentChat = ComponentFactory.create({
             _scrollBottom();
         }
 
-        // ── SSE event dispatch ─────────────────────────────────────────────────
-        function _onSseEvent(name, data) {
-            if (name === 'agent:working') {
-                _setWorking(data.working);
-                emit('working', { working: data.working });
-            } else if (name === 'agent:message') {
-                _appendMessage(data.text);
-            } else if (name === 'agent:tool') {
-                // Brief item 12: only show label, never args.prompt
-                _appendTool(data.id, data.label, data.status);
-            } else if (name === 'agent:confirm') {
-                _appendConfirm(data.confirmId, data.modelName, data.downloadGb);
-            } else if (name === 'agent:result') {
-                if (data.ok && data.output) _appendResult(data.output);
-                else if (!data.ok && data.error) _appendError(null, data.error);
-            } else if (name === 'agent:compacting') {
-                _appendCompacting(data.on);
-            } else if (name === 'agent:error') {
-                _appendError(data.code, data.message);
-                _setWorking(false);
-            }
-        }
+        // ── Bus event subscriptions ───────────────────────────────────────────
+        // Consume all agent SSE events from the app bus (bridged by agentService).
+        _unsubs.push(Events.on('agent:working', (data) => {
+            _setWorking(data.working);
+        }));
+        _unsubs.push(Events.on('agent:message', (data) => {
+            _appendMessage(data.text);
+        }));
+        _unsubs.push(Events.on('agent:tool', (data) => {
+            // Brief item 12: only show label, never args.prompt
+            _appendTool(data.id, data.label, data.status);
+        }));
+        _unsubs.push(Events.on('agent:confirm', (data) => {
+            _appendConfirm(data.confirmId, data.modelName, data.downloadGb);
+        }));
+        _unsubs.push(Events.on('agent:result', (data) => {
+            if (data.ok && data.output) _appendResult(data.output);
+            else if (!data.ok && data.error) _appendError(null, data.error);
+        }));
+        _unsubs.push(Events.on('agent:compacting', (data) => {
+            _appendCompacting(data.on);
+        }));
+        _unsubs.push(Events.on('agent:error', (data) => {
+            _appendError(data.code, data.message);
+            _setWorking(false);
+        }));
 
         // ── Load history ───────────────────────────────────────────────────────
+        // BUG FIX: server writes entry.kind, not entry.role.
+        // Kinds: 'user' | 'agent' | 'tool' | 'result' | 'confirm' | 'handoff'
         async function _loadHistory() {
             const history = await agentGetHistory();
             if (!history.ok) return;
 
-            // Replay entries into the transcript
             if (history.entries) {
                 for (const entry of history.entries) {
-                    if (entry.role === 'user') {
-                        _appendUser(entry.text, entry.attachments);
-                    } else if (entry.role === 'assistant') {
-                        _appendMessage(entry.text);
-                    } else if (entry.role === 'tool') {
+                    if (entry.kind === 'user') {
+                        // Replayed user attachments have {id, name} without dataUrl.
+                        // Render via the attachment endpoint.
+                        const displayAttachments = (entry.attachments || []).map(att => ({
+                            dataUrl: att.id ? `/agent/attachment/${att.id}` : (att.dataUrl || ''),
+                            name: att.name || '',
+                        }));
+                        _appendUser(entry.text || '', displayAttachments);
+                    } else if (entry.kind === 'agent') {
+                        _appendMessage(entry.text || '');
+                    } else if (entry.kind === 'tool') {
                         _appendTool(entry.id || entry.tool, entry.label, entry.status);
-                    } else if (entry.role === 'result' && entry.output) {
-                        _appendResult(entry.output);
+                    } else if (entry.kind === 'result') {
+                        if (entry.ok && entry.output) _appendResult(entry.output);
+                        else if (!entry.ok && entry.error) _appendError(null, entry.error);
+                    } else if (entry.kind === 'confirm') {
+                        // Only render if this is the pending confirm (rendered below).
+                        // Answered confirms are skipped — user already acted.
+                    } else if (entry.kind === 'handoff') {
+                        // Render as a small "conversation compacted" marker.
+                        const div = document.createElement('div');
+                        div.className = 'mpi-agent-chat__entry mpi-agent-chat__entry--compacting';
+                        div.textContent = 'Conversation compacted';
+                        transcript.appendChild(div);
+                        _scrollBottom();
                     }
                 }
             }
@@ -308,7 +345,7 @@ export const MpiAgentChat = ComponentFactory.create({
             // Restore working state
             if (history.working) _setWorking(true);
 
-            // Restore pending confirm
+            // Restore pending confirm (only this one is still actionable)
             if (history.pendingConfirm) {
                 const pc = history.pendingConfirm;
                 _appendConfirm(pc.confirmId, pc.modelName, pc.downloadGb);
@@ -321,7 +358,7 @@ export const MpiAgentChat = ComponentFactory.create({
             _appendUser(text, attachments);
             _setWorking(true);
             try {
-                const project = state.openProject || null;
+                const project = state.currentProject || null;
                 await agentSendMessage(text, attachments || [], project);
             } catch (err) {
                 clientLogger.error('MpiAgentChat', 'send failed', err);
@@ -330,8 +367,16 @@ export const MpiAgentChat = ComponentFactory.create({
             }
         }
 
-        el.sendMessage = _sendMessage;
         el.setWorking  = _setWorking;
+
+        // ── Panel mode: receive send requests from MpiPromptBox ──────────────
+        // agent:send is emitted by MpiPromptBox when in agent mode. Only the
+        // panel instance (standalone:false) handles it — standalone has its own input.
+        if (!props.standalone) {
+            _unsubs.push(Events.on('agent:send', ({ text, attachments }) => {
+                _sendMessage(text, attachments || []);
+            }));
+        }
 
         // ── Standalone input row ──────────────────────────────────────────────
         if (props.standalone) {
@@ -413,15 +458,12 @@ export const MpiAgentChat = ComponentFactory.create({
             }));
         }
 
-        // ── Open SSE + load history ────────────────────────────────────────────
-        _closeStream = agentOpenStream(_onSseEvent);
+        // ── Load history on mount ─────────────────────────────────────────────
         _loadHistory().catch(err => clientLogger.warn('MpiAgentChat', 'history load failed', err));
 
         // ── Cleanup ────────────────────────────────────────────────────────────
         el.destroy = () => {
             _unsubs.forEach(fn => fn());
-            _closeStream?.();
-            _closeStream = null;
         };
     },
 });

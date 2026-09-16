@@ -137,6 +137,12 @@ const _state = {
                                      // via remoteEngineClient.effectiveEngine() instead of isRemote().
                                      // Session-only; never persisted.
 
+    // ── Agent mode (session-only) ─────────────────────────────────────────────
+    agentMode: false,               // true while the Agent | Prompt toggle is on.
+                                    // Written by MpiPromptBox toggle; read by agentPanel.js
+                                    // and re-mounted PromptBoxes (survives workspace nav).
+                                    // Session-only — resets on app restart.
+
     // ── Prompt draft (session-only, not persisted) ─────────────────────────────
     promptDraft: { gallery: { id: null, positive: '', negative: '' }, history: { id: null, positive: '', negative: '' } },
                                      // Per-WORKSPACE prompt text so a draft survives nav and does

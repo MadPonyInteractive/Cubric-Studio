@@ -18,6 +18,11 @@
  *   POST /llm/ollama/start    -> { status: 'running'|'started'|'missing'|'failed' }
  *   POST /llm/ollama/install  -> { ok }   ok:false = no silent install here, open the download page
  *   POST /llm/ollama/pull     -> { ok } | { ok:false, error }   body { modelId }
+ *   POST /llm/connection/probe  -> { ok, latencyMs, modelCount }      body { profileId }
+ *   GET  /llm/connection/models -> { ok, profileId, models }          ?profileId=
+ *
+ * The two `connection` routes serve the ONE remote connection every job shares
+ * (MPI-774); an error there is `{ ok:false, error:{ code, message, status? } }`.
  *
  * HONEST STATE IS PART OF THE CONTRACT: every completion echoes the backend and
  * the model that actually answered, never the one that was asked for. The UI
@@ -146,6 +151,55 @@ router.get('/llm/models', async (_req, res) => {
         logger.error('system', `llm models failed: ${err && err.message}`);
         res.json({ defaultModelId: null, models: [] });
     }
+});
+
+// ── The shared remote connection (MPI-774; MPI-737 consumes it) ──────────────
+// One connection for every LLM job. These two routes are job-agnostic: the
+// agent's own "can this model call a tool?" check stays in POST /agent/probe.
+
+const _connectionError = (res, code, message, status) =>
+    res.json({ ok: false, error: { code, message, ...(status && { status }) } });
+
+/** The connection's models, or a sent error envelope (returns undefined). */
+async function _connectionModels(res, profileId) {
+    if (!profileId || typeof profileId !== 'string') {
+        res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'profileId is required.' } });
+        return undefined;
+    }
+    const { resolveConnection, listRemoteModels } = await engines();
+    const { profile, key } = await resolveConnection(profileId, ask);
+    if (!profile || !profile.baseURL) return void _connectionError(res, 'NO_PROFILE', 'Connection not found, or it has no base URL.');
+    // Ollama's /v1 answers without a key; every hosted preset needs one.
+    if (!key && profileId !== 'ollama') return void _connectionError(res, 'NO_KEY', 'No API key saved for this connection.');
+    try {
+        return await listRemoteModels({ presetId: profileId, baseURL: profile.baseURL, key });
+    } catch (err) {
+        logger.warn('system', `llm connection models failed (${profileId}): ${err && err.message}`);
+        return void _connectionError(res, 'ENDPOINT_ERROR', err.message, err.status);
+    }
+}
+
+/**
+ * POST /llm/connection/probe { profileId } -> { ok, latencyMs, modelCount }.
+ * Auth + reachability through `GET <baseURL>/models`; spends no tokens.
+ */
+router.post('/llm/connection/probe', async (req, res) => {
+    const start = Date.now();
+    const models = await _connectionModels(res, req.body?.profileId);
+    if (!models) return;
+    res.json({ ok: true, latencyMs: Date.now() - start, modelCount: models.length });
+});
+
+/**
+ * GET /llm/connection/models?profileId= -> { ok, profileId, models: [{ id,
+ * contextWindow, vision, recommendedFor }] }, recommended first. Each job row
+ * filters `recommendedFor` for its own job ('agent' | 'enhance' | 'describe').
+ */
+router.get('/llm/connection/models', async (req, res) => {
+    const profileId = req.query.profileId;
+    const models = await _connectionModels(res, profileId);
+    if (!models) return;
+    res.json({ ok: true, profileId, models });
 });
 
 /**

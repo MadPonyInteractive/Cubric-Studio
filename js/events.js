@@ -125,6 +125,17 @@ export const Events = new EventBus();
  * 'tool:cancelled'   { tool: string }                — tool was cancelled by user or error
  * 'project:changed'  { project: Object }             — user switched active project
  * 'state:changed'    { key: string, value: any }     — reactive state mutation
+ *
+ * Agent chat events (bridged from SSE via agentService singleton):
+ * 'agent:working'    { turnId, working: boolean }          — agent starting/stopping work; mascot flip
+ * 'agent:message'    { turnId, id, text }                  — complete reply message from the model
+ * 'agent:tool'       { turnId, id, tool, status, label }   — tool status line (label only, never args.prompt)
+ * 'agent:confirm'    { turnId, confirmId, kind, modelId, modelName, downloadGb } — install confirm card
+ * 'agent:result'     { toolCallId, ok, output?, error? }   — generation result card
+ * 'agent:compacting' { turnId, on: boolean }               — compaction status notice
+ * 'agent:error'      { turnId, code, message }             — agent error line
+ * 'agent:send'       { text, attachments }                 — request to send a message to the agent
+ *                      (emitted by MpiPromptBox in agent mode; consumed by MpiAgentChat panel)
  * 'comfy:starting'   —                               — ComfyUI server is starting up
  * 'comfy:ready'      —                               — ComfyUI server is ready
  * 'comfy:error'      { message: string }             — ComfyUI failed to start

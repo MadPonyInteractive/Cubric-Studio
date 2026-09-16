@@ -81,10 +81,12 @@ export async function generate(body) {
 /**
  * POST /connector/describe { imagePath, question?, crop? }
  * imagePath must be absolute. Crops and attachment resolution are done by the loop
- * before calling here.
+ * before calling here. No shorter budget than the route's own: a ComfyUI describe
+ * queues behind a running generation, and the route answers TIMEOUT itself (30 min);
+ * a 60 s client gave up on a describe that was still coming.
  */
 export async function look(args) {
-    return _post('/connector/describe', args, 60_000);
+    return _post('/connector/describe', args);
 }
 
 /** POST /connector/open-project { folderPath } */

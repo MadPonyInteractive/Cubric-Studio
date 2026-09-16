@@ -7,7 +7,22 @@
 **Evidence behind this plan:** `research/investigation.md` - verified facts with file:line, the
 seven investigator claims that turned out wrong, and a live orchestrator probe.
 
-**Where it stands (2026-09-16, session 7ab56409):** Phase 0 and Parallel Batch 1 are done, verified
+**Where it stands (2026-09-16, session e0fe3905):** **Phase 3 is complete and verified, NOT
+committed**: the shared LLM connection, the gallery agent panel, `agent:*` on the bus, the landing
+box beside the headline, the harness (9/9 x 3, every flip bites) and the prompt sample (evidence:
+`validation.md` § Phase 3, continued). MPI-737 is BLOCKED on that commit: reply in message thread
+`4449a649` (to MPI-737, latest reply `032a30c4`) with the hash when it lands. **Next: Phase 3b**
+(Fabio's round after reading the result, 2026-09-16; below), THEN Phase 4 (live on the GPU). Fabio's user-ux pass must cover the gallery panel, the toggle position,
+the landing box, and Settings > Remote > Language Models.
+
+**Harness design (settled, e0fe3905):** `scripts/agent-test.mjs` drives `AgentLoop` with the REAL
+`DeepInfraEngine` and fake tools built from `tests/fixtures/agent/` (the real `/connector/models` and
+`/connector/knowledge` payloads captured from an isolated instance). Assertions read the model's own
+calls from `loop.getHistory()` (`kind: 'tool'` / `'confirm'` entries), never the fakes' internal
+calls (the install card reads list_models itself). A `--bite` pass runs each case once with its flip
+and expects FAIL. Cost = summed `usage` x the model's live DeepInfra price.
+
+**Previous session (7ab56409):** Phase 0 and Parallel Batch 1 are done, verified
 and **pushed** (`4cfc489e`; master CI green on `2d4c28d6`, which carries it). The three carried
 integration items and the landing rearrange are **done and verified** (evidence in `validation.md`
 § Phase 3), and so is **the wiring run** — which found and fixed two real defects (an Electron-only
@@ -296,7 +311,37 @@ the landing rearrange (`user-ux`).*
   SSE events; `/agent/history` shows the tool calls in order. *Done 2026-09-16; it found two real
   defects (Electron `NO_KEY` with the env key, and invented project paths), both fixed and covered —
   see `validation.md`. The `/connector/*` empty-body re-probe rode along.*
-- [ ] **The harness.** Ownership: `scripts/agent-test.mjs` (new), `tests/fixtures/agent/**`
+- [x] **Shared LLM connection** (Fabio via coordinator message `b5952029`, 2026-09-16; reply
+  `0fb6f49d` to MPI-737 carries the contract). A profile becomes a connection only
+  (`{id, name, baseURL}` + URL-bound key); the per-job model leaves it (agent model -> agent prefs);
+  one shared connection pref. Job-agnostic `POST /llm/connection/probe` and
+  `GET /llm/connection/models?profileId=` (recommended first, `recommendedFor[]`) in
+  `routes/llm.js`; `RECOMMENDED_REMOTE_MODELS` in `services/llmEngines.mjs` (exact ids per preset;
+  MPI-774 fills `agent`). Settings: connection block at the top of Language Models; Agent row =
+  "Remote" + model dropdown ("(recommended)" first) + mode. NOT touched: the DeepInfra-only key
+  field, the `'deepinfra'` backend value, the Enhancement/Descriptions rows (MPI-737). Done
+  BEFORE the harness, because the loop reads the profile. **Verify:** secrets + llm-service +
+  agent-loop tests green; a route test for both new routes with a fake endpoint; the agent loop
+  resolves its model from prefs, not the profile.
+- [x] **Gallery agent panel** (Fabio, 2026-09-16). The toggle moves to the first slot of the bottom
+  row (after the text field, before the expand button). The drawer over the prompt box goes. In
+  Agent mode a shell-level panel on the LEFT fills from under the topbar down to the prompt box and
+  pushes the workspace right; the image-chip strip still paints over it. It holds only user
+  bubbles, agent replies and the images sent. The prompt box sends its image chips as attachments.
+  Also: history replay read `entry.role`, the loop writes `entry.kind`, so a remount rendered an
+  empty transcript - fixed here. `MpiGalleryBlock.js`/`MpiGalleryGrid.js` are MPI-770's (claimed):
+  the panel lives in the shell, never in the block. **Verify:** agent-chat desktop spec extended
+  (panel shown only in Agent mode, cards pushed right, history survives a remount);
+  `lint:components` clean.
+- [x] **Agent state on the event bus** (Fabio, 2026-09-16): the mascot animations are a later card,
+  but they need triggers now. `agentService` owns ONE `/agent/stream` and re-emits every
+  `agent:*` SSE event on `Events` (`MpiEventMap` entries), so any component subscribes without
+  opening its own stream. The mascot art itself is out of scope. **Verify:** unit test on the
+  forwarder; the chat consumes the bus, not its own EventSource.
+- [x] **Landing: agent box beside the headline** (Fabio, 2026-09-16): out of the crew corner, into
+  the empty space right of "Generate. Refine. Own it.", refined with the impeccable skill.
+  **Verify:** screenshots on an isolated instance; the 180-point crew hit-test still 0.
+- [x] **The harness.** Ownership: `scripts/agent-test.mjs` (new), `tests/fixtures/agent/**`
   (new), `package.json` (one `agent:test` line). The real loop against fake tools (canned models,
   descriptions, boxes, refusals); the nine cases in brief § Testing; each run 3 times; graded by
   exact assertions on tool calls, never a judge; cost per run from `usage`. **Verify:** 9 of 9
@@ -304,10 +349,52 @@ the landing rearrange (`user-ux`).*
   red); cost per typical session recorded in `validation.md` beside the command. A case that fails
   its 3/3 -> pick the next candidate with Fabio (Qwen 3.8 27B is ~14x the output cost, so it is
   his call).
-- [ ] **Prompt quality sample.** Five generate prompts from the harness into
+- [x] **Prompt quality sample.** Five generate prompts from the harness into
   `research/prompt-samples.md`, each run through the recipe mechanical checks already in
   `scripts/recipe-test.mjs` (word budget, no placeholders). **Verify:** the file exists with
   pass/fail per sample; Fabio reads it.
+
+## Phase 3b: Fabio's round (2026-09-16, before any GPU)
+
+*Fabio, after reading the Phase 3 report. Verify mode: auto, except item 3 (`user-ux`).*
+
+- [ ] **1. Agents never delete.** "Only the user can delete cards and projects." Today the loop's tool
+  table has no delete, but prove it and make it structural: sweep `routes/connector.js`,
+  `services/agentTools.mjs`, `js/shell/agentDispatch.js` capabilities and the CLI skills
+  (`.claude/skills/cubric-vision*/`) for any delete/remove/trash path an agent can reach; add a test
+  that fails if a delete-shaped tool or connector route appears; state the rule in the system prompt
+  (refuse and tell the user to delete it themselves) and in `docs/agent-chat.md` + the skills.
+  Note: a CLI agent can still call raw app routes (`DELETE /project-media/...`); say so honestly and
+  decide with Fabio whether the connector surface is the enforced boundary.
+- [ ] **2. The agent uses skills, not only recipe briefs.** Fabio: "we have skills to work with
+  Cubric-Vision, are we not giving that to the agent?", and "models bring their own skill packs;
+  we could create refined skill sets per model". An agent should ADAPT prompts with its own knowledge
+  and the model's guide; a recipe used verbatim will not reach what the user wants. Today the corpus
+  (`services/agentCorpus.mjs`) serves recipe briefs (`kind:'model'`) + `docs/agent/*.md`
+  (`kind:'app'`) + `app:operations`. Plan: add a `kind:'skill'` family from the Vision skills
+  (`.claude/skills/cubric-vision*/SKILL.md` + their linked files) and per-model skill files;
+  give each model in `list_models` its guide ids; require a read before the first prompt for a
+  model (structural, like the install gate if a rule alone does not hold). **Open question for
+  Fabio:** where do "models' own skill packs" live? `grep -i "skill.?pack"` finds only the kanban
+  plugin; candidates are `docs/models/<model>/` (e.g. `h3/`, `ltx/prompt-contract.md`) and the
+  create-enhancer-recipe output. Ask before designing. Re-run `--samples`: the H3 prompts (44/46
+  words vs a 50-400 floor, no shot structure, no sound) are the measured baseline to beat.
+- [ ] **3. Panel layout (user-ux).** The left panel covers the workspace topbar (project name,
+  "<- PROJECTS") because `#agent-panel-mount` starts at the top of `.workspace-content` and only pads
+  52px. Start it BELOW the topbar and the nav chips so they keep their own area, and widen it by
+  100px (320 -> 420, `styles/shell/workspace.css` `#agent-panel-mount.agent-panel-mount--open`).
+  Verify: the real-panel desktop test (width assertion) + a screenshot for Fabio.
+- [ ] **4. Update `.claude/rules/`** (Fabio said yes, 2026-09-16): the component maps for the new
+  wiring (events `agent:*` + `agent:send`, state `agentMode`, the `#agent-panel-mount` shell mount,
+  `MpiAgentChat` bus subscription, `MpiLlmSettings` connection block). Use the
+  `mpic-update-component-map` skill, not hand edits.
+- [ ] **5. Per-project agent memory.** Fabio: a folder in the project where the agent keeps Markdown
+  memory; on opening a project it reads an index (`README.md`/`agents.md`) that points at note files,
+  one per thing it learned working on that project. Design first (decide with Fabio): folder name
+  and place (precedent: `project.md` and card notes, `.claude/skills/cubric-vision-project-files/`),
+  when it is read (project open / first turn, via the app-state line), tools (`read_memory`,
+  `write_memory` scoped to that folder only; NO delete, item 1), size caps, and whether the user sees
+  it in the app. Writes go through a route, never a direct `fs` write from the loop.
 
 ## Phase 4: Live on the GPU
 
@@ -341,6 +428,19 @@ the landing rearrange (`user-ux`).*
   `validation.md`, one action and one result per line. **Verify:** his confirmation recorded.
 
 ## Plan Drift
+
+- 2026-09-16 (harness, session e0fe3905): the harness found five loop/contract defects (see
+  `validation.md`); fixing them grew the card into `js/data/generationControls.js`
+  (`namedParamsFor`), `js/shell/agentDispatch.js` (`_listModels` ops carry `params`), and
+  `scripts/recipe-test.mjs` (exports `runChecks`). `look` now uses the describe route's 30-min budget.
+
+- 2026-09-16 (session e0fe3905): four items folded in before the harness. (1) The LLM provider
+  section becomes SHARED with MPI-737 (coordinator message `b5952029`, Fabio); MPI-774 owns the
+  connection store, probe, model list and the Agent row. (2) Fabio's gallery rework: toggle moved,
+  drawer replaced by a left panel that pushes the workspace. (3) `agent:*` on the renderer bus for
+  the later animation card. (4) Landing box moves beside the headline. The mascot swap is OUT
+  (placeholder art until the animation card). Found while reading: `MpiAgentChat` history replay
+  reads `role`, the loop writes `kind` - folded into (2).
 
 - 2026-09-16 (Phase 3a-3c, session 7ab56409): (1) **Attachments were staged twice** — the route
   saved them for its own reply and `runTurn` saved them again, so the chat and the model held

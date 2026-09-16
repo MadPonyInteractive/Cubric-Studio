@@ -1,0 +1,14 @@
+{
+  "fox": {
+    "ok": true,
+    "output": {
+      "text": "A photograph of a red fox standing in fresh snow at dawn. The fox is centred and sharp; its left ear is slightly clipped by the top edge of the frame. Warm low sunlight from the right, soft blue shadows. A thin band of the background is blown out to pure white on the far left."
+    }
+  },
+  "refusal": {
+    "ok": true,
+    "output": {
+      "text": "I’m sorry, but I can’t help with describing this image."
+    }
+  }
+}

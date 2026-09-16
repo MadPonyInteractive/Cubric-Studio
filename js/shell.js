@@ -38,6 +38,7 @@ import { preloadComponentStyles } from './shell/preloadStyles.js';
 import { bindWindowControls, quitApp } from './shell/windowControls.js';
 import { initFloatLatentBridge } from './shell/floatLatentBridge.js';
 import { initAgentDispatch } from './shell/agentDispatch.js';
+import { initAgentPanel } from './shell/agentPanel.js';
 import { initProjectUI, loadProjectGrid } from './shell/projectUI.js';
 import { initHeroStats } from './shell/heroStats.js';
 import { initHeroQuote } from './shell/heroQuote.js';
@@ -203,6 +204,7 @@ export async function initShell() {
   bindWindowControls();
   initFloatLatentBridge();
   initAgentDispatch();
+  initAgentPanel();
   bindMemoryHotkeys(memMonitor);
 
   // 5. Initialize Navigation Orchestrator

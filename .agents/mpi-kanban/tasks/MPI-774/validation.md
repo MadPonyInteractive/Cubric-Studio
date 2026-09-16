@@ -134,3 +134,65 @@ on 3000 is left alone", **1 passed (4.3s)**.
   (restrict to session attachments + result paths); attachments not placed via
   `place-preview-asset`; box bounds never run on a real submit (no `pixelDimensions`); `/connector/*`
   empty-body probes on an isolated server were reported by W1 from a prior context, not re-run.
+
+## Phase 3, continued (2026-09-16, session e0fe3905) — shared connection, gallery panel, landing
+
+- **Shared LLM connection** (coordinator message `b5952029`; reply `0fb6f49d`). Profiles are
+  connection-only, the agent model comes from prefs, `POST /llm/connection/probe` +
+  `GET /llm/connection/models` + `RECOMMENDED_REMOTE_MODELS`. `node --test` on
+  secrets-endpoint-profiles + agent-loop + llm-service + the new llm-connection -> **35 tests, 34
+  pass, 0 fail, 1 skipped (live)**. **Mutations, each RED then restored byte-identical:** chat-tag
+  filter dropped; env key sent to any URL; agent pick ignored; attachment kind unchecked; profile
+  keeps the model. Live read of DeepInfra `/models` (free GET): 194 entries, tags `chat`/`vision`/
+  `image-gen`..., `metadata.context_length`; the parser was written against it.
+  Settings in a browser on my instance (`:56182`): connection block on top, Agent row = `Remote`,
+  `(recommended) deepseek-ai/DeepSeek-V4-Flash-0731`, mode, Test tool use.
+- **Found and fixed:** the old custom-URL group used `group.hidden`, which the form group's
+  `display:flex` overrides (never hid) -> `.hide`. Settings controls replaced with `innerHTML` alone
+  leaked listeners -> destroyed before re-render, plus a sequence guard on the async model list.
+  `look` gave up at 60 s while `/connector/describe` waits 30 min behind a generation -> same budget.
+- **Gallery panel** (worker, re-verified here). Toggle between the text field and Enhance; drawer
+  gone; shell panel `#agent-panel-mount` pushes `#tool-container`; one SSE stream re-emitted on
+  `Events`; history replay reads `kind` (it read `role` and rendered nothing); `GET
+  /agent/attachment/:id`. **Worker defects fixed:** `js/events.js` + `js/state.js` flipped to CRLF
+  (attr `eol=lf`) -> LF; `initAgentPanel()` never called (outside its ownership) -> wired in
+  `js/shell.js`; its specs ran without `--config` so they never ran; its panel test measured a
+  fake mount; the old drawer test and every `__fireSse` test could not pass once the stream moved
+  to the bus. `npx playwright test --config=playwright.desktop.config.js
+  tests/desktop/agent-chat.spec.js` -> **18 passed (52.8s)**. The real-panel test proven: panel
+  never opens -> RED; row not a flex row -> RED.
+- **Landing box beside the headline** (anchor-positioned to the h1, band bounded by the crew's head
+  line). Real bug found: `--crew-k` was set on the crew stage, a sibling of the slot, so the bound
+  silently used `--hero-k` -> now set on the hero. And at 1440 wide the column crosses Studio, so
+  the bound uses Studio's 360, not Video's 260. Probe (180 points over the five members, per k the
+  fit can produce): **0 on the panel** at 1280x720, 1440x900 (k 0.2-0.9, clearance 48-64 px) and
+  1920x1032 (k 0.4-1, clearance 54-92 px); headline text ends left of the panel at every size.
+- **Suite:** `npm test` -> **1123 tests, 1122 pass, 0 fail, 1 skipped**, exit 0.
+  `npm run lint:components` exit 0; `npx eslint` on every touched file exit 0.
+
+### The scripted harness (same session)
+
+- **Command:** `export DEEPINFRA_API_KEY=... && npm run agent:test` (`scripts/agent-test.mjs`,
+  `tests/fixtures/agent/` = the real `/connector/models` + `/connector/knowledge` captured from the
+  isolated instance, ops given `params`). Real `deepseek-ai/DeepSeek-V4-Flash-0731`, fake tools; the
+  fake generate refuses through the app's own `resolveNamedParams`.
+- **Result: 9/9 cases pass 3/3** (27 conversations, **$0.0383, $0.00142 each**; price $0.06/M in,
+  $0.18/M out, cached input priced as fresh). **`--bite`: 9/9 flips FAIL** as they must ($0.0104).
+- **Defects the harness found, all fixed in the loop and pinned by unit tests (each mutation-checked
+  RED):** (1) the model never knew the project state: it claimed none was open while one was, and
+  called `open_project("")`; every user turn now opens with an app-state line (project by name,
+  not path: a shown path got looked at). (2) `/connector/models` never said which named params an op
+  takes, so it sent `turbo` to SDXL (the app answers `INVALID_TURBO`); ops now carry `params` =
+  `generationControls.namedParamsFor`, proven against `resolveNamedParams` over every shipped
+  model/op (`tests/agent-model-params.test.cjs`, mutation RED). (3) no rule for a look refusal or for
+  looking first: added. (4) `look` was called with the schema's words "result filePath": the state
+  line lists the `_images` allowlist ("Images you can look at: ..."), and the tool text points at it.
+  (5) a project opened mid-turn was not used by a later generate in the same turn: adopted.
+  First 3x pass (before (4)): 8/9, video-limit 2/3; the pass above is after the fix.
+- **Prompt quality:** `npm run agent:test -- --samples research/prompt-samples.md` ($0.0073). Three
+  image prompts pass every recipe mechanical check; **both H3 video prompts fail the word budget**
+  (44 and 46 of 50-400). Finding and a proposed fix are in the file; Fabio reads it.
+- **Suite after all of it:** `npm test` -> 1142 tests, **1141 pass, 0 fail**, 1 skipped;
+  `lint:components` exit 0; eslint on every touched file exit 0; `agent-chat.spec.js` **18 passed**.
+  `scripts/recipe-test.mjs` now exports `runChecks` and runs its CLI only when invoked (verified from a
+  lowercase `c:\ai` cwd too).

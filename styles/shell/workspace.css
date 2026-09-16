@@ -48,6 +48,38 @@
   z-index: 41;
 }
 
+/* ── Workspace Content Row — agent panel (left) + tool container (right) ──── */
+/* MPI-774: flex row that pushes gallery cards right when the agent panel opens.
+ * The floating workspace-topbar (position:absolute, 52px) and radial-mount sit
+ * outside this row so they are unaffected. */
+.workspace-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Agent Panel Mount — left panel for MpiAgentChat in Agent mode ─────────── */
+#agent-panel-mount {
+  width: 0;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  /* No border when closed (width 0 → border would still paint a pixel). */
+  border-right: 0 solid var(--line-soft);
+  background: var(--surface-1);
+  /* Top padding clears the floating workspace-topbar (52px). */
+  padding-top: 52px;
+  box-sizing: border-box;
+  transition: width var(--t-base) var(--ease);
+}
+
+#agent-panel-mount.agent-panel-mount--open {
+  width: 320px;
+  border-right-width: 1px;
+}
+
 /* ── Tool Container ─────────────────────────────────────────────────────────── */
 .tool-container {
   flex: 1;

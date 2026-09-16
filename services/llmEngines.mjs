@@ -329,6 +329,96 @@ export async function fetchDeepInfraPrices() {
     }
 }
 
+// ---------------------------------------------------------------------------
+// The shared remote connection (MPI-774, consumed by MPI-737).
+// ---------------------------------------------------------------------------
+
+/**
+ * Our recommendations per connection preset: EXACT ids, no fuzzy matching across
+ * providers (one vendor's id means nothing on another). `jobs` names the rows that
+ * hint the model: 'agent' | 'enhance' | 'describe'. `contextWindow` is only for
+ * entries whose endpoint may not report one. Custom and Ollama get no hints.
+ * MPI-774 fills `agent` (the model the harness proved); MPI-737 fills the rest.
+ */
+export const RECOMMENDED_REMOTE_MODELS = {
+    deepinfra: [
+        { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', jobs: ['agent'], contextWindow: 1_048_576 },
+    ],
+    openrouter: [],
+    openai: [],
+};
+
+/** The context window assumed when neither the endpoint nor our table knows it.
+ *  ponytail: conservative, so a big model compacts early; an endpoint that reports
+ *  `context_length` (DeepInfra, OpenRouter) never reaches this. */
+export const FALLBACK_CONTEXT_WINDOW = 32_768;
+
+/**
+ * The endpoint's chat models, recommended first, from `GET <baseURL>/models`.
+ * A catalogue that tags its entries (DeepInfra: 'chat', 'vision', 'image-gen', …)
+ * is filtered to chat models; an untagged one (OpenAI) is kept whole.
+ * `contextWindow` is `metadata.context_length` (DeepInfra) or `context_length`
+ * (OpenRouter), else our table, else null. Throws `ENDPOINT_ERROR` with `status`.
+ */
+export async function listRemoteModels({ presetId, baseURL, key, timeoutMs = 10_000 }) {
+    const res = await fetch(`${baseURL.replace(/\/+$/, '')}/models`, {
+        headers: key ? { Authorization: `Bearer ${key}` } : {},
+        signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!res.ok) {
+        throw Object.assign(new Error(`GET /models failed: ${res.status} ${res.statusText}`), { status: res.status });
+    }
+    const body = await res.json();
+    const recommended = RECOMMENDED_REMOTE_MODELS[presetId] || [];
+    const models = (Array.isArray(body?.data) ? body.data : [])
+        .filter((m) => typeof m?.id === 'string')
+        .filter((m) => {
+            const tags = m.metadata?.tags;
+            return !Array.isArray(tags) || tags.length === 0 || tags.includes('chat');
+        })
+        .map((m) => {
+            const rec = recommended.find((r) => r.id === m.id);
+            const tags = m.metadata?.tags;
+            return {
+                id: m.id,
+                contextWindow: m.metadata?.context_length ?? m.context_length ?? rec?.contextWindow ?? null,
+                vision: Array.isArray(tags) ? tags.includes('vision') || tags.includes('vlm') : null,
+                recommendedFor: rec ? [...rec.jobs] : [],
+            };
+        });
+    const rank = (m) => (m.recommendedFor.length ? 0 : 1);
+    return models.sort((a, b) => rank(a) - rank(b) || a.id.localeCompare(b.id));
+}
+
+/** The first recommended model for `job` on this preset, or ''. */
+export function recommendedModel(presetId, job) {
+    return (RECOMMENDED_REMOTE_MODELS[presetId] || []).find((r) => r.jobs.includes(job))?.id || '';
+}
+
+/**
+ * The connection profile and its key, for any job. `ask` is the fork bridge
+ * (`routes/forkBridge.js`); null when standalone. The 'deepinfra' preset falls
+ * through to `DEEPINFRA_API_KEY` when no key is stored — the `routes/llm.js`
+ * order, in Electron as well (a dev run and the harness run inside Electron) —
+ * and only while the profile still points at DeepInfra, so an edited profile can
+ * never carry the user's key to another host.
+ */
+export async function resolveConnection(profileId, ask) {
+    let profile = null;
+    let key = null;
+    if (ask) {
+        const m = await ask('secrets:get-endpoint-profile-request', { profileId });
+        if (m) { profile = m.profile || null; key = m.key || null; }
+    }
+    if (!key && profileId === 'deepinfra' && process.env.DEEPINFRA_API_KEY) {
+        const effective = profile || { id: 'deepinfra', name: 'DeepInfra', baseURL: DEEPINFRA_BASE_URL };
+        if (effective.baseURL === DEEPINFRA_BASE_URL) {
+            return { profile: effective, key: process.env.DEEPINFRA_API_KEY };
+        }
+    }
+    return { profile, key };
+}
+
 export class DeepInfraEngine {
     backend = 'deepinfra';
 

@@ -2,10 +2,15 @@
  * agentService.js — MPI-774: HTTP + SSE client for the in-app agent.
  *
  * Routes:
- *   POST /agent/message   { text, attachments, project, mode, profileId }
- *   GET  /agent/stream    SSE with named events
+ *   POST /agent/message   { text, attachments, project, mode, model, profileId }
+ *   GET  /agent/stream    SSE with named events (bridged to the app event bus)
  *   GET  /agent/history   → { ok, working, pendingConfirm, usage, entries }
  *   POST /agent/confirm   { confirmId, yes }
+ *
+ * SSE: one shared EventSource opened lazily by agentInitStream().
+ * Every named SSE event is re-emitted on Events (the app bus) so any subscriber
+ * can react without opening a second connection. MpiAgentChat instances and any
+ * future mascot service subscribe via Events.on('agent:*', ...).
  *
  * Never reads args.prompt — that stays server-side. Callers receive only what
  * the contract exposes (label, status, etc.).
@@ -13,9 +18,10 @@
 
 import { clientLogger } from './clientLogger.js';
 import { Storage } from '../core/storage.js';
+import { Events } from '../events.js';
 import { on } from '../utils/dom.js';
 
-const AGENT_EVENT_NAMES = [
+export const AGENT_EVENT_NAMES = [
     'agent:working',
     'agent:message',
     'agent:tool',
@@ -25,6 +31,33 @@ const AGENT_EVENT_NAMES = [
     'agent:error',
 ];
 
+// ── Shared SSE singleton ──────────────────────────────────────────────────────
+// One EventSource for the entire renderer lifetime. Opened lazily by
+// agentInitStream() (called at shell init). All named events are re-emitted on
+// the app Events bus so every subscriber — including multiple MpiAgentChat
+// instances and future consumers — gets them without opening a second connection.
+
+let _es = null;
+
+/**
+ * Open the shared SSE connection (idempotent — safe to call multiple times).
+ * Must be called before any MpiAgentChat mounts so history replay gets SSE events.
+ */
+export function agentInitStream() {
+    if (_es) return;
+    _es = new window.EventSource('/agent/stream');
+    AGENT_EVENT_NAMES.forEach(name => {
+        on(_es, name, (e) => {
+            try {
+                Events.emit(name, JSON.parse(e.data));
+            } catch (err) {
+                clientLogger.warn('agentService', `bad SSE payload for ${name}`, err);
+            }
+        });
+    });
+    on(_es, 'error', () => clientLogger.warn('agentService', 'SSE connection error'));
+}
+
 /**
  * POST /agent/message
  * @param {string} text
@@ -33,12 +66,14 @@ const AGENT_EVENT_NAMES = [
  * @returns {Promise<{ok:boolean, turnId:string, attachments:Array}>}
  */
 export async function agentSendMessage(text, attachments, project) {
-    const { profileId, mode } = Storage.getAgentPrefs();
+    const { model, mode } = Storage.getAgentPrefs();
+    const { profileId } = Storage.getLlmConnection();
     const body = {
         text: text || '',
         attachments: attachments || [],
         project: project || null,
         mode,
+        model,
         profileId,
     };
     const res = await window.fetch('/agent/message', {
@@ -91,25 +126,4 @@ export async function agentPostConfirm(confirmId, yes) {
         );
     }
     return res.json();
-}
-
-/**
- * Open an SSE stream on /agent/stream.
- *
- * @param {(name: string, data: object) => void} onEvent
- * @returns {() => void} close function — call it in destroy()
- */
-export function agentOpenStream(onEvent) {
-    const es = new window.EventSource('/agent/stream');
-    AGENT_EVENT_NAMES.forEach(name => {
-        on(es, name, (e) => {
-            try {
-                onEvent(name, JSON.parse(e.data));
-            } catch (err) {
-                clientLogger.warn('agentService', `bad SSE payload for ${name}`, err);
-            }
-        });
-    });
-    on(es, 'error', () => clientLogger.warn('agentService', 'SSE connection error'));
-    return () => es.close();
 }
