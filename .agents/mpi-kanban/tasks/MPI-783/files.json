@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-783/",
+    "scripts/build-portable.mjs",
+    "tests/portable-dry-run-isolation.test.cjs",
+    "docs/releases/portable-distribution-contract.md"
+  ],
+  "note": "resources/cubric/update-manifest.json is dirty with the 2026-09-12 dry-run mirror. This card does NOT touch it: restoring it discards a working-tree change, which is the user's call."
+}

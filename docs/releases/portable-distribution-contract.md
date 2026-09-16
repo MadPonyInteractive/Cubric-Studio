@@ -60,6 +60,12 @@ iterating on launcher scripts — **not** for shipping a cross-OS artifact.
   present). Elsewhere it falls back to the repo's `dist/portable`. Override with
   `--stage-dir <path>`.
 - `--no-update-bundle` skips the update zip; `--no-archive` stages folders only.
+- **`--dry-run` never touches a real build (MPI-783).** It copies no app files, so its
+  output is not an artifact. It stages into its own `<root>-dry-run` folders, writes no
+  archive and never mirrors the source manifest, whatever `--stage-dir` says. Before this, a
+  2026-09-12 dry-run with the default stage dir rewrote the delivered 1.6.0 stage in place,
+  replaced both shipped zips under their real names, and mirrored its manifest over the
+  tracked file. A stage manifest reading `dry-run-stage` is never a delta baseline.
 - `--no-node-modules` is dev/test only — it produces a non-runnable tree and
   must never be used for a real artifact.
 - **Pass `--no-source-manifest` for any verification build.** Without it the run

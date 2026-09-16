@@ -140,7 +140,7 @@ const APP_COPY_EXCLUDES = new Set([
   'jsconfig.json',
 ]);
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const opts = {
     platform: process.platform,
     arch: process.arch,
@@ -205,6 +205,14 @@ function parseArgs(argv) {
     }
   }
 
+  // A dry-run stages no shippable artifact, so it writes nothing a real build owns:
+  // no archive under the shipped names, no mirror over the tracked source manifest.
+  // Its stage roots get their own names in main() (MPI-783).
+  if (opts.dryRun) {
+    opts.archive = false;
+    opts.sourceManifest = false;
+  }
+
   return opts;
 }
 
@@ -212,7 +220,8 @@ function printHelp() {
   console.log(`Usage: node scripts/build-portable.mjs [options]
 
 Options:
-  --dry-run              Stage manifests/templates only. No downloads or user folders.
+  --dry-run              Stage manifests/templates only, into <root>-dry-run folders.
+                         No downloads, user folders, archives, or source-manifest mirror.
   --clean                Remove the target artifact root before staging.
   --platform <value>     win32, linux, or darwin. Defaults to current platform.
   --arch <value>         Architecture label. Defaults to current arch.
@@ -1191,7 +1200,10 @@ async function main() {
   opts.buildHash = await resolveBuildHash(opts.buildHash);
 
   const config = PLATFORM_CONFIG[opts.platform];
-  const rootName = `CubricVision-${config.label}-${opts.arch}-v${opts.version}`;
+  // MPI-783: a dry-run's roots are its own, so no --stage-dir can put it on top of a
+  // real build. On 2026-09-12 one rewrote the delivered 1.6.0 stage in place.
+  const dryRunSuffix = opts.dryRun ? '-dry-run' : '';
+  const rootName = `CubricVision-${config.label}-${opts.arch}-v${opts.version}${dryRunSuffix}`;
   // The update ARCHIVE filename stays long so the updater's asset-name regex
   // (^CubricVision-<platform>-update-v.*\.zip$ in update.{command,sh}) still
   // matches. But the bundle is staged into a SHORT, VERSION-FIRST folder so the
@@ -1206,7 +1218,7 @@ async function main() {
   // it holds app/, resources/ and the launchers, but NOT the Electron runtime, so
   // double-clicking start.vbs in it dies in milliseconds with no window and no log.
   // A real user lost an evening to that. Version stays first (see MPI-62 above).
-  const updateRootName = `CubricVision-v${opts.version}-update-only`;
+  const updateRootName = `CubricVision-v${opts.version}-update-only${dryRunSuffix}`;
   const stageRoot = path.resolve(opts.stageDir, rootName);
   const updateStageRoot = path.resolve(opts.stageDir, updateRootName);
 

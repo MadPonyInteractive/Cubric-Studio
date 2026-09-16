@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-783",
+  "title": "A portable dry-run writes only to its own -dry-run roots: no archive, no source-manifest mirror",
+  "description": "A --dry-run shared every output with a real build (stage root, archive names, tracked resources/cubric/update-manifest.json); on 2026-09-12 one overwrote the delivered 1.6.0 stage, both zips, and the tracked manifest (found on MPI-782).",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-16T20:08:10+01:00",
+  "updated_at": "2026-09-16T20:10:52+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

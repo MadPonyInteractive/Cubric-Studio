@@ -4339,3 +4339,6 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-782", "at": "2026-09-16T19:50:24+01:00", "actor": "claude", "column": "todo", "title": "Build the 1.6.1 hand-delivered Windows delta (1.6.0 -> master), never published"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-782", "at": "2026-09-16T19:50:40+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-782", "at": "2026-09-16T19:59:31+01:00", "actor": "claude", "from": "doing", "to": "done"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-783", "at": "2026-09-16T20:08:10+01:00", "actor": "claude", "column": "todo", "title": "A portable dry-run writes only to its own -dry-run roots: no archive, no source-manifest mirror"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-783", "at": "2026-09-16T20:08:43+01:00", "actor": "claude", "from": "todo", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-783", "at": "2026-09-16T20:10:52+01:00", "actor": "claude", "from": "doing", "to": "done"}
