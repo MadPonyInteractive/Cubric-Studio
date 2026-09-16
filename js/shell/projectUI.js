@@ -14,7 +14,7 @@ import { remoteEngineClient } from '../services/remoteEngineClient.js';
 import { blockedByNoEngine } from '../services/engineGate.js';
 import { clientLogger } from '../services/clientLogger.js';
 import { formatBytes } from '../utils/formatBytes.js';
-import { gid } from '../utils/dom.js';
+import { gid, on } from '../utils/dom.js';
 import { APP_VERSION } from '../core/appVersion.js';
 import { MpiOkCancel } from '../components/Compounds/MpiOkCancel/MpiOkCancel.js';
 import { MpiNewProject } from '../components/Compounds/MpiNewProject/MpiNewProject.js';
@@ -32,8 +32,9 @@ import '../components/Compounds/MpiSlideOver/MpiSlideOver.js';
 // DOM refs
 let projectGrid = null;
 
-// Aborts in-flight per-row stats fetches when the grid rebuilds, so late
-// responses don't write into rows that no longer exist.
+// Aborts in-flight per-row stats fetches when the grid rebuilds or the landing is
+// left, so late responses don't write into rows that no longer exist. The same abort
+// stops the thumbnail queue and releases every preview <video> (see _buildProjectRow).
 let _statsBatchAC = null;
 
 // MpiNewProject is NOT a singleton — fresh mount per open.
@@ -194,11 +195,13 @@ export async function loadProjectGrid() {
   if (!projectGrid) return;
   // Cancel any in-flight per-row stats fetches from the previous render.
   if (_statsBatchAC) _statsBatchAC.abort();
-  _statsBatchAC = new AbortController();
+  const ac = _statsBatchAC = new AbortController();
   projectGrid.innerHTML = '<div class="mpi-landing__loading"><div class="spinner"></div></div>';
   try {
     const projects = await listProjects();
     Events.emit('projects:listed', { projects });
+    // A newer render, or the landing was left while the list loaded: build nothing.
+    if (ac.signal.aborted) return;
     const countEl = gid('pickerCount');
     if (countEl) countEl.textContent = projects.length > 0 ? `Recent · ${String(projects.length).padStart(2, '0')}` : '';
     if (projects.length === 0) {
@@ -220,7 +223,7 @@ export async function loadProjectGrid() {
       projectGrid.appendChild(row);
       return load;
     });
-    _runThumbQueue(loaders, 3, _statsBatchAC.signal);
+    _runThumbQueue(loaders, 3, ac.signal);
   } catch (err) {
     clientLogger.error('projectUI', 'loadProjectGrid failed', err);
     projectGrid.innerHTML = `
@@ -230,6 +233,21 @@ export async function loadProjectGrid() {
         <p>Click "+ New project" to create your first AI project.</p>
       </div>`;
   }
+}
+
+/**
+ * Stops the grid when the landing is left. Navigation only HIDES #page-landing, so
+ * without this the thumbnail queue keeps loading preview videos behind the open
+ * project. A hidden, paused `preload="auto"` video holds its range request open until
+ * Chromium idle-suspends it ~15s later, and the app server is HTTP/1.1 on one host:
+ * Chromium's 6-connection cap, minus the renderer's permanent EventSource streams,
+ * leaves room for only a few of those before every fetch (saves, dispatch) queues
+ * behind them (MPI-786). loadProjectGrid rebuilds the grid on the way back.
+ */
+export function releaseProjectGrid() {
+  _statsBatchAC?.abort();
+  _statsBatchAC = null;
+  projectGrid?.replaceChildren();
 }
 
 function _openNewProjectDialog() {
@@ -430,6 +448,9 @@ function _buildProjectRow(project) {
   const row = document.createElement('div');
   row.className = 'mpi-landing__pl-row';
 
+  // Aborted on grid rebuild or when the landing is left (releaseProjectGrid).
+  const signal = _statsBatchAC?.signal;
+
   // Thumbnail slot — spinner until load() resolves. Row is open-locked while
   // it shows one (see the click handler + --loading class below).
   const thumb = document.createElement('div');
@@ -468,6 +489,9 @@ function _buildProjectRow(project) {
       video.preload = 'auto';
       video.addEventListener('loadeddata', () => swapIn(video), { once: true });
       video.addEventListener('error', fail, { once: true });
+      // Detaching is not enough: only dropping the src cancels the load and frees its
+      // connection, whether or not the video was swapped in yet (MPI-786).
+      on(signal, 'abort', () => { video.removeAttribute('src'); video.load(); }, { once: true });
       video.src = project.recentThumbnail;
     } else {
       const img = document.createElement('img');
@@ -506,7 +530,6 @@ function _buildProjectRow(project) {
   row.appendChild(ct);
 
   // Live stats fetch — independent per row, aborted on grid rebuild.
-  const signal = _statsBatchAC?.signal;
   fetchStats({ projectId: project.id, folderPath: project.folderPath, signal })
     .then(({ count, bytes }) => {
       if (signal?.aborted) return;

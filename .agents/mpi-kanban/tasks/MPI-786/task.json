@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-786",
+  "title": "Landing preview videos starve renderer fetches after opening a project",
+  "description": "Projects landing only hides on project open; its preview video rows keep HTTP/1.1 connections busy, so saves queue 5-15s. Release them on leave; drop the spec SAVE_WAIT.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-16T22:12:08+01:00",
+  "updated_at": "2026-09-16T22:46:30+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

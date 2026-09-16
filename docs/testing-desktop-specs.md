@@ -165,3 +165,26 @@ mangles those inline, and this repo's guard hooks block the heredoc workaround.
    Worked example: `tests/desktop/flow-reuse-opens-without-model.spec.js`. Item 4 of the
    flow-overlay list above stubs the same key — a stub is only authoritative if nothing
    overwrites it and nothing else feeds the answer.
+
+## A save that takes SECONDS is a queued request, not a slow route (MPI-786)
+
+The app server is HTTP/1.1 on one host, so Chromium gives the renderer **six** connections to
+it, and three are taken for good by EventSource streams (`/concat/events/stream`,
+`/connector/jobs/stream`, `/agent/stream`). Three more long-held requests anywhere and every
+other fetch waits. MPI-785's spec hit exactly that: the landing's preview clips kept loading
+behind the gallery, and a mark save needed a 30s poll. The cause was fixed
+([shell.md](shell.md) § projectUI.js) and the allowance removed. What stays true for any spec:
+
+- **Measure the wait before raising a timeout.** Over CDP (`Network.enable`), the time before a
+  request is even SENT is `(response.timing.requestTime - requestWillBeSent.timestamp) * 1000 +
+  timing.sendStart`; the server's share is `receiveHeadersEnd - sendEnd`. MPI-786's save read
+  14917 ms queued, 11 ms server. A longer `expect.poll` only hides a queue.
+- **Every spec boots onto the DEVELOPER's project list.** `getProjectsRoot()` is not
+  profile-scoped ([testing-harnesses.md](testing-harnesses.md) § 4), so the landing lists the real
+  `Documents/Cubric Vision/Projects` and loads their thumbnails, while CI lists none. When a spec
+  needs landing rows, stub `/list-projects` in-page (`landing-grid-release.spec.js`).
+- **`CUBRIC_E2E` (GPU off) reproduces it only sometimes.** MPI-785 saw 5-15s under it; with
+  the fix removed, 6 E2E repro runs and 3 spec runs saw no stall, against 6 of 10 in the GPU-on
+  app. So the regression spec pins the release (the clip loses its `src`), and the stall itself
+  is measured in a real instance: a hand-rolled launch without `CUBRIC_E2E` (§ Driving Electron
+  OUTSIDE the runner) or `app:isolated`.

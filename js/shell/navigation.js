@@ -25,7 +25,7 @@ import { MpiRadialMenu } from '../components/Primitives/MpiRadialMenu/MpiRadialM
 import { Hotkeys } from '../managers/hotkeyManager.js';
 import { resolveFlipTarget } from '../data/projectModel.js';
 import { updateProject } from '../services/projectService.js';
-import { loadProjectGrid } from './projectUI.js';
+import { loadProjectGrid, releaseProjectGrid } from './projectUI.js';
 import { Overlays } from '../managers/overlayManager.js';
 import { clientLogger } from '../services/clientLogger.js';
 import { remoteEngineClient } from '../services/remoteEngineClient.js';
@@ -468,6 +468,8 @@ function _showLanding() {
 
 function _showShell() {
     _pageLanding?.classList.add('hide');
+    // Hidden, never unmounted — so the project grid has to stop itself (MPI-786).
+    releaseProjectGrid();
     _appShell?.classList.remove('hide');
     if (!_unbindFlip) _unbindFlip = Hotkeys.bind('workspace.flip', _flipWorkspace);
 }

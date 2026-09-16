@@ -136,7 +136,9 @@ One reusable signal for "the app has booted and nothing covers the screen" (MPI-
 
 ## projectUI.js (`js/shell/projectUI.js`)
 
-Project-scoped UI elements — project name display, breadcrumb, up-arrow navigation.
+The landing page's project grid (rows built by `_buildProjectRow`, thumbnails drained newest-first, 3 at a time) and the New Project dialog.
+
+- **The grid stops when the landing is left (MPI-786).** `_showShell()` calls `releaseProjectGrid()`: it aborts the batch `AbortController` (thumbnail queue + row stats) and empties the grid; the abort also drops every preview `<video>`'s `src` and calls `load()`, detached or not. Without it the queue kept loading clips behind the open project, and a hidden, paused `preload="auto"` clip holds its range request until Chromium idle-suspends it ~15s later. The app server is HTTP/1.1 on one host (six connections) and the renderer keeps three for its EventSource streams, so three such clips queued every fetch: a save waited 14.9s in 6 of 10 real-app runs. `loadProjectGrid()` rebuilds on the way back. Spec: `tests/desktop/landing-grid-release.spec.js`.
 
 ## memoryOps.js (`js/shell/memoryOps.js`)
 

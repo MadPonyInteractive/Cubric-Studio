@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/shell/projectUI.js", "js/shell/navigation.js","tests/desktop/gallery-filter-panel.spec.js", "tests/desktop/landing-grid-release.spec.js","docs/testing-desktop-specs.md", "docs/shell.md"] }

@@ -4348,3 +4348,6 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-785", "at": "2026-09-16T21:24:12+01:00", "actor": "claude", "column": "todo", "title": "Card marks: dot, square, triangle replace the heart; shared filter in the media picker"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-785", "at": "2026-09-16T21:24:37+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Starting implementation"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-785", "at": "2026-09-16T21:48:10+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Built and tested; waiting on Fabio's look-and-feel check"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-786", "at": "2026-09-16T22:12:08+01:00", "actor": "claude", "column": "todo", "title": "Landing preview videos starve renderer fetches after opening a project"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-786", "at": "2026-09-16T22:12:27+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "taking the card to reproduce and fix"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-786", "at": "2026-09-16T22:46:30+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "fixed, verified in the real app and by a new spec"}

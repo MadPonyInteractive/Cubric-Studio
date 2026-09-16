@@ -98,13 +98,6 @@ function statsShownAt(window, width) {
   }, width);
 }
 
-// How long a save may take to reach disk. Not the save's own cost (it lands in ~15 ms
-// on its own): the Projects landing page leaves its preview <video>s mounted behind the
-// gallery, they hold the renderer's HTTP connections to the app server, and the
-// /update-project POST waits 5-15 s for one to free up. Measured for MPI-785 by
-// unloading those videos, after which the same save landed inside a second.
-const SAVE_WAIT = { timeout: 30000 };
-
 /** The persisted `favourite` of one group, straight off project.json. */
 function savedMark(folderPath, id) {
   const saved = JSON.parse(fs.readFileSync(path.join(folderPath, 'project.json'), 'utf8'));
@@ -161,10 +154,10 @@ test('kind chips, the FILTER panel and the gallery toolbar in the project bar', 
       // Click = dot, click again = none.
       await markBtn('img1').click();
       expect(await markDrawn(window, 'img1')).toBe(DOT);
-      await expect.poll(() => savedMark(project.folderPath, 'img1'), SAVE_WAIT).toBe('dot');
+      await expect.poll(() => savedMark(project.folderPath, 'img1')).toBe('dot');
       await markBtn('img1').click();
       await expect(markBtn('img1')).not.toHaveClass(/is-active/);
-      await expect.poll(() => savedMark(project.folderPath, 'img1'), SAVE_WAIT).toBe(false);
+      await expect.poll(() => savedMark(project.folderPath, 'img1')).toBe(false);
 
       // Hold = the menu; releasing on the button itself changes nothing.
       await markBtn('img1').hover();
@@ -178,7 +171,7 @@ test('kind chips, the FILTER panel and the gallery toolbar in the project bar', 
       await menu.locator('[aria-label="Triangle"]').click();
       await expect(menu).toHaveCount(0);
       expect(await markDrawn(window, 'img1')).toBe(TRIANGLE);
-      await expect.poll(() => savedMark(project.folderPath, 'img1'), SAVE_WAIT).toBe('triangle');
+      await expect.poll(() => savedMark(project.folderPath, 'img1')).toBe('triangle');
       // No card opened on the way (the history page would have unmounted the grid).
       expect(await cards(window)).toEqual(ALL);
     });
