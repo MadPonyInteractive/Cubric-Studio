@@ -3,47 +3,39 @@
 Written by `npm run agent:test -- --samples` on 2026-09-16 with deepseek-ai/DeepSeek-V4-Flash-0731, Auto mode, the fixture model list.
 Each prompt is the one the agent sent to `generate`, checked against the enhancer recipe of the model it picked (`scripts/recipe-test.mjs` `runChecks`).
 
-**Findings (orchestrator, same day):** the three image prompts pass every mechanical check, and the models
-and settings are sensible (SDXL for photo work, Illustrious for anime, only params the op offers). **Both
-H3 video prompts are under the recipe's 50-word floor** (44 and 46) and read like image captions: no
-shot structure, no sound, although H3 generates audio. In these runs the agent did not open the
-`minimax-h3:t2v` knowledge entry before writing. The likely fix is to make that read structural: give each
-model in `list_models` its recipe knowledge id and require a read before the first prompt for a model.
-Not done here; it is Fabio's call whether prompt quality matters before the live pass (Phase 4).
-
 ## Make an image of an old fisherman mending a net on a foggy pier.
 
-**sdxl-realistic / t2i** · ratio "16:9" · recipe `sdxl` (t2v)
+**krea2 / t2i** · ratio "16:9" · qualityTier "2k" · turbo true · recipe `krea-2` (t2v)
 
 ```text
-An old weathered fisherman sitting on a foggy wooden pier, hands carefully mending a fishing net, wearing a thick worn coat and woolen hat, dense morning fog over the sea in the background, soft diffused light, moody atmospheric maritime scene, photorealistic, highly detailed
+An old fisherman in his seventies mends a weathered fishing net on a wooden pier, seen in a wide cinematic shot that places him small against the vast grey sea and sky, photographic and atmospheric, his calloused hands working the coarse netting and a lumpy knitted sweater and oilskin cap sodden with sea spray, dense fog rolling in across the still water and dissolving the distant horizon, the only warm accents the amber glow of a hanging lantern on a post beside him, a palette of soft greys, misty blues and muted teal, weathered timber planks underfoot with coils of rope and buoys, gentle lapping water against the pilings, the fog muffling all sound and softening every edge, moody, quiet and contemplative, cool diffuse light with no hard shadows, rich tactile texture of wood grain, net twine and fabric weave.
 ```
 
 Checks: **6/6 pass**
 
-- pass non-empty: 43 words
-- pass no preamble/wrapper: An old weathered fisherman sitting on a foggy wo
+- pass non-empty: 140 words
+- pass no preamble/wrapper: An old fisherman in his seventies mends a weathe
 - pass not an echo: output differs from input
 - pass no reasoning: no self-correction or commentary
 - pass no list markers: no numbered slots in the output
-- pass word budget: 43 (want 30-90)
+- pass word budget: 140 (want 60-220)
 
 ## Make an anime-style image of a girl on a rooftop at night, city lights behind her.
 
 **ill-anime / t2i** · ratio "9:16" · recipe `illustrious` (t2v)
 
 ```text
-anime style illustration of a young girl standing on a rooftop at night, city skyline with twinkling city lights behind her, long flowing hair blowing in the wind, night sky with stars, dramatic atmospheric lighting, detailed anime art
+masterpiece, best quality, very aesthetic, absurdres, newest, 1girl, solo, silver hair, long hair, starry eyes, gentle smile, jacket, skirt, nightwear, standing, looking at viewer, arms relaxed, outdoors, rooftop, night, city, city lights, bokeh, illuminated skyline, starry sky, cowboy shot, cinematic lighting, glowing, detailed background, illustration
 ```
 
 Checks: **13/13 pass**
 
-- pass non-empty: 38 words
-- pass no preamble/wrapper: anime style illustration of a young girl standin
+- pass non-empty: 45 words
+- pass no preamble/wrapper: masterpiece, best quality, very aesthetic, absur
 - pass not an echo: output differs from input
 - pass no reasoning: no self-correction or commentary
 - pass no list markers: no numbered slots in the output
-- pass word budget: 38 (want 26-75)
+- pass word budget: 45 (want 26-75)
 - pass forbidden: bracketed placeholder, LoRA syntax, attention weight or alternation: absent
 - pass forbidden: sentence punctuation welded to the last tag: absent
 - pass forbidden: Pony grammar on an Illustrious model: absent
@@ -54,37 +46,42 @@ Checks: **13/13 pass**
 
 ## Make a product shot of a glass perfume bottle on wet black stone.
 
-**sdxl-realistic / t2i** · ratio "4:5" · recipe `sdxl` (t2v)
+**krea2 / t2i** · ratio "4:5" · recipe `krea-2` (t2v)
 
 ```text
-Professional product photography of an elegant glass perfume bottle standing on wet black stone. The bottle is sleek, transparent glass with subtle amber liquid inside, a minimalist design with a polished cap. Wet reflective black stone surface beneath, water droplets and reflections visible. Dramatic moody lighting with soft highlights on the glass, dark background, cinematic product shot, high-end luxury advertising photography, sharp focus, shallow depth of field, photorealistic
+An elegant glass perfume bottle standing on wet black stone, seen as a luxury product shot at eye level from a slight three-quarter angle, the bottle a clear faceted glass flacon with facets catching the light and a slim gold cap, glossy and reflective, photographed as commercial product photography with studio lighting, a soft cool rim light tracing the bottle's edges against a dark moody backdrop, the wet black stone beneath mirroring the bottle in a faint pool of water with delicate ripples and droplets, a palette of clear glass highlights and amber liquid glow against deep black and slate grey, framed centered with generous negative space around the bottle, the stone texture sharp and each droplet distinct, a shallow depth of field softening the distance behind into darkness.
 ```
 
 Checks: **6/6 pass**
 
-- pass non-empty: 68 words
-- pass no preamble/wrapper: Professional product photography of an elegant g
+- pass non-empty: 129 words
+- pass no preamble/wrapper: An elegant glass perfume bottle standing on wet 
 - pass not an echo: output differs from input
 - pass no reasoning: no self-correction or commentary
 - pass no list markers: no numbered slots in the output
-- pass word budget: 68 (want 30-90)
+- pass word budget: 129 (want 60-220)
 
 ## Make a 5 second video of a hummingbird hovering at a red flower.
 
 **minimax-h3 / t2v_ms** · ratio "16:9" · qualityTier "medium" · turbo true · recipe `minimax-h3` (t2v)
 
 ```text
-A tiny iridescent hummingbird hovering in mid-air beside a vivid red flower, its wings beating rapidly and blurred with motion, its long beak dipping toward the bloom. The flower sways gently. Soft green foliage bokeh in the background, warm natural daylight. Slow, stable camera.
+Photorealistic nature close-up look: a tiny iridescent green hummingbird hovering beside a vivid red trumpet flower, soft sunlight, lush green garden backdrop blurred behind, palette of deep reds set against emerald and sunlit green, mood delicate and serene.
+[Shot 1] A hummingbird beats its wings rapidly in mid-air beside a single red trumpet flower, its long bill dipping into the bloom to drink nectar, wings a shimmering blur as it holds perfectly in place, then it floats back a few inches and hovers still, body bobbing gently, for the rest of the shot.
+The camera holds still throughout, a shallow depth of field keeping the bird and flower sharp against the soft blur.
+overall_soundscape: Rapid hummingbird wingbeats like a low thrum, soft insects buzzing in the warm garden air, a light breeze rustling leaves.
+non_diegetic_music: N/A
+No text, subtitles, logos or watermarks, no cartoon or CG rendering, no slow motion.
 ```
 
-Checks: **10/11 pass**
+Checks: **11/11 pass**
 
-- pass non-empty: 44 words
-- pass no preamble/wrapper: A tiny iridescent hummingbird hovering in mid-ai
+- pass non-empty: 150 words
+- pass no preamble/wrapper: Photorealistic nature close-up look: a tiny irid
 - pass not an echo: output differs from input
 - pass no reasoning: no self-correction or commentary
 - pass no list markers: no numbered slots in the output
-- **FAIL** word budget: 44 (want 50-400)
+- pass word budget: 150 (want 50-400)
 - pass forbidden: the literal placeholder [Shot N] instead of a number: absent
 - pass forbidden: a [0s-5s] span — H3 marks a cut instant, not a range: absent
 - pass forbidden: [Shot 1] carrying a time it must never have: absent
@@ -96,17 +93,22 @@ Checks: **10/11 pass**
 **minimax-h3 / t2v_ms** · ratio "16:9" · qualityTier "medium" · turbo true · recipe `minimax-h3` (t2v)
 
 ```text
-A bustling street market at dusk in the rain. Warm glowing vendor lights and neon signs reflected on wet cobblestones. Colorful awnings and market stalls with strings of bulbs. Rain falling, puddles rippling, people with umbrellas walking through the market. Atmospheric, cinematic, moody evening lighting, detailed.
+Rainy dusk street market look: damp cobblestones reflecting warm market lanterns and cool blue twilight, string lights strung under canvas awnings, light drizzle catching the glow, mood lively and cozy against the gathering dark.
+[Shot 1] A busy open-air street market in the rain at dusk: shoppers with raised umbrellas move past produce stalls, one stallholder pulls a canvas tarp lower against the drizzle while warm bulbs sway overhead, water runs off a green awning and splashes into puddles that mirror the stalls, a few market-goers duck under cover and keep browsing, the whole lane humming with quiet movement as the light fades to blue around the warm amber.
+The camera pushes in slowly down the lane, gliding past the awnings and reflections at a steady, unhurried pace.
+overall_soundscape: Steady rain pattering on canvas awnings and pinging off puddles, soft market chatter, a vendor calling out, water dripping and running along the gutters.
+non_diegetic_music: A gentle string and light percussive score with a warm, slightly melancholic evening tone, swelling softly and fading out toward the end.
+No text, subtitles, logos or watermarks, no cartoon or CG rendering, no slow motion.
 ```
 
-Checks: **10/11 pass**
+Checks: **11/11 pass**
 
-- pass non-empty: 46 words
-- pass no preamble/wrapper: A bustling street market at dusk in the rain. Wa
+- pass non-empty: 190 words
+- pass no preamble/wrapper: Rainy dusk street market look: damp cobblestones
 - pass not an echo: output differs from input
 - pass no reasoning: no self-correction or commentary
 - pass no list markers: no numbered slots in the output
-- **FAIL** word budget: 46 (want 50-400)
+- pass word budget: 190 (want 50-400)
 - pass forbidden: the literal placeholder [Shot N] instead of a number: absent
 - pass forbidden: a [0s-5s] span — H3 marks a cut instant, not a range: absent
 - pass forbidden: [Shot 1] carrying a time it must never have: absent

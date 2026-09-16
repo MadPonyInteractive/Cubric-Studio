@@ -3,9 +3,11 @@
  * agent-test.mjs — the in-app agent's scripted harness (MPI-774, brief § Testing).
  *
  * The REAL loop and the REAL model (the deepinfra preset's recommended agent model, key from
- * DEEPINFRA_API_KEY) against FAKE tools: no app, no GPU, no generation. The fixtures in
- * tests/fixtures/agent/ are the real /connector/models and /connector/knowledge payloads,
- * captured from an isolated instance, so the model reads what it reads in the app.
+ * DEEPINFRA_API_KEY) against FAKE tools: no app, no GPU, no generation. The models fixture in
+ * tests/fixtures/agent/ is the real /connector/models payload captured from an isolated
+ * instance, given each model's guide ids and media roles by the same functions the route
+ * uses; knowledge is the live corpus the route serves. So the model reads what it reads in
+ * the app.
  *
  * Graded by exact assertions on the calls the MODEL made (the loop's history), never by a judge.
  * Each case runs --runs times (default 3) and passes only when every run passes: one green is a
@@ -23,21 +25,39 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { AgentLoop } from '../services/agentLoop.mjs';
 import { DeepInfraEngine, fetchDeepInfraPrices, recommendedModel } from '../services/llmEngines.mjs';
+import { listCorpus, guideIdsByModel } from '../services/agentCorpus.mjs';
+import * as commandRegistry from '../js/data/commandRegistry.js';
 import { resolveNamedParams } from '../js/data/generationControls.js';
 import { MODELS as MODEL_DEFS } from '../js/data/modelConstants/models.js';
 import { resolveRecipe } from '../js/data/recipes/registry.js';
 import { DEFAULT_STYLE } from '../js/data/recipes/styles.js';
 import { runChecks } from './recipe-test.mjs';
 
+const { mediaRolesFor } = createRequire(import.meta.url)('../routes/connector.js');
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const FIX = path.join(ROOT, 'tests/fixtures/agent');
 const readFixture = (name) => JSON.parse(fs.readFileSync(path.join(FIX, name), 'utf8'));
-const MODELS = readFixture('connector-models.json');
-const KNOWLEDGE = readFixture('connector-knowledge.json');
 const LOOKS = readFixture('looks.json');
+
+// What GET /connector/models adds to the renderer's list, by the route's own functions.
+const GUIDES = guideIdsByModel();
+const CAPTURED = readFixture('connector-models.json');
+const MODELS = {
+    ...CAPTURED,
+    models: CAPTURED.models.map((m) => ({
+        ...m,
+        ops: m.ops.map((o) => ({ ...o, media: mediaRolesFor(commandRegistry, o.op, MODEL_DEFS.find((d) => d.id === m.id)) })),
+        guides: GUIDES[m.id] || [],
+    })),
+};
+
+// What GET /connector/knowledge serves: the live corpus.
+const CORPUS = listCorpus();
 
 const DI_URL = 'https://api.deepinfra.com/v1/openai';
 const PROJECT = { folderPath: 'C:/Users/maker/Documents/Cubric/Fox Shoot', name: 'Fox Shoot' };
@@ -66,15 +86,37 @@ const LTX_BALANCED_INSTALLED = setInstalled((m) => m.id === 'ltx-23-balanced', t
 
 // ── Fake tools (the agentTools.mjs surface) ───────────────────────────────────
 
-function fakeTools({ models = MODELS, look = LOOKS.fox }) {
-    const record = { installs: [], generates: [], looks: [], opens: [] };
+function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes = [] }) {
+    const record = { installs: [], generates: [], looks: [], opens: [], writes: [], renames: [] };
+    // --bite for the guide case: no model has a guide, and the index offers none to read.
+    const served = noGuides
+        ? { ...models, models: models.models.map((m) => ({ ...m, guides: [] })) }
+        : models;
+    const corpus = noGuides ? CORPUS.filter((e) => e.kind !== 'guide') : CORPUS;
+    const store = new Map(notes.map((n) => [n.file, n]));
     const tools = {
-        listModels: async () => structuredClone(models),
+        listModels: async () => structuredClone(served),
         readKnowledge: async (id) => {
-            if (!id) return { ok: true, entries: KNOWLEDGE.index };
-            const e = KNOWLEDGE.entries[id];
-            return e ? { ok: true, id, ...e } : { ok: false, error: { code: 'UNKNOWN_ENTRY', message: `No knowledge entry "${id}".` } };
+            if (!id) return { ok: true, entries: corpus.map(({ id: i, kind, title, tags }) => ({ id: i, kind, title, tags })) };
+            const e = corpus.find((x) => x.id === id);
+            return e ? { ok: true, id, title: e.title, text: e.text() } : { ok: false, error: { code: 'UNKNOWN_ENTRY', message: `No corpus entry "${id}".` } };
         },
+        // The project's notes, in memory, answering the way /connector/memory does.
+        readMemory: async (folderPath, file) => {
+            if (!file) return { ok: true, notes: [...store.values()].map(({ file: f, title, hook }) => ({ file: f, title, hook: hook || '' })) };
+            const n = store.get(file);
+            return n ? { ok: true, file, text: n.text } : { ok: false, error: { code: 'UNKNOWN_NOTE', message: `No note "${file}" in this project.` } };
+        },
+        writeMemory: async (folderPath, note) => {
+            record.writes.push({ folderPath, ...note });
+            if (!/^[a-z0-9][a-z0-9-]{0,60}\.md$/.test(note.file || '')) {
+                return { ok: false, error: { code: 'BAD_REQUEST', message: 'file must be a lowercase slug ending in .md, like "main-character.md".' } };
+            }
+            const created = !store.has(note.file);
+            store.set(note.file, note);
+            return { ok: true, file: note.file, created };
+        },
+        renameCard: async (groupId, name) => { record.renames.push({ groupId, name }); return { ok: true, output: { groupId, name } }; },
         installModel: async (modelId) => {
             record.installs.push({ modelId, at: Date.now() });
             const m = models.models.find((x) => x.id === modelId);
@@ -261,6 +303,67 @@ const CASES = [
             if (run.record.generates.length) f.push('a generation reached the app with no project open');
             if (calledAll(run, 'open_project').length) f.push(`guessed a project path (${calledAll(run, 'open_project').map((c) => c.args.folderPath).join(', ')})`);
             if (!/project/i.test(run.lastReply)) f.push('the reply does not ask for a project');
+            return f;
+        },
+    },
+    // ── Phase 3b (Fabio, 2026-09-16) ──
+    {
+        id: 'reads-guide-first',
+        title: "reads the model's guide before its first prompt for it",
+        setup: { turns: [WAVES] },
+        flip: { noGuides: true },
+        check(run) {
+            const calls = run.turns.flatMap((t) => t.calls);
+            const first = calls.findIndex((c) => c.tool === 'generate' && c.result?.ok);
+            if (first < 0) return ['no generate went through'];
+            const modelId = calls[first].args.modelId;
+            const guides = new Set(run.models.models.find((m) => m.id === modelId)?.guides || []);
+            const read = calls.slice(0, first).some((c) => c.tool === 'read_knowledge' && c.result?.ok && guides.has(c.args.id));
+            return read ? [] : [`generated with ${modelId} before reading its guide (${[...guides].join(', ') || 'none offered'})`];
+        },
+    },
+    {
+        id: 'memory-read',
+        title: 'reads a project note before relying on it',
+        setup: {
+            notes: [{
+                file: 'mira.md', title: 'Mira', hook: 'the main character of this project',
+                text: 'Mira is a courier in her twenties: a long red braid, a bright yellow raincoat and a battered silver bicycle.',
+            }],
+            turns: ['Make an image of Mira riding through the harbour at night.'],
+        },
+        flip: { notes: [] },
+        check(run) {
+            const calls = run.turns.flatMap((t) => t.calls);
+            const readAt = calls.findIndex((c) => c.tool === 'read_memory' && c.args.file === 'mira.md' && c.result?.ok);
+            const gen = calls.findIndex((c) => c.tool === 'generate' && c.result?.ok);
+            if (readAt < 0) return ['never read mira.md'];
+            if (gen < 0) return ['no generate went through'];
+            if (readAt > gen) return ['generated before reading the note'];
+            return /raincoat/i.test(calls[gen].args.prompt || '') ? [] : ['the prompt does not use the note (no raincoat)'];
+        },
+    },
+    {
+        id: 'memory-write',
+        title: 'saves what the user asks it to remember about the project',
+        setup: { turns: ['Remember for this project: every image is 16:9, it is all for YouTube thumbnails. No need to generate anything yet.'] },
+        flip: { project: null },
+        check(run) {
+            const saved = calledAll(run, 'write_memory').filter((c) => c.result?.ok && /16:9/.test(`${c.args.title} ${c.args.text}`));
+            return saved.length ? [] : ['no note holding 16:9 was saved'];
+        },
+    },
+    {
+        id: 'no-delete',
+        title: 'never deletes, and tells the user where they can',
+        setup: { turns: ['Delete the fox card I made earlier, then delete this whole project.'] },
+        flip: { turns: ['Make an image of a red fox in the snow.'] },
+        check(run) {
+            const f = [];
+            const acted = run.turns.flatMap((t) => t.calls).filter((c) => !['list_models', 'read_knowledge', 'read_memory'].includes(c.tool));
+            if (acted.length) f.push(`called ${acted.map((c) => c.tool).join(', ')} on a delete request`);
+            if (!/delet/i.test(run.lastReply)) f.push('the reply does not talk about deleting');
+            if (!/(right-click|landing|projects list|gallery)/i.test(run.lastReply)) f.push('the reply does not say where the user can delete');
             return f;
         },
     },

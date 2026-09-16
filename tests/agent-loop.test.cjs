@@ -611,6 +611,158 @@ describe('(g) model and context window', () => {
 });
 
 // ---------------------------------------------------------------------------
+// (h) Phase 3b: project notes, finished generations, card names, the guide gate
+// ---------------------------------------------------------------------------
+
+describe('(h) notes, results, names, guides', () => {
+    const call = (id, name, args) => ({ text: '', toolCalls: [{ id, type: 'function', function: { name, arguments: JSON.stringify(args) } }] });
+    const project = { folderPath: '/project', name: 'Test' };
+    const toolResults = (loop) => loop._messages.filter((m) => m.role === 'tool').map((m) => JSON.parse(m.content));
+    const userMessages = (loop) => loop._messages.filter((m) => m.role === 'user').map((m) => m.content);
+
+    function withMemory(tools, notes = []) {
+        tools.calls.readMemory = [];
+        tools.calls.writeMemory = [];
+        tools.readMemory = async (folderPath, file) => {
+            tools.calls.readMemory.push({ folderPath, file });
+            return file ? { ok: true, file, text: 'Red hair.' } : { ok: true, notes };
+        };
+        tools.writeMemory = async (folderPath, note) => {
+            tools.calls.writeMemory.push({ folderPath, ...note });
+            return { ok: true, file: note.file, created: true };
+        };
+    }
+
+    test('notes are read and written in the open project, whatever folder the model names', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('w1', 'write_memory', { file: 'ratio.md', title: 'Ratio', text: '16:9', folderPath: 'C:/Elsewhere' }),
+            call('r1', 'read_memory', { file: 'ratio.md' }),
+            { text: 'Noted.' },
+        ] });
+        withMemory(tools);
+        await loop.runTurn('Remember 16:9', [], project, 'auto', 'deepinfra', 't-mem');
+        assert.deepEqual(tools.calls.writeMemory, [{ folderPath: '/project', file: 'ratio.md', title: 'Ratio', hook: undefined, text: '16:9' }]);
+        assert.deepEqual(tools.calls.readMemory.at(-1), { folderPath: '/project', file: 'ratio.md' });
+        assert.equal(loop.getHistory().entries.find((e) => e.tool === 'write_memory').label, 'Noted: Ratio');
+    });
+
+    test('with no project open there are no notes to read or write', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('w1', 'write_memory', { file: 'a.md', title: 'A', text: 'x' }),
+            call('r1', 'read_memory', {}),
+            { text: 'Open a project first.' },
+        ] });
+        withMemory(tools);
+        await loop.runTurn('Remember this', [], null, 'auto', 'deepinfra', 't-nomem');
+        assert.equal(tools.calls.writeMemory.length, 0);
+        assert.deepEqual(toolResults(loop).map((r) => r.error?.code), ['NO_PROJECT', 'NO_PROJECT']);
+    });
+
+    test('the project notes open the first turn with that project, and again after a switch', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [{ text: 'a' }, { text: 'b' }, { text: 'c' }] });
+        withMemory(tools, [{ file: 'mira.md', title: 'Mira', hook: 'the courier' }]);
+        await loop.runTurn('one', [], project, 'auto', 'deepinfra', 't1');
+        await loop.runTurn('two', [], project, 'auto', 'deepinfra', 't2');
+        await loop.runTurn('three', [], { folderPath: '/other', name: 'Other' }, 'auto', 'deepinfra', 't3');
+        const users = userMessages(loop);
+        assert.match(users[0], /\[Project notes you kept earlier[^\n]*\n- mira\.md: Mira \(the courier\)\]/);
+        assert.match(users[0], /one$/);
+        assert.doesNotMatch(users[1], /Project notes/);
+        assert.match(users[2], /Project notes/);
+        assert.deepEqual(tools.calls.readMemory.map((c) => c.folderPath), ['/project', '/other']);
+    });
+
+    test('a finished generation reaches the model at the start of its next turn, never mid-turn', async () => {
+        const { loop } = await makeLoop({
+            engineResponses: [
+                call('g1', 'generate', { modelId: 'test-model', operation: 't2i', prompt: 'A fox' }),
+                { text: 'Started.' },
+                { text: 'Here it is.' },
+            ],
+            toolOpts: { generateDelay: 30 },
+        });
+        await loop.runTurn('Make a fox', [], project, 'auto', 'deepinfra', 't-g');
+        await new Promise((r) => setTimeout(r, 120)); // the generate settles, then the auto-look
+        assert.equal(loop._messages.at(-1).role, 'assistant', 'nothing was pushed into the context when it settled');
+        await loop.runTurn('How did it go?', [], project, 'auto', 'deepinfra', 't-next');
+        const last = userMessages(loop).at(-1);
+        assert.match(last, /\[Generation finished: card group-1, image \/path\/result\.png\]/);
+        assert.match(last, /\[You looked at it: A generated image showing a fox\.\]/);
+        assert.match(last, /How did it go\?$/);
+    });
+
+    test('a failed generation is reported the same way', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', { modelId: 'test-model', operation: 't2i', prompt: 'A fox' }),
+            { text: 'Started.' },
+            { text: 'Sorry.' },
+        ] });
+        tools.generate = async () => ({ ok: false, error: { code: 'MODEL_NOT_INSTALLED', message: 'not installed' } });
+        await loop.runTurn('Make a fox', [], project, 'auto', 'deepinfra', 't-f');
+        await new Promise((r) => setTimeout(r, 30));
+        await loop.runTurn('Well?', [], project, 'auto', 'deepinfra', 't-f2');
+        assert.match(userMessages(loop).at(-1), /\[Generation failed: MODEL_NOT_INSTALLED: not installed\]/);
+    });
+
+    test('rename_card names only cards this conversation generated; cardName rides on generate', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('n0', 'rename_card', { groupId: 'someone-elses', name: 'Mine now' }),
+            call('g1', 'generate', { modelId: 'test-model', operation: 't2i', prompt: 'A fox', cardName: 'Fox' }),
+            { text: 'Started.' },
+            call('n1', 'rename_card', { groupId: 'group-1', name: 'Snow fox' }),
+            { text: 'Named.' },
+        ] });
+        tools.calls.renameCard = [];
+        tools.renameCard = async (groupId, name) => { tools.calls.renameCard.push({ groupId, name }); return { ok: true }; };
+        await loop.runTurn('Make a fox', [], project, 'auto', 'deepinfra', 't-n');
+        assert.equal(toolResults(loop)[0].error.code, 'UNKNOWN_CARD');
+        assert.equal(tools.calls.generate[0].cardName, 'Fox');
+        await new Promise((r) => setTimeout(r, 30));
+        await loop.runTurn('Name it', [], project, 'auto', 'deepinfra', 't-n2');
+        assert.deepEqual(tools.calls.renameCard, [{ groupId: 'group-1', name: 'Snow fox' }]);
+    });
+
+    test('generate waits until the model guide is read, then runs', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', { modelId: 'test-model', operation: 't2i', prompt: 'A fox' }),
+            call('k1', 'read_knowledge', { id: 'guide:test' }),
+            call('g2', 'generate', { modelId: 'test-model', operation: 't2i', prompt: 'A fox, adapted' }),
+            { text: 'Started.' },
+        ] });
+        tools.listModels = async () => ({ ok: true, models: [{ id: 'test-model', name: 'Test Model', guides: ['guide:test'] }], flows: [] });
+        await loop.runTurn('Make a fox', [], project, 'auto', 'deepinfra', 't-guide');
+        const first = toolResults(loop)[0];
+        assert.equal(first.error.code, 'GUIDE_NOT_READ');
+        assert.match(first.error.message, /"guide:test"/);
+        assert.deepEqual(tools.calls.generate.map((b) => b.positive), ['A fox, adapted'], 'only the call after the read reached the app');
+    });
+
+    test('a Flow, or a model with no guide, is not held back', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', { flowId: 'head-swap', fields: {} }),
+            call('g2', 'generate', { modelId: 'plain-model', operation: 't2i', prompt: 'x' }),
+            { text: 'ok' },
+        ] });
+        tools.listModels = async () => ({ ok: true, models: [{ id: 'test-model', guides: ['guide:test'] }, { id: 'plain-model', guides: [] }], flows: [] });
+        await loop.runTurn('go', [], project, 'auto', 'deepinfra', 't-free');
+        assert.equal(tools.calls.generate.length, 2);
+    });
+
+    test('a compaction forgets the guides read and lists the notes again', async () => {
+        const { loop } = await makeLoop({
+            engineResponses: [{ text: 'a', usage: { prompt_tokens: 600 } }, { text: 'handoff' }],
+            contextWindow: 1000,
+        });
+        loop._readIds.add('guide:test');
+        loop._notesProject = '/project';
+        await loop.runTurn('hi', [], project, 'auto', 'deepinfra', 't-c');
+        assert.ok(loop.getHistory().entries.some((e) => e.kind === 'handoff'), 'the compaction ran');
+        assert.equal(loop._readIds.size, 0);
+        assert.equal(loop._notesProject, null);
+    });
+});
+
+// ---------------------------------------------------------------------------
 // (d) probe: no-tools model reported plainly, never retried
 // ---------------------------------------------------------------------------
 

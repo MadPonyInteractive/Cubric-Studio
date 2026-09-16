@@ -69,14 +69,15 @@
   /* No border when closed (width 0 → border would still paint a pixel). */
   border-right: 0 solid var(--line-soft);
   background: var(--surface-1);
-  /* Top padding clears the floating workspace-topbar (52px). */
-  padding-top: 52px;
+  /* Starts BELOW the floating workspace-topbar (52px): a margin, not padding, so the panel's
+   * background leaves the whole topbar row (back link, project name, toolbar chips) its own area. */
+  margin-top: 52px;
   box-sizing: border-box;
   transition: width var(--t-base) var(--ease);
 }
 
 #agent-panel-mount.agent-panel-mount--open {
-  width: 320px;
+  width: 420px;
   border-right-width: 1px;
 }
 

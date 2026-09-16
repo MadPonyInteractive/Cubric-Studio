@@ -196,3 +196,71 @@ on 3000 is left alone", **1 passed (4.3s)**.
   `lint:components` exit 0; eslint on every touched file exit 0; `agent-chat.spec.js` **18 passed**.
   `scripts/recipe-test.mjs` now exports `runChecks` and runs its CLI only when invoked (verified from a
   lowercase `c:\ai` cwd too).
+
+## Phase 3b (2026-09-16, session 105b3570) — Fabio's round
+
+Fabio's answers: deletion is barred for the IN-APP agent only (outside agents keep the delete
+routes); model skill packs = option (a), our own guide per shipped model; project memory is built
+in this card.
+
+- **1. Never deletes.** `node --test tests/agent-no-delete.test.cjs` -> 4/4: no delete-shaped tool
+  offered, an invented `delete_card` / `delete_project` / `remove_media` is `UNKNOWN_TOOL`, the
+  prompt carries "Deletion rule: You never delete anything", and every request `agentTools.mjs`
+  can make is on an allowlist (12 entries). Bite (`bite_nodelete.py`, bytes restored): a
+  `delete_card` tool def, a `delete_card` executor case, the rule text dropped, a
+  `deleteProject` -> `/delete-project` export, and an innocently named unlisted route each turn
+  it RED. Harness case `no-delete`: no tool call, the reply says only the user deletes and where.
+- **3. Panel.** `#agent-panel-mount` margin-top 52px (was padding) and 420px. Measured on an
+  isolated instance (`:53030`, scratch project, playwright-cli 1600x900): before, the panel
+  started at y 32 behind the topbar row; after, topbar 32-84, panel from y 84, 420 wide, the
+  workspace from x 420, and the back link still takes its own clicks. `agent-chat.spec.js -g
+  "agent panel"` passes with `panelWidth === 420` and `panelTop >= topbarBottom`; reverting to
+  320 (`Received: 320`) or to padding (`Received: 32`) turns it RED (`bite_panel.py`).
+  Screenshots before/after in the session scratchpad. **Fabio's eyes still owed** (user-ux).
+- **4. Rules.** component-maps worker (Sonnet), HEAD-only reads: `component-mounts.md`,
+  `component-events-primitives.md`, `component-events-blocks.md`, `component-state.md`,
+  +39/-2; I re-checked `git diff --stat` (only those four) and LF on each. It found
+  `gallery:open-card` had no listener: a chat result card opened nothing. Fixed in the shell
+  (`agentPanel.js` opens the card's Group History when the open project holds it and it is not
+  audio; declared in `js/events.js`); spec `a result card opens its card history...` passes
+  (recorded navigate: only the in-project image card), and the map line was corrected.
+  Left for Fabio: where the agent's `Input_Describe_Prompt` injection belongs in the rules.
+- **5. Project memory.** `node --test tests/agent-memory.test.cjs` -> 9/9 (store on real temp
+  projects: create, in-place update keeping user lines, one-line titles, slug-only file names
+  incl. `../`, `a\b`, `README.md`, NOT_A_PROJECT, NOTE_TOO_LONG, MEMORY_FULL with updates still
+  allowed; routes: round trip, 400 vs 200 envelope, no DELETE route). Loop block (h) in
+  `agent-loop.test.cjs` (9 tests): the open project's folder only, NO_PROJECT without one,
+  the notes index on the first turn per project and after a switch, "Noted: <title>" label.
+  Live on `:50257`: note written, listed, read back; `../project.json` -> 400.
+- **2. Skills and guides.** Corpus gains `guide` (9 files, `docs/agent/models/<recipeId>.md`,
+  H3 by me, eight by four Sonnet workers, each reviewed by me: fixed SDXL's labelled
+  POSITIVE/NEGATIVE blocks (the agent fills `prompt` and `negative`), Klein `t2i` media,
+  Illustrious `inpaint` ratios, mask-op and mature-content wording) and `skill` (the six
+  `cubric-vision*` files with an in-app preamble; `copyAgentSkills` stages them for the
+  portable build). `node tests/agent-corpus.test.cjs` -> 10/10, including every shipped model
+  resolving to an existing guide (it was RED while guides were missing), guide shape (heading,
+  30-200 lines, brief footer, no placeholder, no em dash), every skill file served whole, and
+  the build copy landing where the corpus looks. `/connector/models` adds `guides` and per-op
+  `media` roles gated by `filterMediaInputsForModel` (`connector-agent-tools.test.cjs`: H3 t2v
+  has no audio slot, LTX has one, ref2va slots carry `Picture N` tags). Live on `:50257`:
+  guides and gated media per model, knowledge kinds model 16 / guide 3 (then) / skill 6 / app 4,
+  guide text with its footer, skill text with its preamble. Loop: GUIDE_NOT_READ gate,
+  `rename_card` (own cards only) and `cardName`, finished generations queued for the next turn.
+- **Bite for 2 and 5** (`bite_phase3b.py`, bytes restored, suites green after): slug check off,
+  project check off, no note cap, update-appends, route 400 -> 200, guide gate off, a settle
+  pushing into the context mid-turn, rename of any card, a model-named notes folder, and the
+  notes index repeated every turn: all 10 RED.
+- **Lint:** eslint on every touched file exit 0 (one app-lifetime listener carries the repo's
+  disable comment); `npm run lint:components` exit 0.
+- **Harness, Phase 3b** (`npm run agent:test`, deepseek-ai/DeepSeek-V4-Flash-0731, real model, fake
+  tools, live corpus): **13/13 cases pass 3/3** (the nine Phase 3 cases plus reads-guide-first,
+  memory-read, memory-write, no-delete), $0.0696 for 39 conversations ($0.00178 each; the guide
+  read and the bigger model list roughly doubled input tokens). `--bite`: **13/13 bite** (each
+  flip fails its check), $0.0287. Full node suite `npm test` -> 1191 tests, 1190 pass, 0 fail, 1
+  skipped. `agent-chat.spec.js` (private `--output`) -> **19 passed**.
+- **Prompt samples** (`--samples research/prompt-samples.md`, $0.0152): all five pass every recipe
+  check. The H3 prompts, the measured baseline (44 and 46 words, no shot marker, no sound), are now
+  150 and 190 words with a look line, `[Shot 1]`, a camera line, both sound fields and a
+  rendering-only constraint line. First run caught the agent pasting the H3 guide's worked example
+  verbatim, because that example WAS a sample request (SDXL's too): both guide examples were
+  replaced with requests the samples do not use, and the rerun shows a written adaptation.

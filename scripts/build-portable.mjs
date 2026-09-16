@@ -356,6 +356,22 @@ export function shouldExcludeAppPath(relPath, entryName, excludeNodeModules = fa
   return false;
 }
 
+/**
+ * MPI-774: the in-app agent reads the Cubric Vision skills (services/agentCorpus.mjs
+ * SKILL_DIRS), but `.claude` is in APP_COPY_EXCLUDES. Stage a copy where the corpus looks
+ * in an installed app. Throws when there is nothing to copy: an agent without its skills
+ * is a build bug, not a warning.
+ */
+export async function copyAgentSkills(repoRoot, appRoot) {
+  const src = path.join(repoRoot, '.claude', 'skills');
+  const names = (await fs.readdir(src)).filter((n) => n === 'cubric-vision' || n.startsWith('cubric-vision-'));
+  if (!names.length) throw new Error(`No cubric-vision skills in ${src} to stage for the in-app agent`);
+  for (const name of names) {
+    await fs.cp(path.join(src, name), path.join(appRoot, 'docs', 'agent', 'skills', name), { recursive: true });
+  }
+  return names;
+}
+
 async function copyAppTree(fromDir, toDir, relBase = '', skipAbs = null, excludeNodeModules = false) {
   await ensureDir(toDir);
   const entries = await fs.readdir(fromDir, { withFileTypes: true });
@@ -596,6 +612,7 @@ async function stagePortableSkeleton(stageRoot, opts, config) {
   }
 
   await copyAppTree(REPO_ROOT, appRoot, '', path.resolve(stageRoot), !opts.nodeModules);
+  await copyAgentSkills(REPO_ROOT, appRoot);
   await writeBuildInfo(appRoot, opts.buildHash);
 
   // Must run after the app copy: it prunes the duplicate runtime out of the

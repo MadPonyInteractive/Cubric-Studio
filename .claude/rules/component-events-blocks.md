@@ -55,10 +55,11 @@ EMITS:   `input`            `{ positive: string, negative: string, activeMode: '
 GLOBAL EMITS (via Events.emit, consumed by projectService):
          `settings:model:select` `{ modelId }` — on model dropdown change (ensures modelSettings key exists)
          `settings:model:update` `{ modelId, opName, key, value }` — from PromptBoxControls. `opName` resolved from each control's `scope`: `'shared'` (ratio/orientation/quality, batch, previewStage, duration, motionIntensity) or the active op key (denoise, useGrid, upscaleFactor). Never includes generation mode.
+         `agent:send` `{ text, attachments }` — MPI-774: Enter pressed in the textarea while the Agent/Prompt toggle (`#mode-toggle-slot`) is on. `attachments` = the strip's image-type chips, each fetched and converted to `{ dataUrl, name }`; sent chips are then dropped via `clearMedia()`. NOT consumed by projectService — the sole listener is the panel `MpiAgentChat` instance (`standalone:false`, `agentPanel.js`).
 LISTENS: `workspace:inject-prompts` `{ positive, negative }` — sets textarea values
          `promptbox:generation-end` — clears generating state
          `assets:cleaned` `{ folderPath }` — project Cleanup wiped the preview-assets store; `clearMedia()`s all staged chips (emitted by projectUI after `/project/cleanup-assets`; also clears `state.promptMedia` there so an unmounted box doesn't restore dead chips)
-         `state:changed` — updates Cue button label on `generationQueueCount` change; re-renders Cue/Loop label on `loopArmed` change
+         `state:changed` — updates Cue button label on `generationQueueCount` change; re-renders Cue/Loop label on `loopArmed` change; syncs the Agent/Prompt toggle + `mpi-prompt-box--agent-mode` class on `agentMode` change (MPI-774, `Events.onState('agentMode')` — cross-instance / cross-remount sync)
          Hotkeys `generation.run` (Ctrl+Enter) cue, `generation.stop` (Ctrl+Alt+Enter) stop, `generation.loop` (Ctrl+L) toggle `state.loopArmed` — all bound in setup
          (NOT `workspace:set-operation` — parent block validates op + calls `el.setOperation()`)
 API:     `el.getRunPayload()` returns the current live run payload. Loop re-fire reads it via `getNextGeneration` callback so prompt/model/control changes apply to the next iteration.

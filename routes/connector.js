@@ -8,6 +8,7 @@
  *   GET  /connector/knowledge[/:id]  → agent corpus
  *   POST /connector/install          → start download of missing deps
  *   POST /connector/describe         → crop + relay imageDescribe
+ *   GET/POST /connector/memory[/:file] → the agent's notes about one project (Phase 3b)
  *
  * These relay to the renderer (install state, plugin availability, generation
  * queue) via the existing SSE job mechanism, then add server-side data.
@@ -101,6 +102,37 @@ async function _getDeps() {
 async function _getCorpusEntries() {
     if (!_corpusMod) _corpusMod = await import('../services/agentCorpus.mjs');
     return _corpusMod.listCorpus();
+}
+async function _getGuideIds() {
+    if (!_corpusMod) _corpusMod = await import('../services/agentCorpus.mjs');
+    return _corpusMod.guideIdsByModel();
+}
+let _commandsMod = null;
+async function _getCommandRegistry() {
+    if (!_commandsMod) _commandsMod = await import('../js/data/commandRegistry.js');
+    return _commandsMod;
+}
+
+/**
+ * The media one model's op takes, as generate's `media[].role` names them: the op's
+ * `mediaInputs`, gated for that model the way the PromptBox gates them (an audio slot only
+ * where the model takes audio). An agent otherwise learns a role only from a refused
+ * submit. `tag` is how a prompt cites the slot, where the op has one (`<Picture 1>`).
+ */
+function mediaRolesFor(registry, op, model) {
+  const slots = registry?.COMMANDS?.[op]?.mediaInputs || [];
+  return registry.filterMediaInputsForModel(slots, model || null).map((i) => ({
+    role: i.key,
+    type: i.mediaType,
+    required: !!i.required,
+    ...(i.tag ? { tag: i.tag } : {}),
+  }));
+}
+router.mediaRolesFor = mediaRolesFor;
+let _memoryMod = null;
+async function _memory() {
+    if (!_memoryMod) _memoryMod = await import('../services/agentMemory.mjs');
+    return _memoryMod;
 }
 
 // Agent crops dir: server-side staging area for image crops before describe.
@@ -525,6 +557,13 @@ router.get('/connector/models', async (req, res) => {
   try {
     [hardware, fp, DEPS] = await Promise.all([_getHardwareInfo(), _footprint(), _getDeps()]);
   } catch (_) { /* serve without fit if anything goes wrong */ }
+  // Each model's prompting guides (MPI-774 Phase 3b): the in-app agent reads one before
+  // its first prompt for that model.
+  let guideIds = {};
+  let registry = null;
+  try {
+    [guideIds, registry] = await Promise.all([_getGuideIds(), _getCommandRegistry()]);
+  } catch (err) { logger.warn('connector', `guide ids or media roles unavailable: ${err.message}`); }
 
   const { tradeTable, sizeToGb } = fp || {};
 
@@ -556,7 +595,13 @@ router.get('/connector/models', async (req, res) => {
     }
 
     const { missingDepIds, ...rest } = m;
-    return { ...rest, missingDownloadGb: Math.round(missingDownloadGb * 100) / 100, ...(fit ? { fit } : {}) };
+    return {
+      ...rest,
+      ops: (rest.ops || []).map((o) => ({ ...o, media: registry ? mediaRolesFor(registry, o.op, findModelDef(m.id)) : [] })),
+      missingDownloadGb: Math.round(missingDownloadGb * 100) / 100,
+      ...(fit ? { fit } : {}),
+      guides: guideIds[m.id] || [],
+    };
   });
 
   res.json({ ok: true, engine: engine || 'local', hardware, models, flows: flows || [] });
@@ -596,6 +641,41 @@ router.get('/connector/knowledge/:id', async (req, res) => {
     logger.error('connector', 'knowledge fetch failed', err);
     res.json({ ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
   }
+});
+
+/** One memory call in the connector envelope: a malformed request is a 400, a named miss a 200. */
+async function _memoryReply(res, work) {
+  const mem = await _memory();
+  try {
+    res.json({ ok: true, ...(await work(mem)) });
+  } catch (err) {
+    if (!(err instanceof mem.MemoryError)) {
+      logger.error('connector', 'agent memory failed', err);
+      return res.json({ ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
+    }
+    res.status(err.code === 'BAD_REQUEST' ? 400 : 200)
+      .json({ ok: false, error: { code: err.code, message: err.message } });
+  }
+}
+
+/**
+ * The agent's notes about one project, `<project>/Agent/` (`services/agentMemory.mjs`):
+ *   GET  /connector/memory?folderPath=        -> { ok, notes: [{ title, file, hook }] }
+ *   GET  /connector/memory/:file?folderPath=  -> { ok, file, text }
+ *   POST /connector/memory { folderPath, file, title, hook?, text } -> { ok, file, created }
+ * No delete route: the in-app agent never deletes (Fabio, 2026-09-16), and an outside
+ * agent can remove a note file itself. Errors: BAD_REQUEST (400), NOT_A_PROJECT,
+ * UNKNOWN_NOTE, NOTE_TOO_LONG, MEMORY_FULL.
+ */
+router.get('/connector/memory', (req, res) =>
+  _memoryReply(res, (m) => m.readIndex(req.query.folderPath)));
+
+router.get('/connector/memory/:file', (req, res) =>
+  _memoryReply(res, (m) => m.readNote(req.query.folderPath, req.params.file)));
+
+router.post('/connector/memory', (req, res) => {
+  const { folderPath, ...note } = req.body || {};
+  return _memoryReply(res, (m) => m.writeNote(folderPath, note));
 });
 
 /**

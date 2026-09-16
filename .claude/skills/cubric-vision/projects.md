@@ -21,6 +21,15 @@ whole-prompts rule are in [SKILL.md](SKILL.md): read that first.
 
 Start with `/list-projects` to get an id, then `/get-project` for its contents.
 
+### Agent notes (`<project>/Agent/`)
+
+The in-app agent keeps Markdown notes per project, and any agent can read and add to them.
+`GET /connector/memory?folderPath=<project>` lists `{ notes: [{ title, file, hook }] }`,
+`GET /connector/memory/<file>?folderPath=<project>` reads one, and
+`POST /connector/memory { folderPath, file, title, text, hook? }` creates or replaces one.
+`file` is a lowercase slug ending in `.md`; a note holds 4 KB and a project 100 notes. There
+is no delete route: the notes are plain files in `<project>/Agent/`, indexed by `README.md`.
+
 **`/update-project` merges `updates`, not a whole project.** The body is
 `{folderPath, updates}` and the route spreads `updates` over the record. Send the
 project under any other key — `project`, say — and it spreads `undefined`, writes

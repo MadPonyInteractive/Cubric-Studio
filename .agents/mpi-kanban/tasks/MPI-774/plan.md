@@ -7,13 +7,15 @@
 **Evidence behind this plan:** `research/investigation.md` - verified facts with file:line, the
 seven investigator claims that turned out wrong, and a live orchestrator probe.
 
-**Where it stands (2026-09-16, session e0fe3905):** **Phase 3 is complete and verified, NOT
-committed**: the shared LLM connection, the gallery agent panel, `agent:*` on the bus, the landing
-box beside the headline, the harness (9/9 x 3, every flip bites) and the prompt sample (evidence:
-`validation.md` § Phase 3, continued). MPI-737 is BLOCKED on that commit: reply in message thread
-`4449a649` (to MPI-737, latest reply `032a30c4`) with the hash when it lands. **Next: Phase 3b**
-(Fabio's round after reading the result, 2026-09-16; below), THEN Phase 4 (live on the GPU). Fabio's user-ux pass must cover the gallery panel, the toggle position,
-the landing box, and Settings > Remote > Language Models.
+**Where it stands (2026-09-16, session 105b3570, handed off):** Phase 3b is BUILT, VERIFIED and
+COMMITTED (evidence: `validation.md` § Phase 3b): items 1, 2, 4, 5 done; **item 3 (panel below the
+topbar, 420px) waits only on Fabio's eyes** (reload his app, toggle Agent mode, look at the panel
+under the "<- PROJECTS" row). Harness 13/13 x3, every flip bites; H3 samples 150/190 words with shot
+structure and sound. **Next:** get Fabio's item-3 verdict (and let him read
+`research/prompt-samples.md`), then Phase 4 (live on the GPU, lease). Server-side changes need an
+app RESTART in Fabio's app, not a reload. Fabio's user-ux pass (Phase 5) must also cover the gallery
+panel, the toggle position, the landing box, Settings > Remote > Language Models, and the new
+"Noted:" line / `<project>/Agent/` notes.
 
 **Harness design (settled, e0fe3905):** `scripts/agent-test.mjs` drives `AgentLoop` with the REAL
 `DeepInfraEngine` and fake tools built from `tests/fixtures/agent/` (the real `/connector/models` and
@@ -358,7 +360,51 @@ the landing rearrange (`user-ux`).*
 
 *Fabio, after reading the Phase 3 report. Verify mode: auto, except item 3 (`user-ux`).*
 
-- [ ] **1. Agents never delete.** "Only the user can delete cards and projects." Today the loop's tool
+**Fabio's answers (2026-09-16, session 105b3570), they override the item text below:**
+- **Item 1 covers the IN-APP agent only.** External CLI agents and the external skills KEEP the
+  delete routes: "that's usually used by more powerful agents with a lot of tooling ... it's the
+  user's responsibility, and the user might just want ... 'Save the media and delete the projects
+  once you're finished'". So: no skill edits for deletion; the in-app tool table and the calls
+  `agentTools.mjs` can make are pinned by a test; the system prompt and `docs/agent/*` carry the rule.
+- **Item 2, the skill packs: option (a).** Vendor packs live ONLINE (locations per model in
+  `docs/recipes/research/<id>/sources.md`; content deliberately not stored, Fabio 2026-08-17). We
+  write our OWN refined guide per shipped model in `docs/agent/models/<model>.md` (ships, `docs/` is
+  not excluded), distilled from the vendor pack + our recipe + `docs/models/<model>/` + field
+  evidence, each citing its sources, no vendor text copied.
+- **Item 5: build it in this card** (reverses brief item 14's "gone on restart" and the "memory
+  across restarts" out-of-slice line). Design as proposed, not objected to: `<project>/Agent/`,
+  `README.md` index (one line per note) + one `.md` per note; the index enters the first turn with
+  that project (and after a switch); tools `read_memory` / `write_memory` over
+  `GET/POST /connector/memory` (CLI agents get them too); slug file names resolved inside `Agent/`
+  only; update allowed, no delete; caps 4 KB per note, 100 index lines, else `MEMORY_FULL`; a
+  "Noted: <title>" status line on each write; no in-app viewer in this card.
+
+**Progress (session 105b3570, committed at its handoff):**
+- Item 1 built: deletion rule + honest limit in the prompt, `docs/agent/gallery.md` row,
+  `tests/agent-no-delete.test.cjs` (tool names, invented tool refused, prompt rule, and an
+  ALLOWLIST of every request `agentTools.mjs` can make); 5 mutations all red, bytes restored.
+- Item 3 built: `#agent-panel-mount` margin-top 52px (was padding) and 420px; the real-panel
+  spec asserts width 420 and top >= topbar bottom (both mutations red). Screenshots on an
+  isolated instance (`:53030`, scratch project). Waiting on Fabio's eyes.
+- Item 4 done: component-maps worker, HEAD-only reads, 4 files (+39/-2), LF verified by me.
+  It found `gallery:open-card` had NO listener: fixed (shell listener in `agentPanel.js`,
+  declared in `js/events.js`, spec with a recorded navigate), map line corrected.
+- Item 5 built: `services/agentMemory.mjs` + `/connector/memory` routes, tools
+  `read_memory`/`write_memory` (open project only), notes index opens the first turn per
+  project, "Noted:" label; `tests/agent-memory.test.cjs` 9/9, loop block (h).
+- Item 2 in progress: corpus kinds `guide` + `skill` (+ `copyAgentSkills` build step, since
+  `.claude` is not in the portable build), `guides` + per-model `media` roles on
+  `/connector/models`, the GUIDE_NOT_READ gate, `rename_card` + `cardName`, H3 guide written;
+  8 guides by 4 workers, all reviewed and corrected by me (SDXL's labelled blocks, Klein t2i
+  media, mask ops, neutral wording). Harness: live corpus, 4 new cases; the knowledge fixture is
+  gone (unused). DONE: 13/13 x3, --bite 13/13, samples rerun after swapping two guide examples
+  that WERE sample requests (the agent had pasted one verbatim). `list_models` ops also carry
+  per-model `media` roles now.
+- Found and fixed on the way: a finished generation pushed a user message into the context
+  the moment it settled, which can land between a tool call and its result mid-turn (a
+  provider 400). Now queued and sent at the start of the next turn, failures included.
+
+- [x] **1. Agents never delete.** "Only the user can delete cards and projects." Today the loop's tool
   table has no delete, but prove it and make it structural: sweep `routes/connector.js`,
   `services/agentTools.mjs`, `js/shell/agentDispatch.js` capabilities and the CLI skills
   (`.claude/skills/cubric-vision*/`) for any delete/remove/trash path an agent can reach; add a test
@@ -366,7 +412,7 @@ the landing rearrange (`user-ux`).*
   (refuse and tell the user to delete it themselves) and in `docs/agent-chat.md` + the skills.
   Note: a CLI agent can still call raw app routes (`DELETE /project-media/...`); say so honestly and
   decide with Fabio whether the connector surface is the enforced boundary.
-- [ ] **2. The agent uses skills, not only recipe briefs.** Fabio: "we have skills to work with
+- [x] **2. The agent uses skills, not only recipe briefs.** Fabio: "we have skills to work with
   Cubric-Vision, are we not giving that to the agent?", and "models bring their own skill packs;
   we could create refined skill sets per model". An agent should ADAPT prompts with its own knowledge
   and the model's guide; a recipe used verbatim will not reach what the user wants. Today the corpus
@@ -384,11 +430,11 @@ the landing rearrange (`user-ux`).*
   52px. Start it BELOW the topbar and the nav chips so they keep their own area, and widen it by
   100px (320 -> 420, `styles/shell/workspace.css` `#agent-panel-mount.agent-panel-mount--open`).
   Verify: the real-panel desktop test (width assertion) + a screenshot for Fabio.
-- [ ] **4. Update `.claude/rules/`** (Fabio said yes, 2026-09-16): the component maps for the new
+- [x] **4. Update `.claude/rules/`** (Fabio said yes, 2026-09-16): the component maps for the new
   wiring (events `agent:*` + `agent:send`, state `agentMode`, the `#agent-panel-mount` shell mount,
   `MpiAgentChat` bus subscription, `MpiLlmSettings` connection block). Use the
   `mpic-update-component-map` skill, not hand edits.
-- [ ] **5. Per-project agent memory.** Fabio: a folder in the project where the agent keeps Markdown
+- [x] **5. Per-project agent memory.** Fabio: a folder in the project where the agent keeps Markdown
   memory; on opening a project it reads an index (`README.md`/`agents.md`) that points at note files,
   one per thing it learned working on that project. Design first (decide with Fabio): folder name
   and place (precedent: `project.md` and card notes, `.claude/skills/cubric-vision-project-files/`),
@@ -428,6 +474,18 @@ the landing rearrange (`user-ux`).*
   `validation.md`, one action and one result per line. **Verify:** his confirmation recorded.
 
 ## Plan Drift
+
+- 2026-09-16 (Phase 3b start, session 105b3570): (1) `files.json` named the moved
+  `cubric-vision/generating.md` (MPI-776 split it into `cubric-vision-generate/SKILL.md`): repointed,
+  and Phase 3's unlisted files added. (2) **`.claude/` is excluded from the portable build**
+  (`APP_COPY_EXCLUDES`), so the in-app agent cannot read `.claude/skills/cubric-vision*` in an
+  installed app: item 2 needs a shipped copy. (3) MPI-776 offered `rename_card` + `cardName` on
+  generate for the in-app agent (message `c2ccfb52`): folded into item 2 (it deletes nothing; the
+  relay is already in HEAD). (4) **MPI-737 is live and holds `js/shell/agentDispatch.js`** (claim
+  `2a0d4794`): item 2 adds guide ids in `routes/connector.js`, never in the relay. (5) The
+  autonomous dispatch check selected MPI-513/512/560; none was dispatched: all three are umbrellas
+  whose plans assign files per member at dispatch time, MPI-513's footprint missed its renderer
+  consumers, MPI-512 needs live Pod work, MPI-560 needs Fabio's bench and open design.
 
 - 2026-09-16 (harness, session e0fe3905): the harness found five loop/contract defects (see
   `validation.md`); fixing them grew the card into `js/data/generationControls.js`

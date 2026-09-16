@@ -48,7 +48,7 @@ continues; the Gallery is for choosing.
 | **Archive** / **Return to gallery** | moves cards out of the main gallery, or back |
 | **Describe image** | one image only; the description lands in the Prompt Box, ready to edit |
 | **Download** | saves the selected cards |
-| **Delete** | removes the cards **and every history entry under them** — ask first |
+| **Delete** | removes the cards **and every history entry under them**. Only the user deletes: you have no tool for it, so point them here |
 
 ## Dragging
 

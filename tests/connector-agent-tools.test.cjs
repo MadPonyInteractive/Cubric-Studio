@@ -180,3 +180,23 @@ test('knowledge MUTATION GUARD: corpus index must not expose text()', async () =
     const index = stubCorpus.map(({ id, kind, title, tags }) => ({ id, kind, title, tags }));
     assert.ok(!('text' in index[0]), 'index entry must not include text');
 });
+
+test('list_models ops carry their media roles, gated per model the way the PromptBox is (Phase 3b)', async () => {
+    const { mediaRolesFor } = require('../routes/connector');
+    const registry = await esm('js/data/commandRegistry.js');
+    const { findModelDef } = require('../js/data/generationControls.js');
+    const roles = (op, modelId) => mediaRolesFor(registry, op, findModelDef(modelId)).map((r) => r.role);
+
+    // The shared video ops declare an audio slot; only a model that takes audio gets it.
+    assert.deepEqual(roles('t2v_ms', 'minimax-h3'), [], 'H3 fl2va makes sound but takes none');
+    assert.deepEqual(roles('t2v_ms', 'ltx-23'), ['inputAudio'], 'LTX takes reference audio');
+    assert.deepEqual(mediaRolesFor(registry, 'i2v_ms', findModelDef('minimax-h3')).filter((r) => r.required).map((r) => r.role), ['startFrame']);
+
+    const ref = mediaRolesFor(registry, 'ref2v_ms', findModelDef('minimax-h3-ref2va'));
+    assert.deepEqual(ref.slice(0, 2), [
+        { role: 'inputImage', type: 'image', required: false, tag: 'Picture 1' },
+        { role: 'inputImage2', type: 'image', required: false, tag: 'Picture 2' },
+    ]);
+    assert.ok(ref.some((r) => r.role === 'inputAudio' && r.tag === 'Audio 1'), 'ref2va takes audio references');
+    assert.deepEqual(mediaRolesFor(registry, 'no-such-op', findModelDef('ltx-23')), []);
+});

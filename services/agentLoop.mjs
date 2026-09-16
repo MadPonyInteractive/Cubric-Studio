@@ -38,7 +38,7 @@ const TOOL_DEFS = [
         type: 'function',
         function: {
             name: 'list_models',
-            description: 'List all available models with their installed state, supported operations, hardware fit, and missing download size.',
+            description: 'List all available models with their installed state, supported operations, hardware fit, missing download size, and the ids of each model\'s prompting guides.',
             parameters: { type: 'object', properties: {}, additionalProperties: false },
         },
     },
@@ -90,6 +90,7 @@ const TOOL_DEFS = [
                     styleSelect: { type: 'string' },
                     stylization: { type: 'number' },
                     seed: { type: 'integer' },
+                    cardName: { type: 'string', description: 'Optional short name for the card this generation creates.' },
                     fields: { type: 'object', description: 'Flow field values.' },
                     params: { type: 'object', description: 'Flow box params, e.g. { box1: { x, y, width, height } }.' },
                     media: {
@@ -142,6 +143,54 @@ const TOOL_DEFS = [
             },
         },
     },
+    {
+        type: 'function',
+        function: {
+            name: 'rename_card',
+            description: 'Give a gallery card you generated in this conversation a short name, so you and the user can refer to it. Only your own cards.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    groupId: { type: 'string', description: 'The card id a finished generation reported.' },
+                    name: { type: 'string', description: 'A short human name, e.g. "Mira at the harbour".' },
+                },
+                required: ['groupId', 'name'],
+                additionalProperties: false,
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'read_memory',
+            description: 'Read your notes about the open project. No file: the list of notes. A file: that note in full.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    file: { type: 'string', description: 'A note file from the list, e.g. "main-character.md".' },
+                },
+                additionalProperties: false,
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'write_memory',
+            description: 'Save one note about the open project. Notes are kept after the app restarts. Writing an existing file replaces that note.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    file: { type: 'string', description: 'A lowercase slug ending in .md, e.g. "main-character.md".' },
+                    title: { type: 'string', description: 'A short title, at most 80 characters.' },
+                    hook: { type: 'string', description: 'One line on when the note matters, at most 160 characters.' },
+                    text: { type: 'string', description: 'The note in Markdown, at most about 600 words.' },
+                },
+                required: ['file', 'title', 'text'],
+                additionalProperties: false,
+            },
+        },
+    },
 ];
 
 // Max tool calls the model may make in one user turn before STEP_LIMIT.
@@ -176,6 +225,15 @@ export class AgentLoop {
         // Every image this session is allowed to reach: attachment ids the user
         // sent, and the outputs its own generations produced. See _resolveImage.
         this._images = new Map();  // ref -> { path, kind: 'attachment' | 'result' }
+        this._groups = new Set();  // card ids this session's own generations created (rename_card)
+
+        // What the model hears at the start of its next turn (finished generations). A
+        // message pushed the moment a generation settles could land between a tool call and
+        // its result, which a provider rejects.
+        this._notes = [];
+        this._notesProject = null; // folderPath whose project notes this context already lists
+        this._readIds = new Set(); // knowledge ids read in this context (the guide gate)
+        this._guides = new Map();  // modelId -> guide ids, from list_models
 
         // SSE subscribers
         this._subscribers = new Set();
@@ -226,6 +284,11 @@ export class AgentLoop {
         this._history = [];
         this._lastUsage = null;
         this._images.clear();
+        this._groups.clear();
+        this._notes = [];
+        this._notesProject = null;
+        this._readIds.clear();
+        this._guides.clear();
         try { await this._tools.initAttachmentDir(); } catch { /* non-fatal */ }
     }
 
@@ -273,6 +336,39 @@ export class AgentLoop {
     _registerResult(filePath) {
         if (!filePath || typeof filePath !== 'string') return;
         this._images.set(filePath, { path: _decodeProjectFileUrl(filePath), kind: 'result' });
+    }
+
+    /**
+     * The open project's notes, listed once per project: on the first turn with it open, and
+     * again after a switch or a compaction. '' when there is nothing to add (or no route).
+     */
+    async _projectNotesLine(project) {
+        if (!project?.folderPath || project.folderPath === this._notesProject) return '';
+        let r;
+        try { r = await this._tools.readMemory(project.folderPath); } catch { return ''; }
+        if (!r?.ok) return '';
+        this._notesProject = project.folderPath;
+        const notes = r.notes || [];
+        if (!notes.length) return '[Project notes: none yet.]';
+        return `[Project notes you kept earlier (read_memory with a file for the whole note):\n${notes
+            .map((n) => `- ${n.file}: ${n.title}${n.hook ? ` (${n.hook})` : ''}`).join('\n')}]`;
+    }
+
+    /** Remember each model's guide ids from a list_models answer. */
+    _rememberGuides(list) {
+        for (const m of list?.models || []) this._guides.set(m.id, Array.isArray(m.guides) ? m.guides : []);
+    }
+
+    /**
+     * The guide a model op needs read before its first prompt, or null. Structural, like the
+     * install gate: the H3 samples showed a rule alone did not make the model read one.
+     */
+    async _unreadGuide(modelId) {
+        if (!this._guides.has(modelId)) {
+            try { this._rememberGuides(await this._tools.listModels()); } catch { /* the app still validates the call */ }
+        }
+        const guides = this._guides.get(modelId) || [];
+        return guides.length && !guides.some((g) => this._readIds.has(g)) ? guides[0] : null;
     }
 
     // -------------------------------------------------------------------------
@@ -347,15 +443,26 @@ Settings rule: each op in list_models carries params: the only ratio, qualityTie
 
 Looking rule: before you comment on, judge or describe any image, call look on it. look only takes a ref the App state line lists under images you can look at; it cannot open a video, a folder or any other path, and with none listed there is nothing to look at. If look reports a refusal (the describer declined to describe the image), tell the user it refused, and suggest switching Image descriptions to the local ComfyUI describer (Settings > Remote > Language Models), which runs on their machine and does not refuse.
 
+Guide rule: before your first prompt for a model, read its prompting guide: list_models gives each model its guide ids, read_knowledge reads one. generate refuses until you have. Use the guide to ADAPT what the user asked for to that model (its structure, length and vocabulary) and keep their intent. Never send a guide's example as the prompt.
+
 Installation rule: Always call install_model to show the user a Yes / No confirmation card. Never install a model without a Yes from the user, regardless of mode.
 
 Project rule: Never invent a folder path. open_project only takes a path the user gave you. With no project open, say so and ask the user to open or create one — a generation has nowhere to land until they do.
 
+Deletion rule: You never delete anything: no cards, no media, no notes, no projects. No tool of yours can, and you never look for a way. When the user wants something deleted, tell them only they can do it, and where: a card from the gallery (right-click it, Delete, which also removes its whole history), a project from the projects list on the landing page (right-click it, Delete project).
+
+Memory rule: you keep notes about each project that survive an app restart. The first message with a project open lists them; read one with read_memory before you rely on it. When you learn something worth keeping about this project (the user's goal, a character, a style, a model or setting that worked or failed, a decision they made), save it with write_memory: one short note per thing, and update a note rather than add a second one about the same thing. Never save keys, passwords or personal details.
+
+Naming rule: a finished generation reports its card id. When a result is worth referring to later, give its card a short name with rename_card, or pass cardName with generate.
+
+Knowledge: the index below also holds the Cubric Vision skills. They were written for outside agents that call the app's HTTP routes; your tools cover the same ground, and you never call a route yourself.
+
 Honest limits (I'm still a baby — this is my first version):
+- I never delete cards, media or projects. Only you can.
 - I cannot watch videos or hear audio directly. I can only look at still images.
 - I cannot paint masks or drive History tools (mask, paint, composite, transform).
 - I cannot control RunPod.
-- I do not remember anything after the app is restarted.
+- After a restart I only remember what I saved in the project's notes.
 - I see only what the look tool reported. I never claim to have seen something I did not look at.
 - I cannot access generation history.
 ${knowledgeIndex}`.trim();
@@ -369,10 +476,12 @@ ${knowledgeIndex}`.trim();
         switch (toolName) {
             case 'list_models': {
                 const r = await this._tools.listModels();
+                this._rememberGuides(r);
                 return JSON.stringify(r);
             }
             case 'read_knowledge': {
                 const r = await this._tools.readKnowledge(args?.id);
+                if (r?.ok && args?.id) this._readIds.add(String(args.id));
                 return JSON.stringify(r);
             }
             case 'install_model': {
@@ -400,8 +509,15 @@ ${knowledgeIndex}`.trim();
                 if (!currentProject) {
                     return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'No project is open. Please open or create a project first.' } });
                 }
+                if (!args.flowId && args.modelId) {
+                    const unread = await this._unreadGuide(String(args.modelId));
+                    if (unread) {
+                        return JSON.stringify({ ok: false, error: { code: 'GUIDE_NOT_READ', message: `Read this model's prompting guide first: read_knowledge with id "${unread}". Then write the prompt with what it says.` } });
+                    }
+                }
                 // Build connector body
                 const body = {};
+                if (args.cardName) body.cardName = String(args.cardName);
                 if (args.flowId) {
                     body.flowId = String(args.flowId);
                     if (args.fields) body.fields = args.fields;
@@ -446,12 +562,16 @@ ${knowledgeIndex}`.trim();
                 this._tools.generate(body).then(async (r) => {
                     const ok = r && r.ok;
                     if (ok && r.output?.filePath) this._registerResult(r.output.filePath);
+                    if (ok && r.output?.groupId) this._groups.add(r.output.groupId);
                     this._emit('agent:result', {
                         toolCallId,
                         ok,
                         ...(ok ? { output: r.output } : { error: r.error }),
                     });
                     this._historyEntry('result', { toolCallId, ok, ...(ok ? { output: r.output } : { error: r.error }) });
+                    this._notes.push(ok
+                        ? `[Generation finished: card ${r.output?.groupId}, ${r.output?.type} ${r.output?.filePath}]`
+                        : `[Generation failed: ${r?.error?.code || 'ERROR'}: ${r?.error?.message || 'no reason given'}]`);
 
                     // Auto-look at image results (brief item 10)
                     if (ok && r.output?.type === 'image' && r.output?.filePath) {
@@ -462,14 +582,14 @@ ${knowledgeIndex}`.trim();
                                     tool: 'look', args: { image: r.output.filePath }, status: 'done', label: 'Looked at result',
                                     output: lr.output,
                                 });
-                                // Append look result to context so the next turn knows what was seen
-                                this._messages.push({ role: 'user', content: `[auto-look] ${lr.output?.text || ''}` });
+                                this._notes.push(`[You looked at it: ${lr.output?.text || ''}]`);
                             }
                         } catch { /* look failure is non-fatal */ }
                     }
                 }).catch((err) => {
                     this._emit('agent:result', { toolCallId, ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
                     this._historyEntry('result', { toolCallId, ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
+                    this._notes.push(`[Generation failed: RUNTIME_ERROR: ${err.message}]`);
                 });
 
                 return JSON.stringify({ ok: true, started: true, toolCallId, message: 'Generation started. The result will appear in the chat when ready.' });
@@ -488,6 +608,23 @@ ${knowledgeIndex}`.trim();
             }
             case 'open_project': {
                 const r = await this._tools.openProject(args.folderPath);
+                return JSON.stringify(r);
+            }
+            case 'rename_card': {
+                if (!this._groups.has(args.groupId)) {
+                    return JSON.stringify({ ok: false, error: { code: 'UNKNOWN_CARD', message: 'You can only name cards you generated in this conversation: use the card id a finished generation reported.' } });
+                }
+                return JSON.stringify(await this._tools.renameCard(args.groupId, args.name));
+            }
+            case 'read_memory':
+            case 'write_memory': {
+                // The project is the one the app has open, never a path the model names.
+                if (!currentProject?.folderPath) {
+                    return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'No project is open, so there are no project notes.' } });
+                }
+                const r = toolName === 'read_memory'
+                    ? await this._tools.readMemory(currentProject.folderPath, args.file)
+                    : await this._tools.writeMemory(currentProject.folderPath, { file: args.file, title: args.title, hook: args.hook, text: args.text });
                 return JSON.stringify(r);
             }
             default:
@@ -540,6 +677,9 @@ ${knowledgeIndex}`.trim();
                 { role: 'assistant', content: `[Session compacted — handoff]\n${handoffText}` },
                 ...last4,
             ];
+            // What the dropped turns carried may be gone: list the notes again, re-read guides.
+            this._notesProject = null;
+            this._readIds.clear();
             this._historyEntry('handoff', { text: handoffText });
         } catch (err) {
             // Compaction failure is non-fatal — log and continue
@@ -627,7 +767,9 @@ ${knowledgeIndex}`.trim();
             // The model cannot see the app, so every turn opens with what it can reach.
             // Without it the model guessed folder paths, claimed no project was open while
             // one was, and passed look the literal "result filePath" (agent-test, 2026-09-16).
-            contentParts.unshift({ type: 'text', text: this._appStateLine(project) });
+            // Then the project's notes (once per project) and what finished since last turn.
+            const opening = [this._appStateLine(project), await this._projectNotesLine(project), ...this._notes.splice(0)];
+            contentParts.unshift(...opening.filter(Boolean).map((t) => ({ type: 'text', text: t })));
 
             // Add user message to LLM context (plain text for OpenAI compat)
             const userContent = contentParts.map((p) => p.text).join('\n');
@@ -683,7 +825,11 @@ ${knowledgeIndex}`.trim();
                         // turn lands there instead of answering NO_PROJECT.
                         if (toolName === 'open_project') {
                             const opened = JSON.parse(resultText);
-                            if (opened?.ok && opened.output?.folderPath) project = { folderPath: opened.output.folderPath, name: opened.output.name };
+                            if (opened?.ok && opened.output?.folderPath) {
+                                project = { folderPath: opened.output.folderPath, name: opened.output.name };
+                                const notes = await this._projectNotesLine(project);
+                                if (notes) resultText = JSON.stringify({ ...opened, notes });
+                            }
                         }
                     } catch (err) {
                         resultText = JSON.stringify({ ok: false, error: { code: 'TOOL_ERROR', message: err.message } });
@@ -829,6 +975,9 @@ function _toolLabel(toolName, args) {
         case 'generate':       return `Starting generation`;
         case 'look':           return 'Looking at image';
         case 'open_project':   return `Opening project`;
+        case 'rename_card':    return `Naming a card: ${args.name || ''}`;
+        case 'read_memory':    return args.file ? 'Reading a project note' : 'Reading project notes';
+        case 'write_memory':   return `Noted: ${args.title || args.file || ''}`;
         default:               return toolName;
     }
 }

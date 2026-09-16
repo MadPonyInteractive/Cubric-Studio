@@ -461,6 +461,42 @@ test('SSE agent:result renders result card; agent:compacting renders compacting 
   }
 });
 
+test('a result card opens its card history, only for a card the open project holds', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await installStubs(window);
+    await bootAndMountChat(window, true);
+
+    await window.evaluate(async () => {
+      const [router, { state }] = await Promise.all([import('/js/router.js'), import('/js/state.js')]);
+      window.__navs = [];
+      // Record instead of loading: the shell's own callback would mount a real history view.
+      router.onNavigate((page, params) => window.__navs.push({ page, groupId: params.groupId }));
+      state.currentProject = {
+        id: 'p1', name: 'P', folderPath: '/p',
+        itemGroups: [{ id: 'g-in', type: 'image', items: [] }, { id: 'g-audio', type: 'audio', items: [] }],
+      };
+      for (const groupId of ['g-out', 'g-audio', 'g-in']) {
+        window.__fireSse('agent:result', {
+          toolCallId: groupId, ok: true,
+          output: { itemId: `i-${groupId}`, groupId, type: 'image', filePath: `/tmp/${groupId}.png` },
+        });
+      }
+    });
+    await window.waitForTimeout(200);
+
+    const cards = window.locator('#e2e-agent-host .mpi-agent-chat__result-card');
+    await expect(cards).toHaveCount(3);
+    for (let i = 0; i < 3; i++) await cards.nth(i).click();
+    expect(await window.evaluate(() => window.__navs)).toEqual([{ page: 'group-history', groupId: 'g-in' }]);
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
 test('Mascot flips back to idle when agent:working false follows true', async ({}, testInfo) => {
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);
@@ -532,10 +568,13 @@ test('agent panel: the real shell mount is closed by default, opens from the tog
     const measure = () => window.evaluate(() => {
       const panel = document.getElementById('agent-panel-mount');
       const tools = document.getElementById('tool-container');
+      const topbar = document.getElementById('workspace-topbar');
       return {
         chat: !!panel.querySelector('.mpi-agent-chat'),
         open: panel.classList.contains('agent-panel-mount--open'),
         panelWidth: Math.round(panel.getBoundingClientRect().width),
+        panelTop: Math.round(panel.getBoundingClientRect().top),
+        topbarBottom: Math.round(topbar.getBoundingClientRect().bottom),
         toolsLeft: Math.round(tools.getBoundingClientRect().left),
       };
     });
@@ -559,7 +598,10 @@ test('agent panel: the real shell mount is closed by default, opens from the tog
 
     const opened = await measure();
     expect(opened.open).toBe(true);
-    expect(opened.panelWidth).toBeGreaterThan(200);
+    // Fabio, 2026-09-16: 420 wide, and BELOW the topbar so its row (back link, project name,
+    // toolbar chips) keeps its own area.
+    expect(opened.panelWidth).toBe(420);
+    expect(opened.panelTop).toBeGreaterThanOrEqual(opened.topbarBottom);
     expect(opened.toolsLeft - closed.toolsLeft).toBe(opened.panelWidth);
 
     await toggle.click();

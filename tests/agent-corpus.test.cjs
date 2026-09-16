@@ -123,6 +123,78 @@ function testOperationsIsRenderedFromTheRegistries() {
     assert.ok(!/\(`flow[A-Z]/.test(text), 'Flows are their own surface, not operations');
 }
 
+// ── MPI-774 Phase 3b: model guides and the Vision skills ──────────────────────
+
+const { resolveRecipe } = require('../js/data/recipes/registry.js');
+const { guideIdsByModel, GUIDES_DIR, SKILL_DIRS, isVisionSkill } = require('../services/agentCorpus.mjs');
+
+function testEveryShippedModelHasAGuide() {
+    // The loop will not send a model's first prompt before its guide is read, so a model
+    // with no guide is a model the agent writes for blind. One guide per recipe in use.
+    const byModel = guideIdsByModel();
+    for (const m of MODELS) {
+        const recipe = resolveRecipe(m.enhanceRecipe ?? m.type);
+        assert.ok(recipe, `${m.id} resolves to no recipe`);
+        assert.deepStrictEqual(byModel[m.id], [`guide:${recipe.modelId}`],
+            `${m.id} (recipe ${recipe.modelId}) needs docs/agent/models/${recipe.modelId}.md`);
+    }
+}
+
+function testEveryGuideIsARealGuide() {
+    const recipeIds = new Set(RECIPE_REGISTRY.map((r) => r.modelId));
+    const guides = listCorpus().filter((e) => e.kind === 'guide');
+    assert.ok(guides.length > 0, 'no guide in the corpus');
+    for (const g of guides) {
+        const id = g.id.slice('guide:'.length);
+        assert.ok(recipeIds.has(id), `${g.id} names no recipe: a guide file is named after its recipe id`);
+        const text = g.text();
+        assert.ok(text.startsWith('# '), `${g.id} must open with a heading`);
+        const lines = text.trim().split('\n').length;
+        assert.ok(lines >= 30 && lines <= 200, `${g.id} is ${lines} lines, want 30-200`);
+        assert.match(text, new RegExp(`The exact rules the Prompt Box enhancer applies to this model: ${id}:`),
+            `${g.id} must point at its recipe briefs`);
+        assert.ok(!/TODO|TBD|\[INSERT/i.test(text), `${g.id} carries a placeholder`);
+        assert.ok(!/—/.test(realReadFileSync(path.join(GUIDES_DIR, `${id}.md`), 'utf8')),
+            `${g.id} uses an em dash (Fabio's copy rule)`);
+    }
+}
+
+function testEveryVisionSkillIsInTheCorpus() {
+    const root = SKILL_DIRS[0];
+    const skills = listCorpus().filter((e) => e.kind === 'skill');
+    const dirs = fs.readdirSync(root).filter(isVisionSkill);
+    assert.ok(dirs.length >= 5, `expected the cubric-vision skill family, found ${dirs.join(', ')}`);
+    for (const dir of dirs) {
+        for (const file of fs.readdirSync(path.join(root, dir)).filter((f) => f.endsWith('.md'))) {
+            const base = file.slice(0, -3);
+            const id = base === 'SKILL' ? `skill:${dir}` : `skill:${dir}/${base}`;
+            const entry = skills.find((e) => e.id === id);
+            assert.ok(entry, `${id} is missing`);
+            const text = entry.text();
+            assert.ok(text.endsWith(realReadFileSync(path.join(root, dir, file), 'utf8')), `${id} must carry the whole skill file`);
+            assert.match(text, /^> You are the in-app agent\./, `${id} must open with the in-app preamble`);
+            assert.match(text, /you never delete/, `${id}'s preamble must carry the deletion rule`);
+        }
+    }
+}
+
+async function testTheBuildStagesTheSkillsWhereTheCorpusLooks() {
+    const os = require('os');
+    const { copyAgentSkills } = await import('../scripts/build-portable.mjs');
+    const appRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'agent-skills-stage-'));
+    try {
+        const names = await copyAgentSkills(path.join(__dirname, '..'), appRoot);
+        assert.deepStrictEqual(names.sort(), fs.readdirSync(SKILL_DIRS[0]).filter(isVisionSkill).sort(),
+            'the build and the corpus must agree on which skills are the Vision family');
+        const staged = path.join(appRoot, path.relative(path.join(__dirname, '..'), SKILL_DIRS[1]));
+        for (const name of names) {
+            assert.ok(fs.existsSync(path.join(staged, name, 'SKILL.md')), `${name} was not staged where the corpus looks`);
+        }
+    } finally {
+        fs.rmSync(appRoot, { recursive: true, force: true });
+    }
+}
+
 const tests = [
     testEveryDeclaredModeIsInTheCorpus,
     testAModelEntryRendersItsBrief,
@@ -130,18 +202,24 @@ const tests = [
     testAnAppEntryResolvesToRealContent,
     testTheFirstPlaybooksShip,
     testOperationsIsRenderedFromTheRegistries,
+    testEveryShippedModelHasAGuide,
+    testEveryGuideIsARealGuide,
+    testEveryVisionSkillIsInTheCorpus,
+    testTheBuildStagesTheSkillsWhereTheCorpusLooks,
 ];
 
-let failed = 0;
-for (const t of tests) {
-    try {
-        t();
-        console.log(`  ok  ${t.name}`);
-    } catch (err) {
-        failed++;
-        console.error(`  FAIL ${t.name}\n    ${err.message}`);
+(async () => {
+    let failed = 0;
+    for (const t of tests) {
+        try {
+            await t();
+            console.log(`  ok  ${t.name}`);
+        } catch (err) {
+            failed++;
+            console.error(`  FAIL ${t.name}\n    ${err.message}`);
+        }
     }
-}
-fs.readFileSync = realReadFileSync;
-console.log(failed ? `\n${failed} of ${tests.length} agent corpus tests FAILED.` : `\nAll ${tests.length} agent corpus tests passed.`);
-if (failed) process.exitCode = 1;
+    fs.readFileSync = realReadFileSync;
+    console.log(failed ? `\n${failed} of ${tests.length} agent corpus tests FAILED.` : `\nAll ${tests.length} agent corpus tests passed.`);
+    if (failed) process.exitCode = 1;
+})();

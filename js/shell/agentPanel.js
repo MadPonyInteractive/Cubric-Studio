@@ -16,6 +16,7 @@ import { Events }          from '../events.js';
 import { state }           from '../state.js';
 import { agentInitStream } from '../services/agentService.js';
 import { gid }             from '../utils/dom.js';
+import { navigate, PAGE_GROUP_HISTORY } from '../router.js';
 
 const OPEN = 'agent-panel-mount--open';
 
@@ -37,5 +38,14 @@ export function initAgentPanel() {
     // App-lifetime listener, like the mount above.
     Events.onState('agentMode', (val) => {
         mountEl.classList.toggle(OPEN, !!val);
+    });
+
+    // 5. A result card in either chat opens that card's history, the way a gallery click
+    // does (audio has no history view there either). Only a card the open project holds:
+    // the landing chat has no project, and a card from an earlier project is not here.
+    // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener, like the one above
+    Events.on('gallery:open-card', ({ groupId } = {}) => {
+        const group = state.currentProject?.itemGroups?.find((g) => g.id === groupId);
+        if (group && group.type !== 'audio') navigate(PAGE_GROUP_HISTORY, { groupId });
     });
 }

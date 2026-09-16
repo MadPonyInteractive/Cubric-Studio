@@ -94,6 +94,25 @@ export async function openProject(folderPath) {
     return _post('/connector/open-project', { folderPath });
 }
 
+/** POST /connector/rename-card { groupId, name } — MPI-776's route; a name, never a clear. */
+export async function renameCard(groupId, name) {
+    return _post('/connector/rename-card', { groupId, name: String(name ?? '') }, 60_000);
+}
+
+/**
+ * GET /connector/memory[/:file]?folderPath= — the project's agent notes: the index
+ * `{ ok, notes }`, or one note `{ ok, file, text }`.
+ */
+export async function readMemory(folderPath, file) {
+    const q = `?folderPath=${encodeURIComponent(String(folderPath ?? ''))}`;
+    return _get(file ? `/connector/memory/${encodeURIComponent(String(file))}${q}` : `/connector/memory${q}`);
+}
+
+/** POST /connector/memory { folderPath, file, title, hook?, text } — create or replace one note. */
+export async function writeMemory(folderPath, note) {
+    return _post('/connector/memory', { ...note, folderPath }, 10_000);
+}
+
 // ---------------------------------------------------------------------------
 // Attachment directory
 // ---------------------------------------------------------------------------

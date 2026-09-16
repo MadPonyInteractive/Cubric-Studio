@@ -203,7 +203,7 @@ it. Use `/connector/generate`.
 
 ## Agent tool routes (MPI-774)
 
-`GET /connector/models` — `{ ok, engine, hardware: {gpuName,vramGb,ramGb}, models, flows }`. Each model has `installed`, `ops`, `missingDownloadGb`, and `fit: {floorVramGb, ramGbAtYourVram, runs}`. Requires a Vision window (`APP_UNAVAILABLE` otherwise).
+`GET /connector/models` — `{ ok, engine, hardware: {gpuName,vramGb,ramGb}, models, flows }`. Each model has `installed`, `ops` (each with its named `params` and `media`: the `media[].role` values that op takes for that model, `tag` where a prompt cites the slot), `missingDownloadGb`, `fit: {floorVramGb, ramGbAtYourVram, runs}`, and `guides` (knowledge ids of its prompting guide: read one before writing a prompt for that model). Requires a Vision window (`APP_UNAVAILABLE` otherwise).
 
 `GET /connector/knowledge` — corpus index `{ ok, entries: [{id,kind,title,tags}] }`. `GET /connector/knowledge/:id` — one entry with `text`. Error: `UNKNOWN_ENTRY`.
 
