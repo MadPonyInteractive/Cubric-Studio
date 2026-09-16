@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-777",
+  "title": "Animated mascots in the app: shared clip queue, landing crew, prompt box ledge",
+  "description": "Wire the MPI-78 mascot clips (rolled in MadPony-Identity) into the app: one shared clip-queue utility for chained animations, the landing hero crew on it, and the prompt box top edge as the mascots' ledge (Studio stays in agent mode, the selected model's mascot peeks in other modes). Waits on the GIF cut-out tooling (MPI-757) for the assets. Directions in brief.md and plan.md.",
+  "column": "todo",
+  "maturity": "blocked",
+  "status": "active",
+  "created_at": "2026-09-16T10:24:11+01:00",
+  "updated_at": "2026-09-16T10:24:11+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
