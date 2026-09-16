@@ -280,7 +280,7 @@ function _submitFlow(jobId, input = {}) {
     // a step with `kind: 'box'` and a matching `param` id; the box values are
     // integers; ratio:1 steps require a square box; bounds are checked unless the
     // step declares `overflow: 'allow'` or image dimensions are unavailable.
-    const boxParamValidation = validateBoxParams(flow, params, mediaItems);
+    const boxParamValidation = validateBoxParams(flow, params);
     if (!boxParamValidation.ok) {
         return _fail(jobId, boxParamValidation.code, boxParamValidation.message);
     }
@@ -393,11 +393,19 @@ async function _renameCard(jobId, input = {}) {
  * Returns `{ ok: true }` or `{ ok: false, code, message }`.
  * Pure function — no side effects, exported for tests.
  *
+ * ponytail: no bounds check. A box param is checked for a known name, integers and
+ * the step's locked ratio, NOT for staying inside the image: `resolveAgentMedia`
+ * items carry a url and nothing else, so the branch that used to read
+ * `pixelDimensions` never ran on a real submit and only read as protection. Every
+ * shipped box step declares `overflow: 'allow'` (`flowsRegistry.js` — both Head Swap
+ * steps and Bernini), so nothing is unguarded today. Upgrade path for the first step
+ * WITHOUT overflow: read the image's size with `sharp` in `POST /connector/generate`,
+ * where the media url is already resolved, and check it there.
+ *
  * @param {object} flow         FlowDef
  * @param {object} params       e.g. `{ box1: { x, y, width, height } }`
- * @param {object[]} mediaItems Resolved media array; used for bounds check when dims available.
  */
-export function validateBoxParams(flow, params, mediaItems = []) {
+export function validateBoxParams(flow, params) {
     if (!params || !Object.keys(params).length) return { ok: true };
     const boxSteps = (flow.steps || []).filter(s => s.kind === 'box' && s.param);
     const knownParams = new Set(boxSteps.map(s => s.param));
@@ -421,20 +429,6 @@ export function validateBoxParams(flow, params, mediaItems = []) {
         }
         if (step.ratio === 1 && width !== height) {
             return { ok: false, code: 'INVALID_BOX', message: `${key}: box must be square (got ${width}×${height}).` };
-        }
-        // Bounds check: skip when overflow is allowed, or when image dims are unavailable.
-        if (step.overflow !== 'allow') {
-            const roleMedia = mediaItems.find(m => m.source === step.role || m.role === step.role);
-            const imgW = roleMedia?.pixelDimensions?.w;
-            const imgH = roleMedia?.pixelDimensions?.h;
-            if (Number.isFinite(imgW) && Number.isFinite(imgH)) {
-                if (x < 0 || y < 0 || x + width > imgW || y + height > imgH) {
-                    return {
-                        ok: false, code: 'INVALID_BOX',
-                        message: `${key}: box (${x},${y},${width},${height}) extends outside the image (${imgW}×${imgH}).`,
-                    };
-                }
-            }
         }
     }
     return { ok: true };

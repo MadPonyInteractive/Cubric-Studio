@@ -97,20 +97,26 @@ router.post('/agent/message', async (req, res) => {
         if (tools) {
             for (const att of attachments) {
                 try {
-                    const { id } = await tools.saveAttachment(att.name, att.dataUrl);
-                    stagedAttachments.push({ id, name: att.name });
-                } catch { /* reported inside the turn */ }
+                    const { id, filePath } = await tools.saveAttachment(att.name, att.dataUrl);
+                    stagedAttachments.push({ id, name: att.name, filePath });
+                } catch (err) {
+                    stagedAttachments.push({ name: att.name, error: err.message });
+                }
             }
         }
     }
 
     // Return the turnId immediately; the reply arrives on /agent/stream
-    res.json({ ok: true, turnId, attachments: stagedAttachments });
+    res.json({
+        ok: true,
+        turnId,
+        attachments: stagedAttachments.filter((a) => a.id).map((a) => ({ id: a.id, name: a.name })),
+    });
 
-    // Run the turn asynchronously (attachments already staged — pass an empty array
-    // so the loop does not double-stage them, but still has the staged ids in userContent
-    // if text was built with them)
-    loop.runTurn(text || '', attachments || [], project || null, mode, profileId, turnId)
+    // Run the turn asynchronously. The STAGED records go in, not the raw data URLs:
+    // staging them a second time would give the chat and the model different ids for
+    // the same picture, and the loop registers these ids as the images it may read.
+    loop.runTurn(text || '', stagedAttachments, project || null, mode, profileId, turnId)
         .catch((err) => logger.error('agent', `runTurn unhandled: ${err.message}`));
 });
 

@@ -156,20 +156,20 @@ export async function saveAttachment(name, dataUrl) {
 }
 
 /**
- * Resolve an image reference from a tool call to an absolute file path.
- * - `att_xxx` → file in attachment dir (any extension)
- * - anything else → treated as an already-absolute filePath
- * Returns null if the attachment is not found.
+ * Copy a staged attachment into the open project's content-addressed store
+ * (`Media/.preview-assets/<sha256><ext>`) and return the `/project-file?path=…`
+ * url a generation takes, per the contract § Tools.
+ *
+ * Media reaches a generation BY REFERENCE, never as bytes, and a raw path in the
+ * agent's own scratch dir is not a project asset: it is wiped on the next server
+ * start, so a Reuse of that card would resolve to nothing. The route's `dataUrl`
+ * field takes a plain absolute path as well as a data URL (`copySnapshotSource`),
+ * which is what lets the bytes stay on disk here.
+ *
+ * `:projectId` is not read by the route — the project is named by `folderPath`.
  */
-export async function resolveImageRef(ref) {
-    if (!ref) return null;
-    if (ref.startsWith('att_')) {
-        const dir = attachmentDir();
-        try {
-            const entries = await fs.readdir(dir);
-            const match = entries.find((e) => e.startsWith(`${ref}.`));
-            return match ? path.join(dir, match) : null;
-        } catch { return null; }
-    }
-    return ref; // result filePath
+export async function placeAsset(folderPath, absPath) {
+    const ext = path.extname(absPath) || '.png';
+    const p = `/project-media/agent/place-preview-asset?folderPath=${encodeURIComponent(folderPath)}`;
+    return _post(p, { dataUrl: absPath, ext }, 60_000);
 }

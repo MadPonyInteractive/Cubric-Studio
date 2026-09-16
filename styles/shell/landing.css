@@ -408,15 +408,42 @@
   font-style: normal;
 }
 
-/* MPI-774: standalone agent chat slot (sits between headline and stats foot) */
+/* MPI-774: the standalone agent chat, parked in the hero's empty right-hand corner.
+   NOT a full-width band between headline and foot, which is where it shipped: at full
+   width it lay across the whole crew stage, and its `pointer-events: auto` swallowed
+   every hover the characters underneath were listening for, while its own mascot sat
+   on top of theirs (Fabio, 2026-09-16).
+
+   Lifted clear of the crew's heads rather than layered over them: the floor line sits
+   160px above the hero bottom at EVERY scale (see `.mpi-landing__crew`), and the
+   tallest character the panel's own column spans is Video at 260 stage px, so a foot
+   at 160 + 260×k clears every head underneath it. */
 .mpi-landing__agent-slot {
-  flex-shrink: 0;
-  max-height: 360px;
-  overflow-y: auto;
-  padding: var(--s-2) 0;
+  position: absolute;
+  right: var(--s-6);
+  bottom: calc(160px + 260px * var(--crew-k, var(--hero-k)) + var(--s-5));
+  width: clamp(260px, 32%, 400px);
+  max-height: 40vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
   /* hero-inner has pointer-events:none to let clicks through to the crew;
      restore them here so the agent input is interactive. */
   pointer-events: auto;
+}
+
+/* In the corner it is a prompt box, not a chat window: the transcript takes room only
+   once there is something in it, so the mascot sits ON the box rather than floating a
+   third of the hero above it. `flex: 1 1 auto` (the standalone default) gives an empty
+   transcript the whole panel. */
+.mpi-landing__agent-slot .mpi-agent-chat__transcript {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 32vh;
+}
+
+.mpi-landing__agent-slot .mpi-agent-chat__transcript:empty {
+  display: none;
 }
 
 /* Bottom stats row */

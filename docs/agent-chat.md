@@ -56,10 +56,14 @@ JSON Schema `parameters`, OpenAI `tools` format. A tool the model invents is ref
 | `look` | `{ image: string, question?: string, crop?: {x,y,width,height}, box?: boolean }`, `image` required | `POST /connector/describe` |
 | `open_project` | `{ folderPath: string }` required | `POST /connector/open-project` |
 
-- `image` / `media[].image` is a chat attachment id (`att_1`) or a result `filePath`. The loop
-  resolves it: an attachment is copied into the project with
-  `POST /project-media/:id/place-preview-asset?folderPath=` **only when a generate uses it**; a
-  result is passed as `/project-file?path=<filePath>`. `crop` and `box` are in ORIGINAL pixels.
+- `image` / `media[].image` is a chat attachment id (`att_1`) or a result `filePath`, **and
+  nothing else**: the loop keeps the session's attachment ids and its own generations' output
+  paths, and any other string the model emits is refused with `IMAGE_NOT_FOUND` rather than read
+  off the user's disk (the engine may be a remote Pod). The loop resolves it: an attachment is
+  copied into the project with `POST /project-media/:id/place-preview-asset?folderPath=` **only
+  when a generate uses it** (the route's `dataUrl` takes a plain absolute path), and its returned
+  url becomes `media[].url`; a result is passed as `/project-file?path=<filePath>`. `crop` and
+  `box` are in ORIGINAL pixels.
 - `generate` refuses by name before any spend when `project` is null: `NO_PROJECT`, and the
   agent asks for a project.
 
@@ -94,9 +98,10 @@ Phase 4's measured answers**. Errors: `BAD_REQUEST`, `IMAGE_NOT_FOUND`, `CROP_OU
 
 **`POST /connector/generate`, Flow `params`** — `{ flowId, fields?, media?, params?: { box1: { x, y,
 width, height } } }`. Checked against the flow's `kind: 'box'` steps (`flowsRegistry.js`, read not
-edited): known `param`, integers, square when the step has `ratio: 1`, inside the image unless the
-step declares `overflow: 'allow'` (Head Swap does). Merged into `injectionParams`. Errors:
-`UNKNOWN_PARAM`, `INVALID_BOX`.
+edited): known `param`, integers, square when the step has `ratio: 1`. **No bounds check** — the
+resolved media carries no image size, and every shipped box step declares `overflow: 'allow'`
+anyway; the first step without it needs the check built where the size is known (`sharp` on the
+resolved url). Merged into `injectionParams`. Errors: `UNKNOWN_PARAM`, `INVALID_BOX`.
 
 **`resources/cubric/connector-manifest.json`** lists what is served; `assertConnectorManifest`
 (`scripts/build-portable.mjs`) asserts `generation.submit`, not the unserved `system.memory.release`.
@@ -144,6 +149,8 @@ the tool**. Errors: `NO_PROFILE`, `NO_KEY`, `ENDPOINT_ERROR` (with `status`).
   about every setting); installs always ask; the honest limits (no video watching, no audio, no
   mask painting, no History tools, no RunPod, no memory across restarts, sees only what `look`
   reported); the knowledge index.
+- **Project rule:** `open_project` only takes a path the USER gave. With no project open the agent
+  says so and asks; it never guesses a folder (it guessed two on the first live run).
 - **Bounded steps:** at most 8 tool calls per user turn, then `agent:error STEP_LIMIT`.
 - **Generate** is fired, not awaited. On settle: `agent:result`, the tool result is appended, and
   an image result gets a `look`. No regeneration on its own judgement.
@@ -168,6 +175,10 @@ OpenAI, Ollama `/v1` (untested, VRAM caveat), custom.
 - **Fork bridge (server):** `secrets:get-endpoint-profile-request { profileId }` ->
   `secrets:get-endpoint-profile-response { id, profile | null, key | null }`; `key` is null when its
   bound URL differs from `profile.baseURL`.
+- **Key order for the `deepinfra` preset: the stored key, then `DEEPINFRA_API_KEY`** — the same
+  order `routes/llm.js` uses, in Electron as well as standalone (a dev run and the harness run
+  inside Electron too). The environment key is only ever used while the profile's `baseURL` is
+  still DeepInfra's.
 - **`DeepInfraEngine.chat`** forwards `tools` and returns `toolCalls` and `usage` beside `text`;
   existing enhance callers are unchanged.
 

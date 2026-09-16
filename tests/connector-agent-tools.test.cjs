@@ -114,22 +114,17 @@ test('validateBoxParams: square box with ratio 1 → ok', async () => {
     assert.equal(result.ok, true);
 });
 
-test('validateBoxParams: out-of-bounds without overflow → INVALID_BOX', async () => {
+test('validateBoxParams: a box outside the image is ACCEPTED — bounds are not checked here', async () => {
     const { validateBoxParams } = await esm('js/shell/agentDispatch.js');
-    // A step WITHOUT overflow: 'allow' should reject a box that goes outside the image.
+    // MPI-774 Phase 3c: the bounds branch was removed. It read `pixelDimensions` off
+    // the resolved media, which `resolveAgentMedia` never sets, so it never ran on a
+    // real submit. Every shipped box step declares `overflow: 'allow'` anyway. This
+    // test pins the deliberate ceiling: the first step WITHOUT overflow needs the
+    // check rebuilt where the image size is actually known (see the function's
+    // ponytail comment), and this assertion is what will fail when that lands.
     const flow = { id: 'test', title: 'Test', steps: [{ kind: 'box', param: 'box1' }] };
-    // Provide media with known dimensions via pixelDimensions
-    const media = [{ role: undefined, source: undefined, pixelDimensions: { w: 512, h: 512 } }];
-    // Box inside: ok
-    const ok = validateBoxParams(flow, { box1: { x: 0, y: 0, width: 100, height: 100 } }, media);
-    assert.equal(ok.ok, true);
-    // Box outside: rejected
-    const out = validateBoxParams(flow, { box1: { x: 450, y: 0, width: 100, height: 100 } }, media);
-    assert.equal(out.ok, false, 'bounds check must reject a box past the image edge');
-    assert.equal(out.code, 'INVALID_BOX');
-    // Same box on an overflow:'allow' step: accepted
-    const allowFlow = { id: 'test', title: 'Test', steps: [{ kind: 'box', param: 'box1', overflow: 'allow' }] };
-    assert.equal(validateBoxParams(allowFlow, { box1: { x: 450, y: 0, width: 100, height: 100 } }, media).ok, true);
+    const out = validateBoxParams(flow, { box1: { x: 100_000, y: 0, width: 100, height: 100 } });
+    assert.equal(out.ok, true);
 });
 
 test('validateBoxParams: MUTATION GUARD for ratio check — remove the check → non-square should pass incorrectly', async () => {

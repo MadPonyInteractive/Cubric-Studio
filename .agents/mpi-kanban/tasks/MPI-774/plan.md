@@ -7,19 +7,25 @@
 **Evidence behind this plan:** `research/investigation.md` - verified facts with file:line, the
 seven investigator claims that turned out wrong, and a live orchestrator probe.
 
-**Where it stands (2026-09-15, session 5be4be69):** Phase 0 and **Parallel Batch 1 are DONE and
-verified** (evidence in `validation.md` § Parallel Batch 1; nothing committed yet). All four
-workers' claims are released; coordination task `beec8285` is `needs_integration`. **Next: Phase 3**,
-in a fresh session (claims do not carry across sessions; take new ones). Start with the three
-carried integration items, before wiring end to end:
-1. `services/agentTools.mjs` `resolveImageRef` trusts any model-supplied path -> restrict to this
-   session's attachments and result `filePath`s (a trust boundary, not polish).
-2. Attachments used by `generate` are passed as a raw staged path -> place them via
-   `POST /project-media/:id/place-preview-asset` per contract § Tools.
-3. Box bounds in `validateBoxParams` never run on a real submit (`resolveAgentMedia` items carry no
-   `pixelDimensions`) -> read dims where the path is known, or drop the branch.
-Then the `npm run app:isolated` wiring run, which also re-probes the `/connector/*` routes W1 only
-probed in a prior context. GPU stays off-limits until Phase 4.
+**Where it stands (2026-09-16, session 7ab56409):** Phase 0 and Parallel Batch 1 are done, verified
+and **pushed** (`4cfc489e`; master CI green on `2d4c28d6`, which carries it). The three carried
+integration items and the landing rearrange are **done and verified** (evidence in `validation.md`
+§ Phase 3), and so is **the wiring run** — which found and fixed two real defects (an Electron-only
+`NO_KEY`, and the agent inventing project folder paths) and re-probed the `/connector/*` routes.
+**Next: the scripted harness** (`scripts/agent-test.mjs`, the nine brief cases 3× against fake
+tools), then the prompt-quality sample. Nothing is committed yet this session. GPU stays off-limits
+until Phase 4.
+
+**The three integration items, as built (2026-09-16):**
+1. **Trust boundary.** The loop keeps `_images`: attachment ids staged this session, and the output
+   paths of its own generations. `look`/`generate` resolve only through it; anything else the model
+   emits is `IMAGE_NOT_FOUND`. `agentTools.resolveImageRef` is gone.
+2. **Attachments are placed**, only when a generate uses one, through `placeAsset` ->
+   `POST /project-media/agent/place-preview-asset?folderPath=` (its `dataUrl` takes a plain absolute
+   path), and the returned url becomes `media[].url`. A result goes back as `/project-file?path=`.
+3. **The bounds branch is dropped**, not rebuilt: it read `pixelDimensions` that `resolveAgentMedia`
+   never sets, and all three shipped box steps declare `overflow: 'allow'`. The ceiling and the
+   upgrade path are a `ponytail:` comment on `validateBoxParams` and an assertion in its test.
 
 **Batch 1 running notes (orchestrator re-verified each report on disk, never took one on trust):**
 - **W3 done.** 8/8 + llm-service 18/18. Its in-test "mutation" was a simulation, so the binding check
@@ -273,12 +279,23 @@ mount line.
 
 ## Phase 3: Integration and the scripted harness
 
-*Sequential: one app instance, and every task needs all four workers. Verify mode: auto.*
+*Sequential: one app instance, and every task needs all four workers. Verify mode: auto, except
+the landing rearrange (`user-ux`).*
 
-- [ ] **Wire it end to end with no GPU spend.** `npm run app:isolated` (its own port and profile,
+- [x] **The three carried integration items** (trust boundary, place the attachment, the box-bounds
+  branch). **Verify:** four new loop tests, one of which goes red when the gate is re-opened;
+  `npm test` 1093 pass / 0 fail. *Done 2026-09-16.*
+- [x] **Rearrange the landing entry** (Fabio, 2026-09-16): the chat shipped as a full-width band
+  between headline and stats foot, so it lay across the crew stage and its `pointer-events: auto`
+  ate every character's hover, with its own mascot on top of theirs. Now a corner panel on the
+  right, lifted clear of the heads, mascot and label on the box. **Verify:** hit-test 180 points
+  across the five characters — 0 land on the panel, 66 did with the old layout. *Done 2026-09-16.*
+- [x] **Wire it end to end with no GPU spend.** `npm run app:isolated` (its own port and profile,
   never `:3000`): a real conversation lists models, reads knowledge, and on the landing page with
   no project asks for one before generating. **Verify:** `app.log` `[agent]` lines and the captured
-  SSE events; `/agent/history` shows the tool calls in order.
+  SSE events; `/agent/history` shows the tool calls in order. *Done 2026-09-16; it found two real
+  defects (Electron `NO_KEY` with the env key, and invented project paths), both fixed and covered —
+  see `validation.md`. The `/connector/*` empty-body re-probe rode along.*
 - [ ] **The harness.** Ownership: `scripts/agent-test.mjs` (new), `tests/fixtures/agent/**`
   (new), `package.json` (one `agent:test` line). The real loop against fake tools (canned models,
   descriptions, boxes, refusals); the nine cases in brief § Testing; each run 3 times; graded by
@@ -324,6 +341,16 @@ mount line.
   `validation.md`, one action and one result per line. **Verify:** his confirmation recorded.
 
 ## Plan Drift
+
+- 2026-09-16 (Phase 3a-3c, session 7ab56409): (1) **Attachments were staged twice** — the route
+  saved them for its own reply and `runTurn` saved them again, so the chat and the model held
+  different ids for one picture. The route now passes its staged records in and the loop registers
+  them; found while building the trust boundary, folded into it. (2) The box-bounds branch was
+  **dropped rather than rebuilt** (see Current State item 3). (3) Fabio's landing rearrange was
+  folded into this card: same surface W4 built, and the defect was W4's full-width band. (4) The
+  wiring run added two fixes the plan did not foresee: the endpoint key now falls through to
+  `DEEPINFRA_API_KEY` inside Electron as well (the `routes/llm.js` order), and the system prompt
+  carries a Project rule, because the model invented folder paths rather than asking.
 
 - 2026-09-15 (contract written): three refinements, all recorded in `docs/agent-chat.md`.
   (1) Flow box `params` stay inside the image **unless the step declares `overflow: 'allow'`**

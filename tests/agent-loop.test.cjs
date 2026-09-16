@@ -45,11 +45,14 @@ function makeFakeEngine(responses) {
  * Build a fake tools object. generateDelay controls how long generate() takes.
  */
 function makeFakeTools({ generateDelay = 0, installResult = { ok: true } } = {}) {
-    const calls = { listModels: [], readKnowledge: [], installModel: [], generate: [], look: [], openProject: [] };
+    const calls = { listModels: [], readKnowledge: [], installModel: [], generate: [], look: [], openProject: [], placeAsset: [] };
     return {
         calls,
         saveAttachment: async () => ({ id: 'att_test', filePath: '/tmp/att_test.jpg' }),
-        resolveImageRef: async (ref) => ref,
+        placeAsset: async (folderPath, absPath) => {
+            calls.placeAsset.push({ folderPath, absPath });
+            return { success: true, filePath: '/project-file?path=%2Fproject%2FMedia%2F.preview-assets%2Fabc.png' };
+        },
         initAttachmentDir: async () => {},
         attachmentDir: () => '/tmp/cubric-agent/attachments',
         cropDir: () => '/tmp/cubric-agent/crops',
@@ -363,6 +366,145 @@ describe('(c) generate non-blocking', () => {
         const resultEvt = fakeRes.events.find((e) => e.event === 'agent:result');
         assert.ok(resultEvt, 'agent:result should eventually be emitted after generate settles');
         assert.equal(resultEvt.data.ok, true, 'agent:result.ok should be true');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// (e) image references: only this session's attachments and its own results
+// ---------------------------------------------------------------------------
+
+describe('(e) image references', () => {
+    const lookCall = (image) => ({
+        text: '',
+        toolCalls: [{ id: 'tc-1', type: 'function', function: { name: 'look', arguments: JSON.stringify({ image }) } }],
+    });
+
+    test('a path the model made up is refused, and never reaches the describer', async () => {
+        const { loop, tools } = await makeLoop({
+            engineResponses: [lookCall('C:\\Users\\Fabio\\.ssh\\id_rsa'), { text: 'I cannot read that.' }],
+        });
+
+        await loop.runTurn('Look at my key file', [], null, 'auto', 'deepinfra', 'turn-evil');
+
+        assert.equal(tools.calls.look.length, 0, 'look must not be called with a path the model invented');
+        const toolResult = loop._messages.find((m) => m.role === 'tool');
+        assert.ok(toolResult, 'the model should get a tool result back');
+        assert.match(toolResult.content, /IMAGE_NOT_FOUND/);
+    });
+
+    test('an attachment from this turn resolves to its staged file', async () => {
+        const { loop, tools } = await makeLoop({
+            engineResponses: [lookCall('att_1'), { text: 'A fox.' }],
+        });
+
+        await loop.runTurn(
+            'What is this?',
+            [{ id: 'att_1', name: 'fox.png', filePath: '/tmp/cubric-agent/attachments/att_1.png' }],
+            null, 'auto', 'deepinfra', 'turn-att',
+        );
+
+        assert.deepEqual(tools.calls.look, [{ imagePath: '/tmp/cubric-agent/attachments/att_1.png' }]);
+        const userEntry = loop.getHistory().entries.find((e) => e.kind === 'user');
+        assert.deepEqual(userEntry.attachments, [{ id: 'att_1', name: 'fox.png' }],
+            'the chat and the model must see the same attachment id');
+    });
+
+    test('a generate result is reachable afterwards, and is passed by project-file url', async () => {
+        const { loop, tools } = await makeLoop({
+            engineResponses: [
+                { text: '', toolCalls: [{ id: 'tc-1', type: 'function', function: { name: 'generate', arguments: '{"modelId":"test-model","operation":"t2i","prompt":"A fox"}' } }] },
+                { text: 'Started.' },
+                { text: '', toolCalls: [{ id: 'tc-2', type: 'function', function: { name: 'generate', arguments: '{"modelId":"test-model","operation":"i2v","prompt":"Make it move","media":[{"role":"inputImage","image":"/path/result.png"}]}' } }] },
+                { text: 'Animating it.' },
+            ],
+        });
+        const project = { folderPath: '/project', name: 'Test' };
+
+        await loop.runTurn('Make an image of a fox', [], project, 'auto', 'deepinfra', 'turn-gen-1');
+        await new Promise((r) => setTimeout(r, 50)); // let the first generate settle
+        await loop.runTurn('Now animate it', [], project, 'auto', 'deepinfra', 'turn-gen-2');
+
+        const second = tools.calls.generate[1];
+        assert.deepEqual(second.media, [{ role: 'inputImage', url: '/project-file?path=%2Fpath%2Fresult.png' }]);
+    });
+
+    test('an attachment used by a generate is placed into the project first', async () => {
+        const { loop, tools } = await makeLoop({
+            engineResponses: [
+                { text: '', toolCalls: [{ id: 'tc-1', type: 'function', function: { name: 'generate', arguments: '{"modelId":"test-model","operation":"edit","prompt":"Make it night","media":[{"role":"inputImage","image":"att_1"}]}' } }] },
+                { text: 'Editing it.' },
+            ],
+        });
+        const project = { folderPath: '/project', name: 'Test' };
+
+        await loop.runTurn(
+            'Edit this',
+            [{ id: 'att_1', name: 'street.png', filePath: '/tmp/cubric-agent/attachments/att_1.png' }],
+            project, 'auto', 'deepinfra', 'turn-att-gen',
+        );
+
+        assert.deepEqual(tools.calls.placeAsset, [
+            { folderPath: '/project', absPath: '/tmp/cubric-agent/attachments/att_1.png' },
+        ], 'the attachment must be copied into the project before the generation runs');
+        assert.deepEqual(tools.calls.generate[0].media, [
+            { role: 'inputImage', url: '/project-file?path=%2Fproject%2FMedia%2F.preview-assets%2Fabc.png' },
+        ], 'the generation must take the url the project store returned, not the scratch path');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// (f) endpoint key: stored key first, then the environment
+// ---------------------------------------------------------------------------
+
+describe('(f) endpoint key resolution', () => {
+    const DI_URL = 'https://api.deepinfra.com/v1/openai';
+
+    /** A loop with a fork bridge that answers like the main process. */
+    async function loopWithBridge(answer) {
+        const AgentLoop = await loadAgentLoop();
+        const loop = new AgentLoop({ tools: makeFakeTools() });
+        loop.setForkBridge(async () => answer);
+        return loop;
+    }
+
+    test('the DeepInfra preset falls back to DEEPINFRA_API_KEY when no key is stored', async () => {
+        // Regression: the bridge answering `key: null` used to return early, so inside
+        // Electron the environment key was unreachable and a dev run reported NO_KEY.
+        const loop = await loopWithBridge({ profile: { id: 'deepinfra', baseURL: DI_URL, model: 'm', contextWindow: 1000 }, key: null });
+        const prev = process.env.DEEPINFRA_API_KEY;
+        process.env.DEEPINFRA_API_KEY = 'env-key';
+        try {
+            const r = await loop._resolveEndpoint('deepinfra');
+            assert.equal(r.key, 'env-key');
+            assert.equal(r.profile.baseURL, DI_URL);
+        } finally {
+            if (prev === undefined) delete process.env.DEEPINFRA_API_KEY;
+            else process.env.DEEPINFRA_API_KEY = prev;
+        }
+    });
+
+    test('a stored key still wins over the environment', async () => {
+        const loop = await loopWithBridge({ profile: { id: 'deepinfra', baseURL: DI_URL }, key: 'stored-key' });
+        const prev = process.env.DEEPINFRA_API_KEY;
+        process.env.DEEPINFRA_API_KEY = 'env-key';
+        try {
+            assert.equal((await loop._resolveEndpoint('deepinfra')).key, 'stored-key');
+        } finally {
+            if (prev === undefined) delete process.env.DEEPINFRA_API_KEY;
+            else process.env.DEEPINFRA_API_KEY = prev;
+        }
+    });
+
+    test('the environment key is never sent to an edited base URL', async () => {
+        const loop = await loopWithBridge({ profile: { id: 'deepinfra', baseURL: 'https://somewhere-else.example/v1' }, key: null });
+        const prev = process.env.DEEPINFRA_API_KEY;
+        process.env.DEEPINFRA_API_KEY = 'env-key';
+        try {
+            assert.equal((await loop._resolveEndpoint('deepinfra')).key, null);
+        } finally {
+            if (prev === undefined) delete process.env.DEEPINFRA_API_KEY;
+            else process.env.DEEPINFRA_API_KEY = prev;
+        }
     });
 });
 

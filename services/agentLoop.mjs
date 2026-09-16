@@ -171,6 +171,10 @@ export class AgentLoop {
         this._lastUsage = null;    // provider usage from last response
         this._contextWindow = 0;   // from active profile
 
+        // Every image this session is allowed to reach: attachment ids the user
+        // sent, and the outputs its own generations produced. See _resolveImage.
+        this._images = new Map();  // ref -> { path, kind: 'attachment' | 'result' }
+
         // SSE subscribers
         this._subscribers = new Set();
     }
@@ -219,7 +223,34 @@ export class AgentLoop {
         this._messages = [];
         this._history = [];
         this._lastUsage = null;
+        this._images.clear();
         try { await this._tools.initAttachmentDir(); } catch { /* non-fatal */ }
+    }
+
+    // -------------------------------------------------------------------------
+    // Image references
+    // -------------------------------------------------------------------------
+
+    /**
+     * Resolve an image reference the MODEL emitted to a file this session may read.
+     *
+     * Only two things are reachable: an attachment the user sent in this session,
+     * and an output one of this session's own generations produced. A model is free
+     * to emit any string, and `look`/`generate` ship what it names to the engine —
+     * which may be a remote Pod — so anything not registered here is refused rather
+     * than read off the user's disk.
+     *
+     * @returns {{path: string, kind: string} | null}
+     */
+    _resolveImage(ref) {
+        if (!ref || typeof ref !== 'string') return null;
+        return this._images.get(ref) || null;
+    }
+
+    /** Register a generation's output so a later `look` or reference can name it. */
+    _registerResult(filePath) {
+        if (!filePath || typeof filePath !== 'string') return;
+        this._images.set(filePath, { path: _decodeProjectFileUrl(filePath), kind: 'result' });
     }
 
     // -------------------------------------------------------------------------
@@ -231,18 +262,27 @@ export class AgentLoop {
         if (this._resolveEndpointOverride) return this._resolveEndpointOverride(profileId);
 
         // Fork bridge (Electron)
+        let profile = null;
+        let key = null;
         if (this._forkAsk) {
             const m = await this._forkAsk('secrets:get-endpoint-profile-request', { profileId });
-            if (m) return { profile: m.profile || null, key: m.key || null };
+            if (m) { profile = m.profile || null; key = m.key || null; }
         }
 
-        // Standalone fallback: 'deepinfra' preset reuses DEEPINFRA_API_KEY (same as llm.js)
-        if (profileId === 'deepinfra') {
-            const key = process.env.DEEPINFRA_API_KEY || null;
-            if (key) return { profile: DEEPINFRA_PRESET, key };
+        // The 'deepinfra' preset reuses DEEPINFRA_API_KEY when no key is stored — the
+        // order `routes/llm.js` already uses (stored key first, then the environment),
+        // and NOT an Electron-vs-standalone split: a dev run and the harness run inside
+        // Electron too, where an early return on the bridge's empty answer made the
+        // environment key unreachable. Only ever sent to DeepInfra's own base URL, so an
+        // edited profile cannot point the user's key at another host.
+        if (!key && profileId === 'deepinfra' && process.env.DEEPINFRA_API_KEY) {
+            const effective = profile || DEEPINFRA_PRESET;
+            if (effective.baseURL === DEEPINFRA_PRESET.baseURL) {
+                return { profile: effective, key: process.env.DEEPINFRA_API_KEY };
+            }
         }
 
-        return { profile: null, key: null };
+        return { profile, key };
     }
 
     /** Set the fork bridge ask function (called by routes/agent.js after import). */
@@ -273,6 +313,8 @@ export class AgentLoop {
 ${modeRules}
 
 Installation rule: Always call install_model to show the user a Yes / No confirmation card. Never install a model without a Yes from the user, regardless of mode.
+
+Project rule: Never invent a folder path. open_project only takes a path the user gave you. With no project open, say so and ask the user to open or create one — a generation has nowhere to land until they do.
 
 Honest limits (I'm still a baby — this is my first version):
 - I cannot watch videos or hear audio directly. I can only look at still images.
@@ -341,14 +383,26 @@ ${knowledgeIndex}`.trim();
                     if (args.stylization !== undefined) body.stylization = args.stylization;
                     if (args.seed !== undefined) body.seed = args.seed;
                 }
-                // Resolve media references
+                // Resolve media references. An attachment is copied into the project
+                // here — only now that a generation uses it — and a result is passed
+                // back by its project-file url (contract § Tools).
                 if (Array.isArray(args.media) && args.media.length) {
-                    const resolved = await Promise.all(
-                        args.media.map(async (m) => {
-                            const p = await this._tools.resolveImageRef(m.image);
-                            return { role: m.role, url: p || m.image };
-                        }),
-                    );
+                    const resolved = [];
+                    for (const m of args.media) {
+                        const ref = this._resolveImage(m.image);
+                        if (!ref) {
+                            return JSON.stringify({ ok: false, error: { code: 'IMAGE_NOT_FOUND', message: `Image reference not found: ${m.image}. Use an attachment id from this conversation, or the filePath of something you generated.` } });
+                        }
+                        if (ref.kind === 'attachment') {
+                            const placed = await this._tools.placeAsset(currentProject.folderPath, ref.path);
+                            if (!placed?.success || !placed.filePath) {
+                                return JSON.stringify({ ok: false, error: { code: 'RUNTIME_ERROR', message: `Could not place the attachment in the project: ${placed?.error || 'unknown error'}` } });
+                            }
+                            resolved.push({ role: m.role, url: placed.filePath });
+                        } else {
+                            resolved.push({ role: m.role, url: _projectFileUrl(ref.path) });
+                        }
+                    }
                     body.media = resolved;
                 }
 
@@ -356,6 +410,7 @@ ${knowledgeIndex}`.trim();
                 const toolCallId = crypto.randomUUID();
                 this._tools.generate(body).then(async (r) => {
                     const ok = r && r.ok;
+                    if (ok && r.output?.filePath) this._registerResult(r.output.filePath);
                     this._emit('agent:result', {
                         toolCallId,
                         ok,
@@ -366,7 +421,7 @@ ${knowledgeIndex}`.trim();
                     // Auto-look at image results (brief item 10)
                     if (ok && r.output?.type === 'image' && r.output?.filePath) {
                         try {
-                            const lr = await this._tools.look({ imagePath: r.output.filePath });
+                            const lr = await this._tools.look({ imagePath: _decodeProjectFileUrl(r.output.filePath) });
                             if (lr?.ok) {
                                 this._historyEntry('tool', {
                                     tool: 'look', args: { image: r.output.filePath }, status: 'done', label: 'Looked at result',
@@ -385,11 +440,11 @@ ${knowledgeIndex}`.trim();
                 return JSON.stringify({ ok: true, started: true, toolCallId, message: 'Generation started. The result will appear in the chat when ready.' });
             }
             case 'look': {
-                const imagePath = await this._tools.resolveImageRef(args.image);
-                if (!imagePath) {
-                    return JSON.stringify({ ok: false, error: { code: 'IMAGE_NOT_FOUND', message: `Image reference not found: ${args.image}` } });
+                const ref = this._resolveImage(args.image);
+                if (!ref) {
+                    return JSON.stringify({ ok: false, error: { code: 'IMAGE_NOT_FOUND', message: `Image reference not found: ${args.image}. Use an attachment id from this conversation, or the filePath of something you generated.` } });
                 }
-                const lookArgs = { imagePath };
+                const lookArgs = { imagePath: ref.path };
                 if (args.question) lookArgs.question = args.question;
                 if (args.crop) lookArgs.crop = args.crop;
                 if (args.box) lookArgs.box = args.box;
@@ -511,20 +566,20 @@ ${knowledgeIndex}`.trim();
                 this._messages[0].content = await this._buildSystemPrompt(mode);
             }
 
-            // Stage attachments and build the user message content
+            // Attachments arrive ALREADY staged from POST /agent/message, which needs
+            // their ids for its own reply. Staging them twice would give the chat and
+            // the model different ids for the same picture.
             const stagedAttachments = [];
             const contentParts = [];
             if (text) contentParts.push({ type: 'text', text });
 
-            if (Array.isArray(attachments) && attachments.length) {
-                for (const att of attachments) {
-                    try {
-                        const { id, filePath } = await this._tools.saveAttachment(att.name, att.dataUrl);
-                        stagedAttachments.push({ id, name: att.name });
-                        contentParts.push({ type: 'text', text: `[Attached image: ${att.name} (id: ${id})]` });
-                    } catch (e) {
-                        contentParts.push({ type: 'text', text: `[Attachment ${att.name} could not be staged: ${e.message}]` });
-                    }
+            for (const att of (Array.isArray(attachments) ? attachments : [])) {
+                if (att.id && att.filePath) {
+                    this._images.set(att.id, { path: att.filePath, kind: 'attachment' });
+                    stagedAttachments.push({ id: att.id, name: att.name });
+                    contentParts.push({ type: 'text', text: `[Attached image: ${att.name} (id: ${att.id})]` });
+                } else {
+                    contentParts.push({ type: 'text', text: `[Attachment ${att.name} could not be staged: ${att.error || 'unknown error'}]` });
                 }
             }
 
@@ -692,6 +747,23 @@ ${knowledgeIndex}`.trim();
 // ---------------------------------------------------------------------------
 // Tool label helper — plain copy shown in the UI, never the prompt
 // ---------------------------------------------------------------------------
+
+/** `/project-file?path=<abs>` for a path the engine (or a Pod) reads by reference. */
+function _projectFileUrl(absPath) {
+    return `/project-file?path=${encodeURIComponent(absPath)}`;
+}
+
+/**
+ * The absolute path behind a result reference. A generation reports its output as a
+ * plain absolute path today, but the gallery also carries the `/project-file?path=`
+ * form, and `POST /connector/describe` stats the path it is given.
+ */
+function _decodeProjectFileUrl(ref) {
+    if (typeof ref !== 'string' || !ref.includes('/project-file?')) return ref;
+    try {
+        return new URL(ref, 'http://127.0.0.1').searchParams.get('path') || ref;
+    } catch { return ref; }
+}
 
 function _toolLabel(toolName, args) {
     switch (toolName) {
