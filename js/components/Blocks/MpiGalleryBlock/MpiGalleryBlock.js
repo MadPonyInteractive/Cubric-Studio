@@ -45,6 +45,7 @@ import { trackConcatJob } from '../../../services/concatProgress.js';
 import { buildPromptReuseSettings, resolvePromptReuseMediaItems, payloadHasReusableImages, payloadHasReusableVideos, payloadHasReusableAudio } from '../../../utils/promptReuse.js';
 import {
     createVideoItem,
+    createImageItem,
     createItemGroup,
     appendToHistory,
     getSelectedItem,
@@ -383,6 +384,56 @@ export const MpiGalleryBlock = ComponentFactory.create({
                 clientLogger.error('MpiGalleryBlock', 'combine failed', err);
                 const _short = String(err.message || 'unknown').split('\n')[0].slice(0, 160);
                 Events.emit('ui:error', { title: 'Combine failed', message: _short });
+            }
+        });
+
+        // ── Make GIF (MPI-770) ────────────────────────────────────────────────────
+        // Gallery context-menu Make GIF on 2+ selected still-image cards. groups[]
+        // arrives in click order (grid's targetIds, docs/gallery-selection.md) —
+        // that order becomes the GIF's frame order. One click, no dialog, no
+        // prompt (plan Decision 6/8): server reads each item's full-res file, fits
+        // every frame but the first inside the first item's size with transparent
+        // padding, and builds the .gif immediately.
+        grid.on('make-gif', async ({ groups: g }) => {
+            const project = state.currentProject;
+            if (!project?.folderPath) return;
+            if (!Array.isArray(g) || g.length < 2) return;
+            const itemIds = g
+                .map(grp => getSelectedItem(grp)?.id)
+                .filter(Boolean);
+            if (itemIds.length < 2) return;
+            try {
+                const resp = await fetch('/gif/make', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ folderPath: project.folderPath, itemIds }),
+                });
+                const data = await resp.json();
+                if (!resp.ok || !data?.success || !data?.item) {
+                    throw new Error(data?.error || 'gif/make failed');
+                }
+                const ext = data.item;
+                const newItem = createImageItem({
+                    id:              ext.id,
+                    filePath:        ext.filePath,
+                    thumbPath:       ext.thumbPath ?? null,
+                    operation:       ext.operation || 'gif-make',
+                    displayName:     truncateCardName(ext.displayName || 'Make GIF'),
+                    pixelDimensions: ext.pixelDimensions || { w: 0, h: 0 },
+                    gif:             ext.gif || null,
+                });
+                const newGroup = createItemGroup('image', {
+                    name: newItem.displayName,
+                });
+                const populated = appendToHistory(newGroup, newItem);
+                const currentGroups = state.currentProject?.itemGroups || [];
+                await addGroup(populated);
+                grid.el.setGroups([..._leadingGroups(), populated, ...currentGroups]);
+                navigate(PAGE_GROUP_HISTORY, { groupId: populated.id });
+            } catch (err) {
+                clientLogger.error('MpiGalleryBlock', 'make-gif failed', err);
+                const _short = String(err.message || 'unknown').split('\n')[0].slice(0, 160);
+                Events.emit('ui:error', { title: 'Make GIF failed', message: _short });
             }
         });
 

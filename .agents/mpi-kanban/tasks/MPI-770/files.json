@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js",
+    "js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js",
+    "routes/gifMake.js",
+    "tests/gif-make.test.cjs",
+    "docs/gallery-selection.md"
+  ]
+}

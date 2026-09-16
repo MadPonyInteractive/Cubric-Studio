@@ -29,7 +29,7 @@ const esm = p => import('file://' + path.join(__dirname, '..', p).replace(/\\/g,
 // Ops that never reach save-generation, so they have no filename to get wrong:
 // the two group actions are pure gallery restructuring, and `autoMaskImg` returns a
 // mask into the canvas through its own executor path.
-const SAVES_NOTHING = new Set(['createGroupFromSelection', 'promoteToNewGroup', 'autoMaskImg']);
+const SAVES_NOTHING = new Set(['createGroupFromSelection', 'promoteToNewGroup', 'autoMaskImg', 'gifCutoutSam3']);
 
 const compact  = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 const initials = s => s.split(/\s+/).filter(Boolean).map(w => w[0]).join('').toLowerCase();

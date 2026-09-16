@@ -103,6 +103,20 @@ transparent source pixel survives as transparent, an opaque pixel is
 untouched, and a half-alpha edge pixel comes back blended toward the edge
 colour rather than showing its raw underlying colour.
 
+A transparent build also passes `-gifflags -offsetting-transdiff` and patches
+every frame's GCE disposal to 2 (restore to background). ffmpeg's defaults
+write only each frame's changed pixels over a "do not dispose" frame, so a
+transparent pixel shows the PREVIOUS frame through it: a moving cut-out
+leaves its last pose behind.
+
+**Opaque output** (`edgeColour: null`) flattens every frame onto black
+(`OPAQUE_BACKGROUND`, the same default as GIF to Video) and passes
+`reserve_transparent=0`. Leaving the alpha in made transparent pixels (Make
+GIF padding) show the previous frame. It also made a list that mixed RGB and
+RGBA PNGs lose a frame in the concat build. Pinned by
+`tests/gif-frames.test.cjs` (transparent-pixels test) and
+`tests/gif-make.test.cjs`.
+
 **Never rebuild a `.gif` under the same URL (E5).** Chromium keeps decoded
 image data per URL (`docs/gallery.md` § Retention), so `POST /gif/entry` with
 `mode: 'update'` always mints a NEW sequenced filename via `nextSequence()`

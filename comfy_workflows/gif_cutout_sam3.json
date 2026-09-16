@@ -1,0 +1,112 @@
+{
+  "1": {
+    "inputs": {
+      "string": "",
+      "block_if_empty": true
+    },
+    "class_type": "MpiLoadVideo",
+    "_meta": {
+      "title": "Input_Video"
+    }
+  },
+  "2": {
+    "inputs": {
+      "ckpt_name": "sam3.1_multiplex_fp16.safetensors"
+    },
+    "class_type": "CheckpointLoaderSimple",
+    "_meta": {
+      "title": "SAM3 Model"
+    }
+  },
+  "3": {
+    "inputs": {
+      "text": "",
+      "clip": [
+        "2",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Input_Text_Prompt"
+    }
+  },
+  "4": {
+    "inputs": {
+      "detection_threshold": 0.5,
+      "max_objects": 4,
+      "detect_interval": 1,
+      "images": [
+        "1",
+        0
+      ],
+      "model": [
+        "2",
+        0
+      ],
+      "conditioning": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "SAM3_VideoTrack",
+    "_meta": {
+      "title": "SAM3 Video Track"
+    }
+  },
+  "5": {
+    "inputs": {
+      "object_indices": "",
+      "track_data": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "SAM3_TrackToMask",
+    "_meta": {
+      "title": "Input_Object_Indices"
+    }
+  },
+  "6": {
+    "inputs": {
+      "mask": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "MaskToImage",
+    "_meta": {
+      "title": "Convert Mask to Image"
+    }
+  },
+  "7": {
+    "inputs": {
+      "images": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Output_Mask"
+    }
+  },
+  "8": {
+    "inputs": {
+      "opacity": 0.5,
+      "fps": 12,
+      "track_data": [
+        "4",
+        0
+      ],
+      "images": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "SAM3_TrackPreview",
+    "_meta": {
+      "title": "Output_Preview"
+    }
+  }
+}

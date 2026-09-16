@@ -22,7 +22,9 @@
  *   tools.el.setDisabled({ prompt: { disabled: true, reason: 'No prompt-driven ops' } });
  *
  * Props:
- * @param {'image'|'video'} mode - Determines the built-in tool list.
+ * @param {'image'|'video'|'gif'} mode - Determines the built-in tool list.
+ *   `gif` (MPI-769) is empty-but-routed — its rail renders nothing until a
+ *   later card (cut-out, timing/output, transform/export) adds tool defs.
  *
  * Instance methods (on instance.el):
  *   setMode(mode)      — programmatically activate a mode; emits 'activate { mode }'.
@@ -182,7 +184,13 @@ const VIDEO_TOOLS = [
     },
 ];
 
-const TOOL_LISTS = { image: IMAGE_TOOLS, video: VIDEO_TOOLS };
+// MPI-769: `gif` is empty-but-routed. Its tool panels land in later cards
+// (cut-out MPI-771, timing/output MPI-772, transform/export MPI-773) — this
+// card only makes `gif` a valid mode so a GIF card's rail renders nothing
+// instead of falling back to the image list.
+const GIF_TOOLS = [];
+
+const TOOL_LISTS = { image: IMAGE_TOOLS, video: VIDEO_TOOLS, gif: GIF_TOOLS };
 
 export const MpiHistoryTools = ComponentFactory.create({
     name: 'MpiHistoryTools',
@@ -191,7 +199,7 @@ export const MpiHistoryTools = ComponentFactory.create({
     template: () => `<div class="mpi-history-tools"></div>`,
 
     setup: (el, props, emit) => {
-        const mode = props.mode === 'video' ? 'video' : 'image';
+        const mode = TOOL_LISTS[props.mode] ? props.mode : 'image';
         const toolDefs = TOOL_LISTS[mode];
 
         /** Currently active mode (null = nothing active). */

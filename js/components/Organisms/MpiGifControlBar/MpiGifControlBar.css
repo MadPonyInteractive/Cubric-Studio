@@ -1,0 +1,60 @@
+/* ── MpiGifControlBar — GIF transport + trim row (MPI-769, sibling to
+   MpiVideoControlBar) ────────────────────────────────────────────────────── */
+/* Same layout language as MpiVideoControlBar: [left buttons + counter]
+   [trim flex:1] [right buttons] — but a frame counter, not a time display,
+   and no volume/fullscreen (GIFs carry no audio). */
+
+.mpi-gif-control-bar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--s-4);
+    width: 100%;
+    background: var(--surface-bar);
+    border-top: 1px solid var(--line);
+    padding: 8px 16px;
+    box-sizing: border-box;
+}
+
+.mpi-gif-control-bar__left,
+.mpi-gif-control-bar__right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+}
+
+.mpi-gif-control-bar__trim {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.mpi-gif-control-bar__count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: var(--t-xs, 0.8rem);
+    color: var(--ink-3);
+    letter-spacing: 0.06em;
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    font-variant-numeric: tabular-nums;
+    margin-left: 8px;
+}
+
+.mpi-gif-control-bar__current {
+    color: var(--ink-1);
+    min-width: 4ch;
+    text-align: right;
+}
+
+.mpi-gif-control-bar__total {
+    min-width: 4ch;
+    color: var(--ink-4);
+}
+
+.mpi-gif-control-bar__separator { opacity: 0.3; }
+
+.mpi-gif-control-bar .mpi-button.is-active {
+    border-color: var(--accent-heat);
+    color: var(--accent-heat);
+}

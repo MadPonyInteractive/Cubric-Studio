@@ -1,0 +1,22 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "comfy_workflows/raw/gif_cutout_sam3.json",
+    "comfy_workflows/gif_cutout_sam3.json",
+    "js/data/commandRegistry.js",
+    "js/data/modelConstants/universal_workflows.js",
+    "js/services/commandExecutor.js",
+    "routes/gifCutout.js",
+    "tests/gif-cutout.test.cjs",
+    "docs/masking-sam3.md",
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+    "js/components/Compounds/MpiHistoryTools/MpiHistoryTools.js",
+    "js/components/Organisms/MpiToolOptionsGifCutout/",
+    "js/components/Organisms/MpiGifViewer/",
+    "js/components/Organisms/MpiFrameStrip/",
+    "js/shell/preloadStyles.js",
+    "js/components/types.js",
+    "tests/desktop/gif-cutout.spec.js",
+    "docs/gif.md"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.css",
+    "js/components/Compounds/MpiHistoryTools/MpiHistoryTools.js",
+    "js/components/Compounds/MpiHistoryList/",
+    "js/components/Organisms/MpiGifViewer/",
+    "js/components/Organisms/MpiGifControlBar/",
+    "js/components/Organisms/MpiFrameStrip/",
+    "js/managers/hotkeyRegistry.js",
+    "js/shell/preloadStyles.js",
+    "js/components/types.js",
+    "tests/desktop/gif-workspace.spec.js",
+    "tests/desktop/history-modes.spec.js",
+    "docs/workspaces.md",
+    "docs/video-player.md"
+  ]
+}

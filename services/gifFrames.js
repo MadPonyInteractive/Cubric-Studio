@@ -15,7 +15,8 @@
  *                  not ffmpeg's raw `-loop` value (0=inf, -1=none, N=N+1 plays).
  * - output         the settings the CURRENT `filePath` .gif was built with, so a
  *                  later rebuild that does not override them reproduces it.
- *                  `edgeColour: null` = opaque build (default); a hex string
+ *                  `edgeColour: null` = opaque build (default; transparency
+ *                  is flattened onto OPAQUE_BACKGROUND); a hex string
  *                  means "this is a transparent build — blend any partial-alpha
  *                  edge into this colour before the alpha is cut to on/off"
  *                  (plan Decision 4). That single field carries both the on/off
@@ -59,6 +60,7 @@ const FRAME_THUMB_PX = 160;          // strip thumbnail width (MPI-769)
 const MIN_DELAY_HUNDREDTHS = 2;      // Chromium plays a delay of 0 or 1 as 10
 const DEFAULT_MAX_EDGE = 1024;       // plan Decision 8 (Make GIF / builder default)
 const BUILD_FPS = 10;                // constant-rate pass; delays are patched after
+const OPAQUE_BACKGROUND = '#000000';  // what transparency becomes in an opaque build (matches GIF to Video)
 
 function framesDir(mediaDir) {
     return path.join(mediaDir, FRAMES_DIRNAME);
@@ -216,9 +218,11 @@ async function blendEdgeColour(buffer, edgeColour) {
  *
  * @param {Buffer} buffer
  * @param {number[]} delaysHundredths — one per frame, in GIF frame order
+ * @param {{disposal?: number}} [opts] — when set, also rewrites every GCE's
+ *   disposal method (2 = restore to background, needed by transparent builds)
  * @returns {Buffer} a new buffer with every Graphic Control Extension delay patched
  */
-function patchGifDelays(buffer, delaysHundredths) {
+function patchGifDelays(buffer, delaysHundredths, opts = {}) {
     const buf = Buffer.from(buffer);
     const sig = buf.slice(0, 6).toString('ascii');
     if (sig !== 'GIF89a' && sig !== 'GIF87a') throw new Error(`not a GIF (signature ${sig})`);
@@ -273,6 +277,8 @@ function patchGifDelays(buffer, delaysHundredths) {
     gceOffsets.forEach((off, idx) => {
         const d = Math.max(MIN_DELAY_HUNDREDTHS, Math.round(Number(delaysHundredths[idx]) || MIN_DELAY_HUNDREDTHS));
         buf.writeUInt16LE(Math.min(d, 0xFFFF), off);
+        // GCE packed byte sits just before the delay; disposal is bits 2-4.
+        if (opts.disposal != null) buf[off - 1] = (buf[off - 1] & ~0x1C) | ((opts.disposal & 0x07) << 2);
     });
     return buf;
 }
@@ -305,7 +311,12 @@ async function buildGif(entry, mediaDir, outAbsPath) {
         for (let i = 0; i < frames.length; i++) {
             const srcAbs = frameAbsPath(mediaDir, frames[i].hash);
             let buf = await fs.readFile(srcAbs);
-            if (edgeColour) buf = await blendEdgeColour(buf, edgeColour);
+            // Opaque build: composite onto a real background. Left in, the alpha
+            // reaches palettegen (which reserves a transparent entry by default)
+            // and every transparent pixel shows the PREVIOUS frame through it.
+            buf = edgeColour
+                ? await blendEdgeColour(buf, edgeColour)
+                : await sharp(buf).flatten({ background: OPAQUE_BACKGROUND }).png().toBuffer();
             await fs.writeFile(path.join(tmpDir, `f_${String(i).padStart(5, '0')}.png`), buf);
         }
         const listPath = path.join(tmpDir, 'list.txt');
@@ -317,7 +328,7 @@ async function buildGif(entry, mediaDir, outAbsPath) {
         // the longer side is capped at maxEdge (min(dim,maxEdge)); the other
         // side gets `-2` (auto, even) so ffmpeg derives it from the aspect ratio.
         const scaleFilter = `scale='if(gt(iw\\,ih),min(iw\\,${maxEdge}),-2)':'if(gt(iw\\,ih),-2,min(ih\\,${maxEdge}))':flags=lanczos`;
-        const paletteFlags = edgeColour ? `reserve_transparent=1:max_colors=${colours}` : `max_colors=${colours}`;
+        const paletteFlags = `reserve_transparent=${edgeColour ? 1 : 0}:max_colors=${colours}`;
         const preFilter = edgeColour ? `format=rgba,${scaleFilter}` : scaleFilter;
         const filterComplex = `[0:v] ${preFilter},split [a][b];[a] palettegen=${paletteFlags} [p];[b][p] paletteuse`;
 
@@ -325,13 +336,18 @@ async function buildGif(entry, mediaDir, outAbsPath) {
         await execFileP(ffmpegPath, [
             '-y', '-r', String(BUILD_FPS), '-f', 'concat', '-safe', '0', '-i', listPath,
             '-filter_complex', filterComplex,
+            // Transparent build: every frame is a full, independent picture that
+            // clears before the next (disposal 2, patched below). The encoder's
+            // default offsetting+transdiff write only the changed pixels and lean
+            // on the previous frame staying put, which disposal 2 wipes.
+            ...(edgeColour ? ['-gifflags', '-offsetting-transdiff'] : []),
             '-loop', String(rawLoop),
             naivePath,
         ], { cwd: tmpDir, windowsHide: true, maxBuffer: 16 * 1024 * 1024 });
 
         const naiveBuf = await fs.readFile(naivePath);
         const delays = frames.map(f => Math.max(MIN_DELAY_HUNDREDTHS, Math.round(Number(f.delay) || MIN_DELAY_HUNDREDTHS)));
-        const patched = patchGifDelays(naiveBuf, delays);
+        const patched = patchGifDelays(naiveBuf, delays, edgeColour ? { disposal: 2 } : {});
 
         await fs.ensureDir(path.dirname(outAbsPath));
         await fs.writeFile(outAbsPath, patched);

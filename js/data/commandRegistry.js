@@ -964,6 +964,22 @@ export const commands = {
         promptRequired: false,
         universal: true,
     },
+    // MPI-771: GIF cut-out — SAM3 video tracking by name across every frame of
+    // a temp video the GIF workspace encodes from the frame strip. Dispatched
+    // by `runGifCutoutTrack` (commandExecutor.js) directly, not `runCommand` —
+    // this entry exists for dependency/availability tracking (precedent
+    // `autoMaskImg`), the same standalone-dispatch shape `runAutoMask` uses.
+    gifCutoutSam3: {
+        label: 'GIF Cut-out',
+        progressLabel: 'Tracking',
+        mediaType: MEDIA_TYPE.VIDEO,
+        requiresVideo: 1,
+        mediaInputs: [
+            { key: 'inputVideo', mediaType: MEDIA_TYPE.VIDEO, title: 'Input_Video', required: true },
+        ],
+        promptRequired: false,
+        universal: true,
+    },
     resize: {
         label: 'Resize',
         progressLabel: 'Resizing',

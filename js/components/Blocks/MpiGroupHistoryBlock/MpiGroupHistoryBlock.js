@@ -13,6 +13,9 @@ import { MpiHistoryTools } from '../../Compounds/MpiHistoryTools/MpiHistoryTools
 import { MpiCanvasViewer } from '../../Organisms/MpiCanvasViewer/MpiCanvasViewer.js';
 import { MpiVideoViewer } from '../../Organisms/MpiVideoViewer/MpiVideoViewer.js';
 import { MpiVideoControlBar } from '../../Organisms/MpiVideoControlBar/MpiVideoControlBar.js';
+import { MpiGifViewer } from '../../Organisms/MpiGifViewer/MpiGifViewer.js';
+import { MpiGifControlBar } from '../../Organisms/MpiGifControlBar/MpiGifControlBar.js';
+import { MpiFrameStrip } from '../../Organisms/MpiFrameStrip/MpiFrameStrip.js';
 import { MpiHistoryList } from '../../Compounds/MpiHistoryList/MpiHistoryList.js';
 import { MpiToolOptionsCrop } from '../../Organisms/MpiToolOptionsCrop/MpiToolOptionsCrop.js';
 import { MpiToolOptionsMaskBrush } from '../../Organisms/MpiToolOptionsMaskBrush/MpiToolOptionsMaskBrush.js';
@@ -56,11 +59,13 @@ import {
     promoteHistoryEntry,
     appendToHistory,
     removeHistoryEntry,
+    replaceHistoryItemById,
     createImageItem,
     createVideoItem,
     createItemGroup,
     getToolSettings,
 } from '../../../data/projectModel.js';
+import { kindOfItem } from '../../../utils/assetKinds.js';
 import { roundToDivisible } from '../../../utils/cropRounding.js';
 import { truncateCardName } from '../../../utils/displayHelpers.js';
 import { nearestNamedRatio } from '../../../utils/ratios.js';
@@ -250,7 +255,22 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         }
 
         const isVideo = _group.type === 'video';
+        // MPI-769: a GIF item is still an ordinary image sidecar (docs/gif.md)
+        // — the GROUP's own `type` stays 'image', so its kind has to come
+        // from an ITEM, same precedent as the 3D Scene / gallery kind table
+        // (js/utils/assetKinds.js `kindOfItem`). Every entry in one group is
+        // the same kind by construction (Update rewrites in place, Apply
+        // appends another GIF revision), so the initially-selected entry is
+        // enough to decide it for the whole workspace.
+        const isGif = !isVideo && kindOfItem(_group.history[_group.selectedIndex ?? 0])?.kind === 'gif';
+        // Model-type resolution ONLY — kept exactly as before. A GIF group
+        // has no model (no PromptBox, see `_shouldShowPromptBox`), so it
+        // stays on the 'image' branch here; nothing that reads `modeKind`
+        // needs to know about gif.
         const modeKind = isVideo ? 'video' : 'image';
+        // Per-kind table (plan decision 2): which viewer + tool rail this
+        // workspace mounts. Deliberately separate from `modeKind` above.
+        const historyKind = isVideo ? 'video' : (isGif ? 'gif' : 'image');
 
         // ── Model / operation context ─────────────────────────────────────────
 
@@ -341,8 +361,13 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             return ops.some(op => op.startsWith('i2v') || op.startsWith('v2v'));
         }
 
-        /** Unified PromptBox-visible gate used across mount/show paths. */
+        /** Unified PromptBox-visible gate used across mount/show paths.
+         *  No model generates a GIF in v1 (plan scope item 6) — this is the
+         *  ONE gate every mount/show path funnels through, so guarding it
+         *  here is enough; `_mountPromptBoxIfNeeded` also short-circuits
+         *  directly for the `force: true` callers that bypass this check. */
         function _shouldShowPromptBox() {
+            if (isGif) return false;
             return _hasPromptOps() || _modelHasFrameOps();
         }
 
@@ -397,17 +422,22 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
 
         // ── Mount sub-components ──────────────────────────────────────────────
 
-        const historyTools = MpiHistoryTools.mount(qs('#left-slot', el), { mode: modeKind });
+        const historyTools = MpiHistoryTools.mount(qs('#left-slot', el), { mode: historyKind });
 
         const centreSlot = qs('#centre-slot', el);
-        const viewer = isVideo
-            ? MpiVideoViewer.mount(centreSlot, { fps: 24 })
-            : MpiCanvasViewer.mount(centreSlot, {
+        // Per-kind viewer table (plan decision 2) — replaces the old isVideo
+        // ternary. image/video behave exactly as before; gif is new.
+        const VIEWER_MOUNTERS = {
+            video: () => MpiVideoViewer.mount(centreSlot, { fps: 24 }),
+            gif:   () => MpiGifViewer.mount(centreSlot, {}),
+            image: () => MpiCanvasViewer.mount(centreSlot, {
                 initialImageUrl: resolveMediaUrl(_group.history[_currentIdx]?.filePath),
                 initialIdx:      _currentIdx,
                 initialItem:     _group.history[_currentIdx] || null,
                 groupId:         _group.id,
-            });
+            }),
+        };
+        const viewer = VIEWER_MOUNTERS[historyKind]();
 
         // ── Video control bar — shell slot BELOW the PromptBox (MPI-731 5b): in the
         // block's own grid it sat right above the shell-level PromptBox, whose
@@ -453,6 +483,163 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             });
         }
 
+        // ── GIF control bar + frame strip — shell slot, sibling to the video
+        // control bar above (MPI-769, plan E6). MpiGifViewer has no inner
+        // sub-component to broker the connection through (unlike
+        // MpiVideoViewer/MpiVideoSurface), so the Block wires the bar
+        // straight to the `viewer` INSTANCE it already holds. The strip
+        // mounts FIRST so it sits visually above the bar inside the shared
+        // `#controls-mount` slot (plan decision 9), and both stay in sync
+        // through the viewer's own 'frame-change' — the single source of
+        // truth for "current index" (docs/video-player.md's frame-index
+        // coordinate law, in frame units here).
+        let gifControlBar = null;
+        let frameStrip = null;
+
+        if (historyKind === 'gif') {
+            // ComponentFactory.mount() does `container.innerHTML = html` —
+            // mounting a second component straight into `#controls-mount`
+            // would wipe the first one's DOM rather than sit beside it.
+            // Each gets its OWN wrapper child so both survive as siblings.
+            const controlsMount = gid('controls-mount');
+            const stripWrap = document.createElement('div');
+            const barWrap = document.createElement('div');
+            controlsMount.appendChild(stripWrap);
+            controlsMount.appendChild(barWrap);
+            frameStrip = MpiFrameStrip.mount(stripWrap, {});
+            gifControlBar = MpiGifControlBar.mount(barWrap, {});
+            gifControlBar.el.attachViewer(viewer);
+
+            _unsubs.push(viewer.on('frame-change', ({ idx }) => frameStrip.el.setCurrentIndex(idx)));
+            _unsubs.push(frameStrip.on('frame-select', ({ index }) => viewer.el.setFrameIndex(index)));
+            _unsubs.push(frameStrip.on('scrub',        ({ index }) => viewer.el.setFrameIndex(index)));
+            // Staged reorder/delete (plan decision 10): the strip mutates its
+            // own working copy and never touches the server — feed the same
+            // list straight into the viewer so scrubbing/playback reflect it
+            // immediately, then re-centre the marker on wherever the current
+            // frame's CONTENT (not its old numeric index) landed.
+            _unsubs.push(frameStrip.on('stage-change', ({ frames }) => {
+                viewer.el.setFrames(frames);
+                gifControlBar.el.setFrameCount(frames.length);
+                frameStrip.el.setCurrentIndex(viewer.el.getFrameIndex());
+            }));
+            _unsubs.push(frameStrip.on('update', ({ frames }) => _handleGifStripSave('update', frames)));
+            _unsubs.push(frameStrip.on('apply',  ({ frames }) => _handleGifStripSave('new', frames)));
+
+            _unsubs.push(() => {
+                try { gifControlBar?.el.detachViewer?.(); } catch (_) { /* noop */ }
+                try { frameStrip?.destroy?.(); } catch (_) { /* noop */ }
+                try { gifControlBar?.destroy?.(); } catch (_) { /* noop */ }
+                // instance.destroy() only removes its OWN `el`, not the
+                // wrapper this Block created for it — drop those too or an
+                // empty wrapper leaks in `#controls-mount` on every remount.
+                stripWrap.remove();
+                barWrap.remove();
+                frameStrip = null;
+                gifControlBar = null;
+            });
+        }
+
+        /**
+         * Fetch a GIF entry's frames (with resolved `url`/`thumbUrl`) and paint
+         * them into the viewer/strip/control bar. `/gif/ensure-frames` is a
+         * no-op besides the URL mapping once `gif.frames` already exists
+         * (docs/gif.md) — every open goes through it rather than the client
+         * reconstructing the `.gif-frames` path convention itself, and it is
+         * also what lazily extracts a LEGACY `.gif`'s frames on first open.
+         */
+        async function _loadGifEntry(item) {
+            if (!item?.id) return;
+            const project = state.currentProject;
+            if (!project?.folderPath) return;
+            viewer.el.setGenerating?.(true);
+            try {
+                const res = await fetch('/gif/ensure-frames', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ folderPath: project.folderPath, itemId: item.id }),
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
+                const frames = data.gif?.frames || [];
+                viewer.el.loadFrames(frames, { loop: data.gif?.loop ?? 0 });
+                viewer.el.setGifUrl(resolveMediaUrl(item.filePath));
+                gifControlBar?.el.setFrameCount(frames.length);
+                frameStrip?.el.setFrames(frames, { currentIndex: 0 });
+            } catch (err) {
+                clientLogger.warn('MpiGroupHistoryBlock', `gif load failed: ${err?.message || err}`);
+                _showToast('Could not load GIF frames', 'error');
+            } finally {
+                viewer.el.setGenerating?.(false);
+            }
+        }
+
+        /**
+         * Strip pill Update/Apply (plan decision 10) -> POST /gif/entry.
+         * 'update' rewrites the current history entry in place (same id, new
+         * built file per E5); 'new' appends a fresh one, same shape every
+         * other tool's Apply already uses (`appendToHistory` + `_setCurrentIdx`).
+         * The route itself returns `{hash, delay}` only (no `url`/`thumbUrl`)
+         * — `/gif/ensure-frames` resolves them the same way any open does.
+         */
+        async function _handleGifStripSave(mode, frames) {
+            const project = state.currentProject;
+            const currentItem = _group.history[_currentIdx];
+            if (!project?.folderPath || !currentItem) return;
+            if (!Array.isArray(frames) || !frames.length) {
+                _showToast('A GIF needs at least one frame', 'warning');
+                return;
+            }
+            viewer.el.setGenerating?.(true);
+            try {
+                const body = {
+                    folderPath: project.folderPath,
+                    mode,
+                    frames: frames.map(f => ({ hash: f.hash, delay: f.delay })),
+                    loop: currentItem.gif?.loop ?? 0,
+                    output: currentItem.gif?.output || { maxEdge: 1024, colours: 256, edgeColour: null },
+                };
+                if (mode === 'update') body.itemId = currentItem.id;
+                else { body.sourceItemId = currentItem.id; body.sourceGroupId = _group.id; }
+
+                const res = await fetch('/gif/entry', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
+
+                const urlRes = await fetch('/gif/ensure-frames', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ folderPath: project.folderPath, itemId: data.item.id }),
+                });
+                const urlData = await urlRes.json();
+                const item = (urlRes.ok && urlData.success) ? { ...data.item, gif: urlData.gif } : data.item;
+
+                if (mode === 'update') {
+                    _group = replaceHistoryItemById(_group, item);
+                    historyList.el.replaceEntry?.(item);
+                } else {
+                    _group = appendToHistory(_group, item);
+                    _setCurrentIdx(_group.selectedIndex);
+                    historyList.el.appendEntry(item);
+                }
+                _persistGroup();
+                viewer.el.loadFrames(item.gif?.frames || [], { loop: item.gif?.loop ?? 0 });
+                viewer.el.setGifUrl(resolveMediaUrl(item.filePath));
+                gifControlBar?.el.setFrameCount(item.gif?.frames?.length || 0);
+                frameStrip?.el.commit(item.gif?.frames || []);
+                _showToast(mode === 'update' ? 'GIF updated' : 'New GIF saved', 'success');
+            } catch (err) {
+                clientLogger.warn('MpiGroupHistoryBlock', `gif entry save failed: ${err?.message || err}`);
+                _showToast('GIF save failed: ' + err.message, 'error');
+            } finally {
+                viewer.el.setGenerating?.(false);
+            }
+        }
+
         const _mascotEl = document.createElement('img');
         _mascotEl.className = 'mascot-peek';
         _mascotEl.id = 'mascot-peek';
@@ -485,6 +672,8 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                     trim:       ci.trim,
                 });
             }
+        } else if (historyKind === 'gif') {
+            _loadGifEntry(_group.history[_currentIdx]);
         } else {
             viewer.el.loadEntry(_group.history[_currentIdx], _currentIdx);
         }
@@ -1038,6 +1227,12 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
 
         const _dropOverlay = MpiMediaDropOverlay.mount(document.createElement('div'), {
             onDrop: async ({ files }) => {
+                // No Place/reference-media tool exists for gif yet (v1's tool
+                // list is empty-but-routed) — without this guard the upload
+                // below still lands the file in the project with nothing to
+                // arm it into (`historyTools.el.setMode('placeComp')` is a
+                // silent no-op for a mode the gif rail doesn't have).
+                if (isGif) { _showToast('Drop is not supported in GIF mode yet', 'info'); return; }
                 const project = state.currentProject;
                 if (!project?.folderPath || !project?.id) {
                     clientLogger.warn('MpiGroupHistoryBlock', 'No current project on drop');
@@ -1079,6 +1274,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
 
         const _onHistDragEnter = (e) => {
             if (_isVideoPromptToolActive()) return;
+            if (isGif) return; // no drop target in gif mode yet — see onDrop guard above
             if (!_isFileDrag(e) || !state.currentProject) return;
             _histDragCounter++;
             _dropOverlay.el.show();
@@ -1243,6 +1439,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         }
 
         function _mountPromptBoxIfNeeded({ force = false } = {}) {
+            if (isGif) return false;
             if (_pb?.el) return true;
             if (!activeModel) return false;
             // Normal path requires an op the current media context unlocks.
@@ -1978,6 +2175,8 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                     hasAudio:   item.hasAudio,
                     trim:       item.trim,
                 });
+            } else if (historyKind === 'gif') {
+                await _loadGifEntry(item);
             } else {
                 // Viewer's loadEntry restores active tool mode internally, but a
                 // prior multi-select delete may have exited it — re-arm from the

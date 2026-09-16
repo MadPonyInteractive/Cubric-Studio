@@ -1483,6 +1483,24 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     .filter(g => g && g.type === 'video').length;
                 const combineDisabled = targetIds.length < 2 || _selectedVideoCount !== targetIds.length;
 
+                // ── Make GIF (MPI-770) ────────────────────────────────────────
+                // Eligible = 2+ cards, every SELECTED ITEM a still image — not
+                // video, audio, 3D Scene or GIF (kindOfItem's `image` row is the
+                // catch-all everything else matches first, so `kind === 'image'`
+                // already excludes all four). targetIds is used as given: click
+                // order survives into the frame order (docs/gallery-selection.md).
+                const _makeGifItems = targetIds
+                    .map(id => _groups.find(g => g.id === id))
+                    .map(g => g?.history?.[g.selectedIndex]);
+                const _makeGifAllStillImages = _makeGifItems.length > 0 &&
+                    _makeGifItems.every(it => kindOfItem(it)?.kind === 'image');
+                const makeGifDisabled = targetIds.length < 2 || !_makeGifAllStillImages;
+                const makeGifInfo = targetIds.length < 2
+                    ? 'Select 2 or more cards to make a GIF'
+                    : (!_makeGifAllStillImages
+                        ? 'Every selected card must be a still image (no video, audio, 3D Scene or GIF)'
+                        : undefined);
+
                 // ── Cue all (MPI-733) ─────────────────────────────────────────
                 // The op to batch is the one the prompt box is CURRENTLY on, read
                 // live through `getCueContext` because the block owns it.
@@ -1517,6 +1535,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     items: [
                         { key: 'compare',    icon: 'compare',  label: 'Compare',    disabled: compareDisabled },
                         { key: 'combine',    icon: 'merge',     label: 'Combine',    disabled: combineDisabled },
+                        { key: 'make-gif',   icon: 'gif',       label: 'Make GIF',   disabled: makeGifDisabled, info: makeGifInfo },
                         { key: 'add-to-project', icon: 'folder', label: 'Add to project' },
                         // Count comes off the ELIGIBLE set, not the selection: a
                         // mixed image+video pick filters to the op's type rather
@@ -1546,6 +1565,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                             .filter(Boolean);
                         if (key === 'compare')    emit('compare',  { groups: selected });
                         if (key === 'combine')    emit('combine',  { groups: selected });
+                        if (key === 'make-gif')   emit('make-gif', { groups: selected });
                         if (key === 'add-to-project') emit('add-to-project', { groups: selected });
                         if (key === 'cue-all')    emit('cue-all', {
                             groups: _cue.eligible, skipped: _cue.skipped, reason: _cue.reason,

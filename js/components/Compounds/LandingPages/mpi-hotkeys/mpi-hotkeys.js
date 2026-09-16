@@ -176,6 +176,17 @@ export const MpiHotkeys = ComponentFactory.create({
                             </ul>
                         </div>
 
+                        <!-- GIF Player -->
+                        <div class="mpi-hotkeys__shortcut-group">
+                            <h4>GIF Player</h4>
+                            <ul>
+                                <li><span>SPACE</span><span>Play / pause</span></li>
+                                <li><span>&larr;</span><span>Previous frame</span></li>
+                                <li><span>&rarr;</span><span>Next frame</span></li>
+                                <li><span>Backspace</span><span>Delete selected frames</span></li>
+                            </ul>
+                        </div>
+
                         <!-- Compare Overlay -->
                         <div class="mpi-hotkeys__shortcut-group">
                             <h4>Compare</h4>

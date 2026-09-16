@@ -284,6 +284,31 @@ export const HOTKEY_REGISTRY = [
         allowWhileTyping: true,
     },
 
+    // ── GIF Player (MPI-769) ─────────────────────────────────────────────────
+    // The frame strip's play/step controls (MpiGifControlBar) reuse the
+    // Video Player ids below (space/←/→) rather than new ones — a Group
+    // History card mounts EITHER MpiVideoControlBar OR MpiGifControlBar for a
+    // given card, never both, so the two never compete for a keypress (each
+    // gates on its own `_canDrive()`, exactly like two live
+    // MpiVideoControlBars already do). Only frame DELETE needs an id of its
+    // own: `history.selection.delete` above (key: delete) is bound
+    // unconditionally the moment MpiHistoryList mounts and always acts on the
+    // current selection/entry — hotkeyManager fires every handler bound to a
+    // key once ANY registry entry sharing it passes `when`
+    // (js/managers/hotkeyManager.js `_handle`: handlers are grouped by key,
+    // not by id), so reusing `delete` here would ALSO delete the whole
+    // history entry on every frame-selection delete. `backspace` is unused
+    // elsewhere and keeps the two actions on separate keys.
+    {
+        id:               'gif.frame.delete',
+        key:              'backspace',
+        type:             KEY_TYPE.DOWN,
+        category:         'history',
+        scopeLabel:       'GIF Player',
+        description:      'Delete selected frames',
+        allowWhileTyping: false,
+    },
+
     // ── Workspace ─────────────────────────────────────────────────────────────
     // MPI-378: Tab flips gallery ↔ last-used card. Same page/overlay gate the
     // radial used to have — only on the gallery / group-history pages, never

@@ -141,6 +141,48 @@ test('never writes a delay under the floor (Chromium plays 0/1 as 10)', async ()
     assert.ok(delays.every(d => d >= gifFrames.MIN_DELAY_HUNDREDTHS));
 });
 
+/* ── transparent pixels never show the previous frame ──────────────────────── */
+
+test('transparent pixels show the build background, never the previous frame', async () => {
+    const { mediaDir } = await tmpProject();
+    const redRgba = await sharp(await solidPng('red')).ensureAlpha().png().toBuffer();
+    const { hash: red } = await gifFrames.writeFrame(mediaDir, redRgba);
+    // Frame 1: left half fully transparent (hidden RGB green), right half opaque blue.
+    const w = 32, h = 24;
+    const raw = Buffer.alloc(w * h * 4);
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const o = (y * w + x) * 4;
+            if (x < w / 2) raw.set([0, 255, 0, 0], o); else raw.set([0, 0, 255, 255], o);
+        }
+    }
+    const half = await sharp(raw, { raw: { width: w, height: h, channels: 4 } }).png().toBuffer();
+    const { hash: cut } = await gifFrames.writeFrame(mediaDir, half);
+    const frames = [{ hash: red, delay: 10 }, { hash: cut, delay: 10 }];
+
+    const pixel = async (file, page) => {
+        const { data, info } = await sharp(file, { page }).raw().toBuffer({ resolveWithObject: true });
+        return [...data.subarray(0, info.channels)].concat(info.channels === 4 ? [] : [255]);
+    };
+
+    const opaque = path.join(mediaDir, 'opaque.gif');
+    await gifFrames.buildGif({ frames, loop: 0, output: { edgeColour: null } }, mediaDir, opaque);
+    assert.deepEqual(await pixel(opaque, 1), [0, 0, 0, 255], 'opaque build: transparency becomes black');
+
+    const clear = path.join(mediaDir, 'clear.gif');
+    await gifFrames.buildGif({ frames, loop: 0, output: { edgeColour: '#ffffff' } }, mediaDir, clear);
+    assert.equal((await pixel(clear, 1))[3], 0, 'transparent build: the pixel stays transparent over the red frame');
+    assert.deepEqual(walkGifDelaysHundredths(await fs.readFile(clear)), [10, 10]);
+
+    // An RGB frame beside an RGBA one used to cost a frame in the concat build.
+    const { hash: rgb } = await gifFrames.writeFrame(mediaDir, await solidPng('yellow'));
+    for (const edgeColour of [null, '#ffffff']) {
+        const mixed = path.join(mediaDir, `mixed-${edgeColour ? 'clear' : 'opaque'}.gif`);
+        await gifFrames.buildGif({ frames: [{ hash: rgb, delay: 5 }, ...frames], loop: 0, output: { edgeColour } }, mediaDir, mixed);
+        assert.deepEqual(walkGifDelaysHundredths(await fs.readFile(mixed)), [5, 10, 10], `mixed formats keep every frame (edgeColour ${edgeColour})`);
+    }
+});
+
 /* ── extraction round trip on a variable-delay GIF ─────────────────────────── */
 
 test('extraction round-trips a variable-delay GIF back to the same delays', async () => {

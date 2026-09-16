@@ -1,0 +1,96 @@
+/* MpiFrameStrip — full-width GIF frame strip with a fixed centre marker
+   (MPI-769). Sits directly above MpiGifControlBar inside the shared
+   `#controls-mount` shell slot. */
+
+.mpi-frame-strip {
+    position: relative;
+    width: 100%;
+    background: var(--surface-bar);
+    border-top: 1px solid var(--line-soft);
+    box-sizing: border-box;
+}
+
+.mpi-frame-strip__track {
+    position: relative;
+    width: 100%;
+    height: 72px;
+    overflow: hidden;
+    cursor: grab;
+}
+
+.mpi-frame-strip__track:active {
+    cursor: grabbing;
+}
+
+.mpi-frame-strip__thumbs {
+    position: relative;
+    height: 100%;
+    will-change: transform;
+}
+
+.mpi-frame-strip__thumb {
+    position: absolute;
+    top: 4px;
+    width: 64px;
+    height: 64px;
+    border-radius: var(--r-1);
+    overflow: hidden;
+    border: 2px solid transparent;
+    box-sizing: border-box;
+    user-select: none;
+}
+
+.mpi-frame-strip__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+}
+
+.mpi-frame-strip__thumb.is-current {
+    border-color: var(--accent-heat);
+}
+
+.mpi-frame-strip__thumb.is-selected {
+    border-color: var(--accent-warn);
+    outline: 2px solid var(--accent-warn);
+    outline-offset: -2px;
+}
+
+/* Fixed centre marker — the current frame always sits under this line. */
+.mpi-frame-strip__marker {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    transform: translateX(-1px);
+    background: var(--accent-heat);
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Staged-edit pill — count + Update/Apply, hidden until something changed. */
+.mpi-frame-strip__pill {
+    position: absolute;
+    top: var(--s-2);
+    right: var(--s-4);
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    padding: 4px 10px;
+    border-radius: var(--r-1);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+}
+
+.mpi-frame-strip__pill-count {
+    font-size: var(--t-xs, 0.8rem);
+    color: var(--ink-2);
+}
+
+.mpi-frame-strip__pill-actions {
+    display: flex;
+    gap: 6px;
+}

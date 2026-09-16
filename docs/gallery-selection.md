@@ -10,7 +10,7 @@ relying on an entry.
 
 ## Selection order is click order — until a shift-click
 
-`_selectedIds` is a `Set`, so ctrl/cmd-click order survives into every context-menu action's `targetIds`, and the `#N` order badge shows it. **Shift-click REPLACES the selection** (`_rangeSelect`): it clears the set and walks from the anchor (the last ctrl-clicked card) to the clicked one in grid order, so earlier ctrl-picks outside that range are dropped. No ordering machinery exists beyond this; anything consuming selection order — Cue all's queue order included — inherits it.
+`_selectedIds` is a `Set`, so ctrl/cmd-click order survives into every context-menu action's `targetIds`, and the `#N` order badge shows it. **Shift-click REPLACES the selection** (`_rangeSelect`): it clears the set and walks from the anchor (the last ctrl-clicked card) to the clicked one in grid order, so earlier ctrl-picks outside that range are dropped. No ordering machinery exists beyond this; anything consuming selection order — Cue all's queue order, Make GIF's frame order — inherits it.
 
 ## Cue all — one queued job per selected card (MPI-733)
 
@@ -30,3 +30,11 @@ The batch axis is an image selection; the output can be video — `i2v` / `i2v_m
 - No `_exitSelectionMode()` in the handler: the grid's `onSelect` already exits after every menu action.
 
 Regression spec: `tests/desktop/gallery-cue-all.spec.js`. It mounts through the BLOCK — a grid-only mount hands the op in and cannot see the op source — and holds jobs pending with no GPU by reporting both lanes busy through `generationStore.getSnapshot`. Unit: `tests/cue-all-eligibility.test.cjs`.
+
+## Make GIF — one click, no dialog (MPI-770)
+
+Select 2+ cards, right-click → **Make GIF**. Eligible = every SELECTED ITEM's `kindOfItem(item).kind === 'image'` (`js/utils/assetKinds.js`) — the `image` row is the catch-all everything else (video, audio, 3D Scene, GIF) matches first, so this one check already excludes all four. `targetIds` is used exactly as given (this file's click-order rule) — no reorder step exists client- or server-side; fixing frame order afterwards is the GIF workspace's (MPI-769) frame strip job.
+
+`grid.on('make-gif')` in `MpiGalleryBlock.js` is modelled on `grid.on('combine')`: POST `/gif/make` (`routes/gifMake.js`, body `{ folderPath, itemIds }` in selection order) returns a plain sidecar-shaped `item` (same raw-descriptor shape `/combine-videos` returns), and the client builds the ItemGroup itself — `createImageItem` + `createItemGroup` + `appendToHistory` + `addGroup` + `grid.el.setGroups(...)`, then `navigate(PAGE_GROUP_HISTORY, { groupId })`. The route reads each item's FULL-RES file (no prompt, plan Decision 8), fits every frame into the FIRST item's pixel size (`fit: 'contain'`, exact RGBA(0,0,0,0) padding — no leaked source pixels), writes frames via `services/gifFrames.js`, and builds with each still held 1 s (delay 100) / maxEdge 1024 / loop forever.
+
+**Built padding:** the stored frames keep the padding transparent; the built `.gif` (an opaque build, no prompt) shows it as black (`docs/gif.md` § Opaque output). Proven end to end by `tests/desktop/gif-make.spec.js`.

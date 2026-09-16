@@ -28,8 +28,16 @@ investigators got wrong: [research/2026-09-15-investigation.md](research/2026-09
   exist); Fabio decides rebuild vs waive. The integrator fixed `tests/gallery-filter.test.cjs` drift.
   Evidence: each card's `validation.md`. `server.js` must be committed BY HUNK: MPI-774's uncommitted
   `agentRoutes` lines in it are not ours.
-- **Next action:** commit Batch 1 (`mpi-handoff`), then Batch 2 (MPI-769 + MPI-770 + MPI-771 engine
-  half). Re-read `state/index.json` first: MPI-774 held `preloadStyles.js` / `types.js` at 19:09Z.
+- **2026-09-16:** Batch 1 committed (2b246b47). MPI-759 `done`: Fabio waived the hover-tour VRAM
+  number for v1; the real-world check is his 93-asset mascot GIF project after MPI-757 finishes.
+- **2026-09-16 ~09:45Z: Batch 2 DONE and committed at handoff.** MPI-769 `done` (Fabio approved the strip
+  in his app). MPI-770 `done`; after his check, Make GIF holds each still for 1 s. MPI-771 engine half
+  verified live (30 real frames through the mounted routes gave 30 masks); the card stays `doing` for its UI
+  half. Integration fixed `buildGif` (see drift), mounted both routes, registered `gifCutoutSam3`, and
+  added `tests/desktop/gif-make.spec.js` (real app, no stubs). Evidence: each card's `validation.md`.
+- **Next action:** Batch 3 via `mpi-execute-parallel`: MPI-771 UI half, plus the server halves of MPI-773
+  and MPI-760. MPI-773 and MPI-760 move todo -> doing with `files.json` (both halves) first. MPI-771's UI
+  half contract is in its `validation.md` and the `routes/gifCutout.js` header.
 
 ## What we are building
 
@@ -181,7 +189,7 @@ Phase 1 verify mode: `auto`.
 
 Orchestrator after the workers: mount `routes/gifMake.js` and `routes/gifCutout.js` in `server.js`.
 
-- [ ] **MPI-769 GIF history workspace.** Per-kind table `{ image, video, gif }` -> viewer + tool list
+- [x] **MPI-769 GIF history workspace.** Per-kind table `{ image, video, gif }` -> viewer + tool list
   replacing `isVideo` (:252) and `TOOL_LISTS` (`Compounds/MpiHistoryTools/MpiHistoryTools.js:185`);
   a card opens in `gif` mode when its item's `kindOfItem` is `gif`. Respect the tier rule: the
   Compound cannot import the Block, so the tool lists stay keyed by kind in the Compound. GIF viewer
@@ -205,7 +213,7 @@ Orchestrator after the workers: mount `routes/gifMake.js` and `routes/gifCutout.
   delete stage, Update rewrites the entry (new `.gif` name), Apply adds one; an image card and a
   video card still open with their own viewer, tool list and control bar (no spec covered this
   before). `npm run lint:components` clean. Then **user-ux**: Fabio eye-checks the strip.
-- [ ] **MPI-770 Make GIF from selected images.** Context-menu entry beside `combine`
+- [x] **MPI-770 Make GIF from selected images.** Context-menu entry beside `combine`
   (`MpiGalleryGrid.js:1455-1460`), enabled for 2+ cards whose selected items are all still images
   (not video, audio, 3D Scene or GIF), disabled reason in `info`; `targetIds` used as given.
   Handler in `MpiGalleryBlock.js` modelled on `grid.on('combine')` (:329): POST to the new route, then
@@ -221,7 +229,7 @@ Orchestrator after the workers: mount `routes/gifMake.js` and `routes/gifCutout.
   first image's size with transparent padding (pixel check on the alpha), delays 10, loop 0; then a
   real run in `npm run app:isolated`: ctrl-click three cards -> Make GIF -> new card opens, plays on
   hover.
-- [ ] **MPI-771 (engine half) cut-out graph, runner, alpha apply.** Probe `/object_info` on the
+- [x] **MPI-771 (engine half) cut-out graph, runner, alpha apply.** Probe `/object_info` on the
   isolated app's engine FIRST (memory `tool_comfy_schema_gate_before_workflow_sync`), then author
   `comfy_workflows/raw/gif_cutout_sam3.json` from `img_auto_mask.json`'s text branch:
   `MpiLoadVideo` (`Input_Video`) -> `SAM3_VideoTrack` (images + CLIPTextEncode from the SAM3
@@ -345,6 +353,22 @@ Phase 5 verify mode: `auto`.
   needs VRAM needs a new instrument.
 - 2026-09-15 (Batch 1): the new kind row broke `tests/gallery-filter.test.cjs` fixtures (in neither
   worker's ownership); the orchestrator fixed both lines at integration.
+- 2026-09-16 (Batch 2): the edgeColour gap was worse than recorded, and it is CLOSED, not left for
+  MPI-772. MPI-770's pixel test showed transparent pixels in the built `.gif` replaying the PREVIOUS
+  frame, and a list mixing RGB and RGBA PNGs dropped a frame. The orchestrator fixed `buildGif` as
+  integrator: opaque builds flatten onto black; transparent builds skip ffmpeg's frame diffing and
+  clear each frame before the next (disposal 2). Both halves bite-checked against the pre-fix code.
+  `docs/gif.md` records it. MPI-772's GIF output tool can still offer a background colour.
+- 2026-09-16 (Batch 2): **E8 was wrong.** `tests/text-op-completion.test.cjs` fails a suite whose
+  op is missing from `operationRegistry.js` / `operation_registry.json`, and feature commits add
+  their own rows (MPI-620, MPI-747). The orchestrator added `gifCutoutSam3` at `1.6.0`; later new
+  ops do the same. `gifCutoutSam3` also joined `SAVES_NOTHING` in `tests/flow-output-filename.test.cjs`.
+- 2026-09-16 (Batch 2): the MPI-771 worker's first pass lacked E7's frames -> temp video source (the
+  live track used an existing MP4), so the worker went back to add it.
+- 2026-09-16 (Fabio, after his eye check): Make GIF holds each still 1 s (delay 100), not 10 fps. 10 fps
+  flashed unrelated images (a seizure risk). Decision 8 (no prompt) stands.
+- 2026-09-16 (Batch 2): `routes/gifMake.js` writes its own sidecar and returns a raw descriptor
+  (the `/combine-videos` precedent) rather than going through `/gif/entry`.
 
 ## Verification
 

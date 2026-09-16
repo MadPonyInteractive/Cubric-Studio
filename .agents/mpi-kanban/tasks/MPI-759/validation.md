@@ -20,3 +20,10 @@ the first failing assert. Message c47371bc resolved.
 desktop harness launches with `--disable-gpu`, so it reads 0.0 MB. No number exists. Fabio decides:
 rebuild a VRAM rig in scope, or waive it for v1 (hover bounds the decode to cards actually hovered,
 decision 5).
+
+## 2026-09-16 - VRAM gate WAIVED for v1 (Fabio, in chat)
+
+Fabio waived the hover-tour VRAM number. Hover bounds the decode to the cards actually hovered, and
+the specs above prove only the hovered card mounts the `.gif`. The real-world check comes after
+MPI-757 finishes, on Fabio's mascot project (93 animation assets to convert to GIFs), not on a
+synthetic rig. The card closes on the automated evidence above.

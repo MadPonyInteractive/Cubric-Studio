@@ -2473,3 +2473,104 @@
  * Never autofocuses the search input (would steal focus from
  * tests/desktop/flows-tab-ring.spec.js and any surface that opens the bar).
  */
+
+/**
+ * @typedef {Object} MpiGifViewerProps (Organism — js/components/Organisms/MpiGifViewer)
+ *
+ * MPI-769. Shows a GIF entry's full-colour frames one at a time, decoded at
+ * the viewer's own size with a small window of neighbouring frames kept warm
+ * (never the built 256-colour `.gif`, unless the preview toggle is on).
+ * No props. Unlike MpiVideoViewer there is no `attachControlBar` — the
+ * control bar and frame strip are peers wired directly by the parent Block
+ * via `gifControlBar.el.attachViewer(viewerInstance)`, where `viewerInstance`
+ * is the object `MpiGifViewer.mount()` itself returned (has `.on()`).
+ *
+ * Instance methods (on instance.el):
+ *   loadFrames(frames, { loop = 0 })  — replace the frame list, reset to
+ *                                       frame 0, stop playback. `frames`:
+ *                                       [{ hash, url, thumbUrl, delay }].
+ *   setFrames(frames)                 — replace WITHOUT resetting position
+ *                                       (staged strip edits); keeps showing
+ *                                       the same frame by hash when it still
+ *                                       exists.
+ *   getFrames() / getFrameCount() / getFrameIndex()
+ *   setFrameIndex(idx) / stepFrame(delta)
+ *   play() / pause() / isPlaying()
+ *   setGifUrl(url)                    — built `.gif`'s resolved URL, shown
+ *                                       when preview mode is on
+ *   setPreview(bool) / togglePreview() / isPreview()
+ *   setGenerating(bool) / setLoading(bool)
+ *   destroy()
+ *
+ * Emits:
+ *   'frame-change' { idx, frame }
+ *   'play' / 'pause' / 'ended'
+ *   'preview-change' { preview }
+ */
+
+/**
+ * @typedef {Object} MpiGifControlBarProps (Organism — js/components/Organisms/MpiGifControlBar)
+ *
+ * MPI-769, plan E6 — a sibling to MpiVideoControlBar, not a mode of it:
+ * MpiVideoControlBar is seconds-over-fps against a `<video>` and takes no
+ * per-frame delays. Same visual language (play / step / frame counter /
+ * embedded MpiTrimBar), no volume or fullscreen (GIFs carry no audio). The
+ * embedded MpiTrimBar runs in FRAME-INDEX units (`fps: 1`,
+ * `duration: frameCount - 1`) rather than seconds. Reuses the
+ * `video.playPause` / `video.frame.back` / `video.frame.forward` hotkey ids
+ * — a Group History card mounts this OR MpiVideoControlBar, never both, so
+ * they never compete for the same keypress (each gates on its own
+ * `_canDrive()`).
+ *
+ * No props.
+ *
+ * Instance methods (on instance.el):
+ *   attachViewer(viewerInstance) — wire to a MpiGifViewer instance (the
+ *                                  object `MpiGifViewer.mount()` returned)
+ *   detachViewer()
+ *   setFrameCount(n)
+ *   destroy()
+ *
+ * Emits:
+ *   'range-change' { in, out } — trim handles moved (frame indices); wired
+ *                                but not persisted until the Trim tool
+ *                                (MPI-772) exists.
+ */
+
+/**
+ * @typedef {Object} MpiFrameStripProps (Organism — js/components/Organisms/MpiFrameStrip)
+ *
+ * MPI-769, Fabio's design (plan decisions 9-10). Full-width strip, fixed
+ * centre marker; the current frame always sits under it, and the strip
+ * slides as playback advances or the user scrubs. Click a thumbnail to jump;
+ * drag one to reorder; ctrl/cmd-click toggles a multi-select the
+ * `gif.frame.delete` hotkey (Backspace) drops. Both edits STAGE in a local
+ * working copy shown via a pill (Update rewrites the current entry, Apply
+ * saves a new one) — nothing reaches the server until one of those fires.
+ * Only a window of thumbnails around the current index is ever in the DOM.
+ *
+ * This component has no navigation authority of its own — it is a peer of
+ * MpiGifViewer under the Block's mediator: it emits intent
+ * ('frame-select', 'scrub') and the Block drives the viewer; the viewer's
+ * own 'frame-change' comes back through `setCurrentIndex()`.
+ *
+ * No props.
+ *
+ * Instance methods (on instance.el):
+ *   setFrames(frames, { currentIndex = 0 }) — full (re)load: resets both the
+ *                                             committed AND staged copy.
+ *   setCurrentIndex(idx)   — move the marker; no event (Block-driven).
+ *   getStagedFrames()
+ *   commit(frames)         — server round-trip landed: staged AND committed
+ *                            both become `frames`, the marker resets to
+ *                            frame 0 (matching the paired
+ *                            `viewer.el.loadFrames()` call), pill hides.
+ *   destroy()
+ *
+ * Emits:
+ *   'frame-select' { index } — thumbnail clicked (no modifier)
+ *   'scrub'        { index } — dragging the empty track
+ *   'stage-change' { frames } — reorder or delete changed the staged list
+ *   'update'       { frames } — pill's Update button
+ *   'apply'        { frames } — pill's Apply button
+ */

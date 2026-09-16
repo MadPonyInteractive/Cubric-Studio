@@ -1,0 +1,46 @@
+/* MpiGifViewer — full-colour GIF frame display (MPI-769) */
+
+.mpi-gif-viewer {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+}
+
+.mpi-gif-viewer__stage {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+}
+
+.mpi-gif-viewer__frame,
+.mpi-gif-viewer__preview {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+
+/* ── Load/generation spinner — centred over the stage ───────────────────── */
+
+.mpi-gif-viewer__spinner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--t-fast) var(--ease);
+    z-index: 5;
+}
+
+.mpi-gif-viewer__spinner--visible {
+    opacity: 1;
+}

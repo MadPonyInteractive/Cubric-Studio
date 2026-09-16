@@ -111,6 +111,34 @@ fullscreen bar. Pinned by `tests/flow-result-compare.test.cjs`.
 > not owned by the viewer precisely so a second surface can borrow it; give it the
 > full width of its slide, or the seek bar is squeezed to nothing.
 
+## GIF control bar is a sibling, not a mode (MPI-769)
+
+`MpiGifControlBar` looks like this bar but is a separate component:
+`MpiVideoControlBar` is seconds-over-fps against a `<video>` element and
+takes no per-frame delays, and a GIF's delays are per-frame, not constant.
+It drives a `MpiGifViewer` INSTANCE directly (`attachViewer`, not
+`attachSurface`) and its embedded `MpiTrimBar` runs in FRAME-INDEX units
+(`fps: 1`, `duration: frameCount - 1`) rather than seconds — `MpiTrimBar`'s
+own frame-indexed `_pctOf` mapping (the frame-index coordinate law above)
+lines up a scrub position with a frame 1:1 regardless of that frame's real
+delay, so feeding it frame count as both `duration` and `frameCount` sidesteps
+GIF's non-uniform timing entirely rather than trying to normalize it.
+
+It reuses the `video.playPause` / `video.frame.back` / `video.frame.forward`
+hotkey ids rather than minting new ones — a Group History card mounts EITHER
+this bar or `MpiVideoControlBar`, never both, so they never compete for a
+keypress, each gated on its own `_canDrive()` exactly like two live
+`MpiVideoControlBar`s already coexist (see "A bar you cannot see..." above).
+Frame delete is the one action that needed a genuinely separate hotkey id
+(`gif.frame.delete`, Backspace) — see `js/managers/hotkeyRegistry.js`'s "GIF
+Player" section for why sharing `history.selection.delete`'s key would have
+also deleted the whole history entry on every frame-selection delete.
+
+`MpiFrameStrip` (full-width, fixed centre marker, docs/workspaces.md § Group
+History) is the third peer: it and the control bar both listen to the SAME
+`MpiGifViewer` `'frame-change'` event rather than to each other, so the
+marker and the counter can never disagree about the current frame.
+
 ## Known non-bug
 
 `frame0 == frame1` on Wan/LTX clips is **content**, DaVinci-confirmed: the model

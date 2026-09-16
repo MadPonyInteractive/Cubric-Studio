@@ -41,11 +41,46 @@ Opened when user clicks a card from gallery. Lazy-loaded by `js/shell/navigation
 
 **Photoshop-style layout** (`grid-template-columns: 3.5rem 1fr 14rem`):
 - `#left-slot` — `MpiHistoryTools` vertical radio toolbar (prompt / crop / mask-group / upscale / interpolate)
-- `#centre-slot` — `MpiCanvasViewer` (image) or `MpiVideoViewer` (video)
+- `#centre-slot` — `MpiCanvasViewer` (image), `MpiVideoViewer` (video) or `MpiGifViewer` (gif, MPI-769)
 - `#right-top-slot` — active `MpiToolOptions*` compound (swapped by mediator on tool change)
 - `#right-bottom-slot` — `MpiHistoryList` (ctrl/shift/right-click selection, dimensions, context menu)
-- `#prompt-box-mount` — shell-level PromptBox (centre-bottom floating); shown/hidden via `mpi-group-history-block--prompt-active` CSS class
-- `#controls-mount` — shell-level, directly BELOW `#prompt-box-mount`; video groups mount `MpiVideoControlBar` here (MPI-731). It used to be the block's last grid row, which put it right above the PromptBox, and the PromptBox's upward strips covered its buttons.
+- `#prompt-box-mount` — shell-level PromptBox (centre-bottom floating); shown/hidden via `mpi-group-history-block--prompt-active` CSS class. Never mounted for a `gif` group (no model generates a GIF in v1) — `_shouldShowPromptBox()` is the one gate every mount/show path funnels through.
+- `#controls-mount` — shell-level, directly BELOW `#prompt-box-mount`; video groups mount `MpiVideoControlBar` here (MPI-731), gif groups mount `MpiFrameStrip` then `MpiGifControlBar` as two siblings in the same slot (MPI-769) — the strip sits visually above the bar by DOM order. It used to be the block's last grid row, which put it right above the PromptBox, and the PromptBox's upward strips covered its buttons.
+
+**A card's `type` decides image vs video; an ITEM decides gif (MPI-769).** A
+GIF card is still an ordinary `type: 'image'` sidecar (`docs/gif.md`) — the
+group's own `type` never changes, so `MpiGroupHistoryBlock` reads
+`kindOfItem()` (`js/utils/assetKinds.js`, same precedent as a 3D Scene) off
+the initially-selected history entry to decide `historyKind` (`'image' |
+'video' | 'gif'`), kept deliberately separate from the existing `modeKind`
+(`'image' | 'video'`) that drives model-type lookups — a gif group has no
+model, so those stay on the image branch. `historyKind` picks the viewer
+(a small mount table replacing the old `isVideo` ternary) and the rail's tool
+list (`MpiHistoryTools`'s own `{ image, video, gif }` table); `gif`'s tool
+list is empty-but-routed until MPI-771/772/773 land panels into it. Every
+entry in one group is the same kind by construction (Update rewrites the
+current entry, Apply appends another GIF revision), so checking the first
+entry is enough for the whole workspace.
+
+**GIF frame strip + control bar (MPI-769).** `MpiFrameStrip` is a full-width
+row with a fixed centre marker — the current frame always sits under it, and
+the strip slides as playback advances or the user scrubs. Click a thumbnail
+to jump; drag one to reorder; ctrl/cmd-click toggles a multi-select the
+`gif.frame.delete` hotkey (Backspace — NOT `history.selection.delete`/Delete,
+see `js/managers/hotkeyRegistry.js`'s "GIF Player" section for why sharing
+that key would also delete the whole history entry) drops. Both edits STAGE
+in the strip's own working copy and show a pill (frame-change count +
+Update/Apply); nothing reaches the server until one of those fires. `Update`
+POSTs `mode:'update'` to `/gif/entry` (rewrites the current history entry,
+new built `.gif` filename per `docs/gif.md` E5); `Apply` POSTs `mode:'new'`
+(appends a fresh entry, same `appendToHistory` shape every other tool's Apply
+uses). `MpiGifControlBar` is a SIBLING of `MpiVideoControlBar`, not a mode of
+it — a GIF's delays are per-frame, not a constant fps, so it drives a
+`MpiGifViewer` instance directly instead of a `<video>` surface; its embedded
+`MpiTrimBar` runs in frame-index units (`fps: 1`) rather than seconds. It
+reuses the `video.playPause` / `video.frame.back` / `video.frame.forward`
+hotkey ids — a card mounts this bar or the video one, never both, so they
+never compete for a keypress.
 
 **Mediator:** `mountOptions(mode)` destroys the previous `MpiToolOptions*` instance and mounts the new one. `prompt` is special — no compound; toggles `mpi-group-history-block--prompt-active` CSS class (shows PromptBox, hides `#right-top-slot`). Tool options compounds: `MpiToolOptionsCrop`, `MpiToolOptionsMaskDetect`, `MpiToolOptionsMaskPoints`, `MpiToolOptionsUpscale`, `MpiToolOptionsInterpolate`, `MpiToolOptionsResize`, `MpiToolOptionsPrompt`.
 

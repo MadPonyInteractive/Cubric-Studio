@@ -1,1 +1,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-769", "at": "2026-09-15T13:37:29+01:00", "actor": "claude", "column": "todo", "title": "GIF history workspace"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-769", "at": "2026-09-16T09:27:01+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started: MPI-757 Parallel Batch 2 (files.json lists both halves)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-769", "at": "2026-09-16T09:30:58Z", "actor": "claude:9b69fd95", "summary": "Automated checks green (validation.md); waiting on Fabio's eye check of the frame strip."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-769", "at": "2026-09-16T10:41:54+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Automated evidence in validation.md; Fabio approved the strip in his app 2026-09-16."}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-769", "at": "2026-09-16T09:42:03Z", "actor": "claude:9b69fd95", "summary": "Attention cleared: Fabio approved the frame strip."}

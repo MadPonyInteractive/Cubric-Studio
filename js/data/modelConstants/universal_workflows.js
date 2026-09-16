@@ -39,6 +39,13 @@ export const UNIVERSAL_WORKFLOWS = {
     autoMaskImg: {
         workflow: 'img_auto_mask.json',
     },
+    // MPI-771: SAM3 video-track cut-out for the GIF workspace. Dispatched by
+    // `runGifCutoutTrack` (commandExecutor.js), not the generic `runCommand`
+    // path — see `commandRegistry.js`'s `gifCutoutSam3` entry for why it still
+    // gets one.
+    gifCutoutSam3: {
+        workflow: 'gif_cutout_sam3.json',
+    },
     // Text-only (caption) workflow: returns a string via Output_prompt and saves no
     // file, so its op declares `outputKind: 'text'` (MPI-310). Runs through the normal
     // generation queue like any other op — the MPI-308 note that it bypasses the queue

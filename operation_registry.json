@@ -118,6 +118,11 @@
     "appVersionIntroduced": "0.0.1",
     "universal": true
   },
+  "gifCutoutSam3": {
+    "latestVersion": "1.0",
+    "appVersionIntroduced": "1.6.0",
+    "universal": true
+  },
   "resize": {
     "latestVersion": "1.0",
     "appVersionIntroduced": "0.0.1",

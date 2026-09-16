@@ -56,6 +56,8 @@ const videoReverseRoutes = require('./routes/videoReverse');
 const videoGifRoutes = require('./routes/videoGif');
 const videoTrimInputRoutes = require('./routes/videoTrimInput');
 const gifRoutes = require('./routes/gif');  // MPI-768
+const gifMakeRoutes = require('./routes/gifMake');  // MPI-770
+const gifCutoutRoutes = require('./routes/gifCutout');  // MPI-771
 const { router: downloadManagerRoutes, cancelAllDownloads, logBootDiskSpace } = require('./routes/downloadManager');
 const { router: runpodRemoteRoutes } = require('./routes/runpodRemote');
 const { router: remoteEngineRoutes } = require('./routes/remoteEngine');
@@ -85,6 +87,8 @@ app.use(downloadManagerRoutes);
 app.use(runpodRemoteRoutes);
 app.use(remoteEngineRoutes);
 app.use(gifRoutes);  // MPI-768
+app.use(gifMakeRoutes);  // MPI-770
+app.use(gifCutoutRoutes);  // MPI-771
 app.use(connectorRoutes);
 app.use(licenceRoutes);
 app.use(llmRoutes);

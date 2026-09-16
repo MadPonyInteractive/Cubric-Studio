@@ -1047,6 +1047,126 @@ export function runAutoMask(payload) {
 }
 
 /**
+ * Executes the GIF cut-out SAM3 video-track workflow (gif_cutout_sam3.json).
+ *
+ * MPI-771 (engine half): SAM3 tracks the named object across EVERY frame of a
+ * temp video the caller already encoded — one video frame per GIF frame, fed
+ * through `MpiLoadVideo` (E7) — instead of re-detecting per frame, which is
+ * what keeps flicker down. `SAM3_TrackToMask` then unions the kept object
+ * indices into ONE MASK PER FRAME. Both engines run the identical graph
+ * through `getEngine(forceLocal)` — no local-only shortcut (the engine-split
+ * trap `comfy_engine.md` warns about); remote staging of the temp video is
+ * unchanged because `MpiLoadVideo` is already in `PATH_MEDIA_CLASSES`.
+ *
+ * Two captures fire independently off the same run, so a caller may attach
+ * either or both:
+ *   - `"Output_Mask"` → one mask image per input frame, in frame order
+ *     (`SAM3_TrackToMask` always returns `[N, H, W]` for the `N`-frame input).
+ *   - `"Output_Preview"` → `SAM3_TrackPreview`'s numbered debug video, so a
+ *     human can read which tracked index is which object before setting
+ *     `objectIndices` (there is no per-object mask output — seeing the
+ *     numbers on this preview IS how a chip UI would learn the count).
+ *
+ * Re-dispatching with a different `objectIndices` is CHEAP: ComfyUI caches
+ * `SAM3_VideoTrack` by its own inputs, so a run that changes only
+ * `Input_Object_Indices` re-executes just the (cheap) mask node, never the
+ * tracker — unlike the SEGS picker MPI-421 removed for the opposite reason.
+ *
+ * @param {{ videoPath: string, textPrompt?: string, objectIndices?: string, forceLocal?: boolean }} payload
+ *   `textPrompt` should already be stamped per `js/utils/maskTextPrompt.js`
+ *   (bare name = one object, `name:N` for several, never `:1`).
+ *   `objectIndices` is the SAM3_TrackToMask `object_indices` string
+ *   (comma-separated kept indices; `''` = every tracked object).
+ * @returns {{ onMasks: ?Function, onPreview: ?Function, onError: ?Function, onDone: ?Function, cancel: Function }}
+ */
+export function runGifCutoutTrack(payload) {
+    let _settled = false;
+    const exec = {
+        onMasks:   null,
+        onPreview: null,
+        onError:   null,
+        onDone:    null,
+        cancel() {
+            if (_settled) return;
+            getEngine(payload.forceLocal === true).interrupt();
+        },
+    };
+
+    let _doneFired = false;
+    const _fireDone = () => {
+        if (_doneFired) return;
+        _doneFired = true;
+        exec.onDone?.();
+    };
+
+    (async () => {
+        const workflowFile = getUniversalWorkflow('gifCutoutSam3');
+        if (!workflowFile) {
+            exec.onError?.(new Error('gifCutoutSam3 workflow not registered'));
+            _fireDone();
+            return;
+        }
+
+        let workflow;
+        try {
+            const res = await fetch(`/comfy_workflows/${workflowFile}`);
+            if (!res.ok) throw new Error(`Failed to load workflow: ${workflowFile}`);
+            workflow = await res.json();
+        } catch (err) {
+            exec.onError?.(err);
+            _fireDone();
+            return;
+        }
+
+        const maskNodeIds = new Set(
+            Object.keys(workflow).filter(id =>
+                workflow[id]._meta?.title?.toLowerCase() === 'output_mask'
+            )
+        );
+        const previewNodeIds = new Set(
+            Object.keys(workflow).filter(id =>
+                workflow[id]._meta?.title?.toLowerCase() === 'output_preview'
+            )
+        );
+
+        const params = {
+            Input_Video:                          payload.videoPath,
+            'Input_Text_Prompt.text':              payload.textPrompt || '',
+            'Input_Object_Indices.object_indices':  payload.objectIndices || '',
+        };
+
+        const onMessage = (msg) => {
+            if (msg.type !== 'executed') return;
+            const nodeId     = msg.data?.node;
+            const nodeOutput = msg.data?.output;
+
+            if (maskNodeIds.has(nodeId) && nodeOutput?.images) {
+                const urls = nodeOutput.images.map(img => _buildComfyViewUrl(img, payload.forceLocal === true));
+                exec.onMasks?.(urls);
+            }
+            if (previewNodeIds.has(nodeId) && nodeOutput?.images) {
+                const urls = nodeOutput.images.map(img => _buildComfyViewUrl(img, payload.forceLocal === true));
+                exec.onPreview?.(urls[0]);
+            }
+        };
+
+        try {
+            await getEngine(payload.forceLocal === true).runWorkflow(workflow, params, onMessage);
+            _settled = true;
+        } catch (err) {
+            clientLogger.error('comfy', 'gif cutout track workflow failed', err);
+            Events.emit('ui:error', { title: 'Cut-out failed', message: err.message });
+            exec.onError?.(err);
+        } finally {
+            _settled = true;
+            _fireDone();
+        }
+    })();
+
+    return exec;
+}
+
+/**
  * MPI-308 (DEV HARNESS) — caption an image into text via `image_descriptor`.
  *
  * Text-only workflow: it returns a caption and ZERO media. That is why this runs
