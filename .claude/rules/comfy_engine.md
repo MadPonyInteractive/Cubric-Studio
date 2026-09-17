@@ -350,8 +350,8 @@ commit is on disk and reinstalls on mismatch, **both engines**.
   `custom_nodes` entry only when its name ends in `.disabled` (`nodes.py`
   `if module_path.endswith(".disabled"): continue`). A descriptive suffix like
   `ComfyUI-MpiNodes.stale-<sha>` still loads, so the old copy and the live one BOTH
-  import — and if the pack registers a route (MpiNodes' `POST /mpi/reload-extra-paths`)
-  aiohttp refuses the duplicate and ComfyUI dies at boot with
+  import — and if the pack registers a route, aiohttp refuses the duplicate and
+  ComfyUI dies at boot with
   `RuntimeError: Added route will never be executed, method POST is already registered`.
   The traceback names only `aiohttp/web_urldispatcher.py`, never the pack, so it reads
   like a version break. **`ls custom_nodes/` for two copies of one pack BEFORE reading
