@@ -3,3 +3,5 @@
 {"schema": "mpi-kanban/event/v1", "id": "MPI-708", "type": "task.updated", "at": "2026-09-08T09:57:05Z", "actor": "claude", "summary": "Attached plan.md (large adaptive, 6 decisions front-loaded) and the rename surface audit."}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-708", "type": "task.updated", "at": "2026-09-08T10:12:26Z", "actor": "claude", "summary": "Plan revised: 1.5.1 updater bridge replaces the artifact-name freeze; Documents folder heal reinstated; website/docs repos moved out of scope."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-708", "at": "2026-09-17T13:06:08+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started: Phase 1 repo renames (session ad10647f)"}
+{"schema": "mpi-kanban/event/v1", "type": "checklist.updated", "id": "MPI-708", "at": "2026-09-17T12:39:54Z", "actor": "claude", "reason": "Phase 1 (repo renames, CI gate, pointer sweep) complete"}
+{"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-708", "at": "2026-09-17T12:39:54Z", "actor": "claude", "reason": "Phase 1 evidence: renames verified, mpi-ci run 35222060391 checkout passed on 3 legs"}

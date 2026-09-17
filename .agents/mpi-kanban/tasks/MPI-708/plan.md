@@ -6,17 +6,27 @@ Brief (decision + repo-rename reasoning): `brief.md`.
 
 ## Current State
 
-**2026-09-17 (session ad10647f): Phase 1 steps 1, 2 and 4 DONE; step 3 (CI dispatch) next.
-Card in `doing`, claim `8444666d`.** Fabio renamed both repos in GitHub Settings (hub first).
+**2026-09-17 (session ad10647f): PHASE 1 DONE and verified** (evidence: `validation.md` § Phase 1;
+CI checkout proven on mpi-ci run `35222060391`, cancelled after checkout, 0 artifacts).
+**Next unit is blocked by live peers, re-check `state/index.json` before starting:**
+- Phase 2 (renderer): MPI-774 (Agent 7, active) claims `index.html` and
+  `assets/mascot/studio/logo.webp` (it is already staging a Studio logo, so coordinate, don't
+  duplicate); MPI-760 (active) has uncommitted edits in `MpiGroupHistoryBlock.js`.
+- Parallel Batch: `routes/**`, `docs/**` and `.claude/**` overlap live claims (MPI-774:
+  `routes/agent.js`, `routes/connector.js`, `docs/agent-chat.md`, `docs/llm.md`,
+  `.claude/rules/component-*.md`; MPI-760: `docs/gif.md`, `docs/video-player.md`). Only
+  **Heal the Documents folder** and **Build identity** are clear now. The Agent-tooling task
+  edits `.claude/rules/`, which needs Fabio's OK per CLAUDE.md rule 5 (he gave it for `kanban.md` only).
+
+Phase 1 detail: Fabio renamed both repos in GitHub Settings (hub first).
 Verified: `gh repo view` resolves `Cubric-Connector` (private hub) and `Cubric-Studio` (public
 product), and `.../Cubric-Vision` resolves to `Cubric-Studio`; the old slug's
 `releases/latest` API 301s and serves v1.5.0 JSON. Remotes set: hub -> `Cubric-Connector`,
 here -> `Cubric-Studio`; `git fetch` works in both. Commits: mpi-ci `e23112e` (both slugs),
 hub `98310e0` (headings; repo description updated), MadPony-Identity `eb0ee38` (slugs only),
 ComfyUi-MpiNodes: the README link rode a PEER's commit `060e78c` (already pushed; content correct),
-Vision: this commit (tool/doc slugs, `build-portable.yml`, README "formerly Cubric-Vision" note
-and mascot removed at Fabio's request). **Next:** dispatch `build-portable.yml`, confirm all three
-mpi-ci legs pass "Checkout source", cancel the run; then record evidence in `validation.md`.
+Vision `c0972475` (tool/doc slugs, `build-portable.yml`, README "formerly Cubric-Vision" note
+and mascot removed at Fabio's request).
 
 **Earlier (session 53d9d605):** Phase 0 and Phase 0b are DONE (see Plan Drift). Fabio wants the handoff chain to keep going until the rename
 lands: Cubric Vision ships as **Cubric Studio 2.0** ("Cubric Studio" in his speech already means
@@ -146,7 +156,14 @@ on cards, and the Audio/Prompt mascots. Follow-up card only — no colour work h
 
 ## Completed
 
-- [ ] Nothing yet.
+- [x] Phase 0 and 0b (2026-09-17, session 53d9d605).
+- [x] Phase 1: repo renames, CI gate, pointer sweep, README note + mascot removal
+      (2026-09-17, session ad10647f; commits mpi-ci `e23112e`, hub `98310e0`,
+      MadPony-Identity `eb0ee38`, Vision `c0972475`).
+- [ ] **Hand-off for Fabio (outside this card):** Website repo links (`index.html`,
+      `vision/index.html`, `scripts/vision.js:126`, `llms.txt`, `funding.json`) and regenerating
+      `l/fr*` from `shortlinks.json`; socials and YouTube descriptions from MadPony-Identity.
+      All redirect-safe, no deadline.
 
 ## Remaining Work
 
@@ -199,21 +216,21 @@ these tasks join the same cut.
 
 ## Phase 1: Repo renames and the CI gate (sequential — order is load-bearing)
 
-- [ ] Rename the hub repo on GitHub, `Cubric-Studio` → `Cubric-Connector`. This is what
+- [x] Rename the hub repo on GitHub, `Cubric-Studio` → `Cubric-Connector`. This is what
       frees the name and must come first. Do **not** rename the local folder (D4). Update
       its git remote, and its own `README.md:1` / `AGENTS.md:1` / `CLAUDE.md:1,3,101,105,113`
       headings. **Verify:** `gh repo view MadPonyInteractive/Cubric-Connector` resolves and
       `MadPonyInteractive/Cubric-Studio` 404s as a distinct repo.
-- [ ] Rename `Cubric-Vision` → `Cubric-Studio` on GitHub. Update the local remote with
+- [x] Rename `Cubric-Vision` → `Cubric-Studio` on GitHub. Update the local remote with
       `git remote set-url`. **Verify:** `git remote -v` shows the new slug, `git fetch`
       succeeds, and `curl -sI https://api.github.com/repos/MadPonyInteractive/Cubric-Vision/releases/latest`
       returns a 301 to the new slug.
-- [ ] Fix the CI auth gate in lockstep: `mpi-ci/.github/workflows/cubric-vision-portable.yml:9,47,48`
+- [x] Fix the CI auth gate in lockstep: `mpi-ci/.github/workflows/cubric-vision-portable.yml:9,47,48`
       and `.github/workflows/build-portable.yml:44`. These are string comparisons, not
       URLs — a redirect does not save them. **Verify:** dispatch a build with the new slug
       and confirm the checkout step authenticates (the run reaches the build stage rather
       than failing at checkout).
-- [ ] Sweep cross-repo pointers that a redirect would silently mislead rather than break.
+- [x] Sweep cross-repo pointers that a redirect would silently mislead rather than break.
       Highest value: `MadPony-Identity/workflows/community/feature-request-tier-label.md:73`
       passes `--repo MadPonyInteractive/Cubric-Studio`, which post-rename **succeeds** into
       the wrong repo. Also `MadPony-Identity/scripts/shortlinks.json:8,13,18`,
