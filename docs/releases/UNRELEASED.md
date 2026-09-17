@@ -391,6 +391,11 @@
   and SCALE divides the width and height by 1.5, 2, 3 or 4. Both keep the picture's proportions
   and show the size you will get before you press Apply.
 
+- **Mark cards with a dot, a square or a triangle.** The heart on a gallery card is now a mark.
+  Click it for a dot, or hold it to pick a square or a triangle. FILTER can show only the shapes
+  you choose, and cards you hearted before now show a dot. The media picker you open from a
+  prompt slot has the same FILTER, and its tiles show their marks.
+
 ## Fixes
 
 > **A fix to a FLOW does not belong in this section for this release.** Flows debut here, so
