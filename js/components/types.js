@@ -86,7 +86,8 @@
  * for images, setCropSize(w, h).
  *
  * Emits: 'apply' { kind: 'image' | 'video-save' | 'video-snapshot',
- *                  settings: { family, res_w, res_h, divisible_by, fill_color } }
+ *                  settings?: { family, res_w, res_h, divisible_by, fill_color } }
+ *        (`settings` on 'image' and 'video-save' only)
  */
 
 /**

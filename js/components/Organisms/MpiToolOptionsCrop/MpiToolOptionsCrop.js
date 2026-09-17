@@ -29,8 +29,9 @@
  *
  * Emits:
  *   'apply' { kind: 'image' | 'video-save' | 'video-snapshot',
- *             settings: { family, res_w, res_h, divisible_by, fill_color } }
- *     `settings` is what the panel SHOWS, read at click time (MPI-795). Never
+ *             settings?: { family, res_w, res_h, divisible_by, fill_color } }
+ *     `settings` rides on 'image' and 'video-save' only: what the panel SHOWS,
+ *     read at click time (MPI-795). Never
  *     re-read the project for it: the persisted copy trails by two debounces.
  */
 

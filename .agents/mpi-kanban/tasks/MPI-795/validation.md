@@ -6,7 +6,7 @@
 
 ## Fix
 
-- `getToolSettings` merges the stored keys over the defaults. Callers swept: 14 in js/, all compatible (the coercing panels already filled gaps; projectService/commandExecutor/MpiModelSettings pass no defaults and get a copy of the same content).
+- `getToolSettings` merges the stored keys over the defaults. Callers swept: 20 call sites in 18 files under js/ (counted at the parent commit), all compatible (the coercing panels already filled gaps; projectService/commandExecutor/MpiModelSettings pass no defaults and get a copy of the same content).
 - The crop panel sends its live values on `apply { kind, settings }` (image and video-save). The block passes them to `viewer.el.runCrop(settings)` and `_handleCropSaveVideo(settings)`. Neither re-reads the project any more. The unwired `el.getDivisibleBy` hook was replaced by this.
 
 ## Evidence
@@ -19,6 +19,7 @@
 - eslint on every touched JS file: 0 errors.
 - `tests/desktop/history-modes.spec.js` still passes.
 
-## Not done here
+## Follow-up (same session)
 
-- `.claude/rules/component-mounts.md:106` still names `el.getDivisibleBy()` and the old `apply` payload. It is a rule file, so the edit waits for the user's permission.
+- User verified the crop fix manually and approved the rule-map edit. `.claude/rules/component-mounts.md` now describes the RESOLUTION type, the fill colour, the `settings` payload (on `image` and `video-save` only), and the Resize MP/SCALE types. It also corrects the resize Apply path to `enqueueGeneration`.
+- The claim auditor found 17 claims proven. It flagged three: the caller count above (was "14"), `settings` on `video-snapshot` (it has none), and `startGeneration`. All three were re-checked in the code and fixed.
