@@ -1842,3 +1842,10 @@ Equalities are strict `===` against the text captured in the dialog before OK. A
 **zero `/comfy`**. So *Cancel is non-destructive to an ALREADY-APPROVED enhancement* is now driven,
 not source-backed. Fabio's :3000 and the engine on :48188 were not contacted; the 3199 server was
 stopped afterwards.
+
+### Step 1d, measured in MPI-774 (2026-09-17)
+
+Recorded in `tasks/MPI-774/validation.md` § "ComfyUI enhance VRAM": nothing stays resident between
+prompts on ComfyUI 0.34 (free VRAM back to 15.1 GB after every run), so an enhance does not make the
+next generation cold. It also found that the Klein encoder borrow and `Replace Text.replace` never
+reached the graph (fixed there). The step 1d text calling DeepInfra the default is stale: ComfyUI is.

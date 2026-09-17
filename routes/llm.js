@@ -358,8 +358,9 @@ router.post('/llm/enhance', async (req, res) => {
 //
 // Reads the default instruction from the shipped ComfyUI workflow at runtime so
 // the system prompt stays in sync with the local ComfyUI describe path.  The
-// node 41 resize (1 MP, 16-px steps, nearest-exact) is matched here so that
-// mapFromDescribeSpace coordinate mapping stays valid when coordinates land.
+// node 41 resize (1 MP, 16-px steps, nearest-exact) is matched here so both
+// describers see the same picture. Box answers are relative (0-1 here, 0-1000 on
+// ComfyUI), so the resize never enters `boxFromDescribeAnswer` (routes/connector.js).
 
 /** Path to the workflow that carries the default describe instruction. */
 const IMAGE_DESCRIPTOR_WORKFLOW = path.join(__dirname, '..', 'comfy_workflows', 'image_descriptor.json');
@@ -493,7 +494,7 @@ router.post('/llm/describe', async (req, res) => {
         // Downscale to ≤ 1 MP in 16-px steps (nearest-exact), matching node 41.
         // Only downscale; images already within the limit are kept at native size.
         // Uses floor (not round) so the product is guaranteed ≤ DESCRIBE_MAX_PIXELS
-        // after rounding, keeping mapFromDescribeSpace coordinate mapping valid.
+        // after rounding.
         let resizePipeline = sharp(rawBuf, { raw: { width: srcW, height: srcH, channels: info.channels } });
         if (srcW * srcH > DESCRIBE_MAX_PIXELS) {
             const scale = Math.sqrt(DESCRIBE_MAX_PIXELS / (srcW * srcH));

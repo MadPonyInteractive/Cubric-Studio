@@ -7,6 +7,6 @@ Derived from `plan.md` phases (2026-09-15).
 - [x] Integration and scripted harness
 - [x] Fabio's round: no deletes, skills for the agent, panel layout, rules, project memory
 - [x] Fabio round 2: one conversation per project, landing agent creates/opens projects (Phase 3c)
-- [ ] The agent box: input hint, numbered image chips, resizable full-height panel (Phase 3d, from MPI-797)
+- [x] The agent box: input hint, numbered image chips, resizable full-height panel (Phase 3d, from MPI-797) *(Fabio passed items 1-4, 6, 7 in his app, the Studio head on 2026-09-17; item 5 deferred until the mascot animations)*
 - [ ] Live on the GPU
 - [ ] Fabio's pass

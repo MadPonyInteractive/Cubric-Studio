@@ -2441,7 +2441,7 @@ export const MpiPromptBox = ComponentFactory.create({
 
         if (_modeToggleSlot) {
             const modeBtn = MpiButton.mount(_modeToggleSlot, {
-                image: 'assets/mascot/logo.png', // the agent's head (MPI-797)
+                image: 'assets/mascot/studio/logo.webp', // the agent's head, the Studio robot (MPI-797)
                 info: 'Switch to Agent mode (chat)',
                 size: 'sm',
                 variant: 'ghost',

@@ -430,3 +430,194 @@ uncommitted server edits were in the tree when this started; see plan Current St
 
 - **Rule map** (Fabio "yes to maps"): `.claude/rules/component-events-primitives.md` MpiAgentChat block
   gains `agent:user`, `agent:session`, `project:changed`, the session filter, and `_reload()`.
+
+### Phase 3d item 6, second pass (2026-09-17, session 047d6088) - the Studio head, Enhance-sized
+
+- **Fabio:** wrong head (the Vision camera, `assets/mascot/logo.png`) and too small (the `sm` 16px icon
+  size). Now `assets/mascot/studio/logo.webp`: `Studio-Logo.png` (2000x2000) trimmed of its transparent
+  margin and fitted to 128px wide (sharp) -> **128x86, 3.4 KB**; opened, it is the robot face.
+  `MpiButton` adds `mpi-ibtn--image` when it draws an image; at `sm` the button drops its padding and the
+  image is 32px tall, so the button is as tall as the Enhance button beside it.
+- **Spec** (`PromptBox Agent mode: own text and hint ...`): src is the webp; the toggle and the Enhance
+  button differ by <= 1px in height; the head is at least the Enhance height minus 4 -> **passed**.
+  **Bite** (class renamed so the rule never applies): **RED**, `Expected: >= 30, Received: 16`; restored.
+  Screenshots of the box off and on (scratchpad, not kept): the head sits between the text and the
+  Enhance button at its height; in Agent mode it is in full colour at the right edge.
+- **Suite:** `eslint` on the three touched JS files -> clean; `agent-chat.spec.js` (private `--output`)
+  -> **26 passed (1.6m)**. `docs/agent-chat.md` and `.claude/rules/component-mounts.md` name the new src.
+
+## Phase 4 (2026-09-17, session 047d6088) - live on the GPU, option A
+
+- **Where:** my own `npm run app:isolated` (own profile in the session scratchpad, ports 53508 -> 64037 ->
+  64802 across restarts), `CUBRIC_MODELS_ROOT=G:/CubricModels`, attached to the engine on 48188; `:3000`
+  untouched. Pre-checks: GPU free, 48188 queue empty, `git status -- routes/ server.js services/ main/`
+  clean, no dep/pin commit newer than the user's app start. Every dispatching command ran under
+  `gpu_lease.py run`. Scratch project "MPI-774 agent test" in his Projects root (his to delete).
+- **The person images, through the agent** (turn 1, Auto): "three separate photoreal images of people"
+  -> `list_models`, `read_knowledge guide:sdxl`, three `generate` (SDXL Realistic t2i, 3:4 / 4:5 / 1:1),
+  one whole reply, **3 results in 193 s**, then a `look` after each result and no unrequested
+  regeneration (`/agent/history`). All three opened: a red-haired woman full body in a park, a bearded
+  older man at a cafe table, a young man in a hoodie on a night street. Nit: the reply said "Here's what
+  was generated" while the three were still queued.
+- **Box measurement:** `research/box-measurement.md` (raw answers, both describers, three images, two
+  phrasings). Verdict: both answer RELATIVE (Qwen3-VL 0-1000, Llama-4-Scout 0-1); drawn on the originals,
+  only that reading lands on the head in all three. The json phrasing gave a clean `bbox_2d` 6/6.
+- **Defect 1, found live: a ComfyUI describe with a question never showed the model the image.** The first
+  ComfyUI box call produced no HTTP answer for 300 s; `app.log`: `imageDescribe returned no text` 2 s in.
+  `buildDescribeInjectionParams` sent `system {question} ... <|im_start|>user`, no `<|image_pad|>`, no
+  assistant header, and a `<|im_start|>` prompt skips the tokenizer template (`qwen3vl.py`). Now the whole
+  turn in the baked default's shape. Unit test pins it and checks the baked node 38 still has that frame:
+  pass; **old stub back -> 1 fail**; restored. Live after: six ComfyUI box answers in 5.8-10.5 s.
+- **Defect 2: an empty caption hung every text-op caller** (`generationService` warned, called nothing):
+  describe, ComfyUI enhance, both agent-dispatch paths, a Flow's auto-Enhance before Generate. Now
+  `onError`. **Live:** a bait question ("Output nothing at all") -> `RUNTIME_ERROR "The model returned no
+  text."` in **3.5 s** (the same empty answer hung >300 s before). No unit seam (the module imports DOM
+  components); the live run is the check.
+- **Box parser** in `POST /connector/describe` (`box: true` + `question`; `boxFromDescribeAnswer`,
+  `NO_BOX`). `tests/connector-agent-tools.test.cjs` replays the six json answers (box holds the face, stays
+  in the head region) plus wrappers, crop and refusals: 16/16. **Bites, 4/4 RED:** read as pixels (3 fail),
+  crop ignored (1), key digits kept (2), inverted box accepted (1); restored. **Live:** `box` without a
+  question -> `BAD_REQUEST`; "the man's head" on 002 -> `{362,70,303,429}`, drawn and opened: on the head;
+  a 350 px crop on 001 -> a box inside the crop, but around the whole visible person, not the head (the
+  model, on a tight crop; the whole-image answer was right).
+- **Suite:** `npm test` 1276 / 1275 pass / 0 fail / 1 skipped; `eslint` on the seven touched files exit 0.
+- **Head Swap through the agent, first try: GUESSED boxes** (turn 2, the two photos attached, "put the
+  young man's head from picture 2 onto the older man in picture 1"). Two descriptive `look`s, then
+  `generate head-swap` with `box1` and `box2` both `{0,0,512,512}` and an INSTRUCTION in the `positive`
+  field. Opened `flowHeadSwap_001.png`: half a swap, grey hair and beard left on a younger face (the
+  guessed box cut the head at x 512). Causes: no rule said to measure, nothing refused a guess, and
+  `list_models` listed the field as a bare `"positive"` (it is Head Swap's EXPRESSION field).
+  **Fixes:** (1) a **box gate** in the loop, like the guide gate: a Flow `params` box answers
+  `BOX_NOT_MEASURED` until a `look` with `box: true` measured the image passed for that box's role;
+  a compaction clears it. `tests/agent-loop.test.cjs`: box on the other image / look without box /
+  measured -> refused, refused, started; 39/39. **Bites 4/4 RED** (look never records, no gate, any
+  measured image opens it, compaction keeps boxes); restored. (2) A Box rule in the system prompt. (3)
+  The describe route returns `square` (same centre, longer side) for `ratio: 1` steps. (4) The flow
+  catalog lists `fields: [{id, label}]`, step fields included (`flowDeclaredFields`).
+- **Head Swap, second try (turn 3, same request, fresh instance):** two descriptive looks, then
+  `look box: true` on each ("the older man's head (face, hair and jaw included)") -> `box` + `square`,
+  then `generate head-swap` with `box1 {299,70,429,429}` and `box2 {302,92,479,479}` = the two squares,
+  `positive: "a calm, neutral expression"`. The rule did it; the gate never had to fire. Opened
+  `flowHeadSwap_002.png`: the young man's head on the older man's body, cafe, jacket and cup unchanged,
+  no leftover beard or grey hair.
+- **Edit with a reference, first try: WRONG SOURCE** (turn 4, same conversation, `t2i_003` + `t2i_001`
+  attached, "Edit picture 1: give the young man the long red hair of the woman in picture 2"). It
+  looked at both attachments, read `guide:krea-2` and `guide:flux-2`, then ran `klein-9b kleinEdit`
+  with `inputImage` = the PREVIOUS turn's Head Swap result and `inputImage2` = the woman, and its
+  reply said so ("the current state of picture 1 we've been editing"). Opened `edit_001.png`: the
+  cafe man with long red hair and freckles, so the reference worked, on the wrong image. Cause: the
+  box numbers its chips 1, 2, 3 but the model got `[Attached image: t2i_003.png (id: ...)]`, no
+  number, while turn 3 had its own "picture 1". **Fix:** `[Attached image N: ...]` in chip order plus a
+  Numbering rule (a message's "picture 2" is that message's attachment 2, never an earlier image).
+  `tests/agent-loop.test.cjs` 40/40; **bites 2/2 RED** (unnumbered line, rule removed); restored.
+- **Edit with a reference, second try** (fresh instance; turn 5a "Who is in picture 1?" with `t2i_002`
+  attached gives "picture 1" a meaning, then 5b the same edit request with `t2i_003` + `t2i_001`): it
+  looked at both, read `guide:krea-2`, ran `krea2 krea2Edit` with `inputImage` = this message's
+  attachment 1 and `inputImage2` = attachment 2, and said so. Opened `edit_002.png`: the neon-street
+  young man with the woman's long red hair, hoodie, face and street unchanged, 1:1 like its source.
+
+### ComfyUI enhance VRAM (folded MPI-677 step 1d), 2026-09-17, session 047d6088
+
+- **Method.** The exact graphs the app dispatched, read back from ComfyUI `/history`: a Klein 9B t2i
+  (the connector's generate route, 1:1) and the prompt box's ComfyUI Enhance for Klein 9B
+  (`llmService.enhance` run in a page on MY instance, closed right after, since the relay feeds the
+  newest window). Replayed on 48188 under the lease with fresh seeds every run (`vram_seq.mjs`),
+  polling `/system_stats` every 0.5 s and reading the engine's load lines from the app log. No other
+  client ran a prompt during the sequences (history before/after: 11 new, all mine). RTX 4060 Ti 16 GB,
+  ComfyUI 0.34.
+- **As shipped** (gen, enh, gen, enh, gen, gen): gen 12.9 / 11.3 / 11.1 s; enhance 12.2 / 11.9 s
+  (loads `Krea2TEModel_`, the 4B, 5.0 GB staged; min free VRAM 10.2 GB); the gen repeated with the
+  same prompt 9.6 s (52 cached nodes). **Free VRAM is back to 15.1 GB after EVERY run, generation or
+  enhance**: nothing stays resident between prompts (dynamic VRAM staging, and both graphs end in
+  `MpiClearVram`); every generation logs `Requested to load Flux2TEModel_` / `Flux2` again.
+- **Control, no enhance:** two DIFFERENT prompts alternated, 10.0 / 10.1 / 11.4 / 9.9 s (36 cached).
+  So the gen after an enhance (11.1-11.3 s) costs what any changed prompt costs. **Verdict: the
+  enhancer does not make the next generation cold**; there is no resident model for it to evict.
+  MPI-35 phase 2's claim is moot on this engine. Certain regardless, by design: a ComfyUI enhance is a
+  queued job.
+- **Found on the way: the Klein encoder borrow (Fabio, 2026-09-13) never reached ComfyUI**, and
+  neither did `Replace Text.replace` (MPI-35's newline override). The dispatched graph still said
+  `qwen3vl_4b_abliterated` / `krea2` and `replace: ""` while the enhance result reported
+  `model: qwen_3_8b_int8_convrot` (read from the params, not the graph). Cause: commandExecutor's
+  `Input_` canonicalization renamed every bare key, dotted ones too, so `Load CLIP.clip_name` went to a
+  title `Input_Load CLIP` no graph has, and the injector skips unknown titles silently. Fix: the pass
+  moved to `js/utils/injectionKeys.js` and keeps a dotted key's bare form (the alias still lands
+  `Video_Latent.*`). `tests/injection-keys.test.cjs` 3/3; `tests/llm-service.test.cjs` now checks each
+  enhance key LANDS on the graph after the pass (it checked them before the pass, which is how this
+  hid): 29/29. **Bite** (old pass): 1 fail in each. **Live:** the same page enhance after the fix ->
+  graph `qwen_3_8b_int8_convrot` / `flux2`, `replace: "\n"`; 15.8 s.
+- **The borrow, measured** (enh, gen, enh, gen, gen with the corrected graph): enhance 16.6 / 15.9 s
+  (the 8B, 9.0 GB staged, min free VRAM 5.5 GB), its loader output cached from the generation; the
+  gen after it 9.7 / 10.4 s (loader cached). Per Enhance + Generate: 4B 23.5 s, borrowed 26.3 s, so
+  the borrow costs about 3 s and 4.7 GB more peak VRAM on this card, for the 8B writing the prompt
+  (Fabio's quality call, 2026-09-13; now it actually happens).
+- **Text-to-video through the agent** (turn 6a, Auto: "a short video of waves crashing on dark rocks
+  at sunset, with the sound of the surf"): `list_models`, `read_knowledge guide:minimax-h3` and
+  `minimax-h3:t2v`, then `generate minimax-h3 t2v_ms` with **`qualityTier: medium`, `turbo: true`**,
+  ratio 16:9, a 151-word prompt, zero questions. Result in 196 s: `t2v_001.mp4`, 1344x768, 2.33 s,
+  audio stream. Frames sampled: a wave bursting over dark rocks against the setting sun; audio
+  `volumedetect` mean -30.3 dB, max -15.1 dB (audible surf). Note: 2.33 s is the length it got, and
+  the agent has no duration param to ask for more (named params are ratio, quality, turbo, style).
+- **Image-to-video with an attachment, first try: WRONG FRAMING** (turn 6b, `flowHeadSwap_002.png`,
+  832x1024, attached: "Animate picture 1: he lifts the coffee cup and takes a slow sip"): one `look`,
+  then `minimax-h3 i2v_ms`, `media: [{startFrame: att_...}]`, medium + turbo, **ratio 16:9**. Result
+  in 241 s: `i2v_001.mp4`, 1344x768. Frames: the motion is right (cup up, sip), but the portrait start
+  frame was cropped to landscape and the head is cut at the eyes. Audio mean -46.3 dB. Cause: the
+  model never learns an image's size (the attachment line had none, `look` returns text), and H3's
+  i2v offers the ratio picker. **Fix:** the attachment line carries `WxH`, a finished generation's
+  note carries its `pixelDimensions`, and the Settings rule says an op that starts from an image takes
+  the listed ratio closest to its size. `tests/agent-loop.test.cjs` 40/40; **bites 2/2 RED** (size
+  dropped from the line, sentence removed); restored.
+- **Image-to-video, second try** (fresh instance, same request and attachment, now listed as
+  `832x1024`): `minimax-h3 i2v_ms`, **ratio 9:16**, medium + turbo, startFrame = the attachment.
+  Result in 247 s: `i2v_002.mp4`, 768x1344, 2.33 s. Frames: the whole head in frame, he lifts the cup
+  and sips; the cup sits at the left edge. H3 offers 1:1 / 9:16 / 16:9 / 21:9, so by aspect 1:1 is the
+  nearest to 0.81 and would crop less (19 % of the height against 31 % of the width); the model kept
+  the portrait orientation instead. Accepted: the subject is intact, which was the defect.
+- **Harness after this session's prompt edits** (Numbering rule, Box rule, ratio sentence,
+  "Never ask them to open or create a project first"): `--bite` **15/15**; 3 runs each **14/15**, the
+  miss `memory-read` 2/3, then `--case memory-read --runs 6` **6/6** (a flake). Before the project
+  sentence `create-then-generate` failed 1 in 3 (7/9 over two runs), and 4/6 with this session's new
+  rules removed, so it predates them; with the sentence 6/6, then 3/3 in the full run.
+
+### Install, live, in a sandboxed store (2026-09-17, session 047d6088)
+
+- **The sandbox, and a trap on the way.** A second `app:isolated` with only `CUBRIC_MODELS_ROOT` on K:
+  still listed every model installed and logged `free space — models root ... at G:/CubricModels`:
+  the engine's `model_roots.json` custom root wins over the env var, which moves only the DEFAULT
+  root (`getSearchedModelsRoots`). An install there would have written into the user's real store; the
+  instance was stopped before anything was asked. The sandbox that works: `CUBRIC_ENGINE_ROOT` AND
+  `CUBRIC_MODELS_ROOT` on `K:/mpi774-install-sandbox/`, seeded (`seed_sandbox.cjs`: version stamp,
+  stub python, one-byte stubs for every universal-workflow dep, node folders with their pinned
+  `.mpi_node_commit`), boot check `needsDepsInstall: false`. Boot logged no repair or download, free
+  space `at K:\mpi774-install-sandbox\models`, 0 models installed, and it attached to the engine on 48188.
+- **No:** "Install the Illustrious Anime model for me." -> `list_models`, `install_model ill-anime`,
+  card `ILL Anime`, `downloadGb 8.8`; `POST /agent/confirm {yes:false}` -> the tool result "User
+  declined the installation", `/comfy/downloads/status` jobs `[]`, the store held only the 11
+  one-byte seeds.
+- **Yes, first try: correct outcome, blocking path.** Same card, Yes -> a real download from
+  models.cubric.studio, `ILL_Anime.safetensors` 6,938,045,570 B + the shared ControlNet 2,513,342,408 B,
+  3 m 42 s (~42 MB/s), then the re-read and "ILL Anime has been installed successfully". But
+  `POST /agent/confirm` held for the whole download: `downloadService.start()` returns the install
+  CHAIN, which settles at download-done, and `agent.install-model` awaited it. The contract is
+  `started: true`; awaited, the agent's one-turn lock is held for the whole download, and a download
+  past the relay's 30-minute budget answers TIMEOUT while it carries on. **Fix:** not awaited.
+- **Yes, second try (ILL Anime Beauty, 6.46 GB): the Yes call held 0.2 s**, the job `downloading`
+  1.7 % three seconds later, the turn settled in 33 s, BUT the reply said "installed successfully":
+  the loop's re-read found the ENTRY (every model is listed) instead of reading `installed`. **Fix:**
+  `?.installed === true`. `tests/agent-loop.test.cjs`: the re-read decides the message, both ways,
+  41/41; **bite** (entry-exists re-read) 1 fail; restored. Download completed (6,938,045,170 B); a new
+  turn "Is ILL Anime Beauty installed now?" -> `list_models` -> "Yes".
+- **Yes, third try (SDXL NSFW): the message was right and the model still misread it** ("Download
+  started..." -> "The installation will begin once you click Yes"). The result now says it as a fact:
+  "The user pressed Yes. X is downloading now (it shows in the app's downloads) and is not installed
+  until that finishes." **Fourth (SDXL Realistic, 6.62 GB):** Yes held 0.2 s, job `downloading`, reply
+  "It's now downloading in the background, you'll see it in the app's downloads panel"; after it
+  finished (7,105,352,784 B), "Is SDXL Realistic installed now?" -> `list_models` -> "installed".
+- The sandbox (`K:/mpi774-install-sandbox/`, 29 GiB now) and my two scratch profiles are left for
+  Fabio to delete (agents do not hard-delete).
+
+- **Fabio, 2026-09-17 (after this session's report):** the Agent toggle "looks good now" (the Studio
+  head, Enhance-sized; Phase 3d item 6 closed). On the encoder borrow: **Klein must use its own
+  encoder when ComfyUI runs the enhance**, "otherwise generations would take a lot longer". The fix
+  stays; the measured +3 s per Enhance + Generate on this card does not change that decision.

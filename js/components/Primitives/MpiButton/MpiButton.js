@@ -21,8 +21,9 @@ import { ce, qs } from '../../../utils/dom.js';
  * @param {string}  [icon]          - Icon registry key (activates icon-button mode)
  * @param {string}  [iconActive]    - Alternate icon shown in active/toggled state
  * @param {string}  [image]         - An image url drawn in the icon's place (icon-button mode
- *                                    without an `icon`): muted until hovered, full colour when
- *                                    active, since an image cannot take the icon's colour
+ *                                    without an `icon`), as tall as the button: muted until
+ *                                    hovered, full colour when active, since an image cannot
+ *                                    take the icon's colour
  * @param {string}  [label]         - Text label alongside the icon
  * @param {'left'|'right'|'top'|'bottom'} [labelPosition='right'] - Label placement
  * @param {boolean} [toggleable]    - Click commits the active state
@@ -79,6 +80,7 @@ export const MpiButton = ComponentFactory.create({
             isToggleable ? 'is-toggleable' : '',
             isActive ? 'is-active' : '',
             iconActive ? 'has-icon-swap' : '',
+            !icon ? 'mpi-ibtn--image' : '',
             props.shape === 'pill' ? 'mpi-btn--pill' : '',
             props.extraClasses || '',
         ].filter(Boolean).join(' ');

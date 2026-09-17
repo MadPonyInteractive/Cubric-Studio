@@ -56,6 +56,7 @@ const {
     withRemoteSettingsHint,
 } = require('../js/services/llmService.js');
 const { Storage } = require('../js/core/storage.js');
+const { canonicalizeInjectionKeys } = require('../js/utils/injectionKeys.js');
 const { FALLBACK_RECIPE_ID } = require('../js/data/recipes/registry.js');
 
 const WORKFLOW = (file) => JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'comfy_workflows', file), 'utf8'));
@@ -126,14 +127,23 @@ function testInjectionParamsCarryTheOverrides() {
     assert.strictEqual(params['Input_Scrub_Negation.regex_pattern'], '(?!)');
     assert.ok(params['Input_Text_Gen.max_length'] > 512, 'the baked 512 truncates a long-budget recipe');
 
-    // Every key must address a real node title, optionally `.widget`.
-    const graph = JSON.parse(fs.readFileSync(
-        path.join(__dirname, '..', 'comfy_workflows', 'qwen3vl_4b_prompt_enhancer.json'), 'utf8'));
-    const titles = new Set(Object.values(graph).map((n) => (n._meta && n._meta.title || '').toLowerCase()));
-    for (const key of Object.keys(params)) {
+    // Every key must LAND on the graph as dispatch sends it: after commandExecutor's
+    // canonicalization pass, some key of its family must address a node by title and,
+    // when dotted, a widget on it. Checking the keys BEFORE the pass passed for months
+    // while `Replace Text.replace` and the Klein borrow were renamed to titles no graph
+    // has (MPI-774 Phase 4, read back from ComfyUI /history).
+    const graph = WORKFLOW('qwen3vl_4b_prompt_enhancer.json');
+    const sent = { ...params, ...enhancerClipParams(WORKFLOW('klein_9b_t2i.json')) };
+    const dispatched = canonicalizeInjectionKeys({ ...sent });
+    const lands = (key) => {
         const dot = key.indexOf('.');
         const title = (dot === -1 ? key : key.slice(0, dot)).toLowerCase();
-        assert.ok(titles.has(title), `injection key "${key}" addresses no node in the enhancer graph`);
+        return Object.values(graph).some((n) => (n._meta && n._meta.title || '').toLowerCase() === title
+            && (dot === -1 || key.slice(dot + 1) in (n.inputs || {})));
+    };
+    for (const key of Object.keys(sent)) {
+        const family = Object.keys(dispatched).filter((k) => k === key || k === `Input_${key}`);
+        assert.ok(family.some(lands), `injection key "${key}" reaches ComfyUI as ${JSON.stringify(family)}, which addresses nothing in the enhancer graph`);
     }
 }
 
@@ -407,12 +417,17 @@ function testDescribeModelPreference() {
 }
 
 function testBuildDescribeInjectionParamsChatMlWrapping() {
-    // Verify the ChatML wrapping for the comfy-path question injection.
+    // The comfy-path question is the WHOLE turn: node 38 feeds TextGenerate directly and a
+    // `<|im_start|>` prompt skips the tokenizer template, so without `<|image_pad|>` the model
+    // never sees the image, and without the assistant header it answers nothing (MPI-774).
     const params = buildDescribeInjectionParams('What color is the hat?');
-    assert.ok('Input_Describe_Prompt' in params, 'must set Input_Describe_Prompt');
-    assert.ok(params.Input_Describe_Prompt.startsWith('<|im_start|>system\n'));
-    assert.ok(params.Input_Describe_Prompt.includes('What color is the hat?'));
-    assert.ok(params.Input_Describe_Prompt.endsWith('<|im_end|>\n<|im_start|>user'));
+    assert.strictEqual(params.Input_Describe_Prompt,
+        '<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|>What color is the hat?<|im_end|>\n<|im_start|>assistant\n');
+    // Same frame as the shipped default instruction, whose user turn works live.
+    const wf = JSON.parse(require('fs').readFileSync(require('path').resolve('comfy_workflows/image_descriptor.json'), 'utf8'));
+    const baked = wf['38'].inputs.value;
+    assert.ok(baked.includes('<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|>'), 'baked user turn shape moved');
+    assert.ok(baked.endsWith('<|im_end|>\n<|im_start|>assistant\n'), 'baked assistant header moved');
     // No question → empty params (graph uses its own baked caption instruction).
     assert.deepStrictEqual(buildDescribeInjectionParams(), {});
     assert.deepStrictEqual(buildDescribeInjectionParams(''), {});

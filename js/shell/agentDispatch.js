@@ -484,7 +484,9 @@ function _listModels(jobId) {
             title: flow.title,
             operation: flow.operation,
             installed: avail.available,
-            fields: (flow.fields || []).map(f => f.id),
+            // The label is what a field MEANS: a bare `positive` read as "the prompt" and got an
+            // instruction where Head Swap wants an expression (MPI-774 Phase 4). Step fields too.
+            fields: flowDeclaredFields(flow).map(f => ({ id: f.id, label: f.label || f.id })),
             boxParams: boxSteps.map(s => ({
                 param: s.param,
                 role: s.role,
@@ -524,8 +526,14 @@ async function _installModel(jobId, input = {}) {
 
     const downloadGb = missingDeps.reduce((sum, dep) => sum + (dep.size ? sizeToGb(dep.size) : 0), 0);
 
+    // `start()` returns the install CHAIN, which settles when the download FINISHES. The
+    // contract is `started` (progress is /comfy/downloads/status): awaited, an 8.8 GB install
+    // held the agent's one-turn lock for four minutes, and a download past the relay's
+    // 30-minute budget would answer TIMEOUT while it carried on (MPI-774 Phase 4).
     try {
-        await downloadService.start(model.id, missingDeps);
+        Promise.resolve(downloadService.start(model.id, missingDeps)).catch((err) => {
+            clientLogger.warn('agentDispatch', `install ${model.id} failed after it started: ${err?.message}`);
+        });
     } catch (err) {
         return _fail(jobId, 'RUNTIME_ERROR', err?.message || 'Download start failed.');
     }

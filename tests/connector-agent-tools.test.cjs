@@ -5,7 +5,8 @@
  * Tests for:
  *  1. Knowledge routes (corpus list + entry fetch logic)
  *  2. Box params validation (validateBoxParams pure function)
- *  3. Coordinate mapping round-trip (mapFromDescribeSpace)
+ *  3. Describer box answers -> original pixels (boxFromDescribeAnswer), replayed from
+ *     the raw answers measured live in MPI-774 Phase 4
  *
  * All tests are pure logic tests — no running server, no renderer, no GPU.
  */
@@ -18,59 +19,61 @@ const assert = require('node:assert/strict');
 const repoRoot = require('node:path').join(__dirname, '..');
 const esm = (p) => import('file://' + require('node:path').join(repoRoot, p).replace(/\\/g, '/'));
 
-// ── 1. mapFromDescribeSpace (pure coordinate mapping) ─────────────────────────
+// ── 1. boxFromDescribeAnswer (describer answer -> original pixels) ────────────
 
-test('mapFromDescribeSpace: round-trip, no crop', async () => {
-    const { mapFromDescribeSpace } = require('../routes/connector');
+// The head boxes both describers gave, verbatim, for the three person images of
+// tasks/MPI-774/research/box-measurement.md, asked with the route's BOX_INSTRUCTION.
+// Read off the images by eye, in ORIGINAL pixels: `face` is the centre of the face, `outer`
+// the head with its hair plus a margin. A box on the head holds `face` and stays in `outer`.
+// Reading the ComfyUI numbers as pixels instead of 0-1000 leaves `outer` on 001 and 002.
+const MEASURED = [
+    { img: 't2i_001', w: 896, h: 1152, face: [458, 420], outer: [370, 330, 560, 510],
+      remote: '{"bbox_2d": [0.431, 0.306, 0.571, 0.430]}', comfy: '{"bbox_2d": [458, 310, 576, 419]}' },
+    { img: 't2i_002', w: 832, h: 1024, face: [500, 260], outer: [300, 30, 700, 520],
+      remote: '{"bbox_2d": [0.387, 0.052, 0.777, 0.429]}', comfy: '{"bbox_2d": [435, 68, 799, 487]}' },
+    { img: 't2i_003', w: 1024, h: 1024, face: [535, 330], outer: [330, 50, 740, 600],
+      remote: '{"bbox_2d": [0.349,0.070,0.694,0.533]}', comfy: '{"bbox_2d": [357, 90, 698, 554]}' },
+];
 
-    // Original image 1024×768. No crop → the whole image is the "crop".
-    // Suppose ImageScaleToTotalPixels produces a 1152×864 scaled input.
-    const origW = 1024, origH = 768;
-    const inputW = 1152, inputH = 864;
-
-    // Pick a point in original space, compute its input-space position, then map back.
-    const origPt = { x: 200, y: 150 };
-    const inPt = { x: origPt.x * inputW / origW, y: origPt.y * inputH / origH };
-    const mapped = mapFromDescribeSpace(inPt, { inputWidth: inputW, inputHeight: inputH, origWidth: origW, origHeight: origH });
-
-    assert.ok(Math.abs(mapped.x - origPt.x) < 1e-9, `x round-trip failed: ${mapped.x} ≠ ${origPt.x}`);
-    assert.ok(Math.abs(mapped.y - origPt.y) < 1e-9, `y round-trip failed: ${mapped.y} ≠ ${origPt.y}`);
+test('boxFromDescribeAnswer: every measured answer lands on the head, both describers', () => {
+    const { boxFromDescribeAnswer } = require('../routes/connector');
+    for (const m of MEASURED) {
+        for (const describer of ['remote', 'comfy']) {
+            const b = boxFromDescribeAnswer(m[describer], { origWidth: m.w, origHeight: m.h });
+            assert.ok(b, `${m.img} ${describer}: no box`);
+            const [fx, fy] = m.face;
+            const [ox1, oy1, ox2, oy2] = m.outer;
+            const where = `${m.img} ${describer}: ${JSON.stringify(b)}`;
+            assert.ok(b.x < fx && fx < b.x + b.width && b.y < fy && fy < b.y + b.height, `${where} misses the face`);
+            assert.ok(b.x >= ox1 && b.y >= oy1 && b.x + b.width <= ox2 && b.y + b.height <= oy2, `${where} leaves the head`);
+        }
+    }
 });
 
-test('mapFromDescribeSpace: round-trip with crop', async () => {
-    const { mapFromDescribeSpace } = require('../routes/connector');
-
-    // Original 1920×1080, crop {x:400, y:200, width:200, height:200}.
-    // 1 MP scale of 200×200 → ~1000×1000, rounded to 16 → 992×992.
-    const crop = { x: 400, y: 200, width: 200, height: 200 };
-    const origW = 1920, origH = 1080;
-    const inputW = 992, inputH = 992;
-
-    // A point in the CROPPED + SCALED input at (496, 496) should land at the centre
-    // of the crop: (400 + 496 * 200 / 992, 200 + 496 * 200 / 992) ≈ (500, 300).
-    const inPt = { x: 496, y: 496 };
-    const mapped = mapFromDescribeSpace(inPt, { crop, inputWidth: inputW, inputHeight: inputH, origWidth: origW, origHeight: origH });
-
-    const expectedX = crop.x + inPt.x * crop.width / inputW;
-    const expectedY = crop.y + inPt.y * crop.height / inputH;
-    assert.ok(Math.abs(mapped.x - expectedX) < 1e-9);
-    assert.ok(Math.abs(mapped.y - expectedY) < 1e-9);
+test('boxFromDescribeAnswer: exact mapping, the wrappers the describers use', () => {
+    const { boxFromDescribeAnswer } = require('../routes/connector');
+    const dims = { origWidth: 832, origHeight: 1024 };
+    const want = { x: 362, y: 70, width: 303, height: 429 };
+    assert.deepEqual(boxFromDescribeAnswer('{"bbox_2d": [435, 68, 799, 487]}', dims), want);
+    assert.deepEqual(boxFromDescribeAnswer('```json\n[\n\t{"bbox_2d": [435, 68, 799, 487], "label": "person\'s head"}\n]\n```', dims), want);
+    assert.deepEqual(boxFromDescribeAnswer('**head**: <BBOX>0.5,0.25,0.75,0.5</BBOX>.', dims), { x: 416, y: 256, width: 208, height: 256 });
 });
 
-test('mapFromDescribeSpace: MUTATION GUARD — wrong formula triggers assertion failure', async () => {
-    // This demonstrates the validator bites when the formula is mutated.
-    // We simulate a "broken" version that uses inputWidth in place of cropWidth.
-    const { mapFromDescribeSpace } = require('../routes/connector');
-    const crop = { x: 100, y: 100, width: 200, height: 200 };
-    const inputW = 992, inputH = 992;
-    const inPt = { x: 200, y: 200 };
+test('boxFromDescribeAnswer: a crop is the region the relative box lives in', () => {
+    const { boxFromDescribeAnswer } = require('../routes/connector');
+    const crop = { x: 400, y: 200, width: 200, height: 100 };
+    assert.deepEqual(boxFromDescribeAnswer('[250, 0, 750, 1000]', { crop, origWidth: 1920, origHeight: 1080 }),
+        { x: 450, y: 200, width: 100, height: 100 });
+});
 
-    const correct = mapFromDescribeSpace(inPt, { crop, inputWidth: inputW, inputHeight: inputH, origWidth: 1920, origHeight: 1080 });
-
-    // Broken: using origWidth instead of crop.width — result would differ.
-    const broken_x = crop.x + inPt.x * 1920 / inputW;  // wrong: origWidth not cropWidth
-    assert.notStrictEqual(Math.round(correct.x * 1000), Math.round(broken_x * 1000),
-        'broken formula must produce a different result than the correct one');
+test('boxFromDescribeAnswer: no box rather than a wrong one', () => {
+    const { boxFromDescribeAnswer } = require('../routes/connector');
+    const dims = { origWidth: 1920, origHeight: 1080 };
+    assert.equal(boxFromDescribeAnswer('A woman stands in a park.', dims), null);
+    assert.equal(boxFromDescribeAnswer('[10, 20, 30]', dims), null);
+    assert.equal(boxFromDescribeAnswer('[500, 500, 100, 900]', dims), null, 'x2 before x1');
+    assert.equal(boxFromDescribeAnswer('[1200, 300, 1500, 700]', dims), null, 'pixels beyond 1000: no known scale');
+    assert.equal(boxFromDescribeAnswer('', dims), null);
 });
 
 // ── 2. validateBoxParams (pure box validation) ─────────────────────────────────

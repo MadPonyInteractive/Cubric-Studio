@@ -192,6 +192,18 @@
     transition: filter var(--t-fast) var(--ease), opacity var(--t-fast) var(--ease);
 }
 
+/* A face does not read at a glyph's 16px: the image takes the button's whole height (the
+   padding goes), so the button stays as tall as a `sm` icon button beside it.
+   ponytail: `sm` only, the one size an image button uses; add md/lg when one does. */
+.mpi-btn--sm.mpi-ibtn--image {
+    padding: 0;
+}
+
+.mpi-btn--sm.mpi-ibtn--image .mpi-ibtn__img {
+    width: auto;
+    height: 32px;
+}
+
 .mpi-ibtn:hover:not(:disabled) .mpi-ibtn__img {
     opacity: 1;
 }

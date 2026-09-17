@@ -981,8 +981,13 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
             const _text = outputInfo.promptText || null;
             if (_text) callbacks.onText?.(_text);
             else {
+                // An empty caption is a FAILED run, and it must still end in a callback:
+                // every text-op caller waits on one (a describe, an enhance, an agent `look`,
+                // a Flow's auto-Enhance before Generate), and a warning alone left them
+                // waiting forever (MPI-774 Phase 4, a head-box question to Qwen3-VL).
                 clientLogger.warn('generationService', `${operation} returned no text.`);
                 Events.emit('ui:warning', { message: 'No description was returned.' });
+                callbacks.onError?.(new Error('The model returned no text.'));
             }
             return;
         }

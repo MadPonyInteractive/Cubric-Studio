@@ -806,9 +806,14 @@ export async function enhance({ prompt, model, recipeKey, mode, backend } = {}) 
 /**
  * Build the `injectionParams` for a ComfyUI image description with an optional question.
  *
- * The node `Input_Describe_Prompt` is ChatML-wrapped for the same reason
- * `Input_System_Prompt` is in `buildComfyInjectionParams`: the graph concatenates
- * it with the user text and expects the role markers to already be present.
+ * `Input_Describe_Prompt` (node 38) feeds `TextGenerate` DIRECTLY — nothing is
+ * concatenated after it, unlike the enhancer's `Input_System_Prompt` — and a
+ * prompt starting with `<|im_start|>` skips the tokenizer's template, so the
+ * image reaches the model ONLY where the string carries `<|image_pad|>`. The
+ * value is therefore the WHOLE turn, the shape of the baked default: the image,
+ * the question as the user text (as `POST /llm/describe` sends it), and the
+ * assistant header. The old `system … <|im_start|>user` stub carried no image
+ * and no turn to answer, and Qwen3-VL answered with nothing (MPI-774 Phase 4).
  * No question → empty params, and the graph uses its own baked caption instruction.
  *
  * @param {string|undefined} question
@@ -816,7 +821,9 @@ export async function enhance({ prompt, model, recipeKey, mode, backend } = {}) 
  */
 export function buildDescribeInjectionParams(question) {
     if (!question) return {};
-    return { Input_Describe_Prompt: `<|im_start|>system\n${question}<|im_end|>\n<|im_start|>user` };
+    return {
+        Input_Describe_Prompt: `<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|>${question}<|im_end|>\n<|im_start|>assistant\n`,
+    };
 }
 
 /**

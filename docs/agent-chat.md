@@ -16,8 +16,8 @@ itself. Spec: `.agents/mpi-kanban/tasks/MPI-774/brief.md`. Contract first (2026-
   open while `state.agentMode` is true (the PromptBox toggle). Its right edge drags
   (`MpiResizeHandle`; 280-900 px, at most half the area, stored as `AGENT_PANEL_WIDTH`, default 420),
   and the workspace, prompt box and controls start right of it (MPI-797). The PromptBox sends with
-  `agent:send`, image chips as attachments. The toggle is the agent's head (`MpiButton` `image`,
-  `assets/mascot/logo.png`). **In Agent mode the PromptBox is an agent box:** only the
+  `agent:send`, image chips as attachments. The toggle is the agent's head, the Studio robot (`MpiButton` `image`,
+  `assets/mascot/studio/logo.webp`, as tall as the Enhance button). **In Agent mode the PromptBox is an agent box:** only the
   text and the toggle show; the text is the agent's own (the prompt survives), with a usage hint;
   chips are images, numbered by position, up to 9, whatever the op takes; Ctrl+Enter sends too; back
   in Prompt mode the chips fit the op again. A chat reloads from
@@ -80,7 +80,7 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
 - **`GET /connector/models`** -> `{ ok, engine: 'local'|'remote', hardware: { gpuName, vramGb, ramGb },
   models: [{ id, name, type, installed, ops: [{ op, installed, params: { ratios, qualityTiers, turbo,
   styles }, media: [{ role, type, required, tag? }] }], missingDownloadGb, fit: { floorVramGb,
-  ramGbAtYourVram, runs }, guides: [id] }], flows: [{ id, title, operation, installed, fields: [id],
+  ramGbAtYourVram, runs }, guides: [id] }], flows: [{ id, title, operation, installed, fields: [{ id, label }],
   boxParams: [{ param, role, ratio, overflow }] }] }`. `params` = `generationControls.namedParamsFor`;
   `media` = the op's `mediaInputs` through `filterMediaInputsForModel` (`mediaRolesFor`); `guides` =
   `agentCorpus.guideIdsByModel()`. Install state and ops from the renderer relay; hardware from `GET
@@ -101,12 +101,12 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
 - **`POST /connector/install { modelId }`** -> `{ ok, modelId, downloadGb, started: true }`; progress is
   `GET /comfy/downloads/status`. No gate here: a CLI agent's user is its own gate. Errors: `BAD_REQUEST`,
   `UNKNOWN_MODEL`, `ALREADY_INSTALLED`, `OFFLINE`, `APP_UNAVAILABLE`.
-- **`POST /connector/describe { imagePath, question?, crop? }`** -> `{ ok, output: { text, box? } }`.
+- **`POST /connector/describe { imagePath, question?, crop?, box? }`** -> `{ ok, output: { text, box? } }`.
   `imagePath` absolute; a `crop` is cut with `sharp` to the agent dir first; no `question` = the caption
-  instruction. Relayed as `agent.describe` to `llmService.describeImage`, the user's Image descriptions
-  pick ([llm.md](llm.md)); `box` waits for Phase 4. Errors: `BAD_REQUEST`, `IMAGE_NOT_FOUND`,
-  `CROP_OUT_OF_BOUNDS`, `DESCRIBER_MISSING` (ComfyUI), the Remote codes (`NO_KEY`, `NOT_VISION`, ...),
-  `APP_UNAVAILABLE`, `RUNTIME_ERROR`, `TIMEOUT`.
+  instruction; relayed as `agent.describe` to `llmService.describeImage` ([llm.md](llm.md)). **`box`** (needs
+  a `question`): both describers answer RELATIVE (Qwen3-VL 0-1000, Remote 0-1, measured), mapped over the
+  crop or image to ORIGINAL pixels (`boxFromDescribeAnswer`) + `square` (for `ratio: 1`); unreadable -> `NO_BOX`. Errors: `BAD_REQUEST`,
+  `IMAGE_NOT_FOUND`, `CROP_OUT_OF_BOUNDS`, `NO_BOX`, `DESCRIBER_MISSING`, Remote codes, `APP_UNAVAILABLE`, `RUNTIME_ERROR`, `TIMEOUT`.
 - **`POST /connector/generate`, Flow `params`** `{ box1: { x, y, width, height } }`: checked against the
   flow's `kind: 'box'` steps (known `param`, integers, square when `ratio: 1`), merged into
   `injectionParams`; no bounds check (every shipped box step declares `overflow: 'allow'`). Errors:
@@ -169,9 +169,9 @@ Every event but `agent:session` also carries `session`, the key of its conversat
   at:" = the `_images` allowlist), the project's notes index once per project (first turn, a switch, a
   compaction), then what finished since the last turn. A successful `open_project` updates the project
   for the rest of the turn, and its result carries the new project's notes.
-- **Guide gate:** a model op's `generate` answers `GUIDE_NOT_READ` until this context read one of that
-  model's `guides` (a Flow is not gated; a rule alone did not make the model read one); a compaction clears
-  it. A guide names the mode of any default ("in Auto mode use medium"): a bare one skipped Ask first.
+- **Gates** (a rule alone did not do it; a compaction clears both): a model op's `generate` answers `GUIDE_NOT_READ` until this context
+  read one of its `guides` (a guide names the mode of any default: a bare one skipped Ask first); a Flow `params` box answers
+  `BOX_NOT_MEASURED` until a `look` with `box` measured the image of its role (live, the model guessed 512 px boxes).
 - **Harness:** `npm run agent:test` (15 cases x 3, real model, fake tools; `--bite` proves each assertion,
   `--samples <md>` writes prompts to read). **Bounded steps:** 8 tool calls per user turn, then `STEP_LIMIT`.
 - **Generate** is fired, not awaited. On settle: `agent:result`, a queued "[Generation finished: card

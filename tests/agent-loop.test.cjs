@@ -238,6 +238,29 @@ describe('(a) install gate', () => {
         // The real loop test above proves the gate IS present.
     });
 
+    // MPI-774 Phase 4: the install is a started download; the re-read decides what the model is told.
+    test('after Yes the model is told what the re-read says: installed, or still downloading', async () => {
+        for (const [installed, said] of [[false, /pressed Yes\. Test Model is downloading now/], [true, /pressed Yes and Test Model is now installed/]]) {
+            const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [
+                { text: '', toolCalls: [{ id: 'tc-1', type: 'function', function: { name: 'install_model', arguments: '{"modelId":"test-model"}' } }] },
+                { text: 'ok' },
+            ] });
+            let reads = 0;
+            tools.listModels = async () => {
+                reads += 1;
+                // The first read is the install gate's own; the one after Yes is the re-read.
+                return { ok: true, flows: [], models: [{ id: 'test-model', name: 'Test Model', missingDownloadGb: 1.2, installed: reads > 1 && installed }] };
+            };
+            const turn = loop.runTurn('Install test-model', [], null, 'auto', 'deepinfra', `turn-reread-${installed}`);
+            const confirmEvt = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+            await loop.confirm(confirmEvt.data.confirmId, true);
+            await turn;
+            const result = loop._messages.filter((m) => m.role === 'tool').map((m) => JSON.parse(m.content)).at(-1);
+            assert.equal(result.installed, installed);
+            assert.match(result.message, said);
+        }
+    });
+
     test('confirm declined → installModel never fires', async () => {
         const engineResponses = [
             {
@@ -768,11 +791,62 @@ describe('(h) notes, results, names, guides', () => {
             contextWindow: 1000,
         });
         loop._readIds.add('guide:test');
+        loop._boxed.add('/tmp/att_1.png');
         loop._notesProject = '/project';
         await loop.runTurn('hi', [], project, 'auto', 'deepinfra', 't-c');
         assert.ok(loop.getHistory().entries.some((e) => e.kind === 'handoff'), 'the compaction ran');
         assert.equal(loop._readIds.size, 0);
+        assert.equal(loop._boxed.size, 0, 'a measured box is forgotten with the turns that carried it');
         assert.equal(loop._notesProject, null);
+    });
+
+    // MPI-774 Phase 4: unnumbered, "edit picture 1" ran on an earlier turn's picture 1.
+    // ... and sized: without it a portrait start frame went to 16:9 and lost the top of the head.
+    test('attachments are numbered as the box numbers its chips, with their size', async () => {
+        const { loop } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
+        const real = require('node:path').join(__dirname, '..', 'assets', 'mascot', 'studio', 'logo.webp');
+        await loop.runTurn('Give the man in picture 1 the hair of picture 2', [
+            { id: 'att_a', name: 'man.png', filePath: real },
+            { id: 'att_b', name: 'woman.png', filePath: '/tmp/att_b.png' },
+        ], project, 'auto', 'deepinfra', 't-num');
+        const sent = userMessages(loop).at(-1);
+        assert.match(sent, /\[Attached image 1: man\.png \(id: att_a, 128x86\)\]/);
+        assert.match(sent, /\[Attached image 2: woman\.png \(id: att_b\)\]/, 'an unreadable file just has no size');
+        assert.match(loop._messages[0].content, /Numbering rule: .*never an image from an earlier turn/);
+        assert.match(loop._messages[0].content, /pick the listed ratio closest to its size/);
+    });
+
+    // MPI-774 Phase 4: live, the model guessed Head Swap boxes at {0,0,512,512} and the swap came
+    // out half done, with the box tool right there.
+    test('a Flow box waits until look measured the image of its role, then runs', async () => {
+        const box = { x: 1, y: 2, width: 30, height: 30 };
+        const swap = (id) => call(id, 'generate', {
+            flowId: 'head-swap',
+            params: { box1: box },
+            media: [{ role: 'image1', image: 'att_1' }, { role: 'image2', image: 'att_2' }],
+        });
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            swap('g1'),
+            call('l1', 'look', { image: 'att_2', question: 'the head', box: true }),
+            swap('g2'),
+            call('l2', 'look', { image: 'att_1', question: 'describe it' }),
+            swap('g3'),
+            call('l3', 'look', { image: 'att_1', question: 'the head', box: true }),
+            swap('g4'),
+            { text: 'Started.' },
+        ] });
+        tools.listModels = async () => ({ ok: true, models: [], flows: [
+            { id: 'head-swap', boxParams: [{ param: 'box1', role: 'image1', ratio: 1 }, { param: 'box2', role: 'image2', ratio: 1 }] },
+        ] });
+        tools.look = async (args) => ({ ok: true, output: { text: '{}', ...(args.box ? { box, square: box } : {}) } });
+        loop._images.set('att_1', { path: '/tmp/att_1.png', kind: 'attachment' });
+        loop._images.set('att_2', { path: '/tmp/att_2.png', kind: 'attachment' });
+        await loop.runTurn('Swap the heads', [], project, 'auto', 'deepinfra', 't-box');
+        const codes = toolResults(loop).map((r) => r.error?.code || (r.started ? 'started' : 'look'));
+        assert.deepEqual(codes, ['BOX_NOT_MEASURED', 'look', 'BOX_NOT_MEASURED', 'look', 'BOX_NOT_MEASURED', 'look', 'started'],
+            'box1 is image1: a box on image2, or a look without box, does not open it');
+        assert.match(toolResults(loop)[0].error.message, /"att_1"/);
+        assert.equal(tools.calls.generate.length, 1, 'only the measured call reached the app');
     });
 });
 

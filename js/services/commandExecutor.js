@@ -36,6 +36,7 @@ import { createStageProgress } from './phaseProgress.js';
 import { stagesFor, postTileBarsFor } from '../data/progressStages.js';
 import { INJECTORS } from './workflowInjectors/index.js';
 import { buildComfyViewUrl, collectComfyOutputUrls, readComfyOutputText, splatViewFileInfo } from '../utils/comfyOutputUrls.js';
+import { canonicalizeInjectionKeys } from '../utils/injectionKeys.js';
 import { generationStore, PHASES } from './generationStore.js';
 
 // Adapters over the shared js/utils/comfyOutputUrls.js (MPI-176). MPI-74: a
@@ -878,22 +879,8 @@ function _buildParams(payload) {
         }
     }
 
-    // ── Input_ canonicalization pass (MPI-127 / MPI-252) ──────────────────────
-    // The whole workflow fleet is now Input_*/Output_* titled (tier-1 deprecated).
-    // A few params are still built with the bare control name (Use_End_Image,
-    // Upscale_Model, Lora_N, and any control returning a bare key).
-    // Injection matches node title exactly and silently skips a param whose title
-    // has no node, so rename each bare key to its Input_ form and drop the bare
-    // half — there is no tier-1 node left to consume it. Keys already prefixed
-    // (Input_*/Output_*) pass through untouched.
-    for (const key of Object.keys(params)) {
-        if (key.startsWith('Input_') || key.startsWith('Output_')) continue;
-        const aliased = `Input_${key}`;
-        if (!(aliased in params)) params[aliased] = params[key];
-        delete params[key];
-    }
-
-    return params;
+    // Input_ canonicalization pass (MPI-127 / MPI-252): `canonicalizeInjectionKeys`.
+    return canonicalizeInjectionKeys(params);
 }
 
 /**

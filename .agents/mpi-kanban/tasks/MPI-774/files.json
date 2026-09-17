@@ -55,6 +55,18 @@
     "tests/desktop/agent-chat.spec.js",
     "scripts/agent-test.mjs",
     "tests/fixtures/agent/**",
-    "package.json"
+    "package.json",
+    "assets/mascot/studio/logo.webp",
+    "js/components/Primitives/MpiButton/MpiButton.js",
+    "js/components/Primitives/MpiButton/MpiButton.css",
+    "js/services/generationService.js",
+    "js/services/llmService.js",
+    "js/services/commandExecutor.js",
+    "js/utils/injectionKeys.js",
+    "tests/injection-keys.test.cjs",
+    "docs/llm.md",
+    "docs/testing-harnesses.md",
+    ".claude/rules/component-mounts.md",
+    ".agents/mpi-kanban/tasks/MPI-677/validation.md"
   ]
 }

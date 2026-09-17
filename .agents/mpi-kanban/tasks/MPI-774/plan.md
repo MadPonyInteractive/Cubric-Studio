@@ -7,7 +7,36 @@
 **Evidence behind this plan:** `research/investigation.md` - verified facts with file:line, the
 seven investigator claims that turned out wrong, and a live orchestrator probe.
 
-**Where it stands (2026-09-17 ~13:00Z, session d56a1cbe, committed at handoff):** Phase 3c CLOSED;
+**Handed off (2026-09-17 ~14:15Z, session 047d6088, committed at handoff a49e6ac9):** Fabio passed
+the Studio-head toggle (Phase 3d closed but item 5, deferred) and KEEPS the Klein encoder borrow on
+ComfyUI enhance. Phase 4 left: compaction live, honest limits live, final harness 3x + bite, then
+Phase 5. Details below.
+
+**Earlier (2026-09-17 12:25Z, session 047d6088):** item 6's second pass is BUILT
+(Studio robot head, `assets/mascot/studio/logo.webp`, as tall as the Enhance button; `validation.md` §
+"item 6, second pass"). **Phase 4 is running** on my own
+`app:isolated` (port changes per restart; profile in the session scratchpad; a server-side edit needs
+a restart of MY instance, kill the listener's PARENT): person images done, box measurement + parser
+done, two live defects fixed (ComfyUI describe question never carried the image; an empty text-op
+answer hung every caller). Head Swap: first try guessed boxes -> box gate + Box rule + `square` +
+labelled flow fields; second try measured and swapped cleanly. Edit with a reference: first try used
+an earlier turn's "picture 1" -> numbered attachment lines + Numbering rule; second try right. Enhance
+VRAM DONE (nothing resident between prompts; the Klein encoder borrow and `Replace Text.replace` never
+reached the graph -> `canonicalizeInjectionKeys` keeps dotted bare keys, fixed live). H3 t2v right
+(medium + turbo); H3 i2v framed a portrait start frame at 16:9 -> attachment/result sizes + a ratio
+sentence; the i2v rerun kept the head (9:16). Install DONE on a seeded K: sandbox (engine AND models
+root; `CUBRIC_MODELS_ROOT` alone does NOT sandbox, the engine's `model_roots.json` wins): the Yes call
+no longer holds the whole download, the re-read reads `installed`, the result says "the user pressed
+Yes ... downloading". Harness after the rule edits: 15/15 bites, 3x 14/15 (`memory-read` flake, 6/6
+alone). **Left in Phase 4:** compaction live (`model: Qwen/Qwen2.5-72B-Instruct`, 32k window, tools OK
+but ~87 s a call; run it on my instance, `drive.mjs` in the scratchpad), honest limits live ("watch
+this video"; a real Remote refusal if one comes cleanly, else the harness fake), then a final full
+harness 3x + `--bite` (the prompt moved again: install result text, ratio sentence), `npm test`,
+lint, the agent-chat desktop spec (private `--output`). **Uncommitted:** everything this session.
+Leave for Fabio: `K:/mpi774-install-sandbox/` (29 GiB), the scratch profiles, the "MPI-774 agent
+test" project.
+
+**Where it stood (2026-09-17 ~13:00Z, session d56a1cbe, committed at handoff):** Phase 3c CLOSED;
 Phase 3d items 1-4, 6, 7 built, bitten and **passed by Fabio in his app** (agent box, numbered chips,
 full-height resizable panel; an agent edit's card now has the right shape). Item 5 waits for the
 mascot animations. **Next, in order:** (1) **item 6 has the WRONG HEAD and is TOO SMALL** (Fabio): the
@@ -576,7 +605,9 @@ Same files as Phases 3b/3c: `MpiAgentChat`, `js/shell/agentPanel.js`, `js/servic
   `tool: 'generate'` (generating), `agent:result`, `agent:compacting`.
 - [x] **6. The toggle is the agent's head** (Fabio, 2026-09-17: "our agent logo ... only the head").
   `MpiButton` gained an `image` prop (icon mode with an `<img>`: muted until hovered, full colour when
-  active); the toggle uses `assets/mascot/logo.png`, the head of the Vision mascot the chat shows.
+  active). **Second pass (Fabio: wrong head, too small):** the toggle shows the Studio robot,
+  `assets/mascot/studio/logo.webp` (trimmed 128px copy of `Studio-Logo.png`), and an image button at
+  `sm` drops its padding so the image is as tall as the Enhance button (`mpi-ibtn--image`).
   Not added to the components gallery (Fabio).
 - [x] **7. An agent edit's card had the wrong shape** (Fabio's screenshot: Klein edit, 1:1 card, portrait
   image; the sidecar said 1024x1024, the file is 832x1248). `resolveNamedParams` injected the project's
@@ -614,23 +645,29 @@ and `CUBRIC_MODELS_ROOT` on K:, seeded so the boot repair downloads nothing (mem
 runs the Image descriptions pick: Remote (a DeepInfra vision model via `POST /llm/describe`, no GPU)
 or ComfyUI (Qwen3-VL 4B, `image_descriptor.json`, GPU). Measure and parse both.
 
-- [ ] **Measure the describer's box answer, then build the parser.** Three real Vision outputs
+- [x] **Measure the describer's box answer, then build the parser.** *(2026-09-17, 047d6088: both
+  describers answer RELATIVE; `boxFromDescribeAnswer` in the route; two live defects fixed on the way,
+  see `validation.md` § Phase 4.)* Three real Vision outputs
   with a person; ask for the head box; record the raw answers in `research/box-measurement.md`;
   choose the parse and coordinate space from the evidence; implement it in the describe route.
   **Verify:** a unit test replays the recorded raw strings; the mapped box drawn on each original
   image is opened and inspected.
-- [ ] **Real generations through the agent.** t2i (turbo), t2v (medium + turbo), i2v with an
+- [x] **Real generations through the agent.** *(2026-09-17, 047d6088: all five, each after a live fix
+  where the first try was wrong; `validation.md` § Phase 4.)* t2i (turbo), t2v (medium + turbo), i2v with an
   attached image, an edit with a reference image, Head Swap with boxes from `look`. The agent keeps
   talking while each runs; the result posts back; it looks at every image result. **Verify:** each
   output opened (images read, video frames sampled); the cards exist in the project;
   `/agent/history` shows a `look` after each image result and no unrequested regeneration.
-- [ ] **Install, live, in a sandboxed store.** The smallest not-installed model: the card shows
+- [x] **Install, live, in a sandboxed store.** *(2026-09-17, 047d6088: No / Yes / re-read, with two
+  fixes found live: the install no longer holds the Yes call for the whole download, and the re-read
+  reads `installed`; `validation.md` § Install.)* The smallest not-installed model: the card shows
   the size; No starts nothing; Yes downloads, then a real re-read shows it installed. **Verify:**
   downloads status and a models re-read before and after, both paths.
 - [ ] **Compaction, live.** A profile with a small context window crosses its trigger; the handoff
   carries the five fields; the next reply still knows the goal. **Verify:** `/agent/history` shows
   the handoff; the mascot showed "compacting".
-- [ ] **ComfyUI enhance VRAM (folded from MPI-677 step 1d, Fabio 2026-09-17, message `f82e6bea`).**
+- [x] **ComfyUI enhance VRAM (folded from MPI-677 step 1d, Fabio 2026-09-17, message `f82e6bea`).**
+  *(2026-09-17, 047d6088: no resident model to evict; the borrow never applied, fixed. `validation.md`.)*
   On the 16 GB card, under the lease: Enhance (backend ComfyUI, the default since MPI-737) ->
   generate -> Enhance -> generate from the prompt box, watching VRAM and whether the second generation
   runs cold, i.e. whether the enhancer graph evicts the resident generation models (MPI-35 phase 2
@@ -652,6 +689,20 @@ or ComfyUI (Qwen3-VL 4B, `image_descriptor.json`, GPU). Measure and parse both.
   `validation.md`, one action and one result per line. **Verify:** his confirmation recorded.
 
 ## Plan Drift
+
+- 2026-09-17 (Phase 4, session 047d6088): live runs found four things no fake could, all folded in
+  (same files as the card): (1) `buildDescribeInjectionParams` never sent the image (ComfyUI describe
+  with a question answered empty); (2) an empty text-op answer left every caller waiting forever
+  (`generationService` now calls `onError`); (3) the model guessed Head Swap boxes -> a box gate, a Box
+  rule, `square` on the describe route; (4) `list_models` listed Flow fields as bare ids, so Head Swap's
+  expression field got an instruction -> `fields: [{id, label}]`, step fields included. The box parser
+  maps RELATIVE answers (measured), not the pixel case `mapFromDescribeSpace` assumed; that function is
+  gone. Later the same day: (5) unnumbered attachments -> "picture 1" from an earlier turn -> numbered,
+  sized lines + a Numbering rule; (6) H3 i2v framed a portrait start frame at 16:9 -> sizes + a ratio
+  sentence; (7) commandExecutor's `Input_` pass renamed dotted keys, so the MPI-677 encoder borrow and
+  `Replace Text.replace` never reached ComfyUI -> `js/utils/injectionKeys.js` (outside this card's
+  files, but it decided the folded step 1d measurement); (8) `agent.install-model` awaited the whole
+  download and the loop's re-read ignored `installed` -> fixed, result text says what happened.
 
 - 2026-09-17 (Phase 3c, session 6fd51047): (1) the conversations live in a new module,
   `services/agentSessions.mjs`, so the router stays thin and D4/D5 are unit-testable. (2) The harness

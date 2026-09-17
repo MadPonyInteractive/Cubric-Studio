@@ -635,16 +635,20 @@ test('PromptBox Agent mode: own text and hint, only the toggle, no run, numbered
     await expect(chips.locator('.mpi-prompt-box-media-strip__role')).toHaveText('Start frame');
     await expect(chips.locator('.mpi-prompt-box-media-strip__index')).toHaveCount(0);
 
-    // The toggle is the agent's head (MPI-797): muted while off, full colour while on.
+    // The toggle is the agent's head (MPI-797): the Studio robot, as tall as the Enhance
+    // button beside it, muted while off, full colour while on.
     const head = toggle.locator('img.mpi-ibtn__img');
-    await expect(head).toHaveAttribute('src', 'assets/mascot/logo.png');
+    await expect(head).toHaveAttribute('src', 'assets/mascot/studio/logo.webp');
     await expect.poll(() => head.evaluate((el) => el.complete && el.naturalWidth)).toBeGreaterThan(0);
-    await window.mouse.move(0, 0);
+    const enhance = window.locator(`${pb} #enhance-slot .mpi-ibtn`);
+    await expect(enhance).toBeVisible();
+    const [toggleBox, enhanceBox, headBox] = await Promise.all([toggle, enhance, head].map((l) => l.boundingBox()));
+    expect(Math.abs(toggleBox.height - enhanceBox.height)).toBeLessThanOrEqual(1);
+    expect(headBox.height).toBeGreaterThanOrEqual(enhanceBox.height - 4);    await window.mouse.move(0, 0);
     await expect.poll(() => head.evaluate((el) => getComputedStyle(el).filter)).toBe('grayscale(1)');
 
     await toggle.click();
-    await expect.poll(() => head.evaluate((el) => getComputedStyle(el).filter)).toBe('none');
-    await expect(field).toHaveValue('');
+    await expect.poll(() => head.evaluate((el) => getComputedStyle(el).filter)).toBe('none');    await expect(field).toHaveValue('');
     await expect(field).toHaveAttribute('placeholder', 'Talk to the agent. Shift+Enter for a new line, Enter to send.');
     const agentFace = await shown();
     expect(agentFace.slots).toEqual(['textarea-slot', 'mode-toggle-slot']);

@@ -78,8 +78,9 @@ nothing. The connection itself is `Storage.getLlmConnection()` -> `{ profileId }
   `{ ok, text, backend, model }` | `{ ok:false, error:{ code, message } }`, codes `BAD_REQUEST`,
   `NO_PROFILE`, `NO_KEY`, `ENDPOINT_ERROR`, `NOT_VISION`, `BAD_IMAGE`, `RUNTIME_ERROR`.
   `imagePath` is absolute or a `/project-file?path=` URL (the right-click sends the latter). The image
-  is cropped, downscaled to <= 1 MP in 16-px steps (matching `image_descriptor.json` node 41, so
-  `mapFromDescribeSpace` stays valid; it never upscales) and sent as a JPEG base64 `image_url` part.
+  is cropped, downscaled to <= 1 MP in 16-px steps (matching `image_descriptor.json` node 41; it never
+  upscales) and sent as a JPEG base64 `image_url` part. Box answers come back RELATIVE (this model 0-1,
+  Qwen3-VL 0-1000), so the resize never enters the box mapping (`boxFromDescribeAnswer`).
   The default instruction is READ from node 38 (`Input_Describe_Prompt`) at runtime, never copied;
   node 38 unparseable -> `RUNTIME_ERROR`. A `question` replaces it as plain text (ChatML is
   ComfyUI-only). A 4xx naming image/vision input -> `NOT_VISION`, never a silent retry without the image.
@@ -108,7 +109,9 @@ clauses (`Input_Scrub_Negation`) and trims trailing punctuation (`Input_Tidy`). 
 carries it: `enhancerGraphDefaults(graph)` reads the graph's baked values at runtime (the caller's
 params on top, same `Title.widget` keys) and `postProcessLikeGraph(text, params)` replays the three
 text nodes. `enhancerClipParams(workflow)` lets the graph borrow the *generation* model's
-`CLIPLoader` for `CLIPLoader.type` in `{krea2, flux2}` (`BORROWABLE_CLIP_TYPES`).
+`CLIPLoader` for `CLIPLoader.type` in `{krea2, flux2}` (`BORROWABLE_CLIP_TYPES`). Its `Load CLIP.*` and
+`Replace Text.replace` keys address non-`Input_` titles: `canonicalizeInjectionKeys` keeps a dotted key's bare
+form for exactly that (until 2026-09-17 it renamed them away and neither ever reached the graph).
 
 **`ComfyUIEngine` is not this path.** It submits a pipeline-free 4-node graph for the recipe
 harness only; the app never instantiates it.
@@ -121,7 +124,10 @@ errorCode?, error?, cancelled? }`, never rejects. Both callers use it: the right
 
 - **`comfy`:** plugin check (`DESCRIBER_MISSING`), then an `enqueueGeneration` of the `imageDescribe`
   op - the only one outside `js/data/`. It rides the Cue, so it waits behind a generation, and on a Pod it runs on
-  the Pod. A `question` is ChatML-wrapped into `Input_Describe_Prompt` (`buildDescribeInjectionParams`).
+  the Pod. A `question` replaces `Input_Describe_Prompt` with a WHOLE ChatML turn (`buildDescribeInjectionParams`):
+  image pad, the question as user text, assistant header. A `<|im_start|>` prompt skips the tokenizer
+  template, so a string without `<|image_pad|>` never shows the model the image (it answered nothing).
+  An empty answer fails the job (`onError`), it never leaves the caller waiting.
 - **`endpoint`:** `POST /llm/describe` with the connection and `describeModelPreference()`. **Not
   queued**: it never waits behind a generation and never shows in the Cue.
 - **Failure never falls back** (D1): no connection, no key, a non-vision model -> the caller says so.

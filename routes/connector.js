@@ -201,39 +201,56 @@ async function _getHardwareInfo() {
 // ── Coordinate mapping (MPI-774) ───────────────────────────────────────────────
 
 /**
- * Map a point from the describer's scaled-input space back to original image pixels.
- *
- * The describer scales the crop (or the whole image when no crop) to ~1 MP via
- * node 41 `ImageScaleToTotalPixels` (steps of 16). A coordinate in that scaled
- * input maps to the original as:
- *   x_orig = cropX + x_in * cropWidth / inputWidth
- *   y_orig = cropY + y_in * cropHeight / inputHeight
- *
- * No crop: cropX/cropY = 0, cropWidth/cropHeight = origWidth/origHeight.
- *
- * The raw answer format and coordinate space (pixels vs 0-1000 normalised) are
- * determined from Phase 4's measured answers; this function handles the pixel case.
- * **The box parser waits for Phase 4 — do not extend this for Phase 1.**
- *
- * @param {{ x: number, y: number }} point  Point in the describer's input space.
- * @param {{ crop?: {x,y,width,height}, inputWidth: number, inputHeight: number,
- *            origWidth: number, origHeight: number }} opts
- * @returns {{ x: number, y: number }}  Point in original image pixels.
+ * The instruction a `box: true` describe appends to the caller's question. Measured on
+ * both describers (MPI-774 Phase 4, `tasks/MPI-774/research/box-measurement.md`): with it,
+ * 6 of 6 answers were one clean `bbox_2d` array; without it the Remote model drifted
+ * between three formats and once boxed the whole body.
  */
-function mapFromDescribeSpace(point, { crop, inputWidth, inputHeight, origWidth, origHeight }) {
-    const srcX = crop ? crop.x : 0;
-    const srcY = crop ? crop.y : 0;
-    const srcW = crop ? crop.width : origWidth;
-    const srcH = crop ? crop.height : origHeight;
+const BOX_INSTRUCTION = 'Reply with only JSON: {"bbox_2d": [x1, y1, x2, y2]}, its bounding box.';
+
+/**
+ * Read a describer's box answer into ORIGINAL image pixels, or null.
+ *
+ * Both describers answer RELATIVE to the image they were shown, never in its pixels
+ * (measured): Qwen3-VL (ComfyUI) on 0-1000, Llama-4-Scout (Remote) on 0-1. So the
+ * describer's own resize (node 41, the route's 1 MP cap) never enters the mapping; only
+ * the region it was shown does, the crop or the whole image:
+ *   x = regionX + x_rel * regionWidth
+ *
+ * The first four numbers of the answer are x1, y1, x2, y2, after the JSON key names are
+ * dropped (`bbox_2d` carries a digit). ponytail: a describer that answered in pixels of an
+ * image under 1000px would read as 0-1000; neither shipped one does. Add a per-model scale
+ * when one arrives.
+ *
+ * @param {string} text  The describer's raw answer.
+ * @param {{ crop?: {x,y,width,height}, origWidth: number, origHeight: number }} opts
+ * @returns {{ x: number, y: number, width: number, height: number } | null}
+ */
+function boxFromDescribeAnswer(text, { crop, origWidth, origHeight }) {
+    const nums = (String(text || '').replace(/"[^"]*"\s*:/g, ':').match(/-?\d+(?:\.\d+)?/g) || [])
+        .slice(0, 4).map(Number);
+    if (nums.length < 4) return null;
+    const [x1, y1, x2, y2] = nums;
+    if (x2 <= x1 || y2 <= y1 || Math.min(...nums) < 0) return null;
+    const max = Math.max(...nums);
+    const scale = max <= 1 ? 1 : max <= 1000 ? 1000 : null;
+    if (!scale) return null;
+    const rx = crop ? crop.x : 0;
+    const ry = crop ? crop.y : 0;
+    const rw = crop ? crop.width : origWidth;
+    const rh = crop ? crop.height : origHeight;
+    const left = Math.round(rx + x1 / scale * rw);
+    const top = Math.round(ry + y1 / scale * rh);
     return {
-        x: srcX + point.x * srcW / inputWidth,
-        y: srcY + point.y * srcH / inputHeight,
+        x: left,
+        y: top,
+        width: Math.round(rx + x2 / scale * rw) - left,
+        height: Math.round(ry + y2 / scale * rh) - top,
     };
 }
-// Attached to the router so require('../routes/connector').mapFromDescribeSpace works
+// Attached to the router so require('../routes/connector').boxFromDescribeAnswer works
 // regardless of module.exports being reassigned to router below.
-// (module.exports = router overrides the exports reference, so we attach here pre-hoc.)
-router.mapFromDescribeSpace = mapFromDescribeSpace;
+router.boxFromDescribeAnswer = boxFromDescribeAnswer;
 
 // --- generation relay state ------------------------------------------------
 
@@ -770,18 +787,23 @@ router.post('/connector/install', async (req, res) => {
 });
 
 /**
- * POST /connector/describe { imagePath, question?, crop? }
+ * POST /connector/describe { imagePath, question?, crop?, box? }
  *
  * Optional crop: cut the image with sharp to the agent crops dir, then relay
  * to the renderer's `agent.describe` capability. Returns `{ ok, output: { text } }`.
- * Errors: BAD_REQUEST, IMAGE_NOT_FOUND, CROP_OUT_OF_BOUNDS, DESCRIBER_MISSING,
+ * `box: true` (with a `question` naming what to box) appends BOX_INSTRUCTION and adds
+ * `output.box` `{x, y, width, height}` in ORIGINAL pixels.
+ * Errors: BAD_REQUEST, IMAGE_NOT_FOUND, CROP_OUT_OF_BOUNDS, NO_BOX, DESCRIBER_MISSING,
  * APP_UNAVAILABLE, RUNTIME_ERROR, TIMEOUT.
  */
 router.post('/connector/describe', async (req, res) => {
-  const { imagePath, question, crop } = req.body || {};
+  const { imagePath, question, crop, box } = req.body || {};
 
   if (!imagePath) {
     return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'body.imagePath is required.' } });
+  }
+  if (box && !question) {
+    return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'body.box needs a question naming what to box, e.g. "the woman\'s head".' } });
   }
 
   // Validate crop fields when provided.
@@ -833,10 +855,37 @@ router.post('/connector/describe', async (req, res) => {
     }
   }
 
-  const result = await _dispatchToRenderer('agent.describe', { imagePath: effectivePath, question });
+  const result = await _dispatchToRenderer('agent.describe', {
+    imagePath: effectivePath,
+    question: box ? `${question} ${BOX_INSTRUCTION}` : question,
+  });
 
   if (!result.ok) {
     logger.warn('connector', `describe failed: ${result.error?.code}`);
+    return res.json(result);
+  }
+  if (box) {
+    let found = null;
+    try {
+      const meta = await _getSharp()(imagePath).metadata();
+      found = boxFromDescribeAnswer(result.output?.text, { crop, origWidth: meta.width, origHeight: meta.height });
+    } catch (err) {
+      logger.error('connector', 'describe box: source image unreadable', err);
+    }
+    if (!found) {
+      return res.json({ ok: false, error: { code: 'NO_BOX',
+        message: `The describer gave no box: ${String(result.output?.text || '').slice(0, 200)}` } });
+    }
+    // `square`: the same centre, side = the longer edge, for a Flow box step with `ratio: 1`
+    // (Head Swap) — arithmetic a model gets wrong, and those steps allow the overflow.
+    const side = Math.max(found.width, found.height);
+    const square = {
+      x: Math.round(found.x + found.width / 2 - side / 2),
+      y: Math.round(found.y + found.height / 2 - side / 2),
+      width: side,
+      height: side,
+    };
+    return res.json({ ok: true, output: { ...result.output, box: found, square } });
   }
   res.json(result);
 });

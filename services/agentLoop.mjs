@@ -122,7 +122,7 @@ const TOOL_DEFS = [
                         properties: { x: { type: 'integer' }, y: { type: 'integer' }, width: { type: 'integer' }, height: { type: 'integer' } },
                         required: ['x', 'y', 'width', 'height'],
                     },
-                    box: { type: 'boolean', description: 'Request a bounding box in the answer.' },
+                    box: { type: 'boolean', description: 'Return output.box {x, y, width, height}, in the image\'s own pixels, around what the question names (e.g. question "the woman\'s head"), and output.square, the same box made square. Needs a question.' },
                 },
                 required: ['image'],
                 additionalProperties: false,
@@ -266,6 +266,8 @@ export class AgentLoop {
         this._notesProject = null; // folderPath whose project notes this context already lists
         this._readIds = new Set(); // knowledge ids read in this context (the guide gate)
         this._guides = new Map();  // modelId -> guide ids, from list_models
+        this._boxSteps = new Map(); // flowId -> its box steps [{param, role}], from list_models
+        this._boxed = new Set();   // image paths a `look` with box: true measured (the box gate)
 
         // SSE subscribers
         this._subscribers = new Set();
@@ -326,6 +328,8 @@ export class AgentLoop {
         this._notesProject = null;
         this._readIds.clear();
         this._guides.clear();
+        this._boxSteps.clear();
+        this._boxed.clear();
         try { await this._tools.discardAttachments(staged); } catch { /* non-fatal */ }
     }
 
@@ -410,6 +414,29 @@ export class AgentLoop {
     /** Remember each model's guide ids from a list_models answer. */
     _rememberGuides(list) {
         for (const m of list?.models || []) this._guides.set(m.id, Array.isArray(m.guides) ? m.guides : []);
+        for (const f of list?.flows || []) this._boxSteps.set(f.id, Array.isArray(f.boxParams) ? f.boxParams : []);
+    }
+
+    /**
+     * The first Flow box param whose image no `look` with `box: true` measured, or null. Structural,
+     * like the guide gate: live (Phase 4) the model guessed Head Swap boxes at {0,0,512,512} with the
+     * box tool right there, and the swap came out half done.
+     */
+    async _unmeasuredBox(args) {
+        const params = args.params && typeof args.params === 'object' ? Object.keys(args.params) : [];
+        if (!params.length) return null;
+        if (!this._boxSteps.has(args.flowId)) {
+            try { this._rememberGuides(await this._tools.listModels()); } catch { /* the app still validates the call */ }
+        }
+        const steps = this._boxSteps.get(args.flowId) || [];
+        for (const param of params) {
+            const step = steps.find((s) => s.param === param);
+            if (!step) continue; // an unknown param is the app's UNKNOWN_PARAM to report
+            const media = Array.isArray(args.media) ? args.media.find((m) => m.role === step.role) : null;
+            const ref = media ? this._resolveImage(media.image) : null;
+            if (!ref || !this._boxed.has(ref.path)) return { param, role: step.role, image: media?.image || null };
+        }
+        return null;
     }
 
     /**
@@ -492,16 +519,20 @@ ${modeRules}
 
 Model rule: pick a model whose op is installed (ops[].installed in list_models). If none fits, say an install is needed and offer one with install_model.
 
-Settings rule: each op in list_models carries params: the only ratio, qualityTier, turbo and styleSelect values that op accepts (styleSelect is the index into params.styles). Never send a value it does not list, and leave out a param it does not offer.
+Settings rule: each op in list_models carries params: the only ratio, qualityTier, turbo and styleSelect values that op accepts (styleSelect is the index into params.styles). Never send a value it does not list, and leave out a param it does not offer. An op that starts from an image (a start frame) frames the video like that image: pick the listed ratio closest to its size (the attachment line and a finished generation give it), or the crop cuts the subject.
+
+Numbering rule: "picture 2", "image 2" or "2" in a message means that message's attached image 2, never an image from an earlier turn. Pass that attachment's id.
 
 Looking rule: before you comment on, judge or describe any image, call look on it. look only takes a ref the App state line lists under images you can look at; it cannot open a video, a folder or any other path, and with none listed there is nothing to look at. If look reports a refusal (the describer declined to describe the image), tell the user it refused, and suggest switching Image descriptions to the local ComfyUI describer (Settings > Remote > Language Models), which runs on their machine and does not refuse.
+
+Box rule: a Flow in list_models with boxParams needs one box per param, measured, never guessed. For each, call look on the image you pass for that param's role with box: true and a question naming what to box (Head Swap: the head, hair and jaw included), then pass output.square when the step has ratio 1, else output.box. generate refuses a box it did not see you measure. A Flow's fields hold only what their names say (Head Swap's positive is the expression the new head ends with), never instructions.
 
 Guide rule: before your first prompt for a model, read its prompting guide: list_models gives each model its guide ids, read_knowledge reads one. generate refuses until you have. Use the guide to ADAPT what the user asked for to that model (its structure, length and vocabulary) and keep their intent. Never send a guide's example as the prompt.
 
 Installation rule: Always call install_model to show the user a Yes / No confirmation card. Never install a model without a Yes from the user, regardless of mode.
 
 Project rule: a generation lands in the open project. Never invent a folder path: open_project only takes a folderPath from list_projects or create_project, or one the user typed. To open a project by name, find it with list_projects. With no project open, two different requests:
-- The user asks you to make something (an image, a video): create a project named exactly "New Project" with create_project, open the folderPath it returns, then generate there. Do not name it after the request and do not save a note: they asked for a picture, not a project.
+- The user asks you to make something (an image, a video): create a project named exactly "New Project" with create_project, open the folderPath it returns, then generate there. Never ask them to open or create a project first; doing it is your job. Do not name it after the request and do not save a note: they asked for a picture, not a project.
 - The user starts a new project and tells you its goal: name the project after the goal, create it, open it, then save a project-brief note with write_memory (the goal, the look, any decisions so far). Then end your turn by asking what they want to make first. Do not generate anything in that turn: a goal is not a request for a picture.
 
 Deletion rule: You never delete anything: no cards, no media, no notes, no projects. No tool of yours can, and you never look for a way. When the user wants something deleted, tell them only they can do it, and where: a card from the gallery (right-click it, Delete, which also removes its whole history), a project from the projects list on the landing page (right-click it, Delete project).
@@ -575,6 +606,13 @@ ${knowledgeIndex}`.trim();
                         return JSON.stringify({ ok: false, error: { code: 'GUIDE_NOT_READ', message: `Read this model's prompting guide first: read_knowledge with id "${unread}". Then write the prompt with what it says.` } });
                     }
                 }
+                if (args.flowId) {
+                    const miss = await this._unmeasuredBox(args);
+                    if (miss) {
+                        const where = miss.image ? `"${miss.image}"` : `the image you pass as media role "${miss.role}"`;
+                        return JSON.stringify({ ok: false, error: { code: 'BOX_NOT_MEASURED', message: `Never guess a box. Measure ${miss.param} first: call look on ${where} with box: true and a question naming what to box, then pass the box it returns (its square when the step has ratio 1).` } });
+                    }
+                }
                 // Build connector body
                 const body = {};
                 if (args.cardName) body.cardName = String(args.cardName);
@@ -630,7 +668,7 @@ ${knowledgeIndex}`.trim();
                     });
                     this._historyEntry('result', { toolCallId, ok, ...(ok ? { output: r.output } : { error: r.error }) });
                     this._notes.push(ok
-                        ? `[Generation finished: card ${r.output?.groupId}, ${r.output?.type} ${r.output?.filePath}]`
+                        ? `[Generation finished: card ${r.output?.groupId}, ${r.output?.type} ${r.output?.filePath}${r.output?.pixelDimensions ? `, ${r.output.pixelDimensions.w}x${r.output.pixelDimensions.h}` : ''}]`
                         : `[Generation failed: ${r?.error?.code || 'ERROR'}: ${r?.error?.message || 'no reason given'}]`);
 
                     // Auto-look at image results (brief item 10)
@@ -664,6 +702,7 @@ ${knowledgeIndex}`.trim();
                 if (args.crop) lookArgs.crop = args.crop;
                 if (args.box) lookArgs.box = args.box;
                 const r = await this._tools.look(lookArgs);
+                if (args.box && r?.ok && r.output?.box) this._boxed.add(ref.path);
                 return JSON.stringify(r);
             }
             case 'list_projects': {
@@ -753,6 +792,7 @@ ${knowledgeIndex}`.trim();
             // What the dropped turns carried may be gone: list the notes again, re-read guides.
             this._notesProject = null;
             this._readIds.clear();
+            this._boxed.clear();
             this._historyEntry('handoff', { text: handoffText });
         } catch (err) {
             // Compaction failure is non-fatal — log and continue
@@ -829,13 +869,19 @@ ${knowledgeIndex}`.trim();
             const contentParts = [];
             if (text) contentParts.push({ type: 'text', text });
 
-            for (const att of (Array.isArray(attachments) ? attachments : [])) {
+            // Numbered as the box numbers its chips, so "picture 2" names ONE image: unnumbered, the
+            // model took an earlier turn's picture 1 for this message's (MPI-774 Phase 4).
+            // The size is what an image-to-video ratio has to match: without it the model framed a
+            // portrait start frame at 16:9 and the crop cut the head at the eyes (Phase 4).
+            const list = Array.isArray(attachments) ? attachments : [];
+            for (const [i, att] of list.entries()) {
                 if (att.id && att.filePath) {
                     this._images.set(att.id, { path: att.filePath, kind: 'attachment', name: att.name });
                     stagedAttachments.push({ id: att.id, name: att.name });
-                    contentParts.push({ type: 'text', text: `[Attached image: ${att.name} (id: ${att.id})]` });
+                    const size = await _imageSize(att.filePath);
+                    contentParts.push({ type: 'text', text: `[Attached image ${i + 1}: ${att.name} (id: ${att.id}${size ? `, ${size}` : ''})]` });
                 } else {
-                    contentParts.push({ type: 'text', text: `[Attachment ${att.name} could not be staged: ${att.error || 'unknown error'}]` });
+                    contentParts.push({ type: 'text', text: `[Attached image ${i + 1}, ${att.name}, could not be staged: ${att.error || 'unknown error'}]` });
                 }
             }
 
@@ -987,15 +1033,19 @@ ${knowledgeIndex}`.trim();
                 pc.resolve(JSON.stringify(r || { ok: false, error: { code: 'INSTALL_FAILED', message: 'Installation failed.' } }));
                 return { ok: true };
             }
-            // Verify with a real re-read
+            // Verify with a real re-read. The model is ALWAYS in the list: what counts is its
+            // `installed` flag (reading the entry alone told the model "installed successfully"
+            // 30 s into a 6 GB download, MPI-774 Phase 4).
             const models = await this._tools.listModels();
-            const installed = models?.models?.find((m) => m.id === pc.modelId);
+            const installed = models?.models?.find((m) => m.id === pc.modelId)?.installed === true;
+            // Said as a fact about the card: told only "Download started", the model answered as
+            // if the card were still waiting ("it will begin once you click Yes").
             pc.resolve(JSON.stringify({
                 ok: true,
-                installed: !!installed,
+                installed,
                 message: installed
-                    ? `${pc.modelName} was installed successfully.`
-                    : `Download started for ${pc.modelName}. It will be ready shortly.`,
+                    ? `The user pressed Yes and ${pc.modelName} is now installed.`
+                    : `The user pressed Yes. ${pc.modelName} is downloading now (it shows in the app's downloads) and is not installed until that finishes. Tell them it is downloading.`,
             }));
         } catch (err) {
             pc.resolve(JSON.stringify({ ok: false, error: { code: 'INSTALL_ERROR', message: err.message } }));
@@ -1072,6 +1122,15 @@ function _decodeProjectFileUrl(ref) {
     try {
         return new URL(ref, 'http://127.0.0.1').searchParams.get('path') || ref;
     } catch { return ref; }
+}
+
+/** `WxH` of an image file, or '' when it cannot be read (the line then just omits it). */
+async function _imageSize(filePath) {
+    try {
+        const { default: sharp } = await import('sharp');
+        const { width, height } = await sharp(filePath).metadata();
+        return width && height ? `${width}x${height}` : '';
+    } catch { return ''; }
 }
 
 function _toolLabel(toolName, args) {
