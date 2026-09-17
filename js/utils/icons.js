@@ -16,12 +16,12 @@ export const ICONS = {
     // ── Actions ───────────────────────────────────────────────────────────────
     'check': '<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>',
     'circle': '<path fill-rule="evenodd" d="M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12z"/>',
-    // Card marks (MPI-785): drawn small inside the 24 box — a mark is a tag, not a button face.
-    // `mark_none` is the unmarked card's hover hint.
-    'mark_none': '<path fill-rule="evenodd" d="M12 6.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zm0 1.75a3.75 3.75 0 1 1 0 7.5 3.75 3.75 0 0 1 0-7.5z"/>',
-    'mark_dot': '<circle cx="12" cy="12" r="5"/>',
-    'mark_square': '<rect x="7.5" y="7.5" width="9" height="9"/>',
-    'mark_triangle': '<path d="M12 6.5l6 10.5H6z"/>',
+    // Card marks (MPI-785): drawn near the edge of the 24 box. Half this size read as hard
+    // to notice on a card (Fabio, 2026-09-17). `mark_none` is the unmarked card's hover hint.
+    'mark_none': '<path fill-rule="evenodd" d="M12 1a11 11 0 1 0 0 22 11 11 0 0 0 0-22zm0 3.5a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15z"/>',
+    'mark_dot': '<circle cx="12" cy="12" r="10"/>',
+    'mark_square': '<rect x="3" y="3" width="18" height="18"/>',
+    'mark_triangle': '<path d="M12 2.5l11 19H1z"/>',
     'plus': '<path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>',
     'minus': '<path d="M19 13H5v-2h14v2z"/>',
     'trash': '<path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>',

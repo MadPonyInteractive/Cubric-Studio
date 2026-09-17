@@ -11,6 +11,18 @@
 | Media picker: shared FILTER on a local sort, slot preselection, tile marks, panel above the modal, gallery sort untouched | `npx playwright test --config=playwright.desktop.config.js tests/desktop/media-picker-cards.spec.js --output=test-results/mpi785` | 4/4 pass, twice in a row |
 | Lint on every changed JS file | `npx eslint <files>` | exit 0 |
 
+## Feedback round (2026-09-17)
+
+| Claim | Command | Result |
+|---|---|---|
+| The app adds no delay on top of the hold timer | gallery spec, probe from pointerdown to menu mounted and fully drawn, timer at 400 | 408 ms mounted, 408 ms drawn |
+| The hold is now 250 ms end to end | same probe, timer at 250 | 257 ms mounted, 258 ms drawn |
+| The "drawn within 100 ms of mounting" check bites | a 300 ms entrance animation injected on `.mpi-popup--card-mark` | red, 318 ms |
+| Contract unchanged | `node --test tests/gallery-filter.test.cjs tests/asset-kinds.test.cjs` | 22/22 pass |
+| Doubled paths drawn; hold, persist, picker marks and panel still right | both desktop specs, `--output=test-results/mpi785` | 5/5 pass |
+| Lint | `npx eslint js/utils/icons.js js/components/Compounds/MpiGalleryGrid/cardMarkMenu.js tests/desktop/gallery-filter-panel.spec.js` | exit 0 |
+| Looks right at the new size | screenshots of the card marks, the open menu, the FILTER rows and a picker tile | checked by eye; triangle trimmed to 22 wide to match the dot and square |
+
 ## Known, not caused by this card
 
 - The gallery spec's save check needed a 30 s wait. `/update-project` itself takes about
@@ -24,7 +36,9 @@
 
 ## Needs Fabio
 
-- [ ] Look: are the dot, square and triangle the right size and weight on a card?
+- [x] Look: are the dot, square and triangle the right size and weight on a card?
   2026-09-17: no, "hard to notice"; make them about twice as big.
-- [ ] Feel: is a 400 ms hold right for opening the shape menu?
+  2026-09-17, second look at 2x: approved.
+- [x] Feel: is a 400 ms hold right for opening the shape menu?
   2026-09-17: no, it "feels more like 1.5 seconds"; make it faster.
+  2026-09-17, second feel at 250 ms: approved.

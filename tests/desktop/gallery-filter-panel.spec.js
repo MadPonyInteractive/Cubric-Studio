@@ -79,6 +79,39 @@ function cards(window) {
     [...document.querySelectorAll('.mpi-gallery-grid__row-wrap')].map(el => el.dataset.groupId).sort());
 }
 
+/**
+ * Arm a probe for the next pointerdown: when the card-mark menu enters the DOM, and when
+ * it is fully drawn (opaque, no CSS transition left running). Read with readHoldProbe.
+ */
+function armHoldProbe(window) {
+  return window.evaluate(() => {
+    const t = window.__holdProbe = {};
+    document.addEventListener('pointerdown', () => { t.down = performance.now(); }, { capture: true, once: true });
+    const obs = new MutationObserver(() => {
+      const popup = document.querySelector('.mpi-popup--card-mark');
+      if (!popup) return;
+      obs.disconnect();
+      t.inDom = performance.now();
+      const settle = () => {
+        if (getComputedStyle(popup).opacity === '1' && popup.getAnimations().length === 0) {
+          t.drawn = performance.now();
+        } else requestAnimationFrame(settle);
+      };
+      settle();
+    });
+    obs.observe(document.body, { childList: true });
+  });
+}
+
+/** ms from pointerdown to the menu in the DOM, and to the menu fully drawn. */
+async function readHoldProbe(window) {
+  await window.waitForFunction(() => window.__holdProbe?.drawn);
+  return window.evaluate(() => {
+    const t = window.__holdProbe;
+    return { inDom: Math.round(t.inDom - t.down), drawn: Math.round(t.drawn - t.down) };
+  });
+}
+
 /** Is the stats readout shown with the project bar forced to `width` px? */
 function statsShownAt(window, width) {
   return window.evaluate(async (w) => {
@@ -145,8 +178,8 @@ test('kind chips, the FILTER panel and the gallery toolbar in the project bar', 
       const markBtn = (id) => window.locator(
         `.mpi-gallery-grid__row-wrap[data-group-id="${id}"] .mpi-group-card__fav-wrap .mpi-btn`);
       const menu = window.locator('.mpi-popup--card-mark');
-      const DOT = '<circle cx="12" cy="12" r="5"></circle>';
-      const TRIANGLE = '<path d="M12 6.5l6 10.5H6z"></path>';
+      const DOT = '<circle cx="12" cy="12" r="10"></circle>';
+      const TRIANGLE = '<path d="M12 2.5l11 19H1z"></path>';
 
       expect(await markDrawn(window, 'vid1')).toBe(DOT);
       await expect(markBtn('vid1')).toHaveClass(/is-active/);
@@ -161,8 +194,17 @@ test('kind chips, the FILTER panel and the gallery toolbar in the project bar', 
 
       // Hold = the menu; releasing on the button itself changes nothing.
       await markBtn('img1').hover();
+      await armHoldProbe(window);
       await window.mouse.down();
       await expect(menu).toHaveCount(1, { timeout: 2000 });
+      // The timer is the whole wait: no entrance transition and no late mount on top of it.
+      // A hold that FELT like 1.5 s measured 408 ms here with the timer at 400 (MPI-785).
+      const hold = await readHoldProbe(window);
+      const holdMs = await window.evaluate(async () =>
+        (await import('/js/components/Compounds/MpiGalleryGrid/cardMarkMenu.js')).MARK_HOLD_MS);
+      testInfo.annotations.push({ type: 'mark hold ms', description: JSON.stringify({ holdMs, ...hold }) });
+      expect(hold.inDom).toBeLessThan(holdMs + 250);
+      expect(hold.drawn - hold.inDom).toBeLessThan(100);
       await window.mouse.up();
       await expect(menu).toHaveCount(1);
       await expect(markBtn('img1')).not.toHaveClass(/is-active/);

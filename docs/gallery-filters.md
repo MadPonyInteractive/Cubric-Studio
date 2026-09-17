@@ -82,9 +82,11 @@ unchanged (`persistGroups`, the `favourite` grid event → `updateGroup`). **Alw
 through `markOf(group)`**: a project saved before marks stores the heart as `true`, which
 reads as a dot, and anything unknown reads as unmarked.
 
-- **Click** toggles the dot; **hold** (`MARK_HOLD_MS`, 400 ms) opens a shape menu under the
+- **Click** toggles the dot; **hold** (`MARK_HOLD_MS`, 250 ms) opens a shape menu under the
   button (`MpiGalleryGrid/cardMarkMenu.js`). Release over a shape or click one. The release
   that ends a hold on the button is swallowed, or it would toggle the dot straight back off.
+  The timer is the whole wait: the menu draws in the frame it mounts (the spec pins this).
+  At 400 ms the hold felt like 1.5 s while measuring 408 ms.
 - The panel's **Only** rows are Dots, Squares, Triangles, then Previews.
 - The media picker shows a tile's mark read-only and filters by it.
 

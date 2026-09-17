@@ -2,9 +2,9 @@
 
 ## ON PICKUP (Fabio, 2026-09-17) — read plan.md § Next first
 
-- [ ] Hold opens the shape menu noticeably faster (400 ms felt like 1.5 s)
-- [ ] Dot, square and triangle are about twice as big on a card
-- [ ] Fabio looks again and approves
+- [x] Hold opens the shape menu noticeably faster (400 ms felt like 1.5 s): 250 ms, measured 257 ms
+- [x] Dot, square and triangle are about twice as big on a card
+- [x] Fabio looks again and approves (2026-09-17)
 
 ## Shipped (e93bbf18)
 
