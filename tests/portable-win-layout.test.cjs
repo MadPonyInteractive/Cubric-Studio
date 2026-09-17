@@ -1,7 +1,7 @@
 'use strict';
 
 // MPI-387 fix D — the Windows portable artifact uses the STANDARD ELECTRON
-// LAYOUT: a plain CubricVision.exe at the zip root, the app tree at
+// LAYOUT: a plain CubricStudio.exe at the zip root, the app tree at
 // resources/app, and no .vbs/.bat anywhere in the launch chain. Smart App
 // Control on a clean Windows 11 install hard-blocks .bat/.cmd/.vbs with no
 // per-file allowlist and no override in the dialog, so a script launcher is a
@@ -29,7 +29,7 @@ test('win32 stages the app under resources/app; linux and macOS keep app/', asyn
   );
   assert.strictEqual(PLATFORM_CONFIG.win32.appDirRel, 'resources/app');
   assert.strictEqual(PLATFORM_CONFIG.win32.electronRoot, true);
-  assert.strictEqual(PLATFORM_CONFIG.win32.exeName, 'CubricVision.exe');
+  assert.strictEqual(PLATFORM_CONFIG.win32.exeName, 'CubricStudio.exe');
 
   // Electron only resolves resources/app relative to the exe; the relayout is
   // pointless without the exe at the root, and harmful without the app move.
@@ -66,15 +66,21 @@ test('retiring the Windows start chain is expressible as a delta delete', async 
   // applyDelta scopes delete[] to the roots the NEW bundle ships, so a retired
   // root-level launcher is invisible to it. Without these entries an updated
   // install keeps a start.vbs that does `pushd %ROOT%\app` and dies on launch.
-  assert.deepStrictEqual(RETIRED_PATHS.win32, ['start.vbs', 'start-with-terminal.bat']);
+  // CubricVision.exe is retired at 2.0: the new build ships CubricStudio.exe and the
+  // delta must clean up the old binary. The applier handles the running-image case via
+  // evictBusyFile() (renames aside, does not abort — verified: apply-update.cjs applyDeletes).
+  assert.deepStrictEqual(RETIRED_PATHS.win32, ['start.vbs', 'start-with-terminal.bat', 'CubricVision.exe']);
   // app/ must NOT be listed: the applier that runs a transition update is the
   // user's OLD one, executing app/node_modules/electron/dist/electron.exe as
   // node, and Windows cannot delete a running image.
   assert.ok(!RETIRED_PATHS.win32.includes('app/'), 'deleting a running electron.exe aborts the update');
 });
 
-test('Windows updaters run through CubricVision.exe, not a nested electron.exe', () => {
+test('Windows updaters run through CubricStudio.exe (CubricVision.exe as fallback), not a nested electron.exe', () => {
   const fromZip = readTemplate('update-from-zip.bat');
+  // Primary (2.0+): CubricStudio.exe; fallback for pre-2.0 installs: CubricVision.exe.
+  // The bridge test (updater-rename-bridge.test.cjs) asserts resolution order.
+  assert.match(fromZip, /CubricStudio\.exe/);
   assert.match(fromZip, /CubricVision\.exe/);
   assert.ok(
     !/app\\node_modules\\electron/.test(fromZip),

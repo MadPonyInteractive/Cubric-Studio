@@ -12,7 +12,7 @@ if [ -x "$ROOT/uv/uv" ]; then
 fi
 
 # Install/refresh the per-user .desktop entry + icon so the taskbar shows
-# "Cubric Vision" and our logo (not "Electron"). Idempotent and non-fatal.
+# "Cubric Studio" and our logo (not "Electron"). Idempotent and non-fatal.
 if [ -f "$ROOT/resources/setup-desktop.sh" ]; then
   sh "$ROOT/resources/setup-desktop.sh" >/dev/null 2>&1 || true
 fi

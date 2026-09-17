@@ -4,7 +4,7 @@ Cubric Studio Vision - Portable (Windows)
 STARTING THE APP
 ----------------
 
-CubricVision.exe
+CubricStudio.exe
     Double-click this. That is the whole launch procedure.
 
     Windows may show a blue "Windows protected your PC" screen the first time,
@@ -33,7 +33,7 @@ update.bat
 update-from-zip.bat
     Offline / manual update. Applies an update package (.zip) you already have
     on disk. Drag the update .zip onto this file, or run:
-        update-from-zip.bat path\to\CubricVision-...-update.zip
+        update-from-zip.bat path\to\CubricStudio-...-update.zip
     Use this when you received an update zip directly (e.g. from Discord) or
     have no internet on this machine.
 

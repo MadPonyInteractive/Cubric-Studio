@@ -35,13 +35,13 @@ test('a dry-run over a real build leaves it untouched and writes no archive', ()
   const stageDir = fs.mkdtempSync(path.join(os.tmpdir(), 'cv-dry-run-'));
   try {
     // A real build's outputs, under the exact names a real win32 build uses.
-    const realStage = path.join(stageDir, `CubricVision-windows-x64-v${VERSION}`);
+    const realStage = path.join(stageDir, `CubricStudio-windows-x64-v${VERSION}`);
     const real = {
       [path.join(realStage, 'resources', 'cubric', 'update-manifest.json')]: '{"artifact":{"kind":"portable-stage"}}',
       [path.join(realStage, 'update.bat')]: 'REAL LAUNCHER',
-      [path.join(stageDir, `CubricVision-v${VERSION}-update-only`, 'marker.txt')]: 'REAL BUNDLE',
-      [path.join(stageDir, `CubricVision-windows-x64-v${VERSION}.zip`)]: 'REAL ZIP',
-      [path.join(stageDir, `CubricVision-windows-x64-update-v${VERSION}.zip`)]: 'REAL UPDATE ZIP',
+      [path.join(stageDir, `CubricStudio-v${VERSION}-update-only`, 'marker.txt')]: 'REAL BUNDLE',
+      [path.join(stageDir, `CubricStudio-windows-x64-v${VERSION}.zip`)]: 'REAL ZIP',
+      [path.join(stageDir, `CubricStudio-windows-x64-update-v${VERSION}.zip`)]: 'REAL UPDATE ZIP',
     };
     for (const [file, body] of Object.entries(real)) {
       fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -67,7 +67,7 @@ test('a dry-run over a real build leaves it untouched and writes no archive', ()
       assert.match(rel.split(path.sep)[0], /-dry-run$/, `dry-run wrote outside its own roots: ${rel}`);
     }
     const manifest = JSON.parse(after[path.join(
-      `CubricVision-windows-x64-v${VERSION}-dry-run`, 'resources', 'cubric', 'update-manifest.json',
+      `CubricStudio-windows-x64-v${VERSION}-dry-run`, 'resources', 'cubric', 'update-manifest.json',
     )]);
     assert.strictEqual(manifest.artifact.kind, 'dry-run-stage');
   } finally {

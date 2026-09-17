@@ -14,7 +14,7 @@ start-with-terminal.sh
     (The app also writes a full log to logs/app.log either way.)
 
     On first launch (either launcher) the app installs a desktop entry (under
-    ~/.local/share/applications) so it shows up as "Cubric Vision" with our
+    ~/.local/share/applications) so it shows up as "Cubric Studio" with our
     icon in your taskbar/dock and app menu. You may need to log out and back
     in once for the icon to appear. Nothing is installed system-wide.
 
@@ -30,7 +30,7 @@ update.sh
 update-from-zip.sh
     Offline / manual update. Applies an update package (.zip) you already
     have on disk. Run:
-        ./update-from-zip.sh path/to/CubricVision-...-update.zip
+        ./update-from-zip.sh path/to/CubricStudio-...-update.zip
     Use this when you received an update zip directly (e.g. from Discord)
     or have no internet on this machine.
 

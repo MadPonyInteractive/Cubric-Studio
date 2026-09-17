@@ -42,7 +42,7 @@ function parseArgs(argv) {
   return opts;
 }
 
-const UA = 'CubricVision-Updater';
+const UA = 'CubricStudio-Updater';
 
 // GET a URL, following redirects (GitHub asset URLs 302 to a CDN). Resolves
 // with { status, headers, body } for non-redirect responses. `binary` controls

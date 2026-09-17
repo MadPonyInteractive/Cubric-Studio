@@ -15,7 +15,7 @@ ROOT="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 export CUBRIC_PORTABLE_ROOT="$ROOT"
 export MPI_RESOURCES_PATH="$ROOT/resources"
 
-REPO="${CUBRIC_GITHUB_REPO:-MadPonyInteractive/Cubric-Vision}"
+REPO="${CUBRIC_GITHUB_REPO:-MadPonyInteractive/Cubric-Studio}"
 DOWNLOAD_DIR="$ROOT/update/downloads"
 ELECTRON="$ROOT/app/node_modules/electron/dist/electron"
 FETCH="$ROOT/update/fetch-release.cjs"
@@ -42,7 +42,7 @@ json_escape() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
 # double-forks itself out of our process group, so it must NOT be backgrounded here.
 relaunch() {
   if [ -x "$ROOT/start.sh" ]; then
-    echo "Relaunching Cubric Vision..."
+    echo "Relaunching Cubric Studio..."
     "$ROOT/start.sh" || echo "Relaunch failed."
   else
     echo "Relaunch skipped: $ROOT/start.sh not found."

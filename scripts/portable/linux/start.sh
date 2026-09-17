@@ -9,7 +9,7 @@ ROOT="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 export CUBRIC_PORTABLE_ROOT="$ROOT"
 
 # Install/refresh the per-user .desktop entry + icon so the taskbar shows
-# "Cubric Vision" and our logo (not "Electron"). Idempotent and non-fatal.
+# "Cubric Studio" and our logo (not "Electron"). Idempotent and non-fatal.
 # Done here too (not only via start-with-terminal.sh) so the branding lands
 # even on the no-terminal default path before we detach.
 if [ -f "$ROOT/resources/setup-desktop.sh" ]; then

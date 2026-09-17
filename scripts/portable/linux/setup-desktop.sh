@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 # Install a per-user .desktop entry + icon so the Linux taskbar/dock shows
-# "Cubric Vision" and our logo instead of "Electron" + the default Electron icon.
+# "Cubric Studio" and our logo instead of "Electron" + the default Electron icon.
 #
 # Why this is needed: the portable app runs the unpackaged `electron` binary
 # directly. On X11 the window's WM_CLASS comes from package.json `name`
@@ -34,7 +34,7 @@ cp -f "$ICON_SRC" "$ICON_DIR/cubric-vision.png" 2>/dev/null || true
 cat > "$DESKTOP_FILE" <<EOF
 [Desktop Entry]
 Type=Application
-Name=Cubric Vision
+Name=Cubric Studio
 Comment=Local Open Source Image and Video Generator
 Exec="$LAUNCHER"
 Icon=cubric-vision

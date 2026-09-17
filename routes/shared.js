@@ -29,13 +29,148 @@ const _require = createRequire(__filename);
 const ENGINE_ROOT = getEngineRoot();
 const EXTRA_MODEL_FOLDER_KEYS = Object.freeze(['loras', 'upscale_models']);
 
+// ── Documents folder resolver (MPI-708) ───────────────────────────────────────
+
+const _OLD_DOCS_FOLDER = 'Cubric Vision';
+const _NEW_DOCS_FOLDER = 'Cubric Studio';
+
+/** Memoized result of _getDocumentsFolder(); null = not yet resolved. */
+let _documentsFolder = null;
+
+/**
+ * Read the app's major version for the Documents heal guard.
+ *
+ * TEST SEAM: set CUBRIC_TEST_APP_VERSION to override; production reads package.json.
+ * @returns {number} major version integer
+ */
+function _appMajorVersion() {
+    const raw = process.env.CUBRIC_TEST_APP_VERSION
+        || _require('../package.json').version;
+    return parseInt(String(raw).split('.')[0], 10) || 0;
+}
+
+/**
+ * Rewrite project-paths.json entries that sit inside the old Documents folder
+ * so they point into the new one. Called after a successful rename, with the
+ * registry already at its new location. Entries outside the old folder are
+ * left untouched.
+ *
+ * Uses the same path normalisation (forward slashes, deduped array) as
+ * readProjectPathsRegistry / writeProjectPathsRegistry, and the same atomic
+ * temp-file swap as writeProjectPathsRegistry. Silently no-ops when the
+ * registry file is absent; logs and swallows on read/write errors so a
+ * corrupt registry never prevents the app from opening.
+ *
+ * @param {string} registryFile  absolute path to the registry (already moved)
+ * @param {string} oldDir        old Documents sub-folder (pre-rename)
+ * @param {string} newDir        new Documents sub-folder (post-rename)
+ */
+function _healRegistryFile(registryFile, oldDir, newDir) {
+    if (!fs.existsSync(registryFile)) return;
+    try {
+        const raw = JSON.parse(fs.readFileSync(registryFile, 'utf8'));
+        const list = Array.isArray(raw?.paths) ? raw.paths : [];
+        const oldFwd = oldDir.replace(/\\/g, '/');
+        const newFwd = newDir.replace(/\\/g, '/');
+        const ci = process.platform === 'win32';
+        const eq  = (a, b) => ci ? a.toLowerCase() === b.toLowerCase() : a === b;
+        const pfx = (s, p) => ci ? s.toLowerCase().startsWith(p.toLowerCase()) : s.startsWith(p);
+
+        const updated = list.map(p => {
+            const norm = String(p).replace(/\\/g, '/');
+            if (pfx(norm, oldFwd + '/')) return newFwd + norm.slice(oldFwd.length);
+            if (eq(norm, oldFwd))        return newFwd;
+            return norm;
+        });
+
+        const deduped = [...new Set(updated)];
+        const tmp = `${registryFile}.${process.pid}.tmp`;
+        fs.writeFileSync(tmp, `${JSON.stringify({ paths: deduped }, null, 2)}\n`, 'utf8');
+        fs.renameSync(tmp, registryFile);
+    } catch (err) {
+        logger.warn('project', `project-paths registry heal failed: ${err.message}`);
+    }
+}
+
+/**
+ * Resolve the absolute path to the Documents sub-folder for default project
+ * storage. Memoized — runs at most once per process, never at module load.
+ *
+ * Resolution (all versions):
+ *   1. '<Documents>/Cubric Studio' exists → return it (no heal needed).
+ *   2. Only '<Documents>/Cubric Vision' exists:
+ *      - App major < 2 → return old folder unchanged.
+ *      - App major >= 2 → atomically rename old → new (same volume, instant),
+ *        rewrite any project-paths.json entries that sat inside the old folder,
+ *        return the new folder. If rename throws (EBUSY / EPERM / anything),
+ *        log a warning and return the OLD folder — the project list stays intact
+ *        and no new empty folder is created.
+ *   3. Neither folder exists (fresh install) → new name when major >= 2, old
+ *      name otherwise (pre-2.0 dev build keeps legacy behaviour).
+ *
+ * TEST SEAM: CUBRIC_TEST_APP_VERSION overrides the version read from package.json.
+ * Call _testResetDocumentsFolder() between test cases to clear the memo.
+ *
+ * @param {string} base  process.env.APP_DOCUMENTS
+ * @returns {string} absolute path to the resolved sub-folder
+ */
+function _getDocumentsFolder(base) {
+    if (_documentsFolder !== null) return _documentsFolder;
+
+    const newDir = path.join(base, _NEW_DOCS_FOLDER);
+    const oldDir = path.join(base, _OLD_DOCS_FOLDER);
+
+    if (fs.existsSync(newDir)) {
+        _documentsFolder = newDir;
+        return _documentsFolder;
+    }
+
+    if (fs.existsSync(oldDir)) {
+        if (_appMajorVersion() < 2) {
+            _documentsFolder = oldDir;
+            return _documentsFolder;
+        }
+        try {
+            fs.renameSync(oldDir, newDir);
+            _healRegistryFile(path.join(newDir, 'project-paths.json'), oldDir, newDir);
+            _documentsFolder = newDir;
+        } catch (err) {
+            logger.warn('project',
+                `Documents folder rename failed (${err.code || err.message}); ` +
+                'falling back to old folder — project list is intact'
+            );
+            _documentsFolder = oldDir;
+        }
+        return _documentsFolder;
+    }
+
+    // Fresh install — neither folder exists yet.
+    _documentsFolder = _appMajorVersion() >= 2 ? newDir : oldDir;
+    return _documentsFolder;
+}
+
+/**
+ * Reset the memoized Documents folder resolution.
+ *
+ * TEST SEAM ONLY — not called in production. Allows test cases that need
+ * different APP_DOCUMENTS / CUBRIC_TEST_APP_VERSION values to share a process
+ * without cross-test memo contamination.
+ */
+function _testResetDocumentsFolder() {
+    _documentsFolder = null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * Resolve the default projects root.
  * Priority:
- *   1. .engine-config.json `projectsPath` (worktree share — opt-in)
- *   2. APP_DOCUMENTS env (set by main.js → app.getPath('documents'))
- *      → <Documents>/Cubric Vision/Projects
- *   3. Dev fallback: <repo>/projects
+ *   1. .engine-config.json `projectsPath` (custom location — opt-in, out of scope
+ *      for the Documents heal).
+ *   2. APP_DOCUMENTS env (set by main.js → app.getPath('documents')):
+ *      prefer '<Documents>/Cubric Studio', fall back to '<Documents>/Cubric Vision'
+ *      (see _getDocumentsFolder for the full resolution and heal logic).
+ *   3. Dev fallback when APP_DOCUMENTS is unset: <repo>/projects
  *
  * Cross-platform: app.getPath('documents') resolves the OS-native Documents
  * folder on Win / macOS / Linux. path.join handles spaces.
@@ -52,7 +187,7 @@ function getProjectsRoot() {
     } catch (_) { /* fall through */ }
 
     if (process.env.APP_DOCUMENTS) {
-        return path.join(process.env.APP_DOCUMENTS, 'Cubric Vision', 'Projects');
+        return path.join(_getDocumentsFolder(process.env.APP_DOCUMENTS), 'Projects');
     }
     return path.join(__dirname, '..', 'projects');
 }
@@ -61,7 +196,8 @@ function getProjectsRoot() {
  * Resolve the durable project-paths registry file. Lives next to the default
  * projects root so it survives portable-folder deletion / reinstall, the same
  * way the default Documents projects do.
- *   - Portable / packaged: <Documents>/Cubric Vision/project-paths.json
+ *   - Portable / packaged: '<Documents>/Cubric Studio/project-paths.json'
+ *     (or 'Cubric Vision' on pre-2.0 installs — see _getDocumentsFolder).
  *   - Dev fallback: <repo>/project-paths.json
  *
  * This registry is the durable store for *external* project parent dirs the
@@ -70,7 +206,7 @@ function getProjectsRoot() {
  */
 function getProjectPathsRegistryFile() {
     if (process.env.APP_DOCUMENTS) {
-        return path.join(process.env.APP_DOCUMENTS, 'Cubric Vision', 'project-paths.json');
+        return path.join(_getDocumentsFolder(process.env.APP_DOCUMENTS), 'project-paths.json');
     }
     return path.join(__dirname, '..', 'project-paths.json');
 }
@@ -983,6 +1119,7 @@ function cleanComfyUITempFiles() {
 module.exports = {
     getProjectsRoot,
     getProjectPathsRegistryFile,
+    _testResetDocumentsFolder,
     readProjectPathsRegistry,
     addProjectPathToRegistry,
     removeProjectPathFromRegistry,

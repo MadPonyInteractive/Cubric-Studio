@@ -6,7 +6,7 @@ export CUBRIC_PORTABLE_ROOT="$ROOT"
 export MPI_RESOURCES_PATH="$ROOT/resources"
 
 if [ "${1:-}" = "" ]; then
-  echo "Usage: update-from-zip.command path/to/CubricVision-update.zip"
+  echo "Usage: update-from-zip.command path/to/CubricStudio-update.zip"
   echo
   echo "The argument may be the downloaded update .zip OR the FOLDER that Safari"
   echo "auto-extracted it into (Safari/Archive Utility unzips downloads by"

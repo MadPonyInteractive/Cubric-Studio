@@ -346,7 +346,7 @@ async function main() {
   // already-extracted directory (MPI-62 Safari case) is left untouched.
   if (tmpRoot) fs.rmSync(tmpRoot, { recursive: true, force: true });
   restoreLauncherBits(opts.root);
-  console.log(`Applied Cubric Vision update to ${manifest.toVersion || 'unknown version'}.`);
+  console.log(`Applied Cubric Studio update to ${manifest.toVersion || 'unknown version'}.`);
   console.log(`Rollback files, if any, are in: ${rollbackRoot}`);
 }
 

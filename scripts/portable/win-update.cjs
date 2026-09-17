@@ -8,7 +8,7 @@
 // .bat / .cmd / .vbs with no per-file allowlist and no override in the dialog
 // (MPI-387). The Linux/macOS updaters are shell scripts that orchestrate
 // fetch-release.cjs + apply-update.cjs; on Windows that orchestration cannot live
-// in a script, so it lives here and runs through CubricVision.exe as node
+// in a script, so it lives here and runs through CubricStudio.exe as node
 // (ELECTRON_RUN_AS_NODE=1) — the same trick the shell updaters use for their two
 // steps, just moved one level up. The in-app update button spawns this directly,
 // so the SAC-blocked chain is gone from the update path entirely. update.bat is
@@ -16,13 +16,13 @@
 // file, so there is exactly one implementation.
 //
 // Usage (already running under electron-as-node):
-//   CubricVision.exe update\win-update.cjs [--root <portable-root>]
+//   CubricStudio.exe update\win-update.cjs [--root <portable-root>]
 
 const fs = require('fs');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
 
-const DEFAULT_REPO = 'MadPonyInteractive/Cubric-Vision';
+const DEFAULT_REPO = 'MadPonyInteractive/Cubric-Studio';
 // MPI-708 Phase 0b: both names, because the updater that RUNS is the one already on disk.
 // At 2.0 the product becomes Cubric Studio and the release assets rename with it — an
 // installed 1.5 whose pattern only knows CubricVision would find no asset and report
@@ -85,7 +85,7 @@ function relaunch(root) {
   try {
     const child = spawn(exe, [], { cwd: root, detached: true, stdio: 'ignore', env });
     child.unref();
-    log('Relaunched Cubric Vision.');
+    log('Relaunched Cubric Studio.');
   } catch (err) {
     log(`Relaunch failed: ${err.message}`);
   }

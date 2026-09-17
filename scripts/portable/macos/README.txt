@@ -15,7 +15,7 @@ ONCE per download:
   2. Type  xattr -dr com.apple.quarantine  followed by a space, then DRAG this
      folder from Finder onto the Terminal window (that pastes its full path).
      The line should look like:
-         xattr -dr com.apple.quarantine "/Users/you/Downloads/CubricVision-macos-arm64-vX.Y.Z"
+         xattr -dr com.apple.quarantine "/Users/you/Downloads/CubricStudio-macos-arm64-vX.Y.Z"
   3. Press Return.
   4. Now double-click start.command in Finder — it launches normally, no popup.
 
@@ -43,7 +43,7 @@ update.command
 update-from-zip.command
     Offline / manual update. Applies an update package (.zip) you already
     have on disk. Run:
-        ./update-from-zip.command path/to/CubricVision-...-update.zip
+        ./update-from-zip.command path/to/CubricStudio-...-update.zip
     Use this when you received an update zip directly (e.g. from Discord)
     or have no internet on this machine.
 

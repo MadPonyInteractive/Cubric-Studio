@@ -6,7 +6,7 @@ rem install; those users update from inside the app instead (MPI-387).
 set "CUBRIC_PORTABLE_ROOT=%~dp0."
 set "MPI_RESOURCES_PATH=%CUBRIC_PORTABLE_ROOT%\resources"
 if "%~1"=="" (
-  echo Usage: update-from-zip.bat path\to\CubricVision-update.zip
+  echo Usage: update-from-zip.bat path\to\CubricStudio-update.zip
   exit /b 2
 )
 if not exist "%~1" (

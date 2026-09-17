@@ -34,8 +34,9 @@ Local Windows builds do the same by hand:
 
 - Each file is the **FULL (portable-stage) `update-manifest.json`** from the
   PREVIOUS shipped version's **full build** — the top-level
-  `resources/cubric/update-manifest.json` inside `CubricVision-<plat>-<arch>-v<ver>.zip`
-  / `.tar.gz` (NOT the `-update-v<ver>` delta bundle). It has `fromVersion: null`,
+  `resources/cubric/update-manifest.json` inside `CubricStudio-<plat>-<arch>-v<ver>.zip`
+  / `.tar.gz` (NOT the `-update-v<ver>` delta bundle). Pre-2.0 baselines use the old
+  `CubricVision-` prefix — extract them using the name they actually shipped with. It has `fromVersion: null`,
   `artifact.kind: portable-stage`, and lists **every** staged file's hash (~5k+
   entries). Its `toVersion` (e.g. `0.0.4`) becomes the new bundle's `fromVersion`.
 - **Do NOT use the update-bundle (delta) manifest** as a baseline. It only lists
@@ -123,7 +124,7 @@ artifact (never the `-update-` one):
 > **Windows has NO top-level folder — its member path differs from the others.**
 > Since the MPI-387 fix-D layout move, the Windows zip extracts to the current
 > directory with `resources/` at its root, so the path is
-> `resources/cubric/update-manifest.json` with no `CubricVision-…-v<ver>/` prefix.
+> `resources/cubric/update-manifest.json` with no `CubricStudio-…-v<ver>/` prefix.
 > Linux and macOS still wrap in a top-level folder. Using the wrapped path on
 > Windows fails with `caution: filename not matched` — and because the command
 > redirects, it **truncates the existing baseline to 0 bytes** before failing.
@@ -132,12 +133,12 @@ artifact (never the `-update-` one):
 > that is the repo's own copy shipped inside the app, not the portable stage.
 
 ```sh
-unzip -p CubricVision-windows-x64-v<ver>.zip \
+unzip -p CubricStudio-windows-x64-v<ver>.zip \
   'resources/cubric/update-manifest.json' > win32-x64.json
-tar -xzOf CubricVision-linux-x64-v<ver>.tar.gz \
-  'CubricVision-linux-x64-v<ver>/resources/cubric/update-manifest.json' > linux-x64.json
-unzip -p CubricVision-macos-arm64-v<ver>.zip \
-  'CubricVision-macos-arm64-v<ver>/resources/cubric/update-manifest.json' > darwin-arm64.json
+tar -xzOf CubricStudio-linux-x64-v<ver>.tar.gz \
+  'CubricStudio-linux-x64-v<ver>/resources/cubric/update-manifest.json' > linux-x64.json
+unzip -p CubricStudio-macos-arm64-v<ver>.zip \
+  'CubricStudio-macos-arm64-v<ver>/resources/cubric/update-manifest.json' > darwin-arm64.json
 ```
 
 Then assert `fromVersion: null`, `artifact.kind: portable-stage`, and a file count

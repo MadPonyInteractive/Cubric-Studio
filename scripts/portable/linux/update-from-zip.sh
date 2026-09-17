@@ -6,7 +6,7 @@ export CUBRIC_PORTABLE_ROOT="$ROOT"
 export MPI_RESOURCES_PATH="$ROOT/resources"
 
 if [ "${1:-}" = "" ]; then
-  echo "Usage: update-from-zip.sh path/to/CubricVision-update.zip"
+  echo "Usage: update-from-zip.sh path/to/CubricStudio-update.zip"
   echo
   echo "This script must be run from a terminal with the update zip path as an"
   echo "argument. Double-clicking it in a file manager will not work (no zip"

@@ -13,7 +13,7 @@ ROOT="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 export CUBRIC_PORTABLE_ROOT="$ROOT"
 export MPI_RESOURCES_PATH="$ROOT/resources"
 
-REPO="${CUBRIC_GITHUB_REPO:-MadPonyInteractive/Cubric-Vision}"
+REPO="${CUBRIC_GITHUB_REPO:-MadPonyInteractive/Cubric-Studio}"
 ARCH="$(uname -m)"
 # MPI-708 Phase 0b: match the Cubric Studio asset names too, so an install shipped under
 # the old name can still find the 2.0 update. The updater that runs is the installed one.
@@ -49,7 +49,7 @@ json_escape() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'; }
 # take the app down with us when the Terminal window closes).
 relaunch() {
   if [ -x "$ROOT/start.command" ]; then
-    echo "Relaunching Cubric Vision..."
+    echo "Relaunching Cubric Studio..."
     nohup "$ROOT/start.command" >/dev/null 2>&1 </dev/null &
   else
     echo "Relaunch skipped: $ROOT/start.command not found."

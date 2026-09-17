@@ -9,7 +9,7 @@ set -eu
 ROOT="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 cd "$ROOT"
 
-echo "== Cubric Vision dev/test setup =="
+echo "== Cubric Studio dev/test setup =="
 
 # 1. Node.js + npm
 if ! command -v npm >/dev/null 2>&1; then

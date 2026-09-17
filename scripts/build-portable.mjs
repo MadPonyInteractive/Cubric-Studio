@@ -38,7 +38,7 @@ export const PLATFORM_CONFIG = {
     label: 'windows',
     appDirRel: 'resources/app',
     electronRoot: true,
-    exeName: 'CubricVision.exe',
+    exeName: 'CubricStudio.exe',
     update: 'update.bat',
     updateFromZip: 'update-from-zip.bat',
     templateDir: 'windows',
@@ -88,7 +88,14 @@ export const PLATFORM_CONFIG = {
 // refuses to delete a running image (EBUSY aborts the whole update). The stale
 // app/ tree is left on disk and the release notes tell the user to delete it.
 export const RETIRED_PATHS = {
-  win32: ['start.vbs', 'start-with-terminal.bat'],
+  // CubricVision.exe: 2.0 ships the runtime as CubricStudio.exe (the update bundle carries
+  // the Electron root, see stageUpdateBundle). Like every entry here it only fires through
+  // applyDelta, i.e. when the build has a --from-manifest baseline that LISTS the file: a
+  // full bundle (no baseline, the state since MPI-709) ships `delete: []`, and a baseline
+  // stamped from a 2.0+ release never lists it. Deleting it also breaks a user's pinned
+  // shortcut to it (MPI-708 open decision). If it does fire, v1.5.0's installed applier
+  // renames the running image aside instead of aborting (applyDeletes -> evictBusyFile).
+  win32: ['start.vbs', 'start-with-terminal.bat', 'CubricVision.exe'],
 };
 
 const PRESERVE = [
@@ -97,6 +104,8 @@ const PRESERVE = [
   'user-data/',
   '<documents>/Cubric Vision/Projects/',
   '<documents>/Cubric Vision/project-paths.json',
+  '<documents>/Cubric Studio/Projects/',
+  '<documents>/Cubric Studio/project-paths.json',
 ];
 
 const APP_COPY_EXCLUDES = new Set([
@@ -503,7 +512,7 @@ function isElectronDistJunk(name) {
 
 // Standard Electron layout (MPI-387 fix D): drop Electron's dist at the portable
 // root and rename electron.exe, so the double-click target is a plain
-// CubricVision.exe instead of a Smart-App-Control-blocked script chain. The
+// CubricStudio.exe instead of a Smart-App-Control-blocked script chain. The
 // dist's own resources/ (default_app.asar + elevate.exe) merges into the
 // artifact's resources/, where Electron then finds resources/app/ — resolved
 // relative to the exe, so the folder stays portable.
@@ -547,7 +556,7 @@ async function stagePortableSkeleton(stageRoot, opts, config) {
   await stageResources(stageRoot, opts, config);
   await stageUvBinary(stageRoot, opts);
 
-  // Windows has no start launcher at all — CubricVision.exe at the root IS the
+  // Windows has no start launcher at all — CubricStudio.exe at the root IS the
   // launcher (see PLATFORM_CONFIG).
   if (config.start) {
     const startTarget = path.join(stageRoot, config.start);
@@ -572,7 +581,7 @@ async function stagePortableSkeleton(stageRoot, opts, config) {
   await copyFileEnsured(path.join(TEMPLATE_ROOT, 'apply-update.cjs'), path.join(stageRoot, 'update', 'apply-update.cjs'));
   await copyFileEnsured(path.join(TEMPLATE_ROOT, 'fetch-release.cjs'), path.join(stageRoot, 'update', 'fetch-release.cjs'));
   // Windows online updater: the in-app update button and update.bat both run this
-  // through CubricVision.exe as node, so no blocked script sits in the chain.
+  // through CubricStudio.exe as node, so no blocked script sits in the chain.
   if (opts.platform === 'win32') {
     await copyFileEnsured(path.join(TEMPLATE_ROOT, 'win-update.cjs'), path.join(stageRoot, 'update', 'win-update.cjs'));
   }
@@ -581,7 +590,7 @@ async function stagePortableSkeleton(stageRoot, opts, config) {
   // Linux taskbar/dock branding: ship the app icon + first-run installer under
   // resources/ (not the portable root) to keep the top-level folder clean. The
   // installer writes a per-user .desktop + hicolor icon so the dock shows
-  // "Cubric Vision" + our logo. Both launchers call resources/setup-desktop.sh.
+  // "Cubric Studio" + our logo. Both launchers call resources/setup-desktop.sh.
   if (opts.platform === 'linux') {
     const resourcesDir = path.join(stageRoot, 'resources');
     await ensureDir(resourcesDir);
@@ -611,7 +620,7 @@ async function stagePortableSkeleton(stageRoot, opts, config) {
     await writeFileEnsured(
       path.join(appRoot, 'PORTABLE_DRY_RUN.txt'),
       [
-        'Cubric Vision portable dry-run stage.',
+        'Cubric Studio portable dry-run stage.',
         'This placeholder proves manifest generation without copying app sources, user folders, or downloaded binaries.',
         '',
       ].join('\n'),
@@ -632,7 +641,7 @@ async function stagePortableSkeleton(stageRoot, opts, config) {
   }
 
   // macOS dock branding: the bundled Electron.app ships CFBundleName=Electron
-  // and electron.icns. Rename it to "Cubric Vision" and swap the icon so the
+  // and electron.icns. Rename it to "Cubric Studio" and swap the icon so the
   // unpackaged portable shows our name/logo in the dock. Requires plutil
   // (always present on the macOS CI runner); skipped if node_modules was
   // excluded or the bundle/plutil is missing.
@@ -699,8 +708,8 @@ async function brandMacBundle(appDir) {
     return;
   }
   try {
-    await execFileAsync('plutil', ['-replace', 'CFBundleName', '-string', 'Cubric Vision', plist]);
-    await execFileAsync('plutil', ['-replace', 'CFBundleDisplayName', '-string', 'Cubric Vision', plist]);
+    await execFileAsync('plutil', ['-replace', 'CFBundleName', '-string', 'Cubric Studio', plist]);
+    await execFileAsync('plutil', ['-replace', 'CFBundleDisplayName', '-string', 'Cubric Studio', plist]);
     // Swap the dock icon: overwrite the icns the plist points at. favicon.png is
     // not an .icns, so we only replace if a prebuilt icns exists; otherwise the
     // runtime app.dock.setIcon() in main.js handles the icon and we leave the
@@ -848,7 +857,7 @@ async function createUpdateManifest(stageRoot, opts, config, artifactKind = null
   const manifest = {
     schemaVersion: 1,
     appId: 'cubric.vision',
-    displayName: 'Cubric Studio Vision',
+    displayName: 'Cubric Studio',
     platform: opts.platform,
     arch: opts.arch,
     fromVersion: delta?.fromVersion ?? null,
@@ -1203,22 +1212,23 @@ async function main() {
   // MPI-783: a dry-run's roots are its own, so no --stage-dir can put it on top of a
   // real build. On 2026-09-12 one rewrote the delivered 1.6.0 stage in place.
   const dryRunSuffix = opts.dryRun ? '-dry-run' : '';
-  const rootName = `CubricVision-${config.label}-${opts.arch}-v${opts.version}${dryRunSuffix}`;
-  // The update ARCHIVE filename stays long so the updater's asset-name regex
-  // (^CubricVision-<platform>-update-v.*\.zip$ in update.{command,sh}) still
-  // matches. But the bundle is staged into a SHORT, VERSION-FIRST folder so the
+  const rootName = `CubricStudio-${config.label}-${opts.arch}-v${opts.version}${dryRunSuffix}`;
+  // The update ARCHIVE filename uses the new product name. The installed-fleet
+  // updater regex (^Cubric(Vision|Studio)-<platform>-update-v.*\.zip$) matches both
+  // names — widened in the 1.5.0/1.5.1 bridge (MPI-708 Phase 0b). The bundle is
+  // staged into a SHORT, VERSION-FIRST folder so the
   // zip wraps a single short top-level dir. macOS Safari/Archive Utility then
   // extracts to that folder name instead of the long zip basename (which it
   // truncated to e.g. ...update-v0, losing the version — MPI-62). Version-first
   // means even if THIS gets truncated the user still sees the version. The
   // applier walks down to find the manifest, so the root name is transparent.
-  const updateArchiveName = `CubricVision-${config.label}-${opts.arch}-update-v${opts.version}`;
+  const updateArchiveName = `CubricStudio-${config.label}-${opts.arch}-update-v${opts.version}`;
   // MPI-370/369: the root name is ALSO the only label a user sees after unzipping,
   // and the old `CubricVision-v<ver>` was indistinguishable from the full artifact —
   // it holds app/, resources/ and the launchers, but NOT the Electron runtime, so
   // double-clicking start.vbs in it dies in milliseconds with no window and no log.
   // A real user lost an evening to that. Version stays first (see MPI-62 above).
-  const updateRootName = `CubricVision-v${opts.version}-update-only${dryRunSuffix}`;
+  const updateRootName = `CubricStudio-v${opts.version}-update-only${dryRunSuffix}`;
   const stageRoot = path.resolve(opts.stageDir, rootName);
   const updateStageRoot = path.resolve(opts.stageDir, updateRootName);
 
@@ -1271,7 +1281,7 @@ async function main() {
     // --keepParent, no path limit, MPI-62 wants the version visible) keep theirs.
     await createArchiveFromDir(stageRoot, artifactArchive, config.fullArchiveExt, { includeRoot: opts.platform !== 'win32' });
     if (updateArchive) {
-      // includeRoot wraps the bundle in the short version-first `CubricVision-v<ver>`
+      // includeRoot wraps the bundle in the short version-first `CubricStudio-v<ver>`
       // folder so the Safari-extracted folder is short + shows the version (not the
       // truncated long zip basename).
       await createArchiveFromDir(updateStageRoot, updateArchive, config.updateArchiveExt, { includeRoot: true });

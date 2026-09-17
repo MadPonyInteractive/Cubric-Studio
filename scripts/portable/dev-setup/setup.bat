@@ -6,7 +6,7 @@ setlocal
 set "ROOT=%~dp0"
 cd /d "%ROOT%"
 
-echo == Cubric Vision dev/test setup ==
+echo == Cubric Studio dev/test setup ==
 
 where npm >nul 2>&1
 if errorlevel 1 (
@@ -25,4 +25,4 @@ if exist package-lock.json (
 cd /d "%ROOT%"
 
 echo.
-echo == Setup complete. Launch with CubricVision.exe. ==
+echo == Setup complete. Launch with CubricStudio.exe. ==

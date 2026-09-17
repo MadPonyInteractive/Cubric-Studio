@@ -8,14 +8,17 @@ Brief (decision + repo-rename reasoning): `brief.md`.
 
 **2026-09-17 (session ad10647f): PHASE 1 DONE and verified** (evidence: `validation.md` § Phase 1;
 CI checkout proven on mpi-ci run `35222060391`, cancelled after checkout, 0 artifacts).
+**Parallel Batch, 2 of 5 DONE and verified** (Documents heal, Build identity; `npm test` 1287/0;
+evidence `validation.md` § Parallel Batch). **One open decision for Fabio: the old
+`CubricVision.exe`** — see Plan Drift "RETIRED_PATHS is inert".
 **Next unit is blocked by live peers, re-check `state/index.json` before starting:**
 - Phase 2 (renderer): MPI-774 (Agent 7, active) claims `index.html` and
   `assets/mascot/studio/logo.webp` (it is already staging a Studio logo, so coordinate, don't
   duplicate); MPI-760 (active) has uncommitted edits in `MpiGroupHistoryBlock.js`.
 - Parallel Batch: `routes/**`, `docs/**` and `.claude/**` overlap live claims (MPI-774:
   `routes/agent.js`, `routes/connector.js`, `docs/agent-chat.md`, `docs/llm.md`,
-  `.claude/rules/component-*.md`; MPI-760: `docs/gif.md`, `docs/video-player.md`). Only
-  **Heal the Documents folder** and **Build identity** are clear now. The Agent-tooling task
+  `.claude/rules/component-*.md`; MPI-760: `docs/gif.md`, `docs/video-player.md`), so Main
+  process, Docs sweep and Agent tooling wait (the two clear tasks are done). The Agent-tooling task
   edits `.claude/rules/`, which needs Fabio's OK per CLAUDE.md rule 5 (he gave it for `kanban.md` only).
 
 Phase 1 detail: Fabio renamed both repos in GitHub Settings (hub first).
@@ -304,7 +307,7 @@ with `/mpi-brief-rule` output plus the Critical Rules Snapshot before dispatch.
       `tests/issue-report-url.test.cjs:86` asserts the exact issue URL and must be updated in
       the same task. Briefings: root-cause. **Verify:** `node --test tests/` passes,
       including `issue-report-url.test.cjs`.
-- [ ] **Heal the Documents folder.** Ownership: `routes/shared.js` **only**, plus its test.
+- [x] **Heal the Documents folder.** Ownership: `routes/shared.js` **only**, plus its test.
       Both `getProjectsRoot()` (`:41-56`) and `getProjectPathsRegistryFile()` (`:65-74`)
       independently join `APP_DOCUMENTS` with the literal `'Cubric Vision'` — factor that into
       one resolver they both call. The resolver **prefers `Cubric Studio`, falls back to
@@ -343,7 +346,7 @@ with `/mpi-brief-rule` output plus the Critical Rules Snapshot before dispatch.
       cross-references. Briefings: root-cause, kanban. **Verify:** `claude plugin validate`
       passes where applicable, and a dry-run of the release-notes generator emits a
       Cubric Studio header.
-- [ ] **Build identity.** Ownership: `scripts/build-portable.mjs`, `electron-builder.yml`,
+- [x] **Build identity.** Ownership: `scripts/build-portable.mjs`, `electron-builder.yml`,
       `release-baselines/*.json`, `package.json`, `package-lock.json`.
       Change `package.json` `productName` and `electron-builder.yml:2` `productName`;
       resolve the three-way spelling drift in `build-portable.mjs` (`:682,683` macOS bundle
@@ -380,6 +383,44 @@ MadPony-Identity, not from here. Recorded in Preservation Notes so the scope is 
 rather than forgotten.
 
 ## Plan Drift
+
+- 2026-09-17 (session ad10647f), Parallel Batch run PARTIALLY (Fabio: "run what you can now"):
+  only **Heal the Documents folder** and **Build identity**; the other three wait on MPI-774 /
+  MPI-760 claims. Two corrections given to the workers:
+  - **The heal is VERSION-GATED to app major >= 2.** D3 says "first 2.0 boot", and master (1.6.1)
+    runs Fabio's live app and every agent's app from this tree: an ungated heal would rename his
+    real `Documents/Cubric Vision` on his next restart, before 2.0 exists, and a released 1.5.0
+    portable on the same box would then open onto an empty gallery. Lazy + memoized, never at
+    `require` time (MPI-779 made requiring `shared.js` side-effect free).
+  - **`release-baselines/*.json` `files[]` should NOT be renamed.** A baseline describes an
+    already-shipped install, and the retire logic only deletes paths the baseline lists; renaming
+    `CubricVision.exe` there would make `RETIRED_PATHS` never match. The worker verifies this and
+    also checks that v1.5.0's INSTALLED applier survives being told to delete the running
+    `CubricVision.exe` before `RETIRED_PATHS` gains it.
+  - **Result: `release-baselines/` holds no JSON at all** (MPI-709 `2092f07e` dropped them so
+    mpi-ci ships FULL bundles), so there was nothing to rename there.
+  - **`RETIRED_PATHS` is inert for the exe — OPEN DECISION for Fabio.** The entry was added
+    (v1.5.0's `applyDeletes` renames a running image aside, so it would be safe), but retire
+    entries only fire through `applyDelta`, which needs a baseline that LISTS the file: a full
+    bundle ships `delete: []`, and a baseline stamped from 2.0+ never lists `CubricVision.exe`.
+    So today every updated Windows install keeps BOTH exes. That is functional (update bundles
+    carry the Electron root, so `CubricStudio.exe` arrives; Electron is `^41.0.3` on both
+    v1.5.0 and master, so the old exe still launches the new app) and it keeps a user's pinned
+    taskbar/desktop shortcut to `CubricVision.exe` working. Deleting it would need full bundles
+    to carry the retire list (`createUpdateManifest` `delete: delta?.deletes ?? []`) and would
+    break those shortcuts. Options: (a) keep both through 2.x, say so in the release note;
+    (b) make full bundles delete it at 2.0 and tell users to re-pin; (c) keep at 2.0, delete at
+    2.1 with a note. The comment on `RETIRED_PATHS` now says this plainly.
+  - **Still naming `CubricVision-*` / `CubricVision.exe`, owned by the WAITING batch tasks:**
+    `.claude/skills/mpi-release/SKILL.md:194-196` and `references/build-dispatch.md:74-76`
+    (upload globs — MUST change before the next release or the upload misses the new files),
+    `.github/ISSUE_TEMPLATE/portable-validation.yml:46`, `README.md:94` ("run
+    `CubricVision.exe`"), `main.js:259` comment and `main.js:1252` User-Agent.
+  - `npm run build:portable:dry-run` never stages binaries (`PORTABLE_DRY_RUN.txt`
+    placeholder), so the plan's "staged tree carries the new exe name" is proven by
+    `tests/portable-win-layout.test.cjs` (`PLATFORM_CONFIG.win32.exeName`) instead; a real
+    CI build proves it end to end at release. The dry-run left
+    `D:\CubricStudio\Vision\Builds\CubricStudio-*-v1.6.1-dry-run` (scratch).
 
 - 2026-09-17 (session ad10647f), Phase 1:
   - **No lockstep for the CI gate.** mpi-ci now maps BOTH slugs to the deploy key

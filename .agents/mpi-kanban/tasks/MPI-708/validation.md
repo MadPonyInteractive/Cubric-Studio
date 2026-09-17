@@ -36,3 +36,26 @@ Renames done by Fabio in GitHub Settings (the auto-mode classifier refused `gh r
    the redirect, measured on `denoland/deno_std`).
 5. **README** (Fabio's request): "formerly Cubric-Vision" note at the top; mascot image and its
    orphaned `.github/readme/mascot-greet.png` removed (`c0972475`).
+
+## Parallel Batch (partial: 2 of 5) — PASSED 2026-09-17 (session ad10647f)
+
+Two workers, disjoint ownership, orchestrator-reviewed diffs.
+
+- **Heal the Documents folder** (`routes/shared.js`, `tests/documents-heal.test.cjs`): one
+  memoized, lazy resolver `_getDocumentsFolder()` behind `getProjectsRoot()` and
+  `getProjectPathsRegistryFile()`; heal only when the app major is >= 2 (package.json, test seam
+  `CUBRIC_TEST_APP_VERSION`); failed rename -> warn + old folder. No other runtime reader of the
+  Documents folder exists (grep of main.js, server.js, routes/, services/, scripts/).
+  `node --test tests/documents-heal.test.cjs` 7/7 (old-only v2 rename + registry rewrite, new-only,
+  both, neither v1/v2, old-only v1 no rename, EBUSY fallback);
+  `tests/fork-shutdown.test.cjs` + `tests/model-roots.test.cjs` 26/26 (require stays side-effect free).
+- **Build identity**: `productName` (package.json, electron-builder.yml) -> Cubric Studio;
+  `exeName` -> `CubricStudio.exe`; root/update archive names -> `CubricStudio-*`; macOS bundle and
+  manifest `displayName` -> Cubric Studio; updater `DEFAULT_REPO` (win/linux/macos) ->
+  `MadPonyInteractive/Cubric-Studio`; `PRESERVE` gains the Cubric Studio Documents paths;
+  `RETIRED_PATHS.win32` gains `CubricVision.exe` (inert, see plan drift); `appId` and package
+  `name` unchanged; every both-names bridge fallback kept.
+  Portable tests (`portable-win-layout`, `portable-update-apply`, `portable-dry-run-isolation`,
+  `updater-rename-bridge`) pass; `npm run build:portable:dry-run` succeeded, manifest `appId`
+  `cubric.vision`, `displayName` `Cubric Studio` (dry-run stages no binaries).
+- Orchestrator re-run: the six targeted test files 28/28; `npm test` 1287 pass, 0 fail, 1 skipped.
