@@ -540,6 +540,14 @@
   produce it. A video already sitting on its first frame is now left alone. Hovering, playback
   and the silence-while-scrolling behaviour are unchanged.
 
+- Installing the engine no longer looks stuck. The install screen used to show a thin bar and a
+  line of text that could sit unchanged for minutes, so it was easy to think it had hung and
+  close the app, which broke the install. It now shows which step it is on, a real percentage
+  while the engine unpacks, download speed and time left, a spinner for steps with nothing to
+  count, and a clock that keeps ticking, with a reassuring note when a step stays quiet for a
+  while. Closing Cubric Vision during any part of an engine install, update or repair now asks
+  first. Before, it only asked while the engine file itself was downloading.
+
 - The first engine start no longer looks frozen. Setting up a new engine installs a large set
   of Python packages before ComfyUI can start, and for the minutes that took, the window only
   said "Starting ComfyUI Engine…" — no progress, no explanation, so it read as a hang. That
