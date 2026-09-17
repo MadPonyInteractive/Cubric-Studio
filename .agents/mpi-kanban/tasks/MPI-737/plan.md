@@ -21,6 +21,8 @@ settings UI); the maps below are theirs, line numbers as of that day - re-grep b
   local generation lands in the prompt box, no Cue job), step 4's ComfyUI half, and step 5's attempt (a
   describe/enhance on keyless Remote fails with the D1 message). Then `mpi-end-session` (brief's four
   points one by one). The same session also took MPI-774 feedback (that card's plan, Phase 3c).
+- **Decided at close-out (Fabio, 2026-09-17): folded into MPI-797** (item 5, which MPI-774 Phase 3d carries).
+  The ask, as it stood:
 - **Open ask from Fabio (2026-09-16), NOT built:** a Remote describe shows no progress (a ComfyUI describe shows in
   the status bar). He expects to use one of the mascot animations "that we will implement soon". Needs his call at
   close-out: fold into this card, or a new card once the mascot animations exist.
