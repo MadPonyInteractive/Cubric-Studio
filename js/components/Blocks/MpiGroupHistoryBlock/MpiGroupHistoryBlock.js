@@ -889,9 +889,9 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
          */
         function _handleApply(mode, payload = {}) {
             if (mode === 'crop') {
-                if (payload.kind === 'image')            return viewer.el.runCrop?.();
+                if (payload.kind === 'image')            return viewer.el.runCrop?.(payload.settings);
                 if (payload.kind === 'video-snapshot')   return _handleCropSnapshot();
-                if (payload.kind === 'video-save')       return _handleCropSaveVideo();
+                if (payload.kind === 'video-save')       return _handleCropSaveVideo(payload.settings);
                 return;
             }
             // Mask compounds have no apply button — they only create a mask, and
@@ -2091,7 +2091,8 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             }
         }
 
-        async function _handleCropSaveVideo() {
+        /** @param {{divisible_by:number}} settings - the crop panel's live values (MPI-795) */
+        async function _handleCropSaveVideo(settings) {
             const project = state.currentProject;
             if (!project?.folderPath || !project?.id) return;
             const rect = viewer.el.getCropRect?.();
@@ -2117,7 +2118,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 // absoluteCropPx so the server uses it directly and skips its own
                 // even-snap (multiples of 16 are already even).
                 const srcDims = currentItem?.pixelDimensions;
-                const n = getToolSettings(project, 'crop', { divisible_by: 16 }).divisible_by;
+                const n = settings.divisible_by;
                 if (srcDims?.w && srcDims?.h) {
                     const px = {
                         x: Math.max(0, Math.floor(rect.x * srcDims.w)),

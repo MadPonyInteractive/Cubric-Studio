@@ -44,7 +44,7 @@ import { hasMaskContent } from '../../../utils/maskUtils.js';
 import { runAutoMask } from '../../../services/commandExecutor.js';
 import { StatusBar } from '../../../shell/statusBar.js';
 import { state } from '../../../state.js';
-import { createImageItem, getToolSettings } from '../../../data/projectModel.js';
+import { createImageItem } from '../../../data/projectModel.js';
 import { roundToDivisible } from '../../../utils/cropRounding.js';
 import { qs, on } from '../../../utils/dom.js';
 import { Events } from '../../../events.js';
@@ -941,18 +941,15 @@ export const MpiCanvasViewer = ComponentFactory.create({
 
         // ── Crop execution ───────────────────────────────────────────────────
 
-        async function _runCrop() {
+        /**
+         * @param {{family:string, res_w:number, res_h:number, divisible_by:number, fill_color:string}} settings
+         *   the crop panel's LIVE values (MPI-795) — the persisted copy trails
+         *   the panel by two debounces, so an Apply right after an edit lost it.
+         */
+        async function _runCrop(settings) {
             const rect = canvas.getCropRect();
             if (!rect || !_currentItem?.filePath || !state.currentProject?.folderPath) return;
 
-            const settings = getToolSettings(state.currentProject || {}, 'crop', {
-                divisible_by: 16,
-                family: 'ratio',
-                res_w: 1920,
-                res_h: 1080,
-                // eslint-disable-next-line mpi/no-hardcoded-hex-color -- fallback fill outside the source
-                fill_color: '#000000',
-            });
             const isExact = settings.family === 'resolution';
 
             // Round the selected output pixels to a multiple of the crop tool's
@@ -1292,7 +1289,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
         // directly without an intermediate tool-action-bar.
 
         /** Promote _runCrop so MpiToolOptionsCrop can trigger it via onApply. */
-        el.runCrop = () => _runCrop();
+        el.runCrop = (settings) => _runCrop(settings);
 
         /** Forward crop ratio selection from MpiToolOptionsCrop to the canvas. */
         el.setCropRatio = (ratio) => {

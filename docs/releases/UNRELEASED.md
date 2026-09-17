@@ -386,6 +386,11 @@
   pose. The crew shrinks to fit your window and waits for any startup dialog to close before
   it walks on. New project and Open folder now sit at the foot of your project list.
 
+- **Resize can shrink a picture by megapixels or by a fixed amount.** The Resize tool has two
+  new resolution types. MP resizes to the number of megapixels you type (1 MP is 1024 × 1024),
+  and SCALE divides the width and height by 1.5, 2, 3 or 4. Both keep the picture's proportions
+  and show the size you will get before you press Apply.
+
 ## Fixes
 
 > **A fix to a FLOW does not belong in this section for this release.** Flows debut here, so
@@ -394,6 +399,12 @@
 > latent previews now play everywhere they appear" names the **Flow result pane** alongside the
 > History workspace and the minimised preview window. The last two are real released bugs and
 > the entry is worth keeping; the Flow clause is the part to drop when folding.
+
+- The Crop tool's RESOLUTION mode saves the width and height you typed. If you left one of
+  them at the value the panel showed, or pressed Apply straight after typing, the crop came
+  out at the size of the box you drew instead. Ratio and Free crops had a smaller version of
+  the same problem: once you had changed any other crop setting, they skipped the Divisible by
+  rounding the panel showed, unless you had changed that one too.
 
 - The Upscale tool shows its upscalers when you picked your own models folder while
   installing the engine. The two upscalers that come with the app, and the other helper

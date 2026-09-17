@@ -823,3 +823,26 @@ export function findClosestRatio(width, height, ratioList) {
 
     return closest;
 }
+
+/**
+ * Resize output that keeps the source aspect (MPI-796). `megapixels` targets a
+ * pixel count, using ComfyUI's megapixel (1024 x 1024 = 1 MP, as its
+ * ImageScaleToTotalPixels node does). `scale` divides both sides.
+ * @param {'megapixels'|'scale'|string} family
+ * @param {number} srcW
+ * @param {number} srcH
+ * @param {{megapixels?:number, scale?:number|string}} opts
+ * @returns {{width:number,height:number}|null} null for any other family, or
+ *   while the source size is unknown.
+ */
+export function deriveResizeDims(family, srcW, srcH, { megapixels, scale }) {
+    if (!(srcW > 0 && srcH > 0)) return null;
+    const k = family === 'megapixels' ? Math.sqrt((Number(megapixels) * 1024 * 1024) / (srcW * srcH))
+            : family === 'scale'      ? 1 / Number(scale)
+            : NaN;
+    if (!(k > 0 && Number.isFinite(k))) return null;
+    return {
+        width:  Math.max(1, Math.round(srcW * k)),
+        height: Math.max(1, Math.round(srcH * k)),
+    };
+}

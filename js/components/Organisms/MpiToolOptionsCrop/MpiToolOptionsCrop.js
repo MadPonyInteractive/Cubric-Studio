@@ -28,7 +28,10 @@
  * @param {'image'|'video'} kind - Determines which viewer API to call
  *
  * Emits:
- *   'apply' { kind: 'image' | 'video-save' | 'video-snapshot' }
+ *   'apply' { kind: 'image' | 'video-save' | 'video-snapshot',
+ *             settings: { family, res_w, res_h, divisible_by, fill_color } }
+ *     `settings` is what the panel SHOWS, read at click time (MPI-795). Never
+ *     re-read the project for it: the persisted copy trails by two debounces.
  */
 
 import { ComponentFactory } from '../../factory.js';
@@ -155,6 +158,7 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
         let _divisible_by = _initial.divisible_by;
         let _res_w        = _initial.res_w;
         let _res_h        = _initial.res_h;
+        let _fill_color   = _initial.fill_color;
 
         // Video crop cannot extend past the frame (ffmpeg crops, it does not
         // pad), so the exact-size family and the fill colour are image-only.
@@ -327,7 +331,7 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
         });
         qs('#fill-slot', el).appendChild(fillPicker.el);
         _children.push(fillPicker);
-        fillPicker.on('change', ({ hex }) => persist('fill_color', hex));
+        fillPicker.on('change', ({ hex }) => { _fill_color = hex; persist('fill_color', hex); });
 
         _syncSections();
         _pushShape();
@@ -343,6 +347,13 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
         divisibleInput.on('change', ({ value }) => { _divisible_by = clampInt(value, _divisible_by); persist('divisible_by', _divisible_by); });
 
         // ── Actions ──────────────────────────────────────────────────────────
+        // A number input commits on blur, and blur lands before the click, so
+        // these are current even when Apply is pressed straight from a field.
+        const _settings = () => ({
+            family: _family, res_w: _res_w, res_h: _res_h,
+            divisible_by: _divisible_by, fill_color: _fill_color,
+        });
+
         if (isVideo) {
             const snapshotBtn = MpiButton.mount(document.createElement('div'), {
                 icon: 'camera', label: 'Snapshot', variant: 'ghost', size: 'sm',
@@ -357,7 +368,7 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
                 info: 'Encode cropped region to new video',
             });
             actionsSlot.appendChild(saveBtn.el);
-            saveBtn.on('click', () => emit('apply', { kind: 'video-save' }));
+            saveBtn.on('click', () => emit('apply', { kind: 'video-save', settings: _settings() }));
             _children.push(saveBtn);
         } else {
             const applyBtn = MpiButton.mount(document.createElement('div'), {
@@ -365,13 +376,9 @@ export const MpiToolOptionsCrop = ComponentFactory.create({
                 info: 'Save crop as a new history entry',
             });
             actionsSlot.appendChild(applyBtn.el);
-            applyBtn.on('click', () => emit('apply', { kind: 'image' }));
+            applyBtn.on('click', () => emit('apply', { kind: 'image', settings: _settings() }));
             _children.push(applyBtn);
         }
-
-        // Exposed for the apply path (Phase 3): the divisible-by value to round
-        // selected output pixels to.
-        el.getDivisibleBy = () => _divisible_by;
 
         el.destroy = () => {
             if (isVideo) viewer.el.exitCropMode?.();

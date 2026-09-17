@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["js/components/Organisms/MpiToolOptionsResize/MpiToolOptionsResize.js", "js/components/Organisms/MpiToolOptionsResize/MpiToolOptionsResize.css", "tests/resize-derived-dims.test.cjs", ".agents/mpi-kanban/tasks/MPI-796/", "js/utils/ratios.js", "docs/releases/UNRELEASED.md"]}

@@ -20,6 +20,14 @@ Files: `managers/CropManager.js` (rect + snap + draw), `js/utils/cropSnap.js` (s
 there — the typed size already IS the output. The other two never scale pixels: what the box
 covers is what the file gets.
 
+**Apply uses what the panel shows, carried on the event** (`apply { kind, settings }`, MPI-795).
+Never re-read `project.toolSettings.crop` there, for two reasons. The saved copy lags the panel by
+two debounces (200ms panel + 300ms queue). It is also PARTIAL: the entry starts as `{}` and only
+keys the user touched get written. Before the fix, a W or H left at its displayed default
+reached `_runCrop` as `undefined`, and the RESOLUTION crop silently skipped the resample.
+`getToolSettings` now merges the saved keys over the defaults. That closes the `undefined`
+hole for every tool, but it cannot fix the lag.
+
 ## The rect is not confined to the image
 
 Any type may drag the box off any edge. Whatever it selects beyond the source is filled with

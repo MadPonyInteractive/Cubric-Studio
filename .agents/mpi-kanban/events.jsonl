@@ -4376,3 +4376,10 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-792", "at": "2026-09-17T09:24:25+01:00", "actor": "claude-71d5ab50", "column": "todo", "title": "Local ComfyUI install looks frozen - users quit mid-install and break it"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-792", "at": "2026-09-17T09:27:31+01:00", "actor": "claude-71d5ab50", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-792", "at": "2026-09-17T09:51:48+01:00", "actor": "claude-71d5ab50", "from": "doing", "to": "doing", "reason": "Shipped client + server; real install path and recorded-stream replay verified. Waiting on the user's look at the screen and the rule-file permission."}
+
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-795", "at": "2026-09-17T09:39:05+01:00", "actor": "claude", "column": "todo", "title": "Crop RESOLUTION mode ignores the typed Width x Height"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-796", "at": "2026-09-17T09:39:06+01:00", "actor": "claude", "column": "todo", "title": "Resize: megapixel target and divide-by (1.5/2/3/4) modes"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-795", "at": "2026-09-17T09:40:09+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "diagnosed, fixing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-796", "at": "2026-09-17T09:40:10+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "implementing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-795", "at": "2026-09-17T09:54:53+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "shipped; desktop spec red on pre-fix code, green after"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-796", "at": "2026-09-17T09:54:54+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "shipped; unit + desktop spec green"}

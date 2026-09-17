@@ -558,15 +558,20 @@ export function setSharedSettings(project, mediaType, updates) {
 }
 
 /**
- * Returns the tool settings for a given toolKey on the project.
- * Returns a default if no entry exists yet (does not mutate the project).
+ * Returns the tool settings for a given toolKey on the project: the stored keys
+ * over `defaults` (does not mutate the project).
+ *
+ * Merged, never either/or (MPI-795): a tool's entry is seeded `{}` and only the
+ * keys the user touched are written, so a stored entry is usually PARTIAL. The
+ * panels fill the gaps with defaults when they display them; returning the bare
+ * entry left every other reader with `undefined` for those same keys.
  * @param {Project} project
  * @param {string} toolKey  - Command key, e.g. 'videoUpscale'
  * @param {Object} [defaults]
  * @returns {Object}
  */
 export function getToolSettings(project, toolKey, defaults = {}) {
-    return (project.toolSettings ?? {})[toolKey] ?? defaults;
+    return { ...defaults, ...project.toolSettings?.[toolKey] };
 }
 
 /**

@@ -85,7 +85,8 @@
  * video path crops and cannot pad. Requires viewer.el: setCropRatio(ratio) and,
  * for images, setCropSize(w, h).
  *
- * Emits: 'apply' { kind: 'image' | 'video-save' | 'video-snapshot' }
+ * Emits: 'apply' { kind: 'image' | 'video-save' | 'video-snapshot',
+ *                  settings: { family, res_w, res_h, divisible_by, fill_color } }
  */
 
 /**

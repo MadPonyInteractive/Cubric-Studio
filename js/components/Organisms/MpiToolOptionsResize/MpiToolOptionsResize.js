@@ -5,6 +5,9 @@
  *   - SDXL/FLUX: ratio radio (orientation + label) × multiplier (x1 | x2).
  *     Width/Height inputs hidden; derived from preset × multiplier.
  *   - FREE: manual Width/Height inputs.
+ *   - MP / SCALE (MPI-796): derived from the SOURCE size, aspect kept — a
+ *     megapixel target, or the source divided by 1.5 / 2 / 3 / 4. The result
+ *     shows in a read-only Width/Height pair and is recomputed per item.
  *
  * Live preview runs the image resize workflow on a small thumbnail of the
  * source (image first frame for video) with proportionally-scaled width and
@@ -30,7 +33,7 @@ import { runCommand } from '../../../services/commandExecutor.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { qs } from '../../../utils/dom.js';
 import { extractThumbnail, waitForVideoFrame } from '../../../utils/thumbnail.js';
-import { getModelRatios } from '../../../utils/ratios.js';
+import { getModelRatios, deriveResizeDims } from '../../../utils/ratios.js';
 
 const UPSCALE_METHODS = ['nearest', 'exact', 'bilinear', 'area', 'bicubic', 'lanczos', 'nvidia_rtx_vsr'];
 const KEEP_PROPORTIONS = ['stretch', 'resize', 'pad', 'pad_edge', 'pad_edge_pixel', 'crop', 'pillarbox_blur', 'total_pixels'];
@@ -40,9 +43,11 @@ const CROP_POSITIONS = ['center', 'top', 'bottom', 'left', 'right'];
 // and ignore pad_color, so the picker must not show for them.
 const PAD_COLOR_MODES = new Set(['pad']);
 
-const FAMILY_VALUES = new Set(['sdxl', 'flux', 'free']);
+const PRESET_FAMILIES = new Set(['sdxl', 'flux']);
+const FAMILY_VALUES = new Set(['sdxl', 'flux', 'free', 'megapixels', 'scale']);
 const ORIENTATION_VALUES = new Set(['portrait', 'landscape']);
 const MULTIPLIER_VALUES = new Set(['1', '2']);
+const SCALE_VALUES = new Set(['1.5', '2', '3', '4']);
 
 const THUMB_MAX_EDGE = 512;
 
@@ -53,6 +58,8 @@ const DEFAULTS = Object.freeze({
     multiplier: '1',
     width: 1024,
     height: 1024,
+    megapixels: 1,
+    scale: '2',
     upscale_method: 'lanczos',
     keep_proportion: 'crop',
     pad_color: { r: 0, g: 0, b: 0 },
@@ -66,7 +73,13 @@ const FAMILIES = [
     { label: 'SDXL', value: 'sdxl' },
     { label: 'FLUX', value: 'flux' },
     { label: 'FREE', value: 'free' },
+    { label: 'MP', value: 'megapixels', info: 'Resize to a megapixel count, keeping the proportions' },
+    { label: 'SCALE', value: 'scale', info: 'Divide the source size, keeping the proportions' },
 ];
+
+const SCALES = [...SCALE_VALUES].map(value => ({
+    label: `÷${value}`, value, info: `Divide width and height by ${value}`,
+}));
 
 const ORIENTATIONS = [
     { label: 'Portrait',  value: 'portrait',  icon: 'ratio_9_16', info: 'Portrait orientation' },
@@ -108,22 +121,26 @@ function coerceSettings(settings) {
     const orientation = ORIENTATION_VALUES.has(settings.orientation) ? settings.orientation : DEFAULTS.orientation;
     const multiplier = MULTIPLIER_VALUES.has(String(settings.multiplier)) ? String(settings.multiplier) : DEFAULTS.multiplier;
     let ratioLabel = String(settings.ratioLabel ?? DEFAULTS.ratioLabel);
-    if (family !== 'free') {
+    if (PRESET_FAMILIES.has(family)) {
         const list = _ratioListFor(family, orientation);
         if (!list.some(r => r.label === ratioLabel)) ratioLabel = list[0]?.label ?? DEFAULTS.ratioLabel;
     }
 
     let width = clampInt(settings.width, DEFAULTS.width);
     let height = clampInt(settings.height, DEFAULTS.height);
-    if (family !== 'free') {
+    if (PRESET_FAMILIES.has(family)) {
         const dims = _resolveRatioDims(family, orientation, ratioLabel, multiplier);
         width = dims.width;
         height = dims.height;
     }
 
+    const megapixels = Number(settings.megapixels);
+
     return {
         family, orientation, ratioLabel, multiplier,
         width, height,
+        megapixels: megapixels > 0 ? megapixels : DEFAULTS.megapixels,
+        scale: SCALE_VALUES.has(String(settings.scale)) ? String(settings.scale) : DEFAULTS.scale,
         upscale_method: UPSCALE_METHODS.includes(settings.upscale_method) ? settings.upscale_method : DEFAULTS.upscale_method,
         keep_proportion: KEEP_PROPORTIONS.includes(settings.keep_proportion) ? settings.keep_proportion : DEFAULTS.keep_proportion,
         pad_color: normalizeColor(settings.pad_color || DEFAULTS.pad_color),
@@ -164,9 +181,15 @@ export const MpiToolOptionsResize = ComponentFactory.create({
                 <div class="mpi-tool-options-resize__row" id="resize-orientation-slot"></div>
                 <div class="mpi-tool-options-resize__row" id="resize-ratio-slot"></div>
                 <div class="mpi-tool-options-resize__row" id="resize-multiplier-slot"></div>
+                <div class="mpi-tool-options-resize__row" id="resize-megapixels-slot"></div>
+                <div class="mpi-tool-options-resize__row" id="resize-scale-slot"></div>
                 <div class="mpi-tool-options-resize__pair" id="resize-free-pair">
                     <div id="resize-width-slot"></div>
                     <div id="resize-height-slot"></div>
+                </div>
+                <div class="mpi-tool-options-resize__pair" id="resize-derived-pair">
+                    <div id="resize-derived-width-slot"></div>
+                    <div id="resize-derived-height-slot"></div>
                 </div>
                 <div class="mpi-tool-options-resize__row" id="resize-reset-dims-slot"></div>
             </div>
@@ -264,13 +287,20 @@ export const MpiToolOptionsResize = ComponentFactory.create({
         });
         _unsubs.push(familyRadio.on('select', ({ value }) => {
             settings = { ...settings, family: value };
-            if (value !== 'free') {
+            if (PRESET_FAMILIES.has(value)) {
                 const list = _ratioListFor(value, settings.orientation);
                 if (!list.some(r => r.label === settings.ratioLabel)) {
                     settings = { ...settings, ratioLabel: list[0]?.label ?? DEFAULTS.ratioLabel };
                     persist('ratioLabel', settings.ratioLabel);
                 }
                 _applyPresetDims();
+            } else if (value === 'free') {
+                // The other types moved width/height under the free inputs;
+                // show what Apply will actually send.
+                widthInput.el.setValue(settings.width);
+                heightInput.el.setValue(settings.height);
+            } else {
+                _applyDerivedDims();
             }
             persist('family', value);
             rebuildResolutionControls();
@@ -287,13 +317,17 @@ export const MpiToolOptionsResize = ComponentFactory.create({
             qs('#resize-ratio-slot', el).innerHTML = '';
             qs('#resize-multiplier-slot', el).innerHTML = '';
 
-            const isPreset = settings.family === 'sdxl' || settings.family === 'flux';
+            const isPreset = PRESET_FAMILIES.has(settings.family);
+            const isFree = settings.family === 'free';
 
             qs('#resize-orientation-slot', el).hidden = !isPreset;
             qs('#resize-ratio-slot', el).hidden = !isPreset;
             qs('#resize-multiplier-slot', el).hidden = !isPreset;
-            qs('#resize-free-pair', el).hidden = isPreset;
-            qs('#resize-reset-dims-slot', el).hidden = isPreset;
+            qs('#resize-megapixels-slot', el).hidden = settings.family !== 'megapixels';
+            qs('#resize-scale-slot', el).hidden = settings.family !== 'scale';
+            qs('#resize-free-pair', el).hidden = !isFree;
+            qs('#resize-derived-pair', el).hidden = isPreset || isFree;
+            qs('#resize-reset-dims-slot', el).hidden = !isFree;
 
             if (isPreset) {
                 orientRadio = MpiRadioGroup.mount(document.createElement('div'), {
@@ -357,13 +391,24 @@ export const MpiToolOptionsResize = ComponentFactory.create({
         }
 
         function _applyPresetDims() {
-            if (settings.family === 'free') return;
+            if (!PRESET_FAMILIES.has(settings.family)) return;
             const { width, height } = _resolveRatioDims(
                 settings.family, settings.orientation, settings.ratioLabel, settings.multiplier
             );
             settings = { ...settings, width, height };
             persist('width', width);
             persist('height', height);
+        }
+
+        /** MP / SCALE: width + height from the source size. No-op until it is known. */
+        function _applyDerivedDims() {
+            const dims = deriveResizeDims(settings.family, _sourceW, _sourceH, settings);
+            if (!dims) return;
+            settings = { ...settings, ...dims };
+            derivedWidthInput.el.setValue(dims.width);
+            derivedHeightInput.el.setValue(dims.height);
+            persist('width', dims.width);
+            persist('height', dims.height);
         }
 
         // ── Free Width/Height inputs ─────────────────────────────────────────
@@ -390,6 +435,35 @@ export const MpiToolOptionsResize = ComponentFactory.create({
             _syncDimInputsToSource();
             schedulePreview();
         }));
+
+        // ── MP / SCALE inputs + their read-only result ───────────────────────
+        const megapixelsInput = mount('#resize-megapixels-slot', MpiInput, {
+            type: 'number', label: 'Megapixels', value: settings.megapixels,
+            min: 0.01, step: 0.1, decimals: 2,
+            info: 'Target size in megapixels (1 MP = 1024 × 1024)',
+        });
+        _unsubs.push(megapixelsInput.on('change', ({ value }) => {
+            setValue('megapixels', value);
+            _applyDerivedDims();
+        }));
+
+        const scaleRadio = mount('#resize-scale-slot', MpiRadioGroup, {
+            name: 'resize-scale', value: settings.scale, options: SCALES,
+        });
+        _unsubs.push(scaleRadio.on('select', ({ value }) => {
+            setValue('scale', value);
+            _applyDerivedDims();
+        }));
+
+        // Text, not number: a number field steps its value on wheel even when read-only.
+        const derivedWidthInput = mount('#resize-derived-width-slot', MpiInput, {
+            type: 'text', label: 'Width', value: settings.width, readonly: true,
+            info: 'Output width, from the source size',
+        });
+        const derivedHeightInput = mount('#resize-derived-height-slot', MpiInput, {
+            type: 'text', label: 'Height', value: settings.height, readonly: true,
+            info: 'Output height, from the source size',
+        });
 
         // ── Method controls ──────────────────────────────────────────────────
         const methodDd = mount('#resize-method-slot', MpiDropdown, {
@@ -505,6 +579,7 @@ export const MpiToolOptionsResize = ComponentFactory.create({
             if (syncDims && settings.family === 'free' && _sourceW > 0 && _sourceH > 0) {
                 _syncDimInputsToSource();
             }
+            _applyDerivedDims();
             if (_previewImg) _previewImg.src = _thumbDataUrl;
         }
 

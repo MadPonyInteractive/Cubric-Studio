@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-796",
+  "title": "Resize: megapixel target and divide-by (1.5/2/3/4) modes",
+  "description": "Resize tool has no proportional downscale. Add MP (target megapixels) and SCALE (divide source by 1.5/2/3/4) resolution types, derived from the source size.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-17T09:39:06+01:00",
+  "updated_at": "2026-09-17T09:54:54+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

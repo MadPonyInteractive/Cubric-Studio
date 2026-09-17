@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-795",
+  "title": "Crop RESOLUTION mode ignores the typed Width x Height",
+  "description": "Apply read partial saved crop settings (getToolSettings never merged defaults) plus a 500ms-stale copy, so an untouched W or H arrived undefined and the crop was never resampled.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-17T09:39:05+01:00",
+  "updated_at": "2026-09-17T09:54:53+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
