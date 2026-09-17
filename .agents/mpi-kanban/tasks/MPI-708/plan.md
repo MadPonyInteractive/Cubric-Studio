@@ -6,6 +6,13 @@ Brief (decision + repo-rename reasoning): `brief.md`.
 
 ## Current State
 
+**2026-09-17 (session 53d9d605, handing off; nothing implemented yet):** Phase 0 and Phase 0b are
+DONE (see Plan Drift). **Next: Phase 1, the repo renames.** Card is still in `todo`; the next
+session moves it to `doing` first. Fabio wants the handoff chain to keep going until the rename
+lands: Cubric Vision ships as **Cubric Studio 2.0** ("Cubric Studio" in his speech already means
+this repo). The two GitHub renames are outward-facing: Fabio does them, or gives an explicit go per
+rename. MPI-708 is a Gate A member of MPI-595 (2.0 readiness), committed 2026-09-17.
+
 Project mode: **scalable-foundation**. Full guardrails, no prototype shortcuts.
 
 The family merged into one app (MPI-677), so the ecosystem name is free. 1.5.0 is the
@@ -344,6 +351,15 @@ rather than forgotten.
 
 ## Plan Drift
 
+- 2026-09-17 (session 53d9d605): **Phase 0 is met** - v1.5.0 is published (2026-09-08) and MPI-706
+  is `done`. **Phase 0b is met without a 1.5.1**: there is no 1.5.1 (MPI-709 re-cut 1.5.0; Fabio
+  2026-09-11 on MPI-720: the 1.5.x line's next update is 2.0). Checked on the `v1.5.0` tag: the
+  Windows, Linux and macOS updaters match `^Cubric(Vision|Studio)-...-update-v.*\.zip$` and
+  `apply-update.cjs` accepts `cubric.vision` and `cubric.studio`. Master reads 1.6.1: dev-line
+  markers (MPI-722, MPI-782), never published. **Phase 2 collides** with MPI-774 (live session
+  d56a1cbe, Desktop tab "Agent 7"): its claim covers `MpiPromptBox/`, `MpiAgentChat/`,
+  `js/shell/agentPanel.js` and the component-events rule files. Re-check claims before Phase 2.
+  The MPI-595 gate annotation written 2026-09-08 had never been committed; committed now.
 - 2026-09-08: the brief assumed the website and docs sources live in MadPony-Identity. They
   are two separate repos (`Cubric-Studio-Website`, `Cubric-Studio-Docs`) — but Fabio drives
   both from MadPony-Identity, so they leave this card's scope entirely rather than becoming
