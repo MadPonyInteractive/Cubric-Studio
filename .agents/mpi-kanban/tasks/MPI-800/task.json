@@ -1,0 +1,22 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-800",
+  "title": "Adopt MpiNodes 1.2.16: stage media into the engine input/ folder, Upload nodes for every media slot, bump the node pin",
+  "description": "MpiNodes 1.2.13+ refuses paths outside ComfyUI input/output/temp; Vision injects project-folder paths. Brief lists what changed.",
+  "activeSessionTitle": "MPI-800 adopt MpiNodes 1.2.16",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-17T13:17:55+01:00",
+  "updated_at": "2026-09-17T15:21:41+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

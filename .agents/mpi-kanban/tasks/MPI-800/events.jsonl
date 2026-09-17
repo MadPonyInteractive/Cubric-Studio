@@ -1,0 +1,4 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-800", "at": "2026-09-17T13:17:55+01:00", "actor": "agent:ComfyUi-MpiNodes", "column": "todo", "title": "Adopt MpiNodes 1.2.14: stage media into the engine input/ folder, then bump the node pin"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-800", "at": "2026-09-17T14:10:05+01:00", "actor": "claude", "summary": "Research done (research/call-sites.md); plan.md written; maturity research -> planned"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-800", "at": "2026-09-17T15:21:41+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started (Fabio's go with the 1.2.16 donor)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-800", "at": "2026-09-17T15:21:54+01:00", "actor": "claude", "summary": "Retitled to MpiNodes 1.2.16 (Upload nodes for every media slot); checklist, validation, files.json written"}

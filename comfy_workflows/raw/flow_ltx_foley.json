@@ -2275,25 +2275,25 @@
     },
     {
       "id": 106,
-      "type": "MpiLoadAudio",
+      "type": "MpiLoadAudioUpload",
       "pos": [
         -2922.372839764283,
         1237.9712113719147
       ],
       "size": [
         445.6697422103489,
-        82
+        204
       ],
       "flags": {},
       "order": 13,
       "mode": 0,
       "inputs": [
         {
-          "localized_name": "string",
-          "name": "string",
-          "type": "STRING",
+          "localized_name": "audio",
+          "name": "audio",
+          "type": "COMBO",
           "widget": {
-            "name": "string"
+            "name": "audio"
           },
           "link": null
         },
@@ -2303,6 +2303,34 @@
           "type": "BOOLEAN",
           "widget": {
             "name": "block_if_empty"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "string",
+          "name": "string",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "audioUI",
+          "name": "audioUI",
+          "type": "AUDIO_UI",
+          "widget": {
+            "name": "audioUI"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "upload",
+          "name": "upload",
+          "type": "AUDIOUPLOAD",
+          "widget": {
+            "name": "upload"
           },
           "link": null
         }
@@ -2316,18 +2344,33 @@
             40,
             75
           ]
+        },
+        {
+          "localized_name": "loaded",
+          "name": "loaded",
+          "type": "BOOLEAN",
+          "links": null
         }
       ],
       "title": "Input_Audio",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "286e6cf6c165fcdaf2ee204391263125f6e9c7f3",
-        "Node name for S&R": "MpiLoadAudio"
+        "ver": "cff4c3b321f1eb9dc7403df8db6ed3ac5bd1e8fa",
+        "Node name for S&R": "MpiLoadAudioUpload"
       },
       "widgets_values": [
+        "None",
+        true,
         "",
-        true
+        null,
+        null
       ],
+      "widgets_values_named": {
+        "audio": "None",
+        "block_if_empty": true,
+        "string": "",
+        "upload": null
+      },
       "color": "#432",
       "bgcolor": "#653"
     },
@@ -3925,25 +3968,25 @@
     },
     {
       "id": 17,
-      "type": "MpiLoadVideo",
+      "type": "MpiLoadVideoUpload",
       "pos": [
         -3248.3105028789378,
         871.4189718593468
       ],
       "size": [
         400,
-        222
+        680
       ],
       "flags": {},
       "order": 17,
       "mode": 0,
       "inputs": [
         {
-          "localized_name": "string",
-          "name": "string",
-          "type": "STRING",
+          "localized_name": "video",
+          "name": "video",
+          "type": "COMBO",
           "widget": {
-            "name": "string"
+            "name": "video"
           },
           "link": null
         },
@@ -3953,6 +3996,35 @@
           "type": "BOOLEAN",
           "widget": {
             "name": "block_if_empty"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "force_rate",
+          "name": "force_rate",
+          "shape": 7,
+          "type": "FLOAT",
+          "widget": {
+            "name": "force_rate"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "string",
+          "name": "string",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "upload",
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
           },
           "link": null
         }
@@ -4015,18 +4087,34 @@
           "name": "has_audio",
           "type": "BOOLEAN",
           "links": []
+        },
+        {
+          "localized_name": "loaded",
+          "name": "loaded",
+          "type": "BOOLEAN",
+          "links": null
         }
       ],
       "title": "Input_Video",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "43a976fdfda106109ee4db54b887744aa6dbfda4",
-        "Node name for S&R": "MpiLoadVideo"
+        "ver": "cff4c3b321f1eb9dc7403df8db6ed3ac5bd1e8fa",
+        "Node name for S&R": "MpiLoadVideoUpload"
       },
       "widgets_values": [
-        "C:\\Users\\Fabio\\Documents\\Cubric Vision\\Projects\\Wan 5b\\Media\\t2v_004.mp4",
-        true
-      ]
+        "None",
+        true,
+        0,
+        "",
+        "image"
+      ],
+      "widgets_values_named": {
+        "video": "None",
+        "block_if_empty": true,
+        "force_rate": 0,
+        "string": "",
+        "upload": "image"
+      }
     },
     {
       "id": 13,

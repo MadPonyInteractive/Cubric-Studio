@@ -3303,116 +3303,76 @@
       "bgcolor": "#1f401b"
     },
     {
-      "id": 2705,
-      "type": "MpiAnyChecker",
-      "pos": [
-        -1535.4987584962075,
-        280.2383670639057
-      ],
-      "size": [
-        153.444921875,
-        46
-      ],
-      "flags": {},
-      "order": 77,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "any",
-          "type": "*",
-          "link": 5575
-        }
-      ],
-      "outputs": [
-        {
-          "name": "any",
-          "type": "*",
-          "links": [
-            5576
-          ]
-        },
-        {
-          "name": "has_value",
-          "type": "BOOLEAN",
-          "links": [
-            5573
-          ]
-        }
-      ],
-      "properties": {
-        "Node name for S&R": "MpiAnyChecker",
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "70d5a62b66b7cdbd5f799c14e27e4ce38c7a2c7c"
-      },
-      "widgets_values": []
-    },
-    {
-      "id": 2706,
-      "type": "MpiString",
-      "pos": [
-        -1778.4633209495944,
-        274.41997196122077
-      ],
-      "size": [
-        210,
-        58
-      ],
-      "flags": {},
-      "order": 25,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "string",
-          "type": "STRING",
-          "links": [
-            5575
-          ]
-        }
-      ],
-      "title": "Input_Mask",
-      "properties": {
-        "Node name for S&R": "MpiString",
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "70d5a62b66b7cdbd5f799c14e27e4ce38c7a2c7c"
-      },
-      "widgets_values": [
-        ""
-      ],
-      "color": "#432",
-      "bgcolor": "#653"
-    },
-    {
       "id": 2707,
-      "type": "MpiLoadImageFromPath",
+      "type": "MpiLoadImage",
       "pos": [
         -1357.758472791522,
         273.46374937241865
       ],
       "size": [
         276.9849609375,
-        166
+        446
       ],
       "flags": {},
       "order": 96,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "image",
+          "name": "image",
+          "type": "COMBO",
+          "widget": {
+            "name": "image"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "channel",
+          "name": "channel",
+          "type": "COMBO",
+          "widget": {
+            "name": "channel"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "block_if_empty",
+          "name": "block_if_empty",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "block_if_empty"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "string",
           "name": "string",
+          "shape": 7,
           "type": "STRING",
           "widget": {
             "name": "string"
           },
-          "link": 5576
+          "link": null
+        },
+        {
+          "localized_name": "upload",
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
         }
       ],
       "outputs": [
         {
+          "localized_name": "image",
           "name": "image",
           "type": "IMAGE",
           "links": []
         },
         {
+          "localized_name": "mask",
           "name": "mask",
           "type": "MASK",
           "links": [
@@ -3420,27 +3380,46 @@
           ]
         },
         {
+          "localized_name": "width",
           "name": "width",
           "type": "INT",
           "links": null
         },
         {
+          "localized_name": "height",
           "name": "height",
           "type": "INT",
           "links": null
+        },
+        {
+          "localized_name": "loaded",
+          "name": "loaded",
+          "type": "BOOLEAN",
+          "links": [
+            5573
+          ]
         }
       ],
-      "title": "mask",
+      "title": "Input_Mask",
       "properties": {
-        "Node name for S&R": "MpiLoadImageFromPath",
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "0dd056c20fec13d3b59be31a5c13c3897d321511"
+        "ver": "cff4c3b321f1eb9dc7403df8db6ed3ac5bd1e8fa",
+        "Node name for S&R": "MpiLoadImage"
       },
       "widgets_values": [
-        "",
+        "None",
         "red",
-        false
+        false,
+        "",
+        "image"
       ],
+      "widgets_values_named": {
+        "image": "None",
+        "channel": "red",
+        "block_if_empty": false,
+        "string": "",
+        "upload": "image"
+      },
       "color": "#432",
       "bgcolor": "#653"
     },
@@ -5859,21 +5838,69 @@
     },
     {
       "id": 2645,
-      "type": "MpiLoadImageFromPath",
+      "type": "MpiLoadImage",
       "pos": [
         -1378.7296137784585,
         -201.91040703645652
       ],
       "size": [
         343.2701598165311,
-        383.46562779932174
+        446
       ],
       "flags": {},
       "order": 53,
       "mode": 0,
-      "inputs": [],
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "COMBO",
+          "widget": {
+            "name": "image"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "channel",
+          "name": "channel",
+          "type": "COMBO",
+          "widget": {
+            "name": "channel"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "block_if_empty",
+          "name": "block_if_empty",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "block_if_empty"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "string",
+          "name": "string",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "upload",
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
+        }
+      ],
       "outputs": [
         {
+          "localized_name": "image",
           "name": "image",
           "type": "IMAGE",
           "links": [
@@ -5881,32 +5908,50 @@
           ]
         },
         {
+          "localized_name": "mask",
           "name": "mask",
           "type": "MASK",
           "links": null
         },
         {
+          "localized_name": "width",
           "name": "width",
           "type": "INT",
           "links": null
         },
         {
+          "localized_name": "height",
           "name": "height",
           "type": "INT",
+          "links": null
+        },
+        {
+          "localized_name": "loaded",
+          "name": "loaded",
+          "type": "BOOLEAN",
           "links": null
         }
       ],
       "title": "Input_Image",
       "properties": {
-        "Node name for S&R": "MpiLoadImageFromPath",
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "7d58def84882c6d2e376fe4096f7104012ebc6ec"
+        "ver": "cff4c3b321f1eb9dc7403df8db6ed3ac5bd1e8fa",
+        "Node name for S&R": "MpiLoadImage"
       },
       "widgets_values": [
-        "",
+        "None",
         "alpha",
-        false
+        false,
+        "",
+        "image"
       ],
+      "widgets_values_named": {
+        "image": "None",
+        "channel": "alpha",
+        "block_if_empty": false,
+        "string": "",
+        "upload": "image"
+      },
       "color": "#432",
       "bgcolor": "#653"
     },
@@ -7209,8 +7254,8 @@
     ],
     [
       5573,
-      2705,
-      1,
+      2707,
+      4,
       2703,
       0,
       "BOOLEAN"
@@ -7222,22 +7267,6 @@
       2704,
       0,
       "MASK"
-    ],
-    [
-      5575,
-      2706,
-      0,
-      2705,
-      0,
-      "STRING"
-    ],
-    [
-      5576,
-      2705,
-      0,
-      2707,
-      0,
-      "STRING"
     ],
     [
       5578,

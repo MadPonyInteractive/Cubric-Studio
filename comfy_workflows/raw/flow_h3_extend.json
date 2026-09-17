@@ -2842,21 +2842,70 @@
     },
     {
       "id": 331,
-      "type": "MpiLoadVideo",
+      "type": "MpiLoadVideoUpload",
       "pos": [
         -165.151515151515,
         629.0909090909095
       ],
       "size": [
         400,
-        246
+        680
       ],
       "flags": {},
       "order": 7,
       "mode": 0,
-      "inputs": [],
+      "inputs": [
+        {
+          "localized_name": "video",
+          "name": "video",
+          "type": "COMBO",
+          "widget": {
+            "name": "video"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "block_if_empty",
+          "name": "block_if_empty",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "block_if_empty"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "force_rate",
+          "name": "force_rate",
+          "shape": 7,
+          "type": "FLOAT",
+          "widget": {
+            "name": "force_rate"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "string",
+          "name": "string",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "upload",
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
+        }
+      ],
       "outputs": [
         {
+          "localized_name": "images",
           "name": "images",
           "type": "IMAGE",
           "links": [
@@ -2864,6 +2913,7 @@
           ]
         },
         {
+          "localized_name": "audio",
           "name": "audio",
           "type": "AUDIO",
           "links": [
@@ -2871,6 +2921,7 @@
           ]
         },
         {
+          "localized_name": "fps",
           "name": "fps",
           "type": "FLOAT",
           "links": [
@@ -2879,11 +2930,13 @@
           ]
         },
         {
+          "localized_name": "frame_count",
           "name": "frame_count",
           "type": "INT",
           "links": []
         },
         {
+          "localized_name": "duration",
           "name": "duration",
           "type": "FLOAT",
           "links": [
@@ -2891,6 +2944,7 @@
           ]
         },
         {
+          "localized_name": "width",
           "name": "width",
           "type": "INT",
           "links": [
@@ -2898,6 +2952,7 @@
           ]
         },
         {
+          "localized_name": "height",
           "name": "height",
           "type": "INT",
           "links": [
@@ -2905,28 +2960,39 @@
           ]
         },
         {
+          "localized_name": "has_audio",
           "name": "has_audio",
           "type": "BOOLEAN",
           "links": [
             43
           ]
+        },
+        {
+          "localized_name": "loaded",
+          "name": "loaded",
+          "type": "BOOLEAN",
+          "links": null
         }
       ],
       "title": "Input_Video",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "43a976fdfda106109ee4db54b887744aa6dbfda4",
-        "Node name for S&R": "MpiLoadVideo"
+        "ver": "cff4c3b321f1eb9dc7403df8db6ed3ac5bd1e8fa",
+        "Node name for S&R": "MpiLoadVideoUpload"
       },
       "widgets_values": [
-        "",
+        "None",
         true,
-        24
+        24,
+        "",
+        "image"
       ],
       "widgets_values_named": {
-        "string": "",
+        "video": "None",
         "block_if_empty": true,
-        "force_rate": 24
+        "force_rate": 24,
+        "string": "",
+        "upload": "image"
       }
     },
     {

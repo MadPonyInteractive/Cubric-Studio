@@ -70,6 +70,23 @@ const outPathFor = (name) => {
   return assertNotInRaw(isTemplate(lc) ? path.join(GEN_DIR, lc) : path.join(WORKFLOWS_DIR, lc));
 };
 
+// MpiNodes Upload loaders (1.2.16) fall back to their file PICKER when the injected
+// `string` is empty, so a file picked while testing on the bench would load for every
+// user who leaves that slot empty. The shipped graph always has the picker on "None"
+// and an empty `string` (the app injects it; anything baked there is authoring
+// leftover). raw/ keeps the bench state (MPI-800). validate-injection-rules.mjs checks.
+const UPLOAD_PICKERS = { MpiLoadImage: 'image', MpiLoadVideoUpload: 'video', MpiLoadAudioUpload: 'audio' };
+function shipUploadSlots(apiText) {
+  const api = JSON.parse(apiText);
+  for (const node of Object.values(api)) {
+    const key = UPLOAD_PICKERS[node?.class_type];
+    if (!key) continue;
+    if (typeof node.inputs[key] === 'string') node.inputs[key] = 'None';
+    if (typeof node.inputs.string === 'string') node.inputs.string = '';
+  }
+  return JSON.stringify(api, null, 2) + '\n';
+}
+
 /** git output paths relative to repo root, forward-slashed (git wants those). */
 function rel(p) { return path.relative(REPO_ROOT, p).split(path.sep).join('/'); }
 
@@ -199,7 +216,7 @@ async function main() {
     const out = outPathFor(f);
     let api;
     try {
-      api = execFileSync('node', [CONVERTER, src], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+      api = shipUploadSlots(execFileSync('node', [CONVERTER, src], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }));
     } catch (e) {
       console.error(`FAIL  convert ${f}: ${(e.stderr || e.message).toString().trim()}`);
       process.exit(1);
@@ -246,4 +263,9 @@ async function main() {
   }
 }
 
-main().catch((e) => { console.error(e.message); process.exit(1); });
+export { shipUploadSlots, outPathFor };
+
+// Run only as a script, so a test or a one-off bake can import the helpers above.
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((e) => { console.error(e.message); process.exit(1); });
+}

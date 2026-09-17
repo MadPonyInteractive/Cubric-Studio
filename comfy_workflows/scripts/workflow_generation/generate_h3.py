@@ -6,11 +6,11 @@ FIRST where the op is not selected by an injected int at all. Routing is derived
 WHICH MEDIA IS PRESENT:
 
   * ops      — t2v / i2v (start frame) / end-frame-only / first+last-frame interpolation.
-               `Input_Start_Frame` and `Input_End_Frame` are path strings; each feeds an
-               MpiAnyChecker (`has img1` / `has img2`) and those two booleans drive four
-               lazy MpiIfElse branches into four MiniMaxH3ImageToVideo nodes. Illegal
-               states are unreachable BY CONSTRUCTION — there is no toggle to disagree
-               with the media.
+               `Input_Start_Frame` and `Input_End_Frame` are MpiLoadImage slots with
+               `block_if_empty` off, so an empty slot arrives as the loaders' 1x1
+               sentinel and the one blank-tolerant MpiH3ImageToVideo drops it (MPI-687).
+               Illegal states are unreachable BY CONSTRUCTION — there is no toggle to
+               disagree with the media.
   * stages   — single file, no `_stage2` twin. The MpiStageLatents widgets
                `is_preview` + `is_continue` (see STAGE_TITLE below) gate the two
                SamplerCustomAdvanced passes through the lazy MpiSaveLatent `enabled`
@@ -69,7 +69,7 @@ _REF_SLOT_TITLES = (
 VARIANT_SPECS = {
     "minimax_h3_fl2va_template.json": {
         "transformer": "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
-        # Path strings feeding the MpiAnyChecker booleans that pick the branch.
+        # The two frame slots (MpiLoadImage); their `string` ships empty.
         "media_titles": ("Input_Start_Frame", "Input_End_Frame"),
         # MPI-687 replaced the four-copy lattice of core's MiniMaxH3ImageToVideo with one
         # blank-tolerant wrapper: it accepts a connected-but-empty first/last frame, so a
@@ -251,12 +251,9 @@ def _bake_widgets(workflow: dict, spec: dict) -> None:
     A LINKED input is a hard failure, not something to bake over: the app injects into
     these by title, so an input driven by a wire makes the injection land on a value
     nothing reads and the graph runs whatever the upstream happens to produce."""
-    # Media paths MUST be empty. Non-empty is not a cosmetic leftover — on fl2va each
-    # feeds an MpiAnyChecker whose boolean picks the branch, so a stray value makes the
-    # graph believe a frame is present and condition on a file that does not exist (the
-    # 2026-08-06 export came back with `Input_End_Frame = "d"`); on r2va it silently
-    # conditions the video on a leftover bench reference (the 2026-08-07 export came back
-    # with `Input_Image = inpaint_007.png`).
+    # Media paths MUST be empty. Non-empty is not a cosmetic leftover — a stray value that
+    # loads conditions the video on a leftover bench file (the 2026-08-07 r2va export came
+    # back with `Input_Image = inpaint_007.png`).
     media = [(t, "string", "") for t in spec["media_titles"]]
     for title, key, want in [*media, *BAKED_WIDGETS, *spec["extra_widgets"]]:
         nid = _find_id_by_title(workflow, title)

@@ -2331,50 +2331,6 @@
       }
     },
     {
-      "id": 899,
-      "type": "MpiAnyChecker",
-      "pos": [
-        -1413.9964411012413,
-        -681.8552992548152
-      ],
-      "size": [
-        153.444921875,
-        46
-      ],
-      "flags": {},
-      "order": 40,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "any",
-          "type": "*",
-          "link": 1489
-        }
-      ],
-      "outputs": [
-        {
-          "name": "any",
-          "type": "*",
-          "links": [
-            1493
-          ]
-        },
-        {
-          "name": "has_value",
-          "type": "BOOLEAN",
-          "links": [
-            1490
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "fd9bdcae56a6792cbc6d39756b7dfe51d20596e0",
-        "Node name for S&R": "MpiAnyChecker"
-      },
-      "widgets_values": []
-    },
-    {
       "id": 900,
       "type": "SetNode",
       "pos": [
@@ -2449,50 +2405,6 @@
       "widgets_values": [
         "has img2"
       ]
-    },
-    {
-      "id": 902,
-      "type": "MpiAnyChecker",
-      "pos": [
-        -226.78382365066437,
-        -690.0371788459129
-      ],
-      "size": [
-        153.444921875,
-        46
-      ],
-      "flags": {},
-      "order": 41,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "any",
-          "type": "*",
-          "link": 1492
-        }
-      ],
-      "outputs": [
-        {
-          "name": "any",
-          "type": "*",
-          "links": [
-            1494
-          ]
-        },
-        {
-          "name": "has_value",
-          "type": "BOOLEAN",
-          "links": [
-            1491
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "fd9bdcae56a6792cbc6d39756b7dfe51d20596e0",
-        "Node name for S&R": "MpiAnyChecker"
-      },
-      "widgets_values": []
     },
     {
       "id": 915,
@@ -4001,42 +3913,6 @@
       "widgets_values": []
     },
     {
-      "id": 903,
-      "type": "MpiString",
-      "pos": [
-        -1701.037752152634,
-        -682.1132757993205
-      ],
-      "size": [
-        240.27127439517108,
-        58
-      ],
-      "flags": {},
-      "order": 24,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "string",
-          "type": "STRING",
-          "links": [
-            1489
-          ]
-        }
-      ],
-      "title": "Input_Start_Frame",
-      "properties": {
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "fd9bdcae56a6792cbc6d39756b7dfe51d20596e0",
-        "Node name for S&R": "MpiString"
-      },
-      "widgets_values": [
-        "s"
-      ],
-      "color": "#432",
-      "bgcolor": "#653"
-    },
-    {
       "id": 925,
       "type": "MpiPacker",
       "pos": [
@@ -4135,42 +4011,6 @@
       },
       "widgets_values": [
         "The woman is dancing "
-      ],
-      "color": "#432",
-      "bgcolor": "#653"
-    },
-    {
-      "id": 905,
-      "type": "MpiString",
-      "pos": [
-        -490.0421542181935,
-        -688.8087191101754
-      ],
-      "size": [
-        225.40691159275707,
-        58
-      ],
-      "flags": {},
-      "order": 26,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "string",
-          "type": "STRING",
-          "links": [
-            1492
-          ]
-        }
-      ],
-      "title": "Input_End_Frame",
-      "properties": {
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "fd9bdcae56a6792cbc6d39756b7dfe51d20596e0",
-        "Node name for S&R": "MpiString"
-      },
-      "widgets_values": [
-        "d"
       ],
       "color": "#432",
       "bgcolor": "#653"
@@ -4361,30 +4201,69 @@
     },
     {
       "id": 908,
-      "type": "MpiLoadImageFromPath",
+      "type": "MpiLoadImage",
       "pos": [
         8.69555483423447,
         -773.2115662159263
       ],
       "size": [
         276.9849609375,
-        166
+        446
       ],
       "flags": {},
       "order": 48,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "image",
+          "name": "image",
+          "type": "COMBO",
+          "widget": {
+            "name": "image"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "channel",
+          "name": "channel",
+          "type": "COMBO",
+          "widget": {
+            "name": "channel"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "block_if_empty",
+          "name": "block_if_empty",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "block_if_empty"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "string",
           "name": "string",
+          "shape": 7,
           "type": "STRING",
           "widget": {
             "name": "string"
           },
-          "link": 1494
+          "link": null
+        },
+        {
+          "localized_name": "upload",
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
         }
       ],
       "outputs": [
         {
+          "localized_name": "image",
           "name": "image",
           "type": "IMAGE",
           "links": [
@@ -4392,32 +4271,54 @@
           ]
         },
         {
+          "localized_name": "mask",
           "name": "mask",
           "type": "MASK",
           "links": []
         },
         {
+          "localized_name": "width",
           "name": "width",
           "type": "INT",
           "links": null
         },
         {
+          "localized_name": "height",
           "name": "height",
           "type": "INT",
           "links": null
+        },
+        {
+          "localized_name": "loaded",
+          "name": "loaded",
+          "type": "BOOLEAN",
+          "links": [
+            1491
+          ]
         }
       ],
-      "title": "end",
+      "title": "Input_End_Frame",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "286e6cf6c165fcdaf2ee204391263125f6e9c7f3",
-        "Node name for S&R": "MpiLoadImageFromPath"
+        "ver": "cff4c3b321f1eb9dc7403df8db6ed3ac5bd1e8fa",
+        "Node name for S&R": "MpiLoadImage"
       },
       "widgets_values": [
-        "",
+        "None",
         "alpha",
-        false
-      ]
+        false,
+        "",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "None",
+        "channel": "alpha",
+        "block_if_empty": false,
+        "string": "",
+        "upload": "image"
+      },
+      "color": "#432",
+      "bgcolor": "#653"
     },
     {
       "id": 936,
@@ -4607,30 +4508,69 @@
     },
     {
       "id": 904,
-      "type": "MpiLoadImageFromPath",
+      "type": "MpiLoadImage",
       "pos": [
         -1170.141664536965,
         -760.2414200777253
       ],
       "size": [
         276.9849609375,
-        166
+        446
       ],
       "flags": {},
       "order": 46,
       "mode": 0,
       "inputs": [
         {
+          "localized_name": "image",
+          "name": "image",
+          "type": "COMBO",
+          "widget": {
+            "name": "image"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "channel",
+          "name": "channel",
+          "type": "COMBO",
+          "widget": {
+            "name": "channel"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "block_if_empty",
+          "name": "block_if_empty",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "block_if_empty"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "string",
           "name": "string",
+          "shape": 7,
           "type": "STRING",
           "widget": {
             "name": "string"
           },
-          "link": 1493
+          "link": null
+        },
+        {
+          "localized_name": "upload",
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
         }
       ],
       "outputs": [
         {
+          "localized_name": "image",
           "name": "image",
           "type": "IMAGE",
           "links": [
@@ -4638,32 +4578,54 @@
           ]
         },
         {
+          "localized_name": "mask",
           "name": "mask",
           "type": "MASK",
           "links": null
         },
         {
+          "localized_name": "width",
           "name": "width",
           "type": "INT",
           "links": null
         },
         {
+          "localized_name": "height",
           "name": "height",
           "type": "INT",
           "links": null
+        },
+        {
+          "localized_name": "loaded",
+          "name": "loaded",
+          "type": "BOOLEAN",
+          "links": [
+            1490
+          ]
         }
       ],
-      "title": "start",
+      "title": "Input_Start_Frame",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "286e6cf6c165fcdaf2ee204391263125f6e9c7f3",
-        "Node name for S&R": "MpiLoadImageFromPath"
+        "ver": "cff4c3b321f1eb9dc7403df8db6ed3ac5bd1e8fa",
+        "Node name for S&R": "MpiLoadImage"
       },
       "widgets_values": [
-        "",
+        "None",
         "alpha",
-        false
-      ]
+        false,
+        "",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "None",
+        "channel": "alpha",
+        "block_if_empty": false,
+        "string": "",
+        "upload": "image"
+      },
+      "color": "#432",
+      "bgcolor": "#653"
     },
     {
       "id": 947,
@@ -5350,52 +5312,20 @@
       "INT"
     ],
     [
-      1489,
-      903,
-      0,
-      899,
-      0,
-      "STRING"
-    ],
-    [
       1490,
-      899,
-      1,
+      904,
+      4,
       900,
       0,
       "BOOLEAN"
     ],
     [
       1491,
-      902,
-      1,
+      908,
+      4,
       901,
       0,
       "BOOLEAN"
-    ],
-    [
-      1492,
-      905,
-      0,
-      902,
-      0,
-      "STRING"
-    ],
-    [
-      1493,
-      899,
-      0,
-      904,
-      0,
-      "STRING"
-    ],
-    [
-      1494,
-      902,
-      0,
-      908,
-      0,
-      "STRING"
     ],
     [
       1504,

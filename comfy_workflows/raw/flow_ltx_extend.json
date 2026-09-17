@@ -3545,25 +3545,25 @@
     },
     {
       "id": 17,
-      "type": "MpiLoadVideo",
+      "type": "MpiLoadVideoUpload",
       "pos": [
         -730.9090909090909,
         669.0909090909092
       ],
       "size": [
         400,
-        222
+        680
       ],
       "flags": {},
       "order": 12,
       "mode": 0,
       "inputs": [
         {
-          "localized_name": "string",
-          "name": "string",
-          "type": "STRING",
+          "localized_name": "video",
+          "name": "video",
+          "type": "COMBO",
           "widget": {
-            "name": "string"
+            "name": "video"
           },
           "link": null
         },
@@ -3573,6 +3573,35 @@
           "type": "BOOLEAN",
           "widget": {
             "name": "block_if_empty"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "force_rate",
+          "name": "force_rate",
+          "shape": 7,
+          "type": "FLOAT",
+          "widget": {
+            "name": "force_rate"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "string",
+          "name": "string",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "upload",
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
           },
           "link": null
         }
@@ -3651,18 +3680,34 @@
             115,
             119
           ]
+        },
+        {
+          "localized_name": "loaded",
+          "name": "loaded",
+          "type": "BOOLEAN",
+          "links": null
         }
       ],
       "title": "Input_Video",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "43a976fdfda106109ee4db54b887744aa6dbfda4",
-        "Node name for S&R": "MpiLoadVideo"
+        "ver": "cff4c3b321f1eb9dc7403df8db6ed3ac5bd1e8fa",
+        "Node name for S&R": "MpiLoadVideoUpload"
       },
       "widgets_values": [
-        "C:\\Users\\Fabio\\Documents\\Cubric Vision\\Projects\\Wan 5b\\Media\\t2v_005.mp4",
-        true
-      ]
+        "None",
+        true,
+        0,
+        "",
+        "image"
+      ],
+      "widgets_values_named": {
+        "video": "None",
+        "block_if_empty": true,
+        "force_rate": 0,
+        "string": "",
+        "upload": "image"
+      }
     },
     {
       "id": 53,

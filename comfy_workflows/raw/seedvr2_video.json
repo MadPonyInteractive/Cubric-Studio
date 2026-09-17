@@ -318,21 +318,70 @@
     },
     {
       "id": 125,
-      "type": "MpiLoadVideo",
+      "type": "MpiLoadVideoUpload",
       "pos": [
         161.33167272887675,
         1093.5055689937506
       ],
       "size": [
-        270,
-        222
+        374,
+        680
       ],
       "flags": {},
       "order": 2,
       "mode": 0,
-      "inputs": [],
+      "inputs": [
+        {
+          "localized_name": "video",
+          "name": "video",
+          "type": "COMBO",
+          "widget": {
+            "name": "video"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "block_if_empty",
+          "name": "block_if_empty",
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "block_if_empty"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "force_rate",
+          "name": "force_rate",
+          "shape": 7,
+          "type": "FLOAT",
+          "widget": {
+            "name": "force_rate"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "string",
+          "name": "string",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "upload",
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
+        }
+      ],
       "outputs": [
         {
+          "localized_name": "images",
           "name": "images",
           "type": "IMAGE",
           "links": [
@@ -340,6 +389,7 @@
           ]
         },
         {
+          "localized_name": "audio",
           "name": "audio",
           "type": "AUDIO",
           "links": [
@@ -347,6 +397,7 @@
           ]
         },
         {
+          "localized_name": "fps",
           "name": "fps",
           "type": "FLOAT",
           "links": [
@@ -354,27 +405,38 @@
           ]
         },
         {
+          "localized_name": "frame_count",
           "name": "frame_count",
           "type": "INT",
           "links": null
         },
         {
+          "localized_name": "duration",
           "name": "duration",
           "type": "FLOAT",
           "links": null
         },
         {
+          "localized_name": "width",
           "name": "width",
           "type": "INT",
           "links": null
         },
         {
+          "localized_name": "height",
           "name": "height",
           "type": "INT",
           "links": null
         },
         {
+          "localized_name": "has_audio",
           "name": "has_audio",
+          "type": "BOOLEAN",
+          "links": null
+        },
+        {
+          "localized_name": "loaded",
+          "name": "loaded",
           "type": "BOOLEAN",
           "links": null
         }
@@ -382,13 +444,23 @@
       "title": "Input_Video",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "43a976fdfda106109ee4db54b887744aa6dbfda4",
-        "Node name for S&R": "MpiLoadVideo"
+        "ver": "cff4c3b321f1eb9dc7403df8db6ed3ac5bd1e8fa",
+        "Node name for S&R": "MpiLoadVideoUpload"
       },
       "widgets_values": [
-        "C:\\Users\\Fabio\\Downloads\\clip_1774824957518.mp4",
-        true
-      ]
+        "None",
+        true,
+        0,
+        "",
+        "image"
+      ],
+      "widgets_values_named": {
+        "video": "None",
+        "block_if_empty": true,
+        "force_rate": 0,
+        "string": "",
+        "upload": "image"
+      }
     },
     {
       "id": 129,

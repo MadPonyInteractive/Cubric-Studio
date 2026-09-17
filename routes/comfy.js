@@ -320,16 +320,92 @@ router.get('/comfy/events/stream', (req, res) => {
     });
 });
 
+// ── Media staging (MPI-800) ─────────────────────────────────────────────────
+// MpiNodes 1.2.13+ reads a media path only when it resolves inside ComfyUI's own
+// input/, output/ or temp/ (the Comfy Registry policy); anything else loads as
+// "missing". The app's media lives in project folders, so every file a LOCAL run
+// injects is staged into `<engine input>/mpi_staged/` first. The folder is
+// emptied when this app spawns the engine (`/comfy/start`): nothing can be queued
+// on an engine that was down, and cross-volume copies must not pile up. A
+// subfolder, not input/ itself, keeps these files out of the loaders' pickers.
+const STAGED_SUBDIR = 'mpi_staged';
+
+/**
+ * Stage one local file into `<inputDir>/mpi_staged/` and return the staged path.
+ * A path already inside `inputDir` is returned as-is. The name keys on path, size
+ * and mtime, so a re-run reuses the file and an edited source gets a new one.
+ * A HARDLINK first: it costs nothing, and the node accepts it because a hardlink's
+ * real path is the link itself (a symlink or junction resolves back to the project
+ * and is refused). Any link failure (another volume, FAT/exFAT) falls back to a copy.
+ * @param {string} sourcePath  absolute local path
+ * @param {string} inputDir    the engine's input/ folder
+ * @returns {Promise<string>}  absolute staged path
+ */
+async function stageMediaFile(sourcePath, inputDir) {
+    const src = path.resolve(sourcePath);
+    const rel = path.relative(path.resolve(inputDir), src);
+    if (rel && !rel.startsWith('..') && !path.isAbsolute(rel)) return src;
+
+    const stat = await fs.stat(src);   // ENOENT → caller answers 404
+    if (!stat.isFile()) throw Object.assign(new Error(`not a file: ${src}`), { code: 'ENOENT' });
+    const key = require('crypto').createHash('sha256')
+        .update(`${src}|${stat.size}|${stat.mtimeMs}`).digest('hex').slice(0, 16);
+    const dir = path.join(inputDir, STAGED_SUBDIR);
+    const target = path.join(dir, key + path.extname(src).toLowerCase());
+    if (await fs.pathExists(target)) return target;
+
+    await fs.ensureDir(dir);
+    try {
+        await fs.link(src, target);
+    } catch (linkErr) {
+        if (linkErr.code === 'EEXIST') return target;   // a concurrent run staged it
+        // Copy under a private name, then rename, so a half-written file is never
+        // visible under the name the engine reads.
+        const part = `${target}.${process.pid}.${Date.now()}.part`;
+        try {
+            await fs.copyFile(src, part);
+            await fs.rename(part, target);
+        } catch (copyErr) {
+            await fs.remove(part).catch(() => {});
+            if (await fs.pathExists(target)) return target;   // lost a race to a peer copy
+            throw copyErr;
+        }
+    }
+    return target;
+}
+
+/**
+ * POST /comfy/stage-media
+ * Body: { path: string }  absolute local path (a decoded `/project-file` path or a temp file)
+ * Returns { success, path } — the staged path inside the LOCAL engine input/ folder, which
+ * the caller injects instead of the source. Remote runs never call this: the Pod upload
+ * (`/remote/upload/media`) already lands in the Pod ComfyUI's input/ folder.
+ */
+router.post('/comfy/stage-media', async (req, res) => {
+    const sourcePath = req.body && req.body.path;
+    if (!sourcePath || typeof sourcePath !== 'string' || !path.isAbsolute(sourcePath)) {
+        return res.status(400).json({ success: false, error: 'body.path must be an absolute path' });
+    }
+    try {
+        const staged = await stageMediaFile(sourcePath, getComfyPath(ENGINE_ROOT, 'input'));
+        res.json({ success: true, path: staged });
+    } catch (err) {
+        if (err.code === 'ENOENT') {
+            return res.status(404).json({ success: false, error: `media not found: ${sourcePath}` });
+        }
+        logger.error('comfy', `stage media failed for ${sourcePath}`, err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
 /**
  * POST /comfy/stage-media-data-url
  * Body: { dataUrl: string }
  * Writes a `data:<mime>;base64,<...>` payload to a file in the LOCAL engine
- * input dir and returns its absolute path. MPI-272: media inputs are now
- * path-reading nodes (`MpiLoadImageFromPath` — `os.path.isfile`), but some
- * inputs still arrive as data URLs (the auto-mask editor's painted mask), which
- * a path node cannot read. Stage it to a real file so the path system can. The
- * caller injects the returned path; a remote run then uploads it via
- * `_uploadRemoteMedia` (which needs a local file), so we always write locally.
+ * input dir (`mpi_staged/`) and returns its absolute path. Some media inputs
+ * arrive as data URLs (the auto-mask editor's painted mask), which a path node
+ * cannot read. The caller injects the returned path; a remote run then uploads
+ * it via `_uploadRemoteMedia` (which needs a local file), so we always write locally.
  */
 router.post('/comfy/stage-media-data-url', async (req, res) => {
     try {
@@ -339,13 +415,11 @@ router.post('/comfy/stage-media-data-url', async (req, res) => {
             return res.status(400).json({ success: false, error: 'body.dataUrl must be a base64 data URL' });
         }
         const ext = (match[1].split('/')[1] || 'png').replace(/[^a-z0-9]/gi, '') || 'png';
-        // Content-hash the name so identical masks reuse one file and repeat runs
-        // don't leak the input dir. ponytail: crypto.hash, no cleanup job — the
-        // input dir is engine-scratch and small; add a sweep if it ever grows.
+        // Content-hash the name so identical masks reuse one file.
         const hash = require('crypto').createHash('sha256').update(match[2]).digest('hex').slice(0, 16);
-        const inputDir = getComfyPath(ENGINE_ROOT, 'input');
-        await fs.ensureDir(inputDir);
-        const target = path.join(inputDir, `mpi_staged_${hash}.${ext}`);
+        const dir = getComfyPath(ENGINE_ROOT, 'input', STAGED_SUBDIR);
+        await fs.ensureDir(dir);
+        const target = path.join(dir, `mpi_staged_${hash}.${ext}`);
         await fs.writeFile(target, Buffer.from(match[2], 'base64'));
         res.json({ success: true, path: target });
     } catch (err) {
@@ -624,6 +698,11 @@ router.post('/comfy/start', async (req, res) => {
         processState.comfyImportFailures = [];
         _importScanCarry = '';
 
+        // MPI-800: staged media is only needed by jobs queued on a running engine, and
+        // this one is not running yet. Removing hardlinks never touches the project file.
+        await fs.emptyDir(getComfyPath(ENGINE_ROOT, 'input', STAGED_SUBDIR)).catch((err) =>
+            logger.warn('comfy', `could not clear staged media (${err.message}) — leftovers stay until the next start`));
+
         // windowsHide: the server.js fork owns no console, so without it Windows
         // gives the embedded python its own conhost — a terminal window sitting on
         // the user's desktop for the whole life of the engine (MPI-637).
@@ -831,34 +910,6 @@ router.get('/comfy/model-folders', async (req, res) => {
     }
 });
 
-/**
- * MPI-219 helper: wait for ComfyUI to answer /history (ready), then POST the
- * MpiNodes runtime path-reload so a freshly-added extra folder registers without
- * a restart. Bounded retries cover the boot window (socket refuses / booting).
- * Fire-and-forget: callers must not await this — it's a background reconcile.
- */
-async function reloadExtraPathsWhenReady(yamlPath, { attempts = 20, delayMs = 1000 } = {}) {
-    const ax = getAxios();
-    if (!ax) return;
-    for (let i = 0; i < attempts; i++) {
-        if (!processState.activeComfyProcess) return; // engine went away — nothing to reload
-        const ready = await ax.get(`http://127.0.0.1:${COMFYUI_PORT}/history`, { timeout: 1000 })
-            .then(() => true).catch(() => false);
-        if (ready) {
-            try {
-                await ax.post(`http://127.0.0.1:${COMFYUI_PORT}/mpi/reload-extra-paths`,
-                    { yaml_path: yamlPath }, { timeout: 10000 });
-                logger.info('comfy', 'extra-folders: engine reloaded extra model paths (no restart)');
-            } catch (reloadErr) {
-                logger.warn('comfy', `extra-folders: runtime path reload failed (${reloadErr.message}) — restart engine to pick up new folders`);
-            }
-            return;
-        }
-        await new Promise(r => setTimeout(r, delayMs));
-    }
-    logger.warn('comfy', 'extra-folders: engine did not become ready — new folders will apply on next restart');
-}
-
 router.post('/comfy/extra-folders', async (req, res) => {
     try {
         const folders = await setExtraModelFolders(req.body || {});
@@ -866,23 +917,20 @@ router.post('/comfy/extra-folders', async (req, res) => {
         // Always (re)write the YAML so removed extra folders are dropped from it
         // (garbage collection) while the default root block is preserved. Never
         // delete the file — that would orphan models under the default root.
-        const yamlPath = await writeExtraModelPathsYaml(primaryRoot || getDefaultModelsRoot(), folders);
+        await writeExtraModelPathsYaml(primaryRoot || getDefaultModelsRoot(), folders);
 
-        // MPI-219: ComfyUI reads extra_model_paths.yaml only at boot, so a folder
-        // added mid-session is invisible to /prompt validation → 400 "Value not in
-        // list: lora_name". Ask the running engine to re-read the yaml at runtime
-        // (MpiNodes POST /mpi/reload-extra-paths) so the new path registers without
-        // a restart. Fire-and-forget with a boot-race guard: a user can add a folder
-        // while ComfyUI is still booting (socket not listening → ECONNREFUSED, or
-        // boot already passed its own load_extra_path_config before the yaml was
-        // rewritten). Wait for the engine to answer /history, THEN reload the now-
-        // current yaml. Don't block the HTTP response on it — the yaml is already
-        // written and correct for next boot regardless.
-        if (processState.activeComfyProcess) {
-            reloadExtraPathsWhenReady(yamlPath);
-        }
+        // ComfyUI reads extra_model_paths.yaml only at boot, and nothing can re-read it
+        // at runtime (MpiNodes 1.2.13 removed its unauthenticated reload route — a
+        // Comfy Registry finding). A folder changed while the engine runs is invisible
+        // to /prompt validation ("Value not in list: lora_name") until a restart, so
+        // tell the caller. Probe the port, not `activeComfyProcess`: the engine is
+        // shared, and another app instance may be the one that started it.
+        const ax = getAxios();
+        const restartNeeded = ax
+            ? await ax.get(`http://127.0.0.1:${COMFYUI_PORT}/history`, { timeout: 1000 }).then(() => true).catch(() => false)
+            : Boolean(processState.activeComfyProcess);
 
-        res.json({ success: true, folders });
+        res.json({ success: true, folders, restartNeeded });
     } catch (err) {
         logger.error('comfy', 'extra-folders set failed', err);
         res.status(400).json({ success: false, error: err.message });
@@ -1154,3 +1202,4 @@ module.exports.removeComfyEventClient = removeComfyEventClient;
 // default-root + recursive-search + completeness logic used by /comfy/models/check.
 module.exports.localModelsCheck = _localModelsCheck;
 module.exports.scanForImportFailures = _scanForImportFailures;   // MPI-674 — exported for unit test
+module.exports.stageMediaFile = stageMediaFile;                  // MPI-800 — exported for unit test

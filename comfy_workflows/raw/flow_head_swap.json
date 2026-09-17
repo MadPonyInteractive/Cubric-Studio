@@ -1568,25 +1568,25 @@
     },
     {
       "id": 79,
-      "type": "MpiLoadImageFromPath",
+      "type": "MpiLoadImage",
       "pos": [
         9663.754036638484,
         8900.366148130843
       ],
       "size": [
         276.9849609375,
-        378
+        446
       ],
       "flags": {},
       "order": 10,
       "mode": 0,
       "inputs": [
         {
-          "localized_name": "string",
-          "name": "string",
-          "type": "STRING",
+          "localized_name": "image",
+          "name": "image",
+          "type": "COMBO",
           "widget": {
-            "name": "string"
+            "name": "image"
           },
           "link": null
         },
@@ -1605,6 +1605,25 @@
           "type": "BOOLEAN",
           "widget": {
             "name": "block_if_empty"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "string",
+          "name": "string",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "upload",
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
           },
           "link": null
         }
@@ -1635,23 +1654,33 @@
           "name": "height",
           "type": "INT",
           "links": []
+        },
+        {
+          "localized_name": "loaded",
+          "name": "loaded",
+          "type": "BOOLEAN",
+          "links": null
         }
       ],
       "title": "Input_Image",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "ba9e1569d9f77567907654ae04745580f43f18b9",
-        "Node name for S&R": "MpiLoadImageFromPath"
+        "ver": "cff4c3b321f1eb9dc7403df8db6ed3ac5bd1e8fa",
+        "Node name for S&R": "MpiLoadImage"
       },
       "widgets_values": [
-        "C:\\Users\\Fabio\\Documents\\Cubric Vision\\Projects\\test\\Media\\imported_001.jpg",
+        "None",
         "alpha",
-        true
+        true,
+        "",
+        "image"
       ],
       "widgets_values_named": {
-        "string": "C:\\Users\\Fabio\\Documents\\Cubric Vision\\Projects\\test\\Media\\imported_001.jpg",
+        "image": "None",
         "channel": "alpha",
-        "block_if_empty": true
+        "block_if_empty": true,
+        "string": "",
+        "upload": "image"
       },
       "color": "#432",
       "bgcolor": "#653"
@@ -5054,25 +5083,25 @@
     },
     {
       "id": 81,
-      "type": "MpiLoadImageFromPath",
+      "type": "MpiLoadImage",
       "pos": [
         9108.457137406334,
         8903.659167876041
       ],
       "size": [
         276.9849609375,
-        378
+        446
       ],
       "flags": {},
       "order": 25,
       "mode": 0,
       "inputs": [
         {
-          "localized_name": "string",
-          "name": "string",
-          "type": "STRING",
+          "localized_name": "image",
+          "name": "image",
+          "type": "COMBO",
           "widget": {
-            "name": "string"
+            "name": "image"
           },
           "link": null
         },
@@ -5091,6 +5120,25 @@
           "type": "BOOLEAN",
           "widget": {
             "name": "block_if_empty"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "string",
+          "name": "string",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "upload",
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
           },
           "link": null
         }
@@ -5121,23 +5169,33 @@
           "name": "height",
           "type": "INT",
           "links": []
+        },
+        {
+          "localized_name": "loaded",
+          "name": "loaded",
+          "type": "BOOLEAN",
+          "links": null
         }
       ],
       "title": "Input_Image_2",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "ba9e1569d9f77567907654ae04745580f43f18b9",
-        "Node name for S&R": "MpiLoadImageFromPath"
+        "ver": "cff4c3b321f1eb9dc7403df8db6ed3ac5bd1e8fa",
+        "Node name for S&R": "MpiLoadImage"
       },
       "widgets_values": [
-        "C:\\Users\\Fabio\\Documents\\Cubric Vision\\Projects\\test\\Media\\imported_002.webp",
+        "None",
         "alpha",
-        true
+        true,
+        "",
+        "image"
       ],
       "widgets_values_named": {
-        "string": "C:\\Users\\Fabio\\Documents\\Cubric Vision\\Projects\\test\\Media\\imported_002.webp",
+        "image": "None",
         "channel": "alpha",
-        "block_if_empty": true
+        "block_if_empty": true,
+        "string": "",
+        "upload": "image"
       },
       "color": "#432",
       "bgcolor": "#653"

@@ -983,6 +983,10 @@ export const MpiSettings = ComponentFactory.create({
             };
             _renderExtraFolders(el);
             await loadAssets();
+            // The engine reads model folders only when it starts (MPI-800).
+            if (data.restartNeeded) {
+                Events.emit('ui:info', { message: 'Restart the engine to apply the model folder change.' });
+            }
         }
     },
 });

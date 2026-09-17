@@ -1394,22 +1394,24 @@ function createEngine({ engine, alwaysLocal }) {
         if (params.Mask && !mediaParamKinds.Mask) mediaParamKinds.Mask = 'mask';
         if (params.Input_Mask && !mediaParamKinds.Input_Mask) mediaParamKinds.Input_Mask = 'mask';
         // MPI-272: route by TARGET NODE CLASS, not title guessing. Every media input
-        // is now a path-reading loader — `MpiLoadImageFromPath` (image/mask/start-frame/
-        // end-frame), `MpiLoadAudio`, `VHS_LoadVideoPath` — that reads a real filesystem
-        // PATH from a string field (`os.path.isfile`; empty → ExecutionBlocker self-gates
-        // the branch), NOT a ComfyUI input-dir upload name. So ANY param whose same-titled
-        // node is one of these classes needs `_resolveMediaPath` (+ remote upload),
-        // regardless of the slot's title — this covers `Input_Start_Frame`,
+        // is a path-reading loader that takes a PATH in its `string` widget (empty →
+        // nothing loaded; the node's `loaded` output says which). MpiNodes 1.2.13+ reads
+        // that path only inside ComfyUI's input/, output/ or temp/ (MPI-800), so the
+        // value is resolved, then staged into the engine input/ (local) or uploaded to
+        // the Pod's input/ (remote). ANY param whose same-titled node is one of these
+        // classes takes that route, regardless of the slot's title — `Input_Start_Frame`,
         // `Input_End_Frame`, `Input_Image(_N)`, `Input_video`, `Input_audio`, detailer
-        // `Input_Mask`, and any future slot the app declares. Title-pattern guessing
-        // (input_image only) missed the video frame slots → the raw URL reached the path
-        // node unresolved → self-gate → "no output returned". `imagepath` is the generic
-        // resolve-this-to-a-path kind (all three classes share the same resolve/upload).
-        // Includes the `MpiString` fan-out (a path feeding VHS + MpiHasAudio via a String
-        // node, titled `Input_video` like the param) and `MpiLoadVideo` (interpolate/
-        // upscale). A generic `MpiString` text node (titled "Mpi String") is never a param
-        // key, so the title-match below excludes it — no false path-resolve on text.
+        // `Input_Mask`, and any future slot the app declares. `imagepath` is the generic
+        // resolve-this-to-a-path kind.
+        // The Upload loaders (`MpiLoadImage` / `MpiLoadVideoUpload` / `MpiLoadAudioUpload`)
+        // are the app-slot shape: the path lands in `string` (and, harmlessly, in the
+        // picker, which the shipped graphs keep on "None"). Also the `MpiString` fan-out
+        // (a path feeding VHS + MpiHasAudio, titled `Input_video` like the param) and the
+        // plain path loaders. A generic `MpiString` text node (titled "Mpi String") is
+        // never a param key, so the title-match below excludes it.
+        const UPLOAD_PICKER_KEYS = { MpiLoadImage: 'image', MpiLoadVideoUpload: 'video', MpiLoadAudioUpload: 'audio' };
         const PATH_MEDIA_CLASSES = new Set([
+            ...Object.keys(UPLOAD_PICKER_KEYS),
             'MpiLoadImageFromPath', 'MpiLoadAudio', 'MpiLoadVideo', 'VHS_LoadVideoPath', 'MpiString',
         ]);
         for (const key of Object.keys(params)) {
@@ -1424,9 +1426,8 @@ function createEngine({ engine, alwaysLocal }) {
             let val = params[paramKey];
             if (!val || typeof val !== 'string') continue;
 
-            // MPI-272: path nodes read a filesystem path (`os.path.isfile`), but some
-            // inputs arrive as a `data:` URL (the auto-mask editor's painted mask).
-            // Stage it to a real file in the engine input dir and swap in that path so
+            // Some inputs arrive as a `data:` URL (the auto-mask editor's painted mask).
+            // Write it to a real file in the engine input dir and swap in that path so
             // the resolve/upload/inject flow below treats it like any other path.
             if (val.startsWith('data:')) {
                 const stageRes = await fetch('/comfy/stage-media-data-url', {
@@ -1457,12 +1458,12 @@ function createEngine({ engine, alwaysLocal }) {
             const localPath = this._resolveMediaPath(val);
             // Remote engine: the resolved path is local to this machine and invisible
             // to the Pod. Upload the file and inject the Pod-absolute path returned by
-            // `_uploadRemoteMedia`, which the path-reading nodes resolve directly —
-            // VHS LoadVideo/LoadAudio and `MpiLoadImageFromPath` (its `os.path.isfile`
-            // check runs on the Pod). A local-pinned engine keeps the local path.
+            // `_uploadRemoteMedia`, which lands in the Pod ComfyUI's input/. Local
+            // engine (incl. a local-pinned one): stage the file into the engine input/
+            // and inject that path — MpiNodes refuses the project-folder path itself.
             params[paramKey] = (!this._alwaysLocal && remoteEngineClient.isRemote())
                 ? await this._uploadRemoteMedia(localPath)
-                : localPath;
+                : await this._stageLocalMedia(localPath, paramKey);
         }
 
         // 2b. Remote engine: auto-upload any selected LoRA/upscale model that is
@@ -1497,6 +1498,15 @@ function createEngine({ engine, alwaysLocal }) {
         const _inject = (nodeId, val) => {
             const node = workflow[nodeId];
             if (!node || !node.inputs) return;
+            // MpiNodes Upload loaders (MPI-800): the file goes into `string` only. The
+            // picker is the node's fallback when `string` is empty or does not load, so
+            // every graph the app ships or dispatches keeps it on "None".
+            const picker = UPLOAD_PICKER_KEYS[node.class_type];
+            if (picker) {
+                if (!_isLink(node.inputs.string)) node.inputs.string = val;
+                node.inputs[picker] = 'None';
+                return;
+            }
             const targets = [
                 'value', 'text', 'int', 'float', 'boolean', 'string', 'color',
                 'ckpt_name', 'model_name', 'unet_name', 'image', 'mask', 'picks',
@@ -1890,6 +1900,29 @@ function createEngine({ engine, alwaysLocal }) {
             softErr.code = 'input_asset_deleted';
             throw softErr;
         }
+    },
+
+    /**
+     * Stages a resolved local media path into the LOCAL engine's input/ folder
+     * (`POST /comfy/stage-media`, a hardlink or a copy) and returns the staged path.
+     * MpiNodes 1.2.13+ loads a path only inside ComfyUI's input/, output/ or temp/,
+     * so a project-folder path injected as-is would read as "nothing loaded" (MPI-800).
+     * @param {string} localPath  Absolute local path from `_resolveMediaPath`.
+     * @param {string} paramKey   the media param (for the error)
+     * @returns {Promise<string>} The staged path to inject into the workflow.
+     * @private
+     */
+    async _stageLocalMedia(localPath, paramKey) {
+        const res = await fetch('/comfy/stage-media', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: localPath }),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.success) {
+            throw new Error(`[ComfyUIController] Media staging failed for ${paramKey}: ${data?.error || `HTTP ${res.status}`}`);
+        }
+        return data.path;
     },
 
     /**

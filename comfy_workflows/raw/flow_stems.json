@@ -784,25 +784,25 @@
     },
     {
       "id": 32,
-      "type": "MpiLoadAudio",
+      "type": "MpiLoadAudioUpload",
       "pos": [
         -659.2469386955026,
         529.232053457742
       ],
       "size": [
         270,
-        82
+        204
       ],
       "flags": {},
       "order": 0,
       "mode": 0,
       "inputs": [
         {
-          "localized_name": "string",
-          "name": "string",
-          "type": "STRING",
+          "localized_name": "audio",
+          "name": "audio",
+          "type": "COMBO",
           "widget": {
-            "name": "string"
+            "name": "audio"
           },
           "link": null
         },
@@ -812,6 +812,34 @@
           "type": "BOOLEAN",
           "widget": {
             "name": "block_if_empty"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "string",
+          "name": "string",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "audioUI",
+          "name": "audioUI",
+          "type": "AUDIO_UI",
+          "widget": {
+            "name": "audioUI"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "upload",
+          "name": "upload",
+          "type": "AUDIOUPLOAD",
+          "widget": {
+            "name": "upload"
           },
           "link": null
         }
@@ -824,21 +852,32 @@
           "links": [
             42
           ]
+        },
+        {
+          "localized_name": "loaded",
+          "name": "loaded",
+          "type": "BOOLEAN",
+          "links": null
         }
       ],
       "title": "Input_Audio",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "5e070436fc90ab84fdd66c2fe702572d3d04f7e2",
-        "Node name for S&R": "MpiLoadAudio"
+        "ver": "cff4c3b321f1eb9dc7403df8db6ed3ac5bd1e8fa",
+        "Node name for S&R": "MpiLoadAudioUpload"
       },
       "widgets_values": [
+        "None",
+        true,
         "",
-        true
+        null,
+        null
       ],
       "widgets_values_named": {
+        "audio": "None",
+        "block_if_empty": true,
         "string": "",
-        "block_if_empty": true
+        "upload": null
       },
       "color": "#432",
       "bgcolor": "#653"

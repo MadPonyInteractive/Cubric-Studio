@@ -32,8 +32,33 @@ import process from 'node:process';
 import http from 'node:http';
 import injectionRules from '../services/injectionRules.js';
 
-const { checkWorkflow } = injectionRules;
+const { checkWorkflow, titleOf } = injectionRules;
 const COMFY = process.env.COMFY_URL || 'http://127.0.0.1:8188';
+
+// MPI-800 — an MpiNodes Upload loader in a SHIPPED graph is an app media slot: titled
+// Input_* (so the app injects the file into its `string`) and with its picker on "None"
+// (the node falls back to the picker when `string` is empty, so a bench pick would load
+// for users). Kept here, not in services/injectionRules.js: that module also judges
+// user Flow packages, which this shipping rule does not cover.
+const UPLOAD_PICKERS = { MpiLoadImage: 'image', MpiLoadVideoUpload: 'video', MpiLoadAudioUpload: 'audio' };
+function checkUploadSlots(wf) {
+  const out = [];
+  for (const [id, node] of Object.entries(wf)) {
+    const key = UPLOAD_PICKERS[node?.class_type];
+    if (!key) continue;
+    const title = titleOf(node);
+    if (!/^input_/i.test(title)) {
+      out.push(`#${id} ${node.class_type} "${title}" is not titled Input_* — the app cannot inject it, so it loads whatever its picker holds. Title it Input_<slot> in the graph.`);
+    }
+    if (node.inputs?.[key] !== 'None') {
+      out.push(`#${id} ${node.class_type} "${title}" ships with ${key} = ${JSON.stringify(node.inputs?.[key])} — shipped graphs keep the picker on "None" (sync-raw-workflows.mjs sets it).`);
+    }
+    if (typeof node.inputs?.string === 'string' && node.inputs.string !== '') {
+      out.push(`#${id} ${node.class_type} "${title}" ships with string = ${JSON.stringify(node.inputs.string)} — the app injects it; a shipped graph keeps it empty (sync-raw-workflows.mjs clears it).`);
+    }
+  }
+  return out;
+}
 
 function fetchObjectInfo() {
   return new Promise((resolve, reject) => {
@@ -60,7 +85,7 @@ async function main() {
     let wf;
     try { wf = JSON.parse(await fs.readFile(f, 'utf8')); }
     catch (e) { console.error(`✗ ${f}: cannot read/parse (${e.message})`); bad++; continue; }
-    const violations = checkWorkflow(wf, objectInfo);
+    const violations = [...checkWorkflow(wf, objectInfo), ...checkUploadSlots(wf)];
     if (violations.length) {
       bad++;
       console.error(`✗ ${f} — ${violations.length} injection-rule violation(s):`);

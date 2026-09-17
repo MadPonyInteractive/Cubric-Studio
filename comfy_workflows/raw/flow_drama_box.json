@@ -270,27 +270,27 @@
     },
     {
       "id": 11,
-      "type": "MpiLoadAudio",
+      "type": "MpiLoadAudioUpload",
       "pos": [
         -694.9805035918289,
         722.0774332097537
       ],
       "size": [
         270,
-        82
+        204
       ],
       "flags": {},
       "order": 12,
       "mode": 0,
       "inputs": [
         {
-          "localized_name": "string",
-          "name": "string",
-          "type": "STRING",
+          "localized_name": "audio",
+          "name": "audio",
+          "type": "COMBO",
           "widget": {
-            "name": "string"
+            "name": "audio"
           },
-          "link": 14
+          "link": null
         },
         {
           "localized_name": "block_if_empty",
@@ -298,6 +298,34 @@
           "type": "BOOLEAN",
           "widget": {
             "name": "block_if_empty"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "string",
+          "name": "string",
+          "shape": 7,
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "audioUI",
+          "name": "audioUI",
+          "type": "AUDIO_UI",
+          "widget": {
+            "name": "audioUI"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "upload",
+          "name": "upload",
+          "type": "AUDIOUPLOAD",
+          "widget": {
+            "name": "upload"
           },
           "link": null
         }
@@ -310,17 +338,37 @@
           "links": [
             6
           ]
+        },
+        {
+          "localized_name": "loaded",
+          "name": "loaded",
+          "type": "BOOLEAN",
+          "links": [
+            18
+          ]
         }
       ],
+      "title": "Input_Audio",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "3e455e881fa7de777cab2dd0cc6f1828a4a36ff1",
-        "Node name for S&R": "MpiLoadAudio"
+        "ver": "cff4c3b321f1eb9dc7403df8db6ed3ac5bd1e8fa",
+        "Node name for S&R": "MpiLoadAudioUpload"
       },
       "widgets_values": [
+        "None",
+        true,
         "",
-        true
-      ]
+        null,
+        null
+      ],
+      "widgets_values_named": {
+        "audio": "None",
+        "block_if_empty": true,
+        "string": "",
+        "upload": null
+      },
+      "color": "#432",
+      "bgcolor": "#653"
     },
     {
       "id": 12,
@@ -369,100 +417,6 @@
       ],
       "color": "#432",
       "bgcolor": "#653"
-    },
-    {
-      "id": 13,
-      "type": "MpiString",
-      "pos": [
-        -1235.861990036228,
-        777.0643394774393
-      ],
-      "size": [
-        270,
-        82
-      ],
-      "flags": {},
-      "order": 5,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "string",
-          "name": "string",
-          "type": "STRING",
-          "widget": {
-            "name": "string"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "string",
-          "name": "string",
-          "type": "STRING",
-          "links": [
-            15
-          ]
-        }
-      ],
-      "title": "Input_Audio",
-      "properties": {
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "3e455e881fa7de777cab2dd0cc6f1828a4a36ff1",
-        "Node name for S&R": "MpiString"
-      },
-      "widgets_values": [
-        ""
-      ],
-      "color": "#432",
-      "bgcolor": "#653"
-    },
-    {
-      "id": 14,
-      "type": "MpiAnyChecker",
-      "pos": [
-        -917.7488291376318,
-        778.5357409055366
-      ],
-      "size": [
-        153.444921875,
-        46
-      ],
-      "flags": {},
-      "order": 10,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "any",
-          "name": "any",
-          "type": "*",
-          "link": 15
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "any",
-          "name": "any",
-          "type": "*",
-          "links": [
-            14
-          ]
-        },
-        {
-          "localized_name": "has_value",
-          "name": "has_value",
-          "type": "BOOLEAN",
-          "links": [
-            18
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "3e455e881fa7de777cab2dd0cc6f1828a4a36ff1",
-        "Node name for S&R": "MpiAnyChecker"
-      },
-      "widgets_values": []
     },
     {
       "id": 15,
@@ -1255,22 +1209,6 @@
       "INT"
     ],
     [
-      14,
-      14,
-      0,
-      11,
-      0,
-      "STRING"
-    ],
-    [
-      15,
-      13,
-      0,
-      14,
-      0,
-      "STRING"
-    ],
-    [
       16,
       9,
       0,
@@ -1288,7 +1226,7 @@
     ],
     [
       18,
-      14,
+      11,
       1,
       15,
       2,
