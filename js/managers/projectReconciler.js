@@ -9,8 +9,8 @@
  *   1. projectManager.openProject() calls POST /migrate-project
  *   2. /migrate-project runs server migrations and writes updated project.json
  *   3. Client loads the migrated project, then calls reconcileAndHydrate()
- *   4. reconcileAndHydrate() fetches each .meta/<uuid>.json and checks the
- *      corresponding media file exists
+ *   4. reconcileAndHydrate() asks POST /load-meta-batch for every .meta/<uuid>.json
+ *      at once, with the media file's presence alongside each one (MPI-804)
  *   5. Broken entries are silently removed; groups that become empty are dropped
  *
  * The reconciled project is then persisted back to project.json if anything
@@ -31,14 +31,24 @@ import { createDefaultLoras, getLoraStages } from '../data/projectModel.js';
 export async function reconcileAndHydrate(project) {
     let wasModified = false;
     const projectWithSettings = _upgradeStagedLoraSettings(project);
+    const folderPath = projectWithSettings.folderPath;
+    const groups = projectWithSettings.itemGroups ?? [];
     const hydratedGroups = [];
 
-    for (const group of (projectWithSettings.itemGroups ?? [])) {
+    // ONE request for the whole project (MPI-804). This was two round-trips per
+    // item, awaited in series — 300 of them for a 150-item project — and they
+    // queue behind everything else the renderer has open (Chromium's 6-per-host
+    // cap). With the engine auto-starting, clicking a project did nothing at all
+    // until it finished booting.
+    const hydration = await _fetchHydration(groups.flatMap(g => g.history ?? []), folderPath);
+    // Listed once, and only if some item turns out to have no sidecar.
+    let mediaFiles = null;
+
+    for (const group of groups) {
         const hydratedHistory = [];
 
         for (const id of (group.history ?? [])) {
-            // Load .meta/<uuid>.json from server
-            const meta = await _fetchMeta(id, projectWithSettings.folderPath);
+            const { meta = null, exists = false } = hydration[id] ?? {};
 
             if (!meta) {
                 // No .meta/ file found. This can happen for:
@@ -47,18 +57,18 @@ export async function reconcileAndHydrate(project) {
                 // In both cases, try to construct a minimal synthetic item from
                 // the media file itself so the entry isn't silently lost.
                 wasModified = true;
-                const synthetic = await _constructSyntheticItem(id, projectWithSettings.folderPath);
+                if (!mediaFiles) mediaFiles = await _listMediaFiles(folderPath);
+                const synthetic = _constructSyntheticItem(id, mediaFiles);
                 if (synthetic) {
                     hydratedHistory.push(synthetic);
                 }
                 continue;
             }
 
-            // Check media file still exists on disk
-            const mediaExists = await _checkFileExists(meta.filePath);
-            if (!mediaExists) {
+            // The media file is gone from disk
+            if (!exists) {
                 // Orphaned meta — clean it up
-                await _deleteMeta(id, projectWithSettings.folderPath);
+                await _deleteMeta(id, folderPath);
                 wasModified = true;
                 continue;
             }
@@ -112,35 +122,29 @@ function _upgradeStagedLoraSettings(project) {
 }
 
 /**
- * Fetch a .meta/<uuid>.json file from the server.
- * @returns {Promise<Object|null>} Parsed meta object, or null if not found
+ * Every item's sidecar and media-file presence, in one request (MPI-804).
+ *
+ * THROWS when the request fails, and deliberately so. An empty answer would read
+ * as "no sidecar" for every item — each one rebuilt as a synthetic `uploaded`
+ * entry, every group whose media could not be found dropped, and `wasModified`
+ * true, which is what persists that back to project.json. A project must not be
+ * rewritten because one request did not land; the caller reports it instead.
+ *
+ * @param {string[]} ids
+ * @param {string} folderPath
+ * @returns {Promise<Record<string, { meta: Object|null, exists: boolean }>>}
  */
-async function _fetchMeta(id, folderPath) {
-    try {
-        const url = `/load-meta?id=${encodeURIComponent(id)}&folderPath=${encodeURIComponent(folderPath)}`;
-        const res = await fetch(url);
-        if (!res.ok) return null;
-        return await res.json();
-    } catch {
-        return null;
-    }
-}
-
-/**
- * Check whether the media file referenced in a meta file actually exists.
- * Extracts the absolute path from the filePath URL param.
- * @returns {Promise<boolean>}
- */
-async function _checkFileExists(filePath) {
-    try {
-        const absPath = _extractAbsPath(filePath);
-        if (!absPath) return false;
-        const res = await fetch(`/file-exists?path=${encodeURIComponent(absPath)}`);
-        const data = await res.json();
-        return data.exists === true;
-    } catch {
-        return false;
-    }
+async function _fetchHydration(ids, folderPath) {
+    if (!ids.length) return {};
+    const res = await fetch('/load-meta-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderPath, ids }),
+    });
+    if (!res.ok) throw new Error(`Could not read this project's items (HTTP ${res.status}).`);
+    const data = await res.json();
+    if (!data?.items) throw new Error("Could not read this project's items.");
+    return data.items;
 }
 
 /**
@@ -149,12 +153,11 @@ async function _checkFileExists(filePath) {
  * .meta/ was accidentally deleted. The media file must exist.
  *
  * @param {string} id — Item UUID
- * @param {string} folderPath — Project folder path
- * @returns {Promise<Object|null>} Synthetic item, or null if media file not found
+ * @param {Array<{name: string, type: string, path: string, resolution?: string}>} files
+ *   The project's Media listing, fetched once by the caller.
+ * @returns {Object|null} Synthetic item, or null if media file not found
  */
-async function _constructSyntheticItem(id, folderPath) {
-    // Scan the Media directory to find a file named <id>.<ext>
-    const files = await _listMediaFiles(folderPath);
+function _constructSyntheticItem(id, files) {
     const hit = files.find(f => {
         const base = f.name.replace(/\.[^.]+$/, '');
         return base === id;
@@ -220,19 +223,4 @@ async function _deleteMeta(id, folderPath) {
     } catch {
         // Non-fatal — best effort cleanup
     }
-}
-
-/**
- * Extract absolute path from a /project-file?path=... URL or return as-is.
- * @param {string} filePath — e.g. "/project-file?path=C%3A%5C...%5Ct2i_001.png"
- * @returns {string|null}
- */
-function _extractAbsPath(filePath) {
-    if (!filePath) return null;
-    if (filePath.startsWith('/')) {
-        const match = filePath.match(/[?&]path=([^&]+)/);
-        if (match) return decodeURIComponent(match[1]);
-    }
-    // Already an absolute path
-    return filePath;
 }

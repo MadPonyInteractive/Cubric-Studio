@@ -2836,6 +2836,55 @@ router.get('/load-meta', (req, res) => {
 });
 
 /**
+ * POST /load-meta-batch
+ * The whole of a project's hydration in ONE request: every item's sidecar, plus
+ * whether the media it points at is still on disk.
+ *
+ * MPI-804: the reconciler used to ask per item — `/load-meta` then `/file-exists`,
+ * awaited one after the other. A 150-item project was 300 serialized round-trips
+ * before the gallery could open, and they queue behind whatever else the renderer
+ * has in flight (Chromium caps HTTP/1.1 at 6 per host, and the landing's preview
+ * videos hold connections until navigation). With the engine auto-starting, its
+ * once-a-second status poll took another slot and the chain crawled — the click
+ * looked dead until the engine came up. Reading the same files here costs
+ * milliseconds (41 projects, 1248 stats, measured 21ms).
+ *
+ * Unknown / unreadable ids come back as `{ meta: null, exists: false }` — the
+ * caller's "no sidecar" branch, same as the 404 it used to get.
+ *
+ * Body: { folderPath, ids: string[] }
+ * Response: { success, items: { <id>: { meta: Object|null, exists: boolean } } }
+ */
+router.post('/load-meta-batch', async (req, res) => {
+    try {
+        const { folderPath, ids } = req.body || {};
+        if (!folderPath || !Array.isArray(ids)) {
+            return res.status(400).json({ success: false, error: 'folderPath and ids required' });
+        }
+
+        const metaDir = path.join(path.normalize(folderPath), 'Media', '.meta');
+        const items = {};
+        await Promise.all([...new Set(ids)].map(async (id) => {
+            let meta = null;
+            try {
+                meta = await fs.readJson(path.join(metaDir, `${id}.json`));
+            } catch {
+                items[id] = { meta: null, exists: false };
+                return;
+            }
+            const mediaPath = pathFromProjectFileUrl(meta.filePath);
+            const exists = !!mediaPath && await fs.pathExists(mediaPath);
+            items[id] = { meta, exists };
+        }));
+
+        res.json({ success: true, items });
+    } catch (err) {
+        logger.error('project', 'load-meta-batch error', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+/**
  * DELETE /delete-meta
  * Deletes a .meta/<uuid>.json file.
  * Query: id=<uuid>, folderPath=<project folder path>

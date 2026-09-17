@@ -1,0 +1,12 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-804/",
+    ".agents/mpi-kanban/board.json",
+    ".agents/mpi-kanban/events.jsonl",
+    "js/managers/projectReconciler.js",
+    "js/shell/projectUI.js",
+    "routes/projects.js",
+    "tests/project-hydrate-batch.test.cjs"
+  ]
+}

@@ -544,9 +544,24 @@ function _buildProjectRow(project) {
     // Open-locked until this row's thumbnail resolves — prevents opening a
     // project mid-load (MPI-286).
     if (row.classList.contains('mpi-landing__pl-row--loading')) return;
-    if (await _blockedByDownloadMode()) return;
-    if (await blockedByNoEngine()) return;
-    await openProject(project);
+    // Stop the grid's own loading HERE, not at navigation (MPI-804). The queue's
+    // preview videos hold a connection each until they decode, so leaving them
+    // running put the open's own requests behind them for the whole wait.
+    _statsBatchAC?.abort();
+    if (await _blockedByDownloadMode() || await blockedByNoEngine()) {
+      loadProjectGrid();   // not going anywhere — put the rows we just cancelled back
+      return;
+    }
+    // A failed open used to reject into nothing: no navigation, no message, a row
+    // that looks like it ignored the click. Say so, and rebuild the grid we stopped.
+    try {
+      await openProject(project);
+    } catch (err) {
+      clientLogger.error('projectUI', 'openProject failed', err);
+      window.MpiAlert(`Could not open "${project.name}": ${err.message}`);
+      loadProjectGrid();
+      return;
+    }
     navigate(PAGE_GALLERY);
   });
 

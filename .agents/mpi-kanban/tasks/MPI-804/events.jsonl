@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-804", "at": "2026-09-17T19:47:35Z", "actor": "claude", "column": "todo", "title": "Opening a project no longer waits on the engine: one hydration request, not two per item"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-804", "at": "2026-09-17T19:47:35Z", "actor": "claude", "from": "todo", "to": "doing", "summary": "Diagnosis done (measured: 300 serial calls for the 150-item project); implementing the batch route."}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-804", "at": "2026-09-17T19:53:52Z", "actor": "claude", "summary": "Batch hydration shipped: 302 requests -> 3 on a 150-item project. Tests + full suite green. Awaiting one live check by Fabio."}
