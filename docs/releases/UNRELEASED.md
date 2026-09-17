@@ -604,3 +604,8 @@
 
 - Cancelling a model download right as it starts now stops it. A cancel in its first moments
   could let the download carry on anyway.
+
+- Opening a project no longer makes saves and generations wait. The project list kept loading
+  its video previews behind the open project, and those downloads could take up every
+  connection the app has to its own server, so a save or a new generation could wait up to
+  15 seconds before it even started. Leaving the project list now stops its previews.
