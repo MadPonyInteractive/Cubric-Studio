@@ -1,5 +1,12 @@
 # MPI-593 Validation
 
+## Closed as REJECTED (Fabio, 2026-09-17)
+
+"There should be no command-line interface anywhere." Steps 2-3 (the end-user Node CLI) will not
+be built; Fabio did not know the card existed, and any earlier ask for a CLI was a mistake. Step 1
+(the `cubric-vision` skill split, below) shipped and stays. Agents keep driving the running app over
+its HTTP API through those skills.
+
 ## Step 1: the skill split (2026-09-15, PASSED, auto)
 
 `.claude/skills/cubric-vision/SKILL.md` (721 lines) is now a router plus five on-demand files:
