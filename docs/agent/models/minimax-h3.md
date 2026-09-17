@@ -17,8 +17,8 @@ guide:
 
 ## Settings
 
-- Turbo on. The non-turbo path has come back undercooked in real use.
-- `qualityTier` `medium` is the Auto default. A face that is small in the frame needs
+- Recommend turbo on: the non-turbo path has come back undercooked in real use.
+- `qualityTier`: in Auto mode use `medium`. A face that is small in the frame needs
   pixels: go a tier higher, or frame closer, before blaming the prompt.
 - Ratios: `16:9`, `9:16`, `1:1`, `21:9`. The clip length comes from the project's
   settings, so write enough action to fill it and no more than fits.

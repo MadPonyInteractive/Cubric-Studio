@@ -20,15 +20,25 @@ async function installStubs(window) {
     // 18+ gate — spec uses localStorage key directly
     localStorage.setItem('mpi_maturity_acknowledged', 'true');
 
-    // fetch stub
+    // fetch stub. One conversation per project (Phase 3c): the server keys each by its
+    // folder and names the key in every reply. The client never builds a key, so the stub
+    // uses a visibly different one ('key:<folder>') to prove it only echoes what it got.
     window.__fetchCalls = [];
+    window.__histories = {}; // folderPath ('' = landing) -> entries
+    window.__messageReply = null; // a canned POST /agent/message reply, e.g. BUSY
+    const keyOf = (folderPath) => (folderPath ? `key:${folderPath}` : '');
     window.fetch = async (url, opts) => {
       window.__fetchCalls.push({ url, body: opts && opts.body ? JSON.parse(opts.body) : undefined });
-      if (url === '/agent/history') {
-        return { ok: true, json: async () => ({ ok: true, entries: [], working: false, pendingConfirm: null }) };
+      if (url === '/agent/history' || url.startsWith('/agent/history?')) {
+        const folderPath = new URL(url, 'http://x').searchParams.get('project') || '';
+        const entries = window.__histories[folderPath] || [];
+        return { ok: true, json: async () => ({ ok: true, session: keyOf(folderPath), entries, working: false, pendingConfirm: null }) };
       }
       if (url === '/agent/message') {
-        return { ok: true, json: async () => ({ ok: true, turnId: 't1', attachments: [] }) };
+        const body = JSON.parse(opts.body);
+        const reply = window.__messageReply
+          || { ok: true, turnId: 't1', session: keyOf(body.project && body.project.folderPath), attachments: [] };
+        return { ok: true, json: async () => reply };
       }
       if (url === '/agent/confirm') {
         return { ok: true, json: async () => ({ ok: true }) };
@@ -39,8 +49,9 @@ async function installStubs(window) {
     // The chat listens on the app bus, fed by ONE EventSource the shell opened at boot
     // (agentService.agentInitStream, bridge covered by tests/agent-service-bus.test.cjs).
     // That stream predates this stub, so an SSE event is simulated where the chat reads it.
+    // Every server event names its conversation; the default is the landing page's.
     const { Events } = await import('/js/events.js');
-    window.__fireSse = (name, data) => Events.emit(name, data);
+    window.__fireSse = (name, data) => Events.emit(name, { session: '', ...data });
 
     // EventSource stub (for anything opened after this point)
     window.__sseListeners = {};
@@ -632,6 +643,7 @@ test('history replay: user + agent entries visible after remount (kind-based, no
             ok: true,
             json: async () => ({
               ok: true,
+              session: '',
               working: false,
               pendingConfirm: null,
               entries: [
@@ -706,6 +718,201 @@ test('POST /agent/message body carries mode from getAgentPrefs and profileId fro
     expect(msgCall).toBeTruthy();
     expect(msgCall.body.profileId).toBe('openrouter');
     expect(msgCall.body.mode).toBe('ask');
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Part 5 — MPI-774 Phase 3c: one conversation per project
+// ─────────────────────────────────────────────────────────────────────────────
+
+const ALPHA = { id: 'pa', name: 'Alpha', folderPath: '/p/alpha', itemGroups: [] };
+const BETA = { id: 'pb', name: 'Beta', folderPath: '/p/beta', itemGroups: [] };
+
+/** Make `project` the open one, the way projectService announces a switch. */
+async function openProject(window, project) {
+  await window.evaluate(async (p) => {
+    const [{ Events }, { state }] = await Promise.all([import('/js/events.js'), import('/js/state.js')]);
+    state.currentProject = p;
+    Events.emit('project:changed', { project: p });
+  }, project);
+  await window.waitForTimeout(300);
+}
+
+/** A second chat in its own host, for tests that need the landing chat and the panel side by side. */
+async function mountSecondChat(window, standalone) {
+  await window.evaluate(async (standalone_) => {
+    const { MpiAgentChat } = await import('/js/components/Compounds/MpiAgentChat/MpiAgentChat.js');
+    const host = document.createElement('div');
+    host.id = 'e2e-agent-host-2';
+    host.style.cssText = 'position:fixed;top:0;left:0;width:400px;z-index:9999;background:var(--surface-bar)';
+    document.body.appendChild(host);
+    MpiAgentChat.mount(host, { standalone: standalone_ });
+    await new Promise(r => setTimeout(r, 200));
+  }, standalone);
+}
+
+test('a chat renders only its own conversation\'s events', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await installStubs(window);
+    await bootAndMountChat(window, true);
+
+    await window.evaluate(() => {
+      window.__fireSse('agent:message', { session: 'key:/p/alpha', turnId: 't1', id: 'm-other', text: 'not for the landing page' });
+      window.__fireSse('agent:working', { session: 'key:/p/alpha', turnId: 't1', working: true });
+      window.__fireSse('agent:message', { turnId: 't2', id: 'm-mine', text: 'for the landing page' });
+    });
+    await window.waitForTimeout(200);
+
+    const messages = window.locator('#e2e-agent-host .mpi-agent-chat__entry--message');
+    await expect(messages).toHaveCount(1);
+    await expect(messages).toContainText('for the landing page');
+    const mascot = window.locator('#e2e-agent-host .mpi-agent-chat__mascot');
+    expect(await mascot.getAttribute('src')).toContain('idle.png');
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+test('the panel swaps conversations with the project, and switching back restores it', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await installStubs(window);
+    await window.evaluate(() => {
+      window.__histories['/p/alpha'] = [
+        { id: 'ua', kind: 'user', text: 'alpha question', attachments: [] },
+        { id: 'aa', kind: 'agent', text: 'alpha answer' },
+      ];
+    });
+    await bootAndMountChat(window, false);
+    const entries = window.locator('#e2e-agent-host .mpi-agent-chat__entry');
+
+    await openProject(window, ALPHA);
+    await expect(window.locator('#e2e-agent-host .mpi-agent-chat__entry--message')).toContainText('alpha answer');
+    await window.evaluate(() => window.__fireSse('agent:message', { session: 'key:/p/alpha', turnId: 't1', id: 'live', text: 'live in alpha' }));
+    await expect(window.locator('#e2e-agent-host')).toContainText('live in alpha');
+
+    await openProject(window, BETA);
+    await expect(entries).toHaveCount(0);
+    await window.evaluate(() => window.__fireSse('agent:message', { session: 'key:/p/alpha', turnId: 't2', id: 'away', text: 'alpha while away' }));
+    await window.waitForTimeout(200);
+    await expect(entries).toHaveCount(0);
+
+    await openProject(window, ALPHA);
+    await expect(window.locator('#e2e-agent-host .mpi-agent-chat__entry--user')).toContainText('alpha question');
+    await expect(window.locator('#e2e-agent-host .mpi-agent-chat__entry--message')).toContainText('alpha answer');
+
+    // Sent from the panel: the open project, by folder and name only.
+    await window.evaluate(async () => {
+      const { Events } = await import('/js/events.js');
+      Events.emit('agent:send', { text: 'from the panel', attachments: [] });
+    });
+    await window.waitForTimeout(300);
+    const calls = await window.evaluate(() => window.__fetchCalls);
+    const posts = calls.filter(c => c.url === '/agent/message');
+    expect(posts.length).toBeGreaterThanOrEqual(1);
+    for (const p of posts) expect(p.body.project).toEqual({ folderPath: '/p/alpha', name: 'Alpha' });
+    const historyUrls = calls.map(c => c.url).filter(u => u.startsWith('/agent/history'));
+    expect(historyUrls).toContain('/agent/history?project=%2Fp%2Falpha');
+    expect(historyUrls).toContain('/agent/history?project=%2Fp%2Fbeta');
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+test('the landing chat keeps the landing page\'s conversation while a project is loaded', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await installStubs(window);
+    await window.evaluate(() => {
+      window.__histories[''] = [{ id: 'al', kind: 'agent', text: 'landing answer' }];
+      window.__histories['/p/alpha'] = [{ id: 'aa', kind: 'agent', text: 'alpha answer' }];
+    });
+    await bootAndMountChat(window, true);
+    await openProject(window, ALPHA);
+
+    const messages = window.locator('#e2e-agent-host .mpi-agent-chat__entry--message');
+    await expect(messages).toHaveCount(1);
+    await expect(messages).toContainText('landing answer');
+
+    const field = window.locator('#e2e-agent-host textarea');
+    await field.click();
+    await window.keyboard.type('make something');
+    await window.keyboard.press('Enter');
+    await window.waitForTimeout(300);
+    const post = (await window.evaluate(() => window.__fetchCalls)).find(c => c.url === '/agent/message');
+    expect(post.body.project).toBeNull();
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+test('when the landing conversation moves into a project, both chats reload', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await installStubs(window);
+    await window.evaluate(() => {
+      window.__histories[''] = [{ id: 'u1', kind: 'user', text: 'make a fox', attachments: [] }];
+    });
+    await bootAndMountChat(window, true);  // the landing chat
+    await openProject(window, ALPHA);
+    await mountSecondChat(window, false);  // the project panel, on Alpha
+    const landing = window.locator('#e2e-agent-host .mpi-agent-chat__entry');
+    const panel = window.locator('#e2e-agent-host-2 .mpi-agent-chat__entry');
+    await expect(landing).toHaveCount(1);
+    await expect(panel).toHaveCount(0);
+
+    // The server moved the conversation: it is Alpha's now, and the landing page starts fresh.
+    await window.evaluate(async () => {
+      window.__histories['/p/alpha'] = window.__histories[''];
+      window.__histories[''] = [];
+      const { Events } = await import('/js/events.js');
+      Events.emit('agent:session', { from: '', to: 'key:/p/alpha' });
+    });
+    await window.waitForTimeout(300);
+    await expect(landing).toHaveCount(0);
+    await expect(panel).toHaveCount(1);
+    await expect(panel).toContainText('make a fox');
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+test('a BUSY reply shows its message and stops working', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await installStubs(window);
+    await window.evaluate(() => {
+      window.__messageReply = { ok: false, error: { code: 'BUSY', message: 'The agent is still answering. Wait for it to finish.' } };
+    });
+    await bootAndMountChat(window, true);
+
+    const field = window.locator('#e2e-agent-host textarea');
+    await field.click();
+    await window.keyboard.type('are you there');
+    await window.keyboard.press('Enter');
+    await window.waitForTimeout(300);
+
+    await expect(window.locator('#e2e-agent-host .mpi-agent-chat__entry--error')).toContainText('still answering');
+    const mascot = window.locator('#e2e-agent-host .mpi-agent-chat__mascot');
+    expect(await mascot.getAttribute('src')).toContain('idle.png');
 
     expect(pageErrors).toEqual([]);
   } finally {

@@ -2,10 +2,14 @@
  * agentService.js — MPI-774: HTTP + SSE client for the in-app agent.
  *
  * Routes:
- *   POST /agent/message   { text, attachments, project, mode, model, profileId }
+ *   POST /agent/message   { text, attachments, project, mode, model, profileId } → { ok, turnId, session }
  *   GET  /agent/stream    SSE with named events (bridged to the app event bus)
- *   GET  /agent/history   → { ok, working, pendingConfirm, usage, entries }
+ *   GET  /agent/history?project= → { ok, session, working, pendingConfirm, usage, entries }
  *   POST /agent/confirm   { confirmId, yes }
+ *
+ * One conversation per project, and one for the landing page (MPI-774 Phase 3c): every
+ * event carries `session`, the key of the conversation it belongs to, and
+ * `agent:session { from, to }` says a conversation moved into a project.
  *
  * SSE: one shared EventSource opened lazily by agentInitStream().
  * Every named SSE event is re-emitted on Events (the app bus) so any subscriber
@@ -29,6 +33,7 @@ export const AGENT_EVENT_NAMES = [
     'agent:result',
     'agent:compacting',
     'agent:error',
+    'agent:session',
 ];
 
 // ── Shared SSE singleton ──────────────────────────────────────────────────────
@@ -62,8 +67,8 @@ export function agentInitStream() {
  * POST /agent/message
  * @param {string} text
  * @param {Array}  attachments  — array of { dataUrl, name } objects
- * @param {object|null} project — { folderPath, name } or null
- * @returns {Promise<{ok:boolean, turnId:string, attachments:Array}>}
+ * @param {object|null} project — { folderPath, name }, or null for the landing page's conversation
+ * @returns {Promise<{ok:boolean, turnId:string, session:string, attachments:Array}>}
  */
 export async function agentSendMessage(text, attachments, project) {
     const { model, mode } = Storage.getAgentPrefs();
@@ -92,12 +97,14 @@ export async function agentSendMessage(text, attachments, project) {
 }
 
 /**
- * GET /agent/history
- * @returns {Promise<{ok:boolean, working:boolean, pendingConfirm:object|null, usage:object, entries:Array}>}
+ * GET /agent/history — one conversation: a project's, or the landing page's when `folderPath` is empty.
+ * @param {string|null} [folderPath]
+ * @returns {Promise<{ok:boolean, session:string, working:boolean, pendingConfirm:object|null, usage:object, entries:Array}>}
  */
-export async function agentGetHistory() {
+export async function agentGetHistory(folderPath) {
     try {
-        const res = await window.fetch('/agent/history');
+        const url = folderPath ? `/agent/history?project=${encodeURIComponent(folderPath)}` : '/agent/history';
+        const res = await window.fetch(url);
         if (!res.ok) return { ok: false, entries: [], working: false, pendingConfirm: null };
         return res.json();
     } catch (err) {

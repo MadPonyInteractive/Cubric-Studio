@@ -9,6 +9,8 @@
  *   POST /connector/install          → start download of missing deps
  *   POST /connector/describe         → crop + relay imageDescribe
  *   GET/POST /connector/memory[/:file] → the agent's notes about one project (Phase 3b)
+ *   GET  /connector/projects         → the project list, most recent first (Phase 3c)
+ *   POST /connector/create-project   → a new project, never over an existing one (Phase 3c)
  *
  * These relay to the renderer (install state, plugin availability, generation
  * queue) via the existing SSE job mechanism, then add server-side data.
@@ -466,6 +468,63 @@ router.post('/connector/generate', async (req, res) => {
     logger.warn('system', `connector generate failed: ${result.error?.code} ${result.error?.message}`);
   }
   res.json(result);
+});
+
+/** A POST to one of this server's own app routes, over loopback (the project routes live elsewhere). */
+async function _appPost(p, body) {
+  const port = Number(process.env.CUBRIC_PORT) || 3000;
+  const res = await fetch(`http://127.0.0.1:${port}${p}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(30_000),
+  });
+  return res.json();
+}
+
+const PROJECT_LIST_CAP = 50;
+
+/**
+ * GET /connector/projects — the user's projects, most recently used first (MPI-774 Phase 3c):
+ * `{ ok, projects: [{ name, folderPath, updatedAt }], total }`, at most 50. Over
+ * `POST /list-projects` (the default root plus the registered folders). Errors: RUNTIME_ERROR.
+ */
+router.get('/connector/projects', async (_req, res) => {
+  try {
+    const r = await _appPost('/list-projects', { extraPaths: [] });
+    if (!r?.success) {
+      return res.json({ ok: false, error: { code: 'RUNTIME_ERROR', message: r?.error || 'Could not list the projects.' } });
+    }
+    const projects = (r.projects || []).map((p) => ({ name: p.name, folderPath: p.folderPath, updatedAt: p.updatedAt }));
+    res.json({ ok: true, projects: projects.slice(0, PROJECT_LIST_CAP), total: projects.length });
+  } catch (err) {
+    logger.error('connector', 'project list failed', err);
+    res.json({ ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
+  }
+});
+
+/**
+ * POST /connector/create-project { name } — a new, empty project in the default projects
+ * folder: `{ ok, project: { name, folderPath } }`. Over `POST /create-project`, which never
+ * replaces one (a taken folder gets `_<8 hex>`). It does not open the project; the next call
+ * is /connector/open-project. Errors: BAD_REQUEST (400), RUNTIME_ERROR.
+ */
+router.post('/connector/create-project', async (req, res) => {
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+  if (!name || name.length > 100) {
+    return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'body.name is required, at most 100 characters.' } });
+  }
+  try {
+    const r = await _appPost('/create-project', { name });
+    if (!r?.success || !r.project) {
+      return res.json({ ok: false, error: { code: 'RUNTIME_ERROR', message: r?.error || 'Could not create the project.' } });
+    }
+    logger.info('connector', `created project "${r.project.name}" at ${r.project.folderPath}`);
+    res.json({ ok: true, project: { name: r.project.name, folderPath: r.project.folderPath } });
+  } catch (err) {
+    logger.error('connector', 'project create failed', err);
+    res.json({ ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
+  }
 });
 
 /**

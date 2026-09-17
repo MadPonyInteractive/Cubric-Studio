@@ -12,9 +12,14 @@
  *   el.destroy()                       — teardown (unsub, no SSE to close — shared singleton).
  *
  * SSE events consumed: agent:working, agent:message, agent:tool, agent:confirm,
- *                       agent:result, agent:compacting, agent:error.
+ *                       agent:result, agent:compacting, agent:error, agent:session.
  * These are bridged from SSE to the app bus by agentService.agentInitStream().
  * This component subscribes via Events.on — it never opens its own EventSource.
+ *
+ * One conversation per project (MPI-774 Phase 3c): the standalone (landing) chat shows
+ * the landing page's conversation, the panel shows the open project's. Every event names
+ * its conversation (`session`), and a chat renders only its own. It reloads from history
+ * when the project changes and when `agent:session` says a conversation moved.
  *
  * Brief item 12: agent:tool.label is the only text shown — args.prompt is NEVER
  * rendered here.
@@ -82,6 +87,11 @@ export const MpiAgentChat = ComponentFactory.create({
         let _working = false;
         /** @type {Array<{dataUrl:string, name:string}>} */
         let _pendingAttachments = [];
+        /** The conversation shown: '' = the landing page, else the server's key for the project; null = none yet. */
+        let _session = props.standalone ? '' : null;
+        let _loading = null;   // the history load in flight; events wait for it
+        let _queued = [];      // [name, data] that arrived during that load
+        const _buttons = [];   // confirm-card buttons, destroyed when the transcript is cleared
 
         const mascotEl   = qs('#ac-mascot',        el);
         const labelEl    = qs('#ac-mascot-label',  el);
@@ -142,9 +152,11 @@ export const MpiAgentChat = ComponentFactory.create({
          * Agent message entry — returns the container so SSE can append to it
          * if the same turnId+id pair arrives multiple times (unlikely but safe).
          */
-        function _appendMessage(text) {
+        function _appendMessage(text, id) {
+            if (id && qs(`[data-entry-id="${CSS.escape(id)}"]`, transcript)) return null;
             const div = document.createElement('div');
             div.className = 'mpi-agent-chat__entry mpi-agent-chat__entry--message';
+            if (id) div.dataset.entryId = id;
             const md = document.createElement('div');
             md.className = 'mpi-md';
             renderMarkdownInto(md, text || '');
@@ -172,8 +184,10 @@ export const MpiAgentChat = ComponentFactory.create({
 
         /** Install confirm card with Yes / No buttons. */
         function _appendConfirm(confirmId, modelName, downloadGb) {
+            if (qs(`[data-confirm-id="${CSS.escape(confirmId)}"]`, transcript)) return;
             const div = document.createElement('div');
             div.className = 'mpi-agent-chat__entry mpi-agent-chat__entry--confirm';
+            div.dataset.confirmId = confirmId;
 
             const card = document.createElement('div');
             card.className = 'mpi-agent-chat__confirm-card';
@@ -203,6 +217,7 @@ export const MpiAgentChat = ComponentFactory.create({
                 variant: 'secondary',
                 size: 'sm',
             });
+            _buttons.push(yesBtn, noBtn);
 
             const _respond = async (yes) => {
                 yesBtn.el.setDisabled?.(true);
@@ -228,8 +243,9 @@ export const MpiAgentChat = ComponentFactory.create({
         }
 
         /** Result card — thumbnail + click opens gallery card. */
-        function _appendResult(output) {
+        function _appendResult(output, toolCallId) {
             if (!output) return;
+            if (toolCallId && qs(`[data-result-id="${CSS.escape(toolCallId)}"]`, transcript)) return;
             const { itemId, groupId, type, filePath } = output;
 
             // Find or create a result row for this turn
@@ -243,6 +259,7 @@ export const MpiAgentChat = ComponentFactory.create({
             const card = document.createElement('div');
             card.className = 'mpi-agent-chat__result-card';
             card.title = filePath || '';
+            if (toolCallId) card.dataset.resultId = toolCallId;
 
             const img = document.createElement('img');
             img.src = filePath ? `/project-file?path=${encodeURIComponent(filePath)}` : '';
@@ -278,38 +295,79 @@ export const MpiAgentChat = ComponentFactory.create({
         }
 
         // ── Bus event subscriptions ───────────────────────────────────────────
-        // Consume all agent SSE events from the app bus (bridged by agentService).
-        _unsubs.push(Events.on('agent:working', (data) => {
-            _setWorking(data.working);
+        // Every agent event names its conversation, and this chat renders only its own.
+        // Events that arrive while a history load is in flight wait for it.
+        function _apply(name, data) {
+            if (!data || data.session !== _session) return;
+            switch (name) {
+                case 'agent:working':
+                    _setWorking(data.working);
+                    break;
+                case 'agent:message':
+                    _appendMessage(data.text, data.id);
+                    break;
+                case 'agent:tool':
+                    // Brief item 12: only show label, never args.prompt
+                    _appendTool(data.id, data.label, data.status);
+                    break;
+                case 'agent:confirm':
+                    _appendConfirm(data.confirmId, data.modelName, data.downloadGb);
+                    break;
+                case 'agent:result':
+                    if (data.ok && data.output) _appendResult(data.output, data.toolCallId);
+                    else if (!data.ok && data.error) _appendError(data.error.code, data.error.message);
+                    break;
+                case 'agent:compacting':
+                    _appendCompacting(data.on);
+                    break;
+                case 'agent:error':
+                    _appendError(data.code, data.message);
+                    _setWorking(false);
+                    break;
+            }
+        }
+        ['agent:working', 'agent:message', 'agent:tool', 'agent:confirm', 'agent:result', 'agent:compacting', 'agent:error']
+            .forEach((name) => _unsubs.push(Events.on(name, (data) => {
+                if (_loading) _queued.push([name, data]);
+                else _apply(name, data);
+            })));
+        // A conversation moved (the landing chat opened a project): both sides reload.
+        _unsubs.push(Events.on('agent:session', ({ from, to } = {}) => {
+            if (_session !== null && (from === _session || to === _session)) _reload();
         }));
-        _unsubs.push(Events.on('agent:message', (data) => {
-            _appendMessage(data.text);
-        }));
-        _unsubs.push(Events.on('agent:tool', (data) => {
-            // Brief item 12: only show label, never args.prompt
-            _appendTool(data.id, data.label, data.status);
-        }));
-        _unsubs.push(Events.on('agent:confirm', (data) => {
-            _appendConfirm(data.confirmId, data.modelName, data.downloadGb);
-        }));
-        _unsubs.push(Events.on('agent:result', (data) => {
-            if (data.ok && data.output) _appendResult(data.output);
-            else if (!data.ok && data.error) _appendError(null, data.error);
-        }));
-        _unsubs.push(Events.on('agent:compacting', (data) => {
-            _appendCompacting(data.on);
-        }));
-        _unsubs.push(Events.on('agent:error', (data) => {
-            _appendError(data.code, data.message);
-            _setWorking(false);
-        }));
+        // Another project, another conversation.
+        _unsubs.push(Events.on('project:changed', () => _reload()));
+
+        /** The project this chat's conversation belongs to: none for the landing chat. */
+        function _projectRef() {
+            const p = props.standalone ? null : state.currentProject;
+            return p?.folderPath ? { folderPath: p.folderPath, name: p.name } : null;
+        }
+
+        function _clear() {
+            _buttons.splice(0).forEach((b) => b.destroy());
+            transcript.replaceChildren();
+        }
 
         // ── Load history ───────────────────────────────────────────────────────
-        // BUG FIX: server writes entry.kind, not entry.role.
         // Kinds: 'user' | 'agent' | 'tool' | 'result' | 'confirm' | 'handoff'
-        async function _loadHistory() {
-            const history = await agentGetHistory();
-            if (!history.ok) return;
+        async function _reload() {
+            const project = _projectRef();
+            if (!props.standalone && !project) {
+                _loading = null;
+                _session = null;
+                _clear();
+                _setWorking(false);
+                return;
+            }
+            const load = {};
+            _loading = load;
+            _queued = [];
+            const history = await agentGetHistory(project?.folderPath || null);
+            if (_loading !== load) return; // a newer load took over
+            _clear();
+            _setWorking(false);
+            _session = history.ok ? history.session : (props.standalone ? '' : null);
 
             if (history.entries) {
                 for (const entry of history.entries) {
@@ -322,12 +380,12 @@ export const MpiAgentChat = ComponentFactory.create({
                         }));
                         _appendUser(entry.text || '', displayAttachments);
                     } else if (entry.kind === 'agent') {
-                        _appendMessage(entry.text || '');
+                        _appendMessage(entry.text || '', entry.id);
                     } else if (entry.kind === 'tool') {
                         _appendTool(entry.id || entry.tool, entry.label, entry.status);
                     } else if (entry.kind === 'result') {
-                        if (entry.ok && entry.output) _appendResult(entry.output);
-                        else if (!entry.ok && entry.error) _appendError(null, entry.error);
+                        if (entry.ok && entry.output) _appendResult(entry.output, entry.toolCallId);
+                        else if (!entry.ok && entry.error) _appendError(entry.error.code, entry.error.message);
                     } else if (entry.kind === 'confirm') {
                         // Only render if this is the pending confirm (rendered below).
                         // Answered confirms are skipped — user already acted.
@@ -350,6 +408,9 @@ export const MpiAgentChat = ComponentFactory.create({
                 const pc = history.pendingConfirm;
                 _appendConfirm(pc.confirmId, pc.modelName, pc.downloadGb);
             }
+
+            _loading = null;
+            _queued.splice(0).forEach(([name, data]) => _apply(name, data));
         }
 
         // ── Public sendMessage ─────────────────────────────────────────────────
@@ -358,8 +419,15 @@ export const MpiAgentChat = ComponentFactory.create({
             _appendUser(text, attachments);
             _setWorking(true);
             try {
-                const project = state.currentProject || null;
-                await agentSendMessage(text, attachments || [], project);
+                // The landing chat is the landing page's conversation, whatever project is still loaded.
+                const res = await agentSendMessage(text, attachments || [], _projectRef());
+                if (!res?.ok) {
+                    // BUSY, NO_PROFILE and a bad body come back as a 200 with ok: false.
+                    _appendError(res?.error?.code, res?.error?.message || 'The agent could not take that message.');
+                    _setWorking(false);
+                } else if (_session === null) {
+                    _session = res.session;
+                }
             } catch (err) {
                 clientLogger.error('MpiAgentChat', 'send failed', err);
                 _appendError(err.code, err.message || 'Failed to send message');
@@ -459,11 +527,12 @@ export const MpiAgentChat = ComponentFactory.create({
         }
 
         // ── Load history on mount ─────────────────────────────────────────────
-        _loadHistory().catch(err => clientLogger.warn('MpiAgentChat', 'history load failed', err));
+        _reload().catch(err => clientLogger.warn('MpiAgentChat', 'history load failed', err));
 
         // ── Cleanup ────────────────────────────────────────────────────────────
         el.destroy = () => {
             _unsubs.forEach(fn => fn());
+            _buttons.splice(0).forEach((b) => b.destroy());
         };
     },
 });

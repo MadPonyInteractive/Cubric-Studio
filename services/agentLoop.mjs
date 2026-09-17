@@ -1,9 +1,10 @@
 /**
  * services/agentLoop.mjs — the in-app agent loop (MPI-774 slice A).
  *
- * One session lives in server memory (brief item 14). The renderer re-renders
- * from GET /agent/history on mount, so Landing → Gallery → History keeps the
- * conversation. Nothing is written to disk.
+ * One loop is one conversation, in server memory (brief item 14); `agentSessions.mjs`
+ * keeps one per project and one for the landing page. The renderer re-renders from
+ * GET /agent/history, so Landing → Gallery → History keeps the conversation. Nothing
+ * is written to disk except the project notes (`agentMemory.mjs`).
  *
  * Design decisions (all Fabio-accepted, 2026-09-15):
  * - D2: install gate is structural (Yes / No card); the loop never calls install
@@ -131,12 +132,35 @@ const TOOL_DEFS = [
     {
         type: 'function',
         function: {
-            name: 'open_project',
-            description: 'Open a project folder so that the next generate lands there.',
+            name: 'list_projects',
+            description: "List the user's projects, most recently used first, each with the folderPath open_project takes.",
+            parameters: { type: 'object', properties: {}, additionalProperties: false },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'create_project',
+            description: 'Create a new, empty project and return its folderPath. It never replaces a project: a taken name gets a suffix. It does not open the project: call open_project with the folderPath it returns.',
             parameters: {
                 type: 'object',
                 properties: {
-                    folderPath: { type: 'string', description: 'Absolute path to the project folder.' },
+                    name: { type: 'string', description: 'The project name, e.g. "New Project", or a short title for the user\'s goal.' },
+                },
+                required: ['name'],
+                additionalProperties: false,
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'open_project',
+            description: 'Open a project so the next generate lands there. folderPath must come from list_projects, from create_project, or from the user.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    folderPath: { type: 'string', description: 'The project folder.' },
                 },
                 required: ['folderPath'],
                 additionalProperties: false,
@@ -207,12 +231,19 @@ export class AgentLoop {
      * @param {function} [opts.resolveEndpoint] (profileId) => { profile, key } overrides fork bridge.
      * @param {function} [opts.lookupContextWindow] (profileId, model, profile, key) => number|null,
      *        overrides the table + endpoint lookup.
+     * @param {string} [opts.sessionKey]  Which conversation this is ('' = the landing page); every
+     *        event carries it. `agentSessions.mjs` changes it when the conversation moves (D5).
+     * @param {function} [opts.broadcast] (event, data) => void, the shared SSE stream.
+     * @param {function} [opts.onProjectOpened] (loop, project, turn) => 'moved'|'carry'|null (D5).
      */
-    constructor({ tools, resolveEndpoint, lookupContextWindow } = {}) {
+    constructor({ tools, resolveEndpoint, lookupContextWindow, sessionKey = '', broadcast, onProjectOpened } = {}) {
         this._tools = tools || realTools;
         this._resolveEndpointOverride = resolveEndpoint || null;
         this._lookupContextWindowOverride = lookupContextWindow || null;
         this._contextWindows = new Map(); // `${profileId}\n${model}` -> number
+        this.sessionKey = sessionKey;
+        this._broadcast = broadcast || null;
+        this._onProjectOpened = onProjectOpened || null;
 
         // Session state
         this._messages = [];       // LLM context (system + turns)
@@ -226,6 +257,7 @@ export class AgentLoop {
         // sent, and the outputs its own generations produced. See _resolveImage.
         this._images = new Map();  // ref -> { path, kind: 'attachment' | 'result' }
         this._groups = new Set();  // card ids this session's own generations created (rename_card)
+        this._projects = new Set(); // project keys list_projects / create_project gave (open_project)
 
         // What the model hears at the start of its next turn (finished generations). A
         // message pushed the moment a generation settles could land between a tool call and
@@ -247,7 +279,9 @@ export class AgentLoop {
     removeSubscriber(res) { this._subscribers.delete(res); }
 
     _emit(event, data) {
-        const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+        const body = { ...data, session: this.sessionKey };
+        if (this._broadcast) this._broadcast(event, body);
+        const payload = `event: ${event}\ndata: ${JSON.stringify(body)}\n\n`;
         for (const sub of this._subscribers) {
             try { sub.write(payload); } catch { /* stale connection */ }
         }
@@ -278,6 +312,8 @@ export class AgentLoop {
 
     async reset() {
         if (this._pendingConfirm) this._pendingConfirm.resolve('declined');
+        // Only this conversation's staged files: another project's chat still shows its own.
+        const staged = [...this._images.values()].filter((i) => i.kind === 'attachment').map((i) => i.path);
         this._pendingConfirm = null;
         this._working = false;
         this._messages = [];
@@ -285,11 +321,17 @@ export class AgentLoop {
         this._lastUsage = null;
         this._images.clear();
         this._groups.clear();
+        this._projects.clear();
         this._notes = [];
         this._notesProject = null;
         this._readIds.clear();
         this._guides.clear();
-        try { await this._tools.initAttachmentDir(); } catch { /* non-fatal */ }
+        try { await this._tools.discardAttachments(staged); } catch { /* non-fatal */ }
+    }
+
+    /** Nothing said yet: a landing conversation may move in (D5). */
+    isEmpty() {
+        return !this._working && this._history.length === 0;
     }
 
     // -------------------------------------------------------------------------
@@ -330,6 +372,17 @@ export class AgentLoop {
         const refs = [...this._images.entries()].slice(-8)
             .map(([ref, img]) => (img.kind === 'attachment' ? `${ref} (${img.name || 'attachment'})` : ref));
         return `[App state: ${where} Images you can look at: ${refs.length ? refs.join(', ') : 'none'}.]`;
+    }
+
+    /**
+     * open_project takes a folder the app gave this conversation (list_projects, create_project),
+     * the open project, or one the user typed; never a path the model made up.
+     */
+    _mayOpen(folderPath, currentProject) {
+        const key = projectKey(folderPath);
+        if (!key) return false;
+        if (this._projects.has(key) || key === projectKey(currentProject?.folderPath)) return true;
+        return this._history.some((e) => e.kind === 'user' && projectKey(e.text).includes(key));
     }
 
     /** Register a generation's output so a later `look` or reference can name it. */
@@ -431,7 +484,7 @@ export class AgentLoop {
         const modeRules =
             mode === 'auto'
                 ? `Mode: Auto. Proceed when the goal is clear without asking about settings. For images: use turbo: true where the op offers it. For video: use qualityTier 'medium' and turbo: true where the op offers them.`
-                : `Mode: Ask first. Ask the user about every model setting before generating.`;
+                : `Mode: Ask first. Before any generate, ask the user which settings they want (quality, turbo, ratio, style, where the op offers them) and end your reply there; generate only after they answer. A setting a guide recommends is a suggestion to offer, not permission to skip the question.`;
 
         return `You are Cubric, a helpful assistant built into Cubric Vision, a desktop AI image and video tool.
 
@@ -447,7 +500,9 @@ Guide rule: before your first prompt for a model, read its prompting guide: list
 
 Installation rule: Always call install_model to show the user a Yes / No confirmation card. Never install a model without a Yes from the user, regardless of mode.
 
-Project rule: Never invent a folder path. open_project only takes a path the user gave you. With no project open, say so and ask the user to open or create one — a generation has nowhere to land until they do.
+Project rule: a generation lands in the open project. Never invent a folder path: open_project only takes a folderPath from list_projects or create_project, or one the user typed. To open a project by name, find it with list_projects. With no project open, two different requests:
+- The user asks you to make something (an image, a video): create a project named exactly "New Project" with create_project, open the folderPath it returns, then generate there. Do not name it after the request and do not save a note: they asked for a picture, not a project.
+- The user starts a new project and tells you its goal: name the project after the goal, create it, open it, then save a project-brief note with write_memory (the goal, the look, any decisions so far).
 
 Deletion rule: You never delete anything: no cards, no media, no notes, no projects. No tool of yours can, and you never look for a way. When the user wants something deleted, tell them only they can do it, and where: a card from the gallery (right-click it, Delete, which also removes its whole history), a project from the projects list on the landing page (right-click it, Delete project).
 
@@ -606,7 +661,20 @@ ${knowledgeIndex}`.trim();
                 const r = await this._tools.look(lookArgs);
                 return JSON.stringify(r);
             }
+            case 'list_projects': {
+                const r = await this._tools.listProjects();
+                for (const p of r?.projects || []) this._projects.add(projectKey(p.folderPath));
+                return JSON.stringify(r);
+            }
+            case 'create_project': {
+                const r = await this._tools.createProject(args.name);
+                if (r?.ok && r.project?.folderPath) this._projects.add(projectKey(r.project.folderPath));
+                return JSON.stringify(r);
+            }
             case 'open_project': {
+                if (!this._mayOpen(args.folderPath, currentProject)) {
+                    return JSON.stringify({ ok: false, error: { code: 'UNKNOWN_PROJECT', message: 'Open only a folderPath from list_projects or create_project, or one the user typed. Find a project by name with list_projects.' } });
+                }
                 const r = await this._tools.openProject(args.folderPath);
                 return JSON.stringify(r);
             }
@@ -719,6 +787,8 @@ ${knowledgeIndex}`.trim();
         this._working = true;
         this._lastMode = mode;
         this._emit('agent:working', { turnId, working: true });
+        const turnProject = project;
+        const staged = (Array.isArray(attachments) ? attachments : []).filter((a) => a.id && a.filePath);
 
         try {
             // Resolve the shared connection, then the agent's model on it
@@ -783,6 +853,7 @@ ${knowledgeIndex}`.trim();
 
             // Agentic loop
             let steps = 0;
+            let carriedTo = null; // the project this request was handed to (D5)
             while (steps <= MAX_STEPS) {
                 const llmRes = await engine.chat({ model, messages: this._messages, tools: TOOL_DEFS });
                 this._lastUsage = llmRes.usage;
@@ -806,8 +877,14 @@ ${knowledgeIndex}`.trim();
                 // Add assistant message (with tool_calls) to context
                 this._messages.push({ role: 'assistant', content: llmRes.text || '', tool_calls: toolCalls });
 
-                // Execute each tool call
+                // Execute each tool call. Once the request is handed to another project's
+                // conversation (D5) the rest of the batch does not run, but a provider still
+                // wants a result for every call.
                 for (const tc of toolCalls) {
+                    if (carriedTo) {
+                        this._messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify({ ok: false, error: { code: 'HANDED_OVER', message: "Not run: this request continues in the project's own conversation." } }) });
+                        continue;
+                    }
                     const toolName = tc.function?.name || '';
                     let args = {};
                     try { args = JSON.parse(tc.function?.arguments || '{}'); } catch { /* use {} */ }
@@ -827,8 +904,18 @@ ${knowledgeIndex}`.trim();
                             const opened = JSON.parse(resultText);
                             if (opened?.ok && opened.output?.folderPath) {
                                 project = { folderPath: opened.output.folderPath, name: opened.output.name };
-                                const notes = await this._projectNotesLine(project);
-                                if (notes) resultText = JSON.stringify({ ...opened, notes });
+                                const handover = this._onProjectOpened
+                                    ? await this._onProjectOpened(this, project, { text, attachments: staged, mode, profileId, model: pickedModel, fromName: turnProject?.name })
+                                    : null;
+                                if (handover === 'carry') {
+                                    carriedTo = project;
+                                    // The files go with the request: a reset here must not delete them.
+                                    for (const a of staged) this._images.delete(a.id);
+                                    resultText = JSON.stringify({ ...opened, note: 'This project has its own conversation, and the request continues there.' });
+                                } else {
+                                    const notes = await this._projectNotesLine(project);
+                                    if (notes) resultText = JSON.stringify({ ...opened, notes });
+                                }
                             }
                         }
                     } catch (err) {
@@ -843,6 +930,14 @@ ${knowledgeIndex}`.trim();
 
                     // Append tool result to LLM context
                     this._messages.push({ role: 'tool', tool_call_id: tc.id, content: resultText });
+                }
+
+                if (carriedTo) {
+                    const msg = `Opened ${carriedTo.name || 'the project'}. I'll carry on in its own chat.`;
+                    this._messages.push({ role: 'assistant', content: msg });
+                    const entry = this._historyEntry('agent', { text: msg });
+                    this._emit('agent:message', { turnId, id: entry.id, text: msg });
+                    break;
                 }
 
                 steps++;
@@ -974,6 +1069,8 @@ function _toolLabel(toolName, args) {
         case 'install_model':  return `Preparing install: ${args.modelId || '?'}`;
         case 'generate':       return `Starting generation`;
         case 'look':           return 'Looking at image';
+        case 'list_projects':  return 'Checking your projects';
+        case 'create_project': return `Creating project: ${args.name || ''}`;
         case 'open_project':   return `Opening project`;
         case 'rename_card':    return `Naming a card: ${args.name || ''}`;
         case 'read_memory':    return args.file ? 'Reading a project note' : 'Reading project notes';
@@ -982,8 +1079,12 @@ function _toolLabel(toolName, args) {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Module-level singleton used by routes/agent.js
-// ---------------------------------------------------------------------------
-
-export const defaultLoop = new AgentLoop();
+/**
+ * A project folder as a comparable key: forward slashes, no trailing slash, and case-blind
+ * where the file system is. '' for no folder (the landing page's conversation).
+ */
+export function projectKey(folderPath) {
+    if (!folderPath) return '';
+    const p = String(folderPath).replace(/\\/g, '/').replace(/\/+$/, '');
+    return process.platform === 'win32' || process.platform === 'darwin' ? p.toLowerCase() : p;
+}

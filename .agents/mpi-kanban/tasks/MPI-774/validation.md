@@ -269,3 +269,65 @@ in this card.
 
 - Fabio screenshots: the panel sits BELOW the "<- PROJECTS" row; `look` answered on Remote in a project and on the landing page. His note: the transcript text touches the panel edge.
 - Fixed: `MpiAgentChat.css` `#agent-panel-mount .mpi-agent-chat__transcript { padding-inline: var(--s-3) }` (the header gutter). `npx playwright test --config=playwright.desktop.config.js tests/desktop/agent-chat.spec.js --output=<scratchpad>` -> 19 passed. Awaiting his reload to close item 3.
+- **Closed** 2026-09-16 ~14:30Z (session 6fd51047): Fabio answered "1" (looks good) after the padding commit `3dd0301a`. Phase 3b is complete: items 1-5 each have evidence above.
+- Phase 4 location, Fabio: option A (an isolated instance attached to the engine his app runs, GPU lease held, his app untouched; the install test on a throwaway store on K:).
+
+## Phase 3c (2026-09-17, session 6fd51047) — one conversation per project, landing project jobs
+
+Fabio: "go" to "go, all recommended", so D4-D6 as recommended. No GPU, no app instance (a peer's
+uncommitted server edits were in the tree when this started; see plan Current State).
+
+- **Server, unit** `node --test tests/agent-sessions.test.cjs` -> **15/15**: separate histories for two
+  projects and the landing page, one key however a folder is written, D4 busy across conversations, D5
+  move (landing starts fresh, `agent:session`, events before/after the move carry the right key), D5
+  carry (the project keeps its own, the request and its attachment go over, the landing gives the file
+  up), a project conversation carries and never moves, reset clears one conversation and discards only
+  its files, an install card answered in its own conversation, `open_project` refusing an invented
+  folder before the app is asked and taking listed / created / typed ones, the landing Project rule in
+  the prompt, `discardAttachments` never touching a file outside the attachment dir, and the two real
+  routes over a throwaway `APP_DOCUMENTS` (a second "Fox Shoot" gets its own folder and the first
+  `project.json` is byte-identical; the list returns both folders and only name/folder/date; a
+  nameless or 101-char create is a 400 and makes nothing; no DELETE route).
+- **Bite, server** (`bite_sessions.py`, 13 mutations in the real source, bytes restored and
+  hash-checked, `git diff --stat` unchanged): busy ignoring running loops, never moving, carry keeping
+  the attachment, the carried request never running, events without `session`, reset wiping every
+  conversation's files, `open_project` taking any folder, a typed folder refused, keys keeping
+  backslashes, discard leaving the attachment dir, the project list leaking whole projects, a 101-char
+  name accepted, no D5 hook: **13/13 RED**; restored source green.
+- **No-delete allowlist** grew by exactly `GET /connector/projects` and `POST /connector/create-project`
+  (it went RED on the new route before that edit, as designed); `discardAttachments` is a local helper.
+- **Renderer, desktop** `npx playwright test --config=playwright.desktop.config.js
+  tests/desktop/agent-chat.spec.js --output=<scratchpad>/pw-3c` -> "port 56054 — a dev app on 3000 is
+  left alone", **24 passed (1.4m)**: the 19 earlier cases (stubs now answer in the real shape, every
+  event with `session`) plus a chat rendering only its own conversation's events, the panel swapping
+  conversations with the project and getting Alpha's back, the landing chat keeping the landing
+  conversation (sends `project: null`) while a project is loaded, both chats reloading on
+  `agent:session`, and a BUSY reply showing its message and ending "working".
+- **Bite, renderer** (`bite_renderer.py`, the five new cases, bytes restored): no session filter, no
+  reload on `project:changed`, the landing chat sending the loaded project, no reload on a move, BUSY
+  ignored, history ignoring the project: **6/6 RED**; restored 5 passed.
+- **Found and fixed in the chat:** a 200 reply with `ok: false` (BUSY, NO_PROFILE) left it "working"
+  for good, and a failed generation rendered `[object Object]` (both the live event and the history
+  replay passed the error object as the message). Confirm-card buttons are destroyed when the
+  transcript is cleared. The body carries `project: { folderPath, name }` only, no longer the whole
+  project with its cards.
+- **Suite:** `npm test` -> **1265 tests, 1264 pass, 0 fail**, 1 skipped. `npm run lint` and
+  `npm run lint:components` exit 0; `npx eslint` on every touched server, test and script file exit 0.
+  `node tests/agent-corpus.test.cjs` -> 10/10 after the H3 guide edit.
+- **Harness, first pass** (`npm run agent:test`, prompt as first written): 14 of 15 cases 3/3,
+  **`ask-first` 2/3**: in Ask first the model generated at once and called medium "the Auto default".
+  Source: the H3 guide said "`medium` is the Auto default" and "Turbo on" as bare facts, and the mode
+  rule never said to stop and wait. Both reworded (the guide names the mode; the rule says end the reply
+  and generate only after the answer, a guide's recommendation is not permission). A separate 6x run
+  before the fix was 6/6, so the rate was about 1 in 9. $0.0960 for 45 conversations. Also found on a
+  1x smoke: the model named a make-something project after the request and wrote a brief note; the
+  Project rule now says exactly "New Project" and no note -> `create-then-generate` 3/3.
+- **Harness bite, final prompt** (`npm run agent:test -- --bite`, loaded after both rewordings):
+  **15/15 bite** (each flip fails its check: `open-by-name` without Harbour Nights in the list,
+  `create-then-generate` with a project already open, `new-project-brief` asked for a picture instead,
+  `memory-write` against a full note store, and the eleven earlier flips), $0.0375.
+- **Harness 3x, final prompt** (`npm run agent:test`, same code as the bite): **14 of 15 cases 3/3**,
+  `ask-first` 3/3 after the fix. **`new-project-brief` 2/3 - NOT closed:** run 1 created "Lighthouse
+  Keeper and the Seal", opened it and wrote the brief note correctly, then generated a first shot with
+  H3 nobody asked for (the check's "generated without being asked"). $0.0980 for 45 conversations
+  ($0.00218 each). Log: session scratchpad `harness-final-3x.log` (expires).

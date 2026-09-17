@@ -6,21 +6,22 @@ itself. Spec: `.agents/mpi-kanban/tasks/MPI-774/brief.md`. Contract first (2026-
 
 ## Shape
 
-- **Loop** `services/agentLoop.mjs`, mounted by `routes/agent.js`. One session, in server memory.
+- **Loop** `services/agentLoop.mjs`: one loop is one conversation, in server memory; `routes/agent.js`
+  mounts `services/agentSessions.mjs`, one per project plus the landing page's (§ Conversations).
 - **Tools are connector routes.** `services/agentTools.mjs` is a fetch table over loopback, so a
   CLI agent (MPI-593) gets the same surface. No second dispatch path (`routes/connector.js` header).
 - **Chat** `js/components/Compounds/MpiAgentChat/`, twice: the landing slot (standalone, beside the
-  headline) and a shell panel `#agent-panel-mount` (`js/shell/agentPanel.js`) LEFT of the workspace,
-  420 px, below the topbar, open while `state.agentMode` is true (the PromptBox toggle). It pushes
-  `#tool-container` right; the PromptBox sends with `agent:send`, image chips as attachments. Each
-  chat re-renders from `/agent/history` on mount; a result card emits `gallery:open-card`, and the
-  shell opens that card's history when the open project holds it.
+  headline: the landing page's conversation) and the shell panel `#agent-panel-mount`
+  (`js/shell/agentPanel.js`: the open project's), LEFT of the workspace, 420 px, below the topbar,
+  open while `state.agentMode` is true (the PromptBox toggle), pushing `#tool-container` right. The
+  PromptBox sends with `agent:send`, image chips as attachments. A chat reloads from
+  `/agent/history?project=` on mount, `project:changed` and `agent:session`, and renders only events
+  whose `session` is its own. A result card emits `gallery:open-card`; the shell opens that card.
 - **One stream.** `agentService.agentInitStream()` (shell boot) opens the only `/agent/stream` and
   re-emits every `agent:*` event on `Events`; chats, and the later mascot animations, subscribe there.
-- **Keys** stay in `main/secretsStore.js`; the server reads them over the fork bridge
-  (`routes/forkBridge.js` `ask`). The renderer can set, test and clear, never read.
-- **Envelope:** `{ ok: true, ... }` or `{ ok: false, error: { code, message } }`, the connector's.
-  A malformed body is HTTP 400 `BAD_REQUEST`; everything else is 200.
+- **Keys** stay in `main/secretsStore.js`, read by the server over the fork bridge (`routes/forkBridge.js`
+  `ask`); the renderer sets, tests and clears, never reads. **Envelope:** `{ ok: true, ... }` or
+  `{ ok: false, error: { code, message } }`; a malformed body is HTTP 400 `BAD_REQUEST`, all else 200.
 
 ## Brief items -> surface
 
@@ -39,7 +40,7 @@ itself. Spec: `.agents/mpi-kanban/tasks/MPI-774/brief.md`. Contract first (2026-
 | 11 | Fix advice | system prompt + `read_knowledge`; no tool (no History endpoint) |
 | 12 | Prompt not shown | `agent:tool.label` never carries it; the UI never renders `args.prompt` |
 | 13 | Honest limits, in character | limits list in the system prompt; `agent:message` |
-| 14 | Memory while the app is open; per-project notes after it | server memory, `GET /agent/history`, `POST /agent/reset`; `<project>/Agent/` via `read_memory` / `write_memory` |
+| 14 | Memory while the app is open; per-project notes after it | a conversation per project, `GET /agent/history?project=`; `<project>/Agent/` via `read_memory` / `write_memory` |
 | 15 | Auto-compact 50% / 30% at >= 1M | `usage.prompt_tokens` trigger; `agent:compacting`; handoff entry in history |
 | - | Profiles, probe | Agent row in `MpiLlmSettings`; `POST /agent/probe`; fork-bridge message below |
 
@@ -54,88 +55,77 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
 | `install_model` | `{ modelId: string }` required | **never directly**: emits `agent:confirm`; `POST /agent/confirm` runs it |
 | `generate` | `{ modelId?, operation?, flowId?, prompt?, negative?, ratio?, qualityTier?, turbo?, styleSelect?, stylization?, seed?, cardName?, fields?: object, params?: object, media?: [{ role, image }] }` | `POST /connector/generate`, fired and not awaited; a model op waits for its guide (below) |
 | `look` | `{ image: string, question?: string, crop?: {x,y,width,height}, box?: boolean }`, `image` required | `POST /connector/describe` |
-| `open_project` | `{ folderPath: string }` required | `POST /connector/open-project` |
-| `rename_card` | `{ groupId, name }` required | `POST /connector/rename-card`, only a card this session generated (`UNKNOWN_CARD`) |
+| `list_projects` / `create_project` | `{}` / `{ name }` | `GET /connector/projects` / `POST /connector/create-project` |
+| `open_project` | `{ folderPath: string }` required | `POST /connector/open-project`, only a folder `list_projects` or `create_project` gave, the open project, or one the user typed (`UNKNOWN_PROJECT`) |
+| `rename_card` | `{ groupId, name }` required | `POST /connector/rename-card`, only a card this conversation generated (`UNKNOWN_CARD`) |
 | `read_memory` / `write_memory` | `{ file? }` / `{ file, title, text, hook? }` | `/connector/memory` for the OPEN project only (`NO_PROJECT`) |
 
-- **Never deletes** (Fabio, 2026-09-16): no tool deletes, and `agentTools.mjs` reaches an
-  allowlist of routes (`tests/agent-no-delete.test.cjs`, which bites on a new tool or route).
-  Outside agents (CLI, the skills) keep the delete routes: that is their user's call.
-- `image` / `media[].image` is a ref from the `_images` allowlist (this session's attachment ids,
-  its own results' `filePath`s), **nothing else**: any other string is `IMAGE_NOT_FOUND`, never
-  read off disk (the engine may be a remote Pod). An attachment is copied into the project with
-  `POST /project-media/:id/place-preview-asset?folderPath=` **only when a generate uses it**; a
-  result goes as `/project-file?path=`. `crop` and `box` are in ORIGINAL pixels.
-- `generate` refuses by name before any spend when `project` is null: `NO_PROJECT`.
+- **Never deletes** (Fabio, 2026-09-16): no tool deletes, and `agentTools.mjs` reaches an allowlist of
+  routes (`tests/agent-no-delete.test.cjs` bites on a new tool or route). Outside agents (CLI, the
+  skills) keep the delete routes: that is their user's call.
+- `image` / `media[].image` is a ref from the `_images` allowlist (this conversation's attachment ids,
+  its own results' `filePath`s), **nothing else**: any other string is `IMAGE_NOT_FOUND`, never read
+  off disk (the engine may be a remote Pod). An attachment is copied into the project with `POST
+  /project-media/:id/place-preview-asset?folderPath=` **only when a generate uses it**; a result goes
+  as `/project-file?path=`. `crop` and `box` are in ORIGINAL pixels. `generate` with no project: `NO_PROJECT`.
 
 ## Connector routes (W1, `routes/connector.js`)
 
-**`GET /connector/models`** -> `{ ok, engine: 'local'|'remote', hardware: { gpuName, vramGb, ramGb },
-models: [{ id, name, type, installed, ops: [{ op, installed, params: { ratios, qualityTiers, turbo,
-styles }, media: [{ role, type, required, tag? }] }], missingDownloadGb, fit: { floorVramGb,
-ramGbAtYourVram, runs }, guides: [id] }], flows: [{ id, title, operation, installed, fields: [id],
-boxParams: [{ param, role, ratio, overflow }] }] }`. `params` = `generationControls.namedParamsFor`
-(`tests/agent-model-params.test.cjs`); `media` = the op's `mediaInputs` through
-`filterMediaInputsForModel` (`mediaRolesFor`); `guides` = `agentCorpus.guideIdsByModel()`. Install
-state and ops come from the renderer relay; hardware from `GET /system/gpu-info`, or
-`GET /remote/pod/specs` when remote is active. Errors: `APP_UNAVAILABLE`.
-
-**`GET /connector/knowledge[/:id]`** -> `{ ok, entries: [{ id, kind, title, tags }] }` / `{ ok, id,
-title, text }` from `agentCorpus.listCorpus()`: recipe briefs (`model`), our prompting guide per
-recipe (`guide`, `docs/agent/models/<recipeId>.md`), the Cubric Vision skills (`skill`, read from
-`.claude/skills/cubric-vision*`; `copyAgentSkills` stages them in `docs/agent/skills/` for the
-portable build, which excludes `.claude`), and `docs/agent/*.md` (`app`). Errors: `UNKNOWN_ENTRY`.
-
-**`GET /connector/memory[/:file]?folderPath=`** -> `{ ok, notes: [{ title, file, hook }] }` /
-`{ ok, file, text }`; **`POST /connector/memory { folderPath, file, title, text, hook? }`** ->
-`{ ok, file, created }` (`services/agentMemory.mjs`). `<project>/Agent/README.md` indexes one
-`<slug>.md` per note; a file is a lowercase slug, so it cannot leave that folder. No delete route.
-Errors: `BAD_REQUEST` (400), `NOT_A_PROJECT`, `UNKNOWN_NOTE`, `NOTE_TOO_LONG` (4 KB), `MEMORY_FULL` (100).
-
-**`POST /connector/install { modelId }`** -> `{ ok, modelId, downloadGb, started: true }`. Starts
-the missing deps' download and returns; progress is `GET /comfy/downloads/status`. No gate here: a
-CLI agent's user is its own gate. Errors: `BAD_REQUEST`, `UNKNOWN_MODEL`, `ALREADY_INSTALLED`,
-`OFFLINE`, `APP_UNAVAILABLE`.
-
-**`POST /connector/describe { imagePath, question?, crop? }`** -> `{ ok, output: { text, box? } }`.
-`imagePath` absolute; a `crop` is cut with `sharp` to the agent dir first. No `question` = today's
-caption instruction. Relayed as `agent.describe` to `llmService.describeImage`, which runs the user's
-Image descriptions pick ([llm.md](llm.md)); `box` waits for Phase 4's measured answers. Errors:
-`BAD_REQUEST`, `IMAGE_NOT_FOUND`, `CROP_OUT_OF_BOUNDS`, `DESCRIBER_MISSING` (ComfyUI, no Image Describer
-plugin), the Remote codes (`NO_KEY`, `NOT_VISION`, ...), `APP_UNAVAILABLE`, `RUNTIME_ERROR`, `TIMEOUT`.
-
-**`POST /connector/generate`, Flow `params`** `{ box1: { x, y, width, height } }`: checked against
-the flow's `kind: 'box'` steps (known `param`, integers, square when `ratio: 1`), merged into
-`injectionParams`. No bounds check: media carries no size, and every shipped box step declares
-`overflow: 'allow'`. Errors: `UNKNOWN_PARAM`, `INVALID_BOX`.
-
-**`resources/cubric/connector-manifest.json`** lists what is served; `assertConnectorManifest`
-(`scripts/build-portable.mjs`) asserts `generation.submit`, not the unserved `system.memory.release`.
+- **`GET /connector/models`** -> `{ ok, engine: 'local'|'remote', hardware: { gpuName, vramGb, ramGb },
+  models: [{ id, name, type, installed, ops: [{ op, installed, params: { ratios, qualityTiers, turbo,
+  styles }, media: [{ role, type, required, tag? }] }], missingDownloadGb, fit: { floorVramGb,
+  ramGbAtYourVram, runs }, guides: [id] }], flows: [{ id, title, operation, installed, fields: [id],
+  boxParams: [{ param, role, ratio, overflow }] }] }`. `params` = `generationControls.namedParamsFor`;
+  `media` = the op's `mediaInputs` through `filterMediaInputsForModel` (`mediaRolesFor`); `guides` =
+  `agentCorpus.guideIdsByModel()`. Install state and ops from the renderer relay; hardware from `GET
+  /system/gpu-info`, or `GET /remote/pod/specs` when remote is active. Errors: `APP_UNAVAILABLE`.
+- **`GET /connector/knowledge[/:id]`** -> `{ ok, entries: [{ id, kind, title, tags }] }` / `{ ok, id, title,
+  text }` from `agentCorpus.listCorpus()`: recipe briefs (`model`), our guide per recipe (`guide`,
+  `docs/agent/models/<recipeId>.md`), the Cubric Vision skills (`skill`, `.claude/skills/cubric-vision*`,
+  staged by `copyAgentSkills` in `docs/agent/skills/` for the portable build), `docs/agent/*.md` (`app`).
+  Errors: `UNKNOWN_ENTRY`.
+- **`GET /connector/memory[/:file]?folderPath=`** -> `{ ok, notes: [{ title, file, hook }] }` / `{ ok,
+  file, text }`; **`POST /connector/memory { folderPath, file, title, text, hook? }`** -> `{ ok, file,
+  created }` (`services/agentMemory.mjs`). `<project>/Agent/README.md` indexes one `<slug>.md` per note.
+  No delete route. Errors: `BAD_REQUEST` (400), `NOT_A_PROJECT`, `UNKNOWN_NOTE`, `NOTE_TOO_LONG` (4 KB), `MEMORY_FULL` (100).
+- **`GET /connector/projects`** -> `{ ok, projects: [{ name, folderPath, updatedAt }], total }`, most
+  recent first, at most 50 (over `POST /list-projects`). **`POST /connector/create-project { name }`**
+  -> `{ ok, project: { name, folderPath } }` in the default root, over `POST /create-project`, which never
+  replaces one (a taken folder gets `_<8 hex>`); it does not open it. Errors: `BAD_REQUEST` (400), `RUNTIME_ERROR`.
+- **`POST /connector/install { modelId }`** -> `{ ok, modelId, downloadGb, started: true }`; progress is
+  `GET /comfy/downloads/status`. No gate here: a CLI agent's user is its own gate. Errors: `BAD_REQUEST`,
+  `UNKNOWN_MODEL`, `ALREADY_INSTALLED`, `OFFLINE`, `APP_UNAVAILABLE`.
+- **`POST /connector/describe { imagePath, question?, crop? }`** -> `{ ok, output: { text, box? } }`.
+  `imagePath` absolute; a `crop` is cut with `sharp` to the agent dir first; no `question` = the caption
+  instruction. Relayed as `agent.describe` to `llmService.describeImage`, the user's Image descriptions
+  pick ([llm.md](llm.md)); `box` waits for Phase 4. Errors: `BAD_REQUEST`, `IMAGE_NOT_FOUND`,
+  `CROP_OUT_OF_BOUNDS`, `DESCRIBER_MISSING` (ComfyUI), the Remote codes (`NO_KEY`, `NOT_VISION`, ...),
+  `APP_UNAVAILABLE`, `RUNTIME_ERROR`, `TIMEOUT`.
+- **`POST /connector/generate`, Flow `params`** `{ box1: { x, y, width, height } }`: checked against the
+  flow's `kind: 'box'` steps (known `param`, integers, square when `ratio: 1`), merged into
+  `injectionParams`; no bounds check (every shipped box step declares `overflow: 'allow'`). Errors:
+  `UNKNOWN_PARAM`, `INVALID_BOX`. `resources/cubric/connector-manifest.json` lists what is served.
 
 ## Agent routes (W2, `routes/agent.js`)
 
-**`POST /agent/message { text, attachments?: [{ name, dataUrl }], project: { folderPath, name } | null,
-mode: 'auto'|'ask', profileId, model? }`** -> `{ ok, turnId, attachments: [{ id, name }] }` at once; the
-reply comes on the stream. `project` = the renderer's open project; `profileId` = the shared connection;
-`model` = the agent's pick (`''` = the preset's). Errors: `BAD_REQUEST`, `NO_PROFILE`, `BUSY`; on the stream `NO_KEY`, `NO_MODEL`.
-
-**`GET /agent/attachment/:id`** -> the staged file of THIS session's attachment id; 404 for anything
-else. **`GET /agent/stream`**: SSE, `event: <name>` + `data: <json>`, vocabulary below.
-
-**`GET /agent/history`** -> `{ ok, working, pendingConfirm: {...} | null, usage: { promptTokens,
-contextWindow }, entries: [{ id, at, kind: 'user'|'agent'|'tool'|'result'|'confirm'|'handoff', text?,
-attachments?, tool?, args?, status?, output?, error? }] }`. The UI shows tool entries as status lines.
-
-**`POST /agent/confirm { confirmId, yes }`** -> `{ ok }`. Yes installs, then re-reads the models and
-reports what landed; No records "declined". Errors: `UNKNOWN_CONFIRM` (stale or answered).
-
-**`POST /agent/reset`** -> `{ ok }`. Drops the session and the attachment dir.
-
-**`POST /agent/probe { profileId, model? }`** -> `{ ok, tools: boolean, model, latencyMs, message }`.
-Can this model call a tool? One tiny call with one tool, **never retried without it**. Errors:
-`NO_PROFILE`, `NO_KEY`, `NO_MODEL`, `ENDPOINT_ERROR` (with `status`).
+- **`POST /agent/message { text, attachments?: [{ name, dataUrl }], project: { folderPath, name } | null,
+  mode: 'auto'|'ask', profileId, model? }`** -> `{ ok, turnId, session, attachments: [{ id, name }] }` at
+  once; the reply comes on the stream. `project` picks the conversation (null = the landing page); `model`
+  = the agent's pick (`''` = the preset's). Errors: `BAD_REQUEST`, `NO_PROFILE`, `BUSY` (a turn is running
+  in ANY conversation); on the stream `NO_KEY`, `NO_MODEL`.
+- **`GET /agent/history?project=`** -> `{ ok, session, working, pendingConfirm, usage: { promptTokens,
+  contextWindow }, entries: [{ id, at, kind: 'user'|'agent'|'tool'|'result'|'confirm'|'handoff', text?,
+  attachments?, tool?, args?, status?, output?, error? }] }`; empty for a project with no conversation.
+  **`POST /agent/reset?project=`** -> `{ ok }`, that conversation only. **`GET /agent/attachment/:id`** ->
+  the staged file of any conversation's attachment id, else 404. **`GET /agent/stream`**: SSE, below.
+- **`POST /agent/confirm { confirmId, yes }`** -> `{ ok }` in the conversation showing the card: Yes
+  installs and re-reads the models, No records "declined". Errors: `UNKNOWN_CONFIRM` (stale or answered).
+- **`POST /agent/probe { profileId, model? }`** -> `{ ok, tools, model, latencyMs, message }`: one tiny call
+  with one tool, **never retried without it**. Errors: `NO_PROFILE`, `NO_KEY`, `NO_MODEL`, `ENDPOINT_ERROR` (+ `status`).
 
 ## SSE events (`/agent/stream`)
+
+Every event but `agent:session` also carries `session`, the key of its conversation.
 
 | Event | Data | UI |
 |---|---|---|
@@ -146,31 +136,42 @@ Can this model call a tool? One tiny call with one tool, **never retried without
 | `agent:result` | `{ toolCallId, ok, output?: { itemId, groupId, type, filePath }, error? }` | result card, opens the card |
 | `agent:compacting` | `{ turnId, on: boolean }` | "compacting" line + mascot |
 | `agent:error` | `{ turnId, code, message }` | error line. Codes: `ENDPOINT_ERROR`, `NO_KEY`, `TOOLS_UNSUPPORTED`, `STEP_LIMIT` |
+| `agent:session` | `{ from, to }` | a conversation moved into a project: chats showing either side reload |
+
+## Conversations (Phase 3c, Fabio's D4-D6, 2026-09-16)
+
+- **Key:** the project folder (`projectKey`: forward slashes, case-blind on Windows and macOS); `''` =
+  the landing page. The renderer never builds one: it echoes the `session` the server sent.
+- **D4:** one turn at a time, app-wide; a turn started in project A finishes in A's conversation.
+- **D5:** when `open_project` succeeds on another project, the LANDING conversation moves into it if it
+  has none (`agent:session`; the landing page starts fresh). Otherwise the turn ends ("I'll carry on in
+  its own chat") and the request, attachments included, runs next in that project's conversation as
+  "From <the landing page | project>: ...". Tests: `tests/agent-sessions.test.cjs`, `agent-chat.spec.js`.
+- **D6:** memory only; the `<project>/Agent/` notes survive a restart. Nothing is evicted.
+- **Landing jobs** (Project rule): "make X" with no project -> `create_project("New Project")`, open, generate;
+  "a new project, the goal is X" -> named after the goal, created, opened, a project-brief `write_memory`.
 
 ## Loop rules (W2)
 
-- **System prompt:** role; mode (Auto: turbo on images, `medium` + turbo on video, where the op's
-  `params` offer them; Ask first: ask about every setting); model, settings, looking, guide,
-  install, project, deletion, memory and naming rules; the honest limits; the knowledge index.
-- **Opening lines** of every user message: the app state (the open project by NAME, a shown path got
-  looked at; "Images you can look at:" = the `_images` allowlist), then the project's notes index
-  once per project (first turn, a switch, after a compaction), then what finished since the last
-  turn. A successful `open_project` updates the project for the rest of the turn (its result
-  carries the new project's notes); it only takes a path the USER gave.
-- **Guide gate:** a model op's `generate` answers `GUIDE_NOT_READ` until this context has read one of
-  that model's `guides` with `read_knowledge` (a Flow is not gated). The H3 samples showed a rule
-  alone did not make the model read one. A compaction clears what was read.
-- **Harness:** `npm run agent:test` (13 cases x 3, real model, fake tools; `--bite` proves each
-  assertion, `--samples <md>` writes prompts to read).
-- **Bounded steps:** at most 8 tool calls per user turn, then `agent:error STEP_LIMIT`.
-- **Generate** is fired, not awaited. On settle: `agent:result`, a queued "[Generation finished:
-  card <groupId> ...]" (or failed) line for the next turn, and an image gets a `look`, queued too: a
-  message pushed mid-turn could split a tool call from its result. No regeneration on its own.
-- **Compaction:** when `usage.prompt_tokens >= contextWindow * (window >= 1M ? 0.30 : 0.50)`, the model
-  writes a handoff (goal, decisions, cards, model and settings, open question); the session restarts
-  from system prompt + handoff + the last 4 turns. No tokenizer.
-- **Attachments** are staged in `<APP_USER_DATA>/agent/attachments/` (`os.tmpdir()/cubric-agent`
-  when standalone), wiped at server start and on reset. Crops go to `.../agent/crops/`.
+- **System prompt:** role; mode (Auto: turbo on images, `medium` + turbo on video where `params` offer
+  them; Ask first: ask about every setting); model, settings, looking, guide, install, project,
+  deletion, memory and naming rules; the honest limits; the knowledge index.
+- **Opening lines** of every user message: the app state (the open project by NAME; "Images you can look
+  at:" = the `_images` allowlist), the project's notes index once per project (first turn, a switch, a
+  compaction), then what finished since the last turn. A successful `open_project` updates the project
+  for the rest of the turn, and its result carries the new project's notes.
+- **Guide gate:** a model op's `generate` answers `GUIDE_NOT_READ` until this context read one of that
+  model's `guides` (a Flow is not gated; a rule alone did not make the model read one); a compaction clears
+  it. A guide names the mode of any default ("in Auto mode use medium"): a bare one skipped Ask first.
+- **Harness:** `npm run agent:test` (15 cases x 3, real model, fake tools; `--bite` proves each assertion,
+  `--samples <md>` writes prompts to read). **Bounded steps:** 8 tool calls per user turn, then `STEP_LIMIT`.
+- **Generate** is fired, not awaited. On settle: `agent:result`, a queued "[Generation finished: card
+  <groupId> ...]" (or failed) line for the next turn, and a queued `look` on an image (a message pushed
+  mid-turn could split a tool call from its result). No regeneration on its own.
+- **Compaction:** at the provider's `prompt_tokens >= contextWindow * (window >= 1M ? 0.30 : 0.50)` (no tokenizer)
+  the model writes a handoff (goal, decisions, cards, model, settings, open question); restart = system prompt + handoff + last 4 turns.
+- **Attachments:** `<APP_USER_DATA>/agent/attachments/` (`os.tmpdir()/cubric-agent` standalone), wiped
+  at server start; a reset discards only its conversation's files. Crops: `.../agent/crops/`.
 
 ## The shared LLM connection (every Remote job; the Enhancement/Descriptions side is llm.md)
 
@@ -184,13 +185,12 @@ Settings: the connection block tops Remote > Language Models; the Agent row is "
   **no get**. The server reads profile + key over the fork bridge (`get-endpoint-profile-request`).
 - **`resolveConnection(profileId, ask)`** (`services/llmEngines.mjs`) is the one resolver: stored key,
   then `DEEPINFRA_API_KEY` for the `deepinfra` preset only while its URL is still DeepInfra's.
-- **`POST /llm/connection/probe { profileId }`** -> `{ ok, latencyMs, modelCount }` (a `GET /models`,
-  no tokens). **`GET /llm/connection/models?profileId=`** -> `{ ok, profileId, models: [{ id,
-  contextWindow, vision, recommendedFor[] }] }`, recommended first; a tagged catalogue (DeepInfra) is
-  cut to `chat` models. Errors `BAD_REQUEST` (400), `NO_PROFILE`, `NO_KEY` (not for `ollama`),
-  `ENDPOINT_ERROR` + `status`. Tests: `tests/llm-connection.test.cjs`.
+- **`POST /llm/connection/probe { profileId }`** -> `{ ok, latencyMs, modelCount }`; **`GET
+  /llm/connection/models?profileId=`** -> `{ ok, profileId, models: [{ id, contextWindow, vision,
+  recommendedFor[] }] }`, recommended first, a tagged catalogue (DeepInfra) cut to `chat` models. Errors
+  `BAD_REQUEST` (400), `NO_PROFILE`, `NO_KEY` (not `ollama`), `ENDPOINT_ERROR` + `status`.
 - **`RECOMMENDED_REMOTE_MODELS`**: `{ [presetId]: [{ id, jobs: ('agent'|'enhance'|'describe')[], contextWindow? }] }`, exact ids.
-- **The agent's context window**: that table, else the endpoint's own entry, else `FALLBACK_CONTEXT_WINDOW` (32,768).
+  The agent's context window: that table, else the endpoint's own entry, else `FALLBACK_CONTEXT_WINDOW` (32,768).
 - **`DeepInfraEngine.chat`** forwards `tools` and returns `toolCalls` and `usage` beside `text`.
 
 ## `look` coordinates

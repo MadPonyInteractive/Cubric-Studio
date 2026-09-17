@@ -27,7 +27,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { AgentLoop } from '../services/agentLoop.mjs';
+import { AgentLoop, projectKey } from '../services/agentLoop.mjs';
 import { DeepInfraEngine, fetchDeepInfraPrices, recommendedModel } from '../services/llmEngines.mjs';
 import { listCorpus, guideIdsByModel } from '../services/agentCorpus.mjs';
 import * as commandRegistry from '../js/data/commandRegistry.js';
@@ -60,7 +60,11 @@ const MODELS = {
 const CORPUS = listCorpus();
 
 const DI_URL = 'https://api.deepinfra.com/v1/openai';
-const PROJECT = { folderPath: 'C:/Users/maker/Documents/Cubric/Fox Shoot', name: 'Fox Shoot' };
+const PROJECTS_ROOT = 'C:/Users/maker/Documents/Cubric';
+const PROJECT = { folderPath: `${PROJECTS_ROOT}/Fox Shoot`, name: 'Fox Shoot' };
+// What GET /connector/projects lists (Phase 3c), most recent first.
+const PROJECTS = [PROJECT, { name: 'Harbour Nights' }, { name: 'Wedding Stills' }]
+    .map((p) => ({ folderPath: `${PROJECTS_ROOT}/${p.name}`, ...p, updatedAt: '2026-09-16T10:00:00Z' }));
 const RESULT_URL = `/project-file?path=${encodeURIComponent(`${PROJECT.folderPath}/Media/t2i_001.png`)}`;
 const FOX = { id: 'att_fox', name: 'fox.png', filePath: 'C:/Temp/cubric-agent/attachments/att_fox.png' };
 const FRAME = { id: 'att_frame', name: 'frame-from-my-video.png', filePath: 'C:/Temp/cubric-agent/attachments/att_frame.png' };
@@ -86,8 +90,9 @@ const LTX_BALANCED_INSTALLED = setInstalled((m) => m.id === 'ltx-23-balanced', t
 
 // ── Fake tools (the agentTools.mjs surface) ───────────────────────────────────
 
-function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes = [] }) {
-    const record = { installs: [], generates: [], looks: [], opens: [], writes: [], renames: [] };
+function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes = [], projects = PROJECTS, memoryFull = false }) {
+    const record = { installs: [], generates: [], looks: [], opens: [], writes: [], renames: [], creates: [] };
+    const known = [...projects];
     // --bite for the guide case: no model has a guide, and the index offers none to read.
     const served = noGuides
         ? { ...models, models: models.models.map((m) => ({ ...m, guides: [] })) }
@@ -112,6 +117,7 @@ function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes 
             if (!/^[a-z0-9][a-z0-9-]{0,60}\.md$/.test(note.file || '')) {
                 return { ok: false, error: { code: 'BAD_REQUEST', message: 'file must be a lowercase slug ending in .md, like "main-character.md".' } };
             }
+            if (memoryFull) return { ok: false, error: { code: 'MEMORY_FULL', message: 'This project already has 100 notes: update one instead.' } };
             const created = !store.has(note.file);
             store.set(note.file, note);
             return { ok: true, file: note.file, created };
@@ -144,11 +150,23 @@ function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes 
             return { ok: true, output: { itemId: 'item_1', groupId: 'grp_1', type: m?.type || 'image', filePath: RESULT_URL } };
         },
         look: async (args) => { record.looks.push(args); return structuredClone(look); },
-        // Every path the model can reach here is a guess (no case gives one), so none opens.
+        // The project routes the way /connector/projects and /connector/create-project answer.
+        listProjects: async () => ({ ok: true, projects: structuredClone(known), total: known.length }),
+        createProject: async (name) => {
+            record.creates.push(name);
+            const taken = known.some((p) => p.name.toLowerCase() === String(name).toLowerCase());
+            const project = { name, folderPath: `${PROJECTS_ROOT}/${name}${taken ? '_4f2a91c0' : ''}` };
+            known.unshift({ ...project, updatedAt: '2026-09-17T09:00:00Z' });
+            return { ok: true, project };
+        },
+        // Opens only a project that exists: listed, or created in this conversation.
         openProject: async (folderPath) => {
             record.opens.push(folderPath);
             if (!folderPath) return { ok: false, error: { code: 'BAD_REQUEST', message: 'body.folderPath is required.' } };
-            return { ok: false, error: { code: 'NO_SUCH_PROJECT', message: `Could not open "${folderPath}": not a Cubric project.` } };
+            const p = known.find((x) => projectKey(x.folderPath) === projectKey(folderPath));
+            return p
+                ? { ok: true, output: { folderPath: p.folderPath, name: p.name, groupCount: 0 } }
+                : { ok: false, error: { code: 'NO_SUCH_PROJECT', message: `Could not open "${folderPath}": not a Cubric project.` } };
         },
         placeAsset: async () => ({ success: true, filePath: `/project-file?path=${encodeURIComponent(`${PROJECT.folderPath}/Media/.preview-assets/fox.png`)}` }),
         saveAttachment: async () => { throw new Error('the harness stages attachments itself'); },
@@ -171,6 +189,10 @@ const refusedParams = (run) => calledAll(run, 'generate')
     .filter((c) => /^INVALID_/.test(c.result?.error?.code || ''))
     .map((c) => `${c.result.error.code} on ${c.args.modelId}/${c.args.operation}`);
 const modelById = (id) => MODELS.models.find((m) => m.id === id);
+/** open_project calls the loop refused: a folder nobody gave the model. */
+const invented = (run) => calledAll(run, 'open_project')
+    .filter((c) => c.result?.error?.code === 'UNKNOWN_PROJECT')
+    .map((c) => `tried to open a folder nobody gave it (${c.args.folderPath})`);
 const REFUSAL = /(refus|declin|won['’]?t|can['’]?t|cannot|unable|not able)/i;
 
 const CASES = [
@@ -293,16 +315,61 @@ const CASES = [
             return f;
         },
     },
+    // Phase 3c (Fabio, 2026-09-16) replaced "asks for a project": the landing agent makes one.
     {
-        id: 'no-project',
-        title: 'landing page, no project -> asks for a project before generating',
+        id: 'create-then-generate',
+        title: 'landing page, no project -> creates "New Project", opens it, generates there',
         setup: { project: null, turns: ['Make an image of a cat asleep on a sunny windowsill.'] },
         flip: { project: PROJECT },
         check(run) {
+            const calls = run.turns.flatMap((t) => t.calls);
+            const created = calls.findIndex((c) => c.tool === 'create_project' && c.result?.ok);
+            if (created < 0) return ['no project was created'];
             const f = [];
-            if (run.record.generates.length) f.push('a generation reached the app with no project open');
-            if (calledAll(run, 'open_project').length) f.push(`guessed a project path (${calledAll(run, 'open_project').map((c) => c.args.folderPath).join(', ')})`);
-            if (!/project/i.test(run.lastReply)) f.push('the reply does not ask for a project');
+            const made = calls[created].result.project;
+            if (!/new project/i.test(made.name)) f.push(`created "${made.name}", not "New Project"`);
+            const opened = calls.findIndex((c, i) => i > created && c.tool === 'open_project' && c.result?.ok && c.args.folderPath === made.folderPath);
+            if (opened < 0) f.push('did not open the project it created');
+            else if (!calls.some((c, i) => i > opened && c.tool === 'generate' && c.result?.ok)) f.push('no generate went through after opening it');
+            f.push(...invented(run));
+            return f;
+        },
+    },
+    {
+        id: 'open-by-name',
+        title: 'opens a project by its name, with the folder list_projects gave',
+        setup: { project: null, turns: ['Open my Harbour Nights project. Nothing else for now.'] },
+        flip: { projects: PROJECTS.filter((p) => p.name !== 'Harbour Nights') },
+        check(run) {
+            const f = [];
+            const target = PROJECTS.find((p) => p.name === 'Harbour Nights').folderPath;
+            if (!calledAll(run, 'list_projects').length) f.push('never listed the projects');
+            if (!calledAll(run, 'open_project').some((c) => c.result?.ok && c.args.folderPath === target)) f.push('did not open Harbour Nights');
+            if (run.record.creates.length) f.push(`created a project (${run.record.creates.join(', ')}) instead of opening one`);
+            if (run.record.generates.length) f.push('generated without being asked');
+            f.push(...invented(run));
+            return f;
+        },
+    },
+    {
+        id: 'new-project-brief',
+        title: 'a new project with a goal -> named after it, opened, and a brief note saved there',
+        setup: { project: null, turns: ["Let's start a new project. The goal is a short film about a lighthouse keeper who befriends a seal."] },
+        flip: { turns: ['Make an image of a lighthouse keeper feeding a seal.'] },
+        check(run) {
+            const calls = run.turns.flatMap((t) => t.calls);
+            const created = calls.find((c) => c.tool === 'create_project' && c.result?.ok);
+            if (!created) return ['no project was created'];
+            const f = [];
+            const made = created.result.project;
+            if (!/lighthouse|seal/i.test(made.name)) f.push(`the project is named "${made.name}", not after the goal`);
+            const opened = calls.findIndex((c) => c.tool === 'open_project' && c.result?.ok && c.args.folderPath === made.folderPath);
+            if (opened < 0) f.push('did not open the new project');
+            const brief = calls.find((c, i) => i > opened && c.tool === 'write_memory' && c.result?.ok && /lighthouse/i.test(`${c.args.title} ${c.args.text}`));
+            if (!brief) f.push('no project-brief note about the lighthouse film after opening it');
+            else if (!run.record.writes.some((w) => w.file === brief.args.file && w.folderPath === made.folderPath)) f.push('the brief note went to another project');
+            if (run.record.generates.length) f.push('generated without being asked');
+            f.push(...invented(run));
             return f;
         },
     },
@@ -347,7 +414,8 @@ const CASES = [
         id: 'memory-write',
         title: 'saves what the user asks it to remember about the project',
         setup: { turns: ['Remember for this project: every image is 16:9, it is all for YouTube thumbnails. No need to generate anything yet.'] },
-        flip: { project: null },
+        // Not `project: null` any more: with no project the agent may now make one and save the note there.
+        flip: { memoryFull: true },
         check(run) {
             const saved = calledAll(run, 'write_memory').filter((c) => c.result?.ok && /16:9/.test(`${c.args.title} ${c.args.text}`));
             return saved.length ? [] : ['no note holding 16:9 was saved'];
@@ -360,7 +428,7 @@ const CASES = [
         flip: { turns: ['Make an image of a red fox in the snow.'] },
         check(run) {
             const f = [];
-            const acted = run.turns.flatMap((t) => t.calls).filter((c) => !['list_models', 'read_knowledge', 'read_memory'].includes(c.tool));
+            const acted = run.turns.flatMap((t) => t.calls).filter((c) => !['list_models', 'read_knowledge', 'read_memory', 'list_projects'].includes(c.tool));
             if (acted.length) f.push(`called ${acted.map((c) => c.tool).join(', ')} on a delete request`);
             if (!/delet/i.test(run.lastReply)) f.push('the reply does not talk about deleting');
             if (!/(right-click|landing|projects list|gallery)/i.test(run.lastReply)) f.push('the reply does not say where the user can delete');

@@ -3,21 +3,26 @@
 /**
  * routes/agent.js — the in-app agent HTTP surface (MPI-774 slice A).
  *
- * Mounts the six routes the chat UI and the agent loop share:
+ * Mounts the routes the chat UI and the agent loop share:
  *   POST /agent/message   — send a user turn (returns immediately; reply via SSE)
- *   GET  /agent/stream    — SSE: agent:working, agent:message, agent:tool,
- *                           agent:confirm, agent:result, agent:compacting, agent:error
- *   GET  /agent/history   — full session history + current working / confirm state
+ *   GET  /agent/stream    — SSE for every conversation: agent:working, agent:message,
+ *                           agent:tool, agent:confirm, agent:result, agent:compacting,
+ *                           agent:error (each with `session`), and agent:session on a move
+ *   GET  /agent/history?project= — one conversation's history + working / confirm state
  *   GET  /agent/attachment/:id — the staged image behind a history attachment id
  *   POST /agent/confirm   — respond to an install confirmation card
- *   POST /agent/reset     — clear the session and wipe the attachment dir
+ *   POST /agent/reset?project= — clear one conversation and its staged files
  *   POST /agent/probe     — can the agent's model call a tool on the connection?
+ *
+ * One conversation per project, plus one for the landing page (Phase 3c, D4-D6):
+ * `services/agentSessions.mjs` keeps them. A conversation is named by the project's
+ * folder (`?project=` / `body.project.folderPath`); none means the landing page.
  *
  * Every route answers { ok: true, ... } or { ok: false, error: { code, message } }.
  * Malformed bodies → HTTP 400 BAD_REQUEST.
  *
- * `services/agentLoop.mjs` is ESM; this CJS router loads it via dynamic import,
- * cached on the first call, following the same pattern as routes/llm.js.
+ * The services are ESM; this CJS router loads them via dynamic import, cached on the
+ * first call, following the same pattern as routes/llm.js.
  */
 
 const express = require('express');
@@ -31,18 +36,15 @@ const router = express.Router();
 // ESM imports — cached after first call
 // ---------------------------------------------------------------------------
 
-let _loopPromise = null;
+let _sessionsPromise = null;
 
-/** Returns the singleton AgentLoop; waits for the ESM import if needed. */
-async function getLoop() {
-    if (!_loopPromise) {
-        _loopPromise = import('../services/agentLoop.mjs').then((m) => {
-            const loop = m.defaultLoop;
-            loop.setForkBridge(ask);
-            return loop;
-        });
+/** The app's conversations; waits for the ESM import if needed. */
+async function getSessions() {
+    if (!_sessionsPromise) {
+        _sessionsPromise = import('../services/agentSessions.mjs').then((m) =>
+            new m.AgentSessions({ setupLoop: (loop) => loop.setForkBridge(ask) }));
     }
-    return _loopPromise;
+    return _sessionsPromise;
 }
 
 let _toolsPromise = null;
@@ -60,6 +62,9 @@ getTools().then((t) => t.initAttachmentDir()).catch(() => {});
 
 const _bad = (res, message) =>
     res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message } });
+
+const _unavailable = (res, err) =>
+    res.json({ ok: false, error: { code: 'ENDPOINT_ERROR', message: err.message } });
 
 // ---------------------------------------------------------------------------
 // POST /agent/message
@@ -80,21 +85,25 @@ router.post('/agent/message', async (req, res) => {
     if (model !== undefined && typeof model !== 'string') {
         return _bad(res, 'body.model must be a string.');
     }
-
-    let loop;
-    try { loop = await getLoop(); } catch (err) {
-        logger.error('agent', `getLoop failed: ${err.message}`);
-        return res.json({ ok: false, error: { code: 'ENDPOINT_ERROR', message: err.message } });
+    if (project != null && (typeof project !== 'object' || typeof project.folderPath !== 'string')) {
+        return _bad(res, 'body.project must be null or { folderPath, name }.');
     }
 
-    if (loop._working) {
-        return res.json({ ok: false, error: { code: 'BUSY', message: 'A turn is already running. Wait for it to finish.' } });
+    let sessions;
+    try { sessions = await getSessions(); } catch (err) {
+        logger.error('agent', `sessions unavailable: ${err.message}`);
+        return _unavailable(res, err);
+    }
+
+    // D4: one turn at a time, whichever conversation it is in.
+    if (sessions.busy()) {
+        return res.json({ ok: false, error: { code: 'BUSY', message: 'The agent is still answering. Wait for it to finish.' } });
     }
 
     const turnId = crypto.randomUUID();
 
     // Stage attachments eagerly so the response can report their ids
-    let stagedAttachments = [];
+    const stagedAttachments = [];
     if (Array.isArray(attachments) && attachments.length) {
         let tools;
         try { tools = await getTools(); } catch { /* ignore */ }
@@ -110,17 +119,18 @@ router.post('/agent/message', async (req, res) => {
         }
     }
 
-    // Return the turnId immediately; the reply arrives on /agent/stream
+    // Return at once; the reply arrives on /agent/stream, tagged with this `session`.
     res.json({
         ok: true,
         turnId,
+        session: sessions.keyOf(project?.folderPath),
         attachments: stagedAttachments.filter((a) => a.id).map((a) => ({ id: a.id, name: a.name })),
     });
 
     // Run the turn asynchronously. The STAGED records go in, not the raw data URLs:
     // staging them a second time would give the chat and the model different ids for
     // the same picture, and the loop registers these ids as the images it may read.
-    loop.runTurn(text || '', stagedAttachments, project || null, mode, profileId, turnId, { model })
+    sessions.send({ text: text || '', attachments: stagedAttachments, project: project || null, mode, profileId, turnId, model })
         .catch((err) => logger.error('agent', `runTurn unhandled: ${err.message}`));
 });
 
@@ -134,29 +144,27 @@ router.get('/agent/stream', async (req, res) => {
     res.setHeader('Connection', 'keep-alive');
     if (res.flushHeaders) res.flushHeaders();
 
-    let loop;
-    try { loop = await getLoop(); } catch {
-        res.write('event: agent:error\ndata: {"code":"ENDPOINT_ERROR","message":"Loop unavailable"}\n\n');
+    let sessions;
+    try { sessions = await getSessions(); } catch {
+        res.write('event: agent:error\ndata: {"code":"ENDPOINT_ERROR","message":"Agent unavailable"}\n\n');
         res.end();
         return;
     }
 
-    loop.addSubscriber(res);
+    sessions.addSubscriber(res);
     res.write('event: connected\ndata: {}\n\n');
 
-    req.on('close', () => loop.removeSubscriber(res));
+    req.on('close', () => sessions.removeSubscriber(res));
 });
 
 // ---------------------------------------------------------------------------
-// GET /agent/history
+// GET /agent/history?project=<folderPath>
 // ---------------------------------------------------------------------------
 
-router.get('/agent/history', async (_req, res) => {
-    let loop;
-    try { loop = await getLoop(); } catch (err) {
-        return res.json({ ok: false, error: { code: 'ENDPOINT_ERROR', message: err.message } });
-    }
-    res.json(loop.getHistory());
+router.get('/agent/history', async (req, res) => {
+    let sessions;
+    try { sessions = await getSessions(); } catch (err) { return _unavailable(res, err); }
+    res.json(sessions.history(typeof req.query.project === 'string' ? req.query.project : ''));
 });
 
 // ---------------------------------------------------------------------------
@@ -164,14 +172,14 @@ router.get('/agent/history', async (_req, res) => {
 // ---------------------------------------------------------------------------
 
 // History keeps an attachment as { id, name } only, so a remounted chat asks for
-// the picture by id. Served only for this session's own attachment ids (the same
+// the picture by id. Served only for a conversation's own attachment ids (the same
 // allowlist `look` resolves through), never a path the caller names.
 router.get('/agent/attachment/:id', async (req, res) => {
-    let loop;
-    try { loop = await getLoop(); } catch {
+    let sessions;
+    try { sessions = await getSessions(); } catch {
         return res.status(404).end();
     }
-    const filePath = loop.attachmentPath(req.params.id);
+    const filePath = sessions.attachmentPath(req.params.id);
     if (!filePath) return res.status(404).end();
     res.sendFile(filePath, (err) => { if (err && !res.headersSent) res.status(404).end(); });
 });
@@ -185,25 +193,24 @@ router.post('/agent/confirm', async (req, res) => {
     if (!confirmId) return _bad(res, 'body.confirmId is required.');
     if (typeof yes !== 'boolean') return _bad(res, 'body.yes must be a boolean.');
 
-    let loop;
-    try { loop = await getLoop(); } catch (err) {
-        return res.json({ ok: false, error: { code: 'ENDPOINT_ERROR', message: err.message } });
-    }
+    let sessions;
+    try { sessions = await getSessions(); } catch (err) { return _unavailable(res, err); }
 
-    const result = await loop.confirm(confirmId, yes);
-    res.json(result);
+    const loop = sessions.byConfirm(confirmId);
+    if (!loop) {
+        return res.json({ ok: false, error: { code: 'UNKNOWN_CONFIRM', message: 'Unknown or already-answered confirmId.' } });
+    }
+    res.json(await loop.confirm(confirmId, yes));
 });
 
 // ---------------------------------------------------------------------------
-// POST /agent/reset
+// POST /agent/reset?project=<folderPath>
 // ---------------------------------------------------------------------------
 
-router.post('/agent/reset', async (_req, res) => {
-    let loop;
-    try { loop = await getLoop(); } catch (err) {
-        return res.json({ ok: false, error: { code: 'ENDPOINT_ERROR', message: err.message } });
-    }
-    await loop.reset();
+router.post('/agent/reset', async (req, res) => {
+    let sessions;
+    try { sessions = await getSessions(); } catch (err) { return _unavailable(res, err); }
+    await sessions.reset(typeof req.query.project === 'string' ? req.query.project : '');
     res.json({ ok: true });
 });
 
@@ -215,13 +222,10 @@ router.post('/agent/probe', async (req, res) => {
     const { profileId, model } = req.body || {};
     if (!profileId) return _bad(res, 'body.profileId is required.');
 
-    let loop;
-    try { loop = await getLoop(); } catch (err) {
-        return res.json({ ok: false, error: { code: 'ENDPOINT_ERROR', message: err.message } });
-    }
+    let sessions;
+    try { sessions = await getSessions(); } catch (err) { return _unavailable(res, err); }
 
-    const result = await loop.probe(profileId, typeof model === 'string' ? model : '');
-    res.json(result);
+    res.json(await sessions.probe(profileId, typeof model === 'string' ? model : ''));
 });
 
 module.exports = router;

@@ -16,6 +16,8 @@
     "services/llmEngines.mjs",
     "services/agentCorpus.mjs",
     "services/agentMemory.mjs",
+    "services/agentSessions.mjs",
+    "tests/agent-sessions.test.cjs",
     "tests/agent-corpus.test.cjs",
     "routes/llm.js",
     "js/core/storage.js",

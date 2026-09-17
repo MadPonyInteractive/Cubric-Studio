@@ -89,6 +89,16 @@ export async function look(args) {
     return _post('/connector/describe', args);
 }
 
+/** GET /connector/projects — the user's projects, most recent first. */
+export async function listProjects() {
+    return _get('/connector/projects', 30_000);
+}
+
+/** POST /connector/create-project { name } — a new project in the default root, never over one. */
+export async function createProject(name) {
+    return _post('/connector/create-project', { name: String(name ?? '') }, 30_000);
+}
+
 /** POST /connector/open-project { folderPath } */
 export async function openProject(folderPath) {
     return _post('/connector/open-project', { folderPath });
@@ -151,6 +161,19 @@ export async function initAttachmentDir() {
             } catch { /* non-fatal */ }
         }),
     );
+}
+
+/**
+ * Drop one conversation's staged files on its reset (the other conversations keep theirs).
+ * Only a file directly inside the attachment dir is touched, whatever path is passed.
+ */
+export async function discardAttachments(paths) {
+    const dir = path.resolve(attachmentDir());
+    await Promise.all((Array.isArray(paths) ? paths : []).map(async (p) => {
+        const abs = path.resolve(String(p));
+        if (path.dirname(abs) !== dir) return;
+        try { await fs.rm(abs, { force: true }); } catch { /* already gone */ }
+    }));
 }
 
 /** Generate a stable attachment id: `att_` + 8 hex chars. */

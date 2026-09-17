@@ -126,7 +126,8 @@ export const Events = new EventBus();
  * 'project:changed'  { project: Object }             — user switched active project
  * 'state:changed'    { key: string, value: any }     — reactive state mutation
  *
- * Agent chat events (bridged from SSE via agentService singleton):
+ * Agent chat events (bridged from SSE via agentService singleton). Each also carries
+ * `session`: the conversation it belongs to ('' = the landing page, else a project's key).
  * 'agent:working'    { turnId, working: boolean }          — agent starting/stopping work; mascot flip
  * 'agent:message'    { turnId, id, text }                  — complete reply message from the model
  * 'agent:tool'       { turnId, id, tool, status, label }   — tool status line (label only, never args.prompt)
@@ -134,6 +135,8 @@ export const Events = new EventBus();
  * 'agent:result'     { toolCallId, ok, output?, error? }   — generation result card
  * 'agent:compacting' { turnId, on: boolean }               — compaction status notice
  * 'agent:error'      { turnId, code, message }             — agent error line
+ * 'agent:session'    { from, to }                          — a conversation moved into a project
+ *                      (the landing chat opened it); chats showing either side reload
  * 'agent:send'       { text, attachments }                 — request to send a message to the agent
  *                      (emitted by MpiPromptBox in agent mode; consumed by MpiAgentChat panel)
  * 'gallery:open-card' { itemId, groupId }                  — a chat result card was clicked; the shell

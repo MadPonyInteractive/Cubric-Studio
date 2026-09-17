@@ -7,13 +7,23 @@
 **Evidence behind this plan:** `research/investigation.md` - verified facts with file:line, the
 seven investigator claims that turned out wrong, and a live orchestrator probe.
 
-**Where it stands (2026-09-16 ~13:45Z, MPI-737 session 5da6c574 took Fabio's agent feedback; session
-6fd51047 closed without changes):** Fabio's screenshots show the panel BELOW the "<- PROJECTS" row and
-`look` answering on Remote, in a project and on the landing page. His one layout note, text touching
-the panel edge, is fixed (`MpiAgentChat.css`: panel transcript `padding-inline: var(--s-3)`,
-agent-chat spec 19/19) and waits on his reload; then item 3 is done. **Next: Phase 3c** (one
-conversation per project + the landing agent's project jobs): get Fabio's D4-D6 answers first, then
-build. Phase 4 (GPU) after 3c. The older note below is kept for its detail.
+**Where it stands (2026-09-17 09:48Z, session 6fd51047, handoff 89c36b80):** Phase 3b is DONE (Fabio's "1"
+after the padding fix `3dd0301a`). **Phase 3c is BUILT, committed at this handoff** (D4-D6 as
+recommended; evidence `validation.md` § Phase 3c): per-project conversations
+(`services/agentSessions.mjs`), the landing agent's `list_projects` / `create_project`, `open_project`
+allowlisted. Unit 15/15 + 13 bites, desktop 24/24 + 6 bites, `npm test` 1264/0, harness bite 15/15,
+harness 3x **14/15**. **Next, in order:** (1) `new-project-brief` is 2/3: after the brief note the
+agent generated a first shot unasked; tighten the Project rule's goal branch ("then ask what to make
+first; generate only when asked") and rerun that case `--runs 3`, plus the full 3x if the rule text
+moves. (2) Fabio's landing-page check (a FULL app restart: the change is server-side). (3) Ask Fabio
+before updating `.claude/rules/` component maps (new `agent:session` event, `session` on every
+`agent:*` payload, `MpiAgentChat` now listens to `project:changed`). (4) Phase 4 with **option A**
+(details under Phase 4). **Before booting any app for Phase 4**, run `git status -- routes/ server.js
+services/ main/`: an app instance loads peers' uncommitted server code against the REAL engine and
+model roots. MPI-656 Phase 1 is committed (`620627d3`); on 2026-09-17 MPI-532 had an uncommitted
+`routes/downloadManager.js` edit that only ADDS GC protection (installed Flow packages), judged safe.
+Ask Fabio before touching `.claude/rules/` for the new `agent:session` event. The older note below is
+kept for its detail.
 
 **Earlier (2026-09-16, session 105b3570, handed off):** Phase 3b is BUILT, VERIFIED and
 COMMITTED (evidence: `validation.md` § Phase 3b): items 1, 2, 4, 5 done; **item 3 (panel below the
@@ -433,7 +443,7 @@ the landing rearrange (`user-ux`).*
   plugin; candidates are `docs/models/<model>/` (e.g. `h3/`, `ltx/prompt-contract.md`) and the
   create-enhancer-recipe output. Ask before designing. Re-run `--samples`: the H3 prompts (44/46
   words vs a 50-400 floor, no shot structure, no sound) are the measured baseline to beat.
-- [ ] **3. Panel layout (user-ux).** The left panel covers the workspace topbar (project name,
+- [x] **3. Panel layout (user-ux).** The left panel covers the workspace topbar (project name,
   "<- PROJECTS") because `#agent-panel-mount` starts at the top of `.workspace-content` and only pads
   52px. Start it BELOW the topbar and the nav chips so they keep their own area, and widen it by
   100px (320 -> 420, `styles/shell/workspace.css` `#agent-panel-mount.agent-panel-mount--open`).
@@ -441,6 +451,7 @@ the landing rearrange (`user-ux`).*
   **Fabio 2026-09-16:** position OK (his screenshots); "the chat window should have some padding so
   that the letters are not straight up touching the edges" -> fixed in `MpiAgentChat.css`
   (`#agent-panel-mount` transcript `padding-inline: var(--s-3)`, the header's gutter), awaiting his reload.
+  **Closed 2026-09-16 ~14:30Z:** Fabio answered "1" (looks good) after that commit.
 - [x] **4. Update `.claude/rules/`** (Fabio said yes, 2026-09-16): the component maps for the new
   wiring (events `agent:*` + `agent:send`, state `agentMode`, the `#agent-panel-mount` shell mount,
   `MpiAgentChat` bus subscription, `MpiLlmSettings` connection block). Use the
@@ -455,9 +466,19 @@ the landing rearrange (`user-ux`).*
 
 ## Phase 3c: One conversation per project, and the landing agent's jobs (Fabio, 2026-09-16)
 
-*Taken by MPI-737 session 5da6c574 from Fabio's feedback; nothing built yet except the padding
-(item 3 above). Verify mode: auto for the code, user-ux for the end check. Decide D4-D6 with Fabio
-BEFORE building. Re-grep every line number.*
+*Taken by MPI-737 session 5da6c574 from Fabio's feedback. Verify mode: auto for the code, user-ux for
+the end check. **Built 2026-09-17 by session 6fd51047** (evidence: `validation.md` § Phase 3c).*
+
+**Fabio's answer (2026-09-17, session 6fd51047): "go"** to "go, all recommended", so D4-D6 are as
+recommended below.
+
+**As built:** `services/agentSessions.mjs` holds the conversations (a module, not a Map inside the
+router, so D4/D5 are unit-testable); `projectKey` (`agentLoop.mjs`) is the one key function. D5 also
+covers a PROJECT conversation opening another project: it carries, never moves. `open_project` is
+structural like `_images`: only a folder `list_projects`/`create_project` gave, the open project, or
+one the user typed (`UNKNOWN_PROJECT`). Two chat defects found and fixed on the way: a 200 reply with
+`ok: false` (BUSY, NO_PROFILE) left the chat "working" forever, and a failed generation rendered
+`[object Object]`.
 
 Fabio, verbatim in intent: "each project has its own [short] recall ... if I change to another project, I
 don't want to see the same conversation ... I'm not saying unload the model". And on the landing page
@@ -486,7 +507,7 @@ project switch is `project:changed` (`js/events.js:126`).
 - **D6 - Does a project's conversation survive an app restart?** Recommended: NO, as brief item 14
   says; the `<project>/Agent/` notes are the memory that survives. Alternative: save it in the project.
 
-- [ ] **A. One conversation per project.** Server: `routes/agent.js` keeps a `Map` of loops keyed by
+- [x] **A. One conversation per project.** Server: `routes/agent.js` keeps a `Map` of loops keyed by
   the project's `folderPath` (`''` = the landing page); `/agent/message` routes by `project`;
   `/agent/history`, `/agent/reset` take `?project=`; `/agent/confirm` and `/agent/attachment/:id` find
   the owning loop; `/agent/probe` stays loop-free. ONE `/agent/stream` for all: the subscribers move to
@@ -508,11 +529,27 @@ project switch is `project:changed` (`js/events.js:126`).
   tools + routes, `resources/cubric/connector-manifest.json` if it lists routes.
   **Verify:** route tests (create never overwrites, list returns folderPaths); harness +3 cases (open
   by name, create-then-generate, new project with a brief note), each with a `--bite` flip; then
-  Fabio on his landing page.
+  Fabio on his landing page. *Auto part done 2026-09-17; `create-then-generate` REPLACES the old
+  `no-project` case (the landing agent no longer just asks), so the harness has 15 cases. Open: Fabio's
+  landing-page check (needs a full app restart).*
 
 ## Phase 4: Live on the GPU
 
 *Sequential, GPU lease held. Verify mode: auto. Open every artifact; a green log is not an image.*
+
+**Where it runs (Fabio, 2026-09-16: option A).** My own `npm run app:isolated` with the real engine
+root, attached to the engine his app already runs (48188); never `:3000`. Every command that
+dispatches (the agent's `generate`, a ComfyUI `look`) runs inside `gpu_lease.py run` and waits for its
+job to settle, because the lease lasts only as long as the command. His app is untouched. The scratch
+project "MPI-774 agent test" lands in HIS projects root (`APP_DOCUMENTS` is not profile-scoped); he
+deletes it. The install item runs on a second isolated instance with a scratch `CUBRIC_ENGINE_ROOT`
+and `CUBRIC_MODELS_ROOT` on K:, seeded so the boot repair downloads nothing (memory
+`tool_sandbox_isolated_app_seed_uw_deps`).
+**Order:** the person images first, then box measurement on them, then the parser, then the rest
+(Head Swap last, since it uses the boxes).
+**Two describers.** `look` now goes through `llmService.describeImage` (MPI-737, `2f33601c`), which
+runs the Image descriptions pick: Remote (a DeepInfra vision model via `POST /llm/describe`, no GPU)
+or ComfyUI (Qwen3-VL 4B, `image_descriptor.json`, GPU). Measure and parse both.
 
 - [ ] **Measure the describer's box answer, then build the parser.** Three real Vision outputs
   with a person; ask for the head box; record the raw answers in `research/box-measurement.md`;
@@ -531,7 +568,8 @@ project switch is `project:changed` (`js/events.js:126`).
   carries the five fields; the next reply still knows the goal. **Verify:** `/agent/history` shows
   the handoff; the mascot showed "compacting".
 - [ ] **Honest limits, live.** "Watch this video" -> the limit, in character; a describer refusal
-  (fake, until MPI-737 has a cloud backend) -> says so and names the Image descriptions setting.
+  (MPI-737's Remote describer exists now: use a real refusal if one can be produced cleanly, else
+  the fake) -> says so and names the Image descriptions setting.
   **Verify:** the transcript lines, pasted into `validation.md`.
 
 ## Phase 5: Fabio's pass
@@ -543,6 +581,23 @@ project switch is `project:changed` (`js/events.js:126`).
 
 ## Plan Drift
 
+- 2026-09-17 (Phase 3c, session 6fd51047): (1) the conversations live in a new module,
+  `services/agentSessions.mjs`, so the router stays thin and D4/D5 are unit-testable. (2) The harness
+  case `no-project` ("asks for a project") contradicted the new landing rule and became
+  `create-then-generate`; `memory-write`'s flip changed from `project: null` (the agent may now create
+  a project and save there) to a full note store. (3) The first harness run showed the model naming the
+  project after the request ("Cat on Windowsill") and writing a brief note; the Project rule now says
+  "exactly New Project" and "no note" for a make-something request, 3/3 after. Fabio said "New Project
+  or similar", so a descriptive name is his call to reopen. (4) MPI-656 Phase 1 landed while this ran,
+  which clears the Phase 4 blocker noted on 2026-09-16.
+- 2026-09-16 (~14:40Z, session 6fd51047): (1) Fabio closed item 3 and chose option A for Phase 4
+  (recorded under Phase 4). (2) MPI-737 routed `look` through the Image descriptions switch, so Phase
+  4 measures both describers, and the Remote half needs no GPU. (3) Phase 4 order: the person images
+  come first. (4) Phase 4 waits for MPI-656's Phase 1 (a live peer's uncommitted boot-path edits).
+  (5) The autonomous dispatch check returned MPI-558, MPI-656 and MPI-715. After reading their plans,
+  none was dispatched: MPI-715 needs Fabio's `raw/` edit plus GPU runs on MPI-711's Bernini graph;
+  MPI-656 rewrites the model-root and download code Phase 4 runs against the real engine (a peer has
+  since started it); MPI-558 alone is not a batch.
 - 2026-09-16 (~13:45Z, MPI-737 session 5da6c574): Fabio gave his agent feedback in the MPI-737
   window after MPI-774's own session (6fd51047) closed with no changes. Folded in here, not a new card:
   the panel padding (item 3, fixed) and Phase 3c (one conversation per project; landing agent creates

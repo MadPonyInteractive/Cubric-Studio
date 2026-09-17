@@ -32,10 +32,13 @@ const ALLOWED_REQUESTS = new Set([
     'GET /connector/memory/:id',
     'POST /connector/memory',
     'POST /project-media/agent/place-preview-asset',
+    // Phase 3c: the landing agent lists and creates projects. Creating never replaces one.
+    'GET /connector/projects',
+    'POST /connector/create-project',
 ]);
 
 // Exports that only touch the agent's own scratch dirs, never a project.
-const LOCAL_HELPERS = new Set(['attachmentDir', 'cropDir', 'initAttachmentDir', 'newAttachmentId', 'saveAttachment']);
+const LOCAL_HELPERS = new Set(['attachmentDir', 'cropDir', 'initAttachmentDir', 'newAttachmentId', 'saveAttachment', 'discardAttachments']);
 
 const ARG = '__ARG__';
 
