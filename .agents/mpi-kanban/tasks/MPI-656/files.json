@@ -1,0 +1,9 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/modelRoots.js",
+    "routes/shared.js",
+    "routes/yamlHelper.js",
+    "tests/model-roots.test.cjs"
+  ]
+}

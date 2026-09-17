@@ -513,8 +513,25 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     await expect.poll(() => window.evaluate(() =>
       document.querySelectorAll('.mpi-frame-strip__thumb-tint').length), { timeout: 15000 }).toBe(3);
 
+    // ── Mask Adjust is set once: Invert survives a trip to the Mask Brush ─
+    const invertInput = '.mpi-tool-options-gif-cutout #invert-slot .mpi-checkbox__input';
+    const setInvert = (on) => window.evaluate(({ sel, on }) => {
+      const input = document.querySelector(sel);
+      input.checked = on;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }, { sel: invertInput, on });
+    const savedInvert = () => window.evaluate(async () => {
+      const { state } = await import('/js/state.js');
+      return state.currentProject?.toolSettings?.gifCutout?.invert;
+    });
+    await setInvert(true);
+    await expect.poll(savedInvert).toBe(true);
+
     // ── Brush frame 1: erase the centre of its track ─────────────────────
     await openRailTool(window, 'Mask Brush');
+    // The GIF brush says where its fixes go (Fabio chose a note over a button).
+    expect(await window.evaluate(() => document.querySelector('.mpi-tool-options-mask-brush__info')?.textContent || ''))
+      .toContain('Cut-out');
     await gotoFrame(window, 1);
     await waitEditFrame(window);
     await window.evaluate(() => document.querySelector('.mpi-tool-options-mask-brush .mpi-radio-group__btn[data-value="eraser"]').click());
@@ -522,6 +539,10 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     await openRailTool(window, 'Cut-out');
     await expect.poll(() => window.evaluate(() =>
       document.querySelectorAll('.mpi-frame-strip__thumb--edited').length)).toBe(2);
+    expect(await window.evaluate((sel) => document.querySelector(sel)?.checked, invertInput),
+      'Invert came back with the panel').toBe(true);
+    await setInvert(false);
+    await expect.poll(savedInvert).toBe(false);
 
     // ── Cut out -> real POST /gif-cutout/apply, real new history entry ──
     const historyLenNow = () => window.evaluate(async (gid) => {
@@ -630,6 +651,175 @@ test('mask base layer: shows as mask, erase removes it, paint restores it, clear
     expect(r.undone).toBe(true);
     expect(r.afterUndo, 'undo brings both back').toEqual([255, 255]);
     expect(r.afterReload, 'a new image drops the base').toBe(0);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+// ── Test 4 — Fabio's first hands-on check (2026-09-16), fixture project ─────
+//
+// A stray strip drag reordered his frames and dropped every mask, the trim bar
+// sat collapsed, a 320px GIF showed tiny, and Play did nothing in the Mask Brush.
+
+const STRIP_HASHES = ['s0', 's1', 's2', 's3', 's4', 's5'];
+
+/** Fixture with a stateful `/gif/entry` (the gif-workspace.spec.js pattern), so Update round-trips. */
+async function setupStripProject(window) {
+  await window.evaluate(({ imgUrl, hashes }) => {
+    const store = { frames: hashes.map(hash => ({ hash, delay: 10 })), loop: 0, output: { maxEdge: 1024, colours: 256, edgeColour: null } };
+    window.__strip = { calls: [] };
+    const json = (body) => Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    const orig = window.fetch.bind(window);
+    window.fetch = (...args) => {
+      const url = String(args[0] || '');
+      const opts = args[1] || {};
+      if (url.includes('/gif/ensure-frames')) {
+        return json({ success: true, gif: { ...store, frames: store.frames.map(f => ({ ...f, url: imgUrl, thumbUrl: imgUrl })) } });
+      }
+      if (url.includes('/gif/entry')) {
+        const body = JSON.parse(opts.body || '{}');
+        window.__strip.calls.push(body);
+        store.frames = body.frames;
+        return json({ success: true, item: { id: body.itemId, type: 'image', filePath: imgUrl, displayName: 'strip', gif: { ...store } } });
+      }
+      return orig(...args);
+    };
+  }, { imgUrl: TINY_PNG, hashes: STRIP_HASHES });
+
+  await window.evaluate((imgUrl) => import('/js/state.js').then(({ state }) => {
+    state.currentProject = {
+      id: 'pGifStrip', name: 'Gif Strip Test', folderPath: 'C:/tmp/gif-strip-test',
+      itemGroups: [{
+        id: 'gGifStrip', type: 'image', selectedIndex: 0,
+        history: [{ id: 'iGifStrip', type: 'image', filePath: imgUrl, displayName: 'strip', gif: { frames: [], loop: 0 } }],
+      }],
+    };
+  }), TINY_PNG);
+}
+
+test('gif strip: full trim range, frames fill the stage, a drag scrubs, hold-drag reorders, masks follow their frames, Play in the Mask Brush', async ({}, testInfo) => {
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await setupStripProject(window);
+    await openGroup(window, 'gGifStrip');
+    await expect.poll(() => window.evaluate(() => document.querySelectorAll('.mpi-frame-strip__thumb').length))
+      .toBe(STRIP_HASHES.length);
+
+    // ── Trim bar: the whole GIF, not the one-frame range set before it loaded ─
+    expect(await window.evaluate(() => ({
+      in: document.querySelector('.mpi-gif-control-bar .mpi-trim-bar__handle--in').style.left,
+      out: document.querySelector('.mpi-gif-control-bar .mpi-trim-bar__handle--out').style.left,
+    }))).toEqual({ in: '0%', out: '100%' });
+
+    // ── A 32px frame fills the stage (contained), it is not drawn at 32px ─────
+    const fit = await window.evaluate(() => {
+      const stage = document.querySelector('.mpi-gif-viewer__stage').getBoundingClientRect();
+      const img = document.querySelector('.mpi-gif-viewer__frame');
+      const r = img.getBoundingClientRect();
+      return { dw: Math.abs(r.width - stage.width), dh: Math.abs(r.height - stage.height), natural: img.naturalWidth, stageH: stage.height };
+    });
+    expect(fit.stageH, 'the stage is bigger than the frame').toBeGreaterThan(fit.natural * 2);
+    expect(fit.dw).toBeLessThan(1);
+    expect(fit.dh).toBeLessThan(1);
+
+    // ── One distinct mask per frame ───────────────────────────────────────────
+    const urls = await window.evaluate(() => {
+      const out = [];
+      for (let i = 0; i < 6; i++) {
+        const c = document.createElement('canvas');
+        c.width = c.height = i + 2;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, c.width, c.height);
+        out.push(c.toDataURL('image/png'));
+      }
+      document.querySelector('.mpi-gif-viewer').setTrackMasks(out);
+      return out;
+    });
+    const maskAt = (i) => window.evaluate((idx) => document.querySelector('.mpi-gif-viewer').getFrameMaskURL(idx), i);
+    const tintAt = (i) => window.evaluate((idx) =>
+      document.querySelector(`.mpi-frame-strip__thumb[data-index="${idx}"] .mpi-frame-strip__thumb-tint`)?.style.maskImage || '', i);
+    const order = () => window.evaluate(() => document.querySelector('.mpi-gif-viewer').getFrames().map(f => f.hash));
+    const pillHidden = () => window.evaluate(() => document.querySelector('.mpi-frame-strip__pill').hidden);
+    const counter = () => window.evaluate(() => document.querySelector('.mpi-gif-control-bar__current').textContent);
+    const thumbCentre = (i) => window.evaluate((idx) => {
+      const r = document.querySelector(`.mpi-frame-strip__thumb[data-index="${idx}"]`).getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }, i);
+    await expect.poll(() => tintAt(2)).toContain(urls[2]);
+
+    // ── A plain drag on a thumbnail SCRUBS: nothing staged ───────────────────
+    let p = await thumbCentre(0);
+    await window.mouse.move(p.x, p.y);
+    await window.mouse.down();
+    await window.mouse.move(p.x - 140, p.y, { steps: 6 });
+    await window.mouse.up();
+    expect(await counter(), 'dragging left two slots moves two frames on').toBe('0002');
+    expect(await pillHidden(), 'a drag must never stage a reorder').toBe(true);
+    expect(await order()).toEqual(STRIP_HASHES);
+    expect(await maskAt(2)).toBe(urls[2]);
+
+    // ── Press and hold, then drag: a reorder, and the masks travel along ─────
+    const holdDrag = async (from, dx) => {
+      const c = await thumbCentre(from);
+      await window.mouse.move(c.x, c.y);
+      await window.mouse.down();
+      await window.waitForTimeout(450);
+      const lifted = await window.evaluate((idx) =>
+        document.querySelector(`.mpi-frame-strip__thumb[data-index="${idx}"]`).classList.contains('mpi-frame-strip__thumb--lifted'), from);
+      await window.mouse.move(c.x + dx, c.y, { steps: 3 });
+      await window.mouse.up();
+      return lifted;
+    };
+    const REORDERED = ['s0', 's1', 's3', 's2', 's4', 's5'];
+    expect(await holdDrag(2, 70), 'a held thumbnail lifts').toBe(true);
+    expect(await order()).toEqual(REORDERED);
+    expect(await pillHidden()).toBe(false);
+    expect(await counter(), 'the view stays on the moved frame').toBe('0003');
+    expect(await maskAt(3), 'frame s2 kept its mask at its new place').toBe(urls[2]);
+    expect(await maskAt(2)).toBe(urls[3]);
+    expect(await tintAt(3)).toContain(urls[2]);
+
+    // ── Discard puts the frames and their masks back ─────────────────────────
+    await window.evaluate(() => document.querySelector('[data-mount="discard-btn"] button').click());
+    expect(await order()).toEqual(STRIP_HASHES);
+    expect(await pillHidden()).toBe(true);
+    expect(await maskAt(2)).toBe(urls[2]);
+    expect(await maskAt(3)).toBe(urls[3]);
+
+    // ── Update saves the order and keeps every mask ──────────────────────────
+    await holdDrag(2, 70);
+    expect(await order()).toEqual(REORDERED);
+    await window.evaluate(() => document.querySelector('[data-mount="update-btn"] button').click());
+    await expect.poll(() => window.evaluate(() => window.__strip.calls.length)).toBe(1);
+    await expect.poll(pillHidden).toBe(true);
+    expect(await window.evaluate(() => window.__strip.calls[0].frames.map(f => f.hash))).toEqual(REORDERED);
+    expect(await maskAt(3), 'an Update never drops masks').toBe(urls[2]);
+    expect(await maskAt(0)).toBe(urls[0]);
+    await expect.poll(() => tintAt(3)).toContain(urls[2]);
+
+    // ── Play in the Mask Brush plays the frames under their tint ─────────────
+    await openRailTool(window, 'Mask Brush');
+    await waitEditFrame(window);
+    const playBtn = '.mpi-gif-control-bar [data-mount="play"] button';
+    const editState = () => window.evaluate(() => {
+      const tint = document.querySelector('.mpi-gif-viewer__mask-tint');
+      return {
+        playing: document.querySelector('.mpi-gif-viewer__edit').classList.contains('mpi-gif-viewer__edit--playing'),
+        frameHidden: document.querySelector('.mpi-gif-viewer__frame-wrap').hidden,
+        tint: tint.classList.contains('mpi-gif-viewer__mask-tint--visible') && tint.classList.contains('mpi-gif-viewer__mask-tint--luma'),
+      };
+    });
+    expect(await editState()).toEqual({ playing: false, frameHidden: true, tint: false });
+    const startFrame = await counter();
+    await window.evaluate((sel) => document.querySelector(sel).click(), playBtn);
+    expect(await editState()).toEqual({ playing: true, frameHidden: false, tint: true });
+    await expect.poll(counter, { timeout: 5000 }).not.toBe(startFrame);
+    await window.evaluate((sel) => document.querySelector(sel).click(), playBtn);
+    expect(await editState()).toEqual({ playing: false, frameHidden: true, tint: false });
+    await waitEditFrame(window);
+
+    expect(pageErrors).toEqual([]);
   } finally {
     await closeApp(app);
   }

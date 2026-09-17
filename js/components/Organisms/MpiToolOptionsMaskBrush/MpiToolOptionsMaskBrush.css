@@ -1,0 +1,18 @@
+/* MpiToolOptionsMaskBrush — the strip is the tool; this only styles the GIF
+   note (MPI-771). */
+
+.mpi-tool-options-mask-brush__info {
+    margin: var(--s-2) var(--s-2) 0;
+    padding: var(--s-2);
+    color: var(--ink-3);
+    background: var(--surface-1);
+    border: 1px solid var(--line);
+    border-radius: var(--r-2);
+    font-size: var(--t-2xs);
+    line-height: 1.45;
+}
+
+.mpi-tool-options-mask-brush__info b {
+    color: var(--ink-2);
+    font-weight: 700;
+}

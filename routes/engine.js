@@ -12,12 +12,11 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
-const { SYS_DEPS_PATH, checkUniversalWorkflowDepsStatus, processState, stopComfyUI, getExtraModelFolders, getDefaultModelsRoot, resolveModelsRoot, getCustomRoot, resolveComfyPath, getUniversalWorkflowDeps, runPipCommand, NODE_COMMIT_MARKER, curatedDepsMarkerPath } = require('./shared');
+const { SYS_DEPS_PATH, checkUniversalWorkflowDepsStatus, processState, stopComfyUI, getDefaultModelsRoot, resolveModelsRoot, getCustomRoot, resolveComfyPath, getUniversalWorkflowDeps, runPipCommand, NODE_COMMIT_MARKER, curatedDepsMarkerPath, writeExtraModelPathsYaml } = require('./shared');
 const logger = require('./logger');
 const { broadcastEngineEvent, FileDownloader, registerEngineDownload, clearEngineDownload, startUniversalWorkflowInstall, finishCustomNodeInstall } = require('./downloadManager');
 const { COMFY_DIR, COMFY_VENV_DIR, COMFY_VERSION, TORCH_MAC, getPythonBin, getComfyPath, resolveDownloadConfig, resolveUvBin, getEngineRoot } = require('./platformEngine');
 const { ensureGit } = require('./gitProvision');
-const { buildExtraModelPathsYaml } = require('./yamlHelper');
 const { spawn, execFile } = require('child_process');
 const { promisify } = require('util');
 
@@ -662,14 +661,16 @@ async function _runEngineDownload(chosenModelsRoot) {
             // overwriting any stale default that survived the scrub.
             const chosenRoot = resolveModelsRoot(chosenModelsRoot);
             await fs.ensureDir(chosenRoot);
-            await fs.writeFile(extraConfigPath, buildExtraModelPathsYaml(chosenRoot, await getExtraModelFolders(), defaultModelsDir), 'utf8');
+            // The shared writer also updates model_roots.json, which getCustomRoot()
+            // reads first (MPI-656) — a direct YAML write would leave it stale.
+            await writeExtraModelPathsYaml(chosenRoot);
             logger.info('engine', `extra_model_paths.yaml written with chosen root: ${chosenRoot}`);
         } else if (!(await fs.pathExists(extraConfigPath))) {
             // No explicit choice and no surviving YAML — write the env-aware default
             // root (portable launcher sets CUBRIC_MODELS_ROOT=<root>/models). The
             // default lives OUTSIDE the engine folder.
             await fs.ensureDir(defaultModelsDir);
-            await fs.writeFile(extraConfigPath, buildExtraModelPathsYaml(defaultModelsDir, await getExtraModelFolders(), defaultModelsDir), 'utf8');
+            await writeExtraModelPathsYaml(defaultModelsDir);
             logger.info('engine', `extra_model_paths.yaml written with default: ${defaultModelsDir}`);
         } else {
             logger.info('engine', `extra_model_paths.yaml already exists, preserving existing configuration`);

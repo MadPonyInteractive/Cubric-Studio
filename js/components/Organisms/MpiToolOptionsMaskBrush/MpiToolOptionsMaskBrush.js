@@ -11,6 +11,9 @@
  * Props:
  * @param {object} viewer - MpiCanvasViewer instance, or MpiGifViewer (MPI-771
  *   `gifMaskBrush`: it implements the same surface over one frame at a time)
+ * @param {string} [mode] - the rail mode; `gifMaskBrush` adds a note saying the
+ *   fixes are kept per frame and baked by the Cut-out tool (Fabio chose a note
+ *   over a second Cut out button, 2026-09-16)
  *
  * Requires on viewer.el:
  *   enterMode('mask'), exitMode(), evaluateMask(), setMaskPointsMode()
@@ -23,10 +26,14 @@ import { qs }               from '../../../utils/dom.js';
 
 export const MpiToolOptionsMaskBrush = ComponentFactory.create({
     name: 'MpiToolOptionsMaskBrush',
+    css: ['js/components/Organisms/MpiToolOptionsMaskBrush/MpiToolOptionsMaskBrush.css'],
 
-    // ponytail: no stylesheet — the strip brings its own and this is a slot.
-    template: () => `
+    template: (props) => `
         <div class="mpi-tool-options-mask-brush">
+            ${props.mode === 'gifMaskBrush' ? `
+            <p class="mpi-tool-options-mask-brush__info">
+                Fixes are kept per frame. Cut them out with the <b>Cut-out</b> tool.
+            </p>` : ''}
             <div id="strip-slot"></div>
         </div>
     `,

@@ -22,6 +22,7 @@ const { exec, spawn } = require('child_process');
 const { COMFY_DIR, getPythonBin, getComfyPath, getEngineRoot } = require('./platformEngine');
 const { buildExtraModelPathsYaml } = require('./yamlHelper');
 const { cleanEngineScratch } = require('./engineScratch');
+const { setRoots, getModelRootsPath } = require('./modelRoots');
 
 const _require = createRequire(__filename);
 
@@ -665,9 +666,32 @@ async function cleanEmptyDirs(filePath, stopAt) {
 }
 
 /**
- * Helper: read the custom ComfyUI models root from extra_model_paths.yaml if present.
+ * Helper: read the custom ComfyUI models root.
+ *
+ * Source of truth is model_roots.json (Phase 1: single-root list). On installs
+ * that pre-date model_roots.json the function falls back to the YAML regex and
+ * writes model_roots.json so future calls skip the regex entirely.
+ *
+ * Return value and signature are unchanged — callers see null (default root) or
+ * a string (custom root path), exactly as before.
  */
 async function getCustomRoot() {
+    // model_roots.json is the source of truth (Phase 1: first entry = custom root).
+    const rootsJsonPath = getModelRootsPath();
+    if (await fs.pathExists(rootsJsonPath)) {
+        try {
+            const raw = await fs.readJson(rootsJsonPath);
+            const roots = Array.isArray(raw.roots)
+                ? raw.roots.filter((r) => typeof r === 'string' && r.trim())
+                : [];
+            return roots.length > 0 ? roots[0] : null;
+        } catch (err) {
+            logger.warn('comfy', `Failed to read model_roots.json: ${err.message}`);
+        }
+    }
+
+    // Migration: yaml-only install — seed model_roots.json from YAML base_path so
+    // future reads never need to parse the YAML again.
     const extraConfigPath = getComfyPath(ENGINE_ROOT, 'extra_model_paths.yaml');
     if (await fs.pathExists(extraConfigPath)) {
         const content = await fs.readFile(extraConfigPath, 'utf8');
@@ -678,6 +702,13 @@ async function getCustomRoot() {
             // Remove surrounding quotes if present
             if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
                 value = value.slice(1, -1);
+            }
+            // Seed model_roots.json so future reads skip the regex.
+            try {
+                await setRoots([value]);
+                logger.info('comfy', `model_roots.json seeded from YAML migration: ${value}`);
+            } catch (writeErr) {
+                logger.warn('comfy', `Failed to write model_roots.json during migration: ${writeErr.message}`);
             }
             return value;
         }
@@ -805,6 +836,11 @@ async function writeExtraModelPathsYaml(primaryRoot, extras = null) {
     const extraConfigPath = getComfyPath(ENGINE_ROOT, 'extra_model_paths.yaml');
     await fs.ensureDir(path.dirname(extraConfigPath));
     await fs.writeFile(extraConfigPath, buildExtraModelPathsYaml(root, normalizedExtras, getDefaultModelsRoot()), 'utf8');
+    // Keep model_roots.json (the source of truth) in sync with the YAML. The
+    // default root is stored as itself, exactly what the YAML's base_path says
+    // and what getCustomRoot() returned before the JSON existed (MPI-656 Phase 1
+    // changes no behaviour).
+    await setRoots([root]);
     return extraConfigPath;
 }
 

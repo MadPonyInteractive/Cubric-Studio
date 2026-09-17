@@ -146,17 +146,28 @@ test('gif workspace: no PromptBox; play/step/scrub keep the strip centred; reord
     expect(Number(c.current), 'scrubbing right must move toward frame 0').toBeLessThan(FRAME_HASHES.length - 1);
     expect(c.cur, 'counter and strip centre must always agree').toBe(String(c.current).padStart(4, '0'));
 
-    // Reorder — drag the thumb currently at index 0 two slots right. Staged
-    // only: no fetch yet, but the pill appears with a non-zero change count.
+    // Reorder — a PLAIN drag on a thumb only scrubs (Fabio, 2026-09-16);
+    // press and hold first, then drag the thumb at index 0 two slots right.
+    // Staged only: no fetch yet, but the pill appears with a non-zero change count.
     const before = await thumbCount(window);
-    await window.evaluate(() => {
+    const dragThumb0 = () => window.evaluate(() => {
       const thumb = document.querySelector('.mpi-frame-strip__thumb[data-index="0"]');
       const rect = thumb.getBoundingClientRect();
       const x0 = rect.left + rect.width / 2;
       thumb.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: x0, button: 0 }));
-      window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: x0 + 140 }));
-      window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: x0 + 140 }));
+      window.__x0 = x0;
     });
+    const moveAndDrop = () => window.evaluate(() => {
+      window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: window.__x0 + 140 }));
+      window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: window.__x0 + 140 }));
+    });
+    await dragThumb0();
+    await moveAndDrop();
+    expect(await window.evaluate(() => document.querySelector('.mpi-frame-strip__pill').hidden),
+      'a plain drag must not stage a reorder').toBe(true);
+    await dragThumb0();
+    await window.waitForTimeout(450);
+    await moveAndDrop();
     expect(await thumbCount(window)).toBe(before);
     expect(await window.evaluate(() => document.querySelector('.mpi-frame-strip__pill').hidden),
       'reorder must stage a pending change').toBe(false);

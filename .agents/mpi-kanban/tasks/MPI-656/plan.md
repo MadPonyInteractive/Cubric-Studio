@@ -63,7 +63,9 @@ and add nothing. If implementation reveals a gap, record it under `Plan Drift`.
 
 ## Completed
 
-- [ ] Nothing yet.
+- [x] Phase 1 (2026-09-16, session d58ac006, NOT COMMITTED): `routes/modelRoots.js`, `model_roots.json`
+      as the source of truth with a YAML migration, every YAML write through
+      `writeExtraModelPathsYaml()` (incl. `routes/engine.js`). Evidence: `validation.md`.
 
 ## Remaining Work
 
@@ -218,7 +220,11 @@ consumes `modelRoots.js` and touches nothing the others touch. Dispatch with
 
 ## Plan Drift
 
-- None yet.
+- 2026-09-16 (Phase 1): `model_roots.json` sits in the ComfyUI folder (beside the YAML and
+  `extra_model_folders.json`), so an engine wipe drops it with the YAML. The default root is
+  stored as itself, not `[]`. `routes/engine.js` wrote the YAML directly and had to go through
+  the shared writer; Phase 2 must keep every YAML write there. `buildExtraModelPathsYaml` takes
+  an array but still emits only the first root (Phase 3 work).
 
 ## Verification
 

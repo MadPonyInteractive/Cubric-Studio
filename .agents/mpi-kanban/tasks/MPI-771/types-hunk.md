@@ -44,3 +44,13 @@ not applied. Land them by hunk once the claim is released, then delete this file
 ## `MpiFrameStrip` typedef (if it lists methods)
 
 `setMaskOverlay(masks|null, edited = [])` — `edited` marks hand-fixed positions.
+
+## Added 2026-09-16 (session d58ac006, Fabio's six findings)
+
+- `MpiGifViewerProps`: `setFrames(frames, order?)` — `order[newPos]` = old position; the
+  cut-out masks move with their frames, no `order` clears them. Play also works in the Mask
+  Brush (plain frames under their mask tint).
+- `MpiFrameStrip`: emits `'stage-change' { frames, order }`; a drag scrubs, a 300 ms hold then
+  drag reorders; the pill has Discard.
+- `MpiToolOptionsMaskBrushProps`: `@property {string} [mode]` — `gifMaskBrush` shows a note
+  that the fixes are baked by the Cut-out tool.

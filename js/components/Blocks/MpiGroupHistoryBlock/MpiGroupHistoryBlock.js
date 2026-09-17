@@ -541,9 +541,10 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             // own working copy and never touches the server — feed the same
             // list straight into the viewer so scrubbing/playback reflect it
             // immediately, then re-centre the marker on wherever the current
-            // frame's CONTENT (not its old numeric index) landed.
-            _unsubs.push(frameStrip.on('stage-change', ({ frames }) => {
-                viewer.el.setFrames(frames);
+            // frame's CONTENT (not its old numeric index) landed. `order` lets
+            // the cut-out masks travel with their frames.
+            _unsubs.push(frameStrip.on('stage-change', ({ frames, order }) => {
+                viewer.el.setFrames(frames, order);
                 gifControlBar.el.setFrameCount(frames.length);
                 frameStrip.el.setCurrentIndex(viewer.el.getFrameIndex());
             }));

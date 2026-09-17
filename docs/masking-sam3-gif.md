@@ -60,11 +60,15 @@ the VIEWER so both reach them.
 
 ### Where the masks live — `MpiGifViewer` + `gifFrameMasks.js`
 
-Per frame POSITION, because a track belongs to a position: `track` (engine URL), `edits`
+Per frame POSITION, because a track comes back per position: `track` (engine URL), `edits`
 (the brush's manual/subtract layers as working-res alpha PNGs) and `composed` (the B/W PNG
-the canvas exported when the edits were saved). The whole store is tied to the frame list's
-signature: a strip reorder/delete empties it (the Block toasts), a different entry does too
-(silently). `getCutMasks()` sends the track URL for an untouched frame, the composite for a
+the canvas exported when the edits were saved). A mask still describes its own frame's
+pixels, so a staged strip reorder, delete or Discard CARRIES the masks along: the strip's
+`'stage-change'` sends `order` (each new position's old one), the Block passes it to
+`setFrames(frames, order)`, and `remap()` rebinds the store. Update/Apply then reload the same
+list, so the signature matches and nothing is lost (Fabio lost every fix to one stray drag
+before this). A different entry empties the store silently; a list change with no `order`
+empties it and the Block toasts. `getCutMasks()` sends the track URL for an untouched frame, the composite for a
 brushed one, a 1x1 black PNG for a frame with neither (`applyMaskAlpha()` resizes a mask to
 its frame). A re-track replaces TRACKS only (Fabio: brush fixes survive); a brushed frame's
 composite is then stale and is rebuilt through a headless `MaskManager`, so there is ONE
@@ -78,10 +82,13 @@ The image-mode `MpiToolOptionsMaskBrush`, unchanged: `MpiGifViewer` implements i
 `enterMode('mask')` / `exitMode()` and the whole `MpiMaskStrip` surface. `enterMode` mounts an
 `MpiCanvas` over the stage holding the current frame, its track as the BASE layer
 ([masking.md](masking.md)) and its brush layers; stepping frames saves and reloads, keeping a
-zoomed view and the brush size. Playback and the GIF preview are off while it is up. Undo is
-per frame visit (`loadImage` clears the stack). Its own mode, not `maskBrush`: that one is in
-the Block's `_MASK_TOOLS` and drives image-canvas bridges. The brush works with no track at
-all (paint a mask from scratch).
+zoomed view and the brush size. The GIF preview is off while it is up. **Play** hides the
+canvas (`visibility`, so its view survives) and plays the plain frames under their mask tint,
+a flicker check; pause brings the canvas back on the current frame. Undo is per frame visit
+(`loadImage` clears the stack). Its own mode, not `maskBrush`: that one is in the Block's
+`_MASK_TOOLS` and drives image-canvas bridges. The brush works with no track at all (paint a
+mask from scratch). Under `gifMaskBrush` the panel shows a note that the fixes are baked by
+Cut-out; Fabio chose that over a second Cut out button (2026-09-16).
 
 ### Cut-out — `MpiToolOptionsGifCutout`
 
@@ -99,7 +106,8 @@ all (paint a mask from scratch).
    any frame has a mask. Grow/Shrink previews LIVE on the current frame with the same
    `managers/distanceField.js` functions `applyMaskAlpha()` runs, over
    `viewer.el.getFrameMaskURL(idx)` (a small LRU of decoded masks and fields; composed masks
-   are data URLs). Fill Holes has no preview.
+   are data URLs). Fill Holes has no preview. All three persist in `toolSettings.gifCutout`
+   beside `textPrompt`, so a trip to the Mask Brush does not reset them.
 5. **Cut out** — `viewer.el.getCutMasks()`, then emits `{ frames, masks, adjust, invert }`; the
    Block posts `/gif-cutout/apply` and appends the entry (`_handleGifCutoutApply`), never
    through `/gif/entry`.
@@ -107,8 +115,10 @@ all (paint a mask from scratch).
 ### Tints
 
 - `'mask-tint' { url }` — the current frame's ADJUSTED mask as white-with-alpha →
-  `MpiGifViewer.el.setMaskTint(url)`: an `--accent-heat` div clipped by CSS `mask-image`,
-  `contain` + centred, because the wrap is full height and a short frame sits letterboxed in it.
+  `MpiGifViewer.el.setMaskTint(url)`: an `--accent-heat` div over the whole stage, clipped by
+  CSS `mask-image`, `contain` + centred — the same box the frame img fills with
+  `object-fit: contain` (frames scale UP to the stage too). Play in the Mask Brush drives the
+  same div with the raw B/W masks under `--luma` (`mask-mode: luminance`).
 - The strip tint uses `mask-mode: luminance` (engine and composed masks are opaque B/W) and
   `cover` sizing to match the thumb's `object-fit: cover`.
 - Mask URLs from the engine are cross-origin; reading their pixels (tint, base layer) relies on

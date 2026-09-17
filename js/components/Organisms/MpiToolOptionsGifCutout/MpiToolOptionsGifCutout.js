@@ -54,7 +54,8 @@ const OBJECT_SLOTS = 4;
 const MAX_R = 50;
 /** Decoded masks kept for the tint; composed masks are data URLs, so keys can be big. */
 const DECODE_CACHE = 8;
-const DEFAULTS = { textPrompt: '' };
+/** Every setting survives a trip to the Mask Brush and back (Decision 14: set once). */
+const DEFAULTS = { textPrompt: '', grow: 0, fillHoles: false, invert: false };
 
 /** A frame list's identity: its hashes in order (masks are per position). */
 const frameSignature = (frames) => frames.map(f => f.hash).join('|');
@@ -114,10 +115,11 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         let _lastScope = null;
         /** Temp source videos by frame signature — a chip re-dispatch reuses one. */
         const _videos = new Map();
-        let _grow = 0;
-        let _fillHoles = false;
-        let _invert = false;
+        let _grow = Math.max(-MAX_R, Math.min(MAX_R, Math.round(Number(settings.grow) || 0)));
+        let _fillHoles = settings.fillHoles === true;
+        let _invert = settings.invert === true;
         let _destroyed = false;
+        const _save = (key, value) => Events.emit('settings:tool:update', { toolKey: 'gifCutout', key, value });
 
         /** Raw decoded alpha, then its distance field, per mask URL (small LRU). */
         const _alphaCache = new Map(); // url -> { width, height, alpha: Uint8Array }
@@ -136,7 +138,7 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         });
         promptInput.on('input', ({ value }) => {
             _raw = value;
-            Events.emit('settings:tool:update', { toolKey: 'gifCutout', key: 'textPrompt', value });
+            _save('textPrompt', value);
         });
         _children.push(promptInput);
 
@@ -205,7 +207,7 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         // ── Mask Adjust — Grow/Shrink slider reusing distanceField.js's math ───
 
         const growSlider = MpiProgressBar.mount(qs('#grow-slot', el), {
-            min: -MAX_R, max: MAX_R, step: 1, value: 0,
+            min: -MAX_R, max: MAX_R, step: 1, value: _grow,
             interactive: true, handle: true, wheel: true, info: '',
         });
         _children.push(growSlider);
@@ -216,21 +218,22 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         growSlider.on('input', ({ value }) => {
             _grow = value;
             _syncGrowLabel();
+            _save('grow', value);
             if (_raf) return;
             _raf = requestAnimationFrame(() => { _raf = 0; _updateCurrentTint(); });
         });
         _syncGrowLabel();
 
         const fillChip = MpiCheckbox.mount(qs('#fill-slot', el), {
-            checked: false, label: 'Fill Holes', name: 'gif-cutout-fill-holes',
+            checked: _fillHoles, label: 'Fill Holes', name: 'gif-cutout-fill-holes',
         });
-        fillChip.on('change', ({ checked }) => { _fillHoles = checked; });
+        fillChip.on('change', ({ checked }) => { _fillHoles = checked; _save('fillHoles', checked); });
         _children.push(fillChip);
 
         const invertChip = MpiCheckbox.mount(qs('#invert-slot', el), {
-            checked: false, label: 'Invert', name: 'gif-cutout-invert', variant: 'switch',
+            checked: _invert, label: 'Invert', name: 'gif-cutout-invert', variant: 'switch',
         });
-        invertChip.on('change', ({ checked }) => { _invert = checked; _updateCurrentTint(); });
+        invertChip.on('change', ({ checked }) => { _invert = checked; _save('invert', checked); _updateCurrentTint(); });
         _children.push(invertChip);
 
         // ── Cut out ──────────────────────────────────────────────────────────
@@ -291,8 +294,12 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             if (!state.currentProject?.folderPath) return;
 
             const single = scope !== 'all';
-            // A single-frame scope is only valid while that frame still sits there.
-            if (single && frames[scope.idx]?.hash !== scope.hash) { _lastScope = null; return; }
+            // A single-frame scope follows its frame through a staged reorder.
+            if (single && frames[scope.idx]?.hash !== scope.hash) {
+                const idx = frames.findIndex(f => f.hash === scope.hash);
+                if (idx === -1) { _lastScope = null; return; }
+                scope = { idx, hash: scope.hash };
+            }
             const listSig = frameSignature(frames);
             _setBusy(true, single ? 'frame' : 'all');
 

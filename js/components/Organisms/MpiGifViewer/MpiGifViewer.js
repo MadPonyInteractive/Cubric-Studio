@@ -26,11 +26,15 @@
  * Instance API (on el):
  *   loadFrames(frames, { loop = 0 } = {})  — replace the frame list, reset to
  *                                            frame 0, stop any playback.
- *   setFrames(frames)                      — replace the frame list WITHOUT
+ *   setFrames(frames, order?)              — replace the frame list WITHOUT
  *                                            resetting position (staged strip
  *                                            edits): keeps showing the same
  *                                            frame (by hash) when it still
  *                                            exists, else clamps the index.
+ *                                            `order[newPos]` = that frame's
+ *                                            position in the current list; the
+ *                                            cut-out masks move with it. No
+ *                                            `order` = the masks are cleared.
  *   getFrames() / getFrameCount() / getFrameIndex()
  *   setFrameIndex(idx)                     — jump to an exact index (clamped)
  *   stepFrame(delta)                       — relative step (clamped, no wrap)
@@ -48,8 +52,8 @@
  *                                            Owned by the cut-out tool panel;
  *                                            `null` clears it.
  *
- * Cut-out masks (MPI-771, plan Decision 14) — per frame POSITION, emptied when
- * the frame list changes (`gifFrameMasks.js`):
+ * Cut-out masks (MPI-771, plan Decision 14) — per frame POSITION, carried along a
+ * staged reorder/delete and emptied when a different list loads (`gifFrameMasks.js`):
  *   setTrackMasks(urls) / setTrackMask(idx, url) — engine masks (Track All /
  *                                            Track Single Frame). Brush fixes stay.
  *   getFrameMaskURL(idx)                   — Promise: what `idx` would cut with
@@ -62,9 +66,12 @@
  *   enterMode('mask'|'none') / exitMode()  — the Mask Brush: an MpiCanvas over
  *                                            the stage holding the current frame,
  *                                            its track as the BASE layer and its
- *                                            brush layers. Pauses and blocks
- *                                            playback; stepping frames saves and
- *                                            reloads, keeping a zoomed view.
+ *                                            brush layers. Stepping frames saves
+ *                                            and reloads, keeping a zoomed view.
+ *                                            Play hides the canvas and plays the
+ *                                            frames under their mask tint (a
+ *                                            flicker check); pause brings the
+ *                                            canvas back on the current frame.
  *   setMaskBrushMode, setMaskBrushPreset, setMaskInverted, isMaskInverted,
  *   setMaskBwView, isMaskBwView, setMaskPaintEnabled, setMaskOpacity,
  *   clearMask                              — the `MpiMaskStrip` surface, so the
@@ -178,7 +185,8 @@ export const MpiGifViewer = ComponentFactory.create({
             const f = _frames[_index];
             if (!f) return;
             frameImg.src = f.url;
-            if (_editing) _loadEditFrame(_index);
+            if (_editing && _playing) _setTint(_masks.overlayAt(_index), true);
+            else if (_editing) _loadEditFrame(_index);
             emit('frame-change', { idx: _index, frame: f });
         }
 
@@ -186,6 +194,7 @@ export const MpiGifViewer = ComponentFactory.create({
             if (_playTimer) { clearTimeout(_playTimer); _playTimer = null; }
             if (_playing) {
                 _playing = false;
+                if (_editing) _showEditCanvas();
                 emit('pause');
             }
         }
@@ -198,8 +207,7 @@ export const MpiGifViewer = ComponentFactory.create({
                 if (_index >= _frames.length - 1) {
                     _playsDone++;
                     if (_loop !== 0 && _playsDone >= _loop) {
-                        _playing = false;
-                        emit('pause');
+                        _stopPlayback();
                         emit('ended');
                         return;
                     }
@@ -221,20 +229,32 @@ export const MpiGifViewer = ComponentFactory.create({
             _loop = Number.isFinite(+loop) ? +loop : 0;
             _index = 0;
             _cache.clear();
-            _syncMasks(false);
+            // A saved revision of the same list keeps its masks; the strip
+            // re-reads them either way.
+            if (!_syncMasks(false)) _emitMasks();
             if (_frames.length) {
                 _preloadWindow(0);
                 _render();
             }
         };
 
-        el.setFrames = (frames) => {
+        el.setFrames = (frames, order = null) => {
             const prevHash = _frames[_index]?.hash;
-            _frames = Array.isArray(frames) ? frames.slice() : [];
+            const next = Array.isArray(frames) ? frames.slice() : [];
+            if (Array.isArray(order) && order.length === next.length) {
+                _saveEdit(); // the canvas layers belong to the OLD position
+                _masks.remap(next, order);
+                _editIdx = -1;
+                _dirty = false;
+                _frames = next;
+                _emitMasks();
+            } else {
+                _frames = next;
+                _syncMasks(true);
+            }
             let idx = _frames.findIndex(f => f.hash === prevHash);
             if (idx === -1) idx = Math.min(_index, Math.max(0, _frames.length - 1));
             _index = idx;
-            _syncMasks(true);
             _preloadWindow(_index);
             if (_frames.length) _render();
         };
@@ -255,10 +275,12 @@ export const MpiGifViewer = ComponentFactory.create({
         el.stepFrame = (delta) => el.setFrameIndex(_index + (Number(delta) || 0));
 
         el.play = () => {
-            // Playing would reload the brush canvas every frame.
-            if (_playing || _preview || _editing || _frames.length < 2) return;
+            if (_playing || _preview || _frames.length < 2) return;
             _playing = true;
             _playsDone = 0;
+            // The brush canvas would reload every frame: play the plain frames
+            // under their mask tint instead (Fabio, 2026-09-16).
+            if (_editing) _hideEditCanvas();
             emit('play');
             _scheduleNext();
         };
@@ -301,7 +323,9 @@ export const MpiGifViewer = ComponentFactory.create({
         // `mask-image`, sized to the frame img's own rendered box by
         // `.mpi-gif-viewer__frame-wrap` (docs/masking-sam3-gif.md) — read-only
         // preview, never a canvas layer, so no UndoStack entry applies.
-        el.setMaskTint = (url) => {
+        /** `luma`: an opaque B/W mask (engine / composed) rather than an alpha one. */
+        function _setTint(url, luma = false) {
+            maskTintEl.classList.toggle('mpi-gif-viewer__mask-tint--luma', !!url && luma);
             if (url) {
                 maskTintEl.style.webkitMaskImage = `url("${url}")`;
                 maskTintEl.style.maskImage = `url("${url}")`;
@@ -311,7 +335,8 @@ export const MpiGifViewer = ComponentFactory.create({
                 maskTintEl.style.webkitMaskImage = '';
                 maskTintEl.style.maskImage = '';
             }
-        };
+        }
+        el.setMaskTint = (url) => _setTint(url);
 
         // ── Cut-out masks (MPI-771, plan E10) ────────────────────────────
 
@@ -325,15 +350,17 @@ export const MpiGifViewer = ComponentFactory.create({
 
         /**
          * A different frame list makes every position-keyed mask meaningless.
-         * `announce`: a staged reorder/delete threw masks away (a new entry did not).
+         * `announce`: a staged edit with no `order` threw masks away (a new entry did not).
+         * @returns {boolean} true when masks were dropped (and announced to listeners)
          */
         function _syncMasks(announce) {
-            if (!_masks.sync(_frames)) return;
+            if (!_masks.sync(_frames)) return false;
             // The canvas still holds the old position's layers — never save them
             // into the new list.
             _editIdx = -1;
             _dirty = false;
             _emitMasks(announce);
+            return true;
         }
 
         /**
@@ -481,8 +508,27 @@ export const MpiGifViewer = ComponentFactory.create({
             _loadEditFrame(_index);
         }
 
+        /** Playback in the Mask Brush: the plain frame under its tint. The canvas
+         *  keeps its layout (visibility, not display) so its view survives. */
+        function _hideEditCanvas() {
+            _saveEdit();
+            _editToken++; // drop an in-flight frame load
+            _editIdx = -1;
+            editSlot.classList.add('mpi-gif-viewer__edit--playing');
+            frameWrap.hidden = false;
+            _setTint(_masks.overlayAt(_index), true);
+        }
+
+        function _showEditCanvas() {
+            _setTint(null);
+            editSlot.classList.remove('mpi-gif-viewer__edit--playing');
+            frameWrap.hidden = true;
+            _loadEditFrame(_index);
+        }
+
         function _exitEdit() {
             if (!_editing) return;
+            if (_playing) _setTint(null);
             _saveEdit();
             _editToken++;
             _brushSize = _canvas?.el.brushSize ?? _brushSize;
@@ -491,6 +537,7 @@ export const MpiGifViewer = ComponentFactory.create({
             _editing = false;
             _editIdx = -1;
             editSlot.hidden = true;
+            editSlot.classList.remove('mpi-gif-viewer__edit--playing');
             frameWrap.hidden = _preview;
         }
 

@@ -86,6 +86,14 @@
     border-color: var(--accent-heat);
 }
 
+/* Held long enough to reorder: it lifts above its neighbours. */
+.mpi-frame-strip__thumb--lifted {
+    z-index: 3;
+    border-color: var(--accent-heat);
+    transform: translateY(-2px) scale(1.06);
+    cursor: grabbing;
+}
+
 .mpi-frame-strip__thumb.is-selected {
     border-color: var(--accent-warn);
     outline: 2px solid var(--accent-warn);
@@ -105,10 +113,11 @@
     z-index: 2;
 }
 
-/* Staged-edit pill — count + Update/Apply, hidden until something changed. */
+/* Staged-edit pill — count + Discard/Update/Apply, hidden until something
+   changed. It floats ABOVE the strip so it never covers a thumbnail. */
 .mpi-frame-strip__pill {
     position: absolute;
-    top: var(--s-2);
+    bottom: calc(100% + var(--s-2));
     right: var(--s-4);
     z-index: 3;
     display: flex;

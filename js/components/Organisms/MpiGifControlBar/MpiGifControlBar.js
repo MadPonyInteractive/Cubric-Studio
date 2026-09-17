@@ -165,9 +165,16 @@ export const MpiGifControlBar = ComponentFactory.create({
         };
 
         el.setFrameCount = (n) => {
-            _frameCount = Number.isFinite(+n) && +n > 0 ? +n : 0;
+            const next = Number.isFinite(+n) && +n > 0 ? +n : 0;
+            const changed = next !== _frameCount;
+            _frameCount = next;
             trim.el.setFrameCount(_frameCount);
             trim.el.setDuration(Math.max(0, _frameCount - 1));
+            // attachViewer() runs before any frame loads, so the range it set
+            // is the one-frame minimum; setDuration() only clamps it. A new
+            // count gets the full range.
+            // ponytail: trim is not persisted yet — MPI-772's Trim tool owns keeping it.
+            if (changed) trim.el.setRangeQuiet(0, Math.max(0, _frameCount - 1));
             _renderCount();
         };
 

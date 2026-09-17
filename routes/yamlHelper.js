@@ -26,7 +26,12 @@ const _require = createRequire(__filename);
  * When a new dep with a new folder type is added to dependencies.js, the YAML
  * auto-includes it on the next engine install or path set — no manual edits needed.
  *
- * @param {string} basePath - Absolute path to the primary (active) models root.
+ * @param {string|string[]} basePath
+ *   Absolute path to the primary (active) models root, OR an ordered array of
+ *   roots (Phase 3: main first). When an array is supplied only the first element
+ *   is used in Phase 1; extra elements are reserved for future multi-root blocks.
+ *   A plain string is accepted for backward compatibility (routes/engine.js calls
+ *   this function directly with a string).
  * @param {{ loras?: string[], upscale_models?: string[] }} [extras] - Absolute bucket folders to add.
  * @param {string} [defaultRoot] - Absolute path to the default models root. Always
  *   emitted as its own block so it is never dropped when basePath is custom. When
@@ -34,7 +39,9 @@ const _require = createRequire(__filename);
  * @returns {string} YAML file content.
  */
 function buildExtraModelPathsYaml(basePath, extras = {}, defaultRoot = null) {
-    const normalizedBase = basePath.replace(/\\/g, '/');
+    // Accept both a plain string (backward compat, engine.js) and an array (Phase 3).
+    const primaryRoot = Array.isArray(basePath) ? basePath[0] : basePath;
+    const normalizedBase = primaryRoot.replace(/\\/g, '/');
     const normalizedDefault = defaultRoot ? defaultRoot.replace(/\\/g, '/') : null;
     const normalizedExtras = {
         loras: _normalizeExtraPaths(extras.loras),

@@ -91,6 +91,31 @@ investigators got wrong: [research/2026-09-15-investigation.md](research/2026-09
      step works. Fabio was unsure — decide with him (e.g. play the frames with the mask overlay, no canvas).
   6. gif_005 lists `?×?`: `routes/gif.js`'s dims fix is SERVER code, which Ctrl+R does not reload. An app
      restart is needed for route changes; tell him, then re-check.
+- **2026-09-16 ~15:10Z (session d58ac006): all six findings FIXED, NOT COMMITTED, automated checks
+  green** (MPI-771 `validation.md`). Fabio's calls: 1a (drag scrubs; hold 300 ms then drag
+  reorders; Discard; masks follow their frames), 2b (a note in the GIF Mask Brush, no second Cut
+  out), 3a (Play in the Mask Brush plays frames under the tint). The trim collapse was
+  `attachViewer()` running before frames loaded, not the brush. **Next:** Fabio re-checks after a
+  FULL app restart (local engine), then RunPod with his go; `types.js` hunk still waits on
+  MPI-737's claim (`tasks/MPI-771/types-hunk.md`). Same session dispatched MPI-656 Phase 1 (board
+  batch, Fabio "dispatch minus 715"); MPI-558 and MPI-560 Phase 1 were found already landed.
+- **2026-09-17 (Fabio's second check, session d58ac006): scrub works; FOUR new issues, nothing fixed yet.**
+  1. **Hold-drag shows a "copy" and the thumb runs AHEAD of the mouse.** Two suspects, verify both
+     with a REAL-mouse Electron probe (hold 400 ms, move slowly), not synthetic events:
+     (a) math: `MpiFrameStrip._onMove` reorders at half a slot (`Math.round(dx/SLOT)`) but moves the
+     thumb a FULL slot and then resets `_drag.startX`, so the thumb travels ~2x the mouse. Fix:
+     keep the lift point, `target = liftIndex + round(totalDx / SLOT)`.
+     (b) the "copy" reads like Chromium's NATIVE drag ghost: during native DnD no mousemove/mouseup
+     fire, so `_drag` can stay stuck in `thumb` mode and every later mouse move keeps reordering.
+     `mousedown` never calls `preventDefault()` and nothing cancels `dragstart`.
+  2. **Discard stuck at "18 frame changes"** (worked once, not the second time). Fits 1b: a stuck
+     `_drag` re-stages on the next mouse move/up right after Discard. Add a `dragstart`
+     preventDefault + reset `_drag` on `dragend`/`blur`, then re-test Discard.
+  3. **Discard did not remove two brushed masks.** By design Discard only reverts FRAME changes;
+     ask Fabio whether he expects it to revert masks too (masks have Clear + Ctrl+Z per frame).
+  4. **GIF preview button does nothing while the Mask Brush is up** (`setPreview` refuses in edit):
+     disable the control bar's preview button while the viewer is editing (Fabio's call).
+  Nothing else changed since the 15:10Z bullet; all of it is still NOT COMMITTED until this handoff.
 - **Next action (superseded, kept for the record):** MPI-759 root cause in the real app first (he can reload for you; read
   `%APPDATA%\Cubric Vision\logs\app.log` filtered, never drive `:3000`). Then redesign the MPI-771 UI half
   per Decision 14 (plan it with Fabio before coding: it needs a per-frame mask layer and brush). Phase 4
@@ -482,6 +507,9 @@ Phase 5 verify mode: `auto`.
   specs that need an engine result can reuse that seam.
 - 2026-09-16 (Batch 3): `tests/desktop/media-import-outside-gallery.spec.js` fails intermittently in long
   desktop runs (a ~15 s whole-server stall; details in MPI-759 `validation.md`). Not this work; reported.
+- 2026-09-16 (Fabio's first cut-out check): E10's "a reorder clears them" was wrong. A mask
+  describes its frame's pixels, so a staged reorder/delete now carries the masks (`order` ->
+  `gifFrameMasks.remap()`); a plain strip drag scrubs and only a held thumb reorders.
 - 2026-09-16 (Batch 2): `routes/gifMake.js` writes its own sidecar and returns a raw descriptor
   (the `/combine-videos` precedent) rather than going through `/gif/entry`.
 

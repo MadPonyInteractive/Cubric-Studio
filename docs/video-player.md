@@ -139,6 +139,18 @@ History) is the third peer: it and the control bar both listen to the SAME
 `MpiGifViewer` `'frame-change'` event rather than to each other, so the
 marker and the counter can never disagree about the current frame.
 
+Strip gestures: a click jumps, a drag anywhere SCRUBS, and only a thumbnail
+held still for 300 ms (`HOLD_MS`) lifts and reorders — a film strip gets
+dragged to scrub, and a plain drag used to stage a reorder nobody meant
+(Fabio, 2026-09-16). The staged pill has Discard beside Update/Apply and sits
+above the strip.
+
+The GIF bar's trim range is FRAME INDEX (`fps: 1`). `attachViewer()` runs
+before any frame loads, when the smallest legal range is one frame, and
+`MpiTrimBar.setDuration()` only clamps a range — so `setFrameCount()` resets
+the range to every frame whenever the count changes. Without that the out
+handle sat on frame 1 of every GIF.
+
 ## Known non-bug
 
 `frame0 == frame1` on Wan/LTX clips is **content**, DaVinci-confirmed: the model

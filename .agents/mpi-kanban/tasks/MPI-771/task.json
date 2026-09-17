@@ -7,7 +7,7 @@
   "maturity": "validating",
   "status": "active",
   "created_at": "2026-09-15T13:37:30+01:00",
-  "updated_at": "2026-09-16T11:05:05Z",
+  "updated_at": "2026-09-16T14:06:18Z",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -20,7 +20,7 @@
   },
   "attention": {
     "state": "required",
-    "reason": "Needs Fabio's eye check (see validation.md)",
-    "updated_at": "2026-09-16T11:05:05Z"
+    "reason": "Fabio re-checks the six fixes after a FULL app restart (validation.md 2026-09-16 d58ac006)",
+    "updated_at": "2026-09-16T14:06:18Z"
   }
 }

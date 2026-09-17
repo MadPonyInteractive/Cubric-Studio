@@ -110,3 +110,41 @@ Found and fixed on the way:
 
 **OPEN (user-ux):** Fabio, in his app after Ctrl+R: a real GIF, Track All by name, step frames, fix an
 overlap with the Mask Brush, Cut out (local engine); RunPod later with his go.
+
+## 2026-09-16 - Fabio's six findings fixed (session d58ac006); user-ux re-check OPEN
+
+Fabio's calls: 1a (a drag scrubs, hold then drag reorders, Discard, masks follow their
+frames), 2b (a note in the GIF Mask Brush, no second Cut out button), 3a (Play in the Mask
+Brush plays the frames under their tint).
+
+Root causes:
+- **Trim bar collapsed:** not the Mask Brush. `MpiGifControlBar.attachViewer()` runs before any
+  frame loads; with 0 frames `setRangeQuiet(0,0)` clamps the out point to the one-frame
+  minimum (frame 1), and `setFrameCount()` only called `setDuration()`, which clamps and never
+  widens. Reproduced in an isolated app: a fresh 30-frame GIF had out = 3.45%. Now a changed
+  count resets the range to all frames.
+- **"8 frame changes" + masks gone:** a plain thumbnail drag past 4 px staged a reorder, and
+  `setFrames()` then emptied every position-keyed mask. Now a drag scrubs; a 300 ms hold lifts
+  the thumb for a reorder; the strip sends `order` and `gifFrameMasks.remap()` carries the
+  masks; Update/Apply reload the same list so they are kept; the pill gained Discard.
+- **Frame tiny:** the frame img only shrank (`max-width/max-height`); the wrap and img now fill
+  the stage with `object-fit: contain`, the tint uses the same box.
+- **Grow / Fill Holes / Invert reset** on every panel mount; now saved in `toolSettings.gifCutout`.
+- Chip re-dispatch of a single-frame scope now follows its frame after a reorder (by hash).
+
+| Check | Command | Result |
+|---|---|---|
+| Cut-out + workspace specs | `npx playwright test --config=playwright.desktop.config.js tests/desktop/gif-cutout.spec.js tests/desktop/gif-workspace.spec.js --output=<scratchpad>` | 5/5 (new test 4: trim, fill, drag scrubs, hold-drag, masks follow, Discard, Update keeps masks, Play in the brush; test 2: Invert survives a trip to the brush + the brush note) |
+| Bites (7) | scratchpad `bite.py`: trim reset removed; press->reorder on move; masks cleared on reorder; img max-width; play blocked in edit; strip commit clears overlay; invert not restored | all 7 RED, all files restored (cmp against backups) |
+| GIF + image-mask regression | `... gif-cutout gif-workspace history-modes gif-make gallery-gif-hover mask-persist-roundtrip mask-temp-store` | 14/14 |
+| Node suite | `node --test "tests/*.test.cjs"` | 1213 pass, 0 fail, 1 skipped |
+| Lint | `npm run lint` / `npm run lint:components` | clean |
+
+Docs: `docs/masking-sam3-gif.md` (masks follow a reorder, Play in the brush, settings persist,
+tint box), `docs/video-player.md` (strip gestures, trim reset). New
+`MpiToolOptionsMaskBrush.css` registered in `js/shell/preloadStyles.js`. `types.js` still
+blocked by MPI-737's claim: text appended to `types-hunk.md`.
+
+**OPEN (user-ux):** Fabio, after a FULL app restart (server code changed too, and gif_005's
+`?x?` fix was server code): real GIF, Track All, drag the strip (it must scrub), hold-drag a
+frame (masks stay), Discard, brush a fix, Play in the Mask Brush, Cut out.

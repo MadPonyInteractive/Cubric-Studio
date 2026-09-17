@@ -3,10 +3,11 @@
  * (MPI-771, plan Decision 14 / E10). Plain data, no DOM: `MpiGifViewer` owns one
  * instance, both GIF mask tools reach it through the viewer.
  *
- * Every map is keyed by frame POSITION, because a track belongs to a position:
- * the source video the tracker ran on is the frame list in order. So the whole
- * store is tied to the list's signature (its hashes in order) and a reorder or a
- * delete empties it — `sync()`.
+ * Every map is keyed by frame POSITION, because a track is returned per position
+ * of the source video the tracker ran on. A mask still describes its own frame's
+ * pixels wherever that frame moves, so a staged reorder or delete carries the
+ * masks along with their frames (`remap()`, Fabio 2026-09-16: a stray strip drag
+ * must never lose work). Any other change of list empties the store (`sync()`).
  *
  *   track    idx -> engine mask URL (Track All / Track Single Frame)
  *   edits    idx -> { manual, subtract } — the brush layers as working-res alpha
@@ -39,6 +40,22 @@ export class GifFrameMasks {
         this.edits.clear();
         this.composed.clear();
         return had;
+    }
+
+    /**
+     * Rebind to a reordered / trimmed list. `order[newPos]` = the position that
+     * frame held in the list the store was bound to; positions nobody picks are dropped.
+     */
+    remap(frames, order) {
+        const pick = (map) => {
+            const out = new Map();
+            order.forEach((from, to) => { if (map.has(from)) out.set(to, map.get(from)); });
+            return out;
+        };
+        this.track = pick(this.track);
+        this.edits = pick(this.edits);
+        this.composed = pick(this.composed);
+        this._sig = frameSignature(frames);
     }
 
     /** Replace every track (Track All). Brush edits stay; their composites are stale. */
@@ -83,9 +100,13 @@ export class GifFrameMasks {
         return this.track.get(idx) || null;
     }
 
-    /** `maskFor()` for every position, for the frame strip's overlay. Stale edits read as their track. */
+    /** `maskFor()` for display: a stale edit reads as its track. */
+    overlayAt(i) {
+        return (this.edits.has(i) && this.composed.get(i)) || this.track.get(i) || null;
+    }
+
+    /** `overlayAt()` for every position, for the frame strip. */
     overlay(count) {
-        return Array.from({ length: count }, (_, i) =>
-            (this.edits.has(i) && this.composed.get(i)) || this.track.get(i) || null);
+        return Array.from({ length: count }, (_, i) => this.overlayAt(i));
     }
 }
