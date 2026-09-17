@@ -1,11 +1,11 @@
 # MPI-593 Validation
 
-## Closed as REJECTED (Fabio, 2026-09-17)
+## Rejected, then reopened the same day (2026-09-17)
 
-"There should be no command-line interface anywhere." Steps 2-3 (the end-user Node CLI) will not
-be built; Fabio did not know the card existed, and any earlier ask for a CLI was a mistake. Step 1
-(the `cubric-vision` skill split, below) shipped and stays. Agents keep driving the running app over
-its HTTP API through those skills.
+`3e1997a7` closed this card on "there should be no command-line interface anywhere". That misread
+Fabio: he meant **a user never uses a terminal**. An outside agent controlling the installed app is
+still wanted, and this card's CLI is something the AGENT runs. Reopened to `todo` / `deferred` with
+that rule at the head of the description. The four questions in `brief.md` stay his.
 
 ## Step 1: the skill split (2026-09-15, PASSED, auto)
 
