@@ -33,6 +33,9 @@ import { MpiToolOptionsInterpolate } from '../../Organisms/MpiToolOptionsInterpo
 import { MpiToolOptionsResize } from '../../Organisms/MpiToolOptionsResize/MpiToolOptionsResize.js';
 import { MpiToolOptionsGif } from '../../Organisms/MpiToolOptionsGif/MpiToolOptionsGif.js';
 import { MpiToolOptionsGifCutout } from '../../Organisms/MpiToolOptionsGifCutout/MpiToolOptionsGifCutout.js';
+import { MpiToolOptionsGifTiming } from '../../Organisms/MpiToolOptionsGifTiming/MpiToolOptionsGifTiming.js';
+import { timingEdit } from '../../Organisms/MpiToolOptionsGifTiming/gifTiming.js';
+import { MpiToolOptionsGifTransform } from '../../Organisms/MpiToolOptionsGifTransform/MpiToolOptionsGifTransform.js';
 import { MpiToolOptionsPrompt } from '../../Organisms/MpiToolOptionsPrompt/MpiToolOptionsPrompt.js';
 import { MpiPromptBox } from '../../Organisms/MpiPromptBox/MpiPromptBox.js';
 import { MpiQueuePanel } from '../../Compounds/MpiQueuePanel/MpiQueuePanel.js';
@@ -125,7 +128,24 @@ const TOOL_OPTIONS_REGISTRY = {
     // MPI-771: the image Brush panel as-is — MpiGifViewer implements the same
     // enterMode/exitMode + MpiMaskStrip surface over one frame at a time.
     gifMaskBrush: MpiToolOptionsMaskBrush,
+    // MPI-772: one panel, the mode picks the tool.
+    gifTrim:      MpiToolOptionsGifTiming,
+    gifSpeed:     MpiToolOptionsGifTiming,
+    gifReverse:   MpiToolOptionsGifTiming,
+    gifLoop:      MpiToolOptionsGifTiming,
+    gifOutput:    MpiToolOptionsGifTiming,
+    // MPI-773: Resize / Save frame / GIF to Video. The gif Crop is `crop` above.
+    gifResize:    MpiToolOptionsGifTransform,
+    gifSaveFrame: MpiToolOptionsGifTransform,
+    gifToVideo:   MpiToolOptionsGifTransform,
 };
+
+/** The MpiToolOptionsGifTiming modes (MPI-772). */
+const _GIF_TIMING_TOOLS = new Set(['gifTrim', 'gifSpeed', 'gifReverse', 'gifLoop', 'gifOutput']);
+/** The MpiToolOptionsGifTransform modes (MPI-773). */
+const _GIF_TRANSFORM_TOOLS = new Set(['gifResize', 'gifSaveFrame', 'gifToVideo']);
+/** A GIF entry's build settings when the item carries none (docs/gif.md). */
+const _GIF_DEFAULT_OUTPUT = Object.freeze({ maxEdge: 1024, colours: 256, edgeColour: null });
 
 /** Any tool in the mask family. One rail icon per masking method (MPI-371),
  *  one job each (MPI-381). EVERY new mask tool must be added here — teardown,
@@ -548,8 +568,10 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 gifControlBar.el.setFrameCount(frames.length);
                 frameStrip.el.setCurrentIndex(viewer.el.getFrameIndex());
             }));
-            _unsubs.push(frameStrip.on('update', ({ frames }) => _handleGifStripSave('update', frames)));
-            _unsubs.push(frameStrip.on('apply',  ({ frames }) => _handleGifStripSave('new', frames)));
+            _unsubs.push(frameStrip.on('update', ({ frames }) => _saveGifEntry('update', frames)));
+            _unsubs.push(frameStrip.on('apply',  ({ frames }) => _saveGifEntry('new', frames)));
+            // MPI-772: the Trim panel shows which frames its Apply keeps.
+            _unsubs.push(gifControlBar.on('range-change', (range) => _options?.el.onRangeChange?.(range)));
 
             _unsubs.push(() => {
                 try { gifControlBar?.el.detachViewer?.(); } catch (_) { /* noop */ }
@@ -600,37 +622,33 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         }
 
         /**
-         * Strip pill Update/Apply (plan decision 10) -> POST /gif/entry.
-         * 'update' rewrites the current history entry in place (same id, new
-         * built file per E5); 'new' appends a fresh one, same shape every
-         * other tool's Apply already uses (`appendToHistory` + `_setCurrentIdx`).
-         * The route itself returns `{hash, delay}` only (no `url`/`thumbUrl`)
-         * — `/gif/ensure-frames` resolves them the same way any open does.
+         * The one way a GIF result lands (MPI-769/771/772/773). POSTs `body` to a
+         * GIF route with the current entry's loop/output and source ids (the body
+         * may override them), then lands the returned entry. Every GIF route
+         * returns `{hash, delay}` frames only, so `/gif/ensure-frames` resolves the
+         * URLs the same way any open does. 'update' rewrites the current history
+         * entry in place (same id, new built file per E5); 'new' appends one
+         * (`appendToHistory` + `_setCurrentIdx`).
+         * @returns {Promise<boolean>} true when the entry landed
          */
-        async function _handleGifStripSave(mode, frames) {
+        async function _postGifEntry(url, body, { mode = 'new', done, failed }) {
             const project = state.currentProject;
             const currentItem = _group.history[_currentIdx];
-            if (!project?.folderPath || !currentItem) return;
-            if (!Array.isArray(frames) || !frames.length) {
-                _showToast('A GIF needs at least one frame', 'warning');
-                return;
-            }
+            if (!project?.folderPath || !currentItem) return false;
             viewer.el.setGenerating?.(true);
             try {
-                const body = {
-                    folderPath: project.folderPath,
-                    mode,
-                    frames: frames.map(f => ({ hash: f.hash, delay: f.delay })),
-                    loop: currentItem.gif?.loop ?? 0,
-                    output: currentItem.gif?.output || { maxEdge: 1024, colours: 256, edgeColour: null },
-                };
-                if (mode === 'update') body.itemId = currentItem.id;
-                else { body.sourceItemId = currentItem.id; body.sourceGroupId = _group.id; }
-
-                const res = await fetch('/gif/entry', {
+                const res = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body),
+                    body: JSON.stringify({
+                        folderPath: project.folderPath,
+                        loop: currentItem.gif?.loop ?? 0,
+                        output: currentItem.gif?.output || _GIF_DEFAULT_OUTPUT,
+                        ...(mode === 'update'
+                            ? { itemId: currentItem.id }
+                            : { sourceItemId: currentItem.id, sourceGroupId: _group.id }),
+                        ...body,
+                    }),
                 });
                 const data = await res.json();
                 if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
@@ -656,72 +674,146 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 viewer.el.setGifUrl(resolveMediaUrl(item.filePath));
                 gifControlBar?.el.setFrameCount(item.gif?.frames?.length || 0);
                 frameStrip?.el.commit(item.gif?.frames || []);
-                _showToast(mode === 'update' ? 'GIF updated' : 'New GIF saved', 'success');
+                _showToast(done, 'success');
+                return true;
             } catch (err) {
-                clientLogger.warn('MpiGroupHistoryBlock', `gif entry save failed: ${err?.message || err}`);
-                _showToast('GIF save failed: ' + err.message, 'error');
+                clientLogger.warn('MpiGroupHistoryBlock', `${url} failed: ${err?.message || err}`);
+                _showToast(`${failed}: ${err.message}`, 'error');
+                return false;
             } finally {
                 viewer.el.setGenerating?.(false);
             }
         }
 
+        const _frameRefs = (frames) => frames.map(f => ({ hash: f.hash, delay: f.delay }));
+
+        /**
+         * Strip pill Update/Apply (plan decision 10) and the timing/output
+         * tools (MPI-772) -> POST /gif/entry. `loop`/`output` default to the
+         * current entry's.
+         */
+        function _saveGifEntry(mode, frames, { loop, output } = {}) {
+            if (!Array.isArray(frames) || !frames.length) {
+                _showToast('A GIF needs at least one frame', 'warning');
+                return;
+            }
+            return _postGifEntry('/gif/entry', {
+                mode,
+                frames: _frameRefs(frames),
+                ...(loop !== undefined ? { loop } : {}),
+                ...(output ? { output } : {}),
+            }, {
+                mode,
+                done: mode === 'update' ? 'GIF updated' : 'New GIF saved',
+                failed: 'GIF save failed',
+            });
+        }
+
+        /**
+         * Timing/output tools' Apply (MPI-772): edit the frames the user sees
+         * (staged strip changes included) and save them as a new entry. No
+         * frame file is written; `gifTiming.js` owns the math.
+         */
+        function _handleGifTimingApply({ tool, values } = {}) {
+            const frames = viewer.el.getFrames();
+            if (!frames.length) return;
+            const edit = timingEdit(tool, frames, values);
+            if (tool === 'trim' && edit.frames.length === frames.length) {
+                _showToast('Move the trim handles in the control bar first', 'info');
+                return;
+            }
+            return _saveGifEntry('new', edit.frames || frames, edit);
+        }
+
         /**
          * Cut-out tool's Apply (MPI-771 UI half) -> POST /gif-cutout/apply. The
          * panel already validated `payload.frames`/`payload.masks` against the
-         * CURRENT frame list before emitting — this only owns the network call
-         * and appending the result, same shape `_handleGifStripSave`'s 'new'
-         * branch uses (`appendToHistory` + `_setCurrentIdx`), because the route
-         * returns a fresh `{hash, delay}`-only entry (no `url`/`thumbUrl`) the
-         * same way `/gif/entry` does.
+         * CURRENT frame list before emitting.
          */
         async function _handleGifCutoutApply(payload) {
+            const { frames, masks, adjust, invert } = payload || {};
+            if (!Array.isArray(frames) || !frames.length || !Array.isArray(masks) || masks.length !== frames.length) return;
+            const landed = await _postGifEntry('/gif-cutout/apply', { frames, masks, adjust, invert },
+                { done: 'Cut-out saved', failed: 'Cut-out failed' });
+            if (landed) viewer.el.setMaskTint?.(null);
+        }
+
+        /**
+         * Crop (MPI-773): `MpiToolOptionsCrop` over the viewer's crop surface. The
+         * rect may leave the frame; the rounding is `_runCrop`'s (docs/crop.md).
+         * @param {{family:string, res_w:number, res_h:number, divisible_by:number, fill_color:string}} settings
+         */
+        function _handleGifCrop(settings = {}) {
+            const rect = viewer.el.getCropRect?.();
+            const frames = viewer.el.getFrames();
+            if (!rect || !frames.length) { _showToast('No crop selected', 'warning'); return; }
+            const isExact = settings.family === 'resolution';
+            const n = isExact ? 1 : settings.divisible_by;
+            return _postGifEntry('/gif/crop', {
+                frames: _frameRefs(frames),
+                x: rect.x,
+                y: rect.y,
+                w: roundToDivisible(rect.w, n, Infinity),
+                h: roundToDivisible(rect.h, n, Infinity),
+                fill: settings.fill_color,
+                ...(isExact ? { outW: settings.res_w, outH: settings.res_h } : {}),
+            }, { done: 'Crop saved', failed: 'Crop failed' });
+        }
+
+        /** Resize / Save frame / GIF to Video (MPI-773). */
+        async function _handleGifTransformApply({ tool, width, height, background } = {}) {
+            const frames = viewer.el.getFrames();
+            if (!frames.length) return;
+            if (tool === 'resize') {
+                return _postGifEntry('/gif/resize', { frames: _frameRefs(frames), width, height },
+                    { done: 'Resize saved', failed: 'Resize failed' });
+            }
+            if (tool === 'saveFrame') {
+                const f = frames[viewer.el.getFrameIndex()];
+                try {
+                    const blob = await (await fetch(f.url)).blob();
+                    if (await _saveImageCard(blob, 'frame')) _showToast('Frame saved to gallery', 'success');
+                    else _showToast('Frame save failed', 'error');
+                } catch (err) {
+                    clientLogger.warn('MpiGroupHistoryBlock', `gif frame save failed: ${err?.message || err}`);
+                    _showToast('Frame save failed', 'error');
+                }
+                return;
+            }
+            if (tool === 'toVideo') return _handleGifToVideo(frames, background);
+        }
+
+        /** GIF to Video (MPI-773): a new video card; the GIF's history is untouched. */
+        async function _handleGifToVideo(frames, background) {
             const project = state.currentProject;
             const currentItem = _group.history[_currentIdx];
             if (!project?.folderPath || !currentItem) return;
-            const { frames, masks, adjust, invert } = payload || {};
-            if (!Array.isArray(frames) || !frames.length || !Array.isArray(masks) || masks.length !== frames.length) return;
-
             viewer.el.setGenerating?.(true);
             try {
-                const res = await fetch('/gif-cutout/apply', {
+                const res = await fetch('/gif/to-video', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         folderPath: project.folderPath,
-                        frames,
-                        loop: currentItem.gif?.loop ?? 0,
-                        output: currentItem.gif?.output || { maxEdge: 1024, colours: 256, edgeColour: null },
-                        masks,
-                        adjust,
-                        invert,
-                        sourceItemId: currentItem.id,
-                        sourceGroupId: _group.id,
+                        frames: _frameRefs(frames),
+                        background,
+                        itemId: currentItem.id,
+                        groupId: _group.id,
                     }),
                 });
                 const data = await res.json();
                 if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
-
-                const urlRes = await fetch('/gif/ensure-frames', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ folderPath: project.folderPath, itemId: data.item.id }),
+                const group = createItemGroup('video', {
+                    name: data.item.displayName,
+                    fps: data.item.fps,
+                    duration: data.item.duration,
                 });
-                const urlData = await urlRes.json();
-                const item = (urlRes.ok && urlData.success) ? { ...data.item, gif: urlData.gif } : data.item;
-
-                _group = appendToHistory(_group, item);
-                _setCurrentIdx(_group.selectedIndex);
-                historyList.el.appendEntry(item);
-                _persistGroup();
-                viewer.el.loadFrames(item.gif?.frames || [], { loop: item.gif?.loop ?? 0 });
-                viewer.el.setGifUrl(resolveMediaUrl(item.filePath));
-                viewer.el.setMaskTint?.(null);
-                gifControlBar?.el.setFrameCount(item.gif?.frames?.length || 0);
-                frameStrip?.el.commit(item.gif?.frames || []);
-                _showToast('Cut-out saved', 'success');
+                await addGroup(appendToHistory(group, data.item));
+                Events.emit('project:stats-dirty');
+                _showToast('Video saved to gallery', 'success');
             } catch (err) {
-                clientLogger.warn('MpiGroupHistoryBlock', `gif cutout apply failed: ${err?.message || err}`);
-                _showToast('Cut-out failed: ' + err.message, 'error');
+                clientLogger.warn('MpiGroupHistoryBlock', `gif to video failed: ${err?.message || err}`);
+                _showToast('GIF to Video failed: ' + err.message, 'error');
             } finally {
                 viewer.el.setGenerating?.(false);
             }
@@ -869,6 +961,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             if (mode === 'gifCutout') {
                 _options.on?.('mask-tint', ({ url }) => viewer.el.setMaskTint?.(url));
             }
+            if (gifControlBar) _options.el.onRangeChange?.(gifControlBar.el.getRange());
 
             // Options compounds emit 'apply'; mediator routes to _handleApply.
             _options.on?.('apply', (payload) => _handleApply(mode, payload));
@@ -890,6 +983,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
          */
         function _handleApply(mode, payload = {}) {
             if (mode === 'crop') {
+                if (historyKind === 'gif')               return payload.kind === 'image' ? _handleGifCrop(payload.settings) : undefined;
                 if (payload.kind === 'image')            return viewer.el.runCrop?.(payload.settings);
                 if (payload.kind === 'video-snapshot')   return _handleCropSnapshot();
                 if (payload.kind === 'video-save')       return _handleCropSaveVideo(payload.settings);
@@ -948,6 +1042,12 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             if (mode === 'gifCutout') {
                 return _handleGifCutoutApply(payload || {});
             }
+            if (_GIF_TIMING_TOOLS.has(mode)) {
+                return _handleGifTimingApply(payload || {});
+            }
+            if (_GIF_TRANSFORM_TOOLS.has(mode)) {
+                return _handleGifTransformApply(payload || {});
+            }
         }
 
         const TOOL_LABELS = {
@@ -963,6 +1063,9 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             exportGif: 'Export GIF',
             gifCutout: 'Cut-out',
             gifMaskBrush: 'Mask Brush',
+            gifTrim: 'Trim', gifSpeed: 'Speed', gifReverse: 'Reverse',
+            gifLoop: 'Loop count', gifOutput: 'GIF output',
+            gifResize: 'Resize', gifSaveFrame: 'Save frame', gifToVideo: 'GIF to Video',
         };
 
         // Video viewer top-right chip strip: [op] · [mm:ss] · [Nfps].
@@ -1796,8 +1899,9 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         _mountPromptBoxIfNeeded();
 
         // Initial tool: prompt if available (including frame-drop unlock), else crop.
-        if (_shouldShowPromptBox()) historyTools.el.setMode('prompt');
-        else                        historyTools.el.setMode('crop');
+        // A GIF opens with no tool: its Crop (MPI-773) would cover the frames.
+        if (_shouldShowPromptBox())      historyTools.el.setMode('prompt');
+        else if (historyKind !== 'gif')  historyTools.el.setMode('crop');
 
         // Nav'd into history while a job for this group is already running:
         // enable the inline Stop on the freshly-mounted PromptBox.
@@ -2052,39 +2156,40 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             _activeExec = null; // Cue dispatcher manages exec lifecycle.
         }
 
-        async function _handleCropSnapshot() {
+        /**
+         * A PNG blob -> a new image card in the gallery (video Snapshot, GIF Save
+         * frame). `addGroup` persists it and repaints the gallery
+         * (`project:group-added`). Never also emit `media:imported`: since MPI-723
+         * `mediaImportService` builds a card from it, which made every snapshot two
+         * cards. The header stats still need their refresh.
+         * @returns {Promise<boolean>}
+         */
+        async function _saveImageCard(blob, prefix) {
             const project = state.currentProject;
-            if (!project?.folderPath || !project?.id) return;
+            if (!project?.folderPath || !project?.id || !blob) return false;
+            const file = new File([blob], `${prefix}_001.png`, { type: 'image/png' });
+            const uploaded = await uploadMediaFile(file, 'image', project.folderPath, project.id, { filenamePrefix: prefix, operation: 'snapshot' });
+            if (!uploaded) return false;
+
+            const item = createImageItem({
+                id: uploaded.itemId,
+                filePath: uploaded.filePath,
+                thumbPath: uploaded.thumbPath,
+                thumbPathLg: uploaded.thumbPathLg,
+                uploaded: true,
+                operation: 'snapshot',
+                pixelDimensions: uploaded.pixelDimensions,
+            });
+            const group = createItemGroup('image', { name: uploaded.filename.replace(/\.[^.]+$/, '') });
+            await addGroup(appendToHistory(group, item));
+            Events.emit('project:stats-dirty');            return true;
+        }
+
+        async function _handleCropSnapshot() {
             try {
                 const { blob } = await viewer.el.captureSnapshot();
                 if (!blob) return;
-                const file = new File([blob], `snapshot_001.png`, { type: 'image/png' });
-                const uploaded = await uploadMediaFile(file, 'image', project.folderPath, project.id, { filenamePrefix: 'snapshot', operation: 'snapshot' });
-                if (!uploaded) { _showToast('Snapshot save failed', 'error'); return; }
-
-                const displayName = uploaded.filename.replace(/\.[^.]+$/, '');
-                const item = createImageItem({
-                    id: uploaded.itemId,
-                    filePath: uploaded.filePath,
-                    thumbPath: uploaded.thumbPath,
-                    thumbPathLg: uploaded.thumbPathLg,
-                    uploaded: true,
-                    operation: 'snapshot',
-                    pixelDimensions: uploaded.pixelDimensions,
-                });
-                const group = createItemGroup('image', { name: displayName });
-                const finalGroup = appendToHistory(group, item);
-                await addGroup(finalGroup);
-
-                Events.emit('media:imported', {
-                    url: uploaded.filePath,
-                    filename: uploaded.filename,
-                    itemId: uploaded.itemId,
-                    thumbPath: uploaded.thumbPath,
-                    thumbPathLg: uploaded.thumbPathLg,
-                    pixelDimensions: uploaded.pixelDimensions,
-                    mediaType: 'image',
-                });
+                if (!(await _saveImageCard(blob, 'snapshot'))) { _showToast('Snapshot save failed', 'error'); return; }
                 _showToast('Snapshot saved to gallery', 'success');
             } catch (err) {
                 clientLogger.warn('MpiGroupHistoryBlock', 'snapshot save failed', err);

@@ -197,3 +197,19 @@ button greyed out in the Mask Brush. He answered "1" (looks good).
 
 **Still OPEN for this card:** RunPod check with Fabio's go; the `types.js` hunk (`types-hunk.md`)
 once MPI-737 releases the file.
+
+
+## 2026-09-17 - strip pill shown when nothing is staged (session 9b06fc0e, found during MPI-772)
+
+`.mpi-frame-strip__pill { display: flex }` beat the `[hidden]` attribute, so the Discard / Update /
+Apply pill sat on screen with an empty count whenever a GIF card was open (visible in the MPI-772
+spec screenshots, over the history list). This is how an Apply "in the Mask Brush" could save an
+identical entry with no staged change (Fabio's first check). The specs asserted `pill.hidden`, the
+attribute, so they never saw it. Fix: `.mpi-frame-strip__pill[hidden] { display: none; }`. Specs
+now assert `checkVisibility()` (gif-workspace.spec: new "no pill before any edit" check;
+gif-cutout.spec `pillHidden`).
+
+| Check | Result |
+|---|---|
+| gif-workspace.spec before the CSS fix | RED: "no pill before any edit" (Received false) |
+| GIF desktop set after (gif-timing, gif-workspace, gif-cutout, history-modes, gif-make, gallery-gif-hover) | 11/11 |

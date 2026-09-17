@@ -1,0 +1,16 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+    "js/components/Compounds/MpiHistoryTools/MpiHistoryTools.js",
+    "js/components/Organisms/MpiGifControlBar/MpiGifControlBar.js",
+    "js/components/Organisms/MpiToolOptionsGifTiming/",
+    "js/shell/preloadStyles.js",
+    "js/components/types.js",
+    "tests/desktop/gif-timing.spec.js",
+    "tests/desktop/gif-workspace.spec.js",
+    "tests/desktop/history-modes.spec.js",
+    "docs/gif.md",
+    "tests/gif-timing.test.cjs"
+  ]
+}

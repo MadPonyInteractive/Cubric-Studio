@@ -309,6 +309,40 @@ test('POST /gif/crop rejects a non-positive rect', async () => {
     }
 });
 
+test('POST /gif/crop with outW/outH resamples every cut to exactly that size (RESOLUTION family); one without the other is rejected', async () => {
+    const { root, mediaDir } = await tmpProject();
+    const { hash } = await gifFrames.writeFrame(mediaDir, await solidPng(40, 30, { r: 200, g: 20, b: 20 }));
+    const app = buildApp();
+    const server = await startServer(app);
+    const base = `http://127.0.0.1:${server.address().port}`;
+    try {
+        // A 20x40 box hanging 5px off the left edge, resampled to 30x60.
+        const res = await postJson(base, '/gif/crop', {
+            folderPath: root, frames: [{ hash, delay: 7 }, { hash, delay: 9 }],
+            x: -5, y: -5, w: 20, h: 40, fill: '#00ff00', outW: 30, outH: 60,
+        });
+        const data = await res.json();
+        assert.equal(data.success, true, data.error);
+        assert.deepEqual(data.item.pixelDimensions, { w: 30, h: 60 });
+        assert.deepEqual(data.item.gif.frames.map(f => f.delay), [7, 9]);
+        const framePath = gifFrames.frameAbsPath(mediaDir, data.item.gif.frames[0].hash);
+        const meta = await sharp(framePath).metadata();
+        assert.deepEqual([meta.width, meta.height], [30, 60]);
+        const inside = await pngPixelAt(framePath, 20, 30);
+        assert.deepEqual([inside.r, inside.g, inside.b], [200, 20, 20], 'source pixels inside');
+        const outside = await pngPixelAt(framePath, 0, 0);
+        assert.deepEqual([outside.r, outside.g, outside.b], [0, 255, 0], 'fill outside the frame');
+
+        const half = await postJson(base, '/gif/crop', {
+            folderPath: root, frames: [{ hash, delay: 7 }], x: 0, y: 0, w: 10, h: 10, outW: 30,
+        });
+        assert.equal(half.status, 400);
+    } finally {
+        await new Promise((r) => server.close(r));
+        await fs.remove(root);
+    }
+});
+
 test('POST /gif/resize rejects a non-positive target size', async () => {
     const { root, mediaDir } = await tmpProject();
     const { hash } = await gifFrames.writeFrame(mediaDir, await solidPng(20, 20, { r: 1, g: 2, b: 3 }));

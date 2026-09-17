@@ -41,7 +41,9 @@
  *     through unchanged into the new entry, this route does not know or
  *     touch them beyond that), sourceItemId?, sourceGroupId?,
  * }
- * POST /gif/crop adds:   x, y, w, h, fill?
+ * POST /gif/crop adds:   x, y, w, h, fill?, outW?, outH? (both or neither: the
+ *                        RESOLUTION family resamples the cut to exactly that
+ *                        size, as `POST /project/crop-media` does — MPI-773 UI)
  * POST /gif/resize adds: width, height
  * Response (both): { success: true, item, group } — `item` is an image
  * sidecar carrying a `gif` field (docs/gif.md data model), `group` wraps it
@@ -82,7 +84,7 @@ function projectFileUrl(filePath) {
  * file this route owns the name of. `ensureAlpha()` on the way out keeps the
  * result a 4-channel RGBA PNG, matching every other frame in the store.
  */
-async function _cropFrameBuffer(buffer, { x, y, w, h, fill }) {
+async function _cropFrameBuffer(buffer, { x, y, w, h, fill, outW, outH }) {
     const meta = await sharp(buffer).metadata();
     const plan = planExtendedCrop({ srcW: meta.width, srcH: meta.height, x, y, w, h });
 
@@ -96,6 +98,9 @@ async function _cropFrameBuffer(buffer, { x, y, w, h, fill }) {
     } else {
         pipeline = sharp(buffer).extract(plan.extract);
     }
+    // RESOLUTION crop family (docs/crop.md): the only one that resamples,
+    // chained the way `cropExtended()` does it.
+    if (outW) pipeline = pipeline.resize(outW, outH, { fit: 'fill' });
     return pipeline.ensureAlpha().png().toBuffer();
 }
 
@@ -173,7 +178,7 @@ async function _writeNewGifCard({ folderPath, mediaDir, metaDir, newFrames, loop
 router.post('/gif/crop', async (req, res) => {
     let outputPath = '';
     try {
-        const { folderPath, frames, loop, output, x, y, w, h, fill, sourceItemId, sourceGroupId } = req.body || {};
+        const { folderPath, frames, loop, output, x, y, w, h, fill, outW, outH, sourceItemId, sourceGroupId } = req.body || {};
         if (!folderPath || typeof folderPath !== 'string') {
             return res.status(400).json({ success: false, error: 'folderPath required' });
         }
@@ -187,6 +192,12 @@ router.post('/gif/crop', async (req, res) => {
         if (!Number.isFinite(rectX) || !Number.isFinite(rectY) || !(rectW > 0) || !(rectH > 0)) {
             return res.status(400).json({ success: false, error: 'crop requires finite x, y and positive w, h' });
         }
+        const resample = outW != null || outH != null;
+        const targetW = Math.round(Number(outW));
+        const targetH = Math.round(Number(outH));
+        if (resample && !(targetW > 0 && targetH > 0)) {
+            return res.status(400).json({ success: false, error: 'outW and outH must both be positive' });
+        }
 
         const mediaDir = path.join(folderPath, 'Media');
         const metaDir = path.join(mediaDir, '.meta');
@@ -199,11 +210,14 @@ router.post('/gif/crop', async (req, res) => {
         }
 
         const newFrames = await _transformFrames(mediaDir, frames, (buf) =>
-            _cropFrameBuffer(buf, { x: rectX, y: rectY, w: rectW, h: rectH, fill }));
+            _cropFrameBuffer(buf, {
+                x: rectX, y: rectY, w: rectW, h: rectH, fill,
+                outW: resample ? targetW : null, outH: resample ? targetH : null,
+            }));
 
         const result = await _writeNewGifCard({
             folderPath, mediaDir, metaDir, newFrames, loop, output,
-            pixelDimensions: { w: rectW, h: rectH },
+            pixelDimensions: resample ? { w: targetW, h: targetH } : { w: rectW, h: rectH },
             operation: 'gifCrop',
             sourceItemId, sourceGroupId,
         });

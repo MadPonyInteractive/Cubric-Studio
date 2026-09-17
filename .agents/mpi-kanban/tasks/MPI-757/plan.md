@@ -136,6 +136,25 @@ investigators got wrong: [research/2026-09-15-investigation.md](research/2026-09
   dirty). At close-out ask about `.claude/rules/`: the new `'edit-change'` event is component wiring.
   **Next for the umbrella:** Phase 4 (MPI-772, then MPI-773 UI half), then Phase 5 (MPI-760 UI half).
   Still to ask Fabio: close member card MPI-524 on commit 2ce60ea5 (MPI-558 Phase 1 already done).
+- **2026-09-17 ~10:56Z (session 9b06fc0e): MPI-772 BUILT and auto-verified, NOT COMMITTED.** Fabio: "go",
+  closed MPI-524 (done on 2ce60ea5), and gave a standing go to rent a Pod for MPI-771's RunPod check.
+  One panel `MpiToolOptionsGifTiming` (5 modes) + `gifTiming.js`; every Apply -> `_saveGifEntry('new')`.
+  Evidence: MPI-772 `validation.md` (node 4/4, GIF desktop set 11/11, bite red, lint, node suite).
+  MPI-772 is `doing/validating` only for two registration hunks on peer-claimed files (`types.js`:
+  MPI-532 + MPI-774; `preloadStyles.js`: MPI-774 claim 91f0ea6b, message c772b0a1): text in
+  `tasks/MPI-772/types-hunk.md`. Also fixed an MPI-771 bug found on the way: the strip pill was ALWAYS
+  visible (`display:flex` beat `[hidden]`); MPI-771 `validation.md`. **Next:** MPI-773 UI half, then the
+  MPI-771 RunPod check (go given), then Phase 5.
+- **2026-09-17 ~11:22Z (session 9b06fc0e): MPI-773 UI half BUILT and auto-verified, NOT COMMITTED. Phase 4
+  done.** Crop = `MpiToolOptionsCrop` over a new crop kind in `MpiGifViewer` (+ `MpiCanvas.setCropRect`),
+  Resize / Save frame / GIF to Video = new `MpiToolOptionsGifTransform`; `/gif/crop` takes `outW/outH`.
+  Block: one `_postGifEntry` lands every GIF result; a GIF opens with NO tool. Fixed on the way: a video
+  Snapshot made TWO cards since MPI-723 (addGroup + `media:imported`). Evidence: MPI-773 `validation.md`.
+  MPI-772 and MPI-773 are both `doing/validating` only for parked `types.js` / `preloadStyles.js` hunks
+  (each card's `types-hunk.md`). `preloadStyles.js`: this session and MPI-774 had BOTH claimed it and each
+  waited on the other (message 550b11f3); released to MPI-774 at 11:03Z, reply a550e772 asks it to add
+  the three lines. **Next:** MPI-771 RunPod check (Fabio's standing go, 2026-09-17), then Phase 5
+  (MPI-760 UI half). Commit Phase 4 at handoff/close-out by pathspec.
 - **Next action (superseded, kept for the record):** MPI-759 root cause in the real app first (he can reload for you; read
   `%APPDATA%\Cubric Vision\logs\app.log` filtered, never drive `:3000`). Then redesign the MPI-771 UI half
   per Decision 14 (plan it with Fabio before coding: it needs a per-frame mask layer and brush). Phase 4
@@ -438,7 +457,7 @@ Ownership: `MaskManager.js`, `MpiCanvas.js`, `Organisms/MpiGifViewer/`, `Organis
 
 Serial by decision: both edit the same tables in `MpiGroupHistoryBlock.js` and `MpiHistoryTools.js`.
 
-- [ ] **MPI-772 GIF timing tools and output.** Trim (control bar in/out), Speed (0.1-50 fps),
+- [x] **MPI-772 GIF timing tools and output.** (auto-verified 2026-09-17; two hunks parked) Trim (control bar in/out), Speed (0.1-50 fps),
   Reverse, Loop count (videoGif remap), GIF output (longest edge, colour limit, edge colour; rebuilds
   the `.gif` only). All call MPI-768's entry route with a new frame list or output settings: zero new
   frame files, no new route. Persistence pattern: `MpiToolOptionsGif` (`toolSettings`,
@@ -449,7 +468,7 @@ Serial by decision: both edit the same tables in `MpiGroupHistoryBlock.js` and `
   a real GIF and checks the new entry's `.gif` with sharp metadata (frame count, every delay, loop;
   16 fps -> delay 6) and that the `Media/.gif-frames/` file count is unchanged;
   `npm run lint:components`.
-- [ ] **MPI-773 (UI half) transform and export tools.** Crop (reuse `MpiToolOptionsCrop` if
+- [x] **MPI-773 (UI half) transform and export tools.** (auto-verified 2026-09-17; two hunks parked) Crop (reuse `MpiToolOptionsCrop` if
   `MpiGifViewer` implements `setCropRatio` / `setCropRect`; confirm first against docs/crop.md),
   Resize, Save frame as image (current full-res frame -> image card, `_handleCropSnapshot` pattern
   :1760), GIF to Video (background colour field) -> video card. Ownership: `MpiGroupHistoryBlock.js`,
@@ -530,6 +549,20 @@ Phase 5 verify mode: `auto`.
 - 2026-09-16 (Fabio's first cut-out check): E10's "a reorder clears them" was wrong. A mask
   describes its frame's pixels, so a staged reorder/delete now carries the masks (`order` ->
   `gifFrameMasks.remap()`); a plain strip drag scrubs and only a held thumb reorders.
+- 2026-09-17 (MPI-772): the Trim tool needed `MpiGifControlBar.js` (`getRange()`, and a
+  `range-change` when a new frame count resets the handles), outside Phase 4's ownership line; folded
+  in. The loop remap already lives in `buildGif`, so Loop only writes `gif.loop`. Timing tools edit the
+  VIEWER's list, so staged strip changes are saved with them. The rail now has 3 gif groups; the
+  rail-count assertions moved 1 -> 3 (MPI-773 moves them again).
+- 2026-09-17 (MPI-772): the strip pill was on screen whenever a GIF opened: `display:flex` beat
+  `[hidden]`, and every spec asserted the attribute. Fixed in `MpiFrameStrip.css`; pill specs assert
+  `checkVisibility()`. New panels with a `[hidden]` row need the same override.
+- 2026-09-17 (MPI-773): Crop needed `MpiCanvas.js` (`setCropRect`: `crop` is not on the element) and
+  `routes/gifTransform.js` (`outW/outH` for RESOLUTION), outside Phase 4's UI ownership; folded in.
+  `MpiToolOptionsResize` was NOT reused: its preview runs a ComfyUI workflow. With Crop on the gif rail,
+  the Block's "no prompt -> crop" default would have opened every GIF in crop mode; a GIF now opens with
+  no tool. `/gif/crop` and `/gif/resize` return a new CARD shape but land as a history entry, like the
+  cut-out. `tests/desktop/crop-resize-output.spec.js` is flaky on HEAD (not ours).
 - 2026-09-16 (Batch 2): `routes/gifMake.js` writes its own sidecar and returns a raw descriptor
   (the `/combine-videos` precedent) rather than going through `/gif/entry`.
 

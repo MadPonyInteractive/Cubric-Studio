@@ -83,6 +83,15 @@ order, so chaining them extracts from the unpadded image and dies with
 passes `Infinity` because an overshoot is filled rather than clipped, but the bound stays in the
 helper for the callers that cannot pad.
 
+## GIF uses the image cropper (MPI-773)
+
+The gif rail mounts this same panel with `kind: 'image'`. `MpiGifViewer` puts an
+`MpiCanvas` in crop mode over the current frame and answers `setCropRatio` /
+`setCropSize` / `getCropRect`, so unclamp, snap, fill and RESOLUTION all work. Apply goes
+to `POST /gif/crop` (every frame, same rect; `outW`/`outH` for RESOLUTION), not
+`crop-media`. A frame step reloads the canvas image and puts the box back with
+`MpiCanvas.setCropRect`. Details: [gif.md](gif.md).
+
 ## Video uses a different cropper — Flows do not
 
 `js/utils/cropTool.js` (normalized 0–1, used by `MpiVideoViewer` and `MpiStepBox`) is

@@ -72,6 +72,13 @@
  *                                            frames under their mask tint (a
  *                                            flicker check); pause brings the
  *                                            canvas back on the current frame.
+ *   enterMode('crop')                      — MPI-773: the same MpiCanvas in crop
+ *                                            mode over the current frame; the box
+ *                                            survives frame steps (frames share a size)
+ *   setCropRatio(r) / setCropSize(w, h) / getCropRect() — the surface
+ *                                            `MpiToolOptionsCrop` drives (image names)
+ *   isMaskEditing()                        — any canvas tool is up (Mask Brush or Crop)
+ *   getFrameSize()                         — Promise<{w, h}> of the current frame
  *   setMaskBrushMode, setMaskBrushPreset, setMaskInverted, isMaskInverted,
  *   setMaskBwView, isMaskBwView, setMaskPaintEnabled, setMaskOpacity,
  *   clearMask                              — the `MpiMaskStrip` surface, so the
@@ -87,7 +94,7 @@
  *   'frame-change' { idx, frame } — index changed (step, scrub, playback)
  *   'play' / 'pause' / 'ended'
  *   'preview-change' { preview }
- *   'edit-change'  { editing }      — the Mask Brush opened or closed
+ *   'edit-change'  { editing }      — a canvas tool (Mask Brush, Crop) opened or closed
  *   'masks-change' { overlay, edited } — per-position mask URLs for the strip
  *                                   tint, and the brushed positions
  */
@@ -135,9 +142,14 @@ export const MpiGifViewer = ComponentFactory.create({
         MpiSpinner.mount(spinnerWrap, { size: 'lg', variant: 'primary' });
 
         const _masks = new GifFrameMasks();
-        /** Mask Brush surface (MPI-771) — mounted only while the tool is up. */
+        /** Mask Brush / Crop surface (MPI-771, MPI-773) — mounted only while the tool is up. */
         let _canvas = null;
         let _editing = false;
+        /** Which tool owns the canvas: 'mask' | 'crop' (null when none). */
+        let _editKind = null;
+        /** Crop shape, kept across tool visits like the image canvas keeps it. */
+        let _cropRatio = 1;
+        let _cropSize = null;
         /** Position whose layers the canvas holds; -1 while a frame is loading. */
         let _editIdx = -1;
         let _editToken = 0;
@@ -186,7 +198,7 @@ export const MpiGifViewer = ComponentFactory.create({
             const f = _frames[_index];
             if (!f) return;
             frameImg.src = f.url;
-            if (_editing && _playing) _setTint(_masks.overlayAt(_index), true);
+            if (_editing && _playing) { if (_editKind === 'mask') _setTint(_masks.overlayAt(_index), true); }
             else if (_editing) _loadEditFrame(_index);
             emit('frame-change', { idx: _index, frame: f });
         }
@@ -471,8 +483,10 @@ export const MpiGifViewer = ComponentFactory.create({
             const f = _frames[idx];
             if (!f) return;
             const cv = _canvas.el;
-            // Frames share one size, so a zoomed or panned view carries over.
+            // Frames share one size, so a zoomed or panned view carries over,
+            // and so does a crop box (loadImage() re-seeds it).
             const view = cv.isManagedView ? null : { scale: cv.scale, x: cv.offsetX, y: cv.offsetY };
+            const cropRect = _editKind === 'crop' && cv.img ? cv.getCropRect() : null;
             try {
                 await cv.loadImage(f.url);
                 if (token !== _editToken) return;
@@ -482,6 +496,14 @@ export const MpiGifViewer = ComponentFactory.create({
                     cv.offsetX = view.x;
                     cv.offsetY = view.y;
                     cv.resize();
+                }
+                if (_editKind === 'crop') {
+                    cv.activeMode = 'crop';
+                    if (_cropSize) cv.setCropSize(_cropSize.w, _cropSize.h);
+                    else cv.setCropRatio(_cropRatio);
+                    if (cropRect?.w > 0) cv.setCropRect(cropRect);
+                    _editIdx = idx;
+                    return;
                 }
                 const edits = _masks.edits.get(idx);
                 await cv.setMaskBase(_masks.track.get(idx) || null);
@@ -497,14 +519,18 @@ export const MpiGifViewer = ComponentFactory.create({
             }
         }
 
-        function _enterEdit() {
-            if (_editing || _destroyed) return;
+        /** @param {'mask'|'crop'} kind */
+        function _enterEdit(kind) {
+            if (_destroyed) return;
+            if (_editing && _editKind === kind) return;
+            if (_editing) _exitEdit();
             _stopPlayback();
             el.setPreview(false);
             _editing = true;
+            _editKind = kind;
             editSlot.hidden = false;
             frameWrap.hidden = true;
-            _canvas = MpiCanvas.mount(editSlot, { onMaskStrokeEnd: () => { _dirty = true; } });
+            _canvas = MpiCanvas.mount(editSlot, kind === 'mask' ? { onMaskStrokeEnd: () => { _dirty = true; } } : {});
             if (_brushSize) _canvas.el.setBrushSize(_brushSize);
             _loadEditFrame(_index);
             emit('edit-change', { editing: true });
@@ -518,7 +544,7 @@ export const MpiGifViewer = ComponentFactory.create({
             _editIdx = -1;
             editSlot.classList.add('mpi-gif-viewer__edit--playing');
             frameWrap.hidden = false;
-            _setTint(_masks.overlayAt(_index), true);
+            if (_editKind === 'mask') _setTint(_masks.overlayAt(_index), true);
         }
 
         function _showEditCanvas() {
@@ -537,6 +563,7 @@ export const MpiGifViewer = ComponentFactory.create({
             _canvas?.destroy();
             _canvas = null;
             _editing = false;
+            _editKind = null;
             _editIdx = -1;
             editSlot.hidden = true;
             editSlot.classList.remove('mpi-gif-viewer__edit--playing');
@@ -544,9 +571,34 @@ export const MpiGifViewer = ComponentFactory.create({
             emit('edit-change', { editing: false });
         }
 
-        el.enterMode = (mode) => { if (mode === 'mask') _enterEdit(); else _exitEdit(); };
+        el.enterMode = (mode) => { if (mode === 'mask' || mode === 'crop') _enterEdit(mode); else _exitEdit(); };
         el.exitMode = () => _exitEdit();
+        /** Any canvas tool (Mask Brush or Crop): the built-file preview is off meanwhile. */
         el.isMaskEditing = () => _editing;
+
+        // The crop surface `MpiToolOptionsCrop` drives (MPI-773), same names as MpiCanvasViewer.
+        el.setCropRatio = (ratio) => {
+            _cropRatio = ratio;
+            _cropSize = null;
+            if (_editKind === 'crop') _canvas?.el.setCropRatio(ratio);
+        };
+        el.setCropSize = (w, h) => {
+            if (!(w > 0) || !(h > 0)) return;
+            _cropRatio = w / h;
+            _cropSize = { w, h };
+            if (_editKind === 'crop') _canvas?.el.setCropSize(w, h);
+        };
+        /** Image-space rect (may leave the frame), or null when Crop is not up. */
+        el.getCropRect = () => (_editKind === 'crop' && _canvas?.el.img ? _canvas.el.getCropRect() : null);
+
+        /** The current frame's pixel size (frames share one). */
+        el.getFrameSize = async () => {
+            const f = _frames[_index];
+            if (!f) return null;
+            const img = _cache.get(f.hash) || Object.assign(new Image(), { src: f.url });
+            await img.decode();
+            return { w: img.naturalWidth, h: img.naturalHeight };
+        };
 
         // The MpiMaskStrip surface (`dest: 'mask'`), forwarded to the canvas.
         el.setMaskBrushMode = (mode) => {

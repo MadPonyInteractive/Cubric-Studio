@@ -146,8 +146,8 @@ test('image, video and gif groups each mount their own viewer, rail and control 
     expect(dom.videoViewer).toBe(false);
     expect(dom.gifBar).toBe(true);
     expect(dom.frameStrip).toBe(true);
-    // gif's own tool list: the cut-out group (MPI-771), not image's or video's.
-    expect(dom.railSlots).toBe(1);
+    // gif's own tool list: Cut-out (MPI-771), Transform + Export (MPI-773), Timing + Output (MPI-772).
+    expect(dom.railSlots).toBe(5);
     // Plan scope item 6: no model generates a GIF in v1.
     expect(dom.promptBox).toBe(false);
   } finally {

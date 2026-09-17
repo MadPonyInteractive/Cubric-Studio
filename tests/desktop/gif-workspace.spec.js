@@ -111,8 +111,10 @@ test('gif workspace: no PromptBox; play/step/scrub keep the strip centred; reord
 
     // Plan scope item 6 — no model generates a GIF in v1.
     expect(await window.evaluate(() => !!document.querySelector('#prompt-box-mount .mpi-prompt-box'))).toBe(false);
-    // gif's own tool list: the cut-out group (MPI-771), not image's or video's.
-    expect(await window.evaluate(() => document.querySelectorAll('.mpi-history-tools__slot').length)).toBe(1);
+    // gif's own tool list: Cut-out (MPI-771), Transform + Export (MPI-773), Timing + Output (MPI-772).
+    expect(await window.evaluate(() => document.querySelectorAll('.mpi-history-tools__slot').length)).toBe(5);
+    // No tool is up when a GIF opens: a Crop box would cover the frames.
+    expect(await window.evaluate(() => !!document.querySelector('.mpi-gif-viewer__edit:not([hidden])'))).toBe(false);
 
     let c = await readCounter(window);
     expect(c.cur).toBe('0000');
@@ -155,6 +157,9 @@ test('gif workspace: no PromptBox; play/step/scrub keep the strip centred; reord
     // press and hold first, then drag the thumb at index 0 two slots right.
     // Staged only: no fetch yet, but the pill appears with a non-zero change count.
     const before = await thumbCount(window);
+    // Visible, not just `hidden`: a `display` rule once kept the empty pill on screen.
+    expect(await window.evaluate(() => !document.querySelector('.mpi-frame-strip__pill').checkVisibility()),
+      'no pill before any edit').toBe(true);
     let p0;
     const dragThumb0 = async () => {
       p0 = await centreOf('.mpi-frame-strip__thumb[data-index="0"]');
@@ -167,13 +172,13 @@ test('gif workspace: no PromptBox; play/step/scrub keep the strip centred; reord
     };
     await dragThumb0();
     await moveAndDrop();
-    expect(await window.evaluate(() => document.querySelector('.mpi-frame-strip__pill').hidden),
+    expect(await window.evaluate(() => !document.querySelector('.mpi-frame-strip__pill').checkVisibility()),
       'a plain drag must not stage a reorder').toBe(true);
     await dragThumb0();
     await window.waitForTimeout(450);
     await moveAndDrop();
     expect(await thumbCount(window)).toBe(before);
-    expect(await window.evaluate(() => document.querySelector('.mpi-frame-strip__pill').hidden),
+    expect(await window.evaluate(() => !document.querySelector('.mpi-frame-strip__pill').checkVisibility()),
       'reorder must stage a pending change').toBe(false);
     expect(await window.evaluate(() => window.__mpi769.calls.length), 'staging must not call the server').toBe(0);
     c = await readCounter(window);
@@ -196,7 +201,7 @@ test('gif workspace: no PromptBox; play/step/scrub keep the strip centred; reord
     // effects come after, so wait on them rather than read them at once.
     const cardCount = () => window.evaluate(() => document.querySelectorAll('#cards-slot > *').length);
     await expect.poll(() => window.evaluate(() => window.__mpi769.calls.length)).toBe(1);
-    await expect.poll(() => window.evaluate(() => document.querySelector('.mpi-frame-strip__pill').hidden),
+    await expect.poll(() => window.evaluate(() => !document.querySelector('.mpi-frame-strip__pill').checkVisibility()),
       'a successful save must clear the pill').toBe(true);
     let snap = await window.evaluate(() => ({ call: window.__mpi769.calls[0] }));
     expect(snap.call.mode).toBe('update');

@@ -12,6 +12,10 @@
     "js/components/types.js",
     "tests/desktop/gif-transform.spec.js",
     "docs/crop.md",
-    "docs/gif.md"
+    "docs/gif.md",
+    "js/components/Organisms/MpiToolOptionsGifTransform/",
+    "tests/desktop/gif-workspace.spec.js",
+    "tests/desktop/history-modes.spec.js",
+    "js/components/Primitives/MpiCanvas/MpiCanvas.js"
   ]
 }

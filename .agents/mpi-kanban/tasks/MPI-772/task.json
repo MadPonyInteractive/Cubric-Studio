@@ -3,11 +3,11 @@
   "id": "MPI-772",
   "title": "GIF timing tools and output",
   "description": "UMBRELLA: MPI-757 - GIF workspace (created 2026-09-14). Members and phase order: tasks/MPI-757/plan.md. Trim, Speed, Reverse, Loop count, and the GIF output panel (size, colours, edge colour).",
-  "column": "todo",
-  "maturity": "blocked",
+  "column": "doing",
+  "maturity": "validating",
   "status": "active",
   "created_at": "2026-09-15T13:37:30+01:00",
-  "updated_at": "2026-09-15T13:37:30+01:00",
+  "updated_at": "2026-09-17T10:57:00Z",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -17,5 +17,11 @@
     "events": "events.jsonl",
     "handoffs": "handoffs/",
     "research": "research/"
+  },
+  "activeSessionTitle": "MPI-757 Phase 4: MPI-772 timing tools",
+  "attention": {
+    "state": "required",
+    "reason": "MPI-772 built and auto-verified 2026-09-17; left: types.js typedef + preloadStyles.js line, both files under peer claims (MPI-532, MPI-774); text in tasks/MPI-772/types-hunk.md",
+    "updated_at": "2026-09-17T10:57:00Z"
   }
 }

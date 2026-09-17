@@ -740,7 +740,8 @@ test('gif strip: full trim range, frames fill the stage, a drag scrubs, hold-dra
     const tintAt = (i) => window.evaluate((idx) =>
       document.querySelector(`.mpi-frame-strip__thumb[data-index="${idx}"] .mpi-frame-strip__thumb-tint`)?.style.maskImage || '', i);
     const order = () => window.evaluate(() => document.querySelector('.mpi-gif-viewer').getFrames().map(f => f.hash));
-    const pillHidden = () => window.evaluate(() => document.querySelector('.mpi-frame-strip__pill').hidden);
+    // Visible, not just `hidden`: a `display` rule once kept the empty pill on screen.
+    const pillHidden = () => window.evaluate(() => !document.querySelector('.mpi-frame-strip__pill').checkVisibility());
     const counter = () => window.evaluate(() => document.querySelector('.mpi-gif-control-bar__current').textContent);
     const thumbCentre = (i) => window.evaluate((idx) => {
       const r = document.querySelector(`.mpi-frame-strip__thumb[data-index="${idx}"]`).getBoundingClientRect();

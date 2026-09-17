@@ -16,8 +16,7 @@
  * `duration: frameCount - 1`, so `MpiTrimBar`'s own frame-indexed `_pctOf`
  * mapping (`docs/video-player.md` § the frame-index coordinate law) lines up
  * a scrub position with a frame 1:1 regardless of that frame's real-world
- * delay. Trim persistence (Trim tool, MPI-772) is a later card — this only
- * wires the UI so dragging the handles is not a dead end.
+ * delay. The Trim tool (MPI-772) reads the range through getRange().
  *
  * Hotkeys reuse the EXISTING `video.playPause` / `video.frame.back` /
  * `video.frame.forward` ids (space / ← / →) rather than new `gif.*` ones — a
@@ -30,11 +29,14 @@
  * Instance API (on el):
  *   attachViewer(viewerInstance) — wire to a MpiGifViewer instance
  *   detachViewer()               — drop viewer listeners + hotkeys
- *   setFrameCount(n)             — refresh the trim bar / counter bounds
+ *   setFrameCount(n)             — refresh the trim bar / counter bounds; a new
+ *                                  count resets the range to every frame
+ *   getRange()                   — { in, out } trim handles (frame indices)
  *   destroy()
  *
  * Emits:
- *   'range-change' { in, out } — trim handles moved (frame indices)
+ *   'range-change' { in, out } — trim handles moved, or a new frame count reset
+ *                                them (frame indices)
  */
 
 import { ComponentFactory } from '../../factory.js';
@@ -176,10 +178,18 @@ export const MpiGifControlBar = ComponentFactory.create({
             // attachViewer() runs before any frame loads, so the range it set
             // is the one-frame minimum; setDuration() only clamps it. A new
             // count gets the full range.
-            // ponytail: trim is not persisted yet — MPI-772's Trim tool owns keeping it.
-            if (changed) trim.el.setRangeQuiet(0, Math.max(0, _frameCount - 1));
+            // The range itself is never persisted: the Trim tool (MPI-772) keeps it
+            // by saving the trimmed frames as a new entry. A reset still announces
+            // itself so the Trim panel's frame note stays true.
+            if (changed) {
+                trim.el.setRangeQuiet(0, Math.max(0, _frameCount - 1));
+                emit('range-change', el.getRange());
+            }
             _renderCount();
         };
+
+        /** The trim handles, in frame indices. */
+        el.getRange = () => trim.el.getRange();
 
         el.destroy = () => {
             el.detachViewer();

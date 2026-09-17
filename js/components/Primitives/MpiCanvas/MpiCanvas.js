@@ -67,7 +67,7 @@ const MASK_POINT_DRAW_R = 6;
  *   clearMaskPoints() / getMaskPointCount() / getPointsJSON()
  *   bakeAutoPicksInto('manual'|'subtract') — Add / Subtract the detected mask
  *   setCropRatio(ratio)
- *   getCropRect()
+ *   getCropRect() / setCropRect({x, y, w, h})
  *   destroy()
  *
  * Active modes: 'none' | 'mask' | 'crop' | 'compare'
@@ -1572,6 +1572,8 @@ class _CanvasCore {
     /** RESOLUTION mode: seed the rect at exactly w×h image px, centred (MPI-383). */
     setCropSize(w, h)   { this.crop.setExactSize(w, h); this.draw(); }
     getCropRect()       { return this.crop.getCropRect(); }
+    /** Put the box back at an exact image-space rect (MPI-773: a GIF frame step reloads the image). */
+    setCropRect(r)      { this.crop.cropRect = { x: r.x, y: r.y, w: r.w, h: r.h }; this.draw(); }
 }
 
 // ── ComponentFactory wrapper ──────────────────────────────────────────────────
@@ -1629,7 +1631,7 @@ export const MpiCanvas = ComponentFactory.create({
             'setPointsMode','isPointsMode','clearMaskPoints','getMaskPointCount','getPointsJSON',
             // ALLOWLIST — a core method missing here is `undefined` on el, and the
             // caller dies with "not a function" nowhere near this file.
-            'setCropRatio','setCropSize','getCropRect',
+            'setCropRatio','setCropSize','getCropRect','setCropRect',
             'setPaintBrushSize','setPaintBrushType','setPaintBrushPreset','setPaintColor','setPaintOpacity','getPaintOpacity',
             'setPaintEnabled','getPaintURL','hasPaint','clearPaint','setPaintFromDataURL',
             'beginPaintAdjust','previewPaintAdjust','applyPaintAdjust','endPaintAdjust','hasPaintAdjustPreview',

@@ -1,0 +1,38 @@
+.mpi-tool-options-gif-timing {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-3);
+    padding: var(--s-2);
+    align-items: stretch;
+}
+
+.mpi-tool-options-gif-timing__desc,
+.mpi-tool-options-gif-timing__note {
+    font-size: var(--t-2xs);
+    color: var(--ink-3);
+    text-align: center;
+    line-height: 1.4;
+}
+
+.mpi-tool-options-gif-timing__section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+}
+
+.mpi-tool-options-gif-timing__section:empty {
+    display: none;
+}
+
+.mpi-tool-options-gif-timing__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    justify-content: center;
+}
+
+/* [hidden] must beat the flex display above (attribute alone loses to display:flex). */
+.mpi-tool-options-gif-timing__row[hidden],
+.mpi-tool-options-gif-timing__note[hidden] {
+    display: none;
+}

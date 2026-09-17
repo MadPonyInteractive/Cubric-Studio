@@ -129,6 +129,11 @@
     border: 1px solid var(--line);
 }
 
+/* [hidden] must beat the flex display above, or the empty pill stays on screen. */
+.mpi-frame-strip__pill[hidden] {
+    display: none;
+}
+
 .mpi-frame-strip__pill-count {
     font-size: var(--t-xs, 0.8rem);
     color: var(--ink-2);

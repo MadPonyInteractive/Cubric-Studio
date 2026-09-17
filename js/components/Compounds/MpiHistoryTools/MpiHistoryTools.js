@@ -24,7 +24,7 @@
  * Props:
  * @param {'image'|'video'|'gif'} mode - Determines the built-in tool list.
  *   `gif` (MPI-769) was empty-but-routed; MPI-771 lands its first group
- *   (Cut-out). Timing/output and transform/export still land later.
+ *   (Cut-out), MPI-772 Timing and Output, MPI-773 Transform and Export.
  *
  * Instance methods (on instance.el):
  *   setMode(mode)      — programmatically activate a mode; emits 'activate { mode }'.
@@ -186,8 +186,9 @@ const VIDEO_TOOLS = [
 
 // MPI-769 made `gif` a valid mode with an empty rail. MPI-771 lands the first
 // tool: the cut-out group (SAM3 by name, Adjust, Invert, Cut out — one panel,
-// `js/components/Organisms/MpiToolOptionsGifCutout`). Timing/output (MPI-772)
-// and transform/export (MPI-773) still land later.
+// `js/components/Organisms/MpiToolOptionsGifCutout`). MPI-772 adds Timing and
+// Output (one panel, `MpiToolOptionsGifTiming`, reading the mode), MPI-773
+// Transform and Export (`MpiToolOptionsCrop` + `MpiToolOptionsGifTransform`).
 const GIF_TOOLS = [
     {
         mode: 'cutout',
@@ -200,6 +201,40 @@ const GIF_TOOLS = [
             // mode, not `maskBrush`: that one belongs to the image mask family
             // (`_MASK_TOOLS` in the Block) and its canvas bridges.
             { mode: 'gifMaskBrush', icon: 'brush', info: 'Mask Brush' },
+        ],
+    },
+    {
+        mode: 'transform',
+        label: 'Transform',
+        group: [
+            // MPI-773: the image Crop panel over MpiGifViewer's crop surface.
+            { mode: 'crop',      icon: 'crop',          info: 'Crop'   },
+            { mode: 'gifResize', icon: 'resize_stroke', info: 'Resize' },
+        ],
+    },
+    {
+        mode: 'timing',
+        label: 'Timing',
+        group: [
+            { mode: 'gifTrim',    icon: 'frames',  info: 'Trim'       },
+            { mode: 'gifSpeed',   icon: 'bolt',    info: 'Speed'      },
+            { mode: 'gifReverse', icon: 'reverse', info: 'Reverse'    },
+            { mode: 'gifLoop',    icon: 'loop',    info: 'Loop count' },
+        ],
+    },
+    {
+        mode: 'output',
+        label: 'Output',
+        group: [
+            { mode: 'gifOutput', icon: 'gif', info: 'GIF output' },
+        ],
+    },
+    {
+        mode: 'export',
+        label: 'Export',
+        group: [
+            { mode: 'gifSaveFrame', icon: 'camera', info: 'Save frame as image' },
+            { mode: 'gifToVideo',   icon: 'video',  info: 'GIF to Video'        },
         ],
     },
 ];

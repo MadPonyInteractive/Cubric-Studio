@@ -162,21 +162,39 @@ no second file-serving mechanism: both routes above resolve each frame's ready
   written, same precedent as the existing `splatPath` copy in that route: a
   hash already present at the destination is left alone.
 
-## What builds on this
+## Tools on this store
 
-MPI-769 (GIF history workspace) mounts the viewer/strip and calls
-`POST /gif/entry`. MPI-770 (Make GIF) and MPI-760 (GIF Maker) get their OWN
-route files (`routes/gifMake.js`, `routes/gifMaker.js`) that write frames via
-`services/gifFrames.js` and then call `buildGif()` directly — they do not
-route through `POST /gif/entry`. MPI-771 (cut-out) and MPI-772/773 (timing,
-transform) all read/write the same `gif` field shape documented here.
+Workspace tools land results through the Block's `_postGifEntry` (POST, then
+`/gif/ensure-frames` for the URLs, then append or replace the history entry).
+Make GIF (`routes/gifMake.js`) and GIF Maker (`routes/gifMaker.js`) write frames
+and call `buildGif()` themselves. A GIF opens with no tool up.
 
 ## Cut-out (MPI-771)
 
 `gif` mode's first tool group: SAM3 video tracking by name, into a new alpha-cut
-entry via `POST /gif-cutout/apply` (own route, not `/gif/entry` — it lands the
-result the same way, `appendToHistory` + `_setCurrentIdx`, but the cut needs the
-per-frame mask batch a plain entry write never takes). Graph, runner and the
-`MpiToolOptionsGifCutout` panel (Track → read the numbered preview → chips → Mask
-Adjust/Invert → Cut out), plus the viewer/strip tint preview:
-[masking-sam3-gif.md](masking-sam3-gif.md).
+entry via `POST /gif-cutout/apply` (the cut needs the per-frame mask batch a plain
+entry write never takes). Graph, runner, the `MpiToolOptionsGifCutout` panel and
+the viewer/strip tint preview: [masking-sam3-gif.md](masking-sam3-gif.md).
+
+## Timing and output tools (MPI-772)
+
+Timing (Trim, Speed, Reverse, Loop count) and Output (GIF output): one panel,
+`MpiToolOptionsGifTiming`, picked by mode; math in `gifTiming.js` beside it. Each
+Apply is a new entry through `POST /gif/entry`, edits the list the user sees
+(staged strip changes included) and writes no frame file. Trim keeps the control
+bar's handles (`MpiGifControlBar.getRange()`; a new frame count resets them and
+emits `range-change`). Speed is `max(2, round(100 / fps))`, 0.1-50 fps. Loop
+writes `gif.loop`. Transparent sets `output.edgeColour`, off is `null`. Settings:
+`toolSettings.gifTiming`. Proof: `tests/desktop/gif-timing.spec.js`.
+
+## Transform and export tools (MPI-773)
+
+Crop is the image `MpiToolOptionsCrop` over `MpiGifViewer`'s crop surface
+(`enterMode('crop')`, the canvas viewer's method names; the box survives a frame
+step through `MpiCanvas.setCropRect`). `POST /gif/crop` takes the tool's rect and
+fill, plus `outW`/`outH` for RESOLUTION. Resize (`MpiToolOptionsGifTransform`) is
+`POST /gif/resize`. Both write new frames and a new entry. Save frame uploads the
+current full-res frame as an image card; GIF to Video (`POST /gif/to-video`, a
+background colour for alpha) adds a video card and leaves the GIF history alone.
+Neither emits `media:imported`: `mediaImportService` would build a second card.
+Proof: `tests/desktop/gif-transform.spec.js`.
