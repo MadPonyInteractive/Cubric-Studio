@@ -113,6 +113,79 @@ test('Flow packages load from user_flows, serve their files, and a broken one sa
     }
 });
 
+// A shipped Flow republished as a package gets the SAME licence gate as the built-in one.
+// Head Swap needs klein-9b, whose licence is the gate MPI-781's paid package must keep.
+test('a packaged Head Swap shows the licence gate the built-in one does, on a fresh profile', async ({}, testInfo) => {
+    const { FLOWS } = require(path.join(ROOT, 'js/data/flowsRegistry.js'));
+    const { COMMANDS } = require(path.join(ROOT, 'js/data/commandRegistry.js'));
+    const { UNIVERSAL_WORKFLOWS } = require(path.join(ROOT, 'js/data/modelConstants/universal_workflows.js'));
+    const { id, operation, workflow, ...flow } = FLOWS.find(f => f.id === 'head-swap');
+    const { universal, ...op } = COMMANDS[operation];
+    const graph = JSON.parse(fs.readFileSync(path.join(ROOT, 'comfy_workflows', UNIVERSAL_WORKFLOWS[operation].workflow), 'utf8'));
+    // The shipped graph bakes an author path into its loaders; a package must ship clean.
+    for (const node of Object.values(graph)) {
+        for (const [k, v] of Object.entries(node.inputs || {})) if (/^[A-Za-z]:[\\/]/.test(v)) node.inputs[k] = '';
+    }
+    const dir = path.join(testInfo.outputPath('user-data'), 'user_flows', 'head-swap-test');
+    fs.mkdirSync(dir, { recursive: true });
+    for (const f of [flow.preview, flow.video]) fs.copyFileSync(path.join(ROOT, 'comfy_workflows', 'display', f), path.join(dir, f));
+    fs.writeFileSync(path.join(dir, 'workflow.json'), JSON.stringify(graph));
+    fs.writeFileSync(path.join(dir, 'flow.json'), JSON.stringify({
+        schema: 'cubric/flow-package/v1', id: 'head-swap-test', version: '1.0.0',
+        flow: { ...flow, title: 'Head Swap Package' }, op,
+    }));
+    const { app, window, pageErrors, consoleErrors } = await launchApp(testInfo);
+
+    try {
+        await window.waitForTimeout(6000);
+        const r = await window.evaluate(async () => {
+            const { MpiFlowLibrary } = await import('/js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js');
+            const { getFlowById, flowAvailability } = await import('/js/data/flowsRegistry.js');
+            const { flowLicences } = await import('/js/utils/flowLicences.js');
+            const { hasAcceptedLicence } = await import('/js/data/modelConstants/licences.js');
+            const lib = MpiFlowLibrary.mount(document.createElement('div'));
+            window.__mpi532licence = lib;
+            const root = lib.el;
+            lib.el.open();
+
+            const drawer = async (title, not) => {
+                [...root.querySelectorAll('.mpi-tile')]
+                    .find(t => t.textContent.includes(title) && !(not && t.textContent.includes(not))).click();
+                await new Promise(res => setTimeout(res, 300));
+                const out = {
+                    licences: [...root.querySelectorAll('#flow-detail-licences .mpi-detail__licence-name')].map(n => n.textContent),
+                    buttons: [...root.querySelectorAll('#flow-detail-actions button')].map(b => b.textContent.trim()),
+                };
+                root.querySelector('#flow-detail-close')?.click();
+                await new Promise(res => setTimeout(res, 100));
+                return out;
+            };
+            const pkg = getFlowById('user:head-swap-test');
+            const built = getFlowById('head-swap');
+            return {
+                reason: flowAvailability(pkg).reason || null,
+                sameLicences: JSON.stringify(flowLicences(pkg)) === JSON.stringify(flowLicences(built)),
+                licenceKeys: flowLicences(pkg).map(l => l.key),
+                accepted: flowLicences(pkg).map(l => hasAcceptedLicence(l.key)),
+                pkg: await drawer('Head Swap Package'),
+                built: await drawer('Head Swap', 'Package'),
+            };
+        });
+
+        expect(r.reason).toBeNull();
+        expect(r.licenceKeys).toContain('klein-9b');
+        expect(r.accepted).not.toContain(true);
+        expect(r.sameLicences).toBe(true);
+        expect(r.pkg.licences.length).toBeGreaterThan(0);
+        expect(r.pkg).toEqual(r.built);
+        expect(pageErrors).toEqual([]);
+        expect(consoleErrors).toEqual([]);
+    } finally {
+        await window.evaluate(() => window.__mpi532licence?.el?.destroy?.()).catch(() => {});
+        await closeApp(app);
+    }
+});
+
 // Refresh: packages deleted from or copied into user_flows by hand, with the app running.
 test('the Library Refresh drops a deleted package and shows a copied-in one, no restart', async ({}, testInfo) => {
     const flowsDir = path.join(testInfo.outputPath('user-data'), 'user_flows');

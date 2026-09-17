@@ -193,8 +193,17 @@ MPI-799, both MPI-560 phase 7, ready/open at the 2.0 release.
 Refresh sits in the filter bar's trailing slot (the Model Library's control), reloads, re-opens
 or closes the drawer, re-renders, then re-syncs deps.
 
-Next: Phase 4 (docs, linter, Head Swap proof run). `docs/flow-packages.md` should also name the
-   Refresh button and point at MPI-798/799 as "coming at 2.0".
+**Phase 4 mostly DONE (2026-09-17):** `docs/flow-packages.md` + index links, the linter,
+the update-survival test, and a desktop spec proving a packaged Head Swap gets the built-in
+licence gate. Evidence in validation.md.
+
+Next: **the real generation** from the packaged Head Swap — only Fabio's app can run one
+(an isolated instance has no real weights). Package built by
+`<session fe5850ff scratchpad>/pack-headswap.cjs` into `.../scratchpad/pkg/head-swap-test`
+(rebuild it with that script if the scratchpad is gone; it clears the two baked paths). Check:
+the tile appears, boxes apply (read the dispatched graph from `:48188/history`), the result
+lands, its filename starts with `flowHeadSwapPackageTest` (no `filePrefix` in Head Swap's op,
+so the default from the title). Then tick the checklist and close via `mpi-end-session`.
 
 ## Completed
 
@@ -253,5 +262,11 @@ Next: Phase 4 (docs, linter, Head Swap proof run). `docs/flow-packages.md` shoul
   ownership. The Library mounts its OWN `MpiOkCancel` for "Replace Flow" (the existing one is
   titled and labelled Uninstall). Drop listeners use a capture-phase `drop` reset, because the
   overlay stops the bubble.
+- **For MPI-781: set `op.filePrefix` explicitly** (`flowHeadSwap`, `flowDramaBox`). The
+  built-in ops carry none (their key is the prefix), so a package without it gets the
+  title-derived default and its saved files change name.
+- **2026-09-17 — the licence-gate proof needs no GPU.** The drawer's licence rows and footer
+  derive from `requiredModels` alone, so a desktop spec compares the packaged Head Swap drawer
+  with the built-in one on a fresh profile. Only the generation itself needs Fabio's app.
 - **For MPI-781: DramaBox's placeholder carries straight quotes** — allowed (placeholders are
   exempt), noted only because it is the case that shaped the exemption.

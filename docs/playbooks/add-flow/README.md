@@ -52,6 +52,10 @@ Two folders sit alongside the numbered sections:
 | [ui/](ui/README.md) | **PORTABLE** flow UI/UX — the frame, its declared fields and step gizmos (box gizmo, baseline rules). Read before any flow UI work; promote generalisable decisions INTO it |
 | [existing-flows/](existing-flows/) | **SPECIFIC** — one file per flow: its shape, decisions, and dead ends. Read the relevant one before touching that flow |
 
+**Shipping a Flow as a PACKAGE instead** (a folder in `user_flows/`, no registry edit; how
+third parties and MPI's paid Flows ship): [../../flow-packages.md](../../flow-packages.md).
+This playbook is for Flows built INTO the app.
+
 The **cross-cutting workflow machinery** (the MpiNodes pack, the injector target list, the
 `Input_*`/`Output_*` title law) is shared with the model system and lives in
 [../../workflow-authoring/README.md](../../workflow-authoring/README.md). Read it when you

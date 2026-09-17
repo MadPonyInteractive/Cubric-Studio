@@ -299,6 +299,18 @@ test('install: a dropped folder or zip lands whole, or not at all', async () => 
     assert.deepEqual(staged(), [], 'staging is always cleaned');
 });
 
+// A portable update replaces the app and keeps `user-data/`; packages must live under it.
+test('installed packages survive an app update', () => {
+    const read = (...p) => fs.readFileSync(path.join(__dirname, '..', ...p), 'utf8');
+    assert.equal(uf.userFlowsDir(), path.join(ROOT, 'user_flows'), 'packages live under APP_USER_DATA');
+    const main = read('main.js');
+    assert.match(main, /path\.join\(resolveMainPortableRoot\(\), 'user-data'\)/, 'a portable build keeps userData in <root>/user-data');
+    assert.match(main, /APP_USER_DATA: userDataPath/, 'the server fork is handed that userData');
+    const preserve = read('scripts', 'build-portable.mjs').match(/const PRESERVE = \[([\s\S]*?)\];/);
+    assert.ok(preserve, 'build-portable.mjs still declares PRESERVE');
+    assert.match(preserve[1], /'user-data\/'/, 'the update preserve list keeps user-data/');
+});
+
 // LAST: it mutates the shared FLOWS/COMMANDS module instances.
 test('renderer: a package registers into the registries a built-in Flow uses', async () => {
     const esm = p => import('file://' + path.join(__dirname, '..', p).replace(/\\/g, '/'));

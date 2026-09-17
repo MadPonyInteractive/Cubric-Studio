@@ -60,3 +60,22 @@
   shown then cleared, drawer closed, tiles = Kept + New, registries agree; 0 page/console errors.
 - `npm run lint` exit 0; `npm test` 1275 tests, 1274 pass, 0 fail, 1 skipped.
 - **User-ux PASSED (Fabio, 2026-09-17):** re-dropped the Stems test package, deleted its folder, Refresh removed the tile; copied it back, Refresh showed it again ("both worked").
+
+## Phase 4 (2026-09-17, session fe5850ff)
+
+- `docs/flow-packages.md` (163 lines) written; linked from `docs/README.md` and
+  `docs/playbooks/add-flow/README.md`.
+- `scripts/lint-flow-package.mjs`: the Stems test package → exit 0; a copy with a wrong folder name
+  and a `NoSuchNodeClass` node → exit 1 naming both (class check against :8188); with
+  `COMFY_URL=http://127.0.0.1:1` → only the folder error, plus "node classes NOT checked"; no args → exit 2.
+- Head Swap packaged as `head-swap-test` (scratch only, script `pack-headswap.cjs`): the two baked
+  author paths (nodes 79/81 `string`) cleared; linter exit 0 with every node class checked against
+  the app engine (:48188).
+- `tests/user-flows.test.cjs` → 14/14: new "installed packages survive an app update" (userFlowsDir
+  under APP_USER_DATA, main.js portable userData = `<root>/user-data` handed to the fork, PRESERVE
+  keeps `user-data/`).
+- `tests/desktop/flow-packages.spec.js` → 4/4: new spec packages the shipped Head Swap on a fresh
+  profile; the package is valid, its licences equal the built-in (klein-9b among them, none accepted),
+  and its drawer shows the same licence rows and the same footer buttons as the built-in drawer.
+- `npm run lint` exit 0; `npm test` 1305 tests, 1304 pass, 0 fail, 1 skipped.
+- Real generation from the package: NOT yet run (needs Fabio's app).
