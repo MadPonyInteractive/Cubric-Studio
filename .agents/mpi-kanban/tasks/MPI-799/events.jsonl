@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-799", "at": "2026-09-17T12:52:24+01:00", "actor": "claude:fe5850ff", "column": "todo", "title": "Community Flow registry - public GitHub repo where developers submit Flows for review"}

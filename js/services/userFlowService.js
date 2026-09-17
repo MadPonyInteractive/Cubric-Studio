@@ -82,15 +82,27 @@ export function registerUserFlow({ id, manifest, errors }) {
     return def;
 }
 
+/** Remove a package Flow from every registry `registerUserFlow` wrote. */
+export function unregisterUserFlow(key) {
+    const at = FLOWS.findIndex(f => f.id === key);
+    if (at !== -1) FLOWS.splice(at, 1);
+    delete COMMANDS[key];
+    delete UNIVERSAL_WORKFLOWS[key];
+}
+
 /**
- * Load every installed package. Never rejects — a failed scan leaves the built-in Flows
- * untouched, and boot awaits this before the first model/dep sync.
+ * Load every installed package, and drop any registered one whose folder is gone (the
+ * Flow Library's Refresh). Never rejects — a failed scan leaves every registry untouched,
+ * and boot awaits this before the first model/dep sync.
  */
 export async function loadUserFlows() {
     try {
         const res = await fetch('/user-flows');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const { flows = [] } = await res.json();
+        const onDisk = new Set(flows.map(f => `${USER_FLOW_PREFIX}${f.id}`));
+        FLOWS.filter(f => f.id.startsWith(USER_FLOW_PREFIX) && !onDisk.has(f.id))
+            .forEach(f => unregisterUserFlow(f.id));
         flows.forEach(registerUserFlow);
         const broken = flows.filter(f => f.errors.length);
         clientLogger.info('userFlows', `registered ${flows.length - broken.length} package Flow(s), ${broken.length} disabled`);

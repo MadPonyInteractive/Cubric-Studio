@@ -166,11 +166,11 @@ validation error, not silently dropped.
 
 ## Out of scope — needs Fabio
 
-- **Generated node lockfile + dev installer** (MPI-560 phase 6 lists it). The paid Flows do
-  not need it: MPI authors on the `G:\ComfyUi` bench, which `/mpi-bump-local-comfy` keeps in
-  line. Proposed: split to its own card after 2.0.
+- **Generated node lockfile + dev installer → MPI-798** (split 2026-09-17, Fabio; MPI-560
+  phase 7, ready at 2.0 release). The paid Flows do not need it.
+- **GitHub registry → MPI-799** (created 2026-09-17, Fabio; MPI-560 phase 7, open at 2.0
+  release). Library link tiles to Gumroad stay MPI-780 open question 1.
 - MPI-533 tombstone ledger — phase 2's reason text covers "missing id" without it.
-- The 1.7+ GitHub registry; Library link tiles to Gumroad (MPI-780 open question 1).
 
 ## Verification
 
@@ -185,23 +185,16 @@ validation error, not silently dropped.
 Phases 1-3 done; phase 3 **user-verified by Fabio 2026-09-17** (dropped the Stems test
 package; tile appeared, drawer showed Open + Uninstall). Committed at handoff.
 
-Next, in order:
-1. **Explain to Fabio** what the "generated node lockfile + developer installer" (MPI-560 phase
-   6 scope, see § Out of scope) actually are — he has not decided whether to split them off.
-   In short: a third-party author must build their workflow on a ComfyUI whose custom-node
-   packs match the shipped engine exactly, or their graph uses a node version users do not
-   have. `dev_configs/node_lock.json` + `js/data/modelConstants/nodesDeps.js` already pin every
-   pack; the "lockfile" is a dev-facing export of that list and the "installer" a script that
-   clones those exact commits into the dev's own ComfyUI. MPI's own bench is kept in line by
-   `/mpi-bump-local-comfy`, so the paid Flows do not need it.
-2. **Flow Library Refresh button** (folded in 2026-09-17, Fabio): deleting a package folder
-   leaves its tile until restart. Add a refresh like the Model Library's (`MpiModelManager`
-   has re-sync/refresh machinery — reuse its control) that re-fetches `/user-flows`, UNREGISTERS
-   `user:` Flows no longer on disk (remove from `FLOWS`, delete `COMMANDS[key]` /
-   `UNIVERSAL_WORKFLOWS[key]`), registers new ones, then `reSyncInstalledModels()` +
-   `renderList()`. Needs an `unregister` in `js/services/userFlowService.js`; extend
-   `tests/user-flows.test.cjs` + `tests/desktop/flow-packages.spec.js`. Verify mode user-ux.
-3. Phase 4 (docs, linter, Head Swap proof run).
+Scope split done (Fabio, 2026-09-17): lockfile + installer → MPI-798, GitHub registry →
+MPI-799, both MPI-560 phase 7, ready/open at the 2.0 release.
+
+**Refresh button DONE — user-verified by Fabio 2026-09-17** (evidence in validation.md). `loadUserFlows()` now prunes `user:` Flows whose folder is gone (new
+`unregisterUserFlow`) — boot and Refresh share it; a failed scan prunes nothing. The Library's
+Refresh sits in the filter bar's trailing slot (the Model Library's control), reloads, re-opens
+or closes the drawer, re-renders, then re-syncs deps.
+
+Next: Phase 4 (docs, linter, Head Swap proof run). `docs/flow-packages.md` should also name the
+   Refresh button and point at MPI-798/799 as "coming at 2.0".
 
 ## Completed
 

@@ -113,6 +113,64 @@ test('Flow packages load from user_flows, serve their files, and a broken one sa
     }
 });
 
+// Refresh: packages deleted from or copied into user_flows by hand, with the app running.
+test('the Library Refresh drops a deleted package and shows a copied-in one, no restart', async ({}, testInfo) => {
+    const flowsDir = path.join(testInfo.outputPath('user-data'), 'user_flows');
+    writePackage(path.join(flowsDir, 'spec-gone'), 'spec-gone', 'Spec Gone');
+    writePackage(path.join(flowsDir, 'spec-kept'), 'spec-kept', 'Spec Kept');
+    const { app, window, pageErrors, consoleErrors } = await launchApp(testInfo);
+
+    try {
+        await window.waitForTimeout(6000);
+
+        const titles = () => window.evaluate(() => {
+            const text = [...window.__mpi532refresh.el.querySelectorAll('.mpi-tile')].map(t => t.textContent);
+            return ['Spec Gone', 'Spec Kept', 'Spec New'].filter(n => text.some(t => t.includes(n)));
+        });
+        const refresh = () => window.evaluate(async () => {
+            const root = window.__mpi532refresh.el;
+            const btn = root.querySelector('[data-info="Refresh Flows from disk"]');
+            btn.click();
+            const spun = btn.hasAttribute('loading');
+            for (let i = 0; i < 100 && btn.hasAttribute('loading'); i++) await new Promise(res => setTimeout(res, 100));
+            return { spun, stillLoading: btn.hasAttribute('loading'), drawerOpen: root.querySelector('#flow-detail-panel').classList.contains('is-open') };
+        });
+
+        const opened = await window.evaluate(async () => {
+            const { MpiFlowLibrary } = await import('/js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js');
+            const lib = MpiFlowLibrary.mount(document.createElement('div'));
+            window.__mpi532refresh = lib;
+            lib.el.open();
+            // The drawer is open on the Flow about to vanish: Refresh must close it.
+            [...lib.el.querySelectorAll('.mpi-tile')].find(t => t.textContent.includes('Spec Gone')).click();
+            await new Promise(res => setTimeout(res, 300));
+            return lib.el.querySelector('#flow-detail-panel').classList.contains('is-open');
+        });
+        expect(opened).toBe(true);
+        expect(await titles()).toEqual(['Spec Gone', 'Spec Kept']);
+
+        fs.rmSync(path.join(flowsDir, 'spec-gone'), { recursive: true });
+        writePackage(path.join(flowsDir, 'spec-new'), 'spec-new', 'Spec New');
+        const r = await refresh();
+        expect(r.spun).toBe(true);
+        expect(r.stillLoading).toBe(false);
+        expect(r.drawerOpen).toBe(false);
+        expect(await titles()).toEqual(['Spec Kept', 'Spec New']);
+
+        const reg = await window.evaluate(async () => {
+            const { getFlowById } = await import('/js/data/flowsRegistry.js');
+            const { getCommand } = await import('/js/data/commandRegistry.js');
+            return [!!getFlowById('user:spec-gone'), !!getCommand('user:spec-gone'), !!getFlowById('user:spec-new')];
+        });
+        expect(reg).toEqual([false, false, true]);
+        expect(pageErrors).toEqual([]);
+        expect(consoleErrors).toEqual([]);
+    } finally {
+        await window.evaluate(() => window.__mpi532refresh?.el?.destroy?.()).catch(() => {});
+        await closeApp(app);
+    }
+});
+
 // The drop, end to end through the real overlay, route and registry. A synthetic File has
 // no disk path, so `webUtils.getPathForFile` is pointed at a real folder — everything after
 // that is the shipped code path. The zip and failure branches are unit-tested

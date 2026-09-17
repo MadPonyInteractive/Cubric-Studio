@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-799",
+  "title": "Community Flow registry - public GitHub repo where developers submit Flows for review",
+  "description": "UMBRELLA: MPI-560 (phase 7 - community Flow submissions). Created 2026-09-17 (Fabio).\n\nTARGET: open the day Cubric Studio 2.0 ships, so developers can submit Flows to MPI for review from release day. Pulls the \"1.7+ GitHub registry\" idea in MPI-532 forward to 2.0.\n\nSCOPE: a public GitHub repo where a developer submits a Flow package for MPI to review.\n- README with the submission rules (package format = docs/flow-packages.md, allowed node packs = the developer kit lockfile).\n- Issue / PR templates for a submission.\n- CI that runs the Flow package linter (MPI-532 phase 4) on every submission.\n- A public review checklist and public decisions (accept or decline, with the reason). The platform owner choosing what ships must be visible; transparency defuses it.\n- Decide what an accepted entry becomes: a listing the next release bakes in as a Community Flows card that links to the developer's own page (MPI-780 open question 1 covers Library link tiles).\nAdvertising only: never a payment rail, no accounts, no checkout.\n\nNEEDS FABIO: repo name and owner org; the registry repo's own licence; whether a submission is a PR carrying the package or an issue linking to the developer's page. Creating the repo is outward-facing: Fabio's go first.\n\nDEPENDS ON: MPI-532 (format, linter, docs) and the Flow developer kit card (lockfile + installer).",
+  "column": "todo",
+  "maturity": "needs-decision",
+  "status": "active",
+  "created_at": "2026-09-17T12:52:24+01:00",
+  "updated_at": "2026-09-17T12:52:24+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

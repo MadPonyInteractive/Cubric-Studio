@@ -338,4 +338,21 @@ test('renderer: a package registers into the registries a built-in Flow uses', a
     registerUserFlow({ id: 'test-flow', manifest: manifest(), errors: ['broken now'] });
     assert.equal(getCommand('user:test-flow'), null, 'a reinstall that breaks it removes the op');
     assert.equal(reg.flowAvailability('user:test-flow').reason, 'broken now');
+
+    // Refresh: a package whose folder is gone leaves every registry; a failed scan prunes nothing.
+    const { UNIVERSAL_WORKFLOWS } = await esm('js/data/modelConstants/universal_workflows.js');
+    registerUserFlow({ id: 'test-flow', manifest: manifest(), errors: [] });
+    const scan = async (res) => {
+        global.fetch = async () => res;
+        try { await loadUserFlows(); } finally { global.fetch = realFetch; }
+    };
+    await scan({ ok: false, status: 500 });
+    assert.ok(reg.getFlowById('user:test-flow') && getCommand('user:test-flow'), 'a failed scan keeps what is registered');
+    await scan({ ok: true, json: async () => ({ flows: [broken] }) });
+    assert.equal(reg.getFlowById('user:test-flow'), null);
+    assert.equal(getCommand('user:test-flow'), null);
+    assert.ok(!('user:test-flow' in UNIVERSAL_WORKFLOWS));
+    assert.ok(reg.getFlowById('user:broken'), 'a package still on disk stays');
+    assert.equal(reg.FLOWS.length, before + 1);
+    assert.ok(reg.FLOWS.slice(0, before).every(f => !f.id.startsWith('user:')), 'built-in Flows untouched');
 });

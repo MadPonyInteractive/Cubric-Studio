@@ -30,7 +30,9 @@ member when the phase covering it lands, and say so in its card.
 | MPI-348 | Krea2 swap family: face / head / character. **REJECTED 2026-09-14** (Krea very bad in Fabio's tests; Head Swap ships on Klein 9B distilled, MPI-744) | 4 |
 | MPI-748 | **Umbrella** (added 2026-09-13): Head Swap on Klein follow-ups — MPI-746 (Klein `euler` → `lcm`), MPI-747 (`Output_Display`), MPI-744 (Klein Head Swap Flow); MPI-745 (LTX video head swap) left it 2026-09-14 as a solo card. One card per session; order in `tasks/MPI-748/plan.md` | 4 |
 | MPI-259 | Flows v2 — install / multi-model / reuse paths, UI design pass, 2nd flow | 5 |
-| MPI-532 | Community flow packages — data-only folders in `user_flows/`. **Targets 1.6** | 6 |
+| MPI-532 | Community flow packages — data-only folders in `user_flows/`. **Blocks 2.0** (MPI-780 phase 1) | 6 |
+| MPI-798 | Flow developer kit — generated node lockfile + installer (split out of MPI-532). **Ready at 2.0 release** | 7 |
+| MPI-799 | Community Flow registry — public GitHub repo, submissions reviewed by MPI. **Open at 2.0 release**; needs Fabio's decisions | 7 |
 
 Adjacent, deliberately NOT members: **MPI-455** (end-frame conditioning — op-side wiring on
 the shipped `ltx_i2v.json`, not a Flow) and **MPI-533** (the tombstone ledger phase 5's
@@ -191,8 +193,23 @@ Three things already settled — do not re-litigate:
   **Flows**. Never "flow plugins".
 
 Deprecation UX depends on MPI-533's tombstone ledger: an installed Flow ALWAYS shows,
-disabled, with the reason named. Silence reads as a broken app. The 1.7+ GitHub registry
-idea is explicitly NOT this card — advertising only, never a payment rail.
+disabled, with the reason named. Silence reads as a broken app. The GitHub registry is
+phase 7, not MPI-532 — advertising only, never a payment rail.
+
+## Phase 7: Community submissions open at 2.0 (MPI-798, MPI-799)
+
+**Fabio, 2026-09-17:** the day Cubric Studio 2.0 ships, a developer can build a Flow and
+submit it to MPI for review. Two cards, both after MPI-532 (they need its format, linter and
+docs):
+
+- **MPI-798 — developer kit.** The generated node lockfile + installer from phase 6's second
+  settled point, split out of MPI-532: the paid Flows never needed it (MPI's bench is kept in
+  line by `/mpi-bump-local-comfy`), outside developers do.
+- **MPI-799 — the registry.** A public GitHub repo: submission templates, CI running the
+  package linter, public accept/decline decisions. Was "1.7+"; pulled forward to 2.0. Needs
+  Fabio's repo name, licence and submission shape before it can be planned.
+
+Not 2.0 release blockers unless Fabio says so; MPI-595 Gate A is unchanged.
 
 ## Verification
 
@@ -207,6 +224,8 @@ idea is explicitly NOT this card — advertising only, never a payment rail.
 - Phase 5: user-visible UX, needs the app.
 - Phase 6: an MPI Flow republished as a data-only `user_flows/` package loads, validates and
   runs on a restart with no registry edit.
+- Phase 7: a developer's ComfyUI set up by the installer passes the linter's node check;
+  a test submission to the registry repo runs the linter in CI.
 
 Spin your own app (`npm run app:isolated`), never the user's `:3000`.
 

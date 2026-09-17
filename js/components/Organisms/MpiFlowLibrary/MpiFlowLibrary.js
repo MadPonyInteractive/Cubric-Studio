@@ -22,7 +22,7 @@ import { renderIcon } from '../../../utils/icons.js';
 import { hasAcceptedLicence } from '../../../data/modelConstants/licences.js';
 import { flowInstallKeys, flowLicences, buildLicenceRows } from '../../../utils/flowLicences.js';
 import { MpiProjectDropOverlay } from '../../Primitives/MpiProjectDropOverlay/MpiProjectDropOverlay.js';
-import { registerUserFlow } from '../../../services/userFlowService.js';
+import { registerUserFlow, loadUserFlows } from '../../../services/userFlowService.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 
 /**
@@ -177,6 +177,27 @@ export const MpiFlowLibrary = ComponentFactory.create({
             renderList();
         });
         qs('.mpi-flow-library__head', el).appendChild(filterBar.el);
+
+        // MPI-532 — the Model Library's Refresh, same control. Re-reads `user_flows/`, so a
+        // package folder deleted (or copied in) by hand shows without a restart; then the
+        // dep sync, which is what reads a newly listed Flow's install state.
+        const refreshBtn = MpiButton.mount(ce('div'), {
+            icon: 'refresh', variant: 'ghost', size: 'md',
+            info: 'Refresh Flows from disk',
+        });
+        filterBar.el.appendTrailing(refreshBtn.el);
+        _unsubs.push(on(refreshBtn.el, 'click', _refresh));
+
+        async function _refresh() {
+            refreshBtn.el.setAttribute('loading', 'true');
+            await loadUserFlows();
+            // The open drawer holds a FlowDef object the reload replaced or removed.
+            const open = _activeDetail && listFlows().find(f => f.id === _activeDetail.id);
+            if (open) openDetail(open); else _closeDetail();
+            renderList();
+            await reSyncInstalledModels();
+            refreshBtn.el.removeAttribute('loading');
+        }
 
         function _matchesFilters(flow) {
             if (_filters.media.size && !_filters.media.has(flow.mediaType)) return false;
@@ -939,6 +960,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
             _destroyDetailBtns();
             closeBtn?.el?.destroy?.();
             backBtn?.el?.destroy?.();
+            refreshBtn?.el?.destroy?.();
             filterBar?.el?.destroy?.();
             _confirmDialog?.el?.destroy?.();
             overlay?.el?.destroy?.();

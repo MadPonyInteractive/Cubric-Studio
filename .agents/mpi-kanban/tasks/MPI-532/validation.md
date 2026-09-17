@@ -49,3 +49,14 @@
   "Stems (package test)" tile appeared Ready with no restart, its drawer offered Open + Uninstall
   ("It worked fine"). Gap found: deleting the folder from disk left the tile until restart →
   Refresh button folded into this card.
+
+## Refresh button (2026-09-17, session fe5850ff)
+
+- `tests/user-flows.test.cjs` → 13/13; the renderer test now also proves a package whose folder is
+  gone leaves `FLOWS`, `COMMANDS` and `UNIVERSAL_WORKFLOWS`, a package still on disk stays, built-in
+  Flows are untouched, and a failed scan (HTTP 500) prunes nothing.
+- `tests/desktop/flow-packages.spec.js` → 3/3; new spec: two packages seeded, drawer opened on one,
+  its folder deleted and a third package copied in with the app running, Refresh clicked → spinner
+  shown then cleared, drawer closed, tiles = Kept + New, registries agree; 0 page/console errors.
+- `npm run lint` exit 0; `npm test` 1275 tests, 1274 pass, 0 fail, 1 skipped.
+- **User-ux PASSED (Fabio, 2026-09-17):** re-dropped the Stems test package, deleted its folder, Refresh removed the tile; copied it back, Refresh showed it again ("both worked").

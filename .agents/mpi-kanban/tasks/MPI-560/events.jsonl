@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "id": "MPI-560", "type": "task.created", "at": "2026-08-14T00:24:00Z", "actor": "claude", "summary": "Umbrella created by the consolidation sweep."}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-560", "type": "task.updated", "at": "2026-08-16T03:00:00Z", "actor": "claude", "summary": "Merged MPI-529 and MPI-552 into this umbrella; retitled as the single Flow umbrella; plan.md rewritten with 5 phases and 7 members."}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-560", "type": "task.updated", "at": "2026-08-16T04:00:00Z", "actor": "claude", "summary": "Absorbed MPI-530: now 9 members across 6 phases. Phase 4 is the Krea2 bench track."}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-560", "at": "2026-09-17T11:53:02Z", "actor": "claude:fe5850ff", "summary": "Phase 7 added: community submissions open at 2.0 release - members MPI-798 (developer kit), MPI-799 (registry)."}

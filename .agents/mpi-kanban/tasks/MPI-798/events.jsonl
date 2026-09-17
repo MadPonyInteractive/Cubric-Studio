@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-798", "at": "2026-09-17T12:52:24+01:00", "actor": "claude:fe5850ff", "column": "todo", "title": "Flow developer kit - node lockfile + installer that match a developer's ComfyUI to the shipped engine"}
