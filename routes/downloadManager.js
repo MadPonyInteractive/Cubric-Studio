@@ -75,6 +75,7 @@ const { resolveComfyPath, getCustomRoot, cleanEmptyDirs, getUniversalWorkflowDep
 const { getComfyPath, getEngineRoot } = require('./platformEngine');
 // MPI-410: the indeterminate/sweep rule lives here — one contract, node-tested.
 const { isNodeTickPending } = require('./install/computeProgress');
+const { engineJobRunning } = require('./engineJobs');
 const {
     isCompleteOnDisk,
     isNodeInstalledOnDisk,
@@ -1777,7 +1778,8 @@ router.get('/comfy/downloads/active', (req, res) => {
     res.json({
         success: true,
         models,
-        engine: !!_activeEngineDownloader,
+        // Any engine job, not just its archive download (MPI-792) — see engineJobs.js.
+        engine: engineJobRunning(),
     });
 });
 
@@ -3880,19 +3882,6 @@ function broadcastEngineEvent(event, data) {
 
 // ── Engine Download Pause/Resume ───────────────────────────────────────────────
 
-let _activeEngineDownloader = null;
-let _activeEngineDownloadId = null;
-
-function registerEngineDownload(downloader, downloadId) {
-    _activeEngineDownloader = downloader;
-    _activeEngineDownloadId = downloadId;
-}
-
-function clearEngineDownload() {
-    _activeEngineDownloader = null;
-    _activeEngineDownloadId = null;
-}
-
 // /engine/pause + /engine/resume removed (MPI-258 Bug 2): resume corrupted large
 // files (NDH 200-vs-206 append) and had no frontend caller. Engine download is
 // cancel-only via the existing cancel path.
@@ -3903,8 +3892,6 @@ module.exports = {
     logBootDiskSpace, // MPI-716 — called by server.js at boot
     broadcastEngineEvent,
     FileDownloader,
-    registerEngineDownload,
-    clearEngineDownload,
     runCustomNodeInstall: _runCustomNodeInstall,
     startUniversalWorkflowInstall,
     finishCustomNodeInstall,

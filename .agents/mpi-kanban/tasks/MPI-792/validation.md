@@ -40,6 +40,28 @@ at ~1 MB/s) and a stubbed 3-dep UW set. Every SSE event recorded.
 - `tests/uw-partial-install.test.cjs` and `tests/engine-asset-visibility.test.cjs` still read
   the edited sources and pass.
 
+## Pass 2: the quit warning covers the whole engine job
+
+Cause: `main.js` asked `GET /comfy/downloads/active`, whose `engine` flag was true only while
+`_activeEngineDownloader` was registered — the archive download. Unpack, the uv install, the
+node step, repair, upgrade and the first-start pip pass all quit silently.
+
+- `routes/engineJobs.js` counter; held by `/engine/download`, `/engine/repair-deps`,
+  `/engine/upgrade` and the `ensureCuratedPythonDeps` call in `/comfy/start`. The route reads
+  it; the archive-only flag and `registerEngineDownload` / `clearEngineDownload` are gone.
+- `main/quitWarning.cjs` words the dialog; `main.js` uses it.
+- `tests/install-feedback.test.cjs` +4 tests (counter nesting, route with a job and no
+  download, wiring on all four sites, dialog copy). Negative control: route forced back to
+  `engine: false` fails the route test.
+- Real Electron (`scratchpad/quitprobe/probe.cjs`: scratch profile, port 54792, scratch engine
+  root, `dialog.showMessageBox` stubbed in the main process): idle `engine:false`; after
+  `POST /engine/download` `engine:true`; closing the window produced ONE dialog — title "The
+  engine is still installing", buttons `Quit anyway` / `Keep installing`, defaultId 1 — and
+  the window stayed on "Keep installing"; closing again with "Quit anyway" exited the app.
+  12 MB of the real portable had landed in the scratch root (deleted).
+- `npm test`: 1240 tests, 1239 pass, 0 fail. eslint clean on the touched frontend + main files.
+- The user looked at the install screen (Browser pane replay) and approved it, 2026-09-17.
+
 ## Not verified
 
 - A real multi-GB portable on a slow disk, and the Linux/macOS uv path on a real machine. The

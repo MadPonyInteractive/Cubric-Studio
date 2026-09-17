@@ -8,6 +8,7 @@ const { getEngineRoot } = require('./routes/platformEngine');
 const { cleanEngineScratch } = require('./routes/engineScratch');
 const secretsStore = require('./main/secretsStore');
 const floatLatent = require('./main/floatLatentWindow.cjs');
+const { quitWarning } = require('./main/quitWarning.cjs');
 
 // The Express fork's port. 3000 unless CUBRIC_PORT says otherwise, which only the
 // desktop E2E suite does — it hands each run a free port so a spec cannot attach to
@@ -201,27 +202,18 @@ async function teardownRemotePod() {
 
 async function confirmQuitWithActiveDownloads() {
   if (process.env.CUBRIC_E2E) return true;
-  const active = await getActiveDownloadsForQuit();
-  const modelCount = Array.isArray(active?.models) ? active.models.length : 0;
-  const hasEngineDownload = !!active?.engine;
-  if (modelCount === 0 && !hasEngineDownload) return true;
-
-  const details = [];
-  if (modelCount > 0) {
-    details.push(`${modelCount} model download${modelCount === 1 ? '' : 's'} will resume from the existing partial file on next launch.`);
-  }
-  if (hasEngineDownload) {
-    details.push('The engine download will restart from scratch on next launch.');
-  }
+  // `engine` is true for the whole engine job, not just its archive download (MPI-792).
+  const warning = quitWarning(await getActiveDownloadsForQuit());
+  if (!warning) return true;
 
   const options = {
     type: 'warning',
-    buttons: ['Quit', 'Cancel'],
+    buttons: warning.buttons,
     defaultId: 1,
     cancelId: 1,
-    title: 'Downloads are still running',
-    message: 'Quit Cubric Vision while downloads are active?',
-    detail: details.join('\n'),
+    title: warning.title,
+    message: warning.message,
+    detail: warning.detail,
   };
   const result = mainWindow
     ? await dialog.showMessageBox(mainWindow, options)

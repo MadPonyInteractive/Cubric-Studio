@@ -14,9 +14,10 @@ const fs = require('fs-extra');
 const path = require('path');
 const { SYS_DEPS_PATH, checkUniversalWorkflowDepsStatus, processState, stopComfyUI, getDefaultModelsRoot, resolveModelsRoot, getCustomRoot, resolveComfyPath, getUniversalWorkflowDeps, runPipCommand, NODE_COMMIT_MARKER, curatedDepsMarkerPath, writeExtraModelPathsYaml } = require('./shared');
 const logger = require('./logger');
-const { broadcastEngineEvent, FileDownloader, registerEngineDownload, clearEngineDownload, startUniversalWorkflowInstall, finishCustomNodeInstall } = require('./downloadManager');
+const { broadcastEngineEvent, FileDownloader, startUniversalWorkflowInstall, finishCustomNodeInstall } = require('./downloadManager');
 const { COMFY_DIR, COMFY_VENV_DIR, COMFY_VERSION, TORCH_MAC, getPythonBin, getComfyPath, resolveDownloadConfig, resolveUvBin, getEngineRoot } = require('./platformEngine');
 const { ensureGit } = require('./gitProvision');
+const { beginEngineJob } = require('./engineJobs');
 const { spawn, execFile } = require('child_process');
 const { promisify } = require('util');
 
@@ -211,7 +212,6 @@ async function _provisionWindowsEngine(targetDir, engineInfo, missingDepIds, ins
     };
 
     await downloader._ensureDownloader();
-    registerEngineDownload(downloader, downloadId);
 
     // Fire UW deps download immediately (parallel with engine download, skip custom node install for now)
     let uwModelJob = null;
@@ -236,8 +236,8 @@ async function _provisionWindowsEngine(targetDir, engineInfo, missingDepIds, ins
     }
 
     await new Promise((resolve, reject) => {
-        downloader._downloader.on('end', () => { clearEngineDownload(); resolve(); });
-        downloader._downloader.on('error', (err) => { clearEngineDownload(); reject(err); });
+        downloader._downloader.on('end', resolve);
+        downloader._downloader.on('error', reject);
         downloader._downloader.start();
     });
 
@@ -711,9 +711,11 @@ router.post('/engine/download', async (req, res) => {
     res.json({ success: true, status: 'started' }); // respond immediately — NEVER block
 
     logger.info('engine', `Starting async engine download`);
+    // The quit guard asks for this for the whole job, not just the archive (MPI-792).
+    const endJob = beginEngineJob();
     _runEngineDownload(chosenModelsRoot).catch(e => {
         logger.error('engine', 'Uncaught engine download error (already handled)', e);
-    });
+    }).finally(endJob);
 });
 
 router.get('/engine/version-check', async (req, res) => {
@@ -834,6 +836,7 @@ router.post('/engine/repair-deps', async (req, res) => {
     logger.info('engine', 'UW deps repair requested');
     res.json({ success: true, status: 'repair-started' });
 
+    const endJob = beginEngineJob(); // MPI-792: the quit guard covers a repair too
     try {
         // Same MAX_PATH wall as a fresh install — repair runs the identical pip
         // steps, so tell the user the real reason instead of failing again.
@@ -883,6 +886,8 @@ router.post('/engine/repair-deps', async (req, res) => {
             logger.warn('engine', `UW repair finished with weights outstanding but every custom node installed — releasing the boot gate: ${err.message}`);
             broadcastEngineEvent('engine:complete', { success: true, warning: err.message });
         }
+    } finally {
+        endJob();
     }
 });
 
@@ -1117,6 +1122,7 @@ router.post('/engine/upgrade', async (req, res) => {
     // Respond immediately — every phase below is long and the frontend listens on SSE.
     res.json({ success: true, status: 'upgrade-started' });
 
+    const endJob = beginEngineJob(); // MPI-792: the quit guard covers an upgrade too
     try {
         let wipeReason = mode === 'full' ? 'a full reinstall was requested' : await _fullReinstallReason();
 
@@ -1140,6 +1146,8 @@ router.post('/engine/upgrade', async (req, res) => {
     } catch (e) {
         logger.error('system', 'Engine upgrade failed', e);
         broadcastEngineEvent('engine:error', { error: e.message });
+    } finally {
+        endJob();
     }
 });
 

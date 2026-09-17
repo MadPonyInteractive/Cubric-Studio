@@ -8,8 +8,15 @@
 
 const test = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
+
+// Throwaway engine root before any route loads (docs/testing-harnesses.md § 2).
+const SCRATCH = fs.mkdtempSync(path.join(os.tmpdir(), 'mpi792-'));
+process.env.CUBRIC_ENGINE_ROOT = path.join(SCRATCH, 'engine');
+test.after(() => fs.rmSync(SCRATCH, { recursive: true, force: true }));
 
 let formatClock;
 let startElapsedTicker;
@@ -65,4 +72,70 @@ test('ticker: no hints configured means never a hint', (t) => {
     t.mock.timers.tick(120_000);
     assert.strictEqual(last, null);
     ticker.stop();
+});
+
+// ── The quit guard sees the whole engine job ────────────────────────────────
+// Users closed an install that looked stuck. The guard only knew about the engine
+// ARCHIVE download, so every later step (unpack, uv install, nodes, repair, upgrade,
+// the first-start pip pass) closed without a word.
+
+const { beginEngineJob, engineJobRunning } = require('../routes/engineJobs');
+const { quitWarning } = require('../main/quitWarning.cjs');
+
+test('engine jobs: counted, nested, and ending twice ends once', () => {
+    assert.strictEqual(engineJobRunning(), false);
+    const endOuter = beginEngineJob();
+    const endInner = beginEngineJob(); // repair-deps can run a full install inside itself
+    endInner();
+    endInner();
+    assert.strictEqual(engineJobRunning(), true, 'the outer job is still running');
+    endOuter();
+    assert.strictEqual(engineJobRunning(), false);
+});
+
+test('GET /comfy/downloads/active reports a running engine job with no download at all', async () => {
+    const express = require('express');
+    const { router } = require('../routes/downloadManager');
+    const app = express();
+    app.use(router);
+    const server = await new Promise((resolve) => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
+    const active = async () => (await fetch(`http://127.0.0.1:${server.address().port}/comfy/downloads/active`)).json();
+    try {
+        assert.strictEqual((await active()).engine, false);
+        const end = beginEngineJob();
+        assert.strictEqual((await active()).engine, true, 'an unpack or a pip pass must still warn');
+        end();
+        assert.strictEqual((await active()).engine, false);
+    } finally {
+        await new Promise((resolve) => server.close(resolve));
+    }
+});
+
+test('every engine job route and the first-start pip pass hold a job', () => {
+    const read = (p) => fs.readFileSync(path.join(__dirname, '..', p), 'utf8');
+    const engine = read('routes/engine.js');
+    for (const route of ['/engine/download', '/engine/repair-deps', '/engine/upgrade']) {
+        const at = engine.indexOf(`router.post('${route}'`);
+        assert.notStrictEqual(at, -1, route);
+        const body = engine.slice(at, engine.indexOf('\n});', at));
+        assert.match(body, /beginEngineJob\(\)/, `${route} does not hold an engine job`);
+        assert.match(body, /endJob\)|endJob\(\)/, `${route} never ends its engine job`);
+    }
+    assert.match(read('routes/comfy.js'),
+        /beginEngineJob\(\);\s*try \{\s*await ensureCuratedPythonDeps\(\);[\s\S]{0,300}finally \{\s*endJob\(\);/);
+});
+
+test('quit warning: nothing running, downloads only, and an engine job', () => {
+    assert.strictEqual(quitWarning(null), null, 'server unreachable: no dialog');
+    assert.strictEqual(quitWarning({ models: [], engine: false }), null);
+
+    const dl = quitWarning({ models: [{}, {}], engine: false });
+    assert.strictEqual(dl.title, 'Downloads are still running');
+    assert.match(dl.detail, /^2 model downloads will resume/);
+
+    const eng = quitWarning({ models: [{}], engine: true });
+    assert.strictEqual(eng.title, 'The engine is still installing');
+    assert.deepStrictEqual(eng.buttons, ['Quit anyway', 'Keep installing'], 'button 1 is the default: stay');
+    assert.match(eng.detail, /interrupts it/);
+    assert.match(eng.detail, /1 model download will resume/);
 });

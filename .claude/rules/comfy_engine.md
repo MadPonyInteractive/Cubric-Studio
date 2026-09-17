@@ -394,11 +394,12 @@ The engine installation is now **parallel-optimized** with aggregated progress r
 - Engine-deps source: `dependencies.js` (the universal set: `type: 'custom_nodes'` + `engineAsset: true` weights) — no per-workflow tracking needed
 - Engine-deps download: `routes/downloadManager.js` (`startUniversalWorkflowInstall` with `skipCustomNodeInstall` param)
 - Custom node finish: `routes/downloadManager.js` (`finishCustomNodeInstall`)
-- Frontend aggregation: `js/components/Compounds/MpiEngineInstall/MpiEngineInstall.js` (`el.setProgress`)
+- Install screen: `js/components/Compounds/MpiEngineInstall/MpiEngineInstall.js` (`_paint()` derives it from one `_run` state, MPI-792)
+- Quit guard: `routes/engineJobs.js` (`beginEngineJob`) → `GET /comfy/downloads/active` → `main/quitWarning.cjs`
 
 **Important:** UW deps custom nodes must NOT run their pip install until **after** engine extraction completes and Python is available. The `skipCustomNodeInstall` flag delays this until `finishCustomNodeInstall()` is called in step 7.
 
-**Progress bar behavior:** Aggregates both engine and UW deps download progress into a single unified bar showing combined bytes downloaded / combined total bytes.
+**Progress bar behavior (MPI-792):** the bar shows only while a number is honest — combined engine + UW bytes during the download, the 7z percent while unpacking, UW bytes alone after that — and a spinner otherwise. The server's side of that contract: `engine:extracting` carries `percent` (node-7z `$progress`), and the provisioner broadcasts "Downloading remaining components..." when the UW downloads outlast the unpack.
 
 ### 4. Model Registry Timing Issue
 

@@ -43,6 +43,7 @@ const {
 } = require('./shared');
 const { getPythonBin, getComfyPath, getEngineRoot, resolveDownloadConfig } = require('./platformEngine');
 const remoteModels = require('./remoteModels');
+const { beginEngineJob } = require('./engineJobs');
 
 const ENGINE_ROOT = getEngineRoot();
 const _comfyEventClients = new Set();
@@ -593,11 +594,17 @@ router.post('/comfy/start', async (req, res) => {
         // nodes needing a moved pin fail to import and say so in the engine log; the
         // reason is returned to the caller and recorded here.
         let depsWarning = null;
+        // A pip pass cut short by a quit leaves site-packages half-written, so the quit
+        // guard covers it like any other engine job (MPI-792). Milliseconds when the
+        // marker matches.
+        const endJob = beginEngineJob();
         try {
             await ensureCuratedPythonDeps();
         } catch (err) {
             depsWarning = `curated python deps FAILED: ${err.message}`;
             logger.error('comfy', `${depsWarning} — starting anyway, custom nodes may fail to import`);
+        } finally {
+            endJob();
         }
         // MPI-673: outlive the response. Returning the reason to this one caller was
         // not enough — nothing read it, and the engine this start is about to spawn

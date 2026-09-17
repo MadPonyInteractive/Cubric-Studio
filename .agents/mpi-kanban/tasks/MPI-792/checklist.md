@@ -8,4 +8,6 @@
 - [x] Real `/engine/download` against a scratch engine, recorded SSE stream replayed through the real component (dark theme only - the app has no light theme).
 - [x] `npm test` green.
 - [x] Docs: `docs/download-manager.md` new section + the MPI-231 paragraph.
-- [ ] Rule files that still name the removed code (`.claude/rules/downloads.md`, `comfy_engine.md`, `component-events-primitives.md`) - need the user's permission (CLAUDE.md cardinal rule 5).
+- [x] Rule files updated with the user's approval (`.claude/rules/downloads.md`, `comfy_engine.md`, `component-events-primitives.md`).
+- [x] User signed off on the look.
+- [x] Quit warning covers every engine job (`routes/engineJobs.js`, `main/quitWarning.cjs`), verified in a real Electron app.

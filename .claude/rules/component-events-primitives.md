@@ -122,17 +122,17 @@ NOTE:    Startup "What's New" overlay. Content set via `el.open({ version, stage
 
 ### MpiEngineInstall
 EMITS:   (none — emits to Events bus, not component events)
-LISTENS: `engine:downloading` — displays download progress
-         `engine:extracting` — displays extraction status
-         `engine:patching` — displays patching status
-         `engine:upgrade-status` — displays upgrade progress
-         `engine:uw-installing` — displays universal workflow deps install
-         `download:progress` — filters for modelId='__universal_workflow__', aggregates with engine progress
-         `download:complete` — modelId='__universal_workflow__' only: releases the progress-info line back to the engine phase stream (MPI-410)
-         `engine:complete` — hides modal, emits `engine:ready` to Events bus
+LISTENS: `engine:downloading` — engine archive bytes (or the uv bootstrap label)
+         `engine:extracting` — unpack (`status:'extracting'`, `percent`, `file`) or a uv/pip/git output line (`status` = stage id)
+         `engine:patching` — Finish step
+         `engine:upgrade-status` — upgrade step label
+         `engine:uw-installing` — label; `phase:'nodes'` moves the tracker to Install
+         `download:progress` — modelId='__universal_workflow__' only: UW bytes
+         `download:complete` — modelId='__universal_workflow__' only: UW bytes are no longer live
+         `engine:complete` — Complete state, emits `engine:ready` to Events bus after 500ms
          `engine:error` — displays error message with retry button
 PATTERN: Single SSE connection bridge — all events come from `downloadService` (no own EventSource)
-NOTE:    The UW byte ticks OWN the progress-info line while they carry real bytes; `engine:extracting` (broadcast per uv/pip stdout line) writes the subtitle only. Two streams, one element, no owner = the install-screen strobe (MPI-410).
+NOTE:    Handlers only record facts on `_run`; `_paint()` derives steps, label, bar-or-spinner and detail, and runs once a second from the elapsed ticker (MPI-792). No handler writes the screen directly — two streams writing one element was the MPI-410 strobe.
 
 ### MpiErrorDialog
 EMITS:   `dismiss`     `{}`

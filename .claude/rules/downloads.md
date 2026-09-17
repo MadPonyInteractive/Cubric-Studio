@@ -55,11 +55,12 @@
 
 **Engine downloads run parallel with engine-level dependency downloads** for better UX. Engine-level deps are the UNIVERSAL set: every `type: 'custom_nodes'` dep plus every `engineAsset: true` weight in `dependencies.js` (MPI-222 — replaced the old `installOnEngine` flag). They cover all universal workflow needs in one place.
 
-1. **Combined size calculation:** `routes/shared.js` exports `getUniversalWorkflowDepsTotalSize()` which HEAD-requests each universal dep URL to get exact bytes
-2. **Parallel firing:** `routes/engine.js` fires both engine download AND `startUniversalWorkflowInstall(depIds, true, true)` immediately
-3. **Custom node install delayed:** The third parameter `true` skips custom node pip install until after engine extraction
-4. **Frontend aggregation:** `MpiEngineInstall.js` receives both `engine:downloading` and `download:progress` events and aggregates them into a single unified progress bar
-5. **Custom node finish:** After engine extraction, `finishCustomNodeInstall(modelJob, true)` is called to run pip install with Python now available
+1. **No up-front size pass (MPI-792):** the old `getUniversalWorkflowDepsTotalSize()` HEAD-requested every dep one at a time before the first byte and only logged the total — minutes of a frozen install screen on a slow network. Removed; do not bring it back.
+2. **Parallel firing:** `routes/engine.js` fires both engine download AND `startUniversalWorkflowInstall(depIds, true, true)` immediately. With `skipCustomNodeInstall` the UW call broadcasts NO status of its own — the provisioner owns the install-screen label.
+3. **Custom node install delayed:** The third parameter `true` defers node extraction until after the engine is unpacked
+4. **Frontend:** `MpiEngineInstall.js` records both streams on one `_run` object and derives the whole screen in `_paint()` — bytes = engine + UW until the archive is in, then UW only; the unpack owns the screen while it runs. Never write the label or bar straight from a handler (the MPI-410 strobe). Detail: `docs/download-manager.md` § "The engine install screen must never look frozen".
+5. **Custom node finish:** After the unpack, `finishCustomNodeInstall(modelJob, true)` extracts the nodes, one `Installing custom nodes (i of n)` status each (`phase: 'nodes'`). No pip there since MPI-413 — the curated set installs at engine start.
+6. **Quit guard:** every engine job (install, upgrade, repair, the first-start pip pass) holds `beginEngineJob()` from `routes/engineJobs.js`. `GET /comfy/downloads/active` reports it as `engine`, and `main.js` words the dialog through `main/quitWarning.cjs`. A new long engine operation must hold a job too, or quitting it is silent.
 
 **Adding a new universal workflow:** No dependency changes needed in `universal_workflows.js`. Any new node dep is `type: 'custom_nodes'`, which is in the universal set automatically (no flag) and included in future engine installs.
 
@@ -160,9 +161,9 @@ interface DownloadJob {
 
 ## Engine Download (cancel-only)
 
-The **engine** archive download (distinct from model downloads) is managed via `registerEngineDownload()` / `clearEngineDownload()` and `_activeEngineDownloader` in `routes/downloadManager.js`. `/engine/pause` + `/engine/resume` were DELETED (MPI-258 B2) — do not reintroduce them.
+The **engine** archive download (distinct from model downloads) runs inside `_runEngineDownload` (`routes/engine.js`) and has no pause, resume or registry of its own. `/engine/pause` + `/engine/resume` were DELETED (MPI-258 B2) — do not reintroduce them. An interrupted archive does NOT resume: `_clearStaleWindowsEngineArtifacts` scrubs the partial on the next run and it downloads from scratch. MODEL downloads do resume (MPI-317).
 
-`GET /comfy/downloads/active` reports active model downloads separately from the engine download for Electron quit warnings. On cancel both scrub the partial; on interruption MODEL downloads resume (MPI-317) — whether the engine-archive path also resumes has NOT been verified since that change; confirm before relying on it.
+`GET /comfy/downloads/active` reports active model downloads plus `engine` — true for any engine JOB (install, upgrade, repair, first-start pip pass; `routes/engineJobs.js`, MPI-792), not just the archive — for the Electron quit warning (`main/quitWarning.cjs`).
 
 ---
 

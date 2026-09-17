@@ -408,7 +408,7 @@ three restarts, and the reverse would have destroyed it each time.
 - `POST /comfy/models/download/start` — register the model job in the store BEFORE responding (register-before-respond, G8); the response body carries the `job` snapshot + store `version`.
 - `POST /comfy/models/download/cancel` — stop + scrub a model's active/queued download. **Idempotent**: an unknown job returns 200 (+ `download:cancelled` broadcast), NOT 404 (MPI-258). On the remote engine it ALSO deletes the dep off the Pod volume — see the ordering rule above.
 - `GET /comfy/downloads/status` — full queue snapshot (still map-backed; carries `version`).
-- `GET /comfy/downloads/active` — active model downloads plus engine-download flag for Electron quit warnings
+- `GET /comfy/downloads/active` — active model downloads plus the engine-JOB flag (`engine`, any install/upgrade/repair/first-start pip pass — MPI-792) for Electron quit warnings
 - `GET /comfy/downloads/stream` — SSE broadcast channel; on connect: reconcile pass → `download:snapshot`.
 - `POST /comfy/models/uninstall` — uninstall a model (engine-filtered, store-guarded — see below).
 
@@ -1401,5 +1401,16 @@ event. `_paint` runs on the same tick, so a stalled download drops its speed and
 5 s instead of showing its last good rate. `MpiStartingComfy` uses the same ticker for the
 curated pip pass and Pod boots. A permanent "Keep Cubric open" line sits under the meter.
 
-Guard: `tests/install-feedback.test.cjs` (ticker; negative-controlled). The screen itself was
-checked by replaying recorded event sequences through the real component.
+**The quit guard covers the whole job.** `main.js` asks `GET /comfy/downloads/active` before
+the window closes, and its `engine` flag used to be true only while the engine ARCHIVE
+downloaded — the unpack, the whole uv install, the node step, a repair, an upgrade and the
+first-start pip pass all quit without a word. Now every one of those holds
+`beginEngineJob()` (`routes/engineJobs.js`, a counter, nesting-safe: a repair can run a full
+install inside itself) and the flag reads the counter. `main/quitWarning.cjs` words it — "The
+engine is still installing", default button **Keep installing** — and stays testable
+without Electron. A new long engine operation must hold a job too.
+
+Guard: `tests/install-feedback.test.cjs` (ticker; the job counter; the route reporting a job
+with no download at all, negative-controlled; the wiring on all four sites; the dialog copy).
+The screen was checked by replaying recorded event sequences through the real component, and
+the quit guard in a real Electron app with `dialog.showMessageBox` stubbed in the main process.
