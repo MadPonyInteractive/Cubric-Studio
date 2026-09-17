@@ -47,7 +47,7 @@ media slot is one Upload node whose `loaded` output drives its presence gates, n
 
 - [x] `dev_configs/node_lock.json` `ComfyUI-MpiNodes.commit` -> `cff4c3b321f1eb9dc7403df8db6ed3ac5bd1e8fa` (1.2.16)
   (via the `/mpi-nodes-sync` pin procedure; sha pasted from `git rev-parse`).
-- [ ] **Fabio restarts the app** (server routes + boot drift repair; the engine is shared, an
+- [x] **Fabio restarts the app** (server routes + boot drift repair; the engine is shared, an
   agent never restarts it).
 - **Verify:** `engine/.../ComfyUI-MpiNodes/.mpi_node_commit` = new sha; `GET
   127.0.0.1:48188/object_info/MpiLoadVideo` lists `loaded`; `app.log` shows the repair.
@@ -80,10 +80,10 @@ Upload node (`MpiLoadImage` / `MpiLoadVideoUpload` / `MpiLoadAudioUpload`):
   `None`, so a bench pick never ships (1.2.16 falls back to the picker when `string` is empty). An Upload node without an `Input_*` title in a
   shipped graph is refused.
 
-- [ ] Edit script over `raw/` (guards: round-trip, surviving nodes' `pos`/`size` identical,
+- [x] Edit script over `raw/` (guards: round-trip, surviving nodes' `pos`/`size` identical,
   links table and both link ends together, `mode` unchanged); clear any remaining live baked
   paths.
-- [ ] Sync normalisation above. (`PATH_MEDIA_CLASSES` gained the three Upload classes in Phase 1.)
+- [x] Sync normalisation above. (`PATH_MEDIA_CLASSES` gained the three Upload classes in Phase 1.)
 - [ ] `COMFY_URL=http://127.0.0.1:48188 node scripts/sync-raw-workflows.mjs` (converts,
   gates, bakes via `orchestrate.py`). Check `generate_*.py` `_bake_widgets` title lookups
   still land on the Upload nodes' `string`.
@@ -128,7 +128,14 @@ Scratch project, `gpu_lease.py run -- ...`, `/connector/generate`, read sidecars
 
 ## Current State
 
-2026-09-17 ~15:05Z. Phases 1-2 DONE. Phase 3 + 5 prepared, WAITING ON THE ENGINE RESTART:
+2026-09-17 ~15:45Z. HANDOFF. Fabio has RESTARTED the app; at handoff 48188 did not answer yet
+(booting). CI on ee034559 = success. The scratch scripts are copied into research/ (bake.mjs =
+the bake runner, upload_slots.mjs = the raw converter, commit1.py = the private-index commit
+recipe used for commit 1) - run bake.mjs from there (it has absolute repo paths only). COMMIT 1 PUSHED: ee034559 (code, staging test, sync/validator, raw/ 34 files,
+generator comments, this card, MPI-800 board/events lines) via a private index. Still
+uncommitted and held for commit 2: dev_configs/node_lock.json (pin), the three runtime tests +
+two comment-only test edits, every doc edit, and the rebake itself.
+Phases 1-2 DONE. Phase 3 + 5 prepared, WAITING ON THE ENGINE RESTART:
 - raw/ 34 files converted (Upload loaders); sync `shipUploadSlots` (picker None + string '') is
   exported and imported by the bake; validator `checkUploadSlots` proven both ways;
   `comfyController._inject` writes only `string` on Upload loaders and forces the picker None.
