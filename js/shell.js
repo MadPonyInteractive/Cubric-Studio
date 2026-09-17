@@ -8,6 +8,7 @@ import { APP_CONFIG } from '../dev_configs/app_config.js';
 import { onNavigate, PAGE_LANDING } from './router.js';
 import { syncModelInstalled, MODELS, installedForOtherArch, getDriftedNodeDeps } from './data/modelRegistry.js';
 import { loadAll as loadAssets } from './services/assetService.js';
+import { loadUserFlows } from './services/userFlowService.js';
 import { Events } from './events.js';
 import { Storage, Session } from './core/storage.js';
 import { blockedByNoEngine } from './services/engineGate.js';
@@ -1552,6 +1553,10 @@ async function _installRemoteEngineAssets() {
 }
 
 async function _initDataRegistries() {
+  // MPI-532: Flow packages join FLOWS before the first sync, because the sync is what
+  // reads each Flow's dep status (flowDepUniverse). Never rejects.
+  const userFlowsReady = loadUserFlows();
+
   // Subscribe to models:checked event to update state
   // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener
   Events.on('models:checked', ({ installedModelIds: ids }) => {
@@ -1563,6 +1568,7 @@ async function _initDataRegistries() {
   // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener
   Events.on('engine:ready', async () => {
     try {
+      await userFlowsReady;
       await syncModelInstalled();
       await _maybeNotifyArchChange(); // MPI-207: local GPU upgrade shows on boot
     } catch (err) {
@@ -1653,6 +1659,7 @@ async function _initDataRegistries() {
   // Also do an initial check in case engine was already ready before this listener was registered
   // (e.g., fresh start with no engine install needed)
   try {
+    await userFlowsReady;
     await syncModelInstalled();
   } catch (err) {
     clientLogger.error('shell', 'background registry failed:', err);

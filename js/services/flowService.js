@@ -94,7 +94,10 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     const availability = flowAvailability(flow);
     if (!availability.available) {
         Events.emit('ui:warning', {
-            message: `${flow.title} needs ${_missingLabel(availability)} installed first — open it in Flows to install.`,
+            // A broken Flow package has nothing to install, only a reason (MPI-532).
+            message: availability.reason
+                ? `${flow.title} can't run: ${availability.reason}`
+                : `${flow.title} needs ${_missingLabel(availability)} installed first — open it in Flows to install.`,
         });
         return null;
     }

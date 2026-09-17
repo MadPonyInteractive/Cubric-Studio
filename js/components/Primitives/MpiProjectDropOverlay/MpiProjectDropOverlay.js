@@ -9,6 +9,10 @@
  * Props:
  *   onDrop({ folderPath: string, source: 'folder'|'json' }) — called after a
  *   drop is resolved. Not called for unsupported drops (e.g. image files).
+ *   onDropPath({ path: string, isDirectory: boolean }) — MPI-532: when given, it
+ *   replaces the project resolution and receives ANY dropped folder or file (the
+ *   Flow Library takes a package folder or its .zip). The caller decides.
+ *   text — the message (default: the project wording).
  *
  * Instance methods (on instance.el):
  *   show() — make overlay visible
@@ -32,11 +36,11 @@ export const MpiProjectDropOverlay = ComponentFactory.create({
     name: 'MpiProjectDropOverlay',
     css: ['js/components/Primitives/MpiProjectDropOverlay/MpiProjectDropOverlay.css'],
 
-    template: () => `
+    template: (props) => `
         <div class="mpi-project-drop-overlay">
             <div class="mpi-project-drop-overlay__message">
                 <span class="mpi-project-drop-overlay__icon">${renderIcon('folder', 'lg')}</span>
-                <span class="mpi-project-drop-overlay__text">Drop a project folder or project.json to add</span>
+                <span class="mpi-project-drop-overlay__text">${props.text || 'Drop a project folder or project.json to add'}</span>
             </div>
         </div>
     `,
@@ -70,6 +74,10 @@ export const MpiProjectDropOverlay = ComponentFactory.create({
 
             // Project folder dropped: File has no type but FileSystemEntry reports directory.
             const entry = e.dataTransfer.items?.[0]?.webkitGetAsEntry?.();
+            if (props.onDropPath) {
+                props.onDropPath({ path: absPath, isDirectory: !!entry?.isDirectory });
+                return;
+            }
             if (entry?.isDirectory) {
                 props.onDrop?.({ folderPath: normalized, source: 'folder' });
                 return;

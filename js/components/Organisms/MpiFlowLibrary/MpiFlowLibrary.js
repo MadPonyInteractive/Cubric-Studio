@@ -21,6 +21,9 @@ import { qs, ce, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { hasAcceptedLicence } from '../../../data/modelConstants/licences.js';
 import { flowInstallKeys, flowLicences, buildLicenceRows } from '../../../utils/flowLicences.js';
+import { MpiProjectDropOverlay } from '../../Primitives/MpiProjectDropOverlay/MpiProjectDropOverlay.js';
+import { registerUserFlow } from '../../../services/userFlowService.js';
+import { clientLogger } from '../../../services/clientLogger.js';
 
 /**
  * Output-type sections, in render order (MPI-634). A flow's tile is the same 4/5
@@ -183,8 +186,10 @@ export const MpiFlowLibrary = ComponentFactory.create({
 
         // ── Availability badge (chip) for a tile / section sort ──────────────
         function _badgeHtml(flow) {
-            const { available } = flowAvailability(flow);
+            const { available, reason } = flowAvailability(flow);
             if (available) return `<span class="mpi-tile__chip mpi-tile__chip--installed">Ready</span>`;
+            // MPI-532 — a Flow package that failed validation. The reason is in the drawer.
+            if (reason) return `<span class="mpi-tile__chip mpi-tile__chip--unavailable">Unavailable</span>`;
             // MPI-666 — the Model Library's chip, on the surface a beginner actually uses.
             // "Get models" promises a download and delivers a legal wall plus a trip to
             // Hugging Face for an access grant; three shipped flows (scribble,
@@ -508,9 +513,19 @@ export const MpiFlowLibrary = ComponentFactory.create({
         function openDetail(flow) {
             _destroyDetailBtns();
             _activeDetail = flow;
-            const { available, missing } = flowAvailability(flow);
+            const { available, missing, reason } = flowAvailability(flow);
 
-            detailBody.innerHTML = `
+            // MPI-532 — a Flow package that failed validation: the reason, and no footer.
+            // Its strings passed userFlowService's markup filter, so they interpolate safely.
+            detailBody.innerHTML = reason ? `
+                <div class="mpi-detail__thumb mpi-detail__thumb--image mpi-detail__thumb--placeholder" id="flow-detail-thumb"></div>
+                <div class="mpi-detail__titlerow">
+                    <div><div class="mpi-detail__name">${flow.title}</div></div>
+                </div>
+                <div class="mpi-detail__field">
+                    <span class="mpi-detail__field-label">Can't run</span>
+                    <p class="mpi-detail__desc">${reason}</p>
+                </div>` : `
                 <div class="mpi-detail__thumb mpi-detail__thumb--image mpi-detail__thumb--placeholder" id="flow-detail-thumb"></div>
                 <div class="mpi-detail__titlerow">
                     <div><div class="mpi-detail__name">${flow.title}</div></div>
@@ -578,7 +593,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
                     uninstall.on('click', () => { _uninstallFlow(flow); });
                     detailActions.appendChild(uninstall.el); _detailBtns.push(uninstall);
                 }
-            } else {
+            } else if (!reason) {
                 // Same button, same path — the gate fires inside `downloadService.start()`
                 // whatever this says. Only the PROMISE changes, and it has to match what the
                 // click actually delivers (MPI-666):
@@ -825,6 +840,82 @@ export const MpiFlowLibrary = ComponentFactory.create({
                 Events.emit('ui:info', { title: 'Nothing freed', message: `${flow.title} — every file is still needed by another installed flow.`, sound: false });
             }
         }));
+
+        // ── Add a Flow by dropping it (MPI-532) ──────────────────────────────
+        // A package folder or its .zip (the Gumroad download). The server validates and
+        // installs into user_flows/; a valid one registers and shows at once, no restart.
+        // Electron only: a plain browser cannot hand over an absolute path.
+        // Its own dialog: the uninstall one above is titled and labelled for uninstalling.
+        let _pendingReplace = null;
+        const _replaceDialog = MpiOkCancel.mount(ce('div'), {
+            title: 'Replace Flow', okLabel: 'Replace', cancelLabel: 'Cancel',
+        });
+        _replaceDialog.on('ok', () => {
+            const path = _pendingReplace;
+            _pendingReplace = null;
+            if (path) _installPackage(path, true);
+        });
+        _replaceDialog.on('cancel', () => { _pendingReplace = null; });
+        _unsubs.push(() => _replaceDialog.el.destroy?.());
+
+        async function _installPackage(path, overwrite = false) {
+            let data = {};
+            try {
+                const res = await fetch('/user-flows/install', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ path, overwrite }),
+                });
+                data = await res.json().catch(() => ({}));
+            } catch (err) {
+                clientLogger.error('userFlows', 'install request failed', err);
+            }
+            if (data.status === 'exists') {
+                // textContent + the dialog's pre-line CSS, as `_showConfirm` above.
+                qs('#text-slot', _replaceDialog.el).textContent =
+                    `${data.title} is already installed.\nReplace it with this copy?`;
+                _pendingReplace = path;
+                _replaceDialog.el.show();
+                return;
+            }
+            if (data.status !== 'installed') {
+                Events.emit('ui:warning', {
+                    title: "Couldn't add this Flow",
+                    message: data.errors?.[0] || data.error || 'The install did not complete.',
+                });
+                return;
+            }
+            registerUserFlow(data.entry);
+            renderList();
+            Events.emit('ui:success', { title: 'Flow added', message: `${data.title} is in your Flows.`, sound: false });
+            // Its deps' install state is only known after a sync, which ends in
+            // `models:checked` → `_patchAllAffected`.
+            reSyncInstalledModels();
+        }
+
+        if (typeof window.require === 'function') {
+            const dropOverlay = MpiProjectDropOverlay.mount(ce('div'), {
+                text: 'Drop a Flow folder or its .zip to add it',
+                onDropPath: ({ path }) => { _installPackage(path); },
+            });
+            el.appendChild(dropOverlay.el);
+            // Same counter the landing page uses: dragenter/leave fire per child element.
+            let _dragDepth = 0;
+            const _isFileDrag = (e) => e.dataTransfer?.types?.includes('Files');
+            _unsubs.push(on(el, 'dragenter', (e) => {
+                if (!_isFileDrag(e)) return;
+                _dragDepth++;
+                dropOverlay.el.show();
+            }));
+            _unsubs.push(on(el, 'dragleave', (e) => {
+                if (_isFileDrag(e) && _dragDepth > 0 && --_dragDepth === 0) dropOverlay.el.hide();
+            }));
+            _unsubs.push(on(el, 'dragover', (e) => { if (_isFileDrag(e)) e.preventDefault(); }));
+            // Capture: the overlay stops the drop's bubble, and a stale depth would keep
+            // it from ever hiding on the next drag-out.
+            _unsubs.push(on(el, 'drop', () => { _dragDepth = 0; dropOverlay.el.hide(); }, { capture: true }));
+            _unsubs.push(() => dropOverlay.el.destroy?.());
+        }
 
         // ── Open / close the Library overlay ──────────────────────────────────
         // The chip is a PER-OPEN decision, not a per-mount one: shell.js mounts this

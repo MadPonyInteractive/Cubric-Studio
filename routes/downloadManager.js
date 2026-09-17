@@ -90,6 +90,7 @@ const { DownloaderHelper } = require('node-downloader-helper');
 const remoteModels = require('./remoteModels');
 const { createInstallStore } = require('./install/installStore');
 const { createReconciler } = require('./install/reconciler');
+const { scanUserFlows } = require('../services/userFlows');  // MPI-532
 
 const _require = createRequire(__filename);
 let _extractZip = null;
@@ -422,10 +423,17 @@ function _pluginRequiredDepIds(excludeUninstallId) {
 // union a `requiredPlugins` plugin's deps in for the INSTALL payload, and a plugin's deps
 // are not a flow's to release. They stay protected by _pluginRequiredDepIds regardless,
 // since no pluginDepKey can ever equal a flowDepKey.
+//
+// MPI-532 — installed Flow PACKAGES count too. They register in the renderer's FLOWS only,
+// never in this module's copy, so without the scan an uninstall could strand an installed
+// package. An invalid package still protects its deps: it may be one app update from valid.
 function _flowRequiredDepIds(excludeUninstallId) {
     const { FLOWS, flowDepKey } = _require('../js/data/flowsRegistry.js');
+    const packages = scanUserFlows()
+        .filter(p => p.manifest?.flow)
+        .map(p => ({ id: `user:${p.id}`, requiredDeps: p.manifest.flow.requiredDeps }));
     const out = new Set();
-    for (const flow of FLOWS) {
+    for (const flow of [...FLOWS, ...packages]) {
         if (flowDepKey(flow.id) === excludeUninstallId) continue;
         for (const depId of (flow.requiredDeps || [])) out.add(depId);
     }

@@ -218,6 +218,9 @@
 .mpi-tile__chip--available::before { content: "↓"; }
 .mpi-tile__chip--partial { color: var(--accent-frost); }
 .mpi-tile__chip--partial::before { content: "◑"; }
+/* A Flow package that failed validation (MPI-532) — listed, never runnable. */
+.mpi-tile__chip--unavailable { color: var(--accent-warn); }
+.mpi-tile__chip--unavailable::before { content: "!"; }
 
 .mpi-tile__prog {
     width: 100%;

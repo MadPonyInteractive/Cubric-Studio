@@ -70,6 +70,9 @@
  *                                       Video face detailer adopting the LTX Video upscaler.
  * @property {string}   operation      - Universal-op key (commandRegistry.js)
  * @property {string}   workflow       - ComfyUI workflow filename (universal_workflows.js)
+ * @property {string}   [disabledReason] - Set only on a Flow PACKAGE that failed validation
+ *                                       (MPI-532, js/services/userFlowService.js): it is listed,
+ *                                       never runnable, and this is the reason shown.
  * @property {FlowStepField[]} [fields] - Run-slide fields, rendered BY THE FRAME. THE SAME `fields`
  *                                       a step declares (MPI-572) — declaring them here places them
  *                                       on the run slide, declaring them on a step places them on
@@ -3064,11 +3067,13 @@ export function flowModelParams(flowOrId) {
  * Missing deps ride alongside in `missingDeps`; `available` accounts for both.
  *
  * @param {FlowDef|string} flowOrId
- * @returns {{available: boolean, missing: string[], missingDeps: string[]}}
+ * @returns {{available: boolean, missing: string[], missingDeps: string[], reason?: string}}
  */
 export function flowAvailability(flowOrId) {
     const flow = typeof flowOrId === 'string' ? getFlowById(flowOrId) : flowOrId;
     if (!flow) return { available: false, missing: [], missingDeps: [] };
+    // MPI-532 — a Flow package that failed validation: nothing to install, only a reason.
+    if (flow.disabledReason) return { available: false, missing: [], missingDeps: [], reason: flow.disabledReason };
     const installed = state.s_installedModelIds || [];
     const missing = flowModelIds(flow).filter(id => !installed.includes(id));
     const depStatus = _flowDepStatusCache.get(flow.id);

@@ -2235,6 +2235,11 @@
  *   overlay. folderPath is absolute, normalised to forward slashes. Validation
  *   of the folder contents (project.json shape, id/name) is the caller's
  *   responsibility — this primitive only resolves the input to a folder path.
+ * @property {function({ path: string, isDirectory: boolean }): void} [onDropPath]
+ *   MPI-532. When given, REPLACES the project resolution above: any dropped folder
+ *   or file is handed over as its absolute path (native separators). The Flow
+ *   Library uses it for a package folder or its .zip.
+ * @property {string} [text] - The overlay message (default: the project wording).
  *
  * Full-area OS-file drop target. Shown by the landing page while OS files are
  * dragged over the window. Reads the absolute path via Electron's

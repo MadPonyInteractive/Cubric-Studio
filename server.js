@@ -70,6 +70,7 @@ const connectorRoutes = require('./routes/connector');
 const licenceRoutes = require('./routes/licences');
 const llmRoutes = require('./routes/llm');
 const agentRoutes = require('./routes/agent');  // MPI-774
+const userFlowRoutes = require('./routes/userFlows');  // MPI-532
 
 console.log('[server.js] App initialization started');
 logger.info('system', 'Server initialization started');
@@ -99,6 +100,7 @@ app.use(connectorRoutes);
 app.use(licenceRoutes);
 app.use(llmRoutes);
 app.use(agentRoutes);  // MPI-774
+app.use(userFlowRoutes);  // MPI-532
 
 installShutdown(cancelAllDownloads);  // MPI-779
 
