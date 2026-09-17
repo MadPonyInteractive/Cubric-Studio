@@ -161,6 +161,13 @@ mangles those inline, and this repo's guard hooks block the heredoc workaround.
      every run without the fix — proven both ways: re-stub disabled → red, enabled → green,
      `--repeat-each=5` green. That is the same discipline as mutation-testing the guard,
      applied to the environment instead of the code.
+   - **When two replies race, HOLD the late one; a fixed delay is not a provocation**
+     (MPI-789). The Remote panel ran two init passes, and when their `/llm/models` replies
+     crossed, the late pass rebuilt a dropdown the spec had just opened. A 1.5s delay on the
+     second reply stayed green, because the spec body finished first. Parking it in the
+     in-page fetch stub and releasing it right after the toggle failed with CI's exact text.
+     The guard the spec kept needs no timing at all: requests sent before the first `await`
+     are all out when the trigger returns, so it counts them right there.
 
    Worked example: `tests/desktop/flow-reuse-opens-without-model.spec.js`. Item 4 of the
    flow-overlay list above stubs the same key — a stub is only authoritative if nothing
