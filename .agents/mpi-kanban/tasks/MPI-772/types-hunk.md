@@ -27,15 +27,6 @@ typedef was not applied. Land it by hunk once the file is released, then delete 
 - `getRange()` — `{ in, out }` trim handles in frame indices.
 - `'range-change'` also fires when a new frame count resets the handles.
 
-## Also pending: `js/shell/preloadStyles.js` (MPI-774 claim 91f0ea6b)
+## `js/shell/preloadStyles.js`: DONE
 
-After the `MpiToolOptionsGifCutout.css` line:
-
-```
-  'js/components/Organisms/MpiToolOptionsGifTiming/MpiToolOptionsGifTiming.css',
-```
-
-Both sessions had claimed the file, so each waited on the other (MPI-774's message 550b11f3). At
-11:03Z this session released it; reply a550e772 asks MPI-774 to add this line plus MPI-773's
-`MpiToolOptionsGifTransform.css` (right after it) in its own commit. Check HEAD before re-adding.
-The panels' own `css:` lists load the stylesheets on mount meanwhile.
+Landed in MPI-774's commit 88cfe347 (2026-09-17); nothing left here.

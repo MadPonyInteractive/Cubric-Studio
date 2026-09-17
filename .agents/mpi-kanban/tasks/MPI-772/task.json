@@ -7,7 +7,7 @@
   "maturity": "validating",
   "status": "active",
   "created_at": "2026-09-15T13:37:30+01:00",
-  "updated_at": "2026-09-17T10:57:00Z",
+  "updated_at": "2026-09-17T12:20:17Z",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -21,7 +21,7 @@
   "activeSessionTitle": "MPI-757 Phase 4: MPI-772 timing tools",
   "attention": {
     "state": "required",
-    "reason": "MPI-772 built and auto-verified 2026-09-17; left: types.js typedef + preloadStyles.js line, both files under peer claims (MPI-532, MPI-774); text in tasks/MPI-772/types-hunk.md",
-    "updated_at": "2026-09-17T10:57:00Z"
+    "reason": "MPI-772 built and auto-verified 2026-09-17; left: types.js typedef(s), file under MPI-774 claim 91f0ea6b; text in tasks/MPI-772/types-hunk.md (preloadStyles.js landed in 88cfe347)",
+    "updated_at": "2026-09-17T12:20:17Z"
   }
 }

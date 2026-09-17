@@ -35,7 +35,6 @@ then delete this file. MPI-772's parked hunk: `tasks/MPI-772/types-hunk.md`.
 
 `setCropRect({x, y, w, h})` — put the crop box back at an exact image-space rect.
 
-## Also pending: `js/shell/preloadStyles.js` (MPI-774 owns it now)
+## `js/shell/preloadStyles.js`: DONE
 
-`'js/components/Organisms/MpiToolOptionsGifTransform/MpiToolOptionsGifTransform.css',` right after
-the MpiToolOptionsGifTiming line. Requested in reply a550e772. Check HEAD before adding.
+Landed in MPI-774's commit 88cfe347 (2026-09-17); nothing left here.

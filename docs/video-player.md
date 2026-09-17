@@ -163,6 +163,15 @@ before any frame loads, when the smallest legal range is one frame, and
 the range to every frame whenever the count changes. Without that the out
 handle sat on frame 1 of every GIF.
 
+## GIF Maker (MPI-760)
+
+The video rail's `exportGif` tool is labelled **GIF Maker**; the mode and its
+`toolSettings.exportGif` key keep the old name so saved settings still load.
+"Generate preview" is a temp encode (`POST /api/video/gif`). **Apply** posts
+`/gif/maker` (fps, size preset, loop, the control bar's trim) and adds a NEW GIF
+card from full-resolution frames; the video's history is untouched. Nothing is
+saved to disk through Save-As any more. Proof: `tests/desktop/gif-maker.spec.js`.
+
 ## Known non-bug
 
 `frame0 == frame1` on Wan/LTX clips is **content**, DaVinci-confirmed: the model

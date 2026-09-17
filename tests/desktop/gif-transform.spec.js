@@ -164,6 +164,9 @@ test('GIF transform: Make GIF -> Crop 9:16 -> Speed 0.33 -> GIF to Video card; S
         let before = (await gifHistory()).length;
         await window.locator('.mpi-tool-options-crop #actions-slot button').click();
         await expect.poll(async () => (await gifHistory()).length, { timeout: 60000 }).toBe(before + 1);
+        // The header's ENTRIES count follows the new entry (it once kept the count from when the card opened).
+        await expect.poll(() => window.evaluate(() => document.querySelector('.mpi-project-name__stats-count')?.textContent), { timeout: 15000 })
+            .toBe(String(before + 1));
         let entry = (await gifHistory()).at(-1);
         expect(entry.pixelDimensions).toEqual({ w: 1080, h: 1920 });
         expect(entry.gif.frames.map(f => f.delay)).toEqual([100, 100, 100]);

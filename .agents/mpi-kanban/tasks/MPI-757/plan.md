@@ -155,6 +155,21 @@ investigators got wrong: [research/2026-09-15-investigation.md](research/2026-09
   waited on the other (message 550b11f3); released to MPI-774 at 11:03Z, reply a550e772 asks it to add
   the three lines. **Next:** MPI-771 RunPod check (Fabio's standing go, 2026-09-17), then Phase 5
   (MPI-760 UI half). Commit Phase 4 at handoff/close-out by pathspec.
+- **2026-09-17 ~12:40Z (session 14adfdd8): RunPod check PASSED, Phase 5 BUILT and auto-verified, NOT
+  COMMITTED. Every phase is now built.** Phase 4 was committed in f372b7f4; MPI-774's 88cfe347 carried the
+  two GIF `preloadStyles.js` lines, so only `types.js` hunks remain (MPI-771/772/773/760 `types-hunk.md`,
+  MPI-774 claim 91f0ea6b, message 7a760e11). RunPod: Fabio's own app, RTX 2000 Ada, "logo" tracked and
+  cut on the Pod (proof = the Pod's container log serving the temp mask PNGs; `app.log` cannot prove
+  remote: `[comfy]` is the LOCAL engine and every instance shares that log). MPI-760: GIF Maker label,
+  Apply -> `/gif/maker` -> new GIF card (MPI-760 `validation.md`). Found in Fabio's screenshot and fixed:
+  the header ENTRIES count never refetched after a GIF tool Apply (nor video crop/reverse, combine,
+  crop/paint/place): `_persistGroup` now emits `history:stats-dirty` when the history's files change.
+  Pod `avb48jl48yrzgy` DELETED (Fabio confirmed ~12:45Z). **Fabio's call (2026-09-17): close-out waits
+  for HIS OWN UI pass over the whole GIF workspace** (what works, what does not); fix what he finds first.
+  **Next:** Fabio's UI pass (give him a plain do-X/see-Y list from § Verification's end-to-end steps +
+  GIF Maker + the header count); land the four `types.js` hunks once MPI-774 releases the file (its
+  claim a4c0f2d7 re-listed it, message 7a760e11 re-addressed to session 047d6088); then close-out
+  (ask Fabio about `.claude/rules/` maps).
 - **Next action (superseded, kept for the record):** MPI-759 root cause in the real app first (he can reload for you; read
   `%APPDATA%\Cubric Vision\logs\app.log` filtered, never drive `:3000`). Then redesign the MPI-771 UI half
   per Decision 14 (plan it with Fabio before coding: it needs a per-frame mask layer and brush). Phase 4
@@ -483,7 +498,7 @@ Phase 4 verify mode: `auto`.
 
 ## Phase 5: GIF Maker UI
 
-- [ ] **MPI-760 (UI half) Export GIF becomes GIF Maker.** Labels `Export GIF` -> `GIF Maker`
+- [x] **MPI-760 (UI half) Export GIF becomes GIF Maker.** (auto-verified 2026-09-17; types.js hunk parked; no open-card offer, toast like the other new-card tools) Labels `Export GIF` -> `GIF Maker`
   (`MpiHistoryTools.js:180`, `TOOL_LABELS` :668), button `Export` -> `Apply`, KEEP mode and settings
   key `exportGif`. Apply calls `routes/gifMaker.js` with fps, trim (`_activeVideoTrim`) and size
   preset, then creates the new card (`_handleCropSnapshot` steps) and offers to open it. Preview
@@ -565,6 +580,10 @@ Phase 5 verify mode: `auto`.
   cut-out. `tests/desktop/crop-resize-output.spec.js` is flaky on HEAD (not ours).
 - 2026-09-16 (Batch 2): `routes/gifMake.js` writes its own sidecar and returns a raw descriptor
   (the `/combine-videos` precedent) rather than going through `/gif/entry`.
+- 2026-09-17 (Phase 5): GIF Maker drops the Save-As path entirely and does not "offer to open" the new
+  card (no shared confirm primitive; toast like Snapshot / Save frame / GIF to Video). The tool stays in
+  the video rail's `export` group. Discovered and folded in: the stale header ENTRIES count (fix in
+  `_persistGroup`, proof in `gif-transform.spec.js`).
 
 ## Verification
 

@@ -166,8 +166,8 @@ no second file-serving mechanism: both routes above resolve each frame's ready
 
 Workspace tools land results through the Block's `_postGifEntry` (POST, then
 `/gif/ensure-frames` for the URLs, then append or replace the history entry).
-Make GIF (`routes/gifMake.js`) and GIF Maker (`routes/gifMaker.js`) write frames
-and call `buildGif()` themselves. A GIF opens with no tool up.
+Make GIF (`routes/gifMake.js`) and GIF Maker (`routes/gifMaker.js`, [a video tool](video-player.md#gif-maker-mpi-760))
+write frames and call `buildGif()` themselves. A GIF opens with no tool up.
 
 ## Cut-out (MPI-771)
 

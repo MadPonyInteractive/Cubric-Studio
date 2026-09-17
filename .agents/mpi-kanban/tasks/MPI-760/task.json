@@ -4,10 +4,10 @@
   "title": "Export GIF becomes GIF Maker",
   "description": "UMBRELLA: MPI-757 - GIF workspace (created 2026-09-14). Members and phase order: tasks/MPI-757/plan.md. The video workspace's Export GIF becomes GIF Maker: Apply pulls full-resolution frames at the chosen fps (trim honoured) into a new GIF card.",
   "column": "doing",
-  "maturity": "in-progress",
+  "maturity": "validating",
   "status": "active",
   "created_at": "2026-09-14T16:58:21+01:00",
-  "updated_at": "2026-09-16T10:49:11+01:00",
+  "updated_at": "2026-09-17T12:20:17Z",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -17,5 +17,11 @@
     "events": "events.jsonl",
     "handoffs": "handoffs/",
     "research": "research/"
+  },
+  "activeSessionTitle": "MPI-757 Phase 5: GIF Maker UI",
+  "attention": {
+    "state": "required",
+    "reason": "MPI-760 UI half built and auto-verified 2026-09-17; left: types.js typedef, file under MPI-774 claim 91f0ea6b; text in tasks/MPI-760/types-hunk.md",
+    "updated_at": "2026-09-17T12:20:17Z"
   }
 }

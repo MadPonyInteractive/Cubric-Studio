@@ -7,7 +7,7 @@
   "maturity": "validating",
   "status": "active",
   "created_at": "2026-09-15T13:37:30+01:00",
-  "updated_at": "2026-09-17T10:04:38Z",
+  "updated_at": "2026-09-17T12:38:24Z",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -20,7 +20,7 @@
   },
   "attention": {
     "state": "required",
-    "reason": "MPI-771 local check verified by Fabio 2026-09-17; left: RunPod check with his go, types.js hunk once MPI-737 releases it",
-    "updated_at": "2026-09-17T10:04:38Z"
+    "reason": "MPI-771 verified locally and on RunPod 2026-09-17; left: types.js typedef, file under MPI-774 claim 91f0ea6b; text in tasks/MPI-771/types-hunk.md",
+    "updated_at": "2026-09-17T12:38:24Z"
   }
 }

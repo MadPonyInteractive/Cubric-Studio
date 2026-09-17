@@ -417,10 +417,22 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
 
         // ── Persist / toast helpers ──────────────────────────────────────────
 
+        // The header's ENTRIES count and size are fetched per history FILE, so a
+        // change to the files must refetch them. Every append/replace site persists
+        // through here (GIF tools, video crop/reverse, combine, crop/paint/place
+        // once never refetched); a selection change keeps the key, so no fetch.
+        const _statsKeyOf = (g) => (g.history || []).map(h => `${h.id}|${h.filePath}`).join('\n');
+        let _statsKey = _statsKeyOf(_group);
+
         function _persistGroup() {
             if (!state.currentProject) return;
             updateGroup(_group);
             Events.emit('media:updated', { projectId: state.currentProject.id });
+            const key = _statsKeyOf(_group);
+            if (key !== _statsKey) {
+                _statsKey = key;
+                Events.emit('history:stats-dirty', { group: _group });
+            }
         }
 
         function _showToast(message, variant = 'info') {
@@ -1037,7 +1049,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 return _handleResizeApply(mode, payload || {});
             }
             if (mode === 'exportGif') {
-                return _handleGifExport(payload || {});
+                return _handleGifMaker(payload || {});
             }
             if (mode === 'gifCutout') {
                 return _handleGifCutoutApply(payload || {});
@@ -1060,7 +1072,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             removeBackground: 'Remove Background',
             interpolate: 'Interpolate',
             resize: 'Resize', resizeVideo: 'Resize',
-            exportGif: 'Export GIF',
+            exportGif: 'GIF Maker',
             gifCutout: 'Cut-out',
             gifMaskBrush: 'Mask Brush',
             gifTrim: 'Trim', gifSpeed: 'Speed', gifReverse: 'Reverse',
@@ -2318,10 +2330,10 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             }
         }
 
-        // ── GIF export (video only) ──────────────────────────────────────────
-        // Encoder injected into MpiToolOptionsGif. Resolves the current source +
-        // active trim, POSTs /api/video/gif, returns the temp GIF url/size for
-        // preview. Pure export — no history, no sidecar.
+        // ── GIF Maker (video only, mode `exportGif`) ─────────────────────────
+        // Preview encoder injected into MpiToolOptionsGif. Resolves the current
+        // source + active trim, POSTs /api/video/gif, returns the temp GIF
+        // url/size. No history, no sidecar.
         async function _encodeGif(params = {}) {
             const currentItem = _group.history[_currentIdx];
             const sourcePath = currentItem?.filePath;
@@ -2346,25 +2358,51 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             return { url: data.url, byteSize: data.byteSize, fileName: data.fileName };
         }
 
-        async function _handleGifExport(payload = {}) {
+        /**
+         * GIF Maker Apply (MPI-760): full-resolution frames of the clip (trim
+         * honoured) become a NEW GIF card. The video's history is untouched.
+         * @param {{fps:number, sizePreset:string, loop:number}} params
+         */
+        let _gifMakerBusy = false;
+        async function _handleGifMaker({ fps, sizePreset, loop }) {
+            const project = state.currentProject;
+            const currentItem = _group.history[_currentIdx];
+            if (!project?.folderPath || _gifMakerBusy) return;
+            if (!currentItem?.filePath) { _showToast('No source video', 'error'); return; }
+            const body = { folderPath: project.folderPath, sourcePath: currentItem.filePath, fps, sizePreset, loop };
+            const trim = _activeVideoTrim(currentItem);
+            if (trim) { body.trimIn = trim.in; body.trimOut = trim.out; }
+
+            _gifMakerBusy = true;
+            _options?.el?.setBusy?.(true);
             try {
-                // Reuse a fresh preview encode when present; else encode now.
-                let out = payload;
-                if (!out?.url) {
-                    const params = _options?.el?.getExportParams?.() || {};
-                    out = await _encodeGif(params);
-                }
-                if (!out?.url) return;
-                // Native Save-As via <a download> (docs/utils.md § mediaActions).
-                const a = document.createElement('a');
-                a.href = out.url;
-                a.download = out.fileName || 'clip.gif';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
+                const res = await fetch('/gif/maker', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
+                const ext = data.item;
+                const item = createImageItem({
+                    id:              ext.id,
+                    filePath:        ext.filePath,
+                    thumbPath:       ext.thumbPath ?? null,
+                    operation:       ext.operation,
+                    displayName:     ext.displayName,
+                    pixelDimensions: ext.pixelDimensions,
+                    gif:             ext.gif,
+                });
+                const group = createItemGroup('image', { name: ext.displayName });
+                await addGroup(appendToHistory(group, item));
+                Events.emit('project:stats-dirty');
+                _showToast('GIF saved to gallery', 'success');
             } catch (err) {
-                clientLogger.warn('MpiGroupHistoryBlock', 'GIF export failed', err);
-                _showToast('GIF export failed: ' + err.message, 'error');
+                clientLogger.warn('MpiGroupHistoryBlock', `GIF Maker failed: ${err?.message || err}`);
+                _showToast('GIF Maker failed: ' + err.message, 'error');
+            } finally {
+                _gifMakerBusy = false;
+                _options?.el?.setBusy?.(false);
             }
         }
 

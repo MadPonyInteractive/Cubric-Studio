@@ -1,13 +1,14 @@
 /**
- * MpiToolOptionsGif — Organism: tool-options panel for "Export GIF" (video only).
+ * MpiToolOptionsGif — Organism: tool-options panel for "GIF Maker" (video only).
+ * Mode and settings key stay `exportGif` (MPI-760), so saved settings still load.
  *
- * Pure export, NOT a history operation. Controls: fps, size preset (both-axis
+ * Not a history operation on the video. Controls: fps, size preset (both-axis
  * WxAUTO / AUTOxH), loop count. The active control-bar trim range is applied by
  * the parent block. "Generate preview" runs a real ffmpeg GIF encode
  * (POST /api/video/gif) to a temp file → shows the animated GIF inline + a real
- * file-size badge (accurate byte count, platform-limit aware). "Export" hands
- * the parent the encoded temp GIF url + filename to save via native Save-As
- * (`<a download>`); it reuses the last preview encode when settings are unchanged.
+ * file-size badge (accurate byte count, platform-limit aware). "Apply" asks the
+ * parent to build a NEW GIF card from full-resolution frames (POST /gif/maker);
+ * the preview is never reused for it.
  *
  * Persists settings to project.json `toolSettings.exportGif`.
  *
@@ -16,9 +17,10 @@
  *                          registry-uniform mount signature)
  *
  * Emits:
- *   'apply' { url, fileName } — user pressed Export; parent triggers Save-As.
- *                               When absent (never previewed / stale), parent
- *                               encodes on demand from getExportParams().
+ *   'apply' { fps, sizePreset, loop } — user pressed Apply.
+ *
+ * Methods:
+ *   el.setBusy(on) — the parent disables Apply and preview while a card is built.
  */
 
 import { ComponentFactory } from '../../factory.js';
@@ -103,9 +105,7 @@ export const MpiToolOptionsGif = ComponentFactory.create({
         let _destroyed = false;
         let _busy = false;
 
-        // Cache the last successful preview encode keyed by the settings that
-        // produced it, so Export reuses it instead of re-encoding.
-        let _lastEncode = null;      // { url, fileName }
+        // Settings that produced the shown preview, so a change marks it stale.
         let _lastEncodeKey = '';
 
         const _img = qs('#gif-preview-img', el);
@@ -127,7 +127,7 @@ export const MpiToolOptionsGif = ComponentFactory.create({
 
         // Any settings change invalidates the cached preview → mark badge stale.
         const _markStale = () => {
-            if (_lastEncode && _lastEncodeKey !== settingsKey()) {
+            if (_lastEncodeKey && _lastEncodeKey !== settingsKey()) {
                 _badge.classList.add('mpi-tool-options-gif__badge--stale');
             }
         };
@@ -169,33 +169,25 @@ export const MpiToolOptionsGif = ComponentFactory.create({
         _children.push(refreshBtn);
         _unsubs.push(refreshBtn.on('click', () => _runPreview()));
 
-        const exportBtn = MpiButton.mount(qs('#gif-actions-slot', el), {
-            icon: 'download', label: 'Export', size: 'sm', variant: 'primary',
-            info: 'Save the GIF to disk',
+        const applyBtn = MpiButton.mount(qs('#gif-actions-slot', el), {
+            icon: 'check', label: 'Apply', size: 'sm', variant: 'primary',
+            info: 'Make a new GIF card from this clip',
         });
-        _children.push(exportBtn);
-        _unsubs.push(exportBtn.on('click', () => {
-            // Reuse a fresh (non-stale) preview encode; otherwise let the parent
-            // encode on demand from getExportParams().
-            if (_lastEncode && _lastEncodeKey === settingsKey()) {
-                emit('apply', { ..._lastEncode });
-            } else {
-                emit('apply', {});
-            }
-        }));
+        _children.push(applyBtn);
+        _unsubs.push(applyBtn.on('click', () => { if (!_busy) emit('apply', { ...settings }); }));
 
         function _setBusy(on) {
             _busy = on;
             _spinner.el.style.display = on ? '' : 'none';
-            exportBtn.el.setDisabled?.(on);
+            applyBtn.el.setDisabled?.(on);
             refreshBtn.el.setDisabled?.(on);
         }
+        el.setBusy = (on) => { if (!_destroyed) _setBusy(on); };
 
         // The parent owns source resolution + trim; it injects the encoder via
         // el.setEncoder(fn). fn(params) → Promise<{ url, byteSize, fileName }>.
         let _encoder = null;
         el.setEncoder = (fn) => { _encoder = fn; };
-        el.getExportParams = () => ({ ...settings });
 
         async function _runPreview() {
             if (_destroyed || _busy || !_encoder) return;
@@ -210,7 +202,6 @@ export const MpiToolOptionsGif = ComponentFactory.create({
                 _badge.textContent = formatBytes(result.byteSize);
                 _badge.hidden = !result.byteSize;
                 _badge.classList.remove('mpi-tool-options-gif__badge--stale');
-                _lastEncode = { url: result.url, fileName: result.fileName };
                 _lastEncodeKey = key;
             } catch (err) {
                 if (!_destroyed) clientLogger.warn('MpiToolOptionsGif', 'GIF preview failed', err);

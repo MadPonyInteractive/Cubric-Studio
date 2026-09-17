@@ -18,3 +18,34 @@ derives the box from the frame aspect. The new portrait/landscape test was red f
 then green. A source smaller than the preset is never upscaled (the preview encoder does upscale).
 
 **Still open:** the UI half (Phase 5).
+
+
+## 2026-09-17 - UI half (MPI-757 Phase 5, session 14adfdd8), auto-verified
+
+The video rail's `exportGif` tool reads **GIF Maker** (`MpiHistoryTools` info, `TOOL_LABELS`); the
+panel's `Export` button is **Apply** (`check` icon). Mode and `toolSettings.exportGif` unchanged.
+Apply emits `{ fps, sizePreset, loop }`; the Block's `_handleGifMaker` posts `/gif/maker` with the
+control bar's trim (`_activeVideoTrim`) and builds the new card the gallery's Make GIF way
+(`createImageItem` + `createItemGroup('image')` + `addGroup`), toast "GIF saved to gallery". A busy
+flag + `el.setBusy()` stop a double Apply. The Save-As path (`_handleGifExport`,
+`getExportParams`, the preview-reuse cache) is gone. Preview unchanged.
+
+Card calls: the tool stays in the video rail's `export` group (group count unchanged). No "offer to
+open" dialog: there is no shared confirm primitive, and Snapshot / Save frame / GIF to Video all end
+on a gallery toast, so GIF Maker does too.
+
+| Check | Command | Result |
+|---|---|---|
+| New spec | `npx playwright test --config=playwright.desktop.config.js tests/desktop/gif-maker.spec.js --output=<scratchpad>` | 1/1: real 2 s clip (1 s red, 1 s blue) trimmed to 1-2 s, saved settings fps 5 / 320xauto / loop 2 load, rail has no "Export GIF", Apply reads Apply -> exactly one new card, `gif-maker`, 320x180, 5 frames delay 20, loop 2, blue pixel, video history deep-equal, opens with 5 strip thumbs |
+| Bites (4) | scratchpad `bite760.py`: rail label back to Export GIF; trim not sent; no `addGroup`; panel emits `{}` | all 4 RED, files restored (byte compare) |
+| GIF regression | `... gif-maker gif-transform gif-timing gif-workspace gif-cutout history-modes gif-make gallery-gif-hover` | 13/13 |
+| Lint | `npm run lint:components`, `npm run lint` | clean |
+| Node suite | `node --test "tests/*.test.cjs"` | 1274 pass, 0 fail, 1 skipped (first run: 1 fail in `extra-model-folders.test.cjs`, 4/4 alone and 0 fail on rerun: the parallel run races on the shared model-paths file, not GIF code) |
+
+Spec fixture note: a fresh project has no `Media/.meta`, and `/gif/maker` 404s without it (a real
+video card always has its sidecar there), so the spec creates the folder.
+
+Docs: `docs/video-player.md` § GIF Maker (new); `docs/gif.md` points at it.
+
+**Still OPEN:** the `types.js` typedef (`MpiToolOptionsGifProps` still describes Save-As): text in
+`types-hunk.md`, blocked on MPI-774's claim 91f0ea6b (message 7a760e11).

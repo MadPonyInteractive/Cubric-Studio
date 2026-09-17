@@ -213,3 +213,44 @@ gif-cutout.spec `pillHidden`).
 |---|---|
 | gif-workspace.spec before the CSS fix | RED: "no pill before any edit" (Received false) |
 | GIF desktop set after (gif-timing, gif-workspace, gif-cutout, history-modes, gif-make, gallery-gif-hover) | 11/11 |
+
+
+## 2026-09-17 - RunPod check PASSED (session 14adfdd8, Fabio's own app)
+
+Option chosen with Fabio: his app, he clicks, the agent reads (never `:3000`). Pod `avb48jl48yrzgy`
+(`cubric-vision`), RTX 2000 Ada 16 GB, connected ~12:06Z (the 10 universal node packs installed onto
+the volume 12:06:55-12:07:22). Fabio: Ctrl+R, "GIF Tests" project, card `imported_015` (320x320 mascot,
+30 frames), Cut-out, name **logo**, Track All (4 tracked objects, 0-3), Cut out -> entry `gif_006`
+320x320 holding only the logo (he did not tick Invert; keeping the named object is the designed result).
+
+| Evidence | Source | Reading |
+|---|---|---|
+| Track ran on the Pod | RunPod console, container log (Fabio's screenshot) | 13:19:40-13:19:43 BST (12:19:40Z) `GET /wrapper/view?filename=ComfyUI_temp_ihygj_00015_.png&type=temp` ... `_00030_` all 200: the app pulling the per-frame mask PNGs through the wrapper |
+| Engine was remote | Fabio's app screenshot, status bar | `IDLE · REMOTE`, VRAM 2.1 / 16 GB (Pod telemetry; SAM3 has ample room on 16 GB) |
+| Result | Fabio's app screenshot | new entry `gif_006` 320x320, logo on transparent, strip frames follow |
+
+**`app.log` cannot prove a remote run.** Its `[comfy]` lines are the LOCAL engine's stdout
+(`routes/comfy.js` `_handleComfyOutput`), and every app instance on the machine, desktop specs included,
+writes the same file: a SAM3 load at 12:17:41Z there was not this check. The remote path logs nothing
+on success, so the watch on `app.log` stayed silent for 30 min. The Pod's own container log is the proof.
+
+Pod: Fabio disconnected at ~12:25Z (the Disconnect -> Delete path writes no `app.log` line).
+
+## 2026-09-17 - header ENTRIES count stale after a GIF tool Apply (found in the RunPod screenshot)
+
+The header read `2 ENTRIES` over three history rows. Not `gif_005` (an old entry): the count is fetched
+per history file (`projectStatsService.refreshGroup`) and refreshed only on `history:stats-dirty`, which
+`_postGifEntry` never emitted, so the header kept the count from when the card opened. Same gap at every
+other append site that persists without emitting it: video crop, video reverse, combine, and image
+crop/paint/place (`_appendViewerEntry`). Fix, once for all: `_persistGroup()` emits
+`history:stats-dirty` when the history's `id|filePath` list changes (a selection change keeps the key,
+so no extra fetch; an in-place GIF Update changes `filePath`'s `v=` and refetches the size).
+
+| Check | Result |
+|---|---|
+| `gif-transform.spec.js` (new assertion: after Crop Apply the header count is `before + 1`) | green |
+| Bite: the new emit removed | RED (`Expected "2"`, `Received "1"`), file restored byte-exact |
+| Every desktop spec that opens group history (crop-resize-output, flow-audio-player, gallery-filter-panel, gif-cutout, gif-maker, gif-timing, gif-transform, gif-workspace, history-modes, mask-persist-roundtrip, media-import-outside-gallery, workspace-sweep) | 27/27 |
+| `npm run lint:components` | clean |
+
+**Still OPEN for this card:** the `types.js` hunk (`types-hunk.md`), MPI-774 claim 91f0ea6b.

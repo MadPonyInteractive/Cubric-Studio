@@ -179,7 +179,9 @@ const VIDEO_TOOLS = [
         mode: 'export',
         label: 'Export',
         group: [
-            { mode: 'exportGif', icon: 'to_gif_stroke', info: 'Export GIF' },
+            // MPI-760: labelled GIF Maker (it makes a new GIF card); the mode and
+            // its toolSettings key stay `exportGif` so saved settings still load.
+            { mode: 'exportGif', icon: 'to_gif_stroke', info: 'GIF Maker' },
         ],
     },
 ];

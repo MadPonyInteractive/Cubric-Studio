@@ -7,4 +7,5 @@ Derived from `tasks/MPI-757/plan.md` § Phase 4 (2026-09-17).
 - [x] `tests/desktop/gif-timing.spec.js`: each tool on a real GIF, sharp read-back, frame store unchanged
 - [x] Existing GIF desktop specs + `npm run lint:components` + node suite green
 - [x] Docs: `docs/gif.md`
-- [ ] types.js typedef + preloadStyles.js line (peer claims; text in `types-hunk.md`)
+- [ ] types.js typedef (MPI-774 claim 91f0ea6b; text in `types-hunk.md`)
+- [x] preloadStyles.js line (landed in MPI-774's 88cfe347)
