@@ -7,7 +7,14 @@ settings UI); the maps below are theirs, line numbers as of that day - re-grep b
 ## Current State
 
 - **Project mode:** scalable-foundation.
-- **2026-09-16 ~13:25Z, where it stands:** Phases 0-4 DONE. Phase 3 + its three tweaks verified by Fabio in his app;
+- **2026-09-17 ~10:15Z (session 53d9d605), where it stands:** end-to-end steps 1-4 PASSED (Fabio). Step 5:
+  no ComfyUI fallback PASSED, but the describe failure opened the error modal and Enhance lacked the
+  settings pointer; fixed UNCOMMITTED (`withRemoteSettingsHint` in `llmService.js`, `ui:warning` in
+  `describeAction.js`, test + two docs; `validation.md` § step 5). **Next:** Fabio reloads and re-runs
+  step 5 (keyless Describe -> status-bar notice with the pointer; Enhance dialog note with the pointer),
+  then `mpi-end-session`, which also takes his Remote-describe progress ask (below). His agent-box UI
+  feedback went to a new card, MPI-797 (todo, blocked on MPI-774's claim).
+- **2026-09-16 ~13:25Z, where it stood:** Phases 0-4 DONE. Phase 3 + its three tweaks verified by Fabio in his app;
   Phase 4 (docs, rule files with his yes, orphan chain option A, `enhanceFlow` model fix) auto-verified
   (`validation.md`). **Next action:** the rest of the end-to-end checks with Fabio. His screenshots already
   passed step 4's Remote half and step 5's settings half. Still open: step 2 (a Remote describe during a

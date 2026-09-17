@@ -53,6 +53,7 @@ const {
     enhanceFlow,
     setEnhancerModelPreference,
     setEndpointModelPreference,
+    withRemoteSettingsHint,
 } = require('../js/services/llmService.js');
 const { Storage } = require('../js/core/storage.js');
 const { FALLBACK_RECIPE_ID } = require('../js/data/recipes/registry.js');
@@ -473,6 +474,9 @@ function testEnhanceEndpointErrorIsText() {
         assert.strictEqual(res.ok, false);
         assert.strictEqual(typeof res.error, 'string', `error must be text, got ${JSON.stringify(res.error)}`);
         assert.strictEqual(res.errorCode, 'NO_KEY');
+        // D1: a settings problem says where to fix it (the Enhance dialog shows this text as-is).
+        assert.strictEqual(res.error, 'No API key saved for this connection. Check Settings > Remote > Language Models.');
+        assert.strictEqual(withRemoteSettingsHint('BAD_REQUEST', 'profileId is required.'), 'profileId is required.');
     }).finally(() => {
         global.fetch = realFetch;
     });

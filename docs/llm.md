@@ -125,7 +125,9 @@ errorCode?, error?, cancelled? }`, never rejects. Both callers use it: the right
 - **`endpoint`:** `POST /llm/describe` with the connection and `describeModelPreference()`. **Not
   queued**: it never waits behind a generation and never shows in the Cue.
 - **Failure never falls back** (D1): no connection, no key, a non-vision model -> the caller says so.
-  The right-click toast points at Remote settings only for an endpoint failure, keeps the Model
+  The right-click toast (a `ui:warning`, never the error modal: setup is not a bug) points at Remote
+  settings only for an endpoint failure (`withRemoteSettingsHint`, which Remote enhance errors carry
+  too, so the Enhance dialog names the same place), keeps the Model
   Library warning for `DESCRIBER_MISSING`, and stays silent for a ComfyUI run failure (the
   generation pipeline reports it). The agent gets the code and message back.
 

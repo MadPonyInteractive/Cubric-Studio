@@ -234,10 +234,11 @@ rather than trusting them.
 | `shell/projectUI.js:56` | Same download-only guard (projectUI copy) | This is a download-only Pod (no GPU)… | warning | eligible |
 | `shell/projectUI.js:297` | Clean up cached assets — success | Removed ${n} cached asset(s). | success | eligible |
 | `shell/projectUI.js:300` | Clean up cached assets — failed | ${err.message} | warning | eligible |
-| `utils/describeAction.js:34` | Describe on item with no filePath | No source image to describe. | warning | eligible |
-| `utils/describeAction.js:40` | Describe on a video | Describing video frames is not supported yet. | warning | eligible |
-| `utils/describeAction.js:49` | Describe, image-describer plugin not installed | ${title} is not installed… | warning | eligible |
-| `utils/describeAction.js:68` | Describe succeeded, caption injected | Description added to the prompt. | success | eligible |
+| `utils/describeAction.js:35` | Describe on item with no filePath | No source image to describe. | warning | eligible |
+| `utils/describeAction.js:41` | Describe on a video | Describing video frames is not supported yet. | warning | eligible |
+| `utils/describeAction.js:52` | Describe succeeded, caption injected | Description added to the prompt. | success | eligible |
+| `utils/describeAction.js:59` | Describe on Remote failed (no key/connection, non-vision model, endpoint error; MPI-737 D1, never the error modal) | ${error} Check Settings > Remote > Language Models. (`withRemoteSettingsHint`) | warning | eligible |
+| `utils/describeAction.js:62` | Describe on ComfyUI, image-describer plugin not installed | ${title} is not installed… | warning | eligible |
 | `data/modelRegistry.js:173` | Models-check reports bakedDrift (once/file/session) | Pod image is stale — rebuild needed (${key}) | warning | eligible |
 
 ## RunPod connect/disconnect (`MpiRunpodSettings.js`)

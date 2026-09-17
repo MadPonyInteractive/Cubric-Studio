@@ -19,7 +19,7 @@
 import { Events } from '../events.js';
 import { resolveMediaUrl } from './mediaActions.js';
 import { clientLogger } from '../services/clientLogger.js';
-import { describeImage } from '../services/llmService.js';
+import { describeImage, withRemoteSettingsHint } from '../services/llmService.js';
 
 /**
  * Queue or dispatch a caption run for one history item.
@@ -55,11 +55,8 @@ export function describeItem(item, opts = {}) {
             const msg = result.error || 'The description failed.';
             clientLogger.warn('describe', `[describeAction] ${result.via} ${result.errorCode || ''} ${msg}`);
             if (result.via === 'endpoint') {
-                const fixInSettings = !['BAD_IMAGE', 'BAD_REQUEST'].includes(result.errorCode);
-                Events.emit('ui:error', {
-                    title: 'Image Description Failed',
-                    message: fixInSettings ? `${msg} Check Settings > Remote > Language Models.` : msg,
-                });
+                // A toast, not the error modal: a missing key is setup, not a bug to report.
+                Events.emit('ui:warning', { message: withRemoteSettingsHint(result.errorCode, msg) });
             } else if (result.errorCode === 'DESCRIBER_MISSING') {
                 // The encoder is a plugin weight the user installs deliberately.
                 Events.emit('ui:warning', { message: msg });

@@ -85,9 +85,34 @@ three rule files.
 
 - **Step 4, Remote half: PASSED.** The agent's "Describe this image." with an attached picture shows
   "LOOKING AT IMAGE" and a full description, in a project panel ("1.4 media", "GIF Tests") and on the
-  landing chat. The ComfyUI half (descriptions on ComfyUI, `look` still answers) is not shown yet.
+  landing chat.
+- **Step 4, ComfyUI half: PASSED (Fabio, 2026-09-17 ~09:50Z).** Descriptions on ComfyUI, agent panel in
+  "1.4 media", "Describe this image." with the retriever/turtle attached: "LOOKING AT IMAGE" then a full
+  description. His engine log shows the route taken: `[connector] Agent job f51d4a89-...: agent.describe`
+  at 09:49:28Z, then comfy `got prompt` and `Generating tokens .../512`.
 - **Step 5, settings half: PASSED.** With the key cleared ("No API key saved."), Prompt enhancement stays
   on Remote with "Remote is not set up: the connection above needs a provider and an API key. Finish it,
   or pick another backend." and the model dropdown reads "Connect first". Not shown yet: a describe or
   enhance actually attempted in that state failing with the D1 message.
-- **Step 2: not shown yet.**
+- **Step 5, the attempt (Fabio, 2026-09-17 ~10:00Z): no fallback PASSED, the message form FAILS D1.**
+  Key cleared, both on Remote. Nothing ran on ComfyUI. But (a) right-click Describe opened the
+  "Image Description Failed" ERROR MODAL (Show log file / Report on GitHub) with "No API key saved for
+  this connection. Check Settings > Remote > Language Models.", not a toast: `describeAction.js` emits
+  `ui:error` (`shell.js` -> `showError`) although its own header and D1 say toast (`ui:warning` ->
+  status-bar notice); (b) the Enhance dialog note reads only "No API key saved for this connection."
+  with no way to Remote > Language Models: `runServerBackend` passes the route message through bare.
+- **Fix (session 53d9d605, Fabio's go):** `llmService.withRemoteSettingsHint(code, msg)` (skips
+  BAD_REQUEST / BAD_IMAGE / no code) now shapes both: `runServerBackend`'s endpoint error (every enhance
+  caller) and `describeAction`, which emits `ui:warning` instead of `ui:error`. `tests/llm-service.test.cjs`
+  asserts the Enhance text carries the pointer and BAD_REQUEST stays bare: 29/29; with the hint removed
+  from `runServerBackend` it FAILS (`testEnhanceEndpointErrorIsText`), restored green. `npm test`
+  1267 pass / 0 fail / 1 skipped (the shared working tree, so peers' uncommitted tests are in that
+  count); eslint clean on the three files. Claim auditor at close-out: no FALSE findings. `docs/toasts.md` rows, `docs/llm.md`.
+- **Step 5 re-run: PASSED (Fabio, 2026-09-17 ~10:25Z, after a reload).** Keyless, both on Remote: right-click
+  Describe shows a "HEADS UP" status-bar notice, "No API key saved for this connection. Check Settings >
+  Remote > Language Models.", no modal ("GIF Tests"); the Enhance dialog note reads the same two sentences.
+  **All five end-to-end steps have now passed.**
+- **Step 2: PASSED (Fabio, 2026-09-17 ~09:50Z).** Descriptions on Remote, right-click Describe during a
+  running local generation: "text landed while generating". His screenshot ("1.4 media"): the golden
+  retriever/turtle description in the prompt box while the status bar reads "LOADING MODEL · 0% · 0:37"
+  on MiniMax H3.

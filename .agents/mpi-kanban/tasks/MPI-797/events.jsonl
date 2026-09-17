@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-797", "at": "2026-09-17T11:01:53+01:00", "actor": "claude", "column": "todo", "title": "Agent box: its own input, numbered image chips, a resizable full-height panel"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-797", "at": "2026-09-17T10:20:00Z", "actor": "claude:d56a1cbe", "summary": "Folded into MPI-774 Phase 3d (Fabio 2026-09-17). Blocker MPI-774 Phase 3c is committed (4ee23d00)."}

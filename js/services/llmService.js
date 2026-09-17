@@ -566,6 +566,19 @@ function enhancerGraph() {
 }
 
 /**
+ * D1 (MPI-737): a Remote failure the user fixes in settings (no key, no connection, a model
+ * that rejects images, the endpoint erroring) says where. BAD_REQUEST / BAD_IMAGE are not
+ * settings problems; the route's own BAD_REQUEST copy already names the setting when one applies.
+ * @param {string|undefined} code  the connection routes' error code
+ * @param {string} message
+ * @returns {string}
+ */
+export function withRemoteSettingsHint(code, message) {
+    if (!code || code === 'BAD_REQUEST' || code === 'BAD_IMAGE') return message;
+    return `${message} Check Settings > Remote > Language Models.`;
+}
+
+/**
  * One completion through the server (endpoint or Ollama). Never rejects: an unreachable server resolves `{ ok: false }`.
  *
  * MPI-737: on the endpoint branch, `profileId` (from `Storage.getLlmConnection()`)
@@ -586,7 +599,7 @@ async function runServerBackend({ prompt, system, backend, modelId, maxTokens, p
         // envelope; every enhance caller shows `error` as text.
         return body.ok || typeof body.error !== 'object' || !body.error
             ? body
-            : { ...body, error: body.error.message, errorCode: body.error.code };
+            : { ...body, error: withRemoteSettingsHint(body.error.code, body.error.message), errorCode: body.error.code };
     } catch (err) {
         return { ok: false, error: (err && err.message) || 'The app server did not answer.' };
     }
