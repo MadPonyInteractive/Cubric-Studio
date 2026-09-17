@@ -200,15 +200,33 @@ Mounted by `js/shell/navigation.js` into `MpiProjectName.el.getToolbarSlot()`, g
 **Primitives mounted:**
 - `MpiProgressBar` (size)   props: `{ min:1, max:4, step:1, value: state.gallerySizeLevel, interactive:true, wheel:true, handle:true, info:'Size: {value}' }`   slot: `.mpi-gallery-toolbar__slider--size`
 - `MpiProgressBar` (volume)   props: `{ min:0, max:100, step:5, value: galleryVolume × 100, interactive:true, wheel:true, handle:true, info:'Volume: {value}%' }`   slot: `.mpi-gallery-toolbar__slider--volume`
-- `MpiButton` (FILTER)   props: `{ icon:'filter', label:'Filter', size:'sm', variant:'ghost', extraClasses:'mpi-gallery-toolbar__filter' }`   slot: `.mpi-gallery-toolbar__filter-slot` — `--filtered` modifier = the heat dot; `aria-expanded` follows the panel
+- FILTER + panel   `mountGalleryFilter(slot)` (`js/components/galleryFilterPanel.js`, MPI-785) on `state.gallerySort`   slot: `.mpi-gallery-toolbar__filter-slot` — see § galleryFilterPanel.js
 - `MpiButton` (Archive)   props: `{ icon:'archive', size:'sm', variant:'ghost', toggleable:true, active, info, extraClasses:'mpi-gallery-toolbar__archive' }`   slot: `.mpi-gallery-toolbar__archive-slot`
 - `MpiButton` (Info)   props: `{ icon:'info', size:'sm', variant:'ghost', toggleable:true, active, info }`   slot: `.mpi-gallery-toolbar__info-slot`
 
-**Filter panel (`filterPanel.js`) — created on open, removed on close:**
-- `MpiPopup`   props: `{ active:true, position:'bottom', variant:'gallery-filter', triggerEl: FILTER }`   slot: `ce('div')` — portals to `<body>`
-- `MpiButton` ×2 (ALL / NONE)   props: `{ text, variant:'ghost', size:'sm' }`   slot: `ce('div')` → `.mpi-gallery-toolbar__panel-bulk`
-- `MpiRadioGroup` (Newest / Oldest)   props: `{ options, value: state.gallerySort.order, name:'Sort order', size:'sm' }`   slot: `.mpi-gallery-toolbar__panel-order`
-- `MpiButton` per row   props: `{ icon:'circle', iconActive:'check', label, labelPosition:'right', size:'sm', variant:'secondary', extraClasses:'mpi-gallery-toolbar__toggle' }`   slot: `ce('div')` → `.mpi-gallery-toolbar__row` — one per `listedKinds` kind, then Favourites and Previews
+---
+
+## galleryFilterPanel.js (parts file: FILTER button + panel, shared by MpiGalleryToolbar and MpiMediaPicker, MPI-785)
+
+`mountGalleryFilter(slotEl, { getSort, setSort, getEntries })` → `{ refresh, destroy }`. Sort defaults to `state.gallerySort`; the picker passes a local one. CSS `js/components/galleryFilterPanel.css` (block `mpi-gallery-filter`), loaded via each host's `css:`.
+
+- `MpiButton` (FILTER)   props: `{ icon:'filter', label:'Filter', size:'sm', variant:'ghost', extraClasses:'mpi-gallery-filter__button' }`   slot: the host's slot — `--filtered` = heat dot, `--open` + `aria-expanded` follow the panel
+
+**Panel — created on open, removed on close:**
+- `MpiPopup`   props: `{ active:true, position:'bottom', variant:'gallery-filter', triggerEl: FILTER }`   slot: `ce('div')` — portals to `<body>`; z-index lifted above a host above 9999 (the picker's modal)
+- `MpiButton` ×2 (ALL / NONE)   props: `{ text, variant:'ghost', size:'sm' }`   slot: `ce('div')` → `.mpi-gallery-filter__panel-bulk`
+- `MpiRadioGroup` (Newest / Oldest)   props: `{ options, value: sort.order, name:'Sort order', size:'sm' }`   slot: `.mpi-gallery-filter__panel-order`
+- `MpiButton` per row   props: `{ icon:'circle', iconActive:'check', label, labelPosition:'right', size:'sm', variant:'secondary', extraClasses:'mpi-gallery-filter__toggle' }`   slot: `ce('div')` → `.mpi-gallery-filter__row` — one per `listedKinds` kind, then Dots, Squares, Triangles (`CARD_MARKS`) and Previews
+
+---
+
+## MpiMediaPicker.js (Compound: pick project media for a slot)
+
+- `MpiModal`   props: `{ width:'min(1040px, 94vw)' }`   slot: `document.createElement('div')` — the picker's `el` is appended INTO it (it portals to `<body>`)
+- FILTER + panel   `mountGalleryFilter('#filters-slot', { getSort, setSort, getEntries })` on a LOCAL sort (MPI-785) — opens on `state.gallerySort.order` with every listed kind whose `type` differs from the slot's hidden
+- `MpiButton` (Cancel)   props: `{ text:'Cancel', variant:'ghost', size:'sm' }`   slot: `#actions-slot`
+- Tiles, upload / mic / voice cards, expand and preview close: `mountButton(...)` elements (`mpi-media-picker__tile-media`, `__tile--upload|--mic|--voice`, `__expand`, `__preview-close`); tile mark = plain `span.mpi-media-picker__mark` (read-only)
+- `props.voicePicker` (`MpiVoicePicker`, passed in)   props: `{ manifest, route: props.voiceRoute, emotions:false }`   slot: `ce('div')` → `.mpi-media-picker__voice-body`
 
 ---
 
@@ -220,6 +238,8 @@ MpiGalleryGrid is now a Compound that handles both justified layout and card dis
 - No toolbar controls (MPI-749): size, volume, FILTER, Archive and Info are `MpiGalleryToolbar`, in the project bar; the grid follows state.
 - `MpiButton` (SHOW ALL)   props: `{ text:'Show all', variant:'secondary', size:'sm' }`   slot: `ce('div')`, appended into `.mpi-gallery-grid__scope-empty` only when a filter hides every card — resets kinds + flags, keeps `order` and `scope`
 - `MpiCheckbox` (card selection)   props: `{ checked: false }`   slot: `.mpi-group-card__select-wrap` — mounted per card inside `_makeCard()`; `on('change')` drives selection state
+- `MpiButton` (card mark, MPI-785)   props: `{ icon: markIcon(mark), active: !!mark, size:'sm', variant:'ghost', info:'Mark (hold for more shapes)' }`   slot: `.mpi-group-card__fav-wrap` — per card; click/hold wired by `wireCardMark()` (`cardMarkMenu.js`)
+- `MpiPopup` (shape menu)   props: `{ active:true, position:'bottom', variant:'card-mark', triggerEl: mark button }`   slot: `ce('div')` — one app-wide, opened by a hold; `MpiButton` per `CARD_MARKS` shape (`icon, size:'sm', variant:'ghost', info: singular, active, extraClasses:'mpi-gallery-grid__mark-option'`) → `.mpi-gallery-grid__mark-menu`
 
 **Card rendering:**
 - Cards are now rendered as DOM elements (not components)

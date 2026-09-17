@@ -25,4 +25,6 @@
 ## Needs Fabio
 
 - [ ] Look: are the dot, square and triangle the right size and weight on a card?
+  2026-09-17: no, "hard to notice"; make them about twice as big.
 - [ ] Feel: is a 400 ms hold right for opening the shape menu?
+  2026-09-17: no, it "feels more like 1.5 seconds"; make it faster.

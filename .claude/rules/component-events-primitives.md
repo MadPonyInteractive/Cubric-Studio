@@ -328,8 +328,15 @@ API:     `el.setRecordVisible(visible)` (MPI-678) — **Record is GALLERY-ONLY, 
 
 ### MpiGalleryToolbar (Compound — js/components/Compounds/MpiGalleryToolbar, MPI-749)
 EMITS:   (none — every control writes state: `gallerySizeLevel`, `galleryVolume`, `gallerySort`, `galleryShowInfo`)
-LISTENS: `state:changed` — those four keys + `currentProject` (the FILTER dot and tooltip)
-NOTE:    The FILTER panel is an `MpiPopup` created on open and removed on close; it closes on a 300 ms pointer leave, an outside pointerdown and `ui:close-all-popups`. It binds NO Escape hotkey: `overlay.close` runs first on every Escape and, with no overlay open, emits `ui:close-all-popups`. Never calls `Overlays` (that would engage the grid's `'overlay'` media hold). Details: `docs/gallery-filters.md`.
+LISTENS: `state:changed` — those four keys + `currentProject` (calls `filter.refresh()` for the FILTER dot, tooltip and open panel rows)
+NOTE:    FILTER + panel are `mountGalleryFilter` (`js/components/galleryFilterPanel.js`, MPI-785), shared with MpiMediaPicker; the parts file has no state listener of its own, the host calls `refresh()`. The panel is an `MpiPopup` created on open and removed on close; it closes on a 300 ms pointer leave, an outside pointerdown and `ui:close-all-popups`. It binds NO Escape hotkey: `overlay.close` runs first on every Escape and, with no overlay open, emits `ui:close-all-popups`. Never calls `Overlays` (that would engage the grid's `'overlay'` media hold). Details: `docs/gallery-filters.md`.
+
+### MpiMediaPicker (Compound — js/components/Compounds/MpiMediaPicker)
+EMITS:   `pick`   `{ filePath, mediaType }` — a tile, or a finished mic recording (modal closes)
+         `import` `{ files: File[] }` — upload card, or a decoded voice-library pick (modal closes)
+         `cancel` `{}` — Cancel button only (not Escape / backdrop)
+LISTENS: (none — its FILTER runs on a LOCAL sort, never `state:changed`; MpiModal handles `ui:close-all-popups`)
+NOTE:    Filtering = the shared `mountGalleryFilter` (MPI-785) with `setSort` re-rendering the grid. Its `<audio>` must stay unmarked (no `data-src`) — see `docs/component-contracts.md` § MpiMediaPicker.
 
 ### MpiStartingComfy
 EMITS:   (none)

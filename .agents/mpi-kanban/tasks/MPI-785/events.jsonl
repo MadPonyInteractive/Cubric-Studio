@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-785", "at": "2026-09-16T21:24:12+01:00", "actor": "claude", "column": "todo", "title": "Card marks: dot, square, triangle replace the heart; shared filter in the media picker"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-785", "at": "2026-09-16T21:24:37+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Starting implementation"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-785", "at": "2026-09-16T21:48:10+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Built and tested; waiting on Fabio's look-and-feel check"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-785", "at": "2026-09-17T09:26:24+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Fabio feedback 2026-09-17: hold too slow, shapes 2x bigger; handing off"}

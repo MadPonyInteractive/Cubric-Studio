@@ -1,5 +1,13 @@
 # MPI-785 checklist
 
+## ON PICKUP (Fabio, 2026-09-17) — read plan.md § Next first
+
+- [ ] Hold opens the shape menu noticeably faster (400 ms felt like 1.5 s)
+- [ ] Dot, square and triangle are about twice as big on a card
+- [ ] Fabio looks again and approves
+
+## Shipped (e93bbf18)
+
 - [x] Card mark button: click an unmarked card, see a small dot
 - [x] Click a marked card's mark, see it cleared
 - [x] Hold the mark button, see a menu with dot, square, triangle
@@ -10,4 +18,4 @@
 - [x] Media picker opened from an image slot starts with only image kinds shown
 - [x] Media picker tiles show the card's mark
 - [x] Node tests + the two desktop specs pass
-- [ ] Fabio: the shapes look right on a card, and the hold feels right
+- [x] Component map rules refreshed (Fabio approved, 2026-09-17)
