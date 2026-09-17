@@ -39,7 +39,14 @@ asserting the stroke changed the overlay and that a hover still moves the ring.
 - Desktop: `history-modes`, `mask-persist-roundtrip` (4 pass), `gif-cutout` (4 pass).
 - `eslint js/components/Primitives/MpiCanvas/`: exit 0.
 
+- CI: run 35157223069 on `864dd64d` (a descendant of this card's `e663864d`) passed.
+
 ## Not verified here
 
-The tester's own box. Their GPU and Chromium's canvas backend there are unknown; the accel-OFF
-rows are the worst case, and accel-ON did not move. Confirm on the next hand-delivered build.
+The tester's own box: 16 GB RAM and an RTX 30-series card with 12 GB VRAM (reported by Fabio,
+2026-09-17), engine on RunPod. A card that size normally accelerates 2D canvas, and the
+accel-ON rows above did not move between trees. So if 1.6.1 crawled there, Chromium most likely
+was NOT using that card for canvas: a driver blocklist, a GPU process that crashed and fell back
+to software, or a laptop running Electron on its integrated GPU. The accel-OFF rows are that
+case, and this change fixes it. If the next hand-delivered build is still slow there, the cause
+is elsewhere: read `app.getGPUFeatureStatus()` on that box before changing more code.
