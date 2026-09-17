@@ -128,16 +128,22 @@ Scratch project, `gpu_lease.py run -- ...`, `/connector/generate`, read sidecars
 
 ## Current State
 
-2026-09-17 ~18:00Z. COMMIT 2 LANDING. Engine 48188 is LIVE on MpiNodes 1.2.16 (Fabio restarted;
+2026-09-17 ~18:30Z. PHASE 4 DONE (agent half). Engine 48188 is LIVE on MpiNodes 1.2.16 (Fabio restarted;
 the boot repair re-installed cff4c3b, the engine starts on demand so it came up later). Bake DONE
 (46 runtime + 11 templates), MPI-771's `gif_cutout_birefnet` folded in (35 raw files converted),
 and `ltx_video_upscale` / `remove_background` migrated BY HAND because they have no `raw/` twin.
 Full suite 1311/1311, survey + verify-workflow + smoke --plan clean; evidence in validation.md.
 
-NEXT: commit 2 (pin + rebaked graphs + 5 tests + docs + card, private index), push, then Phase 4
-live checks in Fabio's app (ask first), then close-out. Open: `mpi-ci`'s pod `node_lock.json` is
-behind on MpiNodes (sibling repo, code-only, no image rebuild — smoke prints the 3 commands);
-`.claude/rules/comfy_engine.md:353` still names the removed route (needs Fabio's permission).
+Commit 2 = b9f1d756 (84 files, pushed, CI 35255413114 success). mpi-ci pod lock synced + pushed
+(ff426e2). Phase 4 live runs all passed - staging hardlink AND cross-volume copy proven by link
+counts, the empty-slot `loaded` gates proven on krea2/klein/h3/DramaBox, audio staging proven on
+Stems, and the four connector-unreachable graphs smoked straight on the engine (validation.md).
+
+NEXT: close-out. Three UI-only checks are left for Fabio (deleted-source toast, model-folder
+restart toast, resize_video with audio); `.claude/rules/comfy_engine.md:353` still names the
+removed route and needs his permission; the scratch project `MPI-800 staging C` and its parent
+dir registration are still in his project list; and the app is still showing that scratch project
+rather than whatever he had open.
 
 ### Handoff snapshot (2026-09-17 ~15:45Z, superseded above) Fabio has RESTARTED the app; at handoff 48188 did not answer yet
 (booting). CI on ee034559 = success. The scratch scripts are copied into research/ (bake.mjs =

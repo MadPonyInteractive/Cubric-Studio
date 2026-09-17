@@ -80,4 +80,37 @@ Evidence is recorded here as each phase is verified.
 - Commit 2 = pin + rebaked templates/runtime + the two hand-migrated graphs + birefnet raw + the 5
   held test files + the doc rewrite + this card, through a private index (peers hold
   docs/agent-chat.md, dev_configs/smoke-run.txt, the MPI-702/706/774 cards and more).
+- Commit 2 = b9f1d756, 84 files, pushed; CI run 35255413114 SUCCESS.
+- `mpi-ci` pod lock synced to cff4c3b3 and pushed (ff426e2) — code-only node, no image rebuild.
+
+## Phase 4 - live runs in Fabio's app (2026-09-17, local engine 48188, MpiNodes 1.2.16)
+
+Scratch project `MPI-800 staging C` (session scratchpad), every submit `/connector/generate`
+under `gpu_lease.py run`, every graph then read back from the ENGINE's `/history` so the
+evidence is what ComfyUI executed, not what the app meant to send.
+
+| check | result |
+|---|---|
+| krea2 `t2i` (seed image) | ok, 82s, `t2i_001.png` |
+| krea2 `krea2Edit`, project-folder image — **hardlink** | ok, 77s. Staged `mpi_staged/ec7b60d1f23a6168.png` has **links=2**, same size as the source |
+| krea2 `krea2Edit`, source on **D:** (other volume) — **copy** | ok, 78s. Staged `b07d74d96ff24025.png` has **links=1** — the copy fallback, live |
+| krea2 optional slots empty | dispatched graph: `#553 Input_Image` string = the staged path, picker `None`; `#557 Input_Mask` and `#559 Input_Image_2` empty with `block_if_empty false` |
+| klein-9b `kleinEdit`, ONE image | ok, 26s; `#474 Input_Image` staged, `#234/#235 Input_Image_2/3` and `#296 Input_Mask` empty. The surviving `#374 MpiAnyChecker` gates on node 93, not on an injected path |
+| minimax-h3 `t2v_ms`, no frames (video, `loaded` gates) | ok, 111s, `t2v_001.mp4`; `#217 Input_Start_Frame` + `#219 Input_End_Frame` both empty |
+| DramaBox flow, NO voice (audio gate) | ok, 37s, `flowDramaBox_001.flac`; `#11 MpiLoadAudioUpload` empty with `block_if_empty true` — the fork on `loaded` is what lets it run |
+| Stems flow, real audio staged | ok; `#32 MpiLoadAudioUpload` string = `mpi_staged/6f8f55be93ea9eea.flac` |
+
+Graphs the connector cannot dispatch (no model op, no Flow) were run straight on the engine with
+the app's own `/comfy/stage-media` path injected (`research/graph_smoke.py`; no gallery card by
+design): `remove_background.json` success 2s (the HAND-migrated one), `gif_cutout_birefnet.json`
+success 28s, `gif_cutout_sam3.json` success 24s, `video_interpolate.json` success 4s.
+
+NOT covered, and they need Fabio's eyes: reuse a card whose source was deleted (the
+`input_asset_deleted` toast), adding a model folder with the engine running (the restart toast),
+and `resize_video` on a clip with audio — its `MpiString` -> VHS + `MpiHasAudio` slot was
+deliberately left alone by this card, so it is unchanged rather than untested.
+
+LTX, Wan and Qwen could not run here: their weights are not installed on this box
+(`/connector/models`), so their `loaded` gates are covered by the graph sweep and the rebake
+only. The RunPod smoke at release covers them executing.
 
