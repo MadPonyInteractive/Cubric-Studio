@@ -693,6 +693,23 @@ function getDefaultModelsRoot() {
 }
 
 /**
+ * Every models root ComfyUI searches, active root first. The YAML always keeps the
+ * default root as a second block (`buildExtraModelPathsYaml`), so a reader asking
+ * "what can the engine load?" must walk both — a custom-root install keeps its
+ * engine assets (upscalers, SAM, BiRefNet) in the default root (MPI-791).
+ * @returns {Promise<string[]>}
+ */
+async function getSearchedModelsRoots() {
+    const primary = (await getCustomRoot()) || getDefaultModelsRoot();
+    const fallback = getDefaultModelsRoot();
+    const key = (p) => {
+        const r = path.resolve(p);
+        return process.platform === 'win32' ? r.toLowerCase() : r;
+    };
+    return key(primary) === key(fallback) ? [primary] : [primary, fallback];
+}
+
+/**
  * Resolve a user/UI-supplied models-root path to an absolute path.
  *
  * The path stored in extra_model_paths.yaml MUST be absolute: Cubric resolves it
@@ -859,10 +876,13 @@ function getUniversalWorkflowDeps() {
  * Returns { needsDepsInstall, missingDeps, driftedDeps }.
  *
  * Uses resolveComfyPath so custom root and type→subdir mapping are respected.
+ *
+ * @param {string|null} [rootOverride] - a fresh engine install passes the root the
+ *   user picked, which is not persisted until the install finishes (MPI-791).
  */
-async function checkUniversalWorkflowDepsStatus() {
+async function checkUniversalWorkflowDepsStatus(rootOverride = null) {
     const { DEPS } = _require('../js/data/modelConstants/dependencies.js');
-    const customRoot = await getCustomRoot();
+    const customRoot = rootOverride || await getCustomRoot();
     const config = {};
     const depIds = getUniversalWorkflowDepIds();
     const missing = [];
@@ -1000,6 +1020,7 @@ module.exports = {
     cleanEmptyDirs,
     getCustomRoot,
     getDefaultModelsRoot,
+    getSearchedModelsRoots,
     resolveModelsRoot,
     normalizeExtraModelFolders,
     getExtraModelFolders,

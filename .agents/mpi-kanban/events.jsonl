@@ -4367,3 +4367,6 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-793", "at": "2026-09-17T09:27:33+01:00", "actor": "claude", "column": "todo", "title": "Desktop specs doc: provoke a reply race by holding the reply, not delaying it"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-793", "at": "2026-09-17T09:27:56+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-793", "at": "2026-09-17T09:28:17+01:00", "actor": "claude", "from": "doing", "to": "done"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-791", "at": "2026-09-17T09:20:18+01:00", "actor": "claude-987601bc", "column": "todo", "title": "Engine-asset upscalers invisible in the Upscale dropdown after a custom-root install"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-791", "at": "2026-09-17T09:21:07+01:00", "actor": "claude-987601bc", "from": "todo", "to": "doing", "reason": "Root cause traced from a user log; implementing the four fixes."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-791", "at": "2026-09-17T09:29:19+01:00", "actor": "claude-987601bc", "from": "doing", "to": "done", "reason": "Four fixes shipped; tests red on HEAD, green with the fix; full node suite green."}

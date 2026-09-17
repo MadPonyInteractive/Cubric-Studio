@@ -31,6 +31,9 @@ const { getRemoteMode } = require('./remoteProxy');
 const { getWrapperToken, proxyUrl } = require('./remoteEngine');
 const { isNetworkDownError } = require('./netCheck');
 const { getPinnedNodeCommit } = require('./shared');
+const { createRequire } = require('module');
+
+const _require = createRequire(__filename);
 
 // RunPod proxy is behind Cloudflare — the default fetch UA gets 403 error 1010.
 const { buildAuthHeaders } = require('./remoteHeaders');
@@ -567,6 +570,23 @@ async function remoteUploadInput(localPath, filename, endpoint) {
 }
 
 /**
+ * The `bakedOnPod` weights of one models bucket, as paths relative to it — the
+ * files the Pod image's ComfyUI lists for that bucket without any volume copy
+ * (the two upscalers the Dockerfile `dl` block bakes). The wrapper's presence
+ * check reads only the volume, so the model lists and the generate-time upload
+ * learn about them here, from the same flag `_isImageResident` trusts (MPI-791).
+ * @param {string} type  bucket, e.g. 'upscale_models'
+ * @returns {string[]}
+ */
+function podBakedModelNames(type) {
+  const { DEPS } = _require('../js/data/modelConstants/dependencies.js');
+  const prefix = `${type}/`;
+  return Object.values(DEPS)
+    .filter((d) => d && d.bakedOnPod && !d.targetPath && String(d.filename || '').startsWith(prefix))
+    .map((d) => d.filename.slice(prefix.length));
+}
+
+/**
  * Ask the Pod whether a single LoRA/upscale model file already sits on the
  * volume, by basename, so a generate-time auto-upload can SKIP a multi-GB
  * re-transfer. Reuses the existing `/wrapper/models/status` contract — the
@@ -584,6 +604,9 @@ async function remoteModelPresent(type, filename) {
   const path = require('path');
   const base = path.basename(String(filename || '').replace(/\\/g, '/'));
   if (!type || !base) return false;
+  // In the image, not on the volume: the wrapper would answer "absent" and the
+  // caller would upload a local copy the user may not have (MPI-791).
+  if (podBakedModelNames(type).some((n) => path.posix.basename(n) === base)) return true;
   try {
     const body = { models: [{ id: '_present', deps: [{ id: base, type, filename: base }] }] };
     const res = await wrapperFetch('/wrapper/models/status', { method: 'POST', body });
@@ -946,6 +969,7 @@ module.exports = {
   remoteUninstallDep,
   remoteUploadInput,
   remoteModelPresent,
+  podBakedModelNames,
   remoteUploadModel,
   remoteCancelInstall,
   remoteActiveInstallIds,

@@ -3642,10 +3642,13 @@ function cancelAllDownloads() {
  * @param {string[]} depIds - DEPS ids to install (from checkUniversalWorkflowDepsStatus)
  * @param {boolean} broadcastProgress - whether to emit engine:uw-installing SSE events
  * @param {boolean} skipCustomNodeInstall - if true, download only; don't run custom node pip install
+ * @param {string|null} [rootOverride] - a fresh engine install passes the root the user
+ *   picked: it is persisted only when the install finishes, so reading it here would
+ *   land every engine asset in the default root (MPI-791)
  */
-async function startUniversalWorkflowInstall(depIds, broadcastProgress = true, skipCustomNodeInstall = false) {
+async function startUniversalWorkflowInstall(depIds, broadcastProgress = true, skipCustomNodeInstall = false, rootOverride = null) {
     const { DEPS } = _require('../js/data/modelConstants/dependencies.js');
-    const customRoot = await getCustomRoot();
+    const customRoot = rootOverride || await getCustomRoot();
     const defaultModelsRoot = getDefaultModelsRoot();
     const defaultCustomNodesRoot = getComfyPath(ENGINE_ROOT, 'custom_nodes');
 

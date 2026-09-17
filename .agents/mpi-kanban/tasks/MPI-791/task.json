@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-791",
+  "title": "Engine-asset upscalers invisible in the Upscale dropdown after a custom-root install",
+  "description": "Custom-root installs put engine assets in the default root; list-files and the remote upload never read it, and the Pod presence check misses baked weights. Four fixes: list-files + upload resolver read the default root, install writes to the chosen root, baked weights count as present on the Pod.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-17T09:20:18+01:00",
+  "updated_at": "2026-09-17T09:29:19+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

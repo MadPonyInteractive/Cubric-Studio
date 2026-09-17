@@ -5,7 +5,11 @@ LoRA/upscaler visibility. Split out of [comfy.md](comfy.md) (MPI-170).
 
 ## `/comfy/list-files?subDir=<path>`
 
-Recursively walks the requested `subDir` under the resolved models root (custom root from `extra_model_paths.yaml` when set, else engine default). Returns relative paths from `subDir` for files with extensions `.safetensors | .ckpt | .pt | .bin | .pth`. Only scans the requested bucket — does NOT return siblings from other top-level folders (checkpoints, sams, ultralytics, etc).
+Recursively walks the requested `subDir` under every root ComfyUI searches — `getSearchedModelsRoots()` (`routes/shared.js`): the active root, then the default root when they differ. Returns relative paths from `subDir` for files with extensions `.safetensors | .ckpt | .pt | .bin | .pth`. Only scans the requested bucket — does NOT return siblings from other top-level folders (checkpoints, sams, ultralytics, etc).
+
+**Walk the default root too, never only the active one (MPI-791).** The YAML keeps the default root searchable, so ComfyUI loads what sits there; a reader that skips it shows the user less than the engine has. That is where a custom-root user's engine assets live when the install predates MPI-791: the UW deps resolved their paths before the picked root was persisted, so upscalers, SAM and BiRefNet landed in the default root and the Upscale dropdown showed only "None". The remote upload resolver (`_resolveLocalModelPath`, `routes/remotePodState.js`) walks the same list. A fresh install now hands the picked root to `checkUniversalWorkflowDepsStatus` / `startUniversalWorkflowInstall` explicitly (`installRoot` in `routes/engine.js`).
+
+With a Pod connected the route also adds the bucket's `bakedOnPod` weights (`remoteModels.podBakedModelNames`), which exist only in the Pod image.
 
 For `loras` and `upscale_models`, the route also scans user-configured additive
 folders from `extra_model_folders.json`. Those extras are bucket folders (for

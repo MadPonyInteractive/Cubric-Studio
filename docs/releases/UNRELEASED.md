@@ -395,6 +395,15 @@
 > History workspace and the minimised preview window. The last two are real released bugs and
 > the entry is worth keeping; the Flow clause is the part to drop when folding.
 
+- The Upscale tool shows its upscalers when you picked your own models folder while
+  installing the engine. The two upscalers that come with the app, and the other helper
+  models installed with the engine, were saved to the app's standard models folder instead
+  of the one you picked. The app could still use them, but the Upscale Model list only
+  looked in your folder, so it offered nothing but None. The list now looks in both
+  folders, and a new install saves everything to the folder you picked. On RunPod, the two
+  upscalers built into the Pod now appear in the list too, and using one no longer tries to
+  upload a copy from your computer first, which failed when you had no copy.
+
 - Installing a model on a Pod no longer says the volume is full when most of that model is
   already there. If the app could not read which files the Pod already had, it counted every
   file as a new download, so MiniMax H3 Reference asked for its full 50 GB on a volume that

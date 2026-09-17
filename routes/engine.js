@@ -119,6 +119,7 @@ router.get('/engine/status', async (req, res) => {
  * @param {string} targetDir   engine root
  * @param {object} engineInfo  { version, filename, url }
  * @param {string[]} missingDepIds  UW deps to install in parallel
+ * @param {string|null} [installRoot]  the models root the user picked (MPI-791)
  * @returns {Promise<{ uwModelJob: object|null }>}
  */
 /**
@@ -170,7 +171,7 @@ async function _clearStaleWindowsEngineArtifacts(targetDir, filename) {
     }
 }
 
-async function _provisionWindowsEngine(targetDir, engineInfo, missingDepIds) {
+async function _provisionWindowsEngine(targetDir, engineInfo, missingDepIds, installRoot = null) {
     const type = 'comfy';
 
     // ── Download engine using FileDownloader ────────────────────────────────
@@ -218,7 +219,7 @@ async function _provisionWindowsEngine(targetDir, engineInfo, missingDepIds) {
     let uwDepsPromise = Promise.resolve();
     if (missingDepIds.length > 0) {
         logger.info('engine', `Firing ${missingDepIds.length} UW deps downloads (parallel)...`);
-        uwDepsPromise = startUniversalWorkflowInstall(missingDepIds, true, true)  // true = skip custom node install
+        uwDepsPromise = startUniversalWorkflowInstall(missingDepIds, true, true, installRoot)  // true = skip custom node install
             .then(modelJob => { uwModelJob = modelJob; return modelJob; })
             .catch(err => {
                 // MPI-427: keep the job. The deps that DID download are on it, and the
@@ -314,9 +315,10 @@ function _runStreaming(cmd, args, { cwd, env, stage } = {}) {
  * @param {string} targetDir   engine root
  * @param {string[]} missingDepIds  UW deps to install after the venv exists
  * @param {object} downloadConfig  resolveDownloadConfig() result (for GPU vendor)
+ * @param {string|null} [installRoot]  the models root the user picked (MPI-791)
  * @returns {Promise<{ uwModelJob: object|null }>}
  */
-async function _provisionUvEngine(targetDir, missingDepIds, downloadConfig) {
+async function _provisionUvEngine(targetDir, missingDepIds, downloadConfig, installRoot = null) {
     const uvBin = resolveUvBin();
     if (!uvBin) {
         throw new Error('uv not found. Stage a uv binary at <root>/uv/uv (CUBRIC_UV_BIN) or install uv on PATH.');
@@ -477,7 +479,7 @@ async function _provisionUvEngine(targetDir, missingDepIds, downloadConfig) {
     if (missingDepIds.length > 0) {
         logger.info('engine', `Installing ${missingDepIds.length} UW deps...`);
         try {
-            uwModelJob = await startUniversalWorkflowInstall(missingDepIds, true, true);
+            uwModelJob = await startUniversalWorkflowInstall(missingDepIds, true, true, installRoot);
         } catch (err) {
             // MPI-427: same as the Windows path — the job carries the deps that landed,
             // and finishCustomNodeInstall is what extracts them.
@@ -527,10 +529,19 @@ async function _runEngineDownload(chosenModelsRoot) {
         const downloadConfig = await resolveDownloadConfig();
         const targetDir = ENGINE_ROOT;
 
+        // The chosen root is persisted only at step 6 — its files live in the engine
+        // folder this install creates — so every UW-dep lookup before that is handed
+        // it explicitly. Reading the persisted root instead put a custom-root user's
+        // upscalers, SAM and BiRefNet in the default root, where ComfyUI still loads
+        // them but the app's model lists never looked (MPI-791). null = no pick.
+        const installRoot = chosenModelsRoot && chosenModelsRoot.trim()
+            ? resolveModelsRoot(chosenModelsRoot)
+            : null;
+
         // ── Pre-calculate combined size (engine + UW deps) ──────────────────────
         // Every custom_node is now universal (MPI-222: no model-specific node class),
         // so the UW set already covers all nodes an engine reinstall must restore.
-        const { missingDeps } = await checkUniversalWorkflowDepsStatus();
+        const { missingDeps } = await checkUniversalWorkflowDepsStatus(installRoot);
         const missingDepIds = missingDeps;
         if (missingDeps.length > 0) {
             logger.info('engine', `Calculating size for ${missingDeps.length} UW deps...`);
@@ -541,14 +552,14 @@ async function _runEngineDownload(chosenModelsRoot) {
         // ── Provision engine binaries (platform-specific) ───────────────────────
         let uwModelJob = null;
         if (downloadConfig.method === 'uv-bootstrap') {
-            ({ uwModelJob } = await _provisionUvEngine(targetDir, missingDepIds, downloadConfig));
+            ({ uwModelJob } = await _provisionUvEngine(targetDir, missingDepIds, downloadConfig, installRoot));
         } else {
             const engineInfo = {
                 version: config.engine.version,
                 filename: downloadConfig.comfy.filename,
                 url: downloadConfig.comfy.url,
             };
-            ({ uwModelJob } = await _provisionWindowsEngine(targetDir, engineInfo, missingDepIds));
+            ({ uwModelJob } = await _provisionWindowsEngine(targetDir, engineInfo, missingDepIds, installRoot));
         }
 
         // ── Finish custom node install (shared) ─────────────────────────────────

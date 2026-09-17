@@ -68,8 +68,9 @@ async function _guard(res) {
 /**
  * Resolve a model FILENAME (the dropdown value — may be subfolder-prefixed, e.g.
  * 'style/foo.safetensors') to its absolute LOCAL path, searching the configured
- * model folders for that bucket: the primary bucket dir (custom root or default)
- * plus each stored extra folder, recursively, matched by BASENAME. Mirrors the
+ * model folders for that bucket: the bucket dir in every root ComfyUI searches
+ * (active root, then default) plus each stored extra folder, recursively, matched
+ * by BASENAME. Mirrors the
  * union /comfy/list-files enumerates, so the file the user sees in the dropdown
  * is the file we upload. Returns the absolute path or null if not found locally.
  * @param {'loras'|'upscale_models'} type
@@ -78,13 +79,12 @@ async function _guard(res) {
  */
 async function _resolveLocalModelPath(type, filename) {
   const path = require('path');
-  const { getCustomRoot, getDefaultModelsRoot, getExtraModelFolders, findFileRecursive } = require('./shared');
+  const { getSearchedModelsRoots, getExtraModelFolders, findFileRecursive } = require('./shared');
   const base = path.basename(String(filename || '').replace(/\\/g, '/'));
   if (!base) return null;
-  const customRoot = await getCustomRoot();
-  const primaryBucket = path.join(customRoot || getDefaultModelsRoot(), type);
+  const buckets = (await getSearchedModelsRoots()).map((root) => path.join(root, type));
   const extras = await getExtraModelFolders();
-  const roots = [primaryBucket, ...((extras[type]) || [])];
+  const roots = [...buckets, ...((extras[type]) || [])];
   for (const root of roots) {
     const hit = await findFileRecursive(root, base);
     if (hit) return hit;

@@ -32,6 +32,7 @@ const {
     cleanEmptyDirs,
     getCustomRoot,
     getDefaultModelsRoot,
+    getSearchedModelsRoots,
     resolveModelsRoot,
     getExtraModelFolders,
     setExtraModelFolders,
@@ -1061,8 +1062,7 @@ router.get('/comfy/list-files', async (req, res) => {
         const normalizedSubDir = String(subDir).replace(/\\/g, '/').replace(/^\/+|\/+$/g, '');
         const bucket = normalizedSubDir.split('/')[0];
         const bucketRemainder = normalizedSubDir.split('/').slice(1).join('/');
-        const customRoot = await getCustomRoot();
-        const modelsRoot = customRoot || getDefaultModelsRoot();
+        const roots = await getSearchedModelsRoots();
         const extras = await getExtraModelFolders();
 
         const getAllFiles = async (dirPath, relativeTo) => {
@@ -1095,27 +1095,39 @@ router.get('/comfy/list-files', async (req, res) => {
         const engineSep = remoteActive ? '/' : path.sep;
         const toEngineSep = (s) => engineSep === '/' ? s.replace(/\\/g, '/') : s.replace(/\//g, '\\');
 
+        const addName = (file, output, seen) => {
+            const fwd = file.replace(/\\/g, '/');
+            const key = process.platform === 'win32' ? fwd.toLowerCase() : fwd;
+            if (seen.has(key)) return;
+            seen.add(key);
+            output.push(toEngineSep(fwd));
+        };
         const addFiles = async (dirPath, relativeTo, output, seen) => {
             const files = await getAllFiles(dirPath, relativeTo);
-            for (const file of files) {
-                const fwd = file.replace(/\\/g, '/');
-                const key = process.platform === 'win32' ? fwd.toLowerCase() : fwd;
-                if (seen.has(key)) continue;
-                seen.add(key);
-                output.push(toEngineSep(fwd));
-            }
+            for (const file of files) addName(file, output, seen);
         };
 
         const output = [];
         const seen = new Set();
-        const primaryTarget = path.join(modelsRoot, normalizedSubDir);
-        await addFiles(primaryTarget, primaryTarget, output, seen);
+        // Every root ComfyUI searches, active root first so its copy wins a
+        // same-name collision. The default root is one of them even after the user
+        // picks another folder, and it is where that user's engine assets live (MPI-791).
+        for (const root of roots) {
+            const target = path.join(root, normalizedSubDir);
+            await addFiles(target, target, output, seen);
+        }
 
         if (bucket === 'loras' || bucket === 'upscale_models') {
             for (const extraFolder of extras[bucket] || []) {
                 const extraTarget = bucketRemainder ? path.join(extraFolder, bucketRemainder) : extraFolder;
                 await addFiles(extraTarget, extraTarget, output, seen);
             }
+        }
+
+        // The Pod image carries weights no local folder may hold — a remote-only
+        // user has no engine assets on disk at all (MPI-791).
+        if (remoteActive && !bucketRemainder) {
+            for (const name of remoteModels.podBakedModelNames(bucket)) addName(name, output, seen);
         }
 
         res.json({ success: true, files: output.sort() });
