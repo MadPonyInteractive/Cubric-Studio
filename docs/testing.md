@@ -195,5 +195,5 @@ router / direct component mounts instead.
 
 **Before you write one, read
 [testing-desktop-specs.md](testing-desktop-specs.md)** — the specs that already exist and
-the five traps they paid for, including the flow-overlay set and the stubbed-global-state
+the six traps they paid for, including the flow-overlay set and the stubbed-global-state
 race (MPI-647). Split out of this file at 289 lines; nothing was dropped.

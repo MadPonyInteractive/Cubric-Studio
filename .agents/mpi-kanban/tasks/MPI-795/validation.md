@@ -23,3 +23,4 @@
 
 - User verified the crop fix manually and approved the rule-map edit. `.claude/rules/component-mounts.md` now describes the RESOLUTION type, the fill colour, the `settings` payload (on `image` and `video-save` only), and the Resize MP/SCALE types. It also corrects the resize Apply path to `enqueueGeneration`.
 - The claim auditor found 17 claims proven. It flagged three: the caller count above (was "14"), `settings` on `video-snapshot` (it has none), and `startGeneration`. All three were re-checked in the code and fixed.
+- User-approved doc heal: `docs/testing-desktop-specs.md` trap 6 records that PROMPT mode has no canvas, so `getSourceElement()` is `null` there (it cost this session one failed spec run). The trap count in `docs/README.md` and `docs/testing.md` was updated to six.

@@ -121,7 +121,7 @@ notices). Use `--from-file` when the snippet contains backticks or quotes — Gi
 mangles those inline, and this repo's guard hooks block the heredoc workaround.
 `--self-check` proves the harness itself on a temp file.
 
-## Five traps these specs paid for
+## Six traps these specs paid for
 
 1. **Assert the trigger toggled (`is-open`) BEFORE asserting the popup.** In the real
    bug the trigger toggled — the chevron flipped — while the popup was invisible.
@@ -172,6 +172,9 @@ mangles those inline, and this repo's guard hooks block the heredoc workaround.
    Worked example: `tests/desktop/flow-reuse-opens-without-model.spec.js`. Item 4 of the
    flow-overlay list above stubs the same key — a stub is only authoritative if nothing
    overwrites it and nothing else feeds the answer.
+
+6. **PROMPT mode has no canvas.** A preview replaces it, so `getSourceElement()` is `null` until you
+   call `setMode('<tool>')` on `.mpi-history-tools`; poll `naturalWidth` after that (MPI-795).
 
 ## A save that takes SECONDS is a queued request, not a slow route (MPI-786)
 
