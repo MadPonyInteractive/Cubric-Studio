@@ -49,7 +49,7 @@ function installPathDepthError(engineRoot) {
     if (engineRoot.length <= INSTALL_ROOT_BUDGET) return null;
     return `Install folder is too deep for Windows. The engine path is ${engineRoot.length} characters and must be `
         + `${INSTALL_ROOT_BUDGET} or fewer, because Windows limits a full file path to ${WIN_MAX_PATH}. Move the `
-        + `Cubric Vision folder closer to the drive root (C:\\CubricVision works) and press Install again. `
+        + `Cubric Studio folder closer to the drive root (C:\\CubricStudio works) and press Install again. `
         + `Current path: ${engineRoot}`;
 }
 

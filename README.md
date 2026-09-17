@@ -5,7 +5,7 @@
 
 <div align="center">
 
-# Cubric Vision
+# Cubric Studio
 
 **ComfyUI's engine, without the engine room — AI image and video made easy, free, and open source.**
 
@@ -23,7 +23,7 @@
 
 ---
 
-Cubric Vision is a desktop workspace for generating images and video on your
+Cubric Studio is a desktop workspace for generating images and video on your
 own machine. It runs ComfyUI as its engine — curated models, tuned workflows,
 no node graphs to wire up. You type a prompt, pick a model, and refine the
 result with masking, detailing, upscaling, and video tools. Your prompts, images,
@@ -32,7 +32,7 @@ videos, and project files stay on your disk.
 Free, open source, and made by [Mad Pony Interactive](https://madponyinteractive.com).
 No accounts. No API fees. Runs on your machine — remote GPU optional.
 
-![Cubric Vision projects workspace](.github/readme/ui-projects.webp)
+![Cubric Studio projects workspace](.github/readme/ui-projects.webp)
 
 ## What it does
 
@@ -91,7 +91,7 @@ Grab the portable build for your platform from
 — no installer, just extract and launch. On first run the app sets up its
 ComfyUI engine and asks where to store models.
 
-**Windows:** extract the zip and run **`CubricVision.exe`**. Windows will show
+**Windows:** extract the zip and run **`CubricStudio.exe`**. Windows will show
 *"Windows protected your PC"* — click **More info**, then **Run anyway**. The
 builds are not code-signed, so this warning is expected.
 
@@ -109,7 +109,7 @@ Then double-click **`start.command`**.
 Step-by-step instructions are in the
 [installation guide](https://docs.cubric.studio/vision/installation/).
 
-Every build is free and public on GitHub Releases. If Cubric Vision is useful to
+Every build is free and public on GitHub Releases. If Cubric Studio is useful to
 you, you can fund its development on
 [Patreon](https://www.patreon.com/madponyinteractive) (recurring) or
 [Gumroad](https://mad-pony-interactive.gumroad.com/l/vfdxe) (one-off) — support,
@@ -156,8 +156,9 @@ The full user guide lives at [docs.cubric.studio](https://docs.cubric.studio):
 - [**Gumroad**](https://mad-pony-interactive.gumroad.com/l/vfdxe) — a one-off
   donation if you'd rather support the build without a subscription.
 
-Vision is the first app in the [Cubric Studio](https://cubric.studio) family.
-Audio and Prompt are planned siblings — all local, all open source.
+This app started as the first of several planned Cubric apps. They've since
+folded into one, which now carries the [Cubric Studio](https://cubric.studio)
+name — all local, all open source.
 
 ## For developers
 
@@ -168,6 +169,6 @@ security-sensitive reports, see [SECURITY.md](SECURITY.md).
 
 ## License
 
-Cubric Vision is licensed under [AGPL-3.0-only](LICENSE). Portable builds ship
+Cubric Studio is licensed under [AGPL-3.0-only](LICENSE). Portable builds ship
 with readable app source — open source isn't a marketing line here, it's how
 the app is distributed.

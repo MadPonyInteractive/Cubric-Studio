@@ -1,7 +1,7 @@
 # Workflow authoring & injection — the cross-cutting contract
 
 > **What this is.** The model/app-**agnostic** contract for building a ComfyUI
-> workflow that Cubric Vision can drive: how the app injects values into a graph,
+> workflow that Cubric Studio can drive: how the app injects values into a graph,
 > the MpiNodes pack you build the graph from, and the generator patterns that turn
 > one authored template into the runtime files the app fetches.
 >

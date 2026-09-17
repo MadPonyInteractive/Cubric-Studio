@@ -150,7 +150,7 @@ async function _evaluatePodHealth(podId) {
           block: {
             code: 'manifest_schema_incompatible',
             message:
-              'This Pod was set up by a newer version of Cubric Vision than this app ' +
+              'This Pod was set up by a newer version of Cubric Studio than this app ' +
               'understands. Update the app, or reinitialize the Pod, before generating.',
           },
         };

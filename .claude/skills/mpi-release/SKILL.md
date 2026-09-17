@@ -1,11 +1,11 @@
 ---
 name: mpi-release
-description: Cut a Cubric Vision release — the single GitHub-only release flow. Bump the right version digit (2nd = new features/ops/engine, 3rd = bug fixes, 1st = breaking), stamp the files via mpi-version-bump, build the portable artifacts in CI, and publish a GitHub Release with the full builds + update bundles. Use when the user says "cut a release", "ship a release", "make a release", "publish the release", "release to GitHub", "ship this version", "release the fixes", or indicates master is ready to go public. There is ONE release flow now — no pre-release tiers, no branch merging.
+description: Cut a Cubric Studio release — the single GitHub-only release flow. Bump the right version digit (2nd = new features/ops/engine, 3rd = bug fixes, 1st = breaking), stamp the files via mpi-version-bump, build the portable artifacts in CI, and publish a GitHub Release with the full builds + update bundles. Use when the user says "cut a release", "ship a release", "make a release", "publish the release", "release to GitHub", "ship this version", "release the fixes", or indicates master is ready to go public. There is ONE release flow now — no pre-release tiers, no branch merging.
 user-invocable: true
 ---
 # mpi-release — the one GitHub-only release flow
 
-Cubric Vision ships from **master** to a **public GitHub Release**. That's it —
+Cubric Studio ships from **master** to a **public GitHub Release**. That's it —
 one branch, one channel. Every release is the **same mechanical operation**; only
 the version digit differs:
 
@@ -191,12 +191,14 @@ every update is a full re-download):
 ```bash
 gh release create v<ver> --repo MadPonyInteractive/Cubric-Studio \
   --title "v<ver>" --notes-file <body.md> --latest \
-  D:/CubricStudio/Vision/Builds/v<ver>/CubricVision-*-v<ver>.zip \
-  D:/CubricStudio/Vision/Builds/v<ver>/CubricVision-*-v<ver>.tar.gz \
-  D:/CubricStudio/Vision/Builds/v<ver>/CubricVision-*-update-v<ver>.zip
+  D:/CubricStudio/Vision/Builds/v<ver>/CubricStudio-*-v<ver>.zip \
+  D:/CubricStudio/Vision/Builds/v<ver>/CubricStudio-*-v<ver>.tar.gz \
+  D:/CubricStudio/Vision/Builds/v<ver>/CubricStudio-*-update-v<ver>.zip
 ```
-Use the canonical asset names from `docs/releases/github-release-checklist.md`
-(no legacy `CubricStudio` names).
+Use the canonical asset names from `docs/releases/github-release-checklist.md`.
+**2.0.0 also attaches legacy `CubricVision-*` copies of these six alongside them**
+(D1, MPI-708 Phase 3 — not yet built; an install older than 1.5.0, whose updater
+only matches `CubricVision-*`, can still update) — 2.1 drops the legacy names.
 
 > **Title = the bare tag.** Every published release is named `v1.2.0` / `v1.1.0` /
 > `v1.0.1` — name equals tag. Corrected 2026-08-01 (this step used to say

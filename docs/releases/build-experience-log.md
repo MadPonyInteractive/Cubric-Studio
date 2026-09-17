@@ -1,6 +1,6 @@
 # Portable Build — Experience Log
 
-> **Purpose.** This is the *lessons-learned journal* for building Cubric Vision
+> **Purpose.** This is the *lessons-learned journal* for building Cubric Studio
 > portable artifacts, written by the agents who actually did the builds. It is
 > the human/experiential companion to the formal
 > [`portable-distribution-contract.md`](portable-distribution-contract.md) (the

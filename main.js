@@ -50,7 +50,7 @@ function reportFatal(kind, err) {
   // a click nobody makes, turning a loud failure into a hang. The log line and the
   // non-zero exit are what a test run reads anyway.
   if (!process.env.CUBRIC_E2E) {
-    try { dialog.showErrorBox('Cubric Vision failed to start', line); } catch { /* no display available */ }
+    try { dialog.showErrorBox('Cubric Studio failed to start', line); } catch { /* no display available */ }
   }
   app.exit(1);
 }
@@ -61,7 +61,7 @@ function reportFatal(kind, err) {
 // returns fine and the stream emits 'error' afterwards, so that function's own
 // try/catch never sees it. With no listener here Node re-raises it as an
 // uncaughtException, and the handler below turns a dropped log line into a modal
-// "Cubric Vision failed to start" box on a perfectly healthy app. The file log is
+// "Cubric Studio failed to start" box on a perfectly healthy app. The file log is
 // the durable sink — losing the mirror costs nothing.
 const swallowDeadPipe = (stream) => stream.on('error', (err) => {
   if (err && (err.code === 'EPIPE' || err.code === 'EIO')) return;
@@ -256,7 +256,7 @@ if (process.env.CUBRIC_E2E) {
   app.commandLine.appendSwitch('disable-gpu-compositing');
 }
 
-// Windows launches straight from CubricVision.exe now (MPI-387 fix D), so the
+// Windows launches straight from CubricStudio.exe now (MPI-387 fix D), so the
 // start script that used to export CUBRIC_USER_DATA_ROOT is gone. Without this
 // fallback a portable Windows install would silently write its user data — and
 // therefore logs/app.log, the one artifact a bug report carries — into %APPDATA%
@@ -1248,8 +1248,8 @@ app.on('ready', () => {
     }
     try {
       const res = await fetch(
-        'https://api.github.com/repos/MadPonyInteractive/Cubric-Vision/releases/latest',
-        { headers: { 'User-Agent': 'CubricVision-Updater', Accept: 'application/vnd.github+json' } },
+        'https://api.github.com/repos/MadPonyInteractive/Cubric-Studio/releases/latest',
+        { headers: { 'User-Agent': 'CubricStudio-Updater', Accept: 'application/vnd.github+json' } },
       );
       if (!res.ok) throw new Error(`GitHub API ${res.status}`);
       const rel = await res.json();

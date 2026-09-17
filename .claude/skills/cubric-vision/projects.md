@@ -1,4 +1,4 @@
-# Cubric Vision: projects, media and cards
+# Cubric Studio: projects, media and cards
 
 Part of the `cubric-vision` skill. The base URL, the liveness check and the
 whole-prompts rule are in [SKILL.md](SKILL.md): read that first.
@@ -46,8 +46,9 @@ curl -s -X POST "$CUBRIC_URL/create-project" \
 
 Body: `name` (defaults to `Untitled`), plus an optional `folderPath` naming the
 **parent** directory. With no `folderPath` the project lands in the default
-projects root — `Documents/Cubric Vision/Projects` unless the install overrides
-it — which is the only root `/list-projects` scans for free.
+projects root — `Documents/Cubric Studio/Projects` (`Cubric Vision` before 2.0,
+and on a 2.x install whose automatic folder rename did not happen) unless the install
+overrides it — which is the only root `/list-projects` scans for free.
 
 Returns `{"success": true, "project": {...}}`. Keep `project.folderPath`: it is
 the key every other project endpoint takes, not the id. The route creates
@@ -77,7 +78,7 @@ creating a project does not make it that project. Open it explicitly:
 ```bash
 curl -s -X POST "$CUBRIC_URL/connector/open-project" \
   -H 'Content-Type: application/json' \
-  -d '{"folderPath":"C:/Users/me/Documents/Cubric Vision/Projects/Rider Study"}'
+  -d '{"folderPath":"C:/Users/me/Documents/Cubric Studio/Projects/Rider Study"}'
 ```
 
 `folderPath` is the key, the same one `/create-project` and `/list-projects` hand

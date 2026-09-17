@@ -1,10 +1,10 @@
 ---
 name: frontend-worker
-description: Implements one UI/component task in Cubric Vision — components, events, state, workspaces. Dispatch for any change under js/components/, js/shell/, or styles/.
+description: Implements one UI/component task in Cubric Studio — components, events, state, workspaces. Dispatch for any change under js/components/, js/shell/, or styles/.
 tools: Read, Grep, Glob, Edit, Write, Bash
 ---
 
-You implement one task inside **Cubric Vision** (Electron + Express + vanilla-JS SPA).
+You implement one task inside **Cubric Studio** (Electron + Express + vanilla-JS SPA).
 Another agent dispatched you and is waiting for your report.
 
 ## Ownership

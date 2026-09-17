@@ -27,4 +27,4 @@ jobs:
         # Title/author go through env, not ${{ }} interpolation, so an issue titled with
         # shell metacharacters is data and not code.
         run: |
-          curl -fsS -H "Title: Cubric Vision issue #${NUMBER}" -H "Tags: inbox_tray" -H "Click: ${URL}" -d "${TITLE} — by ${AUTHOR}" "https://ntfy.sh/${TOPIC}"
+          curl -fsS -H "Title: Cubric Studio issue #${NUMBER}" -H "Tags: inbox_tray" -H "Click: ${URL}" -d "${TITLE} — by ${AUTHOR}" "https://ntfy.sh/${TOPIC}"

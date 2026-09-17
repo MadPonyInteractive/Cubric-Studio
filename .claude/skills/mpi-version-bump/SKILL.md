@@ -1,6 +1,6 @@
 ---
 name: mpi-version-bump
-description: The file-edit MECHANIC for a Cubric Vision version bump — bump app version (appVersion.js + package.json + package-lock.json), update operation registry, update model mappings, sync operation_registry.json, generate release notes, run release:check, and offer pre-release tests. Use when the user says "bump the version", "/mpi-version-bump", or when the release skill (mpi-release) needs the version stamped. For the full ship flow (builds, GitHub release) use mpi-release — this skill only does the in-repo file edits.
+description: The file-edit MECHANIC for a Cubric Studio version bump — bump app version (appVersion.js + package.json + package-lock.json), update operation registry, update model mappings, sync operation_registry.json, generate release notes, run release:check, and offer pre-release tests. Use when the user says "bump the version", "/mpi-version-bump", or when the release skill (mpi-release) needs the version stamped. For the full ship flow (builds, GitHub release) use mpi-release — this skill only does the in-repo file edits.
 user-invocable: true
 ---
 # /mpi-version-bump — version-bump file mechanic
@@ -21,7 +21,7 @@ Run this skill directly only for the in-repo file edits, or when `mpi-release`
 tells you to. The build/tag/publish decisions live in `mpi-release` — don't
 improvise them here.
 
-Use this skill whenever you're ready to stamp a new version of Cubric Vision.
+Use this skill whenever you're ready to stamp a new version of Cubric Studio.
 
 ---
 
@@ -332,7 +332,7 @@ Release notes live in **two** places that must stay aligned:
 I will create `docs/releases/YYYY-MM-DD-vX.Y.Z.md` with:
 
 ```markdown
-# Cubric Vision vX.Y.Z — YYYY-MM-DD
+# Cubric Studio vX.Y.Z — YYYY-MM-DD
 
 ## Changelog
 
@@ -450,7 +450,7 @@ can drift the registry), and only continue once both suites are green again.
 
 ### `test:desktop` no longer needs the app closed (MPI-448)
 
-**Do not ask the user to close Cubric Vision, and do not check port 3000.** That
+**Do not ask the user to close Cubric Studio, and do not check port 3000.** That
 instruction lived here until 2026-08-05 and is now wrong: `tests/desktop/globalSetup.js`
 hands each run its own free `CUBRIC_PORT`, which `server.js` and `main.js` both read,
 so the suite launches beside a live instance and leaves it alone (verified 17/17 green

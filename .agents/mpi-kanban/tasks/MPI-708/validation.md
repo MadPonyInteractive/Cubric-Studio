@@ -59,3 +59,12 @@ Two workers, disjoint ownership, orchestrator-reviewed diffs.
   `updater-rename-bridge`) pass; `npm run build:portable:dry-run` succeeded, manifest `appId`
   `cubric.vision`, `displayName` `Cubric Studio` (dry-run stages no binaries).
 - Orchestrator re-run: the six targeted test files 28/28; `npm test` 1287 pass, 0 fail, 1 skipped.
+
+## Parallel Batch (remaining 3 of 5) — PASSED 2026-09-17 (session 0408510a)
+
+- Ownership narrowed to exact files (claim `ac7d298e`); three files held by live peers left for a later pass.
+- Main process: `main.js` (error-box title, exe comment, updater API slug + User-Agent), `routes/engine.js:52`, `routes/remotePodState.js:153`, `routes/system.js:323` `ISSUE_REPO` + `tests/issue-report-url.test.cjs:86`. `app.setName('Cubric Vision')` kept (D3a). `issue-report-url` 5/5. eslint clean on touched JS.
+- Docs: 20 of 28 owned files changed; kept lines are real paths (dev `%APPDATA%\Cubric Vision`, pre-2.0 Documents), local folders (D4), the RunPod template name, and dated history. `PROJECT.md:83` + `project-integrity.md` describe the 2.x name plus the automatic rename. Release docs name `CubricStudio-*` assets plus the 2.0-only legacy dual-publish; "1.5.1 bridge" corrected to 1.5.0 (checked: `v1.5.0` updaters match `^Cubric(Vision|Studio)-`).
+- Tooling: 21 files. `mpi-release` upload globs and tag annotation now `CubricStudio-*` / `Cubric Studio v<ver>`; `mpi-version-bump` header template `# Cubric Studio vX.Y.Z`; no script parses that header. Skill folder names and `name:` unchanged; cubric-vision* descriptions say "Cubric Studio (formerly Cubric Vision)". The four `.github` YAML files parse (PyYAML).
+- Decision (c) recorded on the `RETIRED_PATHS` comment in `scripts/build-portable.mjs` (comment only).
+- `npm test`: 1306 pass, 4 fail, 1 skipped. All 4 failures are in `tests/workflow-media-slots.test.cjs`, an UNTRACKED in-flight MPI-800 test (claim `8a806506`) that fails on that session's own uncommitted `comfy_workflows/raw/` edits; the main-process worker's earlier run, before that file appeared, was 1303/0.

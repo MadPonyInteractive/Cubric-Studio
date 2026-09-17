@@ -18,7 +18,7 @@ and an upgrade to the wrong one is a silent no-op:
 | | Path | What it is | Port |
 |---|---|---|---|
 | **Bench** (this skill) | `G:\ComfyUi\` | Standalone authoring bench. Git checkout, **hand-maintained** yaml | 8188 |
-| Engine | `<repo>\engine\ComfyUI_windows_portable\` | The one Cubric Vision drives. Yaml **generated** by `routes/yamlHelper.js` | 3000-driven |
+| Engine | `<repo>\engine\ComfyUI_windows_portable\` | The one Cubric Studio drives. Yaml **generated** by `routes/yamlHelper.js` | 3000-driven |
 
 Both read the same weights at `G:\CubricModels`. Bench context (authoring folder,
 models dir, two-stage test flow) is canonical in

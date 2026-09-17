@@ -1,15 +1,15 @@
 ---
 name: cubric-vision-flows
-description: Run Cubric Vision Flows from an agent, which is how TEXT-TO-SPEECH is reached - generate speech, a voice-over, a spoken line, a narration or any audio from text, or clone or match a voice from a sample, with the chatter-box and drama-box Flows. Also head swap, outpaint, character sheet and every other Flow; a Flow is not a model, so modelId can never reach one. Covers flowId and declared fields, naming the card, and supplying your own audio, image or video file from another repo by staging it into the project first. Use whenever asked for speech or audio from text with Cubric Vision, or to run any Flow. Part of the cubric-vision skill family.
+description: Run Cubric Studio (formerly Cubric Vision) Flows from an agent, which is how TEXT-TO-SPEECH is reached - generate speech, a voice-over, a spoken line, a narration or any audio from text, or clone or match a voice from a sample, with the chatter-box and drama-box Flows. Also head swap, outpaint, character sheet and every other Flow; a Flow is not a model, so modelId can never reach one. Covers flowId and declared fields, naming the card, and supplying your own audio, image or video file from another repo by staging it into the project first. Use whenever asked for speech or audio from text with Cubric Studio, or to run any Flow. Part of the cubric-vision skill family.
 user-invocable: true
 metadata: {"openclaw":{"emoji":"👁️","os":["win32","darwin","linux"],"requires":{"anyBins":["curl"]},"primaryEnv":"CUBRIC_URL"}}
 ---
 
-# Cubric Vision: Flows and text-to-speech
+# Cubric Studio: Flows and text-to-speech
 
 ## Before anything else
 
-Part of the Cubric Vision skill family; the entry point is the `cubric-vision` skill
+Part of the Cubric Studio skill family; the entry point is the `cubric-vision` skill
 ([../cubric-vision/SKILL.md](../cubric-vision/SKILL.md)). Base URL `$CUBRIC_URL`,
 default `http://127.0.0.1:3000`. Nearly every route is `POST` with a JSON body. Check
 the app is up first with `curl -s -m 3 "$CUBRIC_URL/comfy/status"`: a refused

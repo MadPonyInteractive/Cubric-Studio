@@ -1,6 +1,6 @@
 # Portable Distribution Contract
 
-This document defines the Cubric Vision portable release contract used by
+This document defines the Cubric Studio portable release contract used by
 MPI-8. It is a reference for build scripts, update scripts, release notes, and
 manual validation. The historical planning detail remains in
 `docs/plans/2026-04-30-cross-platform-portable-distribution.md`; this document
@@ -126,7 +126,7 @@ system `tar`. Two consequences a builder must know:
 Verify a Linux tarball before shipping:
 
 ```sh
-tar -tvzf CubricVision-linux-x64-v<version>.tar.gz | grep 'electron/dist/electron$'
+tar -tvzf CubricStudio-linux-x64-v<version>.tar.gz | grep 'electron/dist/electron$'
 # expect -rwxr-xr-x, not -rw-r--r--
 ```
 
@@ -136,7 +136,7 @@ command reading a build artifact off a drive letter.
 
 ## Release Channels
 
-Cubric Vision uses one portable distribution model with one channel: a public
+Cubric Studio uses one portable distribution model with one channel: a public
 GitHub Release cut from master.
 
 | Channel | Delivery | Source |
@@ -163,13 +163,14 @@ Expected public asset names:
 
 | Platform | Artifact |
 | --- | --- |
-| Windows x64 | `CubricVision-windows-x64-v<version>.zip` |
-| Linux x64 | `CubricVision-linux-x64-v<version>.tar.gz` |
-| macOS arm64 | `CubricVision-macos-arm64-v<version>.zip` |
+| Windows x64 | `CubricStudio-windows-x64-v<version>.zip` |
+| Linux x64 | `CubricStudio-linux-x64-v<version>.tar.gz` |
+| macOS arm64 | `CubricStudio-macos-arm64-v<version>.zip` |
 
-Do not use legacy `CubricStudio` artifact names for Vision releases. Release
-copy may use the product name "Cubric Studio Vision", but release asset names
-use `CubricVision`.
+**2.0.0 only:** also publish all six full + update assets under the legacy
+`CubricVision-*` names (same content, MPI-708 D1) — installs older than 1.5.0
+(the widened-updater bridge, below) still match only the old pattern. Drop the legacy set at
+2.1; every other release ships the `CubricStudio-*` names above only.
 
 > **The Windows full zip carries NO inner root folder (MPI-387).** Linux
 > (`.tar.gz`, which always has one) and macOS (`ditto --keepParent`) keep theirs;
@@ -195,26 +196,29 @@ Expected public asset names:
 
 | Platform | Artifact |
 | --- | --- |
-| Windows x64 | `CubricVision-windows-x64-update-v<version>.zip` |
-| Linux x64 | `CubricVision-linux-x64-update-v<version>.zip` |
-| macOS arm64 | `CubricVision-macos-arm64-update-v<version>.zip` |
+| Windows x64 | `CubricStudio-windows-x64-update-v<version>.zip` |
+| Linux x64 | `CubricStudio-linux-x64-update-v<version>.zip` |
+| macOS arm64 | `CubricStudio-macos-arm64-update-v<version>.zip` |
 
 Update bundles are simple changed-file bundles for the first portable updater.
 Do not implement binary deltas for MPI-8.
 
-> **The ARCHIVE name above is FROZEN. Do not rename it (MPI-369).** Every already-
-> installed folder carries its own updater that matches this asset **by glob** —
-> `update.bat` (`CubricVision-windows-x64-update-v*.zip`), `update.sh`
-> (`^CubricVision-linux-x64-update-v.*\.zip$`), `update.command` (same shape) —
-> and those scripts ship inside the user's copy, not the release. Renaming the
-> asset makes every 1.0.1 / 1.1.0 / 1.2.0 install fail its next update with
-> "No matching update asset found", including the in-app update prompt (MPI-334).
-> If it must change, dual-upload the same bytes under both names for two or three
-> releases first, then retire the old name once installs have rolled over.
+> **The archive name is frozen PER ALREADY-INSTALLED VERSION, not forever
+> (MPI-369, widened by the MPI-708 bridge that shipped in 1.5.0).** Every
+> already-installed folder carries its own updater that matches this asset
+> **by glob** — `update.bat`, `update.sh`, `update.command` — and those scripts
+> ship inside the user's copy, not the release. From 1.5.0 on, all three match
+> `^Cubric(Vision|Studio)-<platform>-update-v.*\.zip$`; anything older still
+> only matches the narrower `CubricVision-*` pattern, which is
+> exactly why 2.0.0 dual-publishes both names above. Renaming the asset again
+> in the future needs the same shape: widen the pattern the installed fleet
+> already carries first, and only rename once that widened updater has shipped
+> and rolled over.
 
-> **The extracted ROOT FOLDER is `CubricVision-v<version>-update-only`** — and that
-> IS free to change, because the applier walks down to find the manifest. It was
-> `CubricVision-v<version>` through 1.2.0, which is visually indistinguishable from
+> **The extracted ROOT FOLDER is `CubricStudio-v<version>-update-only`** — and
+> that IS free to change, because the applier walks down to find the manifest.
+> Pre-2.0 it was `CubricVision-v<version>-update-only`, and before that (through
+> 1.2.0) just `CubricVision-v<version>`, which is visually indistinguishable from
 > the full artifact: it holds `app/`, `resources/` and the launchers, but NOT the
 > Electron runtime (the delta prunes it as unchanged). A user who unzipped it and
 > ran `start.vbs` got `start-with-terminal.bat` falling through to `npm start`,
@@ -305,7 +309,7 @@ App Control leaves it no choice (see below). `PLATFORM_CONFIG` in
 Linux / macOS:
 
 ```text
-CubricVision-<platform>-<arch>-v<version>/
+CubricStudio-<platform>-<arch>-v<version>/
   app/                          <- app source + node_modules (incl. Electron)
   resources/
   engine/  models/  user-data/  update/  uv/
@@ -316,7 +320,7 @@ CubricVision-<platform>-<arch>-v<version>/
 Windows (MPI-387 fix D — **no inner root folder**, see the full-artifact note above):
 
 ```text
-CubricVision.exe                <- renamed electron.exe; THE double-click target
+CubricStudio.exe                <- renamed electron.exe; THE double-click target
 *.dll *.pak *.bin locales/ …    <- Electron's dist, extracted to the root
 resources/
   app/                          <- app source + node_modules (Electron dist pruned)
@@ -342,7 +346,7 @@ Path budget is unaffected: the deepest app-relative path measures 107 chars, so
 
 | Platform | Start | Notes |
 | --- | --- | --- |
-| Windows | `CubricVision.exe` | **No start script exists.** |
+| Windows | `CubricStudio.exe` | **No start script exists.** |
 | Linux | `start.sh` + `start-with-terminal.sh` | `start.sh` detaches via `setsid --fork nohup` |
 | macOS | `start.command` | `.app`-style true-hide deferred |
 
@@ -383,7 +387,7 @@ falls back to `<engine>/mpi_models`, **not** `<root>/models`, and
 `app.setPath('userData')` never fires without `CUBRIC_USER_DATA_ROOT` — so
 skipping the derivation buries models inside the engine folder and writes
 `user-data` (and therefore `logs/app.log`, the one artifact a bug report carries)
-into `%APPDATA%`. Verified on a staged build: a bare `CubricVision.exe`
+into `%APPDATA%`. Verified on a staged build: a bare `CubricStudio.exe`
 double-click resolves all four roots inside the portable folder.
 
 ### Retiring a path across the relayout
@@ -408,19 +412,19 @@ Platform extensions:
 
 | Platform | Start | GitHub update | Local update |
 | --- | --- | --- | --- |
-| Windows | `CubricVision.exe` | in-app, or `update.bat` | `update-from-zip.bat` |
+| Windows | `CubricStudio.exe` | in-app, or `update.bat` | `update-from-zip.bat` |
 | Linux | `start.sh` | `update.sh` | `update-from-zip.sh` |
 | macOS | `start.command` | `update.command` | `update-from-zip.command` |
 
 > **Windows update orchestration lives in `scripts/portable/win-update.cjs`, not
 > in the `.bat`.** SAC blocks the `.bat` on the machines that most need updating,
-> so `run-update` in `main.js` spawns `process.execPath` (i.e. `CubricVision.exe`)
+> so `run-update` in `main.js` spawns `process.execPath` (i.e. `CubricStudio.exe`)
 > with `ELECTRON_RUN_AS_NODE=1` on that file directly — no blocked hop anywhere in
 > the chain. `update.bat` is a second entry point onto the same file, kept for
 > non-SAC machines. There is one implementation.
 >
 > **The applier must survive its own binary being updated.** On Windows the
-> updater runs *through* `CubricVision.exe`, and Windows refuses to overwrite or
+> updater runs *through* `CubricStudio.exe`, and Windows refuses to overwrite or
 > delete a running image — but it does allow **renaming** one. `apply-update.cjs`
 > catches `EBUSY`/`EPERM`/`EACCES`, renames the live file to `<file>.old`, and
 > writes the replacement in its place; the leftover is swept on the next update.
@@ -510,7 +514,7 @@ reopen"*. Both are fixed; the contract each updater now honours:
   double-clicked run keeps its live terminal output and its exit status (never
   pipe to `tee` — the status becomes `tee`'s).
 - **Relaunch on BOTH outcomes.** Success or failure, the app comes back. Windows
-  targets `<root>/CubricVision.exe` — by construction the freshly written image,
+  targets `<root>/CubricStudio.exe` — by construction the freshly written image,
   whatever `evictBusyFile` did — and strips `ELECTRON_RUN_AS_NODE` or the app
   boots as node and exits. Linux calls `start.sh` **unbackgrounded** (it
   double-forks itself out of the process group); macOS uses `nohup … &` because
@@ -546,7 +550,7 @@ need a newer GitHub release do not — neither needs an upload (proved 2026-08-0
   MPI-62 Safari path), so a folder holding the files you want plus
   `resources/cubric/update-manifest.json` naming them is a complete bundle — no
   zip, no upload. `files[]` entries only need `path`; size/sha are not verified on
-  apply. Put `CubricVision.exe` in it and run through `CubricVision.exe` as node
+  apply. Put `CubricStudio.exe` in it and run through `CubricStudio.exe` as node
   and the target is genuinely busy.
 - *A failure path.* `CUBRIC_GITHUB_REPO=<owner>/<nonexistent>` makes
   `fetch-release.cjs` fail for real.
@@ -638,7 +642,7 @@ Replace from update bundles:
 - The app tree — `app/` on Linux/macOS, `resources/app/` on Windows
 - `resources/`
 - The Electron runtime — under the app tree on Linux/macOS, at the portable root
-  (`CubricVision.exe` + dlls + `locales/`) on Windows
+  (`CubricStudio.exe` + dlls + `locales/`) on Windows
 - Root launcher scripts
 - Root update scripts
 - Connector manifest files
@@ -660,7 +664,7 @@ Required fields:
 {
   "schemaVersion": 1,
   "appId": "cubric.vision",
-  "displayName": "Cubric Studio Vision",
+  "displayName": "Cubric Studio",
   "platform": "win32",
   "arch": "x64",
   "fromVersion": null,

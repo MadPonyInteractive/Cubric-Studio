@@ -1,6 +1,6 @@
 # Component System Architecture & Rules
 
-> **AI INSTRUCTION:** Read this file carefully before creating or modifying any component in Cubric Vision.
+> **AI INSTRUCTION:** Read this file carefully before creating or modifying any component in Cubric Studio.
 
 ## Every UI element is a component — THE LAW (Fabio, 2026-08-20)
 

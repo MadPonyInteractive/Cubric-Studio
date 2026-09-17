@@ -367,7 +367,7 @@ without re-patching.
 - **`Input_Use_Input_Audio`** (MpiIfElse): the existing goal-2 gate (frozen-audio / Audio Mask path).
 - Both audio inputs kept (`Input_Audio_File` feeds both). The app chooses which at dispatch.
 - `talk3_ID_Lora` @ 1.0, `identity_guidance_scale` = 1.50 baked in. Stage-2 ref-audio node gone.
-- **Cubric Vision UI plan:** a RADIO `Reference` | `Original`, ENABLED ONLY when audio is present. Drives the two
+- **Cubric Studio UI plan:** a RADIO `Reference` | `Original`, ENABLED ONLY when audio is present. Drives the two
   gates (one mode live at a time). Implementation next → version bump → release.
 
 NO SEED UI — random seed every gen, never show or save the seed, and never propose a seed control. The

@@ -1,5 +1,5 @@
 name: Portable artifact validation
-description: Report a clean install, update, launch, or generation result for a Cubric Studio Vision portable artifact.
+description: Report a clean install, update, launch, or generation result for a Cubric Studio portable artifact.
 title: "[validation]: "
 labels:
   - validation
@@ -43,7 +43,7 @@ body:
     id: artifact_name
     attributes:
       label: Artifact name
-      placeholder: "CubricVision-windows-x64-v0.0.1.zip"
+      placeholder: "CubricStudio-windows-x64-v0.0.1.zip"
     validations:
       required: true
   - type: dropdown

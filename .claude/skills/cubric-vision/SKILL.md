@@ -1,18 +1,20 @@
 ---
 name: cubric-vision
-description: Drive a running Cubric Vision desktop app from an agent over its local HTTP API. The entry point of the Cubric Vision skill family - connection and liveness check, projects (list, create, open one so a generation lands there), media routes, and naming gallery cards so you and the user can refer to a card by a real name instead of t2i_001 and t2i_008. Use when asked to work with a Cubric Vision project, add or fetch assets from one, check what a project contains, rename a card, or automate any Vision workflow. Sets the rule that prompts are handed back whole and pasteable, never as fragments to splice. Sibling skills - cubric-vision-generate (image and video generations, edits, reference images), cubric-vision-flows (Flows and text-to-speech), cubric-vision-project-files (reading a project with no app running, recovering the prompt behind an image), cubric-vision-engine (ComfyUI engine, RunPod remote GPU, system routes).
+description: Drive a running Cubric Studio (formerly Cubric Vision) desktop app from an agent over its local HTTP API. The entry point of the Cubric Studio skill family - connection and liveness check, projects (list, create, open one so a generation lands there), media routes, and naming gallery cards so you and the user can refer to a card by a real name instead of t2i_001 and t2i_008. Use when asked to work with a Cubric Studio project, add or fetch assets from one, check what a project contains, rename a card, or automate any Vision workflow. Sets the rule that prompts are handed back whole and pasteable, never as fragments to splice. Sibling skills - cubric-vision-generate (image and video generations, edits, reference images), cubric-vision-flows (Flows and text-to-speech), cubric-vision-project-files (reading a project with no app running, recovering the prompt behind an image), cubric-vision-engine (ComfyUI engine, RunPod remote GPU, system routes).
 user-invocable: true
 metadata: {"openclaw":{"emoji":"👁️","os":["win32","darwin","linux"],"requires":{"anyBins":["curl"]},"primaryEnv":"CUBRIC_URL"}}
 ---
 
-# Cubric Vision
+# Cubric Studio
 
-Cubric Vision runs an Express backend on loopback. Everything below is reachable
-with plain HTTP from any agent on the same machine, no SDK and no MCP server.
+Cubric Studio (formerly Cubric Vision) runs an Express backend on loopback.
+Everything below is reachable with plain HTTP from any agent on the same
+machine, no SDK and no MCP server.
 
 This skill is the entry point of a family, one skill per job, so each loads only when
-its task comes up. Cubric Studio is the agentic hub that orchestrates the Cubric apps
-through skills like these; each app gets its own, in the same shape.
+its task comes up. Cubric Connector (formerly Cubric Studio, the hub repo — not this
+app) is the agentic hub that orchestrates the Cubric apps through skills like these;
+each app gets its own, in the same shape.
 
 ## Before anything else
 

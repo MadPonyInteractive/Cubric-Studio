@@ -1,6 +1,6 @@
 ---
 name: mpi-add-flow
-description: Wire a NEW Flow (dev-gated Flow-Library outcome flow) into Cubric Vision end-to-end — descriptor + universal op in 4 files + workflow + optional uiComponent + media I/O + reuse. Use when the user says "add a new flow", "let's add a flow", "wire up the <name> flow", "/mpi-add-flow", or when onboarding any new Flow into the Flow Library. NOT for adding a model (that is /mpi-add-model). This skill ENFORCES the docs/playbooks/add-flow/ playbook — it does not replace it.
+description: Wire a NEW Flow (dev-gated Flow-Library outcome flow) into Cubric Studio end-to-end — descriptor + universal op in 4 files + workflow + optional uiComponent + media I/O + reuse. Use when the user says "add a new flow", "let's add a flow", "wire up the <name> flow", "/mpi-add-flow", or when onboarding any new Flow into the Flow Library. NOT for adding a model (that is /mpi-add-model). This skill ENFORCES the docs/playbooks/add-flow/ playbook — it does not replace it.
 user-invocable: true
 ---
 # /mpi-add-flow — add a new Flow, end-to-end

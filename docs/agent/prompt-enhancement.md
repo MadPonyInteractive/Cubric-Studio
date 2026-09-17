@@ -1,6 +1,6 @@
 # Prompt enhancement
 
-How Cubric Vision turns a short idea into a prompt shaped for the model that will
+How Cubric Studio turns a short idea into a prompt shaped for the model that will
 run it. This is the `kind: 'app'` half of the agent corpus; the per-model half is
 generated from the recipes themselves.
 

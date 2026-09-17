@@ -1,15 +1,15 @@
 ---
 name: cubric-vision-generate
-description: Dispatch image and video generations in a running Cubric Vision app from an agent, landing as real gallery cards with history and sidecar, through POST /connector/generate. Covers model ops by ModelDef id (the modelId trap), named params (ratio, quality tier, turbo, style, seed), naming the card as it lands, reference images fed with your own files for edits, image-to-video and reference-to-video ops (Klein Edit with up to three references), raw injectionParams, and every error code. Use when asked to generate, edit, upscale or animate an image with Cubric Vision, or to run several variations. Part of the cubric-vision skill family - Flows and text-to-speech are cubric-vision-flows, opening the target project first is the cubric-vision core skill.
+description: Dispatch image and video generations in a running Cubric Studio (formerly Cubric Vision) app from an agent, landing as real gallery cards with history and sidecar, through POST /connector/generate. Covers model ops by ModelDef id (the modelId trap), named params (ratio, quality tier, turbo, style, seed), naming the card as it lands, reference images fed with your own files for edits, image-to-video and reference-to-video ops (Klein Edit with up to three references), raw injectionParams, and every error code. Use when asked to generate, edit, upscale or animate an image with Cubric Studio, or to run several variations. Part of the cubric-vision skill family - Flows and text-to-speech are cubric-vision-flows, opening the target project first is the cubric-vision core skill.
 user-invocable: true
 metadata: {"openclaw":{"emoji":"👁️","os":["win32","darwin","linux"],"requires":{"anyBins":["curl"]},"primaryEnv":"CUBRIC_URL"}}
 ---
 
-# Cubric Vision: dispatching a generation
+# Cubric Studio: dispatching a generation
 
 ## Before anything else
 
-Part of the Cubric Vision skill family; the entry point is the `cubric-vision` skill
+Part of the Cubric Studio skill family; the entry point is the `cubric-vision` skill
 ([../cubric-vision/SKILL.md](../cubric-vision/SKILL.md)). Base URL `$CUBRIC_URL`,
 default `http://127.0.0.1:3000`. Nearly every route is `POST` with a JSON body. Check
 the app is up first with `curl -s -m 3 "$CUBRIC_URL/comfy/status"`: a refused

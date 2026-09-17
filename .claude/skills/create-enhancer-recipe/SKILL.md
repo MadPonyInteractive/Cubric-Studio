@@ -1,6 +1,6 @@
 ---
 name: create-enhancer-recipe
-description: Author, test, iterate and heal a per-target-model prompt recipe for the Cubric Vision Enhancer. Use when adding support for a new target model (Krea, Veo, Seedance, Kling, Wan, LTX, SDXL, Flux, …), refreshing one for a new model version, revising an existing draft recipe, or healing one when a real production's findings contradict it — the research → draft → autonomous test loop that produces a proven draft recipe plus traceable evidence, and the return path from field evidence. Triggers: "add a recipe for X", "support model X in the enhancer", "create an enhancer recipe", "revise the X recipe", "heal the X recipe", "field evidence for X", "$create-enhancer-recipe".
+description: Author, test, iterate and heal a per-target-model prompt recipe for the Cubric Studio Enhancer. Use when adding support for a new target model (Krea, Veo, Seedance, Kling, Wan, LTX, SDXL, Flux, …), refreshing one for a new model version, revising an existing draft recipe, or healing one when a real production's findings contradict it — the research → draft → autonomous test loop that produces a proven draft recipe plus traceable evidence, and the return path from field evidence. Triggers: "add a recipe for X", "support model X in the enhancer", "create an enhancer recipe", "revise the X recipe", "heal the X recipe", "field evidence for X", "$create-enhancer-recipe".
 ---
 
 # create-enhancer-recipe

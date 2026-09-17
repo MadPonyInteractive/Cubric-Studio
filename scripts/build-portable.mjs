@@ -92,9 +92,11 @@ export const RETIRED_PATHS = {
   // the Electron root, see stageUpdateBundle). Like every entry here it only fires through
   // applyDelta, i.e. when the build has a --from-manifest baseline that LISTS the file: a
   // full bundle (no baseline, the state since MPI-709) ships `delete: []`, and a baseline
-  // stamped from a 2.0+ release never lists it. Deleting it also breaks a user's pinned
-  // shortcut to it (MPI-708 open decision). If it does fire, v1.5.0's installed applier
-  // renames the running image aside instead of aborting (applyDeletes -> evictBusyFile).
+  // stamped from a 2.0+ release never lists it. So 2.0 keeps it on updated installs, which
+  // also keeps a user's pinned shortcut to it working; 2.1 deletes it after the 2.0 release
+  // note tells users to re-pin (MPI-708 decision (c), 2026-09-17), which needs full bundles to
+  // carry this list. If it does fire, v1.5.0's installed applier renames the running image
+  // aside instead of aborting (applyDeletes -> evictBusyFile).
   win32: ['start.vbs', 'start-with-terminal.bat', 'CubricVision.exe'],
 };
 

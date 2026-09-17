@@ -1,6 +1,6 @@
 ---
 name: mpi-add-model
-description: Wire a NEW model into Cubric Vision end-to-end — workflow template→runtime split, dependencies.js entries, R2 upload, models.js ModelDef, progressStages, type-consumer sweep, style-LoRA system. Use when the user says "add a new model", "let's add <model>", "wire up <model>", "/mpi-add-model", or when onboarding any new ComfyUI model/workflow into the app. This skill ENFORCES the docs/playbooks/add-model/ playbook — it does not replace it.
+description: Wire a NEW model into Cubric Studio end-to-end — workflow template→runtime split, dependencies.js entries, R2 upload, models.js ModelDef, progressStages, type-consumer sweep, style-LoRA system. Use when the user says "add a new model", "let's add <model>", "wire up <model>", "/mpi-add-model", or when onboarding any new ComfyUI model/workflow into the app. This skill ENFORCES the docs/playbooks/add-model/ playbook — it does not replace it.
 user-invocable: true
 ---
 # /mpi-add-model — add a new model, end-to-end

@@ -4,8 +4,8 @@ Run this before shipping a build (Patreon promote / GitHub public). It catches t
 traps that only appear in a real installed portable, not in `npm start`.
 
 **Standing test location:** builds are extracted to
-`D:\cubric-install-test\CubricVision-windows-x64-v<X.Y.Z>\CubricVision-windows-x64-v<X.Y.Z>\`
-— the **inner** folder is the app root (`CubricVision.exe`, `user-data\`, `update.bat`,
+`D:\cubric-install-test\CubricStudio-windows-x64-v<X.Y.Z>\CubricStudio-windows-x64-v<X.Y.Z>\`
+— the **inner** folder is the app root (`CubricStudio.exe`, `user-data\`, `update.bat`,
 `update-from-zip.bat`).
 
 ---
@@ -69,7 +69,7 @@ existing network volume shows tagged `· volume` and auto-selects when you pick 
 
 ## 2. Smoke checklist
 
-- [ ] **Launch:** double-click `CubricVision.exe`. There is one launcher on Windows now
+- [ ] **Launch:** double-click `CubricStudio.exe`. There is one launcher on Windows now
       (MPI-387 — Smart App Control blocks `.vbs`/`.bat` outright on a clean Windows 11). To
       watch the log live instead, run that same exe from a terminal.
 - [ ] **Changelog** — "What's New" shows for this version and reads correctly.
@@ -118,7 +118,7 @@ Steps:
 1. Extract a full portable of the older version into its own folder (per-folder data — § 0).
 2. Launch it once (`CubricVision.exe`), confirm it starts, and create a project so there is
    user data with something to lose.
-3. Copy `CubricVision-<platform>-update-v<ver>.zip` into that folder and run
+3. Copy `CubricStudio-<platform>-update-v<ver>.zip` into that folder and run
    `update-from-zip.bat`. **Not `update.bat`** — that one fetches from GitHub, which has
    nothing until you publish, and this leg runs BEFORE publication.
 4. Read what the applier says. Both outcomes are legitimate results, not just the green one:

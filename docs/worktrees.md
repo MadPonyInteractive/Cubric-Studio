@@ -1,10 +1,10 @@
 # Git Worktrees — Setup & Behavior
 
-> Project name: **Cubric Vision**. Root folder is `Cubric-Vision/`; paths in this doc reflect the on-disk folder name.
+> Project name: **Cubric Studio**. Root folder is `Cubric-Vision/`; paths in this doc reflect the on-disk folder name.
 
 ## Purpose
 
-Run multiple working copies of Cubric Vision from a single git repo without duplicating massive engine/model folders. Each worktree is an isolated branch checkout but shares the underlying `.git` object store.
+Run multiple working copies of Cubric Studio from a single git repo without duplicating massive engine/model folders. Each worktree is an isolated branch checkout but shares the underlying `.git` object store.
 
 ## Why Worktrees Matter Here
 

@@ -83,7 +83,7 @@ test('issue-url builds a prefilled report with no GitHub credentials present', {
         assert.equal(data.success, true);
 
         const url = new URL(data.url);
-        assert.equal(url.origin + url.pathname, 'https://github.com/MadPonyInteractive/Cubric-Vision/issues/new');
+        assert.equal(url.origin + url.pathname, 'https://github.com/MadPonyInteractive/Cubric-Studio/issues/new');
         assert.equal(url.searchParams.get('template'), 'bug-report.yml');
         assert.match(url.searchParams.get('title'), /^\[bug\]: ComfyUI failed to start/);
         assert.match(url.searchParams.get('summary'), /Clicked generate on Krea2/);

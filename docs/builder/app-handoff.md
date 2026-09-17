@@ -1,7 +1,7 @@
 # App Handoff — the boundary to the app pipeline
 
 > **Scope boundary.** This playbook STOPS at "verified dep list + tuned workflow
-> JSON". Wiring those into the Cubric Vision app is the app's job and lives in the
+> JSON". Wiring those into the Cubric Studio app is the app's job and lives in the
 > app repo. This file is just the boundary + pointers — not the procedure.
 
 ## What the Pod session hands off

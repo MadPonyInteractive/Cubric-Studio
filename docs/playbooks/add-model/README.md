@@ -1,6 +1,6 @@
 # Add a New Model — End-to-End Playbook
 
-> The single procedure for wiring a new model into Cubric Vision. This README is the
+> The single procedure for wiring a new model into Cubric Studio. This README is the
 > orientation hub + the master checklist; the deep reference is split across the
 > section files below. **Read this file first, then the section for the step you're on.**
 >

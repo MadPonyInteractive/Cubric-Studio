@@ -138,7 +138,7 @@ Three different things, only one of which is us:
 
 1. **Community GGUF Q4** (~7.2–7.7 GiB) — fits fully resident. *Most likely referent.* Needs a
    community-forked loader (city96's throws `Unexpected architecture type`). **We do not ship
-   GGUF** (MPI-190 removed it) — this path does not exist in Cubric Vision.
+   GGUF** (MPI-190 removed it) — this path does not exist in Cubric Studio.
 2. **`fp8_scaled` + DynamicVRAM spilling** — what we ship. Two confirmed reports
    (RTX A2000, RTX 3060 Ti). Works, needs ~24 GB system RAM, slow.
 3. **Official NVFP4** (7.67 GiB) — fits 8 GB, but **Blackwell-only** (RTX 50xx).

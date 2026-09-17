@@ -19,7 +19,7 @@ all three OSes go through CI.
 the tag is user-authorized — stop first.
 
 ```bash
-git tag -a v<ver> -m "Cubric Vision v<ver>"
+git tag -a v<ver> -m "Cubric Studio v<ver>"
 git push origin v<ver>
 ```
 
@@ -39,7 +39,7 @@ gh workflow run build-portable.yml --repo MadPonyInteractive/Cubric-Studio \
 > **What 1.3.0 actually did (2026-07/08) — read this before assuming the tag drives
 > the build.** All five 1.3.0 builds were dispatched against the mpi-ci workflow
 > DIRECTLY, never by pushing the tag. Two entry points exist and both are real:
-> `build-portable.yml` in Cubric-Vision ("Request portable artifacts") is a
+> `build-portable.yml` in Cubric-Studio ("Request portable artifacts") is a
 > dispatcher; `cubric-vision-portable.yml` in mpi-ci is the build itself.
 > ```bash
 > gh workflow run cubric-vision-portable.yml --repo MadPonyInteractive/mpi-ci \
@@ -71,14 +71,16 @@ Per OS you get a **full build** and an **update (delta) bundle** — 6 files for
 OSes (win32, linux, macos-arm64). Names follow the release contract:
 
 ```
-CubricVision-windows-x64-v<ver>.zip            CubricVision-windows-x64-update-v<ver>.zip
-CubricVision-linux-x64-v<ver>.tar.gz           CubricVision-linux-x64-update-v<ver>.zip
-CubricVision-macos-arm64-v<ver>.zip            CubricVision-macos-arm64-update-v<ver>.zip
+CubricStudio-windows-x64-v<ver>.zip            CubricStudio-windows-x64-update-v<ver>.zip
+CubricStudio-linux-x64-v<ver>.tar.gz           CubricStudio-linux-x64-update-v<ver>.zip
+CubricStudio-macos-arm64-v<ver>.zip            CubricStudio-macos-arm64-update-v<ver>.zip
 ```
 
 (See `docs/releases/github-release-checklist.md` for the canonical asset names
-and `docs/releases/portable-distribution-contract.md` for the artifact contract.
-Do not ship legacy `CubricStudio`-named assets.)
+and `docs/releases/portable-distribution-contract.md` for the artifact contract.)
+**2.0.0 additionally ships legacy `CubricVision-*` copies of these six** (D1,
+MPI-708 Phase 3, not yet built) so an install older than 1.5.0, whose updater only
+matches `CubricVision-*`, can still update; 2.1 drops the legacy names.
 
 **Attach all 6 to the GitHub Release** — the full builds are for fresh installs;
 the **delta bundles** are how existing users update without redownloading the

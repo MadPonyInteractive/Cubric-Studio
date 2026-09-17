@@ -320,7 +320,7 @@ router.post('/logs/reveal', async (req, res) => {
 
 // ── Bug Report ────────────────────────────────────────────────────────────────
 
-const ISSUE_REPO = 'MadPonyInteractive/Cubric-Vision';
+const ISSUE_REPO = 'MadPonyInteractive/Cubric-Studio';
 const ISSUE_TEMPLATE = 'bug-report.yml';
 
 /** Label matching the `platform` dropdown options in bug-report.yml. */

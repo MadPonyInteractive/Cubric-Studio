@@ -1,6 +1,6 @@
 ---
 name: mpi-nodes-sync
-description: Work on the first-party ComfyUI node pack (ComfyUi-MpiNodes) and keep Cubric Vision's pin in sync. Use when the user says "add a node", "new comfy node", "update a node", "change MpiNodes", "the nodes repo changed", "pin the nodes", "MpiNodes drift", "sync the nodes", "/mpi-nodes-sync", or when any work touches c:\AI\Mpi\ComfyUi-MpiNodes. Covers the sibling repo's own new-node / update-node / release procedures, which do NOT auto-load in a Vision session. Publishing to the Comfy registry (release) happens ONLY when the user explicitly asks.
+description: Work on the first-party ComfyUI node pack (ComfyUi-MpiNodes) and keep Cubric Studio's pin in sync. Use when the user says "add a node", "new comfy node", "update a node", "change MpiNodes", "the nodes repo changed", "pin the nodes", "MpiNodes drift", "sync the nodes", "/mpi-nodes-sync", or when any work touches c:\AI\Mpi\ComfyUi-MpiNodes. Covers the sibling repo's own new-node / update-node / release procedures, which do NOT auto-load in a Vision session. Publishing to the Comfy registry (release) happens ONLY when the user explicitly asks.
 user-invocable: true
 ---
 # /mpi-nodes-sync — the node pack and the app's pin, in one flow

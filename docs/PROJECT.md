@@ -80,4 +80,4 @@ picking an output, not a seed.
 
 ## ComfyUI Portability
 
-ComfyUI portable engine lives at `engine/ComfyUI_windows_portable/`. Projects are self-contained under `<Documents>/Cubric Studio/Projects/` (resolved via Electron `app.getPath('documents')` — works on Windows, macOS, Linux). Model files are stored separately under the engine folder. This split lets projects survive uninstall/reinstall while keeping model files near the engine that uses them.
+ComfyUI portable engine lives at `engine/ComfyUI_windows_portable/`. Projects are self-contained under `<Documents>/Cubric Studio/Projects/` on 2.x (a `<Documents>/Cubric Vision/` folder left by a 1.x install is renamed automatically on first 2.x boot, with a resolver fallback to the old name if the rename fails; resolved via Electron `app.getPath('documents')` — works on Windows, macOS, Linux). Model files are stored separately under the engine folder. This split lets projects survive uninstall/reinstall while keeping model files near the engine that uses them.

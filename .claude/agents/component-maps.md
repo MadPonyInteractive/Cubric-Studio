@@ -4,7 +4,7 @@ description: Refreshes the four component map rule files (mounts, events, state,
 tools: Read, Grep, Glob, Edit, Write, Bash
 ---
 
-You maintain Cubric Vision's **component maps** — the four `.claude/rules/` files that
+You maintain Cubric Studio's **component maps** — the four `.claude/rules/` files that
 record who mounts what, which events cross which components, which state keys each
 reads, and what each injects into ComfyUI. Another agent dispatched you and is waiting
 for your report.

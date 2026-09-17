@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible Cubric Vision problem.
+description: Report a reproducible Cubric Studio problem.
 title: "[bug]: "
 labels:
   - bug

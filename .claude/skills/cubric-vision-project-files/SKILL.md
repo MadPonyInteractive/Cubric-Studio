@@ -1,15 +1,15 @@
 ---
 name: cubric-vision-project-files
-description: Read a Cubric Vision project folder with no app running - project.json cards with their history and selectedIndex, Media/.meta sidecars, card names versus filenames, card notes, and project.md. Recovers the exact prompt, negative prompt, model, seed and settings behind any generated image from its sidecar; they are NOT in the PNG and NOT in project.json. Do that read before advising on any prompt, and hand prompts back whole and pasteable, never as fragments. Also recovers the numbered reference-image load list behind a generation. Use when asked what prompt made an image, why two generations differ, what a project contains on disk, or to survey a project cheaply through its thumbnails. Part of the cubric-vision skill family.
+description: Read a Cubric Studio (formerly Cubric Vision) project folder with no app running - project.json cards with their history and selectedIndex, Media/.meta sidecars, card names versus filenames, card notes, and project.md. Recovers the exact prompt, negative prompt, model, seed and settings behind any generated image from its sidecar; they are NOT in the PNG and NOT in project.json. Do that read before advising on any prompt, and hand prompts back whole and pasteable, never as fragments. Also recovers the numbered reference-image load list behind a generation. Use when asked what prompt made an image, why two generations differ, what a project contains on disk, or to survey a project cheaply through its thumbnails. Part of the cubric-vision skill family.
 user-invocable: true
 metadata: {"openclaw":{"emoji":"👁️","os":["win32","darwin","linux"],"requires":{"anyBins":["curl"]},"primaryEnv":"CUBRIC_URL"}}
 ---
 
-# Cubric Vision: the on-disk format
+# Cubric Studio: the on-disk format
 
 ## Before anything else
 
-Part of the Cubric Vision skill family; the entry point is the `cubric-vision` skill
+Part of the Cubric Studio skill family; the entry point is the `cubric-vision` skill
 ([../cubric-vision/SKILL.md](../cubric-vision/SKILL.md)). Reading these files needs no
 app. The routes mentioned here do: base URL `$CUBRIC_URL`, default
 `http://127.0.0.1:3000`, liveness check `curl -s -m 3 "$CUBRIC_URL/comfy/status"`.

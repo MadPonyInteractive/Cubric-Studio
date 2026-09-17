@@ -32,7 +32,7 @@ model-specific divergences below:
 - **Local models dir:** `G:\CubricModels\` (checkpoints → `diffusion_models/`,
   VAEs → `vae/`, text encoders → `text_encoders/`, etc.).
 - **Two-stage test flow:** prove it here FIRST; then test in the in-app ENGINE
-  ComfyUI (the one Cubric Vision drives). A workflow graduates to app wiring only
+  ComfyUI (the one Cubric Studio drives). A workflow graduates to app wiring only
   after it passes on the local folder. The engine run is the second gate, not the first.
 - **The engine already points at `G:\CubricModels` via `extra_model_paths.yaml`**
   (`comfyui:` block, `base_path: G:/CubricModels`). Weights placed there are visible to

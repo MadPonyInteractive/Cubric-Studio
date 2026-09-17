@@ -1,7 +1,7 @@
 # Builder-Pod Playbook — Cooperative Model-Onboarding Sessions
 
 > **What this is.** The operational brain for a *cooperative session* where a human
-> + an agent add a new model/workflow to Cubric Vision using the **Cubric Vision
+> + an agent add a new model/workflow to Cubric Studio using the **Cubric Vision
 > Builder** RunPod image (or the local authoring rig). It exists so an agent
 > resuming cold does NOT re-discover file locations, re-research RunPod quirks, or
 > repeat mistakes already made. Read the file for the step you're on; don't read

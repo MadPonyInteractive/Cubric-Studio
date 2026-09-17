@@ -1,6 +1,6 @@
 # RunPod setup
 
-How to run Cubric Vision on a rented cloud GPU instead of the user's own card. The
+How to run Cubric Studio on a rented cloud GPU instead of the user's own card. The
 controls are in the RunPod section at the bottom of **Settings**. The walkthrough with
 screenshots is https://docs.cubric.studio/#/vision/settings#runpod — link it, never
 paste it.

@@ -1,6 +1,6 @@
 # GitHub Release Checklist
 
-Use this checklist when drafting a GitHub Release for Cubric Studio Vision
+Use this checklist when drafting a GitHub Release for Cubric Studio
 portable artifacts. Keep the release body aligned with
 `portable-distribution-contract.md`.
 
@@ -8,18 +8,21 @@ portable artifacts. Keep the release body aligned with
 
 Full portable artifacts:
 
-- `CubricVision-windows-x64-v<version>.zip`
-- `CubricVision-linux-x64-v<version>.tar.gz`
-- `CubricVision-macos-arm64-v<version>.zip`
+- `CubricStudio-windows-x64-v<version>.zip`
+- `CubricStudio-linux-x64-v<version>.tar.gz`
+- `CubricStudio-macos-arm64-v<version>.zip`
 
 Update bundles (attach these too — they are the in-place update path via the
 online `update.*` script; GitHub is the only update source):
 
-- `CubricVision-windows-x64-update-v<version>.zip`
-- `CubricVision-linux-x64-update-v<version>.zip`
-- `CubricVision-macos-arm64-update-v<version>.zip`
+- `CubricStudio-windows-x64-update-v<version>.zip`
+- `CubricStudio-linux-x64-update-v<version>.zip`
+- `CubricStudio-macos-arm64-update-v<version>.zip`
 
-Do not publish Vision assets with legacy `CubricStudio` artifact names.
+**2.0.0 only:** also publish all six assets above under the legacy
+`CubricVision-*` names (same content, MPI-708 D1) — installs older than 1.5.0
+(the release that widened the updater) match only the old pattern. Drop the legacy set at 2.1; every
+other release ships the six `CubricStudio-*` assets above and nothing else.
 
 ## Draft first — the tag is not created until you publish
 
@@ -88,9 +91,9 @@ verdict is a per-binary cloud decision, so a pass here is one sample and not a
 general result. See § "The third outcome" below before writing it up as a pass.
 
 ```
-dir /r CubricVision.exe
+dir /r CubricStudio.exe
 ```
-Wants a `CubricVision.exe:Zone.Identifier:$DATA` line. **Check the EXTRACTED exe,
+Wants a `CubricStudio.exe:Zone.Identifier:$DATA` line. **Check the EXTRACTED exe,
 not the zip** — Explorer does not always propagate mark-of-the-web through
 extraction, and a stripped exe keeps Windows silent no matter what shipped. A
 sync client (Google Drive for Desktop and friends) writes files without MOTW at
@@ -123,12 +126,12 @@ Both desktop platforms show an OS security prompt on first launch because the
 builds are unsigned. If the release body does not say so, the prompt reads as
 "this download is malware" and the user stops there. Include both notes.
 
-**Windows.** From 1.3.0 the zip extracts to a plain folder with `CubricVision.exe`
+**Windows.** From 1.3.0 the zip extracts to a plain folder with `CubricStudio.exe`
 at its root — there is no start script in the launch chain any more (MPI-387 D:
 Smart App Control hard-blocks `.vbs`/`.bat`/`.cmd` with no override, which is
 what broke clean Windows 11 installs). Tell the user:
 
-> Extract the zip anywhere and run **`CubricVision.exe`**. Windows may show
+> Extract the zip anywhere and run **`CubricStudio.exe`**. Windows may show
 > "Windows protected your PC" — click **More info**, then **Run anyway**. The app
 > is unsigned; this warning is expected and appears until the build earns
 > reputation.
@@ -211,7 +214,7 @@ This is the only working first-launch path for un-notarized builds.
 
 ## Scope Guard
 
-Release copy should describe Cubric Studio Vision as a local image and video
+Release copy should describe Cubric Studio as a local image and video
 generation app. Do not add claims about bundled language-model, assistant, or
 prompt-intelligence features; those are outside Vision release scope.
 

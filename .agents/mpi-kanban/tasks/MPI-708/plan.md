@@ -6,6 +6,29 @@ Brief (decision + repo-rename reasoning): `brief.md`.
 
 ## Current State
 
+**2026-09-17 (session 0408510a):** Fabio decided the exe question: **(c)**: keep
+`CubricVision.exe` on updated installs at 2.0, delete it at 2.1, and the 2.0 release note tells
+users to re-pin to `CubricStudio.exe`. He also OK'd `.claude/rules/components.md:3`. MPI-760 released
+its claims; **MPI-774 still holds `index.html` + `assets/mascot/studio/logo.webp`, so Phase 2 is
+still blocked.** **Parallel Batch DONE (5 of 5) and verified**, uncommitted at the time of
+writing (evidence `validation.md`). The three remaining tasks ran with ownership NARROWED to exact
+files (see Plan Drift). **Next:** (1) the held-file pass once their claims release:
+`docs/agent-chat.md:90` (MPI-774) and `docs/playbooks/add-flow/README.md:3` (MPI-532), using the
+same pattern as their siblings (the generate skill is done); (2) **Fabio's order: Phase 2b, then
+the launcher fix.** Phase 2b = the NON-mascot half of Phase 2: the display strings (`appName.js` +
+`.cjs`, `index.html:7,9,19,20,74`, `MpiAbout.js:44,45,48`, `updateChecker.js:184`,
+`projectUI.js:75`, `MpiAudioRecorder.js:169`, `MpiErrorDialog.js:146`, `MpiNewProject.js:39`
+(the default-folder hint must show the folder that is REAL, which is still `Cubric Vision` on 1.x),
+`js/pages/components.js:633`, `models.js:1024`), plus the Studio logo (`Studio-Logo.png`
+from Brand Assets) in the titlebar and About, and regenerated `build/icon.png`, `favicon.png`,
+`media/icons/cubric-vision.{png,ico,icns}` (keep the filenames). Verify mode `user-ux`. **First ask
+Fabio whether the logo is a still or is changing with the animation work** (if changing: do the
+strings only). Then the **launcher self-rewrite fix** (MPI-595 Gate A, no card of its own; the
+rename makes it fire): wrap each `scripts/portable/linux/*.sh` and `macos/*.command` body in a
+function called on the last line, and verify with a real in-place update on `linuxbox`.
+(3) Mascot work stays PARKED (Plan Drift, top). (4) Phase 3. `npm test` currently shows 4 failures, all in MPI-800's untracked in-flight
+`tests/workflow-media-slots.test.cjs`, which is not ours.
+
 **2026-09-17 (session ad10647f): PHASE 1 DONE and verified** (evidence: `validation.md` § Phase 1;
 CI checkout proven on mpi-ci run `35222060391`, cancelled after checkout, 0 artifacts).
 **Parallel Batch, 2 of 5 DONE and verified** (Documents heal, Build identity; `npm test` 1287/0;
@@ -297,7 +320,7 @@ run as one owned phase. **Phase verify mode: `user-ux`.**
 Genuinely disjoint file ownership, safe to run concurrently. Every task must be briefed
 with `/mpi-brief-rule` output plus the Critical Rules Snapshot before dispatch.
 
-- [ ] **Main process and server strings.** Ownership: `main.js`, `routes/**` **except
+- [x] **Main process and server strings.** Ownership: `main.js`, `routes/**` **except
       `routes/shared.js`** (owned by the heal task below).
       Change `main.js:51,222`, `routes/remotePodState.js:153`, `routes/engine.js:52`
       (prose only — the `C:\CubricVision` path suggestion in that same line is a real path,
@@ -322,7 +345,7 @@ with `/mpi-brief-rule` output plus the Critical Rules Snapshot before dispatch.
       (resolves new), both present (resolves new, renames nothing), neither (resolves new) —
       plus a simulated rename failure that must still resolve to the old folder with the
       project list intact.
-- [ ] **Docs sweep.** Ownership: `docs/**`, `README.md`. Change the ~24 Class-A prose lines
+- [x] **Docs sweep.** Ownership: `docs/**`, `README.md`. Change the ~24 Class-A prose lines
       plus the four live files in `docs/releases/`. **Do not touch `docs/archive/**` (603
       hits, declared historical by its own README) or the 20 dated
       `docs/releases/YYYY-MM-DD-vX.Y.Z.md` files.** Leave every line describing a real
@@ -333,7 +356,7 @@ with `/mpi-brief-rule` output plus the Critical Rules Snapshot before dispatch.
       Briefings: root-cause. **Verify:** no line in `docs/` outside `archive/` and the dated
       release notes describes the product as Cubric Vision, and every path/filename mention
       still matches what the code actually produces.
-- [ ] **Agent tooling and CI text.** Ownership: `.claude/**`, `.github/**`.
+- [x] **Agent tooling and CI text.** Ownership: `.claude/**`, `.github/**`.
       The two that generate future artifacts matter most:
       `.claude/skills/mpi-version-bump/SKILL.md:335` is the release-notes header template
       (`# Cubric Vision vX.Y.Z — YYYY-MM-DD`) that stamps every future note, and
@@ -367,15 +390,19 @@ with `/mpi-brief-rule` output plus the Critical Rules Snapshot before dispatch.
 
 - [ ] Write the 2.0 release-note section: separate apps were planned, they became one app,
       so the ecosystem name is now the product name. Say plainly that **the projects folder
-      is renamed automatically and no action is needed**, and that 2.1 will drop the legacy
-      download filenames. **Verify:** `npm run release:check` passes and the rename appears
+      is renamed automatically and no action is needed**, that 2.1 will drop the legacy
+      download filenames, and (decision (c)) that updated Windows installs keep the old
+      `CubricVision.exe` for now but should **re-pin shortcuts to `CubricStudio.exe`** because 2.1
+      removes it. **Verify:** `npm run release:check` passes and the rename appears
       in `whatIsNew`.
 - [ ] Cut 2.0.0 via `/mpi-release`, **dual-publishing the legacy `CubricVision-*` artifact
       names alongside the new ones** (D1) so a user who skipped the 1.5.1 bridge still
       matches on their old narrow pattern. **Verify:** the release lists both filenames for
       all three platforms.
-- [ ] Raise a follow-up card for 2.1 to drop the legacy artifact names. **Verify:** the card
-      exists and names the three `rootName` templates.
+- [ ] Raise a follow-up card for 2.1 to drop the legacy artifact names **and delete the old
+      `CubricVision.exe`** (full bundles must carry `RETIRED_PATHS`: `createUpdateManifest`
+      `delete: delta?.deletes ?? []` ships `[]` today). Also drop mpi-ci's old-slug mapping.
+      **Verify:** the card exists and names the three `rootName` templates and the exe delete.
 
 **Not this card:** the website and docs repos (`Cubric-Studio-Website`,
 `Cubric-Studio-Docs`) and the MadPony-Identity brand statements. Fabio drives those from
@@ -384,6 +411,35 @@ rather than forgotten.
 
 ## Plan Drift
 
+- 2026-09-17 (session 0408510a), **Phase 2 MASCOT work PARKED by Fabio** until the animation work
+  lands: every character already has one or two "waiting" animations as VIDEO that still need
+  converting (MadPony-Identity "Mascot animations" session, which is waiting on the GIF session).
+  They are renamed **action** animations: the user waits, the agent acts. The code's `waiting` pose
+  maps to them, so there is no still-image waiting question to answer. Doing stills now would be
+  the same job twice.
+- 2026-09-17 (session 0408510a), **Phase 2 has drifted; re-plan before building it.**
+  MPI-774 committed `a7500498` and no longer claims `index.html`/logo. MPI-766 (`192711ab`)
+  ALREADY staged downscaled per-character WebP sets: `assets/mascot/{vision,video,audio,prompt,studio}/`
+  `{greet,happy,idle}.webp`, 624 KB in total, and `js/shell/heroCrew.js` `_poseSrc(key, pose)` is an
+  existing key-to-path map; reuse or lift it instead of a new module. MPI-774 added
+  `studio/logo.webp` (3.4 KB, the agent's head). **Still missing:** a `waiting` pose for any character
+  except Vision (the Brand Assets folder has only `Vision-Waiting.png`), and it is the pose the
+  History peek, gallery card, tile sheet and agent chat show while generating. Also still missing: a
+  full-size Studio logo for the titlebar, About and icons (`Studio-Logo.png`). New render sites since
+  the plan: `MpiAgentChat.js:63,110,114`, `MpiGalleryGrid.js:2065` (scope-empty). Line numbers moved
+  (`MpiGalleryGrid.js:1617-1619`, `MpiGroupHistoryBlock.js:839,1150`, `MpiStartingComfy.js:32`,
+  `projectUI.js:210,231`). `MpiGroupHistoryBlock.js` is still claimed by MPI-771 (uncommitted).
+  Held-file pass: `cubric-vision-generate/SKILL.md` done (MPI-774 released it).
+- 2026-09-17 (session 0408510a): **exe decision = (c)** (Fabio). The `RETIRED_PATHS` comment in
+  `build-portable.mjs` now says so. Phase 3 gains two items (below): the 2.0 note's re-pin line,
+  and the 2.1 card must make FULL bundles carry `RETIRED_PATHS` so the delete actually fires.
+  **Batch ownership narrowed:** the globs (`routes/**`, `docs/**`, `.claude/**`) overlapped live
+  MPI-774 / MPI-532 claims, but the files that actually hold the old name barely did. Exact-file
+  ownership (claim `ac7d298e`) let three workers run; three held files are left for a later pass.
+  Dated research docs (`docs/proprietary-models-research/`, `docs/recipes/research/`,
+  `docs/plans/`) are historical records and stay unchanged. `docs/PROJECT.md:83` no longer
+  "reverts to Cubric Vision": the Documents heal landed, so it describes the 2.x name plus the
+  automatic rename.
 - 2026-09-17 (session ad10647f), Parallel Batch run PARTIALLY (Fabio: "run what you can now"):
   only **Heal the Documents folder** and **Build identity**; the other three wait on MPI-774 /
   MPI-760 claims. Two corrections given to the workers:
