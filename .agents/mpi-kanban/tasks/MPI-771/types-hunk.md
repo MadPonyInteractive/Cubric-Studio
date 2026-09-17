@@ -54,3 +54,8 @@ not applied. Land them by hunk once the claim is released, then delete this file
   drag reorders; the pill has Discard.
 - `MpiToolOptionsMaskBrushProps`: `@property {string} [mode]` — `gifMaskBrush` shows a note
   that the fixes are baked by the Cut-out tool.
+
+## Added 2026-09-17 (session 93c7703f, Fabio's second check)
+
+- `MpiGifViewerProps`: `isMaskEditing()`; emits `'edit-change' { editing }` when the Mask Brush opens or closes.
+- `MpiFrameStrip`: gestures are pointer events owned by the strip (no native drag, no text selection).

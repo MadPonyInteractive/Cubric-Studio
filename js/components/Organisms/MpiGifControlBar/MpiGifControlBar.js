@@ -128,6 +128,8 @@ export const MpiGifControlBar = ComponentFactory.create({
             _renderCount();
             playBtn.el.classList.toggle('is-active', _viewer.el.isPlaying());
             previewBtn.el.classList.toggle('is-active', _viewer.el.isPreview());
+            // The Mask Brush paints frames; the viewer refuses preview there.
+            previewBtn.el.setDisabled(_viewer.el.isMaskEditing());
 
             const _addCb = (event, cb) => {
                 let active = true;
@@ -142,6 +144,7 @@ export const MpiGifControlBar = ComponentFactory.create({
                 _addCb('play',  () => playBtn.el.classList.add('is-active')),
                 _addCb('pause', () => playBtn.el.classList.remove('is-active')),
                 _addCb('preview-change', ({ preview }) => previewBtn.el.classList.toggle('is-active', preview)),
+                _addCb('edit-change', ({ editing }) => previewBtn.el.setDisabled(editing)),
             );
 
             const hk = (id, fn) => _hotkeyUnsubs.push(

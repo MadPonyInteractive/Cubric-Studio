@@ -143,7 +143,19 @@ Strip gestures: a click jumps, a drag anywhere SCRUBS, and only a thumbnail
 held still for 300 ms (`HOLD_MS`) lifts and reorders — a film strip gets
 dragged to scrub, and a plain drag used to stage a reorder nobody meant
 (Fabio, 2026-09-16). The staged pill has Discard beside Update/Apply and sits
-above the strip.
+above the strip. Discard reverts FRAME changes only; brushed masks keep their
+own Clear and Ctrl+Z (Fabio, 2026-09-17).
+
+The strip OWNS its press, like `MpiTrimBar`: `pointerdown` + `preventDefault`,
+pointer capture on the track, `pointercancel` ends the gesture. Left to the
+browser, a press starts a text selection, and a press inside a selection starts
+Chromium's NATIVE drag: its ghost read as a "copy", and a native drag delivers
+`dragend` but never the release, so the lifted thumb kept reordering on hover.
+`preventDefault` also keeps focus, so the press blurs the focused element
+(hotkeys skip a focused text field). A held thumb sits `round(dx / SLOT)` slots
+from where it was lifted; the strip does not slide while it is up. Specs drive
+the strip with `window.mouse`: a synthetic `MouseEvent` never starts a native
+drag, which is how this shipped.
 
 The GIF bar's trim range is FRAME INDEX (`fps: 1`). `attachViewer()` runs
 before any frame loads, when the smallest legal range is one frame, and

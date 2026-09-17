@@ -697,7 +697,7 @@ async function setupStripProject(window) {
   }), TINY_PNG);
 }
 
-test('gif strip: full trim range, frames fill the stage, a drag scrubs, hold-drag reorders, masks follow their frames, Play in the Mask Brush', async ({}, testInfo) => {
+test('gif strip: full trim range, frames fill the stage, a drag scrubs, hold-drag reorders under the pointer with no native drag, masks follow their frames, preview off and Play in the Mask Brush', async ({}, testInfo) => {
   const { app, window, pageErrors } = await launchApp(testInfo);
   try {
     await setupStripProject(window);
@@ -759,6 +759,18 @@ test('gif strip: full trim range, frames fill the stage, a drag scrubs, hold-dra
     expect(await order()).toEqual(STRIP_HASHES);
     expect(await maskAt(2)).toBe(urls[2]);
 
+    // ── A press on the strip takes focus off a text field, as a native press
+    //    does (the strip owns its press; hotkeys skip a focused field) ─────────
+    await window.evaluate(() => {
+      const i = document.createElement('input');
+      i.id = 'focus-probe';
+      document.body.appendChild(i);
+      i.focus();
+    });
+    await window.locator('.mpi-frame-strip__thumb[data-index="2"]').click();
+    expect(await window.evaluate(() => document.activeElement?.id)).not.toBe('focus-probe');
+    await window.evaluate(() => document.getElementById('focus-probe').remove());
+
     // ── Press and hold, then drag: a reorder, and the masks travel along ─────
     const holdDrag = async (from, dx) => {
       const c = await thumbCentre(from);
@@ -787,6 +799,54 @@ test('gif strip: full trim range, frames fill the stage, a drag scrubs, hold-dra
     expect(await maskAt(2)).toBe(urls[2]);
     expect(await maskAt(3)).toBe(urls[3]);
 
+    const lifted = () => window.evaluate(() => {
+      const l = document.querySelector('.mpi-frame-strip__thumb--lifted');
+      if (!l) return null;
+      const r = l.getBoundingClientRect();
+      return { idx: l.dataset.index, cx: r.left + r.width / 2 };
+    });
+    const clickDiscard = async () => {
+      const r = await window.evaluate(() => {
+        const b = document.querySelector('[data-mount="discard-btn"] button').getBoundingClientRect();
+        return { x: b.left + b.width / 2, y: b.top + b.height / 2 };
+      });
+      await window.mouse.click(r.x, r.y);
+    };
+
+    // ── A held thumb stays under the pointer: 140 px is two slots, not four ──
+    let h = await thumbCentre(1);
+    await window.mouse.move(h.x, h.y);
+    await window.mouse.down();
+    await window.waitForTimeout(450);
+    await window.mouse.move(h.x + 140, h.y, { steps: 20 });
+    const held = await lifted();
+    expect(held.idx, 'two slots of pointer travel = two slots').toBe('3');
+    expect(Math.abs(held.cx - (h.x + 140)), 'the lifted thumb sits under the pointer').toBeLessThan(35);
+    await window.mouse.up();
+    expect(await order()).toEqual(['s0', 's2', 's3', 's1', 's4', 's5']);
+    await clickDiscard();
+    expect(await order()).toEqual(STRIP_HASHES);
+
+    // ── A text selection over the strip must not turn a hold-drag into a
+    //    native drag (the "copy" ghost), which never delivers the release ──────
+    await window.evaluate(() => {
+      window.__nativeDrags = 0;
+      window.addEventListener('dragstart', () => { window.__nativeDrags++; }, true);
+      document.getSelection().selectAllChildren(document.body);
+    });
+    await holdDrag(2, 70);
+    expect(await window.evaluate(() => window.__nativeDrags), 'no native drag').toBe(0);
+    expect(await lifted(), 'the release put the thumb down').toBe(null);
+    expect(await order()).toEqual(REORDERED);
+    h = await thumbCentre(2);
+    await window.mouse.move(h.x + 300, h.y, { steps: 8 });
+    await window.mouse.move(h.x - 300, h.y, { steps: 8 });
+    expect(await order(), 'hovering with no button pressed never edits').toEqual(REORDERED);
+    await clickDiscard();
+    expect(await order()).toEqual(STRIP_HASHES);
+    expect(await pillHidden(), 'Discard stays put').toBe(true);
+    await window.evaluate(() => document.getSelection().removeAllRanges());
+
     // ── Update saves the order and keeps every mask ──────────────────────────
     await holdDrag(2, 70);
     expect(await order()).toEqual(REORDERED);
@@ -797,6 +857,16 @@ test('gif strip: full trim range, frames fill the stage, a drag scrubs, hold-dra
     expect(await maskAt(3), 'an Update never drops masks').toBe(urls[2]);
     expect(await maskAt(0)).toBe(urls[0]);
     await expect.poll(() => tintAt(3)).toContain(urls[2]);
+
+    // ── The GIF preview button is off while the Mask Brush is up ─────────────
+    const previewDisabled = () => window.evaluate(() =>
+      document.querySelector('.mpi-gif-control-bar [data-mount="preview-toggle"] button').disabled);
+    expect(await previewDisabled()).toBe(false);
+    await openRailTool(window, 'Mask Brush');
+    await waitEditFrame(window);
+    expect(await previewDisabled(), 'the brush paints frames, not the built file').toBe(true);
+    await openRailTool(window, 'Cut-out');
+    await expect.poll(previewDisabled).toBe(false);
 
     // ── Play in the Mask Brush plays the frames under their tint ─────────────
     await openRailTool(window, 'Mask Brush');

@@ -283,7 +283,14 @@ export const MpiFrameStrip = ComponentFactory.create({
         // mode 'press' — a thumb is down, undecided: a release is a click, a
         //   move becomes 'scrub', HOLD_MS without moving becomes 'thumb'.
         // mode 'scrub' — the strip follows the pointer, no edit.
-        // mode 'thumb' — the held thumb is lifted and a move reorders it.
+        // mode 'thumb' — the held thumb is lifted and follows the pointer:
+        //   it sits `round(dx / SLOT)` slots from where it was lifted.
+        //
+        // The strip OWNS its press (pointer events, `preventDefault`, capture —
+        // MpiTrimBar's idiom). Left to the browser, a press starts a text
+        // selection, and a press inside a selection starts Chromium's NATIVE
+        // drag: its ghost is the "copy" Fabio saw, and a native drag never
+        // delivers the release, so the lifted thumb kept reordering on hover.
 
         let _drag = null;
         let _holdTimer = 0;
@@ -294,13 +301,20 @@ export const MpiFrameStrip = ComponentFactory.create({
         // so a click that lands past the currently-rendered window (or in
         // any gap) still bubbles here and correctly falls into the scrub
         // branch below (`closest('.mpi-frame-strip__thumb')` finds nothing).
-        _unsubs.push(on(trackEl, 'mousedown', (e) => {
+        // The capture sits on the track too: a thumb is re-rendered mid-drag.
+        _unsubs.push(on(trackEl, 'pointerdown', (e) => {
             if (e.button !== 0) return;
+            e.preventDefault();
+            // preventDefault also keeps focus where it was; hotkeys skip a
+            // focused text field, so let it go the way a native press would.
+            document.activeElement?.blur?.();
+            try { trackEl.setPointerCapture(e.pointerId); } catch (_) { /* noop */ }
             const thumbEl = e.target.closest('.mpi-frame-strip__thumb');
             const base = { startX: e.clientX, startIndex: _currentIndex, moved: false };
             if (!thumbEl) { _drag = { ...base, mode: 'scrub' }; return; }
             const modifier = e.ctrlKey || e.metaKey || e.shiftKey;
-            _drag = { ...base, mode: 'press', index: Number(thumbEl.dataset.index), modifier };
+            const index = Number(thumbEl.dataset.index);
+            _drag = { ...base, mode: 'press', index, liftIndex: index, modifier };
             if (modifier) return;
             _clearHold();
             _holdTimer = setTimeout(() => {
@@ -327,16 +341,15 @@ export const MpiFrameStrip = ComponentFactory.create({
                 return;
             }
 
-            // mode 'thumb'
-            const deltaSlots = Math.round(dx / SLOT);
-            const targetIdx = Math.max(0, Math.min(_staged.length - 1, _drag.index + deltaSlots));
+            // mode 'thumb' — the strip does not slide while a thumb is up, so
+            // slot N stays at the same x and the pointer maps 1:1 onto slots.
+            const targetIdx = Math.max(0, Math.min(_staged.length - 1, _drag.liftIndex + Math.round(dx / SLOT)));
             if (targetIdx === _drag.index) return;
             const [moved] = _staged.splice(_drag.index, 1);
             _staged.splice(targetIdx, 0, moved);
             const [movedOrigin] = _origin.splice(_drag.index, 1);
             _origin.splice(targetIdx, 0, movedOrigin);
             _drag.index = targetIdx;
-            _drag.startX = e.clientX;
             _windowEnd = -1;
             _ensureWindow(_currentIndex);
             _renderWindow();
@@ -370,8 +383,9 @@ export const MpiFrameStrip = ComponentFactory.create({
             // intermediate 'scrub' as it happened.
         };
 
-        _unsubs.push(on(window, 'mousemove', _onMove));
-        _unsubs.push(on(window, 'mouseup', _onUp));
+        _unsubs.push(on(window, 'pointermove', _onMove));
+        _unsubs.push(on(window, 'pointerup', _onUp));
+        _unsubs.push(on(window, 'pointercancel', _onUp));
 
         // ── Delete selected (staged only) ─────────────────────────────────
 

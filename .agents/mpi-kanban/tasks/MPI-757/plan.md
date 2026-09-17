@@ -116,6 +116,26 @@ investigators got wrong: [research/2026-09-15-investigation.md](research/2026-09
   4. **GIF preview button does nothing while the Mask Brush is up** (`setPreview` refuses in edit):
      disable the control bar's preview button while the viewer is editing (Fabio's call).
   Nothing else changed since the 15:10Z bullet; all of it is still NOT COMMITTED until this handoff.
+- **2026-09-17 ~09:40Z (session 93c7703f): 1 and 2 REPRODUCED, root causes proven, no code changed yet.**
+  Probe: isolated Electron, CDP mouse (`window.mouse`), 30 frames; scripts in that session's scratchpad `probe/`.
+  (a) Math: a 140 px hold-drag (2 slots) moved the thumb 4 slots; its centre sat 140 px AHEAD of the cursor.
+  (b) Native drag: a scrub that STARTS in empty track begins a text selection (`selectstart` on the track).
+  When the selection spans the strip (scrub dragged up into the viewer, or Ctrl+A), a hold-drag fires
+  `dragstart` on the thumb (the "copy" ghost). Then only `dragend` arrives, never `mouseup`, so `_drag`
+  stays in `thumb` (the lift stays painted) and hovering with no button keeps reordering (2 -> 6 changes
+  before the Discard click). Cause: the strip never owns its press. Fix: `pointerdown` + `preventDefault` +
+  pointer capture on the track + `pointercancel` (MpiTrimBar's idiom), blur the focused input (hotkeys skip
+  while typing), reorder by `liftIndex + round(totalDx / SLOT)`. Specs move to real `window.mouse` input:
+  the synthetic MouseEvents in gif-workspace.spec.js could never start a native drag.
+- **2026-09-17 ~09:50Z (session 93c7703f): 1, 2 and 4 FIXED as above, NOT COMMITTED, automated checks
+  green** (MPI-771 `validation.md`: specs 5/5, 5 bites red, regression 14/14, node 1267/0, lint clean).
+  Item 3: Fabio chose **a**, Discard stays frames-only (documented in `docs/video-player.md`). Fix 4: the
+  viewer emits `'edit-change'`, the control bar disables its preview button. Also fixed a race in
+  gif-workspace.spec.js (read the card count before the stubbed save rendered). **Fabio VERIFIED the
+  local check ("1").** Left on MPI-771: RunPod with his go; the `types.js` hunk (MPI-737 in doing, file
+  dirty). At close-out ask about `.claude/rules/`: the new `'edit-change'` event is component wiring.
+  **Next for the umbrella:** Phase 4 (MPI-772, then MPI-773 UI half), then Phase 5 (MPI-760 UI half).
+  Still to ask Fabio: close member card MPI-524 on commit 2ce60ea5 (MPI-558 Phase 1 already done).
 - **Next action (superseded, kept for the record):** MPI-759 root cause in the real app first (he can reload for you; read
   `%APPDATA%\Cubric Vision\logs\app.log` filtered, never drive `:3000`). Then redesign the MPI-771 UI half
   per Decision 14 (plan it with Fabio before coding: it needs a per-frame mask layer and brush). Phase 4

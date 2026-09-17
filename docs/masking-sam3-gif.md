@@ -82,7 +82,8 @@ The image-mode `MpiToolOptionsMaskBrush`, unchanged: `MpiGifViewer` implements i
 `enterMode('mask')` / `exitMode()` and the whole `MpiMaskStrip` surface. `enterMode` mounts an
 `MpiCanvas` over the stage holding the current frame, its track as the BASE layer
 ([masking.md](masking.md)) and its brush layers; stepping frames saves and reloads, keeping a
-zoomed view and the brush size. The GIF preview is off while it is up. **Play** hides the
+zoomed view and the brush size. The GIF preview is off while it is up: the viewer emits
+`'edit-change'` and the control bar disables its preview button. **Play** hides the
 canvas (`visibility`, so its view survives) and plays the plain frames under their mask tint,
 a flicker check; pause brings the canvas back on the current frame. Undo is per frame visit
 (`loadImage` clears the stack). Its own mode, not `maskBrush`: that one is in the Block's

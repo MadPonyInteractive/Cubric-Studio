@@ -133,15 +133,20 @@ test('gif workspace: no PromptBox; play/step/scrub keep the strip centred; reord
     c = await readCounter(window);
     expect(c.current, 'the strip centre must match the frame the counter shows').toBe(String(FRAME_HASHES.length - 1));
 
+    // Strip gestures use the REAL mouse: the strip listens to pointer events,
+    // and a synthetic MouseEvent could never start the native drag that once
+    // hijacked a hold-drag (MPI-771).
+    const centreOf = (sel) => window.evaluate((s) => {
+      const r = document.querySelector(s).getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }, sel);
+
     // Scrub — dragging the track to the RIGHT reveals EARLIER frames.
-    await window.evaluate(() => {
-      const track = document.querySelector('.mpi-frame-strip__track');
-      const rect = track.getBoundingClientRect();
-      const x0 = rect.left + rect.width / 2;
-      track.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: x0, button: 0 }));
-      window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: x0 + 400 }));
-      window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: x0 + 400 }));
-    });
+    const t0 = await centreOf('.mpi-frame-strip__track');
+    await window.mouse.move(t0.x, t0.y);
+    await window.mouse.down();
+    await window.mouse.move(t0.x + 400, t0.y, { steps: 4 });
+    await window.mouse.up();
     c = await readCounter(window);
     expect(Number(c.current), 'scrubbing right must move toward frame 0').toBeLessThan(FRAME_HASHES.length - 1);
     expect(c.cur, 'counter and strip centre must always agree').toBe(String(c.current).padStart(4, '0'));
@@ -150,17 +155,16 @@ test('gif workspace: no PromptBox; play/step/scrub keep the strip centred; reord
     // press and hold first, then drag the thumb at index 0 two slots right.
     // Staged only: no fetch yet, but the pill appears with a non-zero change count.
     const before = await thumbCount(window);
-    const dragThumb0 = () => window.evaluate(() => {
-      const thumb = document.querySelector('.mpi-frame-strip__thumb[data-index="0"]');
-      const rect = thumb.getBoundingClientRect();
-      const x0 = rect.left + rect.width / 2;
-      thumb.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: x0, button: 0 }));
-      window.__x0 = x0;
-    });
-    const moveAndDrop = () => window.evaluate(() => {
-      window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: window.__x0 + 140 }));
-      window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: window.__x0 + 140 }));
-    });
+    let p0;
+    const dragThumb0 = async () => {
+      p0 = await centreOf('.mpi-frame-strip__thumb[data-index="0"]');
+      await window.mouse.move(p0.x, p0.y);
+      await window.mouse.down();
+    };
+    const moveAndDrop = async () => {
+      await window.mouse.move(p0.x + 140, p0.y, { steps: 4 });
+      await window.mouse.up();
+    };
     await dragThumb0();
     await moveAndDrop();
     expect(await window.evaluate(() => document.querySelector('.mpi-frame-strip__pill').hidden),
@@ -179,12 +183,7 @@ test('gif workspace: no PromptBox; play/step/scrub keep the strip centred; reord
     // — NOT Delete/`history.selection.delete`, see hotkeyRegistry.js's
     // "GIF Player" section for why sharing that key would also wipe the
     // whole history entry) drops it. Still staged, still zero server calls.
-    await window.evaluate(() => {
-      const thumb = document.querySelector('.mpi-frame-strip__thumb[data-index="1"]');
-      const rect = thumb.getBoundingClientRect();
-      thumb.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: rect.left + 5, ctrlKey: true, button: 0 }));
-      window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: rect.left + 5, ctrlKey: true }));
-    });
+    await window.locator('.mpi-frame-strip__thumb[data-index="1"]').click({ modifiers: ['Control'] });
     await window.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true })));
     await expect.poll(() => thumbCount(window)).toBe(before - 1);
     expect(await window.evaluate(() => window.__mpi769.calls.length)).toBe(0);
@@ -193,36 +192,28 @@ test('gif workspace: no PromptBox; play/step/scrub keep the strip centred; reord
     // call with mode:'update' carrying the staged (reordered + one deleted)
     // frame list, and a NEW built-file name (E5).
     await window.evaluate(() => document.querySelector('[data-mount="update-btn"] button').click());
+    // The stub records a call BEFORE its response lands; the save's DOM
+    // effects come after, so wait on them rather than read them at once.
+    const cardCount = () => window.evaluate(() => document.querySelectorAll('#cards-slot > *').length);
     await expect.poll(() => window.evaluate(() => window.__mpi769.calls.length)).toBe(1);
-    let snap = await window.evaluate(() => ({
-      call: window.__mpi769.calls[0],
-      cards: document.querySelectorAll('#cards-slot > *').length,
-      pillHidden: document.querySelector('.mpi-frame-strip__pill').hidden,
-    }));
+    await expect.poll(() => window.evaluate(() => document.querySelector('.mpi-frame-strip__pill').hidden),
+      'a successful save must clear the pill').toBe(true);
+    let snap = await window.evaluate(() => ({ call: window.__mpi769.calls[0] }));
     expect(snap.call.mode).toBe('update');
     expect(snap.call.itemId).toBe('iGif');
     expect(snap.call.frames.length).toBe(before - 1);
-    expect(snap.cards, 'Update must not add a new history card').toBe(1);
-    expect(snap.pillHidden, 'a successful save must clear the pill').toBe(true);
+    expect(await cardCount(), 'Update must not add a new history card').toBe(1);
 
     // Apply — stage one more delete, then Apply must ADD a new history entry
     // (mode:'new') rather than rewrite.
-    await window.evaluate(() => {
-      const thumb = document.querySelector('.mpi-frame-strip__thumb[data-index="0"]');
-      const rect = thumb.getBoundingClientRect();
-      thumb.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: rect.left + 5, ctrlKey: true, button: 0 }));
-      window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: rect.left + 5, ctrlKey: true }));
-    });
+    await window.locator('.mpi-frame-strip__thumb[data-index="0"]').click({ modifiers: ['Control'] });
     await window.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true })));
     await window.evaluate(() => document.querySelector('[data-mount="apply-btn"] button').click());
     await expect.poll(() => window.evaluate(() => window.__mpi769.calls.length)).toBe(2);
-    snap = await window.evaluate(() => ({
-      call: window.__mpi769.calls[1],
-      cards: document.querySelectorAll('#cards-slot > *').length,
-    }));
+    await expect.poll(cardCount, 'Apply must add a new history card').toBe(2);
+    snap = await window.evaluate(() => ({ call: window.__mpi769.calls[1] }));
     expect(snap.call.mode).toBe('new');
     expect(snap.call.sourceItemId).toBe('iGif');
-    expect(snap.cards, 'Apply must add a new history card').toBe(2);
   } finally {
     await closeApp(app);
   }

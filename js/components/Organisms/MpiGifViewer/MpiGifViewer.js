@@ -87,6 +87,7 @@
  *   'frame-change' { idx, frame } — index changed (step, scrub, playback)
  *   'play' / 'pause' / 'ended'
  *   'preview-change' { preview }
+ *   'edit-change'  { editing }      — the Mask Brush opened or closed
  *   'masks-change' { overlay, edited } — per-position mask URLs for the strip
  *                                   tint, and the brushed positions
  */
@@ -506,6 +507,7 @@ export const MpiGifViewer = ComponentFactory.create({
             _canvas = MpiCanvas.mount(editSlot, { onMaskStrokeEnd: () => { _dirty = true; } });
             if (_brushSize) _canvas.el.setBrushSize(_brushSize);
             _loadEditFrame(_index);
+            emit('edit-change', { editing: true });
         }
 
         /** Playback in the Mask Brush: the plain frame under its tint. The canvas
@@ -539,6 +541,7 @@ export const MpiGifViewer = ComponentFactory.create({
             editSlot.hidden = true;
             editSlot.classList.remove('mpi-gif-viewer__edit--playing');
             frameWrap.hidden = _preview;
+            emit('edit-change', { editing: false });
         }
 
         el.enterMode = (mode) => { if (mode === 'mask') _enterEdit(); else _exitEdit(); };

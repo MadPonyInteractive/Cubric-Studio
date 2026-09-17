@@ -148,3 +148,52 @@ blocked by MPI-737's claim: text appended to `types-hunk.md`.
 **OPEN (user-ux):** Fabio, after a FULL app restart (server code changed too, and gif_005's
 `?x?` fix was server code): real GIF, Track All, drag the strip (it must scrub), hold-drag a
 frame (masks stay), Discard, brush a fix, Play in the Mask Brush, Cut out.
+
+## 2026-09-17 - Fabio's second check: strip drag + preview button (session 93c7703f); user-ux re-check OPEN
+
+Fabio's check found: a held thumb shows a "copy" and runs ahead of the mouse; Discard stuck at
+"18 frame changes"; Discard left two brushed masks; the GIF preview button is dead in the Mask
+Brush. His call on the masks: **Discard stays frames-only** (a) - masks keep Clear + Ctrl+Z.
+
+Reproduced first (isolated Electron, CDP `window.mouse`, 30 frames, scratch probes):
+- **Overshoot:** a 140 px hold-drag (2 slots) moved the thumb 4 slots, 140 px ahead of the
+  cursor. `_onMove` moved a full slot at half a slot of travel, then reset `startX`.
+- **"Copy" + stuck gesture:** a scrub that STARTS in empty track fired `selectstart`. With a
+  selection spanning the strip (scrub dragged up into the viewer, or Ctrl+A), a hold-drag fired
+  `dragstart` on the thumb (Chromium's native drag ghost), then `dragend` and no `mouseup`:
+  the lift stayed painted and hovering with no button reordered (2 -> 6 changes).
+
+Root cause: the strip never owned its press. Fix: `pointerdown` + `preventDefault` + pointer
+capture on the track + `pointercancel` (MpiTrimBar's idiom), blur the focused element (a
+prevented press keeps focus; hotkeys skip text fields), held thumb at
+`liftIndex + round(dx / SLOT)`. Viewer emits `'edit-change'`; the control bar disables its
+preview button while the brush is up. After the fix both probes: no `selectstart`, no
+`dragstart` even under Ctrl+A, the lift drops on release, hover never edits, the lifted
+thumb's centre equals the cursor x at every step.
+
+| Check | Command | Result |
+|---|---|---|
+| Cut-out + workspace specs | `npx playwright test --config=playwright.desktop.config.js tests/desktop/gif-cutout.spec.js tests/desktop/gif-workspace.spec.js --output=<scratchpad>` | 5/5 (test 4 gained: press blurs a text field, 140 px = 2 slots under the pointer, no native drag under a full selection + hover never edits + Discard stays, preview disabled in the brush and back on Cut-out) |
+| Bites (5) | scratchpad `bite.py`: old slot math; mouse events without preventDefault; pointer events without preventDefault; no blur; no `edit-change` listener | all 5 RED, files restored (byte compare) |
+| GIF + image-mask regression | `... gif-cutout gif-workspace history-modes gif-make gallery-gif-hover mask-persist-roundtrip mask-temp-store` | 14/14 (first run 13/14, see below) |
+| Workspace stability | `... gif-workspace --repeat-each=3` | 3/3 |
+| Node suite | `node --test "tests/*.test.cjs"` | 1267 pass, 0 fail, 1 skipped |
+| Lint | `npm run lint` / `npm run lint:components` | clean |
+
+`gif-workspace.spec.js`: strip gestures now use `window.mouse` / `locator.click({ modifiers })`
+(the synthetic `MouseEvent`s never reach pointer listeners, and never started the native drag
+that shipped). Its first regression run failed "Apply must add a new history card" (1 vs 2):
+the stub records the call BEFORE its response lands, and the spec read the card count at
+once. It now polls the pill and the card count. Before that change it passed in the two other
+runs; after it, 14/14 in the regression set and 3/3 repeated.
+
+Docs: `docs/video-player.md` (the strip owns its press, why, Discard frames-only),
+`docs/masking-sam3-gif.md` (`'edit-change'`). `types.js` still blocked (MPI-737 in doing, the
+file dirty): text appended to `types-hunk.md`.
+
+**VERIFIED (user-ux, local engine) 2026-09-17:** Fabio in his app (renderer-only change, Ctrl+R):
+held thumb under the cursor with no "copy", hold-drag under a selection, Discard twice, preview
+button greyed out in the Mask Brush. He answered "1" (looks good).
+
+**Still OPEN for this card:** RunPod check with Fabio's go; the `types.js` hunk (`types-hunk.md`)
+once MPI-737 releases the file.
