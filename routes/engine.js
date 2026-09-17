@@ -12,7 +12,7 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs-extra');
 const path = require('path');
-const { SYS_DEPS_PATH, checkUniversalWorkflowDepsStatus, getUniversalWorkflowDepsTotalSize, processState, stopComfyUI, getExtraModelFolders, getDefaultModelsRoot, resolveModelsRoot, getCustomRoot, resolveComfyPath, getUniversalWorkflowDeps, runPipCommand, NODE_COMMIT_MARKER, curatedDepsMarkerPath } = require('./shared');
+const { SYS_DEPS_PATH, checkUniversalWorkflowDepsStatus, processState, stopComfyUI, getExtraModelFolders, getDefaultModelsRoot, resolveModelsRoot, getCustomRoot, resolveComfyPath, getUniversalWorkflowDeps, runPipCommand, NODE_COMMIT_MARKER, curatedDepsMarkerPath } = require('./shared');
 const logger = require('./logger');
 const { broadcastEngineEvent, FileDownloader, registerEngineDownload, clearEngineDownload, startUniversalWorkflowInstall, finishCustomNodeInstall } = require('./downloadManager');
 const { COMFY_DIR, COMFY_VENV_DIR, COMFY_VERSION, TORCH_MAC, getPythonBin, getComfyPath, resolveDownloadConfig, resolveUvBin, getEngineRoot } = require('./platformEngine');
@@ -217,6 +217,7 @@ async function _provisionWindowsEngine(targetDir, engineInfo, missingDepIds, ins
     // Fire UW deps download immediately (parallel with engine download, skip custom node install for now)
     let uwModelJob = null;
     let uwDepsPromise = Promise.resolve();
+    let uwDepsSettled = missingDepIds.length === 0;
     if (missingDepIds.length > 0) {
         logger.info('engine', `Firing ${missingDepIds.length} UW deps downloads (parallel)...`);
         uwDepsPromise = startUniversalWorkflowInstall(missingDepIds, true, true, installRoot)  // true = skip custom node install
@@ -231,7 +232,8 @@ async function _provisionWindowsEngine(targetDir, engineInfo, missingDepIds, ins
                 broadcastEngineEvent('engine:uw-installing', {
                     status: 'Some dependencies could not be installed. You can repair them later.'
                 });
-            });
+            })
+            .finally(() => { uwDepsSettled = true; });
     }
 
     await new Promise((resolve, reject) => {
@@ -246,13 +248,31 @@ async function _provisionWindowsEngine(targetDir, engineInfo, missingDepIds, ins
 
     const sevenBin = require('7zip-bin');
     const { extractFull } = require('node-7z');
-    const myStream = extractFull(archivePath, targetDir, { $bin: sevenBin.path7za });
+    // `$progress` (7za -bsp1) is what makes this phase visible (MPI-792). Without it
+    // 7za block-buffers its per-file lines, so `data` arrived in bursts and one
+    // multi-GB DLL held the screen still; with it a percent line lands every ~200ms
+    // and flushes the file lines too. The portable holds tens of thousands of files,
+    // so broadcast on a percent change or every 250ms, never once per file.
+    const myStream = extractFull(archivePath, targetDir, { $bin: sevenBin.path7za, $progress: true });
 
     await new Promise((resolve, reject) => {
+        let file = '';
+        let percent = 0;
+        let lastSent = 0;
+        const send = (force) => {
+            const now = Date.now();
+            if (!force && now - lastSent < 250) return;
+            lastSent = now;
+            broadcastEngineEvent('engine:extracting', { status: 'extracting', file, percent, progress: 0 });
+        };
         myStream.on('data', (data) => {
-            if (data && data.status) {
-                broadcastEngineEvent('engine:extracting', { status: 'extracting', file: data.file || '', progress: 0 });
-            }
+            if (data && data.file) file = data.file;
+            send(false);
+        });
+        myStream.on('progress', (p) => {
+            const changed = Number.isFinite(p.percent) && p.percent !== percent;
+            if (changed) percent = p.percent;
+            send(changed);
         });
         myStream.on('end', resolve);
         myStream.on('error', reject);
@@ -272,7 +292,12 @@ async function _provisionWindowsEngine(targetDir, engineInfo, missingDepIds, ins
     await fs.remove(archivePath);
 
     // ── Wait for UW deps downloads to finish ────────────────────────────────
+    // They can outlast the unpack. Say so, or the screen keeps "unpacking" over a
+    // wait it no longer describes (MPI-792).
     logger.info('engine', 'Waiting for UW deps downloads to complete...');
+    if (!uwDepsSettled) {
+        broadcastEngineEvent('engine:uw-installing', { status: 'Downloading remaining components...' });
+    }
     await uwDepsPromise;
     return { uwModelJob };
 }
@@ -478,6 +503,7 @@ async function _provisionUvEngine(targetDir, missingDepIds, downloadConfig, inst
     let uwModelJob = null;
     if (missingDepIds.length > 0) {
         logger.info('engine', `Installing ${missingDepIds.length} UW deps...`);
+        broadcastEngineEvent('engine:uw-installing', { status: 'Downloading components...' });
         try {
             uwModelJob = await startUniversalWorkflowInstall(missingDepIds, true, true, installRoot);
         } catch (err) {
@@ -538,16 +564,13 @@ async function _runEngineDownload(chosenModelsRoot) {
             ? resolveModelsRoot(chosenModelsRoot)
             : null;
 
-        // ── Pre-calculate combined size (engine + UW deps) ──────────────────────
+        // ── Which UW deps are missing ───────────────────────────────────────────
         // Every custom_node is now universal (MPI-222: no model-specific node class),
         // so the UW set already covers all nodes an engine reinstall must restore.
-        const { missingDeps } = await checkUniversalWorkflowDepsStatus(installRoot);
-        const missingDepIds = missingDeps;
-        if (missingDeps.length > 0) {
-            logger.info('engine', `Calculating size for ${missingDeps.length} UW deps...`);
-            const uwDepsTotalBytes = await getUniversalWorkflowDepsTotalSize(missingDeps);
-            logger.info('engine', `UW deps total size: ${(uwDepsTotalBytes / 1e9).toFixed(2)} GB`);
-        }
+        // No up-front size pass (MPI-792): it HEADed every dep one at a time, 5s
+        // timeout each, before a single byte moved — and only logged the total. On a
+        // slow or filtered network that was minutes of a frozen install screen.
+        const { missingDeps: missingDepIds } = await checkUniversalWorkflowDepsStatus(installRoot);
 
         // ── Provision engine binaries (platform-specific) ───────────────────────
         let uwModelJob = null;

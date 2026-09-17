@@ -1,12 +1,15 @@
 import { ComponentFactory } from '../../factory.js';
 import { MpiModal } from '../../Primitives/MpiModal/MpiModal.js';
 import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
+import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
 import { MpiButton, mountButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { Storage } from '../../../core/storage.js';
 import { state } from '../../../state.js';
 import { qs, qsa, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
+import { formatBytes } from '../../../utils/formatBytes.js';
+import { startElapsedTicker } from '../../../utils/elapsedTicker.js';
 import { Events } from '../../../events.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { downloadService } from '../../../services/downloadService.js';
@@ -50,6 +53,38 @@ const CHOICE_REMOTE_FACE = `
         Set up RunPod ${renderIcon('chevronRight', 'sm')}
     </span>`;
 
+// ── Progress phase copy (MPI-792) ────────────────────────────────────────────
+const STEPS = ['download', 'install', 'finish'];
+const UW_JOB = '__universal_workflow__';
+
+/* Machine stage ids the server broadcasts as `status` → what the user reads. Anything
+   not listed is already human copy (ensureGit, upgrade steps) and shows as-is. */
+const STAGE_LABELS = {
+    'extracting':        'Unpacking the engine',
+    'uv-venv':           'Creating the Python environment',
+    'install-comfy-cli': 'Installing the ComfyUI installer',
+    'install-torch':     'Installing PyTorch',
+    'comfy-install':     'Installing ComfyUI and its Python packages',
+    'git fetch':         'Fetching ComfyUI updates',
+    'git checkout':      'Switching the engine version',
+    'patching':          'Finishing up',
+};
+
+/* Rotated under the clock once nothing has happened for a while. Some steps are
+   silent for minutes by nature (a big unpack, a pip build), and silence is exactly
+   what made users quit mid-install. */
+const QUIET_HINTS = [
+    'Still working. Some steps stay quiet for a few minutes.',
+    'Large files take a while to download and unpack. Nothing is stuck.',
+    'No need to click anything. This screen moves on by itself.',
+];
+
+const _eta = (sec) => {
+    if (sec < 60) return 'under a minute left';
+    if (sec < 3600) return `about ${Math.round(sec / 60)} min left`;
+    return `about ${Math.floor(sec / 3600)} h ${Math.round((sec % 3600) / 60)} min left`;
+};
+
 /**
  * MpiEngineInstall — Engine provisioning modal for first install and upgrades (Compound)
  *
@@ -58,16 +93,15 @@ const CHOICE_REMOTE_FACE = `
  * Three-phase UI for first install:
  *   Phase 0 (choose):    Local + Remote  vs  Remote Only  (MPI-519)
  *   Phase 1 (setup):     Models path picker + Browse button + Install button
- *   Phase 2 (progress):  Progress bar + status text + speed/size info
+ *   Phase 2 (progress):  Step tracker + what is happening now + bar or spinner + detail,
+ *                        an elapsed clock and a keep-open notice (MPI-792)
  *
  * For upgrades / repairs:
  *   Skips phases 0 and 1, goes straight to Phase 2 with "models are safe" messaging
  *
  * API:
- *   inst.el.show(mode)      — 'installing' | 'upgrading' — shows modal with appropriate phase
+ *   inst.el.show(mode)      — 'installing' | 'upgrading' | 'repairing'
  *   inst.el.hide()          — closes modal
- *   inst.el.setProgress(data) — { progress: 0–100, speed, downloadedBytes, totalBytes }
- *   inst.el.setStatus(text) — update status message (e.g. 'Extracting...')
  *   inst.el.setError(msg)   — show error + retry button
  *
  * Emits (internal to component):
@@ -132,21 +166,45 @@ export const MpiEngineInstall = ComponentFactory.create({
                 </div>
             </div>
 
-            <!-- Phase 2: Progress (download/extract) -->
+            <!-- Phase 2: Progress (MPI-792). A multi-minute step used to sit under one
+                 thin sweep and a label that stopped changing, which users read as a
+                 hang — they quit mid-install and came back to a broken engine. So
+                 every row here moves: steps, what is happening now, a bar only while a
+                 number is honest (a spinner otherwise), and a clock that always ticks. -->
             <div class="mpi-engine-install__phase" data-phase="progress">
                 <div class="mpi-engine-install__content">
                     <h2 class="mpi-engine-install__title" data-ref="progressTitle">Installing ComfyUI Engine</h2>
-                    <p class="mpi-engine-install__subtitle mpi-engine-install__subtitle--secondary" data-ref="progressSubtitle">
-                        Downloading engine files...
-                    </p>
 
-                    <div class="mpi-engine-install__progress-section">
-                        <div data-ref="progressBar"></div>
-                        <p class="mpi-engine-install__progress-info" data-ref="progressInfo">Preparing download...</p>
+                    <ol class="mpi-engine-install__steps">
+                        <li class="mpi-engine-install__step" data-step="download">${renderIcon('check', 'sm')}Download</li>
+                        <li class="mpi-engine-install__step" data-step="install">${renderIcon('check', 'sm')}Install</li>
+                        <li class="mpi-engine-install__step" data-step="finish">${renderIcon('check', 'sm')}Finish</li>
+                    </ol>
+
+                    <div class="mpi-engine-install__progress-section mpi-engine-install__progress-section--busy" data-ref="meter">
+                        <div class="mpi-engine-install__now">
+                            <span class="mpi-engine-install__mark">
+                                <span class="mpi-engine-install__mark-spin" data-ref="spinner"></span>
+                                <span class="mpi-engine-install__mark-pct" data-ref="pct"></span>
+                                <span class="mpi-engine-install__mark-done">${renderIcon('check', 'sm')}</span>
+                            </span>
+                            <p class="mpi-engine-install__now-label" data-ref="nowLabel">Preparing download...</p>
+                        </div>
+                        <div class="mpi-engine-install__bar" data-ref="progressBar"></div>
+                        <p class="mpi-engine-install__progress-info" data-ref="progressInfo"></p>
                     </div>
+
+                    <p class="mpi-engine-install__pulse">
+                        <span class="mpi-engine-install__clock" data-ref="clock"></span>
+                        <span class="mpi-engine-install__quiet" data-ref="quiet"></span>
+                    </p>
 
                     <p class="mpi-engine-install__message" data-ref="upgradeMessage" style="display: none;">
                         Your models are safe — only the ComfyUI engine is being updated.
+                    </p>
+
+                    <p class="mpi-engine-install__keep-open">
+                        Keep Cubric open until this finishes. Closing it interrupts the install.
                     </p>
 
                     <p class="mpi-engine-install__docs-link">
@@ -187,25 +245,20 @@ export const MpiEngineInstall = ComponentFactory.create({
         let _modal = null;
         let _currentMode = null; // 'installing' or 'upgrading'
         let _currentPhase = null; // 'choose' | 'setup' | 'progress' | 'error' — drives the modal width
-        // Tracks the active install phase so the parallel UW-deps progress events
-        // know whether to pulse the loading animation. The engine install has no
-        // pause/resume — that only exists for model downloads (see MPI-54).
-        let _downloadState = 'idle'; // 'downloading', 'extracting', 'patching'
-        // MPI-410: true while the UW dep download is emitting real byte totals. It
-        // owns the progress info line for that window so the engine phase stream
-        // cannot overwrite it on every uv/pip status line (the install-screen strobe).
-        let _uwBytesActive = false;
-        let _progressBarInst = null;
         let _pathInputInst = null;
         let _browseButtonInst = null;
         let _installButtonInst = null;
         let _retryButtonInst = null;
         const _unsubs = [];
 
-        const progressBar = qs('[data-ref="progressBar"]', el);
         const progressInfo = qs('[data-ref="progressInfo"]', el);
         const progressTitle = qs('[data-ref="progressTitle"]', el);
-        const progressSubtitle = qs('[data-ref="progressSubtitle"]', el);
+        const nowLabel = qs('[data-ref="nowLabel"]', el);
+        const meterEl = qs('[data-ref="meter"]', el);
+        const pctEl = qs('[data-ref="pct"]', el);
+        const clockEl = qs('[data-ref="clock"]', el);
+        const quietEl = qs('[data-ref="quiet"]', el);
+        const stepEls = qsa('[data-step]', el);
         const upgradeMessage = qs('[data-ref="upgradeMessage"]', el);
         const errorMessage = qs('[data-ref="errorMessage"]', el);
         const repairEscape = qs('[data-ref="repairEscape"]', el);
@@ -252,6 +305,13 @@ export const MpiEngineInstall = ComponentFactory.create({
         const browseButtonMount = qs('[data-ref="browseButtonMount"]', el);
         const installButtonMount = qs('[data-ref="installButtonMount"]', el);
         const retryButtonMount = qs('[data-ref="retryButtonMount"]', el);
+
+        // Progress-phase primitives are mounted once; the phase only toggles them.
+        // info:'' opts out of the status-bar tooltip, which would read a stale value.
+        const _progressBarInst = MpiProgressBar.mount(qs('[data-ref="progressBar"]', el), {
+            min: 0, max: 100, value: 0, interactive: false, variant: 'primary', info: '',
+        });
+        const _spinnerInst = MpiSpinner.mount(qs('[data-ref="spinner"]', el), { size: 'sm', variant: 'primary' });
 
         // ── IPC access (Electron) ────────────────────────────────────────────────
         let ipcRenderer = null;
@@ -351,10 +411,7 @@ export const MpiEngineInstall = ComponentFactory.create({
                 });
 
                 // 2. Move to progress phase and start download
-                _showPhase('progress');
-                _subscribeEngineEvents();
-                // Ensure SSE is connected BEFORE the POST to avoid missing engine:* broadcasts
-                downloadService._ensureSSE();
+                _beginProgress('Preparing download...');
                 // Send the chosen models root in the body too. The pre-download
                 // set-path YAML is wiped by the fresh-install extract scrub, so the
                 // post-extract step 6 reads this value to write the final YAML with
@@ -440,10 +497,7 @@ export const MpiEngineInstall = ComponentFactory.create({
 
         _retryButtonInst.el.addEventListener('click', async () => {
             try {
-                _showPhase('progress');
-                _subscribeEngineEvents();
-                // Ensure SSE is connected before POST so engine:* events are not missed
-                downloadService._ensureSSE();
+                _beginProgress('Retrying installation...');
                 // Route by failure phase: only a COMPLETE engine can be repaired
                 // deps-only via /engine/repair-deps (pip); anything less needs the
                 // full re-provision at /engine/download.
@@ -471,10 +525,9 @@ export const MpiEngineInstall = ComponentFactory.create({
                 }
                 const route = engineInstalled ? '/engine/repair-deps' : '/engine/download';
                 await fetch(route, { method: 'POST' });
-                progressSubtitle.textContent = 'Retrying installation...';
             } catch (err) {
                 _showPhase('setup');
-                _unsubscribeEngineEvents();
+                _endProgress();
             }
         });
 
@@ -508,18 +561,15 @@ export const MpiEngineInstall = ComponentFactory.create({
             if (mode === 'upgrading') {
                 _showPhase('progress');
                 progressTitle.textContent = 'Updating ComfyUI Engine';
-                progressSubtitle.textContent = 'Installing new version...';
                 upgradeMessage.style.display = 'block';
             } else if (mode === 'repairing') {
                 _showPhase('progress');
                 progressTitle.textContent = 'Installing Dependencies';
-                progressSubtitle.textContent = 'Setting up...';
                 upgradeMessage.style.display = 'none';
             } else {
                 // First install opens on the choice, not on the path picker (MPI-519).
                 _showPhase('choose');
                 progressTitle.textContent = 'Installing ComfyUI Engine';
-                progressSubtitle.textContent = 'Downloading engine files...';
                 upgradeMessage.style.display = 'none';
             }
 
@@ -538,28 +588,12 @@ export const MpiEngineInstall = ComponentFactory.create({
             _modal.el.show();
 
             if (mode === 'upgrading') {
-                _subscribeEngineEvents();
-                // Connect SSE BEFORE the POST so engine:downloading broadcasts are
-                // not missed (without this the progress bar stays stuck on the
-                // static "Preparing download..." placeholder until SSE lazily
-                // connects, then jumps straight to extracting). Matches the
-                // install + repair paths.
-                downloadService._ensureSSE();
+                _beginProgress('Installing new version...');
                 fetch('/engine/upgrade', { method: 'POST' }).catch(err => {
                     _setError(`Upgrade failed: ${err.message}`);
                 });
             } else if (mode === 'repairing') {
-                _subscribeEngineEvents();
-                _progressBarInst = MpiProgressBar.mount(progressBar, {
-                    min: 0,
-                    max: 100,
-                    value: 0,
-                    interactive: false,
-                    variant: 'primary',
-                    info: 'Installing additional packages...'
-                });
-                // Ensure SSE is connected before POST to avoid missing engine:* broadcasts
-                downloadService._ensureSSE();
+                _beginProgress('Setting up...');
                 fetch('/engine/repair-deps', { method: 'POST' }).catch(err => {
                     _setError(`Repair failed: ${err.message}`);
                 });
@@ -567,92 +601,122 @@ export const MpiEngineInstall = ComponentFactory.create({
         };
 
         el.hide = () => {
-            _unsubscribeEngineEvents();
+            _endProgress();
             if (_modal) {
                 _modal.el.hide();
             }
         };
 
-        // Track combined download progress (engine + UW deps)
-        let _engineDownloadedBytes = 0;
-        let _engineTotalBytes = 0;
-        let _uwDepsDownloadedBytes = 0;
-        let _uwDepsTotalBytes = 0;
-        let _engineSpeed = '0 B/s';
+        // ── Progress state (MPI-792) ─────────────────────────────────────────────
+        // Two streams feed this phase and on Windows they run in PARALLEL: the engine
+        // phases (archive download → unpack → nodes → finish) and the UW dep bytes.
+        // Both used to write the same label and bar directly, which is how MPI-410's
+        // strobe happened. Now handlers only record facts on `_run`, and `_paint`
+        // derives the whole screen from them — so no event can steal another's line.
+        let _run = null;
+        let _ticker = null;
 
-        el.setProgress = (data) => {
-            if (!_progressBarInst) {
-                _progressBarInst = MpiProgressBar.mount(progressBar, {
-                    min: 0,
-                    max: 100,
-                    value: 0,
-                    interactive: false,
-                    variant: 'primary',
-                    info: '0%'
-                });
+        const _newRun = (label) => ({
+            step: -1,                 // index into STEPS; only ever moves forward
+            label,                    // what is happening now
+            detail: '',               // file / output line, shown while there is no bar
+            engineBytes: 0, engineTotal: 0, engineDone: false,
+            uwBytes: 0, uwTotal: 0, uwLive: false,
+            unpacking: false,         // the archive is extracting: it owns the screen
+            unpack: null,             // its percent, once the server has sent one
+            finished: false,
+            samples: [],              // [ms, combined bytes] over the last 10s → speed + ETA
+        });
+
+        const _toStep = (name) => { _run.step = Math.max(_run.step, STEPS.indexOf(name)); };
+
+        function _sampleBytes() {
+            const now = Date.now();
+            _run.samples.push([now, _run.engineBytes + _run.uwBytes]);
+            while (_run.samples.length > 2 && now - _run.samples[0][0] > 10000) _run.samples.shift();
+        }
+
+        // Speed + ETA, or nothing when there is no honest rate: too few samples, or
+        // no new bytes for 5s (a stalled download must not keep showing its last speed).
+        function _rateParts(done, total) {
+            const s = _run.samples;
+            if (s.length < 2) return [];
+            const [t0, b0] = s[0];
+            const [t1, b1] = s[s.length - 1];
+            if (t1 - t0 < 2000 || b1 <= b0 || Date.now() - t1 > 5000) return [];
+            const perSec = (b1 - b0) / ((t1 - t0) / 1000);
+            return [`${formatBytes(perSec)}/s`, _eta((total - done) / perSec)];
+        }
+
+        function _paint() {
+            if (!_run) return;
+            const r = _run;
+            stepEls.forEach((li, i) => {
+                li.classList.toggle('mpi-engine-install__step--done', r.finished || i < r.step);
+                li.classList.toggle('mpi-engine-install__step--active', !r.finished && i === r.step);
+            });
+
+            // The bar shows only while a number is honest; a spinner otherwise. While
+            // the archive unpacks, the parallel UW bytes stay off screen: a byte
+            // percent next to "Unpacking the engine" would read as the unpack's.
+            const bytesLive = (r.engineTotal > 0 && !r.engineDone) || r.uwLive;
+            const meter = r.finished ? 'done'
+                : r.unpacking ? (r.unpack !== null ? 'unpack' : 'busy')
+                : bytesLive ? 'bytes'
+                : 'busy';
+            for (const m of ['busy', 'unpack', 'done']) {
+                meterEl.classList.toggle(`mpi-engine-install__progress-section--${m}`, meter === m);
             }
 
-            // Determine if this is engine:downloading or download:progress for UW deps
-            const isEngineProgress = data.progress !== undefined && !data.modelId;
-            const isUWProgress = data.modelId === '__universal_workflow__';
-
-            if (isEngineProgress) {
-                _engineDownloadedBytes = data.downloadedBytes || 0;
-                _engineTotalBytes = data.totalBytes || 0;
-                _engineSpeed = data.speed || '0 B/s';
-            } else if (isUWProgress) {
-                _uwDepsDownloadedBytes = data.downloadedBytes || 0;
-                _uwDepsTotalBytes = data.totalBytes || 0;
+            nowLabel.textContent = r.label;
+            let pct = null;
+            if (meter === 'bytes') {
+                // Once the archive is in, count only what is still arriving: a 2 GB
+                // engine in the ratio would pin "remaining components" near 99%.
+                const engineShare = r.engineDone ? 0 : 1;
+                const done = r.engineBytes * engineShare + r.uwBytes;
+                const total = r.engineTotal * engineShare + r.uwTotal;
+                pct = total > 0 ? Math.floor((done / total) * 100) : 0;
+                progressInfo.textContent = [`${formatBytes(done)} / ${formatBytes(total)}`, ..._rateParts(done, total)].join(' · ');
+            } else if (meter === 'unpack') {
+                pct = r.unpack;
+                progressInfo.textContent = r.detail;
+            } else if (meter === 'done') {
+                pct = 100;
+                progressInfo.textContent = '';
+            } else {
+                progressInfo.textContent = r.detail;
             }
+            if (pct !== null) _progressBarInst.el.setValueQuiet(pct);
+            pctEl.textContent = pct === null ? '' : `${pct}%`;
+        }
 
-            // Calculate combined progress
-            const combinedDownloaded = _engineDownloadedBytes + _uwDepsDownloadedBytes;
-            const combinedTotal = _engineTotalBytes + _uwDepsTotalBytes;
-            const combinedProgress = combinedTotal > 0 ? Math.round((combinedDownloaded / combinedTotal) * 100) : 0;
+        const _changed = () => { _ticker?.touch(); _paint(); };
 
-            // MPI-231 — custom_nodes are work-not-bytes: a UW tick can arrive
-            // indeterminate (git-archive has no Content-Length, pip has no up-front
-            // total). With no engine archive downloading alongside it, there is no
-            // honest ratio to show — a "0.0 MB / 0.0 MB" bar reads as broken. Flip to
-            // the loading sweep + a Preparing… label instead. When the engine archive
-            // IS downloading, it owns the determinate bar; keep the real ratio.
-            const engineHasBytes = _engineTotalBytes > 0;
-            if (isUWProgress && data.indeterminate && !engineHasBytes) {
-                el.setLoading(true);
-                progressInfo.textContent = 'Preparing dependencies…';
-                return;
-            }
+        function _beginProgress(label) {
+            _showPhase('progress');
+            _endProgress();
+            _run = _newRun(label);
+            _progressBarInst.el.setValueQuiet(0);
+            _ticker = startElapsedTicker((elapsed, hint) => {
+                clockEl.textContent = `${elapsed} elapsed`;
+                quietEl.textContent = hint || '';
+                _paint(); // once a second, so a stalled download drops its speed + ETA
+            }, { hints: QUIET_HINTS });
+            _subscribeEngineEvents();
+            // Connect SSE BEFORE the caller's POST so no engine:* broadcast is missed.
+            downloadService._ensureSSE();
+        }
 
-            // Update progress bar
-            const input = qs('.mpi-progress__input', _progressBarInst.el);
-            if (input) {
-                input.value = combinedProgress;
-                const trackFill = qs('.mpi-progress__track-fill', _progressBarInst.el);
-                if (trackFill) trackFill.style.width = `${combinedProgress}%`;
-            }
-
-            // Update info text
-            const downloadedMB = (combinedDownloaded / (1024 * 1024)).toFixed(1);
-            const totalMB = (combinedTotal / (1024 * 1024)).toFixed(1);
-            progressInfo.textContent = `${downloadedMB} MB / ${totalMB} MB — ${_engineSpeed}`;
-        };
-
-        el.setStatus = (text) => {
-            progressSubtitle.textContent = text;
-        };
-
-        el.setLoading = (isLoading) => {
-            if (_progressBarInst && _progressBarInst.el) {
-                if (isLoading) {
-                    _progressBarInst.el.classList.add('mpi-progress--loading');
-                } else {
-                    _progressBarInst.el.classList.remove('mpi-progress--loading');
-                }
-            }
-        };
+        function _endProgress() {
+            _unsubscribeEngineEvents();
+            _ticker?.stop();
+            _ticker = null;
+            quietEl.textContent = '';
+        }
 
         function _setError(message) {
-            _unsubscribeEngineEvents();
+            _endProgress();
             _showPhase('error');
             errorMessage.textContent = message;
             // MPI-427: only a repair can be escaped — it implies an engine that is
@@ -664,8 +728,9 @@ export const MpiEngineInstall = ComponentFactory.create({
         el.setError = _setError;
 
         el.destroy = () => {
-            _unsubscribeEngineEvents();
-            if (_progressBarInst) _progressBarInst.destroy();
+            _endProgress();
+            _progressBarInst.destroy();
+            _spinnerInst.destroy();
             if (_pathInputInst) _pathInputInst.destroy();
             if (_browseButtonInst) _browseButtonInst.destroy();
             if (_installButtonInst) _installButtonInst.destroy();
@@ -675,102 +740,99 @@ export const MpiEngineInstall = ComponentFactory.create({
         };
 
         // ── Event Subscriptions ──────────────────────────────────────────────────
+        // Handlers record facts on `_run` and call `_changed()`; `_paint` decides the
+        // screen. See the Progress state note above.
         function _subscribeEngineEvents() {
             if (_unsubs.length) return;
 
-            _unsubs.push(Events.on('engine:downloading', (data) => {
-                el.setLoading(false); // Disable pulsation during actual download
-                el.setProgress(data);
-                _downloadState = 'downloading';
-            }));
-
-            _unsubs.push(Events.on('engine:extracting', (data) => {
-                _downloadState = 'extracting';
-                let displayFile = '';
-                if (data.file) {
-                    // Extract just the filename from the full path
-                    const parts = data.file.split(/[\\\/]/);
-                    displayFile = parts[parts.length - 1] || data.file;
-                    // Truncate if too long
-                    if (displayFile.length > 40) {
-                        displayFile = displayFile.substring(0, 37) + '...';
-                    }
+            _unsubs.push(Events.on('engine:downloading', (data = {}) => {
+                _toStep('download');
+                if (data.totalBytes > 0) {
+                    _run.engineBytes = data.downloadedBytes || 0;
+                    _run.engineTotal = data.totalBytes;
+                    _run.label = 'Downloading the ComfyUI engine';
+                    _sampleBytes();
+                } else if (data.status) {
+                    _run.label = data.status; // uv bootstrap: no archive, only a label
                 }
-                el.setStatus(`Extracting${displayFile ? ': ' + displayFile : ''}...`);
-                // MPI-410 (absorbed MPI-412): the engine phase stream and the UW dep
-                // byte stream are INDEPENDENT and both used to write this one line. On
-                // the uv path a status line is broadcast per uv/pip stdout line, so
-                // while UW deps streamed alongside it the info line alternated
-                // "Extracting files..." with "12.3 MB / 400 MB" on every event, and the
-                // sweep flicked on and off with it — the reported strobe. The subtitle
-                // above still reports the phase every time; the info line belongs to
-                // whoever has honest bytes, and while UW deps are streaming that is
-                // them. Ownership, not a debounce: a timer would only slow the flicker.
-                if (_uwBytesActive) return;
-                // Clear progress info during extraction (we don't have granular progress)
-                progressInfo.textContent = 'Extracting files...';
-                // Show loading animation during extraction
-                el.setLoading(true);
+                _changed();
             }));
 
-            _unsubs.push(Events.on('engine:patching', (data) => {
-                _downloadState = 'patching';
-                el.setStatus(data.status || 'Finalizing...');
-                progressInfo.textContent = 'Finalizing installation...';
-                el.setLoading(true);
-            }));
-
-            _unsubs.push(Events.on('engine:upgrade-status', (data) => {
-                el.setStatus(data.status);
-            }));
-
-            _unsubs.push(Events.on('engine:uw-installing', (data) => {
-                el.setStatus(data.status || 'Installing dependencies...');
-                if (data.progress !== undefined) {
-                    el.setProgress(data);
+            // One event for three things: Windows archive unpack (status 'extracting'),
+            // every uv/pip/git output line (status = stage id, file = the line), and
+            // the human ensureGit steps (status = copy, no file).
+            _unsubs.push(Events.on('engine:extracting', (data = {}) => {
+                _toStep('install');
+                _run.engineDone = true;
+                _run.label = STAGE_LABELS[data.status] || data.status || _run.label;
+                _run.unpacking = data.status === 'extracting';
+                if (_run.unpacking) {
+                    _run.detail = (data.file || '').split(/[\\/]/).pop();
+                    if (Number.isFinite(data.percent)) _run.unpack = data.percent;
+                } else {
+                    _run.detail = data.file || '';
                 }
-                // UW deps download in PARALLEL with the engine archive. Only pulse
-                // the loading animation when the engine archive is not itself
-                // actively downloading (it owns the determinate progress bar).
-                if (_downloadState !== 'downloading') {
-                    el.setLoading(true);
-                }
+                _changed();
             }));
 
-            _unsubs.push(Events.on('download:progress', (data) => {
-                if (data.modelId === '__universal_workflow__') {
-                    // MPI-410: claim the info line while these ticks carry real bytes,
-                    // so the engine phase stream stops overwriting them (see the
-                    // engine:extracting handler). An indeterminate tick has nothing to
-                    // show, so it does not claim anything.
-                    if (data.totalBytes > 0 && !data.indeterminate) _uwBytesActive = true;
-                    // UW deps (parallel) — update progress only.
-                    if (_downloadState !== 'downloading') {
-                        el.setLoading(false);
-                    }
-                    el.setProgress(data);
+            _unsubs.push(Events.on('engine:uw-installing', (data = {}) => {
+                _run.unpacking = false;
+                // The node step comes after every byte has landed.
+                if (data.phase === 'nodes') {
+                    _toStep('install');
+                    _run.uwLive = false;
                 }
+                if (data.status) _run.label = data.status;
+                _run.detail = '';
+                _changed();
             }));
 
-            _unsubs.push(Events.on('download:complete', (data) => {
-                // UW deps finished — hand the info line back to the phase stream.
-                if (data && data.modelId === '__universal_workflow__') _uwBytesActive = false;
+            _unsubs.push(Events.on('engine:upgrade-status', (data = {}) => {
+                _toStep('install');
+                if (data.status) _run.label = data.status;
+                _run.detail = '';
+                _changed();
+            }));
+
+            _unsubs.push(Events.on('download:progress', (data = {}) => {
+                if (data.modelId !== UW_JOB) return;
+                _toStep('download');
+                // MPI-231: a node tick has no honest byte total — indeterminate, not 0/0.
+                _run.uwLive = data.totalBytes > 0 && !data.indeterminate;
+                if (_run.uwLive) {
+                    _run.uwBytes = data.downloadedBytes || 0;
+                    _run.uwTotal = data.totalBytes;
+                    _sampleBytes();
+                } else if (!_run.unpacking && !(_run.engineTotal > 0 && !_run.engineDone)) {
+                    _run.detail = 'Preparing components...';
+                }
+                _changed();
+            }));
+
+            _unsubs.push(Events.on('download:complete', (data = {}) => {
+                if (data.modelId !== UW_JOB) return;
+                _run.uwLive = false;
+                _changed();
+            }));
+
+            _unsubs.push(Events.on('engine:patching', (data = {}) => {
+                _toStep('finish');
+                Object.assign(_run, { engineDone: true, uwLive: false, unpacking: false, detail: '' });
+                _run.label = STAGE_LABELS[data.status] || data.status || STAGE_LABELS.patching;
+                _changed();
             }));
 
             _unsubs.push(Events.on('engine:complete', () => {
-                _downloadState = 'idle';
-                _uwBytesActive = false;
-                _unsubscribeEngineEvents();
-                el.setLoading(false);
-                el.setStatus('Complete!');
+                _endProgress();
+                _run.finished = true;
+                _run.label = 'Complete!';
+                _paint();
                 setTimeout(() => {
                     Events.emit('engine:ready');
                 }, 500);
             }));
 
-            _unsubs.push(Events.on('engine:error', (data) => {
-                _downloadState = 'idle';
-                _unsubscribeEngineEvents();
+            _unsubs.push(Events.on('engine:error', (data = {}) => {
                 _setError(data.error);
             }));
         }

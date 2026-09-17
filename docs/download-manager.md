@@ -615,7 +615,7 @@ When `comfyNeedsRestart` is true, `ensureServerRunning()` in `comfyController.js
 
 `node-downloader-helper` v2.1.11 key traps: writes straight to final filename (no `.part` suffix), so a killed partial sits at the final path. `removeOnStop`/`removeOnFail` default TRUE — they ate a 5.66GB partial via the watchdog's `stop()` pre-MPI-317; both are now set false and deletion is owned by `.cancel()` alone. `.download()` resumes a marker-blessed partial via `resumeFromFile` (explicit Range; NDH truncates on a 200-not-206 answer) and scrubs only unusable/stale partials (no blind `resumeIfFileExists`). `models/check` uses bare `fs.pathExists` — partial-at-final-path reads as installed (false positive). MPI-54: `<file>.cubricdl` sidecar marker + `isCompleteOnDisk()` + `routes/downloadCompletion.js` fix this.
 
-**custom_nodes progress = indeterminate, never a byte ratio (MPI-231).** A GitHub `/archive/` zip is served with NO Content-Length → `stats.total`=0 → the denominator falls back to the tiny registry `seedBytes` (~15MB) while the numerator counts real streamed bytes; the following pip requirements phase has no honest up-front total either. A determinate bar overshoots (RES4LYF read `203 MB / 15 MB`). Fix: `_byteRatioExcludingNodes()` drops `type==='custom_nodes'` from BOTH sides on local (`_wireProgress`) + remote (`_onRemoteInstallEvent`); the job broadcasts `indeterminate:true, phase:'preparing'` when it has no honest total OR when the node phase is the only thing left (`isNodeTickPending`). **It is a JOB-level flag, never a per-tick one (MPI-410).** It used to be `isNodeTick || total<=0`: nodes and weights stream CONCURRENTLY, so the flag flipped on whichever dep ticked last and the engine install screen alternated "Preparing dependencies..." with a byte readout on every event (the strobe), while a model tile re-rendered on the same flag. The exclusion above is what prevents the `203 MB / 15 MB` lie; the flag never was. The rule lives in `routes/install/computeProgress.js` and both tick sites call it. Weights keep their real ratio (they send Content-Length). `MpiEngineInstall.setProgress` honors the flag (guarded by `!engineHasBytes`) → loading sweep + "Preparing dependencies…", and while those UW ticks carry real bytes they OWN that info line — `engine:extracting` stops writing it (MPI-410: on the uv path a phase line is broadcast per uv/pip stdout line, and both streams wrote the same element). The ComfyUI engine archive download/update is untouched — it uses the `engine:downloading` path with a real total, never this one.
+**custom_nodes progress = indeterminate, never a byte ratio (MPI-231).** A GitHub `/archive/` zip is served with NO Content-Length → `stats.total`=0 → the denominator falls back to the tiny registry `seedBytes` (~15MB) while the numerator counts real streamed bytes; the following pip requirements phase has no honest up-front total either. A determinate bar overshoots (RES4LYF read `203 MB / 15 MB`). Fix: `_byteRatioExcludingNodes()` drops `type==='custom_nodes'` from BOTH sides on local (`_wireProgress`) + remote (`_onRemoteInstallEvent`); the job broadcasts `indeterminate:true, phase:'preparing'` when it has no honest total OR when the node phase is the only thing left (`isNodeTickPending`). **It is a JOB-level flag, never a per-tick one (MPI-410).** It used to be `isNodeTick || total<=0`: nodes and weights stream CONCURRENTLY, so the flag flipped on whichever dep ticked last and the engine install screen alternated "Preparing dependencies..." with a byte readout on every event (the strobe), while a model tile re-rendered on the same flag. The exclusion above is what prevents the `203 MB / 15 MB` lie; the flag never was. The rule lives in `routes/install/computeProgress.js` and both tick sites call it. Weights keep their real ratio (they send Content-Length). `MpiEngineInstall` honors the flag: an indeterminate UW tick puts no bytes on screen. The MPI-410 ownership (two streams, one element) is structural since MPI-792 — see § "The engine install screen must never look frozen". The ComfyUI engine archive download/update is untouched — it uses the `engine:downloading` path with a real total, never this one.
 
 ## `_createDepJob` is a WHITELIST — add every new dep field or it vanishes
 
@@ -1365,3 +1365,41 @@ cause, and this fix covers it. Node's promise `fs.stat` has no `throwIfNoEntry` 
 Guard: `tests/download-scan-race.test.cjs` — a `readdir` stubbed to name a file that is not
 there, a marked partial whose file is really deleted, and an EPERM/EACCES control proving
 both readers still throw.
+
+## The engine install screen must never look frozen (MPI-792)
+
+Users quit a local engine install that looked stuck, relaunched, and came back to a broken
+one. Every quiet window found, and what closed it:
+
+| Window | Cause | Fix |
+|---|---|---|
+| Before the first byte | `_runEngineDownload` HEADed every missing UW dep one at a time (5 s timeout each) and only LOGGED the total | removed, with `getUniversalWorkflowDepsTotalSize` |
+| Windows unpack | node-7z without `$progress`: 7za block-buffers its per-file lines, so `data` arrives in bursts and one multi-GB DLL holds the screen still | `$progress: true`; `engine:extracting` carries `percent`, sent on a percent change or every 250 ms (never once per file — the portable has tens of thousands) |
+| After the unpack | the parallel UW downloads can outlast it | `engine:uw-installing` "Downloading remaining components..." while they have not settled |
+| Linux/macOS pip | one output line, then nothing for up to 30 min | nothing to send; the client clock and quiet hints carry it |
+| Labels | uv stage ids, `patching`, "custom node requirements" (no pip there since MPI-413) | client `STAGE_LABELS`; the node step says `Installing custom nodes (i of n)...` with `phase: 'nodes'` |
+
+Probe (646 MB archive, 3,000 files): without `$progress` the longest gap between `data`
+events was 1.2 s and the first one came at 750 ms; with it, a `progress` event at least every
+205 ms and the first `data` at 16 ms. A real portable is several times larger.
+
+**Client contract — `MpiEngineInstall`.** Handlers only record facts on `_run`; one
+`_paint()` derives the whole screen, so the engine phases and the UW bytes (parallel on
+Windows) cannot fight over a line — MPI-410's strobe was two writers on one element. The
+meter is exactly one of: `done`, `unpack` (the archive is extracting and a percent has
+arrived), `bytes` (engine archive or live UW bytes), `busy` (spinner, no bar). **The bar
+exists only while a number is honest**, and its colour follows what it measures: bytes heat,
+unpack frost, done ok. While the archive unpacks the UW bytes stay off screen — a byte
+percent beside "Unpacking the engine" reads as the unpack's. The Download / Install / Finish
+tracker only moves forward, so a late UW tick never walks it back. The engine provisioners
+own the label: `startUniversalWorkflowInstall` sends its own status only when it also runs
+the node step (repair, in-place upgrade).
+
+**Liveness — `js/utils/elapsedTicker.js`.** An elapsed clock repainted every second (the
+one signal that is always true) plus rotating "still working" hints after 15 s with no
+event. `_paint` runs on the same tick, so a stalled download drops its speed and ETA after
+5 s instead of showing its last good rate. `MpiStartingComfy` uses the same ticker for the
+curated pip pass and Pod boots. A permanent "Keep Cubric open" line sits under the meter.
+
+Guard: `tests/install-feedback.test.cjs` (ticker; negative-controlled). The screen itself was
+checked by replaying recorded event sequences through the real component.

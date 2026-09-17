@@ -73,10 +73,6 @@
     max-width: 62ch;
 }
 
-.mpi-engine-install__subtitle--secondary {
-    color: var(--ink-3);
-}
-
 /* ── Choice phase (MPI-519) ──────────────────────────────────────────────── */
 /* Two cards, side by side so they can actually be compared — that comparison is
    the whole job of this screen. auto-fit collapses them to one column below
@@ -427,11 +423,58 @@
     opacity: 0.85;
 }
 
+/* ── Steps (MPI-792) ─────────────────────────────────────────────────────── */
+/* Download / Install / Finish. Only ever moves forward, so a long step still reads
+   as progress against the whole job. The check shows once a step is behind us. */
+.mpi-engine-install__steps {
+    display: flex;
+    gap: var(--s-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.mpi-engine-install__step {
+    display: inline-flex;
+    flex: 1;
+    align-items: center;
+    gap: 6px;
+    padding-top: var(--s-2);
+    border-top: 2px solid var(--surface-3);
+    font-size: var(--t-xs);
+    color: var(--ink-4);
+    transition: color var(--t-base) var(--ease), border-color var(--t-base) var(--ease);
+}
+
+.mpi-engine-install__step .mpi-icon {
+    display: none;
+}
+
+.mpi-engine-install__step--active {
+    border-top-color: var(--accent-heat);
+    color: var(--ink-1);
+}
+
+.mpi-engine-install__step--done {
+    border-top-color: var(--accent-ok);
+    color: var(--ink-2);
+}
+
+.mpi-engine-install__step--done .mpi-icon {
+    display: inline-flex;
+    color: var(--accent-ok);
+}
+
 /* ── Progress section ────────────────────────────────────────────────────── */
+/* The meter shows ONE of three things, and its modifier says which:
+   (none) byte download → heat bar     --unpack → frost bar
+   --busy no honest number → spinner   --done   → ok bar + check
+   The colour follows what the bar is measuring, so a change of step is visible
+   even from across the room. */
 .mpi-engine-install__progress-section {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: var(--s-2);
     width: 100%;
     padding: 16px;
     background: var(--surface-bar);
@@ -440,15 +483,161 @@
     overflow: hidden;
 }
 
-.mpi-engine-install__progress-info {
+.mpi-engine-install__now {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    min-width: 0;
+}
+
+.mpi-engine-install__now-label {
     margin: 0;
+    min-width: 0;
+    font-size: var(--t-md);
+    font-weight: 500;
+    color: var(--ink-1);
+    line-height: 1.4;
+}
+
+/* Fixed-width slot so the label never jumps sideways when the mark changes. */
+.mpi-engine-install__mark {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 5ch;
+    font-size: var(--t-sm);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-heat);
+}
+
+.mpi-engine-install__mark > * {
+    display: none;
+}
+
+.mpi-engine-install__mark-pct {
+    display: inline;
+}
+
+.mpi-engine-install__progress-section--busy .mpi-engine-install__mark-pct,
+.mpi-engine-install__progress-section--done .mpi-engine-install__mark-pct {
+    display: none;
+}
+
+.mpi-engine-install__progress-section--busy .mpi-engine-install__mark-spin,
+.mpi-engine-install__progress-section--done .mpi-engine-install__mark-done {
+    display: inline-flex;
+}
+
+.mpi-engine-install__progress-section--unpack .mpi-engine-install__mark {
+    color: var(--accent-frost);
+}
+
+.mpi-engine-install__progress-section--done .mpi-engine-install__mark {
+    color: var(--accent-ok);
+}
+
+.mpi-engine-install__progress-section--busy .mpi-engine-install__bar {
+    display: none;
+}
+
+/* Three classes deep so it beats `.mpi-progress--primary .mpi-progress__track-fill`
+   regardless of stylesheet order. */
+.mpi-engine-install__bar .mpi-progress .mpi-progress__track-fill {
+    transition: width var(--t-base) var(--ease), background var(--t-base) var(--ease);
+}
+
+.mpi-engine-install__progress-section--unpack .mpi-progress .mpi-progress__track-fill {
+    background: var(--accent-frost);
+}
+
+.mpi-engine-install__progress-section--done .mpi-progress .mpi-progress__track-fill {
+    background: var(--accent-ok);
+}
+
+.mpi-engine-install__bar .mpi-progress {
+    height: 16px;
+}
+
+.mpi-engine-install__bar .mpi-progress__track-container {
+    height: 6px;
+}
+
+/* One line, always: a long pip line or file path must not change the box height on
+   every event. The full line is in logs/app.log. */
+.mpi-engine-install__progress-info {
+    min-height: 1.4em;
+    margin: 0;
+    overflow: hidden;
     font-size: var(--t-sm);
     color: var(--ink-3);
     line-height: 1.4;
-    word-break: break-word;
-    overflow-wrap: break-word;
-    white-space: normal;
-    max-width: 100%;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Pulse: elapsed clock + quiet hints ──────────────────────────────────── */
+/* Two lines, both reserved: a hint appearing or rotating never moves the box. */
+.mpi-engine-install__pulse {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-height: calc(2.8em + 2px);
+    margin: 0;
+    font-size: var(--t-xs);
+    line-height: 1.4;
+    color: var(--ink-3);
+}
+
+/* A slow breathing dot: the one thing on screen that moves even while nothing
+   else does. */
+.mpi-engine-install__clock {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-variant-numeric: tabular-nums;
+}
+
+.mpi-engine-install__clock::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: var(--r-pill);
+    background: var(--accent-heat);
+    animation: mpi-engine-install-breathe 1.6s var(--ease) infinite;
+}
+
+.mpi-engine-install__quiet {
+    color: var(--ink-2);
+}
+
+@keyframes mpi-engine-install-breathe {
+    0%, 100% { opacity: 0.25; }
+    50%      { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mpi-engine-install__clock::before,
+    .mpi-engine-install__bar .mpi-progress .mpi-progress__track-fill,
+    .mpi-engine-install__step {
+        animation: none;
+        transition: none;
+    }
+}
+
+/* ── Keep-open notice ────────────────────────────────────────────────────── */
+/* Closing mid-install is what breaks installs, so this is said plainly and stays
+   up for the whole phase. */
+.mpi-engine-install__keep-open {
+    margin: 0;
+    padding: var(--s-2) var(--s-3);
+    font-size: var(--t-sm);
+    color: var(--ink-2);
+    line-height: 1.4;
+    border-left: 2px solid var(--accent-warn);
+    background: color-mix(in oklab, var(--accent-warn) 8%, transparent);
 }
 
 /* ── Upgrade message ─────────────────────────────────────────────────────── */

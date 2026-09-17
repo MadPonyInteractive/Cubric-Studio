@@ -1,6 +1,14 @@
 import { ComponentFactory } from '../../factory.js';
 import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
 import { qs } from '../../../utils/dom.js';
+import { startElapsedTicker } from '../../../utils/elapsedTicker.js';
+
+// The curated pip pass behind "Installing Python packages" is minutes of silence, and a
+// Pod boot can be too; a spinner alone reads as a hang after a while (MPI-792).
+const QUIET_HINTS = [
+    'Still working. The first start after an install or update takes longest.',
+    'No need to click anything. This closes by itself when the engine is ready.',
+];
 
 /**
  * MpiStartingComfy — Engine Startup Indicator (Compound)
@@ -27,6 +35,10 @@ export const MpiStartingComfy = ComponentFactory.create({
                 <h2 class="mpi-starting-comfy__title gradient-text" data-ref="title">${props.title || 'Starting ComfyUI Engine...'}</h2>
                 <p class="mpi-starting-comfy__text text-muted" data-ref="text">${props.text || 'This may take a few moments...'}</p>
                 <div class="mpi-starting-comfy__status" data-ref="status"></div>
+                <p class="mpi-starting-comfy__pulse">
+                    <span class="mpi-starting-comfy__clock" data-ref="clock"></span>
+                    <span class="mpi-starting-comfy__quiet" data-ref="quiet"></span>
+                </p>
             </div>
         </div>
     `,
@@ -35,11 +47,20 @@ export const MpiStartingComfy = ComponentFactory.create({
         let _backdrop  = null;
         let _wrapper   = null;
         let spinnerInst = null;
+        let ticker = null;
 
         const statusSlot = qs('[data-ref="status"]', el);
         const titleEl    = qs('[data-ref="title"]', el);
         const textEl     = qs('[data-ref="text"]', el);
+        const clockEl    = qs('[data-ref="clock"]', el);
+        const quietEl    = qs('[data-ref="quiet"]', el);
         const _default   = { title: titleEl.textContent, text: textEl.textContent };
+
+        const stopTicker = () => {
+            ticker?.stop();
+            ticker = null;
+            quietEl.textContent = '';
+        };
 
         el.setLoading = (isLoading) => {
             statusSlot.innerHTML = '';
@@ -50,6 +71,7 @@ export const MpiStartingComfy = ComponentFactory.create({
         };
 
         el.setError = (errMsg) => {
+            stopTicker();
             el.setLoading(false);
             statusSlot.innerHTML = `<p class="mpi-starting-comfy__error">${errMsg}</p>`;
         };
@@ -63,8 +85,14 @@ export const MpiStartingComfy = ComponentFactory.create({
             // still relabel. Always assigned, so a later plain show() cannot inherit it.
             titleEl.textContent = (phase && phase.title) || _default.title;
             textEl.textContent  = (phase && phase.text)  || _default.text;
-            if (_backdrop) return; // already visible — idempotent
+            if (_backdrop) { ticker?.touch(); return; } // already visible — idempotent
             el.setLoading(true);
+            // One clock for the whole visible stretch: a phase change relabels, it
+            // does not restart the count.
+            ticker = startElapsedTicker((elapsed, hint) => {
+                clockEl.textContent = `${elapsed} elapsed`;
+                quietEl.textContent = hint || '';
+            }, { hints: QUIET_HINTS });
 
             _backdrop = document.createElement('div');
             _backdrop.className = 'mpi-modal-backdrop';
@@ -78,6 +106,7 @@ export const MpiStartingComfy = ComponentFactory.create({
         };
 
         el.hide = () => {
+            stopTicker();
             _backdrop?.remove(); _backdrop = null;
             _wrapper?.remove();  _wrapper  = null;
         };

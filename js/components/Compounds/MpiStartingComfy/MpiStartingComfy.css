@@ -54,6 +54,30 @@
     justify-content: center;
 }
 
+/* Elapsed clock + quiet hints (MPI-792). Reserves the clock plus two hint lines, so
+   the box does not jump each time a hint appears or rotates. */
+.mpi-starting-comfy__pulse {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-height: 4.6em;
+    margin: 0;
+    font-size: var(--t-xs);
+    line-height: 1.4;
+    color: var(--ink-3);
+}
+
+.mpi-starting-comfy__clock {
+    font-variant-numeric: tabular-nums;
+}
+
+.mpi-starting-comfy__quiet {
+    max-width: 44ch;
+    color: var(--ink-2);
+    text-wrap: balance;
+}
+
 .mpi-starting-comfy__error {
     color: var(--accent-heat);
     font-size: var(--t-sm);

@@ -3039,7 +3039,11 @@ function _checkModelJobsComplete() {
     }
 }
 
-async function _runCustomNodeInstall(modelJob) {
+/**
+ * @param {object} modelJob
+ * @param {((i: number, n: number) => void)|null} [onNode] - called before each node (1-based)
+ */
+async function _runCustomNodeInstall(modelJob, onNode = null) {
     const customDeps = modelJob.deps.filter(d =>
         d.status === 'complete' && d.localPath != null && d.type === 'custom_nodes'
     );
@@ -3069,7 +3073,8 @@ async function _runCustomNodeInstall(modelJob) {
     // what carries the deps to that boot — the same restart the new nodes already need
     // before ComfyUI will scan them.
 
-    for (const dep of customDeps) {
+    for (const [i, dep] of customDeps.entries()) {
+        onNode?.(i + 1, customDeps.length);
         // Guard: skip deps without a valid localPath string
         if (dep.localPath == null || typeof dep.localPath !== 'string') {
             logger.warn('download', `dep ${dep.id} has invalid localPath (${JSON.stringify(dep.localPath)}), skipping`);
@@ -3654,7 +3659,10 @@ async function startUniversalWorkflowInstall(depIds, broadcastProgress = true, s
 
     logger.info('download', `startUniversalWorkflowInstall: customRoot=${customRoot}, ${depIds.length} deps to check`);
 
-    if (broadcastProgress) {
+    // An engine provisioner (skipCustomNodeInstall) owns the install-screen label and
+    // runs its own phases alongside this; a status from here would overwrite them
+    // mid-download or mid-unpack (MPI-792).
+    if (broadcastProgress && !skipCustomNodeInstall) {
         broadcastEngineEvent('engine:uw-installing', { status: 'Installing dependencies...' });
     }
 
@@ -3801,24 +3809,18 @@ async function startUniversalWorkflowInstall(depIds, broadcastProgress = true, s
         );
 
         if (customNodeDeps.length > 0) {
-            if (broadcastProgress) {
-                broadcastEngineEvent('engine:uw-installing', { status: 'Installing custom node requirements...' });
-            }
             // Re-use the modelJob-shaped structure that _runCustomNodeInstall expects
             await _runCustomNodeInstall({
                 modelId: modelJob.modelId,
                 deps: customNodeDeps,
-            });
+            }, broadcastProgress ? _broadcastNodeStep : null);
         }
 
         if (broadcastProgress && !depFailure) {
-            broadcastEngineEvent('engine:uw-installing', { status: 'Universal workflow dependencies ready' });
+            broadcastEngineEvent('engine:uw-installing', { status: 'All components installed' });
         }
     } else {
         logger.info('download', 'Skipping custom node install; will be called after engine extraction');
-        if (broadcastProgress) {
-            broadcastEngineEvent('engine:uw-installing', { status: 'Dependencies downloaded, waiting for engine...' });
-        }
     }
 
     // MPI-427: report the failure only now, with every node that DID download already
@@ -3847,18 +3849,25 @@ async function finishCustomNodeInstall(modelJob, broadcastProgress = true) {
     );
 
     if (customNodeDeps.length > 0) {
-        if (broadcastProgress) {
-            broadcastEngineEvent('engine:uw-installing', { status: 'Installing custom node requirements...' });
-        }
         await _runCustomNodeInstall({
             modelId: modelJob.modelId,
             deps: customNodeDeps,
-        });
+        }, broadcastProgress ? _broadcastNodeStep : null);
     }
 
     if (broadcastProgress) {
-        broadcastEngineEvent('engine:uw-installing', { status: 'Universal workflow dependencies ready' });
+        broadcastEngineEvent('engine:uw-installing', { status: 'All components installed' });
     }
+}
+
+/**
+ * The install screen's label for the node step of a UW install: one per node, so a slow
+ * extract still visibly moves, with `phase: 'nodes'` so the step tracker can place it
+ * (MPI-792). Extraction only — no pip has run there since MPI-413, which the old
+ * "Installing custom node requirements" copy still claimed.
+ */
+function _broadcastNodeStep(i, n) {
+    broadcastEngineEvent('engine:uw-installing', { status: `Installing custom nodes (${i} of ${n})...`, phase: 'nodes' });
 }
 
 // Named export for engine to broadcast on shared SSE
