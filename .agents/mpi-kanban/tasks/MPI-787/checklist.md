@@ -10,6 +10,9 @@ Every `mousemove` runs the FULL `MpiCanvas.draw()`: the base canvas repaints the
 image and the overlay repaints every layer edge to edge, both at image size (8.8 MP each).
 MPI-214 capped the mask's working buffers at 1536 but left this display path full-frame.
 
+First diagnostic run, one pass per row. `validation.md` holds the final 3x3-stroke means
+(1.6.1: 23.5 fps / 11.9 ms, MPI-214 tree: 27.1 fps / 4.0 ms); the ordering is the same.
+
 | variant (hardware acceleration OFF) | fps | median frame | JS / event |
 |---|---|---|---|
 | MPI-214 fix (efc2cc29) | 24.7 | 40 ms | 4.6 ms |
