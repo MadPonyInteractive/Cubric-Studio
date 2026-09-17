@@ -87,7 +87,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
                     <div class="mpi-settings__plate" id="mpiSettingsRunpodStageOnConnectGroup">
                         <div class="mpi-settings__plate-main">
                             <span class="mpi-settings__plate-label">Stage all models on connect</span>
-                            <span class="mpi-settings__plate-desc">When on, every installed model is copied to the Pod's fast disk as soon as it connects, so the first generation is instant. Off by default — models are staged on first use instead, copying only what you actually generate with.</span>
+                            <span class="mpi-settings__plate-desc">When on, every installed model is copied to the Pod's fast disk as soon as it connects, so the first generation is instant. On by default — turn it off to stage models on first use instead, copying only what you actually generate with.</span>
                         </div>
                         <div class="mpi-settings__plate-ctrl" id="mpiSettingsRunpodStageOnConnectSlot"></div>
                     </div>
@@ -1774,7 +1774,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
 
             // ── Stage all models on connect (MPI-329) ────────────────────────
             // When ON, the hot-store prefetch stages EVERY installed model's weights
-            // to the Pod's fast disk on connect (first gen instant). OFF (default):
+            // to the Pod's fast disk on connect (first gen instant). ON by default; OFF:
             // weights stage lazily on first generation (gen-preflight), copying only
             // what's actually used. Persist-only; commandExecutor reads it via
             // Storage on the remote:connection flip and runs the prefetch there.

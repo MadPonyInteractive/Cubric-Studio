@@ -1,0 +1,17 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-802",
+  "title": "Settings defaults: Reuse Prompt 'Ask each time' ON, RunPod 'Stage all models on connect' ON",
+  "description": "Fabio 2026-09-17: flip two stored defaults in js/core/storage.js - DEFAULT_PROMPT_REUSE_OPTIONS.ask and DEFAULT_RUNPOD_CONFIG.stageOnConnect both default ON, normalizers read a missing key as true. Fresh stores only; an existing store carries an explicit boolean. Settings copy updated to match.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "completed",
+  "created_at": "2026-09-17T18:35:12Z",
+  "updated_at": "2026-09-17T18:37:20Z",
+  "links": {
+    "checklist": "checklist.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "validation": "validation.md"
+  }
+}

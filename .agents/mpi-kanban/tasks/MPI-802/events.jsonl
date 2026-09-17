@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-802", "at": "2026-09-17T18:35:12Z", "actor": "claude", "column": "todo", "title": "Settings defaults: Reuse Prompt 'Ask each time' ON, RunPod 'Stage all models on connect' ON"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-802", "at": "2026-09-17T18:35:12Z", "actor": "claude", "from": "todo", "to": "doing", "summary": "Flipping the two settings defaults."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-802", "at": "2026-09-17T18:37:20Z", "actor": "claude", "from": "doing", "to": "done", "summary": "Both defaults flipped ON in storage.js; fresh-store check green; RunPod plate copy updated."}

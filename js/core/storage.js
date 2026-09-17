@@ -2,8 +2,11 @@
 
 import { STORAGE_KEYS, SESSION_KEYS } from './storageKeys.js';
 
+// `ask` defaults ON: Reuse Prompt opens the picker rather than silently carrying the
+// stored parts over. A store written before this flip still holds an explicit
+// `ask: false` and keeps the old behavior — only a fresh/corrupt store reads as ON.
 export const DEFAULT_PROMPT_REUSE_OPTIONS = Object.freeze({
-  ask: false,
+  ask: true,
   prompt: true,
   settings: true,
   model: true,
@@ -11,7 +14,7 @@ export const DEFAULT_PROMPT_REUSE_OPTIONS = Object.freeze({
 });
 
 function normalizePromptReuseOptions(value = {}) {
-  const ask = value?.ask === true;
+  const ask = value?.ask !== false;
   return {
     ask,
     prompt: value?.prompt !== false,
@@ -73,10 +76,11 @@ export const DEFAULT_RUNPOD_CONFIG = Object.freeze({
   autoRetry: false,
   // stageOnConnect: when ON, every installed model's weights are copied to the Pod's
   // fast container disk the moment it connects (MPI-329), so the FIRST generation is
-  // instant. Default OFF = weights stage lazily on first use (gen-preflight), copying
-  // only what the user actually generates with. Persist-only; commandExecutor runs the
-  // prefetch on the remote-connect edge.
-  stageOnConnect: false,
+  // instant. Default ON; OFF = weights stage lazily on first use (gen-preflight),
+  // copying only what the user actually generates with. Persist-only; commandExecutor
+  // runs the prefetch on the remote-connect edge. A store written before this flip
+  // holds an explicit `false` and keeps the lazy behavior.
+  stageOnConnect: true,
   // idleTimeoutS: idle-watchdog timeout baked into the Pod env at create time,
   // stored in SECONDS (the wrapper unit), shown as minutes in Settings. Floor
   // 10 min (600 s), default 15 min (900 s) — mirrors MpiSettings' IDLE_* clamps.
@@ -157,7 +161,7 @@ function normalizeRunpodConfig(value = {}) {
     autoConnectOnStart: value?.autoConnectOnStart === true,
     skipLocalEngine: value?.skipLocalEngine === true,
     autoRetry: value?.autoRetry === true,
-    stageOnConnect: value?.stageOnConnect === true,
+    stageOnConnect: value?.stageOnConnect !== false,
     idleTimeoutS: normalizeIdleTimeoutS(value?.idleTimeoutS),
     containerDiskGb: normalizeContainerDiskGb(value?.containerDiskGb),
     minRamGb: normalizeMinRamGb(value?.minRamGb),

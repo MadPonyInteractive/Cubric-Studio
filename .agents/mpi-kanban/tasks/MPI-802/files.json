@@ -1,0 +1,11 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-802/",
+    ".agents/mpi-kanban/board.json",
+    ".agents/mpi-kanban/events.jsonl",
+    "js/core/storage.js",
+    "js/components/Compounds/LandingPages/MpiSettings/MpiSettings.js",
+    "js/components/Organisms/MpiRunpodSettings/MpiRunpodSettings.js"
+  ]
+}
