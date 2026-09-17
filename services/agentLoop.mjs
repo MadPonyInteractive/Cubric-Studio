@@ -502,7 +502,7 @@ Installation rule: Always call install_model to show the user a Yes / No confirm
 
 Project rule: a generation lands in the open project. Never invent a folder path: open_project only takes a folderPath from list_projects or create_project, or one the user typed. To open a project by name, find it with list_projects. With no project open, two different requests:
 - The user asks you to make something (an image, a video): create a project named exactly "New Project" with create_project, open the folderPath it returns, then generate there. Do not name it after the request and do not save a note: they asked for a picture, not a project.
-- The user starts a new project and tells you its goal: name the project after the goal, create it, open it, then save a project-brief note with write_memory (the goal, the look, any decisions so far).
+- The user starts a new project and tells you its goal: name the project after the goal, create it, open it, then save a project-brief note with write_memory (the goal, the look, any decisions so far). Then end your turn by asking what they want to make first. Do not generate anything in that turn: a goal is not a request for a picture.
 
 Deletion rule: You never delete anything: no cards, no media, no notes, no projects. No tool of yours can, and you never look for a way. When the user wants something deleted, tell them only they can do it, and where: a card from the gallery (right-click it, Delete, which also removes its whole history), a project from the projects list on the landing page (right-click it, Delete project).
 
@@ -540,14 +540,19 @@ ${knowledgeIndex}`.trim();
                 return JSON.stringify(r);
             }
             case 'install_model': {
-                // Step 1: look up the model's size so the confirm card can show it
-                let modelName = args.modelId;
-                let downloadGb = null;
+                // Step 1: the model must be one list_models knows; the card shows its name and size.
+                // A guessed id ("ltx-2.3" for ltx-23-balanced, agent-test 2026-09-17) got a card too.
+                let m;
                 try {
-                    const mr = await this._tools.listModels();
-                    const m = mr?.models?.find((m) => m.id === args.modelId);
-                    if (m) { modelName = m.name || args.modelId; downloadGb = m.missingDownloadGb ?? null; }
-                } catch { /* ignore — size is shown as null */ }
+                    m = (await this._tools.listModels())?.models?.find((x) => x.id === args.modelId);
+                } catch (err) {
+                    return JSON.stringify({ ok: false, error: { code: 'RUNTIME_ERROR', message: `Could not read the model list: ${err.message}` } });
+                }
+                if (!m) {
+                    return JSON.stringify({ ok: false, error: { code: 'UNKNOWN_MODEL', message: `No model "${args.modelId}". Use a model id exactly as list_models gives it.` } });
+                }
+                const modelName = m.name || args.modelId;
+                const downloadGb = m.missingDownloadGb ?? null;
 
                 const confirmId = crypto.randomUUID();
                 this._emit('agent:confirm', { turnId, confirmId, kind: 'install', modelId: args.modelId, modelName, downloadGb });
@@ -783,7 +788,7 @@ ${knowledgeIndex}`.trim();
     // Run a turn (called by POST /agent/message)
     // -------------------------------------------------------------------------
 
-    async runTurn(text, attachments, project, mode, profileId, turnId, { model: pickedModel } = {}) {
+    async runTurn(text, attachments, project, mode, profileId, turnId, { model: pickedModel, carried = false } = {}) {
         this._working = true;
         this._lastMode = mode;
         this._emit('agent:working', { turnId, working: true });
@@ -838,15 +843,22 @@ ${knowledgeIndex}`.trim();
             // Without it the model guessed folder paths, claimed no project was open while
             // one was, and passed look the literal "result filePath" (agent-test, 2026-09-16).
             // Then the project's notes (once per project) and what finished since last turn.
-            const opening = [this._appStateLine(project), await this._projectNotesLine(project), ...this._notes.splice(0)];
+            // A carried request (D5) was asked in another conversation, which already opened this
+            // project for it: unsaid, "open X" ran twice and the reply quoted the "From" prefix back.
+            const handover = carried
+                ? '[Handed over: the user asked this in another conversation, which already opened this project for it. Do only what is left of the request; if opening this project was all of it, say it is open and ask what to make.]'
+                : '';
+            const opening = [this._appStateLine(project), handover, await this._projectNotesLine(project), ...this._notes.splice(0)];
             contentParts.unshift(...opening.filter(Boolean).map((t) => ({ type: 'text', text: t })));
 
             // Add user message to LLM context (plain text for OpenAI compat)
             const userContent = contentParts.map((p) => p.text).join('\n');
             this._messages.push({ role: 'user', content: userContent });
 
-            // Add to UI history
-            this._historyEntry('user', { text, attachments: stagedAttachments });
+            // Add to UI history. The sender's chat drew its own bubble; a carried request has no
+            // sender in this conversation, so it is announced.
+            const userEntry = this._historyEntry('user', { text, attachments: stagedAttachments });
+            if (carried) this._emit('agent:user', { turnId, id: userEntry.id, text, attachments: stagedAttachments });
 
             // Build engine
             const engine = new DeepInfraEngine(key, profile.baseURL);

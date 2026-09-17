@@ -256,6 +256,20 @@ describe('(a) install gate', () => {
 
         assert.equal(tools.calls.installModel.length, 0, 'installModel must never fire after No');
     });
+
+    test('an id list_models does not know gets UNKNOWN_MODEL, and no card', async () => {
+        const engineResponses = [
+            { text: '', toolCalls: [{ id: 'tc-1', type: 'function', function: { name: 'install_model', arguments: '{"modelId":"ltx-2.3"}' } }] },
+            { text: 'That id does not exist.' },
+        ];
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses });
+        await loop.runTurn('Install LTX', [], null, 'auto', 'deepinfra', 'turn-unknown');
+
+        assert.ok(!fakeRes.events.some((e) => e.event === 'agent:confirm'), 'no card for a guessed id');
+        assert.equal(tools.calls.installModel.length, 0);
+        const result = loop._messages.find((m) => m.role === 'tool' && m.tool_call_id === 'tc-1');
+        assert.equal(JSON.parse(result.content).error.code, 'UNKNOWN_MODEL');
+    });
 });
 
 // ---------------------------------------------------------------------------

@@ -1,0 +1,27 @@
+/* BEM Block naming — mpi-resize-handle (MPI-797). The owner places it on its edge. */
+.mpi-resize-handle {
+    position: absolute;
+    z-index: 1;
+    touch-action: none;
+    background: transparent;
+    transition: background var(--t-fast) var(--ease);
+}
+
+.mpi-resize-handle--x {
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: ew-resize;
+}
+
+.mpi-resize-handle--y {
+    left: 0;
+    right: 0;
+    height: 6px;
+    cursor: ns-resize;
+}
+
+.mpi-resize-handle:hover,
+.mpi-resize-handle--active {
+    background: var(--accent-heat);
+}

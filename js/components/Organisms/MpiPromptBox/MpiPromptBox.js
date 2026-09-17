@@ -65,7 +65,14 @@ import { MpiEnhanceDialog } from '../../Compounds/MpiEnhanceDialog/MpiEnhanceDia
  * Emits:
  *   'input' | 'mode-change' | 'media-change' | 'media-imported'
  *   'run' | 'cancel' | 'model-change' | 'operation-change'
+ *
+ * Agent mode (state.agentMode, MPI-774/797): the box shows only its text, chips and the
+ * Agent|Prompt toggle; the text is the agent's own; chips are images, numbered.
  */
+
+// ponytail: the agent takes as many references as the widest op it can drive (H3's nine
+// pictures); raise it if a model ever takes more.
+const AGENT_MAX_IMAGES = 9;
 export const MpiPromptBox = ComponentFactory.create({
     name: 'MpiPromptBox',
     css: ['js/components/Organisms/MpiPromptBox/MpiPromptBox.css'],
@@ -135,20 +142,25 @@ export const MpiPromptBox = ComponentFactory.create({
         let positiveValue      = props.value || _draft.positive || '';
         let negativeValue      = props.negativeValue || _draft.negative || '';
         let negativeAudioValue = props.negativeAudioValue || _draft.negativeAudio || '';
+        // MPI-797: Agent mode types its own message. Sharing the positive field meant a
+        // sent message wiped the prompt. Not in the draft: the conversation is not saved.
+        let agentValue = '';
 
         // Field access by mode, so every read/write site stays a one-liner and a
-        // fourth mode would not mean hunting ternaries.
-        const _readMode = (m = promptMode) =>
-            m === 'negative' ? negativeValue : m === 'negativeAudio' ? negativeAudioValue : positiveValue;
+        // fourth mode would not mean hunting ternaries. Agent mode overrides all three.
+        const _readMode = (m = promptMode) => _agentMode ? agentValue
+            : m === 'negative' ? negativeValue : m === 'negativeAudio' ? negativeAudioValue : positiveValue;
         const _writeMode = (v, m = promptMode) => {
-            if (m === 'negative') negativeValue = v;
+            if (_agentMode) agentValue = v;
+            else if (m === 'negative') negativeValue = v;
             else if (m === 'negativeAudio') negativeAudioValue = v;
             else positiveValue = v;
         };
         const _placeholderFor = (m) =>
-            m === 'negative' ? 'Type negative prompt...'
-                : m === 'negativeAudio' ? 'Type negative audio prompt...'
-                    : 'Type your prompt...';
+            _agentMode ? 'Talk to the agent. Shift+Enter for a new line, Enter to send.'
+                : m === 'negative' ? 'Type negative prompt...'
+                    : m === 'negativeAudio' ? 'Type negative audio prompt...'
+                        : 'Type your prompt...';
         const _iconFor = (m) =>
             // volumeOff (struck-through speaker), not 'audio' — a plain speaker read
             // as a POSITIVE audio prompt, which is the opposite of what this stop is.
@@ -301,6 +313,8 @@ export const MpiPromptBox = ComponentFactory.create({
         }
 
         function _maxMediaForCurrentOperation(mediaType) {
+            // MPI-797: in Agent mode a chip is an attachment for the agent, not an op slot.
+            if (_agentMode) return mediaType === 'image' ? AGENT_MAX_IMAGES : 0;
             const activeMax = _maxMediaForOperation(activeOperation, mediaType);
             if (activeMax > 0) return activeMax;
             if (!model?.supportedOps?.length) return 0;
@@ -382,6 +396,8 @@ export const MpiPromptBox = ComponentFactory.create({
          * one per chip.
          */
         function _pruneUnsupportedMedia() {
+            // Agent-mode chips wait for the agent; leaving Agent mode prunes them (_fitMediaToOperation).
+            if (_agentMode) return;
             const accepted = new Set(_mediaSlotsForOperation().map(slot => slot.mediaType));
             const doomed = _mediaItems.filter(m => !accepted.has(m.mediaType));
             if (!doomed.length) return;
@@ -467,7 +483,7 @@ export const MpiPromptBox = ComponentFactory.create({
             // (e.g. i2i → krea2Edit on the 2nd image) BEFORE the cap below would
             // otherwise evict the existing chip. Skipped for role-tagged drops
             // (start/end-frame carry their own slot) and models with no bigger op.
-            if (!role) {
+            if (!role && !_agentMode) {
                 const existing = _mediaItems.filter(m => m.mediaType === mediaType).length;
                 const wouldBe = existing + 1;
                 if (wouldBe > _maxMediaForCurrentOperation(mediaType)) {
@@ -897,7 +913,9 @@ export const MpiPromptBox = ComponentFactory.create({
             // nothing rather than an affordance that injects into a missing node.
             // Roles here are the ASSIGNED ones (_withAssignedRoles ran at line 330), so
             // the pill reports where the asset is really going, not a stale tag.
-            const _hasEndSlot = _mediaSlotsForOperation().some(s => s.key === 'endFrame');
+            // MPI-797: in Agent mode a chip is an attachment: no frame pill, no slot tag,
+            // always its position (Fabio: "numbered 1, 2, 3 only").
+            const _hasEndSlot = !_agentMode && _mediaSlotsForOperation().some(s => s.key === 'endFrame');
             const _imageCount = items.filter(m => m.mediaType === 'image').length;
             // Everything the pill renders from, as one string. The reorder fast path
             // below keys on the item SET, and that invariant ("same set => same chip
@@ -916,8 +934,8 @@ export const MpiPromptBox = ComponentFactory.create({
                 _mediaSlotsForOperation().filter(s => s.tag).map(s => [s.key, s.tag]));
             // Roles are the ASSIGNED ones (_withAssignedRoles ran before this), so the
             // badge reports where the asset really goes, not a stale tag.
-            const _badgeFor = (item, idx) => _tagBySlot.get(item.role)
-                ?? (items.length > 1 ? String(idx + 1) : '');
+            const _badgeFor = (item, idx) => _agentMode ? String(idx + 1)
+                : _tagBySlot.get(item.role) ?? (items.length > 1 ? String(idx + 1) : '');
 
             // What the fast path below may NOT change: the role pill, and whether a
             // badge element exists at all. Its TEXT is fine to re-stamp in place (that
@@ -1316,8 +1334,8 @@ export const MpiPromptBox = ComponentFactory.create({
         // ── Textarea ───────────────────────────────────────────────────────────
         const mainInput = MpiInput.mount(qs('#textarea-slot', el), {
             type: 'textarea',
-            placeholder: 'Type your prompt...',
-            value: positiveValue
+            placeholder: _placeholderFor(promptMode),
+            value: _readMode(),
         });
 
         const textareaEl = qs('textarea', mainInput.el);
@@ -1428,7 +1446,7 @@ export const MpiPromptBox = ComponentFactory.create({
             // Never on a negative field — the tags address references, and a negative
             // prompt has none. (H3 has no negative node at all, but the guard is cheap
             // and keeps this correct for any future tagged op that does.)
-            const tags = promptMode === 'positive' ? _stagedRefTags() : [];
+            const tags = promptMode === 'positive' && !_agentMode ? _stagedRefTags() : [];
             if (!tags.length) return _closeRefPicker();
 
             const query = matchRefTagQuery(textareaEl.value, textareaEl.selectionStart, tags);
@@ -2352,9 +2370,40 @@ export const MpiPromptBox = ComponentFactory.create({
         // ── MPI-774: Agent | Prompt toggle ─────────────────────────────────────
         const _modeToggleSlot = qs('#mode-toggle-slot', el);
 
+        // MPI-797: the Agent face — its own text and hint, chips by number, no ref picker.
+        function _applyAgentView() {
+            el.classList.toggle('mpi-prompt-box--agent-mode', _agentMode);
+            textareaEl.value = _readMode();
+            textareaEl.placeholder = _placeholderFor(promptMode);
+            _closeRefPicker();
+            updateHeight();
+            if (!_agentMode) _fitMediaToOperation();
+            _renderStrip(_withAssignedRoles());
+        }
+
+        // Agent mode stages images whatever the op takes. Back in Prompt mode the op
+        // decides again, the way a drop does: a bigger op if the model has one, else the
+        // trailing chips go (never the pinned one), and a type with no slot is pruned.
+        function _fitMediaToOperation() {
+            _pruneUnsupportedMedia();
+            const count = () => _mediaItems.filter(m => m.mediaType === 'image').length;
+            if (count() > _maxMediaForCurrentOperation('image')) {
+                const biggerOp = _opForMediaCount('image', count());
+                if (biggerOp && biggerOp !== activeOperation) el.setOperation(biggerOp, { programmatic: true });
+            }
+            let over = count() - _maxMediaForCurrentOperation('image');
+            if (over <= 0) return;
+            for (const m of _mediaItems.filter(i => i.mediaType === 'image' && !i.pinned).reverse()) {
+                if (over-- <= 0) break;
+                _removeItem(m.id, { silent: true });
+            }
+            _emitMediaChange();
+        }
+
         function _setAgentMode(on_) {
+            if (on_ === _agentMode) return;
             _agentMode = on_;
-            el.classList.toggle('mpi-prompt-box--agent-mode', on_);
+            _applyAgentView();
             // Write to global state so the shell panel and any remount can react.
             state.agentMode = on_;
         }
@@ -2383,16 +2432,16 @@ export const MpiPromptBox = ComponentFactory.create({
 
             // Route through the bus — no direct method call on the panel instance.
             Events.emit('agent:send', { text, attachments });
-            if (textareaEl) textareaEl.value = '';
+            textareaEl.value = '';
             _writeMode('');
-            _saveDraft();
+            updateHeight();
             // Clear the chips that were attached (non-pinned).
             if (imageItems.length) el.clearMedia();
         }
 
         if (_modeToggleSlot) {
             const modeBtn = MpiButton.mount(_modeToggleSlot, {
-                icon: 'chat',
+                image: 'assets/mascot/logo.png', // the agent's head (MPI-797)
                 info: 'Switch to Agent mode (chat)',
                 size: 'sm',
                 variant: 'ghost',
@@ -2407,17 +2456,22 @@ export const MpiPromptBox = ComponentFactory.create({
             _unsubs.push(Events.onState('agentMode', (val) => {
                 if (val !== _agentMode) {
                     _agentMode = val;
-                    el.classList.toggle('mpi-prompt-box--agent-mode', val);
+                    _applyAgentView();
                     modeBtn.el.setActive?.(val);
                 }
             }));
         }
+        // A box mounted while Agent mode is on (a workspace switch) opens on its Agent face.
+        if (_agentMode) _applyAgentView();
 
         // ── Run / Stop / Loop hotkeys ──────────────────────────────────────────
         const _triggerRun = () => {
             // An open Flow overlay owns Ctrl+Enter → it runs the Flow, not the PromptBox
             // behind it. bind() fires all handlers, so bail here when a Flow is live.
             if (qs('.mpi-base-flow')) return;
+            // MPI-797: Agent mode has no Cue: the run hotkey sends the message, as Enter
+            // does (the hotkey manager takes Ctrl+Enter before the textarea sees it).
+            if (_agentMode) { _sendAgentTurn(); return; }
             // MPI-73: the run hotkey bypasses the (now-disabled) Cue button — block
             // it too while the remote engine is connecting/disconnecting.
             if (_remoteTransitioning) return;
@@ -2438,6 +2492,7 @@ export const MpiPromptBox = ComponentFactory.create({
         };
 
         const _triggerLoop = () => {
+            if (_agentMode) return; // no Cue in Agent mode, so no loop to arm (MPI-797)
             state.loopArmed = !state.loopArmed;
             if (state.loopArmed) _seedLoopIfIdle();
         };

@@ -7,7 +7,8 @@
  *   POST /agent/message   — send a user turn (returns immediately; reply via SSE)
  *   GET  /agent/stream    — SSE for every conversation: agent:working, agent:message,
  *                           agent:tool, agent:confirm, agent:result, agent:compacting,
- *                           agent:error (each with `session`), and agent:session on a move
+ *                           agent:error, agent:user (a carried request) (each with `session`),
+ *                           and agent:session on a move
  *   GET  /agent/history?project= — one conversation's history + working / confirm state
  *   GET  /agent/attachment/:id — the staged image behind a history attachment id
  *   POST /agent/confirm   — respond to an install confirmation card

@@ -44,7 +44,10 @@ untouched; the next manual Cue press in the app sees exactly what it did before.
 An unset one falls back to whatever the open project currently has set (the
 same value a manual Cue press would use), never to the workflow's own baked
 default — so a size/quality/style you never asked for cannot silently apply,
-and one you never *un*-asked for cannot silently vanish either.
+and one you never *un*-asked for cannot silently vanish either. An op that sizes its
+own output from its input image (each model lists its own: Klein's `kleinEdit`, Krea 2's
+`krea2Edit`, most models' `control`/`detail`/`upscale`) has no ratio: `ratio` is refused there (`INVALID_RATIO`), and the project's
+saved one is not applied either (`GET /connector/models` lists no `ratios` for it).
 
 ```bash
 curl -s -X POST "$CUBRIC_URL/connector/generate" \
@@ -105,7 +108,7 @@ Success returns the item, so a follow-up run can consume it:
 
 ```json
 { "ok": true, "output": { "itemId": "...", "groupId": "...", "type": "image",
-  "filePath": "C:/.../out.png", "seed": 12345, "pixelDimensions": {"w":1024,"h":1024},
+  "filePath": "/project-file?path=C%3A%2F...%2Fout.png", "seed": 12345, "pixelDimensions": {"w":1024,"h":1024},
   "generationMs": 8410 } }
 ```
 

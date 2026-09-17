@@ -20,6 +20,9 @@ import { ce, qs } from '../../../utils/dom.js';
  * Props (icon buttons — all optional):
  * @param {string}  [icon]          - Icon registry key (activates icon-button mode)
  * @param {string}  [iconActive]    - Alternate icon shown in active/toggled state
+ * @param {string}  [image]         - An image url drawn in the icon's place (icon-button mode
+ *                                    without an `icon`): muted until hovered, full colour when
+ *                                    active, since an image cannot take the icon's colour
  * @param {string}  [label]         - Text label alongside the icon
  * @param {'left'|'right'|'top'|'bottom'} [labelPosition='right'] - Label placement
  * @param {boolean} [toggleable]    - Click commits the active state
@@ -30,7 +33,7 @@ export const MpiButton = ComponentFactory.create({
     css: ['js/components/Primitives/MpiButton/MpiButton.css'],
 
     template: (props, children) => {
-        const isIconMode = !!props.icon;
+        const isIconMode = !!(props.icon || props.image);
 
         if (!isIconMode) {
             // ── Plain text button ──────────────────────────────────────────────
@@ -80,7 +83,9 @@ export const MpiButton = ComponentFactory.create({
             props.extraClasses || '',
         ].filter(Boolean).join(' ');
 
-        const iconHtml = renderIcon(icon, size);
+        const iconHtml = icon
+            ? renderIcon(icon, size)
+            : `<img src="${props.image}" class="mpi-icon mpi-ibtn__img" alt="" draggable="false">`;
         const iconActiveHtml = iconActive ? renderIcon(iconActive, size) : '';
 
         const iconContainer = iconActiveHtml
@@ -135,7 +140,7 @@ export const MpiButton = ComponentFactory.create({
             if (props.disabled || props.loading || props.variant === 'loading') return;
 
             // Toggle logic (icon-button mode only)
-            if (props.icon && (props.toggleable || props.iconActive)) {
+            if ((props.icon || props.image) && (props.toggleable || props.iconActive)) {
                 const next = !el.classList.contains('is-active');
                 el.classList.toggle('is-active', next);
                 props.active = next;

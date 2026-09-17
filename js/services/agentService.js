@@ -33,6 +33,7 @@ export const AGENT_EVENT_NAMES = [
     'agent:result',
     'agent:compacting',
     'agent:error',
+    'agent:user',
     'agent:session',
 ];
 

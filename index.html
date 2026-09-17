@@ -143,11 +143,12 @@
       <!-- Radial menu lives here — persists across tool/page switches -->
       <div id="radial-mount"></div>
 
-      <!-- MPI-774: workspace content row — agent panel (left) + tool container (right) -->
-      <div id="workspace-content" class="workspace-content">
-        <!-- Agent panel — zero-width when agent mode is off; expands left on toggle -->
-        <div id="agent-panel-mount" class="agent-panel-mount"></div>
+      <!-- MPI-774/797: agent panel, left, from under the topbar down to the status bar.
+           Zero-width when agent mode is off; when open, the workspace, prompt box and
+           controls below all start to its right. -->
+      <div id="agent-panel-mount" class="agent-panel-mount"></div>
 
+      <div id="workspace-content" class="workspace-content">
         <main id="tool-container" class="tool-container">
           <!-- Tool panels injected here by the router -->
         </main>

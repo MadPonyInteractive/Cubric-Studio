@@ -120,6 +120,13 @@ function normalizeAgentPrefs(value = {}) {
   };
 }
 
+// MPI-797: the agent panel's width in px. The layout also caps it at half the work area.
+export const AGENT_PANEL_WIDTH = Object.freeze({ min: 280, default: 420, max: 900 });
+export function clampAgentPanelWidth(v) {
+  const n = Math.round(Number(v));
+  return Number.isFinite(n) ? Math.min(AGENT_PANEL_WIDTH.max, Math.max(AGENT_PANEL_WIDTH.min, n)) : AGENT_PANEL_WIDTH.default;
+}
+
 export const DEFAULT_LLM_CONNECTION = Object.freeze({ profileId: 'deepinfra' });
 
 // No connection saved yet -> the profile the agent row picked before the connection
@@ -311,6 +318,8 @@ export const Storage = {
   // MPI-774: { profileId, mode } for the in-app agent. Never a key.
   getAgentPrefs: () => normalizeAgentPrefs(get(STORAGE_KEYS.AGENT_PREFS, DEFAULT_AGENT_PREFS)),
   setAgentPrefs: (v) => set(STORAGE_KEYS.AGENT_PREFS, normalizeAgentPrefs(v)),
+  getAgentPanelWidth: () => clampAgentPanelWidth(get(STORAGE_KEYS.AGENT_PANEL_WIDTH, AGENT_PANEL_WIDTH.default)),
+  setAgentPanelWidth: (v) => set(STORAGE_KEYS.AGENT_PANEL_WIDTH, clampAgentPanelWidth(v)),
   getLlmConnection: readLlmConnection,
   setLlmConnection: (v) => set(STORAGE_KEYS.LLM_CONNECTION, { profileId: String(v?.profileId || DEFAULT_LLM_CONNECTION.profileId) }),
 };

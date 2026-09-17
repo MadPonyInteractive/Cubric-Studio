@@ -472,6 +472,55 @@ test('SSE agent:result renders result card; agent:compacting renders compacting 
   }
 });
 
+// Fabio's landing check (2026-09-17): the result image was broken (the renderer item's filePath is
+// already a /project-file url, and the chat wrapped it again), a carried request showed no bubble
+// until a reload, and list numbers were the colour of the panel.
+test('a result in the real shape loads; a carried request draws once; list markers show', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  const png = require('path').resolve(__dirname, '../../assets/mascot/idle.png').replace(/\\/g, '/');
+  try {
+    await installStubs(window);
+    await window.evaluate(() => {
+      window.__histories[''] = [{ id: 'u1', kind: 'user', text: 'From Alpha: open Beta', attachments: [] }];
+    });
+    await bootAndMountChat(window, true);
+
+    await window.evaluate((abs) => {
+      window.__fireSse('agent:result', {
+        toolCallId: 'real', ok: true,
+        output: { itemId: 'i1', groupId: 'g1', type: 'image', filePath: `/project-file?path=${encodeURIComponent(abs)}` },
+      });
+      window.__fireSse('agent:user', { turnId: 't9', id: 'u1', text: 'From Alpha: open Beta', attachments: [] });
+      window.__fireSse('agent:user', { turnId: 't9', id: 'u2', text: 'From Beta: make a fox', attachments: [{ id: 'att_9', name: 'f.png' }] });
+      window.__fireSse('agent:message', { turnId: 't9', id: 'm1', text: '1. one\n2. two' });
+    }, png);
+
+    const img = window.locator('#e2e-agent-host .mpi-agent-chat__result-card img');
+    await expect.poll(() => img.evaluate((el) => el.complete && el.naturalWidth)).toBeGreaterThan(0);
+
+    const bubbles = window.locator('#e2e-agent-host .mpi-agent-chat__entry--user');
+    await expect(bubbles).toHaveCount(2);
+    await expect(bubbles.nth(1)).toContainText('From Beta: make a fox');
+    expect(await bubbles.nth(1).locator('img').getAttribute('src')).toBe('/agent/attachment/att_9');
+
+    const colors = await window.evaluate(() => {
+      const li = document.querySelector('#e2e-agent-host .mpi-agent-chat__entry--message li');
+      const probe = document.createElement('span');
+      probe.style.color = 'var(--ink-2)';
+      document.body.appendChild(probe);
+      const out = { marker: getComputedStyle(li, '::marker').color, ink2: getComputedStyle(probe).color };
+      probe.remove();
+      return out;
+    });
+    expect(colors.marker).toBe(colors.ink2);
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
 test('a result card opens its card history, only for a card the open project holds', async ({}, testInfo) => {
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);
@@ -541,6 +590,102 @@ test('Mascot flips back to idle when agent:working false follows true', async ({
 // Part 4 — MPI-774 panel layout, toggle position, history replay
 // ─────────────────────────────────────────────────────────────────────────────
 
+// MPI-797 (Fabio, 2026-09-17): in Agent mode the box is an agent box — its own text and a
+// usage hint, only the toggle beside it, no generation from the run hotkey, and image chips
+// that are numbered, never "Start frame".
+test('PromptBox Agent mode: own text and hint, only the toggle, no run, numbered chips', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await installStubs(window);
+    await bootAndMountPromptBox(window);
+    const pb = '#e2e-pb-host .mpi-prompt-box';
+    const field = window.locator(`${pb} #textarea-slot textarea`);
+    const toggle = window.locator(`${pb} .mpi-prompt-box__col--mode .mpi-ibtn`);
+    const chips = window.locator(`${pb} .mpi-prompt-box-media-strip__chip`);
+    const inject = (n) => window.evaluate((count) => {
+      for (let i = 0; i < count; i++) {
+        window.__pbInst.el.injectMedia({ url: `/assets/mascot/idle.png?${i}`, mediaType: 'image' });
+      }
+    }, n);
+    const shown = () => window.evaluate((sel) => {
+      const box = document.querySelector(sel);
+      const slots = ['op-strip-slot', 'bottom-neg-slot', 'textarea-slot', 'mode-toggle-slot', 'enhance-slot',
+        'settings-badge-slot', 'settings-cog-slot', 'engine-toggle-slot', 'bottom-right-slot'];
+      return {
+        slots: slots.filter((id) => getComputedStyle(box.querySelector(`#${id}`)).display !== 'none'),
+        textShare: box.querySelector('#textarea-slot').getBoundingClientRect().width / box.getBoundingClientRect().width,
+      };
+    }, pb);
+
+    // A model whose op has a start and a last frame (Wan 2.2, i2v_ms).
+    await window.evaluate(async () => {
+      const { getModelById } = await import('/js/data/modelRegistry.js');
+      window.__pbInst.el.setModel(getModelById('wan-22'));
+      window.__pbInst.el.setOperation('i2v_ms');
+      window.__runs = 0;
+      window.__pbInst.on('run', () => { window.__runs += 1; });
+    });
+    await field.click();
+    await window.keyboard.type('my prompt');
+    const promptFace = await shown();
+    expect(promptFace.slots).toContain('bottom-right-slot');
+    // One staged image in Prompt mode: the start-frame pill, no number.
+    await inject(1);
+    await expect(chips.locator('.mpi-prompt-box-media-strip__role')).toHaveText('Start frame');
+    await expect(chips.locator('.mpi-prompt-box-media-strip__index')).toHaveCount(0);
+
+    // The toggle is the agent's head (MPI-797): muted while off, full colour while on.
+    const head = toggle.locator('img.mpi-ibtn__img');
+    await expect(head).toHaveAttribute('src', 'assets/mascot/logo.png');
+    await expect.poll(() => head.evaluate((el) => el.complete && el.naturalWidth)).toBeGreaterThan(0);
+    await window.mouse.move(0, 0);
+    await expect.poll(() => head.evaluate((el) => getComputedStyle(el).filter)).toBe('grayscale(1)');
+
+    await toggle.click();
+    await expect.poll(() => head.evaluate((el) => getComputedStyle(el).filter)).toBe('none');
+    await expect(field).toHaveValue('');
+    await expect(field).toHaveAttribute('placeholder', 'Talk to the agent. Shift+Enter for a new line, Enter to send.');
+    const agentFace = await shown();
+    expect(agentFace.slots).toEqual(['textarea-slot', 'mode-toggle-slot']);
+    expect(agentFace.textShare).toBeGreaterThan(0.8);
+
+    // The same chip is now just number 1. Two more on an op that takes two (start and last
+    // frame): all three stay, numbered, no frame pill.
+    await expect(chips.locator('.mpi-prompt-box-media-strip__index')).toHaveText(['1']);
+    await expect(chips.locator('.mpi-prompt-box-media-strip__role')).toHaveCount(0);
+    await inject(2);
+    await expect(chips).toHaveCount(3);
+    expect(await chips.locator('.mpi-prompt-box-media-strip__index').allTextContents()).toEqual(['1', '2', '3']);
+    await expect(chips.locator('.mpi-prompt-box-media-strip__role')).toHaveCount(0);
+
+    // The run hotkey starts no generation: it sends the message, as Enter does.
+    await field.click();
+    await window.keyboard.type('hello agent');
+    await window.keyboard.press('Control+Enter');
+    await window.waitForTimeout(400);
+    expect(await window.evaluate(() => window.__runs)).toBe(0);
+    const sent = (await window.evaluate(() => window.__fetchCalls)).filter((c) => c.url === '/agent/message');
+    expect(sent.map((c) => c.body.text)).toEqual(['hello agent']);
+    await expect(field).toHaveValue('');
+    await expect(chips).toHaveCount(0);
+
+    // Back to Prompt mode: the prompt is still there, and the chips fit the op again.
+    await inject(3);
+    await toggle.click();
+    await expect(field).toHaveValue('my prompt');
+    await expect(field).toHaveAttribute('placeholder', 'Type your prompt...');
+    // Wan 2.2 takes a start and a last frame: the third chip goes, the frame pills return.
+    await expect(chips).toHaveCount(2);
+    expect(await chips.locator('.mpi-prompt-box-media-strip__role').allTextContents()).toEqual(['Start frame', 'Last frame']);
+    expect((await shown()).slots).toContain('bottom-right-slot');
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
 test('toggle sits between textarea-slot and enhance-slot in the prompt bar', async ({}, testInfo) => {
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);
@@ -577,19 +722,24 @@ test('agent panel: the real shell mount is closed by default, opens from the tog
     // The shell (js/shell.js -> initAgentPanel) mounted the chat into #agent-panel-mount at
     // boot. Show the app shell as an open project would, and measure the REAL layout.
     const measure = () => window.evaluate(() => {
+      const rect = (id) => document.getElementById(id).getBoundingClientRect();
       const panel = document.getElementById('agent-panel-mount');
-      const tools = document.getElementById('tool-container');
-      const topbar = document.getElementById('workspace-topbar');
       return {
         chat: !!panel.querySelector('.mpi-agent-chat'),
         open: panel.classList.contains('agent-panel-mount--open'),
-        panelWidth: Math.round(panel.getBoundingClientRect().width),
-        panelTop: Math.round(panel.getBoundingClientRect().top),
-        topbarBottom: Math.round(topbar.getBoundingClientRect().bottom),
-        toolsLeft: Math.round(tools.getBoundingClientRect().left),
+        panelWidth: Math.round(rect('agent-panel-mount').width),
+        panelTop: Math.round(rect('agent-panel-mount').top),
+        panelBottom: Math.round(rect('agent-panel-mount').bottom),
+        panelRight: Math.round(rect('agent-panel-mount').right),
+        topbarBottom: Math.round(rect('workspace-topbar').bottom),
+        statusTop: Math.round(rect('shell-info-bar').top),
+        toolsLeft: Math.round(rect('tool-container').left),
+        promptLeft: Math.round(rect('prompt-box-mount').left),
+        controlsLeft: Math.round(rect('controls-mount').left),
       };
     });
     await window.evaluate(async () => {
+      localStorage.removeItem('mpi_agent_panel_width');
       document.getElementById('app-shell').classList.remove('hide');
       const { state } = await import('/js/state.js');
       window.__testState = state;
@@ -614,12 +764,37 @@ test('agent panel: the real shell mount is closed by default, opens from the tog
     expect(opened.panelWidth).toBe(420);
     expect(opened.panelTop).toBeGreaterThanOrEqual(opened.topbarBottom);
     expect(opened.toolsLeft - closed.toolsLeft).toBe(opened.panelWidth);
+    // MPI-797: full height down to the status bar, and the prompt box and controls start
+    // right of it, so nothing covers the chat.
+    expect(opened.panelBottom).toBe(opened.statusTop);
+    expect(opened.promptLeft).toBe(opened.panelRight);
+    expect(opened.controlsLeft).toBe(opened.panelRight);
+
+    // Dragging the edge resizes it, the layout follows, the width is stored and clamped.
+    const handle = window.locator('#agent-panel-mount > .mpi-resize-handle');
+    const drag = async (toX) => {
+      const box = await handle.boundingBox();
+      await window.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await window.mouse.down();
+      await window.mouse.move(toX, box.y + box.height / 2, { steps: 5 });
+      await window.mouse.up();
+      await window.waitForTimeout(100);
+    };
+    await drag(opened.panelRight - 60);
+    const narrower = await measure();
+    expect(narrower.panelWidth).toBe(360);
+    expect(narrower.promptLeft).toBe(narrower.panelRight);
+    expect(await window.evaluate(() => localStorage.getItem('mpi_agent_panel_width'))).toBe('360');
+    await drag(opened.panelRight - 400);
+    expect((await measure()).panelWidth).toBe(280);
+    expect(await window.evaluate(() => localStorage.getItem('mpi_agent_panel_width'))).toBe('280');
 
     await toggle.click();
     await window.waitForTimeout(600);
     const toggled = await measure();
     expect(await window.evaluate(() => window.__testState.agentMode)).toBe(false);
     expect(toggled.panelWidth).toBe(0);
+    expect(toggled.promptLeft).toBe(closed.promptLeft);
 
     expect(pageErrors).toEqual([]);
   } finally {

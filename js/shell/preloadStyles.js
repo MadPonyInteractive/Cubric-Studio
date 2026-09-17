@@ -10,6 +10,7 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Primitives/MpiIcon/MpiIcon.css',
   'js/components/Primitives/MpiBadge/MpiBadge.css',
   'js/components/Primitives/MpiSpinner/MpiSpinner.css',
+  'js/components/Primitives/MpiResizeHandle/MpiResizeHandle.css',
   'js/components/Primitives/MpiProgressBar/MpiProgressBar.css',
   'js/components/Primitives/MpiLevelMeter/MpiLevelMeter.css',
   'js/components/Primitives/MpiFader/MpiFader.css',
@@ -116,6 +117,8 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Organisms/MpiToolOptionsResize/MpiToolOptionsResize.css',
   'js/components/Organisms/MpiToolOptionsGif/MpiToolOptionsGif.css',
   'js/components/Organisms/MpiToolOptionsGifCutout/MpiToolOptionsGifCutout.css',
+  'js/components/Organisms/MpiToolOptionsGifTiming/MpiToolOptionsGifTiming.css',
+  'js/components/Organisms/MpiToolOptionsGifTransform/MpiToolOptionsGifTransform.css',
   'js/components/Organisms/MpiToolOptionsPrompt/MpiToolOptionsPrompt.css',
 
   // Services (shared, non-component)

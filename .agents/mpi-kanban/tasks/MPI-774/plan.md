@@ -7,7 +7,20 @@
 **Evidence behind this plan:** `research/investigation.md` - verified facts with file:line, the
 seven investigator claims that turned out wrong, and a live orchestrator probe.
 
-**Where it stands (2026-09-17 09:48Z, session 6fd51047, handoff 89c36b80):** Phase 3b is DONE (Fabio's "1"
+**Where it stands (2026-09-17 ~13:00Z, session d56a1cbe, committed at handoff):** Phase 3c CLOSED;
+Phase 3d items 1-4, 6, 7 built, bitten and **passed by Fabio in his app** (agent box, numbered chips,
+full-height resizable panel; an agent edit's card now has the right shape). Item 5 waits for the
+mascot animations. **Next, in order:** (1) **item 6 has the WRONG HEAD and is TOO SMALL** (Fabio): the
+toggle must show `C:\AI\Mpi\Cubric Studio Brand Assets\Studio-Logo.png` (the robot face, 2000x2000, not
+in the repo yet), not the Vision camera (`assets/mascot/logo.png`). Add a small web-sized copy under
+`assets/mascot/` (a ~128px webp), point the toggle's `image` at it, and make it about the size of the
+Enhance button beside it (today the image takes the `sm` 16px icon size). Update the src in
+`tests/desktop/agent-chat.spec.js`, `docs/agent-chat.md` and `.claude/rules/component-mounts.md`. A
+reload shows it. (2) Phase 4 (GPU, option A, lease), which now also carries MPI-677 step 1d (ComfyUI
+enhance VRAM, message `f82e6bea`). Fabio: keep MPI-797 on the board; "yes to maps" (done); no gallery
+entry for `MpiResizeHandle`.
+
+**Before that (2026-09-17 09:48Z, session 6fd51047, handoff 89c36b80):** Phase 3b is DONE (Fabio's "1"
 after the padding fix `3dd0301a`). **Phase 3c is BUILT, committed at this handoff** (D4-D6 as
 recommended; evidence `validation.md` § Phase 3c): per-project conversations
 (`services/agentSessions.mjs`), the landing agent's `list_projects` / `create_project`, `open_project`
@@ -518,7 +531,7 @@ project switch is `project:changed` (`js/events.js:126`).
   **Verify:** unit test, two projects keep separate histories and `BUSY` follows D4; desktop spec,
   switch project -> empty transcript, switch back -> it returns; landing and project chats differ;
   `npm test`, `npm run agent:test` 13/13.
-- [ ] **B. The landing agent's project jobs.** Connector routes `GET /connector/projects` (over
+- [x] **B. The landing agent's project jobs.** Connector routes `GET /connector/projects` (over
   `/list-projects`) and `POST /connector/create-project { name }` (over `/create-project`, default root
   only, never overwrites), and tools `list_projects` / `create_project`. `open_project` then takes a
   path from `list_projects` or from the user, never an invented one. Prompt rules: open by name; "make
@@ -532,6 +545,56 @@ project switch is `project:changed` (`js/events.js:126`).
   Fabio on his landing page. *Auto part done 2026-09-17; `create-then-generate` REPLACES the old
   `no-project` case (the landing agent no longer just asks), so the harness has 15 cases. Open: Fabio's
   landing-page check (needs a full app restart).*
+  *2026-09-17 (session d56a1cbe): harness `new-project-brief` was 2/3 (a first shot generated
+  unasked after the brief note); the goal branch now ends by asking what to make first.*
+  **CLOSED 2026-09-17:** Fabio's landing check "Everything worked nicely"; his screenshots' three defects
+  (broken result image, invisible list numbers, a carried request confusing its new chat and missing its
+  bubble) and the harness's `install-asks` guessed-id card are fixed (`validation.md` § Phase 3c close).
+
+## Phase 3d: The agent box (folded from MPI-797, Fabio 2026-09-17)
+
+*Fabio, 2026-09-17: "make sure 797 is part of our work". MPI-797 (`todo`, `blocked` on Phase 3c,
+which is committed in `4ee23d00`) stays on the board as the record of the ask; its work lands here.
+Same files as Phases 3b/3c: `MpiAgentChat`, `js/shell/agentPanel.js`, `js/services/agentService.js`,
+`MpiPromptBox`. Verify mode: auto for the code, user-ux for the end check (folds into Phase 5).*
+
+- [x] **1. Input hint.** In Agent mode the input says how to use it, e.g. "Talk to the agent.
+  Shift+Enter for a new line, Enter to send."
+- [x] **2. An agent box (D7).** Consider swapping the whole prompt box for an agent box that holds only
+  the text input and the Agent|Prompt toggle. **Fabio, 2026-09-17: as recommended** - no new component:
+  in Agent mode the existing prompt box (it already sets `mpi-prompt-box--agent-mode`) shows only the
+  input, the image chips and the toggle.
+- [x] **3. Dropped images attach to the next message.** Chips optional; numbered 1, 2, 3 only, never
+  "start frame" / "last frame" / "picture 1".
+- [x] **4. The side panel.** Resizes by dragging its edge, runs full height down to the status bar, and
+  pushes the prompt input right so it never covers the agent text.
+- [ ] **5. Remote image description progress** (folded into MPI-797 by MPI-737's close-out, Fabio
+  2026-09-17, `2ab67359`): a Remote describe shows no progress (a ComfyUI one shows in the status bar);
+  give it visible progress, "using one of the mascot animations once they exist". **DEFERRED (Fabio,
+  2026-09-17): wait for the mascot animations**; they will also play in the agent chat (thinking,
+  generating). The agent's triggers already exist: `agent:working` (thinking), `agent:tool` with
+  `tool: 'generate'` (generating), `agent:result`, `agent:compacting`.
+- [x] **6. The toggle is the agent's head** (Fabio, 2026-09-17: "our agent logo ... only the head").
+  `MpiButton` gained an `image` prop (icon mode with an `<img>`: muted until hovered, full colour when
+  active); the toggle uses `assets/mascot/logo.png`, the head of the Vision mascot the chat shows.
+  Not added to the components gallery (Fabio).
+- [x] **7. An agent edit's card had the wrong shape** (Fabio's screenshot: Klein edit, 1:1 card, portrait
+  image; the sidecar said 1024x1024, the file is 832x1248). `resolveNamedParams` injected the project's
+  saved ratio on ops that size their own output (`imageSizedOps`), which the PromptBox never does; the
+  server trusts client Width/Height, so the card took the wrong size. Now skipped there.
+  **Verify:** desktop spec per item with a bite; then Fabio in his app (a reload, renderer-only).
+  *Items 1-4 built and bitten 2026-09-17 (code checked; Fabio's eyes still open, in Phase 5 at the latest).*
+
+**Design (2026-09-17, session d56a1cbe, from a read-only scout):** Agent mode keeps its OWN text
+(`agentValue`; before, sending wiped the saved positive prompt through `_writeMode('')`), placeholder =
+the hint, the ref picker off, and Ctrl+Enter no longer generates (`_triggerRun` never checked the mode).
+The grid collapses to `1fr auto` so hiding slots cannot shift the textarea. Chips: images only, up to 9,
+no op up-jump, badge = position always (never a slot tag or a frame pill), `_chipKey` carries the mode
+so the toggle repaints; leaving Agent mode fits the chips back to the op (up-jump, else trim the tail;
+a model with no image slot prunes them). Panel: a direct child of `.main-area`, absolute from the
+topbar to the status bar, width `--agent-panel-w` (stored, clamped, at most half the area); the
+workspace, prompt box and controls take the same `margin-left` through `:has()`. No splitter existed:
+a new Primitive `MpiResizeHandle` (pointer capture; `resize-start` / `resize` / `resize-end`).
 
 ## Phase 4: Live on the GPU
 
@@ -567,6 +630,15 @@ or ComfyUI (Qwen3-VL 4B, `image_descriptor.json`, GPU). Measure and parse both.
 - [ ] **Compaction, live.** A profile with a small context window crosses its trigger; the handoff
   carries the five fields; the next reply still knows the goal. **Verify:** `/agent/history` shows
   the handoff; the mascot showed "compacting".
+- [ ] **ComfyUI enhance VRAM (folded from MPI-677 step 1d, Fabio 2026-09-17, message `f82e6bea`).**
+  On the 16 GB card, under the lease: Enhance (backend ComfyUI, the default since MPI-737) ->
+  generate -> Enhance -> generate from the prompt box, watching VRAM and whether the second generation
+  runs cold, i.e. whether the enhancer graph evicts the resident generation models (MPI-35 phase 2
+  claimed it by static analysis only; the counter-argument: the encoder is a subset of what the
+  generation already loads). Certain either way: a ComfyUI enhance is a queued job and waits behind a
+  running generation. **Verify:** the result in `validation.md` either way, plus a one-line pointer in
+  `tasks/MPI-677/validation.md` (MPI-677 stays done; its step 1d text calling DeepInfra the default is
+  stale).
 - [ ] **Honest limits, live.** "Watch this video" -> the limit, in character; a describer refusal
   (MPI-737's Remote describer exists now: use a real refusal if one can be produced cleanly, else
   the fake) -> says so and names the Image descriptions setting.

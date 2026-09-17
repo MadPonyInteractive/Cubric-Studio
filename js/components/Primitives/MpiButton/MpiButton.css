@@ -182,6 +182,25 @@
     height: 24px;
 }
 
+/* ── Image in the icon's place (`image` prop) ─────────────────────────────── */
+/* An image cannot follow currentColor, so the ink-3 -> ink-1 -> heat ladder becomes
+   muted -> clear -> full colour. */
+.mpi-ibtn__img {
+    object-fit: contain;
+    filter: grayscale(1);
+    opacity: 0.6;
+    transition: filter var(--t-fast) var(--ease), opacity var(--t-fast) var(--ease);
+}
+
+.mpi-ibtn:hover:not(:disabled) .mpi-ibtn__img {
+    opacity: 1;
+}
+
+.mpi-ibtn.is-active .mpi-ibtn__img {
+    filter: none;
+    opacity: 1;
+}
+
 /* ── Icon swap (toggleable icon) ──────────────────────────────────────────── */
 .mpi-ibtn.has-icon-swap .mpi-ibtn__icon-swap {
     display: none;

@@ -3,6 +3,9 @@
  *
  * Mounts one MpiAgentChat instance (standalone:false) into #agent-panel-mount
  * and shows/hides it by toggling `agent-panel-mount--open` from state.agentMode.
+ * MPI-797: its right edge is an MpiResizeHandle; the width lives in `--agent-panel-w`
+ * on .main-area (workspace.css offsets the workspace, prompt box and controls by it)
+ * and is stored on release.
  *
  * Also initializes the shared SSE singleton (agentInitStream) so the event bus
  * is live before any MpiAgentChat subscribes.
@@ -12,13 +15,16 @@
  */
 
 import { MpiAgentChat }    from '../components/Compounds/MpiAgentChat/MpiAgentChat.js';
+import { MpiResizeHandle } from '../components/Primitives/MpiResizeHandle/MpiResizeHandle.js';
 import { Events }          from '../events.js';
 import { state }           from '../state.js';
+import { Storage, clampAgentPanelWidth } from '../core/storage.js';
 import { agentInitStream } from '../services/agentService.js';
 import { gid }             from '../utils/dom.js';
 import { navigate, PAGE_GROUP_HISTORY } from '../router.js';
 
 const OPEN = 'agent-panel-mount--open';
+const RESIZING = 'agent-panel-mount--resizing';
 
 export function initAgentPanel() {
     // 1. Open the shared SSE → app-bus bridge.
@@ -31,16 +37,30 @@ export function initAgentPanel() {
     // App-lifetime, like the shell itself: never destroyed.
     MpiAgentChat.mount(mountEl, { standalone: false });
 
-    // 3. Reflect initial state immediately.
+    // 3. The draggable edge. Appended after the chat: mount() replaces the slot's children.
+    const area = mountEl.parentElement;
+    const setWidth = (px) => area.style.setProperty('--agent-panel-w', `${clampAgentPanelWidth(px)}px`);
+    setWidth(Storage.getAgentPanelWidth());
+    const handle = MpiResizeHandle.mount(document.createElement('div'), { axis: 'x' });
+    mountEl.appendChild(handle.el);
+    handle.on('resize-start', () => mountEl.classList.add(RESIZING));
+    handle.on('resize', ({ x }) => setWidth(x - area.getBoundingClientRect().left));
+    handle.on('resize-end', () => {
+        mountEl.classList.remove(RESIZING);
+        // What the layout shows (it caps at half the area), so a narrow window stores no wish.
+        Storage.setAgentPanelWidth(mountEl.getBoundingClientRect().width);
+    });
+
+    // 4. Reflect initial state immediately.
     if (state.agentMode) mountEl.classList.add(OPEN);
 
-    // 4. React to state.agentMode changes (set by MpiPromptBox toggle).
+    // 5. React to state.agentMode changes (set by MpiPromptBox toggle).
     // App-lifetime listener, like the mount above.
     Events.onState('agentMode', (val) => {
         mountEl.classList.toggle(OPEN, !!val);
     });
 
-    // 5. A result card in either chat opens that card's history, the way a gallery click
+    // 6. A result card in either chat opens that card's history, the way a gallery click
     // does (audio has no history view there either). Only a card the open project holds:
     // the landing chat has no project, and a card from an earlier project is not here.
     // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener, like the one above

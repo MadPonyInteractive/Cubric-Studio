@@ -817,6 +817,7 @@
  * Icon Button properties (optional - activates icon mode if 'icon' is provided):
  * @property {string} [icon] - MpiIcon registry key (e.g. 'play', 'trash', 'settings')
  * @property {string} [iconActive] - Icon shown when active/toggled (enables icon-swap behaviour)
+ * @property {string} [image] - Image url drawn in the icon's place (activates icon mode without `icon`; MPI-797, the Agent toggle's mascot head). Muted (grayscale, 0.6) until hover, full colour when active: an image cannot take currentColor
  * @property {string} [label] - Optional text label shown alongside icon
  * @property {'left'|'right'|'top'|'bottom'} [labelPosition='right'] - Position of label relative to icon
  * @property {boolean} [stroke=false] - Use stroke rendering for icon (ratio/outline icons)
@@ -954,6 +955,16 @@
  * @typedef {Object} MpiSpinnerProps
  * @property {'sm'|'md'|'lg'} [size='md'] - Spinner size
  * @property {'primary'|'secondary'|'light'|'dark'} [variant='primary'] - Color variant
+ */
+
+/**
+ * @typedef {Object} MpiResizeHandleProps
+ * @property {'x'|'y'} [axis='x'] - 'x' = a vertical edge dragged left/right; 'y' = a horizontal edge dragged up/down
+ *
+ * Primitive (js/components/Primitives/MpiResizeHandle/, MPI-797). A drag edge that sizes
+ * nothing: it emits 'resize-start' | 'resize' | 'resize-end' with the pointer's client
+ * `{ x, y }` (pointer capture keeps a fast drag), and the owner sets its own size. The owner
+ * positions it on its edge (it is `position: absolute`).
  */
 
 /**

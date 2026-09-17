@@ -87,6 +87,9 @@ export const STORAGE_KEYS = {
   // (Before the shared connection it also held `profileId`; LLM_CONNECTION reads that.)
   AGENT_PREFS: 'mpi_agent_prefs',
 
+  // MPI-797: the agent panel's width in px, set by dragging its edge.
+  AGENT_PANEL_WIDTH: 'mpi_agent_panel_width',
+
   // MPI-774 / MPI-737: the ONE remote LLM connection every job uses — { profileId }.
   // NON-secret: endpoint keys live in the main process (secrets:* IPC), never here.
   LLM_CONNECTION: 'mpi_llm_connection',

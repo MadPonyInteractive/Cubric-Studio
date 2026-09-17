@@ -338,6 +338,10 @@ EMITS:   `pick`   `{ filePath, mediaType }` — a tile, or a finished mic record
 LISTENS: (none — its FILTER runs on a LOCAL sort, never `state:changed`; MpiModal handles `ui:close-all-popups`)
 NOTE:    Filtering = the shared `mountGalleryFilter` (MPI-785) with `setSort` re-rendering the grid. Its `<audio>` must stay unmarked (no `data-src`) — see `docs/component-contracts.md` § MpiMediaPicker.
 
+### MpiResizeHandle (Primitive — js/components/Primitives/MpiResizeHandle/, MPI-797)
+EMITS:   `resize-start` / `resize` / `resize-end` `{ x, y }` — the pointer's client coordinates while the handle holds pointer capture (`resize-end` on `lostpointercapture`, so a window blur ends a drag too). It sizes nothing; the owner does (the agent panel: `js/shell/agentPanel.js`)
+LISTENS: (none — its own pointer events only; `el.destroy()` removes them)
+
 ### MpiStartingComfy
 EMITS:   (none)
 LISTENS: (none — direct portal, bypasses Overlays queue intentionally)
@@ -352,7 +356,11 @@ LISTENS: `agent:working`    `{ turnId, working }` — flips the working dot (pan
          `agent:result`    `{ toolCallId, ok, output?, error? }` — appends a result thumbnail card on `ok`, an error line on `!ok`
          `agent:compacting` `{ turnId, on }` — appends a "Compacting conversation…" marker when `on`
          `agent:error`     `{ turnId, code, message }` — appends an error line, forces `working` false
+         `agent:user`      `{ turnId, id, text, attachments }` — a request carried in from another conversation (Phase 3c D5): draws its bubble ONCE, keyed by `id` (the history entry has the same id). The sender's own chat never gets one: it draws its bubble at send
+         `agent:session`   `{ from, to }` — a conversation moved (the landing chat opened a project): reloads when `from` or `to` is its own session
+         `project:changed` — reloads: another project, another conversation (the standalone landing chat always loads the landing conversation)
          `agent:send`      `{ text, attachments }` — **panel mode only** (`!props.standalone`); emitted by MpiPromptBox's Agent/Prompt toggle, routed straight into this instance's own `_sendMessage()`
 API:     `el.setWorking(bool)` — force the working state externally. `el.destroy()` — runs every stored unsubscribe; there is no own `EventSource` to close (shared singleton owned by `agentService.js`).
-NOTE:    All seven `agent:*` SSE names are bridged renderer-side by `agentService.agentInitStream()` (ONE `/agent/stream` EventSource, opened once at shell init by `agentPanel.js`) onto the app `Events` bus — this component only ever calls `Events.on`, never opens its own connection, so N mounted instances (panel + landing) share one stream. Every subscription is pushed onto `_unsubs` and unwound in `el.destroy()`.
-NOTE:    On mount, `_loadHistory()` replays `GET /agent/history` — entries are typed by `entry.kind` (`'user'\|'agent'\|'tool'\|'result'\|'confirm'\|'handoff'`), NOT `.role`. A `'confirm'` entry renders ONLY when it is `history.pendingConfirm` (still actionable) — an already-answered confirm is skipped. A `'handoff'` entry renders as a plain "Conversation compacted" marker, the same DOM shape a live `agent:compacting` uses.
+NOTE:    One conversation per project (Phase 3c): every `agent:*` event but `agent:session` carries `session`, and the chat applies only events whose `session` equals the key its last `GET /agent/history?project=` returned (events arriving mid-load are queued, then applied). The chat never builds a key; it echoes the server's.
+NOTE:    All `AGENT_EVENT_NAMES` (`js/services/agentService.js`) are bridged renderer-side by `agentService.agentInitStream()` (ONE `/agent/stream` EventSource, opened once at shell init by `agentPanel.js`) onto the app `Events` bus — this component only ever calls `Events.on`, never opens its own connection, so N mounted instances (panel + landing) share one stream. Every subscription is pushed onto `_unsubs` and unwound in `el.destroy()`.
+NOTE:    On mount and on every reload, `_reload()` replays `GET /agent/history?project=` — entries are typed by `entry.kind` (`'user'\|'agent'\|'tool'\|'result'\|'confirm'\|'handoff'`), NOT `.role`. A `'confirm'` entry renders ONLY when it is `history.pendingConfirm` (still actionable) — an already-answered confirm is skipped. A `'handoff'` entry renders as a plain "Conversation compacted" marker, the same DOM shape a live `agent:compacting` uses.

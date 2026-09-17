@@ -111,13 +111,13 @@ export class AgentSessions {
      * Run one user turn in the conversation of `turn.project`, then the request it carried to
      * another project, if any. The caller does not wait for this.
      * @param {{text: string, attachments: Array, project: ?{folderPath: string, name: string},
-     *          mode: string, profileId: string, turnId: string, model?: string}} turn
+     *          mode: string, profileId: string, turnId: string, model?: string, carried?: boolean}} turn
      * @returns {Promise<string>} the key of the conversation the turn ran in
      */
     async send(turn) {
         const key = projectKey(turn.project?.folderPath);
         const loop = this._loops.get(key) || this._newLoop(key);
-        await loop.runTurn(turn.text, turn.attachments, turn.project || null, turn.mode, turn.profileId, turn.turnId, { model: turn.model });
+        await loop.runTurn(turn.text, turn.attachments, turn.project || null, turn.mode, turn.profileId, turn.turnId, { model: turn.model, carried: !!turn.carried });
         const carry = this._carry;
         this._carry = null;
         if (carry) await this.send(carry);
@@ -150,6 +150,7 @@ export class AgentSessions {
             profileId: turn.profileId,
             model: turn.model,
             turnId: crypto.randomUUID(),
+            carried: true,
         };
         return 'carry';
     }

@@ -44,6 +44,29 @@ test('what is not advertised is refused', () => {
     }
 });
 
+// Fabio, 2026-09-17: an agent's Klein edit landed in a 1:1 card while the image was
+// 832x1248. The op sizes its own output, but the project's saved ratio was injected anyway,
+// and the card took its size from that. Unset ratio = the project's, only where one applies.
+test("the project's saved ratio is injected only on an op that takes a ratio", () => {
+    const { modelShowsRatio } = require('../js/data/commandRegistry.js');
+    const ratioSelector = { selectedRatio: '1:1', orientation: 'portrait' };
+    const project = { shared: { image: { ratioSelector }, video: { ratioSelector } } };
+    let sized = 0;
+    let ratioed = 0;
+    for (const [m, op] of PAIRS) {
+        const where = `${m.id}/${op}`;
+        const r = resolveNamedParams(project, m, op, {});
+        assert.equal(r.ok, true, where);
+        if (modelShowsRatio(m, op)) {
+            if (r.injectionParams.Width) ratioed += 1;
+            continue;
+        }
+        sized += 1;
+        for (const k of ['Width', 'Height', 'Ratio_Label']) assert.equal(r.injectionParams[k], undefined, `${where} injects ${k}`);
+    }
+    assert.ok(sized > 0 && ratioed > 0, 'both kinds of op are in the registry');
+});
+
 test('the registry has both sides of each param, or the two tests above prove little', () => {
     const all = PAIRS.map(([m, op]) => namedParamsFor(m, op));
     for (const key of ['turbo']) {

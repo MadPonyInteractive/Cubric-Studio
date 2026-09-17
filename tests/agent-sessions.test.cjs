@@ -194,6 +194,19 @@ describe('one conversation per project', () => {
         assert.equal(landingLoop.attachmentPath('att_1'), null, 'the landing page gave it up');
         assert.equal(alphaLoop.attachmentPath('att_1'), '/tmp/att_1.png');
         assert.equal(sessions.busy(), false, 'the carried turn ran to the end');
+
+        // The carried request shows live in Alpha's chat, as the entry history holds, and only there.
+        const users = events.filter((e) => e.event === 'agent:user');
+        const carriedEntry = alpha.entries.filter((e) => e.kind === 'user').pop();
+        assert.equal(users.length, 1, 'only the carried request is announced');
+        assert.equal(users[0].data.session, sessionKey(A.folderPath));
+        assert.equal(users[0].data.id, carriedEntry.id);
+        assert.equal(users[0].data.text, carriedEntry.text);
+        assert.deepEqual(users[0].data.attachments, [{ id: 'att_1', name: 'fox.png' }]);
+        // The model there is told the project is already open for it; the landing turn is not.
+        const said = (loop) => loop._messages.filter((m) => m.role === 'user').map((m) => m.content);
+        assert.match(said(alphaLoop).pop(), /already opened this project/);
+        assert.ok(!said(landingLoop).some((c) => /Handed over/.test(c)));
     });
 
     test('D5: a project conversation that opens another project carries, never moves', async (t) => {

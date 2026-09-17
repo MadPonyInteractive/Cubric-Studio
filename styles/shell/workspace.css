@@ -60,25 +60,50 @@
 }
 
 /* ── Agent Panel Mount — left panel for MpiAgentChat in Agent mode ─────────── */
+/* MPI-797: full height, from under the floating topbar (52px) to the top of the status bar
+ * (#shell-info-bar, 32px), so the prompt box never covers the chat. `--agent-panel-w` is set
+ * by agentPanel.js (dragged, stored); half the work area is the ceiling on a small window. */
+.main-area {
+  --agent-panel-open-w: min(var(--agent-panel-w, 420px), 50%);
+}
+
 #agent-panel-mount {
+  position: absolute;
+  top: 52px;
+  bottom: 32px;
+  left: 0;
   width: 0;
   overflow: hidden;
-  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   /* No border when closed (width 0 → border would still paint a pixel). */
   border-right: 0 solid var(--line-soft);
   background: var(--surface-1);
-  /* Starts BELOW the floating workspace-topbar (52px): a margin, not padding, so the panel's
-   * background leaves the whole topbar row (back link, project name, toolbar chips) its own area. */
-  margin-top: 52px;
   box-sizing: border-box;
   transition: width var(--t-base) var(--ease);
 }
 
 #agent-panel-mount.agent-panel-mount--open {
-  width: 420px;
+  width: var(--agent-panel-open-w);
   border-right-width: 1px;
+}
+
+/* Everything in the column starts right of the open panel. */
+.main-area > :is(#workspace-content, #prompt-box-mount, #controls-mount) {
+  transition: margin-left var(--t-base) var(--ease);
+}
+
+.main-area:has(> .agent-panel-mount--open) > :is(#workspace-content, #prompt-box-mount, #controls-mount) {
+  margin-left: var(--agent-panel-open-w);
+}
+
+/* A drag follows the pointer: no easing behind it. */
+.main-area:has(> .agent-panel-mount--resizing) > :is(#agent-panel-mount, #workspace-content, #prompt-box-mount, #controls-mount) {
+  transition: none;
+}
+
+#agent-panel-mount > .mpi-resize-handle {
+  right: 0;
 }
 
 /* ── Tool Container ─────────────────────────────────────────────────────────── */

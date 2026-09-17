@@ -12,9 +12,15 @@ itself. Spec: `.agents/mpi-kanban/tasks/MPI-774/brief.md`. Contract first (2026-
   CLI agent (MPI-593) gets the same surface. No second dispatch path (`routes/connector.js` header).
 - **Chat** `js/components/Compounds/MpiAgentChat/`, twice: the landing slot (standalone, beside the
   headline: the landing page's conversation) and the shell panel `#agent-panel-mount`
-  (`js/shell/agentPanel.js`: the open project's), LEFT of the workspace, 420 px, below the topbar,
-  open while `state.agentMode` is true (the PromptBox toggle), pushing `#tool-container` right. The
-  PromptBox sends with `agent:send`, image chips as attachments. A chat reloads from
+  (`js/shell/agentPanel.js`: the open project's), LEFT, from under the topbar to the status bar,
+  open while `state.agentMode` is true (the PromptBox toggle). Its right edge drags
+  (`MpiResizeHandle`; 280-900 px, at most half the area, stored as `AGENT_PANEL_WIDTH`, default 420),
+  and the workspace, prompt box and controls start right of it (MPI-797). The PromptBox sends with
+  `agent:send`, image chips as attachments. The toggle is the agent's head (`MpiButton` `image`,
+  `assets/mascot/logo.png`). **In Agent mode the PromptBox is an agent box:** only the
+  text and the toggle show; the text is the agent's own (the prompt survives), with a usage hint;
+  chips are images, numbered by position, up to 9, whatever the op takes; Ctrl+Enter sends too; back
+  in Prompt mode the chips fit the op again. A chat reloads from
   `/agent/history?project=` on mount, `project:changed` and `agent:session`, and renders only events
   whose `session` is its own. A result card emits `gallery:open-card`; the shell opens that card.
 - **One stream.** `agentService.agentInitStream()` (shell boot) opens the only `/agent/stream` and
@@ -133,9 +139,10 @@ Every event but `agent:session` also carries `session`, the key of its conversat
 | `agent:message` | `{ turnId, id, text }` | one whole reply per model turn (D3) |
 | `agent:tool` | `{ turnId, id, tool, status, label }`, status `started` / `done` / `failed` | status line; `label` is plain copy, never the prompt |
 | `agent:confirm` | `{ turnId, confirmId, kind: 'install', modelId, modelName, downloadGb }` | Yes / No card |
-| `agent:result` | `{ toolCallId, ok, output?: { itemId, groupId, type, filePath }, error? }` | result card, opens the card |
+| `agent:result` | `{ toolCallId, ok, output?: { itemId, groupId, type, filePath }, error? }` | result card, opens the card; `filePath` is the renderer item's, already a `/project-file?path=` url |
 | `agent:compacting` | `{ turnId, on: boolean }` | "compacting" line + mascot |
 | `agent:error` | `{ turnId, code, message }` | error line. Codes: `ENDPOINT_ERROR`, `NO_KEY`, `TOOLS_UNSUPPORTED`, `STEP_LIMIT` |
+| `agent:user` | `{ turnId, id, text, attachments }` | a request carried in from another conversation (D5): its bubble, once by `id` (the sender's own chat draws its bubble itself) |
 | `agent:session` | `{ from, to }` | a conversation moved into a project: chats showing either side reload |
 
 ## Conversations (Phase 3c, Fabio's D4-D6, 2026-09-16)
@@ -146,10 +153,12 @@ Every event but `agent:session` also carries `session`, the key of its conversat
 - **D5:** when `open_project` succeeds on another project, the LANDING conversation moves into it if it
   has none (`agent:session`; the landing page starts fresh). Otherwise the turn ends ("I'll carry on in
   its own chat") and the request, attachments included, runs next in that project's conversation as
-  "From <the landing page | project>: ...". Tests: `tests/agent-sessions.test.cjs`, `agent-chat.spec.js`.
+  "From <the landing page | project>: ...", with an opening line telling the model the project is
+  already open for it (else it re-ran "open X"), and an `agent:user` so the bubble shows live. Tests: `tests/agent-sessions.test.cjs`, `agent-chat.spec.js`.
 - **D6:** memory only; the `<project>/Agent/` notes survive a restart. Nothing is evicted.
 - **Landing jobs** (Project rule): "make X" with no project -> `create_project("New Project")`, open, generate;
-  "a new project, the goal is X" -> named after the goal, created, opened, a project-brief `write_memory`.
+  "a new project, the goal is X" -> named after the goal, created, opened, a project-brief `write_memory`, then it asks what to make
+  first and generates nothing that turn.
 
 ## Loop rules (W2)
 

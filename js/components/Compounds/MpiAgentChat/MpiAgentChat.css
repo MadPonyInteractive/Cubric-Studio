@@ -133,6 +133,11 @@
     align-items: flex-start;
 }
 
+/* The shared markdown marker (--ink-4) is as light as the panel's surface: numbers vanished. */
+.mpi-agent-chat__entry--message .mpi-md li::marker {
+    color: var(--ink-2);
+}
+
 /* Tool status line */
 .mpi-agent-chat__entry--tool {
     display: flex;

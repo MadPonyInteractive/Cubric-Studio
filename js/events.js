@@ -135,6 +135,8 @@ export const Events = new EventBus();
  * 'agent:result'     { toolCallId, ok, output?, error? }   — generation result card
  * 'agent:compacting' { turnId, on: boolean }               — compaction status notice
  * 'agent:error'      { turnId, code, message }             — agent error line
+ * 'agent:user'       { turnId, id, text, attachments }     — a request carried over from another
+ *                      conversation (D5); the chat draws its bubble once, by id
  * 'agent:session'    { from, to }                          — a conversation moved into a project
  *                      (the landing chat opened it); chats showing either side reload
  * 'agent:send'       { text, attachments }                 — request to send a message to the agent

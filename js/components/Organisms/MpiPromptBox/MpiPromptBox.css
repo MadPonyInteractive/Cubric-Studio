@@ -114,6 +114,25 @@
     flex-shrink: 0;
 }
 
+/* MPI-797 Agent mode: the text, the chips and the Agent|Prompt toggle, nothing else. The
+   grid collapses with them: a hidden slot leaves the grid, which would otherwise push the
+   textarea into an `auto` column and the toggle into the stretching one. */
+.mpi-prompt-box--agent-mode {
+    grid-template-columns: 1fr auto;
+}
+
+.mpi-prompt-box--agent-mode > :is(
+    .mpi-prompt-box__op-strip,
+    .mpi-prompt-box__col--neg,
+    .mpi-prompt-box__col--enhance,
+    .mpi-prompt-box__col--settings,
+    .mpi-prompt-box__col--cog,
+    .mpi-prompt-box__col--engine,
+    .mpi-prompt-box__col--run
+) {
+    display: none;
+}
+
 
 /* Strip MpiInput chrome in prompt col — textarea is bare underline field */
 .mpi-prompt-box__col--prompt .mpi-input {

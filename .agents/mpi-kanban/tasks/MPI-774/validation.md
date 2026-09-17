@@ -331,3 +331,102 @@ uncommitted server edits were in the tree when this started; see plan Current St
   Keeper and the Seal", opened it and wrote the brief note correctly, then generated a first shot with
   H3 nobody asked for (the check's "generated without being asked"). $0.0980 for 45 conversations
   ($0.00218 each). Log: session scratchpad `harness-final-3x.log` (expires).
+
+### Phase 3c close (2026-09-17, session d56a1cbe)
+
+- **`new-project-brief` fixed:** the Project rule's goal branch now ends "ask what they want to make
+  first. Do not generate anything in that turn". `--case new-project-brief --runs 3` -> **3/3**, then
+  `--runs 6` -> **6/6** ($0.0057). Full `npm run agent:test` (3x, new prompt) -> 14/15, **`install-asks`
+  2/3**: run 3 called `install_model("ltx-2.3")`, a guessed id, and got a Yes card for a model that does
+  not exist (the card fell back to the raw id and a null size). Bite pass (new prompt) **15/15**.
+- **Fabio's landing-page check (full restart), verbatim in intent: "Everything worked nicely."**
+  Fox from the landing box -> "New Project", generated there; the lighthouse goal -> named project, brief
+  note, asked what to make first, nothing generated; switching projects keeps each chat; open by name
+  works. "Open new project." made a second New Project, which he called fine. His screenshots showed
+  three defects, all fixed here:
+  1. **Broken result image in the chat.** Cause: the renderer item's `filePath` is already
+     `/project-file?path=...` (`generationService.js:1224`), and `_appendResult` wrapped it again, so the
+     route got a url as a path (404). The spec stubbed an absolute path, so it never saw the real shape.
+     Fix: the existing `resolveMediaUrl` (`js/utils/mediaActions.js`).
+  2. **List numbers invisible.** The shared `.mpi-md li::marker` is `--ink-4`, as light as the panel's
+     `--surface-1`. Fix: `--ink-2` for markers inside a chat message.
+  3. **A carried request confused its new conversation** (screenshot: "You mentioned 'From GIF Tests:
+     Open new project.' ... New Project is already open") and **showed no bubble live** (only after a
+     reload that happened to run after it). Fix: a carried turn opens with a handover line (the project
+     is already open for it; do only what is left), and emits `agent:user` so the chat draws the bubble,
+     once by entry id.
+- **Also fixed: `install_model` on an unknown id** returns `UNKNOWN_MODEL` before any card (and a failed
+  model-list read returns `RUNTIME_ERROR` instead of a card with no size).
+- **Unit:** `tests/agent-sessions.test.cjs` 15/15 (the D5 carry test now checks `agent:user` session, id,
+  text, attachments, and the handover line in the target only); `tests/agent-loop.test.cjs` 38 pass, 0 fail,
+  1 skipped (+ unknown id -> no card). **Bite** (`bite_units.py`, bytes restored and hash-checked): no
+  unknown-id refusal, no handover line, no `agent:user`, carried flag dropped, handover on every turn:
+  **5/5 RED**.
+- **Desktop:** new case "a result in the real shape loads; a carried request draws once; list markers
+  show" (a real `/project-file` url must load, `naturalWidth > 0`; a history `u1` plus a live `u1` and
+  `u2` = two bubbles, the second with its `/agent/attachment/` thumb; marker colour = `--ink-2`) ->
+  passed. **Bite** (`bite_chat.py`): url wrapped again, `agent:user` unsubscribed, no dedup, marker
+  colour removed: **4/4 RED**.
+- **Harness after the install fix:** `--case install-asks --runs 6` -> **6/6** ($0.0110); bite for
+  `install-asks`, `install-needed`, `picks-installed-model` -> **3/3 bite**.
+- **Suite:** `npm test` -> **1269 tests, 1268 pass, 0 fail**, 1 skipped; `npm run lint` and
+  `npm run lint:components` exit 0; `tests/desktop/agent-chat.spec.js` (private `--output`) -> **25 passed
+  (1.4m)**. Touched files keep HEAD's LF endings.
+### Phase 3d - the agent box (MPI-797), built 2026-09-17, session d56a1cbe - waits on Fabio's eyes
+
+- **Desktop, new case** "PromptBox Agent mode: own text and hint, only the toggle, no run, numbered
+  chips" (Wan 2.2 `i2v_ms`): a typed prompt, then Agent mode -> the field is empty with the hint; only
+  `#textarea-slot` and `#mode-toggle-slot` show and the text takes > 80% of the bar; the staged
+  start-frame chip turns into a bare "1"; two more images stay (three on an op that takes two),
+  numbered 1-3, no pill; Ctrl+Enter emits no `run` and sends exactly one `/agent/message`; the chips
+  clear; three more, back to Prompt mode -> "my prompt" is back, the hint is gone, two chips with
+  "Start frame" / "Last frame". **Updated case** "agent panel: the real shell mount ...": open = 420 wide,
+  bottom = the status bar's top, prompt box and controls start at the panel's right edge; a drag to
+  -60 px -> 360 and stored "360"; a drag far left -> 280 (clamp) and stored "280"; closed -> the prompt
+  box is back where it was. Both pass.
+- **Bite** (`bite_3d.py`, 15 mutations in the real source, bytes restored and hash-checked): agent text
+  sharing the prompt, no hint, slots not hidden, grid not collapsed, the op cap in Agent mode, the frame
+  pill in Agent mode, the slot badge rule in Agent mode, no repaint on toggle, no fit on leaving, the run
+  hotkey generating, panel not full height, prompt box not offset, drag ignored, width not stored, no
+  clamp: **15/15 RED**.
+- **Found on the way:** Ctrl+Enter never reached the textarea (the hotkey manager takes it in the capture
+  phase), so in Agent mode it used to start a GENERATION from the prompt; it now sends the message.
+  Sending an agent message used to wipe the saved positive prompt (`_writeMode('')` on the shared field).
+  A box mounted with Agent mode already on never got the agent-mode class.
+- **Suite:** `npm test` -> **1273 tests, 1272 pass, 0 fail**, 1 skipped; `npm run lint` and
+  `npm run lint:components` exit 0. The layout-touching specs (`agent-chat`, the five `flow-*` that
+  reference the shell mounts, `gif-make`, `history-modes`; private `--output`) -> **40 passed (4.0m)**.
+- **Coordination:** `js/shell/preloadStyles.js` was claimed by MPI-772 (claim `b772a1c0`); asked
+  (message `550b11f3`), it released the file and asked for its two GIF panel lines as well (`a550e772`).
+  All three lines are in; `node --test tests/flow-result-dock.test.cjs tests/mask-tool-registry.test.cjs`
+  (the two tests that read the file) -> 50 pass, 0 fail.
+
+- **Fabio, in his app (2026-09-17): "Okay, it passed."** (screenshots: agent box with the hint, full-height
+  panel, a two-reference Klein edit through the agent, a carried "From 1.4 media:" request drawn in
+  GIF Tests' chat). Item 5 waits for the mascot animations; no gallery entry for `MpiResizeHandle`.
+
+### Phase 3d items 6-7 (2026-09-17, session d56a1cbe)
+
+- **Item 7, the edit card's shape.** Ground truth, read-only, in his project (`Projects/test`, "GIF
+  Tests"): `edit_056.png` is **832x1248** (PIL); its sidecar `b7e9112f-...json` says `operation: kleinEdit`,
+  `pixelDimensions {w:1024,h:1024}`, `injectionParams Width 1024 / Height 1024 / Ratio_Label 1:1`. Klein
+  lists `kleinEdit` in `imageSizedOps`, so the PromptBox hides the ratio and sends none; the agent path's
+  `resolveNamedParams` still injected the project's saved ratio, and `/project/save-generation` trusts a
+  client Width/Height over the file. Fix: skip the ratio there (`modelShowsRatio`). New test in
+  `tests/agent-model-params.test.cjs`, over every shipped model and op with a project saved at 1:1: an
+  image-sized op injects no Width/Height/Ratio_Label, a ratio op still does -> 4 pass; **fix removed ->
+  1 fail**; restored -> the four agent/connector param suites **54 pass, 0 fail**. His existing
+  `edit_056` card still carries the wrong size (not touched).
+- **Item 6, the head toggle.** `MpiButton` `image` prop; the prompt-box case now also checks the toggle's
+  `<img>` is `assets/mascot/logo.png`, loads, is `grayscale(1)` while off and unfiltered while on ->
+  passed. **Bite** (`bite_head.py`): chat icon kept, image not muted, image never full colour: **3/3 RED**.
+  Found on the way: the two `MpiButton` files had turned CRLF in the working tree (HEAD LF); normalised
+  to LF, diff = our lines only.
+- **Skill** `.claude/skills/cubric-vision-generate/SKILL.md`: image-sized ops take no ratio and get no
+  project ratio; the success `filePath` is a `/project-file?path=` url (it said a plain path).
+- **Suite:** `npm test` -> **1275 tests, 1274 pass, 0 fail**, 1 skipped; `npm run lint` exit 0;
+  `node --test tests/agent-corpus.test.cjs` after the skill edit -> pass; `agent-chat.spec.js` +
+  `flow-toggle-is-a-button.spec.js` (private `--output`) -> **27 passed (1.7m)**.
+
+- **Rule map** (Fabio "yes to maps"): `.claude/rules/component-events-primitives.md` MpiAgentChat block
+  gains `agent:user`, `agent:session`, `project:changed`, the session filter, and `_reload()`.

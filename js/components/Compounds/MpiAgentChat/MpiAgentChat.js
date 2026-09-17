@@ -12,7 +12,7 @@
  *   el.destroy()                       — teardown (unsub, no SSE to close — shared singleton).
  *
  * SSE events consumed: agent:working, agent:message, agent:tool, agent:confirm,
- *                       agent:result, agent:compacting, agent:error, agent:session.
+ *                       agent:result, agent:compacting, agent:error, agent:user, agent:session.
  * These are bridged from SSE to the app bus by agentService.agentInitStream().
  * This component subscribes via Events.on — it never opens its own EventSource.
  *
@@ -31,6 +31,7 @@ import { MpiInput }            from '../../Primitives/MpiInput/MpiInput.js';
 import { qs, on }              from '../../../utils/dom.js';
 import { renderIcon }          from '../../../utils/icons.js';
 import { renderMarkdownInto }  from '../../../utils/markdown.js';
+import { resolveMediaUrl }     from '../../../utils/mediaActions.js';
 import { Events }              from '../../../events.js';
 import { clientLogger }        from '../../../services/clientLogger.js';
 import { state }               from '../../../state.js';
@@ -125,10 +126,12 @@ export const MpiAgentChat = ComponentFactory.create({
 
         // ── Entry builders ────────────────────────────────────────────────────
 
-        /** User bubble (right-aligned). */
-        function _appendUser(text, attachments) {
+        /** User bubble (right-aligned). `id` (a history entry's) draws it once. */
+        function _appendUser(text, attachments, id) {
+            if (id && qs(`[data-entry-id="${CSS.escape(id)}"]`, transcript)) return;
             const div = document.createElement('div');
             div.className = 'mpi-agent-chat__entry mpi-agent-chat__entry--user';
+            if (id) div.dataset.entryId = id;
             const bubble = document.createElement('div');
             bubble.className = 'mpi-agent-chat__bubble';
             if (text) bubble.textContent = text;
@@ -262,7 +265,7 @@ export const MpiAgentChat = ComponentFactory.create({
             if (toolCallId) card.dataset.resultId = toolCallId;
 
             const img = document.createElement('img');
-            img.src = filePath ? `/project-file?path=${encodeURIComponent(filePath)}` : '';
+            img.src = resolveMediaUrl(filePath);
             img.alt = type || 'result';
             card.appendChild(img);
 
@@ -324,9 +327,19 @@ export const MpiAgentChat = ComponentFactory.create({
                     _appendError(data.code, data.message);
                     _setWorking(false);
                     break;
+                case 'agent:user':
+                    _appendUser(data.text, _stagedThumbs(data.attachments), data.id);
+                    break;
             }
         }
-        ['agent:working', 'agent:message', 'agent:tool', 'agent:confirm', 'agent:result', 'agent:compacting', 'agent:error']
+        /** Staged attachments are {id, name} with no dataUrl: shown through the attachment route. */
+        function _stagedThumbs(attachments) {
+            return (attachments || []).map((att) => ({
+                dataUrl: att.id ? `/agent/attachment/${att.id}` : (att.dataUrl || ''),
+                name: att.name || '',
+            }));
+        }
+        ['agent:working', 'agent:message', 'agent:tool', 'agent:confirm', 'agent:result', 'agent:compacting', 'agent:error', 'agent:user']
             .forEach((name) => _unsubs.push(Events.on(name, (data) => {
                 if (_loading) _queued.push([name, data]);
                 else _apply(name, data);
@@ -372,13 +385,7 @@ export const MpiAgentChat = ComponentFactory.create({
             if (history.entries) {
                 for (const entry of history.entries) {
                     if (entry.kind === 'user') {
-                        // Replayed user attachments have {id, name} without dataUrl.
-                        // Render via the attachment endpoint.
-                        const displayAttachments = (entry.attachments || []).map(att => ({
-                            dataUrl: att.id ? `/agent/attachment/${att.id}` : (att.dataUrl || ''),
-                            name: att.name || '',
-                        }));
-                        _appendUser(entry.text || '', displayAttachments);
+                        _appendUser(entry.text || '', _stagedThumbs(entry.attachments), entry.id);
                     } else if (entry.kind === 'agent') {
                         _appendMessage(entry.text || '', entry.id);
                     } else if (entry.kind === 'tool') {

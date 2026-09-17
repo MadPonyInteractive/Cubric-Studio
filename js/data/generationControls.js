@@ -303,7 +303,12 @@ export function resolveNamedParams(project, model, operation, named = {}) {
             ? `ratio "${ratio}" is not a ratio ${modelName} offers.`
             : `"${operation}" does not size its own output — it has no ratio to set.`);
     }
-    const ratioDims = resolvePlannedRatio(project, model, { ratioLabel: ratio, qualityTier });
+    // An op that sizes its own output (the model's `imageSizedOps`: Klein's edit follows
+    // the source image) takes no ratio, so the project's saved one is not injected either.
+    // It was: the card recorded 1024x1024 for an 832x1248 edit (MPI-774, 2026-09-17).
+    const ratioDims = modelShowsRatio(model, operation)
+        ? resolvePlannedRatio(project, model, { ratioLabel: ratio, qualityTier })
+        : { width: 0, height: 0, label: null };
     if (ratioDims.width && ratioDims.height) {
         injectionParams.Width = ratioDims.width;
         injectionParams.Height = ratioDims.height;
