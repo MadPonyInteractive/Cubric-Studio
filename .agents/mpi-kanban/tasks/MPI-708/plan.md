@@ -6,9 +6,19 @@ Brief (decision + repo-rename reasoning): `brief.md`.
 
 ## Current State
 
-**2026-09-17 (session 53d9d605, handing off; nothing implemented yet):** Phase 0 and Phase 0b are
-DONE (see Plan Drift). **Next: Phase 1, the repo renames.** Card is still in `todo`; the next
-session moves it to `doing` first. Fabio wants the handoff chain to keep going until the rename
+**2026-09-17 (session ad10647f): Phase 1 steps 1, 2 and 4 DONE; step 3 (CI dispatch) next.
+Card in `doing`, claim `8444666d`.** Fabio renamed both repos in GitHub Settings (hub first).
+Verified: `gh repo view` resolves `Cubric-Connector` (private hub) and `Cubric-Studio` (public
+product), and `.../Cubric-Vision` resolves to `Cubric-Studio`; the old slug's
+`releases/latest` API 301s and serves v1.5.0 JSON. Remotes set: hub -> `Cubric-Connector`,
+here -> `Cubric-Studio`; `git fetch` works in both. Commits: mpi-ci `e23112e` (both slugs),
+hub `98310e0` (headings; repo description updated), MadPony-Identity `eb0ee38` (slugs only),
+ComfyUi-MpiNodes: the README link rode a PEER's commit `060e78c` (already pushed; content correct),
+Vision: this commit (tool/doc slugs, `build-portable.yml`, README "formerly Cubric-Vision" note
+and mascot removed at Fabio's request). **Next:** dispatch `build-portable.yml`, confirm all three
+mpi-ci legs pass "Checkout source", cancel the run; then record evidence in `validation.md`.
+
+**Earlier (session 53d9d605):** Phase 0 and Phase 0b are DONE (see Plan Drift). Fabio wants the handoff chain to keep going until the rename
 lands: Cubric Vision ships as **Cubric Studio 2.0** ("Cubric Studio" in his speech already means
 this repo). The two GitHub renames are outward-facing: Fabio does them, or gives an explicit go per
 rename. MPI-708 is a Gate A member of MPI-595 (2.0 readiness), committed 2026-09-17.
@@ -246,8 +256,9 @@ run as one owned phase. **Phase verify mode: `user-ux`.**
       `MpiAbout.js:44`. Regenerate the derived icons from the new logo — `build/icon.png`,
       `build/icon.icns`, `media/icons/cubric-vision.{png,ico,icns}` (**keep the filenames**,
       they are wired into `build-portable.mjs:570-571` and
-      `scripts/portable/linux/setup-desktop.sh`), `favicon.png`, and
-      `.github/readme/mascot-greet.png`. **Verify:** launch `npm run app:isolated` and
+      `scripts/portable/linux/setup-desktop.sh`), and `favicon.png`
+      (`.github/readme/mascot-greet.png` is gone: Fabio had the mascot removed from the README
+      2026-09-17). **Verify:** launch `npm run app:isolated` and
       confirm the titlebar, About screen, taskbar icon and browser-tab favicon all show the
       new logo.
 - [ ] Sweep the renderer display strings. `js/core/appName.js:13` **and its `appName.cjs`
@@ -321,7 +332,9 @@ with `/mpi-brief-rule` output plus the Critical Rules Snapshot before dispatch.
       resolve the three-way spelling drift in `build-portable.mjs` (`:682,683` macOS bundle
       name, `:831` `displayName`) onto one name. Rename the artifacts (D1): `exeName`
       (`:41`), the three `rootName` templates (`:1183,1192,1198`) and the
-      `release-baselines/*.json` `rootName` + `files[]` entries. **Add the old
+      `release-baselines/*.json` `rootName` + `files[]` entries. Also point the updaters'
+      default repo at the new slug: `scripts/portable/win-update.cjs:25` `DEFAULT_REPO`,
+      `linux/update.sh:18`, `macos/update.command:16` (redirect-safe until then). **Add the old
       `CubricVision.exe` to `RETIRED_PATHS` (`:82-95`)** or every updated install keeps both
       binaries on disk forever — the delta bundle lists the new file but nothing deletes the
       old one. **Do not change `appId`** in either file (D2). If the `.code-workspace` file
@@ -350,6 +363,35 @@ MadPony-Identity, not from here. Recorded in Preservation Notes so the scope is 
 rather than forgotten.
 
 ## Plan Drift
+
+- 2026-09-17 (session ad10647f), Phase 1:
+  - **No lockstep for the CI gate.** mpi-ci now maps BOTH slugs to the deploy key
+    (`contains(fromJSON(...))`), pushed before either rename, so the order of the mpi-ci and
+    `build-portable.yml` changes no longer matters. Drop the old slug at 2.1 (add to that card).
+  - **The hub's remote is the trap, not its redirect.** Once Vision takes the `Cubric-Studio`
+    name, GitHub drops the hub's old-name redirect; a hub push through the old remote then lands
+    on the PRODUCT repo. `set-url` on the hub must precede step 2. Any other hub clone needs it too.
+  - **`feature-request-tier-label.md:73` is left alone.** Feature-request Discussions exist only on
+    the product repo, so `--repo .../Cubric-Studio` becomes correct after the rename
+    (MadPony-Identity's MPI-80 brief reads it the same way). Brand PROSE in MadPony-Identity is
+    MPI-80's; this card changed slugs only there.
+  - **`shortlinks.json` is a source file.** The deployed `/l/fr*` redirect pages live in the Website
+    repo (out of scope); they keep working through GitHub's redirect until Fabio regenerates them.
+  - **Code slugs stay with their owners:** `main.js:1251`, `routes/system.js:323` + its test,
+    `MpiErrorDialog.js:181`, and the three updater defaults (`win-update.cjs:25`,
+    `linux/update.sh:18`, `macos/update.command:16`, not listed anywhere before; added to the
+    "Build identity" task). All redirect-safe meanwhile.
+  - **Website download links survive the rename (measured, not assumed)** on the renamed public
+    repo `denoland/deno_std` -> `std`: `github.com/.../releases/latest` and
+    `.../releases/download/<tag>/<asset>` 301 to the new slug; `api.github.com/repos/<old>/releases/latest`
+    301s to `/repositories/<id>/...` with `Access-Control-Allow-Origin: *` on both hops, so the site's
+    browser `fetch` in `scripts/vision.js:126` still resolves. Holds only while nobody re-creates a
+    repo named `Cubric-Vision`. `initDownloads()` matches assets on the platform token
+    (`windows-x64`) not the product name, so the 2.0 artifact rename does not break it either;
+    with D1's dual-publish it takes whichever full zip comes first. The website can't be updated
+    BEFORE the rename (the new slug is the private hub until then); update it after, for tidiness.
+  - The auto-mode classifier refused `gh repo rename` ("Modify Shared Resources") even with
+    Fabio's explicit go: the renames are his to click, or he adds a permission rule.
 
 - 2026-09-17 (session 53d9d605): **Phase 0 is met** - v1.5.0 is published (2026-09-08) and MPI-706
   is `done`. **Phase 0b is met without a 1.5.1**: there is no 1.5.1 (MPI-709 re-cut 1.5.0; Fabio

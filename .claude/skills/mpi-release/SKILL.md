@@ -40,7 +40,7 @@ mandatory user-facing copy gates). The version file edits belong to
 - **Find the release line FIRST — it is often NOT master.** Resolve the last
   published tag to a commit and ask which branches contain it:
   ```bash
-  gh release list --repo MadPonyInteractive/Cubric-Vision --limit 3
+  gh release list --repo MadPonyInteractive/Cubric-Studio --limit 3
   git rev-parse "v<last>^{}" && git branch -a --contains "v<last>^{}"
   ```
   Whichever branch that names is the line you cut from, and you work in ITS
@@ -189,7 +189,7 @@ all 6 artifacts (full builds **and** update bundles — the update bundles are h
 existing users patch in place via the online `update.*` script; without them
 every update is a full re-download):
 ```bash
-gh release create v<ver> --repo MadPonyInteractive/Cubric-Vision \
+gh release create v<ver> --repo MadPonyInteractive/Cubric-Studio \
   --title "v<ver>" --notes-file <body.md> --latest \
   D:/CubricStudio/Vision/Builds/v<ver>/CubricVision-*-v<ver>.zip \
   D:/CubricStudio/Vision/Builds/v<ver>/CubricVision-*-v<ver>.tar.gz \
@@ -208,7 +208,7 @@ Publishing is not proof users can see it. `check-for-update` ([main.js](../../..
 reads `releases/latest`, which **excludes drafts and prereleases** — a slip there leaves
 every installed app silently seeing the old version, with no error surfaced anywhere.
 ```bash
-curl -s https://api.github.com/repos/MadPonyInteractive/Cubric-Vision/releases/latest \
+curl -s https://api.github.com/repos/MadPonyInteractive/Cubric-Studio/releases/latest \
   | grep -E '"tag_name"|"prerelease"|"draft"'
 ```
 Wants `"tag_name": "v<ver>"`, `"prerelease": false`, `"draft": false`. Anything else →

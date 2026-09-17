@@ -24,7 +24,7 @@ machine cannot produce a working Linux/macOS tarball.
 Triggers:
 
 - Manual dispatch in the private `mpi-ci` repo:
-  `gh workflow run cubric-vision-portable.yml --repo MadPonyInteractive/mpi-ci --ref main -f source_repo=MadPonyInteractive/Cubric-Vision -f ref=<branch-or-tag> -f version=<version>`
+  `gh workflow run cubric-vision-portable.yml --repo MadPonyInteractive/mpi-ci --ref main -f source_repo=MadPonyInteractive/Cubric-Studio -f ref=<branch-or-tag> -f version=<version>`
 - Optional dispatcher in Cubric-Vision:
   `.github/workflows/build-portable.yml` requests the private `mpi-ci` workflow
   and does not build or upload artifacts in the source repository. It requires

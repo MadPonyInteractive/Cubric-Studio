@@ -32,7 +32,7 @@ release until the artifacts are downloaded and Gate 2 is approved.
 **Fallback — rebuild one leg without moving the tag:** if a single OS fails, or you
 need a rebuild without re-tagging, dispatch manually by branch ref + version:
 ```bash
-gh workflow run build-portable.yml --repo MadPonyInteractive/Cubric-Vision \
+gh workflow run build-portable.yml --repo MadPonyInteractive/Cubric-Studio \
   --ref master -f ref=master -f version=<ver>
 ```
 
@@ -43,7 +43,7 @@ gh workflow run build-portable.yml --repo MadPonyInteractive/Cubric-Vision \
 > dispatcher; `cubric-vision-portable.yml` in mpi-ci is the build itself.
 > ```bash
 > gh workflow run cubric-vision-portable.yml --repo MadPonyInteractive/mpi-ci \
->   --ref main -f source_repo=MadPonyInteractive/Cubric-Vision \
+>   --ref main -f source_repo=MadPonyInteractive/Cubric-Studio \
 >   -f ref=<FULL 40-CHAR SHA> -f version=<ver>
 > ```
 > On THIS workflow a full 40-char SHA works (five builds); a SHORT sha fails at

@@ -1,20 +1,23 @@
-<div align="center">
+> [!NOTE]
+> This repository was formerly **Cubric-Vision** (`MadPonyInteractive/Cubric-Vision`). Cubric Vision
+> becomes Cubric Studio at version 2.0. Old links, clones and in-app update checks redirect here
+> automatically.
 
-<img src=".github/readme/mascot-greet.png" alt="Cubric Vision mascot" width="160">
+<div align="center">
 
 # Cubric Vision
 
 **ComfyUI's engine, without the engine room — AI image and video made easy, free, and open source.**
 
-[![Latest release](https://img.shields.io/github/v/release/MadPonyInteractive/Cubric-Vision?label=download&color=e84a8a)](https://github.com/MadPonyInteractive/Cubric-Vision/releases/latest)
+[![Latest release](https://img.shields.io/github/v/release/MadPonyInteractive/Cubric-Studio?label=download&color=e84a8a)](https://github.com/MadPonyInteractive/Cubric-Studio/releases/latest)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
-[![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20macOS-555)](https://github.com/MadPonyInteractive/Cubric-Vision/releases/latest)
+[![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20Linux%20%7C%20macOS-555)](https://github.com/MadPonyInteractive/Cubric-Studio/releases/latest)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/WX7tDFSVmY)
 [![Roadmap](https://img.shields.io/badge/Roadmap-Trello-0079BF?logo=trello&logoColor=white)](https://trello.com/b/wg1r5aYz/cubric-vision)
 [![Patreon](https://img.shields.io/badge/Patreon-support-FF424D?logo=patreon&logoColor=white)](https://www.patreon.com/madponyinteractive)
 [![Gumroad](https://img.shields.io/badge/Gumroad-donate-FF90E8?logo=gumroad&logoColor=black)](https://mad-pony-interactive.gumroad.com/l/vfdxe)
 
-[Website](https://cubric.studio/vision/) · [Documentation](https://docs.cubric.studio) · [Download](https://github.com/MadPonyInteractive/Cubric-Vision/releases/latest) · [Discord](https://discord.gg/WX7tDFSVmY) · [Roadmap](https://trello.com/b/wg1r5aYz/cubric-vision) · [Patreon](https://www.patreon.com/madponyinteractive) · [Gumroad](https://mad-pony-interactive.gumroad.com/l/vfdxe)
+[Website](https://cubric.studio/vision/) · [Documentation](https://docs.cubric.studio) · [Download](https://github.com/MadPonyInteractive/Cubric-Studio/releases/latest) · [Discord](https://discord.gg/WX7tDFSVmY) · [Roadmap](https://trello.com/b/wg1r5aYz/cubric-vision) · [Patreon](https://www.patreon.com/madponyinteractive) · [Gumroad](https://mad-pony-interactive.gumroad.com/l/vfdxe)
 
 </div>
 
@@ -84,7 +87,7 @@ https://github.com/user-attachments/assets/dd4c46e8-6941-49a2-b279-949fa1815aae
 ## Download and install
 
 Grab the portable build for your platform from
-[**GitHub Releases**](https://github.com/MadPonyInteractive/Cubric-Vision/releases/latest)
+[**GitHub Releases**](https://github.com/MadPonyInteractive/Cubric-Studio/releases/latest)
 — no installer, just extract and launch. On first run the app sets up its
 ComfyUI engine and asks where to store models.
 
@@ -143,9 +146,9 @@ The full user guide lives at [docs.cubric.studio](https://docs.cubric.studio):
 
 - [**Discord**](https://discord.gg/WX7tDFSVmY) — questions, feedback, and
   build announcements.
-- [**GitHub Issues**](https://github.com/MadPonyInteractive/Cubric-Vision/issues)
+- [**GitHub Issues**](https://github.com/MadPonyInteractive/Cubric-Studio/issues)
   — bug reports.
-- [**GitHub Discussions**](https://github.com/MadPonyInteractive/Cubric-Vision/discussions)
+- [**GitHub Discussions**](https://github.com/MadPonyInteractive/Cubric-Studio/discussions)
   — feature requests.
 - [**Patreon**](https://www.patreon.com/madponyinteractive) — a recurring
   three-tier subscription with tutorial project files and a direct line to the

@@ -41,7 +41,7 @@ jobs:
             workflow run cubric-vision-portable.yml
             --repo MadPonyInteractive/mpi-ci
             --ref main
-            -f source_repo=MadPonyInteractive/Cubric-Vision
+            -f source_repo=MadPonyInteractive/Cubric-Studio
             -f ref="$SOURCE_REF"
           )
 

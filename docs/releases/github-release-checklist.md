@@ -31,7 +31,7 @@ mpi-ci build. Publish with `gh release edit <id> --draft=false`; the tag is
 created at that moment, on the `--target` SHA.
 
 ```sh
-gh release create v<ver> -R MadPonyInteractive/Cubric-Vision \
+gh release create v<ver> -R MadPonyInteractive/Cubric-Studio \
   --target <sha> --draft --title "v<ver>" \
   --notes-file <body.md> <6 assets>
 gh release edit <id> --draft=false --latest   # publishes; uses the tag, or creates it

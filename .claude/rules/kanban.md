@@ -22,7 +22,7 @@ kanban card, filed as an issue on `MadPonyInteractive/mpi-kanban`.
 ## The board is PUBLIC — writing a card is publishing it
 
 `.agents/mpi-kanban/` is **tracked**, and `origin` is the public
-`github.com/MadPonyInteractive/Cubric-Vision`. Board writes need no permission to make;
+`github.com/MadPonyInteractive/Cubric-Studio`. Board writes need no permission to make;
 that says nothing about privacy.
 Before writing a card, brief, `research.md` or an event `summary`, ask whether it would be
 fine on a web page. If not, it goes in one of two homes — **never in the card** — and the

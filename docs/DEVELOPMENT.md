@@ -2,7 +2,7 @@
 
 This guide is for developers who want to run Cubric Vision from source or work
 on the codebase. If you just want to use the app, grab a portable build from
-[GitHub Releases](https://github.com/MadPonyInteractive/Cubric-Vision/releases/latest)
+[GitHub Releases](https://github.com/MadPonyInteractive/Cubric-Studio/releases/latest)
 instead.
 
 ## Requirements
