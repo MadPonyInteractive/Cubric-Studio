@@ -246,10 +246,12 @@
   },
   "17": {
     "inputs": {
-      "string": "C:\\Users\\Fabio\\Documents\\Cubric Vision\\Projects\\Wan 5b\\Media\\t2v_004.mp4",
-      "block_if_empty": true
+      "video": "None",
+      "block_if_empty": true,
+      "force_rate": 0,
+      "string": ""
     },
-    "class_type": "MpiLoadVideo",
+    "class_type": "MpiLoadVideoUpload",
     "_meta": {
       "title": "Input_Video"
     }
@@ -521,10 +523,11 @@
   },
   "106": {
     "inputs": {
-      "string": "",
-      "block_if_empty": true
+      "audio": "None",
+      "block_if_empty": true,
+      "string": ""
     },
-    "class_type": "MpiLoadAudio",
+    "class_type": "MpiLoadAudioUpload",
     "_meta": {
       "title": "Input_Audio"
     }

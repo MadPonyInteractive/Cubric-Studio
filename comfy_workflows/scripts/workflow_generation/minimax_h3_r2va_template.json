@@ -53,22 +53,24 @@
   },
   "321": {
     "inputs": {
-      "string": "",
+      "image": "None",
       "channel": "alpha",
-      "block_if_empty": false
+      "block_if_empty": false,
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image"
     }
   },
   "329": {
     "inputs": {
-      "string": "",
+      "image": "None",
       "channel": "alpha",
-      "block_if_empty": false
+      "block_if_empty": false,
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image_2"
     }
@@ -184,140 +186,153 @@
   },
   "331": {
     "inputs": {
-      "string": "",
+      "video": "None",
       "block_if_empty": false,
-      "force_rate": 0
+      "force_rate": 0,
+      "string": ""
     },
-    "class_type": "MpiLoadVideo",
+    "class_type": "MpiLoadVideoUpload",
     "_meta": {
       "title": "Input_Video"
     }
   },
   "332": {
     "inputs": {
-      "string": "",
+      "video": "None",
       "block_if_empty": false,
-      "force_rate": 0
+      "force_rate": 0,
+      "string": ""
     },
-    "class_type": "MpiLoadVideo",
+    "class_type": "MpiLoadVideoUpload",
     "_meta": {
       "title": "Input_Video_2"
     }
   },
   "333": {
     "inputs": {
-      "string": "",
-      "block_if_empty": false
+      "audio": "None",
+      "block_if_empty": false,
+      "string": ""
     },
-    "class_type": "MpiLoadAudio",
+    "class_type": "MpiLoadAudioUpload",
     "_meta": {
       "title": "Input_Audio"
     }
   },
   "334": {
     "inputs": {
-      "string": "",
-      "block_if_empty": false
+      "audio": "None",
+      "block_if_empty": false,
+      "string": ""
     },
-    "class_type": "MpiLoadAudio",
+    "class_type": "MpiLoadAudioUpload",
     "_meta": {
       "title": "Input_Audio_2"
     }
   },
   "336": {
     "inputs": {
-      "string": "",
+      "image": "None",
       "channel": "alpha",
-      "block_if_empty": false
+      "block_if_empty": false,
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image_3"
     }
   },
   "337": {
     "inputs": {
-      "string": "",
+      "image": "None",
       "channel": "alpha",
-      "block_if_empty": false
+      "block_if_empty": false,
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image_4"
     }
   },
   "338": {
     "inputs": {
-      "string": "",
+      "image": "None",
       "channel": "alpha",
-      "block_if_empty": false
+      "block_if_empty": false,
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image_5"
     }
   },
   "339": {
     "inputs": {
-      "string": "",
+      "image": "None",
       "channel": "alpha",
-      "block_if_empty": false
+      "block_if_empty": false,
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image_6"
     }
   },
   "343": {
     "inputs": {
-      "string": "",
+      "image": "None",
       "channel": "alpha",
-      "block_if_empty": false
+      "block_if_empty": false,
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image_8"
     }
   },
   "344": {
     "inputs": {
-      "string": "",
+      "image": "None",
       "channel": "alpha",
-      "block_if_empty": false
+      "block_if_empty": false,
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image_9"
     }
   },
   "345": {
     "inputs": {
-      "string": "",
+      "image": "None",
       "channel": "alpha",
-      "block_if_empty": false
+      "block_if_empty": false,
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image_7"
     }
   },
   "346": {
     "inputs": {
-      "string": "",
+      "video": "None",
       "block_if_empty": false,
-      "force_rate": 0
+      "force_rate": 0,
+      "string": ""
     },
-    "class_type": "MpiLoadVideo",
+    "class_type": "MpiLoadVideoUpload",
     "_meta": {
       "title": "Input_Video_3"
     }
   },
   "347": {
     "inputs": {
-      "string": "",
-      "block_if_empty": false
+      "audio": "None",
+      "block_if_empty": false,
+      "string": ""
     },
-    "class_type": "MpiLoadAudio",
+    "class_type": "MpiLoadAudioUpload",
     "_meta": {
       "title": "Input_Audio_3"
     }

@@ -17,7 +17,7 @@
 | inputs | `audio1` → `Input_Audio` (performance), `audio2` → `Input_Audio_2` (target voice) |
 | output | `SaveAudio` titled `Output_Audio`, flac |
 
-The graph is deliberately tiny: two `MpiLoadAudio` path readers and an `MpiInt`
+The graph is deliberately tiny: two `MpiLoadAudioUpload` slots and an `MpiInt`
 (`Input_Seed`) into `FL_ChatterboxVC`, out through a native `SaveAudio`. No text node
 exists anywhere — see the prompt trap below.
 
@@ -42,7 +42,7 @@ at 107,374 — byte-identical to the `assetDeps.js` entries.
 
 ## 🔴 Do NOT declare `ComfyUI-MpiNodes` in `requiredDeps`
 
-The graph runs `MpiLoadAudio` and `MpiInt`, so declaring the pack looks obviously right.
+The graph runs `MpiLoadAudioUpload` and `MpiInt`, so declaring the pack looks obviously right.
 It is wrong twice over, and it cost a red test before it was caught:
 
 1. **`requiredDeps` means "flow-only weights/nodes that NO MODEL requires."** Every model

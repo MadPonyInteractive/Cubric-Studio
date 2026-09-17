@@ -52,10 +52,11 @@
   },
   "10": {
     "inputs": {
-      "string": "",
-      "block_if_empty": true
+      "video": "None",
+      "block_if_empty": true,
+      "string": ""
     },
-    "class_type": "MpiLoadVideo",
+    "class_type": "MpiLoadVideoUpload",
     "_meta": {
       "title": "Input_Video"
     }

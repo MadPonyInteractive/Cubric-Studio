@@ -37,7 +37,7 @@ This is the **first controlnet-model dep in the app** — every prior control wa
 ## Control path in the master graph
 
 ```
-MpiLoadImageFromPath
+MpiLoadImage (Input_Image)
   -> MpiAnySwitch (select = Input_Control_Net)     picks the annotator
        any_1 AIO_Preprocessor[OpenposePreprocessor]
        any_2 AIO_Preprocessor[DepthAnythingV2Preprocessor]

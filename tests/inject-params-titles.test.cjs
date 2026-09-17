@@ -517,9 +517,9 @@ test('the Scribble Flow carries its I/O, its Klein slot and its LoRA rack (MPI-6
 });
 
 test('the Voice Changer Flow carries its two audio inputs and the audio capture (MPI-607)', () => {
-    // The first audio-only graph in the fleet: two MpiLoadAudio paths into
+    // The first audio-only graph in the fleet: two MpiLoadAudioUpload slots into
     // FL_ChatterboxVC, out through a native SaveAudio. Both inputs fail the same
-    // silent way — the injector skips a title with no node, and MpiLoadAudio's
+    // silent way — the injector skips a title with no node, and the loader's
     // `block_if_empty` then stops the branch, so a typo here is a run that produces
     // nothing at all rather than a run that errors.
     const file = 'flow_voice_changer.json';
@@ -574,7 +574,7 @@ test('the DramaBox Flow carries its prompt, duration, optional voice and audio c
         `${file}: the negative must stay baked on the encode node`);
 
     // The prompt-only route is a real fork, not a fallback: one sampler takes
-    // `voice_ref` and one does not, and an MpiAnyChecker on Input_Audio picks between
+    // `voice_ref` and one does not, and the Input_Audio loader's `loaded` picks between
     // them. If both samplers ever take a voice_ref, an empty audio slot stops being a
     // supported route and the op's `required: false` becomes a lie.
     const samplers = Object.values(graph).filter(n => n?.class_type === 'DramaBoxSampler');

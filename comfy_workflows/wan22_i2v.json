@@ -755,86 +755,40 @@
       "title": "Input_Video_Latent"
     }
   },
-  "899": {
+  "904": {
     "inputs": {
-      "any": [
-        "903",
-        0
-      ]
-    },
-    "class_type": "MpiAnyChecker",
-    "_meta": {
-      "title": "Mpi Any Checker"
-    }
-  },
-  "902": {
-    "inputs": {
-      "any": [
-        "905",
-        0
-      ]
-    },
-    "class_type": "MpiAnyChecker",
-    "_meta": {
-      "title": "Mpi Any Checker"
-    }
-  },
-  "903": {
-    "inputs": {
+      "image": "None",
+      "channel": "alpha",
+      "block_if_empty": false,
       "string": ""
     },
-    "class_type": "MpiString",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Start_Frame"
     }
   },
-  "904": {
-    "inputs": {
-      "channel": "alpha",
-      "block_if_empty": false,
-      "string": [
-        "899",
-        0
-      ]
-    },
-    "class_type": "MpiLoadImageFromPath",
-    "_meta": {
-      "title": "start"
-    }
-  },
-  "905": {
-    "inputs": {
-      "string": ""
-    },
-    "class_type": "MpiString",
-    "_meta": {
-      "title": "Input_End_Frame"
-    }
-  },
   "908": {
     "inputs": {
+      "image": "None",
       "channel": "alpha",
       "block_if_empty": false,
-      "string": [
-        "902",
-        0
-      ]
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
-      "title": "end"
+      "title": "Input_End_Frame"
     }
   },
   "918": {
     "inputs": {
       "mode": "both_true",
       "a": [
-        "899",
-        1
+        "904",
+        4
       ],
       "b": [
-        "902",
-        1
+        "908",
+        4
       ]
     },
     "class_type": "MpiBooleanCompare",
@@ -1030,8 +984,8 @@
   "946": {
     "inputs": {
       "boolean": [
-        "899",
-        1
+        "904",
+        4
       ]
     },
     "class_type": "MpiBooleanInvert",

@@ -38,6 +38,14 @@ precisely so the app has a clean, titled seam to write into.
 | `MpiBlocker` | Hard stop at the SOURCE of a branch. Use when laziness is not enough — it blocks the value itself, so nothing downstream can be pulled by anything. |
 | `MpiMath` | Evaluates `b if a == N else 0.0` etc. — drives the style-LoRA rack from one injected int. |
 | `MpiAnySwitch` | N-to-1 any-type router; the app injects `select` (1-indexed). Runtime in-workflow selectors (PiD VAE/size) use it. Subclass it for new any-type switches. |
+| `MpiLoadImage` / `MpiLoadVideoUpload` / `MpiLoadAudioUpload` | THE media slot (MPI-800): titled `Input_*`, the app stages the file into the engine `input/` and injects it into `string`; `loaded` drives presence gates; the picker ships on `None`. Contract: [media-inputs.md](media-inputs.md). |
+
+**Paths stay inside ComfyUI's folders (1.2.13+).** Every path widget in the pack
+(loaders, latent and JSON load/save, batch text, the Brush dataset) resolves only inside
+ComfyUI's `input/`, `output/` or `temp/`; anything else loads as missing or raises. The
+unauthenticated `/mpi/reload-extra-paths` route is gone, so a model folder added while
+the engine runs needs an engine restart (Settings says so), and `MpiBrushTrain` no
+longer downloads Brush. The Comfy Registry flagged 1.2.7-1.2.12 for exactly these.
 | `MpiLoraModel` / `MpiLoraModelClip` | LoRA apply with strength; the app injects the `{lora_name, strength_model, strength_clip}` object into the user LoRA slots. |
 | `MpiPromptList` / `MpiPromptProcessor` | Trigger-phrase list driven by the same int that picks the LoRA — keeps LoRA choice and trigger text from drifting. |
 | `MpiSaveVideo` | Fast single-pass mp4 encode on the engine; remote gens transfer only the final mp4. |

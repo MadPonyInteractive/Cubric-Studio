@@ -550,118 +550,50 @@
       "title": "Input_wf_type"
     }
   },
-  "186": {
-    "inputs": {
-      "any": [
-        "200",
-        0
-      ]
-    },
-    "class_type": "MpiAnyChecker",
-    "_meta": {
-      "title": "Mpi Any Checker"
-    }
-  },
-  "187": {
-    "inputs": {
-      "any": [
-        "201",
-        0
-      ]
-    },
-    "class_type": "MpiAnyChecker",
-    "_meta": {
-      "title": "Mpi Any Checker"
-    }
-  },
   "188": {
     "inputs": {
+      "image": "None",
       "channel": "alpha",
       "block_if_empty": false,
-      "string": [
-        "187",
-        0
-      ]
-    },
-    "class_type": "MpiLoadImageFromPath",
-    "_meta": {
-      "title": "img2"
-    }
-  },
-  "193": {
-    "inputs": {
-      "channel": "alpha",
-      "block_if_empty": false,
-      "string": [
-        "186",
-        0
-      ]
-    },
-    "class_type": "MpiLoadImageFromPath",
-    "_meta": {
-      "title": "img3"
-    }
-  },
-  "196": {
-    "inputs": {
-      "any": [
-        "203",
-        0
-      ]
-    },
-    "class_type": "MpiAnyChecker",
-    "_meta": {
-      "title": "Mpi Any Checker"
-    }
-  },
-  "200": {
-    "inputs": {
       "string": ""
     },
-    "class_type": "MpiString",
-    "_meta": {
-      "title": "Input_Image_3"
-    }
-  },
-  "201": {
-    "inputs": {
-      "string": ""
-    },
-    "class_type": "MpiString",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image_2"
     }
   },
-  "202": {
+  "193": {
     "inputs": {
-      "channel": "red",
+      "image": "None",
+      "channel": "alpha",
       "block_if_empty": false,
-      "string": [
-        "196",
-        0
-      ]
-    },
-    "class_type": "MpiLoadImageFromPath",
-    "_meta": {
-      "title": "mask"
-    }
-  },
-  "203": {
-    "inputs": {
       "string": ""
     },
-    "class_type": "MpiString",
+    "class_type": "MpiLoadImage",
+    "_meta": {
+      "title": "Input_Image_3"
+    }
+  },
+  "202": {
+    "inputs": {
+      "image": "None",
+      "channel": "red",
+      "block_if_empty": false,
+      "string": ""
+    },
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Mask"
     }
   },
   "206": {
     "inputs": {
-      "string": "",
+      "image": "None",
       "channel": "alpha",
-      "block_if_empty": true
+      "block_if_empty": true,
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image"
     }
@@ -790,8 +722,8 @@
         0
       ],
       "boolean": [
-        "196",
-        1
+        "202",
+        4
       ]
     },
     "class_type": "MpiIfElse",
@@ -810,8 +742,8 @@
         0
       ],
       "boolean": [
-        "196",
-        1
+        "202",
+        4
       ]
     },
     "class_type": "MpiIfElse",
@@ -872,8 +804,8 @@
         0
       ],
       "boolean": [
-        "196",
-        1
+        "202",
+        4
       ]
     },
     "class_type": "MpiBlocker",

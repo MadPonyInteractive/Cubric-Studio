@@ -145,8 +145,8 @@ then re-encodes; at 4096² that is 16.7M px, and a wheel tick or a colour change
 
 `composePaintLayer` then returns null, which the frame reads as *this kind changed nothing* — the
 run proceeds with no file in that slot. **A flow whose graph requires the layer must guard this
-itself**, because a `MpiLoadImageFromPath` left on its baked authoring path will load whatever was
-there and produce a confident wrong result. The frame cannot guard it: a null from `STEP_MEDIA`
+itself**, because an empty slot either blocks the branch or, with `block_if_empty` off, runs on a
+1x1 blank and produces a confident wrong result. The frame cannot guard it: a null from `STEP_MEDIA`
 legitimately means "nothing to change" for `crop`. This is a flow-wiring obligation, not a gizmo
 one.
 

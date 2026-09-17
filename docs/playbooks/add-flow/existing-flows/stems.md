@@ -13,12 +13,12 @@
 | `requiredModels` | `[]` — no model, no diffusion, no install gate |
 | `requiredDeps` | `audio-separation-nodes-comfyui` — **1.6 MB** of code, and ~320 MB it fetches itself (below) |
 | `mediaType` | `'audio'` |
-| inputs | `audio1` → `Input_Audio` (`MpiLoadAudio`, `block_if_empty: true`, `required: true`) |
+| inputs | `audio1` → `Input_Audio` (`MpiLoadAudioUpload`, `block_if_empty: true`, `required: true`) |
 | controls | four stem toggles (`Input_Get_*`, graph) + `combine` (app-side, unprefixed) |
 | outputs | four `SaveAudioAdvanced`, titled `Output_Audio_1..4`, flac, prefixed `stems/Bass` … `stems/Vocals` |
 
 ```
-Input_Audio (MpiLoadAudio)
+Input_Audio (MpiLoadAudioUpload)
   -> AudioSeparation (half_sine, chunk_length 16.0, chunk_overlap 0.1)
        -> Bass   -> Input_Get_Bass   -> Mpi Clear Vram -> Output_Audio_1  (stems/Bass)
        -> Drums  -> Input_Get_Drums  -> Mpi Clear Vram -> Output_Audio_2  (stems/Drums)

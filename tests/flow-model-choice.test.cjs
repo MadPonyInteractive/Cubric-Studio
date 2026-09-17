@@ -895,14 +895,16 @@ test('two candidates sharing a NAME are told apart in the picker (MPI-567)', asy
 test('an unpainted run FAILS CLOSED, and the box reaches Input_Box (MPI-567)', async () => {
     // The one obligation the frame cannot carry: with nothing drawn, the paint step
     // reports null, STEP_MEDIA derives no file, and Input_Paint keeps whatever its
-    // `string` is baked to. Baked to an authoring path that would be a confident wrong
+    // `string` and picker are baked to. A baked authoring file would be a confident wrong
     // result with no error anywhere — so both loaders must bake EMPTY and block.
     const graph = readJson('comfy_workflows/flow_draw_it_in.json');
     for (const title of ['Input_Image', 'Input_Paint']) {
         const node = Object.values(graph).find(n => n?._meta?.title === title);
-        assert.ok(node && node.class_type === 'MpiLoadImageFromPath', `${title} missing`);
+        assert.ok(node && node.class_type === 'MpiLoadImage', `${title} missing`);
         assert.equal(node.inputs.string, '',
             `${title} bakes a path — an unsupplied run would silently use the author's fixture`);
+        assert.equal(node.inputs.image, 'None',
+            `${title} bakes a picked file — the loader falls back to it when string is empty`);
         assert.equal(node.inputs.block_if_empty, true,
             `${title} must block on empty, or the graph runs on a blank 1x1 image`);
     }

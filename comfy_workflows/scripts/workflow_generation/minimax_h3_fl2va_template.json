@@ -237,30 +237,26 @@
   },
   "217": {
     "inputs": {
+      "image": "None",
       "channel": "alpha",
       "block_if_empty": false,
-      "string": [
-        "253",
-        0
-      ]
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
-      "title": "start"
+      "title": "Input_Start_Frame"
     }
   },
   "219": {
     "inputs": {
+      "image": "None",
       "channel": "alpha",
       "block_if_empty": false,
-      "string": [
-        "257",
-        0
-      ]
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
-      "title": "end"
+      "title": "Input_End_Frame"
     }
   },
   "232": {
@@ -384,24 +380,6 @@
     "class_type": "MpiLoraModelClip",
     "_meta": {
       "title": "Input_Lora_6"
-    }
-  },
-  "253": {
-    "inputs": {
-      "string": ""
-    },
-    "class_type": "MpiString",
-    "_meta": {
-      "title": "Input_Start_Frame"
-    }
-  },
-  "257": {
-    "inputs": {
-      "string": ""
-    },
-    "class_type": "MpiString",
-    "_meta": {
-      "title": "Input_End_Frame"
     }
   },
   "320": {

@@ -1052,8 +1052,8 @@
         0
       ],
       "boolean": [
-        "507",
-        1
+        "514",
+        4
       ]
     },
     "class_type": "MpiIfElse",
@@ -1092,8 +1092,8 @@
         0
       ],
       "boolean": [
-        "507",
-        1
+        "514",
+        4
       ]
     },
     "class_type": "MpiIfElse",
@@ -1253,8 +1253,8 @@
         0
       ],
       "boolean": [
-        "507",
-        1
+        "514",
+        4
       ]
     },
     "class_type": "MpiIfElse",
@@ -1273,8 +1273,8 @@
         0
       ],
       "boolean": [
-        "507",
-        1
+        "514",
+        4
       ]
     },
     "class_type": "MpiIfElse",
@@ -1354,8 +1354,8 @@
         2
       ],
       "boolean": [
-        "507",
-        1
+        "514",
+        4
       ]
     },
     "class_type": "MpiIfElse",
@@ -1374,8 +1374,8 @@
         0
       ],
       "boolean": [
-        "507",
-        1
+        "514",
+        4
       ]
     },
     "class_type": "MpiIfElse",
@@ -1531,10 +1531,11 @@
   },
   "477": {
     "inputs": {
-      "string": "",
-      "block_if_empty": true
+      "audio": "None",
+      "block_if_empty": true,
+      "string": ""
     },
-    "class_type": "MpiLoadAudio",
+    "class_type": "MpiLoadAudioUpload",
     "_meta": {
       "title": "Input_Audio"
     }
@@ -1553,74 +1554,28 @@
       "title": "Remove first Frame (!repeat)"
     }
   },
-  "504": {
+  "509": {
     "inputs": {
-      "any": [
-        "508",
-        0
-      ]
-    },
-    "class_type": "MpiAnyChecker",
-    "_meta": {
-      "title": "Mpi Any Checker"
-    }
-  },
-  "507": {
-    "inputs": {
-      "any": [
-        "510",
-        0
-      ]
-    },
-    "class_type": "MpiAnyChecker",
-    "_meta": {
-      "title": "Mpi Any Checker"
-    }
-  },
-  "508": {
-    "inputs": {
+      "image": "None",
+      "channel": "alpha",
+      "block_if_empty": false,
       "string": ""
     },
-    "class_type": "MpiString",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Start_Frame"
     }
   },
-  "509": {
-    "inputs": {
-      "channel": "alpha",
-      "block_if_empty": false,
-      "string": [
-        "504",
-        0
-      ]
-    },
-    "class_type": "MpiLoadImageFromPath",
-    "_meta": {
-      "title": "start"
-    }
-  },
-  "510": {
-    "inputs": {
-      "string": ""
-    },
-    "class_type": "MpiString",
-    "_meta": {
-      "title": "Input_End_Frame"
-    }
-  },
   "514": {
     "inputs": {
+      "image": "None",
       "channel": "alpha",
       "block_if_empty": false,
-      "string": [
-        "507",
-        0
-      ]
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
-      "title": "end"
+      "title": "Input_End_Frame"
     }
   },
   "516": {
@@ -1745,12 +1700,12 @@
     "inputs": {
       "mode": "both_false",
       "a": [
-        "504",
-        1
+        "509",
+        4
       ],
       "b": [
-        "507",
-        1
+        "514",
+        4
       ]
     },
     "class_type": "MpiBooleanCompare",
@@ -1878,12 +1833,12 @@
     "inputs": {
       "mode": "a_false_b_true",
       "a": [
-        "504",
-        1
+        "509",
+        4
       ],
       "b": [
-        "507",
-        1
+        "514",
+        4
       ]
     },
     "class_type": "MpiBooleanCompare",

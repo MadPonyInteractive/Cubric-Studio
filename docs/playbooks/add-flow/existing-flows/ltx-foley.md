@@ -25,7 +25,7 @@
 
 - **Model:** `ltx-23-balanced` only — the proven graph's `UNETLoader` bakes
   `...int8_convrot.safetensors`, same reason as extend.
-- **Input:** one video slot (`video1` → `Input_Video`, `MpiLoadVideo`, path-reading + self-gating).
+- **Input:** one video slot (`video1` → `Input_Video`, `MpiLoadVideoUpload`, staged path in `string`, self-gating).
 - **Output:** `mediaType: 'video'`; one capture, `Output_Video` (`use_audio: true`).
 - **Steps:** none — nothing is marked on the clip, so it is a 2-step carousel (supply → run).
 

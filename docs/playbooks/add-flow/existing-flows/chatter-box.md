@@ -32,7 +32,7 @@ Both weight sets are still declared, because either arm can be the one a given u
 ## 🔴 THERE IS NO VC STAGE, and this is not an open question
 
 The flow declares **one** media slot — `audio1` → `Input_Audio`, the voice the line is
-spoken in, which `MpiLoadAudio#54` marks `block_if_empty` so the graph blocks without it.
+spoken in, which `MpiLoadAudioUpload#54` marks `block_if_empty` so the graph blocks without it.
 The op maps that role and **nothing else**.
 
 `Input_Audio_2` is the only thing `MpiAnyChecker#57` reads to flip `MpiIfElse#53` onto
@@ -174,10 +174,10 @@ again, check `pkg_resources` before suspecting the model.
   storage or reuse.
 - 🔴 **A run with no voice is a SILENT no-op, and this predates the strip.** The slot is
   `mode: 'upto'` — the only mode there is — so a user can type a line, leave the voice
-  empty and press Generate. `MpiLoadAudio#54` carries `block_if_empty: true`, which
+  empty and press Generate. `MpiLoadAudioUpload#54` carries `block_if_empty: true`, which
   returns an `ExecutionBlocker`: no output, and ComfyUI reports success. Turning the
   flag off is **not** the fix — `false` emits a 1-sample 44.1 kHz silence
-  (`video.py` `MpiLoadAudio._empty`) which then becomes Chatterbox's `audio_prompt`, so
+  (`video.py` `MpiLoadAudio._empty`, which the Upload loader inherits) which then becomes Chatterbox's `audio_prompt`, so
   it trades a clean block for a garbage reference. The voice is genuinely required; what
   is missing is a way for a FlowDef to SAY a slot is required, and neither `upto` nor
   `requiresImages` (unread on the flow path) provides one.

@@ -611,7 +611,7 @@ either one fatal.**
 2. **Custom node uploads are disabled** (Comfy Cloud runs a curated node list; BYO packs
    are off because they carry local deps). **`ComfyUI-MpiNodes` is in EVERY shipped
    workflow** in `comfy_workflows/` — all control flow, branching, media I/O and the
-   style-LoRA system (`MpiReroute`, `MpiIfElse`, `MpiAnySwitch`, `MpiLoadVideo`,
+   style-LoRA system (`MpiReroute`, `MpiIfElse`, `MpiAnySwitch`, `MpiLoadVideoUpload`,
    `MpiSaveVideo`, 40+ more). A private pack will never appear on a public curated list.
    Same exposure: `ComfyUI-Krea2-ControlNet`, `PainterI2VAdvanced`, `RES4LYF`,
    `inpaint-cropandstitch`. **This one kills the paid tiers too** — there is no

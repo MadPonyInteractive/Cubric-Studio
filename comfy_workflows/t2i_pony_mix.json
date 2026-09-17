@@ -873,48 +873,26 @@
       "title": "Input_Height"
     }
   },
-  "1637": {
+  "1639": {
     "inputs": {
-      "any": [
-        "1638",
-        0
-      ]
-    },
-    "class_type": "MpiAnyChecker",
-    "_meta": {
-      "title": "Mpi Any Checker"
-    }
-  },
-  "1638": {
-    "inputs": {
+      "image": "None",
+      "channel": "red",
+      "block_if_empty": false,
       "string": ""
     },
-    "class_type": "MpiString",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Mask"
     }
   },
-  "1639": {
-    "inputs": {
-      "channel": "red",
-      "block_if_empty": false,
-      "string": [
-        "1637",
-        0
-      ]
-    },
-    "class_type": "MpiLoadImageFromPath",
-    "_meta": {
-      "title": "mask"
-    }
-  },
   "1640": {
     "inputs": {
-      "string": "",
+      "image": "None",
       "channel": "alpha",
-      "block_if_empty": true
+      "block_if_empty": true,
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image"
     }

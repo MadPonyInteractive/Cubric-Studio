@@ -1,4 +1,4 @@
-# Media inputs — path→string contract (+ the latent survivor)
+# Media inputs — one Upload loader per slot, staged into the engine `input/`
 
 > Part of [workflow-authoring](README.md). **Canonical home** for the media-input
 > rule. Applies to any Cubric workflow — models AND apps — that reads an image,
@@ -6,63 +6,78 @@
 > [add-model playbook](../playbooks/add-model/README.md) and [Flows](../flows.md)
 > point at ONE source.
 
-## The rule (MPI-272)
+## The rule (MPI-800)
 
-**Media inputs are path-reading loader nodes. The app writes the full
-project-folder PATH into the node's `string` widget; the node self-gates on an
-empty string.** No placeholder file, no `input/` staging, no upload step for
-image/mask/video/audio.
+**Every media input is ONE MpiNodes Upload loader, titled `Input_*`.**
 
-- image / mask → **`MpiLoadImageFromPath`** (a detailer mask is this class with a
-  fixed `channel: 'mask'`; an image uses `channel: 'alpha'`/default)
-- audio → **`MpiLoadAudio`**
-- video → **`MpiLoadVideo`** (or `VHS_LoadVideoPath`)
-- a plain **`MpiString`** feeding any `MpiLoad*` is also valid (fan-out)
-
-Every media input is titled `Input_*` and takes its full file path in one
-`string` widget. When the path is empty the node blocks its own branch
-(`ExecutionBlocker`), so an unused optional slot (a t2v graph's
-`Input_Start_Frame`, a no-audio gen's `Input_audio`) costs nothing — **there is
-no baked filename to validate against, so nothing to reject.** This is what
-killed the old placeholder trap.
-
-### "No placeholder" is about the FILE — the RAW widget slot still needs one
-
-The rule above kills the placeholder *image*. It does **not** free you from the
-positional `widgets_values` slot in the raw LiteGraph export. When the `string`
-(path) widget is converted to an **input socket** (dragged, so the node carries
-`link`), the converter still consumes its slot: `workflow-to-api.mjs`
-`emitWidgets` walks required-input order and does `vi += 1` for a widget-typed
-input **even when it's linked** — the link wins for the value, but the slot is
-eaten.
-
-So a socket-linked load node's raw `widgets_values` must keep a **placeholder for
-the linked widget**:
-
-| node | linked `string` | NOT |
+| media | node | `loaded` output |
 |---|---|---|
-| `MpiLoadVideo` / `MpiLoadAudio` | `["", true]` (placeholder, `block_if_empty`) | `[true]` |
-| `MpiLoadImageFromPath` | `["", "alpha", true]` (string, channel, `block_if_empty`) | `["alpha", true]` |
+| image / mask | `MpiLoadImage` (`channel` picks the mask source; a detailer mask uses `'mask'`) | 4 |
+| video | `MpiLoadVideoUpload` | 8 |
+| audio | `MpiLoadAudioUpload` | 1 |
 
-With `[true]` the converter reads `true` as the string slot, then `block_if_empty`
-sits at `vi=1 ≥ len` → `break` → the key is **dropped**, and ComfyUI answers
-`Prompt outputs failed validation` (400). **A node's default does NOT auto-fill a
-missing *required* key in an API prompt**, and `block_if_empty` is required on all
-three `MpiLoad*` classes — an absent key fails validation regardless of the
-node's default value.
+- **The app stages the file into the engine's `input/` folder and injects that path
+  into the node's `string` widget.** MpiNodes 1.2.13+ reads a path only when it
+  resolves inside ComfyUI's own `input/`, `output/` or `temp/` (the Comfy Registry
+  policy); a project-folder path injected as-is loads nothing.
+- **`string` is tried first, then the picker.** A shipped graph keeps the picker on
+  `None` and `string` empty, or a file picked on the bench would load for every user
+  who leaves the slot empty. `scripts/sync-raw-workflows.mjs` sets both on the
+  converted output and `scripts/validate-injection-rules.mjs` refuses anything else,
+  so `raw/` may keep a picked test file: pick it, test on the bench, sync.
+- **Nothing loaded:** the media outputs block (`block_if_empty` on) or arrive as a 1x1
+  blank / silent audio (off). **`loaded` is False either way and is never blocked**, so
+  it is the presence signal — wire it into the gates. An unused optional slot (a t2v
+  graph's `Input_Start_Frame`) costs nothing.
+- **No `MpiString`, no `MpiAnyChecker` in a slot.** `has_value` only says a string was
+  typed; since containment a string can be non-empty while nothing loads.
+- **One exception:** `resize_video.json`'s `Input_Video` is an `MpiString` that feeds
+  both `VHS_LoadVideoPath` and `MpiHasAudio`. The app stages its value the same way.
 
-**How to apply:** count positional widgets from the FULL required order and keep a
-placeholder for each up to the last real widget. Then verify the generated runtime
-JSON actually has `block_if_empty` in that node's `inputs` after convert. This
-surfaced during the mass `block_if_empty` sync — every workflow using these nodes
-needed a re-sync.
+Pinned by `tests/workflow-media-slots.test.cjs` (every shipped graph).
+
+The pre-1.2.16 path loaders (`MpiLoadImageFromPath` / `MpiLoadVideo` / `MpiLoadAudio`)
+still exist in the pack and still work, with the same containment; they are just not
+an app slot.
+
+### Raw `widgets_values` order
+
+The converter maps `widgets_values` positionally against `/object_info` order, and the
+frontend appends the upload button's value LAST, where the converter ignores it:
+
+| node | `widgets_values` |
+|---|---|
+| `MpiLoadImage` | `[picker, channel, block_if_empty, string, "image"]` |
+| `MpiLoadVideoUpload` | `[picker, block_if_empty, force_rate, string, "image"]` |
+| `MpiLoadAudioUpload` | `[picker, block_if_empty, string, null, null]` (player, upload) |
+
+**A node's default does NOT auto-fill a missing *required* key in an API prompt** —
+`block_if_empty` is required, so verify the converted JSON carries it. Replacing a
+slot by script: clone a node the bench saved (never hand-write one), keep the old
+loader's id, `pos` and output links (same RETURN_TYPES), and re-point any gate at
+`loaded`. The MPI-800 conversion did exactly that for 35 raw files.
+
+`ltx_video_upscale.json` and `remove_background.json` have **no `raw/` twin** — their
+API JSON is hand-maintained, so no sync rebakes them and the same edit is made by hand.
+`tests/workflow-media-slots.test.cjs` sweeps the shipped graphs, not `raw/`, so it
+catches one that was missed either way.
 
 ### Path source law
 
 Every injected path comes from the **PROJECT FOLDER** — gallery or
-`.preview-assets`, resolved via `/project-file?path=` — never a raw filesystem
-path. `_resolveMediaPath` (local) decodes `/project-file?path=` → local path;
-`_uploadRemoteMedia` (Pod) ships the bytes and injects the Pod-absolute path.
+`.preview-assets`, resolved via `/project-file?path=` — or a temp file the app wrote
+itself (the GIF cut-out video). `_resolveMediaPath` decodes `/project-file?path=` →
+local path, then:
+
+- **local engine** — `_stageLocalMedia` → `POST /comfy/stage-media` puts it in
+  `<engine input>/mpi_staged/<hash><ext>`: a **hardlink** first (free; a hardlink's real
+  path is the link itself, so the node accepts it), a copy when the link fails (another
+  volume). The name keys on path + size + mtime, so a re-run reuses the file. The
+  folder is emptied each time the app spawns the engine. A symlink or junction would
+  NOT work — it resolves back to the project and is refused.
+- **remote engine** — `_uploadRemoteMedia` ships the bytes to the Pod, which lands them
+  in the Pod ComfyUI's `--input-directory`, and injects that Pod-absolute path.
+
 Reuse-prompt resolves against the project store and fails hard otherwise;
 `_assertMediaSourceExists` HEAD-probes the source and raises the
 `input_asset_deleted` soft-error (WARNING toast, not the crash dialog) when a
@@ -71,17 +86,16 @@ reused card's source was deleted.
 ### Injection
 
 Title-based: a param keyed like the node title (`Input_Image`, `Input_Mask`,
-`Input_audio`, `Input_Start_Frame`, …) routes by **target node class** — any
-path-reading loader → the resolve/upload branch → the resolved path is written
-into the node's `string`. Case-insensitive on both sides. No `image`/`mask`
-input exists on a path node, so the old upload-name branch (`_uploadImage`) is
-gone.
+`Input_audio`, `Input_Start_Frame`, …) routes by **target node class**
+(`PATH_MEDIA_CLASSES` in `comfyController.js`) → resolve → stage/upload → inject.
+Case-insensitive on both sides. On an Upload loader the value goes into `string`
+only, and the picker is forced to `None` in the dispatched graph too.
 
-Data-URL media (the auto-mask painted mask arrives as a `data:` URL, which a
-path node's `os.path.isfile` cannot read) is first staged to a hashed file via
-`POST /comfy/stage-media-data-url`, then flows the normal resolve→inject path.
+Data-URL media (the auto-mask painted mask arrives as a `data:` URL) is first
+written to `mpi_staged/` via `POST /comfy/stage-media-data-url`, then flows the
+same path.
 
-## Nothing stages any more — the last survivor died with `LoadLatent` (MPI-466)
+## No placeholder latent — `LoadLatent` is gone (MPI-466)
 
 **This section used to say the opposite, and the reversal is the point.** It read
 *"Do NOT 'finish the cleanup' by removing latent staging — there is no path node
@@ -133,16 +147,19 @@ The conversion gate below now catches this class before bake.
 
 ## `block_if_empty: false` on any loader whose PRESENCE drives routing (MPI-466)
 
-`MpiLoadImageFromPath` / `MpiLoadAudio` raise an `ExecutionBlocker` when the path
-is empty and `block_if_empty: true`. That blocker propagates downstream and kills
+A loader raises an `ExecutionBlocker` on its media outputs when nothing loads and
+`block_if_empty: true`. That blocker propagates downstream and kills
 the branch — which is correct for a genuinely required input, and **wrong for a
 media-derived route**, where the empty slot IS the signal.
 
-In a presence-routed graph the routing is done by `MpiAnyChecker` → `has_value` →
-the lazy `MpiIfElse` gates. The loader must not block, or it pre-empts the gate
-before it can choose. All three end-frame graphs now agree:
+In a presence-routed graph the routing is done by the loader's own `loaded` output →
+the lazy `MpiIfElse` gates (`loaded` itself never blocks). H3 has no gate at all: its
+blank-tolerant `MpiH3ImageToVideo` reads the 1x1 blank an empty slot produces, which
+only exists with `false`. The frame slots stay `false` everywhere (a `true` has not been
+tested since the `loaded` rewire). All three end-frame graphs agree
+(`Input_Start_Frame` / `Input_End_Frame`):
 
-| graph | `start` | `end` |
+| graph | start | end |
 |---|---|---|
 | `ltx_i2v_t2v*.json` | `false` | `false` |
 | `minimax_h3_fl2va.json` | `false` | `false` |
@@ -155,6 +172,7 @@ reached those graphs — it only surfaced when the last-frame-only route needed 
 ## Guard
 
 `scripts/validate-injection-rules.mjs` gates every converted API before bake
-(title-prefix law / capture / seed convention / integrity). It STOPS and names
+(title-prefix law / capture / seed convention / integrity, and every Upload loader
+titled `Input_*` with its picker on `None` and `string` empty). It STOPS and names
 the offending node on a violation — it never auto-fixes. Run the raw→API sync
 (`scripts/sync-raw-workflows.mjs`) after authoring or re-exporting a workflow.

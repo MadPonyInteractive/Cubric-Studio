@@ -72,22 +72,24 @@
   },
   "79": {
     "inputs": {
-      "string": "C:\\Users\\Fabio\\Documents\\Cubric Vision\\Projects\\test\\Media\\imported_001.jpg",
+      "image": "None",
       "channel": "alpha",
-      "block_if_empty": true
+      "block_if_empty": true,
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image"
     }
   },
   "81": {
     "inputs": {
-      "string": "C:\\Users\\Fabio\\Documents\\Cubric Vision\\Projects\\test\\Media\\imported_002.webp",
+      "image": "None",
       "channel": "alpha",
-      "block_if_empty": true
+      "block_if_empty": true,
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image_2"
     }

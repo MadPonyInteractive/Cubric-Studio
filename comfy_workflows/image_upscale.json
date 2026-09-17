@@ -128,11 +128,12 @@
   },
   "758": {
     "inputs": {
-      "string": "",
+      "image": "None",
       "channel": "alpha",
-      "block_if_empty": true
+      "block_if_empty": true,
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image"
     }

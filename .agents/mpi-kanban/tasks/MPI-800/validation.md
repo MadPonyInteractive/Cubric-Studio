@@ -42,3 +42,42 @@ Evidence is recorded here as each phase is verified.
   MPI-800 board/events lines. Held for commit 2 (after Fabio's app restart + bake): node_lock pin,
   rebaked templates/runtime, the three runtime tests, the two comment-only test edits, all docs.
 
+## Phase 2 engine + Phase 3 bake + commit 2 (2026-09-17)
+
+- Engine restart: Fabio's app (now `%APPDATA%\Cubric Studio\logs\app.log`, MPI-708 rename) ran the
+  boot drift repair at 15:38:25-27 — `installed=1de35a3 pinned=cff4c3b` -> pre-wipe, download,
+  `node commit marker stamped`. The engine itself only starts on demand, so 48188 answered later:
+  `/object_info/MpiLoadImage` (required `image` picker + `channel`, optional `string`, outputs
+  `[image, mask, width, height, loaded]`) and `MpiLoadVideoUpload` (`loaded` last). 1.2.16 confirmed
+  LIVE, not just on disk.
+- A pre-restart run at 15:36 failed with `Media staging failed for Input_Video: HTTP 404`
+  (MPI-771's GIF Remove background): the window had the new renderer from the tree while the server
+  process predated `POST /comfy/stage-media`. Expected, restart-only.
+- `gif_cutout_birefnet.json` (MPI-771, committed 1b55d284 AFTER commit 1, message d71d7044) folded
+  into this card: the converter run with its SKIP cleared reports one DIRECT slot,
+  `#1 MpiLoadVideo -> MpiLoadVideoUpload "Input_Video" picker=None block=true`, i.e. the same shape
+  as its twin gif_cutout_sam3 (verified node-by-node). 35 raw files converted in total.
+- Bake (research/bake.mjs, COMFY_URL=48188): 34 raw files -> 46 runtime + 11 template API files;
+  `validate-injection-rules.mjs` passed all of them; `orchestrate.py` rebuilt every generated
+  runtime. NB the raw list now comes from `ee034559^..ee034559` plus the worktree, since commit 1
+  put raw/ in HEAD and the old `git diff` list would have been empty.
+- `tests/workflow-media-slots.test.cjs` then failed on TWO shipped graphs the bake cannot reach:
+  `ltx_video_upscale.json` (#10 MpiLoadVideo) and `remove_background.json` (#1
+  MpiLoadImageFromPath) have NO `raw/` twin. Migrated by hand in API form (picker key added,
+  `string: ""` kept, class swapped; output slot indices unchanged because the Upload node is a
+  subclass); `validate-injection-rules.mjs` -> both conform. Recorded in media-inputs.md.
+- `node --test "tests/**/*.test.cjs"` -> 1312 tests, 1311 pass, 0 fail (the 6 pre-bake failures,
+  captured again before the bake, are gone).
+- `research/survey.py`: no shipped graph carries a path loader, a checker on an injected path or an
+  absolute path; the two remaining ABS hits are bench values in raw templates (ltx_i2v_t2v #608
+  MpiString, minimax_h3_r2va #772 VHS_LoadVideoPath) which the bake scrubs/prunes.
+- `verify-workflow.mjs` on all 46 changed runtime files against 48188 -> all validate (107
+  uninstalled weights, not failures).
+- `scripts/smoke-workflows.mjs --plan` -> clean, nothing rented: "every Mpi* class_type exists at
+  MpiNodes cff4c3b3", "52 shipped graphs sweep clean". It also flags that `mpi-ci`'s pod
+  `node_lock.json` is behind on MpiNodes (code-only node, no image rebuild) — a sibling-repo sync,
+  NOT done here.
+- Commit 2 = pin + rebaked templates/runtime + the two hand-migrated graphs + birefnet raw + the 5
+  held test files + the doc rewrite + this card, through a private index (peers hold
+  docs/agent-chat.md, dev_configs/smoke-run.txt, the MPI-702/706/774 cards and more).
+

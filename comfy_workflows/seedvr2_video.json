@@ -213,10 +213,12 @@
   },
   "125": {
     "inputs": {
-      "string": "C:\\Users\\Fabio\\Downloads\\clip_1774824957518.mp4",
-      "block_if_empty": true
+      "video": "None",
+      "block_if_empty": true,
+      "force_rate": 0,
+      "string": ""
     },
-    "class_type": "MpiLoadVideo",
+    "class_type": "MpiLoadVideoUpload",
     "_meta": {
       "title": "Input_Video"
     }

@@ -36,7 +36,7 @@ graph, not in the marketing:
 
 | | Text to Speech (Chatterbox) | DramaBox |
 |---|---|---|
-| voice source | **required** — `MpiLoadAudio#54` carries `block_if_empty` | **optional** — `MpiAnyChecker#14` forks to a sampler with no `voice_ref` |
+| voice source | **required** — `MpiLoadAudioUpload#54` carries `block_if_empty` | **optional** — `Input_Audio`'s `loaded` forks to a sampler with no `voice_ref` |
 | with no sample | cannot run | invents a speaker from the words |
 | how you ask for a performance | you cannot | **write it into the line** |
 
@@ -151,8 +151,10 @@ Two related widgets are dead in this graph and must not be resurrected as contro
 
 ## The audio slot is optional, and that is WIRING, not politeness
 
-`MpiAnyChecker#14` reads `Input_Audio` and `MpiIfElse#15` picks between **two samplers** —
-`#9` takes `voice_ref`, `#10` does not. An empty slot is a supported prompt-only route
+`Input_Audio` (`MpiLoadAudioUpload#11`) reports `loaded`, and `MpiIfElse#15` picks on it between
+**two samplers** — `#9` takes `voice_ref`, `#10` does not. `loaded` never blocks, so the
+loader's `block_if_empty: true` only stops the audio output, which only the voice arm
+(`#7` voice-reference loader → `#9`) requests. An empty slot is a supported prompt-only route
 where the voice is whatever the prompt describes, not a blocked run.
 
 `tests/inject-params-titles.test.cjs` pins both arms. If both samplers ever take a

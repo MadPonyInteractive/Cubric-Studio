@@ -28,7 +28,7 @@
   one workflow file. Revisit if the Flow Library leaves the dev gate while a user has only the
   High card (the fix is a generator that bakes a bf16 twin, as `generate_ltx.py` does for the
   model — deliberately not built for a dev-gated surface).
-- **Input:** one video slot (`video1` → `Input_Video`, `MpiLoadVideo`, path-reading + self-gating).
+- **Input:** one video slot (`video1` → `Input_Video`, `MpiLoadVideoUpload`, staged path in `string`, self-gating).
 - **Output:** `mediaType: 'video'`; one capture, `Output_Video`.
 - **Steps:** one `preview` middle step (MPI-582, 2026-08-20) — a 3-step carousel
   (supply → describe → run). Nothing is MARKED on the clip, but step 0 loads media at

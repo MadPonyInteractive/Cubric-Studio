@@ -113,12 +113,13 @@ The value goes into the selector node's **widget input key**, not a made-up name
 `MpiString`/`MpiText` → `string`/`text`. (Same set the runtime injector targets —
 [injection.md](injection.md).) Stamp the wrong key and the value is silently ignored.
 
-## Media inputs — path→string (latents excepted)
+## Media inputs — one Upload loader per slot
 
-Image/mask/video/audio inputs are path-reading loaders (`MpiLoadImageFromPath` /
-`MpiLoadAudio` / `MpiLoadVideo`) that self-gate on an empty `string` — no
-placeholder to stamp. The one survivor: any `LoadLatent` node still needs its
-baked latent staged into the engine `input/`. Full contract: [media-inputs.md](media-inputs.md).
+Image/mask/video/audio inputs are Upload loaders (`MpiLoadImage` /
+`MpiLoadVideoUpload` / `MpiLoadAudioUpload`) titled `Input_*`: the app stages the
+file and injects `string`, and `sync-raw-workflows.mjs` ships the picker on `None` —
+nothing to stamp. A generator that bakes a slot empty sets `string` to `""`.
+Full contract: [media-inputs.md](media-inputs.md).
 
 ## Scrub runtime-injected inputs to safe defaults (MPI-282)
 

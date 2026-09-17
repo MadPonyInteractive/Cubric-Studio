@@ -84,11 +84,11 @@ Upload node (`MpiLoadImage` / `MpiLoadVideoUpload` / `MpiLoadAudioUpload`):
   links table and both link ends together, `mode` unchanged); clear any remaining live baked
   paths.
 - [x] Sync normalisation above. (`PATH_MEDIA_CLASSES` gained the three Upload classes in Phase 1.)
-- [ ] `COMFY_URL=http://127.0.0.1:48188 node scripts/sync-raw-workflows.mjs` (converts,
+- [x] `COMFY_URL=http://127.0.0.1:48188 node scripts/sync-raw-workflows.mjs` (converts,
   gates, bakes via `orchestrate.py`). Check `generate_*.py` `_bake_widgets` title lookups
   still land on the Upload nodes' `string`.
 - [x] `generate_h3.py`: stale "MpiAnyChecker" comments.
-- [ ] Guard test over `comfy_workflows/*.json`: no absolute path baked anywhere in a media
+- [x] Guard test over `comfy_workflows/*.json`: no absolute path baked anywhere in a media
   input; no `MpiAnyChecker` fed by an `Input_*` string; every Upload node titled `Input_*`
   with the picker on `None`. Rewrite DramaBox's
   exemption in `tests/flow-required-media.test.cjs` (and `flow-derived-fields` /
@@ -128,7 +128,18 @@ Scratch project, `gpu_lease.py run -- ...`, `/connector/generate`, read sidecars
 
 ## Current State
 
-2026-09-17 ~15:45Z. HANDOFF. Fabio has RESTARTED the app; at handoff 48188 did not answer yet
+2026-09-17 ~18:00Z. COMMIT 2 LANDING. Engine 48188 is LIVE on MpiNodes 1.2.16 (Fabio restarted;
+the boot repair re-installed cff4c3b, the engine starts on demand so it came up later). Bake DONE
+(46 runtime + 11 templates), MPI-771's `gif_cutout_birefnet` folded in (35 raw files converted),
+and `ltx_video_upscale` / `remove_background` migrated BY HAND because they have no `raw/` twin.
+Full suite 1311/1311, survey + verify-workflow + smoke --plan clean; evidence in validation.md.
+
+NEXT: commit 2 (pin + rebaked graphs + 5 tests + docs + card, private index), push, then Phase 4
+live checks in Fabio's app (ask first), then close-out. Open: `mpi-ci`'s pod `node_lock.json` is
+behind on MpiNodes (sibling repo, code-only, no image rebuild — smoke prints the 3 commands);
+`.claude/rules/comfy_engine.md:353` still names the removed route (needs Fabio's permission).
+
+### Handoff snapshot (2026-09-17 ~15:45Z, superseded above) Fabio has RESTARTED the app; at handoff 48188 did not answer yet
 (booting). CI on ee034559 = success. The scratch scripts are copied into research/ (bake.mjs =
 the bake runner, upload_slots.mjs = the raw converter, commit1.py = the private-index commit
 recipe used for commit 1) - run bake.mjs from there (it has absolute repo paths only). COMMIT 1 PUSHED: ee034559 (code, staging test, sync/validator, raw/ 34 files,

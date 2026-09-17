@@ -284,8 +284,8 @@ and return a different sample, with nothing to announce it.
 
 ## Routing — derived from media, not from a toggle
 
-H3 does not take an op int. `Input_Start_Frame` and `Input_End_Frame` are path strings into
-`MpiLoadImageFromPath` 217/219 (`block_if_empty` off), wired straight into
+H3 does not take an op int. `Input_Start_Frame` and `Input_End_Frame` are the `MpiLoadImage`
+slots 217/219 (`block_if_empty` off, so an empty slot is a 1x1 blank), wired straight into
 `MpiH3ImageToVideo`, which drops a blank frame itself (`is_blank_image`, MpiNodes `h3.py`).
 One node covers t2v, start-only, end-only and start+end, so **illegal states are unreachable
 by construction** — there is no toggle that can disagree with the media present. LTX should
@@ -319,7 +319,7 @@ warn that app-side fitting would crop twice.
 2026-09-04) replaced the four-copy branch lattice with a single `MpiH3ImageToVideo`, and
 the two resize nodes went out with the lattice — `git log -S ImageResizeKJv2` shows them
 entering at `bb50b55e` and leaving at `6deb60b6`, and the rebuilt fl2va has **zero** resize
-nodes: `MpiLoadImageFromPath` 217/219 wire straight into the i2v node. The first user run
+nodes: the frame loaders 217/219 wire straight into the i2v node. The first user run
 that day came back squashed (MPI-687).
 
 The fix is now in the NODE, not the graph: `MpiH3ImageToVideo._cover_crop` (MpiNodes

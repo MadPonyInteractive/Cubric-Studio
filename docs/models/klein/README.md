@@ -87,8 +87,8 @@ riding the same path as `Input_Seed`.
 Two footguns, both now caught by `generate_klein.py` asserts: an op that forgets to set
 `Input_wf_type` fails **silently** (runs the default branch, returns a plausible wrong
 image); and ComfyUI validates every node's inputs at submit time even when a branch is
-lazily skipped — which the graph survives only because image loads use
-`MpiLoadImageFromPath` with `block_if_empty: false`. Keep that on every new branch.
+lazily skipped — which the graph survives only because the optional image slots
+(`MpiLoadImage`) run with `block_if_empty: false`. Keep that on every new branch.
 
 Chain: `UNETLoader` → `LoraLoaderModelOnly` → `CFGGuider` → `SamplerCustomAdvanced`,
 with `Flux2Scheduler` sigmas, `KSamplerSelect(lcm)`, `CLIPLoader(type=flux2)`

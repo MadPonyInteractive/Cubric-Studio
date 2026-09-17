@@ -8,16 +8,18 @@
 // `.latent` files and copied them in before every multi-stage submit.
 //
 // Both halves of that are now GONE:
-//   - MPI-272 moved image/audio onto self-gating MpiLoadImageFromPath / MpiLoadAudio
-//     path nodes (empty `string` = no media), leaving latents the sole survivor.
+//   - MPI-272 moved image/audio onto self-gating Mpi path loaders (empty `string` = no
+//     media; since MPI-800 the Upload loaders MpiLoadImage / MpiLoadVideoUpload /
+//     MpiLoadAudioUpload), leaving latents the sole survivor.
 //   - MPI-466 moved LTX — the last holdout — onto MpiStageLatents, which reads its
 //     stage-1 file from a `load_path` widget the app writes per run. With no
 //     `LoadLatent` anywhere, `WORKFLOW_INPUT_DEFAULTS`, the three dummy latents and
 //     the `/comfy/prepare-workflow-inputs` route were all deleted.
 //
-// So the rule is no longer "bake a name that staging provides" — nothing is staged.
-// It is: an optional-media graph must carry NO bare Load* node at all, because there
-// is nothing left to make one validate. That is a stronger check than the old one,
+// So the rule is no longer "bake a name that staging provides" — no placeholder is
+// staged. (MPI-800 stages the REAL media file per run into input/mpi_staged/ and injects
+// that path; nothing bakes a name pointing there.) It is: an optional-media graph must
+// carry NO bare Load* node at all, because there is nothing left to make one validate. That is a stronger check than the old one,
 // and it fails loudly if the staging path is ever reintroduced by accident.
 const assert = require('assert');
 const fs = require('fs');
@@ -62,10 +64,10 @@ for (const file of optionalFiles) {
         if (!MEDIA_CLASSES.includes(node.class_type)) continue;
         const title = node._meta?.title || '(untitled)';
         violations.push(`${file} node ${id} (${node.class_type} "${title}") — bare Load* ` +
-            `node in an optional-media graph. Nothing is staged into the engine input/ ` +
-            `any more, so its baked filename will not resolve and ComfyUI rejects the ` +
-            `whole graph at prompt time. Use MpiLoadImageFromPath / MpiLoadAudio (image, ` +
-            `audio) or MpiStageLatents (latents).`);
+            `node in an optional-media graph. No placeholder is staged into the engine ` +
+            `input/, so its baked filename will not resolve and ComfyUI rejects the ` +
+            `whole graph at prompt time. Use MpiLoadImage / MpiLoadVideoUpload / ` +
+            `MpiLoadAudioUpload (media) or MpiStageLatents (latents).`);
     }
 }
 

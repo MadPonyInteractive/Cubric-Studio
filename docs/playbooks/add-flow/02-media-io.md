@@ -28,21 +28,21 @@ inputSchema: {
 - Each drop zone accepts DROP or click-to-browse (multi-select); over-cap files are dropped +
   `clientLogger.warn`.
 
-## Path-reading input nodes (the core contract)
+## Input nodes (the core contract)
 
-**Every flow-touched input node reads a filesystem PATH**, not a ComfyUI input-dir upload name:
+**Every flow media slot is ONE MpiNodes Upload loader titled `Input_*`** (MPI-800; the full
+contract is [workflow-authoring/media-inputs.md](../../workflow-authoring/media-inputs.md)):
 
-| media | node class | reads path from | self-gates |
+| media | node class | the app writes | nothing loaded |
 |---|---|---|---|
-| image | `MpiLoadImageFromPath` | `.string` | empty path → `ExecutionBlocker` → its `Output_Image*` branch never runs |
-| video | `MpiString` → VHS `LoadVideoPath` | `.string` | empty → `MpiAnyChecker`/`MpiBlockIfEmpty`/`MpiIfElse` block the branch |
-| audio | `MpiLoadAudio` (MPI-259) | `.string` | empty → self-gates like the others (`block_if_empty`) |
+| image | `MpiLoadImage` | the staged path into `.string` | image/mask block (`block_if_empty`) or 1x1 blank; `loaded` (4) False |
+| video | `MpiLoadVideoUpload` | same | frames/audio block or blank; `loaded` (8) False |
+| audio | `MpiLoadAudioUpload` | same | audio blocks or silent; `loaded` (1) False |
 
-This is why the flow injects a PATH, and why input nodes are NOT stock `LoadImage`/`LoadAudio`
-(those read an input-dir filename and can't self-gate). The old stock `LoadAudio` was the last
-holdout — it wanted an input-dir name, so the flow injected a path it couldn't use and the output
-kept the source's own audio (MPI-259). The path-reading audio node fixed it: consistent
-architecture across all three media types.
+The app stages the file into the engine `input/` first (MpiNodes only reads paths inside
+ComfyUI's own folders) and ships every picker on `None`. `loaded` never blocks, so it is the
+presence signal for any fork. Stock `LoadImage`/`LoadAudio` are not slots: they read an
+input-dir filename, cannot take an injected path, and cannot report `loaded`.
 
 ## 🔴 Self-gating is not the same as HANDLED
 
@@ -84,34 +84,30 @@ its voice slot really is optional, which is how its prompt-only arm builds a spe
 the words alone.
 
 🔴 **And DramaBox is exempt through LAZINESS, not through the flag** — stated wrongly
-once already and caught by a claim audit. `MpiLoadAudio#11` carries `block_if_empty: true`
-like every other loader. `Input_Audio` is an `MpiString` whose only consumer is
-`MpiAnyChecker#14`, and that checker's boolean drives `MpiIfElse#15` between two samplers,
-one taking a `voice_ref` and one not. `MpiIfElse` declares its arms **lazy**, so an empty
-slot takes the prompt-only arm and the loader is never requested — the flag is real and
-simply unreachable. **So "does this slot block?" is not answerable from the flag alone.**
-Route an injected path through a presence check when you want it optional; wire it into a
-loader directly when you do not.
+once already and caught by a claim audit. `Input_Audio` (`MpiLoadAudioUpload#11`) carries
+`block_if_empty: true` like every other loader, but its `loaded` output drives
+`MpiIfElse#15` between two samplers, one taking a `voice_ref` and one not. `loaded` never
+blocks and `MpiIfElse` declares its arms **lazy**, so an empty slot takes the prompt-only
+arm and the blocked `audio` output is never requested — the flag is real and simply
+unreachable. **So "does this slot block?" is not answerable from the flag alone.** Fork on
+`loaded` when you want a slot optional; feed its media straight on when you do not.
 
 ## Injection routing (`comfyController` media-kind sweep)
 
-`comfyController` (in `runWorkflow`) classifies each media param's KIND, then routes it:
+`comfyController` (in `runWorkflow`) routes each media param by the CLASS of the node that
+carries its title (case-insensitive):
 
-1. **Field detection** — `'video'/'audio'/'image' in node.inputs` tags the kind. A path-reading
-   node has `.string`, NOT `.audio`/`.video`, so field-detection MISSES it. Backstop:
-2. **Title pattern** — `/^input_video(_\d+)?$/i → video`, `/^input_audio(_\d+)?$/i → audio`,
-   `/^input_image(_\d+)?$/i → image`. This catches every lowercase/numbered flow slot
-   (`Input_video`, `Input_video_2`, `Input_audio`, `Input_Image_2`).
-3. **Class route (images)** — an image param whose target node `class_type ===
-   'MpiLoadImageFromPath'` flips kind `image → imagepath` so it takes the path-resolve branch,
-   not the input-dir upload-name branch. Legacy `LoadImage` keeps `image` (upload-name). Class-based,
-   so migrating a workflow to the new node auto-flips it with no injector change.
-4. **Resolve** — `video`/`audio`/`imagepath` kinds go through `_resolveMediaPath` locally, or
-   `_uploadRemoteMedia` → Pod-absolute path on remote. `_inject` then writes the resolved path
-   into the node's widget (key priority includes `string`, so MpiString/MpiLoad*FromPath → `.string`).
+1. **Class route** — a param whose same-titled node is in `PATH_MEDIA_CLASSES` (the three
+   Upload loaders, the older path loaders, `VHS_LoadVideoPath`, and the `MpiString` fan-out)
+   takes the path branch. A `data:` URL is written to a file first.
+2. **Resolve** — `_resolveMediaPath` decodes `/project-file?path=`; `_assertMediaSourceExists`
+   raises the `input_asset_deleted` toast for a deleted reuse source.
+3. **Place** — local engine: `_stageLocalMedia` (`POST /comfy/stage-media`, a hardlink or copy
+   into `input/mpi_staged/`); remote: `_uploadRemoteMedia` → the Pod-absolute input path.
+4. **Inject** — on an Upload loader `_inject` writes `.string` only and forces the picker to
+   `None`; on anything else it sprays its usual widget keys (`string` among them).
 
-So a new path-reading audio node titled `Input_audio` needs **zero injector change** — the title
-pattern tags it `'audio'`, the path resolves, `_inject` writes `.string`.
+So a new slot needs **zero injector change** as long as it is an Upload loader titled `Input_*`.
 
 ## The two audio traps (MPI-259)
 
@@ -165,10 +161,9 @@ capture path keeps only what actually ran (`executed` events) — a gated-off ou
 
 | node | gates | how |
 |---|---|---|
-| `MpiLoadImageFromPath` | image | empty/missing path → `ExecutionBlocker` → its `Output_Image*` branch never runs |
-| `MpiLoadAudio` | audio | empty path → self-gates its branch (`block_if_empty`, default on) |
+| `MpiLoadImage` / `MpiLoadVideoUpload` / `MpiLoadAudioUpload` | image / video / audio | nothing loaded → `ExecutionBlocker` on the media outputs (`block_if_empty`, default on) → that `Output_*` branch never runs; `loaded` False drives any fork |
 | `MpiBlockIfEmpty` | any | passes a value through, blocks downstream if empty |
-| `MpiAnyChecker` | any | passes value + a `has_value` boolean to drive `MpiIfElse` |
+| `MpiAnyChecker` | any non-media value | passes value + a `has_value` boolean (text prompts); never on a media slot — fork on `loaded` |
 | `MpiHasAudio` | audio | boolean: does the loaded media carry an audio track |
 | `MpiIfElse` | video (+ any) | boolean branch — no `Input_video_2` path → `Output_video_2` never runs |
 

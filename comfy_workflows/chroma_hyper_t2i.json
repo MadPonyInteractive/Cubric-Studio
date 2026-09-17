@@ -510,11 +510,12 @@
   },
   "2645": {
     "inputs": {
-      "string": "",
+      "image": "None",
       "channel": "alpha",
-      "block_if_empty": false
+      "block_if_empty": false,
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image"
     }
@@ -774,39 +775,16 @@
       "title": "Input_Control_strength"
     }
   },
-  "2705": {
-    "inputs": {
-      "any": [
-        "2706",
-        0
-      ]
-    },
-    "class_type": "MpiAnyChecker",
-    "_meta": {
-      "title": "Mpi Any Checker"
-    }
-  },
-  "2706": {
-    "inputs": {
-      "string": ""
-    },
-    "class_type": "MpiString",
-    "_meta": {
-      "title": "Input_Mask"
-    }
-  },
   "2707": {
     "inputs": {
+      "image": "None",
       "channel": "red",
       "block_if_empty": false,
-      "string": [
-        "2705",
-        0
-      ]
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
-      "title": "mask"
+      "title": "Input_Mask"
     }
   },
   "2716": {

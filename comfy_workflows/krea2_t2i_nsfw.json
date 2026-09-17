@@ -811,8 +811,8 @@
         0
       ],
       "boolean": [
-        "544",
-        1
+        "559",
+        4
       ]
     },
     "class_type": "MpiIfElse",
@@ -831,8 +831,8 @@
         0
       ],
       "boolean": [
-        "544",
-        1
+        "559",
+        4
       ]
     },
     "class_type": "MpiIfElse",
@@ -1208,85 +1208,40 @@
       "title": "Mpi Simple Bool"
     }
   },
-  "544": {
-    "inputs": {
-      "any": [
-        "554",
-        0
-      ]
-    },
-    "class_type": "MpiAnyChecker",
-    "_meta": {
-      "title": "Mpi Any Checker"
-    }
-  },
-  "551": {
-    "inputs": {
-      "any": [
-        "556",
-        0
-      ]
-    },
-    "class_type": "MpiAnyChecker",
-    "_meta": {
-      "title": "Mpi Any Checker"
-    }
-  },
   "553": {
     "inputs": {
-      "string": "",
+      "image": "None",
       "channel": "alpha",
-      "block_if_empty": true
+      "block_if_empty": true,
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image"
     }
   },
-  "554": {
+  "557": {
     "inputs": {
+      "image": "None",
+      "channel": "red",
+      "block_if_empty": false,
       "string": ""
     },
-    "class_type": "MpiString",
-    "_meta": {
-      "title": "Input_Image_2"
-    }
-  },
-  "556": {
-    "inputs": {
-      "string": ""
-    },
-    "class_type": "MpiString",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Mask"
     }
   },
-  "557": {
-    "inputs": {
-      "channel": "red",
-      "block_if_empty": false,
-      "string": [
-        "551",
-        0
-      ]
-    },
-    "class_type": "MpiLoadImageFromPath",
-    "_meta": {
-      "title": "mask"
-    }
-  },
   "559": {
     "inputs": {
+      "image": "None",
       "channel": "alpha",
       "block_if_empty": false,
-      "string": [
-        "544",
-        0
-      ]
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
-      "title": "img2"
+      "title": "Input_Image_2"
     }
   },
   "560": {
@@ -1346,8 +1301,8 @@
         0
       ],
       "b": [
-        "544",
-        1
+        "559",
+        4
       ]
     },
     "class_type": "MpiBooleanCompare",
@@ -1414,8 +1369,8 @@
         0
       ],
       "boolean": [
-        "551",
-        1
+        "557",
+        4
       ]
     },
     "class_type": "MpiIfElse",
@@ -1519,8 +1474,8 @@
         0
       ],
       "boolean": [
-        "551",
-        1
+        "557",
+        4
       ]
     },
     "class_type": "MpiIfElse",

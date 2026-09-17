@@ -818,8 +818,8 @@
         0
       ],
       "boolean": [
-        "231",
-        1
+        "235",
+        4
       ]
     },
     "class_type": "MpiIfElse",
@@ -1087,8 +1087,8 @@
         0
       ],
       "boolean": [
-        "231",
-        1
+        "235",
+        4
       ]
     },
     "class_type": "MpiIfElse",
@@ -1177,8 +1177,8 @@
         0
       ],
       "boolean": [
-        "232",
-        1
+        "234",
+        4
       ]
     },
     "class_type": "MpiIfElse",
@@ -1186,107 +1186,38 @@
       "title": "Mpi If Else"
     }
   },
-  "231": {
+  "234": {
     "inputs": {
-      "any": [
-        "236",
-        0
-      ]
-    },
-    "class_type": "MpiAnyChecker",
-    "_meta": {
-      "title": "Mpi Any Checker"
-    }
-  },
-  "232": {
-    "inputs": {
-      "any": [
-        "233",
-        0
-      ]
-    },
-    "class_type": "MpiAnyChecker",
-    "_meta": {
-      "title": "Mpi Any Checker"
-    }
-  },
-  "233": {
-    "inputs": {
+      "image": "None",
+      "channel": "alpha",
+      "block_if_empty": false,
       "string": ""
     },
-    "class_type": "MpiString",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image_3"
     }
   },
-  "234": {
-    "inputs": {
-      "channel": "alpha",
-      "block_if_empty": false,
-      "string": [
-        "232",
-        0
-      ]
-    },
-    "class_type": "MpiLoadImageFromPath",
-    "_meta": {
-      "title": "img3"
-    }
-  },
   "235": {
     "inputs": {
+      "image": "None",
       "channel": "alpha",
       "block_if_empty": false,
-      "string": [
-        "231",
-        0
-      ]
-    },
-    "class_type": "MpiLoadImageFromPath",
-    "_meta": {
-      "title": "img2"
-    }
-  },
-  "236": {
-    "inputs": {
       "string": ""
     },
-    "class_type": "MpiString",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image_2"
     }
   },
   "296": {
     "inputs": {
+      "image": "None",
       "channel": "red",
       "block_if_empty": true,
-      "string": [
-        "297",
-        0
-      ]
-    },
-    "class_type": "MpiLoadImageFromPath",
-    "_meta": {
-      "title": "mask"
-    }
-  },
-  "297": {
-    "inputs": {
-      "any": [
-        "298",
-        0
-      ]
-    },
-    "class_type": "MpiAnyChecker",
-    "_meta": {
-      "title": "Mpi Any Checker"
-    }
-  },
-  "298": {
-    "inputs": {
       "string": ""
     },
-    "class_type": "MpiString",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Mask"
     }
@@ -1893,11 +1824,12 @@
   },
   "474": {
     "inputs": {
-      "string": "",
+      "image": "None",
       "channel": "alpha",
-      "block_if_empty": true
+      "block_if_empty": true,
+      "string": ""
     },
-    "class_type": "MpiLoadImageFromPath",
+    "class_type": "MpiLoadImage",
     "_meta": {
       "title": "Input_Image"
     }
@@ -1951,8 +1883,8 @@
         0
       ],
       "boolean": [
-        "297",
-        1
+        "296",
+        4
       ]
     },
     "class_type": "MpiIfElse",
@@ -2056,8 +1988,8 @@
         0
       ],
       "boolean": [
-        "297",
-        1
+        "296",
+        4
       ]
     },
     "class_type": "MpiIfElse",
@@ -2199,8 +2131,8 @@
         0
       ],
       "boolean": [
-        "297",
-        1
+        "296",
+        4
       ]
     },
     "class_type": "MpiIfElse",

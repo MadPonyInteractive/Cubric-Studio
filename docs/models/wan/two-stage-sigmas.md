@@ -78,8 +78,8 @@ actually drifts before tuning — not all prompts show it.
 
 ## Generator note
 
-`Input_Start_Frame`/`Input_End_Frame` are now `MpiLoadImageFromPath` path→string
-loaders that self-gate on empty — no placeholder stamp (MPI-272). The app injects
+`Input_Start_Frame`/`Input_End_Frame` are `MpiLoadImage` slots whose `loaded` output
+drives the frame gates — no placeholder stamp ([media-inputs](../../workflow-authoring/media-inputs.md)). The app injects
 the real frame path by title `Input_Start_Frame`/`Input_End_Frame` — if a
 re-export reverts these to the bare `Start_Frame`/`End_Frame`, injection silently
 misses and the node self-gates to no frame (a "wrong output, ignores input image"

@@ -1,11 +1,12 @@
 {
   "1": {
     "inputs": {
-      "string": "",
+      "video": "None",
       "block_if_empty": true,
-      "force_rate": 0
+      "force_rate": 0,
+      "string": ""
     },
-    "class_type": "MpiLoadVideo",
+    "class_type": "MpiLoadVideoUpload",
     "_meta": {
       "title": "Input_Video"
     }
