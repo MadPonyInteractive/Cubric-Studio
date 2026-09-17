@@ -60,8 +60,11 @@
  *     opt-in; omit (or every numeric field 0/undefined) for a no-op that
  *     keeps the engine mask's own soft edge,
  *   invert?: boolean,
+ *   settings?: { method, prompt?, objects?, colour?, tolerance?, edgesOnly? } —
+ *     how the masks were made, stamped with adjust/invert as the sidecar's `cutout`,
  *   sourceItemId?, sourceGroupId?,
- * } -> { success: true, item, group } (mode 'new' — precedent
+ * } -> { success: true, item, group }. The entry is always built transparent
+ * (`output.edgeColour` defaults to black when the caller's is null). (mode 'new' — precedent
  * `routes/videoReverse.js` / `routes/gif.js`'s own 'new' branch). A failure
  * mid-loop names the frame and stops rather than shipping a partial cut —
  * a large GIF that fails is a clear warning, never a silent cap (plan
@@ -292,10 +295,23 @@ router.post('/gif-cutout/source', async (req, res) => {
     }
 });
 
+/**
+ * What made a cut-out entry, stamped on its sidecar so the entry can say how it was
+ * made (MPI-771). Only the known mask-method fields survive; the rest is dropped.
+ */
+function cutoutRecord(settings, adjust, invert) {
+    const s = settings && typeof settings === 'object' ? settings : {};
+    const pick = {};
+    for (const k of ['method', 'prompt', 'objects', 'colour', 'tolerance', 'edgesOnly']) {
+        if (s[k] !== undefined) pick[k] = s[k];
+    }
+    return { ...pick, adjust: adjust || null, invert: !!invert };
+}
+
 router.post('/gif-cutout/apply', async (req, res) => {
     let outputPath = '';
     try {
-        const { folderPath, frames, loop, output, masks, adjust, invert, sourceItemId, sourceGroupId } = req.body || {};
+        const { folderPath, frames, loop, output, masks, adjust, invert, settings, sourceItemId, sourceGroupId } = req.body || {};
         if (!folderPath || typeof folderPath !== 'string') {
             return res.status(400).json({ success: false, error: 'folderPath required' });
         }
@@ -338,8 +354,11 @@ router.post('/gif-cutout/apply', async (req, res) => {
             loop: Number.isFinite(Number(loop)) ? Number(loop) : 0,
             output: {
                 maxEdge: Number(output?.maxEdge) > 0 ? Number(output.maxEdge) : 1024,
-                colours: Number.isFinite(Number(output?.colours)) ? Number(output.colours) : 256,
-                edgeColour: output?.edgeColour || null,
+                colours: Number(output?.colours) > 0 ? Math.round(Number(output.colours)) : 256,
+                // A cut-out is transparent by definition (MPI-771, Decision 15). The
+                // source entry's output is usually opaque, which flattened every cut
+                // pixel onto black. Black matches the GIF output tool's default edge.
+                edgeColour: output?.edgeColour || '#000000',
             },
         };
 
@@ -364,6 +383,7 @@ router.post('/gif-cutout/apply', async (req, res) => {
             pixelDimensions: await frameDimensions(mediaDir, newFrames[0].hash),
             generationMs: null,
             gif: gifEntry,
+            cutout: cutoutRecord(settings, adjust, invert),
             sourceItemId: sourceItemId || null,
             sourceGroupId: sourceGroupId || null,
         };
@@ -391,3 +411,4 @@ module.exports = router;
 module.exports.applyMaskAlpha = applyMaskAlpha;
 module.exports.resolveMaskBufferInput = resolveMaskBufferInput;
 module.exports.encodeFramesToSourceVideo = encodeFramesToSourceVideo;
+module.exports.cutoutRecord = cutoutRecord;

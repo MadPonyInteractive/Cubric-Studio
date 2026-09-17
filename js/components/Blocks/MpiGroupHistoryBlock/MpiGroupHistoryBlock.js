@@ -23,6 +23,7 @@ import { MpiToolOptionsMaskAdjust } from '../../Organisms/MpiToolOptionsMaskAdju
 import { MpiToolOptionsMaskDetect } from '../../Organisms/MpiToolOptionsMaskDetect/MpiToolOptionsMaskDetect.js';
 import { MpiToolOptionsMaskPoints } from '../../Organisms/MpiToolOptionsMaskPoints/MpiToolOptionsMaskPoints.js';
 import { MpiToolOptionsMaskText } from '../../Organisms/MpiToolOptionsMaskText/MpiToolOptionsMaskText.js';
+import { MpiToolOptionsMaskColour } from '../../Organisms/MpiToolOptionsMaskColour/MpiToolOptionsMaskColour.js';
 import { MpiToolOptionsPaint } from '../../Organisms/MpiToolOptionsPaint/MpiToolOptionsPaint.js';
 import { MpiToolOptionsShapes } from '../../Organisms/MpiToolOptionsShapes/MpiToolOptionsShapes.js';
 import { MpiToolOptionsComposite } from '../../Organisms/MpiToolOptionsComposite/MpiToolOptionsComposite.js';
@@ -99,6 +100,7 @@ const TOOL_OPTIONS_REGISTRY = {
     maskDetect:   MpiToolOptionsMaskDetect,
     maskPoints:   MpiToolOptionsMaskPoints,
     maskText:     MpiToolOptionsMaskText,
+    maskColour:   MpiToolOptionsMaskColour,
     paint:        MpiToolOptionsPaint,
     // Same again for Adjust (MPI-436): ONE panel, two destinations. `maskAdjust`
     // grows/shrinks the mask, `paintAdjust` the RGBA layer — and the latter is the
@@ -150,7 +152,7 @@ const _GIF_DEFAULT_OUTPUT = Object.freeze({ maxEdge: 1024, colours: 256, edgeCol
 /** Any tool in the mask family. One rail icon per masking method (MPI-371),
  *  one job each (MPI-381). EVERY new mask tool must be added here — teardown,
  *  the PromptBox gate and the viewer-mode bridge all hang off this. */
-const _MASK_TOOLS = new Set(['maskBrush', 'maskAdjust', 'maskDetect', 'maskPoints', 'maskText', 'maskShapes']);
+const _MASK_TOOLS = new Set(['maskBrush', 'maskAdjust', 'maskDetect', 'maskPoints', 'maskText', 'maskColour', 'maskShapes']);
 const _isMaskTool = (mode) => _MASK_TOOLS.has(mode);
 
 /** Any tool in the PAINT family (MPI-375) — the RGBA layer's group. Deliberately
@@ -743,9 +745,9 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
          * CURRENT frame list before emitting.
          */
         async function _handleGifCutoutApply(payload) {
-            const { frames, masks, adjust, invert } = payload || {};
+            const { frames, masks, adjust, invert, settings } = payload || {};
             if (!Array.isArray(frames) || !frames.length || !Array.isArray(masks) || masks.length !== frames.length) return;
-            const landed = await _postGifEntry('/gif-cutout/apply', { frames, masks, adjust, invert },
+            const landed = await _postGifEntry('/gif-cutout/apply', { frames, masks, adjust, invert, settings },
                 { done: 'Cut-out saved', failed: 'Cut-out failed' });
             if (landed) viewer.el.setMaskTint?.(null);
         }
@@ -1065,7 +1067,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         const TOOL_LABELS = {
             prompt: 'Prompt', crop: 'Crop',
             maskBrush: 'Mask Brush', maskAdjust: 'Mask Adjust', maskDetect: 'Mask Detect',
-            maskPoints: 'Mask Points', maskText: 'Mask Text',
+            maskPoints: 'Mask Points', maskText: 'Mask Text', maskColour: 'Mask Colour',
             paint: 'Paint', paintAdjust: 'Paint Adjust',
             placeComp: 'Place',
             videoUpscale: 'Upscale', imageUpscale: 'Upscale',

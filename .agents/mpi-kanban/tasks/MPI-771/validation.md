@@ -254,3 +254,72 @@ so no extra fetch; an in-place GIF Update changes `filePath`'s `v=` and refetche
 | `npm run lint:components` | clean |
 
 **Still OPEN for this card:** the `types.js` hunk (`types-hunk.md`), MPI-774 claim 91f0ea6b.
+
+## 2026-09-17 ~14:00Z - Fabio's UI pass: unusable cut-outs, mask methods (Decision 15)
+
+**Root causes, proven on his `test` project (GIF Tests) before any code:**
+- Every cut pixel came back black: `/gif-cutout/apply` built with the SOURCE entry's `output`
+  (`edgeColour: null`, opaque), which flattens alpha onto black. gif_009's SAM3 robot mask was
+  clean (77% transparent); rebuilt transparent in scratch and composited on green: correct.
+- gif_012 (Transparent applied) kept its background because gif_010's mask kept 99% of each frame.
+- Prompt "Background" with Invert off keeps the background; SAM3's background mask stops short of
+  the frame edge in patches (40-48% of the border ring transparent), the dashed border. The source
+  has no dark border (0 of 1280 edge pixels dark).
+- `Number(null)` stored `colours: 0` in `routes/gif.js`, `gifCutout.js`, `gifTransform.js`.
+
+**Built:** Cut out always transparent (`edgeColour` default black) + sidecar `cutout` record; the
+`colours` fix in all three routes; `gif_cutout_birefnet.json` (raw + API, converted against the 8188
+bench with Fabio's go) registered in the four op registries; `js/utils/colourKeyMask.js`; Cut-out
+method switch (Remove background default / By name / By colour), per-method hint, viewer spinner +
+status bar clock; masks stashed per frame list (`gifFrameMasks.js`); checker behind GIF frames.
+
+| Check | Result |
+|---|---|
+| Real BiRefNet graph on the 8188 bench, GPU lease, Fabio's 30-frame `imported_015` through the app's own encoder + `applyMaskAlpha` | success, 30 masks in 16.2 s; contact sheet on green clean, arm pockets removed. Probe video staged in `G:/ComfyUi/ComfyUI/input` and removed |
+| `validate-injection-rules.mjs` on the converted graph | conforms |
+| `node scripts/release-health-check.mjs` | no op-registry failure (pre-existing release-note / smoke-evidence failures only) |
+| `node --test tests/colour-key-mask.test.cjs` (new) | 6/6 |
+| Colour key on Fabio's real frames (320 and 768 px) at tol 16 / 32 / 16+edges | 16 clean with pockets removed; 32 eats the face; edges-only keeps the pocket. Default 16 |
+| `node --test tests/gif-cutout.test.cjs` (new transparent + settings test) | 9/9; bite (default back to `null`) RED, restored byte-exact |
+| `node --test tests/gif-frame-masks.test.cjs` (new) | 2/2; bite (no restore) RED 0/2, restored byte-exact |
+| `node --test tests/flow-output-filename.test.cjs tests/text-op-completion.test.cjs` | 5/5 |
+| `node --test "tests/*.test.cjs"` | 1297 pass / 0 fail |
+| `npm run lint:components` | clean |
+| `tests/desktop/gif-cutout.spec.js` (method switch, spinner, sidecar `cutout` + transparent output, masks back on the source entry, a real By colour Cut out with pixel asserts) | 3/4; the 4th passes every step up to BiRefNet and fails there by design: the runner still sends SAM3 params (see below) |
+
+**Blocked:** `js/services/commandExecutor.js` `runGifCutoutTrack` must take `payload.op`. The file is
+under MPI-774's claim a4c0f2d7 with that session's uncommitted hunk; message 4463a29e carries the
+two-part hunk. Until it lands, Remove background runs the SAM3 graph with an empty prompt.
+
+### Image workspace By colour (worker, integrated ~15:50 local)
+
+`maskColour` sub-tool in Mask > Detect: `MpiToolOptionsMaskColour` (new) + `MpiCanvasViewer`
+`setMaskColourMode` / `setMaskColourParams`; the run feeds one pre-picked object into the existing
+auto-pick preview, Add/Subtract commit it (undo intact). Review of the worker's first pass: its spec mounted
+the viewer by hand and passed while the tool was NOT registered in the Block; the orchestrator added
+`maskColour` to `TOOL_OPTIONS_REGISTRY`, `_MASK_TOOLS`, `TOOL_LABELS` and fixed `Number(t) || 16`
+(tolerance 0 became 16) in the viewer and the panel. The real-UI respec found `MpiColorPicker` crashing on
+`value: null` (the panel never mounted); fixed by omitting `value`.
+
+| Check | Result |
+|---|---|
+| `tests/desktop/mask-colour.spec.js` (rail -> Colour -> corner `#c8c6c8` -> Detect -> Add -> committed pixels (2,2)=255, (32,32)=0 -> undo -> Tolerance 0 re-runs) | 1/1; worker bite (all-zero mask) RED |
+| Desktop: mask-colour, mask-persist-roundtrip, mask-temp-ipc, mask-temp-store, gif-cutout, gif-workspace, history-modes, gif-transform, gif-timing | 14/15; the one failure is gif-cutout's BiRefNet step (`Input_Text_Prompt.text` still sent: runner hunk not landed) |
+| `node --test tests/preview-contract.test.cjs tests/colour-key-mask.test.cjs tests/gif-frame-masks.test.cjs tests/gif-cutout.test.cjs` | 25/25 |
+| `npm run lint:components` | clean |
+
+Parked with the other typedefs: `MpiToolOptionsMaskColourProps` + its `preloadStyles.js` line (`types-hunk.md`).
+
+### Runner landed (~15:55 local)
+
+MPI-774's claim a4c0f2d7 went `complete` after a7500498, so this session claimed
+`js/services/commandExecutor.js` (3c601721) and landed the two-part hunk itself (`payload.op` picks the
+graph; BiRefNet gets `Input_Video` only). Message 4463a29e resolved.
+
+| Check | Result |
+|---|---|
+| `tests/desktop/gif-cutout.spec.js` | **4/4** (BiRefNet step: params `['Input_Video']`, graph contains `RemoveBackground`) |
+| `node --test "tests/*.test.cjs"` | 1305 pass / 6 fail. All 6 are MPI-800's in-flight sweeps (`workflow-media-slots`, `flow-required-media`, `flow-model-choice`, test files modified in the tree by that session) listing every `MpiLoadVideo` path loader, `gif_cutout_sam3.json` (committed) included. Not caused here; message d71d7044 asks MPI-800 to migrate `gif_cutout_birefnet.json` with its twin |
+
+**Left:** Fabio's check in his app after a FULL restart (server routes changed); the parked typedef /
+preloadStyles lines (`types-hunk.md`); MPI-800 migrating the new graph.

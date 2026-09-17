@@ -59,3 +59,36 @@ not applied. Land them by hunk once the claim is released, then delete this file
 
 - `MpiGifViewerProps`: `isMaskEditing()`; emits `'edit-change' { editing }` when the Mask Brush opens or closes.
 - `MpiFrameStrip`: gestures are pointer events owned by the strip (no native drag, no text selection).
+
+## 2026-09-17 (Decision 15) — land with the rest
+
+`MpiToolOptionsGifCutoutProps`: the panel now has a method switch (Remove background = op
+`gifCutoutBirefnet` / By name = `gifCutoutSam3` / By colour = `js/utils/colourKeyMask.js`), and
+`'apply'` carries `settings` ({ method, prompt?, objects?, colour?, tolerance?, edgesOnly? }).
+Needs `viewer.el.setGenerating()` too.
+
+New typedef after `MpiToolOptionsMaskTextProps` in `js/components/types.js`:
+
+```
+/**
+ * @typedef {Object} MpiToolOptionsMaskColourProps (Organism — js/components/Organisms/MpiToolOptionsMaskColour)
+ * @property {Object} viewer - MpiCanvasViewer instance
+ *
+ * The colour tool of the mask family (MPI-771): selects the pixels within Tolerance
+ * of a key colour (default: the image's top-left pixel; Pick = native EyeDropper),
+ * optionally only those connected to the border. No engine. Mounts MpiMaskDetectRow
+ * and MpiMaskStrip WITHOUT the brush pair; Detect previews one pre-picked object,
+ * Add/Subtract commit it. A control change after a run re-runs it (250 ms).
+ * Requires viewer.el: enterMode('mask'), exitMode(), evaluateMask(),
+ *   setMaskPointsMode(), setMaskTextMode(), setMaskColourMode(),
+ *   setMaskColourParams({ colour, tolerance, edgesOnly }), runAutoMaskDetect(),
+ *   getSourceElement()
+ * No 'apply' emitted — mask is canvas-resident; PromptBox drives operations.
+ */
+```
+
+`js/shell/preloadStyles.js`, after the `MpiToolOptionsMaskText.css` line:
+
+```
+  'js/components/Organisms/MpiToolOptionsMaskColour/MpiToolOptionsMaskColour.css',
+```

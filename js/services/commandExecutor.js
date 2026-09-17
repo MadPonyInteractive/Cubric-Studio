@@ -1059,7 +1059,8 @@ export function runAutoMask(payload) {
  * `Input_Object_Indices` re-executes just the (cheap) mask node, never the
  * tracker — unlike the SEGS picker MPI-421 removed for the opposite reason.
  *
- * @param {{ videoPath: string, textPrompt?: string, objectIndices?: string, forceLocal?: boolean }} payload
+ * @param {{ op?: 'gifCutoutSam3'|'gifCutoutBirefnet', videoPath: string, textPrompt?: string, objectIndices?: string, forceLocal?: boolean }} payload
+ *   `op` picks the graph (default SAM3); BiRefNet takes the video only (Decision 15).
  *   `textPrompt` should already be stamped per `js/utils/maskTextPrompt.js`
  *   (bare name = one object, `name:N` for several, never `:1`).
  *   `objectIndices` is the SAM3_TrackToMask `object_indices` string
@@ -1087,9 +1088,11 @@ export function runGifCutoutTrack(payload) {
     };
 
     (async () => {
-        const workflowFile = getUniversalWorkflow('gifCutoutSam3');
+        // MPI-771: one runner for every GIF mask method (`gifCutoutSam3`, `gifCutoutBirefnet`).
+        const op = payload.op || 'gifCutoutSam3';
+        const workflowFile = getUniversalWorkflow(op);
         if (!workflowFile) {
-            exec.onError?.(new Error('gifCutoutSam3 workflow not registered'));
+            exec.onError?.(new Error(`${op} workflow not registered`));
             _fireDone();
             return;
         }
@@ -1116,11 +1119,11 @@ export function runGifCutoutTrack(payload) {
             )
         );
 
-        const params = {
-            Input_Video:                          payload.videoPath,
-            'Input_Text_Prompt.text':              payload.textPrompt || '',
-            'Input_Object_Indices.object_indices':  payload.objectIndices || '',
-        };
+        const params = { Input_Video: payload.videoPath };
+        if (op === 'gifCutoutSam3') {
+            params['Input_Text_Prompt.text'] = payload.textPrompt || '';
+            params['Input_Object_Indices.object_indices'] = payload.objectIndices || '';
+        }
 
         const onMessage = (msg) => {
             if (msg.type !== 'executed') return;

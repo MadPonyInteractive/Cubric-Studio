@@ -297,6 +297,46 @@ test('POST /gif-cutout/apply: frame store gains only the cut frames', async () =
     }
 });
 
+// Fabio 2026-09-17: every cut pixel came back black. The Block sends the SOURCE
+// entry's output, which is opaque (`edgeColour: null`), and the build flattened
+// the new alpha onto black.
+test('POST /gif-cutout/apply: an opaque source output still builds a transparent GIF, settings recorded', async () => {
+    const { root, mediaDir } = await tmpProject();
+    try {
+        const { hash } = await gifFrames.writeFrame(mediaDir, await solidPng(6, 6, { r: 250, g: 0, b: 0 }));
+        const server = await startServer(buildApp());
+        try {
+            const res = await fetch(`http://127.0.0.1:${server.address().port}/gif-cutout/apply`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    folderPath: root,
+                    frames: [{ hash, delay: 10 }],
+                    output: { maxEdge: 320, colours: null, edgeColour: null },
+                    masks: [toDataUrl(await maskPng(6, 6, (x) => x < 3))],
+                    invert: true,
+                    settings: { method: 'colour', colour: '#c8c6c8', tolerance: 16, edgesOnly: false, junk: 1 },
+                }),
+            }).then((r) => r.json());
+            assert.equal(res.success, true, `apply failed: ${res.error}`);
+            assert.equal(res.item.gif.output.edgeColour, '#000000');
+            assert.equal(res.item.gif.output.colours, 256, 'a null palette size is not 0');
+            assert.deepEqual(res.item.cutout, {
+                method: 'colour', colour: '#c8c6c8', tolerance: 16, edgesOnly: false, adjust: null, invert: true,
+            });
+
+            const gifPath = path.join(mediaDir, decodeURIComponent(res.item.filePath).match(/[^\\/]+\.gif/)[0]);
+            const { data, info } = await sharp(gifPath).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+            assert.equal(data[3], 0, 'inverted mask cut the left column: the .gif pixel must be transparent');
+            assert.equal(data[(info.width - 1) * 4 + 3], 255, 'the kept right column stays opaque');
+        } finally {
+            await new Promise((r) => server.close(r));
+        }
+    } finally {
+        await fs.remove(root);
+    }
+});
+
 test('POST /gif-cutout/apply: rejects a masks/frames length mismatch', async () => {
     const { root, mediaDir } = await tmpProject();
     try {

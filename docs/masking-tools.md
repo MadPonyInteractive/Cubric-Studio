@@ -67,6 +67,11 @@ Three things to keep:
 - **The Cue gate does not freeze a live run.** The row's `inert` gate exists to stop NEW runs
   while Cue is busy; applying it to a running detect would make Stop unclickable, which is the
   one control that matters then.
+- **Colour (MPI-771) skips the Cue gate entirely.** It is pure JS (`colourKeyMaskUrl`) — no
+  engine, no queue — so `runAutoMaskDetect` bypasses the `_isCueBusy()` guard when `_colourMode`
+  is true and goes straight to `_runColourKeyWorkflow()`. Result feeds the same single pre-picked
+  auto-pick path as Points mode (index 0). Tolerance and `edgesOnly` persist under `toolSettings.mask`;
+  the key colour does not — it re-seeds from the image's top-left pixel on every mount.
 
 ## Add / Subtract — the commit half
 
@@ -115,6 +120,7 @@ compounds:
 | `MpiToolOptionsMaskPoints` | click instructions, Clear points |
 | `MpiToolOptionsMaskText` | the object name + how many to find (stamped `name:N`) |
 | `MpiToolOptionsMaskDetect` | model radio (Face / Hand / Person) + Box / Segment |
+| `MpiToolOptionsMaskColour` | key colour picker (seeded corner pixel) · EyeDropper · tolerance slider · edgesOnly switch · **MPI-771** |
 | `MpiMaskDetectRow` | thumbs · Detect · Add / Subtract, blocked as a unit while Cue is busy |
 | `MpiToolOptionsShapes` | kind radio + the commit pair — ONE component under BOTH shape modes |
 | `MpiMaskStrip` | paint / erase (**optional**) · invert · B/W view · clear · opacity |

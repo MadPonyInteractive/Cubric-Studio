@@ -1,16 +1,21 @@
 /**
  * MpiToolOptionsGifCutout — Organism: the GIF cut-out tool group (MPI-771).
  *
- * SAM3 video tracking by name into a new alpha-cut entry. A track is a STARTING
- * POINT (plan Decision 14): object numbers need not stay the same object from
- * frame to frame, so the user fixes frames by hand with the Mask Brush, a
- * separate tool. The masks themselves live on the viewer (`MpiGifViewer`,
- * per frame position), which is how this panel and the brush share them.
+ * Masks every frame, then cuts them into a new alpha entry. Three METHODS fill
+ * the same per-frame track layer (plan Decision 15):
+ *   - Remove background: BiRefNet (`gifCutoutBirefnet`), keeps the foreground.
+ *   - By name: SAM3 video tracking (`gifCutoutSam3`), keeps what is named.
+ *   - By colour: `utils/colourKeyMask.js` in the renderer, keys one colour out.
+ * A mask is a STARTING POINT (plan Decision 14): the user fixes frames by hand
+ * with the Mask Brush, a separate tool. The masks themselves live on the viewer
+ * (`MpiGifViewer`, per frame position), which is how this panel and the brush
+ * share them.
  *
- *   1. Track All: name the object, track it across every frame. Track Single
- *      Frame: the same graph on a one-frame video, replacing only the current
- *      frame's track. Either replaces TRACKS only; brush fixes survive.
- *   2. The numbered preview (`SAM3_TrackPreview`) says which index is which
+ *   1. Mask All / Mask This Frame (Track All / Track Single Frame for SAM3):
+ *      every frame, or only the current one. Either replaces TRACKS only;
+ *      brush fixes survive. While one runs, the viewer spins and the status
+ *      bar shows an indeterminate clock (the image Detect row's idiom).
+ *   2. SAM3 only: the numbered preview (`SAM3_TrackPreview`) says which index is which
  *      object; the 4 chips keep or drop them. A toggle re-dispatches the LAST
  *      scope, which is cheap: `SAM3_VideoTrack` is cached, only the mask node
  *      re-runs. There is no count input: each name is stamped `name:4`, the
@@ -30,7 +35,8 @@
  *
  * Emits:
  *   'mask-tint' { url: string|null } — current-frame adjusted preview
- *   'apply' { frames, masks, adjust, invert } — Cut-out pressed
+ *   'apply' { frames, masks, adjust, invert, settings } — Cut-out pressed;
+ *     `settings` says which method made the masks (stamped on the sidecar)
  */
 
 import { ComponentFactory } from '../../factory.js';
@@ -38,12 +44,15 @@ import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiCheckbox } from '../../Primitives/MpiCheckbox/MpiCheckbox.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
+import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
+import { MpiColorPicker } from '../../Primitives/MpiColorPicker/MpiColorPicker.js';
 import { MpiVideoSurface } from '../../Compounds/MpiVideoSurface/MpiVideoSurface.js';
 import { signedSquaredDistanceField, rangeFor, writeRange } from '../../Primitives/MpiCanvas/managers/distanceField.js';
 import { Events } from '../../../events.js';
 import { state } from '../../../state.js';
 import { getToolSettings } from '../../../data/projectModel.js';
 import { stampDetectionCount } from '../../../utils/maskTextPrompt.js';
+import { COLOUR_KEY_DEFAULTS, colourKeyMaskUrl, cornerColour, readImagePixels } from '../../../utils/colourKeyMask.js';
 import { runGifCutoutTrack } from '../../../services/commandExecutor.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { StatusBar } from '../../../shell/statusBar.js';
@@ -54,8 +63,36 @@ const OBJECT_SLOTS = 4;
 const MAX_R = 50;
 /** Decoded masks kept for the tint; composed masks are data URLs, so keys can be big. */
 const DECODE_CACHE = 8;
-/** Every setting survives a trip to the Mask Brush and back (Decision 14: set once). */
-const DEFAULTS = { textPrompt: '', grow: 0, fillHoles: false, invert: false };
+/**
+ * Every setting survives a trip to the Mask Brush and back (Decision 14: set once).
+ * The key colour is NOT saved: it belongs to one GIF's background, so each visit
+ * starts from the current frame's corner pixel.
+ */
+const DEFAULTS = {
+    method: 'birefnet', textPrompt: '', grow: 0, fillHoles: false, invert: false,
+    tolerance: COLOUR_KEY_DEFAULTS.tolerance, edgesOnly: COLOUR_KEY_DEFAULTS.edgesOnly,
+};
+
+const METHODS = {
+    birefnet: {
+        label: 'Background', icon: 'image', op: 'gifCutoutBirefnet', progress: 'Removing background',
+        info: 'Remove background: keeps the foreground, no prompt needed (BiRefNet)',
+        hint: 'Keeps the <b>foreground</b> and removes the background.',
+    },
+    sam3: {
+        label: 'By name', icon: 'text', op: 'gifCutoutSam3', progress: 'Tracking',
+        info: 'By name: keeps the objects you name (SAM3)',
+        hint: 'Name what to <b>keep</b>: <b>mascot</b>, <b>logo</b>. Tick <b>Invert</b> to remove it instead.',
+    },
+    colour: {
+        label: 'By colour', icon: 'mask_fill_holes_stroke', op: null, progress: 'Keying colour',
+        info: 'By colour: removes one colour, the corner pixel by default. No GPU',
+        hint: 'Removes one <b>colour</b>, the frame corner by default. <b>Pick</b> another from the screen.',
+    },
+};
+const HINT_TAIL = ' A mask is a starting point: step through the frames and fix any of them with the <b>Mask Brush</b>.';
+/** A colour setting change re-keys the last scope once the user pauses. */
+const REKEY_MS = 250;
 
 /** A frame list's identity: its hashes in order (masks are per position). */
 const frameSignature = (frames) => frames.map(f => f.hash).join('|');
@@ -66,11 +103,23 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
 
     template: () => `
         <div class="mpi-tool-options-gif-cutout">
-            <p class="mpi-tool-options-gif-cutout__info">
-                Name what to cut out — <b>mascot</b>, <b>logo</b>. A track is a starting
-                point: step through the frames and fix any of them with the <b>Mask Brush</b>.
-            </p>
+            <div id="method-slot"></div>
+            <p class="mpi-tool-options-gif-cutout__info" id="hint"></p>
             <div class="mpi-tool-options-gif-cutout__prompt" id="prompt-slot"></div>
+            <div class="mpi-tool-options-gif-cutout__section" id="colour-section" hidden>
+                <div class="mpi-tool-options-gif-cutout__row mpi-tool-options-gif-cutout__row--centre">
+                    <div id="key-colour-slot"></div>
+                    <div id="pick-slot"></div>
+                </div>
+                <div class="mpi-tool-options-gif-cutout__slider-row">
+                    <div class="mpi-tool-options-gif-cutout__label">
+                        <span>Tolerance</span>
+                        <span id="tolerance-val"></span>
+                    </div>
+                    <div id="tolerance-slot"></div>
+                </div>
+                <div class="mpi-tool-options-gif-cutout__row" id="edges-slot"></div>
+            </div>
             <div class="mpi-tool-options-gif-cutout__row" id="track-slot">
                 <div id="track-all-slot"></div>
                 <div id="track-frame-slot"></div>
@@ -109,6 +158,17 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         /** Kept object indices (default: every slot — "keep everything"). */
         const _selected = new Set(Array.from({ length: OBJECT_SLOTS }, (_, i) => i));
 
+        let _method = METHODS[settings.method] ? settings.method : DEFAULTS.method;
+        let _tolerance = Math.max(0, Math.min(100, Math.round(Number(settings.tolerance) || 0)));
+        let _edgesOnly = settings.edgesOnly === true;
+        /** Key colour (`#rrggbb`); null until the current frame's corner is read. */
+        let _keyColour = null;
+        /** Silences the picker's own 'change' while this panel sets it. */
+        let _quietPicker = false;
+        let _rekeyTimer = 0;
+        /** A By colour run in flight checks this between frames (its Stop). */
+        let _keyRun = null;
+
         let _busy = false;
         let _trackExec = null;
         /** What the chips re-dispatch: 'all', or the frame { idx, hash } last tracked alone. */
@@ -130,6 +190,93 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             return value;
         };
 
+        // ── Method ──────────────────────────────────────────────────────────
+
+        const methodRadio = MpiRadioGroup.mount(qs('#method-slot', el), {
+            name: 'gif-cutout-method', size: 'sm', value: _method,
+            options: Object.entries(METHODS).map(([value, m]) => ({ value, label: m.label, icon: m.icon, info: m.info })),
+        });
+        methodRadio.on('select', ({ value }) => {
+            if (!METHODS[value] || value === _method || _busy) return;
+            _method = value;
+            _lastScope = null;
+            _save('method', value);
+            _syncMethod();
+        });
+        _children.push(methodRadio);
+
+        // ── By colour ───────────────────────────────────────────────────────
+
+        // Starts at the picker's own default; `_defaultKeyColour()` sets the real one.
+        const keyPicker = MpiColorPicker.mount(qs('#key-colour-slot', el), { info: 'The colour to remove' });
+        keyPicker.on('change', ({ hex }) => {
+            if (_quietPicker) return;
+            _keyColour = hex;
+            _scheduleRekey();
+        });
+        _children.push(keyPicker);
+
+        const _setKeyColour = (hex) => {
+            _keyColour = hex;
+            _quietPicker = true;
+            keyPicker.el.setHex(hex);
+            _quietPicker = false;
+        };
+
+        // Chromium's native eyedropper: picks any pixel on screen.
+        if ('EyeDropper' in window) {
+            const pickBtn = MpiButton.mount(qs('#pick-slot', el), {
+                label: 'Pick', size: 'sm', variant: 'secondary', info: 'Pick the colour to remove from the screen',
+            });
+            pickBtn.on('click', async () => {
+                try {
+                    const { sRGBHex } = await new window.EyeDropper().open();
+                    if (_destroyed || !sRGBHex) return;
+                    _setKeyColour(sRGBHex);
+                    _scheduleRekey();
+                } catch { /* the user pressed Escape */ }
+            });
+            _children.push(pickBtn);
+        }
+
+        const toleranceSlider = MpiProgressBar.mount(qs('#tolerance-slot', el), {
+            min: 0, max: 100, step: 1, value: _tolerance,
+            interactive: true, handle: true, wheel: true, info: 'How far a colour may be from the key and still be removed',
+        });
+        const _syncToleranceLabel = () => { qs('#tolerance-val', el).textContent = String(_tolerance); };
+        toleranceSlider.on('input', ({ value }) => {
+            _tolerance = value;
+            _syncToleranceLabel();
+            _save('tolerance', value);
+            _scheduleRekey();
+        });
+        _syncToleranceLabel();
+        _children.push(toleranceSlider);
+
+        const edgesChip = MpiCheckbox.mount(qs('#edges-slot', el), {
+            checked: _edgesOnly, label: 'Only touching the edges', name: 'gif-cutout-edges-only', variant: 'switch',
+            info: 'Keep same-coloured areas the subject encloses',
+        });
+        edgesChip.on('change', ({ checked }) => { _edgesOnly = checked; _save('edgesOnly', checked); _scheduleRekey(); });
+        _children.push(edgesChip);
+
+        /** A By colour setting changed: re-key what was keyed last, once the user pauses. */
+        function _scheduleRekey() {
+            if (_method !== 'colour' || !_lastScope) return;
+            clearTimeout(_rekeyTimer);
+            _rekeyTimer = setTimeout(() => { if (!_busy) _runTrack(_lastScope); }, REKEY_MS);
+        }
+
+        /** Default key: the current frame's top-left pixel. */
+        async function _defaultKeyColour() {
+            if (_keyColour) return _keyColour;
+            const f = viewer.el.getFrames()[viewer.el.getFrameIndex()];
+            if (!f) return null;
+            const { data } = await readImagePixels(f.url);
+            if (!_keyColour) _setKeyColour(cornerColour(data));
+            return _keyColour;
+        }
+
         // ── Name ────────────────────────────────────────────────────────────
 
         const promptInput = MpiInput.mount(qs('#prompt-slot', el), {
@@ -146,8 +293,8 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
 
         const trackBtns = { all: null, frame: null };
         const TRACK_BTN = {
-            all:   { slot: '#track-all-slot',   label: 'Track All',          icon: 'search', info: 'Track the named object across every frame' },
-            frame: { slot: '#track-frame-slot', label: 'Track Single Frame', icon: 'search', info: 'Track it on this frame only; the other frames keep their masks' },
+            all:   { slot: '#track-all-slot',   sam3: 'Track All',          other: 'Mask All',        icon: 'search', info: 'Mask every frame' },
+            frame: { slot: '#track-frame-slot', sam3: 'Track Single Frame', other: 'Mask This Frame', icon: 'search', info: 'Mask this frame only; the other frames keep their masks' },
         };
         let _runningKind = null;
         function _mountTrackBtns() {
@@ -156,11 +303,11 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                 trackBtns[kind]?.destroy?.();
                 const stop = _busy && _runningKind === kind;
                 trackBtns[kind] = MpiButton.mount(qs(def.slot, el), stop
-                    ? { label: 'Stop', icon: 'stop', size: 'sm', variant: 'danger', info: 'Stop tracking' }
-                    : { label: def.label, icon: def.icon, size: 'sm', variant: kind === 'all' ? 'primary' : 'secondary', info: def.info });
+                    ? { label: 'Stop', icon: 'stop', size: 'sm', variant: 'danger', info: 'Stop masking' }
+                    : { label: _method === 'sam3' ? def.sam3 : def.other, icon: def.icon, size: 'sm', variant: kind === 'all' ? 'primary' : 'secondary', info: def.info });
                 if (_busy && !stop) trackBtns[kind].el.setDisabled?.(true);
                 trackBtns[kind].on('click', () => {
-                    if (stop) { _trackExec?.cancel?.(); return; }
+                    if (stop) { _trackExec?.cancel?.(); if (_keyRun) _keyRun.cancelled = true; return; }
                     const frames = viewer.el.getFrames();
                     if (kind === 'all') { _runTrack('all'); return; }
                     const idx = viewer.el.getFrameIndex();
@@ -245,6 +392,19 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         cutoutBtn.on('click', () => _runCutout());
         _children.push(cutoutBtn);
 
+        /** Show the controls of the current method only. */
+        function _syncMethod() {
+            qs('#hint', el).innerHTML = METHODS[_method].hint + HINT_TAIL;
+            qs('#prompt-slot', el).hidden = _method !== 'sam3';
+            qs('#colour-section', el).hidden = _method !== 'colour';
+            if (_method !== 'sam3') previewWrap.hidden = true;
+            if (_method === 'colour') {
+                _defaultKeyColour().catch(err => clientLogger.warn('MpiToolOptionsGifCutout', 'corner colour read failed', err));
+            }
+            _mountTrackBtns();
+        }
+        _syncMethod();
+
         /** Adjust and Cut out need a mask on at least one frame — tracked or brushed. */
         function _syncHasMasks() {
             const has = !!viewer.el.hasFrameMasks?.();
@@ -276,19 +436,57 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             return data.videoPath;
         }
 
-        function _setBusy(on, kind = null) {
+        /**
+         * A run shows on the viewer (spinner) and on the status bar (indeterminate
+         * clock), driven directly like the image Detect row (docs/masking-tools.md
+         * § Detect is a RUN). `outcome` ends it: 'done' completes the bar, anything
+         * else cancels it.
+         */
+        function _setBusy(on, kind = null, outcome = 'cancel') {
+            if (on === _busy) return;
             _busy = on;
             _runningKind = on ? kind : null;
+            if (on) {
+                StatusBar.progress.prepare(METHODS[_method].progress);
+                StatusBar.progress.setIndeterminate(true);
+                StatusBar.progress.startClock();
+            } else if (outcome === 'done') {
+                StatusBar.progress.complete();
+            } else {
+                StatusBar.progress.cancel();
+            }
+            viewer.el.setGenerating?.(on);
+            methodRadio.el.classList.toggle('mpi-tool-options-gif-cutout__locked', on);
             _mountTrackBtns();
             chipEls.forEach(c => c.el.setDisabled?.(on));
             _syncHasMasks();
+        }
+
+        /** By colour: key each frame in the renderer, no engine. @returns {Promise<string[]|null>} null = stopped */
+        async function _keyFrames(targets) {
+            const run = { cancelled: false };
+            _keyRun = run;
+            try {
+                const colour = await _defaultKeyColour();
+                const urls = [];
+                for (const f of targets) {
+                    if (run.cancelled || _destroyed) return null;
+                    const { url } = await colourKeyMaskUrl(f.url, { colour, tolerance: _tolerance, edgesOnly: _edgesOnly });
+                    urls.push(url);
+                    // Yield so the spinner paints and Stop stays clickable.
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
+                return urls;
+            } finally {
+                if (_keyRun === run) _keyRun = null;
+            }
         }
 
         /** @param {'all'|{idx:number, hash:string}} scope */
         async function _runTrack(scope) {
             if (_destroyed || _busy) return;
             const raw = _raw.trim();
-            if (!raw) { StatusBar.notify('Name what to cut out first', 'warning'); return; }
+            if (_method === 'sam3' && !raw) { StatusBar.notify('Name what to keep first', 'warning'); return; }
             const frames = viewer.el.getFrames();
             if (!frames.length) { StatusBar.notify('No frames to track', 'warning'); return; }
             if (!state.currentProject?.folderPath) return;
@@ -301,45 +499,68 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                 scope = { idx, hash: scope.hash };
             }
             const listSig = frameSignature(frames);
+            const method = _method;
+            const targets = single ? [frames[scope.idx]] : frames;
+            _lastScope = scope;
             _setBusy(true, single ? 'frame' : 'all');
 
+            const landMasks = (urls) => {
+                if (frameSignature(viewer.el.getFrames()) !== listSig) {
+                    StatusBar.notify('The frames changed while masking — mask again', 'warning');
+                    return false;
+                }
+                if (single) viewer.el.setTrackMask(scope.idx, urls[0] || null);
+                else viewer.el.setTrackMasks(urls);
+                return true;
+            };
+
+            if (method === 'colour') {
+                let landed = false;
+                try {
+                    const urls = await _keyFrames(targets);
+                    if (urls && !_destroyed) landed = landMasks(urls);
+                } catch (err) {
+                    clientLogger.warn('MpiToolOptionsGifCutout', 'colour key failed', err);
+                    StatusBar.notify('Could not key the frames: ' + err.message, 'error');
+                } finally {
+                    if (!_destroyed) _setBusy(false, null, landed ? 'done' : 'cancel');
+                }
+                return;
+            }
+
             try {
-                const videoPath = await _sourceVideo(single ? [frames[scope.idx]] : frames);
+                const videoPath = await _sourceVideo(targets);
                 const exec = runGifCutoutTrack({
+                    op: METHODS[method].op,
                     videoPath,
                     textPrompt: stampDetectionCount(raw, OBJECT_SLOTS),
                     objectIndices: _indicesString(),
                 });
+                let landed = false;
                 _trackExec = exec;
-                _lastScope = scope;
                 exec.onPreview = (url) => {
-                    if (_destroyed || _trackExec !== exec) return;
+                    if (_destroyed || _trackExec !== exec || method !== 'sam3') return;
                     previewVideo.el._setSrc(url);
                     previewWrap.hidden = false;
                 };
                 exec.onMasks = (urls) => {
                     if (_destroyed || _trackExec !== exec) return;
-                    if (frameSignature(viewer.el.getFrames()) !== listSig) {
-                        StatusBar.notify('The frames changed while tracking — track again', 'warning');
-                        return;
-                    }
-                    previewWrap.hidden = false;
-                    if (single) viewer.el.setTrackMask(scope.idx, urls[0] || null);
-                    else viewer.el.setTrackMasks(urls);
+                    if (method === 'sam3' && _method === 'sam3') previewWrap.hidden = false;
+                    landed = landMasks(urls) || landed;
                 };
                 exec.onError = (err) => {
                     if (_destroyed) return;
-                    clientLogger.warn('MpiToolOptionsGifCutout', 'track failed', err);
+                    clientLogger.warn('MpiToolOptionsGifCutout', 'mask run failed', err);
                 };
                 exec.onDone = () => {
                     if (_destroyed) return;
                     _trackExec = null;
-                    _setBusy(false);
+                    _setBusy(false, null, landed ? 'done' : 'cancel');
                 };
             } catch (err) {
                 _setBusy(false);
                 clientLogger.warn('MpiToolOptionsGifCutout', 'source encode failed', err);
-                StatusBar.notify('Could not prepare the track video: ' + err.message, 'error');
+                StatusBar.notify('Could not prepare the mask video: ' + err.message, 'error');
             }
         }
 
@@ -459,6 +680,9 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                 masks,
                 adjust: { grow: _grow, fillHoles: _fillHoles },
                 invert: _invert,
+                settings: _method === 'sam3' ? { method: 'sam3', prompt: _raw.trim(), objects: [..._selected].sort((a, b) => a - b) }
+                    : _method === 'colour' ? { method: 'colour', colour: _keyColour, tolerance: _tolerance, edgesOnly: _edgesOnly }
+                    : { method: _method },
             });
         }
 
@@ -467,7 +691,10 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         el.destroy = () => {
             _destroyed = true;
             if (_raf) cancelAnimationFrame(_raf);
+            clearTimeout(_rekeyTimer);
             _trackExec?.cancel?.();
+            if (_keyRun) _keyRun.cancelled = true;
+            if (_busy) { StatusBar.progress.cancel(); viewer.el.setGenerating?.(false); }
             emit('mask-tint', { url: null });
             // The track buttons are re-mounted outside `_children` (_mountTrackBtns).
             trackBtns.all?.destroy?.();

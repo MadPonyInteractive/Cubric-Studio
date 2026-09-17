@@ -96,9 +96,10 @@ const IMAGE_TOOLS = [
                 icon: 'search',
                 info: 'Detect',
                 sub: [
-                    { mode: 'maskPoints', icon: 'circle',  info: 'Points', label: 'Points' },
-                    { mode: 'maskText',   icon: 'text',    info: 'Text',   label: 'Text'   },
-                    { mode: 'maskDetect', icon: 'sparkle', info: 'Auto',   label: 'Auto'   },
+                    { mode: 'maskPoints',  icon: 'circle',  info: 'Points', label: 'Points' },
+                    { mode: 'maskText',    icon: 'text',    info: 'Text',   label: 'Text'   },
+                    { mode: 'maskDetect',  icon: 'sparkle', info: 'Auto',   label: 'Auto'   },
+                    { mode: 'maskColour',  icon: 'eye',     info: 'Colour', label: 'Colour' },
                 ],
             },
             { mode: 'maskShapes', icon: 'shapes_stroke', info: 'Shapes' },

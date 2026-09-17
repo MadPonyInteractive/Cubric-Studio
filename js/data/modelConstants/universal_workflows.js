@@ -46,6 +46,11 @@ export const UNIVERSAL_WORKFLOWS = {
     gifCutoutSam3: {
         workflow: 'gif_cutout_sam3.json',
     },
+    // MPI-771 Decision 15: BiRefNet (the shipped `birefnet` engine asset) as the GIF
+    // cut-out's "Remove background" method. Same runner, same Output_Mask batch.
+    gifCutoutBirefnet: {
+        workflow: 'gif_cutout_birefnet.json',
+    },
     // Text-only (caption) workflow: returns a string via Output_prompt and saves no
     // file, so its op declares `outputKind: 'text'` (MPI-310). Runs through the normal
     // generation queue like any other op — the MPI-308 note that it bypasses the queue

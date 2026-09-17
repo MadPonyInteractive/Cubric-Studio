@@ -7,7 +7,9 @@
  * of the source video the tracker ran on. A mask still describes its own frame's
  * pixels wherever that frame moves, so a staged reorder or delete carries the
  * masks along with their frames (`remap()`, Fabio 2026-09-16: a stray strip drag
- * must never lose work). Any other change of list empties the store (`sync()`).
+ * must never lose work). Any other change of list empties the store (`sync()`),
+ * but the old list's masks are STASHED under its signature: coming back to that
+ * list (the source entry after a Cut out) restores them (Fabio 2026-09-17).
  *
  *   track    idx -> engine mask URL (Track All / Track Single Frame)
  *   edits    idx -> { manual, subtract } — the brush layers as working-res alpha
@@ -17,6 +19,9 @@
  *                   own size, taken from the live canvas when the edits were saved
  *                   — `MaskManager` is the one compositor, this only stores its output
  */
+
+/** Frame lists whose masks stay stashed for the session (oldest dropped first). */
+const STASH_LISTS = 8;
 
 function frameSignature(frames) {
     return (frames || []).map(f => f.hash).join('|');
@@ -28,18 +33,31 @@ export class GifFrameMasks {
         this.track = new Map();
         this.edits = new Map();
         this.composed = new Map();
+        /** signature -> { track, edits, composed } of a list the store left */
+        this._stash = new Map();
     }
 
-    /** Bind to a frame list. A different list empties the store. @returns {boolean} true when it emptied */
+    /**
+     * Bind to a frame list. A different list stashes the current masks and
+     * restores that list's own, if it was bound before.
+     * @returns {boolean} true when the store's content changed (masks left or came back)
+     */
     sync(frames) {
         const sig = frameSignature(frames);
         if (sig === this._sig) return false;
-        this._sig = sig;
         const had = this.hasAny();
-        this.track.clear();
-        this.edits.clear();
-        this.composed.clear();
-        return had;
+        if (had) {
+            this._stash.delete(this._sig);
+            this._stash.set(this._sig, { track: this.track, edits: this.edits, composed: this.composed });
+            if (this._stash.size > STASH_LISTS) this._stash.delete(this._stash.keys().next().value);
+        }
+        const back = this._stash.get(sig);
+        this._stash.delete(sig);
+        this._sig = sig;
+        this.track = back?.track || new Map();
+        this.edits = back?.edits || new Map();
+        this.composed = back?.composed || new Map();
+        return had || !!back;
     }
 
     /**

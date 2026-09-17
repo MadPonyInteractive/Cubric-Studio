@@ -1,4 +1,4 @@
-# SAM3 GIF cut-out — video tracking by name (MPI-771)
+# GIF cut-out — BiRefNet, SAM3 by name, and by colour (MPI-771)
 
 Split out of [masking-sam3.md](masking-sam3.md) at MPI-771's UI half, when a second
 detector branch pushed that doc past 200 lines. Read that file first for the model,
@@ -51,6 +51,27 @@ which tracked index is which object.
   alpha and lands a new entry. Full request/response contracts, the codec choice and
   the flatten-before-encode reasoning are in that file's own header comment.
 
+## Mask methods (plan Decision 15, 2026-09-17)
+
+Fabio's UI pass found SAM3's "Background" mask ragged at the frame edge and slow to fix by
+hand, so Cut-out has three METHODS that all fill the same per-frame track layer (so the brush,
+Adjust, Invert and Cut out work unchanged). Every mask is white = KEEP.
+
+- **Remove background** (default) — op `gifCutoutBirefnet`, `gif_cutout_birefnet.json`:
+  `MpiLoadVideo (Input_Video) -> RemoveBackground (the shipped `birefnet` engine asset, the
+  same nodes as the image op `removeBackground`) -> MaskToImage -> Output_Mask`. No prompt, no
+  preview, no chips. Same runner (`runGifCutoutTrack({ op })`), video in, one mask per frame.
+  Measured on the 8188 bench 2026-09-17: 30 masks for Fabio's 320px robot in 16 s, ~4 GB VRAM.
+  `MpiLoadVideo` reads only inside ComfyUI's input/output/temp folders, so a hand probe must
+  stage its video there (the app's staging already does).
+- **By name** — the SAM3 graph above.
+- **By colour** — no engine: `js/utils/colourKeyMask.js` keys each frame in the renderer
+  (largest per-channel difference <= Tolerance, default 16; "Only touching the edges" flood-fills
+  from the border so an enclosed same-colour patch stays). The key defaults to the current
+  frame's top-left pixel and is never saved (it belongs to one GIF); **Pick** is Chromium's
+  native `EyeDropper`. A Tolerance / edges / colour change re-keys the last scope after 250 ms.
+  On Fabio's robot, 16 kept the face; 32 started eating it.
+
 ## The two tools — Cut-out and Mask Brush (MPI-771, plan Decision 14)
 
 A track is a STARTING POINT: object numbers need not stay the same object from frame to
@@ -67,8 +88,10 @@ pixels, so a staged strip reorder, delete or Discard CARRIES the masks along: th
 `'stage-change'` sends `order` (each new position's old one), the Block passes it to
 `setFrames(frames, order)`, and `remap()` rebinds the store. Update/Apply then reload the same
 list, so the signature matches and nothing is lost (Fabio lost every fix to one stray drag
-before this). A different entry empties the store silently; a list change with no `order`
-empties it and the Block toasts. `getCutMasks()` sends the track URL for an untouched frame, the composite for a
+before this). A different list STASHES the masks by its signature (8 lists, session only) and
+restores that list's own: after Cut out, going back to the source entry brings its masks back
+with no re-track (Fabio, 2026-09-17). A list change with no `order` stashes them and the
+Block toasts. `getCutMasks()` sends the track URL for an untouched frame, the composite for a
 brushed one, a 1x1 black PNG for a frame with neither (`applyMaskAlpha()` resizes a mask to
 its frame). A re-track replaces TRACKS only (Fabio: brush fixes survive); a brushed frame's
 composite is then stale and is rebuilt through a headless `MaskManager`, so there is ONE
@@ -93,9 +116,13 @@ Cut-out; Fabio chose that over a second Cut out button (2026-09-16).
 
 ### Cut-out — `MpiToolOptionsGifCutout`
 
-1. **Track All / Track Single Frame.** `runGifCutoutTrack` is called from the panel; the
-   single-frame run is the same graph on a one-frame source video, and replaces only that
-   position's track. There is **no count input**: each name is stamped `name:4`, the same 4
+0. **Method** — `MpiRadioGroup` (Remove background / By name / By colour), saved as
+   `toolSettings.gifCutout.method`; the hint, the name field and the colour controls follow it.
+1. **Mask All / Mask This Frame** (Track All / Track Single Frame under By name).
+   `runGifCutoutTrack({ op })` is called from the panel; the single-frame run is the same
+   graph on a one-frame source video, and replaces only that position's track. A run spins
+   the viewer (`setGenerating`) and drives the status bar directly (indeterminate clock,
+   `complete()` when masks landed, `cancel()` otherwise), the image Detect row's idiom. There is **no count input**: each name is stamped `name:4`, the same 4
    as the chips (`OBJECT_SLOTS` = `max_objects`), because a bare name finds ONE object
    ([masking-sam3.md](masking-sam3.md) § the `name:N` trap). Source videos are cached per
    frame signature. Results that land after the frame list changed are dropped.
@@ -109,9 +136,12 @@ Cut-out; Fabio chose that over a second Cut out button (2026-09-16).
    `viewer.el.getFrameMaskURL(idx)` (a small LRU of decoded masks and fields; composed masks
    are data URLs). Fill Holes has no preview. All three persist in `toolSettings.gifCutout`
    beside `textPrompt`, so a trip to the Mask Brush does not reset them.
-5. **Cut out** — `viewer.el.getCutMasks()`, then emits `{ frames, masks, adjust, invert }`; the
-   Block posts `/gif-cutout/apply` and appends the entry (`_handleGifCutoutApply`), never
-   through `/gif/entry`.
+5. **Cut out** — `viewer.el.getCutMasks()`, then emits `{ frames, masks, adjust, invert,
+   settings }`; the Block posts `/gif-cutout/apply` and appends the entry
+   (`_handleGifCutoutApply`), never through `/gif/entry`. The route ALWAYS builds transparent
+   (`edgeColour` defaults to black: the source entry's output is usually opaque, which
+   flattened every cut pixel onto black) and stamps `settings` + adjust/invert as the
+   sidecar's `cutout` field.
 
 ### Tints
 
@@ -120,6 +150,9 @@ Cut-out; Fabio chose that over a second Cut out button (2026-09-16).
   CSS `mask-image`, `contain` + centred — the same box the frame img fills with
   `object-fit: contain` (frames scale UP to the stage too). Play in the Mask Brush drives the
   same div with the raw B/W masks under `--luma` (`mask-mode: luminance`).
+- Behind the frame, `.mpi-gif-viewer__checker` draws a checker sized to the frame's own
+  letterboxed box (`--frame-ar` from the img's natural size, container query units), so a
+  transparent pixel never reads as a black fill.
 - The strip tint uses `mask-mode: luminance` (engine and composed masks are opaque B/W) and
   `cover` sizing to match the thumb's `object-fit: cover`.
 - Mask URLs from the engine are cross-origin; reading their pixels (tint, base layer) relies on

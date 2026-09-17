@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-801", "at": "2026-09-17T16:38:10+01:00", "actor": "claude", "column": "todo", "title": "Paint tools: hold Alt for a colour picker (eyedropper)"}

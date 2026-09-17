@@ -7,7 +7,7 @@
   "maturity": "validating",
   "status": "active",
   "created_at": "2026-09-15T13:37:30+01:00",
-  "updated_at": "2026-09-17T12:38:24Z",
+  "updated_at": "2026-09-17T15:07:02Z",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -18,9 +18,10 @@
     "handoffs": "handoffs/",
     "research": "research/"
   },
+  "activeSessionTitle": "MPI-771: mask methods (BiRefNet, By colour), transparent cut save, spinner, mask stash",
   "attention": {
     "state": "required",
-    "reason": "MPI-771 verified locally and on RunPod 2026-09-17; left: types.js typedef, file under MPI-774 claim 91f0ea6b; text in tasks/MPI-771/types-hunk.md",
-    "updated_at": "2026-09-17T12:38:24Z"
+    "reason": "Built + auto-verified (mask methods, transparent cut, image By colour). Needs Fabio's app check after a FULL restart; types.js/preloadStyles lines parked in types-hunk.md",
+    "updated_at": "2026-09-17T15:00:00Z"
   }
 }

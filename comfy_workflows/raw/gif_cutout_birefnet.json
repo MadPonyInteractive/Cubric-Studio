@@ -1,0 +1,258 @@
+{
+  "id": "b7e0c4d2-5a31-4f6e-9c8a-771b1e2f0d15",
+  "revision": 0,
+  "last_node_id": 5,
+  "last_link_id": 4,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "MpiLoadVideo",
+      "pos": [
+        0,
+        200
+      ],
+      "size": [
+        270,
+        198
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            1
+          ]
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "links": null
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "duration",
+          "type": "FLOAT",
+          "links": null
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "has_audio",
+          "type": "BOOLEAN",
+          "links": null
+        }
+      ],
+      "title": "Input_Video",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "1de35a33827b125fe2adbc08df23266c465c032a",
+        "Node name for S&R": "MpiLoadVideo"
+      },
+      "widgets_values": [
+        "",
+        true,
+        0
+      ]
+    },
+    {
+      "id": 2,
+      "type": "LoadBackgroundRemovalModel",
+      "pos": [
+        0,
+        0
+      ],
+      "size": [
+        270,
+        80
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "bg_model",
+          "type": "BACKGROUND_REMOVAL",
+          "links": [
+            2
+          ]
+        }
+      ],
+      "title": "Load Background Removal Model",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "LoadBackgroundRemovalModel"
+      },
+      "widgets_values": [
+        "birefnet.safetensors"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "RemoveBackground",
+      "pos": [
+        340,
+        100
+      ],
+      "size": [
+        270,
+        80
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "bg_removal_model",
+          "type": "BACKGROUND_REMOVAL",
+          "link": 2
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": [
+            3
+          ]
+        }
+      ],
+      "title": "Remove Background",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "RemoveBackground"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 4,
+      "type": "MaskToImage",
+      "pos": [
+        640,
+        100
+      ],
+      "size": [
+        270,
+        80
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            4
+          ]
+        }
+      ],
+      "title": "Convert Mask to Image",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "MaskToImage"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 5,
+      "type": "PreviewImage",
+      "pos": [
+        900,
+        100
+      ],
+      "size": [
+        270,
+        80
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 4
+        }
+      ],
+      "outputs": [],
+      "title": "Output_Mask",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      3,
+      1,
+      "IMAGE"
+    ],
+    [
+      2,
+      2,
+      0,
+      3,
+      0,
+      "BACKGROUND_REMOVAL"
+    ],
+    [
+      3,
+      3,
+      0,
+      4,
+      0,
+      "MASK"
+    ],
+    [
+      4,
+      4,
+      0,
+      5,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

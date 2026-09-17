@@ -171,10 +171,10 @@ write frames and call `buildGif()` themselves. A GIF opens with no tool up.
 
 ## Cut-out (MPI-771)
 
-`gif` mode's first tool group: SAM3 video tracking by name, into a new alpha-cut
-entry via `POST /gif-cutout/apply` (the cut needs the per-frame mask batch a plain
-entry write never takes). Graph, runner, the `MpiToolOptionsGifCutout` panel and
-the viewer/strip tint preview: [masking-sam3-gif.md](masking-sam3-gif.md).
+`gif` mode's first tool group: per-frame masks (BiRefNet, SAM3 by name, or by colour) cut
+into a new, always transparent entry via `POST /gif-cutout/apply` (the cut needs the
+per-frame mask batch a plain entry write never takes). Graphs, runner, the panel and the
+tint preview: [masking-sam3-gif.md](masking-sam3-gif.md).
 
 ## Timing and output tools (MPI-772)
 

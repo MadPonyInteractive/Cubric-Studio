@@ -10,7 +10,8 @@ const { launchApp, closeApp } = require('./launch');
 /**
  * MPI-771 (UI half) — GIF cut-out tool group.
  *
- * Two tests, two boundaries:
+ * Two tests, two boundaries (plus the mask-method switch of Decision 15:
+ * Remove background / By name / By colour, all through the same track layer):
  *
  * 1. "panel routing + chip toggle" — a fixture project (`window.fetch` stubs
  *    for `/gif/ensure-frames` / `/gif-cutout/source`, never `page.route` — it
@@ -122,6 +123,10 @@ test('gif cutout panel: routes, mounts with the right initial state, and drives 
       return {
         mounted: !!panel,
         promptField: !!document.querySelector('.mpi-tool-options-gif-cutout #prompt-slot .mpi-input'),
+        promptHidden: document.querySelector('.mpi-tool-options-gif-cutout #prompt-slot')?.hidden,
+        methods: [...document.querySelectorAll('.mpi-tool-options-gif-cutout #method-slot .mpi-radio-group__btn')].map(b => b.dataset.value),
+        methodActive: document.querySelector('.mpi-tool-options-gif-cutout #method-slot .mpi-radio-group__btn.is-active')?.dataset.value,
+        hint: document.querySelector('.mpi-tool-options-gif-cutout #hint')?.textContent || '',
         countField: !!document.querySelector('.mpi-tool-options-gif-cutout .mpi-input[type="number"], .mpi-tool-options-gif-cutout input[type="number"]'),
         trackBtnTexts: [...document.querySelectorAll('.mpi-tool-options-gif-cutout #track-slot button')].map(b => b.textContent.trim()),
         previewHidden: document.querySelector('.mpi-tool-options-gif-cutout #preview-wrap')?.hidden,
@@ -133,6 +138,28 @@ test('gif cutout panel: routes, mounts with the right initial state, and drives 
     expect(dom.mounted).toBe(true);
     expect(dom.promptField).toBe(true);
     expect(dom.countField, 'no count input (plan Decision 14): the chips are the count').toBe(false);
+    // Decision 15: three methods, Remove background (BiRefNet) first and default.
+    expect(dom.methods).toEqual(['birefnet', 'sam3', 'colour']);
+    expect(dom.methodActive, 'Remove background is the default method').toBe('birefnet');
+    expect(dom.promptHidden, 'no name field for Remove background').toBe(true);
+    expect(dom.hint).toContain('foreground');
+    expect(dom.trackBtnTexts).toEqual(['Mask All', 'Mask This Frame']);
+
+    // By name: the name field and the SAM3 labels come back.
+    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #method-slot .mpi-radio-group__btn[data-value="sam3"]').click());
+    dom = await window.evaluate(() => ({
+      promptHidden: document.querySelector('.mpi-tool-options-gif-cutout #prompt-slot')?.hidden,
+      colourHidden: document.querySelector('.mpi-tool-options-gif-cutout #colour-section')?.hidden,
+      hint: document.querySelector('.mpi-tool-options-gif-cutout #hint')?.textContent || '',
+      trackBtnTexts: [...document.querySelectorAll('.mpi-tool-options-gif-cutout #track-slot button')].map(b => b.textContent.trim()),
+      previewHidden: document.querySelector('.mpi-tool-options-gif-cutout #preview-wrap')?.hidden,
+      adjustHidden: document.querySelector('.mpi-tool-options-gif-cutout #adjust-section')?.hidden,
+      chipCount: document.querySelectorAll('.mpi-tool-options-gif-cutout #chips-slot .mpi-checkbox__input').length,
+      cutoutDisabled: document.querySelector('.mpi-tool-options-gif-cutout #cutout-slot button')?.disabled,
+    }));
+    expect(dom.promptHidden).toBe(false);
+    expect(dom.colourHidden).toBe(true);
+    expect(dom.hint, 'the hint says the name is what stays').toContain('keep');
     expect(dom.trackBtnTexts).toEqual(['Track All', 'Track Single Frame']);
     expect(dom.previewHidden, 'preview/chips stay hidden before a Track run').toBe(true);
     expect(dom.adjustHidden, 'Mask Adjust stays hidden before a Track run').toBe(true);
@@ -253,6 +280,16 @@ async function openRailTool(window, info) {
   await window.evaluate((name) => {
     document.querySelector(`.mpi-history-tools__slot[data-mode="cutout"] .mpi-history-tools__btn[data-info="${name}"] button`).click();
   }, info);
+}
+
+/** Pick a Cut-out mask method (Decision 15) and wait for its buttons. */
+async function pickMethod(window, value) {
+  await window.evaluate((v) => {
+    document.querySelector(`.mpi-tool-options-gif-cutout #method-slot .mpi-radio-group__btn[data-value="${v}"]`).click();
+  }, value);
+  const label = value === 'sam3' ? 'Track All' : 'Mask All';
+  await expect.poll(() => window.evaluate(() =>
+    document.querySelector('.mpi-tool-options-gif-cutout #track-all-slot button')?.textContent.trim())).toBe(label);
 }
 
 /** The Mask Brush canvas holds the viewer's CURRENT frame and is armed. */
@@ -428,6 +465,7 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
 
     // ── Open Cut-out: nothing to cut yet ────────────────────────────────
     await openRailTool(window, 'Cut-out');
+    await pickMethod(window, 'sam3');
     await window.evaluate(() => {
       const input = document.querySelector('.mpi-tool-options-gif-cutout #prompt-slot input');
       input.value = 'mascot';
@@ -457,6 +495,13 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
       document.querySelector('.mpi-tool-options-gif-cutout #cutout-slot button')?.disabled)).toBe(false);
 
     // ── Track All ────────────────────────────────────────────────────────
+    // Fabio: "there is no feedback while SAM3 runs". Record the viewer spinner.
+    await window.evaluate(() => {
+      window.__mpi771.spin = [];
+      const v = document.querySelector('.mpi-gif-viewer');
+      const orig = v.setGenerating;
+      v.setGenerating = (on) => { window.__mpi771.spin.push(on); orig(on); };
+    });
     await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #track-all-slot button').click());
 
     // Real /gif-cutout/source (real ffmpeg) runs before the (faked) engine
@@ -475,6 +520,8 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
       { timeout: 15000 }
     ).toBe(false);
     expect(await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #preview-wrap')?.hidden)).toBe(false);
+    await expect.poll(() => window.evaluate(() => window.__mpi771.spin), { message: 'the viewer spun for the run, then stopped' })
+      .toEqual([true, false]);
     // Every frame now carries a tint; the brushed frame keeps its marker.
     await expect.poll(() => window.evaluate(() =>
       document.querySelectorAll('.mpi-frame-strip__thumb-tint').length)).toBe(3);
@@ -587,6 +634,89 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     expect(f1(C, C - 16), 'frame 1: the rest of its track is kept').toBe(255);
     const f2 = await alphaOf(2);
     expect(f2(C, C), 'frame 2: its single-frame track found nothing').toBe(0);
+
+    // Fabio 2026-09-17: a cut-out is always a transparent GIF, and says how it was made.
+    expect(sidecar.gif.output.edgeColour, 'a cut-out builds transparent').toBe('#000000');
+    expect(sidecar.cutout).toEqual({
+      method: 'sam3', prompt: 'mascot', objects: [0, 1, 2, 3],
+      adjust: { grow: 0, fillHoles: false }, invert: false,
+    });
+
+    // ── Back on the source entry, its masks come back (no re-track) ─────
+    await expect.poll(() => window.evaluate(() =>
+      document.querySelectorAll('.mpi-frame-strip__thumb-tint').length), { timeout: 15000 }).toBe(0);
+    await window.locator('.mpi-history-list__card').first().click();
+    await expect.poll(() => window.evaluate(() =>
+      document.querySelectorAll('.mpi-frame-strip__thumb-tint').length), { timeout: 15000 }).toBe(3);
+    expect(await window.evaluate(() => document.querySelectorAll('.mpi-frame-strip__thumb--edited').length),
+      'the brush fixes came back too').toBe(2);
+
+    const runsBefore = await window.evaluate(() => window.__mpi771.runParams.length);
+    // ── By colour: keyed in the renderer, no engine call ──────────────────
+    // The current frame (0) is the red still, so red is keyed out: frame 0's
+    // track goes black, green and blue stay white. Brush fixes still apply.
+    await gotoFrame(window, 0);
+    await pickMethod(window, 'colour');
+    await expect.poll(() => window.evaluate(() =>
+      document.querySelector('.mpi-tool-options-gif-cutout #key-colour-slot .mpi-color-picker')?.textContent || ''))
+      .toContain('#c82828');
+    const spinsBefore = await window.evaluate(() => window.__mpi771.spin.length);
+    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #track-all-slot button').click());
+    await expect.poll(() => window.evaluate((n) => window.__mpi771.spin.slice(n), spinsBefore), { timeout: 15000 })
+      .toEqual([true, false]);
+    expect(await window.evaluate(() => window.__mpi771.runParams.length), 'By colour never calls the engine').toBe(runsBefore);
+
+    const before2 = await historyLenNow();
+    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #cutout-slot button').click());
+    await expect.poll(historyLenNow, { timeout: 30000 }).toBe(before2 + 1);
+    const keyed = await window.evaluate(async (gid) => {
+      const { state } = await import('/js/state.js');
+      const g = state.currentProject.itemGroups.find(x => x.id === gid);
+      return g.history[g.history.length - 1];
+    }, gifInfo.groupId);
+    const keyedSidecar = await fs.readJson(path.join(projectFolderPath, 'Media', '.meta', `${keyed.id}.json`));
+    expect(keyedSidecar.cutout).toEqual({
+      method: 'colour', colour: '#c82828', tolerance: 16, edgesOnly: false,
+      adjust: { grow: 0, fillHoles: false }, invert: false,
+    });
+    const keyedAlpha = async (frameIdx) => {
+      const framePath = path.join(projectFolderPath, 'Media', '.gif-frames', `${keyedSidecar.gif.frames[frameIdx].hash}.png`);
+      const { data, info } = await sharp(framePath).raw().toBuffer({ resolveWithObject: true });
+      return (x, y) => data[(y * info.width + x) * info.channels + 3];
+    };
+    const k0 = await keyedAlpha(0);
+    expect(k0(C, C), 'frame 0: the key colour is cut').toBe(0);
+    expect(k0(6, 6), 'frame 0: the brushed corner is still kept').toBe(255);
+    const k1 = await keyedAlpha(1);
+    expect(k1(C, C), 'frame 1: the erased centre stays cut').toBe(0);
+    expect(k1(SZ - 7, SZ - 7), 'frame 1: green is not the key, kept').toBe(255);
+    const k2 = await keyedAlpha(2);
+    expect(k2(C, C), 'frame 2: blue is not the key, kept').toBe(255);
+
+    const runsAfterColour = await window.evaluate(() => window.__mpi771.runParams.length);
+
+    // ── Remove background: the BiRefNet graph, video in, no name params ──
+    await window.evaluate(async () => {
+      window.__mpi771.graphs = [];
+      const { getEngine } = await import('/js/services/comfyController.js');
+      for (const forceLocal of [false, true]) {
+        const eng = getEngine(forceLocal);
+        const fake = eng.runWorkflow;
+        eng.runWorkflow = (workflow, params, onMessage) => {
+          window.__mpi771.graphs.push(Object.values(workflow).map(n => n.class_type));
+          return fake(workflow, params, onMessage);
+        };
+      }
+    });
+    await pickMethod(window, 'birefnet');
+    await window.evaluate(() => { window.__mpi771.maskPrefix = 'mask_'; });
+    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #track-all-slot button').click());
+    await expect.poll(() => window.evaluate(() => window.__mpi771.runParams.length), { timeout: 30000 }).toBe(runsAfterColour + 1);
+    const birefParams = await window.evaluate(() => window.__mpi771.runParams[window.__mpi771.runParams.length - 1]);
+    expect(Object.keys(birefParams), 'BiRefNet takes the video only').toEqual(['Input_Video']);
+    expect(await window.evaluate(() => window.__mpi771.graphs[0])).toContain('RemoveBackground');
+    expect(await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #preview-wrap')?.hidden),
+      'no SAM3 object preview for Remove background').toBe(true);
 
     await new Promise((r) => maskServer.close(r));
     maskServer = null;

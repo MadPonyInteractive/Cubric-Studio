@@ -131,7 +131,7 @@ async function _writeNewGifCard({ folderPath, mediaDir, metaDir, newFrames, loop
         loop: Number.isFinite(Number(loop)) ? Number(loop) : 0,
         output: {
             maxEdge: Number(output?.maxEdge) > 0 ? Number(output.maxEdge) : 1024,
-            colours: Number.isFinite(Number(output?.colours)) ? Number(output.colours) : 256,
+            colours: Number(output?.colours) > 0 ? Math.round(Number(output.colours)) : 256,
             edgeColour: output?.edgeColour || null,
         },
     };

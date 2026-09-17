@@ -63,6 +63,7 @@ export const OPERATION_REGISTRY = {
     imageDescribe: { latestVersion: '1.0', appVersionIntroduced: '1.1.0' },
     autoMaskImg:  { latestVersion: '1.0', appVersionIntroduced: '0.0.1' },
     gifCutoutSam3: { latestVersion: '1.0', appVersionIntroduced: '1.6.0' },
+    gifCutoutBirefnet: { latestVersion: '1.0', appVersionIntroduced: '1.6.0' },
     resize:       { latestVersion: '1.0', appVersionIntroduced: '0.0.1' },
     resizeVideo:  { latestVersion: '1.1', appVersionIntroduced: '0.0.1' },
     // `1.1` (MPI-744, 2026-09-13): re-engined from Qwen Edit to FLUX.2 Klein 9B + the BFS

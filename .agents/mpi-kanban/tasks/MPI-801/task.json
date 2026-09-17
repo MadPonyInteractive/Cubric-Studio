@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-801",
+  "title": "Paint tools: hold Alt for a colour picker (eyedropper)",
+  "description": "Fabio 2026-09-17: in the IMAGE history workspace, while a Paint tool is active, holding Alt temporarily turns the cursor into a colour picker; clicking samples the canvas colour into the paint colour, releasing Alt returns to painting. Reuse what MPI-771 built: js/utils/colourKeyMask.js readImagePixels / cornerColour and the native EyeDropper pattern in MpiToolOptionsMaskColour. Paint colour lives in toolSettings.paint.color. Alt must go through Hotkeys.bind + hotkeyRegistry.js (no raw keydown).",
+  "column": "todo",
+  "maturity": "idea",
+  "status": "active",
+  "created_at": "2026-09-17T16:38:10+01:00",
+  "updated_at": "2026-09-17T16:38:10+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

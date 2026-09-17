@@ -170,6 +170,43 @@ investigators got wrong: [research/2026-09-15-investigation.md](research/2026-09
   GIF Maker + the header count); land the four `types.js` hunks once MPI-774 releases the file (its
   claim a4c0f2d7 re-listed it, message 7a760e11 re-addressed to session 047d6088); then close-out
   (ask Fabio about `.claude/rules/` maps).
+- **2026-09-17 ~14:00Z (session c01e2406): Fabio's UI pass found the cut-out results unusable. Root
+  causes proven on his `test` project (GIF Tests), no code yet.** (a) `/gif-cutout/apply` builds with
+  the SOURCE entry's `output` (`edgeColour: null` = opaque), so every cut pixel was flattened to black;
+  gif_009's SAM3 robot mask was actually clean (77% transparent, rebuilt transparent in scratch). (b) He
+  applied Transparent to gif_010, whose mask kept 99% of the frame. (c) Prompt "Background" + no Invert
+  keeps the background; SAM3's background mask stops short of the frame edge (the dashed border; the
+  source has no dark border). (d) `Number(null)` stores `colours: 0` (gif.js, gifCutout.js,
+  gifTransform.js). Fabio's calls: **Decision 15** below (BiRefNet + By colour), By colour also in
+  the IMAGE mask tools, bench on 8188 may be used for the raw->API sync. Build tracked on MPI-771
+  (checklist). `js/services/commandExecutor.js` (the runner) is under MPI-774's claim a4c0f2d7:
+  message 4463a29e asks for the two-part hunk or a release.
+- **2026-09-17 ~14:00Z (session c01e2406): GIF half BUILT, NOT COMMITTED, automated checks green except
+  the one step the runner blocks** (MPI-771 `validation.md`). BiRefNet graph proven on the bench (30 masks,
+  16 s). By colour default tolerance 16 measured on Fabio's frames. Image-workspace By colour dispatched to
+  a frontend worker (owns MpiCanvasViewer/, MpiToolOptionsMaskColour/, MpiHistoryTools.js,
+  MpiMaskDetectRow/, tests/desktop/mask-colour.spec.js, docs/masking-tools.md); its new component's
+  `preloadStyles.js` / `types.js` lines get parked like the others. MPI-774 = Desktop tab "Agent 9".
+  **Next:** land the runner hunk (or get it landed), re-run `gif-cutout.spec.js` to 4/4, integrate the
+  worker, then give Fabio the do-X/see-Y list (full app restart: server routes changed).
+- **2026-09-17 ~15:00Z (session c01e2406): ALL BUILT AND AUTO-VERIFIED, NOT COMMITTED.** Runner hunk
+  landed here after MPI-774's claim went complete; gif-cutout spec 4/4; image By colour integrated (the
+  worker's first spec bypassed the UI; Block registration + a null-colour crash fixed on review; real-UI
+  spec 1/1). MPI-771 `doing/validating`, attention: Fabio's app check after a FULL restart. Node suite
+  6 red = MPI-800's in-flight path-loader sweeps (message d71d7044 asks it to migrate the new graph).
+  **Next:** Fabio's check; then the whole-workspace UI list from the 12:54Z handoff; types.js /
+  preloadStyles lines when free; close-out asks about `.claude/rules/` (new `maskColour` tool, panel
+  `settings` payload, `history:stats-dirty` emit).
+- **2026-09-17 ~15:40Z: Fabio's app check (after restart).** By colour WORKS. Remove background FAILED:
+  modal "Cut-out failed: [ComfyUIController] Media staging failed for Input_Video: HTTP 404" (app.log
+  15:36:12Z `[comfy] gif cutout track workflow failed`). Unproven lead: MPI-800 (session 0d43f404, in
+  flight, uncommitted) is rewriting media staging (`routes/comfy.js`, `comfyController.js`: stage into the
+  engine input/ folder, MpiNodes 1.2.16 Upload loaders) and Fabio just updated MpiNodes, so the temp
+  `Media/.gif-cutout-tmp/*.mkv` path may no longer be stageable; SAM3 (same path) likely fails too. Root
+  cause first: read the staging route that 404s and MPI-800's plan before touching anything; message
+  d71d7044 already told MPI-800 about the new graph. Fabio asked why "video": the frames are encoded to
+  one temp lossless video (E7) so the tracker gets one frame per GIF frame. Also: Fabio loved the colour
+  picker and asked for card **MPI-801** (Alt-held colour picker in the image Paint tools), created `todo/idea`.
 - **Next action (superseded, kept for the record):** MPI-759 root cause in the real app first (he can reload for you; read
   `%APPDATA%\Cubric Vision\logs\app.log` filtered, never drive `:3000`). Then redesign the MPI-771 UI half
   per Decision 14 (plan it with Fabio before coding: it needs a per-frame mask layer and brush). Phase 4
@@ -200,6 +237,7 @@ cut-out) ever passes through 256 colours.
 | 12 | The agent authors the SAM3 GIF graph itself, modelled on the existing SAM3 graph (explicit permission, 2026-09-15). |
 | 13 | GIF Maker (video workspace) creates a new GIF card, not a history entry in the video card. |
 | 14 | (2026-09-16, after the first cut-out eye check) Cut-out gets a different system. Drop the count input (the 0-3 object chips replace it). Object numbers may not stay the same object from frame to frame, so a track is not the final mask. Offer **Track All** and **Track Single Frame**; the user then steps frame to frame and fixes the mask with a **mask brush** (a separate tool), e.g. where the woman and the dog overlap. Agreed details (chat, same day): each frame's mask is two layers, the track underneath and brush add/erase on top; a re-track replaces only the track, brush fixes survive; the brush also works with no track (paint a mask from scratch); edited frames get a strip marker; Mask Adjust stays one setting for all frames; Ctrl+Z as in image masking. |
+| 15 | (2026-09-17, after his UI pass; **reverses the "No BiRefNet" half of 11**) Cut-out gets three mask methods feeding the same track layer: **Remove background** (BiRefNet, the shipped `birefnet` engine asset, default), **By name** (SAM3), **By colour** (key colour, tolerance, only-touching-edges; no GPU). By colour also lands in the image mask tools. Cut out always saves a transparent GIF. |
 
 ## Members
 

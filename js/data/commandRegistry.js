@@ -980,6 +980,18 @@ export const commands = {
         promptRequired: false,
         universal: true,
     },
+    // MPI-771 Decision 15: the same runner with the BiRefNet graph ("Remove background").
+    gifCutoutBirefnet: {
+        label: 'GIF Remove Background',
+        progressLabel: 'Removing background',
+        mediaType: MEDIA_TYPE.VIDEO,
+        requiresVideo: 1,
+        mediaInputs: [
+            { key: 'inputVideo', mediaType: MEDIA_TYPE.VIDEO, title: 'Input_Video', required: true },
+        ],
+        promptRequired: false,
+        universal: true,
+    },
     resize: {
         label: 'Resize',
         progressLabel: 'Resizing',

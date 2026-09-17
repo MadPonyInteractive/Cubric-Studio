@@ -1,0 +1,41 @@
+.mpi-tool-options-mask-colour {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    padding: var(--s-2);
+}
+
+.mpi-tool-options-mask-colour__info {
+    margin: 0;
+    padding: var(--s-2);
+    color: var(--ink-3);
+    background: var(--surface-1);
+    border: 1px solid var(--line);
+    border-radius: var(--r-2);
+    font-size: var(--t-2xs);
+    line-height: 1.45;
+}
+
+.mpi-tool-options-mask-colour__colour-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+}
+
+.mpi-tool-options-mask-colour__slider-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+}
+
+.mpi-tool-options-mask-colour__label {
+    flex: 0 0 auto;
+    font-size: var(--t-2xs);
+    color: var(--ink-3);
+    white-space: nowrap;
+}
+
+.mpi-tool-options-mask-colour__slider {
+    flex: 1 1 auto;
+    min-width: 0;
+}

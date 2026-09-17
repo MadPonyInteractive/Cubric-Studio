@@ -50,6 +50,7 @@ import { qs, on } from '../../../utils/dom.js';
 import { Events } from '../../../events.js';
 import { maskTempStore } from '../../../services/maskTempStore.js';
 import { clientLogger } from '../../../services/clientLogger.js';
+import { colourKeyMaskUrl, COLOUR_KEY_DEFAULTS } from '../../../utils/colourKeyMask.js';
 
 function _resolveUrl(filePath) {
     if (!filePath) return '';
@@ -354,6 +355,16 @@ export const MpiCanvasViewer = ComponentFactory.create({
         // bare category makes SAM3 return exactly one object.
         let _textMode = false;
         let _textPrompt = '';
+        // MPI-771: colour-key mode — pure JS, no engine. Held on the viewer
+        // like _pointsMode / _textMode so it survives canvas remounts.
+        let _colourMode = false;
+        let _colourKeyColour = null;      // hex string; null = corner pixel on each run
+        let _colourKeyTolerance = COLOUR_KEY_DEFAULTS.tolerance;
+        let _colourKeyEdgesOnly = COLOUR_KEY_DEFAULTS.edgesOnly;
+        // Version counter: incremented whenever a colour run is superseded (new run
+        // started, Stop pressed, or the tool exited). The async workflow checks this
+        // before applying results so a stale run cannot corrupt state.
+        let _colourRunVersion = 0;
         // Display-only invert state. Held on the viewer (not just the canvas)
         // so it survives the canvas teardown/remount that swapToPreview/swapToCanvas
         // performs. Re-applied to the fresh MpiCanvas after every remount.
@@ -667,6 +678,75 @@ export const MpiCanvasViewer = ComponentFactory.create({
 
         function _autoPickKey(item) { return item?.id || null; }
 
+        /**
+         * MPI-771 — colour-key run. Pure JS, no ComfyUI. Runs colourKeyMaskUrl on
+         * the current image and feeds the B/W mask into the existing auto-pick
+         * preview path as a single pre-picked object (index 0), matching the Points
+         * mode pattern. The status-bar contract ("Detect is a RUN") applies: the bar
+         * shows DETECTING while the pixel scan runs and completes when done.
+         *
+         * A version counter (_colourRunVersion) makes the async run self-cancelling:
+         * Stop, a new run, or the tool exiting all increment it; the workflow checks
+         * the version after every await and discards stale results without touching
+         * the bar (the caller already ended it).
+         */
+        async function _runColourKeyWorkflow() {
+            const version = ++_colourRunVersion;
+            const imageUrl = _currentItem?.filePath
+                ? _resolveUrl(_currentItem.filePath)
+                : initialImageUrl;
+            if (!imageUrl) {
+                StatusBar.notify('No image loaded', 'warning');
+                _endAutoMaskRun('done');
+                return;
+            }
+            try {
+                const result = await colourKeyMaskUrl(imageUrl, {
+                    colour:         _colourKeyColour,
+                    tolerance:      _colourKeyTolerance,
+                    edgesOnly:      _colourKeyEdgesOnly,
+                    selectMatching: true,
+                });
+                if (version !== _colourRunVersion) return; // stale — Stop or new run
+                // colourKeyMaskUrl returns an opaque B/W data URL; the auto-pick
+                // path (bakeAutoPicksInto, _recompositeAuto) expects a transparent
+                // PNG where alpha=255 = selected and alpha=0 = not selected.
+                // _maskUrlToTransparentDataUrl's data:-shortcircuit assumes the URL
+                // is already transparent, so we convert explicitly here.
+                const _cBmp = await createImageBitmap(await (await fetch(result.url)).blob());
+                if (version !== _colourRunVersion) { _cBmp.close(); return; }
+                const _cC = document.createElement('canvas');
+                _cC.width = _cBmp.width; _cC.height = _cBmp.height;
+                const _cCtx = _cC.getContext('2d', { willReadFrequently: true });
+                _cCtx.drawImage(_cBmp, 0, 0); _cBmp.close();
+                const _cId = _cCtx.getImageData(0, 0, _cC.width, _cC.height);
+                const _cD = _cId.data;
+                for (let _ci = 0; _ci < _cD.length; _ci += 4) {
+                    const _br = (_cD[_ci] + _cD[_ci + 1] + _cD[_ci + 2]) / 3;
+                    if (_br < 128) { _cD[_ci + 3] = 0; }
+                    else { _cD[_ci] = _cD[_ci + 1] = _cD[_ci + 2] = 255; _cD[_ci + 3] = 255; }
+                }
+                _cCtx.putImageData(_cId, 0, 0);
+                const _maskUrl = _cC.toDataURL('image/png');
+                // Feed as single pre-picked auto-pick, like Points mode.
+                _lastDetectThumbUrls = [result.url]; // opaque B/W kept for thumbnail display
+                _autoMaskUrls        = [_maskUrl];   // transparent: alpha-255=selected, 0=not
+                _autoMaskBitmaps.clear();
+                _autoMaskPicks = new Set([0]);
+                autoMaskThumbs.el.setImages([result.url]);
+                // setPicks does NOT emit 'change', so this cannot re-trigger the run.
+                autoMaskThumbs.el.setPicks?.(new Set([0]));
+                await _applyPicksFromCache(_autoMaskPicks);
+                if (version !== _colourRunVersion) return;
+                _endAutoMaskRun('done');
+            } catch (err) {
+                if (version !== _colourRunVersion) return;
+                clientLogger.error('colour-mask', 'Colour key failed', err);
+                StatusBar.notify('Colour key failed', 'warning');
+                _endAutoMaskRun('done');
+            }
+        }
+
         async function _saveAutoPickEntry(item, urls, picks, thumbs) {
             const key = _autoPickKey(item);
             if (!key) return;
@@ -826,6 +906,10 @@ export const MpiCanvasViewer = ComponentFactory.create({
          * that stale selection.
          */
         function _exitAutoMaskMode(apply) {
+            // Discard any in-flight colour-key run before ending the bar, so the
+            // async workflow's stale-check fires and it does not try to end the bar
+            // a second time.
+            _colourRunVersion++;
             _autoMaskExec?.cancel();
             _autoMaskExec = null;
             _endAutoMaskRun('cancelled');
@@ -1599,6 +1683,38 @@ export const MpiCanvasViewer = ComponentFactory.create({
          */
         el.setMaskTextPrompt = (prompt) => { _textPrompt = (prompt || '').trim(); };
 
+        /**
+         * MPI-771 — switch the colour-key detection branch. Clears in-flight picks
+         * for the same reason setMaskPointsMode/setMaskTextMode do: the old result
+         * belongs to the old method.
+         * @param {boolean} enabled
+         */
+        el.setMaskColourMode = (enabled) => {
+            const next = !!enabled;
+            if (_colourMode === next) return;
+            _colourMode = next;
+            if (!next) _colourRunVersion++; // discard any in-flight run on disable
+            autoMaskThumbs.el.clear();
+            _autoMaskPicks.clear();
+            _autoMaskBitmaps.clear();
+            // Clear the canvas's auto-pick layer so the viewer doesn't show
+            // a stale detection after the tool changes mode or is destroyed.
+            canvas.clearAutoPicks?.();
+            canvas.setSelectedAutoPicks?.(new Set());
+            _clearAutoPickEntry(_currentItem, true);
+        };
+
+        /**
+         * Update the colour-key parameters used by the next detect run.
+         * Called by MpiToolOptionsMaskColour whenever a control changes.
+         * @param {{ colour?: string|null, tolerance?: number, edgesOnly?: boolean }} params
+         */
+        el.setMaskColourParams = ({ colour, tolerance, edgesOnly } = {}) => {
+            if (colour !== undefined) _colourKeyColour = (colour != null && colour !== '') ? colour : null;
+            if (tolerance !== undefined) _colourKeyTolerance = Number.isFinite(Number(tolerance)) ? Number(tolerance) : COLOUR_KEY_DEFAULTS.tolerance;
+            if (edgesOnly !== undefined) _colourKeyEdgesOnly = !!edgesOnly;
+        };
+
         el.clearMaskPoints    = () => { canvas.clearMaskPoints?.(); emit('mask-points-changed', { count: 0 }); };
         el.getMaskPointCount  = () => canvas.getMaskPointCount?.() ?? 0;
 
@@ -1624,9 +1740,12 @@ export const MpiCanvasViewer = ComponentFactory.create({
             return true;
         };
 
-        /** Kick off an auto-mask detect run and populate the thumbs strip. */
+        /** Kick off an auto-mask detect run and populate the thumbs strip.
+         *  When colour mode is active, routes to the pure-JS colour-key workflow
+         *  instead of ComfyUI — so the Cue gate is skipped (no engine needed). */
         el.runAutoMaskDetect = () => {
-            if (_isCueBusy()) {
+            // Colour-key is pure JS; skip the Cue gate. All other modes need ComfyUI.
+            if (!_colourMode && _isCueBusy()) {
                 _notifyAutoMaskBlocked();
                 return;
             }
@@ -1637,7 +1756,13 @@ export const MpiCanvasViewer = ComponentFactory.create({
             _autoMaskUrls = [];
             _autoMaskBitmaps.clear();
             _clearAutoPickEntry(_currentItem, true);
-            _runAutoMaskWorkflow(true);
+
+            if (_colourMode) {
+                _setAutoMaskRunning(true);
+                _runColourKeyWorkflow();
+            } else {
+                _runAutoMaskWorkflow(true);
+            }
         };
 
         /** Is a detect run in flight? The detect row reads this AT MOUNT — the
@@ -1646,9 +1771,12 @@ export const MpiCanvasViewer = ComponentFactory.create({
         el.isAutoMaskRunning = () => _autoMaskRunning;
 
         /** Stop a detect run in flight (MPI-421). The exec's interrupt existed from
-         *  day one — there was simply no UI wired to it. */
+         *  day one — there was simply no UI wired to it.
+         *  For colour-key runs: no exec handle, so increment the version to discard
+         *  any in-flight async operation instead. */
         el.cancelAutoMaskDetect = () => {
             if (!_autoMaskRunning) return;
+            if (_colourMode) _colourRunVersion++;
             _autoMaskExec?.cancel();
             _autoMaskExec = null;
             _endAutoMaskRun('cancelled');

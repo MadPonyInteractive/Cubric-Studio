@@ -104,7 +104,7 @@ import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
 import { MpiCanvas } from '../../Primitives/MpiCanvas/MpiCanvas.js';
 import { MaskManager } from '../../Primitives/MpiCanvas/managers/MaskManager.js';
 import { clientLogger } from '../../../services/clientLogger.js';
-import { qs } from '../../../utils/dom.js';
+import { qs, on } from '../../../utils/dom.js';
 import { GifFrameMasks } from './gifFrameMasks.js';
 
 /** Frames kept decoded around the current index, each side. */
@@ -122,6 +122,7 @@ export const MpiGifViewer = ComponentFactory.create({
         <div class="mpi-gif-viewer" data-mode="frames">
             <div class="mpi-gif-viewer__stage">
                 <div class="mpi-gif-viewer__frame-wrap">
+                    <div class="mpi-gif-viewer__checker"></div>
                     <img class="mpi-gif-viewer__frame" alt="" />
                     <div class="mpi-gif-viewer__mask-tint" id="mask-tint"></div>
                 </div>
@@ -140,6 +141,10 @@ export const MpiGifViewer = ComponentFactory.create({
         const spinnerWrap = qs('#spinner-wrap', el);
         const editSlot   = qs('#edit-slot', el);
         MpiSpinner.mount(spinnerWrap, { size: 'lg', variant: 'primary' });
+        // The checker behind the frame takes the frame's aspect ratio.
+        const _offFrameLoad = on(frameImg, 'load', () => {
+            if (frameImg.naturalHeight) frameWrap.style.setProperty('--frame-ar', frameImg.naturalWidth / frameImg.naturalHeight);
+        });
 
         const _masks = new GifFrameMasks();
         /** Mask Brush / Crop surface (MPI-771, MPI-773) — mounted only while the tool is up. */
@@ -364,15 +369,16 @@ export const MpiGifViewer = ComponentFactory.create({
         /**
          * A different frame list makes every position-keyed mask meaningless.
          * `announce`: a staged edit with no `order` threw masks away (a new entry did not).
-         * @returns {boolean} true when masks were dropped (and announced to listeners)
+         * @returns {boolean} true when the masks changed (dropped, or restored from the stash)
          */
         function _syncMasks(announce) {
+            const had = _masks.hasAny();
             if (!_masks.sync(_frames)) return false;
             // The canvas still holds the old position's layers — never save them
             // into the new list.
             _editIdx = -1;
             _dirty = false;
-            _emitMasks(announce);
+            _emitMasks(announce && had);
             return true;
         }
 
@@ -625,6 +631,7 @@ export const MpiGifViewer = ComponentFactory.create({
             _exitEdit();
             _destroyed = true;
             _stopPlayback();
+            _offFrameLoad();
             _cache.clear();
         };
     },

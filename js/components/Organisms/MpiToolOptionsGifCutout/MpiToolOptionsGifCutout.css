@@ -11,6 +11,16 @@
     gap: var(--s-2);
 }
 
+.mpi-tool-options-gif-cutout__row--centre {
+    align-items: center;
+}
+
+/* The method switch while a mask run is in flight (Decision 15). */
+.mpi-tool-options-gif-cutout__locked {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
 .mpi-tool-options-gif-cutout__prompt {
     flex: 1 1 auto;
     min-width: 0;

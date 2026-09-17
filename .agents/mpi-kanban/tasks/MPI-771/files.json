@@ -17,6 +17,21 @@
     "js/shell/preloadStyles.js",
     "js/components/types.js",
     "tests/desktop/gif-cutout.spec.js",
-    "docs/gif.md"
+    "docs/gif.md",
+    "routes/gif.js",
+    "routes/gifTransform.js",
+    "comfy_workflows/raw/gif_cutout_birefnet.json",
+    "comfy_workflows/gif_cutout_birefnet.json",
+    "js/core/operationRegistry.js",
+    "operation_registry.json",
+    "js/utils/colourKeyMask.js",
+    "js/components/Organisms/MpiCanvasViewer/",
+    "js/components/Organisms/MpiToolOptionsMaskColour/",
+    "js/components/Compounds/MpiMaskDetectRow/",
+    "tests/colour-key-mask.test.cjs",
+    "tests/flow-output-filename.test.cjs",
+    "tests/desktop/mask-colour.spec.js",
+    "docs/masking-sam3-gif.md",
+    "docs/masking-tools.md"
   ]
 }

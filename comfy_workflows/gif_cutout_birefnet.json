@@ -1,0 +1,62 @@
+{
+  "1": {
+    "inputs": {
+      "string": "",
+      "block_if_empty": true,
+      "force_rate": 0
+    },
+    "class_type": "MpiLoadVideo",
+    "_meta": {
+      "title": "Input_Video"
+    }
+  },
+  "2": {
+    "inputs": {
+      "bg_removal_name": "birefnet.safetensors"
+    },
+    "class_type": "LoadBackgroundRemovalModel",
+    "_meta": {
+      "title": "Load Background Removal Model"
+    }
+  },
+  "3": {
+    "inputs": {
+      "bg_removal_model": [
+        "2",
+        0
+      ],
+      "image": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "RemoveBackground",
+    "_meta": {
+      "title": "Remove Background"
+    }
+  },
+  "4": {
+    "inputs": {
+      "mask": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "MaskToImage",
+    "_meta": {
+      "title": "Convert Mask to Image"
+    }
+  },
+  "5": {
+    "inputs": {
+      "images": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "Output_Mask"
+    }
+  }
+}
