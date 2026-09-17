@@ -114,7 +114,7 @@ inert rather than making grey mush.
 The overlay and base canvases are IMAGE-sized; the `MASK_MAX_EDGE` cap above covers only the
 working layers. So a full `draw()` per `mousemove` re-rasterises two 8.8 MP canvases for a 2960²
 image — free on a GPU canvas, but on a CPU-drawn one (a weak or blocklisted local GPU, e.g. a
-RunPod user's box) it held the brush to ~21 fps, and MPI-375's image-sized paint layer, blended
+RunPod user's box) it held the brush to 21-24 fps, and MPI-375's image-sized paint layer, blended
 every frame even when empty, added ~9 ms per move. Few frames = few mouse samples, and
 `strokeDabs` joins them with straight segments: the stroke reads as **jagged**.
 

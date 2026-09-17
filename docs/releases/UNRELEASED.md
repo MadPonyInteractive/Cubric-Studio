@@ -400,6 +400,13 @@
 > History workspace and the minimised preview window. The last two are real released bugs and
 > the entry is worth keeping; the Flow clause is the part to drop when folding.
 
+- Masking a large picture no longer lags or draws jagged strokes. On a computer where the app
+  draws its canvas without the graphics card, every movement of the brush redrew the whole
+  picture, so a 3000-pixel image held the brush to around 20 frames a second, and a curved
+  stroke came out as straight lines joined at the corners. The brush now redraws only the
+  area it touched, which keeps it smooth at any image size. The Paint brush and the
+  Composite brush get the same fix.
+
 - The Crop tool's RESOLUTION mode saves the width and height you typed. If you left one of
   them at the value the panel showed, or pressed Apply straight after typing, the crop came
   out at the size of the box you drew instead. Ratio and Free crops had a smaller version of
