@@ -61,9 +61,8 @@ counting fetch):
 
 Full suite: 1320 passing, 0 failing. `npx eslint` clean on all four files.
 
-## Left for Fabio
+## Live check - PASSED
 
-One human check only: restart the app (the new route lives in the server, so a renderer
-reload is not enough) with auto-start on, and click a project while the engine is still
-coming up. Expected: it opens immediately, and the "Starting ComfyUI Engine..." overlay
-appears at generation time as it used to.
+Fabio restarted the app with "Auto-start ComfyUI on launch" on and clicked a project while
+the engine was still coming up: it opened right away (2026-09-17). The symptom the card was
+opened for is gone on the machine that reported it.
