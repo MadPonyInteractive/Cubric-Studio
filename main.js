@@ -886,6 +886,30 @@ function startServer() {
   });
 }
 
+// MPI-794: which GPU Chromium actually draws with. A crawling canvas on a 12 GB card
+// (MPI-787) means software fallback or the integrated adapter, and nothing else in
+// app.log says which. The feature status reads `disabled_software` until the GPU
+// process is up, so this waits for its first `gpu-info-update`; only the COMPLETE info
+// marks the adapter in use, and it resolves at once by then.
+function logGpuStatus(when) {
+  const s = app.getGPUFeatureStatus();
+  app.getGPUInfo('complete').then((info) => {
+    const devices = info.gpuDevice || [];
+    const active = devices.find(d => d.active);
+    logger.info('gpu', `${when}: canvas=${s['2d_canvas']} compositing=${s.gpu_compositing} raster=${s.rasterization}`
+      + ` renderer="${info.auxAttributes?.glRenderer || '?'}"`
+      + ` active="${active ? `${active.deviceString} ${active.driverVersion}` : 'none'}"`
+      + ` adapters="${devices.map(d => d.deviceString).join(' | ')}"`);
+  }).catch((err) => logger.warn('gpu', `${when}: GPU info unavailable (${err.message})`));
+}
+app.once('gpu-info-update', () => logGpuStatus('startup'));
+app.on('child-process-gone', (_event, details) => {
+  if (details.type !== 'GPU') return;
+  logger.warn('gpu', `GPU process gone: reason=${details.reason} exitCode=${details.exitCode}`);
+  // Chromium relaunches it, possibly in software; say what it came back as.
+  app.once('gpu-info-update', () => logGpuStatus('after GPU process loss'));
+});
+
 app.on('ready', () => {
   pruneStaleMaskTemp();
   logger.info('mask-temp', `session=${SESSION_ID} tempDir=${MASK_TEMP_ROOT}`);

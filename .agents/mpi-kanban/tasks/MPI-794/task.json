@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-794",
+  "title": "Log Chromium's GPU status to app.log at startup and when the GPU process dies",
+  "description": "MPI-787 follow-up: a slow brush on a 12 GB RTX box means canvas fell back to CPU or ran on an iGPU; app.log must say which, so the next report answers it.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-17T09:36:55+01:00",
+  "updated_at": "2026-09-17T09:41:14+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
