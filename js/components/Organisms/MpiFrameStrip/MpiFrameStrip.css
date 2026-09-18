@@ -57,8 +57,10 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background: var(--accent-heat);
-    opacity: 0.45;
+    /* Matches the viewer's tint and the image canvas's auto-mask green — one
+       colour for "this is masked", wherever it is shown (Fabio, 2026-09-18). */
+    background: var(--accent-ok);
+    opacity: 0.7;
     mask-mode: luminance;
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;

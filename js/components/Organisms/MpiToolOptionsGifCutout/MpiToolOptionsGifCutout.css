@@ -15,6 +15,26 @@
     align-items: center;
 }
 
+/* Who Mask and Clear act on. Sits directly above them so the scope reads as
+   part of the verb rather than as another setting (Fabio, 2026-09-18). */
+.mpi-tool-options-gif-cutout__scope {
+    margin-bottom: var(--s-2);
+}
+
+/* Both pickers (method, scope) span the panel and carry MpiButton's own `sm`
+   padding, so they read as a full control rather than a half-width fragment
+   beside full-width buttons (Fabio, 2026-09-18). MpiRadioGroup is `inline-flex`
+   with tighter padding by default; scoped here rather than changed in the
+   shared primitive, the MpiPopup `--tip` precedent. */
+.mpi-tool-options-gif-cutout__picker .mpi-radio-group {
+    display: flex;
+    width: 100%;
+}
+
+.mpi-tool-options-gif-cutout__picker .mpi-radio-group__btn {
+    padding: 8px 14px;
+}
+
 /* The method switch while a mask run is in flight (Decision 15). */
 .mpi-tool-options-gif-cutout__locked {
     pointer-events: none;

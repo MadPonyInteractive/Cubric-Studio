@@ -590,6 +590,12 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 if (viewerIndex === undefined) return;
                 viewer.el.clearFrameMasks(viewerIndex);
             }));
+            // MPI-771: the cut-out panel's Mask/Clear act on All, Frame or the
+            // strip's Ctrl-click Selected (Fabio, 2026-09-18). Only that panel
+            // has a `setSelection`, so the optional call is the whole guard.
+            _unsubs.push(frameStrip.on('selection-change', ({ viewerIndices }) => {
+                _options?.el.setSelection?.(viewerIndices);
+            }));
             // MPI-772: the Trim panel shows which frames its Apply keeps, and
             // MPI-771 paints the same range on the strip — the numbers alone
             // read as Trim doing nothing (Fabio, 2026-09-18).
@@ -990,6 +996,10 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             // on the viewer; it only EMITS the current-frame tint the viewer shows.
             if (mode === 'gifCutout') {
                 _options.on?.('mask-tint', ({ url }) => viewer.el.setMaskTint?.(url));
+                // The panel's "Selected" scope acts on the strip's Ctrl-click
+                // selection. Seed it at mount — the selection may predate the
+                // panel — then `selection-change` keeps it current.
+                _options.el.setSelection?.(frameStrip?.el.getSelection?.() || []);
             }
             if (gifControlBar) _options.el.onRangeChange?.(gifControlBar.el.getRange());
 

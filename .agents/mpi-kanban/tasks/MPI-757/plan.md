@@ -346,6 +346,63 @@ investigators got wrong: [research/2026-09-15-investigation.md](research/2026-09
   sending something other than `Backspace`. Read the live `app.log` and have him reload rather than
   guessing again.
   **Next:** the Backspace bug (above), his answer on the rail `data-tip` split, his tint screenshot.
+- **2026-09-18 ~14:5xZ (session b3d5499a): all four open items CLOSED in code, NOT COMMITTED, every
+  automated check green** (MPI-771 `validation.md` has the full record).
+  1. **Backspace ROOT-CAUSED.** Fabio confirmed the orange ring, so selection was never at fault.
+     `hotkeyManager._normalizeKey()` prepends held modifiers, so Backspace-with-Ctrl-still-down is
+     `control+backspace`; the registry had only bare `backspace`, and `_handle` returns at the
+     handlers lookup before any gate or handler. Selecting REQUIRES holding Ctrl, so the documented
+     gesture was the one that could not work — and every earlier elimination passed because each
+     pressed Backspace alone. Fix: three ids (bare / `.ctrl` / `.shift`, the `uiZoom.in.plus`/`.equal`
+     idiom) bound to one `_deleteSelection`. hotkeyManager is UNCHANGED — normalising modifiers is
+     right for every other binding. The spec press now carries `ctrlKey: true` and was proven RED on
+     the pre-fix files (restored from HEAD by copy, never `git stash` — shared tree).
+  2. **Rail descriptions: Fabio said yes, on the status bar, no floating tooltips.** The two channels
+     are the REVERSE of the earlier session's assumption: the rail's own `mouseover` tooltip reads the
+     `.mpi-history-tools__btn` WRAP, while statusBar.js resolves `closest('[data-info]')` and finds the
+     inner MpiButton first, never reaching the wrap. So the sentence goes on MpiButton `info` and the
+     name stays on the wrap. Every existing spec selector targets the wrap by name and still matches —
+     the "3 specs break" note was about the other assignment.
+  3. **ONE tint rule: THE TINT IS WHAT GOES**, all three methods (`flip = !_invert`), and the
+     per-method `#tint-note` badge is deleted. Fabio: "it is a cutout, so anything that is masked
+     should go away". The mask stays white=KEEP internally (`applyMaskAlpha` writes it into alpha),
+     so only the display flipped — no server, sidecar or brush change.
+  4. **The Background-tint mystery is CLOSED, no screenshot needed.** Never a polarity bug: under the
+     old "tinted = what stays" rule, Background + Invert ON tints the background AND keeps it, and
+     Fabio read the tint the natural way. Rule 3 makes that reading correct.
+  Also: the strip thumb's `[data-info]` never mentioned Ctrl-click (the context-menu rewrite dropped
+  it), which is why he never found the gesture — it now names Ctrl-click and Backspace.
+  **NOT automated:** the tint POLARITY has no assertion; the specs check a tint is present, not which
+  side it covers. Deliberate, and stated in `validation.md`.
+- **2026-09-18 ~15:4xZ (same session): scope consolidation + the toast, NOT COMMITTED, all checks
+  green.** Fabio, on seeing the four buttons: two verbs (**Mask**, **Clear**) and an All / Frame /
+  **Selected** `MpiRadioGroup`, so Selected exists without a fifth and sixth button. Selected is the
+  strip's Ctrl-click set: the strip gained `selection-change { indices, viewerIndices }` +
+  `el.getSelection()`, the Block forwards to the panel's `el.setSelection()` and seeds it at mount.
+  VIEWER positions, since masks are keyed by the viewer's order. `_runTrack` takes `all` /
+  `{idx,hash}` / `{list}` and a narrower scope lands frame by frame, because `setTrackMasks`
+  replaces the whole list. The re-key TOAST is deleted (it fired on every paused slider drag); the
+  picker and Tolerance `info` lines carry it instead. **Found while building:** MpiRadioGroup paints
+  `is-active` before the owner can refuse, so a busy-refused scope click left the button and
+  `_scope` disagreeing — the scope radio locks with the method radio now. The new spec caught it.
+  **Investigated, NOT built — needs Fabio's scope call:** he asked for the image workspace's mask
+  display controls here. The GIF Mask Brush ALREADY mounts `MpiMaskStrip` (invert, B/W view,
+  opacity, clear) and `MpiGifViewer` implements all of it. The gap is only the CUT-OUT TINT, a
+  read-only preview overlay at a fixed `--accent-heat` 0.45 with no controls.
+- **2026-09-18 ~16:1xZ (same session): the mask is ONE COLOUR everywhere now, NOT COMMITTED.**
+  Fabio: *"why is one pink and the other one black or white? I am saying why for the USER."* The
+  answer was in `MpiCanvas`: `MASK_AUTO_FILL` (= `--accent-ok`) is what the IMAGE canvas paints a
+  mask that came from a DETECT RUN — hand-painted is white, inverted black, B/W view white-on-black.
+  A SAM3 / BiRefNet / colour-key mask is that same concept, so both tint surfaces (viewer stage +
+  every strip thumbnail) moved to `--accent-ok` at 0.7, MpiMaskStrip's own default. CSS + one doc
+  line; no logic. Both `MpiRadioGroup` pickers also span the panel at MpiButton `sm` padding, scoped
+  through a `__picker` class rather than the shared primitive. **Still NOT full parity and it is
+  structural:** the strip's B/W view / invert / opacity drive `MpiCanvas`, and outside the Mask
+  Brush there IS no canvas — the Cut-out preview is a CSS overlay on an `<img>`. Fabio's call.
+  **Next:** Fabio's eye pass; his call on the tint controls; then push (master's CI is red on one
+  unrelated agent-chat test, `.husky/pre-push` refuses while it is); the three parked `types.js`
+  hunks for MPI-760/772/773 are now landable — `types.js` carries no claim; then close-out (ask
+  about `.claude/rules/` maps: the new `selection-change` event and `setSelection` are wiring).
 - **Next action (superseded, kept for the record):** MPI-759 root cause in the real app first (he can reload for you; read
   `%APPDATA%\Cubric Vision\logs\app.log` filtered, never drive `:3000`). Then redesign the MPI-771 UI half
   per Decision 14 (plan it with Fabio before coding: it needs a per-frame mask layer and brush). Phase 4

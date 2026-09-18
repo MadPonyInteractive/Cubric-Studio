@@ -129,6 +129,9 @@ test('gif cutout panel: routes, mounts with the right initial state, and drives 
         hint: document.querySelector('.mpi-tool-options-gif-cutout #hint')?.textContent || '',
         countField: !!document.querySelector('.mpi-tool-options-gif-cutout .mpi-input[type="number"], .mpi-tool-options-gif-cutout input[type="number"]'),
         trackBtnTexts: [...document.querySelectorAll('.mpi-tool-options-gif-cutout #track-slot button')].map(b => b.textContent.trim()),
+        scopes: [...document.querySelectorAll('.mpi-tool-options-gif-cutout #scope-slot .mpi-radio-group__btn')].map(b => b.dataset.value),
+        scopeActive: document.querySelector('.mpi-tool-options-gif-cutout #scope-slot .mpi-radio-group__btn.is-active')?.dataset.value,
+        selectedDisabled: document.querySelector('.mpi-tool-options-gif-cutout #scope-slot .mpi-radio-group__btn[data-value="selected"]')?.getAttribute('aria-disabled'),
         previewHidden: document.querySelector('.mpi-tool-options-gif-cutout #preview-wrap')?.hidden,
         adjustHidden: document.querySelector('.mpi-tool-options-gif-cutout #adjust-section')?.hidden,
         chipCount: document.querySelectorAll('.mpi-tool-options-gif-cutout #chips-slot .mpi-checkbox__input').length,
@@ -143,7 +146,12 @@ test('gif cutout panel: routes, mounts with the right initial state, and drives 
     expect(dom.methodActive, 'Remove background is the default method').toBe('birefnet');
     expect(dom.promptHidden, 'no name field for Remove background').toBe(true);
     expect(dom.hint).toContain('foreground');
-    expect(dom.trackBtnTexts).toEqual(['Mask All', 'Mask This Frame']);
+    // MPI-771, Fabio 2026-09-18: four buttons became two verbs + an All/Frame/
+    // Selected scope, so Selected could be added without a fifth and sixth.
+    expect(dom.trackBtnTexts).toEqual(['Mask', 'Clear']);
+    expect(dom.scopes).toEqual(['all', 'frame', 'selected']);
+    expect(dom.scopeActive, 'All is the default scope').toBe('all');
+    expect(dom.selectedDisabled, 'Selected is refused until the strip has a selection').toBe('true');
 
     // By name: the name field and the SAM3 labels come back.
     await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #method-slot .mpi-radio-group__btn[data-value="sam3"]').click());
@@ -160,7 +168,8 @@ test('gif cutout panel: routes, mounts with the right initial state, and drives 
     expect(dom.promptHidden).toBe(false);
     expect(dom.colourHidden).toBe(true);
     expect(dom.hint, 'the hint says the name is what stays').toContain('keep');
-    expect(dom.trackBtnTexts).toEqual(['Track All', 'Track Single Frame']);
+    // One verb per method now — By name no longer renames the buttons.
+    expect(dom.trackBtnTexts).toEqual(['Mask', 'Clear']);
     expect(dom.previewHidden, 'preview/chips stay hidden before a Track run').toBe(true);
     expect(dom.adjustHidden, 'Mask Adjust stays hidden before a Track run').toBe(true);
     // The 4 chips exist from mount (OBJECT_SLOTS === max_objects, a fixed graph
@@ -194,6 +203,31 @@ test('gif cutout panel: routes, mounts with the right initial state, and drives 
       [...document.querySelectorAll('.mpi-tool-options-gif-cutout #chips-slot .mpi-checkbox__input')].map(i => i.checked));
     expect(chipState, 'the last kept chip must be reverted, never let to zero').toEqual([false, false, false, true]);
 
+    // ── The SELECTED scope (Fabio, 2026-09-18) ────────────────────────────
+    // Ctrl-click two thumbs: the strip emits 'selection-change', the Block
+    // forwards it, and the panel un-disables Selected. Toggling them back off
+    // must hand the live scope back to All rather than leave a scope pointing
+    // at nothing. Runs BEFORE the Track below, because a run in flight locks
+    // the scope radio and turns the Mask button into Stop.
+    // Dispatched rather than clicked: this test never clears the boot modals
+    // and their backdrop intercepts a real click. These go through the strip's
+    // OWN pointerdown/pointerup handlers, so the selection path is the real one
+    // (the key NORMALISATION blind spot that hid the Backspace bug lives in
+    // hotkeyManager, which this does not touch — gif-workspace.spec covers it).
+    await ctrlClickThumb(window, 0);
+    await ctrlClickThumb(window, 2);
+    await expect.poll(() => window.evaluate(() =>
+      document.querySelector('.mpi-tool-options-gif-cutout #scope-slot .mpi-radio-group__btn[data-value="selected"]')
+        ?.getAttribute('aria-disabled'))).toBe('false');
+    await pickScope(window, 'selected');
+    await ctrlClickThumb(window, 0);
+    await ctrlClickThumb(window, 2);
+    await expect.poll(() => window.evaluate(() =>
+      document.querySelector('.mpi-tool-options-gif-cutout #scope-slot .mpi-radio-group__btn.is-active')?.dataset.value))
+      .toBe('all');
+    // What a narrower scope DISPATCHES (a source video of just those frames)
+    // is asserted by test 2's Frame-scope run — the same `picked` path.
+
     // ── Track dispatches /gif-cutout/source with the current frame list ────
     // This is the real, non-engine half of Track: folderPath + frames from
     // viewer.el.getFrames() (js/components/Organisms/MpiToolOptionsGifCutout).
@@ -202,7 +236,7 @@ test('gif cutout panel: routes, mounts with the right initial state, and drives 
       input.value = 'mascot';
       input.dispatchEvent(new Event('input', { bubbles: true }));
     });
-    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #track-all-slot button').click());
+    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #mask-btn-slot button').click());
     await expect.poll(() => window.evaluate(() => window.__mpi771.sourceCalls.length)).toBe(1);
     const call = await window.evaluate(() => window.__mpi771.sourceCalls[0]);
     expect(call.folderPath).toBe('C:/tmp/gif-cutout-test');
@@ -282,14 +316,33 @@ async function openRailTool(window, info) {
   }, info);
 }
 
+/** Ctrl-click a strip thumbnail through the strip's own pointer handlers. */
+async function ctrlClickThumb(window, index) {
+  await window.evaluate((i) => {
+    const thumb = document.querySelector(`.mpi-frame-strip__thumb[data-index="${i}"]`);
+    const opts = { bubbles: true, ctrlKey: true, pointerId: 1, clientX: 0, clientY: 0 };
+    thumb.dispatchEvent(new PointerEvent('pointerdown', opts));
+    window.dispatchEvent(new PointerEvent('pointerup', opts));
+  }, index);
+}
+
+/** Pick who Mask and Clear act on: 'all', 'frame' or 'selected'. */
+async function pickScope(window, value) {
+  await window.evaluate((v) => {
+    document.querySelector(`.mpi-tool-options-gif-cutout #scope-slot .mpi-radio-group__btn[data-value="${v}"]`).click();
+  }, value);
+  await expect.poll(() => window.evaluate(() =>
+    document.querySelector('.mpi-tool-options-gif-cutout #scope-slot .mpi-radio-group__btn.is-active')?.dataset.value)).toBe(value);
+}
+
 /** Pick a Cut-out mask method (Decision 15) and wait for its buttons. */
 async function pickMethod(window, value) {
   await window.evaluate((v) => {
     document.querySelector(`.mpi-tool-options-gif-cutout #method-slot .mpi-radio-group__btn[data-value="${v}"]`).click();
   }, value);
-  const label = value === 'sam3' ? 'Track All' : 'Mask All';
+  // One verb for every method now — the scope says who it acts on.
   await expect.poll(() => window.evaluate(() =>
-    document.querySelector('.mpi-tool-options-gif-cutout #track-all-slot button')?.textContent.trim())).toBe(label);
+    document.querySelector('.mpi-tool-options-gif-cutout #mask-btn-slot button')?.textContent.trim())).toBe('Mask');
 }
 
 /** The Mask Brush canvas holds the viewer's CURRENT frame and is armed. */
@@ -502,7 +555,7 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
       const orig = v.setGenerating;
       v.setGenerating = (on) => { window.__mpi771.spin.push(on); orig(on); };
     });
-    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #track-all-slot button').click());
+    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #mask-btn-slot button').click());
 
     // Real /gif-cutout/source (real ffmpeg) runs before the (faked) engine
     // call, so give it real time.
@@ -549,10 +602,11 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     });
     await expect.poll(() => window.evaluate(() => window.__mpi771.runParams.length), { timeout: 15000 }).toBe(3);
 
-    // ── Track Single Frame on frame 2: it finds nothing there ────────────
+    // ── Mask with the FRAME scope on frame 2: it finds nothing there ──────
     await gotoFrame(window, 2);
     await window.evaluate(() => { window.__mpi771.maskPrefix = 'mask_empty_'; });
-    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #track-frame-slot button').click());
+    await pickScope(window, 'frame');
+    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #mask-btn-slot button').click());
     await expect.poll(() => window.evaluate(() => window.__mpi771.runParams.length), { timeout: 30000 }).toBe(4);
     runParams = await window.evaluate(() => window.__mpi771.runParams[3]);
     expect(runParams.Input_Video, 'a one-frame source video, not the full one')
@@ -661,7 +715,7 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
       document.querySelector('.mpi-tool-options-gif-cutout #key-colour-slot .mpi-color-picker')?.textContent || ''))
       .toContain('#c82828');
     const spinsBefore = await window.evaluate(() => window.__mpi771.spin.length);
-    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #track-all-slot button').click());
+    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #mask-btn-slot button').click());
     await expect.poll(() => window.evaluate((n) => window.__mpi771.spin.slice(n), spinsBefore), { timeout: 15000 })
       .toEqual([true, false]);
     expect(await window.evaluate(() => window.__mpi771.runParams.length), 'By colour never calls the engine').toBe(runsBefore);
@@ -710,7 +764,7 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     });
     await pickMethod(window, 'birefnet');
     await window.evaluate(() => { window.__mpi771.maskPrefix = 'mask_'; });
-    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #track-all-slot button').click());
+    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #mask-btn-slot button').click());
     await expect.poll(() => window.evaluate(() => window.__mpi771.runParams.length), { timeout: 30000 }).toBe(runsAfterColour + 1);
     const birefParams = await window.evaluate(() => window.__mpi771.runParams[window.__mpi771.runParams.length - 1]);
     expect(Object.keys(birefParams), 'BiRefNet takes the video only').toEqual(['Input_Video']);

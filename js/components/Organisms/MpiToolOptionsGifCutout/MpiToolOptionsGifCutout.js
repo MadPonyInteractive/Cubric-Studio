@@ -11,10 +11,15 @@
  * (`MpiGifViewer`, per frame position), which is how this panel and the brush
  * share them.
  *
- *   1. Mask All / Mask This Frame (Track All / Track Single Frame for SAM3):
- *      every frame, or only the current one. Either replaces TRACKS only;
- *      brush fixes survive. While one runs, the viewer spins and the status
- *      bar shows an indeterminate clock (the image Detect row's idiom).
+ *   1. A SCOPE (All / Frame / Selected) and two verbs, Mask and Clear. Four
+ *      buttons became two plus a scope so "Selected" — the strip's Ctrl-click
+ *      set, pushed in by the Block through `setSelection()` — could be added
+ *      without a fifth and sixth button (Fabio, 2026-09-18). "Selected" is
+ *      aria-disabled while nothing is selected. Masking replaces TRACKS only;
+ *      brush fixes survive, and a scope narrower than All leaves the frames it
+ *      did not touch alone. While a run is in flight the Mask button becomes
+ *      Stop, the viewer spins and the status bar shows an indeterminate clock
+ *      (the image Detect row's idiom).
  *   2. SAM3 only: the numbered preview (`SAM3_TrackPreview`) says which index is which
  *      object; the 4 chips keep or drop them. A toggle re-dispatches the LAST
  *      scope, which is cheap: `SAM3_VideoTrack` is cached, only the mask node
@@ -78,22 +83,16 @@ const METHODS = {
         label: 'Background', icon: 'image', op: 'gifCutoutBirefnet', progress: 'Removing background',
         info: 'Remove background: keeps the foreground, no prompt needed (BiRefNet)',
         hint: 'Keeps the <b>foreground</b> and removes the background.',
-        tintNote: 'The tinted area is what stays.',
     },
     sam3: {
         label: 'By name', icon: 'text', op: 'gifCutoutSam3', progress: 'Tracking',
         info: 'By name: keeps the objects you name (SAM3)',
         hint: 'Name what to <b>keep</b>: <b>mascot</b>, <b>logo</b>. Tick <b>Invert</b> to remove it instead.',
-        tintNote: 'The tinted area is what stays.',
     },
     colour: {
         label: 'By colour', icon: 'mask_fill_holes_stroke', op: null, progress: 'Keying colour',
         info: 'By colour: removes one colour. No GPU',
         hint: 'Removes one <b>colour</b>. <b>Pick</b> it from the screen.',
-        // This method is phrased as a removal, so it tints the removal — the other
-        // two tint what they keep. Stated on screen either way, because reading the
-        // tint backwards is what made the three feel like they flipped (Fabio, 2026-09-18).
-        tintNote: 'The tinted area is what goes.',
     },
 };
 const HINT_TAIL = ' A mask is a starting point: step through the frames and fix any of them with the <b>Mask Brush</b>.';
@@ -109,7 +108,7 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
 
     template: () => `
         <div class="mpi-tool-options-gif-cutout">
-            <div id="method-slot"></div>
+            <div class="mpi-tool-options-gif-cutout__picker" id="method-slot"></div>
             <p class="mpi-tool-options-gif-cutout__info" id="hint"></p>
             <div class="mpi-tool-options-gif-cutout__prompt" id="prompt-slot"></div>
             <div class="mpi-tool-options-gif-cutout__section" id="colour-section" hidden>
@@ -126,15 +125,11 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                 </div>
                 <div class="mpi-tool-options-gif-cutout__row" id="edges-slot"></div>
             </div>
+            <div class="mpi-tool-options-gif-cutout__picker mpi-tool-options-gif-cutout__scope" id="scope-slot"></div>
             <div class="mpi-tool-options-gif-cutout__row" id="track-slot">
-                <div id="track-all-slot"></div>
-                <div id="track-frame-slot"></div>
+                <div id="mask-btn-slot"></div>
+                <div id="clear-btn-slot"></div>
             </div>
-            <div class="mpi-tool-options-gif-cutout__row" id="clear-slot">
-                <div id="clear-frame-slot"></div>
-                <div id="clear-all-slot"></div>
-            </div>
-            <p class="mpi-tool-options-gif-cutout__info" id="tint-note"></p>
 
             <div class="mpi-tool-options-gif-cutout__preview" id="preview-wrap" hidden>
                 <div class="mpi-tool-options-gif-cutout__section-label">Tracked objects</div>
@@ -221,7 +216,7 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         // ── By colour ───────────────────────────────────────────────────────
 
         // Starts at the picker's own default; `_defaultKeyColour()` sets the real one.
-        const keyPicker = MpiColorPicker.mount(qs('#key-colour-slot', el), { info: 'The colour to remove. Applies on Mask All / Mask This Frame' });
+        const keyPicker = MpiColorPicker.mount(qs('#key-colour-slot', el), { info: 'The colour to remove. Changes are only visible once you press Mask' });
         keyPicker.on('change', ({ hex }) => {
             if (_quietPicker) return;
             _keyColour = hex;
@@ -254,7 +249,7 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
 
         const toleranceSlider = MpiProgressBar.mount(qs('#tolerance-slot', el), {
             min: 0, max: 100, step: 1, value: _tolerance,
-            interactive: true, handle: true, wheel: true, info: 'How far a colour may be from the key and still be removed. Applies on Mask All / Mask This Frame',
+            interactive: true, handle: true, wheel: true, info: 'How far a colour may be from the key and still be removed. Changes are only visible once you press Mask',
         });
         const _syncToleranceLabel = () => { qs('#tolerance-val', el).textContent = String(_tolerance); };
         toleranceSlider.on('input', ({ value }) => {
@@ -277,18 +272,11 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         function _scheduleRekey() {
             if (_method !== 'colour') return;
             clearTimeout(_rekeyTimer);
-            // Nothing keyed yet: there is no mask to re-key, so the colour and the
-            // slider do nothing at all — and silence reads as a broken slider
-            // (Fabio, 2026-09-18, after picking a colour and dragging Tolerance to 81
-            // on an opaque GIF with no run behind it). Say what it is waiting for.
-            if (!_lastScope) {
-                _rekeyTimer = setTimeout(() => {
-                    if (!_busy && !_lastScope && !_destroyed) {
-                        StatusBar.notify('Press Mask All or Mask This Frame to apply this colour', 'info');
-                    }
-                }, REKEY_MS);
-                return;
-            }
+            // Nothing keyed yet means there is no mask to re-key, so this is a
+            // no-op. It used to raise a toast saying so, which turned a slider
+            // drag into a pile of toasts (Fabio, 2026-09-18) — the picker's and
+            // the slider's own `info` lines carry that on the status bar instead.
+            if (!_lastScope) return;
             _rekeyTimer = setTimeout(() => { if (!_busy) _runTrack(_lastScope); }, REKEY_MS);
         }
 
@@ -321,33 +309,102 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         });
         _children.push(promptInput);
 
-        // ── Track All / Track Single Frame — the running one turns into Stop ──
+        // ── Scope + the two verbs — Mask and Clear ────────────────────────────
+        //
+        // Four buttons (Mask All / Mask This Frame / Clear All / Clear This
+        // Frame) became TWO verbs and a scope that names who they act on, so
+        // "Selected" could be added without a fifth and sixth button (Fabio,
+        // 2026-09-18). The scope is UI-only: it is not saved with the settings,
+        // because it describes this click, not this GIF.
 
-        const trackBtns = { all: null, frame: null };
-        const TRACK_BTN = {
-            all:   { slot: '#track-all-slot',   sam3: 'Track All',          other: 'Mask All',        icon: 'search', info: 'Mask every frame' },
-            frame: { slot: '#track-frame-slot', sam3: 'Track Single Frame', other: 'Mask This Frame', icon: 'search', info: 'Mask this frame only; the other frames keep their masks' },
+        const SCOPES = {
+            all:      { label: 'All',      info: 'Act on every frame' },
+            frame:    { label: 'Frame',    info: 'Act on the frame on screen only' },
+            selected: { label: 'Selected', info: 'Act on the Ctrl-clicked frames in the strip below' },
         };
-        let _runningKind = null;
-        function _mountTrackBtns() {
-            for (const kind of ['all', 'frame']) {
-                const def = TRACK_BTN[kind];
-                trackBtns[kind]?.destroy?.();
-                const stop = _busy && _runningKind === kind;
-                trackBtns[kind] = MpiButton.mount(qs(def.slot, el), stop
-                    ? { label: 'Stop', icon: 'stop', size: 'sm', variant: 'danger', info: 'Stop masking' }
-                    : { label: _method === 'sam3' ? def.sam3 : def.other, icon: def.icon, size: 'sm', variant: kind === 'all' ? 'primary' : 'secondary', info: def.info });
-                if (_busy && !stop) trackBtns[kind].el.setDisabled?.(true);
-                trackBtns[kind].on('click', () => {
-                    if (stop) { _trackExec?.cancel?.(); if (_keyRun) _keyRun.cancelled = true; return; }
-                    const frames = viewer.el.getFrames();
-                    if (kind === 'all') { _runTrack('all'); return; }
-                    const idx = viewer.el.getFrameIndex();
-                    if (frames[idx]) _runTrack({ idx, hash: frames[idx].hash });
-                });
+        let _scope = 'all';
+        /** VIEWER positions, pushed by the Block from the strip's selection. */
+        let _selection = [];
+
+        const scopeRadio = MpiRadioGroup.mount(qs('#scope-slot', el), {
+            name: 'gif-cutout-scope', size: 'sm', value: _scope,
+            options: Object.entries(SCOPES).map(([value, s]) => ({ value, label: s.label, info: s.info })),
+        });
+        scopeRadio.on('select', ({ value }) => {
+            if (!SCOPES[value] || _busy) return;
+            _scope = value;
+        });
+        _children.push(scopeRadio);
+
+        /** Resolve the scope to what `_runTrack` takes, or null when it is empty. */
+        function _scopeTarget() {
+            const frames = viewer.el.getFrames();
+            if (_scope === 'all') return 'all';
+            if (_scope === 'frame') {
+                const idx = viewer.el.getFrameIndex();
+                return frames[idx] ? { idx, hash: frames[idx].hash } : null;
             }
+            const list = _selection
+                .filter(i => frames[i])
+                .map(i => ({ idx: i, hash: frames[i].hash }));
+            return list.length ? { list } : null;
+        }
+
+        const actionBtns = { mask: null, clear: null };
+        function _mountTrackBtns() {
+            actionBtns.mask?.destroy?.();
+            actionBtns.clear?.destroy?.();
+            actionBtns.mask = MpiButton.mount(qs('#mask-btn-slot', el), _busy
+                ? { label: 'Stop', icon: 'stop', size: 'sm', variant: 'danger', info: 'Stop masking' }
+                : { label: 'Mask', icon: 'search', size: 'sm', variant: 'primary', info: 'Make the mask for the chosen frames' });
+            actionBtns.mask.on('click', () => {
+                if (_busy) { _trackExec?.cancel?.(); if (_keyRun) _keyRun.cancelled = true; return; }
+                const target = _scopeTarget();
+                if (!target) { StatusBar.notify('Nothing to mask in that scope', 'warning'); return; }
+                _runTrack(target);
+            });
+
+            actionBtns.clear = MpiButton.mount(qs('#clear-btn-slot', el), {
+                label: 'Clear', icon: 'eraser', size: 'sm', variant: 'secondary',
+                info: 'Throw the chosen frames’ masks away, brush fixes included',
+            });
+            if (_busy) actionBtns.clear.el.setDisabled?.(true);
+            actionBtns.clear.on('click', () => {
+                if (_busy) return;
+                if (_scope === 'all') viewer.el.clearFrameMasks('all');
+                else {
+                    const target = _scopeTarget();
+                    if (!target) { StatusBar.notify('Nothing to clear in that scope', 'warning'); return; }
+                    const idxs = target.list ? target.list.map(t => t.idx) : [target.idx];
+                    idxs.forEach(i => viewer.el.clearFrameMasks(i));
+                }
+                _lastScope = null;
+                _updateCurrentTint();
+                _syncHasMasks();
+            });
         }
         _mountTrackBtns();
+
+        /**
+         * The Block pushes the strip's Ctrl-click selection here (VIEWER
+         * positions). With nothing selected, "Selected" is aria-disabled —
+         * MpiRadioGroup's own click handler refuses those, and it documents
+         * setting the state imperatively as supported.
+         */
+        el.setSelection = (viewerIndices) => {
+            _selection = Array.isArray(viewerIndices) ? viewerIndices.slice() : [];
+            const empty = _selection.length === 0;
+            const btn = qs('.mpi-radio-group__btn[data-value="selected"]', scopeRadio.el);
+            if (btn) {
+                btn.setAttribute('aria-disabled', String(empty));
+                btn.dataset.info = empty
+                    ? 'Ctrl-click frames in the strip below to select them'
+                    : `Act on the ${_selection.length} selected frame${_selection.length > 1 ? 's' : ''}`;
+            }
+            // A selection that empties cannot stay the active scope.
+            if (empty && _scope === 'selected') scopeRadio.el.setValue?.('all');
+        };
+        el.setSelection([]);
 
         // ── Preview video — MpiVideoSurface, the numbered debug loop ───────────
 
@@ -424,41 +481,11 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         cutoutBtn.on('click', () => _runCutout());
         _children.push(cutoutBtn);
 
-        // ── Clear ────────────────────────────────────────────────────────────
-        // Clearing with the Mask Brush only paints a full-frame SUBTRACT, which
-        // survives every re-mask by design — so without a real clear, a frame the
-        // user wiped could never be masked again (Fabio, 2026-09-18).
-
-        const clearBtns = {
-            frame: MpiButton.mount(qs('#clear-frame-slot', el), {
-                label: 'Clear This Frame', icon: 'eraser', size: 'sm', variant: 'secondary',
-                info: 'Throw this frame\'s mask away, brush fixes included',
-            }),
-            all: MpiButton.mount(qs('#clear-all-slot', el), {
-                label: 'Clear All', icon: 'eraser', size: 'sm', variant: 'secondary',
-                info: 'Throw every frame\'s mask away, brush fixes included',
-            }),
-        };
-        clearBtns.frame.on('click', () => {
-            if (_busy) return;
-            viewer.el.clearFrameMasks(viewer.el.getFrameIndex());
-            _lastScope = null;
-            _updateCurrentTint();
-        });
-        clearBtns.all.on('click', () => {
-            if (_busy) return;
-            viewer.el.clearFrameMasks('all');
-            _lastScope = null;
-            _updateCurrentTint();
-        });
-        _children.push(clearBtns.frame, clearBtns.all);
-
         /** Show the controls of the current method only. */
         function _syncMethod() {
             qs('#hint', el).innerHTML = METHODS[_method].hint + HINT_TAIL;
             qs('#prompt-slot', el).hidden = _method !== 'sam3';
             qs('#colour-section', el).hidden = _method !== 'colour';
-            qs('#tint-note', el).textContent = METHODS[_method].tintNote;
             if (_method !== 'sam3') previewWrap.hidden = true;
             if (_method === 'colour') {
                 _defaultKeyColour().catch(err => clientLogger.warn('MpiToolOptionsGifCutout', 'corner colour read failed', err));
@@ -471,10 +498,10 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         function _syncHasMasks() {
             const has = !!viewer.el.hasFrameMasks?.();
             qs('#adjust-section', el).hidden = !has;
-            qs('#clear-slot', el).hidden = !has;
+            // Mask stays live with no masks yet — it is how the first one is made.
+            // Clear is the one that needs something to throw away.
+            actionBtns.clear?.el.setDisabled?.(!has || _busy);
             cutoutBtn.el.setDisabled?.(!has || _busy);
-            clearBtns.frame.el.setDisabled?.(!has || _busy);
-            clearBtns.all.el.setDisabled?.(!has || _busy);
         }
         _syncHasMasks();
 
@@ -510,7 +537,6 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         function _setBusy(on, kind = null, outcome = 'cancel') {
             if (on === _busy) return;
             _busy = on;
-            _runningKind = on ? kind : null;
             if (on) {
                 StatusBar.progress.prepare(METHODS[_method].progress);
                 StatusBar.progress.setIndeterminate(true);
@@ -522,6 +548,11 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             }
             viewer.el.setGenerating?.(on);
             methodRadio.el.classList.toggle('mpi-tool-options-gif-cutout__locked', on);
+            // The scope locks with it. MpiRadioGroup paints `is-active` on click
+            // before this component gets a say, so a scope click that `_busy`
+            // refuses would leave the button showing one scope while `_scope`
+            // held another — the lock removes the divergence at the source.
+            scopeRadio.el.classList.toggle('mpi-tool-options-gif-cutout__locked', on);
             _mountTrackBtns();
             chipEls.forEach(c => c.el.setDisabled?.(on));
             _syncHasMasks();
@@ -560,26 +591,38 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             if (!frames.length) { StatusBar.notify('No frames to track', 'warning'); return; }
             if (!state.currentProject?.folderPath) return;
 
-            const single = scope !== 'all';
-            // A single-frame scope follows its frame through a staged reorder.
-            if (single && frames[scope.idx]?.hash !== scope.hash) {
-                const idx = frames.findIndex(f => f.hash === scope.hash);
-                if (idx === -1) { _lastScope = null; return; }
-                scope = { idx, hash: scope.hash };
+            // Three shapes: 'all', one `{idx,hash}`, or `{list:[{idx,hash}]}` for
+            // the Selected scope. Everything below works off `picked`, the
+            // resolved `{idx,hash}` list, with `picked === null` meaning "all".
+            const isAll = scope === 'all';
+            let picked = isAll ? null : (scope.list ? scope.list.slice() : [scope]);
+            // A picked frame follows its content through a staged reorder; one
+            // that has since been deleted simply drops out.
+            if (picked) {
+                picked = picked
+                    .map(p => (frames[p.idx]?.hash === p.hash
+                        ? p
+                        : { idx: frames.findIndex(f => f.hash === p.hash), hash: p.hash }))
+                    .filter(p => p.idx !== -1);
+                if (!picked.length) { _lastScope = null; return; }
+                scope = scope.list ? { list: picked } : picked[0];
             }
             const listSig = frameSignature(frames);
             const method = _method;
-            const targets = single ? [frames[scope.idx]] : frames;
+            const targets = isAll ? frames : picked.map(p => frames[p.idx]);
             _lastScope = scope;
-            _setBusy(true, single ? 'frame' : 'all');
+            _setBusy(true, isAll ? 'all' : 'frame');
 
             const landMasks = (urls) => {
                 if (frameSignature(viewer.el.getFrames()) !== listSig) {
                     StatusBar.notify('The frames changed while masking — mask again', 'warning');
                     return false;
                 }
-                if (single) viewer.el.setTrackMask(scope.idx, urls[0] || null);
-                else viewer.el.setTrackMasks(urls);
+                // `setTrackMasks` replaces the WHOLE list, so it is only right for
+                // 'all'; every picked scope lands frame by frame so the frames it
+                // did not touch keep the masks they already had.
+                if (isAll) viewer.el.setTrackMasks(urls);
+                else picked.forEach((p, i) => viewer.el.setTrackMask(p.idx, urls[i] || null));
                 return true;
             };
 
@@ -698,13 +741,17 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                 out = new Uint8Array(width * height);
                 for (let i = 0; i < out.length; i++) out[i] = out32[i] & 0xff;
             }
-            // The mask is always "what stays" (`applyMaskAlpha` writes it into the
-            // alpha channel), so `Invert` flips it here exactly as the server does.
-            // By colour then tints the OTHER side: that method is phrased as a
-            // removal, and on an already-cut clip the keep side is the whole subject
-            // at every tolerance, so tinting it showed nothing changing (Fabio,
-            // 2026-09-18). `#tint-note` says which side is tinted either way.
-            const flip = (_invert !== (_method === 'colour'));
+            // ONE rule for every method: THE TINT IS WHAT GOES AWAY. It is a
+            // cut-out, so what is masked is what disappears, and a user can read
+            // the tint and know whether they need Invert without being told
+            // (Fabio, 2026-09-18 — this replaced a per-method `#tint-note` that
+            // said "stays" for two methods and "goes" for the third).
+            //
+            // The mask itself stays "what stays" internally — `applyMaskAlpha`
+            // writes it straight into the alpha channel, so white=keep is what
+            // alpha IS. `Invert` flips that exactly as the server does, and the
+            // tint is then the complement of whatever survives.
+            const flip = !_invert;
             if (flip) {
                 const flipped = new Uint8Array(out.length);
                 for (let i = 0; i < out.length; i++) flipped[i] = 255 - out[i];
@@ -772,9 +819,9 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             if (_keyRun) _keyRun.cancelled = true;
             if (_busy) { StatusBar.progress.cancel(); viewer.el.setGenerating?.(false); }
             emit('mask-tint', { url: null });
-            // The track buttons are re-mounted outside `_children` (_mountTrackBtns).
-            trackBtns.all?.destroy?.();
-            trackBtns.frame?.destroy?.();
+            // Mask/Clear are re-mounted outside `_children` (_mountTrackBtns).
+            actionBtns.mask?.destroy?.();
+            actionBtns.clear?.destroy?.();
             _children.forEach(c => c.destroy?.());
         };
     },

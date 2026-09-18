@@ -56,6 +56,11 @@
  *
  * Emits:
  *   'frame-select' { index } — thumbnail clicked (no modifier)
+ *   'selection-change' { indices, viewerIndices } — the Ctrl-click selection
+ *                              changed (or was cleared by a load, delete or
+ *                              Discard). `viewerIndices` is the same set in the
+ *                              VIEWER's frame order, which is what the cut-out
+ *                              panel's "Selected" scope acts on.
  *   'clear-frame-mask' { index, viewerIndex } — context menu; `viewerIndex` is
  *                              the position the VIEWER keys its masks by (see
  *                              setMaskOverlay), which is what the Block passes
@@ -150,6 +155,21 @@ export const MpiFrameStrip = ComponentFactory.create({
         /** Where the VIEWER keys frame `i`'s mask — see setMaskOverlay. */
         const _viewerPosOf = (i) => _viewerPos.get(_origin[i]);
 
+        /**
+         * Publish the selection so the cut-out panel's "Selected" scope can act
+         * on it (Fabio, 2026-09-18). Emitted in VIEWER positions as well as
+         * staged ones: masks are keyed by the viewer's frame order, which
+         * diverges from the strip's staged order after a reorder — the same
+         * split the context menu's `clear-frame-mask` already carries.
+         */
+        function _emitSelection() {
+            const indices = [..._selection].sort((a, b) => a - b);
+            emit('selection-change', {
+                indices,
+                viewerIndices: indices.map(_viewerPosOf).filter(v => v !== undefined),
+            });
+        }
+
         /** A shorter frame list must not leave the trim paint hanging past the end. */
         function _clampRange() {
             if (!_range) return;
@@ -209,7 +229,8 @@ export const MpiFrameStrip = ComponentFactory.create({
                 // the delete at all (2026-09-18). `[data-info]` is the status bar's
                 // hover channel (js/shell/statusBar.js).
                 d.dataset.info = `Frame ${i + 1}/${_staged.length} — click to jump, drag to scrub, `
-                    + 'hold then drag to reorder, right-click for delete / clear mask';
+                    + 'hold then drag to reorder, Ctrl-click to select (Backspace deletes), '
+                    + 'right-click for delete / clear mask';
                 if (i === _currentIndex) d.classList.add('is-current');
                 if (_selection.has(i)) d.classList.add('is-selected');
                 // MPI-771: the Trim tool's range, painted where the frames are.
@@ -254,6 +275,7 @@ export const MpiFrameStrip = ComponentFactory.create({
             _staged = _committed.slice();
             _resetOrigin();
             _selection.clear();
+            _emitSelection();
             _clampRange();
             _currentIndex = Math.max(0, Math.min(_staged.length - 1, currentIndex || 0));
             _windowEnd = -1; // force a full re-render
@@ -295,6 +317,14 @@ export const MpiFrameStrip = ComponentFactory.create({
 
         el.getStagedFrames = () => _staged.slice();
 
+        /** VIEWER positions of the selected thumbs — the cut-out panel's
+         *  "Selected" scope reads this when it mounts, then tracks
+         *  'selection-change'. See `_emitSelection`. */
+        el.getSelection = () => [..._selection]
+            .sort((a, b) => a - b)
+            .map(_viewerPosOf)
+            .filter(v => v !== undefined);
+
         el.setMaskOverlay = (masks, edited = []) => {
             _maskOverlay = Array.isArray(masks) ? masks : null;
             _edited = new Set(edited);
@@ -306,6 +336,7 @@ export const MpiFrameStrip = ComponentFactory.create({
             _staged = _committed.slice();
             _resetOrigin();
             _selection.clear();
+            _emitSelection();
             _clampRange();
             // The Block reloads the saved entry into the viewer via
             // `loadFrames()` (a fresh `.gif` revision, new sequenced file per
@@ -430,6 +461,7 @@ export const MpiFrameStrip = ComponentFactory.create({
                     _selection.clear();
                     emit('frame-select', { index: d.index });
                 }
+                _emitSelection();
             }
             // scrub end needs no extra event — the Block already applied every
             // intermediate 'scrub' as it happened.
@@ -461,6 +493,7 @@ export const MpiFrameStrip = ComponentFactory.create({
             _staged = _staged.filter((_, i) => !drop.has(i));
             _origin = _origin.filter((_, i) => !drop.has(i));
             _selection.clear();
+            _emitSelection();
             _clampRange();
             _currentIndex = Math.max(0, Math.min(_staged.length - 1, _currentIndex));
             _windowEnd = -1;
@@ -470,10 +503,17 @@ export const MpiFrameStrip = ComponentFactory.create({
             _emitStage();
         }
 
-        _hotkeyUnsubs.push(Hotkeys.bind('gif.frame.delete', () => {
+        // Bound to all three ids: the selection is made with Ctrl (or Shift)
+        // held, and the modifier is usually STILL held at the Backspace — which
+        // normalises to `control+backspace`, a different key entirely. See the
+        // three `gif.frame.delete*` entries in hotkeyRegistry.js.
+        const _deleteSelection = () => {
             if (!_canDrive() || _selection.size === 0) return;
             _deleteIndices(_selection);
-        }));
+        };
+        for (const id of ['gif.frame.delete', 'gif.frame.delete.ctrl', 'gif.frame.delete.shift']) {
+            _hotkeyUnsubs.push(Hotkeys.bind(id, _deleteSelection));
+        }
 
         // ── Context menu (Fabio's top ask, 2026-09-18) ────────────────────
         //
@@ -530,6 +570,7 @@ export const MpiFrameStrip = ComponentFactory.create({
             _staged = _committed.slice();
             _origin = _staged.map((_, i) => i);
             _selection.clear();
+            _emitSelection();
             _windowEnd = -1;
             _ensureWindow(_currentIndex);
             _renderWindow();

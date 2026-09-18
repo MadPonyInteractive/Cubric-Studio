@@ -257,9 +257,10 @@
  *                object chips to keep or drop (`max_objects` is a graph
  *                literal), each toggle a cheap re-dispatch
  *   'colour'   — By colour: `utils/colourKeyMask.js` keys ONE colour out in
- *                the renderer, no GPU. It tints what it REMOVES while the
- *                other two tint what they KEEP — deliberate, and `#tint-note`
- *                names the side (Fabio, 2026-09-18).
+ *                the renderer, no GPU.
+ * ALL THREE TINT WHAT GOES AWAY. It is a cut-out, so the masked area is the
+ * area that disappears, and one rule everywhere means the tint can be read
+ * without a caption (Fabio, 2026-09-18).
  * Then Mask Adjust (Grow/Shrink, live-previewed on the CURRENT frame through
  * the same managers/distanceField.js functions the server runs) + Fill Holes
  * + Invert, set once for every frame -> Cut out.
@@ -269,13 +270,15 @@
  * appends the result (MpiGroupHistoryBlock._handleGifCutoutApply).
  *
  * The masks live on the VIEWER, per frame POSITION, shared with the Mask
- * Brush — so a brush fix survives a re-mask, and only Clear This Frame /
- * Clear All throw one away.
+ * Brush — so a brush fix survives a re-mask, and only Clear throws one away.
+ *
+ * Mask and Clear act on the SCOPE beside them: All, Frame, or Selected (the
+ * frame strip's Ctrl-click set, pushed in by the Block).
  *
  * Requires viewer.el: getFrames(), getFrameIndex(), setTrackMasks(),
  *   setTrackMask(), hasFrameMasks(), getFrameMaskURL(), getCutMasks(),
  *   clearFrameMasks(), setGenerating()
- * Block hooks on el: onFrameChange(), onMasksChange()
+ * Block hooks on el: onFrameChange(), onMasksChange(), setSelection()
  *
  * Emits:
  *   'mask-tint' { url: string|null } — current-frame ADJUSTED preview;
@@ -2615,9 +2618,9 @@
  *   hasFrameMasks() / getFrameMaskURL(idx) / getCutMasks()
  *   clearFrameMasks('all' | idx)      — throw the track AND brush layers away
  *                                       for good, so a re-mask starts clean.
- *                                       Reached from the panel's Clear This
- *                                       Frame / Clear All and from the frame
- *                                       strip's context menu.
+ *                                       Reached from the panel's Clear (once
+ *                                       per frame for a narrower scope) and
+ *                                       from the frame strip's context menu.
  *   enterMode('mask' | 'crop') / exitMode() / isMaskEditing()
  *   setMaskBrushMode / setMaskPaintEnabled / clearMask — the brush surface
  *   getCropRect() / setCropRatio() / setCropSize() / getFrameSize()

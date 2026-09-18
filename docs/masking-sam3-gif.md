@@ -78,9 +78,14 @@ Adjust, Invert and Cut out work unchanged). Every mask is white = KEEP.
 
 Every frame of an ALREADY-CUT clip is mostly alpha 0 and `keepMask` keys every transparent
 pixel out, so the mask is "the opaque subject" before the colour is weighed — the keep side
-barely moves as Tolerance is dragged. That is why **By colour tints what it REMOVES** while the
-other two tint what they keep; `#tint-note` states which side is tinted, per method, so the
-tint is never read backwards.
+barely moves as Tolerance is dragged, which is why tinting the keep side read as a dead slider.
+
+**Every method tints WHAT GOES AWAY** (`flip = !_invert` in `MpiToolOptionsGifCutout`). It is a
+cut-out: the masked area is the area that disappears, so the tint says whether Invert is needed
+without a caption. This replaced a per-method `#tint-note` that said "stays" for two methods and
+"goes" for the third — one rule everywhere beats a label explaining an exception (Fabio,
+2026-09-18). The mask itself stays white=KEEP internally, because `applyMaskAlpha` writes it
+straight into the alpha channel; the tint is the complement of whatever survives `Invert`.
 
 ## The two tools — Cut-out and Mask Brush (MPI-771, plan Decision 14)
 
@@ -111,7 +116,7 @@ compositor. Because they survive, **clearing a mask with the brush is not cleari
 brush writes a full-frame `subtract`, which then eats every later re-mask, so that frame reads
 as unmaskable. `clearFrameMasks('all' | idx)` is the only real clear — it drops `track`,
 `edits` and `composed`, and wipes the live canvas when the cleared frame is the one open in
-the brush (**Clear This Frame** / **Clear All**, MPI-771, 2026-09-18). The viewer emits `masks-change { overlay, edited, cleared }`; the Block feeds
+the brush (the panel's **Clear**, MPI-771, 2026-09-18). The viewer emits `masks-change { overlay, edited, cleared }`; the Block feeds
 `MpiFrameStrip.el.setMaskOverlay(overlay, edited)` (tint + a dot on brushed frames) and the
 Cut-out panel's `onMasksChange()`.
 
@@ -134,9 +139,15 @@ Cut-out; Fabio chose that over a second Cut out button (2026-09-16).
 
 0. **Method** — `MpiRadioGroup` (Remove background / By name / By colour), saved as
    `toolSettings.gifCutout.method`; the hint, the name field and the colour controls follow it.
-1. **Mask All / Mask This Frame** (Track All / Track Single Frame under By name).
-   `runGifCutoutTrack({ op })` is called from the panel; the single-frame run is the same
-   graph on a one-frame source video, and replaces only that position's track. A run spins
+1. **Scope + Mask / Clear.** An `MpiRadioGroup` of **All / Frame / Selected** names who the two
+   verbs act on; Selected is the frame strip's Ctrl-click set, which reaches the panel as
+   `el.setSelection(viewerIndices)` (the Block forwards the strip's `selection-change`, and
+   seeds it at mount) and is aria-disabled while empty. Four buttons collapsed to two so
+   Selected could exist without a fifth and sixth (Fabio, 2026-09-18).
+   `runGifCutoutTrack({ op })` is called from the panel; a narrower scope is the same
+   graph on a source video of just those frames, and lands frame by frame (`setTrackMask`)
+   so untouched positions keep the masks they had — `setTrackMasks` replaces the whole list
+   and is only right for All. A run spins
    the viewer (`setGenerating`) and drives the status bar directly (indeterminate clock,
    `complete()` when masks landed, `cancel()` otherwise), the image Detect row's idiom. There is **no count input**: each name is stamped `name:4`, the same 4
    as the chips (`OBJECT_SLOTS` = `max_objects`), because a bare name finds ONE object
@@ -162,10 +173,16 @@ Cut-out; Fabio chose that over a second Cut out button (2026-09-16).
 ### Tints
 
 - `'mask-tint' { url }` — the current frame's ADJUSTED mask as white-with-alpha →
-  `MpiGifViewer.el.setMaskTint(url)`: an `--accent-heat` div over the whole stage, clipped by
+  `MpiGifViewer.el.setMaskTint(url)`: an `--accent-ok` div over the whole stage, clipped by
   CSS `mask-image`, `contain` + centred — the same box the frame img fills with
   `object-fit: contain` (frames scale UP to the stage too). Play in the Mask Brush drives the
   same div with the raw B/W masks under `--luma` (`mask-mode: luminance`).
+  **The green is `MASK_AUTO_FILL` from `MpiCanvas`**, the colour the image canvas paints a mask
+  that came from a DETECT RUN (the hand-painted layer is white, inverted is black, B/W view is
+  white-on-black). A SAM3 / BiRefNet / colour-key mask is the same thing — an auto-produced mask
+  ready to cut — so it shares the colour instead of owning a rose one, at the same 0.7 the mask
+  tools default to (Fabio, 2026-09-18: "why is one pink and the other one black or white?").
+  The per-thumb tints on `MpiFrameStrip` match.
 - Behind the frame, `.mpi-gif-viewer__checker` draws a checker sized to the frame's own
   letterboxed box (`--frame-ar` from the img's natural size, container query units), so a
   transparent pixel never reads as a black fill.

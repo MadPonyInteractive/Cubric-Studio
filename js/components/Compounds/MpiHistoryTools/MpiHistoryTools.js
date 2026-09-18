@@ -199,15 +199,17 @@ const GIF_TOOLS = [
         group: [
             // 'eraser' reused from removeBackground (MPI-425 precedent above) —
             // both are "cut the subject out of its background" jobs.
-            // A rail `info` is the tooltip text as well as the status bar's
-            // (see the `mouseover` tip below), so it stays a NAME here — what
-            // each GIF tool DOES is said by the panel's own `__desc` line the
-            // moment it opens, and by every control inside it.
-            { mode: 'gifCutout', icon: 'eraser', info: 'Cut-out' },
+            // `info` is the hover TOOLTIP and stays a bare name beside a 24px
+            // icon; `desc` is the STATUS BAR line and says what the tool does
+            // (wiring in `_render` below). Fabio asked for the sentence on the
+            // status bar and explicitly not as a floating tooltip (2026-09-18).
+            // Only the GIF rail carries `desc` so far; a tool without one falls
+            // back to its name, exactly as before.
+            { mode: 'gifCutout', icon: 'eraser', info: 'Cut-out', desc: 'Cut-out: mask the subject, then cut it out of every frame' },
             // MPI-771 (Decision 14): fix a frame's cut-out mask by hand. Its own
             // mode, not `maskBrush`: that one belongs to the image mask family
             // (`_MASK_TOOLS` in the Block) and its canvas bridges.
-            { mode: 'gifMaskBrush', icon: 'brush', info: 'Mask Brush' },
+            { mode: 'gifMaskBrush', icon: 'brush', info: 'Mask Brush', desc: 'Mask Brush: paint a single frame’s mask by hand' },
         ],
     },
     {
@@ -215,33 +217,33 @@ const GIF_TOOLS = [
         label: 'Transform',
         group: [
             // MPI-773: the image Crop panel over MpiGifViewer's crop surface.
-            { mode: 'crop',      icon: 'crop',          info: 'Crop'   },
-            { mode: 'gifResize', icon: 'resize_stroke', info: 'Resize' },
+            { mode: 'crop',      icon: 'crop',          info: 'Crop',   desc: 'Crop: trim the frame edges, or crop to a ratio' },
+            { mode: 'gifResize', icon: 'resize_stroke', info: 'Resize', desc: 'Resize: scale every frame to a new size' },
         ],
     },
     {
         mode: 'timing',
         label: 'Timing',
         group: [
-            { mode: 'gifTrim',    icon: 'frames',  info: 'Trim'       },
-            { mode: 'gifSpeed',   icon: 'bolt',    info: 'Speed'      },
-            { mode: 'gifReverse', icon: 'reverse', info: 'Reverse'    },
-            { mode: 'gifLoop',    icon: 'loop',    info: 'Loop count' },
+            { mode: 'gifTrim',    icon: 'frames',  info: 'Trim',       desc: 'Trim: drag the handles to keep a range of frames' },
+            { mode: 'gifSpeed',   icon: 'bolt',    info: 'Speed',      desc: 'Speed: set how long each frame is held' },
+            { mode: 'gifReverse', icon: 'reverse', info: 'Reverse',    desc: 'Reverse: play the frames back to front' },
+            { mode: 'gifLoop',    icon: 'loop',    info: 'Loop count', desc: 'Loop count: how many times the GIF repeats' },
         ],
     },
     {
         mode: 'output',
         label: 'Output',
         group: [
-            { mode: 'gifOutput', icon: 'gif', info: 'GIF output' },
+            { mode: 'gifOutput', icon: 'gif', info: 'GIF output', desc: 'GIF output: colours, dithering and the edge colour behind transparency' },
         ],
     },
     {
         mode: 'export',
         label: 'Export',
         group: [
-            { mode: 'gifSaveFrame', icon: 'camera', info: 'Save frame as image' },
-            { mode: 'gifToVideo',   icon: 'video',  info: 'GIF to Video'        },
+            { mode: 'gifSaveFrame', icon: 'camera', info: 'Save frame as image', desc: 'Save frame as image: the frame on screen becomes its own card' },
+            { mode: 'gifToVideo',   icon: 'video',  info: 'GIF to Video',        desc: 'GIF to Video: write the frames out as an MP4' },
         ],
     },
 ];
@@ -315,6 +317,17 @@ export const MpiHistoryTools = ComponentFactory.create({
             const dstate = _disabledState.get(key);
             const isDisabled = !!dstate?.disabled;
             const tooltip = isDisabled && dstate?.reason ? dstate.reason : (def.info || key);
+            // TWO channels, deliberately different (Fabio, 2026-09-18):
+            //   floating tooltip — the `mouseover` handler below reads the WRAP's
+            //     [data-info], and it stays a NAME. A sentence there hangs a
+            //     paragraph off a 24px icon.
+            //   status bar — statusBar.js resolves `closest('[data-info]')`, which
+            //     finds the BUTTON first and never sees the wrap, so the sentence
+            //     goes on MpiButton's `info`. That is where every other tool in
+            //     the app says what it does.
+            // A disabled button's reason wins both: why it is off matters more
+            // than what it would have done.
+            const statusLine = isDisabled && dstate?.reason ? dstate.reason : (def.desc || tooltip);
 
             const wrap = document.createElement('div');
             wrap.className = 'mpi-history-tools__btn';
@@ -325,7 +338,7 @@ export const MpiHistoryTools = ComponentFactory.create({
                 icon: def.icon,
                 size: 'sm',
                 variant: 'ghost',
-                info: tooltip,
+                info: statusLine,
                 toggleable: false,
                 // A collapse button shows active while any mode it owns is active,
                 // but keeps its OWN fixed icon — it never takes on the identity of

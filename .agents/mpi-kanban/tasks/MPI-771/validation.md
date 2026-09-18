@@ -378,3 +378,149 @@ bites for textarea / contenteditable / text inputs, and the strip blurs `activeE
 anyway. The mechanism is sound — the fault is conditional on something his session has that the
 fixture does not. **Bisect before coding: does a Ctrl-clicked thumb show the orange selection ring in
 his app?** Ring = hotkey path; no ring = selection path.
+
+### Backspace: root cause, fix, and the proof it was red (2026-09-18, session b3d5499a)
+
+Fabio answered the bisecting question: **the orange ring appears**. Selection was never the
+fault, so the hotkey path owned it.
+
+**Root cause.** `hotkeyManager._normalizeKey()` prepends every held modifier, so a Backspace
+pressed with Ctrl still down normalises to `control+backspace`. The registry carried exactly one
+entry for this action, key `backspace`. `_handle()` looks the handlers up by the normalised key
+and returns at `if (!handlers || handlers.size === 0) return;` -- before the registry scan, before
+the isTyping gate, before any handler. Nothing fired and nothing logged.
+
+Selecting frames MEANS holding Ctrl. A user who has just Ctrl-clicked four thumbnails still has
+Ctrl down when they reach for Backspace, so the documented gesture was the one gesture that could
+not work. Every previous elimination passed because each pressed Backspace ALONE: the shipped
+specs synthesise a modifier-free event, and the previous probe released Ctrl before pressing.
+
+**Fix.** Three registry ids for one action (the `system.uiZoom.in.plus`/`.equal` idiom already in
+that file): `gif.frame.delete` (bare), `.ctrl` (`control+backspace`), `.shift` (`shift+backspace`)
+-- shift because `_onUp` accepts shiftKey as a selection modifier too. MpiFrameStrip binds one
+shared `_deleteSelection` to all three. No hotkeyManager change: normalising modifiers is correct
+for every other binding in the app.
+
+**Proven red first.** `tests/desktop/gif-workspace.spec.js:192` now presses with `ctrlKey: true`.
+Against the pre-fix `hotkeyRegistry.js` + `MpiFrameStrip.js` restored from HEAD (copied aside, not
+`git stash` -- shared tree), the run FAILED at the thumb-count poll on line 199, 1 failed / 1
+passed. With the fix restored, 10/10.
+
+NOT covered by ctrl+shift held together; a corner case no gesture asks for.
+
+### Rail descriptions, and the tint rule (2026-09-18, same session)
+
+**Rail** (Fabio: "everything else says what it does on the status bar. No floating tooltips,
+please"). The two channels turned out to be the REVERSE of what the earlier session assumed:
+the rail mounts each button inside a `.mpi-history-tools__btn` wrap, its own `mouseover` tooltip
+reads the WRAP, and statusBar.js resolves `e.target.closest([data-info])`, which finds the inner
+MpiButton and never reaches the wrap. So the sentence goes on MpiButton `info` and the name stays
+on the wrap -- the opposite assignment to the obvious one. Every GIF rail entry gained a `desc`;
+entries without one fall back to the name exactly as before. All existing spec selectors match
+the wrap by name, so none needed changing (the earlier session reported 3 breaking; that was the
+other assignment).
+
+**Tint** (Fabio: "It is a cutout, so anything that is masked should go away"). One rule for all
+three methods: `flip = !_invert`, the tint is always what GOES. The per-method `#tint-note` badge
+is deleted along with the three `tintNote` strings. The mask stays white=KEEP internally --
+`applyMaskAlpha` writes it straight into the alpha channel, which is what alpha IS -- so only the
+display flipped; no server, sidecar or brush change.
+
+This also CLOSES the open "Background tint over the BACKGROUND while the cut kept the robot"
+question with no screenshot needed. It was never a polarity bug: under the old "tinted = what
+stays" rule, Background with Invert ON tints the background and keeps it, and Fabio read the tint
+the natural way -- as what goes. The rule he asked for makes the reading correct.
+
+**NOT automated:** the tint POLARITY has no assertion. The specs check that a tint is present and
+follows its frame, not which side it covers. `flip = !_invert` is one expression with a loud
+comment and the rule is stated in docs/masking-sam3-gif.md, but a silent flip back would not fail
+a test. Fabio's eye is the gate here (this card is `user-ux`).
+
+**Green:** lint + lint:components clean; `node --test "tests/*.test.cjs"` 1346 pass / 0 fail / 1
+skip; desktop gif-workspace + gif-cutout + gif-timing + gif-transform + gif-maker + mask-colour
+10/10.
+
+### Scope consolidation + the toast (2026-09-18, session b3d5499a)
+
+Fabio: four buttons (Mask All / Mask This Frame / Clear All / Clear This Frame) become TWO verbs
+and a scope, so Selected can exist without a fifth and sixth button.
+
+- `MpiRadioGroup` **All / Frame / Selected** above **Mask** and **Clear**. Scope is UI-only, not
+  saved with the settings: it describes this click, not this GIF.
+- Selected is the frame strip Ctrl-click set. The strip gained `selection-change
+  { indices, viewerIndices }` and `el.getSelection()`; the Block forwards to the panel s
+  `el.setSelection(viewerIndices)` and SEEDS it at mount, since a selection can predate the panel.
+  VIEWER positions, not staged ones -- masks are keyed by the viewer order, the same split the
+  context menu s `clear-frame-mask` already carries.
+- Selected is aria-disabled while empty (MpiRadioGroup documents setting that imperatively), and a
+  selection that empties hands the live scope back to All.
+- `_runTrack` now takes `all` | `{idx,hash}` | `{list:[...]}`. A narrower scope lands frame by
+  frame (`setTrackMask`) -- `setTrackMasks` replaces the WHOLE list and is only right for All, so
+  using it for a subset would wipe the masks on every frame the run did not touch.
+- **Found while building:** MpiRadioGroup paints `is-active` on click before the owner gets a say,
+  so a scope click refused by `_busy` left the button showing one scope while `_scope` held
+  another. The scope radio now locks with the method radio in `_setBusy` -- same idiom, divergence
+  removed at the source. Caught by the new spec, not by review.
+- **Toast removed.** `_scheduleRekey` raised "Press Mask All or Mask This Frame" on every paused
+  slider drag with nothing keyed yet, which piled up toasts. It is a silent no-op now; the colour
+  picker s and the Tolerance slider s `info` carry it on the status bar instead, reworded to
+  "Changes are only visible once you press Mask".
+
+**Spec.** `gif-cutout.spec.js` asserts the two verbs, the three scopes, All as the default, Selected
+refused while empty, then Ctrl-clicks two thumbs through the strip s OWN pointer handlers
+(`ctrlClickThumb`), asserts Selected un-disables, picks it, toggles the thumbs back off and asserts
+the scope returns to All. It runs BEFORE the Track dispatch: a run in flight locks the scope radio
+and turns Mask into Stop, so only one dispatch is checkable per test. What a narrower scope
+DISPATCHES is covered by test 2 s Frame-scope run -- the same `picked` path.
+
+**Green:** lint + lint:components clean; `node --test "tests/*.test.cjs"` 1348 pass / 0 fail / 1
+skip; desktop gif-workspace + gif-cutout + gif-timing + gif-transform + gif-maker + mask-colour
+10/10.
+
+### Mask display consistency - INVESTIGATED, not built (Fabio asked 2026-09-18)
+
+His ask: the image workspace lets you change the mask white/black, control opacity and view just
+the mask -- do the same here. What is actually true:
+
+- `MpiMaskStrip` (Compound) is the shared bottom strip of every image mask tool: paint/erase,
+  invert, **B/W view**, clear, **opacity**, brush presets. Settings live under the `mask` tool key.
+- **The GIF Mask Brush ALREADY MOUNTS IT.** `MpiToolOptionsMaskBrush` mounts
+  `MpiMaskStrip({ viewer, brush: true })` and `MpiGifViewer` already implements the whole API it
+  needs (`setMaskInverted`, `setMaskBwView`, `setMaskOpacity`, ...). So the editable mask layer in
+  the GIF workspace is already the image one, controls included.
+- **The gap is the CUT-OUT TINT**, which is a different object: a read-only preview overlay
+  (`.mpi-gif-viewer__mask-tint`, plus per-thumb tints on the strip), `--accent-heat` at a FIXED
+  0.45 opacity with `mask-mode: luminance`. No opacity, no B/W, no colour, because it was built as
+  a preview of a computed mask rather than as a layer being edited.
+
+So this is not "make the GIF masks like the image ones" -- it is "give the cut-out PREVIEW the same
+display controls as an editable mask layer". Needs his call on scope before building.
+
+### The mask is one colour everywhere now (2026-09-18, session b3d5499a)
+
+Fabio, on the tint: *"Why is one pink and the other one black or white with options? I am not
+saying why in the code. I am saying why for the user."* He is right, and the answer was in
+`MpiCanvas`:
+
+- `MASK_AUTO_FILL = oklch(0.78 0.13 150)` (identical to `--accent-ok`) is what the IMAGE canvas
+  paints a mask that came from a DETECT RUN. Hand-painted is white, inverted is black
+  (`MASK_INVERT_FILL`), B/W view is white on black. So "green while it is being changed, then
+  white or black" is exactly the image workspace, described from the outside.
+- A SAM3 / BiRefNet / colour-key mask is the SAME CONCEPT: an auto-produced mask, ready to cut.
+  It was wearing `--accent-heat` at 0.45 purely because it was built as a preview overlay rather
+  than as a mask layer.
+
+So both tint surfaces moved to `--accent-ok` at 0.7 (MpiMaskStrip DEFAULTS.opacity), on the
+viewer (`.mpi-gif-viewer__mask-tint`) and on every strip thumbnail
+(`.mpi-frame-strip__thumb-tint`). CSS + the doc line only; no logic touched.
+
+**Still NOT at parity, and it is structural:** the strip B/W view / invert / opacity slider drive
+`MpiCanvas` through `viewer.el.setMaskBwView()` etc. Outside the Mask Brush there IS no canvas —
+the Cut-out preview is a CSS overlay on an `<img>`. Giving it those toggles means either
+reimplementing them on the overlay or routing the cut-out preview through the canvas path. Not
+built; needs Fabio.
+
+**Also:** both `MpiRadioGroup` pickers (method, scope) now span the panel at MpiButton `sm` padding
+(8px 14px). Scoped through a `__picker` class in the panel stylesheet, not the shared primitive.
+
+**Green:** lint + lint:components clean; desktop gif-cutout + gif-workspace 6/6.

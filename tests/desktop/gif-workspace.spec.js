@@ -188,8 +188,14 @@ test('gif workspace: no PromptBox; play/step/scrub keep the strip centred; reord
     // — NOT Delete/`history.selection.delete`, see hotkeyRegistry.js's
     // "GIF Player" section for why sharing that key would also wipe the
     // whole history entry) drops it. Still staged, still zero server calls.
+    // `ctrlKey: true` is the REAL gesture and the bug this asserts against:
+    // selecting means holding Ctrl, and the hand is still holding it at the
+    // Backspace. `_normalizeKey` turns that into `control+backspace`, which
+    // matched no registry entry, so the key was silently dead in the app while
+    // this spec passed — because a scripted press carried no modifier
+    // (Fabio, 2026-09-18). Line ~215 keeps the bare-Backspace path covered.
     await window.locator('.mpi-frame-strip__thumb[data-index="1"]').click({ modifiers: ['Control'] });
-    await window.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true })));
+    await window.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', ctrlKey: true, bubbles: true })));
     await expect.poll(() => thumbCount(window)).toBe(before - 1);
     expect(await window.evaluate(() => window.__mpi769.calls.length)).toBe(0);
 

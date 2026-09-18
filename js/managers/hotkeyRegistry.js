@@ -299,9 +299,35 @@ export const HOTKEY_REGISTRY = [
     // not by id), so reusing `delete` here would ALSO delete the whole
     // history entry on every frame-selection delete. `backspace` is unused
     // elsewhere and keeps the two actions on separate keys.
+    //
+    // THREE ids for one action, the `system.uiZoom.in.plus`/`.equal` idiom.
+    // Selecting frames means holding Ctrl (or Shift), and a user who has just
+    // Ctrl-clicked four thumbnails still has Ctrl down when they reach for
+    // Backspace. `_normalizeKey` builds `control+backspace` from that press,
+    // which matched no entry at all, so `_handle` returned before any handler
+    // ran and the key was silently dead — while every spec passed, because a
+    // scripted Backspace carries no modifier (Fabio, 2026-09-18).
     {
         id:               'gif.frame.delete',
         key:              'backspace',
+        type:             KEY_TYPE.DOWN,
+        category:         'history',
+        scopeLabel:       'GIF Player',
+        description:      'Delete selected frames',
+        allowWhileTyping: false,
+    },
+    {
+        id:               'gif.frame.delete.ctrl',
+        key:              'control+backspace',
+        type:             KEY_TYPE.DOWN,
+        category:         'history',
+        scopeLabel:       'GIF Player',
+        description:      'Delete selected frames',
+        allowWhileTyping: false,
+    },
+    {
+        id:               'gif.frame.delete.shift',
+        key:              'shift+backspace',
         type:             KEY_TYPE.DOWN,
         category:         'history',
         scopeLabel:       'GIF Player',

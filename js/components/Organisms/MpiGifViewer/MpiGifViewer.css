@@ -92,7 +92,12 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background: var(--accent-heat);
+    /* The SAME green the image canvas paints an auto-produced mask with
+       (`MASK_AUTO_FILL` = --accent-ok, MpiCanvas). A SAM3 / BiRefNet / colour-key
+       mask IS a detect-run mask, so it had no business wearing its own colour —
+       for the user these are one concept, a mask that is ready to cut
+       (Fabio, 2026-09-18). */
+    background: var(--accent-ok);
     opacity: 0;
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
@@ -104,7 +109,9 @@
 }
 
 .mpi-gif-viewer__mask-tint--visible {
-    opacity: 0.45;
+    /* MpiMaskStrip's own default mask opacity, so stepping between the Cut-out
+       preview and the Mask Brush does not change how strong the mask looks. */
+    opacity: 0.7;
 }
 
 /* Engine and composed masks are opaque B/W: coverage is their luma. */
