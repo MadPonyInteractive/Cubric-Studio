@@ -471,6 +471,14 @@ suggestion: `/mpi-release` does not run until all four read clear.
 | Agent work in the in-app agent | **MPI-774** In-app agent slice A | doing / validating |
 | Project registry cleanup | **NO CARD YET** — raise one | cardless, invisible to the board |
 | Mascot animations | **MPI-777** Animated mascots | todo / blocked on GIF cut-out assets (MPI-757; MPI-771 is the SAM3 cut-out, doing/validating) |
+| **UI colour** — the app is Vision rose everywhere | **MPI-736** Per-media-type accent family | todo / planned, **unblocked 2026-09-18** |
+
+**Colour is a gate as of 2026-09-18 (Fabio).** 2.0 cannot ship named Cubric Studio while every
+primary action is Vision's rose: `--accent-heat` and `--vision-accent` are the same value
+(`oklch(0.76 0.17 355)`), so the app's action colour IS one character's identity colour. MPI-736
+holds the decision (Studio owns no hue; each workspace takes its character's colour) and the
+measured work — ~30 hardcoded pinks that bypass the token, plus 259 `--accent-heat` references
+that follow it. Colour work still does NOT happen on MPI-708; this card only gates on it.
 
 MPI-777 blocks this card twice over: it is Phase 3's gate AND the reason Phase 2's mascot
 half is parked, so MPI-708 cannot close on either path until the mascot chain lands.

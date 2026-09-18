@@ -58,6 +58,20 @@ https://claude.ai/artifact/9pHmQsg2ZjbVhmRZh9BB7Y (private to Fabio). The hero b
    sits beside `--audio-accent` `oklch(0.84 0.11 170)`. In those workspaces a warning would read
    as an action. Either re-hue warn and ok, or make every warning and success carry an icon and
    text as well as colour. Fabio's call, before this card starts.
+
+   **ANSWERED (Fabio, 2026-09-18): `--accent-warn` MOVES, `--video-accent` STAYS.** The rule it
+   sets is identity beats status: a character's colour is fixed by the brand, a status colour is
+   ours to re-hue, so the status token is the one that gives way. Re-hue `--accent-warn` off
+   hue 60 far enough from `--video-accent`'s 48 to survive a workspace that fills its actions
+   with orange; an icon-and-text-as-well-as-colour treatment is a good idea anyway, but it is
+   not the answer here.
+
+   **STILL OPEN, and it is the same shape: `--accent-ok` `oklch(0.78 0.13 150)` vs
+   `--accent-audio` `oklch(0.84 0.11 170)`.** Fabio has not ruled on this pair. Applying the rule
+   he just set, `--accent-ok` moves and `--accent-audio` stays — but that is a reading, not his
+   decision, so confirm it before re-hueing anything green. **This does NOT block the card
+   starting:** work item 1 (the ~30 hardcoded pinks onto the token) is independent of both pairs
+   and is the bulk of the job.
 3. **Design docs.** `DESIGN.md` and `PRODUCT.md` still describe one pink accent at a stale value
    (`oklch(0.72 0.20 6)`; the code has `0.76 0.17 355`), a VT323 wordmark (the code uses Russo
    One) and a single mascot. Rewrite them with this decision, which is scope item 2.
