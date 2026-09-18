@@ -199,3 +199,21 @@ Verify mode is `user-ux`, so this phase is not closed until Fabio has looked at 
 - **Left on the box** (disposable, powered on for this): `~/mpi595/` — the fresh install, the kit, and
   two rollback stamps under `update/rollback/`. Re-runnable as
   `~/mpi595/mpi595-ab-kit/ab-selfrewrite.sh ~/mpi595/CubricVision-linux-x64-v1.5.0`.
+
+## Held-file pass — PASSED 2026-09-18 (session c3845e99)
+
+- The two files the docs sweep (`d8ffa03d`) had to skip, done once their holders released:
+  `docs/agent-chat.md:90` "the Cubric Vision skills" -> "the Cubric Studio skills", and
+  `docs/playbooks/add-flow/README.md:3` "into Cubric Vision" -> "into Cubric Studio". Two lines, two
+  words; `git diff --stat` = 2 files, 2 insertions, 2 deletions.
+- **Claims checked first, not assumed:** `state/index.json` had zero live claims over either path
+  (MPI-774 and MPI-532 both released), and the pass took its own write claim `92bf122f` before editing.
+  Both paths added to the card's `files.json`.
+- **Same pattern as the siblings, and the limit of it:** the PRODUCT name changes; an on-disk path,
+  a folder name or an external artifact name does not. So `.claude/skills/cubric-vision*` on that same
+  line is deliberately untouched (it is the real skills directory, and `agentCorpus` globs it) — asserted
+  by the edit script, not eyeballed. Matches `add-model/README.md:3`, which the sweep had already
+  rewritten to the identical sentence.
+- Neither file has any remaining "Cubric Vision" prose. `node --test tests/agent-ui-surfaces.test.cjs`
+  (the only test naming `agent-chat`) 5/5 — it asserts chat UI, not doc text, so it is a
+  no-regression check rather than proof of this edit.

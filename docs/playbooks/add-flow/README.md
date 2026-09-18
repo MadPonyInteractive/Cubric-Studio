@@ -1,6 +1,6 @@
 # Add a New Flow — End-to-End Playbook
 
-> The single procedure for wiring a new **Flow** (outcome flow) into Cubric Vision. This
+> The single procedure for wiring a new **Flow** (outcome flow) into Cubric Studio. This
 > README is the orientation hub + the master checklist; the deep reference is split across
 > the section files below. **Read this file first, then the section for the step you're on.**
 >

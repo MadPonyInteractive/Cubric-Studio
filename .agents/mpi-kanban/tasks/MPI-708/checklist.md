@@ -19,12 +19,13 @@
   - [x] Phase 2b: Fabio's own check — titlebar, About, landing kicker (verified 2026-09-18, Option 1);
         taskbar/pinned icon excluded on purpose — it is MPI-807, not a Phase 2b defect
   - [ ] Mascots: PARKED until the action animations land (plan drift, top)
-- [ ] Parallel Batch: Non-renderer sweep
+- [x] Parallel Batch: Non-renderer sweep
   - [x] Heal the Documents folder (version-gated to 2.x; routes/shared.js + tests/documents-heal.test.cjs)
   - [x] Build identity (exe, artifact names, productName, updater default repo, PRESERVE)
   - [x] Decision: old CubricVision.exe on updated installs: (c) keep at 2.0, delete at 2.1, re-pin note (Fabio, 2026-09-17)
   - [x] Main process and server strings
   - [x] Docs sweep (except docs/agent-chat.md, held by MPI-774, and docs/playbooks/add-flow/README.md, held by MPI-532)
   - [x] Agent tooling and CI text (except .claude/skills/cubric-vision-generate/SKILL.md, held by MPI-774)
-  - [ ] Held-file pass: docs/agent-chat.md:90 (MPI-774), docs/playbooks/add-flow/README.md:3 (MPI-532) once their claims release; cubric-vision-generate/SKILL.md done
+  - [x] Held-file pass: docs/agent-chat.md:90 and docs/playbooks/add-flow/README.md:3 done 2026-09-18 once
+        MPI-774 and MPI-532 released their claims; cubric-vision-generate/SKILL.md was already done
 - [ ] The 2.0 release

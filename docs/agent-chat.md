@@ -87,7 +87,7 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
   /system/gpu-info`, or `GET /remote/pod/specs` when remote is active. Errors: `APP_UNAVAILABLE`.
 - **`GET /connector/knowledge[/:id]`** -> `{ ok, entries: [{ id, kind, title, tags }] }` / `{ ok, id, title,
   text }` from `agentCorpus.listCorpus()`: recipe briefs (`model`), our guide per recipe (`guide`,
-  `docs/agent/models/<recipeId>.md`), the Cubric Vision skills (`skill`, `.claude/skills/cubric-vision*`,
+  `docs/agent/models/<recipeId>.md`), the Cubric Studio skills (`skill`, `.claude/skills/cubric-vision*`,
   staged by `copyAgentSkills` in `docs/agent/skills/` for the portable build), `docs/agent/*.md` (`app`).
   Errors: `UNKNOWN_ENTRY`.
 - **`GET /connector/memory[/:file]?folderPath=`** -> `{ ok, notes: [{ title, file, hook }] }` / `{ ok,
