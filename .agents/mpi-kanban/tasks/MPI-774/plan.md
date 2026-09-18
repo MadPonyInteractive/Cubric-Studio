@@ -2,14 +2,21 @@
 
 ## Current State
 
-**MASTER IS UNBLOCKED, and it was THIS CARD that was holding it red (2026-09-18, session
-130cab18).** `tests/desktop/agent-chat.spec.js:654` still asserted the agent-mode face was
+**MASTER WAS RED ON THIS CARD, and clearing it took TWO commits (2026-09-18, session 130cab18).** `tests/desktop/agent-chat.spec.js:654` still asserted the agent-mode face was
 `['textarea-slot', 'mode-toggle-slot']` — the shape fix 6 deliberately changed when it kept
 the run column so Stop stays reachable. The spec now expects `bottom-right-slot` and asserts
 what fix 6 actually promises: of the run column's three children only the stop host is
 displayed. 121 other desktop specs were already green; this was the only failure. Verified
-locally 3/3, pushed with `--no-verify` (the gate's own documented case — you ARE the fix), so
-`b9e2a9ff..1860a7a6` carries seven peers' commits out with it.
+locally, pushed with `--no-verify` (the gate's own documented case — you ARE the fix).
+
+**That first fix was NOT sufficient, and was reported as done before CI came back.** The very
+next assertion, `:658`, failed on the identical cause: Stop's column costs the text field
+~46px, so `textShare` measured **0.7972** against a `> 0.8` written when agent mode had two
+slots. Threshold moved to 0.75 in `c22dcbf3` — the assertion means "the field dominates the
+face", not the old arithmetic. **The lesson, and it is the reason master stayed red an extra
+hour: verify a spec fix by running the WHOLE spec file.** The `-g` run passed 3/3 with the
+next assertion still broken. A `shellWindow` `waitForFunction` timeout in a full-file run is a
+known local flake — it passed on re-run. **CONFIRM CI ON `edc27a15` before trusting green.**
 
 **Fix 8 has a real lead, and it unloads NOTHING (Fabio refused unloading outright: it slows
 every next generation).** `comfy_aimdo/host_buffer.py:74` exposes `cleanup_file_reader()` ->
