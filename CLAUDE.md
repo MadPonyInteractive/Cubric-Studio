@@ -56,4 +56,4 @@ Sub-agents start cold with zero CLAUDE.md context. Dispatching without briefing 
 
 ## Git and Commits
 
-Agents MAY commit and push without asking (`push_policy: auto` in `.agents/mpi-kanban/project-profile.md` is the source of truth). Shared tree — commit by explicit pathspec (`git commit --only <paths>`), never `git add -A`/`.`. Full recipe + the destructive-git ban: **`.claude/rules/git.md`**. `.husky/pre-push` refuses master while its last CI run is RED (`--no-verify` when you ARE the fix); it fails OPEN, so a block means a real `failure`.
+Agents MAY commit and push without asking (`push_policy: auto` in `.agents/mpi-kanban/project-profile.md` is the source of truth). Shared tree — commit by explicit pathspec (`git commit --only <paths>`), never `git add -A`/`.`. Full recipe + the destructive-git ban: **`.claude/rules/git.md`**. `.husky/pre-push` refuses master while its last CI run is RED (`--no-verify` when you ARE the fix); it fails OPEN, so a block means a real `failure`. A push touching ONLY `docs/`, `.agents/` or `.md` skips that gate outright — a board or docs commit is never held behind someone else's red.
