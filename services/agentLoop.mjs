@@ -758,11 +758,14 @@ ${knowledgeIndex}`.trim();
     // Compaction
     // -------------------------------------------------------------------------
 
+    /** The prompt_tokens that trigger a compaction. */
+    _compactAt() {
+        return this._contextWindow * (this._contextWindow >= 1_000_000 ? 0.30 : 0.50);
+    }
+
     _shouldCompact() {
         if (!this._lastUsage || !this._contextWindow) return false;
-        const pt = this._lastUsage.prompt_tokens || 0;
-        const threshold = this._contextWindow >= 1_000_000 ? 0.30 : 0.50;
-        return pt >= this._contextWindow * threshold;
+        return (this._lastUsage.prompt_tokens || 0) >= this._compactAt();
     }
 
     /** @param {{model: string, baseURL: string, key: string}} endpoint */
@@ -781,13 +784,21 @@ ${knowledgeIndex}`.trim();
             const handoffRes = await engine.chat({ model: endpoint.model, messages: handoffMessages });
             const handoffText = handoffRes.text || '';
 
-            // Rebuild messages: system + handoff + last 4 user turns
+            // Rebuild messages: system + handoff + the last (up to 4) user turns that fit in half
+            // the trigger. Four whole turns could sit above the trigger on their own (live, a
+            // list_models answer is ~9.5k tokens against a 32k window's 16.4k), so every later
+            // turn compacted again.
+            // ponytail: no tokenizer; tokens per char come from the last call's usage over
+            // these messages' chars (tool schemas add tokens without chars, so it over-counts).
+            const chars = this._messages.reduce((s, m) => s + messageChars(m), 0);
+            const tokensPerChar = (this._lastUsage?.prompt_tokens || 0) / Math.max(chars, 1);
+            const maxChars = tokensPerChar > 0 ? (this._compactAt() / 2) / tokensPerChar : Infinity;
             const newSystem = await this._buildSystemPrompt(this._lastMode || 'auto');
-            const last4 = this._getLastNUserTurns(this._messages, 4);
+            const recent = this._getLastNUserTurns(this._messages, 4, maxChars);
             this._messages = [
                 { role: 'system', content: newSystem },
                 { role: 'assistant', content: `[Session compacted — handoff]\n${handoffText}` },
-                ...last4,
+                ...recent,
             ];
             // What the dropped turns carried may be gone: list the notes again, re-read guides.
             this._notesProject = null;
@@ -800,10 +811,12 @@ ${knowledgeIndex}`.trim();
         this._emit('agent:compacting', { turnId, on: false });
     }
 
-    _getLastNUserTurns(messages, n) {
+    _getLastNUserTurns(messages, n, maxChars = Infinity) {
         // Collect message groups. Each group starts at a 'user' message.
-        // Scan backwards, collecting up to n user-leading groups.
+        // Scan backwards, collecting up to n user-leading groups, newest first, and stop at
+        // the first one that would take the total past maxChars.
         const groups = [];
+        let kept = 0;
         let i = messages.length - 1;
         while (i >= 1 && groups.length < n) {
             if (messages[i].role === 'user') {
@@ -814,7 +827,11 @@ ${knowledgeIndex}`.trim();
                 // Walk forward from this user msg to find the end of the exchange
                 let j = i + 1;
                 while (j < messages.length && messages[j].role !== 'user') j++;
-                groups.unshift(messages.slice(i, j));
+                const group = messages.slice(i, j);
+                const size = group.reduce((s, m) => s + messageChars(m), 0);
+                if (kept + size > maxChars) break;
+                kept += size;
+                groups.unshift(group);
                 i--;
                 while (i >= 1 && messages[i].role !== 'user') i--;
             } else {
@@ -1106,6 +1123,12 @@ ${knowledgeIndex}`.trim();
 // ---------------------------------------------------------------------------
 // Tool label helper — plain copy shown in the UI, never the prompt
 // ---------------------------------------------------------------------------
+
+/** A chat message's size in chars: its content plus any tool calls it carries. */
+function messageChars(m) {
+    const content = typeof m.content === 'string' ? m.content.length : JSON.stringify(m.content ?? '').length;
+    return content + (m.tool_calls ? JSON.stringify(m.tool_calls).length : 0);
+}
 
 /** `/project-file?path=<abs>` for a path the engine (or a Pod) reads by reference. */
 function _projectFileUrl(absPath) {

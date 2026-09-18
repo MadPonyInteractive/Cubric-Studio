@@ -800,6 +800,26 @@ describe('(h) notes, results, names, guides', () => {
         assert.equal(loop._notesProject, null);
     });
 
+    // MPI-774 Phase 4, live: four kept turns sat above the trigger on their own, so every
+    // later turn compacted again. The restart keeps only the recent turns that fit.
+    test('a compaction keeps only the recent turns that fit in half the trigger', async () => {
+        const { loop } = await makeLoop({
+            engineResponses: [{ text: 'a', usage: { prompt_tokens: 600 } }, { text: 'handoff' }],
+            contextWindow: 1000,
+        });
+        await loop._buildSystemPrompt('auto').then((s) => { loop._messages = [{ role: 'system', content: s }]; });
+        const big = 'x'.repeat(20_000);
+        for (const t of ['one', 'two', 'three']) {
+            loop._messages.push({ role: 'user', content: `${t} ${big}` }, { role: 'assistant', content: 'ok' });
+        }
+        await loop.runTurn('newest', [], project, 'auto', 'deepinfra', 't-fit');
+        const texts = loop._messages.map((m) => JSON.stringify(m.content));
+        assert.match(texts[1], /Session compacted/, 'the handoff follows the system prompt');
+        assert.ok(texts.some((t) => t.includes('newest')), 'the newest turn is kept');
+        assert.ok(!texts.some((t) => t.startsWith('"one ')), 'an old turn that does not fit is dropped');
+        assert.ok(!texts.some((t) => t.startsWith('"two ')), 'an old turn that does not fit is dropped');
+    });
+
     // MPI-774 Phase 4: unnumbered, "edit picture 1" ran on an earlier turn's picture 1.
     // ... and sized: without it a portrait start frame went to 16:9 and lost the top of the head.
     test('attachments are numbered as the box numbers its chips, with their size', async () => {

@@ -178,7 +178,10 @@ Every event but `agent:session` also carries `session`, the key of its conversat
   <groupId> ...]" (or failed) line for the next turn, and a queued `look` on an image (a message pushed
   mid-turn could split a tool call from its result). No regeneration on its own.
 - **Compaction:** at the provider's `prompt_tokens >= contextWindow * (window >= 1M ? 0.30 : 0.50)` (no tokenizer)
-  the model writes a handoff (goal, decisions, cards, model, settings, open question); restart = system prompt + handoff + last 4 turns.
+  the model writes a handoff (goal, decisions, cards, model, settings, open question); restart = system prompt + handoff + the
+  newest turns (at most 4) that fit in HALF the trigger, sized by the last call's tokens per char. Four whole turns
+  could sit above the trigger alone (a `list_models` answer is ~9.5k tokens; a 32k window triggers at 16.4k), and
+  then every turn compacted again (live, Phase 4).
 - **Attachments:** `<APP_USER_DATA>/agent/attachments/` (`os.tmpdir()/cubric-agent` standalone), wiped
   at server start; a reset discards only its conversation's files. Crops: `.../agent/crops/`.
 

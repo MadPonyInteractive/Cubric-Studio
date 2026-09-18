@@ -7,6 +7,26 @@
 **Evidence behind this plan:** `research/investigation.md` - verified facts with file:line, the
 seven investigator claims that turned out wrong, and a live orchestrator probe.
 
+**Phase 5 round 1 is IN (2026-09-18, session fa18265c).** Fabio drove the agent in his own app and
+pasted the transcript; five fixes are folded in under Phase 5 (model priority as a RANKED list per
+task, the head-swap box/square guard, cream instead of rose, the Remote panel loading state, memory
+saved without being told). **He still owes the ranking ORDER**, and his memory test (restart, then
+ask about John) is running. Nothing of those five is built yet.
+
+**Phase 4 DONE (2026-09-17 ~15:10Z, session fa18265c; evidence `validation.md` § Phase 4 close).**
+Compaction live on Qwen2.5-72B (32k): handoff with the five fields, the SSE pair, the goal recalled
+after its turn was dropped. Live defect fixed: the restart kept 4 turns whatever their size, so every
+later turn compacted again; it now keeps the newest turns that fit in half the trigger (unit test +
+bite; live re-run: plain turns at ~4.5k, no re-compaction). Honest limits live: "watch this video"
+(no tool, says it), and a REAL Remote refusal (Llama-4-Scout, "Identify this person by name.") ->
+says it refused and names the setting. **Next: Phase 5**, Fabio's pass, checklist at the end of
+`validation.md` (he must fully restart his app first). **Uncommitted:** `services/agentLoop.mjs`,
+`tests/agent-loop.test.cjs`, `docs/agent-chat.md`, this card's files. **Close-out still owes:** the
+agent release note in `docs/releases/UNRELEASED.md`; root `events.jsonl` lines for Phases 3c/3d/4 (the
+root file is under live MPI-532 / MPI-800 claims today); Fabio deletes `K:/mpi774-install-sandbox`
+(29 GiB), the "MPI-774 agent test" project and the scratch profiles. My boot put MpiNodes `cff4c3b3`
+into the shared engine early (MPI-800's pin; message `b800d1f7`).
+
 **Handed off (2026-09-17 ~14:15Z, session 047d6088, committed at handoff a49e6ac9):** Fabio passed
 the Studio-head toggle (Phase 3d closed but item 5, deferred) and KEEPS the Klein encoder borrow on
 ComfyUI enhance. Phase 4 left: compaction live, honest limits live, final harness 3x + bite, then
@@ -663,7 +683,10 @@ or ComfyUI (Qwen3-VL 4B, `image_descriptor.json`, GPU). Measure and parse both.
   reads `installed`; `validation.md` § Install.)* The smallest not-installed model: the card shows
   the size; No starts nothing; Yes downloads, then a real re-read shows it installed. **Verify:**
   downloads status and a models re-read before and after, both paths.
-- [ ] **Compaction, live.** A profile with a small context window crosses its trigger; the handoff
+- [x] **Compaction, live.** *(2026-09-17, fa18265c: Qwen2.5-72B, 32k window; handoff with the five
+  fields, `agent:compacting` on/off, the goal recalled after its turn was dropped. Found live: every
+  later turn compacted again -> the restart keeps only the turns that fit; `validation.md` § Compaction.)*
+  A profile with a small context window crosses its trigger; the handoff
   carries the five fields; the next reply still knows the goal. **Verify:** `/agent/history` shows
   the handoff; the mascot showed "compacting".
 - [x] **ComfyUI enhance VRAM (folded from MPI-677 step 1d, Fabio 2026-09-17, message `f82e6bea`).**
@@ -676,7 +699,8 @@ or ComfyUI (Qwen3-VL 4B, `image_descriptor.json`, GPU). Measure and parse both.
   running generation. **Verify:** the result in `validation.md` either way, plus a one-line pointer in
   `tasks/MPI-677/validation.md` (MPI-677 stays done; its step 1d text calling DeepInfra the default is
   stale).
-- [ ] **Honest limits, live.** "Watch this video" -> the limit, in character; a describer refusal
+- [x] **Honest limits, live.** *(2026-09-17, fa18265c: both, with a REAL Remote refusal; `validation.md`
+  § Honest limits.)* "Watch this video" -> the limit, in character; a describer refusal
   (MPI-737's Remote describer exists now: use a real refusal if one can be produced cleanly, else
   the fake) -> says so and names the Image descriptions setting.
   **Verify:** the transcript lines, pasted into `validation.md`.
@@ -687,8 +711,42 @@ or ComfyUI (Qwen3-VL 4B, `image_descriptor.json`, GPU). Measure and parse both.
 
 - [ ] **Fabio drives the agent in his own app.** A plain "do X -> see Y" checklist in
   `validation.md`, one action and one result per line. **Verify:** his confirmation recorded.
+  *(Round 1 done 2026-09-17/18: transcript + findings in `validation.md` § Phase 5 - Fabio's first
+  round. His memory test - restart, then ask about John - is still running.)*
+
+### Phase 5 fixes (from round 1, all folded into this card)
+
+1. **Model priority, a ranked list per TASK** (Fabio: best, second, third, ... not one featured
+   model). New table in `js/data/modelConstants/` keyed by task, entries `{modelId, op}` (ops are
+   per-model ids); `rank` on each op in `GET /connector/models`; one Model rule line ("of the
+   installed models that do this task, take the highest-ranked unless the user names one");
+   `docs/playbooks/add-model` gains a step so a new model lands in the table. **Fabio still owes the
+   ORDER** (candidates listed in `validation.md`). **Verify:** a harness case - an edit request with
+   klein-9b and krea2 installed picks `kleinEdit` 3/3, and naming Krea 2 still wins.
+2. **A head box that is not head-sized must not become a square that eats the neighbour.** Live:
+   `box1 1166x1166` at `x -245` on a 1664x2304 photo, `box2 1171x1171` on a 768x1344 photo. The
+   describe route returns the box's share of the image; the loop refuses a box over the share a
+   head can take and asks for a tighter measure (or a crop), instead of squaring it silently.
+   **Verify:** the same two photos measured again -> the left woman's square holds her head only, or
+   a refusal the user can read; unit test on the recorded numbers.
+3. **The agent is Studio cream, not Vision rose:** every pink in the agent chat, panel and agent box
+   becomes `--hub-accent` (the token comment saying "identity only, never an action colour" moves).
+   **Verify:** no `--accent-heat` left in the agent surfaces; Fabio's eyes.
+4. **Remote > Language Models needs a loading state** (spinner or mascot) while the connection block
+   resolves; today it shows labels with empty values. **Verify:** Fabio's eyes on a cold open.
+5. **Memory saved only when told** ("Don't forget that, okay?"). Strengthen the Memory rule so a
+   stated goal, character or decision is saved without the cue. **Verify:** a harness case where the
+   user states a character in passing -> `write_memory` called 3/3.
 
 ## Plan Drift
+
+- 2026-09-17 (Phase 4 close, session fa18265c): (9) live compaction on a 32k window compacted on
+  EVERY turn after the first: the restart kept the last 4 turns whatever their size, and one
+  `list_models` answer is ~9.5k tokens against a 16.4k trigger. The restart now keeps the newest turns
+  (at most 4) that fit in half the trigger (same file, needed for the compaction item). (10) My
+  `app:isolated` boot ran the node drift repair on the SHARED engine because MPI-800's uncommitted
+  `node_lock.json` pin was in the tree (MpiNodes -> cff4c3b3 on disk; engine not restarted); MPI-800
+  told (message `b800d1f7`), nothing reverted.
 
 - 2026-09-17 (Phase 4, session 047d6088): live runs found four things no fake could, all folded in
   (same files as the card): (1) `buildDescribeInjectionParams` never sent the image (ComfyUI describe

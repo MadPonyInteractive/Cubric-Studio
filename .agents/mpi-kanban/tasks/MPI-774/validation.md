@@ -621,3 +621,160 @@ uncommitted server edits were in the tree when this started; see plan Current St
   head, Enhance-sized; Phase 3d item 6 closed). On the encoder borrow: **Klein must use its own
   encoder when ComfyUI runs the enhance**, "otherwise generations would take a lot longer". The fix
   stays; the measured +3 s per Enhance + Generate on this card does not change that decision.
+
+## Phase 4 close (2026-09-17, session fa18265c) - compaction, honest limits, final harness
+
+- **Where:** my own `app:isolated` (scratch profile, `CUBRIC_MODELS_ROOT=G:/CubricModels`,
+  `DEEPINFRA_API_KEY` from the secrets file), ports 60023 then 64750 after a restart; `:3000`
+  untouched; every agent turn under `gpu_lease.py run` (none generated). Driver `drive.mjs` (model pick
+  + text from a file), pads of ~2.6k tokens (`pad.mjs`), all in the session scratchpad.
+- **Side effect at boot, reported:** MPI-800's uncommitted `dev_configs/node_lock.json` pin was in the
+  tree, so my boot's node drift repair pre-wiped the SHARED engine's `custom_nodes/ComfyUI-MpiNodes`
+  and installed `cff4c3b3` (1.2.16) 3 s after READY. The engine on 48188 was not restarted (it runs the
+  1de35a33 code it loaded). That is the sha MPI-800's Phase 2 wants; nothing reverted; MPI-800 told
+  (message `b800d1f7`) and keeps it (reply `2951155f`: Fabio's full app restart finishes it). My pre-boot check named `routes/ server.js services/ main/` but not `dev_configs/`.
+
+### Compaction, live (Qwen/Qwen2.5-72B-Instruct, 32,768 window, trigger 16,384)
+
+- **Run 1 (as committed):** turn 0 set the goal ("six-shot storyboard, The Last Lighthouse", teal and
+  amber + fog, Krea 2 at 3:2, open: whether the robot gets a name; no notes, no generation), then pads.
+  prompt_tokens 4,244 -> 6,892 -> 9,489 -> 12,103 -> 14,704 -> **17,309**: on that turn
+  `agent:compacting` `on: true` at 2.9 s, `on: false` at 14.1 s (same `turnId`), and `/agent/history`
+  gained a `handoff` entry with all five fields (Goal; Decisions Made; Outputs Generated: none; Current
+  Model and Settings: Krea 2, 3:2; Open Questions: the robot's name, and what each shot shows). The goal
+  turn and pad P were dropped (kept: the last 4). Recall turn (14,894 tokens): goal, look, Krea 2 at 3:2
+  and the open name question, all right, and no tool called.
+- **Defect found live: it then compacted on EVERY turn.** A `list_models` turn went to 24,622 tokens
+  (the answer alone ~9.5k) and compacted; the next PLAIN turn was still 19,782 and compacted again:
+  3 handoffs in 3 turns. Cause: the restart kept the last 4 turns whatever their size, so the restart
+  itself sat above the trigger (and a bigger turn would overflow the window). Brief item 15 says "the
+  last few turns"; 4 was ours. **Fix** (`services/agentLoop.mjs`): keep the newest turns, at most 4,
+  that fit in half the trigger, sized by the last call's tokens per char (no tokenizer; tool schemas
+  add tokens without chars, so it over-counts). `tests/agent-loop.test.cjs` "a compaction keeps only
+  the recent turns that fit in half the trigger": 42/42 (+1 live skip). **Bite** (no budget): 1 fail;
+  restored. `eslint` on both files exit 0. `docs/agent-chat.md` § Loop rules updated.
+- **Run 2 (fixed, fresh instance, fresh conversation):** same goal + pads, 4,244 -> ... -> 14,673 ->
+  **17,268**, compacted (on/off pair). Recall at **9,593** (was 14,894): right on all four points. The
+  `list_models` turn: 19,326, compacted once (its own prompt crossed). Then three plain turns at
+  **4,421 / 4,508 / 4,594**, no compaction (before the fix: every one). Shot 1 answer still used the
+  goal; the last turn restated the goal and the open question correctly after TWO compactions.
+- Mascot / "compacting" line: the UI half is `agent-chat.spec.js` "agent:compacting renders compacting
+  line" (below); the live events above are what drive it. Fabio sees it in Phase 5.
+- Model nit, not ours: Qwen listed Krea 2's ratios without 3:2 and said "3:2 is supported"; the
+  Settings rule and the named-param check refuse an unlisted ratio at generate time.
+
+### Honest limits, live (the default agent model, DeepSeek V4 Flash)
+
+- **"Watch the video I made earlier, t2v_001.mp4 ... tell me if the motion looks smooth."** No tool
+  call. Reply: "I have an honest limit: I can't watch videos. I can only look at still images ... I
+  can't judge motion smoothness from a single still", and offered to look at an attached still.
+  Nit: its last line offered to look at "that image" from the gallery, which it can reach only if the
+  user attaches it.
+- **A REAL Remote describer refusal.** Probe first: `POST /llm/describe` (Llama-4-Scout) with "Identify
+  this person by name." on `t2i_002.png` -> `ok: true`, "I can't identify people based on their image."
+  Then a playwright page on MY instance with `cubric.llm.describeBackend = endpoint` (the relay feeds the
+  newest window; closed right after; no ComfyUI describe ran, per 48188 `/history`). First try ("tell
+  me who this man is"): the agent asked the describer for identity AND appearance, so it described, and
+  the agent said it cannot identify him. Second try, the question pinned ("Use look on picture 1 with
+  exactly this question ..."): `look {image: att_cb4239e0, question: "Identify this person by name."}`
+  -> the refusal text (2 s); the reply quoted it, said "the describer declined to identify the person
+  by name ... this is the remote describer declining; if you'd prefer one that runs locally on your
+  machine (which won't refuse), you can switch Image descriptions in **Settings > Remote > Language
+  Models**." The harness case `look-refusal` covers the unpinned path with a fake refusal.
+
+### Suites (after the fix)
+
+- `npm test`: 1312 tests, 1305 pass, **6 fail, all in MPI-800's in-flight workflow rework** (38 files
+  mid-edit by a live peer): `tests/workflow-media-slots.test.cjs` (untracked, 4), and
+  `tests/flow-model-choice.test.cjs` / `tests/flow-required-media.test.cjs` (modified by that peer).
+  None imports the agent loop.
+- `tests/desktop/agent-chat.spec.js` (private `--output`): 25/26; the miss was "Mascot flips back to
+  idle" with `shellWindow: no 127.0.0.1:63285 window within 30000ms` (the app never showed its
+  window); alone: 1/1 pass.
+- `npm run agent:test -- --bite`: **15/15 bite**, $0.034.
+- `npm run agent:test` (3 runs per case): **15/15 cases, 45/45 runs** (no `memory-read` flake this
+  time), $0.087. Both harness runs used the tree with the compaction fix.
+
+## Phase 5 - Fabio's first round (2026-09-17/18, his app, "New Project")
+
+Read off disk (his chat lives in the server's memory; `:3000` is his session and my Bash guard
+refuses to read it). Sources: `New Project/Media/.meta/*.json` and `New Project/Agent/`.
+
+- **Head Swap picked up the wrong woman. Cause, from the sidecar:** `flowHeadSwap_001`
+  `box1 {x: -245, y: 594, w: 1166, h: 1166}` on a **1664x2304** source, and
+  `box2 {x: -201, y: 173, w: 1171, h: 1171}` on a **768x1344** source - box2's side is WIDER THAN
+  THE WHOLE IMAGE. Both squares keep the raw box's longer edge, so the raw boxes were ~1166 px TALL:
+  the describer boxed the whole woman (head to waist), not the head, and `square` then matched that
+  height in width, which swallowed the neighbour and ran off the left edge. Two holes: (1) nothing
+  checks that a "head" box is head-sized, on a group photo the describer over-boxes; (2) `square`
+  inflates without a limit or a warning, and `overflow: 'allow'` means no one refuses it.
+- **Model choice: an edit went to `krea2Edit` (`edit_001`) with `klein-9b` installed** (`edit_002`
+  is the same edit on `kleinEdit`). Nothing in `list_models` says which model OWNS an op: ops are a
+  flat `supportedOps` list, and Krea 2's edit is an adapted path (`Input_wf_type: 4`) while Klein 9B
+  is the native editor. Fabio: prefer Klein 9B. Needs a preference the catalog carries and a Model
+  rule line.
+- **The agent's colour is wrong:** `MpiAgentChat.css` uses `--accent-heat` (Vision rose). The agent is
+  Studio, so it should read the cream `--hub-accent` (whose comment today says identity only, never
+  an action colour - that line moves or a new token is added).
+- **Remote > Language Models looks broken while it loads:** the connection block renders its labels
+  (Provider, Base URL, API key, Prompt enhancement, ...) with empty values until the backend answers.
+  Needs a loading state (spinner or the mascot).
+- **Memory:** `Agent/README.md` + `characters.md` exist, saved from an explicit "remember ... John
+  and Maria". The Memory rule already tells it to save unprompted; live it needed telling.
+- **Renaming a project:** it correctly said it cannot - no tool renames a project (`rename_card` is
+  cards only). Checklist line 16 (never deletes) is proven by that refusal. Its advice was RIGHT, not
+  invented: `js/shell/projectUI.js:575` puts "Rename project" in the project card's menu.
+- **The transcript** (Fabio pasted it, 2026-09-18): the cat t2i read `guide:sdxl`; the guinea pig
+  matched the environment with no new guide read; "edit picture 1 ... night environment" read
+  `guide:krea-2` and ran Krea 2; only "please use Kline9b" made it read `guide:flux-2` and run
+  `kleinEdit`; the head swap ran after two looks; the LTX install card was declined and it then
+  offered `ltx-23` (~58 GB) and `ltx-23-balanced` (~39 GB) with the fit note; the memory note landed
+  only on "Don't forget that, okay?".
+
+- **Memory across a restart: PASSED (Fabio, 2026-09-18).** After a full app restart, in the same
+  project (since renamed "2-character test"; a rename changes the display name only, never the
+  folder), "Hey Studio, I can't remember what I was supposed to do in this project. Can you remind me
+  please?" -> `read_memory` + `list_projects`, then the note read back: John now, Maria later, and it
+  offered to start John. Checklist line 15 is proven.
+
+### Fabio's decisions on those findings (2026-09-18)
+
+- **Model priority is a RANKED LIST per task, not one featured model:** best, second, third, ... per
+  task, and the agent takes the highest-ranked INSTALLED one unless the user names a model. Ops are
+  per-model ids (`kleinEdit`, `krea2Edit`, `qwenEdit`, `edit`), so the table is keyed by TASK and each
+  entry is a `{modelId, op}` pair; `/connector/models` carries the rank and the Model rule reads it.
+  The order itself is Fabio's to give (candidates below).
+- **Colour:** everywhere the agent surfaces use pink today becomes `--hub-accent` (Studio cream).
+  That is the agent chat, the panel and the agent box, including buttons and active states.
+
+Candidates to rank (from `js/data/modelConstants/models.js`): **edit** - klein-9b `kleinEdit`,
+boogu-edit-high / boogu-edit-balanced `edit`, qwen-edit `qwenEdit`, krea2 / krea2-nsfw `krea2Edit`.
+**t2i / i2i / control / inpaint / upscale / detail** - krea2, krea2-nsfw, klein-9b, klein-4b,
+chroma-flash, chroma-hyper, sdxl-realistic, sdxl-nsfw, ill-anime, ill-anime-beauty, pony-mix.
+**t2v** - minimax-h3, ltx-23, ltx-23-balanced, wan-22 (`t2v`), wan22-5b. **i2v** - minimax-h3,
+ltx-23, ltx-23-balanced, wan-22, wan22-5b. **ref2v** - minimax-h3-ref2va. **pid** - nvidia-pid.
+
+## Phase 5 - Fabio's pass (checklist; one action, one result per line)
+
+**First: quit the app and start it again.** A reload is not enough (the agent runs in the server;
+MPI-800 needs the same restart).
+
+1. Settings > Remote > Language Models -> the connection block is on top; the Agent row shows Remote, a model, the mode and a tool test that passes.
+2. Landing page, agent box beside the headline: type "make a picture of a cat on a windowsill", Enter -> the mascot works, a "New Project" is created and opened, the chat moves into it, a result card lands and opens the card when clicked.
+3. Landing page: "start a new project for a comic about a fox detective" -> a project named after it, opened, a "Noted:" line, then it asks what to make first and generates nothing.
+4. In a project, press the Studio head beside Enhance -> the agent panel opens on the left, full height; the prompt box shows only its text and the head, with a hint.
+5. Press the head again -> Prompt mode, with the prompt you had before still in the box.
+6. Drag the panel's right edge -> it resizes; reload -> the width stays.
+7. Drop two images into the box -> chips numbered 1 and 2.
+8. "Edit picture 1: give him the hair of the person in picture 2" -> it looks at both, edits picture 1 (not an older image), the chat never shows the prompt, a result card lands.
+9. After any image result -> a "Looking at image" line follows; it never regenerates on its own.
+10. "Make a short video of waves on rocks" (Auto) -> no questions, video at medium + turbo.
+11. Head Swap: drop two portraits, "put the head from picture 2 onto the person in picture 1" -> it measures both heads (look lines), runs Head Swap, the result is a clean swap.
+12. Agent mode Ask first (Settings) -> "make an image of a red bicycle" -> it asks about the settings before generating.
+13. "Install <a model you do not have>" -> a Yes/No card with the size; No -> nothing downloads; Yes -> it shows in Downloads and the reply says it is downloading.
+14. "Watch my last video and tell me if the motion is smooth" -> it says it cannot watch videos, only still images.
+15. "Remember that the hero is called Rook" -> a "Noted:" line and a note in `<project>/Agent/`; restart the app; "what is the hero called?" -> it reads the note and says Rook.
+16. "Delete the last card" -> it says it cannot delete and tells you where you can.
+17. Switch to another project and back -> each project shows its own conversation.
+18. Image descriptions = Remote, drop a portrait, "use look with exactly this question: Identify this person by name." -> it says the describer refused and names Settings > Remote > Language Models.
+19. (Optional) Pick a small-window agent model (e.g. Qwen/Qwen2.5-72B-Instruct) and chat long -> a "Compacting" line with the mascot, and it still knows the goal afterwards.
