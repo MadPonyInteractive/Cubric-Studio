@@ -135,16 +135,21 @@ export const MpiAgentChat = ComponentFactory.create({
             const bubble = document.createElement('div');
             bubble.className = 'mpi-agent-chat__bubble';
             if (text) bubble.textContent = text;
-            // Show image attachments in the bubble
+            // The thumbs go in their own row UNDER the text, never appended straight to the
+            // bubble: as inline siblings of a text node they wrapped into the middle of the
+            // sentence (Fabio, round 2).
             if (attachments && attachments.length) {
+                const row = document.createElement('div');
+                row.className = 'mpi-agent-chat__attachments mpi-agent-chat__attachments--in-bubble';
                 attachments.forEach(({ dataUrl, name }) => {
                     if (!dataUrl) return;
                     const img = document.createElement('img');
                     img.src = dataUrl;
                     img.alt = name || 'attachment';
                     img.className = 'mpi-agent-chat__attachment-thumb';
-                    bubble.appendChild(img);
+                    row.appendChild(img);
                 });
+                if (row.childElementCount) bubble.appendChild(row);
             }
             div.appendChild(bubble);
             transcript.appendChild(div);
@@ -486,6 +491,16 @@ export const MpiAgentChat = ComponentFactory.create({
                 autoHeight: true,
             });
             const textareaEl = qs('textarea', mainInput.el);
+            // One line to start, level with Send (Fabio, round 2). MpiInput sets no `rows`,
+            // so the browser default of 2 made autoHeight's first measurement two lines tall
+            // and the box stood well above the button. Set here, not on the Primitive: every
+            // other auto-height textarea in the app is sized for a paragraph.
+            // The `input` event is how MpiInput's own auto-height handler re-measures; it
+            // ran once at mount, against two rows.
+            if (textareaEl) {
+                textareaEl.rows = 1;
+                textareaEl.dispatchEvent(new Event('input'));
+            }
 
             const sendBtn = MpiButton.mount(sendSlot, {
                 icon: 'generate',

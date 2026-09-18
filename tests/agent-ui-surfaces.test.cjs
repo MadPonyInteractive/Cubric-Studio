@@ -63,6 +63,28 @@ test('a result whose file will not load falls back to a readable tile', () => {
     assert.match(read(CHAT_CSS), /\.mpi-agent-chat__result-card--unavailable/);
 });
 
+// ── 2b. A sent message's attachments, and the composer's height ───────────────
+
+test("a bubble's attachments are a row under the text, not inline siblings of it", () => {
+    const js = read(CHAT_JS);
+    // Appended straight to the bubble they were inline with the text node and wrapped
+    // into the middle of the sentence (Fabio, round 2).
+    assert.match(js, /mpi-agent-chat__attachments--in-bubble/);
+    assert.match(js, /if \(row\.childElementCount\) bubble\.appendChild\(row\)/);
+    assert.match(read(CHAT_CSS), /\.mpi-agent-chat__attachments--in-bubble:not\(:first-child\)/);
+});
+
+test('the composer and its Send button are one line, and the same one', () => {
+    // `lh` resolves against each element's own font-size, and Send's is smaller: both
+    // sides have to read the SAME custom property or they never meet.
+    const css = read(CHAT_CSS);
+    assert.match(css, /--agent-composer-h:\s*calc\(var\(--t-sm\) \* 1\.3 \+ var\(--s-4\)\)/);
+    assert.match(css, /\.mpi-agent-chat__input-row \.mpi-btn \{\s*min-height: var\(--agent-composer-h\)/);
+    assert.match(read('styles/shell/landing.css'), /min-height: var\(--agent-composer-h\)/);
+    // MpiInput sets no `rows`, so the browser default of 2 sized it before this ran.
+    assert.match(read(CHAT_JS), /textareaEl\.rows = 1/);
+});
+
 // ── 3. The agent is Studio cream ──────────────────────────────────────────────
 
 test('the agent surfaces rebind the accent to Studio cream', () => {

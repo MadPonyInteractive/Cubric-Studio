@@ -1058,3 +1058,89 @@ Layout in agent mode, computed: the run column is `display: flex` with three gri
 
 What is left of Phase 5 for Fabio: whether the cream and the spinner LOOK right, the panel resize
 feel, and one end-to-end pass in his own app — his install is the only real one.
+
+### Fabio's round 2 (2026-09-18, his app) — three UI notes and one real defect
+
+**The cream is right, and it is provably the mascot's own colour.** His test was "if that cream
+is the same as the mascot's colour, yes; if not, no". On the landing crew, the Studio mascot's
+floor glow, its label dot and its name all read `--crew-accent`, and for `--studio` that IS
+`--hub-accent` (`styles/shell/landing.css:138`) — the same token the agent chat rebinds
+`--accent-heat` to. The art agrees: the mascot's dominant body cream samples at
+`rgb(200,184,168)` against the token's `rgb(193,182,164)`. Settled, no change.
+
+**The spinner: fine, his word. The gallery agent panel: works fine, his word.**
+
+**Fixed — attachment chips wrapped into the middle of the sentence.** `_appendUser` appended each
+thumb straight to the bubble, so they were inline siblings of the text node and landed mid-line
+("...from image 1 to image [thumb][thumb] 2?"). They now go in a
+`mpi-agent-chat__attachments--in-bubble` row appended after the text. Verified live: the bubble's
+children are `[text, attachments-row]`, the row's top is below the text, two 40px thumbs side by
+side.
+
+**Fixed — the composer stood three lines tall beside its Send button.** Two causes, both needed:
+
+1. `MpiInput` sets no `rows`, so the browser default of **2** was what auto-height measured at
+   mount — not the `min-height` anyone was reading. Set `rows = 1` on the agent composer only
+   (every other auto-height textarea in the app is sized for a paragraph) and re-fire `input`,
+   which is the Primitive's own re-measure hook.
+2. The landing rule deliberately asked for three lines ("Room for a real ask, not a search
+   field", `landing.css`) at `calc(3lh + var(--s-4))` = 73px, beside a 34px button.
+
+The field cannot come down to the button's own 34px — a 13px line plus the field's 19.2px padding
+is 38px — so the pair meets at the field's natural single line and Send is raised to it. **`1lh`
+cannot express that**: it resolves against each element's own font-size, and Send's is `--t-2xs`,
+so a shared `calc(1lh + …)` gave 39 on the field and 35 on the button. Both now read one custom
+property, `--agent-composer-h: calc(var(--t-sm) * 1.3 + var(--s-4))`, declared on the input row.
+Measured live: field **38.9**, button **38.9**; four lines typed -> field 87, button still 38.9;
+cleared -> back to 38.9.
+
+**The project page needed nothing.** Its agent box is the prompt box in agent mode, already level:
+field 32px against a 34px head and a 34px Stop. The landing box at 73 was the outlier.
+
+`node --test tests/agent-ui-surfaces.test.cjs` 7/7 (two new), `npm run lint:components` clean.
+
+### The defect his round 2 found: Stop poisons the next generation of a streamed model
+
+His sequence: an H3 i2v ran, he Stopped it because the frame order was inverted, asked the agent to
+redo it inverted, and the second run **failed** with
+`MpiH3ImageToVideo failed: RuntimeError: hostbuf_file_reader_read failed`.
+
+From his `%APPDATA%\Cubric Studio\logs\app.log`:
+
+```
+15:23:46.384  Global interrupt (no prompt_id specified)   <- the Stop, at sampling step 6/8
+15:23:46.897  Processing interrupted
+15:24:25.420  Agent job ...: generation.submit             <- 39 s later, SAME model
+15:24:41.218  !!! Exception during processing !!! hostbuf_file_reader_read failed
+```
+
+The traceback dies on the **first weight read** of the reused `MiniMaxH3TEModel_`:
+`ops.cast_bias_weight` -> `model_management.cast_to_gathered` ->
+`memory_management.read_tensor_file_slice_into` -> `comfy_aimdo.host_buffer.read_file_to_device`.
+That is ComfyUI's streamed-weight path — the model is "prepared for dynamic VRAM loading" and its
+tensors are read from the file on demand. Interrupting mid-stream leaves that cached model's host
+buffer file reader unusable, and the next run that REUSES the still-cached model hits it.
+
+**Why it has not bitten before, and why it is not in doubt.** Four earlier interrupts today
+(`app-20260918-152219.log`, 11:33, 13:23, 13:41, 14:32) were each followed by a gap of 7 to 50
+minutes, or by a different model — the poisoned model was evicted before anything reused it. His
+was **39 seconds, same model**. The 14:32 one was 1.94 s in, before streaming began. My own Phase 5
+Stop verification used `sdxl-realistic`, small and resident, and never touched the streaming path.
+
+**Not proven, and what would prove it:** an H3 i2v, Stop mid-sample, resubmit within ~30 s. That is
+two ~90 s runs on the shared engine and it fights whatever the user is doing, so it was not run.
+
+**Where the fix belongs — Fabio's call.** The bug itself is upstream (an interrupt should not leave
+`comfy_aimdo`'s reader broken) and cannot be fixed in this repo. Our side owns the trigger: the
+cancel path fires the interrupt, so it can also drop the engine's cached models afterwards
+(`/comfy/free` with `unload_models`), which forces the next run to re-open its readers. That costs
+a model reload on the next generation after any Stop — real seconds, on every Stop, to avoid a
+failure that needs a quick resubmit of a streamed model. The alternative is to do it only when the
+interrupted run was streaming. Not built: this is a design call plus an upstream question.
+
+### Environment, from this session
+
+**The local engine is SHARED: one ComfyUI on 48188 for the user's app and every agent instance.**
+A Stop fires a GLOBAL interrupt (`Global interrupt (no prompt_id specified)`), so an agent testing
+a cancel path can kill a generation the user started. Check `GET /queue` is empty first and keep
+the window short. Also in `~/.claude/memory/tools/mpi-kanban.md`.

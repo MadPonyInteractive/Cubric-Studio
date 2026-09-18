@@ -478,9 +478,11 @@
   padding-top: 0;
 }
 
-/* Room for a real ask, not a search field: three lines before it starts to grow. */
+/* One line, level with its Send button, still growing as you type (Fabio, round 2 — it
+   used to stand three lines tall beside it). The floor tracks the type scale rather than
+   a pinned pixel; the composer's own rule gives Send the same height. */
 .mpi-landing__agent-slot .mpi-agent-chat__input-wrap .mpi-input__field {
-  min-height: calc(3lh + var(--s-4));
+  min-height: var(--agent-composer-h);
 }
 
 .mpi-landing__agent-slot .mpi-agent-chat__transcript:empty {

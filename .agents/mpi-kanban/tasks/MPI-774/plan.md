@@ -2,6 +2,19 @@
 
 ## Current State
 
+**Fabio's round 2 came back (2026-09-18, session 130cab18; `validation.md` § Fabio's round 2).**
+Cream: YES, and provably the mascot's own token. Spinner and the gallery panel: fine, his word.
+Two UI notes BUILT and verified live — attachment chips now sit in their own row under the
+text instead of wrapping into the sentence, and the landing composer is one line level with
+Send (field 38.9 = button 38.9, still grows as you type). The project page needed nothing.
+`tests/agent-ui-surfaces.test.cjs` 7/7, `lint:components` clean.
+
+**HIS ROUND 2 FOUND A REAL DEFECT, and it belongs to fix 6 — see § Phase 5 fix 8 below.**
+Stopping a generation of a model that streams its weights leaves the engine's reader broken,
+and the next run that reuses that still-cached model dies on its first weight read. His log
+shows the pairing at 39 seconds. Not built: where the fix goes is a design call plus an
+upstream question.
+
 **Fixes 3, 4, 6 and 7 are now proven in a LIVE app, not in the source (2026-09-18, session
 130cab18; `validation.md` § Fixes 3, 4, 6, 7 proven in a live app).** A real `<video>` at
 readyState 4 and the "Did not finish" tile on both element types; `--accent-heat` computing
@@ -802,7 +815,36 @@ Round 1 continued (Fabio, 2026-09-18, same pass):
    playable tile for a video and a readable tile for a stopped one; unit test on both branches.
 
 All seven are built (2026-09-18, session 627f63f6; `validation.md` § Phase 5 fixes 2-7 and § Fix 1).
-What is left of Phase 5 is Fabio's round 2 in his own app.
+Round 2 came back 2026-09-18: fixes 9 and 10 below were built from it, and fix 8 was found by it.
+
+### Phase 5 fix 8: Stop poisons the next generation of a STREAMED model (open, needs a decision)
+
+Found by Fabio's round 2, and it is fix 6's own consequence. He Stopped an H3 i2v at step 6/8 and
+resubmitted 39 seconds later; the second run died on the first weight read of the still-cached
+model — `hostbuf_file_reader_read failed`, through
+`comfy_aimdo.host_buffer.read_file_to_device`. Evidence, the log extract and the four earlier
+interrupts that did NOT bite (each had a 7-50 minute gap, or a different model):
+`validation.md` § The defect his round 2 found.
+
+- [ ] **Decide where the fix goes.** The bug is upstream — an interrupt should not leave the
+  streamed-weight reader broken — and cannot be fixed in this repo. Our side owns the trigger, so
+  the cancel path can drop the engine's cached models after an interrupt (`/comfy/free` with
+  `unload_models`) and force the next run to re-open its readers. Cost: a model reload on the next
+  generation after ANY Stop. Narrower option: only when the interrupted run was streaming.
+  **Verify:** an H3 i2v, Stop mid-sample, resubmit inside 30s -> it runs.
+- [ ] Raise it upstream if the ComfyUI version we pin still has it.
+
+### Phase 5 fixes 9 and 10 (Fabio's round 2, both built 2026-09-18, session 130cab18)
+
+9. **Attachment chips wrapped into the middle of the sentence.** `_appendUser` appended each thumb
+   straight to the bubble, inline with the text node. They now go in a
+   `mpi-agent-chat__attachments--in-bubble` row under the text. **Verified:** live DOM, bubble
+   children `[text, row]`, plus a unit assertion.
+10. **The composer stood three lines tall beside its Send button.** `MpiInput` sets no `rows` so
+   auto-height measured the browser's default of 2, and the landing rule asked for three lines on
+   purpose. Now `rows = 1` plus one shared custom property, `--agent-composer-h`, read by both the
+   field and the button — `1lh` could not do it, because it resolves against each element's own
+   font-size. **Verified:** field 38.9 = button 38.9 live, growth intact, unit assertion.
 
 ## Phase 6: Global memory (Fabio, 2026-09-18 — NEXT SESSION)
 

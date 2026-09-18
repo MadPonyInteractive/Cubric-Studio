@@ -15,6 +15,8 @@ Derived from `plan.md` phases (2026-09-15).
   - [x] Round 2, the agent-verifiable half: fixes 3, 4, 6, 7 driven in a live `app:isolated`
     instance — real DOM, computed styles, and a real generation cancelled by Stop
     *(2026-09-18, `validation.md` § Fixes 3, 4, 6, 7 proven in a live app)*
-  - [ ] Round 2, Fabio's half: the cream and the spinner as looks, the panel resize feel,
-    and one end-to-end pass in his own app
+  - [x] Round 2, Fabio's half *(2026-09-18: cream YES and provably the mascot's token, spinner
+    fine, gallery panel fine; two UI notes built as fixes 9 and 10)*
+  - [ ] Fix 8: Stop poisons the next generation of a streamed model — WHERE the fix goes is
+    Fabio's decision (`plan.md` § Phase 5 fix 8)
 - [ ] Phase 6: global memory (Fabio, 2026-09-18) — next session

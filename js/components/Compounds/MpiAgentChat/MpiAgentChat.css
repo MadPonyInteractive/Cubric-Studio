@@ -271,6 +271,10 @@
 
 /* ── Standalone input row ─────────────────────────────────────────────────── */
 .mpi-agent-chat__input-row {
+    /* One collapsed line of the field — its line box plus its own vertical padding.
+       Written from the type scale rather than `1lh`, because `lh` resolves against each
+       element's font-size and Send's is smaller: the two would never meet. */
+    --agent-composer-h: calc(var(--t-sm) * 1.3 + var(--s-4));
     display: flex;
     gap: var(--s-2);
     align-items: flex-end;
@@ -288,12 +292,30 @@
     flex-shrink: 0;
 }
 
+/* Send matches the collapsed field's ONE line, so the pair reads as one control
+   (Fabio, round 2). The field cannot come down to the button's own 34px — a 13px line
+   plus the field's padding is 38px — so they meet at the field's natural height, and
+   the button holds it when the field grows. */
+.mpi-agent-chat__input-row .mpi-btn {
+    min-height: var(--agent-composer-h);
+}
+
 /* Attachments preview strip */
 .mpi-agent-chat__attachments {
     display: flex;
     flex-wrap: wrap;
     gap: var(--s-1);
     padding-bottom: var(--s-1);
+}
+
+/* The same strip inside a sent bubble: its own row under the text, not inline with it.
+   No bottom padding here — the bubble's own padding closes the box. */
+.mpi-agent-chat__attachments--in-bubble {
+    padding-bottom: 0;
+}
+
+.mpi-agent-chat__attachments--in-bubble:not(:first-child) {
+    margin-top: var(--s-2);
 }
 
 .mpi-agent-chat__attachment-thumb {
