@@ -69,8 +69,8 @@
     border-color: var(--accent-heat);
 }
 .mpi-reuse-prompt-dialog__row:has(.is-active):hover {
-    background: var(--accent-heat-hi, oklch(0.80 0.19 355));
-    border-color: var(--accent-heat-hi, oklch(0.80 0.19 355));
+    background: var(--accent-heat-hi);
+    border-color: var(--accent-heat-hi);
 }
 
 /* The toggle button carries the icon + label only; the ROW owns the surface. Strip

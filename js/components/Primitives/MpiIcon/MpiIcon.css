@@ -55,7 +55,7 @@
 }
 
 .mpi-icon--danger {
-    color: var(--accent-heat);
+    color: var(--accent-err);
 }
 
 .mpi-icon--success {

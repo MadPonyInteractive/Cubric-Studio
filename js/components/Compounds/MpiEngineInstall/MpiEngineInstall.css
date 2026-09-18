@@ -61,7 +61,7 @@
 }
 
 .mpi-engine-install__title--error {
-    color: var(--accent-heat);
+    color: var(--accent-err);
 }
 
 /* ── Subtitle ────────────────────────────────────────────────────────────── */

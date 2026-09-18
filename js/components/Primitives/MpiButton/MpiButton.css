@@ -55,8 +55,8 @@
 
 .mpi-btn--primary:hover:not(:disabled),
 .mpi-btn--primary.is-pressed:not(:disabled) {
-    background: oklch(0.78 0.20 6);
-    border-color: oklch(0.78 0.20 6);
+    background: var(--accent-heat-hi);
+    border-color: var(--accent-heat-hi);
     color: oklch(0.12 0.02 0);
 }
 
@@ -73,17 +73,18 @@
     border-color: var(--ink-2);
 }
 
-/* danger — same heat fill (semantic alias) */
+/* danger — its own token, NOT the action accent (MPI-736): a workspace rebinds
+   --accent-heat to its media colour, and a destructive button must stay red. */
 .mpi-btn--danger {
-    background: var(--accent-heat);
-    border-color: var(--accent-heat);
+    background: var(--accent-err);
+    border-color: var(--accent-err);
     color: oklch(0.16 0.02 0);
 }
 
 .mpi-btn--danger:hover:not(:disabled),
 .mpi-btn--danger.is-pressed:not(:disabled) {
-    background: oklch(0.78 0.20 6);
-    border-color: oklch(0.78 0.20 6);
+    background: var(--accent-err-hi);
+    border-color: var(--accent-err-hi);
 }
 
 /* outline — transparent + ink border, fills on hover */
@@ -279,8 +280,8 @@
 }
 
 .mpi-btn.mpi-ibtn:not(.mpi-btn--ghost).is-active:hover:not(:disabled) {
-    background: oklch(0.78 0.20 6);
-    border-color: oklch(0.78 0.20 6);
+    background: var(--accent-heat-hi);
+    border-color: var(--accent-heat-hi);
     color: oklch(0.12 0.02 0);
 }
 

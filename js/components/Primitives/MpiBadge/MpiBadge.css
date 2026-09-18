@@ -50,9 +50,9 @@
 }
 
 .mpi-badge--danger {
-    background: color-mix(in oklch, var(--accent-heat) 12%, transparent);
-    color: var(--accent-heat);
-    border: 1px solid color-mix(in oklch, var(--accent-heat) 30%, transparent);
+    background: color-mix(in oklab, var(--accent-err) 12%, transparent);
+    color: var(--accent-err);
+    border: 1px solid color-mix(in oklab, var(--accent-err) 30%, transparent);
 }
 
 .mpi-badge--info {

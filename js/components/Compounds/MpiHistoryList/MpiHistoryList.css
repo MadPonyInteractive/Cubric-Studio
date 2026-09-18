@@ -50,7 +50,7 @@
 
 /* Select mode highlight */
 .mpi-history-list__card--selected {
-    background: oklch(0.76 0.17 355 / 0.08);
+    background: color-mix(in oklab, var(--accent-heat) 8%, transparent);
 }
 
 .mpi-history-list__card--selected .mpi-history-list__status {

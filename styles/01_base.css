@@ -78,6 +78,21 @@
   --accent-ok:       oklch(0.78 0.13 150);   /* success, ready */
   --accent-warn:     oklch(0.78 0.14 60);    /* warning */
 
+  /* Error / destructive. MPI-736 phase 1a: danger used to be a literal alias of
+     --accent-heat (MpiButton.css said so in as many words), which breaks the moment a
+     workspace rebinds the action token to its character's colour - a failure toast would
+     go orange in the video workspace. Born at --accent-heat's exact value so that pass
+     was provably zero-delta; re-hueing it to a truer red is a separate, visible decision. */
+  --accent-err:      oklch(0.76 0.17 355);   /* error, destructive */
+
+  /* Hover lift for the two fill tokens. A custom property bakes its var() at the rule
+     that declares it, so a subtree rebinding --accent-heat MUST restate --accent-heat-hi
+     in the same rule or the lift stays rose. MpiReusePromptDialog has referenced
+     --accent-heat-hi since it shipped; until now nothing defined it and its fallback was
+     what always rendered. */
+  --accent-heat-hi:  oklch(from var(--accent-heat) calc(l + 0.02) calc(c + 0.03) h);
+  --accent-err-hi:   oklch(from var(--accent-err) calc(l + 0.02) calc(c + 0.03) h);
+
   /* Media-type accent. Cubric Studio gives each media type its own colour
      (MPI-708); audio is the first surface here that needs one. Mirrored from
      the source of truth — `--audio-accent` in the Cubric Studio (Website) repo,
@@ -318,12 +333,14 @@ h4 {
 
   0%,
   100% {
-    box-shadow: 0 0 5px oklch(0.76 0.17 355 / 0.15), 0 0 10px oklch(0.76 0.17 355 / 0.15);
-    border-color: oklch(0.76 0.17 355 / 0.3);
+    box-shadow: 0 0 5px color-mix(in oklab, var(--accent-heat) 15%, transparent),
+                0 0 10px color-mix(in oklab, var(--accent-heat) 15%, transparent);
+    border-color: color-mix(in oklab, var(--accent-heat) 30%, transparent);
   }
 
   50% {
-    box-shadow: 0 0 12px oklch(0.76 0.17 355 / 0.3), 0 0 20px oklch(0.76 0.17 355 / 0.15);
+    box-shadow: 0 0 12px color-mix(in oklab, var(--accent-heat) 30%, transparent),
+                0 0 20px color-mix(in oklab, var(--accent-heat) 15%, transparent);
     border-color: var(--accent-heat);
   }
 }

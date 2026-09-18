@@ -66,12 +66,19 @@ https://claude.ai/artifact/9pHmQsg2ZjbVhmRZh9BB7Y (private to Fabio). The hero b
    with orange; an icon-and-text-as-well-as-colour treatment is a good idea anyway, but it is
    not the answer here.
 
-   **STILL OPEN, and it is the same shape: `--accent-ok` `oklch(0.78 0.13 150)` vs
-   `--accent-audio` `oklch(0.84 0.11 170)`.** Fabio has not ruled on this pair. Applying the rule
-   he just set, `--accent-ok` moves and `--accent-audio` stays — but that is a reading, not his
-   decision, so confirm it before re-hueing anything green. **This does NOT block the card
-   starting:** work item 1 (the ~30 hardcoded pinks onto the token) is independent of both pairs
-   and is the bulk of the job.
+   **ANSWERED (Fabio, 2026-09-18): `--accent-ok` STAYS, and status colours live on toasts.**
+   Green success, red failure, yellow warning. Green already appears elsewhere in the app, so
+   sitting near `--accent-audio` is accepted rather than fixed. Warning yellow only has to read
+   as distinct from video's orange. The identity-beats-status rule therefore moves
+   `--accent-warn` and nothing else.
+
+   **Found while scoping, and it is the real collision (2026-09-18):** danger/error is an
+   ALIAS of the action accent — `MpiButton.css:76` says so in as many words — across
+   MpiToast, MpiBadge, MpiIcon, MpiInput, MpiProgressBar, MpiContextMenu, MpiErrorDialog,
+   MpiLevelMeter, MpiEngineInstall, MpiStartingComfy and MpiPromptBox. Rebinding
+   `--accent-heat` per workspace would turn a failure toast orange in the video workspace and
+   yellow during a prompt enhance. `--accent-err` has to exist before any rebind lands; it is
+   phase 1a in `plan.md`.
 3. **Design docs.** `DESIGN.md` and `PRODUCT.md` still describe one pink accent at a stale value
    (`oklch(0.72 0.20 6)`; the code has `0.76 0.17 355`), a VT323 wordmark (the code uses Russo
    One) and a single mascot. Rewrite them with this decision, which is scope item 2.
@@ -91,6 +98,11 @@ The rest of the family still has to land, and the design docs still have to say 
 `c:\AI\Mpi\Cubric Studio (Website)\styles\landing.css` is the source of truth.
 `c:\AI\Mpi\MadPony-Identity\DESIGN.md:360-372` mirrors it and states that rule in as many
 words.
+
+**Table below is STALE (checked 2026-09-18):** all five now exist in `styles/01_base.css`
+(`--hub-accent`, `--vision-accent`, `--prompt-accent`, `--video-accent` at :96-101,
+`--accent-audio` at :86), landed by MPI-766 and MPI-774. What is missing is the application,
+not the tokens.
 
 | token there | value | in Vision today |
 |---|---|---|

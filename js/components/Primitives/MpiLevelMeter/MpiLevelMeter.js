@@ -51,7 +51,7 @@ export const MpiLevelMeter = ComponentFactory.create({
         const gradient = `linear-gradient(${angle},`
             + ` var(--accent-ok) 0 ${pct(warn).toFixed(2)}%,`
             + ` var(--accent-warn) ${pct(warn).toFixed(2)}% ${pct(danger).toFixed(2)}%,`
-            + ` var(--accent-heat) ${pct(danger).toFixed(2)}% 100%)`;
+            + ` var(--accent-err) ${pct(danger).toFixed(2)}% 100%)`;
 
         const empty = orientation === 'vertical' ? 'inset(100% 0 0 0)' : 'inset(0 100% 0 0)';
         const valueHtml = showValue

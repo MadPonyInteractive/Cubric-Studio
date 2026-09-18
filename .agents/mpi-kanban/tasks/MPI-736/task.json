@@ -3,11 +3,11 @@
   "id": "MPI-736",
   "title": "Per-media-type accent family: finish what --accent-audio started",
   "description": "Decided 2026-09-15 (Fabio): Studio owns no hue. Shared surfaces draw actions in ink; each workspace sets the action accent to its character's colour (image = vision rose as today, then video, audio, prompt). Before building: move ~30 hardcoded pinks onto the token, settle the warning/video and success/audio colour collisions (open), rewrite DESIGN.md and PRODUCT.md. Values mirror the Cubric Studio (Website) repo. Brief: brief.md.",
-  "column": "todo",
-  "maturity": "planned",
+  "column": "doing",
+  "maturity": "in-progress",
   "status": "active",
   "created_at": "2026-09-12T12:28:44+01:00",
-  "updated_at": "2026-09-15T12:37:47Z",
+  "updated_at": "2026-09-18T15:52:08Z",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -17,5 +17,6 @@
     "events": "events.jsonl",
     "handoffs": "handoffs/",
     "research": "research/"
-  }
+  },
+  "activeSessionTitle": "MPI-736 phase 1: make the action token honest"
 }

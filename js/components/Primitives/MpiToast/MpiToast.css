@@ -114,7 +114,7 @@
 }
 
 .mpi-toast--danger .mpi-toast__dot {
-    background: var(--accent-heat);
+    background: var(--accent-err);
 }
 
 .mpi-toast__msg {
@@ -147,7 +147,7 @@
 }
 
 .mpi-toast--danger .mpi-toast__progress {
-    background: var(--accent-heat);
+    background: var(--accent-err);
 }
 
 @keyframes mpi-toast-mascot-float {

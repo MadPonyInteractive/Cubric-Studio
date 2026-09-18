@@ -41,7 +41,7 @@ body.window-fullscreen .titlebar {
 .titlebar-logo-img {
   width: 16px;
   height: 16px;
-  filter: drop-shadow(0 0 8px oklch(0.76 0.17 355 / 0.3));
+  filter: drop-shadow(0 0 8px color-mix(in oklab, var(--accent-heat) 30%, transparent));
 }
 
 .titlebar-text {

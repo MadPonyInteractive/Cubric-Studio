@@ -17,11 +17,11 @@
 }
 
 .mpi-ok-cancel__icon--warning {
-    color: var(--accent-heat);
+    color: var(--accent-warn);
 }
 
 .mpi-ok-cancel__icon--danger {
-    color: var(--accent-heat);
+    color: var(--accent-err);
 }
 
 /* Content Container — Title, Text, and Optional Input */

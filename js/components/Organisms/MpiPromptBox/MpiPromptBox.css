@@ -711,8 +711,8 @@
 }
 
 .mpi-btn.mpi-ibtn.mpi-btn--ghost.mpi-prompt-box-media-strip__remove:hover:not(:disabled) {
-    background: var(--accent-heat);
-    border-color: var(--accent-heat);
+    background: var(--accent-err);
+    border-color: var(--accent-err);
     color: var(--ink-1);
 }
 

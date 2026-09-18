@@ -25,7 +25,7 @@
     width: 100%;
     height: 100%;
     object-fit: contain;
-    filter: drop-shadow(0 0 10px oklch(0.76 0.17 355 / 0.3));
+    filter: drop-shadow(0 0 10px color-mix(in oklab, var(--accent-heat) 30%, transparent));
 }
 
 .mpi-starting-comfy__content {
@@ -79,12 +79,12 @@
 }
 
 .mpi-starting-comfy__error {
-    color: var(--accent-heat);
+    color: var(--accent-err);
     font-size: var(--t-sm);
     font-weight: 600;
     margin: 0;
     padding: 8px 12px;
-    background: color-mix(in oklch, var(--accent-heat) 12%, transparent);
+    background: color-mix(in oklab, var(--accent-err) 12%, transparent);
     border-radius: var(--r-2);
     border: 1px solid color-mix(in oklch, var(--accent-heat) 30%, transparent);
 }

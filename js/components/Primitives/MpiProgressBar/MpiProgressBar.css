@@ -47,7 +47,7 @@
 }
 
 .mpi-progress--danger .mpi-progress__track-fill {
-    background: var(--accent-heat);
+    background: var(--accent-err);
 }
 
 .mpi-progress__input {

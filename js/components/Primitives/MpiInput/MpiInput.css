@@ -60,16 +60,16 @@
 }
 
 .mpi-input--error .mpi-input__field {
-    border-color: var(--accent-heat);
+    border-color: var(--accent-err);
 }
 
 .mpi-input--error .mpi-input__field:focus {
-    box-shadow: 0 0 10px color-mix(in oklch, var(--accent-heat) 20%, transparent);
+    box-shadow: 0 0 10px color-mix(in oklab, var(--accent-err) 20%, transparent);
 }
 
 .mpi-input__error-msg {
     font-size: var(--t-xs);
-    color: var(--accent-heat);
+    color: var(--accent-err);
     margin-left: 2px;
 }
 

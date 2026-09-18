@@ -7,7 +7,7 @@
     padding: 1.25rem;
     background: var(--surface-1);
     border-radius: var(--r-2);
-    border-top: 2px solid var(--accent-heat);
+    border-top: 2px solid var(--accent-err);
 }
 
 /* Header — icon + title side by side */
