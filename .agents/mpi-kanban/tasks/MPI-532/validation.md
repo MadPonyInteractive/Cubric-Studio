@@ -79,3 +79,40 @@
   and its drawer shows the same licence rows and the same footer buttons as the built-in drawer.
 - `npm run lint` exit 0; `npm test` 1305 tests, 1304 pass, 0 fail, 1 skipped.
 - Real generation from the package: NOT yet run (needs Fabio's app).
+- **Drop-time validation seen in the real app (Fabio, 2026-09-18):** the first Head Swap package
+  was built in the session scratchpad, which Windows swept overnight (00:50) — the .webp/.mp4 went,
+  the JSONs stayed. Dropping it raised exactly `flow.preview: "flow-head-swap.webp" is not in the
+  package folder.` and `user_flows/` was left untouched (no `.staging` residue). Rebuilt durably at
+  `C:\AI\Mpi\flow-package-tests\head-swap-test`; linter exit 0 against the app engine (:48188).
+  **Never build a test package under %TEMP%.**
+
+## Real generation from a package — PASSED (Fabio, 2026-09-18)
+
+Fabio dropped `C:\AI\Mpi\flow-package-tests\head-swap-test` on the Flow Library inside a project
+("Head Swap (package test) is in your Flows", 11 installed) and ran it on two images with both
+boxes drawn.
+
+- Sidecar `Media/.meta/3a1420cf-….json` (project "New Project"): `operation: "user:head-swap-test"`,
+  `injectionParams.box1 {x:-619,y:556,1299x1299}` / `box2 {x:-183,y:185,1176x1176}`, two media items
+  (roles image1/image2 from `.preview-assets`), seed 2322314888.
+- The file landed as `Media/flowHeadSwapPackageTest_001.png` — the title-derived `filePrefix`
+  default, no colon, beside the built-in `flowHeadSwap_001.png`.
+- ComfyUI `:48188/history` job `d89361c6` (status success) carries `Input_Box` and `Input_Box_2`
+  with those exact numbers: the boxes did not merely arrive, the headSwap injector applied them
+  through a PACKAGE op. Three other jobs in history are `execution_interrupted` (Fabio cancelled a
+  second run) — no failure.
+
+## Gallery drop overlay stranding (folded in 2026-09-18, Fabio hit it twice)
+
+- Repro: in a project, open the Flow Library, drop a Flow folder, return to the Gallery — the media
+  import overlay covers it and only leaving the project clears it.
+- Root cause: `_dragCounter` is zeroed by a BUBBLE-phase `drop` on window, but every drop overlay
+  calls `stopPropagation()`, so a drop landing on an overlay never reset it. Fixed at all three call
+  sites (`MpiGalleryBlock`, `MpiGroupHistoryBlock`, `js/shell/projectUI.js`) by listening in the
+  CAPTURE phase; the matching `removeEventListener` carries the same flag or the listener outlives
+  the block.
+- `tests/desktop/gallery-drop-overlay-reset.spec.js` 2/2, and both RED before the fix (reverting the
+  gallery flag alone: stuck overlay true, later hide false).
+- `tests/desktop/flow-packages.spec.js` `until()` raised 5s -> 15s: its first drop failed once while a
+  real generation was running on this box. Not a regression — with the capture fix reverted it still
+  failed, and both files are 6/6 together now.

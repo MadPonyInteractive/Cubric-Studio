@@ -260,7 +260,12 @@ export const MpiGalleryBlock = ComponentFactory.create({
         window.addEventListener('dragenter', _onDragEnter);
         window.addEventListener('dragleave', _onDragLeave);
         window.addEventListener('dragover',  _onDragOver);
-        window.addEventListener('drop',      _onDrop);
+        // CAPTURE (MPI-532). Every drop overlay — this one, and the Flow Library's, which
+        // can sit over the gallery — calls stopPropagation() so the file is handled once.
+        // On the bubble phase this reset therefore never ran for a drop that landed ON an
+        // overlay, `_dragCounter` stayed above zero, and the next drag left the overlay
+        // stuck visible over the gallery with no way to dismiss it but leaving the project.
+        window.addEventListener('drop',      _onDrop, { capture: true });
 
         // ── Navigate to group history ───────────────────────────────────────────
         // Audio-only groups are not click-through (like preview cards) — they are
@@ -1941,7 +1946,8 @@ export const MpiGalleryBlock = ComponentFactory.create({
             window.removeEventListener('dragenter', _onDragEnter);
             window.removeEventListener('dragleave', _onDragLeave);
             window.removeEventListener('dragover',  _onDragOver);
-            window.removeEventListener('drop',      _onDrop);
+            // The flag must match the one it was added with, or the listener outlives the block.
+            window.removeEventListener('drop',      _onDrop, { capture: true });
             dropOverlay.el.remove();
             dropOverlay.destroy?.();
             grid.destroy?.();

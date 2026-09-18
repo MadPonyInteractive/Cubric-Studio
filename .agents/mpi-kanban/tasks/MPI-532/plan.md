@@ -197,13 +197,15 @@ or closes the drawer, re-renders, then re-syncs deps.
 the update-survival test, and a desktop spec proving a packaged Head Swap gets the built-in
 licence gate. Evidence in validation.md.
 
-Next: **the real generation** from the packaged Head Swap — only Fabio's app can run one
-(an isolated instance has no real weights). Package built by
-`<session fe5850ff scratchpad>/pack-headswap.cjs` into `.../scratchpad/pkg/head-swap-test`
-(rebuild it with that script if the scratchpad is gone; it clears the two baked paths). Check:
-the tile appears, boxes apply (read the dispatched graph from `:48188/history`), the result
-lands, its filename starts with `flowHeadSwapPackageTest` (no `filePrefix` in Head Swap's op,
-so the default from the title). Then tick the checklist and close via `mpi-end-session`.
+**Phase 4 DONE — the real generation PASSED (Fabio, 2026-09-18).** He dropped
+`C:\AI\Mpi\flow-package-tests\head-swap-test` (built by `pack-headswap.cjs`, kept OUT of
+`%TEMP%` — Windows swept the first copy overnight) and ran it: sidecar `user:head-swap-test`
+with both boxes, file `flowHeadSwapPackageTest_001.png`, and the engine's own history job
+carries those box values. Evidence in validation.md.
+
+Also folded in and fixed: the **stuck gallery drop overlay** after a Library drop — the reset
+listened on the bubble phase that every drop overlay stops. All four checklist items are
+ticked; next is `mpi-end-session` (nothing is left open on this card).
 
 ## Completed
 

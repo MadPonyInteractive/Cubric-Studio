@@ -1511,7 +1511,9 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         window.addEventListener('dragenter', _onHistDragEnter);
         window.addEventListener('dragleave', _onHistDragLeave);
         window.addEventListener('dragover',  _onHistDragOver);
-        window.addEventListener('drop',      _onHistDrop);
+        // CAPTURE — a drop overlay stops the bubble, so on that phase this reset never ran
+        // and the counter stranded. Same fix as MpiGalleryBlock (MPI-532).
+        window.addEventListener('drop',      _onHistDrop, { capture: true });
 
         // ── PromptBox ─────────────────────────────────────────────────────────
 
@@ -3411,7 +3413,8 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             window.removeEventListener('dragenter', _onHistDragEnter);
             window.removeEventListener('dragleave', _onHistDragLeave);
             window.removeEventListener('dragover',  _onHistDragOver);
-            window.removeEventListener('drop',      _onHistDrop);
+            // The flag must match the one it was added with, or the listener outlives the block.
+            window.removeEventListener('drop',      _onHistDrop, { capture: true });
             _dropOverlay.el.destroy?.();
             _dropOverlay.el.remove();
             historyList.destroy?.();

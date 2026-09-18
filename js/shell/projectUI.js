@@ -158,10 +158,13 @@ export function initProjectUI() {
         if (_dragCounter > 0 && --_dragCounter === 0) dropOverlay.el.hide();
       });
       landingEl.addEventListener('dragover', (e) => { if (_isFileDrag(e)) e.preventDefault(); });
+      // CAPTURE — the overlay's own drop handler stops the bubble, so on that phase this
+      // reset never ran and `_dragCounter` stranded above zero. Same fix as the gallery
+      // and group-history blocks (MPI-532).
       landingEl.addEventListener('drop', () => {
         _dragCounter = 0;
         dropOverlay.el.hide();
-      });
+      }, { capture: true });
       // initProjectUI runs once at boot — no teardown needed.
     }
   }

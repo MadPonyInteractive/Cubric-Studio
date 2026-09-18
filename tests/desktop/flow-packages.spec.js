@@ -262,7 +262,9 @@ test('dropping a Flow folder on the Library installs it with no restart; a secon
             const { getFlowById } = await import('/js/data/flowsRegistry.js');
             const { Events } = await import('/js/events.js');
             const sleep = (ms) => new Promise(res => setTimeout(res, ms));
-            const until = async (fn) => { for (let i = 0; i < 50 && !fn(); i++) await sleep(100); return fn(); };
+            // 15s, not 5: an install copies a folder through the server, and this box may be
+            // running a real generation while the suite runs.
+            const until = async (fn) => { for (let i = 0; i < 150 && !fn(); i++) await sleep(100); return fn(); };
 
             const toasts = [];
             const offs = ['ui:success', 'ui:warning'].map(t => Events.on(t, (p) => toasts.push([t, p.title])));
