@@ -244,7 +244,7 @@ export const MpiSettings = ComponentFactory.create({
                     <div class="mpi-settings__plate mpi-settings__plate--stack">
                         <div class="mpi-settings__plate-main">
                             <span class="mpi-settings__plate-label">Restart engine</span>
-                            <span class="mpi-settings__plate-desc">The engine reads its folder list once, at startup. Adding or removing a folder above needs a restart before those models can be used — dropping a file into a folder it already knows does not. A restart is refused while a generation is running.</span>
+                            <span class="mpi-settings__plate-desc">The engine reads its folder list once, at startup. Adding or removing a folder above needs a restart before those models can be used — dropping a file into a folder it already knows does not. If something is generating, the restart waits until it finishes or you cancel it.</span>
                         </div>
                         <div class="mpi-settings__plate-ctrl" id="mpiSettingsRestartEngineSlot"></div>
                     </div>

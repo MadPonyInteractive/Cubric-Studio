@@ -74,9 +74,24 @@ reachable only with a running engine. Upgrade path if it ever bites: return
 | `npm test` | tests **1329**, pass **1328**, fail **0**, skip 1 |
 | `npx eslint` on the three touched files | clean (it caught a duplicate `_restartPending` declaration first) |
 
-## Pending
+## Fabio's re-check — PASSED (2026-09-18), both branches
 
-- [ ] **Fabio's re-check** — same sequence that found the bug: start a generation, add a model
-  folder, press **Restart engine**. Expect the scheduled toast **immediately**, and the engine to
-  restart by itself when the generation finishes (or when you cancel it). Pressing twice should
-  toast twice and restart once. `**Verify mode:** user-ux`, so no agent evidence closes this.
+Screenshots, in order:
+
+1. Generation running, folder added, **Restart engine** pressed → *"Restart scheduled for when
+   your generations finish or are cancelled."* **immediately**, one toast, no dead button. The
+   thirty seconds of silence that reopened this card are gone.
+2. He then **cancelled** the generation → *"Restarting the engine…"* fired on its own, off the
+   armed wait, with no second press.
+
+So both halves of the promise are proven live, and the cancel branch — the one the toast names
+and the harder of the two to reason about — is the one he actually exercised. Status bar read
+`IDLE · LOCAL` afterwards.
+
+## Copy fix found in his screenshot (2026-09-18)
+
+The Restart engine plate still read *"A restart is refused while a generation is running."* — true
+when it was written, made false by this card's own change, and sitting directly above the button
+that now schedules. Rewritten to *"If something is generating, the restart waits until it
+finishes or you cancel it."* (`MpiSettings.js:247`). No test or doc pinned the old string
+(grepped). `eslint` + `lint:components` clean.

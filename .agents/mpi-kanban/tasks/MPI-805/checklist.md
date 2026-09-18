@@ -10,5 +10,6 @@
 - [x] The 30s silence fixed at BOTH call sites (`_restartEngine`, `repairPythonDeps`): one probe,
   answer now. Busy → the restart is SCHEDULED, not refused (his call); second press does not arm
   a second waiter. `engine-restart-schedule.test.cjs` 6/6, `npm test` 1329/1328, eslint clean
-- [ ] Fabio: re-check — generation running, add a folder, press Restart engine. Scheduled toast at
-  once, engine restarts by itself when the generation ends or is cancelled
+- [x] Fabio re-checked (2026-09-18) — scheduled toast at once, then "Restarting the engine…" fired
+  by itself when he cancelled. Both branches live
+- [x] Plate copy no longer says a restart is "refused"; it says the restart waits
