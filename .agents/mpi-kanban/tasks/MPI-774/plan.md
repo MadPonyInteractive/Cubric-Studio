@@ -2,6 +2,28 @@
 
 ## Current State
 
+**MASTER IS UNBLOCKED, and it was THIS CARD that was holding it red (2026-09-18, session
+130cab18).** `tests/desktop/agent-chat.spec.js:654` still asserted the agent-mode face was
+`['textarea-slot', 'mode-toggle-slot']` — the shape fix 6 deliberately changed when it kept
+the run column so Stop stays reachable. The spec now expects `bottom-right-slot` and asserts
+what fix 6 actually promises: of the run column's three children only the stop host is
+displayed. 121 other desktop specs were already green; this was the only failure. Verified
+locally 3/3, pushed with `--no-verify` (the gate's own documented case — you ARE the fix), so
+`b9e2a9ff..1860a7a6` carries seven peers' commits out with it.
+
+**Fix 8 has a real lead, and it unloads NOTHING (Fabio refused unloading outright: it slows
+every next generation).** `comfy_aimdo/host_buffer.py:74` exposes `cleanup_file_reader()` ->
+`lib.hostbuf_file_reader_cleanup()`, a teardown of the FILE READER state alone, no models and
+no host buffers touched. Grepped the whole engine: **it is defined and never called** — not by
+ComfyUI core, not by anything. So an interrupted stream leaves the reader dirty with no
+cleanup path, which is exactly the shape of the bug. Next session's job is to confirm that and
+find where to call it from.
+
+**Also settled with Fabio: 'only when the run was streaming' is NOT a narrow condition.** H3 is
+'prepared for dynamic VRAM loading' — its weights are read from file on demand — so watching
+the latents and pressing Stop IS mid-stream. He does that often. Any fix has to hold for the
+common case, not an edge one.
+
 **Fabio's round 2 came back (2026-09-18, session 130cab18; `validation.md` § Fabio's round 2).**
 Cream: YES, and provably the mascot's own token. Spinner and the gallery panel: fine, his word.
 Two UI notes BUILT and verified live — attachment chips now sit in their own row under the
@@ -826,13 +848,33 @@ model — `hostbuf_file_reader_read failed`, through
 interrupts that did NOT bite (each had a 7-50 minute gap, or a different model):
 `validation.md` § The defect his round 2 found.
 
-- [ ] **Decide where the fix goes.** The bug is upstream — an interrupt should not leave the
-  streamed-weight reader broken — and cannot be fixed in this repo. Our side owns the trigger, so
-  the cancel path can drop the engine's cached models after an interrupt (`/comfy/free` with
-  `unload_models`) and force the next run to re-open its readers. Cost: a model reload on the next
-  generation after ANY Stop. Narrower option: only when the interrupted run was streaming.
-  **Verify:** an H3 i2v, Stop mid-sample, resubmit inside 30s -> it runs.
-- [ ] Raise it upstream if the ComfyUI version we pin still has it.
+**Unloading is REFUSED (Fabio, 2026-09-18): "I don't want any models to be unloaded. That's going
+to slow down next generations." Both the always and the streaming-only variants are dead** — and
+"streaming only" was never narrow anyway: H3 streams its weights, so every Stop while watching the
+latents is a streaming Stop, which is the case he hits most.
+
+**The lead, and it costs no reload:** `comfy_aimdo/host_buffer.py:74`
+
+```python
+def cleanup_file_reader():
+    lib.hostbuf_file_reader_cleanup()
+```
+
+A teardown of the file-reader state alone — no model eviction, no host buffer freed. Grepped the
+whole engine tree: **defined and never called**, by ComfyUI core or anything else. An interrupt
+therefore leaves the reader dirty with nothing to clean it, which fits the failure exactly.
+
+- [ ] **Confirm the mechanism, then find the call site.** Unknown and load-bearing: what
+  `hostbuf_file_reader_cleanup` does to readers still in use, and whether it is safe on a live
+  cached model. Candidate homes, cheapest first: a hook in `ComfyUi-MpiNodes` fired on interrupt,
+  an upstream patch to ComfyUI's interrupt path, or a node we can dispatch after a cancel.
+  **Verify:** an H3 i2v, Stop mid-sample, resubmit inside 30s -> it runs, and the second run does
+  NOT re-report "prepared for dynamic VRAM loading" from cold (which would mean it reloaded).
+- [ ] **Repro first, it is not yet proven.** The log pairing is strong (his Stop at step 6/8, same
+  model 39s later, dead on the first weight read) and the four earlier interrupts that did not bite
+  all had a 7-50 minute gap or a different model. But nobody has reproduced it deliberately.
+  ~2 x 90s of GPU on the SHARED engine — check `GET :48188/queue` is empty and tell Fabio first.
+- [ ] Check whether a newer ComfyUI already calls it, and raise it upstream if not.
 
 ### Phase 5 fixes 9 and 10 (Fabio's round 2, both built 2026-09-18, session 130cab18)
 
