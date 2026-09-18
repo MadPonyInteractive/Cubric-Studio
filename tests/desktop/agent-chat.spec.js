@@ -655,7 +655,10 @@ test('PromptBox Agent mode: own text and hint, the toggle, Stop but no Run, numb
     // tool, so the user's Stop is the only way to halt a generation it started, and
     // hiding the column wholesale took Stop with it. Run and Clear are hidden by name.
     expect(agentFace.slots).toEqual(['textarea-slot', 'mode-toggle-slot', 'bottom-right-slot']);
-    expect(agentFace.textShare).toBeGreaterThan(0.8);
+    // The text still dominates the face, but Stop's column costs it ~46px: this was 0.8
+    // when agent mode had two slots, and the same change that added the column measured
+    // 0.797. The assertion is "the field dominates", not the old arithmetic.
+    expect(agentFace.textShare).toBeGreaterThan(0.75);
     expect(await window.evaluate((sel) => {
       const col = document.querySelector(`${sel} .mpi-prompt-box__col--run`);
       return [...col.children].map((c) => ({
