@@ -1,14 +1,26 @@
 # MPI-810 — Specs build projects in the temp ROOT
 
-Split out of [[MPI-809]] on 2026-09-18. MPI-809 owns the fact that a registry
-entry cannot be removed once written. This card owns what writes it, and what
-makes it expensive.
+Split out of [[MPI-809]] on 2026-09-18. This card owns what writes the entry, and
+what makes it expensive.
+
+**MPI-809 shipped the same day** (`done`, 18:16). The localStorage mirror is gone,
+`list-projects` no longer takes a caller-supplied path list, and a per-project
+`hidden` list covers "remove from Landing, keep the files". Re-checked against the
+code afterwards: **this card still stands.** `openProject()` still registers the
+opened project's parent unconditionally (`js/services/projectService.js:296`, now
+awaited), and both specs below still pass `os.tmpdir()`.
+
+What MPI-809 changed is the severity, not the defect. The entry is now genuinely
+removable — nothing re-adds it behind your back — so this is no longer permanent
+pollution. It is a bare `%TEMP%` entry rewritten on **every desktop run**, and
+expensive for as long as it sits there. The new `hidden` list does not help: it is
+per-project, and this is a parent dir.
 
 ## Two halves, same root cause: `os.tmpdir()` used as a project parent
 
 ### 1. Desktop specs register the temp root in the developer's REAL registry
 
-`tests/desktop/gif-cutout.spec.js:341` and `tests/desktop/gif-make.spec.js:96`:
+`tests/desktop/gif-cutout.spec.js:394` and `tests/desktop/gif-make.spec.js:96`:
 
 ```js
 const p = await createProject(name, folderPath);  // folderPath: os.tmpdir()
@@ -26,8 +38,8 @@ this write still lands in the real registry and persists after the run.
 
 Effect on a developer box: every `list-projects` afterwards readdirs the whole
 temp tree and stats a `project.json` per entry, and every hit is a candidate
-project carrying a thumbnail scan. Removing the entry does not help — see
-MPI-809; the next desktop run puts it back.
+project carrying a thumbnail scan. Removing the entry works now (MPI-809), but
+the next desktop run writes it again.
 
 ### 2. Unit fixtures leave the projects that make it expensive
 
@@ -35,14 +47,18 @@ MPI-809; the next desktop run puts it back.
 `tests/agent-memory.test.cjs:23` all `mkdtemp` into `os.tmpdir()` directly and
 write a `project.json` inside.
 
-Measured 2026-09-18 on this box — **970 leftover folders** directly under
-`%TEMP%`, each with a `project.json`:
+Measured twice on this box, 2026-09-18, about five hours apart — the pile is
+actively growing, **970 → 1034** leftover folders directly under `%TEMP%`, each
+with a `project.json`:
 
-| prefix | count | source |
-| --- | ---: | --- |
-| `gif-test-` | 851 | `tests/gif-frames.test.cjs` |
-| `gif-cutout-test-` | 111 | `tests/gif-cutout.test.cjs` |
-| `agent-memory-` | 8 | `tests/agent-memory.test.cjs` |
+| prefix | 14:15 | 19:30 | source |
+| --- | ---: | ---: | --- |
+| `gif-test-` | 851 | 907 | `tests/gif-frames.test.cjs` |
+| `gif-cutout-test-` | 111 | 119 | `tests/gif-cutout.test.cjs` |
+| `agent-memory-` | 8 | 8 | `tests/agent-memory.test.cjs` |
+
+`agent-memory-` held steady across both, which is the one with a real `after`
+hook — that is the pattern the other two should copy.
 
 Cleanup is partial, not absent: `agent-memory.test.cjs:20` has
 `after(() => made.forEach(rmSync))` and `gif-frames.test.cjs` removes some roots
@@ -78,5 +94,5 @@ should sweep them in one pass.
   `%TEMP%` entry.
 - Run the unit suite twice, forcing a failure in one gif spec: no new folders
   directly under `%TEMP%`.
-- One-off cleanup of the existing 970 is a separate manual step, not a code
+- One-off cleanup of the existing 1034 is a separate manual step, not a code
   change. They are in the temp tree and will be evicted eventually.
