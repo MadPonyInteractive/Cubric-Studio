@@ -1,0 +1,15 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-810",
+  "title": "Specs build projects in the temp ROOT: 970 leftover folders, and %TEMP% lands in the real registry",
+  "description": "Three unit fixtures mkdtemp into os.tmpdir() and leave 970 project folders behind; two desktop specs createProject there and openProject it, registering the temp root in the developer's real Documents registry.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-18T14:22:43Z",
+  "updated_at": "2026-09-18T14:22:43Z",
+  "links": {
+    "brief": "brief.md",
+    "events": "events.jsonl"
+  }
+}

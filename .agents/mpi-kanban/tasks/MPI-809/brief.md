@@ -53,11 +53,25 @@ to delete. Clearing the ten entries needed a DevTools console call by hand.
 `tests/gif-frames.test.cjs`, `tests/gif-cutout.test.cjs` and
 `tests/agent-memory.test.cjs`, which all `mkdtemp` into `os.tmpdir()` directly.
 
-Those fixtures never touch the registry — they are not the writer, and they are
-not this card. But while `%TEMP%` is registered, every `list-projects` readdirs
-the whole temp tree and stats a `project.json` for each entry, and each hit is a
-candidate project with a thumbnail scan behind it. That is what made this the
-worst of the ten.
+Those unit fixtures never touch the registry. But while `%TEMP%` is registered,
+every `list-projects` readdirs the whole temp tree and stats a `project.json` for
+each entry, and each hit is a candidate project with a thumbnail scan behind it.
+That is what made this the worst of the ten.
+
+**The writer is the desktop suite.** `tests/desktop/gif-cutout.spec.js:341` and
+`tests/desktop/gif-make.spec.js:96` both do:
+
+```js
+const p = await createProject(name, folderPath);  // folderPath: os.tmpdir()
+await openProject(p);
+```
+
+`openProject` registers the opened project's parent dir
+(`js/services/projectService.js:289-296`), and that parent is the temp root. The
+registry lives in `<Documents>` and is shared regardless of how isolated the
+spec's Electron profile is, so every desktop run writes a bare `%TEMP%` entry
+into the developer's real registry. The test-hygiene fix is carded separately;
+this card still owns the fact that the entry cannot be removed afterwards.
 
 ## Evidence (2026-09-18, local times; app.log stamps are UTC)
 
@@ -65,11 +79,13 @@ worst of the ten.
 - ~14:07 — ten parents unregistered by hand; registry read back as **1 entry**.
 - 14:09:22 — registry mtime; `%TEMP%` **back**, registry now 2 entries.
 - Only one app instance was running throughout (Electron, started 13:41).
-- Ruled out as the writer: the temp fixtures above (no registry calls) and
+- Ruled out as the writer: the temp UNIT fixtures above (no registry calls) and
   `scripts/agent-test.mjs` (stubbed project tools, `fakeTools`, line 107).
+- **Writer identified:** the two desktop specs above, which `createProject` into
+  `os.tmpdir()` and then `openProject` it. Any desktop run re-adds the entry.
 - A second agent session was driving the app in the same window (a `userFlows
-  install` at 14:15 from another session's scratchpad). Suspected holder of the
-  stale mirror, not proven.
+  install` at 14:15 from another session's scratchpad), which is consistent with
+  a desktop spec run in that window but was not pinned to a specific run.
 
 ## Fix options
 
