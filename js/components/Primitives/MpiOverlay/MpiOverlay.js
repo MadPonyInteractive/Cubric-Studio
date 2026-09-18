@@ -124,6 +124,15 @@ export const MpiOverlay = ComponentFactory.create({
             // Stashing it (like every other .main-area child) would kill the live
             // job telemetry + memory monitor. Keep it out of the stash.
             const infoBar = mountTarget === 'main-area' ? gid('shell-info-bar') : null;
+            // TRAP 1a (MPI-811): same story for the radial menu. Tab is how you get OUT
+            // of an open Flow — a main-area overlay — and a stashed radial still takes
+            // the keypress and still navigates on release while drawing NOTHING, which
+            // is the worst of both. It is `position:absolute` over .main-area and sits
+            // above the overlay by z-index (--main-overlay-z + 20), so sparing it costs
+            // the overlay no layout. Body-mode overlays (Model / Flow Library) stash the
+            // whole #app-shell and cannot spare it — Tab is gated off there instead
+            // (hotkeyRegistry `radialMenu.toggle`).
+            const radialMount = mountTarget === 'main-area' ? gid('radial-mount') : null;
             const children = Array.from(_target.children);
             children.forEach(child => {
                 // Keep the toast stack live + on top: stashing it (like the titlebar)
@@ -134,7 +143,8 @@ export const MpiOverlay = ComponentFactory.create({
                 // regardless of DOM order. (Its MutationObserver also stops
                 // false-dismissing toasts that a stash would have yanked from the DOM.)
                 const isToastStack = child.classList && child.classList.contains('mpi-toast-stack');
-                if (child !== _backdrop && child !== titlebar && child !== infoBar && !isToastStack) _stash.appendChild(child);
+                if (child !== _backdrop && child !== titlebar && child !== infoBar
+                    && child !== radialMount && !isToastStack) _stash.appendChild(child);
             });
 
             // Insert the stash at the FRONT (before any spared sibling like

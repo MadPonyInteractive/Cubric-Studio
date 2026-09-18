@@ -184,11 +184,12 @@ test('the picker stays opt-in: only the Lyrics box declares tags', async () => {
 
 // ── Tab belongs to an open picker, not to the shell (MPI-664, 2026-09-12) ────
 
-test('an open picker takes Tab off the workspace flip', async () => {
+test('an open picker takes Tab off the radial menu', async () => {
     const { HOTKEY_REGISTRY, MENTION_PICKER_OPEN_SELECTOR } = await esm('js/managers/hotkeyRegistry.js');
 
-    const flip = HOTKEY_REGISTRY.find(e => e.id === 'workspace.flip');
-    assert.ok(flip, 'the Tab flip entry must exist');
+    // MPI-811 moved Tab back from the flipper to the radial. Same key, same gate.
+    const flip = HOTKEY_REGISTRY.find(e => e.id === 'radialMenu.toggle');
+    assert.ok(flip, 'the Tab radial entry must exist');
     assert.strictEqual(flip.key, 'tab');
 
     // THE BUG: hotkeyManager binds keydown on `window` with { capture: true } and calls
@@ -198,7 +199,7 @@ test('an open picker takes Tab off the workspace flip', async () => {
     assert.match(
         String(flip.when),
         /MENTION_PICKER_OPEN_SELECTOR/,
-        'workspace.flip must stand down while an @ picker is open',
+        'radialMenu.toggle must stand down while an @ picker is open',
     );
 
     // And `allowWhileTyping: false` must not be mistaken for the fix - it does not cover

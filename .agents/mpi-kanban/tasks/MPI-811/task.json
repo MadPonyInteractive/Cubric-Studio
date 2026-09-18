@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-811",
+  "title": "Bring the radial menu back for the user: Tab opens Gallery / Projects / Flows / Latest workspace",
+  "description": "Fabio, 2026-09-18. MPI-378 killed the user radial because the ring had a single item left. Flows and the remembered last card now give it four real destinations, so Tab goes back to being the radial opener and the three-state Tab FLIPPER is retired (one key cannot be both).\n\nLayout, Fabio's call - diagonals, not the cardinal points the renderer computes by default:\n- Gallery           top-left\n- Projects (landing) bottom-left\n- Flows             top-right\n- Latest workspace  bottom-right\n\nLatest workspace greys out (disabled, never selectable) when resolveFlipTarget() returns null - no cards, or a remembered card since deleted.\n\nCtrl+Tab stays the dev radial, minus its Flows item (now a user destination).\n\nAccent: the radial rebinds --accent-heat to --hub-accent (Studio cream, the mascot accent) - DESIGN.md 'The accent family'. A block rebinding --accent-heat MUST restate --accent-heat-hi in the same rule.\n\nFiles: js/components/Primitives/MpiRadialMenu/{MpiRadialMenu.js,MpiRadialMenu.css}, js/shell/navigation.js, js/managers/hotkeyRegistry.js.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-18T20:52:25+01:00",
+  "updated_at": "2026-09-18T20:52:25+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

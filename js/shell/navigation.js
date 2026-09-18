@@ -6,13 +6,14 @@
  *   PAGE_GALLERY      → main gallery (grid of ItemGroups); default on project open
  *   PAGE_GROUP_HISTORY → history view for a single ItemGroup (params: { groupId })
  *
- * Tab is the workspace flipper (MPI-378, widened to three states in MPI-589,
- * re-ordered in MPI-611): gallery → last card → the open Flow → gallery. The
- * remembered card lives in project.json (`lastGroupId`) so it survives a restart;
- * the flow leg is the flow you are IN, parked rather than closed, and falls back to
- * the Flow Library when nothing is open. The workspace radial is GONE — it
- * survives only as the dev-gated Ctrl+Tab menu; Models is reached from the prompt
- * box's model button.
+ * Hold Tab for the radial (MPI-811) — four fixed destinations on the diagonals:
+ * Gallery (top-left), Projects (bottom-left), Flows (top-right) and your latest
+ * workspace (bottom-right). It replaces the MPI-378 → MPI-611 Tab flipper: the
+ * ring reaches every stop that ring had, plus the landing page, and one key cannot
+ * be both a tap-flipper and a hold-menu. The remembered card still lives in
+ * project.json (`lastGroupId`) so it survives a restart, and the Flows leg still
+ * restores the flow you PARKED rather than opening a fresh library. Ctrl+Tab stays
+ * the dev radial; Models is reached from the prompt box's model button.
  */
 
 import { state } from '../state.js';
@@ -22,7 +23,6 @@ import { APP_CONFIG } from '../../dev_configs/app_config.js';
 import { gid, qs } from '../utils/dom.js';
 import { navigate, back, clearHistory, PAGE_LANDING, PAGE_GALLERY, PAGE_GROUP_HISTORY } from '../router.js';
 import { MpiRadialMenu } from '../components/Primitives/MpiRadialMenu/MpiRadialMenu.js';
-import { Hotkeys } from '../managers/hotkeyManager.js';
 import { resolveFlipTarget } from '../data/projectModel.js';
 import { updateProject } from '../services/projectService.js';
 import { loadProjectGrid, releaseProjectGrid } from './projectUI.js';
@@ -90,53 +90,44 @@ export function initNavigation(refs) {
     });
 }
 
-// ── Tab flipper (MPI-378) ───────────────────────────────────────────────────
-
-// Bound while a workspace is on screen, unbound on the landing page. This is
-// not just tidiness: hotkeyManager suppresses native Tab traversal as soon as
-// ANY handler exists for it, so an app-lifetime binding would kill tabbing
-// through the landing page's project form — which has real text inputs.
-let _unbindFlip = null;
+// ── Radial destinations (MPI-811) ───────────────────────────────────────────
 
 /**
- * The Tab ring: gallery → last card → the open Flow → gallery.
- * A project with no cards simply skips that leg, and with no Flow open the third
- * stop falls back to the Flow Library — so the ring never dead-ends.
+ * The four user destinations, on the diagonals Fabio asked for. Rebuilt on every
+ * open (`will-open`) because the latest-workspace leg depends on live project
+ * state — a project with no cards, or a remembered card since deleted, dims it.
  */
-function _flipWorkspace() {
-    // MPI-611 — the third stop is the FLOW YOU ARE IN, not the library that lists
-    // them. Tab parks the flow (hidden, NOT destroyed — `flow:suspend`), visits the
-    // gallery and the card, and the third Tab drops you back into it mid-step, with
-    // the inputs and any in-flight run untouched. Flows are OVERLAYS rather than
-    // pages, so their legs are "what is on screen?", not a `state.currentPage` value.
+function _userRadialItems() {
+    return [
+        // 'grid', not 'gallery': the radial fills its icon paths, and `gallery` is one of
+        // the registry's stroke-only entries (icons.js § renderIcon), so it fills to a
+        // solid blob. Keep radial icons to fill-based names.
+        { action: 'gallery',   label: 'Gallery',   icon: 'grid',   angle: -135 },
+        { action: 'projects',  label: 'Projects',  icon: 'folder',  angle:  135 },
+        { action: 'flows',     label: 'Flows',     icon: 'layers',  angle:  -45 },
+        {
+            action:   'workspace',
+            label:    'Latest Workspace',
+            icon:     'image',
+            angle:    45,
+            disabled: !resolveFlipTarget(state.currentProject),
+        },
+    ];
+}
+
+/**
+ * Gets off whatever Flow surface is on screen before a radial destination that is
+ * a PAGE. MPI-611's rule survives: the open flow is PARKED (`flow:suspend` hides
+ * it, it is not destroyed), so the Flows leg drops you back into it mid-step.
+ * Flows are overlays rather than pages, so this asks the DOM, not
+ * `state.currentPage`.
+ */
+function _leaveFlowSurface() {
     if (qs('.mpi-base-flow')) {
         Events.emit('flow:suspend');
-        // Hiding the overlay already restored the gallery underneath — re-navigating
-        // to the page we are on would tear that down and rebuild it for nothing.
-        if (state.currentPage !== PAGE_GALLERY) navigate(PAGE_GALLERY);
         return;
     }
-    // The Library is not a stop on the ring (MPI-589 made it one; MPI-611 gave the
-    // slot to the flow itself). Tab leaves it the way it came in.
-    if (qs('.mpi-overlay--body .mpi-flow-library')) {
-        Events.emit('ui:close-flows');
-        if (state.currentPage !== PAGE_GALLERY) navigate(PAGE_GALLERY);
-        return;
-    }
-    if (state.currentPage === PAGE_GALLERY) {
-        const groupId = resolveFlipTarget(state.currentProject);
-        if (groupId) {
-            navigate(PAGE_GROUP_HISTORY, { groupId });
-            return;
-        }
-        // No card to show — fall through so the ring is still gallery ↔ third stop.
-    }
-    // On a card (or a gallery with no card): back into the parked flow. The emit is
-    // a no-op when nothing is parked, and the shell shows synchronously, so the DOM
-    // is the answer to "did that work?" — no second flag to keep in sync.
-    Events.emit('flow:restore');
-    if (qs('.mpi-base-flow')) return;
-    Events.emit('flows:open');
+    if (qs('.mpi-overlay--body .mpi-flow-library')) Events.emit('ui:close-flows');
 }
 
 /**
@@ -421,30 +412,64 @@ async function _performRestart(remote) {
 }
 
 /**
- * Mounts the dev radial on first entry into a workspace.
+ * Mounts the radial on first entry into a workspace.
  *
- * MPI-378 removed the workspace ring entirely — Tab is the flipper, and Models
- * is reached from the prompt box's model button (which still emits
- * 'ui:open-model-picker'). What's left is the dev-only Ctrl+Tab menu (MPI-338),
- * so in production nothing mounts at all.
+ * MPI-811 gave it a user ring again (Tab), so this now mounts in production too;
+ * the Ctrl+Tab 'dev' context (MPI-338) is the part that stays gated. Models is
+ * still reached from the prompt box's model button ('ui:open-model-picker'), not
+ * from here.
+ *
+ * Mounting here rather than for the app's lifetime is what keeps Tab off the
+ * landing page: hotkeyManager suppresses native Tab traversal as soon as ANY
+ * handler exists for it, and the landing page's project form has real text
+ * inputs. The teardown in handleNavigation(PAGE_LANDING) unbinds with it.
  */
 function _syncRadial() {
-    if (!APP_CONFIG.dev_mode || _radialInstance) return;
+    if (_radialInstance) return;
 
-    _radialInstance = MpiRadialMenu.mount(_radialMount, { context: 'dev' });
-    _radialInstance.el.setContextItems('dev', [
-        { action: 'components', label: 'Components', icon: 'grid' },
-        { action: 'flows', label: 'Flows', icon: 'layers' },                     // Flow Library (MPI-256)
-        { action: 'restart-engine', label: 'Restart Engine', icon: 'refresh' },  // restart ComfyUI only
-    ]);
+    _radialInstance = MpiRadialMenu.mount(_radialMount, { context: 'root' });
+    _radialInstance.el.setContextItems('root', _userRadialItems());
+    // The latest-workspace leg dims as cards come and go, so refresh on every open.
+    _radialInstance.on('will-open', () => {
+        _radialInstance.el.setContextItems('root', _userRadialItems());
+    });
+
+    if (APP_CONFIG.dev_mode) {
+        _radialInstance.el.setContextItems('dev', [
+            { action: 'components', label: 'Components', icon: 'grid' },
+            { action: 'restart-engine', label: 'Restart Engine', icon: 'refresh' },  // restart ComfyUI only
+        ]);
+    }
 
     _radialInstance.on('select', ({ action }) => {
-        if (action === 'components') {
-            _loadComponentsGallery();
+        if (action === 'gallery') {
+            _leaveFlowSurface();
+            // Suspending a flow already revealed the gallery underneath — navigating
+            // to the page we are on would tear it down and rebuild it for nothing.
+            if (state.currentPage !== PAGE_GALLERY) navigate(PAGE_GALLERY);
+            return;
+        }
+        if (action === 'projects') {
+            navigate(PAGE_LANDING);
             return;
         }
         if (action === 'flows') {
-            Events.emit('flows:open'); // Flow Library overlay (MPI-256, dev-gated)
+            // No-op when nothing is parked; the shell shows synchronously, so the DOM
+            // is the answer to "did that work?" — no second flag to keep in sync.
+            Events.emit('flow:restore');
+            if (!qs('.mpi-base-flow')) Events.emit('flows:open');
+            return;
+        }
+        if (action === 'workspace') {
+            const groupId = resolveFlipTarget(state.currentProject);
+            if (!groupId) return;   // dimmed item, belt and braces
+            _leaveFlowSurface();
+            if (state.currentPage === PAGE_GROUP_HISTORY && _currentGroupId === groupId) return;
+            navigate(PAGE_GROUP_HISTORY, { groupId });
+            return;
+        }
+        if (action === 'components') {
+            _loadComponentsGallery();
             return;
         }
         if (action === 'restart-engine') {
@@ -498,8 +523,6 @@ async function _loadComponentsGallery() {
 function _showLanding() {
     _pageLanding?.classList.remove('hide');
     _appShell?.classList.add('hide');
-    _unbindFlip?.();
-    _unbindFlip = null;
 }
 
 function _showShell() {
@@ -507,5 +530,4 @@ function _showShell() {
     // Hidden, never unmounted — so the project grid has to stop itself (MPI-786).
     releaseProjectGrid();
     _appShell?.classList.remove('hide');
-    if (!_unbindFlip) _unbindFlip = Hotkeys.bind('workspace.flip', _flipWorkspace);
 }

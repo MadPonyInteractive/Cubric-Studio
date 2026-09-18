@@ -122,6 +122,6 @@ first".
 ## Still to do
 
 - `preview` / `video` are ABSENT and that is correct while the art is missing — a declared
-  name with no file 404s, and `tests/desktop/flows-tab-ring.spec.js` asserts a clean console.
+  name with no file 404s, and `tests/desktop/radial-menu.spec.js` asserts a clean console.
   Run `/mpi-flow-graphics`, then add the names. The ~25 runs already in the **Stamp Flow
   Tests** project are the plate material.

@@ -1,0 +1,18 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Primitives/MpiRadialMenu/MpiRadialMenu.js",
+    "js/components/Primitives/MpiRadialMenu/MpiRadialMenu.css",
+    "js/shell/navigation.js",
+    "js/managers/hotkeyRegistry.js",
+    "js/components/Compounds/LandingPages/mpi-hotkeys/mpi-hotkeys.js",
+    "tests/desktop/radial-menu.spec.js",
+    "tests/desktop/flows-tab-ring.spec.js",
+    "js/components/Primitives/MpiOverlay/MpiOverlay.js",
+    "tests/tab-flip-target.test.cjs",
+    "tests/mention-picker.test.cjs",
+    "docs/shell.md",
+    "docs/playbooks/add-flow/existing-flows/object-stamp.md",
+    "docs/releases/UNRELEASED.md"
+  ]
+}

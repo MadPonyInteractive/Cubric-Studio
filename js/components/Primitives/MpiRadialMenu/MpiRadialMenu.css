@@ -7,13 +7,25 @@
 /* ── Container ─────────────────────────────────────────── */
 
 .mpi-radial {
+    /* MPI-811: the radial is the SHELL's menu, not a workspace's — it wears Studio's
+       own cream (the hub mascot accent), so it never reads as "this workspace".
+       DESIGN.md § The accent family: a block rebinding --accent-heat MUST restate
+       --accent-heat-hi in the SAME rule, or the hover lift keeps the old hue. */
+    --accent-heat:    var(--hub-accent);
+    --accent-heat-hi: oklch(from var(--accent-heat) calc(l + 0.02) calc(c + 0.03) h);
+
     position: absolute;
     inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     pointer-events: none;
-    z-index: 500;
+    /* MPI-811: Tab is the way OUT of an open Flow, which is a main-area overlay at a
+       z-index the overlay manager hands out at runtime and publishes as
+       --main-overlay-z (absent when no such overlay is up, hence the 500 fallback).
+       Same trick MpiSlideOver uses; +20 puts the radial above the slide-over too, and
+       still under the z-20000 toast stack. */
+    z-index: calc(var(--main-overlay-z, 500) + 20);
     font-size: var(--t-md);
 }
 

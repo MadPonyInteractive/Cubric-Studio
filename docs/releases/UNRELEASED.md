@@ -413,6 +413,12 @@
   you choose, and cards you hearted before now show a dot. The media picker you open from a
   prompt slot has the same FILTER, and its tiles show their marks.
 
+- **Hold TAB for a quick menu to anywhere.** Hold TAB anywhere in a project, move the mouse
+  towards what you want, and let go. GALLERY is up-left, PROJECTS down-left, FLOWS up-right
+  and LATEST WORKSPACE down-right — the last card you opened, greyed out when there isn't
+  one. Let go in the middle to pick nothing. TAB used to just swap between the gallery and
+  your last card.
+
 ## Fixes
 
 > **A fix to a FLOW does not belong in this section for this release.** Flows debut here, so

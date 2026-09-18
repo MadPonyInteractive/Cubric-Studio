@@ -6,9 +6,8 @@ import { ICONS } from '../../../utils/icons.js';
 /**
  * MpiRadialMenu — Radial navigation primitive.
  *
- * Hold Ctrl+Tab to show items in ghost style. MPI-378: plain Tab is the
- * workspace flipper now, so the dev-gated 'dev' context is the only opener —
- * the component itself never binds bare Tab.
+ * Hold Tab (page context) or Ctrl+Tab (the dev-gated 'dev' context) to show
+ * items in ghost style.
  * Uses Pointer Lock API to capture raw mouse deltas — no OS cursor warp needed.
  * A direction line shows virtual cursor position from centre.
  * Move mouse > moveDist px (virtual) from centre to highlight nearest item.
@@ -43,7 +42,9 @@ export const MpiRadialMenu = ComponentFactory.create({
         const moveDist = 40;
 
         // ── Context item definitions ────────────────────────────────────────────
-        /** @type {Record<string, Array<{action:string, label:string, icon:string}>>} */
+        // `angle` (degrees, 0 = right, -90 = top) overrides the even ring spacing —
+        // MPI-811's user ring sits on the diagonals, not the cardinal points.
+        /** @type {Record<string, Array<{action:string, label:string, icon:string, angle?:number, disabled?:boolean}>>} */
         const CONTEXTS = {};
 
         // ── State ───────────────────────────────────────────────────────────────
@@ -88,7 +89,12 @@ export const MpiRadialMenu = ComponentFactory.create({
         // ── Pointer lock ────────────────────────────────────────────────────────
         function _requestLock() {
             if (document.pointerLockElement === el) return;
-            el.requestPointerLock();
+            // Newer Chromium returns a promise, and it REJECTS when the browser refuses
+            // the lock (a document that cannot hold one, a too-recent unlock). Swallow
+            // it: the menu degrades to plain mousemove deltas, which still aim it, and
+            // an unhandled rejection would otherwise surface as a page error.
+            const p = el.requestPointerLock();
+            if (p && typeof p.catch === 'function') p.catch(() => {});
         }
 
         function _releaseLock() {
@@ -178,7 +184,9 @@ export const MpiRadialMenu = ComponentFactory.create({
             el.appendChild(_lineSvg);
 
             items.forEach((item, i) => {
-                const angleDeg = -90 + (360 / _itemCount) * i;
+                const angleDeg = Number.isFinite(item.angle)
+                    ? item.angle
+                    : -90 + (360 / _itemCount) * i;
                 const angleRad = (angleDeg * Math.PI) / 180;
                 _itemAngles.push(angleRad);
 
@@ -373,8 +381,15 @@ export const MpiRadialMenu = ComponentFactory.create({
         }
 
         // ── Tab hold logic ──────────────────────────────────────────────────────
-        // MPI-378: plain Tab no longer belongs to the radial — it is the workspace
-        // flipper (see js/shell/navigation.js). Ctrl+Tab is the only opener left.
+        // MPI-811: plain Tab opens the page context again. No single-item
+        // short-circuit (MPI-356 had one, MPI-378 removed it with the ring): the
+        // user context is four fixed destinations, so there is always something to
+        // aim at even when one of them is dimmed.
+        const _onTabDown = () => {
+            if (_tabHeld) return;
+            _tabHeld = true;
+            _show();
+        };
 
         // MPI-338: Ctrl+Tab hold opens the dev radial by swapping to the 'dev'
         // context for the duration of the hold. No-op unless a 'dev' context has
@@ -416,6 +431,7 @@ export const MpiRadialMenu = ComponentFactory.create({
             }
         };
 
+        const _unbindTab    = Hotkeys.bind('radialMenu.toggle', _onTabDown);
         const _unbindDevTab = Hotkeys.bind('radialMenu.devToggle', _onDevTabDown);
         const _removeKeyUp = on(window, 'keyup', _onTabUp);
         const _removePointerMove = on(el, 'mousemove', _onPointerMove);
@@ -446,7 +462,7 @@ export const MpiRadialMenu = ComponentFactory.create({
 
         // ── Cleanup ─────────────────────────────────────────────────────────────
         _cleanups.push(_removeKeyUp, _removePointerMove, _removeLockChange);
-        _cleanups.push(_unbindDevTab);
+        _cleanups.push(_unbindTab, _unbindDevTab);
 
         const observer = new MutationObserver(() => {
             if (!document.contains(el)) {
