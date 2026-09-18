@@ -30,7 +30,7 @@ const util = require('util');
 const { execFile } = require('child_process');
 const logger = require('./logger');
 const { v4: uuidv4 } = require('uuid');
-const { getProjectsRoot, COMFYUI_PORT, streamDownload, stripImageMetadata, readProjectPathsRegistry, addProjectPathToRegistry, removeProjectPathFromRegistry } = require('./shared');
+const { getProjectsRoot, COMFYUI_PORT, streamDownload, stripImageMetadata, readProjectPathsRegistry, addProjectPathToRegistry, removeProjectPathFromRegistry, readHiddenProjects, setProjectHidden } = require('./shared');
 const { getComfyPath, getEngineRoot } = require('./platformEngine');
 const { probeVideo, probeAudio } = require('../services/ffprobeVideo');
 const { extractImageThumb, extractVideoThumb, extractVideoProxy, extractAudioWaveform, writeVideoDerivatives, imageThumbPath, videoProxyPath, IMAGE_RENDITION_PX, VIDEO_PROXY_HEIGHT } = require('../services/ffmpegThumb');
@@ -810,6 +810,9 @@ router.post('/create-project', async (req, res) => {
 
         await fs.writeJson(path.join(projectRoot, 'project.json'), project, { spaces: 2 });
         await fs.writeFile(path.join(projectRoot, 'project.md'), `# ${project.name}\n\nProject notes go here.\n`);
+        // A project previously hidden at this exact path (removed from Landing, then
+        // its folder cleared by hand) would otherwise make this new one invisible.
+        await setProjectHidden(project.folderPath, false);
         res.json({ success: true, project });
     } catch (err) {
         logger.error('project', 'create-project error', err);
@@ -830,6 +833,9 @@ router.post('/list-projects', async (req, res) => {
         // anywhere still held it in its own mirror, and the next list-projects put
         // it straight back. Registration is now explicit, via /add-project-path.
         const externalRoots = await readProjectPathsRegistry();
+        // Projects the user removed from Landing but kept on disk. Per-project, not
+        // per-parent: unregistering the parent would take its siblings with it.
+        const hidden = new Set(await readHiddenProjects());
 
         const defaultRootNorm = defaultRoot.replace(/\\/g, '/');
         const roots = [defaultRoot, ...externalRoots.filter(r => r !== defaultRootNorm)];
@@ -846,11 +852,12 @@ router.post('/list-projects', async (req, res) => {
             const entries = await fs.readdir(root);
             const isDefault = root === defaultRoot;
             const scanned = await Promise.all(entries.map(async (entry) => {
+                const diskFolder = path.join(root, entry).replace(/\\/g, '/');
+                if (hidden.has(diskFolder)) return null;
                 const jsonPath = path.join(root, entry, 'project.json');
                 if (!(await fs.pathExists(jsonPath))) return null;
                 try {
                     const p = await fs.readJson(jsonPath);
-                    const diskFolder = path.join(root, entry).replace(/\\/g, '/');
                     let recentThumbnail = null;
                     let recentThumbnailType = null;
                     try {
@@ -903,6 +910,24 @@ router.post('/remove-project-path', async (req, res) => {
         res.json({ success: true, paths });
     } catch (err) {
         logger.error('project', 'remove-project-path error', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// Take ONE project off the Landing listing without touching its files, or put it
+// back (`hidden: false`). This is what "Delete project" with "Also delete files
+// from disk" unchecked does. It is deliberately per-project: removing the parent
+// from the registry instead would take every sibling project under that folder
+// off the list too, and it cannot express this at all for a default-root project,
+// because the default root is always scanned.
+router.post('/hide-project', async (req, res) => {
+    try {
+        const { folderPath, hidden = true } = req.body;
+        if (!folderPath) return res.status(400).json({ success: false, error: 'folderPath required' });
+        const paths = await setProjectHidden(folderPath, hidden !== false);
+        res.json({ success: true, hidden: paths });
+    } catch (err) {
+        logger.error('project', 'hide-project error', err);
         res.status(500).json({ success: false, error: err.message });
     }
 });
@@ -991,6 +1016,9 @@ router.post('/delete-project', async (req, res) => {
             } catch (_) { /* unreadable json — still refuse below if no id guard met */ }
         }
         await fs.remove(folderPath);
+        // The folder is gone, so a hidden entry for it is dead weight that would
+        // also hide a future project created at the same path.
+        await setProjectHidden(folderPath, false);
 
         // Prune the parent dir from the durable registry only if it no longer
         // holds any project (siblings keep the entry alive). The default

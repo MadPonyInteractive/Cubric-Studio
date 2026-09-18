@@ -93,6 +93,33 @@ test('old folder only, v2: resolves new, renamed, registry entries inside old re
     assert.deepEqual(entries, [expectedInside, outsideOld]);
 });
 
+test('the heal carries the hidden-project list too (MPI-809)', () => {
+    process.env.CUBRIC_TEST_APP_VERSION = '2.0.0';
+    const docs   = makeDocs();
+    const oldDir = path.join(docs, 'Cubric Vision');
+    const newDir = path.join(docs, 'Cubric Studio');
+
+    fsN.mkdirSync(path.join(oldDir, 'Projects'), { recursive: true });
+
+    // A project the user removed from Landing but kept on disk, living in the old
+    // Documents folder. Drop or fail to rewrite this and it reappears after the heal.
+    const hiddenInside  = oldDir.replace(/\\/g, '/') + '/Projects/Retired';
+    const hiddenOutside = 'D:/Elsewhere/Retired';
+    fsN.writeFileSync(
+        path.join(oldDir, 'project-paths.json'),
+        JSON.stringify({ paths: [], hidden: [hiddenInside, hiddenOutside] }, null, 2) + '\n',
+        'utf8'
+    );
+
+    getProjectPathsRegistryFile();
+
+    const doc = JSON.parse(fsN.readFileSync(path.join(newDir, 'project-paths.json'), 'utf8'));
+    assert.deepEqual(doc.hidden, [
+        newDir.replace(/\\/g, '/') + '/Projects/Retired',
+        hiddenOutside,
+    ]);
+});
+
 test('new folder only: resolves new, nothing renamed', () => {
     process.env.CUBRIC_TEST_APP_VERSION = '2.0.0';
     const docs   = makeDocs();

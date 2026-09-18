@@ -25,20 +25,41 @@
       registry-only, with the reason the mirror existed and a "do not reintroduce" pointing
       at the test.
 
-## Defect 2 — no unregister UI — OPEN, needs Fabio
+## Defect 2 — remove from Landing without deleting — DONE
 
-The brief left this as a fork: expose unregister in the UI, or accept server/API-only (its
-docs half was already taken in `8f477ab9`).
+Fabio's call 2026-09-18: unchecking *Also delete files from disk* must take the project off
+the Landing page and delete nothing. It did nothing at all — it filtered a localStorage
+mirror the registry then overrode. ("Keep it" is the CANCEL button, not this branch; an
+earlier note on this card and in commit `e09c2e08` mislabelled it.)
 
-Found while fixing defect 1: the UI gesture already exists but does nothing. **Delete
-Project with *Also delete files from disk* unchecked** ("Keep it") is exactly "unregister,
-keep the folder" — and it is a no-op on the list. It never called `/remove-project-path`;
-it filtered a localStorage mirror the registry then overrode. Wiring it up is a two-line
-change with a product cost: the registry is **parent-dir granular**, so unregistering takes
-every sibling project under that parent off the list too.
+Built per-PROJECT, not per parent dir. Unregistering the parent was the obvious-looking move
+and is wrong twice over: it drops sibling projects under the same folder, and it cannot
+express this at all for a default-root project, because the default root is always scanned.
 
-- [ ] Decision: (a) wire "Keep it" to `/remove-project-path` and reword the dialog, or
-      (b) leave it server/API-only and change the dialog so it stops offering a no-op.
+- [x] `routes/shared.js` — the registry file is now `{ paths, hidden }`. `_readRegistryDoc` /
+      `_writeRegistryDoc` / `_mutate` preserve the key they are not touching;
+      `readHiddenProjects` + `setProjectHidden(folderPath, hidden)` added. Dead
+      `writeProjectPathsRegistry` removed — my refactor orphaned it.
+- [x] `_healRegistryFile` rewrites `hidden` on the pre-2.0 Documents rename too; dropping it
+      there would make a hidden project reappear after the heal.
+- [x] `routes/projects.js` — `list-projects` skips hidden folders; `POST /hide-project`;
+      `create-project` and `delete-project` clear a hidden entry, so a stale one can never
+      ghost a real project at the same path.
+- [x] `js/services/projectService.js` — `deleteProject({ deleteFiles: false })` posts
+      `/hide-project`; `addProjectByFolder` unhides, which is the user's way back.
+- [x] No UI change — the gesture and its copy already exist and are now accurate.
+- [x] Tests: 4 cases in `tests/project-paths-registry.test.cjs` (stale entry ignored, hide
+      leaves siblings and files, default-root hide, hidden entry cleared from both sides)
+      plus 1 heal case in `tests/documents-heal.test.cjs`. 12 pass, 0 fail over the two files.
+- [x] `docs/project-integrity.md` rewritten for the two-list registry.
+
+### One pre-existing test fails on this box, unrelated
+
+`tests/download-retry.test.cjs` — *"exactly one write probe per dep, got 0"*. `_writeProbe`
+skips when free space is under 1 GiB (`routes/downloadManager.js:2034`) and logs a WARN
+instead of the INFO the test counts. C: is at 100%, 395 MB free. Reproduced with HEAD's
+unmodified `routes/shared.js` + `routes/projects.js`, so it is not this card. It should go
+green once the disk has room.
 
 ## Out of scope
 

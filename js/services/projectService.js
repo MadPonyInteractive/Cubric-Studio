@@ -361,6 +361,8 @@ export async function addProjectByFolder(folderPath) {
     const parentDir = normalized.split('/').slice(0, -1).join('/');
     // Durable Documents registry, no local mirror — see openProject() above.
     await post('/add-project-path', { parentDir });
+    // Re-importing a folder is how a project removed from Landing comes back.
+    await post('/hide-project', { folderPath: normalized, hidden: false });
     return res.project;
 }
 
@@ -413,20 +415,21 @@ export async function deleteProject(project, { deleteFiles = true } = {}) {
     const folderPath = project.folderPath;
 
     if (deleteFiles) {
+        // Removes the folder, and prunes the parent from the registry when no
+        // sibling project.json is left under it.
         const result = await post('/delete-project', { folderPath, expectedId: project.id });
         if (!result.success) throw new Error(result.error);
+    } else {
+        // "Also delete files from disk" unchecked: take it off Landing, touch
+        // nothing on disk. Recorded per-project in the durable registry's `hidden`
+        // list — MPI-809. Removing the PARENT instead is the obvious-looking move
+        // and is wrong twice over: it would drop the user's sibling projects under
+        // that folder as well, and it cannot express this at all for a default-root
+        // project, since the default root is always scanned. Re-importing the
+        // folder brings it back (addProjectByFolder).
+        const result = await post('/hide-project', { folderPath, hidden: true });
+        if (!result.success) throw new Error(result.error);
     }
-
-    // MPI-809: this used to filter the parent out of the localStorage mirror. That
-    // mirror is gone, and the filter never did anything anyway — the durable
-    // registry still held the parent and `list-projects` unions it, so the project
-    // came back on the next Landing load. Pruning the registry is the server's job
-    // now, in `/delete-project`, and only when no sibling `project.json` remains.
-    //
-    // ponytail: that leaves `deleteFiles: false` ("Keep it" — unregister but keep
-    // the folder) with nothing to do, because the folder IS the surviving sibling.
-    // Unregistering it means removing the parent, which takes its siblings off the
-    // list too — a product call, not a mechanical one. See MPI-809 defect 2.
 
     if (state.currentProject?.folderPath === folderPath) {
         state.currentProject = null;

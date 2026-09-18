@@ -70,22 +70,25 @@ function _healRegistryFile(registryFile, oldDir, newDir) {
     try {
         const raw = JSON.parse(fs.readFileSync(registryFile, 'utf8'));
         const list = Array.isArray(raw?.paths) ? raw.paths : [];
+        const hiddenList = Array.isArray(raw?.hidden) ? raw.hidden : [];
         const oldFwd = oldDir.replace(/\\/g, '/');
         const newFwd = newDir.replace(/\\/g, '/');
         const ci = process.platform === 'win32';
         const eq  = (a, b) => ci ? a.toLowerCase() === b.toLowerCase() : a === b;
         const pfx = (s, p) => ci ? s.toLowerCase().startsWith(p.toLowerCase()) : s.startsWith(p);
 
-        const updated = list.map(p => {
+        // Same rewrite for both keys — a hidden project inside the old folder has
+        // to follow the rename too, or it reappears on Landing after the heal.
+        const heal = (entries) => [...new Set(entries.map(p => {
             const norm = String(p).replace(/\\/g, '/');
             if (pfx(norm, oldFwd + '/')) return newFwd + norm.slice(oldFwd.length);
             if (eq(norm, oldFwd))        return newFwd;
             return norm;
-        });
+        }))];
 
-        const deduped = [...new Set(updated)];
+        const doc = { paths: heal(list), hidden: heal(hiddenList) };
         const tmp = `${registryFile}.${process.pid}.tmp`;
-        fs.writeFileSync(tmp, `${JSON.stringify({ paths: deduped }, null, 2)}\n`, 'utf8');
+        fs.writeFileSync(tmp, `${JSON.stringify(doc, null, 2)}\n`, 'utf8');
         fs.renameSync(tmp, registryFile);
     } catch (err) {
         logger.warn('project', `project-paths registry heal failed: ${err.message}`);
@@ -213,49 +216,90 @@ function getProjectPathsRegistryFile() {
 
 const _registryQueue = { p: Promise.resolve() };
 
-/** Read the registry. Returns a de-duped array of normalized parent dirs. */
-async function readProjectPathsRegistry() {
+const _norm = (p) => String(p).replace(/\\/g, '/');
+const _dedupe = (list) => [...new Set((Array.isArray(list) ? list : []).map(_norm))];
+
+/**
+ * Read the whole registry document: `{ paths, hidden }`.
+ *   - `paths`  — external project PARENT dirs to scan.
+ *   - `hidden` — individual PROJECT folders to leave out of the listing even
+ *     though they are on disk under a scanned root. That is what "delete this
+ *     project but keep the files" writes, and it has to be per-project: the
+ *     parent usually holds siblings the user still wants (MPI-809).
+ */
+async function _readRegistryDoc() {
     try {
         const file = getProjectPathsRegistryFile();
-        if (!(await fs.pathExists(file))) return [];
+        if (!(await fs.pathExists(file))) return { paths: [], hidden: [] };
         const data = await fs.readJson(file);
-        const list = Array.isArray(data?.paths) ? data.paths : [];
-        return [...new Set(list.map(p => String(p).replace(/\\/g, '/')))];
+        return { paths: _dedupe(data?.paths), hidden: _dedupe(data?.hidden) };
     } catch (err) {
         logger.warn('project', `project-paths registry read failed: ${err.message}`);
-        return [];
+        return { paths: [], hidden: [] };
     }
 }
 
-/** Atomically replace the registry contents with the given paths. */
-async function writeProjectPathsRegistry(paths) {
-    const normalized = [...new Set((paths || []).map(p => String(p).replace(/\\/g, '/')))];
+/** Read the registry. Returns a de-duped array of normalized parent dirs. */
+async function readProjectPathsRegistry() {
+    return (await _readRegistryDoc()).paths;
+}
+
+/** Read the hidden-project list. De-duped, normalized project folder paths. */
+async function readHiddenProjects() {
+    return (await _readRegistryDoc()).hidden;
+}
+
+/**
+ * Atomically replace the registry contents. Both keys are written every time,
+ * so a caller that only touches one must pass the other through — `_mutate`
+ * below is the only thing that should call this directly.
+ */
+async function _writeRegistryDoc({ paths, hidden }) {
+    const doc = { paths: _dedupe(paths), hidden: _dedupe(hidden) };
     const run = _registryQueue.p.catch(() => {}).then(async () => {
         const file = getProjectPathsRegistryFile();
         await fs.ensureDir(path.dirname(file));
         const tmp = `${file}.${process.pid}.tmp`;
-        await fs.writeFile(tmp, `${JSON.stringify({ paths: normalized }, null, 2)}\n`, 'utf8');
+        await fs.writeFile(tmp, `${JSON.stringify(doc, null, 2)}\n`, 'utf8');
         await fs.rename(tmp, file);
-        return normalized;
+        return doc;
     });
     _registryQueue.p = run.catch(() => {});
     return run;
 }
 
+/** Read-modify-write one key of the registry, preserving the other. */
+async function _mutate(key, fn) {
+    const doc = await _readRegistryDoc();
+    const next = fn(doc[key]);
+    if (next === doc[key]) return doc[key];
+    return (await _writeRegistryDoc({ ...doc, [key]: next }))[key];
+}
+
 /** Add one parent dir to the registry. Returns the updated list. */
 async function addProjectPathToRegistry(parentDir) {
-    const norm = String(parentDir).replace(/\\/g, '/');
-    const current = await readProjectPathsRegistry();
-    if (current.includes(norm)) return current;
-    return writeProjectPathsRegistry([...current, norm]);
+    const norm = _norm(parentDir);
+    return _mutate('paths', (cur) => (cur.includes(norm) ? cur : [...cur, norm]));
 }
 
 /** Remove one parent dir from the registry. Returns the updated list. */
 async function removeProjectPathFromRegistry(parentDir) {
-    const norm = String(parentDir).replace(/\\/g, '/');
-    const current = await readProjectPathsRegistry();
-    if (!current.includes(norm)) return current;
-    return writeProjectPathsRegistry(current.filter(p => p !== norm));
+    const norm = _norm(parentDir);
+    return _mutate('paths', (cur) => (cur.includes(norm) ? cur.filter(p => p !== norm) : cur));
+}
+
+/**
+ * Hide or unhide ONE project folder. Hiding takes it off the Landing listing
+ * without touching a byte on disk; unhiding is how it comes back (re-importing
+ * the folder, or a new project being created at the same path). Returns the
+ * updated hidden list.
+ */
+async function setProjectHidden(folderPath, hidden = true) {
+    const norm = _norm(folderPath);
+    return _mutate('hidden', (cur) => {
+        if (hidden) return cur.includes(norm) ? cur : [...cur, norm];
+        return cur.includes(norm) ? cur.filter(p => p !== norm) : cur;
+    });
 }
 const SYS_DEPS_PATH = path.join(__dirname, '..', 'dev_configs', 'system_dependencies.json');
 // NOT 8188 (MPI-434). 8188 is ComfyUI's own default, so any user with their own
@@ -1123,6 +1167,8 @@ module.exports = {
     readProjectPathsRegistry,
     addProjectPathToRegistry,
     removeProjectPathFromRegistry,
+    readHiddenProjects,
+    setProjectHidden,
     SYS_DEPS_PATH,
     COMFYUI_PORT,
     processState,

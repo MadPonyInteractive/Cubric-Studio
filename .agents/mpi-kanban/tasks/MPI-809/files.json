@@ -6,6 +6,8 @@
     "js/core/storage.js",
     "js/core/storageKeys.js",
     "docs/project-integrity.md",
-    "tests/project-paths-registry.test.cjs"
+    "tests/project-paths-registry.test.cjs",
+    "routes/shared.js",
+    "tests/documents-heal.test.cjs"
   ]
 }
