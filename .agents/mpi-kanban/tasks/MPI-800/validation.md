@@ -114,13 +114,16 @@ LTX, Wan and Qwen could not run here: their weights are not installed on this bo
 (`/connector/models`), so their `loaded` gates are covered by the graph sweep and the rebake
 only. The RunPod smoke at release covers them executing.
 
-## Fabio's UI checks (2026-09-17/18)
+## The three checks left after the agent's Phase 4 half (2026-09-17/18)
+
+The first two are Fabio's — UI surfaces only he can judge. The third is the agent's: mechanical,
+an ffprobe, no UI in it.
 
 | check | result |
 |---|---|
 | reuse a card whose source was deleted | **PASS**. Preview asset `16fda773…png` deleted from the `MPI-800 staging C` scratch project; Reuse raised the WARNING toast *"Some input media is missing and was not re-added."* — `MpiGalleryBlock.js:1341`, the reuse-payload path, which fires BEFORE `comfyController`'s `input_asset_deleted`. Downgraded, not a crash dialog, not a silent degraded run |
 | add a model folder with the engine running | **PASS**. `C:\AI\loras` added to LoRA folders; INFO toast *"Restart the engine to apply the model folder change."* |
-| `resize_video` on a clip with audio | not run yet — mechanical, not a UI check: dispatch it on `t2v_001.mp4` (confirmed to carry an `aac` stream) and ffprobe the output |
+| `resize_video` on a clip with audio | **PASS** — see below. Ran by the agent, not Fabio: mechanical, not a UI check |
 
 The first check exercised the reuse-payload guard rather than the dispatch-time
 `_assertMediaSourceExists`. Both downgrade a missing source to a warning; the payload one runs
@@ -132,3 +135,31 @@ MPI-800 removed `reloadExtraPathsWhenReady` (`ee034559`), so a folder change ask
 instead of applying live. `_restartEngine` is reachable only from the dev-only Ctrl+Tab radial,
 so a shipped user is told to do something the UI does not offer. Carded as MPI-805 rather than
 reopened here: this card's own work is committed and CI-green.
+
+## Check 3 — `resize_video` keeps the audio (2026-09-18, agent's OWN isolated instance)
+
+The last unticked Phase 4 bullet. Run on port **60900** (`npm run app:isolated`, own profile and
+own port); Fabio's `:3000` was never touched and was still listening afterwards. Engine 48188 was
+already up on MpiNodes 1.2.16. Pre-boot check per
+[[tool_isolated_app_boot_repairs_the_real_engine]]: `node_lock.json` and `system_dependencies.json`
+both clean, so the boot drift repair could only repair to the committed `cff4c3b3` the engine
+already ran — and the boot log carries no `repair` / `drift` / `download` line at all.
+
+Not dispatchable over `/connector/generate`: `resizeVideo` is a universal tool-panel op with no
+`ModelDef`, and the route demands `modelId` + `operation` or `flowId`. Same class as the four
+graphs already smoked here, so it ran the same way — `research/graph_smoke.py` with the app URL
+taken from an env var instead of the hardcoded `:3000`, under `gpu_lease.py run --`.
+
+| | |
+|---|---|
+| source | `MPI-800 staging C`/Media/`t2v_001.mp4` — h264 832x448 + **aac**, 2.333s |
+| staged by the app | `POST /comfy/stage-media` -> `input/mpi_staged/e8d92a9b6a6418e3.mp4`, written into `#12 MpiString Input_Video` |
+| run | `comfy_workflows/resize_video.json`, **success in 4s**, `#18 MpiSaveVideo` -> `MpiVideo_00001.mp4` |
+| output (ffprobe) | h264 **512x768** (the graph's baked size + pad, so the resize really happened) **and aac 32000 Hz stereo, 2.334s** |
+
+So the slot this card deliberately did NOT migrate still works on 1.2.16: `#15 MpiHasAudio` reads
+the same staged path out of the `MpiString` and lights `use_audio` on `MpiSaveVideo`, whose `audio`
+comes from the VHS loader's slot 2. An unreadable staged path would have shown up as `use_audio`
+false and a silent video — it did not. Audio duration matches the source to the millisecond.
+
+Phase 4 is now complete: agent half (2026-09-17) + Fabio's two UI checks + this one.

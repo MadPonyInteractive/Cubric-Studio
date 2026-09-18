@@ -105,9 +105,9 @@ Scratch project, `gpu_lease.py run -- ...`, `/connector/generate`, read sidecars
   different volume from the engine (copy case)
 - [ ] optional inputs empty: klein edit 1-image, qwen edit no mask, LTX t2v + i2v + FLF,
   wan22 i2v, DramaBox without a voice (the `loaded` gates)
-- [ ] a video op (upscale or interpolate), `resize_video` on a clip with audio (`MpiHasAudio`)
-- [ ] reuse a card whose source was deleted -> still the `input_asset_deleted` toast
-- [ ] add a model folder with the engine running -> the restart toast
+- [x] a video op (upscale or interpolate), `resize_video` on a clip with audio (`MpiHasAudio`)
+- [x] reuse a card whose source was deleted -> still the `input_asset_deleted` toast
+- [x] add a model folder with the engine running -> the restart toast
 - **RunPod smoke** (`release:check` will demand it, research note): at release, unless
   Fabio asks for it now.
 
@@ -128,7 +128,21 @@ Scratch project, `gpu_lease.py run -- ...`, `/connector/generate`, read sidecars
 
 ## Current State
 
-2026-09-17 ~18:30Z. PHASE 4 DONE (agent half). Engine 48188 is LIVE on MpiNodes 1.2.16 (Fabio restarted;
+2026-09-18 ~10:40Z. **PHASE 4 COMPLETE — all three remaining checks PASSED.** Check 1 (deleted
+source -> warning toast) and check 2 (model folder added with the engine running -> restart toast)
+by Fabio on 2026-09-17/18; check 3 (`resize_video` on a clip with audio) by the agent today in its
+OWN isolated instance on port 60900 — output carries `aac` 32000 Hz stereo, 2.334s against a
+2.333s source, so `MpiHasAudio` still reads the staged path on 1.2.16. Evidence: validation.md
+§ "Check 3". Fabio's `:3000` was never touched.
+
+NEXT: close-out only. Nothing left to build or verify on this card. Still open at close-out:
+`.claude/rules/comfy_engine.md:353` names the removed route and needs Fabio's permission;
+`docs/component-contracts.md` is 213 lines against the <=200 budget (already over at 211 before
+this session — flag, do not restructure); the `MPI-800 staging C` scratch project plus TEN
+registered paths in `Documents/Cubric Vision/project-paths.json`, nine of them dead agent
+scratchpads from older sessions.
+
+### Superseded snapshot (2026-09-17 ~18:30Z) PHASE 4 DONE (agent half). Engine 48188 is LIVE on MpiNodes 1.2.16 (Fabio restarted;
 the boot repair re-installed cff4c3b, the engine starts on demand so it came up later). Bake DONE
 (46 runtime + 11 templates), MPI-771's `gif_cutout_birefnet` folded in (35 raw files converted),
 and `ltx_video_upscale` / `remove_background` migrated BY HAND because they have no `raw/` twin.

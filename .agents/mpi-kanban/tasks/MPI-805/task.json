@@ -4,10 +4,10 @@
   "title": "Restart engine button in Settings: a model-folder change asks for a restart users cannot perform",
   "description": "MPI-800 dropped the /mpi/reload-extra-paths call (MpiNodes 1.2.13 removed the route), so a model-folder change now asks for an engine restart instead of applying live. The only restart control in the app is the dev-only Ctrl+Tab radial, so a shipped user is told to do something with no button for it. Surface _restartEngine in Settings, External Connections.",
   "column": "doing",
-  "maturity": "in-progress",
+  "maturity": "validating",
   "status": "active",
   "created_at": "2026-09-18T10:47:16+01:00",
-  "updated_at": "2026-09-18T10:48:15+01:00",
+  "updated_at": "2026-09-18T11:38:12+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -17,5 +17,10 @@
     "events": "events.jsonl",
     "handoffs": "handoffs/",
     "research": "research/"
+  },
+  "attention": {
+    "state": "required",
+    "reason": "Fabio's own check is the only thing left: change a model folder, press Restart engine at the end of External Connections, then press it once mid-generation and confirm the refusal toast. Verify mode is user-ux, so no agent evidence closes it. Code shipped in e925c9fc, CI success; lint:components clean at close-out.",
+    "updated_at": "2026-09-18T11:38:12+01:00"
   }
 }
