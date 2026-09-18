@@ -41,11 +41,11 @@ export const MpiAbout = ComponentFactory.create({
     template: () => `
         <div class="mpi-about">
             <div class="mpi-about__content">
-                <img src="assets/mascot/logo.png" alt="Cubric Vision" class="mpi-about__logo">
-                <span class="mpi-wordmark mpi-about__name" aria-label="Cubric Vision">Cubric<span class="mpi-wordmark__suffix">Vision</span></span>
+                <img src="assets/mascot/studio/logo.png" alt="Cubric Studio" class="mpi-about__logo">
+                <span class="mpi-wordmark mpi-about__name" aria-label="Cubric Studio">Cubric<span class="mpi-wordmark__suffix">Studio</span></span>
                 <p class="mpi-about__desc">
                     Create images and video through local inference, with projects, prompts, models,
-                    and workflows kept on your machine. Cubric Vision is built for open-ended creation
+                    and workflows kept on your machine. Cubric Studio is built for open-ended creation
                     with mostly uncensored models, and is the first part of a wider Cubric creative ecosystem.
                 </p>
                 <span class="mpi-about__version">${APP_STAGE_LABEL} v${APP_VERSION}</span>

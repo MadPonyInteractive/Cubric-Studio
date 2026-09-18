@@ -1,7 +1,7 @@
 /**
  * Recipe: ILLUSTRIOUS — Illustrious XL / Animagine tag grammar, text-to-image.
  *
- * Targets Cubric Vision's TWO anime SDXL cards:
+ * Targets Cubric Studio's TWO anime SDXL cards:
  *   `ill-anime`        = animemix v8.0 (`animemix_v80`, Civitai 933065)
  *   `ill-anime-beauty` = ramthrustsNSFWPINK_alchemyMix176 (Civitai 2578175)
  *

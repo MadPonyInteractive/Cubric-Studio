@@ -1,0 +1,16 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "task_card": "MPI-807",
+  "owned": [
+    "scripts/build-portable.mjs",
+    "package.json",
+    "package-lock.json",
+    "tests/portable-win-layout.test.cjs",
+    "docs/releases/portable-distribution-contract.md",
+    ".agents/mpi-kanban/tasks/MPI-807/"
+  ],
+  "reads": [
+    "media/icons/cubric-vision.ico"
+  ],
+  "note": "rcedit runs on the STAGED CubricStudio.exe only. media/icons/ is claimed by MPI-708 and is read-only here."
+}

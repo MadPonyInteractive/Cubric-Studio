@@ -166,7 +166,7 @@ export const MpiAudioRecorder = ComponentFactory.create({
                 // of them from inside the app, so say which it is.
                 const denied = err?.name === 'NotAllowedError';
                 hintSlot.textContent = denied
-                    ? 'Microphone access was refused. Allow it for Cubric Vision in your system privacy settings, then try again.'
+                    ? 'Microphone access was refused. Allow it for Cubric Studio in your system privacy settings, then try again.'
                     : 'No microphone was found. Check it is plugged in and selected in Settings.';
                 clientLogger.warn('audio-recorder', `getUserMedia failed: ${err?.name || err}`);
                 return;

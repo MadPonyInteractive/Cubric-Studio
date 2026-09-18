@@ -6,6 +6,54 @@ Brief (decision + repo-rename reasoning): `brief.md`.
 
 ## Current State
 
+**2026-09-18 (session 09561fb8): PHASE 2b DONE, automated checks green, waiting on Fabio's eyes
+(verify mode `user-ux`).** Fabio's answer on the logo: **a still for now, swapping to the animations
+once they land** — so the titlebar/About/icons take `Studio-Logo.png` (the head badge; the full-body
+`Studio-Idle.png` is unreadable at the 16px titlebar size). Evidence in `validation.md` § Phase 2b:
+12 files of strings, the new `assets/mascot/studio/logo.png`, and the whole icon set regenerated and
+parsed back entry by entry. Two strings KEPT as "Cubric Vision" and now commented with why —
+`MpiErrorDialog.js:149` (userData, pinned by `app.setName`) and `MpiNewProject.js:40` (Documents,
+healed only on major >= 2). `npm test` 1337/0. **`npm run lint` whole-tree is RED on
+`js/shell/navigation.js:398`, a duplicate `_restartPending` in a live peer's uncommitted MPI-805
+work — not ours, do not fix; lint our own files instead.**
+
+**The launcher self-rewrite fix (MPI-595 Gate A) is WRITTEN and the mechanism is proven, but the
+real in-place update is still owed.** Root cause: `apply-update.cjs:253` `fs.copyFileSync` truncates
+and rewrites the running launcher's own inode while `sh` reads it by byte offset (Windows is spared
+because `copyFileSync` throws EBUSY and the evict path renames aside). All 8
+`linux/*.sh` + `macos/*.command` now wrap their body in `main() { ... }` and end with
+`main "$@"; exit $?` — the trailing `exit` is load-bearing, measured: without it the shell returns
+from main and runs the REPLACEMENT file's body. Guarded by
+`tests/portable-launcher-selfrewrite.test.cjs` (shape test + the measurement harness, 2/2).
+**Next: `linuxbox` — Fabio will power it on.** Plan corrected by him: do NOT patch whatever version
+is sitting there (he is unsure if it is still the 1.3.0 tree, and a 1.3 -> 1.5 hop may break for
+unrelated reasons). **Fresh install instead.** And the hop that matters is not the released one:
+the script that has to SURVIVE a rewrite is the one ALREADY INSTALLED, so a stock 1.4.4 -> 1.5.0
+update exercises 1.4.4's UNWRAPPED launchers and proves nothing about the fix. The decisive shape is
+A/B on one fresh install: run a minimal crafted bundle (manifest listing only the launcher files,
+correct `appId`) over the STOCK launchers to reproduce the bug on real dash, then swap in the 8
+wrapped ones and repeat. No ComfyUI, no engine, no generation — the applier only copies files, and
+Fabio's standing constraint is that an engine install thermally kills that laptop.
+**Open question for that run: is the self-rewrite the real root cause behind MPI-422?** MPI-422's
+symptom was "the update applied and nothing ever reopened" and it was fixed by ADDING `relaunch()` —
+but a truncated launcher would lose that call too. Check whether the linux/macOS update bundles
+actually list the launchers (the win32 manifest lists `update.bat` at its root, so probably yes).
+**Also note who the fix protects: nobody on 1.x today.** A currently-installed 1.x user updating to
+2.0 runs their OWN unwrapped launcher, so the wrap only starts protecting people from 2.0 -> 2.1
+onward. Worth telling MPI-595 before it treats Gate A as closing this for the existing fleet.
+
+**MPI-807 raised 2026-09-18** (todo/planned, `brief.md`): the Windows exe PE rebrand, Phase 2.4 of
+the 2026-04-30 portable plan, never built. `build-portable.mjs:505,529` copies `electron.exe` to
+`CubricStudio.exe` byte-for-byte with no `rcedit`, so Explorer and any PINNED shortcut still show
+Electron's icon, and `media/icons/cubric-vision.ico` has no consumer anywhere. macOS
+(`build/icon.icns`), Linux (`.desktop` + hicolor png) and the Windows RUNNING window
+(`BrowserWindow.icon` = `favicon.png`) are all wired and all still work — which is why the
+three-platform check Fabio ran passed and why a plain launch will keep passing while MPI-807's
+defect is present. That is also why a dev run always shows the Electron logo (Phase 2.5 never
+landed either), so the taskbar icon is NOT checkable in dev.
+
+After that: the held-file pass, Phase 3, mascots still parked.
+
 **2026-09-17 (session 0408510a):** Fabio decided the exe question: **(c)**: keep
 `CubricVision.exe` on updated installs at 2.0, delete it at 2.1, and the 2.0 release note tells
 users to re-pin to `CubricStudio.exe`. He also OK'd `.claude/rules/components.md:3`. MPI-760 released
@@ -411,6 +459,18 @@ rather than forgotten.
 
 ## Plan Drift
 
+- 2026-09-18 (session 09561fb8), **the launcher fix needed one more line than the plan said.**
+  The plan called for wrapping each body in a function called on the last line. Measured, that is
+  only half the fix: the wrap saves the body, but the shell then returns from `main`, reads on from
+  its saved byte offset into the REWRITTEN file and executes whatever now sits there. The last line
+  must be `main "$@"; exit $?` on ONE line. Also established while confirming the root cause:
+  `apply-update.cjs` uses `fs.copyFileSync`, so this is an in-place truncate of the same inode, and
+  Windows escapes it only because `copyFileSync` throws EBUSY there and the applier renames aside.
+- 2026-09-18 (session 09561fb8), **Phase 2b's string list was two files short.** The plan's
+  `Current State` list missed two live product references in `js/data/recipes/illustrious.recipe.js`
+  and `pony.recipe.js`; the sweep grep found them. `minimax-h3.recipe.js:71` is dated history and
+  stayed. The plan also listed `MpiNewProject.js` and `MpiErrorDialog.js` as strings to sweep — both
+  name REAL on-disk folders and were kept, with the reason now written beside each.
 - 2026-09-17 (session 0408510a), **Phase 2 MASCOT work PARKED by Fabio** until the animation work
   lands: every character already has one or two "waiting" animations as VIDEO that still need
   converting (MadPony-Identity "Mascot animations" session, which is waiting on the GIF session).

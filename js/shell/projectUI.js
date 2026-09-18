@@ -72,7 +72,7 @@ export function initProjectUI() {
 
   // ── Hero version label ─────────────────────────────────────────────────────
   const versionEl = gid('heroVersion');
-  if (versionEl) versionEl.textContent = `Cubric Vision · v${APP_VERSION}`;
+  if (versionEl) versionEl.textContent = `Cubric Studio · v${APP_VERSION}`;
 
   // ── Hero nav: plain text links (Settings · Remote · Hotkeys · About) ─────
   const navSlot = gid('landingActions');

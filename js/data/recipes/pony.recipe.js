@@ -1,10 +1,10 @@
 /**
  * Recipe: PONY — Pony Diffusion V6 XL tag grammar, text-to-image.
  *
- * Targets Cubric Vision's `pony-mix` = **ANImergeMEij v3.0+VAE**
+ * Targets Cubric Studio's `pony-mix` = **ANImergeMEij v3.0+VAE**
  * (`animergemeij_v30VAE`, Civitai 734527), an anime merge on a Pony V6 XL base.
  * The recipe is named for the GRAMMAR (`score_*` / `source_*` + booru tags),
- * not the merge, so any Pony-lineage checkpoint Vision ships later inherits it.
+ * not the merge, so any Pony-lineage checkpoint Studio ships later inherits it.
  *
  * Research: `dev-docs/recipe-research/pony/{sources.md,research.md}` and
  * `vocabulary-evidence.md` — the measured half, 32 prompts from this exact

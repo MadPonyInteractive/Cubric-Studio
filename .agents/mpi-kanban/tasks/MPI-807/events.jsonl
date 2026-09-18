@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-807", "at": "2026-09-18T13:53:08+01:00", "actor": "claude", "column": "todo", "title": "Windows exe PE rebrand: pinned/Explorer icon is still Electron's (portable plan Phase 2.4)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-807", "at": "2026-09-18T14:03:45+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "rcedit pass on the staged Windows exe"}

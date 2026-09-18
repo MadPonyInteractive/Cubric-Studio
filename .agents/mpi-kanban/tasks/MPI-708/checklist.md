@@ -10,6 +10,14 @@
   - [x] Cross-repo pointer sweep (mpi-ci, hub, MadPony-Identity, ComfyUi-MpiNodes, Vision tool docs + kanban rule)
   - [x] README: "formerly Cubric-Vision" note; mascot removed (Fabio, 2026-09-17)
 - [ ] Renderer — mascots and display strings
+  - [x] Phase 2b: non-mascot display strings (appName.js + .cjs, index.html, MpiAbout, updateChecker,
+        projectUI, MpiAudioRecorder, pages/components.js, models.js, illustrious/pony recipe headers)
+  - [x] Phase 2b: Studio logo (assets/mascot/studio/logo.png) in the titlebar + About, and the
+        regenerated icon set (favicon.png, build/icon.{png,icns}, media/icons/cubric-vision.{png,ico,icns})
+  - [x] Phase 2b: MpiErrorDialog:149 and MpiNewProject:40 KEPT as "Cubric Vision" — real on-disk
+        folders (userData is pinned by app.setName; Documents heals only on major >= 2), both commented
+  - [ ] Phase 2b: Fabio's own check — titlebar, About, taskbar icon, favicon
+  - [ ] Mascots: PARKED until the action animations land (plan drift, top)
 - [ ] Parallel Batch: Non-renderer sweep
   - [x] Heal the Documents folder (version-gated to 2.x; routes/shared.js + tests/documents-heal.test.cjs)
   - [x] Build identity (exe, artifact names, productName, updater default repo, PRESERVE)

@@ -143,6 +143,9 @@ export const MpiErrorDialog = ComponentFactory.create({
                 setStatus(`Log file: ${data.logPath}`);
             } catch (err) {
                 clientLogger.error('error-dialog', 'Could not reveal the log file', err);
+                // "Cubric Vision" here is the real userData folder name, pinned by
+                // app.setName() in main.js so an upgrade keeps the user's settings.
+                // It does not follow the Cubric Studio display rename.
                 setStatus(`Could not open the log folder (${err.message}). Look for app.log under the Cubric Vision logs folder in your user data directory.`);
             }
         });

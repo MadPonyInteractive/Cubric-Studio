@@ -181,7 +181,7 @@ async function showUpdateError(title, text) {
 function promptUpdate(current, latest) {
     const dialog = MpiOkCancel.mount(document.createElement('div'), {
         title: 'Update available',
-        text: `A new version of Cubric Vision is available.\n\n`
+        text: `A new version of Cubric Studio is available.\n\n`
             + `You have v${current}. Latest is v${latest}.\n\n`
             + `Update now? The app will close, update, and reopen. `
             + `You can also update later from Settings, where an available update is `

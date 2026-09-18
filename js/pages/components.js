@@ -630,7 +630,7 @@ function mountAll() {
             },
             {
                 variant: 'success',
-                message: 'Project exported to <a href="#folder" style="color:inherit;text-decoration:underline;">Documents/Cubric Vision/Exports</a> — all 24 history items, masks, and the project.json were copied. You can share that folder or re-import it on another machine to continue exactly where you left off.'
+                message: 'Project exported to <a href="#folder" style="color:inherit;text-decoration:underline;">Documents/Cubric Studio/Exports</a> — all 24 history items, masks, and the project.json were copied. You can share that folder or re-import it on another machine to continue exactly where you left off.'
             }
         ];
 

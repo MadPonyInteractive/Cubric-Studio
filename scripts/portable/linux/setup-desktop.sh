@@ -15,23 +15,32 @@
 # This script lives in <portable-root>/resources/. Both launchers export
 # CUBRIC_PORTABLE_ROOT before calling it; when run standalone we derive the
 # portable root as the parent of this script's resources/ directory.
+#
+# MPI-595: the whole body lives in main(), called on the LAST line. An update
+# bundle ships this very file, and apply-update.cjs writes it with copyFileSync
+# — an in-place truncate + rewrite of the same inode — so a copy that is
+# running when an update lands would otherwise resume at an offset into the NEW
+# file. A function body is parsed in full before its first line executes.
 set -eu
 
-ROOT="${CUBRIC_PORTABLE_ROOT:-$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)}"
-ICON_SRC="$ROOT/resources/cubric-vision.png"
-LAUNCHER="$ROOT/start.sh"
+main() {
+  ROOT="${CUBRIC_PORTABLE_ROOT:-$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)}"
+  ICON_SRC="$ROOT/resources/cubric-vision.png"
+  LAUNCHER="$ROOT/start.sh"
 
-APPS_DIR="$HOME/.local/share/applications"
-ICON_DIR="$HOME/.local/share/icons/hicolor/256x256/apps"
-DESKTOP_FILE="$APPS_DIR/cubric-vision.desktop"
+  APPS_DIR="$HOME/.local/share/applications"
+  ICON_DIR="$HOME/.local/share/icons/hicolor/256x256/apps"
+  DESKTOP_FILE="$APPS_DIR/cubric-vision.desktop"
 
-# Nothing to install if the icon is missing (e.g. a stripped build).
-[ -f "$ICON_SRC" ] || exit 0
+  # Nothing to install if the icon is missing (e.g. a stripped build).
+  [ -f "$ICON_SRC" ] || exit 0
 
-mkdir -p "$APPS_DIR" "$ICON_DIR"
-cp -f "$ICON_SRC" "$ICON_DIR/cubric-vision.png" 2>/dev/null || true
+  mkdir -p "$APPS_DIR" "$ICON_DIR"
+  cp -f "$ICON_SRC" "$ICON_DIR/cubric-vision.png" 2>/dev/null || true
 
-cat > "$DESKTOP_FILE" <<EOF
+  # Heredoc body stays at column 0 — indenting it would write the leading
+  # whitespace straight into the .desktop file.
+  cat > "$DESKTOP_FILE" <<EOF
 [Desktop Entry]
 Type=Application
 Name=Cubric Studio
@@ -44,9 +53,15 @@ StartupWMClass=cubric-vision
 StartupNotify=true
 EOF
 
-# Refresh the desktop database + icon cache where the tools exist. All optional;
-# the .desktop/icon files alone are enough on most DEs after the next relogin.
-update-desktop-database "$APPS_DIR" >/dev/null 2>&1 || true
-gtk-update-icon-cache "$HOME/.local/share/icons/hicolor" >/dev/null 2>&1 || true
+  # Refresh the desktop database + icon cache where the tools exist. All optional;
+  # the .desktop/icon files alone are enough on most DEs after the next relogin.
+  update-desktop-database "$APPS_DIR" >/dev/null 2>&1 || true
+  gtk-update-icon-cache "$HOME/.local/share/icons/hicolor" >/dev/null 2>&1 || true
 
-exit 0
+  exit 0
+}
+
+# `; exit $?` on the SAME line matters: without it the shell, having run
+# main, reads on from its saved byte offset into the REWRITTEN file and
+# executes whatever now sits there (measured — it ran the new body).
+main "$@"; exit $?
