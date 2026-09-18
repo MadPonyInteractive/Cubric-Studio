@@ -971,9 +971,8 @@ last complete full run on the FINAL tree:
   this session, mid-turn, and reads as a case failure) or real model variance. **First check next
   session:** re-run the full suite keeping the per-run output, and if either fails again, read its
   calls before touching a rule.
-- `--bite` on the final tree did not finish before the handoff. Its last complete pass, one rule
-  edit earlier, was **18/18 biting**; `ranked-editor` and `over-boxed-head` were each re-bitten
-  individually after their rule edits and both bite.
+- `--bite` on the final tree landed just after the handoff was written: **18/18 biting**, $0.0534.
+  Every assertion in the suite, including the three added this session, can see the failure it names.
 - Not in doubt, all on the final tree: `npm test` **1342 pass / 0 fail / 1 skipped**, `npm run lint`
   and `lint:components` clean, `node --test` on the three unit files 18/18 + 5/5 + 5/5.
 
