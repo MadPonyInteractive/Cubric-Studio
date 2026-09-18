@@ -462,6 +462,24 @@ with `/mpi-brief-rule` output plus the Critical Rules Snapshot before dispatch.
 
 ## Phase 3: The 2.0 release
 
+**BLOCKED — the cut waits on four things (Fabio, 2026-09-18).** This is a gate, not a
+suggestion: `/mpi-release` does not run until all four read clear.
+
+| Gate | Card | State |
+|---|---|---|
+| Agent work in user flows | **MPI-532** Community flow packages (`user_flows/`) | doing / in-progress |
+| Agent work in the in-app agent | **MPI-774** In-app agent slice A | doing / validating |
+| Project registry cleanup | **NO CARD YET** — raise one | cardless, invisible to the board |
+| Mascot animations | **MPI-777** Animated mascots | todo / blocked on GIF cut-out assets (MPI-757; MPI-771 is the SAM3 cut-out, doing/validating) |
+
+MPI-777 blocks this card twice over: it is Phase 3's gate AND the reason Phase 2's mascot
+half is parked, so MPI-708 cannot close on either path until the mascot chain lands.
+
+**What is NOT blocked, and can land before the cut:** the release-note section and the 2.1
+follow-up card below. Only the `/mpi-release` step itself waits. Mirror this gate list onto
+**MPI-595**, which is the umbrella that owns "what must read clear before `/mpi-version-bump`
+stamps the version".
+
 - [ ] Write the 2.0 release-note section: separate apps were planned, they became one app,
       so the ecosystem name is now the product name. Say plainly that **the projects folder
       is renamed automatically and no action is needed**, that 2.1 will drop the legacy
