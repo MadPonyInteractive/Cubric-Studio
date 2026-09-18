@@ -201,16 +201,15 @@ After loading, `state.currentProject.itemGroups[n].history[m]` is the full sidec
   - Returns migrated project to client.
 
 3. **Reconcile and hydrate** (client-side, via `reconcileAndHydrate()`):
-  - For each group in `itemGroups`:
-    - For each UUID in `history[]`:
-      - Try to load `Media/.meta/<uuid>.json` (via `GET /load-meta?id=<uuid>&folderPath=<path>` route).
-      - If `.meta/` file exists, check if the referenced media file exists (via `GET /file-exists?path=...`).
-      - If media file exists: keep the entry (fully hydrated).
-      - If media file missing: remove UUID from history, delete orphaned `.meta/` file.
-      - If `.meta/` file missing: remove UUID from history silently.
-    - If group has `uploaded: true` items (legacy, no `.meta/` file by design), construct a synthetic item from the filename.
+  - **One request for the whole project**: `POST /load-meta-batch` with every UUID in every group. It answers `{ <uuid>: { meta, exists } }` — the sidecar, and whether the media file it points at is still on disk. A failed request **throws**: an empty answer reads as "no sidecar" for every item, which would rebuild them all as synthetic uploads, drop groups and persist that.
+  - Then, in memory, per UUID in each group's `history[]`:
+      - `meta` present, `exists` true: keep the entry (fully hydrated).
+      - `meta` present, `exists` false: remove UUID from history, delete the orphaned `.meta/` file (`DELETE /delete-meta`).
+      - `meta` null: no sidecar — `uploaded: true` items never get one by design — so construct a synthetic item from the media filename. The Media listing that needs is fetched **once per open**, and only if some item actually lacks a sidecar.
   - If any group becomes empty after cleanup, remove the group.
   - If anything was removed (`wasModified = true`), re-persist the cleaned project.json.
+
+  **Never add a per-item round trip here.** Hydration asked twice per item (`/load-meta`, then `/file-exists`), awaited in series — 300 requests for a 150-item project — and `openProject()` does not navigate until the chain ends, so clicking a project read as a dead click for as long as the renderer's connection pool was busy; an engine auto-start was enough to stretch that to the whole boot (MPI-804). The pool is six connections, shared with the landing grid's preview clips and the EventSource streams — `shell.md` § "The grid stops when the landing is left". Anything else an open needs per item belongs in the batch response, not in another loop.
 
 4. **Load full hydrated project into state** (`state.currentProject = projectData`).
 
@@ -297,8 +296,8 @@ is stamped in every sidecar, resolved by Reuse, and versioned in `operationRegis
 reuses `001`, which either `-y`-overwrites a re-created file at that path or gets
 deleted-by-filename while another history entry still points at it. Either way a card orphans —
 media gone, history id alive in `project.json` → gallery `/project-file` 404, blank card. The
-reconciler heals the dangling id (those one-time `load-meta` 404s are harmless) but **cannot
-resurrect clobbered bytes.**
+reconciler heals the dangling id (a `{ meta: null, exists: false }` entry in the hydration
+batch is harmless) but **cannot resurrect clobbered bytes.**
 
 Paired guard, keep it: `DELETE /project-media/:id/:filename` unlinks the file **only** when that
 itemId's own sidecar `filePath` resolves to it; otherwise it cleans meta only (`3e0ea062`).
@@ -383,5 +382,5 @@ See `docs/versioning.md` for the full versioning system.
 - `js/services/projectService.js` — Group mutation, saving, basic operations
 - `js/managers/projectReconciler.js` — `reconcileAndHydrate()` implementation
 - `js/migrations/projectMigrations.js` — migration functions
-- `routes/projects.js` — `/migrate-project`, `/load-meta`, `/file-exists`, `/delete-meta` routes
+- `routes/projects.js` — `/migrate-project`, `/load-meta-batch` (project open), `/load-meta`, `/file-exists`, `/delete-meta` routes
 - `docs/versioning.md` — schema versioning and operation registry
