@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-806", "at": "2026-09-18T10:55:50+01:00", "actor": "claude", "column": "todo", "title": "RunPod REST v1 -> v2 migration (v1 returns 410 Gone on 2026-11-15)"}

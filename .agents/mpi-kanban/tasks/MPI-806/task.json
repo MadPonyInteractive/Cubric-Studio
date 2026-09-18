@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-806",
+  "title": "RunPod REST v1 -> v2 migration (v1 returns 410 Gone on 2026-11-15)",
+  "description": "HARD DEADLINE 2026-11-15: RunPod retires REST API v1; every call returns 410 Gone.\nGraphQL (api.runpod.io/graphql) follows in early 2027. Source: Runpod Weekly #35\n(2026-09-16) + the v1-to-v2 migration guide at docs.runpod.io/api-reference-v2/migrate-from-v1\n\nThis breaks the ENTIRE remote-engine feature for any SHIPPED version still on v1,\nincluding installs that never update. The migration must ship in a release with enough\nrunway for users to auto-update (target: shipped by 2026-11-01).\n\nScope - routes/runpodRemote.js is the only client (const REST at line 33, 13 call\nsites through _rest()):\n  - base rest.runpod.io/v1 becomes api.runpod.io/v2\n  - auth unchanged (Bearer)\n  - POST/GET /pods, GET/DELETE /pods/{id} become /v2/pods; LIST now wraps the array as\n    {\"pods\":[...]} instead of returning a bare array\n  - POST /pods/{id}/start and /stop COLLAPSE into POST /v2/pods/{id}/action with the\n    action in the body. No v2 equivalent for reset.\n  - /networkvolumes x4 (list, create, delete, PATCH grow) renamed, {id} standardised\n  - POST /templates renamed\n  - create spec goes NESTED: gpu settings under `gpu`, storage under `mounts`\n  - errors move to RFC 9457 {title,status,detail} from {message}. _reason() in\n    routes/remotePodLifecycle.js:783 already reads detail/title, so it is half-covered.\n\nAlso check at migration time:\n  - v2 adds catalog browsing, which is the replacement for the GraphQL half\n    (client.gpuTypes / client.availability) before GraphQL dies in early 2027.\n  - Global Volumes (beta, 0.09 USD/GB/mo plus passed-through read/write/file-op costs)\n    mount a volume in ANY data center, which would remove the volume DC-lock documented\n    at routes/remotePodLifecycle.js:797. Cost-check before adopting: our hot-store\n    re-reads 30-80GB of weights per Pod start. Separate decision - do not block the\n    migration on it.\n\nTesting needs a real Pod (real money) - see docs/runpod-remote-engine.md.\n\nUNVERIFIED: the email claims every v1 response already carries a Sunset header. An\nunauthenticated probe of rest.runpod.io/v1/pods on 2026-09-17 returned 401 with NO\nSunset header. Do not build a detector on that claim without checking with a real key.\n\nCalendar backstop: an all-day reminder on 2026-10-22 asks whether this has shipped.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-18T10:55:50+01:00",
+  "updated_at": "2026-09-18T10:55:50+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
