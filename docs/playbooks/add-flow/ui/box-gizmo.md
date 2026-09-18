@@ -53,8 +53,15 @@ wrong face.
 So a step declares it:
 
 ```js
-{ kind: 'box', role: 'image1', param: 'box1', ratio: 1, overflow: 'allow' }
+{ kind: 'box', role: 'image2', param: 'box2', ratio: 1, overflow: 'allow' }
 ```
+
+**`overflow` does not save a step that also locks `ratio` (MPI-808).** It frees the ORIGIN, not
+the SIZE: dragging off-frame still grows a locked square in BOTH axes, so framing one head gave
+a 1299×1299 box on a 1664-wide plate — the runaway MPI-325 existed to prevent, reached by the
+other axis. Head Swap's image1 declares `overflow` and NO `ratio`; only image2 keeps the lock,
+because `Mpi Box Crop` hands the encoder exactly what is boxed. Lock a ratio only when the
+consumer needs the aspect.
 
 `overflow: 'allow'` lifts BOTH frame bounds, and it needs both:
 
@@ -82,8 +89,16 @@ box was not the crop the readout promised, with no error anywhere.
 
 | Consumer | Overhang costs | What the flow must do |
 |---|---|---|
-| `Mpi Box Mask` | nothing | just declare `overflow`. The mask is full-frame and clips at the edge — there are no pixels out there to mark. If it feeds `InpaintCropImproved`, that node grows the region back to its target aspect itself before sampling. |
+| `Mpi Box Mask` | nothing *at the mask* — but see below | declare `overflow`, drop any `ratio`, and check what the mask FEEDS. The mask itself is full-frame and clips at the edge, so there are no pixels out there to mark. |
 | `Mpi Box Crop` | the aspect | declare `overflow` **and** set the node's `pad` input. Off, the crop is the intersection and a square reference arrives squashed. |
+
+**`InpaintCropImproved` downstream of a mask is NOT free (MPI-808).** This table used to call
+its re-squaring reassurance; the growth is the hazard. `output_resize_to_target_size` forces the
+CONTEXT region to the OUTPUT's aspect, so a baked square target widens a tall mask into whoever
+stands beside the subject — the whole plate into the sampler. Turning that flag off is NOT the
+fix (the sampler's budget then swings 36× with box size): only the baked ASPECT is wrong.
+Derive `output_target_width`/`height` from the box at a constant budget, off `Mpi Box Mask`'s
+**clamped** output (§ Consumers). Head Swap does it with two `MpiMath` nodes.
 
 **Never pad the SOURCE image to fix a masked slot.** Padding the image the flow delivers grows
 the delivered picture — the user gets their photo back with a strip on it. Padding is only ever
@@ -106,15 +121,27 @@ Each consumer takes `image` + `mpi_box` and passes `mpi_box` through, so boxes c
 Crop and mask come from the SAME box type — Head Swap masks image 1 and crops image 2 with
 identical injection. Adding a consumer never changes the flow side.
 
+**`Mpi Box Mask`'s second output is the CLAMPED box** — not the rectangle injected. Its
+docstring: "so downstream nodes see the region actually drawn". Anything sizing itself off an
+overflowing box must read THAT, or it computes from geometry outside the picture. Head Swap
+shipped for months with `Box Size` on the raw box and this output wired to nothing (MPI-808).
+
 The one place the consumer does reach back into the flow is `overflow` (§ Out of bounds): a
-crop needs `pad` on to survive an overhanging box, a mask needs nothing.
+crop needs `pad` on to survive an overhanging box, a mask needs nothing at the mask itself —
+but what the mask FEEDS may need the box's aspect, which is the MPI-808 trap above.
 
 ### Free box — a UI lock, not a graph lock
 
 `width` and `height` are independent, so the graph is **already free-box capable**. A ratio
 lock (1:1 or otherwise) lives in the gizmo, which sends `width === height` while a flow wants
-square. A flow needing a non-square box unlocks its gizmo — **zero workflow changes, zero
-node renames.**
+square. A flow needing a non-square box unlocks its gizmo — **no node renames, and the
+injection is unchanged.**
+
+This said "zero workflow changes" until MPI-808, which is too strong: the injection needs
+nothing, but a graph that baked the old lock's aspect into a downstream widget does — Head
+Swap's `InpaintCropImproved` carried a square `output_target` that re-imposed the very ratio
+the gizmo had stopped enforcing. Unlocking a ratio means grepping the graph for anything that
+assumed it.
 
 ### More than one box — suffix matches the image number
 
@@ -181,3 +208,9 @@ and a real Head Swap generation through a padded overhanging box. The executed g
 the engine's `/history`) carried `pad: true` on `MpiBoxCrop` with the reference box at
 `1354×1354, origin -267,-5` — past the source's WIDTH and off-frame on both axes — and the
 delivered image came back with no padded strip. Evidence in MPI-325's `validation.md`.
+
+**That covered the CROP slot only, and the gap cost MPI-808** — the mask slot was signed off by
+reasoning ("the mask clips, Inpaint Crop re-squares"), not a run, and both halves were wrong
+together. Bench proof in MPI-808's `research/bench-proof-2026-09-18.md`. A negative origin and
+an off-frame box are legal and were never the defect: if a box value looks wrong, read this
+page before writing that into a card.

@@ -118,28 +118,53 @@ Fabio's box is the left-hand girl alone, which A/B/C all failed to produce.
   +2 nodes, +6 links, 4 nodes changed (21/90/91/285), nothing lost.
 - `npm run lint` exit 0. `npm test` 1352 tests, 1351 pass, 0 fail, 1 skipped.
 
+## Live confirmation — PASSED (Fabio, in his own app, 2026-09-18)
+
+He re-ran Head Swap on the same plate with a rectangle round the left-hand girl. The latent
+preview during sampling is HER ALONE — the whole point of the card, and what A/B/C all failed
+to produce. Generation completed and saved to the gallery. That closes the one check no
+sandbox could make, since nothing else drives his gizmo.
+
+No restart was needed for the graph change (the app re-reads the workflow per dispatch); the
+renderer reload he had already done covered the `ratio` change.
+
+## Docs refreshed (2026-09-18, approved by Fabio)
+
+`docs/playbooks/add-flow/ui/box-gizmo.md`:
+
+- The `ratio` + `overflow` interaction: `overflow` frees the ORIGIN, not the SIZE, so it does
+  not save a step that also locks a ratio. The example snippet now shows image2, not image1.
+- The consumer table no longer offers `InpaintCropImproved`'s re-squaring as reassurance — it
+  names it as the hazard, records that turning `output_resize_to_target_size` off is NOT the
+  fix (36x budget swing), and points at deriving the target from the box.
+- `Mpi Box Mask`'s clamped second output is documented as the thing downstream sizing must read.
+- The MPI-325 "verified end to end" note now says that verification covered the CROP slot only,
+  and that the mask slot was signed off by reasoning rather than a run — which is the gap that
+  cost this card.
+- The "zero workflow changes" claim under Free box is corrected: the injection needs nothing,
+  but a graph that baked the old lock's aspect into a widget does.
+
+The file is 216 lines against the <=200 guideline in CLAUDE.md. Trimmed twice already; cutting
+further would remove rules rather than prose. Flagged to Fabio rather than silently exceeded —
+if it needs to come down, the `Historical note` blockquote about KJNodes `CreateShapeMask` is
+stale history and the obvious candidate, but it predates this card so it was left alone.
+
 ## Still open
 
-- Fabio's own run in the app: box a head that runs off the frame edge and confirm the crop.
-  Only he can do this one - no sandbox reproduces his gizmo interaction. ComfyUI does NOT need
-  restarting for the graph change (the app re-reads the workflow per dispatch), but the renderer
-  does need a reload for the `ratio` change, which he has already done.
-- `docs/playbooks/add-flow/ui/box-gizmo.md` line 85 still reasons that overflow is "safe on this
-  slot ... Inpaint Crop re-squares the region itself". Run C disproves that as a safety argument,
-  and the re-squaring is now driven by the box aspect rather than a baked 1:1. The consumer table
-  on that page also predates `Box Size` reading the clamped output. Doc edit PROPOSED, not made -
-  awaiting approval, per the never-edit-rules-unasked rule.
+- Where the box leaves the frame the region NARROWS rather than filling with edge pixels (the
+  512x1920 row above). Fabio originally expected padding. Not changed: the flow forbids padding
+  image1 ("that would grow the delivered picture"), and the stitch would put it back anyway, so
+  it needs its own look if the narrowing ever bites.
 - The step-2 comment in `js/data/flowsRegistry.js` says a non-square image2 selection "arrives
-  stretched". That is reasoning from `Mpi Box Crop`'s behaviour, not something this card measured
-  - image2 keeps `ratio: 1` so nothing changed there, but it is worth a bench check before anyone
-  relies on it.
+  stretched". That reasons from `Mpi Box Crop`'s behaviour rather than a measurement — image2
+  keeps `ratio: 1` so nothing changed there, but worth a bench check before anyone relies on it.
 
 ## Closed during this card
 
 - The raw->API sync Fabio's re-export owed (RemoveBackground after the reference pickup) was
-  discharged by the same `sync-raw-workflows.mjs` run that baked this fix - raw commit
+  discharged by the same `sync-raw-workflows.mjs` run that baked this fix — raw commit
   `a796f364` carries both his reorder and the new nodes.
-- The latent `Box Size` defect (node 285 reading the RAW `MpiBox` while `MpiBoxMask` published a
-  clamped box wired to nothing) is FIXED. It was correctly ruled out as the cause of this bug by
-  run B, then turned out to be load-bearing for the fix: without it an off-frame box would size
-  its crop target from geometry that is not in the picture.
+- The latent `Box Size` defect (node 285 reading the RAW `MpiBox` while `MpiBoxMask` published
+  a clamped box wired to nothing) is FIXED. Correctly ruled out as the CAUSE by run B, then
+  load-bearing for the fix: without it an off-frame box would size its crop target from
+  geometry that is not in the picture.

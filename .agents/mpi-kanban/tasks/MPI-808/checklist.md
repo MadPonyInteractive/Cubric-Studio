@@ -11,5 +11,8 @@
 - [x] Graph: context_from_mask_extend_factor 1.1 -> 1.0 (Fabio's call)
 - [x] raw -> API sync run against the engine (48188); injection rules pass
 - [x] Verify the SHIPPED graph across four box shapes; budget holds ~1 MP, aspect follows the box
-- [ ] Refresh the two docs that carry the now-false "safe on this slot" reasoning — PROPOSED, needs approval
-- [ ] Fabio's own run in the app: box a head that runs off the frame edge, confirm the crop
+- [x] **Fabio's own run in the app PASSED (2026-09-18)** — latent preview is the boxed girl alone,
+      generation completed and saved to the gallery
+- [x] Refresh `docs/playbooks/add-flow/ui/box-gizmo.md` — the "safe on this slot" reasoning,
+      the ratio+overflow interaction, the clamped output, and the over-strong "zero workflow
+      changes" claim
