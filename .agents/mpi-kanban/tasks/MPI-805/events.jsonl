@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-805", "at": "2026-09-18T10:47:16+01:00", "actor": "claude", "column": "todo", "title": "Restart engine button in Settings: a model-folder change asks for a restart users cannot perform"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-805", "at": "2026-09-18T10:48:15+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio asked for the button in External Connections"}

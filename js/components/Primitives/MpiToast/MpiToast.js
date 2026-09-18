@@ -1,6 +1,7 @@
 import { ComponentFactory } from '../../factory.js';
 import { qs, qsa, on } from '../../../utils/dom.js';
 import { readingTimeMs } from '../../../utils/string.js';
+import { applySink } from '../../../utils/audioOutput.js';
 import { Storage } from '../../../core/storage.js';
 
 /**
@@ -48,6 +49,9 @@ let _chime = null;
 function _playToastSound() {
     if (!Storage.getToastSound()) return;
     if (!_chime) _chime = new Audio('assets/sounds/notify.wav');
+    // The chime is never in the DOM, so audioOutput's document-level listener cannot
+    // see it — this is the one playback site that has to ask for the sink (MPI-803).
+    applySink(_chime);
     _chime.currentTime = 0;
     _chime.play().catch(() => {});   // autoplay/user-gesture rejects are harmless
 }

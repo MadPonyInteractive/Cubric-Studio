@@ -16,6 +16,7 @@ import { reSyncInstalledModels } from '../../../../data/modelRegistry.js';
 import { getPendingUpdate, runUpdate } from '../../../../services/updateChecker.js';
 import { localEngine } from '../../../../services/comfyController.js';
 import { ce, qs } from '../../../../utils/dom.js';
+import { applySink, setOutputDevice } from '../../../../utils/audioOutput.js';
 
 const REUSE_PARTS = [
     { key: 'prompt', label: 'Use Prompt' },
@@ -144,7 +145,7 @@ export const MpiSettings = ComponentFactory.create({
                 </section>
 
                 <section class="mpi-settings__section">
-                    <h3 class="mpi-settings__section-title">Audio Input</h3>
+                    <h3 class="mpi-settings__section-title">Audio</h3>
                     <div class="mpi-settings__plate mpi-settings__plate--stack">
                         <div class="mpi-settings__plate-main">
                             <span class="mpi-settings__plate-label">Microphone</span>
@@ -170,6 +171,16 @@ export const MpiSettings = ComponentFactory.create({
                         <div class="mpi-settings__plate-ctrl mpi-settings__audio-test">
                             <div id="mpiSettingsAudioTestSlot"></div>
                             <div class="mpi-settings__audio-test-meter" id="mpiSettingsAudioMeterSlot"></div>
+                        </div>
+                    </div>
+                    <div class="mpi-settings__plate mpi-settings__plate--stack">
+                        <div class="mpi-settings__plate-main">
+                            <span class="mpi-settings__plate-label">Output</span>
+                            <span class="mpi-settings__plate-desc">Where the app plays audio, video and the notification chime. System default follows Windows — pick a device here when a virtual mixer sends the default somewhere you cannot hear, then Test it.</span>
+                        </div>
+                        <div class="mpi-settings__plate-ctrl mpi-settings__audio-output">
+                            <div class="mpi-settings__audio-output-picker" id="mpiSettingsAudioOutputSlot"></div>
+                            <div id="mpiSettingsAudioOutputTestSlot"></div>
                         </div>
                     </div>
                 </section>
@@ -230,6 +241,13 @@ export const MpiSettings = ComponentFactory.create({
                         <div class="mpi-settings__drop-zones" id="mpiSettingsUpscaleDropSlot"></div>
                     </div>
                     <span class="mpi-settings__hint">Extra folders are read-only and additive — Cubric reads models from them but only installs, updates, and removes files in the primary managed folder (the first row in each group).</span>
+                    <div class="mpi-settings__plate mpi-settings__plate--stack">
+                        <div class="mpi-settings__plate-main">
+                            <span class="mpi-settings__plate-label">Restart engine</span>
+                            <span class="mpi-settings__plate-desc">The engine reads its folder list once, at startup. Adding or removing a folder above needs a restart before those models can be used — dropping a file into a folder it already knows does not. A restart is refused while a generation is running.</span>
+                        </div>
+                        <div class="mpi-settings__plate-ctrl" id="mpiSettingsRestartEngineSlot"></div>
+                    </div>
                 </section>
             </div>
         </div>`,
@@ -283,7 +301,7 @@ export const MpiSettings = ComponentFactory.create({
         }
 
         /**
-         * Microphone device + input gain (MPI-573).
+         * Output device (MPI-803), microphone device + input gain (MPI-573).
          *
          * `enumerateDevices` only returns real device LABELS once the page holds a
          * media permission — before that every entry comes back as an empty string,
@@ -330,15 +348,20 @@ export const MpiSettings = ComponentFactory.create({
 
             _initMicTest(root);
 
-            if (!deviceSlot) return;
-            deviceSlot.innerHTML = '';
-            let inputs = [];
+            // ONE enumerate for both pickers — it is a permission-gated async call,
+            // and the input and output lists come out of the same array.
+            let devices = [];
             try {
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                inputs = devices.filter(d => d.kind === 'audioinput' && d.label);
+                devices = await navigator.mediaDevices.enumerateDevices();
             } catch (err) {
                 clientLogger.warn('settings', `[MpiSettings] enumerateDevices failed: ${err?.message || err}`);
             }
+
+            _initAudioOutput(root, devices);
+
+            if (!deviceSlot) return;
+            deviceSlot.innerHTML = '';
+            const inputs = devices.filter(d => d.kind === 'audioinput' && d.label);
             const deviceInst = MpiDropdown.mount(deviceSlot, {
                 options: [
                     { label: 'System default', value: '' },
@@ -365,6 +388,57 @@ export const MpiSettings = ComponentFactory.create({
          * through the speakers is a feedback loop, and this answers "am I being
          * heard, and how hot" without needing to be audible.
          */
+        /**
+         * Output device + its Test button (MPI-803).
+         *
+         * Last in the section: input comes first (Fabio, 2026-09-17).
+         *
+         * The Test button is the whole reason this is checkable. Before it, finding out
+         * whether a device choice took meant hunting for a clip to play, and a wrong
+         * choice is INAUDIBLE by definition — the failure and the not-yet-tried state
+         * look identical. It reuses the notification chime rather than shipping a second
+         * sound file, and it reports a sink that would not take instead of playing into
+         * nowhere and reading as a broken button.
+         */
+        function _initAudioOutput(root, devices) {
+            const slot = qs('#mpiSettingsAudioOutputSlot', root);
+            const testSlot = qs('#mpiSettingsAudioOutputTestSlot', root);
+            if (!slot) return;
+
+            slot.innerHTML = '';
+            const outputs = devices.filter(d => d.kind === 'audiooutput' && d.label);
+            const inst = MpiDropdown.mount(slot, {
+                options: [
+                    { label: 'System default', value: '' },
+                    ...outputs.map(d => ({ label: d.label, value: d.deviceId })),
+                ],
+                value: Storage.getAudioOutputDevice(),
+                placeholder: 'System default',
+            });
+            // setOutputDevice, not Storage directly: it also moves whatever is playing
+            // right now onto the new device, which is how the user checks it.
+            inst.on('change', ({ value }) => setOutputDevice(value));
+
+            if (!testSlot) return;
+            testSlot.innerHTML = '';
+            const testBtn = MpiButton.mount(testSlot, {
+                icon: 'volumeHigh', label: 'Test', variant: 'secondary', size: 'sm',
+            });
+            testBtn.on('click', async () => {
+                const el = new Audio('assets/sounds/notify.wav');
+                if (!(await applySink(el))) {
+                    Events.emit('ui:warning', {
+                        message: 'That output device would not accept playback. It may have been unplugged \u2014 pick another.',
+                    });
+                    return;
+                }
+                el.play().catch((err) => {
+                    clientLogger.warn('settings', `[MpiSettings] output test failed: ${err?.name || err}`);
+                    Events.emit('ui:warning', { message: 'Could not play the test sound.' });
+                });
+            });
+        }
+
         function _initMicTest(root) {
             const btnSlot = qs('#mpiSettingsAudioTestSlot', root);
             const meterSlot = qs('#mpiSettingsAudioMeterSlot', root);
@@ -810,6 +884,26 @@ export const MpiSettings = ComponentFactory.create({
             _renderExtraFolderBucket(root, 'upscale_models', '#mpiSettingsUpscaleFoldersSlot', '#mpiSettingsAddUpscaleFolderSlot');
             _renderDropZones(root, 'loras', '#mpiSettingsLoraDropSlot');
             _renderDropZones(root, 'upscale_models', '#mpiSettingsUpscaleDropSlot');
+            _renderRestartEngine(root);
+        }
+
+        /**
+         * Restart engine (MPI-805).
+         *
+         * The handler already exists in the shell and is the one the dev radial uses —
+         * idle-queue guard, refusal toast, remote vs local branch, the gap between stop
+         * and start. This only gives a shipped user a way to reach it, because since
+         * MPI-800 the folder controls above ASK for a restart (MpiNodes 1.2.13 removed
+         * the live reload route) and the radial is dev-gated.
+         */
+        function _renderRestartEngine(root) {
+            const slot = qs('#mpiSettingsRestartEngineSlot', root);
+            if (!slot) return;
+            slot.innerHTML = '';
+            const btn = MpiButton.mount(slot, {
+                icon: 'refresh', label: 'Restart engine', variant: 'secondary', size: 'sm',
+            });
+            btn.on('click', () => Events.emit('engine:restart'));
         }
 
         /**
@@ -985,7 +1079,11 @@ export const MpiSettings = ComponentFactory.create({
             await loadAssets();
             // The engine reads model folders only when it starts (MPI-800).
             if (data.restartNeeded) {
-                Events.emit('ui:info', { message: 'Restart the engine to apply the model folder change.' });
+                // Names the control, because it is right there in this panel and the
+                // user has no other way to restart (MPI-805).
+                Events.emit('ui:info', {
+                    message: 'Restart the engine to apply the model folder change — the button is at the end of this section.',
+                });
             }
         }
     },

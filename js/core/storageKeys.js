@@ -20,6 +20,10 @@ export const STORAGE_KEYS = {
   AUDIO_INPUT_DEVICE:  'mpi_audio_input_device',
   AUDIO_INPUT_GAIN:    'mpi_audio_input_gain',
 
+  // MPI-803: playback OUTPUT device (empty = the OS default endpoint). Applied to
+  // every media element by js/utils/audioOutput.js, not by the playback sites.
+  AUDIO_OUTPUT_DEVICE: 'mpi_audio_output_device',
+
   // RunPod remote engine — NON-secret prefs only. The API key and wrapper
   // token live in the main process (safeStorage via secrets:* IPC), never here.
   RUNPOD_CONFIG:       'mpi_runpod_config',

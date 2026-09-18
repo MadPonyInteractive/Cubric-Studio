@@ -1,0 +1,15 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-803/",
+    "js/utils/audioOutput.js",
+    "js/core/storage.js",
+    "js/core/storageKeys.js",
+    "js/components/Compounds/LandingPages/MpiSettings/MpiSettings.js",
+    "js/components/Primitives/MpiToast/MpiToast.js",
+    "js/init.js",
+    "tests/audio-output.test.cjs",
+    "docs/component-contracts.md",
+    "tests/desktop/audio-permission.spec.js"
+  ]
+}

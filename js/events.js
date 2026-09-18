@@ -157,6 +157,7 @@ export const Events = new EventBus();
  * 'download:uninstalled'  { modelId: string }                      — model files uninstalled
  * 'download:installing'   { modelId: string }                      — custom node install in progress
  * 'comfy:needs-restart'   { modelId: string }                      — ComfyUI restart required after custom node install
+ * 'engine:restart'        —                                        — restart ComfyUI now, on the user's explicit ask (Settings button, dev radial). navigation.js owns the handler: it refuses on a busy queue rather than destroying an in-flight generation (MPI-805)
  * 'engine:downloading'    { progress: number, speed: string, downloadedBytes: number, totalBytes: number } — engine download progress
  * 'engine:extracting'     { progress: number }                     — engine extraction in progress
  * 'engine:patching'       { progress: number }                     — engine patching in progress

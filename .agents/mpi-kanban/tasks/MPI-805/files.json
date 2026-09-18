@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-805/",
+    "js/events.js",
+    "js/shell/navigation.js",
+    "js/components/Compounds/LandingPages/MpiSettings/MpiSettings.js",
+    "js/components/Compounds/LandingPages/MpiSettings/MpiSettings.css"
+  ]
+}

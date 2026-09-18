@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-803",
+  "title": "Audio output device picker in Settings: app playback follows a chosen device, not just the Windows default",
+  "description": "The app never calls setSinkId, so every <audio>/<video> and the toast chime follow the Windows default endpoint (on Fabio's box: SteelSeries Sonar - Gaming, which he does not hear). Add an output picker beside the Microphone setting, apply the choice to every media element from one place, and allow the speaker-selection permission in main.js.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-17T20:35:59+01:00",
+  "updated_at": "2026-09-17T20:37:55+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

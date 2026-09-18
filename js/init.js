@@ -5,11 +5,17 @@ import { initShell } from './shell.js';
 import { initPaths } from './data/modelRegistry.js';
 import { checkForUpdate } from './services/updateChecker.js';
 import { restoreUiZoom } from './utils/uiZoom.js';
+import { installAudioOutput } from './utils/audioOutput.js';
 
 // MPI-374: re-apply the stored UI size before anything renders. Deliberately at
 // module top level, not inside init() — an await first would let the page paint
 // at 1.0 and resize under the user.
 restoreUiZoom();
+
+// MPI-803: one capture-phase `play` listener that points every media element at the
+// chosen output device. Top level, like the zoom above — a listener installed inside
+// init() would miss anything that plays while the first await is pending.
+installAudioOutput();
 
 // Capture native dialogs before any override to prevent mutual recursion.
 const _nativeAlert   = window.alert.bind(window);

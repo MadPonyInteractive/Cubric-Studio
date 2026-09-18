@@ -312,6 +312,13 @@ function _syncGalleryToolbar(page) {
     slot.replaceChildren();
 }
 
+// MPI-805. A model-folder change asks for a restart (MPI-800 dropped the live
+// reload route), and the only other way to restart is the dev-only radial below —
+// so Settings needs a way in. An event rather than an export: a Compound reaching
+// into a shell module for behaviour is what Events is for.
+// eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener
+Events.on('engine:restart', () => _restartEngine());
+
 // React to stats updates pushed by the stats service.
 // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener
 Events.on('state:changed', ({ key, value }) => {

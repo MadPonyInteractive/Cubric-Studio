@@ -114,3 +114,21 @@ LTX, Wan and Qwen could not run here: their weights are not installed on this bo
 (`/connector/models`), so their `loaded` gates are covered by the graph sweep and the rebake
 only. The RunPod smoke at release covers them executing.
 
+## Fabio's UI checks (2026-09-17/18)
+
+| check | result |
+|---|---|
+| reuse a card whose source was deleted | **PASS**. Preview asset `16fda773…png` deleted from the `MPI-800 staging C` scratch project; Reuse raised the WARNING toast *"Some input media is missing and was not re-added."* — `MpiGalleryBlock.js:1341`, the reuse-payload path, which fires BEFORE `comfyController`'s `input_asset_deleted`. Downgraded, not a crash dialog, not a silent degraded run |
+| add a model folder with the engine running | **PASS**. `C:\AI\loras` added to LoRA folders; INFO toast *"Restart the engine to apply the model folder change."* |
+| `resize_video` on a clip with audio | not run yet — mechanical, not a UI check: dispatch it on `t2v_001.mp4` (confirmed to carry an `aac` stream) and ffprobe the output |
+
+The first check exercised the reuse-payload guard rather than the dispatch-time
+`_assertMediaSourceExists`. Both downgrade a missing source to a warning; the payload one runs
+first, so with the asset gone the dispatch guard is unreachable from the UI.
+
+## Consequence found by check 2: the restart has no button — MPI-805
+
+MPI-800 removed `reloadExtraPathsWhenReady` (`ee034559`), so a folder change asks for a restart
+instead of applying live. `_restartEngine` is reachable only from the dev-only Ctrl+Tab radial,
+so a shipped user is told to do something the UI does not offer. Carded as MPI-805 rather than
+reopened here: this card's own work is committed and CI-green.

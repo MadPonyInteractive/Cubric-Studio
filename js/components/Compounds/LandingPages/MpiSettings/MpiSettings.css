@@ -105,18 +105,20 @@
     margin-top: var(--s-3);
 }
 
-/* ── Audio Input (MPI-573) ──────────────────────────────────────────
+/* ── Audio (input MPI-573, output MPI-803) ──────────────────────────────────────────
    Layout only. The bar is MpiLevelMeter's chrome and the slider is
    MpiProgressBar's — neither is restated here. */
 .mpi-settings__audio-gain,
-.mpi-settings__audio-test {
+.mpi-settings__audio-test,
+.mpi-settings__audio-output {
     display: flex;
     align-items: center;
     gap: var(--s-3);
 }
 
 .mpi-settings__audio-gain-slider,
-.mpi-settings__audio-test-meter {
+.mpi-settings__audio-test-meter,
+.mpi-settings__audio-output-picker {
     flex: 1 1 auto;
     min-width: 0;
 }
