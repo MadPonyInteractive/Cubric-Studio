@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-808", "at": "2026-09-18T14:46:55+01:00", "actor": "claude:fe5850ff", "column": "todo", "title": "Head Swap sends a box that is not the one drawn - the whole image reaches the sampler"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-808", "at": "2026-09-18T14:13:41Z", "actor": "claude", "fields": ["description"], "reason": "negative box origin is by design (MPI-325); premise corrected, suspects re-pointed at the graph"}
