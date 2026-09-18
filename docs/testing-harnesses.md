@@ -273,7 +273,36 @@ two failure signatures — lock = silent exit 0, port = loud `[FATAL] [main] ser
 in [testing.md](testing.md) § The desktop suite and [DEVELOPMENT.md](DEVELOPMENT.md).
 
 
-## 5. Measuring GPU memory — the standard harness CANNOT
+## 5. A shipped graph the connector CANNOT dispatch — stage, then POST it to the engine
+
+`POST /connector/generate` takes `modelId` + `operation`, or `flowId`. **A universal op has
+neither** — `resize`, `resizeVideo`, `crop` and `imageUpscale` are tool-panel ops with no
+`ModelDef` (`js/data/modelConstants/universal_workflows.js`), and several shipped graphs
+(`remove_background.json`, `gif_cutout_*.json`, `video_interpolate.json`) are reached from no op
+at all. So there is no agent path to a gallery card for any of them, and "just dispatch it" is a
+dead end that costs a round trip to discover.
+
+Run the graph on the engine instead, with the app's own staging in front of it, which is exactly
+what `comfyController` does for a local generation:
+
+1. `POST /comfy/stage-media {path}` on **your own instance** (§ 4 — never the user's `:3000`).
+   It hardlinks or copies the file into `<engine>/input/mpi_staged/` and hands back the staged
+   path.
+2. Write that path into the `Input_*` node's `string` in the runtime JSON from
+   `comfy_workflows/`. Look the node up by `_meta.title`, never by id — ids move on every rebake.
+3. `POST <engine>/prompt {prompt, client_id}`, then poll `<engine>/history/<prompt_id>` until the
+   id appears, and read `status.status_str` plus `outputs`.
+
+It lands **no gallery card** — this is a graph check, not a generation — and the output is
+whatever the save node wrote under the engine's `output/`. `guard-gpu` binds a direct POST to
+48188 `/prompt`, so it runs under `gpu_lease.py run --`.
+
+Working copy: `.agents/mpi-kanban/tasks/MPI-800/research/graph_smoke.py`, which proved five
+graphs this way (MPI-800 — four Upload-loader migrations, then `resize_video` keeping its audio
+through `MpiHasAudio`).
+
+
+## 6. Measuring GPU memory — the standard harness CANNOT
 
 Sampled with `Get-Counter '\GPU Process Memory(*)\Dedicated Usage'` summed over the app's own
 pids, median of 3, ComfyUI engine OFF so the app is measured alone. Four traps, each of which

@@ -45,6 +45,7 @@ let _currentPage      = null;
 let _currentGroupId   = null;
 let _pageLanding      = null;
 let _currentBlock     = null;   // track mounted view Block for teardown
+let _restartPending   = false;  // a restart is armed, waiting for the queue to drain (MPI-805)
 let _navSeq           = 0;      // guards async teardown/import ordering
 
 // ── Public init ─────────────────────────────────────────────────────────────
@@ -346,27 +347,55 @@ Events.on('state:changed', ({ key, value }) => {
 
 async function _restartEngine() {
     const remote = remoteEngineClient.isRemote();
+    const engine = getEngine(!remote);
     // MPI-501: a restart terminates ComfyUI — on a running queue that destroys the
-    // in-flight prompt with no error anywhere. Same guard as the generation gate, but
-    // a short wait: this is an explicit human action, so refuse fast and let them
-    // decide (Stop it, or wait) rather than leave the radial hanging for minutes.
-    // `unreachableMeansIdle` is opted into HERE and nowhere else: this is the one caller
-    // where a human has explicitly asked to repair the engine, so an unreadable queue must
-    // not lock them out of fixing a wedged ComfyUI. Every app-initiated restart takes the
-    // default (refuse), because there nobody asked and the cost is someone's finished work.
-    if (!await getEngine(!remote).waitForIdleQueue({ timeoutMs: 30000, unreachableMeansIdle: true })) {
-        // A refusal is the guard WORKING, not a failure. This was `ui:error`, which is the
-        // shell's crash dialog (`showError`) — so a by-design refusal rendered with an
-        // "Error Summary" box and a REPORT ON GITHUB button, inviting a bug report for
-        // correct behaviour. `ui:warning` is the toast channel (StatusBar.notify, 6s).
-        // Wording: no "then restart" either. They just clicked Restart Engine, so it read
-        // as an instruction to redo what they had done; and outside this dev-only radial
-        // (`APP_CONFIG.dev_mode`) nobody restarts ComfyUI by hand at all.
-        Events.emit('ui:warning', {
-            message: 'Restart cancelled — a generation is still running on the engine. Stop it, or wait for it to finish.',
-        });
+    // in-flight prompt with no error anywhere. Same guard as the generation gate.
+    // `unreachableMeansIdle` is opted into HERE and in `repairPythonDeps`, and nowhere
+    // else: these are the callers where a human has explicitly asked to repair the
+    // engine, so an unreadable queue must not lock them out of fixing a wedged ComfyUI.
+    // Every app-initiated restart takes the default (refuse), because there nobody asked
+    // and the cost is someone's finished work.
+    //
+    // MPI-805: `timeoutMs: 0` is ONE probe, no sleep — the loop fetches `/queue`, then
+    // returns false on the already-passed deadline. It used to be 30000, which meant the
+    // button sat SILENT for thirty seconds before the refusal toast appeared. Fabio hit
+    // exactly that live (2026-09-18): nothing happened, so he pressed again, and both
+    // waits eventually toasted. Whatever this answers, the user hears about it now.
+    if (await engine.waitForIdleQueue({ timeoutMs: 0, unreachableMeansIdle: true })) {
+        await _performRestart(remote);
         return;
     }
+    // Busy. MPI-805, Fabio's call: a restart the user asked for is not refused, it is
+    // SCHEDULED — the alternative made them babysit the queue and press again later.
+    // A second press while one is armed re-toasts rather than arming a second waiter.
+    //
+    // ponytail: a single probe cannot tell "busy" from "unreadable" — `waitForIdleQueue`
+    // returns one boolean, and it needs three missed reads (~6s) to call an engine
+    // unreachable. So a WEDGED engine shows this toast and then restarts about six
+    // seconds later, off the armed wait below, which is the repair `unreachableMeansIdle`
+    // exists for. The restart still happens and nobody is locked out; only the wording is
+    // briefly wrong, on the dev radial, since the Settings button is only reachable with a
+    // running engine. Upgrade path if that ever bites: have `waitForIdleQueue` report
+    // `'idle' | 'busy' | 'unreachable'` instead of a boolean, and branch the toast on it.
+    const alreadyArmed = _restartPending;
+    Events.emit('ui:warning', {
+        message: 'Restart scheduled for when your generations finish or are cancelled.',
+    });
+    if (alreadyArmed) return;
+    _restartPending = true;
+    try {
+        // No deadline: the only two ways out are the queue draining and the engine going
+        // unreachable, and `unreachableMeansIdle` turns the second into the restart that
+        // repairs it. A finite timeout here would drop the user's restart in silence.
+        await engine.waitForIdleQueue({ timeoutMs: Infinity, unreachableMeansIdle: true });
+        await _performRestart(remote);
+    } finally {
+        _restartPending = false;
+    }
+}
+
+/** Stop and start the engine. Callers own the idle guard. */
+async function _performRestart(remote) {
     Events.emit('ui:info', { message: 'Restarting the engine…' });
     try {
         if (remote) {

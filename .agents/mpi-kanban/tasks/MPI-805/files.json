@@ -5,6 +5,8 @@
     "js/events.js",
     "js/shell/navigation.js",
     "js/components/Compounds/LandingPages/MpiSettings/MpiSettings.js",
-    "js/components/Compounds/LandingPages/MpiSettings/MpiSettings.css"
+    "js/components/Compounds/LandingPages/MpiSettings/MpiSettings.css",
+    "js/services/comfyController.js",
+    "tests/engine-restart-schedule.test.cjs"
   ]
 }

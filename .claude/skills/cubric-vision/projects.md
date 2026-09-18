@@ -65,7 +65,9 @@ Two things it does **not** do:
 
 - **A custom `folderPath` is not registered.** `/list-projects` scans the default
   root plus a durable registry, so a project made anywhere else is invisible to
-  the picker until you `POST /add-project-path` with its **parent** dir.
+  the picker until you `POST /add-project-path` with its **parent** dir. Its body key
+  is **`parentDir`** — the one route on this page that does not take `folderPath`.
+  Sending `folderPath` gets a 400 `parentDir required`.
 - **A running app does not notice.** The project exists on disk, but an open
   Vision window keeps its old list until it re-lists (back to the landing
   screen), and the new project does not become the open one.
@@ -91,7 +93,7 @@ landed where you meant to.
 The full sequence:
 
 1. `POST /create-project` → keep `folderPath`.
-2. `POST /add-project-path` with the parent dir, if you passed a custom `folderPath`.
+2. `POST /add-project-path` `{parentDir}`, if you passed a custom `folderPath`.
 3. `POST /connector/open-project` with the `folderPath`.
 4. `GET /connector/capabilities`, confirm `generationSubmit`.
 5. `POST /connector/generate`.

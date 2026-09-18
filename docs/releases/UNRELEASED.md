@@ -43,6 +43,14 @@
 - FLUX.2 Klein is now called FLUX.2 Klein 4B, since Klein 9B arrived beside it — the two are
   told apart by name instead of by a small size letter.
 
+- Adding or removing a model folder now needs an engine restart, and there is a button for it.
+  The engine reads its folder list once, at startup, so a folder you add while it is running
+  was never going to be seen until it came back — it just used to happen silently and leave you
+  wondering why your models were missing. Settings now says so when you add one, and a
+  **Restart engine** button sits at the end of External Connections. Press it while something is
+  generating and the restart waits for your work to finish rather than killing it. Dropping a
+  file into a folder Vision already knows about still needs nothing.
+
 - Inpainting no longer erases on an empty prompt — you have to say what you want removed.
   Clearing the prompt and painting over something used to delete it, and that was the whole
   erase gesture. Klein now samples with the mask as a real constraint, and an empty prompt is a
@@ -344,6 +352,15 @@
   fills as it plays so you can see where you are in the track. Click anywhere on the wave to
   jump there and keep listening, instead of waiting for the chorus to come round. Hovering
   still plays from the start, and moving away still stops it.
+
+- **Choose which speakers or headphones Vision plays through.** Settings has an Audio section
+  with an Output picker and a Test button. Vision used to follow whatever Windows had set as
+  the default device, which is fine until that default is a channel you cannot actually hear —
+  a virtual mixer's, say, that accepts the sound and quietly drops it, leaving you to wonder
+  whether the app made any audio at all. Pick a device and everything follows it: previews,
+  the gallery, the video player, the chime. Press Test to hear the chime on the device you
+  picked before you commit to it. Left empty, nothing changes and Windows keeps deciding —
+  and a device you do pick here overrides any per-app routing you have set up outside Vision.
 
 - **The cogwheel by the prompt now shows the LoRAs your model is running.** Each one gets a
   row of its own: its name, its strength, and a switch that mutes it for the next run without

@@ -819,7 +819,14 @@ function createEngine({ engine, alwaysLocal }) {
      * restart IS the repair.
      *
      * Engine-aware via `httpBase()`, so the same call covers local and remote.
-     * @param {{ timeoutMs?: number }} [o]
+     *
+     * `timeoutMs: 0` is a SINGLE probe with no sleep — the deadline has already passed
+     * when the first read lands — and both human-facing callers depend on that to answer
+     * instantly (MPI-805). `Infinity` is the other end: poll until the queue drains,
+     * used by the armed restart, where a deadline would drop the user's request in
+     * silence. Keep the deadline check AFTER the read or `0` stops probing at all.
+     *
+     * @param {{ timeoutMs?: number, unreachableMeansIdle?: boolean }} [o]
      * @returns {Promise<boolean>} true = safe to restart; false = still busy, REFUSE
      */
     async waitForIdleQueue({ timeoutMs = 300000, unreachableMeansIdle = false } = {}) {
@@ -874,12 +881,17 @@ function createEngine({ engine, alwaysLocal }) {
      * @returns {Promise<boolean>} true = the engine restarted; false = refused (busy)
      */
     async repairPythonDeps() {
-        // Same guard, and the same opt-in, as the dev radial's restart
-        // (js/shell/navigation.js `_restartEngine`): a human explicitly asked to repair
-        // the engine, so an unreadable queue must not lock them out of fixing it. The
-        // short timeout is deliberate — refuse fast and let them decide, rather than
-        // leave a Settings button hanging for minutes.
-        if (!await this.waitForIdleQueue({ timeoutMs: 30000, unreachableMeansIdle: true })) {
+        // Same guard, and the same opt-in, as the restart in js/shell/navigation.js
+        // (`_restartEngine`): a human explicitly asked to repair the engine, so an
+        // unreadable queue must not lock them out of fixing it.
+        //
+        // MPI-805: `timeoutMs: 0` is ONE probe, no sleep. This said 30000 and called
+        // itself "refuse fast", but thirty seconds of a dead button is not fast — it is
+        // long enough to read as nothing happening and press again, which is exactly what
+        // it cost Fabio on the restart button next door. Unlike that one this still
+        // REFUSES rather than scheduling: a deps repair reinstalls packages under the
+        // engine, so it wants a human present when it runs, not a queue drain later.
+        if (!await this.waitForIdleQueue({ timeoutMs: 0, unreachableMeansIdle: true })) {
             Events.emit('ui:warning', {
                 message: 'Repair cancelled — a generation is still running on the engine. Stop it, or wait for it to finish.',
             });
