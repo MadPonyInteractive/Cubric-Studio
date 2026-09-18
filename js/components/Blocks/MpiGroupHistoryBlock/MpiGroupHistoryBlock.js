@@ -584,8 +584,19 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             }));
             _unsubs.push(frameStrip.on('update', ({ frames }) => _saveGifEntry('update', frames)));
             _unsubs.push(frameStrip.on('apply',  ({ frames }) => _saveGifEntry('new', frames)));
-            // MPI-772: the Trim panel shows which frames its Apply keeps.
-            _unsubs.push(gifControlBar.on('range-change', (range) => _options?.el.onRangeChange?.(range)));
+            // Strip context menu (MPI-771): the viewer owns the masks, so the
+            // clear goes to it — the strip only names the position.
+            _unsubs.push(frameStrip.on('clear-frame-mask', ({ viewerIndex }) => {
+                if (viewerIndex === undefined) return;
+                viewer.el.clearFrameMasks(viewerIndex);
+            }));
+            // MPI-772: the Trim panel shows which frames its Apply keeps, and
+            // MPI-771 paints the same range on the strip — the numbers alone
+            // read as Trim doing nothing (Fabio, 2026-09-18).
+            _unsubs.push(gifControlBar.on('range-change', (range) => {
+                _options?.el.onRangeChange?.(range);
+                frameStrip?.el.setRange(range);
+            }));
 
             _unsubs.push(() => {
                 try { gifControlBar?.el.detachViewer?.(); } catch (_) { /* noop */ }
@@ -627,6 +638,10 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 viewer.el.setGifUrl(resolveMediaUrl(item.filePath));
                 gifControlBar?.el.setFrameCount(frames.length);
                 frameStrip?.el.setFrames(frames, { currentIndex: 0 });
+                // setFrameCount's own 'range-change' reached the strip while it
+                // still held the PREVIOUS frame list, so it was clamped to the
+                // old length — re-apply against the list it holds now.
+                frameStrip?.el.setRange(gifControlBar?.el.getRange());
             } catch (err) {
                 clientLogger.warn('MpiGroupHistoryBlock', `gif load failed: ${err?.message || err}`);
                 _showToast('Could not load GIF frames', 'error');
@@ -688,6 +703,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 viewer.el.setGifUrl(resolveMediaUrl(item.filePath));
                 gifControlBar?.el.setFrameCount(item.gif?.frames?.length || 0);
                 frameStrip?.el.commit(item.gif?.frames || []);
+                frameStrip?.el.setRange(gifControlBar?.el.getRange());
                 _showToast(done, 'success');
                 return true;
             } catch (err) {

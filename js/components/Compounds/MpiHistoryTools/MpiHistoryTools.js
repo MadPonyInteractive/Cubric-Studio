@@ -199,6 +199,10 @@ const GIF_TOOLS = [
         group: [
             // 'eraser' reused from removeBackground (MPI-425 precedent above) —
             // both are "cut the subject out of its background" jobs.
+            // A rail `info` is the tooltip text as well as the status bar's
+            // (see the `mouseover` tip below), so it stays a NAME here — what
+            // each GIF tool DOES is said by the panel's own `__desc` line the
+            // moment it opens, and by every control inside it.
             { mode: 'gifCutout', icon: 'eraser', info: 'Cut-out' },
             // MPI-771 (Decision 14): fix a frame's cut-out mask by hand. Its own
             // mode, not `maskBrush`: that one belongs to the image mask family

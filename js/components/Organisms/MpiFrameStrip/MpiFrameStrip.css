@@ -100,6 +100,32 @@
     outline-offset: -2px;
 }
 
+/* ── Trim range (MPI-771) ────────────────────────────────────────────────────
+ * The control bar's in/out handles, painted where the frames are: Trim read as
+ * doing nothing because its range was legible only as numbers in the panel
+ * (Fabio, 2026-09-18). Frames Apply would DROP fade back; the kept run keeps
+ * its normal weight, with a bar on the two edges so a full range still shows
+ * the handles rather than nothing at all. */
+.mpi-frame-strip__thumb--outside {
+    opacity: 0.3;
+    filter: grayscale(0.8);
+}
+
+.mpi-frame-strip__thumb--range-in::before,
+.mpi-frame-strip__thumb--range-out::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--accent-ok);
+    z-index: 2;
+    pointer-events: none;
+}
+
+.mpi-frame-strip__thumb--range-in::before  { left: 0; }
+.mpi-frame-strip__thumb--range-out::before { right: 0; }
+
 /* Fixed centre marker — the current frame always sits under this line. */
 .mpi-frame-strip__marker {
     position: absolute;

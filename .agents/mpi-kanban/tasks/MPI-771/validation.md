@@ -340,3 +340,41 @@ preloadStyles lines (`types-hunk.md`); MPI-800 migrating the new graph.
 
 **Left:** Fabio's check of By colour + Clear + the tint note; the whole-workspace UI list; the parked
 typedef / preloadStyles lines (`types-hunk.md`).
+
+## 2026-09-18 — his second pass, items 1-4 (session 78c4c827)
+
+| Check | Result |
+|---|---|
+| Strip right-click menu | **LANDED.** Delete frame / Clear this frame's mask via `MpiContextMenu.show()` (an Organism may import a Compound). Delete shares `_deleteIndices()` with the Backspace hotkey, so both stage the same edit and the >=1-frame floor holds; it greys out when it would empty the strip, Clear greys out with no mask. Right-clicking inside a Ctrl-click selection acts on the whole selection |
+| Trim range on the strip | **LANDED.** `setRange()` dims + greyscales the frames Apply would drop and bars the in/out edges. Fed from the same `range-change` the panel note reads, re-applied after `setFrames`/`commit` (the bar's own `range-change` fires while the strip still holds the PREVIOUS list, so the first paint clamped short) |
+| "Every frame still there after Apply" | **EXPLAINED, no code fault.** `timingEdit('trim')` slices correctly and an untouched range ALWAYS hits the toast, so Apply can never write an untrimmed entry — `gif-timing.spec.js` proves a real 1..3-of-6 trim gives a 3-page GIF. He never moved the handles. The note now says **"All N frames are selected — drag the handles"** instead of "Keeps frames 0 to N-1" |
+| Gallery hover-play artefact | **ROOT-CAUSED + FIXED.** Static harness over the REAL stylesheets (before/after screenshots in the session scratchpad): the GIF hover overlay inherits the VIDEO overlay's `object-fit: cover` while the poster below is `contain`, and the poster is never hidden. Opaque video = free; a **transparent cut-out GIF** shows the poster through its holes at another scale. CSS only: `--gif` -> `contain`, and `:has()` drops the poster to `opacity: 0`. Removing the overlay un-matches the `:has()`, so no demote bookkeeping. **Caveat: his card was `imported_015` — if that GIF is OPAQUE, this is not his screenshot and it needs another look** |
+| `[data-info]` pass | Gaps found and filled: the control bar's **trim handles had no info at all** (the control he could not read) and nor did the frame counter. Everything else already covered. **The tool RAIL is left to him:** its `info` is the floating tooltip text too, so a sentence hangs a paragraph off a 24px icon and every rail in the app is a bare name. Written, seen to break 3 specs selecting `[data-info="Trim"]`, then REVERTED rather than impose a look on his UI |
+| Parked registration lines | **LANDED** — `MpiToolOptionsMaskColour.css` in `preloadStyles.js`; new `MpiToolOptionsMaskColourProps`; `MpiFrameStrip` / `MpiGifViewer` / `MpiToolOptionsGifCutout` typedefs rewritten against the code AS IT IS (the 2026-09-16 hunk text predates BiRefNet, By colour and Clear). `types-hunk.md` deleted |
+| `npm run lint:components` | clean |
+| `npm test` (`node --test "tests/**/*.test.cjs"`) | **1344 pass / 0 fail / 1 skip** |
+| Desktop specs (private `--output` dir) | **11 green** — `gif-workspace` **2** (one NEW: right-click delete, the disabled AND live mask clear, the range paint), `gif-cutout` 2, `gif-timing`, `gif-make`, `gif-maker`, `gif-transform`, `mask-colour`, `history-modes`, `gallery-gif-hover` |
+| Background tint polarity | **STILL OPEN.** Not reproducible here, nothing invented. One screenshot of the tint right after Background finishes, before CUT OUT, settles it |
+
+**Left:** Fabio's eye pass on items 1-4; his answer on the rail; his tint screenshot. Nothing closes
+until he passes the UI (plan verify mode: `user-ux`).
+
+### Fabio's pass, 2026-09-18 ~13:5xZ
+
+| Item | Result |
+|---|---|
+| Strip context menu | **PASS** ("context menu works") |
+| Trim range on the strip | **PASS** ("trim now works, and I like the green indicators") |
+| Gallery multi-entry hover | **PASS** ("multi-entries no longer display incorrectly") — so the transparent-poster diagnosis held on his real card |
+| Backspace deleting a frame | **FAIL — a real bug.** "Backspace still doesn't delete an item." The 2026-09-18 earlier read (undiscoverable, not broken) was WRONG. The context menu is currently the only working delete |
+
+**Backspace — what is eliminated** (throwaway probe, source in the session scratchpad as
+`backspace-probe.js`; it was run as `tests/desktop/zz-backspace-probe.spec.js` and DELETED after, so
+it is not in the tree): a REAL `keyboard.press('Backspace')` — not the synthetic `dispatchEvent` every
+shipped spec uses — deletes a Ctrl-clicked frame in a clean workspace (5 -> 4) and with the Speed tool
+panel open (4 -> 3, `activeElement` = `BODY.page-group-history`). The keydown reaches window
+un-prevented; `gif.frame.delete` is `backspace`/DOWN with no `when` gate; the `isTyping` block only
+bites for textarea / contenteditable / text inputs, and the strip blurs `activeElement` on pointerdown
+anyway. The mechanism is sound — the fault is conditional on something his session has that the
+fixture does not. **Bisect before coding: does a Ctrl-clicked thumb show the orange selection ring in
+his app?** Ring = hotkey path; no ring = selection path.

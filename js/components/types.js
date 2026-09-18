@@ -91,6 +91,36 @@
  */
 
 /**
+ * @typedef {Object} MpiToolOptionsMaskColourProps (Organism — js/components/Organisms/MpiToolOptionsMaskColour)
+ * @property {Object} viewer - MpiCanvasViewer instance
+ *
+ * MPI-771. The Colour mask tool: select pixels by colour (magic wand / Select
+ * Colour Range). Pure renderer JS through `utils/colourKeyMask.js` — no engine,
+ * no GPU — fed into the viewer's auto-pick preview path as one pre-picked
+ * detection, the same path Points mode uses.
+ *
+ * Key colour (MpiColorPicker, seeded from the image's corner pixel) + a Pick
+ * button (the EyeDropper API, Chromium 95+) + Tolerance (an interactive
+ * MpiProgressBar, 0-100) + "Only touching the edges" + the shared
+ * MpiMaskDetectRow and MpiMaskStrip.
+ *
+ * `cornerColour()` returns null for a TRANSPARENT corner: an already-cut image
+ * has whatever RGB the old mask hid sitting under alpha 0, so seeding from it
+ * keyed a colour nobody could see. With no seed the tool asks for a Pick
+ * instead (Fabio, 2026-09-18).
+ *
+ * Tolerance and edgesOnly persist via `toolSettings.mask` (the same namespace
+ * as the sibling mask tools). The key colour never persists — it belongs to
+ * one image's background. Changing any of the three after a run re-keys with a
+ * 250 ms debounce; with no run behind it, it says which button applies the
+ * colour rather than auto-running a mask (his call).
+ *
+ * Requires on viewer.el: enterMode('mask'), exitMode(), evaluateMask(),
+ *   setMaskPointsMode(), setMaskTextMode(), setMaskColourMode(),
+ *   setMaskColourParams(), runAutoMaskDetect(), getSourceElement()
+ */
+
+/**
  * @typedef {Object} MpiToolOptionsMaskBrushProps (Organism — js/components/Organisms/MpiToolOptionsMaskBrush)
  * @property {Object} viewer - MpiCanvasViewer instance
  *
@@ -219,27 +249,42 @@
  * @typedef {Object} MpiToolOptionsGifCutoutProps (Organism — js/components/Organisms/MpiToolOptionsGifCutout)
  * @property {Object} viewer - MpiGifViewer instance
  *
- * MPI-771 (UI half). SAM3 video tracking by name across every frame, into a new
- * alpha-cut entry: Track (dispatches `runGifCutoutTrack` directly, no Block
- * context needed) -> read SAM3_TrackPreview's numbered debug video -> 4 fixed
- * object chips (max_objects is a graph literal) to keep/drop, each toggle a
- * cheap re-dispatch (SAM3_VideoTrack is cached) -> Mask Adjust (Grow/Shrink,
- * live-previewed on the CURRENT frame via the same managers/distanceField.js
- * functions the server runs) + Fill Holes + Invert, set once for every frame ->
- * Cut out. The panel dispatches SAM3 itself but does NOT commit a history entry:
- * Cut out only emits; the Block posts POST /gif-cutout/apply and appends the
- * result (MpiGroupHistoryBlock._handleGifCutoutApply, same shape as the frame
- * strip's own Apply).
+ * MPI-771 (UI half), plan Decision 14. Mask every frame, then cut the masked
+ * subject into the frames' alpha as a NEW entry. THREE methods, picked in the
+ * panel and carried on the apply payload's `settings.method`:
+ *   'birefnet' — Remove background, whole subject, no prompt (the default)
+ *   'sam3'     — By name: SAM3 video tracking, a text prompt, then up to 4
+ *                object chips to keep or drop (`max_objects` is a graph
+ *                literal), each toggle a cheap re-dispatch
+ *   'colour'   — By colour: `utils/colourKeyMask.js` keys ONE colour out in
+ *                the renderer, no GPU. It tints what it REMOVES while the
+ *                other two tint what they KEEP — deliberate, and `#tint-note`
+ *                names the side (Fabio, 2026-09-18).
+ * Then Mask Adjust (Grow/Shrink, live-previewed on the CURRENT frame through
+ * the same managers/distanceField.js functions the server runs) + Fill Holes
+ * + Invert, set once for every frame -> Cut out.
  *
- * Requires viewer.el: getFrames(), getFrameIndex()
+ * The panel dispatches the engine op itself but does NOT commit a history
+ * entry: Cut out only emits; the Block posts POST /gif-cutout/apply and
+ * appends the result (MpiGroupHistoryBlock._handleGifCutoutApply).
+ *
+ * The masks live on the VIEWER, per frame POSITION, shared with the Mask
+ * Brush — so a brush fix survives a re-mask, and only Clear This Frame /
+ * Clear All throw one away.
+ *
+ * Requires viewer.el: getFrames(), getFrameIndex(), setTrackMasks(),
+ *   setTrackMask(), hasFrameMasks(), getFrameMaskURL(), getCutMasks(),
+ *   clearFrameMasks(), setGenerating()
+ * Block hooks on el: onFrameChange(), onMasksChange()
  *
  * Emits:
- *   'mask-tint'    { url: string|null }     — current-frame ADJUSTED preview;
+ *   'mask-tint' { url: string|null } — current-frame ADJUSTED preview;
  *                    Block hands to viewer.el.setMaskTint(url)
- *   'mask-overlay' { masks: string[]|null } — every frame's RAW tracked mask,
- *                    index-aligned; Block hands to frameStrip.el.setMaskOverlay(masks)
- *   'apply' { frames, masks, adjust: {grow, fillHoles}, invert } — Cut out
- *            pressed and the frame signature still matches the last Track
+ *   'apply' { frames, masks, adjust: {grow, fillHoles}, invert, settings }
+ *            — Cut out pressed and the frame signature still matches the last
+ *              mask run. An UNMASKED frame is cut with a 1x1 WHITE mask, i.e.
+ *              it comes through unchanged (masking one frame used to yield an
+ *              empty GIF — Fabio, 2026-09-18).
  */
 
 /**
@@ -2545,10 +2590,15 @@
  *   loadFrames(frames, { loop = 0 })  — replace the frame list, reset to
  *                                       frame 0, stop playback. `frames`:
  *                                       [{ hash, url, thumbUrl, delay }].
- *   setFrames(frames)                 — replace WITHOUT resetting position
+ *   setFrames(frames, order = null)   — replace WITHOUT resetting position
  *                                       (staged strip edits); keeps showing
  *                                       the same frame by hash when it still
- *                                       exists.
+ *                                       exists. `order[newPos]` = that frame's
+ *                                       OLD position, so the cut-out masks
+ *                                       travel with their frames; no `order`
+ *                                       throws them away (they are keyed by
+ *                                       position, so a different list makes
+ *                                       them meaningless).
  *   getFrames() / getFrameCount() / getFrameIndex()
  *   setFrameIndex(idx) / stepFrame(delta)
  *   play() / pause() / isPlaying()
@@ -2558,12 +2608,29 @@
  *   setGenerating(bool) / setLoading(bool)
  *   setMaskTint(url|null)             — MPI-771: tint the current frame via
  *                                       CSS mask-image; null clears it
+ *
+ *   — MPI-771 cut-out masks, keyed by frame POSITION, shared with the Mask
+ *     Brush so a hand fix survives a re-mask:
+ *   setTrackMasks(urls) / setTrackMask(idx, url)
+ *   hasFrameMasks() / getFrameMaskURL(idx) / getCutMasks()
+ *   clearFrameMasks('all' | idx)      — throw the track AND brush layers away
+ *                                       for good, so a re-mask starts clean.
+ *                                       Reached from the panel's Clear This
+ *                                       Frame / Clear All and from the frame
+ *                                       strip's context menu.
+ *   enterMode('mask' | 'crop') / exitMode() / isMaskEditing()
+ *   setMaskBrushMode / setMaskPaintEnabled / clearMask — the brush surface
+ *   getCropRect() / setCropRatio() / setCropSize() / getFrameSize()
  *   destroy()
  *
  * Emits:
  *   'frame-change' { idx, frame }
  *   'play' / 'pause' / 'ended'
  *   'preview-change' { preview }
+ *   'masks-change' { overlay, edited, cleared } — the per-position mask URLs
+ *                    for the strip, the hand-edited positions, and whether a
+ *                    frame-list change dropped them
+ *   'edit-change' { editing } — the Mask Brush opened or closed
  */
 
 /**
@@ -2623,14 +2690,26 @@
  *                            both become `frames`, the marker resets to
  *                            frame 0 (matching the paired
  *                            `viewer.el.loadFrames()` call), pill hides.
- *   setMaskOverlay(masks|null) — MPI-771: tint visible thumbs, index-aligned
- *                            (not hash-keyed); cleared by setFrames()/commit().
+ *   setMaskOverlay(masks|null, edited = []) — MPI-771: tint visible thumbs,
+ *                            index-aligned (not hash-keyed); `edited` marks
+ *                            the positions fixed by hand with the Mask Brush.
+ *   setRange(range|null)   — MPI-771: paint the control bar's trim handles on
+ *                            the strip (frames outside dimmed, an edge bar at
+ *                            in and out), in frame indices. The range itself
+ *                            lives in MpiGifControlBar; this only draws it.
  *   destroy()
+ *
+ * A press-and-hold (300 ms) then drag reorders; a plain drag scrubs. A
+ * right-click opens a context menu (Delete frame / Clear this frame's mask).
  *
  * Emits:
  *   'frame-select' { index } — thumbnail clicked (no modifier)
  *   'scrub'        { index } — dragging the empty track
- *   'stage-change' { frames } — reorder or delete changed the staged list
+ *   'stage-change' { frames, order } — reorder or delete changed the staged
+ *                            list; `order[newPos]` = that frame's position in
+ *                            the previous list, so masks travel with frames
+ *   'clear-frame-mask' { index, viewerIndex } — context menu; the Block hands
+ *                            `viewerIndex` to `viewer.el.clearFrameMasks()`
  *   'update'       { frames } — pill's Update button
  *   'apply'        { frames } — pill's Apply button
  */

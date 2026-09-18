@@ -96,6 +96,15 @@ Two differences from a video, both because an `<img>` has no `play()`/`pause()`:
   overlay stays in the DOM paused at frame 0 for a cheap replay; a GIF has no
   such state, so `_onCardLeave` calls `_removeHoverVideo()` unconditionally and
   a fresh `<img>` is created on the next hover.
+- **The poster steps aside, and the overlay is `contain` (MPI-771).** A video
+  overlay is opaque, so leaving the poster underneath is free and stops a blink.
+  A GIF's is not: a cut-out GIF carries real transparency, and the poster below
+  — sized `contain` against the overlay's `cover` — then showed through the
+  holes at a different scale. That is the card "showing its first frame behind
+  the playing one" (Fabio, 2026-09-18). So `--gif` overrides `object-fit` to
+  `contain` (no jump on hover either) and `.mpi-group-card__media:has(> .--gif.--hover-video-ready)`
+  drops the poster to `opacity: 0`. Removing the overlay un-matches the
+  `:has()` on its own, so there is nothing to undo on demote.
 
 Scroll-out (`demoteObserver`) and the whole-grid suspension holds
 (`_mediaHolds`, `_releaseMedia`) call the same `cardEl.demoteVideo()` hook a

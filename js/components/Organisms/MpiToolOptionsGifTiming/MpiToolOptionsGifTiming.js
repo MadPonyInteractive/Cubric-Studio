@@ -147,7 +147,15 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
                 if (!range || !count) { setNote(''); return; }
                 const a = Math.round(Math.min(range.in, range.out));
                 const b = Math.round(Math.max(range.in, range.out));
-                setNote(`Keeps frames ${a} to ${b} (${b - a + 1} of ${count}).`);
+                // An untouched range drops nothing, and Apply refuses with a
+                // toast AFTER the click — which read as "Trim does nothing"
+                // (Fabio, 2026-09-18). Say it up front instead. The strip now
+                // paints the range too, so the handles are findable.
+                if (b - a + 1 >= count) {
+                    setNote(`All ${count} frames are selected — drag the handles in the control bar to pick a shorter range.`);
+                    return;
+                }
+                setNote(`Keeps frames ${a} to ${b} (${b - a + 1} of ${count}); the rest are dimmed on the strip.`);
             }
         }
 

@@ -169,6 +169,17 @@ Workspace tools land results through the Block's `_postGifEntry` (POST, then
 Make GIF (`routes/gifMake.js`) and GIF Maker (`routes/gifMaker.js`, [a video tool](video-player.md#gif-maker-mpi-760))
 write frames and call `buildGif()` themselves. A GIF opens with no tool up.
 
+**The frame strip is the discoverable surface.** Click a thumb to jump, drag to
+scrub, hold 300 ms then drag to reorder, and **right-click for Delete frame /
+Clear this frame's mask** — the delete also answers Ctrl-click + Backspace, but
+nothing on screen said so, so the menu is the way in (Fabio, 2026-09-18). The
+menu emits `clear-frame-mask { index, viewerIndex }`: masks are keyed by the
+VIEWER's frame position, which diverges from the strip's staged index after a
+reorder, so the Block hands `viewerIndex` to `viewer.el.clearFrameMasks()`.
+The strip also PAINTS the control bar's trim range (outside frames dimmed, an
+edge bar at in and out) through `setRange()` — the range was legible only as
+numbers in the Trim panel, which read as Trim doing nothing.
+
 ## Cut-out (MPI-771)
 
 `gif` mode's first tool group: per-frame masks (BiRefNet, SAM3 by name, or by colour) cut
@@ -183,7 +194,10 @@ Timing (Trim, Speed, Reverse, Loop count) and Output (GIF output): one panel,
 Apply is a new entry through `POST /gif/entry`, edits the list the user sees
 (staged strip changes included) and writes no frame file. Trim keeps the control
 bar's handles (`MpiGifControlBar.getRange()`; a new frame count resets them and
-emits `range-change`). Speed is `max(2, round(100 / fps))`, 0.1-50 fps. Loop
+emits `range-change`, which the Block forwards to BOTH the panel's note and the
+strip's `setRange()`). An untouched range drops nothing, so the note says "All N
+frames are selected" rather than "Keeps frames 0 to N-1" — Apply would only
+toast back, which read as Trim being broken. Speed is `max(2, round(100 / fps))`, 0.1-50 fps. Loop
 writes `gif.loop`. Transparent sets `output.edgeColour`, off is `null`. Settings:
 `toolSettings.gifTiming`. Proof: `tests/desktop/gif-timing.spec.js`.
 

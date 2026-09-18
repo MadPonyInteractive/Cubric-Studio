@@ -223,3 +223,112 @@ test('gif workspace: no PromptBox; play/step/scrub keep the strip centred; reord
     await closeApp(app);
   }
 });
+
+/**
+ * MPI-771, Fabio's second pass (2026-09-18). Two things he could not see:
+ *   - deleting a frame needed Ctrl-click then Backspace, and nothing on
+ *     screen said so — there is now a right-click menu;
+ *   - the trim handles' range was legible only as numbers in the Trim panel,
+ *     so Trim read as doing nothing — the range is now painted on the strip.
+ * Both are driven here through the real components with real input.
+ */
+test('gif strip: right-click deletes a frame and offers the mask clear; the trim range paints on the strip', async ({}, testInfo) => {
+  const { app, window } = await launchApp(testInfo);
+  try {
+    await setupProject(window);
+    await window.evaluate(async () => {
+      const { navigate, PAGE_GROUP_HISTORY } = await import('/js/router.js');
+      navigate(PAGE_GROUP_HISTORY, { groupId: 'gGif' });
+    });
+    await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-frame-strip__thumb'))).toBe(true);
+    const before = await thumbCount(window);
+    expect(before).toBe(FRAME_HASHES.length);
+
+    // ── Context menu ────────────────────────────────────────────────────
+    await window.locator('.mpi-frame-strip__thumb[data-index="2"]').click({ button: 'right' });
+    await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-ctx-menu'))).toBe(true);
+    const menu = await window.evaluate(() => [...document.querySelectorAll('.mpi-ctx-menu__item')].map(b => ({
+      key: b.dataset.key,
+      label: b.querySelector('.mpi-ctx-menu__label')?.textContent,
+      disabled: b.disabled,
+    })));
+    expect(menu.map(i => i.key)).toEqual(['delete', 'clear-mask']);
+    expect(menu[0].label).toBe('Delete frame');
+    // No cut-out has run in this fixture, so there is no mask to clear — the
+    // row must say so by being dead, not by doing nothing when clicked.
+    expect(menu[1].disabled, 'Clear mask must be disabled with no mask on the frame').toBe(true);
+
+    // Delete stages exactly like the Backspace path: one fewer thumb, the
+    // pill up, and still nothing sent to the server.
+    await window.locator('.mpi-ctx-menu__item[data-key="delete"]').click();
+    await expect.poll(() => thumbCount(window)).toBe(before - 1);
+    expect(await window.evaluate(() => !!document.querySelector('.mpi-frame-strip__pill').checkVisibility()),
+      'a staged delete must raise the pill').toBe(true);
+    expect(await window.evaluate(() => window.__mpi769.calls.length),
+      'a staged delete must reach no server').toBe(0);
+    await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-ctx-menu')),
+      'the menu must dismiss itself after a choice').toBe(false);
+
+    // ── Trim range painted on the strip ─────────────────────────────────
+    // Untouched, the range is every frame: nothing dimmed, and the two edge
+    // bars sit on the first and last thumbs.
+    const paint = () => window.evaluate(() => ({
+      outside: document.querySelectorAll('.mpi-frame-strip__thumb--outside').length,
+      in: document.querySelector('.mpi-frame-strip__thumb--range-in')?.dataset.index,
+      out: document.querySelector('.mpi-frame-strip__thumb--range-out')?.dataset.index,
+    }));
+    expect(await paint()).toEqual({ outside: 0, in: '0', out: String(before - 2) });
+
+    // Drag the IN handle to the middle of the track with the real mouse — the
+    // bar owns pointer capture, so a synthetic event would not move it.
+    const box = await window.locator('.mpi-trim-bar__track').boundingBox();
+    await window.locator('.mpi-trim-bar__handle--in').hover();
+    await window.mouse.down();
+    await window.mouse.move(box.x + box.width * 0.5, box.y + box.height / 2, { steps: 8 });
+    await window.mouse.up();
+
+    await expect.poll(async () => (await paint()).outside,
+      'frames the Trim tool would drop must dim on the strip').toBeGreaterThan(0);
+    const after = await paint();
+    expect(Number(after.in), 'the in edge must have moved off frame 0').toBeGreaterThan(0);
+    expect(after.out, 'the out edge must not move with the in handle').toBe(String(before - 2));
+
+    // ── Clear this frame's mask, with a mask actually there ─────────────
+    // `.mpi-gif-viewer` IS the viewer's own `el`, so its mask API is reachable
+    // from here (the same handle gif-cutout.spec.js drives).
+    const tinted = () => window.evaluate(() =>
+      [...document.querySelectorAll('.mpi-frame-strip__thumb')]
+        .filter(t => t.querySelector('.mpi-frame-strip__thumb-tint'))
+        .map(t => t.dataset.index));
+    await window.evaluate((n) => {
+      const out = [];
+      for (let i = 0; i < n; i++) {
+        const c = document.createElement('canvas');
+        c.width = c.height = 4;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, 4, 4);
+        out.push(c.toDataURL('image/png'));
+      }
+      document.querySelector('.mpi-gif-viewer').setTrackMasks(out);
+    }, before - 1);
+    await expect.poll(async () => (await tinted()).length, 'every frame is masked').toBe(before - 1);
+
+    await window.locator('.mpi-frame-strip__thumb[data-index="1"]').click({ button: 'right' });
+    await expect.poll(() => window.evaluate(() =>
+      document.querySelector('.mpi-ctx-menu__item[data-key="clear-mask"]')?.disabled),
+    'with a mask on the frame the clear must be live').toBe(false);
+    await window.locator('.mpi-ctx-menu__item[data-key="clear-mask"]').click();
+
+    // Exactly that frame loses its mask; the rest keep theirs. This is the
+    // index the VIEWER keys masks by, not the strip's own staged index — the
+    // two diverge after a reorder, which is why the menu emits `viewerIndex`.
+    await expect.poll(async () => (await tinted()).length).toBe(before - 2);
+    expect(await tinted(), 'only frame 1 may lose its mask')
+      .not.toContain('1');
+    expect(await window.evaluate(() => document.querySelector('.mpi-gif-viewer').hasFrameMasks()),
+      'the other frames keep their masks').toBe(true);
+  } finally {
+    await closeApp(app);
+  }
+});

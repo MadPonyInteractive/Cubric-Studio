@@ -225,6 +225,26 @@
     opacity: 1;
 }
 
+/* A GIF's hover overlay is not a video's (MPI-771, Fabio 2026-09-18: a card
+ * "showed its first frame behind the playing one").
+ *
+ * A <video> overlay is opaque, so leaving the poster underneath is free and
+ * stops a blink. A GIF's is NOT: cut-out GIFs carry real transparency, and the
+ * poster below — sized `contain` against this overlay's `cover` — then shows
+ * through the holes at a DIFFERENT scale, which is the doubled image. So the
+ * GIF overlay matches the poster's `contain` (no jump on hover) and the poster
+ * steps aside once the GIF is actually up. Dropping the overlay un-matches the
+ * :has() on its own, so there is nothing to undo on demote. */
+.mpi-group-card__thumb--hover-video.mpi-group-card__thumb--gif {
+    object-fit: contain;
+}
+
+.mpi-group-card__media:has(
+    > .mpi-group-card__thumb--gif.mpi-group-card__thumb--hover-video-ready
+) > .mpi-group-card__thumb--loaded {
+    opacity: 0;
+}
+
 .mpi-group-card__thumb--bg {
     background-position: center;
     background-repeat: no-repeat;

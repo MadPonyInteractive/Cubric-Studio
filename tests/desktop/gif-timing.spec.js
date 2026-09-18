@@ -199,8 +199,12 @@ test('GIF timing tools: each Apply adds an entry with the expected frames, delay
         expect(r.meta.pages).toBe(3);
         expect(r.meta.loop, 'the loop carries over').toBe(3);
         expect(r.entry.gif.frames.map(f => f.hash)).toEqual([...speedHashes].reverse().slice(1, 4));
-        // The new entry resets the handles to every frame.
-        await expect(window.locator('.mpi-tool-options-gif-timing #note')).toContainText('Keeps frames 0 to 2 (3 of 3)');
+        // The new entry resets the handles to every frame — and a full range
+        // drops nothing, so the note says THAT rather than "Keeps frames 0 to
+        // 2 (3 of 3)", which read as if Apply would trim (Fabio, 2026-09-18:
+        // "Trim does nothing"; Apply only toasts back at you).
+        await expect(window.locator('.mpi-tool-options-gif-timing #note'))
+            .toContainText('All 3 frames are selected');
 
         // ── GIF output: 16 px longest edge, 16 colours, transparent ─────────
         await openTool('output', 'GIF output');

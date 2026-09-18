@@ -45,6 +45,16 @@ import { MpiTrimBar } from '../../Compounds/MpiTrimBar/MpiTrimBar.js';
 import { qs } from '../../../utils/dom.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 
+/**
+ * Sits on the trim WRAPPER, not on MpiTrimBar: the status bar's hover
+ * delegation reads `closest('[data-info]')`, so one attribute covers the track
+ * and both handles, and MpiTrimBar — shared with the video bar — needs no new
+ * prop. Fabio moved these handles without knowing they were what Trim reads
+ * (2026-09-18). `mount()` replaces the container's CONTENT, so the attribute
+ * survives the trim bar mounting into it.
+ */
+const TRIM_INFO = 'Drag the two handles to pick a range — the Trim tool keeps the frames between them';
+
 export const MpiGifControlBar = ComponentFactory.create({
     name: 'MpiGifControlBar',
     css: ['js/components/Organisms/MpiGifControlBar/MpiGifControlBar.css'],
@@ -55,14 +65,14 @@ export const MpiGifControlBar = ComponentFactory.create({
                 <div data-mount="play"></div>
                 <div data-mount="frame-back"></div>
                 <div data-mount="frame-forward"></div>
-                <div class="mpi-gif-control-bar__count">
+                <div class="mpi-gif-control-bar__count" data-info="Frame on screen, and the last frame's index">
                     <span class="mpi-gif-control-bar__current">0000</span>
                     <span class="mpi-gif-control-bar__separator">/</span>
                     <span class="mpi-gif-control-bar__total">0000</span>
                 </div>
             </div>
 
-            <div class="mpi-gif-control-bar__trim" data-mount="trim"></div>
+            <div class="mpi-gif-control-bar__trim" data-mount="trim" data-info="${TRIM_INFO}"></div>
 
             <div class="mpi-gif-control-bar__right">
                 <div data-mount="preview-toggle"></div>

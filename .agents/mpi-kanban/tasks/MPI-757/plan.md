@@ -276,6 +276,76 @@ investigators got wrong: [research/2026-09-15-investigation.md](research/2026-09
   Green for this step: lint clean; `node --test` colour-key + gif-frame-masks + gif-cutout **19/19**;
   desktop `gif-cutout` **4/4**.
   **Next:** the 5 open items above, in that order.
+- **2026-09-18 ~13:2xZ (session 78c4c827): four of the five open items DONE, one is his call.**
+  Uncommitted at the time of writing. Green: lint clean; `npm test` **1344 pass / 0 fail / 1 skip**;
+  desktop `gif-workspace` (2, one NEW), `gif-cutout` (2), `gif-timing`, `gif-make`, `gif-maker`,
+  `gif-transform`, `gif-maker`, `mask-colour`, `history-modes`, `gallery-gif-hover` — **11 specs green**.
+  1. **Strip context menu LANDED.** Right-click a thumb -> **Delete frame** / **Clear this frame's
+     mask**. An Organism may import a Compound (4-tier rule), so it calls `MpiContextMenu.show()`
+     directly — the shell's `ui:context-menu` hop exists only for same-tier callers. Right-clicking
+     inside a Ctrl-click selection acts on the whole selection ("Delete 3 frames"); anywhere else on
+     that one frame. Delete shares `_deleteIndices()` with the Backspace hotkey, so both stage the
+     same edit and the >=1-frame floor holds; it greys out when it would empty the strip. Clear greys
+     out with no mask on the frame. It emits `clear-frame-mask { index, viewerIndex }` — masks are
+     keyed by the VIEWER's position, which diverges from the staged index after a reorder.
+  2. **Trim is legible.** `frameStrip.el.setRange()` paints the control bar's handles ON the strip:
+     frames Apply would DROP are dimmed + greyscaled, an edge bar sits at in and at out (so a full
+     range still shows the handles instead of nothing). The Block feeds it from the same
+     `range-change` the panel note reads, and re-applies after `setFrames`/`commit` — `setFrameCount`
+     fires its `range-change` while the strip still holds the PREVIOUS list, so the first paint was
+     clamped to the old length. **Why he "saw every frame after Apply": he never moved the handles.**
+     Traced, not guessed — `timingEdit('trim')` slices correctly, and with an untouched range Apply
+     ALWAYS refuses with the toast, so it can never silently write an untrimmed entry (`gif-timing`
+     proves a real 1..3-of-6 trim gives a 3-page GIF). The note now says **"All N frames are selected
+     — drag the handles"** up front instead of "Keeps frames 0 to N-1", which read as if it would trim.
+  3. **Gallery hover artefact ROOT-CAUSED and fixed.** Proven in a static harness over the REAL
+     stylesheets (scratchpad `gifart/`, before/after screenshots): the GIF hover overlay inherits the
+     VIDEO overlay's `object-fit: cover` while the poster under it is `contain`, and the poster is
+     never hidden. A video overlay is opaque so that is free; a **cut-out GIF is transparent**, so the
+     poster showed through its holes at a different scale — the "first frame behind the playing one".
+     Fix is CSS only in `MpiGalleryGrid.css`: `--gif` overlay -> `contain`, and
+     `.mpi-group-card__media:has(> .--gif.--hover-video-ready) > .--loaded { opacity: 0 }`. Dropping
+     the overlay un-matches the `:has()`, so there is nothing to undo on demote (`:has()` is already
+     a 53-use idiom here). **NOTE: his card was `imported_015` — if that GIF is OPAQUE this fix does
+     not explain his screenshot and it needs another look.**
+  4. **`[data-info]` pass done, with ONE thing left to him.** Gaps found and filled: the control bar's
+     **trim handles had no info at all** (the very control he could not read) and nor did the frame
+     counter. Everything else was already covered — every GifTiming / GifTransform / GifCutout /
+     Gif field and button, the strip pill, play/step/preview. **Left to him:** the tool RAIL. Its
+     `info` is the floating TOOLTIP text as well as the status bar's, so a sentence there hangs a
+     paragraph off a 24px icon, and every rail in the app (image, video, gif) is a bare name. I wrote
+     the sentences, saw they broke 3 specs that select rail buttons by `[data-info="Trim"]`, and
+     REVERTED rather than impose a look on his UI. A split (`data-tip` short for the tooltip,
+     `data-info` long for the status bar) is ~3 lines + 4 spec selectors if he wants it.
+  5. **Background tint polarity: still unexplained, still needs his screenshot.** Nothing invented.
+  Also landed: the parked `types-hunk.md` registration lines, now that MPI-774's claim no longer
+  covers them — `MpiToolOptionsMaskColour.css` in `preloadStyles.js`, a new `MpiToolOptionsMaskColourProps`
+  typedef, and `MpiFrameStrip` / `MpiGifViewer` / `MpiToolOptionsGifCutout` typedefs rewritten against
+  the code AS IT IS (not the 2026-09-16 hunk text, which predates BiRefNet, By colour and Clear).
+  `types-hunk.md` deleted. Docs: `docs/gif.md` (strip gestures + the Trim contract), `docs/gallery.md`
+  (the hover pair).
+- **2026-09-18 ~13:5xZ: Fabio's pass — 3 of 4 PASS, Backspace is a REAL open bug.** His words: context
+  menu works, Trim works ("I like the green indicators"), multi-entry gallery cards no longer display
+  incorrectly. **"Backspace still doesn't delete an item."** So the previous session's read — that it
+  was only undiscoverable — was WRONG; it is broken for him, and the context menu is now the only
+  working delete. **What has been ELIMINATED (probe source: session scratchpad
+  `backspace-probe.js`, run as a throwaway `tests/desktop/zz-backspace-probe.spec.js`, deleted after —
+  do NOT look for it in the tree):**
+  - A REAL `keyboard.press('Backspace')` (not the synthetic `dispatchEvent` every existing spec uses)
+    DOES delete a Ctrl-clicked frame in a clean workspace: 5 thumbs -> 4.
+  - It still works with a TOOL PANEL open (Speed): 4 -> 3, `activeElement` `BODY.page-group-history`.
+  - The keydown reaches window un-prevented; `gif.frame.delete` is `backspace`/DOWN with no `when`
+    gate; the `isTyping` block only bites for a textarea / contenteditable / text input, and the
+    strip's own `pointerdown` calls `document.activeElement.blur()` before selecting anyway.
+  So the mechanism is sound and the fault is CONDITIONAL on something his session has and the fixture
+  does not. **Next session: bisect it with him in ONE question before touching code — when he
+  Ctrl-clicks a thumb, does it get the orange selection ring?** Ring = the hotkey path; no ring = the
+  Ctrl-click/selection path (and the two need completely different fixes). Worth checking against his
+  real GIF: a long strip where the thumb is OUTSIDE the rendered window (`VIEW_RADIUS` 40), a second
+  live MpiFrameStrip from a previous mount still bound to the hotkey, or a keyboard layout / IME
+  sending something other than `Backspace`. Read the live `app.log` and have him reload rather than
+  guessing again.
+  **Next:** the Backspace bug (above), his answer on the rail `data-tip` split, his tint screenshot.
 - **Next action (superseded, kept for the record):** MPI-759 root cause in the real app first (he can reload for you; read
   `%APPDATA%\Cubric Vision\logs\app.log` filtered, never drive `:3000`). Then redesign the MPI-771 UI half
   per Decision 14 (plan it with Fabio before coding: it needs a per-frame mask layer and brush). Phase 4

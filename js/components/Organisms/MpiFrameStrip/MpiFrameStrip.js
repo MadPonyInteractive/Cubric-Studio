@@ -29,6 +29,13 @@
  *                                                  is the viewer's to reset.
  *   setCurrentIndex(idx)     — move the marker (no event; called back by the
  *                              Block from the viewer's own 'frame-change').
+ *   setRange(range|null)     — MPI-771: paint the control bar's trim handles
+ *                              ON the strip (frames outside the range dimmed,
+ *                              an edge bar at in and at out). Fabio, 2026-09-18:
+ *                              the range was legible only as numbers in the
+ *                              Trim panel, so Trim read as doing nothing.
+ *                              Frame INDICES, matching MpiGifControlBar's
+ *                              `getRange()`; `null` clears the paint.
  *   getStagedFrames()        — current working copy
  *   commit(frames)           — server round-trip landed: staged AND
  *                              committed both become `frames`, the marker
@@ -49,6 +56,10 @@
  *
  * Emits:
  *   'frame-select' { index } — thumbnail clicked (no modifier)
+ *   'clear-frame-mask' { index, viewerIndex } — context menu; `viewerIndex` is
+ *                              the position the VIEWER keys its masks by (see
+ *                              setMaskOverlay), which is what the Block passes
+ *                              to `viewer.el.clearFrameMasks()`
  *   'scrub'        { index } — dragging the empty track
  *   'stage-change' { frames, order } — reorder, delete or Discard changed the
  *                              staged list; `order[newPos]` = that frame's
@@ -61,6 +72,7 @@
 
 import { ComponentFactory } from '../../factory.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
+import { MpiContextMenu } from '../../Compounds/MpiContextMenu/MpiContextMenu.js';
 import { qs, on } from '../../../utils/dom.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
 
@@ -126,12 +138,24 @@ export const MpiFrameStrip = ComponentFactory.create({
         /** Positions whose mask was fixed with the Mask Brush — same keying. */
         let _edited = new Set();
 
+        /** MPI-771: the control bar's trim handles, in frame indices, or null. */
+        let _range = null;
+
         /** Committed index each staged frame came from: the identity a reorder keeps. */
         let _origin = [];
         /** Origin -> position in the list the viewer holds (what the overlay is keyed by). */
         let _viewerPos = new Map();
 
         const _syncViewerPos = () => { _viewerPos = new Map(_origin.map((o, i) => [o, i])); };
+        /** Where the VIEWER keys frame `i`'s mask — see setMaskOverlay. */
+        const _viewerPosOf = (i) => _viewerPos.get(_origin[i]);
+
+        /** A shorter frame list must not leave the trim paint hanging past the end. */
+        function _clampRange() {
+            if (!_range) return;
+            const last = Math.max(0, _staged.length - 1);
+            _range = { in: Math.min(_range.in, last), out: Math.min(_range.out, last) };
+        }
         function _resetOrigin() {
             _origin = _staged.map((_, i) => i);
             _syncViewerPos();
@@ -185,9 +209,15 @@ export const MpiFrameStrip = ComponentFactory.create({
                 // the delete at all (2026-09-18). `[data-info]` is the status bar's
                 // hover channel (js/shell/statusBar.js).
                 d.dataset.info = `Frame ${i + 1}/${_staged.length} — click to jump, drag to scrub, `
-                    + 'hold then drag to reorder, Ctrl-click to select (Backspace deletes the selection)';
+                    + 'hold then drag to reorder, right-click for delete / clear mask';
                 if (i === _currentIndex) d.classList.add('is-current');
                 if (_selection.has(i)) d.classList.add('is-selected');
+                // MPI-771: the Trim tool's range, painted where the frames are.
+                if (_range) {
+                    if (i < _range.in || i > _range.out) d.classList.add('mpi-frame-strip__thumb--outside');
+                    if (i === _range.in)  d.classList.add('mpi-frame-strip__thumb--range-in');
+                    if (i === _range.out) d.classList.add('mpi-frame-strip__thumb--range-out');
+                }
                 if (_drag?.mode === 'thumb' && _drag.index === i) d.classList.add('mpi-frame-strip__thumb--lifted');
                 d.style.left = `${i * SLOT}px`;
                 const img = document.createElement('img');
@@ -195,7 +225,7 @@ export const MpiFrameStrip = ComponentFactory.create({
                 img.alt = '';
                 img.draggable = false;
                 d.appendChild(img);
-                const vp = _viewerPos.get(_origin[i]);
+                const vp = _viewerPosOf(i);
                 if (_edited.has(vp)) d.classList.add('mpi-frame-strip__thumb--edited');
                 const maskUrl = vp === undefined ? null : _maskOverlay?.[vp];
                 if (maskUrl) {
@@ -224,6 +254,7 @@ export const MpiFrameStrip = ComponentFactory.create({
             _staged = _committed.slice();
             _resetOrigin();
             _selection.clear();
+            _clampRange();
             _currentIndex = Math.max(0, Math.min(_staged.length - 1, currentIndex || 0));
             _windowEnd = -1; // force a full re-render
             _ensureWindow(_currentIndex);
@@ -247,6 +278,21 @@ export const MpiFrameStrip = ComponentFactory.create({
             _applyTransform();
         };
 
+        el.setRange = (range) => {
+            const last = Math.max(0, _staged.length - 1);
+            if (!range || !Number.isFinite(+range.in) || !Number.isFinite(+range.out)) {
+                if (!_range) return;
+                _range = null;
+            } else {
+                const a = Math.max(0, Math.min(last, Math.round(+range.in)));
+                const b = Math.max(0, Math.min(last, Math.round(+range.out)));
+                const next = { in: Math.min(a, b), out: Math.max(a, b) };
+                if (_range && _range.in === next.in && _range.out === next.out) return;
+                _range = next;
+            }
+            _renderWindow();
+        };
+
         el.getStagedFrames = () => _staged.slice();
 
         el.setMaskOverlay = (masks, edited = []) => {
@@ -260,6 +306,7 @@ export const MpiFrameStrip = ComponentFactory.create({
             _staged = _committed.slice();
             _resetOrigin();
             _selection.clear();
+            _clampRange();
             // The Block reloads the saved entry into the viewer via
             // `loadFrames()` (a fresh `.gif` revision, new sequenced file per
             // E5), which always resets ITS index to 0 — match it here, or the
@@ -396,22 +443,85 @@ export const MpiFrameStrip = ComponentFactory.create({
 
         const _canDrive = () => el.isConnected && el.getClientRects().length > 0;
 
-        _hotkeyUnsubs.push(Hotkeys.bind('gif.frame.delete', () => {
-            if (!_canDrive() || _selection.size === 0) return;
+        /**
+         * Stage a delete of `indices` (staged positions). Shared by the
+         * Backspace hotkey and the context menu's Delete — Fabio never found
+         * the hotkey at all (2026-09-18), so the menu is the discoverable way
+         * in and both must stage the SAME edit.
+         * @param {Set<number>|number[]} indices
+         */
+        function _deleteIndices(indices) {
+            const drop = indices instanceof Set ? indices : new Set(indices);
+            if (drop.size === 0) return;
             // A GIF needs at least one frame — never stage a delete that would
             // empty the strip (the Block's save round trip rejects it anyway,
             // but failing silently here is friendlier than a toast after the
             // fact for a selection that could only ever produce it).
-            if (_staged.length - _selection.size < 1) return;
-            _staged = _staged.filter((_, i) => !_selection.has(i));
-            _origin = _origin.filter((_, i) => !_selection.has(i));
+            if (_staged.length - drop.size < 1) return;
+            _staged = _staged.filter((_, i) => !drop.has(i));
+            _origin = _origin.filter((_, i) => !drop.has(i));
             _selection.clear();
+            _clampRange();
             _currentIndex = Math.max(0, Math.min(_staged.length - 1, _currentIndex));
             _windowEnd = -1;
             _ensureWindow(_currentIndex);
             _renderWindow();
             _applyTransform();
             _emitStage();
+        }
+
+        _hotkeyUnsubs.push(Hotkeys.bind('gif.frame.delete', () => {
+            if (!_canDrive() || _selection.size === 0) return;
+            _deleteIndices(_selection);
+        }));
+
+        // ── Context menu (Fabio's top ask, 2026-09-18) ────────────────────
+        //
+        // An Organism may import a Compound (4-tier rule), so this calls
+        // MpiContextMenu.show() directly rather than going through the shell's
+        // 'ui:context-menu' hop, which exists only for same-tier callers.
+
+        _unsubs.push(on(trackEl, 'contextmenu', (e) => {
+            const thumbEl = e.target.closest('.mpi-frame-strip__thumb');
+            if (!thumbEl) return;
+            e.preventDefault();
+            const index = Number(thumbEl.dataset.index);
+            if (!Number.isFinite(index) || !_staged[index]) return;
+            // Right-clicking INSIDE a Ctrl-click selection acts on the whole
+            // selection; anywhere else acts on that one frame and drops it.
+            const targets = _selection.has(index) ? new Set(_selection) : new Set([index]);
+            const vp = _viewerPosOf(index);
+            const hasMask = vp !== undefined && !!_maskOverlay?.[vp];
+            const n = targets.size;
+            MpiContextMenu.show({
+                x: e.clientX,
+                y: e.clientY,
+                items: [
+                    {
+                        key: 'delete',
+                        icon: 'trash',
+                        label: n > 1 ? `Delete ${n} frames` : 'Delete frame',
+                        danger: true,
+                        kbd: 'Backspace',
+                        // The last frame cannot go: a GIF needs one.
+                        disabled: _staged.length - n < 1,
+                        info: 'Stages the delete — Update or Apply saves it',
+                    },
+                    {
+                        key: 'clear-mask',
+                        icon: 'eraser',
+                        label: 'Clear this frame\'s mask',
+                        disabled: !hasMask,
+                        info: hasMask
+                            ? 'Throws this frame\'s cut-out mask and brush fixes away'
+                            : 'This frame has no cut-out mask',
+                    },
+                ],
+                onSelect: (key) => {
+                    if (key === 'delete') _deleteIndices(targets);
+                    else if (key === 'clear-mask') emit('clear-frame-mask', { index, viewerIndex: vp });
+                },
+            });
         }));
 
         // ── Pill buttons ───────────────────────────────────────────────────
