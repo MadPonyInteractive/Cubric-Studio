@@ -742,7 +742,9 @@ export const MpiCanvasViewer = ComponentFactory.create({
             } catch (err) {
                 if (version !== _colourRunVersion) return;
                 clientLogger.error('colour-mask', 'Colour key failed', err);
-                StatusBar.notify('Colour key failed', 'warning');
+                // The message is written for the user ("pick one" when the image's
+                // corner is transparent and there is no default key — MPI-771).
+                StatusBar.notify(err?.message || 'Colour key failed', 'warning');
                 _endAutoMaskRun('done');
             }
         }

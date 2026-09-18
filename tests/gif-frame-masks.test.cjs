@@ -30,6 +30,26 @@ test('leaving a list stashes its masks; coming back restores them', () => {
     assert.deepEqual(m.editedIndices(), [1]);
 });
 
+test('clear() throws the brush layers away too, so a re-mask is not subtracted again', () => {
+    const m = new GifFrameMasks();
+    m.sync(list('a', 'b'));
+    m.setTrackAll(['track-a', 'track-b']);
+    // "Cleared it with the brush" = a full-frame subtract, which survives a re-mask
+    // by design — the reason a real clear has to exist (Fabio, 2026-09-18).
+    m.setEdits(0, { manual: null, subtract: 'wipe-a', composed: 'blank-a' });
+
+    m.clear(0);
+    assert.equal(m.maskFor(0), null, 'no track and no edits left');
+    assert.equal(m.hasEdits(0), false);
+    assert.equal(m.maskFor(1), 'track-b', 'the other frame is untouched');
+
+    m.setTrack(0, 're-masked-a');
+    assert.equal(m.maskFor(0), 're-masked-a', 'the re-mask survives; nothing subtracts it');
+
+    m.clearAll();
+    assert.equal(m.hasAny(), false);
+});
+
 test('a list never masked changes nothing, and the stash is bounded', () => {
     const m = new GifFrameMasks();
     m.sync(list('x'));

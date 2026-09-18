@@ -15,7 +15,7 @@ explicit permission, 2026-09-15 — the one exception to "the user edits workflo
 the agent syncs"):
 
 ```
-MpiLoadVideo (Input_Video, ONE video frame per GIF frame, E7 in the MPI-757 plan)
+MpiLoadVideoUpload (Input_Video, ONE video frame per GIF frame, E7 in the MPI-757 plan)
   -> SAM3_VideoTrack (images + Input_Text_Prompt conditioning from the SAM3
                        checkpoint's own CLIP)
   -> SAM3_TrackToMask (Input_Object_Indices) -> Output_Mask
@@ -58,11 +58,11 @@ hand, so Cut-out has three METHODS that all fill the same per-frame track layer 
 Adjust, Invert and Cut out work unchanged). Every mask is white = KEEP.
 
 - **Remove background** (default) — op `gifCutoutBirefnet`, `gif_cutout_birefnet.json`:
-  `MpiLoadVideo (Input_Video) -> RemoveBackground (the shipped `birefnet` engine asset, the
+  `MpiLoadVideoUpload (Input_Video) -> RemoveBackground (the shipped `birefnet` engine asset, the
   same nodes as the image op `removeBackground`) -> MaskToImage -> Output_Mask`. No prompt, no
   preview, no chips. Same runner (`runGifCutoutTrack({ op })`), video in, one mask per frame.
   Measured on the 8188 bench 2026-09-17: 30 masks for Fabio's 320px robot in 16 s, ~4 GB VRAM.
-  `MpiLoadVideo` reads only inside ComfyUI's input/output/temp folders, so a hand probe must
+  `MpiLoadVideoUpload` reads only inside ComfyUI's input/output/temp folders, so a hand probe must
   stage its video there (the app's staging already does).
 - **By name** — the SAM3 graph above.
 - **By colour** — no engine: `js/utils/colourKeyMask.js` keys each frame in the renderer
@@ -71,6 +71,16 @@ Adjust, Invert and Cut out work unchanged). Every mask is white = KEEP.
   frame's top-left pixel and is never saved (it belongs to one GIF); **Pick** is Chromium's
   native `EyeDropper`. A Tolerance / edges / colour change re-keys the last scope after 250 ms.
   On Fabio's robot, 16 kept the face; 32 started eating it.
+  A TRANSPARENT top-left pixel gives NO default (`cornerColour()` returns null): its RGB is
+  whatever an earlier cut hid — a real 320x320 cut reads `#c8c6c8` there — so keying it would
+  remove a colour nobody can see and eat the subject's dark outline at any tolerance. The run
+  asks for a Pick instead (MPI-771, 2026-09-18).
+
+Every frame of an ALREADY-CUT clip is mostly alpha 0 and `keepMask` keys every transparent
+pixel out, so the mask is "the opaque subject" before the colour is weighed — the keep side
+barely moves as Tolerance is dragged. That is why **By colour tints what it REMOVES** while the
+other two tint what they keep; `#tint-note` states which side is tinted, per method, so the
+tint is never read backwards.
 
 ## The two tools — Cut-out and Mask Brush (MPI-771, plan Decision 14)
 
@@ -92,10 +102,16 @@ before this). A different list STASHES the masks by its signature (8 lists, sess
 restores that list's own: after Cut out, going back to the source entry brings its masks back
 with no re-track (Fabio, 2026-09-17). A list change with no `order` stashes them and the
 Block toasts. `getCutMasks()` sends the track URL for an untouched frame, the composite for a
-brushed one, a 1x1 black PNG for a frame with neither (`applyMaskAlpha()` resizes a mask to
+brushed one, and a 1x1 WHITE PNG for a frame with neither, so an untouched frame comes
+through unchanged (black there meant "nothing kept", and masking ONE frame then cutting
+produced an EMPTY GIF — Fabio, 2026-09-18; `applyMaskAlpha()` resizes a mask to
 its frame). A re-track replaces TRACKS only (Fabio: brush fixes survive); a brushed frame's
 composite is then stale and is rebuilt through a headless `MaskManager`, so there is ONE
-compositor. The viewer emits `masks-change { overlay, edited, cleared }`; the Block feeds
+compositor. Because they survive, **clearing a mask with the brush is not clearing it**: the
+brush writes a full-frame `subtract`, which then eats every later re-mask, so that frame reads
+as unmaskable. `clearFrameMasks('all' | idx)` is the only real clear — it drops `track`,
+`edits` and `composed`, and wipes the live canvas when the cleared frame is the one open in
+the brush (**Clear This Frame** / **Clear All**, MPI-771, 2026-09-18). The viewer emits `masks-change { overlay, edited, cleared }`; the Block feeds
 `MpiFrameStrip.el.setMaskOverlay(overlay, edited)` (tint + a dot on brushed frames) and the
 Cut-out panel's `onMasksChange()`.
 

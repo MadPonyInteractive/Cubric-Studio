@@ -67,3 +67,11 @@ test('cornerColour / hexToRgb round-trip', () => {
     assert.equal(cornerColour(rgba), '#0aabff');
     assert.deepEqual(hexToRgb('#0aabff'), [10, 171, 255]);
 });
+
+test('no default key colour when the corner is transparent (MPI-771)', () => {
+    // An already-cut frame: the corner is alpha 0 and its RGB is whatever the old
+    // mask hid (a real cut of Fabio's robot reads #c8c6c8 there), so keying it
+    // would remove a colour nobody can see and eat the subject's dark outline.
+    const { rgba } = image({ corner: [200, 198, 200], transparentAt: 0 });
+    assert.equal(cornerColour(rgba), null);
+});

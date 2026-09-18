@@ -61,7 +61,10 @@
  *                                            brushed, the track URL, or null)
  *   getCutMasks()                          — Promise: one mask per frame for
  *                                            `/gif-cutout/apply` (an empty frame
- *                                            sends a 1x1 black PNG)
+ *                                            comes through unchanged: a 1x1
+ *                                            WHITE PNG = keep the whole frame)
+ *   clearFrameMasks('all' | idx)           — throw track AND brush layers away;
+ *                                            the only way back to no mask at all
  *   hasFrameMasks()
  *   enterMode('mask'|'none') / exitMode()  — the Mask Brush: an MpiCanvas over
  *                                            the stage holding the current frame,
@@ -445,6 +448,24 @@ export const MpiGifViewer = ComponentFactory.create({
 
         el.hasFrameMasks = () => _masks.hasAny();
 
+        /**
+         * Throw masks away for good — track AND brush layers, so a re-mask starts
+         * from nothing. `'all'`, or one position.
+         * @param {'all'|number} scope
+         */
+        el.clearFrameMasks = (scope) => {
+            if (scope === 'all') _masks.clearAll(); else _masks.clear(scope);
+            if (_canvas && _editIdx >= 0 && (scope === 'all' || scope === _editIdx)) {
+                // The open brush frame holds its layers on the canvas, not in the
+                // store: clearing only the store would save them straight back.
+                _canvas.el.clearMask();
+                _canvas.el.setMaskBase(null).catch(err =>
+                    clientLogger.warn('MpiGifViewer', `mask base clear failed: ${err?.message || err}`));
+                _dirty = false;
+            }
+            _emitMasks();
+        };
+
         el.getFrameMaskURL = async (idx) => {
             if (idx === _editIdx) _saveEdit();
             const m = _masks.maskFor(idx);
@@ -455,12 +476,16 @@ export const MpiGifViewer = ComponentFactory.create({
         el.getCutMasks = async () => {
             _saveEdit();
             if (!_emptyMask) {
-                // `routes/gifCutout.js` resizes a mask to its frame, so 1x1 black
-                // is "nothing kept" at any size.
+                // `routes/gifCutout.js` resizes a mask to its frame, so 1x1 white is
+                // "keep the whole frame" at any size. WHITE, not black: masking one
+                // frame and cutting used to hand every other frame a fully
+                // transparent alpha plane, so the result was an empty GIF (Fabio,
+                // 2026-09-18). An unmasked frame is one the user did not touch —
+                // it comes through unchanged.
                 const c = document.createElement('canvas');
                 c.width = c.height = 1;
                 const ctx = c.getContext('2d');
-                ctx.fillStyle = 'oklch(0 0 0)';
+                ctx.fillStyle = 'oklch(1 0 0)';
                 ctx.fillRect(0, 0, 1, 1);
                 _emptyMask = c.toDataURL('image/png');
             }

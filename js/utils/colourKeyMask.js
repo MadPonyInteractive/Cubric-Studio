@@ -69,8 +69,17 @@ function keepMask(rgba, width, height, key, tolerance, edgesOnly) {
     return mask;
 }
 
-/** @returns {string} `#rrggbb` of the top-left pixel — the default key. */
+/**
+ * The default key: the top-left pixel — but only when it is really on screen.
+ * A frame that was already cut out has a TRANSPARENT corner whose RGB is
+ * whatever the old mask hid (a 320x320 cut of Fabio's robot reads `#c8c6c8`
+ * at alpha 0), so keying it removes a colour nobody can see and quietly eats
+ * the subject's dark outline at any tolerance. No opaque corner -> no default,
+ * and the caller asks for a Pick instead.
+ * @returns {string|null} `#rrggbb`, or null when the corner is transparent
+ */
 export function cornerColour(rgba) {
+    if (rgba[3] === 0) return null;
     return '#' + [rgba[0], rgba[1], rgba[2]].map(v => v.toString(16).padStart(2, '0')).join('');
 }
 
@@ -102,12 +111,14 @@ export async function readImagePixels(url) {
  * URL (white = keep) — the shape engine masks arrive in.
  * @param {string} url
  * @param {{ colour?: string|null, tolerance?: number, edgesOnly?: boolean, selectMatching?: boolean }} opts
- *        `colour` null = the image's own top-left pixel
+ *        `colour` null = the image's own top-left pixel; throws when that pixel
+ *        is transparent, so nothing is keyed against a colour nobody can see
  * @returns {Promise<{ url: string, colour: string }>}
  */
 export async function colourKeyMaskUrl(url, { colour = null, tolerance, edgesOnly, selectMatching } = {}) {
     const { width, height, data } = await readImagePixels(url);
     const hex = colour || cornerColour(data);
+    if (!hex) throw new Error('no key colour: this frame\'s corner is transparent — pick one');
     const mask = colourKeyMask(data, width, height, { key: hexToRgb(hex), tolerance, edgesOnly, selectMatching });
     const canvas = document.createElement('canvas');
     canvas.width = width;

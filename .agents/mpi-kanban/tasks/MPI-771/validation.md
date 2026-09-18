@@ -323,3 +323,20 @@ graph; BiRefNet gets `Input_Video` only). Message 4463a29e resolved.
 
 **Left:** Fabio's check in his app after a FULL restart (server routes changed); the parked typedef /
 preloadStyles lines (`types-hunk.md`); MPI-800 migrating the new graph.
+
+## 2026-09-18 — the 404 closed, three By-colour defects fixed (session 813f42f5)
+
+| Check | Result |
+|---|---|
+| Root cause of `Media staging failed for Input_Video: HTTP 404` | **Stale server process**, not a code fault. Harness over HEAD's `routes/comfy.js`: missing file -> 404 JSON `media not found`; real file -> 200 `input/mpi_staged/`; unknown route -> 404 **HTML** — the only shape that renders `HTTP 404`. Running main process predated `ee034559`; renderer (served from the tree) did not |
+| Fabio's app | booted 17/09 20:49 local, after `ee034559` + `b9f1d756` — no restart needed |
+| Remove background / By name in his app | **PASS** (his word, and sidecar `gif_016` `method: birefnet`, 2026-09-18T10:01:13Z). SAM3 uses the identical staging path |
+| By colour on an already-cut clip | **FIXED** — real frame measured: 77.7% transparent, corner `#c8c6c8` at alpha 0. No default key colour when the corner is transparent; the tint now shows what By colour REMOVES; `#tint-note` names the tinted side per method |
+| Brush-cleared frame could never be re-masked | **FIXED** — `clear()/clearAll()`, `clearFrameMasks()`, **Clear This Frame** / **Clear All** |
+| `npx eslint` on the 6 changed js files + 2 tests | clean |
+| `node --test` colour-key + gif-frame-masks + gif-cutout + mask-colour + mask-tool-registry | **63/63** |
+| `playwright.desktop.config.js` gif-cutout + mask-colour | **5/5** (private `--output` dir) |
+| Background tint polarity | **OPEN, not reproducible here.** He reports the tint over the background while the cut kept the robot; `_updateCurrentTint` tints the mask's luma (= what stays) and both graphs emit a foreground mask. No fix invented — one screenshot of the tint settles it |
+
+**Left:** Fabio's check of By colour + Clear + the tint note; the whole-workspace UI list; the parked
+typedef / preloadStyles lines (`types-hunk.md`).

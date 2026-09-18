@@ -103,6 +103,25 @@ export class GifFrameMasks {
         if (composed) this.composed.set(idx, composed); else this.composed.delete(idx);
     }
 
+    /**
+     * Throw one position's mask away — track AND brush layers. Clearing with the
+     * brush only writes a full-frame `subtract`, which survives every re-mask by
+     * design, so without this a frame the user "cleared" could never be masked
+     * again (Fabio, 2026-09-18).
+     */
+    clear(idx) {
+        this.track.delete(idx);
+        this.edits.delete(idx);
+        this.composed.delete(idx);
+    }
+
+    /** `clear()` for every position. */
+    clearAll() {
+        this.track.clear();
+        this.edits.clear();
+        this.composed.clear();
+    }
+
     hasEdits(idx) { return this.edits.has(idx); }
     editedIndices() { return [...this.edits.keys()].sort((a, b) => a - b); }
     hasAny() { return this.track.size > 0 || this.edits.size > 0; }

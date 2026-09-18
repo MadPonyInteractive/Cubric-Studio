@@ -96,8 +96,9 @@ export const MpiToolOptionsMaskColour = ComponentFactory.create({
         let _tolerance = Math.max(0, Math.min(100,
             Number.isFinite(savedTolerance) ? savedTolerance : DEFAULTS.colourTolerance));
         let _edgesOnly = !!settings.colourEdgesOnly;
-        // Start null; corner-pixel seed sets it below; colourKeyMaskUrl also falls back
-        // to the corner pixel when colour is null, so a run before the seed resolves is safe.
+        // Start null; the corner-pixel seed sets it below, and colourKeyMaskUrl falls
+        // back to the corner pixel when colour is null. It throws instead when that
+        // pixel is TRANSPARENT (MPI-771) — the run reports that and the user picks.
         let _colour = null;
 
         const _pushParams = () => {
@@ -118,6 +119,10 @@ export const MpiToolOptionsMaskColour = ComponentFactory.create({
             try {
                 const { data } = await readImagePixels(url);
                 const hex = cornerColour(data);
+                // Null = the corner is transparent, so its RGB is whatever an earlier
+                // cut hid and is not a colour on screen (MPI-771). The picker keeps its
+                // own default and the user picks; a run before then says so.
+                if (!hex) return;
                 _colour = hex;
                 _pushParams();
                 colourPicker.el.setHex?.(hex);

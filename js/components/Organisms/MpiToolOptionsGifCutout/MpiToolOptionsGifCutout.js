@@ -78,16 +78,22 @@ const METHODS = {
         label: 'Background', icon: 'image', op: 'gifCutoutBirefnet', progress: 'Removing background',
         info: 'Remove background: keeps the foreground, no prompt needed (BiRefNet)',
         hint: 'Keeps the <b>foreground</b> and removes the background.',
+        tintNote: 'The tinted area is what stays.',
     },
     sam3: {
         label: 'By name', icon: 'text', op: 'gifCutoutSam3', progress: 'Tracking',
         info: 'By name: keeps the objects you name (SAM3)',
         hint: 'Name what to <b>keep</b>: <b>mascot</b>, <b>logo</b>. Tick <b>Invert</b> to remove it instead.',
+        tintNote: 'The tinted area is what stays.',
     },
     colour: {
         label: 'By colour', icon: 'mask_fill_holes_stroke', op: null, progress: 'Keying colour',
-        info: 'By colour: removes one colour, the corner pixel by default. No GPU',
-        hint: 'Removes one <b>colour</b>, the frame corner by default. <b>Pick</b> another from the screen.',
+        info: 'By colour: removes one colour. No GPU',
+        hint: 'Removes one <b>colour</b>. <b>Pick</b> it from the screen.',
+        // This method is phrased as a removal, so it tints the removal — the other
+        // two tint what they keep. Stated on screen either way, because reading the
+        // tint backwards is what made the three feel like they flipped (Fabio, 2026-09-18).
+        tintNote: 'The tinted area is what goes.',
     },
 };
 const HINT_TAIL = ' A mask is a starting point: step through the frames and fix any of them with the <b>Mask Brush</b>.';
@@ -124,6 +130,11 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                 <div id="track-all-slot"></div>
                 <div id="track-frame-slot"></div>
             </div>
+            <div class="mpi-tool-options-gif-cutout__row" id="clear-slot">
+                <div id="clear-frame-slot"></div>
+                <div id="clear-all-slot"></div>
+            </div>
+            <p class="mpi-tool-options-gif-cutout__info" id="tint-note"></p>
 
             <div class="mpi-tool-options-gif-cutout__preview" id="preview-wrap" hidden>
                 <div class="mpi-tool-options-gif-cutout__section-label">Tracked objects</div>
@@ -202,13 +213,15 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             _lastScope = null;
             _save('method', value);
             _syncMethod();
+            // The tint's side depends on the method, so an existing mask re-tints.
+            _updateCurrentTint();
         });
         _children.push(methodRadio);
 
         // ── By colour ───────────────────────────────────────────────────────
 
         // Starts at the picker's own default; `_defaultKeyColour()` sets the real one.
-        const keyPicker = MpiColorPicker.mount(qs('#key-colour-slot', el), { info: 'The colour to remove' });
+        const keyPicker = MpiColorPicker.mount(qs('#key-colour-slot', el), { info: 'The colour to remove. Applies on Mask All / Mask This Frame' });
         keyPicker.on('change', ({ hex }) => {
             if (_quietPicker) return;
             _keyColour = hex;
@@ -241,7 +254,7 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
 
         const toleranceSlider = MpiProgressBar.mount(qs('#tolerance-slot', el), {
             min: 0, max: 100, step: 1, value: _tolerance,
-            interactive: true, handle: true, wheel: true, info: 'How far a colour may be from the key and still be removed',
+            interactive: true, handle: true, wheel: true, info: 'How far a colour may be from the key and still be removed. Applies on Mask All / Mask This Frame',
         });
         const _syncToleranceLabel = () => { qs('#tolerance-val', el).textContent = String(_tolerance); };
         toleranceSlider.on('input', ({ value }) => {
@@ -262,18 +275,37 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
 
         /** A By colour setting changed: re-key what was keyed last, once the user pauses. */
         function _scheduleRekey() {
-            if (_method !== 'colour' || !_lastScope) return;
+            if (_method !== 'colour') return;
             clearTimeout(_rekeyTimer);
+            // Nothing keyed yet: there is no mask to re-key, so the colour and the
+            // slider do nothing at all — and silence reads as a broken slider
+            // (Fabio, 2026-09-18, after picking a colour and dragging Tolerance to 81
+            // on an opaque GIF with no run behind it). Say what it is waiting for.
+            if (!_lastScope) {
+                _rekeyTimer = setTimeout(() => {
+                    if (!_busy && !_lastScope && !_destroyed) {
+                        StatusBar.notify('Press Mask All or Mask This Frame to apply this colour', 'info');
+                    }
+                }, REKEY_MS);
+                return;
+            }
             _rekeyTimer = setTimeout(() => { if (!_busy) _runTrack(_lastScope); }, REKEY_MS);
         }
 
-        /** Default key: the current frame's top-left pixel. */
+        /**
+         * Default key: the current frame's top-left pixel — unless that pixel is
+         * TRANSPARENT (an already-cut clip), where its RGB is whatever the old mask
+         * hid and keying it removes a colour nobody can see. Then there is no
+         * default and the user picks one.
+         * @returns {Promise<string|null>}
+         */
         async function _defaultKeyColour() {
             if (_keyColour) return _keyColour;
             const f = viewer.el.getFrames()[viewer.el.getFrameIndex()];
             if (!f) return null;
             const { data } = await readImagePixels(f.url);
-            if (!_keyColour) _setKeyColour(cornerColour(data));
+            const hex = cornerColour(data);
+            if (hex && !_keyColour) _setKeyColour(hex);
             return _keyColour;
         }
 
@@ -392,11 +424,41 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         cutoutBtn.on('click', () => _runCutout());
         _children.push(cutoutBtn);
 
+        // ── Clear ────────────────────────────────────────────────────────────
+        // Clearing with the Mask Brush only paints a full-frame SUBTRACT, which
+        // survives every re-mask by design — so without a real clear, a frame the
+        // user wiped could never be masked again (Fabio, 2026-09-18).
+
+        const clearBtns = {
+            frame: MpiButton.mount(qs('#clear-frame-slot', el), {
+                label: 'Clear This Frame', icon: 'eraser', size: 'sm', variant: 'secondary',
+                info: 'Throw this frame\'s mask away, brush fixes included',
+            }),
+            all: MpiButton.mount(qs('#clear-all-slot', el), {
+                label: 'Clear All', icon: 'eraser', size: 'sm', variant: 'secondary',
+                info: 'Throw every frame\'s mask away, brush fixes included',
+            }),
+        };
+        clearBtns.frame.on('click', () => {
+            if (_busy) return;
+            viewer.el.clearFrameMasks(viewer.el.getFrameIndex());
+            _lastScope = null;
+            _updateCurrentTint();
+        });
+        clearBtns.all.on('click', () => {
+            if (_busy) return;
+            viewer.el.clearFrameMasks('all');
+            _lastScope = null;
+            _updateCurrentTint();
+        });
+        _children.push(clearBtns.frame, clearBtns.all);
+
         /** Show the controls of the current method only. */
         function _syncMethod() {
             qs('#hint', el).innerHTML = METHODS[_method].hint + HINT_TAIL;
             qs('#prompt-slot', el).hidden = _method !== 'sam3';
             qs('#colour-section', el).hidden = _method !== 'colour';
+            qs('#tint-note', el).textContent = METHODS[_method].tintNote;
             if (_method !== 'sam3') previewWrap.hidden = true;
             if (_method === 'colour') {
                 _defaultKeyColour().catch(err => clientLogger.warn('MpiToolOptionsGifCutout', 'corner colour read failed', err));
@@ -409,7 +471,10 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         function _syncHasMasks() {
             const has = !!viewer.el.hasFrameMasks?.();
             qs('#adjust-section', el).hidden = !has;
+            qs('#clear-slot', el).hidden = !has;
             cutoutBtn.el.setDisabled?.(!has || _busy);
+            clearBtns.frame.el.setDisabled?.(!has || _busy);
+            clearBtns.all.el.setDisabled?.(!has || _busy);
         }
         _syncHasMasks();
 
@@ -468,6 +533,10 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             _keyRun = run;
             try {
                 const colour = await _defaultKeyColour();
+                if (!colour) {
+                    StatusBar.notify('Pick the colour to remove first', 'warning');
+                    return null;
+                }
                 const urls = [];
                 for (const f of targets) {
                     if (run.cancelled || _destroyed) return null;
@@ -629,10 +698,17 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                 out = new Uint8Array(width * height);
                 for (let i = 0; i < out.length; i++) out[i] = out32[i] & 0xff;
             }
-            if (_invert) {
-                const inverted = new Uint8Array(out.length);
-                for (let i = 0; i < out.length; i++) inverted[i] = 255 - out[i];
-                out = inverted;
+            // The mask is always "what stays" (`applyMaskAlpha` writes it into the
+            // alpha channel), so `Invert` flips it here exactly as the server does.
+            // By colour then tints the OTHER side: that method is phrased as a
+            // removal, and on an already-cut clip the keep side is the whole subject
+            // at every tolerance, so tinting it showed nothing changing (Fabio,
+            // 2026-09-18). `#tint-note` says which side is tinted either way.
+            const flip = (_invert !== (_method === 'colour'));
+            if (flip) {
+                const flipped = new Uint8Array(out.length);
+                for (let i = 0; i < out.length; i++) flipped[i] = 255 - out[i];
+                out = flipped;
             }
 
             const canvas = document.createElement('canvas');

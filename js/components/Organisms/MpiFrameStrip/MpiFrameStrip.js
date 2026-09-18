@@ -181,6 +181,11 @@ export const MpiFrameStrip = ComponentFactory.create({
                 const d = document.createElement('div');
                 d.className = 'mpi-frame-strip__thumb';
                 d.dataset.index = String(i);
+                // Every gesture here is invisible otherwise — Fabio could not find
+                // the delete at all (2026-09-18). `[data-info]` is the status bar's
+                // hover channel (js/shell/statusBar.js).
+                d.dataset.info = `Frame ${i + 1}/${_staged.length} — click to jump, drag to scrub, `
+                    + 'hold then drag to reorder, Ctrl-click to select (Backspace deletes the selection)';
                 if (i === _currentIndex) d.classList.add('is-current');
                 if (_selection.has(i)) d.classList.add('is-selected');
                 if (_drag?.mode === 'thumb' && _drag.index === i) d.classList.add('mpi-frame-strip__thumb--lifted');

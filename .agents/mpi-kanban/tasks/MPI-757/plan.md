@@ -207,6 +207,75 @@ investigators got wrong: [research/2026-09-15-investigation.md](research/2026-09
   d71d7044 already told MPI-800 about the new graph. Fabio asked why "video": the frames are encoded to
   one temp lossless video (E7) so the tracker gets one frame per GIF frame. Also: Fabio loved the colour
   picker and asked for card **MPI-801** (Alt-held colour picker in the image Paint tools), created `todo/idea`.
+- **2026-09-18 ~10:4xZ (session 813f42f5): the 404 was a STALE SERVER, not a bug — and Fabio's next
+  pass found three more.** Root cause of `Media staging failed for Input_Video: HTTP 404`: the error
+  text was literally `HTTP 404`, so the body was not JSON. A harness mounting HEAD's `routes/comfy.js`
+  proved the three shapes — missing file -> 404 **JSON** `media not found: <path>`; real file -> 200
+  staged into `input/mpi_staged/`; unknown route -> 404 **HTML**, the only shape that prints `HTTP 404`.
+  So the running main process predated MPI-800's `ee034559` while the renderer (served from the tree)
+  already had `_stageLocalMedia`. MPI-800 said the same in message `bccdc4e6`; verified, not trusted.
+  Fabio's app booted 17/09 20:49 local, after `ee034559` and the graph migration `b9f1d756`, so no
+  restart was needed — and he confirmed Background AND By name now work (sidecar `gif_016`,
+  `method: birefnet`, 2026-09-18T10:01:13Z). **SAM3 hits the identical path** (both graphs are
+  `MpiLoadVideoUpload` titled `Input_Video`); both were broken, both fixed by the restart.
+- **2026-09-18 (same session): three By-colour defects found and FIXED, not committed.** Measured on
+  a real frame of his `gif_016` (320x320, **77.7% transparent**, corner `#c8c6c8` at **alpha 0**):
+  1. `cornerColour()` read RGB and ignored alpha, so an already-cut clip defaulted to the colour the
+     OLD mask hid — invisible on screen, and at tol 16/32/64 it keyed 536/985/4786 px of the bot's
+     dark outline. Now returns null; no default, the run says "Pick the colour to remove first".
+  2. `keepMask` keys every alpha-0 pixel out, so on a cut clip the KEEP side is the whole subject at
+     every tolerance — which is why "it kept selecting the whole bot" and the slider looked dead. By
+     colour now tints what it REMOVES; `#tint-note` states the tinted side per method (Fabio picked
+     this over a bare label, knowing it makes the three methods differ on purpose).
+  3. "Cleared it with the brush, then it would not mask again": the brush writes a full-frame
+     `subtract` that survives every re-mask BY DESIGN (his 2026-09-16 call), so it ate each new mask.
+     Added `GifFrameMasks.clear()/clearAll()` + `viewer.clearFrameMasks()` + **Clear This Frame** /
+     **Clear All** (they also wipe the live canvas when that frame is open in the brush).
+  Also: docs/masking-sam3-gif.md `MpiLoadVideo` -> `MpiLoadVideoUpload` (message `2c3de183`), and the
+  image tools' null-colour paths guarded. Green: lint clean; `node --test` colour-key + gif-frame-masks
+  + gif-cutout + mask-colour + mask-tool-registry **63/63**; desktop `gif-cutout` + `mask-colour` **5/5**.
+  **Unresolved, needs his eyes:** he reported the Background tint covering the BACKGROUND while the cut
+  kept the robot. Code says tint = luma of the mask = what stays, and both graphs emit a foreground
+  mask, so that combination should be impossible — not reproducible here, no fix invented. One
+  screenshot of the tint right after Background finishes settles it.
+  **Next:** Fabio re-checks By colour + Clear + the tint note, then the whole-workspace UI list.
+- **2026-09-18 ~11:3xZ (session 813f42f5): Fabio's second pass — 3 more fixed, 5 OPEN.** He confirmed
+  Remove background, By name, Clear This Frame / Clear All and the tint note all work.
+  **Fixed here (uncommitted at the time of writing):**
+  - *"By colour does nothing on an opaque GIF"* — `_scheduleRekey()` returned early while
+    `_lastScope` was null, so picking a colour and dragging Tolerance to 81 changed nothing and
+    read as a dead slider. It now says **"Press Mask All or Mask This Frame to apply this colour"**
+    after the same 250 ms pause, and the picker + Tolerance `info` say it too. His call: the hint,
+    NOT an auto-run.
+  - *"Mask one frame, Cut out, get an empty GIF"* — `getCutMasks()` handed every unmasked frame a
+    1x1 BLACK PNG ("nothing kept"), so the untouched frames came back fully transparent. Now WHITE:
+    an untouched frame comes through unchanged.
+  - *"No way to delete a frame in the strip, Backspace does nothing"* — it needs a SELECTION
+    (Ctrl-click), which nothing on screen says. Each thumb now carries `data-info`, so the status
+    bar spells out click / drag / hold-drag / Ctrl-click + Backspace on hover.
+  **Still OPEN, in his priority order:**
+  1. **Context menu on a strip thumbnail** — right-click -> Delete frame / Clear this frame's mask.
+     `MpiContextMenu.show({x, y, items, onSelect})` already exists (`Compounds/MpiContextMenu`).
+     He asked for BOTH this and the hover info; only the hover info landed.
+  2. **Trim reads as useless.** After Apply the preview and Play still show every frame, and the
+     selected range is only legible as numbers. `_handleGifTimingApply` DOES trim into a new entry
+     and toasts "Move the trim handles in the control bar first" when the range is untouched, so the
+     likely truth is he never saw the range. Needs the in/out range drawn ON the strip.
+  3. **Gallery hover-play with several history entries** — his screenshot shows the first frame
+     apparently sitting behind the playing one (an `imported_015` card with a second image showing
+     through). Not investigated at all.
+  4. **A status-bar `info` pass over every GIF control** — he wants each one to say what it does.
+     `[data-info]` is the channel (`js/shell/statusBar.js` hover delegation).
+  5. Still unexplained from his first pass: the Background tint appearing over the BACKGROUND while
+     the cut kept the robot. One screenshot of the tint settles it.
+  **Answered for him, no code:** *edge colour* = GIF alpha is 1-bit, so a soft edge's partial alpha
+  must become fully on or off; `edgeColour` is the colour those edge pixels blend into first, which
+  is how you kill the halo (set it to the background the GIF will sit on). `edgeColour: null` = an
+  opaque build. *Apply* on any GIF timing/output tool = `_saveGifEntry('new', ...)`, i.e. a NEW
+  entry every time — which is why his entry list grew.
+  Green for this step: lint clean; `node --test` colour-key + gif-frame-masks + gif-cutout **19/19**;
+  desktop `gif-cutout` **4/4**.
+  **Next:** the 5 open items above, in that order.
 - **Next action (superseded, kept for the record):** MPI-759 root cause in the real app first (he can reload for you; read
   `%APPDATA%\Cubric Vision\logs\app.log` filtered, never drive `:3000`). Then redesign the MPI-771 UI half
   per Decision 14 (plan it with Fabio before coding: it needs a per-frame mask layer and brush). Phase 4
