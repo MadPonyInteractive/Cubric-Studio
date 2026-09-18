@@ -34,10 +34,8 @@
       "extend_down_factor": 1,
       "extend_left_factor": 1,
       "extend_right_factor": 1,
-      "context_from_mask_extend_factor": 1.1,
+      "context_from_mask_extend_factor": 1,
       "output_resize_to_target_size": true,
-      "output_target_width": 1024,
-      "output_target_height": 1024,
       "output_padding": "32",
       "device_mode": "gpu (much faster)",
       "image": [
@@ -50,6 +48,14 @@
       ],
       "mask_expand_pixels": [
         "286",
+        0
+      ],
+      "output_target_width": [
+        "300",
+        0
+      ],
+      "output_target_height": [
+        "301",
         0
       ]
     },
@@ -98,8 +104,8 @@
     "inputs": {
       "width": 1024,
       "height": 1024,
-      "x": 0,
-      "y": 0
+      "x": -130,
+      "y": 270
     },
     "class_type": "MpiBox",
     "_meta": {
@@ -110,7 +116,7 @@
     "inputs": {
       "pad": true,
       "image": [
-        "211",
+        "81",
         0
       ],
       "mpi_box": [
@@ -125,9 +131,9 @@
   },
   "90": {
     "inputs": {
-      "width": 360,
-      "height": 360,
-      "x": 200,
+      "width": 480,
+      "height": 480,
+      "x": 365,
       "y": 200
     },
     "class_type": "MpiBox",
@@ -320,7 +326,7 @@
       "megapixels": 1,
       "resolution_steps": 16,
       "image": [
-        "89",
+        "211",
         0
       ]
     },
@@ -519,7 +525,7 @@
   "211": {
     "inputs": {
       "image": [
-        "81",
+        "89",
         0
       ],
       "alpha": [
@@ -551,7 +557,7 @@
         0
       ],
       "image": [
-        "81",
+        "89",
         0
       ]
     },
@@ -895,8 +901,8 @@
   "285": {
     "inputs": {
       "mpi_box": [
-        "90",
-        0
+        "91",
+        1
       ]
     },
     "class_type": "MpiFromBox",
@@ -938,6 +944,40 @@
     "class_type": "StringConcatenate",
     "_meta": {
       "title": "Concatenate Text"
+    }
+  },
+  "300": {
+    "inputs": {
+      "math_expression": "floor(a * sqrt(1048576 / ((a*b) if a*b > 0 else 1)) / 64 + 0.5) * 64 if a*b > 0 else 1024",
+      "a": [
+        "285",
+        0
+      ],
+      "b": [
+        "285",
+        1
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Crop target W (box aspect @ 1MP)"
+    }
+  },
+  "301": {
+    "inputs": {
+      "math_expression": "floor(b * sqrt(1048576 / ((a*b) if a*b > 0 else 1)) / 64 + 0.5) * 64 if a*b > 0 else 1024",
+      "a": [
+        "285",
+        0
+      ],
+      "b": [
+        "285",
+        1
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Crop target H (box aspect @ 1MP)"
     }
   }
 }
