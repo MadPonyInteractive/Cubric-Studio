@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-781", "at": "2026-09-16T13:38:10+01:00", "actor": "claude", "column": "todo", "title": "Package Head Swap and DramaBox as sellable Flow packages and take them out of the app"}
 {"schema": "mpi-kanban/event/v1", "type": "task.note", "id": "MPI-781", "at": "2026-09-16T12:38:10Z", "actor": "claude:a9b6c6c7", "summary": "Phase 2 of umbrella MPI-780; blocked on MPI-532."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-781", "at": "2026-09-18T20:51:30+01:00", "actor": "claude", "from": "todo", "to": "todo", "reason": "Unblocked: its only blocker was MPI-532's user_flows/ loader, which shipped and closed 2026-09-18."}
