@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-811", "at": "2026-09-18T20:52:25+01:00", "actor": "claude", "column": "doing", "title": "Bring the radial menu back for the user: Tab opens Gallery / Projects / Flows / Latest workspace"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-811", "at": "2026-09-18T21:19:45+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Shipped + pushed (02468cb3). 5 desktop specs + 1351 node tests green. One human check left: does the radial LOOK right."}
