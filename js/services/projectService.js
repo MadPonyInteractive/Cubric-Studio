@@ -248,8 +248,7 @@ export async function createProject(name, folderPath = null) {
 }
 
 export async function listProjects() {
-    const extraPaths = Storage.getExtraProjectPaths();
-    const result = await post('/list-projects', { extraPaths });
+    const result = await post('/list-projects', {});
     if (!result.success) throw new Error(result.error);
     return result.projects;
 }
@@ -286,14 +285,15 @@ export async function openProject(project) {
     // Gallery mount with an empty prompt — reset to natural per-model defaults.
     state.s_selectedOpByModel = {};
 
-    const extras = Storage.getExtraProjectPaths();
+    // Register this project's parent in the durable Documents registry so it is
+    // still listed after a portable-folder delete / reinstall. The route is a
+    // no-op when the path is already there, so no local mirror is needed to decide
+    // whether to call it (MPI-809 — that mirror was why a removed entry came back).
+    // Awaited, not fire-and-forget: the registry is now the only thing that puts
+    // this project on the next Landing load, so the write has to have landed by
+    // then. Still non-fatal — a failure costs a listing, not the open.
     const parentDir = reconciled.folderPath.split(/[\\/]/).slice(0, -1).join('/');
-    if (!extras.includes(parentDir)) {
-        extras.push(parentDir);
-        Storage.setExtraProjectPaths(extras);
-        // Mirror to the durable Documents registry so it survives reinstall.
-        post('/add-project-path', { parentDir }).catch(() => {});
-    }
+    await post('/add-project-path', { parentDir }).catch(() => {});
     Storage.setLastProject(reconciled.folderPath);
 
     Events.emit('project:changed', { project: reconciled });
@@ -359,13 +359,8 @@ export async function addProjectByFolder(folderPath) {
     if (!res.success) throw new Error(res.error);
 
     const parentDir = normalized.split('/').slice(0, -1).join('/');
-    const extras = Storage.getExtraProjectPaths();
-    if (!extras.includes(parentDir)) {
-        extras.push(parentDir);
-        Storage.setExtraProjectPaths(extras);
-        // Mirror to the durable Documents registry so it survives reinstall.
-        post('/add-project-path', { parentDir }).catch(() => {});
-    }
+    // Durable Documents registry, no local mirror — see openProject() above.
+    await post('/add-project-path', { parentDir });
     return res.project;
 }
 
@@ -422,12 +417,16 @@ export async function deleteProject(project, { deleteFiles = true } = {}) {
         if (!result.success) throw new Error(result.error);
     }
 
-    // Always remove parent dir from extras registry when present.
-    // Works for imported projects; default-root projects (Documents/Cubric Vision/Projects)
-    // are not stored in extras, so filtering is a safe no-op for them.
-    const parentDir = folderPath.replace(/\\/g, '/').split('/').slice(0, -1).join('/');
-    const extras = Storage.getExtraProjectPaths().filter(p => p !== parentDir);
-    Storage.setExtraProjectPaths(extras);
+    // MPI-809: this used to filter the parent out of the localStorage mirror. That
+    // mirror is gone, and the filter never did anything anyway — the durable
+    // registry still held the parent and `list-projects` unions it, so the project
+    // came back on the next Landing load. Pruning the registry is the server's job
+    // now, in `/delete-project`, and only when no sibling `project.json` remains.
+    //
+    // ponytail: that leaves `deleteFiles: false` ("Keep it" — unregister but keep
+    // the folder) with nothing to do, because the folder IS the surviving sibling.
+    // Unregistering it means removing the parent, which takes its siblings off the
+    // list too — a product call, not a mechanical one. See MPI-809 defect 2.
 
     if (state.currentProject?.folderPath === folderPath) {
         state.currentProject = null;

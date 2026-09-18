@@ -250,9 +250,6 @@ export const Storage = {
   getAudioOutputDevice: () => String(get(STORAGE_KEYS.AUDIO_OUTPUT_DEVICE, '') || ''),
   setAudioOutputDevice: (v) => set(STORAGE_KEYS.AUDIO_OUTPUT_DEVICE, String(v || '')),
 
-  getExtraProjectPaths: () => get(STORAGE_KEYS.EXTRA_PROJECT_PATHS, []),
-  setExtraProjectPaths: (v) => set(STORAGE_KEYS.EXTRA_PROJECT_PATHS, v),
-
   getLastProject:      () => get(STORAGE_KEYS.LAST_PROJECT, null),
   setLastProject:      (v) => set(STORAGE_KEYS.LAST_PROJECT, v),
 

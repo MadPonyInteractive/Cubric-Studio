@@ -3,13 +3,14 @@
   "id": "MPI-809",
   "title": "A removed project-paths entry comes back, and there is no unregister UI",
   "description": "list-projects migrates any caller's extraPaths into the durable registry, so an entry cannot be removed for good; /remove-project-path has no UI caller.",
-  "column": "todo",
-  "maturity": "planned",
+  "column": "doing",
+  "maturity": "in-progress",
   "status": "active",
   "created_at": "2026-09-18T14:09:03Z",
-  "updated_at": "2026-09-18T14:09:03Z",
+  "updated_at": "2026-09-18T14:21:10Z",
   "links": {
     "brief": "brief.md",
-    "events": "events.jsonl"
+    "events": "events.jsonl",
+    "checklist": "checklist.md"
   }
 }

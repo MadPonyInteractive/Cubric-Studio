@@ -527,7 +527,7 @@ const PROJECT_LIST_CAP = 50;
  */
 router.get('/connector/projects', async (_req, res) => {
   try {
-    const r = await _appPost('/list-projects', { extraPaths: [] });
+    const r = await _appPost('/list-projects', {});
     if (!r?.success) {
       return res.json({ ok: false, error: { code: 'RUNTIME_ERROR', message: r?.error || 'Could not list the projects.' } });
     }

@@ -1,0 +1,11 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/projects.js",
+    "js/services/projectService.js",
+    "js/core/storage.js",
+    "js/core/storageKeys.js",
+    "docs/project-integrity.md",
+    "tests/project-paths-registry.test.cjs"
+  ]
+}

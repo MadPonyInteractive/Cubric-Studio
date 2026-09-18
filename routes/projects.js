@@ -819,19 +819,17 @@ router.post('/create-project', async (req, res) => {
 
 router.post('/list-projects', async (req, res) => {
     try {
-        const { extraPaths = [] } = req.body;
         const defaultRoot = getProjectsRoot();
 
-        // Durable registry (Documents) is the source of truth for external
-        // project parent dirs. Migrate any localStorage-only paths the renderer
-        // still sends into the registry so they survive a folder delete /
-        // reinstall, then union both for this listing.
-        const normExtra = extraPaths.map(p => String(p).replace(/\\/g, '/'));
-        for (const p of normExtra) {
-            await addProjectPathToRegistry(p);
-        }
-        const registryPaths = await readProjectPathsRegistry();
-        const externalRoots = [...new Set([...registryPaths, ...normExtra])];
+        // MPI-809: the durable registry (Documents) is the ONLY source of external
+        // project parent dirs. This used to also take an `extraPaths` array from the
+        // caller and migrate every entry into the registry on every call — a
+        // self-heal for the renderer's localStorage mirror. That made an entry
+        // unremovable: the registry is one shared file every app instance and
+        // connector client writes to, so a removal only stuck once no client
+        // anywhere still held it in its own mirror, and the next list-projects put
+        // it straight back. Registration is now explicit, via /add-project-path.
+        const externalRoots = await readProjectPathsRegistry();
 
         const defaultRootNorm = defaultRoot.replace(/\\/g, '/');
         const roots = [defaultRoot, ...externalRoots.filter(r => r !== defaultRootNorm)];

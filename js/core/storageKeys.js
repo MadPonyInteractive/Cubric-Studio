@@ -29,7 +29,6 @@ export const STORAGE_KEYS = {
   RUNPOD_CONFIG:       'mpi_runpod_config',
 
   // Project management
-  EXTRA_PROJECT_PATHS: 'mpi_extra_project_paths',
   LAST_PROJECT:       'mpi_last_project',
 
   // Model selection (per-mediaType, persisted across sessions)
