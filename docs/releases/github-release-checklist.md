@@ -103,6 +103,22 @@ Also confirm `where git` finds nothing before trusting any git-less install
 result, and note whether the machine has a GPU — a GPU-less box launches ComfyUI
 with `--cpu`, so a generate smoke there measures nothing useful.
 
+### Windows: pin to the taskbar, close, reopen (MPI-11 / MPI-807)
+
+**A launch-only check passes while this is broken.** The running window's taskbar
+button comes from `BrowserWindow({ icon: favicon.png })` and has always been ours;
+Explorer and any *pinned* shortcut read the exe's own PE resource instead. That
+resource went unbranded from 2026-05-25 to 2026-09-18, and a pin reverted to the
+Electron logo every time.
+
+On the extracted artifact: right-click `CubricStudio.exe` → **Pin to taskbar**,
+close the app, reopen it from the pin. The icon must stay the Studio logo through
+the whole cycle, and Properties → Details must read `Cubric Studio` /
+`MadPony Interactive` / `CubricStudio.exe`. Windows 11 has no scriptable pin verb,
+so no agent can run this — it belongs to whoever has the test box in front of them.
+Do it on a machine that has never run a Cubric build, so a stale shell icon cache
+cannot supply the answer.
+
 ### A generate smoke is passed by the IMAGE, never by the log
 
 **Open the output file and say what is in it.** `Prompt executed in N seconds`, a

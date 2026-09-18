@@ -56,15 +56,20 @@ version block back caught it. Keys are now the MSDN StringFileInfo names, and
 `tests/portable-win-layout.test.cjs`: the branding field values + key casing, and that the
 rebrand targets `path.join(stageRoot, config.exeName)` with the `.ico` as its only consumer.
 
-## Still open — needs Fabio, not an agent
+## The pin cycle moved to the 2.0 release gate — it did NOT lapse
 
-Brief § Verification step 2: extract a released artifact on a box that is not this one,
-**pin CubricStudio.exe to the taskbar, close and reopen**. That is MPI-11's exact report and
-the only case that fails today. Windows 11 has no scriptable pin verb, and this box's shell
-icon cache already holds entries for these paths, so an agent cannot stand in for it.
+Brief § Verification step 2 (extract on a box that is not this one, **pin, close, reopen**) is
+the one check no agent can run: Windows 11 has no scriptable pin verb, and this box's shell icon
+cache already holds entries for these paths. Fabio's call, 2026-09-18: it happens with the rest
+of the pre-release testing for 2.0, rather than renting a box now for one right-click.
+
+So it is written into the gate instead of left on a card — `docs/releases/github-release-checklist.md`
+§ "Windows: pin to the taskbar, close, reopen". The card closes on the evidence above; the pin
+cycle is the release's job, and the checklist says why a launch-only check does not cover it.
 
 ## Not done (deliberate)
 
-Phase 2.5 — `npm run dev:rebrand` over `node_modules/electron/dist/electron.exe` so a dev-mode
-tutorial recording shows the Studio icon. Optional in the brief, unasked, and it edits an
-installed dependency that `npm ci` wipes. Say the word and it is a ~20-line script.
+Phase 2.5 — `npm run dev:rebrand` over `node_modules/electron/dist/electron.exe`, so a dev run
+shows the Studio icon while recording. **Dropped on Fabio's call, 2026-09-18: the taskbar is not
+on screen in the tutorials, so the only thing it would fix is never filmed.** Do not re-raise it;
+the exe that ships is branded, which is the part that was ever visible to a user.

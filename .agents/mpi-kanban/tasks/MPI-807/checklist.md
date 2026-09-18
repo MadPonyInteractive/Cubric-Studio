@@ -13,9 +13,7 @@
       binary, shell-extracted icon is the Studio logo. Caught the kebab-case key trap that made
       the first pass exit 0 while the exe still said "Electron" (`validation.md` § 3)
 - [x] `npm test` green — 1344 pass, 0 fail
-- [ ] Phase 2.5 (`dev:rebrand` on `node_modules/electron/dist/electron.exe`) — skipped, unasked
-
-## Not covered here
-
-The pin-and-reopen cycle on a second Windows box (brief § Verification step 2) needs a released
-artifact and a machine that is not this one. Recorded in `validation.md` as the one open check.
+- [x] Phase 2.5 (`dev:rebrand` on `node_modules/electron/dist/electron.exe`) — DROPPED on Fabio's
+      call: the taskbar is never on screen in the tutorials
+- [x] The pin-and-reopen cycle handed to the 2.0 pre-release testing, written into
+      `docs/releases/github-release-checklist.md` § "Windows: pin to the taskbar, close, reopen"
