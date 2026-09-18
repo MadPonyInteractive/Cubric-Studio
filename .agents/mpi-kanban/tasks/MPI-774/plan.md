@@ -2,6 +2,27 @@
 
 ## Current State
 
+**Fixes 3, 4, 6 and 7 are now proven in a LIVE app, not in the source (2026-09-18, session
+130cab18; `validation.md` § Fixes 3, 4, 6, 7 proven in a live app).** A real `<video>` at
+readyState 4 and the "Did not finish" tile on both element types; `--accent-heat` computing
+to `--hub-accent` inside both agent subtrees; the Language Models spinner with every subgroup
+hidden; and Stop armed at t=2s by an AGENT-started generation, clicked, the lane drained and
+the submit answered `CANCELLED`. Two environment facts came out of it, both in
+`~/.claude/memory/tools/mpi-kanban.md`: `gpu_lease.py run` exits 0 on an npm `.cmd` shim it
+cannot find, and **the local engine is SHARED on 48188** — a Stop test fires a global
+interrupt that can kill the user's own generation.
+
+**What is left of Phase 5 is only what needs Fabio's eyes:** the cream and the spinner as
+LOOKS, the panel resize feel, and one end-to-end pass in his own app.
+
+**The two 2/3 cases are settled (2026-09-18, session 130cab18): TRANSIENT.** Full suite re-run
+on the same tree with every run's output kept — **18/18 cases 3/3**, $0.1473, no `FAIL` line.
+The runner folds an `ENDPOINT_ERROR` into a case's failures, so a provider hiccup and a blown
+assertion read identically in the summary; capture the output, never grep the summary alone.
+Evidence: `validation.md` § The two 2/3 cases, settled. **Phase 5 now waits only on Fabio's
+round 2 in his own app** (checklist at the end of `validation.md`, after a FULL restart), then
+the Phase 6 and Phase 7 DESIGN passes with him.
+
 **Project mode:** scalable-foundation. **Spec:** `brief.md` (every product decision is Fabio's,
 2026-09-15). **Parent:** MPI-677 (umbrella, `doing`, only Fabio's user-ux passes left).
 **Evidence behind this plan:** `research/investigation.md` - verified facts with file:line, the

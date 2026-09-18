@@ -12,5 +12,9 @@ Derived from `plan.md` phases (2026-09-15).
 - [ ] Fabio's pass
   - [x] Round 1 fixes 2-7: box share guard, memory rule, Studio cream, Language Models loading state, Stop in Agent mode, video/failed result card *(2026-09-18, `validation.md` § Phase 5 fixes)*
   - [x] Fix 1: ranked model priority per task, with a note where a rank cannot say it *(2026-09-18, Fabio's order)*
-  - [ ] Round 2 in his own app
+  - [x] Round 2, the agent-verifiable half: fixes 3, 4, 6, 7 driven in a live `app:isolated`
+    instance — real DOM, computed styles, and a real generation cancelled by Stop
+    *(2026-09-18, `validation.md` § Fixes 3, 4, 6, 7 proven in a live app)*
+  - [ ] Round 2, Fabio's half: the cream and the spinner as looks, the panel resize feel,
+    and one end-to-end pass in his own app
 - [ ] Phase 6: global memory (Fabio, 2026-09-18) — next session

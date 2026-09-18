@@ -977,3 +977,84 @@ last complete full run on the FINAL tree:
   and `lint:components` clean, `node --test` on the three unit files 18/18 + 5/5 + 5/5.
 
 Total spend on the harness this session: ~$0.60 across the reruns.
+
+### The two 2/3 cases, settled (2026-09-18, session 130cab18)
+
+The full suite re-run on the same tree, keeping every run's output this time
+(`node scripts/agent-test.mjs --runs 3`, teed to a file rather than grepped):
+**18/18 cases 3/3**, $0.1473 for 54 conversations, exit 0. Not one `FAIL` line in the whole log.
+
+- `create-then-generate` 3/3 — 4-5 calls a run, 19-26 s.
+- `memory-write-unprompted` 3/3 — 4-5 calls a run, 30-40 s.
+
+**Verdict: transient, not model variance.** Four full runs on this tree now; one had those two at
+2/3, and both were 3/3 alone immediately after. The mechanism is in the runner: an
+`ENDPOINT_ERROR` is collected off the turn and pushed into the case's `failures` list
+(`scripts/agent-test.mjs`, `endpointErrors`), so a provider hiccup mid-turn is indistinguishable
+from a blown assertion in the summary line — which is exactly what the previous session could not
+tell apart, having kept only the summary. No rule was touched. Run the harness with its output
+captured, always; the runner already prints every turn's calls and reply on a failing run.
+
+### Fixes 3, 4, 6, 7 proven in a live app, not in the source (2026-09-18, session 130cab18)
+
+`tests/agent-ui-surfaces.test.cjs` is honest about what it is: source-text assertions, because
+that suite has no DOM runner. They prove the code SAYS it. These four were then driven in a real
+`app:isolated` instance (port 52416, own profile) through a `playwright-cli` page, so what is
+recorded here is the rendered DOM, computed styles and a real cancelled generation.
+
+**Fix 7 — a video result, and a result that never arrived.** `agent:result` emitted on the app's
+own `Events` bus (`import('/js/events.js')` from the page resolves to the same module instance the
+chat imported), into the landing chat's session:
+
+- video, file present -> `tagName VIDEO`, `readyState 4`, decoded **1280x720**, `muted true`,
+  `playsInline true`, `preload metadata`, no fallback class. It paints.
+- video, file absent -> the dashed **"Did not finish"** tile, `--unavailable` class, icon present.
+- image, file absent (`C:/nope/never-written.png`) -> the same tile. Both element types reach it.
+
+Worth keeping: the first video probe fell back too, and the code was right — a bare
+`/comfy_workflows/...` path is not one `resolveMediaUrl` passes through
+(`js/utils/mediaActions.js:41`), so it was wrapped as `/project-file?path=...` and 404'd. A result
+card's `filePath` has to be an absolute URL, a project-relative path, or something with
+`project-file` in it. The fallback tile did exactly its job on a path the app could not resolve.
+
+**Fix 3 — Studio cream.** Computed, not grepped. Inside `.mpi-agent-chat`, `--accent-heat`
+resolves to `oklch(0.78 0.028 80)`, identical to `--hub-accent`; the document's own
+`--accent-heat` is `oklch(0.76 0.17 355)`, the rose. Same result on
+`.mpi-prompt-box__col--mode` inside a project. The subtree rebind reaches the Primitives.
+
+**Fix 4 — Language Models loading state.** `window.fetch` stubbed in-page to delay anything
+matching `/llm|secret|enhanc|agent\/probe|profiles/` by 6s, then Settings > Remote opened: root
+carries `mpi-llm-settings--loading`, the spinner is mounted (1 child) and `display: flex`, every
+`.mpi-settings__subgroup` is `display: none`. The section shows "Checking the connection..." with
+its explanatory copy and no labels standing over empty values. Screenshot taken.
+
+**Fix 6 — Stop, against a REAL generation.** Under a held GPU lease (`mpi-kanban: GPU 0 leased`),
+`POST /connector/generate` with `sdxl-realistic` / `t2i` from the page, then the prompt box polled
+every 2s:
+
+- **t=2s**: `activeGenerations` = `running`, and the Stop button's `disabled` had already flipped
+  to `false` — `_refreshPbGenerating` arms it from the registry, so a generation the AGENT started
+  arms the USER's Stop with no extra wiring.
+- Clicked. **t=9s**: `activeGenerations` empty, the lane drained.
+- The agent's own submit came back `{ok: false, error: {code: "CANCELLED", message: "The
+  generation was cancelled or produced no output."}}` — a 200 carrying an honest refusal, so the
+  agent is told its generation was stopped rather than left waiting.
+- ComfyUI's queue drained clean afterwards (`queue_running` and `queue_pending` both empty) and
+  the lease released.
+
+Layout in agent mode, computed: the run column is `display: flex` with three grid tracks
+(652 / 49.6 / 46 px), and inside it only `__stop-host` is `display: block` — Run and Clear are
+`none`. Idle, Stop renders `inline-flex` and `disabled: true`.
+
+**Two environment facts this cost, both now in `~/.claude/memory/tools/mpi-kanban.md`:**
+
+1. `gpu_lease.py run -- playwright-cli ...` printed a `FileNotFoundError [WinError 2]` traceback
+   and **exited 0** — Python's `CreateProcess` does no `PATHEXT` resolution, so a bare
+   `playwright-cli` (on PATH only as `.cmd`) is never found. Pass the full path with its
+   extension. The tell is the ABSENT `GPU N leased` line.
+2. **The local engine is shared: port 48188, one ComfyUI for the user's app and every agent
+   instance.** A Stop fires a global interrupt, so a cancel test can kill a generation the user
+   started. Check `GET /queue` is empty before testing one, and keep the window short.
+
+What is left of Phase 5 for Fabio: whether the cream and the spinner LOOK right, the panel resize
+feel, and one end-to-end pass in his own app — his install is the only real one.
