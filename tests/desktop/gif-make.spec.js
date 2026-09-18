@@ -1,6 +1,5 @@
 const { test, expect } = require('@playwright/test');
 const path = require('path');
-const os = require('os');
 const crypto = require('crypto');
 const fs = require('fs-extra');
 const sharp = require('sharp');
@@ -93,7 +92,7 @@ test('Make GIF: real gallery selection -> real /gif/make -> gif workspace -> hov
             const p = await createProject(name, folderPath);
             await openProject(p);
             return p;
-        }, { name: projectName, folderPath: os.tmpdir() });
+        }, { name: projectName, folderPath: testInfo.outputPath('projects') });
         projectFolderPath = project.folderPath;
         expect(project?.folderPath, 'the project must land on real disk').toBeTruthy();
 

@@ -1,6 +1,5 @@
 const { test, expect } = require('@playwright/test');
 const path = require('path');
-const os = require('os');
 const crypto = require('crypto');
 const fs = require('fs-extra');
 const sharp = require('sharp');
@@ -84,7 +83,7 @@ test('GIF timing tools: each Apply adds an entry with the expected frames, delay
             const p = await createProject(name, folderPath);
             await openProject(p);
             return p;
-        }, { name: `mpi772-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`, folderPath: os.tmpdir() });
+        }, { name: `mpi772-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`, folderPath: testInfo.outputPath('projects') });
         projectFolderPath = project.folderPath;
         expect(projectFolderPath, 'the project must land on real disk').toBeTruthy();
 

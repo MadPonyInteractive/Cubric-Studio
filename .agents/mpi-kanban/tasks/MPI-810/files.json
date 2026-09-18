@@ -1,0 +1,12 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "main.js",
+    "tests/desktop/launch.js",
+    "tests/desktop/gif-cutout.spec.js",
+    "tests/desktop/gif-make.spec.js",
+    "tests/desktop/gif-maker.spec.js",
+    "tests/desktop/gif-timing.spec.js",
+    "tests/desktop/gif-transform.spec.js"
+  ]
+}

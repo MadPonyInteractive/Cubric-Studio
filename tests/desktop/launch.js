@@ -19,10 +19,18 @@ async function launchApp(testInfo) {
   const userDataDir = testInfo.outputPath('user-data');
   fs.mkdirSync(userDataDir, { recursive: true });
 
+  // MPI-810: Documents is isolated per test the same way userData is. getProjectsRoot()
+  // and getProjectPathsRegistryFile() both resolve from APP_DOCUMENTS, so without this a
+  // spec that opens any project registers its parent dir in the DEVELOPER's real
+  // project-paths.json and leaves it there after the run.
+  const documentsDir = testInfo.outputPath('documents');
+  fs.mkdirSync(documentsDir, { recursive: true });
+
   const env = { ...process.env };
   delete env.ELECTRON_RUN_AS_NODE;
   env.CUBRIC_E2E = '1';
   env.CUBRIC_E2E_USER_DATA = userDataDir;
+  env.APP_DOCUMENTS = documentsDir;
 
   const app = await electron.launch({ args: ['.'], env });
   const window = await shellWindow(app);

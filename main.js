@@ -737,7 +737,13 @@ function buildServerEnv(userDataPath, documentsPath) {
   const env = {
     ...process.env,
     APP_USER_DATA: userDataPath,
-    APP_DOCUMENTS: documentsPath,
+    // MPI-810: an explicit APP_DOCUMENTS wins, the same contract as the three roots
+    // below. It used to be overwritten unconditionally, so nothing could point this
+    // process at a different Documents folder — and since getProjectsRoot() and
+    // getProjectPathsRegistryFile() resolve from it, every desktop spec run wrote the
+    // developer's REAL project-paths.json. A spec that isolates its userData could not
+    // isolate its registry.
+    APP_DOCUMENTS: process.env.APP_DOCUMENTS || documentsPath,
     MPI_RESOURCES_PATH: resourcesPath,
   };
 

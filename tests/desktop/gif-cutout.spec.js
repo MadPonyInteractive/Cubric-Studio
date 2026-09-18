@@ -1,6 +1,5 @@
 const { test, expect } = require('@playwright/test');
 const http = require('http');
-const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const fs = require('fs-extra');
@@ -391,7 +390,7 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
       const p = await createProject(name, folderPath);
       await openProject(p);
       return p;
-    }, { name: projectName, folderPath: os.tmpdir() });
+    }, { name: projectName, folderPath: testInfo.outputPath('projects') });
     projectFolderPath = project.folderPath;
     expect(project?.folderPath, 'the project must land on real disk').toBeTruthy();
 
@@ -714,6 +713,37 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     await expect.poll(() => window.evaluate(() =>
       document.querySelector('.mpi-tool-options-gif-cutout #key-colour-slot .mpi-color-picker')?.textContent || ''))
       .toContain('#c82828');
+
+    // MPI-771 (Fabio, 2026-09-18): Pick had no icon, and MpiButton renders
+    // `label` ONLY in icon mode — its plain-text branch reads `text` — so the
+    // button drew as an empty grey box. The icon is what puts it in the mode
+    // that renders the label, which is why one assertion covers both. Mask and
+    // Clear split the row's full width, like the pickers above them.
+    const layout = await window.evaluate(() => {
+      const panel = document.querySelector('.mpi-tool-options-gif-cutout');
+      const pick = panel.querySelector('#pick-slot button');
+      const row = panel.querySelector('#track-slot');
+      const [mask, clear] = [...row.querySelectorAll('button')];
+      return {
+        pickLabel: pick?.querySelector('.mpi-ibtn__label')?.textContent.trim() ?? null,
+        pickIcon: !!pick?.querySelector('.mpi-icon'),
+        // MpiCheckbox dropped `info` on the floor, so this switch was the one
+        // control in the panel that said nothing on the status bar.
+        edgesInfo: panel.querySelector('#edges-slot .mpi-checkbox')?.getAttribute('data-info') ?? null,
+        rowW: row.getBoundingClientRect().width,
+        maskW: mask.getBoundingClientRect().width,
+        clearW: clear.getBoundingClientRect().width,
+        gap: parseFloat(getComputedStyle(row).columnGap) || 0,
+      };
+    });
+    expect(layout.pickLabel, 'Pick shows its label (MpiButton drops `label` without an icon)').toBe('Pick');
+    expect(layout.pickIcon, 'Pick shows the eyedropper icon').toBe(true);
+    expect(layout.edgesInfo, 'the edges switch reaches the status bar (MpiCheckbox renders `info`)')
+      .toContain('frame edge');
+    expect(Math.round(layout.maskW), 'Mask and Clear take an equal share').toBe(Math.round(layout.clearW));
+    expect(Math.round(layout.maskW + layout.clearW + layout.gap), 'Mask and Clear span the row')
+      .toBe(Math.round(layout.rowW));
+
     const spinsBefore = await window.evaluate(() => window.__mpi771.spin.length);
     await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #mask-btn-slot button').click());
     await expect.poll(() => window.evaluate((n) => window.__mpi771.spin.slice(n), spinsBefore), { timeout: 15000 })
