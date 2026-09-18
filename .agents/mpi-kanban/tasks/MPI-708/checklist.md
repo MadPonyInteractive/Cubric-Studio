@@ -16,7 +16,8 @@
         regenerated icon set (favicon.png, build/icon.{png,icns}, media/icons/cubric-vision.{png,ico,icns})
   - [x] Phase 2b: MpiErrorDialog:149 and MpiNewProject:40 KEPT as "Cubric Vision" — real on-disk
         folders (userData is pinned by app.setName; Documents heals only on major >= 2), both commented
-  - [ ] Phase 2b: Fabio's own check — titlebar, About, taskbar icon, favicon
+  - [x] Phase 2b: Fabio's own check — titlebar, About, landing kicker (verified 2026-09-18, Option 1);
+        taskbar/pinned icon excluded on purpose — it is MPI-807, not a Phase 2b defect
   - [ ] Mascots: PARKED until the action animations land (plan drift, top)
 - [ ] Parallel Batch: Non-renderer sweep
   - [x] Heal the Documents folder (version-gated to 2.x; routes/shared.js + tests/documents-heal.test.cjs)

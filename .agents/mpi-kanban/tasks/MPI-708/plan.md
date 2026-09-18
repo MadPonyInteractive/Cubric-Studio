@@ -6,8 +6,26 @@ Brief (decision + repo-rename reasoning): `brief.md`.
 
 ## Current State
 
-**2026-09-18 (session 09561fb8): PHASE 2b DONE, automated checks green, waiting on Fabio's eyes
-(verify mode `user-ux`).** Fabio's answer on the logo: **a still for now, swapping to the animations
+**2026-09-18 (session c3845e99): PHASE 2b CLOSED — Fabio verified it in his live app (Option 1,
+"looks good": titlebar wordmark, About panel, landing kicker). The taskbar/pinned icon was
+excluded from that check on purpose: Windows still shows Electron's and that is MPI-807, not a
+Phase 2b defect.
+
+**MPI-595 GATE A IS VERIFIED — the linuxbox run happened and it reproduced.** Fresh
+`CubricVision-linux-x64-v1.5.0` on `/usr/bin/dash`, the install's own applier, no engine and the app
+never started. Leg A (stock unwrapped launchers): the applier succeeded and dash then died on
+`./update-from-zip.sh: 38: le: not found`, exit 127 — it resumed at its saved byte offset inside the
+rewritten file. Leg B (wrapped, same install, same bundle): exit 0. The shipped v1.5.0 linux bundle
+was confirmed to list all four root launchers, so the premise is a property of a release users
+already have, not an inference. Full evidence + the two consequences (a perfect update reporting
+FAILED, and MPI-422's symptom reached by a second route) in `validation.md` § MPI-595 Gate A.
+**The 1.x fleet caveat was sent to MPI-595 as message `78a7f920`** — the wrap protects nobody on the
+1.x -> 2.0 hop, because leg A IS that hop.
+
+**The next unit is the held-file pass** (`docs/agent-chat.md:90`, MPI-774; `docs/playbooks/add-flow/README.md:3`,
+MPI-532) once those claims release, then Phase 3.
+
+**2026-09-18 (session 09561fb8): PHASE 2b evidence.** Fabio's answer on the logo: **a still for now, swapping to the animations
 once they land** — so the titlebar/About/icons take `Studio-Logo.png` (the head badge; the full-body
 `Studio-Idle.png` is unreadable at the 16px titlebar size). Evidence in `validation.md` § Phase 2b:
 12 files of strings, the new `assets/mascot/studio/logo.png`, and the whole icon set regenerated and
