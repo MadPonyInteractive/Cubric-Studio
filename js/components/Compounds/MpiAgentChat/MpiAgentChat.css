@@ -128,7 +128,7 @@
     font-size: var(--t-sm);
     line-height: 1.5;
     background: var(--accent-heat);
-    color: var(--ink-1);
+    color: var(--ink-4);
     word-break: break-word;
 }
 
