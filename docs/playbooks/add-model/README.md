@@ -156,6 +156,7 @@ Model-specific additions:
       `G:\CubricModels`, so this does NOT wait for the upload; run it in parallel — [02](02-dependencies-r2.md)
 - [ ] Upload new weights to R2 with `--s3-no-check-bucket`; VERIFY with lsf + HTTP HEAD (don't trust exit code) — [02](02-dependencies-r2.md). Upload is ship-prep (end-user download), NOT test-prep — the app tests locally before it finishes
 - [ ] Add the `ModelDef` (`models.js`); set capabilities, workflows, dependencies, enhanceRecipe — [03](03-model-registry.md)
+- [ ] Rank its ops in `modelConstants/modelPriority.js` — [03](03-model-registry.md). Unranked = invisible to the in-app agent's preference, which reads as the agent ignoring the model
 - [ ] New `type`? Sweep the consumers — [03](03-model-registry.md)
 - [ ] **One graph serving several ops** (t2i + i2i + poseReference)? Follow [04](04-ops-and-controls.md) — each op flips ONE baked-`false` boolean via `commandRegistry.injectParams`. **Injection SILENTLY SKIPS a title that matches no node** (this hid `Input_Is_i2i` and `Input_Batch` for four sessions). The injection key is `Input_<Name>` — exact, never abbreviated (`Batch_Size` → `Input_Batch_Size`). Run `tests/inject-params-titles.test.cjs`
 - [ ] **i2i op?** It needs the `denoise` control + a per-op `defaults.denoise` — [04](04-ops-and-controls.md) — but only after tracing that the denoise node is reachable on the i2i branch. On Krea2 it sits behind the `Input_Is_i2i` gate, so t2i/poseReference must NOT mount it

@@ -33,6 +33,7 @@ import { listCorpus, guideIdsByModel } from '../services/agentCorpus.mjs';
 import * as commandRegistry from '../js/data/commandRegistry.js';
 import { resolveNamedParams } from '../js/data/generationControls.js';
 import { MODELS as MODEL_DEFS } from '../js/data/modelConstants/models.js';
+import { opPriority } from '../js/data/modelConstants/modelPriority.js';
 import { resolveRecipe } from '../js/data/recipes/registry.js';
 import { DEFAULT_STYLE } from '../js/data/recipes/styles.js';
 import { runChecks } from './recipe-test.mjs';
@@ -51,7 +52,11 @@ const MODELS = {
     ...CAPTURED,
     models: CAPTURED.models.map((m) => ({
         ...m,
-        ops: m.ops.map((o) => ({ ...o, media: mediaRolesFor(commandRegistry, o.op, MODEL_DEFS.find((d) => d.id === m.id)) })),
+        ops: m.ops.map((o) => ({
+            ...o,
+            media: mediaRolesFor(commandRegistry, o.op, MODEL_DEFS.find((d) => d.id === m.id)),
+            ...(opPriority(m.id, o.op) || {}),
+        })),
         guides: GUIDES[m.id] || [],
     })),
 };
@@ -68,15 +73,19 @@ const PROJECTS = [PROJECT, { name: 'Harbour Nights' }, { name: 'Wedding Stills' 
 const RESULT_URL = `/project-file?path=${encodeURIComponent(`${PROJECT.folderPath}/Media/t2i_001.png`)}`;
 const FOX = { id: 'att_fox', name: 'fox.png', filePath: 'C:/Temp/cubric-agent/attachments/att_fox.png' };
 const FRAME = { id: 'att_frame', name: 'frame-from-my-video.png', filePath: 'C:/Temp/cubric-agent/attachments/att_frame.png' };
+// The filenames agree with what the looks fixture says is in them: the model reads both, and
+// a name contradicting the description sent it hunting for the discrepancy instead of measuring.
+const PORTRAIT_A = { id: 'att_portrait_a', name: 'woman-at-bar.png', filePath: 'C:/Temp/cubric-agent/attachments/att_portrait_a.png' };
+const PORTRAIT_B = { id: 'att_portrait_b', name: 'donor-face.png', filePath: 'C:/Temp/cubric-agent/attachments/att_portrait_b.png' };
 const WAVES = 'Make a 5 second video of waves crashing on rocks at sunset.';
 
 // ── Fixture edits ─────────────────────────────────────────────────────────────
 
 /** The models payload with every model matching `pred` installed or not, ops included. */
-function setInstalled(pred, installed) {
+function setInstalled(pred, installed, base = MODELS) {
     return {
-        ...MODELS,
-        models: MODELS.models.map((m) => (pred(m) ? {
+        ...base,
+        models: base.models.map((m) => (pred(m) ? {
             ...m,
             installed,
             ops: m.ops.map((o) => ({ ...o, installed })),
@@ -87,6 +96,11 @@ function setInstalled(pred, installed) {
 const NO_IMAGE_MODELS = setInstalled((m) => m.type === 'image', false);
 const NO_VIDEO_MODELS = setInstalled((m) => m.type === 'video', false);
 const LTX_BALANCED_INSTALLED = setInstalled((m) => m.id === 'ltx-23-balanced', true);
+// MPI-774 Phase 5 fix 1: two editors installed, and the ranking says which one to reach for.
+const OTHER_EDITORS = ['boogu-edit-high', 'boogu-edit-balanced', 'klein-4b', 'qwen-edit', 'krea2-nsfw'];
+const KLEIN_AND_KREA = setInstalled((m) => ['klein-9b', 'krea2'].includes(m.id), true,
+    setInstalled((m) => OTHER_EDITORS.includes(m.id), false));
+const KREA_ONLY = setInstalled((m) => m.id === 'klein-9b', false, KLEIN_AND_KREA);
 
 // ── Fake tools (the agentTools.mjs surface) ───────────────────────────────────
 
@@ -149,7 +163,16 @@ function fakeTools({ models = MODELS, look = LOOKS.fox, noGuides = false, notes 
             }
             return { ok: true, output: { itemId: 'item_1', groupId: 'grp_1', type: m?.type || 'image', filePath: RESULT_URL } };
         },
-        look: async (args) => { record.looks.push(args); return structuredClone(look); },
+        // One fixture for every image, or a map keyed by the attachment's filePath when a
+        // case needs two images to answer differently: two portraits giving the identical
+        // answer read to the model as a broken describer, and it stopped instead of
+        // measuring. The loop resolves a ref to a path before it calls this, so the key is
+        // `imagePath` — an `image` id never reaches here.
+        look: async (args) => {
+            record.looks.push(args);
+            const chosen = look?.ok ? look : (look[args.imagePath] || Object.values(look)[0]);
+            return structuredClone(chosen);
+        },
         // The project routes the way /connector/projects and /connector/create-project answer.
         listProjects: async () => ({ ok: true, projects: structuredClone(known), total: known.length }),
         createProject: async (name) => {
@@ -419,6 +442,75 @@ const CASES = [
         check(run) {
             const saved = calledAll(run, 'write_memory').filter((c) => c.result?.ok && /16:9/.test(`${c.args.title} ${c.args.text}`));
             return saved.length ? [] : ['no note holding 16:9 was saved'];
+        },
+    },
+    {
+        // Phase 5 round 1: an edit went to krea2Edit with Klein 9B installed, because
+        // nothing in list_models said which model OWNS an op — only Fabio naming "Kline9b"
+        // moved it. Now each op carries its rank for the task.
+        id: 'ranked-editor',
+        title: 'takes the best-ranked installed editor, and still obeys a named model',
+        setup: {
+            models: KLEIN_AND_KREA,
+            attachments: [FOX],
+            turns: [
+                'Edit this picture: make it a night scene.',
+                'Do that edit again with Krea 2 instead.',
+            ],
+        },
+        flip: { models: KREA_ONLY },
+        check(run) {
+            const f = [];
+            const ok = (i) => called(run.turns[i], 'generate').filter((c) => c.result?.ok);
+            const first = ok(0)[0];
+            const second = ok(1)[0];
+            if (!first) f.push('the first turn never generated');
+            else if (first.args.operation !== 'kleinEdit') f.push(`first edit ran ${first.args.operation}, not the top-ranked kleinEdit`);
+            if (!second) f.push('the second turn never generated');
+            else if (second.args.operation !== 'krea2Edit') f.push(`naming Krea 2 ran ${second.args.operation}`);
+            return f;
+        },
+    },
+    {
+        // Phase 5 round 1: Head Swap took the woman standing next to the one Fabio meant.
+        // The describer had boxed her whole upper body, `square` matched that height in
+        // width, and nothing looked at the result — the numbers here are that measurement
+        // (squareShare 0.70 x 0.51 on a 1664x2304 photo), with the raw box reconstructed
+        // around the square the sidecar kept. The flip is a real head box off t2i_002.
+        // ONE subject per photo and a request with no left/right in it, deliberately: with
+        // two women to tell apart the flip spent its whole 8-call budget on disambiguating
+        // looks and failed on STEP_LIMIT, which proves nothing about the box.
+        id: 'over-boxed-head',
+        title: 'a "head" box that is the whole person is refused, not squared into the neighbour',
+        setup: {
+            attachments: [PORTRAIT_A, PORTRAIT_B],
+            look: { [PORTRAIT_A.filePath]: LOOKS.overBoxedHead, [PORTRAIT_B.filePath]: LOOKS.donorHead },
+            turns: ['Swap the head from picture 2 onto the person in picture 1.'],
+        },
+        flip: { look: { [PORTRAIT_A.filePath]: LOOKS.headBox, [PORTRAIT_B.filePath]: LOOKS.donorHead } },
+        check(run) {
+            const f = [];
+            if (!calledAll(run, 'look').some((c) => c.args.box)) f.push('never measured a box at all');
+            const swaps = calledAll(run, 'generate').filter((c) => c.args.flowId === 'head-swap');
+            if (swaps.length) f.push(`ran Head Swap on a box covering the whole person (${swaps.length}x)`);
+            if (!/(head|box|measure|crop)/i.test(run.lastReply)) f.push('the reply does not tell the user what went wrong with the measurement');
+            return f;
+        },
+    },
+    {
+        // Phase 5 round 1: live, the note landed only once Fabio added "Don't forget that,
+        // okay?". A character stated in passing is exactly what must survive a restart, and
+        // the user will not think to ask for it.
+        id: 'memory-write-unprompted',
+        title: 'saves a character stated in passing, with no cue to remember it',
+        setup: { turns: ['The hero of this project is Rook, a one-eyed crow who wears a tiny brass compass on a chain. Make an image of him on a rooftop at dusk.'] },
+        flip: { memoryFull: true },
+        check(run) {
+            const f = [];
+            const saved = calledAll(run, 'write_memory').filter((c) => c.result?.ok && /rook/i.test(`${c.args.title} ${c.args.text}`));
+            if (!saved.length) f.push('no note about Rook was saved');
+            if (!calledAll(run, 'generate').some((c) => c.result?.ok)) f.push('it saved the note but never made the picture');
+            return f;
         },
     },
     {

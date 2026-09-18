@@ -2274,6 +2274,9 @@ export const MpiPromptBox = ComponentFactory.create({
 
             const runHost   = document.createElement('div');
             const stopHost  = document.createElement('div');
+            // MPI-774: Agent mode keeps this column for Stop alone — the class is what
+            // the agent-mode rule spares.
+            stopHost.className = 'mpi-prompt-box__stop-host';
             const clearHost = document.createElement('div');
             runSlotEl.appendChild(runHost);
             runSlotEl.appendChild(stopHost);

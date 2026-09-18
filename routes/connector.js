@@ -78,6 +78,7 @@ const logger = require('./logger');
 // named-param resolver both this route and js/shell/agentDispatch.js call — one
 // implementation, not a route-side copy and a renderer-side copy (MPI-547).
 const { findModelDef, resolveNamedParams, isValidSeed } = require('../js/data/generationControls.js');
+const { opPriority } = require('../js/data/modelConstants/modelPriority.js');
 const { isRemoteActive } = require('./remoteModels');
 const { resolveDownloadConfig } = require('./platformEngine');
 const { checkOnline } = require('./netCheck');
@@ -251,6 +252,24 @@ function boxFromDescribeAnswer(text, { crop, origWidth, origHeight }) {
 // Attached to the router so require('../routes/connector').boxFromDescribeAnswer works
 // regardless of module.exports being reassigned to router below.
 router.boxFromDescribeAnswer = boxFromDescribeAnswer;
+
+/**
+ * What a box takes of the image, and whether the square still fits inside it.
+ *
+ * MPI-774 Phase 5: a describer asked for a head on a group photo boxed the whole woman
+ * (`1166x1166` on a 1664x2304 photo, `1171x1171` on a 768x1344 one — a side wider than the
+ * image), and `square` matched that height in width without complaint, so Head Swap took
+ * the neighbour. The route does not guess what a head may cover; it reports the share and
+ * lets the Box rule refuse a measurement that cannot be a head.
+ *
+ * @returns {{ w: number, h: number }} the box's share of the image, 2 decimals, >1 when it
+ *          is wider or taller than the image itself.
+ */
+function boxShare(box, imgWidth, imgHeight) {
+    const r = (n) => Math.round(n * 100) / 100;
+    return { w: r(box.width / imgWidth), h: r(box.height / imgHeight) };
+}
+router.boxShare = boxShare;
 
 // --- generation relay state ------------------------------------------------
 
@@ -673,7 +692,13 @@ router.get('/connector/models', async (req, res) => {
     const { missingDepIds, ...rest } = m;
     return {
       ...rest,
-      ops: (rest.ops || []).map((o) => ({ ...o, media: registry ? mediaRolesFor(registry, o.op, findModelDef(m.id)) : [] })),
+      // `rank`/`note` (MPI-774 Phase 5): which model does this task best, and the one line
+      // a ranking cannot hold. Absent on a task with no ranking — never a rank of 0.
+      ops: (rest.ops || []).map((o) => ({
+        ...o,
+        media: registry ? mediaRolesFor(registry, o.op, findModelDef(m.id)) : [],
+        ...(opPriority(m.id, o.op) || {}),
+      })),
       missingDownloadGb: Math.round(missingDownloadGb * 100) / 100,
       ...(fit ? { fit } : {}),
       guides: guideIds[m.id] || [],
@@ -866,8 +891,10 @@ router.post('/connector/describe', async (req, res) => {
   }
   if (box) {
     let found = null;
+    let imageSize = null;
     try {
       const meta = await _getSharp()(imagePath).metadata();
+      imageSize = { w: meta.width, h: meta.height };
       found = boxFromDescribeAnswer(result.output?.text, { crop, origWidth: meta.width, origHeight: meta.height });
     } catch (err) {
       logger.error('connector', 'describe box: source image unreadable', err);
@@ -885,7 +912,16 @@ router.post('/connector/describe', async (req, res) => {
       width: side,
       height: side,
     };
-    return res.json({ ok: true, output: { ...result.output, box: found, square } });
+    // The share each one takes of the image, so the caller can tell a head from a whole
+    // person before it passes the box to a Flow (MPI-774 Phase 5, Box rule).
+    return res.json({ ok: true, output: {
+      ...result.output,
+      box: found,
+      square,
+      imageSize,
+      boxShare: boxShare(found, imageSize.w, imageSize.h),
+      squareShare: boxShare(square, imageSize.w, imageSize.h),
+    } });
   }
   res.json(result);
 });

@@ -10,5 +10,38 @@
     "output": {
       "text": "I’m sorry, but I can’t help with describing this image."
     }
+  },
+  "headBox": {
+    "ok": true,
+    "output": {
+      "text": "A photo of one woman standing at a bar counter, facing the camera. She has long dark hair and a green top. Her face is fully visible and unobstructed.",
+      "box": { "x": 362, "y": 70, "width": 303, "height": 429 },
+      "square": { "x": 299, "y": 70, "width": 429, "height": 429 },
+      "imageSize": { "w": 832, "h": 1024 },
+      "boxShare": { "w": 0.36, "h": 0.42 },
+      "squareShare": { "w": 0.52, "h": 0.42 }
+    }
+  },
+  "donorHead": {
+    "ok": true,
+    "output": {
+      "text": "A studio portrait of one woman, head and shoulders, facing the camera. Short dark hair, a plain grey background.",
+      "box": { "x": 280, "y": 120, "width": 280, "height": 380 },
+      "square": { "x": 230, "y": 120, "width": 380, "height": 380 },
+      "imageSize": { "w": 832, "h": 1024 },
+      "boxShare": { "w": 0.34, "h": 0.37 },
+      "squareShare": { "w": 0.46, "h": 0.37 }
+    }
+  },
+  "overBoxedHead": {
+    "ok": true,
+    "output": {
+      "text": "A photo of one woman standing at a bar counter, facing the camera. She has long dark hair and a green top. Her face is fully visible and unobstructed.",
+      "box": { "x": 170, "y": 594, "width": 676, "height": 1166 },
+      "square": { "x": -245, "y": 594, "width": 1166, "height": 1166 },
+      "imageSize": { "w": 1664, "h": 2304 },
+      "boxShare": { "w": 0.41, "h": 0.51 },
+      "squareShare": { "w": 0.7, "h": 0.51 }
+    }
   }
 }

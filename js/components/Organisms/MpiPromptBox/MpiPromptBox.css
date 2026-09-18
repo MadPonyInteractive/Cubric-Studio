@@ -114,11 +114,11 @@
     flex-shrink: 0;
 }
 
-/* MPI-797 Agent mode: the text, the chips and the Agent|Prompt toggle, nothing else. The
-   grid collapses with them: a hidden slot leaves the grid, which would otherwise push the
-   textarea into an `auto` column and the toggle into the stretching one. */
+/* MPI-797 Agent mode: the text, the chips, the Agent|Prompt toggle and Stop, nothing else.
+   The grid collapses with them: a hidden slot leaves the grid, which would otherwise push
+   the textarea into an `auto` column and the toggle into the stretching one. */
 .mpi-prompt-box--agent-mode {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
 }
 
 .mpi-prompt-box--agent-mode > :is(
@@ -127,10 +127,23 @@
     .mpi-prompt-box__col--enhance,
     .mpi-prompt-box__col--settings,
     .mpi-prompt-box__col--cog,
-    .mpi-prompt-box__col--engine,
-    .mpi-prompt-box__col--run
+    .mpi-prompt-box__col--engine
 ) {
     display: none;
+}
+
+/* MPI-774: the run column STAYS in Agent mode, with only Stop in it — the agent has no
+   cancel tool and never will, so the user's own Stop has to be reachable while it
+   generates. The button and its whole cancel path already exist and are origin-blind
+   (`emit('cancel')` → MpiGalleryBlock), and `setGenerating` arms it from
+   activeGenerations, so an agent-started generation enables it like any other. */
+.mpi-prompt-box--agent-mode .mpi-prompt-box__col--run > :not(.mpi-prompt-box__stop-host) {
+    display: none;
+}
+
+/* The agent's own head is Studio cream, not Vision rose (see MpiAgentChat.css). */
+.mpi-prompt-box__col--mode {
+    --accent-heat: var(--hub-accent);
 }
 
 

@@ -2,6 +2,7 @@ import { ComponentFactory } from '../../factory.js';
 import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
+import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
 import { MpiOllamaSetup } from '../../Compounds/LandingPages/MpiOllamaSetup/MpiOllamaSetup.js';
 import { secretsClient } from '../../../core/secretsClient.js';
 import { clientLogger } from '../../../services/clientLogger.js';
@@ -87,9 +88,18 @@ export const MpiLlmSettings = ComponentFactory.create({
     css: ['js/components/Organisms/MpiLlmSettings/MpiLlmSettings.css'],
 
     template: () => `
-                <div class="mpi-settings__section">
+                <div class="mpi-settings__section mpi-llm-settings">
                     <h3 class="mpi-settings__section-title">Language Models</h3>
                     <span class="mpi-settings__hint">Cubric uses a language model for the writing jobs around a generation — rewriting a short idea into a full prompt, describing an image you hand it, and the agent. Each job below chooses which machine runs it. You always see the result before it is used.</span>
+
+                    <!-- MPI-774: every control below is mounted from an async read (the
+                         profiles, the stored key, the connection's model list). Until that
+                         lands the section is labels with nothing under them, which reads as
+                         broken — so it shows this instead. -->
+                    <div class="mpi-llm-settings__loading" id="mpiSettingsLlmLoading">
+                        <div id="mpiSettingsLlmLoadingSpinner"></div>
+                        <span class="mpi-settings__hint">Checking the connection…</span>
+                    </div>
 
                     <div class="mpi-settings__subgroup">
                         <span class="mpi-settings__subgroup-title">Remote connection</span>
@@ -201,6 +211,8 @@ export const MpiLlmSettings = ComponentFactory.create({
         let _connProfileInst = null;
         const _connInsts = [];
         let _agentModelInst = null;
+        /** The spinner shown while the section reads its state (MPI-774). */
+        let _loadingSpinner = null;
         let _detailsSeq = 0;
         let _modelsSeq = 0;
         /** The picked connection profile `{ id, name, baseURL }`, or null. */
@@ -220,16 +232,33 @@ export const MpiLlmSettings = ComponentFactory.create({
         async function _init(root) {
             _destroyControls();
             _remote = undefined;
-            _models = await enhancerModels();
-            await _initConnection(root);
+            _setLoading(root, true);
+            try {
+                _models = await enhancerModels();
+                await _initConnection(root);
+            } finally {
+                _setLoading(root, false);
+            }
+        }
+
+        /** The section shows a spinner instead of empty labels while it reads (MPI-774). */
+        function _setLoading(root, on) {
+            root.classList.toggle('mpi-llm-settings--loading', on);
+            if (on && !_loadingSpinner) {
+                const slot = qs('#mpiSettingsLlmLoadingSpinner', root);
+                if (slot) _loadingSpinner = MpiSpinner.mount(slot, { size: 'sm' });
+            } else if (!on) {
+                _loadingSpinner?.destroy?.();
+                _loadingSpinner = null;
+            }
         }
 
         function _destroyControls() {
             [_backendInst, _modelInst, _ollamaInst, _describeInst, _describeModelInst,
-                _connProfileInst, _agentModelInst, ..._connInsts].forEach(i => i?.destroy());
+                _connProfileInst, _agentModelInst, _loadingSpinner, ..._connInsts].forEach(i => i?.destroy());
             _connInsts.length = 0;
             _backendInst = _modelInst = _ollamaInst = _describeInst = _describeModelInst = null;
-            _connProfileInst = _agentModelInst = null;
+            _connProfileInst = _agentModelInst = _loadingSpinner = null;
         }
 
         /**

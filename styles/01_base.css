@@ -86,10 +86,14 @@
   --accent-audio:    oklch(0.84 0.11 170);   /* greenish-cyan — Cubric Audio */
 
   /* Family identity colours (MPI-766, the landing crew). Same source as
-     --accent-audio; values from MPI-736's token table. Identity only — a
-     mascot's label dot and floor glow, never an action colour. Vision's is a
-     literal on purpose: MPI-736 points --accent-heat at ink on shared
-     surfaces, and Vision's dot must stay rose when it does. */
+     --accent-audio; values from MPI-736's token table. Identity first — a
+     mascot's label dot and floor glow. ONE exception (MPI-774, Fabio): a surface
+     that IS one of the family rather than Vision carries that family's colour
+     through its actions too — the in-app agent is Studio, so its chat, its panel
+     and its head rebind --accent-heat to --hub-accent for their whole subtree
+     instead of restating a literal per state. Vision's own is a literal on
+     purpose: MPI-736 points --accent-heat at ink on shared surfaces, and
+     Vision's dot must stay rose when it does. */
   --hub-accent:      oklch(0.78 0.028 80);   /* cream — Studio */
   --vision-accent:   oklch(0.76 0.17 355);   /* rose — Vision */
   --prompt-accent:   oklch(0.88 0.13 102);   /* yellow — Prompt */

@@ -6,6 +6,26 @@
    preloadStyles always loads; only what this section adds is here.
    ═══════════════════════════════════════════════════════════════ */
 
+/* ── Loading (MPI-774) ─────────────────────────────────────────────────────
+   Every control in this section is mounted from an async read, so a cold open
+   painted its labels — Provider, Base URL, API key, Prompt enhancement — with
+   nothing under them and read as broken. The subgroups stay out of the flow
+   until the read lands. */
+.mpi-llm-settings__loading {
+    display: none;
+    align-items: center;
+    gap: var(--s-2);
+    padding: var(--s-3) 0;
+}
+
+.mpi-llm-settings--loading .mpi-llm-settings__loading {
+    display: flex;
+}
+
+.mpi-llm-settings--loading .mpi-settings__subgroup {
+    display: none;
+}
+
 /* `[hidden]` is a UA rule of `display: none`, and ANY display declaration on the
    element beats it — a `display: flex` row with `hidden` set stays on screen. The
    first draft shipped exactly that: an "Enhancer model" label with no control

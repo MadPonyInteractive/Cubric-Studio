@@ -7,11 +7,33 @@
 **Evidence behind this plan:** `research/investigation.md` - verified facts with file:line, the
 seven investigator claims that turned out wrong, and a live orchestrator probe.
 
-**Phase 5 round 1 is IN (2026-09-18, session fa18265c).** Fabio drove the agent in his own app and
-pasted the transcript; five fixes are folded in under Phase 5 (model priority as a RANKED list per
-task, the head-swap box/square guard, cream instead of rose, the Remote panel loading state, memory
-saved without being told). **He still owes the ranking ORDER**, and his memory test (restart, then
-ask about John) is running. Nothing of those five is built yet.
+**Phase 5 fixes 2-7 are BUILT (2026-09-18, session 627f63f6; evidence `validation.md` § Phase 5
+fixes 2-7).** The box share guard (route reports `boxShare`/`squareShare`, the Box rule refuses over
+0.6 — a measured threshold, the first draft at 0.5 failed on a real close portrait), the Memory rule
+saving without the cue, the Studio cream rebind, the Language Models loading state, and the two
+Fabio found on his second look: Stop reachable in Agent mode, and a video result that is a `<video>`
+with a "Did not finish" fallback. Unit 18/18 + 5/5 new, lint clean, two new harness cases pass and
+bite. **Fix 1 is built too**: `modelConstants/modelPriority.js` (Fabio's order, one image order
+filtered by `supportedOps`, per-model edit/video lists), `rank` + `note` on every op in
+`GET /connector/models`, a Model rule that reads rank AND `fit.runs`, `tests/model-priority.test.cjs`
+5/5, the `ranked-editor` harness case, and an add-model playbook step. `npm test` 1342/1343, 0 fail
+(1 skipped). **Uncommitted:** everything this session.
+
+**Two rule edits came out of the harness, both real:** the Box rule now measures again ONCE then
+stops (it was re-cropping 12 times a turn), and the Model rule now names the TASK first — asked to
+redo an edit with Krea 2 the model ran `krea2 i2i` and cited "its best realism op, rank 1", crossing
+a task boundary to reach a 1. Suite state and the two cases that came back 2/3 on the last full run
+(3/3 alone, detail not captured): `validation.md` § Suite state at handoff.
+
+**Next session** (Fabio, 2026-09-18): **§ Phase 6 global memory**, and **§ Phase 7** — his doubt
+about the agent driving Flows at all ("a lot of issues ... because of the gizmos"): let it have a go
+and ALWAYS hand the Flow back to the user with the media already staged, plus the open question of
+whether per-model/per-task knowledge belongs in a `skill:` corpus entry rather than the system
+prompt. Both are DESIGN passes with him, not build-from-the-plan.
+
+**Phase 5 round 1 was recorded 2026-09-18 (session fa18265c).** Fabio drove the agent in his own app
+and pasted the transcript; five fixes were folded in under Phase 5, and two more (6, 7) came from his
+second look at the same screenshot. His memory test across a restart PASSED.
 
 **Phase 4 DONE (2026-09-17 ~15:10Z, session fa18265c; evidence `validation.md` § Phase 4 close).**
 Compaction live on Qwen2.5-72B (32k): handoff with the five fields, the SSE pair, the goal recalled
@@ -737,6 +759,79 @@ or ComfyUI (Qwen3-VL 4B, `image_descriptor.json`, GPU). Measure and parse both.
 5. **Memory saved only when told** ("Don't forget that, okay?"). Strengthen the Memory rule so a
    stated goal, character or decision is saved without the cue. **Verify:** a harness case where the
    user states a character in passing -> `write_memory` called 3/3.
+
+Round 1 continued (Fabio, 2026-09-18, same pass):
+
+6. **No Stop while the agent generates.** He watched the latents come in, asked the agent to cancel,
+   and it correctly answered that it has no such tool - but the app's own Stop was not reachable
+   either. Cause: Agent mode hides `.mpi-prompt-box__col--run` wholesale
+   (`MpiPromptBox.css`), and that column holds Run, **Stop** and Clear. The cancel path behind it
+   already works and is origin-blind (`pb.on('cancel')` in `MpiGalleryBlock` ->
+   `cancelRunningCueJob` / `activeGenerations.cancel`), and `_refreshPbGenerating` arms it from
+   `activeGenerations`, so an agent-started generation already flips it busy. Fix: in Agent mode keep
+   the run column, show only Stop in it (beside the Agent toggle). No new button, no new event.
+   **Verify:** Fabio stops an agent generation from the agent box; unit assert that the agent-mode
+   rule hides run/clear and not stop.
+7. **A video result renders as a broken image box.** `MpiAgentChat._appendResult` builds an `<img>`
+   for every result whatever its type, so a video result (`type: 'video'`) can never paint - the
+   screenshot's broken tile is `alt="video"`. A result whose file is missing (a stopped generation
+   that wrote nothing) breaks the same way, silently. Fix: a video result renders a `<video muted
+   playsinline preload="metadata">`, and either element's `error` swaps in a fallback tile that says
+   the generation did not finish (icon from `js/utils/icons.js`, cream). **Verify:** Fabio sees a
+   playable tile for a video and a readable tile for a stopped one; unit test on both branches.
+
+All seven are built (2026-09-18, session 627f63f6; `validation.md` § Phase 5 fixes 2-7 and § Fix 1).
+What is left of Phase 5 is Fabio's round 2 in his own app.
+
+## Phase 6: Global memory (Fabio, 2026-09-18 — NEXT SESSION)
+
+*Verify mode: user-ux.*
+
+Today every note is per project (`<project>/Agent/`), which is right, and there is nowhere to keep
+what holds across all of them. His v1, deliberately small:
+
+- [ ] **A global store beside the project one**, in app data (`<APP_USER_DATA>/agent/`, where the
+  attachments already live), so it outlives any one project. **Verify:** a note written in one
+  project is read back in another, after a restart.
+- [ ] **Saved on the user's ask, not on the agent's judgement.** "Save that in global memory" is the
+  trigger; the per-project Memory rule keeps saving unprompted, and the two must not blur. **Verify:**
+  a harness case — a plain statement goes to the project, "save that globally" goes to the global
+  store.
+- [ ] **The agent can say it has both.** Asked whether it remembers things, it answers: per project,
+  and a global memory you can ask it to save to. **Verify:** a harness case on the answer.
+- [ ] **A README that is a POINTER FILE**, `@`-style pointers to the other notes, read first; each
+  note capped at 200 lines. The same shape as this repo's own `MEMORY.md`, for the same reason: the
+  index is what gets loaded, the note is what gets opened. **Verify:** with several notes, one read
+  of the README is enough to know which one to open.
+
+Not now, on his word: anything cleverer (scoring, automatic promotion from project to global,
+summarising). "Perhaps later on we can build a more complex, more efficient system."
+
+## Phase 7: Hand the Flow back to the user, and where model knowledge lives (Fabio, 2026-09-18 — NEXT SESSION)
+
+*Verify mode: user-ux.* **Design first, with Fabio — do not build from this section alone.**
+
+His doubt, in his words: "I can see a lot of issues with the agent trying to use Flows because of
+the gizmos." A Flow is the beginner surface and it is built for hands — boxes, sliders, a canvas —
+and every gizmo a Flow grows is another thing an agent has to drive blind. His landing:
+
+- [ ] **The agent has a go, then always hands it back.** Whether it succeeded or failed, the reply
+  names the Flow it used and offers the way in: "I used Head Swap. Your images are already loaded —
+  open it here and adjust it yourself." Same shape as the history workspace. That way a result not
+  to the user's taste is one click from their own hands, and a Flow the agent CANNOT drive is still
+  a useful answer. **Open questions for the design pass:** does the chat get a real control that
+  opens the Flow with the media staged (a card, like the install Yes/No card), or is it a sentence?
+  What stages the media? Which Flows are agent-drivable at all — is that a field on the descriptor?
+- [ ] **Model/task knowledge may belong in a SKILL, not the system prompt.** The agent already reads
+  skills: the corpus is `services/agentCorpus.mjs` (`listCorpus()`), served by
+  `GET /connector/knowledge`, and `read_knowledge` pulls one — the harness shows it reading
+  `skill:cubric-vision-flows` unprompted. So `skill:` entries are the existing home for "how to do
+  this job well", while the system prompt is what it always carries. Phase 5's ranking went into the
+  catalogue (`rank`/`note` on each op) plus one rule line; the open question is whether the
+  per-task, per-model detail (strengths, when to pick what) moves into a skill entry that is read on
+  demand, leaving the rule to say only "read the model skill before you choose". **Weigh:** a skill
+  is cheap to grow and costs a tool call; the system prompt is always there and costs tokens every
+  turn.
 
 ## Plan Drift
 

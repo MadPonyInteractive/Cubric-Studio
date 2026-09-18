@@ -172,8 +172,14 @@ Every event but `agent:session` also carries `session`, the key of its conversat
 - **Gates** (a rule alone did not do it; a compaction clears both): a model op's `generate` answers `GUIDE_NOT_READ` until this context
   read one of its `guides` (a guide names the mode of any default: a bare one skipped Ask first); a Flow `params` box answers
   `BOX_NOT_MEASURED` until a `look` with `box` measured the image of its role (live, the model guessed 512 px boxes).
-- **Harness:** `npm run agent:test` (15 cases x 3, real model, fake tools; `--bite` proves each assertion,
-  `--samples <md>` writes prompts to read). **Bounded steps:** 8 tool calls per user turn, then `STEP_LIMIT`.
+- **Harness:** `npm run agent:test` (18 cases x 3, real model, fake tools; `--bite` proves each assertion,
+  `--samples <md>` writes prompts to read). A case's `look` is one fixture, or a map keyed by the
+  attachment's `filePath` when two images must answer differently — two portraits giving the identical
+  answer read to the model as a broken describer and it stopped rather than measuring. **Bounded
+  steps:** 8 tool calls per user turn, then `STEP_LIMIT` — which a case can hit for reasons of its
+  own: the box case first described TWO women, and its flip spent the whole budget telling them apart
+  and "failed" on the step limit rather than on what it asserts. A case's scene is part of the
+  assertion.
 - **Generate** is fired, not awaited. On settle: `agent:result`, a queued "[Generation finished: card
   <groupId> ...]" (or failed) line for the next turn, and a queued `look` on an image (a message pushed
   mid-turn could split a tool call from its result). No regeneration on its own.
@@ -210,3 +216,41 @@ Settings: the connection block tops Remote > Language Models; the Agent row is "
 The describer sees the crop (or the whole image) scaled to ~1 MP (`image_descriptor.json` node 41).
 A point maps back as `x_orig = crop.x + x_in * crop.width / inputWidth` (same for y), a tested pure
 function; the answer's raw format and space are chosen from Phase 4's recorded answers.
+
+A `box: true` answer also carries `imageSize`, `boxShare` and `squareShare` — what the box and its
+square take of the image (`boxShare` in `routes/connector.js`). The Box rule refuses a `squareShare`
+over 0.6 on either side and measures again: asked for a head on a group photo the describer boxes the
+whole person, and `square` then matches that height in width, which swallows the neighbour (live,
+Phase 5: `1166x1166` at `x -245` on 1664x2304, and `1171x1171` on a 768x1344 photo). 0.6 is measured,
+not chosen: three real head boxes square to at most 0.52, the two bad ones start at 0.70
+(`tests/connector-agent-tools.test.cjs`).
+
+## Model ranking (Phase 5, `modelConstants/modelPriority.js`)
+
+Every op in `GET /connector/models` carries a `rank` for its task (1 = the best we have) and,
+where it changes the pick, a one-line `note` — the half a ranking cannot hold ("takes exactly one
+image", "leaves everything outside the edit area untouched"). One image order filtered by
+`supportedOps` covers all six image tasks; edit and the video tasks are explicit `{modelId, op}`
+lists, because those op ids are per model. `-nsfw` variants and single-candidate tasks are unranked
+on purpose.
+
+**The Model rule names the TASK first, deliberately.** A rank attached to an op reads to the model as
+a rank attached to the WORK, and it will cross a task boundary to reach a 1: asked to redo an edit
+with Krea 2 it ran `krea2 i2i` and cited "its best realism op, rank 1" (live, harness
+`ranked-editor`). Ranks compare ops within one task only.
+
+## Agent surfaces (Phase 5)
+
+- **Stop stays reachable in Agent mode.** The agent has no cancel tool and will not get one, so the
+  user's own Stop is the only way to halt a generation it started. Agent mode keeps
+  `.mpi-prompt-box__col--run` and hides everything in it but `.mpi-prompt-box__stop-host`; the cancel
+  path behind it is origin-blind and already arms itself from `activeGenerations`.
+- **A video result is a `<video>`.** `MpiAgentChat._appendResult` built an `<img>` for every result,
+  so a video result painted as a broken tile captioned "video". Either element's `error` swaps in a
+  fallback tile, which is also what a stopped generation's missing file now shows.
+- **The agent is Studio cream.** `.mpi-agent-chat` and the prompt box's `__col--mode` rebind
+  `--accent-heat` to `--hub-accent` for their subtree, so the Primitives mounted inside them carry it
+  through their hover and active states too.
+- **Language Models loads visibly.** Every control in that section mounts from an async read, so a
+  cold open used to paint labels with nothing under them; the section now shows a spinner and keeps
+  its subgroups out of the flow until the read lands.

@@ -245,6 +245,17 @@ export const MpiAgentChat = ComponentFactory.create({
             _scrollBottom();
         }
 
+        /** The tile a result falls back to when its file will not load (stopped, or gone). */
+        function _fallbackTile(card, type) {
+            card.innerHTML = '';
+            card.classList.add('mpi-agent-chat__result-card--unavailable');
+            const label = document.createElement('span');
+            label.className = 'mpi-agent-chat__result-fallback';
+            label.innerHTML = renderIcon(type === 'video' ? 'video' : 'image', 'sm');
+            label.appendChild(document.createTextNode('Did not finish'));
+            card.appendChild(label);
+        }
+
         /** Result card — thumbnail + click opens gallery card. */
         function _appendResult(output, toolCallId) {
             if (!output) return;
@@ -264,10 +275,20 @@ export const MpiAgentChat = ComponentFactory.create({
             card.title = filePath || '';
             if (toolCallId) card.dataset.resultId = toolCallId;
 
-            const img = document.createElement('img');
-            img.src = resolveMediaUrl(filePath);
-            img.alt = type || 'result';
-            card.appendChild(img);
+            // A video result cannot paint in an <img> — it used to render as a broken
+            // tile captioned "video". Same tile for a file that never arrived (a
+            // generation the user Stopped): both swap to a readable fallback on `error`.
+            const media = document.createElement(type === 'video' ? 'video' : 'img');
+            if (type === 'video') {
+                media.muted = true;
+                media.playsInline = true;
+                media.preload = 'metadata';
+            } else {
+                media.alt = type || 'result';
+            }
+            media.src = resolveMediaUrl(filePath);
+            on(media, 'error', () => _fallbackTile(card, type));
+            card.appendChild(media);
 
             on(card, 'click', () => {
                 if (itemId) Events.emit('gallery:open-card', { itemId, groupId });

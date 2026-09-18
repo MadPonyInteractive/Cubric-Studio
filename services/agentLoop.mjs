@@ -39,7 +39,7 @@ const TOOL_DEFS = [
         type: 'function',
         function: {
             name: 'list_models',
-            description: 'List all available models with their installed state, supported operations, hardware fit, missing download size, and the ids of each model\'s prompting guides.',
+            description: 'List all available models with their installed state, supported operations (each with its rank for that task, 1 = the best we have, and a note on what it is good at), hardware fit, missing download size, and the ids of each model\'s prompting guides.',
             parameters: { type: 'object', properties: {}, additionalProperties: false },
         },
     },
@@ -122,7 +122,7 @@ const TOOL_DEFS = [
                         properties: { x: { type: 'integer' }, y: { type: 'integer' }, width: { type: 'integer' }, height: { type: 'integer' } },
                         required: ['x', 'y', 'width', 'height'],
                     },
-                    box: { type: 'boolean', description: 'Return output.box {x, y, width, height}, in the image\'s own pixels, around what the question names (e.g. question "the woman\'s head"), and output.square, the same box made square. Needs a question.' },
+                    box: { type: 'boolean', description: 'Return output.box {x, y, width, height}, in the image\'s own pixels, around what the question names (e.g. question "the woman\'s head"), and output.square, the same box made square. Also output.imageSize and output.boxShare / output.squareShare, each {w, h}: what that box takes of the image, so you can tell a head from a whole person before you use it. Needs a question.' },
                 },
                 required: ['image'],
                 additionalProperties: false,
@@ -517,7 +517,7 @@ export class AgentLoop {
 
 ${modeRules}
 
-Model rule: pick a model whose op is installed (ops[].installed in list_models). If none fits, say an install is needed and offer one with install_model.
+Model rule: first the TASK, then the model. The task comes from what the user asked for and does not change because another task's op ranks higher: changing an existing picture is the edit task (kleinEdit, krea2Edit, qwenEdit, edit), not i2i, even when the user names a model whose i2i is rank 1. Ranks only ever compare ops WITHIN one task. Inside the task, pick an op that is installed (ops[].installed in list_models) and whose fit says it runs on this machine, and take the lowest rank number (rank 1 is the best we have at it); an op with no rank is unranked, not bad. Take a lower-ranked op over rank 1 only when the user names a model, or when its note matches what they asked for (a note is what the ranking cannot say: "leaves everything outside the edit area untouched", "takes exactly one image", "anime and stylised art"). When you pass over rank 1 for a note, say in one short line which model you used and why. If nothing installed fits, say an install is needed and offer one with install_model.
 
 Settings rule: each op in list_models carries params: the only ratio, qualityTier, turbo and styleSelect values that op accepts (styleSelect is the index into params.styles). Never send a value it does not list, and leave out a param it does not offer. An op that starts from an image (a start frame) frames the video like that image: pick the listed ratio closest to its size (the attachment line and a finished generation give it), or the crop cuts the subject.
 
@@ -525,7 +525,7 @@ Numbering rule: "picture 2", "image 2" or "2" in a message means that message's 
 
 Looking rule: before you comment on, judge or describe any image, call look on it. look only takes a ref the App state line lists under images you can look at; it cannot open a video, a folder or any other path, and with none listed there is nothing to look at. If look reports a refusal (the describer declined to describe the image), tell the user it refused, and suggest switching Image descriptions to the local ComfyUI describer (Settings > Remote > Language Models), which runs on their machine and does not refuse.
 
-Box rule: a Flow in list_models with boxParams needs one box per param, measured, never guessed. For each, call look on the image you pass for that param's role with box: true and a question naming what to box (Head Swap: the head, hair and jaw included), then pass output.square when the step has ratio 1, else output.box. generate refuses a box it did not see you measure. A Flow's fields hold only what their names say (Head Swap's positive is the expression the new head ends with), never instructions.
+Box rule: a Flow in list_models with boxParams needs one box per param, measured, never guessed. For each, call look on the image you pass for that param's role with box: true and a question naming what to box (Head Swap: the head, hair and jaw included), then pass output.square when the step has ratio 1, else output.box. generate refuses a box it did not see you measure. A Flow's fields hold only what their names say (Head Swap's positive is the expression the new head ends with), never instructions. Check the share before you pass it: look reports boxShare and squareShare, what the box and the square take of the image. A head is a small part of a photo, so a squareShare over 0.6 on either side, or over 1 (bigger than the image itself), means the describer boxed the whole person, not the head. Never pass that box: it swallows whoever stands next to them. Measure that image again ONCE, with a question that says head only, or on a crop around that person. If the second measure is no better, stop measuring: tell the user which photo you could not measure and what came back, and ask them to crop it to the head themselves. Never a third attempt, and never pass the box anyway.
 
 Guide rule: before your first prompt for a model, read its prompting guide: list_models gives each model its guide ids, read_knowledge reads one. generate refuses until you have. Use the guide to ADAPT what the user asked for to that model (its structure, length and vocabulary) and keep their intent. Never send a guide's example as the prompt.
 
@@ -537,7 +537,7 @@ Project rule: a generation lands in the open project. Never invent a folder path
 
 Deletion rule: You never delete anything: no cards, no media, no notes, no projects. No tool of yours can, and you never look for a way. When the user wants something deleted, tell them only they can do it, and where: a card from the gallery (right-click it, Delete, which also removes its whole history), a project from the projects list on the landing page (right-click it, Delete project).
 
-Memory rule: you keep notes about each project that survive an app restart. The first message with a project open lists them; read one with read_memory before you rely on it. When you learn something worth keeping about this project (the user's goal, a character, a style, a model or setting that worked or failed, a decision they made), save it with write_memory: one short note per thing, and update a note rather than add a second one about the same thing. Never save keys, passwords or personal details.
+Memory rule: you keep notes about each project that survive an app restart. The first message with a project open lists them; read one with read_memory before you rely on it. Save without being asked, in the same turn you hear it: the moment the user states a goal for the project, names or describes a character, settles a style or a look, decides something, or a model or setting works or fails, call write_memory. They will not tell you to remember it, and a turn that ends without the note loses it. One short note per thing, and update a note rather than add a second one about the same thing. Saving is not a question: never ask whether to save, just save it and say in one short line what you noted. Never save keys, passwords or personal details.
 
 Naming rule: a finished generation reports its card id. When a result is worth referring to later, give its card a short name with rename_card, or pass cardName with generate.
 

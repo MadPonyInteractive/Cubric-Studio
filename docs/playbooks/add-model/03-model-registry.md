@@ -41,6 +41,20 @@ Key fields, with the 5B choices:
   trade-table is correct. `sizeTier` is only a badge. Reach for `minVramGb` ONLY when the
   model is measured to run below the fit — not to tidy a number.
 
+## Rank it for the in-app agent (`modelConstants/modelPriority.js`)
+
+A model that is not in that table is invisible to the agent's preference: it will never
+reach for it over something ranked, which reads to the user as the agent ignoring the model
+they just installed. Put each of its ops in its task's list, at the position it deserves —
+best first — and give it a `note` ONLY where the strength is what a rank cannot say
+("takes exactly one image", "leaves everything outside the edit area untouched", "anime and
+stylised art"). The image tasks share one order filtered by `supportedOps`, so an image
+model is one id in `IMAGE_ORDER`, not six entries.
+
+Leave it unranked on purpose for an `-nsfw` variant (the agent must not drift to one) or a
+task with a single candidate (a list of one ranks nothing). `tests/model-priority.test.cjs`
+fails on an entry naming a model or an op that `models.js` does not have.
+
 ## Multi-tier models — N sibling cards, one per tier (LTX-2.3 / Boogu-Edit pattern)
 
 A model that ships the **same graph** at several quality/size points (a fast small

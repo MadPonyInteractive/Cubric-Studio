@@ -76,6 +76,46 @@ test('boxFromDescribeAnswer: no box rather than a wrong one', () => {
     assert.equal(boxFromDescribeAnswer('', dims), null);
 });
 
+// ── 1b. boxShare (MPI-774 Phase 5 — is that box a head, or a whole person?) ────
+
+// The two boxes Head Swap actually ran on in Fabio's app, off the sidecars of
+// `flowHeadSwap_001`. Both were the whole woman, and `square` then matched that height
+// in width: box1 ran off the left edge of a 1664x2304 photo, box2 came out WIDER than its
+// 768x1344 photo. Nothing reported it, so the Flow swallowed the neighbour.
+const LIVE_HEAD_SWAP = [
+    { name: 'box1', img: { w: 1664, h: 2304 }, square: { x: -245, y: 594, width: 1166, height: 1166 } },
+    { name: 'box2', img: { w: 768, h: 1344 }, square: { x: -201, y: 173, width: 1171, height: 1171 } },
+];
+
+test('boxShare: the two live over-boxed heads report a share the Box rule refuses', () => {
+    const { boxShare } = require('../routes/connector');
+    const [box1, box2] = LIVE_HEAD_SWAP;
+
+    // box1: 1166/1664 wide, 1166/2304 tall.
+    assert.deepEqual(boxShare(box1.square, box1.img.w, box1.img.h), { w: 0.7, h: 0.51 });
+    // box2: wider than the image it was measured on.
+    assert.deepEqual(boxShare(box2.square, box2.img.w, box2.img.h), { w: 1.52, h: 0.87 });
+
+    // The Box rule's threshold: over 0.6 on either side is not a head.
+    for (const c of LIVE_HEAD_SWAP) {
+        const s = boxShare(c.square, c.img.w, c.img.h);
+        assert.ok(s.w > 0.6 || s.h > 0.6, `${c.name} must read as over-boxed`);
+    }
+});
+
+// 0.6 is not a guess: the three measured heads square to at most 0.52 (t2i_002, a close
+// portrait), and the two over-boxed live ones start at 0.70. Anything between separates
+// them; 0.6 leaves a margin on both sides. Move it only with new measurements.
+test('boxShare: a real head box stays under the threshold', () => {
+    const { boxShare, boxFromDescribeAnswer } = require('../routes/connector');
+    for (const m of MEASURED) {
+        const b = boxFromDescribeAnswer(m.comfy, { origWidth: m.w, origHeight: m.h });
+        const side = Math.max(b.width, b.height);
+        const s = boxShare({ width: side, height: side }, m.w, m.h);
+        assert.ok(s.w <= 0.6 && s.h <= 0.6, `${m.img} squared: ${s.w}x${s.h} should pass as a head`);
+    }
+});
+
 // ── 2. validateBoxParams (pure box validation) ─────────────────────────────────
 
 test('validateBoxParams: no params → ok', async () => {

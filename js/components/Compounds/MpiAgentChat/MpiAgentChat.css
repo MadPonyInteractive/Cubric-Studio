@@ -8,7 +8,13 @@
 }
 
 /* ── Root ────────────────────────────────────────────────────────────────── */
+/* MPI-774: the agent is Studio, so every accent inside it is Studio cream, not Vision
+   rose. Rebinding the token on the block recolours the bubble, the dots, the result
+   border and any Primitive mounted in here (buttons, their active states) in one line —
+   a literal per rule would miss the Primitives' own states. The prompt box's Agent head
+   does the same for itself (`MpiPromptBox.css`, `__col--mode`). */
 .mpi-agent-chat {
+    --accent-heat: var(--hub-accent);
     display: flex;
     flex-direction: column;
     gap: var(--s-3);
@@ -231,11 +237,29 @@
     opacity: 0.85;
 }
 
-.mpi-agent-chat__result-card img {
+.mpi-agent-chat__result-card :is(img, video) {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
+}
+
+/* The file did not load — a stopped generation, or one whose media never landed. */
+.mpi-agent-chat__result-card--unavailable {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-style: dashed;
+}
+
+.mpi-agent-chat__result-fallback {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--s-1);
+    color: var(--ink-3);
+    font-size: var(--t-xs);
+    text-align: center;
 }
 
 /* Result row (may have multiple cards) */

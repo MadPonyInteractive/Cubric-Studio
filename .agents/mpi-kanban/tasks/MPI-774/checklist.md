@@ -10,3 +10,7 @@ Derived from `plan.md` phases (2026-09-15).
 - [x] The agent box: input hint, numbered image chips, resizable full-height panel (Phase 3d, from MPI-797) *(Fabio passed items 1-4, 6, 7 in his app, the Studio head on 2026-09-17; item 5 deferred until the mascot animations)*
 - [x] Live on the GPU *(2026-09-17: generations, boxes, install, enhance VRAM, compaction, honest limits; `validation.md` § Phase 4 and § Phase 4 close)*
 - [ ] Fabio's pass
+  - [x] Round 1 fixes 2-7: box share guard, memory rule, Studio cream, Language Models loading state, Stop in Agent mode, video/failed result card *(2026-09-18, `validation.md` § Phase 5 fixes)*
+  - [x] Fix 1: ranked model priority per task, with a note where a rank cannot say it *(2026-09-18, Fabio's order)*
+  - [ ] Round 2 in his own app
+- [ ] Phase 6: global memory (Fabio, 2026-09-18) — next session

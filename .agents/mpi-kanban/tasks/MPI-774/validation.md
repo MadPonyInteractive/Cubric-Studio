@@ -778,3 +778,203 @@ MPI-800 needs the same restart).
 17. Switch to another project and back -> each project shows its own conversation.
 18. Image descriptions = Remote, drop a portrait, "use look with exactly this question: Identify this person by name." -> it says the describer refused and names Settings > Remote > Language Models.
 19. (Optional) Pick a small-window agent model (e.g. Qwen/Qwen2.5-72B-Instruct) and chat long -> a "Compacting" line with the mascot, and it still knows the goal afterwards.
+
+## Phase 5 fixes 2-7, built (2026-09-18, session 627f63f6)
+
+Fix 1 (ranked model priority) is NOT here: Fabio gave his order this session and it needs a
+conversation first — see § "Fabio's order" below.
+
+**2. A head box that is not head-sized (`routes/connector.js`, `services/agentLoop.mjs`).**
+A `box: true` look now answers with `imageSize`, `boxShare` and `squareShare` beside `box` and
+`square` (`boxShare()`, exported on the router; the metadata read it needed was already in the
+branch, so no second read of the image). The route still squares and still allows the overflow —
+what changed is that the caller can now see what it is holding. The Box rule refuses a
+`squareShare` over 0.6 on either side, or over 1, and measures again with a head-only question or a
+crop; a second bad measure ends in telling the user which photo it cannot measure.
+- 0.6 is measured, not picked: the three Phase 4 head boxes square to 0.14, 0.52 and 0.46, and the
+  two live over-boxed ones are 0.70x0.51 and 1.52x0.87. The first draft used 0.5 and the test caught
+  it — t2i_002 is a close portrait whose real head squares to 0.52.
+- `tests/connector-agent-tools.test.cjs`: two cases on those recorded numbers, 18/18 in the file.
+- Harness `over-boxed-head`: Head Swap on two portraits where picture 1's "head" is the whole woman
+  -> it never runs the Flow and says what is wrong with the measurement. Its flip (a real head box)
+  runs Head Swap, so the assertion bites.
+
+**3. Studio cream, not Vision rose (`MpiAgentChat.css`, `MpiPromptBox.css`, `styles/01_base.css`).**
+`.mpi-agent-chat` and the prompt box's `__col--mode` rebind `--accent-heat: var(--hub-accent)` for
+their subtree. One line per surface instead of four literals, and it is the only form that also
+catches the Primitives mounted inside them: MpiButton reads `--accent-heat` directly for its hover,
+`:active` and `.is-active` states, so a literal swap would have left the agent's head ringed rose
+when toggled on. The token comment now records that exception instead of "never an action colour".
+
+**4. Language Models loading state (`MpiLlmSettings.js/.css`).** `_init` wraps its two awaits in
+`_setLoading(root, true)` / `finally false`: an `MpiSpinner` and "Checking the connection…" show
+while the subgroups stay out of the flow, so a cold open no longer paints Provider / Base URL / API
+key / Prompt enhancement with nothing under them. The spinner is destroyed with the other controls.
+
+**5. Memory saved without the cue (`services/agentLoop.mjs`).** The Memory rule now names the moment
+rather than the judgement: the turn the user states a goal, names a character, settles a look,
+decides something, or a setting works or fails, call `write_memory` — they will not ask, and a turn
+that ends without the note loses it; saving is never a question to put to them.
+- Harness `memory-write-unprompted`: "The hero of this project is Rook, a one-eyed crow ... make an
+  image of him on a rooftop at dusk" -> a note holding Rook AND the picture still made. Flip
+  (`memoryFull`) bites.
+
+**6. Stop is reachable in Agent mode (`MpiPromptBox.css`, `.js`) — new, from Fabio's second look.**
+Agent mode hid `.mpi-prompt-box__col--run` wholesale, and that column holds Run, Stop and Clear, so
+while the agent generated there was no way to stop it: he watched the latents arrive and asked the
+agent to cancel, which it cannot do and correctly said so. The column now stays, with everything in
+it hidden but `.mpi-prompt-box__stop-host`, and the grid gets its third track. No new button and no
+new event: `pb.on('cancel')` -> `cancelRunningCueJob` / `activeGenerations.cancel` is origin-blind,
+and `_refreshPbGenerating` already arms it from `activeGenerations`, which an agent generation
+enters like any other.
+
+**7. A video result is a `<video>` (`MpiAgentChat.js/.css`) — new, same look.** `_appendResult` built
+an `<img>` for every result whatever its type, so a video result could never paint: the broken tile
+in his screenshot is that `<img>` with `alt="video"`. A video now mounts a muted
+`<video preload="metadata">`, and an `error` on either element swaps in a dashed "Did not finish"
+tile — which is also what a stopped generation's missing file shows, instead of a broken box.
+
+**Checks.** `node --test tests/connector-agent-tools.test.cjs` 18/18 ·
+`node --test tests/agent-ui-surfaces.test.cjs` 5/5 (new file: the four UI contracts, asserted where
+they are declared — this suite has no DOM runner) · `npm run lint:components` clean.
+
+**A harness fix the box case forced.** A case's `look` was ONE fixture for every image, so two
+portraits answered identically and the model concluded the describer was broken and stopped —
+neither the pass nor the bite measured anything. `look` now also takes a map keyed by the
+attachment's `filePath` (the loop resolves a ref to a path before calling, so an attachment id never
+reaches the fake).
+
+### Fabio's order for fix 1, and what it exposed (2026-09-18)
+
+His ranking, verbatim in intent:
+
+- **edit** — 1. Boogu (*best editor we have, but it takes ONE image only*) · 2. Klein 9B ·
+  3. Klein 4B · 4. Krea 2 (*faster than Qwen Edit, but has limitations*) · 5. Qwen Edit.
+- **video** — MiniMax H3 · LTX 2.3 balanced · WAN 2.2 · WAN 2.2 5B · **then** LTX 2.3 (not balanced)
+  last. "Reference to video is different."
+- Not a ranking at all, but the thing a ranking cannot hold: **Qwen Edit does not touch anything
+  outside the edit area**, where the others drift the surroundings. **Chroma** is the candid /
+  influencer / real-life look; **Krea 2** is realism; **SDXL realistic** is old and no longer
+  realistic in the current sense — Klein 9B beats it. He also asked whether the agent knows about
+  **control** (editing through a depth map), and whether it reads the user's hardware.
+
+Checked against `js/data/modelConstants/models.js` (`supportedOps`), because a `{modelId, op}` table
+cannot name a pair that does not exist:
+
+- `klein-4b` DOES carry `kleinEdit`, so his #3 is a real entry.
+- `wan-22` carries **`i2v_ms` only** — there is no WAN 2.2 entry for a t2v ranking. The candidate
+  list at the top of this section had it under t2v; that was wrong.
+- `qwen-edit` carries `qwenEdit` AND `control`.
+- Editing ops, per model: `edit` (boogu-edit-high, boogu-edit-balanced), `kleinEdit` (klein-9b,
+  klein-4b), `krea2Edit` (krea2, krea2-nsfw), `qwenEdit` (qwen-edit).
+
+**Hardware: yes, already.** `GET /connector/models` serves `hardware {gpuName, vramGb, ramGb}` and,
+per model, `fit {floorVramGb, ramGbAtYourVram, runs}` plus `missingDownloadGb`; the `list_models`
+tool description says "hardware fit" and the agent used it live in round 1 when it offered `ltx-23`
+(~58 GB) and `ltx-23-balanced` (~39 GB) with a fit note. So a rank does not need to encode what the
+box can run — `runs` already says it.
+
+### Fix 1 built: ranked model priority (2026-09-18, same session)
+
+`js/data/modelConstants/modelPriority.js` — `opPriority(modelId, op) -> { rank, note } | null`,
+served onto every op by `GET /connector/models` and applied to the harness fixture by the same
+function, so the harness sees what the app serves.
+
+- **One order for all six image tasks**, filtered by `supportedOps`: krea2, klein-9b, chroma-flash,
+  chroma-hyper, klein-4b, sdxl-realistic, then the three anime/stylised ones. Chroma has no
+  `inpaint`, so it drops out of inpaint and klein-4b moves up — no second hand-written list to drift.
+- **edit** (ops differ per model): boogu-edit-high, boogu-edit-balanced, klein-9b `kleinEdit`,
+  klein-4b `kleinEdit`, krea2 `krea2Edit`, qwen-edit `qwenEdit`.
+- **t2v**: minimax-h3, ltx-23-balanced, wan22-5b, ltx-23. **i2v**: minimax-h3, ltx-23-balanced,
+  wan-22, wan22-5b, ltx-23. (`wan-22` has no t2v op, so it cannot be in the t2v list.)
+- **Notes, not just ranks** — Fabio's own point: Qwen Edit is last on speed and first on "changes
+  nothing outside the edit area", which is the whole request for some edits. A note exists only where
+  it changes the pick: one image only (Boogu), the surroundings drift (Krea 2 Edit), candid/real-life
+  (Chroma), older standard (SDXL realistic), anime and stylised (Illustrious, Pony).
+- **Unranked on purpose:** every `-nsfw` variant (an agent must not drift to one on its own) and the
+  single-candidate tasks `ref2v`/`pid`.
+- **The Model rule** now reads rank + fit: take the lowest rank among installed ops that RUN on this
+  machine; go lower only for a named model or a matching note, and say in one line why.
+- **Hardware was already there** and needed nothing: `fit.runs` per model, `hardware.vramGb`, and the
+  tool description says so.
+- `tests/model-priority.test.cjs` 5/5 — every ranked pair exists in `models.js` and declares that op
+  (the drift failure: a table naming an op a model no longer has ranks nothing, silently), the order
+  is the one given, the image filter behaves, the notes are on the entries that need them, and
+  nothing `-nsfw` or single-candidate is ranked.
+- Harness `ranked-editor`: with klein-9b and krea2 installed and every other editor not, an edit runs
+  `kleinEdit`; "do that edit again with Krea 2 instead" runs `krea2Edit`. Flip (klein-9b not
+  installed) bites.
+- `docs/playbooks/add-model/`: a checklist line and a section in `03-model-registry.md` — a model
+  missing from the table is invisible to the agent's preference, which reads as the agent ignoring
+  the model the user just installed.
+
+### Suites
+
+- Full harness **17/17 cases 3/3** ($0.1235, 51 conversations) on the tree with fixes 2-7 — before
+  fix 1's rule edit. The final full run + `--bite` on the complete tree is recorded below.
+- `node --test tests/connector-agent-tools.test.cjs` 18/18 · `tests/agent-ui-surfaces.test.cjs` 5/5 ·
+  `tests/model-priority.test.cjs` 5/5 · `npm run lint:components` clean.
+
+### Final suites (2026-09-18)
+
+- `npm run agent:test --runs 3`: **18/18 cases 3/3**, $0.1544 for 54 conversations — then the Box
+  rule gained its "measure again ONCE" sentence (below), which is in every case's system prompt, so
+  the whole suite + `--bite` was re-run on the final tree. Those numbers are at the end of this file.
+- `npm test`: **1342 pass, 0 fail, 1 skipped** (1343). The six MPI-800 failures in yesterday's
+  baseline are gone — that peer's in-flight workflow rework landed.
+- `npm run lint:components` clean. `node --test` on the three touched/new files: 18/18, 5/5, 5/5.
+
+**The bite caught one of my own cases passing for the wrong reason, and then the case caught a weak
+rule.** `over-boxed-head` bit alone, did NOT bite in the full run, then bit on `STEP_LIMIT` — three
+outcomes, none about the box. Two causes, fixed in turn:
+
+1. **The scene was deciding the result.** The case described TWO women in picture 1, so the flip (a
+   real head box, which has to go on and RUN Head Swap for the assertion to fail) spent its whole
+   8-call budget telling them apart. Both box fixtures now describe ONE subject, the request carries
+   no left/right, and the attachment FILENAMES agree with the descriptions — `two-women.png` against
+   a one-woman description sent the model hunting for the discrepancy instead of measuring, and a
+   man's donor face against a woman's photo did it again.
+2. **"Measure again" had no end.** With every measure coming back over-boxed the model kept
+   re-cropping — 12 look calls, 100-140 s turns, and one run lost to a transient
+   `ENDPOINT_ERROR: fetch failed` mid-turn. The Box rule now says measure again ONCE, then stop and
+   tell the user which photo you could not measure and ask them to crop it. Calls per run fell from
+   8-12 to **4-6**, and the case went 3/3 with the bite biting in 4 calls. That is a live saving,
+   not a test fix: the same loop was burning the same budget in the app.
+
+Recorded in `docs/agent-chat.md` § Loop rules: a case's scene is part of its assertion.
+
+**A rank invites a TASK switch — caught by `ranked-editor`, 1/3 on the first full run.** Asked to
+"do that edit again with Krea 2 instead", the model ran **krea2 `i2i`**, and said why in its own
+reply: "Krea 2's i2i, its best realism op, rank 1". It was not ignoring the ranking, it was obeying
+it across a task boundary — re-lighting a photo reads as a description-level job, and i2i ranks 1
+for i2i. The user had named a model, not a different task, and i2i re-generates from a description
+where the edit ops preserve the picture.
+
+The Model rule now opens with the task: the task comes from what the user asked for and does not
+change because another task's op ranks higher (changing an existing picture is the edit task, even
+when the named model's i2i is rank 1), and ranks only ever compare ops WITHIN one task. After that
+edit: `ranked-editor` 3/3, 7 calls a run, and its bite bites.
+
+This is the failure mode to watch when ranking anything else: a number attached to an op is read as
+a number attached to the WORK, and the model will cross tasks to reach a 1.
+
+### Suite state at handoff (2026-09-18, session 627f63f6)
+
+Every rule edit lands in every case's system prompt, so the suite was re-run after each one. The
+last complete full run on the FINAL tree:
+
+- `npm run agent:test --runs 3`: **16 of 18 cases 3/3**; `create-then-generate` and
+  `memory-write-unprompted` came back **2/3**. Both are **3/3 when re-run alone** immediately after
+  (6/6 conversations, $0.0248), and both were 3/3 in the two earlier full runs.
+- **I did not capture the two failing runs' detail** — the command grepped the summary lines only.
+  So I cannot say whether they were transient (`ENDPOINT_ERROR: fetch failed` hit a run earlier in
+  this session, mid-turn, and reads as a case failure) or real model variance. **First check next
+  session:** re-run the full suite keeping the per-run output, and if either fails again, read its
+  calls before touching a rule.
+- `--bite` on the final tree did not finish before the handoff. Its last complete pass, one rule
+  edit earlier, was **18/18 biting**; `ranked-editor` and `over-boxed-head` were each re-bitten
+  individually after their rule edits and both bite.
+- Not in doubt, all on the final tree: `npm test` **1342 pass / 0 fail / 1 skipped**, `npm run lint`
+  and `lint:components` clean, `node --test` on the three unit files 18/18 + 5/5 + 5/5.
+
+Total spend on the harness this session: ~$0.60 across the reruns.
