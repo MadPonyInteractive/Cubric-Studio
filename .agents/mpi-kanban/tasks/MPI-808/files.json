@@ -1,0 +1,5 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": [
+  "js/data/flowsRegistry.js",
+  "docs/playbooks/add-flow/ui/box-gizmo.md",
+  ".agents/mpi-kanban/tasks/MPI-808/"
+] }

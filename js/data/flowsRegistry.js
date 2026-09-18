@@ -484,8 +484,8 @@ export const FLOWS = [
         result: { compare: 'image1' },
         // The two boxes look identical but MEAN different things, so their copy
         // carries the whole distinction: step 1 marks WHERE the head goes (mask),
-        // step 2 marks WHICH head to take (crop). ratio 1 because the pipeline
-        // crops a square — a non-square selection would clip the result.
+        // step 2 marks WHICH head to take (crop). Only step 2 locks ratio 1 — see
+        // each step for why they differ.
         steps: [
             {
                 // `param` binds this step's box to the graph (MPI-572). WHICH role
@@ -494,14 +494,25 @@ export const FLOWS = [
                 // Mask), image2's crops the head being taken (→ Input_Box_2, Mpi Box
                 // Crop). This is what MpiFlowHeadSwap.getInputs() used to do in JS.
                 //
-                // `overflow: 'allow'` (MPI-325) lets the square leave the frame. A
-                // head at the edge otherwise forces the box to GROW until it
-                // swallows the neighbour, which is how the MPI-324 validation run
-                // swapped the wrong face. Safe on THIS slot with no graph change:
-                // Mpi Box Mask is full-frame and clips, and Inpaint Crop re-squares
-                // the region itself. Never pad image1 — that would grow the
+                // `overflow: 'allow'` (MPI-325) lets the box leave the frame so a
+                // head at the edge can be framed without the box growing until it
+                // swallows the neighbour — the MPI-324 validation run swapped the
+                // wrong face exactly that way. Never pad image1: that would grow the
                 // delivered picture.
-                kind: 'box', role: 'image1', param: 'box1', ratio: 1, overflow: 'allow',
+                //
+                // NO `ratio` here (MPI-808). The square lock was the growth it was
+                // meant to prevent: dragging the left edge off-frame to catch hair
+                // grew the square in BOTH axes, so framing one head produced a
+                // 1299×1299 box on a 1664-wide plate and Inpaint Crop's context
+                // expansion then reached the neighbours. Bench-proved on the real
+                // plate — the same box with the overflow removed swallowed the frame
+                // just the same, and a tight box cropped correctly, so SIZE was the
+                // driver, not the overflow (tasks/MPI-808/research/). Safe to drop:
+                // the ratio is a UI lock only (MpiStepBox `step.ratio != null`), the
+                // graph takes width/height independently, Mpi Box Mask is full-frame
+                // and clips, and Inpaint Crop expands a non-square region out to its
+                // own target aspect rather than clipping it.
+                kind: 'box', role: 'image1', param: 'box1', overflow: 'allow',
                 tickerLabel: 'Target head',
                 title: 'Mark where the new head goes',
                 hint: 'Box the head you want replaced. Include the hair and jaw.',
@@ -511,6 +522,12 @@ export const FLOWS = [
                 // the overhang back: node 89 Mpi Box Crop carries `pad: true`. Turn
                 // one off and the other is wrong — an unpadded overhang reaches the
                 // encoder as a squashed reference head.
+                //
+                // This slot KEEPS `ratio: 1` where image1 dropped it (MPI-808):
+                // Mpi Box Crop hands the encoder exactly what is boxed, so a
+                // non-square selection arrives stretched. Nothing re-squares it the
+                // way Inpaint Crop does on the image1 side, and growth is harmless
+                // here because a reference portrait has no neighbour to swallow.
                 kind: 'box', role: 'image2', param: 'box2', ratio: 1, overflow: 'allow',
                 tickerLabel: 'Reference head',
                 title: 'Mark which head to take',
