@@ -593,7 +593,7 @@ test('Mascot flips back to idle when agent:working false follows true', async ({
 // MPI-797 (Fabio, 2026-09-17): in Agent mode the box is an agent box — its own text and a
 // usage hint, only the toggle beside it, no generation from the run hotkey, and image chips
 // that are numbered, never "Start frame".
-test('PromptBox Agent mode: own text and hint, only the toggle, no run, numbered chips', async ({}, testInfo) => {
+test('PromptBox Agent mode: own text and hint, the toggle, Stop but no Run, numbered chips', async ({}, testInfo) => {
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);
   try {
@@ -651,8 +651,18 @@ test('PromptBox Agent mode: own text and hint, only the toggle, no run, numbered
     await expect.poll(() => head.evaluate((el) => getComputedStyle(el).filter)).toBe('none');    await expect(field).toHaveValue('');
     await expect(field).toHaveAttribute('placeholder', 'Talk to the agent. Shift+Enter for a new line, Enter to send.');
     const agentFace = await shown();
-    expect(agentFace.slots).toEqual(['textarea-slot', 'mode-toggle-slot']);
+    // The run column STAYS in agent mode (MPI-774 fix 6, Fabio): the agent has no cancel
+    // tool, so the user's Stop is the only way to halt a generation it started, and
+    // hiding the column wholesale took Stop with it. Run and Clear are hidden by name.
+    expect(agentFace.slots).toEqual(['textarea-slot', 'mode-toggle-slot', 'bottom-right-slot']);
     expect(agentFace.textShare).toBeGreaterThan(0.8);
+    expect(await window.evaluate((sel) => {
+      const col = document.querySelector(`${sel} .mpi-prompt-box__col--run`);
+      return [...col.children].map((c) => ({
+        stop: c.classList.contains('mpi-prompt-box__stop-host'),
+        shown: getComputedStyle(c).display !== 'none',
+      }));
+    }, pb)).toEqual([{ stop: false, shown: false }, { stop: true, shown: true }, { stop: false, shown: false }]);
 
     // The same chip is now just number 1. Two more on an op that takes two (start and last
     // frame): all three stay, numbered, no frame pill.
