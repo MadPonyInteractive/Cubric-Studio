@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "id": "MPI-809", "type": "task.created", "at": "2026-09-18T14:09:03Z", "actor": "claude", "summary": "Found while clearing ten stale scratch parents out of project-paths.json: nine stayed removed, the bare %TEMP% entry was back within two minutes."}
