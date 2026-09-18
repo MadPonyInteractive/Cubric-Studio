@@ -27,6 +27,15 @@ FAILED, and MPI-422's symptom reached by a second route) in `validation.md` § M
 and the `.claude/skills/cubric-vision*` glob on that same agent-chat line stays as it is (real
 directory, `agentCorpus` globs it). **That closes the non-renderer sweep batch entirely.**
 
+**2026-09-18 later (same session): PHASE 3 IS GATED, and the next session does COLOUR.** Fabio
+named the gates: MPI-532 (user flows), MPI-774 (in-app agent), a project registry cleanup that has
+NO CARD, MPI-777 (mascots), and — new — **MPI-736 (UI colour)**. He also answered MPI-736's open
+question: `--accent-warn` moves, `--video-accent` stays; `--accent-ok` vs `--accent-audio` is the
+same shape and is still unruled. **PUSH IS BLOCKED:** master's CI is red on MPI-774's
+`tests/desktop/agent-chat.spec.js:654`, and this tree also holds two UNPUSHED MPI-771 code commits
+from a peer, so `--no-verify` would publish someone else's code onto a red master. Three commits sit
+local: `625787ef`, `de2a4736`, plus the handoff commit.
+
 **The next unit is Phase 3, the 2.0 release.** Still open on this card: the 2.0 release note
 (`UNRELEASED.md`, was held by MPI-774 — recheck), the legacy `CubricVision-*` dual-publish step, the
 skipped-bridge read-only check, and the 2.1 follow-up card. Mascots stay PARKED. **Not blocking, but
