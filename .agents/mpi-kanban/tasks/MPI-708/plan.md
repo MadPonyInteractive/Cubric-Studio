@@ -28,8 +28,9 @@ and the `.claude/skills/cubric-vision*` glob on that same agent-chat line stays 
 directory, `agentCorpus` globs it). **That closes the non-renderer sweep batch entirely.**
 
 **2026-09-18 later (same session): PHASE 3 IS GATED, and the next session does COLOUR.** Fabio
-named the gates: MPI-532 (user flows), MPI-774 (in-app agent), a project registry cleanup that has
-NO CARD, MPI-777 (mascots), and — new — **MPI-736 (UI colour)**. He also answered MPI-736's open
+named the gates: MPI-532 (user flows), MPI-774 (in-app agent), the project registry cleanup
+(**MPI-809**, raised by a peer mid-session — do NOT raise another; **MPI-810** is its sibling),
+MPI-777 (mascots), and — new — **MPI-736 (UI colour)**. He also answered MPI-736's open
 question: `--accent-warn` moves, `--video-accent` stays; `--accent-ok` vs `--accent-audio` is the
 same shape and is still unruled. **PUSH IS BLOCKED:** master's CI is red on MPI-774's
 `tests/desktop/agent-chat.spec.js:654`, and this tree also holds two UNPUSHED MPI-771 code commits
@@ -478,7 +479,7 @@ suggestion: `/mpi-release` does not run until all four read clear.
 |---|---|---|
 | Agent work in user flows | **MPI-532** Community flow packages (`user_flows/`) | doing / in-progress |
 | Agent work in the in-app agent | **MPI-774** In-app agent slice A | doing / validating |
-| Project registry cleanup | **NO CARD YET** — raise one | cardless, invisible to the board |
+| Project registry cleanup | **MPI-809** removed project-paths entry comes back + **MPI-810** specs register `%TEMP%` in the real registry | MPI-809 doing / in-progress, MPI-810 todo / planned |
 | Mascot animations | **MPI-777** Animated mascots | todo / blocked on GIF cut-out assets (MPI-757; MPI-771 is the SAM3 cut-out, doing/validating) |
 | **UI colour** — the app is Vision rose everywhere | **MPI-736** Per-media-type accent family | todo / planned, **unblocked 2026-09-18** |
 
