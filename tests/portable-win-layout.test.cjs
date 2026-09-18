@@ -96,6 +96,44 @@ test('Windows updaters run through CubricStudio.exe (CubricVision.exe as fallbac
   assert.ok(fs.existsSync(path.join(REPO_ROOT, 'scripts', 'portable', 'win-update.cjs')));
 });
 
+// -- MPI-807: the staged exe carries OUR identity, not Electron's ----------------
+// Windows reads the taskbar icon from the process binary's PE resource when
+// grouping by AUMID, and from the target binary for a pinned shortcut, so the
+// renamed copy of electron.exe reverted to the Electron logo on every pin
+// (MPI-11). rcedit rewrites the staged copy; these pin the two ways that pass
+// silently: wrong key casing, and the rebrand being dropped from the staging step.
+test('windows exe branding uses the MSDN StringFileInfo key names', async () => {
+  const { windowsExeBranding } = await import(
+    pathToFileURL(path.join(REPO_ROOT, 'scripts', 'build-portable.mjs')).href
+  );
+  const branding = windowsExeBranding('CubricStudio.exe');
+  assert.deepStrictEqual(branding, {
+    FileDescription: 'Cubric Studio',
+    ProductName: 'Cubric Studio',
+    CompanyName: 'MadPony Interactive',
+    InternalName: 'CubricStudio',
+    OriginalFilename: 'CubricStudio.exe',
+    LegalCopyright: '© MadPony Interactive',
+  });
+  // rcedit writes these keys VERBATIM. A kebab-case key — the casing rcedit's own
+  // top-level `file-version` option uses — lands as a string entry Windows never
+  // reads: the build exits 0 and the exe keeps Electron's name. Measured 2026-09-18.
+  for (const key of Object.keys(branding)) {
+    assert.ok(!key.includes('-'), `${key} must be the MSDN name, not kebab-case`);
+  }
+});
+
+test('the rebrand runs on the staged exe, never on node_modules', () => {
+  const build = fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'build-portable.mjs'), 'utf8');
+  assert.match(build, /brandWindowsExe\(path\.join\(stageRoot, config\.exeName\)/);
+  // media/icons/cubric-vision.ico was staged and read by nothing for four months;
+  // this pass is its only consumer.
+  assert.match(build, /'media', 'icons', 'cubric-vision\.ico'/);
+  assert.ok(fs.existsSync(path.join(REPO_ROOT, 'media', 'icons', 'cubric-vision.ico')));
+  const pkg = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'));
+  assert.ok(pkg.devDependencies.rcedit, 'rcedit is what performs the rebrand');
+});
+
 test('apply-update resolves extract-zip in both live layouts', () => {
   const applier = fs.readFileSync(
     path.join(REPO_ROOT, 'scripts', 'portable', 'apply-update.cjs'),

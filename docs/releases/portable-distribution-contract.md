@@ -342,6 +342,42 @@ worst-reputation binary the relayout exists to remove.
 Path budget is unaffected: the deepest app-relative path measures 107 chars, so
 `resources/app/…` reaches 121 against the engine's binding 171.
 
+### Binary identity — icon and metadata (MPI-807)
+
+Each platform takes the app's identity from a different place, and all three are
+build-time steps in `scripts/build-portable.mjs`:
+
+| Surface | Source | Step |
+| --- | --- | --- |
+| Windows Explorer + any **pinned** shortcut | the exe's own PE resource | `brandWindowsExe()` runs `rcedit` on the STAGED `CubricStudio.exe` |
+| macOS dock / Finder | `build/icon.icns` over `Contents/Resources/electron.icns` | `brandMacBundle()` |
+| Linux dock / taskbar | `media/icons/cubric-vision.png` + `StartupWMClass` | `scripts/portable/linux/setup-desktop.sh` |
+| the running window's taskbar button (all platforms) | `BrowserWindow({ icon: favicon.png })` | runtime, `main.js` |
+
+**The Windows row is the one that is easy to believe is already handled.** The
+staged exe is a byte-for-byte copy of `electron.exe`, so without the rcedit pass it
+carries Electron's icon, `ProductName` and `OriginalFilename`; Windows reads the
+taskbar icon from the process binary when grouping by AppUserModelID and from the
+target binary for a pinned shortcut, so a pin reverts to the Electron logo no matter
+what `BrowserWindow({ icon })` or `app.setAppUserModelId` say (MPI-11, open from
+2026-05-25 to 2026-09-18). A launch-only check passes while this is broken — only
+**pin, close, reopen** exercises it.
+
+Two things about that pass:
+
+- The `version-string` keys are the **MSDN StringFileInfo names** (`FileDescription`,
+  `ProductName`, `CompanyName`, `InternalName`, `OriginalFilename`, `LegalCopyright`).
+  rcedit writes whatever key it is given verbatim, so a kebab-case key — the casing
+  rcedit's own `file-version` option uses — lands as an entry Windows never reads and
+  the build still exits 0. Pinned by `tests/portable-win-layout.test.cjs`.
+- `rcedit` bundles `rcedit.exe` and needs **wine** on a non-Windows host, so a win32
+  artifact is built on Windows (mpi-ci pins `windows-latest`). A failure throws: an
+  artifact wearing the Electron icon is the defect, not a warning.
+
+`media/icons/cubric-vision.ico` is that pass's only consumer. Its entries carry PNG
+payloads (16/24/32/48/64/128/256); rcedit copies them into `RT_ICON` verbatim and the
+shell reads them (verified byte-for-byte, 2026-09-18).
+
 ### Launcher split details
 
 | Platform | Start | Notes |

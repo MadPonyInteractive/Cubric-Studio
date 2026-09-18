@@ -58,7 +58,8 @@
     "firacode": "^6.2.0",
     "husky": "^9.1.7",
     "jetbrains-mono": "^1.0.6",
-    "lint-staged": "^16.4.0"
+    "lint-staged": "^16.4.0",
+    "rcedit": "^5.0.2"
   },
   "lint-staged": {
     "js/**/*.js": [

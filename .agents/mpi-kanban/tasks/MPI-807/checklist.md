@@ -1,18 +1,19 @@
 # MPI-807 checklist — Windows exe PE rebrand
 
-- [ ] `@electron/rcedit` added as a devDependency (bundles `rcedit.exe`; the win32 artifact
-      is built on `windows-latest` in mpi-ci, so no wine path is needed)
-- [ ] `scripts/build-portable.mjs` runs rcedit on the STAGED `CubricStudio.exe` only, after the
+- [x] `rcedit` added as a devDependency (bundles `rcedit.exe`; the win32 artifact is built on
+      `windows-latest` in mpi-ci, so no wine path is needed)
+- [x] `scripts/build-portable.mjs` runs rcedit on the STAGED `CubricStudio.exe` only, after the
       `electron.exe` -> `config.exeName` copy. Never on `node_modules`.
-- [ ] Fields written: icon `media/icons/cubric-vision.ico`, `FileDescription`, `ProductName`,
+- [x] Fields written: icon `media/icons/cubric-vision.ico`, `FileDescription`, `ProductName`,
       `CompanyName`, `InternalName`, `OriginalFilename`, `LegalCopyright`,
       `ProductVersion`/`FileVersion` from `package.json`
-- [ ] Failure is LOUD — an unbranded exe is the defect this card exists for, so the build throws
-- [ ] `tests/portable-win-layout.test.cjs` pins the branding fields and that win32 is wired
-- [ ] Proven on a real PE: run the branding pass on a staged copy of `electron.exe`, read the
-      version block back and confirm the icon group changed (PNG-payload ICO entries accepted)
-- [ ] `npm test` green
-- [ ] Phase 2.5 (`dev:rebrand` on `node_modules/electron/dist/electron.exe`) — only if Fabio wants it
+- [x] Failure is LOUD — an unbranded exe is the defect this card exists for, so the build throws
+- [x] `tests/portable-win-layout.test.cjs` pins the branding fields and that win32 is wired
+- [x] Proven on a real PE — version block read back, all 7 PNG-payload ICO entries found in the
+      binary, shell-extracted icon is the Studio logo. Caught the kebab-case key trap that made
+      the first pass exit 0 while the exe still said "Electron" (`validation.md` § 3)
+- [x] `npm test` green — 1344 pass, 0 fail
+- [ ] Phase 2.5 (`dev:rebrand` on `node_modules/electron/dist/electron.exe`) — skipped, unasked
 
 ## Not covered here
 

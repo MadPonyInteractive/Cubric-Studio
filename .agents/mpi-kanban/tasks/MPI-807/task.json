@@ -4,10 +4,10 @@
   "title": "Windows exe PE rebrand: pinned/Explorer icon is still Electron's (portable plan Phase 2.4)",
   "description": "Phase 2.4 of the 2026-04-30 cross-platform portable plan was never built. build-portable.mjs copies electron.exe to CubricStudio.exe byte-for-byte (lines 505, 529) with no rcedit pass, so the PE resource still carries Electron's icon and metadata. media/icons/cubric-vision.ico is staged to resources/icons/ and read by NOTHING. Windows takes the taskbar icon from the process binary's PE resource when grouping by AUMID and for any pinned shortcut, so pinning still reverts to the Electron logo - MPI-11's original complaint, diagnosed 2026-05-25 and still open. The running window's own taskbar button uses BrowserWindow icon favicon.png and is fine; macOS (build/icon.icns) and Linux (.desktop + hicolor png) are both wired. Scope: rcedit on the STAGED copy only (icon + FileDescription/ProductName/CompanyName/OriginalFilename/version), never on node_modules; plus Phase 2.5's dev rebrand if wanted. Brief: brief.md",
   "column": "doing",
-  "maturity": "in-progress",
+  "maturity": "validating",
   "status": "active",
   "created_at": "2026-09-18T13:53:08+01:00",
-  "updated_at": "2026-09-18T14:03:45+01:00",
+  "updated_at": "2026-09-18T14:16:30+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",

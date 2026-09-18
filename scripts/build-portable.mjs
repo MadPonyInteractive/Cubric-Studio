@@ -518,7 +518,7 @@ function isElectronDistJunk(name) {
 // dist's own resources/ (default_app.asar + elevate.exe) merges into the
 // artifact's resources/, where Electron then finds resources/app/ — resolved
 // relative to the exe, so the folder stays portable.
-async function stageElectronRoot(stageRoot, config) {
+async function stageElectronRoot(stageRoot, config, version) {
   const dist = path.join(REPO_ROOT, 'node_modules', 'electron', 'dist');
   if (!await pathExists(dist)) {
     throw new Error(`Electron dist not found at ${dist}. Run npm install before building a Windows artifact.`);
@@ -530,6 +530,7 @@ async function stageElectronRoot(stageRoot, config) {
     await ensureDir(path.dirname(to));
     await fs.cp(from, to, { recursive: true, force: true });
   }
+  await brandWindowsExe(path.join(stageRoot, config.exeName), config.exeName, version);
   // default_app.asar is the "no app supplied" fallback. resources/app/ shadows it
   // and it is dead weight in a shipped artifact.
   await fs.rm(path.join(stageRoot, 'resources', 'default_app.asar'), { force: true });
@@ -639,7 +640,7 @@ async function stagePortableSkeleton(stageRoot, opts, config) {
   // staged app tree. --no-node-modules stages an intentionally non-runnable tree,
   // so there is nothing to relayout.
   if (config.electronRoot && opts.nodeModules) {
-    await stageElectronRoot(stageRoot, config);
+    await stageElectronRoot(stageRoot, config, opts.version);
   }
 
   // macOS dock branding: the bundled Electron.app ships CFBundleName=Electron
@@ -700,6 +701,44 @@ export async function assertNoDanglingSymlinks(appRoot) {
       + `and break \`xattr -dr com.apple.quarantine\` for the user:\n  ${dangling.join('\n  ')}`,
     );
   }
+}
+
+// MPI-807 / MPI-11: Windows reads the taskbar icon from the PE resource of the
+// process binary when grouping by AppUserModelID, and from the target binary for
+// any pinned shortcut. The staged exe is a byte-for-byte copy of electron.exe, so
+// without this pass it carries Electron's icon and identity and a pin reverts to
+// the Electron logo — neither `BrowserWindow({ icon })` nor `setAppUserModelId`
+// reaches it. This is the only consumer of media/icons/cubric-vision.ico.
+export function windowsExeBranding(exeName) {
+  // The keys are the MSDN StringFileInfo names and rcedit writes them VERBATIM:
+  // a kebab-case key (the casing the top-level `file-version` option uses) lands
+  // as a string entry Windows never reads, and the exe keeps Electron's identity
+  // while the build still exits 0. Measured 2026-09-18.
+  return {
+    FileDescription: 'Cubric Studio',
+    ProductName: 'Cubric Studio',
+    CompanyName: 'MadPony Interactive',
+    InternalName: path.parse(exeName).name,
+    OriginalFilename: exeName,
+    LegalCopyright: '© MadPony Interactive',
+  };
+}
+
+// Rewrites the STAGED copy only — never node_modules/electron/dist/electron.exe,
+// which npm owns. Throws: an artifact that ships the Electron icon is the exact
+// defect this exists for, so a failed rcedit must stop the build, not warn.
+async function brandWindowsExe(exePath, exeName, version) {
+  const icon = path.join(REPO_ROOT, 'media', 'icons', 'cubric-vision.ico');
+  if (!await pathExists(icon)) {
+    throw new Error(`Windows exe branding needs ${icon}, which is missing.`);
+  }
+  const { rcedit } = await import('rcedit');
+  await rcedit(exePath, {
+    icon,
+    'file-version': version,
+    'product-version': version,
+    'version-string': windowsExeBranding(exeName),
+  });
 }
 
 async function brandMacBundle(appDir) {
