@@ -22,8 +22,16 @@ FAILED, and MPI-422's symptom reached by a second route) in `validation.md` § M
 **The 1.x fleet caveat was sent to MPI-595 as message `78a7f920`** — the wrap protects nobody on the
 1.x -> 2.0 hop, because leg A IS that hop.
 
-**The next unit is the held-file pass** (`docs/agent-chat.md:90`, MPI-774; `docs/playbooks/add-flow/README.md:3`,
-MPI-532) once those claims release, then Phase 3.
+**HELD-FILE PASS DONE (`64bc0689`)** — MPI-774 and MPI-532 had released, so
+`docs/agent-chat.md:90` and `docs/playbooks/add-flow/README.md:3` now say Cubric Studio. Two lines,
+and the `.claude/skills/cubric-vision*` glob on that same agent-chat line stays as it is (real
+directory, `agentCorpus` globs it). **That closes the non-renderer sweep batch entirely.**
+
+**The next unit is Phase 3, the 2.0 release.** Still open on this card: the 2.0 release note
+(`UNRELEASED.md`, was held by MPI-774 — recheck), the legacy `CubricVision-*` dual-publish step, the
+skipped-bridge read-only check, and the 2.1 follow-up card. Mascots stay PARKED. **Not blocking, but
+it belongs to the 2.0 cut:** re-run the Gate A check end-to-end through `update.sh` once a release
+actually serves a FULL linux bundle — see `validation.md` § MPI-595 Gate A.
 
 **2026-09-18 (session 09561fb8): PHASE 2b evidence.** Fabio's answer on the logo: **a still for now, swapping to the animations
 once they land** — so the titlebar/About/icons take `Studio-Logo.png` (the head badge; the full-body
