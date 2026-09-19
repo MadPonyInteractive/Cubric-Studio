@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-833", "at": "2026-09-19T22:12:32+01:00", "actor": "claude", "column": "doing", "title": "CI never runs ESLint - the no-undef gate only fires if someone types it"}

@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".github/workflows/tests.yml",
+    "eslint.config.js",
+    "package.json",
+    "routes/remoteModels.js",
+    ".agents/mpi-kanban/tasks/MPI-833/"
+  ]
+}

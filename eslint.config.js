@@ -31,6 +31,10 @@ module.exports = [
       'js/vendor/**',
       'node_modules/**',
       'logs/**',
+      // Vendored ComfyUI — gitignored, so it exists only on a dev box, and it is
+      // not ours to fix: 259 `no-undef` from LiteGraph, IPython and bundled vendor
+      // chunks alone. Without this, `npm run lint` is unusable locally (MPI-833).
+      'engine/**',
     ],
   },
   {

@@ -23,7 +23,7 @@
     "agent:test": "node scripts/agent-test.mjs",
     "test": "node --test \"tests/**/*.test.cjs\"",
     "test:desktop": "playwright test --config=playwright.desktop.config.js",
-    "lint": "eslint js/ --max-warnings=0",
+    "lint": "eslint . --max-warnings=0",
     "lint:components": "eslint js/components/ --max-warnings=0",
     "prepare": "husky"
   },

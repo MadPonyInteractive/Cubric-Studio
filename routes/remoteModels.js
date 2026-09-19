@@ -767,7 +767,6 @@ function openInstallEventStream(onEvent, onClose) {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-      // eslint-disable-next-line no-constant-condition
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;  // server closed the stream — falls through to _fireClose below

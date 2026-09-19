@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-833",
+  "title": "CI never runs ESLint - the no-undef gate only fires if someone types it",
+  "description": "tests.yml runs npm test + npm run test:desktop, no lint. MPI-832 turned on no-undef but nothing on the runner reads it. Add a lint step, widen lint from js/ to the whole repo (measured: 0 errors), and ignore the vendored gitignored engine/ tree.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-19T22:12:32+01:00",
+  "updated_at": "2026-09-19T22:12:32+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

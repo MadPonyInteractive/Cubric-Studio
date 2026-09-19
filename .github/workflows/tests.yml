@@ -56,6 +56,13 @@ jobs:
 
       - run: npm ci
 
+      # Until MPI-833 this ran nowhere on the runner, so `no-undef` (MPI-832) only
+      # fired for whoever typed `npm run lint` by hand — and MPI-822 reached the
+      # user's app as `ReferenceError: isRunning is not defined` past a green CI.
+      # It lints the whole repo, not just js/: `routes/` is where a typo costs a
+      # 500. Seconds, and it fails before the 20-minute suites.
+      - run: npm run lint
+
       - run: npm test
 
       # The suite takes its own free port (tests/desktop/globalSetup.js), so nothing
