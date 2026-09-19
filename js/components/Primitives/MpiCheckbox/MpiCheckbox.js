@@ -18,8 +18,12 @@ export const MpiCheckbox = ComponentFactory.create({
             ? '<span class="mpi-checkbox__switch" aria-hidden="true"></span>'
             : '<span class="mpi-checkbox__box" aria-hidden="true"></span>';
         const variantClass = isSwitch ? ' mpi-checkbox--switch' : '';
+        // `info` reaches the status bar through statusBar.js's `closest('[data-info]')`
+        // delegation, like every other primitive. It sits on the root label so the
+        // whole control is the hover target, not just the box (MPI-771).
+        const dataAttrs = props.info ? `data-info="${props.info}"` : '';
         return `
-            <label class="mpi-checkbox${variantClass}${props.disabled ? ' mpi-checkbox--disabled' : ''}">
+            <label class="mpi-checkbox${variantClass}${props.disabled ? ' mpi-checkbox--disabled' : ''}" ${dataAttrs}>
                 <input type="checkbox" class="mpi-checkbox__input"
                        name="${name}" ${checked} ${disabled}>
                 ${control}

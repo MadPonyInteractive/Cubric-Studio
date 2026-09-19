@@ -227,6 +227,40 @@ test('gif cutout panel: routes, mounts with the right initial state, and drives 
     // What a narrower scope DISPATCHES (a source video of just those frames)
     // is asserted by test 2's Frame-scope run — the same `picked` path.
 
+    // ── How the panel READS (MPI-771, Fabio 2026-09-18/19) ────────────────
+    // Pick had no icon, and MpiButton renders `label` ONLY in icon mode — its
+    // plain-text branch reads `text` — so the button drew as an empty grey box.
+    // The icon is what puts it in the mode that renders the label, which is why
+    // one assertion covers both. MpiCheckbox dropped `info` on the floor, so the
+    // edges switch was the one control here that said nothing on the status bar.
+    // Mask and Clear split the row's full width, like the pickers above them.
+    // Lives in THIS test, not in the round-trip one: it is a render check, and
+    // it stays runnable when the heavier test is blocked.
+    await pickMethod(window, 'colour');
+    const layout = await window.evaluate(() => {
+      const panel = document.querySelector('.mpi-tool-options-gif-cutout');
+      const pick = panel.querySelector('#pick-slot button');
+      const row = panel.querySelector('#track-slot');
+      const [mask, clear] = [...row.querySelectorAll('button')];
+      return {
+        pickLabel: pick?.querySelector('.mpi-ibtn__label')?.textContent.trim() ?? null,
+        pickIcon: !!pick?.querySelector('.mpi-icon'),
+        edgesInfo: panel.querySelector('#edges-slot .mpi-checkbox')?.getAttribute('data-info') ?? null,
+        rowW: row.getBoundingClientRect().width,
+        maskW: mask.getBoundingClientRect().width,
+        clearW: clear.getBoundingClientRect().width,
+        gap: parseFloat(getComputedStyle(row).columnGap) || 0,
+      };
+    });
+    expect(layout.pickLabel, 'Pick shows its label (MpiButton drops `label` without an icon)').toBe('Pick');
+    expect(layout.pickIcon, 'Pick shows the eyedropper icon').toBe(true);
+    expect(layout.edgesInfo, 'the edges switch reaches the status bar (MpiCheckbox renders `info`)')
+      .toContain('inside your subject');
+    expect(Math.round(layout.maskW), 'Mask and Clear take an equal share').toBe(Math.round(layout.clearW));
+    expect(Math.round(layout.maskW + layout.clearW + layout.gap), 'Mask and Clear span the row')
+      .toBe(Math.round(layout.rowW));
+    await pickMethod(window, 'sam3');
+
     // ── Track dispatches /gif-cutout/source with the current frame list ────
     // This is the real, non-engine half of Track: folderPath + frames from
     // viewer.el.getFrames() (js/components/Organisms/MpiToolOptionsGifCutout).
@@ -713,36 +747,6 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     await expect.poll(() => window.evaluate(() =>
       document.querySelector('.mpi-tool-options-gif-cutout #key-colour-slot .mpi-color-picker')?.textContent || ''))
       .toContain('#c82828');
-
-    // MPI-771 (Fabio, 2026-09-18): Pick had no icon, and MpiButton renders
-    // `label` ONLY in icon mode — its plain-text branch reads `text` — so the
-    // button drew as an empty grey box. The icon is what puts it in the mode
-    // that renders the label, which is why one assertion covers both. Mask and
-    // Clear split the row's full width, like the pickers above them.
-    const layout = await window.evaluate(() => {
-      const panel = document.querySelector('.mpi-tool-options-gif-cutout');
-      const pick = panel.querySelector('#pick-slot button');
-      const row = panel.querySelector('#track-slot');
-      const [mask, clear] = [...row.querySelectorAll('button')];
-      return {
-        pickLabel: pick?.querySelector('.mpi-ibtn__label')?.textContent.trim() ?? null,
-        pickIcon: !!pick?.querySelector('.mpi-icon'),
-        // MpiCheckbox dropped `info` on the floor, so this switch was the one
-        // control in the panel that said nothing on the status bar.
-        edgesInfo: panel.querySelector('#edges-slot .mpi-checkbox')?.getAttribute('data-info') ?? null,
-        rowW: row.getBoundingClientRect().width,
-        maskW: mask.getBoundingClientRect().width,
-        clearW: clear.getBoundingClientRect().width,
-        gap: parseFloat(getComputedStyle(row).columnGap) || 0,
-      };
-    });
-    expect(layout.pickLabel, 'Pick shows its label (MpiButton drops `label` without an icon)').toBe('Pick');
-    expect(layout.pickIcon, 'Pick shows the eyedropper icon').toBe(true);
-    expect(layout.edgesInfo, 'the edges switch reaches the status bar (MpiCheckbox renders `info`)')
-      .toContain('frame edge');
-    expect(Math.round(layout.maskW), 'Mask and Clear take an equal share').toBe(Math.round(layout.clearW));
-    expect(Math.round(layout.maskW + layout.clearW + layout.gap), 'Mask and Clear span the row')
-      .toBe(Math.round(layout.rowW));
 
     const spinsBefore = await window.evaluate(() => window.__mpi771.spin.length);
     await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #mask-btn-slot button').click());

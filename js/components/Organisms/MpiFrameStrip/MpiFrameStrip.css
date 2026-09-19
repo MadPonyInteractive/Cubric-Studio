@@ -57,9 +57,12 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    /* Matches the viewer's tint and the image canvas's auto-mask green — one
-       colour for "this is masked", wherever it is shown (Fabio, 2026-09-18). */
-    background: var(--accent-ok);
+    /* Matches the viewer's tint: a GIF cut-out run writes the mask rather than
+       proposing it, so the thumbs wear the committed-mask white too, not the
+       image canvas's pending green (Fabio, 2026-09-19). The `--edited` dot and
+       the trim-range bars below stay --accent-ok: those are status marks, not
+       masks. */
+    background: var(--mask-fill);
     opacity: 0.7;
     mask-mode: luminance;
     -webkit-mask-repeat: no-repeat;

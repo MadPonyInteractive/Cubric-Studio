@@ -173,16 +173,19 @@ Cut-out; Fabio chose that over a second Cut out button (2026-09-16).
 ### Tints
 
 - `'mask-tint' { url }` — the current frame's ADJUSTED mask as white-with-alpha →
-  `MpiGifViewer.el.setMaskTint(url)`: an `--accent-ok` div over the whole stage, clipped by
+  `MpiGifViewer.el.setMaskTint(url)`: a `--mask-fill` div over the whole stage, clipped by
   CSS `mask-image`, `contain` + centred — the same box the frame img fills with
   `object-fit: contain` (frames scale UP to the stage too). Play in the Mask Brush drives the
   same div with the raw B/W masks under `--luma` (`mask-mode: luminance`).
-  **The green is `MASK_AUTO_FILL` from `MpiCanvas`**, the colour the image canvas paints a mask
-  that came from a DETECT RUN (the hand-painted layer is white, inverted is black, B/W view is
-  white-on-black). A SAM3 / BiRefNet / colour-key mask is the same thing — an auto-produced mask
-  ready to cut — so it shares the colour instead of owning a rose one, at the same 0.7 the mask
-  tools default to (Fabio, 2026-09-18: "why is one pink and the other one black or white?").
-  The per-thumb tints on `MpiFrameStrip` match.
+  **The tint is WHITE because the mask is COMMITTED.** `MpiCanvas` recolours only its PENDING
+  layers to `MASK_AUTO_FILL` (`--accent-ok`): a detect run still waiting on Add / Subtract, or
+  an Adjust preview waiting on Apply. A committed mask is `maskColor` — white — drawn straight
+  off `maskCanvas`. Mask / Mask all / Mask selected do not propose anything, they WRITE the
+  frame's mask and the brush edits it from there, so the cut-out tint is the committed kind
+  (Fabio, 2026-09-19). It ran as `--accent-ok` for one day on the opposite reading; that was
+  wrong, and the rose it replaced was wrong too. Opacity stays 0.7, the mask tools' default.
+  The per-thumb tints on `MpiFrameStrip` match; that strip's `--edited` dot and trim-range bars
+  stay `--accent-ok`, being status marks rather than masks.
 - Behind the frame, `.mpi-gif-viewer__checker` draws a checker sized to the frame's own
   letterboxed box (`--frame-ar` from the img's natural size, container query units), so a
   transparent pixel never reads as a black fill.

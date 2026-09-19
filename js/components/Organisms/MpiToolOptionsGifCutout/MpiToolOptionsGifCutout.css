@@ -15,6 +15,19 @@
     align-items: center;
 }
 
+/* Mask and Clear split the panel's whole width, so the two verbs read as wide as
+   the scope picker sitting directly above them rather than as a pair of small
+   buttons floating at the left (Fabio, 2026-09-18). `mount()` fills the slot div,
+   so the slot takes the share and the button fills the slot. */
+.mpi-tool-options-gif-cutout__row--split > div {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.mpi-tool-options-gif-cutout__row--split .mpi-btn {
+    width: 100%;
+}
+
 /* Who Mask and Clear act on. Sits directly above them so the scope reads as
    part of the verb rather than as another setting (Fabio, 2026-09-18). */
 .mpi-tool-options-gif-cutout__scope {

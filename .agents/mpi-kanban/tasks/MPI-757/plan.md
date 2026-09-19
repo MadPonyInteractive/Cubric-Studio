@@ -10,6 +10,40 @@ the ordering and anything left behind.
 
 ## Current State
 
+**2026-09-19 — READ THIS FIRST.** MPI-771 is `doing`/`validating`, attention required, and it is NOT
+close to closing. Fabio's two deferred UI items are BUILT and he passed them ("everything looks
+good"), plus two defects found while in there. But he then audited the workspace against the image
+and video ones and opened five consistency findings — written up under
+[## Remaining Work](#remaining-work) → "CONSISTENCY AUDIT", none of them built. **The next session's
+job is that audit list, starting with the Cut-out mask strip, which has no open question left.**
+
+Shipped this session (committed at handoff):
+- Mask and Clear span the panel (`__row--split`); the colour **Pick** button has an authored
+  `eyedropper` icon.
+- **Root cause, not a symptom fix:** `MpiButton` renders `label` ONLY in icon mode — its plain-text
+  branch reads `text` — so Pick drew as an empty grey box. The icon is what puts it in the mode that
+  renders the label. Swept all 230 `MpiButton` uses: it was the ONLY `label`-without-icon call site.
+- **`MpiCheckbox` never rendered `data-info`**, so `info` was dropped for every checkbox in the app.
+  Exactly one of 21 call sites passed it (the edges switch), so the primitive fix lights up one
+  control. That switch is now labelled **Background only** with Fabio's own wording.
+- **The mask colour REVERSED, by Fabio (2026-09-19), and he is right:** a GIF cut-out run WRITES the
+  mask, so it is committed and wears white (new `--mask-fill` token). `--accent-ok` in the image
+  canvas is the PENDING colour — a detect result waiting on Add/Subtract, or an Adjust preview
+  waiting on Apply — and `MpiCanvas` recolours only those layers. `MpiFrameStrip`'s `--edited` dot and
+  trim-range bars stay green: status marks, not masks. Rule rewritten in `docs/masking-sam3-gif.md`.
+
+Two shared-tree hazards this session, both PEER-caused, both worth knowing:
+- **`6da64611` (MPI-810/812) left `gif-cutout.spec.js` test 2 red** and it is not MPI-771's doing:
+  restoring all eight of my files to HEAD reproduces it exactly. `POST /gif-cutout/apply` dies on
+  `Input file is missing: <output>/projects/.../Media/.gif-frames/<hash>.png` while the run's own
+  `projects/` dir is EMPTY — the `APP_DOCUMENTS` move and the frame store disagree. Message
+  `077abd3b` filed. The other six gif specs pass.
+- **That same commit swept this session's unfinished assertions onto master**, so master asserted the
+  Pick icon before the icon existed. The block has since MOVED into test 1 (a render check belongs
+  there, and it stays runnable while test 2 is blocked). Message `6be62b6a` filed. Also
+  `styles/01_base.css` was committed wholesale by `15c236f0` (MPI-736) with this card's `--mask-fill`
+  line inside it. Commit by pathspec on this tree; peers are not doing it.
+
 **2026-09-15:** design settled, investigation done, no code written. Project mode:
 `scalable-foundation`. Evidence for every fact below, with the corrections to what the
 investigators got wrong: [research/2026-09-15-investigation.md](research/2026-09-15-investigation.md).
@@ -508,6 +542,62 @@ needs evidence, recorded in `## Plan Drift`.
   `operation_registry.json` and release notes come from `/mpi-version-bump` (docs/versioning.md:200).
 
 ## Remaining Work
+
+### 2026-09-19 — CONSISTENCY AUDIT: the GIF workspace against the rest of the app
+
+Fabio, 2026-09-19: *"This whole workspace just seems like it got invented from nothing... So many
+inconsistencies with the rest of the app."* He is right. Every finding below is verified in code,
+not asserted. **None of it is built yet.** Do NOT reopen what he has passed (the tint rule, the rail
+descriptions, the scope consolidation, the white mask, full-width Mask/Clear, the Pick icon).
+
+1. **Cut-out is the only mask-producing tool in the app with no `MpiMaskStrip`.** Counts: GifCutout
+   0, GifTiming 0, GifTransform 0. Every image mask tool mounts it — Brush, Colour, Detect, Points,
+   Text, Adjust, Composite, Paint — because MPI-371 built it as "the shared bottom strip of every
+   mask tool". The GIF Mask Brush only has it because `gifMaskBrush: MpiToolOptionsMaskBrush` IS the
+   image panel. **Fix:** Cut-out calls `viewer.el.enterMode('mask')` and mounts
+   `MpiMaskStrip({ viewer, brush: false })`, exactly as Detect/Points/Text do. Opacity, invert and
+   B/W then work identically because it is the same component on the same canvas.
+   - The blocker is real but small: `MpiGifViewer`'s `setMaskBwView`/`setMaskOpacity`/`setMaskInverted`
+     all funnel to `_canvas?.`, which is null outside an edit mode, and the Cut-out preview is a CSS
+     overlay (`.mpi-gif-viewer__mask-tint`), not a canvas. `enterMode('mask')` is what mounts it.
+   - Snag to solve, not to hand back: Cut-out's tint shows the **adjusted** mask (grow / fill-holes /
+     invert via `distanceField`), while `_loadEditFrame` loads the stored one. `MpiCanvas` already has
+     `beginMaskAdjust` / `previewMaskAdjust` / `applyMaskAdjust` / `hasMaskAdjustPreview`, which is how
+     `MpiToolOptionsMaskAdjust` shows a preview AND mounts the strip in the image workspace. Copy that
+     shape. Its preview draws in `MASK_AUTO_FILL` green, which is correct and consistent: a pending
+     adjustment IS a proposal (see the colour rule below).
+   - **NOT a blocker — I raised it twice and was wrong.** "Two Inverts on one panel": the strip's is an
+     ICON-ONLY button whose tooltip already reads "Invert mask display"; Cut-out's is a LABELLED
+     checkbox under Mask Adjust. Different shape, different place. Do not ask Fabio about it again.
+2. **Timing is already ONE panel wearing FIVE rail buttons.** `gifTrim`, `gifSpeed`, `gifReverse`,
+   `gifLoop`, `gifOutput` all map to `MpiToolOptionsGifTiming`. The image rail never splits one panel
+   five ways: its shared panels are two DESTINATIONS (`maskAdjust`/`paintAdjust`,
+   `maskComp`/`paintComp`) — one control set pointed at another layer. **Fold Timing into one tool.**
+   Open question Fabio was asked and had not answered when the session ended: one rail button, or a
+   group with the empty modes folded in? His steer so far points at one button.
+3. **Panels that are nothing but an Apply.** `gifReverse` (`MpiToolOptionsGifTiming.js` TOOLS table)
+   has no controls at all — one `desc` sentence and Apply. `gifTrim`'s controls live in the control
+   bar, so its panel is near-empty too. Apply itself is NOT the anomaly: Crop, Resize, Mask Adjust,
+   Composite and the image GIF Maker all end in Apply.
+4. **The canvas context menu is a shared surface the GIF STAGE never joined** (Fabio, 2026-09-19).
+   The video workspace reverses from a right-click: `MpiGroupHistoryBlock.js:3348-3358` offers
+   *Reverse video & audio* / *Reverse video* / *Reverse audio* → `_handleReverseVideo()`.
+   `MpiContextMenu` is already used by the gallery, history list, media slot, canvas viewer, video
+   viewer AND `MpiFrameStrip` (the GIF strip's delete-frame / clear-mask menu). The GIF STAGE has
+   none. **Several of the one-button Timing tools belong there instead of on the rail** — Reverse is
+   the obvious first one, and it is exactly how the video workspace already does it.
+5. **The GIF output tool has no preview; the video workspace's GIF Maker does** (Fabio, 2026-09-19).
+   `exportGif` → `MpiToolOptionsGif` carries a real preview pane — `__preview`, `__preview-frame`,
+   `#gif-preview-img`, `#gif-preview-empty` ("No preview yet"), a spinner, and a **Generate preview**
+   button that runs a real ffmpeg encode — plus size presets, fps and loop count. The GIF workspace's
+   own `gifOutput` mode rebuilds the .gif with none of that. **Give the GIF output the GIF Maker's
+   shape**, preview included, rather than inventing a third one.
+
+**Method note for whoever picks this up:** audit the image and video workspaces FIRST, then build.
+This session answered Fabio's points one at a time and had to be corrected twice — once on the mask
+colour, once on recommending a second set of mask-display controls on the CSS overlay. Both
+corrections came from him reading the other workspaces. `TOOL_OPTIONS_REGISTRY` and `GIF_TOOLS` /
+`IMAGE_TOOLS` / `VIDEO_TOOLS` in `MpiHistoryTools.js` are the two maps that make the comparison cheap.
 
 Every worker is briefed with the CLAUDE.md Critical Rules Snapshot, the `root-cause` and `kanban`
 briefings, the briefings named on its task, this plan's Decisions + Engineering calls, and the

@@ -126,7 +126,7 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                 <div class="mpi-tool-options-gif-cutout__row" id="edges-slot"></div>
             </div>
             <div class="mpi-tool-options-gif-cutout__picker mpi-tool-options-gif-cutout__scope" id="scope-slot"></div>
-            <div class="mpi-tool-options-gif-cutout__row" id="track-slot">
+            <div class="mpi-tool-options-gif-cutout__row mpi-tool-options-gif-cutout__row--split" id="track-slot">
                 <div id="mask-btn-slot"></div>
                 <div id="clear-btn-slot"></div>
             </div>
@@ -233,8 +233,12 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
 
         // Chromium's native eyedropper: picks any pixel on screen.
         if ('EyeDropper' in window) {
+            // `label` is an ICON-MODE prop: MpiButton's plain-text branch renders
+            // `text` and drops `label`, so this rendered as an empty grey box until
+            // the icon arrived (Fabio's screenshot, 2026-09-18).
             const pickBtn = MpiButton.mount(qs('#pick-slot', el), {
-                label: 'Pick', size: 'sm', variant: 'secondary', info: 'Pick the colour to remove from the screen',
+                icon: 'eyedropper', label: 'Pick', size: 'sm', variant: 'secondary',
+                info: 'Pick the colour to remove from the screen',
             });
             pickBtn.on('click', async () => {
                 try {
@@ -261,9 +265,12 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         _syncToleranceLabel();
         _children.push(toleranceSlider);
 
+        // `edgesOnly` floods in from the frame border (`colourKeyMask.js`), so it is
+        // "the colour out THERE", not "the colour anywhere". The old label said which
+        // pixels the algorithm walks; this one says what the user gets.
         const edgesChip = MpiCheckbox.mount(qs('#edges-slot', el), {
-            checked: _edgesOnly, label: 'Only touching the edges', name: 'gif-cutout-edges-only', variant: 'switch',
-            info: 'Keep same-coloured areas the subject encloses',
+            checked: _edgesOnly, label: 'Background only', name: 'gif-cutout-edges-only', variant: 'switch',
+            info: 'Off, the colour goes everywhere it appears, including patches inside your subject. On, only the background around it',
         });
         edgesChip.on('change', ({ checked }) => { _edgesOnly = checked; _save('edgesOnly', checked); _scheduleRekey(); });
         _children.push(edgesChip);

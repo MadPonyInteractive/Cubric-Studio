@@ -92,12 +92,14 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    /* The SAME green the image canvas paints an auto-produced mask with
-       (`MASK_AUTO_FILL` = --accent-ok, MpiCanvas). A SAM3 / BiRefNet / colour-key
-       mask IS a detect-run mask, so it had no business wearing its own colour —
-       for the user these are one concept, a mask that is ready to cut
-       (Fabio, 2026-09-18). */
-    background: var(--accent-ok);
+    /* White, the colour of a mask that EXISTS. This was --accent-ok for a day, on
+       the reading that a SAM3 / BiRefNet / colour-key mask is a detect-run mask.
+       It is not: in the image workspace the green is a PROPOSAL — a detect result
+       still waiting on Add / Subtract, or an Adjust preview waiting on Apply — and
+       it disappears the moment the mask is committed. Mask / Mask all / Mask
+       selected do not propose anything, they WRITE the frame's mask, which the
+       brush then edits. So it is the committed kind (Fabio, 2026-09-19). */
+    background: var(--mask-fill);
     opacity: 0;
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
