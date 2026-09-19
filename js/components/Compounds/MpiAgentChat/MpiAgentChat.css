@@ -65,6 +65,29 @@
     flex: 1;
 }
 
+/* Start over — quiet until it is armed, so it never competes with the transcript */
+.mpi-agent-chat__header-action {
+    display: flex;
+    flex-shrink: 0;
+}
+
+.mpi-agent-chat__header-action .mpi-btn {
+    opacity: 0.55;
+    transition: opacity var(--t-fast) var(--ease);
+}
+
+.mpi-agent-chat__header:hover .mpi-btn,
+.mpi-agent-chat__header-action .mpi-btn:focus-visible,
+.mpi-agent-chat__header-action .mpi-btn.is-active {
+    opacity: 1;
+}
+
+/* Armed: it is about to throw the conversation away, so it says so in the accent
+   that means "careful" rather than the one that means "go". */
+.mpi-agent-chat__header-action .mpi-btn.is-active {
+    color: var(--accent-heat);
+}
+
 /* Working indicator dot */
 .mpi-agent-chat__working-dot {
     width: 8px;

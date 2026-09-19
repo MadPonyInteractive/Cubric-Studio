@@ -115,6 +115,29 @@ export async function agentGetHistory(folderPath) {
 }
 
 /**
+ * POST /agent/reset — drop one conversation and its staged files.
+ *
+ * The route has existed since MPI-774 W1 and nothing ever called it, so the only way
+ * to leave a conversation was to restart the app (the messages live in the server
+ * fork, and `agentSessions.mjs` touches no disk). That bit: a transcript in which the
+ * model has already refused something is the strongest instruction to refuse again,
+ * and changing the model does not clear it — `runTurn` rebuilds only the system prompt.
+ *
+ * @param {string|null} [folderPath]  the project's conversation, or the landing one when empty
+ * @returns {Promise<{ok:boolean}>}
+ */
+export async function agentReset(folderPath) {
+    try {
+        const url = folderPath ? `/agent/reset?project=${encodeURIComponent(folderPath)}` : '/agent/reset';
+        const res = await window.fetch(url, { method: 'POST' });
+        return res.ok ? res.json() : { ok: false };
+    } catch (err) {
+        clientLogger.warn('agentService', 'reset failed', err);
+        return { ok: false };
+    }
+}
+
+/**
  * POST /agent/confirm
  * @param {string}  confirmId
  * @param {boolean} yes

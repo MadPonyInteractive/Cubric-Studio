@@ -39,6 +39,7 @@ import {
     agentSendMessage,
     agentGetHistory,
     agentPostConfirm,
+    agentReset,
 } from '../../../services/agentService.js';
 
 export const MpiAgentChat = ComponentFactory.create({
@@ -52,6 +53,7 @@ export const MpiAgentChat = ComponentFactory.create({
             ${!props.standalone ? `
             <div class="mpi-agent-chat__header" id="ac-header">
                 <span class="mpi-agent-chat__header-label">Agent</span>
+                <span class="mpi-agent-chat__header-action" id="ac-reset-slot"></span>
                 <span class="mpi-agent-chat__working-dot" id="ac-working-dot"></span>
             </div>
             ` : `
@@ -386,6 +388,59 @@ export const MpiAgentChat = ComponentFactory.create({
         function _clear() {
             _buttons.splice(0).forEach((b) => b.destroy());
             transcript.replaceChildren();
+        }
+
+        // ── Start over ─────────────────────────────────────────────────────────
+        // `POST /agent/reset` shipped with the routes and nothing ever called it, so
+        // the only way out of a conversation was to restart the app. It matters more
+        // than it looks: a transcript where the model has already refused something is
+        // the strongest instruction to refuse again, and picking a different model does
+        // NOT clear it — the server rebuilds only the system prompt between turns.
+        //
+        // Arms on the first click rather than opening a modal: the transcript is the
+        // one thing here that cannot be recovered (cards, media and notes all survive),
+        // so a stray click should not take it, and a dialog for a header button is more
+        // ceremony than the action deserves.
+        const resetSlot = qs('#ac-reset-slot', el);
+        if (resetSlot) {
+            let armed = false;
+            const resetBtn = MpiButton.mount(resetSlot, {
+                text: 'Start over',
+                info: 'Clear this conversation and begin a new one',
+                size: 'sm',
+                variant: 'ghost',
+            });
+            // The Primitive hangs setLabel/setActive/setDisabled off the ELEMENT; the
+            // factory instance only carries {el, props, on, destroy}.
+            const btn = resetBtn.el;
+            const disarm = () => {
+                armed = false;
+                btn.setLabel('Start over');
+                btn.setActive(false);
+            };
+            resetBtn.on('click', async () => {
+                if (!armed) {
+                    armed = true;
+                    btn.setLabel('Sure?');
+                    btn.setActive(true);
+                    return;
+                }
+                disarm();
+                btn.setDisabled(true);
+                try {
+                    await agentReset(_projectRef()?.folderPath || null);
+                    await _reload();
+                } finally {
+                    btn.setDisabled(false);
+                }
+            });
+            // Anything else the user does means they did not mean the second click.
+            _unsubs.push(on(el, 'pointerdown', (e) => {
+                if (armed && !btn.contains(e.target)) disarm();
+            }));
+            // NOT `_buttons` — that list is the confirm cards', and `_clear()` empties it
+            // on every reload, which would destroy this button the first time it ran.
+            _unsubs.push(() => resetBtn.destroy());
         }
 
         // ── Load history ───────────────────────────────────────────────────────

@@ -43,6 +43,11 @@ async function installStubs(window) {
       if (url === '/agent/confirm') {
         return { ok: true, json: async () => ({ ok: true }) };
       }
+      if (url === '/agent/reset' || url.startsWith('/agent/reset?')) {
+        // The server drops the conversation; the next history read comes back empty.
+        window.__histories[new URL(url, 'http://x').searchParams.get('project') || ''] = [];
+        return { ok: true, json: async () => ({ ok: true }) };
+      }
       return { ok: false, json: async () => ({}) };
     };
 
@@ -149,6 +154,50 @@ test('Enter in standalone input sends one POST /agent/message', async ({}, testI
     const msgCall = calls.find(c => c.url === '/agent/message');
     expect(msgCall).toBeTruthy();
     expect(msgCall.body.text).toBe('hello agent');
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+test('Start over: arms, disarms, and clears the conversation on the second click', async ({}, testInfo) => {
+  // `POST /agent/reset` shipped with the routes and nothing in the renderer ever called
+  // it, so the only way out of a conversation was to restart the app. That bit Fabio
+  // live (2026-09-19): a model that has refused once refuses again off its own
+  // transcript, and switching models does not clear it.
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await installStubs(window);
+    await window.evaluate(() => {
+      window.__histories[''] = [{ kind: 'user', text: 'animate this' }, { kind: 'agent', text: 'I have to decline.' }];
+    });
+    await bootAndMountChat(window, false);   // panel mode — the header only exists there
+
+    const btn = window.locator('#e2e-agent-host .mpi-agent-chat__header-action .mpi-btn');
+    await expect(btn).toBeVisible();
+    await expect(btn).toHaveText('Start over');
+
+    // One click ARMS, and must not have reset anything yet.
+    await btn.click();
+    await expect(btn).toHaveText('Sure?');
+    expect(await window.evaluate(() => window.__fetchCalls.filter(c => c.url.startsWith('/agent/reset')).length)).toBe(0);
+
+    // A click anywhere else means they did not mean it.
+    await window.locator('#e2e-agent-host .mpi-agent-chat__transcript').click();
+    await expect(btn).toHaveText('Start over');
+    expect(await window.evaluate(() => window.__fetchCalls.filter(c => c.url.startsWith('/agent/reset')).length)).toBe(0);
+
+    // Armed again, the second click goes through and the transcript reloads empty.
+    await btn.click();
+    await expect(btn).toHaveText('Sure?');
+    await btn.click();
+    await window.waitForTimeout(400);
+    expect(await window.evaluate(() => window.__fetchCalls.filter(c => c.url.startsWith('/agent/reset')).length)).toBe(1);
+    await expect(btn).toHaveText('Start over');
+    expect(await window.evaluate(
+      () => document.querySelector('#e2e-agent-host .mpi-agent-chat__transcript').children.length)).toBe(0);
 
     expect(pageErrors).toEqual([]);
   } finally {
