@@ -682,7 +682,7 @@ Guide rule: before your first prompt for a model, read its prompting guide: desc
 
 Installation rule: Always call install_model to show the user a Yes / No confirmation card. Never install a model without a Yes from the user, regardless of mode.
 
-Project rule: a generation lands in the open project. Never invent a folder path: open_project only takes a folderPath from list_projects or create_project, or one the user typed. To open a project by name, find it with list_projects. With no project open: if the user asks for anything to be MADE, create a project named after what they are making, open the folderPath it returns, and make it in that same turn — never ask them to open or create one first, that is your job. Background they give you (the story, the era, who the characters are) is material for the work, never a reason to stop: note what will matter later with write_memory, then still make what they asked for, all of it. Only when they describe a project and ask for NOTHING to be made do you end the turn by asking what they want first.
+Project rule: a generation lands in the open project. Never invent a folder path: open_project only takes a folderPath from list_projects or create_project, or one the user typed. To open a project by name, find it with list_projects. With no project open: if the user asks for anything to be MADE, create a project named after what they are making (create_project opens it for you) and make it in that same turn — never ask them to open or create one first, that is your job. Background they give you (the story, the era, who the characters are) is material for the work, never a reason to stop: note what will matter later with write_memory, then still make what they asked for, all of it. Only when they describe a project and ask for NOTHING to be made do you end the turn by asking what they want first.
 
 Deletion rule: You never delete anything: no cards, no media, no notes, no projects. No tool of yours can, and you never look for a way. When the user wants something deleted, tell them only they can do it, and where: a card from the gallery (right-click it, Delete, which also removes its whole history), a project from the projects list on the landing page (right-click it, Delete project).
 
@@ -891,8 +891,19 @@ ${knowledgeIndex}`.trim();
             }
             case 'create_project': {
                 const r = await this._tools.createProject(args.name);
-                if (r?.ok && r.project?.folderPath) this._projects.add(projectKey(r.project.folderPath));
-                return JSON.stringify(r);
+                if (!r?.ok || !r.project?.folderPath) return JSON.stringify(r);
+                this._projects.add(projectKey(r.project.folderPath));
+
+                // Opening it is not the model's to remember. Live (Fabio, 2026-09-19) it created
+                // "Cowgirls", never opened it, and the project brief it wrote next went into a
+                // DIFFERENT project of the same name from an earlier session — the one the app
+                // still had open. A note in the wrong project is invisible and unfindable, and
+                // there is no such thing as creating a project you did not want opened.
+                const opened = await this._tools.openProject(r.project.folderPath);
+                if (!opened?.ok) {
+                    return JSON.stringify({ ...r, opened: false, warning: 'The project was created but could not be opened, so nothing can be made in it yet.' });
+                }
+                return JSON.stringify({ ...r, opened: true, output: opened.output || { folderPath: r.project.folderPath, name: r.project.name } });
             }
             case 'open_project': {
                 if (!this._mayOpen(args.folderPath, currentProject)) {
@@ -1161,8 +1172,10 @@ ${knowledgeIndex}`.trim();
                     try {
                         resultText = await this._executeTool(toolName, args, turnId, project);
                         // The app now has this project open, so a generate later in the same
-                        // turn lands there instead of answering NO_PROJECT.
-                        if (toolName === 'open_project') {
+                        // turn lands there instead of answering NO_PROJECT. `create_project`
+                        // opens what it made, so it arrives here too — including the handover
+                        // to that project's own conversation.
+                        if (toolName === 'open_project' || toolName === 'create_project') {
                             const opened = JSON.parse(resultText);
                             if (opened?.ok && opened.output?.folderPath) {
                                 project = { folderPath: opened.output.folderPath, name: opened.output.name };

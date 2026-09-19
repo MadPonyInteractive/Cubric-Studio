@@ -1339,6 +1339,29 @@ and every gizmo a Flow grows is another thing an agent has to drive blind. His l
   setting (`INVALID_*`, `MEDIA_REQUIRED`) now says in its note which id to `describe_model` — the one
   failure the short list can cause.
 
+- [x] **A note landed in a DIFFERENT project of the same name** (Fabio, live, 2026-09-19, the same
+  four-sisters run; he reported it as *"I can't read the brief"* and then *"my chat is gone"*).
+
+  What the log and the disk say, together:
+  - `09:23:42 connector created project "Cowgirls" at …/Projects/Cowgirls_2cbf44b0`
+  - `…/Projects/Cowgirls/Agent/project-brief.md`, **mtime 09:24** — the brief for the new project
+    went into a project from an EARLIER session that happens to share the name.
+  - His chip list is the proof of why: `CREATING PROJECT: COWGIRLS`, then `NOTED: …`, with **no
+    "Opening project" between them**. The agent created a project and never opened it, so
+    `currentProject` stayed what the app already had open, and `write_memory` wrote there.
+  - His chat then "vanished" for the same reason: a conversation is keyed by project, the two
+    projects are both called "Cowgirls" in the list, and neither held the conversation he remembered.
+
+  **BUILT: `create_project` opens what it made.** There is no such thing as creating a project you
+  did not want opened, and the runTurn post-step now treats a create like an open — including the
+  handover, so the conversation MOVES to the new project instead of being stranded on the landing
+  page. A create whose open fails answers `opened: false` with a warning rather than letting the
+  model assume. The prompt lost its "open the folderPath it returns" clause in the process.
+
+  **Left for Fabio, because it is UI:** `create_project` uniquifies the FOLDER (`Cowgirls_2cbf44b0`)
+  but not the NAME, so the projects list shows two identical "Cowgirls" with nothing to tell them
+  apart. That is what made a working app look like it had lost his work.
+
 - [x] **A make-request with BACKGROUND was read as "describing a project", and nothing was made**
   (Fabio, live, 2026-09-19 — the four-sisters run, which is MPI-816's closing test). He asked for four
   character sheets and added who the sisters are and that it is for a western set in 1876. The agent

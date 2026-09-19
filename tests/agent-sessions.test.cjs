@@ -265,7 +265,9 @@ describe('project jobs: list, create, open', () => {
         t.after(restore);
         await send('list', null);
         await send('create Lighthouse', null);
-        const loop = sessions._loops.get('');
+        // create_project opens what it made, and opening from the landing page MOVES the
+        // conversation to that project's key — so the loop is no longer under ''.
+        const loop = [...sessions._loops.values()][0];
         const open = async (folderPath) => JSON.parse(await loop._executeTool('open_project', { folderPath }, 't', null));
         assert.equal((await open(B.folderPath)).ok, true, 'a listed project');
         assert.equal((await open('C:/Projects/Lighthouse')).ok, true, 'a created project');
@@ -273,9 +275,35 @@ describe('project jobs: list, create, open', () => {
 
         const typed = 'D:/Shoots/Harbour Nights';
         assert.equal((await open(typed)).error?.code, 'UNKNOWN_PROJECT');
-        await send(`please work in ${typed.replace(/\//g, '\\')}`, null);
+        // Into the conversation that moved with the create, not a fresh landing one.
+        await send(`please work in ${typed.replace(/\//g, '\\')}`, { folderPath: 'C:/Projects/Lighthouse', name: 'Lighthouse' });
         assert.equal((await open(typed)).ok, true, 'a folder the user typed');
-        assert.deepEqual(tools.calls.opens, [B.folderPath, 'C:/Projects/Lighthouse', 'C:\\Projects\\Beta', typed]);
+        // The first entry is create_project opening what it made, before any of these.
+        assert.deepEqual(tools.calls.opens, ['C:/Projects/Lighthouse', B.folderPath, 'C:/Projects/Lighthouse', 'C:\\Projects\\Beta', typed]);
+    });
+
+    // Fabio, live 2026-09-19: the agent created "Cowgirls", never opened it, and the project
+    // brief it wrote next landed in a DIFFERENT project of the same name from an earlier
+    // session — the one the app still had open. Invisible, unfindable, and the conversation
+    // never moved either. There is no such thing as creating a project you did not want open.
+    test('create_project opens what it made, so nothing lands in the project that was open before', async (t) => {
+        const { sessions, send, restore, tools } = await makeSessions();
+        t.after(restore);
+        await send('create Cowgirls', null);
+        assert.deepEqual(tools.calls.opens, ['C:/Projects/Cowgirls'], 'the new project was opened, without being asked');
+        assert.equal(sessions._loops.get(''), undefined, 'the conversation went with it, off the landing key');
+
+        const loop = [...sessions._loops.values()][0];
+        const out = JSON.parse(await loop._executeTool('create_project', { name: 'Second' }, 't', null));
+        assert.equal(out.ok, true);
+        assert.equal(out.opened, true);
+        assert.equal(out.output.folderPath, 'C:/Projects/Second', 'the caller sees an open_project-shaped result');
+
+        // A create whose open fails says so, rather than leaving the model to assume.
+        tools.openProject = async () => ({ ok: false, error: { code: 'RUNTIME_ERROR', message: 'nope' } });
+        const bad = JSON.parse(await loop._executeTool('create_project', { name: 'Third' }, 't', null));
+        assert.equal(bad.opened, false);
+        assert.match(bad.warning, /could not be opened/);
     });
 
     // Fabio, live 2026-09-19: asked for four character sheets and got a project, a saved
