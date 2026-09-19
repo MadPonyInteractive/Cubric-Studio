@@ -909,6 +909,23 @@ Phase 5 verify mode: `auto`.
 
 ## Plan Drift
 
+- 2026-09-19 (finding 1): **`756cf0e0` turned master red and it was MINE** — the only red on
+  master, every run before it green. `gif-cutout.spec.js` test 2, "frame 0: the brushed corner
+  is still kept", 255 expected / 0 found, ×3. Root cause: **`_editIdx` does not mean "the frame
+  on the canvas", it means "the canvas holds this frame's real layers and may be saved back".**
+  Cut-out's canvas holds neither under the display override, so claiming `_editIdx` let a
+  landing `setTrackMask` → `_refreshEditBase()` → `_saveEdit()` write EMPTY brush layers over a
+  real fix. It has to stay `-1` in BOTH places it can be claimed — `_loadEditFrame`'s override
+  branch AND `setCutoutPreview()`, because `enterMode('mask')` runs before the first preview
+  arrives, so the mount already took the normal branch. Fixed in `3efcdc9f`.
+- 2026-09-19: **three attempts to write a guard that actually fails**, worth not repeating.
+  (1) Asserting the strip's `--edited` dot PASSES under the bug: the dot survives, it is the
+  mask's CONTENTS that are emptied — the assertion has to be a PIXEL of the composed mask.
+  (2) A non-null `getFrameMaskURL()` passes too, for the same reason. (3) The sequence needs
+  EVERY frame masked before stepping: the override is per frame, so stepping onto an unmasked
+  frame nulls it and the normal load path puts the brush layers back, hiding the bug. Proven by
+  running the guard against `git show 756cf0e0:MpiGifViewer.js`.
+
 - 2026-09-19 (consistency audit, finding 1): **the `setMaskInverted` plan does not work and the
   finding DOES have an open question.** `MpiCanvas.js:972` recolours the mask layer BLACK
   (`MASK_INVERT_FILL`); it does not draw the complement. So mounting the shared strip on the
