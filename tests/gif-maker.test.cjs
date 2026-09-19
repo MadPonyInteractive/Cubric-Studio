@@ -18,7 +18,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs-extra');
 const path = require('node:path');
-const os = require('node:os');
+const { scratchDir } = require('./helpers/scratch.cjs');
 const crypto = require('node:crypto');
 const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
@@ -32,7 +32,7 @@ const CLIP_W = 640;
 const CLIP_H = 360; // 16:9 landscape — width is the longest edge
 
 async function tmpProject(prefix = 'gif-maker-test-') {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
+    const root = await scratchDir(prefix);
     const mediaDir = path.join(root, 'Media');
     await fs.ensureDir(path.join(mediaDir, '.meta'));
     await fs.writeJson(path.join(root, 'project.json'), { id: 'p', itemGroups: [], sequenceCounters: {} });

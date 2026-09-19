@@ -1,1 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "id": "MPI-813", "type": "task.created", "at": "2026-09-19T05:18:37Z", "actor": "claude", "summary": "Split from MPI-810 on Fabio's call. Carries the backed-out attempt and its evidence so the next session does not repeat it."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-813", "at": "2026-09-19T06:41:40+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "rebuild the scratch helper; brief's trigger disproven"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-813", "at": "2026-09-19T06:45:43+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "scratch helper shipped; 1351/0 on npm test, 0 temp litter incl. a throwing run"}

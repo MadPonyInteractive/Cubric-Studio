@@ -16,7 +16,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs-extra');
 const path = require('node:path');
-const os = require('node:os');
+const { scratchDir, scratchPath } = require('./helpers/scratch.cjs');
 const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
 
@@ -26,7 +26,7 @@ const sharp = require('sharp');
 const gifFrames = require('../services/gifFrames');
 
 async function tmpProject(prefix = 'gif-make-test-') {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
+    const root = await scratchDir(prefix);
     const mediaDir = path.join(root, 'Media');
     await fs.ensureDir(path.join(mediaDir, '.meta'));
     await fs.writeJson(path.join(root, 'project.json'), { id: 'p', itemGroups: [], sequenceCounters: {} });
@@ -35,7 +35,7 @@ async function tmpProject(prefix = 'gif-make-test-') {
 
 /** A tiny solid-colour PNG of a given size — distinct content per (colour,size). */
 async function solidPng(colour, w, h) {
-    const tmp = path.join(os.tmpdir(), `solid-${colour}-${w}x${h}-${Date.now()}-${Math.random().toString(36).slice(2)}.png`);
+    const tmp = scratchPath(`solid-${colour}-${w}x${h}-${Date.now()}-${Math.random().toString(36).slice(2)}.png`);
     await execFileP(ffmpegPath, ['-y', '-f', 'lavfi', '-i', `color=c=${colour}:s=${w}x${h}`, '-frames:v', '1', tmp]);
     const buf = await fs.readFile(tmp);
     await fs.remove(tmp);

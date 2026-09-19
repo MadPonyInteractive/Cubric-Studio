@@ -11,7 +11,7 @@
 const { test, describe, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
-const os = require('node:os');
+const { scratchDirSync } = require('./helpers/scratch.cjs');
 const path = require('node:path');
 
 const mem = () => import('../services/agentMemory.mjs');
@@ -20,7 +20,7 @@ const made = [];
 after(() => made.forEach((d) => fs.rmSync(d, { recursive: true, force: true })));
 
 function tempDir(prefix) {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+    const dir = scratchDirSync(prefix);
     made.push(dir);
     return dir;
 }

@@ -1,0 +1,15 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "task_id": "MPI-813",
+  "owned": [
+    "tests/helpers/scratch.cjs",
+    "tests/gif-frames.test.cjs",
+    "tests/gif-cutout.test.cjs",
+    "tests/gif-make.test.cjs",
+    "tests/gif-maker.test.cjs",
+    "tests/gif-transform.test.cjs",
+    "tests/agent-memory.test.cjs",
+    ".agents/mpi-kanban/tasks/MPI-813/"
+  ],
+  "notes": "Test fixtures only — no route, service or component file is touched. tests/helpers/scratch.cjs is new."
+}

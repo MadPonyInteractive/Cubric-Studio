@@ -17,7 +17,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs-extra');
 const path = require('node:path');
-const os = require('node:os');
+const { scratchDir } = require('./helpers/scratch.cjs');
 const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
 
@@ -28,7 +28,7 @@ const { ffmpegPath } = require('../services/ffmpegBinary');
 const gifFrames = require('../services/gifFrames');
 
 async function tmpProject(prefix = 'gif-transform-test-') {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
+    const root = await scratchDir(prefix);
     const mediaDir = path.join(root, 'Media');
     await fs.ensureDir(path.join(mediaDir, '.meta'));
     await fs.writeJson(path.join(root, 'project.json'), { id: 'p', itemGroups: [], sequenceCounters: {} });

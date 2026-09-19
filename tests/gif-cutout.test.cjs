@@ -15,7 +15,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs-extra');
 const path = require('node:path');
-const os = require('node:os');
+const { scratchDir } = require('./helpers/scratch.cjs');
 const sharp = require('sharp');
 const express = require('express');
 const { execFile } = require('node:child_process');
@@ -27,7 +27,7 @@ const gifCutout = require('../routes/gifCutout.js');
 const gifFrames = require('../services/gifFrames');
 
 async function tmpProject(prefix = 'gif-cutout-test-') {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
+    const root = await scratchDir(prefix);
     const mediaDir = path.join(root, 'Media');
     await fs.ensureDir(path.join(mediaDir, '.meta'));
     await fs.writeJson(path.join(root, 'project.json'), { id: 'p', itemGroups: [], sequenceCounters: {} });

@@ -19,7 +19,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs-extra');
 const path = require('node:path');
-const os = require('node:os');
+const { scratchDir, scratchPath } = require('./helpers/scratch.cjs');
 const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
 
@@ -73,7 +73,7 @@ function walkGifDelaysHundredths(buf) {
 }
 
 async function tmpProject(prefix = 'gif-test-') {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
+    const root = await scratchDir(prefix);
     const mediaDir = path.join(root, 'Media');
     await fs.ensureDir(path.join(mediaDir, '.meta'));
     await fs.writeJson(path.join(root, 'project.json'), { id: 'p', itemGroups: [], sequenceCounters: {} });
@@ -82,7 +82,7 @@ async function tmpProject(prefix = 'gif-test-') {
 
 /** A tiny solid-colour PNG, distinct content per (colour,size) pair. */
 async function solidPng(colour, w = 32, h = 24) {
-    const tmp = path.join(os.tmpdir(), `solid-${colour}-${w}x${h}-${Date.now()}-${Math.random().toString(36).slice(2)}.png`);
+    const tmp = scratchPath(`solid-${colour}-${w}x${h}-${Date.now()}-${Math.random().toString(36).slice(2)}.png`);
     await execFileP(ffmpegPath, ['-y', '-f', 'lavfi', '-i', `color=c=${colour}:s=${w}x${h}`, '-frames:v', '1', tmp]);
     const buf = await fs.readFile(tmp);
     await fs.remove(tmp);
@@ -353,7 +353,7 @@ test('a legacy .gif with no `gif` field extracts lazily via /gif/ensure-frames',
     // Build a real variable-delay GIF directly with ffmpeg — bypassing
     // gifFrames.js entirely — to stand in for a GIF imported before this
     // feature shipped (no `.gif-frames` entry owns its bytes at all).
-    const frameDir = await fs.mkdtemp(path.join(os.tmpdir(), 'legacy-src-'));
+    const frameDir = await scratchDir('legacy-src-');
     const names = [];
     for (const [i, c] of ['red', 'green', 'blue'].entries()) {
         const p = path.join(frameDir, `f${i}.png`);
