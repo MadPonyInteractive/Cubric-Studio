@@ -39,7 +39,7 @@ npx playwright test --config=playwright.desktop.config.js tests/desktop/<spec> -
 ```
 Green here and red in CI is an ANSWER, not a dead end — see cause 1.
 
-## The four things that generate the reds
+## The five things that generate the reds
 
 1. **Green locally, red in CI.** The runner has no model weights, no GPU and a fresh
    profile; every dev box has all three. The spec's FIXTURE is wrong, not the product. Fix
@@ -55,6 +55,12 @@ Green here and red in CI is an ANSWER, not a dead end — see cause 1.
 4. **A flake.** A different spec each run, usually an Electron boot timeout. CI retries
    twice (`playwright.desktop.config.js`, `retries: 2` on CI), so a completed `failure` is
    almost never one any more. If it is: `gh run rerun --failed <id>`.
+5. **Lint (MPI-833).** `npm run lint` runs on the runner as of 2026-09-19, BEFORE both
+   suites, and it lints the whole repo (`eslint .`), not just `js/`. The rule that bites is
+   `no-undef` (MPI-832): a rename that leaves one use of the old name behind is a
+   `ReferenceError` in the user’s app, and the suite cannot see it — the source-contract
+   tests are regexes that never execute the line. Red in seconds rather than twenty
+   minutes, and `npm run lint` locally reproduces it exactly.
 
 ## The two gates, and what each is for
 
