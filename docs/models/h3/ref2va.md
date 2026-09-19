@@ -362,6 +362,46 @@ frames properly, and hi-res fix UP to 1920×1088 or 2K. And expect this techniqu
 much better behaved on **fl2va i2v**, where the first frame pins the composition and a
 small stage 1 cannot wander.
 
+## The period-4 stutter — a DECODER artefact, and nothing in this repo can fix it
+
+Reported by the user 2026-09-19 as "frames 2 and 3, 6 and 7, 10 and 11… are the same".
+It reads as a Vision bug and is not one. **Do not re-investigate — re-roll the seed.**
+
+**Signature.** Video frames pair up at index ≡ 2 (mod 4) — `(2,3)`, `(6,7)`, `(10,11)` —
+unbroken to the end of the clip, phase locked to the ABSOLUTE video index. Measured with
+one ffmpeg pass; the paired transition reads ~1.0 against a 13–21 baseline:
+
+```bash
+ffmpeg -v info -i clip.mp4 -an -vf "tblend=all_mode=difference,signalstats,metadata=print:key=lavfi.signalstats.YAVG:file=-" -f null -
+```
+
+A ~1.0 residual is not a container-level duplicate — an exact dup encodes as skip blocks
+and reads 0.00. The model emitted those frames. The graph decodes and `MpiSaveVideo` writes
+at 24 fps; nothing in the app touches frames individually.
+
+**Rate: 4 of 192** high-motion clips across every H3 output on the user's disk (365 clips,
+median frame diff > 3 to exclude near-static ones). All four `ref2v_ms`; **0/55 `i2v_ms`,
+0/62 `t2v_ms`**. Not length-bound (hits at both 56 and 124 frames) and not canvas-bound.
+
+**It is seed luck, and that is provable.** `fanvue/ref2v_001` is clean and `ref2v_003`
+stutters on byte-identical injection params; same for `cowboys/ref2v_ms_035` (clean) against
+`_044` (stutter), 124f 1344×768 4 refs `max` on both. Nothing the app sets predicts it.
+
+**Latent-space dedup is impossible — do not card it.** H3 packs `(1, 4, 4, 4, 4)` video
+frames per latent frame by absolute latent position mod 5 (`ComfyUi-MpiNodes/sampler.py`),
+so latent boundaries break phase every 17 video frames while the stutter never does. Mapping
+the pairs onto their owning latent: at 56 frames **9 pairs sit inside one latent and 5
+straddle two** (21/10 at 124). There is no pair of similar latents to find — the duplication
+is created BY the 4-frame decoder expansion and does not exist upstream of it. Two further
+blockers if anyone tries anyway: dropping one latent drops 4 video frames, not 1, and a
+latent length off the `5k+2` grid pads a partial block that decodes BLACK ([windowing.md](windowing.md)).
+
+**The 18 fps idea is dead too.** A stuttering clip delivers 3 motion positions per 4 frames,
+which is 18 fps of motion in a 24 fps file — that is the defect's shape, not a model rate.
+H3 is a 24 fps model, 188 of 192 clips advance every frame, and there is no fps input:
+frame count is the only temporal lever and it is locked to `17k+5`. Fewer frames buys a
+SHORTER clip, never a cheaper one of the same length.
+
 ## Still unchecked
 
 Not defects, just untested as of 2026-08-07: the `max` vs `match` cost on this card,

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-820",
+  "title": "Agent API: add `duration` to the named params - every agent video runs the workflow default",
+  "description": "`POST /connector/generate` has no `duration` named param, so an agent cannot ask for a\nvideo length. `routes/connector.js:411`:\n\n    const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'stylization'];\n\nEvery agent-dispatched video therefore runs whatever `Input_Duration` the workflow file\nbakes in. For H3 that is 2, which snaps to 56 frames / 2.33 s - BELOW the 124-362 trained\nrange recorded in `docs/models/h3/README.md`. The in-app agent (MPI-774) and an external\nagent driving the app through the cubric-vision skill both submit through this one route,\nso both are affected.\n\nEvidence (user's own projects, 2026-09-19): all three `fanvue/ref2v_*` sidecars carry NO\n`Input_Duration` in `injectionParams` and landed at 56 frames while `controlState.shared.duration`\nsays 5. Every clip made through the UI in the other projects carries the key.\n\nThere IS an escape hatch already - raw `injectionParams: { Input_Duration: 5 }` passes\nstraight through (`routes/connector.js:487`) - but it needs the agent to know the node\ntitle, so the friendly layer silently disagrees with the app's own slider.\n\nScope:\n- add `duration` to `NAMED_PARAM_KEYS` and to the resolver in `js/data/generationControls.js`\n  (DOM-free, used by both the route's static validation and `js/shell/agentDispatch.js`)\n- it is a per-model concern: H3 snaps to a 17k+5 frame grid, other video models do not,\n  so the resolver should report back what the run will ACTUALLY get, as `MpiH3Length` does\n- decide whether an out-of-trained-range ask warns (H3: below 124 frames)\n- update the cubric-vision-generate skill so agents reach for the named param, not the raw node\n\nFound while investigating a period-4 duplicate-frame artefact in H3 ref2v output. That\nartefact is a separate, model-side issue and is NOT this card.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-19T09:40:09+01:00",
+  "updated_at": "2026-09-19T09:40:09+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

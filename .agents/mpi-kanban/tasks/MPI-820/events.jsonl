@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-820", "at": "2026-09-19T09:40:09+01:00", "actor": "claude", "column": "todo", "title": "Agent API: add `duration` to the named params - every agent video runs the workflow default"}
