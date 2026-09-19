@@ -1185,6 +1185,26 @@ and every gizmo a Flow grows is another thing an agent has to drive blind. His l
   from 8,681 to 10,177 chars of system prompt — **~4,049 tokens** with the 11 tool schemas. Fabio's
   Ollama serves a 4,096-token window. The floor now IS the window.
 
+- [ ] **Ollama Cloud would break the keyless-ollama invariant — a DECISION, not a patch** (peer
+  session `56b53dee`, 2026-09-19, while assessing Colibri; full notes in project memory at
+  `reference_colibri_streaming_moe.md`). `ollama` is keyless EVERYWHERE in this code by deliberate
+  design: `runTurn` and `probe` in `agentLoop.mjs` skip `NO_KEY` for it, matching the three checks in
+  `routes/llm.js` (that skip is fix 11 above, this morning). Ollama Cloud direct is
+  `https://ollama.com/api/chat` with an `Authorization: Bearer` header — native dialect, so
+  `OllamaEngine` is already the right client, and the ONLY thing in the way is the invariant. The
+  local-proxy alternative (sign in, run `-cloud` models through `localhost:11434`) may not work:
+  ollama/ollama#13801 reports `-cloud` models failing through the proxy on `/api/generate`. Neither
+  route was tested against a live Ollama. **Nothing to build until Fabio decides** whether the
+  preset gains an optional key or Cloud becomes its own preset — one is a hole in a stated invariant,
+  the other is a new row in the picker below.
+
+  Worth keeping from the same assessment, for whenever the agent surfaces model fit or memory
+  pressure: Colibri plans its RAM budget BEFORE loading and reports its own hit rate afterwards
+  ("10,320 expert requests, 7,357 hits, 71%"), where llama.cpp asks for 147 GB in one go and dies
+  with an OOM that reads as the user's hardware being too small. Say the budget up front, report what
+  happened. We have that shape nowhere. (Colibri itself is no work for us: OpenAI-compatible, lands
+  in the existing `custom` preset, but ~1.6 tok/s decode makes a 5-step tool loop 15+ minutes.)
+
 - [ ] **The Ollama connection picker tells the user nothing, and the enhance picker five rows above
   it tells them everything** (Fabio, 2026-09-19: *"I had no idea what to select where, so I just
   selected one of the abliterated models."*). Both live in `MpiLlmSettings`.
