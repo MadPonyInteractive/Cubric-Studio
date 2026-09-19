@@ -1,7 +1,7 @@
 /**
  * MpiToolOptionsGifTiming — Organism: the GIF timing and output tools (MPI-772).
  *
- * One panel for five rail modes; `props.mode` picks the section (the
+ * One panel for four rail modes; `props.mode` picks the section (the
  * maskAdjust/paintAdjust pattern). Every Apply saves a NEW GIF entry through
  * `POST /gif/entry` (the Block owns the call): the edit rewrites the frame list,
  * `loop` or `output` only, so no frame file is written. The math lives in
@@ -9,7 +9,6 @@
  *
  *   gifTrim    — keep the frames between the control bar's trim handles
  *   gifSpeed   — one frame rate for every frame, 0.1-50 fps
- *   gifReverse — reverse the frame order
  *   gifLoop    — total plays, 0 = forever
  *   gifOutput  — built `.gif` longest edge, colour limit, transparency + edge
  *                colour (rebuilds the `.gif` only)
@@ -18,13 +17,16 @@
  *
  * Props:
  * @param {object} viewer - MpiGifViewer instance (reads getFrameCount())
- * @param {'gifTrim'|'gifSpeed'|'gifReverse'|'gifLoop'|'gifOutput'} mode
+ * @param {'gifTrim'|'gifSpeed'|'gifLoop'|'gifOutput'} mode
  *
  * Block hooks on el:
  *   onRangeChange({ in, out }) — the control bar's trim range (frame indices)
  *
  * Emits:
- *   'apply' { tool: 'trim'|'speed'|'reverse'|'loop'|'output', values }
+ *   'apply' { tool: 'trim'|'speed'|'loop'|'output', values }
+ *
+ * `reverse` is still a `timingEdit()` tool — the GIF stage's context menu emits
+ * it straight to the Block (MPI-771 audit); this panel no longer has that mode.
  */
 
 import { ComponentFactory } from '../../factory.js';
@@ -49,10 +51,6 @@ const TOOLS = {
     gifSpeed: {
         tool: 'speed', icon: 'bolt', label: 'Speed',
         desc: 'Plays every frame at one rate. Below 1 fps each frame holds longer than a second.',
-    },
-    gifReverse: {
-        tool: 'reverse', icon: 'reverse', label: 'Reverse',
-        desc: 'Plays the frames backwards.',
     },
     gifLoop: {
         tool: 'loop', icon: 'loop', label: 'Loop count',

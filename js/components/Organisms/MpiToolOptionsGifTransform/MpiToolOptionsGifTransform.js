@@ -1,25 +1,27 @@
 /**
- * MpiToolOptionsGifTransform — Organism: GIF Resize, Save frame and GIF to Video (MPI-773).
+ * MpiToolOptionsGifTransform — Organism: GIF Resize and GIF to Video (MPI-773).
  *
- * One panel for three rail modes; `props.mode` picks the section. Crop is NOT
+ * One panel for two rail modes; `props.mode` picks the section. Crop is NOT
  * here: the gif rail reuses `MpiToolOptionsCrop` over `MpiGifViewer`'s crop
  * surface. The Block owns every request.
  *
  *   gifResize    — every frame to one size (new frames, new entry). Starts at
  *                  the frame's own size; Keep proportions ties the two fields.
- *   gifSaveFrame — the current frame, full resolution, as a new image card
  *   gifToVideo   — the frames with their delays as a 30 fps MP4 card; the
  *                  background colour fills transparent areas (MP4 has no alpha)
+ *
+ * Save frame LEFT this panel (MPI-771 consistency audit): it was a sentence and
+ * a button, and it is the video workspace's own "Create snapshot" right-click.
+ * The GIF stage's context menu calls the Block's `saveFrame` handler directly.
  *
  * Settings persist to project.json `toolSettings.gifTransform` (keepAspect, background).
  *
  * Props:
  * @param {object} viewer - MpiGifViewer instance (reads getFrameSize())
- * @param {'gifResize'|'gifSaveFrame'|'gifToVideo'} mode
+ * @param {'gifResize'|'gifToVideo'} mode
  *
  * Emits:
  *   'apply' { tool: 'resize', width, height }
- *   'apply' { tool: 'saveFrame' }
  *   'apply' { tool: 'toVideo', background }
  */
 
@@ -40,10 +42,6 @@ const TOOLS = {
     gifResize: {
         tool: 'resize', icon: 'resize_stroke', label: 'Apply',
         desc: 'Resizes every frame to one size.',
-    },
-    gifSaveFrame: {
-        tool: 'saveFrame', icon: 'camera', label: 'Save frame',
-        desc: 'Saves the current frame, full resolution, as a new image card.',
     },
     gifToVideo: {
         tool: 'toVideo', icon: 'video', label: 'Make video',
@@ -149,12 +147,10 @@ export const MpiToolOptionsGifTransform = ComponentFactory.create({
             applyBtn.on('click', () => {
                 if (width > 0 && height > 0) emit('apply', { tool: 'resize', width, height });
             });
-        } else if (def.tool === 'toVideo') {
+        } else {
             const picker = mountRow(MpiColorPicker, { value: background, info: 'Background: fills transparent areas' });
             picker.on('change', ({ hex }) => { background = hex; persist('background', hex); });
             applyBtn.on('click', () => emit('apply', { tool: 'toVideo', background }));
-        } else {
-            applyBtn.on('click', () => emit('apply', { tool: 'saveFrame' }));
         }
 
         el.destroy = () => {

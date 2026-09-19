@@ -338,3 +338,80 @@ test('gif strip: right-click deletes a frame and offers the mask clear; the trim
     await closeApp(app);
   }
 });
+
+/**
+ * MPI-771 consistency audit (Fabio, 2026-09-19) — the GIF STAGE joins the shared
+ * context menu.
+ *
+ * It was the only viewer without one: `MpiCanvasViewer` and `MpiVideoViewer` both
+ * emit `*-viewer:context-menu` and the Block builds their items. Reverse and Save
+ * frame each had a rail button whose whole panel was a sentence and an Apply,
+ * while the video workspace has always offered both as a right-click. This spec
+ * asserts the new menu and that Reverse reaches the SAME `/gif/entry` request the
+ * rail used to send.
+ *
+ * The stage menu is deliberately not the strip's: frame-scoped verbs (Delete
+ * frame, Clear THIS frame's mask) stay on the thumbnail you clicked, which the
+ * test above covers.
+ */
+test('gif stage: right-click reverses the frames and clears every mask; Save frame is on it', async ({}, testInfo) => {
+  const { app, window } = await launchApp(testInfo);
+  try {
+    await setupProject(window);
+    await window.evaluate(async () => {
+      const { navigate, PAGE_GROUP_HISTORY } = await import('/js/router.js');
+      navigate(PAGE_GROUP_HISTORY, { groupId: 'gGif' });
+    });
+    await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-gif-viewer__stage'))).toBe(true);
+
+    const openMenu = async () => {
+      await window.locator('.mpi-gif-viewer__stage').click({ button: 'right' });
+      await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-ctx-menu'))).toBe(true);
+      return window.evaluate(() => [...document.querySelectorAll('.mpi-ctx-menu__item')].map(b => ({
+        key: b.dataset.key,
+        label: b.querySelector('.mpi-ctx-menu__label')?.textContent,
+        disabled: b.disabled,
+      })));
+    };
+
+    // ── The menu itself ─────────────────────────────────────────────────
+    let menu = await openMenu();
+    expect(menu.map(i => i.key)).toEqual(['save-frame', 'reverse', 'clear-masks']);
+    expect(menu.map(i => i.label)).toEqual(['Save frame as image', 'Reverse frames', 'Clear all masks']);
+    // Nothing is masked in this fixture yet, so the clear must be DEAD rather
+    // than silently doing nothing — the rule the strip's menu already follows.
+    expect(menu[2].disabled, 'Clear all masks must be disabled with no masks').toBe(true);
+
+    // ── Reverse -> the same `/gif/entry` body the rail used to send ──────
+    await window.locator('.mpi-ctx-menu__item[data-key="reverse"]').click();
+    await expect.poll(() => window.evaluate(() => window.__mpi769.calls.length), { timeout: 30000 }).toBe(1);
+    const body = await window.evaluate(() => window.__mpi769.calls[0]);
+    expect(body.mode, 'Reverse saves a NEW entry, it never rewrites in place').toBe('new');
+    expect(body.frames.map(f => f.hash)).toEqual([...FRAME_HASHES].reverse());
+    await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-ctx-menu')),
+      'the menu must dismiss itself after a choice').toBe(false);
+
+    // ── Clear all masks, with masks actually there ──────────────────────
+    await window.evaluate((n) => {
+      const out = [];
+      for (let i = 0; i < n; i++) {
+        const c = document.createElement('canvas');
+        c.width = c.height = 4;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, 4, 4);
+        out.push(c.toDataURL('image/png'));
+      }
+      document.querySelector('.mpi-gif-viewer').setTrackMasks(out);
+    }, FRAME_HASHES.length);
+    await expect.poll(() => window.evaluate(() => document.querySelector('.mpi-gif-viewer').hasFrameMasks())).toBe(true);
+
+    menu = await openMenu();
+    expect(menu[2].disabled, 'with masks on the frames the clear must be live').toBe(false);
+    await window.locator('.mpi-ctx-menu__item[data-key="clear-masks"]').click();
+    await expect.poll(() => window.evaluate(() => document.querySelector('.mpi-gif-viewer').hasFrameMasks()),
+      'every frame loses its mask').toBe(false);
+  } finally {
+    await closeApp(app);
+  }
+});

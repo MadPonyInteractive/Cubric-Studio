@@ -130,22 +130,24 @@ const TOOL_OPTIONS_REGISTRY = {
     // MPI-771: the image Brush panel as-is — MpiGifViewer implements the same
     // enterMode/exitMode + MpiMaskStrip surface over one frame at a time.
     gifMaskBrush: MpiToolOptionsMaskBrush,
-    // MPI-772: one panel, the mode picks the tool.
+    // MPI-772: one panel, the mode picks the tool. `gifReverse` and
+    // `gifSaveFrame` are NOT here any more (MPI-771 consistency audit): both were
+    // a sentence and an Apply, and both are the video workspace's own
+    // right-click items, so they moved to `gif-viewer:context-menu`. Their
+    // handlers below are unchanged and the menu calls them.
     gifTrim:      MpiToolOptionsGifTiming,
     gifSpeed:     MpiToolOptionsGifTiming,
-    gifReverse:   MpiToolOptionsGifTiming,
     gifLoop:      MpiToolOptionsGifTiming,
     gifOutput:    MpiToolOptionsGifTiming,
-    // MPI-773: Resize / Save frame / GIF to Video. The gif Crop is `crop` above.
+    // MPI-773: Resize / GIF to Video. The gif Crop is `crop` above.
     gifResize:    MpiToolOptionsGifTransform,
-    gifSaveFrame: MpiToolOptionsGifTransform,
     gifToVideo:   MpiToolOptionsGifTransform,
 };
 
 /** The MpiToolOptionsGifTiming modes (MPI-772). */
-const _GIF_TIMING_TOOLS = new Set(['gifTrim', 'gifSpeed', 'gifReverse', 'gifLoop', 'gifOutput']);
+const _GIF_TIMING_TOOLS = new Set(['gifTrim', 'gifSpeed', 'gifLoop', 'gifOutput']);
 /** The MpiToolOptionsGifTransform modes (MPI-773). */
-const _GIF_TRANSFORM_TOOLS = new Set(['gifResize', 'gifSaveFrame', 'gifToVideo']);
+const _GIF_TRANSFORM_TOOLS = new Set(['gifResize', 'gifToVideo']);
 /** A GIF entry's build settings when the item carries none (docs/gif.md). */
 const _GIF_DEFAULT_OUTPUT = Object.freeze({ maxEdge: 1024, colours: 256, edgeColour: null });
 
@@ -1103,9 +1105,9 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             exportGif: 'GIF Maker',
             gifCutout: 'Cut-out',
             gifMaskBrush: 'Mask Brush',
-            gifTrim: 'Trim', gifSpeed: 'Speed', gifReverse: 'Reverse',
+            gifTrim: 'Trim', gifSpeed: 'Speed',
             gifLoop: 'Loop count', gifOutput: 'GIF output',
-            gifResize: 'Resize', gifSaveFrame: 'Save frame', gifToVideo: 'GIF to Video',
+            gifResize: 'Resize', gifToVideo: 'GIF to Video',
         };
 
         // Video viewer top-right chip strip: [op] · [mm:ss] · [Nfps].
@@ -3356,6 +3358,38 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                         else if (key === 'reverse-both')  _handleReverseVideo('both');
                         else if (key === 'reverse-video') _handleReverseVideo('video');
                         else if (key === 'reverse-audio') _handleReverseVideo('audio');
+                    },
+                });
+            }));
+        } else if (isGif) {
+            // ── GIF-stage context menu (MPI-771 consistency audit) ──────────
+            // Fabio, 2026-09-19: the GIF stage was the one viewer that never
+            // joined the shared menu. Both verbs here already exist as
+            // right-click items in the VIDEO workspace — Create snapshot and
+            // Reverse video — so this is the app's existing gesture reaching a
+            // workspace that had grown rail buttons for them instead.
+            //
+            // Frame-scoped items (Delete frame, Clear THIS frame's mask) stay on
+            // MpiFrameStrip's own menu: they belong to the thumbnail you clicked,
+            // not to whatever the stage happens to be showing.
+            _unsubs.push(Events.on('gif-viewer:context-menu', ({ x, y }) => {
+                const noMasks = !viewer.el.hasFrameMasks?.();
+                MpiContextMenu.show({
+                    x, y,
+                    items: [
+                        { key: 'save-frame', icon: 'camera', label: 'Save frame as image',
+                          info: 'The frame on screen becomes its own card' },
+                        { key: 'reverse', icon: 'reverse', label: 'Reverse frames',
+                          info: 'Play the frames back to front, as a new GIF entry' },
+                        { key: 'clear-masks', icon: 'trash', label: 'Clear all masks', disabled: noMasks,
+                          info: noMasks ? 'No masks to clear' : 'Throw away every frame’s cut-out mask' },
+                    ],
+                    onSelect: (key) => {
+                        if (key === 'save-frame') _handleGifTransformApply({ tool: 'saveFrame' });
+                        // `timingEdit('reverse')` ignores `values`, so the menu
+                        // reaches the SAME handler the rail used to.
+                        else if (key === 'reverse') _handleGifTimingApply({ tool: 'reverse', values: {} });
+                        else if (key === 'clear-masks') viewer.el.clearFrameMasks?.('all');
                     },
                 });
             }));

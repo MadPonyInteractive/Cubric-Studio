@@ -15,8 +15,8 @@ const { launchApp, closeApp } = require('./launch');
  * Crop 9:16 (the image Crop panel over the GIF viewer's crop surface) ->
  * Speed 0.33 fps -> GIF to Video (a new 1080x1920 30 fps MP4 card, ~3 s per
  * image, poster + hover proxy, a pixel that matches the source colour) ->
- * Save frame as image (a full-resolution image card, exactly ONE card: a
- * second `media:imported` once built a duplicate).
+ * Save frame as image, from the stage's right-click (a full-resolution image
+ * card, exactly ONE card: a second `media:imported` once built a duplicate).
  */
 test.setTimeout(240000);
 
@@ -204,10 +204,12 @@ test('GIF transform: Make GIF -> Crop 9:16 -> Speed 0.33 -> GIF to Video card; S
         expect((await gifHistory()).length, 'GIF to Video adds a card, not a GIF entry').toBe(before);
 
         // ── Save frame as image -> ONE full-res image card ───────────────────
-        await openTool('export', 'Save frame as image');
-        await window.waitForSelector('.mpi-tool-options-gif-transform');
+        // From the STAGE's right-click (MPI-771 audit): it left the rail, the way
+        // the video workspace has always offered Create snapshot.
         const beforeSave = (await groups()).length;
-        await window.locator('.mpi-tool-options-gif-transform #actions-slot button').click();
+        await window.locator('.mpi-gif-viewer__stage').click({ button: 'right' });
+        await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-ctx-menu'))).toBe(true);
+        await window.locator('.mpi-ctx-menu__item[data-key="save-frame"]').click();
         await expect.poll(async () => (await groups()).length, { timeout: 30000 }).toBe(beforeSave + 1);
         await window.waitForTimeout(1500); // a duplicate card would land by now
         const after = await groups();

@@ -225,9 +225,12 @@ const GIF_TOOLS = [
         mode: 'timing',
         label: 'Timing',
         group: [
+            // Reverse LEFT the rail (MPI-771 consistency audit, Fabio 2026-09-19):
+            // its whole panel was one sentence and an Apply, and the video
+            // workspace already reverses from the stage's right-click. It lives on
+            // `gif-viewer:context-menu` now; `timingEdit('reverse')` is unchanged.
             { mode: 'gifTrim',    icon: 'frames',  info: 'Trim',       desc: 'Trim: drag the handles to keep a range of frames' },
             { mode: 'gifSpeed',   icon: 'bolt',    info: 'Speed',      desc: 'Speed: set how long each frame is held' },
-            { mode: 'gifReverse', icon: 'reverse', info: 'Reverse',    desc: 'Reverse: play the frames back to front' },
             { mode: 'gifLoop',    icon: 'loop',    info: 'Loop count', desc: 'Loop count: how many times the GIF repeats' },
         ],
     },
@@ -242,7 +245,10 @@ const GIF_TOOLS = [
         mode: 'export',
         label: 'Export',
         group: [
-            { mode: 'gifSaveFrame', icon: 'camera', info: 'Save frame as image', desc: 'Save frame as image: the frame on screen becomes its own card' },
+            // Save frame LEFT the rail with Reverse, and for the same reason: it
+            // is the video workspace's "Create snapshot", which has always been a
+            // right-click on the stage. Also a panel that was a sentence and a
+            // button. On `gif-viewer:context-menu` now.
             { mode: 'gifToVideo',   icon: 'video',  info: 'GIF to Video',        desc: 'GIF to Video: write the frames out as an MP4' },
         ],
     },

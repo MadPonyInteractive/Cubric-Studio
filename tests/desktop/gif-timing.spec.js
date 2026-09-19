@@ -16,7 +16,8 @@ const { launchApp, closeApp } = require('./launch');
  * count must never change: these tools rewrite the list, not the frames.
  *
  * Tools run in a chain (each Apply opens the entry it made):
- * Speed 16 fps -> Reverse -> Loop 3 -> Trim 1..3 -> GIF output (16 px, transparent).
+ * Speed 16 fps -> Reverse (stage right-click) -> Loop 3 -> Trim 1..3 -> GIF
+ * output (16 px, transparent).
  */
 test.setTimeout(180000);
 
@@ -148,10 +149,26 @@ test('GIF timing tools: each Apply adds an entry with the expected frames, delay
             // MpiInput renders a number field as type="text" inputmode="decimal".
             window.locator('.mpi-tool-options-gif-timing input[inputmode="decimal"]').nth(nth).fill(String(value));
 
-        /** Click Apply, wait for the new entry, return it with its built file's metadata. */
+        /**
+         * Right-click the GIF stage and choose one item (MPI-771 audit): Reverse
+         * left the rail for the shared context menu, which is where the video
+         * workspace has always reversed from.
+         */
+        const stageMenu = async (key) => {
+            await window.locator('.mpi-gif-viewer__stage').click({ button: 'right' });
+            await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-ctx-menu'))).toBe(true);
+            await window.locator(`.mpi-ctx-menu__item[data-key="${key}"]`).click();
+        };
+
+        /** Click the panel's Apply, then settle. */
         const apply = async (expectedFrames) => {
             const before = (await history()).length;
             await window.locator('.mpi-tool-options-gif-timing #actions-slot button').click();
+            return settle(before, expectedFrames);
+        };
+
+        /** Wait for the new entry, return it with its built file's metadata. */
+        const settle = async (before, expectedFrames) => {
             await expect.poll(async () => (await history()).length, { timeout: 30000 }).toBe(before + 1);
             await expect.poll(thumbs, { timeout: 15000 }).toBe(expectedFrames);
             const entry = (await history()).at(-1);
@@ -174,9 +191,10 @@ test('GIF timing tools: each Apply adds an entry with the expected frames, delay
         expect(await pixel(r.gifPath, 0, 0, 0)).toMatchObject({ r: 0, g: 0, b: 0, a: 255 });
         const speedHashes = r.entry.gif.frames.map(f => f.hash);
 
-        // ── Reverse ──────────────────────────────────────────────────────────
-        await openTool('timing', 'Reverse');
-        r = await apply(6);
+        // ── Reverse — from the STAGE's right-click, not the rail (MPI-771) ───
+        const beforeReverse = (await history()).length;
+        await stageMenu('reverse');
+        r = await settle(beforeReverse, 6);
         expect(r.entry.gif.frames.map(f => f.hash)).toEqual([...speedHashes].reverse());
         expect(r.meta.delay).toEqual([60, 60, 60, 60, 60, 60]);
         expect(isColour(await pixel(r.gifPath, 0, 16, 12), COLOURS[5]), 'page 0 is the last source frame').toBe(true);

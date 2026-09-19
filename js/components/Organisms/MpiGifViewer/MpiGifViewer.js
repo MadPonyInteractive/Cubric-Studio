@@ -100,6 +100,10 @@
  *   'edit-change'  { editing }      — a canvas tool (Mask Brush, Crop) opened or closed
  *   'masks-change' { overlay, edited } — per-position mask URLs for the strip
  *                                   tint, and the brushed positions
+ *
+ * On the GLOBAL bus (not `emit`), the way the other two viewers do it:
+ *   'gif-viewer:context-menu' { x, y } — right-click on the stage; the Block
+ *                                   owns the items.
  */
 
 import { ComponentFactory } from '../../factory.js';
@@ -107,6 +111,7 @@ import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
 import { MpiCanvas } from '../../Primitives/MpiCanvas/MpiCanvas.js';
 import { MaskManager } from '../../Primitives/MpiCanvas/managers/MaskManager.js';
 import { clientLogger } from '../../../services/clientLogger.js';
+import { Events } from '../../../events.js';
 import { qs, on } from '../../../utils/dom.js';
 import { GifFrameMasks } from './gifFrameMasks.js';
 
@@ -147,6 +152,15 @@ export const MpiGifViewer = ComponentFactory.create({
         // The checker behind the frame takes the frame's aspect ratio.
         const _offFrameLoad = on(frameImg, 'load', () => {
             if (frameImg.naturalHeight) frameWrap.style.setProperty('--frame-ar', frameImg.naturalWidth / frameImg.naturalHeight);
+        });
+
+        // MPI-771 (consistency audit, Fabio 2026-09-19): the stage joins the shared
+        // context menu the image and video viewers already use. Same shape as
+        // MpiVideoViewer's — the VIEWER only reports the gesture, the owning Block
+        // builds the items, because only it knows the entry and the routes.
+        const _offCtxMenu = on(el, 'contextmenu', (e) => {
+            e.preventDefault();
+            Events.emit('gif-viewer:context-menu', { x: e.clientX, y: e.clientY });
         });
 
         const _masks = new GifFrameMasks();
@@ -657,6 +671,7 @@ export const MpiGifViewer = ComponentFactory.create({
             _destroyed = true;
             _stopPlayback();
             _offFrameLoad();
+            _offCtxMenu();
             _cache.clear();
         };
     },
