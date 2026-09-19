@@ -1,5 +1,8 @@
 # MPI-816 — Agent flow runs die on declared fields it was never told how to fill
 
+**Umbrella: MPI-817 (in-app agent reliability), Phase A.** This card keeps its own plan, checklist
+and validation; the umbrella carries the phase ordering.
+
 *Found live 2026-09-19 by Fabio, testing the in-app agent. Diagnosed same day, session a2e84759.
 Not built — the diagnosis below is complete to the line, the confirm step is one logged dispatch.*
 

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-817",
+  "title": "In-app agent reliability (umbrella): Fabio's rounds, global memory, and the flow-field dispatch bug",
+  "description": "Umbrella over MPI-774 (Fabio's round 1 and round 2 agent findings; Phase 5 closed, Phases 6 global memory and 7 agent reliability open) and MPI-816 (agent-dispatched Flow runs fail ComfyUI validation on declared fields). One job: the in-app agent doing what it is asked without silent failure.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-19T07:44:50+01:00",
+  "updated_at": "2026-09-19T07:44:50+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

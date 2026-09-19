@@ -968,6 +968,13 @@ next step is an engine started with `--verbose DEBUG`.
    field and the button — `1lh` could not do it, because it resolves against each element's own
    font-size. **Verified:** field 38.9 = button 38.9 live, growth intact, unit assertion.
 
+### Umbrella: MPI-817 (2026-09-19)
+
+This card and MPI-816 now sit under **MPI-817 — in-app agent reliability** (Fabio, 2026-09-19).
+This card's remaining Phases 6 and 7 are the umbrella's Phases B and C; MPI-816 is its Phase A.
+The umbrella carries the phase ordering and the parallel-batch ownership; this plan stays the
+source of truth for everything in Phases 1-7.
+
 ### Spun out of this card: MPI-816 (2026-09-19)
 
 Fabio hit a SEPARATE live failure while testing the agent for Phase 7: four Character Sheet
