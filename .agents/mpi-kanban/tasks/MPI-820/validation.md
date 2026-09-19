@@ -13,10 +13,16 @@ the 124-362 trained range - while the app's own slider read 5. Fabio hit it live
 - `duration` is a named param end to end: route -> resolver -> `Input_Duration`.
 - Precedence matches turbo: explicit ask > the project's saved value > three-layer default.
   So the **pinned panel's own duration now runs**, which was the half that was lying.
-- An unset duration resolves to 5 s (124 frames, exactly the trained minimum) instead of
-  falling through to the baked 2. **This roughly doubles an unset agent clip's GPU time**,
-  deliberately: 56 frames is below the range the model was trained on, and
-  `docs/models/h3/README.md` already said the default should sit near 5 s.
+- An unset duration resolves to **3 s** instead of falling through to the baked 2.
+  Fabio's own call (2026-09-19), against the model: 5 s (124 frames, 5.167 s) is the first
+  value inside H3's trained range and `docs/models/h3/README.md` recommends it, but he took
+  the shorter one anyway - 5 s is a long wait, and the wait that bites is not the total, it
+  is how long before the FIRST latent shows, which also grows with clip length. 3 s is
+  73 frames / 3.042 s, still below the trained range. It is a FLOOR, not the answer: the
+  agent is told to work the length out from the action described and raise it when the
+  action needs the room, so this only stands when nobody had an opinion. It is the global
+  `PROMPT_CONTROL_DEFAULTS.duration`, so it is also the slider's opening value - one
+  default, deliberately, rather than a panel and a dispatch that disagree.
 - The answer reports the REAL length. H3 only lands on a 17k+5 grid, so a 6 s ask is 141
   frames = 5.875 s; `durationSeconds` and `frames` ride on the result and the prompt tells
   the agent to quote those, never the ask.

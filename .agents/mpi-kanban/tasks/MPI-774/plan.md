@@ -42,6 +42,25 @@ Phase 7 is `user-ux`, so the panel is code-verified and not user-verified.**
    `[data-info]` and observes the attribute, so the live swap re-renders. That IS the
    status-bar line; no second surface was invented.
 
+**SHIPPED AS f124f535, and two more things landed with it.** (1) The SETTINGS POPUP opened
+in the wrong place after a window resize and took a second click to settle - two faults,
+both measured in a real window: `MpiPopup` transitioned `all`, so left/bottom slid over
+200ms while every owner's post-layout viewport clamp measured it mid-slide and subtracted
+an overflow belonging to the OLD position (the first reopen after a 1280->1100 resize
+landed 128px too far left, overflowRight -188 against a correct -60); and nothing
+repositioned an OPEN popup on resize (+120px off-screen), which pinning turned from
+survivable into permanent. The primitive now transitions `opacity, transform` only - all
+it ever animated - and MpiPromptBox listens for resize. Regression spec in
+`tests/desktop/agent-chat.spec.js`.
+(2) The NSFW FLAG shipped as `recommendedNote` on `RECOMMENDED_REMOTE_MODELS`:
+Qwen3-VL-30B-A3B-Instruct, labelled "(recommended - less censorship)" - Fabio's own wording,
+chosen over "did not refuse in our tests" - at the top beside DeepSeek V4 Flash, which
+stays unflagged because nobody tested it that way. A test keeps the note COMPARATIVE: it
+fails on uncensored/unrestricted/NSFW, because a promise about content is not ours to make
+from one test on one model. It is also the cheaper of the two Qwen3-VL sizes ($0.15 in /
+$0.60 out per 1M against the 235B's $0.20 / $0.88; the 235B only wins above ~60% cached
+input, and at Fabio's own measured 70:1 input:output mix the 30B costs less).
+
 **KNOWN GAP, not built, Fabio's call:** raw `injectionParams` is still merged over the
 resolved params while pinned (`mergedInjection`). It is the documented escape hatch and the
 agent rarely reaches for it, but it is a hole in "the user owns the settings". The plan

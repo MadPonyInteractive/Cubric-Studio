@@ -53,7 +53,10 @@ test('an UNSET duration no longer falls through to the workflow`s baked 2', () =
         assert.equal(r.ok, true, op);
         assert.equal(typeof r.injectionParams.Input_Duration, 'number',
             `${op}: an unset duration must still inject one, or the baked default wins`);
-        assert.ok(r.injectionParams.Input_Duration >= 5, `${op}: the default must not be the old 2`);
+        // 3 s, Fabio's own trade (2026-09-19): 5 s is the first value inside H3's trained
+        // range, but it is a long wait, and what you wait for is the FIRST latent, which
+        // comes later on a longer clip. Anything but the baked 2 is the point here.
+        assert.equal(r.injectionParams.Input_Duration, 3, `${op}: the unset default`);
     }
 });
 

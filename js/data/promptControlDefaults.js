@@ -4,7 +4,20 @@ export const PROMPT_CONTROL_DEFAULTS = Object.freeze({
     orientation: 'portrait',
     batch: 1,
     previewStage: false,
-    duration: 5,
+    // Seconds, when nobody has chosen — the slider's opening value AND what an agent
+    // generation resolves to when it does not work a length out for itself (MPI-820).
+    //
+    // 3, not 5, and it is a deliberate trade against the model (Fabio, 2026-09-19). H3 is
+    // trained on 124–362 frames, so 5 s (124 frames, 5.167 s) is the first value inside
+    // that range and 3 s (73 frames, 3.042 s) sits below it. He took the shorter one
+    // anyway: 5 s is a long time to wait, and the wait that matters is not the total —
+    // it is how long before the FIRST latent appears, which scales with clip length too.
+    // A 2 s clip shows you something long before a 5 s one does.
+    //
+    // This is the floor, not the answer. The agent is told to judge the length from the
+    // action the user described and to raise it when the action needs the room, so this
+    // value only stands when nobody, human or agent, had an opinion.
+    duration: 3,
     motionIntensity: 0,
     useGrid: false,
     upscaleFactor: 1.5,
