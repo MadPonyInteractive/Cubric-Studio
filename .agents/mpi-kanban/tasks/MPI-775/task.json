@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-775",
+  "title": "Brainstorm: YuE2 song model (Flow, audio workspace, DAW widgets)",
+  "description": "Brainstorm card, no plan yet: how to bring YuE2 (open-source song model with an editable score) into the app. Ideas to explore: a Flow, a first audio workspace, DAW widgets such as a piano roll and a track selector. Links, model facts and the licence decision are in brief.md.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-09-15T19:26:21+01:00",
+  "updated_at": "2026-09-15T19:26:21+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
