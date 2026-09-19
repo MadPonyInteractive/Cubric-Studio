@@ -177,6 +177,7 @@ export const MpiSettings = ComponentFactory.create({
                         <div class="mpi-settings__plate-main">
                             <span class="mpi-settings__plate-label">Output</span>
                             <span class="mpi-settings__plate-desc">Where the app plays audio, video and the notification chime. System default follows Windows — pick a device here when a virtual mixer sends the default somewhere you cannot hear, then Test it.</span>
+                            <span class="mpi-settings__plate-desc" id="mpiSettingsAudioOutputNote" hidden></span>
                         </div>
                         <div class="mpi-settings__plate-ctrl mpi-settings__audio-output">
                             <div class="mpi-settings__audio-output-picker" id="mpiSettingsAudioOutputSlot"></div>
@@ -403,21 +404,57 @@ export const MpiSettings = ComponentFactory.create({
         function _initAudioOutput(root, devices) {
             const slot = qs('#mpiSettingsAudioOutputSlot', root);
             const testSlot = qs('#mpiSettingsAudioOutputTestSlot', root);
+            const note = qs('#mpiSettingsAudioOutputNote', root);
             if (!slot) return;
 
             slot.innerHTML = '';
             const outputs = devices.filter(d => d.kind === 'audiooutput' && d.label);
+            const stored = Storage.getAudioOutputDevice();
+            const options = [
+                { label: 'System default', value: '' },
+                ...outputs.map(d => ({ label: d.label, value: d.deviceId })),
+            ];
+
+            // MPI-824: a stored device the list no longer carries gets its own row rather
+            // than falling through to the placeholder. Without it the panel reads
+            // "System default" while a dead id is still in the store and still being
+            // applied — the user sees a setting that changed itself. `applySink` re-pins
+            // by label when it can, so the row only appears when that failed too.
+            const missing = stored.deviceId && !options.some(o => o.value === stored.deviceId);
+            if (missing) {
+                options.splice(1, 0, {
+                    value: stored.deviceId,
+                    label: stored.label || 'Previously chosen device',
+                    // `icon` makes the meta a FLAG, which is what drops MpiDropdown's 11ch
+                    // ellipsis cap (MPI-599) — without it "Not available" clips to "Not availa…".
+                    meta: 'Not available',
+                    icon: 'warning',
+                });
+            }
+            // The device's REAL label per value — not the row's display text, which for the
+            // missing row may be the "Previously chosen device" stand-in. Re-pinning matches
+            // the label verbatim, so feeding it that stand-in would break the heal.
+            const labelFor = new Map([['', ''], ...outputs.map(d => [d.deviceId, d.label])]);
+            if (missing) labelFor.set(stored.deviceId, stored.label);
+            if (note) {
+                note.hidden = !missing;
+                note.textContent = missing
+                    ? `${stored.label || 'That device'} is not available right now — playback stays on the system default until it comes back.`
+                    : '';
+            }
+
             const inst = MpiDropdown.mount(slot, {
-                options: [
-                    { label: 'System default', value: '' },
-                    ...outputs.map(d => ({ label: d.label, value: d.deviceId })),
-                ],
-                value: Storage.getAudioOutputDevice(),
+                options,
+                value: stored.deviceId,
                 placeholder: 'System default',
             });
             // setOutputDevice, not Storage directly: it also moves whatever is playing
-            // right now onto the new device, which is how the user checks it.
-            inst.on('change', ({ value }) => setOutputDevice(value));
+            // right now onto the new device, which is how the user checks it. The LABEL
+            // goes with it (MPI-824) — it is what the id is re-pinned from later.
+            inst.on('change', ({ value }) => {
+                setOutputDevice(value, labelFor.get(value) || '');
+                if (note) { note.hidden = true; note.textContent = ''; }
+            });
 
             if (!testSlot) return;
             testSlot.innerHTML = '';

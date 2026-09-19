@@ -33,6 +33,19 @@ function normalizePromptReuseOptions(value = {}) {
   };
 }
 
+// MPI-824. Pre-MPI-824 stores hold the bare deviceId string; it migrates to an object with
+// an empty label, which simply means there is nothing to re-resolve from until the user
+// picks again. `label` is the device's `enumerateDevices` label, matched verbatim.
+export const DEFAULT_AUDIO_OUTPUT = Object.freeze({ deviceId: '', label: '' });
+
+function normalizeAudioOutput(value) {
+  if (typeof value === 'string') return { deviceId: value, label: '' };
+  return {
+    deviceId: String(value?.deviceId || ''),
+    label: String(value?.label || ''),
+  };
+}
+
 function normalizePromptReuseSource(value) {
   return value === 'current' ? 'current' : 'original';
 }
@@ -251,13 +264,19 @@ export const Storage = {
   getAudioInputGain:   () => Math.min(4, Math.max(0, Number(get(STORAGE_KEYS.AUDIO_INPUT_GAIN, 1)) || 1)),
   setAudioInputGain:   (v) => set(STORAGE_KEYS.AUDIO_INPUT_GAIN, Math.min(4, Math.max(0, Number(v) || 1))),
 
-  // MPI-803 — playback output. '' means the OS default endpoint, which is what the
-  // app did unconditionally before this existed. Same deal as the input device: a
-  // stored id is machine-local, so it is NOT validated against the current device
-  // list on load — a headset unplugged today is usually back tomorrow, and
-  // `applySink` degrades to the default instead of failing the playback.
-  getAudioOutputDevice: () => String(get(STORAGE_KEYS.AUDIO_OUTPUT_DEVICE, '') || ''),
-  setAudioOutputDevice: (v) => set(STORAGE_KEYS.AUDIO_OUTPUT_DEVICE, String(v || '')),
+  // MPI-803 — playback output. An empty `deviceId` means the OS default endpoint, which
+  // is what the app did unconditionally before this existed. A stored id is machine-local,
+  // so it is NOT validated against the current device list on load — a headset unplugged
+  // today is usually back tomorrow, and `applySink` degrades to the default instead of
+  // failing the playback.
+  //
+  // MPI-824 — the `label` rides along because the id alone is not durable. A deviceId is a
+  // per-profile salted hash of the OS endpoint id, and a virtual mixer (SteelSeries Sonar)
+  // regenerates its endpoints: the device is still there, under the same name, with an id
+  // that no longer resolves. The label is what survives that, and `applySink` re-pins the
+  // new id from it.
+  getAudioOutputDevice: () => normalizeAudioOutput(get(STORAGE_KEYS.AUDIO_OUTPUT_DEVICE, DEFAULT_AUDIO_OUTPUT)),
+  setAudioOutputDevice: (v) => set(STORAGE_KEYS.AUDIO_OUTPUT_DEVICE, normalizeAudioOutput(v)),
 
   getLastProject:      () => get(STORAGE_KEYS.LAST_PROJECT, null),
   setLastProject:      (v) => set(STORAGE_KEYS.LAST_PROJECT, v),

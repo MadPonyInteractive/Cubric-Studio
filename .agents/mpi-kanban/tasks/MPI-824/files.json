@@ -1,0 +1,12 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-824/",
+    "js/core/storage.js",
+    "js/core/storageKeys.js",
+    "js/utils/audioOutput.js",
+    "js/components/Compounds/LandingPages/MpiSettings/MpiSettings.js",
+    "tests/audio-output.test.cjs",
+    "tests/desktop/audio-output-missing-device.spec.js"
+  ]
+}

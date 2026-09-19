@@ -20,8 +20,12 @@ export const STORAGE_KEYS = {
   AUDIO_INPUT_DEVICE:  'mpi_audio_input_device',
   AUDIO_INPUT_GAIN:    'mpi_audio_input_gain',
 
-  // MPI-803: playback OUTPUT device (empty = the OS default endpoint). Applied to
-  // every media element by js/utils/audioOutput.js, not by the playback sites.
+  // MPI-803: playback OUTPUT device. Applied to every media element by
+  // js/utils/audioOutput.js, not by the playback sites.
+  // MPI-824: `{ deviceId, label }` — an empty `deviceId` is the OS default endpoint. The
+  // label is there because the id is not durable: a virtual mixer regenerates its
+  // endpoints and the stored id stops resolving while the device is still listed under
+  // the same name. A pre-MPI-824 bare string migrates on read.
   AUDIO_OUTPUT_DEVICE: 'mpi_audio_output_device',
 
   // RunPod remote engine — NON-secret prefs only. The API key and wrapper
