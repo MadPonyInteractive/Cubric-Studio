@@ -1103,11 +1103,32 @@ and every gizmo a Flow grows is another thing an agent has to drive blind. His l
   canvas resolved as `mergedInjection.Width/Height`, one line after it has `mediaItems`. Both
   branches are computable there; only the source dims are missing (an image decode in the
   renderer, or carry them on the media item).
-  **Open, and it is the only real fork:** branch 2's mechanism — a `_fail` the agent must act on
-  (the shape the install and guide gates already use, because "a rule alone did not make the model
-  read one"), or a warning that rides back with the success and obliges the agent to relay it.
-  Refusing is the only one that cannot be silently dropped by a weaker model; warning is the only
-  one that still produces a video when the user meant it.
+  **Fabio generalised it, 2026-09-19:** *"Any model that takes in an input and has a ratio option
+  can suffer from this issue… the agent can give a warning if the input mismatches… of course, this
+  would mean that the agent would need to know the ratio of the input image."* So the rule is not
+  i2v, it is **media-in + ratio-offered**, and the warning is the agent's to give.
+
+  **BUILT (session 668b667e):**
+  - `POST /connector/describe` now returns `output.imageSize {w,h}` on **every** look, not only a
+    `box: true` one. It already read the metadata in the box branch and threw it away otherwise,
+    and it is the only route that tells the agent an image's shape. A header read, not a decode;
+    an unreadable image loses the field instead of failing the look. **Verified:** a real 1024x1280
+    PNG through the real router in `tests/agent-generation-relay.test.cjs` — red before, green
+    after, and the description still comes through.
+  - **Shape rule** in the system prompt: with an input image and a ratio, look first, compare
+    `imageSize` to the ratio, and tell the user what will be cut BEFORE generating — naming the
+    matching ratio and whether anything installed can hold identity without cropping.
+
+  **STILL OPEN — a constraint that changes the question I asked him.** `generate` is fire-and-
+  forget: `agentLoop.mjs:693` returns `{ok: true, started: true}` the moment the job is posted, and
+  the dispatch's own report only arrives via `onComplete`. **So there is no channel for a
+  submit-time warning that reaches the user before the render.** A warning attached to the result
+  lands after the video has already burned three minutes. The Shape rule above is therefore the
+  only pre-render warning that exists, and it is prose — a weak local model can skip it. The
+  backstop that cannot be skipped is a `_fail` at `js/shell/agentDispatch.js:171` when the crop is
+  severe (the canvas is already resolved there as `mergedInjection.Width/Height`, one line after
+  `mediaItems`; source dims need an `img.decode()` in the renderer, ~7 lines). Fabio chose "warn"
+  before knowing the channel does not exist — **ask him again with this fact on the table.**
 
 - [ ] **The Ollama connection picker tells the user nothing, and the enhance picker five rows above
   it tells them everything** (Fabio, 2026-09-19: *"I had no idea what to select where, so I just

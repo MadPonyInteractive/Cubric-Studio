@@ -350,6 +350,41 @@ test('a bad media entry is a named BAD_REQUEST, never a silent drop', () => {
   assert.equal(twice.code, 'BAD_REQUEST');
 });
 
+// ── look reports the image's SHAPE (MPI-774 Phase 7) ─────────────────────────
+
+test('every look carries imageSize, not just a boxed one', async () => {
+  // Without it the agent cannot know a ratio is about to centre-crop the picture:
+  // it is the only route that tells the caller an image's shape. Fabio animated a
+  // 4:5 still on a 16:9 canvas and the head left the frame.
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  const sharp = require('sharp');
+  const imagePath = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'mpi-look-')), 'tall.png');
+  await sharp({ create: { width: 1024, height: 1280, channels: 3, background: '#888' } })
+    .png().toFile(imagePath);
+
+  const { base, stop } = await startServer();
+  const renderer = await fakeRenderer(base);
+  try {
+    const pending = postJson(`${base}/connector/describe`, { imagePath });
+    const frame = await renderer.readFrame();
+    assert.equal(frame.data.capability, 'agent.describe');
+    await postJson(`${base}/connector/jobs/${frame.data.jobId}/result`, {
+      ok: true, output: { text: 'a grey rectangle' },
+    });
+
+    const { json } = await pending;
+    assert.equal(json.ok, true);
+    assert.equal(json.output.text, 'a grey rectangle', 'the description still comes through');
+    assert.deepEqual(json.output.imageSize, { w: 1024, h: 1280 });
+  } finally {
+    renderer.close();
+    await stop();
+    fs.rmSync(path.dirname(imagePath), { recursive: true, force: true });
+  }
+});
+
 test('a required slot is filled BY ROLE: a reference alone is MEDIA_REQUIRED', () => {
   // The shared predicate takes any image for a required image slot. On this path that
   // let a lone `inputImage2` through, and ordinal injection made the reference the

@@ -225,7 +225,13 @@ The describer sees the crop (or the whole image) scaled to ~1 MP (`image_descrip
 A point maps back as `x_orig = crop.x + x_in * crop.width / inputWidth` (same for y), a tested pure
 function; the answer's raw format and space are chosen from Phase 4's recorded answers.
 
-A `box: true` answer also carries `imageSize`, `boxShare` and `squareShare` — what the box and its
+**Every** answer carries `imageSize` `{w, h}`: it is the only route that tells the agent an image's
+SHAPE, and the Shape rule needs it. An op that takes media and offers a ratio centre-crops the input
+to that ratio — `MpiH3ImageToVideo._cover_crop` for H3, `ImageResizeKJv2 keep_proportion: crop` in
+the Wan and LTX graphs, deliberately crop-never-pad — so 4:5 into 16:9 keeps the middle 45% of the
+height and a head goes first. `ref2v_ms` is the exception (`MpiH3References`: aspect kept, no crop).
+
+A `box: true` answer also carries `boxShare` and `squareShare` — what the box and its
 square take of the image (`boxShare` in `routes/connector.js`). The Box rule refuses a `squareShare`
 over 0.6 on either side and measures again: asked for a head on a group photo the describer boxes the
 whole person, and `square` then matches that height in width, which swallows the neighbour (live,

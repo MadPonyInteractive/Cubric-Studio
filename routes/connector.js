@@ -923,7 +923,19 @@ router.post('/connector/describe', async (req, res) => {
       squareShare: boxShare(square, imageSize.w, imageSize.h),
     } });
   }
-  res.json(result);
+  // Every look reports the source's pixel size, not just a boxed one. It is the only
+  // route that tells the caller an image's SHAPE, and without it the agent cannot know
+  // that a ratio it is about to ask for will centre-crop the picture (MPI-774 Phase 7).
+  // A metadata() read parses the header, not the pixels, and an unreadable image just
+  // loses the field rather than failing the look.
+  let imageSize = null;
+  try {
+    const meta = await _getSharp()(imagePath).metadata();
+    if (meta.width && meta.height) imageSize = { w: meta.width, h: meta.height };
+  } catch (err) {
+    logger.warn('connector', `describe: could not read the size of ${imagePath}: ${err.message}`);
+  }
+  res.json(imageSize ? { ...result, output: { ...result.output, imageSize } } : result);
 });
 
 module.exports = router;
