@@ -5,12 +5,11 @@ Cubric Studio 2.0 ships. Card: [task.json](task.json).
 
 ## Current State
 
-**2026-09-19: all four steps are built, self-verified (`npm test` 1383/0, lint clean) and
-committed; see [validation.md](validation.md). The card stays in `doing`/`validating`
-because a FIFTH item was found straight after: the match check is blind to EXTRA packs —
-see the first bullet of `## Remaining Work`. That is the next action. Also know that
-decision 2 below (drop the static node-class allowlist) is a deliberate scope reduction of
-the card as written, flagged to Fabio and not contradicted.**
+**2026-09-19: all FIVE steps are built and self-verified (`npm test` 1383/0, lint clean);
+see [validation.md](validation.md). Steps 1-4 shipped as 37e7357c; step 5 (the extra-pack
+warning) shipped as e6908dd6. Nothing is left to implement and nothing is left uncommitted —
+the card closes on the evidence in validation.md as soon as its own CI run is green. Also know that decision 2 below (drop the static node-class allowlist) is a
+deliberate scope reduction of the card as written, flagged to Fabio and not contradicted.**
 
 Project mode: scalable-foundation.
 
@@ -98,26 +97,38 @@ moved. Verified 2026-09-19:
       matched and the drifted case proved.
 - [x] **4. `docs/flow-packages.md`** — new "Match your ComfyUI to the release" section,
       `COMFY_PATH` documented, stale MPI-798 pointer replaced.
+- [x] **5. The match check now names EXTRA packs too.** `findExtraPacks()` in
+      `scripts/lint-flow-package.mjs`: one `readdirSync` of `custom_nodes` minus the lock's
+      `filename`s, warning only. Documented in the same doc section.
 
 Evidence, including the three bugs verification caught: [validation.md](validation.md).
 
 ## Remaining Work
 
-- **Step 5, found 2026-09-19 after the four steps verified: the match check cannot see
-  EXTRA packs.** `reportEngineMatch()` iterates the lock's 21 entries only, so a pack
-  beyond the 21 is never mentioned. Proved on the MPI bench: 36 pack folders, 15 outside
-  the lock (ComfyUI-GGUF, JoyCaption, MAINodes, QwenTTS, ComfyUI-Manager…), and the
-  linter reported "5 of 21 do not match" while saying nothing about the 15. A developer
-  there can build a graph on a GGUF node, pass BOTH the match check and the live
-  `/object_info` class check, and ship a Flow that fails for every user — the exact
-  failure this card exists to prevent. Fix is one `readdir` of `custom_nodes` plus a set
-  difference against the lock's `filename`s, reported as a warning (an extra pack is
-  legitimate until a graph actually uses one). Fabio raised it; not built.
+- Nothing to implement. Commit step 5 and close through `mpi-end-session` on the evidence
+  in [validation.md](validation.md).
 - Reversal cost is still low if Fabio rejects decision 2: the allowlist would be a further
   step writing a class list into the published lock, built from `resolve-comfy-node.mjs`.
 
 ## Plan Drift
 
+- 2026-09-19, close-out: pushing step 5 hit a RED master (`.husky/pre-push`), so this card
+  paid for someone else's break — the rule is that a red master belongs to whoever meets it.
+  `tests/desktop/agent-chat.spec.js:645` had been failing deterministically since f124f535.
+  Root cause was NOT the pinned-settings-panel feature: `textShare` divides one FLEXING slot
+  by the box while its siblings are fixed-width, so it measures the WINDOW WIDTH — 0.6865 on
+  a 1280 dev box, 0.6081 on the runner's 1024, against a bar of 0.65 measured at 1280. That
+  is why the number had gone red three times: every previous fix re-measured it and silently
+  re-encoded the measuring box's width. Fixed in 188cdc78 by pinning the host to 1024 before
+  measuring, so the runner's condition is the default. Proved both ways: with the pin and the
+  old bar the spec fails locally at exactly 0.6081390380859375, the CI value to the last digit.
+- 2026-09-19, step 5: the extra-pack count in the previous session's handoff was **15**;
+  the shipped check reports **12** on the same bench, and 12 is right. The 15 counted
+  `__pycache__` and the two `.disabled` folders, none of which is a pack — a parked pack
+  loads nothing and contributes no classes. The filter also has to compare the lock's
+  `filename` case-INSENSITIVELY: the bench carries `comfyui-krea2-controlnet` against the
+  lock's `ComfyUI-Krea2-ControlNet`, and a case-sensitive difference would have reported
+  correctly-installed packs as extras.
 - 2026-09-19: planning found the card's scope items 1 and 3 rest on premises the code
   contradicts (the lockfile exists; the linter already checks classes live). Scope
   restated above rather than implemented as written. The card's `description` still

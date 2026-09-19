@@ -37,6 +37,29 @@ Authoring notes now names the script. Every command in the new sections was run 
 (single run, captured to a file — a second run in the same shell produces phantom
 port/SSE failures).
 
+**6. The match check names EXTRA packs (step 5, found after 1-4 were committed).**
+`findExtraPacks()` reads `custom_nodes` and subtracts the lock's `filename`s.
+
+- Against the MPI bench `G:\ComfyUi`: on top of the existing `! 5 of 21 node packs do not
+  match`, it now prints `! 12 node pack(s) installed that this checkout does not ship` and
+  names them — ComfyUI-BFSNodes, ComfyUI-DramaBox, ComfyUI-GGUF, ComfyUI-H3-Motion-Context,
+  ComfyUI-JoyCaption, ComfyUI-MAINodes, ComfyUI-Manager, ComfyUI-MiniMax-H3-Turbo,
+  ComfyUI-QwenTTS, ComfyUI-VDN-H3, comfyui-FSampler, rgthree-comfy.
+- Against a synthetic ComfyUI carrying all 21 pinned packs with correct markers, every
+  folder name lower-cased, plus `__pycache__`, a `.disabled` pack, a dot-prefixed folder,
+  a loose `.py` file and one real extra: `Engine matches this checkout` followed by
+  `! 1 node pack(s) installed` — ComfyUI-GGUF alone. That one run proves all four filters
+  and the case-insensitive compare at once.
+- Same tree with the extra removed: the match line alone, no extra block.
+- No `COMFY_PATH`: `Engine match NOT checked`, unchanged.
+- Exit code unchanged in every case — an extra pack warns, it never fails the lint.
+
+**7. Suite after step 5.** `npm test` → **1383 pass, 0 fail, 1 skipped**, exit 0.
+`npm run lint` clean. Both were run in this session and the counts read off the captured
+output; the durable artifact is the CI run on e6908dd6 / 188cdc78, which runs the same suite.
+(A close-out claim audit flagged the bare counts as self-reported with nothing on disk — they
+are accurate, and CI is what proves them to a later reader.)
+
 ## Three bugs the verification caught, each of which would have shipped
 
 1. **Marker-only inspection called 21 correct packs drifted.** A developer's packs are git
