@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/files/v1",
+  "task": "MPI-830",
+  "owned": [
+    "routes/connectorGif.js",
+    "js/shell/gifJobs.js",
+    "tests/connector-gif.test.cjs",
+    "tests/connector-gif-jobs.test.cjs",
+    ".claude/skills/cubric-vision-gif/SKILL.md",
+    ".agents/mpi-kanban/tasks/MPI-830/"
+  ],
+  "shared": [
+    "routes/connector.js",
+    "js/shell/agentDispatch.js",
+    "server.js",
+    "resources/cubric/connector-manifest.json",
+    ".claude/skills/cubric-vision/SKILL.md",
+    "docs/gif.md"
+  ],
+  "note": "The six shared files take a ONE-LINE addition each (an export, a _HANDLERS entry, a router mount, a capability entry, a family-list line, a doc section). routes/connector.js and js/shell/agentDispatch.js are live ground for the in-app agent sessions (MPI-817 / MPI-820) - commit by explicit pathspec, never stage their other hunks."
+}

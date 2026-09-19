@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-830", "at": "2026-09-19T20:57:30+01:00", "actor": "claude", "column": "todo", "title": "Agents can use the GIF workspace - the connector's GIF surface"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-830", "at": "2026-09-19T20:58:37+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Connector GIF surface: Fabio approved the verb list and chose connector-first, 2026-09-19"}

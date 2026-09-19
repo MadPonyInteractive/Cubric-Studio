@@ -32,3 +32,16 @@ Rail count assertions in `gif-workspace.spec.js` / `history-modes.spec.js` moved
 - `js/components/types.js` typedef: MPI-532 and MPI-774 claim the file. Text: `types-hunk.md`.
 - `js/shell/preloadStyles.js` line: MPI-774 claim 91f0ea6b (Phase 3d); message c772b0a1 asks it to
   add the line or release the file. The panel's `css:` list loads the stylesheet meanwhile.
+
+## Fabio's sign-off, 2026-09-19
+
+Asked directly whether the GIF cards still sitting in `doing` with validation
+attention could close, Fabio answered: *"if they're GIF-related, they should be
+parked in done. But then the verifications and everything are working fine."*
+MPI-771's own last fix (the Mask Brush / Cut-out stroke disagreement and the
+playing-tint flip, `dc97b98c`) he verified in his own app earlier the same
+evening: *"it's verified. It looks good."*
+
+That is the user verification these cards were held open for. Closed on it.
+Agent access to the workspace, which is what the audit that held MPI-771 open
+turned up, is its own card: MPI-830.

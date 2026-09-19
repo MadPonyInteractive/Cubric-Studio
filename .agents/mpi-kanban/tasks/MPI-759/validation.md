@@ -85,3 +85,16 @@ Fix: the load gate excludes `.mpi-group-card__thumb--hover-video` (`MpiGalleryGr
 
 **CLOSED BY FABIO (chat, 2026-09-16 ~13:10Z):** after Ctrl+R, "hovering cards now work" in his app.
 The card can move to done at close-out on this evidence.
+
+## Fabio's sign-off, 2026-09-19
+
+Asked directly whether the GIF cards still sitting in `doing` with validation
+attention could close, Fabio answered: *"if they're GIF-related, they should be
+parked in done. But then the verifications and everything are working fine."*
+MPI-771's own last fix (the Mask Brush / Cut-out stroke disagreement and the
+playing-tint flip, `dc97b98c`) he verified in his own app earlier the same
+evening: *"it's verified. It looks good."*
+
+That is the user verification these cards were held open for. Closed on it.
+Agent access to the workspace, which is what the audit that held MPI-771 open
+turned up, is its own card: MPI-830.

@@ -8,3 +8,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "attention.required", "id": "MPI-773", "at": "2026-09-17T11:22:00Z", "actor": "claude:9b06fc0e", "reason": "MPI-773 UI half built and auto-verified 2026-09-17; left: types.js typedefs + preloadStyles.js line, both files under peer claims (MPI-532, MPI-774); text in tasks/MPI-773/types-hunk.md"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-773", "at": "2026-09-17T12:20:17Z", "actor": "claude:14adfdd8", "summary": "preloadStyles.js line landed in 88cfe347; only the types.js hunk is left"}
 {"schema": "mpi-kanban/event/v1", "type": "checklist.updated", "id": "MPI-773", "at": "2026-09-17T12:20:17Z", "actor": "claude:14adfdd8", "summary": "preloadStyles.js item done (88cfe347)"}
+{"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-773", "at": "2026-09-19T19:59:35Z", "actor": "claude", "note": "Fabio signed the GIF cards off, 2026-09-19 - closing on his verification"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-773", "at": "2026-09-19T20:59:38+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio signed off the GIF cards, 2026-09-19"}

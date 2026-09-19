@@ -51,3 +51,16 @@ waits 5 s for the image canvas source): 2 of 16 failed with HEAD's Block + MpiCa
 
 Left (peer claims, not logic): `types.js` typedefs and one `preloadStyles.js` line, text in
 `types-hunk.md` (preload requested from MPI-774 in reply a550e772).
+
+## Fabio's sign-off, 2026-09-19
+
+Asked directly whether the GIF cards still sitting in `doing` with validation
+attention could close, Fabio answered: *"if they're GIF-related, they should be
+parked in done. But then the verifications and everything are working fine."*
+MPI-771's own last fix (the Mask Brush / Cut-out stroke disagreement and the
+playing-tint flip, `dc97b98c`) he verified in his own app earlier the same
+evening: *"it's verified. It looks good."*
+
+That is the user verification these cards were held open for. Closed on it.
+Agent access to the workspace, which is what the audit that held MPI-771 open
+turned up, is its own card: MPI-830.
