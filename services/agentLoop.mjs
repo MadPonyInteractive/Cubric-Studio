@@ -349,7 +349,7 @@ export class AgentLoop {
         this._readIds = new Set(); // knowledge ids read in this context (the guide gate)
         this._guides = new Map();  // modelId -> guide ids, from list_models
         this._boxSteps = new Map(); // flowId -> its box steps [{param, role}], from list_models
-        this._mediaRoles = new Map(); // "modelId\nop" -> its media slots, from list_models
+        this._ops = new Map();     // "modelId\nop" -> that op's entry (media slots, params), from list_models
         this._boxed = new Set();   // image paths a `look` with box: true measured (the box gate)
 
         // SSE subscribers
@@ -502,7 +502,7 @@ export class AgentLoop {
     _rememberGuides(list) {
         for (const m of list?.models || []) {
             this._guides.set(m.id, Array.isArray(m.guides) ? m.guides : []);
-            for (const o of m.ops || []) this._mediaRoles.set(`${m.id}\n${o.op}`, Array.isArray(o.media) ? o.media : []);
+            for (const o of m.ops || []) this._ops.set(`${m.id}\n${o.op}`, o);
         }
         for (const f of list?.flows || []) this._boxSteps.set(f.id, Array.isArray(f.boxParams) ? f.boxParams : []);
     }
@@ -517,10 +517,10 @@ export class AgentLoop {
     async _missingMedia(args) {
         if (!args.modelId || !args.operation) return null;
         const key = `${args.modelId}\n${args.operation}`;
-        if (!this._mediaRoles.has(key)) {
+        if (!this._ops.has(key)) {
             try { this._rememberGuides(await this._tools.listModels()); } catch { return null; /* the app still validates the call */ }
         }
-        const slots = this._mediaRoles.get(key) || [];
+        const slots = this._ops.get(key)?.media || [];
         const given = new Set((Array.isArray(args.media) ? args.media : []).map((m) => m?.role));
         const missing = slots.find((s) => s.required && !given.has(s.role));
         return missing ? { missing, slots } : null;
@@ -546,6 +546,41 @@ export class AgentLoop {
             if (!ref || !this._boxed.has(ref.path)) return { param, role: step.role, image: media?.image || null };
         }
         return null;
+    }
+
+    /**
+     * The ratio an op should run at when the user named none and the generation starts from a
+     * picture: the op's offered ratio closest to that picture's own shape, same orientation.
+     * `null` when there is nothing to choose between, or the picture cannot be read.
+     *
+     * In CODE and not in the system prompt (Fabio, 2026-09-19). The prompt used to teach the
+     * arithmetic — read imageSize, divide, compare, match the orientation — and live the model
+     * simply never called `look`, so it had no size to divide and put a LANDSCAPE still on 9:16.
+     * Prompt words for this cost tokens on every turn and were still a guess; this is exact and
+     * costs the user nothing.
+     */
+    async _ratioForSource(key, sourcePath) {
+        const labels = this._ops.get(key)?.params?.ratios || [];
+        if (labels.length < 2 || !sourcePath) return null;
+        const size = await _imageSize(sourcePath);
+        const [w, h] = size.split('x').map(Number);
+        if (!w || !h) return null;
+
+        const shape = w / h;
+        const parsed = labels
+            .map((label) => {
+                const [rw, rh] = String(label).split(':').map(Number);
+                return rw && rh ? { label, value: rw / rh } : null;
+            })
+            .filter(Boolean);
+        // A wide picture never takes a tall ratio: the closest ratio by number alone is
+        // sometimes the one that crops the head off (a 4:5 is nearest 1:1, which cuts the top,
+        // while 9:16 takes the sides and keeps the whole height).
+        const orientation = (v) => Math.sign(v - 1);
+        const sameWay = parsed.filter((r) => orientation(r.value) === orientation(shape));
+        const pool = sameWay.length ? sameWay : parsed;
+        const best = pool.reduce((a, b) => (Math.abs(b.value - shape) < Math.abs(a.value - shape) ? b : a));
+        return best.label;
     }
 
     /**
@@ -633,7 +668,7 @@ ${modeRules}
 
 Model rule: first the TASK, then the model. The task comes from what the user asked for and does not change because another task's op ranks higher: changing an existing picture is the edit task (kleinEdit, krea2Edit, qwenEdit, edit), not i2i, even when the user names a model whose i2i is rank 1. Ranks only ever compare ops WITHIN one task. Inside the task, pick an op that is installed (an op list_models marks installed: false is not, and neither is a model marked runsHere: false, which this machine cannot run at all), and take the lowest rank number (rank 1 is the best we have at it); an op with no rank is unranked, not bad. Take a lower-ranked op over rank 1 only when the user names a model, or when its note matches what they asked for (a note is what the ranking cannot say: "leaves everything outside the edit area untouched", "takes exactly one image", "anime and stylised art"). When you pass over rank 1 for a note, say in one short line which model you used and why. If nothing installed fits, say an install is needed and offer one with install_model.
 
-Settings rule: list_models is the short list and carries no settings. Once you have picked a model or a Flow, call describe_model with its id: it gives each op its params (the only ratio, qualityTier, turbo and styleSelect values that op accepts — styleSelect is the index into params.styles), the media roles it takes, a Flow's fields and boxes, and its guide ids. Never send a value its params do not list, and leave out a param it does not offer. An op that starts from an image (a start frame) frames the video like that image: pick the listed ratio closest to its size (the attachment line and a finished generation give it), or the crop cuts the subject.
+Settings rule: list_models is the short list and carries no settings. Once you have picked a model or a Flow, call describe_model with its id: it gives each op its params (the only ratio, qualityTier, turbo and styleSelect values that op accepts — styleSelect is the index into params.styles), the media roles it takes, a Flow's fields and boxes, and its guide ids. Never send a value its params do not list, and leave out a param it does not offer.
 
 Numbering rule: "picture 2", "image 2" or "2" in a message means that message's attached image 2, never an image from an earlier turn. Pass that attachment's id.
 
@@ -641,15 +676,7 @@ Looking rule: before you comment on, judge or describe any image, call look on i
 
 Box rule: a Flow whose describe_model answer has boxParams needs one box per param, measured, never guessed. For each, call look on the image you pass for that param's role with box: true and a question naming what to box (Head Swap: the head, hair and jaw included), then pass output.square when the step has ratio 1, else output.box. generate refuses a box it did not see you measure. A Flow's fields hold only what their names say (Head Swap's positive is the expression the new head ends with), never instructions. Check the share before you pass it: look reports boxShare and squareShare, what the box and the square take of the image. A head is a small part of a photo, so a squareShare over 0.6 on either side, or over 1 (bigger than the image itself), means the describer boxed the whole person, not the head. Never pass that box: it swallows whoever stands next to them. Measure that image again ONCE, with a question that says head only, or on a crop around that person. If the second measure is no better, stop measuring: tell the user which photo you could not measure and what came back, and ask them to crop it to the head themselves. Never a third attempt, and never pass the box anyway.
 
-Shape rule: an op that takes a picture or a video AND offers a ratio does not letterbox the input — it centre-crops it to fill the ratio, so whatever the ratio has no room for is gone. Before you generate with an input picture and a ratio: call look on it and read output.imageSize, and work out the picture's shape as width divided by height, and the ratio's as W divided by H (9:16 is 0.56, 16:9 is 1.78).
-
-Which two edges go is arithmetic, never a guess. Compare the two numbers:
-- The ratio's number is SMALLER than the picture's (the ratio is taller) → the crop takes the LEFT AND RIGHT edges. Nothing at the top or the bottom is lost.
-- The ratio's number is LARGER than the picture's (the ratio is wider) → the crop takes the TOP AND BOTTOM edges, and a head is at the top.
-Name only those two edges. Saying the wrong pair is worse than saying nothing: the user leaves the framing alone because the part they care about sounded safe. Then:
-- The user did not name a ratio: pick the ratio the op offers that is CLOSEST to the picture's shape AND has the same orientation (a taller-than-wide picture takes a taller-than-wide ratio, never a wide one, never square). On MiniMax H3 a 4:5 picture takes 9:16, and a 5:4 takes 16:9.
-- The user DID name a ratio and it crosses the picture (they asked for widescreen and handed you a tall photo): use theirs, and before you generate tell them plainly what it will cut. If holding the person's identity is the point, say whether anything installed can do it without cropping — on MiniMax H3 that is ref2v_ms, which takes the picture as a reference rather than as a frame.
-Either way, when the picture's shape is not exactly the ratio, say so in one short line: there is a mismatch and the picture will be cropped to fit. Never let a crop happen silently — the user cannot see it coming, and the result reads as the model failing rather than the ratio.
+Shape rule: a generation that starts from a picture crops it to fill the ratio, never letterboxes it. Leave ratio out and the picture's own shape is used: say nothing. Only when the user asks for a ratio themselves, tell them in one line, before you generate, that part of the picture will be cropped to fit.
 
 Guide rule: before your first prompt for a model, read its prompting guide: describe_model gives that model its guide ids, read_knowledge reads one. generate refuses until you have. Use the guide to ADAPT what the user asked for to that model (its structure, length and vocabulary) and keep their intent. Never send a guide's example as the prompt.
 
@@ -774,10 +801,12 @@ ${knowledgeIndex}`.trim();
                 // Resolve media references. An attachment is copied into the project
                 // here — only now that a generation uses it — and a result is passed
                 // back by its project-file url (contract § Tools).
+                let sourcePath = null;
                 if (Array.isArray(args.media) && args.media.length) {
                     const resolved = [];
                     for (const m of args.media) {
                         const ref = this._resolveImage(m.image);
+                        if (!sourcePath && ref) sourcePath = ref.path;
                         if (!ref) {
                             return JSON.stringify({ ok: false, error: { code: 'IMAGE_NOT_FOUND', message: `Image reference not found: ${m.image}. Use an attachment id from this conversation, or the filePath of something you generated.` } });
                         }
@@ -792,6 +821,16 @@ ${knowledgeIndex}`.trim();
                         }
                     }
                     body.media = resolved;
+                }
+
+                // No ratio asked for, and it starts from a picture: give it the picture's own
+                // shape rather than the project's last saved ratio, which has nothing to do with
+                // the picture. Said out loud in the result, or the model narrates a ratio it
+                // picked in its head (live: "the video will have a 9:16 aspect ratio").
+                let snapped = null;
+                if (!args.flowId && args.ratio === undefined && sourcePath && args.modelId && args.operation) {
+                    snapped = await this._ratioForSource(`${args.modelId}\n${args.operation}`, sourcePath);
+                    if (snapped) body.ratio = snapped;
                 }
 
                 // Fire and don't await
@@ -832,7 +871,7 @@ ${knowledgeIndex}`.trim();
                     this._notes.push(`[Generation failed: RUNTIME_ERROR: ${err.message}]`);
                 });
 
-                return JSON.stringify({ ok: true, started: true, toolCallId, message: 'Generation started. The result will appear in the chat when ready.' });
+                return JSON.stringify({ ok: true, started: true, toolCallId, message: `Generation started. The result will appear in the chat when ready.${snapped ? ` Ratio ${snapped}, taken from the picture's own shape.` : ''}` });
             }
             case 'look': {
                 const ref = this._resolveImage(args.image);

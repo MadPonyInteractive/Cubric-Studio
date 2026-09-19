@@ -1340,10 +1340,33 @@ and every gizmo a Flow grows is another thing an agent has to drive blind. His l
   LARGER the top and bottom go — name only those two edges. A wrong pair is worse than silence: the
   user leaves the framing alone because the part they care about sounded safe.
 
-  **Still open from that run, needs Fabio:** the op was given `9:16` for a LANDSCAPE still, which the
-  same rule says should have snapped to `16:9` (closest offered ratio with the same orientation). If
-  he asked for a vertical video, the rule behaved; if he did not, the snap is being ignored and that
-  is a separate defect. Ask before building anything.
+  **ANSWERED by Fabio, same day: he did NOT ask for a vertical video** — he asked for his landscape
+  still to be animated, nothing more. So the snap was ignored. The screenshot says why: the tool
+  calls were `list_models`, `read_knowledge`, `generate` — **it never called `look`**, so it never had
+  an `imageSize` to compare and picked a ratio out of the air. A rule that begins "call look and
+  divide" cannot work on a model that does not call look.
+
+  **Fabio's standing instruction, 2026-09-19:** *"Let's not give too much context to the agents when
+  we can avoid it… we have to keep context to a minimum so that the user doesn't spend many credits."*
+  Applied here and it is the general shape for this phase: **anything the app can compute, the app
+  computes; the prompt keeps only what needs the agent's judgement or its voice.**
+
+  **BUILT, and the prompt got SMALLER doing it:**
+  - `_ratioForSource()` in the loop. No ratio named + the generation starts from a picture → the
+    picture's own shape decides, in code: parse the op's offered `W:H` labels, keep the ones of the
+    same orientation, take the nearest. His case now lands on `16:9`. Silent, exact, and it cannot be
+    skipped the way a `look` can. The result line says which ratio it took, because otherwise the
+    model narrates one it picked in its head (which is what he read).
+  - The Shape rule went from **1,494 chars to 308** (~370 tokens off EVERY turn). It no longer
+    teaches the arithmetic, the orientations or which two edges go — Fabio: *"instead of giving a lot
+    of information to the agent, we can simply tell the agent to tell the user which parts are going
+    to be cropped. There's no need to say top and bottom or left and right."* What is left is the one
+    thing only the agent can do: when the USER named a ratio, say in one line that part of the
+    picture will be cropped.
+  - The Settings rule's start-frame sentence went with it: the code does that now.
+  - `ref2v_ms` as the identity-preserving alternative is out of the prompt. Checked: `guide:minimax-h3`
+    names it 8 times, and the guide gate makes the agent read that before its first H3 prompt — so it
+    is not lost, it is just read on demand instead of carried every turn.
 
   **Fabio's heads-up, 2026-09-19:** recent disk-offload work reportedly lets 8GB cards run 200B+
   models, trading speed; he is putting an agent on it. It does not soften the line above, and the

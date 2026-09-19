@@ -193,6 +193,13 @@ Every event but `agent:session` also carries `session`, the key of its conversat
   newest turns (at most 4) that fit in HALF the trigger, sized by the last call's tokens per char. Four whole turns
   could sit above the trigger alone (a `list_models` answer was ~9.5k tokens; a 32k window triggers at 16.4k), and
   then every turn compacted again (live, Phase 4).
+- **The app computes, the prompt persuades** (Fabio, 2026-09-19: keep the agent's context to a
+  minimum, the user pays for it). A generation that starts from a picture and names no ratio gets the
+  picture's own shape, chosen in `_ratioForSource()` — the op's offered `W:H` labels of the same
+  orientation, nearest to the source. The prompt used to teach that arithmetic in 1,494 chars and the
+  model never called `look`, so it had no size and put a landscape still on 9:16. It is 308 chars now
+  and keeps only what the agent alone can do: when the USER named the ratio, say a crop is coming.
+  The result line reports the ratio it took, or the model narrates one of its own.
 - **The catalogue is a POINTER list** (Phase 7). The route still answers in full; `compactCatalogue()`
   in `agentLoop.mjs` is what the MODEL sees: id, name, type, installed, ops with `rank`/`note`, and a
   model's one shared note said once instead of on every op. Everything a caller SETS — `params`,

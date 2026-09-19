@@ -973,7 +973,7 @@ describe('(h) notes, results, names, guides', () => {
         assert.match(sent, /\[Attached image 1: man\.png \(id: att_a, 128x86\)\]/);
         assert.match(sent, /\[Attached image 2: woman\.png \(id: att_b\)\]/, 'an unreadable file just has no size');
         assert.match(loop._messages[0].content, /Numbering rule: .*never an image from an earlier turn/);
-        assert.match(loop._messages[0].content, /pick the listed ratio closest to its size/);
+        assert.match(loop._messages[0].content, /the picture's own shape is used/);
     });
 
     // MPI-774 Phase 4: live, the model guessed Head Swap boxes at {0,0,512,512} and the swap came
@@ -1125,6 +1125,35 @@ describe('(i) the catalogue diet', () => {
         assert.equal(filled.started, true, 'the call that fills the slot goes through');
         assert.equal(noSlots.started, true, 'an op with no media slots is not gated');
         assert.equal(tools.calls.generate.length, 2, 'the empty call never reached the app');
+    });
+
+    // Fabio, live 2026-09-19: he asked for his LANDSCAPE still to be animated, named no ratio,
+    // and the model put it on 9:16 — it never called look, so it never had a size to compare.
+    // The choice is code's now, and the prompt lost the arithmetic that did not work anyway.
+    test('an unnamed ratio is taken from the picture, same orientation, and said out loud', async () => {
+        const wide = require('node:path').join(__dirname, '..', 'assets', 'mascot', 'studio', 'logo.webp'); // 128x86
+        const withRatios = {
+            ...catalogue,
+            models: [{
+                id: 'vid', name: 'Vid', type: 'video', installed: true, guides: [], ops: [{
+                    op: 'i2v', installed: true,
+                    media: [{ role: 'startFrame', type: 'image', required: true }],
+                    params: { ratios: ['1:1', '9:16', '16:9', '21:9'] },
+                }],
+            }],
+        };
+        const go = (id, extra) => call(id, 'generate', {
+            modelId: 'vid', operation: 'i2v', prompt: 'animate it',
+            media: [{ role: 'startFrame', image: 'att_1' }], ...extra,
+        });
+        const { loop, tools } = await makeLoop({ engineResponses: [go('g1'), go('g2', { ratio: '9:16' }), { text: 'ok' }] });
+        tools.listModels = async () => withRatios;
+        loop._images.set('att_1', { path: wide, kind: 'attachment' });
+        await loop.runTurn('animate it', [], project, 'auto', 'deepinfra', 't-snap');
+
+        assert.equal(tools.calls.generate[0].ratio, '16:9', 'a wide picture never lands on a tall ratio');
+        assert.match(toolResults(loop)[0].message, /Ratio 16:9/, 'the model is told, or it narrates one of its own');
+        assert.equal(tools.calls.generate[1].ratio, '9:16', 'a ratio the user asked for is never overridden');
     });
 
     test('describe_model gives one entry whole, model or Flow, and refuses an id it does not know', async () => {
