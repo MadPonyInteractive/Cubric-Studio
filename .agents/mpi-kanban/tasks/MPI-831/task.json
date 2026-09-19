@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-831",
+  "title": "Flow Library: Add-on Flows section, source badges, dimmed uninstalled tiles, and paid Gumroad tiles",
+  "description": "Four changes to the Flow Library, all landing in MpiFlowLibrary.js and the shared MpiTileSheet primitive, so they ship as one pass. 1: a bottom section headed Add-on Flows, holding every package Flow regardless of mediaType, separated from the built-in media sections. Label chosen by Fabio 2026-09-19 - it names DELIVERY, not authorship, because Head Swap and DramaBox are Mad Pony Flows sold as packages and would be mislabelled as third-party. 2: a source flag on package tiles, reusing the TILE_FLAGS sparkle system the Model Library already uses and the Flow Library passes nothing to today. 3: uninstalled tiles render desaturated, which needs patchState to toggle a class and not only swap the chip HTML. 4: two hard-coded tiles for the paid Flows, whose Get it button opens a cubric.studio redirect that forwards to the coded Gumroad URL, and which hide once the matching package id is installed. Answers MPI-780 open question 1 - yes, show them as link tiles. Full plan and the decided design in plan.md.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-19T21:13:12+01:00",
+  "updated_at": "2026-09-19T21:13:12+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
