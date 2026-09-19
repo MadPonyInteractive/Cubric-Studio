@@ -341,8 +341,15 @@ const CASES = [
     // Phase 3c (Fabio, 2026-09-16) replaced "asks for a project": the landing agent makes one.
     {
         id: 'create-then-generate',
-        title: 'landing page, no project -> creates "New Project", opens it, generates there',
-        setup: { project: null, turns: ['Make an image of a cat asleep on a sunny windowsill.'] },
+        // The request carries BACKGROUND on purpose. Live (Fabio, 2026-09-19) a make-request with a
+        // story attached — four character sheets, four sisters, a western set in 1876 — was read as
+        // "describing a project": it created the project, saved a brief, asked what he wanted first,
+        // and generated nothing. The old one-line request could never have caught that.
+        title: 'landing page, no project -> creates one, opens it, and MAKES what was asked, background or not',
+        setup: {
+            project: null,
+            turns: ['Can you make me an image of a cat asleep on a sunny windowsill? It is for a picture book I am writing about a stray who finds a home, set in a seaside town.'],
+        },
         flip: { project: PROJECT },
         check(run) {
             const calls = run.turns.flatMap((t) => t.calls);
@@ -350,7 +357,6 @@ const CASES = [
             if (created < 0) return ['no project was created'];
             const f = [];
             const made = calls[created].result.project;
-            if (!/new project/i.test(made.name)) f.push(`created "${made.name}", not "New Project"`);
             const opened = calls.findIndex((c, i) => i > created && c.tool === 'open_project' && c.result?.ok && c.args.folderPath === made.folderPath);
             if (opened < 0) f.push('did not open the project it created');
             else if (!calls.some((c, i) => i > opened && c.tool === 'generate' && c.result?.ok)) f.push('no generate went through after opening it');

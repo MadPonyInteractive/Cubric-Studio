@@ -221,3 +221,36 @@ test('the environment key never goes to a DeepInfra profile whose URL was edited
         }));
     } finally { restore(); }
 });
+
+// ---------------------------------------------------------------------------
+// A chat call that never answers is a failure, not a wait (Fabio, live 2026-09-19)
+// ---------------------------------------------------------------------------
+
+// His `look` on a hosted describer sat on "Looking at image" with no error and no log
+// line: neither engine passed a signal to fetch, so the only deadline was undici's own
+// ~5 minutes, which says nothing a user can read. He gave it two minutes and killed the app.
+test('a chat that never answers times out with a message that names the endpoint', async () => {
+    const { DeepInfraEngine, OllamaEngine, REMOTE_CHAT_TIMEOUT_MS, OLLAMA_CHAT_TIMEOUT_MS } =
+        await import('../services/llmEngines.mjs');
+
+    assert.equal(REMOTE_CHAT_TIMEOUT_MS, 180_000, 'hosted deadline');
+    assert.equal(OLLAMA_CHAT_TIMEOUT_MS, 600_000, 'local deadline: a cold 12B load alone is ~60s');
+
+    const real = global.fetch;
+    // Never resolves on its own — only the engine's signal can end it.
+    global.fetch = (_url, init) => new Promise((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => reject(init.signal.reason));
+    });
+    try {
+        for (const [engine, name] of [
+            [new DeepInfraEngine('k', 'https://api.example/v1', { id: 'deepinfra', name: 'DeepInfra' }), 'DeepInfra'],
+            [new OllamaEngine('http://localhost:11434'), 'Ollama'],
+        ]) {
+            engine.timeoutMs = 25;
+            const err = await engine.chat({ model: 'm', messages: [] }).then(() => null, (e) => e);
+            assert.ok(err, `${name}: the call resolved instead of timing out`);
+            assert.equal(err.code, 'TIMEOUT', `${name}: ${err.message}`);
+            assert.match(err.message, /did not answer within/);
+        }
+    } finally { global.fetch = real; }
+});

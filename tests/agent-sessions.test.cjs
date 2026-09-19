@@ -278,13 +278,17 @@ describe('project jobs: list, create, open', () => {
         assert.deepEqual(tools.calls.opens, [B.folderPath, 'C:/Projects/Lighthouse', 'C:\\Projects\\Beta', typed]);
     });
 
-    test('the system prompt tells the landing agent to create, open and brief a project', async (t) => {
+    // Fabio, live 2026-09-19: asked for four character sheets and got a project, a saved
+    // brief and a question — the background he gave ("this is for a western set in 1876")
+    // read as "describing a project", and nothing was made. Making it is not optional.
+    test('the system prompt tells the landing agent to create, open and MAKE, background or not', async (t) => {
         const { sessions, send, restore } = await makeSessions();
         t.after(restore);
         await send('hi', null);
         const system = sessions._loops.get('')._messages[0].content;
-        assert.match(system, /create a project named exactly "New Project" with create_project/);
-        assert.match(system, /save a project-brief note with write_memory/);
+        assert.match(system, /if the user asks for anything to be MADE, create a project/);
+        assert.match(system, /make it in that same turn/);
+        assert.match(system, /never a reason to stop/);
         assert.match(system, /open_project only takes a folderPath from list_projects or create_project, or one the user typed/);
     });
 });

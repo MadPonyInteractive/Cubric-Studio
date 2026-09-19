@@ -122,6 +122,35 @@ export const OLLAMA_AGENT_CONTEXT = 32_768;
 const OLLAMA_DEFAULT_CONTEXT = 8_192;
 
 /**
+ * How long a chat call may take before it is a failure rather than a wait.
+ *
+ * Neither engine had a deadline: `fetch` with no signal falls back to undici's own
+ * ~5-minute default, which is longer than any healthy call, and when it does fire it
+ * says nothing a user can read. Live (Fabio, 2026-09-19) a `look` on a hosted describer
+ * sat on "Looking at image" with no error, no log line and no way to tell a slow answer
+ * from a dead one; he gave it two minutes and killed the app.
+ *
+ * Hosted is 3 minutes: the slowest healthy agent turn measured is well under one.
+ * Ollama gets 10, because a cold load of a 12B at 32k context measured ~60s before the
+ * first token and a bigger local model on a busy card is slower again — a local machine
+ * being slow is not the same failure as a remote endpoint being gone.
+ */
+export const REMOTE_CHAT_TIMEOUT_MS = 180_000;
+export const OLLAMA_CHAT_TIMEOUT_MS = 600_000;
+
+/** `fetch` that fails loudly instead of hanging. `code: 'TIMEOUT'` for callers that branch. */
+async function _fetchWithDeadline(url, init, timeoutMs, label) {
+    try {
+        return await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+    } catch (err) {
+        if (err?.name !== 'TimeoutError' && err?.name !== 'AbortError') throw err;
+        const e = new Error(`${label} did not answer within ${Math.round(timeoutMs / 1000)}s. It may be overloaded or unreachable.`);
+        e.code = 'TIMEOUT';
+        throw e;
+    }
+}
+
+/**
  * Ollama speaks a different tool dialect from OpenAI, in three ways that each fail
  * QUIETLY rather than erroring, so the conversion lives here and the agent loop keeps
  * speaking one dialect:
@@ -177,10 +206,11 @@ export class OllamaEngine {
 
     constructor(baseUrl = OLLAMA_BASE_URL) {
         this.baseUrl = baseUrl;
+        this.timeoutMs = OLLAMA_CHAT_TIMEOUT_MS;
     }
 
     async chat(req) {
-        const res = await fetch(`${this.baseUrl}/api/chat`, {
+        const res = await _fetchWithDeadline(`${this.baseUrl}/api/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -220,7 +250,7 @@ export class OllamaEngine {
                     ...(req.options?.stop !== undefined && { stop: req.options.stop }),
                 },
             }),
-        });
+        }, this.timeoutMs, 'Ollama');
         if (!res.ok) {
             throw new Error(`Ollama chat failed: ${res.status} ${res.statusText}`);
         }
@@ -529,6 +559,7 @@ export class DeepInfraEngine {
         this.apiKey = apiKey;
         this.baseUrl = baseUrl;
         this._profile = profile;
+        this.timeoutMs = REMOTE_CHAT_TIMEOUT_MS;
         // Report honest backend: the profile's preset id, or 'deepinfra' for the
         // legacy direct-key path. Read by callers after chat() / complete() returns.
         this.backend = profile ? (profile.id || 'deepinfra') : 'deepinfra';
@@ -556,7 +587,8 @@ export class DeepInfraEngine {
 
     async chat(req) {
         const key = this.resolveKey();
-        const res = await fetch(`${this.resolveBaseUrl()}/chat/completions`, {
+        const label = this._profile ? (this._profile.name || this._profile.id || 'The endpoint') : 'DeepInfra';
+        const res = await _fetchWithDeadline(`${this.resolveBaseUrl()}/chat/completions`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -575,13 +607,12 @@ export class DeepInfraEngine {
                 // identical to the original, so every existing enhance caller is unaffected.
                 ...(Array.isArray(req.tools) && req.tools.length && { tools: req.tools }),
             }),
-        });
+        }, this.timeoutMs, label);
         if (!res.ok) {
             // Read the body so callers can detect NOT_VISION (a 4xx with a message
             // naming image/vision input). This is additive — callers that only read
             // `err.message` are unaffected.
             const bodyText = await res.text().catch(() => '');
-            const label = this._profile ? (this._profile.name || this._profile.id || 'endpoint') : 'DeepInfra';
             const err = new Error(`${label} chat failed: ${res.status} ${res.statusText}`);
             err.status = res.status;
             err.bodyText = bodyText;

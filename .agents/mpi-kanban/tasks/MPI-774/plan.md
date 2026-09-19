@@ -1185,25 +1185,58 @@ and every gizmo a Flow grows is another thing an agent has to drive blind. His l
   from 8,681 to 10,177 chars of system prompt — **~4,049 tokens** with the 11 tool schemas. Fabio's
   Ollama serves a 4,096-token window. The floor now IS the window.
 
-- [ ] **Ollama Cloud would break the keyless-ollama invariant — a DECISION, not a patch** (peer
-  session `56b53dee`, 2026-09-19, while assessing Colibri; full notes in project memory at
-  `reference_colibri_streaming_moe.md`). `ollama` is keyless EVERYWHERE in this code by deliberate
-  design: `runTurn` and `probe` in `agentLoop.mjs` skip `NO_KEY` for it, matching the three checks in
-  `routes/llm.js` (that skip is fix 11 above, this morning). Ollama Cloud direct is
-  `https://ollama.com/api/chat` with an `Authorization: Bearer` header — native dialect, so
-  `OllamaEngine` is already the right client, and the ONLY thing in the way is the invariant. The
-  local-proxy alternative (sign in, run `-cloud` models through `localhost:11434`) may not work:
-  ollama/ollama#13801 reports `-cloud` models failing through the proxy on `/api/generate`. Neither
-  route was tested against a live Ollama. **Nothing to build until Fabio decides** whether the
-  preset gains an optional key or Cloud becomes its own preset — one is a hole in a stated invariant,
-  the other is a new row in the picker below.
+- [x] **Ollama Cloud does NOT break the keyless-ollama invariant — CLOSED, no change** (peer session
+  `56b53dee` raised it and then retracted it the same day, with the evidence). Nothing for Fabio to
+  decide, and nothing to build:
+  - **The local daemon already holds the credential.** `POST http://localhost:11434/api/me` on his box
+    returns a live account (plan: free) and he has never put a key in our app: sign-in happens once in
+    the Ollama app, and the local server proxies cloud models. A client calls `localhost:11434/api/chat`
+    with a `-cloud` model and NO Authorization header — which is exactly what `OllamaEngine` does.
+    (`GET /api/me` answers 405; it is POST-only, so the obvious probe makes it look absent.)
+  - **ollama/ollama#13801 does not apply.** Closed, fixed by PR #14574, and it only ever hit
+    `/api/generate` with `raw: true` on 0.14.2. We call `/api/chat`, never set `raw`, and his box runs
+    0.34.1.
+  - Only DIRECT `https://ollama.com/api/chat` needs a Bearer key, which matters to a client that does
+    not want a local Ollama — not us, since our backend drives the local app already
+    (`services/ollamaLifecycle.js`). So the `profileId !== 'ollama'` skip in `runTurn` and `probe`
+    stays a stated invariant, not a "keyless unless".
+  - **Still unverified:** a live cloud generation end to end (his plan is free, no `-cloud` model
+    pulled). The one thing that could still surprise us is whether a cloud-served model returns
+    `function.arguments` as an object or a JSON string — `fromOllamaToolCalls` already converts both,
+    so it would survive either way.
 
-  Worth keeping from the same assessment, for whenever the agent surfaces model fit or memory
-  pressure: Colibri plans its RAM budget BEFORE loading and reports its own hit rate afterwards
-  ("10,320 expert requests, 7,357 hits, 71%"), where llama.cpp asks for 147 GB in one go and dies
-  with an OOM that reads as the user's hardware being too small. Say the budget up front, report what
-  happened. We have that shape nowhere. (Colibri itself is no work for us: OpenAI-compatible, lands
-  in the existing `custom` preset, but ~1.6 tok/s decode makes a 5-step tool loop 15+ minutes.)
+  Kept from the same assessment, for whenever the agent surfaces model fit or memory pressure: plan
+  the budget BEFORE loading and report what actually happened afterwards, rather than asking for
+  147 GB in one go and dying with an OOM that reads as the user's hardware being too small.
+
+- [x] **A chat call with no deadline reads as "stuck"** (Fabio, live, 2026-09-19). He asked the agent
+  to animate an adult image; the panel sat on `LOOKING AT IMAGE` and never moved. The log says it
+  exactly: `09:29:26 Agent job fe7aac93… agent.describe`, then **nothing at all** until he quit at
+  `09:31:33`. No error, no second line.
+
+  **Cause: neither engine passed a signal to `fetch`.** `DeepInfraEngine.chat` and
+  `OllamaEngine.chat` both made a bare call, so the only deadline was undici's own ~5 minutes —
+  longer than any healthy call, and when it fires it says nothing a user can read. Every remote job
+  rode on that: describe, enhance and the agent's own turns.
+
+  **BUILT:** `_fetchWithDeadline` in `llmEngines.mjs`, used by both `chat()` methods (and so by both
+  `complete()`, which delegate). `REMOTE_CHAT_TIMEOUT_MS` 180s — the slowest healthy agent turn
+  measured is well under one minute; `OLLAMA_CHAT_TIMEOUT_MS` 600s, because a cold 12B load at 32k
+  context measured ~60s before the first token and a local machine being slow is not the same failure
+  as an endpoint being gone. The error names the endpoint and carries `code: 'TIMEOUT'`. Test stubs a
+  fetch that never resolves and asserts both engines give up — it caught a half-applied edit on the
+  first run (the Ollama call had been switched to the helper without its arguments, so it aborted on
+  `undefined`).
+
+  **A possible contributing cause, named for honesty:** my own `agent-test` harness run was hitting
+  the SAME DeepInfra account at `09:28–09:29Z` on the key from `~/.secrets/di.txt`. Concurrency or a
+  rate limit on that account cannot be ruled out as what stalled his call. A 429 would have returned
+  an error rather than silence, so it does not explain the hang on its own — but the harness spends
+  his money and should be flagged before it runs, not after.
+
+  **Not fixed, and it is the other half:** the UI still shows nothing but a static label while a look
+  is in flight, so a slow answer and a dead one look identical for three minutes. That is UI — his
+  call, and it belongs with the picker item below.
 
 - [ ] **The Ollama connection picker tells the user nothing, and the enhance picker five rows above
   it tells them everything** (Fabio, 2026-09-19: *"I had no idea what to select where, so I just
@@ -1305,6 +1338,26 @@ and every gizmo a Flow grows is another thing an agent has to drive blind. His l
   Guide); the Model rule reads `installed: false` and `runsHere: false` off the short list. A refused
   setting (`INVALID_*`, `MEDIA_REQUIRED`) now says in its note which id to `describe_model` — the one
   failure the short list can cause.
+
+- [x] **A make-request with BACKGROUND was read as "describing a project", and nothing was made**
+  (Fabio, live, 2026-09-19 — the four-sisters run, which is MPI-816's closing test). He asked for four
+  character sheets and added who the sisters are and that it is for a western set in 1876. The agent
+  created the project, saved a brief, asked what he wanted to make first, and generated nothing.
+
+  **It followed the rule.** The Project rule had two branches — "asks you to make something" and
+  "starts a new project and tells you its goal" — and a make-request carrying background satisfies
+  both readings. The background decided it.
+
+  **BUILT:** one branch, mechanical. If the user asks for anything to be MADE, create the project,
+  open it and make it **in that same turn**; background is material for the work, never a reason to
+  stop — note what matters and still make all of it. Only a description with nothing asked for ends
+  the turn with a question. The project is named after what they are making (this also drops the old
+  "exactly New Project" line: he saw `Cowgirls` and did not object, and it is one less rule).
+
+  **The harness case could never have caught it:** `create-then-generate` sent one bare line,
+  *"Make an image of a cat asleep on a sunny windowsill."* It now carries background the same shape
+  as his, and passes 3/3 on the real model. That run cost $0.0085 on his DeepInfra key — see the
+  timeout item below, where the same spend may have stalled his own call.
 
 - [x] **A generate with an empty media slot was reported to the user as started** (Fabio, live,
   2026-09-19, on `Qwen/Qwen3-VL-235B-A22B-Instruct`). He asked for a video of his cowgirl still; the
