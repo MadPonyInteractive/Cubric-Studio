@@ -31,6 +31,10 @@ Two independent defects, both located:
 Closes only on the end-to-end verify: ask the agent, in Fabio's own words, for four character
 sheets of four sisters, and **four cards land**.
 
+**PASSED 2026-09-19 09:45–09:48Z** in Fabio's own app, on his GPU, after he handed the run over.
+Four named cards, real sheets, no error line; evidence in `MPI-816/validation.md`. Card is at
+`validating` — his sign-off closes it.
+
 ### Phase B — MPI-774 Phase 6: global memory (open, needs Fabio)
 
 A global agent store beside the per-project one (`<APP_USER_DATA>/agent/`). Design conversation

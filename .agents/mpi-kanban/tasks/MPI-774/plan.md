@@ -1267,6 +1267,55 @@ and every gizmo a Flow grows is another thing an agent has to drive blind. His l
   is in flight, so a slow answer and a dead one look identical for three minutes. That is UI — his
   call, and it belongs with the picker item below.
 
+- [ ] **NEXT SESSION, both found by Fabio live at 10:09Z on 2026-09-19, minutes after the two tests
+  passed.** He asked for an image from the landing page, then said *"You can place it in the Fanvue
+  project."* Two defects, and they are not the same one.
+
+  **(a) The `NO_PROJECT` error teaches the model to ask.** His screenshot reads *"I need a project to
+  create this image. Please open or create a project first."* That is `agentLoop.mjs`'s own
+  `NO_PROJECT` text — *"No project is open. Please open or create a project first."* — relayed almost
+  verbatim. The Project rule says the exact opposite ("never ask them to open or create one first,
+  that is your job"), and the rule lost: a concrete tool result beats a prompt rule, every time.
+  **The error message is the fix**, not more prose. It should tell the agent what to DO — create one
+  with `create_project`, which now opens it, then send the same generate again — rather than
+  describing the state to a user who cannot act on it. Check every other error string in the loop for
+  the same shape while in there; this is the second time this session that a *message* has been the
+  real instruction (the first was the crop rule's edges).
+
+  **(b) An existing project is matched case-sensitively, but the filesystem is not.** Log:
+  `10:09:29 created project "Fanvue" at …/Projects/Fanvue_2b752074`, while `fanvue` already existed
+  and he had just named it. The `_<8 hex>` suffix is the taken-folder escape hatch in
+  `POST /create-project`, so **the app already knew the name was taken** — Windows is case-insensitive
+  at the folder level — and treated that as "pick another folder" instead of "you already have this
+  project". Fabio's read: *"I'm guessing he's not looking at case sensitivity in strings."*
+  Two layers to check, and they may both need it: the agent's own path (the Project rule says to find
+  a project by name with `list_projects` before creating, and it did not), and `create-project`
+  itself, which could answer "this project exists, here is its folderPath" rather than silently
+  minting a twin. **Beware the trap this session already hit:** two projects with the same display
+  name are indistinguishable in the picker, which is what made his chat look lost this morning. Same
+  root, and worth fixing once.
+
+- [ ] **A model that does not refuse adult work deserves a flag, next to the recommended one**
+  (Fabio, 2026-09-19): *"Qwen3 VL 30B A3B Instruct seems to not care about uncensored content, so we
+  could have a recommended NSFW flag for this, just like we have a recommended flag for the DeepSeek
+  V4 Flash one."*
+
+  **Evidence is already on this card:** test 2 above ran an adult image end to end on
+  `Qwen/Qwen3-VL-30B-A3B-Instruct` — it looked at the picture, described it, wrote the prompt and
+  dispatched the video, with no refusal at any step.
+
+  `RECOMMENDED_REMOTE_MODELS` (`llmEngines.mjs:467`) is where the recommended mark comes from today:
+  `{ id, jobs, contextWindow }`, one row per model, and `listRemoteModels` sorts those first. A flag
+  belongs on that row. **What it must NOT become:** a promise. We can say a model did not refuse in
+  our testing; we cannot say it never will, and a hosted provider can tighten its filter without
+  telling anyone. The honest wording is closer to the panel's existing line (*"A hosted provider will
+  refuse or quietly sanitise material that a local uncensored build will shape for you"*) — something
+  like "did not refuse adult work in our tests", dated, not "uncensored".
+
+  Covers all three rows (Enhancement, Description, Agent) and belongs with the picker item below,
+  since a flag with nowhere to render is half a feature. **Fabio's call on the wording** before it
+  ships — it is a claim about someone else's service, on a public UI.
+
 - [ ] **The Ollama connection picker tells the user nothing, and the enhance picker five rows above
   it tells them everything** (Fabio, 2026-09-19: *"I had no idea what to select where, so I just
   selected one of the abliterated models."*). Both live in `MpiLlmSettings`.
