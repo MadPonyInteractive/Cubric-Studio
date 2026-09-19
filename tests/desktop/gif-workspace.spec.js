@@ -501,7 +501,8 @@ test('gif output: the preview pane encodes on demand and its badge goes stale wi
     await expect.poll(async () => (await pane()).badgeText).toBe('4 KiB');
     expect((await pane()).stale).toBe(false);
 
-    // ── The other timing tools have NO pane at all ──────────────────────
+    // ── The other timing tools have NO pane at all ─────────────────────
+
     // Removed, not `[hidden]`: a class carrying `display` outranks the UA sheet,
     // which is how three inert slider rows once reached the screen (MPI-382).
     await window.evaluate(() => {
@@ -510,6 +511,112 @@ test('gif output: the preview pane encodes on demand and its badge goes stale wi
     await window.waitForSelector('.mpi-tool-options-gif-timing');
     expect(await window.evaluate(() => !!document.querySelector('.mpi-tool-options-gif-timing__preview')),
       'Speed is not an encoder and must not carry a preview pane').toBe(false);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+/**
+ * MPI-771 — a brush fix must survive a Track landing while CUT-OUT is the open
+ * tool. This broke master once (run 35437964298) and this is its cheap guard.
+ *
+ * Cut-out mounts the canvas as a DISPLAY surface: it shows a flipped, adjusted
+ * override and never loads the frame's brush layers. Marking that canvas as the
+ * "edit frame" made `_refreshEditBase()` — which a landing `setTrackMask` calls —
+ * save the canvas's EMPTY manual and subtract back over the real edits, silently
+ * deleting the user's fix. `gif-cutout.spec.js` catches it end to end through a
+ * real cut, but only in CI (its round-trip test needs a project on disk); this
+ * one runs anywhere, in two seconds, off the stubbed fixture.
+ */
+test('gif cut-out: a Track landing must not wipe a brushed frame', async ({}, testInfo) => {
+  const { app, window } = await launchApp(testInfo);
+  try {
+    await setupProject(window);
+    await window.evaluate(async () => {
+      const { navigate, PAGE_GROUP_HISTORY } = await import('/js/router.js');
+      navigate(PAGE_GROUP_HISTORY, { groupId: 'gGif' });
+    });
+    await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-frame-strip__thumb'))).toBe(true);
+
+    const openTool = (info) => window.evaluate((name) => {
+      document.querySelector(`.mpi-history-tools__btn[data-info="${name}"] button`).click();
+    }, info);
+    /** The brushed frames, as the strip paints them. */
+    const editedDots = () => window.evaluate(() =>
+      [...document.querySelectorAll('.mpi-frame-strip__thumb--edited')].map(t => t.dataset.index));
+
+    // ── Brush frame 0 ───────────────────────────────────────────────────
+    await openTool('Mask Brush');
+    await expect.poll(() => window.evaluate(() => {
+      const cv = document.querySelector('.mpi-gif-viewer__edit .mpi-canvas');
+      return !!cv && cv.activeMode === 'mask';
+    }), { timeout: 15000 }).toBe(true);
+    await window.evaluate(() => document.querySelector('.mpi-gif-viewer__edit .mpi-canvas').setBrushSize(8));
+    const pt = await window.evaluate(() => {
+      const cv = document.querySelector('.mpi-gif-viewer__edit .mpi-canvas');
+      const r = cv.getBoundingClientRect();
+      return { x: r.left + cv.offsetX + 6.5 * cv.scale, y: r.top + cv.offsetY + 6.5 * cv.scale };
+    });
+    await window.mouse.move(pt.x, pt.y);
+    await window.mouse.down();
+    await window.mouse.move(pt.x + 1, pt.y);
+    await window.mouse.up();
+
+    // Leaving the brush saves the frame.
+    await openTool('Cut-out');
+    await expect.poll(editedDots, 'frame 0 is brushed').toEqual(['0']);
+
+    // Track All: EVERY frame gets a mask. That matters — Cut-out's override is
+    // per frame, and stepping onto an unmasked frame nulls it, which hides the
+    // bug behind the normal load path.
+    const centreMask = (size) => window.evaluate((n) => {
+      const c = document.createElement('canvas');
+      c.width = c.height = n;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = 'white';
+      ctx.fillRect(n / 4, n / 4, n / 2, n / 2);
+      return c.toDataURL('image/png');
+    }, size);
+    const m = await centreMask(8);
+    await window.evaluate((url) => {
+      document.querySelector('.mpi-gif-viewer').setTrackMasks([url, url, url, url, url]);
+    }, m);
+
+    // Step away and back. THIS is what puts the canvas in the state that loses
+    // the fix: a frame load under the override shows the flipped bitmap and
+    // skips the brush layers, so the canvas holds none of them.
+    for (const idx of [1, 0]) {
+      await window.locator(`.mpi-frame-strip__thumb[data-index="${idx}"]`).click();
+      await expect.poll(() => window.evaluate((i) =>
+        document.querySelector('.mpi-frame-strip__thumb.is-current')?.dataset.index === String(i), idx)).toBe(true);
+    }
+
+    // ── A second Track result lands on frame 0 (what By colour does, per frame) ──
+    await window.evaluate((url) => {
+      document.querySelector('.mpi-gif-viewer').setTrackMask(0, url);
+    }, await centreMask(16));
+
+    // THE ASSERTION IS A PIXEL, not the dot. The bug left the `--edited` dot and
+    // a non-null mask URL in place — it emptied the mask's CONTENTS — so both of
+    // those pass while the user's fix is gone. The brushed corner is at (6,6) and
+    // the track above covers only the middle, so that one pixel separates
+    // "brush + track" from "track alone".
+    await expect.poll(editedDots, 'a landing track must not delete the brush fix').toEqual(['0']);
+    const brushedCorner = await window.evaluate(async () => {
+      const url = await document.querySelector('.mpi-gif-viewer').getFrameMaskURL(0);
+      if (!url) return null;
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      // The composed mask is opaque B/W (white = keep), the shape the cut reads.
+      return ctx.getImageData(6, 6, 1, 1).data[0];
+    });
+    expect(brushedCorner, 'the brushed corner is still in the mask Cut out would send').toBe(255);
   } finally {
     await closeApp(app);
   }

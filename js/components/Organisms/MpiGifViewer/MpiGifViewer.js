@@ -578,11 +578,22 @@ export const MpiGifViewer = ComponentFactory.create({
                 // Cut-out's override is already the composed, adjusted, flipped
                 // bitmap for THIS frame, so it replaces the base AND the brush
                 // layers — re-applying the edits on top would double them.
+                //
+                // `_editIdx` DELIBERATELY STAYS -1. It does not mean "the frame on
+                // the canvas", it means "the canvas holds this frame's real layers
+                // and may be saved back", and under the override it holds neither:
+                // the brush layers were never loaded. Setting it cost a brushed
+                // frame its fix on master — a Track run lands `setTrackMask`,
+                // `_refreshEditBase()` sees `_editIdx === idx` with edits present,
+                // and calls `_saveEdit()`, which writes the canvas's EMPTY manual
+                // and subtract over them. At -1, `_saveEdit`, `_refreshEditBase`
+                // and `getFrameMaskURL`'s save-first all correctly treat this
+                // canvas as read-only, and the panel repaints through
+                // `onMasksChange` -> `setCutoutPreview()` anyway.
                 if (_cutoutPreview !== null) {
                     await cv.setMaskBase(_cutoutPreview);
                     if (token !== _editToken) return;
                     cv.activeMode = 'mask';
-                    _editIdx = idx;
                     _dirty = false;
                     return;
                 }
@@ -719,6 +730,13 @@ export const MpiGifViewer = ComponentFactory.create({
         el.setCutoutPreview = (url) => {
             _cutoutPreview = url || null;
             if (_editKind !== 'mask') return;
+            // The override turns this canvas into a DISPLAY surface, so it stops
+            // being the edit frame — see `_loadEditFrame`. It has to happen HERE
+            // too, not only there: Cut-out's `enterMode('mask')` runs before its
+            // first preview arrives, so the mount already took the normal branch
+            // and claimed `_editIdx`. Leaving it claimed is what let a landing
+            // track save empty brush layers over a real fix.
+            if (_cutoutPreview !== null) _editIdx = -1;
             // Playing: the canvas is hidden behind the frame-wrap, so the tint is
             // what is on screen. `false` = an alpha mask, not an opaque B/W one.
             if (editSlot.classList.contains('mpi-gif-viewer__edit--playing')) {
