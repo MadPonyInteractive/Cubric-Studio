@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-819",
+  "title": "pre-push refuses a done move while the card's own code commit is red, in flight or unjudged",
+  "description": "Fabio, 2026-09-19, after MPI-818: make the close-out CI check mechanical. MPI-811 and MPI-781 both left the board as shipped while their own commits were red in CI. The gate must blame correctly: it blocks only the card whose code commit brought NEW failing specs (or has no verdict yet), never a close that merely happens during someone else's red - otherwise every agent is blocked again.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-19T08:51:04+01:00",
+  "updated_at": "2026-09-19T08:51:05+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

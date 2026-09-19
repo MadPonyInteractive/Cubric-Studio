@@ -45,6 +45,12 @@ its own spec was red — it passes on any dev box and fails on a runner with no 
 (MPI-818, 2026-09-19) — and eleven pushes stacked on that red. The push gate lets a
 docs-only close commit through by design; this is the check that gate cannot make.
 
+**`.husky/pre-push` enforces it (MPI-819).** A push that moves a card to `done` is refused
+while the card's own code commit is unjudged, in flight, or brought NEW failing specs. It
+blames by spec set, so a close during someone else's red still goes through - if it blocks
+you, the red is yours. Code and close in one push is refused too: the message hands you
+the `git push origin <sha>:master` that sends the code alone.
+
 ## Release-awareness check (do NOT skip)
 
 Diff THIS session's changes (working tree, or the session's commit(s) if the

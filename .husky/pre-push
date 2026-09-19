@@ -35,6 +35,132 @@ done
 
 [ "$pushing_master" = true ] || exit 0
 
+zero='0000000000000000000000000000000000000000'
+DOCS_RE='^(docs/|\.agents/)|\.md$'
+
+# ── Done gate (MPI-819) ──────────────────────────────────────────────────────────
+# A push that moves a card to `done` is refused while that card's OWN code commit has
+# no green CI verdict. MPI-811 closed on a live check while its own spec was red, and
+# MPI-781 sat in `validating` on five red specs with its session closed (2026-09-19):
+# the agent with the context walks away, and the next one inherits a red it cannot read.
+#
+# It has to BLAME CORRECTLY or it freezes everybody, which is the failure it exists to
+# stop. So it never asks "is master red?" - the gate further down does that. It asks
+# whether THIS card's commit brought the red:
+#   - any run carrying the commit went green            -> pass (clean, or fixed since)
+#   - no run carries it yet / one is in flight          -> refuse: no verdict, wait for it
+#   - first run carrying it failed, the run before green -> refuse: this push broke it
+#   - both failed                                        -> refuse ONLY if the failing
+#       spec files differ; the same set means the red predates this card
+# Runs here sit on the TIP of a multi-commit push, so "carries" is ancestry, not equality.
+#
+# Runs BEFORE the docs-only skip: a close commit is board-only by nature. Fails OPEN like
+# the rest of this file - no gh, no runs, a shallow clone, a card with no code commit.
+# MPI_PREPUSH_RUNS_FILE / MPI_PREPUSH_FAILED_DIR replace the two gh calls with fixtures
+# (tests/pre-push-done-gate.test.cjs).
+
+runs_list() {   # newest first: "<headSha> <status> <conclusion|-> <runId>"
+    if [ -n "${MPI_PREPUSH_RUNS_FILE:-}" ]; then cat "$MPI_PREPUSH_RUNS_FILE"; return 0; fi
+    command -v gh >/dev/null 2>&1 || return 0
+    gh run list --branch master --workflow tests.yml --limit 40 \
+        --json headSha,status,conclusion,databaseId \
+        --jq '.[] | "\(.headSha) \(.status) \(if .conclusion == "" then "-" else .conclusion end) \(.databaseId)"' \
+        2>/dev/null || true
+}
+
+failed_specs() {   # file-level: a line number moves whenever the spec is edited
+    if [ -n "${MPI_PREPUSH_FAILED_DIR:-}" ]; then cat "$MPI_PREPUSH_FAILED_DIR/$1.txt" 2>/dev/null || true; return 0; fi
+    gh run view "$1" --log-failed 2>/dev/null \
+        | grep -oE 'tests[\\/][A-Za-z0-9_./\\-]+\.(spec\.js|test\.cjs)' | tr '\\' '/' | sort -u || true
+}
+
+done_gate() {
+    old="$1"; new="$2"; gate_blocked=0; runs=''
+    cards=$(git diff --name-only "$old" "$new" -- '.agents/mpi-kanban/tasks/*/task.json' 2>/dev/null) || return 0
+    for f in $cards; do
+        col_new=$(git show "$new:$f" 2>/dev/null | sed -nE 's/.*"column": *"([a-z]+)".*/\1/p' | head -1) || true
+        col_old=$(git show "$old:$f" 2>/dev/null | sed -nE 's/.*"column": *"([a-z]+)".*/\1/p' | head -1) || true
+        [ "$col_new" = done ] || continue
+        [ "$col_old" != done ] || continue
+        # A card rejected without being built ships nothing to judge.
+        if git show "$new:$f" | grep -qE '"maturity": *"rejected"'; then continue; fi
+
+        id=$(basename "$(dirname "$f")")
+        code=''
+        for c in $(git log --format=%H -n 50 -E --grep="$id([^0-9]|\$)" "$new" 2>/dev/null); do
+            if git diff-tree --no-commit-id --name-only -r "$c" | grep -qvE "$DOCS_RE"; then code=$c; break; fi
+        done
+        [ -n "$code" ] || continue   # a docs or board card: nothing CI could have judged
+
+        [ -n "$runs" ] || runs=$(runs_list)
+        [ -n "$runs" ] || return 0
+
+        green=''; inflight=''; first_red=''; pred_id=''; pred_con=''
+        while read -r sha st con rid; do
+            [ -n "$sha" ] || continue
+            git cat-file -e "$sha^{commit}" 2>/dev/null || continue
+            if git merge-base --is-ancestor "$code" "$sha" 2>/dev/null; then
+                if [ "$st" != completed ]; then inflight=$rid
+                elif [ "$con" = success ]; then green=1
+                elif [ "$con" = failure ]; then first_red=$rid   # newest first, so this ends on the OLDEST
+                fi
+            elif [ -z "$pred_id" ] && [ "$st" = completed ]; then
+                if [ "$con" = success ] || [ "$con" = failure ]; then pred_id=$rid; pred_con=$con; fi
+            fi
+        done <<RUNS
+$runs
+RUNS
+        [ -z "$green" ] || continue
+        short=$(git rev-parse --short=8 "$code")
+
+        if [ -z "$first_red" ]; then
+            echo ""
+            echo "[pre-push] BLOCKED - $id moves to done, and CI has not judged its code commit $short."
+            echo ""
+            if [ -n "$inflight" ]; then
+                echo "    gh run watch $inflight          # ~13 min of wall time, zero tokens"
+            else
+                echo "    git push origin $code:master   # the code alone, without the close"
+                echo "    gh run watch                                  # then pick that run"
+            fi
+            echo ""
+            echo "  Green -> push the close. Red -> it is yours: fix, push the fix --no-verify, watch again."
+            echo ""
+            gate_blocked=1
+            continue
+        fi
+
+        new_specs=''
+        if [ "$pred_con" = success ]; then
+            new_specs=$(failed_specs "$first_red")
+            [ -n "$new_specs" ] || new_specs='(see the log)'
+        elif [ "$pred_con" = failure ]; then
+            pred_set=$(failed_specs "$pred_id")
+            new_specs=$(failed_specs "$first_red" | grep -vxF -e "$pred_set" || true)
+        fi
+        [ -n "$new_specs" ] || continue   # the same red as before this card, or nothing to compare
+
+        echo ""
+        echo "[pre-push] BLOCKED - $id moves to done, but run $first_red (the first to carry $short) went red on:"
+        echo ""
+        printf '%s\n' "$new_specs" | sed 's/^/    /'
+        echo ""
+        echo "  The run before it did not fail on these, and no run since has gone green. A card"
+        echo "  does not close on its own red (.agents/mpi-kanban/close-out.md). You have the context:"
+        echo ""
+        echo "    gh run view $first_red --log-failed"
+        echo "    npx playwright test --config=playwright.desktop.config.js <spec>"
+        echo "    git push --no-verify              # the FIX, then: gh run watch"
+        echo ""
+        gate_blocked=1
+    done
+}
+
+if [ -n "$push_remote_sha" ] && [ "$push_remote_sha" != "$zero" ]; then
+    done_gate "$push_remote_sha" "$push_local_sha"
+    [ "$gate_blocked" = 0 ] || exit 1
+fi
+
 # A push carrying no code can neither break CI nor fix it, so blocking it only freezes
 # agents who had nothing to do with the red. 2026-09-02: a CLAUDE.md edit was refused
 # while master sat red for four hours on an unrelated flow spec, and a docs commit was
@@ -42,10 +168,9 @@ done
 #
 # ponytail: docs/, .agents/ and any .md. Anything else -- including a range we cannot
 # resolve (new branch, zero sha, git error) -- falls through to the CI gate below.
-zero='0000000000000000000000000000000000000000'
 if [ -n "$push_remote_sha" ] && [ "$push_remote_sha" != "$zero" ]; then
     changed=$(git diff --name-only "$push_remote_sha" "$push_local_sha" 2>/dev/null) || changed=''
-    if [ -n "$changed" ] && ! printf '%s\n' "$changed" | grep -qvE '^(docs/|\.agents/)|\.md$'; then
+    if [ -n "$changed" ] && ! printf '%s\n' "$changed" | grep -qvE "$DOCS_RE"; then
         echo "[pre-push] docs/board-only push - CI gate skipped."
         exit 0
     fi
