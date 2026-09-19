@@ -137,6 +137,49 @@ Routes: `GET /user-flows` (the scan, errors included) · `POST /user-flows/insta
 `/comfy_workflows/user-flows/<id>/<file>` and `/comfy_workflows/display/user-flows/<id>/<file>`,
 the paths every fetch site already uses, so no renderer call site knows about packages.
 
+## Match your ComfyUI to the release (the developer kit)
+
+A Flow graph uses nodes from the custom-node packs the app pins. Author against a
+different pack version and your graph can carry a node, or a widget, that the people
+running Cubric Studio do not have — it works for you and fails for them.
+
+**The pin set is already published.** Every release tag in the public repo carries
+`dev_configs/node_lock.json` (ComfyUI core tag and commit, the frontend package versions,
+and every custom-node pack by repo and commit) and `dev_configs/python_deps.txt` (the one
+curated Python set the engine installs). Nothing is generated or bundled: the tag **is**
+the app version, so `v1.5.0` of the repo holds exactly what v1.5.0 shipped.
+
+Point the installer at your own ComfyUI folder:
+
+```bash
+node scripts/install-flow-devkit.mjs "C:/ComfyUI_windows_portable"
+```
+
+```bash
+node scripts/install-flow-devkit.mjs "C:/ComfyUI_windows_portable" --check
+```
+
+`--check` writes nothing and exits 1 if anything is off. Other options: `--version v1.5.0`
+to target a release instead of this checkout, `--python <path>` when the Python is not
+autodetected, `--skip-python` for node packs only.
+
+It is deliberately dependency-free — Node 18+ and a `tar` that reads zip — so you can run
+it from a single downloaded file without installing the app's `node_modules`.
+
+What it does, and what it will not do:
+
+- A pack that is a **git clone** (what ComfyUI-Manager installs) is moved onto the pinned
+  commit with `fetch` + `checkout`. Your clone, remotes and branches survive. A clone with
+  uncommitted changes is **skipped with an error**, never overwritten.
+- A pack that is **not** a clone is installed from the pinned commit's zip, and stamped
+  with `.mpi_node_commit` — the same marker the app writes, which is how both it and the
+  linter later tell a matched pack from a drifted one.
+- **Python is one curated pass**, `python_deps.txt` with `--no-deps`, exactly as the app
+  does it (MPI-413). It does **not** run each pack's own `requirements.txt`; that would
+  build an environment no user has, which is the failure this kit exists to prevent.
+- **ComfyUI core is advisory.** A core mismatch is reported, never changed — bumping core
+  is a separate job.
+
 ## Lint before you ship
 
 From a checkout of the app repo:
@@ -150,11 +193,21 @@ node-class check when a ComfyUI answers at `COMFY_URL` (default `http://127.0.0.
 In this repo, `COMFY_URL=http://127.0.0.1:48188` checks against the app's own engine. Exit
 0 = clean, 1 = problems (each one says how to fix it).
 
+Set `COMFY_PATH` to that ComfyUI's **folder** and the linter also reports whether its packs
+match the pins, so you know what a clean result is worth:
+
+```bash
+COMFY_PATH=/path/to/ComfyUI node scripts/lint-flow-package.mjs path/to/head-swap
+```
+
+A mismatch prints every pack that is off and says so plainly — but it never fails the
+lint, because authoring against a newer pack on purpose is legitimate.
+
 ## Authoring notes
 
 - Author on a ComfyUI whose node packs match the shipped engine (`dev_configs/node_lock.json`).
-  MPI's bench is kept matched by `/mpi-bump-local-comfy`; the generated lockfile and
-  installer for outside developers is **MPI-798**, due at the 2.0 release.
+  MPI's bench is kept matched by `/mpi-bump-local-comfy`; outside developers use
+  `scripts/install-flow-devkit.mjs` — see "Match your ComfyUI to the release" above.
 - A graph exported from a real project may carry your own file paths in its loader nodes.
   Clear them: the linter rejects them.
 - MPI's paid Flows are packaged OUTSIDE this AGPL repo (MPI-781), in `c:\AI\Mpi\Cubric-Flows`.
