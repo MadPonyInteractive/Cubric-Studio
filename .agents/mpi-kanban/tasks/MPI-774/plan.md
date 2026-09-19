@@ -968,6 +968,16 @@ next step is an engine started with `--verbose DEBUG`.
    field and the button — `1lh` could not do it, because it resolves against each element's own
    font-size. **Verified:** field 38.9 = button 38.9 live, growth intact, unit assertion.
 
+### Spun out of this card: MPI-816 (2026-09-19)
+
+Fabio hit a SEPARATE live failure while testing the agent for Phase 7: four Character Sheet
+generations dispatched, all four dead on `prompt_outputs_failed_validation`. Diagnosed to the line
+and filed as **MPI-816** (`todo`, `planned`) — a null field value clobbers a declared default in
+`js/utils/declaredFields.js:500`, and `agent.list-models` (`js/shell/agentDispatch.js:488`) tells
+the agent a flow's field ids and labels with no type, default or options, so it cannot construct a
+legal value. **Not part of this card's scope** — MPI-774's remaining work is Phases 6 and 7 below —
+but it is the same theme as Phase 7 and the two may be worth an umbrella.
+
 ## Phase 6: Global memory (Fabio, 2026-09-18 — NEXT SESSION)
 
 *Verify mode: user-ux.*
