@@ -109,7 +109,10 @@ test('extractVideoWaveform lands at <id>.wave.webp, never on the poster name', a
     }
 });
 
-test('both sweeps match <id>.wave.webp and capture the id', () => {
+// Named for DERIVATIVE_RE alone on purpose: CLEANUP_DERIVATIVE_RE is module-private and
+// is covered end to end by the cleanup test at the bottom, which is stronger than a regex
+// assert. This test used to claim "both sweeps" while only exercising one of them.
+test('the delete/orphan sweep matches <id>.wave.webp and captures the id', () => {
     const m = DERIVATIVE_RE.exec('abc-123.wave.webp');
     assert.ok(m, 'DERIVATIVE_RE does not match a wave file — delete would orphan it');
     assert.equal(m[1], 'abc-123', 'DERIVATIVE_RE captured the wrong owner id');

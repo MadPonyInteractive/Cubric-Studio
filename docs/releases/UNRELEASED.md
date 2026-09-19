@@ -146,6 +146,10 @@
 - **Audio looks like audio.** An audio card is now a wide tile drawn with its own waveform,
   filling as it plays. Click anywhere on the wave to jump there.
 
+- **The video trim bar shows the clip's sound.** The waveform is drawn behind the trim
+  handles, so you can cut an in or out point on a word or a beat instead of guessing. Clips
+  with no sound look exactly as before.
+
 - **Choose which speakers or headphones Vision plays through.** Settings has an Audio section
   with an Output picker and a Test button. Left empty, Windows keeps deciding.
 

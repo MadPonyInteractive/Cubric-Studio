@@ -49,14 +49,15 @@ a path-to-id sidecar scan per request.
 - [x] The four derived-video routes (crop, reverse, concat, gif-to-video) each record
       `wavePath`; they destructure the result field by field, so without a line apiece the
       wave was baked to disk and never recorded.
-- [x] Test: `tests/video-waveform-derivative.test.cjs`, 6 cases, all green.
+- [x] Test: `tests/video-waveform-derivative.test.cjs`, 7 cases, all green (the 7th ties
+      the wave's inset to the handles' and arrived with the height change).
 - [x] `docs/video-player.md`: a "trim bar's waveform" section.
 - [x] Components gallery: the demo mounts a synthetic mask so the state is reviewable
       without a project open.
 
 ## Verification
 
-- `node --test tests/video-waveform-derivative.test.cjs` - 6/6 pass.
+- `node --test tests/video-waveform-derivative.test.cjs` - 7/7 pass.
 - Neighbours green: `cleanup-derivatives`, `gallery-renditions`, `gif-transform`,
   `reuse-snapshot-defaults`, `audio-waveform-alpha`, `image-thumb-alpha`,
   `reuse-video-audio-gate` - 34/34.

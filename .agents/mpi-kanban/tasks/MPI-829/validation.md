@@ -18,7 +18,7 @@ Commits: `dce8c096` (the feature), `d5ab374b` (board), plus the height change be
 | wave layer spans the handles cap to cap | the `-8px` inset and the handles' `±8px` are ONE measurement; if a later edit moves one, the look regresses silently |
 | video wave baked SHORTER than the audio card's | a regression to 540 is a real loss of legibility, not a nicety |
 | lands at `<id>.wave.webp`, never the poster name | a collision would overwrite the poster with a waveform |
-| both sweeps match and capture the id | delete + orphan sweep; a miss leaks a file per video forever |
+| the delete/orphan sweep matches and captures the id | `DERIVATIVE_RE`; a miss leaks a file per video forever. `CLEANUP_DERIVATIVE_RE` is module-private and is covered by the cleanup row below, end to end rather than as a regex assert |
 | a clip WITH audio bakes a real MASK | asserts on decoded ALPHA - an opaque rectangle paints a solid block and passes any file-exists check |
 | a SILENT clip is never baked one | every text-to-video op emits silence; an ungated bake costs an ffmpeg run per generation |
 | cleanup drops the file AND nulls `wavePath` | the backfill gates on the sidecar, so a nulled file with a live URL 404s the mask forever |

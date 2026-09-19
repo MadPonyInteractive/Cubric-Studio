@@ -22,7 +22,8 @@ EMITS:   `loop-change`  `{ loop: boolean }`
          `range-change` `{ in: number, out: number }` — forwarded from embedded MpiTrimBar (only fires when `showTrim` is true)
 LISTENS: surface events `play/pause/timeupdate/loadedmetadata/volumechange` (via `attachSurface(instance)`); its MpiVolumeControl `mute-toggle/input/change`
 HOTKEYS: binds `video.playPause/frame.back/frame.forward/frame.first/frame.last/volume.up/volume.down/mute/loop` on `attachSurface`; trim hotkeys `video.trim.in/out/clear` bound only when `showTrim` is true. Unbinds on `detachSurface`/`destroy`.
-PROPS:   `fps` (default 24), `showTrim` (default true). When `showTrim: false`, MpiTrimBar is not mounted; `setRange`/`setRangeQuiet`/`setPendingTrim` no-op; `getRange()`/`getValue()` return `null`.
+PROPS:   `fps` (default 24), `showTrim` (default true). When `showTrim: false`, MpiTrimBar is not mounted; `setRange`/`setRangeQuiet`/`setPendingTrim`/`setWavePath` no-op; `getRange()`/`getValue()` return `null`.
+API:     `setWavePath(url)` (MPI-829) forwards the clip's baked waveform to the trim bar. `MpiVideoViewer.loadVideo` proxies `meta.wavePath` into it UNCONDITIONALLY, unlike `fps`/`frameCount` which keep their previous value when omitted — a stale wave would be the PREVIOUS clip's audio drawn under this clip's handles.
 NOTE:    Single horizontal row layout `[left buttons + time] [trim flex:1] [right buttons]`. Mounted full-width by the parent Block (NOT by the viewer). Wired to a surface via `attachSurface(surfaceInstance)`. On every surface `loadedmetadata` resets range to `[0, duration]` UNLESS `setPendingTrim(in, out)` was called first (one-shot). Loop intent is tracked internally; when active range is a strict subset of the clip, native `video.loop` is forced off and the loop is emulated via `timeupdate` (`seek(_in)` at `_out` if loop on; `_pause()` otherwise). Range-loop branch gates on `!video.paused` so frame-step is not re-routed.
 
 ### MpiTrimBar (Compound — js/components/Compounds/MpiTrimBar/)
@@ -32,7 +33,8 @@ EMITS:   `seek`         `{ time: number }` — playhead committed (drag end / tr
          `out-change`   `{ time: number }` — out handle committed
          `range-change` `{ in: number, out: number }` — fired alongside in/out commits
 LISTENS: (none — pure pointer drag state)
-NOTE:    Two-handle trim seek bar. Pointer drag coalesces on RAF; commits on `pointerup`. Frame-snap via `Math.round(t*fps)/fps`. Constraints: `0 ≤ in+frame ≤ out ≤ duration`; playhead clamped to `[in, out]`. `seek-preview` enables live-scrub on the host video without re-firing on every RAF tick.
+PROPS:   `duration`, `fps`, `frameCount`, `value`, `inPoint`, `outPoint`, `wavePath`
+NOTE:    Two-handle trim seek bar. Pointer drag coalesces on RAF; commits on `pointerup`. Frame-snap via `Math.round(t*fps)/fps`. Constraints: `0 ≤ in+frame ≤ out ≤ duration`; playhead clamped to `[in, out]`. `seek-preview` enables live-scrub on the host video without re-firing on every RAF tick. **Waveform (MPI-829):** `wavePath`/`setWavePath(url)` paints the baked `<id>.wave.webp` mask in `--ink-4` under the selection tint; the 44px track and the layer's `inset: -8px 0` make it span the handles cap to cap (58px). The mask is linear in TIME while positions are frame-indexed, so they differ by at most one frame's width at the clip end — sub-pixel, and not a reason to unpick `_pctOf`.
 
 ## Audio Compounds (MPI-730 / MPI-731)
 
