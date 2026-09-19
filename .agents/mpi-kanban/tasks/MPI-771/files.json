@@ -32,6 +32,10 @@
     "tests/flow-output-filename.test.cjs",
     "tests/desktop/mask-colour.spec.js",
     "docs/masking-sam3-gif.md",
-    "docs/masking-tools.md"
+    "docs/masking-tools.md",
+    "js/components/Compounds/MpiMaskStrip/MpiMaskStrip.js",
+    "js/components/Organisms/MpiToolOptionsGifTiming/MpiToolOptionsGifTiming.js",
+    "js/components/Organisms/MpiToolOptionsGifTransform/MpiToolOptionsGifTransform.js",
+    "tests/desktop/gif-workspace.spec.js"
   ]
 }

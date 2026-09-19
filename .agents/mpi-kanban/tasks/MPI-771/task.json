@@ -4,10 +4,10 @@
   "title": "GIF cut-out with SAM3 by name",
   "description": "UMBRELLA: MPI-757 - GIF workspace (created 2026-09-14). Members and phase order: tasks/MPI-757/plan.md. Mask by name with SAM3 video tracking across every frame, Mask Adjust, Invert, then cut into the frames' alpha. The agent authors the graph.",
   "column": "doing",
-  "maturity": "validating",
+  "maturity": "in-progress",
   "status": "active",
   "created_at": "2026-09-15T13:37:30+01:00",
-  "updated_at": "2026-09-17T15:07:02Z",
+  "updated_at": "2026-09-19T09:41:15Z",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -18,10 +18,10 @@
     "handoffs": "handoffs/",
     "research": "research/"
   },
-  "activeSessionTitle": "MPI-771: mask methods (BiRefNet, By colour), transparent cut save, spinner, mask stash",
+  "activeSessionTitle": "MPI-771: GIF-workspace consistency audit (MPI-757 findings 1-5)",
   "attention": {
-    "state": "required",
-    "reason": "Built + auto-verified (mask methods, transparent cut, image By colour). Needs Fabio's app check after a FULL restart; types.js/preloadStyles lines parked in types-hunk.md",
-    "updated_at": "2026-09-17T15:00:00Z"
+    "state": "cleared",
+    "reason": "Fabio passed the two deferred UI items; building the five consistency findings now. His eye pass is owed again at the end, on the WHOLE workspace.",
+    "updated_at": "2026-09-19T09:41:15Z"
   }
 }

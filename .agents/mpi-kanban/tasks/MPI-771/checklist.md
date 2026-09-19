@@ -26,3 +26,10 @@ Derived from `tasks/MPI-757/plan.md` (2026-09-16).
 - [x] The re-key TOAST is gone (it fired on every paused slider drag). The picker's and Tolerance's `info` say "Changes are only visible once you press Mask" on the status bar instead
 - [ ] Fabio's eye pass on the six items above
 - [ ] **Mask display consistency (Fabio, 2026-09-18) — investigated, NOT built, needs his scope call.** The GIF Mask Brush already mounts the image `MpiMaskStrip` (invert, B/W view, opacity, clear) and `MpiGifViewer` implements all of it. The gap is the CUT-OUT TINT, a read-only preview at a fixed `--accent-heat` 0.45 with no controls at all
+- [x] **Consistency audit finding 4 (2026-09-19): the GIF STAGE joined the shared context menu.** `MpiGifViewer` emits `gif-viewer:context-menu` the way `MpiVideoViewer` and `MpiCanvasViewer` do; the Block's `isGif` branch owns the items (Save frame as image / Reverse frames / Clear all masks, the last dead with no masks). Frame-scoped verbs stay on `MpiFrameStrip`'s own menu
+- [x] **Finding 3: the two panels that were nothing but an Apply are gone from the rail.** `gifReverse` + `gifSaveFrame` removed from `GIF_TOOLS`, `TOOL_OPTIONS_REGISTRY`, `_GIF_TIMING_TOOLS`, `_GIF_TRANSFORM_TOOLS`, `TOOL_LABELS` and both panels' own `TOOLS` tables. Their handlers are untouched - the context menu calls them. `gifTrim` keeps its panel: its note is real UI, not just an Apply
+- [x] Verify: `lint` + `lint:components` clean; the new `gif-workspace.spec.js` stage-menu test PROVEN RED with `MpiGifViewer.js` + `MpiGroupHistoryBlock.js` restored from HEAD, then 3/3 green
+- [ ] **Finding 1 (Cut-out mask strip) - BLOCKED on Fabio.** `setMaskInverted` is not a geometric complement (`MpiCanvas.js:972` recolours the mask BLACK), so a canvas + strip can only show "what stays", which reverses his own tint rule. Options (a)/(b)/(c) written out under finding 1 in plan.md
+- [ ] **Finding 2 (Timing shape) - BLOCKED on Fabio.** One rail button, or a group? It is three modes now, not five
+- [ ] Finding 5: the GIF output tool gets the GIF Maker's preview pane. Needs no decision
+- [ ] Fabio's eye pass on the WHOLE workspace (nothing closes before it)

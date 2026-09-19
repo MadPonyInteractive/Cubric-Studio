@@ -10,12 +10,27 @@ the ordering and anything left behind.
 
 ## Current State
 
-**2026-09-19 — READ THIS FIRST.** MPI-771 is `doing`/`validating`, attention required, and it is NOT
-close to closing. Fabio's two deferred UI items are BUILT and he passed them ("everything looks
-good"), plus two defects found while in there. But he then audited the workspace against the image
-and video ones and opened five consistency findings — written up under
-[## Remaining Work](#remaining-work) → "CONSISTENCY AUDIT", none of them built. **The next session's
-job is that audit list, starting with the Cut-out mask strip, which has no open question left.**
+**2026-09-19 (session `7bbff4d4`) — READ THIS FIRST.** MPI-771 is `doing`/`in-progress`. Fabio's
+five consistency findings are under [## Remaining Work](#remaining-work) → "CONSISTENCY AUDIT".
+
+**Built and green this session: findings 4 and 3.** The GIF stage joined the shared context menu
+(Save frame as image / Reverse frames / Clear all masks), and the two rail buttons whose whole
+panel was a sentence and an Apply — `gifReverse`, `gifSaveFrame` — were deleted from the rail, the
+registry and both panels. New `gif-workspace.spec.js` test, proven RED on HEAD first.
+
+**THE NEXT ACTION IS TWO QUESTIONS FOR FABIO, both in Remaining Work, neither answerable from
+code:**
+1. Finding 1's Cut-out mask strip has an open question after all. `setMaskInverted` recolours the
+   mask BLACK (`MpiCanvas.js:972`); it is not a geometric complement, so a canvas + strip can only
+   display "what STAYS" and that reverses his own tint rule. Options (a)/(b)/(c) are written out
+   under finding 1.
+2. Finding 2's Timing shape: one rail button or a group. It is three modes now, not five.
+
+Finding 5 (the GIF output tool gets the GIF Maker's preview) is untouched and needs no decision.
+
+**Do not try to green `gif-timing.spec.js`, `gif-transform.spec.js` or `gif-cutout.spec.js` test
+2** — all three are red at HEAD from a peer's frame-store bug, proven, message `922a3667`. See
+`## Plan Drift`.
 
 Shipped this session (committed at handoff):
 - Mask and Clear span the panel (`__row--split`); the colour **Pick** button has an authored
@@ -547,8 +562,28 @@ needs evidence, recorded in `## Plan Drift`.
 
 Fabio, 2026-09-19: *"This whole workspace just seems like it got invented from nothing... So many
 inconsistencies with the rest of the app."* He is right. Every finding below is verified in code,
-not asserted. **None of it is built yet.** Do NOT reopen what he has passed (the tint rule, the rail
+not asserted. Do NOT reopen what he has passed (the tint rule, the rail
 descriptions, the scope consolidation, the white mask, full-width Mask/Clear, the Pick icon).
+
+**Status 2026-09-19 (session `7bbff4d4`).** Findings 4 and 3 are BUILT, lint-clean and spec-proven.
+Finding 1 is BLOCKED on one question only Fabio can answer (see the box under it). Finding 2 is
+blocked on his one-button-or-group call, and is now SMALLER than written: Reverse has left the
+Timing group, so it is three modes, not five. Finding 5 is not started.
+
+- **Finding 4 — DONE.** `MpiGifViewer` emits `gif-viewer:context-menu` (the `MpiVideoViewer:205` /
+  `MpiCanvasViewer:2063` shape: the viewer reports the gesture, the Block owns the items). The
+  Block's `isGif` branch builds Save frame as image / Reverse frames / Clear all masks, the last
+  disabled with no masks. Frame-scoped verbs stay on `MpiFrameStrip`'s own menu.
+- **Finding 3 — DONE for the two panels that were only an Apply.** `gifReverse` and `gifSaveFrame`
+  are gone from `GIF_TOOLS`, `TOOL_OPTIONS_REGISTRY`, `_GIF_TIMING_TOOLS`, `_GIF_TRANSFORM_TOOLS`,
+  `TOOL_LABELS` and both panels' own `TOOLS` tables. `timingEdit('reverse')` and the Block's
+  `saveFrame` handler are untouched — the menu calls them. `gifTrim` keeps its panel: its note is
+  real UI, not just an Apply.
+- Proof: a new `gif-workspace.spec.js` test asserts the menu, that Reverse sends the same
+  `mode: 'new'` `/gif/entry` body with reversed hashes, and the Clear all masks dead/live states.
+  PROVEN RED first with `MpiGifViewer.js` + `MpiGroupHistoryBlock.js` restored from HEAD.
+  `gif-timing.spec.js` and `gif-transform.spec.js` were rewritten onto the right-click; both are
+  red at HEAD for the peer reason in `## Plan Drift`, so they cannot confirm it yet.
 
 1. **Cut-out is the only mask-producing tool in the app with no `MpiMaskStrip`.** Counts: GifCutout
    0, GifTiming 0, GifTransform 0. Every image mask tool mounts it — Brush, Colour, Detect, Points,
@@ -569,12 +604,35 @@ descriptions, the scope consolidation, the white mask, full-width Mask/Clear, th
    - **NOT a blocker — I raised it twice and was wrong.** "Two Inverts on one panel": the strip's is an
      ICON-ONLY button whose tooltip already reads "Invert mask display"; Cut-out's is a LABELLED
      checkbox under Mask Adjust. Different shape, different place. Do not ask Fabio about it again.
+   - **THE ONE OPEN QUESTION (2026-09-19, session `7bbff4d4`).** The canvas can only ever display
+     the mask REGION. `setMaskInverted` is not a geometric complement — `MpiCanvas.js:972` draws
+     `maskCanvas` recoloured to `MASK_INVERT_FILL` (pure black). So a Cut-out that mounts the strip
+     shows **what stays**, which reverses the tint rule Fabio set on 2026-09-19 (*the tint is what
+     goes away*). Do not pick one silently; he set that rule personally. The three options:
+     **(a)** mount the canvas + strip and retire the tint rule for Cut-out — display then matches
+     every other mask tool AND the GIF Mask Brush sitting next to it in the same rail group, which
+     already shows "what stays"; **(b)** keep the CSS-overlay tint and give Cut-out no strip — the
+     thing he rejected; **(c)** feed the canvas the COMPLEMENT as its mask base, so the strip's
+     controls all work and still mean "what goes away". (c) is cheaper than it sounds — the panel
+     already builds exactly that bitmap in `_updateCurrentTint()` (grow via `distanceField`, then
+     `flip = !_invert`) — but `_loadEditFrame()` re-seeds `setMaskBase()` from the stored track on
+     every frame change, so the push has to re-run after it, and the canvas's mask would no longer
+     be the mask (safe only while `brush: false`: nothing writes it back, `getCutMasks()` reads
+     `_masks`, and `_saveEdit()` only fires on a stroke).
 2. **Timing is already ONE panel wearing FIVE rail buttons.** `gifTrim`, `gifSpeed`, `gifReverse`,
    `gifLoop`, `gifOutput` all map to `MpiToolOptionsGifTiming`. The image rail never splits one panel
    five ways: its shared panels are two DESTINATIONS (`maskAdjust`/`paintAdjust`,
    `maskComp`/`paintComp`) — one control set pointed at another layer. **Fold Timing into one tool.**
    Open question Fabio was asked and had not answered when the session ended: one rail button, or a
    group with the empty modes folded in? His steer so far points at one button.
+   - 2026-09-19: it is THREE modes now, not five — Reverse left for the context menu (finding 4)
+     and Output leaves for finding 5. So the choice is: **(a)** one rail button "Timing", one
+     panel carrying fps + loop + the trim note, ONE Apply writing ONE new entry (a behaviour
+     change: the three settings land together instead of as three entries); or **(b)** keep the
+     group at Trim / Speed / Loop count, each with its own Apply, as now minus Reverse.
+   - The rail has a THIRD shape that is NOT the answer here: `collapse` + `sub[]` (MPI-425
+     Detect), one rail button opening a floating sub-strip. That is for same-job siblings that
+     each own a DIFFERENT panel. Timing's modes share one panel, so it does not apply.
 3. **Panels that are nothing but an Apply.** `gifReverse` (`MpiToolOptionsGifTiming.js` TOOLS table)
    has no controls at all — one `desc` sentence and Apply. `gifTrim`'s controls live in the control
    bar, so its panel is near-empty too. Apply itself is NOT the anomaly: Crop, Resize, Mask Adjust,
@@ -837,6 +895,21 @@ Phase 5 verify mode: `auto`.
 
 ## Plan Drift
 
+- 2026-09-19 (consistency audit, finding 1): **the `setMaskInverted` plan does not work and the
+  finding DOES have an open question.** `MpiCanvas.js:972` recolours the mask layer BLACK
+  (`MASK_INVERT_FILL`); it does not draw the complement. So mounting the shared strip on the
+  canvas necessarily displays the mask itself — "what STAYS" — and there is no display flag that
+  makes the canvas show "what GOES". That reverses Fabio's 2026-09-19 tint rule, so it is his
+  call, not an implementation detail. Three options written up under `## Remaining Work`.
+- 2026-09-19 (consistency audit): **three gif desktop specs are red at HEAD from a peer bug, not
+  two.** `gif-timing.spec.js` fails at its FIRST Apply and `gif-transform.spec.js` at its Crop
+  assertion, both because an entry references a `.gif-frames/<hash>.png` that is gone. Proven at
+  HEAD with every MPI-771 file restored by `git show`. In `gif-timing` the death is at
+  `routes/gif.js:215`, AFTER the same request's own `frameExists()` gate at `:151` passed — so
+  the frame was there and was swept underneath it. Message `922a3667` extends `077abd3b` to
+  MPI-810 with the evidence and points at the three `sweepGifFrames()` call sites. **MPI-771 does
+  not fix it** (handoff constraint), and it is why findings 3/4 could only be proven through the
+  stubbed `gif-workspace.spec.js`.
 - 2026-09-15: MPI-749 landed `done` before planning; MPI-759's `blocked` maturity is stale.
 - 2026-09-15: brief corrections found by investigation: the context menu lives in
   `MpiGalleryGrid.js`, not `MpiGalleryBlock.js` (770 edits both); `MpiHistoryTools` is a Compound;
