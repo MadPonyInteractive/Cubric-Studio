@@ -1046,11 +1046,66 @@ router.post('/delete-project', async (req, res) => {
     }
 });
 
-// MPI-227: manual Cleanup — the ONLY GC for the content-addressed preview-assets
-// store. Wipes every content file under Media/.preview-assets/ (the deduped reuse
-// frames), preserving the `.migrated-v1` marker so a re-open stays migrated. Media
-// outputs, sidecars (.meta), and latents (.latents) are untouched. After cleanup a
-// reuse that resolves to a now-missing frame soft-fails to a warning toast.
+// Manual Cleanup — the pre-share slimming step (MPI-821), and still the ONLY GC for
+// the content-addressed preview-assets store (MPI-227).
+//
+// It drops the two classes of file a project can REBUILD:
+//   * the DERIVATIVES under `Media/.meta/` — `<id>.thumb.*` and `<id>.proxy.*`. These
+//     are pure cache: `POST /backfill-media-derivatives` bakes them again on the next
+//     project load. A video proxy is the bulk of a project that is not a master file,
+//     which is what makes this worth doing before zipping a folder for someone.
+//   * the preview-assets store, the deduped reuse frames, preserving the
+//     `.migrated-v1` marker so a re-open stays migrated.
+//
+// `.splat.ply` rides `DERIVATIVE_RE` but is NOT a derivative — the still is rendered
+// FROM it, so it is the master and deleting it destroys the item. Hence the narrower
+// regex here rather than reusing `DERIVATIVE_RE` or `removeItemThumbs`.
+//
+// The sidecar fields are NULLED with the files. The backfill pass gates on the
+// sidecar, never on disk (`if (meta.thumbPath) continue`), so a cleanup that left
+// them pointing at deleted files would skip every item and leave a video card blank
+// forever — a video thumb has no `filePath` fallback the way an image does.
+//
+// Masters (Media outputs), sidecar JSON and latents (`.latents`) are untouched. After
+// a cleanup a reuse that resolves to a now-missing frame soft-fails to a warning toast.
+const CLEANUP_DERIVATIVE_RE = /^(.*)\.(?:thumb|proxy)\..+$/;
+
+async function cleanupRebuildableAssets(folderPath) {
+    const mediaDir = path.join(folderPath, 'Media');
+    const metaDir = path.join(mediaDir, '.meta');
+    let removed = 0;
+
+    if (await fs.pathExists(metaDir)) {
+        const entries = await fs.readdir(metaDir);
+        for (const entry of entries) {
+            if (!CLEANUP_DERIVATIVE_RE.test(entry)) continue;
+            await fs.remove(path.join(metaDir, entry)).catch(() => {});
+            removed++;
+        }
+        for (const f of entries.filter(e => e.endsWith('.json'))) {
+            const p = path.join(metaDir, f);
+            let meta;
+            try { meta = await fs.readJson(p); } catch { continue; }
+            if (meta.thumbPath == null && meta.thumbPathLg == null && meta.proxyPath == null) continue;
+            meta.thumbPath = null;
+            meta.thumbPathLg = null;
+            meta.proxyPath = null;
+            await fs.writeJson(p, meta, { spaces: 2 }).catch(() => {});
+        }
+    }
+
+    const storeDir = path.join(mediaDir, '.preview-assets');
+    if (await fs.pathExists(storeDir)) {
+        for (const entry of await fs.readdir(storeDir)) {
+            if (entry === '.migrated-v1') continue;
+            await fs.remove(path.join(storeDir, entry)).catch(() => {});
+            removed++;
+        }
+    }
+
+    return removed;
+}
+
 router.post('/project/cleanup-assets', async (req, res) => {
     try {
         const { folderPath } = req.body;
@@ -1060,16 +1115,8 @@ router.post('/project/cleanup-assets', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Not a project folder (no project.json)' });
         }
 
-        const storeDir = path.join(folderPath, 'Media', '.preview-assets');
-        let removed = 0;
-        if (await fs.pathExists(storeDir)) {
-            for (const entry of await fs.readdir(storeDir)) {
-                if (entry === '.migrated-v1') continue;
-                await fs.remove(path.join(storeDir, entry)).catch(() => {});
-                removed++;
-            }
-        }
-        logger.info('project', `cleanup-assets: removed ${removed} preview-asset entries`);
+        const removed = await cleanupRebuildableAssets(folderPath);
+        logger.info('project', `cleanup-assets: removed ${removed} rebuildable entries`);
         res.json({ success: true, removed });
     } catch (err) {
         logger.error('project', 'cleanup-assets error', err);
@@ -3187,3 +3234,4 @@ module.exports.computeFileSha256 = computeFileSha256;
 module.exports.migratePreviewAssetsStore = migratePreviewAssetsStore;
 module.exports.DERIVATIVE_RE = DERIVATIVE_RE;
 module.exports.removeItemThumbs = removeItemThumbs;
+module.exports.cleanupRebuildableAssets = cleanupRebuildableAssets;

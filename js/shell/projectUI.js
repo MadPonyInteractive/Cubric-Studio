@@ -293,16 +293,19 @@ function _showDeleteConfirm(projectName, onConfirm) {
 }
 
 /**
- * MPI-227: manual Cleanup — the only GC for the content-addressed preview-assets
- * store. Confirms, then wipes Media/.preview-assets/ content for this project.
- * History media + sidecars are untouched; a later reuse of a wiped frame soft-fails
- * to a warning toast. Fresh mount per call (same rationale as _showDeleteConfirm).
+ * Manual Cleanup — the pre-share slimming step (MPI-821). Confirms, then drops
+ * everything this project can REBUILD: the thumbnail and video-proxy derivatives
+ * under Media/.meta/, and the preview-assets store (MPI-227, still its only GC).
+ * Generated media, sidecars and history are untouched; the derivatives come back on
+ * the next project load via /backfill-media-derivatives, and a later reuse of a wiped
+ * input frame soft-fails to a warning toast.
+ * Fresh mount per call (same rationale as _showDeleteConfirm).
  * @param {Object} project
  */
 function _showCleanupConfirm(project) {
   const dialog = MpiOkCancel.mount(document.createElement('div'), {
     title: 'Cleanup assets',
-    text: `Remove cached assets used by Reuse Prompt for this project? These are the input images, videos and audio that were fed into your generations. This frees disk space. Your generated media and history are kept, but Reuse Prompt will no longer be able to re-add those inputs.`,
+    text: `Slim this project down before sharing or backing it up? This removes the thumbnails and video previews the app generates, which rebuild automatically the next time you open the project, and the cached input images, videos and audio kept for Reuse Prompt. Your generated media and history are kept, but Reuse Prompt will no longer be able to re-add those inputs.`,
     okLabel: 'Cleanup',
     cancelLabel: 'Cancel',
   });

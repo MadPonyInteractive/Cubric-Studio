@@ -1557,16 +1557,19 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         { key: 'reveal',     icon: 'folder',    label: 'Open in file system' },
                         { key: 'rename',     icon: 'edit',      label: 'Rename',     disabled: targetIds.length !== 1 },
                         { key: 'card-notes', icon: 'text',      label: 'Card notes', disabled: targetIds.length !== 1 },
-                        // Labelled off the card's OWN state, not the scope. The scope
-                        // gate makes any visible selection homogeneous — every card in
-                        // view shares one `archived` value — so there is no mixed case
-                        // to resolve here (MPI-678).
-                        { key: 'archive',    icon: 'archive',   label: group.archived ? 'Return to gallery' : 'Archive' },
                         // MPI-310 — single image only: the captioner reads one image
                         // and writes one prompt, so a multi-select has no meaning.
                         { key: 'describe',   icon: 'chat',      label: 'Describe image',
                             disabled: targetIds.length !== 1 || _selectedVideoCount > 0 },
                         { key: 'download',   icon: 'download',  label: 'Download' },
+                        // MPI-821: Archive sits next to Delete, not mid-list. The two are
+                        // the same decision — "get this off my gallery" — and Archive is
+                        // the answer for nearly all of it now that it replaces the hidden
+                        // reuse-asset store. Labelled off the card's OWN state, not the
+                        // scope: the scope gate makes any visible selection homogeneous —
+                        // every card in view shares one `archived` value — so there is no
+                        // mixed case to resolve here (MPI-678).
+                        { key: 'archive',    icon: 'archive',   label: group.archived ? 'Return to gallery' : 'Archive' },
                         { key: 'delete',     icon: 'trash',     label: 'Delete',     danger: true },
                     ],
                     onSelect: (key) => {

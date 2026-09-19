@@ -1,0 +1,16 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js",
+    "js/components/Compounds/MpiOkCancel/MpiOkCancel.js",
+    "js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js",
+    "js/shell/projectUI.js",
+    "routes/projects.js",
+    "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js",
+    "js/utils/promptReuse.js",
+    "tests/cleanup-derivatives.test.cjs",
+    "docs/data.md",
+    "docs/project-integrity.md",
+    "docs/gallery.md"
+  ]
+}

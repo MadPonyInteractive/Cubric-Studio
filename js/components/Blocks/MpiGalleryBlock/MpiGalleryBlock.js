@@ -1098,10 +1098,17 @@ export const MpiGalleryBlock = ComponentFactory.create({
         });
 
         // ── Delete ──────────────────────────────────────────────────────────────
+        // MPI-821: Archive is the third way out. Since Archive replaced the hidden
+        // reuse-asset store, deleting a card is what breaks a later Reuse of it —
+        // so the dialog that is about to delete offers the reversible answer beside
+        // the permanent one. Enter still confirms Delete: that was the gesture that
+        // opened this dialog, and Archive is a click, never a keystroke.
         const _deleteDialog = MpiOkCancel.mount(document.createElement('div'), {
             title:       'Delete',
-            text:        'Permanently delete the selected cards and their media files?',
+            text:        'Permanently delete the selected cards and their media files? Archive puts them away instead — the files stay, and Reuse keeps working.',
             okLabel:     'Delete',
+            okVariant:   'danger',
+            altLabel:    'Archive',
             cancelLabel: 'Cancel',
         });
         let _pendingDeleteGroups = [];
@@ -1158,6 +1165,18 @@ export const MpiGalleryBlock = ComponentFactory.create({
             _pendingDeleteGroups = [];
             await _runGalleryDelete(g);
         });
+
+        // MPI-821: the same mutate-then-persist the context menu's Archive does —
+        // the scope gate makes the selection homogeneous, so `true` is unambiguous.
+        _deleteDialog.on('alt', () => {
+            const g = _pendingDeleteGroups;
+            _pendingDeleteGroups = [];
+            if (!g.length) return;
+            g.forEach(group => { group.archived = true; updateGroup(group); });
+            grid.el.setGroups([..._leadingGroups(), ..._visibleProjectGroups()]);
+        });
+
+        _deleteDialog.on('cancel', () => { _pendingDeleteGroups = []; });
 
         grid.on('delete', ({ groups: g, source }) => {
             if (source === 'context') {

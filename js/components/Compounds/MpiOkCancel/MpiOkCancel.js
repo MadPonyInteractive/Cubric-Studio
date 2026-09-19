@@ -27,7 +27,10 @@ import { renderIcon } from '../../../utils/icons.js';
  * @param {string} [inputValue='']         - Initial value for the optional input
  * @param {boolean} [showCancel=true]      - Whether the Cancel button is shown
  * @param {string} [okLabel='OK']          - Label for the confirm button
+ * @param {string} [okVariant='primary']   - MpiButton variant for the confirm button
  * @param {string} [cancelLabel='Cancel']  - Label for the cancel button
+ * @param {string|null} [altLabel=null]    - Label for an optional THIRD action, between
+ *                                           Cancel and the confirm button. Emits 'alt'.
  * @param {{label?: string, checked?: boolean}|null} [checkbox=null]  - Optional checkbox below input slot
  * @param {string|null} [icon=null]        - Optional icon name (from icons.js) shown large above the title
  * @param {string} [iconTone='']           - Icon tone modifier for the slot: '' | 'warning' | 'danger'
@@ -36,6 +39,8 @@ import { renderIcon } from '../../../utils/icons.js';
  * 'ok'     { inputValue?: string, checkboxChecked?: boolean } — Confirm button clicked
  * 'cancel' { inputValue?: string, checkboxChecked?: boolean } — Cancel button clicked
  *                                    (NOT emitted on Escape/hide)
+ * 'alt'    { inputValue?: string, checkboxChecked?: boolean } — Third action clicked
+ *                                    (only when `altLabel` is set; never fired by Enter)
  * 'input'  { value: string }       — Input field changed
  */
 export const MpiOkCancel = ComponentFactory.create({
@@ -147,10 +152,27 @@ export const MpiOkCancel = ComponentFactory.create({
             actionsSlot.appendChild(cancelBtn.el);
         }
 
+        // ── Actions: optional THIRD action (MPI-821) ─────────────────────────
+        // Sits between Cancel and the confirm button, and Enter never reaches it:
+        // the modal's `confirm` is the gesture that OPENED the dialog, so a delete
+        // prompt still deletes on Enter even when it offers Archive as a way out.
+        if (props.altLabel) {
+            const altBtn = MpiButton.mount(document.createElement('div'), {
+                text: props.altLabel,
+                variant: 'secondary',
+                size: 'md'
+            });
+            altBtn.on('click', () => {
+                emit('alt', _okPayload());
+                el.hide();
+            });
+            actionsSlot.appendChild(altBtn.el);
+        }
+
         // ── Actions: OK button ───────────────────────────────────────────────
         const okBtn = MpiButton.mount(document.createElement('div'), {
             text: props.okLabel || 'OK',
-            variant: 'primary',
+            variant: props.okVariant || 'primary',
             size: 'md'
         });
         okBtn.on('click', () => {
