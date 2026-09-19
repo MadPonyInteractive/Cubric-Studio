@@ -20,7 +20,19 @@ fills `--accent-heat` (rebound to `--hub-accent` cream) and its text was `--ink-
 near-white on cream. Now `--ink-4`. Fabio's call, made in devtools. `MpiAgentChat.css` is
 MPI-774's file, so it was committed under that card.
 
-Next action: phase 2a (`--accent-err` to a real red), then the collapsed phase 3+4.
+**Phase 2a is DONE and verified by Fabio** (2026-09-18): `--accent-err` is
+`oklch(0.70 0.19 27)`. Working out the value, and the "Stop is not danger" finding that came
+out of it, are in `validation.md`.
+
+Also done, pulled forward out of phase 5 because Fabio has now asked three separate sessions
+for it: the five family accents are written into `DESIGN.md` § "The accent family", sourced
+from `Cubric Studio (Website)\styles\landing.css:30-34`, and `CLAUDE.md`'s Snapshot gained a
+rule — **never sample a brand colour off the mascot art, the values are written down.** That
+rule exists because this session sampled the PNGs before checking, which is the mistake.
+
+Next action: the collapsed phase 3+4. **The open question is now CLOSED** — Fabio chose
+`--hub-accent` cream `oklch(0.78 0.028 80)`, confirmed against the measured Studio mascot
+`#c1b6a4`, which is the same colour to three decimals. Do not re-ask.
 
 ## The mechanism (already shipped, just not applied widely)
 
@@ -58,12 +70,16 @@ change, and the token's meaning ("the action colour here") is already right.
   next to `--ink-2`, so used as the accent it makes ordinary body text read as the accent.
   Fabio has now asked for Studio's colour on general buttons anyway.
 
-  **OPEN, and ask before flipping anything:** `--hub-accent` `oklch(0.78 0.028 80)` or
-  `--ink-1` `oklch(0.98 0.008 80)`? Both are "Studio's neutral" and both sit on hue 80 —
-  they differ in lightness and a whisker of chroma, and the 2026-09-15 objection only bites
-  the darker one. "You know what colour I mean" reads as the mascot cream, but that is the
-  exact reading his own earlier note argued against, so it is worth two swatches and ten
-  seconds rather than 239 call sites of guess. This does NOT block phase 2a.
+  **ANSWERED 2026-09-18 — `--hub-accent` cream `oklch(0.78 0.028 80)`.** Fabio picked it off
+  rendered swatches. The mascot art was sampled to settle it: `Studio-Logo.png` is 39.7%
+  `#c1b6a4` = `oklch(0.780 0.028 80.2)`, i.e. `--hub-accent` to three decimals. (He also said
+  "hub accent green" — that is the AUDIO mascot, `#70e2c5`. Studio is beige.)
+
+  The 2026-09-15 objection stands and is accepted, not refuted: 122 of the 246
+  `var(--accent-heat)` lines are `color:`, and cream at chroma 0.028 sits beside `--ink-2`'s
+  0.012 on the same hue. **Watch accent TEXT when the flip lands, not the buttons** — the
+  buttons were never the risk. `oklch(0.82 0.07 80)` is the fallback if it reads too close to
+  ink; Fabio saw that swatch too and did not take it.
 
 ## Phase 1 — make the token honest (target: zero visual delta) — 1a + 1b DONE 2026-09-18
 
@@ -148,9 +164,12 @@ already off the action token, so recolouring the token cannot recolour a failure
 
 ## Phase 2 — move the status hues (visible; Fabio judges by eye)
 
-- `--accent-warn` off hue 60. It is squeezed: video orange at 48 on one side, prompt yellow
-  at 102 on the other. Needs his eye, not a calculation.
-- `--accent-err` to a truer red, if the rose-red it inherits in 1a is not the red he means.
+- ~~`--accent-err` to a truer red~~ **DONE 2026-09-18** — `oklch(0.70 0.19 27)`, verified in
+  the live app. Value derivation + the "Stop is not danger" follow-on in `validation.md`.
+- `--accent-warn` off hue 60 — **still open.** It is squeezed: video orange at 48 on one
+  side, prompt yellow at 102 on the other. Needs his eye, not a calculation. Note `--accent-err`
+  has since landed at 27, so warn is now boxed on three sides, not two — lightness separation
+  may beat hue here.
 - `--accent-ok` stays. Decided.
 
 ## Phase 3 + 4 — ONE change now (collapsed 2026-09-18)
@@ -233,3 +252,11 @@ grep + lint + `npm test` above, with the button hover the single thing to look a
 - 2026-09-18: phase 1a (`--accent-err`) added. Not in the brief's work items; found by
   grep while scoping 1b. Danger being an alias of the action accent is the one thing that
   would have made phase 3 wrong on every surface.
+- 2026-09-18: the `DESIGN.md` token port was pulled forward out of phase 5. It was never a
+  phase-5-shaped job — Fabio has asked three separate sessions for it, and `DESIGN.md` was
+  carrying a pink (`oklch(0.72 0.20 6)`) that had not existed in the code for a long time.
+  `PRODUCT.md` stays in phase 5: it holds no values, only prose.
+- 2026-09-18: "Stop is not danger" folded in, Fabio's call. Not in any phase — it surfaced
+  from him asking whether the app even has red buttons. Answer: four, one destructive. Half
+  of it is blocked on MPI-771's live claim, so this card ships an inconsistency on purpose
+  and `validation.md` records it.

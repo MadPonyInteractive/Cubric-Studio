@@ -77,8 +77,11 @@ export const MpiMaskDetectRow = ComponentFactory.create({
 
         function _mountDetectBtn() {
             detectBtn?.destroy?.();
+            // Stop is a cancel, not a failure, so it wears the workspace accent and not
+            // --accent-err (Fabio, MPI-736): red is reserved for something having gone
+            // wrong. The state reads off the icon and label, which are what change.
             detectBtn = MpiButton.mount(detectSlot, _running
-                ? { icon: 'stop',   label: 'Stop',   size: 'sm', variant: 'danger',
+                ? { icon: 'stop',   label: 'Stop',   size: 'sm', variant: 'primary',
                     info: 'Stop the detection' }
                 : { icon: 'search', label: 'Detect', size: 'sm', variant: 'primary',
                     info: 'Run detection' });

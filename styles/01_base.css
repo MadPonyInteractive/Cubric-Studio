@@ -81,9 +81,13 @@
   /* Error / destructive. MPI-736 phase 1a: danger used to be a literal alias of
      --accent-heat (MpiButton.css said so in as many words), which breaks the moment a
      workspace rebinds the action token to its character's colour - a failure toast would
-     go orange in the video workspace. Born at --accent-heat's exact value so that pass
-     was provably zero-delta; re-hueing it to a truer red is a separate, visible decision. */
-  --accent-err:      oklch(0.76 0.17 355);   /* error, destructive */
+     go orange in the video workspace. It was born at --accent-heat's exact rose so that
+     pass was provably zero-delta; phase 2a re-hued it.
+     Hue 27 is the one red that clears both neighbours - 21 degrees off --video-accent's
+     orange (48) and 32 off --vision-accent's rose (355). Lightness 0.70 is the ceiling:
+     sRGB red maxes out near L 0.63 at full chroma, so anything redder buys hue with
+     contrast. This value keeps 6.7:1 for the dark label on a destructive button fill. */
+  --accent-err:      oklch(0.70 0.19 27);    /* error, destructive */
 
   /* Hover lift for the two fill tokens. A custom property bakes its var() at the rule
      that declares it, so a subtree rebinding --accent-heat MUST restate --accent-heat-hi
@@ -113,6 +117,15 @@
   --vision-accent:   oklch(0.76 0.17 355);   /* rose — Vision */
   --prompt-accent:   oklch(0.88 0.13 102);   /* yellow — Prompt */
   --video-accent:    oklch(0.78 0.15 48);    /* orange — Video */
+
+  /* A COMMITTED mask, wherever one is shown outside the canvas (MPI-771).
+     `MpiCanvas` paints a real mask with `maskColor = rgba(255,255,255,1)` and
+     draws `maskCanvas` straight; only the PENDING layers get recoloured —
+     MASK_AUTO_FILL (--accent-ok) is a detect run or an Adjust preview, i.e. a
+     proposal still waiting on Add / Subtract / Apply. A GIF cut-out run WRITES
+     its mask, so it is the committed kind and wears this instead of the green
+     (Fabio, 2026-09-19). Not --ink-1: re-hueing text must never move a mask. */
+  --mask-fill:       oklch(1 0 0);           /* white — a mask that exists */
 
   /* Type scale */
   --t-2xs:     10px;

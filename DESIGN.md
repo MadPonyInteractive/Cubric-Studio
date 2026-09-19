@@ -15,6 +15,7 @@ Stage direction (warm dusk, drenched, content-forward) is the locked-in design l
   --surface-3:       oklch(0.55 0.024 350);  /* hover */
   --surface-bar:     oklch(0.34 0.022 350);  /* status, quiet zones */
   --surface-canvas:  oklch(0.28 0.020 350);  /* editor canvas, vignette base */
+  --surface-viewer:  oklch(0.20 0.020 350);  /* media compare/preview surround (MPI-585) */
 
   /* Ink — warm whites */
   --ink-1:           oklch(0.98 0.008 80);   /* primary text */
@@ -26,11 +27,23 @@ Stage direction (warm dusk, drenched, content-forward) is the locked-in design l
   --line:            oklch(0.72 0.018 350 / 0.16);
   --line-soft:       oklch(0.72 0.015 350 / 0.08);
 
-  /* Accents */
-  --accent-heat:     oklch(0.72 0.20 6);     /* pink-magenta — primary actions, active states */
+  /* Action accent — ONE token, rebound per workspace. See "The accent family" below. */
+  --accent-heat:     oklch(0.76 0.17 355);   /* the action colour HERE — primary actions, active states */
+  --accent-heat-hi:  oklch(from var(--accent-heat) calc(l + 0.02) calc(c + 0.03) h);  /* hover lift */
+
+  /* Status — these stay status colours and do NOT follow the workspace */
   --accent-frost:    oklch(0.82 0.13 220);   /* cyan — generative state, focus rings, frost lines */
   --accent-ok:       oklch(0.78 0.13 150);   /* success, ready */
   --accent-warn:     oklch(0.78 0.14 60);    /* warning */
+  --accent-err:      oklch(0.70 0.19 27);    /* error, destructive */
+  --accent-err-hi:   oklch(from var(--accent-err) calc(l + 0.02) calc(c + 0.03) h);
+
+  /* Family identity — one per app in the Cubric family. See the table below. */
+  --hub-accent:      oklch(0.78 0.028 80);   /* cream  — Studio */
+  --vision-accent:   oklch(0.76 0.17 355);   /* rose   — Vision */
+  --prompt-accent:   oklch(0.88 0.13 102);   /* yellow — Prompt */
+  --accent-audio:    oklch(0.84 0.11 170);   /* green  — Audio */
+  --video-accent:    oklch(0.78 0.15 48);    /* orange — Video */
 
   /* Type scale — dramatic ratio for register=brand pages, tighter for product UI */
   --t-2xs:  10px;
@@ -71,10 +84,44 @@ Stage direction (warm dusk, drenched, content-forward) is the locked-in design l
 
 | Color | Use for | Never use for |
 |---|---|---|
-| `--accent-heat` | Primary buttons, active layer outline, "generating" indicators, mascot accents, hover-state on row arrows. | Body text, large background fills (it's an accent — drenched is the SURFACE doing the work, not the heat). |
+| `--accent-heat` | Primary buttons, active layer outline, "generating" indicators, mascot accents, hover-state on row arrows. | Body text, large background fills (it's an accent — drenched is the SURFACE doing the work, not the heat). Anything that means *failure* — that is `--accent-err`. |
+| `--accent-err` | Destructive buttons, error toasts, invalid-field borders, failure text. | Anything merely "primary" or "active". It was a literal alias of `--accent-heat` until MPI-736; that is exactly the bug. |
 | `--accent-frost` | Focus rings, AI-state, secondary chips, frost-lined gauges, eyes on the mascot. | Decorative outlines on cards. |
 | `--surface-canvas` | Editor canvas zone, vignette gradient stops. | Outer chrome — chrome stays at `--surface-0` / `--surface-1`. |
 | Gradient pink→cyan | The wordmark only (`background-clip: text`). | Anywhere else. Banned. |
+
+## The accent family
+
+**Source of truth: `c:\AI\Mpi\Cubric Studio (Website)\styles\landing.css:30-34`.** Cubric ships
+as a family of apps and each one owns a hue. These five values are mirrored here from the
+website, never invented — if they ever disagree, the website wins and this file is the thing
+that drifted.
+
+| App | Token here | Value | Mascot art |
+|---|---|---|---|
+| Studio (the hub) | `--hub-accent` | `oklch(0.78 0.028 80)` | cream `#c1b6a4` |
+| Vision | `--vision-accent` | `oklch(0.76 0.17 355)` | rose `#fc77aa` |
+| Prompt | `--prompt-accent` | `oklch(0.88 0.13 102)` | yellow `#ede367` |
+| Audio | `--accent-audio` | `oklch(0.84 0.11 170)` | green `#70e2c5` |
+| Video | `--video-accent` | `oklch(0.78 0.15 48)` | orange `#ff9360` |
+
+**One name drifts:** the website calls Audio's `--audio-accent`; here it is `--accent-audio`.
+Same value, and the one to grep for locally is `--accent-audio`.
+
+**How a workspace takes its colour.** Components read ONE action token, `--accent-heat`, and a
+subtree redefines it — they are never taught five tokens:
+
+```css
+[data-accent="video"] { --accent-heat: var(--video-accent); }
+```
+
+A custom property bakes its `var()` at the rule that *declares* it, so any block rebinding
+`--accent-heat` MUST restate `--accent-heat-hi` in the same rule or the hover lift keeps the
+old hue. `MpiAgentChat.css` and `MpiPromptBox.css` already do the rebind; `styles/shell/landing.css`
+does the same shape with `--crew-accent`.
+
+**Never `color-mix()` two of these together.** The family spans antipodal hues and an oklch mix
+walks through yellow. Mixing one with `transparent` is safe — use `in oklab` by convention.
 
 ## Theme
 

@@ -29,6 +29,8 @@
     "js/components/Primitives/MpiCanvas/managers/brushDab.js",
     "js/utils/cropTool.js",
     "DESIGN.md",
-    "PRODUCT.md"
+    "PRODUCT.md",
+    "CLAUDE.md",
+    "js/components/Compounds/MpiMaskDetectRow/MpiMaskDetectRow.js"
   ]
 }

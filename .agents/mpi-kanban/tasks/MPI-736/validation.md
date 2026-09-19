@@ -65,4 +65,53 @@ Three deliberate visual deltas, everything else proven identical:
    (yellow). Visible on the 18+ gate's triangle. Same defect class as danger: a status
    icon riding the action token.
 
-## Phase 2, 3, 4 — not started
+## Phase 2a — `--accent-err` to a real red — DONE 2026-09-18
+
+`styles/01_base.css:90` — `oklch(0.76 0.17 355)` → `oklch(0.70 0.19 27)`.
+
+**Why this value, so nobody re-derives it.** Candidates were rendered on the real
+`--surface-1` / `--surface-2` and judged against contrast and hue separation:
+
+| | value | text on `--surface-1` | dark label on fill | sRGB |
+|---|---|---|---|---|
+| old rose | `0.76 0.17 355` | 3.06:1 | 8.28:1 | clips |
+| **chosen** | **`0.70 0.19 27`** | **2.48:1** | **6.70:1** | **in gamut** |
+| truer red | `0.63 0.22 27` | 1.85:1 | 5.01:1 | in gamut |
+
+Hue 27 is the only red clearing both neighbours — 21° off `--video-accent` (48), 32° off
+`--vision-accent` (355). L 0.70 is the practical ceiling: sRGB red maxes near L 0.63 at
+full chroma, so **anything redder buys hue with contrast**. Error *text* on a panel drops
+from 3.06:1 to 2.48:1 — neither passes AA, so this is a coloured-label convention, not body
+text, and a second lighter token was judged not worth it.
+
+**Verified by Fabio in the live app** (renderer is served from this tree, so a plain reload
+picks it up): the error toast and the prompt box both read as the intended red.
+
+### Stop is not danger (Fabio, 2026-09-18)
+
+Grepping "which buttons are actually red" found only **four** in the whole app, and only
+one is destructive:
+
+| site | button | destructive? |
+|---|---|---|
+| `MpiRunpodSettings.js:962` | `Delete Pod` | yes — destroys a rented GPU |
+| `MpiMaskDetectRow.js:81` | `Stop` (swaps in for `Detect`) | no |
+| `MpiToolOptionsGifCutout.js:358` | `Stop` (swaps in for `Mask`) | no |
+| `MpiPromptBox.css:714` | media-strip remove `×`, hover only | yes-ish |
+
+So the red seen day to day signalled nothing wrong. Stop now takes the workspace accent
+(`variant: 'primary'`), which phase 3 rebinds per workspace. State reads off the icon and
+label, which are what change — the fill no longer distinguishes Detect from Stop, and that
+is accepted.
+
+**`MpiMaskDetectRow.js:81` changed. `MpiToolOptionsGifCutout.js:358` NOT changed** — it sits
+under MPI-771's live claim `6154218d` (heartbeat 24 min at the time, well inside the 120 min
+timeout). Message `e93c9db7` carries the exact one-word diff to that session. **Until MPI-771
+applies it the two Stop buttons are inconsistent — GIF cut-out's is still red.**
+
+Note the shipped third idiom, left alone: `MpiPromptBox.js:2346`'s Stop is a separate,
+always-present `variant: 'secondary'` button that disables when idle, not a swap.
+
+`npm test` 1351/1352 pass, 0 fail, 1 skipped (suite grew from 1348 — peers added four).
+
+## Phase 2b, 3, 4 — not started

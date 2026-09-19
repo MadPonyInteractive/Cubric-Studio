@@ -13,6 +13,7 @@
 ## Critical Rules Snapshot (ALL agents, always — no file read required)
 
 - **Never invent what exists:** colors = CSS vars (`styles/01_base.css`) · icons = `js/utils/icons.js` · DOM+listeners = `js/utils/dom.js` (`qs`/`on`/`off`) · hotkeys = `Hotkeys.bind` + `hotkeyRegistry.js` · logs = `clientLogger.js` / `routes/logger.js`. No hex, no raw SVG, no `document.querySelector`, no raw `addEventListener`/`keydown`, no `console.log`.
+- **NEVER sample a brand colour off the mascot art or the website — the values are written down.** The five family accents (Studio cream, Vision rose, Prompt yellow, Audio green, Video orange), how a workspace rebinds the one action token, and the `color-mix` ban between two of them: `DESIGN.md` § "The accent family". It mirrors `c:\AI\Mpi\Cubric Studio (Website)\styles\landing.css:30-34`, which wins on any disagreement.
 - **EVERY UI ELEMENT IS A COMPONENT** — never a bare `<input>`/`<select>`/`<textarea>`/`<button>`; always `ComponentFactory.create()`; `factory.js` is locked. **BEM is mandatory:** `.mpi-block__element--modifier`. Flows are no exception: a Flow's `fields` NAME these components, they do not replace them.
 - UI detail — token families, registering a new component's `.css`/props: `.claude/rules/dos_and_donts.md` + `components.md`.
 - **State:** all global state in `js/state.js` — a Proxy, so mutation auto-fires `state:changed`; never emit it manually, and never mutate sub-objects: replace the top-level key.
