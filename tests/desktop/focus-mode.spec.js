@@ -21,6 +21,40 @@ const path = require('path');
 const { test, expect } = require('@playwright/test');
 const { launchApp, closeApp } = require('./launch');
 
+// The runner has no model weights, so the boot sync re-writes every `installed` flag to
+// false and the gallery raises "No models installed" — a modal that sits over the prompt
+// box and eats the click below. Every dev box has weights, so this spec was green here and
+// red in CI (docs/red-master.md, cause 1; docs/testing-desktop-specs.md, trap 5).
+//
+// Pin one plain flat model usable — `installed` alone makes it so (isModelUsable). A getter
+// rather than an assignment: the boot sync re-writes `installed` from disk on every
+// `models:checked`, and a pinned property cannot be re-written, so there is no listener
+// order to get right.
+async function pinOneModelInstalled(window) {
+  await window.evaluate(async () => {
+    const { MODELS } = await import('/js/data/modelRegistry.js');
+    const model = MODELS.find(m => m.id === 'sdxl-realistic');
+    Object.defineProperty(model, 'installed', { get: () => true, set() {}, configurable: true });
+  });
+}
+
+// PROVOKE the runner's condition so this spec fails locally without the pin instead of only
+// in CI: answer /comfy/models/check with every model absent, exactly as a weightless runner
+// does, and run the real sync against it.
+async function provokeNoWeights(window) {
+  await window.evaluate(async () => {
+    const { MODELS, syncModelInstalled } = await import('/js/data/modelRegistry.js');
+    const results = Object.fromEntries(MODELS.map(m => [m.id, { installed: false, deps: [] }]));
+    const realFetch = window.fetch;
+    window.fetch = (url, init) => /\/comfy\/models\/check/.test(String(url))
+      ? Promise.resolve(new Response(JSON.stringify({ results }), {
+          status: 200, headers: { 'Content-Type': 'application/json' } }))
+      : realFetch(url, init);
+    try { await syncModelInstalled(); } finally { window.fetch = realFetch; }
+    await new Promise(r => setTimeout(r, 200));
+  });
+}
+
 function makeProject(testInfo) {
   const folderPath = testInfo.outputPath('project');
   fs.mkdirSync(folderPath, { recursive: true });
@@ -118,6 +152,8 @@ test('A opens and closes the agent panel, and never fires while you are typing',
       await new Promise((r) => setTimeout(r, 300));
     });
 
+    await pinOneModelInstalled(window);
+
     await window.evaluate(async (p) => {
       const [{ state }, { navigate, PAGE_GALLERY }] = await Promise.all([
         import('/js/state.js'),
@@ -127,6 +163,10 @@ test('A opens and closes the agent panel, and never fires while you are typing',
       navigate(PAGE_GALLERY);
       await new Promise((r) => setTimeout(r, 400));
     }, makeProject(testInfo));
+
+    await provokeNoWeights(window);
+    await expect(window.locator('.mpi-modal'), 'no "No models installed" modal over the prompt box')
+      .toHaveCount(0);
 
     const isOpen = () => window.evaluate(() =>
       document.querySelector('#agent-panel-mount').classList.contains('agent-panel-mount--open'));
