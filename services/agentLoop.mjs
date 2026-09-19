@@ -21,7 +21,8 @@
 
 import crypto from 'crypto';
 import {
-    DeepInfraEngine,
+    chatEngineFor,
+    OLLAMA_AGENT_CONTEXT,
     resolveConnection,
     recommendedModel,
     listRemoteModels,
@@ -475,6 +476,11 @@ export class AgentLoop {
         if (this._lookupContextWindowOverride) {
             return (await this._lookupContextWindowOverride(profileId, model, profile, key)) || FALLBACK_CONTEXT_WINDOW;
         }
+        // On Ollama the window is not the endpoint's to report — it is what we ask for
+        // per request (`OLLAMA_AGENT_CONTEXT`). Asking `/v1/models` would answer null and
+        // land on the 32k fallback, which is right only by accident and wrong the moment
+        // that constant changes. Compaction has to follow what we actually set.
+        if (profileId === 'ollama') return OLLAMA_AGENT_CONTEXT;
         const known = (RECOMMENDED_REMOTE_MODELS[profileId] || []).find((r) => r.id === model)?.contextWindow;
         if (known) return known;
         const cacheKey = `${profileId}\n${model}`;
@@ -773,7 +779,7 @@ ${knowledgeIndex}`.trim();
         return (this._lastUsage.prompt_tokens || 0) >= this._compactAt();
     }
 
-    /** @param {{model: string, baseURL: string, key: string}} endpoint */
+    /** @param {{model: string, baseURL: string, key: string, profileId: string}} endpoint */
     async _compact(turnId, endpoint) {
         this._emit('agent:compacting', { turnId, on: true });
         try {
@@ -785,8 +791,12 @@ ${knowledgeIndex}`.trim();
                     content: 'Write a compact handoff covering: goal, decisions made, outputs generated (model, settings, results), current model and settings, and any open question. This will restart the session context.',
                 },
             ];
-            const engine = new DeepInfraEngine(endpoint.key, endpoint.baseURL);
-            const handoffRes = await engine.chat({ model: endpoint.model, messages: handoffMessages });
+            const { engine, contextWindow: askFor } = chatEngineFor(endpoint.profileId, endpoint.key, endpoint.baseURL);
+            const handoffRes = await engine.chat({
+                model: endpoint.model,
+                messages: handoffMessages,
+                ...(askFor ? { options: { contextWindow: askFor } } : {}),
+            });
             const handoffText = handoffRes.text || '';
 
             // Rebuild messages: system + handoff + the last (up to 4) user turns that fit in half
@@ -929,14 +939,17 @@ ${knowledgeIndex}`.trim();
             const userEntry = this._historyEntry('user', { text, attachments: stagedAttachments });
             if (carried) this._emit('agent:user', { turnId, id: userEntry.id, text, attachments: stagedAttachments });
 
-            // Build engine
-            const engine = new DeepInfraEngine(key, profile.baseURL);
+            // Build engine. Ollama is not an OpenAI-compatible host for this job — see
+            // chatEngineFor. `contextWindow` is null on every other preset, so the option
+            // is absent there and nothing changes.
+            const { engine, contextWindow: askFor } = chatEngineFor(profileId, key, profile.baseURL);
+            const chatOptions = askFor ? { contextWindow: askFor } : undefined;
 
             // Agentic loop
             let steps = 0;
             let carriedTo = null; // the project this request was handed to (D5)
             while (steps <= MAX_STEPS) {
-                const llmRes = await engine.chat({ model, messages: this._messages, tools: TOOL_DEFS });
+                const llmRes = await engine.chat({ model, messages: this._messages, tools: TOOL_DEFS, options: chatOptions });
                 this._lastUsage = llmRes.usage;
 
                 const toolCalls = llmRes.toolCalls;
@@ -1026,7 +1039,7 @@ ${knowledgeIndex}`.trim();
 
             // Compaction check
             if (this._shouldCompact()) {
-                await this._compact(turnId, { model, baseURL: profile.baseURL, key });
+                await this._compact(turnId, { model, baseURL: profile.baseURL, key, profileId });
             }
         } catch (err) {
             this._emit('agent:error', { turnId, code: 'ENDPOINT_ERROR', message: err.message });
@@ -1091,7 +1104,7 @@ ${knowledgeIndex}`.trim();
 
         const start = Date.now();
         try {
-            const engine = new DeepInfraEngine(key, profile.baseURL);
+            const { engine } = chatEngineFor(profileId, key, profile.baseURL);
             const probeTools = [{
                 type: 'function',
                 function: {

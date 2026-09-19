@@ -998,7 +998,42 @@ keyless connection that is NOT Ollama is still refused and spends nothing. Suite
 
 **OPEN, and it decides whether the agent is usable on Ollama at all — needs Fabio (Phase 7):**
 
-1. **His Ollama serves a 4096-token context** (`OLLAMA_CONTEXT_LENGTH:4096` in its `server.log`),
+**BOTH RESOLVED 2026-09-19, same session. Item 1 is BUILT; item 2 is still open.**
+
+**Item 1 — the context — is fixed by changing ROUTE, not by a setting.** Measured against his real
+Ollama before building anything:
+
+| request | result |
+|---|---|
+| `/v1` keyless chat with tools | HTTP 200 — the `NO_KEY` fix is right |
+| `/v1` plain call | `ollama ps` → `ctx 4096` |
+| `/v1` + `options.num_ctx: 32768` | HTTP 200 → **still 4096** (silently ignored) |
+| `/v1` + top-level `num_ctx: 32768` | HTTP 200 → **still 4096** |
+| native `/api/chat` + `options.num_ctx` | **`ctx 32768`** |
+
+So there was nothing to expose in the UI: `/v1` has no knob, and a slider there would have done
+nothing. `/v1` is also wrong for a second reason — no `think` flag, so `qwen3-vl:4b` spent **45s**
+producing reasoning `/v1` throws away and returned `''`.
+
+**Built:** `chatEngineFor()` sends the `ollama` preset to `OllamaEngine` and the native route;
+`OllamaEngine.chat` gained `tools`, `toolCalls`, `usage` and a caller-set `num_ctx`
+(`OLLAMA_AGENT_CONTEXT` = 32,768, defaulting to 8,192 so enhance and describe are untouched).
+Ollama's tool dialect differs in three ways that each fail QUIETLY, all converted in the engine so
+the loop stays single-dialect: `arguments` is an object not a JSON string (the loop `JSON.parse`s
+it and catches the throw into `{}` — every tool would have run with no arguments), no `id` on a
+call, and results matched by `tool_name`. `_contextWindowFor` reports the same constant, so
+compaction follows the window we set.
+
+**Verified live** on `huihui_ai/gemma-4-abliterated:12b`: tool call out with an id and string
+arguments, `ollama ps` → `ctx 32768`, result fed back, and the model's answer used it ("Krea 2,
+MiniMax H3, and ILL Anime"). First call 60s (cold load of 7.6GB at 32k), second 926ms.
+
+**Still open on the number:** 32,768 gives a compaction trigger of 16,384, and the floor is ~4.0k
+plus a `list_models` answer at ~10.8k — so a turn that lists models very nearly triggers a compaction
+on its own. The next lever is trimming `list_models` (options only for INSTALLED flows), not raising
+the window, because the KV cache shares VRAM with the weights on a 16GB card.
+
+~~1. **His Ollama serves a 4096-token context**~~ (`OLLAMA_CONTEXT_LENGTH:4096` in its `server.log`),
    and `/v1/chat/completions` has no `num_ctx`. The agent's fixed floor — system prompt 8.7k chars
    plus 11 tool schemas 6.0k chars — is **~3.7k tokens before the user types a word** (measured by
    capturing the first request body). One guide read or `list_models` answer overflows it, and

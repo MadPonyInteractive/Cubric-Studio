@@ -210,14 +210,24 @@ Settings: the connection block tops Remote > Language Models; the Agent row is "
 - **`RECOMMENDED_REMOTE_MODELS`**: `{ [presetId]: [{ id, jobs: ('agent'|'enhance'|'describe')[], contextWindow? }] }`, exact ids.
   The agent's context window: that table, else the endpoint's own entry, else `FALLBACK_CONTEXT_WINDOW` (32,768).
 - **`DeepInfraEngine.chat`** forwards `tools` and returns `toolCalls` and `usage` beside `text`.
-  `OllamaEngine.chat` does NOT — it is the enhance client, so the agent runs on Ollama through that
-  preset's OpenAI-compatible `/v1` and `DeepInfraEngine`, not through the native route.
+- **`chatEngineFor(profileId, key, baseURL)`** picks the client, and `ollama` is NOT an
+  OpenAI-compatible host for this job. Measured 2026-09-19 against a real Ollama: `/v1` answers
+  200 and **ignores `num_ctx`** (4096 either way, both spellings), and it has no `think` flag, so a
+  reasoning model spends the turn on thinking `/v1` discards and returns `''`. The agent therefore
+  goes to `OllamaEngine` and the native `/api/chat`, which honours both — `ollama ps` reports
+  `ctx 32768` after an agent call. The returned `contextWindow` (`OLLAMA_AGENT_CONTEXT`, 32,768) is
+  what the caller passes as `options.contextWindow` AND what `_contextWindowFor` reports, so
+  compaction follows the window we actually set rather than a fallback that matches by accident.
+- **Ollama speaks a different tool dialect, and all three differences fail QUIETLY** — converted
+  inside `OllamaEngine`, so the loop stays single-dialect: `function.arguments` is an object, not a
+  JSON string (the loop `JSON.parse`s it, and a throw is caught into `{}` — every tool would run
+  with no arguments); a tool call carries no `id`; a tool result is matched by `tool_name`, not by
+  id. `num_ctx` defaults to 8,192, so enhance and describe are untouched.
 - **`ollama` is keyless everywhere, the agent included**: `runTurn` and `probe`
-  (`services/agentLoop.mjs`) skip `NO_KEY` for it exactly as the `routes/llm.js` checks do. Two
-  Ollama caveats the app does not surface: only a model whose `/api/show` capabilities include
-  `tools` can be the agent, and `/v1` carries no `num_ctx`, so the server's own
-  `OLLAMA_CONTEXT_LENGTH` (4096 by default) has to hold the system prompt plus 11 tool schemas
-  (~3.7k tokens) before the user's first word.
+  (`services/agentLoop.mjs`) skip `NO_KEY` for it exactly as the `routes/llm.js` checks do.
+  One Ollama caveat the app still does not surface: only a model whose `/api/show` capabilities
+  include `tools` can be the agent (`gemma-4-abliterated:12b` has it, `gemma3:12b` does not), and
+  the picker shows no way to tell them apart.
 
 ## `look` coordinates
 

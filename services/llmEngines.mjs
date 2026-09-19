@@ -104,6 +104,74 @@ export function modelName(m, backend) {
 
 const OLLAMA_BASE_URL = 'http://localhost:11434';
 
+/**
+ * The context the AGENT asks Ollama for. Ollama's server default is 4,096
+ * (`OLLAMA_CONTEXT_LENGTH`), and the agent's system prompt plus its 11 tool schemas
+ * are ~4.0k tokens before the user types a word — so on the default the rules are
+ * already being truncated, from the FRONT, silently. Measured 2026-09-19.
+ *
+ * 32,768 is chosen to fit any model a 16GB card can hold rather than to be generous:
+ * the KV cache comes out of the same VRAM as the weights, and Ollama spills to system
+ * RAM instead of failing, which reads as the agent simply being slow. It is deliberately
+ * one number in one place. Raising it is safe on a bigger card; the compaction trigger
+ * follows it automatically, because `_contextWindowFor` reports this same value.
+ */
+export const OLLAMA_AGENT_CONTEXT = 32_768;
+
+/** Ollama's default, which every non-agent job (enhance, describe) keeps. */
+const OLLAMA_DEFAULT_CONTEXT = 8_192;
+
+/**
+ * Ollama speaks a different tool dialect from OpenAI, in three ways that each fail
+ * QUIETLY rather than erroring, so the conversion lives here and the agent loop keeps
+ * speaking one dialect:
+ *
+ *  1. `function.arguments` is an OBJECT on the way out and a JSON STRING on OpenAI's.
+ *     The loop does `JSON.parse(tc.function.arguments)`, which on an object throws and
+ *     is caught into `{}` — every tool would run with no arguments.
+ *  2. A tool call carries no `id`, so `tool_call_id` on the result would be undefined.
+ *  3. A tool RESULT is matched by `tool_name`, not by id.
+ */
+function toOllamaMessages(messages) {
+    const nameById = new Map();
+    return (messages || []).map((m) => {
+        if (m.role === 'assistant' && Array.isArray(m.tool_calls)) {
+            return {
+                ...m,
+                tool_calls: m.tool_calls.map((tc) => {
+                    if (tc.id) nameById.set(tc.id, tc.function?.name);
+                    let args = tc.function?.arguments;
+                    if (typeof args === 'string') {
+                        try { args = JSON.parse(args || '{}'); } catch { args = {}; }
+                    }
+                    return { function: { name: tc.function?.name, arguments: args || {} } };
+                }),
+            };
+        }
+        if (m.role === 'tool') {
+            const name = nameById.get(m.tool_call_id);
+            return { role: 'tool', content: m.content, ...(name ? { tool_name: name } : {}) };
+        }
+        return m;
+    });
+}
+
+/** Ollama's `message.tool_calls` in the OpenAI shape the loop reads. */
+function fromOllamaToolCalls(toolCalls, model) {
+    if (!Array.isArray(toolCalls) || !toolCalls.length) return undefined;
+    return toolCalls.map((tc, i) => ({
+        id: `${model}-${Date.now()}-${i}`,
+        type: 'function',
+        function: {
+            name: tc.function?.name,
+            // The loop parses this, so it must be a string even when Ollama gave an object.
+            arguments: typeof tc.function?.arguments === 'string'
+                ? tc.function.arguments
+                : JSON.stringify(tc.function?.arguments ?? {}),
+        },
+    }));
+}
+
 export class OllamaEngine {
     backend = 'ollama';
 
@@ -117,8 +185,13 @@ export class OllamaEngine {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 model: req.model,
-                messages: req.messages,
+                messages: toOllamaMessages(req.messages),
                 stream: false,
+                // Agent tool-call support. `/v1/chat/completions` cannot carry this job:
+                // it silently ignores `num_ctx` (measured — HTTP 200, still 4096) and has
+                // no `think` flag, so a reasoning model spends its turn on thinking the
+                // endpoint then discards and returns an empty string.
+                ...(Array.isArray(req.tools) && req.tools.length && { tools: req.tools }),
                 // Reasoning models (Qwen3, DeepSeek-R1, …) split their reply into
                 // `message.thinking` + `message.content` and can return reasoning
                 // with EMPTY content — a blank prompt, with no error. Ollama
@@ -136,7 +209,8 @@ export class OllamaEngine {
                     // content. Measured on qwen3-vl-abliterated:4b with the Krea 2
                     // recipe and a ~300-token idea: 1/3 runs empty at 4096, 0/3 at
                     // 8192.
-                    num_ctx: 8192,
+                    // The agent overrides this; see OLLAMA_AGENT_CONTEXT.
+                    num_ctx: req.options?.contextWindow || OLLAMA_DEFAULT_CONTEXT,
                     ...(req.options?.temperature !== undefined && {
                         temperature: req.options.temperature,
                     }),
@@ -151,7 +225,24 @@ export class OllamaEngine {
             throw new Error(`Ollama chat failed: ${res.status} ${res.statusText}`);
         }
         const data = await res.json();
-        return { text: data.message?.content ?? '', model: req.model, backend: this.backend };
+        return {
+            text: data.message?.content ?? '',
+            model: req.model,
+            backend: this.backend,
+            // Additive, exactly as DeepInfraEngine's are: a caller that destructures
+            // `{ text }` never sees these, so every enhance and describe call is unchanged.
+            ...(fromOllamaToolCalls(data.message?.tool_calls, req.model)
+                && { toolCalls: fromOllamaToolCalls(data.message?.tool_calls, req.model) }),
+            // The compaction trigger reads `usage.prompt_tokens`. Ollama spells its counts
+            // differently, and without the mapping the agent would never compact at all.
+            usage: Number.isFinite(data.prompt_eval_count) || Number.isFinite(data.eval_count)
+                ? {
+                    prompt_tokens: data.prompt_eval_count || 0,
+                    completion_tokens: data.eval_count || 0,
+                    total_tokens: (data.prompt_eval_count || 0) + (data.eval_count || 0),
+                }
+                : null,
+        };
     }
 
     async complete(prompt, opts) {
@@ -765,6 +856,31 @@ export class ComfyUIEngine {
             await new Promise((r) => setTimeout(r, this.pollMs));
         }
     }
+}
+
+/**
+ * The chat client for a connection. Ollama is its own engine, not an OpenAI-compatible
+ * host: its `/v1` shim drops `num_ctx` (200 OK, still 4096) and has no `think` flag, so
+ * an agent run there is capped at the server's default window and a reasoning model
+ * answers empty. Every other preset is OpenAI-shaped and goes to `DeepInfraEngine`.
+ *
+ * Returned alongside is what the caller must pass as `options.contextWindow` and use as
+ * the compaction window, because on Ollama the window is OURS to set rather than the
+ * endpoint's to report. `null` means "ask the endpoint" (MPI-774 Phase 7).
+ *
+ * @param {string} profileId
+ * @param {string|null} key
+ * @param {string} baseURL
+ * @returns {{engine: object, contextWindow: number|null}}
+ */
+export function chatEngineFor(profileId, key, baseURL) {
+    if (profileId === 'ollama') {
+        // OllamaEngine speaks the native route, which is rooted at the host, while the
+        // profile's baseURL carries the `/v1` suffix the OpenAI shim needs.
+        const root = String(baseURL || OLLAMA_BASE_URL).replace(/\/+v1\/?$/, '');
+        return { engine: new OllamaEngine(root), contextWindow: OLLAMA_AGENT_CONTEXT };
+    }
+    return { engine: new DeepInfraEngine(key, baseURL), contextWindow: null };
 }
 
 /**

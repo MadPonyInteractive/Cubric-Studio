@@ -556,10 +556,19 @@ describe('(f) endpoint key resolution', () => {
         const fakeRes = makeFakeRes();
         loop.addSubscriber(fakeRes);
         const engine = makeFakeEngine([{ text: 'hi' }]);
-        const { DeepInfraEngine } = await import('../services/llmEngines.mjs');
-        const origChat = DeepInfraEngine.prototype.chat;
+        // `chatEngineFor` sends the ollama preset to OllamaEngine and everything else to
+        // DeepInfraEngine, so both are stubbed: patching only one would put a "unit" test
+        // on a real localhost:11434 and load a model off disk.
+        const { DeepInfraEngine, OllamaEngine } = await import('../services/llmEngines.mjs');
+        const orig = [DeepInfraEngine.prototype.chat, OllamaEngine.prototype.chat];
         DeepInfraEngine.prototype.chat = engine.chat;
-        return { loop, fakeRes, engine, restore: () => { DeepInfraEngine.prototype.chat = origChat; } };
+        OllamaEngine.prototype.chat = engine.chat;
+        return {
+            loop, fakeRes, engine,
+            restore: () => {
+                [DeepInfraEngine.prototype.chat, OllamaEngine.prototype.chat] = orig;
+            },
+        };
     }
 
     test('Ollama is keyless: a turn and a probe both run with no key (the routes/llm.js rule)', async () => {
@@ -574,6 +583,96 @@ describe('(f) endpoint key resolution', () => {
             assert.notEqual(probed.error?.code, 'NO_KEY');
             assert.equal(engine.calls.length, 2);
         } finally { restore(); }
+    });
+
+    test('the agent goes to OllamaEngine on the ollama preset, DeepInfra everywhere else', async () => {
+        const { chatEngineFor, OLLAMA_AGENT_CONTEXT } = await import('../services/llmEngines.mjs');
+        // `/v1` cannot carry an agent turn: measured 2026-09-19 against a real Ollama, it
+        // returns 200 and ignores num_ctx (4096 either way), and it has no `think` flag.
+        const ollama = chatEngineFor('ollama', null, 'http://localhost:11434/v1');
+        assert.equal(ollama.engine.backend, 'ollama');
+        assert.equal(ollama.contextWindow, OLLAMA_AGENT_CONTEXT);
+        // The native route is rooted at the host; the `/v1` suffix belongs to the shim.
+        assert.equal(ollama.engine.baseUrl, 'http://localhost:11434');
+
+        const hosted = chatEngineFor('deepinfra', 'k', 'https://api.deepinfra.com/v1/openai');
+        assert.equal(hosted.engine.backend, 'deepinfra');
+        assert.equal(hosted.contextWindow, null, 'a hosted endpoint reports its own window');
+    });
+
+    test('Ollama tool calls are translated into the dialect the loop speaks', async () => {
+        const { OllamaEngine } = await import('../services/llmEngines.mjs');
+        // Three differences, each of which fails QUIETLY rather than erroring.
+        const sent = [];
+        const origFetch = global.fetch;
+        global.fetch = async (url, opts) => {
+            sent.push({ url, body: JSON.parse(opts.body) });
+            return {
+                ok: true,
+                json: async () => ({
+                    message: {
+                        content: '',
+                        // 1. arguments is an OBJECT here; OpenAI gives a JSON string, and the
+                        //    loop JSON.parses it — an object throws and every tool would run
+                        //    with no arguments at all.
+                        tool_calls: [{ function: { name: 'generate', arguments: { modelId: 'krea2' } } }],
+                    },
+                    prompt_eval_count: 1200,
+                    eval_count: 34,
+                }),
+            };
+        };
+        try {
+            const engine = new OllamaEngine('http://localhost:11434');
+            const res = await engine.chat({
+                model: 'm',
+                tools: [{ type: 'function', function: { name: 'generate' } }],
+                options: { contextWindow: 32768 },
+                messages: [
+                    { role: 'user', content: 'go' },
+                    // 2. no id on the way out, so the loop's tool_call_id is ours to mint, and
+                    // 3. a result is matched by tool_name, not by id.
+                    { role: 'assistant', content: '', tool_calls: [{ id: 'call_7', type: 'function', function: { name: 'look', arguments: '{"image":"a.png"}' } }] },
+                    { role: 'tool', tool_call_id: 'call_7', content: '{"ok":true}' },
+                ],
+            });
+
+            assert.equal(typeof res.toolCalls[0].function.arguments, 'string', 'the loop JSON.parses this');
+            assert.deepEqual(JSON.parse(res.toolCalls[0].function.arguments), { modelId: 'krea2' });
+            assert.ok(res.toolCalls[0].id, 'a tool result needs an id to answer against');
+            // Compaction reads usage.prompt_tokens; Ollama spells its counts differently and
+            // without the mapping the agent would never compact at all.
+            assert.equal(res.usage.prompt_tokens, 1200);
+            assert.equal(res.usage.completion_tokens, 34);
+
+            const body = sent[0].body;
+            assert.equal(body.options.num_ctx, 32768, 'the window the agent asked for');
+            assert.equal(body.think, false);
+            assert.ok(body.tools?.length, 'tools must reach the native route');
+            const assistant = body.messages.find(m => m.role === 'assistant');
+            assert.deepEqual(assistant.tool_calls[0].function.arguments, { image: 'a.png' }, 'an object on the wire');
+            assert.equal(body.messages.find(m => m.role === 'tool').tool_name, 'look');
+        } finally { global.fetch = origFetch; }
+    });
+
+    test('a non-agent Ollama call keeps the 8k window and gains no tool keys', async () => {
+        const { OllamaEngine } = await import('../services/llmEngines.mjs');
+        // Enhance and describe share this client. They destructure { text }, so the new
+        // keys must not reach them and the window must not move under them.
+        let body = null;
+        const origFetch = global.fetch;
+        global.fetch = async (_url, opts) => {
+            body = JSON.parse(opts.body);
+            return { ok: true, json: async () => ({ message: { content: 'a prompt' } }) };
+        };
+        try {
+            const res = await new OllamaEngine().chat({ model: 'm', messages: [{ role: 'user', content: 'hi' }] });
+            assert.equal(body.options.num_ctx, 8192);
+            assert.equal(body.tools, undefined);
+            assert.equal(res.text, 'a prompt');
+            assert.equal(res.toolCalls, undefined);
+            assert.equal(res.usage, null, 'no counts reported, no invented ones');
+        } finally { global.fetch = origFetch; }
     });
 
     test('any other keyless connection is still refused, and nothing is spent', async () => {
