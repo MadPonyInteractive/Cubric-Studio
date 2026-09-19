@@ -26,35 +26,45 @@ run/cancel toggle into a queue action. No queue, lane or `commandExecutor` chang
 and per `docs/generation-lifecycle.md` § "Per-gen identity doctrine", anything that survives a
 run must be tagged with the gen id, never keyed on `tool` alone.
 
-## Scope
+## Decisions — ANSWERED by Fabio, 2026-09-19
 
-1. **Button** — `Generate` becomes a queue action that stays live: press N times, N jobs enqueued.
-   Drop the `_running` early-return and the Generate↔Cancel morph.
-2. **Cancel** — moves to the queue panel, which already renders one row per job with its own
-   STOP (`MpiQueuePanel`, `getGenerationQueueSnapshot`). Decide whether the frame keeps any
-   cancel affordance at all.
-3. **Per-run state** — `_myTempId` becomes a set; the live-latent listeners (`preview:frame`,
-   `generation:preview-reset`), the gauge, the status line and the scanline resolve against the
-   run they belong to, not "the" run.
-4. **Result pane** — N runs land N results. Today `_run` wipes the previous result at dispatch.
-5. **Ctrl+Enter** (`generation.run`, bound per-show at `MpiBaseFlow` `_bindKeys`) follows the
-   button: it queues.
-6. **Two-leg flows** — `chainCallbacks` (`flowService.js`) dispatches leg 2 from leg 1's
-   completion. Confirm several stacked two-leg runs interleave correctly rather than assuming it.
+> *"Yeah, latest wins. The cancel and stop should work just like a prompt box queue. You can
+> stop it in the queue, and you can stop it in the prompt box by pressing stop. No cap. Yeah,
+> reuse must restore the run that run."*
 
-## Open decisions (product, Fabio's call)
+1. **Result pane = LATEST WINS.** Keep the single result slot; drop only the wipe-at-dispatch
+   in `_run` (`_lastResults = null` + `_persistResult()`), so the previous result stays on
+   screen until a newer run replaces it. No strip, no per-run history in the pane — the gallery
+   is where the runs live.
+2. **Stop = the PromptBox shape, copied.** `MpiPromptBox.js` is the reference:
+   - a **separate Stop button** beside Run (`stopBtn`, icon `stop`, `size: 'sm'`,
+     `variant: 'secondary'`, `MpiPromptBox.js:2415`), disabled while nothing is generating,
+     and the `generation.stop` hotkey (Ctrl+Alt+Enter, `:2583`) bound to the same `_emitCancel`.
+   - per-job stop stays in the **queue slide-over** (`MpiQueuePanel`), which already renders a
+     row per queued/running job.
+   So the flow frame keeps its own Stop for the running job; it does NOT keep the
+   Generate↔Cancel morph.
+   The Run button's label already counts the queue in the PromptBox
+   (`_runLabel`, `:2268` → `Cue` / `Cue xN` off `state.generationQueueCount`). Mirror that
+   helper rather than writing a second one; confirm the word with Fabio (`Queue xN` is what he
+   said, `Cue xN` is what the rest of the app says).
+3. **No cap** on stacked runs.
+4. **Reuse restores the run that ran.** Each press freezes its own input snapshot at dispatch.
+   Today `_persistInputs(inputs)` writes the LIVE frame state, and `_run` re-persists after the
+   auto-enhancer rewrites fields — with N runs queued, a later edit would rewrite the snapshot
+   of an earlier one. The per-run snapshot has to travel with the job (as `enqueueGeneration`
+   already freezes a control snapshot for ordinary gens — `_snapshotControlState`,
+   `generationService.js:416`), not live in one frame-level slot.
 
-- **Result pane with a queue behind it.** Latest-wins (current shape, just not wiped at dispatch),
-  a strip of the runs this session queued, or nothing — the gallery is where results live and the
-  pane becomes a preview of the newest. This is the decision that sizes the card.
-- **Does the frame still show progress at all**, or is the status bar + queue panel the whole
-  story once more than one job is in flight? The status bar already latches last-active-wins.
-- **Changing an input while jobs are queued.** Each press should freeze its own input snapshot at
-  dispatch (`enqueueGeneration` already freezes a control snapshot for ordinary gens) — confirm
-  the flow's `_collectInputs` / `_persistInputs` path does the same and that `Reuse` restores the
-  run that actually happened, not the last thing typed.
-- **A cap on stacked runs?** Probably none (`docs/README.md` → the user's GPU is the limit), but
-  say so deliberately.
+## Remaining scope
+
+- `_run`: drop the `_running` early-return; keep the empty-media / `promptRequired` guards.
+- `_myTempId` becomes a set; `preview:frame`, `generation:preview-reset`, the gauge, the status
+  line and the scanline resolve against the run they belong to.
+- `generation.run` (Ctrl+Enter, bound per-show in `_bindKeys`) queues, same as the button.
+- **Two-leg flows** — `chainCallbacks` (`flowService.js`) dispatches leg 2 from leg 1's
+  completion and REUSES leg 1's tempId (`flowService.js:186-190`, written for the
+  one-`_myTempId` frame). With a set of ids, re-check that assumption rather than inheriting it.
 
 ## Verify at implementation, do not assume
 
@@ -62,11 +72,13 @@ run must be tagged with the gen id, never keyed on `tool` alone.
   (`docs/playbooks/add-flow/04-overlay-and-shell.md` § Overlay z-order —
   `.mpi-slide-over--queue { z-index: calc(var(--main-overlay-z,90)+10) }`), and `queue.toggle` (Q)
   is bound by `MpiGalleryBlock.js:115`, which stays mounted under an open flow. Drive it and
-  confirm the panel opens and its STOP works from inside a flow **before** deciding the frame
-  needs no cancel of its own.
+  confirm the panel opens and its STOP works from inside a flow.
 - Flow gens already emit `tool:*` as `tool: 'groupHistory'`, so the status bar tracks them.
 
 ## Out of scope
 
 - Queue/lane/`commandExecutor` changes. If one turns out to be needed, that is a separate card.
 - The Gallery/History Cue surfaces — they already queue.
+- **Latents for a flow run in the GALLERY — MPI-827.** Same conversation, different surface
+  (`flowService.js` passes no `placeholderGroup` by design). The two cards touch
+  `js/services/flowService.js` between them, so they are NOT parallel-safe with each other.
