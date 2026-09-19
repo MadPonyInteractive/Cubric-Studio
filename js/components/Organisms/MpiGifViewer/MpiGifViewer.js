@@ -271,7 +271,7 @@ export const MpiGifViewer = ComponentFactory.create({
             const f = _frames[_index];
             if (!f) return;
             frameImg.src = f.url;
-            if (_editing && _playing) { if (_editKind === 'mask') _setTint(_masks.overlayAt(_index), true); }
+            if (_editing && _playing) { if (_editKind === 'mask') _setPlayingTint(); }
             else if (_editing) _loadEditFrame(_index);
             emit('frame-change', { idx: _index, frame: f });
         }
@@ -410,7 +410,7 @@ export const MpiGifViewer = ComponentFactory.create({
         // `.mpi-gif-viewer__frame-wrap` (docs/masking-sam3-gif.md) — read-only
         // preview, never a canvas layer, so no UndoStack entry applies.
         /** `luma`: an opaque B/W mask (engine / composed) rather than an alpha one. */
-        function _setTint(url, luma = false) {
+        function _setTint(url, luma = false, complement = false) {
             if (!url) {
                 // HIDE ONLY. `--luma` and the mask image stay exactly as they are
                 // until the next mask replaces them. Dropping `--luma` here (or
@@ -424,10 +424,31 @@ export const MpiGifViewer = ComponentFactory.create({
             }
             // Bitmap and mode together, before the show: one style flush, so the
             // element is never painted with one frame's mask under the other's mode.
-            maskTintEl.style.webkitMaskImage = `url("${url}")`;
-            maskTintEl.style.maskImage = `url("${url}")`;
+            // The complement is CSS's job: a solid second layer, XORed with the mask
+            // by `--complement`. No per-frame decode, so it keeps up with playback.
+            const image = complement ? `url("${url}"), linear-gradient(white, white)` : `url("${url}")`;
+            maskTintEl.style.webkitMaskImage = image;
+            maskTintEl.style.maskImage = image;
             maskTintEl.classList.toggle('mpi-gif-viewer__mask-tint--luma', luma);
+            maskTintEl.classList.toggle('mpi-gif-viewer__mask-tint--complement', complement);
             maskTintEl.classList.add('mpi-gif-viewer__mask-tint--visible');
+        }
+
+        /**
+         * The tint for a frame that playback just stepped ONTO. The frame play
+         * started on is `_hideEditCanvas`'s — it copies the canvas. Every later one
+         * used to get the raw store mask, "what stays", so under the workspace's
+         * "the highlight is what goes" rule the highlight swapped sides one frame
+         * into playback.
+         */
+        function _setPlayingTint() {
+            // Cut-out's override is per frame and the panel pushes the next one a
+            // beat later. Until it lands, the last one is at least the right way
+            // round; the raw store mask is not.
+            if (_cutoutPreview !== null) return;
+            const url = _masks.overlayAt(_index);
+            // What `_loadEditFrame` would decide for this frame, without the canvas.
+            _setTint(url, true, _maskFlip && !!url);
         }
         el.setMaskTint = (url) => _setTint(url);
 
@@ -578,19 +599,32 @@ export const MpiGifViewer = ComponentFactory.create({
             _emitMasks();
         }
 
-        async function _loadEditFrame(idx) {
-            if (!_canvas) return;
+        /**
+         * Loads are SERIALISED. A superseded load still has layer decodes in flight
+         * past its last token check, so run side by side its late subtract lands on
+         * the NEXT load's freshly wiped canvas — a brush layer on top of Cut-out's
+         * override, or one frame's stroke on another. Queued, the newer
+         * `loadImage()` always wipes whatever the older one left behind.
+         */
+        let _editLoad = Promise.resolve();
+        function _loadEditFrame(idx) {
+            if (!_canvas) return _editLoad;
             _saveEdit();
             const token = ++_editToken;
             _editIdx = -1;
+            _editLoad = _editLoad.then(() => (token === _editToken ? _runEditLoad(idx, token) : undefined));
+            return _editLoad;
+        }
+
+        async function _runEditLoad(idx, token) {
             const f = _frames[idx];
-            if (!f) return;
-            const cv = _canvas.el;
-            // Frames share one size, so a zoomed or panned view carries over,
-            // and so does a crop box (loadImage() re-seeds it).
-            const view = cv.isManagedView ? null : { scale: cv.scale, x: cv.offsetX, y: cv.offsetY };
-            const cropRect = _editKind === 'crop' && cv.img ? cv.getCropRect() : null;
+            const cv = _canvas?.el;
+            if (!f || !cv) return;
             try {
+                // Frames share one size, so a zoomed or panned view carries over,
+                // and so does a crop box (loadImage() re-seeds it).
+                const view = cv.isManagedView ? null : { scale: cv.scale, x: cv.offsetX, y: cv.offsetY };
+                const cropRect = _editKind === 'crop' && cv.img ? cv.getCropRect() : null;
                 await cv.loadImage(f.url);
                 if (token !== _editToken) return;
                 if (view) {
@@ -825,6 +859,7 @@ export const MpiGifViewer = ComponentFactory.create({
          * the canvas while the tool is up, the CSS tint while the GIF is playing.
          */
         el.setCutoutPreview = (url) => {
+            const arriving = _cutoutPreview === null && !!url;
             _cutoutPreview = url || null;
             if (_editKind !== 'mask') return;
             // The override turns this canvas into a DISPLAY surface, so it stops
@@ -850,6 +885,14 @@ export const MpiGifViewer = ComponentFactory.create({
                 return;
             }
             if (!_canvas) return;
+            // The FIRST override after a mount (or after a Clear) finds a canvas the
+            // normal branch already filled: base, manual AND subtract. Swapping only
+            // the base left the brush's subtract on top of a bitmap that is composed
+            // and flipped already, so it erased the stroke back OUT of the tint — a
+            // Mask Brush stroke read "goes" in the brush and "stays" here (Fabio,
+            // 2026-09-19). Reload through the one branch that knows the override
+            // replaces every layer; later overrides find only a base to swap.
+            if (arriving) { _loadEditFrame(_index); return; }
             _canvas.el.setMaskBase(_cutoutPreview).catch(err =>
                 clientLogger.warn('MpiGifViewer', `cut-out preview load failed: ${err?.message || err}`));
         };

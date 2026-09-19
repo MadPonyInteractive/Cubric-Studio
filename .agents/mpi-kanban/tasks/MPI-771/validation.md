@@ -617,3 +617,48 @@ and landing back on what stays. Reading the code would not have found it.
 desktop suite 134 passed / 4 failed - three the known peer frame-store bug (gif-cutout:446, gif-timing:73, gif-transform:56) and the fourth a live peer's in-flight uncommitted gallery work (claim 3f8e2d51 holds MpiGalleryGrid + gallery-filter-panel.spec.js; it passes in isolation).
 
 **STILL OPEN: Fabio's eye pass on the whole workspace.** Nothing here closes without it.
+
+## 2026-09-19 ~18:55Z (session `eb575dd3`) - the stroke bug, and the playing tint that was "unproven"
+
+**Fabio's screenshot, reproduced before any code was read.** New spec "a brush stroke ACROSS the
+subject edge..." strokes from the background into the disc and samples four points on three
+surfaces. First run: brush overlay and STORE both said "goes" on both sides of the edge; Cut-out's
+overlay said `strokeInBackground: false, strokeInDisc: false` - his untinted hole with the subject
+untouched, exactly. So the store was never wrong and none of the plan's three candidates was it.
+
+**Root cause (measured: `getSubtractURL()` non-null on Cut-out's canvas).** Brush -> Cut-out
+remounts the canvas; the mount's `_loadEditFrame` runs before Cut-out's first preview exists,
+takes the normal branch and loads base + manual + subtract; `setCutoutPreview()` then swapped only
+the base. The override is composed and flipped already, so the brush's `subtract` (a Paint stroke
+under the flip) was applied a second time and erased the stroke out of the tint. Fix in
+`MpiGifViewer.js`: the first override after a mount or Clear reloads through `_loadEditFrame`'s
+override branch, and `_loadEditFrame` is serialised so a superseded load's late layer decode cannot
+land on the next load's canvas.
+
+**The "unproven" playing tint WAS broken.** New spec "PLAYING in the Mask Brush..." reads a
+screenshot of the tint box (lighter region = highlighted): past the first playing frame the
+highlight sat on the DISC. `_render()` fed later frames the raw store mask. Fix: `_setPlayingTint()`
++ a CSS-only complement (`--complement`: solid second mask layer, `mask-composite: exclude`).
+
+| `MpiGifViewer.js` put back to HEAD (sha-verified restore) | The assertion that failed |
+|---|---|
+| stroke spec | `Cut-out must show the brush stroke as "goes"` - both stroke points `false` |
+| playing spec | `highlighted: "disc"`, expected `"background"` |
+
+**Automated, with the fix:** eslint clean on both files + `lint:components` clean;
+`node --test` over every gif / mask / colour-key suite 145 pass / 0 fail; desktop `gif-workspace`
+(10) + `gif-cutout` + `gif-make` + `gif-maker` + `mask-colour` + `gallery-gif-hover`: **18 passed /
+1 failed**, the one being `gif-cutout.spec.js:446` - the known peer frame-store bug, re-proven not
+ours here: it fails identically with HEAD's viewer in place.
+
+**Not automated:** the wrong-way flash in Cut-out while PLAYING (the raw store mask shown for a
+beat before the panel's preview landed) is removed by construction, not asserted - a per-frame
+flicker is not samplable without racing playback.
+
+**STILL OPEN: Fabio's eye pass**, now including: stroke across an edge in the Mask Brush -> open
+Cut-out -> the stroke must be tinted, no hole; and Play in the Mask Brush must keep the tint on
+the background.
+
+**VERIFIED BY FABIO, 2026-09-19 ~19:00Z, in his own app:** "it's verified. It looks good." This is
+the evidence that closes MPI-771; it stays `doing` tonight only because the session ended in a
+handoff (agent access to the GIF workspace is the next job, see the umbrella plan).

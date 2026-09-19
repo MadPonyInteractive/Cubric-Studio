@@ -99,6 +99,12 @@ things that are easy to get wrong here:
   which is exactly the regression the first attempt shipped. `setCutoutPreview()` clears the
   flag as well as `_editIdx`, because the mount runs before the first preview arrives and has
   already taken the normal branch.
+- **...and that normal branch loaded the BRUSH LAYERS too.** The override is composed already,
+  so a `subtract` left on the canvas is applied twice: a brush stroke read "goes" in the brush
+  and came back in Cut-out as an untinted hole. The FIRST override after a mount (or a Clear)
+  therefore reloads the frame through `_loadEditFrame`'s override branch (`loadImage()` wipes
+  every layer); later ones only swap the base. `_loadEditFrame` is SERIALISED for the same
+  reason — a superseded load's late layer decode must not land on the next load's canvas.
 - **Paint and erase SWAP under the complement.** The canvas paints the inverse of what is on
   screen, so "Paint" is wired to the eraser and back. The strip's radio is untouched: from the
   user's side it is still painting, and the stroke still grows the region under the cursor.
@@ -224,8 +230,10 @@ Cut-out; Fabio chose that over a second Cut out button (2026-09-16).
   The strip's **Clear** is routed to `clearFrameMasks(index)` under the override: with
   `brush: false` there is no layer to erase with, so clearing only the canvas would repaint
   from a store that still holds the mask and read as a dead button.
-  Play in the Mask Brush drives the same div with the raw B/W masks under `--luma`
-  (`mask-mode: luminance`).
+  Play in the Mask Brush drives the same div with the store's B/W masks under `--luma`
+  (`mask-mode: luminance`). The store is "what stays", so under the flip `_setPlayingTint()`
+  adds `--complement`: a solid second mask layer XORed in CSS (`mask-composite: exclude`), no
+  per-frame decode. Without it the highlight swapped sides one frame into playback.
   **The tint is WHITE because the mask is COMMITTED.** `MpiCanvas` recolours only its PENDING
   layers to `MASK_AUTO_FILL` (`--accent-ok`): a detect run still waiting on Add / Subtract, or
   an Adjust preview waiting on Apply. A committed mask is `maskColor` — white — drawn straight

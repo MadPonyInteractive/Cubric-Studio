@@ -22,7 +22,57 @@ cost.
 now highlights the SAME region Cut-out does. See
 [## Remaining Work](#remaining-work) → "Fabio's THIRD pass".
 
-**OPEN BUG, found by Fabio minutes after the third pass shipped (`0f8b646f`) — THE NEXT JOB.**
+**2026-09-19 ~19:3xZ (session `eb575dd3`): THE STROKE BUG IS ROOT-CAUSED AND FIXED, plus the
+"unproven" playing tint, which WAS broken. Both proven red on HEAD's `MpiGifViewer.js`, green
+on the fix, on real pixels. NOT yet seen by Fabio.**
+- **Stroke bug — none of the three candidates.** The store was right all along (the new spec
+  reads it: black on both sides of the edge). Cut-out's DISPLAY was wrong: Brush -> Cut-out
+  destroys and remounts the canvas, the mount's `_loadEditFrame` runs BEFORE Cut-out's first
+  preview exists, so it takes the NORMAL branch and loads base + manual + **subtract**. Then
+  `setCutoutPreview()` swapped only the BASE. Under the flip a Paint stroke is a `subtract`
+  layer, so it sat on top of the already-composed, already-flipped override and erased the
+  stroke back out of the tint = Fabio's hole. Probe measured `subtract: true` on Cut-out's
+  canvas. Same root as the two older patches in `setCutoutPreview` (`_editIdx`, the double flip):
+  the viewer infers "display surface" from the preview ARRIVING, after the mount already ran.
+  Fix: the first override after a mount/Clear (`null -> url`) reloads through `_loadEditFrame`'s
+  override branch (`loadImage()` wipes every layer); `_loadEditFrame` is now SERIALISED
+  (`_editLoad` chain + token skip) so a superseded load's late layer decode cannot land on the
+  next load's canvas — that race also existed for fast frame-stepping in the brush.
+- **Playing in the Mask Brush flipped the highlight one frame in.** `_render()` fed every frame
+  after the first the raw store mask ("what stays") under `--luma`. Now `_setPlayingTint()`:
+  under the flip it adds `--complement` (a solid second mask layer + `mask-composite: exclude`,
+  CSS only, no per-frame decode); under Cut-out's override it leaves the last preview up until
+  the panel pushes the next (the raw store mask was a wrong-way flash there).
+- **Specs (both new, `gif-workspace.spec.js`):** "a brush stroke ACROSS the subject edge..."
+  (4 points x brush overlay / store / Cut-out overlay, plus "no brush layer on Cut-out's
+  canvas") and "PLAYING in the Mask Brush..." (a `sharp`-decoded SCREENSHOT of the tint box —
+  lighter region = highlighted; the fixture is made to loop, it plays once in 250 ms otherwise).
+- **Gotcha:** the first desktop run of the session timed out in `shellWindow` before the test
+  body ran (slow boot); a plain re-run passed. Not a bug to chase.
+- **Noticed, not actioned:** the frame STRIP thumbnails still highlight the stored mask ("what
+  stays") while the stage highlights what goes. Fabio's call whether that matters at 40 px.
+- **Fabio VERIFIED it in his app, 2026-09-19 ~19:00Z: "it's verified. It looks good."** MPI-771's
+  own work is done; the card stays `doing` only because this is a handoff, not a close-out.
+- **His next ask: "Can agents use this? Can the in-app agent use this?" — NO, measured.** Every
+  `gif` hit in `routes/connector.js`, `services/agentTools.mjs`, `services/agentLoop.mjs`,
+  `js/shell/agentDispatch.js` is the substring of `JSON.stringify`; the connector manifest and
+  `.claude/skills/cubric-vision*` say nothing about GIF. The in-app agent's tools are
+  list/describe/install model, read_knowledge, generate, look, projects, rename_card, memory.
+  What DOES exist is the raw HTTP surface an external agent could already POST: `/gif/make`,
+  `/gif/maker`, `/gif/entry`, `/gif/crop`, `/gif/resize`, `/gif/to-video`, `/gif/preview`,
+  `/gif-cutout/source`, `/gif-cutout/apply` — undocumented, and **the cut-out's MASKS are
+  renderer-only** (BiRefNet/SAM3 tracks dispatch from the renderer, By colour is client JS, brush
+  layers live in `MpiGifViewer`), so `/gif-cutout/apply` has nothing to feed it from outside.
+  THE NEXT JOB: design that with Fabio before coding (which verbs an agent gets; whether masks
+  need a server-side producer). `project_cli_anything_is_the_cli_wrapper`: route first, the CLI
+  is generated from the HTTP surface. No card exists for it — ask him whether it gets one.
+- **Also still open in this workspace:** MPI-759 / 760 / 772 / 773 are `doing/validating` with
+  attention; `types-hunk.md` is still parked in MPI-760, 772 and 773 (`types.js` carries no
+  `MpiToolOptionsGifTiming` / `GifTransform` typedef; peer MPI-736 also wants one line there,
+  message `bb5f6817`); close-out must ask about `.claude/rules/` maps (`edit-change`,
+  `selection-change`, `setSelection`, `history:stats-dirty`, the `maskColour` tool).
+
+**(Superseded by the block above — kept for the record.) OPEN BUG, found by Fabio minutes after the third pass shipped (`0f8b646f`).**
 A Mask Brush stroke and Cut-out disagree about that stroke. His two screenshots, same frame,
 By colour / Background only / Invert OFF / strip invert ON at 75%:
 - **Mask Brush:** he painted across the left edge of the robot's head. The stroke shows DARK

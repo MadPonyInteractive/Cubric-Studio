@@ -924,3 +924,217 @@ test('gif mask display: Cut-out and the Mask Brush highlight the SAME region, an
     await closeApp(app);
   }
 });
+
+/**
+ * MPI-771, Fabio 2026-09-19, minutes after the test above shipped: a stroke
+ * painted in the Mask Brush ACROSS the subject's edge read as "goes" in the brush
+ * and as "stays" in Cut-out - a light untinted hole in the background tint, with
+ * the subject untouched.
+ *
+ * The test above let it through twice over: it stroked dead centre only, never
+ * across the edge into the background, and it read the STORE after the stroke
+ * but never went BACK to Cut-out to read what Cut-out DISPLAYS.
+ *
+ * One stroke, four sample points, three surfaces (brush overlay, store, Cut-out
+ * overlay). Every surface must say the same thing about every point.
+ */
+test('gif mask display: a brush stroke ACROSS the subject edge reads the same in the store and in Cut-out', async ({}, testInfo) => {
+  const { app, window } = await launchApp(testInfo);
+  try {
+    await setupProject(window);
+    await window.evaluate(async () => {
+      const { navigate, PAGE_GROUP_HISTORY } = await import('/js/router.js');
+      navigate(PAGE_GROUP_HISTORY, { groupId: 'gGif' });
+    });
+    await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-frame-strip__thumb'))).toBe(true);
+
+    const openTool = (info) => window.evaluate((name) => {
+      document.querySelector(`.mpi-history-tools__btn[data-info="${name}"] button`).click();
+    }, info);
+    const canvasReady = () => expect.poll(() => window.evaluate(() => {
+      const cv = document.querySelector('.mpi-gif-viewer__edit .mpi-canvas');
+      return !!cv && cv.activeMode === 'mask';
+    }), { timeout: 15000 }).toBe(true);
+
+    // Same stored mask as above: the middle DISC is "what stays". In the 32x32
+    // frame that is centre 16, radius 9 - so the disc's LEFT edge is at x = 7.
+    const disc = await window.evaluate(() => {
+      const c = document.createElement('canvas');
+      c.width = c.height = 64;
+      const x = c.getContext('2d');
+      x.fillStyle = 'black'; x.fillRect(0, 0, 64, 64);
+      x.fillStyle = 'white'; x.beginPath(); x.arc(32, 32, 18, 0, Math.PI * 2); x.fill();
+      return c.toDataURL('image/png');
+    });
+    await window.evaluate((u) => {
+      document.querySelector('.mpi-gif-viewer').setTrackMasks([u, u, u, u, u]);
+    }, disc);
+
+    // Fractions of the frame, so they survive any overlay / mask resolution.
+    // The stroke runs along y = 0.5 from x = 0.10 (background) to x = 0.34 (disc).
+    const POINTS = {
+      strokeInDisc: [0.34, 0.5],        // was kept, the stroke must DROP it
+      strokeInBackground: [0.10, 0.5],  // was dropped already, must STAY dropped
+      discUntouched: [0.62, 0.5],       // kept, nowhere near the stroke
+      backgroundUntouched: [0.06, 0.06],
+    };
+
+    /** Per point: does the overlay carry tint there? Tint = "this goes". */
+    const overlayGoes = () => window.evaluate((pts) => {
+      const cv = document.querySelector('.mpi-gif-viewer__edit .mpi-canvas');
+      const ov = cv.querySelector('canvas[data-role="overlay"]');
+      const c = ov.getContext('2d');
+      const out = {};
+      for (const [k, [fx, fy]] of Object.entries(pts)) {
+        out[k] = c.getImageData(Math.round(ov.width * fx), Math.round(ov.height * fy), 1, 1).data[3] > 40;
+      }
+      return out;
+    }, POINTS);
+
+    /** Per point: does the STORE drop it? The cut keeps white, so black = goes. */
+    const storeGoes = () => window.evaluate(async (pts) => {
+      const url = await document.querySelector('.mpi-gif-viewer').getFrameMaskURL(0);
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      const x = c.getContext('2d');
+      x.drawImage(img, 0, 0);
+      const out = {};
+      for (const [k, [fx, fy]] of Object.entries(pts)) {
+        const d = x.getImageData(Math.round(c.width * fx), Math.round(c.height * fy), 1, 1).data;
+        // Alpha-encoded or opaque B/W: "kept" needs BOTH light and opaque.
+        out[k] = !(d[0] >= 128 && d[3] >= 128);
+      }
+      return out;
+    }, POINTS);
+
+    const BEFORE = { strokeInDisc: false, strokeInBackground: true, discUntouched: false, backgroundUntouched: true };
+    const AFTER = { strokeInDisc: true, strokeInBackground: true, discUntouched: false, backgroundUntouched: true };
+
+    // ── Before the stroke, all three surfaces agree ──────────────────────
+    await openTool('Cut-out');
+    await canvasReady();
+    await expect.poll(overlayGoes, 'Cut-out, before any stroke', { timeout: 10000 }).toEqual(BEFORE);
+    await openTool('Mask Brush');
+    await canvasReady();
+    await expect.poll(overlayGoes, 'Mask Brush, before any stroke', { timeout: 10000 }).toEqual(BEFORE);
+
+    // ── The stroke: background -> across the edge -> into the disc ───────
+    await window.evaluate(() => document.querySelector('.mpi-gif-viewer__edit .mpi-canvas').setBrushSize(4));
+    const at = (fx, fy) => window.evaluate(([x, y]) => {
+      const cv = document.querySelector('.mpi-gif-viewer__edit .mpi-canvas');
+      const r = cv.getBoundingClientRect();
+      const ov = cv.querySelector('canvas[data-role="overlay"]');
+      return { x: r.left + cv.offsetX + ov.width * x * cv.scale, y: r.top + cv.offsetY + ov.height * y * cv.scale };
+    }, [fx, fy]);
+    const from = await at(...POINTS.strokeInBackground);
+    const to = await at(...POINTS.strokeInDisc);
+    await window.mouse.move(from.x, from.y);
+    await window.mouse.down();
+    await window.mouse.move((from.x + to.x) / 2, from.y, { steps: 6 });
+    await window.mouse.move(to.x, to.y, { steps: 6 });
+    await window.mouse.up();
+
+    await expect.poll(overlayGoes, 'Mask Brush: the stroke reads "goes" on BOTH sides of the edge', { timeout: 10000 })
+      .toEqual(AFTER);
+    expect(await storeGoes(), 'the STORE must drop the stroke on both sides of the edge').toEqual(AFTER);
+
+    // ── Back to Cut-out: it must DISPLAY the same stroke the same way ────
+    await openTool('Cut-out');
+    await canvasReady();
+    await expect.poll(overlayGoes, 'Cut-out must show the brush stroke as "goes", not as a hole in the tint', { timeout: 10000 })
+      .toEqual(AFTER);
+    // The cause, pinned: the override bitmap is composed already, so a brush
+    // layer left on this canvas is applied a SECOND time, on top of the flip.
+    expect(await window.evaluate(() => {
+      const cv = document.querySelector('.mpi-gif-viewer__edit .mpi-canvas');
+      return { manual: !!cv.getManualURL(), subtract: !!cv.getSubtractURL() };
+    }), 'Cut-out\'s canvas is a display surface - no brush layer may ride on the override')
+      .toEqual({ manual: false, subtract: false });
+    expect(await storeGoes(), 'and opening Cut-out must not rewrite the store').toEqual(AFTER);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+/**
+ * MPI-771: "play/pause never changes what the highlight means" was written in a
+ * comment and asserted nowhere. While a mask tool plays, the canvas is hidden and
+ * a CSS tint stands in for it - read the tint's own bitmap, in its own mode.
+ */
+test('gif mask display: PLAYING in the Mask Brush keeps the highlight on what goes', async ({}, testInfo) => {
+  const { app, window } = await launchApp(testInfo);
+  try {
+    await setupProject(window);
+    // The shared fixture plays ONCE at 50 ms a frame - over in a quarter second,
+    // before one sample lands. Loop forever, slowly enough to read a frame.
+    await window.evaluate(() => {
+      const g = window.__mpi769.store.iGif;
+      g.loop = 0;
+      g.frames.forEach(f => { f.delay = 30; });
+    });
+    await window.evaluate(async () => {
+      const { navigate, PAGE_GROUP_HISTORY } = await import('/js/router.js');
+      navigate(PAGE_GROUP_HISTORY, { groupId: 'gGif' });
+    });
+    await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-frame-strip__thumb'))).toBe(true);
+
+    const openTool = (info) => window.evaluate((name) => {
+      document.querySelector(`.mpi-history-tools__btn[data-info="${name}"] button`).click();
+    }, info);
+    const canvasReady = () => expect.poll(() => window.evaluate(() => {
+      const cv = document.querySelector('.mpi-gif-viewer__edit .mpi-canvas');
+      return !!cv && cv.activeMode === 'mask';
+    }), { timeout: 15000 }).toBe(true);
+
+    const disc = await window.evaluate(() => {
+      const c = document.createElement('canvas');
+      c.width = c.height = 64;
+      const x = c.getContext('2d');
+      x.fillStyle = 'black'; x.fillRect(0, 0, 64, 64);
+      x.fillStyle = 'white'; x.beginPath(); x.arc(32, 32, 18, 0, Math.PI * 2); x.fill();
+      return c.toDataURL('image/png');
+    });
+    await window.evaluate((u) => {
+      document.querySelector('.mpi-gif-viewer').setTrackMasks([u, u, u, u, u]);
+    }, disc);
+
+    // Cut-out first: it is what pushes the workspace rule (Invert OFF = the
+    // highlight is what goes) that the brush then inherits.
+    await openTool('Cut-out');
+    await canvasReady();
+    await openTool('Mask Brush');
+    await canvasReady();
+
+    /**
+     * Which region is HIGHLIGHTED, off the screen's own pixels: the tint is a CSS
+     * mask over the frame, so neither its bitmap nor its classes say what the
+     * user sees. The fixture frame is one flat colour and the tint is
+     * `--mask-fill` (white), so the highlighted region is simply the LIGHTER one.
+     */
+    const sharp = require('sharp');
+    const playingTint = async () => {
+      const at = await window.evaluate(() => {
+        const v = document.querySelector('.mpi-gif-viewer');
+        const r = document.querySelector('.mpi-gif-viewer__mask-tint').getBoundingClientRect();
+        return { idx: v.getFrameIndex(), x: r.left, y: r.top, w: r.width, h: r.height };
+      });
+      if (!(at.w > 8) || !(at.h > 8)) return { moved: at.idx > 0, highlighted: 'no tint box' };
+      const png = await window.screenshot({ clip: { x: at.x, y: at.y, width: at.w, height: at.h } });
+      const { data, info } = await sharp(png).greyscale().raw().toBuffer({ resolveWithObject: true });
+      const luma = (fx, fy) => data[Math.round(info.height * fy) * info.width + Math.round(info.width * fx)];
+      const d = luma(0.06, 0.06) - luma(0.5, 0.5);
+      return { moved: at.idx > 0, highlighted: d > 40 ? 'background' : d < -40 ? 'disc' : 'neither' };
+    };
+
+    await window.evaluate(() => document.querySelector('[data-mount="play"] button').click());
+    // `moved`: the frame play STARTS on copies the canvas, every later one is built
+    // from the store - so only a frame past 0 proves the store path.
+    await expect.poll(playingTint, 'past the first frame, the playing highlight must still be what GOES', { timeout: 10000 })
+      .toEqual({ moved: true, highlighted: 'background' });
+  } finally {
+    await closeApp(app);
+  }
+});

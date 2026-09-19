@@ -121,6 +121,13 @@
     mask-mode: luminance;
 }
 
+/* The store holds "what stays"; the workspace highlights what GOES. `_setTint()`
+   stacks a solid layer under the mask and this XORs the two: 1 - coverage. */
+.mpi-gif-viewer__mask-tint--complement {
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+}
+
 /* ── Load/generation spinner — centred over the stage ───────────────────── */
 
 .mpi-gif-viewer__spinner {
