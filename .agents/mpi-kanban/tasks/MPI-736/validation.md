@@ -485,6 +485,32 @@ clean on the five files. **NOT verified in pixels** — Fabio's reload is the ch
 
 **VERIFIED BY FABIO** (2026-09-19, live): *"1"*. Committed and pushed as `bc6af6fb`.
 
+## Round 9d — the status bar, which was never the hard one (2026-09-19)
+
+**The premise every handoff carried was false.** They all said `tool:running` /
+`tool:progress` carry no mediaType so the EMITTERS must change. `tool:running` has always
+carried `type: operation` (`generationService.js:905`), and `statusBar.js` was already
+looking that same key up in the registry for its label. **No emitter changed.** Fourth
+wrong inherited row on this card — check the claim before budgeting for it.
+
+**Built:** `getCommandAccent(key)` in `commandRegistry.js` beside
+`getCommandProgressLabel` (op key → `mediaType` → accent, `image → vision`, unknown →
+`studio`); `statusBar.js` sets `_fill.dataset.accent` on `tool:running` and DELETES it on
+the way to idle. `.shell-info__fill` is the only element in the bar drawing
+`--accent-heat`, so it is the one that declares, and idle is about no media type.
+
+**Flows needed no special case:** the twelve `flow*` ops are ordinary registry rows with
+their own `mediaType`. Measured: 22 vision, 14 video, 5 audio, 2 studio — the two cream
+ones are `createGroupFromSelection` and `promoteToNewGroup`, correctly about no medium.
+
+**Ran:** `npm test` 1468/1469 (1 skipped, 0 fail), `status-bar-accent.test.cjs` 5/5, eslint
+clean. **NOT verified in pixels** — the colour is not reachable from a unit test, which is
+exactly why one of those tests asserts the EMITTER still carries `type`: drop that key and
+the bar goes quietly cream with nothing failing.
+
+Also retired one of the five `image → vision` copies (`getOpHelp` now calls the helper).
+Four remain, all under other cards' live claims.
+
 ## Round 9c — class B, and a red master met on the way (2026-09-19)
 
 **Class B swept. Two of its four recorded rows were already correct** — the old survey had

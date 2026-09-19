@@ -126,6 +126,14 @@ Derived from `plan.md` phase titles, 2026-09-18.
         locally without the pin, pushed `d3a46d7d --no-verify`. See `docs/red-master.md`.
   - [ ] Finish the sweep — the rule now lets US find surfaces instead of waiting for a
         screenshot. Survey in `validation.md` § Round 8.
+  - [ ] Round 9d — the STATUS BAR (2026-09-19) — **BUILT, awaiting the eye**
+    - [x] `getCommandAccent(key)` in `commandRegistry.js`; `statusBar.js` sets it on the
+          fill at `tool:running` and clears it at idle.
+    - [x] The inherited premise was FALSE — no emitter changed. `tool:running` already
+          carried `type`, and the bar already looked that key up for its label.
+    - [x] Flows need no special case; one of the five `image → vision` copies retired.
+    - [x] `tests/status-bar-accent.test.cjs` 5/5, `npm test` 1468/1469, eslint clean.
+    - [ ] Fabio's live check: run an image op, a video op and an audio Flow.
   - [ ] 1c canvas constants land here (deferred from phase 1)
 - [ ] Phase 5 — finish `DESIGN.md` (VT323 wordmark, single mascot) and rewrite `PRODUCT.md`
       (its "pink/heat accent" line goes wrong the moment phase 3 lands)

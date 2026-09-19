@@ -2031,7 +2031,7 @@ export function getOpHelp(key, model = null) {
         // A `[data-accent]` value: the guide wears the colour of what its op MAKES. The
         // dialog needs it handed over — it portals to document.body, so it cannot
         // inherit the PromptBox's.
-        accent: cmd.mediaType === 'image' ? 'vision' : (cmd.mediaType || 'studio'),
+        accent: getCommandAccent(key),
     };
 }
 
@@ -2044,4 +2044,23 @@ export function getOpHelp(key, model = null) {
  */
 export function getCommandProgressLabel(key) {
     return commands[key]?.progressLabel || 'Generating';
+}
+
+/**
+ * The `[data-accent]` value for what an op MAKES (MPI-736).
+ *
+ * `image` maps to `vision` because the accents are named for the mascots, not the media
+ * (styles/01_base.css). An unknown key falls back to `studio` cream, the honest answer for
+ * "no one media type" — which is also what the two group ops take, since making a group is
+ * about no medium in particular.
+ *
+ * Flows need no special case: the twelve `flow*` ops are ordinary rows here and carry their
+ * own `mediaType`, so an LTX foley run reads audio and an outpaint reads image.
+ *
+ * @param {string} key
+ * @returns {'vision'|'video'|'audio'|'studio'}
+ */
+export function getCommandAccent(key) {
+    const t = commands[key]?.mediaType;
+    return t === 'image' ? 'vision' : (t || 'studio');
 }

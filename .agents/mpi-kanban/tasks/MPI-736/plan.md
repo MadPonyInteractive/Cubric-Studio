@@ -85,6 +85,32 @@ fixed. `tests/accent-family-literals.test.cjs` now fails repo-wide if any styles
 green, Reuse Prompt → yellow, the other six stay cream because they are about no media type.
 `npm test` 1432/1433, lint clean. Details and the survey: `validation.md` § Round 8.
 
+### THE STATUS BAR — DONE 2026-09-19, and it was NOT the hard one
+
+Every handoff since round 6 carried this as *"the one genuinely non-trivial piece left —
+`tool:running`/`tool:progress` carry no mediaType, so the EMITTERS have to change, not just
+`statusBar.js`."* **That premise was false, and it is the FOURTH wrong inherited row on
+this card.** `tool:running` has always carried `type: operation`, the op key
+(`generationService.js:905`), and `statusBar.js` was ALREADY looking that same key up in
+the registry for its label (`getCommandProgressLabel`). Nothing upstream changed.
+
+- `getCommandAccent(key)` in `commandRegistry.js`, beside `getCommandProgressLabel`:
+  op key → `mediaType` → accent, `image → vision`, unknown → `studio`.
+- `statusBar.js` sets `_fill.dataset.accent` on `tool:running` and DELETES it at idle.
+  `.shell-info__fill` is the only element in the bar that draws `--accent-heat`, so it is
+  the one that declares. Idle is about no media type, so it goes back to cream.
+- **Flows needed no special case** — the twelve `flow*` ops are ordinary registry rows
+  carrying their own `mediaType`, so an LTX foley run reads audio and an outpaint reads
+  image. Only the two group ops take cream, correctly.
+- This also killed one of the five `image → vision` copies: `getOpHelp()` now calls the
+  helper. **Four left** (`navigation.js:297`, `MpiBaseFlow.js:215`, `MpiPromptBox.js:1984`,
+  `MpiMediaPicker`), all under other cards' claims.
+
+`tests/status-bar-accent.test.cjs` pins the two things that would silently undo it: every
+op resolving to a declared `[data-accent]`, and `tool:running` still carrying `type` —
+because the colour itself is not reachable from a unit test, so a dropped payload key would
+turn the bar quietly cream with nothing failing. `npm test` 1468/1469 (1 skipped, 0 fail).
+
 ### THE MECHANICAL SWEEP (2026-09-19) — Fabio: *"have you done a sweep on the UI?"*
 
 Answer was no. Every round 1-9 was screenshot-driven: he saw a cream surface, we fixed it.

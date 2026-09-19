@@ -26,7 +26,7 @@ import { MpiToast } from '../components/Primitives/MpiToast/MpiToast.js';
 import { Events } from '../events.js';
 import { gid, qs } from '../utils/dom.js';
 import { state } from '../state.js';
-import { getCommandProgressLabel } from '../data/commandRegistry.js';
+import { getCommandProgressLabel, getCommandAccent } from '../data/commandRegistry.js';
 import { generationStore } from '../services/generationStore.js';
 
 // ── DOM refs ───────────────────────────────────────────────────────────────────
@@ -218,6 +218,10 @@ function _setIdle() {
     // as on the way IN is what makes idle actually mean idle; the class list is
     // deliberately identical to `_beginActiveCycle`'s.
     _fill?.classList.remove('shell-info__fill--flash', 'shell-info__fill--fade', 'shell-info__fill--indeterminate');
+    // Idle is about no media type, so the bar goes back to Studio cream (MPI-736). Cleared
+    // on the way OUT for the same reason as the classes above: the fade-out is visible, and
+    // leaving the last job's colour on it would state a subject that is over.
+    if (_fill) delete _fill.dataset.accent;
     _job.className = 'shell-info__job';
     _jobLabel.textContent = `IDLE · ${_idleScopeLabel()}`;
     _currentLabel = '';
@@ -512,9 +516,14 @@ export const StatusBar = {
         if (_listenUnsubs.length > 0) return;
         // tool:running — job dispatched. Spinner + label only; NO timer yet (ComfyUI
         // may still be booting — MPI-147: don't count cold-start in the clock).
-        _listenUnsubs.push(Events.on('tool:running', ({ tool, id = null }) => {
+        _listenUnsubs.push(Events.on('tool:running', ({ tool, id = null, type = null }) => {
             if (tool !== 'groupHistory') return;
             _latch(id);
+            // The bar wears the accent of the task AHEAD (MPI-736). `type` is the op key
+            // this event has always carried, and the bar already looks the same key up for
+            // its label — so nothing upstream had to change. The fill is the only element
+            // here that draws --accent-heat, so it is the one that declares.
+            if (_fill) _fill.dataset.accent = getCommandAccent(type);
             StatusBar.progress.prepare('Starting');
         }));
         // tool:accepted — ComfyUI accepted the prompt (prompt_ack). NOW start the
