@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-821",
+  "title": "Archive replaces the reuse asset store",
+  "description": "Fabio 2026-09-19. Archive now covers what .preview-assets was invented for, so the hidden copies go. FOUR parts: (1) card context menu - move Archive DOWN next to Delete (today it sits mid-list, Delete is last). (2) The delete confirm dialog gains a third action: Cancel / Delete / Archive, for single and multi-select. (3) Retire the reuse asset copying - placeContentAsset / materializeGenerationFrameSnapshots / materializePreviewAssets write Media/.preview-assets/<sha256> so Reuse can re-chip a source image; instead the source stays a real gallery card and Archive hides it. Reuse of a DELETED card then breaks, and that is accepted - his call, it is what every other app does. (4) Repoint 'Cleanup assets...' (projectUI.js:304, POST /project/cleanup-assets, routes/projects.js:1054) at the DERIVATIVES instead - Media/.meta/<id>.thumb.* and .proxy.*, which rebuild via POST /backfill-media-derivatives on the next project load - so it becomes the pre-share slimming step. NOTE it only wipes .preview-assets today and never touches a thumbnail. OPEN: what happens to existing projects whose sidecars already carry previewAssets refs.",
+  "column": "todo",
+  "maturity": "idea",
+  "status": "active",
+  "created_at": "2026-09-19T12:01:13+01:00",
+  "updated_at": "2026-09-19T12:01:13+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
