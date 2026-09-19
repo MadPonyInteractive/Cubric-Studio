@@ -49,7 +49,53 @@ Derived from `plan.md` phase titles, 2026-09-18.
           blank until the project was reopened. Affects every audio import, not recordings.
     - [ ] `types.js:1587` still says `Compound` — inside MPI-771's live claim, messaged
           (`bb5f6817`), NOT edited. **Drift until that lands.**
-  - [ ] Finish the sweep — Fabio is still finding surfaces a round at a time
+  - [x] **Round 7 — the gallery card's kind chip.** Fabio picked it over the card mark and
+        widened it: colour the icon AND give every kind one.
+    - [x] `ASSET_KINDS` gained an `accent` column (a `[data-accent]` value); the grid writes
+          it onto the chip, which rebinds `--accent-heat` for itself, and the chip's `color`
+          came off `--ink-1`. No new token, no `color-mix` between two family accents.
+    - [x] `badge: true` on `image` and `audio` — every kind badges now. Reverses
+          `assetKinds.js`'s own "unmarked means just a picture" note, Fabio's call, written
+          into the file with the reason.
+    - [x] `image/gif/scene → vision`, `video → video`, `audio → audio`. Split by what the
+          thing IS, not by whether it moves — Fabio corrected GIF off orange: *"I know
+          they're animated, but they're still images."* 3D gets its own hue and mascot when
+          the app does real 3D MODELS.
+    - [x] **The filter panel too** — *"another place we're forgetting colour is the
+          filters."* An active row already filled with `var(--accent-heat)`, so every row
+          was the workspace accent. The row carries `[data-accent]` now and the existing
+          rule became the family colour; no CSS value changed. Mark rows and the previews
+          flag keep the workspace accent — not media types.
+    - [x] **Edge the widening created:** `kindOfItem`'s catch-all row matches `undefined`,
+          so an empty card would have claimed to be an image. Guarded at the call site, not
+          in `kindOfItem` — six callers, one of them not optional-chained.
+    - [x] `npm test` 1429/1430 (0 fail), `gallery-filter-panel.spec.js` green, eslint clean.
+    - [x] **VERIFIED BY FABIO** (2026-09-19, live, with screenshots): *"yeah mate, it's
+          looking good."* Both surfaces — Images/GIFs rose, Videos orange, on the card chips
+          AND the filter rows.
+    - [ ] Future, NOT built and not carded: an **element card** (several media types on one
+          card) takes `studio` cream. Its `ASSET_KINDS` row already has the field.
+  - [x] **Round 8 — the RULE got written down, and the settings panel.** Fabio stated the
+        governing rule plainly for the first time: colour states what a surface is ABOUT,
+        everywhere, not just generations. It is in `DESIGN.md` § "The rule: colour states
+        what a surface is ABOUT" so it stops being re-derived every round.
+    - [x] **ROOT CAUSE, not a preference:** `.mpi-settings__plate--on` pinned
+          `oklch(0.72 0.20 6 / 0.45)` — the stale Vision pink, and the LAST hardcoded family
+          literal in the repo. Phase 1b was supposed to have removed every one. A literal
+          also ignores the `[data-accent]` rebind, so no settings section could have stated
+          its subject until this was fixed. Now `color-mix(… var(--accent-heat) 45% …)`,
+          matching the section rule 20 lines above it that was already correct.
+    - [x] Audio section wears `data-accent="audio"`; Reuse Prompt wears `prompt` — it is a
+          text surface, which the rule settles (my earlier default of cream was wrong).
+          Six other sections have no media subject and stay Studio cream.
+    - [x] **A repo-wide guard, because a literal surviving a whole sweep is the real bug:**
+          `tests/accent-family-literals.test.cjs` fails if any stylesheet outside
+          `01_base.css` names one of the five family values or the stale pink. Proven RED
+          against the real defect restored, then the file restored byte-identical.
+    - [x] `npm test` 1432/1433 (1 skipped, 0 fail), eslint clean.
+    - [x] **VERIFIED BY FABIO** (2026-09-19, live): *"nice one, looking good bro."*
+  - [ ] Finish the sweep — the rule now lets US find surfaces instead of waiting for a
+        screenshot. Survey in `validation.md` § Round 8.
   - [ ] 1c canvas constants land here (deferred from phase 1)
 - [ ] Phase 5 — finish `DESIGN.md` (VT323 wordmark, single mascot) and rewrite `PRODUCT.md`
       (its "pink/heat accent" line goes wrong the moment phase 3 lands)

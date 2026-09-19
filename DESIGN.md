@@ -108,6 +108,34 @@ that drifted.
 **One name drifts:** the website calls Audio's `--audio-accent`; here it is `--accent-audio`.
 Same value, and the one to grep for locally is `--accent-audio`.
 
+### The rule: colour states what a surface is ABOUT
+
+Fabio, 2026-09-19, stated plainly after the sweep had found it a screenshot at a time:
+
+> Things that are image-related should have Vision colour. Audio-related, Audio colour.
+> Video-related, Video colour. Prompt-related, Prompt colour. **Everywhere in the app, not
+> just generations** — it shows the user a colour code that is easy to follow.
+
+So the accent is not decoration and not a workspace theme. It is a **statement of subject**,
+and it applies to any surface that has one: a gallery card's kind chip, a filter row, a
+settings section, a dialog, a toolbar, a status line. A surface about no media type, or about
+several at once, takes **Studio cream** — that is the meaning of cream, not a fallback.
+
+Two readings that look the same and are not:
+
+- **Prompt yellow is for surfaces about TEXT ITSELF** — the Enhancer, prompt history, Reuse
+  Prompt. It is NOT the generate box: `MpiPromptBox` sets `[data-accent]` from the selected
+  model's media type, so it says what it is about to MAKE, which is the more useful statement
+  and is shipped behaviour.
+- **A GIF and a 3D Scene are Vision, not Video.** The split is what the thing IS, not whether
+  it moves — *"I know they're animated, but they're still images."* 3D earns its own hue and
+  mascot when the app does real 3D MODELS, not 3D captures that produce pictures.
+
+Mechanically this is always the same one-line move: put `[data-accent]` on the element that
+owns the subject and let the rules underneath it resolve. Never name a hue at the call site —
+a hardcoded value is how `MpiSettings.css` kept a stale pink through an entire sweep that was
+supposed to have removed every one.
+
 **How a workspace takes its colour.** Components read ONE action token, `--accent-heat`, and a
 subtree redefines it — they are never taught five tokens:
 

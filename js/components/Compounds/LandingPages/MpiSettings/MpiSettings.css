@@ -62,8 +62,12 @@
     transition: border-color var(--t-base) var(--ease);
 }
 
+/* The on-outline follows the accent, at the same 45% as the section rule above it. It used
+   to name a hue — `oklch(0.72 0.20 6 / 0.45)`, the stale Vision pink — which is how this
+   file kept a pink literal through the phase-1b sweep that removed every other one, and why
+   a section could not state its own subject: the literal ignored the rebind. */
 .mpi-settings__plate--on {
-    border-color: oklch(0.72 0.20 6 / 0.45);
+    border-color: color-mix(in oklch, var(--accent-heat) 45%, transparent);
 }
 
 .mpi-settings__plate--stack {

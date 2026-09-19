@@ -1360,12 +1360,21 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 // Corner kind chip (MPI-749), read off the SELECTED item through the
                 // same function the gallery filter uses, so icon and filter agree.
                 // Not the `isVideo` checks above: those pick which element to mount.
-                const kind = kindOfItem(selected);
-                cardEl.classList.toggle('mpi-group-card--kind', kind.badge);
-                if (kindEl.dataset.kind !== kind.kind) {
-                    kindEl.dataset.kind = kind.kind;
-                    kindEl.innerHTML = kind.badge ? renderIcon(kind.icon, 'sm') : '';
-                    kindEl.setAttribute('data-info', kind.singular);
+                // No selected item = no chip: `kindOfItem`'s last row is a catch-all that
+                // matches anything including undefined, and since MPI-736 round 7 EVERY
+                // row badges, so an empty card would announce itself as an image.
+                const kind = selected ? kindOfItem(selected) : null;
+                cardEl.classList.toggle('mpi-group-card--kind', !!kind?.badge);
+                if (kindEl.dataset.kind !== (kind?.kind ?? '')) {
+                    kindEl.dataset.kind = kind?.kind ?? '';
+                    kindEl.innerHTML = kind?.badge ? renderIcon(kind.icon, 'sm') : '';
+                    kindEl.setAttribute('data-info', kind?.singular ?? '');
+                    // The chip wears its media type's family colour by rebinding
+                    // `--accent-heat` on ITSELF ([data-accent], styles/01_base.css) —
+                    // a card carries no accent of its own, so without this the chip
+                    // would inherit whichever workspace accent #app-shell is on.
+                    if (kind?.accent) kindEl.dataset.accent = kind.accent;
+                    else delete kindEl.dataset.accent;
                 }
                 reuseWrap.style.display = (itemHasReusablePrompt(selected) || !!findOriginalReusableItem(group)) ? '' : 'none';
 

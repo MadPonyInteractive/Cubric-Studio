@@ -144,7 +144,12 @@ export const MpiSettings = ComponentFactory.create({
                     </div>
                 </section>
 
-                <section class="mpi-settings__section">
+                <!-- A section states its subject in colour (DESIGN.md, "The rule: colour
+                     states what a surface is ABOUT"). One attribute rebinds --accent-heat
+                     for the whole section, so the kicker, its rule and every plate--on
+                     outline inside follow. A section about no media type carries nothing
+                     and stays on the shell's accent, Studio cream on the landing page. -->
+                <section class="mpi-settings__section" data-accent="audio">
                     <h3 class="mpi-settings__section-title">Audio</h3>
                     <div class="mpi-settings__plate mpi-settings__plate--stack">
                         <div class="mpi-settings__plate-main">
@@ -186,7 +191,7 @@ export const MpiSettings = ComponentFactory.create({
                     </div>
                 </section>
 
-                <section class="mpi-settings__section">
+                <section class="mpi-settings__section" data-accent="prompt">
                     <h3 class="mpi-settings__section-title">Reuse Prompt</h3>
                     <div class="mpi-settings__plate mpi-settings__plate--stack">
                         <div class="mpi-settings__plate-main">

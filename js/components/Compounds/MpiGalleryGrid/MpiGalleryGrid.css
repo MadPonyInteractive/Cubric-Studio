@@ -570,9 +570,16 @@
 }
 
 /* ── Bottom-right kind chip (MPI-749) ────────────────────────────────────────
- * Persistent, like the Notes marker: a video or 3D Scene reads as one with no hover
- * and in either info mode. The JS sets `--kind` only for badged kinds. Hidden while
- * that corner belongs to the preview / queued action row or the cooking mascot. */
+ * Persistent, like the Notes marker: a card reads as its media type with no hover
+ * and in either info mode. Every kind badges since MPI-736 round 7 — the JS sets
+ * `--kind` for a card that HAS a selected item. Hidden while that corner belongs to
+ * the preview / queued action row or the cooking mascot.
+ *
+ * The glyph wears its media type's family accent, not an ink. The JS puts
+ * `[data-accent]` (styles/01_base.css) on this element, which rebinds `--accent-heat`
+ * for it, so `currentColor` in the inlined SVG follows. A card carries no accent of
+ * its own — without that attribute this would inherit #app-shell's workspace accent
+ * and every kind in the grid would be the same colour. */
 
 .mpi-group-card__kind {
     position: absolute;
@@ -582,7 +589,7 @@
     padding: 4px;
     background: color-mix(in oklch, var(--surface-bar) 58%, transparent);
     border: 1px solid color-mix(in oklch, var(--line-soft) 72%, transparent);
-    color: var(--ink-1);
+    color: var(--accent-heat);
     z-index: 4;
 }
 

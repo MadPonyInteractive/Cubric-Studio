@@ -314,3 +314,125 @@ That change moved the spec's own threshold: a SINE's RMS is 1/√2 of its peak, 
 sine tops out at `sqrt(1/√2)` = 0.84 of the height and the 0.9 test tone at 0.79. The
 assertion was 0.8, calibrated to peak detection. It now says 0.7 and carries the arithmetic,
 rather than being quietly loosened until it passed.
+
+## Round 7 — the kind chip (2026-09-19, awaiting Fabio's eye)
+
+Fabio picked the bottom-right kind chip over the card mark, and added a second job to it:
+*"at the moment we have icons for video and GIFs, we don't have them for audio and images…
+it would be cool if we had them for images and audio, so everything gets a nice icon."*
+
+**The chip carries `[data-accent]`; no new token was added.** `styles/01_base.css` already
+ships five `[data-accent]` rules that rebind `--accent-heat` for a subtree. The chip sets
+that attribute on ITSELF and its `color` is `var(--accent-heat)`, so `currentColor` in the
+inlined SVG follows. Nothing reached the token layer, and there is no `color-mix` between
+two family accents.
+
+**Why the attribute has to be on the chip.** Gallery cards carry no accent of their own —
+grepped `MpiGalleryGrid.{js,css}` for `data-accent`, zero hits. Every card inherits whatever
+`#app-shell` is on, so an image card and a video card in the same grid were, and without
+this would remain, the same colour. `gallery-filter-panel.spec.js` pins that with
+`expect(chips.img1.color).not.toBe(chips.vid1.color)` — a computed-colour comparison in real
+Electron, which is what fails if the attribute is ever dropped or misspelt.
+
+**The edge `badge: true` on `image` created.** `kindOfItem`'s last row is the catch-all
+(`match: () => true`), so it matches `undefined` too. While `image` was `badge: false` that
+was harmless; with every row badging, a card with no selected item would have grown an Image
+chip and claimed to be a picture. Guarded at the one call site (`selected ? … : null`) rather
+than by changing `kindOfItem`, which has six callers and one (`MpiGalleryGrid.js:1931`) that
+does not optional-chain its result. The spec's `empty1` fixture is exactly this card and
+still asserts no chip.
+
+**Accent per kind. Both judgement calls were flagged before building, and Fabio corrected
+one of them — the rule is by what the thing IS, not by whether it moves:**
+
+| kind | accent | why |
+|---|---|---|
+| `image` | `vision` — rose | Vision is the image app |
+| `video` | `video` — orange | |
+| `audio` | `audio` — green | |
+| `gif` | `vision` — rose | **Fabio's correction.** Built as `video` because it moves; *"I know they're animated, but they're still images."* |
+| `scene` | `vision` — rose | he confirmed rose, and named the condition for changing it: a real 3D hue and mascot arrive when the app does 3D MODELS, not 3D captures of pictures |
+
+A future **element card** — one card holding several media types — takes `studio` cream, his
+call, noted not built.
+
+**The filter panel was the same forgetting, and he caught it: *"another place we're
+forgetting colour is the filters."*** An active filter row already fills with
+`var(--accent-heat)` (`galleryFilterPanel.css`), so it was the workspace accent on every row
+— an Images row and a Videos row filled identically. `_appendRow` now takes the kind's
+`accent` and sets `[data-accent]` on the ROW, which rebinds `--accent-heat` there, and the
+existing fill rule became the family colour with **no CSS value changed**. Mark rows (Dots,
+Squares, Triangles) and the previews flag pass no accent and keep the workspace one: they are
+not media types. The dark ink on the fill (`oklch(0.20 0.03 355)`) needs no per-hue variant —
+every family accent is L 0.76–0.88, so L 0.20 clears all five by a wide margin.
+
+The panel is a `<body>` portal, which is structural cause #5 on this sweep's list, but it
+does not bite here: the attribute is on the row inside the popup, so the row declares its own
+`--accent-heat` rather than inheriting one. `gallery-filter-panel.spec.js` asserts the
+attribute per row AND that the Images and Videos fills differ — a `getComputedStyle`
+comparison, which is what fails if the rebind ever stops reaching the row.
+
+## Round 8 — the rule, and the last pink literal (2026-09-19)
+
+Fabio stated the governing rule plainly, which no previous round had: *"Things that are
+image-related should have Vision colour… audio, Audio… video, Video… prompt, Prompt.
+**Everywhere in the app, it's not just about generations.** It shows the user a colour code
+that is easy to follow."* Written into `DESIGN.md` § "The rule: colour states what a surface
+is ABOUT" so the next session applies it instead of rediscovering it.
+
+**The settings pink was a ROOT-CAUSE bug, not a styling preference.**
+`.mpi-settings__plate--on` pinned `oklch(0.72 0.20 6 / 0.45)` — the stale Vision pink that
+`DESIGN.md` and `PRODUCT.md` still wrongly describe, and the **last hardcoded family literal
+in the repo**. Phase 1b's claim that "every CSS pink literal is gone" was false by one file.
+Two consequences, and the second is the one that mattered: it looked wrong, AND a literal
+cannot be reached by `[data-accent]`, so no settings section could state its subject until
+it was fixed. The correct form was already twenty lines above it in the same file
+(`__section-title::after`, same 45%); the plate rule had been written by hand instead.
+
+`data-accent="audio"` on the Audio section, `prompt` on Reuse Prompt. One attribute each, in
+a static template, no JS. Reuse Prompt reverses my own earlier default of cream — I had
+argued it is about reuse *behaviour* rather than about text, and Fabio's rule settles it the
+other way: it is prompt-related, so it is Prompt yellow. The other six sections (Update,
+Engine health, App Behavior, Desktop Notifications, Display, External Connections) have no
+media subject, carry no attribute, and stay Studio cream. That is not a fallback — under the
+rule, cream IS the statement "this is about no one media type".
+
+**The guard is repo-wide, because the real defect was a literal surviving a sweep.**
+`tests/accent-family-literals.test.cjs` fails if any stylesheet outside `01_base.css` names
+one of the five family values or the stale pink; it blanks comment bodies first (preserving
+newlines so line numbers stay true) because a comment quoting a literal to explain its
+removal is the opposite of the bug — the first version of the scanner flagged its own
+explanatory comment, which is how that was found. It also pins which settings sections carry
+an accent and which must not. **Proven RED** by restoring the real defect for one run: it
+named `MpiSettings.css:66`, and the file was restored byte-identical (checked with a buffer
+compare, not a re-read).
+
+### Survey: what the rule still touches
+
+The engine already covers more than it looks. `navigation.js:297` sets `[data-accent]` on
+`#app-shell` from the open group's type, so a video viewer, GIF bar or frame strip inside a
+video workspace ALREADY inherits orange without declaring anything. "Declares no accent" is
+therefore not the same as "is the wrong colour". The gaps are surfaces whose SUBJECT differs
+from their CONTAINER:
+
+| Surface | Why it is a gap |
+|---|---|
+| `MpiAudioPlayer`, `MpiWaveform` | audio, but mounted by `MpiBaseFlow`, `MpiGalleryGrid`, `MpiMediaPicker` and `MpiVideoControlBar` — so in a video or image context they inherit the wrong hue. `MpiAudioRecorder` was fixed in round 6; its player was not. |
+| `MpiVoicePicker` | audio (a voice), mounted inside Flows of any type |
+| `MpiEnhanceDialog`, `MpiToolOptionsPrompt`, `MpiReusePromptDialog` | text surfaces, currently wearing whatever workspace is open. Prompt yellow under the rule. |
+| `MpiMediaSlot`, `MpiMediaPicker` | each slot has a DECLARED type, so the slot can state it — a picker showing image and audio slots should not be one colour |
+| GIF / video viewers, control bars, frame strip | inherit correctly from the shell today. Only worth touching if one ever renders outside its own workspace. |
+
+Not started, not agreed — this is the list to work down, and Fabio picks the order.
+
+**A typo in `accent` fails silently**, which is why it is tested twice: the attribute matches
+nothing, `--accent-heat` is never rebound, and the chip inherits the workspace accent. That
+reads as "the accent is wrong", not as "the row is wrong" — the seventh structural cause of
+this sweep wearing a new hat. `tests/asset-kinds.test.cjs` asserts every row's value is one
+of the five real `[data-accent]` names and pins the whole map.
+
+**Checks:** `npm test` 1429/1430 (1 skipped, 0 fail). `gallery-filter-panel.spec.js` green
+on its own port, the user's `:3000` untouched. `eslint --max-warnings=0` clean on all four
+touched JS files. The suite's FIRST run failed twice in `gif-frames.test.cjs` on `mkdtemp
+ENOENT` for a missing `%TEMP%/cubric-tests` parent — environmental, not this change: that
+file is untouched, the disk had 161 GB free, and it ran 10/10 green on its own.

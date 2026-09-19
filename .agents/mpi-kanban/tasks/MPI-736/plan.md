@@ -41,8 +41,84 @@ own player with a real waveform, the gallery info toggle, and the two defects th
 surfaced (an imported audio card dropping `thumbPath`, and the bake reading peak instead of
 RMS). `npm test` 1419/1420, desktop bake spec green, lint clean.
 
-**Next action: the CARD ICONS** — the one surface Fabio named as he closed the round. The
-sweep continues; nothing about it is finished.
+**Round 7 is VERIFIED BY FABIO** (2026-09-19, live, from his own screenshots): *"yeah mate,
+it's looking good."* Card chips and filter rows both. He picked the kind chip, not the
+card mark: *"the little card icon at the bottom right… at the moment we have icons for video
+and GIFs, we don't have them for audio and images."* Two jobs, both done — the chip wears its
+media type's family accent, and every kind badges now.
+
+`ASSET_KINDS` gained an `accent` column holding a `[data-accent]` value. Two surfaces read
+it and set it on their own element, which rebinds `--accent-heat` there: the card's corner
+chip (`MpiGalleryGrid`, whose `color` came off `--ink-1`) and the filter panel's kind rows
+(`galleryFilterPanel.js`, where the active-row fill was ALREADY `var(--accent-heat)` — so
+that surface needed no CSS value changed at all, only the attribute). Neither a card nor a
+filter row carries an accent of its own, so without it every one would be whatever
+`#app-shell` is on. `badge` flipped true on `image` and `audio`, reversing `assetKinds.js`'s
+own "unmarked means just a picture" rationale — Fabio's call, written into the file with the
+reason.
+
+**The rule is what the thing IS, not whether it moves.** `image`, `gif` and `scene` are all
+`vision`; `video` is `video`; `audio` is `audio`. GIF was built as `video` and Fabio
+corrected it — *"I know they're animated, but they're still images."* 3D Scene keeps rose on
+the same logic, and he named the condition for a sixth hue and mascot: real 3D MODELS, not
+3D captures that produce pictures.
+
+`npm test` 1429/1430 (1 skipped, 0 fail), `gallery-filter-panel.spec.js` green, eslint clean.
+The suite's first run failed twice in `gif-frames.test.cjs` on `mkdtemp ENOENT` for a missing
+`%TEMP%/cubric-tests` parent — environmental, 10/10 green run alone, 161 GB free, and that
+file is untouched by this round.
+
+**Round 8 is VERIFIED BY FABIO** (2026-09-19, live): *"nice one, looking good bro."* The
+settings panel, and — more
+importantly — **the governing rule is now written down**. He stated it plainly for the first
+time: *"image-related → Vision colour, audio → Audio, video → Video, prompt → Prompt.
+Everywhere in the app, it's not just about generations."* It lives in `DESIGN.md` § "The
+rule: colour states what a surface is ABOUT". Every earlier round derived a piece of this
+from a screenshot; from here the rule finds the surfaces instead.
+
+The settings pink turned out to be a **root-cause bug**: `.mpi-settings__plate--on` pinned
+`oklch(0.72 0.20 6 / 0.45)`, the stale Vision pink and the LAST hardcoded family literal in
+the repo — phase 1b's "every pink literal is gone" was false by one file. A literal also
+ignores the `[data-accent]` rebind, so no section could have stated its subject until it was
+fixed. `tests/accent-family-literals.test.cjs` now fails repo-wide if any stylesheet outside
+`01_base.css` names a family value, proven RED against the restored defect. Audio section →
+green, Reuse Prompt → yellow, the other six stay cream because they are about no media type.
+`npm test` 1432/1433, lint clean. Details and the survey: `validation.md` § Round 8.
+
+### Round 9 — THE DIALOGS AND POP-UPS (Fabio, 2026-09-19, next action)
+
+He named this closing round 8, with the Enhance Prompt dialog as the example: *"this pop-up
+should already be addressed by now, it should have the prompt colours."*
+
+**The structural reason they are ALL cream, and it is cause #5 on the list below.** Every
+dialog self-portals to `document.body` (`MpiModal.js:63,70`; `MpiPopup` likewise), so it
+inherits from `:root`, NOT from its opener. A dialog can therefore never pick its subject up
+from the workspace — **each one must set `[data-accent]` on itself.** That is one line per
+dialog, not a system.
+
+Surveyed, none of these declares an accent today (`MpiRadialMenu` is the only overlay that
+already rebinds):
+
+| Dialog | Subject → accent | `--accent-heat` uses |
+|---|---|---|
+| `MpiEnhanceDialog` | text → `prompt` — **Fabio's named example** | 1 |
+| `MpiReusePromptDialog` | text → `prompt` | 4 |
+| `MpiOpHelpDialog` | depends on the op it documents — likely dynamic | 2 |
+| `MpiChangelogDialog` | no media subject → stays cream | 2 |
+| `MpiErrorDialog`, `MpiContextMenu`, `MpiCompareOverlay` | none; already accent-free | 0 |
+| `MpiMediaDropOverlay` | the slot's declared type → dynamic | 2 |
+
+**`MpiEnhanceDialog.css` carries a PEER's uncommitted work** — it was already modified at
+this session's start and is not ours. Coordinate or wait; do not clobber it. That is the one
+real blocker in round 9.
+
+Then keep going down `validation.md` § Round 8's survey: `MpiAudioPlayer` and `MpiWaveform`
+in a non-audio Flow, `MpiVoicePicker`, per-type media slots. Everything inside a matching
+workspace already inherits correctly from `#app-shell` (`navigation.js:297`) and needs
+nothing.
+
+Also still open: the **element card** (several media types on one card) takes Studio cream —
+Fabio's heads-up, not built, not carded; the `ASSET_KINDS` row already has the field for it.
 
 ### What the sweep taught, and will teach again
 
@@ -316,23 +392,25 @@ already renders correctly** — nothing to change. The one row worth raising wit
 *"Play sound on notification"*: by the rule just applied to Record and the volume slider,
 an audio control wears `--accent-audio`. That is a question, not an assumption.
 
-### Round 7 — the CARD ICONS (Fabio, 2026-09-19, NOT yet investigated with him)
+### Round 7 — the kind chip. BUILT 2026-09-19, awaiting Fabio's eye
 
-He named this as he signed off round 6 and did not say which icon he meant, so **ask before
-assuming**. A gallery card carries two icon families, and they are different jobs:
+He named "the card icons" as he signed off round 6 without saying which, and the survey found
+FIVE icon families on a card, not two. Asked; he picked the kind chip and widened the job:
+colour it, and give audio and images one too. Details and the accent map are in
+`validation.md` § Round 7.
 
-1. **The kind chip**, `.mpi-group-card__kind` — `MpiGalleryGrid.css:577-588`, the bottom-right
-   badge (MPI-749) that marks a video or a 3D Scene. It pins `color: var(--ink-1)`, a fixed
-   ink that no accent reaches. This is the one that most obviously "needs colours": a card's
-   kind chip is a MEDIA TYPE statement, which is exactly what the accent family encodes.
-2. **The card mark**, the top-right button — `MpiGalleryGrid.js:519`, mounted
-   `variant: 'ghost', toggleable: true` with `markIcon(_mark)`. **Round 6's lesson applies
-   here unchanged:** a ghost icon button's `is-active` is colour ALONE
-   (`MpiButton.css:308-312`), so against the shared cream its on-state is nearly invisible —
-   the identical defect just fixed on the gallery toolbar's info and archive toggles.
+**Still open, and it was the other candidate.** The card mark (`MpiGalleryGrid.js:519`,
+`variant: 'ghost', toggleable: true`) is round 6's trap verbatim and the survey found it is
+actually INVERTED: unmarked wears a chip background, border and `--ink-1`
+(`MpiGalleryGrid.css:410-417`), and marking it *removes* that chip
+(`:426-429`) leaving `--accent-heat` alone on the thumbnail (`MpiButton.css:308`). So a
+marked card reads weaker than an unmarked one. That worked while the accent was rose. Fabio
+has not been asked to judge it yet — raise it, do not just fix it, because the mark's whole
+point is scanning a grid and the fix changes how a marked card looks.
 
-Number 2 is a strong lead precisely because it is the same trap, so check it even if he
-meant number 1.
+The three other families are fine as they are: notes and reuse carry a chip background with
+`--ink-1`; continue / finish / cancel mount `primary` and render as outlines (structural
+cause #2).
 
 Then: keep sweeping. The remaining known gaps are phase 1c's canvas constants, the
 progress/status bar's "accent of the task ahead" (the `tool:*` events carry no
@@ -379,3 +457,11 @@ grep + lint + `npm test` above, with the button hover the single thing to look a
   from him asking whether the app even has red buttons. Answer: four, one destructive. Half
   of it is blocked on MPI-771's live claim, so this card ships an inconsistency on purpose
   and `validation.md` records it.
+- 2026-09-19: round 7 grew a second job the plan did not have. It was scoped as "colour the
+  card icon"; Fabio also asked for a chip on image and audio cards, reversing `assetKinds.js`'s
+  own stated rationale that an unmarked card means "just a picture". Folded in rather than
+  carded — one column in one table, and splitting it would have shipped the colour onto two
+  of five kinds.
+- 2026-09-19: a future card type recorded, NOT built and deliberately not carded — an
+  **element card** holding several media types takes Studio cream. Fabio flagged it as a
+  heads-up while closing round 7. The `accent` column is where it will go.

@@ -165,13 +165,37 @@ test('kind chips, the FILTER panel and the gallery toolbar in the project bar', 
       await expect(window.locator('.mpi-gallery-grid__tabs')).toHaveCount(0);
     });
 
-    await test.step('the kind chip shows on video and 3D Scene cards only', async () => {
+    await test.step('every card with an item shows a kind chip; an empty card does not', async () => {
+      // MPI-736 round 7: image and audio badge too, so the chip is on every real card.
+      // `empty1` is the edge that change created — `kindOfItem`'s last row matches
+      // anything, so without the `selected ?` guard an empty card claims to be an image.
       const chips = await window.evaluate(() => Object.fromEntries(
         [...document.querySelectorAll('.mpi-gallery-grid__row-wrap')].map((wrap) => {
           const chip = wrap.querySelector('.mpi-group-card__kind');
           return [wrap.dataset.groupId, !!chip && getComputedStyle(chip).display !== 'none'];
         })));
-      expect(chips).toEqual({ empty1: false, img1: false, img2: false, scene1: true, vid1: true, vid2: true });
+      expect(chips).toEqual({ empty1: false, img1: true, img2: true, scene1: true, vid1: true, vid2: true });
+    });
+
+    await test.step('each chip wears its media family accent, and resolves to a real colour', async () => {
+      // The attribute is half the story: [data-accent] only rebinds --accent-heat, so a
+      // wrong or missing value fails silently and the chip inherits #app-shell's accent.
+      // Assert the attribute AND that the two families actually render different colours.
+      const chips = await window.evaluate(() => Object.fromEntries(
+        [...document.querySelectorAll('.mpi-gallery-grid__row-wrap')].map((wrap) => {
+          const chip = wrap.querySelector('.mpi-group-card__kind');
+          return [wrap.dataset.groupId, chip ? {
+            accent: chip.dataset.accent ?? null,
+            color: getComputedStyle(chip).color,
+          } : null];
+        })));
+      expect(chips.empty1.accent).toBe(null);
+      expect(chips.img1.accent).toBe('vision');
+      expect(chips.img2.accent).toBe('vision');
+      expect(chips.scene1.accent).toBe('vision');
+      expect(chips.vid1.accent).toBe('video');
+      expect(chips.vid2.accent).toBe('video');
+      expect(chips.img1.color).not.toBe(chips.vid1.color);
     });
 
     await test.step('card marks: a legacy heart is a dot, click marks a dot, hold picks a shape', async () => {
@@ -225,6 +249,23 @@ test('kind chips, the FILTER panel and the gallery toolbar in the project bar', 
       const rows = await window.evaluate(() => [...document.querySelectorAll('.mpi-gallery-filter__row')]
         .map(r => r.textContent.replace(/\s+/g, ' ').trim()));
       expect(rows).toEqual(['Images On', 'Videos On', '3D Scenes On', 'Dots Off', 'Squares Off', 'Triangles Off', 'Previews Off']);
+
+      // MPI-736 round 7: a KIND row carries its family accent, so an active row fills with
+      // that colour and agrees with the card's corner chip. A mark row and the previews
+      // flag are not media types and keep the workspace accent — no attribute at all.
+      const rowAccents = await window.evaluate(() => Object.fromEntries(
+        [...document.querySelectorAll('.mpi-gallery-filter__row')].map((r) => [
+          r.textContent.replace(/\s+/g, ' ').trim().split(' ')[0],
+          { accent: r.dataset.accent ?? null, bg: getComputedStyle(r).backgroundColor },
+        ])));
+      expect(rowAccents.Images.accent).toBe('vision');
+      expect(rowAccents.Videos.accent).toBe('video');
+      expect(rowAccents['3D'].accent).toBe('vision');
+      expect(rowAccents.Dots.accent).toBe(null);
+      expect(rowAccents.Previews.accent).toBe(null);
+      // Both are On, so both are filled — and the fills must actually differ, which is what
+      // fails if [data-accent] stops rebinding --accent-heat for the row.
+      expect(rowAccents.Images.bg).not.toBe(rowAccents.Videos.bg);
 
       await row('Images').click();
       await expect(panel).toHaveCount(1); // a row click keeps the panel open

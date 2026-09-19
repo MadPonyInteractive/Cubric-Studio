@@ -107,6 +107,11 @@
     border-color: var(--surface-3);
 }
 
+/* An active row fills with the accent. A KIND row carries `[data-accent]` (set in
+   galleryFilterPanel.js from its ASSET_KINDS row), which rebinds `--accent-heat` on the row
+   itself, so this fill is that media type's family colour and matches the card's corner
+   chip. A mark row and the previews flag carry no attribute and keep the workspace accent —
+   neither is a media type. Nothing here needs to name a hue; that is the point. */
 .mpi-gallery-filter__row:has(.is-active) {
     background: var(--accent-heat);
     border-color: var(--accent-heat);

@@ -60,8 +60,31 @@ test('gif wins over the image catch-all, but never shadows a real video or audio
     assert.strictEqual(kindOfItem({ type: 'audio', gif: true }).kind, 'audio');
 });
 
-test('only video, GIF and 3D Scene carry the corner badge', () => {
-    assert.deepStrictEqual(ASSET_KINDS.filter(k => k.badge).map(k => k.kind).sort(), ['gif', 'scene', 'video']);
+test('every kind carries the corner badge (MPI-736 round 7)', () => {
+    // Was video/GIF/3D Scene only. Fabio reversed it: the chip is how a card states its
+    // media type, so a silent image or audio card left the statement half-made.
+    assert.deepStrictEqual(ASSET_KINDS.filter(k => k.badge).map(k => k.kind).sort(),
+        ASSET_KINDS.map(k => k.kind).sort());
+});
+
+test('each kind wears its media family accent, and only a real [data-accent] value', () => {
+    // These five are the [data-accent] rules in styles/01_base.css. A typo here paints
+    // nothing — the attribute just fails to match and the chip silently inherits
+    // #app-shell's workspace accent, which looks like the accent being wrong.
+    const FAMILY = ['studio', 'vision', 'prompt', 'video', 'audio'];
+    for (const k of ASSET_KINDS) {
+        assert.ok(FAMILY.includes(k.accent), `${k.kind}: accent '${k.accent}' is not a [data-accent] value`);
+    }
+    // Split by what the thing IS, not by whether it moves (Fabio, 2026-09-19): a GIF is
+    // "animated, but still images", and a 3D Scene makes pictures too. Those two get their
+    // own hue only when the app does real 3D models.
+    assert.deepStrictEqual(Object.fromEntries(ASSET_KINDS.map(k => [k.kind, k.accent])), {
+        scene: 'vision',
+        video: 'video',
+        audio: 'audio',
+        gif: 'vision',
+        image: 'vision',
+    });
 });
 
 test('image is the last row, so the catch-all can never shadow a real kind', () => {
@@ -78,6 +101,7 @@ test('every kind row is complete: a unique id, both labels, and an icon that exi
     for (const k of ASSET_KINDS) {
         assert.ok(k.label && k.singular, `${k.kind} needs label and singular`);
         assert.ok(['image', 'video', 'audio'].includes(k.type), `${k.kind}: type '${k.type}' is not a media slot type`);
+        assert.ok(k.accent, `${k.kind} needs an accent`);
         assert.ok(ICONS[k.icon], `${k.kind}: icon '${k.icon}' is not in js/utils/icons.js`);
         assert.strictEqual(typeof k.match, 'function');
     }

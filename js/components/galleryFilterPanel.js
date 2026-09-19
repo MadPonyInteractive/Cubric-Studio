@@ -128,9 +128,18 @@ export function mountGalleryFilter(slotEl, {
         _leaveTimer = setTimeout(() => close(), LEAVE_CLOSE_MS);
     };
 
-    /** One Reuse-Prompt-style row: circle/check toggle + label, row icon, ON/OFF word. */
-    function _appendRow(list, { key, label, icon, onToggle }) {
+    /**
+     * One Reuse-Prompt-style row: circle/check toggle + label, row icon, ON/OFF word.
+     *
+     * `accent` is an ASSET_KINDS `[data-accent]` value, set on the ROW so `--accent-heat`
+     * rebinds for it and the fill the CSS already paints on an active row becomes that
+     * media type's family colour — the same statement the card's corner chip makes, so the
+     * two cannot disagree. Only the kind rows pass one: a mark or the previews flag is not
+     * a media type, so those keep the workspace accent.
+     */
+    function _appendRow(list, { key, label, icon, accent, onToggle }) {
         const row = ce('div', { className: 'mpi-gallery-filter__row' });
+        if (accent) row.dataset.accent = accent;
         const toggle = MpiButton.mount(ce('div'), {
             icon: 'circle', iconActive: 'check', label, labelPosition: 'right',
             size: 'sm', variant: 'secondary',
@@ -168,7 +177,7 @@ export function mountGalleryFilter(slotEl, {
             list.replaceChildren();
             _rows.clear();
             kinds.forEach(k => _appendRow(list, {
-                key: `kind:${k.kind}`, label: k.label, icon: k.icon,
+                key: `kind:${k.kind}`, label: k.label, icon: k.icon, accent: k.accent,
                 onToggle: (isOn) => {
                     const rest = getSort().hiddenKinds.filter(h => h !== k.kind);
                     _set({ hiddenKinds: isOn ? rest : [...rest, k.kind] });

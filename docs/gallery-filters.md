@@ -35,7 +35,8 @@ on an entry.
 **A new kind is one row, and the gallery picks it up everywhere** — the card chip, the panel
 row, the tooltip text and the grid predicate. `hiddenKinds` is an EXCLUSION list, so a new
 kind is visible by default. Skip the row and nothing errors: the item silently lands on
-`image`, with no chip and no filter row of its own.
+`image` — and since every kind badges (MPI-736 round 7), that means it wears the Image chip
+in Vision rose and has no filter row of its own. A wrong chip is easier to miss than none.
 
 1. **Decide the data first.** Prefer a sub-kind matched off the item over a new media `type`:
    a new `type` reaches every `type === 'image'` / `'video'` branch in `js/` and `routes/`.
@@ -43,14 +44,28 @@ kind is visible by default. Skip the row and nothing errors: the item silently l
    (`type: 'image'`, matched by a truthy `gif` field or a legacy `.gif` filename —
    see [gallery.md](gallery.md) § GIF cards for how the card then paints it).
 2. **Add the row** to `ASSET_KINDS`, ABOVE any row it would otherwise fall into (a GIF that is
-   `type: 'image'` goes above `image`), with `label`, `singular`, `type`, `badge`, and a
-   `panelOrder` where it should list (renumber the others if it goes in between).
+   `type: 'image'` goes above `image`), with `label`, `singular`, `type`, `badge`, `accent`,
+   and a `panelOrder` where it should list (renumber the others if it goes in between).
 3. **Add its icon** to `js/utils/icons.js`, a 24-unit fill path like its neighbours.
    `renderIcon` falls back silently on a missing key; `tests/asset-kinds.test.cjs` fails instead.
-4. **Update the tests.** `tests/asset-kinds.test.cjs`: the match, the precedence case, the
-   panel order and the badge list. `tests/gallery-filter.test.cjs` only if listing or the
-   tooltip text changes.
-5. **What the row does NOT do:** how the card PAINTS the item (the grid's `isVideo`
+4. **Pick its `accent`** from the five `[data-accent]` values in `styles/01_base.css`:
+   `vision` (rose) for anything that makes a picture, `video` (orange) for video, `audio`
+   (green) for sound, `studio` (cream) for a card holding several media types at once,
+   `prompt` (yellow) for text. **Split by what the thing IS, not by whether it moves** — a
+   GIF and a 3D Scene are both `vision` (Fabio, 2026-09-19: *"I know they're animated, but
+   they're still images"*); 3D gets its own hue when the app does real 3D models. Two
+   surfaces read it and set it as `[data-accent]` on their own element, which rebinds
+   `--accent-heat` there: the card's corner chip (`MpiGalleryGrid`) and this panel's kind
+   row (`galleryFilterPanel.js`, so an active row fills with the family colour and cannot
+   disagree with the chip). Mark rows and the previews flag get no attribute — they are not
+   media types. A typo fails SILENTLY: the attribute matches nothing and the element
+   inherits `#app-shell`'s workspace accent, which reads as the accent being wrong rather
+   than as a bad row. `tests/asset-kinds.test.cjs` asserts the value is real.
+5. **Update the tests.** `tests/asset-kinds.test.cjs`: the match, the precedence case, the
+   panel order, the badge list and the accent map. `tests/gallery-filter.test.cjs` only if
+   listing or the tooltip text changes. `tests/desktop/gallery-filter-panel.spec.js` asserts
+   the chip and its accent per card.
+6. **What the row does NOT do:** how the card PAINTS the item (the grid's `isVideo`
    expressions decide which media element mounts — a different question from kind), hover
    playback, the history workspace, and the media picker. Those are the new kind's own work.
 
