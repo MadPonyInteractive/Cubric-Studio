@@ -162,8 +162,17 @@ A negotiated Order Form could change this. Nothing readable does.
 Comfy's MiniMax page independently confirms the territory bar this repo already handles: a
 commercial licence is explicitly required to use MiniMax H3 in the **US, EU, UK and South
 Korea**. That matches [docs/models/h3/README.md](../models/h3/README.md) § Licence, our
-authorization granted 2026-08-05, and the `MpiLicenceGate` built in MPI-451. **Nothing here is
-a gap in what we ship.**
+authorization granted 2026-08-05, and the `MpiLicenceGate` built in MPI-451.
+
+**Consent is covered; attribution is not.** The acceptance gate does fire on every install
+path via `downloadService.start()`, and receipts are keyed by licence id, so a user cannot
+reach H3 weights unprompted. But H3 §III.3.a/§IV.2 owe attribution *on the surface where the
+model is presented*, and `MpiFlowLibrary`'s slide-over has **no licence row** — only
+`MpiModelManager`'s does. A user who reaches H3 through a Flow may never open the Model
+Library. Documented at
+[docs/playbooks/add-flow/01-descriptor-and-ops.md](../playbooks/add-flow/01-descriptor-and-ops.md)
+as "nobody has needed it yet", which was true until a Flow shipped on a gated model. Surfaced
+by the close-out claim audit, 2026-09-19 — this file first claimed there was no gap.
 
 What *is* new: there is now a purchasable commercial-licence route for end users running H3
 locally on their own hardware, at `platform.minimax.io/h3-license`, resold by Comfy. Before
