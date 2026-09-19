@@ -649,6 +649,13 @@ test('PromptBox Agent mode: own text and hint, the toggle, Stop but no Run, numb
     await installStubs(window);
     await bootAndMountPromptBox(window);
     const pb = '#e2e-pb-host .mpi-prompt-box';
+    // textShare below divides ONE flexing slot by the box, against fixed-width siblings, so
+    // it tracks the window width: 0.6865 on a 1280 dev box, 0.6081 on the runner's 1024.
+    // That is what took master red on f124f535 - measured at 1280, asserted against 1024.
+    // Pin the runner's width so the number is a property of the layout, and so provoking
+    // CI's condition is the default rather than something a dev box never sees
+    // (docs/testing-desktop-specs.md, trap 5; docs/red-master.md, cause 1).
+    await window.evaluate(() => { document.querySelector('#e2e-pb-host').style.width = '1024px'; });
     const field = window.locator(`${pb} #textarea-slot textarea`);
     const toggle = window.locator(`${pb} .mpi-prompt-box__col--mode .mpi-ibtn`);
     const chips = window.locator(`${pb} .mpi-prompt-box-media-strip__chip`);
@@ -705,12 +712,15 @@ test('PromptBox Agent mode: own text and hint, the toggle, Stop but no Run, numb
     // hiding the column wholesale took Stop with it. Run and Clear are hidden by name.
     expect(agentFace.slots).toEqual(['textarea-slot', 'mode-toggle-slot', 'settings-badge-slot', 'settings-cog-slot', 'bottom-right-slot']);
     // The text still dominates the face, but each column it shares with costs it width.
-    // The history of this one number, because it has gone red twice: 0.8 when agent mode
-    // had two slots; 0.797 measured once Stop's column stayed (MPI-774 fix 6), so the bar
-    // moved to 0.75; 0.6865 measured now that MPI-774 Phase 7 put the model button and the
-    // cog back. The assertion means "the field dominates the face", never the arithmetic —
+    // The history of this one number, because it has gone red three times: 0.8 when agent
+    // mode had two slots; 0.797 measured once Stop's column stayed (MPI-774 fix 6), so the
+    // bar moved to 0.75; 0.6865 measured once MPI-774 Phase 7 put the model button and the
+    // cog back, so the bar moved to 0.65 — and that one went red on the runner without any
+    // column changing at all, because 0.6865 was measured at 1280 and CI is 1024. The host
+    // width is pinned above now, so this number no longer encodes the measuring box.
+    // The assertion means "the field dominates the face", never the arithmetic —
     // MEASURE it after any column change, do not compute it.
-    expect(agentFace.textShare).toBeGreaterThan(0.65);
+    expect(agentFace.textShare).toBeGreaterThan(0.60);
     expect(await window.evaluate((sel) => {
       const col = document.querySelector(`${sel} .mpi-prompt-box__col--run`);
       return [...col.children].map((c) => ({
