@@ -2,6 +2,96 @@
 
 ## Current State
 
+**SESSION d4548652 (2026-09-19, from handoff 3f260ccc). Phase 7's two NEXT-SESSION defects are
+fixed and BOTH verified live in Fabio's app, and live testing then found three more.**
+
+1. **NO_PROJECT taught the model to ask** — fixed and live-verified: log 11:04:20 shows
+   `created project "Cowgirl on a Bull"` -> `project.open`, no "please open a project first".
+   The message IS the instruction now; the loop's other error strings were swept (the
+   `agent:error` emits for NO_PROFILE/NO_KEY/NO_MODEL/STEP_LIMIT stay user-facing on purpose).
+2. **The case-variant twin** — `/connector/create-project` lists first and returns the existing
+   project with `existing: true`. Connector layer only: the UI's own create path still makes a
+   deliberate second "Fanvue". `findProjectByName` is exported and unit-tested.
+3. **`{ started: true }` was a lie** — the live `styleSelect` failure produced NO
+   `generation.submit` in the log at all: the route refused it in milliseconds and the chat still
+   said "your image is on its way". `EARLY_REFUSAL_MS` (1000) now races the dispatch, and a
+   refusal comes back to the model IN-TURN. **Cost: ~1s on every generation that does start** —
+   that constant is the knob.
+4. **`styleSelect` took only an index** while the only form the agent ever SEES the rack in is
+   names (`params.styles`). A label now resolves to its index in the route. **The trap:** `input`
+   is built from the request body, so resolving for the validator alone would still have
+   dispatched the string — the test asserts the index reaches the JOB INPUT and was proven red
+   against exactly that half-fix.
+5. **Agent mode is forced on** when the agent opens or creates a project (`_openProject`, the
+   agent-only path): it had been moving the user to a project while the conversation that took
+   them there stayed hidden.
+6. **`app:formats` corpus entry + the Settings rule rewrite** — Instagram got 3:4 when Krea2
+   offers 4:5 at both tiers, and 2k was volunteered when the app default is already 1k. The rule
+   is now: every setting the user did not ask for is THEIRS, ratio is the only one the agent may
+   infer. The table lives in `docs/agent/formats.md`, read on demand, costing no prompt context.
+7. **The docs link needed wiring first** — `MpiAgentChat` rendered markdown but never called
+   `wireMarkdownLinks`, so a link the agent wrote would have navigated the whole Electron app
+   away with no way back. Wired on the transcript, then the Docs rule added.
+
+### NEXT: THE PINNED SETTINGS PANEL — designed and settled with Fabio, 2026-09-19, NOT built
+
+Nothing of it is in the tree: this session added `state.agentSettingsPinned` and then took it
+back out, because an unused key is scaffolding. Build it whole or not at all.
+
+**The design, in his words: one boolean.**
+
+| | Cog closed — agent drives | Cog open — the USER drives |
+|---|---|---|
+| prompt, media in/out, op, card name | agent | **agent, still — all of it** |
+| model | agent picks by task + rank | **the user** |
+| ratio / quality / turbo / style / stylization / LoRA | agent, **from model defaults** | **the user** |
+
+- The cog and the model button already exist and are merely hidden in agent mode —
+  `MpiPromptBox.css:131` hides `__col--cog` and `__col--settings` (the model button, mounted at
+  `#settings-badge-slot`, MpiPromptBox.js:1648). Un-hiding those two is most of the UI.
+- **Open means PINNED:** in agent mode the popup must survive the outside-click dismiss and
+  Escape, and close only on the cog. That dismiss is `onPopupOutsideClick` (MpiPromptBox.js:1716).
+- **No op strip in that popup in agent mode.** Fabio, explicitly: "if the user wants to go and
+  change operations, then he just needs to close the agent mode. That's too much already." The
+  popup header carries an op strip today — it has to go in this mode.
+- Status-bar line AND the cog's own `info` tooltip: *"In agent mode, when you open this panel,
+  you control the settings and the model, not the agent."* The tooltip matters — it is the only
+  copy readable BEFORE the click.
+
+**Two things the design needs that are not obvious, both verified in code this session:**
+
+1. **The agent must still be TOLD the model while pinned.** It writes the prompt, and the Guide
+   rule makes it read THAT model's guide and adapt to its structure and vocabulary — so a pinned
+   Qwen with a Krea2-shaped prompt is a worse image than either party intended. One line in the
+   App state line, only when pinned: the model, the op it resolved, and the settings. It does not
+   get control back, it gets told what it is writing for. Fabio's own use for it: *"If the user
+   asks for a video and there is only an image model selected, the agent can tell the user, look,
+   that makes video, it doesn't make images, you need to select another model."* So the agent
+   still resolves task -> op, and REFUSES with an explanation when the pinned model cannot do it.
+   It never switches the model itself.
+
+2. **"Agent uses defaults" is NOT what happens today, and this is the trap that would sink it
+   quietly.** `resolveEffectiveQualityTier` (`js/data/generationControls.js:113`) resolves an
+   unset param against the PROJECT'S SAVED BUCKET first, and the model's cheapest tier only when
+   nothing was ever saved. So in cog-closed mode a project where 2k was once chosen keeps feeding
+   2k to every agent generation forever — the same stale contamination the design exists to kill,
+   arriving through the project record instead of the visible panel. **The agent-driven path must
+   resolve against MODEL DEFAULTS, not the project bucket.** Without this the boolean looks right
+   and behaves wrong.
+
+**Enforcement is CODE, not the prompt** (`js/shell/agentDispatch.js`, `_submitGeneration`, which
+already destructures `modelId, ratio, qualityTier, turbo, styleSelect, stylization`): while
+pinned, drop the agent's `modelId` and every named param before `resolveNamedParams`. A prompt
+rule can be ignored; a dropped field cannot. That is the whole gate.
+
+**Rejected, and why — do not rebuild it.** This session first shipped a Settings rule saying
+"every setting the user did not ask for is THEIRS, leave it out and the box wins". Fabio rejected
+it: a beginner never opens the panel, so whatever is sitting there from a previous session
+silently contaminates every generation, and neither they nor the agent knows. "The panel wins" is
+only safe when somebody is TENDING the panel. It was also a prompt rule, and prompt rules lose.
+The rule in the tree now is the surviving half: start at defaults, raise only when the user's own
+words ask.
+
 **MASTER WAS RED ON THIS CARD, and clearing it took TWO commits (2026-09-18, session 130cab18).** `tests/desktop/agent-chat.spec.js:654` still asserted the agent-mode face was
 `['textarea-slot', 'mode-toggle-slot']` — the shape fix 6 deliberately changed when it kept
 the run column so Stop stays reachable. The spec now expects `bottom-right-slot` and asserts

@@ -30,7 +30,7 @@ import { MpiButton }           from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiInput }            from '../../Primitives/MpiInput/MpiInput.js';
 import { qs, on }              from '../../../utils/dom.js';
 import { renderIcon }          from '../../../utils/icons.js';
-import { renderMarkdownInto }  from '../../../utils/markdown.js';
+import { renderMarkdownInto, wireMarkdownLinks } from '../../../utils/markdown.js';
 import { resolveMediaUrl }     from '../../../utils/mediaActions.js';
 import { Events }              from '../../../events.js';
 import { clientLogger }        from '../../../services/clientLogger.js';
@@ -100,6 +100,12 @@ export const MpiAgentChat = ComponentFactory.create({
         const labelEl    = qs('#ac-mascot-label',  el);
         const workingDot = qs('#ac-working-dot',   el);
         const transcript = qs('#ac-transcript',    el);
+
+        // A link the agent writes (the docs site when it cannot answer something) is a bare
+        // `<a href>` in rendered markdown, and clicking one inside Electron navigates the whole
+        // app away with no way back. Delegated on the transcript, so it covers every message
+        // without re-wiring per render.
+        _unsubs.push(wireMarkdownLinks(transcript));
 
         // ── Working state helpers ─────────────────────────────────────────────
         function _setWorking(working) {

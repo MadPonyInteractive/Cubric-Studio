@@ -243,3 +243,31 @@ test('list_models ops carry their media roles, gated per model the way the Promp
     assert.ok(ref.some((r) => r.role === 'inputAudio' && r.tag === 'Audio 1'), 'ref2va takes audio references');
     assert.deepEqual(mediaRolesFor(registry, 'no-such-op', findModelDef('ltx-23')), []);
 });
+
+// ── 4. create-project never mints a case-variant twin (Phase 7) ───────────────
+
+// Live (Fabio, 2026-09-19 10:09Z): "You can place it in the Fanvue project" logged
+// `created project "Fanvue" at …/Projects/Fanvue_2b752074` while `fanvue` existed. The
+// `_<8 hex>` suffix is `POST /create-project` finding the FOLDER taken — Windows is
+// case-insensitive — so the app knew the name was taken and read that as "pick another
+// folder". Two projects with one display name are indistinguishable in the picker.
+test('findProjectByName: the same name in another case is the same project', () => {
+    const { findProjectByName } = require('../routes/connector');
+    const projects = [
+        { name: 'fanvue', folderPath: 'C:/Projects/fanvue' },
+        { name: 'Cowgirls', folderPath: 'C:/Projects/Cowgirls' },
+    ];
+
+    assert.equal(findProjectByName(projects, 'Fanvue')?.folderPath, 'C:/Projects/fanvue', 'the live case');
+    assert.equal(findProjectByName(projects, 'FANVUE')?.folderPath, 'C:/Projects/fanvue');
+    assert.equal(findProjectByName(projects, '  fanvue  ')?.folderPath, 'C:/Projects/fanvue', 'surrounding space is not a project');
+    assert.equal(findProjectByName(projects, 'cowgirls')?.folderPath, 'C:/Projects/Cowgirls');
+
+    // A different name is still a different project, and nothing matches nothing.
+    assert.equal(findProjectByName(projects, 'Fanvue 2'), null);
+    assert.equal(findProjectByName(projects, ''), null);
+    assert.equal(findProjectByName(projects, '   '), null);
+    assert.equal(findProjectByName([], 'fanvue'), null);
+    assert.equal(findProjectByName(undefined, 'fanvue'), null);
+    assert.equal(findProjectByName([{ folderPath: 'C:/Projects/x' }], 'fanvue'), null, 'a nameless row must not throw');
+});

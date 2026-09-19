@@ -370,7 +370,10 @@ describe('(c) generate non-blocking', () => {
         const generateCalledAt = [];
         const turnReturnedAt = [];
 
-        const GENERATE_DELAY = 200; // ms — long enough to prove non-blocking
+        // Longer than EARLY_REFUSAL_MS (1000): a generate now waits that long to catch a
+        // refusal, so a fixture that settles inside the window proves nothing about
+        // blocking. A real generation takes 30-160 s, which this stands in for.
+        const GENERATE_DELAY = 1800; // ms — long enough to prove non-blocking
         const { loop, fakeRes } = await makeLoop({
             engineResponses: [
                 {
@@ -387,11 +390,10 @@ describe('(c) generate non-blocking', () => {
         await loop.runTurn('Make an image of a fox', [], project, 'auto', 'deepinfra', 'turn-gen');
         const elapsed = Date.now() - start;
 
-        // The turn should return well before the generate delay + some margin
-        // If generate were awaited, elapsed would be >= GENERATE_DELAY.
-        // We allow some buffer for test overhead.
+        // The turn must return before the generation settles. If generate were awaited,
+        // elapsed would be >= GENERATE_DELAY.
         assert.ok(
-            elapsed < GENERATE_DELAY + 150,
+            elapsed < GENERATE_DELAY,
             `runTurn (${elapsed} ms) should return before generate settles (${GENERATE_DELAY} ms delay). If this fails, generate is being awaited.`,
         );
 
@@ -868,15 +870,22 @@ describe('(h) notes, results, names, guides', () => {
         assert.match(last, /How did it go\?$/);
     });
 
-    test('a failed generation is reported the same way', async () => {
+    // A generation that fails once it is RUNNING — the engine dies, ComfyUI refuses the
+    // graph — still reports at the start of the next turn, because there is no turn left to
+    // report into. A failure that lands before anything is queued is a different animal and
+    // goes back in-turn instead; see "refused IN-TURN" in the diet block.
+    test('a generation that fails AFTER it started is reported at the next turn', async () => {
         const { loop, tools } = await makeLoop({ engineResponses: [
             call('g1', 'generate', { modelId: 'test-model', operation: 't2i', prompt: 'A fox' }),
             { text: 'Started.' },
             { text: 'Sorry.' },
         ] });
-        tools.generate = async () => ({ ok: false, error: { code: 'MODEL_NOT_INSTALLED', message: 'not installed' } });
+        tools.generate = async () => {
+            await new Promise((r) => setTimeout(r, 1100)); // past the early-refusal window
+            return { ok: false, error: { code: 'MODEL_NOT_INSTALLED', message: 'not installed' } };
+        };
         await loop.runTurn('Make a fox', [], project, 'auto', 'deepinfra', 't-f');
-        await new Promise((r) => setTimeout(r, 30));
+        await new Promise((r) => setTimeout(r, 250));
         await loop.runTurn('Well?', [], project, 'auto', 'deepinfra', 't-f2');
         assert.match(userMessages(loop).at(-1), /\[Generation failed: MODEL_NOT_INSTALLED: not installed\]/);
     });
@@ -1172,6 +1181,61 @@ describe('(i) the catalogue diet', () => {
         assert.deepEqual(flow.flow.fields, [{ id: 'positive', label: 'Expression', type: 'text' }]);
         assert.deepEqual(flow.flow.boxParams, [{ param: 'box1', role: 'image1', ratio: 1 }]);
         assert.equal(miss.error.code, 'UNKNOWN_MODEL');
+    });
+
+    // Fabio, live 2026-09-19 10:09Z: he asked for an image from the landing page and the chat
+    // answered "I need a project to create this image. Please open or create a project first." —
+    // this error, relayed almost verbatim, and the exact opposite of the Project rule ("never ask
+    // them to open or create one first, that is your job"). The rule lost, because a concrete tool
+    // result beats a prompt rule. So the result has to BE the instruction.
+    test('a tool result with no project open tells the agent to create one, never the user to', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('n1', 'generate', { modelId: 'one-note', operation: 't2i', prompt: 'a cowgirl' }),
+            call('n2', 'write_memory', { file: 'brief', title: 'Brief', text: 'a western set in 1876' }),
+            { text: 'ok' },
+        ] });
+        tools.listModels = async () => catalogue;
+        // The project gate is the first thing generate checks, before the guide gate.
+        await loop.runTurn('make me a cowgirl', [], null, 'auto', 'deepinfra', 't-noproj');
+
+        const results = toolResults(loop);
+        assert.ok(results.length >= 2, 'both calls ran without a project');
+        for (const r of results) {
+            assert.equal(r.error.code, 'NO_PROJECT');
+            assert.match(r.error.message, /create_project/, 'the message must name the call that fixes it');
+            assert.doesNotMatch(r.error.message, /Please open or create/i, 'the wording Fabio was shown');
+            assert.match(r.error.message, /Do not ask the user/i, 'and it must say so out loud');
+        }
+        assert.equal(tools.calls.generate.length, 0, 'nothing was dispatched');
+    });
+
+    // Fabio, live 2026-09-19: "make an image of a cowgirl riding a bull". The route refused
+    // the submit — INVALID_STYLE_SELECT, and the log carries no `generation.submit` at all —
+    // and the chat still said "Your image of a cowgirl riding a big bull is on its way."
+    // Fire-and-forget answered `started: true` in the same tick, so the model could neither
+    // tell the truth nor fix the call: the refusal only reached it at the START of the next
+    // turn, by which time it had already promised him a picture.
+    test('a dispatch refused before anything is queued is refused IN-TURN, never "started"', async () => {
+        const noGuide = { ...catalogue, models: [{ ...catalogue.models[0], guides: [] }] };
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', { modelId: 'one-note', operation: 't2i', prompt: 'a cowgirl on a bull', styleSelect: 'Dark Brush' }),
+            { text: 'ok' },
+        ] });
+        tools.listModels = async () => noGuide;
+        tools.generate = async (body) => {
+            tools.calls.generate.push(body);
+            return { ok: false, error: { code: 'INVALID_STYLE_SELECT', message: 'styleSelect must be an integer 0-10.' } };
+        };
+        await loop.runTurn('make me a cowgirl riding a bull', [], project, 'auto', 'deepinfra', 't-refused');
+
+        const [r] = toolResults(loop);
+        assert.equal(tools.calls.generate.length, 1, 'it was dispatched — the refusal is the route\'s');
+        assert.equal(r.ok, false, 'and the model is told so in the same turn');
+        assert.equal(r.started, undefined, 'never "started"');
+        assert.equal(r.error.code, 'INVALID_STYLE_SELECT');
+        assert.match(r.error.message, /Nothing was generated/);
+        assert.match(r.error.message, /describe_model with "one-note"/, 'and where the accepted values are');
+        assert.equal(loop._notes.length, 0, 'nothing waiting for next turn: it already has it');
     });
 });
 

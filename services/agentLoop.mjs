@@ -92,7 +92,7 @@ const TOOL_DEFS = [
         type: 'function',
         function: {
             name: 'generate',
-            description: 'Start an image or video generation (model op or Flow). Fires without blocking — the result appears in the chat when ready. With no project open, this returns NO_PROJECT.',
+            description: 'Start an image or video generation (model op or Flow). Fires without blocking — the result appears in the chat when ready. With no project open this returns NO_PROJECT: call create_project, then send the same generate again.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -157,7 +157,7 @@ const TOOL_DEFS = [
         type: 'function',
         function: {
             name: 'create_project',
-            description: 'Create a new, empty project and return its folderPath. It never replaces a project: a taken name gets a suffix. It does not open the project: call open_project with the folderPath it returns.',
+            description: 'Create an empty project, open it, and return its folderPath. A project of that name already exists (case ignored) → that one is opened and returned with existing: true, never a second copy of it.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -235,6 +235,17 @@ const TOOL_DEFS = [
 
 // Max tool calls the model may make in one user turn before STEP_LIMIT.
 const MAX_STEPS = 8;
+
+// How long a `generate` waits to see whether its dispatch is REFUSED before reporting
+// it started. A refusal is validation — the route answers over loopback in milliseconds,
+// and the renderer's own refusals are one SSE round trip — while a generation that is
+// actually running resolves only when it FINISHES, seconds to minutes later. So this
+// window catches every refusal and no success (MPI-774 Phase 7).
+//
+// It is paid in full on every generation that DOES start: one second before the model can
+// write its closing sentence. That is the price of never narrating a success that did not
+// happen, and this constant is the knob if the trade ever reads wrong.
+const EARLY_REFUSAL_MS = 1000;
 
 /**
  * What the model sees of a `list_models` answer (MPI-774 Phase 7).
@@ -668,7 +679,7 @@ ${modeRules}
 
 Model rule: first the TASK, then the model. The task comes from what the user asked for and does not change because another task's op ranks higher: changing an existing picture is the edit task (kleinEdit, krea2Edit, qwenEdit, edit), not i2i, even when the user names a model whose i2i is rank 1. Ranks only ever compare ops WITHIN one task. Inside the task, pick an op that is installed (an op list_models marks installed: false is not, and neither is a model marked runsHere: false, which this machine cannot run at all), and take the lowest rank number (rank 1 is the best we have at it); an op with no rank is unranked, not bad. Take a lower-ranked op over rank 1 only when the user names a model, or when its note matches what they asked for (a note is what the ranking cannot say: "leaves everything outside the edit area untouched", "takes exactly one image", "anime and stylised art"). When you pass over rank 1 for a note, say in one short line which model you used and why. If nothing installed fits, say an install is needed and offer one with install_model.
 
-Settings rule: list_models is the short list and carries no settings. Once you have picked a model or a Flow, call describe_model with its id: it gives each op its params (the only ratio, qualityTier, turbo and styleSelect values that op accepts — styleSelect is the index into params.styles), the media roles it takes, a Flow's fields and boxes, and its guide ids. Never send a value its params do not list, and leave out a param it does not offer.
+Settings rule: list_models is the short list and carries no settings. Once you have picked a model or a Flow, call describe_model with its id: it gives each op its params (the only ratio, qualityTier, turbo and styleSelect values that op accepts; styleSelect takes a label from params.styles or its index), the media roles it takes, a Flow's fields and boxes, and its guide ids. Never send a value its params do not list. Start every setting at its default and raise one only when the user's own words asked for it: quality stays at the lowest tier until they want it sharper or bigger, turbo and stylization stay alone, and a style is worth reaching for only when they named a look the rack has. Ratio you infer from words that imply a shape (a platform, portrait, widescreen). Unsure which shape a platform wants, or whether a style is worth it: read_knowledge "app:formats".
 
 Numbering rule: "picture 2", "image 2" or "2" in a message means that message's attached image 2, never an image from an earlier turn. Pass that attachment's id.
 
@@ -683,6 +694,8 @@ Guide rule: before your first prompt for a model, read its prompting guide: desc
 Installation rule: Always call install_model to show the user a Yes / No confirmation card. Never install a model without a Yes from the user, regardless of mode.
 
 Project rule: a generation lands in the open project. Never invent a folder path: open_project only takes a folderPath from list_projects or create_project, or one the user typed. To open a project by name, find it with list_projects. With no project open: if the user asks for anything to be MADE, create a project named after what they are making (create_project opens it for you) and make it in that same turn — never ask them to open or create one first, that is your job. Background they give you (the story, the era, who the characters are) is material for the work, never a reason to stop: note what will matter later with write_memory, then still make what they asked for, all of it. Only when they describe a project and ask for NOTHING to be made do you end the turn by asking what they want first.
+
+Docs rule: when you cannot answer a question about the app itself — a feature you have no tool for, a screen you cannot see, a setting you do not know — say so plainly and point them at the documentation as a markdown link, [the documentation](https://docs.cubric.studio). Offer it instead of guessing at how the app works. It is for questions about Vision, not for image or video advice, which is yours to answer.
 
 Deletion rule: You never delete anything: no cards, no media, no notes, no projects. No tool of yours can, and you never look for a way. When the user wants something deleted, tell them only they can do it, and where: a card from the gallery (right-click it, Delete, which also removes its whole history), a project from the projects list on the landing page (right-click it, Delete project).
 
@@ -757,7 +770,12 @@ ${knowledgeIndex}`.trim();
             }
             case 'generate': {
                 if (!currentProject) {
-                    return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'No project is open. Please open or create a project first.' } });
+                    // The message is the instruction, not the prompt (Fabio, 2026-09-19). This used
+                    // to read "Please open or create a project first" and the model relayed it to
+                    // him almost verbatim — the exact opposite of the Project rule above, which
+                    // says creating one is the agent's job. A concrete tool result beats a prompt
+                    // rule every time, so the result now names the call that fixes it.
+                    return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'Nothing was generated: no project is open. Call create_project now, named after what you are making — it opens what it makes — then send this same generate again. Do not ask the user to open or create one; that is your job.' } });
                 }
                 if (!args.flowId && args.modelId) {
                     const unread = await this._unreadGuide(String(args.modelId));
@@ -831,9 +849,33 @@ ${knowledgeIndex}`.trim();
                     if (snapped) body.ratio = snapped;
                 }
 
-                // Fire and don't await
+                // Fire, and wait only long enough to learn it was REFUSED.
+                //
+                // Live (Fabio, 2026-09-19): the model sent a Krea2 style by its label, the route
+                // refused it with INVALID_STYLE_SELECT before anything reached the queue — the log
+                // has no `generation.submit` at all — and the chat still said "Your image of a
+                // cowgirl riding a big bull is on its way." Fire-and-forget answered `started: true`
+                // in the same tick, so the model narrated a success that never existed and could
+                // not correct itself, because the refusal only arrived at the START of the next
+                // turn. This is the same failure the media gate closed for one case: a refusal
+                // landing after `{ started: true }`. Here it is closed for all of them.
                 const toolCallId = crypto.randomUUID();
-                this._tools.generate(body).then(async (r) => {
+                const pending = this._tools.generate(body);
+                const early = await Promise.race([
+                    pending.then((r) => r, (err) => ({ ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } })),
+                    new Promise((resolve) => { setTimeout(() => resolve(null), EARLY_REFUSAL_MS); }),
+                ]);
+                if (early && !early.ok) {
+                    // Nothing was queued, so there is no result to report and nothing to note:
+                    // the model has this in-turn and can fix the call and send it again.
+                    const miss = /^(INVALID_|UNKNOWN_PARAM|MEDIA_REQUIRED)/.test(early.error?.code || '');
+                    const where = args.flowId || args.modelId;
+                    return JSON.stringify({ ok: false, error: {
+                        ...early.error,
+                        message: `Nothing was generated: ${early.error?.message || 'the generation was refused.'}${miss && where ? ` Call describe_model with "${where}" for the values it accepts, then send it again.` : ''}`,
+                    } });
+                }
+                pending.then(async (r) => {
                     const ok = r && r.ok;
                     if (ok && r.output?.filePath) this._registerResult(r.output.filePath);
                     if (ok && r.output?.groupId) this._groups.add(r.output.groupId);
@@ -901,7 +943,7 @@ ${knowledgeIndex}`.trim();
                 // there is no such thing as creating a project you did not want opened.
                 const opened = await this._tools.openProject(r.project.folderPath);
                 if (!opened?.ok) {
-                    return JSON.stringify({ ...r, opened: false, warning: 'The project was created but could not be opened, so nothing can be made in it yet.' });
+                    return JSON.stringify({ ...r, opened: false, warning: 'The project was created but could not be opened, so nothing can be made in it yet. Call open_project with the folderPath above before generating.' });
                 }
                 return JSON.stringify({ ...r, opened: true, output: opened.output || { folderPath: r.project.folderPath, name: r.project.name } });
             }
@@ -922,7 +964,7 @@ ${knowledgeIndex}`.trim();
             case 'write_memory': {
                 // The project is the one the app has open, never a path the model names.
                 if (!currentProject?.folderPath) {
-                    return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'No project is open, so there are no project notes.' } });
+                    return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'No project is open, so there are no project notes. Call create_project (it opens what it makes) and then call this again. Do not ask the user to open or create one.' } });
                 }
                 const r = toolName === 'read_memory'
                     ? await this._tools.readMemory(currentProject.folderPath, args.file)

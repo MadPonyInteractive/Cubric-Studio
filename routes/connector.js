@@ -10,7 +10,7 @@
  *   POST /connector/describe         → crop + relay imageDescribe
  *   GET/POST /connector/memory[/:file] → the agent's notes about one project (Phase 3b)
  *   GET  /connector/projects         → the project list, most recent first (Phase 3c)
- *   POST /connector/create-project   → a new project, never over an existing one (Phase 3c)
+ *   POST /connector/create-project   → a new project, or the existing one of that name (Phase 3c)
  *
  * These relay to the renderer (install state, plugin availability, generation
  * queue) via the existing SSE job mechanism, then add server-side data.
@@ -452,6 +452,8 @@ router.post('/connector/generate', async (req, res) => {
   if (batch !== undefined) {
     return _namedErr('BATCH_UNSUPPORTED', 'Agent submits always run batch 1. Send N separate submits instead; they queue.');
   }
+  // What actually gets dispatched: the index, once a style named by label is resolved below.
+  let styleSelectValue = styleSelect;
   if (!flowId && NAMED_PARAM_KEYS.some((k) => req.body?.[k] !== undefined)) {
     const model = findModelDef(modelId);
     if (!model) return _namedErr('UNKNOWN_MODEL', `No model with id "${modelId}".`);
@@ -462,6 +464,22 @@ router.post('/connector/generate', async (req, res) => {
     if (turbo !== undefined) named.turbo = turbo;
     if (styleSelect !== undefined) named.styleSelect = styleSelect;
     if (stylization !== undefined) named.stylization = stylization;
+
+    // `styleSelect` is an INDEX, but the only place a caller ever sees the rack is as
+    // NAMES — `params.styles`, the list describe_model hands out. Live (Fabio,
+    // 2026-09-19): asked for a cowgirl on a bull, the agent picked a Krea2 style by its
+    // label and the submit died on "styleSelect must be an integer 0-10". The label is
+    // unambiguous — it is that same list — so resolve it instead of refusing it. A name
+    // that is not in the rack still falls through to the validator below.
+    if (typeof named.styleSelect === 'string') {
+      const labels = Array.isArray(model.styleLoraLabels) ? model.styleLoraLabels : [];
+      const want = named.styleSelect.trim().toLowerCase();
+      const i = labels.findIndex((l) => String(l).trim().toLowerCase() === want);
+      // The renderer gets the resolved index too, not just the validator: `input` below is
+      // built from the request body, so a name that only passed validation would still be
+      // dispatched as a string.
+      if (i >= 0) { named.styleSelect = i; styleSelectValue = i; }
+    }
 
     // project:null — static validation only, per this route's own comment above.
     const check = resolveNamedParams(null, model, String(operation), named);
@@ -491,7 +509,7 @@ router.post('/connector/generate', async (req, res) => {
       ...(ratio !== undefined ? { ratio } : {}),
       ...(qualityTier !== undefined ? { qualityTier } : {}),
       ...(turbo !== undefined ? { turbo } : {}),
-      ...(styleSelect !== undefined ? { styleSelect } : {}),
+      ...(styleSelectValue !== undefined ? { styleSelect: styleSelectValue } : {}),
       ...(stylization !== undefined ? { stylization } : {}),
       ...(seed !== undefined ? { seed } : {}),
     };
@@ -540,10 +558,32 @@ router.get('/connector/projects', async (_req, res) => {
 });
 
 /**
+ * The project a caller means by `name`, matched the way the filesystem matches it.
+ *
+ * MPI-774 Phase 7: "You can place it in the Fanvue project" created `Fanvue_2b752074`
+ * beside the `fanvue` that already existed. `POST /create-project` compares nothing —
+ * it just finds the folder taken (Windows is case-insensitive) and appends `_<8 hex>`.
+ * So the app already knew the name was taken and read that as "pick another folder".
+ * Two projects with one display name are indistinguishable in the picker, which is the
+ * real cost. Case and surrounding space are not a different project.
+ *
+ * @returns {object|null} the matching project from the list, or null.
+ */
+function findProjectByName(projects, name) {
+  const want = String(name ?? '').trim().toLowerCase();
+  if (!want) return null;
+  return (projects || []).find((p) => String(p?.name ?? '').trim().toLowerCase() === want) || null;
+}
+router.findProjectByName = findProjectByName;
+
+/**
  * POST /connector/create-project { name } — a new, empty project in the default projects
  * folder: `{ ok, project: { name, folderPath } }`. Over `POST /create-project`, which never
- * replaces one (a taken folder gets `_<8 hex>`). It does not open the project; the next call
- * is /connector/open-project. Errors: BAD_REQUEST (400), RUNTIME_ERROR.
+ * replaces one (a taken folder gets `_<8 hex>`). A project of that name already exists →
+ * that one comes back with `existing: true` rather than a twin; the UI's own create path
+ * is untouched, so a user who wants a second project of the same name still gets one.
+ * It does not open the project; the next call is /connector/open-project.
+ * Errors: BAD_REQUEST (400), RUNTIME_ERROR.
  */
 router.post('/connector/create-project', async (req, res) => {
   const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
@@ -551,6 +591,12 @@ router.post('/connector/create-project', async (req, res) => {
     return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'body.name is required, at most 100 characters.' } });
   }
   try {
+    const existing = await _appPost('/list-projects', {});
+    const match = existing?.success ? findProjectByName(existing.projects, name) : null;
+    if (match) {
+      logger.info('connector', `create-project: "${name}" already exists at ${match.folderPath} — returning it`);
+      return res.json({ ok: true, project: { name: match.name, folderPath: match.folderPath }, existing: true });
+    }
     const r = await _appPost('/create-project', { name });
     if (!r?.success || !r.project) {
       return res.json({ ok: false, error: { code: 'RUNTIME_ERROR', message: r?.error || 'Could not create the project.' } });

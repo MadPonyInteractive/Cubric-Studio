@@ -118,7 +118,7 @@ function _submitGeneration(jobId, input = {}) {
     } = input;
 
     if (!state.currentProject) {
-        return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision. Open one first.');
+        return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision. Create or open one, then send this request again.');
     }
 
     const model = getModelById(modelId);
@@ -239,7 +239,7 @@ function _submitFlow(jobId, input = {}) {
     const { flowId, fields = {}, media = [], params = {} } = input;
 
     if (!state.currentProject) {
-        return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision. Open one first.');
+        return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision. Create or open one, then send this request again.');
     }
 
     const flow = getFlowById(flowId);
@@ -352,6 +352,12 @@ async function _openProject(jobId, input = {}) {
             `Could not open "${folderPath}": ${err?.message || 'unknown error'}.`);
     }
     navigate(PAGE_GALLERY);
+    // Only the AGENT reaches this path, and it just moved the user to a project they did
+    // not click. Leaving the box in Prompt mode drops them somewhere new with the
+    // conversation that brought them here hidden — the agent keeps talking into a panel
+    // they cannot see (Fabio, 2026-09-19). The PromptBox toggle follows this state, so
+    // setting it is the whole fix.
+    state.agentMode = true;
     return _report(jobId, {
         ok: true,
         output: {
@@ -370,7 +376,7 @@ async function _openProject(jobId, input = {}) {
 async function _renameCard(jobId, input = {}) {
     const { groupId, name } = input;
     if (!state.currentProject) {
-        return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision. Open one first.');
+        return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision. Create or open one, then send this request again.');
     }
     const group = await renameGroup(groupId, name);
     if (!group) {

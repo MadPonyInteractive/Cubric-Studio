@@ -98,7 +98,11 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
 - **`GET /connector/projects`** -> `{ ok, projects: [{ name, folderPath, updatedAt }], total }`, most
   recent first, at most 50 (over `POST /list-projects`). **`POST /connector/create-project { name }`**
   -> `{ ok, project: { name, folderPath } }` in the default root, over `POST /create-project`, which never
-  replaces one (a taken folder gets `_<8 hex>`); it does not open it. Errors: `BAD_REQUEST` (400), `RUNTIME_ERROR`.
+  replaces one (a taken folder gets `_<8 hex>`); it does not open it. **A project of that name already
+  exists (case and surrounding space ignored) -> that one comes back with `existing: true`** instead of a
+  twin, because `/create-project` only ever saw a taken FOLDER and read it as "pick another one"
+  (`Fanvue_2b752074` beside `fanvue`, MPI-774 Phase 7). The UI's own create path is untouched.
+  Errors: `BAD_REQUEST` (400), `RUNTIME_ERROR`.
 - **`POST /connector/install { modelId }`** -> `{ ok, modelId, downloadGb, started: true }`; progress is
   `GET /comfy/downloads/status`. No gate here: a CLI agent's user is its own gate. Errors: `BAD_REQUEST`,
   `UNKNOWN_MODEL`, `ALREADY_INSTALLED`, `OFFLINE`, `APP_UNAVAILABLE`.

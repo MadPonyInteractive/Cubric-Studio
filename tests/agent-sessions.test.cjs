@@ -380,22 +380,35 @@ describe('connector project routes', () => {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     });
 
-    test('create never replaces a project, and the list returns both folders', async () => {
+    // Was: "a taken name gets its own folder" — which is what `POST /create-project` does, and
+    // it is wrong for a caller that NAMED an existing project. Fabio, live 2026-09-19 10:09Z:
+    // "You can place it in the Fanvue project" minted `Fanvue_2b752074` beside `fanvue`. The
+    // suffix proves the app already knew the name was taken; two projects with one display name
+    // are indistinguishable in the picker. The connector answers with the one that exists.
+    test('create returns the project that already has that name, in any case, and never a twin', async () => {
         const first = await (await post('/connector/create-project', { name: 'Fox Shoot' })).json();
         assert.equal(first.ok, true);
         assert.equal(first.project.name, 'Fox Shoot');
+        assert.equal(first.existing, undefined, 'the first one is a real create');
         const firstJson = path.join(first.project.folderPath, 'project.json');
         const before = fs.readFileSync(firstJson, 'utf8');
 
-        const second = await (await post('/connector/create-project', { name: 'Fox Shoot' })).json();
-        assert.equal(second.ok, true);
-        assert.notEqual(second.project.folderPath, first.project.folderPath, 'a taken name gets its own folder');
-        assert.equal(fs.readFileSync(firstJson, 'utf8'), before, 'the first project is untouched');
+        for (const name of ['Fox Shoot', 'fox shoot', '  FOX SHOOT  ']) {
+            const again = await (await post('/connector/create-project', { name })).json();
+            assert.equal(again.ok, true, name);
+            assert.equal(again.existing, true, `${name}: said so out loud`);
+            assert.equal(again.project.folderPath, first.project.folderPath, `${name}: the same project`);
+        }
+        assert.equal(fs.readFileSync(firstJson, 'utf8'), before, 'and it is handed back untouched, never replaced');
+
+        // A different name is still a different project.
+        const other = await (await post('/connector/create-project', { name: 'Fox Shoot 2' })).json();
+        assert.notEqual(other.project.folderPath, first.project.folderPath);
 
         const list = await (await fetch(`${base}/connector/projects`)).json();
         assert.equal(list.ok, true);
-        assert.equal(list.total, 2);
-        assert.deepEqual(new Set(list.projects.map((p) => p.folderPath)), new Set([first.project.folderPath, second.project.folderPath]));
+        assert.equal(list.total, 2, 'three same-name creates made one folder');
+        assert.deepEqual(new Set(list.projects.map((p) => p.folderPath)), new Set([first.project.folderPath, other.project.folderPath]));
         assert.deepEqual(Object.keys(list.projects[0]).sort(), ['folderPath', 'name', 'updatedAt'], 'names and folders only, no cards');
     });
 

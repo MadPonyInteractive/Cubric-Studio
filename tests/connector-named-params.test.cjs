@@ -197,6 +197,41 @@ test('styleSelect: an out-of-range index is a named error', async () => {
     } finally { await stop(); }
 });
 
+// Live (Fabio, 2026-09-19): "make an image of a cowgirl riding a bull" died on
+// `styleSelect must be an integer 0-10`. The rack is only ever SEEN as names — the
+// `params.styles` list describe_model hands out — so a caller naming one is reading the
+// only thing it was given. The index must reach the RENDERER, not just the validator.
+test('styleSelect: a style named by its label resolves to its index, all the way to the job input', async () => {
+    const { base, stop } = await startServer();
+    const renderer = await fakeRenderer(base);
+    try {
+        const labels = MODELS.find((m) => m.id === 'krea2').styleLoraLabels;
+        assert.equal(labels[1], 'Dark Brush', 'the rack this test names');
+
+        for (const [name, index] of [['Dark Brush', 1], ['dark brush', 1], ['  MidJourney ', 10]]) {
+            // Settle the request BEFORE asserting: a failed assertion mid-loop would
+            // otherwise leave the post hanging and the runner with it.
+            const pending = postJson(`${base}/connector/generate`, { ...KREA2, styleSelect: name });
+            const frame = await renderer.readFrame();
+            const dispatched = frame.data.input.styleSelect;
+            await postJson(`${base}/connector/jobs/${frame.data.jobId}/result`, { ok: true, output: {} });
+            const { json } = await pending;
+            assert.equal(dispatched, index, `"${name}" reached the renderer as its index`);
+            assert.equal(json.ok, true);
+        }
+    } finally { renderer.close(); await stop(); }
+});
+
+test('styleSelect: a name that is not in the rack is still a named error', async () => {
+    const { base, stop } = await startServer();
+    try {
+        const { status, json } = await postJson(`${base}/connector/generate`,
+            { ...KREA2, styleSelect: 'Oil Painting' });
+        assert.equal(status, 400);
+        assert.equal(json.error.code, 'INVALID_STYLE_SELECT');
+    } finally { await stop(); }
+});
+
 test('styleSelect: a model with no style rack is a named error, even at index 0', async () => {
     const { base, stop } = await startServer();
     try {
