@@ -765,6 +765,23 @@ describe('(g) model and context window', () => {
         assert.match(line, /Images you can look at: \/project-file\?path=%2Fp%2Fold\.png, att_9 \(cat\.png\)\./);
     });
 
+    // MPI-817, live 2026-09-19. Two ILL Anime runs, then Fabio pinned Krea 2 and asked for
+    // a cartoon. The agent looked at the ill-anime image, called it "the Krea 2 result", and
+    // generated nothing — the request looked already met. It had no way to be right: the
+    // state line listed bare refs, `look` reads pixels, and the only model named anywhere in
+    // that turn was the pinned one. The sidecars on disk said `modelId: ill-anime`.
+    test('a result ref says which model made it, and an unknown one says so rather than nothing', async () => {
+        const { loop } = await makeLoop({ engineResponses: [{ text: 'a' }] });
+        loop._registerResult('/project-file?path=%2Fp%2Fduck.png', 'ill-anime');
+        loop._registerResult('/project-file?path=%2Fp%2Fmystery.png');   // no modelId known
+        await loop.runTurn('look', [], null, 'auto', 'deepinfra', 't-prov');
+        const line = loop._messages.find((m) => m.role === 'user').content.split('\n')[0];
+        assert.match(line, /duck\.png \(made by ill-anime\)/);
+        assert.doesNotMatch(line, /mystery\.png \(made by/, 'an unknown origin must not be invented');
+        // And the line must SAY that a bare ref is unknown, or the model fills the gap itself.
+        assert.match(line, /never assume it came from the model selected now/);
+    });
+
     test('a project opened mid-turn is the one a later generate in that turn lands in', async () => {
         const engineResponses = [
             { toolCalls: [{ id: 'o1', type: 'function', function: { name: 'open_project', arguments: JSON.stringify({ folderPath: 'C:/P/Given' }) } }] },

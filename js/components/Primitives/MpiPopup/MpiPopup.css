@@ -97,6 +97,14 @@
 }
 
 /* ── Arrow / Caret ─────────────────────────────────────────────────────── */
+/* `--popup-arrow-x` is where the caret sits along the popup's own width. It defaults to
+   the centre, which is where it always was — an owner that does not set it is unchanged.
+   An owner that positions this popup on an anchor and then CLAMPS it to the viewport must
+   set it, because after a clamp the popup's centre is no longer over the anchor and the
+   caret points at whatever else is under it (MPI-817, 2026-09-19: the prompt box's cog is
+   near the right edge, so its panel always clamped left and the caret landed on the model
+   button next door — it read as the model's popup). The caret is a claim about WHICH
+   control opened this; nothing else in the popup makes that claim. */
 .mpi-popup::after {
     content: "";
     position: absolute;
@@ -107,14 +115,14 @@
 
 .mpi-popup--top::after {
     top: 100%;
-    left: 50%;
+    left: var(--popup-arrow-x, 50%);
     transform: translateX(-50%);
     border-top-color: var(--line);
 }
 
 .mpi-popup--bottom::after {
     bottom: 100%;
-    left: 50%;
+    left: var(--popup-arrow-x, 50%);
     transform: translateX(-50%);
     border-bottom-color: var(--line);
 }

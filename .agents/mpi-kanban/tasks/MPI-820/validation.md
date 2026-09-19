@@ -45,8 +45,44 @@ authority and does the snapping at graph time; the JS only PREDICTS it so an ans
 state the real length, and a change there that is not mirrored here would silently make
 every reported duration wrong. It skips itself when the sibling repo is absent (CI).
 
+## The second half, found 2026-09-19 before Fabio's pass (session ea603cb9)
+
+Everything above was true and none of it could reach a user. `duration` shipped through the
+route, the resolver and the injection - and **the agent's own `generate` tool never carried
+the key**. `services/agentLoop.mjs` did not declare `duration` in the tool schema, whose
+`additionalProperties: false` meant the model could not legally emit it, and the body
+builder never read `args.duration`. So the Duration rule at `agentLoop.mjs:702` told the
+agent to judge the clip length for itself and then gave it nowhere to put the answer: every
+agent video fell to the 3 s default, while the chat quoted the length the agent had decided
+on. The `{started:true}` failure shape again - the chat says one thing, the file is another.
+
+Nothing in the 1408 tests could see it: `agent-duration.test.cjs` asserted the resolver and
+the frame grid, which were both already correct. Found by reading the file.
+
+Fixed: the key is declared (with its 1-30 range in the description) and forwarded beside
+`turbo`.
+
+### The test is on the class, not the key
+
+`every named param the connector accepts is declared AND forwarded by the agent tool` reads
+`NAMED_PARAM_KEYS` out of `routes/connector.js` and asserts each one against the `generate`
+tool block in `agentLoop.mjs`. The route's accepted set is the contract; the tool must carry
+all of it. The next named param cannot repeat this, which one assertion on `duration` would
+not have bought.
+
+Proven red before the fix, not assumed: both regexes run against `git show
+HEAD:services/agentLoop.mjs` returned `declared: false`, `forwarded: false`.
+
+| Check | Result |
+|---|---|
+| `tests/agent-duration.test.cjs` | **10/10** (9 + the new plumbing test) |
+| `npm test` | **1415 pass, 0 fail, 1 skipped** |
+| `npm run lint:components` | clean |
+
 ## Left for Fabio
 
 Ask for a long, multi-beat action ("she fires, the bull keeps running, she comes to a stop
 as the camera swings behind her") and check the clip is long enough to contain it, and that
-the agent quotes the length the file actually has.
+the agent quotes the length the file actually has. **A run from before this session's fix
+proves nothing**: the duration never left the agent, so any clip it produced was the 3 s
+default whatever it said.

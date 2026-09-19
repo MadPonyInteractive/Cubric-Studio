@@ -144,3 +144,40 @@ test('the H3 grid matches the node that applies it, or every reported duration i
     const pySnap = (frames) => Math.max(5, Math.round((frames - 5) / 17) * 17 + 5);
     for (let f = 1; f <= 400; f++) assert.equal(snapH3Frames(f), pySnap(f), `frame ${f}`);
 });
+
+// ── the agent's own tool carries them ─────────────────────────────────────────
+
+/**
+ * The half that the resolver tests above cannot see. `duration` shipped through the route,
+ * the resolver and the injection, and the system prompt grew a Duration rule telling the
+ * agent to judge the length itself — while the agent's `generate` TOOL never declared the
+ * key and never forwarded it. The schema is `additionalProperties: false`, so the model
+ * could not even emit it: every agent video fell to the default, and the chat still quoted
+ * the length the agent had decided on. Found 2026-09-19 reading the file, not by a test.
+ *
+ * This asserts the whole class rather than the one key, so the next named param cannot
+ * repeat it: the route's accepted set is the contract, and the tool must carry all of it.
+ */
+test('every named param the connector accepts is declared AND forwarded by the agent tool', () => {
+    const connector = fs.readFileSync(path.join(__dirname, '..', 'routes', 'connector.js'), 'utf8');
+    const loop = fs.readFileSync(path.join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
+
+    const keysSrc = /const NAMED_PARAM_KEYS = \[([^\]]+)\]/.exec(connector);
+    assert.ok(keysSrc, 'NAMED_PARAM_KEYS not found in routes/connector.js — it was renamed or moved');
+    const keys = [...keysSrc[1].matchAll(/'([^']+)'/g)].map((m) => m[1]);
+    assert.ok(keys.length >= 6, `expected the full named-param set, got ${keys.join(', ')}`);
+
+    // The `generate` tool's schema block, bounded by the next tool so the Duration rule's
+    // prose further down the file cannot satisfy the assertion by accident.
+    const from = loop.indexOf("name: 'generate'");
+    const to = loop.indexOf("name: 'look'", from);
+    assert.ok(from > 0 && to > from, 'the generate / look tool blocks were not found in agentLoop.mjs');
+    const schema = loop.slice(from, to);
+
+    for (const key of keys) {
+        assert.match(schema, new RegExp(`\\b${key}:\\s*\\{`),
+            `'${key}' is accepted by the connector but not declared on the agent's generate tool — with additionalProperties:false the model cannot send it at all`);
+        assert.match(loop, new RegExp(`body\\.${key} = `),
+            `'${key}' is declared on the agent's generate tool but never forwarded into the connector body`);
+    }
+});

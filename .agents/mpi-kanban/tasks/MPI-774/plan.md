@@ -2,6 +2,37 @@
 
 ## Current State
 
+**SESSION ea603cb9 (2026-09-19, from handoff 33659051). FABIO RAN HIS FIRST APP PASS. He
+restarted, started the Phase 7 checklist, and reported four faults before finishing it — so
+the five Phase 7 steps below still have NO verdict. All four are fixed and green: 1420 unit
+tests, `lint:components` clean, `agent-chat.spec.js` + the new `focus-mode.spec.js` 30/30 on
+whole-file runs. Evidence for all of it: `tasks/MPI-817/validation.md`, which is new.**
+
+- **MPI-820 was only half wired**, found by reading before he tested. `duration` shipped
+  through the route, the resolver and the injection, and the agent's own `generate` TOOL
+  never declared or forwarded the key — `additionalProperties: false`, so the model could
+  not legally emit it. The Duration rule told the agent to judge the length and gave it
+  nowhere to put the answer. The new test asserts the CLASS (every `NAMED_PARAM_KEYS` entry
+  declared and forwarded), proven red on `git show HEAD:`.
+- **Focus mode left the agent panel behind.** Collapsed, not hidden: `:has()` matches a
+  `display:none` element, so hiding it leaves a 420px gap. New `tests/desktop/focus-mode.spec.js`
+  asserts the SIBLING'S MARGIN, which is the only thing that catches that mistake.
+- **The cog moved left of the model button, and the caret now follows the cog.** Fabio asked
+  for the swap twice; the root cause is `.mpi-popup::after` pinned to the popup's own centre
+  while the clamp moves the popup. `--popup-arrow-x` on the primitive, defaulting to `50%`.
+- **The agent writes negation into prompts, and both guides filed the rule under one op.**
+  Diagnosed from two of his conversations (krea2 `t2i`, the holstered gun; H3 `i2v`, the
+  orbit that rolled). Both guides now carry `### Say what is there, never what is not` with
+  their measured case. H3's also ties the constraint line to it and defines `arc` vs `roll`.
+- **The agent could not tell which model made an image.** He switched to Krea 2, and it
+  called an `ill-anime` picture "the Krea 2 result" and then generated nothing. `modelId`
+  now rides the result into the App state line, and the line says a bare ref is unknown.
+- **Established for Phase D (skill packs, new on MPI-817):** the agent never touches the
+  enhancer recipe — zero references — so the 2026-08-17 vendor-skill merges all landed in
+  the one document the agent never reads.
+
+---
+
 **SESSION 35aabda4 (2026-09-19, from handoff 9ed687d7). THE PINNED SETTINGS PANEL IS BUILT
 — every part of the design, plus both traps. 1398 unit tests pass, `lint:components` clean,
 `tests/desktop/agent-chat.spec.js` 28/28 on a WHOLE-FILE run. It has NOT had Fabio's eyes:

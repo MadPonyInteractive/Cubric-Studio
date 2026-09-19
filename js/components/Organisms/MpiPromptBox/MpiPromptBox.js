@@ -109,8 +109,15 @@ export const MpiPromptBox = ComponentFactory.create({
             <!-- MPI-774: agent toggle sits directly after the text field, before enhance -->
             <div class="mpi-prompt-box__col mpi-prompt-box__col--mode" id="mode-toggle-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--enhance hide" id="enhance-slot"></div>
-            <div class="mpi-prompt-box__col mpi-prompt-box__col--settings" id="settings-badge-slot"></div>
+            <!-- MPI-817: cog BEFORE the model button (Fabio, 2026-09-19). The parameters
+                 popup is anchored on the cog and carries a caret; with the cog last but one
+                 the popup clamps off the right edge and the caret ends up over the model
+                 button, pointing at the wrong control. The caret now follows the cog on its
+                 own (see positionPopup), and this order keeps the two apart in the first
+                 place. Grid columns are all auto, so DOM order IS the visual order.
+                 No backticks in here: this markup is a template literal. -->
             <div class="mpi-prompt-box__col mpi-prompt-box__col--cog" id="settings-cog-slot"></div>
+            <div class="mpi-prompt-box__col mpi-prompt-box__col--settings" id="settings-badge-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--engine hide" id="engine-toggle-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--run" id="bottom-right-slot"></div>
         </div>
@@ -1624,8 +1631,22 @@ export const MpiPromptBox = ComponentFactory.create({
                 const margin = 8;
                 const overflowLeft  = margin - pr.left;
                 const overflowRight = pr.right - (window.innerWidth - margin);
-                if (overflowLeft > 0)  popupNode.style.left = `${parseFloat(popupNode.style.left) + overflowLeft}px`;
-                if (overflowRight > 0) popupNode.style.left = `${parseFloat(popupNode.style.left) - overflowRight}px`;
+                let left = parseFloat(popupNode.style.left);
+                if (overflowLeft > 0)  left += overflowLeft;
+                if (overflowRight > 0) left -= overflowRight;
+                popupNode.style.left = `${left}px`;
+
+                // MPI-817: point the caret at the COG, not at the popup's middle. The two
+                // are only the same place when nothing clamped — and the cog sits near the
+                // right edge, so this panel clamps left almost every time and the caret
+                // landed on the model button next door, which read as the model's popup
+                // (Fabio, 2026-09-19). `left` is the popup's centre, so its left edge is
+                // half a width back; `rect` is the cog, measured before any of this moved.
+                // Kept 12px inside the popup so it cannot ride off a rounded corner.
+                const edge = left - pr.width / 2;
+                const cogCentre = rect.left + rect.width / 2;
+                const arrowX = Math.min(Math.max(cogCentre - edge, 12), pr.width - 12);
+                popupNode.style.setProperty('--popup-arrow-x', `${arrowX}px`);
             });
         };
 

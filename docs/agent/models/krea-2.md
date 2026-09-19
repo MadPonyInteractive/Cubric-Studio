@@ -44,9 +44,10 @@ Both run `t2i`, `i2i`, `control`, `krea2Edit`, `inpaint`, `detail`, `upscale`.
 - Negative prompt: a field exists, but avoid it. It has no working effect at turbo (cfg
   1.0), and production measured it actively costing a named feature its own structure
   even outside turbo: naming "tall bonnet, high roof, domed roof" in the negative cost
-  the bonnet its shape, in five separate measured cases. State exclusions and required
-  structure in the positive prompt instead; the recipe never writes a negative block
-  for this same reason.
+  the bonnet its shape, in five separate measured cases. Put required structure in the
+  positive prompt instead; the recipe never writes a negative block for this same
+  reason. This is not a licence to write the exclusion as a negation in the positive:
+  see **Say what is there, never what is not** below.
 - Media roles. `i2i`, `upscale`: `inputImage` only. `control`: `inputImage` (the depth
   map) plus an optional `inputImage2` (the subject posed into it). `krea2Edit`:
   `inputImage` plus an optional `inputImage2`, and the order is load bearing: chip 1 is
@@ -71,9 +72,27 @@ decomposed rather than narrated. "Change her clothes to explorer clothes and cha
 expression to scared" measured as working where "create a photo of this woman wearing
 explorer clothes, running scared" measured as failing, on the same reference and seed.
 Name any identity trait you want held (hair colour, build), since nothing preserves it
-automatically. State a removal or a replacement as a positive instruction ("remove the
-tattoo"), never as a negative: the appearance a reference supplies cancels out of CFG,
-so a negative cannot touch it.
+automatically. On this path a removal has a second reason to be positive on top of the
+general rule that follows: state it as an instruction ("remove the tattoo"), because the
+appearance a reference supplies cancels out of CFG, so a negative cannot touch it at
+all.
+
+### Say what is there, never what is not
+
+This holds on every op, and it is the one that costs whole rounds when it is missed.
+The encoder has no "not". "not drawn", "never leaves the holster", "both hands empty"
+each put `drawn`, `holster`, `hands` into the conditioning and nothing at all to cancel
+them, so the wrong thing comes back stronger each time you insist. Rewrite the
+exclusion as the presence that replaces it. Not "his gun is not drawn, not held" but
+"his open right hand rests palm-down over the grip of a holstered revolver". Not "no
+crowd" but "an empty street".
+
+Measured live, 2026-09-19 (Fabio, `t2i`): a standoff prompt asked three times over for a
+gun that was "fully holstered, never leaves the holster, not drawn, not held", and came
+back holding a drawn revolver all three times. Each retry added more negation, which is
+the one move that cannot work. When a regeneration comes back with the thing you asked
+to remove, do not restate the removal. Check first whether you phrased it as an
+absence, and say what should be in its place instead.
 
 ## Adapting what the user asked for
 

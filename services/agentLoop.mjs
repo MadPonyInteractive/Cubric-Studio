@@ -104,6 +104,7 @@ const TOOL_DEFS = [
                     ratio: { type: 'string' },
                     qualityTier: { type: 'string', enum: ['very_low', 'low', 'medium', 'high', 'very_high', 'ultra'] },
                     turbo: { type: 'boolean' },
+                    duration: { type: 'number', description: 'Clip length in seconds, 1-30. Video ops only — see the Duration rule.' },
                     styleSelect: { type: 'string' },
                     stylization: { type: 'number' },
                     seed: { type: 'integer' },
@@ -467,9 +468,17 @@ export class AgentLoop {
         const where = project
             ? `project "${project.name}" is open. Generations land there.`
             : 'no project is open. A generation needs one: ask the user to open or create a project.';
+        // MPI-817: a result carries WHICH MODEL made it. `look` reads pixels, so without it
+        // the agent cannot tell one card's origin from another's, and nothing tells it that:
+        // live on 2026-09-19 it read an `ill-anime` image as "the Krea 2 result" purely
+        // because Krea 2 was the model pinned that turn, and then generated nothing because
+        // it believed the request was already met. Never let it infer provenance from the
+        // settings panel.
         const refs = [...this._images.entries()].slice(-8)
-            .map(([ref, img]) => (img.kind === 'attachment' ? `${ref} (${img.name || 'attachment'})` : ref));
-        return `[App state: ${where} Images you can look at: ${refs.length ? refs.join(', ') : 'none'}.]`;
+            .map(([ref, img]) => (img.kind === 'attachment'
+                ? `${ref} (${img.name || 'attachment'})`
+                : `${ref}${img.modelId ? ` (made by ${img.modelId})` : ''}`));
+        return `[App state: ${where} Images you can look at: ${refs.length ? refs.join(', ') : 'none'}. A ref with no "made by" was not made here, so you do not know what made it — say so rather than guessing, and never assume it came from the model selected now.]`;
     }
 
     /**
@@ -502,9 +511,9 @@ export class AgentLoop {
     }
 
     /** Register a generation's output so a later `look` or reference can name it. */
-    _registerResult(filePath) {
+    _registerResult(filePath, modelId = null) {
         if (!filePath || typeof filePath !== 'string') return;
-        this._images.set(filePath, { path: _decodeProjectFileUrl(filePath), kind: 'result' });
+        this._images.set(filePath, { path: _decodeProjectFileUrl(filePath), kind: 'result', modelId });
     }
 
     /**
@@ -830,6 +839,7 @@ ${knowledgeIndex}`.trim();
                     if (args.ratio !== undefined) body.ratio = args.ratio;
                     if (args.qualityTier !== undefined) body.qualityTier = args.qualityTier;
                     if (args.turbo !== undefined) body.turbo = args.turbo;
+                    if (args.duration !== undefined) body.duration = args.duration;
                     if (args.styleSelect !== undefined) body.styleSelect = args.styleSelect;
                     if (args.stylization !== undefined) body.stylization = args.stylization;
                     if (args.seed !== undefined) body.seed = args.seed;
@@ -897,7 +907,7 @@ ${knowledgeIndex}`.trim();
                 }
                 pending.then(async (r) => {
                     const ok = r && r.ok;
-                    if (ok && r.output?.filePath) this._registerResult(r.output.filePath);
+                    if (ok && r.output?.filePath) this._registerResult(r.output.filePath, r.output.modelId);
                     if (ok && r.output?.groupId) this._groups.add(r.output.groupId);
                     this._emit('agent:result', {
                         toolCallId,

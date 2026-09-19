@@ -44,7 +44,10 @@ Plain text, no markdown, these parts in this order:
 6. `non_diegetic_music:` a score only the audience hears, or `N/A`. `N/A` is how you stop
    an invented drone.
 7. A constraint line, last: rendering faults only (text, subtitles, logos, watermarks,
-   cartoon or CG look, dissolves, flicker).
+   cartoon or CG look, dissolves, flicker). **Only** is load bearing, and it is the line
+   that tempts you when a re-run has to fix something: there is no negative channel here,
+   so anything you put on it is read as scene content. "no camera roll" asks for a camera
+   roll. See "Say what is there" below.
 
 Length: one shot usually takes 60 to 120 words; each extra shot adds more, and a
 reference-heavy `ref2v_ms` prompt runs 200 words and up. H3 reads long prompts well, so
@@ -73,10 +76,32 @@ camera, the sound of the place, the constraint line. Then check the action again
   the scene sound to dip while someone speaks.
 - Cite each reference inside the sentence that uses it ("the rider from <Picture 1>
   pulls up"), never as a tag after the sentence.
-- `ref2v_ms` has no negative field, so "no close-up" puts the word close-up into the
-  prompt. Never negate the scene's own content; say what you want instead.
+- `ref2v_ms` has no negative field. Neither does any other op here: see "Say what is
+  there" below, which holds on all of them.
 - For `i2v_ms`, the picture is already the first frame: describe what happens next, not
   what the picture shows.
+
+### Say what is there, never what is not
+
+Every op here, not just `ref2v_ms`, and it bites hardest on the SECOND attempt. There is no
+negative channel, so "never rolling", "no camera roll or spin in place", "no close-up" each
+put rolling, spin, close-up into the prompt with nothing to cancel them. The instinct after
+a bad result is to name the thing that went wrong and forbid it. That is the one move that
+cannot work: it adds the word. Replace the move instead, in the camera line, using the
+vocabulary in item 4 above.
+
+Measured live, 2026-09-19 (Fabio, `i2v`): a camera asked to orbit a cowboy came back
+ROLLING, rotating about the lens axis instead of travelling around him. The re-run added
+"never rolling or spinning in place" and "no camera roll or spin in place" to the
+constraint line, which is both a negation and a use of that line for something other than a
+rendering fault. The word for what he wanted was already in the camera vocabulary: **arc**.
+"The camera arcs left around him at shoulder height, holding him centred as it passes" asks
+for it directly and never says roll at all.
+
+`arc` and `roll` sit next to each other in item 4 and are the pair that gets confused: an
+arc travels around the subject, a roll turns the camera about the axis it is pointing down.
+A user saying "rotate around him" means the arc. Never pass the user's word "rotate"
+through to the camera line: choose one of the vocabulary words and write that.
 
 Example. The user asks: "a short video of a paper boat drifting down a flooded gutter after
 rain".

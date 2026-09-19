@@ -26,6 +26,25 @@ body.mpi-focus-mode #prompt-box-mount {
     display: none !important;
 }
 
+/* Agent panel (MPI-817, 2026-09-19). It is standing chrome and was being left behind:
+ * focus mode hid the topbar and the prompt dock and the chat kept its 420px of the
+ * window. It is NOT hidden with `display: none` — the panel is `position: absolute` and
+ * its siblings take their `margin-left` from `.main-area:has(> .agent-panel-mount--open)`,
+ * which still matches a display:none element, so hiding it would leave the gap behind and
+ * nothing in it. Collapsing the width takes the margin with it, and rides the width
+ * transition the panel already has. `:not(.page-landing)` rather than a `revert` in the
+ * landing block below: a custom property cannot revert to another author rule, and
+ * reverting this one to `unset` makes the width invalid — 0 either way, but for a reason
+ * nobody could read. */
+body.mpi-focus-mode:not(.page-landing) .main-area {
+    --agent-panel-open-w: 0px;
+}
+
+body.mpi-focus-mode:not(.page-landing) #agent-panel-mount.agent-panel-mount--open {
+    /* box-sizing is border-box, so at width 0 this 1px would still paint a hairline. */
+    border-right-width: 0;
+}
+
 body.mpi-focus-mode #shell-info-bar {
     opacity: 0.3;
     transition: opacity var(--t-base) var(--ease);

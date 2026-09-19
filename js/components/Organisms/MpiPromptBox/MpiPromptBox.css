@@ -128,7 +128,7 @@
    MPI-774 Phase 7 put the MODEL button and the COG back (Fabio, 2026-09-19): they are the
    pinned-settings panel. Closed cog = the agent picks the model and the settings from model
    defaults; open cog = the user owns both and the agent is told which model it is writing
-   for. Five tracks now: text, head, model, cog, Stop. */
+   for. Five tracks now: text, head, cog, model, Stop (MPI-817 swapped the last two). */
 .mpi-prompt-box--agent-mode {
     grid-template-columns: 1fr auto auto auto auto;
 }

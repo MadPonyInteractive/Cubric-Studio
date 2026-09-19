@@ -666,8 +666,12 @@ test('PromptBox Agent mode: own text and hint, the toggle, Stop but no Run, numb
     }, n);
     const shown = () => window.evaluate((sel) => {
       const box = document.querySelector(sel);
+      // In DOM order, which is the visual order: every column is `auto`. Keep it that way
+      // so the assertion below reads as the face left to right (MPI-817 put the cog before
+      // the model button). `.filter` preserves THIS list's order, not the DOM's, so this
+      // array is the only thing making the expectation mean anything about order.
       const slots = ['op-strip-slot', 'bottom-neg-slot', 'textarea-slot', 'mode-toggle-slot', 'enhance-slot',
-        'settings-badge-slot', 'settings-cog-slot', 'engine-toggle-slot', 'bottom-right-slot'];
+        'settings-cog-slot', 'settings-badge-slot', 'engine-toggle-slot', 'bottom-right-slot'];
       return {
         slots: slots.filter((id) => getComputedStyle(box.querySelector(`#${id}`)).display !== 'none'),
         textShare: box.querySelector('#textarea-slot').getBoundingClientRect().width / box.getBoundingClientRect().width,
@@ -710,7 +714,7 @@ test('PromptBox Agent mode: own text and hint, the toggle, Stop but no Run, numb
     // The run column STAYS in agent mode (MPI-774 fix 6, Fabio): the agent has no cancel
     // tool, so the user's Stop is the only way to halt a generation it started, and
     // hiding the column wholesale took Stop with it. Run and Clear are hidden by name.
-    expect(agentFace.slots).toEqual(['textarea-slot', 'mode-toggle-slot', 'settings-badge-slot', 'settings-cog-slot', 'bottom-right-slot']);
+    expect(agentFace.slots).toEqual(['textarea-slot', 'mode-toggle-slot', 'settings-cog-slot', 'settings-badge-slot', 'bottom-right-slot']);
     // The text still dominates the face, but each column it shares with costs it width.
     // The history of this one number, because it has gone red three times: 0.8 when agent
     // mode had two slots; 0.797 measured once Stop's column stayed (MPI-774 fix 6), so the
@@ -875,11 +879,20 @@ test('the settings popup survives a window resize: on screen, first open, no sec
     const geom = () => window.evaluate(() => {
       const p = document.querySelector('body > .mpi-popup');
       const r = p.getBoundingClientRect();
+      // MPI-817: where the caret actually lands, against the control it claims to belong
+      // to. The caret is a ::after with no box of its own, so it is read off the custom
+      // property the popup sets and measured from the popup's own left edge. This is the
+      // one that drifts: the caret defaults to the popup's middle, and a clamp moves the
+      // popup without moving the cog.
+      const cogR = document.querySelector('#e2e-pb-host .mpi-prompt-box #settings-cog-slot button')
+        .getBoundingClientRect();
+      const arrowX = parseFloat(getComputedStyle(p).getPropertyValue('--popup-arrow-x'));
       return {
         transitionProperty: getComputedStyle(p).transitionProperty,
         left: Math.round(r.left),
         overflowRight: Math.round(r.right - window.innerWidth),
         width: Math.round(r.width),
+        caretOffCog: Math.round(r.left + arrowX - (cogR.left + cogR.width / 2)),
       };
     });
 
@@ -891,6 +904,9 @@ test('the settings popup survives a window resize: on screen, first open, no sec
     expect(first.transitionProperty).toContain('opacity');
     expect(first.overflowRight).toBeLessThanOrEqual(0);
     expect(first.left).toBeGreaterThanOrEqual(0);
+    // The caret points at the cog, not at the popup's middle. Live, it was landing on the
+    // model button next door and reading as the model's popup (Fabio, 2026-09-19).
+    expect(Math.abs(first.caretOffCog)).toBeLessThanOrEqual(1);
 
     // Shrink the window while the panel is OPEN — the pinned-in-agent-mode case.
     await app.evaluate(async ({ BrowserWindow }) => {
@@ -907,6 +923,8 @@ test('the settings popup survives a window resize: on screen, first open, no sec
     const reopen1 = await geom();
     expect(reopen1.overflowRight).toBeLessThanOrEqual(0);
     expect(reopen1.left).toBeGreaterThanOrEqual(0);
+    // The narrower window clamps harder, so this is where the caret drifts furthest.
+    expect(Math.abs(reopen1.caretOffCog)).toBeLessThanOrEqual(1);
 
     // A second reopen lands in the SAME place. Before the fix these differed by 128px.
     await cog.click(); await window.waitForTimeout(300);

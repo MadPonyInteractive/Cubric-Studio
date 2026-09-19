@@ -85,7 +85,7 @@ const _fail = (jobId, code, message) => _report(jobId, { ok: false, error: { cod
  * The gallery path awaits `addGroup` before it calls `onComplete`, so the card is
  * already in the project here.
  */
-async function _reportDone(jobId, { item, group }, cardName, duration = null) {
+async function _reportDone(jobId, { item, group }, cardName, duration = null, modelId = null) {
     const named = cardName !== undefined && group?.id ? await renameGroup(group.id, cardName) : null;
     return _report(jobId, {
         ok: true,
@@ -94,6 +94,13 @@ async function _reportDone(jobId, { item, group }, cardName, duration = null) {
             groupId: group?.id,
             type: item?.type,
             filePath: item?.filePath,
+            // MPI-817: which model made this. The agent lists every image it can look at
+            // and `look` reads pixels, so without this it has no way to tell one card's
+            // origin from another's — and it does not know that it cannot. Live, 2026-09-19:
+            // Fabio pinned Krea 2 after two ILL Anime runs and asked for a cartoon; the
+            // agent looked at the ill-anime image, called it "the Krea 2 result", and
+            // therefore generated nothing. The sidecars said `modelId: ill-anime`.
+            modelId,
             seed: item?.seed,
             pixelDimensions: item?.pixelDimensions,
             generationMs: item?.generationMs,
@@ -284,7 +291,7 @@ function _submitGeneration(jobId, input = {}) {
     };
 
     const queued = enqueueGeneration(config, {
-        onComplete: (done) => _reportDone(jobId, done, input.cardName, named.duration),
+        onComplete: (done) => _reportDone(jobId, done, input.cardName, named.duration, model.id),
         // An `outputKind: 'text'` op produces a caption and no item (MPI-310).
         onText: (text) => _report(jobId, { ok: true, output: { text } }),
         onError: () => _fail(jobId, 'RUNTIME_ERROR',
