@@ -31,4 +31,25 @@
 
 ## CI on the shipping commit
 
-(filled after `gh run watch`)
+- `a9022044` -> run 35428306163: **failure**, but not on this card's specs. `radial-menu:168`
+  green, `gif-cutout` gone, retries fired (each failure ran 3x, so none was a flake). Five
+  NEW failures, all from MPI-781's `3adf2d5e`, which had been hiding under the older red
+  since run 35427730326: it deleted `comfy_workflows/display/flow-head-swap.*` and
+  `flow-drama-box.*`, which `gallery-renditions` (x2), `gallery-media-release` and
+  `landing-grid-release` loaded as FIXTURE media, and `flow-library-filters` counted
+  DramaBox as a built-in. MPI-781's session had closed with the card in `validating`.
+  Local baseline on that tree: 5 failed. Fixed: 10 passed.
+- `39631f23` -> run 35429283095: **success. 124 passed, 0 flaky, 0 retries used.** First
+  green master since `52345592` (2026-09-18 20:04 UTC), twenty runs earlier.
+
+## What generates the reds (for whoever reads this next)
+
+1. **Green locally, red in CI** - the runner has no weights, no GPU, a fresh profile
+   (`radial-menu:168`). Provoke the runner's condition in the spec.
+2. **A big removal that runs only the tests it touched** (MPI-781: 41 files, 8,496
+   deletions, five desktop specs never run). `grep -r` the deleted asset names in `tests/`.
+3. **A wholesale commit of a file a peer is mid-edit in** (`6da64611` swept MPI-771's
+   half-written `gif-cutout.spec.js` assertions onto master). `.claude/rules/git.md`.
+4. **A red master hides the next break.** MPI-781's five sat unseen under the first red
+   for three runs. That is the real cost of stacking.
+
