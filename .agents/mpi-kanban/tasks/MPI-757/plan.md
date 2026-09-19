@@ -13,8 +13,8 @@ the ordering and anything left behind.
 **2026-09-19 (session `7bbff4d4`) — READ THIS FIRST.** MPI-771 is `doing`/`in-progress`. Fabio's
 five consistency findings are under [## Remaining Work](#remaining-work) → "CONSISTENCY AUDIT".
 
-**Findings 1, 3 and 4 are BUILT and green. Finding 2 is CLOSED by Fabio with no change. Only
-finding 5 is left.**
+**ALL FIVE audit findings are resolved. 1, 3, 4 and 5 built and green; 2 closed by Fabio with no
+change. What is left is his eye pass on the whole workspace — nothing closes before it.**
 
 - **4** — the GIF stage joined the shared context menu (Save frame as image / Reverse frames /
   Clear all masks). PASSED by Fabio: *"Menus are good, and context looks good."*
@@ -24,7 +24,13 @@ finding 5 is left.**
   opacity / invert / B-W / clear at last. Fabio's rule held: masked = what disappears, so the
   canvas is fed the flipped bitmap through a display override. Detail under finding 1.
 - **2** — *"I don't care about timing anymore. Leave it as it is."* Do not re-raise.
-- **5** — the GIF output tool gets the GIF Maker's preview pane. Not started, needs no decision.
+- **5** — the GIF output tool has the GIF Maker's preview pane, off a new `POST /gif/preview`
+  that runs the same `buildGif()` Apply runs.
+
+Also found and fixed on the way, by Fabio: **Space was bound twice** — `canvas.pan.start` and
+`video.playPause` are two ids on one key and `hotkeyManager` buckets by `type:key`, so one press
+both panned and played. Pre-existing in the Mask Brush; Cut-out inherited it by becoming a canvas
+tool. The bar stands its play hotkey down while a canvas tool is up.
 
 Owed: Fabio's eye pass on the whole workspace, Cut-out's strip in particular.
 
@@ -643,7 +649,16 @@ Timing group, so it is three modes, not five. Finding 5 is not started.
    viewer AND `MpiFrameStrip` (the GIF strip's delete-frame / clear-mask menu). The GIF STAGE has
    none. **Several of the one-button Timing tools belong there instead of on the rail** — Reverse is
    the obvious first one, and it is exactly how the video workspace already does it.
-5. **The GIF output tool has no preview; the video workspace's GIF Maker does** (Fabio, 2026-09-19).
+5. **BUILT 2026-09-19.** New `POST /gif/preview` (routes/gif.js) runs the SAME `buildGif()` the
+   Apply runs — a preview from a second encoder would be a decoration — to ONE file per project,
+   `Media/.gif-preview/preview.gif`, overwritten each call and mtime-busted (E5). No sidecar, no
+   sequenced name, no sweep; it MUST stay one file, because nothing references a preview so the
+   frame sweep could never collect a second. `MpiToolOptionsGifTiming` carries the pane in
+   `output` mode only and REMOVES it in the other three (MPI-382: a class carrying `display`
+   outranks `[hidden]`). Encoder injected by the Block, the `MpiToolOptionsGif` division. The
+   badge goes stale on a settings change rather than the pane clearing — the last build is what
+   the next is compared against. Original finding, for the record:
+   **The GIF output tool has no preview; the video workspace's GIF Maker does** (Fabio, 2026-09-19).
    `exportGif` → `MpiToolOptionsGif` carries a real preview pane — `__preview`, `__preview-frame`,
    `#gif-preview-img`, `#gif-preview-empty` ("No preview yet"), a spinner, and a **Generate preview**
    button that runs a real ffmpeg encode — plus size presets, fps and loop count. The GIF workspace's

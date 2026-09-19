@@ -25,6 +25,7 @@ async function setupProject(window) {
     window.__mpi769 = {
       store: { iGif: { frames: baseFrames, loop: 1, output: { maxEdge: 1024, colours: 256, edgeColour: null } } },
       calls: [],
+      previewCalls: [],
       seq: 0,
     };
     const orig = window.fetch.bind(window);
@@ -63,6 +64,17 @@ async function setupProject(window) {
           : { success: true, item, group: { id: 'gGifNew', type: 'image', operation: 'gif', items: [item] } };
         return Promise.resolve(new Response(JSON.stringify(respBody),
           { status: 200, headers: { 'Content-Type': 'application/json' } }));
+      }
+      // MPI-771 audit: the GIF output tool's preview. The real route runs the
+      // same buildGif() Apply runs (covered for real by tests/gif-preview.test.cjs);
+      // here the stub records the body so the PANEL's half can be asserted
+      // without ffmpeg or a project on disk.
+      if (url.includes('/gif/preview')) {
+        const body = JSON.parse(opts.body || '{}');
+        window.__mpi769.previewCalls.push(body);
+        return Promise.resolve(new Response(JSON.stringify({
+          success: true, url: imgUrl, byteSize: 2048 * window.__mpi769.previewCalls.length,
+        }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
       }
       return orig(...args);
     };
@@ -411,6 +423,93 @@ test('gif stage: right-click reverses the frames and clears every mask; Save fra
     await window.locator('.mpi-ctx-menu__item[data-key="clear-masks"]').click();
     await expect.poll(() => window.evaluate(() => document.querySelector('.mpi-gif-viewer').hasFrameMasks()),
       'every frame loses its mask').toBe(false);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+/**
+ * MPI-771 consistency audit finding 5 (Fabio, 2026-09-19) — the GIF output tool
+ * gets the preview the video workspace's GIF Maker has always had.
+ *
+ * Colours, longest edge and transparency were judged by applying them and looking
+ * at the card that came out. The pane is deliberately the same shape as
+ * `MpiToolOptionsGif`'s: an empty state, a byte badge that goes STALE when the
+ * settings move past the build on screen, and a button that runs a real encode.
+ *
+ * The route itself is covered for real (real frames, real ffmpeg, real byte count,
+ * and that it writes no entry) by `tests/gif-preview.test.cjs`; `/gif/preview` is
+ * stubbed here so the panel's half needs no project on disk.
+ */
+test('gif output: the preview pane encodes on demand and its badge goes stale with the settings', async ({}, testInfo) => {
+  const { app, window } = await launchApp(testInfo);
+  try {
+    await setupProject(window);
+    await window.evaluate(async () => {
+      const { navigate, PAGE_GROUP_HISTORY } = await import('/js/router.js');
+      navigate(PAGE_GROUP_HISTORY, { groupId: 'gGif' });
+    });
+    await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-frame-strip__thumb'))).toBe(true);
+
+    await window.evaluate(() => {
+      document.querySelector('.mpi-history-tools__btn[data-info="GIF output"] button').click();
+    });
+    await window.waitForSelector('.mpi-tool-options-gif-timing__preview');
+
+    const pane = () => window.evaluate(() => {
+      const p = document.querySelector('.mpi-tool-options-gif-timing');
+      const img = p.querySelector('#preview-img');
+      const badge = p.querySelector('#preview-badge');
+      return {
+        emptyShown: !p.querySelector('#preview-empty').hidden,
+        imgShown: !img.hidden,
+        imgSrc: img.getAttribute('src'),
+        badgeShown: !badge.hidden,
+        badgeText: badge.textContent,
+        stale: badge.classList.contains('mpi-tool-options-gif-timing__badge--stale'),
+      };
+    });
+
+    // ── Empty state ─────────────────────────────────────────────────────
+    expect(await pane()).toMatchObject({ emptyShown: true, imgShown: false, badgeShown: false });
+    expect(await window.evaluate(() => window.__mpi769.previewCalls.length),
+      'mounting the tool must not encode anything on its own').toBe(0);
+
+    // ── Generate preview -> a real request with the CURRENT frames ──────
+    await window.locator('.mpi-tool-options-gif-timing #preview-btn-slot button').click();
+    await expect.poll(() => window.evaluate(() => window.__mpi769.previewCalls.length)).toBe(1);
+    const body = await window.evaluate(() => window.__mpi769.previewCalls[0]);
+    expect(body.frames.map(f => f.hash), 'the frames on screen, not the stored list').toEqual(FRAME_HASHES);
+    expect(body.output).toMatchObject({ maxEdge: 1024, colours: 256 });
+    // The tool changes neither of these, so it must send the entry's own.
+    expect(body.loop, "the current entry's loop rides along unchanged").toBe(1);
+
+    await expect.poll(async () => (await pane()).imgShown).toBe(true);
+    expect(await pane()).toMatchObject({ emptyShown: false, badgeShown: true, badgeText: '2 KiB', stale: false });
+
+    // ── A settings change marks it stale, and does NOT clear it ─────────
+    // The pane keeps the last build precisely so the next one can be compared
+    // against it; the badge is what says the settings have moved on.
+    await window.locator('.mpi-tool-options-gif-timing input[inputmode="decimal"]').nth(1).fill('64');
+    await expect.poll(async () => (await pane()).stale).toBe(true);
+    expect((await pane()).imgShown, 'a stale preview stays on screen to compare against').toBe(true);
+
+    // ── Encoding again clears the stale mark and reports the new size ───
+    await window.locator('.mpi-tool-options-gif-timing #preview-btn-slot button').click();
+    await expect.poll(() => window.evaluate(() => window.__mpi769.previewCalls.length)).toBe(2);
+    expect((await window.evaluate(() => window.__mpi769.previewCalls[1])).output.colours).toBe(64);
+    await expect.poll(async () => (await pane()).badgeText).toBe('4 KiB');
+    expect((await pane()).stale).toBe(false);
+
+    // ── The other timing tools have NO pane at all ──────────────────────
+    // Removed, not `[hidden]`: a class carrying `display` outranks the UA sheet,
+    // which is how three inert slider rows once reached the screen (MPI-382).
+    await window.evaluate(() => {
+      document.querySelector('.mpi-history-tools__btn[data-info="Speed"] button').click();
+    });
+    await window.waitForSelector('.mpi-tool-options-gif-timing');
+    expect(await window.evaluate(() => !!document.querySelector('.mpi-tool-options-gif-timing__preview')),
+      'Speed is not an encoder and must not carry a preview pane').toBe(false);
   } finally {
     await closeApp(app);
   }

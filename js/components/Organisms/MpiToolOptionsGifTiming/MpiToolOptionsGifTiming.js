@@ -21,6 +21,12 @@
  *
  * Block hooks on el:
  *   onRangeChange({ in, out }) — the control bar's trim range (frame indices)
+ *   setEncoder(fn)             — `gifOutput` only (MPI-771 audit): fn(settings) →
+ *                                Promise<{ url, byteSize }> for the preview pane.
+ *                                Injected by the Block, the division
+ *                                `MpiToolOptionsGif` already uses — the panel owns
+ *                                the settings, the Block owns the request and the
+ *                                frame list.
  *
  * Emits:
  *   'apply' { tool: 'trim'|'speed'|'loop'|'output', values }
@@ -34,6 +40,8 @@ import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiCheckbox } from '../../Primitives/MpiCheckbox/MpiCheckbox.js';
 import { MpiColorPicker } from '../../Primitives/MpiColorPicker/MpiColorPicker.js';
+import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
+import { clientLogger } from '../../../services/clientLogger.js';
 import { state } from '../../../state.js';
 import { Events } from '../../../events.js';
 import { getToolSettings } from '../../../data/projectModel.js';
@@ -64,6 +72,14 @@ const TOOLS = {
 
 const DEFAULTS = Object.freeze({ fps: 10, loop: 0, ...OUTPUT_DEFAULTS });
 
+/** Byte badge on the preview — same rounding as MpiToolOptionsGif's. */
+function formatBytes(n) {
+    if (!Number.isFinite(n) || n <= 0) return '';
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KiB`;
+    return `${(n / (1024 * 1024)).toFixed(1)} MiB`;
+}
+
 function coerceSettings(raw) {
     return {
         fps: clampNumber(raw.fps, DEFAULTS.fps, MIN_FPS, MAX_FPS),
@@ -84,6 +100,22 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
             <div class="mpi-tool-options-gif-timing__desc">${(TOOLS[props.mode] || TOOLS.gifTrim).desc}</div>
             <div class="mpi-tool-options-gif-timing__section" id="fields-slot"></div>
             <div class="mpi-tool-options-gif-timing__note" id="note" hidden></div>
+            <!-- Output only, and REMOVED rather than [hidden] on the other three:
+                 a class carrying a display rule outranks the UA sheet's [hidden],
+                 which is how three inert slider rows once reached the screen
+                 (MPI-382, and MpiToolOptionsMaskAdjust carries the same note). -->
+            <div class="mpi-tool-options-gif-timing__preview" id="preview-wrap">
+                <div class="mpi-tool-options-gif-timing__preview-head">
+                    <span class="mpi-tool-options-gif-timing__preview-label">Preview</span>
+                    <span class="mpi-tool-options-gif-timing__badge" id="preview-badge" hidden></span>
+                </div>
+                <div class="mpi-tool-options-gif-timing__preview-frame">
+                    <img class="mpi-tool-options-gif-timing__preview-img" id="preview-img" alt="GIF preview" hidden />
+                    <span class="mpi-tool-options-gif-timing__preview-empty" id="preview-empty">No preview yet</span>
+                    <div class="mpi-tool-options-gif-timing__preview-spinner" id="preview-spinner"></div>
+                </div>
+                <div class="mpi-tool-options-gif-timing__row" id="preview-btn-slot"></div>
+            </div>
             <div class="mpi-tool-options-gif-timing__row" id="actions-slot"></div>
         </div>
     `,
@@ -120,10 +152,18 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
             return child;
         };
 
+        /** The output settings the preview was built from — what makes it stale. */
+        const outputKey = () =>
+            `${settings.maxEdge}|${settings.colours}|${settings.transparent}|${settings.edgeColour}`;
+        /** Assigned by the preview block below; a no-op on the other three tools. */
+        let _markStale = () => {};
+        let _destroyed = false;
+
         const setValue = (key, value) => {
             settings = { ...settings, [key]: value };
             persist(key, value);
             renderNote();
+            _markStale();
         };
 
         const numberField = (key, label, min, max, step, info) => {
@@ -186,6 +226,75 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
         _children.push(applyBtn);
         applyBtn.on('click', () => emit('apply', { tool: def.tool, values: { ...settings, ...range } }));
 
+        // ── Preview — GIF output only (MPI-771 consistency audit) ────────────
+        // The video workspace's GIF Maker has had one since MPI-760; this tool
+        // rebuilds the same `.gif` and had none, so colours / longest edge /
+        // transparency were judged by applying them and looking at the card that
+        // came out (Fabio, 2026-09-19). Same shape as `MpiToolOptionsGif`: a pane,
+        // a byte badge that goes stale on a settings change, and a button that runs
+        // a REAL build — `/gif/preview` calls the same `buildGif()` Apply does.
+        //
+        // The encoder is INJECTED by the Block (`el.setEncoder`), the division
+        // MpiToolOptionsGif already uses: the panel owns settings, the Block owns
+        // requests and the frame list.
+        let _encoder = null;
+        let _busy = false;
+        let _lastKey = '';
+        el.setEncoder = (fn) => { _encoder = fn; };
+
+        if (def.tool !== 'output') {
+            qs('#preview-wrap', el)?.remove();
+        } else {
+            const img = qs('#preview-img', el);
+            const empty = qs('#preview-empty', el);
+            const badge = qs('#preview-badge', el);
+            const spinner = MpiSpinner.mount(qs('#preview-spinner', el), { size: 'sm' });
+            _children.push(spinner);
+            spinner.el.hidden = true;
+
+            const previewBtn = MpiButton.mount(qs('#preview-btn-slot', el), {
+                icon: 'refresh_stroke', label: 'Generate preview', size: 'sm', variant: 'secondary',
+                info: 'Build a preview .gif with the current settings',
+            });
+            _children.push(previewBtn);
+
+            const _setBusy = (on) => {
+                _busy = on;
+                spinner.el.hidden = !on;
+                applyBtn.el.setDisabled(on);
+                previewBtn.el.setDisabled(on);
+            };
+            // The pane keeps showing the LAST build, so the badge is what says the
+            // settings have moved past it. Clearing the image instead would throw
+            // away the thing being compared against.
+            _markStale = () => {
+                if (_lastKey && _lastKey !== outputKey()) {
+                    badge.classList.add('mpi-tool-options-gif-timing__badge--stale');
+                }
+            };
+
+            previewBtn.on('click', async () => {
+                if (_destroyed || _busy || !_encoder) return;
+                const key = outputKey();
+                _setBusy(true);
+                try {
+                    const result = await _encoder({ ...settings });
+                    if (_destroyed || !result?.url) return;
+                    img.src = result.url;
+                    img.hidden = false;
+                    empty.hidden = true;
+                    badge.textContent = formatBytes(result.byteSize);
+                    badge.hidden = !result.byteSize;
+                    badge.classList.remove('mpi-tool-options-gif-timing__badge--stale');
+                    _lastKey = key;
+                } catch (err) {
+                    if (!_destroyed) clientLogger.warn('MpiToolOptionsGifTiming', 'GIF preview failed', err);
+                } finally {
+                    if (!_destroyed) _setBusy(false);
+                }
+            });
+        }
+
         el.onRangeChange = (r) => {
             range = r ? { in: r.in, out: r.out } : null;
             renderNote();
@@ -194,6 +303,7 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
         renderNote();
 
         el.destroy = () => {
+            _destroyed = true;
             _persistTimers.forEach(t => clearTimeout(t));
             _persistTimers.clear();
             _children.forEach(c => c.destroy?.());

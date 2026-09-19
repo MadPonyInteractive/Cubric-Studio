@@ -35,7 +35,7 @@ import { MpiToolOptionsResize } from '../../Organisms/MpiToolOptionsResize/MpiTo
 import { MpiToolOptionsGif } from '../../Organisms/MpiToolOptionsGif/MpiToolOptionsGif.js';
 import { MpiToolOptionsGifCutout } from '../../Organisms/MpiToolOptionsGifCutout/MpiToolOptionsGifCutout.js';
 import { MpiToolOptionsGifTiming } from '../../Organisms/MpiToolOptionsGifTiming/MpiToolOptionsGifTiming.js';
-import { timingEdit } from '../../Organisms/MpiToolOptionsGifTiming/gifTiming.js';
+import { timingEdit, toEntryOutput } from '../../Organisms/MpiToolOptionsGifTiming/gifTiming.js';
 import { MpiToolOptionsGifTransform } from '../../Organisms/MpiToolOptionsGifTransform/MpiToolOptionsGifTransform.js';
 import { MpiToolOptionsPrompt } from '../../Organisms/MpiToolOptionsPrompt/MpiToolOptionsPrompt.js';
 import { MpiPromptBox } from '../../Organisms/MpiPromptBox/MpiPromptBox.js';
@@ -764,6 +764,36 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         }
 
         /**
+         * The GIF output tool's preview (MPI-771 audit) -> POST /gif/preview. Same
+         * `buildGif()` the Apply runs, to a temp file, no entry and no sidecar — a
+         * preview encoded any other way would not be the thing being judged.
+         *
+         * The frames are the ones ON SCREEN, staged strip edits included, exactly
+         * as `_handleGifTimingApply` takes them; only the output settings come from
+         * the panel, and `loop` from the current entry, because this tool does not
+         * change either of those.
+         * @param {{maxEdge:number, colours:number, transparent:boolean, edgeColour:string}} values
+         */
+        async function _previewGifOutput(values = {}) {
+            const project = state.currentProject;
+            const frames = viewer.el.getFrames();
+            if (!project?.folderPath || !frames.length) return null;
+            const res = await fetch('/gif/preview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    folderPath: project.folderPath,
+                    frames: _frameRefs(frames),
+                    loop: _group.history[_currentIdx]?.gif?.loop ?? 0,
+                    output: toEntryOutput(values),
+                }),
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
+            return { url: data.url, byteSize: data.byteSize };
+        }
+
+        /**
          * Cut-out tool's Apply (MPI-771 UI half) -> POST /gif-cutout/apply. The
          * panel already validated `payload.frames`/`payload.masks` against the
          * CURRENT frame list before emitting.
@@ -993,6 +1023,10 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             // preview/export call hits /api/video/gif with the current item +
             // active trim range resolved here.
             if (mode === 'exportGif') _options.el.setEncoder?.(_encodeGif);
+            // MPI-771 audit: the GIF output tool gets the GIF Maker's preview, and
+            // the same injected-encoder division — the panel owns the settings, the
+            // Block owns the request and the frame list.
+            if (mode === 'gifOutput') _options.el.setEncoder?.(_previewGifOutput);
 
             // MPI-771: the cut-out panel dispatches SAM3 itself and keeps its masks
             // on the viewer; it only EMITS the current-frame preview the viewer shows.

@@ -36,6 +36,9 @@
     "js/components/Compounds/MpiMaskStrip/MpiMaskStrip.js",
     "js/components/Organisms/MpiToolOptionsGifTiming/MpiToolOptionsGifTiming.js",
     "js/components/Organisms/MpiToolOptionsGifTransform/MpiToolOptionsGifTransform.js",
-    "tests/desktop/gif-workspace.spec.js"
+    "tests/desktop/gif-workspace.spec.js",
+    "tests/gif-preview.test.cjs",
+    "js/components/Organisms/MpiGifControlBar/MpiGifControlBar.js",
+    "docs/video-player.md"
   ]
 }

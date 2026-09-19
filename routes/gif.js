@@ -12,6 +12,7 @@
  * Routes:
  *   POST /gif/ensure-frames  — lazily extract a legacy `.gif` item's frames
  *   POST /gif/entry          — write an entry from a frame list (mode: 'update' | 'new')
+ *   POST /gif/preview        — build the same `.gif` to a temp file, write no entry
  *
  * Frame/thumbnail BYTES are served through the existing generic `/project-file`
  * route, exactly like every other media file in this app (`filePath`, `thumbPath`,
@@ -234,6 +235,64 @@ router.post('/gif/entry', async (req, res) => {
     } catch (err) {
         logger.error('project', 'gif entry failed', err);
         if (outputPath) { try { await fs.remove(outputPath); } catch {} }
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+/**
+ * POST /gif/preview  (MPI-771 consistency audit)
+ * Body: { folderPath, frames: [{ hash, delay }], loop, output }
+ * → { success, url, byteSize }
+ *
+ * The GIF output tool had no preview while the video workspace's GIF Maker has a
+ * full one, so colours / longest edge / transparency were judged only by applying
+ * them and looking at the card that came out (Fabio, 2026-09-19). This is the same
+ * `buildGif()` that `/gif/entry` runs, so what the pane shows is what Apply writes
+ * — a preview built by a different encoder would be a decoration.
+ *
+ * It writes ONE file per project, `Media/.gif-preview/preview.gif`, overwritten on
+ * every call: a preview is never referenced by a sidecar, so accumulating them
+ * would be litter that the frame sweep (which only reads `.gif-frames`) could never
+ * collect. The URL is cache-busted by mtime because Chromium caches decoded image
+ * bytes per URL — the same E5 reason `/gif/entry`'s update branch re-sequences its
+ * filename. The dot prefix keeps it out of the media scan, like `.meta`,
+ * `.gif-frames` and `.gif-cutout-tmp`.
+ *
+ * NOTHING is written to the history: no sidecar, no sequenced name, no sweep.
+ */
+router.post('/gif/preview', async (req, res) => {
+    try {
+        const { folderPath, frames, loop, output } = req.body || {};
+        if (!folderPath) return res.status(400).json({ success: false, error: 'folderPath required' });
+        if (!Array.isArray(frames) || !frames.length) {
+            return res.status(400).json({ success: false, error: 'frames required (non-empty array)' });
+        }
+
+        const mediaDir = path.join(folderPath, 'Media');
+        for (const f of frames) {
+            if (!f?.hash || !(await frameExists(mediaDir, f.hash))) {
+                return res.status(400).json({ success: false, error: `unknown frame hash: ${f?.hash}` });
+            }
+        }
+
+        const gifEntry = {
+            frames: frames.map(f => ({ hash: f.hash, delay: Number(f.delay) || 10 })),
+            loop: Number.isFinite(Number(loop)) ? Number(loop) : 0,
+            output: {
+                maxEdge: Number(output?.maxEdge) > 0 ? Number(output.maxEdge) : 1024,
+                colours: Number(output?.colours) > 0 ? Math.round(Number(output.colours)) : 256,
+                edgeColour: output?.edgeColour || null,
+            },
+        };
+
+        const previewPath = path.join(mediaDir, '.gif-preview', 'preview.gif');
+        await fs.ensureDir(path.dirname(previewPath));
+        await buildGif(gifEntry, mediaDir, previewPath);
+        const { size } = await fs.stat(previewPath);
+
+        res.json({ success: true, url: projectFileUrlBusted(previewPath), byteSize: size });
+    } catch (err) {
+        logger.error('project', 'gif preview failed', err);
         res.status(500).json({ success: false, error: err.message });
     }
 });

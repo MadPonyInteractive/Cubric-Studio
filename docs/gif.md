@@ -189,7 +189,7 @@ tint preview: [masking-sam3-gif.md](masking-sam3-gif.md).
 
 ## Timing and output tools (MPI-772)
 
-Timing (Trim, Speed, Reverse, Loop count) and Output (GIF output): one panel,
+Timing (Trim, Speed, Loop count) and Output (GIF output): one panel,
 `MpiToolOptionsGifTiming`, picked by mode; math in `gifTiming.js` beside it. Each
 Apply is a new entry through `POST /gif/entry`, edits the list the user sees
 (staged strip changes included) and writes no frame file. Trim keeps the control
@@ -200,6 +200,22 @@ frames are selected" rather than "Keeps frames 0 to N-1" — Apply would only
 toast back, which read as Trim being broken. Speed is `max(2, round(100 / fps))`, 0.1-50 fps. Loop
 writes `gif.loop`. Transparent sets `output.edgeColour`, off is `null`. Settings:
 `toolSettings.gifTiming`. Proof: `tests/desktop/gif-timing.spec.js`.
+
+**Reverse and Save frame are NOT on the rail** (MPI-771 audit, Fabio 2026-09-19): each was a
+sentence and an Apply, and each is a right-click the video workspace already had. Both are
+`gif-viewer:context-menu` items calling the same handlers —
+[video-player.md](video-player.md) § "GIF control bar is a sibling".
+
+`gifOutput` carries the preview pane `MpiToolOptionsGif` has had since MPI-760, because
+colours / edge / transparency were otherwise judged by applying them and looking at the
+card. `POST /gif/preview` runs the **same `buildGif()`** Apply runs — a second encoder
+would make the pane a decoration. ONE file per project,
+`Media/.gif-preview/preview.gif`, overwritten each call and mtime-busted (E5); no sidecar,
+no sweep, and it must stay one file because nothing references a preview, so the frame
+sweep could never collect a second. Encoder injected by the Block (`el.setEncoder`), as in
+`MpiToolOptionsGif`. The badge goes **stale** on a settings change instead of the pane
+clearing: the last build is what the next is compared against. Proof:
+`tests/gif-preview.test.cjs` + `tests/desktop/gif-workspace.spec.js`.
 
 ## Transform and export tools (MPI-773)
 

@@ -25,3 +25,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "checklist.updated", "id": "MPI-771", "at": "2026-09-19T09:59:57Z", "actor": "implementer:7bbff4d4", "summary": "consistency audit: findings 4 and 3 built and verified; 1 and 2 blocked on Fabio"}
 {"at": "2026-09-19T10:38:12Z", "event": "checklist.updated", "actor": "implementer:7bbff4d4", "task": "MPI-771", "note": "finding 1 built (shared MpiMaskStrip on Cut-out); finding 2 closed by Fabio with no change"}
 {"at": "2026-09-19T10:43:57Z", "event": "checklist.updated", "actor": "implementer:7bbff4d4", "task": "MPI-771", "note": "space/pan vs play collision fixed in MpiGifControlBar (pre-existing, Fabio found it)"}
+{"at": "2026-09-19T10:54:10Z", "event": "checklist.updated", "actor": "implementer:7bbff4d4", "task": "MPI-771", "note": "finding 5 built: /gif/preview + the output tool preview pane. All five audit findings now resolved."}

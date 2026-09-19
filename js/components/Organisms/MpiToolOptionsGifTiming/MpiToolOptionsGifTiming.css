@@ -36,3 +36,105 @@
 .mpi-tool-options-gif-timing__note[hidden] {
     display: none;
 }
+
+/* ── GIF output preview (MPI-771 audit) ───────────────────────────────────────
+   Deliberately the same pane as MpiToolOptionsGif's, down to the checker behind
+   a transparent build: the two tools make the same artifact, so a user who has
+   seen one must not have to learn the other. Mounted only in `output` mode — the
+   other three tools REMOVE the wrapper rather than hiding it. */
+
+.mpi-tool-options-gif-timing__preview {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+    padding-bottom: var(--s-2);
+    border-bottom: 1px solid var(--line-soft);
+}
+
+.mpi-tool-options-gif-timing__preview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-2);
+}
+
+.mpi-tool-options-gif-timing__preview-label {
+    color: var(--ink-3);
+    font-size: var(--t-2xs);
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.mpi-tool-options-gif-timing__badge {
+    color: var(--ink-2);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    font-size: var(--t-2xs);
+    font-weight: 700;
+    padding: 0 var(--s-2);
+    border-radius: var(--r-2);
+}
+
+/* The pane keeps the last build on screen; this is what says the settings have
+   moved past it. */
+.mpi-tool-options-gif-timing__badge--stale {
+    color: var(--accent-warn);
+    border-color: var(--accent-warn);
+    opacity: 0.7;
+}
+
+.mpi-tool-options-gif-timing__preview-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: var(--surface-canvas);
+    border: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* The checker is on the IMG, not the frame: a transparent build has to read as
+   transparent, and this tool is the one that decides whether it is. */
+.mpi-tool-options-gif-timing__preview-img {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    background-image:
+        linear-gradient(45deg, var(--surface-2) 25%, transparent 25%),
+        linear-gradient(-45deg, var(--surface-2) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, var(--surface-2) 75%),
+        linear-gradient(-45deg, transparent 75%, var(--surface-2) 75%);
+    background-size: 12px 12px;
+    background-position: 0 0, 0 6px, 6px -6px, -6px 0px;
+}
+
+.mpi-tool-options-gif-timing__preview-empty {
+    color: var(--ink-4);
+    font-size: var(--t-2xs);
+}
+
+.mpi-tool-options-gif-timing__preview-spinner {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* The GIF Maker's twin writes this scrim out longhand in oklch; the token is
+       the same colour, so it goes through `color-mix` here rather than a fourth
+       hand-copied literal. */
+    background: color-mix(in oklab, var(--surface-canvas) 40%, transparent);
+    pointer-events: none;
+}
+
+/* Same rule as the rows above, and the same reason: these carry `display`, so
+   the bare attribute would lose to it (MPI-382). */
+.mpi-tool-options-gif-timing__preview-spinner[hidden],
+.mpi-tool-options-gif-timing__preview-img[hidden],
+.mpi-tool-options-gif-timing__preview-empty[hidden],
+.mpi-tool-options-gif-timing__badge[hidden] {
+    display: none;
+}
