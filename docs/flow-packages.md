@@ -203,6 +203,11 @@ COMFY_PATH=/path/to/ComfyUI node scripts/lint-flow-package.mjs path/to/head-swap
 A mismatch prints every pack that is off and says so plainly — but it never fails the
 lint, because authoring against a newer pack on purpose is legitimate.
 
+It also names the packs you have installed that the release does **not** ship. Those are
+the dangerous ones: their node classes exist on your machine, so the class check above
+passes, and they exist on no user's machine, so the Flow fails for everyone. Parked
+(`.disabled`) packs are not counted — they load nothing.
+
 ## Authoring notes
 
 - Author on a ComfyUI whose node packs match the shipped engine (`dev_configs/node_lock.json`).

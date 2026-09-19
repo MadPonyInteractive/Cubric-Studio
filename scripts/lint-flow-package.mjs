@@ -13,8 +13,10 @@
  *
  * That class check only means something against a ComfyUI whose node packs match the
  * shipped engine — so set COMFY_PATH to that ComfyUI's folder and the linter says whether
- * it does (MPI-798). Without it the class check still runs, and still cannot tell you
- * whether a clean result is worth anything.
+ * it does (MPI-798): both the pinned packs that are missing or drifted, and the EXTRA
+ * packs installed beyond the pins, whose classes exist on no user's machine. Without it
+ * the class check still runs, and still cannot tell you whether a clean result is worth
+ * anything.
  *
  * Exit 0 = clean, 1 = problems found, 2 = usage. Format and rules: docs/flow-packages.md.
  */
@@ -45,6 +47,29 @@ if (!dirs.length) {
 }
 
 /**
+ * Packs installed BEYOND the pins are the blind spot the comparison above cannot see: it
+ * iterates the lock, so a folder the lock never names is never looked at. A graph built
+ * on a class from one of those passes both checks here and fails for every user. Warn,
+ * never fail — an extra pack is legitimate right up until a graph uses one.
+ *
+ * `.disabled` is how ComfyUI-Manager parks a pack: it loads nothing, contributes no
+ * classes, and is not an extra. `__pycache__` is not a pack either. The lock's
+ * `filename` is compared case-insensitively because Windows is, and the MPI bench really
+ * does carry `comfyui-krea2-controlnet` against the lock's `ComfyUI-Krea2-ControlNet`.
+ */
+function findExtraPacks(customNodes, lockNodes) {
+    const pinned = new Set(Object.values(lockNodes).map(n => n.filename.toLowerCase()));
+    return fs.readdirSync(customNodes, { withFileTypes: true })
+        .filter(d => d.isDirectory() || d.isSymbolicLink())
+        .map(d => d.name)
+        .filter(name => !name.startsWith('.')
+            && name !== '__pycache__'
+            && !name.endsWith('.disabled')
+            && !pinned.has(name.toLowerCase()))
+        .sort();
+}
+
+/**
  * A clean node-class check is only meaningful when the ComfyUI behind it carries the
  * packs the app ships. Report that plainly instead of leaving the developer to assume it
  * — but never fail on it: authoring deliberately against a newer pack is legitimate.
@@ -72,14 +97,20 @@ async function reportEngineMatch() {
         const { state } = await inspectPack(customNodes, entry);
         if (state !== 'ok') off.push(`${entry.filename} (${state})`);
     }
+    const extra = findExtraPacks(customNodes, pins.lock.nodes);
     if (!off.length) {
         console.log(`Engine matches ${pins.source} — a clean result below holds for that release.`);
-        return;
+    } else {
+        console.log(`! ${off.length} of ${Object.keys(pins.lock.nodes).length} node packs do not match ${pins.source}:`);
+        for (const line of off) console.log(`    • ${line}`);
+        console.log('  A clean result below does NOT prove this Flow runs for users.');
+        console.log('  Fix: node scripts/install-flow-devkit.mjs "<comfyui-folder>"');
     }
-    console.log(`! ${off.length} of ${Object.keys(pins.lock.nodes).length} node packs do not match ${pins.source}:`);
-    for (const line of off) console.log(`    • ${line}`);
-    console.log('  A clean result below does NOT prove this Flow runs for users.');
-    console.log('  Fix: node scripts/install-flow-devkit.mjs "<comfyui-folder>"');
+    if (!extra.length) return;
+    console.log(`! ${extra.length} node pack(s) installed that ${pins.source} does not ship:`);
+    for (const name of extra) console.log(`    • ${name}`);
+    console.log('  Keeping them is fine — but a class from one of these passes every check');
+    console.log("  below and exists on NO user's machine.");
 }
 
 const objectInfo = await fetchObjectInfo();
