@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-828",
+  "title": "Flow Library drawer: no licence attribution row for gated models",
+  "description": "MpiModelManager detail drawer renders the licence name, the required poweredBy attribution and the licence/authorization/report links. MpiFlowLibrary slide-over has no equivalent. H3 SIII.3.a and SIV.2 owe attribution on the surface where the model is PRESENTED, and a Flow user may never open the Model Library. Affects every gated model reached via a Flow, not just H3. Consent is NOT affected: the acceptance gate fires via downloadService.start for all install paths.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-19T19:34:02+01:00",
+  "updated_at": "2026-09-19T19:34:02+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
