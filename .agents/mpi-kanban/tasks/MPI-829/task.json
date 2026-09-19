@@ -3,15 +3,16 @@
   "id": "MPI-829",
   "title": "Waveform in the video trim bar",
   "description": "Bake a video audio waveform derivative and paint it inside MpiTrimBar, so trim in/out can be cut against the sound. Every video trim bar; the GIF bar is out of scope.",
-  "column": "doing",
-  "maturity": "validating",
-  "status": "active",
+  "column": "done",
+  "maturity": "complete",
+  "status": "complete",
   "activeSessionTitle": "Video trim-bar waveform",
   "created_at": "2026-09-19T19:25:24Z",
-  "updated_at": "2026-09-19T19:53:30Z",
+  "updated_at": "2026-09-19T20:15:40Z",
   "links": {
     "checklist": "checklist.md",
     "files": "files.json",
-    "events": "events.jsonl"
+    "events": "events.jsonl",
+    "validation": "validation.md"
   }
 }
