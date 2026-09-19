@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-832",
+  "title": "Turn on no-undef: a typo that lint and 1445 tests both wave through",
+  "description": "eslint.config.js sets no core rules, so no-undef is off. MPI-822 shipped a ReferenceError (isRunning is not defined) to the user's app through a green lint and a green suite. Declare browser + node globals and turn the rule on.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-19T21:14:48+01:00",
+  "updated_at": "2026-09-19T21:14:48+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

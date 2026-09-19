@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "eslint.config.js",
+    "package.json",
+    "package-lock.json",
+    "js/services/generationService.js",
+    ".agents/mpi-kanban/tasks/MPI-832/"
+  ]
+}

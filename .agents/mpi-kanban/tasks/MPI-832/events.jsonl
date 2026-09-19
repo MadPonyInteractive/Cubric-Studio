@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-832", "at": "2026-09-19T21:14:48+01:00", "actor": "claude", "column": "doing", "title": "Turn on no-undef: a typo that lint and 1445 tests both wave through"}

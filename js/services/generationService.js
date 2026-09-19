@@ -1390,7 +1390,12 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
                         negativeAudioPrompt: ext.negativeAudioPrompt || negativeAudio,
                         modelId:         ext.modelId || model.id,
                         seed:            Number.isFinite(ext.seed) ? ext.seed : (exec.seed ?? -1),
-                        pixelDimensions: ext.pixelDimensions || resolvedDims,
+                        // `resolvedDims` is block-scoped to the build loop above and is
+                        // NOT in scope here — reading it threw a ReferenceError on any
+                        // response without `pixelDimensions` (MPI-832). The intermediate
+                        // item carries the same value: it was built from that very
+                        // variable, and the extend runs at the clip's own resolution.
+                        pixelDimensions: ext.pixelDimensions || intermediate.pixelDimensions,
                         generationMs:    elapsedMs,
                         thumbPath:       ext.thumbPath ?? null,
                         wavePath:        ext.wavePath ?? null,
