@@ -155,7 +155,7 @@ export const MpiTrimBar = ComponentFactory.create({
         //
         // Positions here are FRAME-INDEXED (`_pctOf`) while the mask is linear in TIME,
         // so the two disagree by at most one frame's width at the clip end. That is
-        // sub-pixel on a 28px track and is the correct trade: the frame-indexed mapping
+        // sub-pixel on a track this size and is the correct trade: the frame-indexed mapping
         // is load-bearing (see `_pctOf`), and re-deriving the mask per clip to match it
         // would mean baking a rendition per frame count.
         function _applyWave(url) {

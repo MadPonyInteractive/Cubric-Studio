@@ -200,12 +200,17 @@ function videoProxyPath(outPath) {
 /**
  * A VIDEO's waveform, for the trim bar (MPI-829).
  *
- * Shorter than the audio card's 540 because the box is shorter: a trim track is ~26px
- * inside its border, so the 21:9 bake is a 20:1 vertical squash and the browser's
- * downscale smears the envelope into a soft band — measured side by side at 540/160/80
- * against the same clip. At 160 the peaks and gaps are distinct, which is the whole
- * point of cutting against the sound, and the file is SMALLER too (2178 bytes against
- * 3488 on that clip) because there is less of the same flat graphic to encode.
+ * Shorter than the audio card's 540 because the box is far shorter: the wave renders 58px
+ * tall (a 44px track, and the layer overruns it by the handles' ±8px so it spans cap to
+ * cap — see MpiTrimBar.css). The card's 540 into that is a 9:1 vertical squash, and the
+ * browser's downscale smears the envelope into a soft band — measured side by side at
+ * 540/160/80 against the same clip. At 160 it is a ~3:1 downscale, the peaks and gaps stay
+ * distinct, which is the whole point of cutting against the sound, and the file is SMALLER
+ * too (2178 bytes against 3488 on that clip) because there is less flat graphic to encode.
+ *
+ * Do NOT re-derive this from a quiet-looking waveform. A thin-looking wave is nearly
+ * always the BOX, not the level: the clip that prompted the 28px -> 44px change peaked at
+ * -0.5 dBFS, so no amount of normalisation would have touched it.
  *
  * This is not the second rendition MPI-730 warned against. That warning is about baking
  * two sizes of the SAME asset for the same consumer; this is a different derivative,

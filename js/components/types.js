@@ -2051,8 +2051,10 @@
  *
  * Self-contained two-handle trim seek bar. Track is 44px tall; trim handles
  * and the playhead overflow ±8px top/bottom and must NOT be clipped by the
- * parent. Stage tokens only (--accent-heat / --surface-bar / --line / --ink-1,
- * plus --ink-4 for the waveform, which is context rather than a control).
+ * parent. The waveform layer overruns by that same ±8px, so it spans the
+ * handles cap to cap (58px) rather than sitting inside the track. Stage tokens
+ * only (--accent-heat / --surface-bar / --line / --ink-1, plus --ink-4 for the
+ * waveform, which is context rather than a control).
  *
  * Pointer drag coalesces on RAF; final value re-emits on pointerup so
  * downstream consumers see a stable end state.

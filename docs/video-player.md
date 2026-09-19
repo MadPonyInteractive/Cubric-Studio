@@ -97,11 +97,11 @@ MPI-631/633 gallery memory doctrine.
   is reused verbatim; `showwavespic` reads a video's audio stream exactly as it
   reads a `.wav`, so there is no video-specific ffmpeg work.
 - **Size:** `VIDEO_WAVEFORM_PX` = 1260x160, deliberately **shorter** than the
-  audio card's 1260x540. A trim track is ~26px inside its border, so the card's
-  bake is a 20:1 vertical squash and the browser's downscale smears the envelope
-  into a soft band (measured side by side at 540/160/80 on one clip). 160 keeps
-  the peaks and gaps distinct and is the *smaller* file — 2178 bytes against
-  3488. `extractVideoWaveform` owns the name **and** the size for that reason:
+  audio card's 1260x540. The wave renders 58px tall, so the card's bake is a 9:1
+  vertical squash and the browser's downscale smears the envelope into a soft
+  band (measured side by side at 540/160/80 on one clip). 160 is a ~3:1
+  downscale, keeps the peaks and gaps distinct, and is the *smaller* file — 2178
+  bytes against 3488. `extractVideoWaveform` owns the name **and** the size for that reason:
   the backfill and the bake must not drift apart, or older projects keep the
   blurry version forever. Note the constants are `{w,h}` while
   `extractAudioWaveform` takes `{width,height}` — passing one straight through
@@ -126,10 +126,18 @@ MPI-631/633 gallery memory doctrine.
   but a stale wave is the *previous clip's* audio drawn under this clip's handles.
 - **Colour:** `--ink-4`, and never an accent. The wave is context; the selection
   tint, both handles and the playhead sit on top of it and have to stay readable.
+- **Height:** the track is 44px (the mockup's `.tl-track`), and the wave layer
+  overruns it by `inset: -8px 0` — exactly the handles' own reach — so it spans
+  cap to cap and reads as the full height of the control. Measured: the wave and
+  the handles are both 58px with their tops and bottoms aligned to 0px. It ran at
+  28px until MPI-829 and the wave read as a thin smear at any level. The parent's
+  `padding: 8px 0` absorbs the overrun and the trim slot is `flex:1`, so nothing
+  clips and only the bar's own row grows (61px → 77px). The GIF control bar
+  shares `MpiTrimBar`, so it grew too — checked, it mounts and lays out fine.
 
 **Frame-index vs time.** Positions here are frame-indexed (`_pctOf` above) while
 the mask is linear in time, so the two disagree by at most one frame's width at
-the clip end — sub-pixel on a 28px track. That is the correct trade: the
+the clip end — sub-pixel on the track. That is the correct trade: the
 frame-indexed mapping is load-bearing for drop% == echo%, and matching the mask
 to it would mean baking a rendition per frame count. Do not "fix" this by
 unpicking `_pctOf`.

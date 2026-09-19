@@ -1,7 +1,9 @@
 /* ── MpiTrimBar — video trim seek bar ──────────────────────────────────── */
-/* Stage tokens only. Inline-mode height: 28px track with ±8px handle/playhead
-   overflow. Mockup `.tl-track` is 44px in its own row; embedded inline beside
-   transport buttons it shrinks. */
+/* Stage tokens only. 44px track with ±8px handle/playhead overflow, which is the
+   mockup `.tl-track` height. It ran at 28px inline beside the transport buttons until
+   MPI-829: once the track carries a waveform, 28px reads as a thin smear whatever the
+   clip's level, and the trim slot is `flex:1` with no height of its own, so the row
+   simply grows to fit. */
 
 .mpi-trim-bar {
     width: 100%;
@@ -12,7 +14,7 @@
 .mpi-trim-bar__track {
     position: relative;
     width: 100%;
-    height: 28px;
+    height: 44px;
     background: var(--surface-bar);
     border: 1px solid var(--line);
     cursor: pointer;
@@ -33,10 +35,16 @@
 
    z-index 0 puts it under the selection (1), playhead (2) and handles (3). The selection's
    12% tint is translucent, so the wave reads continuously straight through the active
-   range rather than being masked by it. */
+   range rather than being masked by it.
+
+   `inset: -8px 0` deliberately overruns the track by exactly the handles' own ±8px reach,
+   so the wave spans cap to cap and reads as the full height of the control rather than a
+   band sitting inside it. The parent's `padding: 8px 0` is what that overrun lands in, so
+   nothing clips it and nothing else moves. Keep the two numbers equal to the handles'
+   `top`/`bottom` — they are one measurement, not two. */
 .mpi-trim-bar__wave {
     position: absolute;
-    inset: 0;
+    inset: -8px 0;
     z-index: 0;
     background: var(--ink-4);
     mask-image: var(--mpi-trim-bar-wave, none);

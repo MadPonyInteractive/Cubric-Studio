@@ -66,6 +66,24 @@ function makeClip(dir, name, { audio }) {
     return out;
 }
 
+test('the wave layer spans the handles cap to cap, not the track', () => {
+    // Fabio's call on MPI-829: the wave should read as the full height of the control.
+    // The layer therefore overruns the track by exactly the handles' own reach, and the
+    // two numbers are ONE measurement - if a later edit changes the handle inset and not
+    // the wave's, the wave stops short (or overshoots) and the look silently regresses.
+    const css = fs.readFileSync(
+        path.join(__dirname, '..', 'js/components/Compounds/MpiTrimBar/MpiTrimBar.css'), 'utf8');
+
+    const handle = /\.mpi-trim-bar__handle\s*\{[^}]*?top:\s*(-?\d+)px[^}]*?bottom:\s*(-?\d+)px/s.exec(css);
+    assert.ok(handle, 'could not read the handle inset');
+
+    const wave = /\.mpi-trim-bar__wave\s*\{[^}]*?inset:\s*(-?\d+)px\s+0/s.exec(css);
+    assert.ok(wave, 'the wave layer no longer declares a vertical inset');
+
+    assert.equal(wave[1], handle[1], 'the wave no longer starts where the handle cap does');
+    assert.equal(handle[1], handle[2], 'handle top/bottom disagree - the wave inset matches only one');
+});
+
 test('the video wave is baked SHORTER than the audio card wave', () => {
     // The trim track is ~26px inside its border. At the card's 540 the browser averages
     // ~20 source rows per output pixel and the envelope smears into a soft band —
