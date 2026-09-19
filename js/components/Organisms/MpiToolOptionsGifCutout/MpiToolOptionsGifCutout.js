@@ -52,6 +52,7 @@ import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.j
 import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { MpiColorPicker } from '../../Primitives/MpiColorPicker/MpiColorPicker.js';
 import { MpiVideoSurface } from '../../Compounds/MpiVideoSurface/MpiVideoSurface.js';
+import { MpiMaskStrip } from '../../Compounds/MpiMaskStrip/MpiMaskStrip.js';
 import { signedSquaredDistanceField, rangeFor, writeRange } from '../../Primitives/MpiCanvas/managers/distanceField.js';
 import { Events } from '../../../events.js';
 import { state } from '../../../state.js';
@@ -151,12 +152,26 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             </div>
 
             <div class="mpi-tool-options-gif-cutout__actions" id="cutout-slot"></div>
+            <div id="strip-slot"></div>
         </div>
     `,
 
     setup: (el, props, emit) => {
         const { viewer } = props;
         const _children = [];
+
+        // The SAME canvas and the SAME strip the Mask Brush mounts (MPI-771
+        // consistency audit, Fabio 2026-09-19). Cut-out was the only mask-producing
+        // tool in the app without opacity / invert / B-W / clear, and the reason was
+        // never the mask — it was that those controls are METHODS ON THE CANVAS
+        // (`MpiGifViewer` funnels every one of them to `_canvas?.`), and Cut-out
+        // painted a CSS overlay instead of mounting one. Entering mask mode is what
+        // makes the shared component work; nothing about the strip changed.
+        //
+        // What Cut-out shows is still its own: `setCutoutPreview()` overrides the
+        // canvas's mask bitmap with the ADJUSTED, flipped one, so the highlight goes
+        // on marking what DISAPPEARS. See `_updateCurrentTint()` at the bottom.
+        viewer.el.enterMode?.('mask');
 
         const settings = { ...DEFAULTS, ...getToolSettings(state.currentProject || {}, 'gifCutout', DEFAULTS) };
         let _raw = typeof settings.textPrompt === 'string' ? settings.textPrompt : '';
@@ -816,6 +831,14 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             });
         }
 
+        // ── The shared mask strip ────────────────────────────────────────────
+        // `brush: false`, like Detect / Points / Text: Cut-out makes its mask with
+        // a method, not a drag, and that same prop disarms canvas painting — which
+        // is also what keeps the display override read-only (nothing can write the
+        // flipped bitmap back into the store). Hand-fixing a frame is still the
+        // Mask Brush's job, one rail button away.
+        _children.push(MpiMaskStrip.mount(qs('#strip-slot', el), { viewer, brush: false }));
+
         // ── Teardown ─────────────────────────────────────────────────────────
 
         el.destroy = () => {
@@ -830,6 +853,8 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             actionBtns.mask?.destroy?.();
             actionBtns.clear?.destroy?.();
             _children.forEach(c => c.destroy?.());
+            // After the strip, which puts the canvas back the way it found it.
+            viewer.el.exitMode?.();
         };
     },
 });

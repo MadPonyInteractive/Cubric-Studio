@@ -163,7 +163,11 @@ Cut-out; Fabio chose that over a second Cut out button (2026-09-16).
    `viewer.el.getFrameMaskURL(idx)` (a small LRU of decoded masks and fields; composed masks
    are data URLs). Fill Holes has no preview. All three persist in `toolSettings.gifCutout`
    beside `textPrompt`, so a trip to the Mask Brush does not reset them.
-5. **Cut out** — `viewer.el.getCutMasks()`, then emits `{ frames, masks, adjust, invert,
+5. **The shared `MpiMaskStrip`** (`brush: false`), at the bottom, exactly as Detect / Points /
+   Text mount it — opacity, invert display, B/W view, clear. See § Tints for why it needs the
+   canvas and what the display override is doing. Hand-fixing a frame is still the Mask
+   Brush's job, one rail button away.
+6. **Cut out** — `viewer.el.getCutMasks()`, then emits `{ frames, masks, adjust, invert,
    settings }`; the Block posts `/gif-cutout/apply` and appends the entry
    (`_handleGifCutoutApply`), never through `/gif/entry`. The route ALWAYS builds transparent
    (`edgeColour` defaults to black: the source entry's output is usually opaque, which
@@ -173,10 +177,29 @@ Cut-out; Fabio chose that over a second Cut out button (2026-09-16).
 ### Tints
 
 - `'mask-tint' { url }` — the current frame's ADJUSTED mask as white-with-alpha →
-  `MpiGifViewer.el.setMaskTint(url)`: a `--mask-fill` div over the whole stage, clipped by
-  CSS `mask-image`, `contain` + centred — the same box the frame img fills with
-  `object-fit: contain` (frames scale UP to the stage too). Play in the Mask Brush drives the
-  same div with the raw B/W masks under `--luma` (`mask-mode: luminance`).
+  `MpiGifViewer.el.setCutoutPreview(url)`.
+  **Since the MPI-771 consistency audit (Fabio, 2026-09-19) Cut-out is a CANVAS tool.** It was
+  the only mask-producing tool in the app with no opacity / invert / B-W / clear, and the
+  reason was never the mask — those are methods on `MpiCanvas`, which `MpiGifViewer` funnels
+  through `_canvas?.`, and Cut-out painted a CSS overlay instead of mounting one. It now calls
+  `enterMode('mask')` and mounts the SAME `MpiMaskStrip({ viewer, brush: false })` that the
+  Mask Brush and every image mask tool mount. Two consequences worth knowing: the built-`.gif`
+  preview toggle is disabled in Cut-out, exactly as in the Mask Brush (a canvas tool works on
+  FRAMES, and the built file would cover the canvas); and the stage shows one frame at a time
+  unless you press Play, which swaps to the frame-wrap under the tint as it always did.
+  `setCutoutPreview` is a DISPLAY OVERRIDE, not a layer: it replaces the bitmap the canvas
+  shows and drives the CSS tint during playback, so play/pause never changes what the
+  highlight means. `getFrameMaskURL()` / `getCutMasks()` read the real store and never see it,
+  and `brush: false` means nothing can write it back.
+  The override exists because the canvas can only draw the mask REGION — `setMaskInverted`
+  recolours it black (`MASK_INVERT_FILL`), it is not a geometric complement — so showing "what
+  disappears" means handing the canvas the already-flipped bitmap. The strip's Invert then
+  flips the view back to the raw mask, which is exactly what its tooltip says it does.
+  The strip's **Clear** is routed to `clearFrameMasks(index)` under the override: with
+  `brush: false` there is no layer to erase with, so clearing only the canvas would repaint
+  from a store that still holds the mask and read as a dead button.
+  Play in the Mask Brush drives the same div with the raw B/W masks under `--luma`
+  (`mask-mode: luminance`).
   **The tint is WHITE because the mask is COMMITTED.** `MpiCanvas` recolours only its PENDING
   layers to `MASK_AUTO_FILL` (`--accent-ok`): a detect run still waiting on Add / Subtract, or
   an Adjust preview waiting on Apply. A committed mask is `maskColor` — white — drawn straight

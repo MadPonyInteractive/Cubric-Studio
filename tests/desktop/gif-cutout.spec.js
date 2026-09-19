@@ -259,6 +259,41 @@ test('gif cutout panel: routes, mounts with the right initial state, and drives 
     expect(Math.round(layout.maskW), 'Mask and Clear take an equal share').toBe(Math.round(layout.clearW));
     expect(Math.round(layout.maskW + layout.clearW + layout.gap), 'Mask and Clear span the row')
       .toBe(Math.round(layout.rowW));
+
+    // ── The SHARED mask strip, not a second set of controls ───────────────
+    // MPI-771 consistency audit (Fabio, 2026-09-19): Cut-out was the only
+    // mask-producing tool in the app with no opacity / invert / B-W / clear. The
+    // reason was never the mask — those are methods on the CANVAS, which Cut-out
+    // never mounted. It mounts one now, so this is the same MpiMaskStrip the Mask
+    // Brush and every image mask tool mount, and the assertion is deliberately
+    // that the SHARED component is there (`.mpi-mask-strip`), not that four
+    // lookalike controls exist.
+    const strip = await window.evaluate(() => {
+      const s = document.querySelector('.mpi-tool-options-gif-cutout .mpi-mask-strip');
+      if (!s) return null;
+      const infos = [...s.querySelectorAll('[data-info]')].map(b => b.getAttribute('data-info'));
+      return {
+        // Brushless, like Detect / Points / Text: Cut-out masks with a method, and
+        // that same prop disarms canvas painting.
+        hasBrushPair: !!s.querySelector('.mpi-radio-group'),
+        hasPresetRow: !!s.querySelector('.mpi-mask-strip__preset-row'),
+        hasOpacity: !!s.querySelector('.mpi-mask-strip__slider-row .mpi-progress'),
+        hasInvert: !!s.querySelector('.mpi-mask-strip__invert'),
+        infos,
+      };
+    });
+    expect(strip, 'Cut-out mounts the shared MpiMaskStrip').not.toBeNull();
+    expect(strip.hasOpacity, 'the strip brings the opacity slider').toBe(true);
+    expect(strip.hasInvert, 'the strip brings the invert-display button').toBe(true);
+    expect(strip.infos.some(i => /black and white/i.test(i)), 'the strip brings the B/W view').toBe(true);
+    expect(strip.hasBrushPair, 'brushless: no paint/erase pair on Cut-out').toBe(false);
+    expect(strip.hasPresetRow, 'brushless: no brush-preset row either').toBe(false);
+
+    // Mounting the strip means being IN mask mode — that is what gives the strip
+    // a canvas to drive, and it is the whole reason the controls were missing.
+    expect(await window.evaluate(() => document.querySelector('.mpi-gif-viewer').isMaskEditing()),
+      'Cut-out enters the canvas mask mode, like every other mask tool').toBe(true);
+
     await pickMethod(window, 'sam3');
 
     // ── Track dispatches /gif-cutout/source with the current frame list ────
@@ -1077,15 +1112,20 @@ test('gif strip: full trim range, frames fill the stage, a drag scrubs, hold-dra
     expect(await maskAt(0)).toBe(urls[0]);
     await expect.poll(() => tintAt(3)).toContain(urls[2]);
 
-    // ── The GIF preview button is off while the Mask Brush is up ─────────────
+    // ── The GIF preview button is off while a CANVAS tool is up ─────────────
+    // Both cut-out tools are canvas tools since the MPI-771 consistency audit:
+    // Cut-out mounts the same canvas as the Mask Brush so it can mount the same
+    // MpiMaskStrip, so it inherits the same rule — these tools work on FRAMES,
+    // and the built `.gif` would cover the canvas they are working on.
     const previewDisabled = () => window.evaluate(() =>
       document.querySelector('.mpi-gif-control-bar [data-mount="preview-toggle"] button').disabled);
-    expect(await previewDisabled()).toBe(false);
+    expect(await previewDisabled(), 'with no canvas tool up the preview is reachable').toBe(false);
     await openRailTool(window, 'Mask Brush');
     await waitEditFrame(window);
     expect(await previewDisabled(), 'the brush paints frames, not the built file').toBe(true);
     await openRailTool(window, 'Cut-out');
-    await expect.poll(previewDisabled).toBe(false);
+    await waitEditFrame(window);
+    await expect.poll(previewDisabled, 'Cut-out is a canvas tool now, and follows the same rule').toBe(true);
 
     // ── Play in the Mask Brush plays the frames under their tint ─────────────
     await openRailTool(window, 'Mask Brush');

@@ -773,7 +773,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             if (!Array.isArray(frames) || !frames.length || !Array.isArray(masks) || masks.length !== frames.length) return;
             const landed = await _postGifEntry('/gif-cutout/apply', { frames, masks, adjust, invert, settings },
                 { done: 'Cut-out saved', failed: 'Cut-out failed' });
-            if (landed) viewer.el.setMaskTint?.(null);
+            if (landed) viewer.el.setCutoutPreview?.(null);
         }
 
         /**
@@ -995,9 +995,12 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             if (mode === 'exportGif') _options.el.setEncoder?.(_encodeGif);
 
             // MPI-771: the cut-out panel dispatches SAM3 itself and keeps its masks
-            // on the viewer; it only EMITS the current-frame tint the viewer shows.
+            // on the viewer; it only EMITS the current-frame preview the viewer shows.
+            // Since the audit that is a DISPLAY OVERRIDE on the canvas rather than a
+            // CSS tint, so the panel can mount the shared MpiMaskStrip over it — the
+            // viewer drives whichever surface is on screen.
             if (mode === 'gifCutout') {
-                _options.on?.('mask-tint', ({ url }) => viewer.el.setMaskTint?.(url));
+                _options.on?.('mask-tint', ({ url }) => viewer.el.setCutoutPreview?.(url));
                 // The panel's "Selected" scope acts on the strip's Ctrl-click
                 // selection. Seed it at mount — the selection may predate the
                 // panel — then `selection-change` keeps it current.

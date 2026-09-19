@@ -51,6 +51,17 @@
  *                                            applies (docs/masking-sam3-gif.md).
  *                                            Owned by the cut-out tool panel;
  *                                            `null` clears it.
+ *   setCutoutPreview(url|null)             — MPI-771 audit: DISPLAY ONLY. Cut-out
+ *                                            mounts the same canvas and the same
+ *                                            MpiMaskStrip as the Mask Brush, but
+ *                                            shows the ADJUSTED, flipped bitmap
+ *                                            (the highlight marks what DISAPPEARS)
+ *                                            instead of the stored mask. Drives the
+ *                                            canvas while the tool is up and the CSS
+ *                                            tint while the GIF plays, so play/pause
+ *                                            never changes what the highlight means.
+ *                                            Never read by getCutMasks(); `null`
+ *                                            restores the real mask.
  *
  * Cut-out masks (MPI-771, plan Decision 14) — per frame POSITION, carried along a
  * staged reorder/delete and emptied when a different list loads (`gifFrameMasks.js`):
@@ -164,6 +175,20 @@ export const MpiGifViewer = ComponentFactory.create({
         });
 
         const _masks = new GifFrameMasks();
+        /**
+         * Cut-out's display override (MPI-771 consistency audit).
+         *
+         * Cut-out shows the ADJUSTED mask — grow, then flipped so the highlight marks
+         * what DISAPPEARS (Fabio, 2026-09-19) — which is not what the store holds. It
+         * mounts the same canvas and the same `MpiMaskStrip` as the Mask Brush, so
+         * opacity / invert / B-W are one component in both tools; only the bitmap the
+         * canvas is SHOWN differs. Null = show the real mask, which is every other tool.
+         *
+         * DISPLAY ONLY. `getFrameMaskURL()` and `getCutMasks()` read `_masks`, never
+         * this, and the strip mounts with `brush: false` so nothing can write the
+         * override back into the store.
+         */
+        let _cutoutPreview = null;
         /** Mask Brush / Crop surface (MPI-771, MPI-773) — mounted only while the tool is up. */
         let _canvas = null;
         let _editing = false;
@@ -550,6 +575,17 @@ export const MpiGifViewer = ComponentFactory.create({
                     _editIdx = idx;
                     return;
                 }
+                // Cut-out's override is already the composed, adjusted, flipped
+                // bitmap for THIS frame, so it replaces the base AND the brush
+                // layers — re-applying the edits on top would double them.
+                if (_cutoutPreview !== null) {
+                    await cv.setMaskBase(_cutoutPreview);
+                    if (token !== _editToken) return;
+                    cv.activeMode = 'mask';
+                    _editIdx = idx;
+                    _dirty = false;
+                    return;
+                }
                 const edits = _masks.edits.get(idx);
                 await cv.setMaskBase(_masks.track.get(idx) || null);
                 if (edits?.manual) await cv.setManualFromDataURL(edits.manual);
@@ -589,7 +625,9 @@ export const MpiGifViewer = ComponentFactory.create({
             _editIdx = -1;
             editSlot.classList.add('mpi-gif-viewer__edit--playing');
             frameWrap.hidden = false;
-            if (_editKind === 'mask') _setTint(_masks.overlayAt(_index), true);
+            // Same bitmap the canvas was showing, so play/pause never changes what
+            // the highlight means — Cut-out's flipped preview stays flipped.
+            if (_editKind === 'mask') _setTint(_cutoutPreview ?? _masks.overlayAt(_index), true);
         }
 
         function _showEditCanvas() {
@@ -602,6 +640,9 @@ export const MpiGifViewer = ComponentFactory.create({
         function _exitEdit() {
             if (!_editing) return;
             if (_playing) _setTint(null);
+            // The override belongs to the tool that set it. Leaving Cut-out with it
+            // still on would show the Mask Brush a flipped mask on its next mount.
+            _cutoutPreview = null;
             _saveEdit();
             _editToken++;
             _brushSize = _canvas?.el.brushSize ?? _brushSize;
@@ -658,10 +699,35 @@ export const MpiGifViewer = ComponentFactory.create({
         el.setMaskOpacity      = (v) => _canvas?.el.setMaskOpacity(v);
         /** This frame only. With a track it erases over it, so Ctrl+Z restores it. */
         el.clearMask = () => {
+            // Under Cut-out's override there is no brush layer to erase WITH — the
+            // strip mounts `brush: false` — so the same button has to mean the same
+            // thing by throwing this frame's mask away instead. Clearing only the
+            // canvas would look like a dead button: the override would repaint on
+            // the next tick from a store that still holds the mask.
+            if (_cutoutPreview !== null) { el.clearFrameMasks(_index); return; }
             if (!_canvas || _editIdx < 0) return;
             _canvas.el.clearMask();
             _dirty = true;
             _saveEdit();
+        };
+
+        /**
+         * Cut-out's display override (MPI-771 audit). `null` restores the real mask.
+         * Drives BOTH surfaces so play/pause never changes what the highlight means:
+         * the canvas while the tool is up, the CSS tint while the GIF is playing.
+         */
+        el.setCutoutPreview = (url) => {
+            _cutoutPreview = url || null;
+            if (_editKind !== 'mask') return;
+            // Playing: the canvas is hidden behind the frame-wrap, so the tint is
+            // what is on screen. `false` = an alpha mask, not an opaque B/W one.
+            if (editSlot.classList.contains('mpi-gif-viewer__edit--playing')) {
+                _setTint(_cutoutPreview, false);
+                return;
+            }
+            if (!_canvas) return;
+            _canvas.el.setMaskBase(_cutoutPreview).catch(err =>
+                clientLogger.warn('MpiGifViewer', `cut-out preview load failed: ${err?.message || err}`));
         };
 
         let _destroyed = false;
