@@ -1,5 +1,5 @@
 import { ComponentFactory } from '../../factory.js';
-import { qs, on } from '../../../utils/dom.js';
+import { qs, on, inheritAccent } from '../../../utils/dom.js';
 import { Events } from '../../../events.js';
 import { renderIcon } from '../../../utils/icons.js';
 
@@ -227,6 +227,7 @@ export const MpiTreePicker = ComponentFactory.create({
         // ── Positioning (lifted from MpiDropdown) ────────────────────────────
         const positionBox = () => {
             if (!box.parentNode) document.body.appendChild(box);
+            inheritAccent(box, trigger);   // portalled: it cannot inherit the workspace's accent
             const rect = trigger.getBoundingClientRect();
             box.style.minWidth = `${rect.width}px`;
             box.style.left = `${rect.left + window.scrollX}px`;

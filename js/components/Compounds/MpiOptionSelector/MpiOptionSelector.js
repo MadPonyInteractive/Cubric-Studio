@@ -4,7 +4,7 @@ import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiBadge } from '../../Primitives/MpiBadge/MpiBadge.js';
 import { MpiPopup } from '../../Primitives/MpiPopup/MpiPopup.js';
 import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
-import { qs, qsa, on } from '../../../utils/dom.js';
+import { qs, qsa, on, inheritAccent } from '../../../utils/dom.js';
 // usesOrientation / usesQualityTier / clampQualityTier live in ratios.js beside
 // RATIO_MODES — the services (generationService, promptReuse) need them too and must
 // not import a UI component. Importing this module from Node pulls MpiButton →
@@ -399,6 +399,7 @@ function _setupPortalAndDismiss(el, popupEl, trigger, getShowPopup, closeFn) {
 }
 
 function _positionPopup(trigger, popupEl) {
+    inheritAccent(popupEl, trigger);   // portalled: it cannot inherit the workspace's accent
     const rect = trigger.getBoundingClientRect();
     popupEl.style.bottom = `${window.innerHeight - rect.top + 12}px`;
     popupEl.style.left   = `${rect.left + rect.width / 2}px`;

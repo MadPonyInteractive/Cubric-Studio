@@ -1,5 +1,5 @@
 import { ComponentFactory } from '../../factory.js';
-import { qs, qsa, on } from '../../../utils/dom.js';
+import { qs, qsa, on, inheritAccent } from '../../../utils/dom.js';
 import { Events } from '../../../events.js';
 import { renderIcon } from '../../../utils/icons.js';
 
@@ -124,6 +124,7 @@ export const MpiDropdown = ComponentFactory.create({
         /** Aligns the portalled list to the trigger using viewport coordinates. */
         const positionList = () => {
             if (!list.parentNode) document.body.appendChild(list);
+            inheritAccent(list, trigger);   // portalled: it cannot inherit the workspace's accent
             const rect      = trigger.getBoundingClientRect();
             const direction = props.direction || 'down';
 

@@ -452,6 +452,41 @@ the four JS files. Full `npm test` NOT re-run this round.
 verified mechanism (`MpiSettings.js:194`, same attribute, same value). Fabio's reload is
 the check.
 
+**VERIFIED BY FABIO** (2026-09-19, live, his own screenshot of the Enhance dialog — yellow
+Enhance button, yellow OK): *"yeah man, looks good."* He checked Reuse Prompt too. Committed
+and pushed as `d3ec007d`.
+
+## Round 9b — the mechanical sweep (2026-09-19)
+
+Fabio asked the right question: *"are there any other boxes or pop-ups we are forgetting?
+Have you done a sweep on the UI?"* No — rounds 1-9 were all screenshot-driven. This is the
+first exhaustive pass; the method and the full table are in `plan.md`.
+
+**Found four gaps, all PICKERS, none of them a dialog:** `MpiDropdown` (8 accent uses,
+13 callers), `MpiTreePicker` (7), `MpiStylePicker` (5), `MpiOptionSelector` (2, across its
+three variants). Each portals to `document.body` and draws `--accent-heat`, so its selected
+row rendered cream no matter which workspace the trigger sat in.
+
+**Fixed with one helper, not four labels.** `inheritAccent(portalEl, anchor)` in
+`js/utils/dom.js` reads `anchor.closest('[data-accent]')` and copies it. Called at OPEN
+time from each picker's existing position function. Baking the attribute at mount would be
+WRONG, not merely verbose: one Dropdown instance reopens in different workspaces, so a
+baked value goes stale. That is the case `tests/portal-accent.test.cjs` pins — reopening
+under no accent must CLEAR the old one.
+
+**Ruled out with a reason, so nobody re-derives them:** `MpiSlideOver`, `MpiColorPicker`
+and `MpiToast` draw no accent at all; toasts are status colours by the 2026-09-18 decision;
+`MpiStartingComfy` is correctly cream (engine startup is about no media type);
+`mediaActions`/`MpiGroupHistoryBlock` portal a download `<a>`; `mentionPicker` portals an
+offscreen measurement mirror.
+
+**Ran:** `npm test` 1447/1448 (1 skipped, 0 fail), `portal-accent.test.cjs` 3/3, eslint
+clean on the five files. **NOT verified in pixels** — Fabio's reload is the check.
+
+**Class B is still open** and is the honest remainder: surfaces that are not portalled but
+whose subject differs from their container — `MpiAudioPlayer`/`MpiWaveform` in a non-audio
+Flow, `MpiVoicePicker`, per-type slots in `MpiMediaPicker`/`MpiMediaSlot`.
+
 **Two survey rows were wrong, both cheaper than recorded.** The `MpiEnhanceDialog.css`
 "peer work" is a line-ending phantom: `git diff` empty, filtered `hash-object` == HEAD blob
 `968ace43`, `ls-files --eol` reads `i/lf w/crlf`. And `MpiMediaDropOverlay` is not portaled

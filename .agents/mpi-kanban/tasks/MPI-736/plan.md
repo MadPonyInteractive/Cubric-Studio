@@ -85,6 +85,47 @@ fixed. `tests/accent-family-literals.test.cjs` now fails repo-wide if any styles
 green, Reuse Prompt → yellow, the other six stay cream because they are about no media type.
 `npm test` 1432/1433, lint clean. Details and the survey: `validation.md` § Round 8.
 
+### THE MECHANICAL SWEEP (2026-09-19) — Fabio: *"have you done a sweep on the UI?"*
+
+Answer was no. Every round 1-9 was screenshot-driven: he saw a cream surface, we fixed it.
+This is the first exhaustive pass, and it is cheap to repeat because it is two greps.
+
+**The method — do this, not a walkthrough.** A surface is wrong only when BOTH hold:
+it draws `var(--accent-heat)`, AND it cannot inherit the right one. So:
+
+1. `grep -rlo "var(--accent-heat" js styles` → **69 files**.
+2. `grep -rn "document\.body\.appendChild" js` → **20 files** (class A: inherits `:root`).
+3. Intersect. Then hand-check class B separately: NOT portalled, but its SUBJECT differs
+   from its CONTAINER (an audio player inside a video Flow).
+
+**Class A result — the intersection is FOUR, and all four are PICKERS, not dialogs:**
+
+| Portalled | `--accent-heat` uses | Verdict |
+|---|---|---|
+| `MpiDropdown` | 8 | **GAP — fixed.** 13 callers |
+| `MpiTreePicker` | 7 | **GAP — fixed** |
+| `MpiStylePicker` | 5 | **GAP — fixed** |
+| `MpiOptionSelector` | 2 | **GAP — fixed** (3 variants, one `_positionPopup`) |
+| `MpiSlideOver`, `MpiColorPicker`, `MpiToast` | 0 | Clean — draw no accent at all |
+| `MpiStartingComfy` | yes | Correct as cream — engine startup is about no media |
+| `statusBar`, `downloadService`, `generationService` | — | TOASTS. Status colours by decision (2026-09-18), never family |
+| `mediaActions`, `MpiGroupHistoryBlock` | — | A download `<a>`. Invisible |
+| `mentionPicker` | — | An offscreen measurement mirror |
+| `js/pages/components.js` | — | The dev component gallery, not a user surface |
+
+**The fix is ONE helper, not four labels** — `inheritAccent(portalEl, anchor)` in
+`js/utils/dom.js`, called from each picker's existing position/open function, where the
+trigger rect is already being read. Labelling callers was the wrong shape: `MpiDropdown`
+alone has 13, and the same instance reopens in different workspaces, so a baked attribute
+would be stale rather than absent. `tests/portal-accent.test.cjs` pins the case that
+catches: reopening under NO accent must CLEAR the old one, not keep it.
+
+**Class B — subject ≠ container. NOT swept yet, and this is what remains:**
+`MpiAudioPlayer` and `MpiWaveform` inside a non-audio Flow (round 6 fixed the recorder, not
+the player), `MpiVoicePicker` (about voices → audio), and per-type slots in
+`MpiMediaPicker`/`MpiMediaSlot`. None declares an accent today. Everything else inside a
+matching workspace already inherits correctly from `#app-shell` (`navigation.js:297`).
+
 ### Round 9 — BUILT, AWAITING FABIO'S EYE (2026-09-19, session 8abe87b4)
 
 Three dialogs now state their subject; NO stylesheet changed — every one already drew from

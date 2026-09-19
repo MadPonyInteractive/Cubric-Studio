@@ -78,3 +78,23 @@ export const ce = (tag, props, children) => {
     }
     return el;
 };
+
+/**
+ * Copies the nearest `[data-accent]` above `anchor` onto a node that has been
+ * portalled to `document.body` (MPI-736).
+ *
+ * A portalled node inherits from `:root`, never from the thing that opened it, so
+ * every picker's selected row drew the shared cream even when the workspace around
+ * its trigger was orange. The attribute cannot be baked in at mount: the same
+ * Dropdown primitive opens in five different workspaces, and a workspace can change
+ * under a mounted component. So this is called at OPEN time, from the position/show
+ * path, and re-reads the anchor every time.
+ *
+ * @param {HTMLElement} portalEl - The node living under document.body.
+ * @param {HTMLElement} anchor   - The trigger still sitting in the real tree.
+ */
+export const inheritAccent = (portalEl, anchor) => {
+    const accent = anchor?.closest?.('[data-accent]')?.dataset.accent;
+    if (accent) portalEl.dataset.accent = accent;
+    else delete portalEl.dataset.accent;
+};

@@ -1,5 +1,5 @@
 import { ComponentFactory } from '../../factory.js';
-import { qs, qsa, on } from '../../../utils/dom.js';
+import { qs, qsa, on, inheritAccent } from '../../../utils/dom.js';
 import { Events } from '../../../events.js';
 
 const escapeHtml = (value) => String(value ?? '')
@@ -125,6 +125,7 @@ export const MpiStylePicker = ComponentFactory.create({
         }, { passive: false }));
 
         const positionPanel = () => {
+            inheritAccent(panel, trigger);   // portalled: it cannot inherit the workspace's accent
             const rect = trigger.getBoundingClientRect();
             const gap = 8;
             const margin = 8;

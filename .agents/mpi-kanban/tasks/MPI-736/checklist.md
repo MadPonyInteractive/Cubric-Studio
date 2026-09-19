@@ -100,7 +100,20 @@ Derived from `plan.md` phase titles, 2026-09-18.
     - [x] `MpiMediaDropOverlay` — needs nothing, it is not portaled. `MpiChangelogDialog` cream.
     - [x] The CSS "peer work" blocker was a CRLF phantom — empty diff, blob == HEAD.
     - [x] `op-strip-availability.test.cjs` 24/24, accent-literal guard green, eslint clean.
-    - [ ] Fabio's live check; his call on the "?" guide — op colour or Prompt yellow.
+    - [x] **VERIFIED BY FABIO** (2026-09-19, live, his screenshot): *"yeah man, looks good."*
+          Reuse Prompt checked too. Committed + pushed `d3ec007d`.
+  - [ ] Round 9b — the MECHANICAL sweep, Fabio: *"have you done a sweep on the UI?"*
+    - [x] Method recorded in `plan.md` so it is repeatable: 69 files draw the token,
+          20 portal to `document.body`, intersect, then hand-check subject-vs-container.
+    - [x] The intersection is FOUR, all pickers: `MpiDropdown` (13 callers), `MpiTreePicker`,
+          `MpiStylePicker`, `MpiOptionSelector`. Toasts excluded by the status-colour rule.
+    - [x] Fixed with ONE helper — `inheritAccent()` in `js/utils/dom.js`, called at OPEN
+          time from each picker's existing position function.
+    - [x] `tests/portal-accent.test.cjs` 3/3 incl. the stale-accent clear. `npm test`
+          1447/1448 (1 skipped, 0 fail), eslint clean.
+    - [ ] Fabio's live check on the pickers; his call on the "?" guide (op colour or yellow).
+    - [ ] Class B NOT done: `MpiAudioPlayer`/`MpiWaveform` in a non-audio Flow,
+          `MpiVoicePicker`, per-type slots in `MpiMediaPicker`/`MpiMediaSlot`.
   - [ ] Finish the sweep — the rule now lets US find surfaces instead of waiting for a
         screenshot. Survey in `validation.md` § Round 8.
   - [ ] 1c canvas constants land here (deferred from phase 1)
