@@ -561,3 +561,19 @@ Cut-out plays with it (`brush: false`, so `InputController`'s final `else` alrea
 **STILL OPEN: Fabio's eye pass on the whole workspace.** Nothing here closes without it. The
 automated evidence above says the code does what he asked for; it does not say the workspace
 feels right, and four of these five are things only he can judge.
+
+**CI GREEN, and it carries this commit.** `5f96c76d` ("Fabio's second pass - five items on the
+GIF workspace") is an ancestor of `188cdc78`, and run **35453767615 on `188cdc78` passed**. So the
+second pass has a green run of its own code, not just a green local box.
+
+**The red master this session met, and did NOT fix.** `.husky/pre-push` blocked the push:
+`agent-chat.spec.js:645`, `textShare` 0.6081 against a 0.65 bar, introduced by MPI-774's pinned
+settings cog narrowing the run column. Diagnosed to that line, then stopped, for two reasons:
+`MpiPromptBox.js`/`.css` were under a LIVE claim (`450b7f35`, 26-minute heartbeat), and the
+number is a design judgement on another card's UI, not a mechanical fix. Its owner had already
+fixed it in `188cdc78` ("textShare measured the WINDOW, not the layout"). A peer's push then
+carried `5f96c76d` up with it, so nothing here was pushed around the red.
+
+One thing worth keeping: **`gif-workspace.spec.js:369` appeared in the first red run and was a
+FLAKE** - it failed once and passed on retry #1, and the next run has it green. It is not a
+second bug hiding under the agent-chat one.

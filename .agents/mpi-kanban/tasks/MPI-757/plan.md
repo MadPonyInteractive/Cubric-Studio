@@ -1004,6 +1004,18 @@ Phase 5 verify mode: `auto`.
 
 ## Plan Drift
 
+- 2026-09-19 (second pass, item 1): **the frame strip's plain-click branch never repainted**, and
+  no item said so. It emits `frame-select` and lets the Block call back into `setCurrentIndex`,
+  which EARLY-RETURNS when the index has not moved — so clicking the frame you were already on
+  cleared `_selection` in memory and left the old thumbs painted selected. Pre-existing; only
+  visible once a Shift range could put a selection on frames you were not standing on. The strip
+  paints its own selection now. If another selection path is ever added here, it owns its
+  `_renderWindow()` — do not rely on the Block's round trip.
+- 2026-09-19 (second pass, item 5): **an existing spec asserted the rule being reversed.**
+  `gif-cutout.spec.js:1151` read *"Space must not play in Cut-out — it pans"*, written the same
+  morning from Fabio's first statement of the rule; his second pass narrows it. It was UPDATED,
+  not deleted. Worth expecting whenever a rule he gave earlier in the day is refined later.
+
 - 2026-09-19 (finding 1): **`756cf0e0` turned master red and it was MINE** — the only red on
   master, every run before it green. `gif-cutout.spec.js` test 2, "frame 0: the brushed corner
   is still kept", 255 expected / 0 found, ×3. Root cause: **`_editIdx` does not mean "the frame
