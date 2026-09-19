@@ -127,6 +127,30 @@ clientLogger.error('comfy', 'Description of error', err);
 
 ---
 
+## 🖱️ Context menus — three separated groups, and EVERY row explains itself
+
+Any menu raised through `Events.emit('ui:context-menu', …)` is **three groups, separated,
+coarse → fine → irreversible** (Fabio, 2026-09-19, MPI-821):
+
+1. **make something NEW from the selection** — nothing here touches the cards
+   (Compare, Combine, Make GIF, Cue all)
+2. **edit THIS item's own data** (Rename, Card notes, Describe image)
+3. **files and the system**, ending on the irreversible pair — **Archive directly above
+   Delete**, Delete last (Add to project, Open in file system, Download, Archive, Delete)
+
+**Every row carries `info`, and a DISABLED row carries its REASON, not its label.** This app
+has no tooltips: `info` → `MpiButton`'s `data-info` → the status bar is the only place a row
+can explain itself, and a greyed row with no reason is the case that actually hurts
+("Select exactly 2 cards to compare", not "Compare").
+
+`MpiContextMenu` already supports `{ separator: true }` and `info` — **do not rebuild
+either**; until MPI-821 nothing in the repo used them, so there is no second precedent to
+copy from. Reference implementation: `MpiGalleryGrid.js` card menu.
+`MpiHistoryList` and `MpiMediaSlot` raise their own menus and are **not** converted yet —
+bring one over when you are next in it, not as a drive-by.
+
+---
+
 ## 🎛️ PromptBox controls — `scope` is the persistence SoT
 
 Adding a `PROMPT_BOX_CONTROLS` control? Its `scope` (`shared` / `perOp` / `perModel`) is the **single source of truth** for persistence, sidecar snapshot, and Reuse — the machinery is `scope`-driven. **Never hand-maintain a persistence key-list** (`_MODEL_WIDE_KEYS`, the snapshot loop, the reuse loop) to make a control save or restore; if you feel the urge, the machinery regressed off `scope` — fix the machinery. Full contract + checklist: [`docs/playbooks/common/prompt-box-controls.md`](../../docs/playbooks/common/prompt-box-controls.md) (MPI-336).

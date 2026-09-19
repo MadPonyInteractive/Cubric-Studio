@@ -4606,3 +4606,4 @@
 
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-821", "at": "2026-09-19T12:45:41+01:00", "actor": "claude", "summary": "All four parts shipped and pushed. One user-ux check left for Fabio."}
 {"at": "2026-09-19T11:47:12Z", "event": "checklist.updated", "actor": "implementer:7bbff4d4", "task": "MPI-771", "note": "CI green on 3efcdc9f; Fabio's second pass opened five new items, all investigated, none built"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-821", "at": "2026-09-19T13:10:41+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "All four parts shipped, CI green on 0693c520, claim audit clean after one doc heal."}
