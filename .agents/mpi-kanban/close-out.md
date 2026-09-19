@@ -31,6 +31,20 @@ nobody gets asked. Found twice on 2026-08-09: **MPI-456**, whose WAN `_stage2` t
 were deleted by MPI-452's `ea9164c7`, and **MPI-488**, fixed upstream by the
 Mpi-Kanban plugin. Both had been sitting in `todo` with the work already finished.
 
+## The run on this session's last CODE commit is green (do NOT skip)
+
+```bash
+gh run list --branch master --limit 5 --json headSha,status,conclusion,url
+```
+
+Find the run for your last pushed code commit. `in_progress` → `gh run watch <id>`
+(~13 min of wall time, zero tokens). `failure` → it is yours now, whichever spec it
+names: fix it, push the fix `--no-verify`, watch again. **A card does not move to
+`done` on a red run of its own commit.** MPI-811 closed on Fabio's live check while
+its own spec was red — it passes on any dev box and fails on a runner with no weights
+(MPI-818, 2026-09-19) — and eleven pushes stacked on that red. The push gate lets a
+docs-only close commit through by design; this is the check that gate cannot make.
+
 ## Release-awareness check (do NOT skip)
 
 Diff THIS session's changes (working tree, or the session's commit(s) if the

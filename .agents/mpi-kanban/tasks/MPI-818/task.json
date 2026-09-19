@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-818",
+  "title": "Master stays red for hours and every agent is blocked: retries for flaky desktop specs, fix radial-menu:168 in CI, and make the red an owned job",
+  "description": "Fabio, 2026-09-19: 32 of the last 60 master runs failed, 11 in a row on one spec, agents push --no-verify around it and the next session inherits the mess. Three causes, three fixes: (1) playwright.desktop.config.js has no retries, so one flaky Electron boot (flow-packages:118 today, crop-resize-output:93 on the 18th) is a red master; (2) radial-menu.spec.js:168 fails only in CI, where zero models are installed and the empty-project fixture raises the No-models-installed modal that MPI-811 correctly gates Tab behind; (3) nothing makes a red anyone's job, and the pre-push hook itself offers --no-verify as a way to accept it. Cards cannot close green on a red run of their own commit.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-19T07:55:24+01:00",
+  "updated_at": "2026-09-19T07:57:30+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

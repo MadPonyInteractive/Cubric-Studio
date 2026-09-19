@@ -7,6 +7,11 @@ module.exports = {
   timeout: 30000,
   fullyParallel: false,
   workers: 1,
+  // MPI-818: one flaky Electron boot (flow-packages:118, crop-resize-output:93) was a red
+  // master, and a red master blocks every agent's push. Two retries absorb a flake; a
+  // real failure fails three times and is still red. Local runs keep 0, so a flake is
+  // seen where it can be fixed.
+  retries: process.env.CI ? 2 : 0,
   reporter: [['list']],
   use: {
     trace: 'retain-on-failure',

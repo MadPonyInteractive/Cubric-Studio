@@ -95,6 +95,42 @@ function onTop(window) {
   });
 }
 
+// MPI-818: a runner has NO weights. An EMPTY project with zero usable models raises the
+// "No models installed" MpiOkCancel at gallery mount (MpiGalleryBlock § Zero-installed
+// check), and Tab is gated behind any `.mpi-modal` on purpose (hotkeyRegistry, MPI-811:
+// a modal is a question, and navigating out orphans it). So the one test here with an
+// empty project was red in CI and green on every dev box, where the weights are.
+// Pin one plain flat model usable — `installed` alone makes it so (isModelUsable), and
+// gallery-cue-all.spec.js stubs the same one. A getter rather than an assignment: the
+// boot sync re-writes `installed` from disk on every `models:checked`, and a pinned
+// property cannot be re-written, so there is no listener order to get right
+// (docs/testing-desktop-specs.md, trap 5).
+async function pinOneModelInstalled(window) {
+  await window.evaluate(async () => {
+    const { MODELS } = await import('/js/data/modelRegistry.js');
+    const model = MODELS.find(m => m.id === 'sdxl-realistic');
+    Object.defineProperty(model, 'installed', { get: () => true, set() {}, configurable: true });
+  });
+}
+
+// What the boot sync does on a runner with no weights: /comfy/models/check reports every
+// model absent and every `installed` flag is re-written from that answer. A dev box has
+// weights, so the real sync never resolves empty here — this makes it (provoke, do not
+// wait: trap 5). With the pin above the spec stays green; without it, the dialog is up.
+async function provokeNoWeights(window) {
+  await window.evaluate(async () => {
+    const { MODELS, syncModelInstalled } = await import('/js/data/modelRegistry.js');
+    const results = Object.fromEntries(MODELS.map(m => [m.id, { installed: false, deps: [] }]));
+    const realFetch = window.fetch;
+    window.fetch = (url, init) => /\/comfy\/models\/check/.test(String(url))
+      ? Promise.resolve(new Response(JSON.stringify({ results }), {
+          status: 200, headers: { 'Content-Type': 'application/json' } }))
+      : realFetch(url, init);
+    try { await syncModelInstalled(); } finally { window.fetch = realFetch; }
+    await new Promise(r => setTimeout(r, 200));
+  });
+}
+
 test('the four destinations sit on their diagonals', async ({}, testInfo) => {
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);
@@ -170,7 +206,11 @@ test('with no card to return to, Latest Workspace is dimmed and cannot be picked
   const { app, window, pageErrors } = await launchApp(testInfo);
   try {
     await releaseBootGate(window);
+    await pinOneModelInstalled(window);
     await openGallery(window, makeProject(testInfo, []));
+    await provokeNoWeights(window);
+    await expect(window.locator('.mpi-modal'), 'no "No models installed" prompt over the gallery')
+      .toHaveCount(0);
 
     await holdTab(window);
     await expect(window.locator('.mpi-radial__item[data-action="workspace"]'))
