@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-814", "at": "2026-09-19T06:50:49+01:00", "actor": "claude", "column": "doing", "title": "Release notes must be short: write the rule down, and cut the MPI-811 bullet to size"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-814", "at": "2026-09-19T07:05:34+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio read the file and closed it. Rule in docs/releases/README.md, two pointers, UNRELEASED.md cut 657 to 256 lines with nothing dropped."}
