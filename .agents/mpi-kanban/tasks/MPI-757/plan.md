@@ -22,7 +22,29 @@ cost.
 now highlights the SAME region Cut-out does. See
 [## Remaining Work](#remaining-work) → "Fabio's THIRD pass".
 
-**THE ONLY THING LEFT IS FABIO'S EYE PASS ON THE WHOLE WORKSPACE.** Nothing closes before it.
+**OPEN BUG, found by Fabio minutes after the third pass shipped (`0f8b646f`) — THE NEXT JOB.**
+A Mask Brush stroke and Cut-out disagree about that stroke. His two screenshots, same frame,
+By colour / Background only / Invert OFF / strip invert ON at 75%:
+- **Mask Brush:** he painted across the left edge of the robot's head. The stroke shows DARK
+  over the head — it reads as "goes", joined to the dark background. Correct for the brush.
+- **Cut-out, same frame:** the SAME stroke shows as a LIGHT, UNTINTED blob outside the head (a
+  hole punched in the background tint), and the head itself looks untouched. It reads as
+  "stays" — the exact opposite.
+So the two tools now agree about the MASK and disagree about a STROKE. **Cause NOT found — do
+not trust any theory here, measure.** What Cut-out shows is what `tint = background − stroke`
+would draw, i.e. as if the stroke were ADDED to "what stays". Candidates, none verified:
+(a) the paint/erase swap under `displayComplement` writes the layer Cut-out's compose reads the
+other way round; (b) `_saveEdit`'s `composed` / `_masks.maskFor` / `_recompose` treats a
+`subtract`-only edit differently from what the canvas drew; (c) By colour's alpha-encoded track
+vs the opaque B/W `composed` going through `_loadAlpha` differently.
+**The gap that let it ship:** the new guard (`gif-workspace.spec.js` → "gif mask display")
+asserts the STORE pixel at stroke∩subject after a stroke and never goes BACK to Cut-out to read
+what it DISPLAYS. It also only strokes inside the subject, never across the edge into the
+background, which is where the screenshot shows the hole. First move: extend that spec —
+stroke across the disc's edge, then sample `getFrameMaskURL` AND Cut-out's overlay alpha at
+stroke∩disc and stroke∩background — watch it go red, THEN read code.
+
+**After that: Fabio's eye pass on the whole workspace.** Nothing closes before it.
 
 Four of the five carry a spec that was PROVEN RED on the pre-fix file before it was believed
 (`gif-workspace.spec.js` → "gif second pass"); the fifth is panel order and is his to judge.
