@@ -40,6 +40,32 @@ A malformed body is HTTP 400; everything else is 200 with `ok: false`. Codes:
 | `ENGINE_ERROR` | The cut-out graph failed or returned the wrong number of masks. |
 | `TIMEOUT` | No result in 30 minutes. The work may still be running in the app. |
 
+## Getting footage in, and finding its item id
+
+**Every verb here works on a card that is ALREADY in the project.** There is no route
+that pulls a file in from disk and lands a card: `POST /project-media/:id/upload` writes
+the file and its sidecar but not the gallery card, because the renderer owns
+`itemGroups`. So the footage arrives one of two ways:
+
+- **The person drops it in.** A folder dragged onto the gallery imports every clip in it
+  as cards. This is the on-ramp today for a batch of footage that lives in another repo.
+- **It was generated in the project already**, by `/connector/generate` or by hand.
+
+To find the item ids without the app telling you, read the project off disk — that is the
+`cubric-vision-project-files` skill. `project.json`'s `itemGroups[]` carry
+`history[]` (item ids, oldest first) and `selectedIndex` (the one the card is showing);
+`Media/.meta/<id>.json` says each item's `type` and `filePath`. A video card is
+`type: "video"`; the GIF you make from it comes back with its own id in `output.itemId`.
+
+```bash
+# every video card in a project, its item id first
+python -c "import json,pathlib,sys; r=pathlib.Path(sys.argv[1]); p=json.loads((r/'project.json').read_text(encoding='utf-8')); [print(i, m.get('type'), g.get('customName') or g.get('name')) for g in p['itemGroups'] for i in [g['history'][g.get('selectedIndex',0)]] for m in [json.loads((r/'Media'/'.meta'/(i+'.json')).read_text(encoding='utf-8'))] if m.get('type')=='video']" "<the project folder>"
+```
+
+*One line on purpose: on Windows this is usually run from Git Bash, where a heredoc
+mangles quoting and halves backslashes while still exiting 0. If you want it readable,
+write it to a `.py` file and run it by path — never rebuild it as a heredoc.*
+
 ## Make a GIF
 
 Two sources, exactly one per call.
@@ -154,6 +180,44 @@ so without one a cut-out plays on black.
 
 `itemId` is what the next call in a chain takes. `filePath` is the built `.gif` (or
 `.mp4`); fetch it through `GET /project-file?path=…` like any other media.
+
+## The same settings across a whole batch
+
+The usual job is not one GIF. It is a folder of clips that must all come out looking the
+same — the person tunes one by hand in the app, hands you the numbers, and every clip gets
+exactly those. Nothing here carries state between calls, so "the same settings" means
+sending the same JSON each time. Two rules keep that honest:
+
+- **Take the settings as given and change nothing.** If the person said `fps: 12`,
+  `tolerance`, a `grow` of 2, do not round, re-derive or improve them per clip. A batch
+  whose members were each quietly adjusted is worse than one that is uniformly slightly
+  wrong, because nobody can tell which is which afterwards.
+- **A per-clip failure stops that clip, not the batch.** Report which ones failed and why,
+  by name, at the end. Do not retry a failed cut-out with different settings on your own:
+  that silently breaks the uniformity the batch exists for.
+
+A clip at a time, each step feeding the next through `output.itemId`:
+
+```bash
+# 1. video card -> GIF card
+GIF=$(curl -s -X POST "$CUBRIC_URL/connector/gif/make" \
+  -H 'Content-Type: application/json' \
+  -d '{"videoItemId":"'"$VIDEO"'","fps":12,"sizePreset":"480xauto","loop":0}' \
+  | python -c 'import sys,json; print(json.load(sys.stdin)["output"]["itemId"])')
+
+# 2. the SAME cut-out settings on every one of them
+curl -s -X POST "$CUBRIC_URL/connector/gif/cutout" \
+  -H 'Content-Type: application/json' \
+  -d '{"itemId":"'"$GIF"'","method":"background","adjust":{"grow":2,"fillHoles":true}}'
+```
+
+Each call is awaited, and a cut-out is a real GPU run — BiRefNet measured around 16 s for
+30 frames, SAM3 longer. A folder of clips is minutes, not seconds. Run them one at a time:
+they share one GPU, so firing them in parallel makes the whole batch slower, not faster.
+
+**Report what you cannot see.** The cut-outs may be clean on frame one and ragged in
+motion, and no call here can tell the difference — say which clips were made, and that the
+animation itself still needs an eye on it.
 
 ## Two things worth knowing before you plan a job
 

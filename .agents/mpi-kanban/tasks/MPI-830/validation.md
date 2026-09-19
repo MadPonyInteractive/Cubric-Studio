@@ -54,3 +54,25 @@ curl -s -X POST http://127.0.0.1:3000/connector/gif/cutout \
 and the same again with `{"method":"name","prompt":"robot"}`. Expect a new
 transparent entry on the same card, one per call. Offered, not run: driving `:3000`
 is the user's own session.
+
+## A gap found after the routes shipped — no card, Fabio's call
+
+**An outside agent cannot get a file into a project as a CARD.**
+`POST /project-media/:id/upload` takes an absolute `sourcePath` (MPI-670), writes the
+file, the sidecar and the derivatives, and returns an `itemId` — but the gallery card is
+created in the renderer (`js/services/mediaUploadService.js` → `mediaImportService`),
+exactly the hole this card closed for GIFs. So the footage has to already be in the
+project: dropped in by the person, or generated there.
+
+It did NOT block the job this was built for. `Cubric Studio Mascots`
+(`C:\Users\Fabio\Documents\Cubric Vision\Projects\Cubric Studio Mascots`) already
+holds **138 video cards**, 12 images and one GIF, measured 2026-09-19 — Fabio's mascot
+clips are cards already, so `gif.make` finds them by id today.
+
+If it is ever wanted, it is the same shape as the four verbs here and small:
+`POST /connector/import { sourcePath, name? }` → a `media.import` job → upload, then
+`_landNewCard`. One wrinkle: the upload route fills `pixelDimensions` from `probeVideo`
+for a video but NOT for an image (the renderer normally measures those and posts
+`width`/`height`), so an image imported this way would land 0x0 unless the route reads it
+with sharp first. Documented as a limitation in
+`.claude/skills/cubric-vision-gif/SKILL.md` § Getting footage in.

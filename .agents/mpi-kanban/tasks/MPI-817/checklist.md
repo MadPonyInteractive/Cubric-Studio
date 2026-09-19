@@ -143,6 +143,17 @@ checklist; this one closes when all three phases do.
         ecosystem tops out at star 3,315 and Fabio's own line in the playbook is *"for Seedance,
         people do not touch the prompt without a skill."* Kling 3.0 is community-only. LTX 2.5's
         step 0 is already done, accidentally, and recorded.
+- [ ] **Phase E — the agent's four GIF tools** (Fabio, 2026-09-19, ready to build, nothing to
+      design). MPI-830 shipped `POST /connector/gif/{make,edit,cutout,to-video}` (08053cbb),
+      tested, landing real gallery cards through the renderer job channel. This is the tool
+      table over it in `services/agentTools.mjs` + `services/agentLoop.mjs`, plus the prompt
+      lines. Contract: `.claude/skills/cubric-vision-gif/SKILL.md`; the four traps the route
+      half already paid for are in `plan.md` § Phase E. **Closes on:** ask the agent, in
+      Fabio's own words, to turn a video card into a GIF and remove its background, and the
+      cards land.
+      - The knowledge index ALREADY carries the GIF skill (`agentCorpus` matches
+        `cubric-vision*` by prefix), so until this lands the model can read about GIFs it
+        has no tool to make. That asymmetry is why it should not sit.
 - [x] **Fabio's call (2026-09-19): the member cards STAY separate** — on the condition that they
       get picked up later or ride as phases of this umbrella. Neither is allowed to go quiet. Do
       not fold, close or merge them without asking him again.
@@ -212,11 +223,22 @@ Raised this pass, NOT built, nothing here goes quiet:
       `saveAttachment` takes JPEG/PNG/WebP only. For a clip ALREADY in the project,
       `list_cards` is the answer and needs no attaching; this item is about an OUTSIDE video.
       Probably MPI-797's territory (the agent box's own input).
-- [ ] **The agent offers a shape the model cannot make.** Source 768x1024 (3:4), H3 snapped
+- [x] **The agent offers a shape the model cannot make.** Source 768x1024 (3:4), H3 snapped
       it to 9:16, and the agent wrote "if you'd rather it keep the full 768x1024 framing, I
-      can adjust". It cannot: H3 has no 3:4. The snap message tells it the ratio it got and
-      not that the ratio was the NEAREST of a closed set. Fabio: "the way the agent explained
-      it is a bit weird". Look at the `snapped` message in `agentLoop.mjs` first.
+      can adjust". It cannot: H3 has no 3:4. Built 2026-09-19 (session 40e3efaf): the result
+      line names the op's WHOLE ratio list and says nothing outside it can be offered.
+      `validation.md` § FOURTH pass. Not live-seen: needs a restart and a 3:4 picture into H3.
+- [x] **`list_cards` LIVE (his fourth pass, 20:15Z): called, and the wrong card picked.**
+      "Looking through the project" + "Reading a card", no "I can't see the file" = the
+      stated pass. But "the last video you created" resolved to `i2v_006`'s frame, not
+      `i2v_007`'s: the rows had `i2v_007` on top, the agent then read its note
+      `duck-riding-pony.md`, whose variant list stopped one clip earlier. Cards rule now says
+      recency is the list order and a note never answers it. Not live-seen either.
+- [ ] **The `_post` fetch fix is STILL not live-proven.** His fourth-pass clip was 3 s =
+      ~193 s of render, under the 300 s limit. It needs a 6 s H3 clip (~337 s).
+- [ ] The agent's note said "Base image for ALL animations". A note that generalises from
+      two runs steers the third. Not built: the recency sentence is the smaller fix; if the
+      live re-run still follows the note, the Memory rule is next.
 - [ ] `services/llmEngines.mjs`: Ollama's 600 s budget rides the same `fetch`, so it is
       really 300 s. Its tests stub `global.fetch` - read `validation.md` § 2 before touching.
 - [ ] A refused `generate` still shows "Starting generation" in the step log, so a

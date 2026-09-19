@@ -16,6 +16,8 @@ dispatch bug are all that same question at different layers.
 Member cards stay where they are — this umbrella does not close, move or merge them. Which of the
 two the board keeps long-term is Fabio's call, asked once below.
 
+**MPI-830 is NOT a member** — it shipped the connector's GIF routes and closes on its own. Its in-app half is Phase D below, because the agent's files belong to this umbrella's session.
+
 ## Phases
 
 ### Phase A — MPI-816: the agent cannot fill a field it was never described (open)
@@ -46,6 +48,53 @@ See `.agents/mpi-kanban/tasks/MPI-774/plan.md` § Phase 7. **Phase A is evidence
 not a detour from it: a dispatch that fails four times while the agent reports success is exactly
 the reliability question Phase 7 exists to answer. The narration bug parked at the end of MPI-816's
 plan belongs to whichever of the two Fabio wants it in.
+
+### Phase D — model skill packs (open, in the checklist)
+
+Carried in full in `checklist.md` rather than here: vendor prompt packs for the shipped
+models, the two-hop progressive-disclosure shape Fabio set, and the re-judge of the
+2026-08-17 survey for the AGENT rather than the enhancer. Not repeated here.
+
+### Phase E — the agent's four GIF tools (open, ready to build)
+
+*Added 2026-09-19 on Fabio's instruction: the in-app agent's half of MPI-830 belongs to
+whoever is working in the agent's own files, not to the card that built the routes.*
+
+**Nothing to design and nothing to measure — the surface exists and is tested.** MPI-830
+shipped `POST /connector/gif/{make,edit,cutout,to-video}` (`routes/connectorGif.js`,
+`08053cbb`), landing real gallery cards through the renderer job channel. This phase is the
+tool table over it, in `services/agentTools.mjs` + `services/agentLoop.mjs`, plus the system
+prompt lines.
+
+| Tool | Body |
+|---|---|
+| `make_gif` | `{ itemIds: [>=2] }` or `{ videoItemId, fps, sizePreset?, loop?, trimIn?, trimOut? }` |
+| `edit_gif` | `{ itemId, fps?, loop?, trim?{in,out}, output?{colours,edgeColour,maxEdge}, resize?{width,height}, crop?{...} }` |
+| `cutout_gif` | `{ itemId, method: 'background'\|'name', prompt?, adjust?, invert? }` |
+| `gif_to_video` | `{ itemId, background? }` |
+
+Full contract, every error code and the traps: `.claude/skills/cubric-vision-gif/SKILL.md`.
+
+Four things the route half already learned, so this phase does not have to:
+
+1. **Item ids, not group ids, and only in the OPEN project.** The `_images` allowlist idiom
+   fits: a conversation reaches cards it made or was shown, nothing else.
+2. **They are AWAITED, unlike `generate`.** The ffmpeg verbs are seconds; `cutout` is a GPU
+   run (BiRefNet ~16 s for 30 frames, SAM3 longer). If that fights the one-turn-at-a-time
+   rule, fire-and-queue it the way `generate` is — the route answers in the connector
+   envelope either way.
+3. **The agent cannot judge a GIF.** `look` reads ONE still, so motion, flicker and pacing
+   are the user's eyes. That belongs in the honest-limits list, not left for the model to
+   discover.
+4. **The knowledge index already has it.** `services/agentCorpus.mjs` picks up
+   `.claude/skills/cubric-vision*` by prefix, so the model can already READ about GIFs it has
+   no tool to make. That asymmetry is the reason this phase should not sit long.
+
+Out of scope, exactly as for the routes (Fabio, 2026-09-19): By colour, SAM3 object chips,
+the Mask Brush, per-frame scope.
+
+**Verify:** ask the agent, in Fabio's own words, to turn a video card into a GIF and remove
+its background — and the cards land.
 
 ## Parallel Batch — Phase A and Phase B
 
