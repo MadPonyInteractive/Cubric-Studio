@@ -1209,6 +1209,35 @@ and every gizmo a Flow grows is another thing an agent has to drive blind. His l
   the budget BEFORE loading and report what actually happened afterwards, rather than asking for
   147 GB in one go and dying with an OOM that reads as the user's hardware being too small.
 
+- [ ] **Ollama's free CLOUD models may be the real answer to "let users run bigger models"** (peer
+  session `56b53dee` relaying Fabio, 2026-09-19 — **not yet confirmed by him to me directly, and
+  nothing has been run against his account**). His allowance page lists six covered by a resetting
+  free allowance at 0% used: `gemma4:31b`, `gpt-oss:120b`, `gpt-oss:20b`, `nemotron-3-nano:30b`,
+  `nemotron-3-super`, `nemotron-3-ultra`. The pay-as-you-go balance is $0 and is not needed for these.
+
+  The pull is that `gpt-oss:120b` and `nemotron-3-ultra` are bigger agent models than a user will run
+  locally, and they arrive with **no key in our app, no download, no new backend** — the existing
+  `ollama` preset and `OllamaEngine` already reach them through the signed-in local daemon. Most of
+  it is built.
+
+  Open, and all in this card's files:
+  - **Which of the six have `tools`** in `/api/show`. That gates agent eligibility, and six known ids
+    is a far easier surfacing problem than the open local catalogue. Check this BEFORE reading
+    anything into an empty `tool_calls` — a model with no tool support looks exactly like a dialect
+    failure.
+  - **The dialect itself on a CLOUD-served model:** `function.arguments` as an object vs a JSON
+    string, a call with no `id`, a result matched by `tool_name`. `fromOllamaToolCalls` converts all
+    three for local; cloud is unverified, and a silent mismatch runs every tool with empty arguments.
+  - **Context window.** `OLLAMA_AGENT_CONTEXT` is pinned at 32,768 and `_contextWindowFor` reports
+    it, so a cloud model offering more would be silently wasted.
+  - **`RECOMMENDED_REMOTE_MODELS` has no `ollama` key** (the picker item below), and that table is
+    what drives both the recommended-first ordering and the context window.
+  - **What a user with no signed-in daemon sees.** Sign-in happens in the Ollama app, not ours, so
+    the failure needs a message that points there.
+
+  The free list is volatile — Ollama has revised these quotas before, so re-read the page rather
+  than trusting a copy of it.
+
 - [x] **A chat call with no deadline reads as "stuck"** (Fabio, live, 2026-09-19). He asked the agent
   to animate an adult image; the panel sat on `LOOKING AT IMAGE` and never moved. The log says it
   exactly: `09:29:26 Agent job fe7aac93… agent.describe`, then **nothing at all** until he quit at
@@ -1361,6 +1390,40 @@ and every gizmo a Flow grows is another thing an agent has to drive blind. His l
   **Left for Fabio, because it is UI:** `create_project` uniquifies the FOLDER (`Cowgirls_2cbf44b0`)
   but not the NAME, so the projects list shows two identical "Cowgirls" with nothing to tell them
   apart. That is what made a working app look like it had lost his work.
+
+- [x] **BOTH live tests PASSED in Fabio's own app, 2026-09-19 09:45–10:00Z.** He handed the runs over
+  ("you know what the tests are, I'm going to leave it in your hands") and went to other work. Driven
+  over `POST /agent/message` on `:3000` — his key, his engine, his GPU, his exact wording — with
+  `GET /agent/stream` followed for every tool call. Model: `Qwen/Qwen3-VL-30B-A3B-Instruct`.
+
+  **Test 1, the four sisters** (MPI-816's closing condition, now ticked on that card):
+  `create_project → list_models → describe_model(character-sheet) → read_knowledge(guide:krea-2) →
+  write_memory → generate ×4 → look ×4`. Four cards landed, named *Eldest Sister — Leader*,
+  *Second Sister — Sharp-shooter*, *Third Sister — Tracker*, *Youngest Sister — Wildcard*; engine
+  times 47.4s / 33.8s / 33.2s / 33.3s, no error line. The first sheet was OPENED, not just logged:
+  front, back and portrait panels matching the note the agent wrote before generating. Every fix
+  from this session is visible in that one sequence — the create opened its project (`project.open`
+  4 ms after `created project`), the note landed in the right project, `describe_model` replaced the
+  fat catalogue, and the background in his message no longer turned a make-request into a brief.
+
+  **Test 2, animating an adult image** (his `inpaint_001.png`, 832×1024 PORTRAIT):
+  `look → describe_model(minimax-h3) → read_knowledge(guide:minimax-h3) → generate`, output
+  **768×1344 = 9:16**, 159s, with audio. The agent's own words: *"Ratio: I matched the source's
+  portrait shape with 9:16. Note that video generation will crop the original picture somewhat to
+  fill this framing."* — the ratio came from `_ratioForSource`, and the trimmed Shape rule warned
+  about a crop WITHOUT naming edges, which is exactly what Fabio asked for. The frame was checked:
+  the rider is framed from the front with her head intact, because a portrait source on a portrait
+  ratio crops the SIDES. The adult image went through the describer with no refusal and no hang.
+
+  **Two things worth keeping from the run:**
+  - On the first attempt I attached the wrong file (his app screenshot). The agent looked at it, said
+    *"this is not a horse and rider scene — it's a screenshot of an application interface"*, refused
+    to animate, and asked for the real picture. The Looking rule holding under a mistake is worth
+    more than a passing test.
+  - **My driving error, not the app's:** the video landed in `Cowgirl Sisters - Western 1876` rather
+    than `fanvue`, because a generation lands in whatever project the APP has open and I passed
+    `project` in the message body without calling `/connector/open-project` first. The skill already
+    says this. In the real app the renderer sends its own open project, so a user cannot hit it.
 
 - [x] **A make-request with BACKGROUND was read as "describing a project", and nothing was made**
   (Fabio, live, 2026-09-19 — the four-sisters run, which is MPI-816's closing test). He asked for four

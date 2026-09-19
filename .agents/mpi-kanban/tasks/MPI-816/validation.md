@@ -40,10 +40,49 @@ payload as an agent receives it.
 **Sweep.** Name every flow with a defaulted non-string declared field and confirm none depended on
 the old clobbering. A list, not an assurance.
 
-🔴 **The end-to-end verify, and it is the only one that closes this card.** Ask the agent, in
-Fabio's own words, for four character sheets of four sisters. **Four cards land.** A green unit
-suite with no image on screen is not a fix — the unit tests here all passed before the bug existed,
-because none of them exercised the agent path.
+✅ **The end-to-end verify — PASSED 2026-09-19, 09:45–09:48Z.** Ask the agent, in Fabio's own words,
+for four character sheets of four sisters. **Four cards landed.** A green unit suite with no image
+on screen is not a fix — the unit tests here all passed before the bug existed, because none of them
+exercised the agent path. This one did.
+
+**Where it ran.** Fabio's own app on `:3000`, his DeepInfra key, his engine, his GPU, after he handed
+the run over ("you know what the tests are, I'm going to leave it in your hands"). Driven over
+`POST /agent/message`, the same route the chat box uses, with his exact wording as the prompt.
+
+**The tool sequence** (`GET /agent/history`), which is the whole fix visible in one line:
+
+```
+create_project → list_models → describe_model(character-sheet)
+→ read_knowledge(guide:krea-2) → write_memory → generate ×4 → look ×4
+```
+
+`describe_model` is what Fix B became after the catalogue diet (MPI-774 Phase 7): the field specs it
+returns for `character-sheet` are exactly what this card added, now fetched for the one Flow the
+agent picked instead of shipped for all 21 models. Each `generate` carried
+`{Input_Recipe: 1, Input_Quality: 1, Input_is_Turbo: true, Input_Remove_Head: true}` — real declared
+values, no nulls, which is the failure this card existed to fix.
+
+**The four cards, from `project.json` after the run** (project `Cowgirl Sisters - Western 1876`,
+created and opened by the agent in the same turn):
+
+| card | `customName` | media |
+|---|---|---|
+| `flowCharacterSheet_001` | Eldest Sister — Leader | 1,754 KB |
+| `flowCharacterSheet_002` | Second Sister — Sharp-shooter | 1,762 KB |
+| `flowCharacterSheet_003` | Third Sister — Tracker | 1,917 KB |
+| `flowCharacterSheet_004` | Youngest Sister — Wildcard | 1,784 KB |
+
+Engine times 47.4s, 33.8s, 33.2s, 33.3s, all `Prompt executed`, no error line in `app.log`.
+
+**The image was opened, not just the log.** `flowCharacterSheet_001.png` is a real sheet — front,
+back and portrait panels — and it matches the note the agent wrote before generating: early thirties,
+near-black hair in a low practical braid, long duster over a leather vest, holster. The front view's
+face is masked grey because the Flow's own shipped default is `Input_Remove_Head: true`
+(`comfy_workflows/flow_character_sheet.json` node 737), which the agent passed rather than overrode.
+
+**Also cleared, same run:** the project note landed in the project the agent had just created, not in
+a neighbouring project of the same name (MPI-774 Phase 7, `create_project` now opens what it made),
+and the narration matched reality — four dispatches, four cards, nothing claimed that did not happen.
 
 ## Not to be confused with MPI-774 fix 8
 

@@ -30,8 +30,11 @@ Full reasoning, the log extract and both fixes located to the line: `plan.md`.
       field sent as `null` is omitted (and that `0`/`''` are not), and a new paragraph documents
       the self-describing field payload plus the trap that an option is chosen by its `v`, not its
       label.
-- [ ] **The end-to-end verify, and it is the only one that counts:** ask the agent, in Fabio's own
-      words, for four character sheets of four sisters. **Four cards land.** Needs his app and his
-      GPU — nothing an agent can substitute.
+- [x] **The end-to-end verify, and it is the only one that counts:** ask the agent, in Fabio's own
+      words, for four character sheets of four sisters. **Four cards land.**
+      **PASSED 2026-09-19 09:45–09:48Z, in Fabio's own app on his GPU** — he handed the run over
+      ("you know what the tests are, I'm going to leave it in your hands") and it was driven over
+      `POST /agent/message` on `:3000`, his DeepInfra key, his engine, his models. His exact words
+      were used as the prompt. Evidence in `validation.md`.
 - [ ] **Decide on the separate narration bug** (the agent reported four sheets as started after
       four dispatches had already failed). Fabio's call: here, or MPI-774 Phase 7, or its own card.
