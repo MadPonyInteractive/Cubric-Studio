@@ -745,7 +745,7 @@ Installation rule: Always call install_model to show the user a Yes / No confirm
 
 Project rule: a generation lands in the open project. Never invent a folder path: open_project only takes a folderPath from list_projects or create_project, or one the user typed. To open a project by name, find it with list_projects. With no project open: if the user asks for anything to be MADE, create a project named after what they are making (create_project opens it for you) and make it in that same turn — never ask them to open or create one first, that is your job. Background they give you (the story, the era, who the characters are) is material for the work, never a reason to stop: note what will matter later with write_memory, then still make what they asked for, all of it. Only when they describe a project and ask for NOTHING to be made do you end the turn by asking what they want first.
 
-Cards rule: the App state line lists only what this conversation has touched. The open project holds everything made before it, and list_cards reads it. When the user points at something already there ("the duck video", "the last one", "that picture", a card's name) and no ref for it is listed, call list_cards BEFORE telling them you cannot see it and before asking them to attach anything. Read one card in full when its prompt or settings matter: to redo it with a change, to continue it, or to work out what was made from what (madeFrom). What a card says it ran is the truth about that file; your own memory of a run is not. If a generation of yours reported a failure, check list_cards before you redo it: the file may have landed anyway, and a second run of the same thing wastes minutes of the user's GPU.
+Cards rule: the App state line lists only what this conversation has touched. The open project holds everything made before it, and list_cards reads it. When the user points at something already there ("the duck video", "the last one", "that picture", a card's name) and no ref for it is listed, call list_cards BEFORE telling them you cannot see it and before asking them to attach anything. Read one card in full when its prompt or settings matter: to redo it with a change, to continue it, or to work out what was made from what (madeFrom). What a card says it ran is the truth about that file; your own memory of a run is not. Which one is "the last", "the latest" or "the one before" is answered by the list's order, newest first, and it counts everything in the project: what the user made by hand, and what you made in a conversation you no longer remember. A project note never answers it: a note holds only what you chose to write down, and the newest card is often missing from it. If a generation of yours reported a failure, check list_cards before you redo it: the file may have landed anyway, and a second run of the same thing wastes minutes of the user's GPU.
 
 Docs rule: when you cannot answer a question about the app itself — a feature you have no tool for, a screen you cannot see, a setting you do not know — say so plainly and point them at the documentation as a markdown link, [the documentation](https://docs.cubric.studio). Offer it instead of guessing at how the app works. It is for questions about Vision, not for image or video advice, which is yours to answer.
 
@@ -896,10 +896,20 @@ ${knowledgeIndex}`.trim();
                 // shape rather than the project's last saved ratio, which has nothing to do with
                 // the picture. Said out loud in the result, or the model narrates a ratio it
                 // picked in its head (live: "the video will have a 9:16 aspect ratio").
-                let snapped = null;
+                //
+                // And it names the WHOLE list. Live (Fabio, 2026-09-19): a 768x1024 picture went to
+                // H3 on 9:16 and the agent wrote "if you'd rather keep the full 768x1024 framing I
+                // can adjust". H3 has no 3:4. "Taken from the picture's own shape" read as a
+                // choice among any shape, when it was the nearest of a closed set.
+                let snapNote = '';
                 if (!args.flowId && args.ratio === undefined && sourcePath && args.modelId && args.operation) {
-                    snapped = await this._ratioForSource(`${args.modelId}\n${args.operation}`, sourcePath);
-                    if (snapped) body.ratio = snapped;
+                    const opKey = `${args.modelId}\n${args.operation}`;
+                    const snapped = await this._ratioForSource(opKey, sourcePath);
+                    if (snapped) {
+                        body.ratio = snapped;
+                        const all = (this._ops.get(opKey)?.params?.ratios || []).join(', ');
+                        snapNote = ` Ratio ${snapped}: the nearest to the picture's shape of the only ratios this model makes (${all}). It cannot make the picture's own size or any ratio outside that list, so never offer one.`;
+                    }
                 }
 
                 // Fire, and wait only long enough to learn it was REFUSED.
@@ -995,12 +1005,12 @@ ${knowledgeIndex}`.trim();
                     // The filePath is the ref the next call passes as `media[].image` — it
                     // is already registered by `settle`, so the chain needs nothing else.
                     return JSON.stringify({ ok: true, output: r.output,
-                        message: `Finished. Use "${r.output?.filePath}" as the image for the next step.${snapped ? ` Ratio ${snapped}, taken from the picture's own shape.` : ''}` });
+                        message: `Finished. Use "${r.output?.filePath}" as the image for the next step.${snapNote}` });
                 }
 
                 pending.then(settle).catch(settleThrow);
 
-                return JSON.stringify({ ok: true, started: true, toolCallId, message: `Generation started. The result will appear in the chat when ready.${snapped ? ` Ratio ${snapped}, taken from the picture's own shape.` : ''}` });
+                return JSON.stringify({ ok: true, started: true, toolCallId, message: `Generation started. The result will appear in the chat when ready.${snapNote}` });
             }
             case 'look': {
                 const ref = this._resolveImage(args.image);

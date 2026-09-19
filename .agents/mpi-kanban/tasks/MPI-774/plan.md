@@ -2,6 +2,22 @@
 
 ## Current State
 
+**SESSION 40e3efaf (2026-09-19 late, from handoff d32b6a37). FABIO'S FOURTH PASS. CI green on
+1f3bd9fd. `list_cards` ran live: CALLED, no "I can't see the file" (the stated pass), and the
+WRONG CARD picked - "the last video" was answered from a project note whose list stopped one
+clip early, with the right clip sitting on row 1. Two edits in `services/agentLoop.mjs`: the
+Cards rule says recency is the list order and never a note; the ratio-snap result line names
+the op's whole ratio list. 150 agent tests, 0 fail, lint clean.
+THEN HIS FIFTH PASS, after a 20:46:47Z restart on that tree, and ALL THREE PASSED LIVE: the
+`_post` fetch fix (responses held 413 s and 638 s, both landed, no red line, no re-run),
+recency ("repeat the last video" named row 1, no note opened), and two snapped runs with no
+impossible framing offered. Evidence: `tasks/MPI-817/validation.md` § FOURTH + § FIFTH pass.
+NEXT: nothing is waiting on a restart. Smallest open faults, both narration, both on the
+MPI-817 checklist: "I'll let you know the actual length when it lands" (it cannot speak
+first), and a refused `generate` still showing "Starting generation". MPI-820 can close at
+the next end-session. Everything else open is Fabio's to decide (Phase 7 steps, the
+deliberation leak, MODEL_PINNED, injectionParams, the Prompt rule).**
+
 **SESSION a018e069 (2026-09-19 evening, from handoff 3839bdd9). FABIO'S THIRD PASS. 74be51fd
 RAN LIVE AND PASSED (outpaint to 9:16, chained into an H3 clip, his verdict 🎉), MPI-820's
 clip check has his eyes on BOTH halves, and three new faults came out of the same hour: two

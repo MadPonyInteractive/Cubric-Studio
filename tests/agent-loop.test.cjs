@@ -477,6 +477,19 @@ test('`wait` is declared on the generate tool, and the system prompt says when t
     assert.match(loop, /Chaining rule:/, 'a tool with no rule telling the agent when to use it is a tool it will not use');
 });
 
+/**
+ * Fabio, live 2026-09-19 20:15Z: "the same image you used for the last video". list_cards had
+ * the right clip on top (i2v_007, 19:43Z, the agent's own). It then read its project note,
+ * whose list of variants stopped one clip earlier, and built from THAT clip's frame. The rule
+ * ranked a card over memory for what RAN and said nothing about which one is LAST.
+ */
+test('the Cards rule says recency is the list order, never a note', () => {
+    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
+    const rule = loop.slice(loop.indexOf('Cards rule:'), loop.indexOf('\n', loop.indexOf('Cards rule:')));
+    assert.match(rule, /"the last".*list's order, newest first/);
+    assert.match(rule, /A project note never answers it/);
+});
+
 // ---------------------------------------------------------------------------
 // (e) image references: only this session's attachments and its own results
 // ---------------------------------------------------------------------------
@@ -1247,7 +1260,11 @@ describe('(i) the catalogue diet', () => {
 
         assert.equal(tools.calls.generate[0].ratio, '16:9', 'a wide picture never lands on a tall ratio');
         assert.match(toolResults(loop)[0].message, /Ratio 16:9/, 'the model is told, or it narrates one of its own');
+        // Live, same day: a 768x1024 picture, H3 on 9:16, and the agent offered to "keep the full
+        // 768x1024 framing". It was told the ratio it got and never that the set was closed.
+        assert.match(toolResults(loop)[0].message, /only ratios this model makes \(1:1, 9:16, 16:9, 21:9\)/, 'the whole list, or it offers a shape the model cannot make');
         assert.equal(tools.calls.generate[1].ratio, '9:16', 'a ratio the user asked for is never overridden');
+        assert.doesNotMatch(toolResults(loop)[1].message, /Ratio/, 'a ratio the user named needs no note');
     });
 
     test('describe_model gives one entry whole, model or Flow, and refuses an id it does not know', async () => {

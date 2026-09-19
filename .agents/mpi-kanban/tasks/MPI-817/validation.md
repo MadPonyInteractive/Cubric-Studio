@@ -379,3 +379,93 @@ tests; the agent actually CHOOSING to call `list_cards` is the part only a live 
   Actually the generation is async…"). Intermediate assistant content is rendered as it
   arrives. Either a prompt rule or a collapsed disclosure in the chat — his shape to pick,
   and the same argument as the two held items.
+
+---
+
+# FOURTH pass, 2026-09-19 20:15Z (session 40e3efaf) — `list_cards` live, and "the last one"
+
+CI first: the first master run containing `1f3bd9fd` (on `dce8c096`, run 35465610648)
+finished **success**, `tests: success`. It had reached origin on a peer's push without its
+own gate run.
+
+## `list_cards` ran in his app: called, and the wrong card picked
+
+His message, nothing attached: *"using the same image that you used for the last video that
+you created, can you instead make the duck look at the camera and say quack quack?"*
+
+Step log: Looking through the project → Reading a project note → Reading a card → Reading
+minimax-h3's settings → Reading: guide:minimax-h3 → Starting generation → Noted. No "I can't
+see the file". **That is the stated pass for `list_cards`.** `app.log` 20:15:12Z
+`agent.list-models`, 20:15:31Z `generation.submit` (job 3bfc8c86).
+
+His finding: it used the frame of the video BEFORE the last one. Ground truth, read off the
+sidecars by `createdAt` (their mtimes are useless: all rewritten 19:56Z by a peer's wave pass):
+
+| clip | createdAt | startFrame |
+|---|---|---|
+| `i2v_008` "Duck quack quack at camera", 3 s — THE RUN IN QUESTION, landed | 20:18:51Z | `a3a74166…png` = `i2v_006`'s frame, not `i2v_007`'s. His observation, confirmed on disk |
+| `i2v_007` "Duck looks at distant horse", 2 s, agent job bcb8ca73 | 19:43:13Z | `87bcbd82…png` (the solo duck) |
+| `i2v_006` "Duck pony runs", 6 s | 19:30:17Z | `a3a74166…png` (the outpainted duck-on-pony) |
+
+`listCards()` run read-only on his project returns `i2v_007` as ROW 1, so the route and the
+sort are right. The agent then read `Agent/duck-riding-pony.md`: *"Base image for all
+animations: … flowOutpaint_002.png"*, variants ending at "Duck pony runs". `i2v_007` is in no
+note. It answered "the last video" from the note and said so: *"the same frame from the last
+video (… that fed both Duck pony runs and this one)"*. The Cards rule ranked a card over
+memory for what RAN and said nothing about which one is LAST.
+
+**Fix:** one sentence pair in the Cards rule — "the last / the latest / the one before" is the
+list's order, newest first, counting what the user made by hand and what the agent made in a
+conversation it no longer remembers; a project note never answers it.
+
+## The ratio-snap narration
+
+The result line was `Ratio 9:16, taken from the picture's own shape.` It now reads
+`Ratio 9:16: the nearest to the picture's shape of the only ratios this model makes (<the
+op's list>). It cannot make the picture's own size or any ratio outside that list, so never
+offer one.` Built once (`snapNote`), used by both the started and the waited result.
+
+## Checks
+
+| Check | Result |
+|---|---|
+| `node --test tests/agent-*.test.cjs` | **150 tests, 149 pass, 0 fail, 1 skipped** |
+| `tests/agent-loop.test.cjs` | the snap case asserts the whole list is in the message and that a user-named ratio gets no note; a new case pins both Cards-rule sentences |
+| `npx eslint services/agentLoop.mjs tests/agent-loop.test.cjs` | clean |
+| Live Projects folder before/after the run | 48 → 48 |
+
+**SUPERSEDED by § FIFTH pass below — all three ran live after his 20:46:47Z restart.**
+Written before it: the recency sentence (re-ask "the same image
+as the last video" — pass is the frame of whatever row 1 is), the snap note (a 3:4 picture
+into H3, no offer of 768x1024), and **still the `_post` fetch fix**: this pass's clip was 3 s
+= ~193 s of render, under the 300 s limit. It needs a 6 s H3 clip (~337 s).
+
+---
+
+# FIFTH pass, 2026-09-19 20:48-21:02Z — all three ran live, on the uncommitted tree
+
+`app.log`: `Server started` **20:46:47Z**, after the edits above, so the restart loaded them
+(`services/` is served from the tree). Three asks, three `generation.submit`, no re-run:
+
+| submit | landed (sidecar `createdAt`) | response held | clip | startFrame |
+|---|---|---|---|---|
+| 20:48:26Z job 5b1a3a46 | 20:53:17Z `i2v_009` | **291 s** | 5 s "Duck quack quack at camera" again | `a3a74166…` = `i2v_008`'s |
+| 20:49:59Z job 977cf947 | 20:56:52Z `i2v_010` | **413 s** | 4 s "Duck unmounts pony" | `9e9e3301…` (attached: Duck riding a pony v2) |
+| 20:51:30Z job b7520db2 | 21:02:08Z `i2v_011` | **638 s** | 6 s "Duck unmounts pony Krea" | `52a6d66b…` (attached: Krea v3, 896x1088) |
+
+- **`_post` (node:http): PROVEN.** Two responses were held past Node fetch's 300 s headers
+  limit (413 s, 638 s — queue wait counts, the route holds for the whole job) and both came
+  back: his screenshot shows all three result thumbnails in the chat and no red `fetch
+  failed`. A loopback failure never reaches `app.log`, so the chat is the evidence, not the log.
+- **Recency: PASS.** "Can you repeat the last video but make it slightly longer" → Looking
+  through the project → Reading a card → it NAMED "Duck quack quack at camera" (`i2v_008`,
+  row 1), reused its frame and prompt, asked 5 s for 3. It did not open a note this time. The
+  frame alone would not discriminate (`i2v_006` shares it); the card name and the prompt do.
+- **Snap note: no bad offer.** Two portrait sources that H3 has no ratio for (896x1088) went
+  to 9:16 and neither narration offered another framing. The tool result itself is not
+  visible in the chat, so this is "the symptom did not recur in two runs", not a read of the line.
+- **Duration held:** "slightly longer" → 5 s, unasked → 4 s, "make sure it's 6 seconds" → 6 s,
+  and both long ones got an extra beat rather than an idle tail.
+
+Noticed, not built: *"I'll let you know the actual length when it lands"*, twice. It cannot —
+a result reaches the model at the start of the NEXT turn. On the checklist.

@@ -234,8 +234,18 @@ Raised this pass, NOT built, nothing here goes quiet:
       `i2v_007`'s: the rows had `i2v_007` on top, the agent then read its note
       `duck-riding-pony.md`, whose variant list stopped one clip earlier. Cards rule now says
       recency is the list order and a note never answers it. Not live-seen either.
-- [ ] **The `_post` fetch fix is STILL not live-proven.** His fourth-pass clip was 3 s =
-      ~193 s of render, under the 300 s limit. It needs a 6 s H3 clip (~337 s).
+- [x] **The `_post` fetch fix, LIVE (his fifth pass, after the 20:46:47Z restart).** Three
+      clips queued back to back; `/connector/generate` held its responses 291 s, 413 s and
+      638 s (submit -> sidecar `createdAt`), and all three landed in the chat with no red
+      line and no re-run (three asks, three `generation.submit`). `validation.md` § FIFTH pass.
+- [x] **Recency, LIVE, same pass:** "repeat the last video" -> Looking through the project ->
+      Reading a card -> it named and re-ran "Duck quack quack at camera" (`i2v_008`, row 1)
+      and never opened a note. Two snapped runs (896x1088 into H3) and no offer of a shape
+      H3 cannot make.
+- [ ] **"I'll let you know the actual length when it lands" is a promise it cannot keep**
+      (said twice in his fifth pass). A result reaches the model at the START of the next
+      turn, so it never speaks first. Narration only; belongs with the Duration rule's
+      "say I ASKED for N" sentence. Not built.
 - [ ] The agent's note said "Base image for ALL animations". A note that generalises from
       two runs steers the third. Not built: the recency sentence is the smaller fix; if the
       live re-run still follows the note, the Memory rule is next.

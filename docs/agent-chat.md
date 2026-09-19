@@ -209,7 +209,8 @@ Every event but `agent:session` also carries `session`, the key of its conversat
   orientation, nearest to the source. The prompt used to teach that arithmetic in 1,494 chars and the
   model never called `look`, so it had no size and put a landscape still on 9:16. It is 308 chars now
   and keeps only what the agent alone can do: when the USER named the ratio, say a crop is coming.
-  The result line reports the ratio it took, or the model narrates one of its own.
+  The result line reports the ratio it took AND the op's whole ratio list, or the model narrates one
+  of its own - or offers one the model cannot make (live: "keep the full 768x1024 framing", on H3).
 - **The catalogue is a POINTER list** (Phase 7). The route still answers in full; `compactCatalogue()`
   in `agentLoop.mjs` is what the MODEL sees: id, name, type, installed, ops with `rank`/`note`, and a
   model's one shared note said once instead of on every op. Everything a caller SETS — `params`,
