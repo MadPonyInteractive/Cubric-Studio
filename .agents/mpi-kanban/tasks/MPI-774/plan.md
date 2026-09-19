@@ -1005,8 +1005,11 @@ keyless connection that is NOT Ollama is still refused and spends nothing. Suite
    Ollama truncates from the FRONT, silently: the rules and tools go first. `OllamaEngine` already
    carries this trap for enhance (`num_ctx: 8192` on the native `/api/chat`). Forks: drive the
    agent through native `/api/chat` with `num_ctx` on the Ollama preset, or point the user at the
-   Ollama app's own context-length setting. NOT built, NOT live-tested — loading a 12B model
-   would have perturbed his fix 8 repro, which was running.
+   Ollama app's own context-length setting. **The native route is not free: `OllamaEngine.chat`
+   (`services/llmEngines.mjs:114`) sends no `tools` and returns no `toolCalls`** — it was written
+   for enhance, so it cannot carry an agent turn as it stands. That is the size of fork 1.
+   NOT built, NOT live-tested — loading a 12B model would have perturbed his fix 8 repro, which
+   was running.
 2. **Only a model with the `tools` capability can be the agent.** Read from `/api/show`, no model
    load: `huihui_ai/gemma-4-abliterated:12b` has it; `huihui_ai/gemma3-abliterated:12b` and
    `gemma3:12b` do NOT. The model picker lists all of them alike; Probe is what tells them apart.
