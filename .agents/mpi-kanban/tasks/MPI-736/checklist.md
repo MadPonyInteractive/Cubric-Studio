@@ -94,6 +94,13 @@ Derived from `plan.md` phase titles, 2026-09-18.
           against the real defect restored, then the file restored byte-identical.
     - [x] `npm test` 1432/1433 (1 skipped, 0 fail), eslint clean.
     - [x] **VERIFIED BY FABIO** (2026-09-19, live): *"nice one, looking good bro."*
+  - [ ] Round 9 — dialogs and pop-ups (2026-09-19) — **BUILT, awaiting Fabio's eye**
+    - [x] `MpiEnhanceDialog` + `MpiReusePromptDialog` → `data-accent="prompt"` on the root.
+    - [x] `MpiOpHelpDialog` → its op's accent, handed over by `getOpHelp().accent`.
+    - [x] `MpiMediaDropOverlay` — needs nothing, it is not portaled. `MpiChangelogDialog` cream.
+    - [x] The CSS "peer work" blocker was a CRLF phantom — empty diff, blob == HEAD.
+    - [x] `op-strip-availability.test.cjs` 24/24, accent-literal guard green, eslint clean.
+    - [ ] Fabio's live check; his call on the "?" guide — op colour or Prompt yellow.
   - [ ] Finish the sweep — the rule now lets US find surfaces instead of waiting for a
         screenshot. Survey in `validation.md` § Round 8.
   - [ ] 1c canvas constants land here (deferred from phase 1)

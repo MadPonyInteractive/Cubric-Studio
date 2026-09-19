@@ -436,3 +436,23 @@ on its own port, the user's `:3000` untouched. `eslint --max-warnings=0` clean o
 touched JS files. The suite's FIRST run failed twice in `gif-frames.test.cjs` on `mkdtemp
 ENOENT` for a missing `%TEMP%/cubric-tests` parent — environmental, not this change: that
 file is untouched, the disk had 161 GB free, and it ran 10/10 green on its own.
+
+## Round 9 — the dialogs (2026-09-19, awaiting Fabio's eye)
+
+**Built:** `MpiEnhanceDialog` and `MpiReusePromptDialog` carry `data-accent="prompt"` on
+their template root; `MpiOpHelpDialog` takes its op's accent from `getOpHelp().accent`
+(`cmd.mediaType`, `image` → `vision`, none → `studio`). No stylesheet changed.
+
+**Ran:** `node --test tests/op-strip-availability.test.cjs tests/accent-family-literals.test.cjs`
+→ 24/24. The new test asserts every op's accent is a value `01_base.css` declares, so a
+sixth media type cannot silently fall back to `:root`. `eslint --max-warnings=0` clean on
+the four JS files. Full `npm test` NOT re-run this round.
+
+**NOT verified in pixels.** No isolated instance was booted; the rebind is round 8's
+verified mechanism (`MpiSettings.js:194`, same attribute, same value). Fabio's reload is
+the check.
+
+**Two survey rows were wrong, both cheaper than recorded.** The `MpiEnhanceDialog.css`
+"peer work" is a line-ending phantom: `git diff` empty, filtered `hash-object` == HEAD blob
+`968ace43`, `ls-files --eol` reads `i/lf w/crlf`. And `MpiMediaDropOverlay` is not portaled
+(`el.appendChild` in both Blocks), so it already inherits the right colour and needs nothing.

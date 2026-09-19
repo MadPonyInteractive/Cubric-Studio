@@ -85,7 +85,43 @@ fixed. `tests/accent-family-literals.test.cjs` now fails repo-wide if any styles
 green, Reuse Prompt → yellow, the other six stay cream because they are about no media type.
 `npm test` 1432/1433, lint clean. Details and the survey: `validation.md` § Round 8.
 
-### Round 9 — THE DIALOGS AND POP-UPS (Fabio, 2026-09-19, next action)
+### Round 9 — BUILT, AWAITING FABIO'S EYE (2026-09-19, session 8abe87b4)
+
+Three dialogs now state their subject; NO stylesheet changed — every one already drew from
+`var(--accent-heat)`, so the attribute alone does it.
+
+- `MpiEnhanceDialog` + `MpiReusePromptDialog` → `data-accent="prompt"`, static, on the
+  template root (same form as `MpiSettings.js:152,194`).
+- `MpiOpHelpDialog` → dynamic. `getOpHelp()` now returns `accent` from the OP's own
+  `mediaType` and `open()` writes it to `el.dataset.accent`. Done that way, not at the
+  PromptBox call site, for two reasons: the op knows what it makes, and
+  `MpiPromptBox.js` is inside MPI-822's live claim. Tally: 22 vision, 14 video, 5 audio,
+  2 studio (`createGroupFromSelection`, `promoteToNewGroup` — no media type, correctly cream).
+- Guard: `tests/op-strip-availability.test.cjs` — every op's accent must be a value
+  `01_base.css` actually declares. 24/24, accent-literal guard green, eslint clean.
+
+**THE BLOCKER WAS A PHANTOM.** `MpiEnhanceDialog.css` shows `M` with an EMPTY diff:
+`git hash-object` (filtered) equals the HEAD blob `968ace43`; only the working copy's CRLF
+differs (`i/lf w/crlf`, `core.autocrlf=true`). No peer content exists in it, no claim names
+it, and round 9 never needed to touch it. Do not "coordinate" over it again.
+
+**`MpiMediaDropOverlay` needs NOTHING** — the survey row below is wrong. It is NOT
+body-portaled: both mounts append inside their Block (`MpiGalleryBlock.js:237`,
+`MpiGroupHistoryBlock.js:1546`), so it already inherits — cream in the gallery (several
+types), the group's colour in a workspace. `MpiChangelogDialog` stays cream by the rule.
+
+**Open fork for Fabio, one line either way:** the "?" guide is titled "How to prompt". It
+wears its OP's colour (plan's call). If he reads it as a surface about TEXT, it is
+`el.dataset.accent = 'prompt'` and `getOpHelp`'s `accent` field comes back out.
+
+NOT verified in pixels by the agent — no isolated instance was booted for three attributes;
+the `[data-accent="prompt"]` rebind itself is round 8's verified mechanism. Verify mode is
+`user-ux`: a renderer RELOAD picks the edits up, uncommitted.
+
+NEXT after his yes: commit the 5 files by pathspec, then `validation.md` § Round 8's survey
+— `MpiAudioPlayer`/`MpiWaveform` in a non-audio Flow, `MpiVoicePicker`, per-type media slots.
+
+### Round 9 — the original survey (Fabio, 2026-09-19)
 
 He named this closing round 8, with the Enhance Prompt dialog as the example: *"this pop-up
 should already be addressed by now, it should have the prompt colours."*

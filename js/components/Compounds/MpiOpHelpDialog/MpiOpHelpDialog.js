@@ -23,7 +23,7 @@ import { qs } from '../../../utils/dom.js';
  * Props: none (content arrives via open()).
  *
  * Instance methods (on instance.el):
- *   open({ title, body, examples, media }) — set content before showing
+ *   open({ title, body, examples, media, accent }) — set content before showing
  *   show() / hide()                        — delegate to MpiModal
  *
  * Emits: nothing. Closing is the only interaction.
@@ -93,7 +93,10 @@ export const MpiOpHelpDialog = ComponentFactory.create({
         };
 
         // ── open — rebuild content (idempotent across repeated calls) ──────────
-        el.open = ({ title, body, examples, media } = {}) => {
+        el.open = ({ title, body, examples, media, accent } = {}) => {
+            // The guide wears its op's colour, and must say so on ITSELF: MpiModal portals
+            // to document.body, so it inherits from :root, never from the PromptBox.
+            el.dataset.accent = accent || 'studio';
             titleEl.textContent = title || '';
             bodySlot.replaceChildren();
 

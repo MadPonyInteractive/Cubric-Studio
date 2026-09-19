@@ -38,7 +38,9 @@ export const MpiReusePromptDialog = ComponentFactory.create({
     css: ['js/components/Compounds/MpiReusePromptDialog/MpiReusePromptDialog.css'],
 
     template: () => `
-        <div class="mpi-reuse-prompt-dialog" role="dialog" aria-modal="true">
+        <!-- data-accent: about TEXT, so Prompt yellow — and set HERE because MpiModal
+             portals to document.body, which inherits from :root, not from the opener. -->
+        <div class="mpi-reuse-prompt-dialog" data-accent="prompt" role="dialog" aria-modal="true">
             <div class="mpi-reuse-prompt-dialog__head">
                 <h3 class="mpi-reuse-prompt-dialog__title">Reuse Prompt</h3>
             </div>

@@ -72,7 +72,10 @@ export const MpiEnhanceDialog = ComponentFactory.create({
     css: ['js/components/Compounds/MpiEnhanceDialog/MpiEnhanceDialog.css'],
 
     template: () => `
-        <div class="mpi-enhance-dialog" role="dialog" aria-modal="true">
+        <!-- data-accent: this dialog is about TEXT, so it is Prompt yellow (DESIGN.md § "The
+             rule"). It must say so on ITSELF — MpiModal portals to document.body, so it
+             inherits from :root and never from the workspace that opened it. -->
+        <div class="mpi-enhance-dialog" data-accent="prompt" role="dialog" aria-modal="true">
             <div class="mpi-enhance-dialog__head">
                 <h3 class="mpi-enhance-dialog__title">Enhance Prompt</h3>
             </div>

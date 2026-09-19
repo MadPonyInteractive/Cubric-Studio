@@ -143,6 +143,23 @@ test('getOpHelp merges a per-model override over the base instead of replacing i
     assert.strictEqual(sdxl.title, base.title, 'unspecified keys survive the merge');
 });
 
+// MPI-736 round 9: the guide portals to document.body, so it cannot inherit the PromptBox's
+// accent — getOpHelp hands it one. It must be a real [data-accent] value for EVERY op, or
+// the dialog silently falls back to whatever :root is.
+test('getOpHelp names a [data-accent] value for every op, by what the op makes', async () => {
+    const { getOpHelp, commands } = await import('../js/data/commandRegistry.js');
+    const css = require('node:fs').readFileSync(require('node:path').join(__dirname, '../styles/01_base.css'), 'utf8');
+    const declared = new Set([...css.matchAll(/\[data-accent="([a-z]+)"\]/g)].map(m => m[1]));
+
+    for (const key of Object.keys(commands)) {
+        const { accent } = getOpHelp(key);
+        assert.ok(declared.has(accent), `${key}: accent "${accent}" has no [data-accent] rule in 01_base.css`);
+    }
+    assert.strictEqual(getOpHelp('t2i').accent, 'vision', 'an image op is Vision rose, never the literal "image"');
+    const videoOp = Object.keys(commands).find(k => commands[k].mediaType === 'video');
+    assert.strictEqual(getOpHelp(videoOp).accent, 'video');
+});
+
 test('the inpaint guide teaches the empty prompt and warns off delete instructions', async () => {
     const { getOpHelp } = await import('../js/data/commandRegistry.js');
     const help = getOpHelp('inpaint');

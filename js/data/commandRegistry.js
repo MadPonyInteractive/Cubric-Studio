@@ -1996,7 +1996,7 @@ export function commandAllowsBranchingContinue(key, model = null) {
  *
  * @param {string} key                       Operation key (`inpaint`, `krea2Edit`, …)
  * @param {{id?:string, type?:string}|null} [model]
- * @returns {{title:string, body:string[], examples:Array<{prompt:string,note?:string,bad?:boolean}>, media:string[]}|null}
+ * @returns {{title:string, body:string[], examples:Array<{prompt:string,note?:string,bad?:boolean}>, media:string[], accent:string}|null}
  *          null only when the key is unknown.
  */
 export function getOpHelp(key, model = null) {
@@ -2028,6 +2028,10 @@ export function getOpHelp(key, model = null) {
         body,
         examples: help.examples || [],
         media: help.media || [],
+        // A `[data-accent]` value: the guide wears the colour of what its op MAKES. The
+        // dialog needs it handed over — it portals to document.body, so it cannot
+        // inherit the PromptBox's.
+        accent: cmd.mediaType === 'image' ? 'vision' : (cmd.mediaType || 'studio'),
     };
 }
 
