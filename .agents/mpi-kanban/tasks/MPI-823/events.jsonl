@@ -1,0 +1,4 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-823", "at": "2026-09-19T17:02:03+01:00", "actor": "claude", "column": "todo", "title": "Reuse Prompt: Use Video and Use Audio never survive a restart"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-823", "at": "2026-09-19T17:03:28+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio asked for the fix; files.json + checklist written"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-823", "at": "2026-09-19T17:05:51+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "video + audio round-trip through localStorage; test proven RED on pre-fix code; npm test 1410 pass 0 fail"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-823", "at": "2026-09-19T17:06:59+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "evidence recorded; waiting on CI to judge 79d68f3d before closing"}

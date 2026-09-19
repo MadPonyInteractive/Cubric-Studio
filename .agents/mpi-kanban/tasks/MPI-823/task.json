@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-823",
+  "title": "Reuse Prompt: Use Video and Use Audio never survive a restart",
+  "description": "normalizePromptReuseOptions() in js/core/storage.js only knows ask/prompt/settings/model/images, and it runs on the WRITE. The video and audio keys the Settings grid and the Reuse dialog both set are stripped before they reach localStorage, so unticking either reverts to ON at the next launch.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "done",
+  "created_at": "2026-09-19T17:02:03+01:00",
+  "updated_at": "2026-09-19T17:06:59+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

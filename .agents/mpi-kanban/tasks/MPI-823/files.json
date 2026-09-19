@@ -1,0 +1,8 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-823/",
+    "js/core/storage.js",
+    "tests/prompt-reuse-options-persist.test.cjs"
+  ]
+}

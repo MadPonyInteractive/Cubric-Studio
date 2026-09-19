@@ -5,12 +5,19 @@ import { STORAGE_KEYS, SESSION_KEYS } from './storageKeys.js';
 // `ask` defaults ON: Reuse Prompt opens the picker rather than silently carrying the
 // stored parts over. A store written before this flip still holds an explicit
 // `ask: false` and keeps the old behavior — only a fresh/corrupt store reads as ON.
+// Every key here must match `REUSE_PARTS` in MpiSettings (MPI-823): this runs on the
+// WRITE as well as the read, so a part missing from this list is stripped on its way
+// to localStorage and reads back as ON at the next launch. `video` and `audio` were
+// missing from MPI-227 until MPI-823 — unticking either worked all session and
+// silently reverted on restart.
 export const DEFAULT_PROMPT_REUSE_OPTIONS = Object.freeze({
   ask: true,
   prompt: true,
   settings: true,
   model: true,
   images: true,
+  video: true,
+  audio: true,
 });
 
 function normalizePromptReuseOptions(value = {}) {
@@ -21,6 +28,8 @@ function normalizePromptReuseOptions(value = {}) {
     settings: value?.settings !== false,
     model: value?.model !== false,
     images: value?.images !== false,
+    video: value?.video !== false,
+    audio: value?.audio !== false,
   };
 }
 
