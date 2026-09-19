@@ -30,7 +30,7 @@ import { loadProjectGrid, releaseProjectGrid } from './projectUI.js';
 import { Overlays } from '../managers/overlayManager.js';
 import { clientLogger } from '../services/clientLogger.js';
 import { remoteEngineClient } from '../services/remoteEngineClient.js';
-import { recordAudioIntoProject } from '../components/Compounds/MpiAudioRecorder/MpiAudioRecorder.js';
+import { recordAudioIntoProject } from '../components/Blocks/MpiAudioRecorder/MpiAudioRecorder.js';
 import { MpiGalleryToolbar } from '../components/Compounds/MpiGalleryToolbar/MpiGalleryToolbar.js';
 import { getEngine } from '../services/comfyController.js';
 

@@ -31,7 +31,16 @@ Derived from `plan.md` phase titles, 2026-09-18.
   - [x] `--ink-on-accent` born — there was no token for text ON an accent fill and
         `MpiButton.css` had stated the same literal four times.
   - [x] Record + volume slider → `--accent-audio`. Flows → their declared `mediaType`.
-  - [ ] Record-audio overlay: colours + swap the raw `<audio controls>` for `MpiAudioPlayer`
+  - [~] Round 6, implemented and awaiting Fabio's live pass:
+    - [x] Record-audio overlay colours → `--accent-audio`, rebound on `.mpi-audio-recorder`
+          so the mic button, meter and player all inherit it.
+    - [x] The raw `<audio controls>` swapped for `MpiAudioPlayer`. Forced
+          `MpiAudioRecorder` Compounds → **Blocks**: only Blocks may import an Organism,
+          and `--max-warnings=0` makes that red CI, not a nit. Fabio approved the move.
+    - [x] Gallery info + archive toggles off `variant: 'ghost'` — a ghost toggle shows its
+          state in colour alone, invisible now the accent is cream.
+    - [ ] `types.js:1587` still says `Compound` — inside MPI-771's live claim, messaged
+          (`bb5f6817`), NOT edited. **Drift until that lands.**
   - [ ] Finish the sweep — Fabio is still finding surfaces a round at a time
   - [ ] 1c canvas constants land here (deferred from phase 1)
 - [ ] Phase 5 — finish `DESIGN.md` (VT323 wordmark, single mascot) and rewrite `PRODUCT.md`

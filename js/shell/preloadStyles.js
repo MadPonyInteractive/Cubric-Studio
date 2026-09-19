@@ -42,7 +42,7 @@ export const PRELOAD_COMPONENT_STYLES = [
   'js/components/Compounds/MpiNotesEditor/MpiNotesEditor.css',
   'js/components/Compounds/MpiAddToProject/MpiAddToProject.css',
   'js/components/Compounds/MpiMediaPicker/MpiMediaPicker.css',
-  'js/components/Compounds/MpiAudioRecorder/MpiAudioRecorder.css',
+  'js/components/Blocks/MpiAudioRecorder/MpiAudioRecorder.css',
   'js/components/Compounds/MpiReusePromptDialog/MpiReusePromptDialog.css',
   'js/components/Compounds/MpiEnhanceDialog/MpiEnhanceDialog.css',
   'js/components/Compounds/MpiInstalledDisplay/MpiInstalledDisplay.css',

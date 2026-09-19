@@ -2,7 +2,8 @@ import { ComponentFactory } from '../../factory.js';
 import { MpiModal } from '../../Primitives/MpiModal/MpiModal.js';
 import { MpiButton, mountButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiLevelMeter, meterAnalyser } from '../../Primitives/MpiLevelMeter/MpiLevelMeter.js';
-import { qs, ce, on } from '../../../utils/dom.js';
+import { MpiAudioPlayer } from '../../Organisms/MpiAudioPlayer/MpiAudioPlayer.js';
+import { qs, on } from '../../../utils/dom.js';
 import { Storage } from '../../../core/storage.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { toWavFile } from '../../../utils/toWavFile.js';
@@ -45,7 +46,7 @@ import { Events } from '../../../events.js';
  */
 export const MpiAudioRecorder = ComponentFactory.create({
     name: 'MpiAudioRecorder',
-    css: ['js/components/Compounds/MpiAudioRecorder/MpiAudioRecorder.css'],
+    css: ['js/components/Blocks/MpiAudioRecorder/MpiAudioRecorder.css'],
 
     template: () => `
         <div class="mpi-audio-recorder" role="dialog" aria-modal="true" aria-label="Record audio">
@@ -75,7 +76,9 @@ export const MpiAudioRecorder = ComponentFactory.create({
         let _tick = 0;
         let _startedAt = 0;
         let _blob = null;
-        let _audioEl = null;
+        let _player = null;
+        let _playbackUrl = null;
+        let _recordedSecs = 0;
         let _state = 'idle';   // idle | recording | review
 
         // backdropClose stays ON here (unlike the licence gate): a click outside a
@@ -188,6 +191,10 @@ export const MpiAudioRecorder = ComponentFactory.create({
             _recorder.ondataavailable = (e) => { if (e.data.size) _chunks.push(e.data); };
             _recorder.onstop = () => {
                 _blob = new Blob(_chunks, { type: _recorder.mimeType || 'audio/webm' });
+                // The take's length, off the same clock the elapsed readout used. The
+                // player needs it: Chromium reports `Infinity` for a MediaRecorder WebM
+                // blob until it is seeked, so metadata alone would paint no duration.
+                _recordedSecs = (Date.now() - _startedAt) / 1000;
                 // Release HERE, not in _stop(). MediaRecorder delivers its last chunk
                 // and then onstop as queued tasks; tearing the graph down on a timer
                 // beside them races that queue and can clip the tail off the take.
@@ -217,18 +224,38 @@ export const MpiAudioRecorder = ComponentFactory.create({
             timeSlot.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
         }
 
+        /**
+         * Mount the review transport — our own player, never the browser's controls.
+         *
+         * A FRESH instance every time, because MpiAudioPlayer owns one <audio> whose
+         * `src` is set once and never re-pointed (MPI-727): Re-record has to destroy
+         * and re-mount, not swap the URL. No `mask` — a just-recorded take has no
+         * baked waveform, and a maskless player still scrubs. `hotkeys: false`: this
+         * is a modal whose buttons take focus, so SPACE on Accept would both press
+         * the button and toggle playback.
+         */
         function _buildPlayback() {
+            _dropPlayback();
+            _playbackUrl = URL.createObjectURL(_blob);
+            _player = MpiAudioPlayer.mount(document.createElement('div'), {
+                src: _playbackUrl, duration: _recordedSecs, hotkeys: false,
+            });
+            playSlot.appendChild(_player.el);
+        }
+
+        /** Tear the review transport down and let its blob go. Idempotent. */
+        function _dropPlayback() {
+            _player?.destroy();
+            _player = null;
+            if (_playbackUrl) URL.revokeObjectURL(_playbackUrl);
+            _playbackUrl = null;
             playSlot.textContent = '';
-            if (_audioEl?.src) URL.revokeObjectURL(_audioEl.src);
-            _audioEl = ce('audio', { src: URL.createObjectURL(_blob), controls: true });
-            playSlot.appendChild(_audioEl);
         }
 
         function _reset() {
             _releaseCapture();
-            if (_audioEl?.src) URL.revokeObjectURL(_audioEl.src);
-            _audioEl = null;
-            playSlot.textContent = '';
+            _dropPlayback();
+            _recordedSecs = 0;
             _blob = null;
             _chunks = [];
             _state = 'idle';
@@ -275,8 +302,7 @@ export const MpiAudioRecorder = ComponentFactory.create({
 
         el.destroy = () => {
             _releaseCapture();
-            if (_audioEl?.src) URL.revokeObjectURL(_audioEl.src);
-            _audioEl = null;
+            _dropPlayback();
             _unsubs.forEach(fn => fn());
             _unsubs.length = 0;
             discardBtn?.el?.destroy?.();

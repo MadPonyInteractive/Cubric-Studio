@@ -2,7 +2,16 @@
    Mic capture dialog. One big control in the middle, everything else quiet —
    the state is read off the button and the meter, not off labels. */
 
+/* MPI-736: the whole dialog is an AUDIO surface, so it wears Cubric Audio's green
+   rather than the shared cream it would otherwise inherit from :root (Fabio,
+   2026-09-19). Rebinding the token on the root is what carries it into the mic
+   button, the level meter and the mounted player, all of which read --accent-heat
+   and know nothing about this dialog; --accent-heat-hi is restated in the same rule
+   because a custom property bakes its var() where it is DECLARED. */
 .mpi-audio-recorder {
+    --accent-heat:    var(--accent-audio);
+    --accent-heat-hi: oklch(from var(--accent-heat) calc(l + 0.02) calc(c + 0.03) h);
+
     display: flex;
     flex-direction: column;
     gap: var(--s-3);
@@ -61,7 +70,9 @@
 
 .mpi-audio-recorder__playback { display: none; }
 .mpi-audio-recorder--review .mpi-audio-recorder__playback { display: block; }
-.mpi-audio-recorder__playback audio { width: 100%; }
+
+/* MpiAudioPlayer has no width of its own by design — the consumer sets it. */
+.mpi-audio-recorder__playback .mpi-audio-player { width: 100%; }
 
 .mpi-audio-recorder__hint {
     font-size: var(--t-sm);

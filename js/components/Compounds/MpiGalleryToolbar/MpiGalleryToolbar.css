@@ -70,10 +70,10 @@
 
 /* ── Archive scope toggle ────────────────────────────────────
    Loud on purpose (moved from the grid, MPI-678): the archive scope empties the grid,
-   and a quiet toggle would leave that reading as data loss. */
+   and a quiet toggle would leave that reading as data loss.
 
-.mpi-gallery-toolbar__archive.is-active {
-    color: var(--accent-heat);
-    background: color-mix(in oklch, var(--accent-heat) 18%, transparent);
-    box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--accent-heat) 45%, transparent);
-}
+   That loudness used to be stated HERE, because the button was `ghost` and a ghost
+   toggle shows its state in colour alone. It is an ordinary `secondary` toggle now
+   (MPI-736), so MpiButton's own active state — accent fill, black icon — is the loud
+   one, and it wins on specificity anyway (0,4,0 against this rule's 0,2,0). Restating
+   it here would be dead CSS. */

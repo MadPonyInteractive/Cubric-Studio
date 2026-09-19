@@ -35,7 +35,11 @@ rule exists because this session sampled the PNGs before checking, which is the 
 signed off across five rounds of live checks. The sweep is NOT finished — he is still
 finding surfaces a round at a time, which is the expected shape of this phase, not drift.
 
-Next action: the record-audio overlay (two jobs, `## Phase 3+4 — the sweep` below).
+**Round 6 is implemented and awaiting Fabio's eye** (2026-09-19): the record-audio
+overlay's two jobs and the gallery info toggle. `npm test` 1410/1411 (1 skipped), lint
+clean on every touched file, and the colours + player mount proved in a real browser.
+
+Next action: Fabio's live pass on the three surfaces — see `validation.md` § Round 6.
 
 ### What the sweep taught, and will teach again
 
@@ -58,6 +62,10 @@ theorising about a value:
 6. **Measure contrast off rendered pixels.** `getComputedStyle` returns `oklch(...)` and
    canvas `fillStyle` silently REJECTS oklch, returning `#000000` — every ratio comes back
    1.00:1 and looks like a bug in the CSS. Screenshot + sharp, sample the pixel.
+7. **A `ghost` icon button's toggled state is COLOUR ALONE** (`MpiButton.css:308-312`) —
+   no border, no fill. Against the shared cream that is invisible, and it reads as "the
+   accent is wrong" when the real answer is "this button should not be ghost". The
+   non-ghost toggle (`:276-280`) already fills with the accent and blackens the icon.
 
 ## The mechanism (already shipped, just not applied widely)
 
@@ -245,10 +253,41 @@ Surfaces that set it (Fabio, 2026-09-18):
 The existing `MpiAgentChat` / `MpiPromptBox --col--mode` rebinds to `--hub-accent` fold
 into the same block.
 
-## Phase 3+4 — the sweep (IN PROGRESS, this is the next action)
+## Phase 3+4 — the sweep (IN PROGRESS)
 
 Fabio walks the app and names surfaces a round at a time. Five rounds are done and
-signed off. **Two jobs are open, both on the record-audio overlay** (Fabio, 2026-09-19):
+signed off; round 6 is implemented and waiting on his eye.
+
+### Round 6 — DONE, awaiting Fabio (2026-09-19)
+
+Both overlay jobs below, plus the gallery **info toggle** he named mid-round: clicking it
+went studio cream, which is a hair off `--ink-2`, so on and off read the same.
+
+**The cause was the VARIANT, not the colour.** `MpiButton.css:308-312` — a `ghost` icon
+button's `is-active` is *colour alone*: transparent background, transparent border. That
+worked while the accent was rose and stopped working the moment the shared accent became
+cream. Both the info and archive toggles were `variant: 'ghost'`. Dropping it (→ the
+default `secondary`) gives them `MpiButton.css:276-280`, the treatment every other
+toggleable icon button in the app already has: bordered at rest, accent fill with a black
+icon when on. Archive's bespoke `.is-active` rule came out with it — it existed only to
+give a ghost button a loud state, and at 0,2,0 it would now lose silently to the
+primitive's 0,4,0. **A seventh structural cause for the list below.**
+
+**The overlay's player swap forced a TIER MOVE, Fabio's call.** `MpiAudioRecorder` was a
+Compound and `MpiAudioPlayer` is an Organism, which `mpi/no-same-tier-component-import`
+forbids — and `npm run lint` is `--max-warnings=0`, so it is red CI, not a nit. There is
+no cheaper rung: an Organism may not import an Organism either, and the player cannot drop
+to Compounds because a Compound importing a Compound is *also* blocked. Blocks is the only
+tier that may import an Organism, so the folder moved to
+`js/components/Blocks/MpiAudioRecorder/`. Same depth, so not one internal import changed.
+
+One line could NOT be written: `types.js:1587`'s typedef still says
+`(Compound — js/components/Compounds/MpiAudioRecorder)`. It sits inside MPI-771's live
+claim `e48d9b11`, so it was messaged (`bb5f6817`), not edited — the same shape this card
+already used for the Stop-button twin. Nothing tests it, so it is docs drift, not a red
+build.
+
+**Two jobs, both on the record-audio overlay** (Fabio, 2026-09-19):
 
 1. **Its colours are wrong — it should be AUDIO.** `MpiAudioRecorder.css:12,40,41` read
    `--accent-heat`, so on a shared surface the overlay renders Studio cream. Rebind the

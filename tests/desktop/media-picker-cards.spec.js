@@ -323,7 +323,7 @@ test('the mic and voice cards render only when the slot hands their components i
       const [{ MpiMediaPicker }, { MpiVoicePicker }, { recordAudioIntoProject }, { state }] = await Promise.all([
         import('/js/components/Compounds/MpiMediaPicker/MpiMediaPicker.js'),
         import('/js/components/Compounds/MpiVoicePicker/MpiVoicePicker.js'),
-        import('/js/components/Compounds/MpiAudioRecorder/MpiAudioRecorder.js'),
+        import('/js/components/Blocks/MpiAudioRecorder/MpiAudioRecorder.js'),
         import('/js/state.js'),
       ]);
       window.__pick?.el?.destroy?.();

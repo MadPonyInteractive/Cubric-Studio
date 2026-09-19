@@ -198,3 +198,46 @@ which `flowsRegistry.js` documents as "What the flow PRODUCES".
 **Open, and Fabio's call, asked three times and deliberately left alone:** the prompt box's
 trash button takes the model colour with the rest of the bar. The plan named "queue, stop"
 and not delete.
+
+## Round 6 — 2026-09-19 (implemented, awaiting Fabio's eye)
+
+Three surfaces: the record-audio overlay's colours, its player, and the gallery info toggle.
+
+### Proved in a real browser, not by reasoning
+
+A node server on :48123 serving the repo root plus a scratch probe page, driven by
+`playwright-cli`. The probe mounts the REAL `MpiAudioPlayer` inside a REAL
+`.mpi-audio-recorder`, then reads computed values:
+
+| read | value | means |
+|---|---|---|
+| `--accent-heat` on `.mpi-audio-recorder` | `oklch(0.84 0.11 170)` | audio green, not the cream |
+| `--accent-heat` at `:root`, same page | `oklch(0.78 0.028 80)` | the rebind is scoped, not a global change |
+| `--accent-heat-hi` on the dialog | `oklch(from oklch(0.84 0.11 170) …)` | the restatement baked the AUDIO base — the trap avoided |
+| `--accent-heat` on the mounted player | `oklch(0.84 0.11 170)` | the player inherits the dialog's rebind |
+| the player's time, before any metadata | `00:07` from `duration: 7.5` | the `duration` prop paints, which matters because Chromium reports `Infinity` for a MediaRecorder blob |
+| a toggled `secondary` icon button at `:root` | bg `oklch(0.78 0.028 80)`, color `oklch(0.16 0.02 0)`, border = bg | cream fill, black icon — Fabio's spec |
+| the same button UNtoggled | bg `surface-2`, border `ink-3` | bordered at rest, so on and off are distinguishable |
+
+### The tier move
+
+`MpiAudioRecorder` moved `Compounds/` → `Blocks/`, because mounting `MpiAudioPlayer` (an
+Organism) from a Compound is what `mpi/no-same-tier-component-import` forbids, and
+`--max-warnings=0` makes that red CI rather than a nit. Verified by hand, since
+`.claude/rules/components.md` warns that a wrong `css:` path passes lint AND `npm test`:
+all 12 relative imports inside the moved file resolve, and so do its own `css:` entry,
+`preloadStyles.js`, `navigation.js`, `MpiBaseFlow.js`, and the `media-picker-cards` spec's
+dynamic import.
+
+`npm test` 1410/1411 pass, 0 fail, 1 skipped — run before AND after the move. Lint clean on
+every touched file.
+
+**Shipping one inconsistency on purpose, again:** `types.js:1587` still calls the recorder a
+Compound and names its old path. That file is inside MPI-771's live claim `e48d9b11`
+(session active, 30-minute heartbeat), so it was messaged (`bb5f6817`) rather than edited.
+Nothing asserts that typedef, so it is docs drift, not a failing build.
+
+**Noticed, not actioned:** `resources/cubric/update-manifest.json` still lists the old
+`Compounds/MpiAudioRecorder` paths. It is a generated build artefact (`build-portable.mjs`)
+and currently carries 34k lines of a peer's uncommitted work, so it was left alone — the
+next portable build regenerates it.

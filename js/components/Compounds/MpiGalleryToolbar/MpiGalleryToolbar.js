@@ -89,10 +89,13 @@ export const MpiGalleryToolbar = ComponentFactory.create({
         const _archiveTip = (on) => on
             ? 'Showing the archive — back to the gallery'
             : 'Show archived cards';
+        // NOT `ghost` (MPI-736): a ghost icon button's toggled state is colour ALONE, and
+        // since --accent-heat became the shared cream that colour sits a hair off --ink-2 —
+        // on and off read the same. `secondary` is the app's ordinary toggle: bordered at
+        // rest, filled with the accent and black-iconed when on.
         const archiveBtn = MpiButton.mount(qs('.mpi-gallery-toolbar__archive-slot', el), {
-            icon: 'archive', size: 'sm', variant: 'ghost', toggleable: true,
+            icon: 'archive', size: 'sm', toggleable: true,
             active: _isArchived(), info: _archiveTip(_isArchived()),
-            extraClasses: 'mpi-gallery-toolbar__archive',
         });
         archiveBtn.on('click', () => {
             state.gallerySort = {
@@ -106,7 +109,7 @@ export const MpiGalleryToolbar = ComponentFactory.create({
             ? 'Hide card info — mouse over shows it (I)'
             : 'Show card info always — mouse over hides it (I)';
         const infoBtn = MpiButton.mount(qs('.mpi-gallery-toolbar__info-slot', el), {
-            icon: 'info', size: 'sm', variant: 'ghost', toggleable: true,
+            icon: 'info', size: 'sm', toggleable: true,
             active: state.galleryShowInfo, info: _infoTip(state.galleryShowInfo),
         });
         infoBtn.on('click', () => { state.galleryShowInfo = !state.galleryShowInfo; });

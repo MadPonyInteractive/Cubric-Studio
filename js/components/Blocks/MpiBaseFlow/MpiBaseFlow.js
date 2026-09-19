@@ -4,7 +4,7 @@ import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { MpiMediaPicker } from '../../Compounds/MpiMediaPicker/MpiMediaPicker.js';
 import { MpiVoicePicker } from '../../Compounds/MpiVoicePicker/MpiVoicePicker.js';
-import { recordAudioIntoProject } from '../../Compounds/MpiAudioRecorder/MpiAudioRecorder.js';
+import { recordAudioIntoProject } from '../MpiAudioRecorder/MpiAudioRecorder.js';
 import { MpiModelSettings } from '../../Compounds/MpiModelSettings/MpiModelSettings.js';
 import { MpiCompareView } from '../../Compounds/MpiCompareView/MpiCompareView.js';
 import { MpiVideoViewer } from '../../Organisms/MpiVideoViewer/MpiVideoViewer.js';

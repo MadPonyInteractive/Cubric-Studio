@@ -33,6 +33,13 @@
     "CLAUDE.md",
     "js/components/Compounds/MpiMaskDetectRow/MpiMaskDetectRow.js",
     "js/shell/navigation.js",
-    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js"
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+    "js/components/Blocks/MpiAudioRecorder/MpiAudioRecorder.js",
+    "js/components/Blocks/MpiAudioRecorder/MpiAudioRecorder.css",
+    "js/components/Compounds/MpiGalleryToolbar/MpiGalleryToolbar.js",
+    "js/components/Compounds/MpiGalleryToolbar/MpiGalleryToolbar.css",
+    "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js",
+    "js/shell/preloadStyles.js",
+    "tests/desktop/media-picker-cards.spec.js"
   ]
 }
