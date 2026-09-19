@@ -87,6 +87,26 @@ without a caption. This replaced a per-method `#tint-note` that said "stays" for
 2026-09-18). The mask itself stays white=KEEP internally, because `applyMaskAlpha` writes it
 straight into the alpha channel; the tint is the complement of whatever survives `Invert`.
 
+**And the MASK BRUSH follows it** (Fabio, 2026-09-19). The rule is the workspace's, not
+Cut-out's: with `Invert` off, Cut-out highlighted the background while the brush highlighted the
+subject, so the brush asked you to clean up the region you were not looking at. `MpiGifViewer`
+now owns the flip — Cut-out pushes `setMaskDisplayFlip(!invert)` on mount and on every change,
+and the brush renders `MpiCanvas`'s `displayComplement` (see [masking.md](masking.md)) rather
+than a flipped bitmap, so it still holds the REAL layers and saves them back untouched. Three
+things that are easy to get wrong here:
+
+- **Cut-out must NOT complement.** Its override is flipped already, and two flips are a no-op —
+  which is exactly the regression the first attempt shipped. `setCutoutPreview()` clears the
+  flag as well as `_editIdx`, because the mount runs before the first preview arrives and has
+  already taken the normal branch.
+- **Paint and erase SWAP under the complement.** The canvas paints the inverse of what is on
+  screen, so "Paint" is wired to the eraser and back. The strip's radio is untouched: from the
+  user's side it is still painting, and the stroke still grows the region under the cursor.
+- **The flip is decided per frame VISIT, and only when the frame already has a mask.** The
+  complement of nothing is the whole frame, so a brush used to paint a mask from scratch would
+  open on a solid sheet of tint; deciding it mid-stroke would be worse. The brush is mostly for
+  cleaning up a mask that exists, and that case gets the shared rule.
+
 ## The two tools — Cut-out and Mask Brush (MPI-771, plan Decision 14)
 
 A track is a STARTING POINT: object numbers need not stay the same object from frame to

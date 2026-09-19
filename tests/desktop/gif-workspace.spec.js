@@ -788,3 +788,139 @@ test('gif second pass: Shift ranges the strip, the mask toggles carry between to
     await closeApp(app);
   }
 });
+
+/**
+ * MPI-771, Fabio 2026-09-19: "I move to the mask brush ... and I'm presented with
+ * an inverted mask that is painting the character and not the background. Not
+ * okay."
+ *
+ * The workspace rule is that the highlight marks what DISAPPEARS. Cut-out obeyed
+ * it by handing the canvas an already-flipped bitmap; the Mask Brush drew the raw
+ * stored mask, so the same frame highlighted opposite regions in the two tools and
+ * the brush asked you to clean up the thing you were not looking at.
+ *
+ * The store still holds "what stays" - untouched. `MpiCanvas` gained a real
+ * COMPLEMENT display (`displayInverted` only ever recoloured the same region,
+ * which is why Cut-out had to flip the bitmap), the viewer owns the flag so both
+ * tools share it, and the brush swaps paint/erase so a stroke grows what you see.
+ *
+ * Asserted on the OVERLAY's alpha, per region, because that is the pixel the
+ * complaint is about - a flag or a button class would pass under the bug.
+ */
+test('gif mask display: Cut-out and the Mask Brush highlight the SAME region, and a brush stroke grows it', async ({}, testInfo) => {
+  const { app, window } = await launchApp(testInfo);
+  try {
+    await setupProject(window);
+    await window.evaluate(async () => {
+      const { navigate, PAGE_GROUP_HISTORY } = await import('/js/router.js');
+      navigate(PAGE_GROUP_HISTORY, { groupId: 'gGif' });
+    });
+    await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-frame-strip__thumb'))).toBe(true);
+
+    const openTool = (info) => window.evaluate((name) => {
+      document.querySelector(`.mpi-history-tools__btn[data-info="${name}"] button`).click();
+    }, info);
+    const canvasReady = () => expect.poll(() => window.evaluate(() => {
+      const cv = document.querySelector('.mpi-gif-viewer__edit .mpi-canvas');
+      return !!cv && cv.activeMode === 'mask';
+    }), { timeout: 15000 }).toBe(true);
+
+    // The stored mask is the middle DISC - "what stays", which is what a
+    // background-only colour key leaves behind.
+    const disc = await window.evaluate(() => {
+      const c = document.createElement('canvas');
+      c.width = c.height = 64;
+      const x = c.getContext('2d');
+      x.fillStyle = 'black'; x.fillRect(0, 0, 64, 64);
+      x.fillStyle = 'white'; x.beginPath(); x.arc(32, 32, 18, 0, Math.PI * 2); x.fill();
+      return c.toDataURL('image/png');
+    });
+    await window.evaluate((u) => {
+      document.querySelector('.mpi-gif-viewer').setTrackMasks([u, u, u, u, u]);
+    }, disc);
+
+    /** Which REGION carries the tint, read off the overlay the mask is drawn on. */
+    const tinted = () => window.evaluate(() => {
+      const cv = document.querySelector('.mpi-gif-viewer__edit .mpi-canvas');
+      const ov = cv.querySelector('canvas[data-role="overlay"]');
+      const c = ov.getContext('2d');
+      const a = (x, y) => c.getImageData(x, y, 1, 1).data[3] > 40;
+      return {
+        disc: a(Math.round(ov.width / 2), Math.round(ov.height / 2)),
+        background: a(Math.round(ov.width * 0.06), Math.round(ov.height * 0.06)),
+      };
+    });
+
+    // ── Invert OFF: the highlight is what GOES, so it is the BACKGROUND ──
+    await openTool('Cut-out');
+    await canvasReady();
+    await expect.poll(tinted, { timeout: 10000 })
+      .toEqual({ disc: false, background: true });
+
+    await openTool('Mask Brush');
+    await canvasReady();
+    await expect.poll(tinted, 'the brush must highlight the SAME region Cut-out does', { timeout: 10000 })
+      .toEqual({ disc: false, background: true });
+
+    // ── A stroke GROWS what you can see ──────────────────────────────────
+    // Under the complement the canvas paints the inverse of the display, so the
+    // viewer swaps brush/eraser: "Paint" must still add tint under the cursor.
+    // Dead centre starts untinted (it is the disc, what stays).
+    await window.evaluate(() => document.querySelector('.mpi-gif-viewer__edit .mpi-canvas').setBrushSize(24));
+    // From the canvas's OWN image size - the fixture frame is 32x32, and a
+    // hardcoded 64-space coordinate lands off the image entirely.
+    const centre = await window.evaluate(() => {
+      const cv = document.querySelector('.mpi-gif-viewer__edit .mpi-canvas');
+      const r = cv.getBoundingClientRect();
+      const ov = cv.querySelector('canvas[data-role="overlay"]');
+      return {
+        x: r.left + cv.offsetX + (ov.width / 2) * cv.scale,
+        y: r.top + cv.offsetY + (ov.height / 2) * cv.scale,
+      };
+    });
+    await window.mouse.move(centre.x, centre.y);
+    await window.mouse.down();
+    await window.mouse.move(centre.x + 2, centre.y);
+    await window.mouse.up();
+    await expect.poll(tinted, 'a Paint stroke must ADD tint where the cursor was', { timeout: 10000 })
+      .toEqual({ disc: true, background: true });
+
+    // ...and it must reach the STORE the right way round: the cut keeps white, so
+    // the painted centre has to come back BLACK - dropped, not kept.
+    const centrePixel = await window.evaluate(async () => {
+      const url = await document.querySelector('.mpi-gif-viewer').getFrameMaskURL(0);
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      return c.getContext('2d').getImageData(Math.round(c.width / 2), Math.round(c.height / 2), 1, 1).data[0];
+    });
+    expect(centrePixel, 'painting over what you see must DROP that area from the cut').toBeLessThan(128);
+
+    // ── Invert ON: the cut keeps the other side, so the highlight moves ──
+    // Re-seed first: the stroke above deliberately punched the disc's middle out,
+    // and sampling dead centre of a ring would say "no tint" for the wrong reason.
+    await window.evaluate((u) => {
+      const v = document.querySelector('.mpi-gif-viewer');
+      v.clearFrameMasks('all');
+      v.setTrackMasks([u, u, u, u, u]);
+    }, disc);
+    await openTool('Cut-out');
+    await canvasReady();
+    await window.evaluate(() => {
+      const slot = document.querySelector('#invert-slot');
+      (slot.querySelector('input[type="checkbox"]') || slot.firstElementChild).click();
+    });
+    await expect.poll(tinted, { timeout: 10000 })
+      .toEqual({ disc: true, background: false });
+
+    await openTool('Mask Brush');
+    await canvasReady();
+    await expect.poll(tinted, 'and the brush still follows it', { timeout: 10000 })
+      .toEqual({ disc: true, background: false });
+  } finally {
+    await closeApp(app);
+  }
+});

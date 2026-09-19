@@ -18,9 +18,11 @@ SECOND pass — five more items — is now built too, under
 [## Remaining Work](#remaining-work) → "Fabio's SECOND pass", each marked DONE with what it
 cost.
 
+**Fabio's THIRD pass is also built** — double-click back to fit in Cut-out, and the Mask Brush
+now highlights the SAME region Cut-out does. See
+[## Remaining Work](#remaining-work) → "Fabio's THIRD pass".
+
 **THE ONLY THING LEFT IS FABIO'S EYE PASS ON THE WHOLE WORKSPACE.** Nothing closes before it.
-He has not yet looked at Cut-out's strip, the new `Mask Preview` section, the output preview,
-Shift-select on the frame strip, or Space playing in Cut-out.
 
 Four of the five carry a spec that was PROVEN RED on the pre-fix file before it was believed
 (`gif-workspace.spec.js` → "gif second pass"); the fifth is panel order and is his to judge.
@@ -572,6 +574,39 @@ needs evidence, recorded in `## Plan Drift`.
   `operation_registry.json` and release notes come from `/mpi-version-bump` (docs/versioning.md:200).
 
 ## Remaining Work
+
+### 2026-09-19 (later) — Fabio's THIRD pass. BOTH BUILT.
+
+He checked the second pass in the app: *"the mask invert toggle does not carry between tools
+yet. Space now plays in cutout mode, but double-clicking the canvas does not snap the canvas
+back to its normal size. Everything else looks okay."*
+
+1. **Double-click did not snap the view back in Cut-out. BUILT.** Same root cause as Space, one
+   gate further along: `InputController`'s `dblclick` was gated on `!mask.isMaskingMode`, so ANY
+   mask mode kept the gesture — including one that never paints. Gated on `mask.paintEnabled`
+   now. This also reaches the image workspace's brushless mask tools (Detect, Points, Text,
+   Adjust, Composite), which could not double-click to fit either; same argument, and it is
+   wider than this card, so it is called out in the commit.
+2. **The mask display did not match between the tools. BUILT — and it was NOT what the words
+   said.** The toggle DOES carry: opacity, `inverted` and `bwView` are identical in both tools,
+   measured on the canvas in all four directions. What did not carry is the PICTURE. The store
+   holds "what stays"; Cut-out displays `255 - alpha` so the highlight marks what GOES (his rule,
+   2026-09-18); the Mask Brush displayed the raw mask. Same frame, opposite regions — so the
+   brush asked him to clean up the thing he was not looking at.
+   **Fix:** `MpiCanvas` gained `displayComplement`, the primitive that was missing all along
+   (`displayInverted` only ever RECOLOURED the same region, which is the documented reason
+   Cut-out had to flip its bitmap). `MpiGifViewer` owns the flag so both tools share it, and
+   swaps paint/erase under it so a stroke still grows what the user sees. The STORE is untouched
+   — the brush keeps its real layers and saves them back unchanged, which is what kept this
+   clear of the `_editIdx` trap that reddened master earlier today.
+   **Three traps, all hit once:**
+   - Cut-out must NOT complement — its override is flipped already and two flips cancel. The
+     first attempt shipped exactly that regression and it was caught by measuring, not reading.
+     `setCutoutPreview()` clears the flag for the same reason it clears `_editIdx`.
+   - The flip is decided per frame VISIT and only when the frame ALREADY has a mask: the
+     complement of nothing is the whole frame.
+   - Paint/erase swap, or the stroke shrinks what the cursor is over.
+
 
 ### 2026-09-19 (late) — Fabio's SECOND pass on the finished workspace. ALL FIVE ARE BUILT.
 

@@ -146,6 +146,14 @@ export class MaskManager {
         // Display-only inversion: swaps the visible overlay color without
         // touching the underlying mask data. Used by viewer.draw() / getURL().
         this.displayInverted = false;
+        // Display-only COMPLEMENT (MPI-771): highlight everything the mask does
+        // NOT cover. `displayInverted` only recolours the same region, which is
+        // why the GIF Cut-out had to hand the canvas an already-flipped bitmap to
+        // obey "the highlight marks what disappears". This is that, as a display
+        // flag, so a tool showing the complement still holds the REAL layers and
+        // saves them back unchanged. Data is never touched; every export reads
+        // `maskCanvas`.
+        this.displayComplement = false;
         // Display-only black-and-white view (MPI-381): the mask alone, opaque,
         // on a flat background instead of a translucent tint over the image —
         // how a user finds the stray specks a detection leaves behind.

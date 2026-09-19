@@ -203,6 +203,9 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         let _grow = Math.max(-MAX_R, Math.min(MAX_R, Math.round(Number(settings.grow) || 0)));
         let _fillHoles = settings.fillHoles === true;
         let _invert = settings.invert === true;
+        // Push it once at mount too: the brush must inherit the CURRENT state even
+        // if the user never touches the checkbox this visit.
+        viewer.el.setMaskDisplayFlip?.(!_invert);
         let _destroyed = false;
         const _save = (key, value) => Events.emit('settings:tool:update', { toolKey: 'gifCutout', key, value });
 
@@ -498,7 +501,16 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         const invertChip = MpiCheckbox.mount(qs('#invert-slot', el), {
             checked: _invert, label: 'Invert', name: 'gif-cutout-invert', variant: 'switch',
         });
-        invertChip.on('change', ({ checked }) => { _invert = checked; _save('invert', checked); _updateCurrentTint(); });
+        invertChip.on('change', ({ checked }) => {
+            _invert = checked;
+            _save('invert', checked);
+            // The Mask Brush has to show the SAME region this panel shows, or it asks
+            // you to clean up the thing you are not looking at (Fabio, 2026-09-19).
+            // Same `flip` the tint uses; the viewer applies it on the brush's next
+            // frame load. See `_updateCurrentTint`.
+            viewer.el.setMaskDisplayFlip?.(!checked);
+            _updateCurrentTint();
+        });
         _children.push(invertChip);
 
         // ── Cut out ──────────────────────────────────────────────────────────

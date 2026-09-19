@@ -577,3 +577,43 @@ carried `5f96c76d` up with it, so nothing here was pushed around the red.
 One thing worth keeping: **`gif-workspace.spec.js:369` appeared in the first red run and was a
 FLAKE** - it failed once and passed on retry #1, and the next run has it green. It is not a
 second bug hiding under the agent-chat one.
+
+## 2026-09-19 - Fabio's THIRD pass (session `5e86d76c`)
+
+Two items, both built, both guarded.
+
+**1. Double-click back to fit.** `InputController`'s dblclick was gated on `!mask.isMaskingMode`
+- the same too-broad gate Space had. A mask mode that does not paint (`brush: false`) leaves the
+pointer to the view, so the gesture is the view's. Now gated on `mask.paintEnabled`. Wider than
+this card: the image workspace's Detect / Points / Text / Adjust / Composite could not
+double-click to fit either, and now can.
+
+**2. The mask display.** Worth recording that THE REPORTED SYMPTOM WAS NOT THE BUG. "The invert
+toggle does not carry" is false - `opacity`, `inverted` and `bwView` are identical across the
+tool switch, measured on the canvas, in all four directions, with and without a mask present.
+What does not carry is the picture: the store holds "what stays", Cut-out displays `255 - alpha`
+so the highlight marks what GOES (Fabio's own rule, 2026-09-18), and the Mask Brush displayed the
+raw mask. Same frame, complementary regions.
+
+The fix is a missing PRIMITIVE, not a patch on either tool: `MpiCanvas.displayComplement` draws
+the same layers inside-out. `displayInverted` only ever recoloured the mask region black, which
+is precisely why Cut-out had to be given a pre-flipped bitmap and why nothing could be painted on
+top of it. `MpiGifViewer` owns the flag so both tools share it, and swaps paint/erase under it so
+a stroke grows the region under the cursor. **The store is untouched** - the brush still holds
+its real manual/subtract layers and saves them back unchanged, which is what keeps this clear of
+the `_editIdx` trap that reddened master earlier today.
+
+**Measured, not eyeballed.** Two screenshot passes were inconclusive because the fixture colours
+washed out; the answer came from sampling the overlay's alpha per region. That is also what
+caught a regression the first attempt shipped: Cut-out complementing its already-flipped override
+and landing back on what stays. Reading the code would not have found it.
+
+| Reverted to HEAD | The assertion that failed |
+|---|---|
+| `InputController.js` | double-click: the scale stayed at 51 |
+| viewer + canvas + mask manager + cut-out panel | `the brush must highlight the SAME region Cut-out does` - brush `{disc:true}`, Cut-out `{background:true}` |
+
+**Automated:** `lint:components` clean; `node --test "tests/*.test.cjs"` 1419 pass / 0 fail; full
+desktop suite 134 passed / 4 failed - three the known peer frame-store bug (gif-cutout:446, gif-timing:73, gif-transform:56) and the fourth a live peer's in-flight uncommitted gallery work (claim 3f8e2d51 holds MpiGalleryGrid + gallery-filter-panel.spec.js; it passes in isolation).
+
+**STILL OPEN: Fabio's eye pass on the whole workspace.** Nothing here closes without it.

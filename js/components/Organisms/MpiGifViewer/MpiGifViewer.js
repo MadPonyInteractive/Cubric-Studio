@@ -195,6 +195,23 @@ export const MpiGifViewer = ComponentFactory.create({
          * override back into the store.
          */
         let _cutoutPreview = null;
+        /**
+         * MPI-771 (Fabio, 2026-09-19): the WORKSPACE rule is "the highlight marks
+         * what disappears", and Cut-out obeys it by handing the canvas an
+         * already-flipped bitmap. The Mask Brush showed the raw stored mask, so the
+         * same frame highlighted opposite regions in the two tools and the brush
+         * asked you to clean up the thing you were not looking at.
+         *
+         * The store still holds "what stays" — this is the display translation,
+         * owned HERE so both tools share it instead of only Cut-out having it.
+         * Cut-out pushes `!invert`; the brush renders the complement and swaps its
+         * paint/erase so a Paint stroke GROWS what you can see.
+         */
+        let _maskFlip = false;
+        /** Whether THIS frame visit is showing the complement (decided at load). */
+        let _flipActive = false;
+        /** What the strip last asked for, before any swap. */
+        let _brushModeWanted = 'brush';
         /** Mask Brush / Crop surface (MPI-771, MPI-773) — mounted only while the tool is up. */
         let _canvas = null;
         let _editing = false;
@@ -607,6 +624,10 @@ export const MpiGifViewer = ComponentFactory.create({
                 // canvas as read-only, and the panel repaints through
                 // `onMasksChange` -> `setCutoutPreview()` anyway.
                 if (_cutoutPreview !== null) {
+                    // Cut-out's bitmap is flipped ALREADY — complementing it again
+                    // would put the highlight back on what stays.
+                    cv.setMaskDisplayComplement(false);
+                    _flipActive = false;
                     await cv.setMaskBase(_cutoutPreview);
                     if (token !== _editToken) return;
                     cv.activeMode = 'mask';
@@ -614,10 +635,21 @@ export const MpiGifViewer = ComponentFactory.create({
                     return;
                 }
                 const edits = _masks.edits.get(idx);
-                await cv.setMaskBase(_masks.track.get(idx) || null);
+                const base = _masks.track.get(idx) || null;
+                // Decided ONCE per frame visit, and only when the frame ALREADY has
+                // a mask: the complement of nothing is the whole frame, so a brush
+                // used to paint a mask from scratch would open on a solid sheet of
+                // tint. Fixing it mid-stroke would be worse — the picture would
+                // invert under the cursor on the first dab. The brush is mostly for
+                // cleaning up a mask that exists (Fabio, 2026-09-19); that case gets
+                // the shared rule, the from-scratch case stays plain.
+                _flipActive = _maskFlip && !!(base || edits?.manual || edits?.composed);
+                cv.setMaskDisplayComplement(_flipActive);
+                await cv.setMaskBase(base);
                 if (edits?.manual) await cv.setManualFromDataURL(edits.manual);
                 if (edits?.subtract) await cv.setSubtractFromDataURL(edits.subtract);
                 if (token !== _editToken) return;
+                _applyBrushMode();
                 // loadImage() drops every mode; arm painting once the layers are in.
                 cv.activeMode = 'mask';
                 _editIdx = idx;
@@ -664,7 +696,14 @@ export const MpiGifViewer = ComponentFactory.create({
             frameWrap.hidden = false;
             // Same bitmap the canvas was showing, so play/pause never changes what
             // the highlight means — Cut-out's flipped preview stays flipped.
-            if (_editKind === 'mask') _setTint(_cutoutPreview ?? _masks.overlayAt(_index), true);
+            if (_editKind === 'mask') {
+                // Play must not change what the highlight means. Cut-out's override is
+                // already flipped; the brush under the complement asks the canvas for
+                // the same composition with the colours swapped — white ground, black
+                // mask — which IS the complement once `--luma` reads it.
+                const flipped = _flipActive ? _canvas?.el.getMaskDataURL('white', 'black') : null;
+                _setTint(_cutoutPreview ?? flipped ?? _masks.overlayAt(_index), true);
+            }
         }
 
         function _showEditCanvas() {
@@ -680,6 +719,9 @@ export const MpiGifViewer = ComponentFactory.create({
             // The override belongs to the tool that set it. Leaving Cut-out with it
             // still on would show the Mask Brush a flipped mask on its next mount.
             _cutoutPreview = null;
+            // `_maskFlip` is the workspace's rule and SURVIVES the tool switch —
+            // that is the whole point. Only this visit's applied state resets.
+            _flipActive = false;
             _saveEdit();
             _editToken++;
             _brushSize = _canvas?.el.brushSize ?? _brushSize;
@@ -728,8 +770,27 @@ export const MpiGifViewer = ComponentFactory.create({
 
         // The MpiMaskStrip surface (`dest: 'mask'`), forwarded to the canvas.
         el.setMaskBrushMode = (mode) => {
-            if (mode === 'brush' || mode === 'eraser') _canvas?.el.setBrushType(mode);
+            if (mode !== 'brush' && mode !== 'eraser') return;
+            _brushModeWanted = mode;
+            _applyBrushMode();
         };
+        /**
+         * Under the complement, what the user SEES is the inverse of the layer the
+         * canvas paints, so Paint must erase and Erase must paint for a stroke to
+         * grow the region under the cursor. The strip's radio is untouched — it
+         * still says Paint — because from the user's side it IS painting.
+         */
+        function _applyBrushMode() {
+            const swap = _flipActive && _brushModeWanted === 'brush' ? 'eraser'
+                : _flipActive && _brushModeWanted === 'eraser' ? 'brush'
+                    : _brushModeWanted;
+            _canvas?.el.setBrushType(swap);
+        }
+        /** Cut-out pushes `!invert`; the brush inherits it on its next frame load. */
+        el.setMaskDisplayFlip = (v) => {
+            _maskFlip = !!v;
+        };
+        el.isMaskDisplayFlipped = () => _flipActive;
         el.setMaskBrushPreset  = (id) => _canvas?.el.setBrushPreset(id);
         el.setMaskInverted     = (v) => _canvas?.el.setMaskInverted(v);
         el.isMaskInverted      = () => !!_canvas?.el.isMaskInverted();
@@ -773,6 +834,15 @@ export const MpiGifViewer = ComponentFactory.create({
             // and claimed `_editIdx`. Leaving it claimed is what let a landing
             // track save empty brush layers over a real fix.
             if (_cutoutPreview !== null) _editIdx = -1;
+            // ...and it is ALREADY FLIPPED, so the complement must come off or the
+            // two cancel and Cut-out lands back on what stays. Same reason as
+            // `_editIdx`: the mount ran before the first preview arrived and took
+            // the normal branch, which had armed the complement.
+            if (_cutoutPreview !== null && _flipActive) {
+                _flipActive = false;
+                _canvas?.el.setMaskDisplayComplement(false);
+                _applyBrushMode();
+            }
             // Playing: the canvas is hidden behind the frame-wrap, so the tint is
             // what is on screen. `false` = an alpha mask, not an opaque B/W one.
             if (editSlot.classList.contains('mpi-gif-viewer__edit--playing')) {

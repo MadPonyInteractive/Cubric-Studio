@@ -99,7 +99,8 @@ differing ASPECT distorts.
 Order matters: comparison clip → mask → auto layer → point dots → crop → grid. The mask block runs
 inside one `globalAlpha` so every mask pixel fades together:
 
-1. `maskCanvas` — as-is, or recoloured pure black when `displayInverted`.
+1. `maskCanvas` — as-is, recoloured pure black when `displayInverted`, or, when
+   `displayComplement` (MPI-771), a solid field with the mask punched out of it.
 2. `autoCanvas` — recoloured `--accent-ok` green when `mask.hasAutoLayer`, drawn on top so green
    wins wherever a detection overlaps paint.
 
@@ -108,6 +109,15 @@ reads as the plain B/W image it exports — how a user spots the stray specks a 
 behind. Composes with `displayInverted` (backdrop and mask swap together); green still draws on top
 or pick state vanishes. `maskOpacity` is ignored while B/W is on, so the strip's opacity slider goes
 inert rather than making grey mush.
+
+**`displayComplement` vs `displayInverted` — they are not the same thing.** `displayInverted`
+only RECOLOURS the mask region black; it never shows the other side. That is why the GIF
+Cut-out originally had to hand the canvas an already-flipped bitmap to obey "the highlight
+marks what disappears", and why a tool built on the flipped bitmap could not be painted on.
+`displayComplement` is the missing primitive: the same layers, drawn inside-out. Both are
+display only — every export still reads `maskCanvas`. A tool showing the complement is
+responsible for swapping its own paint/erase, or a stroke shrinks what the user is aiming at;
+`MpiGifViewer` is the worked example.
 
 ### A brush move repaints its BOX, not the frame (MPI-787)
 
