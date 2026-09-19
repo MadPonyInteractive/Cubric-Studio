@@ -210,6 +210,14 @@ Settings: the connection block tops Remote > Language Models; the Agent row is "
 - **`RECOMMENDED_REMOTE_MODELS`**: `{ [presetId]: [{ id, jobs: ('agent'|'enhance'|'describe')[], contextWindow? }] }`, exact ids.
   The agent's context window: that table, else the endpoint's own entry, else `FALLBACK_CONTEXT_WINDOW` (32,768).
 - **`DeepInfraEngine.chat`** forwards `tools` and returns `toolCalls` and `usage` beside `text`.
+  `OllamaEngine.chat` does NOT — it is the enhance client, so the agent runs on Ollama through that
+  preset's OpenAI-compatible `/v1` and `DeepInfraEngine`, not through the native route.
+- **`ollama` is keyless everywhere, the agent included**: `runTurn` and `probe`
+  (`services/agentLoop.mjs`) skip `NO_KEY` for it exactly as the `routes/llm.js` checks do. Two
+  Ollama caveats the app does not surface: only a model whose `/api/show` capabilities include
+  `tools` can be the agent, and `/v1` carries no `num_ctx`, so the server's own
+  `OLLAMA_CONTEXT_LENGTH` (4096 by default) has to hold the system prompt plus 11 tool schemas
+  (~3.7k tokens) before the user's first word.
 
 ## `look` coordinates
 
