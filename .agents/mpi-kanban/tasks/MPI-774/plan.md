@@ -846,7 +846,11 @@ Round 1 continued (Fabio, 2026-09-18, same pass):
 All seven are built (2026-09-18, session 627f63f6; `validation.md` § Phase 5 fixes 2-7 and § Fix 1).
 Round 2 came back 2026-09-18: fixes 9 and 10 below were built from it, and fix 8 was found by it.
 
-### Phase 5 fix 8: Stop poisons the next generation of a STREAMED model (open, needs a decision)
+### Phase 5 fix 8: Stop poisons the next generation of a STREAMED model (CLOSED 2026-09-19, unreproduced)
+
+**Closed by Fabio 2026-09-19 (session a2e84759): four valid repro attempts, zero reproductions.**
+The lead below is preserved because the reasoning is still sound — but two of its claims are
+WRONG and are corrected under § Fix 8 closure. Read the closure before re-opening this.
 
 Found by Fabio's round 2, and it is fix 6's own consequence. He Stopped an H3 i2v at step 6/8 and
 resubmitted 39 seconds later; the second run died on the first weight read of the still-cached
@@ -871,17 +875,86 @@ A teardown of the file-reader state alone — no model eviction, no host buffer 
 whole engine tree: **defined and never called**, by ComfyUI core or anything else. An interrupt
 therefore leaves the reader dirty with nothing to clean it, which fits the failure exactly.
 
-- [ ] **Confirm the mechanism, then find the call site.** Unknown and load-bearing: what
+- [x] **Confirm the mechanism, then find the call site.** CLOSED unreproduced - see § Fix 8 closure. Unknown and load-bearing: what
   `hostbuf_file_reader_cleanup` does to readers still in use, and whether it is safe on a live
   cached model. Candidate homes, cheapest first: a hook in `ComfyUi-MpiNodes` fired on interrupt,
   an upstream patch to ComfyUI's interrupt path, or a node we can dispatch after a cancel.
   **Verify:** an H3 i2v, Stop mid-sample, resubmit inside 30s -> it runs, and the second run does
   NOT re-report "prepared for dynamic VRAM loading" from cold (which would mean it reloaded).
-- [ ] **Repro first, it is not yet proven.** The log pairing is strong (his Stop at step 6/8, same
+- [x] **Repro first, it is not yet proven.** DONE 2026-09-19: 4 valid attempts, 0 reproductions. The log pairing is strong (his Stop at step 6/8, same
   model 39s later, dead on the first weight read) and the four earlier interrupts that did not bite
   all had a 7-50 minute gap or a different model. But nobody has reproduced it deliberately.
   ~2 x 90s of GPU on the SHARED engine — check `GET :48188/queue` is empty and tell Fabio first.
-- [ ] Check whether a newer ComfyUI already calls it, and raise it upstream if not.
+- [x] Check whether a newer ComfyUI already calls it, and raise it upstream if not. It does not; aimdo 0.5.5 is identical. Two upstream defects to report - see closure.
+
+#### Fix 8 closure (2026-09-19, session a2e84759)
+
+**Two claims above are now disproven. Do not carry them forward.**
+
+1. ~~"An interrupt leaves the reader dirty with nothing to clean it"~~ — the reader is NOT
+   permanently poisoned. In Fabio's own log, BiRefNet (15:28) and SAM3 (15:31) both loaded and ran
+   through the same streamed path minutes after the failure, same engine process, no restart.
+2. ~~"A newer comfy-aimdo might fix it"~~ — it does not. 0.5.5 vs our 0.4.15: `host_buffer.py` is
+   byte-identical and the DLL's entire file-reader string table matches exactly (same functions,
+   same log lines, same exits). Upstream ComfyUI never calls `cleanup_file_reader` either
+   (`gh search code "cleanup_file_reader repo:comfyanonymous/ComfyUI"` -> empty). A bump is not
+   the answer. `cleanup_file_reader` being uncalled is still TRUE, just not evidenced as the cause.
+
+**The repro: four valid attempts, all clean.** Driven against an isolated debug engine on :48199
+(`--verbose DEBUG`, own user/output/temp dirs, never Fabio's :48188 or :3000). Each attempt: H3
+i2v `minimax_h3_fl2va.json`, turbo branch (8 steps), 2s at 864x480, Stop mid-sample, resubmit.
+
+| attempt | cancel at | gap | host RAM free | TE re-staged | run 2 |
+|---|---|---|---|---|---|
+| 3 | 5/8 | 10s | - | 10x | success |
+| loop 1 | 4/8 | **40s** | 43.0 / 63.8 GB | 10x | success |
+| loop 2 | 4/8 | 3s | 44.8 / 63.8 GB | 10x | success |
+| loop 3 | 5/8 | 90s | 44.0 / 63.8 GB | 10x | success |
+
+🔴 **A repro of this is INVALID unless run 2 re-stages the text encoder.** ComfyUI caches node
+outputs, so an identical prompt string serves the CLIP node from cache and the 25GB
+`qwen3vl_32b...` never loads — which is the exact path that failed. The first attempt did this and
+read as a clean pass while testing nothing (run 1: 10 TE stagings, run 2: **0**). Vary the prompt
+text between runs and assert the staging count. Harness: `scratchpad/repro.py`, `repro_loop.py`.
+
+**The fingerprint table — measured, not inferred.** Every failure exit of
+`hostbuf_file_reader_read`, driven deliberately by loading aimdo in the engine's python with
+`set_log_debug()` (no generation, no GPU job):
+
+| input | native log | level |
+|---|---|---|
+| handle after its `ModelMMAP` was dropped | `ReadFile failed error=6` -> `worker failed` -> `file read failed handle=... offset=... size=...` | ERROR |
+| garbage handle | same, `error=6` | ERROR |
+| read past EOF | `GetOverlappedResult failed error=38` -> `file read failed` | ERROR |
+| `device_ptr=0` | `input validation failed device_ptr=0000000000000000 device=0` | ERROR |
+| device index 1 | `input validation failed ... device=1` | ERROR |
+| CPU pointer as dest | `CUDA API FAILED (1): copy_result: invalid argument` *(DEBUG)* -> `device copy failed result=1 ...` | ERROR |
+
+**What that proves about the original failure.** Every NAMED exit logs at ERROR; the engine runs
+aimdo at INFO (`main.py:263-297` maps ComfyUI's `--verbose`; the app passes none, so INFO), and
+ERROR passes that filter — the 8 aimdo lines in his `app.log` prove the callback forwards. Yet at
+15:24:41 **not one aimdo line was logged**: 15.5s of silence after `25140MB Staged`, then the bare
+`RuntimeError`. By elimination it was none of the six rows above. The only remaining exit is a
+CUDA failure inside the reader's own slot setup (`cuMemAllocHost` for the pinned slot buffer,
+`cuEventCreate`, `cuEventRecord`) — whose ONLY log is `CUDA API FAILED` at DEBUG, invisible at
+INFO. Pinned-host-memory / event state, not a file or pointer problem.
+
+**Remaining untried condition: long-uptime host memory pressure.** The reader's slot buffer is
+pinned HOST memory. His failing engine had been up ~3h cycling H3, BiRefNet, SAM3 and LTX through
+the RAM-pressure cache; every repro attempt ran on a freshly booted box with ~44GB free. If this is
+ever chased again, that is the variable — a multi-hour soak, not another four cycles.
+
+**If it recurs, read one log line.** Match it against the table above; that names the cause without
+re-deriving any of this. If the line is absent again, it is the silent CUDA slot-setup exit and the
+next step is an engine started with `--verbose DEBUG`.
+
+**Two upstream comfy-aimdo defects found on the way (not ours to fix, worth reporting):**
+
+1. **A failure exit that logs nothing at INFO.** Three exits log at ERROR and one logs only at
+   DEBUG, so `read_file_to_device` can raise with no cause above it — which is exactly why his
+   original log is unreadable. The real defect behind this whole hunt.
+2. **`vbar_free_memory (start): size=-8809040871136690176k`** — logged on every teardown of every
+   run, a garbage negative size into a free call (`src/model-vbar.c:515`). Reproducible on demand.
 
 ### Phase 5 fixes 9 and 10 (Fabio's round 2, both built 2026-09-18, session 130cab18)
 

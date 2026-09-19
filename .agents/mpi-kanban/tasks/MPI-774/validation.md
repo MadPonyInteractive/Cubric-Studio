@@ -1130,6 +1130,19 @@ Stop verification used `sdxl-realistic`, small and resident, and never touched t
 **Not proven, and what would prove it:** an H3 i2v, Stop mid-sample, resubmit within ~30 s. That is
 two ~90 s runs on the shared engine and it fights whatever the user is doing, so it was not run.
 
+> **RUN 2026-09-19 (session a2e84759) — four valid attempts, zero reproductions.** Cancel points
+> 4/8 and 5/8, gaps of 3s, 10s, 40s and 90s, every run 2 re-staging the 25GB text encoder 10x.
+> Gap length is not the variable and neither is the cancel point. The paragraph above that says
+> "interrupting mid-stream leaves that cached model's host buffer file reader unusable" is NOT
+> supported: BiRefNet and SAM3 loaded fine through the same path minutes after his failure, same
+> process, no restart. Fix 8 closed as an unreproduced one-off — full evidence, the measured
+> failure-exit fingerprint table and the invalid-repro trap in `plan.md` § Fix 8 closure.
+>
+> 🔴 **The repro trap, because it cost a whole cycle:** ComfyUI caches node outputs, so two runs
+> with the SAME prompt string serve the CLIP node from cache and the text encoder never loads —
+> the run reads as a clean pass while testing nothing. Vary the prompt between runs and assert the
+> staging count (first attempt: run 1 = 10 stagings, run 2 = **0**).
+
 **Where the fix belongs — Fabio's call.** The bug itself is upstream (an interrupt should not leave
 `comfy_aimdo`'s reader broken) and cannot be fixed in this repo. Our side owns the trigger: the
 cancel path fires the interrupt, so it can also drop the engine's cached models afterwards
