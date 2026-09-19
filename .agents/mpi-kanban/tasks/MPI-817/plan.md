@@ -67,7 +67,11 @@ Owns:
 ownership is guessed is how two workers land on the same file. Phase C is NOT in the batch: it
 overlaps Phase A's files by design.
 
-## Open question for Fabio
+## Settled: the member cards stay
 
-Once MPI-816's work is reflected here, does the board keep the member cards or fold them into this
-umbrella? Asked once; whatever he answers stands.
+Fabio, 2026-09-19: **keep MPI-774 and MPI-816 as separate cards.** The condition he attached is the
+whole point of this umbrella — *"as long as they get picked up later or are part of the umbrella."*
+So this card carries one obligation: **neither member is allowed to go quiet.** If a session closes
+without touching them, they are still Phases A-C here, and this plan is where that is visible.
+
+Do not fold, close or merge them without asking him again.
