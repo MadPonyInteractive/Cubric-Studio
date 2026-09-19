@@ -40,8 +40,23 @@ const TOOL_DEFS = [
         type: 'function',
         function: {
             name: 'list_models',
-            description: 'List all available models with their installed state, supported operations (each with its rank for that task, 1 = the best we have, and a note on what it is good at), hardware fit, missing download size, and the ids of each model\'s prompting guides.',
+            description: 'The short catalogue: every model and Flow, one compact entry each — id, name, type, installed state, and its operations with the rank for that task (1 = the best we have) and a note on what it is good at. It carries no settings: describe_model gives one entry\'s params, media roles, Flow fields and guide ids.',
             parameters: { type: 'object', properties: {}, additionalProperties: false },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'describe_model',
+            description: 'Everything list_models left out, for ONE model or Flow: each op\'s params (the only ratio, qualityTier, turbo and style values it accepts), the media it takes, a Flow\'s fields and boxes, its prompting guide ids and its hardware fit. Read it for the thing you picked, before you set anything on it.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    id: { type: 'string', description: 'A model id or a Flow id, exactly as list_models gives it.' },
+                },
+                required: ['id'],
+                additionalProperties: false,
+            },
         },
     },
     {
@@ -220,6 +235,72 @@ const TOOL_DEFS = [
 
 // Max tool calls the model may make in one user turn before STEP_LIMIT.
 const MAX_STEPS = 8;
+
+/**
+ * What the model sees of a `list_models` answer (MPI-774 Phase 7).
+ *
+ * The whole answer is ~9.5k tokens and the weight is `params`, repeated PER OP:
+ * `krea2-nsfw` alone costs 512 tokens, 420 of it the same 9 ratios, 2 tiers and 14
+ * style names on each of its 7 ops, and the next model repeats most of that list
+ * again. On the 32k window Ollama serves that is a third of the context spent before
+ * the user's first word, and it compacted every turn.
+ *
+ * So the list is a POINTER list, exactly as the guides already are (`list_models`
+ * named the guide ids, `read_knowledge` fetched one): enough to CHOOSE — id, name,
+ * type, what is installed, the op ranks and notes — and `describe_model` hands back
+ * the settings for the ONE thing the agent picked.
+ *
+ * `guides` and `boxParams` are not dropped, they move: the loop reads them off the
+ * full answer itself (`_rememberGuides`), so the guide gate and the box gate still
+ * bite without the model carrying the ids.
+ */
+export function compactCatalogue(list) {
+    if (!list?.ok) return list;
+    return {
+        ok: true,
+        engine: list.engine,
+        hardware: list.hardware,
+        detail: 'describe_model with an id for its params, media, fields and guides.',
+        models: (list.models || []).map((m) => {
+            // Most models write ONE note and hang it on every op ("anime and stylised art,
+            // not photography", six times). Said once about the model, it reads the same and
+            // costs a sixth; a model whose ops disagree keeps them per op.
+            const notes = new Set((m.ops || []).map((o) => o.note).filter(Boolean));
+            const shared = notes.size === 1 && (m.ops || []).every((o) => o.note) ? [...notes][0] : null;
+            return {
+                id: m.id,
+                name: m.name,
+                type: m.type,
+                installed: m.installed,
+                // Only when it is news: everything installed runs, and a size matters
+                // only for something that would have to be downloaded first.
+                ...(m.installed ? {} : { downloadGb: m.missingDownloadGb }),
+                ...(m.fit && m.fit.runs === false ? { runsHere: false } : {}),
+                ...(shared ? { note: shared } : {}),
+                ops: (m.ops || []).map((o) => ({
+                    op: o.op,
+                    ...(o.installed === false ? { installed: false } : {}),
+                    ...(o.rank ? { rank: o.rank } : {}),
+                    ...(o.note && !shared ? { note: o.note } : {}),
+                })),
+            };
+        }),
+        flows: (list.flows || []).map((f) => ({
+            id: f.id,
+            title: f.title,
+            installed: f.installed,
+        })),
+    };
+}
+
+/** One model or Flow out of a `list_models` answer, whole. `null` when the id is neither. */
+export function catalogueEntry(list, id) {
+    const wanted = String(id ?? '');
+    const model = (list?.models || []).find((m) => m.id === wanted);
+    if (model) return { model };
+    const flow = (list?.flows || []).find((f) => f.id === wanted);
+    return flow ? { flow } : null;
+}
 
 // ---------------------------------------------------------------------------
 // AgentLoop class — injectable for tests
@@ -523,22 +604,22 @@ export class AgentLoop {
 
 ${modeRules}
 
-Model rule: first the TASK, then the model. The task comes from what the user asked for and does not change because another task's op ranks higher: changing an existing picture is the edit task (kleinEdit, krea2Edit, qwenEdit, edit), not i2i, even when the user names a model whose i2i is rank 1. Ranks only ever compare ops WITHIN one task. Inside the task, pick an op that is installed (ops[].installed in list_models) and whose fit says it runs on this machine, and take the lowest rank number (rank 1 is the best we have at it); an op with no rank is unranked, not bad. Take a lower-ranked op over rank 1 only when the user names a model, or when its note matches what they asked for (a note is what the ranking cannot say: "leaves everything outside the edit area untouched", "takes exactly one image", "anime and stylised art"). When you pass over rank 1 for a note, say in one short line which model you used and why. If nothing installed fits, say an install is needed and offer one with install_model.
+Model rule: first the TASK, then the model. The task comes from what the user asked for and does not change because another task's op ranks higher: changing an existing picture is the edit task (kleinEdit, krea2Edit, qwenEdit, edit), not i2i, even when the user names a model whose i2i is rank 1. Ranks only ever compare ops WITHIN one task. Inside the task, pick an op that is installed (an op list_models marks installed: false is not, and neither is a model marked runsHere: false, which this machine cannot run at all), and take the lowest rank number (rank 1 is the best we have at it); an op with no rank is unranked, not bad. Take a lower-ranked op over rank 1 only when the user names a model, or when its note matches what they asked for (a note is what the ranking cannot say: "leaves everything outside the edit area untouched", "takes exactly one image", "anime and stylised art"). When you pass over rank 1 for a note, say in one short line which model you used and why. If nothing installed fits, say an install is needed and offer one with install_model.
 
-Settings rule: each op in list_models carries params: the only ratio, qualityTier, turbo and styleSelect values that op accepts (styleSelect is the index into params.styles). Never send a value it does not list, and leave out a param it does not offer. An op that starts from an image (a start frame) frames the video like that image: pick the listed ratio closest to its size (the attachment line and a finished generation give it), or the crop cuts the subject.
+Settings rule: list_models is the short list and carries no settings. Once you have picked a model or a Flow, call describe_model with its id: it gives each op its params (the only ratio, qualityTier, turbo and styleSelect values that op accepts — styleSelect is the index into params.styles), the media roles it takes, a Flow's fields and boxes, and its guide ids. Never send a value its params do not list, and leave out a param it does not offer. An op that starts from an image (a start frame) frames the video like that image: pick the listed ratio closest to its size (the attachment line and a finished generation give it), or the crop cuts the subject.
 
 Numbering rule: "picture 2", "image 2" or "2" in a message means that message's attached image 2, never an image from an earlier turn. Pass that attachment's id.
 
 Looking rule: before you comment on, judge or describe any image, call look on it. look only takes a ref the App state line lists under images you can look at; it cannot open a video, a folder or any other path, and with none listed there is nothing to look at. If look reports a refusal (the describer declined to describe the image), tell the user it refused, and suggest switching Image descriptions to the local ComfyUI describer (Settings > Remote > Language Models), which runs on their machine and does not refuse.
 
-Box rule: a Flow in list_models with boxParams needs one box per param, measured, never guessed. For each, call look on the image you pass for that param's role with box: true and a question naming what to box (Head Swap: the head, hair and jaw included), then pass output.square when the step has ratio 1, else output.box. generate refuses a box it did not see you measure. A Flow's fields hold only what their names say (Head Swap's positive is the expression the new head ends with), never instructions. Check the share before you pass it: look reports boxShare and squareShare, what the box and the square take of the image. A head is a small part of a photo, so a squareShare over 0.6 on either side, or over 1 (bigger than the image itself), means the describer boxed the whole person, not the head. Never pass that box: it swallows whoever stands next to them. Measure that image again ONCE, with a question that says head only, or on a crop around that person. If the second measure is no better, stop measuring: tell the user which photo you could not measure and what came back, and ask them to crop it to the head themselves. Never a third attempt, and never pass the box anyway.
+Box rule: a Flow whose describe_model answer has boxParams needs one box per param, measured, never guessed. For each, call look on the image you pass for that param's role with box: true and a question naming what to box (Head Swap: the head, hair and jaw included), then pass output.square when the step has ratio 1, else output.box. generate refuses a box it did not see you measure. A Flow's fields hold only what their names say (Head Swap's positive is the expression the new head ends with), never instructions. Check the share before you pass it: look reports boxShare and squareShare, what the box and the square take of the image. A head is a small part of a photo, so a squareShare over 0.6 on either side, or over 1 (bigger than the image itself), means the describer boxed the whole person, not the head. Never pass that box: it swallows whoever stands next to them. Measure that image again ONCE, with a question that says head only, or on a crop around that person. If the second measure is no better, stop measuring: tell the user which photo you could not measure and what came back, and ask them to crop it to the head themselves. Never a third attempt, and never pass the box anyway.
 
 Shape rule: an op that takes a picture or a video AND offers a ratio does not letterbox the input — it centre-crops it to fill the ratio, so whatever the ratio has no room for is gone. Which edge it takes decides whether the picture survives: a tall picture on a WIDE ratio loses the top and the bottom, and the head goes first; the same picture on a TALLER ratio loses only the sides. So before you generate with an input picture and a ratio: call look on it and read output.imageSize, and work out its shape as width divided by height. Then:
 - The user did not name a ratio: pick the ratio the op offers that is CLOSEST to the picture's shape AND has the same orientation (a taller-than-wide picture takes a taller-than-wide ratio, never a wide one, never square). On MiniMax H3 a 4:5 picture takes 9:16, and a 5:4 takes 16:9.
 - The user DID name a ratio and it crosses the picture (they asked for widescreen and handed you a tall photo): use theirs, and before you generate tell them plainly what it will cut. If holding the person's identity is the point, say whether anything installed can do it without cropping — on MiniMax H3 that is ref2v_ms, which takes the picture as a reference rather than as a frame.
 Either way, when the picture's shape is not exactly the ratio, say so in one short line: there is a mismatch and the picture will be cropped to fit. Never let a crop happen silently — the user cannot see it coming, and the result reads as the model failing rather than the ratio.
 
-Guide rule: before your first prompt for a model, read its prompting guide: list_models gives each model its guide ids, read_knowledge reads one. generate refuses until you have. Use the guide to ADAPT what the user asked for to that model (its structure, length and vocabulary) and keep their intent. Never send a guide's example as the prompt.
+Guide rule: before your first prompt for a model, read its prompting guide: describe_model gives that model its guide ids, read_knowledge reads one. generate refuses until you have. Use the guide to ADAPT what the user asked for to that model (its structure, length and vocabulary) and keep their intent. Never send a guide's example as the prompt.
 
 Installation rule: Always call install_model to show the user a Yes / No confirmation card. Never install a model without a Yes from the user, regardless of mode.
 
@@ -574,7 +655,17 @@ ${knowledgeIndex}`.trim();
             case 'list_models': {
                 const r = await this._tools.listModels();
                 this._rememberGuides(r);
-                return JSON.stringify(r);
+                return JSON.stringify(compactCatalogue(r));
+            }
+            case 'describe_model': {
+                const r = await this._tools.listModels();
+                if (!r?.ok) return JSON.stringify(r);
+                this._rememberGuides(r);
+                const entry = catalogueEntry(r, args?.id);
+                if (!entry) {
+                    return JSON.stringify({ ok: false, error: { code: 'UNKNOWN_MODEL', message: `No model or Flow "${args?.id}". Use an id exactly as list_models gives it.` } });
+                }
+                return JSON.stringify({ ok: true, ...entry });
             }
             case 'read_knowledge': {
                 const r = await this._tools.readKnowledge(args?.id);
@@ -678,9 +769,12 @@ ${knowledgeIndex}`.trim();
                         ...(ok ? { output: r.output } : { error: r.error }),
                     });
                     this._historyEntry('result', { toolCallId, ok, ...(ok ? { output: r.output } : { error: r.error }) });
+                    // A refused setting is the one failure the short catalogue can cause, so the
+                    // note says where the accepted values are rather than leaving a second guess.
+                    const paramMiss = /^(INVALID_|UNKNOWN_PARAM|MEDIA_REQUIRED)/.test(r?.error?.code || '');
                     this._notes.push(ok
                         ? `[Generation finished: card ${r.output?.groupId}, ${r.output?.type} ${r.output?.filePath}${r.output?.pixelDimensions ? `, ${r.output.pixelDimensions.w}x${r.output.pixelDimensions.h}` : ''}]`
-                        : `[Generation failed: ${r?.error?.code || 'ERROR'}: ${r?.error?.message || 'no reason given'}]`);
+                        : `[Generation failed: ${r?.error?.code || 'ERROR'}: ${r?.error?.message || 'no reason given'}${paramMiss ? ` Call describe_model with "${args.flowId || args.modelId}" for the values it accepts.` : ''}]`);
 
                     // Auto-look at image results (brief item 10)
                     if (ok && r.output?.type === 'image' && r.output?.filePath) {
@@ -801,8 +895,8 @@ ${knowledgeIndex}`.trim();
 
             // Rebuild messages: system + handoff + the last (up to 4) user turns that fit in half
             // the trigger. Four whole turns could sit above the trigger on their own (live, a
-            // list_models answer is ~9.5k tokens against a 32k window's 16.4k), so every later
-            // turn compacted again.
+            // list_models answer was ~9.5k tokens against a 32k window's 16.4k before the
+            // catalogue went on its diet), so every later turn compacted again.
             // ponytail: no tokenizer; tokens per char come from the last call's usage over
             // these messages' chars (tool schemas add tokens without chars, so it over-counts).
             const chars = this._messages.reduce((s, m) => s + messageChars(m), 0);
@@ -1178,6 +1272,7 @@ async function _imageSize(filePath) {
 function _toolLabel(toolName, args) {
     switch (toolName) {
         case 'list_models':    return 'Checking available models';
+        case 'describe_model': return `Reading ${args.id || 'a model'}'s settings`;
         case 'read_knowledge': return args.id ? `Reading: ${args.id}` : 'Reading knowledge index';
         case 'install_model':  return `Preparing install: ${args.modelId || '?'}`;
         case 'generate':       return `Starting generation`;

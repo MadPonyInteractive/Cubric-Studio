@@ -524,7 +524,7 @@ const CASES = [
         flip: { turns: ['Make an image of a red fox in the snow.'] },
         check(run) {
             const f = [];
-            const acted = run.turns.flatMap((t) => t.calls).filter((c) => !['list_models', 'read_knowledge', 'read_memory', 'list_projects'].includes(c.tool));
+            const acted = run.turns.flatMap((t) => t.calls).filter((c) => !['list_models', 'describe_model', 'read_knowledge', 'read_memory', 'list_projects'].includes(c.tool));
             if (acted.length) f.push(`called ${acted.map((c) => c.tool).join(', ')} on a delete request`);
             if (!/delet/i.test(run.lastReply)) f.push('the reply does not talk about deleting');
             if (!/(right-click|landing|projects list|gallery)/i.test(run.lastReply)) f.push('the reply does not say where the user can delete');

@@ -35,7 +35,7 @@ itself. Spec: `.agents/mpi-kanban/tasks/MPI-774/brief.md`. Contract first (2026-
 |---|---|---|
 | 1 | Toggle, Enter sends, drop images, landing entry | `MpiPromptBox` toggle -> `state.agentMode`; shell panel; landing slot; `POST /agent/message` with `project: null` |
 | 2 | Mascot always in the box | `idle.png` / `waiting.png` in `MpiAgentChat`, flipped by `agent:working` |
-| 3 | Knows models, ops, fit, docs | `list_models` -> `GET /connector/models`; `read_knowledge` -> `GET /connector/knowledge[/:id]` |
+| 3 | Knows models, ops, fit, docs | `list_models` + `describe_model` -> `GET /connector/models`; `read_knowledge` -> `GET /connector/knowledge[/:id]` |
 | 4 | Recommends; VRAM<->RAM trade | `fit` on `GET /connector/models` (`footprint.js` `tradeTable`) |
 | 5 | Installs only after a yes, size shown, verified | `agent:confirm` -> `POST /agent/confirm` -> `POST /connector/install` -> re-read `GET /connector/models` |
 | 6 | Generates model ops + Flows, non-blocking | `generate` -> `POST /connector/generate` (not awaited) -> `agent:result` |
@@ -56,7 +56,8 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
 
 | Tool | Parameters | Executes |
 |---|---|---|
-| `list_models` | `{}` | `GET /connector/models` |
+| `list_models` | `{}` | `GET /connector/models`, projected to the SHORT list (below) |
+| `describe_model` | `{ id: string }` required | the same route, one entry whole: `params`, `media`, a Flow's `fields`/`boxParams`, `guides`, `fit` (`UNKNOWN_MODEL`) |
 | `read_knowledge` | `{ id?: string }` (no id = the index) | `GET /connector/knowledge[/:id]` |
 | `install_model` | `{ modelId: string }` required | **never directly**: emits `agent:confirm`; `POST /agent/confirm` runs it |
 | `generate` | `{ modelId?, operation?, flowId?, prompt?, negative?, ratio?, qualityTier?, turbo?, styleSelect?, stylization?, seed?, cardName?, fields?: object, params?: object, media?: [{ role, image }] }` | `POST /connector/generate`, fired and not awaited; a model op waits for its guide (below) |
@@ -186,8 +187,16 @@ Every event but `agent:session` also carries `session`, the key of its conversat
 - **Compaction:** at the provider's `prompt_tokens >= contextWindow * (window >= 1M ? 0.30 : 0.50)` (no tokenizer)
   the model writes a handoff (goal, decisions, cards, model, settings, open question); restart = system prompt + handoff + the
   newest turns (at most 4) that fit in HALF the trigger, sized by the last call's tokens per char. Four whole turns
-  could sit above the trigger alone (a `list_models` answer is ~9.5k tokens; a 32k window triggers at 16.4k), and
+  could sit above the trigger alone (a `list_models` answer was ~9.5k tokens; a 32k window triggers at 16.4k), and
   then every turn compacted again (live, Phase 4).
+- **The catalogue is a POINTER list** (Phase 7). The route still answers in full; `compactCatalogue()`
+  in `agentLoop.mjs` is what the MODEL sees: id, name, type, installed, ops with `rank`/`note`, and a
+  model's one shared note said once instead of on every op. Everything a caller SETS — `params`,
+  `media`, a Flow's `fields` and `boxParams`, `guides`, `fit` — comes from `describe_model` for the one
+  entry it picked, the shape the guides already had. Measured on the real catalogue (21 models, 13
+  flows): **~9,440 -> ~1,449 tokens**, and ~2,118 for a first turn that also describes its pick. The
+  guide gate and the box gate read the FULL answer inside the loop, so they still bite with the ids
+  out of sight.
 - **Attachments:** `<APP_USER_DATA>/agent/attachments/` (`os.tmpdir()/cubric-agent` standalone), wiped
   at server start; a reset discards only its conversation's files. Crops: `.../agent/crops/`.
 

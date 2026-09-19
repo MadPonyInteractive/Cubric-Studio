@@ -1011,6 +1011,110 @@ describe('(h) notes, results, names, guides', () => {
 });
 
 // ---------------------------------------------------------------------------
+// (i) Phase 7: the catalogue diet — a short list plus describe_model
+// ---------------------------------------------------------------------------
+
+describe('(i) the catalogue diet', () => {
+    const call = (id, name, args) => ({ text: '', toolCalls: [{ id, type: 'function', function: { name, arguments: JSON.stringify(args) } }] });
+    const project = { folderPath: '/project', name: 'Test' };
+    const toolResults = (loop) => loop._messages.filter((m) => m.role === 'tool').map((m) => JSON.parse(m.content));
+
+    const RATIOS = ['1:1', '3:4', '4:5', '5:8', '9:16', '4:3', '5:4', '8:5', '16:9'];
+    const catalogue = {
+        ok: true,
+        engine: 'local',
+        hardware: { gpuName: 'Test GPU', vramGb: 16 },
+        models: [
+            {
+                id: 'one-note', name: 'One Note', type: 'image', installed: true,
+                guides: ['guide:one'],
+                fit: { floorVramGb: 8, runs: true },
+                missingDownloadGb: 0,
+                ops: [
+                    { op: 't2i', installed: true, rank: 1, note: 'same note', params: { ratios: RATIOS, styles: ['a', 'b'] }, media: [] },
+                    { op: 'i2i', installed: true, rank: 2, note: 'same note', params: { ratios: RATIOS, styles: ['a', 'b'] }, media: [{ role: 'image1', type: 'image' }] },
+                ],
+            },
+            {
+                id: 'too-big', name: 'Too Big', type: 'video', installed: false,
+                guides: [], missingDownloadGb: 12.4,
+                fit: { floorVramGb: 24, runs: false },
+                ops: [
+                    { op: 'i2v', installed: false, note: 'a note of its own', params: { ratios: RATIOS }, media: [] },
+                    { op: 't2v', installed: false, params: { ratios: RATIOS }, media: [] },
+                ],
+            },
+        ],
+        flows: [{ id: 'a-flow', title: 'A Flow', installed: true, fields: [{ id: 'positive', label: 'Expression', type: 'text' }], boxParams: [{ param: 'box1', role: 'image1', ratio: 1 }] }],
+    };
+
+    test('the short list carries what chooses, and none of what sets', async () => {
+        const { compactCatalogue } = await import('../services/agentLoop.mjs');
+        const short = compactCatalogue(catalogue);
+        const text = JSON.stringify(short);
+
+        assert.ok(!text.includes('16:9'), 'params are gone from the list');
+        assert.ok(!text.includes('guide:one'), 'guide ids are gone from the list');
+        assert.ok(!text.includes('box1'), "a Flow's boxes are gone from the list");
+        assert.ok(!text.includes('Expression'), "a Flow's fields are gone from the list");
+        assert.ok(text.length < JSON.stringify(catalogue).length / 2, `the list did not shrink (${text.length} chars)`);
+
+        const [one, big] = short.models;
+        assert.deepEqual(one.ops, [{ op: 't2i', rank: 1 }, { op: 'i2i', rank: 2 }]);
+        assert.equal(one.note, 'same note', 'one note on every op is said once, about the model');
+        assert.equal(one.downloadGb, undefined, 'an installed model has nothing to download');
+        assert.equal(one.runsHere, undefined, 'only a model that does NOT run says so');
+
+        assert.equal(big.installed, false);
+        assert.equal(big.downloadGb, 12.4);
+        assert.equal(big.runsHere, false);
+        assert.equal(big.note, undefined, 'ops that disagree keep their own notes');
+        assert.deepEqual(big.ops, [
+            { op: 'i2v', installed: false, note: 'a note of its own' },
+            { op: 't2v', installed: false },
+        ]);
+
+        assert.deepEqual(short.flows, [{ id: 'a-flow', title: 'A Flow', installed: true }]);
+    });
+
+    test('list_models hands the model the short list, and still arms the guide gate', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('m1', 'list_models', {}),
+            call('g1', 'generate', { modelId: 'one-note', operation: 't2i', prompt: 'A fox' }),
+            { text: 'ok' },
+        ] });
+        tools.listModels = async () => catalogue;
+        await loop.runTurn('what can you do', [], project, 'auto', 'deepinfra', 't-diet');
+
+        const [list, gen] = toolResults(loop);
+        assert.equal(list.models.length, 2);
+        assert.equal(list.models[0].ops[0].params, undefined, 'the model was handed no params');
+        // The guide ids never reached the model, and the gate still bites: the loop read
+        // them off the full answer itself.
+        assert.equal(gen.error.code, 'GUIDE_NOT_READ');
+        assert.match(gen.error.message, /"guide:one"/);
+    });
+
+    test('describe_model gives one entry whole, model or Flow, and refuses an id it does not know', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('d1', 'describe_model', { id: 'one-note' }),
+            call('d2', 'describe_model', { id: 'a-flow' }),
+            call('d3', 'describe_model', { id: 'not-a-thing' }),
+            { text: 'ok' },
+        ] });
+        tools.listModels = async () => catalogue;
+        await loop.runTurn('tell me about them', [], project, 'auto', 'deepinfra', 't-desc');
+
+        const [model, flow, miss] = toolResults(loop);
+        assert.deepEqual(model.model.ops[0].params.ratios, RATIOS, 'the params the list dropped');
+        assert.deepEqual(model.model.guides, ['guide:one']);
+        assert.deepEqual(flow.flow.fields, [{ id: 'positive', label: 'Expression', type: 'text' }]);
+        assert.deepEqual(flow.flow.boxParams, [{ param: 'box1', role: 'image1', ratio: 1 }]);
+        assert.equal(miss.error.code, 'UNKNOWN_MODEL');
+    });
+});
+
+// ---------------------------------------------------------------------------
 // (d) probe: no-tools model reported plainly, never retried
 // ---------------------------------------------------------------------------
 

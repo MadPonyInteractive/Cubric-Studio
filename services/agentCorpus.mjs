@@ -45,8 +45,9 @@ export const isVisionSkill = (name) => name === 'cubric-vision' || name.startsWi
 
 const SKILL_PREAMBLE = [
     '> You are the in-app agent. This skill was written for OUTSIDE agents that call the app\'s',
-    '> HTTP routes. You never call a route: your tools do that work (list_models, read_knowledge,',
-    '> install_model, generate, look, open_project, rename_card, read_memory, write_memory).',
+    '> HTTP routes. You never call a route: your tools do that work (list_models, describe_model,',
+    '> read_knowledge, install_model, generate, look, open_project, rename_card, read_memory,',
+    '> write_memory).',
     '> Skip the curl, port and shell steps. Routes that delete are for outside agents acting on',
     '> their user\'s word; you never delete.',
     '',

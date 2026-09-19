@@ -1233,7 +1233,7 @@ and every gizmo a Flow grows is another thing an agent has to drive blind. His l
   empty all mean "no VRAM of ours to free", and failing there would show "Unload Failed" on a
   machine that never had Ollama. **Verified live:** 3.5GB resident → route → `ollama ps` empty.
 
-- [ ] **`list_models` is ~10.8k tokens and most of it is repetition** (Fabio: *"Can we not use small
+- [x] **`list_models` is ~10.8k tokens and most of it is repetition** (Fabio: *"Can we not use small
   pointers explaining more or less what each model does, so that the agent can then go in, follow
   that pointer, and actually read the rest of the model if it's the appropriate model to use?"*).
   He is right, and it is measured:
@@ -1254,9 +1254,37 @@ and every gizmo a Flow grows is another thing an agent has to drive blind. His l
   a compact line per model and flow (id, name, type, installed, op names, `rank`/`note`), and a
   `describe_model(id)` that returns the `params`, field specs and media roles for the ONE thing the
   agent picked. Rough target: ~2k for the list, which is the difference between the agent being
-  usable on a 32k local window and compacting on every turn. **Not built, and it is the next lever
-  for Ollama** — raising `OLLAMA_AGENT_CONTEXT` is the wrong answer, because the KV cache shares
-  VRAM with the weights on a 16GB card.
+  usable on a 32k local window and compacting on every turn. Raising `OLLAMA_AGENT_CONTEXT` is the
+  wrong answer, because the KV cache shares VRAM with the weights on a 16GB card.
+
+  **BUILT (session c7832c1f).** `compactCatalogue()` in `agentLoop.mjs` is the projection the MODEL
+  sees; the route still answers in full, so the CLI, the manifest and every other caller are
+  untouched, and no new route exists. `describe_model(id)` reads the same full answer and hands back
+  ONE entry whole — a model or a Flow.
+
+  | | tokens |
+  |---|---|
+  | `list_models` before | ~9,440 |
+  | `list_models` after | **~1,449** (85% off) |
+  | `describe_model krea2-nsfw` (the fattest) | ~669 |
+  | first turn: the list + describing its pick | **~2,118** |
+
+  Measured on the REAL catalogue (21 models, 13 flows) rebuilt from the data modules, not the stale
+  fixture: `scratchpad/build-live-list.mjs` + `scratchpad/measure-diet.mjs`.
+
+  **Two things fell out of doing it:**
+  - **A model's note was repeated on every one of its ops** — the same disease as `params`. "anime
+    and stylised art, not photography", six times. Said once about the model when every op agrees,
+    kept per op when they disagree: that alone is 387 tokens of the 1,449.
+  - **`guides` and `boxParams` are not dropped, they MOVE.** The loop reads them off the full answer
+    itself (`_rememberGuides`), so the guide gate and the box gate still bite with the ids out of the
+    model's sight. Proved by a test: the model is handed no `guides` and `generate` still answers
+    `GUIDE_NOT_READ` naming the id to read.
+
+  Rules that pointed at `list_models` for detail now point at `describe_model` (Settings, Box,
+  Guide); the Model rule reads `installed: false` and `runsHere: false` off the short list. A refused
+  setting (`INVALID_*`, `MEDIA_REQUIRED`) now says in its note which id to `describe_model` — the one
+  failure the short list can cause.
 
   **Fabio's heads-up, 2026-09-19:** recent disk-offload work reportedly lets 8GB cards run 200B+
   models, trading speed; he is putting an agent on it. It does not soften the line above, and the
