@@ -2,9 +2,9 @@
 
 ## Current State
 
-**As of 2026-09-19, items 1-4 are done and verified — see `## Completed` and
-`validation.md`. The repo EXISTS and is PRIVATE. The single next action is item 5, the
-public flip, which is Fabio's call and nobody else's.** Everything below is the planning
+**As of 2026-09-19, all five items are done. The repo is LIVE AND PUBLIC at
+https://github.com/MadPonyInteractive/cubric-flows-registry. The only thing outstanding is
+the paid lane's private email, which is Fabio's to name.** Everything below is the planning
 record; read it for why the design is what it is, not for where the work stands.
 
 Project mode: scalable-foundation.
@@ -114,10 +114,20 @@ Facts established at planning time, each checked on disk on 2026-09-19:
   - CI proven on a real runner over two probe runs, green then red. Both checkouts, node,
     and **zero `npm install` in either repo**, as planned.
 
+- [x] **Item 5, the public flip.** Done 2026-09-19 on Fabio's instruction. `gh repo edit`
+  refuses `--visibility` unless `--accept-visibility-change-consequences` is passed too —
+  the command handed over the first time was missing it, so his run errored and the repo
+  stayed private until the corrected command ran. `gh api repos/... --jq .private` → false,
+  and `raw.githubusercontent.com` serves the workflow file with a 200, which only happens
+  for a public repo.
+
 ## Remaining Work
 
-- **Item 5 only: the public flip.** `gh repo edit MadPonyInteractive/cubric-flows-registry
-  --visibility public`. Fabio's call, and the one step that cannot be undone quietly.
+- **The paid lane's private submission email.** `<TBD — email>` is live in the public
+  README and PR template right now. Both say the address is not set yet and that the
+  registry opens with 2.0, so it reads as pending rather than broken — but it is a
+  release-day blocker. Fabio has not named one. **Do not invent one, and do not use his
+  personal address**; it wants an address on a domain he owns, routed to him.
 - **Open, Fabio's alone:** the paid lane's private submission email. Already asked once and
   unanswered; templates ship with a placeholder until he names one, and that placeholder is a
   release-day blocker, not a build blocker.

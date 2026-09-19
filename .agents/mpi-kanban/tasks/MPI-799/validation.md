@@ -84,8 +84,22 @@ eight files and no probe.
   public, and the only real package available is MPI's paid, all-rights-reserved head-swap.
   The first genuine submission is what closes this gap.
 
+## 7. The repo is public
+
+Flipped 2026-09-19 on Fabio's instruction, after his own attempt errored: **`gh repo edit`
+refuses `--visibility` unless `--accept-visibility-change-consequences` is passed as well.**
+The command handed to him the first time was missing that flag.
+
+Two checks, one of which does not trust our own credentials:
+
+- `gh api repos/MadPonyInteractive/cubric-flows-registry --jq '{private, visibility}'` →
+  `{"private": false, "visibility": "public"}`.
+- `curl https://raw.githubusercontent.com/.../main/.gitattributes` → 200 with the real file
+  body. That host serves public repositories only, so it is the anonymous proof.
+
 ## Open, and Fabio's alone
 
-- **The public flip** — `gh repo edit --visibility public`. Not run.
-- **The paid lane's private submission email.** `<TBD — email>` in the README today. A
-  release-day blocker, not a build blocker.
+- **The paid lane's private submission email.** `<TBD — email>` is live in the public README
+  and PR template. Both frame it as pending, so it reads as unfinished rather than broken.
+  A release-day blocker. Do not invent one and do not use his personal address — it wants an
+  address on a domain he owns.
