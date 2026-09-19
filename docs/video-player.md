@@ -8,7 +8,8 @@ time, which drifts by up to a frame and renders interpolated pixels.
 
 Components: `MpiVideoSurface` (the `<video>` + canvas), `MpiVideoControlBar`
 (transport + embedded `MpiTrimBar`), `MpiTrimBar` (track + in/out handles +
-playhead). Frame decode lives in `js/services/frameSink.js`.
+playhead + the clip's waveform). Frame decode lives in
+`js/services/frameSink.js`.
 
 ## Why (root cause)
 
@@ -79,6 +80,59 @@ to plain `time/duration` mapping.
 
 Invariant that must hold: for every frame, **drop% == echo%**, and frame 0 is
 reachable at 0% / last frame at 100%.
+
+## The trim bar's waveform (MPI-829)
+
+The clip's audio is painted inside the trim track so an in/out point can be cut
+against a word or a beat instead of guessed.
+
+It is a **baked derivative, not a renderer-side decode** — the same doctrine as
+the audio card's waveform (MPI-730), the video proxy (MPI-633) and the image
+renditions (MPI-319). Decoding audio in the renderer to draw it would re-open the
+MPI-631/633 gallery memory doctrine.
+
+- **Where it is baked:** `writeVideoDerivatives` (`services/ffmpegThumb.js`), the
+  one funnel all six video-producing routes already go through — import,
+  save-generation, concat, crop, reverse, gif-to-video. `extractAudioWaveform`
+  is reused verbatim; `showwavespic` reads a video's audio stream exactly as it
+  reads a `.wav`, so there is no video-specific ffmpeg work.
+- **Size:** `VIDEO_WAVEFORM_PX` = 1260x160, deliberately **shorter** than the
+  audio card's 1260x540. A trim track is ~26px inside its border, so the card's
+  bake is a 20:1 vertical squash and the browser's downscale smears the envelope
+  into a soft band (measured side by side at 540/160/80 on one clip). 160 keeps
+  the peaks and gaps distinct and is the *smaller* file — 2178 bytes against
+  3488. `extractVideoWaveform` owns the name **and** the size for that reason:
+  the backfill and the bake must not drift apart, or older projects keep the
+  blurry version forever. Note the constants are `{w,h}` while
+  `extractAudioWaveform` takes `{width,height}` — passing one straight through
+  matches neither key and silently re-bakes at 540, exit 0, valid file. Only a
+  pixel assertion catches that; `tests/video-waveform-derivative.test.cjs` has one.
+- **Where it lands:** `<id>.wave.webp`, **not** `<id>.thumb.webp` — a video
+  already owns the thumb name for its poster. `.wave.` is in both
+  `DERIVATIVE_RE` and `CLEANUP_DERIVATIVE_RE` (`routes/projects.js`), which is
+  what buys delete, the orphan sweep and the pre-share cleanup. The cleanup
+  nulls `wavePath` with the file: the backfill gates on the sidecar, never on
+  disk, so a nulled file with a live URL would 404 the mask forever.
+- **Gate:** `hasAudio`. A silent clip is never baked one, which is the common
+  case rather than the exception — every text-to-video op emits silence, and an
+  ungated bake would spend an ffmpeg run per generation to produce nothing. The
+  backfill probes and **stores** `hasAudio` for a sidecar written before that
+  field existed, or a silent clip would never converge.
+- **How it reaches the bar:** the sidecar's `wavePath` → the item →
+  `loadVideo(url, { wavePath })` → `MpiVideoViewer` proxies it to
+  `MpiVideoControlBar.setWavePath()` → `MpiTrimBar.setWavePath()`, the same hop
+  `fps` and `frameCount` already take. The viewer sets it **unconditionally**,
+  unlike those two: they keep their previous value when a caller omits them,
+  but a stale wave is the *previous clip's* audio drawn under this clip's handles.
+- **Colour:** `--ink-4`, and never an accent. The wave is context; the selection
+  tint, both handles and the playhead sit on top of it and have to stay readable.
+
+**Frame-index vs time.** Positions here are frame-indexed (`_pctOf` above) while
+the mask is linear in time, so the two disagree by at most one frame's width at
+the clip end — sub-pixel on a 28px track. That is the correct trade: the
+frame-indexed mapping is load-bearing for drop% == echo%, and matching the mask
+to it would mean baking a rendition per frame count. Do not "fix" this by
+unpicking `_pctOf`.
 
 ## Sub-range loop
 

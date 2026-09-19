@@ -28,7 +28,7 @@ import {
     appendToHistory,
 } from '../data/projectModel.js';
 
-function _buildGroup({ url, filename, itemId, thumbPath, thumbPathLg, proxyPath, mediaType, pixelDimensions, fps, duration, frameCount, hasAudio, gif }) {
+function _buildGroup({ url, filename, itemId, thumbPath, thumbPathLg, proxyPath, wavePath, mediaType, pixelDimensions, fps, duration, frameCount, hasAudio, gif }) {
     const isVideo = mediaType === 'video';
     const isAudio = mediaType === 'audio';
     const dims = pixelDimensions?.w > 0 && pixelDimensions?.h > 0
@@ -45,6 +45,11 @@ function _buildGroup({ url, filename, itemId, thumbPath, thumbPathLg, proxyPath,
             filePath: url,
             thumbPath,
             proxyPath,
+            // The trim-bar waveform (MPI-829), carried on THIS card for the same
+            // reason the audio branch below carries its mask: the sidecar has it
+            // either way, but without it here a freshly imported clip opens with a
+            // plain trim bar until the next project load reads the sidecar back.
+            wavePath,
             uploaded: true,
             operation: 'imported',
             pixelDimensions: dims || { w: 0, h: 0 },

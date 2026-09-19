@@ -35,7 +35,7 @@ function _sourcePathFor(file) {
  * @param {Object} [opts]
  * @param {string} [opts.filenamePrefix='imported'] - Filename prefix (e.g. 'snapshot') before _NNN.<ext>
  * @param {string} [opts.operation='imported'] - Sidecar operation field (e.g. 'snapshot')
- * @returns {Promise<{filePath: string, filename: string, itemId: string, thumbPath: string|null, thumbPathLg: string|null, proxyPath: string|null, pixelDimensions: {w: number, h: number}, fps: number|null, duration: number|null, frameCount: number|null, hasAudio: boolean|null, gif: object|null}|null>}
+ * @returns {Promise<{filePath: string, filename: string, itemId: string, thumbPath: string|null, thumbPathLg: string|null, proxyPath: string|null, wavePath: string|null, pixelDimensions: {w: number, h: number}, fps: number|null, duration: number|null, frameCount: number|null, hasAudio: boolean|null, gif: object|null}|null>}
  */
 export async function uploadMediaFile(file, mediaType, projectFolderPath, projectId, opts = {}) {
     if (!projectFolderPath || !projectId) {
@@ -91,6 +91,9 @@ export async function uploadMediaFile(file, mediaType, projectFolderPath, projec
             thumbPath: data.thumbPath || null,
             thumbPathLg: data.thumbPathLg || null,
             proxyPath: data.proxyPath || null,
+            // A video's trim-bar waveform (MPI-829); null for an image, and for a
+            // silent clip, which is never owed one.
+            wavePath: data.wavePath || null,
             pixelDimensions: { w: width, h: height },
             // Server-side video probe (null for images) — MPI-83 Bug 2.
             fps:        data.fps        ?? null,

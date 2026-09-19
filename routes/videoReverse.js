@@ -152,11 +152,13 @@ router.post('/api/video/reverse', async (req, res) => {
             sourceItemId: itemId  || null,
             sourceGroupId: groupId || null,
         };
-        // Poster + 720p hover proxy (MPI-633).
-        const { thumbPath, thumbPathLg, proxyPath } = await writeVideoDerivatives(outputPath, metaDir, newId, { sourceWidth: outMeta.width, sourceHeight: outMeta.height });
+        // Poster + 720p hover proxy + trim-bar waveform (MPI-633, MPI-829). The wave is
+        // baked from the REVERSED output, so it reads in the direction it plays.
+        const { thumbPath, thumbPathLg, proxyPath, wavePath } = await writeVideoDerivatives(outputPath, metaDir, newId, { sourceWidth: outMeta.width, sourceHeight: outMeta.height, hasAudio: !!outMeta.hasAudio });
         if (thumbPath) sidecar.thumbPath = thumbPath;
         if (thumbPathLg) sidecar.thumbPathLg = thumbPathLg;
         if (proxyPath) sidecar.proxyPath = proxyPath;
+        if (wavePath) sidecar.wavePath = wavePath;
 
         await fs.writeJson(path.join(metaDir, `${newId}.json`), sidecar, { spaces: 2 });
 

@@ -342,8 +342,12 @@ async function _backfillMediaDerivatives(folderPath) {
                 // MPI-633: `thumbs[id]` is `{ thumbPath, thumbPathLg }`, and the
                 // large rendition is compared on its own — the common backfill
                 // case is an item whose thumbPath was already right.
+                // Every key the server spells must be in this list (MPI-829 added
+                // `wavePath`): the route deliberately returns all of them on every
+                // branch, and a key compared here but absent there reads `null !==
+                // undefined` and would mark every item dirty on every project load.
                 const next = item?.id ? thumbs[item.id] : null;
-                const differs = next && ['thumbPath', 'thumbPathLg', 'proxyPath']
+                const differs = next && ['thumbPath', 'thumbPathLg', 'proxyPath', 'wavePath']
                     .some(k => (item[k] ?? null) !== next[k]);
                 if (differs) {
                     changed = true;

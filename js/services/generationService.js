@@ -1273,6 +1273,9 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
                 thumbPath: savedData?.thumbPath ?? null,
                 thumbPathLg: savedData?.thumbPathLg ?? null,
                 proxyPath: savedData?.proxyPath ?? null,
+                // A video's trim-bar waveform (MPI-829) — null for an image and for a
+                // silent clip, which is every text-to-video op.
+                wavePath: savedData?.wavePath ?? null,
             };
             if (isVideo) {
                 Object.assign(baseProps, {
@@ -1390,6 +1393,7 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
                         pixelDimensions: ext.pixelDimensions || resolvedDims,
                         generationMs:    elapsedMs,
                         thumbPath:       ext.thumbPath ?? null,
+                        wavePath:        ext.wavePath ?? null,
                         fps:             ext.fps ?? 0,
                         duration:        ext.duration ?? 0,
                         frameCount:      ext.frameCount ?? 0,

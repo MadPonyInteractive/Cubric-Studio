@@ -1,0 +1,27 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "services/ffmpegThumb.js",
+    "routes/projects.js",
+    "routes/videoReverse.js",
+    "routes/videoCrop.js",
+    "routes/videoConcat.js",
+    "routes/gifToVideo.js",
+    "js/components/Compounds/MpiTrimBar/MpiTrimBar.js",
+    "js/components/Compounds/MpiTrimBar/MpiTrimBar.css",
+    "js/components/Organisms/MpiVideoControlBar/MpiVideoControlBar.js",
+    "js/components/Organisms/MpiVideoViewer/MpiVideoViewer.js",
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+    "js/services/mediaUploadService.js",
+    "js/services/mediaImportService.js",
+    "js/services/generationService.js",
+    "js/components/types.js",
+    "js/pages/components.js",
+    "docs/video-player.md",
+    "tests/video-waveform-derivative.test.cjs",
+    ".agents/mpi-kanban/tasks/MPI-829/",
+    "js/services/projectService.js",
+    "js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js",
+    "js/events.js"
+  ]
+}

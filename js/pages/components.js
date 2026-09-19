@@ -1013,12 +1013,25 @@ function mountAll() {
     mount('preview-trim-bar-default', () => {
         const slotEl = slot('preview-trim-bar-default');
 
+        // A stand-in for the clip's baked `<id>.wave.webp` (MPI-829), so the waveform
+        // state is reviewable here without a project open. Shape only — the real mask is
+        // ffmpeg's `showwavespic`, white-on-transparent, and this is the same contract:
+        // white bars, transparent gaps, stretched to the track by `mask-size: 100% 100%`.
+        const bars = Array.from({ length: 60 }, (_, i) => {
+            const h = 10 + Math.round(88 * Math.abs(Math.sin(i / 4)) * (0.45 + 0.55 * Math.abs(Math.sin(i / 17))));
+            return `<rect x="${i * 5 + 1}" y="${(100 - h) / 2}" width="3" height="${h}" fill="#fff"/>`;
+        }).join('');
+        const fakeWave = `data:image/svg+xml;utf8,${encodeURIComponent(
+            `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 100" preserveAspectRatio="none">${bars}</svg>`
+        )}`;
+
         const trim = MpiTrimBar.mount(slotEl, {
             duration: 14.74,
             fps: 30,
             value: 4.5,
             inPoint: 1.0,
-            outPoint: 12.5
+            outPoint: 12.5,
+            wavePath: fakeWave
         });
 
         trim.on('seek',         ({ time }) => console.log('[gallery] trim seek',         time.toFixed(3)));
@@ -1026,7 +1039,7 @@ function mountAll() {
         trim.on('out-change',   ({ time }) => console.log('[gallery] trim out-change',   time.toFixed(3)));
         trim.on('range-change', ({ in: i, out: o }) => console.log('[gallery] trim range-change', i.toFixed(3), '→', o.toFixed(3)));
 
-        console.log('[gallery] MpiTrimBar mounted: duration 14.74s @ 30fps, in=1.0, out=12.5, playhead=4.5. Drag handles + playhead, click track to jump.');
+        console.log('[gallery] MpiTrimBar mounted: duration 14.74s @ 30fps, in=1.0, out=12.5, playhead=4.5. Drag handles + playhead, click track to jump. The waveform is a synthetic stand-in; call trim.el.setWavePath(null) to see the plain track a silent clip gets.');
     });
 
     // ── MpiStartingComfy (Compound) ─────────────────────────────────────────────

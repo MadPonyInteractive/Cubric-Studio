@@ -916,6 +916,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                     duration:   ci.duration,
                     frameCount: ci.frameCount,
                     hasAudio:   ci.hasAudio,
+                    wavePath:   ci.wavePath,
                     trim:       ci.trim,
                 });
             }
@@ -1363,6 +1364,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                     duration:   item.duration,
                     frameCount: item.frameCount,
                     hasAudio:   item.hasAudio,
+                    wavePath:   item.wavePath,
                     trim:       item.trim,
                 });
             } else {
@@ -2340,6 +2342,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                     duration:   data.item.duration,
                     frameCount: data.item.frameCount,
                     hasAudio:   data.item.hasAudio,
+                    wavePath:   data.item.wavePath,
                     trim:       data.item.trim,
                 });
                 _showToast('Cropped video saved', 'success');
@@ -2390,6 +2393,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                     duration:   data.item.duration,
                     frameCount: data.item.frameCount,
                     hasAudio:   data.item.hasAudio,
+                    wavePath:   data.item.wavePath,
                     trim:       data.item.trim,
                 });
                 _showToast(`Reversed ${noun} saved`, 'success');
@@ -2484,6 +2488,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                     duration:   item.duration,
                     frameCount: item.frameCount,
                     hasAudio:   item.hasAudio,
+                    wavePath:   item.wavePath,
                     trim:       item.trim,
                 });
             } else if (historyKind === 'gif') {
@@ -2837,6 +2842,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                     modelId:         null,
                     pixelDimensions: ext.pixelDimensions || { w: 0, h: 0 },
                     thumbPath:       ext.thumbPath ?? null,
+                    wavePath:        ext.wavePath ?? null,
                     fps:             ext.fps ?? 0,
                     duration:        ext.duration ?? 0,
                     frameCount:      ext.frameCount ?? 0,
@@ -2883,6 +2889,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                         displayName,
                         pixelDimensions: uploaded.pixelDimensions || item.pixelDimensions || { w: 0, h: 0 },
                         thumbPath:       uploaded.thumbPath ?? null,
+                        wavePath:        uploaded.wavePath ?? null,
                         fps:             item.fps ?? 0,
                         duration:        item.duration ?? 0,
                         frameCount:      item.frameCount ?? 0,

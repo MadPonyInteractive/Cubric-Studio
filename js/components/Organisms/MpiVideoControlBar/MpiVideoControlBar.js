@@ -23,6 +23,8 @@
  *   setPendingTrim(in, out)                       (no-op when showTrim=false)
  *   setVolume(v) / setMuted(m)
  *   setFrameCount(n)
+ *   setWavePath(url)                — the clip's baked waveform mask, painted inside
+ *                                     the trim track (no-op when showTrim=false)
  *   destroy()
  *
  * Emits (component-local):
@@ -524,6 +526,11 @@ export const MpiVideoControlBar = ComponentFactory.create({
             trim?.el.setFps(_fps);
             _surface?._setFps(_fps);
         };
+
+        // The clip's baked waveform, painted inside the trim track (MPI-829). A no-op
+        // without a trim bar, and a falsy url clears it — which is what a re-selected
+        // history entry needs when the previous clip had audio and this one does not.
+        el.setWavePath = (url) => trim?.el.setWavePath(url || null);
 
         el.destroy = () => {
             el.detachSurface();

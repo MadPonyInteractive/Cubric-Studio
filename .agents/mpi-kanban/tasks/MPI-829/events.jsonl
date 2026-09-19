@@ -1,0 +1,2 @@
+{"schema":"mpi-kanban/event/v1","type":"task.created","id":"MPI-829","at":"2026-09-19T19:25:24Z","actor":"claude","summary":"Card created: a video's audio waveform painted inside the trim track."}
+{"schema":"mpi-kanban/event/v1","type":"task.moved","id":"MPI-829","at":"2026-09-19T19:25:24Z","actor":"claude","from":"todo","to":"doing","summary":"Taken for implementation; ownership declared in files.json. MpiBaseFlow excluded - a live peer holds it under MPI-822."}

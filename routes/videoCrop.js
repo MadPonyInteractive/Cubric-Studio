@@ -164,11 +164,12 @@ router.post('/api/video/crop', async (req, res) => {
             sourceItemId: itemId  || null,
             sourceGroupId: groupId || null,
         };
-        // First-frame poster + 720p hover proxy alongside the sidecar (MPI-633).
-        const { thumbPath, thumbPathLg, proxyPath } = await writeVideoDerivatives(outputPath, metaDir, newId, { sourceWidth: outMeta.width, sourceHeight: outMeta.height });
+        // First-frame poster + 720p hover proxy + trim-bar waveform (MPI-633, MPI-829).
+        const { thumbPath, thumbPathLg, proxyPath, wavePath } = await writeVideoDerivatives(outputPath, metaDir, newId, { sourceWidth: outMeta.width, sourceHeight: outMeta.height, hasAudio: !!outMeta.hasAudio });
         if (thumbPath) sidecar.thumbPath = thumbPath;
         if (thumbPathLg) sidecar.thumbPathLg = thumbPathLg;
         if (proxyPath) sidecar.proxyPath = proxyPath;
+        if (wavePath) sidecar.wavePath = wavePath;
 
         await fs.writeJson(path.join(metaDir, `${newId}.json`), sidecar, { spaces: 2 });
 

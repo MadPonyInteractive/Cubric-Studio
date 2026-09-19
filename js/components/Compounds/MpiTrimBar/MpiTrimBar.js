@@ -14,11 +14,15 @@
  *   value:    number   — initial playhead in seconds (clamped to [in,out])
  *   inPoint:  number   — initial in point in seconds (defaults to 0)
  *   outPoint: number   — initial out point in seconds (defaults to duration)
+ *   wavePath: string   — URL of the clip's baked waveform mask, the sidecar's
+ *                        `wavePath` (MPI-829). Optional; without it the track paints
+ *                        exactly as it did before. A silent clip never has one.
  *
  * Instance API (on el):
  *   setDuration(d)              — replace duration; clamps in/out/value
  *   setFps(fps)                 — change snap granularity
  *   setFrameCount(n)            — set probed frame count (frame-indexed mapping)
+ *   setWavePath(url)            — swap/clear the waveform mask
  *   setValue(t) / setValueQuiet(t)
  *   setRange(in, out) / setRangeQuiet(in, out)
  *   getValue()                  — current playhead seconds
@@ -49,6 +53,7 @@ export const MpiTrimBar = ComponentFactory.create({
     template: () => `
         <div class="mpi-trim-bar">
             <div class="mpi-trim-bar__track" id="track">
+                <div class="mpi-trim-bar__wave" id="wave"></div>
                 <div class="mpi-trim-bar__selection" id="selection"></div>
                 <div class="mpi-trim-bar__handle mpi-trim-bar__handle--in"
                      id="handle-in" data-role="in" tabindex="0"
@@ -65,6 +70,7 @@ export const MpiTrimBar = ComponentFactory.create({
 
     setup: (el, props, emit) => {
         const trackEl     = qs('#track', el);
+        const waveEl      = qs('#wave', el);
         const selectionEl = qs('#selection', el);
         const handleInEl  = qs('#handle-in', el);
         const handleOutEl = qs('#handle-out', el);
@@ -141,6 +147,19 @@ export const MpiTrimBar = ComponentFactory.create({
             let idx = Math.round(t * eff);
             if (idx < 0) idx = 0; else if (idx > last) idx = last;
             return (idx / last) * 100;
+        }
+
+        // The wave rides a custom property rather than the element's own `mask-image`
+        // so the CSS keeps every mask-* declaration in one place. A falsy url clears
+        // it, which is what a silent clip and a re-selected history entry both need.
+        //
+        // Positions here are FRAME-INDEXED (`_pctOf`) while the mask is linear in TIME,
+        // so the two disagree by at most one frame's width at the clip end. That is
+        // sub-pixel on a 28px track and is the correct trade: the frame-indexed mapping
+        // is load-bearing (see `_pctOf`), and re-deriving the mask per clip to match it
+        // would mean baking a rendition per frame count.
+        function _applyWave(url) {
+            waveEl.style.setProperty('--mpi-trim-bar-wave', url ? `url("${url}")` : 'none');
         }
 
         function _renderPositions() {
@@ -292,6 +311,8 @@ export const MpiTrimBar = ComponentFactory.create({
             _renderPositions();
         };
 
+        el.setWavePath = (url) => _applyWave(url);
+
         el.setValueQuiet = (t) => {
             const next = _clamp(+t || 0, _in, _out);
             if (next === _value) return;
@@ -337,6 +358,7 @@ export const MpiTrimBar = ComponentFactory.create({
             }
         };
 
+        _applyWave(props.wavePath);
         _renderPositions();
     }
 });

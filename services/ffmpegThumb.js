@@ -198,6 +198,50 @@ function videoProxyPath(outPath) {
 }
 
 /**
+ * A VIDEO's waveform, for the trim bar (MPI-829).
+ *
+ * Shorter than the audio card's 540 because the box is shorter: a trim track is ~26px
+ * inside its border, so the 21:9 bake is a 20:1 vertical squash and the browser's
+ * downscale smears the envelope into a soft band — measured side by side at 540/160/80
+ * against the same clip. At 160 the peaks and gaps are distinct, which is the whole
+ * point of cutting against the sound, and the file is SMALLER too (2178 bytes against
+ * 3488 on that clip) because there is less of the same flat graphic to encode.
+ *
+ * This is not the second rendition MPI-730 warned against. That warning is about baking
+ * two sizes of the SAME asset for the same consumer; this is a different derivative,
+ * under its own name, with one consumer that has a fixed and very wide aspect.
+ */
+const VIDEO_WAVEFORM_PX = { w: 1260, h: 160 };
+
+/**
+ * Bake a video's trim-bar waveform. Owns BOTH the name and the size so the two call
+ * sites (`writeVideoDerivatives` and the backfill pass) cannot drift apart — a backfill
+ * that baked at the audio card's height would quietly give older projects the blurry
+ * version forever.
+ *
+ * A video already owns `.thumb.webp` for its POSTER, so the wave cannot ride that name
+ * the way an audio item's does — it needs an infix of its own. `.wave.` is matched by
+ * `DERIVATIVE_RE` and `CLEANUP_DERIVATIVE_RE` in `routes/projects.js`, which is what
+ * buys delete, the orphan sweep and the rebuildable-asset cleanup for free.
+ *
+ * `thumbBase` is the `<id>.thumb.jpg` base every other derivative here is passed, so a
+ * caller hands over the same path it already has. Returns the path written (always
+ * `<id>.wave.webp`), or null.
+ */
+function extractVideoWaveform(inputPath, thumbBase) {
+    const waveBase = String(thumbBase).replace(/\.thumb\.jpe?g$/i, '.wave.jpg');
+    // Spelled out, NOT `…(inputPath, waveBase, VIDEO_WAVEFORM_PX)`: the box constants
+    // here are `{w,h}` while `extractAudioWaveform` destructures `{width,height}`, so
+    // passing the constant straight through matches neither key, silently falls back to
+    // BOTH audio-card defaults and bakes the blurry 540 anyway. It exits 0 and writes a
+    // perfectly valid file, so only a pixel assertion catches it — one did.
+    return extractAudioWaveform(inputPath, waveBase, {
+        width: VIDEO_WAVEFORM_PX.w,
+        height: VIDEO_WAVEFORM_PX.h,
+    });
+}
+
+/**
  * Downscale a video to the gallery hover proxy. Returns the path written, or null —
  * including when the source is already at or under the proxy height, because then the
  * master IS the proxy and a re-encode would cost disk and quality for nothing. Pass
@@ -252,8 +296,15 @@ async function extractVideoProxy(inputPath, outPath, { sourceHeight } = {}) {
  * `filePath` is a video — an `<img>` pointed at it paints a missing card. So a clip is
  * owed a large poster whenever it is wider than the SMALL tier, and `min(1280,iw)` caps
  * it at the source. Unknown width writes it, same reasoning as the image path.
+ *
+ * `hasAudio` gates the waveform (MPI-829), which the trim bar paints so an in/out point
+ * can be cut against the sound. Pass the probe's value: a silent clip must not spend an
+ * ffmpeg run producing an empty mask, and `false` is the common case here — every
+ * text-to-video op emits a silent clip. UNDEFINED attempts the bake, because an unprobed
+ * caller is not evidence of silence and `showwavespic` failing on a stream that is not
+ * there is a warning, not a break.
  */
-async function writeVideoDerivatives(inputPath, metaDir, id, { sourceWidth, sourceHeight } = {}) {
+async function writeVideoDerivatives(inputPath, metaDir, id, { sourceWidth, sourceHeight, hasAudio } = {}) {
     const base = path.join(metaDir, `${id}.thumb.jpg`);
     const url = (p) => `/project-file?path=${encodeURIComponent(p)}`;
     const thumb = await extractVideoThumb(inputPath, base);
@@ -261,10 +312,12 @@ async function writeVideoDerivatives(inputPath, metaDir, id, { sourceWidth, sour
         ? await extractVideoThumb(inputPath, base, { width: IMAGE_RENDITION_PX.large })
         : null;
     const proxy = await extractVideoProxy(inputPath, base, { sourceHeight });
+    const wave = hasAudio === false ? null : await extractVideoWaveform(inputPath, base);
     return {
         thumbPath: thumb ? url(thumb) : null,
         thumbPathLg: large ? url(large) : null,
         proxyPath: proxy ? url(proxy) : null,
+        wavePath: wave ? url(wave) : null,
     };
 }
 
@@ -276,7 +329,9 @@ module.exports = {
     writeVideoDerivatives,
     imageThumbPath,
     videoProxyPath,
+    extractVideoWaveform,
     AUDIO_WAVEFORM_PX,
+    VIDEO_WAVEFORM_PX,
     IMAGE_RENDITION_PX,
     VIDEO_PROXY_HEIGHT,
 };

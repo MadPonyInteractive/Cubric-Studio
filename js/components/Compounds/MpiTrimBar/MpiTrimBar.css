@@ -21,6 +21,31 @@
     touch-action: none;
 }
 
+/* The clip's audio, so an in/out point can be cut against a word or a beat (MPI-829).
+   The baked `<id>.wave.webp` is an alpha MASK, white-on-transparent, so it is coloured
+   here with a token and both themes come for free — same contract as MpiWaveform.
+   `mask-size: 100% 100%` stretches the one 21:9 bake to this short wide track, which is
+   the single-rendition decision MPI-730 made deliberately.
+
+   `--ink-4`, the almost-disappearing ink: the wave is CONTEXT, not a control, and it sits
+   under a selection tint, two handles and a playhead that all have to stay readable on top
+   of it. Nothing here may use the accent — that token belongs to the controls.
+
+   z-index 0 puts it under the selection (1), playhead (2) and handles (3). The selection's
+   12% tint is translucent, so the wave reads continuously straight through the active
+   range rather than being masked by it. */
+.mpi-trim-bar__wave {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: var(--ink-4);
+    mask-image: var(--mpi-trim-bar-wave, none);
+    mask-size: 100% 100%;
+    mask-position: center;
+    mask-repeat: no-repeat;
+    pointer-events: none;
+}
+
 /* Range fill between in/out — flat heat tint with top/bottom marker lines. */
 .mpi-trim-bar__selection {
     position: absolute;

@@ -755,6 +755,8 @@
  *   setPendingTrim(in, out)        — one-shot trim applied on next loadedmetadata
  *   setVolume(v) / setMuted(m)
  *   setFps(fps) / setFrameCount(n)
+ *   setWavePath(url)               — the clip's waveform, painted in the trim track
+ *                                    (no-op when showTrim=false)
  *
  * Emits:
  *   'loop-change'  { loop: boolean }
@@ -2042,10 +2044,15 @@
  * @property {number} [value=0]      - Initial playhead in seconds (clamped to [in,out])
  * @property {number} [inPoint=0]    - Initial in-point in seconds
  * @property {number} [outPoint]     - Initial out-point in seconds (defaults to duration)
+ * @property {string} [wavePath]     - URL of the clip's baked waveform mask (the sidecar's
+ *                                     `wavePath`, MPI-829). Painted inside the track so an
+ *                                     in/out point can be cut against the sound. Omitted
+ *                                     for a silent clip, which is never baked one.
  *
  * Self-contained two-handle trim seek bar. Track is 44px tall; trim handles
  * and the playhead overflow ±8px top/bottom and must NOT be clipped by the
- * parent. Stage tokens only (--accent-heat / --surface-bar / --line / --ink-1).
+ * parent. Stage tokens only (--accent-heat / --surface-bar / --line / --ink-1,
+ * plus --ink-4 for the waveform, which is context rather than a control).
  *
  * Pointer drag coalesces on RAF; final value re-emits on pointerup so
  * downstream consumers see a stable end state.
@@ -2055,6 +2062,7 @@
  *   setFps(fps)                   — change snap granularity
  *   setValue(t) / setValueQuiet(t)
  *   setRange(in, out) / setRangeQuiet(in, out)
+ *   setWavePath(url)              — swap/clear the waveform mask
  *   getValue()                    — current playhead seconds
  *   getRange()                    — { in, out }
  *   destroy()                     — cancel RAF + drop listeners

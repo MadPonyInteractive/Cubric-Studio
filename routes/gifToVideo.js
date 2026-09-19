@@ -222,8 +222,11 @@ router.post('/gif/to-video', async (req, res) => {
             sourceItemId: itemId || null,
             sourceGroupId: groupId || null,
         };
-        // Poster + 720p hover proxy (MPI-633 precedent, routes/videoReverse.js).
-        const { thumbPath, thumbPathLg, proxyPath } = await writeVideoDerivatives(outputPath, metaDir, newId, { sourceWidth: evenW, sourceHeight: evenH });
+        // Poster + 720p hover proxy (MPI-633 precedent, routes/videoReverse.js). No
+        // trim-bar waveform (MPI-829) and no `wavePath` to destructure: a GIF has no audio
+        // stream, which is why `hasAudio` is hard-false above, and passing it keeps this
+        // route from spending an ffmpeg run to discover that.
+        const { thumbPath, thumbPathLg, proxyPath } = await writeVideoDerivatives(outputPath, metaDir, newId, { sourceWidth: evenW, sourceHeight: evenH, hasAudio: false });
         if (thumbPath) sidecar.thumbPath = thumbPath;
         if (thumbPathLg) sidecar.thumbPathLg = thumbPathLg;
         if (proxyPath) sidecar.proxyPath = proxyPath;

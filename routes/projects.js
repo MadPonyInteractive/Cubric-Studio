@@ -33,7 +33,7 @@ const { v4: uuidv4 } = require('uuid');
 const { getProjectsRoot, COMFYUI_PORT, streamDownload, stripImageMetadata, readProjectPathsRegistry, addProjectPathToRegistry, removeProjectPathFromRegistry, readHiddenProjects, setProjectHidden } = require('./shared');
 const { getComfyPath, getEngineRoot } = require('./platformEngine');
 const { probeVideo, probeAudio } = require('../services/ffprobeVideo');
-const { extractImageThumb, extractVideoThumb, extractVideoProxy, extractAudioWaveform, writeVideoDerivatives, imageThumbPath, videoProxyPath, IMAGE_RENDITION_PX, VIDEO_PROXY_HEIGHT } = require('../services/ffmpegThumb');
+const { extractImageThumb, extractVideoThumb, extractVideoProxy, extractAudioWaveform, extractVideoWaveform, writeVideoDerivatives, imageThumbPath, videoProxyPath, IMAGE_RENDITION_PX, VIDEO_PROXY_HEIGHT } = require('../services/ffmpegThumb');
 const { ffmpegPath, ffprobePath, quote } = require('../services/ffmpegBinary');
 const { muxAudioIntoVideo, mixAudioFiles } = require('../services/ffmpegMux');
 const { extractFramesFromGif, copyGifFrames, sweepGifFrames } = require('../services/gifFrames');
@@ -89,7 +89,8 @@ function pathFromProjectFileUrl(value) {
 /**
  * Every companion file an item id owns, as a filename test: `<id>.thumb.jpg` (the
  * legacy thumb, image and video alike), `<id>.thumb.webp` (the 512 rendition),
- * `<id>.thumb.1280.webp` and `<id>.proxy.mp4` (MPI-633), `<id>.splat.ply` (MPI-623).
+ * `<id>.thumb.1280.webp` and `<id>.proxy.mp4` (MPI-633), `<id>.splat.ply` (MPI-623),
+ * `<id>.wave.webp` (MPI-829, a video's trim-bar waveform).
  * Matched by PREFIX, not by an extension list — three separate lists had to be edited
  * in lock-step every time one was added, and a missed one leaks a file per asset
  * forever.
@@ -99,7 +100,7 @@ function pathFromProjectFileUrl(value) {
  * convention anyway because "file owned by an item id, deleted with it" is exactly
  * what this regex is for, and that buys delete, orphan-sweep and GC for free.
  */
-const DERIVATIVE_RE = /^(.*)\.(?:thumb|proxy|splat)\..+$/;
+const DERIVATIVE_RE = /^(.*)\.(?:thumb|proxy|splat|wave)\..+$/;
 
 function removeItemThumbs(metaDir, id) {
     let entries;
@@ -927,10 +928,10 @@ router.post('/delete-project', async (req, res) => {
 // the content-addressed preview-assets store (MPI-227).
 //
 // It drops the two classes of file a project can REBUILD:
-//   * the DERIVATIVES under `Media/.meta/` — `<id>.thumb.*` and `<id>.proxy.*`. These
-//     are pure cache: `POST /backfill-media-derivatives` bakes them again on the next
-//     project load. A video proxy is the bulk of a project that is not a master file,
-//     which is what makes this worth doing before zipping a folder for someone.
+//   * the DERIVATIVES under `Media/.meta/` — `<id>.thumb.*`, `<id>.proxy.*` and
+//     `<id>.wave.*`. These are pure cache: `POST /backfill-media-derivatives` bakes them
+//     again on the next project load. A video proxy is the bulk of a project that is not
+//     a master file, which is what makes this worth doing before zipping a folder for someone.
 //   * the preview-assets store, the deduped reuse frames, preserving the
 //     `.migrated-v1` marker so a re-open stays migrated.
 //
@@ -945,7 +946,7 @@ router.post('/delete-project', async (req, res) => {
 //
 // Masters (Media outputs), sidecar JSON and latents (`.latents`) are untouched. After
 // a cleanup a reuse that resolves to a now-missing frame soft-fails to a warning toast.
-const CLEANUP_DERIVATIVE_RE = /^(.*)\.(?:thumb|proxy)\..+$/;
+const CLEANUP_DERIVATIVE_RE = /^(.*)\.(?:thumb|proxy|wave)\..+$/;
 
 async function cleanupRebuildableAssets(folderPath) {
     const mediaDir = path.join(folderPath, 'Media');
@@ -963,10 +964,12 @@ async function cleanupRebuildableAssets(folderPath) {
             const p = path.join(metaDir, f);
             let meta;
             try { meta = await fs.readJson(p); } catch { continue; }
-            if (meta.thumbPath == null && meta.thumbPathLg == null && meta.proxyPath == null) continue;
+            if (meta.thumbPath == null && meta.thumbPathLg == null
+                && meta.proxyPath == null && meta.wavePath == null) continue;
             meta.thumbPath = null;
             meta.thumbPathLg = null;
             meta.proxyPath = null;
+            meta.wavePath = null;
             await fs.writeJson(p, meta, { spaces: 2 }).catch(() => {});
         }
     }
@@ -1447,11 +1450,12 @@ router.post('/project-media/:projectId/upload', async (req, res) => {
                 if (!metaContent.pixelDimensions.w && v.width)  metaContent.pixelDimensions.w = v.width;
                 if (!metaContent.pixelDimensions.h && v.height) metaContent.pixelDimensions.h = v.height;
             }
-            // First-frame poster (both tiers) + 720p hover proxy → .meta/<id>.thumb*.webp
-            // / .proxy.mp4
+            // First-frame poster (both tiers) + 720p hover proxy + trim-bar waveform →
+            // .meta/<id>.thumb*.webp / .proxy.mp4 / .wave.webp
             Object.assign(metaContent, await writeVideoDerivatives(filePath, metaDir, id, {
                 sourceWidth: metaContent.pixelDimensions?.w,
                 sourceHeight: metaContent.pixelDimensions?.h,
+                hasAudio: metaContent.hasAudio,
             }));
         } else if (mediaType === 'audio') {
             // Audio: no frames or dimensions, but it DOES get a thumb — the baked
@@ -1487,6 +1491,7 @@ router.post('/project-media/:projectId/upload', async (req, res) => {
             thumbPath: metaContent.thumbPath || null,
             thumbPathLg: metaContent.thumbPathLg || null,
             proxyPath: metaContent.proxyPath || null,
+            wavePath: metaContent.wavePath || null,
             gif: metaContent.gif || null,
             // Video probe results so the client shows fps/duration immediately
             // without waiting for a reload + sidecar reconcile (MPI-83 Bug 2).
@@ -1571,7 +1576,7 @@ router.post('/project-media/:projectId/probe-videos', async (req, res) => {
  * Body: { folderPath }
  * MPI-319: generate a gallery thumb for any IMAGE sidecar that lacks one
  * (projects created before image thumbs existed). Patches the sidecar and returns
- * a `{ itemId: { thumbPath, thumbPathLg, proxyPath } }` map so the client can patch
+ * a `{ itemId: { thumbPath, thumbPathLg, proxyPath, wavePath } }` map so the client can patch
  * live in-memory items without a reload. Fire-and-forget on project load — a missing
  * derivative just falls back to full-res in the gallery meanwhile.
  *
@@ -1591,6 +1596,10 @@ router.post('/project-media/:projectId/probe-videos', async (req, res) => {
  *
  * MPI-730: and it bakes the waveform for audio items, whose sidecars were written
  * with `thumbPath: null` for as long as an audio card was a blank grey tile.
+ *
+ * MPI-829: and a VIDEO's waveform, which the trim bar paints so an in/out point can be
+ * cut against the sound. Unlike an audio item's it does NOT share the thumb name — a
+ * video already owns that for its poster — so it lands at `<id>.wave.webp`.
  */
 router.post('/backfill-media-derivatives', async (req, res) => {
     try {
@@ -1630,6 +1639,7 @@ router.post('/backfill-media-derivatives', async (req, res) => {
                     thumbPath: meta.thumbPath,
                     thumbPathLg: null,
                     proxyPath: null,
+                    wavePath: null,
                 };
                 patched++;
                 continue;
@@ -1650,7 +1660,18 @@ router.post('/backfill-media-derivatives', async (req, res) => {
                 const staleJpg = /\.thumb\.jpe?g(&|$)/i.test(meta.thumbPath || '');
                 const needsSmall = !meta.thumbPath || staleJpg;
                 const needsLarge = !meta.thumbPathLg && (!(srcW > 0) || srcW > IMAGE_RENDITION_PX.small);
-                if (!needsProxy && !needsSmall && !needsLarge) continue;
+                // MPI-829: the trim-bar waveform. `hasAudio` is what says whether one is
+                // OWED, and a sidecar written before that field existed carries none — so
+                // probe once and STORE it. Without that store a silent unprobed clip never
+                // converges: the bake fails, `wavePath` stays null, and the next project
+                // load runs ffmpeg at it again, forever. An unprobeable clip keeps
+                // `hasAudio` unset and is simply never owed a wave.
+                if (!meta.wavePath && meta.hasAudio == null) {
+                    const v = await probeVideo(inputPath);
+                    if (v) meta.hasAudio = v.hasAudio;
+                }
+                const needsWave = !meta.wavePath && meta.hasAudio === true;
+                if (!needsProxy && !needsSmall && !needsLarge && !needsWave) continue;
 
                 if (needsSmall) {
                     const small = await extractVideoThumb(inputPath, thumbAbs);
@@ -1667,12 +1688,17 @@ router.post('/backfill-media-derivatives', async (req, res) => {
                     const proxy = await extractVideoProxy(inputPath, thumbAbs, { sourceHeight: srcH });
                     if (proxy) meta.proxyPath = `/project-file?path=${encodeURIComponent(proxy)}`;
                 }
+                if (needsWave) {
+                    const wave = await extractVideoWaveform(inputPath, thumbAbs);
+                    if (wave) meta.wavePath = `/project-file?path=${encodeURIComponent(wave)}`;
+                }
 
                 await fs.writeJson(p, meta, { spaces: 2 });
                 thumbs[id] = {
                     thumbPath: meta.thumbPath || null,
                     thumbPathLg: meta.thumbPathLg || null,
                     proxyPath: meta.proxyPath || null,
+                    wavePath: meta.wavePath || null,
                 };
                 patched++;
                 continue;
@@ -1709,6 +1735,7 @@ router.post('/backfill-media-derivatives', async (req, res) => {
                 thumbPath: meta.thumbPath,
                 thumbPathLg: meta.thumbPathLg || null,
                 proxyPath: meta.proxyPath || null,
+                wavePath: null,
             };
             patched++;
         }
@@ -2149,6 +2176,7 @@ router.post('/project/save-generation', async (req, res) => {
             Object.assign(metaContent, await writeVideoDerivatives(filePath, metaDir, id, {
                 sourceWidth: videoInfo?.width ?? metaContent.pixelDimensions?.w,
                 sourceHeight: videoInfo?.height ?? metaContent.pixelDimensions?.h,
+                hasAudio: metaContent.hasAudio,
             }));
         } else if (isAudio) {
             // The thumb is the baked waveform mask the audio card paints (MPI-730);
@@ -2268,6 +2296,7 @@ router.post('/project/save-generation', async (req, res) => {
             thumbPath: metaContent.thumbPath || null,
             thumbPathLg: metaContent.thumbPathLg || null,
             proxyPath: metaContent.proxyPath || null,
+            wavePath: metaContent.wavePath || null,
             splatPath: metaContent.splatPath || null,
             fps: metaContent.fps || 0,
             duration: metaContent.duration || 0,

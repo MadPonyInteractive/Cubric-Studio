@@ -19,9 +19,10 @@
  * Instance API (on el):
  *   loadVideo(url, meta = {})              — load video URL; meta may include
  *                                            { fps, duration, frameCount,
- *                                              hasAudio, trim }. fps/frameCount/
- *                                              trim are proxied to the attached
- *                                              control bar when present.
+ *                                              hasAudio, trim, wavePath }.
+ *                                              fps/frameCount/trim/wavePath are
+ *                                              proxied to the attached control bar
+ *                                              when present.
  *   attachControlBar(controlBarInstance)    — wire an external MpiVideoControlBar
  *                                             instance; the bar's attachSurface
  *                                             is called internally.
@@ -313,6 +314,11 @@ export const MpiVideoViewer = ComponentFactory.create({
                 _surfaceInstance.el._setFrameCount(meta.frameCount);
                 _controlBarInstance?.el.setFrameCount?.(meta.frameCount);
             }
+            // The trim-bar waveform (MPI-829). Set UNCONDITIONALLY, unlike fps and
+            // frameCount above: those keep their previous value when a caller omits
+            // them, but a stale wave would be the PREVIOUS clip's audio drawn under
+            // this one's trim handles. A caller that passes nothing clears it.
+            _controlBarInstance?.el.setWavePath?.(meta.wavePath || null);
             // Persisted trim range — applied after loadedmetadata resets to
             // full clip (control bar listens). One-shot.
             const trim = meta.trim;

@@ -220,6 +220,7 @@ export const MpiGalleryBlock = ComponentFactory.create({
                         thumbPath: uploaded.thumbPath,
                         thumbPathLg: uploaded.thumbPathLg,
                         proxyPath: uploaded.proxyPath,
+                        wavePath: uploaded.wavePath,
                         pixelDimensions: uploaded.pixelDimensions,
                         fps: uploaded.fps,
                         duration: uploaded.duration,

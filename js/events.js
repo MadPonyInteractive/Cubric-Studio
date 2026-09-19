@@ -201,7 +201,7 @@ export const Events = new EventBus();
  *
  * Media events:
  * 'media:imported'        { url, filename, itemId, mediaType, thumbPath, thumbPathLg, proxyPath,
- *                           pixelDimensions, fps, duration, frameCount, hasAudio, gif }
+ *                           wavePath, pixelDimensions, fps, duration, frameCount, hasAudio, gif }
  *                                                                  — a media file finished importing. ONE listener builds the
  *                                                                    ItemGroup: mediaImportService (app-lifetime, started from
  *                                                                    shell.js). Never add a second one inside a Block (MPI-723).

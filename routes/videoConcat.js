@@ -121,12 +121,14 @@ async function _writeOutputSidecar({ mediaDir, metaDir, outputPath, finalName, o
         hasAudio:   !!outMeta.hasAudio,
         ...extraFields,
     };
-    // Poster + 720p hover proxy (MPI-633). Null proxyPath just means the output is
-    // already at or under 720p, in which case the master IS the proxy.
-    const { thumbPath, thumbPathLg, proxyPath } = await writeVideoDerivatives(outputPath, metaDir, newId, { sourceWidth: outMeta.width, sourceHeight: outMeta.height });
+    // Poster + 720p hover proxy + trim-bar waveform (MPI-633, MPI-829). Null proxyPath
+    // just means the output is already at or under 720p, in which case the master IS the
+    // proxy. The wave spans the JOINED clip, which is the whole point on a concat.
+    const { thumbPath, thumbPathLg, proxyPath, wavePath } = await writeVideoDerivatives(outputPath, metaDir, newId, { sourceWidth: outMeta.width, sourceHeight: outMeta.height, hasAudio: !!outMeta.hasAudio });
     if (thumbPath) sidecar.thumbPath = thumbPath;
     if (thumbPathLg) sidecar.thumbPathLg = thumbPathLg;
     if (proxyPath) sidecar.proxyPath = proxyPath;
+    if (wavePath) sidecar.wavePath = wavePath;
     await fs.writeJson(path.join(metaDir, `${newId}.json`), sidecar, { spaces: 2 });
     return sidecar;
 }
