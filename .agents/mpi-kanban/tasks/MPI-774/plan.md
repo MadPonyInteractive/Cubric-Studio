@@ -985,6 +985,32 @@ the agent a flow's field ids and labels with no type, default or options, so it 
 legal value. **Not part of this card's scope** — MPI-774's remaining work is Phases 6 and 7 below —
 but it is the same theme as Phase 7 and the two may be worth an umbrella.
 
+### Phase 5 fix 11: the agent refused the keyless Ollama connection (Fabio, 2026-09-19, session 668b667e)
+
+Fabio switched the agent from DeepInfra to the Ollama connection and every message answered
+*"No API key for this connection."* It was never decided that the agent is DeepInfra-only — W3
+ships Ollama `/v1` as a preset. **Root cause:** "Ollama is keyless" is a rule `routes/llm.js` applies
+at all three of its key checks (`!key && profileId !== 'ollama'`), and `services/agentLoop.mjs`
+missed it at both of its own (`runTurn`, `probe`). Enhance and describe worked on Ollama; the agent
+never could. **Built:** the same exemption at both sites. **Verified:** two tests in
+`tests/agent-loop.test.cjs` § (f) — red on the old code with his exact message, green after; a
+keyless connection that is NOT Ollama is still refused and spends nothing. Suite 44 pass, 0 fail.
+
+**OPEN, and it decides whether the agent is usable on Ollama at all — needs Fabio (Phase 7):**
+
+1. **His Ollama serves a 4096-token context** (`OLLAMA_CONTEXT_LENGTH:4096` in its `server.log`),
+   and `/v1/chat/completions` has no `num_ctx`. The agent's fixed floor — system prompt 8.7k chars
+   plus 11 tool schemas 6.0k chars — is **~3.7k tokens before the user types a word** (measured by
+   capturing the first request body). One guide read or `list_models` answer overflows it, and
+   Ollama truncates from the FRONT, silently: the rules and tools go first. `OllamaEngine` already
+   carries this trap for enhance (`num_ctx: 8192` on the native `/api/chat`). Forks: drive the
+   agent through native `/api/chat` with `num_ctx` on the Ollama preset, or point the user at the
+   Ollama app's own context-length setting. NOT built, NOT live-tested — loading a 12B model
+   would have perturbed his fix 8 repro, which was running.
+2. **Only a model with the `tools` capability can be the agent.** Read from `/api/show`, no model
+   load: `huihui_ai/gemma-4-abliterated:12b` has it; `huihui_ai/gemma3-abliterated:12b` and
+   `gemma3:12b` do NOT. The model picker lists all of them alike; Probe is what tells them apart.
+
 ## Phase 6: Global memory (Fabio, 2026-09-18 — NEXT SESSION)
 
 *Verify mode: user-ux.*

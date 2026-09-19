@@ -544,6 +544,47 @@ describe('(f) endpoint key resolution', () => {
             else process.env.DEEPINFRA_API_KEY = prev;
         }
     });
+
+    /** A keyless loop on `presetId`, its engine faked. `makeLoop` cannot do this: it forces a key. */
+    async function keylessLoop(presetId) {
+        const AgentLoop = await loadAgentLoop();
+        const loop = new AgentLoop({
+            tools: makeFakeTools(),
+            resolveEndpoint: async () => ({ profile: { id: presetId, name: presetId, baseURL: 'http://localhost:11434/v1' }, key: null }),
+            lookupContextWindow: async () => 32_768,
+        });
+        const fakeRes = makeFakeRes();
+        loop.addSubscriber(fakeRes);
+        const engine = makeFakeEngine([{ text: 'hi' }]);
+        const { DeepInfraEngine } = await import('../services/llmEngines.mjs');
+        const origChat = DeepInfraEngine.prototype.chat;
+        DeepInfraEngine.prototype.chat = engine.chat;
+        return { loop, fakeRes, engine, restore: () => { DeepInfraEngine.prototype.chat = origChat; } };
+    }
+
+    test('Ollama is keyless: a turn and a probe both run with no key (the routes/llm.js rule)', async () => {
+        // Regression: routes/llm.js exempted 'ollama' from NO_KEY and the agent loop did not,
+        // so the Ollama connection worked for enhance and describe and never for the agent.
+        const { loop, fakeRes, engine, restore } = await keylessLoop('ollama');
+        try {
+            await loop.runTurn('Hello', [], null, 'auto', 'ollama', 't-ollama', { model: 'some/local-model' });
+            assert.equal(fakeRes.events.find((e) => e.event === 'agent:error'), undefined);
+            assert.equal(engine.calls.length, 1);
+            const probed = await loop.probe('ollama', 'some/local-model');
+            assert.notEqual(probed.error?.code, 'NO_KEY');
+            assert.equal(engine.calls.length, 2);
+        } finally { restore(); }
+    });
+
+    test('any other keyless connection is still refused, and nothing is spent', async () => {
+        const { loop, fakeRes, engine, restore } = await keylessLoop('openrouter');
+        try {
+            await loop.runTurn('Hello', [], null, 'auto', 'openrouter', 't-nokey', { model: 'some/model' });
+            assert.equal(fakeRes.events.find((e) => e.event === 'agent:error')?.data.code, 'NO_KEY');
+            assert.equal((await loop.probe('openrouter', 'some/model')).error?.code, 'NO_KEY');
+            assert.equal(engine.calls.length, 0);
+        } finally { restore(); }
+    });
 });
 
 // ---------------------------------------------------------------------------

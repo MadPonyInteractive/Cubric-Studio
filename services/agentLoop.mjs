@@ -859,7 +859,8 @@ ${knowledgeIndex}`.trim();
                 this._emit('agent:error', { turnId, code: 'NO_PROFILE', message: 'Connection not found. Pick one in Settings → Remote → Language Models.' });
                 return;
             }
-            if (!key) {
+            // Ollama /v1 is keyless: the same exemption `routes/llm.js` makes.
+            if (!key && profileId !== 'ollama') {
                 this._emit('agent:error', { turnId, code: 'NO_KEY', message: 'No API key for this connection. Add one in Settings → Remote → Language Models.' });
                 return;
             }
@@ -1079,7 +1080,7 @@ ${knowledgeIndex}`.trim();
     async probe(profileId, pickedModel) {
         const { profile, key } = await this._resolveEndpoint(profileId);
         if (!profile) return { ok: false, error: { code: 'NO_PROFILE', message: 'Connection not found.' } };
-        if (!key) return { ok: false, error: { code: 'NO_KEY', message: 'No API key for this connection.' } };
+        if (!key && profileId !== 'ollama') return { ok: false, error: { code: 'NO_KEY', message: 'No API key for this connection.' } };
         const model = this._resolveModel(profileId, pickedModel);
         if (!model) return { ok: false, error: { code: 'NO_MODEL', message: 'No agent model picked for this connection.' } };
 
