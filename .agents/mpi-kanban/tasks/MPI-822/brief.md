@@ -46,8 +46,9 @@ run must be tagged with the gen id, never keyed on `tool` alone.
    Generate↔Cancel morph.
    The Run button's label already counts the queue in the PromptBox
    (`_runLabel`, `:2268` → `Cue` / `Cue xN` off `state.generationQueueCount`). Mirror that
-   helper rather than writing a second one; confirm the word with Fabio (`Queue xN` is what he
-   said, `Cue xN` is what the rest of the app says).
+   helper rather than writing a second one. **The copy is `Cue` / `Cue xN`** - Fabio,
+   2026-09-19: *"Cue xN, keep it consistent"*. The flow frame reads exactly like the
+   PromptBox; "queue" stays the name of the thing, not the label on the button.
 3. **No cap** on stacked runs.
 4. **Reuse restores the run that ran.** Each press freezes its own input snapshot at dispatch.
    Today `_persistInputs(inputs)` writes the LIVE frame state, and `_run` re-persists after the
