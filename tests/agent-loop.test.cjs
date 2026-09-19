@@ -1095,6 +1095,38 @@ describe('(i) the catalogue diet', () => {
         assert.match(gen.error.message, /"guide:one"/);
     });
 
+    // Fabio, live 2026-09-19: the model called i2v_ms with no media at all and told him the
+    // video had started from his picture. The refusal came back from the renderer long after
+    // generate had answered started: true, which is the only thing the model reports.
+    test('generate refuses in-turn when a required media slot is empty, and names it', async () => {
+        const withMedia = {
+            ...catalogue,
+            models: [{
+                id: 'vid', name: 'Vid', type: 'video', installed: true, guides: [], ops: [
+                    { op: 'i2v', installed: true, media: [{ role: 'startFrame', type: 'image', required: true }] },
+                    { op: 't2v', installed: true, media: [] },
+                ],
+            }],
+        };
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', { modelId: 'vid', operation: 'i2v', prompt: 'a horse' }),
+            call('g2', 'generate', { modelId: 'vid', operation: 'i2v', prompt: 'a horse', media: [{ role: 'startFrame', image: 'att_1' }] }),
+            call('g3', 'generate', { modelId: 'vid', operation: 't2v', prompt: 'a horse' }),
+            { text: 'ok' },
+        ] });
+        tools.listModels = async () => withMedia;
+        loop._images.set('att_1', { path: '/tmp/att_1.png', kind: 'attachment' });
+        await loop.runTurn('animate it', [], project, 'auto', 'deepinfra', 't-media');
+
+        const [empty, filled, noSlots] = toolResults(loop);
+        assert.equal(empty.error.code, 'MEDIA_REQUIRED');
+        assert.match(empty.error.message, /"startFrame"/);
+        assert.match(empty.error.message, /Nothing was generated/);
+        assert.equal(filled.started, true, 'the call that fills the slot goes through');
+        assert.equal(noSlots.started, true, 'an op with no media slots is not gated');
+        assert.equal(tools.calls.generate.length, 2, 'the empty call never reached the app');
+    });
+
     test('describe_model gives one entry whole, model or Flow, and refuses an id it does not know', async () => {
         const { loop, tools } = await makeLoop({ engineResponses: [
             call('d1', 'describe_model', { id: 'one-note' }),

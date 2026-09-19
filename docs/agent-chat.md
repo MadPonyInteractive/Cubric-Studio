@@ -170,9 +170,13 @@ Every event but `agent:session` also carries `session`, the key of its conversat
   at:" = the `_images` allowlist), the project's notes index once per project (first turn, a switch, a
   compaction), then what finished since the last turn. A successful `open_project` updates the project
   for the rest of the turn, and its result carries the new project's notes.
-- **Gates** (a rule alone did not do it; a compaction clears both): a model op's `generate` answers `GUIDE_NOT_READ` until this context
+- **Gates** (a rule alone did not do it; a compaction clears them): a model op's `generate` answers `GUIDE_NOT_READ` until this context
   read one of its `guides` (a guide names the mode of any default: a bare one skipped Ask first); a Flow `params` box answers
-  `BOX_NOT_MEASURED` until a `look` with `box` measured the image of its role (live, the model guessed 512 px boxes).
+  `BOX_NOT_MEASURED` until a `look` with `box` measured the image of its role (live, the model guessed 512 px boxes); an op with a
+  required media slot answers `MEDIA_REQUIRED` in-turn, naming the slot and every role the op takes, when the call fills none of it.
+  That last one is a gate and not the app's own check because `generate` is fired and not awaited: the renderer's identical refusal
+  arrives AFTER `{started: true}`, which is the only thing the model tells the user about — live, it reported a video as started
+  from a picture it never sent (Fabio, 2026-09-19).
 - **Harness:** `npm run agent:test` (18 cases x 3, real model, fake tools; `--bite` proves each assertion,
   `--samples <md>` writes prompts to read). A case's `look` is one fixture, or a map keyed by the
   attachment's `filePath` when two images must answer differently — two portraits giving the identical

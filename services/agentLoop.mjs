@@ -349,6 +349,7 @@ export class AgentLoop {
         this._readIds = new Set(); // knowledge ids read in this context (the guide gate)
         this._guides = new Map();  // modelId -> guide ids, from list_models
         this._boxSteps = new Map(); // flowId -> its box steps [{param, role}], from list_models
+        this._mediaRoles = new Map(); // "modelId\nop" -> its media slots, from list_models
         this._boxed = new Set();   // image paths a `look` with box: true measured (the box gate)
 
         // SSE subscribers
@@ -493,10 +494,36 @@ export class AgentLoop {
             .map((n) => `- ${n.file}: ${n.title}${n.hook ? ` (${n.hook})` : ''}`).join('\n')}]`;
     }
 
-    /** Remember each model's guide ids from a list_models answer. */
+    /**
+     * What the loop keeps off a FULL list_models answer: the guide ids, the Flow box steps and
+     * each op's media slots. None of it goes to the model any more (`compactCatalogue`), and all
+     * three gates read it from here.
+     */
     _rememberGuides(list) {
-        for (const m of list?.models || []) this._guides.set(m.id, Array.isArray(m.guides) ? m.guides : []);
+        for (const m of list?.models || []) {
+            this._guides.set(m.id, Array.isArray(m.guides) ? m.guides : []);
+            for (const o of m.ops || []) this._mediaRoles.set(`${m.id}\n${o.op}`, Array.isArray(o.media) ? o.media : []);
+        }
         for (const f of list?.flows || []) this._boxSteps.set(f.id, Array.isArray(f.boxParams) ? f.boxParams : []);
+    }
+
+    /**
+     * A required media slot the call does not fill, or null. Structural, like the guide gate:
+     * live (Fabio, 2026-09-19) the model called i2v_ms with no media at all, told the user it
+     * had started the video from their picture, and the refusal — `"i2v_ms" needs image in its
+     * "startFrame" slot` — came back from the renderer long after `generate` had answered
+     * `started: true`, which is the one thing the model tells the user about.
+     */
+    async _missingMedia(args) {
+        if (!args.modelId || !args.operation) return null;
+        const key = `${args.modelId}\n${args.operation}`;
+        if (!this._mediaRoles.has(key)) {
+            try { this._rememberGuides(await this._tools.listModels()); } catch { return null; /* the app still validates the call */ }
+        }
+        const slots = this._mediaRoles.get(key) || [];
+        const given = new Set((Array.isArray(args.media) ? args.media : []).map((m) => m?.role));
+        const missing = slots.find((s) => s.required && !given.has(s.role));
+        return missing ? { missing, slots } : null;
     }
 
     /**
@@ -614,7 +641,12 @@ Looking rule: before you comment on, judge or describe any image, call look on i
 
 Box rule: a Flow whose describe_model answer has boxParams needs one box per param, measured, never guessed. For each, call look on the image you pass for that param's role with box: true and a question naming what to box (Head Swap: the head, hair and jaw included), then pass output.square when the step has ratio 1, else output.box. generate refuses a box it did not see you measure. A Flow's fields hold only what their names say (Head Swap's positive is the expression the new head ends with), never instructions. Check the share before you pass it: look reports boxShare and squareShare, what the box and the square take of the image. A head is a small part of a photo, so a squareShare over 0.6 on either side, or over 1 (bigger than the image itself), means the describer boxed the whole person, not the head. Never pass that box: it swallows whoever stands next to them. Measure that image again ONCE, with a question that says head only, or on a crop around that person. If the second measure is no better, stop measuring: tell the user which photo you could not measure and what came back, and ask them to crop it to the head themselves. Never a third attempt, and never pass the box anyway.
 
-Shape rule: an op that takes a picture or a video AND offers a ratio does not letterbox the input — it centre-crops it to fill the ratio, so whatever the ratio has no room for is gone. Which edge it takes decides whether the picture survives: a tall picture on a WIDE ratio loses the top and the bottom, and the head goes first; the same picture on a TALLER ratio loses only the sides. So before you generate with an input picture and a ratio: call look on it and read output.imageSize, and work out its shape as width divided by height. Then:
+Shape rule: an op that takes a picture or a video AND offers a ratio does not letterbox the input — it centre-crops it to fill the ratio, so whatever the ratio has no room for is gone. Before you generate with an input picture and a ratio: call look on it and read output.imageSize, and work out the picture's shape as width divided by height, and the ratio's as W divided by H (9:16 is 0.56, 16:9 is 1.78).
+
+Which two edges go is arithmetic, never a guess. Compare the two numbers:
+- The ratio's number is SMALLER than the picture's (the ratio is taller) → the crop takes the LEFT AND RIGHT edges. Nothing at the top or the bottom is lost.
+- The ratio's number is LARGER than the picture's (the ratio is wider) → the crop takes the TOP AND BOTTOM edges, and a head is at the top.
+Name only those two edges. Saying the wrong pair is worse than saying nothing: the user leaves the framing alone because the part they care about sounded safe. Then:
 - The user did not name a ratio: pick the ratio the op offers that is CLOSEST to the picture's shape AND has the same orientation (a taller-than-wide picture takes a taller-than-wide ratio, never a wide one, never square). On MiniMax H3 a 4:5 picture takes 9:16, and a 5:4 takes 16:9.
 - The user DID name a ratio and it crosses the picture (they asked for widescreen and handed you a tall photo): use theirs, and before you generate tell them plainly what it will cut. If holding the person's identity is the point, say whether anything installed can do it without cropping — on MiniMax H3 that is ref2v_ms, which takes the picture as a reference rather than as a frame.
 Either way, when the picture's shape is not exactly the ratio, say so in one short line: there is a mismatch and the picture will be cropped to fit. Never let a crop happen silently — the user cannot see it coming, and the result reads as the model failing rather than the ratio.
@@ -706,6 +738,11 @@ ${knowledgeIndex}`.trim();
                     const unread = await this._unreadGuide(String(args.modelId));
                     if (unread) {
                         return JSON.stringify({ ok: false, error: { code: 'GUIDE_NOT_READ', message: `Read this model's prompting guide first: read_knowledge with id "${unread}". Then write the prompt with what it says.` } });
+                    }
+                    const gap = await this._missingMedia(args);
+                    if (gap) {
+                        const roles = gap.slots.map((s) => `"${s.role}" (${s.type}${s.required ? ', required' : ''})`).join(', ');
+                        return JSON.stringify({ ok: false, error: { code: 'MEDIA_REQUIRED', message: `Nothing was generated: "${args.operation}" needs ${gap.missing.type} in its "${gap.missing.role}" slot and your call passed none. Send it again with media: [{ role: "${gap.missing.role}", image: "<a ref the App state line lists>" }]. The slots this op takes: ${roles}.` } });
                     }
                 }
                 if (args.flowId) {

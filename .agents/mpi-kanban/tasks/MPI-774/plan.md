@@ -1286,6 +1286,45 @@ and every gizmo a Flow grows is another thing an agent has to drive blind. His l
   setting (`INVALID_*`, `MEDIA_REQUIRED`) now says in its note which id to `describe_model` — the one
   failure the short list can cause.
 
+- [x] **A generate with an empty media slot was reported to the user as started** (Fabio, live,
+  2026-09-19, on `Qwen/Qwen3-VL-235B-A22B-Instruct`). He asked for a video of his cowgirl still; the
+  chat said *"I've started generating the video… using the provided image as the starting frame"* and
+  **nothing was generated**. The line above it was the truth: `"i2v_ms" needs image in its
+  "startFrame" slot.` The model called `generate` with no `media` at all.
+
+  **Why the user is told a lie rather than an error:** `generate` is fired and not awaited
+  (`agentLoop.mjs`), so the tool answers `{ok: true, started: true}` and the model writes its
+  paragraph from that. `resolveAgentMedia`'s refusal comes back from the RENDERER, one round trip
+  later, and lands in `_notes` for the NEXT turn — which, in a turn that ends there, the user never
+  sees. The app was right at every step; the only thing wrong was the order.
+
+  **BUILT:** a media gate in the loop, the third of its family (guide, box, media). Before it fires,
+  `_missingMedia` checks the op's required slots — read off the FULL catalogue the loop already
+  keeps — and refuses in-turn: *"Nothing was generated: `i2v_ms` needs image in its `startFrame` slot
+  and your call passed none. Send it again with media: [{ role: "startFrame", image: … }]. The slots
+  this op takes: …"*. The model gets the correction while it can still act on it, and cannot answer
+  `started` for a call that never left. Proven red first (the empty call reached the app and returned
+  `started: true`).
+
+  **This is the same root as the unowned narration bug** (four sheets reported as started after four
+  failed dispatches) and it removes its commonest cause, but not the general case: any dispatch that
+  fails INSIDE the renderer still resolves after `started: true`. That one is still Fabio's call
+  which card it lands on.
+
+- [x] **The crop warning named the wrong two edges** (same run). The agent told him a 9:16 video
+  would crop his picture *"cutting the top and bottom portions"*. A 9:16 target is TALLER than his
+  wide still, so the crop takes the LEFT AND RIGHT. The Shape rule shipped this morning described the
+  right mechanism in orientation words ("a tall picture on a WIDE ratio loses the top and the
+  bottom") and the model reversed it. **Rewritten as arithmetic with no orientation to flip:** work
+  out the picture's W/H and the ratio's W/H, and if the ratio's number is SMALLER the sides go, if
+  LARGER the top and bottom go — name only those two edges. A wrong pair is worse than silence: the
+  user leaves the framing alone because the part they care about sounded safe.
+
+  **Still open from that run, needs Fabio:** the op was given `9:16` for a LANDSCAPE still, which the
+  same rule says should have snapped to `16:9` (closest offered ratio with the same orientation). If
+  he asked for a vertical video, the rule behaved; if he did not, the snap is being ignored and that
+  is a separate defect. Ask before building anything.
+
   **Fabio's heads-up, 2026-09-19:** recent disk-offload work reportedly lets 8GB cards run 200B+
   models, trading speed; he is putting an agent on it. It does not soften the line above, and the
   distinction is worth keeping when that lands: offloading **weights** is cheap — read once per
