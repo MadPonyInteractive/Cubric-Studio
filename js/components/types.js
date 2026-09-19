@@ -2633,7 +2633,9 @@
  *   'masks-change' { overlay, edited, cleared } — the per-position mask URLs
  *                    for the strip, the hand-edited positions, and whether a
  *                    frame-list change dropped them
- *   'edit-change' { editing } — the Mask Brush opened or closed
+ *   'edit-change' { editing, ownsDrag } — a canvas tool opened or closed, and
+ *                    whether it takes a plain left-drag (so Space is its pan,
+ *                    not playback). Re-fires when `setMaskPaintEnabled` lands.
  */
 
 /**

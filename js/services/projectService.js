@@ -119,6 +119,23 @@ function _enqueueModelUpdate(modelId, opName, key, value) {
     }, _QUEUE_DEBOUNCE_MS);
 }
 
+/**
+ * The tool settings written but NOT yet flushed into `state.currentProject`.
+ *
+ * `settings:tool:update` is debounced by `_QUEUE_DEBOUNCE_MS`, which is correct for
+ * a slider being dragged but means a reader who mounts inside that window sees the
+ * OLD value. `MpiMaskStrip` is exactly that reader — it reads once at mount, and
+ * switching rail tools destroys and remounts it — so a toggle followed by a tool
+ * switch inside 300 ms read itself back off. Overlay this on `getToolSettings` and
+ * the read is current without touching the debounce every other tool relies on.
+ *
+ * @param {string} toolKey
+ * @returns {Object} the pending partial, empty when nothing is in flight
+ */
+export function getPendingToolSettings(toolKey) {
+    return { ..._toolQueues.get(toolKey)?.pending };
+}
+
 function _enqueueToolUpdate(toolKey, key, value) {
     if (!_toolQueues.has(toolKey)) _toolQueues.set(toolKey, { timer: null, pending: {} });
     const q = _toolQueues.get(toolKey);

@@ -47,6 +47,7 @@ import { Hotkeys }         from '../../../managers/hotkeyManager.js';
 import { Events }          from '../../../events.js';
 import { state }           from '../../../state.js';
 import { getToolSettings } from '../../../data/projectModel.js';
+import { getPendingToolSettings } from '../../../services/projectService.js';
 
 const DEFAULTS = { opacity: 0.7, inverted: false, bwView: false, brushPreset: DEFAULT_BRUSH_PRESET };
 
@@ -156,7 +157,17 @@ export const MpiMaskStrip = ComponentFactory.create({
         const _children = [];
         const _unbinds  = [];
 
-        const settings = { ...DEFAULTS, ...getToolSettings(state.currentProject || {}, dest.settingsKey, DEFAULTS) };
+        // Read ONCE, at mount — and the last layer is what this strip's own writes
+        // put in flight. Those are debounced 300 ms before they reach
+        // `state.currentProject`, and a rail tool switch destroys and remounts this
+        // strip, so a toggle followed by a switch inside that window read the OLD
+        // value back: invert and B/W did not carry between Cut-out and the Mask
+        // Brush even though both drive the same `mask` key (Fabio, 2026-09-19).
+        const settings = {
+            ...DEFAULTS,
+            ...getToolSettings(state.currentProject || {}, dest.settingsKey, DEFAULTS),
+            ...getPendingToolSettings(dest.settingsKey),
+        };
         const row = qs('#strip-row', el);
 
         // Whether this tool paints at all is the same question as whether it

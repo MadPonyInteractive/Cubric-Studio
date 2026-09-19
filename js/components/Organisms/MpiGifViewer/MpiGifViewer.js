@@ -92,6 +92,8 @@
  *   setCropRatio(r) / setCropSize(w, h) / getCropRect() — the surface
  *                                            `MpiToolOptionsCrop` drives (image names)
  *   isMaskEditing()                        — any canvas tool is up (Mask Brush or Crop)
+ *   isToolOwningDrag()                     — that tool owns a plain left-drag, so
+ *                                            Space is its pan and not playback
  *   getFrameSize()                         — Promise<{w, h}> of the current frame
  *   setMaskBrushMode, setMaskBrushPreset, setMaskInverted, isMaskInverted,
  *   setMaskBwView, isMaskBwView, setMaskPaintEnabled, setMaskOpacity,
@@ -108,7 +110,11 @@
  *   'frame-change' { idx, frame } — index changed (step, scrub, playback)
  *   'play' / 'pause' / 'ended'
  *   'preview-change' { preview }
- *   'edit-change'  { editing }      — a canvas tool (Mask Brush, Crop) opened or closed
+ *   'edit-change'  { editing, ownsDrag } — a canvas tool (Mask Brush, Cut-out, Crop)
+ *                                   opened or closed. `ownsDrag` says whether THAT
+ *                                   tool takes a plain left-drag, so Space is its
+ *                                   pan; it re-fires when `setMaskPaintEnabled`
+ *                                   lands, which is after the tool opened.
  *   'masks-change' { overlay, edited } — per-position mask URLs for the strip
  *                                   tint, and the brushed positions
  *
@@ -194,6 +200,9 @@ export const MpiGifViewer = ComponentFactory.create({
         let _editing = false;
         /** Which tool owns the canvas: 'mask' | 'crop' (null when none). */
         let _editKind = null;
+        /** MpiCanvas arms mask painting by default; MpiMaskStrip pushes the real
+         *  value down on mount, which is AFTER `enterMode` emits 'edit-change'. */
+        let _paintEnabled = true;
         /** Crop shape, kept across tool visits like the image canvas keeps it. */
         let _cropRatio = 1;
         let _cropSize = null;
@@ -385,16 +394,23 @@ export const MpiGifViewer = ComponentFactory.create({
         // preview, never a canvas layer, so no UndoStack entry applies.
         /** `luma`: an opaque B/W mask (engine / composed) rather than an alpha one. */
         function _setTint(url, luma = false) {
-            maskTintEl.classList.toggle('mpi-gif-viewer__mask-tint--luma', !!url && luma);
-            if (url) {
-                maskTintEl.style.webkitMaskImage = `url("${url}")`;
-                maskTintEl.style.maskImage = `url("${url}")`;
-                maskTintEl.classList.add('mpi-gif-viewer__mask-tint--visible');
-            } else {
+            if (!url) {
+                // HIDE ONLY. `--luma` and the mask image stay exactly as they are
+                // until the next mask replaces them. Dropping `--luma` here (or
+                // clearing `mask-image`) while the PREVIOUS frame's opaque B/W mask
+                // is still set falls the element back to `mask-mode: alpha` over an
+                // alpha-255 bitmap, so `--mask-fill` covers the whole stage — and
+                // `transition: opacity` then stretches that into a visible white
+                // flash every time playback leaves a masked run of frames.
                 maskTintEl.classList.remove('mpi-gif-viewer__mask-tint--visible');
-                maskTintEl.style.webkitMaskImage = '';
-                maskTintEl.style.maskImage = '';
+                return;
             }
+            // Bitmap and mode together, before the show: one style flush, so the
+            // element is never painted with one frame's mask under the other's mode.
+            maskTintEl.style.webkitMaskImage = `url("${url}")`;
+            maskTintEl.style.maskImage = `url("${url}")`;
+            maskTintEl.classList.toggle('mpi-gif-viewer__mask-tint--luma', luma);
+            maskTintEl.classList.add('mpi-gif-viewer__mask-tint--visible');
         }
         el.setMaskTint = (url) => _setTint(url);
 
@@ -611,6 +627,16 @@ export const MpiGifViewer = ComponentFactory.create({
             }
         }
 
+        /**
+         * Does the CANVAS TOOL own a plain left-drag? That, not "a canvas tool is
+         * up", is what makes Space load-bearing (Fabio, 2026-09-19). Crop owns the
+         * drag over its handles, and the Mask Brush owns it while it paints — in
+         * both, hold-Space IS the only pan. Cut-out mounts the strip with
+         * `brush: false`, so `mask.paintEnabled` is off and InputController's final
+         * `else` already pans on a bare drag: Space is free there, and plays.
+         */
+        const _toolOwnsDrag = () => _editing && (_editKind === 'crop' || _paintEnabled);
+
         /** @param {'mask'|'crop'} kind */
         function _enterEdit(kind) {
             if (_destroyed) return;
@@ -625,7 +651,7 @@ export const MpiGifViewer = ComponentFactory.create({
             _canvas = MpiCanvas.mount(editSlot, kind === 'mask' ? { onMaskStrokeEnd: () => { _dirty = true; } } : {});
             if (_brushSize) _canvas.el.setBrushSize(_brushSize);
             _loadEditFrame(_index);
-            emit('edit-change', { editing: true });
+            emit('edit-change', { editing: true, ownsDrag: _toolOwnsDrag() });
         }
 
         /** Playback in the Mask Brush: the plain frame under its tint. The canvas
@@ -661,11 +687,14 @@ export const MpiGifViewer = ComponentFactory.create({
             _canvas = null;
             _editing = false;
             _editKind = null;
+            // Back to the canvas default, or a Cut-out visit would leave the NEXT
+            // tool's Space dead before its strip has said anything.
+            _paintEnabled = true;
             _editIdx = -1;
             editSlot.hidden = true;
             editSlot.classList.remove('mpi-gif-viewer__edit--playing');
             frameWrap.hidden = _preview;
-            emit('edit-change', { editing: false });
+            emit('edit-change', { editing: false, ownsDrag: false });
         }
 
         el.enterMode = (mode) => { if (mode === 'mask' || mode === 'crop') _enterEdit(mode); else _exitEdit(); };
@@ -706,7 +735,14 @@ export const MpiGifViewer = ComponentFactory.create({
         el.isMaskInverted      = () => !!_canvas?.el.isMaskInverted();
         el.setMaskBwView       = (v) => _canvas?.el.setMaskBwView(v);
         el.isMaskBwView        = () => !!_canvas?.el.isMaskBwView();
-        el.setMaskPaintEnabled = (v) => _canvas?.el.setMaskPaintEnabled(v);
+        el.setMaskPaintEnabled = (v) => {
+            _paintEnabled = !!v;
+            _canvas?.el.setMaskPaintEnabled(v);
+            // Re-announce: the strip mounts AFTER `enterMode`, so the ownership the
+            // control bar heard at open is stale by exactly this call.
+            if (_editing) emit('edit-change', { editing: true, ownsDrag: _toolOwnsDrag() });
+        };
+        el.isToolOwningDrag = () => _toolOwnsDrag();
         el.setMaskOpacity      = (v) => _canvas?.el.setMaskOpacity(v);
         /** This frame only. With a track it erases over it, so Ctrl+Z restores it. */
         el.clearMask = () => {

@@ -524,3 +524,40 @@ built; needs Fabio.
 (8px 14px). Scoped through a `__picker` class in the panel stylesheet, not the shared primitive.
 
 **Green:** lint + lint:components clean; desktop gif-cutout + gif-workspace 6/6.
+
+## 2026-09-19 - Fabio's SECOND pass (session `5e86d76c`)
+
+Five items, all built. Four carry a guard; the fifth is panel order.
+
+**Automated:**
+- `npm run lint:components` - clean.
+- `node --test "tests/*.test.cjs"` - 1409 tests, **1408 pass, 0 fail**, 1 skipped.
+- `npx playwright test tests/desktop/gif-workspace.spec.js tests/desktop/gif-cutout.spec.js`
+  - **9 passed, 1 failed.** The failure is `gif-cutout.spec.js:446` ("real Track dispatch"),
+  the peer frame-store bug already filed as `077abd3b` / `922a3667`. **Re-proven not ours:**
+  it fails identically with all six of this session's source files swapped back to `HEAD`.
+
+**Each guard proven RED on the pre-fix file** - a guard that passes under the bug is not a
+guard, and this card has been bitten by that three times. One file at a time, via `git show
+HEAD:<file>`:
+
+| Reverted | The assertion that failed |
+|---|---|
+| `MpiFrameStrip.js` | `Shift must take the whole run from the anchor` - got `['3']`, wanted `['0','1','2','3']` |
+| `MpiMaskStrip.js` + `projectService.js` | `the Mask Brush must inherit the invert Cut-out just set` - false |
+| `MpiGifControlBar.js` | `Space must play in Cut-out` - false |
+| `_setTint`'s body only | `the hidden tint must keep mask-mode: luminance through the fade` - false |
+
+**Item 4 is asserted on a DOM invariant, not on a pixel**, deliberately: the flash is a CSS
+opacity transition running with the wrong `mask-mode`, which no spec can catch in the act. What
+it asserts is the state the flash comes FROM - a hidden tint that still carries `--luma` and its
+bitmap.
+
+**One existing spec was changed, not just added to.** `gif-cutout.spec.js:1151` asserted
+*"Space must not play in Cut-out - it pans"*. That is the exact rule item 5 reverses, on Fabio's
+word, so it now asserts the narrowed one: the Mask Brush keeps Space (it paints on a bare drag),
+Cut-out plays with it (`brush: false`, so `InputController`'s final `else` already pans there).
+
+**STILL OPEN: Fabio's eye pass on the whole workspace.** Nothing here closes without it. The
+automated evidence above says the code does what he asked for; it does not say the workspace
+feels right, and four of these five are things only he can judge.

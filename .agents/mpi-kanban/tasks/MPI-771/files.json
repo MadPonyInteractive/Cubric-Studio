@@ -39,6 +39,7 @@
     "tests/desktop/gif-workspace.spec.js",
     "tests/gif-preview.test.cjs",
     "js/components/Organisms/MpiGifControlBar/MpiGifControlBar.js",
-    "docs/video-player.md"
+    "docs/video-player.md",
+    "js/services/projectService.js"
   ]
 }

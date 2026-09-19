@@ -127,7 +127,13 @@ The image-mode `MpiToolOptionsMaskBrush`, unchanged: `MpiGifViewer` implements i
 `MpiCanvas` over the stage holding the current frame, its track as the BASE layer
 ([masking.md](masking.md)) and its brush layers; stepping frames saves and reloads, keeping a
 zoomed view and the brush size. The GIF preview is off while it is up: the viewer emits
-`'edit-change'` and the control bar disables its preview button. **Play** hides the
+`'edit-change'` and the control bar disables its preview button. That event also carries
+`ownsDrag`: **Space plays in Cut-out and pans in the Mask Brush.** `canvas.pan.start` and
+`video.playPause` are two hotkey ids on one key, so the control bar has to stand one down —
+but only where the tool takes a plain left-drag. The Mask Brush and Crop do, and hold-Space is
+their only pan; Cut-out mounts the strip with `brush: false`, so `InputController`'s final
+`else` already pans on a bare drag and Space is free. `ownsDrag` re-fires on
+`setMaskPaintEnabled`, because the strip mounts after `enterMode`. **Play** hides the
 canvas (`visibility`, so its view survives) and plays the plain frames under their mask tint,
 a flicker check; pause brings the canvas back on the current frame. Undo is per frame visit
 (`loadImage` clears the stack). Its own mode, not `maskBrush`: that one is in the Block's

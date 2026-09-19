@@ -131,6 +131,8 @@ export const MpiFrameStrip = ComponentFactory.create({
         let _currentIndex = 0;
         /** @type {Set<number>} staged indices marked for deletion */
         const _selection = new Set();
+        /** Where a Shift range starts. Same contract as `MpiHistoryList`. */
+        let _anchor = 0;
 
         let _windowStart = 0;
         let _windowEnd = -1; // empty until first render
@@ -168,6 +170,16 @@ export const MpiFrameStrip = ComponentFactory.create({
                 indices,
                 viewerIndices: indices.map(_viewerPosOf).filter(v => v !== undefined),
             });
+        }
+
+        /** Replace the selection with the run from `_anchor` to `idx`, inclusive. */
+        function _rangeSelect(idx) {
+            const clamped = Math.max(0, Math.min(_staged.length - 1, idx));
+            _anchor = Math.max(0, Math.min(_staged.length - 1, _anchor));
+            _selection.clear();
+            const step = clamped >= _anchor ? 1 : -1;
+            for (let i = _anchor; i !== clamped + step; i += step) _selection.add(i);
+            _renderWindow();
         }
 
         /** A shorter frame list must not leave the trim paint hanging past the end. */
@@ -395,10 +407,13 @@ export const MpiFrameStrip = ComponentFactory.create({
             const thumbEl = e.target.closest('.mpi-frame-strip__thumb');
             const base = { startX: e.clientX, startIndex: _currentIndex, moved: false };
             if (!thumbEl) { _drag = { ...base, mode: 'scrub' }; return; }
-            const modifier = e.ctrlKey || e.metaKey || e.shiftKey;
+            // Ctrl toggles ONE, Shift takes a RANGE — the app's selection grammar
+            // (MpiHistoryList, MpiGalleryGrid). Shift was a synonym for Ctrl here.
+            const range  = e.shiftKey;
+            const toggle = !range && (e.ctrlKey || e.metaKey);
             const index = Number(thumbEl.dataset.index);
-            _drag = { ...base, mode: 'press', index, liftIndex: index, modifier };
-            if (modifier) return;
+            _drag = { ...base, mode: 'press', index, liftIndex: index, range, toggle };
+            if (range || toggle) return;
             _clearHold();
             _holdTimer = setTimeout(() => {
                 if (_drag?.mode !== 'press') return;
@@ -453,12 +468,28 @@ export const MpiFrameStrip = ComponentFactory.create({
                 return;
             }
             if (d.mode === 'press') {
-                if (d.modifier) {
-                    if (_selection.has(d.index)) _selection.delete(d.index);
-                    else _selection.add(d.index);
+                if (d.range) {
+                    // A first Shift-click with nothing selected anchors at the frame
+                    // the pointer is ON, not at a stale `_anchor` still sitting at 0
+                    // — the subtlety `MpiHistoryList:199-213` already solved.
+                    if (_selection.size === 0) _anchor = _currentIndex;
+                    _rangeSelect(d.index);
+                } else if (d.toggle) {
+                    if (_selection.has(d.index)) {
+                        _selection.delete(d.index);
+                    } else {
+                        _selection.add(d.index);
+                        _anchor = d.index;
+                    }
                     _renderWindow();
                 } else {
                     _selection.clear();
+                    _anchor = d.index;
+                    // Paint it ourselves. `frame-select` reaches the Block, which
+                    // calls back into `setCurrentIndex` — and that early-returns
+                    // when the index has not moved, so clicking the frame you are
+                    // already on left the old selection painted on screen.
+                    _renderWindow();
                     emit('frame-select', { index: d.index });
                 }
                 _emitSelection();

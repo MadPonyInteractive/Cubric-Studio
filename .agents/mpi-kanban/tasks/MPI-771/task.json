@@ -4,10 +4,10 @@
   "title": "GIF cut-out with SAM3 by name",
   "description": "UMBRELLA: MPI-757 - GIF workspace (created 2026-09-14). Members and phase order: tasks/MPI-757/plan.md. Mask by name with SAM3 video tracking across every frame, Mask Adjust, Invert, then cut into the frames' alpha. The agent authors the graph.",
   "column": "doing",
-  "maturity": "in-progress",
+  "maturity": "validating",
   "status": "active",
   "created_at": "2026-09-15T13:37:30+01:00",
-  "updated_at": "2026-09-19T09:41:15Z",
+  "updated_at": "2026-09-19T15:56:35Z",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -18,10 +18,10 @@
     "handoffs": "handoffs/",
     "research": "research/"
   },
-  "activeSessionTitle": "MPI-771: GIF-workspace consistency audit (MPI-757 findings 1-5)",
+  "activeSessionTitle": "MPI-771: Fabio's SECOND pass on the GIF workspace (five items)",
   "attention": {
-    "state": "cleared",
-    "reason": "Fabio passed the two deferred UI items; building the five consistency findings now. His eye pass is owed again at the end, on the WHOLE workspace.",
-    "updated_at": "2026-09-19T09:41:15Z"
+    "state": "required",
+    "reason": "Both passes are built and green. What is left is Fabio's eye pass on the WHOLE workspace - Cut-out's strip and the new Mask Preview section, the output preview pane, Shift-select on the frame strip, and Space now playing in Cut-out. Nothing closes before it.",
+    "updated_at": "2026-09-19T15:56:35Z"
   }
 }

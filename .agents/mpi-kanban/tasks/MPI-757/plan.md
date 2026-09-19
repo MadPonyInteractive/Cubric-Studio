@@ -10,20 +10,20 @@ the ordering and anything left behind.
 
 ## Current State
 
-**2026-09-19 (session `7bbff4d4`) — READ THIS FIRST.** MPI-771 is `doing`/`in-progress`. Fabio's
-five consistency findings are under [## Remaining Work](#remaining-work) → "CONSISTENCY AUDIT".
+**2026-09-19 (session `5e86d76c`) — READ THIS FIRST.** MPI-771 is `doing`/`in-progress`.
 
-**The 2026-09-19 CONSISTENCY AUDIT is DONE** — findings 1, 3, 4, 5 built and green, finding 2
-closed by Fabio with no change, master red-then-green (`756cf0e0` → `3efcdc9f`, run 35439088934,
-128 passed).
+**Both of Fabio's passes are BUILT.** The consistency audit shipped earlier today (findings 1,
+3, 4, 5 built, 2 closed with no change, master red-then-green `756cf0e0` → `3efcdc9f`). His
+SECOND pass — five more items — is now built too, under
+[## Remaining Work](#remaining-work) → "Fabio's SECOND pass", each marked DONE with what it
+cost.
 
-**THE NEXT JOB IS FABIO'S SECOND PASS — five new items, none built, all verified in code:**
-[## Remaining Work](#remaining-work) → "Fabio's SECOND pass". Shift-select on the frame strip ·
-the mask display toggles not carrying between Cut-out and the Mask Brush (a 300 ms settings
-debounce vs a read-at-mount) · a `Mask Preview` label with Cut out moved BELOW the strip · a
-white flash when playback leaves a masked run (a `--luma` class removed while the mask image is
-still set) · and Space playing in Cut-out, which IS possible because a left-drag already pans
-there. Two of those carry an exact root cause; do not re-derive them.
+**THE ONLY THING LEFT IS FABIO'S EYE PASS ON THE WHOLE WORKSPACE.** Nothing closes before it.
+He has not yet looked at Cut-out's strip, the new `Mask Preview` section, the output preview,
+Shift-select on the frame strip, or Space playing in Cut-out.
+
+Four of the five carry a spec that was PROVEN RED on the pre-fix file before it was believed
+(`gif-workspace.spec.js` → "gif second pass"); the fifth is panel order and is his to judge.
 
 - **4** — the GIF stage joined the shared context menu (Save frame as image / Reverse frames /
   Clear all masks). PASSED by Fabio: *"Menus are good, and context looks good."*
@@ -573,10 +573,22 @@ needs evidence, recorded in `## Plan Drift`.
 
 ## Remaining Work
 
-### 2026-09-19 (late) — Fabio's SECOND pass on the finished workspace. NONE of this is built.
+### 2026-09-19 (late) — Fabio's SECOND pass on the finished workspace. ALL FIVE ARE BUILT.
 
 He passed the context menus ("Menus are good, and context looks good") and closed Timing. These
-five came after, and every one is verified in code below — do not re-derive them.
+five came after. Every one was already root-caused in code when written, and every one is now
+built — session `5e86d76c`, 2026-09-19. Each carries what it actually cost below.
+
+**Proof:** a new `gif-workspace.spec.js` test, "gif second pass", covers 1, 2, 4 and 5, and each
+of those four was PROVEN RED first by putting just its own file back to `HEAD` and watching that
+assertion fail (`swap.py`, one file at a time — reverting the frame strip alone kills item 1 at
+`['3']`, the mask strip + projectService kills item 2, the control bar kills item 5, and a
+surgical revert of `_setTint`'s body alone kills item 4). Item 3 is panel order and has no
+assertion worth writing; it is Fabio's to look at.
+
+**One spec had to change, not just be added:** `gif-cutout.spec.js:1151` asserted
+*"Space must not play in Cut-out — it pans"*, which is the exact rule item 5 reverses. It now
+asserts the narrowed one: the Mask Brush keeps Space, Cut-out plays with it.
 
 1. **Shift-select on the frame strip, for consistency with the rest of the app.**
    `MpiFrameStrip.js:398` treats Shift as a SYNONYM for Ctrl — `const modifier = e.ctrlKey ||
@@ -585,6 +597,13 @@ five came after, and every one is verified in code below — do not re-derive th
    solves the subtle part: a first Shift-click with no prior selection anchors at the ACTIVE
    entry, not at a stale `_anchor` that defaults to 0. `MpiGalleryGrid.js:1408` is the same
    shape. Ctrl stays a toggle; Shift becomes a range from the anchor.
+   **DONE.** The pointerdown now splits `modifier` into `range` (Shift) and `toggle`
+   (Ctrl/Cmd), and pointerup grew a `_rangeSelect(idx)` walking `_anchor` → `idx` inclusive.
+   Ctrl is unchanged and re-anchors; a plain click clears and anchors. **One thing the item did
+   not predict:** the plain-click branch never repainted — it emitted `frame-select` and let the
+   Block call back into `setCurrentIndex`, which EARLY-RETURNS when the index has not moved. So
+   clicking the frame you were already on left the old selection painted on screen. That is a
+   pre-existing hole the range work exposed; `_renderWindow()` in that branch closes it.
 2. **The mask DISPLAY toggles must be shared between Cut-out and the Mask Brush** — invert
    (the black mask) and B/W view. Both already mount `MpiMaskStrip` with `dest: 'mask'`, so they
    already share the `mask` settings key; the bug is WHEN it is read.
@@ -594,11 +613,21 @@ five came after, and every one is verified in code below — do not re-derive th
    `state.currentProject`. Switching rail tools destroys and remounts the strip, so a toggle
    followed by a tool switch inside 300 ms reads the OLD value back. Fix the read, not the
    debounce — a global debounce change touches every tool's settings.
+   **DONE, by fixing the READ.** `projectService` exports `getPendingToolSettings(toolKey)`
+   — the queue's un-flushed partial — and `MpiMaskStrip` layers it over `getToolSettings` at
+   mount. The 300 ms debounce every other tool relies on is untouched. The spec clicks invert and
+   switches tools in ONE synchronous task, so not a millisecond of the debounce can elapse: that
+   is the real window, and it was red before this.
 3. **Cut-out panel order.** Below Mask Adjust: a `Mask Preview` section label, then the strip's
    controls (invert, view mask, clear, opacity), and **Cut out LAST, below all of it.** Today
    the panel mounts `#cutout-slot` and then the strip, so Cut out sits above the controls. The
    strip is one mount — move it above `#cutout-slot` and give it the label; `MpiToolOptionsGifCutout`
    already has a `__section-label` class used by "Tracked objects" and "Mask Adjust".
+   **DONE.** `#strip-slot` moved above `#cutout-slot` inside a
+   `mpi-tool-options-gif-cutout__section` carrying a `Mask Preview` label; no CSS was needed,
+   `__section` already draws the rule and the spacing. **Folded in while the file was open:**
+   message `e93c9db7` (MPI-736) — Stop's `variant` goes `danger` → `primary`, because Stop is a
+   cancel and `--accent-err` is a real red now. Its twin `MpiMaskDetectRow.js:81` already landed.
 4. **BUG — the whole canvas flashes WHITE for a split second** when playback leaves a masked
    run of frames and enters an unmasked one.
    **Cause, in `_setTint(url, luma)` (`MpiGifViewer.js`):** the first line is
@@ -609,6 +638,11 @@ five came after, and every one is verified in code below — do not re-derive th
    `transition: opacity var(--t-fast)` on the hide is what stretches it into a visible flash.
    Fix the ORDER (hide before un-luma-ing, and do not clear `mask-image` mid-fade), not the
    symptom. `_render()` at `:248` is the per-frame caller.
+   **DONE.** `_setTint(null)` now hides and NOTHING else: `--luma` and the mask image stay
+   exactly as they are until the next mask replaces them, so the fade never runs in
+   `mask-mode: alpha` over an opaque bitmap. The non-null path sets bitmap and mode together
+   before showing. A spec cannot catch a transition in the act, so the guard asserts the DOM
+   state the flash comes FROM — a hidden tint that still carries both.
 5. **Space should PLAY in Cut-out, and only pan in the Mask Brush** — and it is possible.
    `MpiGifControlBar` currently stands the play hotkey down for ANY canvas tool, which is too
    broad. `InputController.js:231-254`: the mousedown chain ends in an `else` that PANS, and the
@@ -618,6 +652,12 @@ five came after, and every one is verified in code below — do not re-derive th
    (painting) and Crop (`crop.isCroppingMode && !isSpacePressed`). So the gate is not "a canvas
    tool is up", it is "the canvas tool owns the drag" — have the viewer report that (e.g.
    `edit-change` carrying whether the tool paints) and gate the hotkey on it.
+   **DONE.** `MpiGifViewer` tracks `_paintEnabled` and `edit-change` now carries `ownsDrag`
+   (`crop || paintEnabled`); `MpiGifControlBar` gates the play hotkey on that instead of on
+   `_editing`, and keeps the preview-button disable on `editing`. **The trap:** the strip mounts
+   AFTER `enterMode`, so the value known when the tool opens is stale — `setMaskPaintEnabled`
+   re-emits. `_exitEdit` resets `_paintEnabled` to the canvas default or a Cut-out visit would
+   leave the NEXT tool's Space dead.
 
 ### 2026-09-19 — CONSISTENCY AUDIT: the GIF workspace against the rest of the app
 
@@ -626,10 +666,10 @@ inconsistencies with the rest of the app."* He is right. Every finding below is 
 not asserted. Do NOT reopen what he has passed (the tint rule, the rail
 descriptions, the scope consolidation, the white mask, full-width Mask/Clear, the Pick icon).
 
-**Status 2026-09-19 (session `7bbff4d4`).** Findings 4 and 3 are BUILT, lint-clean and spec-proven.
-Finding 1 is BLOCKED on one question only Fabio can answer (see the box under it). Finding 2 is
-blocked on his one-button-or-group call, and is now SMALLER than written: Reverse has left the
-Timing group, so it is three modes, not five. Finding 5 is not started.
+**Status: this whole section is CLOSED** (session `7bbff4d4`, 2026-09-19). Findings 1, 3, 4 and 5
+are built, lint-clean and spec-proven; finding 2 was closed by Fabio with no change. The
+blocked-on-a-question and not-started notes that stood here are gone — the boxes under each
+finding carry what it actually cost. What came NEXT is his second pass, above.
 
 - **Finding 4 — DONE.** `MpiGifViewer` emits `gif-viewer:context-menu` (the `MpiVideoViewer:205` /
   `MpiCanvasViewer:2063` shape: the viewer reports the gesture, the Block owns the items). The

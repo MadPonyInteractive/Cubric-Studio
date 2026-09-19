@@ -1148,21 +1148,29 @@ test('gif strip: full trim range, frames fill the stage, a drag scrubs, hold-dra
     expect(await editState()).toEqual({ playing: false, frameHidden: true, tint: false });
     await waitEditFrame(window);
 
-    // ── …but SPACE does not, while a canvas tool is up ──────────────────────
+    // ── …and SPACE only where the TOOL OWNS THE DRAG ────────────────────────
     // Fabio, 2026-09-19. `canvas.pan.start` and `video.playPause` are two registry
     // ids on ONE key, and hotkeyManager keys its handler set by `type:key`, so every
     // handler for `down:space` fires: one press both started a pan and toggled
-    // playback. Hold-Space IS the only pan, so the canvas wins and the bar stands
-    // down; the Play button above is how you play. Both cut-out tools, since both
-    // mount a canvas now.
-    for (const tool of ['Mask Brush', 'Cut-out']) {
-      await openRailTool(window, tool);
-      await waitEditFrame(window);
-      await window.keyboard.press('Space');
-      expect((await editState()).playing, `Space must not play in ${tool} — it pans`).toBe(false);
-      expect(await window.evaluate(() => document.querySelector('.mpi-gif-viewer').isPlaying()),
-        `the viewer must not be playing in ${tool}`).toBe(false);
-    }
+    // playback. One of them has to stand down — but only where hold-Space IS the
+    // only pan. The MASK BRUSH paints on a bare drag, so it is; CUT-OUT mounts the
+    // strip with `brush: false`, so InputController's final `else` already pans on
+    // a bare drag and Space is free to play (his second pass, same day).
+    await openRailTool(window, 'Mask Brush');
+    await waitEditFrame(window);
+    await window.keyboard.press('Space');
+    expect((await editState()).playing, 'Space must not play in the Mask Brush — it pans').toBe(false);
+    expect(await window.evaluate(() => document.querySelector('.mpi-gif-viewer').isPlaying()),
+      'the viewer must not be playing in the Mask Brush').toBe(false);
+
+    await openRailTool(window, 'Cut-out');
+    await waitEditFrame(window);
+    await window.keyboard.press('Space');
+    await expect.poll(() => window.evaluate(() => document.querySelector('.mpi-gif-viewer').isPlaying()),
+      'Space PLAYS in Cut-out — nothing there owns the drag').toBe(true);
+    await window.keyboard.press('Space');
+    await expect.poll(() => window.evaluate(() => document.querySelector('.mpi-gif-viewer').isPlaying())).toBe(false);
+    await waitEditFrame(window);
     // Leaving the canvas tools hands Space back. Trim lives in the `timing` slot,
     // which `openRailTool` (cut-out only) cannot reach.
     await window.evaluate(() => {

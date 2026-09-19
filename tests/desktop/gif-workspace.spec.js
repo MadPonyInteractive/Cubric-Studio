@@ -621,3 +621,134 @@ test('gif cut-out: a Track landing must not wipe a brushed frame', async ({}, te
     await closeApp(app);
   }
 });
+
+/**
+ * MPI-771, Fabio's SECOND pass (2026-09-19). Four of his five items, in one
+ * launch — the fifth (the "Mask Preview" label and Cut out moving below the
+ * strip) is pure panel order and is his to look at.
+ *
+ * Each assertion is written against the BUG, not the fix: run it on HEAD~ and
+ * every one of them fails. The tint one especially — it asserts the DOM state
+ * the flash comes from, because a CSS transition mid-fade is not something a
+ * spec can catch in the act.
+ */
+test('gif second pass: Shift ranges the strip, the mask toggles carry between tools, Space plays in Cut-out, and the tint hides without a white frame', async ({}, testInfo) => {
+  const { app, window } = await launchApp(testInfo);
+  try {
+    await setupProject(window);
+    await window.evaluate(async () => {
+      const { navigate, PAGE_GROUP_HISTORY } = await import('/js/router.js');
+      navigate(PAGE_GROUP_HISTORY, { groupId: 'gGif' });
+    });
+    await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-frame-strip__thumb'))).toBe(true);
+
+    const selected = () => window.evaluate(() =>
+      [...document.querySelectorAll('.mpi-frame-strip__thumb.is-selected')].map(t => t.dataset.index).sort());
+
+    // ── 1. Shift is a RANGE, not a second Ctrl ──────────────────────────
+    // It was `const modifier = e.ctrlKey || e.metaKey || e.shiftKey` with one
+    // toggle behind it, so a Shift-click selected exactly the thumb under the
+    // pointer and this came back as ['3'].
+    await window.locator('.mpi-frame-strip__thumb[data-index="0"]').click();
+    await expect.poll(() => window.evaluate(() =>
+      document.querySelector('.mpi-frame-strip__thumb.is-current')?.dataset.index)).toBe('0');
+    await window.locator('.mpi-frame-strip__thumb[data-index="3"]').click({ modifiers: ['Shift'] });
+    expect(await selected(), 'Shift must take the whole run from the anchor').toEqual(['0', '1', '2', '3']);
+
+    // Shrinking the range keeps the same anchor rather than adding to it.
+    await window.locator('.mpi-frame-strip__thumb[data-index="1"]').click({ modifiers: ['Shift'] });
+    expect(await selected(), 'a second Shift-click re-ranges from the anchor').toEqual(['0', '1']);
+
+    // Ctrl is untouched: it still toggles the one thumb, and it re-anchors.
+    await window.locator('.mpi-frame-strip__thumb[data-index="4"]').click({ modifiers: ['Control'] });
+    expect(await selected()).toEqual(['0', '1', '4']);
+    await window.locator('.mpi-frame-strip__thumb[data-index="2"]').click({ modifiers: ['Shift'] });
+    expect(await selected(), 'Ctrl moved the anchor to 4, so the range runs back to 2').toEqual(['2', '3', '4']);
+
+    // A plain click drops the selection again.
+    await window.locator('.mpi-frame-strip__thumb[data-index="0"]').click();
+    expect(await selected()).toEqual([]);
+
+    const openTool = (info) => window.evaluate((name) => {
+      document.querySelector(`.mpi-history-tools__btn[data-info="${name}"] button`).click();
+    }, info);
+    const stripUp = () => window.evaluate(() => !!document.querySelector('.mpi-mask-strip__invert'));
+    const isPlaying = () => window.evaluate(() => document.querySelector('.mpi-gif-viewer').isPlaying());
+
+    // ── 2. Space PLAYS in Cut-out ───────────────────────────────────────
+    // `canvas.pan.start` and `video.playPause` share the key, so the control
+    // bar has to stand one down — but Cut-out mounts the strip with
+    // `brush: false`, so a bare left-drag already pans there and Space is
+    // free. It used to stand down for ANY canvas tool, so this stayed false.
+    await openTool('Cut-out');
+    await expect.poll(stripUp, { timeout: 15000 }).toBe(true);
+    await window.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true })));
+    await expect.poll(isPlaying, 'Space must play in Cut-out').toBe(true);
+    await window.evaluate(() => document.querySelector('.mpi-gif-viewer').pause());
+
+    // ── 3. The mask display toggles carry across the tool switch ────────
+    // Both tools mount MpiMaskStrip with `dest: 'mask'`, so they already share
+    // the settings key; what broke is WHEN it is read. The strip reads once at
+    // mount, and `settings:tool:update` is debounced 300 ms before it reaches
+    // `state.currentProject`. Both clicks below are in ONE synchronous task,
+    // so not a millisecond of that debounce can elapse between them — which is
+    // exactly the window a real toggle-then-switch lands in.
+    const invertOn = () => window.evaluate(() =>
+      !!document.querySelector('.mpi-mask-strip__invert')?.classList.contains('is-active'));
+    expect(await invertOn(), 'invert starts off').toBe(false);
+    await window.evaluate(() => {
+      // The strip's invert is an ICON button, and MpiButton's icon mode makes the
+      // <button> itself the root — there is no inner one to reach for.
+      document.querySelector('.mpi-mask-strip__invert').click();
+      document.querySelector('.mpi-history-tools__btn[data-info="Mask Brush"] button').click();
+    });
+    await expect.poll(() => window.evaluate(() => {
+      const cv = document.querySelector('.mpi-gif-viewer__edit .mpi-canvas');
+      return !!cv && cv.activeMode === 'mask';
+    }), { timeout: 15000 }).toBe(true);
+    expect(await invertOn(), 'the Mask Brush must inherit the invert Cut-out just set').toBe(true);
+
+    // ── 4. Space is still the CANVAS's where the tool owns the drag ─────
+    // The Mask Brush paints on a bare drag, so hold-Space is its only pan and
+    // it keeps the key. Narrowing the gate must not give this one back.
+    expect(await isPlaying()).toBe(false);
+    await window.evaluate(() => window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true })));
+    await window.waitForTimeout(300);
+    expect(await isPlaying(), 'Space belongs to the brush, which pans with it').toBe(false);
+
+    // ── 5. Leaving a masked run hides the tint WITHOUT a white frame ────
+    // `_setTint(null)` used to drop `--luma` first, while `--visible` and the
+    // previous frame's mask-image were both still set: `mask-mode` fell back
+    // to `alpha` over an OPAQUE B/W bitmap (alpha 255 everywhere), so
+    // `--mask-fill` covered the whole stage for the length of the opacity
+    // transition. The fix hides and leaves the mask alone, so the invariant a
+    // spec CAN see is that the hidden element still carries both.
+    const m = await window.evaluate(() => {
+      const c = document.createElement('canvas');
+      c.width = c.height = 8;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = 'white';
+      ctx.fillRect(2, 2, 4, 4);
+      return c.toDataURL('image/png');
+    });
+    // Frames 3 and 4 stay unmasked: playback has to cross out of the run.
+    await window.evaluate((url) => {
+      const v = document.querySelector('.mpi-gif-viewer');
+      [0, 1, 2].forEach(i => v.setTrackMask(i, url));
+    }, m);
+    await window.evaluate(() => document.querySelector('.mpi-gif-viewer').setFrameIndex(0));
+    // The BUTTON, not Space — Space is the brush's here, which is the point above.
+    await window.evaluate(() => document.querySelector('[data-mount="play"] button').click());
+    await expect.poll(() => window.evaluate(() =>
+      !document.querySelector('.mpi-gif-viewer__mask-tint').classList.contains('mpi-gif-viewer__mask-tint--visible')),
+    { timeout: 10000 }, 'playback must reach an unmasked frame and hide the tint').toBe(true);
+    const tint = await window.evaluate(() => {
+      const t = document.querySelector('.mpi-gif-viewer__mask-tint');
+      return { luma: t.classList.contains('mpi-gif-viewer__mask-tint--luma'), mask: t.style.maskImage };
+    });
+    expect(tint.luma, 'the hidden tint must keep mask-mode: luminance through the fade').toBe(true);
+    expect(tint.mask, 'and must keep the bitmap it is fading out').not.toBe('');
+  } finally {
+    await closeApp(app);
+  }
+});

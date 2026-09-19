@@ -151,8 +151,12 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                 <div class="mpi-tool-options-gif-cutout__row" id="invert-slot"></div>
             </div>
 
+            <div class="mpi-tool-options-gif-cutout__section">
+                <div class="mpi-tool-options-gif-cutout__section-label">Mask Preview</div>
+                <div id="strip-slot"></div>
+            </div>
+
             <div class="mpi-tool-options-gif-cutout__actions" id="cutout-slot"></div>
-            <div id="strip-slot"></div>
         </div>
     `,
 
@@ -377,7 +381,10 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             actionBtns.mask?.destroy?.();
             actionBtns.clear?.destroy?.();
             actionBtns.mask = MpiButton.mount(qs('#mask-btn-slot', el), _busy
-                ? { label: 'Stop', icon: 'stop', size: 'sm', variant: 'danger', info: 'Stop masking' }
+                // Not 'danger' (MPI-736, Fabio 2026-09-18): Stop is a cancel, not a
+                // failure, and --accent-err is a real red now. Its twin is
+                // MpiMaskDetectRow.js:81.
+                ? { label: 'Stop', icon: 'stop', size: 'sm', variant: 'primary', info: 'Stop masking' }
                 : { label: 'Mask', icon: 'search', size: 'sm', variant: 'primary', info: 'Make the mask for the chosen frames' });
             actionBtns.mask.on('click', () => {
                 if (_busy) { _trackExec?.cancel?.(); if (_keyRun) _keyRun.cancelled = true; return; }
