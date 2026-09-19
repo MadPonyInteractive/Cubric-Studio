@@ -1119,16 +1119,36 @@ and every gizmo a Flow grows is another thing an agent has to drive blind. His l
     `imageSize` to the ratio, and tell the user what will be cut BEFORE generating — naming the
     matching ratio and whether anything installed can hold identity without cropping.
 
-  **STILL OPEN — a constraint that changes the question I asked him.** `generate` is fire-and-
-  forget: `agentLoop.mjs:693` returns `{ok: true, started: true}` the moment the job is posted, and
-  the dispatch's own report only arrives via `onComplete`. **So there is no channel for a
-  submit-time warning that reaches the user before the render.** A warning attached to the result
-  lands after the video has already burned three minutes. The Shape rule above is therefore the
-  only pre-render warning that exists, and it is prose — a weak local model can skip it. The
-  backstop that cannot be skipped is a `_fail` at `js/shell/agentDispatch.js:171` when the crop is
-  severe (the canvas is already resolved there as `mergedInjection.Width/Height`, one line after
-  `mediaItems`; source dims need an `img.decode()` in the renderer, ~7 lines). Fabio chose "warn"
-  before knowing the channel does not exist — **ask him again with this fact on the table.**
+  **SETTLED by Fabio, 2026-09-19, after being told the channel constraint** (`generate` is
+  fire-and-forget — `agentLoop.mjs:693` returns `{ok: true, started: true}` the moment the job is
+  posted and the dispatch's own report only arrives via `onComplete`, so a warning attached to the
+  result lands after the render has already burned the time): **no dispatch refusal. Snap to the
+  closest ratio, and warn.** His words: *"the agent should use the closest crop. A 4:5 would make
+  the agent use the 9:16 crop in the video model, for example, and a 5:4 would make the agent use a
+  16:9. A little warning should display, saying there's a ratio mismatch and the image will be
+  cropped."*
+
+  **Why closest-with-the-same-orientation and not smallest-crop** — they disagree, and his
+  instinct is the right one. A 4:5 picture (0.8) on H3, which offers `1:1 9:16 16:9 21:9`:
+
+  | target | what it cuts | kept |
+  |---|---|---|
+  | `1:1` | top and bottom | 80% of the height — smallest crop, but it eats into the head |
+  | `9:16` | **the sides** | 70% of the width, **full height, head safe** |
+  | `16:9` | top and bottom | 45% of the height — what he hit |
+
+  Minimal-crop picks `1:1`; orientation-matching picks `9:16` and is the one that keeps the face.
+  The rule is written as "closest offered ratio with the SAME orientation", which lands on his
+  example exactly. Every ratio label is literally `W:H` (`js/utils/ratios.js`), so the model can do
+  the arithmetic from what `list_models` already gives it.
+
+  **BUILT:** the Shape rule now carries both branches (unnamed ratio → snap to closest same
+  orientation; named ratio that crosses → use theirs, say what it cuts, name `ref2v_ms`) and the
+  one-line mismatch warning in either case.
+
+  **COST, and it matters for the Ollama item below:** the Shape rule took the agent's fixed floor
+  from 8,681 to 10,177 chars of system prompt — **~4,049 tokens** with the 11 tool schemas. Fabio's
+  Ollama serves a 4,096-token window. The floor now IS the window.
 
 - [ ] **The Ollama connection picker tells the user nothing, and the enhance picker five rows above
   it tells them everything** (Fabio, 2026-09-19: *"I had no idea what to select where, so I just
