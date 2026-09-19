@@ -224,5 +224,10 @@ passes, and they exist on no user's machine, so the Flow fails for everyone. Par
   where a package's graph assertions belong once the graph leaves this tree.
 - **Set `op.filePrefix`.** A built-in op needs none because its key IS the prefix; a package
   has no such key, so omitting it gets you a filename derived from the title.
-- Submitting a Flow for MPI to list: the public registry repo is **MPI-799**, due to open
-  at the 2.0 release.
+- Submitting a Flow for MPI to list: the public registry is
+  **[cubric-flows-registry](https://github.com/MadPonyInteractive/cubric-flows-registry)**
+  (MPI-799). A PR for both lanes — free carries the package and CI lints it here; paid
+  carries a metadata entry and a SHA256 only, and the zip is reviewed privately. Its CI
+  runs *this* repo's `scripts/lint-flow-package.mjs` at a pinned ref, so a submission is
+  checked against a real release. It cannot check node classes or pack drift — a runner has
+  no ComfyUI — which is exactly why an author runs the two commands above locally first.

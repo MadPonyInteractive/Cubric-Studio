@@ -121,13 +121,18 @@ Facts established at planning time, each checked on disk on 2026-09-19:
   and `raw.githubusercontent.com` serves the workflow file with a 200, which only happens
   for a public repo.
 
+- [x] **The paid lane's private email.** `fabio@madponyinteractive.com`, named by Fabio
+  2026-09-19 and live in both the README and the PR template (`790df3b`). It is the right
+  kind of address, not just an available one: MPI-75 in MadPony-Identity records it as
+  Namecheap forwarding **confirmed by test email** on 2026-09-16, and it is the contact
+  address given to D&B. He asked whether a Cubric-Studio address existed instead — it does
+  not; that repo documents no mailbox on `cubric.studio`, and the only mail capability
+  there is his personal Gmail, which must never go in a public README. If a
+  `flows@cubric.studio` forward is added later it is a one-line swap in two files.
+
 ## Remaining Work
 
-- **The paid lane's private submission email.** `<TBD — email>` is live in the public
-  README and PR template right now. Both say the address is not set yet and that the
-  registry opens with 2.0, so it reads as pending rather than broken — but it is a
-  release-day blocker. Fabio has not named one. **Do not invent one, and do not use his
-  personal address**; it wants an address on a domain he owns, routed to him.
+- Nothing. The card is complete.
 - **Open, Fabio's alone:** the paid lane's private submission email. Already asked once and
   unanswered; templates ship with a placeholder until he names one, and that placeholder is a
   release-day blocker, not a build blocker.

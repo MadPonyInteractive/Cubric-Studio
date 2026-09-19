@@ -97,9 +97,27 @@ Two checks, one of which does not trust our own credentials:
 - `curl https://raw.githubusercontent.com/.../main/.gitattributes` → 200 with the real file
   body. That host serves public repositories only, so it is the anonymous proof.
 
-## Open, and Fabio's alone
+## 8. The paid lane's private channel is named
 
-- **The paid lane's private submission email.** `<TBD — email>` is live in the public README
-  and PR template. Both frame it as pending, so it reads as unfinished rather than broken.
-  A release-day blocker. Do not invent one and do not use his personal address — it wants an
-  address on a domain he owns.
+`fabio@madponyinteractive.com`, given by Fabio 2026-09-19. He asked whether a
+Cubric-Studio address existed to use instead; it does not. MadPony-Identity documents no
+mailbox on `cubric.studio`, and its only mail capability is his personal Gmail, which must
+never go in a public README. The address chosen is the business-domain one that MPI-75
+records as Namecheap forwarding **confirmed by test email** (2026-09-16) and as the contact
+given to D&B — so it is known to route, not merely plausible.
+
+Live in the README and the PR template as of `790df3b`. Verified anonymously:
+
+```
+curl .../main/README.md | grep madponyinteractive
+→ Send the paid-lane zip to **fabio@madponyinteractive.com**, with the PR number in the
+```
+
+Zero `TBD` placeholders remain in either file.
+
+`docs/flow-packages.md` in this repo no longer points at "MPI-799, due to open" — it names
+the live registry, both lanes, and the two things its CI cannot check.
+
+## Close-out
+
+Everything the card scoped is built, public and verified. Nothing is outstanding.
