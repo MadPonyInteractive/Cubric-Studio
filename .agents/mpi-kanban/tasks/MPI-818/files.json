@@ -5,6 +5,10 @@
     "tests/desktop/radial-menu.spec.js",
     ".husky/pre-push",
     ".agents/mpi-kanban/close-out.md",
-    "CLAUDE.md"
+    "CLAUDE.md",
+    "tests/desktop/flow-library-filters.spec.js",
+    "tests/desktop/gallery-media-release.spec.js",
+    "tests/desktop/gallery-renditions.spec.js",
+    "tests/desktop/landing-grid-release.spec.js"
   ]
 }

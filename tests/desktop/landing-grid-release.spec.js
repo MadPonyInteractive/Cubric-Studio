@@ -25,7 +25,7 @@ test('leaving the landing releases its preview videos, and coming back rebuilds 
       const project = {
         id: 'e2e-landing-release', name: 'E2E Landing Release', folderPath: fp,
         updatedAt: new Date().toISOString(),
-        recentThumbnail: '/comfy_workflows/display/flow-drama-box.mp4', recentThumbnailType: 'video',
+        recentThumbnail: '/comfy_workflows/display/flow-song.mp4', recentThumbnailType: 'video',
       };
       const realFetch = window.fetch;
       window.fetch = (url, opts) => (String(url).startsWith('/list-projects')

@@ -150,11 +150,12 @@ test('Flow Library filters, search and count compose, persist, and tear down', a
     expect(r.sameImgAfterRebuild, 'a rebuild must hand back the cached <img>').toBe(true);
     expect(r.clearedAll, 'clearing every filter restores the grid').toBe(r.total);
 
-    expect(r.audioCreate, 'Media=Audio + Type=Create').toHaveLength(5);
-    for (const title of ['Text to Speech', 'DramaBox', 'Song', 'Sound & Music', 'Stems']) {
+    // MPI-781: DramaBox is a Flow package now, not a built-in; four ship in the app.
+    expect(r.audioCreate, 'Media=Audio + Type=Create').toHaveLength(4);
+    for (const title of ['Text to Speech', 'Song', 'Sound & Music', 'Stems']) {
       expect(r.audioCreate.some(t => t.includes(title)), title).toBe(true);
     }
-    expect(r.audioOnly, 'Create must not leak in from a mutated payload copy').toBeGreaterThan(5);
+    expect(r.audioOnly, 'Create must not leak in from a mutated payload copy').toBeGreaterThan(r.audioCreate.length);
 
     expect(r.reopened, 'selections survive close + reopen').toEqual(r.audioCreate);
     expect(r.reopenedSelected).toEqual(['true', 'true']);

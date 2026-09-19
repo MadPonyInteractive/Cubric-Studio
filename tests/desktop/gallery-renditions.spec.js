@@ -27,7 +27,7 @@ test.setTimeout(90000);
 
 const SMALL = 'flow-scribble';
 const LARGE = 'flow-outpaint';
-const FULL  = 'flow-head-swap';
+const FULL  = 'flow-draw-it-in';
 
 
 test('a big card mounts the large rendition, a small one does not', async ({}, testInfo) => {
@@ -56,7 +56,7 @@ test('a big card mounts the large rendition, a small one does not', async ({}, t
         history: [{
           id: `mpi633a-item-${i}`,
           type: 'image',
-          filePath:    '/comfy_workflows/display/flow-head-swap.webp',
+          filePath:    '/comfy_workflows/display/flow-draw-it-in.webp',
           thumbPath:   '/comfy_workflows/display/flow-scribble.webp',
           thumbPathLg: '/comfy_workflows/display/flow-outpaint.webp',
           // A WIDE aspect, so the justified packer really does put two cards on a
@@ -132,7 +132,7 @@ test('a VIDEO poster rides the same ladder, and never falls through to the clip'
           type: 'video',
           // A REAL clip: the promote observer mounts it as the hover overlay, and a
           // src that 404s takes the missing-media path instead.
-          filePath:    '/comfy_workflows/display/flow-head-swap.mp4',
+          filePath:    '/comfy_workflows/display/flow-draw-it-in.mp4',
           thumbPath:   '/comfy_workflows/display/flow-scribble.webp',
           thumbPathLg: lg ? '/comfy_workflows/display/flow-outpaint.webp' : null,
           pixelDimensions: { w: 1920, h: 1080 },
@@ -192,7 +192,7 @@ test('a card with no large rendition uses the ORIGINAL, never an upscaled thumb'
         history: [{
           id: `mpi633b-item-${i}`,
           type: 'image',
-          filePath:    '/comfy_workflows/display/flow-head-swap.webp',
+          filePath:    '/comfy_workflows/display/flow-draw-it-in.webp',
           thumbPath:   '/comfy_workflows/display/flow-scribble.webp',
           thumbPathLg: null,
           pixelDimensions: { w: 1920, h: 1080 },
@@ -243,9 +243,9 @@ test('a promoted video card mounts the PROXY, and the item keeps its master', as
         history: [{
           id: 'mpi633e-item-0',
           type: 'video',
-          filePath:  '/comfy_workflows/display/flow-head-swap.mp4',
+          filePath:  '/comfy_workflows/display/flow-draw-it-in.mp4',
           proxyPath: '/comfy_workflows/display/flow-scribble.mp4',
-          thumbPath: '/comfy_workflows/display/flow-head-swap.webp',
+          thumbPath: '/comfy_workflows/display/flow-draw-it-in.webp',
         }],
       }];
 
@@ -263,7 +263,7 @@ test('a promoted video card mounts the PROXY, and the item keeps its master', as
     // read; a master leaking into a card element would mean the decoder is back.
     const cardHtml = await window.evaluate(() =>
       document.querySelector('#mpi633e-host .mpi-group-card')?.innerHTML || '');
-    expect(cardHtml).not.toContain('flow-head-swap.mp4');
+    expect(cardHtml).not.toContain('flow-draw-it-in.mp4');
   } finally {
     await window.evaluate(() => {
       window.__mpi633e?.grid?.el?.destroy?.();
@@ -309,7 +309,7 @@ test('flinging past 40 cards does not decode 40 large renditions', async ({}, te
         history: [{
           id: `mpi633d-item-${i}`,
           type: 'image',
-          filePath:    '/comfy_workflows/display/flow-head-swap.webp',
+          filePath:    '/comfy_workflows/display/flow-draw-it-in.webp',
           thumbPath:   '/comfy_workflows/display/flow-scribble.webp',
           thumbPathLg: `/comfy_workflows/display/flow-outpaint.webp?card=${i}`,
           pixelDimensions: { w: 1920, h: 1080 },
@@ -384,7 +384,7 @@ test('a card scrolled far off-screen drops back to the small rendition, and retu
         history: [{
           id: `mpi633c-item-${i}`,
           type: 'image',
-          filePath:    '/comfy_workflows/display/flow-head-swap.webp',
+          filePath:    '/comfy_workflows/display/flow-draw-it-in.webp',
           thumbPath:   '/comfy_workflows/display/flow-scribble.webp',
           thumbPathLg: '/comfy_workflows/display/flow-outpaint.webp',
           // A WIDE aspect, so the justified packer really does put two cards on a

@@ -44,7 +44,7 @@ test('gallery releases promoted videos on overlay open and on generation dispatc
       host.style.cssText = 'position:fixed;inset:0;width:1200px;height:900px;z-index:0;';
       document.body.appendChild(host);
 
-      const names = ['flow-scribble', 'flow-outpaint', 'flow-head-swap', 'flow-draw-it-in'];
+      const names = ['flow-scribble', 'flow-outpaint', 'flow-object-stamp', 'flow-draw-it-in'];
       const groups = Array.from({ length: n }, (_, i) => ({
         id: `mpi631-${i}`,
         type: 'video',
@@ -153,7 +153,7 @@ test('gallery demotes videos that scroll far off-screen, and re-promotes on retu
       host.style.cssText = 'position:fixed;top:0;left:0;width:900px;height:420px;z-index:0;';
       document.body.appendChild(host);
 
-      const names = ['flow-scribble', 'flow-outpaint', 'flow-head-swap', 'flow-draw-it-in'];
+      const names = ['flow-scribble', 'flow-outpaint', 'flow-object-stamp', 'flow-draw-it-in'];
       // Enough rows that a card can travel further than DEMOTE_MARGIN_PX (600px)
       // out of view. A fixture that only overflows by a few hundred pixels can
       // never trip the demote and would pass green against a broken build.
