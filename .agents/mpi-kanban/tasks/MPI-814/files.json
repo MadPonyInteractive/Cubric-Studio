@@ -1,0 +1,9 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "docs/releases/UNRELEASED.md",
+    "docs/releases/README.md",
+    ".claude/skills/mpi-release/references/copy-review.md",
+    ".claude/skills/mpi-version-bump/SKILL.md"
+  ]
+}

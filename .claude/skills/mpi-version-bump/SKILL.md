@@ -313,6 +313,11 @@ Release notes live in **two** places that must stay aligned:
    instructions; ship only the user-facing sentence. Fold `docs/releases/UNRELEASED.md`
    scratchpad items into these arrays and clear it back to its header.
 
+   **Folding is not copying — it is CUTTING.** One or two lines per item, no jargon,
+   no mechanism, no history of the feature. A long scratchpad bullet gets shortened
+   here, not carried over. Rule and worked example: `docs/releases/README.md`
+   § Content → "Length".
+
    **Every "used to / previously / no longer" claim must be checked against the
    PREVIOUS RELEASED TAG before you write it** — `git show v<prev>:<path> | grep`,
    per bullet, not per release. Code that changed two or three times inside this

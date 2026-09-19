@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-814",
+  "title": "Release notes must be short: write the rule down, and cut the MPI-811 bullet to size",
+  "description": "Fabio, 2026-09-19, on the MPI-811 radial bullet: \"That unreleased note is too big... I reckon you should say something like the radial menu is back, and it now helps you open the current model, flows, latest workspace, or gallery so that you can quickly change workspaces. Something like that is enough. No need to go into details.\"\n\nAnd the general ask: \"The change log has been a monster that nobody ends up reading because it's too detailed. It needs to be more like bullet points, straight to the point.\"\n\nSo: SHORT, CONCISE, NO JARGON, NO DETAIL. One bullet = what it is and why you'd care. The history behind a feature (it existed before, it was removed, it came back) is not the user's problem.\n\nTwo jobs:\n1. Cut the MPI-811 bullet in docs/releases/UNRELEASED.md down to Fabio's own example.\n2. Write the rule where an agent will actually read it at the moment of writing. docs/releases/README.md § Content is the canonical home (it already holds '### Voice - claim the improvement, not the absolute'); UNRELEASED.md's header and the release skill's copy-review Gate 1 get a POINTER, not a copy - one rule, one place.\n\nSurfaces the rule covers: docs/releases/UNRELEASED.md, js/data/releaseNotes.js (the in-app changelog overlay) and the archival docs/releases/YYYY-MM-DD-vX.Y.Z.md.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-19T06:50:49+01:00",
+  "updated_at": "2026-09-19T06:50:49+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

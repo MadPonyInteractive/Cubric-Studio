@@ -27,6 +27,9 @@
 > shipped every bullet twice. If you are folding a release and this file still holds
 > the last one's items, that is the bug, not a backlog.
 >
+> **KEEP EVERY BULLET SHORT.** One or two lines: what it is, and why the user would care.
+> The rule and what it looks like are in `docs/releases/README.md` § Content → "Length".
+>
 > **Before writing a "used to / previously / no longer" claim, check it against the
 > last released tag** (`git show v<prev>:<path>`), per bullet. Code that changed two
 > or three times inside one unreleased version reads like user-visible history but
@@ -413,12 +416,8 @@
   you choose, and cards you hearted before now show a dot. The media picker you open from a
   prompt slot has the same FILTER, and its tiles show their marks.
 
-- **Hold TAB for a quick menu to anywhere.** Hold TAB anywhere in a project, move the mouse
-  towards what you want, and let go. GALLERY is up-left, MODELS down-left, FLOWS up-right
-  and LATEST WORKSPACE down-right — the last card you opened, greyed out when there isn't
-  one. Let go in the middle to pick nothing. It works everywhere, including inside a Flow
-  or a Library, and picking a place closes whatever you were in. TAB used to just swap
-  between the gallery and your last card.
+- **The radial menu is back.** Hold TAB and pick Gallery, Models, Flows or your latest
+  workspace — a quick way to move between them.
 
 ## Fixes
 

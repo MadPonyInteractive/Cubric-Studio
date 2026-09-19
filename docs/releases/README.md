@@ -91,6 +91,26 @@ Each release file contains:
 - **ComfyUI Engine**: Version info
 - **Platform Update Checklist**: Items to update on the landing page, docs site, GitHub releases, Patreon, and Discord
 
+### Length — one or two lines per bullet, and no more
+
+**User ruling, 2026-09-19: "The change log has been a monster that nobody ends up reading
+because it's too detailed."** Every release-note surface — the `UNRELEASED.md` scratchpad,
+`js/data/releaseNotes.js` and the archival markdown — is bullet points, straight to the
+point, no jargon. A bullet says **what it is and why the reader would care**, and stops.
+
+His own example, for a radial menu that came back after being removed and reworked twice:
+
+> - **The radial menu is back.** Hold TAB and pick Gallery, Models, Flows or your latest
+>   workspace — a quick way to move between them.
+
+What does NOT go in a bullet, however true: which keys map to which corner, what the
+feature used to do, why it was removed, the bug behind the fix, file or component names,
+card ids, and anything phrased for a developer. The reader is opening the app, not
+reviewing the diff. If a bullet needs a second sentence to be understood, it is usually
+two features, not one bullet — or one feature explained too far.
+
+The evidence for a change belongs on its card; the changelog is the headline.
+
 ### Voice — claim the improvement, not the absolute
 
 **"Faster", never "instant"** (user ruling, 2026-08-04). A speed-up gets described as a

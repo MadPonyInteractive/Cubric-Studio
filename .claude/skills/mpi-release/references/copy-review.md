@@ -51,6 +51,11 @@ after an update. It's the user's "what changed" on launch.
   present it to the user** rendered the way the overlay shows it (kicker
   `<Stage> · v<ver>`; sections in fixed order Breaking → Important → What's new →
   Fixes → Engine; each item plain text — no markdown processing).
+- **Cut the length before you show it.** One or two lines per bullet, no jargon, no
+  history of the feature, no mechanism. `docs/releases/README.md` § Content →
+  "Length" has the rule and a worked example. The user's standing complaint is that
+  the changelog is "a monster that nobody ends up reading" — showing him a wall of
+  text to trim is making him do this gate's work.
 - The user edits for tone/clarity (feature-benefit framing, not implementation
   detail). Apply their edits to `releaseNotes.js` AND the archival
   `docs/releases/*.md` so the two stay aligned.
