@@ -39,6 +39,9 @@ Derived from `plan.md` phase titles, 2026-09-18.
           and `--max-warnings=0` makes that red CI, not a nit. Fabio approved the move.
     - [x] Gallery info + archive toggles off `variant: 'ghost'` — a ghost toggle shows its
           state in colour alone, invisible now the accent is cream.
+    - [x] The review track paints a real WAVE. A take under review has no file, so ffmpeg's
+          bake cannot run; `bakeWaveMask()` draws `showwavespic`'s shape in the renderer.
+          Checked by a desktop spec that drives it with a synthetic clip.
     - [ ] `types.js:1587` still says `Compound` — inside MPI-771's live claim, messaged
           (`bb5f6817`), NOT edited. **Drift until that lands.**
   - [ ] Finish the sweep — Fabio is still finding surfaces a round at a time

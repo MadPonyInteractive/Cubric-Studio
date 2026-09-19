@@ -2,9 +2,11 @@
  * toWavFile.js — any decodable audio Blob → 16-bit 48 kHz mono WAV File.
  *
  * Shared by the mic recorder (MpiAudioRecorder) and the voice library
- * (MpiMediaPicker). It lives here rather than in the recorder because both are
- * Compounds, and a Compound imports Primitives only. It stays out of
- * wavEncoder.js, which is import-free so it can be tested in bare Node.
+ * (MpiMediaPicker). It lives here rather than in the recorder because the picker is
+ * a Compound and may import Primitives only — it could not reach the recorder even
+ * when the recorder was a Compound too, and certainly cannot now it is a Block
+ * (MPI-736). It stays out of wavEncoder.js, which is import-free so it can be
+ * tested in bare Node.
  */
 
 import { encodeWav } from './wavEncoder.js';

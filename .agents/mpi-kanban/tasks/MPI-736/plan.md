@@ -36,8 +36,10 @@ signed off across five rounds of live checks. The sweep is NOT finished — he i
 finding surfaces a round at a time, which is the expected shape of this phase, not drift.
 
 **Round 6 is implemented and awaiting Fabio's eye** (2026-09-19): the record-audio
-overlay's two jobs and the gallery info toggle. `npm test` 1410/1411 (1 skipped), lint
-clean on every touched file, and the colours + player mount proved in a real browser.
+overlay's two jobs, the gallery info toggle, and — after his screenshot showed a flat green
+bar — the review track's WAVE, which no baked mask could supply because the take is not a
+file yet. `npm test` 1410/1411 (1 skipped), lint clean on every touched file, a desktop
+spec on the bake, and the colours + player mount read off a real browser.
 
 Next action: Fabio's live pass on the three surfaces — see `validation.md` § Round 6.
 

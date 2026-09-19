@@ -241,3 +241,37 @@ Nothing asserts that typedef, so it is docs drift, not a failing build.
 `Compounds/MpiAudioRecorder` paths. It is a generated build artefact (`build-portable.mjs`)
 and currently carries 34k lines of a peer's uncommitted work, so it was left alone — the
 next portable build regenerates it.
+
+### The wave itself — Fabio's second look, same round
+
+His screenshot of the shipped overlay: the transport worked and wore audio green, and the
+waveform track was a flat fill. Correct for what was built and still wrong to ship. A saved
+item's mask is baked by ffmpeg over a PATH (`extractAudioWaveform`), and a take under
+review has no path — that is the entire premise of the dialog — so there was nothing to
+hand `MpiWaveform`, and a maskless track paints fills and no wave.
+
+`bakeWaveMask()` now draws it in the renderer from the samples in hand, copying
+`showwavespic`'s shape deliberately: mono mixdown, `sqrt` amplitude, white on transparent,
+the same 1260x540 rendition, so a clip does not change shape the moment it is saved. It is
+applied AFTER the player mounts — decoding costs real time and the transport works without
+it — and only if the instance it was baked for is still mounted, because Re-record can land
+first.
+
+Measured off the mask's own pixels, as a fraction of column height carrying ink, for a
+synthetic 3s clip of silence / 0.9 / 0.03 amplitude:
+
+| second | ink | |
+|---|---|---|
+| silence | 0.002 | the 1px floor, not a band |
+| loud | 0.952 | |
+| -30 dBFS | 0.174 | **this is what `sqrt` buys** — linear would draw ~0.03, a flat line |
+
+**The committed check:** `tests/desktop/gallery-audio-waveform.spec.js` § "a take under
+review bakes its own waveform mask, on the same sqrt scale as ffmpeg". It drives the real
+exported function with a synthetic clip — no mic, no dialog, no fake-device flag — and
+asserts those three bands plus the 21:9 rendition. Passes in 9.6s. That spec file is the
+right home: it already owns the baked-mask mechanism from MPI-730, and this is the same
+picture drawn the other way.
+
+`bakeWaveMask` sits at module scope and is exported for exactly that reason; it closes over
+nothing, so the export costs nothing and buys a check that needs neither a mic nor a modal.

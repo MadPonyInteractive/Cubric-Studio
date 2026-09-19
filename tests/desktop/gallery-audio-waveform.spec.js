@@ -338,3 +338,79 @@ test('an audio card paints its baked waveform and fills as it plays', async ({},
     }
 });
 
+
+/**
+ * MPI-736 — the record dialog draws the SAME picture before the clip is a file.
+ *
+ * A saved item's mask is baked by ffmpeg over a path on disk. A take under review
+ * has no path yet, so `bakeWaveMask()` draws it in the renderer instead, and the
+ * two have to agree or a clip would visibly change shape the moment it is saved.
+ *
+ * Driven with a synthetic clip rather than the mic: the browser's fake-device flag
+ * is not wired into this harness, and the thing under test is the drawing, not
+ * getUserMedia. The quiet third is the assertion that matters — it is the whole
+ * reason the bake copies `showwavespic`'s `scale=sqrt` instead of drawing linear
+ * amplitude, which would render a -30 dBFS take as a flat line.
+ */
+test('a take under review bakes its own waveform mask, on the same sqrt scale as ffmpeg', async ({}, testInfo) => {
+    let app, window;
+
+    try {
+        ({ app, window } = await launchApp(testInfo));
+        await window.waitForTimeout(6000); // shell boot settles
+        await clearBootModals(window);
+
+        const ink = await window.evaluate(async () => {
+            const [{ bakeWaveMask }, { encodeWav }] = await Promise.all([
+                import('/js/components/Blocks/MpiAudioRecorder/MpiAudioRecorder.js'),
+                import('/js/utils/wavEncoder.js'),
+            ]);
+
+            // 3 seconds at 48k: silence, then loud, then very quiet.
+            const RATE = 48000;
+            const pcm = new Float32Array(RATE * 3);
+            for (let i = RATE; i < RATE * 2; i++) pcm[i] = Math.sin(i / 8) * 0.9;
+            for (let i = RATE * 2; i < RATE * 3; i++) pcm[i] = Math.sin(i / 8) * 0.03;
+            const wav = encodeWav({
+                numberOfChannels: 1, length: pcm.length, sampleRate: RATE,
+                getChannelData: () => pcm,
+            });
+
+            const url = await bakeWaveMask(new Blob([wav], { type: 'audio/wav' }));
+            if (!url) return { error: 'bakeWaveMask returned null' };
+
+            // Read the mask back. It is ALPHA — a white-on-transparent mask, not a
+            // picture — so the measurement is how much of a column carries any ink.
+            const img = new Image();
+            await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = url; });
+            const c = document.createElement('canvas');
+            c.width = img.width;
+            c.height = img.height;
+            const g = c.getContext('2d', { willReadFrequently: true });
+            g.drawImage(img, 0, 0);
+            const column = (frac) => {
+                const d = g.getImageData(Math.floor(img.width * frac), 0, 1, img.height).data;
+                let n = 0;
+                for (let y = 0; y < img.height; y++) if (d[y * 4 + 3] > 0) n++;
+                return n / img.height;
+            };
+
+            return {
+                w: img.width, h: img.height,
+                silence: column(0.15), loud: column(0.5), quiet: column(0.85),
+            };
+        });
+
+        expect(ink.error, 'the bake must produce a mask').toBeUndefined();
+        expect([ink.w, ink.h], 'the same 21:9 rendition ffmpeg bakes (AUDIO_WAVEFORM_PX)')
+            .toEqual([1260, 540]);
+        expect(ink.silence, 'silence draws the 1px floor, not a band').toBeLessThan(0.05);
+        expect(ink.loud, 'a hot second fills most of the height').toBeGreaterThan(0.8);
+        expect(ink.quiet, 'and a -30 dBFS second is still legible — this is what sqrt buys')
+            .toBeGreaterThan(0.08);
+        expect(ink.quiet, 'without flattening the loud/quiet contrast away')
+            .toBeLessThan(ink.loud / 2);
+    } finally {
+        if (app) await closeApp(app);
+    }
+});

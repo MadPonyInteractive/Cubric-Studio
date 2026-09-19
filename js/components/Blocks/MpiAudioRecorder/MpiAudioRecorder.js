@@ -12,7 +12,73 @@ import { state } from '../../../state.js';
 import { Events } from '../../../events.js';
 
 /**
- * MpiAudioRecorder — record the user's microphone into a project audio file (Compound, MPI-573)
+ * The waveform mask's rendition, kept equal to `AUDIO_WAVEFORM_PX` in
+ * `services/ffmpegThumb.js` so a take looks the same before and after it is saved.
+ * ONE 21:9 picture on purpose (MPI-730) — it is stretched to whatever box mounts it.
+ */
+const WAVE_PX = { w: 1260, h: 540 };
+
+/**
+ * Paint a waveform mask for a clip that does not exist on disk yet.
+ *
+ * A saved audio item carries one baked by ffmpeg (`extractAudioWaveform`), but
+ * that runs over a FILE, and the whole point of this dialog is that the take is
+ * not a file until Accept. Without a mask the track paints its fills and no wave,
+ * which is a flat green bar in a dialog whose subject is the sound. So the same
+ * picture is drawn here from the samples in hand.
+ *
+ * It is `showwavespic`'s shape deliberately: mono mixdown (one band, not one per
+ * channel), amplitude on a `sqrt` scale (a mic take is nowhere near a mastered
+ * -1 dBFS, and `lin` draws it as a flat line), white on transparent because
+ * MpiWaveform consumes an alpha MASK and colours it with tokens, and the same
+ * 21:9 rendition the baker emits, since it is stretched to whatever box mounts it.
+ *
+ * Exported for its check, which drives it with a synthetic clip - no mic, no dialog.
+ *
+ * @param {Blob} blob
+ * @returns {Promise<string|null>} a data URL, or null if the clip would not decode
+ */
+export async function bakeWaveMask(blob) {
+    try {
+        // Decoding in an OfflineAudioContext pins the rate; a live AudioContext
+        // decodes at the hardware rate, which on this machine is 96 kHz — four
+        // times the samples to walk for a picture 1260 pixels wide.
+        const octx = new OfflineAudioContext(1, 1, 48000);
+        const buf = await octx.decodeAudioData(await blob.arrayBuffer());
+        const chans = Array.from({ length: buf.numberOfChannels }, (_, i) => buf.getChannelData(i));
+
+        const cvs = document.createElement('canvas');
+        cvs.width = WAVE_PX.w;
+        cvs.height = WAVE_PX.h;
+        const g = cvs.getContext('2d');
+        // An alpha MASK's ink, not a theme colour: only its coverage is ever read, and
+        // MpiWaveform paints it with tokens. The server's bake says the same thing to
+        // ffmpeg as `colors=white`.
+        // eslint-disable-next-line mpi/no-hardcoded-hex-color -- see above
+        g.fillStyle = '#fff';
+
+        const per = Math.max(1, Math.floor(buf.length / WAVE_PX.w));
+        for (let x = 0; x < WAVE_PX.w; x++) {
+            let peak = 0;
+            const from = x * per;
+            const to = Math.min(from + per, buf.length);
+            for (let i = from; i < to; i++) {
+                let sum = 0;
+                for (const c of chans) sum += c[i];
+                peak = Math.max(peak, Math.abs(sum / chans.length));
+            }
+            const h = Math.sqrt(peak) * WAVE_PX.h;
+            g.fillRect(x, (WAVE_PX.h - h) / 2, 1, Math.max(1, h));
+        }
+        return cvs.toDataURL('image/png');
+    } catch (err) {
+        clientLogger.warn('audio-recorder', `waveform bake failed: ${err?.message || err}`);
+        return null;
+    }
+}
+
+/**
+ * MpiAudioRecorder — record the user's microphone into a project audio file (Block, MPI-573)
  *
  * Vision has always treated audio as first-class on the way IN — audio gallery cards,
  * audio media slots, an audio filter in the picker — but there was no way to CAPTURE
@@ -233,6 +299,11 @@ export const MpiAudioRecorder = ComponentFactory.create({
          * baked waveform, and a maskless player still scrubs. `hotkeys: false`: this
          * is a modal whose buttons take focus, so SPACE on Accept would both press
          * the button and toggle playback.
+         *
+         * The wave arrives AFTER the transport, not with it: decoding a take costs
+         * real time, and the player scrubs and plays perfectly well while it is still
+         * a plain bar. Re-record can land first, which is why the mask is only applied
+         * if the instance it was baked for is still the mounted one.
          */
         function _buildPlayback() {
             _dropPlayback();
@@ -241,6 +312,11 @@ export const MpiAudioRecorder = ComponentFactory.create({
                 src: _playbackUrl, duration: _recordedSecs, hotkeys: false,
             });
             playSlot.appendChild(_player.el);
+
+            const mine = _player;
+            bakeWaveMask(_blob).then((mask) => {
+                if (mask && _player === mine) _player.el.setMask(mask);
+            });
         }
 
         /** Tear the review transport down and let its blob go. Idempotent. */
