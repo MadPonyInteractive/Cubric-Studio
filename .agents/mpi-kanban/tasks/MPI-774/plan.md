@@ -1316,6 +1316,47 @@ and every gizmo a Flow grows is another thing an agent has to drive blind. His l
   since a flag with nowhere to render is half a feature. **Fabio's call on the wording** before it
   ships — it is a claim about someone else's service, on a public UI.
 
+  **SETTLED by Fabio, 2026-09-19, after seeing the prices: flag Qwen, leave DeepSeek unflagged.**
+  He had assumed the two cost the same; they do not, and the flag does not follow price anyway — it
+  follows evidence, and only Qwen has any.
+
+  | per 1M | DeepSeek V4 Flash | Qwen3-VL-30B | gemma-4-26B-A4B-it |
+  |---|---|---|---|
+  | input | $0.06 | $0.15 | $0.07 |
+  | cached input | $0.015 | none offered | none offered |
+  | output | $0.18 | $0.60 | $0.34 |
+  | context | 1,048,576 | 262,144 | 262,144 |
+  | multimodal | no | yes | yes |
+
+  From his own usage pages, per request: DeepSeek `$1.18 / 3.37K = $0.00035`, Qwen
+  `$0.02023 / 20 = $0.00101` — ~3× cheaper while carrying MORE input per request (10.9K vs 6.4K).
+  The gap is wider than the sticker for an agent, because **25.65M of his 36.89M DeepSeek input
+  tokens were cached**: the system prompt and tool schemas repeat every turn, which is the cached
+  tier's ideal case. Effective input ≈ $0.029/M against Qwen's flat $0.15, so ~5×.
+
+  So: **Qwen3-VL-30B gets the flag** (it drove an adult image end to end today — look, describe,
+  prompt, dispatch, no refusal). **DeepSeek V4 Flash does not**: today's harness runs went through it
+  but on cat pictures, and a tolerance flag on no evidence is exactly the promise this item must not
+  make. Its recommended mark stays what it already is — cheap and fast.
+
+  Worth a look when the flag work starts: Qwen's usage page shows **18 OK, 2 ERROR**. Some of those
+  are likely this session's early driving mistakes; confirm before attributing them to the model.
+
+- [ ] **A note Fabio asked for early in the agent work may never have been saved** (his recollection,
+  2026-09-19): *"when I started the agent work, I asked to save a note on a certain model, which I
+  think was 26 billion parameters. Maybe it was Gemma 4."* `google/gemma-4-26B-A4B-it` is the
+  recommended **enhance** model (`RECOMMENDED_REMOTE_MODELS`, `llmEngines.mjs:467`) and its usage
+  page shows 26 requests, all OK, $0.00436 — so it was being exercised around then.
+
+  Two readings and he could not remember which, so check both: either he asked for a note ABOUT a
+  model and wants to know it landed, or the agent was RUNNING on that ~26B model when he asked and
+  the note never got written (a model that does not call `write_memory` looks identical to one that
+  does, from the chat). **Cheap first step, before any theorising:** list every
+  `<project>/Agent/*.md` across his projects with mtimes and compare against when he was testing —
+  a missing note is visible in one `ls`. Note that this session already found a case where a note
+  landed in the WRONG project (`create_project` not opening what it made, fixed in `c785c75d`), so
+  "not saved" and "saved somewhere he never looked" are different answers with the same symptom.
+
 - [ ] **The Ollama connection picker tells the user nothing, and the enhance picker five rows above
   it tells them everything** (Fabio, 2026-09-19: *"I had no idea what to select where, so I just
   selected one of the abliterated models."*). Both live in `MpiLlmSettings`.
