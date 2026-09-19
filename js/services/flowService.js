@@ -179,27 +179,50 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
         flowModelIds: flowModelIds(flow),
     };
 
-    // No gallery placeholder (MPI-306): a flow run is not pending in the gallery
-    // because it will not land there unless the user applies it. The flow's own
-    // result pane is where the run is visible — live latents reach it by tempId
-    // (preview:frame → activeGenerations.byPromptId, MPI-271).
-    // The chained leg REUSES leg 1's tempId. MpiBaseFlow holds exactly one `_myTempId`
-    // per run and matches live latents and Cancel through it, so a fresh id on leg 2
-    // would leave the pane unable to cancel or preview the second half. The two legs are
-    // sequential — leg 1 has ended before leg 2 enqueues — so nothing shares it at once.
+    // The chained leg REUSES leg 1's tempId. MpiBaseFlow matches live latents and Stop
+    // through the tempId its run token carries, so a fresh id on leg 2 would leave the
+    // pane unable to stop or preview the second half. The two legs are sequential —
+    // leg 1 has ended before leg 2 enqueues — so nothing shares it at once, and leg 2's
+    // own placeholder below cannot collide with leg 1's landed card (a committed card
+    // takes a real group id from the media commit, never the tempId).
     const tempId = _leg.tempId || crypto.randomUUID();
 
     // NO getNextGeneration — arming the loop would re-fire flow gens. forceLocal only
     // when the user has explicitly pinned the local engine (mirrors state.engineOverride).
     //
-    // Results commit on completion (MPI-306 Phase 3 was built, then REMOVED after
-    // the UX pass — an Apply step the user never wanted to skip is friction). Still
-    // NO gallery placeholder: the flow's own result pane shows the run, so a second
-    // in-progress card in the gallery behind the overlay is noise. The real card
-    // lands on completion.
+    // A GALLERY PLACEHOLDER, ALWAYS (MPI-827). This deliberately reverses MPI-306,
+    // whose premise expired twice: it withheld the placeholder because "the flow's own
+    // result pane shows the run, so a second in-progress card behind the overlay is
+    // noise", and because a result only landed if the user pressed Apply.
+    //   - Apply was removed, so a flow result commits to the gallery on completion
+    //     regardless. The placeholder is simply where that card is going to be.
+    //   - An AGENT-dispatched flow has no overlay open at all (agentDispatch.js
+    //     `_submitFlow`), so there is no result pane and the run was invisible
+    //     everywhere but the status bar — Fabio, 2026-09-19: *"when the agent runs a
+    //     flow and I'm in the gallery, I can't see what's happening"*.
+    // Everything else on that path was already wired: the gen is `scope: 'gallery'`,
+    // it enters `_myGenIds`, and `preview:frame` reaches MpiGalleryBlock — which then
+    // had no card to paint into. Both surfaces can paint the same frame: the flow pane
+    // resolves by tempId, the gallery by its placeholder, neither keyed on the other.
+    //
+    // Same shape agentDispatch builds for a model gen. `Generating...` is the name the
+    // grid renders while `isGenerating` is true. Size comes from what the flow injects
+    // and otherwise falls back like every other placeholder — the real item replaces it.
+    const placeholderGroup = {
+        id: tempId,
+        type: flow.mediaType || 'image',
+        name: 'Generating...',
+        history: [],
+        selectedIndex: 0,
+        width:  Number(config.injectionParams.Width)  || 1024,
+        height: Number(config.injectionParams.Height) || 1024,
+        isGenerating: true,
+    };
+
     const opts = {
         scope: 'gallery',
         tempId,
+        placeholderGroup,
     };
     if (state.engineOverride === 'local') opts.forceLocal = true;
 

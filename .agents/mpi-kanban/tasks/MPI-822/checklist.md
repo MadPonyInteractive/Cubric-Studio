@@ -1,0 +1,33 @@
+# MPI-822 Checklist
+
+- [x] `_runs` set of per-run tokens replaces the `_running` boolean; `_running`
+      stays as a derived `_runs.size > 0` so the existing read sites do not move
+- [x] `_run` drops the `_running` early-return; keeps the empty-media and
+      `promptRequired` guards
+- [x] Token added before `_autoEnhance`, stamped with the real tempId after submit
+- [x] `preview:frame`, `generation:preview-reset` and `_cancel` resolve against the set
+- [x] Run button is `Cue` / `Cue xN` off `state.generationQueueCount`, always queues;
+      the Generate↔Cancel morph and `.mpi-base-flow__run--cancel` are gone
+- [x] Separate Stop button (icon `stop`, `sm`, `secondary`, disabled when idle)
+      beside Cue, destroyed in `_teardownSlide`
+- [x] `generation.stop` bound per-show in `_bindKeys`, unbound in `_unbindKeys`
+- [x] `_triggerStop` in `MpiPromptBox.js` gets the same open-flow bail `_triggerRun`
+      already has (see plan.md § Plan Drift 2)
+- [x] Latest-wins: the result wipe at dispatch and `_hasPending = false` are gone
+- [x] Status line: a failure wins it; complete/cancel defer to `Generating…` while
+      runs remain
+- [x] `npm run lint` passes on the touched files
+- [x] Source contracts written (`tests/flow-cue-stacks.test.cjs`) and PROVEN red on
+      pre-fix code — 14/14 assertions fail against HEAD's blobs
+- [x] Fabio app pass 1 (2026-09-19): found a ReferenceError I shipped
+      (`isRunning` left behind by the `_setRunning` -> `_syncRunning` rename) and a
+      Stop button sized `sm` beside an `md` Cue. BOTH FIXED. Proven that
+      `no-undef` catches the first and that the repo does not enable it - raised
+      separately, out of scope here.
+- [ ] **Q does not open the queue slide-over from inside a flow** - OPEN. Four
+      causes eliminated statically; one live check left (plan.md " The Q bug)
+- [ ] Fabio app check, round 2: `Cue x3`, result stays, Stop kills only the running job,
+      queue slide-over stops a pending one from inside the flow
+
+Dropped from the original list, with the reason: **no per-run input snapshot was
+built.** The brief asked for one; the code already had it (plan.md § Plan Drift 1).

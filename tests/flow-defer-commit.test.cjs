@@ -36,11 +36,19 @@ test('built groups reach onComplete so a deferred caller can commit them', () =>
     assert.match(src, /deferred: !!opts\.deferCommit/, 'the complete event must declare whether it persisted');
 });
 
-test('flow runs commit on completion and send NO gallery placeholder', () => {
+test('flow runs commit on completion, and DO send a gallery placeholder', () => {
     const src = read('js/services/flowService.js');
     assert.ok(!/deferCommit/.test(src), 'flows commit on completion — Apply was removed');
-    assert.ok(!/placeholderGroup/.test(src), 'the flow pane shows the run; a gallery placeholder is noise');
     assert.ok(!/mkPlaceholder/.test(src), 'orphaned placeholder builder must be gone');
+
+    // REVERSED BY MPI-827. This used to assert the opposite — "the flow pane shows
+    // the run; a gallery placeholder is noise" — which was MPI-306's reasoning and
+    // depended on the Apply step that this very file records as removed. With the
+    // result committing on completion regardless, and an agent-dispatched flow
+    // having no pane at all, the placeholder is simply where the card is going to
+    // be. Its own contracts live in flow-gallery-placeholder.test.cjs.
+    assert.match(src, /placeholderGroup,/,
+        'a flow run is gallery-scope; without a placeholder its latents paint nowhere');
 });
 
 test('the Apply affordance is fully gone from the flow frame', () => {

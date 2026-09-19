@@ -1,0 +1,8 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js",
+    "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.css",
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js"
+  ]
+}

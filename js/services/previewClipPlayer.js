@@ -45,12 +45,17 @@
  * same run would have one revoking frames the other is still looping — the same
  * ERR_FILE_NOT_FOUND storm, now self-inflicted. The three in-renderer surfaces are
  * mutually exclusive by scope and can each own their frames: a gallery placeholder
- * exists only for `scope: 'gallery'`, the History viewer only for `groupHistory`,
- * and a Flow run deliberately mounts NO gallery placeholder (MPI-306). The float
- * bridge is the exception — it forwards EVERY run regardless of scope, so it
- * overlaps all three and must not own. Its frames therefore live until the page
- * unloads, which `docs/preview-bus.md` already accepts as the cost of a
- * no-retainer consumer: bounded by one run, and cheaper than the alternative.
+ * exists only for `scope: 'gallery'` and the History viewer only for `groupHistory`,
+ * while the FLOW pane never owns at all — its `ownsFrames` stays false. That third
+ * one used to read "a Flow run mounts no gallery placeholder (MPI-306)", which
+ * MPI-827 reversed: a flow run is `scope: 'gallery'` and now mounts one like any
+ * other gen, so the gallery placeholder is its single owner. The invariant is
+ * unchanged and a flow run is better off — it previously had NO retainer, so its
+ * frames lived to page unload. The float bridge is the exception — it forwards
+ * EVERY run regardless of scope, so it overlaps all three and must not own. Its
+ * frames therefore live until the page unloads, which `docs/preview-bus.md` already
+ * accepts as the cost of a no-retainer consumer: bounded by one run, and cheaper
+ * than the alternative.
  *
  * `ownsFrames` DEFAULTS TO FALSE on purpose. A fifth consumer that should have
  * owned its frames leaks a bounded, documented amount; one that should not have

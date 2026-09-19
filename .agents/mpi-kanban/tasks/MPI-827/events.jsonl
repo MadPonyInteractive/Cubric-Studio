@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-827", "at": "2026-09-19T18:49:29+01:00", "actor": "claude", "column": "todo", "title": "An agent-run flow is invisible in the Gallery - no placeholder card, no latents"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-827", "at": "2026-09-19T20:14:48+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started; MPI-822 shipped first as they share flowService.js."}

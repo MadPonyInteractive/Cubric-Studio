@@ -471,8 +471,23 @@ export const MpiBaseFlow = ComponentFactory.create({
         const _slideUnsubs = new Map();
 
         let _current = 0;
+        /**
+         * The runs THIS frame has in flight (MPI-822). Cue stacks runs into the same
+         * queue the Gallery's Cue feeds — the queue always accepted them, the frame is
+         * what held exactly one — so this holds N where `_myTempId` held one.
+         *
+         * A token is added BEFORE the auto-enhancer leg, because the frame must read
+         * busy while a 4B thinks, and only stamped with its `tempId` once
+         * `submitFlowGeneration` returns one. Membership is therefore by object
+         * identity, never by id: an unstamped token is a real run that has not been
+         * dispatched yet.
+         * @type {Set<{tempId: ?string}>}
+         */
+        const _runs = new Set();
+        /** Is ANY run in flight. Derived from `_runs`; written only by `_syncRunning`. */
         let _running = false;
-        let _myTempId = null;
+        /** The tempIds of the runs that have been dispatched. */
+        const _myTempIds = () => [..._runs].map(r => r.tempId).filter(Boolean);
         /**
          * Latent playback (MPI-571). This pane used to paint every frame the bus
          * handed it, the instant it arrived — so a burst previewer replayed the
@@ -481,9 +496,10 @@ export const MpiBaseFlow = ComponentFactory.create({
          * clip announced and loops instead of freezing.
          *
          * It does NOT own the frames: `ownsFrames` stays false so a frame this
-         * pane drops can never be one another surface is still looping. A flow
-         * run mounts no gallery placeholder (MPI-306), so in practice nothing
-         * else holds these — but the default is the safe one.
+         * pane drops can never be one another surface is still looping. That is
+         * load-bearing now rather than merely safe — since MPI-827 a flow run
+         * mounts a gallery placeholder too, so the gallery card really is looping
+         * the same frames behind this overlay.
          */
         const _previewPlayer = createPreviewClipPlayer({
             paint: (url) => _paintResult(url, { blurring: true }),
@@ -524,6 +540,7 @@ export const MpiBaseFlow = ComponentFactory.create({
         /** Last status-line copy, replayed when the run slide is rebuilt. */
         let _statusText = _seededResult?.status || '';
         let _runBtn = null;
+        let _stopBtn = null;
         let _resultMediaEl = null;
         let _resultEmptyEl = null;
         let _resultFrameEl = null;
@@ -2165,8 +2182,15 @@ export const MpiBaseFlow = ComponentFactory.create({
             _paintModelSlots();
 
             const genWrap = ce('div', { className: 'mpi-base-flow__gen' });
-            const runHost = ce('div');
-            genWrap.appendChild(runHost);
+            // Cue + Stop sit on one row, the PromptBox's own shape (MPI-822): Cue
+            // stacks runs and never morphs, so stopping the running one needs a
+            // control of its own.
+            const runRow = ce('div', { className: 'mpi-base-flow__run-row' });
+            const runHost = ce('div', { className: 'mpi-base-flow__run-host' });
+            const stopHost = ce('div');
+            runRow.appendChild(runHost);
+            runRow.appendChild(stopHost);
+            genWrap.appendChild(runRow);
             _gaugeEl = ce('div', { className: 'mpi-base-flow__gauge' });
             _gaugeEl.appendChild(ce('span'));
             genWrap.appendChild(_gaugeEl);
@@ -2209,10 +2233,27 @@ export const MpiBaseFlow = ComponentFactory.create({
             split.appendChild(right);
 
             // Mount children AFTER the tree exists (mount() replaces innerHTML).
-            _runBtn = MpiButton.mount(runHost, { text: 'Generate', variant: 'primary', size: 'md' });
-            _runBtn.on('click', () => { if (_running) _cancel(); else _run(); });
+            _runBtn = MpiButton.mount(runHost, { text: _runLabel(), variant: 'primary', size: 'md' });
+            // Always queues (MPI-822). The old Generate↔Cancel morph meant a second
+            // press cancelled the first run instead of stacking on it.
+            _runBtn.on('click', () => _run());
 
-            unsubs.push(() => { _runBtn?.el?.destroy?.(); });
+            // Stop is the PromptBox's control, copied: it ends the job that is RUNNING.
+            // A job still PENDING is stopped per-row in the queue slide-over, which
+            // rides above this overlay.
+            _stopBtn = MpiButton.mount(stopHost, {
+                icon: 'stop',
+                info: 'Stop current job (Ctrl+Alt+Enter)',
+                // `md` to match Cue, NOT the PromptBox's `sm` — that bar stacks Stop
+                // and Clear beside a Cue button of its own height, this column has one
+                // row and a short Stop beside a tall Cue just reads as misaligned
+                // (Fabio, 2026-09-19).
+                size: 'md', variant: 'secondary',
+                disabled: !_running,
+            });
+            _stopBtn.on('click', () => _cancel());
+
+            unsubs.push(() => { _runBtn?.el?.destroy?.(); _stopBtn?.el?.destroy?.(); });
 
             _syncRunUi();
             _paintPending();
@@ -2250,7 +2291,7 @@ export const MpiBaseFlow = ComponentFactory.create({
             // itself is NOT dropped here: it survives slide changes and dies with the flow.
             _destroyModelBtns();
             _modelRowHost = null;
-            _runBtn = null; _resultMediaEl = null; _statusEl = null;
+            _runBtn = null; _stopBtn = null; _resultMediaEl = null; _statusEl = null;
             _pendingNote = null; _gaugeEl = null;
             _resultFrameEl = null; _resultPaneEl = null;
         }
@@ -2750,7 +2791,7 @@ export const MpiBaseFlow = ComponentFactory.create({
             // The run is over — the sweep now lives on the frame, so clearing the
             // media layer no longer takes it with it. Guarded on _running: a slide
             // REBUILD replays the last result through here, and mid-run that would
-            // disarm a sweep the run still owns (_setRunning is the only arming
+            // disarm a sweep the run still owns (_syncRunning is the only arming
             // authority now).
             if (!_running) _setScanline(false);
             if (!withPath.length) { _syncResultEmpty(); return; }
@@ -3107,16 +3148,27 @@ export const MpiBaseFlow = ComponentFactory.create({
         }
 
         /**
-         * Generate → Cancel (during a run) → Generate again. THE COPY CHANGE IS THE
-         * STATE SIGNAL — no spinner.
+         * `Cue` / `Cue xN` — the PromptBox's own copy and counter (`_runLabel`,
+         * MpiPromptBox.js), so the flow frame reads exactly like the bar the user
+         * already knows. Fabio, 2026-09-19: *"Cue xN, keep it consistent"*.
+         *
+         * NOT the PromptBox's loop branch: a flow has no Loop, so an armed loop in the
+         * gallery must not relabel this button. The count is deliberately the app-wide
+         * queue depth, which is what the PromptBox shows too.
+         * @param {number} [count]
+         */
+        function _runLabel(count = state.generationQueueCount || 0) {
+            const n = Math.max(0, Number(count) || 0);
+            return n > 0 ? `Cue x${n}` : 'Cue';
+        }
+
+        /**
+         * Repaint the run cluster. Cue never morphs any more (MPI-822) — it queues,
+         * always — so the STOP button is what carries the running state.
          */
         function _syncRunUi() {
-            if (!_runBtn) return;
-            const label = _running ? 'Cancel' : (_hasPending ? 'Generate again' : 'Generate');
-            // MpiButton has no setText — its label is a span in the template.
-            const textEl = qs('.mpi-btn__text', _runBtn.el);
-            if (textEl) textEl.textContent = label;
-            _runBtn.el.classList.toggle('mpi-base-flow__run--cancel', _running);
+            _runBtn?.el?.setLabel?.(_runLabel());
+            _stopBtn?.el?.setDisabled?.(!_running);
         }
 
         function _setGauge(pct) {
@@ -3130,34 +3182,46 @@ export const MpiBaseFlow = ComponentFactory.create({
         // latched, because the marker that declares a run "clip" fires exactly once
         // and this pane may not have been mounted when it landed.
         _unsubs.push(Events.on('preview:frame', ({ promptId, url }) => {
-            if (!_myTempId || !url) return;
+            if (!url || !_runs.size) return;
             const entry = activeGenerations.byPromptId(promptId);
-            if (entry?.tempId !== _myTempId) return;
+            if (!entry?.tempId || !_myTempIds().includes(entry.tempId)) return;
             _previewPlayer.push(url, activeGenerations.getPreviewClip(entry.id));
         }));
+
+        // `Cue` → `Cue xN`: the depth is written from store truth on every queue
+        // transition (generationService `_updateQueueDepth`), so the label follows a
+        // job settling or being stopped from anywhere, not just from this frame.
+        _unsubs.push(Events.onState('generationQueueCount', () => _syncRunUi()));
 
         // A new sampler stage = a fresh preview window, so stages don't concatenate
         // into one growing loop. MPI-167.
         _unsubs.push(Events.on('generation:preview-reset', ({ id, clip }) => {
-            if (!_myTempId) return;
-            if (activeGenerations.get(id)?.tempId !== _myTempId) return;
+            if (!_runs.size) return;
+            const tempId = activeGenerations.get(id)?.tempId;
+            if (!tempId || !_myTempIds().includes(tempId)) return;
             _previewPlayer.reset(clip);
         }));
 
         // ── Run ─────────────────────────────────────────────────────────────────
-        function _setRunning(isRunning) {
-            _running = isRunning;
+        /**
+         * Recompute `_running` from `_runs` and repaint everything that keys on it.
+         * Callers add or delete their own token and call this — with N runs stacked
+         * (MPI-822) no single caller knows whether the frame is still busy.
+         */
+        function _syncRunning() {
+            _running = _runs.size > 0;
             // The single choke point every end path (complete / error / cancel) goes
             // through, so stopping playback needs no separate call in each of them.
             // Without it the loop keeps repainting blobs the finished gen revoked.
-            if (!isRunning) _previewPlayer.stop();
+            // Guarded on the LAST run ending: a sibling still in flight owns the frames.
+            if (!_running) _previewPlayer.stop();
             // Arm the sweep the INSTANT the run starts, not on the first latent.
             // _paintResult also arms it, but the first latent can be tens of seconds
             // out (model load, VAE encode) and until then the slide showed nothing
             // moving while the status bar did — the frame reading as hung.
             // Every reset path (complete / error / cancel) routes through here, so
             // disarming needs no separate call.
-            _setScanline(isRunning);
+            _setScanline(_running);
             _syncResultEmpty();
             _syncRunUi();
         }
@@ -3375,8 +3439,8 @@ export const MpiBaseFlow = ComponentFactory.create({
         }
 
         const _run = async () => {
-            if (_running) return;
-
+            // NO `if (_running) return` (MPI-822). Cue stacks: the queue underneath
+            // always took a second flow run, this frame is what swallowed it.
             let inputs = _collectInputs();
             const mediaItems = inputs.mediaItems || [];
 
@@ -3417,25 +3481,20 @@ export const MpiBaseFlow = ComponentFactory.create({
             // Also written live as the user works — see `_persistInputs`.
             _persistInputs(inputs);
 
-            _setRunning(true);
-            _hasPending = false;
-            // Drop the previous result NOW: navigating away mid-run would otherwise
-            // replay the last image over the top of the run in progress. Persisted
-            // too, so CLOSING mid-run does not bring the superseded result back
-            // (MPI-587) — this path never reaches `_showResults`.
-            _lastResults = null;
-            _lastDisplay = null;
-            _persistResult();
-            // …and take it out of the floating window too, which this path would
-            // otherwise leave showing the superseded result for the whole run — the one
-            // place a Generate is pressed from a step that has no result pane to clear
-            // (MPI-727). Generate is the ONLY thing that replaces a result, so it is
-            // also the only thing that empties the window.
-            _syncDock();
-            _paintPending();
+            // This press's own token. Added BEFORE the enhancer leg below, which can
+            // take a 4B tens of seconds — the frame has to read busy for all of it.
+            const run = { tempId: null };
+            _runs.add(run);
+            _syncRunning();
+            // THE RESULT PANE IS LATEST-WINS (Fabio, 2026-09-19: *"yeah, latest wins"*).
+            // This used to null `_lastResults`/`_lastDisplay` and persist the null, so
+            // the pane emptied the instant Generate was pressed. With runs stacking that
+            // is wrong twice over: it would blank a result while N other runs are still
+            // going, and the run it belonged to is in the gallery either way. The
+            // previous result — and its "Saved to your gallery" note, which describes
+            // exactly that result — stay up until a newer one replaces them.
             _setGauge(0);
             _setStatus('Generating…');
-            _myTempId = null;
 
             // ENHANCEMENT IS STEP ONE OF GENERATE (Fabio, 2026-09-02: *"the enhancer
             // runs silently, but it only runs if the user has changed the prompt… then
@@ -3473,8 +3532,9 @@ export const MpiBaseFlow = ComponentFactory.create({
                 runMediaItems = null;
             }
             if (!runMediaItems) {
-                _setRunning(false);
-                _setStatus('');
+                _runs.delete(run);
+                _syncRunning();
+                if (!_runs.size) _setStatus('');
                 Events.emit('ui:warning', {
                     message: `${flow.title} could not prepare its image — nothing was generated.`,
                 });
@@ -3486,54 +3546,96 @@ export const MpiBaseFlow = ComponentFactory.create({
             const runInputs = withEnhanceFallback(_enhanceDecls, inputs);
             const res = submitFlowGeneration(flow, { ...inputs, runMediaItems, runInputs }, {
                 onComplete: ({ item, items, displayUrls } = {}) => {
-                    _setRunning(false);
-                    _myTempId = null;
-                    _setGauge(100);
-                    // Already in the gallery — the run path commits on completion.
-                    _setStatus('Done — saved to your gallery.');
+                    _settle(run, 'Done — saved to your gallery.');
+                    // Full only when the frame has actually gone idle; back to zero for
+                    // the next stacked run otherwise.
+                    _setGauge(_runs.size ? 0 : 100);
                     // Set BEFORE the paint: on THIS path `_showResults` is what
                     // persists the result (MPI-587), and the note belongs in that
                     // snapshot. Nothing in the paint path reads the flag.
                     _hasPending = true;
                     _showResults(items || item, { display: _displayItems(displayUrls) });
                     _paintPending();
-                    _syncRunUi();
                 },
                 onError: () => {
-                    _setRunning(false);
-                    _myTempId = null;
+                    _settle(run, 'Generation failed.', { failed: true });
                     _setGauge(0);
-                    _showResults([]);   // drop the now-revoked live-latent preview
-                    _setStatus('Generation failed.');
+                    _dropLatentPreview();
                 },
                 onCancel: () => {
-                    _setRunning(false);
-                    _myTempId = null;
+                    _settle(run, 'Cancelled.');
                     _setGauge(0);
-                    _showResults([]);   // drop the now-revoked live-latent preview
-                    _setStatus('Cancelled.');
+                    _dropLatentPreview();
                 },
             });
             // Guard aborted before enqueue (missing model / no media) → reset immediately.
-            if (!res) { _setRunning(false); _setStatus(''); return; }
-            _myTempId = res.tempId || null;
+            if (!res) {
+                _runs.delete(run);
+                _syncRunning();
+                if (!_runs.size) _setStatus('');
+                return;
+            }
+            run.tempId = res.tempId || null;
             // MPI-271: seed from the last-held latent so a pane opened mid-gen (or
             // during a frame gap) shows the current latent immediately, not blank.
-            if (_myTempId) {
-                const entry = activeGenerations.list().find(e => e.tempId === _myTempId);
+            if (run.tempId) {
+                const entry = activeGenerations.list().find(e => e.tempId === run.tempId);
                 const last = entry && activeGenerations.getLastPreview(entry.id);
                 if (last?.url) _paintResult(last.url, { blurring: true });
             }
         };
 
         /**
-         * Cancel the in-flight run. No toast — a user action is self-evident.
-         * activeGenerations.cancel() owns the whole path (exec.cancel → end →
-         * generation:cancelled); the submit's onCancel resets this pane.
+         * One run reached an end (complete / error / cancel). Drop its token, repaint
+         * everything that keys on `_running`, and set the status line it earned — with
+         * runs stacked (MPI-822) the frame is only idle once the LAST one settles.
+         *
+         * A FAILURE claims the line outright: a run that broke while its siblings carry
+         * on is the one thing the user must not have hidden behind a cheerful
+         * "Generating…". Done and Cancelled defer, because neither is news while the
+         * frame is still busy.
+         *
+         * @param {{tempId: ?string}} run
+         * @param {string} message
+         * @param {{failed?: boolean}} [opts]
+         */
+        function _settle(run, message, { failed = false } = {}) {
+            _runs.delete(run);
+            _syncRunning();
+            _setStatus(failed || !_runs.size ? message : 'Generating…');
+        }
+
+        /**
+         * Drop a finished run's live-latent preview, whose blob: URLs are revoked the
+         * moment the gen ends — leaving one in the DOM logs ERR_FILE_NOT_FOUND.
+         *
+         * Repaints what the frame still HOLDS rather than blanking it: the pane is
+         * latest-wins now (MPI-822), so a kept result has to survive a later run's
+         * failure. A null `_lastResults` takes the same empty path the old
+         * `_showResults([])` did. Skipped entirely while a sibling run is still
+         * pushing frames into the shared player — those are not stale.
+         */
+        function _dropLatentPreview() {
+            if (_runs.size) return;
+            _showResults(_lastResults, { remember: false });
+        }
+
+        /**
+         * Stop the job that is RUNNING, exactly as the PromptBox's Stop does. No toast
+         * — a user action is self-evident. activeGenerations.cancel() owns the whole
+         * path (exec.cancel → end → generation:cancelled); the submit's onCancel
+         * settles this pane.
+         *
+         * With runs stacked (MPI-822) this deliberately does NOT clear the frame's
+         * whole queue: a job still PENDING is stopped per-row in the queue slide-over,
+         * which rides above this overlay. Falls back to the first of ours only when
+         * none has reached `running` yet.
          */
         function _cancel() {
-            if (!_running || !_myTempId) return;
-            const entry = activeGenerations.list().find(e => e.tempId === _myTempId);
+            if (!_running) return;
+            const mine = _myTempIds();
+            const ours = activeGenerations.list().filter(e => mine.includes(e.tempId));
+            const entry = ours.find(e => e.status === 'running') || ours[0];
             if (entry) activeGenerations.cancel(entry.id);
         }
 
@@ -3563,6 +3665,9 @@ export const MpiBaseFlow = ComponentFactory.create({
                 Hotkeys.bind('flow.step.back', () => _goTo(_current - 1)),
                 Hotkeys.bind('flow.step.forward', () => _goTo(_current + 1)),
                 Hotkeys.bind('generation.run', _run),
+                // Stop mirrors Cue: same pair of keys the PromptBox uses, so the flow
+                // frame needs no vocabulary of its own (MPI-822).
+                Hotkeys.bind('generation.stop', _cancel),
             ];
         };
         const _unbindKeys = () => { _keyBinds.forEach(fn => fn?.()); _keyBinds = []; };

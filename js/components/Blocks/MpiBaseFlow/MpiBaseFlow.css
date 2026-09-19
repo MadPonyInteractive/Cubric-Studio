@@ -944,15 +944,16 @@
     flex-direction: column;
     gap: var(--s-2);
 }
-.mpi-base-flow__gen > div:first-child > * { width: 100%; }
-
-/* Generate → Cancel → Generate again. The COPY is the state signal; the gauge
-   is a 1px frost hairline, not a spinner. */
-.mpi-base-flow__run--cancel {
-    background: none;
-    border-color: var(--accent-frost);
-    color: var(--accent-frost);
+/* Cue takes the width, Stop takes what it needs — the PromptBox's run cluster. */
+.mpi-base-flow__run-row {
+    display: flex;
+    gap: var(--s-2);
+    align-items: stretch;
 }
+.mpi-base-flow__run-host { flex: 1; min-width: 0; }
+.mpi-base-flow__run-host > * { width: 100%; }
+
+/* The gauge is a 1px frost hairline, not a spinner. */
 .mpi-base-flow__gauge {
     height: 1px;
     background: var(--line);

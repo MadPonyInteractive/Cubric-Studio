@@ -2569,6 +2569,11 @@ export const MpiPromptBox = ComponentFactory.create({
         };
 
         const _triggerStop = () => {
+            // Same bail as _triggerRun, and for the same reason (MPI-822): an open Flow
+            // overlay owns BOTH generation keys. bind() fires every handler, and the
+            // Flow frame binds generation.stop too now, so without this Ctrl+Alt+Enter
+            // inside a flow would stop the flow's job AND this box's.
+            if (qs('.mpi-base-flow')) return;
             if (!isGenerating) return;
             _emitCancel();
         };

@@ -493,8 +493,10 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 // _generating without tearing the card down.
                 canPaint: () => _generating,
                 // The placeholder card is the ONLY retainer for a gallery-scope run
-                // (History is groupHistory-scope, and a Flow run mounts no gallery
-                // placeholder at all — MPI-306), so it owns these blobs' lifetime.
+                // (History is groupHistory-scope, and the Flow pane's own player never
+                // owns its frames), so it owns these blobs' lifetime. Since MPI-827
+                // that includes a FLOW run — it is gallery-scope and mounts a
+                // placeholder like any other gen, and this is its only retainer.
                 ownsFrames: true,
             });
             const nameEl     = qs('.mpi-group-card__name', cardEl);

@@ -1,0 +1,7 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/services/flowService.js",
+    "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js"
+  ]
+}
