@@ -340,16 +340,18 @@ export const HOTKEY_REGISTRY = [
     // into a two-state flipper because the ring was down to one item; Flows and the
     // remembered last card gave it four real destinations, and one key cannot be both
     // a tap-flipper and a hold-menu (the hold IS the tap, seen from key-down).
-    // Only on the gallery / group-history pages, never while a full-page body overlay
-    // is open. Native Tab focus-traversal is suppressed globally in hotkeyManager
-    // regardless, so Tab can never walk cards / enter the slide-over.
+    // Only on the gallery / group-history pages, and THAT IS THE ONLY SURFACE GATE —
+    // overlays no longer block. The radial is the app's selector (Fabio, 2026-09-19:
+    // "if we are in flows, we need to be able to access it"), so it opens over an open
+    // Flow, the Flow Library, the Model Library and the model picker alike. What makes
+    // that safe is placement, not a gate: #radial-mount is a body child that every
+    // overlay spares (MpiOverlay § TRAP 1a), so the menu is always DRAWN where it fires.
+    // Native Tab focus-traversal is suppressed globally in hotkeyManager regardless, so
+    // Tab can never walk cards / enter the slide-over.
     //
-    // 🔴 EVERY body overlay blocks, the Flow Library INCLUDED — and MPI-589's exception
-    // for it is GONE with the tap-ring that needed it. A body overlay stashes the whole
-    // #app-shell into a `display: none` div (MpiOverlay § TRAP 1a), so a radial opened
-    // over one takes the keypress and navigates on release while DRAWING NOTHING. The
-    // Library has its own X and Escape. An open FLOW is a different case and still works:
-    // it mounts `main-area`, where the radial is spared from the stash.
+    // 🔴 A MODAL STILL BLOCKS. `.mpi-modal` is a QUESTION waiting on an answer — a
+    // delete confirm, an overwrite prompt. Navigating out from under one orphans it.
+    // Overlays are places, modals are decisions; only the second owns the app.
     // 🔴 AN OPEN `@` PICKER OWNS TAB (MPI-664, 2026-09-12). Fabio typed `@f` in the Song
     // flow's Lyrics box to pick his singer "female", pressed Tab to accept it the way any
     // completion works — and landed in the gallery, losing the step.
@@ -375,7 +377,7 @@ export const HOTKEY_REGISTRY = [
         allowWhileTyping: false,
         when: ({ state }) =>
             (state.currentPage === 'gallery' || state.currentPage === 'group-history') &&
-            !qs('.mpi-overlay--body') &&
+            !qs('.mpi-modal') &&
             !qs(MENTION_PICKER_OPEN_SELECTOR),
     },
 

@@ -140,9 +140,6 @@
         <div id="project-name-mount"></div>
       </div>
 
-      <!-- Radial menu lives here — persists across tool/page switches -->
-      <div id="radial-mount"></div>
-
       <!-- MPI-774/797: agent panel, left, from under the topbar down to the status bar.
            Zero-width when agent mode is off; when open, the workspace, prompt box and
            controls below all start to its right. -->
@@ -178,6 +175,18 @@
 
   </div>
 
+
+  <!-- ══════════════════════════════════════════════════════════════════════════
+       RADIAL MENU (MPI-811)
+  ══════════════════════════════════════════════════════════════════════════════ -->
+  <!-- A DIRECT CHILD OF <body>, and that placement is load-bearing. It used to live
+       inside .main-area, where every overlay stashed it into a `display: none` div
+       (MpiOverlay § TRAP 1a) — so Tab over the Flow Library or an open Flow took the
+       keypress and navigated on release while DRAWING NOTHING. Out here it is stashed
+       by nothing but a body overlay, which spares it by name like the titlebar and the
+       toast stack. Empty until navigation mounts the radial into it on project entry,
+       and cleared again on the landing page. -->
+  <div id="radial-mount"></div>
 
   <!-- ══════════════════════════════════════════════════════════════════════════
        SHARED MODALS

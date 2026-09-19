@@ -51,10 +51,20 @@ test('Tab is bound to the radial and nothing still binds the dead flipper id', (
     assert.match(radial, /Hotkeys\.bind\('radialMenu\.toggle'/, 'the radial must bind bare Tab');
     assert.match(radial, /Hotkeys\.bind\('radialMenu\.devToggle'/);
 
+    // MPI-811, 2026-09-19: overlays no longer gate Tab — the radial is the app's
+    // selector and must reach out of the Flow Library and the Model Library too. A
+    // MODAL still blocks: it is a question waiting on an answer, not a place.
+    const entry = registry.slice(registry.indexOf("id:               'radialMenu.toggle'"));
+    const when = entry.slice(entry.indexOf('when:'), entry.indexOf('},'));
+    assert.ok(when.includes(".mpi-modal"), 'a modal must still block the radial');
+    assert.ok(!when.includes('.mpi-overlay--body'), 'body overlays must NOT block the radial');
+
     const nav = read('js/shell/navigation.js');
     assert.ok(!nav.includes('workspace.flip'), 'navigation must not bind the dead flipper');
+    // Every page destination closes what is open rather than navigating behind it.
+    assert.match(nav, /Overlays\.closeTopOverlay\(\)/);
     // MPI-811's four destinations, and the dimming resolver behind the last one.
-    for (const action of ['gallery', 'projects', 'flows', 'workspace']) {
+    for (const action of ['gallery', 'models', 'flows', 'workspace']) {
         assert.match(nav, new RegExp(`action:\\s*'${action}'`), `radial item '${action}' missing`);
     }
     assert.match(nav, /disabled:\s*!resolveFlipTarget/);

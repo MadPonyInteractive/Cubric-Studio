@@ -13,6 +13,8 @@
     "tests/mention-picker.test.cjs",
     "docs/shell.md",
     "docs/playbooks/add-flow/existing-flows/object-stamp.md",
-    "docs/releases/UNRELEASED.md"
+    "docs/releases/UNRELEASED.md",
+    "index.html",
+    "styles/shell/focus-mode.css"
   ]
 }

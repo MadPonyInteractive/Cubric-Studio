@@ -117,8 +117,8 @@ export const MpiHotkeys = ComponentFactory.create({
                         <div class="mpi-hotkeys__shortcut-group">
                             <h4>Workspace</h4>
                             <ul>
-                                <li><span>Hold TAB</span><span>Radial menu — Gallery, Projects, Flows, Latest Workspace</span></li>
-                                <p><span>Hold TAB, move the mouse towards the option you want, then let go. Let go in the middle to pick nothing. Latest Workspace is the last card you opened, and greys out when there isn't one.</span></p>
+                                <li><span>Hold TAB</span><span>Radial menu — Gallery, Models, Flows, Latest Workspace</span></li>
+                                <p><span>Hold TAB, move the mouse towards the option you want, then let go. Let go in the middle to pick nothing. It works anywhere in a project, including inside a Flow or a Library. Latest Workspace is the last card you opened, and greys out when there isn't one.</span></p>
                             </ul>
                         </div>
 

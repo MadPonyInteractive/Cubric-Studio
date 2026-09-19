@@ -124,15 +124,15 @@ export const MpiOverlay = ComponentFactory.create({
             // Stashing it (like every other .main-area child) would kill the live
             // job telemetry + memory monitor. Keep it out of the stash.
             const infoBar = mountTarget === 'main-area' ? gid('shell-info-bar') : null;
-            // TRAP 1a (MPI-811): same story for the radial menu. Tab is how you get OUT
-            // of an open Flow — a main-area overlay — and a stashed radial still takes
-            // the keypress and still navigates on release while drawing NOTHING, which
-            // is the worst of both. It is `position:absolute` over .main-area and sits
-            // above the overlay by z-index (--main-overlay-z + 20), so sparing it costs
-            // the overlay no layout. Body-mode overlays (Model / Flow Library) stash the
-            // whole #app-shell and cannot spare it — Tab is gated off there instead
-            // (hotkeyRegistry `radialMenu.toggle`).
-            const radialMount = mountTarget === 'main-area' ? gid('radial-mount') : null;
+            // TRAP 1a (MPI-811): same story for the radial menu, and it is why
+            // #radial-mount is a direct child of <body> rather than of .main-area.
+            // Tab is how you get out of ANY surface — an open Flow, the Flow Library,
+            // the Model Library — and a stashed radial still takes the keypress and
+            // still navigates on release while drawing NOTHING, which is the worst of
+            // both. Out at body level only a body-mode overlay can reach it, and this
+            // spares it there. It is `position: fixed` at z 19000 (over every overlay,
+            // under the toast stack), so sparing it costs the overlay no layout.
+            const radialMount = mountTarget === 'body' ? gid('radial-mount') : null;
             const children = Array.from(_target.children);
             children.forEach(child => {
                 // Keep the toast stack live + on top: stashing it (like the titlebar)

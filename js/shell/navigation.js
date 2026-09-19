@@ -7,13 +7,14 @@
  *   PAGE_GROUP_HISTORY → history view for a single ItemGroup (params: { groupId })
  *
  * Hold Tab for the radial (MPI-811) — four fixed destinations on the diagonals:
- * Gallery (top-left), Projects (bottom-left), Flows (top-right) and your latest
- * workspace (bottom-right). It replaces the MPI-378 → MPI-611 Tab flipper: the
- * ring reaches every stop that ring had, plus the landing page, and one key cannot
- * be both a tap-flipper and a hold-menu. The remembered card still lives in
- * project.json (`lastGroupId`) so it survives a restart, and the Flows leg still
- * restores the flow you PARKED rather than opening a fresh library. Ctrl+Tab stays
- * the dev radial; Models is reached from the prompt box's model button.
+ * Gallery (top-left), Models (bottom-left), Flows (top-right) and your latest
+ * workspace (bottom-right). It replaces the MPI-378 → MPI-611 Tab flipper: the ring
+ * reaches every stop that ring had, and one key cannot be both a tap-flipper and a
+ * hold-menu. It opens over EVERY surface — an open flow, either Library — so a page
+ * destination CLOSES what is on screen rather than navigating behind it. The
+ * remembered card still lives in project.json (`lastGroupId`) so it survives a
+ * restart, and the Flows leg still restores the flow you PARKED rather than opening
+ * a fresh library. Ctrl+Tab stays the dev radial.
  */
 
 import { state } from '../state.js';
@@ -103,7 +104,10 @@ function _userRadialItems() {
         // the registry's stroke-only entries (icons.js § renderIcon), so it fills to a
         // solid blob. Keep radial icons to fill-based names.
         { action: 'gallery',   label: 'Gallery',   icon: 'grid',   angle: -135 },
-        { action: 'projects',  label: 'Projects',  icon: 'folder',  angle:  135 },
+        // MPI-811, Fabio 2026-09-19: this slot was Projects (the landing page) for an
+        // afternoon. It went because the landing page has no radial of its own, so it
+        // was a one-way door out of the only surface the menu exists on.
+        { action: 'models',    label: 'Models',    icon: 'cube',   angle:  135 },
         { action: 'flows',     label: 'Flows',     icon: 'layers',  angle:  -45 },
         {
             action:   'workspace',
@@ -116,18 +120,20 @@ function _userRadialItems() {
 }
 
 /**
- * Gets off whatever Flow surface is on screen before a radial destination that is
- * a PAGE. MPI-611's rule survives: the open flow is PARKED (`flow:suspend` hides
- * it, it is not destroyed), so the Flows leg drops you back into it mid-step.
- * Flows are overlays rather than pages, so this asks the DOM, not
- * `state.currentPage`.
+ * Clears whatever overlay is on screen before a radial destination that is a PAGE.
+ * The radial opens over every surface (see `radialMenu.toggle`), so picking Gallery
+ * from inside the Model Library has to CLOSE it, not navigate behind it.
+ *
+ * Order matters. MPI-611's rule survives: an open flow is PARKED, not closed, so it
+ * goes first — the sweep below would otherwise hide it as an ordinary overlay and
+ * MPI-345 would destroy the instance. `el.suspend()` releases it from the stack, so
+ * by the time the sweep runs only places are left.
  */
-function _leaveFlowSurface() {
-    if (qs('.mpi-base-flow')) {
-        Events.emit('flow:suspend');
-        return;
-    }
-    if (qs('.mpi-overlay--body .mpi-flow-library')) Events.emit('ui:close-flows');
+function _leaveOverlaySurfaces() {
+    if (qs('.mpi-base-flow')) Events.emit('flow:suspend');
+    // Bounded: `hide()` releases, so this ends — but a future overlay that forgets to
+    // would spin the shell rather than drop one frame.
+    for (let i = 0; i < 16 && Overlays.closeTopOverlay(); i++);
 }
 
 /**
@@ -443,19 +449,27 @@ function _syncRadial() {
 
     _radialInstance.on('select', ({ action }) => {
         if (action === 'gallery') {
-            _leaveFlowSurface();
+            _leaveOverlaySurfaces();
             // Suspending a flow already revealed the gallery underneath — navigating
             // to the page we are on would tear it down and rebuild it for nothing.
             if (state.currentPage !== PAGE_GALLERY) navigate(PAGE_GALLERY);
             return;
         }
-        if (action === 'projects') {
-            navigate(PAGE_LANDING);
+        if (action === 'models') {
+            if (qs('.mpi-model-library')) return;   // already there
+            _leaveOverlaySurfaces();
+            // `models:open` carries its own no-engine guard (shell.js, MPI-390), so a
+            // pick with nothing to install toasts rather than opening an empty library.
+            Events.emit('models:open');
             return;
         }
         if (action === 'flows') {
-            // No-op when nothing is parked; the shell shows synchronously, so the DOM
-            // is the answer to "did that work?" — no second flag to keep in sync.
+            // Already on a Flows surface — the flow itself, or the Library. Nothing to do.
+            if (qs('.mpi-base-flow') || qs('.mpi-flow-library')) return;
+            _leaveOverlaySurfaces();
+            // `flow:restore` is a no-op when nothing is parked; the shell shows
+            // synchronously, so the DOM is the answer to "did that work?" — no second
+            // flag to keep in sync.
             Events.emit('flow:restore');
             if (!qs('.mpi-base-flow')) Events.emit('flows:open');
             return;
@@ -463,7 +477,7 @@ function _syncRadial() {
         if (action === 'workspace') {
             const groupId = resolveFlipTarget(state.currentProject);
             if (!groupId) return;   // dimmed item, belt and braces
-            _leaveFlowSurface();
+            _leaveOverlaySurfaces();
             if (state.currentPage === PAGE_GROUP_HISTORY && _currentGroupId === groupId) return;
             navigate(PAGE_GROUP_HISTORY, { groupId });
             return;

@@ -2,11 +2,13 @@
 // this spec used to cover (it was flows-tab-ring.spec.js).
 //
 // Three things here fail silently and are the whole point of the spec:
-//  - An open Flow is a MAIN-AREA overlay, and MpiOverlay stashes every sibling into a
-//    `display: none` div. Put the radial in that stash and Tab still fires, still
-//    navigates on release, and draws NOTHING — no error anywhere.
-//  - Body overlays (Model Library, Flow Library) stash the whole #app-shell and CANNOT
-//    spare it, so Tab has to be gated off there instead.
+//  - MpiOverlay stashes every sibling of its mount target into a `display: none` div.
+//    Put the radial in that stash and Tab still fires, still navigates on release, and
+//    draws NOTHING — no error anywhere. #radial-mount is a body child that body-mode
+//    overlays spare by name, which is what keeps it drawn over EVERY surface.
+//  - Drawn is not the same as on top: the overlay z-index is handed out at runtime, so
+//    the radial's own 19000 is checked with elementFromPoint, which Playwright's
+//    visibility check cannot do.
 //  - The four destinations sit on the DIAGONALS, not the cardinal points the
 //    renderer spaces items on by default. A wrong angle is a menu that still
 //    works and is in the wrong place.
@@ -58,7 +60,7 @@ function where(window) {
 // 400 is far past the 40px dead zone even after the devicePixelRatio divide.
 const AIM = {
   gallery:   [-400, -400],  // top-left
-  projects:  [-400,  400],  // bottom-left
+  models:    [-400,  400],  // bottom-left
   flows:     [ 400, -400],  // top-right
   workspace: [ 400,  400],  // bottom-right
 };
@@ -84,6 +86,15 @@ async function pick(window, action) {
   await window.keyboard.up('Tab');
 }
 
+/** Is the radial the top thing under its own centre? Sees stacking, unlike toBeVisible. */
+function onTop(window) {
+  return window.evaluate(() => {
+    const r = document.querySelector('.mpi-radial').getBoundingClientRect();
+    return !!document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+      ?.closest('.mpi-radial');
+  });
+}
+
 test('the four destinations sit on their diagonals', async ({}, testInfo) => {
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);
@@ -105,7 +116,7 @@ test('the four destinations sit on their diagonals', async ({}, testInfo) => {
 
     expect(placed).toEqual({
       gallery:   [-1, -1],   // top-left
-      projects:  [-1,  1],   // bottom-left
+      models:    [-1,  1],   // bottom-left
       flows:     [ 1, -1],   // top-right
       workspace: [ 1,  1],   // bottom-right
     });
@@ -115,7 +126,7 @@ test('the four destinations sit on their diagonals', async ({}, testInfo) => {
   }
 });
 
-test('the radial reaches the card, the gallery, Flows and the landing page', async ({}, testInfo) => {
+test('the radial reaches the card, the gallery, Flows and the Model Library', async ({}, testInfo) => {
   test.setTimeout(120000);
   const { app, window, consoleErrors, pageErrors } = await launchApp(testInfo);
   try {
@@ -135,19 +146,17 @@ test('the radial reaches the card, the gallery, Flows and the landing page', asy
     await pick(window, 'flows');
     await expect(window.locator('.mpi-overlay--body .mpi-flow-library')).toBeVisible({ timeout: 5000 });
 
-    // The Library is a body overlay: Tab is inert there, exactly like the Model Library.
-    await window.keyboard.press('Tab');
-    await window.waitForTimeout(400);
-    await expect(window.locator('.mpi-radial--visible')).toHaveCount(0);
-    await window.evaluate(async () => {
-        const { Events } = await import('/js/events.js');
-        Events.emit('ui:close-flows');
-        await new Promise(r => setTimeout(r, 400));
-    });
+    // The Library is a BODY overlay — the case that stashes the whole #app-shell. The
+    // radial has to open over it, on top of it, and take the gallery leg back out.
+    await holdTab(window);
+    expect(await onTop(window)).toBe(true);
+    await aim(window, 'gallery');
+    await window.keyboard.up('Tab');
+    await expect(window.locator('.mpi-overlay--body .mpi-flow-library')).toHaveCount(0);
     await expect.poll(() => where(window), { timeout: 5000 }).toBe('gallery');
 
-    await pick(window, 'projects');
-    await expect.poll(() => where(window), { timeout: 5000 }).toBe('landing');
+    await pick(window, 'models');
+    await expect(window.locator('.mpi-model-library')).toBeVisible({ timeout: 5000 });
 
     expect(pageErrors, `page errors: ${pageErrors.join(' | ')}`).toHaveLength(0);
     expect(consoleErrors, `console errors: ${consoleErrors.join(' | ')}`).toHaveLength(0);
@@ -204,14 +213,9 @@ test('the Flows leg parks an open flow and comes back to the same instance', asy
     await expect(window.locator('.mpi-base-flow')).toBeVisible();
 
     // Not stashed is only half of it — it has to PAINT over the flow's overlay, whose
-    // z-index the overlay manager hands out at runtime. elementFromPoint respects
-    // stacking (and pointer-events), so this is the one check that sees the z war.
+    // z-index the overlay manager hands out at runtime.
     await holdTab(window);
-    expect(await window.evaluate(() => {
-      const r = document.querySelector('.mpi-radial').getBoundingClientRect();
-      return !!document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
-        ?.closest('.mpi-radial');
-    })).toBe(true);
+    expect(await onTop(window)).toBe(true);
     await aim(window, 'gallery');
     await window.keyboard.up('Tab');
     await expect(window.locator('.mpi-base-flow')).toHaveCount(0);
@@ -228,7 +232,38 @@ test('the Flows leg parks an open flow and comes back to the same instance', asy
   }
 });
 
-test('the Model Library still blocks Tab', async ({}, testInfo) => {
+// Focus mode used to `display: none` #radial-mount — harmless while the radial was a
+// dev-only ring, silent once Tab opened it: the key still fired and still navigated.
+test('focus mode does not hide the radial', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await releaseBootGate(window);
+    await openGallery(window, makeProject(testInfo, [
+      { id: 'grp1', name: 'Group 1', type: 'image', history: [], selectedIndex: 0 },
+    ]));
+
+    await window.keyboard.press('f');
+    await expect(window.locator('body.mpi-focus-mode')).toHaveCount(1);
+    // The chrome focus mode IS for stays hidden — this is not a licence to show it all.
+    await expect(window.locator('#prompt-box-mount')).toBeHidden();
+
+    await holdTab(window);
+    expect(await onTop(window)).toBe(true);
+    await aim(window, 'workspace');
+    await window.keyboard.up('Tab');
+    await expect.poll(() => where(window), { timeout: 5000 }).toBe('group-history');
+
+    expect(pageErrors, `page errors: ${pageErrors.join(' | ')}`).toHaveLength(0);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+// The Model Library used to BLOCK Tab (MPI-378 → MPI-811's first cut). Fabio, 2026-09-19:
+// the radial is the app's selector, so it has to reach out of every surface, not just the
+// ones that happen not to stash it.
+test('the radial opens over the Model Library and takes you out of it', async ({}, testInfo) => {
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);
   try {
@@ -244,9 +279,16 @@ test('the Model Library still blocks Tab', async ({}, testInfo) => {
     });
     await expect(window.locator('.mpi-overlay--body')).toBeVisible();
 
-    await window.keyboard.press('Tab');
-    await window.waitForTimeout(600);
-    await expect(window.locator('.mpi-radial--visible')).toHaveCount(0);
+    await holdTab(window);
+    expect(await onTop(window)).toBe(true);
+    await aim(window, 'gallery');
+    await window.keyboard.up('Tab');
+
+    // Closed properly — `hide()`, which restores everything it stashed — rather than
+    // navigated behind. A leftover `.mpi-overlay-stash` means the shell is still in it.
+    await expect(window.locator('.mpi-overlay--body')).toHaveCount(0);
+    await expect(window.locator('.mpi-overlay-stash')).toHaveCount(0);
+    await expect(window.locator('#app-shell')).toBeVisible();
     expect(await where(window)).toBe('gallery');
 
     expect(pageErrors, `page errors: ${pageErrors.join(' | ')}`).toHaveLength(0);

@@ -14,18 +14,20 @@
     --accent-heat:    var(--hub-accent);
     --accent-heat-hi: oklch(from var(--accent-heat) calc(l + 0.02) calc(c + 0.03) h);
 
-    position: absolute;
-    inset: 0;
+    /* Fixed, not absolute: #radial-mount is a body child (MPI-811), so there is no
+       positioned ancestor to fill. Top inset leaves the custom OS titlebar exposed,
+       the way a body overlay does — the window must stay draggable and closeable. */
+    position: fixed;
+    inset: var(--titlebar-h) 0 0 0;
     display: flex;
     align-items: center;
     justify-content: center;
     pointer-events: none;
-    /* MPI-811: Tab is the way OUT of an open Flow, which is a main-area overlay at a
-       z-index the overlay manager hands out at runtime and publishes as
-       --main-overlay-z (absent when no such overlay is up, hence the 500 fallback).
-       Same trick MpiSlideOver uses; +20 puts the radial above the slide-over too, and
-       still under the z-20000 toast stack. */
-    z-index: calc(var(--main-overlay-z, 500) + 20);
+    /* MPI-811: Tab is the way OUT of every surface, so the radial outranks all of them.
+       The overlay manager hands out BASE_Z 10000 + 10 per depth (overlayManager.js), and
+       the toast stack sits at 20000 — a toast fired mid-gesture still belongs on top.
+       19000 is between the two with room for ~900 stacked overlays. */
+    z-index: 19000;
     font-size: var(--t-md);
 }
 

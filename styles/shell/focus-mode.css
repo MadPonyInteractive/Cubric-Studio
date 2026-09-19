@@ -11,10 +11,17 @@
  * ────────────────────────────────────────────────────────────────────────── */
 
 /* ── Universal chrome hiding (all non-landing workspaces) ─────────────────── */
-/* Stage spec: hide topbar / radial / prompt dock. KEEP status bar visible at
- * reduced opacity — user still wants to see VRAM/RAM/queue while focusing. */
+/* Stage spec: hide topbar / prompt dock. KEEP status bar visible at reduced
+ * opacity — user still wants to see VRAM/RAM/queue while focusing.
+ *
+ * 🔴 #radial-mount IS NOT HIDDEN HERE ANY MORE (MPI-811). It was, back when the
+ * radial was a dev-only ring and focus mode was hiding standing chrome. The
+ * radial is not standing chrome: it exists only while Tab is HELD, so there is
+ * nothing to declutter — and hiding it does not disarm the key. Tab still fired,
+ * still navigated on release, and drew nothing, which is the same silent failure
+ * the overlay stash caused. Focus mode hides what is always there; a menu the
+ * user is holding open is a deliberate act. */
 body.mpi-focus-mode #workspace-topbar,
-body.mpi-focus-mode #radial-mount,
 body.mpi-focus-mode #prompt-box-mount {
     display: none !important;
 }
@@ -75,7 +82,6 @@ body.mpi-focus-mode.page-gallery .mpi-gallery-block {
 
 /* ── Safety: never engage focus chrome on landing ────────────────────────── */
 body.mpi-focus-mode.page-landing #workspace-topbar,
-body.mpi-focus-mode.page-landing #radial-mount,
 body.mpi-focus-mode.page-landing #prompt-box-mount {
     display: revert !important;
 }
