@@ -73,7 +73,7 @@ test('krea2Edit slots are ordinal too', async () => {
     assert.ok(getCommandMediaInputs('krea2Edit').every(s => s.ordinal === true));
 });
 
-test('non-ordinal roles stay sticky (startFrame/endFrame, Head Swap)', async () => {
+test('non-ordinal roles stay sticky (startFrame/endFrame, Scribble Object)', async () => {
     const { getCommandMediaInputs, stripOrdinalMediaRoles } = await import('../js/data/commandRegistry.js');
 
     // i2v: an END-frame-only box must keep its endFrame tag, never slide into
@@ -82,11 +82,13 @@ test('non-ordinal roles stay sticky (startFrame/endFrame, Head Swap)', async () 
     const endOnly = [{ id: 'e', url: 'e.png', mediaType: 'image', role: 'endFrame' }];
     assert.deepStrictEqual(stripOrdinalMediaRoles(i2vSlots, endOnly), endOnly, 'endFrame tag must survive');
 
-    // Head Swap: image2 (the SOURCE head) alone must not repack into image1
-    // (the TARGET) — MPI-306 ran the swap backwards exactly this way.
-    const hsSlots = getCommandMediaInputs('flowHeadSwap');
+    // Scribble Object: image2 (the DONOR) alone must not repack into image1 (the scene
+    // being kept). MPI-306 ran Head Swap backwards exactly this way — that flow was the
+    // original exemplar and left the app as a Flow package (MPI-781); flowScribObj is
+    // the surviving two-required-image-slot op, so the guard moved onto it unchanged.
+    const hsSlots = getCommandMediaInputs('flowScribObj');
     const sourceOnly = [{ id: 's', url: 's.png', mediaType: 'image', role: 'image2' }];
-    assert.deepStrictEqual(stripOrdinalMediaRoles(hsSlots, sourceOnly), sourceOnly, 'Head Swap roles must stay sticky');
+    assert.deepStrictEqual(stripOrdinalMediaRoles(hsSlots, sourceOnly), sourceOnly, 'two-slot flow roles must stay sticky');
     const hs = assignSlots(hsSlots, stripOrdinalMediaRoles(hsSlots, sourceOnly));
     assert.strictEqual(hs.get('image2')?.id, 's');
 });

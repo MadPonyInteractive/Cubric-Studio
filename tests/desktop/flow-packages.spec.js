@@ -114,25 +114,28 @@ test('Flow packages load from user_flows, serve their files, and a broken one sa
 });
 
 // A shipped Flow republished as a package gets the SAME licence gate as the built-in one.
-// Head Swap needs klein-9b, whose licence is the gate MPI-781's paid package must keep.
-test('a packaged Head Swap shows the licence gate the built-in one does, on a fresh profile', async ({}, testInfo) => {
+// Draw It In needs klein-9b, the same gated model Head Swap did. Head Swap WAS this
+// fixture until MPI-781 took it out of the app and sold it as a package; the law is what
+// mattered and klein-9b is what gates it, so the fixture moved to a flow that still ships.
+// The real sold package's own gate is proved on the live run MPI-781 hands to Fabio.
+test('a packaged Draw It In shows the licence gate the built-in one does, on a fresh profile', async ({}, testInfo) => {
     const { FLOWS } = require(path.join(ROOT, 'js/data/flowsRegistry.js'));
     const { COMMANDS } = require(path.join(ROOT, 'js/data/commandRegistry.js'));
     const { UNIVERSAL_WORKFLOWS } = require(path.join(ROOT, 'js/data/modelConstants/universal_workflows.js'));
-    const { id, operation, workflow, ...flow } = FLOWS.find(f => f.id === 'head-swap');
+    const { id, operation, workflow, ...flow } = FLOWS.find(f => f.id === 'scribble-object');
     const { universal, ...op } = COMMANDS[operation];
     const graph = JSON.parse(fs.readFileSync(path.join(ROOT, 'comfy_workflows', UNIVERSAL_WORKFLOWS[operation].workflow), 'utf8'));
     // The shipped graph bakes an author path into its loaders; a package must ship clean.
     for (const node of Object.values(graph)) {
         for (const [k, v] of Object.entries(node.inputs || {})) if (/^[A-Za-z]:[\\/]/.test(v)) node.inputs[k] = '';
     }
-    const dir = path.join(testInfo.outputPath('user-data'), 'user_flows', 'head-swap-test');
+    const dir = path.join(testInfo.outputPath('user-data'), 'user_flows', 'scribble-object-test');
     fs.mkdirSync(dir, { recursive: true });
     for (const f of [flow.preview, flow.video]) fs.copyFileSync(path.join(ROOT, 'comfy_workflows', 'display', f), path.join(dir, f));
     fs.writeFileSync(path.join(dir, 'workflow.json'), JSON.stringify(graph));
     fs.writeFileSync(path.join(dir, 'flow.json'), JSON.stringify({
-        schema: 'cubric/flow-package/v1', id: 'head-swap-test', version: '1.0.0',
-        flow: { ...flow, title: 'Head Swap Package' }, op,
+        schema: 'cubric/flow-package/v1', id: 'scribble-object-test', version: '1.0.0',
+        flow: { ...flow, title: 'Draw It In Package' }, op,
     }));
     const { app, window, pageErrors, consoleErrors } = await launchApp(testInfo);
 
@@ -160,15 +163,15 @@ test('a packaged Head Swap shows the licence gate the built-in one does, on a fr
                 await new Promise(res => setTimeout(res, 100));
                 return out;
             };
-            const pkg = getFlowById('user:head-swap-test');
-            const built = getFlowById('head-swap');
+            const pkg = getFlowById('user:scribble-object-test');
+            const built = getFlowById('scribble-object');
             return {
                 reason: flowAvailability(pkg).reason || null,
                 sameLicences: JSON.stringify(flowLicences(pkg)) === JSON.stringify(flowLicences(built)),
                 licenceKeys: flowLicences(pkg).map(l => l.key),
                 accepted: flowLicences(pkg).map(l => hasAcceptedLicence(l.key)),
-                pkg: await drawer('Head Swap Package'),
-                built: await drawer('Head Swap', 'Package'),
+                pkg: await drawer('Draw It In Package'),
+                built: await drawer('Draw It In', 'Package'),
             };
         });
 

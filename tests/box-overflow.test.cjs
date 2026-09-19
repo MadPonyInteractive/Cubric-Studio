@@ -142,19 +142,16 @@ test('MpiStepBox opts in per STEP, never per flow', () => {
     assert.match(src, /if \(allowOverflow\) return \{ x, y, w, h \};/);
 });
 
-test('head-swap declares overflow on both steps, and the GRAPH pads only the crop', async () => {
+// head-swap held the two-box version of this, plus the graph half — MpiBoxCrop pads,
+// MpiBoxMask does not. It left the app as a Flow package (MPI-781), taking its graph with
+// it, so the graph half now lives in that package's own `checks.test.cjs`
+// (c:\AI\Mpi\Cubric-Flows). What can still be checked here is the DECLARATION.
+test('a flow that allows overflow says so on the step', async () => {
     const { getFlowById } = await esm('js/data/flowsRegistry.js');
 
     assert.deepStrictEqual(
-        getFlowById('head-swap').steps.map(s => [s.param, s.overflow]),
-        [['box1', 'allow'], ['box2', 'allow']],
-        'both boxes are droppable off-frame',
+        getFlowById('scribble-object').steps.filter(s => s.kind === 'box').map(s => [s.param, s.overflow]),
+        [['box1', 'allow']],
+        'the box is droppable off-frame',
     );
-
-    const wf = JSON.parse(read('comfy_workflows/flow_head_swap.json'));
-    const crop = Object.values(wf).find(n => n.class_type === 'MpiBoxCrop');
-    const mask = Object.values(wf).find(n => n.class_type === 'MpiBoxMask');
-
-    assert.strictEqual(crop.inputs.pad, true, 'the reference crop MUST pad or it arrives squashed');
-    assert.ok(!('pad' in mask.inputs), 'the mask must NOT pad — node 21 re-squares it');
 });

@@ -157,7 +157,14 @@ In this repo, `COMFY_URL=http://127.0.0.1:48188` checks against the app's own en
   installer for outside developers is **MPI-798**, due at the 2.0 release.
 - A graph exported from a real project may carry your own file paths in its loader nodes.
   Clear them: the linter rejects them.
-- MPI's paid Flows are packaged OUTSIDE this AGPL repo (MPI-781). A package is data, not a
-  derivative of the app, so it can carry its own licence.
+- MPI's paid Flows are packaged OUTSIDE this AGPL repo (MPI-781), in `c:\AI\Mpi\Cubric-Flows`.
+  A package is data, not a derivative of the app, so it can carry its own licence. **Head
+  Swap and DramaBox are the worked examples** — both were built-in Flows until MPI-781 and
+  are now packages, so their `flow.json` shows what a real descriptor looks like once the
+  app's `id` / `operation` / `workflow` keys are stripped out. That repo also carries the
+  two graphs' own guards in `checks.test.cjs` (`node --test`, no dependencies), which is
+  where a package's graph assertions belong once the graph leaves this tree.
+- **Set `op.filePrefix`.** A built-in op needs none because its key IS the prefix; a package
+  has no such key, so omitting it gets you a filename derived from the title.
 - Submitting a Flow for MPI to list: the public registry repo is **MPI-799**, due to open
   at the 2.0 release.

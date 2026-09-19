@@ -141,7 +141,7 @@
   "flowHeadSwap": {
     "latestVersion": "1.1",
     "appVersionIntroduced": "1.1.0",
-    "universal": true
+    "deprecated": true
   },
   "flowLtxExtend": {
     "latestVersion": "1.0",
@@ -181,7 +181,7 @@
   "flowDramaBox": {
     "latestVersion": "1.0",
     "appVersionIntroduced": "1.5.0",
-    "universal": true
+    "deprecated": true
   },
   "flowChatterBox": {
     "latestVersion": "1.0",

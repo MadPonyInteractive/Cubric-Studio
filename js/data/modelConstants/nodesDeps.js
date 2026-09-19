@@ -349,6 +349,10 @@ export const nodesDeps = {
     // dev_configs/python_deps.in instead, which is the one set both engines install.
     // torchaudio is deliberately absent from it: the torch family is engine-owned and
     // never ours to move, on either path.
+    //
+    // NOTHING IN THIS APP DECLARES IT ANY MORE (MPI-781): DramaBox left as a Flow package,
+    // whose manifest names this id. KEPT, never deleted — see `klein-9b-lora-headswap` in
+    // loraDeps.js for why an undeclared dep entry still has to exist.
     'ComfyUI-MelodramaBox': {
         id: 'ComfyUI-MelodramaBox',
         name: 'ComfyUI MelodramaBox (DramaBox TTS)',

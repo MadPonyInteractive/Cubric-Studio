@@ -143,9 +143,9 @@ test('a flow needs no operation — the descriptor owns it', async () => {
   const { base, stop } = await startServer();
   const renderer = await fakeRenderer(base);
   try {
-    const pending = postJson(`${base}/connector/generate`, { flowId: 'drama-box' });
+    const pending = postJson(`${base}/connector/generate`, { flowId: 'character-sheet' });
     const frame = await renderer.readFrame();
-    assert.equal(frame.data.input.flowId, 'drama-box');
+    assert.equal(frame.data.input.flowId, 'character-sheet');
     assert.deepEqual(frame.data.input.media, []);
     await postJson(`${base}/connector/jobs/${frame.data.jobId}/result`, { ok: true, output: {} });
     assert.equal((await pending).json.ok, true);
@@ -168,15 +168,17 @@ const fields = () => esm('js/utils/declaredFields.js');
 
 test('declared defaults fill in for every field the caller omits', async () => {
   const { resolveFlowFieldValues } = await fields();
-  // DramaBox's `Input_Duration` is the case that matters: the node's own default is
-  // 0, which means "estimate from the prompt" — and that estimator makes the model
-  // read the prompt aloud (MPI-607). The declared default is what keeps an agent
-  // that sends only a line off that path.
-  const { inputs, injectionParams } = resolveFlowFieldValues(await flow('drama-box'), {
-    positive: 'A British woman says, "Hello."',
+  // A declared `Input_*` default is what keeps an agent that sends only a prompt off
+  // the NODE's own default, which is rarely the same number. DramaBox was the original
+  // exemplar — its node defaults `duration_seconds` to 0, meaning "estimate from the
+  // prompt", and that estimator makes the model read the prompt aloud (MPI-607). It
+  // left the app as a Flow package (MPI-781); ltx-extend declares the same field with
+  // the same shape, so the guard moved onto it.
+  const { inputs, injectionParams } = resolveFlowFieldValues(await flow('ltx-extend'), {
+    positive: 'a British woman turns to the camera',
   });
-  assert.equal(inputs.positive, 'A British woman says, "Hello."');
-  assert.ok(injectionParams.Input_Duration >= 4, 'the measured floor, never 0');
+  assert.equal(inputs.positive, 'a British woman turns to the camera');
+  assert.ok(injectionParams.Input_Duration >= 4, 'the declared floor, never the node default');
 });
 
 test('the multilingual arm follows the language the CALLER picked', async () => {
@@ -199,7 +201,7 @@ test('an undeclared field is reported, never silently dropped', async () => {
   const { resolveFlowFieldValues } = await fields();
   // A typo on a paid generation must come back as an error rather than a run on the
   // default that looks like it worked.
-  const { unknown } = resolveFlowFieldValues(await flow('drama-box'), {
+  const { unknown } = resolveFlowFieldValues(await flow('ltx-extend'), {
     positive: 'hi', Input_Seconds: 12,
   });
   assert.deepEqual(unknown, ['Input_Seconds']);

@@ -660,6 +660,11 @@ export const assetDeps = {
     // AND gated behind Google's licence, so it needs HF auth the download manager
     // does not have. The nf4 quantisation is why bitsandbytes is a hard requirement,
     // and why Apple Silicon is unverified (MPI-249).
+    //
+    // NOTHING IN THIS APP DECLARES THEM ANY MORE (MPI-781): this entry and every
+    // `dramabox-*` entry below belong to DramaBox, which left as a Flow package whose
+    // manifest names these ids. KEPT, never deleted — see `klein-9b-lora-headswap` in
+    // loraDeps.js for why an undeclared dep entry still has to exist.
     'dramabox-dit': {
         id: 'dramabox-dit',
         name: 'DramaBox audio DiT',

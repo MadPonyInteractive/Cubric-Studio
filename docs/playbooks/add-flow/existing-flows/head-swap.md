@@ -1,5 +1,12 @@
 # Head Swap
 
+> **NO LONGER BUILT IN (MPI-781).** Head Swap is sold as a Flow package and is authored in
+> its own repo, `c:\AI\Mpi\Cubric-Flows\head-swap` — manifest, graph and preview art, under
+> its own licence, never in this AGPL tree. Its graph guards live there too
+> (`checks.test.cjs`). This page stays as the authoring record: several playbook pages cite
+> it, and everything below about the box gizmo, the baked prompt join and the MPI-808
+> geometry is still how that Flow works. What changed is where it lives, not what it does.
+
 > Swap a selected head in a base image with the head from a reference character image.
 > Card: **MPI-299** (child of MPI-259 Flows v2); re-engined from Qwen Edit to **FLUX.2 Klein
 > 9B** by **MPI-744** (2026-09-13). Descriptor REGISTERED in `flowsRegistry.js`; carousel

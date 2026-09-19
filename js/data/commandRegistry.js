@@ -1016,32 +1016,6 @@ export const commands = {
         universal: true,
         injector: 'resize',
     },
-    flowHeadSwap: {
-        label: 'Flow: Head Swap',
-        progressLabel: 'Swapping',
-        mediaType: MEDIA_TYPE.IMAGE,
-        requiresImages: 0,          // media never a hard requirement at the op layer (the
-                                    // app's own UI walks the user through supplying both).
-        // Two image slots: the TARGET (the body/scene kept) and the SOURCE (the head taken).
-        // MpiLoadImageFromPath nodes — full path into their `string` input, self-gating on
-        // empty. Each slot has an OPTIONAL companion Mpi Box (Input_Box / Input_Box_2,
-        // suffix matches the image slot) carrying the head region in top-left SOURCE pixels;
-        // boxes are injectionParams, not media, so they are not declared here.
-        mediaInputs: [
-            { key: 'image1', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image',   required: true },
-            { key: 'image2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: true },
-        ],
-        // Fixed-prompt outcome app with one OPTIONAL addition: the head_swap instruction is
-        // BAKED, and `Input_Positive` (the flow's Expression field) is JOINED after it
-        // (MPI-744). No Input_Negative. Do not add a prompt box for this app.
-        promptRequired: false,
-        universal: true,            // 4th Apps op — flow_head_swap.json, qwen-edit + app LoRA.
-        // MpiBox carries FOUR widgets (x/y/width/height); the generic title injector
-        // writes a single value into one widget name and would match the node but
-        // silently write nothing. headSwapInjector is the only path a box takes.
-        injector: 'headSwap',
-    },
-
     // MPI-520. Bench-proven single-stage LTX 2.3 v2v extend: a source clip in, the
     // same clip PLUS newly generated seconds out (video + audio together — LTX 2.3
     // emits both). Runs on the already-installed LTX 2.3 checkpoint, so there is no
@@ -1246,26 +1220,6 @@ export const commands = {
         // promptless flow still emits `Input_Positive: ''` on every run, which would
         // wipe a baked instruction (the outpaint trap).
         promptRequired: false,
-        universal: true,
-    },
-
-    // MPI-607 — DramaBox. Text in, a performed line out, with an OPTIONAL voice
-    // reference. Unlike the Voice Changer above this graph DOES read a prompt, so the
-    // `Input_Positive` node is wanted here and `_buildParams`' unconditional emission
-    // is the mechanism rather than the outpaint trap.
-    //
-    // The audio slot is genuinely optional in the WIRING, not just at this layer:
-    // MpiAnyChecker#14 forks between a sampler that takes `voice_ref` and one that does
-    // not, so an empty slot is a supported prompt-only route rather than a blocked run.
-    flowDramaBox: {
-        label: 'Flow: DramaBox',
-        progressLabel: 'Performing the line',
-        mediaType: MEDIA_TYPE.AUDIO,        // OUTPUT type
-        requiresImages: 0,                  // media is never a hard requirement at the op layer
-        mediaInputs: [
-            { key: 'audio1', mediaType: MEDIA_TYPE.AUDIO, title: 'Input_Audio', required: false },
-        ],
-        promptRequired: true,
         universal: true,
     },
 
@@ -1859,13 +1813,13 @@ export function filterMediaInputsForModel(slots, model = null) {
  *
  * Required-slot count, not a whitelist, and not "declares >= 1 slot of that type":
  *
- * - TWO required slots is unbatchable, not merely awkward. `flowHeadSwap`,
- *   `flowScribObj`, `flowObjectStamp` (image,image) and `flowVoiceChanger` (audio,audio)
- *   each need two inputs to mean anything; a one-item job leaves the second empty and
- *   dispatches N broken graphs.
- * - ZERO required slots means there is nothing to batch OVER — `t2v_ms`, `ref2v_ms` and
- *   `flowDramaBox` declare only optional slots, and N copies of one text prompt is not
- *   what the user asked for.
+ * - TWO required slots is unbatchable, not merely awkward. `flowScribObj`,
+ *   `flowObjectStamp` (image,image) and `flowVoiceChanger` (audio,audio) each need two
+ *   inputs to mean anything; a one-item job leaves the second empty and dispatches N
+ *   broken graphs.
+ * - ZERO required slots means there is nothing to batch OVER — `t2v_ms` and `ref2v_ms`
+ *   declare only optional slots, and N copies of one text prompt is not what the user
+ *   asked for.
  * - OPTIONAL slots are ignored on purpose. Counting them would make `i2v_ms` eligible for
  *   an AUDIO selection through its optional audio slot, queueing image-to-video jobs with
  *   no image; and it would make `krea2Edit`'s 2nd reference slot look like a batch axis

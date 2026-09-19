@@ -84,9 +84,10 @@ test('a null or unknown remembered op returns zero eligible, and says which', as
 test('an op needing TWO required inputs is not batchable — a one-item job cannot fill it', async () => {
     const { selectCueAllTargets } = await import(REG);
 
-    // flowHeadSwap declares image,image REQUIRED. Batching it one item at a time
-    // would dispatch N graphs each missing their second input.
-    const swap = selectCueAllTargets('flowHeadSwap', null, [img('a'), img('b'), img('c')]);
+    // flowScribObj declares image,image REQUIRED. Batching it one item at a time
+    // would dispatch N graphs each missing their second input. (flowHeadSwap was the
+    // original exemplar here; it left the app as a Flow package — MPI-781.)
+    const swap = selectCueAllTargets('flowScribObj', null, [img('a'), img('b'), img('c')]);
     assert.deepStrictEqual(swap.eligible, []);
     assert.strictEqual(swap.reason, 'not-batchable');
 

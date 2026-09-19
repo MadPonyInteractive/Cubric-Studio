@@ -1,5 +1,11 @@
 # DramaBox (MPI-607) — text in, a performed line out
 
+> **NO LONGER BUILT IN (MPI-781).** DramaBox is sold as a Flow package and is authored in
+> its own repo, `c:\AI\Mpi\Cubric-Flows\drama-box` — manifest, graph and preview art, under
+> its own licence, never in this AGPL tree. Its graph guards live there too
+> (`checks.test.cjs`). This page stays as the authoring record; everything below about the
+> sampler fork, the baked negative and the duration floor is still how that Flow works.
+
 > Part of [add-flow/existing-flows](../README.md). Write a line, optionally hand it a
 > voice to match, get a spoken take. **The second audio-only Flow, and the mirror image
 > of [Voice Changer](voice-changer.md):** that flow needs a real recording and passes

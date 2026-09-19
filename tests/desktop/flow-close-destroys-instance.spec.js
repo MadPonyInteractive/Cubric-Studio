@@ -35,7 +35,7 @@ test('closing a Flow releases its generation.run hotkey', async ({}, testInfo) =
 
     await window.evaluate(async () => {
       const { Events } = await import('/js/events.js');
-      Events.emit('flow:open', { flowId: 'head-swap' });
+      Events.emit('flow:open', { flowId: 'scribble-object' });
     });
     await expect(window.locator('.mpi-base-flow')).toHaveCount(1);
     expect(await runHandlers()).toBe(before + 1);

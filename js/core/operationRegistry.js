@@ -70,7 +70,10 @@ export const OPERATION_REGISTRY = {
     // head LoRA, and `Input_Tier` REMOVED with the three-tier switch the graph no longer
     // carries. Reuse of an older card degrades quietly — `_inject` no-ops on a title that
     // matches no node — so, like `flowScribObj`, the bump is the record, not a gate.
-    flowHeadSwap: { latestVersion: '1.1', appVersionIntroduced: '1.1.0' },
+    // DEPRECATED (MPI-781): Head Swap left the app and is sold as a Flow package, which
+    // registers under its own `user:head-swap` key. The key stays so history items written
+    // by a dev build still validate; nothing may WRITE it again.
+    flowHeadSwap: { latestVersion: '1.1', appVersionIntroduced: '1.1.0', deprecated: true },
     flowLtxExtend: { latestVersion: '1.0', appVersionIntroduced: '1.4.2' },
     flowLtxFoley: { latestVersion: '1.0', appVersionIntroduced: '1.4.2' },
     // MPI-504 — the Character Sheet flow and the text-only prompt enhancer any flow can
@@ -93,7 +96,9 @@ export const OPERATION_REGISTRY = {
     // stamping reason as the four above.
     flowVoiceChanger: { latestVersion: '1.0', appVersionIntroduced: '1.5.0' },
     // MPI-607 — the two TTS flows that join Voice Changer. Same stamping reason.
-    flowDramaBox: { latestVersion: '1.0', appVersionIntroduced: '1.5.0' },
+    // DEPRECATED (MPI-781): DramaBox left the app and is sold as a Flow package, which
+    // registers under its own `user:drama-box` key. Same reason as `flowHeadSwap` above.
+    flowDramaBox: { latestVersion: '1.0', appVersionIntroduced: '1.5.0', deprecated: true },
     flowChatterBox: { latestVersion: '1.0', appVersionIntroduced: '1.5.0' },
     flowStems: { latestVersion: '1.0', appVersionIntroduced: '1.5.0' },
     // MPI-664 — MiniMax Music 3, the text-to-music flow. Same stamping reason.

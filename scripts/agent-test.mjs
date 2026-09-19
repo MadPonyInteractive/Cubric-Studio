@@ -480,6 +480,10 @@ const CASES = [
         // ONE subject per photo and a request with no left/right in it, deliberately: with
         // two women to tell apart the flip spent its whole 8-call budget on disambiguating
         // looks and failed on STEP_LIMIT, which proves nothing about the box.
+        // NEEDS THE HEAD SWAP PACKAGE INSTALLED (MPI-781). Head Swap is no longer built
+        // in — it is sold as a `user_flows/` package — so on a profile without it there is
+        // no Head Swap to run and this scenario passes for the wrong reason. Install the
+        // package before trusting a green here.
         id: 'over-boxed-head',
         title: 'a "head" box that is the whole person is refused, not squared into the neighbour',
         setup: {

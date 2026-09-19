@@ -65,12 +65,17 @@ test('ltx-upscale compares against its source video', async () => {
     assert.strictEqual(upscale.result?.compare, 'inputVideo');
 });
 
-test('head-swap compares against the plate it KEEPS, not the head donor', async () => {
-    const swap = (await flows()).find(f => f.id === 'head-swap');
-    assert.ok(swap, 'head-swap flow must exist');
-    // `image2` only donates a head and shares no framing with the output — comparing
+// head-swap carried the two-slot version of this law — compare against the plate you
+// KEEP, never the donor that shares no framing with the output. It left the app as a
+// Flow package (MPI-781). `object-stamp` below is the surviving two-slot case and makes
+// the same call, so the law is still pinned on the shape head-swap used to hold.
+
+test('object-stamp compares against the scene it KEEPS, not the object donor', async () => {
+    const stamp = (await flows()).find(f => f.id === 'object-stamp');
+    assert.ok(stamp, 'object-stamp flow must exist');
+    // `image2` only donates an object and shares no framing with the output — comparing
     // against it would put two unrelated pictures either side of the bar.
-    assert.strictEqual(swap.result?.compare, 'image1');
+    assert.strictEqual(stamp.result?.compare, 'image1');
 });
 
 test('scribble-object compares against the photo, which is its ONLY slot (MPI-567)', async () => {

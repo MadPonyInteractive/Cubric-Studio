@@ -25,18 +25,23 @@ const { launchApp, closeApp } = require('./launch');
  * shape of the condition. This drives the tile.
  *
  * `s_installedModelIds` is stubbed rather than downloading weights, the same move
- * `flow-reuse-opens-without-model.spec.js` makes. `head-swap` is the fixture because it
- * needs exactly one model (`klein-9b`) and declares no choosable slot, so availability is
- * the ONLY variable this spec moves.
+ * `flow-reuse-opens-without-model.spec.js` makes. `scribble-object` is the fixture because
+ * it resolves to exactly one model (`klein-9b`), so availability is the ONLY variable this
+ * spec moves. `head-swap` was the fixture until MPI-781 took it out of the app and sold it
+ * as a Flow package.
  *
  * **THE DEP CACHE MUST BE STUBBED TOO, and leaving it out is a CI-only failure.**
- * `flowAvailability` is `missing.length === 0 && missingDeps.length === 0`, and Head Swap
- * declares two `requiredDeps` (`klein-9b-lora-headswap`, `comfyui-inpaint-cropandstitch`). Their
- * status comes from `_flowDepStatusCache`, which a dev machine fills from disk during the
- * model sync — so a developer's box says Ready and a bare CI runner says Get-models, with
+ * `flowAvailability` is `missing.length === 0 && missingDeps.length === 0`. Head Swap
+ * declared two `requiredDeps` (`klein-9b-lora-headswap`, `comfyui-inpaint-cropandstitch`),
+ * whose status comes from `_flowDepStatusCache` — a dev machine fills it from disk during
+ * the model sync, so a developer's box said Ready and a bare CI runner said Get-models with
  * `s_installedModelIds` stubbed identically in both. This spec went green locally and red on
- * `windows-latest` for exactly that reason (run 33153649907). Stub BOTH halves so the only
- * variable is the one each case intends to move.
+ * `windows-latest` for exactly that reason (run 33153649907).
+ *
+ * `scribble-object` declares NO deps, so the dep stub below is currently a no-op and that
+ * half of the trap is not being exercised. It is kept, and read off the descriptor rather
+ * than hardcoded, so the day this flow (or its replacement) gains a dep the spec does not
+ * silently re-break. Prefer a fixture with both halves if one ever ships.
  */
 test.setTimeout(90000);
 
@@ -54,18 +59,18 @@ test('a Ready flow tile opens the frame; an unready one still opens the drawer',
       const { PAGE_GALLERY, PAGE_LANDING } = await import('/js/router.js');
       const { getFlowById, setFlowDepStatus } = await import('/js/data/flowsRegistry.js');
 
-      // Head Swap's two requiredDeps, marked present. Without this the flow is never
+      // Draw It In's requiredDeps, marked present. Without this the flow is never
       // available on a runner with a bare disk, whatever s_installedModelIds says — see
       // the header note. Read off the descriptor rather than hardcoded, so adding a dep
       // to the flow cannot silently re-break this.
-      const FLOW = 'head-swap';
+      const FLOW = 'scribble-object';
       setFlowDepStatus(FLOW, new Map(
         (getFlowById(FLOW).requiredDeps || []).map(id => [id, true])));
 
       const lib = MpiFlowLibrary.mount(document.createElement('div'));
       window.__mpi638lib = lib;
 
-      // One press of the Head Swap tile, under a stated installed-set and page.
+      // One press of the Draw It In tile, under a stated installed-set and page.
       const press = async (installed, page) => {
         state.s_installedModelIds = installed;
         state.currentPage = page;
@@ -73,8 +78,8 @@ test('a Ready flow tile opens the frame; an unready one still opens the drawer',
         const off = Events.on('flow:open', p => opened.push(p.flowId));
         lib.el.open();
         const tile = [...document.querySelectorAll('.mpi-tile')]
-          .find(t => t.textContent.includes('Head Swap'));
-        if (!tile) throw new Error('the Head Swap tile is not in the library');
+          .find(t => t.textContent.includes('Draw It In'));
+        if (!tile) throw new Error('the Draw It In tile is not in the library');
         tile.click();
         await new Promise(r => setTimeout(r, 250));
         off?.();
@@ -94,7 +99,7 @@ test('a Ready flow tile opens the frame; an unready one still opens the drawer',
       };
     });
 
-    expect(result.ready.opened, 'a Ready flow must open its frame directly').toEqual(['head-swap']);
+    expect(result.ready.opened, 'a Ready flow must open its frame directly').toEqual(['scribble-object']);
     expect(result.ready.drawer, 'and must NOT stop at the drawer on the way').toBe(false);
 
     expect(result.notInstalled.opened, 'an unready flow must not mount a frame it cannot run').toEqual([]);

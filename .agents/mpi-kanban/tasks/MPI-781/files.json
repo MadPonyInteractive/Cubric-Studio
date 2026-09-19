@@ -1,0 +1,27 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/data/flowsRegistry.js",
+    "js/data/commandRegistry.js",
+    "js/core/operationRegistry.js",
+    "operation_registry.json",
+    "js/data/modelConstants/universal_workflows.js",
+    "comfy_workflows/flow_head_swap.json",
+    "comfy_workflows/raw/flow_head_swap.json",
+    "comfy_workflows/flow_drama_box.json",
+    "comfy_workflows/raw/flow_drama_box.json",
+    "comfy_workflows/display/flow-head-swap.webp",
+    "comfy_workflows/display/flow-head-swap.mp4",
+    "comfy_workflows/display/flow-drama-box.webp",
+    "comfy_workflows/display/flow-drama-box.mp4",
+    "docs/releases/UNRELEASED.md",
+    "tests/flow-uninstall-guard.test.cjs",
+    "tests/connector-flow-dispatch.test.cjs",
+    "tests/connector-agent-tools.test.cjs",
+    "tests/box-overflow.test.cjs",
+    "tests/cue-all-eligibility.test.cjs",
+    "tests/flow-result-compare.test.cjs",
+    "tests/declared-fields.test.cjs",
+    "tests/desktop/flow-packages.spec.js"
+  ]
+}

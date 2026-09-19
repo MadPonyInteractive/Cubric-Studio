@@ -811,8 +811,9 @@ function openInstallEventStream(onEvent, onClose) {
  * but the code-only packs reach the volume ONLY as a side effect of installing a MODEL
  * that happens to declare them. So a universal op whose graph needs a code-only pack died
  * on any volume that never installed that particular model — measured live: `resizeVideo`
- * needs VideoHelperSuite, declared by 2 of 18 models; `flowHeadSwap` needs
- * inpaint-cropandstitch, declared by 3 of 18.
+ * needs VideoHelperSuite, declared by 2 of 18 models; Head Swap needed
+ * inpaint-cropandstitch, declared by 3 of 18. (Head Swap itself left the app as a Flow
+ * package in MPI-781; the measurement is what this note is for, and it still stands.)
  *
  * Cost when the volume is already complete: ONE batched status call, no installs, no
  * restart. Only a fresh/partial volume pays anything, and node packs are ~1MB each.

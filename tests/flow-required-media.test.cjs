@@ -113,44 +113,14 @@ test('no flow can dispatch a run its own graph will silently block', async () =>
         + 'nothing:\n  ' + holes.join('\n  '));
 });
 
-test('DramaBox stays optional, and the FORK is what makes it so', async () => {
-    // The counter-example that keeps the law honest. If someone "fixes" DramaBox by
-    // marking its voice required, the flow's whole pitch — describe a speaker in words
-    // and get a voice built from nothing — becomes unreachable.
-    //
-    // Asserted on the WIRING, not on a flag. The exemption is the lazy fork, so that is
-    // what has to still be there; the `Input_Audio` loader carries `block_if_empty: true`
-    // like every other loader and would block if the voice arm were ever taken with an
-    // empty slot. Rewire the fork away and this flow starts failing silently.
-    const flowsMod = await esm('js/data/flowsRegistry.js');
-    const cmdMod = await esm('js/data/commandRegistry.js');
-    const flow = (flowsMod.FLOWS || flowsMod.flows).find(f => f.id === 'drama-box');
-    const COMMANDS = cmdMod.COMMANDS || cmdMod.commands || cmdMod.default;
-
-    const graph = JSON.parse(fs.readFileSync(repo('comfy_workflows/' + flow.workflow), 'utf8'));
-    const slot = COMMANDS[flow.operation].mediaInputs.find(m => m.key === 'audio1');
-
-    assert.strictEqual(slot.required, false,
-        'DramaBox\'s voice is genuinely optional and must stay declared that way');
-
-    const entry = Object.entries(graph).find(
-        ([, n]) => (n._meta?.title || '').toLowerCase() === slot.title.toLowerCase());
-    assert.ok(entry, `drama-box must carry a node titled "${slot.title}"`);
-    const [loaderId, loader] = entry;
-
-    // The slot is the loader itself (MPI-800), and it blocks its media when empty...
-    assert.strictEqual(loader.class_type, 'MpiLoadAudioUpload');
-    assert.strictEqual(loader.inputs.block_if_empty, true);
-
-    // ...so its `loaded` output (slot 1, never blocked) must pick the arm.
-    const ifElse = Object.values(graph).find(n => n.class_type === 'MpiIfElse'
-        && Array.isArray(n.inputs?.boolean) && String(n.inputs.boolean[0]) === loaderId
-        && n.inputs.boolean[1] === 1);
-    assert.ok(ifElse, 'an MpiIfElse must fork on the loader\'s `loaded` — that fork IS the exemption');
-
-    const arms = ['true', 'false'].map(k => graph[String(ifElse.inputs[k][0])]);
-    assert.deepStrictEqual(arms.map(n => n.class_type), ['DramaBoxSampler', 'DramaBoxSampler']);
-    assert.deepStrictEqual(arms.map(n => 'voice_ref' in n.inputs), [true, false],
-        'the true arm takes a voice_ref and the false arm must not — the false arm is the '
-        + 'prompt-only route, and it is what runs when the slot is left empty');
-});
+// DramaBox was the counter-example that kept the law above honest: a slot may declare
+// `required: false` ONLY when the graph genuinely forks on it, so an empty slot takes a
+// real second route rather than blocking. It left the app as a Flow package (MPI-781),
+// taking its graph, so that assertion moved with it —
+// c:\AI\Mpi\Cubric-Flows/checks.test.cjs, "the voice stays optional, and the FORK is what
+// makes it so".
+//
+// NOTHING SHIPPED IN THIS APP NOW EXERCISES THE EXEMPTION: every remaining flow's media
+// slots are required. The sweep above is therefore currently a one-sided law — it can
+// only catch a slot that declares `required: false` without a fork, never a fork wrongly
+// marked required. Restore a counter-example here the moment a shipped flow has one.

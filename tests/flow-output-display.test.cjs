@@ -73,21 +73,8 @@ test('every Flow graph carries at most ONE Output_Display', () => {
     }
 });
 
-test('Head Swap ships a display, and Input_Positive can only ADD to its baked prompt', () => {
-    const wf = JSON.parse(read('comfy_workflows/flow_head_swap.json'));
-    const nodes = Object.values(wf);
-    assert.ok(nodes.some(v => v?._meta?.title === 'Output_Display'), 'Head Swap is the first Output_Display consumer (MPI-744)');
-    // Every run sends `Input_Positive` ('' when the optional Expression field is empty). It may
-    // only reach a TEXT node joined after the baked instruction: an Input_Positive holding the
-    // instruction itself would be wiped on every run — the outpaint trap.
-    const [id, box] = Object.entries(wf).find(([, v]) => v?._meta?.title === 'Input_Positive') || [];
-    assert.ok(box, 'the Expression field needs an Input_Positive node (MPI-744)');
-    assert.strictEqual(box.class_type, 'PrimitiveStringMultiline');
-    const [joinId, join] = Object.entries(wf).find(([, v]) =>
-        v.class_type === 'StringConcatenate' && Array.isArray(v.inputs.string_b) && v.inputs.string_b[0] === id) || [];
-    assert.ok(join, 'Input_Positive must be joined after the baked instruction');
-    assert.match(join.inputs.string_a, /^head_swap: /, 'the instruction stays a literal in the join');
-    assert.strictEqual(join.inputs.delimiter, ' ', 'the join delimiter must be a space, or the expression glues onto the instruction');
-    assert.ok(nodes.some(v => v.class_type === 'CLIPTextEncode' && Array.isArray(v.inputs.text) && v.inputs.text[0] === joinId),
-        'the encoder must read the join, not a literal');
-});
+// Head Swap was the first Output_Display consumer (MPI-744) and the worked example of
+// "an optional Input_Positive may only be JOINED after a baked instruction, never hold
+// it" — the outpaint trap. It left the app as a Flow package (MPI-781), taking its graph,
+// so that assertion moved with it: c:\AI\Mpi\Cubric-Flows/checks.test.cjs. The sweep
+// above still holds every SHIPPED flow to one Output_Display.

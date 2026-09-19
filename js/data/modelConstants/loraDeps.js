@@ -677,6 +677,10 @@ export const loraDeps = {
     // picks neither, and the author's later pipeline loads rank128. The graph loads it at
     // strength 0.75 — better than 1.0 on Fabio's bench (2026-09-13). The sha256 equals
     // the upstream blob's `lfs.sha256` (read 2026-09-13), so the upstream IS the mirror.
+    //
+    // NOTHING IN THIS APP DECLARES IT ANY MORE (MPI-781): Head Swap left as a Flow package,
+    // whose manifest names this id. KEPT, never deleted — `_orphanedDepIds` iterates DEPS,
+    // so this entry is what lets an uninstall reclaim the weight from anyone who has it.
     'klein-9b-lora-headswap': {
         id: 'klein-9b-lora-headswap',
         name: 'FLUX.2 Klein 9B — Head Swap',

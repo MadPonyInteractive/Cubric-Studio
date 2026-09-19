@@ -90,11 +90,14 @@ test('a step whose kind reports a MAP must declare an object param (MPI-596)', (
         'Object Stamp binds the region to the box node and the mode to the switch selector');
 });
 
-test('Head Swap declares both box bindings, so it needs no component to translate', () => {
+// Head Swap held this one — two box steps, both bound by the string `param` form, which
+// is what let it drop its component. It left the app as a Flow package (MPI-781), so
+// scribble-object is now the string-form example. The `uiComponent` ban is the half that
+// never depended on which flow demonstrated it.
+test('a box step declares its binding, so it needs no component to translate', () => {
     const src = read('js/data/flowsRegistry.js');
 
     assert.match(src, /kind: 'box', role: 'image1', param: 'box1'/);
-    assert.match(src, /kind: 'box', role: 'image2', param: 'box2'/);
     assert.ok(
         !/uiComponent:/.test(src),
         'no flow may carry a uiComponent — a component is the one thing a manifest cannot express',

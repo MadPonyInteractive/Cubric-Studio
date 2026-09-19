@@ -64,9 +64,6 @@ export const UNIVERSAL_WORKFLOWS = {
     resizeVideo: {
         workflow: 'resize_video.json',
     },
-    flowHeadSwap: {
-        workflow: 'flow_head_swap.json',
-    },
     // MPI-591 — the first op whose graph is chosen by the model. Extending a clip on
     // LTX 2.3 and on MiniMax H3 are different node sets end to end (LTXVAudioVideoMask +
     // LTXVConcatAVLatent + LTXVSeparateAVLatent against an H3 nested AV latent +
@@ -121,12 +118,6 @@ export const UNIVERSAL_WORKFLOWS = {
     // MpiLoadAudio paths into FL_ChatterboxVC, out through a native SaveAudio.
     flowVoiceChanger: {
         workflow: 'flow_voice_changer.json',
-    },
-    // MPI-607 — DramaBox. Eighteen nodes: a DiT + audio-VAE + 4-bit Gemma stack, two
-    // samplers behind an MpiAnyChecker fork (with and without a voice reference), and
-    // an MpiClearVram either side of the decode.
-    flowDramaBox: {
-        workflow: 'flow_drama_box.json',
     },
     // MPI-607 — Chatterbox TTS, optionally chained into VC. Twelve nodes: two TTS
     // nodes (English and multilingual) behind Input_Is_Multilingual, then a second
