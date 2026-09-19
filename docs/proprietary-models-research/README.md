@@ -19,6 +19,7 @@ confirmed is marked UNVERIFIED rather than guessed.
 | [00-cubric-vision-integration-points.md](00-cubric-vision-integration-points.md) | **The internal half.** What in this codebase would have to change, and the fact that bring-your-own-key is already a shipped pattern here, twice |
 | [01-aggregators.md](01-aggregators.md) | fal.ai, Replicate, Runware, Modal. Includes the one-vendor-for-both question |
 | [01b-more-aggregators.md](01b-more-aggregators.md) | The other twelve, ranked by whether their terms permit this at all |
+| [01c-comfy-platform.md](01c-comfy-platform.md) | **Added 2026-09-19.** Comfy Developer Platform + Comfy Router — absent from the original sweep, and a second answer to finding #6's blocker. Router prices converted to USD |
 | [02-direct-provider-apis.md](02-direct-provider-apis.md) | Google, OpenAI, Runway, Luma, Black Forest Labs, ElevenLabs: prices, terms, watermarks |
 | [02b-chinese-providers.md](02b-chinese-providers.md) | **Kling, MiniMax, ByteDance.** The models actually asked for, and the worst legal picture |
 | [03-legal-and-contracts.md](03-legal-and-contracts.md) | Resale clauses, partner programmes, UK/EU obligations, VAT, content liability |
@@ -66,6 +67,12 @@ single fact that decides the one-vendor plan. Baseten and RunComfy both definite
 arbitrary custom nodes (Baseten via `build_commands` and a snapshot pinned by commit hash,
 which is close to how this repo already pins its node lock), so a two-vendor split is the
 safer answer.
+
+> **Update 2026-09-19:** there is now a second candidate that does not carry that blocker at
+> all. Comfy's own Developer Platform is ComfyUI, and its Builds feature exists to package
+> custom nodes and LoRAs into a reproducible deployment. See
+> [01c-comfy-platform.md](01c-comfy-platform.md) — but note its Router is mid-band on price,
+> not a discount, and its resale terms are unread.
 
 **7. The margins are not where you would think.** At its top tier Higgsfield sells Kling 5s at
 $0.23 against a $0.28 to $0.42 wholesale, and Nano Banana Pro at $0.066 against Google's
