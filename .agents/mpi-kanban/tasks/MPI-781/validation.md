@@ -13,19 +13,39 @@ Implemented 2026-09-19. Phases 1–4 done in the app repo; the live proof is Fab
 | `npm run release:check` | Four failures, **byte-identical to the run before this card's first edit**: missing 1.6.0/1.6.1 archival release notes, and smoke-evidence stale against the 0.34.0 engine pin. **No operation-registry, universal-workflow or command-registry failure** — that is the half this card touches, and it is clean. |
 | Package built from `scribble-object` the way `flow-packages.spec.js` builds it | ✓ lints clean, which is what proved the spec's new fixture valid (object-form `requiredModels` is accepted) |
 
-## Not verified — needs Fabio (`user-ux`)
+## The live check — done, on a private profile (2026-09-19)
 
-The plan's phase 1 live proof. No sandbox can stand in for it:
+Run with a throwaway desktop spec that seeded the **real** package folders from
+`c:\AI\Mpi\Cubric-Flows` into a private profile, on **port 61624**, with the dev app on
+3000 left alone. The copies had `compat.minAppVersion` lowered to `1.0.0`; the repo
+manifests were not touched and still declare `2.0.0`, which is correct for the shipping
+artifact. The spec was deleted after the run — it pointed at a sibling repo, so it could
+never live in CI.
 
-1. Drop `c:\AI\Mpi\Cubric-Flows\head-swap` and `…\drama-box` on the Flow Library.
-2. Both appear as tiles and run a real generation.
-3. Head Swap's drawer shows the **Klein 9B licence gate**, unaccepted, before it will run.
+Result — **passed**, no page errors, no console errors:
 
-**This cannot be done until the app is stamped 2.0** — both manifests declare
-`compat.minAppVersion: 2.0.0` and this checkout is 1.6.1, so the loader refuses them by
-design. Either land MPI-708's version stamp first, or lower the floor in a scratch copy of
-each folder for the test and restore it after. The floor is correct for the shipping
-artifact and was left at 2.0.0 deliberately.
+| | Head Swap | DramaBox |
+|---|---|---|
+| registers | ✓ `user:head-swap` | ✓ `user:drama-box` |
+| title | Head Swap | DramaBox |
+| `filePrefix` | **`flowHeadSwap`** | **`flowDramaBox`** — the title-derived-filename trap avoided |
+| tile in the Library | ✓ | ✓ |
+| `flowAvailability().reason` | **`null`** — fully available, every model and dep resolved | **`null`** |
+| licences | **`klein-9b`, `accepted: false`** | none |
+
+Head Swap's drawer shows **"FLUX Non-Commercial License v2.1"** with `Open` / `Uninstall`.
+That is the gate MPI-780 depends on, firing on a package exactly as it did built-in.
+
+`FLOWS` now holds **13** built-in flows and neither departed id is among them.
+
+### Still outstanding: one real generation
+
+`reason: null` means the weights are all present on this box, so a generation is possible —
+it just needs the GPU (under `gpu_lease.py`) and an app with a project open, which the
+throwaway spec is not. DramaBox is the cheap one (text in, ~5s of audio out, no media to
+stage); Head Swap needs two plates and two boxes. Not run: it spends GPU, and the two
+things that were actually in doubt — the loader accepting the packages, and the licence
+gate firing — are now proved.
 
 ## Known, deliberate, and left
 
@@ -61,14 +81,12 @@ never listed **Song** (`minimax-music`), which ships. Removing two Flows meant t
 to change, so rather than write a new wrong number the list now names Song and reads
 "Thirteen", which matches the registry.
 
-## Not pushed
+## Pushed
 
-The commit is on local `master` and **`.husky/pre-push` refused it**: master's last CI run
-is `failure`, and the hook fails open, so that is a real red. It is not this card's —
-`gif-cutout.spec.js` ("Pick shows its label") and `radial-menu.spec.js` ("element(s) not
-found"), both peers' in-flight work (MPI-757/771, MPI-811), red since before the first edit
-here. `--no-verify` is for when you ARE the fix; this is not that. Push once master is
-green, or once whoever owns that red says to go.
+`3adf2d5e` is on `origin/master`. The first push attempt was refused by `.husky/pre-push`
+because master's last CI run was `failure` — not this card's (`gif-cutout.spec.js` and
+`radial-menu.spec.js`, peers' in-flight work). `--no-verify` is for when you ARE the fix, so
+it waited. Master went green and a peer's push carried the commit up with theirs.
 
 ## Still open, reported not actioned
 
