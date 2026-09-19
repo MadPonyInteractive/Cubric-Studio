@@ -4,6 +4,28 @@ Brief: `brief.md`. Source of truth for values: `c:\AI\Mpi\Cubric Studio (Website
 
 ## Current State
 
+**2026-09-19, session 8abe87b4 — the SWEEP IS FINISHED. What is left is phases, not
+surfaces.** Five commits, all pushed, master green: `d3ec007d` dialogs, `bc6af6fb` the four
+portalled pickers, `d3a46d7d` a red master that was not ours, `47e10d3b` voice + media
+picker, `2013bc51` the status bar.
+
+Fabio verified rounds 9 and 9b live (*"yeah man, looks good"*, then *"1"*). **Rounds 9c and
+9d are committed but NOT eye-checked** — that is the only thing owed before the remaining
+phases: a voice list in a video Flow should be green, the media picker on an image slot in
+a video op rose, and the status bar should take the colour of the op it is running and go
+back to cream at idle.
+
+**Settled:** the "?" op guide keeps its OP's colour — *"leave the ? guide fine as it is."*
+
+**The lesson of this session, and it kept repeating: FOUR inherited survey rows were
+wrong** — `MpiMediaDropOverlay` (not portalled), `MpiEnhanceDialog.css` (a CRLF phantom,
+never a peer's work), two of class B's four rows (`MpiWaveform`/`MpiAudioPlayer` were
+already correct), and the status bar's *"the emitters have to change"* (they never did).
+Open the file before budgeting for a row.
+
+Remaining, in the card's own order: phase 1c canvas constants, phase 2b `--accent-warn`,
+phase 5 docs (`PRODUCT.md`, `DESIGN.md`'s stale VT323 line).
+
 Phase 1a and 1b landed and are committed (`2a3677f3`, 28 files). `--accent-err`,
 `--accent-heat-hi` and `--accent-err-hi` exist in `styles/01_base.css`; every danger/error
 surface is off the action token; every CSS pink literal is gone. Proven zero-delta: 13
