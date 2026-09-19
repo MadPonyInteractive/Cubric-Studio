@@ -63,6 +63,22 @@
 - **NVIDIA PiD is staying.** Its Model Library tile no longer says it is marked for
   deprecation.
 
+- **Deleting a card always asks first now.** Right-clicking a card and choosing Delete used to
+  remove it and its files on the spot, with no confirmation. It opens the same box the Delete
+  key does — and that box now offers **Archive** beside Delete, so you can put a card away
+  instead of losing it.
+
+- **Reuse Prompt needs the source card to still be there.** The app used to keep a hidden copy
+  of every picture you fed into a generation, so Reuse could bring it back even after you had
+  deleted the original. Those copies are gone. Archive a card instead of deleting it and Reuse
+  works exactly as before; if the source really was deleted, Reuse tells you which inputs it
+  could not bring back and leaves the rest.
+
+- **"Cleanup assets…" is now the slim-a-project-down step.** Right-click a project on the
+  landing page and it clears the thumbnails and video previews the app generates, which rebuild
+  themselves next time you open the project, as well as the cached Reuse inputs it already
+  cleared. Worth doing before you zip a project up or back it up.
+
 ## What's new
 
 - **Flows are here, and they are the headline of this release.** A flow is a whole job in one
@@ -157,6 +173,12 @@
 
 - **The radial menu is back.** Hold TAB and pick Gallery, Models, Flows or your latest
   workspace — a quick way to move between them.
+
+- **The card right-click menu is reorganised, and every entry explains itself.** Three groups
+  now: make something new (Compare, Combine, Make GIF, Cue all), then this card's own details
+  (Rename, Card notes, Describe image), then anything that touches the files — Add to project,
+  Open in file system, Download, and finally Archive and Delete together at the bottom. Hover
+  any entry and the status bar says what it does, including why a greyed-out one is unavailable.
 
 ## Fixes
 

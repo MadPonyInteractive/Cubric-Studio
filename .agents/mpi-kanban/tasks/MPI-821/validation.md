@@ -100,11 +100,12 @@ card claims.
 
 ## Not done here
 
-- **`docs/releases/UNRELEASED.md` carries no entry yet.** Archive, Reuse Prompt and
-  "Cleanup assets…" are all released features (1.5.0 and earlier), so this card owes user-facing
-  notes: the delete confirm, the reuse behaviour change, the Cleanup change and the menu
-  reorganisation. Drafted and put to Fabio at close-out; unanswered when the session ended, and
-  release notes are his copy to approve. **Next session: write them or get them cut.**
+- ~~`docs/releases/UNRELEASED.md` carries no entry yet.~~ **Done** — Fabio approved the draft
+  at close-out and it landed: three bullets under **Important changes** (the delete confirm,
+  the Reuse behaviour change, Cleanup as the slim-a-project-down step) and one under
+  **What's new** (the reorganised menu). Entries were owed because Archive, Reuse Prompt and
+  "Cleanup assets…" all shipped in 1.5.0 or earlier — a change to an unreleased thing owes
+  none.
 - **The board is red at HEAD and it is not this card's.** 21 violations, all legacy-shaped
   event lines under `MPI-771` (`tasks/MPI-771/events.jsonl:26-30` and their mirrors in the
   global log at `:4592,4593,4594,4598,4608`), written by `implementer:7bbff4d4`. MPI-771 was
