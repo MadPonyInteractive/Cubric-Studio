@@ -35,6 +35,9 @@ const ALLOWED_REQUESTS = new Set([
     // Phase 3c: the landing agent lists and creates projects. Creating never replaces one.
     'GET /connector/projects',
     'POST /connector/create-project',
+    // MPI-817: what the open project already holds. Read-only, off disk.
+    'GET /connector/cards',
+    'GET /connector/cards/:id',
 ]);
 
 // Exports that only touch the agent's own scratch dirs, never a project.
@@ -90,12 +93,24 @@ test('the system prompt carries the deletion rule', async () => {
 test('agentTools.mjs reaches only allowlisted routes, none of them a delete', async () => {
     const tools = await import('../services/agentTools.mjs');
     const seen = new Set();
-    const origFetch = globalThis.fetch;
-    globalThis.fetch = async (url, opts = {}) => {
-        const p = new URL(url).pathname.split('/').map((s) => (s === ARG ? ':id' : s)).join('/');
-        seen.add(`${String(opts.method || 'GET').toUpperCase()} ${p}`);
-        return { json: async () => ({ ok: true }) };
-    };
+
+    // A REAL server of this test's own, never a stub of one transport. This used to stub
+    // `globalThis.fetch`, which made two promises it could not keep: that it saw every
+    // request, and that none of them left the process. The day the table's POSTs moved to
+    // `node:http` (MPI-817, the 300 s headers limit) both broke at once - the POSTs went
+    // unrecorded, and with no CUBRIC_PORT set they were REAL requests to 127.0.0.1:3000,
+    // the user's live app, which created a project called "__ARG__" in his Projects folder.
+    // Pointing the table at a port this test owns is blind to the transport and cannot
+    // reach anything else.
+    const server = require('node:http').createServer((req, res) => {
+        const p = new URL(req.url, 'http://x').pathname.split('/').map((s) => (s === ARG ? ':id' : s)).join('/');
+        seen.add(`${req.method} ${p}`);
+        req.resume();
+        req.on('end', () => { res.setHeader('Content-Type', 'application/json'); res.end('{"ok":true}'); });
+    }).listen(0, '127.0.0.1');
+    await new Promise((r) => server.once('listening', r));
+    const prevPort = process.env.CUBRIC_PORT;
+    process.env.CUBRIC_PORT = String(server.address().port);
     try {
         for (const [name, fn] of Object.entries(tools)) {
             if (typeof fn !== 'function' || LOCAL_HELPERS.has(name)) continue;
@@ -106,8 +121,11 @@ test('agentTools.mjs reaches only allowlisted routes, none of them a delete', as
             }
         }
     } finally {
-        globalThis.fetch = origFetch;
+        if (prevPort === undefined) delete process.env.CUBRIC_PORT; else process.env.CUBRIC_PORT = prevPort;
+        server.closeAllConnections();
+        server.close();
     }
+    assert.ok([...seen].some((r) => r.startsWith('POST ')), 'no POST was recorded, so the capture is blind to the transport the long posts use');
     assert.ok(seen.size > 0, 'no request was recorded, so the stub is broken');
     for (const req of seen) {
         assert.ok(!req.startsWith('DELETE '), `${req} uses the DELETE method`);

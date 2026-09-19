@@ -8,8 +8,13 @@ itself. Spec: `.agents/mpi-kanban/tasks/MPI-774/brief.md`. Contract first (2026-
 
 - **Loop** `services/agentLoop.mjs`: one loop is one conversation, in server memory; `routes/agent.js`
   mounts `services/agentSessions.mjs`, one per project plus the landing page's (§ Conversations).
-- **Tools are connector routes.** `services/agentTools.mjs` is a fetch table over loopback, so a
+- **Tools are connector routes.** `services/agentTools.mjs` is a request table over loopback, so a
   CLI agent (MPI-593) gets the same surface. No second dispatch path (`routes/connector.js` header).
+  **Its POSTs are `node:http`, never `fetch`**: Node's `fetch` drops any response whose headers take
+  over 300 s (`UND_ERR_HEADERS_TIMEOUT`, reads as `fetch failed`), and `/connector/generate` holds
+  its response for the whole render. A 337 s clip came back "failed" with the file on disk, and the
+  agent re-ran it. The table also REFUSES the default port under `node --test`: 3000 is the user's
+  live app, and a test once created a project in it.
 - **Chat** `js/components/Compounds/MpiAgentChat/`, twice: the landing slot (standalone, beside the
   headline: the landing page's conversation) and the shell panel `#agent-panel-mount`
   (`js/shell/agentPanel.js`: the open project's), LEFT, from under the topbar to the status bar,
@@ -66,6 +71,7 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
 | `open_project` | `{ folderPath: string }` required | `POST /connector/open-project`, only a folder `list_projects` or `create_project` gave, the open project, or one the user typed (`UNKNOWN_PROJECT`) |
 | `rename_card` | `{ groupId, name }` required | `POST /connector/rename-card`, only a card this conversation generated (`UNKNOWN_CARD`) |
 | `read_memory` / `write_memory` | `{ file? }` / `{ file, title, text, hook? }` | `/connector/memory` for the OPEN project only (`NO_PROJECT`) |
+| `list_cards` | `{ groupId?, limit? }` | `GET /connector/cards[/:groupId]` (`services/agentCards.mjs`), the OPEN project only. Two hops: short rows newest first, or one card in full (whole prompt, settings that ran, `madeFrom`). Read off `project.json` + `Media/.meta/`, no renderer. Every `ref` it returns joins the `_images` allowlist, so `look` and `generate` take it, a video included; a sidecar path outside the project's own `Media/` gets no ref |
 
 - **Never deletes** (Fabio, 2026-09-16): no tool deletes, and `agentTools.mjs` reaches an allowlist of
   routes (`tests/agent-no-delete.test.cjs` bites on a new tool or route). Outside agents (CLI, the

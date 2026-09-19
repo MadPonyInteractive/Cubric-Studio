@@ -175,8 +175,54 @@ not the whole answer; the third is the same argument.
 - [x] A flow's media roles are advertised — the `inputImage` / `image1` refusal.
 - [x] `wait: true` on `generate`, plus the Chaining rule. His call, this session.
 - [x] `A` toggles agent mode, with the typing case asserted.
-- [ ] **A live outpaint in his app** — needs a RESTART (`services/` + `routes/` changed).
+- [x] **A live outpaint in his app** (2026-09-19 19:06Z, his own run, 🎉): padded picture
+      reached the graph, 768x1360 out, then chained into an H3 clip off the result with no
+      refusal. Evidence: `validation.md` § LIVE.
+- [x] **The route dropped the agent's `duration`** (same run: chat "about 6 seconds", card
+      3S). MPI-820's bug, fixed and recorded on that card; the Duration rule recalibrated
+      with Fabio's two anchors. Needs a RESTART before he sees it.
 - [ ] His verdict on the deliberation leak (held above, not built).
+
+## Session a018e069 (2026-09-19, evening) — his THIRD pass
+
+- [x] **The agent cannot see the project it is sitting in** (his memory test, 19:22Z, after a
+      restart: "I can't see the duck image in this turn", in a project of eighteen cards).
+      BUILT on his go: `list_cards`, two hops, off `project.json` + the sidecars; every ref
+      joins the allowlist, a video included. Evidence: `validation.md` § 3.
+      - [ ] **Live, in his app, after a RESTART.** Restart, then ask for something that
+            points at an existing card ("redo the last duck clip but…", "extend that video")
+            WITHOUT attaching it. The step log should show "Looking through the project", and
+            it should never say it cannot see the file.
+- [x] **`fetch failed` on any render over 5 minutes**, and the agent re-running a finished
+      clip because of it. Node `fetch`'s 300 s headers limit, measured (304.9 s vs 310.0 s).
+      `_post` is `node:http` now. Evidence: `validation.md` § 1. Needs the same restart; the
+      live proof is a clip over five minutes (6 s H3 already is) landing with no red line.
+- [x] **That fix made `npm test` reach his live app and create a project called `__ARG__`.**
+      Test rebuilt on its own server, and the table refuses the default port under the test
+      runner. `validation.md` § 2. **The `__ARG__` project is Fabio's to delete.**
+- [x] MPI-820's duration: BOTH halves have his eyes now (6 s ran as 5.875 s and held the
+      gallop; "very short" came back 2 s and "the whole ask is in the video"). On that card.
+
+Raised this pass, NOT built, nothing here goes quiet:
+
+- [ ] **A video cannot be handed to the agent** (his toast: "Media type not supported for
+      this model"). Two gates. The drop guard in `MpiPromptBox.js` checks the SELECTED
+      MODEL's media types, which means nothing in agent mode - and that file is held by
+      MPI-736 (live, session 8abe87b4), so it was logged, not touched. Behind it,
+      `saveAttachment` takes JPEG/PNG/WebP only. For a clip ALREADY in the project,
+      `list_cards` is the answer and needs no attaching; this item is about an OUTSIDE video.
+      Probably MPI-797's territory (the agent box's own input).
+- [ ] **The agent offers a shape the model cannot make.** Source 768x1024 (3:4), H3 snapped
+      it to 9:16, and the agent wrote "if you'd rather it keep the full 768x1024 framing, I
+      can adjust". It cannot: H3 has no 3:4. The snap message tells it the ratio it got and
+      not that the ratio was the NEAREST of a closed set. Fabio: "the way the agent explained
+      it is a bit weird". Look at the `snapped` message in `agentLoop.mjs` first.
+- [ ] `services/llmEngines.mjs`: Ollama's 600 s budget rides the same `fetch`, so it is
+      really 300 s. Its tests stub `global.fetch` - read `validation.md` § 2 before touching.
+- [ ] A refused `generate` still shows "Starting generation" in the step log, so a
+      `GUIDE_NOT_READ` round reads as two runs. Cosmetic; it confused the reading of one turn.
+- [ ] A loopback failure reaches the chat and NOT `app.log`: `fetch failed` left no trace.
+      `settleThrow` should log `err.cause`.
 
 Done already, on MPI-774 and recorded there, not here: Phases 1-5, including fix 8 closed
 unreproduced on 2026-09-19 (`tasks/MPI-774/plan.md` § Fix 8 closure).

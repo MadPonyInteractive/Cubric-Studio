@@ -181,3 +181,68 @@ test('every named param the connector accepts is declared AND forwarded by the a
             `'${key}' is declared on the agent's generate tool but never forwarded into the connector body`);
     }
 });
+
+// ── and the route between them carries them ───────────────────────────────────
+
+/**
+ * The THIRD half, found live 2026-09-19 on Fabio's duck-and-pony clip: the agent said "about
+ * 6 seconds", the card came back "3S". The resolver took a duration and the tool sent one,
+ * and `POST /connector/generate` sat between them with `duration` in NAMED_PARAM_KEYS - so
+ * its validation block fired - while never reading the key off the body, never validating
+ * it and never putting it on the job input. Accepted, then dropped.
+ *
+ * Driven through the real route rather than read off its source: what matters is what
+ * reaches the renderer, and a regex over the file is how the last two halves got past.
+ */
+test('every named param the route accepts reaches the dispatched job input', async () => {
+    const express = require('express');
+    const connectorPath = require.resolve('../routes/connector.js');
+    const router = require(connectorPath);
+
+    const app = express();
+    app.use(express.json());
+    app.use(router);
+    const server = app.listen(0, '127.0.0.1');
+    await new Promise((r) => server.once('listening', r));
+    const base = `http://127.0.0.1:${server.address().port}`;
+
+    const stream = new AbortController();
+    try {
+        // The renderer's side of the contract: subscribe, take the job, report back.
+        const sse = await fetch(`${base}/connector/jobs/stream`, { signal: stream.signal });
+        const reader = sse.body.getReader();
+
+        const sent = { ratio: '9:16', qualityTier: 'medium', turbo: true, duration: 6 };
+        const submit = fetch(`${base}/connector/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ modelId: H3.id, operation: CLIP_OPS[0], positive: 'x', ...sent }),
+        });
+
+        let buffer = '';
+        let job = null;
+        while (!job) {
+            const { value, done } = await reader.read();
+            assert.ok(!done, 'the job stream closed before the submit became a job');
+            buffer += Buffer.from(value).toString('utf8');
+            const frame = /event: job\ndata: (.+)\n\n/.exec(buffer);
+            if (frame) job = JSON.parse(frame[1]);
+        }
+        await fetch(`${base}/connector/jobs/${job.jobId}/result`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ok: true, output: {} }),
+        });
+        assert.equal((await (await submit).json()).ok, true);
+
+        assert.equal(job.capability, 'generation.submit');
+        for (const [key, value] of Object.entries(sent)) {
+            assert.deepEqual(job.input[key], value,
+                `'${key}' was accepted by the route and never reached the job input - the run falls to a default while the agent narrates what it asked for`);
+        }
+    } finally {
+        stream.abort();
+        server.closeAllConnections();
+        server.close();
+    }
+});

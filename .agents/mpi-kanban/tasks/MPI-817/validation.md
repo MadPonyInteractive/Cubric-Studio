@@ -270,10 +270,108 @@ and the hotkeys page carries the row.
 All three restored with a matching sha256. Script:
 `scratchpad/mutate.py` (throwaway).
 
+## LIVE in Fabio's app (2026-09-19 19:06-19:11Z, read by session a018e069)
+
+His own request, one message: *expand this image up and down to 9:16, then do a video where
+the duck pulls the reins, the pony lifts its front legs and the duck says "Ayoo, silver,
+away!"* All three fixes ran, chained, with no refusal in `app.log`. His verdict: 🎉🎉🎉.
+
+| Fix | Evidence on disk |
+|---|---|
+| The frame | sidecar `8f711272-….json`: `image1` is now `Media/.preview-assets/d8d5b009….png` (the PADDED picture, not `i2i_001.png`), and the graph logged `_fit_encode_image … in=(1, 1360, 768, 3)`. Output `flowOutpaint_002.png`, **768x1360**, 68.7 s. The 18:40 no-op beside it is 928x1136 |
+| Media roles | no `BAD_REQUEST … no media role` line anywhere in the run; `image1` first time |
+| `wait` chaining | `generation.submit` 19:06:34 → `Prompt executed` 19:07:43 → `agent.describe` → second `generation.submit` 19:08:02, whose sidecar (`990cbfa0-….json`) carries `flowOutpaint_002.png` as `startFrame`. `minimax-h3` `i2v_ms`, 768x1344, 193 s. The LAST step was left unwaited, as the Chaining rule says |
+
+Pixels checked, not just metadata: the outpaint invented sky above and meadow below with the
+subject whole between them, and a four-frame sheet of `i2v_005.mp4` opens on the outpainted
+frame and has the pony reared by frame 48.
+
+**One fault surfaced by the same run, and it is MPI-820's, fixed there:** the chat said
+"about 6 seconds" and the card said 3S. See `tasks/MPI-820/validation.md` § The THIRD half.
+
+---
+
+# Session a018e069 (2026-09-19, evening) — his THIRD pass: memory, a lie about a failure, and `list_cards`
+
+## 1. `fetch failed`: the agent was told a finished render had failed, and re-ran it
+
+His 6 s clip took **337 s**. The chat printed `fetch failed`; asked next to extend the clip,
+the agent answered *"The previous attempt failed … no clip was ever created"* and **started
+the same five-minute render again**, with `i2v_006.mp4` sitting on disk. The `{started:true}`
+lie in mirror image: the app said failed, the file said otherwise.
+
+**Root cause, measured rather than argued.** `services/agentTools.mjs` posted with Node's
+`fetch` and a 30-minute `AbortSignal`. `fetch` drops any response whose HEADERS take over
+300 s whatever the signal says, and `/connector/generate` holds its response for the whole
+render. A loopback server answering at 310 s, both clients, same signal:
+
+```
+fetch FAILED at 304.9s: fetch failed / cause=UND_ERR_HEADERS_TIMEOUT
+http  OK {"ok":true} at 310.0s
+```
+
+It fits the day exactly: the 193 s clip passed, the 337 s one did not. Nothing was logged;
+the 30-minute budget in that file's comments had never been reachable. `_post` is now
+`node:http` (no new dependency: the undici bundled in Node is not importable, so the
+`headersTimeout` dispatcher route was not available).
+
+**Not fixed, same trap, other subsystem:** `services/llmEngines.mjs` gives Ollama
+`OLLAMA_CHAT_TIMEOUT_MS = 600_000` through the same `fetch`, so its real ceiling is also
+300 s. Its tests stub `global.fetch`, which is the next section's lesson.
+
+## 2. That fix made `npm test` reach his LIVE app — caught, cleaned, belted
+
+`tests/agent-no-delete.test.cjs` walks every table function with dummy `__ARG__` arguments
+behind a `globalThis.fetch` stub. With the POSTs off `fetch` the stub covered nothing, no
+`CUBRIC_PORT` was set, and they went to the default port: **127.0.0.1:3000, his running
+app.** `app.log` 19:42:06Z: `created project "__ARG__"`. Everything else was refused by its
+route (400 on the body, `NO_SUCH_PROJECT`, `NO_SUCH_CARD`); his open project and his running
+2 s render were untouched. Three empty dirs it left in the repo root are removed. **The
+`__ARG__` project itself is his to delete** (landing page, right-click, Delete project).
+
+- The test now runs against a server it owns (port 0, `CUBRIC_PORT` pointed at it), so it is
+  blind to the transport AND cannot leave the process. It also asserts a POST was recorded:
+  the stub's other broken promise was that it saw every request.
+- `loopbackBase()` throws when `CUBRIC_PORT` is unset under `NODE_TEST_CONTEXT`. Proven by
+  the re-run: Projects folder 48 → 48, no new `__ARG__` line in the live log.
+- `routes/connector.js` `_appPost` carries the same `|| 3000` default and no belt. Noted.
+
+## 3. `list_cards` — the agent can see the project it is sitting in (Fabio: "go")
+
+His memory test: after a restart, asked to redo the duck clip, it said *"I can't see the duck
+image in this turn"* in a project of eighteen cards, read a skill written for agents with
+disk access, listed his other projects, and he attached the picture by hand. `_images` is a
+per-SESSION allowlist (attachments + that session's results); nothing listed the project.
+
+| | |
+|---|---|
+| `services/agentCards.mjs` (new) | `listCards`: newest first, one short row a card (name, ref, kind, model or flow, op, size, a clip's REAL length, 200 chars of prompt). `readCard`: one in full, whole prompt, settings that ran, `madeFrom`. Two hops on purpose, his progressive-disclosure rule |
+| routes | `GET /connector/cards[/:groupId]?folderPath=`, off `project.json` + `Media/.meta/`, no renderer |
+| tool | `list_cards { groupId?, limit? }`, the OPEN project only. Every ref joins the allowlist, so `look` and `generate` take it, **a video included** - which is also the answer to "extend this clip" |
+| the boundary | a sidecar is untrusted JSON: a path outside the project's own `Media/` (or a `..` climbing out of it) gets NO ref. The allowlist exists because `look`/`generate` ship the file to an engine that may be a remote Pod |
+| prompt | a Cards rule (look before saying you cannot see it; **check before redoing a run that reported a failure**), and the App state line no longer lets "Images: none" read as "the project is empty" |
+
+Run read-only against his real project: 18 cards, 6 rows = 2.3 KB, `i2v_006.mp4` first, and
+`readCard` on it gives `Input_Duration: 6` and its start frame. One call would have answered
+"no clip was ever created".
+
+## Checks
+
+| Check | Result |
+|---|---|
+| `npm test` | **1462 pass, 0 fail, 1 skipped** (1439 at the start of the session) |
+| `npm run lint` | clean |
+| `tests/agent-cards.test.cjs` (new, 7) | pass, incl. the hostile-sidecar case and the loop case: `look` refuses the ref BEFORE `list_cards` and resolves it after, and no absolute path reaches the model |
+| `tests/agent-tools-post.test.cjs` (new, 3) | pass. Stubs `fetch` to THROW, so a revert to `fetch` goes red |
+| `tests/agent-no-delete.test.cjs` | pass on its own server, with the two read-only routes allowlisted |
+
+**Not live-verified:** `list_cards` and the `_post` transport both need an app RESTART and
+have not run in his app. The route, the service and the loop were each driven for real in
+tests; the agent actually CHOOSING to call `list_cards` is the part only a live turn shows.
+
 ## Still owed by Fabio, after this session
 
-- **A live outpaint.** Everything above is code- and pixel-verified; no generation was run.
-  `services/` and `routes/` changed, so it needs an app **RESTART**, not a reload.
+- ~~A live outpaint.~~ **Done 2026-09-19, see § LIVE above.**
 - The five Phase 7 steps and MPI-820's clip check, still unverdicted from the last session.
 - `MODEL_PINNED`, raw `injectionParams`, and the two held agent-prompting items — unchanged.
 - **Fault 4 of his report is NOT fixed and was not in scope:** the agent's deliberation

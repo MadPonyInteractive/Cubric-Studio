@@ -434,7 +434,7 @@ const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'styli
 router.post('/connector/generate', async (req, res) => {
   const {
     modelId, operation, positive, negative, injectionParams, flowId, fields, media,
-    ratio, qualityTier, turbo, styleSelect, stylization, batch, seed, params,
+    styleSelect, batch, seed, params,
   } = req.body || {};
 
   const _bad = (message) => res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message } });
@@ -458,12 +458,14 @@ router.post('/connector/generate', async (req, res) => {
     const model = findModelDef(modelId);
     if (!model) return _namedErr('UNKNOWN_MODEL', `No model with id "${modelId}".`);
 
+    // Built FROM the key list, never beside it. `duration` was once added to
+    // NAMED_PARAM_KEYS and to none of the hand-written lines that used to live here, so
+    // the route accepted it, validated nothing and dropped it (MPI-820, live 2026-09-19:
+    // the agent said "about 6 seconds" and the card came back 3S).
     const named = {};
-    if (ratio !== undefined) named.ratio = ratio;
-    if (qualityTier !== undefined) named.qualityTier = qualityTier;
-    if (turbo !== undefined) named.turbo = turbo;
-    if (styleSelect !== undefined) named.styleSelect = styleSelect;
-    if (stylization !== undefined) named.stylization = stylization;
+    for (const k of NAMED_PARAM_KEYS) {
+      if (req.body[k] !== undefined) named[k] = req.body[k];
+    }
 
     // `styleSelect` is an INDEX, but the only place a caller ever sees the rack is as
     // NAMES — `params.styles`, the list describe_model hands out. Live (Fabio,
@@ -506,11 +508,12 @@ router.post('/connector/generate', async (req, res) => {
       // MPI-765: same `[{ role, url }]` a Flow takes. Omitted when empty so a text
       // submit's job input keeps its exact pre-media shape.
       ...(Array.isArray(media) && media.length ? { media } : {}),
-      ...(ratio !== undefined ? { ratio } : {}),
-      ...(qualityTier !== undefined ? { qualityTier } : {}),
-      ...(turbo !== undefined ? { turbo } : {}),
+      // Every named param the body carried, from the same list that validated them.
+      ...Object.fromEntries(NAMED_PARAM_KEYS
+        .filter((k) => req.body[k] !== undefined)
+        .map((k) => [k, req.body[k]])),
+      // After the spread on purpose: a style named by label dispatches as its index.
       ...(styleSelectValue !== undefined ? { styleSelect: styleSelectValue } : {}),
-      ...(stylization !== undefined ? { stylization } : {}),
       ...(seed !== undefined ? { seed } : {}),
     };
 
@@ -834,6 +837,28 @@ router.post('/connector/memory', (req, res) => {
   const { folderPath, ...note } = req.body || {};
   return _memoryReply(res, (m) => m.writeNote(folderPath, note));
 });
+
+let _cardsMod = null;
+async function _cards() {
+    if (!_cardsMod) _cardsMod = await import('../services/agentCards.mjs');
+    return _cardsMod;
+}
+
+/**
+ * What a project already holds, read off disk (`services/agentCards.mjs`, MPI-817):
+ *   GET /connector/cards?folderPath=&limit=     -> { ok, cards, total, files }
+ *   GET /connector/cards/:groupId?folderPath=   -> { ok, card, files }
+ * `cards` is one short row a card, newest first; `card` is one in full: the whole prompt,
+ * the settings that ran and `madeFrom`. `files` maps every `ref` handed out to its absolute
+ * path, and only ever a file inside that project's own `Media/`. No renderer involved, so
+ * it answers with the app's window closed. Errors: BAD_REQUEST (400), NOT_A_PROJECT,
+ * UNKNOWN_CARD. They ride `_memoryReply` because they throw the same named error.
+ */
+router.get('/connector/cards', (req, res) =>
+  _memoryReply(res, async () => (await _cards()).listCards(req.query.folderPath, { limit: req.query.limit })));
+
+router.get('/connector/cards/:groupId', (req, res) =>
+  _memoryReply(res, async () => (await _cards()).readCard(req.query.folderPath, req.params.groupId)));
 
 /**
  * POST /connector/install { modelId }

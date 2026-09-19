@@ -13,6 +13,7 @@
  */
 
 import os from 'os';
+import http from 'node:http';
 import path from 'path';
 import crypto from 'crypto';
 import fs from 'fs/promises';
@@ -23,6 +24,13 @@ import fs from 'fs/promises';
 
 /** Base URL of this server's own HTTP surface. */
 function loopbackBase() {
+    // 3000 is the port a user's running app listens on. A unit test that reaches this line
+    // with no port of its own is about to talk to it - one did, 2026-09-19, and created a
+    // project in Fabio's Projects folder. `node --test` sets NODE_TEST_CONTEXT in every
+    // test process, so the default is refused there rather than trusted to a stub.
+    if (!process.env.CUBRIC_PORT && process.env.NODE_TEST_CONTEXT) {
+        throw new Error('agentTools: CUBRIC_PORT is unset under the test runner. Point it at a server the test owns; the default port is the user`s live app.');
+    }
     return `http://127.0.0.1:${process.env.CUBRIC_PORT || 3000}`;
 }
 
@@ -33,14 +41,36 @@ async function _get(p, timeoutMs = 10_000) {
     return res.json();
 }
 
-async function _post(p, body, timeoutMs = 1_800_000) {
-    const res = await fetch(`${loopbackBase()}${p}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(timeoutMs),
+/**
+ * `node:http`, deliberately NOT `fetch`. Node's fetch gives up on any response whose HEADERS
+ * take longer than 300 s, whatever `signal` says, and these routes answer only once the
+ * work is done: `/connector/generate` holds its response for the whole render. So the
+ * 30-minute budget below was never reachable, and every generation over five minutes came
+ * back `fetch failed` while the clip landed in the gallery regardless.
+ *
+ * Live, 2026-09-19: a 6 s H3 clip took 337 s. The chat said "fetch failed", the agent was
+ * told the run had failed, told the user "no clip was ever created", and RE-RAN the same
+ * five-minute render over a file that was sitting on disk. `http.request` has no such
+ * limit; `timeoutMs` is now the only clock.
+ */
+function _post(p, body, timeoutMs = 1_800_000) {
+    return new Promise((resolve, reject) => {
+        const req = http.request(`${loopbackBase()}${p}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(timeoutMs),
+        }, (res) => {
+            let text = '';
+            res.setEncoding('utf8');
+            res.on('data', (chunk) => { text += chunk; });
+            res.on('error', reject);
+            res.on('end', () => {
+                try { resolve(JSON.parse(text)); } catch (err) { reject(err); }
+            });
+        });
+        req.on('error', reject);
+        req.end(JSON.stringify(body));
     });
-    return res.json();
 }
 
 // ---------------------------------------------------------------------------
@@ -116,6 +146,15 @@ export async function renameCard(groupId, name) {
 export async function readMemory(folderPath, file) {
     const q = `?folderPath=${encodeURIComponent(String(folderPath ?? ''))}`;
     return _get(file ? `/connector/memory/${encodeURIComponent(String(file))}${q}` : `/connector/memory${q}`);
+}
+
+/**
+ * GET /connector/cards[/:groupId]?folderPath= — what the project already holds: the newest
+ * cards `{ ok, cards, total, files }`, or one card in full `{ ok, card, files }`.
+ */
+export async function listCards(folderPath, groupId, limit) {
+    const q = `?folderPath=${encodeURIComponent(String(folderPath ?? ''))}${limit ? `&limit=${encodeURIComponent(limit)}` : ''}`;
+    return _get(groupId ? `/connector/cards/${encodeURIComponent(String(groupId))}${q}` : `/connector/cards${q}`, 30_000);
 }
 
 /** POST /connector/memory { folderPath, file, title, hook?, text } — create or replace one note. */

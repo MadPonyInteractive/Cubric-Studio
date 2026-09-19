@@ -2,6 +2,46 @@
 
 ## Current State
 
+**SESSION a018e069 (2026-09-19 evening, from handoff 3839bdd9). FABIO'S THIRD PASS. 74be51fd
+RAN LIVE AND PASSED (outpaint to 9:16, chained into an H3 clip, his verdict 🎉), MPI-820's
+clip check has his eyes on BOTH halves, and three new faults came out of the same hour: two
+fixed, `list_cards` built on his go. 1462 unit tests, 0 fail, lint clean. NOTHING BUILT THIS
+SESSION HAS RUN IN HIS APP: `routes/` + `services/` changed, so it needs a RESTART.
+Evidence: `tasks/MPI-817/validation.md` § Session a018e069, `tasks/MPI-820/validation.md`.**
+
+- **THE ROUTE DROPPED THE AGENT'S `duration`** (chat "about 6 seconds", card 3S).
+  `POST /connector/generate` had it in `NAMED_PARAM_KEYS` and in none of the hand-written
+  lines under them. `named` and the job `input` are now BUILT FROM the key list. Verified
+  live after his restart: asked 6 → `Input_Duration: 6` → 141 frames → 5.875 s.
+- **THE DURATION RULE WAS PUSHING LONG**, and the dropped key had been hiding it. Rewritten
+  with his two anchors (reins + rear + shout = 3 s; add the gallop with a following camera
+  = 6 s) and "until the answer is back, say I ASKED for N". Live: 6 s for the gallop, 2 s
+  for a head turn, both his verdict "enough".
+- **`fetch failed` = NODE `fetch`'S 300 s HEADERS LIMIT**, measured (fetch dies 304.9 s,
+  `node:http` answers 310.0 s). A 337 s render came back "failed" with the file on disk and
+  the agent RE-RAN it. `agentTools._post` is `node:http` now.
+- **THAT FIX MADE `npm test` HIT HIS LIVE APP** and create a project called `__ARG__` (a
+  `globalThis.fetch` stub stopped covering the POSTs; the table defaults to :3000). Test
+  rebuilt on its own server; the table refuses the default port under `NODE_TEST_CONTEXT`.
+  **The `__ARG__` project is his to delete.**
+- **`list_cards`** (`services/agentCards.mjs`, `GET /connector/cards[/:groupId]`): the agent
+  could not see the project it sat in ("I can't see the duck image", eighteen cards). Two
+  hops, off `project.json` + sidecars, refs join the allowlist, a video included. A sidecar
+  path outside the project's `Media/` gets no ref.
+
+**THE SINGLE NEXT ACTION:** he restarts, then asks for something that points at an EXISTING
+card without attaching it ("extend that last video", "redo the duck clip but…"). Pass = the
+step log shows "Looking through the project" and it never says it cannot see the file. The
+same restart proves `_post`: any clip over five minutes landing with no red line.
+
+**Raised, not built** (all on `tasks/MPI-817/checklist.md`): a video cannot be ATTACHED to
+the agent (the gate is in `MpiPromptBox.js`, held by MPI-736); the agent offered a 768x1024
+video H3 cannot make (the ratio-snap message does not say the set is closed);
+`llmEngines.mjs`'s Ollama 600 s budget is really 300 s; a refused generate still shows
+"Starting generation"; loopback failures never reach `app.log`. Still owed by him from
+before: the five Phase 7 steps, the deliberation leak, MODEL_PINNED, injectionParams, the
+Prompt rule + showing the agent's real prompt.
+
 **SESSION c6414b8c (2026-09-19, from handoff 78b588ba). FABIO'S SECOND APP PASS: THE AGENT
 CANNOT OUTPAINT, AND COULD NOT CHAIN. The five Phase 7 steps and MPI-820's clip check are
 STILL unverdicted — he reported new faults instead, again. 1430 unit tests (1429 pass, 1

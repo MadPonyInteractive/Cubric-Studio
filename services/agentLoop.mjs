@@ -204,6 +204,21 @@ const TOOL_DEFS = [
     {
         type: 'function',
         function: {
+            name: 'list_cards',
+            description: 'What the open project ALREADY holds, read from its gallery cards and their sidecars: everything made before this conversation, by anyone. No groupId: the newest cards, one short row each (name, ref, kind, the model or flow and operation that made it, size, a clip\'s real length, the start of its prompt). A groupId: that one card in full, with the whole prompt, the settings that ran, and madeFrom, the refs it was made from. Every ref it returns can be passed to look, and to generate as media, a video included.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    groupId: { type: 'string', description: 'A groupId from the list, to read that one card in full.' },
+                    limit: { type: 'integer', description: 'How many cards to list, newest first. Default 12, at most 30.' },
+                },
+                additionalProperties: false,
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
             name: 'read_memory',
             description: 'Read your notes about the open project. No file: the list of notes. A file: that note in full.',
             parameters: {
@@ -479,7 +494,10 @@ export class AgentLoop {
             .map(([ref, img]) => (img.kind === 'attachment'
                 ? `${ref} (${img.name || 'attachment'})`
                 : `${ref}${img.modelId ? ` (made by ${img.modelId})` : ''}`));
-        return `[App state: ${where} Images you can look at: ${refs.length ? refs.join(', ') : 'none'}. A ref with no "made by" was not made here, so you do not know what made it — say so rather than guessing, and never assume it came from the model selected now.]`;
+        // "none" here once read as "the project is empty": live, 2026-09-19, the agent told
+        // Fabio it could not see the duck picture in a project holding eighteen cards.
+        const more = project ? ' That is only what THIS conversation has touched; the project holds more, and list_cards reaches it.' : '';
+        return `[App state: ${where} Images you can look at: ${refs.length ? refs.join(', ') : 'none'}.${more} A ref with no "made by" was not made here, so you do not know what made it — say so rather than guessing, and never assume it came from the model selected now.]`;
     }
 
     /**
@@ -709,7 +727,7 @@ Model rule: first the TASK, then the model. The task comes from what the user as
 
 Settings rule: list_models is the short list and carries no settings. Once you have picked a model or a Flow, call describe_model with its id: it gives each op its params (the only ratio, qualityTier, turbo and styleSelect values that op accepts; styleSelect takes a label from params.styles or its index), the media roles it takes, a Flow's fields and boxes, and its guide ids. Never send a value its params do not list. Start every setting at its default and raise one only when the user's own words asked for it: quality stays at the lowest tier until they want it sharper or bigger, turbo and stylization stay alone, and a style is worth reaching for only when they named a look the rack has. Ratio you infer from words that imply a shape (a platform, portrait, widescreen). Unsure which shape a platform wants, or whether a style is worth it: read_knowledge "app:formats".
 
-Duration rule: a clip op takes duration, in seconds, and it is the ONE setting you judge for yourself rather than leave at its default - the user describes an action, and you decide how long that action needs. Count what has to happen. One continuous beat is short; every added beat costs seconds, and a camera move that travels needs longer than one that holds. A clip that ends mid-action is the common failure, and it is worse than one a little too long. The user naming a length always wins. What you ask for is not always what you get: the answer reports the real durationSeconds, so say THAT number, never the one you asked for.
+Duration rule: a clip op takes duration, in seconds, and it is the ONE setting you judge for yourself rather than leave at its default - the user describes an action, and you decide how long that action needs. Count what has to happen, then budget LESS than your first instinct: you overestimate. Quick beats chain and overlap, they do not each take their own seconds. Measured in this app: a rider pulls the reins, the pony rears up and the rider shouts one short line is three beats and fits in 3 seconds with room to spare. 6 seconds is that same action PLUS the pony breaking into a run with the camera following it. So what earns more seconds is a sustained action, a camera move that travels, or a long spoken line, not the beat count alone. Both misses are failures: a clip that ends mid-action, and a clip whose action finishes early and then idles, which also costs the user a longer wait for nothing. The user naming a length always wins. What you ask for is not always what you get: the answer reports the real durationSeconds, so say THAT number, never the one you asked for. Until that answer is back you only know what you ASKED for, so say "I asked for N seconds" and never state a length as fact.
 
 Numbering rule: "picture 2", "image 2" or "2" in a message means that message's attached image 2, never an image from an earlier turn. Pass that attachment's id.
 
@@ -726,6 +744,8 @@ Guide rule: before your first prompt for a model, read its prompting guide: desc
 Installation rule: Always call install_model to show the user a Yes / No confirmation card. Never install a model without a Yes from the user, regardless of mode.
 
 Project rule: a generation lands in the open project. Never invent a folder path: open_project only takes a folderPath from list_projects or create_project, or one the user typed. To open a project by name, find it with list_projects. With no project open: if the user asks for anything to be MADE, create a project named after what they are making (create_project opens it for you) and make it in that same turn — never ask them to open or create one first, that is your job. Background they give you (the story, the era, who the characters are) is material for the work, never a reason to stop: note what will matter later with write_memory, then still make what they asked for, all of it. Only when they describe a project and ask for NOTHING to be made do you end the turn by asking what they want first.
+
+Cards rule: the App state line lists only what this conversation has touched. The open project holds everything made before it, and list_cards reads it. When the user points at something already there ("the duck video", "the last one", "that picture", a card's name) and no ref for it is listed, call list_cards BEFORE telling them you cannot see it and before asking them to attach anything. Read one card in full when its prompt or settings matter: to redo it with a change, to continue it, or to work out what was made from what (madeFrom). What a card says it ran is the truth about that file; your own memory of a run is not. If a generation of yours reported a failure, check list_cards before you redo it: the file may have landed anyway, and a second run of the same thing wastes minutes of the user's GPU.
 
 Docs rule: when you cannot answer a question about the app itself — a feature you have no tool for, a screen you cannot see, a setting you do not know — say so plainly and point them at the documentation as a markdown link, [the documentation](https://docs.cubric.studio). Offer it instead of guessing at how the app works. It is for questions about Vision, not for image or video advice, which is yours to answer.
 
@@ -1028,6 +1048,22 @@ ${knowledgeIndex}`.trim();
                     return JSON.stringify({ ok: false, error: { code: 'UNKNOWN_CARD', message: 'You can only name cards you generated in this conversation: use the card id a finished generation reported.' } });
                 }
                 return JSON.stringify(await this._tools.renameCard(args.groupId, args.name));
+            }
+            case 'list_cards': {
+                // The project is the one the app has open, never a path the model names.
+                if (!currentProject?.folderPath) {
+                    return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'No project is open, so there are no cards to list.' } });
+                }
+                const r = await this._tools.listCards(currentProject.folderPath, args.groupId, args.limit);
+                if (!r?.ok) return JSON.stringify(r);
+                // `files` is the allowlist's half, not the model's: every ref it lists is a
+                // file inside this project's own Media/ (the service checks), and from here
+                // on `look` and `generate` resolve it like one of this session's own results.
+                const { files = {}, ...seen } = r;
+                for (const [ref, f] of Object.entries(files)) {
+                    this._images.set(ref, { path: f.path, kind: 'result', modelId: f.modelId || null });
+                }
+                return JSON.stringify(seen);
             }
             case 'read_memory':
             case 'write_memory': {
@@ -1479,6 +1515,7 @@ function _toolLabel(toolName, args) {
         case 'create_project': return `Creating project: ${args.name || ''}`;
         case 'open_project':   return `Opening project`;
         case 'rename_card':    return `Naming a card: ${args.name || ''}`;
+        case 'list_cards':     return args.groupId ? 'Reading a card' : 'Looking through the project';
         case 'read_memory':    return args.file ? 'Reading a project note' : 'Reading project notes';
         case 'write_memory':   return `Noted: ${args.title || args.file || ''}`;
         default:               return toolName;
