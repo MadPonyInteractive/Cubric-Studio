@@ -38,14 +38,35 @@ That is the gate MPI-780 depends on, firing on a package exactly as it did built
 
 `FLOWS` now holds **13** built-in flows and neither departed id is among them.
 
-### Still outstanding: one real generation
+### A REAL generation from the package — ran and passed (2026-09-19)
 
-`reason: null` means the weights are all present on this box, so a generation is possible —
-it just needs the GPU (under `gpu_lease.py`) and an app with a project open, which the
-throwaway spec is not. DramaBox is the cheap one (text in, ~5s of audio out, no media to
-stage); Head Swap needs two plates and two boxes. Not run: it spends GPU, and the two
-things that were actually in doubt — the loader accepting the packages, and the licence
-gate firing — are now proved.
+Fabio asked for DramaBox. Run on an isolated instance (`npm run app:isolated`, port 56295,
+own profile) with **`APP_DOCUMENTS` pointed at a scratch dir**, so the project, the
+project-paths registry and the landing list were all scratch — the dev app on 3000 was
+never touched and nothing reached `Documents`. Dispatched `flowId: "user:drama-box"` through
+`/connector/generate` under `gpu_lease.py`.
+
+```
+HTTP 200 after 40.3 s
+{"ok":true,"output":{"type":"audio","filePath":"…/Media/flowDramaBox_001.flac",
+ "seed":970733971,"generationMs":39792,"cardName":"MPI-781 package proof"}}
+```
+
+- **`flowDramaBox_001.flac`** — the explicit `op.filePrefix` did its job. Without it the file
+  would have been named off the title. That was the single most likely way to ship this
+  package wrong, and it is now proved right end to end.
+- Real audio, not silence: 48 kHz stereo FLAC, 313 KB, `mean_volume -16.3 dB`,
+  `max_volume 0.0 dB` (measured with `volumedetect`; `ebur128` reads the silence floor).
+- **6.09 s for a 6 s ask** — upstream's 8n+1 latent grid at 25 fps, exactly as the FlowDef
+  documents. Not drift.
+- The card landed named, in the gallery, with a sidecar.
+
+So the package path is proved whole: authored outside the app → validated → installed →
+listed → gated → dispatched → a real file on disk with the right name.
+
+**Head Swap's own generation was not run** (two plates and two boxes to stage, and the GPU
+cost). Everything short of the pixels is proved for it: registers, tiles, `reason: null`,
+and the FLUX Non-Commercial gate unaccepted.
 
 ## Known, deliberate, and left
 
