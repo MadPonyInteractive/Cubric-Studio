@@ -693,9 +693,15 @@ test('gif second pass: Shift ranges the strip, the mask toggles carry between to
     // `state.currentProject`. Both clicks below are in ONE synchronous task,
     // so not a millisecond of that debounce can elapse between them — which is
     // exactly the window a real toggle-then-switch lands in.
-    const invertOn = () => window.evaluate(() =>
-      !!document.querySelector('.mpi-mask-strip__invert')?.classList.contains('is-active'));
-    expect(await invertOn(), 'invert starts off').toBe(false);
+    // Read the CANVAS, not the button. The button's `is-active` class is set by
+    // the strip itself and survives a mount that never reached the canvas, so an
+    // assertion on it passes under the bug - the trap this card has now hit four
+    // times. `isMaskInverted()` is the mask's own state.
+    const invertOn = () => window.evaluate(() => ({
+      canvas: !!document.querySelector('.mpi-gif-viewer').isMaskInverted(),
+      button: !!document.querySelector('.mpi-mask-strip__invert')?.classList.contains('is-active'),
+    }));
+    expect(await invertOn(), 'invert starts off').toEqual({ canvas: false, button: false });
     await window.evaluate(() => {
       // The strip's invert is an ICON button, and MpiButton's icon mode makes the
       // <button> itself the root — there is no inner one to reach for.
@@ -706,7 +712,37 @@ test('gif second pass: Shift ranges the strip, the mask toggles carry between to
       const cv = document.querySelector('.mpi-gif-viewer__edit .mpi-canvas');
       return !!cv && cv.activeMode === 'mask';
     }), { timeout: 15000 }).toBe(true);
-    expect(await invertOn(), 'the Mask Brush must inherit the invert Cut-out just set').toBe(true);
+    expect(await invertOn(), 'the Mask Brush must inherit the invert Cut-out just set')
+      .toEqual({ canvas: true, button: true });
+
+    // ── 3b. Double-click snaps the view back, in a mask tool that does not paint ──
+    // Same narrowing as Space: the gate was "a mask mode is up", so Cut-out - which
+    // mounts the strip with `brush: false` and therefore pans on a bare drag - could
+    // not double-click back to fit either (Fabio, 2026-09-19). The Mask Brush keeps
+    // it, where a double-click is two dabs.
+    await openTool('Cut-out');
+    await expect.poll(stripUp, { timeout: 15000 }).toBe(true);
+    const zoomOut = () => window.evaluate(() => {
+      const cv = document.querySelector('.mpi-gif-viewer__edit .mpi-canvas');
+      cv.isManagedView = false;
+      cv.scale = cv.scale * 3;
+      cv.offsetX -= 40;
+      return cv.scale;
+    });
+    const zoomed = await zoomOut();
+    await window.locator('.mpi-gif-viewer__edit .mpi-canvas').dblclick({ position: { x: 20, y: 20 } });
+    await expect.poll(() => window.evaluate(() =>
+      document.querySelector('.mpi-gif-viewer__edit .mpi-canvas').scale), { timeout: 5000 })
+      .not.toBe(zoomed);
+
+    // Back to the Mask Brush: the two sections below are about the tool that DOES
+    // own the drag, and the tint one needs a plain mask rather than Cut-out's
+    // flipped override (which never nulls, so the tint would not hide at all).
+    await openTool('Mask Brush');
+    await expect.poll(() => window.evaluate(() => {
+      const cv = document.querySelector('.mpi-gif-viewer__edit .mpi-canvas');
+      return !!cv && cv.activeMode === 'mask';
+    }), { timeout: 15000 }).toBe(true);
 
     // ── 4. Space is still the CANVAS's where the tool owns the drag ─────
     // The Mask Brush paints on a bare drag, so hold-Space is its only pan and

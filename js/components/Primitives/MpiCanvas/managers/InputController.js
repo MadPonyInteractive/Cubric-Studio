@@ -405,8 +405,15 @@ export class InputController {
         });
 
         // DblClick: Reset
+        // Gated on whether the TOOL OWNS THE DRAG, not on "a mask mode is up" —
+        // the same narrowing Space needed (MPI-771, Fabio's second pass). A mask
+        // mode that does not paint (`brush: false`, e.g. the GIF Cut-out) leaves
+        // the pointer to the view: a bare drag already pans there, so a
+        // double-click is a view gesture too and must snap back to fit. Only a
+        // mode that is actually painting keeps it, where a double-click is two
+        // dabs and resetting the view mid-stroke would be wrong.
         this._boundHandlers.dblclick = () => {
-            if (!mask.isMaskingMode || this.isSpacePressed) {
+            if (!mask.isMaskingMode || !mask.paintEnabled || this.isSpacePressed) {
                 this.options.onResetView();
             }
         };
