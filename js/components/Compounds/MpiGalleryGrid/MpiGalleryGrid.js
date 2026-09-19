@@ -256,7 +256,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 .map(id => _groups.find(g => g.id === id))
                 .filter(Boolean);
             if (!selected.length) return;
-            emit('delete', { groups: selected, source: 'hotkey' });
+            emit('delete', { groups: selected });
             _exitSelectionMode();
         }
 
@@ -1542,11 +1542,20 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 Events.emit('ui:context-menu', {
                     x: e.clientX,
                     y: e.clientY,
+                    // MPI-821: three groups, separated, coarse → fine → irreversible.
+                    // Top makes something NEW from the selection, middle edits this
+                    // card's own data, bottom touches FILES and the system and ends in
+                    // the two answers to "get this off my gallery". Every row carries
+                    // `info`: this app has no tooltips, so MpiButton's `data-info` is
+                    // the only place a menu row can explain itself, and a greyed row
+                    // with no reason is the worst case.
                     items: [
-                        { key: 'compare',    icon: 'compare',  label: 'Compare',    disabled: compareDisabled },
-                        { key: 'combine',    icon: 'merge',     label: 'Combine',    disabled: combineDisabled },
-                        { key: 'make-gif',   icon: 'gif',       label: 'Make GIF',   disabled: makeGifDisabled, info: makeGifInfo },
-                        { key: 'add-to-project', icon: 'folder', label: 'Add to project' },
+                        { key: 'compare',    icon: 'compare',   label: 'Compare',    disabled: compareDisabled,
+                            info: compareDisabled ? 'Select exactly 2 cards to compare' : 'Open the two cards side by side' },
+                        { key: 'combine',    icon: 'merge',     label: 'Combine',    disabled: combineDisabled,
+                            info: combineDisabled ? 'Select 2 or more video cards to combine' : 'Join the selected clips into one video, in click order' },
+                        { key: 'make-gif',   icon: 'gif',       label: 'Make GIF',   disabled: makeGifDisabled,
+                            info: makeGifInfo ?? 'Build a GIF from the selected stills, in click order' },
                         // Count comes off the ELIGIBLE set, not the selection: a
                         // mixed image+video pick filters to the op's type rather
                         // than refusing, so `Cue all (3)` on a 3-image/2-video
@@ -1554,23 +1563,42 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         { key: 'cue-all',    icon: 'layers',    info: _cueInfo,
                             label: _cue.eligible.length ? `Cue all (${_cue.eligible.length})` : 'Cue all',
                             disabled: !_cue.eligible.length },
-                        { key: 'reveal',     icon: 'folder',    label: 'Open in file system' },
-                        { key: 'rename',     icon: 'edit',      label: 'Rename',     disabled: targetIds.length !== 1 },
-                        { key: 'card-notes', icon: 'text',      label: 'Card notes', disabled: targetIds.length !== 1 },
+
+                        { separator: true },
+
+                        { key: 'rename',     icon: 'edit',      label: 'Rename',     disabled: targetIds.length !== 1,
+                            info: targetIds.length !== 1 ? 'Rename works on one card at a time' : 'Give this card your own name' },
+                        { key: 'card-notes', icon: 'text',      label: 'Card notes', disabled: targetIds.length !== 1,
+                            info: targetIds.length !== 1 ? 'Notes are written on one card at a time' : 'Write a note on this card' },
                         // MPI-310 — single image only: the captioner reads one image
                         // and writes one prompt, so a multi-select has no meaning.
                         { key: 'describe',   icon: 'chat',      label: 'Describe image',
-                            disabled: targetIds.length !== 1 || _selectedVideoCount > 0 },
-                        { key: 'download',   icon: 'download',  label: 'Download' },
-                        // MPI-821: Archive sits next to Delete, not mid-list. The two are
-                        // the same decision — "get this off my gallery" — and Archive is
-                        // the answer for nearly all of it now that it replaces the hidden
+                            disabled: targetIds.length !== 1 || _selectedVideoCount > 0,
+                            info: targetIds.length !== 1
+                                ? 'Describe reads one image at a time'
+                                : (_selectedVideoCount > 0 ? 'Describe reads a still image, not a video' : 'Caption this image into a prompt') },
+
+                        { separator: true },
+
+                        { key: 'add-to-project', icon: 'folder', label: 'Add to project',
+                            info: 'Copy the selected cards into another project' },
+                        { key: 'reveal',     icon: 'folder',    label: 'Open in file system',
+                            info: 'Show the media file in your file browser' },
+                        { key: 'download',   icon: 'download',  label: 'Download',
+                            info: 'Save a copy of the selected media outside the project' },
+                        // MPI-821: Archive sits next to Delete. The two are the same
+                        // decision — "get this off my gallery" — and Archive is the
+                        // answer for nearly all of it now that it replaces the hidden
                         // reuse-asset store. Labelled off the card's OWN state, not the
                         // scope: the scope gate makes any visible selection homogeneous —
                         // every card in view shares one `archived` value — so there is no
                         // mixed case to resolve here (MPI-678).
-                        { key: 'archive',    icon: 'archive',   label: group.archived ? 'Return to gallery' : 'Archive' },
-                        { key: 'delete',     icon: 'trash',     label: 'Delete',     danger: true },
+                        { key: 'archive',    icon: 'archive',   label: group.archived ? 'Return to gallery' : 'Archive',
+                            info: group.archived
+                                ? 'Put these cards back in the gallery'
+                                : 'Put these cards away. Nothing is deleted and Reuse keeps working' },
+                        { key: 'delete',     icon: 'trash',     label: 'Delete',     danger: true,
+                            info: 'Permanently delete these cards and their media files' },
                     ],
                     onSelect: (key) => {
                         const selected = targetIds
@@ -1594,7 +1622,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         }
                         if (key === 'describe')   emit('describe', { group: selected[0] });
                         if (key === 'download')   emit('download', { groups: selected });
-                        if (key === 'delete')     emit('delete',   { groups: selected, source: 'context' });
+                        if (key === 'delete')     emit('delete',   { groups: selected });
                         if (useSelection) _exitSelectionMode();
                     },
                 });

@@ -8,6 +8,8 @@
 //  - the delete confirm offers a THIRD action. Cancel / Archive / Delete, with Delete
 //    still the `ok` — Enter was the gesture that opened the dialog, so Enter must not
 //    quietly archive instead.
+const fs = require('fs');
+const path = require('path');
 const { test, expect } = require('@playwright/test');
 const { launchApp, closeApp } = require('./launch');
 
@@ -51,29 +53,93 @@ async function mountGrid(window, groups) {
   }, groups);
 }
 
-test('Archive sits directly above Delete in the card context menu', async ({}, testInfo) => {
+test('the card context menu is three separated groups, every row explaining itself', async ({}, testInfo) => {
   const { app, window } = await launchApp(testInfo);
 
   try {
     await window.waitForTimeout(6000);
     await mountGrid(window, fixtureGroups());
 
-    const keys = await window.evaluate(async () => {
+    const rows = await window.evaluate(async () => {
       const card = document.querySelector('#del-host .mpi-gallery-grid__row-wrap .mpi-group-card');
       card.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 40, clientY: 40 }));
       await new Promise(r => setTimeout(r, 200));
-      const ks = [...document.querySelectorAll('.mpi-ctx-menu__item')].map(el => el.dataset.key);
+      const out = [...document.querySelector('.mpi-ctx-menu').children].map(el => ({
+        key: el.classList.contains('mpi-ctx-menu__sep') ? '--' : el.dataset.key,
+        // `data-info` lands on the BUTTON MpiButton renders, which is the row itself.
+        info: el.getAttribute('data-info') || '',
+      }));
       document.body.click();
-      return ks;
+      return out;
     });
 
-    expect(keys).toContain('archive');
-    expect(keys).toContain('delete');
-    // Adjacency, not just membership — a re-order that drops Archive back into the
-    // middle of the list still contains both keys.
-    expect(keys.indexOf('archive')).toBe(keys.indexOf('delete') - 1);
-    // Delete stays last: it is the danger entry and the menu's floor.
-    expect(keys[keys.length - 1]).toBe('delete');
+    // Coarse → fine → irreversible: make something new, edit this card, touch files.
+    expect(rows.map(r => r.key)).toEqual([
+      'compare', 'combine', 'make-gif', 'cue-all',
+      '--',
+      'rename', 'card-notes', 'describe',
+      '--',
+      'add-to-project', 'reveal', 'download', 'archive', 'delete',
+    ]);
+
+    // This app has no tooltips, so `data-info` is the only way a row can explain
+    // itself — and a greyed row with no reason is the case that actually hurts.
+    const silent = rows.filter(r => r.key !== '--' && !r.info).map(r => r.key);
+    expect(silent).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+test('right-click Delete opens the confirm instead of deleting on the spot', async ({}, testInfo) => {
+  const { app, window } = await launchApp(testInfo);
+
+  try {
+    await window.waitForTimeout(6000);
+
+    // The real MpiGalleryBlock, not a standalone grid: the short-circuit this pins
+    // lived in the BLOCK's `delete` handler, which only exists on the gallery page.
+    await window.evaluate(async () => {
+      const { Events } = await import('/js/events.js');
+      Events.emit('engine:install-skipped');
+      await new Promise(r => setTimeout(r, 300));
+    });
+
+    const folderPath = testInfo.outputPath('delete-project');
+    fs.mkdirSync(folderPath, { recursive: true });
+    const project = {
+      id: 'e2e-delete', name: 'E2E Delete', modelSettings: {},
+      itemGroups: fixtureGroups().slice(0, 1),
+    };
+    fs.writeFileSync(path.join(folderPath, 'project.json'), JSON.stringify(project, null, 2));
+
+    await window.evaluate(async (p) => {
+      const [{ state }, { navigate, PAGE_GALLERY }] = await Promise.all([
+        import('/js/state.js'), import('/js/router.js'),
+      ]);
+      state.currentProject = p;
+      navigate(PAGE_GALLERY);
+      await new Promise(r => setTimeout(r, 1200));
+    }, { ...project, folderPath: folderPath.replace(/\\/g, '/') });
+
+    const after = await window.evaluate(async () => {
+      const card = document.querySelector('.mpi-gallery-grid__row-wrap .mpi-group-card');
+      card.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, clientX: 60, clientY: 60 }));
+      await new Promise(r => setTimeout(r, 250));
+      document.querySelector('.mpi-ctx-menu__item[data-key="delete"]').click();
+      await new Promise(r => setTimeout(r, 400));
+      const dialog = document.querySelector('.mpi-ok-cancel');
+      return {
+        dialogShown: !!dialog,
+        actions: dialog ? [...dialog.querySelectorAll('.mpi-ok-cancel__actions .mpi-btn')].map(b => b.textContent.trim()) : [],
+        cardStillThere: !!document.querySelector('.mpi-gallery-grid__row-wrap .mpi-group-card'),
+      };
+    });
+
+    expect(after.dialogShown).toBe(true);
+    expect(after.actions).toEqual(['Cancel', 'Archive', 'Delete']);
+    // The whole point: nothing was deleted by the time the dialog appeared.
+    expect(after.cardStillThere).toBe(true);
   } finally {
     await closeApp(app);
   }

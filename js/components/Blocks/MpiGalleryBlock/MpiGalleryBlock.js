@@ -1178,11 +1178,10 @@ export const MpiGalleryBlock = ComponentFactory.create({
 
         _deleteDialog.on('cancel', () => { _pendingDeleteGroups = []; });
 
-        grid.on('delete', ({ groups: g, source }) => {
-            if (source === 'context') {
-                _runGalleryDelete(g);
-                return;
-            }
+        // MPI-821: EVERY delete goes through the dialog. Right-click → Delete used to
+        // wipe the cards and their files with no confirmation at all, which also made
+        // the dialog's Archive reachable only from the Delete key.
+        grid.on('delete', ({ groups: g }) => {
             _pendingDeleteGroups = g;
             _deleteDialog.el.show();
         });

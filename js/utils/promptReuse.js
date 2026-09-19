@@ -85,11 +85,14 @@ function _mediaItemsFromPreviewAssets(item = {}) {
         }));
 }
 
-// MPI-227: the sidecar snapshot filePath is authoritative — the store is now
-// content-addressed, flat, and permanent (migration rewrites old per-item refs to
-// the flat SHA path). The old `_materializedPreviewAssetMediaItems` probed the
-// per-item `.preview-assets/<id>/startFrame.png` layout via /file-exists; that
-// path no longer exists, so we read the snapshot ref directly.
+// The sidecar snapshot ref is authoritative, read directly — the old
+// `_materializedPreviewAssetMediaItems` probed a per-item
+// `.preview-assets/<id>/startFrame.png` layout via /file-exists that no longer
+// exists (MPI-227). MPI-821 made that ref the SOURCE CARD's own url rather than a
+// copy in the store, so `_mediaItemsFromPreviewAssets` takes `filePath || url`:
+// `filePath` for sidecars written while the copy store was live, `url` for every
+// one written since. A source card the user deleted takes its inputs with it, and
+// `resolvePromptReuseMediaItems` below HEADs them out.
 function _previewAssetMediaItems(item = {}) {
     if (!_opAcceptsImageInput(item)) return [];
     return _mediaItemsFromPreviewAssets(item);

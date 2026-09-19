@@ -28,7 +28,7 @@ const logger = require('./logger');
 const { concatVideos } = require('../services/videoConcat');
 const { probeVideo }   = require('../services/ffprobeVideo');
 const { writeVideoDerivatives } = require('../services/ffmpegThumb');
-const { materializeGenerationFrameSnapshots, nextSequence } = require('./projects');
+const { nextSequence } = require('./projects');
 
 // ── SSE channel ──────────────────────────────────────────────────────────────
 const _clients = new Set();
@@ -303,28 +303,15 @@ router.post('/extend-video', async (req, res) => {
 
         // Reuse Prompt metadata: attach the underlying i2v generation snapshot so
         // the extended entry replays Duration/ratio/model from the values the user
-        // had at Extend press (NOT the combined clip length), and materialize the
-        // start-frame image into the content-addressed .preview-assets/ store
-        // (MPI-227) so Reuse Prompt can load it. Materialization is gated on the
-        // i2v `op`; the extend item's own operation stays 'extend'.
+        // had at Extend press (NOT the combined clip length). The extend item's own
+        // operation stays 'extend'.
+        //
+        // MPI-821: the start-frame image is no longer copied into
+        // `.preview-assets/`. `generationSettings.mediaItems` already names it by its
+        // own project url, so Reuse re-chips the source card; if that card was
+        // deleted, `resolvePromptReuseMediaItems` HEADs the url and drops it.
         if (generationSettings && typeof generationSettings === 'object') {
-            let gs = generationSettings;
-            let previewAssets = null;
-            try {
-                const materialized = await materializeGenerationFrameSnapshots({
-                    projectRoot: folderPath,
-                    mediaDir,
-                    itemId: sidecar.id,
-                    operation: op,
-                    generationSettings,
-                });
-                gs = materialized.generationSettings;
-                previewAssets = materialized.previewAssets;
-            } catch (snapErr) {
-                logger.warn('project', `extend: frame snapshot materialization failed: ${snapErr.message}`);
-            }
-            sidecar.generationSettings = gs;
-            if (previewAssets) sidecar.previewAssets = previewAssets;
+            sidecar.generationSettings = generationSettings;
             await fs.writeJson(path.join(metaDir, `${sidecar.id}.json`), sidecar, { spaces: 2 });
         }
 

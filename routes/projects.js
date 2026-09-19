@@ -376,14 +376,6 @@ async function copySnapshotSource(sourceUrl, targetPath) {
     await fs.copy(localPath, targetPath, { overwrite: true });
 }
 
-function snapshotExt(sourceUrl) {
-    if (String(sourceUrl || '').startsWith('data:')) return extFromDataUrl(sourceUrl);
-    const projectPath = decodeProjectFilePath(sourceUrl);
-    const sourcePath = projectPath || sourceUrl || '';
-    const ext = path.extname(sourcePath.split('?')[0]).toLowerCase();
-    return ext && ext.length <= 8 ? ext : '.png';
-}
-
 function computeFileSha256(filePath) {
     return new Promise((resolve, reject) => {
         const hash = crypto.createHash('sha256');
@@ -402,7 +394,7 @@ function computeFileSha256(filePath) {
  * deletes — only the manual Cleanup command wipes the store.
  *
  * @param {string} sourceUrl  data:/project-file/http(s)/local path (copySnapshotSource inputs)
- * @param {string} ext        file extension incl. leading dot (from snapshotExt)
+ * @param {string} ext        file extension incl. leading dot
  * @param {string} mediaDir   project Media dir
  * @param {string} projectRoot project root for relativePath
  * @returns {Promise<{filePath, relativePath, absPath, sha256}>}
@@ -577,11 +569,6 @@ async function materializePreviewAssets({ projectRoot, mediaDir, itemId, stage, 
         latent: null,
         snapshots: [],
     };
-    let nextFrozenParams = frozenParams ? { ...frozenParams } : frozenParams;
-    const frozenMediaItems = Array.isArray(nextFrozenParams?.mediaItems)
-        ? nextFrozenParams.mediaItems.map(item => ({ ...item }))
-        : [];
-
     const latentDir = path.join(mediaDir, '.latents');
     await fs.ensureDir(latentDir);
 
@@ -626,142 +613,32 @@ async function materializePreviewAssets({ projectRoot, mediaDir, itemId, stage, 
 
     result.latent = await _materializeLatent(previewAssets.latent, `${itemId}.latent`);
 
+    // MPI-821: the snapshot is a REFERENCE now, not a copy. It used to place each
+    // input image into `Media/.preview-assets/<sha256>` so Reuse could re-chip it
+    // after the source card was deleted; Archive covers that case instead, so the
+    // source stays a real gallery card and the ref points straight at it. A ref to a
+    // card the user really did delete is dropped by `resolvePromptReuseMediaItems`,
+    // which HEADs every url before it chips anything — accepted, and what every other
+    // app does.
+    //
+    // `frozenParams.mediaItems` is therefore left alone: it already carries the same
+    // urls, and the rewrite that pointed it at the copy is gone with the copy.
     const snapshotRequests = Array.isArray(previewAssets.snapshots) ? previewAssets.snapshots : [];
-    if (snapshotRequests.length) {
-        for (const request of snapshotRequests) {
-            // MPI-295: snapshot ANY declared image input, keyed by its own slot-role
-            // (inputImage/inputImage2/startFrame/endFrame/…), not just frame roles.
-            if (!request?.url || !request.role) continue;
-            const ext = snapshotExt(request.url);
-            const meta = {
-                role: request.role,
-                mediaType: request.mediaType || 'image',
-                originalUrl: request.url,
-                status: 'available',
-            };
-            try {
-                // MPI-227: content-addressed flat store — dedup by bytes, permanent.
-                const placed = await placeContentAsset(request.url, ext, mediaDir, projectRoot);
-                meta.filename = path.basename(placed.absPath);
-                meta.relativePath = placed.relativePath;
-                meta.filePath = placed.filePath;
-            } catch (err) {
-                logger.warn('project', 'preview snapshot materialization failed', err.message);
-                meta.status = 'missing';
-                meta.error = err.message;
-            }
-            result.snapshots.push(meta);
-
-            if (meta.status === 'available') {
-                const idx = frozenMediaItems.findIndex(item =>
-                    (request.id && item.id === request.id) ||
-                    (request.role && item.role === request.role)
-                );
-                if (idx !== -1) {
-                    frozenMediaItems[idx] = {
-                        ...frozenMediaItems[idx],
-                        originalUrl: frozenMediaItems[idx].originalUrl || frozenMediaItems[idx].url,
-                        url: meta.filePath,
-                        source: 'previewAsset',
-                    };
-                }
-            }
-        }
-    }
-
-    if (nextFrozenParams && Array.isArray(nextFrozenParams.mediaItems)) {
-        nextFrozenParams = {
-            ...nextFrozenParams,
-            mediaItems: frozenMediaItems,
-        };
-    }
-
-    return { frozenParams: nextFrozenParams, previewAssets: result };
-}
-
-// MPI-295: role-agnostic. Persist whatever slot-key role the chip already carries
-// (assigned from the op's mediaInputs slot.key by MpiPromptBox._withAssignedRoles —
-// e.g. krea2Edit's inputImage/inputImage2, i2v's startFrame/endFrame). The generic
-// snapshot plumbing must NOT invent or force startFrame/endFrame by index; that
-// destroyed multi-image edit roles (both chips tagged startFrame/endFrame → restore
-// & reuse collapse). The positional startFrame/endFrame fallback survives ONLY for
-// legacy role-less i2v chips (an untagged first/second image → the i2v frame slots).
-function _snapshotRoleForMediaItem(item, index, usedRoles) {
-    if (item?.role) return item.role;
-    if (index === 0 && !usedRoles.has('startFrame')) return 'startFrame';
-    if (index === 1 && !usedRoles.has('endFrame')) return 'endFrame';
-    return null;
-}
-
-// Snapshot the INPUT image(s) of any image-input op (i2i, edit, i2v, …) into the
-// content-addressed store so Reuse Prompt can resurface them (MPI-227 wired only
-// i2v; i2i/edit had image inputs but never snapshotted → "Use Images" reuse was
-// dead for every image-edit card). Gate is the presence of image mediaItems, not
-// the op name: t2i/t2v have no image input → imageItems empty → bail below. Only
-// generationSettings.mediaItems (the inputs) are read, never the output.
-async function materializeGenerationFrameSnapshots({ projectRoot, mediaDir, itemId, operation, generationSettings }) {
-    if (!generationSettings || typeof generationSettings !== 'object') {
-        return { generationSettings, previewAssets: null };
-    }
-
-    const mediaItems = Array.isArray(generationSettings.mediaItems)
-        ? generationSettings.mediaItems.map(item => ({ ...item }))
-        : [];
-    const imageItems = mediaItems
-        .map((item, index) => ({ item, index }))
-        .filter(({ item }) => item?.mediaType === 'image' && (item.url || item.filePath));
-    if (!imageItems.length) return { generationSettings, previewAssets: null };
-
-    const snapshots = [];
-    const usedRoles = new Set();
-    for (const { item, index } of imageItems) {
-        const role = _snapshotRoleForMediaItem(item, index, usedRoles);
-        if (!role || usedRoles.has(role)) continue;
-        usedRoles.add(role);
-
-        const sourceUrl = item.url || item.filePath;
-        const ext = snapshotExt(sourceUrl);
-        const meta = {
-            role,
-            mediaType: 'image',
-            originalUrl: sourceUrl,
+    for (const request of snapshotRequests) {
+        // MPI-295: record ANY declared image input, keyed by its own slot-role
+        // (inputImage/inputImage2/startFrame/endFrame/…), not just frame roles.
+        if (!request?.url || !request.role) continue;
+        result.snapshots.push({
+            id: request.id ?? null,
+            role: request.role,
+            mediaType: request.mediaType || 'image',
+            originalUrl: request.url,
+            url: request.url,
             status: 'available',
-        };
-
-        try {
-            // MPI-227: content-addressed flat store — dedup by bytes, permanent.
-            const placed = await placeContentAsset(sourceUrl, ext, mediaDir, projectRoot);
-            meta.filename = path.basename(placed.absPath);
-            meta.relativePath = placed.relativePath;
-            meta.filePath = placed.filePath;
-            mediaItems[index] = {
-                ...mediaItems[index],
-                role,
-                originalUrl: mediaItems[index].originalUrl || sourceUrl,
-                url: meta.filePath,
-                filePath: meta.filePath,
-                source: 'previewAsset',
-            };
-        } catch (err) {
-            logger.warn('project', 'generation frame snapshot materialization failed', err.message);
-            meta.status = 'missing';
-            meta.error = err.message;
-        }
-        snapshots.push(meta);
+        });
     }
 
-    const available = snapshots.filter(snap => snap.status === 'available');
-    if (!available.length) return { generationSettings, previewAssets: null };
-
-    return {
-        generationSettings: {
-            ...generationSettings,
-            mediaItems,
-        },
-        previewAssets: {
-            snapshots,
-        },
-    };
+    return { frozenParams, previewAssets: result };
 }
 
 // ── Project CRUD ──────────────────────────────────────────────────────────────
@@ -1360,6 +1237,15 @@ router.get('/project-media/:projectId/validate-preview-assets', async (req, res)
             const candidates = [];
             if (snap.filePath) {
                 const decoded = decodeProjectFilePath(snap.filePath);
+                if (decoded) candidates.push(decoded);
+            }
+            // MPI-821: a snapshot is a REFERENCE to the source card now, so `url` is
+            // the only field a freshly written sidecar carries. Without this the cold
+            // fallback reads every snapshot as missing and blocks a Continue that has
+            // everything it needs. `filePath`/`relativePath`/`filename` above stay for
+            // sidecars written while the copy store was live.
+            if (snap.url) {
+                const decoded = decodeProjectFilePath(snap.url);
                 if (decoded) candidates.push(decoded);
             }
             if (snap.relativePath) {
@@ -2156,7 +2042,7 @@ router.post('/project/save-generation', async (req, res) => {
 
         let materializedFrozenParams = frozenParams;
         let materializedPreviewAssets = null;
-        let materializedGenerationSettings = (meta.generationSettings && typeof meta.generationSettings === 'object')
+        const materializedGenerationSettings = (meta.generationSettings && typeof meta.generationSettings === 'object')
             ? meta.generationSettings
             : null;
         if (!replaceItemId) {
@@ -2173,23 +2059,13 @@ router.post('/project/save-generation', async (req, res) => {
             materializedPreviewAssets = materialized.previewAssets;
         }
 
-        // MPI-227: run generation frame snapshots on BOTH the preview save AND the
-        // preview→final replace (replaceItemId). On Finish, materialization used to
-        // be skipped, leaving the final card's generationSettings.mediaItems pointing
-        // at preview-era refs. With the content-addressed store, re-materializing is a
-        // free dedup no-op when bytes are identical, and it stamps the final card with
-        // stable flat SHA refs that survive the preview card's deletion.
-        const generationSnapshots = await materializeGenerationFrameSnapshots({
-            projectRoot: normalizedFolderPath,
-            mediaDir,
-            itemId: id,
-            operation,
-            generationSettings: materializedGenerationSettings,
-        });
-        materializedGenerationSettings = generationSnapshots.generationSettings;
-        if (!materializedPreviewAssets && generationSnapshots.previewAssets) {
-            materializedPreviewAssets = generationSnapshots.previewAssets;
-        }
+        // MPI-821: nothing is copied here any more. `generationSettings.mediaItems`
+        // already carries each input's own project url, so Reuse re-chips the SOURCE
+        // CARD rather than a hidden duplicate of it — and Archive, not a hidden copy,
+        // is how a user keeps a source around. A card the user really did delete
+        // takes its inputs with it; `resolvePromptReuseMediaItems` HEADs every url
+        // and drops the dead ones, so the reuse degrades to a toast, never a broken
+        // chip. (MPI-227 built the copy store for exactly this and Archive replaced it.)
 
         // Determine pixel dimensions: prefer client-supplied (from ratio control),
         // else probe saved file via Sharp (covers upscale/detail/edit/change/remove
@@ -3228,8 +3104,8 @@ router.get('/project-stats/:projectId', async (req, res) => {
 
 module.exports = router;
 module.exports.nextSequence = nextSequence;
-module.exports.materializeGenerationFrameSnapshots = materializeGenerationFrameSnapshots;
 module.exports.placeContentAsset = placeContentAsset;
+module.exports.materializePreviewAssets = materializePreviewAssets;
 module.exports.computeFileSha256 = computeFileSha256;
 module.exports.migratePreviewAssetsStore = migratePreviewAssetsStore;
 module.exports.DERIVATIVE_RE = DERIVATIVE_RE;
