@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-825", "at": "2026-09-19T17:58:55+01:00", "actor": "claude", "column": "todo", "title": "Ten malformed board events fail validate_board on every write"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-825", "at": "2026-09-19T17:59:11+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio asked for the validator errors to be cleared"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-825", "at": "2026-09-19T18:03:12+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "validator passes, exit 0; ten lines repaired"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-825", "at": "2026-09-19T18:21:07+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "validator passes exit 0; CI green on 63aa588f"}
