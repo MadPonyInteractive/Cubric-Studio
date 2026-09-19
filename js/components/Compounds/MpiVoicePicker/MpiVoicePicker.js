@@ -65,7 +65,10 @@ export const MpiVoicePicker = ComponentFactory.create({
     // should always be visible at the bottom of the overlay because right now it looks bad").
     // The selected card is already highlighted, so repeating its name below it said nothing.
     template: () => `
-        <div class="mpi-voice-picker">
+        <!-- data-accent: a voice is AUDIO, whatever the Flow around it makes. MpiBaseFlow
+             accents the Flow from its own mediaType, so without this a voice picker inside
+             a video Flow drew orange (DESIGN.md § "The rule"). -->
+        <div class="mpi-voice-picker" data-accent="audio">
             <div class="mpi-voice-picker__list" id="vp-list"></div>
             <div class="mpi-voice-picker__footer" id="vp-footer">
                 <div class="mpi-voice-picker__emotion-row" id="vp-emotion-row" hidden></div>

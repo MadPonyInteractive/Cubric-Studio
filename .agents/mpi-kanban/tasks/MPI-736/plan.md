@@ -120,11 +120,24 @@ alone has 13, and the same instance reopens in different workspaces, so a baked 
 would be stale rather than absent. `tests/portal-accent.test.cjs` pins the case that
 catches: reopening under NO accent must CLEAR the old one, not keep it.
 
-**Class B — subject ≠ container. NOT swept yet, and this is what remains:**
-`MpiAudioPlayer` and `MpiWaveform` inside a non-audio Flow (round 6 fixed the recorder, not
-the player), `MpiVoicePicker` (about voices → audio), and per-type slots in
-`MpiMediaPicker`/`MpiMediaSlot`. None declares an accent today. Everything else inside a
-matching workspace already inherits correctly from `#app-shell` (`navigation.js:297`).
+**Class B — subject ≠ container. SWEPT 2026-09-19. Two of its four rows were already
+correct; the old survey had never opened the files.**
+
+| Surface | What it actually draws | Verdict |
+|---|---|---|
+| `MpiWaveform` | `var(--accent-audio)` **directly**, ×2 | **Already right.** A waveform is permanently about audio, so it is hard-bound on purpose, not inheriting. Do not "fix" it to `--accent-heat` |
+| `MpiAudioPlayer` | no accent at all — `--surface-viewer`, `--ink-1` | **Nothing to do.** It has no accent surface to colour |
+| `MpiVoicePicker` | `--accent-heat` ×2 | **GAP — fixed.** `data-accent="audio"`: a voice is audio whatever the Flow makes |
+| `MpiMediaPicker` | `--accent-heat` ×3 | **GAP — fixed.** It already had `props.mediaType`; `el.dataset.accent` now follows the SLOT's type, so picking a reference image for a video op reads as an image job |
+| `MpiMediaSlot` | `--accent-heat` ×1 (hover border) | **Left alone, deliberately.** It has NO media-type prop — only `label`/`empty`/`canPaste`. Giving it one means threading a prop from two callers to colour a hover border. It inherits the workspace, which is defensible: the slot is part of the tool |
+
+Everything else inside a matching workspace already inherits correctly from `#app-shell`
+(`navigation.js:297`), which is why the sweep is this short.
+
+**Noticed, not actioned — the `image → vision` map is now written out FIVE times**
+(`navigation.js:297`, `MpiBaseFlow.js:215`, `MpiPromptBox.js:1984`, `getOpHelp()`,
+`MpiMediaPicker`). It wants one helper next to `inheritAccent`. Not done here: three of the
+five sit under other cards' live claims, and converting two of five is worse than five.
 
 ### Round 9 — BUILT, AWAITING FABIO'S EYE (2026-09-19, session 8abe87b4)
 
@@ -151,9 +164,10 @@ body-portaled: both mounts append inside their Block (`MpiGalleryBlock.js:237`,
 `MpiGroupHistoryBlock.js:1546`), so it already inherits — cream in the gallery (several
 types), the group's colour in a workspace. `MpiChangelogDialog` stays cream by the rule.
 
-**Open fork for Fabio, one line either way:** the "?" guide is titled "How to prompt". It
-wears its OP's colour (plan's call). If he reads it as a surface about TEXT, it is
-`el.dataset.accent = 'prompt'` and `getOpHelp`'s `accent` field comes back out.
+**SETTLED 2026-09-19 (Fabio): the "?" guide keeps its OP's colour.** *"leave the ? guide
+fine as it is."* It was offered as a one-line switch to Prompt yellow on the reading that
+"How to prompt" is a surface about text; he declined. `getOpHelp().accent` stays. Do not
+re-raise it.
 
 NOT verified in pixels by the agent — no isolated instance was booted for three attributes;
 the `[data-accent="prompt"]` rebind itself is round 8's verified mechanism. Verify mode is

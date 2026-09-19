@@ -98,6 +98,10 @@ export const MpiMediaPicker = ComponentFactory.create({
     setup: (el, props, emit) => {
         const _unsubs = [];
         const slotType = props.mediaType || 'image';
+        // The picker is about the SLOT's type, not the workspace's: picking a reference
+        // image for a video op is an image job. `image` maps to `vision` because the accent
+        // is named for the mascot, not the media (styles/01_base.css).
+        el.dataset.accent = slotType === 'image' ? 'vision' : slotType;
         let _preview = null;
 
         /** Real basename out of a `/project-file?path=<urlencoded absolute path>` URL. */

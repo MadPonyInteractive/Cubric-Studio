@@ -483,9 +483,56 @@ offscreen measurement mirror.
 **Ran:** `npm test` 1447/1448 (1 skipped, 0 fail), `portal-accent.test.cjs` 3/3, eslint
 clean on the five files. **NOT verified in pixels** — Fabio's reload is the check.
 
-**Class B is still open** and is the honest remainder: surfaces that are not portalled but
-whose subject differs from their container — `MpiAudioPlayer`/`MpiWaveform` in a non-audio
-Flow, `MpiVoicePicker`, per-type slots in `MpiMediaPicker`/`MpiMediaSlot`.
+**VERIFIED BY FABIO** (2026-09-19, live): *"1"*. Committed and pushed as `bc6af6fb`.
+
+## Round 9c — class B, and a red master met on the way (2026-09-19)
+
+**Class B swept. Two of its four recorded rows were already correct** — the old survey had
+never opened the files, which is the third time this card's inherited survey has been wrong
+(after `MpiMediaDropOverlay` and the `MpiEnhanceDialog.css` phantom). Verify before acting.
+
+- `MpiWaveform` draws `var(--accent-audio)` **directly**, twice. That is right and
+  deliberate: a waveform is permanently about audio, so it should NOT inherit. Do not
+  "fix" it onto `--accent-heat`.
+- `MpiAudioPlayer` draws no accent at all — `--surface-viewer`, `--ink-1`, and nothing else.
+- `MpiVoicePicker` (2 uses) → `data-accent="audio"`. Real gap: inside a video Flow,
+  `MpiBaseFlow` accented it orange, and a voice is audio.
+- `MpiMediaPicker` (3 uses) → `el.dataset.accent` from its existing `props.mediaType`.
+  Real gap, and it already had the prop; picking a reference image for a video op is an
+  image job.
+- `MpiMediaSlot` (1 use, a hover border) **left alone on purpose**: it has no media-type
+  prop, and threading one from two callers to colour a hover border is not worth it.
+
+`eslint` clean. No test added: both are the same one-line attribute shape as
+`navigation.js:297` and `MpiBaseFlow.js:215`, neither of which has one either.
+
+**Noticed, not actioned:** the `image → vision` map is now written out five times
+(`navigation.js`, `MpiBaseFlow`, `MpiPromptBox`, `getOpHelp`, `MpiMediaPicker`). It wants
+one helper beside `inheritAccent`; three of the five are under other cards' live claims, so
+converting two of five would be worse than leaving five.
+
+### The red master, met on the push
+
+`git push` was refused by `.husky/pre-push`: master's last run `35463412842` had FAILED.
+Not this card — the first red is `74be51fd` (MPI-817), and the two reds after it are docs
+commits inheriting it. A red master is the job of whoever meets it (`docs/red-master.md`).
+
+**Cause 1 from the playbook, and `test-failed-1.png` said it in one glance:** a "No models
+installed" modal sitting over the app. The runner has no weights, so the boot sync rewrites
+every `installed` flag false; that spec's last step clicks the prompt textarea, which the
+modal covers, so `locator.click` timed out at 30s — three times, retries included. 140
+passed, 1 failed. Green on every dev box, where the weights are.
+
+**Fixed the FIXTURE, not the product**, copying the shape `radial-menu.spec.js` already
+proved: `pinOneModelInstalled()` pins `sdxl-realistic` usable, and `provokeNoWeights()`
+recreates the weightless runner inside the spec so it now fails on a dev box too. **Proven
+both ways:** with the pin commented out the modal asserts `1` and the test fails locally;
+restored, 2 passed. Pushed `d3a46d7d` with `--no-verify` — the only thing it is for.
+
+Noticed, not actioned: that is the FOURTH copy of the `sdxl-realistic` pin
+(`gallery-cue-all`, `model-settings-popup`, `radial-menu`, now `focus-mode`).
+`tests/desktop/launch.js` is the shared home it wants. A red master takes the smallest
+diff, not a refactor across four specs.
 
 **Two survey rows were wrong, both cheaper than recorded.** The `MpiEnhanceDialog.css`
 "peer work" is a line-ending phantom: `git diff` empty, filtered `hash-object` == HEAD blob

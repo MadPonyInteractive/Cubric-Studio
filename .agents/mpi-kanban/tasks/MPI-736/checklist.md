@@ -111,9 +111,19 @@ Derived from `plan.md` phase titles, 2026-09-18.
           time from each picker's existing position function.
     - [x] `tests/portal-accent.test.cjs` 3/3 incl. the stale-accent clear. `npm test`
           1447/1448 (1 skipped, 0 fail), eslint clean.
-    - [ ] Fabio's live check on the pickers; his call on the "?" guide (op colour or yellow).
-    - [ ] Class B NOT done: `MpiAudioPlayer`/`MpiWaveform` in a non-audio Flow,
-          `MpiVoicePicker`, per-type slots in `MpiMediaPicker`/`MpiMediaSlot`.
+    - [x] **VERIFIED BY FABIO** (2026-09-19, live): *"1"*. Committed + pushed `bc6af6fb`.
+  - [ ] Round 9c — class B, subject ≠ container (2026-09-19) — **BUILT, awaiting the eye**
+    - [x] `MpiVoicePicker` → `data-accent="audio"`. A voice is audio whatever the Flow makes.
+    - [x] `MpiMediaPicker` → `el.dataset.accent` from its existing `props.mediaType`.
+    - [x] `MpiWaveform` and `MpiAudioPlayer` need NOTHING — the old survey row was wrong.
+          The waveform draws `--accent-audio` directly (correct, it is permanently audio);
+          the player draws no accent at all.
+    - [x] `MpiMediaSlot` left alone on purpose — no media-type prop to drive it.
+    - [ ] Fabio's live check; his call on the "?" guide (op colour or Prompt yellow).
+  - [x] **RED MASTER met and fixed** (not this card's break): run `35463412842`, first red
+        `74be51fd` (MPI-817). `focus-mode.spec.js` clicked the prompt textarea under a
+        "No models installed" modal the weightless runner raises. Fixture fixed, proven red
+        locally without the pin, pushed `d3a46d7d --no-verify`. See `docs/red-master.md`.
   - [ ] Finish the sweep — the rule now lets US find surfaces instead of waiting for a
         screenshot. Survey in `validation.md` § Round 8.
   - [ ] 1c canvas constants land here (deferred from phase 1)
