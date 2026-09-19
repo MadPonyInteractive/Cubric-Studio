@@ -35,9 +35,14 @@ The bar covers Outputs, not just weights. Governing law is Hong Kong.
 
 Two consequences are baked into the wiring and must not be "tidied away":
 
-1. **The weights are NOT on R2 and must never be.** Every dep points at the publisher's
-   own HF repo. That kills the redistribution claim (§III) outright — the clearest and
-   most enforceable one. See the comment on `minimax-h3-fl2va-transformer` in
+1. **Keep every dep the publisher can host pointed at the publisher.** The original rule
+   here read "the weights are NOT on R2 and must never be", on the reasoning that
+   publisher-only hosting kills the redistribution claim (§III) outright. **That is no
+   longer true of all six deps** — see § Weights: the two DiTs and the audio VAE are
+   publisher-hosted, but the encoder (MPI-653), the int8 video VAE (MPI-517), the turbo
+   LoRA and the TAE are R2-primary with HF as `mirrorUrl`. Those four were deliberate
+   supply-risk calls, not drift. Treat § Weights as the current list and do not quote this
+   section for hosting facts. See the comment on `minimax-h3-fl2va-transformer` in
    `js/data/modelConstants/modelDeps.js`.
 2. **The ModelDef id is `minimax-h3` because a lookup depends on it.** MPI-451's licence
    gate keys `MODEL_LICENCES` (`js/data/modelConstants/licences.js`) by model id and
