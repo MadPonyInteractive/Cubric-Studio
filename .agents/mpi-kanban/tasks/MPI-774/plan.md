@@ -1064,6 +1064,77 @@ and every gizmo a Flow grows is another thing an agent has to drive blind. His l
   is cheap to grow and costs a tool call; the system prompt is always there and costs tokens every
   turn.
 
+- [ ] **The agent does not know that EVERY i2v op centre-crops its start frame** (Fabio, live,
+  2026-09-19). He animated a 4:5 portrait still on a 16:9 canvas with `minimax-h3 / i2v_ms`; the
+  head left the frame and the character lost her identity. **Measured:** a cover-crop from 4:5 into
+  16:9 keeps the middle **45% of the image height** — 55% is discarded, top and bottom, and a
+  head is at the top.
+
+  **This is not an H3 quirk and does not belong in one model guide.** Every i2v op in the app does
+  it, by deliberate design (crop, never pad — letterbox bars baked into frame 0 get animated as
+  scenery):
+
+  | op | where the crop lives |
+  |---|---|
+  | `minimax-h3 / i2v_ms` | `MpiH3ImageToVideo._cover_crop` (`ComfyUi-MpiNodes/h3.py:106`), pinned by a self-check |
+  | `wan22_i2v`, `wan5b_i2v`, `ltx_i2v_t2v` | `ImageResizeKJv2`, `keep_proportion: crop`, `crop_position: center` |
+
+  `ref2v_ms` is the one that does NOT: `MpiH3References` scales each reference with "aspect kept,
+  never upscaled, no crop" (`h3.py:283`), because references never become frames. Its
+  `ref_image_size` matters — `max` (2048 short edge) is the identity setting, `match` squashes a
+  sheet past readability.
+
+  **Prose alone cannot fix this: the agent is never told the source image's size.**
+  `resolveAgentMedia` hands dispatch `{url, mediaType, role, source}` and no dimensions
+  (`js/data/generationControls.js`), and `list_models` advertises a flat `ratios: [...]` with no
+  hint that one of them will cost the frame. So the agent cannot tell portrait from landscape, and
+  a guide line telling it to "match the ratio" is unactionable.
+
+  **Fabio's landing (his words, 2026-09-19), two branches:**
+  1. *User did not ask for a ratio* → give the video **the source still's own shape**. Today an
+     unset `ratio` falls back to the project's saved selection (`resolveNamedParams`), which has
+     nothing to do with the picture. Silent and always right; no conversation needed.
+  2. *User explicitly asked for a ratio that crosses the source* → **say so**. "at least let him
+     know", and name the reference route when one is installed: `isOperationInstalled` already
+     answers whether `minimax-h3-ref2va` is on disk. If nothing installed can hold the identity,
+     that is the sentence.
+
+  **Where it goes:** `_submitGeneration` (`js/shell/agentDispatch.js:171`) already has the target
+  canvas resolved as `mergedInjection.Width/Height`, one line after it has `mediaItems`. Both
+  branches are computable there; only the source dims are missing (an image decode in the
+  renderer, or carry them on the media item).
+  **Open, and it is the only real fork:** branch 2's mechanism — a `_fail` the agent must act on
+  (the shape the install and guide gates already use, because "a rule alone did not make the model
+  read one"), or a warning that rides back with the success and obliges the agent to relay it.
+  Refusing is the only one that cannot be silently dropped by a weaker model; warning is the only
+  one that still produces a video when the user meant it.
+
+- [ ] **The Ollama connection picker tells the user nothing, and the enhance picker five rows above
+  it tells them everything** (Fabio, 2026-09-19: *"I had no idea what to select where, so I just
+  selected one of the abliterated models."*). Both live in `MpiLlmSettings`.
+
+  | | enhance / describe backend row | the connection + Agent row |
+  |---|---|---|
+  | model list | curated `MODEL_REGISTRY`, each with a name and a note | raw `GET /v1/models`, bare ids |
+  | is it downloaded | `Downloaded` / `Not downloaded` per model (`_ollama.models[id].downloaded`) | nothing |
+  | can it do the job | n/a | nothing — and only a `tools`-capable model can be the agent |
+  | nothing installed | `MpiOllamaSetup` installs Ollama, starts it, pulls the model | an empty dropdown, no error, no way forward |
+  | Ollama not running | the row offers to start it | the note reads `Error: the request failed.` |
+
+  **Why the connection row is empty-handed:** `RECOMMENDED_REMOTE_MODELS` has no `ollama` key at
+  all (`services/llmEngines.mjs:346`, *"Custom and Ollama get no hints"*), and Ollama's `/v1/models`
+  returns `{id, object, created, owned_by}` and nothing else — no tags, no `context_length` —
+  so `listRemoteModels` yields `contextWindow: null`, `vision: null`, `recommendedFor: []` for
+  every entry, sorted alphabetically. The note under the picker ("Pick a model that can call
+  tools") asks the user for a fact the app can read and does not show.
+
+  **The data already exists on this machine.** `GET /api/show` returns a capability list per
+  installed model with no model load — measured 2026-09-19 on Fabio's box: `gemma-4-abliterated:12b`
+  and `dolphin3-abliterated` carry `tools`; `gemma3-abliterated:12b` and `gemma3:12b` do not. So
+  the picker could grey out or flag what cannot be the agent instead of letting him pick it and
+  fail. `ollamaLifecycle.js` already installs, starts and pulls, so the "nothing installed" arm is
+  wiring, not new machinery. Sits with fix 11 above (the keyless bug) — same connection, same row.
+
 ## Plan Drift
 
 - 2026-09-17 (Phase 4 close, session fa18265c): (9) live compaction on a 32k window compacted on
