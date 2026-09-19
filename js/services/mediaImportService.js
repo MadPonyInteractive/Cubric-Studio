@@ -59,6 +59,12 @@ function _buildGroup({ url, filename, itemId, thumbPath, thumbPathLg, proxyPath,
         ? createAudioItem({
             id,
             filePath: url,
+            // The baked waveform mask, exactly as the video and image branches carry
+            // theirs. Dropping it here did not lose the mask — the server bakes it and
+            // stamps the sidecar either way — it lost it only for the life of THIS
+            // card, so a fresh audio import painted an empty bar and grew its wave on
+            // the next project load, when the sidecar was read back (MPI-736).
+            thumbPath,
             uploaded: true,
             operation: 'imported',
             duration: duration ?? 0,

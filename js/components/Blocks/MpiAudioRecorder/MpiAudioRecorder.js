@@ -57,17 +57,25 @@ export async function bakeWaveMask(blob) {
         // eslint-disable-next-line mpi/no-hardcoded-hex-color -- see above
         g.fillStyle = '#fff';
 
+        // RMS per column, not the peak. The peak of ~340 samples always picks the
+        // loudest one, which both inflates every column and makes neighbours disagree,
+        // and that disagreement is what aliases into a dotty smear when a 1260px mask
+        // is drawn into a 240px strip. Measured against ffmpeg's own mask of the same
+        // clip (mean ink / mean column-to-column change): peak 0.289 / 0.037, RMS
+        // 0.191 / 0.023, ffmpeg 0.173 / 0.021.
         const per = Math.max(1, Math.floor(buf.length / WAVE_PX.w));
         for (let x = 0; x < WAVE_PX.w; x++) {
-            let peak = 0;
             const from = x * per;
             const to = Math.min(from + per, buf.length);
+            let squares = 0;
             for (let i = from; i < to; i++) {
                 let sum = 0;
                 for (const c of chans) sum += c[i];
-                peak = Math.max(peak, Math.abs(sum / chans.length));
+                const s = sum / chans.length;
+                squares += s * s;
             }
-            const h = Math.sqrt(peak) * WAVE_PX.h;
+            const rms = Math.sqrt(squares / Math.max(1, to - from));
+            const h = Math.min(1, Math.sqrt(rms)) * WAVE_PX.h;
             g.fillRect(x, (WAVE_PX.h - h) / 2, 1, Math.max(1, h));
         }
         return cvs.toDataURL('image/png');

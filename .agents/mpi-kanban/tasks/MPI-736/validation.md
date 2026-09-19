@@ -275,3 +275,42 @@ picture drawn the other way.
 
 `bakeWaveMask` sits at module scope and is exported for exactly that reason; it closes over
 nothing, so the export costs nothing and buys a check that needs neither a mic nor a modal.
+
+### Then: an empty card on Accept, and "is this repeat code?"
+
+Fabio accepted a take and got a card with no wave, which filled itself in the moment he left
+the project and came back. Two findings, one of them not this card's doing.
+
+**1. `mediaImportService._buildGroup` dropped `thumbPath` on the AUDIO branch.** The image
+and video branches pass it; audio never did. Nothing was lost on disk — the server bakes the
+waveform and stamps the sidecar inside the upload request, and `POST /upload` returns the
+path — so the mask existed the whole time and only the freshly built card lacked it. The
+next project load read the sidecar and the wave appeared, which is why this was never
+reported: **a bug that fixes itself on reload is one nobody files.** It predates this card
+and affects every audio import, not only recordings. One line, folded in.
+Check: `tests/media-import-single-listener.test.cjs` § "every branch of the ItemGroup build
+passes thumbPath to its item" — asserted RED against the un-fixed source, then green, with
+the file restored byte-for-byte.
+
+**2. The bake was measurably coarser than ffmpeg's, and it was the statistic.** Fabio asked
+whether this duplicates what Flows already do. It does not duplicate CODE — a Flow's audio
+is a SAVED item, so `MpiBaseFlow` hands the player `it.thumbPath`, the ffmpeg mask; there is
+no other renderer-side waveform drawing in `js/` (grepped: only `toWavFile`/`wavEncoder`,
+which encode). It did duplicate the PICTURE, so the two were measured against each other on
+the same clip (`voices/child_1.opus`), full resolution, as mean ink and mean column-to-column
+change:
+
+| bake | mean ink | jaggedness |
+|---|---|---|
+| ffmpeg `showwavespic` | 0.173 | 0.021 |
+| ours, bucket PEAK | 0.289 | 0.037 |
+| ours, bucket RMS | 0.193 | 0.023 |
+
+The peak of ~340 samples always picks the loudest one, which inflates every column AND makes
+neighbours disagree — and that disagreement is what aliased into the dotty smear Fabio called
+blurry when a 1260px mask is drawn into a 240px strip. RMS lands on ffmpeg's own profile.
+
+That change moved the spec's own threshold: a SINE's RMS is 1/√2 of its peak, so a full-scale
+sine tops out at `sqrt(1/√2)` = 0.84 of the height and the 0.9 test tone at 0.79. The
+assertion was 0.8, calibrated to peak detection. It now says 0.7 and carries the arithmetic,
+rather than being quietly loosened until it passed.

@@ -42,6 +42,11 @@ Derived from `plan.md` phase titles, 2026-09-18.
     - [x] The review track paints a real WAVE. A take under review has no file, so ffmpeg's
           bake cannot run; `bakeWaveMask()` draws `showwavespic`'s shape in the renderer.
           Checked by a desktop spec that drives it with a synthetic clip.
+      - [x] Column is RMS, not the bucket peak — measured against ffmpeg's own mask of the
+            same clip. Peak read 0.289/0.037, RMS 0.193/0.023, ffmpeg 0.173/0.021.
+    - [x] **Folded in, pre-existing and not this card's doing:** the audio branch of
+          `mediaImportService._buildGroup` dropped `thumbPath`, so a fresh audio card was
+          blank until the project was reopened. Affects every audio import, not recordings.
     - [ ] `types.js:1587` still says `Compound` — inside MPI-771's live claim, messaged
           (`bb5f6817`), NOT edited. **Drift until that lands.**
   - [ ] Finish the sweep — Fabio is still finding surfaces a round at a time

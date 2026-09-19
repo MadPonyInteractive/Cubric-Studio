@@ -351,6 +351,13 @@ test('an audio card paints its baked waveform and fills as it plays', async ({},
  * getUserMedia. The quiet third is the assertion that matters — it is the whole
  * reason the bake copies `showwavespic`'s `scale=sqrt` instead of drawing linear
  * amplitude, which would render a -30 dBFS take as a flat line.
+ *
+ * The column is RMS rather than the bucket's peak, which is what puts the two bakes
+ * on the same footing. Measured against ffmpeg's mask of `voices/child_1.opus`, as
+ * mean ink and mean column-to-column change: peak read 0.289 / 0.037, RMS reads
+ * 0.193 / 0.023, and ffmpeg itself 0.173 / 0.021. The peak of ~340 samples always
+ * picks the loudest one, so neighbouring columns disagree, and that disagreement is
+ * what aliased into a dotty smear when the mask was drawn into a 240px strip.
  */
 test('a take under review bakes its own waveform mask, on the same sqrt scale as ffmpeg', async ({}, testInfo) => {
     let app, window;
@@ -405,7 +412,10 @@ test('a take under review bakes its own waveform mask, on the same sqrt scale as
         expect([ink.w, ink.h], 'the same 21:9 rendition ffmpeg bakes (AUDIO_WAVEFORM_PX)')
             .toEqual([1260, 540]);
         expect(ink.silence, 'silence draws the 1px floor, not a band').toBeLessThan(0.05);
-        expect(ink.loud, 'a hot second fills most of the height').toBeGreaterThan(0.8);
+        // The column is RMS, so a SINE tops out at sqrt(1/sqrt(2)) = 0.84 of the height
+        // however hot it is — 0.79 for this one at 0.9 amplitude. A threshold above that
+        // would not be measuring loudness, it would be asserting peak detection.
+        expect(ink.loud, 'a hot second fills most of the height').toBeGreaterThan(0.7);
         expect(ink.quiet, 'and a -30 dBFS second is still legible — this is what sqrt buys')
             .toBeGreaterThan(0.08);
         expect(ink.quiet, 'without flattening the loud/quiet contrast away')
