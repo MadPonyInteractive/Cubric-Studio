@@ -1211,6 +1211,61 @@ and every gizmo a Flow grows is another thing an agent has to drive blind. His l
   fail. `ollamaLifecycle.js` already installs, starts and pulls, so the "nothing installed" arm is
   wiring, not new machinery. Sits with fix 11 above (the keyless bug) — same connection, same row.
 
+  **Fabio, 2026-09-19, after using it:** *"Shouldn't we have a recommended note in front of the
+  selection for each one of them? Because I go to Description Model, I have no idea what to select,
+  and if I have no models downloaded in Ollama, it's even worse."* So this covers **all three**
+  Ollama rows — Enhancement model, Description model and Agent model — not just the agent one,
+  and a recommended model that is NOT downloaded must still appear, marked, with the pull offered.
+  That is the enhance row's existing `Downloaded` / `Not downloaded` treatment applied to the
+  connection rows. The capability each row needs differs (`tools` for the agent, vision for the
+  describer), and `/api/show` answers all of them with no model load.
+
+  **Smaller thing, same panel, seen in his screenshot:** the Test tool use result line is not
+  cleared when the Agent model changes — it still read `gemma-4-abliterated:12b` while the dropdown
+  had moved to `qwen3-vl-abliterated:4b`. `_renderAgentProbe` clears it on re-render, but changing
+  the model only writes `Storage.setAgentPrefs` and never re-renders that row.
+
+- [x] **Release VRAM only ever spoke to ComfyUI** (Fabio, live, 2026-09-19: the card sat at
+  15.1/16.0 GB after a Test tool use). Ollama holds a model for five minutes after the last
+  request and a 12B is ~8GB of 16. `OllamaEngine.releaseOwnModels()` already existed with nothing
+  exposing it. **Built:** `POST /llm/ollama/unload`, called from `js/shell/memoryOps.js` beside the
+  ComfyUI unload, and deliberately never an error path — not installed / not running / already
+  empty all mean "no VRAM of ours to free", and failing there would show "Unload Failed" on a
+  machine that never had Ollama. **Verified live:** 3.5GB resident → route → `ollama ps` empty.
+
+- [ ] **`list_models` is ~10.8k tokens and most of it is repetition** (Fabio: *"Can we not use small
+  pointers explaining more or less what each model does, so that the agent can then go in, follow
+  that pointer, and actually read the rest of the model if it's the appropriate model to use?"*).
+  He is right, and it is measured:
+
+  | part | tokens |
+  |---|---|
+  | 21 models with their ops + `params` | 4,598 |
+  | 13 flows with their fields | 2,124 |
+  | core subtotal | **6,722** |
+  | plus the route's guides, `fit`, media roles, `rank`/`note`, `missingDownloadGb` | ≈ 10.8k live |
+
+  **The weight is `params`, repeated PER OP.** `krea2-nsfw` costs 512 tokens, 420 of it `params`,
+  because each of its 7 ops carries the same 9 ratios, the same 2 quality tiers and the same 14
+  style names — and the next model repeats most of the same list again.
+
+  **The pattern to copy already exists in this card**: guides are pointers (`list_models` gives
+  each model its guide ids, `read_knowledge` fetches one on demand). Do the same for the detail —
+  a compact line per model and flow (id, name, type, installed, op names, `rank`/`note`), and a
+  `describe_model(id)` that returns the `params`, field specs and media roles for the ONE thing the
+  agent picked. Rough target: ~2k for the list, which is the difference between the agent being
+  usable on a 32k local window and compacting on every turn. **Not built, and it is the next lever
+  for Ollama** — raising `OLLAMA_AGENT_CONTEXT` is the wrong answer, because the KV cache shares
+  VRAM with the weights on a 16GB card.
+
+  **Fabio's heads-up, 2026-09-19:** recent disk-offload work reportedly lets 8GB cards run 200B+
+  models, trading speed; he is putting an agent on it. It does not soften the line above, and the
+  distinction is worth keeping when that lands: offloading **weights** is cheap — read once per
+  token, in a predictable order, which is what `mmap` and streamed MoE experts exploit — while the
+  **KV cache** is read *and written* every token for every layer, so it is the worst thing to put
+  on disk. So that work, if it pans out, changes which MODEL the agent can run, not this constant.
+  The `list_models` diet is a straight win either way and is not waiting on it.
+
 ## Plan Drift
 
 - 2026-09-17 (Phase 4 close, session fa18265c): (9) live compaction on a 32k window compacted on
