@@ -34,6 +34,24 @@
     margin-right: var(--s-2);
 }
 
+/* MPI-736: volume is the one AUDIO control on this bar, so it wears Cubric Audio's
+   green rather than the gallery's action accent (Fabio, 2026-09-19). The size slider
+   beside it is not audio and keeps the accent. Rebinding the token rather than
+   restating a colour is what carries it into MpiProgressBar's fill and thumb, which
+   read --accent-heat and know nothing about this bar; --accent-heat-hi is restated in
+   the same rule because a custom property bakes its var() where it is DECLARED. */
+.mpi-gallery-toolbar__slider--volume,
+.mpi-gallery-toolbar__volume-icon {
+    --accent-heat:    var(--accent-audio);
+    --accent-heat-hi: oklch(from var(--accent-heat) calc(l + 0.02) calc(c + 0.03) h);
+}
+
+/* The icon is not a button, so nothing sets `color` on it from the token — the base
+   `__icon` rule pins --ink-3 and the glyph is currentColor. */
+.mpi-gallery-toolbar__volume-icon {
+    color: var(--accent-heat);
+}
+
 .mpi-gallery-toolbar__divider {
     flex: none;
     width: 1px;

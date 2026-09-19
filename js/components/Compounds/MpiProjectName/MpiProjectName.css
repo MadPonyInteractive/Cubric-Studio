@@ -205,3 +205,31 @@
     color: var(--ink-1);
     opacity: 0.6;
 }
+
+/* MPI-736: Record makes AUDIO, so it wears Cubric Audio's green on a bar that is
+   otherwise the workspace's colour (Fabio, 2026-09-19). Rebinding the token covers any
+   Primitive state inside the button — including ghost's own pressed/active states,
+   which already reach for --accent-heat and now find green.
+   `color` must be restated, and at THIS weight: an icon button's ghost variant is
+   `.mpi-btn.mpi-ibtn.mpi-btn--ghost` (0,3,0) pinning --ink-3, not the plain
+   `.mpi-btn--ghost` (0,1,0) that pins --ink-2. Measured: at 0,2,0 the label went green
+   and the mic glyph stayed ink-3, because the glyph is currentColor off the button and
+   the button still lost. Matching the primitive's own selector shape keeps it obvious
+   which rule is being outranked. */
+.mpi-btn.mpi-ibtn.mpi-btn--ghost.mpi-project-name__record {
+    --accent-heat:    var(--accent-audio);
+    --accent-heat-hi: oklch(from var(--accent-heat) calc(l + 0.02) calc(c + 0.03) h);
+    color: var(--accent-heat);
+}
+
+.mpi-btn.mpi-ibtn.mpi-btn--ghost.mpi-project-name__record:hover:not(:disabled) {
+    color: var(--accent-heat-hi);
+}
+
+.mpi-project-name__record .mpi-ibtn__label {
+    color: var(--accent-heat);
+}
+
+.mpi-project-name__record:hover:not(:disabled) .mpi-ibtn__label {
+    color: var(--accent-heat-hi);
+}

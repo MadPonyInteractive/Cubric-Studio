@@ -1949,6 +1949,20 @@ export const MpiPromptBox = ComponentFactory.create({
             // The enhance control is OP-gated (edit and inpaint get none at all), and
             // the op is reassigned live by setOperation. Same convergence point.
             _refreshEnhanceBtn();
+
+            // MPI-736: the whole box wears the SELECTED MODEL's colour — name, selector,
+            // border, settings, queue, stop. Same convergence point again, because that is
+            // the only place `model` is guaranteed current. One attribute; `[data-accent]`
+            // in 01_base.css rebinds --accent-heat for the subtree, so nothing in here
+            // needs to know there are five colours. The Agent head and the enhance column
+            // override it on themselves (MpiPromptBox.css) — they are not the model's.
+            // popupNode gets it SEPARATELY and must: it is appended to document.body, not
+            // to this box, so it inherits from :root and nothing else. That is what left
+            // the settings popup's selected option (MpiOptionSelector's --accent-heat
+            // fill) on the shared cream while the bar that opened it was orange.
+            const _accent = model?.mediaType === 'image' ? 'vision' : (model?.mediaType || 'studio');
+            el.dataset.accent = _accent;
+            popupNode.dataset.accent = _accent;
         }
 
         // ── Negative mode toggle ───────────────────────────────────────────────

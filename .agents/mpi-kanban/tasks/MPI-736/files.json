@@ -31,6 +31,8 @@
     "DESIGN.md",
     "PRODUCT.md",
     "CLAUDE.md",
-    "js/components/Compounds/MpiMaskDetectRow/MpiMaskDetectRow.js"
+    "js/components/Compounds/MpiMaskDetectRow/MpiMaskDetectRow.js",
+    "js/shell/navigation.js",
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js"
   ]
 }

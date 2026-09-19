@@ -114,4 +114,87 @@ always-present `variant: 'secondary'` button that disables when idle, not a swap
 
 `npm test` 1351/1352 pass, 0 fail, 1 skipped (suite grew from 1348 — peers added four).
 
-## Phase 2b, 3, 4 — not started
+## Phase 2b — not started
+
+
+## Phase 3+4 — the engine, and five rounds of sweep (2026-09-19)
+
+`:root --accent-heat` is `var(--hub-accent)`; five `[data-accent]` rules sit under it, each
+restating `--accent-heat-hi` because a custom property bakes its `var()` at the rule that
+DECLARES it. Proved in real Chromium against the real stylesheets before Fabio ever
+reloaded — every rebind resolves and every hover lift tracks its OWN hue:
+
+| attr | `--accent-heat` | `--accent-heat-hi` |
+|---|---|---|
+| (`:root`) | `oklch(0.78 0.028 80)` | `oklch(0.8 0.058 80)` |
+| `vision` | `oklch(0.76 0.17 355)` | `oklch(0.78 0.2 355)` |
+| `video` | `oklch(0.78 0.15 48)` | `oklch(0.8 0.18 48)` |
+| `prompt` | `oklch(0.88 0.13 102)` | `oklch(0.9 0.16 102)` |
+| `audio` | `oklch(0.84 0.11 170)` | `oklch(0.86 0.14 170)` |
+
+`--vision-accent` is byte-identical to the old `--accent-heat`, so the image workspace was
+the control: unchanged is CORRECT there, and any delta would have been a bug.
+
+### Every round was a STRUCTURAL cause, never a colour
+
+Five rounds, and not one of them was "wrong value". Recorded because the next surface will
+be one of these again:
+
+1. **The trim bar and transport stayed cream.** `#controls-mount` is a SIBLING of
+   `#tool-container` (`index.html:158`), and `MpiGroupHistoryBlock.js:518,547` mounts the
+   video bar, the GIF bar and the frame strip into it. Binding moved to `#app-shell`.
+2. **The model name never carried the accent at all.** `modelBtn` is `variant: 'secondary'`
+   = pure `--surface-2` / `--ink-3` / `--ink-1`. The plan's "across the whole box" needed
+   the box's own CSS to say so.
+3. **The settings popup ignored its opener.** `MpiPromptBox.js:1573` appends `popupNode` to
+   `document.body`, so it inherits from `:root`. It gets the attribute directly.
+4. **The icons.** `MpiIcon` is `currentColor` BY DESIGN — the icons were faithfully
+   inheriting `.mpi-btn--secondary`'s `color: var(--ink-1)`. One `color` on the button, not
+   an `.mpi-icon--accent` tag per mount site.
+5. **CUE's word stayed white while its glyph went orange.** `.mpi-ibtn__label` pins
+   `var(--ink-2)` to run its own ink-2 -> ink-1 hover ladder. Related and worth knowing:
+   `MpiButton.js:74` maps every icon button that is not danger/ghost down to `secondary`,
+   so CUE has NEVER been filled despite mounting `variant: 'primary'`.
+6. **Record's label went green and its mic glyph stayed grey.** A ghost ICON button is
+   `.mpi-btn.mpi-ibtn.mpi-btn--ghost` at 0,3,0 pinning `--ink-3`, not the plain
+   `.mpi-btn--ghost` at 0,1,0 pinning `--ink-2`. The 0,2,0 override lost, and lost
+   silently. Caught by the probe, not by reading.
+
+### `--ink-on-accent` was born here
+
+The hold-to-loop charge fill and the armed CUE state were hardcoded `--accent-frost`, so
+the one control that fills solid was the one ignoring the model. Moving them to
+`--accent-heat` meant the armed label would be accent-on-accent, and there was **no token
+for text on an accent fill** — `MpiButton.css` states the same `oklch(0.16 0.02 0)` four
+times for want of one. Measured off rendered pixels (see below), one dark ink clears 4.5:1
+on all five accents, so it became a token rather than a fifth literal.
+
+| accent | fill | `--ink-on-accent` | old `--surface-0` |
+|---|---|---|---|
+| studio | `rgb(193,182,164)` | **9.73:1** | 3.04:1 |
+| vision | `rgb(255,126,182)` | **8.26:1** | 2.58:1 |
+| prompt | `rgb(233,219,111)` | **13.74:1** | 4.30:1 |
+| video  | `rgb(255,151,92)`  | **9.11:1** | 2.85:1 |
+| audio  | `rgb(122,226,192)` | **12.48:1** | 3.90:1 |
+
+The armed button's old `--surface-0` label was 2.58-2.85:1. The washed-out "LOOP" in
+Fabio's screenshot was failing contrast, and it predates this card.
+
+**Measuring this is a trap.** `getComputedStyle` returns `oklch(...)`, and canvas
+`fillStyle` silently REJECTS oklch — it keeps the previous value, so every pair reads
+`#000000` and every ratio comes back a clean, plausible `1.00:1`. Screenshot the swatches
+and sample the pixels with sharp instead.
+
+### Signed off by Fabio, live, over five rounds
+
+Workspace + transport by media type; PromptBox by SELECTED MODEL (name, borders, icons,
+CUE lettering, charge fill, armed state); Enhance always prompt; Agent head always Studio;
+Record and the gallery volume slider + icon always `--accent-audio` (the size slider beside
+volume is NOT audio and keeps the workspace accent); Flows by their declared `mediaType`,
+which `flowsRegistry.js` documents as "What the flow PRODUCES".
+
+`npm test` 1408/1409 pass, 0 fail, 1 skipped. Lint clean on every touched JS file.
+
+**Open, and Fabio's call, asked three times and deliberately left alone:** the prompt box's
+trash button takes the model colour with the rest of the bar. The plan named "queue, stop"
+and not delete.

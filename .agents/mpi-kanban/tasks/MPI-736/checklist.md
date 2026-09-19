@@ -15,9 +15,24 @@ Derived from `plan.md` phase titles, 2026-09-18.
 - [x] Port the family accents into `DESIGN.md` (pulled forward out of phase 5, Fabio asked
       three times) + a `CLAUDE.md` Snapshot rule: never sample a brand colour off mascot art.
 - [ ] Phase 2b — `--accent-warn` off hue 60 (squeezed between video 48 and prompt 102)
-- [ ] Phase 3+4 (collapsed) — `:root` default to Studio's colour + the per-workspace
-      `[data-accent]` overrides. 246 call sites in 67 app files; the big visible moment.
+- [~] Phase 3+4 (collapsed) — `:root` default to Studio's colour + the per-workspace
+      `[data-accent]` overrides. The engine landed and Fabio signed off on five rounds of
+      surfaces; the sweep is not finished.
   - [x] ASKED AND ANSWERED: `--hub-accent` cream `oklch(0.78 0.028 80)`. Fabio, 2026-09-18.
+  - [x] The engine: `:root --accent-heat: var(--hub-accent)` + five `[data-accent]` rules,
+        each restating `--accent-heat-hi`. `01_base.css`.
+  - [x] Workspace binding on `#app-shell` (NOT `#tool-container` — `#controls-mount` is its
+        SIBLING, so the transport and trim bar were left on the shared cream).
+  - [x] PromptBox takes the SELECTED MODEL's colour; the settings popup gets it separately
+        because it is appended to `document.body`.
+  - [x] The bar's own controls: border + `color` (the icons are `currentColor`), the
+        `.mpi-ibtn__label` for CUE, and the hold-to-loop charge fill + armed state off
+        `--accent-frost`.
+  - [x] `--ink-on-accent` born — there was no token for text ON an accent fill and
+        `MpiButton.css` had stated the same literal four times.
+  - [x] Record + volume slider → `--accent-audio`. Flows → their declared `mediaType`.
+  - [ ] Record-audio overlay: colours + swap the raw `<audio controls>` for `MpiAudioPlayer`
+  - [ ] Finish the sweep — Fabio is still finding surfaces a round at a time
   - [ ] 1c canvas constants land here (deferred from phase 1)
 - [ ] Phase 5 — finish `DESIGN.md` (VT323 wordmark, single mascot) and rewrite `PRODUCT.md`
       (its "pink/heat accent" line goes wrong the moment phase 3 lands)

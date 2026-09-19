@@ -90,7 +90,14 @@
     align-self: end;
 }
 
+/* MPI-736: Enhance is ALWAYS Prompt's yellow, whatever model the box is set to — the
+   button does not generate the media, it rewrites the words, and that is Cubric Prompt's
+   job. It sits inside the box's own [data-accent], so it has to say so on itself.
+   --accent-heat-hi is restated because a custom property bakes its var() at the rule that
+   declares it: inherited from the box it would still hold the model's colour. */
 .mpi-prompt-box__col--enhance {
+    --accent-heat:    var(--prompt-accent);
+    --accent-heat-hi: oklch(from var(--accent-heat) calc(l + 0.02) calc(c + 0.03) h);
     flex-shrink: 0;
 }
 
@@ -154,9 +161,54 @@
     display: none;
 }
 
-/* The agent's own head is Studio cream, not Vision rose (see MpiAgentChat.css). */
+/* MPI-736: the bar's own controls — model selector, settings cog, queue, stop — are
+   `secondary`, which is pure surface+ink and so carried no accent at all. The plan's
+   phase-3 rule is the SELECTED MODEL's colour "across the whole box, not just the
+   name", so the border and the content carry it; the fill stays surface, or a
+   five-button row of solid colour swamps the prompt itself.
+   `color` is what recolours the ICONS (Fabio, 2026-09-19). MpiIcon is `currentColor`
+   by design, so it was never the icon that needed changing — `.mpi-btn--secondary`
+   pins `color: var(--ink-1)`, and the icons were faithfully inheriting that. There is
+   also an `.mpi-icon--accent` modifier, but using it would mean tagging every icon at
+   its mount site; one `color` on the button does the whole row and keeps the label and
+   its icon in step.
+   No `:not(:disabled)` guard: `.mpi-btn:disabled` already applies opacity 0.45 plus a
+   grayscale filter, so a disabled Stop mutes the accent by itself.
+   Scoped through `__col` deliberately: at 0,4,0 it outranks MpiButton's own
+   `.mpi-btn--secondary:hover:not(:disabled)` (0,3,0) without depending on which of the
+   two component stylesheets the loader happens to register last. */
+.mpi-prompt-box__col .mpi-btn--secondary {
+    border-color: var(--accent-heat);
+    color: var(--accent-heat);
+}
+
+.mpi-prompt-box__col .mpi-btn--secondary:hover:not(:disabled),
+.mpi-prompt-box__col .mpi-btn--secondary.is-pressed:not(:disabled) {
+    border-color: var(--accent-heat-hi);
+    color: var(--accent-heat-hi);
+}
+
+/* The CUE lettering (Fabio, 2026-09-19). An icon button's label does NOT inherit the
+   button's colour — `.mpi-ibtn__label` pins `var(--ink-2)` so it can run its own
+   ink-2 -> ink-1 hover ladder — which is why CUE's play glyph went orange with the
+   rest of the row while the word stayed white. Worth knowing why CUE is not a filled
+   button despite mounting with `variant: 'primary'`: MpiButton.js maps every icon
+   button that is not danger/ghost down to `secondary`, so the run button has always
+   rendered as an outline. */
+.mpi-prompt-box__col .mpi-ibtn__label {
+    color: var(--accent-heat);
+}
+
+.mpi-prompt-box__col .mpi-ibtn:hover:not(:disabled) .mpi-ibtn__label {
+    color: var(--accent-heat-hi);
+}
+
+/* The agent's own head is Studio cream, not the model's colour (see MpiAgentChat.css).
+   MPI-736: --accent-heat-hi restated here too — without it the head inherited the box's
+   lift, which was the rose and is now the selected model's. */
 .mpi-prompt-box__col--mode {
-    --accent-heat: var(--hub-accent);
+    --accent-heat:    var(--hub-accent);
+    --accent-heat-hi: oklch(from var(--accent-heat) calc(l + 0.02) calc(c + 0.03) h);
 }
 
 
@@ -246,12 +298,16 @@
     white-space: nowrap;
 }
 
+/* MPI-736: the model NAME is where the box says which family it is pointed at, so it
+   wears the accent rather than ink — image model reads rose, video orange. The button
+   under it stays `secondary` (surface fill), which is what keeps coloured text legible
+   instead of turning the bar into a row of filled blocks. */
 .mpi-prompt-box__badge-model {
     font-size: var(--t-xs);
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--ink-1);
+    color: var(--accent-heat);
 }
 
 .mpi-prompt-box__badge-batch {
@@ -736,10 +792,14 @@
     user-select: none;
 }
 
+/* MPI-736: the hold-to-loop charge sweep and the armed state were both hardcoded to
+   --accent-frost, so the one control that fills solid was the one control that ignored
+   the model (Fabio, 2026-09-19). They take the action accent like everything else in
+   the bar; frost stays what DESIGN.md says it is — focus rings and AI state. */
 .mpi-prompt-box__cue-fill {
     position: absolute;
     inset: 0;
-    background: var(--accent-frost);
+    background: var(--accent-heat);
     opacity: 0.85;
     transform: scaleX(0);
     transform-origin: left center;
@@ -753,9 +813,19 @@
 }
 
 .mpi-prompt-box__cue-btn--armed {
-    background: var(--accent-frost) !important;
-    border-color: var(--accent-frost) !important;
-    color: var(--surface-0) !important;
+    background: var(--accent-heat) !important;
+    border-color: var(--accent-heat) !important;
+    color: var(--ink-on-accent) !important;
+}
+
+/* Armed is the ONE state where this button fills solid, so its label has to come back
+   off the accent or it would be accent-on-accent and vanish. --ink-on-accent, not the
+   --surface-0 this rule carried before: measured off rendered pixels, surface-0 gave
+   2.58:1 on the worst accent (vision) and 2.85:1 on video — which is why "LOOP" read
+   washed out long before this card touched it. The token is 8.26:1 at its worst. The
+   label is 11px, so it needs the full 4.5:1, not the 3:1 large-text exemption. */
+.mpi-prompt-box__col--run .mpi-prompt-box__cue-btn--armed .mpi-ibtn__label {
+    color: var(--ink-on-accent);
 }
 
 .mpi-prompt-box__cue-btn--armed .mpi-prompt-box__cue-fill {

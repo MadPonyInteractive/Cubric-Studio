@@ -275,9 +275,26 @@ function _updateBreadcrumb(page, params) {
         // The gate stays only because nobody has decided what Record should DO from
         // the history page — lifting it is a product call, not a technical one.
         _projectNameInst.el.setRecordVisible(true);
+        // MPI-736: the gallery holds image AND video cards at once, so it belongs to no
+        // one media type — it is a shared surface and keeps :root's Studio cream.
+        delete _appShell.dataset.accent;
         refreshProjectStats();
     } else if (page === PAGE_GROUP_HISTORY) {
         const group = state.currentProject?.itemGroups?.find(g => g.id === params.groupId);
+        // MPI-736: a card's workspace wears its media type's colour — every
+        // var(--accent-heat) below this element follows in one line. This branch is
+        // where it belongs because it already resolves the group, and setting it here
+        // rather than inside the Block keeps the GIF/image/video workspaces from each
+        // needing their own copy. 'image' maps to 'vision' because Vision is the family
+        // member that owns stills (a GIF card IS an image group); video and audio name
+        // their own.
+        // It goes on the SHELL, not on #tool-container: the video/GIF transport and its
+        // trim bar mount into #controls-mount, which index.html declares as a SIBLING of
+        // #tool-container, so a workspace-scoped attribute left the whole bottom bar on
+        // the shared cream. The PromptBox sits between them and overrides this with the
+        // SELECTED MODEL's colour on itself, which is the rule — it is not the
+        // workspace's, it is the model's.
+        _appShell.dataset.accent = group?.type === 'image' ? 'vision' : (group?.type || 'vision');
         _projectNameInst.el.setBackLabel('Gallery');
         _projectNameInst.el.setGalleryLabel('');
         _projectNameInst.el.setGroupLabel(group?.customName || group?.name || 'Group');

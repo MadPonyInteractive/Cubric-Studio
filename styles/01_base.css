@@ -73,7 +73,16 @@
   --line-soft:       oklch(0.72 0.015 350 / 0.08);
 
   /* Accents */
-  --accent-heat:     oklch(0.76 0.17 355);   /* rose lift — Cubric Vision app accent, primary actions, active states */
+  /* THE action colour here — primary actions, active states. It is not a value, it is
+     a binding: this :root default is what every SHARED surface wears (landing, Model
+     Library, settings, queue, any dialog not tied to one media type), and a workspace
+     rebinds it for its subtree in the [data-accent] block below.
+     Studio's cream, not Vision's rose (Fabio, 2026-09-18): "all the buttons that are
+     general buttons should stop being pink and gain the studio mascot colour." Pointed
+     at --hub-accent rather than restating oklch(0.78 0.028 80), so the hub's identity
+     colour and the shared action colour cannot drift apart. Forward reference is fine:
+     custom properties substitute at computed-value time, not in declaration order. */
+  --accent-heat:     var(--hub-accent);
   --accent-frost:    oklch(0.82 0.13 220);   /* cyan — generative state, focus rings, frost lines */
   --accent-ok:       oklch(0.78 0.13 150);   /* success, ready */
   --accent-warn:     oklch(0.78 0.14 60);    /* warning */
@@ -97,6 +106,18 @@
   --accent-heat-hi:  oklch(from var(--accent-heat) calc(l + 0.02) calc(c + 0.03) h);
   --accent-err-hi:   oklch(from var(--accent-err) calc(l + 0.02) calc(c + 0.03) h);
 
+  /* Text and glyphs sitting ON an accent fill. Every family accent lands between L 0.76
+     and L 0.88, so one dark ink clears 4.5:1 against all five — no per-accent value.
+     Measured off rendered pixels: vision 8.26:1, video 9.11:1, studio 9.73:1,
+     audio 12.48:1, prompt 13.74:1.
+     This is not a new colour: MpiButton.css has stated the same oklch four times since
+     it shipped (primary / icon-active, and their hover pair one step darker), for want
+     of a token to point at. MPI-736 needed a fifth site — the armed CUE button's label
+     — and a fifth literal is where an unnamed convention should become a name.
+     NOT an --ink-*: those are the warm whites for text on a SURFACE, and every one of
+     them is unreadable here. */
+  --ink-on-accent:   oklch(0.16 0.02 0);
+
   /* Media-type accent. Cubric Studio gives each media type its own colour
      (MPI-708); audio is the first surface here that needs one. Mirrored from
      the source of truth — `--audio-accent` in the Cubric Studio (Website) repo,
@@ -111,8 +132,8 @@
      through its actions too — the in-app agent is Studio, so its chat, its panel
      and its head rebind --accent-heat to --hub-accent for their whole subtree
      instead of restating a literal per state. Vision's own is a literal on
-     purpose: MPI-736 points --accent-heat at ink on shared surfaces, and
-     Vision's dot must stay rose when it does. */
+     purpose: --accent-heat now defaults to Studio's cream on shared surfaces,
+     and Vision's dot must stay rose when it does. */
   --hub-accent:      oklch(0.78 0.028 80);   /* cream — Studio */
   --vision-accent:   oklch(0.76 0.17 355);   /* rose — Vision */
   --prompt-accent:   oklch(0.88 0.13 102);   /* yellow — Prompt */
@@ -173,6 +194,38 @@
      tools. 88px, not 72px: the section labels ("TRANSFORM", "COMPOSITE") are 9px
      uppercase at 0.18em tracking and were clipping. */
   --history-rail-w: 88px;
+}
+
+
+/* ── The accent family: one attribute, one token ───────────────────────────── */
+/* A surface declares WHOSE it is and everything inside it follows — components are
+   never taught five tokens, they read --accent-heat and this rebinds it for the
+   subtree. DESIGN.md § "The accent family" carries the contract and the values.
+   Each rule MUST restate --accent-heat-hi: a custom property bakes its var() at the
+   rule that DECLARES it, so --accent-heat-hi computed at :root would inherit down
+   still holding the cream and the hover lift would never move.
+   Who sets the attribute: js/shell/navigation.js on the workspace container (a card's
+   media type), MpiPromptBox on itself (the SELECTED MODEL's media type). A component
+   that IS one of the family sets its own instead — MpiAgentChat, MpiRadialMenu. */
+[data-accent="studio"] {
+  --accent-heat:    var(--hub-accent);
+  --accent-heat-hi: oklch(from var(--accent-heat) calc(l + 0.02) calc(c + 0.03) h);
+}
+[data-accent="vision"] {
+  --accent-heat:    var(--vision-accent);
+  --accent-heat-hi: oklch(from var(--accent-heat) calc(l + 0.02) calc(c + 0.03) h);
+}
+[data-accent="prompt"] {
+  --accent-heat:    var(--prompt-accent);
+  --accent-heat-hi: oklch(from var(--accent-heat) calc(l + 0.02) calc(c + 0.03) h);
+}
+[data-accent="video"] {
+  --accent-heat:    var(--video-accent);
+  --accent-heat-hi: oklch(from var(--accent-heat) calc(l + 0.02) calc(c + 0.03) h);
+}
+[data-accent="audio"] {
+  --accent-heat:    var(--accent-audio);
+  --accent-heat-hi: oklch(from var(--accent-heat) calc(l + 0.02) calc(c + 0.03) h);
 }
 
 

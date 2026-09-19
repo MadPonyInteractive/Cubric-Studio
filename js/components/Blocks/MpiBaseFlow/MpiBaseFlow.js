@@ -204,6 +204,16 @@ export const MpiBaseFlow = ComponentFactory.create({
         const flow = props.flow;
         const _unsubs = [];
 
+        // MPI-736: a Flow wears the colour of WHAT IT PRODUCES, which is exactly what
+        // `mediaType` on the descriptor already declares ("What the flow PRODUCES" —
+        // flowsRegistry.js). One attribute recolours the ticker, the arrows, the slots
+        // and the Generate button, because they all read --accent-heat. Set on the
+        // block rather than taken from the shell: a Flow is an overlay over whatever
+        // workspace is behind it, and a video Flow opened over an image card is the
+        // video one. 'image' maps to 'vision' — Vision is the family member that owns
+        // stills; video and audio name their own.
+        el.dataset.accent = flow?.mediaType === 'image' ? 'vision' : (flow?.mediaType || 'studio');
+
         // ── main-area overlay frame (spares the status bar; queue rides above) ──
         // No X: the topbar's FLOWS button is the only exit, and it returns to the
         // Library. The overlay's X dropped the user into the gallery instead, which

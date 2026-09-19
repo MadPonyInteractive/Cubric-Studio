@@ -30,9 +30,34 @@ from `Cubric Studio (Website)\styles\landing.css:30-34`, and `CLAUDE.md`'s Snaps
 rule — **never sample a brand colour off the mascot art, the values are written down.** That
 rule exists because this session sampled the PNGs before checking, which is the mistake.
 
-Next action: the collapsed phase 3+4. **The open question is now CLOSED** — Fabio chose
-`--hub-accent` cream `oklch(0.78 0.028 80)`, confirmed against the measured Studio mascot
-`#c1b6a4`, which is the same colour to three decimals. Do not re-ask.
+**PHASE 3+4's ENGINE HAS LANDED** (2026-09-19). `:root --accent-heat` is
+`var(--hub-accent)`, five `[data-accent]` rules sit under it in `01_base.css`, and Fabio
+signed off across five rounds of live checks. The sweep is NOT finished — he is still
+finding surfaces a round at a time, which is the expected shape of this phase, not drift.
+
+Next action: the record-audio overlay (two jobs, `## Phase 3+4 — the sweep` below).
+
+### What the sweep taught, and will teach again
+
+Every round so far was a STRUCTURAL cause, never a colour question. Check these before
+theorising about a value:
+
+1. **`#controls-mount` is a SIBLING of `#tool-container`** (`index.html:158`), and
+   `MpiGroupHistoryBlock` mounts the video bar, the GIF bar AND the frame strip into it.
+   That is why the accent binding lives on `#app-shell`.
+2. **An icon button is never `primary`.** `MpiButton.js:74` maps every icon button that is
+   not danger/ghost down to `secondary`. CUE mounts `variant: 'primary'` and has always
+   rendered as an outline.
+3. **`.mpi-ibtn__label` pins its own `color`** (`--ink-2`, with an ink-1 hover ladder), so
+   a button's `color` recolours its ICON (currentColor) and not its WORD.
+4. **A ghost ICON button is `.mpi-btn.mpi-ibtn.mpi-btn--ghost` at 0,3,0 pinning `--ink-3`**
+   — not the plain `.mpi-btn--ghost` at 0,1,0 pinning `--ink-2`. A 0,2,0 override loses,
+   and loses SILENTLY: the label goes coloured and the glyph stays grey.
+5. **A `document.body`-appended child inherits from `:root`, not from its opener.** The
+   PromptBox settings popup needed the attribute set on it directly.
+6. **Measure contrast off rendered pixels.** `getComputedStyle` returns `oklch(...)` and
+   canvas `fillStyle` silently REJECTS oklch, returning `#000000` — every ratio comes back
+   1.00:1 and looks like a bug in the CSS. Screenshot + sharp, sample the pixel.
 
 ## The mechanism (already shipped, just not applied widely)
 
@@ -219,6 +244,40 @@ Surfaces that set it (Fabio, 2026-09-18):
 
 The existing `MpiAgentChat` / `MpiPromptBox --col--mode` rebinds to `--hub-accent` fold
 into the same block.
+
+## Phase 3+4 — the sweep (IN PROGRESS, this is the next action)
+
+Fabio walks the app and names surfaces a round at a time. Five rounds are done and
+signed off. **Two jobs are open, both on the record-audio overlay** (Fabio, 2026-09-19):
+
+1. **Its colours are wrong — it should be AUDIO.** `MpiAudioRecorder.css:12,40,41` read
+   `--accent-heat`, so on a shared surface the overlay renders Studio cream. Rebind the
+   token on `.mpi-audio-recorder` exactly as `MpiGalleryToolbar.css` does for the volume
+   slider — `--accent-heat: var(--accent-audio)` plus the restated `--accent-heat-hi`.
+   The ACCEPT button is a filled `primary` and follows for free.
+2. **It must use OUR player, not the browser's.** `MpiAudioRecorder.js:223` builds
+   `ce('audio', { src: URL.createObjectURL(_blob), controls: true })` and drops it into
+   `#playback-slot`. Replace with `MpiAudioPlayer` (Organism). **The fact that makes this
+   cheap:** its `mask` prop (a baked waveform) is OPTIONAL and its own header says *"a
+   maskless player still scrubs"* — a just-recorded clip has no baked waveform, so `src`
+   + `duration` is enough. It owns ONE `<audio>` and `src` is set once, never re-pointed,
+   so **Re-record must destroy the instance and mount a fresh one**, not re-point it
+   (MPI-727). Destroy it on `cancel`/`accept` too — `destroy()` pauses and unbinds.
+   Watch `hotkeys`: it answers SPACE/M by default, and the overlay is a modal with its
+   own Escape handling.
+
+**Settings — Fabio asked whether this could be worked out without being told. It can.**
+Settings is a `LandingPages/` surface, reached from the landing page, which is the HUB —
+Studio's own screen, the one whose mascot "runs the crew". A shared surface takes `:root`'s
+default, and that default is now `--hub-accent`. So Settings is **Studio cream, and it
+already renders correctly** — nothing to change. The one row worth raising with him is
+*"Play sound on notification"*: by the rule just applied to Record and the volume slider,
+an audio control wears `--accent-audio`. That is a question, not an assumption.
+
+Then: keep sweeping. The remaining known gaps are phase 1c's canvas constants, the
+progress/status bar's "accent of the task ahead" (the `tool:*` events carry no
+`mediaType`, so the EMITTERS have to change — this is the one genuinely non-trivial
+piece left), and whatever Fabio finds next.
 
 ## Phase 4 — shared surfaces in ink, and the docs
 
