@@ -243,6 +243,19 @@ by construction. Do not hand phase 4 to a worker sub-agent.
 
 ## Plan Drift
 
+**2026-09-19 — phase 7 is DONE; its text above is stale and is kept only as the record of
+what was decided.** Both members shipped. MPI-798 (developer kit) closed on `37e7357c` +
+`e6908dd6`. MPI-799 is live and public at
+https://github.com/MadPonyInteractive/cubric-flows-registry — so "needs Fabio's repo name,
+licence and submission shape before it can be planned" is no longer true: he answered all
+four on 2026-09-19 and the repo was built, proven on a real runner and opened the same day.
+The registry is MIT, a PR for both lanes, a catalogue and never a file host. **Read
+`.agents/mpi-kanban/tasks/MPI-799/validation.md` before touching anything registry-shaped**
+— in particular that its CI pin (`STUDIO_REF`) is `master` until 2.0 tags, because no
+released tag carries `scripts/lint-flow-package.mjs`, and that CI cannot check node classes
+or pack drift at all. **Phase 3 (lipsync, MPI-538) is now the only unfinished phase with an
+actionable card.**
+
 **2026-08-16 — merged.** MPI-529 and MPI-552 deleted into this card; their phase order,
 drift notes and settled decisions are folded in above. No member card was closed or altered
 in scope by the merge.
