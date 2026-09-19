@@ -173,6 +173,43 @@ test('no profileId is a 400; an unknown connection is NO_PROFILE; a keyless host
     } finally { restore(); }
 });
 
+test('POST /llm/ollama/unload frees every loaded model, and never errors', async () => {
+    // The card holds TWO runtimes. Ollama keeps a model resident for five minutes after
+    // the last request and a 12B agent model is ~8GB of 16 — so Release VRAM, which only
+    // ever spoke to ComfyUI, freed nothing that mattered (seen live at 15.1/16.0 GB).
+    const calls = [];
+    const restore = stubUpstream(async (url, init) => {
+        calls.push({ url, body: init?.body ? JSON.parse(init.body) : null });
+        if (url.endsWith('/api/ps')) {
+            return okJson({ models: [{ name: 'gemma-4-abliterated:12b' }, { name: 'qwen3-vl:4b' }] });
+        }
+        return okJson({});
+    });
+    try {
+        await withServer(async (base) => {
+            const body = await (await fetch(`${base}/llm/ollama/unload`, { method: 'POST' })).json();
+            assert.equal(body.ok, true);
+        });
+        // `keep_alive: 0` on an empty chat is how Ollama evicts — there is no unload endpoint.
+        const evicted = calls.filter(c => c.body?.keep_alive === 0).map(c => c.body.model);
+        assert.deepEqual(evicted.sort(), ['gemma-4-abliterated:12b', 'qwen3-vl:4b']);
+    } finally { restore(); }
+});
+
+test('Release VRAM still succeeds when Ollama is not there at all', async () => {
+    // Not installed, not running, nothing loaded — all mean "no VRAM of ours to free",
+    // which is a SUCCESS for this button. An error here would surface as "Unload Failed"
+    // on a machine that never had Ollama, and ComfyUI's release would look broken.
+    const restore = stubUpstream(async () => { throw new Error('ECONNREFUSED'); });
+    try {
+        await withServer(async (base) => {
+            const body = await (await fetch(`${base}/llm/ollama/unload`, { method: 'POST' })).json();
+            assert.equal(body.ok, true);
+            assert.equal(body.skipped, true);
+        });
+    } finally { restore(); }
+});
+
 test('the environment key never goes to a DeepInfra profile whose URL was edited', async () => {
     const restore = stubUpstream(async () => okJson(CATALOGUE));
     try {

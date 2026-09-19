@@ -206,6 +206,28 @@ router.post('/llm/ollama/start', async (_req, res) => {
 });
 
 /**
+ * POST /llm/ollama/unload — free the VRAM Ollama is holding.
+ *
+ * Ollama keeps a model resident for `OLLAMA_KEEP_ALIVE` (5 minutes by default) after
+ * the last request, and a 12B agent model is ~8GB of a 16GB card. The app's own Release
+ * VRAM only ever spoke to ComfyUI, so pressing it with the agent loaded freed nothing
+ * that mattered and the card stayed full (MPI-774 Phase 7, seen live 15.1/16.0 GB).
+ *
+ * Never an error path for the caller: Ollama not installed, not running or already
+ * empty all mean "no VRAM of ours to free", which is a success for this button.
+ */
+router.post('/llm/ollama/unload', async (_req, res) => {
+    try {
+        const { OllamaEngine } = await engines();
+        await new OllamaEngine().releaseOwnModels();
+        res.json({ ok: true });
+    } catch (err) {
+        logger.info('system', `ollama unload skipped: ${err && err.message}`);
+        res.json({ ok: true, skipped: true });
+    }
+});
+
+/**
  * POST /llm/ollama/install — install Ollama silently (Windows, winget). Reached only
  * from the user's own click on "Install Ollama", which is the consent. `ok: false`
  * means this platform has no silent install: the row opens the download page.
