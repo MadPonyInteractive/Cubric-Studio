@@ -35,13 +35,14 @@ rule exists because this session sampled the PNGs before checking, which is the 
 signed off across five rounds of live checks. The sweep is NOT finished — he is still
 finding surfaces a round at a time, which is the expected shape of this phase, not drift.
 
-**Round 6 is implemented and awaiting Fabio's eye** (2026-09-19): the record-audio
-overlay's two jobs, the gallery info toggle, and — after his screenshot showed a flat green
-bar — the review track's WAVE, which no baked mask could supply because the take is not a
-file yet. `npm test` 1410/1411 (1 skipped), lint clean on every touched file, a desktop
-spec on the bake, and the colours + player mount read off a real browser.
+**Round 6 is VERIFIED BY FABIO** (2026-09-19, live): *"it's working now, everything looks
+okay."* That closes the audio strand of this sweep — the record-audio overlay's colours, our
+own player with a real waveform, the gallery info toggle, and the two defects the round
+surfaced (an imported audio card dropping `thumbPath`, and the bake reading peak instead of
+RMS). `npm test` 1419/1420, desktop bake spec green, lint clean.
 
-Next action: Fabio's live pass on the three surfaces — see `validation.md` § Round 6.
+**Next action: the CARD ICONS** — the one surface Fabio named as he closed the round. The
+sweep continues; nothing about it is finished.
 
 ### What the sweep taught, and will teach again
 
@@ -314,6 +315,24 @@ default, and that default is now `--hub-accent`. So Settings is **Studio cream, 
 already renders correctly** — nothing to change. The one row worth raising with him is
 *"Play sound on notification"*: by the rule just applied to Record and the volume slider,
 an audio control wears `--accent-audio`. That is a question, not an assumption.
+
+### Round 7 — the CARD ICONS (Fabio, 2026-09-19, NOT yet investigated with him)
+
+He named this as he signed off round 6 and did not say which icon he meant, so **ask before
+assuming**. A gallery card carries two icon families, and they are different jobs:
+
+1. **The kind chip**, `.mpi-group-card__kind` — `MpiGalleryGrid.css:577-588`, the bottom-right
+   badge (MPI-749) that marks a video or a 3D Scene. It pins `color: var(--ink-1)`, a fixed
+   ink that no accent reaches. This is the one that most obviously "needs colours": a card's
+   kind chip is a MEDIA TYPE statement, which is exactly what the accent family encodes.
+2. **The card mark**, the top-right button — `MpiGalleryGrid.js:519`, mounted
+   `variant: 'ghost', toggleable: true` with `markIcon(_mark)`. **Round 6's lesson applies
+   here unchanged:** a ghost icon button's `is-active` is colour ALONE
+   (`MpiButton.css:308-312`), so against the shared cream its on-state is nearly invisible —
+   the identical defect just fixed on the gallery toolbar's info and archive toggles.
+
+Number 2 is a strong lead precisely because it is the same trap, so check it even if he
+meant number 1.
 
 Then: keep sweeping. The remaining known gaps are phase 1c's canvas constants, the
 progress/status bar's "accent of the task ahead" (the `tool:*` events carry no
