@@ -67,6 +67,7 @@ const { router: remoteEngineRoutes } = require('./routes/remoteEngine');
 const { router: remoteProxyRoutes } = require('./routes/remoteProxy');
 const { installShutdown } = require('./routes/shared');
 const connectorRoutes = require('./routes/connector');
+const connectorGifRoutes = require('./routes/connectorGif');  // MPI-830
 const licenceRoutes = require('./routes/licences');
 const llmRoutes = require('./routes/llm');
 const agentRoutes = require('./routes/agent');  // MPI-774
@@ -97,6 +98,7 @@ app.use(gifTransformRoutes);  // MPI-773
 app.use(gifToVideoRoutes);  // MPI-773
 app.use(gifMakerRoutes);  // MPI-760
 app.use(connectorRoutes);
+app.use(connectorGifRoutes);  // MPI-830
 app.use(licenceRoutes);
 app.use(llmRoutes);
 app.use(agentRoutes);  // MPI-774

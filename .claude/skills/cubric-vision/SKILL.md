@@ -63,6 +63,7 @@ Each skill is self-contained. Load the one the task needs, not all of them.
 | Projects: list, create, open one, update the record; the media routes; **naming cards** | this one, [projects.md](projects.md) |
 | Dispatching a generation: `/connector/generate`, named params, `cardName`, **reference images on a model op**, error codes, the `modelId` trap | `cubric-vision-generate` ([SKILL.md](../cubric-vision-generate/SKILL.md)) |
 | Running a Flow and text-to-speech, including supplying your own audio, image or video | `cubric-vision-flows` ([SKILL.md](../cubric-vision-flows/SKILL.md)) |
+| Animated GIFs: make one from cards or a clip, retime, trim, loop, crop, resize, cut the subject out onto transparency, GIF to video | `cubric-vision-gif` ([SKILL.md](../cubric-vision-gif/SKILL.md)) |
 | A project with no app running: `project.json`, sidecars, naming vs notes, **recovering the prompt behind an image**, the reference-slot load list | `cubric-vision-project-files` ([SKILL.md](../cubric-vision-project-files/SKILL.md)) |
 | Engine control, the RunPod remote engine (a pod bills while it exists), system and shell routes | `cubric-vision-engine` ([SKILL.md](../cubric-vision-engine/SKILL.md)) |
 

@@ -14,6 +14,16 @@
       "mediaTypes": ["image", "video"],
       "requiresConsent": true,
       "version": "0.1.0"
+    },
+    {
+      "id": "gif.edit",
+      "providerAppId": "cubric.vision",
+      "kind": "transform",
+      "label": "Make and edit a GIF",
+      "description": "Build an animated GIF from still cards or a clip of a video card, retime, trim, loop, crop or resize one, cut its subject out onto transparency, or turn it back into a video. Lands as a real gallery card, or as a new entry on the card it came from.",
+      "mediaTypes": ["image", "video"],
+      "requiresConsent": true,
+      "version": "0.1.0"
     }
   ],
   "metadata": {

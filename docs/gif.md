@@ -162,6 +162,21 @@ no second file-serving mechanism: both routes above resolve each frame's ready
   written, same precedent as the existing `splatPath` copy in that route: a
   hash already present at the destination is left alone.
 
+## From an agent (MPI-830)
+
+`routes/connectorGif.js` — `POST /connector/gif/{make,edit,cutout,to-video}`. Each
+dispatches a `gif.*` job over the connector's renderer channel to
+`js/shell/gifJobs.js`, which resolves `state.currentProject`, posts the routes above
+and lands the card. **That hop is the point**: these routes never write
+`project.json` (the renderer owns `itemGroups`), and the cut-out's masks come from
+`runGifCutoutTrack()` through `getEngine()` — a server-side producer would be a
+second engine-dispatch path. `edit` does the timing math with `timingEdit`, then
+picks ONE route; crop + resize in one call is refused rather than landing an
+intermediate entry nothing references. Not exposed (Fabio, 2026-09-19): By colour,
+SAM3 chips, the Mask Brush, per-frame scope. Contract:
+`.claude/skills/cubric-vision-gif/SKILL.md`. Proof: `tests/connector-gif.test.cjs`
+(real socket, fake renderer) + `tests/connector-gif-jobs.test.cjs`.
+
 ## Tools on this store
 
 Workspace tools land results through the Block's `_postGifEntry` (POST, then

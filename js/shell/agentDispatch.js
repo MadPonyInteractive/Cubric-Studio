@@ -59,6 +59,7 @@ import { describeImage } from '../services/llmService.js';
 import { downloadService } from '../services/downloadService.js';
 import { remoteEngineClient } from '../services/remoteEngineClient.js';
 import { state } from '../state.js';
+import { runGifJob, GIF_HANDLERS } from './gifJobs.js';
 import { clientLogger } from '../services/clientLogger.js';
 
 let _source = null;
@@ -828,6 +829,12 @@ const _HANDLERS = {
     'agent.list-models': _listModels,
     'agent.install-model': _installModel,
     'agent.describe': _describeImage,
+    // MPI-830: the GIF verbs. They live in gifJobs.js — this file's contract is
+    // one job in, one result out, and those four run whole pipelines (ffmpeg
+    // routes, the cut-out engine, landing the card). They answer in the
+    // connector envelope, so reporting is all that happens here.
+    ...Object.fromEntries(Object.keys(GIF_HANDLERS).map(cap =>
+        [cap, (jobId, input) => runGifJob(cap, input).then(payload => _report(jobId, payload))])),
 };
 
 /**

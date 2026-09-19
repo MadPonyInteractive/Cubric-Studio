@@ -1020,3 +1020,6 @@ router.post('/connector/describe', async (req, res) => {
 });
 
 module.exports = router;
+// MPI-830: routes/connectorGif.js dispatches over this same renderer channel.
+// Exported rather than re-implemented so there is ONE job channel, not two.
+module.exports.dispatchToRenderer = _dispatchToRenderer;
