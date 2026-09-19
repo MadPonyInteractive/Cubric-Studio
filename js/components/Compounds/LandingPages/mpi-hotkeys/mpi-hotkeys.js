@@ -44,6 +44,14 @@ export const MpiHotkeys = ComponentFactory.create({
                             </ul>
                         </div>
 
+                        <!-- Agent -->
+                        <div class="mpi-hotkeys__shortcut-group">
+                            <h4>Agent</h4>
+                            <ul>
+                                <li><span>A</span><span>Toggle Agent mode</span></li>
+                            </ul>
+                        </div>
+
                         <!-- Memory -->
                         <div class="mpi-hotkeys__shortcut-group">
                             <h4>Memory</h4>

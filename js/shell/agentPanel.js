@@ -20,6 +20,7 @@ import { Events }          from '../events.js';
 import { state }           from '../state.js';
 import { Storage, clampAgentPanelWidth } from '../core/storage.js';
 import { agentInitStream } from '../services/agentService.js';
+import { Hotkeys }         from '../managers/hotkeyManager.js';
 import { gid }             from '../utils/dom.js';
 import { navigate, PAGE_GROUP_HISTORY } from '../router.js';
 
@@ -60,7 +61,16 @@ export function initAgentPanel() {
         mountEl.classList.toggle(OPEN, !!val);
     });
 
-    // 6. A result card in either chat opens that card's history, the way a gallery click
+    // 6. `A` opens and closes the panel. Bound HERE, not in MpiPromptBox: the box is
+    // remounted on every workspace switch and its toggle button goes with it, while this
+    // service is app-lifetime. Both sides already meet at `state.agentMode` — the box's
+    // own `onState` listener re-paints the button — so the hotkey writes the state and
+    // nothing else needs wiring.
+    Hotkeys.bind('agentMode.toggle', () => {
+        state.agentMode = !state.agentMode;
+    });
+
+    // 7. A result card in either chat opens that card's history, the way a gallery click
     // does (audio has no history view there either). Only a card the open project holds:
     // the landing chat has no project, and a card from an earlier project is not here.
     // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener, like the one above

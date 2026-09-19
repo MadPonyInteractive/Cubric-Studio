@@ -160,9 +160,23 @@ umbrella is the one place that knows the whole surface (Fabio, 2026-09-19).
 | MPI-797 | todo / blocked | Agent box: own input, numbered chips, resizable panel. |
 | MPI-593 | todo / deferred | Agent interface for end users, a small Node CLI. |
 
-Held for Fabio's shape, no card and no phase yet, both raised 2026-09-19 out of his own two
-conversations: a **Prompt rule** in the system prompt, and **surfacing the agent's real prompt**
-in the chat. See `validation.md` § 3 for why the per-guide doc fix is not the whole answer.
+Held for Fabio's shape, no card and no phase yet, all raised 2026-09-19 out of his own
+conversations: a **Prompt rule** in the system prompt, **surfacing the agent's real prompt**
+in the chat, and **the agent's deliberation reaching the chat verbatim** (his second app
+pass — "Let me check if there's anything else I should prepare. Actually the generation is
+async…", rendered as it arrived). See `validation.md` § 3 for why the per-guide doc fix is
+not the whole answer; the third is the same argument.
+
+## Session c6414b8c (2026-09-19) — his SECOND app pass
+
+- [x] The outpaint frame reaches the agent: `params.frame.ratio`, advertised in
+      `_listModels`, derived in `_submitFlow`, **refused** when absent (`FRAME_REQUIRED`)
+      or a no-op (`FRAME_UNCHANGED`). Pixel-proven on his own `i2i_001.png`.
+- [x] A flow's media roles are advertised — the `inputImage` / `image1` refusal.
+- [x] `wait: true` on `generate`, plus the Chaining rule. His call, this session.
+- [x] `A` toggles agent mode, with the typing case asserted.
+- [ ] **A live outpaint in his app** — needs a RESTART (`services/` + `routes/` changed).
+- [ ] His verdict on the deliberation leak (held above, not built).
 
 Done already, on MPI-774 and recorded there, not here: Phases 1-5, including fix 8 closed
 unreproduced on 2026-09-19 (`tasks/MPI-774/plan.md` § Fix 8 closure).

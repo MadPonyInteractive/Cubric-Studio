@@ -751,7 +751,17 @@ router.get('/connector/models', async (req, res) => {
     };
   });
 
-  res.json({ ok: true, engine: engine || 'local', hardware, models, flows: flows || [] });
+  // A Flow's media slots, the same way an op's arrive above. Without this a flow entry
+  // named its fields and its box params and nothing at all about where the picture goes,
+  // so the agent guessed the role and learned the real one only from a refused submit —
+  // live (Fabio, 2026-09-19): `"flowOutpaint" has no media role "inputImage". Roles: image1.`
+  // A Flow has no model, and `mediaRolesFor` takes that null for exactly this case.
+  const flowList = (flows || []).map((f) => ({
+    ...f,
+    media: registry ? mediaRolesFor(registry, f.operation, null) : [],
+  }));
+
+  res.json({ ok: true, engine: engine || 'local', hardware, models, flows: flowList });
 });
 
 /**

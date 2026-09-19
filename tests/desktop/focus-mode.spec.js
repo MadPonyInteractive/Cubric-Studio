@@ -97,3 +97,63 @@ test('focus mode collapses the agent panel, and takes its gap with it', async ({
     await closeApp(app);
   }
 });
+
+/**
+ * `A` opens and closes the agent (Fabio, 2026-09-19). Bound in `agentPanel.js` rather than
+ * on the PromptBox's own toggle button: that box is remounted on every workspace switch
+ * and the binding would go with it, while this service is app-lifetime. Both meet at
+ * `state.agentMode`.
+ *
+ * The third case is the one worth the file. `a` is a letter people type constantly, so the
+ * binding lives or dies on `allowWhileTyping: false` — without it the panel flips on every
+ * "a" of a prompt, which is worse than having no hotkey at all.
+ */
+test('A opens and closes the agent panel, and never fires while you are typing', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await window.evaluate(async () => {
+      const { Events } = await import('/js/events.js');
+      Events.emit('engine:install-skipped');
+      await new Promise((r) => setTimeout(r, 300));
+    });
+
+    await window.evaluate(async (p) => {
+      const [{ state }, { navigate, PAGE_GALLERY }] = await Promise.all([
+        import('/js/state.js'),
+        import('/js/router.js'),
+      ]);
+      state.currentProject = p;
+      navigate(PAGE_GALLERY);
+      await new Promise((r) => setTimeout(r, 400));
+    }, makeProject(testInfo));
+
+    const isOpen = () => window.evaluate(() =>
+      document.querySelector('#agent-panel-mount').classList.contains('agent-panel-mount--open'));
+    const blur = () => window.evaluate(() => document.activeElement?.blur());
+
+    expect(await isOpen(), 'the panel starts closed').toBe(false);
+
+    await blur();
+    await window.keyboard.press('a');
+    await window.waitForTimeout(400);
+    expect(await isOpen(), 'A should have opened it').toBe(true);
+
+    await blur();
+    await window.keyboard.press('a');
+    await window.waitForTimeout(400);
+    expect(await isOpen(), 'A again should have closed it').toBe(false);
+
+    // Typing into the prompt box: the letter lands in the field and nothing else happens.
+    const textarea = window.locator('#prompt-box-mount textarea').first();
+    await textarea.click();
+    await textarea.type('a fox');
+    await window.waitForTimeout(400);
+    expect(await isOpen(), 'typing a prompt must not open the agent').toBe(false);
+    expect(await textarea.inputValue()).toBe('a fox');
+
+    expect(pageErrors, `page errors: ${pageErrors.join(' | ')}`).toHaveLength(0);
+  } finally {
+    await closeApp(app);
+  }
+});

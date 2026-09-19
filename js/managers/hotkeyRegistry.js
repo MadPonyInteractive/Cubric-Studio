@@ -88,6 +88,17 @@ export const HOTKEY_REGISTRY = [
         allowWhileTyping: true,
     },
 
+    // ── Agent ─────────────────────────────────────────────────────────────────
+    {
+        id:               'agentMode.toggle',
+        key:              'a',
+        type:             KEY_TYPE.DOWN,
+        category:         'agent',
+        scopeLabel:       'Agent',
+        description:      'Toggle Agent mode',
+        allowWhileTyping: false,
+    },
+
     // ── Memory ────────────────────────────────────────────────────────────────
     {
         id:               'memory.refresh',

@@ -109,8 +109,9 @@ const TOOL_DEFS = [
                     stylization: { type: 'number' },
                     seed: { type: 'integer' },
                     cardName: { type: 'string', description: 'Optional short name for the card this generation creates.' },
+                    wait: { type: 'boolean', description: 'Wait for this generation to finish and return its result, instead of starting it and moving on. Use it when a LATER step in the same request needs this output — the result carries the filePath you then pass as media. Leave it off for the last step, so the chat stays free while it runs.' },
                     fields: { type: 'object', description: 'Flow field values.' },
-                    params: { type: 'object', description: 'Flow box params, e.g. { box1: { x, y, width, height } }.' },
+                    params: { type: 'object', description: 'Flow step params: a box, e.g. { box1: { x, y, width, height } }, and for a Flow whose entry declares `frame`, the shape you want the picture grown to, e.g. { frame: { ratio: "9:16" } }. Take the ratio from that entry\'s own list.' },
                     media: {
                         type: 'array',
                         items: {
@@ -718,6 +719,8 @@ Box rule: a Flow whose describe_model answer has boxParams needs one box per par
 
 Shape rule: a generation that starts from a picture crops it to fill the ratio, never letterboxes it. Leave ratio out and the picture's own shape is used: say nothing. Only when the user asks for a ratio themselves, tell them in one line, before you generate, that part of the picture will be cropped to fit.
 
+Chaining rule: when one request asks for two things and the second needs the first ("make it 9:16, then animate it"), generate the first with wait: true. Its result comes back in that same call, carrying the filePath you pass as the next step's media - without wait you are told only that it started, the picture arrives after your turn has ended, and the second half never gets made. Do BOTH halves; the user asked for both. The exception is a step whose output they will judge - a new shape, a new style, a face: wait for it, look at it, and if it came back wrong say so and redo it rather than animating a bad picture. Only ask before continuing when the call is genuinely theirs to make, and then say exactly what you will do next so a yes is the whole answer. Never end a turn having done half of what was asked without saying which half is missing and why.
+
 Guide rule: before your first prompt for a model, read its prompting guide: describe_model gives that model its guide ids, read_knowledge reads one. generate refuses until you have. Use the guide to ADAPT what the user asked for to that model (its structure, length and vocabulary) and keep their intent. Never send a guide's example as the prompt.
 
 Installation rule: Always call install_model to show the user a Yes / No confirmation card. Never install a model without a Yes from the user, regardless of mode.
@@ -905,7 +908,11 @@ ${knowledgeIndex}`.trim();
                         message: `Nothing was generated: ${early.error?.message || 'the generation was refused.'}${miss && where ? ` Call describe_model with "${where}" for the values it accepts, then send it again.` : ''}`,
                     } });
                 }
-                pending.then(async (r) => {
+                // One settle path, attached two ways. `wait` awaits it so the result is in
+                // hand before the tool returns; the default attaches it and returns
+                // `started: true`. Never both — a double report would emit `agent:result`
+                // twice and push the note twice.
+                const settle = async (r) => {
                     const ok = r && r.ok;
                     if (ok && r.output?.filePath) this._registerResult(r.output.filePath, r.output.modelId);
                     if (ok && r.output?.groupId) this._groups.add(r.output.groupId);
@@ -935,11 +942,43 @@ ${knowledgeIndex}`.trim();
                             }
                         } catch { /* look failure is non-fatal */ }
                     }
-                }).catch((err) => {
+                };
+                const settleThrow = (err) => {
                     this._emit('agent:result', { toolCallId, ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
                     this._historyEntry('result', { toolCallId, ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
                     this._notes.push(`[Generation failed: RUNTIME_ERROR: ${err.message}]`);
-                });
+                };
+
+                // MPI-817 — WAITING IS THE ONLY WAY TO CHAIN. Fire-and-forget puts the
+                // result in `this._notes`, which is read at the START of the next turn, so
+                // a request whose second half needs the first half's output ("grow it to
+                // 9:16, then animate it") cannot be finished at all: the model has nowhere
+                // to wait and ends the turn with the animation undone. Measured live
+                // (Fabio, 2026-09-19) — the outpaint landed and the video was never asked
+                // for. Both transports resolve at 30 minutes, so the await is bounded.
+                //
+                // Not the default: an unwaited generate keeps the chat answering while a
+                // five-minute video runs, and that is the right shape for the last step of
+                // a request. `wait` is for the steps something else depends on.
+                if (args.wait) {
+                    let r;
+                    try {
+                        r = await pending;
+                    } catch (err) {
+                        settleThrow(err);
+                        return JSON.stringify({ ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
+                    }
+                    await settle(r);
+                    if (!r?.ok) {
+                        return JSON.stringify({ ok: false, error: r?.error || { code: 'RUNTIME_ERROR', message: 'The generation produced no output.' } });
+                    }
+                    // The filePath is the ref the next call passes as `media[].image` — it
+                    // is already registered by `settle`, so the chain needs nothing else.
+                    return JSON.stringify({ ok: true, output: r.output,
+                        message: `Finished. Use "${r.output?.filePath}" as the image for the next step.${snapped ? ` Ratio ${snapped}, taken from the picture's own shape.` : ''}` });
+                }
+
+                pending.then(settle).catch(settleThrow);
 
                 return JSON.stringify({ ok: true, started: true, toolCallId, message: `Generation started. The result will appear in the chat when ready.${snapped ? ` Ratio ${snapped}, taken from the picture's own shape.` : ''}` });
             }

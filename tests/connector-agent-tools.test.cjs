@@ -271,3 +271,112 @@ test('findProjectByName: the same name in another case is the same project', () 
     assert.equal(findProjectByName(undefined, 'fanvue'), null);
     assert.equal(findProjectByName([{ folderPath: 'C:/Projects/x' }], 'fanvue'), null, 'a nameless row must not throw');
 });
+
+// ── 5. The outpaint frame (MPI-817) ──────────────────────────────────────────
+
+// Live (Fabio, 2026-09-19 17:39Z): "grow the top and bottom edges so the format becomes
+// 9:16". The agent ran `flowOutpaint` with `{ mediaItems: [image1], injectionParams:
+// { Input_is_Turbo: true } }` and NOTHING ELSE — the sidecar on disk is the record. The
+// input `i2i_001.png` is 896x1088 and the result came back 928x1136: the graph's own
+// bucket for the SAME 4:5 shape, which is why it read as "the original image". The frame
+// is a `crop` step with no `param`: its value becomes a PADDED PICTURE, so it was
+// invisible to a `kind === 'box'` filter and unhandled by the submit. The flow reported
+// success on a no-op, which is the failure worth a test.
+
+test('frameRectForRatio: the live 4:5 -> 9:16 case grows the top and bottom, and only those', async () => {
+    const { frameRectForRatio } = await esm('js/shell/agentDispatch.js');
+
+    // i2i_001.png's real pixels, and 9/16 as CROP_RATIOS holds it.
+    const r = frameRectForRatio({ w: 896, h: 1088 }, 9 / 16);
+    assert.equal(r.w, 896, 'the width must not move: 9:16 is TALLER than 4:5');
+    assert.equal(r.h, 1593, '896 / (9/16), rounded');
+    assert.equal(r.x, 0);
+    assert.equal(r.y, -252, 'centred, so the source is inset and the overhang is what gets painted');
+    // Both bars grew and the source is whole between them — the rect can only be one pixel
+    // lopsided, from the rounding, and never lopsided by a bar's worth.
+    const top = -r.y;
+    const bottom = r.h - top - 1088;
+    assert.ok(top > 0 && bottom > 0, `both edges must grow: ${top} / ${bottom}`);
+    assert.ok(Math.abs(top - bottom) <= 1, `centred to within a rounding pixel: ${top} / ${bottom}`);
+    assert.ok(Math.abs((r.w / r.h) - (9 / 16)) < 0.001, 'the rect really is the shape asked for');
+});
+
+test('frameRectForRatio: a WIDER target grows left and right instead', async () => {
+    const { frameRectForRatio } = await esm('js/shell/agentDispatch.js');
+    const r = frameRectForRatio({ w: 896, h: 1088 }, 16 / 9);
+    assert.equal(r.h, 1088, 'the height must not move');
+    assert.equal(r.w, 1934, '1088 * (16/9), rounded');
+    assert.equal(r.y, 0);
+    assert.equal(r.x, -519);
+});
+
+test('frameRectForRatio: a target the picture already is stays the source rect', async () => {
+    const { frameRectForRatio } = await esm('js/shell/agentDispatch.js');
+    // composePaddedImage returns null for exactly this rect, which is what the submit
+    // turns into FRAME_UNCHANGED rather than spending a generation on a re-render.
+    assert.deepEqual(frameRectForRatio({ w: 1024, h: 1024 }, 1), { x: 0, y: 0, w: 1024, h: 1024 });
+});
+
+test('validateBoxParams: a crop flow takes `frame`, and only a label its own gizmo offers', async () => {
+    const { validateBoxParams, CROP_RATIO_LABELS } = await esm('js/shell/agentDispatch.js');
+    const outpaint = { id: 'outpaint', title: 'Outpaint', steps: [{ kind: 'crop', role: 'image1' }] };
+
+    assert.equal(validateBoxParams(outpaint, { frame: { ratio: '9:16' } }).ok, true);
+    assert.equal(validateBoxParams(outpaint, { frame: { ratio: '1:2.39' } }).ok, true, 'a label that is not parseable as a fraction');
+
+    const bogus = validateBoxParams(outpaint, { frame: { ratio: '9x16' } });
+    assert.equal(bogus.ok, false);
+    assert.equal(bogus.code, 'INVALID_FRAME');
+    assert.ok(bogus.message.includes('9:16'), 'the refusal must name the shapes it does take');
+
+    assert.equal(validateBoxParams(outpaint, { frame: 'tall' }).code, 'INVALID_FRAME');
+    assert.equal(validateBoxParams(outpaint, { frame: {} }).code, 'INVALID_FRAME');
+
+    // Every advertised label validates: the list the agent is handed and the list the
+    // validator accepts are the same list, or the agent is sent at a refusal.
+    for (const label of CROP_RATIO_LABELS) {
+        assert.equal(validateBoxParams(outpaint, { frame: { ratio: label } }).ok, true, label);
+    }
+
+    // A flow with no crop step has no frame to set.
+    const headSwap = { id: 'head-swap', title: 'Head Swap', steps: [{ kind: 'box', param: 'box1', ratio: 1, overflow: 'allow' }] };
+    const refused = validateBoxParams(headSwap, { frame: { ratio: '9:16' } });
+    assert.equal(refused.ok, false);
+    assert.equal(refused.code, 'UNKNOWN_PARAM');
+});
+
+// The other half of the same live run, one second earlier:
+//   [17:39:20.846Z] [WARN] [system] connector generate failed: BAD_REQUEST
+//     "flowOutpaint" has no media role "inputImage". Roles: image1.
+// A flow entry carried `fields` and `boxParams` and nothing about where the picture goes,
+// so the agent reached for a role it HAD been told about — `inputImage` is real, on
+// minimax-h3-ref2va's ref2v_ms, asserted a few tests up. It learned the true one only from
+// a refusal. A Flow has no model, which is exactly the null `mediaRolesFor` already takes.
+test('a Flow operation names its media roles, so the agent never has to guess one', async () => {
+    const { mediaRolesFor } = require('../routes/connector');
+    const registry = await esm('js/data/commandRegistry.js');
+    const { getFlowById } = await esm('js/data/flowsRegistry.js');
+
+    const roles = mediaRolesFor(registry, getFlowById('outpaint').operation, null);
+    assert.deepEqual(roles.map((r) => r.role), ['image1'], 'the role the refusal named');
+    assert.ok(!roles.some((r) => r.role === 'inputImage'), 'the role it guessed is not one of them');
+    assert.equal(roles[0].type, 'image');
+
+    // Not an outpaint-only fix: every flow the library ships resolves through the same call.
+    const { listFlows } = await esm('js/data/flowsRegistry.js');
+    for (const flow of listFlows()) {
+        assert.ok(Array.isArray(mediaRolesFor(registry, flow.operation, null)), flow.id);
+    }
+});
+
+test('the Outpaint flow really does declare a crop step — the fixtures above are not the only source', async () => {
+    const { getFlowById } = await esm('js/data/flowsRegistry.js');
+    const outpaint = getFlowById('outpaint');
+    assert.ok(outpaint, 'the flow id the agent was given');
+    const crop = (outpaint.steps || []).find((s) => s.kind === 'crop');
+    assert.ok(crop, 'if this ever gains a `param` the frame stops being media and this path is wrong');
+    assert.equal(crop.role, 'image1', 'the role the padded picture replaces');
+    // The half that made the failure silent: its ONLY declared field is the turbo toggle,
+    // so a caller reading `fields` alone sees a flow that needs nothing but a picture.
+    assert.deepEqual((outpaint.fields || []).map((f) => f.id), ['Input_is_Turbo']);
+});

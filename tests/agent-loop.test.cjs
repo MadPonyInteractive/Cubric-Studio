@@ -407,6 +407,74 @@ describe('(c) generate non-blocking', () => {
         assert.ok(resultEvt, 'agent:result should eventually be emitted after generate settles');
         assert.equal(resultEvt.data.ok, true, 'agent:result.ok should be true');
     });
+
+    /**
+     * MPI-817. Non-blocking is right for the LAST step and wrong for every step something
+     * else needs. Live (Fabio, 2026-09-19): "grow the top and bottom edges so the format
+     * becomes 9:16, and after that animate it". The outpaint started, the turn ended, the
+     * picture arrived afterwards as a note nothing would read until the next user message,
+     * and the animation was simply never made — the model said so itself in the chat, that
+     * it had nowhere to wait. `wait: true` is that place.
+     *
+     * The assertion that matters second is ONE report. The waiting branch and the
+     * fire-and-forget branch share a single `settle`, and attaching it as well as awaiting
+     * it would emit `agent:result` twice and push the note twice — a chat showing the same
+     * card twice, from one generation.
+     */
+    test('wait: true holds the turn open, hands back the result, and reports exactly once', async () => {
+        const GENERATE_DELAY = 1800;
+        const { loop, fakeRes } = await makeLoop({
+            engineResponses: [
+                {
+                    text: '',
+                    toolCalls: [{ id: 'tc-1', type: 'function', function: { name: 'generate', arguments: '{"modelId":"test-model","operation":"t2i","prompt":"A fox","wait":true}' } }],
+                },
+                { text: 'Here it is, and here is the video.' },
+            ],
+            toolOpts: { generateDelay: GENERATE_DELAY },
+        });
+
+        const start = Date.now();
+        await loop.runTurn('Make a fox, then animate it', [], { folderPath: '/project', name: 'Test' }, 'auto', 'deepinfra', 'turn-wait');
+        const elapsed = Date.now() - start;
+
+        assert.ok(elapsed >= GENERATE_DELAY,
+            `the turn (${elapsed} ms) must not end before the generation it was told to wait for (${GENERATE_DELAY} ms)`);
+
+        // The model gets the result IN the tool result, which is the whole point: without
+        // it there is nothing to pass as the next step's media.
+        const toolResult = loop._messages.find((m) => m.role === 'tool');
+        assert.ok(toolResult, 'the model must get a tool result back');
+        const payload = JSON.parse(toolResult.content);
+        assert.equal(payload.ok, true);
+        assert.ok(!payload.started, 'a waited generate reports its result, never `started: true`');
+        assert.ok(payload.output?.filePath, 'the result must carry the filePath the next step passes as media');
+
+        const results = fakeRes.events.filter((e) => e.event === 'agent:result');
+        assert.equal(results.length, 1, 'one generation, one agent:result — never both branches');
+        assert.equal(results[0].data.ok, true);
+        const finished = loop._notes.filter((n) => n.startsWith('[Generation finished:'));
+        assert.equal(finished.length, 1, 'one generation, one note');
+    });
+});
+
+/**
+ * The tool schema is the contract: with `additionalProperties: false` a key the schema
+ * does not name cannot be emitted at all, which is exactly how `duration` was lost
+ * (tests/agent-duration.test.cjs). `wait` is deliberately NOT forwarded into the connector
+ * body — it is the loop's own concern — so the named-param sweep cannot cover it.
+ */
+test('`wait` is declared on the generate tool, and the system prompt says when to reach for it', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const loop = fs.readFileSync(path.join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
+
+    const from = loop.indexOf("name: 'generate'");
+    const to = loop.indexOf("name: 'look'", from);
+    assert.ok(from > 0 && to > from, 'the generate / look tool blocks were not found');
+    assert.match(loop.slice(from, to), /\bwait:\s*\{/, '`wait` must be declared or the model cannot send it');
+
+    assert.match(loop, /Chaining rule:/, 'a tool with no rule telling the agent when to use it is a tool it will not use');
 });
 
 // ---------------------------------------------------------------------------

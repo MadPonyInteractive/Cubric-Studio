@@ -52,6 +52,9 @@ import { resolveFlowFieldValues, flowDeclaredFields, agentFieldSpecs } from '../
 import { getCommand } from '../data/commandRegistry.js';
 import { resolveNamedParams, isValidSeed, resolveAgentMedia, namedParamsFor } from '../data/generationControls.js';
 import { resolveActiveModel } from '../utils/modelHelpers.js';
+import { CROP_RATIOS } from '../utils/ratios.js';
+import { resolveMediaUrl } from '../utils/mediaActions.js';
+import { stepValueToMedia } from '../components/Blocks/MpiBaseFlow/stepKinds.js';
 import { describeImage } from '../services/llmService.js';
 import { downloadService } from '../services/downloadService.js';
 import { remoteEngineClient } from '../services/remoteEngineClient.js';
@@ -323,7 +326,81 @@ function _submitGeneration(jobId, input = {}) {
  * path) and passes back the `/project-file?path=…` url it returns, so an agent's
  * audio lands in the same content-addressed store a dropped file does.
  */
-function _submitFlow(jobId, input = {}) {
+
+/**
+ * Every shape the crop gizmo offers, both orientations, deduped and in the gizmo's own
+ * order. The agent picks a LABEL from this list rather than inventing one, and the label
+ * is the same string the user sees on the ratio bar.
+ */
+export const CROP_RATIO_LABELS = [...new Set(
+    [...(CROP_RATIOS.portrait || []), ...(CROP_RATIOS.landscape || [])].map(r => r.label),
+)];
+
+/** A crop-gizmo label → its numeric aspect, or null. `1:1.85` and `1:2.39` are why this
+ *  reads the table instead of parsing the string: those are already numbers there. */
+function _cropRatioValue(label) {
+    const want = String(label ?? '').trim();
+    const row = [...(CROP_RATIOS.portrait || []), ...(CROP_RATIOS.landscape || [])]
+        .find(r => r.label === want);
+    return row ? row.ratio : null;
+}
+
+/**
+ * The rect the outpaint frame becomes: the source centred inside the target shape, grown
+ * on the two edges that shape needs and no others. In the SOURCE's own pixels, and
+ * deliberately allowed to go negative — `composePaddedImage` draws at `-x, -y`, so a rect
+ * that starts off-canvas simply insets the picture and the overhang is what gets painted.
+ *
+ * @param {{w:number,h:number}} natural  the source image's real pixels
+ * @param {number} ratio                 target aspect, w/h
+ * @returns {{x:number,y:number,w:number,h:number}}
+ */
+export function frameRectForRatio(natural, ratio) {
+    const { w: nw, h: nh } = natural;
+    let w = nw;
+    let h = nh;
+    if (ratio < nw / nh) h = Math.round(nw / ratio);  // taller than the source → grow top+bottom
+    else if (ratio > nw / nh) w = Math.round(nh * ratio); // wider → grow left+right
+    return { x: Math.round((nw - w) / 2), y: Math.round((nh - h) / 2), w, h };
+}
+
+/** An image url's real pixels. Rejects rather than resolving a guess — the rect is built
+ *  from this, and a wrong size pads the wrong edges. */
+function _naturalSize(url) {
+    return new Promise((resolve, reject) => {
+        const im = new Image();
+        im.onload = () => resolve({ w: im.naturalWidth || im.width, h: im.naturalHeight || im.height });
+        im.onerror = () => reject(new Error('The image could not be read.'));
+        im.src = resolveMediaUrl(url);
+    });
+}
+
+/**
+ * Put a derived File in the project's content-addressed preview-asset store and return its
+ * `/project-file` url, or null. The same store a dropped file lands in, so it dedupes by
+ * sha256 and Cleanup GCs it.
+ *
+ * ponytail: MpiBaseFlow has the same fetch as a closure inside its setup. Left duplicated
+ * rather than lifted — that file is a Flow-frame hot spot with live work on it, and this is
+ * a dozen lines. Lift both into a util the day a third caller appears.
+ */
+async function _placePreviewAsset(file, project) {
+    const dataUrl = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(/** @type {string} */ (r.result));
+        r.onerror = reject;
+        r.readAsDataURL(file);
+    });
+    const res = await fetch(
+        `/project-media/${project.id}/place-preview-asset?folderPath=${encodeURIComponent(project.folderPath)}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataUrl, ext: '.png' }) },
+    );
+    if (!res.ok) throw new Error(`place failed: ${res.status}`);
+    const data = await res.json();
+    return data?.success ? data.filePath : null;
+}
+
+async function _submitFlow(jobId, input = {}) {
     const { flowId, fields = {}, media = [], params = {} } = input;
 
     if (!state.currentProject) {
@@ -371,6 +448,60 @@ function _submitFlow(jobId, input = {}) {
     const boxParamValidation = validateBoxParams(flow, params);
     if (!boxParamValidation.ok) {
         return _fail(jobId, boxParamValidation.code, boxParamValidation.message);
+    }
+
+    // ── The frame (MPI-817) ───────────────────────────────────────────────────
+    //
+    // A `crop` step is the flow's whole subject and has no `param`: its value becomes a
+    // PADDED PICTURE, black where the new area goes, and the graph loads that one image.
+    // The UI derives it in `_deriveRunMedia`; this path did not derive it at all, so the
+    // agent's run went out with the user's own unpadded picture — nothing to paint, and a
+    // result the same shape as the input that read as "the model ignored me".
+    //
+    // REFUSING an absent frame is the point, not the derivation. Running was never a
+    // neutral fallback: it burns a minute of GPU and reports success on a no-op.
+    //
+    // A RATIO, not a rect. The model names the shape it wants and the arithmetic happens
+    // here — the same reason `BOX_NOT_MEASURED` exists a few lines up.
+    const cropStep = (flow.steps || []).find(s => s.kind === 'crop' && s.role);
+    if (cropStep) {
+        const label = params.frame?.ratio;
+        const ratio = _cropRatioValue(label);
+        if (!ratio) {
+            return _fail(jobId, 'FRAME_REQUIRED',
+                `Nothing was generated: ${flow.title} grows a picture past its edges, so it needs the shape you want it to become — ${label ? `"${label}" is not one it offers` : 'your call passed none'}. Send it again with params: { frame: { ratio: "<one of these>" } }: ${CROP_RATIO_LABELS.join(', ')}.`);
+        }
+
+        const source = mediaItems.find(m => m?.role === cropStep.role);
+        if (!source?.url) {
+            return _fail(jobId, 'MEDIA_REQUIRED',
+                `${flow.title} needs an image in its "${cropStep.role}" slot to grow.`);
+        }
+
+        let padded = null;
+        try {
+            const natural = await _naturalSize(source.url);
+            const rect = frameRectForRatio(natural, ratio);
+            // `composePaddedImage` returns null for a rect that matches the source exactly.
+            // That is this flow doing nothing, so say so rather than spending a generation
+            // to hand back a re-render of what the user already has.
+            const file = await stepValueToMedia(cropStep.kind, { crop: rect }, source, cropStep, null);
+            if (!file) {
+                return _fail(jobId, 'FRAME_UNCHANGED',
+                    `Nothing was generated: that picture is already ${label} (${natural.w}x${natural.h}), so there is nothing to grow. Pick a different shape, or tell the user it is already the one they asked for.`);
+            }
+            padded = await _placePreviewAsset(file, state.currentProject);
+        } catch (err) {
+            clientLogger.error('connector', 'agent frame derivation failed', err);
+            return _fail(jobId, 'RUNTIME_ERROR', `The frame could not be built: ${err.message}`);
+        }
+        if (!padded) {
+            return _fail(jobId, 'RUNTIME_ERROR', 'The framed image could not be stored in the project.');
+        }
+        // A padded picture REPLACES the picture it padded (stepKinds.js § STEP_MEDIA);
+        // `crop` is deliberately not one of the kinds that delivers to a second role.
+        source.url = padded;
+        source.filePath = padded;
     }
 
     const { inputs, injectionParams: fieldInjection, unknown } = resolveFlowFieldValues(flow, fields);
@@ -502,13 +633,31 @@ async function _renameCard(jobId, input = {}) {
 export function validateBoxParams(flow, params) {
     if (!params || !Object.keys(params).length) return { ok: true };
     const boxSteps = (flow.steps || []).filter(s => s.kind === 'box' && s.param);
+    const hasCrop = (flow.steps || []).some(s => s.kind === 'crop' && s.role);
     const knownParams = new Set(boxSteps.map(s => s.param));
+    // MPI-817: `frame` is the one param that is not a box. A `crop` step has no `param`
+    // of its own — its value becomes a padded picture rather than a widget — so it enters
+    // through this same object under a fixed name, and is rejected here when the flow has
+    // no crop step at all rather than silently ignored in `_submitFlow`.
+    if (hasCrop) knownParams.add('frame');
     for (const [key, val] of Object.entries(params)) {
         if (!knownParams.has(key)) {
             return {
                 ok: false, code: 'UNKNOWN_PARAM',
                 message: `"${key}" is not a box param of ${flow.title}. Known: ${[...knownParams].join(', ') || 'none'}.`,
             };
+        }
+        if (key === 'frame') {
+            if (!val || typeof val !== 'object') {
+                return { ok: false, code: 'INVALID_FRAME', message: 'frame: expected an object { ratio: "9:16" }.' };
+            }
+            if (!_cropRatioValue(val.ratio)) {
+                return {
+                    ok: false, code: 'INVALID_FRAME',
+                    message: `frame.ratio "${val.ratio ?? ''}" is not a shape this flow offers. One of: ${CROP_RATIO_LABELS.join(', ')}.`,
+                };
+            }
+            continue;
         }
         const step = boxSteps.find(s => s.param === key);
         if (!val || typeof val !== 'object') {
@@ -573,6 +722,7 @@ function _listModels(jobId) {
     const flows = listFlows().map(flow => {
         const avail = flowAvailability(flow);
         const boxSteps = (flow.steps || []).filter(s => s.kind === 'box' && s.param);
+        const cropStep = (flow.steps || []).find(s => s.kind === 'crop' && s.role);
         return {
             id: flow.id,
             title: flow.title,
@@ -591,6 +741,14 @@ function _listModels(jobId) {
                 ...(Number.isFinite(s.ratio) ? { ratio: s.ratio } : {}),
                 ...(s.overflow === 'allow' ? { overflow: 'allow' } : {}),
             })),
+            // MPI-817: a `crop` step is the whole point of the flow that declares it, and
+            // it was invisible here — this filtered for `kind: 'box'` only, so Outpaint
+            // advertised one toggle and nothing about the frame. The agent then ran it with
+            // no frame at all, Krea 2 re-rendered the picture at its own shape, and the run
+            // reported success (Fabio, 2026-09-19: "came back as the original image").
+            // A crop step has no `param` by design — its value becomes a PADDED PICTURE,
+            // not a widget — so it cannot ride in `boxParams` and gets its own key.
+            ...(cropStep ? { frame: { param: 'frame', role: cropStep.role, ratios: CROP_RATIO_LABELS } } : {}),
         };
     });
 

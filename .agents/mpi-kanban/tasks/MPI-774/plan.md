@@ -2,6 +2,42 @@
 
 ## Current State
 
+**SESSION c6414b8c (2026-09-19, from handoff 78b588ba). FABIO'S SECOND APP PASS: THE AGENT
+CANNOT OUTPAINT, AND COULD NOT CHAIN. The five Phase 7 steps and MPI-820's clip check are
+STILL unverdicted — he reported new faults instead, again. 1430 unit tests (1429 pass, 1
+live-skip), lint clean, `focus-mode.spec.js` 2/2 and `agent-chat.spec.js` 29/29 whole-file,
+three mutation guards red-then-restored. Evidence: `tasks/MPI-817/validation.md`.**
+
+- **THE OUTPAINT FRAME NEVER REACHED THE AGENT.** Outpaint's frame is `{ kind: 'crop' }`
+  with **no `param`** — its value becomes a PADDED PICTURE, not a widget — so `_listModels`
+  (which filtered `kind === 'box'`) never advertised it and `_submitFlow` had no crop branch
+  at all. The agent ran the flow on the unpadded original, Krea 2 had no black to paint, and
+  70 s of GPU reported success on a no-op. Now: `params: { frame: { ratio: "9:16" } }`, a
+  RATIO not a rect, with `FRAME_REQUIRED` / `FRAME_UNCHANGED` refusals — the refusal is the
+  more important half. Proven at the pixel on his own `i2i_001.png`: 896x1088 → 896x1593,
+  black top and bottom bars, picture whole between them, no GPU.
+- **A FLOW'S MEDIA ROLES WERE NEVER ADVERTISED.** `BAD_REQUEST "flowOutpaint" has no media
+  role "inputImage". Roles: image1.` Model ops carry `media:`; flows carried none, so it
+  reused a role it had been told about (`inputImage` is real, on `minimax-h3-ref2va`). One
+  map through the `mediaRolesFor` that already takes a null model.
+- **`wait: true` — THE AGENT CAN CHAIN NOW.** `{ started: true }` put the result in
+  `_notes`, read at the START of the next turn, so "grow it to 9:16, then animate it" could
+  not be finished and the model said so in the chat. Fabio's call. One `settle`, attached
+  two ways, never both. A **Chaining rule** carries his shape: do both halves, and for a step
+  the user will judge, wait, look, redo it rather than animating a bad picture — or ask, and
+  say what happens next so a yes is the whole answer.
+- **`A` toggles agent mode**, asked for in the same message. Bound in `agentPanel.js`, not on
+  the PromptBox button (remounted per workspace); `allowWhileTyping: false` is the whole
+  risk and the new desktop case asserts it by typing a prompt.
+- **NOT FIXED, and not in scope:** the agent's deliberation reaching the chat verbatim. His
+  shape to pick — a prompt rule, or a collapsed disclosure. Same argument as the two held
+  agent-prompting items below.
+- **Coming:** MPI-822 makes flows queueable. When it lands the agent should QUEUE the
+  outpaint and the video back to back rather than waiting; `wait` is what makes the
+  dependency expressible either way, and stays right for a step whose output gets judged.
+
+---
+
 **SESSION ea603cb9 (2026-09-19, from handoff 33659051). FABIO RAN HIS FIRST APP PASS. He
 restarted, started the Phase 7 checklist, and reported four faults before finishing it — so
 the five Phase 7 steps below still have NO verdict. All four are fixed and green: 1420 unit

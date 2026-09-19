@@ -1,0 +1,33 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "task": "MPI-817",
+  "updated_at": "2026-09-19T18:30:00Z",
+  "note": "Ownership for the in-app agent umbrella. The agent surface only: the loop, its tools, the connector routes that serve them, the renderer dispatch behind them, and the agent panel. MpiPromptBox.js is deliberately NOT here - it belongs to MPI-736, and the A-key hotkey was bound in agentPanel.js to avoid it.",
+  "owned": [
+    "services/agentLoop.mjs",
+    "services/agentTools.mjs",
+    "services/agentSessions.mjs",
+    "routes/agent.js",
+    "routes/connector.js",
+    "js/shell/agentDispatch.js",
+    "js/shell/agentPanel.js",
+    "js/services/agentService.js",
+    "js/managers/hotkeyRegistry.js",
+    "js/components/Compounds/LandingPages/mpi-hotkeys/mpi-hotkeys.js",
+    "tests/agent-loop.test.cjs",
+    "tests/agent-duration.test.cjs",
+    "tests/agent-pinned-settings.test.cjs",
+    "tests/agent-ui-surfaces.test.cjs",
+    "tests/connector-agent-tools.test.cjs",
+    "tests/desktop/agent-chat.spec.js",
+    "tests/desktop/focus-mode.spec.js",
+    ".agents/mpi-kanban/tasks/MPI-817/"
+  ],
+  "read_only": [
+    "js/data/flowsRegistry.js",
+    "js/data/generationControls.js",
+    "js/utils/ratios.js",
+    "js/components/Blocks/MpiBaseFlow/stepKinds.js",
+    "js/components/Organisms/MpiStepCrop/MpiStepCrop.js"
+  ]
+}

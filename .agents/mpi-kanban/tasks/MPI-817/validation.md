@@ -146,3 +146,138 @@ default and hunted Fabio's live app. Always `npm run test:desktop -- <files>`, w
 - Whether the `MODEL_PINNED` refusal stands, against the plan's settled "drop the modelId".
 - Whether raw `injectionParams` should stop merging over pinned settings. One line.
 - The shape of the two agent-prompting items above.
+
+---
+
+# Session c6414b8c (2026-09-19) — Fabio's SECOND app pass: the agent cannot outpaint
+
+He ran the duck-and-pony concept again. Krea 2 t2i, then an i2i to 3D, both good and both
+his own words ("that's a good one", "looks great"). Then: *"grow the top and bottom edges so
+the format becomes 9:16, and after that animate it"*. **The outpaint came back as the
+original picture and the animation was never made at all.** Two separate root causes, both
+in the same surface, plus one he asked for directly.
+
+## 1. The agent could not outpaint — the frame never reached it
+
+**The evidence is the sidecar, not a theory.** `Cowgirl on a Bull/Media/.meta/274ecd5b-…json`:
+
+```
+flowId: "outpaint"
+flowInputs: { mediaItems: [{ role: "image1", url: …/i2i_001.png }],
+              injectionParams: { Input_is_Turbo: true } }
+pixelDimensions: { w: 928, h: 1136 }      generationMs: 70467
+```
+
+No frame anywhere, and 70 seconds of GPU spent to hand back the same 4:5 shape
+(`i2i_001.png` is 896x1088, the result 928x1136 — the graph's own bucket for that shape).
+
+**Why.** Outpaint's frame is `{ kind: 'crop', role: 'image1' }` in `flowsRegistry.js` and it
+has **no `param` on purpose**: the gizmo's value becomes a PADDED PICTURE (`composePaddedImage`
+draws the source into a bigger black rect), so the graph loads one image that already
+carries its bars and needs no pad node, no mask, no fill input. Two places dropped it:
+
+- `_listModels` built `boxParams` from `kind === 'box'` only, so a `crop` step was invisible.
+  The agent was handed a flow whose one declared field is a turbo toggle.
+- `_submitFlow` handled media, fields and box params. **There was no crop branch at all.**
+
+So the agent passed the user's unpadded picture, Krea 2 had no black to paint, and the run
+reported success. Fixed on both sides, and **the refusal is the more important half**:
+running with no frame was never a neutral fallback.
+
+| | |
+|---|---|
+| `_listModels` | a crop step now rides as `frame: { param, role, ratios }`, `ratios` being the gizmo's own `CROP_RATIOS` labels |
+| `generate` tool | `params: { frame: { ratio: "9:16" } }`, symmetric with `params.box1` |
+| `validateBoxParams` | takes `frame` only on a flow that has a crop step, and only a label the gizmo offers → `INVALID_FRAME` / `UNKNOWN_PARAM` |
+| `_submitFlow` | no frame on a crop flow → **`FRAME_REQUIRED`**, naming every shape it accepts. A ratio the picture already is → **`FRAME_UNCHANGED`**, rather than spending a generation on a re-render |
+| the derivation | `frameRectForRatio` → the shipped `stepValueToMedia('crop', …)` → `place-preview-asset` → the padded url replaces `image1` |
+
+**A RATIO, not a rect.** The model names the shape and the arithmetic happens in the app —
+the same reason `BOX_NOT_MEASURED` exists three lines above it.
+
+### Proven on Fabio's own picture, at the pixel, with no GPU
+
+A throwaway desktop spec fed the real `i2i_001.png` through `frameRectForRatio` +
+`composePaddedImage` in a live renderer and read the result back:
+
+```
+natural { w: 896, h: 1088 }        rect { x: 0, y: -252, w: 896, h: 1593 }
+out     { w: 896, h: 1593 }        1,680,260 bytes     896/1593 = 0.5625 = 9:16
+topBar [0,0,0]   bottomBar [0,0,0]   middle not black   just inside the top bar not black
+```
+
+The top and bottom grew, the width did not move, and the picture survived whole between the
+bars — which is the request, verbatim. The spec was deleted after the run; the arithmetic it
+proved is a committed unit test.
+
+## 2. The agent was never told a flow's media roles
+
+One second earlier in the same run:
+
+```
+[2026-09-19T17:39:20.846Z] [WARN] [system] connector generate failed: BAD_REQUEST
+  "flowOutpaint" has no media role "inputImage". Roles: image1.
+```
+
+Model ops carry `media: mediaRolesFor(…)`; **flow entries carried none**, so it reached for
+a role it HAD been told about — `inputImage` is real, on `minimax-h3-ref2va`'s `ref2v_ms`.
+It learned the true one from a refusal. `GET /connector/models` now maps the flow list
+through the same `mediaRolesFor` with the null model that function already takes.
+
+## 3. It could not chain — "then animate it" had nowhere to wait
+
+`generate` returned `{ started: true }`; the real result landed in `this._notes`, which is
+read at the **start of the next turn**. A request whose second half needs the first half's
+output cannot be finished at all, and the chat log shows the model working this out for
+itself and then stopping. Fabio's call: **ship the await.**
+
+`wait: true` on the generate tool awaits the same promise and returns the output, whose
+`filePath` is the ref the next step passes as media. Not the default — an unwaited generate
+keeps the chat answering while a five-minute video runs, which is right for a LAST step.
+One `settle`, attached two ways, never both: a double report would draw the card twice.
+
+A **Chaining rule** went in the system prompt with it, carrying Fabio's own shape — do both
+halves; and for a step whose output the user will judge, wait, look, and redo it rather than
+animating a bad picture, or ask and say exactly what happens next so a yes is the whole
+answer. (When MPI-822 makes flows queueable this becomes queue-then-queue; `wait` is what
+makes the dependency expressible either way.)
+
+## 4. `A` opens and closes the agent (asked for directly, same message)
+
+`agentMode.toggle` in `hotkeyRegistry.js`, bound in `initAgentPanel()` — not on the
+PromptBox's toggle button, which is remounted on every workspace switch while that service
+is app-lifetime. Both sides already meet at `state.agentMode`, so the button's own
+`onState` listener repaints it and nothing else needed wiring. `allowWhileTyping: false`,
+and the hotkeys page carries the row.
+
+## Checks
+
+| Check | Result |
+|---|---|
+| `npm test` | **1430 pass, 0 fail, 1 skipped** (1421 before; 9 new), exit 0 |
+| `npm run lint` + `lint:components` | clean, `--max-warnings=0` |
+| `tests/desktop/focus-mode.spec.js`, whole file | **2/2**, including the new A-key case |
+| `tests/desktop/agent-chat.spec.js`, whole file | **29/29** |
+
+### Mutation guards — broken in the REAL source, run, restored byte-identical
+
+| Mutation | Result |
+|---|---|
+| `if (hasCrop) knownParams.add('frame')` → `if (false)` | 1 failing |
+| `frameRectForRatio`'s grow axis inverted (`<` → `>`) | 2 failing |
+| `if (args.wait)` → `if (false)`, every generate fire-and-forget | 1 failing |
+
+All three restored with a matching sha256. Script:
+`scratchpad/mutate.py` (throwaway).
+
+## Still owed by Fabio, after this session
+
+- **A live outpaint.** Everything above is code- and pixel-verified; no generation was run.
+  `services/` and `routes/` changed, so it needs an app **RESTART**, not a reload.
+- The five Phase 7 steps and MPI-820's clip check, still unverdicted from the last session.
+- `MODEL_PINNED`, raw `injectionParams`, and the two held agent-prompting items — unchanged.
+- **Fault 4 of his report is NOT fixed and was not in scope:** the agent's deliberation
+  reaches the chat verbatim ("Let me check if there's anything else I should prepare.
+  Actually the generation is async…"). Intermediate assistant content is rendered as it
+  arrives. Either a prompt rule or a collapsed disclosure in the chat — his shape to pick,
+  and the same argument as the two held items.
