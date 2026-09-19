@@ -320,6 +320,12 @@ export const Storage = {
   getGalleryShowInfo:  () => get(STORAGE_KEYS.GALLERY_SHOW_INFO, false),
   setGalleryShowInfo:  (v) => set(STORAGE_KEYS.GALLERY_SHOW_INFO, !!v),
 
+  // MPI-826 — the sort order alone, never the scope or the filters. Anything that is
+  // not 'oldest' heals to 'newest', so a corrupt store cannot leave the gallery in an
+  // order `byGalleryOrder` does not implement.
+  getGallerySortOrder: () => (get(STORAGE_KEYS.GALLERY_SORT_ORDER, 'newest') === 'oldest' ? 'oldest' : 'newest'),
+  setGallerySortOrder: (v) => set(STORAGE_KEYS.GALLERY_SORT_ORDER, v === 'oldest' ? 'oldest' : 'newest'),
+
   getPromptExpanded:   () => get(STORAGE_KEYS.PROMPT_EXPANDED, true),
   setPromptExpanded:   (v) => set(STORAGE_KEYS.PROMPT_EXPANDED, !!v),
 

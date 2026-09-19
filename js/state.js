@@ -98,15 +98,18 @@ const _state = {
     remoteComfyNeedsRestart: false, // true after a REMOTE (Pod) install — restarts the Pod's ComfyUI, NOT the local one (kept separate so a remote install never restarts a healthy local engine during a dual-engine session)
 
     // ── Gallery organization ───────────────────────────────────────────────────
-    gallerySort: { ...DEFAULT_GALLERY_SORT },
+    gallerySort: { ...DEFAULT_GALLERY_SORT, order: Storage.getGallerySortOrder() },
                                      // { order, scope, hiddenKinds, marks, previews }; the contract is
                                      // js/utils/galleryFilter.js (MPI-749). order: 'newest'|'oldest', hides nothing.
                                      // scope: 'active'|'archived' — SUBTRACTIVE, gates before every filter.
                                      // hiddenKinds: EXCLUDED ASSET_KINDS ids; marks: "only" CARD_MARKS ids;
                                      // previews: "only" flag.
-                                     // Deliberately NOT mirrored to Storage: `gallerySort` is in-memory, so the
-                                     // scope resets to 'active' every launch. Nobody should relaunch into a
-                                     // gallery that looks wiped (MPI-678).
+                                     // ONLY `order` is mirrored to Storage (MPI-826). MPI-678's reason for keeping
+                                     // this key in memory was the SCOPE — nobody should relaunch into a gallery
+                                     // that looks wiped — and that still holds for scope and for the three filters,
+                                     // every one of which can empty the grid. Order empties nothing, so it is the
+                                     // one part that survives a restart; the rest reset every launch, which is also
+                                     // what SHOW ALL resets them to.
     galleryShowInfo: Storage.getGalleryShowInfo(),
                                      // Show/hide model badges and type badges on gallery cards.
                                      // Cross-session; mirrored to localStorage by subscriber below.
@@ -280,6 +283,8 @@ Events.on('state:changed', ({ key, value }) => {
     else if (key === 'galleryShowInfo') Storage.setGalleryShowInfo(value);
     else if (key === 'gallerySizeLevel') Storage.setGallerySizeLevel(value);
     else if (key === 'galleryVolume') Storage.setGalleryVolume(value);
+    // The ORDER only (MPI-826) — scope and the filters stay in memory, see the key's note above.
+    else if (key === 'gallerySort') Storage.setGallerySortOrder(value?.order);
     else if (key === 'notificationPrefs') Storage.setNotificationPrefs(value);
     else if (key === 'floatLatentWindow') Storage.setFloatLatentWindow(value);
     else if (key === 'runpodConfig') Storage.setRunpodConfig(value);

@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-826/",
+    "js/core/storageKeys.js",
+    "js/core/storage.js",
+    "js/state.js",
+    "tests/gallery-sort-persist.test.cjs"
+  ]
+}

@@ -63,6 +63,13 @@ export const STORAGE_KEYS = {
   GALLERY_SIZE_LEVEL:  'mpi_gallery_size_level',
   GALLERY_SHOW_INFO:   'mpi_gallery_show_info',
 
+  // MPI-826: the gallery's sort ORDER only — 'newest' | 'oldest'. The rest of
+  // `state.gallerySort` stays in memory on purpose: `scope` and the filters can each
+  // empty the grid, and MPI-678 kept them session-scoped so nobody relaunches into a
+  // gallery that looks wiped. Order hides nothing, so it is the one part that is safe
+  // to carry across launches.
+  GALLERY_SORT_ORDER:  'mpi_gallery_sort_order',
+
   // PromptBox UI
   PROMPT_EXPANDED:     'mpi_prompt_expanded',
 
