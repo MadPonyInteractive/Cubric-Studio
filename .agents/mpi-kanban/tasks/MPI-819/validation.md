@@ -21,7 +21,9 @@ code commit `034d1d52`, predecessor run on `bf266123`); only the two `gh` calls 
 
 - MPI-818's close (`759d7636`) replayed through the real hook: passes (green run 35429283095
   carries `39631f23`).
-- **This card's own close, pushed while its run was in flight: see below.**
+- **This card's own close (`6f684891`), pushed while its run was in flight - refused:**
+  `[pre-push] BLOCKED - MPI-819 moves to done, and CI has not judged its code commit bcd8e60e.`
+  `gh run watch 35430544748`. Watched to green, pushed again, passed.
 
 ## Limits, stated
 
@@ -35,4 +37,5 @@ code commit `034d1d52`, predecessor run on `bf266123`); only the two `gh` calls 
 
 ## CI on the shipping commit
 
-(filled after `gh run watch`)
+`bcd8e60e` -> run 35430544748: **success**. The gate's own tests skip there (shallow clone), as designed;
+they ran 7/7 on the dev box, which is the only place the hook runs.
