@@ -36,7 +36,7 @@ descriptor already names it.
 | Key | Notes |
 |---|---|
 | `flowId` | The FlowDef id — `chatter-box`, `drama-box`, `ltx-extend`, … |
-| `fields` | Declared field id → value. Every id must be one the flow declares; an unknown one is a `BAD_REQUEST` naming what it does declare. Omitted fields take the flow's default. |
+| `fields` | Declared field id → value. Every id must be one the flow declares; an unknown one is a `BAD_REQUEST` naming what it does declare. Omitted fields take the flow's default, **and a declared field sent as `null` counts as omitted** — it takes the default rather than overwriting it, so you never have to invent a value for a control you do not care about. `0` and `''` are values you chose, not absences. |
 | `media` | `[{ role, url }]`, **by reference, never bytes** — see Supplying your own audio |
 | `cardName` | Optional. Names the gallery card when the run lands; the reply carries `output.cardName`. See the `cubric-vision-generate` skill § Naming the card. |
 
@@ -47,9 +47,19 @@ injected into the graph. Values are clamped to the declared `min`/`max`, and
 computed fields follow whatever you set — pick a language on Text to Speech and
 its multilingual arm switches with it.
 
-The authority for a flow's ids, defaults and options is its FlowDef in
-`js/data/flowsRegistry.js` (grep `id: '`). Read it rather than guessing: a wrong
-option value is rejected by ComfyUI with "Value not in list".
+**A flow's fields describe themselves.** Each entry a flow lists carries
+`{id, label, type}` plus `default`, `options` (`{v, label}` pairs) and `min`/`max`
+where the field has them — everything needed to choose a legal value without
+guessing. A `select` or `radio` option is chosen by its `v`, which is usually a
+1-indexed int into a switch bank and not the label: Character Sheet's
+`Input_Quality` is `1` for 1K and `2` for 2K. Prose (`info`) and widget geometry
+(`rows`, `columns`, …) are deliberately absent.
+
+The authority beyond that is the FlowDef in `js/data/flowsRegistry.js`
+(grep `id: '`). Read it rather than guessing: a wrong option value is rejected by
+ComfyUI with "Value not in list", and a `null` in a field the graph wires to an
+`MpiInt` used to kill the whole prompt with `prompt_outputs_failed_validation`
+(fixed — it now takes the default).
 
 Extra failure codes on this path:
 

@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/utils/declaredFields.js",
+    "js/shell/agentDispatch.js",
+    ".claude/skills/cubric-vision-flows/SKILL.md",
+    "tests/connector-flow-dispatch.test.cjs",
+    ".agents/mpi-kanban/tasks/MPI-816/"
+  ]
+}

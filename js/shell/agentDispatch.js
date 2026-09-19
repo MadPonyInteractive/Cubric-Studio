@@ -48,7 +48,7 @@ import { DEPS } from '../data/modelConstants/dependencies.js';
 import { resolveFullUniverse } from '../data/modelConstants/resolveModelDeps.js';
 import { sizeToGb } from '../data/modelConstants/footprint.js';
 import { getFlowById, listFlows, flowAvailability } from '../data/flowsRegistry.js';
-import { resolveFlowFieldValues, flowDeclaredFields } from '../utils/declaredFields.js';
+import { resolveFlowFieldValues, flowDeclaredFields, agentFieldSpecs } from '../utils/declaredFields.js';
 import { getCommand } from '../data/commandRegistry.js';
 import { resolveNamedParams, isValidSeed, resolveAgentMedia, namedParamsFor } from '../data/generationControls.js';
 import { describeImage } from '../services/llmService.js';
@@ -486,7 +486,11 @@ function _listModels(jobId) {
             installed: avail.available,
             // The label is what a field MEANS: a bare `positive` read as "the prompt" and got an
             // instruction where Head Swap wants an expression (MPI-774 Phase 4). Step fields too.
-            fields: flowDeclaredFields(flow).map(f => ({ id: f.id, label: f.label || f.id })),
+            //
+            // MPI-816: the id and the label alone are not enough to FILL one — what a caller
+            // needs to choose a legal value is `agentFieldSpecs`, in the module that owns the
+            // dialect.
+            fields: agentFieldSpecs(flow),
             boxParams: boxSteps.map(s => ({
                 param: s.param,
                 role: s.role,

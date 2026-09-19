@@ -181,6 +181,33 @@ test('declared defaults fill in for every field the caller omits', async () => {
   assert.ok(injectionParams.Input_Duration >= 4, 'the declared floor, never the node default');
 });
 
+test('a null value is an OMITTED field, not an override (MPI-816)', async () => {
+  const { resolveFlowFieldValues } = await fields();
+  // Fabio, 2026-09-19: four Character Sheet generations died instantly on
+  // prompt_outputs_failed_validation. MpiInt 671 and 770 — Input_Recipe and
+  // Input_Quality — arrived as None and took the whole graph down, because the agent
+  // sent the ids it was given with nothing legal to put in them. The UI cannot reach
+  // this (every widget holds a resolved value), so only the connector path bites.
+  // `skills/cubric-vision-flows/SKILL.md` states the contract: an omitted field takes
+  // the flow's default, and a field sent as null is morally omitted.
+  const sheet = await flow('character-sheet');
+  const nulled = resolveFlowFieldValues(sheet, {
+    positive: 'four sisters', Input_Recipe: null, Input_Quality: undefined,
+  });
+  assert.equal(nulled.injectionParams.Input_Recipe, 1, 'null must not clobber the declared default');
+  assert.equal(nulled.injectionParams.Input_Quality, 1, 'undefined must not clobber it either');
+  assert.deepEqual(nulled.unknown, [], 'a declared field sent as null is not an unknown field');
+
+  // A real value still wins — the guard must not swallow a legitimate override.
+  const picked = resolveFlowFieldValues(sheet, { positive: 'four sisters', Input_Recipe: 3 });
+  assert.equal(picked.injectionParams.Input_Recipe, 3);
+
+  // 0 and '' are VALUES, not absences. A falsy guard here would silently re-default them.
+  const zeroed = resolveFlowFieldValues({ fields: [{ id: 'Input_N', type: 'number', default: 7 }] },
+    { Input_N: 0 });
+  assert.equal(zeroed.injectionParams.Input_N, 0, '0 is a value the caller chose');
+});
+
 test('the multilingual arm follows the language the CALLER picked', async () => {
   const { resolveFlowFieldValues } = await fields();
   const cb = await flow('chatter-box');
@@ -205,6 +232,29 @@ test('an undeclared field is reported, never silently dropped', async () => {
     positive: 'hi', Input_Seconds: 12,
   });
   assert.deepEqual(unknown, ['Input_Seconds']);
+});
+
+test('list_models describes a field well enough to FILL it (MPI-816)', async () => {
+  const { agentFieldSpecs } = await fields();
+  // `agent.list-models` is the only description of a Flow the agent ever sees, and it
+  // used to be {id, label}. "Input_Quality / Quality" says nothing about a 1-indexed
+  // int into a switch bank, so the agent had to guess, and its guess killed the graph.
+  const specs = agentFieldSpecs(await flow('character-sheet'));
+  const quality = specs.find(f => f.id === 'Input_Quality');
+  assert.equal(quality.type, 'radio');
+  assert.equal(quality.default, 1);
+  assert.deepEqual(quality.options, [{ v: 1, label: '1K' }, { v: 2, label: '2K' }]);
+
+  // A free-choice enum is the same bug waiting: 23 languages the agent cannot invent.
+  const lang = agentFieldSpecs(await flow('chatter-box')).find(f => f.id === 'Input_Language.language');
+  assert.ok(lang.options.length > 10, 'the language list ships, or the agent guesses a string');
+
+  // Prose and widget geometry do NOT ship: this answer is the largest the agent reads.
+  const leaked = specs.flatMap(f => Object.keys(f))
+    .filter(k => ['info', 'note', 'rows', 'icon', 'columns', 'inline', 'group', 'placeholder'].includes(k));
+  assert.deepEqual(leaked, [], 'UI-only keys must not reach the agent');
+  assert.ok(specs.every(f => (f.options || []).every(o => Object.keys(o).join() === 'v,label')),
+    'an option is {v, label} — its `info` string is for a human hovering the control');
 });
 
 test('step-level fields are collected, not just flow-level ones', async () => {

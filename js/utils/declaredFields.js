@@ -471,6 +471,42 @@ export function flowDeclaredFields(flow) {
 }
 
 /**
+ * The declared fields as an AGENT needs them: everything required to choose a legal
+ * value, and nothing else. `agent.list-models` is the only description of a Flow the
+ * agent ever sees.
+ *
+ * MPI-816: this used to be `{id, label}` inline in `agentDispatch.js`. Told only
+ * "Input_Quality / Quality", the agent cannot know the field is a 1-indexed int into a
+ * switch bank that takes 1 or 2 — four Character Sheet runs died on what it guessed.
+ * It also cannot pick a legal string out of 19 music styles or 23 languages without
+ * being shown them.
+ *
+ * What stays OUT is as deliberate as what goes in. `info` and `note` are prose for a
+ * human hovering a control, and the UI-only keys (`rows`, `icon`, `columns`, `inline`,
+ * `group`, `placeholder`) describe a widget the agent does not have. This answer is
+ * already the largest thing the agent reads — ~9.5k tokens against a 16.4k compaction
+ * trigger (MPI-774 Phase 4) — and the option labels alone add ~1.3k.
+ *
+ * Lives here rather than at the call site because this module is where the declared-
+ * field dialect is interpreted (the duplication MPI-580 extracted it to stop), and
+ * because `agentDispatch.js` cannot be loaded outside a renderer to test.
+ *
+ * @param {Object} flow  a FlowDef
+ * @returns {Object[]}   `{id, label, type?, default?, options?, min?, max?}`
+ */
+export function agentFieldSpecs(flow) {
+    return flowDeclaredFields(flow).map(f => ({
+        id: f.id,
+        label: f.label || f.id,
+        ...(f.type ? { type: f.type } : {}),
+        ...(f.default !== undefined ? { default: f.default } : {}),
+        ...(Array.isArray(f.options) ? { options: f.options.map(o => ({ v: o.v, label: o.label })) } : {}),
+        ...(Number.isFinite(f.min) ? { min: f.min } : {}),
+        ...(Number.isFinite(f.max) ? { max: f.max } : {}),
+    }));
+}
+
+/**
  * Resolve a caller's field values against a FlowDef into the payload the op takes
  * — declared defaults first, the caller's values over them, `derived` last.
  *
@@ -486,6 +522,13 @@ export function flowDeclaredFields(flow) {
  * An undeclared id is REPORTED, never silently dropped: a typo'd field on a paid
  * generation must come back as an error, not as a run on the default.
  *
+ * A DECLARED id sent as `null`/`undefined` is the opposite case: it is an omission,
+ * so it takes the declared default rather than overwriting it. The UI can never send
+ * one — every widget holds a resolved value — so this is reachable only from the
+ * connector, and it cost four Character Sheet runs (MPI-816): the nulls reached the
+ * graph as `MpiInt` inputs and ComfyUI refused the whole prompt. Only null and
+ * undefined; `0` and `''` are values the caller chose.
+ *
  * @param {Object} flow    a FlowDef
  * @param {Object} values  caller values keyed by declared field id
  * @returns {{inputs: Object, injectionParams: Object, unknown: string[]}}
@@ -497,7 +540,9 @@ export function resolveFlowFieldValues(flow, values = {}) {
 
     const resolved = {};
     decls.forEach((f) => { if (f.default !== undefined) resolved[f.id] = f.default; });
-    Object.entries(values || {}).forEach(([k, v]) => { if (declared.has(k)) resolved[k] = v; });
+    Object.entries(values || {}).forEach(([k, v]) => {
+        if (declared.has(k) && v !== null && v !== undefined) resolved[k] = v;
+    });
     (flow?.derived || []).forEach((d) => {
         if (!d?.id || !d.from) return;
         resolved[d.id] = String(resolved[d.from]) === String(d.equals) ? d.then : d.else;
