@@ -55,8 +55,8 @@ cannot be explained is not understood. The litter it targets is cosmetic — 104
 swept by hand in seconds on 2026-09-18 — and nothing about it touches the registry, which
 is the defect this card was filed for.
 
-**Open question for Fabio:** split the fixture litter into its own card and close this one
-on the registry fix, or keep MPI-810 open until the fixture consolidation lands?
+**Resolved 2026-09-18:** Fabio chose the split. The fixture litter and this backed-out
+attempt moved to MPI-813; this card closed on the registry fix.
 
 ## Not in scope
 

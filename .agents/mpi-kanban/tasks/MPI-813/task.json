@@ -1,0 +1,15 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-813",
+  "title": "Unit fixtures mkdtemp into the temp ROOT, and a shared scratch root breaks gif-make",
+  "description": "Split from MPI-810, which shipped the registry half. Six unit fixtures leave project-shaped folders directly under %TEMP% (1042 by 2026-09-18). The obvious fix - one shared scratch root - was written and backed out: it makes gif-make fail '.meta directory missing' after gif-frames has run, serially, mechanism unknown.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-09-19T05:18:37Z",
+  "updated_at": "2026-09-19T05:18:37Z",
+  "links": {
+    "brief": "brief.md",
+    "events": "events.jsonl"
+  }
+}

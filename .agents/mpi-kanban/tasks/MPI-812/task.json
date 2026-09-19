@@ -3,15 +3,16 @@
   "id": "MPI-812",
   "title": "Desktop specs leave their Electron user-data profiles behind: 142 GB in the scratchpads",
   "description": "Fabio, 2026-09-18, off a disk that hit 100% full (931 GB used, 395 MB free, an ENOSPC from an editor write). Every desktop-spec run creates a per-test Electron --user-data-dir in the session scratchpad and nothing ever deletes it.\n\nMeasured: %LOCALAPPDATA%\\Temp\\claude held 153.7 GB over 228 session folders / 701,334 files. 142.1 GB of that (608,891 files) is user-data\\ profiles. Everything the agents actually wrote comes to 2.9 GB. Only 12.4 GB was older than three days, so ~120 GB landed in two days of heavy UI-card work - call it ~60 GB/day.\n\nIt hides from every size sweep: no single file is over 4 MB, so a /MIN:100MB scan of the whole volume sees nothing. It only shows as a directory total.\n\nCollateral: under 1 GiB free, tests/download-retry.test.cjs fails 'exactly one write probe per dep, got 0' - _writeProbe skips below PROBE_MIN_FREE_BYTES (routes/downloadManager.js:2034) and logs a WARN instead of the INFO the test counts. The assertion never says 'disk'; it reads as a regression in whatever you just changed.\n\nBuild: teardown that deletes the profile it made, and that survives a FAILED or crashed test - that is exactly when one is left behind today. Traces and screenshots stay; they live in the Playwright output dir, not in user-data. Consider one profile per worker instead of per test, if no spec needs a virgin profile.\n\nSibling of MPI-810 (project folders in the temp ROOT) - same family, different writer. The existing 153 GB was already swept on 2026-09-18; brief.md carries the trap for anyone repeating that cleanup (a scratchpad folder name is NOT the app session id, and never prune by mtime).",
-  "column": "doing",
-  "maturity": "in-progress",
-  "status": "active",
+  "column": "done",
+  "maturity": "complete",
+  "status": "completed",
   "created_at": "2026-09-18T20:04:20Z",
-  "updated_at": "2026-09-18T20:07:17Z",
+  "updated_at": "2026-09-19T05:18:37Z",
   "links": {
     "brief": "brief.md",
     "checklist": "checklist.md",
     "files": "files.json",
-    "events": "events.jsonl"
+    "events": "events.jsonl",
+    "validation": "validation.md"
   }
 }

@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "id": "MPI-813", "type": "task.created", "at": "2026-09-19T05:18:37Z", "actor": "claude", "summary": "Split from MPI-810 on Fabio's call. Carries the backed-out attempt and its evidence so the next session does not repeat it."}
