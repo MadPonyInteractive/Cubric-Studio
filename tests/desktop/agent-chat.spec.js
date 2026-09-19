@@ -703,11 +703,14 @@ test('PromptBox Agent mode: own text and hint, the toggle, Stop but no Run, numb
     // The run column STAYS in agent mode (MPI-774 fix 6, Fabio): the agent has no cancel
     // tool, so the user's Stop is the only way to halt a generation it started, and
     // hiding the column wholesale took Stop with it. Run and Clear are hidden by name.
-    expect(agentFace.slots).toEqual(['textarea-slot', 'mode-toggle-slot', 'bottom-right-slot']);
-    // The text still dominates the face, but Stop's column costs it ~46px: this was 0.8
-    // when agent mode had two slots, and the same change that added the column measured
-    // 0.797. The assertion is "the field dominates", not the old arithmetic.
-    expect(agentFace.textShare).toBeGreaterThan(0.75);
+    expect(agentFace.slots).toEqual(['textarea-slot', 'mode-toggle-slot', 'settings-badge-slot', 'settings-cog-slot', 'bottom-right-slot']);
+    // The text still dominates the face, but each column it shares with costs it width.
+    // The history of this one number, because it has gone red twice: 0.8 when agent mode
+    // had two slots; 0.797 measured once Stop's column stayed (MPI-774 fix 6), so the bar
+    // moved to 0.75; 0.6865 measured now that MPI-774 Phase 7 put the model button and the
+    // cog back. The assertion means "the field dominates the face", never the arithmetic —
+    // MEASURE it after any column change, do not compute it.
+    expect(agentFace.textShare).toBeGreaterThan(0.65);
     expect(await window.evaluate((sel) => {
       const col = document.querySelector(`${sel} .mpi-prompt-box__col--run`);
       return [...col.children].map((c) => ({
@@ -745,6 +748,160 @@ test('PromptBox Agent mode: own text and hint, the toggle, Stop but no Run, numb
     await expect(chips).toHaveCount(2);
     expect(await chips.locator('.mpi-prompt-box-media-strip__role').allTextContents()).toEqual(['Start frame', 'Last frame']);
     expect((await shown()).slots).toContain('bottom-right-slot');
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+// MPI-774 Phase 7 (Fabio, 2026-09-19): the pinned settings panel. Agent mode keeps the
+// model button and the cog. Cog SHUT, the agent picks the model and every setting from
+// model defaults; cog OPEN, the user owns both and the agent keeps the prompt, the media,
+// the op and the card name. Open means PINNED: the panel cannot be dismissed by a stray
+// click or by Escape, only by the cog, because handing that ownership back by accident is
+// worse than a popup that stays up. The dispatch half is agent-pinned-settings.test.cjs;
+// this is the interaction only a real window can prove.
+test('agent mode: the cog pins the settings panel, and only the cog unpins it', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await installStubs(window);
+    await bootAndMountPromptBox(window);
+    const pb = '#e2e-pb-host .mpi-prompt-box';
+    const toggle = window.locator(`${pb} .mpi-prompt-box__col--mode .mpi-ibtn`);
+    const cog = window.locator(`${pb} #settings-cog-slot button`);
+    const popup = window.locator('body > .mpi-popup.mpi-prompt-box__popup--agent');
+    const pinnedFlag = () => window.evaluate(async () => {
+      const { state } = await import('/js/state.js');
+      return state.agentSettingsPinned;
+    });
+
+    await window.evaluate(async () => {
+      const { getModelById } = await import('/js/data/modelRegistry.js');
+      window.__pbInst.el.setModel(getModelById('wan-22'));
+    });
+
+    // Prompt mode: nothing is pinned, and the popup carries no agent class.
+    expect(await pinnedFlag()).toBe(false);
+
+    await toggle.click();
+    // The two columns the pinned panel is made of are back in agent mode.
+    await expect(cog).toBeVisible();
+    await expect(window.locator(`${pb} #settings-badge-slot button`)).toBeVisible();
+    // Opening it has to be readable BEFORE the click — this is the status-bar line.
+    expect(await cog.getAttribute('data-info'))
+      .toBe('In agent mode, when you open this panel, you control the settings and the model, not the agent.');
+    // Agent mode alone pins nothing: the panel has to be OPENED.
+    expect(await pinnedFlag()).toBe(false);
+
+    await cog.click();
+    await expect(popup).toHaveClass(/is-active/);
+    expect(await pinnedFlag()).toBe(true);
+
+    // No op strip in it. Fabio: "if the user wants to go and change operations, then he
+    // just needs to close the agent mode. That's too much already."
+    expect(await window.evaluate(() => {
+      const el = document.querySelector('body > .mpi-popup .mpi-prompt-box__settings-ops');
+      return el ? getComputedStyle(el).display : 'missing';
+    })).toBe('none');
+
+    // A click on the page outside the panel does NOT hand the settings back.
+    await window.mouse.click(5, 5);
+    await window.waitForTimeout(150);
+    await expect(popup).toHaveClass(/is-active/);
+    expect(await pinnedFlag()).toBe(true);
+
+    // Neither does Escape.
+    await window.keyboard.press('Escape');
+    await window.waitForTimeout(150);
+    await expect(popup).toHaveClass(/is-active/);
+    expect(await pinnedFlag()).toBe(true);
+
+    // The cog is the way out, and it hands the settings straight back to the agent.
+    await cog.click();
+    await expect(popup).not.toHaveClass(/is-active/);
+    expect(await pinnedFlag()).toBe(false);
+
+    // Leaving agent mode with the panel open unpins it too: the ownership is an
+    // agent-mode meaning of "this popup is open", and prompt mode has no agent to take
+    // it from.
+    await cog.click();
+    expect(await pinnedFlag()).toBe(true);
+    await toggle.click();
+    expect(await pinnedFlag()).toBe(false);
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+// Fabio, 2026-09-19, found while checking the pinned panel: resize the window and the
+// settings popup opens in the wrong place, and it takes a SECOND click to settle.
+//
+// Two faults, both measured in this window before the fix:
+//  1. `.mpi-popup` transitioned `all`, so `left`/`bottom` SLID over 200ms. Every owner of
+//     the primitive positions it from JS then clamps it to the viewport in a rAF — which
+//     fires ~16ms in and so measured the element at its OLD position. The clamp subtracted
+//     an overflow belonging to where the popup used to be: the first reopen after a
+//     1280 -> 1100 resize landed 128px too far left (overflowRight -188 against a correct
+//     -60), and the second reopen finally settled. That is the "click twice" exactly.
+//  2. Nothing repositioned an OPEN popup on a window resize: measured +120px off the right
+//     edge. Survivable while any click shut it; MPI-774 Phase 7 pins it open in agent mode,
+//     so it became the normal case.
+//
+// The assertion is "on screen, first time, every time" — a fixed pixel would just be the
+// arithmetic again.
+test('the settings popup survives a window resize: on screen, first open, no second click', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await installStubs(window);
+    await bootAndMountPromptBox(window);
+    const pb = '#e2e-pb-host .mpi-prompt-box';
+    const cog = window.locator(`${pb} #settings-cog-slot button`);
+
+    const geom = () => window.evaluate(() => {
+      const p = document.querySelector('body > .mpi-popup');
+      const r = p.getBoundingClientRect();
+      return {
+        transitionProperty: getComputedStyle(p).transitionProperty,
+        left: Math.round(r.left),
+        overflowRight: Math.round(r.right - window.innerWidth),
+        width: Math.round(r.width),
+      };
+    });
+
+    await cog.click();
+    await window.waitForTimeout(400);
+    const first = await geom();
+    // The coordinates must NOT be animated, or the rAF clamp measures a moving element.
+    expect(first.transitionProperty).not.toContain('all');
+    expect(first.transitionProperty).toContain('opacity');
+    expect(first.overflowRight).toBeLessThanOrEqual(0);
+    expect(first.left).toBeGreaterThanOrEqual(0);
+
+    // Shrink the window while the panel is OPEN — the pinned-in-agent-mode case.
+    await app.evaluate(async ({ BrowserWindow }) => {
+      BrowserWindow.getAllWindows()[0].setSize(1100, 800);
+    });
+    await window.waitForTimeout(600);
+    const stillOpen = await geom();
+    expect(stillOpen.overflowRight).toBeLessThanOrEqual(0);
+    expect(stillOpen.left).toBeGreaterThanOrEqual(0);
+
+    // And the FIRST reopen at the new size is already right — no second click.
+    await cog.click(); await window.waitForTimeout(300);
+    await cog.click(); await window.waitForTimeout(600);
+    const reopen1 = await geom();
+    expect(reopen1.overflowRight).toBeLessThanOrEqual(0);
+    expect(reopen1.left).toBeGreaterThanOrEqual(0);
+
+    // A second reopen lands in the SAME place. Before the fix these differed by 128px.
+    await cog.click(); await window.waitForTimeout(300);
+    await cog.click(); await window.waitForTimeout(600);
+    expect((await geom()).left).toBe(reopen1.left);
 
     expect(pageErrors).toEqual([]);
   } finally {

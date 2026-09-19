@@ -1,0 +1,13 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "id": "MPI-820",
+  "updated_at": "2026-09-19T15:42:04Z",
+  "files": [
+    "js/data/generationControls.js",
+    "routes/connector.js",
+    "js/shell/agentDispatch.js",
+    "services/agentLoop.mjs",
+    "tests/agent-duration.test.cjs",
+    ".claude/skills/cubric-vision-generate/SKILL.md"
+  ]
+}

@@ -408,13 +408,13 @@ router.get('/connector/jobs/stream', (req, res) => {
 // model's own capability data — no project is open here, so an unset param is
 // left off `input` and resolved against the real project by
 // `js/shell/agentDispatch.js`.
-const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'stylization'];
+const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'stylization', 'duration'];
 
 /**
  * POST /connector/generate
  * Body, EITHER a model op:  { modelId, operation, positive, negative?, injectionParams?,
  *                              ratio?, qualityTier?, turbo?, styleSelect?, stylization?,
- *                              seed?, media? }
+ *                              duration?, seed?, media? }
  *       OR a Flow (MPI-658): { flowId, fields?, media? }
  *
  * The two are not variants of one shape. A Flow has no model — it dispatches with

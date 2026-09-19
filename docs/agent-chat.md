@@ -302,3 +302,40 @@ with Krea 2 it ran `krea2 i2i` and cited "its best realism op, rank 1" (live, ha
 - **Language Models loads visibly.** Every control in that section mounts from an async read, so a
   cold open used to paint labels with nothing under them; the section now shows a spinner and keeps
   its subgroups out of the flow until the read lands.
+
+## The pinned settings panel (Phase 7, Fabio 2026-09-19)
+
+One boolean — `state.agentSettingsPinned` — decides who owns the model and the settings of an
+agent-dispatched generation. Agent mode keeps the model button and the cog for exactly this.
+
+| | Cog shut — agent drives | Cog open — the USER drives |
+|---|---|---|
+| prompt, media in/out, op, card name | agent | **agent, still — all of it** |
+| model | agent picks by task + rank | **the user** |
+| ratio / quality / turbo / style / stylization | agent, **from MODEL DEFAULTS** | **the user** |
+
+- **Open means PINNED.** The popup survives outside-click and Escape in agent mode and closes on the
+  cog alone — handing that ownership back by accident is worse than a popup that stays up. It loses
+  its op strip through its own `.mpi-prompt-box__popup--agent` class (it is portaled, so the box's
+  class cannot reach it). Fabio: *"if the user wants to go and change operations, then he just needs
+  to close the agent mode."* The cog's `[data-info]` says what opening it costs — the only copy
+  readable before the click.
+- **Enforcement is code, never a prompt rule** — `resolveSettingsOwner` (`js/shell/agentDispatch.js`),
+  rejected as a prompt rule twice. Pinned, the named params are dropped and a foreign `modelId` is
+  **refused** (`MODEL_PINNED`), never silently swapped: running the user's model under the agent's
+  narration is the `{ started: true }` lie again. An op the pinned model cannot run returns
+  `OP_UNAVAILABLE` worded to say the model is the user's — tell them, ask them to change it, never
+  switch it.
+- **The trap that would have failed silently:** "the agent uses defaults" was not what the code did.
+  `resolveEffectiveQualityTier` resolves an unset tier against the **project's saved bucket** first,
+  so a project where 2k was once chosen fed 2k to every agent generation forever — the same stale
+  contamination the panel exists to kill, through the project record instead of the panel. The
+  unpinned path passes `project: null` into `resolveNamedParams`; that null IS the defaults half.
+- **The agent is told the pinned model** — `pinned` on `POST /agent/message` → `agentSessions.send` →
+  `runTurn` → `AgentLoop._pinnedSettingsLine`, absent when the panel is shut. Told, not asked: the
+  gate has already dropped what the generate named. It exists because the model still writes the
+  prompt and the Guide rule adapts it to that model's structure; the installed ops ride along so it
+  can refuse in words rather than through an error.
+- **Rejected, do not rebuild:** "every setting the user did not ask for is THEIRS, the box wins". A
+  beginner never opens the panel, so a previous session's leftovers contaminate everything. "The
+  panel wins" is only safe when somebody is tending the panel.

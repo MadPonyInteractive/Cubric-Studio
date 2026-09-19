@@ -9,7 +9,15 @@
     z-index: 9999;
     opacity: 0;
     pointer-events: none;
-    transition: all var(--t-fast) var(--ease);
+    /* opacity + transform ONLY, never `all` (MPI-774, 2026-09-19). `all` transitioned
+       `left`/`top`/`bottom` too, and every owner of this primitive positions it from JS
+       and then CLAMPS it to the viewport in a `requestAnimationFrame` — which fired ~16ms
+       into a 200ms slide and so measured the element at its OLD position. The clamp then
+       subtracted an overflow that belonged to where the popup used to be: measured, the
+       prompt box's panel reopened 128px too far left after a window resize and needed a
+       SECOND open to settle. The entrance animation is the transform and the fade; the
+       coordinates were never meant to animate. */
+    transition: opacity var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
     width: max-content;
 }
 

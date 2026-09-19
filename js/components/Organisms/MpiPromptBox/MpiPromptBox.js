@@ -68,11 +68,25 @@ import { MpiEnhanceDialog } from '../../Compounds/MpiEnhanceDialog/MpiEnhanceDia
  *
  * Agent mode (state.agentMode, MPI-774/797): the box shows only its text, chips and the
  * Agent|Prompt toggle; the text is the agent's own; chips are images, numbered.
+ *
+ * The pinned settings panel (state.agentSettingsPinned, MPI-774 Phase 7): agent mode keeps
+ * the model button and the cog. Cog shut, the agent picks the model and resolves every
+ * setting from MODEL DEFAULTS; cog open, the user owns the model and the settings and the
+ * agent is told which model it is writing for. It always keeps the prompt, the media, the
+ * op and the card name. The panel is PINNED while it is open — no outside-click, no
+ * Escape, the cog only — because giving that ownership back by accident is worse than a
+ * popup that stays up. Enforcement is in `js/shell/agentDispatch.js`, not in the prompt.
  */
 
 // ponytail: the agent takes as many references as the widest op it can drive (H3's nine
 // pictures); raise it if a model ever takes more.
 const AGENT_MAX_IMAGES = 9;
+
+// The cog's status-bar line ([data-info] → js/shell/statusBar.js). Two of them: in agent
+// mode opening the panel TAKES the settings off the agent, and that has to be readable
+// before the click, not discovered after it (Fabio, 2026-09-19).
+const COG_INFO = 'Generation parameters';
+const COG_INFO_AGENT = 'In agent mode, when you open this panel, you control the settings and the model, not the agent.';
 export const MpiPromptBox = ComponentFactory.create({
     name: 'MpiPromptBox',
     css: ['js/components/Organisms/MpiPromptBox/MpiPromptBox.css'],
@@ -1629,11 +1643,15 @@ export const MpiPromptBox = ComponentFactory.create({
             positionPopup();
             popupNode.classList.add('is-active');
             cogBtn.el.classList.add('is-active');
+            // MPI-774 Phase 7: in agent mode, OPEN means PINNED — the user has taken the
+            // model and the settings, and agentDispatch drops the agent's own.
+            if (_agentMode) state.agentSettingsPinned = true;
         };
         const closePopup = () => {
             popupActive = false;
             popupNode.classList.remove('is-active');
             cogBtn.el.classList.remove('is-active');
+            state.agentSettingsPinned = false;
         };
 
         const cancelClose = () => { clearTimeout(leaveTimer); leaveTimer = null; };
@@ -1685,7 +1703,7 @@ export const MpiPromptBox = ComponentFactory.create({
         // different class of control.
         const cogBtn = MpiButton.mount(qs('#settings-cog-slot', el), {
             icon: 'settings', variant: 'secondary', size: 'sm',
-            info: 'Generation parameters',
+            info: COG_INFO,
             extraClasses: 'mpi-prompt-box__cog-trigger',
         });
         cogBtn.on('click', () => {
@@ -1703,6 +1721,13 @@ export const MpiPromptBox = ComponentFactory.create({
         });
         _loraRack.on('resized', () => { if (popupActive) positionPopup(); });
 
+        // The panel is anchored to the cog in VIEWPORT coordinates, so a window resize
+        // leaves an open one stranded — measured at 120px off the right edge after a
+        // 1280 -> 1100 resize. It was survivable while the popup shut on the first click
+        // anywhere; MPI-774 Phase 7 pins it open in agent mode, so "resize the window and
+        // the settings are off-screen" became the normal case (Fabio, 2026-09-19).
+        _unsubs.push(on(window, 'resize', () => { if (popupActive) positionPopup(); }));
+
         // A click that STARTED inside the popup, recorded in the capture phase —
         // before any handler can re-render. The op strip in the popup header
         // destroys and remounts itself while handling its own click, so by the
@@ -1716,6 +1741,10 @@ export const MpiPromptBox = ComponentFactory.create({
         // Popup stays open until user clicks outside or presses Escape.
         const onPopupOutsideClick = (e) => {
             if (!popupActive) return;
+            // MPI-774 Phase 7: in agent mode the panel is PINNED, not a popup — while it
+            // is open the user owns the model and the settings, and that ownership cannot
+            // be given back by a stray click on the canvas. The cog is the only way out.
+            if (_agentMode) return;
             if (e === _clickFromInsidePopup) return;
             if (popupNode.contains(e.target) || cogBtn.el.contains(e.target)) return;
             // Ignore clicks inside any portaled child surface (dropdown list,
@@ -1742,6 +1771,11 @@ export const MpiPromptBox = ComponentFactory.create({
         // unqualified close-all (overlay teardown / Overlays.reset).
         _unsubs.push(Events.on('ui:close-all-popups', ({ reason } = {}) => {
             if (reason === 'overlay-open') return;
+            // Same exemption as the outside-click above (MPI-774 Phase 7): Escape and every
+            // other unqualified close-all reaches this pulse, and in agent mode the panel
+            // closes on the cog or not at all. `destroy()` still tears it down — that path
+            // removes popupNode outright rather than closing it.
+            if (_agentMode) return;
             if (popupActive) closePopup();
         }));
 
@@ -2376,6 +2410,16 @@ export const MpiPromptBox = ComponentFactory.create({
         // MPI-797: the Agent face — its own text and hint, chips by number, no ref picker.
         function _applyAgentView() {
             el.classList.toggle('mpi-prompt-box--agent-mode', _agentMode);
+            // MPI-774 Phase 7 — the pinned settings panel. The popup is portaled to
+            // document.body, so it cannot inherit the box's agent class: it carries its
+            // own, which is what drops the op strip out of it.
+            popupNode.classList.toggle('mpi-prompt-box__popup--agent', _agentMode);
+            // Pinning is an AGENT-MODE meaning of "this popup is open": leaving the mode
+            // hands the settings straight back, whether the popup stays up or not.
+            state.agentSettingsPinned = _agentMode && popupActive;
+            // The only copy readable BEFORE the click. `info` is what statusBar.js reads
+            // off [data-info]; it observes the attribute, so a live swap re-renders.
+            cogBtn.el.setAttribute('data-info', _agentMode ? COG_INFO_AGENT : COG_INFO);
             textareaEl.value = _readMode();
             textareaEl.placeholder = _placeholderFor(promptMode);
             _closeRefPicker();
@@ -2670,6 +2714,10 @@ export const MpiPromptBox = ComponentFactory.create({
             _loraRack?.el?.destroy?.();
             _loraRack = null;
             domObserver.disconnect();
+            // The panel goes with the box, so the ownership it declares has to go too —
+            // otherwise a nav away with the cog open leaves agentDispatch dropping the
+            // agent's params against a panel nobody can see (MPI-774 Phase 7).
+            state.agentSettingsPinned = false;
             if (popupNode.parentNode) popupNode.parentNode.removeChild(popupNode);
             _stripEl.remove();
             el.remove();

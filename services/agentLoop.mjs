@@ -473,6 +473,24 @@ export class AgentLoop {
     }
 
     /**
+     * The pinned settings panel, MPI-774 Phase 7 — present only when the user has it OPEN.
+     *
+     * Told, not asked: the app has already dropped whatever model and settings this turn's
+     * generate names (`js/shell/agentDispatch.js`, resolveSettingsOwner), so this line
+     * changes nothing about what runs. It exists because the model still WRITES the prompt,
+     * and the Guide rule makes it read that model's guide and adapt to its structure and
+     * vocabulary — a pinned Klein with a Krea2-shaped prompt is a worse image than either
+     * party intended. The ops are here so it can refuse in WORDS when the pinned model
+     * cannot do what was asked, instead of discovering it through an OP_UNAVAILABLE.
+     * Costs nothing on a turn with the panel shut: the line is absent.
+     */
+    _pinnedSettingsLine(pinned) {
+        if (!pinned?.modelId) return '';
+        const ops = Array.isArray(pinned.ops) && pinned.ops.length ? pinned.ops.join(', ') : 'none installed';
+        return `[Settings panel: the user has it OPEN, so the model and every setting (ratio, quality, turbo, style) are THEIRS for this turn. You still write the prompt, choose the operation, supply the media and name the card. The model is "${pinned.modelId}" (${pinned.name}, ${pinned.mediaType}); the operations it can run are: ${ops}. Use modelId "${pinned.modelId}" on every generate and send no ratio, quality, turbo or style — yours are ignored. Write the prompt for THIS model. If it cannot do what the user asked, say so plainly, say what it does instead, and ask them to select a different model — never switch it yourself, and never pretend a different one ran.]`;
+    }
+
+    /**
      * open_project takes a folder the app gave this conversation (list_projects, create_project),
      * the open project, or one the user typed; never a path the model made up.
      */
@@ -680,6 +698,8 @@ ${modeRules}
 Model rule: first the TASK, then the model. The task comes from what the user asked for and does not change because another task's op ranks higher: changing an existing picture is the edit task (kleinEdit, krea2Edit, qwenEdit, edit), not i2i, even when the user names a model whose i2i is rank 1. Ranks only ever compare ops WITHIN one task. Inside the task, pick an op that is installed (an op list_models marks installed: false is not, and neither is a model marked runsHere: false, which this machine cannot run at all), and take the lowest rank number (rank 1 is the best we have at it); an op with no rank is unranked, not bad. Take a lower-ranked op over rank 1 only when the user names a model, or when its note matches what they asked for (a note is what the ranking cannot say: "leaves everything outside the edit area untouched", "takes exactly one image", "anime and stylised art"). When you pass over rank 1 for a note, say in one short line which model you used and why. If nothing installed fits, say an install is needed and offer one with install_model.
 
 Settings rule: list_models is the short list and carries no settings. Once you have picked a model or a Flow, call describe_model with its id: it gives each op its params (the only ratio, qualityTier, turbo and styleSelect values that op accepts; styleSelect takes a label from params.styles or its index), the media roles it takes, a Flow's fields and boxes, and its guide ids. Never send a value its params do not list. Start every setting at its default and raise one only when the user's own words asked for it: quality stays at the lowest tier until they want it sharper or bigger, turbo and stylization stay alone, and a style is worth reaching for only when they named a look the rack has. Ratio you infer from words that imply a shape (a platform, portrait, widescreen). Unsure which shape a platform wants, or whether a style is worth it: read_knowledge "app:formats".
+
+Duration rule: a clip op takes duration, in seconds, and it is the ONE setting you judge for yourself rather than leave at its default - the user describes an action, and you decide how long that action needs. Count what has to happen. One continuous beat is short; every added beat costs seconds, and a camera move that travels needs longer than one that holds. A clip that ends mid-action is the common failure, and it is worse than one a little too long. The user naming a length always wins. What you ask for is not always what you get: the answer reports the real durationSeconds, so say THAT number, never the one you asked for.
 
 Numbering rule: "picture 2", "image 2" or "2" in a message means that message's attached image 2, never an image from an earlier turn. Pass that attachment's id.
 
@@ -1081,7 +1101,7 @@ ${knowledgeIndex}`.trim();
     // Run a turn (called by POST /agent/message)
     // -------------------------------------------------------------------------
 
-    async runTurn(text, attachments, project, mode, profileId, turnId, { model: pickedModel, carried = false } = {}) {
+    async runTurn(text, attachments, project, mode, profileId, turnId, { model: pickedModel, carried = false, pinned = null } = {}) {
         this._working = true;
         this._lastMode = mode;
         this._emit('agent:working', { turnId, working: true });
@@ -1148,7 +1168,7 @@ ${knowledgeIndex}`.trim();
             const handover = carried
                 ? '[Handed over: the user asked this in another conversation, which already opened this project for it. Do only what is left of the request; if opening this project was all of it, say it is open and ask what to make.]'
                 : '';
-            const opening = [this._appStateLine(project), handover, await this._projectNotesLine(project), ...this._notes.splice(0)];
+            const opening = [this._appStateLine(project), this._pinnedSettingsLine(pinned), handover, await this._projectNotesLine(project), ...this._notes.splice(0)];
             contentParts.unshift(...opening.filter(Boolean).map((t) => ({ type: 'text', text: t })));
 
             // Add user message to LLM context (plain text for OpenAI compat)

@@ -51,6 +51,7 @@ import { getFlowById, listFlows, flowAvailability } from '../data/flowsRegistry.
 import { resolveFlowFieldValues, flowDeclaredFields, agentFieldSpecs } from '../utils/declaredFields.js';
 import { getCommand } from '../data/commandRegistry.js';
 import { resolveNamedParams, isValidSeed, resolveAgentMedia, namedParamsFor } from '../data/generationControls.js';
+import { resolveActiveModel } from '../utils/modelHelpers.js';
 import { describeImage } from '../services/llmService.js';
 import { downloadService } from '../services/downloadService.js';
 import { remoteEngineClient } from '../services/remoteEngineClient.js';
@@ -84,7 +85,7 @@ const _fail = (jobId, code, message) => _report(jobId, { ok: false, error: { cod
  * The gallery path awaits `addGroup` before it calls `onComplete`, so the card is
  * already in the project here.
  */
-async function _reportDone(jobId, { item, group }, cardName) {
+async function _reportDone(jobId, { item, group }, cardName, duration = null) {
     const named = cardName !== undefined && group?.id ? await renameGroup(group.id, cardName) : null;
     return _report(jobId, {
         ok: true,
@@ -96,9 +97,75 @@ async function _reportDone(jobId, { item, group }, cardName) {
             seed: item?.seed,
             pixelDimensions: item?.pixelDimensions,
             generationMs: item?.generationMs,
+            // MPI-820: what the clip REALLY is, not what was asked for. H3 can only land
+            // on a 17k+5 frame grid, so a 6 s ask is 141 frames = 5.875 s — and a caller
+            // that repeats the ask tells the user a number the file does not have.
+            ...(duration ? { durationSeconds: duration.seconds, ...(duration.frames ? { frames: duration.frames } : {}) } : {}),
             ...(named ? { cardName: named.customName } : {}),
         },
     });
+}
+
+/**
+ * The model the pinned panel is showing — the one the user picked, per mediaType, the
+ * way MpiGalleryBlock resolves it. Exported so the App state line can name it to the
+ * agent: while pinned the agent still WRITES the prompt, and the Guide rule makes it
+ * adapt that prompt to the model's own structure and vocabulary, so a pinned Klein told
+ * nothing gets a Krea2-shaped prompt and a worse image than either party intended.
+ */
+export function pinnedModel() {
+    const type = state.s_lastSelectedMediaType === 'video' ? 'video' : 'image';
+    return resolveActiveModel(type).model;
+}
+
+/**
+ * The pinned gate (MPI-774 Phase 7, Fabio 2026-09-19). One boolean decides who owns the
+ * model and the settings of an agent-dispatched generation; the agent keeps the prompt,
+ * the media, the op and the card name either way.
+ *
+ * Enforcement is HERE, in code, and never a prompt rule: a prompt rule can be ignored, a
+ * dropped field cannot. Fabio has now rejected a prompt-rule answer to this twice.
+ *
+ * PINNED (cog open) — the user's model, and the project's saved buckets, which is exactly
+ * what the open panel is showing them. The agent's own named params are dropped.
+ *
+ * NOT PINNED (cog shut) — the agent's model and params, and `project: null`. That null is
+ * the whole of the "model defaults" half, and it is not decoration:
+ * `resolveEffectiveQualityTier` resolves an unset tier against the PROJECT'S SAVED BUCKET
+ * first, so a project where 2k was once chosen would keep feeding 2k to every agent
+ * generation forever — the same stale contamination the panel exists to kill, arriving
+ * through the project record instead of the visible panel. With no project, every unset
+ * param falls to the model's own default (and an unset ratio to the workflow's baked one).
+ *
+ * @param {object} input        the `generation.submit` body
+ * @param {boolean} pinned      state.agentSettingsPinned
+ * @param {object|null} project state.currentProject
+ * @param {object|null} pinnedM the model the panel is showing, when pinned
+ * @returns {{model:object|null, project:object|null, named:object, error?:{code:string,message:string}}}
+ */
+export function resolveSettingsOwner(input = {}, pinned, project, pinnedM) {
+    const { modelId, ratio, qualityTier, turbo, styleSelect, stylization, duration } = input;
+    if (!pinned) {
+        return {
+            model: getModelById(modelId),
+            project: null,
+            named: { ratio, qualityTier, turbo, styleSelect, stylization, duration },
+        };
+    }
+    if (!pinnedM) {
+        return { model: null, project, named: {}, error: { code: 'NO_PINNED_MODEL',
+            message: 'The settings panel is open, so the user owns the model — but no model is selected. Ask them to pick one, or to close the panel and let you choose.' } };
+    }
+    // Deliberately a REFUSAL, not a silent swap. Dropping a mismatched modelId would run
+    // the user's model under the agent's narration — "making this with Krea2" while Klein
+    // ran — which is the same class of lie as the `{ started: true }` this phase killed.
+    // The agent is told the pinned model in the App state line, so a mismatch is its error
+    // to fix, and a concrete tool result beats a prompt rule (MPI-774, proven three times).
+    if (modelId && modelId !== pinnedM.id) {
+        return { model: null, project, named: {}, error: { code: 'MODEL_PINNED',
+            message: `Nothing was generated: the user has the settings panel open, so they own the model — it is "${pinnedM.id}" (${pinnedM.name}), not "${modelId}". Send this again with modelId "${pinnedM.id}", writing the prompt for that model. If it cannot do what was asked, say so and ask them to select a different one; you cannot change it.` } };
+    }
+    return { model: pinnedM, project, named: {} };
 }
 
 /**
@@ -113,15 +180,23 @@ function _submitGeneration(jobId, input = {}) {
     if (input.flowId) return _submitFlow(jobId, input);
 
     const {
-        modelId, operation, positive = '', negative = '', injectionParams = {}, media = [],
-        ratio, qualityTier, turbo, styleSelect, stylization, seed,
+        modelId, operation, positive = '', negative = '', injectionParams = {}, media = [], seed,
     } = input;
 
     if (!state.currentProject) {
         return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision. Create or open one, then send this request again.');
     }
 
-    const model = getModelById(modelId);
+    // Who owns the model and the settings — see resolveSettingsOwner. `owner.project` is
+    // NOT always state.currentProject: unpinned it is null on purpose, so the resolve
+    // below lands on model defaults instead of the project's saved bucket.
+    const pinned = state.agentSettingsPinned === true;
+    const owner = resolveSettingsOwner(input, pinned, state.currentProject, pinned ? pinnedModel() : null);
+    if (owner.error) {
+        return _fail(jobId, owner.error.code, owner.error.message);
+    }
+
+    const model = owner.model;
     if (!model) {
         return _fail(jobId, 'UNKNOWN_MODEL', `No model with id "${modelId}".`);
     }
@@ -130,8 +205,12 @@ function _submitGeneration(jobId, input = {}) {
     // weights must be on disk for the effective engine. Checked here so the agent
     // gets a named reason — commandExecutor's own net bails with a toast it cannot see.
     if (!isOperationInstalled(model, operation)) {
-        return _fail(jobId, 'OP_UNAVAILABLE',
-            `"${operation}" is not available on ${model.name || modelId} — unsupported, or its weights are not installed.`);
+        // While pinned the agent cannot answer this by switching models, so the refusal
+        // says what it CAN do instead: tell the user (Fabio's own example — "that makes
+        // video, it doesn't make images, you need to select another model").
+        return _fail(jobId, 'OP_UNAVAILABLE', pinned
+            ? `"${operation}" is not available on ${model.name || model.id} — unsupported, or its weights are not installed. The user has the settings panel open, so that model is theirs and you cannot change it: tell them this model cannot do it and ask them to select one that can.`
+            : `"${operation}" is not available on ${model.name || modelId} — unsupported, or its weights are not installed.`);
     }
 
     // A painted mask has no agent form. Refused by name: the enqueue guard would toast
@@ -155,12 +234,14 @@ function _submitGeneration(jobId, input = {}) {
 
     // MPI-547 — the v1 named params (ratio/qualityTier/turbo/styleSelect/stylization/
     // batch pinned to 1). `routes/connector.js` already ran the same static validation with no
-    // project (see generationControls.js's own comment); this call resolves the
-    // EFFECTIVE value against the real open project, so an unset param falls back to
-    // what the PromptBox currently shows rather than the workflow's baked default —
-    // the same fix MPI-546 made for ratio alone, generalised to the whole v1 set.
-    const named = resolveNamedParams(state.currentProject, model, operation,
-        { ratio, qualityTier, turbo, styleSelect, stylization });
+    // project (see generationControls.js's own comment).
+    //
+    // MPI-774 Phase 7 made WHICH project this resolves against the gate itself. Pinned, it
+    // is the open project, so an unset param lands on what the panel is showing the user.
+    // Unpinned it is `null`, so an unset param lands on the MODEL's default instead of a
+    // bucket some earlier session saved — see resolveSettingsOwner for why that is the
+    // whole point rather than a detail.
+    const named = resolveNamedParams(owner.project, model, operation, owner.named);
     if (!named.ok) {
         return _fail(jobId, named.code, named.message);
     }
@@ -203,7 +284,7 @@ function _submitGeneration(jobId, input = {}) {
     };
 
     const queued = enqueueGeneration(config, {
-        onComplete: (done) => _reportDone(jobId, done, input.cardName),
+        onComplete: (done) => _reportDone(jobId, done, input.cardName, named.duration),
         // An `outputKind: 'text'` op produces a caption and no item (MPI-310).
         onText: (text) => _report(jobId, { ok: true, output: { text } }),
         onError: () => _fail(jobId, 'RUNTIME_ERROR',

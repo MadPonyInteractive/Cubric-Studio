@@ -39,12 +39,64 @@ test('agent mode does not hide the run column — Stop is the only way to halt a
         'the run column holds Stop: hiding it leaves an agent generation uncancellable');
     // Only Stop shows in it: everything else in the column is hidden by name.
     assert.match(css, /\.mpi-prompt-box--agent-mode \.mpi-prompt-box__col--run > :not\(\.mpi-prompt-box__stop-host\)/);
-    // Three visible columns in agent mode: the text, the head, and Stop.
+    // Five visible columns in agent mode: the text, the head, the model button, the cog and
+    // Stop. It was three until MPI-774 Phase 7 put the pinned settings panel back (below);
+    // the track count and the hide list have to agree or the textarea lands in an `auto`
+    // column and the toggle in the stretching one.
     const cols = css.match(/\.mpi-prompt-box--agent-mode \{[^}]*grid-template-columns:\s*([^;]+);/);
     assert.ok(cols, 'agent mode declares its own column track');
-    assert.equal(cols[1].trim().split(/\s+/).length, 3);
+    assert.equal(cols[1].trim().split(/\s+/).length, 5);
     // The class the rule spares has to be the one the component puts on the host.
     assert.match(read(PROMPT_BOX_JS), /stopHost\.className = 'mpi-prompt-box__stop-host'/);
+});
+
+// ── 1b. The pinned settings panel (MPI-774 Phase 7) ──────────────────────────
+// Fabio, 2026-09-19: one boolean. Cog shut, the agent picks the model and the settings from
+// MODEL DEFAULTS; cog open, the user owns both and the agent still owns the prompt, the
+// media, the op and the card name. Enforcement is code in agentDispatch (its own test file,
+// agent-pinned-settings.test.cjs) — these four assert the SURFACE that arms it.
+
+test('agent mode keeps the model button and the cog — they are the pinned panel', () => {
+    const css = read(PROMPT_BOX_CSS);
+    const hidden = css.match(/\.mpi-prompt-box--agent-mode > :is\(([^)]*)\)/)[1];
+    assert.ok(!hidden.includes('__col--settings'), 'the model button IS the pinned model');
+    assert.ok(!hidden.includes('__col--cog'), 'the cog is what pins and unpins the panel');
+    // The op strip stays gone in both mounts. Fabio: "if the user wants to go and change
+    // operations, then he just needs to close the agent mode. That's too much already."
+    assert.ok(hidden.includes('__op-strip'), 'the bar strip stays hidden');
+    assert.match(css, /\.mpi-prompt-box__popup--agent \.mpi-prompt-box__settings-ops\s*\{[^}]*display:\s*none/,
+        'the popup carries a SECOND op-strip mount and it has to go too');
+});
+
+test('the popup gets its own agent class — it is portaled and cannot inherit the box`s', () => {
+    const js = read(PROMPT_BOX_JS);
+    assert.match(js, /popupNode\.classList\.toggle\('mpi-prompt-box__popup--agent', _agentMode\)/);
+    // Portaled: the class on `el` can never reach document.body.
+    assert.match(js, /document\.body\.appendChild\(popupNode\)/);
+});
+
+test('in agent mode the panel is PINNED: no outside-click, no close-all, cog only', () => {
+    const js = read(PROMPT_BOX_JS);
+    const outside = js.match(/const onPopupOutsideClick = \(e\) => \{([\s\S]*?)\n        \};/);
+    assert.ok(outside, 'the outside-click dismiss must still exist');
+    assert.match(outside[1], /if \(_agentMode\) return;/,
+        'a stray click on the canvas must not hand the settings back to the agent');
+    const closeAll = js.match(/Events\.on\('ui:close-all-popups',([\s\S]*?)\}\)\);/);
+    assert.ok(closeAll, 'the close-all pulse handler must still exist');
+    assert.match(closeAll[1], /if \(_agentMode\) return;/, 'Escape reaches this pulse');
+    // Open/close are what WRITE the boolean the dispatch gate reads.
+    assert.match(js, /if \(_agentMode\) state\.agentSettingsPinned = true;/);
+    assert.match(js, /state\.agentSettingsPinned = _agentMode && popupActive;/);
+    // A destroyed box must not leave the flag set with no panel to see.
+    assert.match(js, /state\.agentSettingsPinned = false;[\s\S]{0,200}popupNode\.parentNode\.removeChild/);
+});
+
+test('the cog says what opening it costs, before the click', () => {
+    const js = read(PROMPT_BOX_JS);
+    // [data-info] is the status-bar line (js/shell/statusBar.js), and it is the only copy
+    // readable BEFORE the panel is open.
+    assert.match(js, /const COG_INFO_AGENT = 'In agent mode, when you open this panel, you control the settings and the model, not the agent\.'/);
+    assert.match(js, /cogBtn\.el\.setAttribute\('data-info', _agentMode \? COG_INFO_AGENT : COG_INFO\)/);
 });
 
 // ── 2. A video result, and a result that did not arrive ───────────────────────

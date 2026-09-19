@@ -72,7 +72,7 @@ const _unavailable = (res, err) =>
 // ---------------------------------------------------------------------------
 
 router.post('/agent/message', async (req, res) => {
-    const { text, attachments, project, mode, profileId, model } = req.body || {};
+    const { text, attachments, project, mode, profileId, model, pinned } = req.body || {};
 
     if (!text && !(Array.isArray(attachments) && attachments.length)) {
         return _bad(res, 'body.text or body.attachments is required.');
@@ -88,6 +88,12 @@ router.post('/agent/message', async (req, res) => {
     }
     if (project != null && (typeof project !== 'object' || typeof project.folderPath !== 'string')) {
         return _bad(res, 'body.project must be null or { folderPath, name }.');
+    }
+    // MPI-774 Phase 7: what the pinned settings panel is showing, or null while it is shut.
+    // Informational only — the renderer's agentDispatch is what ENFORCES the ownership, so
+    // a turn that arrives without it loses the telling, never the gate.
+    if (pinned != null && (typeof pinned !== 'object' || typeof pinned.modelId !== 'string')) {
+        return _bad(res, 'body.pinned must be null or { modelId, name, mediaType, ops }.');
     }
 
     let sessions;
@@ -131,7 +137,7 @@ router.post('/agent/message', async (req, res) => {
     // Run the turn asynchronously. The STAGED records go in, not the raw data URLs:
     // staging them a second time would give the chat and the model different ids for
     // the same picture, and the loop registers these ids as the images it may read.
-    sessions.send({ text: text || '', attachments: stagedAttachments, project: project || null, mode, profileId, turnId, model })
+    sessions.send({ text: text || '', attachments: stagedAttachments, project: project || null, mode, profileId, turnId, model, pinned: pinned || null })
         .catch((err) => logger.error('agent', `runTurn unhandled: ${err.message}`));
 });
 

@@ -84,7 +84,9 @@ test('listRemoteModels: chat models only, recommended first, window and vision f
         const models = await listRemoteModels({ presetId: 'deepinfra', baseURL: `${DI_URL}/`, key: 'k1' });
         assert.equal(auth, 'Bearer k1');
         assert.deepEqual(models.map((m) => m.id), ['deepseek-ai/DeepSeek-V4-Flash-0731', 'alpha/vision-model', 'zeta/chat-model']);
-        assert.deepEqual(models[0], { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', contextWindow: 1048576, vision: false, recommendedFor: ['agent'] });
+        assert.deepEqual(models[0], { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', contextWindow: 1048576, vision: false, recommendedFor: ['agent'], recommendedNote: null });
+        // `recommendedNote` says why THIS one when a job has more than one recommendation.
+        // Null unless the table gives a reason - DeepSeek V4 Flash deliberately has none.
         assert.equal(models[1].vision, true);
         assert.deepEqual(models[2].recommendedFor, []);
     } finally { restore(); }
@@ -96,8 +98,8 @@ test('listRemoteModels: an untagged catalogue (OpenAI, OpenRouter) is kept whole
     try {
         const models = await listRemoteModels({ presetId: 'openrouter', baseURL: 'https://openrouter.ai/api/v1', key: 'k' });
         assert.deepEqual(models, [
-            { id: 'a-model', contextWindow: null, vision: null, recommendedFor: [] },
-            { id: 'b-model', contextWindow: 8192, vision: null, recommendedFor: [] },
+            { id: 'a-model', contextWindow: null, vision: null, recommendedFor: [], recommendedNote: null },
+            { id: 'b-model', contextWindow: 8192, vision: null, recommendedFor: [], recommendedNote: null },
         ]);
     } finally { restore(); }
 });

@@ -467,6 +467,26 @@ export async function fetchDeepInfraPrices() {
 export const RECOMMENDED_REMOTE_MODELS = {
     deepinfra: [
         { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', jobs: ['agent'], contextWindow: 1_048_576 },
+        // `note` rides in the picker label beside "recommended". Qwen3-VL-30B is the one
+        // model we have EVIDENCE for here: on 2026-09-18 it drove an adult image end to
+        // end without refusing. That is the whole claim — one model, one test, that date.
+        // DeepSeek V4 Flash is deliberately left unflagged: nobody has tested it this way,
+        // and a flag nobody earned is worse than none.
+        //
+        // Wording is Fabio's (2026-09-19), chosen over "did not refuse in our tests".
+        // Whoever edits it: keep it comparative. "Less censorship" is a claim about this
+        // model relative to the other one in this list; "uncensored" would be a promise
+        // about content we cannot make from a single test, and it is not ours to make.
+        //
+        // Cheapest of the two Qwen3-VL sizes at every mix we care about: $0.15 in /
+        // $0.60 out per 1M against the 235B's $0.20 / $0.88 (DeepInfra, 2026-09-19). The
+        // 235B only wins on CACHED input, which needs ~60% cache hits to break even.
+        {
+            id: 'Qwen/Qwen3-VL-30B-A3B-Instruct',
+            jobs: ['agent'],
+            contextWindow: 262_144,
+            note: 'less censorship',
+        },
         { id: 'google/gemma-4-26B-A4B-it', jobs: ['enhance'], contextWindow: 262_144 },
         { id: 'google/gemma-3-12b-it', jobs: ['enhance'], contextWindow: 131_072 },
         { id: 'meta-llama/Llama-4-Scout-17B-16E-Instruct', jobs: ['describe'], contextWindow: 327_680 },
@@ -511,6 +531,9 @@ export async function listRemoteModels({ presetId, baseURL, key, timeoutMs = 10_
                 contextWindow: m.metadata?.context_length ?? m.context_length ?? rec?.contextWindow ?? null,
                 vision: Array.isArray(tags) ? tags.includes('vision') || tags.includes('vlm') : null,
                 recommendedFor: rec ? [...rec.jobs] : [],
+                // Why THIS one of the recommended models, when there is more than one.
+                // Null on every row that has nothing to add, which is most of them.
+                recommendedNote: rec?.note ?? null,
             };
         });
     const rank = (m) => (m.recommendedFor.length ? 0 : 1);

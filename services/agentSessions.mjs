@@ -111,13 +111,14 @@ export class AgentSessions {
      * Run one user turn in the conversation of `turn.project`, then the request it carried to
      * another project, if any. The caller does not wait for this.
      * @param {{text: string, attachments: Array, project: ?{folderPath: string, name: string},
-     *          mode: string, profileId: string, turnId: string, model?: string, carried?: boolean}} turn
+     *          mode: string, profileId: string, turnId: string, model?: string, carried?: boolean,
+     *          pinned?: ?{modelId: string, name: string, mediaType: string, ops: string[]}}} turn
      * @returns {Promise<string>} the key of the conversation the turn ran in
      */
     async send(turn) {
         const key = projectKey(turn.project?.folderPath);
         const loop = this._loops.get(key) || this._newLoop(key);
-        await loop.runTurn(turn.text, turn.attachments, turn.project || null, turn.mode, turn.profileId, turn.turnId, { model: turn.model, carried: !!turn.carried });
+        await loop.runTurn(turn.text, turn.attachments, turn.project || null, turn.mode, turn.profileId, turn.turnId, { model: turn.model, carried: !!turn.carried, pinned: turn.pinned || null });
         const carry = this._carry;
         this._carry = null;
         if (carry) await this.send(carry);
@@ -149,6 +150,9 @@ export class AgentSessions {
             mode: turn.mode,
             profileId: turn.profileId,
             model: turn.model,
+            // The panel does not change between the two halves of one carried request, so
+            // the carried turn is told the same pinned model the original was (MPI-774 P7).
+            pinned: turn.pinned || null,
             turnId: crypto.randomUUID(),
             carried: true,
         };

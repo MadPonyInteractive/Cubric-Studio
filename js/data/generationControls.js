@@ -33,7 +33,7 @@ import {
 } from '../utils/ratios.js';
 import {
     getCommandDefault, modelShowsStyleRack, modelShowsBatch, modelShowsRatio,
-    getCommandMediaInputs, filterMediaInputsForModel,
+    getCommandMediaInputs, filterMediaInputsForModel, getCommandComponents,
 } from './commandRegistry.js';
 import { PROMPT_CONTROL_DEFAULTS } from './promptControlDefaults.js';
 import { MODELS } from './modelConstants/models.js';
@@ -232,6 +232,69 @@ export function namedParamsFor(model, operation) {
         qualityTiers,
         turbo: !!resolveTurboControlId(model),
         styles: modelShowsStyleRack(model, operation) ? [...model.styleLoraLabels] : [],
+        // Seconds, on a clip op only (MPI-820). Advertised as a RANGE, not a list: the
+        // slider is 1-30 and H3 snaps whatever it is given onto its own frame grid, so a
+        // list of legal values would be a different list per model type and wrong anyway.
+        duration: modelShowsDuration(model, operation)
+            ? { min: DURATION_MIN, max: DURATION_MAX }
+            : null,
+    };
+}
+
+// ── duration (MPI-820) ───────────────────────────────────────────────────────
+
+/** Video length bounds, matching the PromptBox slider so both paths share one contract. */
+export const DURATION_MIN = 1;
+export const DURATION_MAX = 30;
+
+// H3's frame grid, mirrored from the node that actually applies it:
+// `ComfyUi-MpiNodes/h3.py` § snap_h3_frames / MpiH3Length. Duplicated across a
+// LANGUAGE boundary on purpose — the node stays the authority and does the snapping at
+// graph time; this copy only PREDICTS it, so an answer can say what the run will really
+// be instead of echoing what was asked for. `tests/agent-duration.test.cjs` pins the
+// pairing, so a change to the node that is not mirrored here fails a test rather than
+// quietly making every reported duration wrong.
+const H3_FPS = 24;
+const H3_GRID = 17;
+const H3_OFFSET = 5;
+const H3_TRAINED_MIN = 124;   // core's own tooltip: "trained range is ~124-362"
+const H3_TRAINED_MAX = 362;
+
+/** Nearest valid H3 frame count (n % 17 == 5), minimum 5. NEAREST, never up: core snaps
+ *  up, which maximises the error — 4 s asks 96 frames and gets 107 (4.46 s) when 90
+ *  (3.75 s) is closer. */
+export function snapH3Frames(frames) {
+    const k = Math.round((frames - H3_OFFSET) / H3_GRID);
+    return Math.max(H3_OFFSET, k * H3_GRID + H3_OFFSET);
+}
+
+/** Does `model` take a duration on `operation`? The op's own component list is the
+ *  source of truth — it is what decides whether the slider mounts at all. */
+export function modelShowsDuration(model, operation) {
+    return getCommandComponents(operation).includes('duration');
+}
+
+/** Is `value` a legal video length? */
+export function isValidDuration(value) {
+    return typeof value === 'number' && Number.isFinite(value)
+        && value >= DURATION_MIN && value <= DURATION_MAX;
+}
+
+/**
+ * What `wanted` seconds will ACTUALLY produce on this model.
+ *
+ * Only H3 snaps; every other video model takes the seconds it is given, so they report
+ * back unchanged. Returned so a caller can tell the truth rather than repeat the ask:
+ * "2 seconds" on H3 is 56 frames, i.e. 2.33 s, and below the trained range.
+ * @returns {{seconds: number, frames: number|null, inTrainedRange: boolean|null}}
+ */
+export function effectiveDuration(model, wanted) {
+    if (model?.type !== 'h3') return { seconds: wanted, frames: null, inTrainedRange: null };
+    const frames = snapH3Frames(Math.round(wanted * H3_FPS));
+    return {
+        seconds: frames / H3_FPS,
+        frames,
+        inTrainedRange: frames >= H3_TRAINED_MIN && frames <= H3_TRAINED_MAX,
     };
 }
 
@@ -286,7 +349,7 @@ export function isValidSeed(value) {
  * @returns {{ok:true, injectionParams:object, width:number, height:number}|{ok:false, code:string, message:string}}
  */
 export function resolveNamedParams(project, model, operation, named = {}) {
-    const { ratio, qualityTier, turbo, styleSelect, stylization } = named;
+    const { ratio, qualityTier, turbo, styleSelect, stylization, duration: durationWanted } = named;
     const injectionParams = {};
     const modelName = model?.name || model?.id || 'this model';
 
@@ -355,7 +418,38 @@ export function resolveNamedParams(project, model, operation, named = {}) {
     // inheriting a project saved at 3; the route refuses a `batch` field by name.
     if (modelShowsBatch(model, operation)) injectionParams.Input_Batch_Size = 1;
 
-    return { ok: true, injectionParams, width: ratioDims.width, height: ratioDims.height };
+    // duration (MPI-820). It was missing from this set entirely, so NO agent video ever
+    // carried `Input_Duration` and every one ran the workflow's baked value — 2 for H3,
+    // which snaps to 56 frames / 2.33 s, BELOW the 124-362 trained range. The app's own
+    // slider said 5 the whole time. Same shape as turbo: explicit wins, else the project's
+    // saved value, else the three-layer default.
+    let duration = null;
+    if (modelShowsDuration(model, operation)) {
+        if (durationWanted !== undefined) {
+            if (!isValidDuration(durationWanted)) {
+                return _err('INVALID_DURATION', `duration must be a number of seconds between ${DURATION_MIN} and ${DURATION_MAX}.`);
+            }
+            duration = durationWanted;
+        } else {
+            const saved = getSharedSettings(project || {}, _mediaTypeOf(model)).duration;
+            duration = typeof saved === 'number' && isValidDuration(saved)
+                ? saved
+                : resolveThreeLayerDefault('duration', model, operation, PROMPT_CONTROL_DEFAULTS.duration);
+        }
+        injectionParams.Input_Duration = duration;
+    } else if (durationWanted !== undefined) {
+        return _err('INVALID_DURATION', `"${operation}" does not produce a clip, so it has no duration to set.`);
+    }
+
+    return {
+        ok: true,
+        injectionParams,
+        width: ratioDims.width,
+        height: ratioDims.height,
+        // What the run will ACTUALLY be, so a caller reports the truth rather than the
+        // ask — H3 snaps to its frame grid and 2 s is really 2.33 s. Null off a clip op.
+        duration: duration === null ? null : effectiveDuration(model, duration),
+    };
 }
 
 // ── media (agent path) ───────────────────────────────────────────────────────

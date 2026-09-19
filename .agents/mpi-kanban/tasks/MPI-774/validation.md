@@ -1157,3 +1157,68 @@ interrupted run was streaming. Not built: this is a design call plus an upstream
 A Stop fires a GLOBAL interrupt (`Global interrupt (no prompt_id specified)`), so an agent testing
 a cancel path can kill a generation the user started. Check `GET /queue` is empty first and keep
 the window short. Also in `~/.claude/memory/tools/mpi-kanban.md`.
+
+## Phase 7 — the pinned settings panel (2026-09-19, session 35aabda4)
+
+**Verify mode: `user-ux`. Automated checks PASSED; Fabio's own pass in the app is still owed.**
+
+| Check | Result |
+|---|---|
+| `npm test` | **1398 pass, 0 fail, 1 skipped** (1399 total; was 1386 + this phase's 8 new + the rewritten surface tests) |
+| `npm run lint:components` | clean, `--max-warnings=0` |
+| `tests/desktop/agent-chat.spec.js`, **whole file** | **28/28** |
+| `tests/agent-pinned-settings.test.cjs` (new) | 8/8 |
+
+### What the automated checks actually prove
+
+- **The gate.** `resolveSettingsOwner` is exported from `js/shell/agentDispatch.js` and asserted
+  without a DOM: unpinned keeps the agent's model and params and returns `project: null`; pinned
+  returns the user's model with `named: {}` and the real project; a foreign `modelId` returns
+  `MODEL_PINNED` with `model: null`; nothing selected returns `NO_PINNED_MODEL`.
+- **The trap, end to end, and the assertion that stops it being a no-op.** The contamination test
+  builds `{ modelSettings: { krea2: { qualityTier: <expensive> } } }`, asserts
+  `resolveEffectiveQualityTier` on that project **still returns the expensive tier** — i.e. that
+  the old path really did resolve there — and only then asserts the unpinned path lands on the
+  model default. Without the middle assertion the test would pass against a broken gate.
+- **The pin, in a real Electron window.** `agent mode: the cog pins the settings panel, and only
+  the cog unpins it` toggles into agent mode, checks the cog and model button are visible and the
+  cog's `[data-info]` is the agent copy, opens the panel, asserts the popup's op strip computes to
+  `display: none`, then clicks at (5,5) and presses Escape and asserts the popup is STILL active
+  and `state.agentSettingsPinned` is still true, closes it on the cog, and finally proves that
+  leaving agent mode with the panel open unpins it.
+
+### Two things worth knowing for the next change here
+
+1. **`textShare` has now gone red twice on a column change.** 0.8 (two slots) -> 0.797 (Stop's
+   column stayed) -> **0.6865 measured** with the model button and the cog back; the bar is 0.65.
+   It was measured by deliberately failing the assertion so the run printed the real number, and
+   the WHOLE file was run rather than `-g` — a `-g` pass is exactly what hid the second failure on
+   2026-09-18 and kept master red an extra hour.
+2. **The model button is not an icon button.** `#settings-badge-slot .mpi-ibtn` matches nothing
+   (no `icon`/`image` prop, so MpiButton renders the plain `.mpi-btn` branch). Locate both it and
+   the cog with `#<slot> button`.
+
+### Fabio's check in the app (this is what closes Phase 7)
+
+The agent loop runs in the **server fork**, and `services/` and `routes/` changed — this needs a
+full app **restart**, not a window reload.
+
+1. Agent mode on. The cog and the model button are there now. Hover the cog: the status bar should
+   read *"In agent mode, when you open this panel, you control the settings and the model, not the
+   agent."*
+2. Open the cog. It should stay open when you click the canvas and when you press Escape, and close
+   only on the cog. There should be **no op strip** inside it.
+3. With it **shut**, ask the agent for an image. It should pick the model itself, and the card
+   should come back at the model's own default tier — not whatever tier that project last used.
+4. With it **open**, set a model and a ratio yourself, then ask the agent for an image. Your model
+   and your ratio, its prompt and its card name. Ask it what model it is using — it should name
+   yours.
+5. With an **image** model pinned, ask it for a video. It should tell you the model cannot do that
+   and ask you to select one that can — never switch the model itself.
+
+### Open question for Fabio, from this build
+
+Raw `injectionParams` still merges over the resolved params while pinned. It is the documented
+escape hatch and the agent rarely reaches for it, but it is a hole in "the user owns the settings".
+The plan scoped the gate to `modelId` + named params, so it was left exactly there. Say the word
+and it is one line.

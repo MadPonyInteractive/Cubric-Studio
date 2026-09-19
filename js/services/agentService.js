@@ -2,7 +2,7 @@
  * agentService.js — MPI-774: HTTP + SSE client for the in-app agent.
  *
  * Routes:
- *   POST /agent/message   { text, attachments, project, mode, model, profileId } → { ok, turnId, session }
+ *   POST /agent/message   { text, attachments, project, mode, model, profileId, pinned } → { ok, turnId, session }
  *   GET  /agent/stream    SSE with named events (bridged to the app event bus)
  *   GET  /agent/history?project= → { ok, session, working, pendingConfirm, usage, entries }
  *   POST /agent/confirm   { confirmId, yes }
@@ -24,6 +24,9 @@ import { clientLogger } from './clientLogger.js';
 import { Storage } from '../core/storage.js';
 import { Events } from '../events.js';
 import { on } from '../utils/dom.js';
+import { state } from '../state.js';
+import { pinnedModel } from '../shell/agentDispatch.js';
+import { isOperationInstalled } from '../data/modelRegistry.js';
 
 export const AGENT_EVENT_NAMES = [
     'agent:working',
@@ -65,6 +68,28 @@ export function agentInitStream() {
 }
 
 /**
+ * What the pinned settings panel is showing, or null while it is shut (MPI-774 Phase 7).
+ *
+ * The OPS matter as much as the id. Fabio's own case for this: "if the user asks for a
+ * video and there is only an image model selected, the agent can tell the user, look, that
+ * makes video, it doesn't make images, you need to select another model." The agent still
+ * resolves task -> op; knowing what the pinned model can do is what lets it refuse in
+ * words instead of discovering it through an OP_UNAVAILABLE.
+ * @returns {{modelId:string, name:string, mediaType:string, ops:string[]}|null}
+ */
+function _pinnedForTurn() {
+    if (state.agentSettingsPinned !== true) return null;
+    const model = pinnedModel();
+    if (!model) return null;
+    return {
+        modelId: model.id,
+        name: model.name,
+        mediaType: model.mediaType,
+        ops: (model.supportedOps || []).filter((op) => isOperationInstalled(model, op)),
+    };
+}
+
+/**
  * POST /agent/message
  * @param {string} text
  * @param {Array}  attachments  — array of { dataUrl, name } objects
@@ -81,6 +106,12 @@ export async function agentSendMessage(text, attachments, project) {
         mode,
         model,
         profileId,
+        // MPI-774 Phase 7: with the settings panel open the USER owns the model, and the
+        // agent still has to be told which one — it writes the prompt, and the Guide rule
+        // adapts that prompt to the model's own structure. Sent per turn because the user
+        // can change it between turns; null when the panel is shut and the model is the
+        // agent's own to pick. agentDispatch is what ENFORCES it; this only informs.
+        pinned: _pinnedForTurn(),
     };
     const res = await window.fetch('/agent/message', {
         method: 'POST',

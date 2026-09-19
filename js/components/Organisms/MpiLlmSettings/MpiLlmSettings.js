@@ -536,7 +536,14 @@ export const MpiLlmSettings = ComponentFactory.create({
             const rec = models.filter(isRec);
             const value = saved || rec[0]?.id || '';
             const options = [
-                ...rec.map(m => ({ value: m.id, label: `(recommended) ${m.id}`, meta: _windowLabel(m) })),
+                // `recommendedNote` says why THIS one, when more than one is recommended
+                // for the job — e.g. the model that did not refuse adult work in our tests
+                // (`RECOMMENDED_REMOTE_MODELS`). Absent on every row that has nothing to add.
+                ...rec.map(m => ({
+                    value: m.id,
+                    label: `(recommended${m.recommendedNote ? ` - ${m.recommendedNote}` : ''}) ${m.id}`,
+                    meta: _windowLabel(m),
+                })),
                 ...models.filter(m => !isRec(m)).map(m => ({ value: m.id, label: m.id, meta: _windowLabel(m) })),
             ];
             // A pick the endpoint no longer lists stays visible rather than silently changing.

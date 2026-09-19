@@ -2,41 +2,65 @@
 
 ## Current State
 
-**SESSION d4548652 (2026-09-19, from handoff 3f260ccc). Phase 7's two NEXT-SESSION defects are
-fixed and BOTH verified live in Fabio's app, and live testing then found three more.**
+**SESSION 35aabda4 (2026-09-19, from handoff 9ed687d7). THE PINNED SETTINGS PANEL IS BUILT
+— every part of the design, plus both traps. 1398 unit tests pass, `lint:components` clean,
+`tests/desktop/agent-chat.spec.js` 28/28 on a WHOLE-FILE run. It has NOT had Fabio's eyes:
+Phase 7 is `user-ux`, so the panel is code-verified and not user-verified.**
 
-1. **NO_PROJECT taught the model to ask** — fixed and live-verified: log 11:04:20 shows
-   `created project "Cowgirl on a Bull"` -> `project.open`, no "please open a project first".
-   The message IS the instruction now; the loop's other error strings were swept (the
-   `agent:error` emits for NO_PROFILE/NO_KEY/NO_MODEL/STEP_LIMIT stay user-facing on purpose).
-2. **The case-variant twin** — `/connector/create-project` lists first and returns the existing
-   project with `existing: true`. Connector layer only: the UI's own create path still makes a
-   deliberate second "Fanvue". `findProjectByName` is exported and unit-tested.
-3. **`{ started: true }` was a lie** — the live `styleSelect` failure produced NO
-   `generation.submit` in the log at all: the route refused it in milliseconds and the chat still
-   said "your image is on its way". `EARLY_REFUSAL_MS` (1000) now races the dispatch, and a
-   refusal comes back to the model IN-TURN. **Cost: ~1s on every generation that does start** —
-   that constant is the knob.
-4. **`styleSelect` took only an index** while the only form the agent ever SEES the rack in is
-   names (`params.styles`). A label now resolves to its index in the route. **The trap:** `input`
-   is built from the request body, so resolving for the validator alone would still have
-   dispatched the string — the test asserts the index reaches the JOB INPUT and was proven red
-   against exactly that half-fix.
-5. **Agent mode is forced on** when the agent opens or creates a project (`_openProject`, the
-   agent-only path): it had been moving the user to a project while the conversation that took
-   them there stayed hidden.
-6. **`app:formats` corpus entry + the Settings rule rewrite** — Instagram got 3:4 when Krea2
-   offers 4:5 at both tiers, and 2k was volunteered when the app default is already 1k. The rule
-   is now: every setting the user did not ask for is THEIRS, ratio is the only one the agent may
-   infer. The table lives in `docs/agent/formats.md`, read on demand, costing no prompt context.
-7. **The docs link needed wiring first** — `MpiAgentChat` rendered markdown but never called
-   `wireMarkdownLinks`, so a link the agent wrote would have navigated the whole Electron app
-   away with no way back. Wired on the transcript, then the Docs rule added.
+1. **One boolean, `state.agentSettingsPinned`.** Written only by the PromptBox: `openPopup`
+   sets it while `_agentMode`, `closePopup` clears it, `_applyAgentView` re-syncs it on a
+   mode change, and `destroy()` clears it so a nav away with the cog open cannot leave the
+   dispatch dropping params against a panel nobody can see.
+2. **The cog and the model button are back in agent mode** — removed from the hide list,
+   grid `1fr auto auto` -> five tracks. The popup drops its op strip through its OWN
+   `.mpi-prompt-box__popup--agent` class: it is portaled to `document.body`, so the box's
+   agent class can never reach it. Both the outside-click dismiss and the
+   `ui:close-all-popups` pulse (which is what Escape arrives on) bail while `_agentMode` —
+   the cog is the only way out.
+3. **The gate is `resolveSettingsOwner`** (`js/shell/agentDispatch.js`, exported so it is
+   testable without a DOM). Pinned: the user's model, the project's buckets, every named
+   param dropped. Unpinned: the agent's model and params, and **`project: null`** — that
+   null is the whole of the model-defaults half, not a detail.
+4. **The trap the plan named was real and is now asserted.** `resolveEffectiveQualityTier`
+   resolves an unset tier against the project's saved bucket first;
+   `tests/agent-pinned-settings.test.cjs` builds a project contaminated with the expensive
+   tier, asserts the OLD behaviour still returns it, then asserts the unpinned path returns
+   the model default. Without that middle assertion the test would pass on a no-op.
+5. **A mismatched `modelId` is REFUSED, not dropped — this is a deliberate deviation from
+   the plan's wording, and it needs Fabio's word.** The plan said "drop the agent's
+   modelId". Dropping it silently runs the user's model under the agent's narration
+   ("making this with Krea2" while Klein ran) — the same class of lie as the
+   `{ started: true }` this phase killed. `MODEL_PINNED` names the model to resend with, so
+   the agent fixes it in-turn. The named params still drop silently, as settled.
+6. **The agent is TOLD the pinned model** — `pinned` on `POST /agent/message`, through
+   `agentSessions.send` (and onto a carried D5 turn) to `runTurn`, rendered by
+   `AgentLoop._pinnedSettingsLine`, absent when the panel is shut so it costs nothing. It
+   carries the model id, name, mediaType and its INSTALLED ops, so the agent can refuse in
+   words — Fabio's own case: "that makes video, it doesn't make images".
+7. **The cog's `[data-info]` swaps in agent mode** to "In agent mode, when you open this
+   panel, you control the settings and the model, not the agent." `statusBar.js` reads
+   `[data-info]` and observes the attribute, so the live swap re-renders. That IS the
+   status-bar line; no second surface was invented.
 
-### NEXT: THE PINNED SETTINGS PANEL — designed and settled with Fabio, 2026-09-19, NOT built
+**KNOWN GAP, not built, Fabio's call:** raw `injectionParams` is still merged over the
+resolved params while pinned (`mergedInjection`). It is the documented escape hatch and the
+agent rarely reaches for it, but it is a hole in "the user owns the settings". The plan
+scoped the gate to `modelId` + named params, so it was left exactly there.
 
-Nothing of it is in the tree: this session added `state.agentSettingsPinned` and then took it
-back out, because an unused key is scaffolding. Build it whole or not at all.
+**The desktop spec's `textShare` has now gone red TWICE on a column change.** 0.8 with two
+slots -> 0.797 once Stop's column stayed -> **0.6865 measured** with the model button and
+the cog back; the bar is 0.65. The number was MEASURED by deliberately failing the
+assertion to print it, never computed — and the whole file was run, not `-g`, because a
+`-g` pass is what hid the second failure on 2026-09-18.
+
+### THE PINNED SETTINGS PANEL — the design, BUILT 2026-09-19 (session 35aabda4)
+
+*Kept verbatim below as the spec it was built from, including what Fabio REJECTED. What shipped and where it deviated is in Current State above.*
+
+BUILT. `state.agentSettingsPinned` is in `js/state.js`; the gate is `resolveSettingsOwner` in
+`js/shell/agentDispatch.js`; the surface is `MpiPromptBox`. Tests: `tests/agent-pinned-settings.test.cjs`
+(the gate), `tests/agent-ui-surfaces.test.cjs` (the surface), `tests/desktop/agent-chat.spec.js`
+(the pin, in a real window). Doc: `docs/agent-chat.md` § The pinned settings panel.
 
 **The design, in his words: one boolean.**
 

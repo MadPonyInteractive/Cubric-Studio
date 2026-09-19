@@ -63,6 +63,7 @@ curl -s -X POST "$CUBRIC_URL/connector/generate" \
 | `turbo` | boolean | Maps to whichever turbo toggle the model has (`krea2Turbo` or `h3Turbo`) — send the same friendly `turbo` key either way. Rejected on a model with neither. |
 | `styleSelect` | integer | Index into the model's style rack (`styleLoraLabels`), 0 = no style. Rejected on a model/operation with no style rack. |
 | `stylization` | number | 0..1, the selected style's strength. Same style-rack gate as `styleSelect`. |
+| `duration` | number | Seconds, 1..30, on a clip op only. Rejected on an op that makes a still. **You do not always get what you ask for:** H3 can only land on a 17k+5 frame grid at 24 fps, so 6 s is 141 frames = 5.875 s. The result carries the real `durationSeconds` (and `frames`) — quote that, never the ask. |
 | `seed` | integer | 0..4294967295. Unset stays random — this is the only way to pin one; the PromptBox itself has no seed UI. |
 
 An invalid value is a **named error, never a silent fallback** — an unknown
@@ -76,7 +77,7 @@ carrying `batch` is refused with `BATCH_UNSUPPORTED`. A batch of N holds N
 images in VRAM at once; N submits queue and each holds one. Each request blocks
 until its own run finishes, so fire them together and collect N results.
 
-`ratio`/`qualityTier`/`turbo`/`styleSelect`/`stylization` all merge into
+`ratio`/`qualityTier`/`turbo`/`styleSelect`/`stylization`/`duration` all merge into
 `injectionParams` under the hood — a raw `injectionParams` key still wins over
 a named one, so `{"ratio":"9:16","injectionParams":{"Width":999,"Height":999}}`
 generates at 999×999. The single resolver behind both the named params and the
@@ -147,6 +148,7 @@ Failure returns `{"ok": false, "error": {"code": ..., "message": ...}}`:
 | `INVALID_TURBO` | `turbo` is not a boolean, or the model has no turbo toggle. |
 | `INVALID_STYLE_SELECT` | `styleSelect` is out of range, or the model/operation has no style rack. |
 | `INVALID_STYLIZATION` | `stylization` is not 0..1, or the model/operation has no style rack. |
+| `INVALID_DURATION` | `duration` is not a number of seconds in 1..30, or the operation makes a still and has no duration. |
 | `BATCH_UNSUPPORTED` | The body carried `batch`. Agent submits always run batch 1: send N submits instead. |
 | `INVALID_SEED` | `seed` is not an integer in 0..4294967295. |
 | `INVALID_CARD_NAME` | `cardName` is not a string. |

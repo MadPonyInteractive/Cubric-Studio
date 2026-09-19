@@ -116,19 +116,32 @@
 
 /* MPI-797 Agent mode: the text, the chips, the Agent|Prompt toggle and Stop, nothing else.
    The grid collapses with them: a hidden slot leaves the grid, which would otherwise push
-   the textarea into an `auto` column and the toggle into the stretching one. */
+   the textarea into an `auto` column and the toggle into the stretching one.
+
+   MPI-774 Phase 7 put the MODEL button and the COG back (Fabio, 2026-09-19): they are the
+   pinned-settings panel. Closed cog = the agent picks the model and the settings from model
+   defaults; open cog = the user owns both and the agent is told which model it is writing
+   for. Five tracks now: text, head, model, cog, Stop. */
 .mpi-prompt-box--agent-mode {
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: 1fr auto auto auto auto;
 }
 
 .mpi-prompt-box--agent-mode > :is(
     .mpi-prompt-box__op-strip,
     .mpi-prompt-box__col--neg,
     .mpi-prompt-box__col--enhance,
-    .mpi-prompt-box__col--settings,
-    .mpi-prompt-box__col--cog,
     .mpi-prompt-box__col--engine
 ) {
+    display: none;
+}
+
+/* MPI-774 Phase 7: no op strip in the parameters popup while agent mode is on. Fabio:
+   "if the user wants to go and change operations, then he just needs to close the agent
+   mode. That's too much already." The op is the agent's, whether the panel is pinned or
+   not — only the model and the knobs change hands.
+   A class on the POPUP, not on the box: the popup is portaled to document.body, so
+   `.mpi-prompt-box--agent-mode` can never reach it from up there (_applyAgentView). */
+.mpi-prompt-box__popup--agent .mpi-prompt-box__settings-ops {
     display: none;
 }
 
