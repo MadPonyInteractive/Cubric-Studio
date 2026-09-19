@@ -4601,3 +4601,8 @@
 {"schema":"mpi-kanban/event/v1","id":"MPI-798","type":"checklist.updated","at":"2026-09-19T12:25:45+01:00","actor":"claude","summary":"All four steps built; step 1 needed no code - the pins already ship at every release tag."}
 {"schema":"mpi-kanban/event/v1","id":"MPI-798","type":"validation.updated","at":"2026-09-19T12:25:45+01:00","actor":"claude","summary":"Self-verified: 21/21 packs installed to a scratch ComfyUI, linter match check proved both ways, npm test 1383/0, lint clean."}
 {"schema":"mpi-kanban/event/v1","id":"MPI-798","type":"task.updated","at":"2026-09-19T12:25:45+01:00","actor":"claude","summary":"maturity in-progress -> validating; awaiting commit and close-out."}
+{"schema":"mpi-kanban/event/v1","id":"MPI-798","type":"checklist.updated","at":"2026-09-19T11:40:14Z","actor":"claude","summary":"Step 5: the linter's match check now names packs installed BEYOND the lock (12 on the MPI bench); warning only, exit code unchanged. npm test 1383/0, lint clean. Not yet committed."}
+{"schema":"mpi-kanban/event/v1","id":"MPI-798","type":"validation.updated","at":"2026-09-19T11:40:14Z","actor":"claude","summary":"Step 5: the linter's match check now names packs installed BEYOND the lock (12 on the MPI bench); warning only, exit code unchanged. npm test 1383/0, lint clean. Not yet committed."}
+
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-821", "at": "2026-09-19T12:45:41+01:00", "actor": "claude", "summary": "All four parts shipped and pushed. One user-ux check left for Fabio."}
+{"at": "2026-09-19T11:47:12Z", "event": "checklist.updated", "actor": "implementer:7bbff4d4", "task": "MPI-771", "note": "CI green on 3efcdc9f; Fabio's second pass opened five new items, all investigated, none built"}

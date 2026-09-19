@@ -13,8 +13,17 @@ the ordering and anything left behind.
 **2026-09-19 (session `7bbff4d4`) — READ THIS FIRST.** MPI-771 is `doing`/`in-progress`. Fabio's
 five consistency findings are under [## Remaining Work](#remaining-work) → "CONSISTENCY AUDIT".
 
-**ALL FIVE audit findings are resolved. 1, 3, 4 and 5 built and green; 2 closed by Fabio with no
-change. What is left is his eye pass on the whole workspace — nothing closes before it.**
+**The 2026-09-19 CONSISTENCY AUDIT is DONE** — findings 1, 3, 4, 5 built and green, finding 2
+closed by Fabio with no change, master red-then-green (`756cf0e0` → `3efcdc9f`, run 35439088934,
+128 passed).
+
+**THE NEXT JOB IS FABIO'S SECOND PASS — five new items, none built, all verified in code:**
+[## Remaining Work](#remaining-work) → "Fabio's SECOND pass". Shift-select on the frame strip ·
+the mask display toggles not carrying between Cut-out and the Mask Brush (a 300 ms settings
+debounce vs a read-at-mount) · a `Mask Preview` label with Cut out moved BELOW the strip · a
+white flash when playback leaves a masked run (a `--luma` class removed while the mask image is
+still set) · and Space playing in Cut-out, which IS possible because a left-drag already pans
+there. Two of those carry an exact root cause; do not re-derive them.
 
 - **4** — the GIF stage joined the shared context menu (Save frame as image / Reverse frames /
   Clear all masks). PASSED by Fabio: *"Menus are good, and context looks good."*
@@ -563,6 +572,52 @@ needs evidence, recorded in `## Plan Drift`.
   `operation_registry.json` and release notes come from `/mpi-version-bump` (docs/versioning.md:200).
 
 ## Remaining Work
+
+### 2026-09-19 (late) — Fabio's SECOND pass on the finished workspace. NONE of this is built.
+
+He passed the context menus ("Menus are good, and context looks good") and closed Timing. These
+five came after, and every one is verified in code below — do not re-derive them.
+
+1. **Shift-select on the frame strip, for consistency with the rest of the app.**
+   `MpiFrameStrip.js:398` treats Shift as a SYNONYM for Ctrl — `const modifier = e.ctrlKey ||
+   e.metaKey || e.shiftKey`, and `:457` toggles that ONE index either way. There is no anchor and
+   no range. **Copy `MpiHistoryList.js:199-213`**, which is the canonical version and already
+   solves the subtle part: a first Shift-click with no prior selection anchors at the ACTIVE
+   entry, not at a stale `_anchor` that defaults to 0. `MpiGalleryGrid.js:1408` is the same
+   shape. Ctrl stays a toggle; Shift becomes a range from the anchor.
+2. **The mask DISPLAY toggles must be shared between Cut-out and the Mask Brush** — invert
+   (the black mask) and B/W view. Both already mount `MpiMaskStrip` with `dest: 'mask'`, so they
+   already share the `mask` settings key; the bug is WHEN it is read.
+   **Cause:** `MpiMaskStrip` reads `getToolSettings(state.currentProject, 'mask')` once, at
+   MOUNT, and writes through `settings:tool:update`, which
+   `projectService.js:128` DEBOUNCES BY 300 ms (`_QUEUE_DEBOUNCE_MS`) before it reaches
+   `state.currentProject`. Switching rail tools destroys and remounts the strip, so a toggle
+   followed by a tool switch inside 300 ms reads the OLD value back. Fix the read, not the
+   debounce — a global debounce change touches every tool's settings.
+3. **Cut-out panel order.** Below Mask Adjust: a `Mask Preview` section label, then the strip's
+   controls (invert, view mask, clear, opacity), and **Cut out LAST, below all of it.** Today
+   the panel mounts `#cutout-slot` and then the strip, so Cut out sits above the controls. The
+   strip is one mount — move it above `#cutout-slot` and give it the label; `MpiToolOptionsGifCutout`
+   already has a `__section-label` class used by "Tracked objects" and "Mask Adjust".
+4. **BUG — the whole canvas flashes WHITE for a split second** when playback leaves a masked
+   run of frames and enters an unmasked one.
+   **Cause, in `_setTint(url, luma)` (`MpiGifViewer.js`):** the first line is
+   `classList.toggle('--luma', !!url && luma)`, so on a null url `--luma` (`mask-mode:
+   luminance`) is removed while `--visible` is still on AND the previous frame's `mask-image` is
+   still set. For that moment the element falls back to `mask-mode: alpha` over an OPAQUE B/W
+   mask — alpha 255 everywhere — so the whole overlay paints `--mask-fill` at 0.7. The
+   `transition: opacity var(--t-fast)` on the hide is what stretches it into a visible flash.
+   Fix the ORDER (hide before un-luma-ing, and do not clear `mask-image` mid-fade), not the
+   symptom. `_render()` at `:248` is the per-frame caller.
+5. **Space should PLAY in Cut-out, and only pan in the Mask Brush** — and it is possible.
+   `MpiGifControlBar` currently stands the play hotkey down for ANY canvas tool, which is too
+   broad. `InputController.js:231-254`: the mousedown chain ends in an `else` that PANS, and the
+   mask branch needs `mask.paintEnabled`. Cut-out mounts the strip with `brush: false`, which
+   calls `setMaskPaintEnabled(false)` — **so a plain left-drag already pans in Cut-out, with no
+   Space at all.** Space is only load-bearing where the tool owns the drag: the Mask Brush
+   (painting) and Crop (`crop.isCroppingMode && !isSpacePressed`). So the gate is not "a canvas
+   tool is up", it is "the canvas tool owns the drag" — have the viewer report that (e.g.
+   `edit-change` carrying whether the tool paints) and gate the hotkey on it.
 
 ### 2026-09-19 — CONSISTENCY AUDIT: the GIF workspace against the rest of the app
 
