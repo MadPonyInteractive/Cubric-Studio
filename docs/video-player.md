@@ -134,6 +134,26 @@ Frame delete is the one action that needed a genuinely separate hotkey id
 Player" section for why sharing `history.selection.delete`'s key would have
 also deleted the whole history entry on every frame-selection delete.
 
+### …but SPACE has a THIRD claimant, and it is the canvas (MPI-771, 2026-09-19)
+
+"Never both" above is true of the two BARS. It was never true of `space`, because
+`canvas.pan.start` is on the same key and the GIF workspace is the one place a
+canvas mounts inside a media workspace. A press in the Mask Brush therefore both
+started a pan and toggled playback — one keypress, two live handlers, exactly the
+`type:key` bucket described above.
+
+**The canvas wins.** Hold-Space IS the only pan gesture, so losing it leaves no way
+to pan or frame a zoom, while playback still has its button. `MpiGifControlBar`
+tracks the viewer's `edit-change` and stands its `video.playPause` hotkey down while
+any canvas tool is up (Mask Brush, Cut-out, Crop); `detachViewer()` resets the flag,
+or Space stays dead on the next viewer. The arrow keys are uncontested and keep
+stepping frames. The **Play button** is unaffected — that is how you play the frames
+under their tint from inside a canvas tool. Pinned by `tests/desktop/gif-cutout.spec.js`.
+
+Cut-out joined the list when the consistency audit gave it the shared `MpiMaskStrip`,
+which is what made this reachable from two tools instead of one
+([masking-sam3-gif.md](masking-sam3-gif.md) § Tints).
+
 `MpiFrameStrip` (full-width, fixed centre marker, docs/workspaces.md § Group
 History) is the third peer: it and the control bar both listen to the SAME
 `MpiGifViewer` `'frame-change'` event rather than to each other, so the

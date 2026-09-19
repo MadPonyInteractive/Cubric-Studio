@@ -85,6 +85,8 @@ export const MpiGifControlBar = ComponentFactory.create({
         let _viewerUnsubs = [];
         const _hotkeyUnsubs = [];
         let _frameCount = 0;
+        /** A canvas tool (Mask Brush, Cut-out, Crop) is up — Space belongs to it. */
+        let _editing = false;
 
         const playBtn      = MpiButton.mount(qs('[data-mount="play"]', el),          { icon: 'play', iconActive: 'pause', size: 'sm', info: 'Play/Pause (SPACE)' });
         const frameBackBtn = MpiButton.mount(qs('[data-mount="frame-back"]', el),    { icon: 'frameBack', size: 'sm', info: 'Previous Frame (←)' });
@@ -156,13 +158,24 @@ export const MpiGifControlBar = ComponentFactory.create({
                 _addCb('play',  () => playBtn.el.classList.add('is-active')),
                 _addCb('pause', () => playBtn.el.classList.remove('is-active')),
                 _addCb('preview-change', ({ preview }) => previewBtn.el.classList.toggle('is-active', preview)),
-                _addCb('edit-change', ({ editing }) => previewBtn.el.setDisabled(editing)),
+                _addCb('edit-change', ({ editing }) => {
+                    _editing = editing;
+                    previewBtn.el.setDisabled(editing);
+                }),
             );
 
             const hk = (id, fn) => _hotkeyUnsubs.push(
                 Hotkeys.bind(id, () => { if (_canDrive()) fn(); }),
             );
-            hk('video.playPause',     () => _togglePlay());
+            // SPACE IS THE CANVAS'S, not ours, whenever a canvas tool is up
+            // (Fabio, 2026-09-19). `canvas.pan.start` and `video.playPause` are two
+            // registry ids on the same key, and `hotkeyManager` keys its handler set
+            // by `type:key` — so every handler for `down:space` runs, and in the Mask
+            // Brush one press both started a pan and toggled playback. The canvas
+            // wins because hold-Space IS how you pan, and without it there is no pan
+            // at all; the Play BUTTON still works, which is how you play the frames
+            // under their tint. The arrow keys are not contested and keep stepping.
+            hk('video.playPause',     () => { if (!_editing) _togglePlay(); });
             hk('video.frame.back',    () => _viewer.el.stepFrame(-1));
             hk('video.frame.forward', () => _viewer.el.stepFrame(+1));
         };
@@ -176,6 +189,9 @@ export const MpiGifControlBar = ComponentFactory.create({
                 const fn = _hotkeyUnsubs.pop();
                 try { fn(); } catch (_) { /* noop */ }
             }
+            // A stale `true` would leave Space dead on the NEXT viewer, whose
+            // `edit-change` only fires when a tool actually opens.
+            _editing = false;
             _viewer = null;
         };
 
