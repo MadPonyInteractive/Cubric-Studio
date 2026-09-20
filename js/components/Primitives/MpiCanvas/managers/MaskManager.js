@@ -154,6 +154,14 @@ export class MaskManager {
         // saves them back unchanged. Data is never touched; every export reads
         // `maskCanvas`.
         this.displayComplement = false;
+        // Display-only PROPOSAL tint (MPI-859): the base on screen is a method
+        // run waiting on Add / Subtract, not a mask the frame owns, so it wears
+        // `MASK_AUTO_FILL` — the same green `autoCanvas` and the Adjust preview
+        // already mean by. `autoCanvas` is the image workspace's route to that
+        // green and stays so; the GIF Cut-out shows its proposal INSTEAD of the
+        // committed mask rather than over it, so the proposal arrives as the
+        // base and this recolours it where it lands. Data is never touched.
+        this.displayProposal = false;
         // Display-only black-and-white view (MPI-381): the mask alone, opaque,
         // on a flat background instead of a translucent tint over the image —
         // how a user finds the stray specks a detection leaves behind.

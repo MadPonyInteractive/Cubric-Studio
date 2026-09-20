@@ -285,8 +285,10 @@
  * Block hooks on el: onFrameChange(), onMasksChange(), setSelection()
  *
  * Emits:
- *   'mask-tint' { url: string|null } — current-frame ADJUSTED preview;
- *                    Block hands to viewer.el.setMaskTint(url)
+ *   'mask-tint' { url: string|null, proposed?: boolean } — current-frame ADJUSTED
+ *                    preview; Block hands to viewer.el.setCutoutPreview(url,
+ *                    proposed). `proposed` marks a method run still waiting on
+ *                    Add / Subtract, drawn in the pending green (MPI-859)
  *   'apply' { frames, masks, adjust: {grow, fillHoles}, invert, settings }
  *            — Cut out pressed and the frame signature still matches the last
  *              mask run. An UNMASKED frame is cut with a 1x1 WHITE mask, i.e.

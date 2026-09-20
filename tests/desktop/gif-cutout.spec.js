@@ -412,12 +412,23 @@ async function pickScope(window, value) {
 async function commitMask(window, verb) {
   const hidden = () => window.evaluate(() =>
     document.querySelector('.mpi-tool-options-gif-cutout #commit-slot')?.hidden);
+  // The canvas is the surface that is UP while the tool is; the CSS tint only
+  // shows during playback, and `_setTint(null)` deliberately leaves its classes
+  // on a hidden element, so it cannot answer this.
+  const proposalTint = () => window.evaluate(() =>
+    document.querySelector('.mpi-gif-viewer__edit .mpi-canvas')?.isMaskDisplayProposal());
   await expect.poll(hidden, { timeout: 20000 }).toBe(false);
+  // MPI-859 (Fabio, 2026-09-20): an uncommitted run wears the pending green, not
+  // the white of a mask that exists. It is the one highlight here that means
+  // "what this run found" rather than "what disappears".
+  await expect.poll(proposalTint, { timeout: 20000 }).toBe(true);
   await window.evaluate((slot) => {
     document.querySelector(`.mpi-tool-options-gif-cutout ${slot} button`).click();
   }, verb === 'add' ? '#add-btn-slot' : '#sub-btn-slot');
   // It hides again once the proposal has been folded in — the commit is done.
   await expect.poll(hidden, { timeout: 20000 }).toBe(true);
+  // ...and the green goes with it: what is left is a committed mask.
+  await expect.poll(proposalTint, { timeout: 20000 }).toBe(false);
 }
 
 /** Pick a Cut-out mask method (Decision 15) and wait for its buttons. */

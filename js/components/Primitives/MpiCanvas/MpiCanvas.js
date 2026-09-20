@@ -976,6 +976,12 @@ class _CanvasCore {
                     W, H, clip), 0, 0);
             } else if (this.mask.displayInverted) {
                 ctx.drawImage(this._recolorMaskLayer(this.mask.maskCanvas, MASK_INVERT_FILL, W, H, clip), 0, 0);
+            } else if (this.mask.displayProposal && !this.mask.bwView) {
+                // A PROPOSAL waiting on Add / Subtract, in the green those two verbs
+                // already answer to (MPI-859). Not under `bwView`: that view exists to
+                // find the specks a run leaves behind, and it does it in black and
+                // white on purpose.
+                ctx.drawImage(this._recolorMaskLayer(this.mask.maskCanvas, MASK_AUTO_FILL, W, H, clip), 0, 0);
             } else {
                 ctx.drawImage(this.mask.maskCanvas, 0, 0, W, H);
             }
@@ -1524,6 +1530,9 @@ class _CanvasCore {
     /** MPI-771 — display the COMPLEMENT of the mask. Display only; see MaskManager. */
     setMaskDisplayComplement(v) { this.mask.displayComplement = !!v; this.draw(); }
     isMaskDisplayComplement()   { return !!this.mask.displayComplement; }
+    /** MPI-859 — the base on screen is a PROPOSAL, so tint it green. Display only. */
+    setMaskDisplayProposal(v)   { this.mask.displayProposal = !!v; this.draw(); }
+    isMaskDisplayProposal()     { return !!this.mask.displayProposal; }
     setMaskBwView(v)        { this.mask.bwView = !!v; this.draw(); }
     isMaskBwView()          { return !!this.mask.bwView; }
     setMaskPaintEnabled(v)  { this.mask.paintEnabled = !!v; this.draw(); }
@@ -1660,6 +1669,7 @@ export const MpiCanvas = ComponentFactory.create({
             'resetView','setGrid','resize','draw',
             'setMaskingMode','setBrushSize','setBrushType','setBrushPreset','flipMaskColor',
             'setMaskInverted','isMaskInverted','setMaskDisplayComplement','isMaskDisplayComplement',
+            'setMaskDisplayProposal','isMaskDisplayProposal',
             'setMaskBwView','isMaskBwView','setMaskPaintEnabled',
             'setMaskOpacity','clearMask','getMaskDataURL',
             'getManualURL','getSubtractURL','setManualFromDataURL','setSubtractFromDataURL','setMaskBase',

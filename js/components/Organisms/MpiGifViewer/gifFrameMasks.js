@@ -187,6 +187,14 @@ export class GifFrameMasks {
             || (this.edits.has(i) && this.composed.get(i)) || this.track.get(i) || null;
     }
 
+    /**
+     * Whether `overlayAt(i)` is about to hand back a PROPOSAL rather than a mask
+     * the frame owns. The draw site needs it to pick the tint — green is "what
+     * this run found", white is "what disappears" (MPI-859) — and asking here
+     * keeps `overlayAt()`'s one-URL contract intact.
+     */
+    isProposalAt(i) { return this.candidate.has(i); }
+
     /** `overlayAt()` for every position, for the frame strip. */
     overlay(count) {
         return Array.from({ length: count }, (_, i) => this.overlayAt(i));

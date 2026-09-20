@@ -51,7 +51,7 @@
  *                                            applies (docs/masking-sam3-gif.md).
  *                                            Owned by the cut-out tool panel;
  *                                            `null` clears it.
- *   setCutoutPreview(url|null)             — MPI-771 audit: DISPLAY ONLY. Cut-out
+ *   setCutoutPreview(url|null, proposed)   — MPI-771 audit: DISPLAY ONLY. Cut-out
  *                                            mounts the same canvas and the same
  *                                            MpiMaskStrip as the Mask Brush, but
  *                                            shows the ADJUSTED, flipped bitmap
@@ -61,7 +61,13 @@
  *                                            tint while the GIF plays, so play/pause
  *                                            never changes what the highlight means.
  *                                            Never read by getCutMasks(); `null`
- *                                            restores the real mask.
+ *                                            restores the real mask. `proposed`
+ *                                            (MPI-859) says the bitmap is a method
+ *                                            run waiting on Add / Subtract, drawn in
+ *                                            the pending green on both surfaces —
+ *                                            Grow / Invert push the COMMITTED mask
+ *                                            through here too, so only the panel
+ *                                            knows which kind arrived.
  *
  * Cut-out masks (MPI-771, plan Decision 14) — per frame POSITION, carried along a
  * staged reorder/delete and emptied when a different list loads (`gifFrameMasks.js`):
@@ -208,6 +214,13 @@ export const MpiGifViewer = ComponentFactory.create({
          * override back into the store.
          */
         let _cutoutPreview = null;
+        /**
+         * Whether `_cutoutPreview` is a PROPOSAL rather than a committed mask. The
+         * panel knows — it chose the bitmap — and says so on `mask-tint`; the draw
+         * site cannot work it out, because Grow / Invert push the committed mask
+         * through this same override (MPI-859).
+         */
+        let _cutoutProposal = false;
         /**
          * MPI-771 (Fabio, 2026-09-19): the WORKSPACE rule is "the highlight marks
          * what disappears", and Cut-out obeys it by handing the canvas an
@@ -422,8 +435,12 @@ export const MpiGifViewer = ComponentFactory.create({
         // `mask-image`, sized to the frame img's own rendered box by
         // `.mpi-gif-viewer__frame-wrap` (docs/masking-sam3-gif.md) — read-only
         // preview, never a canvas layer, so no UndoStack entry applies.
-        /** `luma`: an opaque B/W mask (engine / composed) rather than an alpha one. */
-        function _setTint(url, luma = false, complement = false) {
+        /**
+         * `luma`: an opaque B/W mask (engine / composed) rather than an alpha one.
+         * `proposal`: the bitmap is a method run waiting on Add / Subtract, so it
+         * wears `--accent-ok` instead of `--mask-fill` (MPI-859).
+         */
+        function _setTint(url, luma = false, complement = false, proposal = false) {
             if (!url) {
                 // HIDE ONLY. `--luma` and the mask image stay exactly as they are
                 // until the next mask replaces them. Dropping `--luma` here (or
@@ -444,6 +461,7 @@ export const MpiGifViewer = ComponentFactory.create({
             maskTintEl.style.maskImage = image;
             maskTintEl.classList.toggle('mpi-gif-viewer__mask-tint--luma', luma);
             maskTintEl.classList.toggle('mpi-gif-viewer__mask-tint--complement', complement);
+            maskTintEl.classList.toggle('mpi-gif-viewer__mask-tint--proposal', proposal);
             maskTintEl.classList.add('mpi-gif-viewer__mask-tint--visible');
         }
 
@@ -460,8 +478,14 @@ export const MpiGifViewer = ComponentFactory.create({
             // round; the raw store mask is not.
             if (_cutoutPreview !== null) return;
             const url = _masks.overlayAt(_index);
+            // A PROPOSAL is shown AS ITSELF and in the pending green: nothing has
+            // gone anywhere yet, so neither the complement nor the committed white
+            // applies to it (MPI-859). The panel only pushes a preview for the frame
+            // it is ON, so without this the other frames of a multi-frame run flipped
+            // and whitened one beat into playback.
+            const proposal = _masks.isProposalAt(_index);
             // What `_loadEditFrame` would decide for this frame, without the canvas.
-            _setTint(url, true, _maskFlip && !!url);
+            _setTint(url, true, !proposal && _maskFlip && !!url, proposal);
         }
         el.setMaskTint = (url) => _setTint(url);
 
@@ -727,6 +751,7 @@ export const MpiGifViewer = ComponentFactory.create({
                     // would put the highlight back on what stays.
                     cv.setMaskDisplayComplement(false);
                     _flipActive = false;
+                    cv.setMaskDisplayProposal(_cutoutProposal);
                     await cv.setMaskBase(_cutoutPreview);
                     if (token !== _editToken) return;
                     cv.activeMode = 'mask';
@@ -744,6 +769,9 @@ export const MpiGifViewer = ComponentFactory.create({
                 // the shared rule, the from-scratch case stays plain.
                 _flipActive = _maskFlip && !!(base || edits?.manual || edits?.composed);
                 cv.setMaskDisplayComplement(_flipActive);
+                // The store's own layers: committed by definition, whatever the last
+                // override was showing (MPI-859).
+                cv.setMaskDisplayProposal(false);
                 await cv.setMaskBase(base);
                 if (edits?.manual) await cv.setManualFromDataURL(edits.manual);
                 if (edits?.subtract) await cv.setSubtractFromDataURL(edits.subtract);
@@ -801,7 +829,15 @@ export const MpiGifViewer = ComponentFactory.create({
                 // the same composition with the colours swapped — white ground, black
                 // mask — which IS the complement once `--luma` reads it.
                 const flipped = _flipActive ? _canvas?.el.getMaskDataURL('white', 'black', true) : null;
-                _setTint(_cutoutPreview ?? flipped ?? _masks.overlayAt(_index), true);
+                // Which of the three won decides the tint's colour as well as its
+                // bitmap (MPI-859). `flipped` is a render of the canvas's own layers,
+                // so it is committed by definition — `_flipActive` is forced off
+                // while an override is up, and an override is the only proposal here.
+                const url = _cutoutPreview ?? flipped ?? _masks.overlayAt(_index);
+                const proposal = _cutoutPreview !== null
+                    ? _cutoutProposal
+                    : !flipped && _masks.isProposalAt(_index);
+                _setTint(url, true, false, proposal);
             }
         }
 
@@ -818,6 +854,7 @@ export const MpiGifViewer = ComponentFactory.create({
             // The override belongs to the tool that set it. Leaving Cut-out with it
             // still on would show the Mask Brush a flipped mask on its next mount.
             _cutoutPreview = null;
+            _cutoutProposal = false;
             // `_maskFlip` is the workspace's rule and SURVIVES the tool switch —
             // that is the whole point. Only this visit's applied state resets.
             _flipActive = false;
@@ -923,9 +960,10 @@ export const MpiGifViewer = ComponentFactory.create({
          * Drives BOTH surfaces so play/pause never changes what the highlight means:
          * the canvas while the tool is up, the CSS tint while the GIF is playing.
          */
-        el.setCutoutPreview = (url) => {
+        el.setCutoutPreview = (url, proposed = false) => {
             const arriving = _cutoutPreview === null && !!url;
             _cutoutPreview = url || null;
+            _cutoutProposal = _cutoutPreview !== null && !!proposed;
             if (_editKind !== 'mask') return;
             // The override turns this canvas into a DISPLAY surface, so it stops
             // being the edit frame — see `_loadEditFrame`. It has to happen HERE
@@ -946,10 +984,14 @@ export const MpiGifViewer = ComponentFactory.create({
             // Playing: the canvas is hidden behind the frame-wrap, so the tint is
             // what is on screen. `false` = an alpha mask, not an opaque B/W one.
             if (editSlot.classList.contains('mpi-gif-viewer__edit--playing')) {
-                _setTint(_cutoutPreview, false);
+                _setTint(_cutoutPreview, false, false, _cutoutProposal);
                 return;
             }
             if (!_canvas) return;
+            // The canvas is the OTHER surface the override drives, and the one that
+            // is up while the tool is (MPI-771 audit). Without this a proposal was
+            // green during playback and white the moment you paused.
+            _canvas.el.setMaskDisplayProposal?.(_cutoutProposal);
             // The FIRST override after a mount (or after a Clear) finds a canvas the
             // normal branch already filled: base, manual AND subtract. Swapping only
             // the base left the brush's subtract on top of a bitmap that is composed

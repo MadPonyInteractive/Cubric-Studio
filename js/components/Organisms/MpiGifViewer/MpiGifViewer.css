@@ -92,13 +92,14 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    /* White, the colour of a mask that EXISTS. This was --accent-ok for a day, on
-       the reading that a SAM3 / BiRefNet / colour-key mask is a detect-run mask.
-       It is not: in the image workspace the green is a PROPOSAL — a detect result
-       still waiting on Add / Subtract, or an Adjust preview waiting on Apply — and
-       it disappears the moment the mask is committed. Mask / Mask all / Mask
-       selected do not propose anything, they WRITE the frame's mask, which the
-       brush then edits. So it is the committed kind (Fabio, 2026-09-19). */
+    /* White, the colour of a mask that EXISTS — the committed kind. The green is
+       a PROPOSAL: a run still waiting on Add / Subtract, or an Adjust preview
+       waiting on Apply, gone the moment the mask is committed. Until MPI-859 the
+       GIF workspace had no proposals at all — Mask / Mask all / Mask selected
+       WROTE the frame's mask — so every tint here was white. Now a run proposes
+       and a verb commits, exactly as the image workspace does, and the two kinds
+       wear the two colours (Fabio, 2026-09-19, applied to the new state
+       2026-09-20). */
     background: var(--mask-fill);
     opacity: 0;
     -webkit-mask-repeat: no-repeat;
@@ -126,6 +127,14 @@
 .mpi-gif-viewer__mask-tint--complement {
     -webkit-mask-composite: xor;
     mask-composite: exclude;
+}
+
+/* A method run waiting on Add / Subtract (MPI-859). The one tint that does NOT
+   mark what disappears — nothing has gone anywhere yet — so it wears the colour
+   those two verbs already answer to everywhere else in the app. Never stacked
+   with `--complement`: a proposal is shown as itself. */
+.mpi-gif-viewer__mask-tint--proposal {
+    background: var(--accent-ok);
 }
 
 /* ── Load/generation spinner — centred over the stage ───────────────────── */

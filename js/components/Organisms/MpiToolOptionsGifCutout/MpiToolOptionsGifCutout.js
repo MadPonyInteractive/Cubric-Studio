@@ -48,7 +48,9 @@
  * the one subscription to each viewer event and forwards here.
  *
  * Emits:
- *   'mask-tint' { url: string|null } — current-frame adjusted preview
+ *   'mask-tint' { url: string|null, proposed?: boolean } — current-frame adjusted
+ *     preview. `proposed` = the bitmap is a method run waiting on Add / Subtract,
+ *     which the viewer draws in the pending green instead of the committed white
  *   'apply' { frames, masks, adjust, invert, settings } — Cut-out pressed;
  *     `settings` says which method made the masks (stamped on the sidecar)
  */
@@ -918,7 +920,11 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                 imgData.data[i * 4 + 3] = out[i];
             }
             ctx.putImageData(imgData, 0, 0);
-            emit('mask-tint', { url: canvas.toDataURL('image/png') });
+            // `proposed` rides along rather than being re-derived at the draw site:
+            // `overlayAt()` hands back one URL by design and cannot say which kind it
+            // is, and this preview is not always a proposal — Grow / Invert push the
+            // COMMITTED mask through the same path (MPI-859).
+            emit('mask-tint', { url: canvas.toDataURL('image/png'), proposed });
         }
 
         // The Block owns the ONE persistent subscription to each viewer event for

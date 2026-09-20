@@ -143,9 +143,11 @@
      `MpiCanvas` paints a real mask with `maskColor = rgba(255,255,255,1)` and
      draws `maskCanvas` straight; only the PENDING layers get recoloured —
      MASK_AUTO_FILL (--accent-ok) is a detect run or an Adjust preview, i.e. a
-     proposal still waiting on Add / Subtract / Apply. A GIF cut-out run WRITES
-     its mask, so it is the committed kind and wears this instead of the green
-     (Fabio, 2026-09-19). Not --ink-1: re-hueing text must never move a mask. */
+     proposal still waiting on Add / Subtract / Apply. A GIF cut-out run used to
+     WRITE its mask, which made every GIF tint the committed kind; since MPI-859
+     it PROPOSES and a verb commits, so the GIF workspace draws both kinds and
+     picks between them the same way (Fabio, 2026-09-19, re-read 2026-09-20).
+     Not --ink-1: re-hueing text must never move a mask. */
   --mask-fill:       oklch(1 0 0);           /* white — a mask that exists */
 
   /* Type scale */
