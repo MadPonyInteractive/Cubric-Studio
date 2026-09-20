@@ -39,21 +39,36 @@ would have been refused as `NOT_A_GIF` — and `_ensureFrames`, the whole point 
 now, and the store is filled on demand; `tests/connector-gif-jobs.test.cjs` pins
 both the extraction and the case where extraction yields nothing.
 
-## What is NOT proven here, and needs the user's own app
+## The engine leg — VERIFIED by Fabio, 2026-09-20
 
-The cut-out's engine leg. `runGifCutoutTrack()` reaches `getEngine()` and a real
-ComfyUI, so no stub can prove it: its guards are tested, the graph is not. A live
-check would be, in Fabio's own app with a GIF card open:
+The one thing no stub could prove. Fabio ran a cut-out himself, in his own app, on his
+own GPU, and reported it plainly: *"I ran a cutout, and it's verified. It used the GPU,
+and it was fine."*
 
-```bash
-curl -s -X POST http://127.0.0.1:3000/connector/gif/cutout \
-  -H 'Content-Type: application/json' \
-  -d '{"itemId":"<the gif item id>","method":"background"}'
-```
+That is the whole of what this card was held open for, and it closes it.
 
-and the same again with `{"method":"name","prompt":"robot"}`. Expect a new
-transparent entry on the same card, one per call. Offered, not run: driving `:3000`
-is the user's own session.
+**It was the `background` method** (Fabio, asked which): BiRefNet, the `gifCutoutBirefnet`
+op, no prompt. So the verified path is body -> route -> renderer job -> `/gif-cutout/source`
+-> `runGifCutoutTrack` -> `/gif-cutout/apply` -> a transparent entry on the card, end to end
+on a real GPU.
+
+**`method: "name"` needs no separate run** (Fabio, 2026-09-20: *"why do we have to prove it
+again? We've already done that multiple times."* — he is right, and an earlier draft of this
+section asked for a curl that would have re-proven what three records already hold). Every
+leg of it is covered:
+
+| Leg | Already proven by |
+|---|---|
+| The SAM3 graph + `runGifCutoutTrack` | **Live, 2026-09-16** — a real 30-frame extract of a real mascot clip, bare prompt `"robot"`, 30 clean masks back (`docs/masking-sam3-gif.md`) |
+| The `name:N` stamp | `tests/mask-text-prompt.test.cjs` — including the `:1` trap and re-stamping an already-stamped prompt |
+| Route → renderer job → `/gif-cutout/source` → `/gif-cutout/apply` → the entry | **Fabio's `background` run above.** Identical code path; `method` changes one `op` string and adds two params |
+| Those two params | `tests/connector-gif.test.cjs` asserts the prompt reaches the job; `gifJobs.js` passes `objectIndices: ''`, which is the graph's own "keep every tracked object" |
+
+What is left is composition, not an unproven component: nobody has run that exact
+combination end to end. That is a fair thing to notice the first time someone uses it, and
+not a reason to hold a card open.
+
+He did not say which clip or which settings, so nothing about those is claimed here.
 
 ## A gap found after the routes shipped — no card, Fabio's call
 

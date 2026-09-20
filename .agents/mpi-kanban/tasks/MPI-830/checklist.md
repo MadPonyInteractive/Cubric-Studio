@@ -11,3 +11,8 @@
 - [x] `resources/cubric/connector-manifest.json`: the capability entry
 - [x] `docs/gif.md`: a short "From an agent" section
 - [x] Run the new tests + the existing GIF suites
+
+- [x] Fabio's live cut-out run (the GPU leg no stub could reach) - verified 2026-09-20
+- [x] **Folded in, not original scope:** refresh the `.claude/rules/` component maps for the
+      GIF workspace. Seven Organisms were absent from every map and the `MpiToolOptionsGif`
+      entry predates MPI-760's rename. Fabio gave explicit permission (CLAUDE.md rule 5).
