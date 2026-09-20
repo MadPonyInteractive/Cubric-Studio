@@ -423,10 +423,15 @@
     color: var(--ink-1);
 }
 
+/* A marked card keeps the chip (MPI-862): the mark is persistent, and a bare glyph
+ * vanishes on bright media. Same chip as the Notes marker; the glyph keeps the ghost
+ * button's is-active accent, so no `color` here. */
 .mpi-group-card--favourited .mpi-group-card__fav-wrap .mpi-btn.mpi-ibtn.mpi-btn--ghost,
 .mpi-group-card--favourited .mpi-group-card__fav-wrap .mpi-btn.mpi-ibtn.mpi-btn--ghost:hover:not(:disabled) {
-    background: transparent;
-    border-color: transparent;
+    padding-left: 12px;
+    padding-right: 12px;
+    background: color-mix(in oklch, var(--surface-bar) 72%, transparent);
+    border-color: color-mix(in oklch, var(--line-soft) 86%, transparent);
 }
 
 /* ── Card mark shape menu (MPI-785, cardMarkMenu.js) ─────────────────────────
