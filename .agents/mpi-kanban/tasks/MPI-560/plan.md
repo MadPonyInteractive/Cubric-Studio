@@ -33,6 +33,8 @@ member when the phase covering it lands, and say so in its card.
 | MPI-532 | Community flow packages — data-only folders in `user_flows/`. **Blocks 2.0** (MPI-780 phase 1) | 6 |
 | MPI-798 | Flow developer kit — generated node lockfile + installer (split out of MPI-532). **Ready at 2.0 release** | 7 |
 | MPI-799 | Community Flow registry — public GitHub repo, submissions reviewed by MPI. **Open at 2.0 release**; needs Fabio's decisions | 7 |
+| MPI-831 | Flow Library: the **Add-on Flows** section, source badges, dimmed uninstalled tiles, and the two paid Gumroad tiles | 8 |
+| MPI-841 | The Flow Library **browses the registry** — a user discovers third-party Flows in the app, never on a website | 8 |
 
 Adjacent, deliberately NOT members: **MPI-455** (end-frame conditioning — op-side wiring on
 the shipped `ltx_i2v.json`, not a Flow) and **MPI-533** (the tombstone ledger phase 5's
@@ -211,6 +213,35 @@ docs):
 
 Not 2.0 release blockers unless Fabio says so; MPI-595 Gate A is unchanged.
 
+## Phase 8: The Library is the shop window (MPI-831, MPI-841)
+
+**Added 2026-09-20.** Phases 6 and 7 gave a developer a format, a linter, a dev kit and a
+place to submit. They gave a USER nothing: `listFlows()` returns built-ins plus what is
+already in `user_flows/`, and a grep for `cubric-flows-registry` across the app returns
+zero hits. Nobody can find a third-party Flow without leaving the app.
+
+Phase 6 always intended otherwise — *"The GitHub registry is phase 7 — advertising only,
+never a payment rail."* Phase 7 built the submission half. **The advertising half fell
+between MPI-532 and MPI-799 and was never carded.** Fabio went looking for that card on
+2026-09-20 and there was none; this phase is it.
+
+**Fabio, 2026-09-20:** they must show in the UI. A listing on the website is not an answer,
+because most users never visit the website. They go in a **third-party section at the
+bottom of the Flow Library**, labelled **Add-on Flows** — delivery, not authorship, so MPI's
+own packaged Flows are not mislabelled as third-party.
+
+- **MPI-831 — the section itself.** Add-on Flows at the bottom across all media types, a
+  source flag on package tiles (the `TILE_FLAGS` system the Model Library already uses and
+  the Flow Library passes nothing to), desaturated thumbs for anything uninstalled, and two
+  hard-coded tiles for the paid Flows. Buildable today; only its paid tiles wait on the
+  Gumroad URLs (MadPony-Identity MPI-81).
+- **MPI-841 — the catalogue.** The same section lists what is NOT installed, read from the
+  registry. Needs `index.json` generated in the registry repo first, then a cached fetch
+  that never breaks the Library when it fails.
+
+They ship independently and in that order. Both own `MpiFlowLibrary.js`, so they are
+sequenced, never run as parallel workers.
+
 ## Verification
 
 - Phase 1: app boots, Flow Library lists Head Swap only, no grep hit survives for the three
@@ -226,6 +257,9 @@ Not 2.0 release blockers unless Fabio says so; MPI-595 Gate A is unchanged.
   runs on a restart with no registry edit.
 - Phase 7: a developer's ComfyUI set up by the installer passes the linter's node check;
   a test submission to the registry repo runs the linter in CI.
+- Phase 8: with the network off the Library still opens; with it on, a real registry entry
+  appears as a tile in Add-on Flows, and installing it REPLACES that tile rather than
+  joining it.
 
 Spin your own app (`npm run app:isolated`), never the user's `:3000`.
 
@@ -242,6 +276,13 @@ any other phase rather than in sequence with it. Inside the phase, MPI-504 prece
 by construction. Do not hand phase 4 to a worker sub-agent.
 
 ## Plan Drift
+
+**2026-09-20 — phase 8 added, and it is a GAP, not new scope.** Phase 6 promised the
+registry would be "advertising only"; phase 7 built only the submission side. Nothing in
+the app has ever read the registry, and no card covered it — Fabio went looking for one
+and found none. MPI-831 and MPI-841 close it. The section is labelled **Add-on Flows**,
+not "Third-party Flows", because Head Swap and DramaBox are Mad Pony Flows sold as
+packages and the label names delivery rather than authorship.
 
 **2026-09-19 — phase 7 is DONE; its text above is stale and is kept only as the record of
 what was decided.** Both members shipped. MPI-798 (developer kit) closed on `37e7357c` +

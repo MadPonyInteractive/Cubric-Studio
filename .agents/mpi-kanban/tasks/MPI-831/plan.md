@@ -1,5 +1,7 @@
 # MPI-831 — Flow Library: Add-on Flows, source badges, dimmed uninstalled tiles, paid tiles
 
+**Umbrella:** MPI-560 phase 8. **Sibling:** MPI-841, which lists UNINSTALLED registry Flows in the same section. Both own `MpiFlowLibrary.js`, so they are sequenced, never parallel. This card goes first.
+
 Answers **MPI-780 open question 1** (yes, show the paid Flows as link tiles). Decisions taken
 by Fabio 2026-09-19 in session. Gumroad side is MadPony-Identity **MPI-81**, which owes this
 card the two redirect URLs.
@@ -88,11 +90,14 @@ the package replaces the link tile with the real Flow rather than adding a secon
 
 ## Not in scope
 
-- A registry-fed list of add-on Flows. MPI-532 parks that as 1.7+ "advertising only", and
-  it needs network handling, caching and an offline story for two products. Hard-code them
-  now, fetch the catalogue later.
-- A rendered catalogue page for the registry repo. Today `flows/` is a folder of JSON with
-  no index — a real gap, but not this card's.
+- **A registry-fed list of add-on Flows — that is MPI-841**, not deferred. It was parked as
+  1.7+ "advertising only" by MPI-532; Fabio pulled it into 2.0 on 2026-09-20 because a user
+  who cannot see a third-party Flow in the app will never find it at all. This card builds
+  the SECTION and the installed tiles; MPI-841 fills the same section with what is not
+  installed. Hard-code the two paid tiles here anyway — they must work whether or not the
+  registry answers.
+- The registry's generated `index.json`. Also MPI-841, phase 1, and it lands in the registry
+  repo rather than here.
 
 ## Ownership
 

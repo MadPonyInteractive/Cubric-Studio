@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-841",
+  "title": "Flow Library browses the community registry - a user discovers third-party Flows in the app, never on a website",
+  "description": "Today the app has NO discovery of third-party Flows. listFlows() returns FLOWS only, and a grep across js, routes, services and scripts for cubric-flows-registry returns zero hits - nothing in the app knows the registry exists. A user can only install a Flow they already found and downloaded themselves. At 2.0 that is a contradiction: submissions open to the public and Flows become the headline feature, yet nobody can find a third-party Flow without leaving the app. Fabio 2026-09-20: they must show in the UI, in the Add-on Flows section at the bottom of the Flow Library; a website listing is not an answer because most users never visit the website. This card makes the Add-on Flows section list what is NOT installed yet, read from the registry. Needs a generated index.json in the registry repo first - today flows slash star dot json has no index, so a reader would need one request per Flow. Its sibling MPI-831 builds the same section for INSTALLED packages and the two paid tiles, and ships independently of this card. Umbrella: MPI-560 phase 8. Full plan in plan.md.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-20T10:36:58+01:00",
+  "updated_at": "2026-09-20T10:36:58+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
