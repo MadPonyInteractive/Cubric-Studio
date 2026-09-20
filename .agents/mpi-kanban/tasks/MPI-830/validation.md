@@ -81,7 +81,9 @@ project: dropped in by the person, or generated there.
 
 It did NOT block the job this was built for. `Cubric Studio Mascots`
 (`C:\Users\Fabio\Documents\Cubric Vision\Projects\Cubric Studio Mascots`) already
-holds **138 video cards**, 12 images and one GIF, measured 2026-09-19 — Fabio's mascot
+held **138 video cards** and 12 image cards when measured on 2026-09-19, and ONE of
+those 12 was already a GIF (a GIF is an image sidecar, `docs/gif.md`) - not a thirteenth
+card. Re-measured 2026-09-20: 13 images, 2 of them GIFs, Fabio having made another — Fabio's mascot
 clips are cards already, so `gif.make` finds them by id today.
 
 If it is ever wanted, it is the same shape as the four verbs here and small:
@@ -91,3 +93,24 @@ for a video but NOT for an image (the renderer normally measures those and posts
 `width`/`height`), so an image imported this way would land 0x0 unless the route reads it
 with sharp first. Documented as a limitation in
 `.claude/skills/cubric-vision-gif/SKILL.md` § Getting footage in.
+
+## Claim audit, 2026-09-20 (close-out)
+
+Read-only auditor over this card's six commits and the skill doc: **28 PROVEN, 0 FALSE,
+2 OVERSTATED.** Both overstatements were re-verified against source before acting, per
+the rule that its findings are evidence and not verdicts.
+
+1. **"12 images and one GIF" — real, corrected above.** A GIF card IS an image sidecar,
+   so the phrasing read as 13 cards when the count was 12 with one of them the GIF. Now
+   stated as 12 of which one, and dated, because re-measuring on 2026-09-20 already gives
+   13 and 2.
+2. **`APP_UNAVAILABLE` / `TIMEOUT` "absent from `routes/connectorGif.js`" — NOT a defect,
+   no edit made.** Both are raised inside `dispatchToRenderer` in `routes/connector.js`,
+   which every verb here calls through `_run()`, so they genuinely do fire for these
+   routes and the skill doc's table is right. The finding is an artifact of the audit
+   instruction naming one file; the auditor said as much itself.
+
+Proven along the way, worth keeping because each was a place this card could have lied:
+43 tests really are 19 + 24; `fpsToDelay(8)` really is 13; `editGif` really refuses
+crop + resize together; the `_findGif` legacy-GIF fix really is in the committed code;
+and `exportGif` really is still a live registry key after MPI-760's rename.
