@@ -8,10 +8,21 @@ and `tasks/MPI-843/research/chat-merged.html` (the panel, drawn in place at its 
 
 ## Current State
 
-Nothing is built. The decisions are recorded, the panel is drawn, `PRODUCT.md` has been
-updated to allow the crew, and MPI-777's open decision 4 is answered. The card was `blocked`
-on MPI-774 Phase 3c; that landed in `4ee23d00` on 2026-09-17, so the blocker is stale and
-this plan clears it.
+**PHASE 1 IS BUILT AND ACCEPTED (Fabio, 2026-09-20, in his own app). Phase 2 is next.**
+Commits `47fcdc2a`, `fcefd4ff`, `ad155a98`, `9a71f2ce`, all pushed. Evidence and every
+measured number are in `validation.md`; the measuring rig is `research/measure-centre.html`
+(mounts the real component over http, no Electron — its header documents two traps that
+make it lie if ignored).
+
+Two plan premises were wrong and are corrected in `validation.md`: the `MpiButton.css`
+`.is-active` trap does not exist (an icon+label button still carries `mpi-ibtn`, so that
+edit was written, measured redundant and reverted), and the real gap was the LABEL at
+(0,3,0), fixed in the component. The toolbar `max-width` was a genuine regression —
+`7.25rem` overlapped the centre group by 30.2px with three buttons; it is now `9.75rem`.
+
+The decisions are recorded, the panel is drawn, `PRODUCT.md` has been updated to allow the
+crew, and MPI-777's open decision 4 is answered. The card was `blocked` on MPI-774 Phase 3c;
+that landed in `4ee23d00` on 2026-09-17, so the blocker is stale and this plan clears it.
 
 **The five original items, re-scoped against what shipped since:**
 
