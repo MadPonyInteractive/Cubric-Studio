@@ -59,3 +59,15 @@ Committed `3f9105bb`, pushed, and **CI GREEN on its own commit** (run 3550463703
 His same pass found a FOURTH thing, which is not this card: longest edge 1024 and the
 card still reading 1536x640. Root-caused to `pixelDimensions` describing the frame
 store rather than the built file -> MPI-844, and the crop cap that exposed -> MPI-847.
+
+## Claim auditor correction (close-out, 2026-09-20)
+
+`3f9105bb`'s commit body says "Swept all ten `MpiSpinner.mount` sites first". **There are
+ELEVEN** — the ten under `js/components/` plus `js/pages/components.js`, the component
+gallery page, which hides its spinner with `style.visibility`. Verified at the parent
+commit `be5c4b20`: `git grep -c "MpiSpinner.mount" be5c4b20 -- 'js/**'` returns 11.
+
+The conclusion the count supports is unaffected: `MpiToolOptionsGifTiming` was still the
+only call site hiding by the `hidden` ATTRIBUTE, which is the one the primitive's missing
+`[hidden]` rule broke. Only the number is wrong, and it is wrong in the commit body, which
+is pushed and is not being rewritten on a shared tree.

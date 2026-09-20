@@ -53,3 +53,18 @@ inherited cap, because the route's own default was never what fired.
 ## Closed
 
 Committed `79bcf0cd`, pushed, and **CI GREEN on its own commit** (run 35505263447).
+
+## Claim auditor correction (close-out, 2026-09-20)
+
+`79bcf0cd`'s commit body reads "`gifCutout`, `gifMake`, and `gifTransform` through
+`_writeNewGifCard`'s parameter", which attributes one mechanism to three routes. **Only
+`gifTransform` used that parameter.** At the parent commit `be5c4b20`:
+
+- `routes/gifCutout.js:383` — its own direct `frameDimensions(mediaDir, newFrames[0].hash)`
+- `routes/gifMake.js:156` — its own inline `{ w: targetW, h: targetH }`
+- `routes/gifTransform.js` — the only one taking `pixelDimensions` as a parameter
+
+The FIX at each site is what the rest of this file describes and is unchanged: all three
+now measure the built file. Only the commit body's description of how they got it wrong is
+inaccurate, and it is pushed, so the correction lives here rather than in a rewritten
+history.
