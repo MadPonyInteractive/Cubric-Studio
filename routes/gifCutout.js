@@ -254,6 +254,25 @@ async function applyMaskAlpha({ frameBuffer, maskBuffer, adjust, invert }) {
         for (let i = 0; i < alpha.length; i++) alpha[i] = 255 - alpha[i];
     }
 
+    // THE FRAME'S OWN ALPHA IS THE CEILING (MPI-858). A cut REMOVES; it can never
+    // restore a pixel an earlier cut took away. Joining the mask in as the alpha
+    // outright turned every already-transparent pixel the new mask keeps back to
+    // opaque, revealing the RGB that was hidden under it — which the flatten below
+    // paints BLACK, so cutting an already-transparent clip came back with a black
+    // background (Fabio, 2026-09-20). Clamped AFTER adjust/fill/invert: a Grow, a
+    // filled hole and an Invert each reach into the transparent area too.
+    // An opaque frame is untouched by this (min(255, m) === m), which is why the
+    // mask -> alpha, adjust and invert guarantees below it are unchanged.
+    const wasAlpha = await sharp(frameBuffer)
+        .ensureAlpha()
+        .extractChannel(3)
+        .toColourspace('b-w')
+        .raw()
+        .toBuffer();
+    for (let i = 0; i < alpha.length; i++) {
+        if (wasAlpha[i] < alpha[i]) alpha[i] = wasAlpha[i];
+    }
+
     // flatten() before extracting RGB, never removeAlpha() — a re-cut frame
     // may already carry alpha from a previous pass (memory/tools/sharp.md).
     const rgb = await sharp(frameBuffer)

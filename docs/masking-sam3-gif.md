@@ -87,6 +87,17 @@ without a caption. This replaced a per-method `#tint-note` that said "stays" for
 2026-09-18). The mask itself stays white=KEEP internally, because `applyMaskAlpha` writes it
 straight into the alpha channel; the tint is the complement of whatever survives `Invert`.
 
+**A cut REMOVES — the frame's own alpha is the ceiling (MPI-858).** `applyMaskAlpha()` clamps
+the finished mask to the alpha the frame already had (`min`), after Grow/Shrink, Fill Holes and
+Invert, because each of those reaches into the transparent area too. Writing the mask in as the
+alpha outright turned every already-transparent pixel the new mask kept back to OPAQUE, showing
+the RGB hidden under it — and the function's own `flatten({background:'#000000'})` had just
+painted that black, so cutting a clip that was already cut came back with a BLACK background
+(Fabio, 2026-09-20). An opaque frame is unaffected (`min(255, m) === m`), which is why the
+mask→alpha, adjust and invert guarantees are unchanged. Cutting twice therefore INTERSECTS, which
+is the only composition the engine side does; stacking two METHODS on one frame is the panel's
+job and is not built. Proof: `tests/gif-cutout.test.cjs`, the four ceiling cases.
+
 **And the MASK BRUSH follows it** (Fabio, 2026-09-19). The rule is the workspace's, not
 Cut-out's: with `Invert` off, Cut-out highlighted the background while the brush highlighted the
 subject, so the brush asked you to clean up the region you were not looking at. `MpiGifViewer`

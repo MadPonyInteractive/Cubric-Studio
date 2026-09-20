@@ -39,6 +39,19 @@ async function solidPng(w, h, rgb) {
     return sharp({ create: { width: w, height: h, channels: 3, background: rgb } }).png().toBuffer();
 }
 
+/** An RGBA PNG whose left half is `rgb` hidden behind alpha 0, right half opaque. */
+async function halfHiddenPng(w, h, rgb) {
+    const raw = Buffer.alloc(w * h * 4);
+    for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+            const i = (y * w + x) * 4;
+            raw[i] = rgb.r; raw[i + 1] = rgb.g; raw[i + 2] = rgb.b;
+            raw[i + 3] = x < w / 2 ? 0 : 255;
+        }
+    }
+    return sharp(raw, { raw: { width: w, height: h, channels: 4 } }).png().toBuffer();
+}
+
 /** A grey PNG mask: `inside(x,y)` true -> white (255), else black (0). */
 async function maskPng(w, h, inside) {
     const raw = Buffer.alloc(w * h);
@@ -81,6 +94,41 @@ test('applyMaskAlpha: no adjust — mask grey becomes the frame alpha 1:1', asyn
     assert.equal(data[idx + 1], 40);
     assert.equal(data[idx + 2], 40);
 });
+
+/**
+ * MPI-858 — cutting a clip that was ALREADY cut came back with a black background
+ * (Fabio, 2026-09-20). The mask was joined in as the frame's alpha outright, so a
+ * pixel an earlier cut had made transparent turned opaque again and showed the RGB
+ * hidden under it — which the route's own flatten paints black. The frame's alpha is
+ * the ceiling now: a cut removes and never restores. Every path into the transparent
+ * area is covered, because each is applied after the mask and before the clamp.
+ */
+for (const [label, opts] of [
+    ['a plain keep-everything mask', {}],
+    ['a Grow that reaches into it', { adjust: { grow: 3 } }],
+    ['Fill Holes', { adjust: { fillHoles: true } }],
+    ['an Invert', { invert: true }],
+]) {
+    test(`applyMaskAlpha: an already-transparent pixel stays transparent under ${label}`, async () => {
+        const w = 8, h = 4;
+        // Left half: bright green hidden behind alpha 0 — the colour a resurrection
+        // would show. Right half: the same green, opaque.
+        const frame = await halfHiddenPng(w, h, { r: 10, g: 220, b: 10 });
+        // White everywhere for the keeping cases; for Invert, black everywhere, so
+        // the flip makes it white everywhere and hits the same ceiling.
+        const mask = await maskPng(w, h, () => opts.invert !== true);
+
+        const cut = await gifCutout.applyMaskAlpha({ frameBuffer: frame, maskBuffer: mask, ...opts });
+        const { alpha } = await alphaPlane(cut);
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
+                const expected = x < w / 2 ? 0 : 255;
+                assert.equal(alpha[y * w + x], expected,
+                    `pixel (${x},${y}) — a cut must not restore what an earlier cut removed`);
+            }
+        }
+    });
+}
 
 test('applyMaskAlpha: grow matches distanceField.js on the identical input', async () => {
     const w = 15, h = 15;
