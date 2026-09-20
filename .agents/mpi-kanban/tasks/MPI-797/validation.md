@@ -66,6 +66,29 @@ Both produce numbers that read as layout bugs rather than measurement bugs:
   toggling `.is-active` returns an interpolated `oklab()` mid-transition. The toggled
   look read as broken until the read waited the transition out.
 
+## Phase 1 ACCEPTED — Fabio, 2026-09-20
+
+Checked in his own app. The row order, the centring, the toggled cream with no fill and
+the toolbar at a narrow window all passed on sight. One change asked for and made, plus
+one thing accepted as-is:
+
+- **The status bar names the hotkey.** Hovering Agent now reads
+  `(A) Talk to the agent about this project`. `statusBar.js` prints `data-info` verbatim
+  and does no hotkey lookup, so the key has to be written into the string; `A` is
+  `agentMode.toggle` (`hotkeyRegistry.js:93`).
+  **The LEADING paren is deliberate and is Fabio's call** — every other hotkey string in
+  the app trails (`'Loop (L)'`, `'Send (Enter)'`, 18 of them, none leading). He asked for
+  the key in front of the existing text. Do not "correct" it to the trailing form.
+  (An earlier commit briefly read `(A) Communicate`; that word was speech-to-text noise,
+  not a label, and is gone.)
+- **The icon stays `chat`.** Fabio asked for an agent icon rather than a speech bubble and
+  then accepted the bubble — "a speech bubble works". So this is a known, accepted
+  substitute, not an oversight: if a proper agent glyph is ever added to `icons.js`, this
+  button is the place it belongs.
+
+Noticed and NOT changed: Flows and Record name no hotkey in their own status text. Out of
+scope for this card.
+
 ## Found while measuring, NOT fixed here — Record's hide is broken
 
 `setRecordVisible(false)` adds `.mpi-project-name--hidden { display: none }` at (0,1,0),

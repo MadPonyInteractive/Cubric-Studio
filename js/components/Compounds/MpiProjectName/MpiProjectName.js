@@ -142,7 +142,7 @@ export const MpiProjectName = ComponentFactory.create({
             // `statusBar.js` prints verbatim on hover — no tooltips in this app, and no
             // hotkey lookup, so the key has to be written into the string. `A` is
             // `agentMode.toggle` in `hotkeyRegistry.js:93` (Fabio, 2026-09-20).
-            info: '(A) Communicate',
+            info: '(A) Talk to the agent about this project',
         });
         agentBtn.addEventListener('click', () => emit('agent', {}));
 

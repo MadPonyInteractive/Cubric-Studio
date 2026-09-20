@@ -4,7 +4,7 @@ Derived from `plan.md`, 2026-09-20. Strictly sequential: phase 3 removes the onl
 agent mode, so phase 1 must ship first.
 
 ## Phase 1 - the Agent button joins the top bar
-Built and self-verified 2026-09-20; **awaiting Fabio's eyes** (verify mode `user-ux`).
+ACCEPTED by Fabio 2026-09-20 in his own app (verify mode `user-ux`). See validation.md.
 - [x] Third ghost button in `MpiProjectName.js`, icon `chat`, FIRST in the centre group.
 - [x] `.mpi-project-name__centre` becomes `1fr auto 1fr` so Flows is dead centre.
       Measured 0.00px off centre, and still 0.00px with Record hidden.
