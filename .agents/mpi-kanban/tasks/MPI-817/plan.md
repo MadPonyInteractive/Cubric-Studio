@@ -178,6 +178,28 @@ reading where `controlState.op.denoise` comes from (default vs his last slider: 
 checked), then message MPI-797 before any edit to `js/shell/agentDispatch.js`. After that: the
 vision-model test on the cowgirl PNG, which spends cents on his DeepInfra key and needs his yes.
 
+**Denoise, read before building (2026-09-21 00:10Z).** Three facts, all from code:
+1. 0.3 on the krea2 i2i sidecars is the op's own DEFAULT (`commandRegistry.js` `i2i.defaults`;
+   upscale 0.20, detail 0.30, PiD 0.0), not his slider.
+2. **An agent run injects NO denoise.** The PromptBox control returns `{ Denoise: v }`
+   (`PromptBoxControls.js`); `resolveNamedParams` never sets it, so the graph runs its BAKED
+   value, and `_snapshotControlState` then records `defaults + the project's op bucket` in the
+   sidecar. Same defect as duration before MPI-820: the record and the run can disagree.
+3. No edit to `js/shell/agentDispatch.js` is needed: `_listModels` passes
+   `namedParamsFor(model, op)` through whole and `_submit` merges `named.injectionParams`.
+   Footprint: `js/data/generationControls.js` (advertise + validate + inject `Denoise`, explicit
+   > project's op bucket > op default, exactly the duration ladder), `routes/connector.js`
+   (`NAMED_PARAM_KEYS`), `services/agentLoop.mjs` (tool schema + body), the generate skill doc.
+
+**Update 00:35Z: denoise is BUILT**, suite-green (1670 / 0 fail), NOT live-seen
+(`validation.md`, last section). Two things now wait on ONE restart of his app: the kept look and
+denoise. Single next action: the vision-model test on the cowgirl PNG. It needs his yes first
+(it spends on his DeepInfra key), and the key is not in the agent shell (see
+`~/.claude/memory/general.md` for where it lives). After that, the `:i2i` NOTE in
+`modelPriority.js` (data only, inside his rule, not yet approved by name). Worth a sweep once:
+which other controls does the PromptBox inject that `resolveNamedParams` does not? Duration
+and denoise were both that; `upscaleFactor` and `useGrid` are the obvious suspects.
+
 ## Phase C, first piece: batch ask + wake on drain (DESIGN NOTE 2026-09-20, not built, not approved)
 
 Raised by Fabio after the step-cap find. Two halves of one job.

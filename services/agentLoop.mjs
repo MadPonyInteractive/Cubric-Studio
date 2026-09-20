@@ -105,6 +105,7 @@ const TOOL_DEFS = [
                     qualityTier: { type: 'string', enum: ['very_low', 'low', 'medium', 'high', 'very_high', 'ultra'] },
                     turbo: { type: 'boolean' },
                     duration: { type: 'number', description: 'Clip length in seconds, 1-30. Video ops only — see the Duration rule.' },
+                    denoise: { type: 'number', description: 'Only on an op whose params list denoise (i2i, upscale, detail): how far the result may move off the picture it was given, 0 to 1. The higher it is, the more the image changes: low keeps the picture and its pose, high repaints it from the prompt. Leave it unset for the default in params.denoise.default.' },
                     styleSelect: { type: 'string' },
                     stylization: { type: 'number' },
                     seed: { type: 'integer' },
@@ -1141,6 +1142,7 @@ ${knowledgeIndex}`.trim();
                     if (args.qualityTier !== undefined) body.qualityTier = args.qualityTier;
                     if (args.turbo !== undefined) body.turbo = args.turbo;
                     if (args.duration !== undefined) body.duration = args.duration;
+                    if (args.denoise !== undefined) body.denoise = args.denoise;
                     if (args.styleSelect !== undefined) body.styleSelect = args.styleSelect;
                     if (args.stylization !== undefined) body.stylization = args.stylization;
                     if (args.seed !== undefined) body.seed = args.seed;

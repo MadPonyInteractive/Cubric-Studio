@@ -27,7 +27,7 @@
 
 'use strict';
 
-import { getSharedSettings, getModelSettings } from './projectModel.js';
+import { getSharedSettings, getModelSettings, getOpSettings } from './projectModel.js';
 import {
     getModelRatios, usesQualityTier, qualityTiersFor, clampQualityTier, defaultQualityTier,
 } from '../utils/ratios.js';
@@ -246,8 +246,28 @@ export function namedParamsFor(model, operation) {
         duration: modelShowsDuration(model, operation)
             ? { min: DURATION_MIN, max: DURATION_MAX }
             : null,
+        // How far the run may move off the picture it was given (MPI-817): 0 keeps it, 1
+        // repaints it. With its default, so "a bit more" has somewhere to start from.
+        denoise: modelShowsDenoise(model, operation)
+            ? { min: 0, max: 1, default: _denoiseDefault(operation) }
+            : null,
     };
 }
+
+// ── denoise (MPI-817) ────────────────────────────────────────────────────────
+
+/** Does `operation` carry the denoise slider? The op's own component list is the authority,
+ *  as it is for duration. `model` is unused today and kept for the symmetry callers rely on. */
+export function modelShowsDenoise(model, operation) {
+    return getCommandComponents(operation).includes('denoise');
+}
+
+function _denoiseDefault(operation) {
+    const opDefault = getCommandDefault(operation, 'denoise');
+    return typeof opDefault === 'number' ? opDefault : PROMPT_CONTROL_DEFAULTS.denoise;
+}
+
+const _isValidDenoise = (v) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
 
 // ── duration (MPI-820) ───────────────────────────────────────────────────────
 
@@ -357,7 +377,7 @@ export function isValidSeed(value) {
  * @returns {{ok:true, injectionParams:object, width:number, height:number}|{ok:false, code:string, message:string}}
  */
 export function resolveNamedParams(project, model, operation, named = {}) {
-    const { ratio, qualityTier, turbo, styleSelect, stylization, duration: durationWanted } = named;
+    const { ratio, qualityTier, turbo, styleSelect, stylization, duration: durationWanted, denoise: denoiseWanted } = named;
     const injectionParams = {};
     const modelName = model?.name || model?.id || 'this model';
 
@@ -447,6 +467,22 @@ export function resolveNamedParams(project, model, operation, named = {}) {
         injectionParams.Input_Duration = duration;
     } else if (durationWanted !== undefined) {
         return _err('INVALID_DURATION', `"${operation}" does not produce a clip, so it has no duration to set.`);
+    }
+
+    // denoise (MPI-817). The same hole duration had: the PromptBox control injects
+    // `{ Denoise: v }` and this function never did, so an agent run kept the workflow's BAKED
+    // value while the sidecar recorded the project's slider. Same ladder: asked, else the
+    // project's own value for this op, else the op's default.
+    if (modelShowsDenoise(model, operation)) {
+        if (denoiseWanted !== undefined && !_isValidDenoise(denoiseWanted)) {
+            return _err('INVALID_DENOISE', 'denoise must be a number between 0 and 1.');
+        }
+        const saved = getOpSettings(project || {}, model?.id, operation).denoise;
+        injectionParams.Denoise = denoiseWanted !== undefined
+            ? denoiseWanted
+            : (_isValidDenoise(saved) ? saved : _denoiseDefault(operation));
+    } else if (denoiseWanted !== undefined) {
+        return _err('INVALID_DENOISE', `"${operation}" has no denoise: it does not start from a picture it keeps.`);
     }
 
     return {

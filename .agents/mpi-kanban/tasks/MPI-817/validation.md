@@ -876,3 +876,29 @@ needs `agent.describe` to report its model, and that lives in `js/shell/agentDis
 **Owed by Fabio's eyes:** restart the app (`services/` loads at boot), ask for one still with a
 follow-up that makes the agent look ("make a fox, then tell me what you see"). Pass = ONE
 `agent.describe` in app.log for that picture, and `look` present in its `Media/.meta/<id>.json`.
+
+## Denoise is a named param, and an agent run finally injects one (built 2026-09-21 00:30Z, NOT live-seen)
+
+Read before building, all from code: 0.3 on the krea2 i2i sidecars is the op's DEFAULT, not his
+slider; and **an agent run injected no denoise at all** (the PromptBox control returns
+`{ Denoise: v }`, `resolveNamedParams` never set it), so the graph ran its baked value while
+`_snapshotControlState` recorded the project's. The duration bug's twin.
+
+Built on the duration ladder in `js/data/generationControls.js`: `modelShowsDenoise` (the op's
+component list is the authority), `namedParamsFor(...).denoise = {min, max, default}` or null,
+and `resolveNamedParams` injects `Denoise` = asked > the project's op bucket > the op default,
+refusing `INVALID_DENOISE` by name. `routes/connector.js` `NAMED_PARAM_KEYS` carries it;
+`services/agentLoop.mjs` offers it with Fabio's meaning in the tool DESCRIPTION, no prompt line.
+`js/shell/agentDispatch.js` needed NO edit (MPI-797 holds it): `_listModels` passes
+`namedParamsFor` through whole and `_submit` merges `named.injectionParams`.
+
+- `tests/agent-denoise.test.cjs`, 7 tests, RED first (`modelShowsDenoise is not a function`).
+- `npm test` -> 1670 tests, 1668 pass, 0 fail, 1 skipped, 1 todo (MPI-797's). eslint clean.
+- `.claude/skills/cubric-vision-generate/SKILL.md`: the param row, the merge list, the error code.
+- Behaviour change to know about: an agent i2i / upscale / detail run now uses the op default
+  (or the pinned project's slider) where it used the workflow's baked value. For krea2 i2i both
+  are 0.3. NOT checked per workflow whether every baked value equals its op default.
+
+**Owed by Fabio's eyes:** after a restart, "make this picture anime, keep her pose" on a model
+with no edit op. Pass = the agent sets a LOW denoise and says so; the sidecar's
+`generationSettings.controlState.op.denoise` equals what it asked for.

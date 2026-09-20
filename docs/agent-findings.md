@@ -57,7 +57,7 @@ same family: flow fields advertised as `{id, label}` with no type, default or op
 with no pixels, so it matched on how a name sounds. Fix: `namedParamsFor` returns `tierSizes`
 (`{tier: {ratio: 'WxH'}}`). Same shape: a ratio snap was narrated as "the picture's own shape"
 until `snapNote` said it is the NEAREST of the only ratios the op makes. Expect this wherever
-an enum is advertised without its meaning. `denoise` is the open case: see below.
+an enum is advertised without its meaning.
 
 ### It writes negation into prompts (2026-09-19)
 
@@ -113,13 +113,19 @@ truthful" (his word): an edit op keeps the pixels whatever the words say, i2i re
 WORDS.** `edit_001` came out right although its own prompt was wrong. Home for the fix is data:
 `modelConstants/modelPriority.js` NOTES has no `:i2i` entry. Not built.
 
-### It does not know denoise exists (2026-09-20, OPEN, approved)
+### It did not know denoise exists, and its runs injected none (2026-09-20, BUILT 2026-09-21)
 
-Zero hits for `denoise` in `agentLoop`, `agentTools`, `agentDispatch`, the connector. Both krea2
-i2i runs carry `controlState.op.denoise: 0.3`, a value from the app. Default or his last slider:
-NOT checked. Without it a model with no edit op cannot be asked for a faithful restyle at all.
-Approved shape: a named param on every op with the slider (i2i, upscale, detail), advertised by
-`describe_model`, meaning "the higher it is, the more the image changes". Never a prompt line.
+Zero hits for `denoise` in `agentLoop`, `agentTools`, `agentDispatch`, the connector. Reading the
+code found the worse half: **an agent run injected NO denoise.** The PromptBox control returns
+`{ Denoise: v }`; `resolveNamedParams` never set it, so the graph ran its BAKED value while the
+sidecar's `controlState.op.denoise` recorded the project's slider. The 0.3 on both krea2 i2i
+sidecars was the op's default (`commandRegistry.js` `i2i.defaults`), which happens to equal the
+baked 0.3, so nothing looked wrong. **The twin of duration before MPI-820: any control the
+PromptBox injects and `resolveNamedParams` does not is a run that disagrees with its record.**
+Fix: `denoise` is a named param on every op whose components list it, on the duration ladder
+(asked > the project's value for that op > the op's default), advertised by `describe_model` as
+`{min, max, default}`, its meaning ("the higher it is, the more the image changes") in the tool
+description. No prompt line. `tests/agent-denoise.test.cjs`.
 
 ### Its eyes were wrong and nothing recorded what they said (2026-09-20; the record is BUILT, the eyes are OPEN)
 
