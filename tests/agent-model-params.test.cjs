@@ -44,6 +44,33 @@ test('what is not advertised is refused', () => {
     }
 });
 
+// Fabio, 2026-09-20: asked for "1K", expecting 1920x1088, and got 1664x960. The agent was
+// handed tier NAMES only and picked `high` off the name; full HD is `very_high`. `tierSizes`
+// gives it the pixels. Pinned on the two cells of that turn, and on every model: a size is
+// only ever listed for a tier and a ratio the op advertises.
+test('tierSizes gives the real pixels per tier and ratio, so a named resolution is matched on numbers', () => {
+    const h3 = MODELS.find((m) => m.id === 'minimax-h3');
+    const p = namedParamsFor(h3, 't2v_ms');
+    assert.equal(p.tierSizes.high['16:9'], '1664x960');
+    assert.equal(p.tierSizes.very_high['16:9'], '1920x1088');
+    assert.equal(p.tierSizes.very_high['9:16'], '1088x1920');
+
+    for (const [m, op] of PAIRS) {
+        const q = namedParamsFor(m, op);
+        const where = `${m.id}/${op}`;
+        for (const [tier, sizes] of Object.entries(q.tierSizes)) {
+            assert.ok(q.qualityTiers.includes(tier), `${where} sizes a tier it does not advertise: ${tier}`);
+            for (const [label, size] of Object.entries(sizes)) {
+                assert.ok(q.ratios.includes(label), `${where} sizes a ratio it does not advertise: ${label}`);
+                assert.match(size, /^\d+x\d+$/, where);
+            }
+        }
+        if (q.qualityTiers.length && q.ratios.length) {
+            assert.deepEqual(Object.keys(q.tierSizes).sort(), [...q.qualityTiers].sort(), `${where} leaves a tier unsized`);
+        }
+    }
+});
+
 // Fabio, 2026-09-17: an agent's Klein edit landed in a 1:1 card while the image was
 // 832x1248. The op sizes its own output, but the project's saved ratio was injected anyway,
 // and the card took its size from that. Unset ratio = the project's, only where one applies.

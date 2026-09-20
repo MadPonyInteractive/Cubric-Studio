@@ -214,22 +214,30 @@ export function resolveTurboControlId(model) {
  * learned each model's controls by collecting INVALID_* errors.
  * @param {object|null} model
  * @param {string} operation
- * @returns {{ratios: string[], qualityTiers: string[], turbo: boolean, styles: string[]}}
+ * @returns {{ratios: string[], qualityTiers: string[], tierSizes: Object<string, Object<string, string>>, turbo: boolean, styles: string[]}}
  */
 export function namedParamsFor(model, operation) {
     const modelType = model?.type ?? 'flux';
     const qualityTiers = usesQualityTier(modelType) ? [...qualityTiersFor(modelType)] : [];
     const ratios = new Set();
+    // A tier NAME says nothing about pixels: asked for "1K" (Fabio, 2026-09-20), the agent
+    // picked `high` off the name and got 1664x960 - 1920x1088 is `very_high`. The real
+    // canvas per tier and ratio, so a named resolution is matched on numbers.
+    const tierSizes = {};
     if (modelShowsRatio(model, operation)) {
         for (const tier of (qualityTiers.length ? qualityTiers : [undefined])) {
             for (const orient of ['portrait', 'landscape']) {
-                for (const r of getModelRatios(modelType, orient, tier) || []) ratios.add(r.label);
+                for (const r of getModelRatios(modelType, orient, tier) || []) {
+                    ratios.add(r.label);
+                    if (tier && r.w && r.h) (tierSizes[tier] ??= {})[r.label] = `${r.w}x${r.h}`;
+                }
             }
         }
     }
     return {
         ratios: [...ratios],
         qualityTiers,
+        tierSizes,
         turbo: !!resolveTurboControlId(model),
         styles: modelShowsStyleRack(model, operation) ? [...model.styleLoraLabels] : [],
         // Seconds, on a clip op only (MPI-820). Advertised as a RANGE, not a list: the

@@ -26,11 +26,12 @@
     "tests/agent-cards.test.cjs",
     "tests/agent-tools-post.test.cjs",
     "tests/agent-no-delete.test.cjs",
-    "docs/agent-chat.md"
+    "docs/agent-chat.md",
+    "js/data/generationControls.js",
+    "tests/agent-model-params.test.cjs"
   ],
   "read_only": [
     "js/data/flowsRegistry.js",
-    "js/data/generationControls.js",
     "js/utils/ratios.js",
     "js/components/Blocks/MpiBaseFlow/stepKinds.js",
     "js/components/Organisms/MpiStepCrop/MpiStepCrop.js"

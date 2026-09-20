@@ -242,10 +242,32 @@ Raised this pass, NOT built, nothing here goes quiet:
       Reading a card -> it named and re-ran "Duck quack quack at camera" (`i2v_008`, row 1)
       and never opened a note. Two snapped runs (896x1088 into H3) and no offer of a shape
       H3 cannot make.
-- [ ] **"I'll let you know the actual length when it lands" is a promise it cannot keep**
+- [x] **"I'll let you know the actual length when it lands" is a promise it cannot keep**
       (said twice in his fifth pass). A result reaches the model at the START of the next
-      turn, so it never speaks first. Narration only; belongs with the Duration rule's
-      "say I ASKED for N" sentence. Not built.
+      turn, so it never speaks first. Built 2026-09-20 (session ef412dc9): the Duration rule
+      now ends "never promise to report back ... you never speak first ... say the card will
+      show the real length, and that they can ask you then". Pinned by a source-text test.
+      LIVE-SEEN 07:16Z, his first text-to-video: "I asked for 6 seconds ... the card will
+      show the real clip length when it lands". `validation.md` § SIXTH.
+- [x] **"1K" got 1664x960, he expected 1920x1088 (URGENT, his word, 2026-09-20).** The
+      catalogue gave the agent tier NAMES only, so it picked `high` off the name; full HD is
+      `very_high`. `namedParamsFor` now returns `tierSizes` (`{tier: {ratio: 'WxH'}}`) and
+      the Settings rule says match a named resolution on those numbers, never the name.
+      Not live-seen: needs a RESTART (renderer + `services/`). `validation.md` § SEVENTH.
+- [x] **A single action got 6 seconds (5 m 26 s, morphed, redone).** The Duration rule told
+      it to judge the length and named "a sustained action, a camera move that travels" as
+      what earns seconds. His call: the default is 2-3 s, only a SEQUENCE earns more. A
+      draft/final split was proposed first and he turned it down. Not live-seen, same restart.
+- [x] **A setting asked for ONE clip stuck to the next two** ("matched to your 1K request
+      from before"; he cancelled a 3 s and a 10 s render at 1920x1088). Settings rule reworded:
+      default for EACH new clip, their words for THAT clip, only a redo keeps its card's
+      settings. Not live-seen. `validation.md` § SEVENTH.
+- [x] **He closed the app on two running clips and the agent had no trace of either.** His
+      scope: keep ONLY what never landed, never the conversation. `_trackUnfinished` writes
+      each `generate` call to the project note `unfinished-generations.md` at submit and
+      removes it on landing; no tool, no route, no prompt text. Not live-seen: needs a
+      RESTART, then submit a clip, close the app mid-render, reopen, "requeue it".
+      `validation.md` § EIGHTH.
 - [ ] The agent's note said "Base image for ALL animations". A note that generalises from
       two runs steers the third. Not built: the recency sentence is the smaller fix; if the
       live re-run still follows the note, the Memory rule is next.

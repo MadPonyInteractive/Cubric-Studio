@@ -85,8 +85,8 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
 ## Connector routes (W1, `routes/connector.js`)
 
 - **`GET /connector/models`** -> `{ ok, engine: 'local'|'remote', hardware: { gpuName, vramGb, ramGb },
-  models: [{ id, name, type, installed, ops: [{ op, installed, params: { ratios, qualityTiers, turbo,
-  styles }, media: [{ role, type, required, tag? }] }], missingDownloadGb, fit: { floorVramGb,
+  models: [{ id, name, type, installed, ops: [{ op, installed, params: { ratios, qualityTiers,
+  tierSizes: { [tier]: { [ratio]: 'WxH' } }, turbo, styles }, media: [{ role, type, required, tag? }] }], missingDownloadGb, fit: { floorVramGb,
   ramGbAtYourVram, runs }, guides: [id] }], flows: [{ id, title, operation, installed, fields: [{ id, label }],
   boxParams: [{ param, role, ratio, overflow }] }] }`. `params` = `generationControls.namedParamsFor`;
   `media` = the op's `mediaInputs` through `filterMediaInputsForModel` (`mediaRolesFor`); `guides` =
@@ -166,7 +166,11 @@ Every event but `agent:session` also carries `session`, the key of its conversat
   its own chat") and the request, attachments included, runs next in that project's conversation as
   "From <the landing page | project>: ...", with an opening line telling the model the project is
   already open for it (else it re-ran "open X"), and an `agent:user` so the bubble shows live. Tests: `tests/agent-sessions.test.cjs`, `agent-chat.spec.js`.
-- **D6:** memory only; the `<project>/Agent/` notes survive a restart. Nothing is evicted.
+- **D6:** memory only; the `<project>/Agent/` notes survive a restart. Nothing is evicted. The one
+  thing CODE writes there: `unfinished-generations.md` (`AgentLoop._trackUnfinished`) - each `generate`
+  call at submit, removed when it lands, so a cancel or a closed app leaves the exact call to requeue. An
+  ordinary note (listed by the first message, read by `read_memory`); hidden from the list when empty.
+  Never the conversation (Fabio, 2026-09-20). Oldest entries drop to fit one note (~2 long prompts, ~8 short).
 - **Landing jobs** (Project rule): "make X" with no project -> `create_project("New Project")`, open, generate;
   "a new project, the goal is X" -> named after the goal, created, opened, a project-brief `write_memory`, then it asks what to make
   first and generates nothing that turn.

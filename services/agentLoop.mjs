@@ -264,6 +264,9 @@ const MAX_STEPS = 8;
 // happen, and this constant is the knob if the trade ever reads wrong.
 const EARLY_REFUSAL_MS = 1000;
 
+// The project note that holds what was asked for and never landed (`_trackUnfinished`).
+const UNFINISHED_FILE = 'unfinished-generations.md';
+
 /**
  * What the model sees of a `list_models` answer (MPI-774 Phase 7).
  *
@@ -536,6 +539,57 @@ export class AgentLoop {
     }
 
     /**
+     * The one thing a project cannot tell a restarted agent: a generation that was asked for
+     * and never landed. A landed one is a card with a sidecar; a cancelled one, or one the app
+     * closed on, left nothing (Fabio, 2026-09-20: "requeue those two" after a close, and the
+     * agent had no trace of either). Written at submit, removed on landing. It is an ordinary
+     * project note, so the first message already lists it and read_memory already reads it:
+     * no tool, no route, no prompt text, and none of the conversation around it.
+     * Keyed on the prompt, so a requeue replaces its own entry instead of adding one.
+     * ponytail: oldest entries drop to fit one note (MAX_NOTE_BYTES); one nobody requeues
+     * lingers until pushed out. An expiry, if that ever reads as clutter.
+     * @param {?{folderPath: string}} project
+     * @param {object} args   the agent's own `generate` arguments, what it would send again
+     * @param {?string} status  'running', or why it stopped; null = it landed
+     */
+    _trackUnfinished(project, args, status) {
+        // One at a time: a landing and a submit a second apart would each rewrite the whole
+        // note from their own copy, and the slower write would undo the other.
+        this._unfinishedQueue = (this._unfinishedQueue || Promise.resolve())
+            .then(() => this._writeUnfinished(project, args, status));
+        return this._unfinishedQueue;
+    }
+
+    async _writeUnfinished(project, args, status) {
+        if (!project?.folderPath) return;
+        const keyOf = (call) => `${call.flowId || call.modelId}\n${call.prompt || JSON.stringify(call.fields || {})}`;
+        try {
+            if (this._unfinishedFor !== project.folderPath) {
+                const r = await this._tools.readMemory(project.folderPath, UNFINISHED_FILE).catch(() => null);
+                const block = /```json\n([\s\S]*?)\n```/.exec(r?.text || '');
+                this._unfinished = new Map((block ? JSON.parse(block[1]) : []).map((e) => [keyOf(e.generate), e]));
+                this._unfinishedFor = project.folderPath;
+            }
+            const { wait: _wait, ...call } = args;
+            this._unfinished.delete(keyOf(call));
+            if (status) this._unfinished.set(keyOf(call), { status, at: new Date().toISOString(), generate: call });
+
+            const entries = [...this._unfinished.values()];
+            const render = () => (entries.length
+                ? `Asked for and never landed. \`generate\` is the exact call: send it again to requeue.\n\n\`\`\`json\n[\n${entries.map((e) => JSON.stringify(e)).join(',\n')}\n]\n\`\`\`\n`
+                : 'Nothing unfinished.\n');
+            while (entries.length > 1 && Buffer.byteLength(render(), 'utf8') > 4000) entries.shift();
+            const names = entries.map((e) => e.generate.cardName || String(e.generate.prompt || e.generate.flowId || '').slice(0, 30));
+            await this._tools.writeMemory(project.folderPath, {
+                file: UNFINISHED_FILE,
+                title: 'Generations that never finished',
+                hook: entries.length ? `${entries.length}: ${names.join(', ')}`.slice(0, 160) : 'none',
+                text: render(),
+            });
+        } catch { /* a lost ledger line must never fail a generation */ }
+    }
+
+    /**
      * The open project's notes, listed once per project: on the first turn with it open, and
      * again after a switch or a compaction. '' when there is nothing to add (or no route).
      */
@@ -545,7 +599,8 @@ export class AgentLoop {
         try { r = await this._tools.readMemory(project.folderPath); } catch { return ''; }
         if (!r?.ok) return '';
         this._notesProject = project.folderPath;
-        const notes = r.notes || [];
+        // The unfinished-generations note with nothing in it is not worth a line of context.
+        const notes = (r.notes || []).filter((n) => !(n.file === UNFINISHED_FILE && n.hook === 'none'));
         if (!notes.length) return '[Project notes: none yet.]';
         return `[Project notes you kept earlier (read_memory with a file for the whole note):\n${notes
             .map((n) => `- ${n.file}: ${n.title}${n.hook ? ` (${n.hook})` : ''}`).join('\n')}]`;
@@ -725,9 +780,9 @@ ${modeRules}
 
 Model rule: first the TASK, then the model. The task comes from what the user asked for and does not change because another task's op ranks higher: changing an existing picture is the edit task (kleinEdit, krea2Edit, qwenEdit, edit), not i2i, even when the user names a model whose i2i is rank 1. Ranks only ever compare ops WITHIN one task. Inside the task, pick an op that is installed (an op list_models marks installed: false is not, and neither is a model marked runsHere: false, which this machine cannot run at all), and take the lowest rank number (rank 1 is the best we have at it); an op with no rank is unranked, not bad. Take a lower-ranked op over rank 1 only when the user names a model, or when its note matches what they asked for (a note is what the ranking cannot say: "leaves everything outside the edit area untouched", "takes exactly one image", "anime and stylised art"). When you pass over rank 1 for a note, say in one short line which model you used and why. If nothing installed fits, say an install is needed and offer one with install_model.
 
-Settings rule: list_models is the short list and carries no settings. Once you have picked a model or a Flow, call describe_model with its id: it gives each op its params (the only ratio, qualityTier, turbo and styleSelect values that op accepts; styleSelect takes a label from params.styles or its index), the media roles it takes, a Flow's fields and boxes, and its guide ids. Never send a value its params do not list. Start every setting at its default and raise one only when the user's own words asked for it: quality stays at the lowest tier until they want it sharper or bigger, turbo and stylization stay alone, and a style is worth reaching for only when they named a look the rack has. Ratio you infer from words that imply a shape (a platform, portrait, widescreen). Unsure which shape a platform wants, or whether a style is worth it: read_knowledge "app:formats".
+Settings rule: list_models is the short list and carries no settings. Once you have picked a model or a Flow, call describe_model with its id: it gives each op its params (the only ratio, qualityTier, turbo and styleSelect values that op accepts; styleSelect takes a label from params.styles or its index), the media roles it takes, a Flow's fields and boxes, and its guide ids. Never send a value its params do not list. A tier's name is not its size: params.tierSizes has each tier's real pixels per ratio. Match a named resolution there (1K = 1080p = full HD = 1920 on the long side), never on the name, and say the pixels. Start every setting at its default for EACH new clip and raise one only when the user's own words for THAT clip asked for it - what they asked for on one clip never carries to the next, only a redo keeps its card's settings: quality stays at the lowest tier until they want it sharper or bigger, turbo and stylization stay alone, and a style is worth reaching for only when they named a look the rack has. Ratio you infer from words that imply a shape (a platform, portrait, widescreen). Unsure which shape a platform wants, or whether a style is worth it: read_knowledge "app:formats".
 
-Duration rule: a clip op takes duration, in seconds, and it is the ONE setting you judge for yourself rather than leave at its default - the user describes an action, and you decide how long that action needs. Count what has to happen, then budget LESS than your first instinct: you overestimate. Quick beats chain and overlap, they do not each take their own seconds. Measured in this app: a rider pulls the reins, the pony rears up and the rider shouts one short line is three beats and fits in 3 seconds with room to spare. 6 seconds is that same action PLUS the pony breaking into a run with the camera following it. So what earns more seconds is a sustained action, a camera move that travels, or a long spoken line, not the beat count alone. Both misses are failures: a clip that ends mid-action, and a clip whose action finishes early and then idles, which also costs the user a longer wait for nothing. The user naming a length always wins. What you ask for is not always what you get: the answer reports the real durationSeconds, so say THAT number, never the one you asked for. Until that answer is back you only know what you ASKED for, so say "I asked for N seconds" and never state a length as fact.
+Duration rule: a clip op takes duration, in seconds. Default 2 to 3: ONE continuous action fits, however long it could go on (kids playing with a dog, a man enters a bar) - film cuts away by then, and every extra second is render time the user pays again on each re-roll. Only a SEQUENCE earns more, things that must happen one after another (push in on the manager, cut to the barman, he says a line, cut back), or a spoken line too long for 3 seconds. Budget LESS than your first instinct, beats chain and overlap: reins pulled, pony rears, rider shouts one short line is three beats in 3 seconds. The user naming a length always wins. The answer reports the real durationSeconds, so say THAT number; until it is back say "I asked for N seconds", never a length as fact. Never promise to report back ("I'll let you know when it lands"): you never speak first, a generation that finishes after your turn reaches you only when the user writes again. Say the card will show the real length and they can ask then.
 
 Numbering rule: "picture 2", "image 2" or "2" in a message means that message's attached image 2, never an image from an earlier turn. Pass that attachment's id.
 
@@ -938,12 +993,17 @@ ${knowledgeIndex}`.trim();
                         message: `Nothing was generated: ${early.error?.message || 'the generation was refused.'}${miss && where ? ` Call describe_model with "${where}" for the values it accepts, then send it again.` : ''}`,
                     } });
                 }
+                // It is queued. Until it lands, this is the only trace of what was asked for.
+                const askedIn = currentProject;
+                await this._trackUnfinished(askedIn, args, 'running');
+
                 // One settle path, attached two ways. `wait` awaits it so the result is in
                 // hand before the tool returns; the default attaches it and returns
                 // `started: true`. Never both — a double report would emit `agent:result`
                 // twice and push the note twice.
                 const settle = async (r) => {
                     const ok = r && r.ok;
+                    this._trackUnfinished(askedIn, args, ok ? null : (r?.error?.code || 'FAILED'));
                     if (ok && r.output?.filePath) this._registerResult(r.output.filePath, r.output.modelId);
                     if (ok && r.output?.groupId) this._groups.add(r.output.groupId);
                     this._emit('agent:result', {
@@ -974,6 +1034,7 @@ ${knowledgeIndex}`.trim();
                     }
                 };
                 const settleThrow = (err) => {
+                    this._trackUnfinished(askedIn, args, 'RUNTIME_ERROR');
                     this._emit('agent:result', { toolCallId, ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
                     this._historyEntry('result', { toolCallId, ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
                     this._notes.push(`[Generation failed: RUNTIME_ERROR: ${err.message}]`);

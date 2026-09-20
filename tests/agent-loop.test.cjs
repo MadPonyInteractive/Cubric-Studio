@@ -490,6 +490,102 @@ test('the Cards rule says recency is the list order, never a note', () => {
     assert.match(rule, /A project note never answers it/);
 });
 
+/**
+ * Fabio's fifth pass, 2026-09-19: "I'll let you know the actual length when it lands", twice.
+ * It cannot: a finished generation lands in `_notes`, read at the START of the next turn, so
+ * the agent never speaks first. The rule only said what to say BEFORE the answer is back.
+ */
+test('the Duration rule forbids promising to report back, because the agent never speaks first', () => {
+    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
+    const rule = loop.slice(loop.indexOf('Duration rule:'), loop.indexOf('\n', loop.indexOf('Duration rule:')));
+    assert.match(rule, /Never promise to report back/);
+    assert.match(rule, /you never speak first.*only when the user writes again/);
+});
+
+/**
+ * Fabio, live 2026-09-20, first text-to-video: "two kids playing with a dog" got 6 seconds,
+ * 5 m 26 s of render, and the model morphed, so the wait was paid twice. The rule had told the
+ * agent to judge the length and named "a sustained action, a camera move that travels" as what
+ * earns seconds, which is exactly what it wrote. His call: 2-3 s is the default, a sequence
+ * is what earns more.
+ */
+test('the Duration rule defaults to 2-3 seconds and only a sequence earns more', () => {
+    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
+    const rule = loop.slice(loop.indexOf('Duration rule:'), loop.indexOf('\n', loop.indexOf('Duration rule:')));
+    assert.match(rule, /Default 2 to 3: ONE continuous action fits/);
+    assert.match(rule, /Only a SEQUENCE earns more/);
+    // His other call the same morning: remove before adding. The rule was 1212 chars before
+    // this change and must not grow past it again without someone deciding it should.
+    assert.ok(rule.length <= 1212, `the Duration rule is ${rule.length} chars`);
+    assert.doesNotMatch(rule, /a sustained action, a camera move that travels/, 'the sentence that sent a single action to 6 s');
+    assert.match(rule, /The user naming a length always wins/);
+});
+
+/** Same session: "1K" became `high` (1664x960) because a tier was picked by its NAME. */
+test('the Settings rule matches a named resolution on tierSizes, never on a tier name', () => {
+    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
+    const rule = loop.slice(loop.indexOf('Settings rule:'), loop.indexOf('\n', loop.indexOf('Settings rule:')));
+    assert.match(rule, /params\.tierSizes has each tier's real pixels/);
+    assert.match(rule, /1K = 1080p = full HD = 1920 on the long side/);
+    // An hour later: "1K" asked for ONE redo stuck to the next two clips ("matched to your 1K
+    // request from before"), a 3 s and a 10 s render at 2.09 MP he had to cancel.
+    assert.match(rule, /never carries to the next, only a redo keeps its card's settings/);
+});
+
+/**
+ * Fabio, live 2026-09-20: he closed the app on two running clips, reopened it, asked "requeue
+ * those two", and the agent had no trace of either: a conversation is memory only, and a clip
+ * that never lands leaves no card. His scope, not mine: ONLY what never landed is worth
+ * keeping, never the conversation around it. So: one project note, written at submit, removed
+ * on landing, listed by the message that already lists notes.
+ */
+test('a generation that never landed survives a restart as a project note, and landing removes it', async () => {
+    const project = { folderPath: '/project', name: 'Test' };
+    const store = new Map(); // file -> { title, hook, text }: the project's Agent/ folder
+    const withNotes = (tools) => Object.assign(tools, {
+        readMemory: async (_folder, file) => {
+            if (!file) return { ok: true, notes: [...store].map(([f, n]) => ({ file: f, title: n.title, hook: n.hook })) };
+            return store.has(file) ? { ok: true, file, text: store.get(file).text } : { ok: false, error: { code: 'UNKNOWN_NOTE' } };
+        },
+        writeMemory: async (_folder, note) => { store.set(note.file, note); return { ok: true }; },
+    });
+    const call = '{"modelId":"test-model","operation":"t2v","prompt":"A cowboy takes off his hat","qualityTier":"medium","duration":3,"cardName":"Cyberpunk cowboy"}';
+    const generateTurn = [{ text: '', toolCalls: [{ id: 'tc-1', type: 'function', function: { name: 'generate', arguments: call } }] }, { text: 'Rendering.' }];
+
+    // 1. Submitted, and the app closes before it lands: the promise never settles.
+    const first = await makeLoop({ engineResponses: generateTurn });
+    withNotes(first.tools).generate = () => new Promise(() => {});
+    await first.loop.runTurn('A cowboy', [], project, 'auto', 'deepinfra', 'turn-1');
+
+    const note = store.get('unfinished-generations.md');
+    assert.ok(note, 'nothing was written at submit');
+    assert.equal(note.hook, '1: Cyberpunk cowboy');
+    const [entry] = JSON.parse(/```json\n([\s\S]*?)\n```/.exec(note.text)[1]);
+    assert.equal(entry.status, 'running');
+    assert.deepEqual(entry.generate, JSON.parse(call), 'the note must hold the exact call, or a requeue is a guess');
+    assert.doesNotMatch(note.text, /Rendering\./, 'none of the conversation belongs in it');
+
+    // 2. A new loop = after the restart. The message that lists notes names the clip.
+    const second = await makeLoop({ engineResponses: generateTurn });
+    withNotes(second.tools);
+    await second.loop.runTurn('requeue it', [], project, 'auto', 'deepinfra', 'turn-2');
+    const heard = JSON.stringify(second.engine.calls[0].messages);
+    assert.match(heard, /unfinished-generations\.md: Generations that never finished \(1: Cyberpunk cowboy\)/);
+
+    // 3. That requeue was the same call and it LANDED (the default fake does): the entry is
+    //    gone, not doubled, and an empty note costs the next conversation no line at all.
+    await second.loop._unfinishedQueue;
+    assert.equal(store.get('unfinished-generations.md').hook, 'none');
+    const third = await makeLoop({ engineResponses: [{ text: 'Hi.' }] });
+    withNotes(third.tools);
+    await third.loop.runTurn('hello', [], project, 'auto', 'deepinfra', 'turn-3');
+    assert.doesNotMatch(JSON.stringify(third.engine.calls[0].messages), /unfinished-generations/);
+
+    // 4. A cancel is not a landing: it stays, with why.
+    await third.loop._trackUnfinished(project, JSON.parse(call), 'CANCELLED');
+    assert.match(store.get('unfinished-generations.md').text, /"status":"CANCELLED"/);
+});
+
 // ---------------------------------------------------------------------------
 // (e) image references: only this session's attachments and its own results
 // ---------------------------------------------------------------------------

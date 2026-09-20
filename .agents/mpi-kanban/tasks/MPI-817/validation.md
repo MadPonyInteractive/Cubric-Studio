@@ -469,3 +469,192 @@ into H3, no offer of 768x1024), and **still the `_post` fetch fix**: this pass's
 
 Noticed, not built: *"I'll let you know the actual length when it lands"*, twice. It cannot —
 a result reaches the model at the start of the NEXT turn. On the checklist.
+
+---
+
+# SIXTH, 2026-09-20 — the promise it cannot keep (built, NOT live-seen)
+
+CI first: run 35469616004 on `cddd86f1` = success, and the three master runs after it.
+
+Mechanism, read not guessed: a generation that finishes after the turn lands in `this._notes`,
+which `services/agentLoop.mjs` reads at the START of the next turn (comment at the `_notes`
+write). Nothing lets the agent open a turn, so "I'll let you know when it lands" is false by
+construction. The Duration rule told it what to say BEFORE the answer is back ("I asked for N
+seconds") and nothing about AFTER, which is the hole the promise filled.
+
+Edit: one sentence appended to the Duration rule — never promise to report back, you never
+speak first, a generation that finishes after your turn reaches you only when the user writes
+again; say the card will show the real length and that they can ask then.
+
+- `node --test tests/agent-*.test.cjs` → 151 tests, 150 pass, 0 fail, 1 skipped (the LIVE
+  DeepInfra test, no key in the agent shell — skipped before this change too).
+- New test `the Duration rule forbids promising to report back…` passes; the pre-fix source
+  has 0 matches for its first regex (`git show HEAD:services/agentLoop.mjs | grep -c`), so it
+  is red on the old rule.
+- `eslint services/agentLoop.mjs tests/agent-loop.test.cjs --max-warnings=0` → clean.
+- `docs/agent-chat.md` does not quote the Duration rule; no doc edit owed.
+
+**Owed by Fabio's eyes:** restart the app (`services/` loads at boot), ask for one clip WITHOUT
+a chained second step (so it is not waited), and read the narration: it should say "I asked
+for N seconds" and point at the card, with no "I'll let you know". An LLM's choice cannot be
+unit-tested; the test pins the sentence, the pass is the proof.
+
+**LIVE, 07:16Z, his screenshot (first text-to-video ask, new project "Anime Kids and Dog"):**
+`app.log` `Server started` **07:15:08Z**, after the 07:05Z edit, so the restart loaded it. One
+non-waited H3 t2v clip, job 1eff025f `generation.submit` 07:16:02Z. Narration, verbatim: *"I
+asked for **6 seconds** to give the play room to unfold. The card will show the real clip
+length when it lands — note that's what the run actually produces, which may differ slightly
+from what I asked for. If it comes back and you'd like it longer ... just say so and I'll redo
+it."* No "I'll let you know". **PASS** - one run, so "the symptom did not recur", same weight
+as the snap note.
+
+Same screenshot, the cosmetic fault reproduced: the step log reads Starting generation →
+Reading: guide:minimax-h3 → Starting generation, against ONE `generation.submit`. The first
+"Starting generation" is the refused `GUIDE_NOT_READ` call. Still open on the checklist.
+
+**The clip landed (`t2v_001`), his verdict: good, the prompt achieved the result.** First
+text-to-video through the agent. Sidecar `ff7a05d8…json`: `modelId` minimax-h3, `operation`
+`t2v_ms`, `Input_is_Turbo: true`, `qualityTier: medium`, `Input_Duration: 6` → real
+`duration: 5.875` at 24 fps, 1344x768, `Ratio_Label` 16:9 (no source, so no snap),
+`generationMs` 325869 (5 m 26 s). Turbo + medium is the Auto-mode line in `agentLoop.mjs`
+("For video: use qualityTier 'medium' and turbo: true"), not a guess by the model. The
+response was held **~326 s**, past Node fetch's 300 s limit, and the thumbnail landed in the
+chat with no red line: the `_post` fix holds on the t2v path too. The card reads 6S for 5.875.
+
+His correction, same hour, so nobody misreads "good": the AGENT's half was right (prompt,
+movement, settings). The clip still had to be repeated because the MODEL morphed. That is a
+re-roll, not an agent fault - and a re-roll at 6 s costs 5 m 26 s each. His point: 2-3 s was
+his default for exactly this reason, and the Duration rule sends the first render of an
+unseen idea straight to full length. A draft/final split was proposed and he TURNED IT DOWN
+("if I said something that needs more time, the agent can't possibly fit it into 2 seconds").
+His rule instead: 2-3 s is the default, go above it only when the request cannot fit.
+
+---
+
+# SEVENTH, 2026-09-20 — "1K" got 1664x960, and a single action got 6 seconds (built, NOT live-seen)
+
+**1. The resolution (urgent, his word).** He asked "redo it in 1K" expecting full HD. Both
+sidecars: `t2v_001` `qualityTier: medium` 1344x768; `t2v_002` `qualityTier: high`
+**1664x960**, 2 s, turbo, 212.7 s. The agent's own words: "bumped the quality tier up to
+high, which gives the ~1K resolution". Root cause, read not guessed: `GET /connector/models`
+→ `namedParamsFor` handed it `qualityTiers` as bare NAMES (`very_low … high, very_high, 2k,
+4k`) and no pixels anywhere, so a resolution could only be matched on how a name sounds.
+1920x1088 is `very_high` (`js/utils/ratios.js`). The route, the tier table and the injection
+are all correct; the agent was never told what a tier IS.
+
+Fix at the source: `namedParamsFor` returns `tierSizes: { [tier]: { [ratio]: 'WxH' } }`, built
+in the loop that already walks tier x orientation x ratio (572 chars for an H3 op). Settings
+rule: a tier's name is not its size, match a named resolution on `tierSizes`, "1K, 1080p and
+full HD all mean 1920 on the long side", say the real pixels. `docs/agent-chat.md` route shape
+updated. NOT changed: the tier names themselves, and the UI.
+
+**2. The duration.** The old rule named "a sustained action, a camera move that travels" as
+what earns seconds, and the agent's prompt was "running … gentle tracking camera" → 6. New
+rule: the default is 2 to 3 seconds; ONE continuous action is 2-3 s however long it could go
+on (his examples: kids and a dog, a man enters a bar); what earns more is a SEQUENCE (his
+coffee-shop example) or a line too long to say in 3 s. His two measured anchors stay, the 6 s
+one reworded as "a second stage". "The user naming a length always wins" untouched.
+
+- `node --test tests/agent-*.test.cjs tests/connector-*.test.cjs` → 255 tests, 254 pass,
+  0 fail, 1 skipped (the LIVE DeepInfra test, no key).
+- New: `tierSizes gives the real pixels…` (H3 `high` 16:9 = 1664x960, `very_high` =
+  1920x1088 / 1088x1920, and on EVERY model+op a size only for an advertised tier and ratio,
+  no tier left unsized); `the Duration rule defaults to 2-3 seconds…` (also asserts the old
+  sentence is GONE); `the Settings rule matches a named resolution on tierSizes…`.
+- eslint on the four changed code files → clean.
+
+**Then TRIMMED, same hour, on his word ("always better to remove than to add").** Measured:
+the 16 rules were 10,462 chars at HEAD and 11,562 after the two fixes above (+10.5%), with
+the Duration rule the biggest in the prompt at 1,958. Rewritten to 1,011 (under its 1,212 at
+HEAD) and the Settings sentence 354 → 205: total **10,466, net +4 chars for three behaviours**.
+Cut from Duration: the "both misses are failures" paragraph, the 6 s anchor, the measured
+5 m 26 s anecdote. A test now fails if the Duration rule grows past 1,212 again. `tierSizes`
+costs 572 chars per H3 op, 1,144 for the whole `describe_model` answer, and only on that call.
+**His three tests ran against the LONG text** (loaded at his restart, before the trim), so a
+pass proves the idea, not these words: the trimmed text needs one more restart.
+
+**LIVE, 07:58-08:04Z, on the LONG text (his chat, pasted; sidecars + `app.log`):**
+- **1K: PASS.** "Redo the latest video in 1K" → `very_high`, **1920x1088**, 2 s, 259.7 s, and
+  it named the pixels and the tier ("long side 1920"). Same seed 742897577 as `t2v_002`.
+- **Single action: PASS.** The cowboy got 3 s, "one clear 3-second beat".
+- **Sequence: PASS.** Four cuts got 10 s, "a real sequence ... rather than a single 3-second
+  action". It said why, unprompted.
+- **NEW FAULT, his words "I did not ask for the last two to be 1K":** the 1K he asked for on
+  ONE redo stuck to the next two unrelated clips ("matched to your 1K request from before"),
+  so a 3 s and a 10 s render went out at 2.09 MP and he cancelled both. The Settings rule
+  said "raise one only when the user's own words asked for it" and never said for WHICH
+  clip. Reworded, no new sentence: default for EACH new clip, their words for THAT clip, what
+  they asked on one clip never carries to the next, only a redo keeps its card's settings.
+  Pinned. Rules total 10,597 (+135 over HEAD). NOT live-seen: built after his 08:05:51Z
+  restart, which loaded the TRIMMED text but not this.
+- Noticed, not built (narration, his call under "remove, don't add"): it said the 1K redo
+  kept "the same seed so the scene comes back the same way" - false, a different canvas is a
+  different latent shape and a different sample (`js/utils/ratios.js`). And after the
+  medium redo: "both are now re-rendered" while they were still rendering, and an offer to
+  "drop them to the base 1344x768 tier", which is the tier they were already at.
+
+**Owed by Fabio's eyes, ONE restart covers both** (`js/data/` is renderer, `services/` is boot):
+1. "Redo it in 1K" (or "full HD") on the H3 clip → the card should read **1920 x 1088**, and
+   the agent should name those pixels. Cost warning from `ratios.js`: `very_high` is 2.09 MP,
+   measured 3.3x the time of native per frame - ask for 2 s.
+2. A fresh single-action ask ("a man enters a bar") → 2 or 3 s, not 5-6.
+3. A real sequence (the coffee-shop one) → it should still go longer, and say why.
+
+**LIVE AGAIN, 08:09-08:24Z, on the TRIMMED text** (`Server started` 08:05:51Z, after the
+07:50Z trim; a fresh conversation, so no "1K" in its history). His verdict: "a success".
+- "A cyberpunk cowboy ... all he does is take off his hat and look at the camera" → job
+  9692f33e, `Input_Duration: 3` → 3.042 s, medium 1344x768, turbo, 167 s. Narration: "one
+  continuous action ... asked for 3 seconds ... the real length will show on the card".
+- The fire-truck sequence, four shots → job 31453f08, `Input_Duration: 10` → 10.125 s,
+  medium, turbo, 587 s (held past 300 s again and landed). Narration: "a genuine sequence
+  (four beats that must happen in order), I budgeted around 10 seconds rather than the
+  usual 2-3".
+So the 1,011-char Duration rule does what the 1,958-char one did: **the trim cost nothing.**
+Both came out at medium, which is the default and NOT proof of the per-clip fix: that was
+built after this restart, and this conversation never asked for 1K.
+
+---
+
+# EIGHTH, 2026-09-20 — what never landed survives a restart (built, NOT live-seen)
+
+Live, ~08:06Z: he closed the app on two running clips (cowboy, fire truck, both the medium
+redo), reopened, asked "do you remember those? can you requeue those?". The agent listed the
+project, found three park clips, and said honestly it had no trace. Correct, and useless: D6
+keeps a conversation in memory only, and a clip that never lands leaves no card and no sidecar.
+
+Three designs were on the table and HE cut them down, in this order, do not re-offer the
+first two: (1) persist + reload the whole conversation - refused, a restarted project would
+start with a big context; (2) an archived digest of the conversation the agent can read -
+refused, "the user might talk a lot of crap that never amounts to anything"; (3) his: landed
+generations already carry their prompt, ONLY cancelled / never-finished ones do not. Built (3).
+
+`AgentLoop._trackUnfinished(project, args, status)`: at submit (after the early-refusal
+window, so a refused call is never recorded) it writes the agent's own `generate` args to the
+project note `unfinished-generations.md`; `settle` removes it on a landing and stamps the
+error code otherwise; `settleThrow` stamps RUNTIME_ERROR. Keyed on model + prompt, so the
+cancelled 1K cowboy and its medium redo are ONE entry with the newer settings. Serialised
+through one promise chain (two submits landed 1 s apart this morning). It is an ordinary note:
+the first message already lists it with a hook ("2: Cyberpunk cowboy, Fire truck crash"),
+`read_memory` already reads it. **No new tool, no new route, 0 chars of prompt.** An empty
+note is filtered out of the listing, so a project with nothing unfinished pays nothing.
+
+- `tests/agent-loop.test.cjs` → `a generation that never landed survives a restart…`: submit
+  with a promise that never settles → the note holds the EXACT call, status `running`, none
+  of the chat; a NEW loop on the same store hears the hook in its first message; the requeue
+  lands → hook `none`; a third loop's first message has no line for it; a cancel stays.
+- Smoke against the REAL store (`services/agentMemory.mjs`, scratch project, script in the
+  session scratchpad): four 1.5 KB prompts → the newest 2 kept in 3,424 bytes (note cap
+  4,096); a fresh loop hydrated from the file, landed one, the other survived; the real
+  `_projectNotesLine` printed `unfinished-generations.md: Generations that never finished
+  (1: Clip 3)`.
+- agent + connector tests: 256, 255 pass, 0 fail, 1 skipped (live key). eslint clean.
+
+Known ceilings, all deliberate: ~2 fire-truck-size prompts or ~8 short ones fit one note,
+oldest drop first; an entry nobody requeues lingers until pushed out; the landing-page
+conversation has no project, so nothing is kept for it; a requeue of an image-to-video after
+a restart still has to find its frame through `list_cards`, this note only holds the ref.
+
+**Owed by Fabio's eyes:** restart; ask for one clip; close the app while it renders; reopen;
+"requeue what I lost". Pass = it names the clip from its first message, reads the note, and
+sends the same prompt and settings with no questions. Then let it land and check
+`<project>/Agent/unfinished-generations.md` reads "Nothing unfinished."

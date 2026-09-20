@@ -2,6 +2,35 @@
 
 ## Current State
 
+**SESSION ef412dc9 (2026-09-20 morning, from handoff d1ea2fa8). CI green on cddd86f1 (run
+35469616004). ONE EDIT: the Duration rule in `services/agentLoop.mjs` now ends "never promise
+to report back ... you never speak first ... say the card will show the real length, and that
+they can ask you then" - the agent had twice said "I'll let you know the actual length when it
+lands", and a late result only reaches it at the START of the next turn (`_notes`). Pinned by a
+source-text test in `tests/agent-loop.test.cjs`; 150 pass / 0 fail / 1 skipped (live key),
+lint clean. LIVE-SEEN 07:16Z on his first text-to-video (`validation.md` § SIXTH).
+THEN TWO MORE FROM THAT SAME CONVERSATION, built, NOT live-seen, ONE restart covers both
+(`validation.md` § SEVENTH): (1) URGENT - "1K" got 1664x960 not 1920x1088, because the
+catalogue gave tier NAMES and no pixels; `namedParamsFor` (`js/data/generationControls.js`)
+now returns `tierSizes` and the Settings rule matches a named resolution on it. (2) A single
+action got 6 s (5 m 26 s, morphed, redone): the Duration rule now DEFAULTS to 2-3 s and only
+a SEQUENCE earns more - his wording; a draft/final split was offered and REFUSED, do not
+re-offer it. His three live tests PASSED on those (1K = 1920x1088, cowboy 3 s, four-cut
+sequence 10 s) and exposed two more, both built, NOT live-seen: (3) a setting asked for ONE
+clip stuck to the next two - Settings rule reworded, per clip, only a redo keeps settings;
+(4) he closed the app on two running clips and the agent had no trace - `_trackUnfinished`
+keeps ONLY what never landed, as the project note `unfinished-generations.md` (no tool, no
+route, no prompt text; persisting or archiving the CONVERSATION was offered twice and
+REFUSED, `validation.md` § EIGHTH). The rules were also TRIMMED on his word ("remove, don't
+add"): 10,462 chars at HEAD, 10,597 now, and a test caps the Duration rule at 1,212.
+255 pass / 0 fail over agent + connector tests, lint clean. The TRIMMED Duration rule then
+passed live too (08:09-08:24Z, fresh conversation: cowboy 3.042 s, four-shot fire truck
+10.125 s, both medium, his verdict "a success") - the trim cost nothing.
+NEXT: his eyes on (3) and (4), ONE restart; then the refused-`generate` "Starting
+generation" step line (cosmetic), `settleThrow` logging `err.cause`, Ollama's 600 s that is
+really 300 s. Dispatch evaluation re-run (10 ready cards): nothing finishes unattended, none
+dispatched. MPI-820 still closable at end-session; `__ARG__` still Fabio's to delete.**
+
 **SESSION 40e3efaf (2026-09-19 late, from handoff d32b6a37). FABIO'S FOURTH PASS. CI green on
 1f3bd9fd. `list_cards` ran live: CALLED, no "I can't see the file" (the stated pass), and the
 WRONG CARD picked - "the last video" was answered from a project note whose list stopped one
