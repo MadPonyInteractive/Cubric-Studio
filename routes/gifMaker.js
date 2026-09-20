@@ -69,7 +69,7 @@ const { promisify } = require('util');
 const { v4: uuidv4 } = require('uuid');
 const sharp = require('sharp');
 const logger = require('./logger');
-const { writeFrame, buildGif, MIN_DELAY_HUNDREDTHS } = require('../services/gifFrames');
+const { writeFrame, buildGif, builtGifDimensions, MIN_DELAY_HUNDREDTHS } = require('../services/gifFrames');
 const { extractImageThumb, imageThumbPath, IMAGE_RENDITION_PX } = require('../services/ffmpegThumb');
 const { ffmpegPath } = require('../services/ffmpegBinary');
 const { nextSequence } = require('./projects');
@@ -231,7 +231,6 @@ router.post('/gif/maker', async (req, res) => {
         outputPath = path.join(mediaDir, finalName);
         await buildGif(gifEntry, mediaDir, outputPath);
 
-        const builtMeta = await sharp(outputPath).metadata();
         const id = uuidv4();
         const _mtime = (await fs.stat(outputPath).catch(() => null))?.mtimeMs || 0;
         const filePathUrl = `/project-file?path=${encodeURIComponent(outputPath)}&v=${Math.round(_mtime)}`;
@@ -248,7 +247,7 @@ router.post('/gif/maker', async (req, res) => {
             createdAt: new Date().toISOString(),
             name: null,
             uploaded: false,
-            pixelDimensions: { w: builtMeta.width, h: builtMeta.height },
+            pixelDimensions: await builtGifDimensions(outputPath),
             generationMs: null,
             gif: gifEntry,
         };

@@ -84,7 +84,7 @@ const logger = require('./logger');
 const {
     frameAbsPath,
     frameExists,
-    frameDimensions,
+    builtGifDimensions,
     writeFrame,
     buildGif,
 } = require('../services/gifFrames');
@@ -380,7 +380,7 @@ router.post('/gif-cutout/apply', async (req, res) => {
             createdAt: new Date().toISOString(),
             name: null,
             uploaded: false,
-            pixelDimensions: await frameDimensions(mediaDir, newFrames[0].hash),
+            pixelDimensions: await builtGifDimensions(outputPath),
             generationMs: null,
             gif: gifEntry,
             cutout: cutoutRecord(settings, adjust, invert),

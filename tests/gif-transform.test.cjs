@@ -121,7 +121,10 @@ test('Crop then GIF to Video: 9:16 crop preserves delay/loop, GIF to Video gives
         assert.equal(cropped.gif.frames.length, 3);
         assert.deepEqual(cropped.gif.frames.map((f) => f.delay), [300, 300, 300], 'delays must survive Crop');
         assert.equal(cropped.gif.loop, 3, 'loop must survive Crop');
-        assert.deepEqual(cropped.pixelDimensions, { w: 405, h: 723 });
+        // The BUILT .gif, not the crop rect (MPI-844). `buildGif`'s scale filter leaves the
+        // free edge at `-2`, which forces it even, so a 405-wide crop lands a 406-wide file.
+        // A card advertising 405 described a file that does not exist.
+        assert.deepEqual(cropped.pixelDimensions, { w: 406, h: 723 });
 
         // Every cropped frame is a solid crop of its source colour — centre pixel
         // must match exactly (no antialiasing possible on a flat interior crop).

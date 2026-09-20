@@ -104,17 +104,6 @@ function frameExists(mediaDir, hash) {
 }
 
 /**
- * An entry's `pixelDimensions`: its FIRST frame's size, the canvas every later
- * frame is fitted to (Make GIF's first-clicked image sets it). Routes that land
- * an entry from existing frames read it here rather than stamping `{w:0,h:0}`,
- * which the history list renders as `?×?`.
- */
-async function frameDimensions(mediaDir, hash) {
-    const { width, height } = await sharp(frameAbsPath(mediaDir, hash)).metadata();
-    return { w: width || 0, h: height || 0 };
-}
-
-/**
  * Write one frame into the content-addressed store. A no-op (besides the hash)
  * when the content already exists — this is what makes "identical frames
  * written once" true for a reorder/retime edit that touches no pixels.
@@ -295,6 +284,26 @@ function patchGifDelays(buffer, delaysHundredths, opts = {}) {
 }
 
 /**
+ * A GIF card's `pixelDimensions`: the size of the BUILT `.gif`, measured after
+ * `buildGif()` wrote it — never the frame store's.
+ *
+ * The two differ more often than it looks. `buildGif`'s scale filter caps the
+ * long edge at `output.maxEdge` and leaves the other at `-2`, so it is also
+ * forced to an even number: 1536x640 frames with maxEdge 1024 build a 1024x426
+ * file, and 405x723 frames with nothing capped build a 406x723 one. Stamping
+ * the frames' size made a card advertise a file that does not exist — Fabio set
+ * longest edge to 1024, got a 1024x426 `.gif`, and read `1536x640` on its card
+ * (MPI-844). Every route that writes a GIF card measures through here.
+ *
+ * @param {string} absPath the built `.gif`
+ * @returns {Promise<{w: number, h: number}>}
+ */
+async function builtGifDimensions(absPath) {
+    const { width, height } = await sharp(absPath).metadata();
+    return { w: width || 0, h: height || 0 };
+}
+
+/**
  * Build a `.gif` from a frame list: two-pass palette (as `routes/videoGif.js`),
  * one GIF frame per list entry at a constant rate, then patch every delay.
  *
@@ -451,7 +460,7 @@ module.exports = {
     hashBuffer,
     totalPlaysToRawLoop,
     frameExists,
-    frameDimensions,
+    builtGifDimensions,
     writeFrame,
     extractFramesFromGif,
     buildGif,

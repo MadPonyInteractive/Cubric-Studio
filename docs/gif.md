@@ -42,6 +42,25 @@ export) keeps working unchanged. `filePath` points at the BUILT `.gif` in
   both the on/off toggle and the blend colour (plan Decision 4); no separate
   boolean.
 
+### `pixelDimensions` is the BUILT `.gif`, never the frames (MPI-844)
+
+The card's size label reads `item.pixelDimensions`, and on a GIF card that must be the
+size of the file `filePath` points at — measured through
+`builtGifDimensions(outputPath)` after `buildGif()`, at every route that writes one.
+
+It is NOT the frame store's size, and the two diverge for two independent reasons:
+
+- `output.maxEdge` caps the longest side. 1536×640 frames at `maxEdge: 1024` build a
+  **1024×426** file.
+- The build's scale filter leaves the free edge at `-2`, forcing it even, so an odd
+  frame edge moves with nothing capped at all: 405 → 406, 41 → 40. Which way it rounds
+  is ffmpeg's, so tests pin the measured value rather than a rule.
+
+Stamping the frame size made a card advertise a file that does not exist — Fabio set
+longest edge to 1024, got a 1024×426 `.gif`, and read `1536×640` on its card
+(2026-09-20). `frameDimensions()` was removed with the last caller; anything that
+genuinely wants the frame canvas should read a frame, and say so.
+
 ## The frames store — content-addressed, swept (NOT permanent)
 
 `Media/.gif-frames/<sha256>.png` (full frame) + `<sha256>.thumb.<w>.webp`

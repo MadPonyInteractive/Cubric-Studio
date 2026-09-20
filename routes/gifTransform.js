@@ -68,6 +68,7 @@ const {
     frameExists,
     writeFrame,
     buildGif,
+    builtGifDimensions,
 } = require('../services/gifFrames');
 const { planExtendedCrop, parseFill } = require('../services/imageCrop');
 const { extractImageThumb, imageThumbPath, IMAGE_RENDITION_PX } = require('../services/ffmpegThumb');
@@ -124,8 +125,13 @@ async function _transformFrames(mediaDir, frames, transformOne) {
  * Build the .gif, write its sidecar and thumb, and shape the `{item, group}`
  * response — the part `POST /gif/crop` and `POST /gif/resize` share, mirrors
  * `routes/gifCutout.js`'s `/gif-cutout/apply` tail exactly (same precedent).
+ *
+ * `pixelDimensions` is NOT a parameter: it is measured off the built file here
+ * (MPI-844). Both callers knew the size they were transforming TO, and that is
+ * the frame canvas, not the `.gif` — `buildGif` still caps it at `maxEdge` and
+ * rounds the free edge even.
  */
-async function _writeNewGifCard({ folderPath, mediaDir, metaDir, newFrames, loop, output, pixelDimensions, operation, sourceItemId, sourceGroupId }) {
+async function _writeNewGifCard({ folderPath, mediaDir, metaDir, newFrames, loop, output, operation, sourceItemId, sourceGroupId }) {
     const gifEntry = {
         frames: newFrames,
         loop: Number.isFinite(Number(loop)) ? Number(loop) : 0,
@@ -154,7 +160,7 @@ async function _writeNewGifCard({ folderPath, mediaDir, metaDir, newFrames, loop
         createdAt: new Date().toISOString(),
         name: null,
         uploaded: false,
-        pixelDimensions,
+        pixelDimensions: await builtGifDimensions(outputPath),
         generationMs: null,
         gif: gifEntry,
         sourceItemId: sourceItemId || null,
@@ -217,7 +223,6 @@ router.post('/gif/crop', async (req, res) => {
 
         const result = await _writeNewGifCard({
             folderPath, mediaDir, metaDir, newFrames, loop, output,
-            pixelDimensions: resample ? { w: targetW, h: targetH } : { w: rectW, h: rectH },
             operation: 'gifCrop',
             sourceItemId, sourceGroupId,
         });
@@ -261,7 +266,6 @@ router.post('/gif/resize', async (req, res) => {
 
         const result = await _writeNewGifCard({
             folderPath, mediaDir, metaDir, newFrames, loop, output,
-            pixelDimensions: { w: targetW, h: targetH },
             operation: 'gifResize',
             sourceItemId, sourceGroupId,
         });

@@ -275,6 +275,71 @@ test('sweep is a cheap no-op for a project that never had a GIF', async () => {
     assert.deepEqual(result, { removed: 0 });
 });
 
+/* ── a card's pixelDimensions is the BUILT .gif, never the frame store (MPI-844) ── */
+
+/**
+ * Fabio set longest edge to 1024, got a 1024x426 file, and read `1536x640` on its card
+ * (2026-09-20). Every route stamped the frame store's size two lines after `buildGif()`
+ * wrote a file scaled by `output.maxEdge`.
+ *
+ * Both halves of the divergence are covered here, because `maxEdge` is only one of them:
+ * the scale filter leaves the free edge at `-2`, so it is forced even as well.
+ */
+test('gif entry: the card reports the BUILT gif size, not the frames it was built from', async () => {
+    const express = require('express');
+    const projectsRouter = require('../routes/projects.js');
+    const gifRouter = require('../routes/gif.js');
+
+    const { root, mediaDir } = await tmpProject();
+
+    // 200x80 frames capped to a 100px longest edge -> a 100x40 file.
+    const { hash: wide } = await gifFrames.writeFrame(mediaDir, await solidPng('red', 200, 80));
+    // 41x20 frames, nothing capped -> the odd width still moves, to 40.
+    const { hash: odd } = await gifFrames.writeFrame(mediaDir, await solidPng('blue', 41, 20));
+
+    const app = express();
+    app.use(express.json());
+    app.use(projectsRouter);
+    app.use(gifRouter);
+    const server = await new Promise(r => { const s = app.listen(0, '127.0.0.1', () => r(s)); });
+    const post = (body) => fetch(`http://127.0.0.1:${server.address().port}/gif/entry`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folderPath: root, mode: 'new', loop: 0, ...body }),
+    }).then(r => r.json());
+
+    try {
+        const capped = await post({
+            frames: [{ hash: wide, delay: 10 }],
+            output: { maxEdge: 100, colours: 256, edgeColour: null },
+        });
+        assert.equal(capped.success, true, `capped entry failed: ${capped.error}`);
+        assert.deepEqual(capped.item.pixelDimensions, { w: 100, h: 40 },
+            'longest edge 100 built a 100x40 file — the card must not advertise the 200x80 frames');
+
+        const rounded = await post({
+            frames: [{ hash: odd, delay: 10 }],
+            output: { maxEdge: 1024, colours: 256, edgeColour: null },
+        });
+        assert.equal(rounded.success, true, `odd entry failed: ${rounded.error}`);
+        assert.deepEqual(rounded.item.pixelDimensions, { w: 40, h: 20 },
+            'nothing is capped here: the odd 41px edge is rounded even by the build itself. '
+            + 'Which way it rounds is ffmpeg\'s `-2`, not ours — 41 goes down to 40, 405 goes up '
+            + 'to 406 — so this is pinned to what it measured, not to a rule.');
+
+        // ...and the numbers on the card are the file's, checked against the file.
+        for (const r of [capped, rounded]) {
+            const abs = path.normalize(decodeURIComponent(r.item.filePath.replace(/^.*[?&]path=/, '').split('&')[0]));
+            const meta = await sharp(abs).metadata();
+            assert.deepEqual({ w: meta.width, h: meta.height }, r.item.pixelDimensions,
+                'the label and the file must agree');
+        }
+    } finally {
+        await new Promise(r => server.close(r));
+        await fs.remove(root);
+    }
+});
+
 /* ── routes/gif.js: Update writes a new sequenced name, deletes the old file ── */
 
 test('gif entry Update rewrites the current item under a NEW filename (E5)', async (t) => {
@@ -321,7 +386,9 @@ test('gif entry Update rewrites the current item under a NEW filename (E5)', asy
 
         const onDisk = await fs.readJson(path.join(metaDir, 'item1.json'));
         assert.equal(onDisk.gif.frames.length, 2);
-        // The history list shows `?×?` for {w:0,h:0}: both modes read the first frame's size.
+        // Both modes measure the BUILT file (MPI-844). 32x24 is under maxEdge and even on
+        // both axes, so here the built size and the frame size agree — the test below is
+        // the one that separates them.
         assert.deepEqual(onDisk.pixelDimensions, { w: 32, h: 24 });
 
         const added = await fetch(`http://127.0.0.1:${server.address().port}/gif/entry`, {

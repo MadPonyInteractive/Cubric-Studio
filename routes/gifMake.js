@@ -44,7 +44,7 @@ const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const sharp = require('sharp');
 const logger = require('./logger');
-const { writeFrame, buildGif } = require('../services/gifFrames');
+const { writeFrame, buildGif, builtGifDimensions } = require('../services/gifFrames');
 const { extractImageThumb, imageThumbPath, IMAGE_RENDITION_PX } = require('../services/ffmpegThumb');
 const { nextSequence } = require('./projects');
 
@@ -153,7 +153,7 @@ router.post('/gif/make', async (req, res) => {
             createdAt: new Date().toISOString(),
             name: null,
             uploaded: false,
-            pixelDimensions: { w: targetW, h: targetH },
+            pixelDimensions: await builtGifDimensions(outputPath),
             generationMs: null,
             gif: gifEntry,
         };
