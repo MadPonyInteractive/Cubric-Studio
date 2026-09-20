@@ -6,4 +6,4 @@
 - [x] The drawer: no Uninstall, no VRAM or disk, what it costs instead
 - [x] It repaints when a key is saved (list signature), and survives a search that matches no local model
 - [ ] Fabio's look in the app
-- [ ] Per-model ratios and supported resolutions — needs the other fourteen models
+- [x] Per-model ratios and supported resolutions, generated from each model’s own published in_fields

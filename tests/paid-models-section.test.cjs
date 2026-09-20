@@ -113,7 +113,16 @@ test('saving a key repaints the section — it is in the list signature', () => 
 test('every cloud model produces real price copy for its tile', () => {
     assert.ok(CLOUD.length > 0, 'no cloud model ships');
     for (const model of CLOUD) {
-        const quote = estimateCost(model.cloud.endpointId);
+        // A per-second clip model cannot price itself from nothing, and `estimateCost`
+        // is right to return null rather than guess (MPI-850). The tile therefore quotes
+        // a stated representative clip for those — the `_paidQuote` contract in
+        // MpiModelManager — while an image model must still answer from nothing. What
+        // may never happen is a paid tile reading "price unknown".
+        const quote = model.mediaType === 'video'
+            ? (estimateCost(model.cloud.endpointId)
+                || estimateCost(model.cloud.endpointId,
+                    { duration: 5, resolution: '1080p', width: 1920, height: 1080 }))
+            : estimateCost(model.cloud.endpointId);
         assert.ok(quote, `${model.id} cannot be priced from ${model.cloud.endpointId}`);
         assert.match(quote.display, /^about \$\d/, `${model.id} price copy reads "${quote.display}"`);
     }

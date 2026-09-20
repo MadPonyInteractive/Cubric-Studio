@@ -13,6 +13,28 @@
 // constants live next to the arithmetic in js/data/modelConstants/deepinfraPricing.js,
 // because they came from real billed calls, not from this feed.
 //
+// The snapshot also carries each model's SIZING CONTRACT (MPI-853), because the price is
+// only half of what the app has to get right — the other half is asking for a size the
+// model actually accepts. There is no single shape: measured 2026-09-21 across the
+// sixteen ids below, DeepInfra takes FOUR different ones.
+//
+//   width/height      FLUX 2 dev (128-1920), FLUX 2 pro/max (256-1440), FLUX-1 schnell
+//   size              Seedream 4/4.5 ('2K'/'4K' or 'WIDTHxHEIGHT'), Seedream 5.0 Pro
+//   aspect_ratio      the four Gemini ids — NO pixel fields at all, ten ratios
+//   resolution+ratio  the video models — and Wan names its ratio field `ratio`, not
+//                     `aspect_ratio`, and spells its tiers '1080P' where Seedance
+//                     spells them '1080p'.
+//
+// So the app cannot hold one hand-written table. It holds THEIRS: `limits` below is
+// copied from the model's own `in_fields`, and js/data/modelConstants/deepinfraSizing.js
+// derives the mode and the exact field names from it. A limit that moves upstream fails
+// `--check` instead of silently quoting a size the provider rejects.
+//
+// `description` is copied verbatim and is NOT decoration: for several fields it is the
+// ONLY published source of the real bound. Seedream's `allowed` lists just ['2K','4K'],
+// while its description is what says explicit pixels run 1280x720 to 4096x4096 rounded
+// up to a multiple of 64. Dropping the prose would lose the constraint.
+//
 // Usage:
 //   node scripts/sync-deepinfra-prices.mjs            rewrite the snapshot
 //   node scripts/sync-deepinfra-prices.mjs --check    exit 1 if the snapshot is stale
@@ -26,6 +48,9 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 
 const LIST_URL = 'https://api.deepinfra.com/models/list';
+// Per-model detail. `in_fields` is ONLY here — `/models/list` omits it entirely, which is
+// why the sizing capture costs one extra keyless call per shipped model.
+const MODEL_URL = 'https://api.deepinfra.com/models/';
 const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'dev_configs', 'deepinfra-prices.json');
 
 // The models MPI-849 ships, Fabio's list of 2026-09-20 (.agents/mpi-kanban/tasks/MPI-849/plan.md),
@@ -65,6 +90,30 @@ function tiersFromTable(table) {
     return Object.keys(out).length ? out : null;
 }
 
+// The input fields that decide the SHAPE of what comes back, and what it costs. Every
+// other field a model takes (guidance_scale, watermark, safety_tolerance, webhook…) is
+// deliberately left out: the snapshot is a contract the app must satisfy, not a mirror
+// of the API. `num_images` and `sample_count` are here because a batch is a real size
+// axis — it is the count the provider bills, and only two of the sixteen offer one.
+const SIZING_FIELDS = new Set([
+    'width', 'height', 'size', 'aspect_ratio', 'ratio', 'resolution', 'duration',
+    'num_images', 'sample_count', 'num_inference_steps',
+]);
+
+/** A model's sizing contract, copied from its own `in_fields`. Null keys are dropped. */
+function limitsFor(detail) {
+    const out = {};
+    for (const field of detail?.in_fields || []) {
+        if (!SIZING_FIELDS.has(field.name)) continue;
+        const entry = {};
+        for (const key of ['ftype', 'allowed', 'default', 'minimum', 'maximum', 'description']) {
+            if (field[key] !== undefined && field[key] !== null) entry[key] = field[key];
+        }
+        out[field.name] = entry;
+    }
+    return Object.keys(out).length ? out : null;
+}
+
 /** Copy only the fields the price module reads — the diff stays about prices. */
 function entryFor(model) {
     const p = model.pricing || {};
@@ -94,6 +143,17 @@ async function build() {
         if (!model) { missing.push(`${id} — not in the catalogue any more`); continue; }
         if (model.deprecated) { missing.push(`${id} — deprecated ${model.deprecated}`); continue; }
         models[id] = entryFor(model);
+
+        // One extra keyless call per model, for `in_fields`. A model that prices itself
+        // but will not say what sizes it takes is a HARD failure, not a warning: the app
+        // would fall back to sending width/height at a model that has no such field and
+        // silently generate at the provider's default shape, billing the user for a
+        // picture that ignores the ratio they picked.
+        const res2 = await fetch(MODEL_URL + id);
+        if (!res2.ok) { missing.push(`${id} — detail HTTP ${res2.status}, cannot read its sizing contract`); continue; }
+        const limits = limitsFor(await res2.json());
+        if (!limits) { missing.push(`${id} — publishes no sizing fields at all`); continue; }
+        models[id].limits = limits;
     }
     if (missing.length) {
         console.error('DeepInfra no longer offers:\n  ' + missing.join('\n  '));

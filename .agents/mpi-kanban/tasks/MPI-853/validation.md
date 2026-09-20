@@ -49,12 +49,43 @@ ordering, and the list signature that makes a saved key repaint the note.
 3. The drawer: description, Cost, Your key — and **no button**.
 4. Search "flux" and then something that matches no local model at all: the section stays.
 
+## The catalogue — 2026-09-21
+
+All fifteen ship. Automated checks, all green:
+
+- `node scripts/sync-deepinfra-prices.mjs --check` — clean; the snapshot gained a `limits`
+  block per model (+317 lines) and **no price moved**.
+- `node --test tests/deepinfra-catalogue.test.cjs` — 20 tests. The load-bearing one walks
+  **76 real ratio rows across 7 models** and asserts each survives its own model's sizing
+  contract byte for byte; proven non-vacuous by a negative control (1920x1088 at FLUX 2
+  Pro's 1440 ceiling is caught and rescaled).
+- `npm test` — **1660 pass, 1 fail**, and the one failure is a live peer's uncommitted
+  `storedLook` call in `services/agentLoop.mjs` whose test double is not updated yet. The
+  symbol does not exist in HEAD and this card touches no agent file.
+
+What the shape turned out to be, because it was not what the brief assumed: DeepInfra takes
+**four** different sizing shapes and `in_fields` is not on `/models/list` at all. Both are
+written up under `## Plan Drift` in the MPI-849 plan. Nothing about sizing is hand-written:
+the fifteen ratio tables are generated from the bounds each model publishes.
+
+## For Fabio to look at, second pass
+
+1. The **DeepInfra models** section now lists **sixteen** tiles. Every one shows a price,
+   and none says "price unknown" — the video tiles read *per 5s at 1080p* or *per clip*
+   rather than *per image*.
+2. **All fifteen render a placeholder thumbnail.** There is no preview art yet; that is a
+   graphics pass, not this card.
+3. Open a video card's drawer (Seedance 2.0, about $1.89) and an image card's (Nano Banana
+   Pro, about $0.14): the Cost line's unit should differ and read correctly in both.
+4. Pick a paid model in the prompt box and move the ratio and tier: Seedream offers 2K/4K,
+   Seedance 480p/720p/1080p, **Veo only 16:9 and 9:16 with no duration control**.
+5. Two judgement calls waiting on you, both in the plan's Current State: FLUX 2 Pro's
+   $0.015 displaying as "about $0.01" under the tested 2-decimal rule, and Seedance 2.0
+   computing $1.89 against the plan's $2.07 headline.
+
 ## Not in this card
 
-**Per-model ratios and supported resolutions.** FLUX Schnell (Cloud) inherits the built-in
-`flux` table and its dimensions are inside what the endpoint accepts (128-1920, verified
-live: a 4:5 request came back 896x1088 exactly). Getting this right for the other fourteen
-is part of adding them, and DeepInfra publishes the answer per model in `in_fields` on the
-keyless catalogue — so the honest way is to capture those limits into
-`dev_configs/deepinfra-prices.json` and derive each model's ratio table from them rather
-than hand-writing fifteen tables.
+**Preview art** for the fifteen tiles. **Real enhancer recipes** for Seedream, Nano Banana
+and Veo: nine models carry an explicit stand-in `enhanceRecipe` because a `type` with no
+recipe silently resolves to `chroma`, which a test forbids. Each wants
+`/create-enhancer-recipe` properly.

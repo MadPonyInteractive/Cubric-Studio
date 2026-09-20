@@ -38,6 +38,8 @@
 
 import { generationStore, PHASES } from './generationStore.js';
 import { getModelById } from '../data/modelRegistry.js';
+import { batchFieldFor } from '../data/modelConstants/deepinfraSizing.js';
+import { ratioSettingsFromParams } from '../utils/promptReuse.js';
 import { clientLogger } from './clientLogger.js';
 import { Events } from '../events.js';
 
@@ -140,8 +142,21 @@ export function runCloudCommand(payload) {
         // The batch control's own node title, clamped to what this endpoint accepts. A
         // batch is N images in ONE call and ONE bill, so the cost that comes back covers
         // all of them — never multiply it per card.
-        const batch = Math.max(1, Math.min(model.cloud.maxBatch || 1,
+        //
+        // The cap comes from the provider's published maximum in the price snapshot, not
+        // from a number written on the ModelDef (MPI-853): of the sixteen cloud models
+        // only two have a native batch at all, and they do not even call it the same
+        // thing. A model with none clamps to 1 here and the route never sends a count.
+        const batch = Math.max(1, Math.min(batchFieldFor(model.cloud.endpointId)?.max || 1,
             Number(params.Input_Batch_Size || params.Batch_Size || params.batchSize) || 1));
+
+        // The size the user actually picked, in the three currencies the providers use
+        // between them. `ratioSettingsFromParams` is the SAME recovery generationService
+        // does at :495 — the quality tier injects no workflow param, so the only record
+        // of it is the pixels matching a row of this model's own ratio table. Sent
+        // alongside the pixels rather than instead of them, because which one the
+        // provider wants is its business, resolved in deepinfraSizing.js.
+        const picked = ratioSettingsFromParams(params, {}, model) || {};
         const seed = Number.isFinite(params.Seed) ? params.Seed
             : (Number.isFinite(payload.seed) ? payload.seed : null);
         exec.seed = seed;
@@ -168,6 +183,13 @@ export function runCloudCommand(payload) {
                     batch,
                     width:  params.Width  || params.width  || 0,
                     height: params.Height || params.height || 0,
+                    // Nano Banana takes a ratio LABEL and no pixels; the video models
+                    // take a resolution tier and a ratio; Veo takes no duration at all.
+                    // All three are sent when known and the route decides which the
+                    // endpoint can actually hear.
+                    ratioLabel: picked.selectedRatio || params.Ratio_Label || params.ratioLabel || '',
+                    qualityTier: picked.qualityTier || '',
+                    duration: Number(params.Duration) || 0,
                     // The native route takes ONE image; an edit op sends the first
                     // staged asset and the model's own `imageField` names where.
                     imagePath: _firstImagePath(payload.mediaItems),

@@ -129,7 +129,13 @@ test('the cloud model declares batch as REAL, on the op that has it', () => {
     const model = MODELS.find(m => m.id === MODEL_ID);
     assert.notEqual(model.capabilities?.batch, false, 'batch was switched off for a model that bills per image');
     assert.deepEqual(model.batchOps, ['t2i']);
-    assert.equal(model.cloud.maxBatch, 4, 'the cap must match the endpoint\'s own num_images maximum');
+    // The cap is no longer written on the ModelDef (MPI-853). It is read from the price
+    // snapshot's copy of the endpoint's own `num_images` maximum, which is the only way
+    // the other fifteen models could each be capped correctly — eleven have no native
+    // batch at all, and Veo calls its own `sample_count`.
+    const { batchFieldFor } = require('../js/data/modelConstants/deepinfraSizing.js');
+    assert.equal(model.cloud.maxBatch, undefined, 'the hand-written cap should be gone');
+    assert.deepEqual(batchFieldFor(model.cloud.endpointId), { field: 'num_images', max: 4 });
 });
 
 // ── every exit reaches a terminal, and says something useful ─────────────────────────────
