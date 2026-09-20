@@ -7,8 +7,9 @@
  * jump; drag anywhere to scrub. PRESS AND HOLD a thumbnail (HOLD_MS), then
  * drag, to reorder — a plain drag never edits (Fabio, 2026-09-16: users drag
  * a film strip to scrub it). Ctrl/cmd-click toggles a thumbnail into a
- * multi-select the Backspace hotkey (`gif.frame.delete`) drops. Both edits
- * STAGE in a local working copy — nothing is sent to the server until the
+ * multi-select the Backspace hotkey (`gif.frame.delete`) drops. Right-click
+ * duplicates a frame (MPI-857), deletes it, or clears its cut-out mask. Every
+ * edit STAGES in a local working copy — nothing is sent to the server until the
  * pill's Update (rewrite the current entry) or Apply (save a new one) is
  * clicked; Discard drops them. Only a window of thumbnails around the current
  * index is ever in the DOM (`_ensureWindow`), so a long GIF never renders
@@ -66,11 +67,12 @@
  *                              setMaskOverlay), which is what the Block passes
  *                              to `viewer.el.clearFrameMasks()`
  *   'scrub'        { index } — dragging the empty track
- *   'stage-change' { frames, order } — reorder, delete or Discard changed the
- *                              staged list; `order[newPos]` = that frame's
- *                              position in the list of the previous
+ *   'stage-change' { frames, order } — reorder, delete, duplicate or Discard
+ *                              changed the staged list; `order[newPos]` = that
+ *                              frame's position in the list of the previous
  *                              'stage-change' (or load), undefined for a frame
- *                              that list did not hold
+ *                              that list did not hold. A duplicate's copy names
+ *                              its SOURCE's position, so the mask comes with it
  *   'update'       { frames } — pill's Update button
  *   'apply'        { frames } — pill's Apply button
  */
@@ -150,6 +152,11 @@ export const MpiFrameStrip = ComponentFactory.create({
 
         /** Committed index each staged frame came from: the identity a reorder keeps. */
         let _origin = [];
+        /** Identity for a frame no committed list held — a duplicate's copy. Negative
+         *  so it can never collide with a committed index, which keeps `_viewerPos`
+         *  one-to-one (MPI-857: a copy sharing its source's token collapsed both onto
+         *  one viewer position, and the mask clear then acted on the wrong frame). */
+        let _dupToken = -1;
         /** Origin -> position in the list the viewer holds (what the overlay is keyed by). */
         let _viewerPos = new Map();
 
@@ -242,7 +249,7 @@ export const MpiFrameStrip = ComponentFactory.create({
                 // hover channel (js/shell/statusBar.js).
                 d.dataset.info = `Frame ${i + 1}/${_staged.length} — click to jump, drag to scrub, `
                     + 'hold then drag to reorder, Ctrl-click to select (Backspace deletes), '
-                    + 'right-click for delete / clear mask';
+                    + 'right-click to duplicate / delete / clear mask';
                 if (i === _currentIndex) d.classList.add('is-current');
                 if (_selection.has(i)) d.classList.add('is-selected');
                 // MPI-771: the Trim tool's range, painted where the frames are.
@@ -549,6 +556,41 @@ export const MpiFrameStrip = ComponentFactory.create({
             _emitStage();
         }
 
+        /**
+         * Stage a copy of every frame in `indices`, each right after itself
+         * (MPI-857, Fabio's ask). The frames store is content-addressed, so a
+         * repeat costs zero bytes — a duplicate is one more entry in the list
+         * and nothing on disk. Staged like every other strip edit; the pill's
+         * Update/Apply is what saves it.
+         * @param {Set<number>|number[]} indices staged positions
+         */
+        function _duplicateIndices(indices) {
+            const src = [...(indices instanceof Set ? indices : new Set(indices))].sort((a, b) => a - b);
+            if (src.length === 0) return;
+            // Descending: each splice then leaves every lower position alone.
+            for (let k = src.length - 1; k >= 0; k--) {
+                const i = src[k];
+                if (!_staged[i]) continue;
+                // The copy's token is its own (see `_dupToken`), but it POINTS AT the
+                // source's viewer position, so `_emitStage`'s `order` carries the
+                // frame's cut-out mask onto the copy the way a reorder carries it.
+                const token = _dupToken--;
+                _viewerPos.set(token, _viewerPosOf(i));
+                _staged.splice(i + 1, 0, { ..._staged[i] });
+                _origin.splice(i + 1, 0, token);
+                if (i < _currentIndex) _currentIndex++;
+            }
+            _selection.clear();
+            _emitSelection();
+            // A longer list resets the control bar's range to every frame, and the
+            // Block paints that back through `setRange` — nothing to clamp here.
+            _windowEnd = -1;
+            _ensureWindow(_currentIndex);
+            _renderWindow();
+            _applyTransform();
+            _emitStage();
+        }
+
         // Bound to all three ids: the selection is made with Ctrl (or Shift)
         // held, and the modifier is usually STILL held at the Backspace — which
         // normalises to `control+backspace`, a different key entirely. See the
@@ -584,6 +626,12 @@ export const MpiFrameStrip = ComponentFactory.create({
                 y: e.clientY,
                 items: [
                     {
+                        key: 'duplicate',
+                        icon: 'copy',
+                        label: n > 1 ? `Duplicate ${n} frames` : 'Duplicate frame',
+                        info: 'Stages a copy right after each frame — Update or Apply saves it',
+                    },
+                    {
                         key: 'delete',
                         icon: 'trash',
                         label: n > 1 ? `Delete ${n} frames` : 'Delete frame',
@@ -604,7 +652,8 @@ export const MpiFrameStrip = ComponentFactory.create({
                     },
                 ],
                 onSelect: (key) => {
-                    if (key === 'delete') _deleteIndices(targets);
+                    if (key === 'duplicate') _duplicateIndices(targets);
+                    else if (key === 'delete') _deleteIndices(targets);
                     else if (key === 'clear-mask') emit('clear-frame-mask', { index, viewerIndex: vp });
                 },
             });

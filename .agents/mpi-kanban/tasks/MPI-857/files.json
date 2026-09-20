@@ -1,0 +1,13 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "task_card": "MPI-857",
+  "owner_session": "0d099d28-94fd-4be9-a458-612b6f2a8c9b",
+  "updated_at": "2026-09-20T17:58:00Z",
+  "files": [
+    "js/components/Organisms/MpiFrameStrip/MpiFrameStrip.js",
+    "js/components/types.js",
+    "tests/desktop/gif-workspace.spec.js",
+    "docs/gif.md",
+    ".agents/mpi-kanban/tasks/MPI-857/**"
+  ]
+}

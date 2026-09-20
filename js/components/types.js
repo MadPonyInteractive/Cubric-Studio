@@ -2715,14 +2715,17 @@
  *   destroy()
  *
  * A press-and-hold (300 ms) then drag reorders; a plain drag scrubs. A
- * right-click opens a context menu (Delete frame / Clear this frame's mask).
+ * right-click opens a context menu (Duplicate frame / Delete frame / Clear
+ * this frame's mask). A duplicate stages a copy right after the frame and
+ * costs nothing on disk — the frames store is content-addressed.
  *
  * Emits:
  *   'frame-select' { index } — thumbnail clicked (no modifier)
  *   'scrub'        { index } — dragging the empty track
- *   'stage-change' { frames, order } — reorder or delete changed the staged
- *                            list; `order[newPos]` = that frame's position in
- *                            the previous list, so masks travel with frames
+ *   'stage-change' { frames, order } — reorder, delete or duplicate changed the
+ *                            staged list; `order[newPos]` = that frame's position
+ *                            in the previous list, so masks travel with frames
+ *                            (a duplicate's copy names its source's position)
  *   'clear-frame-mask' { index, viewerIndex } — context menu; the Block hands
  *                            `viewerIndex` to `viewer.el.clearFrameMasks()`
  *   'update'       { frames } — pill's Update button

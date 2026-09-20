@@ -251,8 +251,11 @@ test('gif workspace: no PromptBox; play/step/scrub keep the strip centred; reord
  *   - the trim handles' range was legible only as numbers in the Trim panel,
  *     so Trim read as doing nothing — the range is now painted on the strip.
  * Both are driven here through the real components with real input.
+ *
+ * MPI-857 adds the menu's third row, Duplicate frame — asserted here because
+ * nothing else pins the row order or that a copy stages without a server call.
  */
-test('gif strip: right-click deletes a frame and offers the mask clear; the trim range paints on the strip', async ({}, testInfo) => {
+test('gif strip: right-click duplicates and deletes a frame and offers the mask clear; the trim range paints on the strip', async ({}, testInfo) => {
   const { app, window } = await launchApp(testInfo);
   try {
     await setupProject(window);
@@ -272,14 +275,34 @@ test('gif strip: right-click deletes a frame and offers the mask clear; the trim
       label: b.querySelector('.mpi-ctx-menu__label')?.textContent,
       disabled: b.disabled,
     })));
-    expect(menu.map(i => i.key)).toEqual(['delete', 'clear-mask']);
-    expect(menu[0].label).toBe('Delete frame');
+    expect(menu.map(i => i.key)).toEqual(['duplicate', 'delete', 'clear-mask']);
+    expect(menu[0].label).toBe('Duplicate frame');
+    expect(menu[1].label).toBe('Delete frame');
     // No cut-out has run in this fixture, so there is no mask to clear — the
     // row must say so by being dead, not by doing nothing when clicked.
-    expect(menu[1].disabled, 'Clear mask must be disabled with no mask on the frame').toBe(true);
+    expect(menu[2].disabled, 'Clear mask must be disabled with no mask on the frame').toBe(true);
+
+    // Duplicate (MPI-857) stages a copy right AFTER the frame, the way every
+    // other strip edit stages: one more thumb, the pill up, no server call.
+    await window.locator('.mpi-ctx-menu__item[data-key="duplicate"]').click();
+    await expect.poll(() => thumbCount(window)).toBe(before + 1);
+    expect(await window.evaluate(() => !!document.querySelector('.mpi-frame-strip__pill').checkVisibility()),
+      'a staged duplicate must raise the pill').toBe(true);
+    expect(await window.evaluate(() => window.__mpi769.calls.length),
+      'a staged duplicate must reach no server').toBe(0);
+    // The copy lands directly after its source: the hash repeats, and only there.
+    expect(await window.evaluate(() =>
+      document.querySelector('.mpi-frame-strip').getStagedFrames().map(f => f.hash)),
+    ).toEqual(['h1', 'h2', 'h3', 'h3', 'h4', 'h5']);
+    // ...and Discard takes it back, so the rest of this test runs on the original
+    // list — and the menu closed on the choice, so the delete re-opens it.
+    await window.evaluate(() => document.querySelector('[data-mount="discard-btn"] button').click());
+    await expect.poll(() => thumbCount(window)).toBe(before);
 
     // Delete stages exactly like the Backspace path: one fewer thumb, the
     // pill up, and still nothing sent to the server.
+    await window.locator('.mpi-frame-strip__thumb[data-index="2"]').click({ button: 'right' });
+    await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-ctx-menu'))).toBe(true);
     await window.locator('.mpi-ctx-menu__item[data-key="delete"]').click();
     await expect.poll(() => thumbCount(window)).toBe(before - 1);
     expect(await window.evaluate(() => !!document.querySelector('.mpi-frame-strip__pill').checkVisibility()),
@@ -1309,6 +1332,69 @@ test('gif 838: the preview pane clears when idle, the strip follows a handle mid
     expect(await paint()).toMatchObject({ in: '2', out: String(last - 1) });
     await key('x');
     expect(await paint(), 'X clears the dimming too').toEqual({ outside: 0, in: '0', out: String(last) });
+  } finally {
+    await closeApp(app);
+  }
+});
+
+/**
+ * MPI-857 — a duplicate carries its source's cut-out mask, and the two copies
+ * stay TELLABLE APART.
+ *
+ * Masks are keyed by frame POSITION, and the strip resolves a position through
+ * `_origin` -> `_viewerPos`. A copy that reused its source's `_origin` token
+ * collapses both onto one entry of that map, so every mask lookup for the pair
+ * answers with the LAST one: the clear then throws the wrong frame's work away
+ * while the menu reports success. The copy gets its own (negative) token for
+ * exactly that, pointed at the source's viewer position so `order` still carries
+ * the mask across. Both halves are asserted here.
+ */
+test('gif 857: a duplicated frame keeps the mask, and the clear still hits the frame you right-clicked', async ({}, testInfo) => {
+  const { app, window } = await launchApp(testInfo);
+  try {
+    await setupProject(window);
+    await window.evaluate(async () => {
+      const { navigate, PAGE_GROUP_HISTORY } = await import('/js/router.js');
+      navigate(PAGE_GROUP_HISTORY, { groupId: 'gGif' });
+    });
+    await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-frame-strip__thumb'))).toBe(true);
+
+    // One DISTINCT mask per frame — an unbrushed frame hands its track URL back
+    // verbatim (`getFrameMaskURL`), so the string says which mask landed where.
+    const masks = await window.evaluate(() => [1, 2, 3, 4, 5].map((w) => {
+      const c = document.createElement('canvas');
+      c.width = c.height = 8;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, w, 8);
+      return c.toDataURL('image/png');
+    }));
+    await window.evaluate((urls) => {
+      document.querySelector('.mpi-gif-viewer').setTrackMasks(urls);
+    }, masks);
+    const maskAt = (idx) => window.evaluate((i) =>
+      document.querySelector('.mpi-gif-viewer').getFrameMaskURL(i), idx);
+
+    // Duplicate frame 1.
+    await window.locator('.mpi-frame-strip__thumb[data-index="1"]').click({ button: 'right' });
+    await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-ctx-menu'))).toBe(true);
+    await window.locator('.mpi-ctx-menu__item[data-key="duplicate"]').click();
+    await expect.poll(() => thumbCount(window)).toBe(masks.length + 1);
+
+    expect(await maskAt(1), 'the source keeps its mask').toBe(masks[1]);
+    expect(await maskAt(2), 'the copy is handed the same mask').toBe(masks[1]);
+    expect(await maskAt(3), 'the frame the copy pushed along keeps its OWN mask').toBe(masks[2]);
+
+    // Now the collapse: clear the mask on the SOURCE, position 1.
+    await window.locator('.mpi-frame-strip__thumb[data-index="1"]').click({ button: 'right' });
+    await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-ctx-menu'))).toBe(true);
+    expect(await window.evaluate(() =>
+      document.querySelector('.mpi-ctx-menu__item[data-key="clear-mask"]').disabled),
+    'both of the pair have a mask, so the row must be live').toBe(false);
+    await window.locator('.mpi-ctx-menu__item[data-key="clear-mask"]').click();
+
+    expect(await maskAt(1), 'the frame that was right-clicked is the one cleared').toBe(null);
+    expect(await maskAt(2), 'the copy must keep its mask').toBe(masks[1]);
   } finally {
     await closeApp(app);
   }

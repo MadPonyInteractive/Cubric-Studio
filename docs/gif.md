@@ -221,9 +221,15 @@ Make GIF (`routes/gifMake.js`) and GIF Maker (`routes/gifMaker.js`, [a video too
 write frames and call `buildGif()` themselves. A GIF opens with no tool up.
 
 **The frame strip is the discoverable surface.** Click a thumb to jump, drag to
-scrub, hold 300 ms then drag to reorder, and **right-click for Delete frame /
-Clear this frame's mask** — the delete also answers Ctrl-click + Backspace, but
-nothing on screen said so, so the menu is the way in (Fabio, 2026-09-18). The
+scrub, hold 300 ms then drag to reorder, and **right-click for Duplicate frame /
+Delete frame / Clear this frame's mask** — the delete also answers Ctrl-click +
+Backspace, but nothing on screen said so, so the menu is the way in (Fabio,
+2026-09-18). **Duplicate** (MPI-857) stages a copy right after each targeted
+frame, which is free: the store is content-addressed, so a repeated frame is one
+more `frames[]` entry and zero extra bytes. The copy carries its source's cut-out
+mask through the same `order` a reorder uses, on a NEGATIVE identity token — a copy
+sharing its source's token would collapse both onto one viewer position and send
+the mask clear to the wrong frame. The
 menu emits `clear-frame-mask { index, viewerIndex }`: masks are keyed by the
 VIEWER's frame position, which diverges from the strip's staged index after a
 reorder, so the Block hands `viewerIndex` to `viewer.el.clearFrameMasks()`.
