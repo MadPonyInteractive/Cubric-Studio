@@ -9,4 +9,5 @@
 - [x] `namedParamsFor` advertises it as a RANGE, so `describe_model` offers it
 - [x] the agent is told to judge length from the action it described (Fabio, 2026-09-19)
 - [x] cubric-vision-generate skill updated
-- [ ] Fabio's own pass in the app: ask for a long action, get a long clip
+- [x] Fabio's own pass in the app: ask for a long action, get a long clip (2026-09-19, both
+      halves, his words in `validation.md`)

@@ -3,11 +3,11 @@
   "id": "MPI-840",
   "title": "A message typed while the agent is answering is refused and lost",
   "description": "UMBRELLA: MPI-817 - In-app agent reliability (consolidation sweep 2026-09-19). Members and phase order: tasks/MPI-817/plan.md. routes/agent.js returns BUSY and drops the text; nothing stores it. Queue the turn and drain it when the current one returns, reusing agentSessions._carry.",
-  "column": "doing",
-  "maturity": "validating",
-  "status": "active",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
   "created_at": "2026-09-20T08:55:00Z",
-  "updated_at": "2026-09-20T10:59:09+01:00",
+  "updated_at": "2026-09-21T00:38:29+01:00",
   "links": {
     "events": "events.jsonl"
   }

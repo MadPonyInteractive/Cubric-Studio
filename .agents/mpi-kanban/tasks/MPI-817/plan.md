@@ -159,6 +159,16 @@ live-seen - it needs a restart and one chained ask ("make this an anime still, t
 it"). Pass = the turn ends in a sentence from the agent, no red error line. This is Phase C
 evidence, folded in here rather than carded.
 
+**Update 2026-09-20 23:59Z, session 3ed1701d (resumed from handoff 7bcaeeb8).** MPI-840,
+MPI-839 and MPI-820 are CLOSED (`done` / `complete`) on their recorded live evidence; the
+Members table above is history for those two rows. His findings ask is done:
+`docs/agent-findings.md`, routed from `docs/README.md`. `docs/agent-chat.md` was NOT touched:
+MPI-797 holds it (claim 996bfd29, with `js/shell/agentDispatch.js`); message `e7c38539` asks them
+for the pointer line and flags the 378-line budget. This umbrella stays in `doing`. Single next
+action: the sidecar-stored look (`services/agentLoop.mjs` + `agentTools.mjs`), test RED first:
+a second look at the same card makes zero vision calls. Then denoise as a named param, whose
+`describe_model` half lives in MPI-797's `agentDispatch.js`: message before touching it.
+
 ## Phase C, first piece: batch ask + wake on drain (DESIGN NOTE 2026-09-20, not built, not approved)
 
 Raised by Fabio after the step-cap find. Two halves of one job.
