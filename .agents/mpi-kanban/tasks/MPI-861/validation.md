@@ -85,5 +85,5 @@ tests/desktop/gif-workspace.spec.js` run three times back to back: **16 passed**
 ## Not MPI-859
 
 `28beb3b0` is not implicated, as Fabio suspected. That test never sets a candidate mask, so
-`gifFrameMasks.isProposalAt()` is false throughout and every branch MPI-859 added passes the
+`gifFrameMasks.candidateAt()` is null throughout and every branch MPI-859 added passes the
 arguments the previous code passed.

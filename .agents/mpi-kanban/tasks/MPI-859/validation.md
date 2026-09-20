@@ -12,7 +12,10 @@
   edge surviving the union unrounded, the first Add returning the engine's own PNG untouched,
   a subtract from no mask staying null, a subtract that takes everything staying an all-black
   MASK, and Fabio's own case (tracked subject, then key a leftover colour and Subtract it).
-- `npm test` — 1595 pass, 0 fail, 1 skipped.
+- `npm test` — 1595 pass, 0 fail, 1 skipped, at THIS point in the session. The later runs
+  recorded below say 1599. The two figures were written at different moments and the gap of
+  four was never explained; neither is re-derivable now, so read them as two snapshots, not
+  as one contradicted count. (Flagged by the close-out claim auditor, 2026-09-21.)
 - `npx playwright test --config=playwright.desktop.config.js tests/desktop/gif-cutout.spec.js
   tests/desktop/gif-workspace.spec.js` — **16 pass, 0 fail**, in the real Electron app.
 - `eslint` clean on every changed file; `validate_board.py .` exits 0.
@@ -49,12 +52,13 @@ follow-up, not a reopening.
 
 ### What shipped for it
 
-- `gifFrameMasks.isProposalAt(i)` — `overlayAt()` hands back one URL by design and cannot say
-  which kind won, so the draw site asks.
-- `mask-tint` carries `proposed`. It is NOT derivable at the draw site: Grow / Invert push the
-  COMMITTED mask through the same `setCutoutPreview()` override.
+- `gifFrameMasks.candidateAt(i)` — `overlayAt()` hands back one URL by design and cannot say
+  which kind won, so the draw site asks `candidateAt()` for the proposal directly.
+- `mask-tint` carries `{ url, proposalUrl }`. The proposal is NOT derivable at the draw site:
+  Grow / Invert push the COMMITTED mask through the same `setCutoutPreview()` override.
 - Both surfaces, because Cut-out drives both: `--proposal` on the CSS tint (playback) and
-  `MpiCanvas.setMaskDisplayProposal()` (the canvas, which is what is up while the tool is).
+  `_setCanvasProposal()` (`MpiGifViewer.js:938`, module-private - the canvas is what is up
+  while the tool is).
   Without the second, a proposal was green playing and white the moment you paused.
 - A proposal is never complemented. `_setPlayingTint` used to flip it: the panel only pushes a
   preview for the frame it is ON, so the other frames of a multi-frame run flipped and
@@ -63,7 +67,7 @@ follow-up, not a reopening.
 
 ### Verified
 
-- `tests/gif-frame-masks.test.cjs` — 7 pass, 0 fail, with `isProposalAt` asserted against a
+- `tests/gif-frame-masks.test.cjs` — 7 pass, 0 fail, with `candidateAt()` asserted against a
   committed mask on the neighbouring frame and after `clearCandidates()`.
 - `gif-cutout.spec.js` asserts the green in `commitMask()`, the one chokepoint every landing
   run in the file goes through: the canvas reports a proposal while the commit row is up, and
@@ -133,12 +137,41 @@ Fabio said yes (2026-09-20): .claude/rules/component-mounts.md no longer lists t
 display-flip API, records that the store is what gets cut, and lists the proposal API. Every
 method named there was checked against MpiGifViewer.js.
 
+## Fabio's live run - the last open report, CLOSED
+
+**2026-09-21, Fabio, in his own app on `gif_047` (Cubric Studio Mascots, 51 frames):** the
+By colour leg passes, and so does the compose case behind it.
+
+He also corrected the repro I had written down. It was never "By colour with a picked key"
+on its own - it is **By colour after a run of a DIFFERENT method**, which is the exact
+failure this card exists to kill (every method used to call `setTrackMask` and REPLACE the
+frame's layer). His run, in order:
+
+1. Background, to mask the background.
+2. By colour -> **Pick** the teal -> scope Frame -> black-and-white view on -> Mask -> Add.
+
+Result: **the ear pads turn white.** The second method composed onto the first instead of
+replacing it. His words: "This time it worked."
+
+So the Pick path is not implicated and nothing was changed for it. `_setKeyColour` and the
+EyeDropper handler were read during this session and left alone; the one asymmetry noted for
+the record is that the Pick button calls `_scheduleRekey()` while `_defaultKeyColour()` does
+not, which auto-fires a 250 ms re-key run at `_lastScope` - the scope of the PREVIOUS run,
+not the one on screen. Harmless in every observed run, not a bug anyone has hit, not touched.
+
+Earlier open report, also closed by this run: his All-frames Background run that showed
+nothing once is not reproducible either, and it worked on his next try after `1d4215bd`. A
+landing failure now raises a toast with the real error rather than dying silent in a
+callback.
+
+**CI:** `1d4215bd` is green - Tests run 35541611838, conclusion `success`.
+
 ## Seen once, not reproduced, not ours
 
 `gif-workspace.spec.js` "gif stage: right-click reverses the frames and clears every mask"
 failed once in four full runs (a thumb-tint count after a per-frame mask clear) and passed
 alone and in two later full runs. It cannot be this change: that test sets track masks and
-never a candidate, so `isProposalAt()` is false throughout and every new branch evaluates to
+never a candidate, so `candidateAt()` is null throughout and every new branch evaluates to
 the arguments the old code passed.
 
 ## Known, not fixed here
