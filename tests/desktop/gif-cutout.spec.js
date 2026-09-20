@@ -144,7 +144,7 @@ test('gif cutout panel: routes, mounts with the right initial state, and drives 
     expect(dom.methods).toEqual(['birefnet', 'sam3', 'colour']);
     expect(dom.methodActive, 'Remove background is the default method').toBe('birefnet');
     expect(dom.promptHidden, 'no name field for Remove background').toBe(true);
-    expect(dom.hint).toContain('foreground');
+    expect(dom.hint, 'the Background chip masks the BACKGROUND (MPI-859)').toContain('background');
     // MPI-771, Fabio 2026-09-18: four buttons became two verbs + an All/Frame/
     // Selected scope, so Selected could be added without a fifth and sixth.
     expect(dom.trackBtnTexts).toEqual(['Mask', 'Clear']);
@@ -166,7 +166,10 @@ test('gif cutout panel: routes, mounts with the right initial state, and drives 
     }));
     expect(dom.promptHidden).toBe(false);
     expect(dom.colourHidden).toBe(true);
-    expect(dom.hint, 'the hint says the name is what stays').toContain('keep');
+    // MPI-859: no method promises what stays or goes any more - it names what it
+    // FINDS, and the two verbs decide, exactly as in the image workspace.
+    expect(dom.hint, 'the hint names both verbs').toContain('Add');
+    expect(dom.hint).toContain('Subtract');
     // One verb per method now — By name no longer renames the buttons.
     expect(dom.trackBtnTexts).toEqual(['Mask', 'Clear']);
     expect(dom.previewHidden, 'preview/chips stay hidden before a Track run').toBe(true);
@@ -748,8 +751,12 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
       document.querySelectorAll('.mpi-frame-strip__thumb--edited').length)).toBe(2);
     expect(await window.evaluate((sel) => document.querySelector(sel)?.checked, invertInput),
       'Invert came back with the panel').toBe(true);
-    await setInvert(false);
-    await expect.poll(savedInvert).toBe(false);
+    // ...and it STAYS on for both cuts below (MPI-859). The mask is what gets cut
+    // now, as in the image workspace; this story names the mascot to KEEP it, and
+    // "the mask is what survives" is what Invert says. Every alpha assertion
+    // below reads exactly as it did, and the cut boundary is proven both ways at
+    // once: `getCutMasks()` flips the store to keep-space, the route's invert
+    // flips it back, and the pixels on disk still match the mask the user built.
 
     // ── Cut out -> real POST /gif-cutout/apply, real new history entry ──
     const historyLenNow = () => window.evaluate(async (gid) => {
@@ -803,7 +810,7 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     expect(sidecar.gif.output.edgeColour, 'a cut-out builds transparent').toBe('#000000');
     expect(sidecar.cutout).toEqual({
       method: 'sam3', prompt: 'mascot', objects: [0, 1, 2, 3],
-      adjust: { grow: 0, fillHoles: false }, invert: false,
+      adjust: { grow: 0, fillHoles: false }, invert: true,
     });
 
     // ── Back on the source entry, its masks come back (no re-track) ─────
@@ -846,7 +853,7 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     const keyedSidecar = await fs.readJson(path.join(projectFolderPath, 'Media', '.meta', `${keyed.id}.json`));
     expect(keyedSidecar.cutout).toEqual({
       method: 'colour', colour: '#c82828', tolerance: 16, edgesOnly: false,
-      adjust: { grow: 0, fillHoles: false }, invert: false,
+      adjust: { grow: 0, fillHoles: false }, invert: true,
     });
     const keyedAlpha = async (frameIdx) => {
       const framePath = path.join(projectFolderPath, 'Media', '.gif-frames', `${keyedSidecar.gif.frames[frameIdx].hash}.png`);
@@ -881,8 +888,18 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
         };
       }
     });
+    // Back on the SOURCE entry first. The colour cut above left the viewer on an
+    // entry whose frames are already cut, and a cut can never restore a pixel an
+    // earlier one removed (MPI-858's alpha ceiling) - so the default-direction
+    // proof below needs frames that are still fully opaque.
+    await window.locator('.mpi-history-list__card').first().click();
+    await expect.poll(() => window.evaluate(() =>
+      document.querySelectorAll('.mpi-frame-strip__thumb-tint').length), { timeout: 15000 }).toBeGreaterThan(0);
+    await gotoFrame(window, 0);
     await pickMethod(window, 'birefnet');
     await window.evaluate(() => { window.__mpi771.maskPrefix = 'mask_'; });
+    // A clean store: the proof below must read this one run and nothing else.
+    await window.evaluate(() => document.querySelector('.mpi-gif-viewer').clearFrameMasks('all'));
     await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #mask-btn-slot button').click());
     await expect.poll(() => window.evaluate(() => window.__mpi771.runParams.length), { timeout: 30000 }).toBe(runsAfterColour + 1);
     const birefParams = await window.evaluate(() => window.__mpi771.runParams[window.__mpi771.runParams.length - 1]);
@@ -890,6 +907,52 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     expect(await window.evaluate(() => window.__mpi771.graphs[0])).toContain('RemoveBackground');
     expect(await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #preview-wrap')?.hidden),
       'no SAM3 object preview for Remove background').toBe(true);
+
+    // ── MPI-859 (Fabio, 2026-09-20): "Background" masks the BACKGROUND ──
+    // The engine hands back the FOREGROUND - the fake's centred circle - and the
+    // chip says Background, so the proposal has to be the other half: the green
+    // lands where the label says, and Add turns those same pixels white.
+    const proposalAt = (fx, fy) => window.evaluate(async ({ fx, fy }) => {
+      const v = document.querySelector('.mpi-gif-viewer');
+      const url = v.candidateAt(v.getFrameIndex());
+      if (!url) return null;
+      const img = new Image();
+      img.src = url;
+      await img.decode();
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      const x = c.getContext('2d');
+      x.drawImage(img, 0, 0);
+      return x.getImageData(Math.round(c.width * fx), Math.round(c.height * fy), 1, 1).data[0];
+    }, { fx, fy });
+    await expect.poll(() => proposalAt(0.5, 0.5), { timeout: 20000 }).not.toBeNull();
+    expect(await proposalAt(0.5, 0.5), 'the subject is NOT in a Background proposal').toBeLessThan(128);
+    expect(await proposalAt(0.05, 0.05), 'the background IS').toBeGreaterThan(128);
+
+    // ...and the default direction, on disk: Background -> Add -> Cut out, Invert
+    // OFF, is the everyday path. The mask is what gets CUT, so the background
+    // goes and the subject stays - with no translation anywhere but the one flip
+    // at the `getCutMasks()` boundary.
+    await setInvert(false);
+    await expect.poll(savedInvert).toBe(false);
+    const cutFrame = await window.evaluate(() => document.querySelector('.mpi-gif-viewer').getFrameIndex());
+    await commitMask(window, 'add');
+    const before3 = await historyLenNow();
+    await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #cutout-slot button').click());
+    await expect.poll(historyLenNow, { timeout: 30000 }).toBe(before3 + 1);
+    const bg = await window.evaluate(async (gid) => {
+      const { state } = await import('/js/state.js');
+      const g = state.currentProject.itemGroups.find(x => x.id === gid);
+      return g.history[g.history.length - 1];
+    }, gifInfo.groupId);
+    const bgSidecar = await fs.readJson(path.join(projectFolderPath, 'Media', '.meta', `${bg.id}.json`));
+    expect(bgSidecar.cutout.method).toBe('birefnet');
+    expect(bgSidecar.cutout.invert).toBe(false);
+    const bgPath = path.join(projectFolderPath, 'Media', '.gif-frames', `${bgSidecar.gif.frames[cutFrame].hash}.png`);
+    const bgPx = await sharp(bgPath).raw().toBuffer({ resolveWithObject: true });
+    const bgAlpha = (x, y) => bgPx.data[(y * bgPx.info.width + x) * bgPx.info.channels + 3];
+    expect(bgAlpha(C, C), 'Background + Add: the subject survives the cut').toBe(255);
+    expect(bgAlpha(SZ - 7, SZ - 7), 'Background + Add: the background is what got cut').toBe(0);
 
     await new Promise((r) => maskServer.close(r));
     maskServer = null;

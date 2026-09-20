@@ -126,3 +126,26 @@ export function composeObjectAlpha(rgb, bgMask, manual, subtract, w, h) {
     oc.drawImage(stencil, 0, 0, w, h);
     return out;
 }
+
+/**
+ * The other half of a greyscale mask (MPI-859). BiRefNet returns the foreground
+ * while the Background chip proposes the background, and `getCutMasks()` uses the
+ * same flip once at the boundary - the GIF store holds WHAT GETS CUT, and
+ * `routes/gifCutout.js` reads a mask as alpha, i.e. what stays.
+ *
+ * @param {string} url
+ * @returns {Promise<string>}
+ */
+export async function invertMaskUrl(url) {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.src = url;
+    await img.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.filter = 'invert(1)';
+    ctx.drawImage(img, 0, 0);
+    return canvas.toDataURL('image/png');
+}

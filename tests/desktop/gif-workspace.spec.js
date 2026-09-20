@@ -879,14 +879,15 @@ test('gif mask display: Cut-out and the Mask Brush highlight the SAME region, an
       return !!cv && cv.activeMode === 'mask';
     }), { timeout: 15000 }).toBe(true);
 
-    // The stored mask is the middle DISC - "what stays", which is what a
-    // background-only colour key leaves behind.
+    // The stored mask is everything BUT the middle disc - what gets cut, which
+    // is what a Background run proposes and Add commits (MPI-859). The disc
+    // survives; the store needs no translation to say so.
     const disc = await window.evaluate(() => {
       const c = document.createElement('canvas');
       c.width = c.height = 64;
       const x = c.getContext('2d');
-      x.fillStyle = 'black'; x.fillRect(0, 0, 64, 64);
-      x.fillStyle = 'white'; x.beginPath(); x.arc(32, 32, 18, 0, Math.PI * 2); x.fill();
+      x.fillStyle = 'white'; x.fillRect(0, 0, 64, 64);
+      x.fillStyle = 'black'; x.beginPath(); x.arc(32, 32, 18, 0, Math.PI * 2); x.fill();
       return c.toDataURL('image/png');
     });
     await window.evaluate((u) => {
@@ -939,8 +940,9 @@ test('gif mask display: Cut-out and the Mask Brush highlight the SAME region, an
     await expect.poll(tinted, 'a Paint stroke must ADD tint where the cursor was', { timeout: 10000 })
       .toEqual({ disc: true, background: true });
 
-    // ...and it must reach the STORE the right way round: the cut keeps white, so
-    // the painted centre has to come back BLACK - dropped, not kept.
+    // ...and it must reach the STORE the right way round: the store holds what
+    // gets CUT (MPI-859), so the painted centre has to come back WHITE - the
+    // stroke is in the mask, with no paint/erase swap translating it.
     const centrePixel = await window.evaluate(async () => {
       const url = await document.querySelector('.mpi-gif-viewer').getFrameMaskURL(0);
       const img = new Image();
@@ -951,9 +953,12 @@ test('gif mask display: Cut-out and the Mask Brush highlight the SAME region, an
       c.getContext('2d').drawImage(img, 0, 0);
       return c.getContext('2d').getImageData(Math.round(c.width / 2), Math.round(c.height / 2), 1, 1).data[0];
     });
-    expect(centrePixel, 'painting over what you see must DROP that area from the cut').toBeLessThan(128);
+    expect(centrePixel, 'painting over what you see must ADD that area to the mask').toBeGreaterThan(128);
 
-    // ── Invert ON: the cut keeps the other side, so the highlight moves ──
+    // ── Invert ON: a cut-time switch, NOT a redraw (MPI-859) ──
+    // The tint is the mask, as in the image workspace; Invert says the mask is
+    // what SURVIVES the cut. A tint that moved here would put Cut-out and the
+    // brush on opposite regions again, which is what this test exists to stop.
     // Re-seed first: the stroke above deliberately punched the disc's middle out,
     // and sampling dead centre of a ring would say "no tint" for the wrong reason.
     await window.evaluate((u) => {
@@ -967,13 +972,21 @@ test('gif mask display: Cut-out and the Mask Brush highlight the SAME region, an
       const slot = document.querySelector('#invert-slot');
       (slot.querySelector('input[type="checkbox"]') || slot.firstElementChild).click();
     });
-    await expect.poll(tinted, { timeout: 10000 })
-      .toEqual({ disc: true, background: false });
+    // Wait for the toggle to LAND before reading the tint: an unchanged value
+    // passes a poll instantly, so without this the assertion could run before
+    // the click did anything and prove nothing.
+    await expect.poll(() => window.evaluate(() => {
+      const slot = document.querySelector('#invert-slot');
+      const box = slot.querySelector('input[type="checkbox"]');
+      return box ? box.checked : slot.firstElementChild?.getAttribute('aria-checked') === 'true';
+    }), { timeout: 10000 }).toBe(true);
+    await expect.poll(tinted, 'Invert must not move the tint', { timeout: 10000 })
+      .toEqual({ disc: false, background: true });
 
     await openTool('Mask Brush');
     await canvasReady();
-    await expect.poll(tinted, 'and the brush still follows it', { timeout: 10000 })
-      .toEqual({ disc: true, background: false });
+    await expect.poll(tinted, 'and the brush shows the same mask', { timeout: 10000 })
+      .toEqual({ disc: false, background: true });
   } finally {
     await closeApp(app);
   }
@@ -1016,8 +1029,8 @@ test('gif mask display: a brush stroke ACROSS the subject edge reads the same in
       const c = document.createElement('canvas');
       c.width = c.height = 64;
       const x = c.getContext('2d');
-      x.fillStyle = 'black'; x.fillRect(0, 0, 64, 64);
-      x.fillStyle = 'white'; x.beginPath(); x.arc(32, 32, 18, 0, Math.PI * 2); x.fill();
+      x.fillStyle = 'white'; x.fillRect(0, 0, 64, 64);
+      x.fillStyle = 'black'; x.beginPath(); x.arc(32, 32, 18, 0, Math.PI * 2); x.fill();
       return c.toDataURL('image/png');
     });
     await window.evaluate((u) => {
@@ -1027,7 +1040,7 @@ test('gif mask display: a brush stroke ACROSS the subject edge reads the same in
     // Fractions of the frame, so they survive any overlay / mask resolution.
     // The stroke runs along y = 0.5 from x = 0.10 (background) to x = 0.34 (disc).
     const POINTS = {
-      strokeInDisc: [0.34, 0.5],        // was kept, the stroke must DROP it
+      strokeInDisc: [0.34, 0.5],        // was kept, the stroke must put it IN the mask
       strokeInBackground: [0.10, 0.5],  // was dropped already, must STAY dropped
       discUntouched: [0.62, 0.5],       // kept, nowhere near the stroke
       backgroundUntouched: [0.06, 0.06],
@@ -1045,7 +1058,7 @@ test('gif mask display: a brush stroke ACROSS the subject edge reads the same in
       return out;
     }, POINTS);
 
-    /** Per point: does the STORE drop it? The cut keeps white, so black = goes. */
+    /** Per point: does the STORE drop it? The store holds what gets CUT (MPI-859), so white = goes. */
     const storeGoes = () => window.evaluate(async (pts) => {
       const url = await document.querySelector('.mpi-gif-viewer').getFrameMaskURL(0);
       const img = new Image();
@@ -1058,8 +1071,10 @@ test('gif mask display: a brush stroke ACROSS the subject edge reads the same in
       const out = {};
       for (const [k, [fx, fy]] of Object.entries(pts)) {
         const d = x.getImageData(Math.round(c.width * fx), Math.round(c.height * fy), 1, 1).data;
-        // Alpha-encoded or opaque B/W: "kept" needs BOTH light and opaque.
-        out[k] = !(d[0] >= 128 && d[3] >= 128);
+        // Alpha-encoded or opaque B/W: "in the mask" needs BOTH light and opaque.
+        // BEFORE / AFTER below did not change when the store flipped - the screen
+        // and the store now agree without a translation, which is the whole fix.
+        out[k] = d[0] >= 128 && d[3] >= 128;
       }
       return out;
     }, POINTS);
@@ -1147,8 +1162,8 @@ test('gif mask display: PLAYING in the Mask Brush keeps the highlight on what go
       const c = document.createElement('canvas');
       c.width = c.height = 64;
       const x = c.getContext('2d');
-      x.fillStyle = 'black'; x.fillRect(0, 0, 64, 64);
-      x.fillStyle = 'white'; x.beginPath(); x.arc(32, 32, 18, 0, Math.PI * 2); x.fill();
+      x.fillStyle = 'white'; x.fillRect(0, 0, 64, 64);
+      x.fillStyle = 'black'; x.beginPath(); x.arc(32, 32, 18, 0, Math.PI * 2); x.fill();
       return c.toDataURL('image/png');
     });
     await window.evaluate((u) => {
@@ -1172,7 +1187,11 @@ test('gif mask display: PLAYING in the Mask Brush keeps the highlight on what go
     const playingTint = async () => {
       const at = await window.evaluate(() => {
         const v = document.querySelector('.mpi-gif-viewer');
-        const r = document.querySelector('.mpi-gif-viewer__mask-tint').getBoundingClientRect();
+        // The FRAME's box, not the tint element's: the tint spans the whole stage
+        // and only paints inside the letterboxed frame, so a corner of the STAGE
+        // is dark letterbox whatever the mask says. The MPI-771 complement used to
+        // bleed tint out there, which is the only reason sampling it ever worked.
+        const r = document.querySelector('.mpi-gif-viewer__checker').getBoundingClientRect();
         return { idx: v.getFrameIndex(), x: r.left, y: r.top, w: r.width, h: r.height };
       });
       if (!(at.w > 8) || !(at.h > 8)) return { moved: at.idx > 0, highlighted: 'no tint box' };

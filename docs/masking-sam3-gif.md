@@ -55,7 +55,8 @@ which tracked index is which object.
 
 Fabio's UI pass found SAM3's "Background" mask ragged at the frame edge and slow to fix by
 hand, so Cut-out has three METHODS that all fill the same per-frame track layer (so the brush,
-Adjust, Invert and Cut out work unchanged). Every mask is white = KEEP.
+Adjust, Invert and Cut out work unchanged). Every mask is white = WHAT GETS CUT (MPI-859; see
+below — the engine's own output is the other way round for BiRefNet, and is flipped as it lands).
 
 - **Remove background** (default) — op `gifCutoutBirefnet`, `gif_cutout_birefnet.json`:
   `MpiLoadVideoUpload (Input_Video) -> RemoveBackground (the shipped `birefnet` engine asset, the
@@ -80,12 +81,20 @@ Every frame of an ALREADY-CUT clip is mostly alpha 0 and `keepMask` keys every t
 pixel out, so the mask is "the opaque subject" before the colour is weighed — the keep side
 barely moves as Tolerance is dragged, which is why tinting the keep side read as a dead slider.
 
-**Every method tints WHAT GOES AWAY** (`flip = !_invert` in `MpiToolOptionsGifCutout`). It is a
-cut-out: the masked area is the area that disappears, so the tint says whether Invert is needed
-without a caption. This replaced a per-method `#tint-note` that said "stays" for two methods and
-"goes" for the third — one rule everywhere beats a label explaining an exception (Fabio,
-2026-09-18). The mask itself stays white=KEEP internally, because `applyMaskAlpha` writes it
-straight into the alpha channel; the tint is the complement of whatever survives `Invert`.
+**The mask is WHAT GETS CUT, and it is drawn as itself (MPI-859, Fabio 2026-09-20).** This is
+the image workspace's model, ported: every method proposes the region its LABEL names — the
+Background chip masks the background (`invertResult`, because BiRefNet hands back the
+foreground), By name the named object, By colour the colour — the proposal is green, **Add**
+turns those same pixels white, **Subtract** takes them out. Nothing translates the store on the
+way to the screen: no complement, no paint/erase swap, and `Invert` is a cut-time switch ("the
+mask is what SURVIVES"), never a redraw. "The tint is what disappears" (Fabio, 2026-09-18) still
+holds with Invert off — it is now literally what the store holds. `routes/gifCutout.js` reads a
+mask as alpha, i.e. what STAYS, so `getCutMasks()` flips once at the boundary
+(`utils/maskUtils.js` `invertMaskUrl`); `applyMaskAlpha`, Grow / Fill Holes / Invert and the
+MPI-858 ceiling all see exactly what they always saw. **Do not reintroduce a display flip.**
+MPI-771 stored "what stays" and complemented it, so Add moved the highlight to the other side
+of the frame and an Add on an already-kept region did nothing visible — the two bugs that
+ended it.
 
 **A cut REMOVES — the frame's own alpha is the ceiling (MPI-858).** `applyMaskAlpha()` clamps
 the finished mask to the alpha the frame already had (`min`), after Grow/Shrink, Fill Holes and
@@ -96,34 +105,18 @@ painted that black, so cutting a clip that was already cut came back with a BLAC
 (Fabio, 2026-09-20). An opaque frame is unaffected (`min(255, m) === m`), which is why the
 mask→alpha, adjust and invert guarantees are unchanged. Cutting twice therefore INTERSECTS, which
 is the only composition the engine side does; stacking two METHODS on one frame is the panel's
-job and is not built. Proof: `tests/gif-cutout.test.cjs`, the four ceiling cases.
+job (`maskCompose.js`, MPI-859). Proof: `tests/gif-cutout.test.cjs`, the four ceiling cases.
 
-**And the MASK BRUSH follows it** (Fabio, 2026-09-19). The rule is the workspace's, not
-Cut-out's: with `Invert` off, Cut-out highlighted the background while the brush highlighted the
-subject, so the brush asked you to clean up the region you were not looking at. `MpiGifViewer`
-now owns the flip — Cut-out pushes `setMaskDisplayFlip(!invert)` on mount and on every change,
-and the brush renders `MpiCanvas`'s `displayComplement` (see [masking.md](masking.md)) rather
-than a flipped bitmap, so it still holds the REAL layers and saves them back untouched. Three
-things that are easy to get wrong here:
+**The Mask Brush shows the same store, with no rule of its own.** Cut-out and the brush can
+no longer disagree about which side is highlighted, because neither translates anything. One
+trap from the MPI-771 era is still live:
 
-- **Cut-out must NOT complement.** Its override is flipped already, and two flips are a no-op —
-  which is exactly the regression the first attempt shipped. `setCutoutPreview()` clears the
-  flag as well as `_editIdx`, because the mount runs before the first preview arrives and has
-  already taken the normal branch.
-- **...and that normal branch loaded the BRUSH LAYERS too.** The override is composed already,
-  so a `subtract` left on the canvas is applied twice: a brush stroke read "goes" in the brush
-  and came back in Cut-out as an untinted hole. The FIRST override after a mount (or a Clear)
-  therefore reloads the frame through `_loadEditFrame`'s override branch (`loadImage()` wipes
-  every layer); later ones only swap the base. `_loadEditFrame` is SERIALISED for the same
-  reason — a superseded load's late layer decode must not land on the next load's canvas.
-- **Paint and erase SWAP under the complement.** The canvas paints the inverse of what is on
-  screen, so "Paint" is wired to the eraser and back. The strip's radio is untouched: from the
-  user's side it is still painting, and the stroke still grows the region under the cursor.
-- **The flip is decided per frame VISIT, and only when the frame already has a mask.** The
-  complement of nothing is the whole frame, so a brush used to paint a mask from scratch would
-  open on a solid sheet of tint; deciding it mid-stroke would be worse. The brush is mostly for
-  cleaning up a mask that exists, and that case gets the shared rule.
-
+- **Cut-out's override loads WITHOUT the brush layers.** The override bitmap is composed
+  already, so a `subtract` left on the canvas is applied twice. The FIRST override after a
+  mount (or a Clear) therefore reloads the frame through `_loadEditFrame`'s override branch
+  (`loadImage()` wipes every layer); later ones only swap the base. `_loadEditFrame` is
+  SERIALISED for the same reason — a superseded load's late layer decode must not land on the
+  next load's canvas.
 ## The two tools — Cut-out and Mask Brush (MPI-771, plan Decision 14)
 
 A track is a STARTING POINT: object numbers need not stay the same object from frame to
@@ -275,17 +268,13 @@ Cut-out; Fabio chose that over a second Cut out button (2026-09-16).
   shows and drives the CSS tint during playback, so play/pause never changes what the
   highlight means. `getFrameMaskURL()` / `getCutMasks()` read the real store and never see it,
   and `brush: false` means nothing can write it back.
-  The override exists because the canvas can only draw the mask REGION — `setMaskInverted`
-  recolours it black (`MASK_INVERT_FILL`), it is not a geometric complement — so showing "what
-  disappears" means handing the canvas the already-flipped bitmap. The strip's Invert then
-  flips the view back to the raw mask, which is exactly what its tooltip says it does.
+  The override exists because Cut-out shows the ADJUSTED mask (Grow, Fill Holes) and, while
+  one is waiting, the PROPOSAL — neither of which is the store's own bitmap.
   The strip's **Clear** is routed to `clearFrameMasks(index)` under the override: with
   `brush: false` there is no layer to erase with, so clearing only the canvas would repaint
   from a store that still holds the mask and read as a dead button.
   Play in the Mask Brush drives the same div with the store's B/W masks under `--luma`
-  (`mask-mode: luminance`). The store is "what stays", so under the flip `_setPlayingTint()`
-  adds `--complement`: a solid second mask layer XORed in CSS (`mask-composite: exclude`), no
-  per-frame decode. Without it the highlight swapped sides one frame into playback.
+  (`mask-mode: luminance`), as themselves.
   **The tint is WHITE because the mask is COMMITTED.** `MpiCanvas` recolours only its PENDING
   layers to `MASK_AUTO_FILL` (`--accent-ok`): a detect run still waiting on Add / Subtract, or
   an Adjust preview waiting on Apply. A committed mask is `maskColor` — white — drawn straight

@@ -54,9 +54,10 @@
  *   setCutoutPreview(url|null, proposed)   — MPI-771 audit: DISPLAY ONLY. Cut-out
  *                                            mounts the same canvas and the same
  *                                            MpiMaskStrip as the Mask Brush, but
- *                                            shows the ADJUSTED, flipped bitmap
- *                                            (the highlight marks what DISAPPEARS)
- *                                            instead of the stored mask. Drives the
+ *                                            shows the ADJUSTED bitmap (Grow, Fill
+ *                                            Holes) or the PROPOSAL instead of the
+ *                                            stored mask. Never flipped: the store
+ *                                            holds what gets cut (MPI-859). Drives the
  *                                            canvas while the tool is up and the CSS
  *                                            tint while the GIF plays, so play/pause
  *                                            never changes what the highlight means.
@@ -89,9 +90,11 @@
  *                                            (a composed B/W PNG when it was
  *                                            brushed, the track URL, or null)
  *   getCutMasks()                          — Promise: one mask per frame for
- *                                            `/gif-cutout/apply` (an empty frame
- *                                            comes through unchanged: a 1x1
- *                                            WHITE PNG = keep the whole frame)
+ *                                            `/gif-cutout/apply`, flipped ONCE to
+ *                                            the route's keep-space (the store is
+ *                                            what gets cut). An empty frame comes
+ *                                            through unchanged: a 1x1 WHITE PNG =
+ *                                            keep the whole frame
  *   clearFrameMasks('all' | idx)           — throw track AND brush layers away;
  *                                            the only way back to no mask at all
  *   hasFrameMasks()
@@ -150,6 +153,7 @@ import { Events } from '../../../events.js';
 import { qs, on } from '../../../utils/dom.js';
 import { GifFrameMasks } from './gifFrameMasks.js';
 import { composeFrameMask } from './maskCompose.js';
+import { invertMaskUrl } from '../../../utils/maskUtils.js';
 
 /** Frames kept decoded around the current index, each side. */
 const CACHE_RADIUS = 6;
@@ -221,22 +225,23 @@ export const MpiGifViewer = ComponentFactory.create({
          * through this same override (MPI-859).
          */
         let _cutoutProposal = false;
-        /**
-         * MPI-771 (Fabio, 2026-09-19): the WORKSPACE rule is "the highlight marks
-         * what disappears", and Cut-out obeys it by handing the canvas an
-         * already-flipped bitmap. The Mask Brush showed the raw stored mask, so the
-         * same frame highlighted opposite regions in the two tools and the brush
-         * asked you to clean up the thing you were not looking at.
+        /*
+         * NO COMPLEMENT HERE (MPI-859, Fabio 2026-09-20). The store holds WHAT GETS
+         * CUT and is drawn as itself — the image workspace's model, and the only one
+         * the verbs read correctly: a run proposes a region in green, Add turns those
+         * same pixels white, Subtract takes them back out. MPI-771 stored "what
+         * stays" and complemented it on the way to the screen, so Add moved the
+         * highlight to the OTHER side of the frame, and a By colour Add on an
+         * already-kept region did nothing you could see.
          *
-         * The store still holds "what stays" — this is the display translation,
-         * owned HERE so both tools share it instead of only Cut-out having it.
-         * Cut-out pushes `!invert`; the brush renders the complement and swaps its
-         * paint/erase so a Paint stroke GROWS what you can see.
+         * A committed mask looks exactly as it did: the complement of "what stays"
+         * is the same pixels as "what gets cut". "The highlight marks what
+         * disappears" is unchanged — it is now what the store literally holds rather
+         * than a translation applied to it. `getCutMasks()` inverts once at the
+         * boundary, so `routes/gifCutout.js` still receives keep-space and MPI-858's
+         * alpha ceiling is untouched.
          */
-        let _maskFlip = false;
-        /** Whether THIS frame visit is showing the complement (decided at load). */
-        let _flipActive = false;
-        /** What the strip last asked for, before any swap. */
+        /** What the strip last asked for. */
         let _brushModeWanted = 'brush';
         /** Mask Brush / Crop surface (MPI-771, MPI-773) — mounted only while the tool is up. */
         let _canvas = null;
@@ -440,7 +445,7 @@ export const MpiGifViewer = ComponentFactory.create({
          * `proposal`: the bitmap is a method run waiting on Add / Subtract, so it
          * wears `--accent-ok` instead of `--mask-fill` (MPI-859).
          */
-        function _setTint(url, luma = false, complement = false, proposal = false) {
+        function _setTint(url, luma = false, proposal = false) {
             if (!url) {
                 // HIDE ONLY. `--luma` and the mask image stay exactly as they are
                 // until the next mask replaces them. Dropping `--luma` here (or
@@ -454,38 +459,23 @@ export const MpiGifViewer = ComponentFactory.create({
             }
             // Bitmap and mode together, before the show: one style flush, so the
             // element is never painted with one frame's mask under the other's mode.
-            // The complement is CSS's job: a solid second layer, XORed with the mask
-            // by `--complement`. No per-frame decode, so it keeps up with playback.
-            const image = complement ? `url("${url}"), linear-gradient(white, white)` : `url("${url}")`;
+            const image = `url("${url}")`;
             maskTintEl.style.webkitMaskImage = image;
             maskTintEl.style.maskImage = image;
             maskTintEl.classList.toggle('mpi-gif-viewer__mask-tint--luma', luma);
-            maskTintEl.classList.toggle('mpi-gif-viewer__mask-tint--complement', complement);
             maskTintEl.classList.toggle('mpi-gif-viewer__mask-tint--proposal', proposal);
             maskTintEl.classList.add('mpi-gif-viewer__mask-tint--visible');
         }
 
-        /**
-         * The tint for a frame that playback just stepped ONTO. The frame play
-         * started on is `_hideEditCanvas`'s — it copies the canvas. Every later one
-         * used to get the raw store mask, "what stays", so under the workspace's
-         * "the highlight is what goes" rule the highlight swapped sides one frame
-         * into playback.
-         */
+        /** The tint for a frame that playback just stepped ONTO. */
         function _setPlayingTint() {
             // Cut-out's override is per frame and the panel pushes the next one a
-            // beat later. Until it lands, the last one is at least the right way
-            // round; the raw store mask is not.
+            // beat later; until it lands the last one is the closer answer.
             if (_cutoutPreview !== null) return;
-            const url = _masks.overlayAt(_index);
-            // A PROPOSAL is shown AS ITSELF and in the pending green: nothing has
-            // gone anywhere yet, so neither the complement nor the committed white
-            // applies to it (MPI-859). The panel only pushes a preview for the frame
-            // it is ON, so without this the other frames of a multi-frame run flipped
-            // and whitened one beat into playback.
-            const proposal = _masks.isProposalAt(_index);
-            // What `_loadEditFrame` would decide for this frame, without the canvas.
-            _setTint(url, true, !proposal && _maskFlip && !!url, proposal);
+            // The store IS what the screen shows now, so there is nothing to
+            // translate — only which COLOUR it wears. A proposal is green until a
+            // verb commits it (MPI-859).
+            _setTint(_masks.overlayAt(_index), true, _masks.isProposalAt(_index));
         }
         el.setMaskTint = (url) => _setTint(url);
 
@@ -652,6 +642,12 @@ export const MpiGifViewer = ComponentFactory.create({
         };
 
         let _emptyMask = null;
+        /**
+         * The store holds WHAT GETS CUT; `routes/gifCutout.js` reads a mask as
+         * ALPHA, i.e. what stays. One inversion here is the whole translation
+         * (MPI-859) — `applyMaskAlpha`, its Grow/Fill Holes/Invert and MPI-858's
+         * frame-alpha ceiling all keep seeing exactly what they saw before.
+         */
         el.getCutMasks = async () => {
             _saveEdit();
             if (!_emptyMask) {
@@ -669,7 +665,12 @@ export const MpiGifViewer = ComponentFactory.create({
                 _emptyMask = c.toDataURL('image/png');
             }
             const out = [];
-            for (let i = 0; i < _frames.length; i++) out.push((await el.getFrameMaskURL(i)) || _emptyMask);
+            for (let i = 0; i < _frames.length; i++) {
+                const cut = await el.getFrameMaskURL(i);
+                // An untouched frame masks NOTHING, which in keep-space is the same
+                // 1x1 white "keep the whole frame" it has always been.
+                out.push(cut ? await invertMaskUrl(cut) : _emptyMask);
+            }
             return out;
         };
 
@@ -747,10 +748,6 @@ export const MpiGifViewer = ComponentFactory.create({
                 // canvas as read-only, and the panel repaints through
                 // `onMasksChange` -> `setCutoutPreview()` anyway.
                 if (_cutoutPreview !== null) {
-                    // Cut-out's bitmap is flipped ALREADY — complementing it again
-                    // would put the highlight back on what stays.
-                    cv.setMaskDisplayComplement(false);
-                    _flipActive = false;
                     cv.setMaskDisplayProposal(_cutoutProposal);
                     await cv.setMaskBase(_cutoutPreview);
                     if (token !== _editToken) return;
@@ -760,15 +757,6 @@ export const MpiGifViewer = ComponentFactory.create({
                 }
                 const edits = _masks.edits.get(idx);
                 const base = _masks.track.get(idx) || null;
-                // Decided ONCE per frame visit, and only when the frame ALREADY has
-                // a mask: the complement of nothing is the whole frame, so a brush
-                // used to paint a mask from scratch would open on a solid sheet of
-                // tint. Fixing it mid-stroke would be worse — the picture would
-                // invert under the cursor on the first dab. The brush is mostly for
-                // cleaning up a mask that exists (Fabio, 2026-09-19); that case gets
-                // the shared rule, the from-scratch case stays plain.
-                _flipActive = _maskFlip && !!(base || edits?.manual || edits?.composed);
-                cv.setMaskDisplayComplement(_flipActive);
                 // The store's own layers: committed by definition, whatever the last
                 // override was showing (MPI-859).
                 cv.setMaskDisplayProposal(false);
@@ -822,22 +810,15 @@ export const MpiGifViewer = ComponentFactory.create({
             editSlot.classList.add('mpi-gif-viewer__edit--playing');
             frameWrap.hidden = false;
             // Same bitmap the canvas was showing, so play/pause never changes what
-            // the highlight means — Cut-out's flipped preview stays flipped.
+            // the highlight means.
             if (_editKind === 'mask') {
-                // Play must not change what the highlight means. Cut-out's override is
-                // already flipped; the brush under the complement asks the canvas for
-                // the same composition with the colours swapped — white ground, black
-                // mask — which IS the complement once `--luma` reads it.
-                const flipped = _flipActive ? _canvas?.el.getMaskDataURL('white', 'black', true) : null;
-                // Which of the three won decides the tint's colour as well as its
-                // bitmap (MPI-859). `flipped` is a render of the canvas's own layers,
-                // so it is committed by definition — `_flipActive` is forced off
-                // while an override is up, and an override is the only proposal here.
-                const url = _cutoutPreview ?? flipped ?? _masks.overlayAt(_index);
+                // An override is the only proposal that can reach this surface; the
+                // store's own mask is committed (MPI-859).
+                const url = _cutoutPreview ?? _masks.overlayAt(_index);
                 const proposal = _cutoutPreview !== null
                     ? _cutoutProposal
-                    : !flipped && _masks.isProposalAt(_index);
-                _setTint(url, true, false, proposal);
+                    : _masks.isProposalAt(_index);
+                _setTint(url, true, proposal);
             }
         }
 
@@ -852,12 +833,9 @@ export const MpiGifViewer = ComponentFactory.create({
             if (!_editing) return;
             if (_playing) _setTint(null);
             // The override belongs to the tool that set it. Leaving Cut-out with it
-            // still on would show the Mask Brush a flipped mask on its next mount.
+            // still on would show the Mask Brush a preview instead of the store.
             _cutoutPreview = null;
             _cutoutProposal = false;
-            // `_maskFlip` is the workspace's rule and SURVIVES the tool switch —
-            // that is the whole point. Only this visit's applied state resets.
-            _flipActive = false;
             _saveEdit();
             _editToken++;
             _brushSize = _canvas?.el.brushSize ?? _brushSize;
@@ -911,22 +889,14 @@ export const MpiGifViewer = ComponentFactory.create({
             _applyBrushMode();
         };
         /**
-         * Under the complement, what the user SEES is the inverse of the layer the
-         * canvas paints, so Paint must erase and Erase must paint for a stroke to
-         * grow the region under the cursor. The strip's radio is untouched — it
-         * still says Paint — because from the user's side it IS painting.
+         * Paint paints and Erase erases (MPI-859). The swap this used to do existed
+         * only because the canvas showed the complement of the layer it painted;
+         * the store is now what the screen shows, so a stroke grows the region under
+         * the cursor without translating anything — the image workspace's brush.
          */
         function _applyBrushMode() {
-            const swap = _flipActive && _brushModeWanted === 'brush' ? 'eraser'
-                : _flipActive && _brushModeWanted === 'eraser' ? 'brush'
-                    : _brushModeWanted;
-            _canvas?.el.setBrushType(swap);
+            _canvas?.el.setBrushType(_brushModeWanted);
         }
-        /** Cut-out pushes `!invert`; the brush inherits it on its next frame load. */
-        el.setMaskDisplayFlip = (v) => {
-            _maskFlip = !!v;
-        };
-        el.isMaskDisplayFlipped = () => _flipActive;
         el.setMaskBrushPreset  = (id) => _canvas?.el.setBrushPreset(id);
         el.setMaskInverted     = (v) => _canvas?.el.setMaskInverted(v);
         el.isMaskInverted      = () => !!_canvas?.el.isMaskInverted();
@@ -972,19 +942,10 @@ export const MpiGifViewer = ComponentFactory.create({
             // and claimed `_editIdx`. Leaving it claimed is what let a landing
             // track save empty brush layers over a real fix.
             if (_cutoutPreview !== null) _editIdx = -1;
-            // ...and it is ALREADY FLIPPED, so the complement must come off or the
-            // two cancel and Cut-out lands back on what stays. Same reason as
-            // `_editIdx`: the mount ran before the first preview arrived and took
-            // the normal branch, which had armed the complement.
-            if (_cutoutPreview !== null && _flipActive) {
-                _flipActive = false;
-                _canvas?.el.setMaskDisplayComplement(false);
-                _applyBrushMode();
-            }
             // Playing: the canvas is hidden behind the frame-wrap, so the tint is
             // what is on screen. `false` = an alpha mask, not an opaque B/W one.
             if (editSlot.classList.contains('mpi-gif-viewer__edit--playing')) {
-                _setTint(_cutoutPreview, false, false, _cutoutProposal);
+                _setTint(_cutoutPreview, false, _cutoutProposal);
                 return;
             }
             if (!_canvas) return;

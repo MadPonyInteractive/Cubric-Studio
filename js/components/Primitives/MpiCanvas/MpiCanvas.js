@@ -966,14 +966,6 @@ class _CanvasCore {
                 // judging the old shape and the proposed one at once. The real
                 // layers are untouched until Apply — this is the whole preview.
                 ctx.drawImage(this._recolorMaskLayer(this.mask.adjustCanvas, MASK_AUTO_FILL, W, H, clip), 0, 0);
-            } else if (this.mask.displayComplement) {
-                // Everything the mask does NOT cover (MPI-771). Still display-only:
-                // `maskCanvas` is untouched, so the brush layers under it save back
-                // exactly as they would without this.
-                ctx.drawImage(this._complementMaskLayer(
-                    this.mask.maskCanvas,
-                    this.mask.displayInverted ? MASK_INVERT_FILL : this.mask.maskColor,
-                    W, H, clip), 0, 0);
             } else if (this.mask.displayInverted) {
                 ctx.drawImage(this._recolorMaskLayer(this.mask.maskCanvas, MASK_INVERT_FILL, W, H, clip), 0, 0);
             } else if (this.mask.displayProposal && !this.mask.bwView) {
@@ -1079,30 +1071,6 @@ class _CanvasCore {
         return buf;
     }
 
-    /**
-     * The INVERSE of `_recolorMaskLayer`: a solid field of `color` with the mask
-     * punched out of it, so what paints is everything the mask does not cover.
-     * Same shared buffer, same clip contract — each call redraws it whole and the
-     * result is consumed immediately.
-     */
-    _complementMaskLayer(src, color, W, H, clip = null) {
-        const buf = this._maskTintBuf || (this._maskTintBuf = document.createElement('canvas'));
-        if (buf.width !== W || buf.height !== H) { buf.width = W; buf.height = H; }
-        const bctx = buf.getContext('2d');
-        const r = clip || { x: 0, y: 0, w: W, h: H };
-        bctx.save();
-        bctx.beginPath();
-        bctx.rect(r.x, r.y, r.w, r.h);
-        bctx.clip();
-        bctx.clearRect(r.x, r.y, r.w, r.h);
-        bctx.fillStyle = color;
-        bctx.fillRect(r.x, r.y, r.w, r.h);
-        // The mask's own alpha carves the hole, so a soft brush edge stays soft.
-        bctx.globalCompositeOperation = 'destination-out';
-        bctx.drawImage(src, 0, 0, W, H);
-        bctx.restore();
-        return buf;
-    }
 
     /** Point prompts. Overlay ctx is image-px, so divide by scale to keep the
      *  dots a constant size on screen at any zoom. */
@@ -1528,8 +1496,6 @@ class _CanvasCore {
     setMaskInverted(v)      { this.mask.displayInverted = !!v; this.draw(); }
     isMaskInverted()        { return !!this.mask.displayInverted; }
     /** MPI-771 — display the COMPLEMENT of the mask. Display only; see MaskManager. */
-    setMaskDisplayComplement(v) { this.mask.displayComplement = !!v; this.draw(); }
-    isMaskDisplayComplement()   { return !!this.mask.displayComplement; }
     /** MPI-859 — the base on screen is a PROPOSAL, so tint it green. Display only. */
     setMaskDisplayProposal(v)   { this.mask.displayProposal = !!v; this.draw(); }
     isMaskDisplayProposal()     { return !!this.mask.displayProposal; }
@@ -1668,7 +1634,7 @@ export const MpiCanvas = ComponentFactory.create({
             'setCompareLoop','getCompareLoop','isCompareVideoPair',
             'resetView','setGrid','resize','draw',
             'setMaskingMode','setBrushSize','setBrushType','setBrushPreset','flipMaskColor',
-            'setMaskInverted','isMaskInverted','setMaskDisplayComplement','isMaskDisplayComplement',
+            'setMaskInverted','isMaskInverted',
             'setMaskDisplayProposal','isMaskDisplayProposal',
             'setMaskBwView','isMaskBwView','setMaskPaintEnabled',
             'setMaskOpacity','clearMask','getMaskDataURL',

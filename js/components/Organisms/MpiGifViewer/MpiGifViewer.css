@@ -122,17 +122,9 @@
     mask-mode: luminance;
 }
 
-/* The store holds "what stays"; the workspace highlights what GOES. `_setTint()`
-   stacks a solid layer under the mask and this XORs the two: 1 - coverage. */
-.mpi-gif-viewer__mask-tint--complement {
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-}
-
 /* A method run waiting on Add / Subtract (MPI-859). The one tint that does NOT
    mark what disappears — nothing has gone anywhere yet — so it wears the colour
-   those two verbs already answer to everywhere else in the app. Never stacked
-   with `--complement`: a proposal is shown as itself. */
+   those two verbs already answer to everywhere else in the app. */
 .mpi-gif-viewer__mask-tint--proposal {
     background: var(--accent-ok);
 }

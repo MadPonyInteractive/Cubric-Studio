@@ -2,10 +2,13 @@
  * MpiToolOptionsGifCutout — Organism: the GIF cut-out tool group (MPI-771).
  *
  * Masks every frame, then cuts them into a new alpha entry. Three METHODS fill
- * the same per-frame track layer (plan Decision 15):
- *   - Remove background: BiRefNet (`gifCutoutBirefnet`), keeps the foreground.
- *   - By name: SAM3 video tracking (`gifCutoutSam3`), keeps what is named.
- *   - By colour: `utils/colourKeyMask.js` in the renderer, keys one colour out.
+ * the same per-frame track layer (plan Decision 15). THE MASK IS WHAT GETS CUT and
+ * each method proposes the region its LABEL names (MPI-859) - the image
+ * workspace's model, where the mask is the thing you select:
+ *   - Background: BiRefNet (`gifCutoutBirefnet`) finds the foreground; the
+ *     proposal is its other half, the background.
+ *   - By name: SAM3 video tracking (`gifCutoutSam3`), the named objects.
+ *   - By colour: `utils/colourKeyMask.js` in the renderer, one colour.
  * A mask is a STARTING POINT (plan Decision 14): the user fixes frames by hand
  * with the Mask Brush, a separate tool. The masks themselves live on the viewer
  * (`MpiGifViewer`, per frame position), which is how this panel and the brush
@@ -74,6 +77,7 @@ import { runGifCutoutTrack } from '../../../services/commandExecutor.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { StatusBar } from '../../../shell/statusBar.js';
 import { qs } from '../../../utils/dom.js';
+import { invertMaskUrl } from '../../../utils/maskUtils.js';
 
 /** `SAM3_TrackToMask`'s `max_objects` is a fixed graph literal (docs/masking-sam3-gif.md). */
 const OBJECT_SLOTS = 4;
@@ -90,26 +94,33 @@ const DEFAULTS = {
     tolerance: COLOUR_KEY_DEFAULTS.tolerance, edgesOnly: COLOUR_KEY_DEFAULTS.edgesOnly,
 };
 
+/**
+ * EVERY METHOD PROPOSES THE REGION ITS LABEL NAMES, and the mask is what gets cut
+ * (MPI-859, Fabio 2026-09-20). "Background" masks the background — BiRefNet hands
+ * back the foreground, so `invertResult` flips it here rather than leaving the
+ * chip promising one thing and highlighting the other. The verb then means the
+ * same for all three: Add puts the region in the mask, Subtract takes it out.
+ */
 const METHODS = {
     birefnet: {
-        label: 'Background', icon: 'image', op: 'gifCutoutBirefnet', progress: 'Finding the foreground',
-        info: 'Remove background: finds the foreground, no prompt needed (BiRefNet)',
-        hint: 'Finds the <b>foreground</b>. <b>Add</b> it to keep it.',
+        label: 'Background', icon: 'image', op: 'gifCutoutBirefnet', progress: 'Finding the background',
+        info: 'Background: finds the background, no prompt needed (BiRefNet)',
+        hint: 'Finds the <b>background</b>.',
+        invertResult: true,
     },
     sam3: {
         label: 'By name', icon: 'text', op: 'gifCutoutSam3', progress: 'Tracking',
         info: 'By name: finds the objects you name (SAM3)',
-        hint: 'Name what to find: <b>mascot</b>, <b>logo</b>. <b>Add</b> it to keep it.',
+        hint: 'Name what to find: <b>mascot</b>, <b>logo</b>.',
     },
     colour: {
         label: 'By colour', icon: 'mask_fill_holes_stroke', op: null, progress: 'Keying colour',
         info: 'By colour: finds one colour. No GPU',
-        hint: 'Finds one <b>colour</b> — <b>Pick</b> it from the screen. <b>Subtract</b> it to remove it.',
+        hint: 'Finds one <b>colour</b> — <b>Pick</b> it from the screen.',
     },
 };
-// Every method is a SOURCE and the verb decides (MPI-859), so the hint names the
-// usual verb rather than claiming the method keeps or removes anything by itself.
-const HINT_TAIL = ' Each run adds to what the frames already have, so methods can be combined.'
+const HINT_TAIL = ' <b>Add</b> it to the mask, or <b>Subtract</b> it. Each run composes with'
+    + ' what the frames already have, so methods can be combined.'
     + ' Fix any frame by hand with the <b>Mask Brush</b>.';
 /** Replaces the method hint while a run is waiting to be committed. */
 const PROPOSAL_HINT = 'The highlight is what this run <b>found</b>.'
@@ -224,9 +235,6 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         let _grow = Math.max(-MAX_R, Math.min(MAX_R, Math.round(Number(settings.grow) || 0)));
         let _fillHoles = settings.fillHoles === true;
         let _invert = settings.invert === true;
-        // Push it once at mount too: the brush must inherit the CURRENT state even
-        // if the user never touches the checkbox this visit.
-        viewer.el.setMaskDisplayFlip?.(!_invert);
         let _destroyed = false;
         const _save = (key, value) => Events.emit('settings:tool:update', { toolKey: 'gifCutout', key, value });
 
@@ -567,11 +575,6 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         invertChip.on('change', ({ checked }) => {
             _invert = checked;
             _save('invert', checked);
-            // The Mask Brush has to show the SAME region this panel shows, or it asks
-            // you to clean up the thing you are not looking at (Fabio, 2026-09-19).
-            // Same `flip` the tint uses; the viewer applies it on the brush's next
-            // frame load. See `_updateCurrentTint`.
-            viewer.el.setMaskDisplayFlip?.(!checked);
             _updateCurrentTint();
         });
         _children.push(invertChip);
@@ -746,10 +749,15 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             viewer.el.discardCandidates?.();
             _setBusy(true, isAll ? 'all' : 'frame');
 
-            const landMasks = (urls) => {
+            const landMasks = async (urls) => {
                 if (frameSignature(viewer.el.getFrames()) !== listSig) {
                     StatusBar.notify('The frames changed while masking — mask again', 'warning');
                     return false;
+                }
+                // BiRefNet returns the FOREGROUND; the chip says Background, and
+                // the store holds what gets cut, so the proposal is the other half.
+                if (METHODS[method].invertResult) {
+                    urls = await Promise.all(urls.map(u => (u ? invertMaskUrl(u) : u)));
                 }
                 // A PROPOSAL, keyed by the position each result belongs to — which
                 // is what the scope decided. It replaces the last proposal and
@@ -766,7 +774,7 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                 let landed = false;
                 try {
                     const urls = await _keyFrames(targets);
-                    if (urls && !_destroyed) landed = landMasks(urls);
+                    if (urls && !_destroyed) landed = await landMasks(urls);
                 } catch (err) {
                     clientLogger.warn('MpiToolOptionsGifCutout', 'colour key failed', err);
                     StatusBar.notify('Could not key the frames: ' + err.message, 'error');
@@ -791,10 +799,15 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                     previewVideo.el._setSrc(url);
                     previewWrap.hidden = false;
                 };
-                exec.onMasks = (urls) => {
+                exec.onMasks = async (urls) => {
                     if (_destroyed || _trackExec !== exec) return;
                     if (method === 'sam3' && _method === 'sam3') previewWrap.hidden = false;
-                    landed = landMasks(urls) || landed;
+                    const ok = await landMasks(urls);
+                    // Re-checked AFTER the await: landMasks decodes for the
+                    // Background flip, and a stop or a re-run in that window must
+                    // not land a superseded batch.
+                    if (_destroyed || _trackExec !== exec) return;
+                    landed = ok || landed;
                 };
                 exec.onError = (err) => {
                     if (_destroyed) return;
@@ -887,26 +900,13 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                 out = new Uint8Array(width * height);
                 for (let i = 0; i < out.length; i++) out[i] = out32[i] & 0xff;
             }
-            // ONE rule for every method: THE TINT IS WHAT GOES AWAY. It is a
-            // cut-out, so what is masked is what disappears, and a user can read
-            // the tint and know whether they need Invert without being told
-            // (Fabio, 2026-09-18 — this replaced a per-method `#tint-note` that
-            // said "stays" for two methods and "goes" for the third).
-            //
-            // The mask itself stays "what stays" internally — `applyMaskAlpha`
-            // writes it straight into the alpha channel, so white=keep is what
-            // alpha IS. `Invert` flips that exactly as the server does, and the
-            // tint is then the complement of whatever survives.
-            // …and a proposal is the one thing that rule does NOT cover: nothing
-            // has gone anywhere yet. Highlighting its complement would mark the
-            // whole frame for a SAM3 subject, and everything-but-the-colour for a
-            // key. The hint line says which verb the region wants.
-            const flip = !proposed && !_invert;
-            if (flip) {
-                const flipped = new Uint8Array(out.length);
-                for (let i = 0; i < out.length; i++) flipped[i] = 255 - out[i];
-                out = flipped;
-            }
+            // THE TINT IS THE MASK, drawn as itself (MPI-859) — the image
+            // workspace's rule. The store holds what gets cut, so with Invert off
+            // the highlight is still what disappears (Fabio, 2026-09-18), and it
+            // needs no translation to be. Nothing flips it, Invert included: the
+            // Mask Brush shows this same store, and a tint that moved under Invert
+            // would put the two tools on opposite regions again. Invert is a
+            // cut-time switch — it says the mask is what SURVIVES — not a redraw.
 
             const canvas = document.createElement('canvas');
             canvas.width = width;
