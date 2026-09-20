@@ -61,11 +61,17 @@ Knock-ons for whoever implements:
   and the radial menu at `navigation.js:112`). Decide whether Agent joins the radial menu
   too, or only the top bar.
 
-**MUST VERIFY, not yet answered:** Fabio's note that opening the prompt box settings and
-leaving them open chooses the model and settings the agent generates with. If that behaviour
-is gated on the prompt box being in agent mode, dropping agent mode breaks it. If it simply
-reads the box's current settings, it survives and gets better — the box can show real
-settings while the agent uses them. Check before implementing.
+**ANSWERED by Fabio, 2026-09-20 — the concern is void.** The behaviour does not work today:
+in agent mode with the settings open, an agent generation does **not** pick up the currently
+selected model and settings. So dropping agent mode from the prompt box breaks nothing,
+because there is nothing working to break. Implement the toggle move without waiting on this.
+
+It does leave a separate, pre-existing gap, on the agent track and not in this card's scope:
+the agent has had a named-parameter layer on `generation.submit` since MPI-547, so it *can*
+take a model and settings — it simply does not read the prompt box's selection. Open product
+question for whoever owns that track: **should an agent generation inherit the prompt box's
+current model and settings, or stay deliberately independent of them?** Worth a card either
+way, since the current state is neither documented nor obviously intended.
 
 ## Still open
 
