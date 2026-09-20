@@ -10,11 +10,25 @@ card the two redirect URLs.
 
 ## Current State
 
-**Phases 1, 2 and 3 are shipped and Fabio-verified. 1 and 2 are pushed (`3a27fc32`, red
-fixed by `510e3a03`); phase 3 is verified but UNCOMMITTED — the working tree carries it.
-Next action: phase 4, the two paid tiles.** MPI-81 still owes the two redirect URLs, and
-the plan's standing answer is to ship the plain product URLs with a comment rather than
-wait.
+**All four phases are built and Fabio-verified. 1–3 are pushed (`3a27fc32`, red fixed by
+`510e3a03`, phase 3 as `33b0c11b`); phase 4 is VERIFIED BUT UNCOMMITTED — the working tree
+carries `MpiFlowLibrary.js`, `MpiFlowLibrary.css` and two new `comfy_workflows/display/`
+webps.** Next action: commit phase 4, then close out.
+
+Two follow-ups survive the card's phases and are the only reason it is not `done`. Neither
+is phase work; both are blocked on a live peer's write claim:
+
+1. `js/components/types.js` — the `MpiTileSheetItem` typedef is four keys behind and is
+   missing `setDimmed`. MPI-857/MPI-859 hold it.
+2. `.mpi-tile__chip--purchase` is parked in `MpiFlowLibrary.css` and belongs in
+   `MpiTileSheet.css`. MPI-853 holds it; message `86e7cdf6` is filed.
+
+Phase 4 as built — two hard-coded `PAID_FLOWS` entries in `MpiFlowLibrary.js`, a
+`--purchase` chip, a paid drawer with one **Get it** button, and the tile hiding on
+`user:<id>`. The Gumroad URL is not in the app at all: the button opens
+`https://cubric.studio/flows/<id>` and the redirect is configured on the website. MPI-81
+owes that redirect its TARGET, which is website-side — so nothing here was ever blocked on
+it, and nothing here changes when it lands. Detail in `## Phase 4`.
 
 Phase 3 as built, in three places:
 
@@ -115,20 +129,35 @@ The real work was never the CSS. Two things could each have shipped looking fine
 computed `filter` asserted during a real hover, and the un-dim proven to keep the SAME tile
 element rather than rebuilding the grid.
 
-## Phase 4 — the two paid tiles
+## Phase 4 — the two paid tiles — BUILT, awaiting Fabio
 
-Two hard-coded entries, rendered into the Third-party Flows section, each with title, preview,
-one-line description and a **Get it** button in the drawer that opens the redirect.
+Two hard-coded `PAID_FLOWS` entries rendered into the Third-party Flows section, each with
+title, preview, one-line description and a **Get it** button in the drawer.
 
-- A paid, unbought Flow is a **fourth state**: not installed, not unavailable, purchasable.
-  It needs its own chip. The `Get models` chip would be a lie.
-- **The tile hides once a package with the matching id is installed**, or the user sees two
-  Head Swaps after buying.
-- Blocked on MPI-81 for the two URLs. Until they exist, use the plain product URLs and
-  leave a comment.
+- The **fourth chip state** is `--purchase`: `↗ GET IT`, in `--accent-heat`. `Get models`
+  would promise a download this click does not start — the same lie MPI-666 removed — and
+  `Unavailable` would say it is broken when it is merely for sale.
+- **The tile hides on `user:<id>`**, the same discriminator the section itself uses. Both
+  install routes (`_installPackage`, `_refresh`) end in a full `renderList()`, so it needs
+  no patch path of its own.
+- **`_block()` now takes TILE ITEMS, not FlowDefs.** The Third-party section is the one
+  that holds two kinds at once, and a single `.map(_tileItem)` inside `_block` could only
+  ever build one of them. Four call sites gained a `.map(_tileItem)`; nothing else moved.
+- **`openDetail()` is the ONE door**, branching to `_openPaidDetail` on `flow.paid`. Every
+  `download:*` handler repaints the open drawer by calling `openDetail(_activeDetail)`, so
+  without that branch the first install started while an advert was open would have run
+  `flowAvailability()` over a thing with no `requiredModels`. The `download:progress`
+  handler needed its own guard for the same reason — it reaches `flowInstallKeys` first.
+- **No price and no "first 100 left" counter.** Gumroad owns the price and it can change
+  between releases; the app cannot see the offer code's remaining uses at all (MPI-81).
+  Either number baked in here is a lie the day it moves.
 
-**Verify:** the tile shows before install, the button opens the right page, and installing
-the package replaces the link tile with the real Flow rather than adding a second one.
+**Verified** 2026-09-20 in an isolated instance, both halves in one run (evidence table in
+`validation.md`): both paid tiles render dimmed with correct media flags and real thumb
+pixels; the chip resolves to `oklch(0.78 0.028 80)` with an `↗`; **Get it** opened
+`https://cubric.studio/flows/head-swap`; and seeding the real `drama-box` package then
+hitting Refresh left the section at **2** — one Ready DramaBox, one Get-it Head Swap, total
+tiles unchanged at 15. Awaiting Fabio's own look.
 
 ## Not in scope
 
@@ -192,6 +221,35 @@ the package replaces the link tile with the real Flow rather than adding a secon
   missing from the instance-method list. Carried as a checklist item, to be done when the
   claims clear — it is one docblock, and fighting two live peers over it is not worth a
   merge conflict.
+- **2026-09-20 — phase 3 was ALREADY COMMITTED when phase 4 picked it up.** The handoff and
+  this plan both said the working tree carried it; `33b0c11b` is an ancestor of HEAD and the
+  tree was clean of every MPI-831 file. Nothing was lost — but "uncommitted" in a
+  `## Current State` is the one line a fresh session acts on first, so check it against
+  `git log --grep` before believing it.
+- **2026-09-20 — the synthetic seeder was NOT rebuilt, and should not be.** The plan's
+  recipe builds a `test-flow` package, and phase 4's whole question is whether the paid tile
+  hides when a package with the MATCHING id arrives — which only the real `head-swap` /
+  `drama-box` packages have. They already exist, valid, at `c:\AI\Mpi\Cubric-Flows\<id>\`.
+  Copy one into the profile's `user_flows/` and nudge `compat.minAppVersion` to `1.0.0` on
+  the COPY (the product declares 2.0.0, and on a 1.x app an untouched copy installs
+  DISABLED — which hides the paid tile for the wrong reason and reads as a pass). Seeding
+  only `drama-box` puts both states on one screen: the swap proven on one Flow, the advert
+  still standing on the other.
+- **2026-09-20 — the `--purchase` chip is parked in the WRONG FILE, on purpose.** It belongs
+  in `MpiTileSheet.css` beside the other four. MPI-853 held a fresh write claim on that file
+  through phase 4 and had just landed `.mpi-tile__chip--paid` in it for CLOUD models — same
+  word, different promise, cloud glyph. So the rule sits scoped in `MpiFlowLibrary.css` with
+  a comment, and message `86e7cdf6` asks that session to move it. **Carry this as a
+  follow-up**; it is two lines and a scope to drop.
+- **2026-09-20 — `npx playwright test <file>` runs the desktop spec WITHOUT its config.**
+  The desktop suite lives in `playwright.desktop.config.js`, whose `globalSetup` is what
+  assigns `CUBRIC_PORT`. Invoked bare, all four tests fail identically at launch with
+  `shellWindow: no 127.0.0.1:3000 window within 30000ms` — which reads exactly like a broken
+  app and is nothing of the kind. `npm run test:desktop -- <file>`: 4/4 in 36.4s.
+- **2026-09-20 — the two tile `.webp`s were copied INTO this repo** from
+  `c:\AI\Mpi\Cubric-Flows\<id>\`. A shop window needs a picture, the art is ours, and the
+  website will show the same images publicly. The `.mp4` heroes were NOT copied — the paid
+  drawer shows a still, and nothing on this surface plays one.
 - **Raised and overruled:** phase 4's two paid tiles are Mad Pony products, so
   "Third-party Flows" sits over the only two Flows we take money for. Worse, the code
   cannot separate them — post-install a Mad Pony package and a stranger's are both

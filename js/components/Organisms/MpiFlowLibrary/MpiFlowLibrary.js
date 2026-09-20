@@ -18,6 +18,7 @@ import { formatBytes } from '../../../utils/formatBytes.js';
 import { DEPS } from '../../../data/modelConstants/dependencies.js';
 import { PAGE_GALLERY } from '../../../router.js';
 import { qs, ce, on } from '../../../utils/dom.js';
+import { openExternal } from '../../../utils/openExternal.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { hasAcceptedLicence } from '../../../data/modelConstants/licences.js';
 import { flowInstallKeys, flowLicences, buildLicenceRows } from '../../../utils/flowLicences.js';
@@ -37,6 +38,58 @@ const MEDIA_SECTIONS = [
     { media: 'video', label: 'Video' },
     { media: 'audio', label: 'Audio' },
 ];
+
+/**
+ * The paid Flows (MPI-831 phase 4, answering MPI-780 question 1). Head Swap and DramaBox
+ * LEFT the app at 2.0 (MPI-781) and are sold as Flow packages; without these two entries a
+ * user who has not bought them has no way to learn they exist. They are link tiles, not
+ * flows: no workflow, no deps, nothing to install from here.
+ *
+ * `id` is the PACKAGE id, which is what makes the tile disappear at the right moment — the
+ * loader registers a bought package as `user:<id>` (docs/flow-packages.md), so
+ * `user:head-swap` arriving is the signal that this advert has done its job. Getting that
+ * id wrong shows the user two Head Swaps after they have paid for one.
+ *
+ * NO price and NO "first 100 free" counter. Gumroad owns the price and it can change
+ * between releases, so a number baked in here is a lie the moment it does; the offer code
+ * is capped at 100 uses and nothing in the app can see how many are left (MPI-81 § the
+ * first-100-free mechanism). The buyer learns both on the page, which is the moment either
+ * one matters.
+ */
+const PAID_FLOWS = [
+    {
+        paid: true,
+        id: 'head-swap',
+        title: 'Head Swap',
+        description: 'Swap a head from one image onto another. Mark each head and run.',
+        preview: 'flow-head-swap.webp',
+        mediaType: 'image',
+        type: 'edit',
+    },
+    {
+        paid: true,
+        id: 'drama-box',
+        title: 'DramaBox',
+        description: 'Text to speech you direct in words — describe the speaker and the '
+            + 'performance in the line itself, and it builds a voice to match.',
+        preview: 'flow-drama-box.webp',
+        mediaType: 'audio',
+        type: 'create',
+    },
+];
+
+/**
+ * Where the Get-it button goes. NOT the Gumroad URL, deliberately, and not for tidiness:
+ * the first 100 buyers of each Flow get it free through a 100%-off offer code carried IN
+ * the URL, and this repo is public AGPL — a coded URL committed here could be spent to
+ * zero by anyone who never opens the app. It also lets the code be changed or retired
+ * without shipping a release.
+ *
+ * So the app links to its own site and the redirect is configured there. MadPony-Identity
+ * MPI-81 owes that redirect its target; until Fabio has created the two products there is
+ * no Gumroad URL to point it at, and nothing here changes when there is.
+ */
+const paidFlowUrl = id => `https://cubric.studio/flows/${id}`;
 
 /**
  * MpiFlowLibrary — the Flow Library overlay (MPI-256).
@@ -252,6 +305,43 @@ export const MpiFlowLibrary = ComponentFactory.create({
             }
             return item;
         }
+
+        // A paid Flow's tile (MPI-831 phase 4). It renders in the Third-party section beside
+        // the real ones and carries the same media flag, because it is answering the same
+        // question about the same kind of thing.
+        //
+        // `dimmed` for the same reason every uninstalled tile is: the user does not have it.
+        // That the reason here is money rather than a download does not change what the grey
+        // says, and a full-colour advert among dimmed real Flows would read as the one thing
+        // on the grid that IS installed.
+        function _paidTileItem(entry) {
+            const item = {
+                id: entry.id,
+                name: entry.title,
+                media: 'image',
+                preview: entry.preview,
+                // The fourth state. `Get models` would promise a download this click cannot
+                // deliver, and `Unavailable` would say it is broken — it is neither, it is
+                // for sale. Same reasoning that put `Licence required` on the grid (MPI-666):
+                // name the errand before the click, because the click is what reveals it.
+                state: '<span class="mpi-tile__chip mpi-tile__chip--purchase">Get it</span>',
+                dimmed: true,
+                source: entry,
+            };
+            if (MEDIA_SECTIONS.some(s => s.media === entry.mediaType)) {
+                item[`media${entry.mediaType[0].toUpperCase()}${entry.mediaType.slice(1)}`] = true;
+            }
+            return item;
+        }
+
+        // The advert is over the moment the package lands. The loader registers a bought
+        // package as `user:<id>`, so this is the same discriminator the section itself uses —
+        // without it the user sees the real Head Swap and an ad for Head Swap side by side.
+        // Both install routes (_installPackage and _refresh) end in a full renderList(), so
+        // the tile goes on its own with no patch path of its own.
+        const _paidVisible = () => PAID_FLOWS.filter(
+            p => !listFlows().some(f => f.id === `${USER_FLOW_PREFIX}${p.id}`) && _matchesFilters(p),
+        );
 
         // ── Detail drawer ─────────────────────────────────────────────────────
         function _destroyDetailBtns() {
@@ -548,7 +638,58 @@ export const MpiFlowLibrary = ComponentFactory.create({
             host.append(...buildLicenceRows(flow, _unsubs));
         }
 
+        // The paid drawer (MPI-831 phase 4). A separate panel because a paid entry is not a
+        // FlowDef and has none of what the real one renders: no required models to list, no
+        // model slot to choose, no licence rows — the licences belong to weights the package
+        // will pull on its FIRST INSTALL, which is after the purchase and not ours to
+        // pre-empt. What is left is the advert: the art, the name, the line, and the way out.
+        function _openPaidDetail(entry) {
+            _destroyDetailBtns();
+            _activeDetail = entry;
+
+            detailBody.innerHTML = `
+                <div class="mpi-detail__thumb mpi-detail__thumb--image mpi-detail__thumb--placeholder" id="flow-detail-thumb"></div>
+                <div class="mpi-detail__titlerow">
+                    <div><div class="mpi-detail__name">${entry.title}</div></div>
+                </div>
+                <p class="mpi-detail__desc">${entry.description}</p>
+                <div class="mpi-detail__field">
+                    <span class="mpi-detail__field-label">This Flow is sold separately</span>
+                    <p class="mpi-detail__desc">Buying it downloads a Flow folder. Add it to
+                    Cubric Studio and it appears here, ready to install the models it needs.</p>
+                </div>`;
+            _mountThumb(entry.preview);
+
+            detailActions.innerHTML = '';
+            const get = MpiButton.mount(ce('div'), { text: 'Get it', variant: 'primary', size: 'md' });
+            get.on('click', () => openExternal(paidFlowUrl(entry.id)));
+            detailActions.appendChild(get.el); _detailBtns.push(get);
+
+            scrim.classList.add('is-open');
+            detailPanel.classList.add('is-open');
+        }
+
+        // The drawer's hero art, shared by both panels. Lifted out of openDetail when the
+        // paid panel needed the identical element — including the aspect-ratio fix-up, which
+        // is what stops a 4/5 still being letterboxed into a 16/9 box.
+        function _mountThumb(preview) {
+            const thumb = qs('#flow-detail-thumb', detailBody);
+            if (!preview) return;
+            const img = ce('img', { src: `comfy_workflows/display/${preview}`, className: 'mpi-detail__thumb-media' });
+            _unsubs.push(on(img, 'load', () => {
+                if (img.naturalWidth && img.naturalHeight) thumb.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
+            }));
+            _unsubs.push(on(img, 'error', () => { img.remove(); thumb.classList.add('mpi-detail__thumb--placeholder'); }));
+            thumb.classList.remove('mpi-detail__thumb--placeholder');
+            thumb.appendChild(img);
+        }
+
         function openDetail(flow) {
+            // ONE door, so every `download:*` handler below that repaints the open drawer
+            // stays correct when what is open is an advert. They all call openDetail with
+            // whatever `_activeDetail` holds, and flowAvailability() on a paid entry would
+            // throw on the first install anyone starts while the panel is up.
+            if (flow.paid) { _openPaidDetail(flow); return; }
             _destroyDetailBtns();
             _activeDetail = flow;
             const { available, missing, reason } = flowAvailability(flow);
@@ -582,16 +723,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
             _mountModelChoice(flow);
             _mountLicences(flow);
 
-            const thumb = qs('#flow-detail-thumb', detailBody);
-            if (flow.preview) {
-                const img = ce('img', { src: `comfy_workflows/display/${flow.preview}`, className: 'mpi-detail__thumb-media' });
-                _unsubs.push(on(img, 'load', () => {
-                    if (img.naturalWidth && img.naturalHeight) thumb.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
-                }));
-                _unsubs.push(on(img, 'error', () => { img.remove(); thumb.classList.add('mpi-detail__thumb--placeholder'); }));
-                thumb.classList.remove('mpi-detail__thumb--placeholder');
-                thumb.appendChild(img);
-            }
+            _mountThumb(flow.preview);
 
             // Footer: installing → aggregated bar + Cancel-all; else all-installed →
             // Open (Gallery-only); else → Install.
@@ -679,6 +811,9 @@ export const MpiFlowLibrary = ComponentFactory.create({
         //     stay the honest answer on Landing.
         // `#flow-back` inside the frame reopens this library, so nothing becomes unreachable.
         function _pick(flow) {
+            // A paid tile has nothing to open and nothing to install: the drawer IS the
+            // whole interaction, on Landing and in the Gallery alike.
+            if (flow.paid) { _openPaidDetail(flow); return; }
             if (flowAvailability(flow).available && state.currentPage === PAGE_GALLERY) {
                 el.close();
                 Events.emit('flow:open', { flowId: flow.id });
@@ -729,6 +864,10 @@ export const MpiFlowLibrary = ComponentFactory.create({
         // One labelled section: header (icon + name + count) then its contact sheet.
         // Empty section = no header, so a build with no audio flows looks exactly as it
         // does today.
+        //
+        // Takes TILE ITEMS, not FlowDefs (MPI-831 phase 4): the Third-party section is the
+        // one that holds two kinds at once — installed packages and paid link tiles — and a
+        // single `.map(_tileItem)` in here could only ever build one of them.
         function _block(items, label, icon) {
             if (!items.length) return;
             const head = ce('div', {
@@ -738,7 +877,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
             bodySlot.appendChild(head);
 
             const sheet = MpiTileSheet.mount(ce('div'), {
-                items: items.map(_tileItem),
+                items,
                 previewCache: _previewCache,
             });
             sheet.on('select', ({ item }) => _pick(item.source));
@@ -799,18 +938,23 @@ export const MpiFlowLibrary = ComponentFactory.create({
             const builtIn = visible.filter(f => !_isThirdParty(f));
 
             for (const { media, label } of MEDIA_SECTIONS) {
-                _block(builtIn.filter(f => f.mediaType === media), label, media);
+                _block(builtIn.filter(f => f.mediaType === media).map(_tileItem), label, media);
             }
             // A flow whose mediaType matches no section still gets a grid rather than
             // silently vanishing from the library — the sections are a VIEW over the
             // registry, not a filter on it.
             _block(
-                builtIn.filter(f => !MEDIA_SECTIONS.some(s => s.media === f.mediaType)),
+                builtIn.filter(f => !MEDIA_SECTIONS.some(s => s.media === f.mediaType)).map(_tileItem),
                 'Other', 'info',
             );
-            // Last, and across every media type. `_block` no-ops on an empty list, so a
-            // build with no packages installed renders exactly as it did before.
-            _block(visible.filter(_isThirdParty), 'Third-party Flows', 'cube');
+            // Last, and across every media type. The paid tiles ride in the same section as
+            // the installed packages, and AFTER them: what the user already has comes before
+            // what they could buy. `_block` no-ops on an empty list, so a build with no
+            // packages and both Flows already bought renders exactly as it did before.
+            _block(
+                [...visible.filter(_isThirdParty).map(_tileItem), ..._paidVisible().map(_paidTileItem)],
+                'Third-party Flows', 'cube',
+            );
         }
 
         // ── Re-derive a single flow's badge (+ its open detail footer) in place ──
@@ -864,7 +1008,10 @@ export const MpiFlowLibrary = ComponentFactory.create({
         _unsubs.push(Events.on('download:progress', ({ modelId }) => {
             // MPI-304: match the flow-deps key too, or a flow-deps-only install ticks
             // the queue while the bar sits frozen at 0.
-            if (_activeDetail && flowInstallKeys(_activeDetail).includes(modelId)) _patchProgress(_activeDetail);
+            // An open PAID panel installs nothing, and `flowInstallKeys` would read a
+            // FlowDef's fields off an advert (MPI-831 phase 4).
+            if (!_activeDetail || _activeDetail.paid) return;
+            if (flowInstallKeys(_activeDetail).includes(modelId)) _patchProgress(_activeDetail);
         }));
         // State transitions rebuild the open panel (footer swaps Install↔Cancel↔Open,
         // required-models rows repaint). Only the open panel repaints; the grid badges
