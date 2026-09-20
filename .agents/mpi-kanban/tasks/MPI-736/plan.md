@@ -9,7 +9,12 @@ canvas literals read the live token off `ctx.canvas`; a crop handle in the video
 draws orange. Detail below under "1c".
 
 **Rounds 9c and 9d are also VERIFIED** — he checked all three in the same pass. Nothing on
-this card is now awaiting an eye. Remaining: phase 2b and phase 5, neither started.
+this card is awaiting an eye. Shipped as `a8816ac6`, pushed, and CI run `35501151862`
+went GREEN (lint + npm test + desktop specs, 18m26s).
+
+**Remaining: phase 2b and phase 5, neither started.** Phase 5 is the one to take first —
+it is prose with no decision in it. Phase 2b needs Fabio to pick a swatch, the way the
+`--hub-accent` cream was settled; do not compute a hue and present it as the answer.
 
 **2026-09-19, session 8abe87b4 — the SWEEP IS FINISHED. What is left is phases, not
 surfaces.** Five commits, all pushed, master green: `d3ec007d` dialogs, `bc6af6fb` the four
