@@ -79,31 +79,47 @@ token formula anywhere; one measured call (below) gives the constant.
 
 ## 2c. Seedance and Wan 3.0, the models actually wanted
 
-**Seedance 1.5 Pro, one real call** (480p, 16:9, 4 s, `generate_audio: false`): **40,594
-`out_tokens`, cost $0.0487128, 32 s wall**. That divides to exactly **$1.20 per 1M tokens**,
-confirming `cents_per_input_token: 0.00012`. Working constant: **10,148 tokens per second of
-480p video**, and tokens scale with pixel area.
+Two real calls, identical settings (480p, 16:9, 4 s, `generate_audio: false`, no reference
+media). **Both returned exactly 40,594 `out_tokens`**, so the two models tokenise identically:
 
-| Model | 480p | 720p | 1080p |
+| Model | Cost | $/1M | Wall |
 |---|---|---|---|
-| **Seedance 1.5 Pro** | **$0.0122/s** (measured) | $0.027/s | $0.061/s |
-| a 5 s clip | $0.061 | $0.135 | **$0.30** |
-| **Seedance 2.0** at $4.7/$5.1 per M | $0.048/s | $0.106/s | $0.259/s |
-| a 5 s clip | $0.24 | $0.53 | **$1.29** |
-| Seedance 2.0, dearer mode ($7.7/$8.4 per M) 5 s | $0.39 | $0.87 | **$2.13** |
-| **Wan 3.0** (stated, not measured) | $0.05/s | $0.10/s | $0.20/s |
-| a 5 s clip | $0.25 | $0.50 | **$1.00** |
+| Seedance 1.5 Pro | $0.0487128 | **$1.20** | 32 s |
+| Seedance 2.0 | $0.3125738 | **$7.70** | 110 s |
 
-- Only the 480p Seedance 1.5 row is measured. Everything else scales it by pixel area
-  (720p = 2.22x, 1080p = 5.0x) or applies Seedance 2.0's published per-token rates to the same
-  token count. **Audio was off**; its surcharge is unmeasured.
-- **Seedance 1.5 Pro is roughly 3x cheaper than Wan 3.0 and 4x cheaper than Seedance 2.0** at
-  1080p. At $0.30 for a 5 s 1080p clip it is the cheapest credible video model in the
-  catalogue.
-- **Seedance 2.0's two price bands are unexplained.** `pricing.full` reads "$4.7/M with video,
-  $7.7/M without for 480p and 780p; $5.1/M with video, $8.4/M without for 1080p" ("780p" is
-  presumably a typo for 720p). Which mode a plain text-to-video call falls into is UNKNOWN,
-  and it is a 1.6x swing. Measure before quoting a price to a user.
+**The token formula, MEASURED EXACT.** ffprobe on the 2.0 output: 864x496, 24 fps, 97 frames.
+
+```
+tokens = floor(width x height x frames / 1024)        frames = 24 x duration + 1
+864 x 496 x 97 / 1024 = 40,594.5  ->  40,594 billed. Exact.
+```
+
+Note it is **frames, not seconds**: `fps x duration` alone gives 40,176 and misses by 1 %. A
+4 s request returns 4.0417 s (97 frames). 480p 16:9 is really 864x496, so the app must price
+from the true pixel dimensions, not the label.
+
+**The two bands are settled: a plain call gets the DEARER one.** `pricing.full` reads "$4.7/M
+with video, $7.7/M without for 480p and 780p; $5.1/M with video, $8.4/M without for 1080p".
+The measured plain text-to-video billed at **$7.70/M**, the "without" band. So "with video"
+means supplying a `reference_videos` input, and every ordinary text-to-video or
+image-to-video generation pays the higher rate. Quote the dear band by default.
+
+**Cost of a 5 s clip (121 frames), computed from the measured formula:**
+
+| Model | 480p (864x496) | 720p (1280x720) | 1080p (1920x1088) |
+|---|---|---|---|
+| **Seedance 1.5 Pro** | **$0.061** | $0.131 | **$0.296** |
+| **Seedance 2.0**, plain call | **$0.390** | $0.839 | **$2.07** |
+| Seedance 2.0 with a reference video | $0.238 | $0.512 | $1.26 |
+| **Wan 3.0** (stated by DeepInfra, not measured) | $0.25 | $0.50 | **$1.00** |
+
+- Only the 480p dimensions are measured; 720p and 1080p assume 1280x720 and 1920x1088 and
+  should be confirmed from the first real clip at each. **Audio was off**; its surcharge is
+  unmeasured.
+- **Seedance 1.5 Pro is the outlier on price**: about 3.4x cheaper than Wan 3.0 and **7x
+  cheaper than Seedance 2.0** at 1080p, and it was 3.4x faster to generate. Seedance 2.0's
+  premium buys the richer input surface (9 reference images, 3 videos, 3 audios), not a
+  cheaper frame.
 - Seedance 1.5 takes 4-12 s, Seedance 2.0 4-15 s, Wan 3.0 2-30 s. Seedance 2.0 also takes up
   to 9 reference images, 3 reference videos and 3 reference audios; Wan 3.0 takes a media
   array. Both are far richer inputs than Nano Banana's single image.
