@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-842",
+  "title": "Mascot crew identities",
+  "description": "Name the five mascots (Cosmo/Studio, Lingo/Prompt, Prism/Vision, Reel/Video, Vinyl/Audio, Clay/3D provisional) and give the agent chat a crew presence: Cosmo is the only speaker, the others appear as working indicators carrying their family accent and animation. One registry file is the source of truth; chrome labels stay role nouns.",
+  "column": "todo",
+  "maturity": "idea",
+  "status": "active",
+  "created_at": "2026-09-20T10:50:50+01:00",
+  "updated_at": "2026-09-20T10:50:50+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

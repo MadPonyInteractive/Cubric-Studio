@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-843",
+  "title": "Agent chat UI study",
+  "description": "Three mockups of the agent chat panel for Fabio to evaluate, via the impeccable skill. Questions: where Cosmo sits (bottom by the input vs inline between messages), whether a terminal aesthetic with a blinking cursor works against the family accents, and where the mascot animation area lands. Design study only - feeds MPI-797 and MPI-842, ships no app code.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-09-20T11:20:18+01:00",
+  "updated_at": "2026-09-20T11:20:18+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
