@@ -24,8 +24,13 @@
       Stop button sized `sm` beside an `md` Cue. BOTH FIXED. Proven that
       `no-undef` catches the first and that the repo does not enable it - raised
       separately, out of scope here.
-- [ ] **Q does not open the queue slide-over from inside a flow** - OPEN. Four
-      causes eliminated statically; one live check left (plan.md " The Q bug)
+- [x] **Q does not open the queue slide-over from inside a flow** - FIXED. Not
+      MpiSlideOver: `MpiOverlay.hide()` retracted `--main-overlay-z` unconditionally
+      while only a `main-area` overlay publishes it, so any second overlay closing
+      over a live flow dropped the panel to z 100 under the flow's 10010 and it slid
+      in invisible. Retraction now gated to match the publish; all 8 MpiOverlay call
+      sites swept. Pinned by `tests/desktop/flow-queue-hotkey.spec.js` (plan.md
+      " The Q bug)
 - [ ] Fabio app check, round 2: `Cue x3`, result stays, Stop kills only the running job,
       queue slide-over stops a pending one from inside the flow
 

@@ -23,11 +23,18 @@ Fabio ran it. Two faults, one of them mine and serious:
    **FIXED** - both `md` now. Deliberately NOT the PromptBox's `sm`: that bar
    stacks Stop and Clear beside its own Cue, this column is one row.
 
-3. **Q does not open the queue slide-over from inside a flow - STILL OPEN, NOT
-   FIXED.** This is MPI-822 scope (brief.md ' Verify at implementation'). See
-   plan.md ' The Q bug for the investigation and the live check that comes next.
+3. **Q does not open the queue slide-over from inside a flow. FIXED 2026-09-20**,
+   in `js/components/Primitives/MpiOverlay/MpiOverlay.js`, not in MpiSlideOver.
+   `el.show()` publishes `--main-overlay-z` only for a `main-area` overlay (the flow
+   frame is the only one); `el.hide()` retracted it unconditionally. So closing ANY
+   second overlay over a live flow - `#flow-back` to the Flow Library, the LoRA
+   cogwheel, the model picker - wiped the flow's own publication, and the queue
+   slide-over's `calc(var(--main-overlay-z, 90) + 10)` fell back to z 100 under the
+   flow's 10010. Q worked on the first press all along; the panel just slid in
+   BEHIND the flow. Retraction is now gated on the same `main-area` condition as the
+   publish. Full write-up and the shared-primitive sweep: plan.md ' The Q bug.
 
-The table below is therefore the state AFTER fixes 1 and 2, with 3 outstanding.
+The table below is therefore the state AFTER all three fixes.
 
 
 **Verify mode:** user-ux — the card is a button, its copy and a layout. Automated
@@ -37,9 +44,31 @@ checks can prove the wiring; they cannot tell Fabio it feels right.
 
 | Check | Command | Result |
 |---|---|---|
-| Full unit suite | `npm test` | **1444 pass, 0 fail, 1 skipped** (1445 tests) |
-| Repo lint | `npm run lint` (`eslint js/ --max-warnings=0`) | **clean** |
+| Full unit suite | `npm test` | **1521 pass, 0 fail, 1 skipped** (1522 tests) |
+| Repo lint | `npm run lint` (`eslint . --max-warnings=0`) | **clean** |
 | MPI-822 contracts | `node --test tests/flow-cue-stacks.test.cjs` | **6/6 pass** |
+| **The Q bug, live** | `npx playwright test --config=playwright.desktop.config.js tests/desktop/flow-queue-hotkey.spec.js` | **1 passed** |
+| Overlay-adjacent specs | the 4 `flow-*` specs + `gallery-cue-all` | **6/6 passed** |
+
+### The Q-bug spec, and why it asserts a hit test
+
+`tests/desktop/flow-queue-hotkey.spec.js` drives the REAL path - real project on
+disk, real gallery block, real `flow:open` through `js/shell.js`, then the real Flow
+Library opened and closed over the top. Every other flow spec mounts the frame into
+a host div, which is exactly why none of them could ever have caught this: the bug
+only exists when a second overlay closes over a live main-area overlay.
+
+It asserts `onTop` via `elementFromPoint`, not `toBeVisible()`. The panel was always
+visible by every DOM measure - right size, right position, `aria-expanded="true"`,
+transform settled. It was simply underneath. `toBeVisible()` cannot see that.
+
+**Proven RED on pre-fix code.** The spec was written and run BEFORE the fix and
+failed on exactly that assertion, reporting
+`{"zIndex":"100","mainOverlayZ":"","onTop":false}`; it went green on the fix with
+`{"zIndex":"10020","mainOverlayZ":"10010","onTop":true}`. Stated precisely: the red
+run used the spec as first written, with fixed 600ms sleeps; the only edit since is
+the `settle()` helper that replaced those sleeps, and it touches no assertion. The
+fix itself was never reverted to re-run the red.
 
 ## The new test was proven RED on pre-fix code
 
@@ -56,7 +85,8 @@ No generation was executed. Nothing below has been observed:
 
 - three presses actually producing three cards,
 - Stop ending only the running job while the pending ones survive,
-- the queue slide-over opening above the flow overlay and stopping a pending job,
+- a pending job being stopped from the queue slide-over's per-row Stop (the panel
+  itself opening above the flow overlay IS now proven, by the spec above),
 - the Cue/Stop row's layout at the flow frame's 236px control column.
 
 ## What Fabio checks in the app

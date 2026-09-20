@@ -192,8 +192,16 @@ export const MpiOverlay = ComponentFactory.create({
             _target.classList.remove('main-area--overlay');
 
             // TRAP 3: drop the published z (removeProperty, NOT set to 0 — 0 would
-            // pin the queue below its own baseline). Safe to call unconditionally.
-            document.documentElement.style.removeProperty('--main-overlay-z');
+            // pin the queue below its own baseline). Gated on `main-area` exactly as the
+            // publish in el.show() is: the var belongs to whoever published it. Retracting
+            // it unconditionally let ANY second overlay closing over a live flow — the
+            // Flow Library via #flow-back, the LoRA cogwheel's MpiModelSettings, the model
+            // picker — wipe the flow's own value while the flow was still up. The queue
+            // slide-over then fell back to z 100 under the flow's 10010, so Q opened it
+            // behind the flow and the user saw nothing happen (MPI-822).
+            if (mountTarget === 'main-area') {
+                document.documentElement.style.removeProperty('--main-overlay-z');
+            }
 
             if (_backdrop) {
                 _backdrop.remove();

@@ -5,11 +5,13 @@ implementation shape plus what changed once the code was read.
 
 ## Current State
 
-Code complete and self-verified; WAITING ON FABIO'S APP CHECK (verify mode is
-user-ux). npm test 1444/1444, lint clean, and the new contracts proven RED on
-pre-fix code. Evidence: validation.md. Session `d1861e83`, claim `b89bab94`.
+Code complete and self-verified; WAITING ON FABIO'S APP CHECK, ROUND 2 (verify mode
+is user-ux). npm test 1521 pass / 0 fail / 1 skipped, lint clean, the source contracts
+proven RED on pre-fix code, and the Q bug found, fixed and pinned by a desktop spec.
+Evidence: validation.md. Session `ba0b2680`, claim `5f2a7c14`.
 
-Next action: Fabio runs the five steps in validation.md. Nothing else is pending.
+Next action: Fabio runs the five steps in validation.md, round 2. The Q bug is
+fixed (see below) and nothing else is pending.
 
 ## Plan Drift (2026-09-19, read before the diff)
 
@@ -70,46 +72,42 @@ Also settled while reading, needing no new machinery:
 previous result stays up, Stop kills the running job only, the queue slide-over
 (Q) opens over the flow and stops a pending one.
 
-## The Q bug — OPEN. Four causes eliminated statically; one live check left.
+## The Q bug - FIXED 2026-09-20. It was never MpiSlideOver.
 
-Fabio, 2026-09-19: *"pressing Q once does nothing"*. The wording matters — it implies
-a SECOND press works, which is the shape of a stale toggle, not a dead bind.
+**Fabio, first app pass:** *"pressing Q once does nothing"*. It was not a dead bind,
+not a stale toggle, and not MpiSlideOver at all. Q always opened the panel, on the
+first press, every time. It opened it BEHIND the flow overlay.
 
-**Ruled out, with the evidence, so nobody re-derives these:**
+**Root cause - `MpiOverlay.hide()` retracted a var it never published.** `el.show()`
+publishes `--main-overlay-z` only for `mountTarget: 'main-area'` (:176-180), and
+MpiBaseFlow is the only main-area overlay in the app. `el.hide()` dropped that same
+var **unconditionally** (:194, comment: *"Safe to call unconditionally"* - it was
+not). So ANY second overlay closing while a flow was still up - `#flow-back` to the
+Flow Library, the flow's own LoRA cogwheel (`MpiModelSettings`), the model picker -
+wiped the live flow's publication. `.mpi-slide-over--queue`'s
+`z-index: calc(var(--main-overlay-z, 90) + 10)` then fell back to 100, under the
+flow overlay's 10010, and the panel slid in invisible. Fix: gate the retraction on
+`mountTarget === 'main-area'`, symmetric with the publish.
 
-| Theory | Killed by |
-|---|---|
-| Gallery block unmounted under the flow, so nothing bound `queue.toggle` | `MpiFlowLibrary._pick` only emits `flow:open` when `state.currentPage === PAGE_GALLERY`, and the flow mounts as an overlay — the block stays mounted and its `Hotkeys.bind('queue.toggle')` (`MpiGalleryBlock.js:115`) stays live |
-| The overlay swallows the keydown | `hotkeyManager.js:69` listens on `window` with `{ capture: true }` — nothing downstream can stop it |
-| The slide-over opens BEHIND the flow overlay | The rule exists (`MpiSlideOver.css:106`, `calc(var(--main-overlay-z,90)+10)`) AND the flow overlay publishes the var: it mounts `mountTarget: 'main-area'` (`MpiBaseFlow.js:223`), the exact condition on the publish at `MpiOverlay.js:178` |
-| The `isTyping` gate eats the single letter `q` | Possible only with focus in a text field; the Generate slide has none, and `isTextEntryElement` is textarea / contenteditable / text-ish input only |
+**Shared-primitive sweep** (`.claude/rules/root-cause.md`). All 8 `MpiOverlay.mount`
+call sites checked: MpiBaseFlow is `main-area` (publishes AND retracts); MpiModelPicker,
+MpiModelSettings, MpiCompareOverlay, MpiFlowLibrary, MpiModelManager and the component
+gallery are all `body` (now neither). `MpiModal.js:88-94` READS the var to floor above
+it and is unaffected. Nothing else in the repo touches `--main-overlay-z`.
 
-**The surviving suspect — a stale `_active` in `MpiSlideOver.js`.** The toggle reads:
+**The four statically-eliminated theories were all correct** - and so was the
+instruction to go and look instead of reading more code. The one surviving suspect,
+a stale `_active` in `MpiSlideOver.js`, was **wrong**: `_doClose` is the only close
+path and it always emits `close`, so the pointer cannot go stale, and the live run
+confirmed it (Q#2 closes the panel normally). MpiSlideOver was not touched.
 
-```js
-if (_active && _activePanelId === nextPanelId) { _active.el.close(); return; }
-```
-
-`_active` is cleared ONLY by the panel's own `close` event (`:170-173`). Any path
-that tears the panel down without emitting `close` — `ui:close-all-popups`, a
-workspace switch, the flow overlay's own teardown — leaves `_active` pointing at a
-dead instance. Q #1 then calls `close()` on that corpse (invisible — "nothing
-happened") and Q #2 opens a fresh one. That matches Fabio's wording exactly.
-
-**Next action — the live check, ~2 minutes.** Not more static reading; this needs the
-running app. See MEMORY.md "Verify a real generation in the USER's app", or
-"Run renderer-only code in MY isolated instance" for the safe variant:
-
-- Does Q **twice** open it? That alone confirms or kills the stale-toggle theory.
-- Instrument: log `_active`, `_activePanelId` and `document.activeElement` at the
-  moment Q is pressed. `activeElement` settles the `isTyping` residual in the same
-  breath.
-
-If it IS the stale `_active`, the fix belongs in `MpiSlideOver.js` — the teardown
-must clear the module-level pointer on EVERY close path, not only the one that
-emits. That is a shared-primitive fix: check every caller
-(`.claude/rules/root-cause.md`).
+**Evidence:** `tests/desktop/flow-queue-hotkey.spec.js` - real project, real gallery,
+real `flow:open`, real Flow Library over the top. It asserts the panel is `present`,
+`aria-expanded`, and `onTop` via `elementFromPoint` - a z-order bug is invisible to
+`toBeVisible()`, which is why the hit test is the assertion. Red on pre-fix code with
+`{"zIndex":"100","mainOverlayZ":"","onTop":false}`, green after with
+`{"zIndex":"10020","mainOverlayZ":"10010","onTop":true}`.
 
 ## Remaining Work
 
-See `checklist.md`. The only open item is the Q bug above.
+See `checklist.md`. Code is complete; the only open item is Fabio's round-2 app pass.
