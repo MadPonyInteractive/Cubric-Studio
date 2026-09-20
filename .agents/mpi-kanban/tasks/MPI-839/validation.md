@@ -48,3 +48,20 @@ HIS CLIP WAS RECOVERED by hand from the sidecar (card 3a9a06b2, project.json bac
 
 STILL OWED: one more live run - dispatch, switch away, let it land, and open the origin project. The
 card must be there after the reopen, which is the step that deleted it last time.
+
+## Live - the card landing: PASSED (Fabio, 2026-09-20 21:52-21:58Z)
+
+The owed run, in his own app after the 21:46Z restart. The in-app agent dispatched an image-to-video
+clip in "Cowgirl on a Bull" (app.log 21:52:57.167Z `generation.submit`), he switched to another project
+and waited there, then reopened the origin.
+
+- app.log 21:56:35.909Z `[generationService] card registered in the project it was dispatched in`.
+- Disk: `Media/i2v_012.mp4` mtime 21:56:35Z. `project.json` holds card `a4037f9a` (`i2v_012`, video)
+  with `history: ["f808c511-f604-4daa-a726-32be17abbd49"]` - an id STRING, the shape the reconciler
+  reads. 29 cards, up from 27 before the turn (the anime still `i2i_002` + this clip).
+- `project.json` was rewritten at 21:56:42Z, 7 s after the landing, and the card is still in it. Last
+  time that rewrite is what deleted it. His screenshot after the reopen shows the clip first in the
+  gallery, 30 assets.
+- His words: "Test 2 passed."
+
+Nothing is owed on this card any more.

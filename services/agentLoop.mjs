@@ -393,8 +393,13 @@ const TOOL_DEFS = [
     },
 ];
 
-// Max tool calls the model may make in one user turn before STEP_LIMIT.
-const MAX_STEPS = 8;
+// Max tool ROUNDS in one user turn (a round is one model reply, however many calls it
+// carries). 8 was exactly one still -> look -> animate chain with no round left to say so
+// (Fabio, 2026-09-20): every generate costs about four — settings, guide, generate, look.
+export const MAX_STEPS = 16;
+
+// Sent with the one call made after the last round, and never kept in the conversation.
+const OUT_OF_ROUNDS = 'You are out of tool calls for this turn. In plain words, tell the user what you did, what is still running, and what is left to do. They can reply to continue.';
 
 // How long a `generate` waits to see whether its dispatch is REFUSED before reporting
 // it started. A refusal is validation — the route answers over loopback in milliseconds,
@@ -1613,11 +1618,22 @@ ${knowledgeIndex}`.trim();
             // Agentic loop
             let steps = 0;
             let carriedTo = null; // the project this request was handed to (D5)
-            while (steps <= MAX_STEPS) {
-                const llmRes = await engine.chat({ model, messages: this._messages, tools: TOOL_DEFS, options: chatOptions });
+            for (;;) {
+                // Out of rounds: this call carries NO tools, so the model can only answer in
+                // words. Refusing the round instead ended the turn on a bare error one second
+                // after a generate was dispatched, which read as "nothing happened".
+                const outOfRounds = steps >= MAX_STEPS;
+                const llmRes = await engine.chat(outOfRounds
+                    ? { model, messages: [...this._messages, { role: 'system', content: OUT_OF_ROUNDS }], options: chatOptions }
+                    : { model, messages: this._messages, tools: TOOL_DEFS, options: chatOptions });
                 this._lastUsage = llmRes.usage;
 
-                const toolCalls = llmRes.toolCalls;
+                const toolCalls = outOfRounds ? null : llmRes.toolCalls;
+
+                if (outOfRounds && !llmRes.text) {
+                    this._emit('agent:error', { turnId, code: 'STEP_LIMIT', message: 'I ran out of steps for this turn. Anything I started is still running. Reply to carry on.' });
+                    break;
+                }
 
                 if (!toolCalls || toolCalls.length === 0) {
                     // Final text response
@@ -1625,11 +1641,6 @@ ${knowledgeIndex}`.trim();
                     this._messages.push({ role: 'assistant', content: msgText });
                     const entry = this._historyEntry('agent', { text: msgText });
                     this._emit('agent:message', { turnId, id: entry.id, text: msgText });
-                    break;
-                }
-
-                if (steps >= MAX_STEPS) {
-                    this._emit('agent:error', { turnId, code: 'STEP_LIMIT', message: 'Too many tool calls in one turn. Please try a simpler request.' });
                     break;
                 }
 

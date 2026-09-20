@@ -144,6 +144,108 @@ the unnamed square and triangle cards", then `mpi-end-session`
 (MPI-840 closable; MPI-839 once its reopen-the-origin-project landing passes). Message
 `be606244` (MPI-842) was answered: reply `a7dc92be`.
 
+**Update 2026-09-20 21:55Z, session 75e1e043 (resumed from handoff d8d9bda5).** Phases E, F and
+the video hand-off are COMMITTED and pushed as `f70b4c84`. The `rename_card` fix PASSED LIVE
+21:47:21Z after a restart: four `card.rename` jobs in app.log, all 11 marked cards named on
+disk (`validation.md`, last section). Nothing built by this umbrella is un-seen any more.
+Single next action: MPI-839's landing check (dispatch, switch project, let it land, reopen the
+origin project, the card survives) - Fabio is running it now. Then `mpi-end-session` for
+MPI-840 / MPI-839 / MPI-820. What is left here after that is Phases B, C and D, and each
+starts with a conversation with Fabio, not code.
+
+**Update 22:10Z.** MPI-839 landing PASSED LIVE (its `validation.md`). The same run found the
+step cap lying: fixed and suite-green (`validation.md`, last section), UNCOMMITTED, not
+live-seen - it needs a restart and one chained ask ("make this an anime still, then animate
+it"). Pass = the turn ends in a sentence from the agent, no red error line. This is Phase C
+evidence, folded in here rather than carded.
+
+## Phase C, first piece: batch ask + wake on drain (DESIGN NOTE 2026-09-20, not built, not approved)
+
+Raised by Fabio after the step-cap find. Two halves of one job.
+
+**Batch (the ask).** `generate` takes ONE card per call, so "upscale all 50 visible" is 50 tool
+calls, 50 chat lines, 50 auto-look vision calls and ~100 notes in the next turn. Shape: a
+`cards: [ref...]` list on `generate` = same op once per card, fanned out in the loop over the
+existing single-dispatch path. One call, one chat line, one `{started, refused}` result, no
+auto-look on batch items. Open, his call: a yes/no confirm card above N cards (vote: 5).
+
+**Wake (the ending).** `settle()` already knows when a conversation's `_inflight` hits zero, and
+the finished notes then sit in `_notes` until he types. Wake = run a turn at that moment, through
+`agentSessions.queue` (MPI-840, live-passed). `wait: true` stays for mid-chain steps.
+
+Rules that came out of his three scenarios (keep talking + add to the batch; go talk to
+project B's agent; come back and work in a workspace):
+
+1. Wake only an IDLE conversation. A turn running or queued for it reads the notes anyway.
+2. Additions join `_inflight`, so the drain is the true end and the wake fires once. Free.
+3. NEVER wake a conversation whose project is not the open one: the connector's generate route
+   has no project targeting, a dispatch lands in whatever is OPEN (checked 2026-09-20), so
+   project A's wake would render into B. The server does not track the open project. Lazy shape:
+   the loop broadcasts `agent:drained {session}` (events are already session-tagged); the
+   RENDERER posts the wake only if that project is open, and posts it again on project open,
+   where the server no-ops without pending notes. That second post is the "while you were away"
+   report. This is Fabio's toast-event instinct: the renderer is the side that knows what is open.
+4. A wake turn must not move him: no `open_project` / `create_project` in its tool list. He may
+   be mid-edit in a workspace.
+5. Runaway bound: max 3 wakes in a row with no message from him (a knob, not a constant).
+6. Unknown, check before building: what `gallery.visible` answers while a workspace, not the
+   gallery, is mounted.
+7. `_inflight` is memory only. A restart mid-batch loses the wake; `unfinished-generations.md`
+   already covers what was asked for.
+
+Separate defect, same area: a held dispatch's 30-minute clock (`agentTools.mjs` `_post`) starts at
+DISPATCH, so the tail of a deep queue is recorded `RUNTIME_ERROR` while still queued, and lands
+anyway. Derived from code, not measured.
+
+## Phase C evidence: the restyle round (live 2026-09-20 22:24-22:32Z, nothing built)
+
+Fabio asked for an anime version of a photo, then its video. Sidecars in Cowgirl on a Bull:
+`i2i_003` and `i2i_004` (krea2 `i2i`), then `edit_001` (`krea2Edit`) only after HE said to use
+edit, then `i2v_ms` from it. Earlier the same night: `ill-anime` `i2i`. Four findings:
+
+1. **The task rule exists and lost three times.** `agentLoop.mjs` Model rule: "changing an
+   existing picture is the edit task ... not i2i". "Anime" matched ill-anime's NOTE, the rule lets
+   a note outrank a rank, and ill-anime has no edit op, so i2i was its only door; on krea2 the
+   style rack's Retro Anime pulled the same way. A prompt rule lost to a plausible deduction.
+   Home for the fix is data, not prompt: `modelPriority.js` NOTES has no `:i2i` entry. One line
+   on the op saying i2i repaints from the WORDS and an edit op keeps the picture.
+2. **The agent does not know denoise exists.** Zero hits for `denoise` in agentLoop, agentTools,
+   agentDispatch, connector. Both krea2 i2i runs carry `controlState.op.denoise: 0.3`, a value
+   from the app, not the agent. Default or his last slider: NOT checked. Without it a model with
+   no edit op (ill-anime) cannot be asked for a faithful restyle at all.
+3. **The agent's eyes were wrong and there is no record of what they said.** Source: rider
+   upright, both revolvers raised, pointing UP. Its prompts: "leaning forward", "pointing
+   outward at her sides". No ComfyUI activity during `agent.describe` (8 s each), so the
+   describer was the remote vision model. Whether IT misread or the chat model paraphrased is
+   unprovable: look text lives in server memory only. One truncated log line per look fixes that.
+   Edit came out right anyway because an edit op keeps the pixels whatever the words say. That is
+   why Fabio finds edit "more truthful": it is robust to a wrong description, i2i is not.
+4. **Every waited still is looked at twice**: `settle()` auto-looks, then the model calls `look`
+   on the same file (two `agent.describe` 8 s apart after each submit). Two vision calls, one picture.
+
+### Fabio's decisions on that round (2026-09-20 ~22:45Z) - these ARE approved directions
+
+- **A look is written down, once, in the card's SIDECAR.** "If an image is described, it's
+  described forever." `look` reads the sidecar first and calls the vision model only on a miss;
+  the description dies with the card, which is the point. This replaces finding 3's "log line"
+  AND finding 4's double look in one move. He also named the wider idea: the sidecar is the home
+  for card-scoped derived information in general. Open: a look with a QUESTION or a box is not
+  the same answer as the plain description - key the stored text by question, or store only the
+  unprompted one. Decide when building; do not store a box answer as "the" description.
+- **The agent must know denoise**, for i2i, upscale and detail. His words: the higher it is, the
+  more the generation changes the image. A named param with that meaning on every op that has
+  the slider, advertised by `describe_model`, never a prompt line.
+- **Find a vision model that actually works and recommend it.** The recommended describer
+  misread a plain pose. He rates the Qwen vision 4B used on the ComfyUI side; check what Qwen-VL
+  DeepInfra serves (keyless `api.deepinfra.com/models/<id>`, see `~/.claude/memory/tools/deepinfra.md`)
+  and TEST candidates on the real source picture
+  (`Cowgirl on a Bull/Media/.preview-assets/0fd0e19d...png`: upright rider, both revolvers
+  raised, pointing up) before recommending anything. A pick with no test is a guess.
+- **Masks, detailing, workspace tools: agent v2, through skills.** Not now. Do not start it.
+- **Findings must live in documentation, not only on this card.** The agent is permanent.
+  `docs/agent-chat.md` is ~365 lines against a 200 budget, so it cannot take them: split out a
+  findings doc (what works, what failed, why) at close-out and route it from `docs/README.md`.
+
 ## Parallel Batch — Phase A and Phase B
 
 Disjoint footprints, so these two can run at once. Phases B and C both need Fabio in the room, so

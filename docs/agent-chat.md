@@ -209,7 +209,7 @@ Every event but `agent:session` also carries `session`, the key of its conversat
   `--samples <md>` writes prompts to read). A case's `look` is one fixture, or a map keyed by the
   attachment's `filePath` when two images must answer differently — two portraits giving the identical
   answer read to the model as a broken describer and it stopped rather than measuring. **Bounded
-  steps:** 8 tool calls per user turn, then `STEP_LIMIT` — which a case can hit for reasons of its
+  steps:** `MAX_STEPS` = 16 tool ROUNDS per user turn (8 was exactly one still → look → animate chain, Fabio 2026-09-20). The call after the last round carries NO tools, so the turn ends in the model's own words about what it did and what is still running; `STEP_LIMIT` fires only if that reply is empty. A harness case can still run out for reasons of its
   own: the box case first described TWO women, and its flip spent the whole budget telling them apart
   and "failed" on the step limit rather than on what it asserts. A case's scene is part of the
   assertion.

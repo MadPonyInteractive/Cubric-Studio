@@ -1525,6 +1525,50 @@ describe('(i) the catalogue diet', () => {
 });
 
 // ---------------------------------------------------------------------------
+// (j) out of rounds: the turn ends in the model's own words, never on a bare error
+// ---------------------------------------------------------------------------
+// Fabio, 2026-09-20: "make this video in anime style" took 8 rounds (card, models, two
+// settings reads, guide, generate, look, guide, generate). The ninth was refused with
+// "Too many tool calls, try a simpler request" one second after the clip was dispatched,
+// so the chat read as a failure while the GPU rendered it.
+
+describe('(j) out of rounds', () => {
+    const round = (i) => ({ text: '', toolCalls: [{ id: `tc-${i}`, type: 'function', function: { name: 'list_models', arguments: '{}' } }] });
+
+    test('the call after the last round carries NO tools, and its text is the answer', async () => {
+        const { MAX_STEPS } = await import('../services/agentLoop.mjs');
+        assert.ok(MAX_STEPS >= 16, 'still -> look -> animate is 8 rounds on its own; a chain needs room');
+        const closing = 'The anime still is done and the clip is rendering now.';
+        const engineResponses = [...Array.from({ length: MAX_STEPS }, (_, i) => round(i)), { text: closing }];
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses });
+
+        await loop.runTurn('Keep going', [], { folderPath: '/p', name: 'P' }, 'auto', 'deepinfra', 'turn-cap');
+
+        const calls = loop._fakeEngine.calls;
+        assert.equal(calls.length, MAX_STEPS + 1, 'one closing call, not a refused round plus a retry');
+        assert.ok(calls.slice(0, -1).every((c) => Array.isArray(c.tools) && c.tools.length), 'every round before it offers the tools');
+        assert.equal(calls.at(-1).tools, undefined, 'with no tools the model can only answer in words');
+        assert.equal(tools.calls.listModels.length, MAX_STEPS, 'nothing runs past the cap');
+        assert.equal(fakeRes.events.find((e) => e.event === 'agent:message')?.data.text, closing);
+        assert.ok(!fakeRes.events.some((e) => e.event === 'agent:error'), 'a turn that did its work does not end on an error line');
+        assert.ok(!loop._messages.some((m) => /out of tool calls/i.test(String(m.content))), 'the closing nudge is for that one call and never joins the conversation');
+    });
+
+    test('a model that says nothing even then gets a STEP_LIMIT that does not deny work in flight', async () => {
+        const { MAX_STEPS } = await import('../services/agentLoop.mjs');
+        const engineResponses = [...Array.from({ length: MAX_STEPS }, (_, i) => round(i)), { text: '' }];
+        const { loop, fakeRes } = await makeLoop({ engineResponses });
+
+        await loop.runTurn('Keep going', [], { folderPath: '/p', name: 'P' }, 'auto', 'deepinfra', 'turn-cap-mute');
+
+        const err = fakeRes.events.find((e) => e.event === 'agent:error');
+        assert.equal(err?.data.code, 'STEP_LIMIT');
+        assert.match(err.data.message, /still running/i);
+        assert.doesNotMatch(err.data.message, /simpler request/i, 'the request was not the problem');
+    });
+});
+
+// ---------------------------------------------------------------------------
 // (d) probe: no-tools model reported plainly, never retried
 // ---------------------------------------------------------------------------
 

@@ -784,3 +784,53 @@ agent mode, project open. (1) Drag a video CARD onto the box → a chip, no toas
 this a GIF" → `gif.make` in app.log, a GIF card lands. (2) Drop a video FILE from Explorer →
 it imports as a card and chips; ask for something that takes a clip. (3) With no project
 open, drop a video → the new toast, no chip.
+
+## rename_card on cards the app listed - LIVE PASS 2026-09-20 21:47Z
+
+Fabio restarted the app (app.log rotated: line 1 is 21:46:34Z, the ComfyUI boot) and repeated
+his own ask, word for word: "give names to all the square and triangle cards that don't have a
+name yet". Project: Cowgirl on a Bull.
+
+- app.log, four lines inside 30 ms, 21:47:21.223Z to .252Z: `Agent job c42bbc3c`, `021ec943`,
+  `e4de259c`, `9bc119df`, each `: card.rename`. Before the fix this ask left NO such line at
+  all: the refusal happened in the loop, so nothing ever reached the renderer.
+- Disk: `project.json` mtime 21:47:21Z, the same second. All 11 marked cards (5 square,
+  6 triangle) now carry a `customName`; none is left null. Fabio had named some by hand since
+  the failed round, so four renames, not eleven, is the right count.
+- The only cards still unnamed are unmarked or `dot` (recording_002, t2v_001, gif_001): the
+  mark filter held, the agent did not name outside the ask.
+- Fabio's own words: "some cards were already named, but the agent was able to name the other
+  ones."
+
+This closes the one item handoff d8d9bda5 carried as suite-green but not live-seen.
+
+## Out of rounds: the turn ends in words, not on an error (built 2026-09-20 22:10Z, NOT live-seen)
+
+Found live 21:51-21:53Z, Fabio's ask: "produce a video like this one but in anime style". app.log:
+`agent.list-models` x3, `generation.submit` 21:51:45Z (anime still), `agent.describe` x2,
+`generation.submit` 21:52:57Z (the clip). Nine tool calls in EIGHT rounds = `MAX_STEPS`. The
+model asked for a ninth and the loop answered "Too many tool calls in one turn. Please try a
+simpler request" one second after dispatching the clip. The chat read as a failure while the
+GPU rendered it; the clip landed fine (MPI-839's pass above is that same clip).
+
+ROOT CAUSE, two parts. (1) The cap REFUSED the round and broke out, so the model never got to
+speak: the only text of the turn was an error blaming the request. (2) 8 rounds is exactly one
+still -> look -> animate chain: each generate costs about four rounds (settings, guide,
+generate, look) plus two up front, leaving none to say so.
+
+FIX (`services/agentLoop.mjs`): `MAX_STEPS` 8 -> 16, exported. The call made after the last
+round carries NO tools plus a one-call system line (`OUT_OF_ROUNDS`, never stored in
+`_messages`), so the model can only answer in words: what it did, what is running, what is
+left. One call, not a refused round plus a retry. `STEP_LIMIT` survives only for an EMPTY
+closing reply, and now says "Anything I started is still running. Reply to carry on."
+No standing prompt line was added.
+
+- `tests/agent-loop.test.cjs` § (j), two tests, RED before the fix (seen), green after: the
+  closing call has no `tools`, its text is the `agent:message`, no `agent:error`, nothing runs
+  past the cap, the nudge never joins the conversation; the mute-model path gets `STEP_LIMIT`
+  without "simpler request".
+- Full suite 1602 tests, 1601 pass, 0 fail, 1 skipped (live key). eslint clean on both files.
+- `docs/agent-chat.md` cap line updated.
+- NOT proven: a real provider accepting tool messages in history with no `tools` param. OpenAI
+  shape and Ollama `/api/chat` both allow it on paper; if one 400s it surfaces as
+  `ENDPOINT_ERROR`. Owed: one live chain after a restart.
