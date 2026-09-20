@@ -20,13 +20,16 @@ flags are **opt-in keys the consumer sets**, so the other three surfaces were un
 without a single conditional. The same shape works for the dim: a class the consumer asks
 for, not a rule every tile sheet inherits.
 
-**Verifying phase 3 needs installed packages.** They are already seeded, and they survive
-between sessions:
+**Verifying phase 3 needs installed packages, and the seeded ones DO NOT last.**
 
-- `%TEMP%\cubric-agent-profile\user_flows\seed-image-flow` and `…\seed-audio-flow`, two
-  valid packages built by `scratchpad/seed_packages.cjs` (kept in the 2026-09-20 session's
-  scratchpad; the recipe is in this plan's `## Plan Drift` if it needs rebuilding).
-- `npm run app:isolated` reuses that profile, so they are simply there on the next boot.
+- Two valid packages go in `%TEMP%\cubric-agent-profile\user_flows\` (`seed-image-flow`,
+  `seed-audio-flow`), built by `scratchpad/seed_packages.cjs` — the recipe is in
+  `## Plan Drift`, and rebuilding takes one command.
+- **Expect them to be gone.** The agent profile lives under `%TEMP%`, and it was wiped and
+  rebuilt from scratch mid-session on 2026-09-20 (every file in it restamped within one
+  minute). `npm run app:isolated` reuses the profile PATH, not its contents. Check
+  `GET /user-flows` returns both before trusting a Library screenshot — an empty result and
+  a correctly-absent section look identical.
 - Both preview off ONE file, so the two tiles look identical. That is the seed, not a bug.
 
 What is already there, and matters:
@@ -145,6 +148,17 @@ the package replaces the link tile with the real Flow rather than adding a secon
   So: keep the section, badge the media. Repeating the sections stays the upgrade path when
   MPI-841 fills the section from the registry — three headers over two tiles is silly, over
   forty it is not.
+- **2026-09-20 — phases 1+2 turned master RED, and the cause is the section's POSITION.**
+  `tests/desktop/flow-packages.spec.js` timed out at 90s on all three attempts. Not a
+  flake, not the runner: the tile thumb is `loading="lazy"`, and moving package tiles out
+  of the media sections into a section at the BOTTOM put them ~2700px down against a 720px
+  viewport. A below-fold lazy image never fetches, so the spec's
+  `await new Promise(res => img.onload = img.onerror = res)` never settled — a HANG, not an
+  assertion failure, which is why the log said nothing useful. Probed live: built-in tile
+  `top 305 / complete true / naturalWidth 896`, package tile `top 2712 / complete false /
+  naturalWidth 0`, and `scrollIntoView()` takes it to 896. Fixed in the spec (`510e3a03`),
+  not in the product — a below-fold thumb SHOULD defer. **Phases 3 and 4 move these tiles
+  again; anything that waits on a third-party tile's pixels must scroll it in first.**
 - **Seed packages for a UI check** (`scratchpad/seed_packages.cjs`, 2026-09-20): the
   Third-party section does not render at all with no packages installed, so verifying it
   needs some. A valid package is a folder of `flow.json` + `workflow.json` + the preview
