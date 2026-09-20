@@ -12,6 +12,14 @@ import { renderIcon } from '../../../utils/icons.js';
 const TILE_FLAGS = [
     { key: 'featured',   icon: 'sparkle', info: 'Featured',                badge: 'warning' },
     { key: 'deprecated', icon: 'warning', info: 'Marked for deprecation',  badge: 'danger'  },
+    // Media flags (MPI-831) — what the tile PRODUCES. Every other grid is split by
+    // media, so its header answers this and no tile needs to; the Flow Library's
+    // Third-party section holds all three media types at once, which leaves the tile
+    // as the only place the answer can go. Consumers opt in per tile: a grid that is
+    // already split by media must NOT set these, or every tile repeats its header.
+    { key: 'mediaImage', icon: 'image', info: 'Makes an image', badge: 'secondary' },
+    { key: 'mediaVideo', icon: 'video', info: 'Makes a video',  badge: 'secondary' },
+    { key: 'mediaAudio', icon: 'audio', info: 'Makes audio',    badge: 'secondary' },
 ];
 
 /**

@@ -1,0 +1,12 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js",
+    "js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.css",
+    "js/components/Primitives/MpiTileSheet/MpiTileSheet.js",
+    "js/components/Primitives/MpiTileSheet/MpiTileSheet.css",
+    "js/components/types.js",
+    "tests/desktop/flow-packages.spec.js",
+    "docs/flow-packages.md"
+  ]
+}

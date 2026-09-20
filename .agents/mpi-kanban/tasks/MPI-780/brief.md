@@ -71,7 +71,7 @@
 1. ~~**Discovery.**~~ **ANSWERED yes, Fabio 2026-09-19.** The Flow Library shows the two paid
    Flows as link tiles, because Gumroad is the only place a download is ever counted (the app
    has no telemetry). Hard-coded, not registry-fed. Built by **MPI-831**, which also adds the
-   "Add-on Flows" section, a source badge and dimmed uninstalled tiles. The Get-it button
+   "Third-party Flows" section, a source badge and dimmed uninstalled tiles. The Get-it button
    opens a `cubric.studio` redirect, never the coded Gumroad URL baked into a public repo.
 2. ~~**Install UX.**~~ **ANSWERED by MPI-532 as built.** The Flow Library is already a drop
    target for a package folder or its zip, staged and validated before it lands. No "Add a

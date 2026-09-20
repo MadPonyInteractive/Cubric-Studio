@@ -1,6 +1,6 @@
 # MPI-841 — The Flow Library browses the community registry
 
-**Umbrella:** MPI-560 phase 8. **Sibling:** MPI-831, which builds the same Add-on Flows
+**Umbrella:** MPI-560 phase 8. **Sibling:** MPI-831, which builds the same Third-party Flows
 section for INSTALLED packages plus the two paid tiles. The two ship independently; MPI-831
 does not wait on this card, and this card renders into the section MPI-831 creates.
 
@@ -10,7 +10,7 @@ does not wait on this card, and this card renders into the section MPI-831 creat
 
 **Fabio, 2026-09-20:** third-party Flows must be visible in the app. A listing on the
 website is not an answer, because most users never visit the website. They go in the
-Add-on Flows section at the bottom of the Flow Library, next to the installed ones.
+Third-party Flows section at the bottom of the Flow Library, next to the installed ones.
 
 ## Current State
 
@@ -61,7 +61,7 @@ and shows no error. With it on, the catalogue appears.
 
 ## Phase 3 — the catalogue tiles
 
-Render uninstalled catalogue entries into MPI-831's Add-on Flows section.
+Render uninstalled catalogue entries into MPI-831's Third-party Flows section.
 
 - **A new tile state:** in the catalogue, not installed. Distinct from MPI-831's paid-but-
   unbought state and from `Get models`. Neither existing chip tells the truth here.

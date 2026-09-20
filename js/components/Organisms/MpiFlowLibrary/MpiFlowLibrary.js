@@ -22,7 +22,7 @@ import { renderIcon } from '../../../utils/icons.js';
 import { hasAcceptedLicence } from '../../../data/modelConstants/licences.js';
 import { flowInstallKeys, flowLicences, buildLicenceRows } from '../../../utils/flowLicences.js';
 import { MpiProjectDropOverlay } from '../../Primitives/MpiProjectDropOverlay/MpiProjectDropOverlay.js';
-import { registerUserFlow, loadUserFlows } from '../../../services/userFlowService.js';
+import { registerUserFlow, loadUserFlows, USER_FLOW_PREFIX } from '../../../services/userFlowService.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 
 /**
@@ -224,9 +224,18 @@ export const MpiFlowLibrary = ComponentFactory.create({
             return `<span class="mpi-tile__chip mpi-tile__chip--available">Get models</span>`;
         }
 
+        // A package flow — the loader namespaces every one of them `user:<id>`, which is
+        // the whole discriminator for the Third-party section and its media flags. No new
+        // field on FlowDef, no change to the package contract.
+        const _isThirdParty = flow => flow.id.startsWith(USER_FLOW_PREFIX);
+
         // ── Tile item for the shared sheet: preview thumb + title + availability badge ──
+        // The media flag is set for package flows ONLY (MPI-831). They render in one
+        // Third-party section across every media type, so their tile is the only place
+        // that answers "what does this make?"; a built-in already sits under a header
+        // that says it, and flagging those would print the same word twice per tile.
         function _tileItem(flow) {
-            return {
+            const item = {
                 id: flow.id,
                 name: flow.title,
                 media: 'image',
@@ -234,6 +243,10 @@ export const MpiFlowLibrary = ComponentFactory.create({
                 state: _badgeHtml(flow),
                 source: flow,
             };
+            if (_isThirdParty(flow) && MEDIA_SECTIONS.some(s => s.media === flow.mediaType)) {
+                item[`media${flow.mediaType[0].toUpperCase()}${flow.mediaType.slice(1)}`] = true;
+            }
+            return item;
         }
 
         // ── Detail drawer ─────────────────────────────────────────────────────
@@ -772,16 +785,28 @@ export const MpiFlowLibrary = ComponentFactory.create({
                 return;
             }
 
+            // Package flows leave the media split entirely (MPI-831). The first line this
+            // library draws is ships-with-the-app / does not, because a flow that is not
+            // ours is not ours to answer for when it misbehaves — and that claim only
+            // holds if the section is COMPLETE. So the partition sits ahead of both loops
+            // below: an odd `mediaType` must land under Third-party Flows, never leak into
+            // `Other`. Each of those tiles carries a media flag instead, because this one
+            // section is the only grid whose header cannot say what its tiles produce.
+            const builtIn = visible.filter(f => !_isThirdParty(f));
+
             for (const { media, label } of MEDIA_SECTIONS) {
-                _block(visible.filter(f => f.mediaType === media), label, media);
+                _block(builtIn.filter(f => f.mediaType === media), label, media);
             }
             // A flow whose mediaType matches no section still gets a grid rather than
             // silently vanishing from the library — the sections are a VIEW over the
             // registry, not a filter on it.
             _block(
-                visible.filter(f => !MEDIA_SECTIONS.some(s => s.media === f.mediaType)),
+                builtIn.filter(f => !MEDIA_SECTIONS.some(s => s.media === f.mediaType)),
                 'Other', 'info',
             );
+            // Last, and across every media type. `_block` no-ops on an empty list, so a
+            // build with no packages installed renders exactly as it did before.
+            _block(visible.filter(_isThirdParty), 'Third-party Flows', 'cube');
         }
 
         // ── Re-derive a single flow's badge (+ its open detail footer) in place ──

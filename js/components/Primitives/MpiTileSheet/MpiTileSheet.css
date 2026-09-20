@@ -118,6 +118,14 @@
 .mpi-tile__flag--featured   { color: var(--accent-warn); }
 .mpi-tile__flag--deprecated { color: var(--accent-heat); }
 
+/* Media flags take the SAME three colours the media section headers use, so a
+   badge on a tile and a header above a grid read as one language. Image has no
+   header colour of its own (it inherits the muted header ink), which is too dim
+   against a thumb, so it takes ink-2 here. */
+.mpi-tile__flag--mediaImage { color: var(--ink-2); }
+.mpi-tile__flag--mediaVideo { color: var(--accent-frost); }
+.mpi-tile__flag--mediaAudio { color: var(--accent-warn); }
+
 /* The `warning` glyph's ink sits half a unit HIGH in its 24-unit viewBox, so
    flex-centering the <svg> box still leaves the triangle off-centre. Nudge it
    back down by that half unit at the rendered size (18px). The star needs none
