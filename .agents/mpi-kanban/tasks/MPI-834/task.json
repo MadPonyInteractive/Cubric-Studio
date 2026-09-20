@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-834",
+  "title": "Trim bar paints a solid slab when a clip has no waveform; GIF bar back to the 28px track",
+  "description": "MPI-829 regression: with no wavePath the wave layer gets mask-image none, which UNMASKS it, so every silent video and every GIF shows a solid ink-4 block cap to cap. Hide the layer when there is no wave, and give the GIF bar its old 28px track.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-20T07:27:49+01:00",
+  "updated_at": "2026-09-20T07:29:05+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

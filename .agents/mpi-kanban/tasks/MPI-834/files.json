@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/components/Compounds/MpiTrimBar/MpiTrimBar.js", "js/components/Compounds/MpiTrimBar/MpiTrimBar.css", "js/components/Organisms/MpiGifControlBar/MpiGifControlBar.css", "tests/desktop/gif-workspace.spec.js", "docs/video-player.md"] }

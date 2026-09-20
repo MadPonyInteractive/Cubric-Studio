@@ -158,7 +158,12 @@ export const MpiTrimBar = ComponentFactory.create({
         // sub-pixel on a track this size and is the correct trade: the frame-indexed mapping
         // is load-bearing (see `_pctOf`), and re-deriving the mask per clip to match it
         // would mean baking a rendition per frame count.
+        //
+        // `hidden` is what actually clears it. `mask-image: none` does not mean "mask
+        // everything away", it means NO MASK — the layer paints its whole box in solid
+        // `--ink-4`, cap to cap, on every silent clip and every GIF (MPI-834).
         function _applyWave(url) {
+            waveEl.hidden = !url;
             waveEl.style.setProperty('--mpi-trim-bar-wave', url ? `url("${url}")` : 'none');
         }
 

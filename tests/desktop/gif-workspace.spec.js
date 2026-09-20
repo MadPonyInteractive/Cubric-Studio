@@ -297,6 +297,14 @@ test('gif strip: right-click deletes a frame and offers the mask clear; the trim
     }));
     expect(await paint()).toEqual({ outside: 0, in: '0', out: String(before - 2) });
 
+    // A GIF carries no audio, so MpiTrimBar's wave layer must paint NOTHING here. Left
+    // to `mask-image: none` it is UNMASKED, a solid slab from cap to cap (MPI-834). And
+    // the bar keeps the 28px track: the 44px one exists for a waveform it never has.
+    expect(await window.evaluate(() => ({
+      wave: document.querySelector('.mpi-gif-control-bar .mpi-trim-bar__wave').getClientRects().length,
+      track: document.querySelector('.mpi-gif-control-bar .mpi-trim-bar__track').getBoundingClientRect().height,
+    }))).toEqual({ wave: 0, track: 28 });
+
     // Drag the IN handle to the middle of the track with the real mouse — the
     // bar owns pointer capture, so a synthetic event would not move it.
     const box = await window.locator('.mpi-trim-bar__track').boundingBox();

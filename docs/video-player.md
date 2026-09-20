@@ -132,8 +132,14 @@ MPI-631/633 gallery memory doctrine.
   the handles are both 58px with their tops and bottoms aligned to 0px. It ran at
   28px until MPI-829 and the wave read as a thin smear at any level. The parent's
   `padding: 8px 0` absorbs the overrun and the trim slot is `flex:1`, so nothing
-  clips and only the bar's own row grows (61px → 77px). The GIF control bar
-  shares `MpiTrimBar`, so it grew too — checked, it mounts and lays out fine.
+  clips and only the bar's own row grows (61px → 77px). The height is
+  `var(--mpi-trim-bar-track-h, 44px)`: the GIF control bar shares `MpiTrimBar`,
+  never has a wave, and sets that property to `28px` on its trim slot (MPI-834).
+- **No wave = the layer is `hidden`, not `mask-image: none`.** `none` means *no
+  mask*, so the layer paints its whole 58px box in solid `--ink-4` — on every
+  silent clip and every GIF, which is most of them. `_applyWave` sets
+  `waveEl.hidden`; never give `.mpi-trim-bar__wave` a `display`, or the UA
+  `[hidden]` rule loses and the slab comes back.
 
 **Frame-index vs time.** Positions here are frame-indexed (`_pctOf` above) while
 the mask is linear in time, so the two disagree by at most one frame's width at
