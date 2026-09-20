@@ -38,9 +38,15 @@ body.window-fullscreen .titlebar {
   gap: 0.5rem;
 }
 
+/* MPI-845: size by HEIGHT off the unpadded asset, never a square box off the padded one.
+   `logo.png` is a 256×256 canvas holding 254×174 of art — 44px of transparent padding on top
+   and 38px below — so the old `16px × 16px` box rendered the robot 15.88 × 10.88, a third of
+   it empty, which is why the mark read small and disagreed with the lettering by ~0.5px once
+   a fractional devicePixelRatio rounded the two boxes apart. `logo.webp` is the same artwork
+   already cropped to zero padding (128×86), so here the number IS the art. */
 .titlebar-logo-img {
-  width: 16px;
-  height: 16px;
+  height: 14px;
+  width: auto;
   filter: drop-shadow(0 0 8px color-mix(in oklab, var(--accent-heat) 30%, transparent));
 }
 

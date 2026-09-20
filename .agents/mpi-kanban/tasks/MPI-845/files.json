@@ -1,0 +1,14 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "index.html",
+    "styles/shell/titlebar.css",
+    "js/components/Compounds/MpiProjectName/MpiProjectName.css",
+    "tests/project-name-chip-hover.test.cjs",
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.css",
+    "js/components/Compounds/MpiQueuePanel/MpiQueuePanel.css",
+    "js/components/Compounds/MpiMemoryMonitor/MpiMemoryMonitor.css",
+    "js/components/Organisms/MpiModelManager/MpiModelManager.css",
+    "tests/button-size-floor.test.cjs"
+  ]
+}

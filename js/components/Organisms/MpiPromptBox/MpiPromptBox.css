@@ -770,6 +770,10 @@
     right: -6px;
     width: 16px;
     height: 16px;
+    /* MPI-845: opts out of MPI-822's `min-height: var(--control-h-sm)` (34px). A size
+       floor CLAMPS the used height after the cascade, so `height: 16px` loses here
+       however specific it is — this X rendered 16x34. `min-height` is the only way out. */
+    min-height: 0;
     border-radius: 0;
     background: var(--surface-1);
     border: 1px solid var(--line-soft);

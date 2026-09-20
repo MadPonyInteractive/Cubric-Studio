@@ -194,6 +194,7 @@
 .mpi-btn.mpi-detail__close {
     width: 28px;
     height: 28px;
+    min-height: 0;   /* MPI-845: opt out of MPI-822's 34px size floor, which clamps `height` */
     padding: 0;
     border: 1px solid var(--line);
     border-radius: 0;

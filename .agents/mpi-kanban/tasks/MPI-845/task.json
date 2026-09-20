@@ -1,0 +1,26 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-845",
+  "title": "Titlebar mark sits small and off-centre; the back chip fills on hover",
+  "description": "Fabio, 2026-09-20, two chrome defects reported together.\n\n1) THE TITLEBAR MARK reads small and sits off-centre against the \"Cubric Studio\" lettering, and it moves with resolution. Measured, not guessed: assets/mascot/studio/logo.png is a 256x256 canvas whose artwork only occupies 254x174 - 44px of transparent padding on top, 38px on the bottom. .titlebar-logo-img forces that canvas into a 16x16 box, so the robot renders 15.88 x 10.88 px: the box is 32% empty vertically and the visible mark is 10.9px against 8.40px text caps (Russo One 12px, capHeight 700/1000). The padding also puts the art's own centre 3px low on a 256 canvas, and Russo One's caps sit 0.32px ABOVE its 12px line box - so icon and letters disagree by about half a pixel, which any non-integer devicePixelRatio then rounds differently. That is the \"in most resolutions\" part. assets/mascot/studio/logo.webp is the SAME artwork already cropped to zero padding (128x86, proven by overlay) and is already shipped and already used by MpiPromptBox.\n\n2) THE BACK CHIP FILLS ON HOVER and should not. \"GALLERY\" in a history workspace and \"PROJECTS\" in the gallery both take a background on hover; Flows and Record next to them do not. Root cause is a specificity loss, not a missing rule: .mpi-project-name__back declares background:none at (0,1,0) and MpiButton's .mpi-btn--ghost:hover:not(:disabled) sets background: var(--surface-2) at (0,3,0). The icon-button ghost (.mpi-btn.mpi-ibtn.mpi-btn--ghost, 0,3,0) explicitly pins background:transparent on hover, which is exactly why Flows and Record are clean - they are icon buttons and the back chip is a text-only one. .mpi-project-name__segment--link has the identical defect and is only invisible because nobody has hovered the breadcrumb. MpiProjectName.css already documents this exact trap 20 lines further down, in the MPI-736 Record comment.\n\nFix both in MpiProjectName.css / titlebar.css; do NOT change MpiButton's ghost variant - a text ghost filling on hover is correct everywhere else in the app.\n",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-09-20T11:29:23+01:00",
+  "updated_at": "2026-09-20T11:04:38Z",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  },
+  "attention": {
+    "state": "required",
+    "reason": "All three chrome defects are built, committed and test-guarded. Only Fabio's eye is left: reload and check the titlebar mark, the GALLERY/PROJECTS chip on hover, and the X on a reference-image chip.",
+    "updated_at": "2026-09-20T11:04:38Z"
+  }
+}

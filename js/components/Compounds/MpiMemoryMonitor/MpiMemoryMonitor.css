@@ -106,6 +106,7 @@
 .mpi-mem-monitor__btn-wrap .mpi-ibtn {
     width: 30px;
     height: 30px;
+    min-height: 0;   /* MPI-845: opt out of MPI-822's 34px size floor, which clamps `height` */
     color: var(--ink-3);
 }
 

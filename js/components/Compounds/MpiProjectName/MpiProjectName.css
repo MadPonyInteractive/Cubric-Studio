@@ -52,7 +52,17 @@
     transition: color var(--t-fast) var(--ease);
 }
 
-.mpi-project-name__back:hover {
+/* MPI-845: the `background: none` above is (0,1,0) and MpiButton's
+   `.mpi-btn--ghost:hover:not(:disabled)` fills `--surface-2` at (0,3,0), so the chip took a
+   background on hover and this rule — (0,2,0), colour only — never outranked it. Flows and
+   Record beside it were always clean because they are ICON buttons and match
+   `.mpi-btn.mpi-ibtn.mpi-btn--ghost:hover`, which pins `background: transparent` on purpose.
+   A text-only ghost has no such rule, so the opt-out has to be stated here, at the
+   primitive's own selector shape — the same weight lesson the Record comment below records.
+   MpiButton is NOT changed: a text ghost filling on hover is correct everywhere else. */
+.mpi-btn.mpi-btn--ghost.mpi-project-name__back:hover:not(:disabled),
+.mpi-btn.mpi-btn--ghost.mpi-project-name__segment--link:hover:not(:disabled) {
+    background: transparent;
     color: var(--ink-1);
 }
 
