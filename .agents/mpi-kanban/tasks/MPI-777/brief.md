@@ -7,14 +7,16 @@ and reviewed in MadPony-Identity card MPI-78. This card wires them into the app.
 come from Fabio (2026-09-15/16); the design work stays in MadPony-Identity, the wiring happens
 here.
 
-**Source of truth for where every clip goes:**
-`../MadPony-Identity/production/cubric-mascots/animations/placement.md` (spot map, playback
-rules, clip index). Prompts and roll records sit next to it (`generating-card.md`, `states.md`,
-`scenarios.md`).
+**Source of truth for where every clip goes: [`docs/mascot-placement.md`](../../../../docs/mascot-placement.md)**
+(spot map, playback rules, clip index). It moved into this repo on 2026-09-20: MadPony-Identity
+made the artwork, where it goes in the app is this repo's business. The prompts and roll records
+stayed there (`../MadPony-Identity/production/cubric-mascots/animations/`: `generating-card.md`,
+`states.md`, `scenarios.md`, `transitions.md`, `connecting.md`) and are only needed to re-roll a
+clip, not to wire one.
 
 ## The assets, as actually delivered (2026-09-20)
 
-**Read `../MadPony-Identity/production/cubric-mascots/animations/gif-manifest.md` before looking
+**Read [`docs/mascot-gif-manifest.md`](../../../../docs/mascot-gif-manifest.md) before looking
 for a file.** The conversion to GIF lost every name: a card is `gif_NNN` and its file on disk is
 `gif_<hash>.gif`, and nothing in either says which clip it is. The manifest is the only join
 between a file and its slot in the clip index.
