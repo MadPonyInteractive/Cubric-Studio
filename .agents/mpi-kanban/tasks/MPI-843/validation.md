@@ -110,7 +110,29 @@ empty and unfocused. Implementer may skip the fake.
   list of mascot placements, and "always Studio" now reads "away from the landing and the
   agent chat".
 
-**Awaiting Fabio's eyes on the redrawn panel** — that is the last gate on this card.
+### APPROVED — Fabio, 2026-09-20
+
+Fabio viewed the redrawn `research/chat-merged.html` in the Browser pane at 1400x1000 and
+approved it without changes. No round 3. This card's verify mode is `user-ux`, so his word IS
+the evidence and it closes the card.
+
+Re-confirmed live at the moment of approval, not quoted from the round-2 notes: the `op
+running` checkbox toggles the panel between working and idle and **the layout holds** — the
+ledge stays 52px, the input row does not move, and the guest mascot settles at opacity 0 /
+`translateX(16px)`. The top bar reads `Agent · Flows · Record`, Agent carrying no fill and
+taking `--accent-heat` while the panel is open.
+
+**What is now decided and may be built (all of it belongs to MPI-797, not here):**
+
+1. Stage header — Cosmo as a persistent 20px identity beside the label, never moves.
+2. Ledge body — prose transcript; Cosmo plus the guest mascot on a bottom ledge docked above
+   the input. The ledge itself is MPI-846/MPI-777 work; MPI-797 must leave room for it.
+3. Light terminal register — `>` glyph and a caret on the **input only**; transcript stays prose.
+4. The panel gets its **own input row**; `MpiPromptBox` keeps none, so the user can generate
+   and talk at once.
+5. The Agent toggle leaves `MpiPromptBox` for a third top-bar ghost button, **left of Flows**,
+   no fill, heat colour when open. `.mpi-project-name__centre` becomes a `1fr auto 1fr` grid.
+6. The status bar is left exactly as it is today. The agent adds nothing to it.
 
 ## Still open
 
@@ -128,5 +150,6 @@ empty and unfocused. Implementer may skip the fake.
 
 ## Card state
 
-The study delivered and Fabio chose. The merged panel drawing is the remaining work before
-this card closes.
+CLOSED 2026-09-20. The study delivered, Fabio chose, the merged panel was drawn, redrawn once
+to his round-2 notes, and approved on sight. Ships no app code by design — the drawing is the
+decision, and MPI-797 is the card that builds it.

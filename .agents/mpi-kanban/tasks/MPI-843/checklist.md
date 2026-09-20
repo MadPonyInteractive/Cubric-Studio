@@ -6,7 +6,7 @@
       family accents, and where the mascot animation area lands.
 - [x] Fabio picks one or names what to change; record it in `validation.md`.
 - [x] Draw the merged panel (Stage header + Ledge body) - `research/chat-merged.html`.
-- [ ] Fabio approves the merged panel.
+- [x] Fabio approves the merged panel. Approved 2026-09-20, no round 3.
 - [x] Carry the answer to MPI-777 open decision #4 (ledge vs the 48px Studio in
       `MpiAgentChat.js` ~44-94) into MPI-777's plan.
 
