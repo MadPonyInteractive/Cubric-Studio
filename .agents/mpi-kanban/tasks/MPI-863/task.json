@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-863",
+  "title": "Auto-start ComfyUI defaults ON once an engine is installed",
+  "description": "The pref hard-defaults false; seed it true on the first boot that can prove a local engine exists.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-09-21T00:37:52+01:00",
+  "updated_at": "2026-09-21T00:42:21+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "task_card": "MPI-863",
+  "owner_session": "e657fe02-d645-47f5-afde-f53da4c91174",
+  "updated_at": "2026-09-20T23:39:00Z",
+  "files": [
+    "js/core/storage.js",
+    "js/shell.js",
+    "tests/autostart-comfy-default.test.cjs",
+    ".agents/mpi-kanban/tasks/MPI-863/**"
+  ]
+}
