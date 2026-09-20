@@ -28,9 +28,10 @@ deliberately left alone.
 
 ## Specs that drive a FLOW overlay (MPI-504, MPI-638/641)
 
-Five things cost a failing run each before the `flow-*.spec.js` specs worked. **Items 4 and 5
+Six things cost a failing run each before the `flow-*.spec.js` specs worked. **Items 4, 5 and 6
 are the expensive shape: the spec goes GREEN and the code is wrong** — one passed on every
-developer machine and failed only on CI, the other passed against a visibly broken box.
+developer machine and failed only on CI, one passed against a visibly broken box, and one
+cannot fail at all for a whole class of bug.
 
 1. **Nothing inside a Flow overlay is clickable or fillable with no project open.** It mounts
    into a `main-area` the landing page keeps hidden, so `.click()` / `.fill()` time out with
@@ -67,7 +68,20 @@ developer machine and failed only on CI, the other passed against a visibly brok
    too tall (MPI-641). Sizing `.main-area` by hand does not recover it. Assert a measurement is
    non-degenerate (`> 0`) BEFORE comparing two of them — and when the harness genuinely cannot
    measure, delete the assertion and pin the property that DECIDES the outcome instead (there,
-   `line-height`), rather than keeping one that cannot fail.
+   `line-height`), rather than keeping one that cannot fail. **This is a consequence of item
+   1's no-project state, not a property of flows** — open a real project first (item 6) and the
+   frame has ordinary geometry, which is what makes a height comparison possible at all.
+6. **A flow mounted into a host div cannot see an overlay-stack bug — and the whole
+   `flow-*.spec.js` suite is mounted that way.** Right for carousel and field behaviour, blind
+   to z-order, `--main-overlay-z`, the `.main-area` child stash and a Block's hotkey surviving
+   underneath. MPI-822's Q bug lived there — the Cue panel opened behind the flow every press —
+   and no spec in the suite could have caught it. For those, drive the REAL path: `openProject()`
+   a project under `testInfo.outputPath()`, then **`navigate(PAGE_GALLERY)`, because
+   `openProject()` does NOT move the page** (without it the spec sits on Landing and times out
+   on `.mpi-gallery-block`, looking like a boot failure), then `Events.emit('flow:open', …)`.
+   `flows:open` / `ui:close-flows` brings a SECOND overlay over the live flow, which is the
+   state most overlay bugs need. Assert occlusion with `elementFromPoint` — `toBeVisible()`
+   cannot see a panel that is merely underneath. Worked: `tests/desktop/flow-queue-hotkey.spec.js`.
 
 ## Driving Electron OUTSIDE the runner (a screenshot, a one-off probe)
 
