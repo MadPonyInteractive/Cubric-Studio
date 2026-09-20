@@ -50,16 +50,71 @@ async function withProject(itemGroups, fn) {
 
 test('a finished card is registered in a project the app does not have open', async () => {
     await withProject([{ id: 'g-old', name: 'earlier' }], async ({ post, read }) => {
-        const res = await post({ groups: [{ id: 'g-new', name: 'Drone follows marathon crowd' }] });
+        const res = await post({ groups: [{ id: 'g-new', name: 'Drone follows marathon crowd', history: ['item-1'] }] });
         assert.equal(res.status, 200);
         assert.deepEqual(await res.json(), { success: true, added: 1 });
 
         // Newest first, and the project's existing cards are untouched.
         assert.deepEqual(await read(), [
-            { id: 'g-new', name: 'Drone follows marathon crowd' },
+            { id: 'g-new', name: 'Drone follows marathon crowd', history: ['item-1'] },
             { id: 'g-old', name: 'earlier' },
         ]);
     });
+});
+
+/*
+ * Fabio, live 2026-09-20: the cowboy clip finished while he sat in another project. Media,
+ * sidecar and thumbs were all in the project he asked in, the log said "card registered" -
+ * and the card was in NEITHER project. The closed-project write sent the IN-MEMORY card,
+ * whose `history` holds item OBJECTS; on disk it holds item IDS. The write succeeded. Fifteen
+ * seconds later he opened that project, the reconciler looked each entry up as an id, found
+ * nothing, dropped the card as empty and saved the project without it.
+ *
+ * This is the whole path with the real shape, which is what the tests above never had: a
+ * card in memory -> the serialiser -> the real route -> project.json -> the real reconciler.
+ */
+test('a card written to a closed project is still a card the next time that project opens', async () => {
+    const { serializeGroup } = await import('../js/services/projectService.js');
+    const { reconcileAndHydrate } = await import('../js/managers/projectReconciler.js');
+    const item = { id: 'a2d5800f-item', filePath: '/Media/t2v_002.mp4', type: 'video' };
+    const inMemory = { id: 'g-cowboy', type: 'video', name: 'Cowboy to motorbike', createdAt: 1,
+        selectedIndex: 0, history: [item], isGenerating: true, latestPreviewUrl: 'blob:x', width: 1344, height: 768 };
+
+    await withProject([], async ({ post, read }) => {
+        // Raw, as ae42ebcf sent it: refused now, where it used to be accepted and self-delete.
+        const raw = await post({ groups: [inMemory] });
+        assert.equal(raw.status, 400, 'item OBJECTS in history must never reach project.json');
+        assert.deepEqual(await read(), []);
+
+        assert.equal((await post({ groups: [serializeGroup(inMemory)] })).status, 200);
+        const [onDisk] = await read();
+        assert.deepEqual(onDisk.history, [item.id], 'ids on disk, like every card persistGroups writes');
+        assert.equal(onDisk.isGenerating, undefined, 'and none of the live-render fields');
+
+        // The next open. The sidecar and the media are there, so the card must survive.
+        const realFetch = globalThis.fetch;
+        globalThis.fetch = async (url, init) => {
+            assert.equal(url, '/load-meta-batch');
+            const { ids } = JSON.parse(init.body);
+            return { ok: true, json: async () => ({ items: Object.fromEntries(ids.map(id => [id, { meta: item, exists: true }])) }) };
+        };
+        try {
+            const { project, wasModified } = await reconcileAndHydrate({ folderPath: '/p', itemGroups: [onDisk] });
+            assert.equal(wasModified, false, 'nothing dropped, so nothing is written back');
+            assert.deepEqual(project.itemGroups.map(g => g.id), ['g-cowboy']);
+            assert.deepEqual(project.itemGroups[0].history, [item]);
+        } finally {
+            globalThis.fetch = realFetch;
+        }
+    });
+});
+
+test('every closed-project write in generationService goes through the serialiser', () => {
+    const src = fs.readFileSync(path.join(__dirname, '..', 'js', 'services', 'generationService.js'), 'utf8');
+    const fn = src.slice(src.indexOf('async function _addGroupsToClosedProject'));
+    assert.match(fn.slice(0, fn.indexOf('\n}\n')), /groups: groups\.map\(serializeGroup\)/);
+    // and nothing else POSTs to the route behind its back
+    assert.equal(src.match(/'\/project-groups'/g)?.length, 1);
 });
 
 test('a run that added to an existing card replaces it rather than duplicating it', async () => {

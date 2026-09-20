@@ -10,4 +10,8 @@
       folderPath and leaves the open project's `itemGroups` untouched.
 - [x] Freeze the project at ENQUEUE too (`config._originProject`): a job PENDING in the Cue
       queue across a project switch froze at dispatch, into whichever project was open by then.
-- [ ] Live: dispatch a clip, switch project mid-render, confirm the card lands where it was asked.
+- [x] Live: dispatch a clip, switch project mid-render, confirm the card lands where it was asked.
+      FAILED the first time and found the REAL end of this bug: the closed-project write sent the
+      IN-MEMORY card, whose `history` holds item OBJECTS, where disk holds item IDS. Accepted by
+      the route, then dropped by the reconciler on the next open of that project, which SAVED the
+      project without it. One serialiser now (`serializeGroup`), and the route refuses the wrong shape.

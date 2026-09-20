@@ -7,6 +7,8 @@
     "routes/projects.js",
     "tests/generation-project-pinning.test.cjs",
     "tests/flow-defer-commit.test.cjs",
-    "docs/generation-lifecycle.md"
+    "docs/generation-lifecycle.md",
+    "js/services/projectService.js",
+    "js/managers/projectReconciler.js"
   ]
 }

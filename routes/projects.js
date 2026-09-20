@@ -2474,6 +2474,15 @@ router.post('/project-groups', async (req, res) => {
         if (!folderPath || !Array.isArray(groups) || !groups.length) {
             return res.status(400).json({ success: false, error: 'folderPath and a non-empty groups array are required' });
         }
+        // On disk a card's history is item IDS. A card written with item OBJECTS is accepted by
+        // every later read EXCEPT the reconciler, which drops it as empty on the next open and
+        // saves the project without it — so the wrong shape is refused here, loudly, instead
+        // of landing as a card that silently deletes itself (MPI-839, live 2026-09-20).
+        const malformed = groups.find(g => !g?.id || !Array.isArray(g.history) || !g.history.length
+            || g.history.some(h => typeof h !== 'string'));
+        if (malformed) {
+            return res.status(400).json({ success: false, error: `group "${malformed?.id}" must carry an id and a non-empty history of item id strings` });
+        }
         const jsonPath = path.join(folderPath, 'project.json');
         await updateProjectJson(jsonPath, project => {
             // Upsert by id: a brand-new card prepends, while a run that added to an

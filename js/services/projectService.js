@@ -537,13 +537,18 @@ export async function removeGroup(groupId) {
 }
 
 /**
- * Serialize in-memory groups to UUID-only format and persist to disk.
- * THE ONLY place that converts full objects → UUID strings.
- * Does NOT mutate in-memory state.currentProject.
+ * One in-memory group in its ON-DISK shape: the card's own fields, and `history` as UUID
+ * strings. THE ONLY place that converts full objects → UUID strings — every write of a
+ * group to `project.json` goes through it, whichever route carries it.
+ *
+ * MPI-839: the closed-project write (`POST /project-groups`) skipped it and sent the
+ * in-memory card, `history` full of item OBJECTS. The write succeeded. The next time the
+ * project opened, `reconcileAndHydrate` looked each entry up as an id, found nothing,
+ * dropped the card as empty and SAVED the project without it — a finished clip with its
+ * media and sidecar on disk and no card anywhere (Fabio, live 2026-09-20).
  */
-export async function persistGroups() {
-    if (!state.currentProject) return;
-    const serialized = state.currentProject.itemGroups.map(g => ({
+export function serializeGroup(g) {
+    return {
         id:            g.id,
         type:          g.type,
         name:          g.name,
@@ -553,10 +558,19 @@ export async function persistGroups() {
         favourite:     g.favourite,
         archived:      g.archived === true,
         customName:    g.customName ?? null,
-        history:       g.history.map(item =>
+        history:       (g.history || []).map(item =>
             typeof item === 'string' ? item : item.id
         ),
-    }));
+    };
+}
+
+/**
+ * Serialize in-memory groups to UUID-only format and persist to disk.
+ * Does NOT mutate in-memory state.currentProject.
+ */
+export async function persistGroups() {
+    if (!state.currentProject) return;
+    const serialized = state.currentProject.itemGroups.map(serializeGroup);
     // MPI-226: a swallowed failure here caused silent save-loss — the in-memory
     // group survived but project.json never persisted, so on reload the stale
     // project.json + memory-only ghost ids fired load-meta 404s. Retry a few

@@ -7,7 +7,7 @@
  */
 
 import { runCommand } from './commandExecutor.js';
-import { saveGeneration, addGroup, updateGroup } from './projectService.js';
+import { saveGeneration, addGroup, updateGroup, serializeGroup } from './projectService.js';
 import { createImageItem, createVideoItem, createAudioItem, createItemGroup, appendToHistory, getModelSettings, getSharedSettings, getOpSettings, replaceHistoryItemById } from '../data/projectModel.js';
 import { Events } from '../events.js';
 import { generationStore } from './generationStore.js';
@@ -737,7 +737,10 @@ async function _addGroupsToClosedProject(project, groups) {
         const res = await fetch('/project-groups', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ folderPath: project.folderPath, groups }),
+            // The ON-DISK shape, through the one serialiser. Sent raw, `history` carried
+            // item OBJECTS and the next open of that project dropped the card and saved
+            // the project without it (see `serializeGroup`).
+            body: JSON.stringify({ folderPath: project.folderPath, groups: groups.map(serializeGroup) }),
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         clientLogger.info('generationService', 'card registered in the project it was dispatched in', {
@@ -745,9 +748,11 @@ async function _addGroupsToClosedProject(project, groups) {
             groups: groups.length,
         });
     } catch (err) {
-        // The media is on disk and correct; only the card record failed. Reconciliation
-        // picks up an unrecorded file in a project's Media dir, so this degrades to the
-        // existing orphan path rather than losing the generation.
+        // The media and its sidecar are on disk and correct; only the card record failed.
+        // NOTHING PICKS THAT UP. The reconciler rebuilds an item a card already LISTS; a
+        // file no card references is never adopted, so the clip exists with no way to reach
+        // it in the app (this comment used to claim the opposite, and MPI-839 proved it
+        // wrong live: the card was recovered by hand from the sidecar). Loud on purpose.
         clientLogger.error('generationService', 'could not register cards in the origin project', {
             folderPath: project.folderPath,
             error: err.message,
