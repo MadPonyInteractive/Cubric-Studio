@@ -61,6 +61,23 @@ longest edge to 1024, got a 1024×426 `.gif`, and read `1536×640` on its card
 (2026-09-20). `frameDimensions()` was removed with the last caller; anything that
 genuinely wants the frame canvas should read a frame, and say so.
 
+### Crop and Resize floor `maxEdge` at 2048 (MPI-847)
+
+`MpiGroupHistoryBlock._postGifEntry()` posts the CURRENT entry's `output` with EVERY
+transform, so a crop INHERITS its cap rather than falling back to the route's default.
+Make GIF stamps `maxEdge: 1024`, and that travelled down every later entry — a 9:16 crop
+of full-res 1080×1920 frames built a 576×1024 `.gif`.
+
+`routes/gifTransform.js` applies `TRANSFORM_MIN_MAX_EDGE` as a **floor**:
+`Math.max(inherited, 2048)`. An entry that already allows more keeps its own value. The
+frames in the store were always full-res; only the build ceiling was discarding pixels.
+
+Scoped to Crop and Resize on purpose. `gifMake`'s 1024, the GIF output panel default,
+`DEFAULT_MAX_EDGE` and the `gif.js` / `gifCutout.js` fallbacks are unchanged — raising
+those makes every new GIF heavier for everyone. **Consequence to know:** a deliberately
+small longest edge set in GIF output does not survive a later crop; re-apply GIF output
+after cropping if a small file is the point.
+
 ## The frames store — content-addressed, swept (NOT permanent)
 
 `Media/.gif-frames/<sha256>.png` (full frame) + `<sha256>.thumb.<w>.webp`

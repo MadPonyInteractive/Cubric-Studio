@@ -211,6 +211,55 @@ test('Resize gives the target size on every frame; delays and loop survive', asy
     }
 });
 
+/**
+ * MPI-847 — Crop and Resize floor their longest edge at 2048, and an inherited cap cannot
+ * drag it below that.
+ *
+ * `MpiGroupHistoryBlock._postGifEntry()` posts the CURRENT entry's `output` with every
+ * transform, so a crop inherited whatever the source carried — and Make GIF stamps 1024,
+ * which is how a 9:16 crop of full-res 1080x1920 frames built a 576x1024 `.gif` (Fabio,
+ * 2026-09-20). Raising the route's own fallback would have changed nothing: it is the
+ * inheritance that had to stop being able to lower the ceiling.
+ */
+test('Crop floors its longest edge at 2048 even when the source entry asks for less', async () => {
+    const { root, mediaDir } = await tmpProject();
+    const app = buildApp();
+    const server = await startServer(app);
+    const base = `http://127.0.0.1:${server.address().port}`;
+    try {
+        const { hash } = await gifFrames.writeFrame(mediaDir, await solidPng(1600, 1200, { r: 90, g: 90, b: 200 }));
+
+        const res = await postJson(base, '/gif/crop', {
+            folderPath: root,
+            frames: [{ hash, delay: 10 }],
+            loop: 0,
+            // What Make GIF stamps, and what the Block forwards from the source entry.
+            output: { maxEdge: 1024, colours: 256, edgeColour: null },
+            x: 0, y: 0, w: 1400, h: 1000,
+        }).then((r) => r.json());
+
+        assert.equal(res.success, true, `gif/crop failed: ${res.error}`);
+        assert.equal(res.item.gif.output.maxEdge, 2048, 'the entry records the floor it was built with');
+        assert.deepEqual(res.item.pixelDimensions, { w: 1400, h: 1000 },
+            'a 1400-wide crop of full-res frames must build at 1400, not be capped to 1024');
+
+        // ...and a source that already allows MORE keeps its own value: this is a floor,
+        // not a replacement.
+        const higher = await postJson(base, '/gif/crop', {
+            folderPath: root,
+            frames: [{ hash, delay: 10 }],
+            loop: 0,
+            output: { maxEdge: 4096, colours: 256, edgeColour: null },
+            x: 0, y: 0, w: 1400, h: 1000,
+        }).then((r) => r.json());
+        assert.equal(higher.success, true, `gif/crop failed: ${higher.error}`);
+        assert.equal(higher.item.gif.output.maxEdge, 4096, 'a higher cap is never lowered to the floor');
+    } finally {
+        await new Promise((r) => server.close(r));
+        await fs.remove(root);
+    }
+});
+
 test('GIF to Video: a fully transparent frame comes out as the background colour, not the hidden RGB', async () => {
     const { root, mediaDir } = await tmpProject();
     const app = buildApp();

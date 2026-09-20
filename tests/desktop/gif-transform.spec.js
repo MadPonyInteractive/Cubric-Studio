@@ -167,11 +167,11 @@ test('GIF transform: Make GIF -> Crop 9:16 -> Speed 0.33 -> GIF to Video card; S
         await expect.poll(() => window.evaluate(() => document.querySelector('.mpi-project-name__stats-count')?.textContent), { timeout: 15000 })
             .toBe(String(before + 1));
         let entry = (await gifHistory()).at(-1);
-        // The card is the BUILT .gif (MPI-844), and Crop's default `maxEdge` is 1024, so a
-        // 1080x1920 crop builds a 576x1024 file. The FRAMES stay full-res two lines below —
-        // that is the whole point of the store, and it is why GIF to Video further down
-        // still lands a 1080x1920 video off the same entry.
-        expect(entry.pixelDimensions).toEqual({ w: 576, h: 1024 });
+        // The card is the BUILT .gif (MPI-844), and Crop floors its longest edge at 2048
+        // whatever the source entry carried (MPI-847) — so a 1080x1920 crop of full-res
+        // frames builds at full size. Under the old inherited 1024 cap this file was
+        // 576x1024 while its card claimed 1080x1920: wrong twice over.
+        expect(entry.pixelDimensions).toEqual({ w: 1080, h: 1920 });
         expect(entry.gif.frames.map(f => f.delay)).toEqual([100, 100, 100]);
         const frame0 = path.join(projectFolderPath, 'Media', '.gif-frames', `${entry.gif.frames[0].hash}.png`);
         expect(await sharp(frame0).metadata()).toMatchObject({ width: 1080, height: 1920 });

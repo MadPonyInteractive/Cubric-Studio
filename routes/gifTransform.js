@@ -79,6 +79,20 @@ function projectFileUrl(filePath) {
 }
 
 /**
+ * Crop and Resize never build below this longest edge, whatever the source entry
+ * carried (Fabio, 2026-09-20).
+ *
+ * The Block posts the CURRENT entry's `output` with every transform, so a crop
+ * inherited its cap — and Make GIF stamps 1024, so a 1080x1920 crop of full-res
+ * frames built a 576x1024 `.gif`. Picking a region at full resolution and getting
+ * back something half its size is the surprise; the frames in the store are
+ * full-res either way, so the ceiling is the only thing that was throwing the
+ * pixels away. A FLOOR, not a replacement: an entry that already allows more
+ * keeps its own value.
+ */
+const TRANSFORM_MIN_MAX_EDGE = 2048;
+
+/**
  * Pad (if the rect leaves the frame) then extract, on a Buffer — the same
  * two-pass `services/imageCrop.js`'s `cropExtended()` runs on disk, adapted
  * to operate in memory since a GIF frame is content-addressed, not a loose
@@ -136,7 +150,7 @@ async function _writeNewGifCard({ folderPath, mediaDir, metaDir, newFrames, loop
         frames: newFrames,
         loop: Number.isFinite(Number(loop)) ? Number(loop) : 0,
         output: {
-            maxEdge: Number(output?.maxEdge) > 0 ? Number(output.maxEdge) : 1024,
+            maxEdge: Math.max(Number(output?.maxEdge) > 0 ? Number(output.maxEdge) : 0, TRANSFORM_MIN_MAX_EDGE),
             colours: Number(output?.colours) > 0 ? Math.round(Number(output.colours)) : 256,
             edgeColour: output?.edgeColour || null,
         },
