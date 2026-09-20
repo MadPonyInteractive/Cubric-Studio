@@ -9,7 +9,7 @@ import { drawBrushRing } from '../../Primitives/MpiCanvas/managers/brushDab.js';
 import { enqueueGeneration } from '../../../services/generationService.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
-import { qs, on } from '../../../utils/dom.js';
+import { qs, on, accentHeat } from '../../../utils/dom.js';
 import { composeObjectAlpha } from '../../../utils/maskUtils.js';
 
 /**
@@ -307,7 +307,7 @@ export const MpiStepCutout = ComponentFactory.create({
                 view.offsetX + _cursor.x * view.scale,
                 view.offsetY + _cursor.y * view.scale,
                 (_brush / 2) * view.scale,
-                { eraser: _tool === 'erase' },
+                { eraser: _tool === 'erase', accent: accentHeat(ctx.canvas) },
             );
         }
 

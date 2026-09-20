@@ -564,3 +564,33 @@ diff, not a refactor across four specs.
 "peer work" is a line-ending phantom: `git diff` empty, filtered `hash-object` == HEAD blob
 `968ace43`, `ls-files --eol` reads `i/lf w/crlf`. And `MpiMediaDropOverlay` is not portaled
 (`el.appendChild` in both Blocks), so it already inherits the right colour and needs nothing.
+
+## Phase 1c — canvas constants onto the live token (2026-09-20, session 03654647)
+
+Five hardcoded `oklch(0.76 0.17 355)` literals in the canvas draw paths now read
+`--accent-heat` off `ctx.canvas` through one helper, `accentHeat()` in `js/utils/dom.js`.
+This is the first surface on this card that is DRAWN rather than styled, so it is the
+first one CSS could not have reached.
+
+**Automated, all green:**
+
+- `grep -rn "0\.76 0\.17 355" js/ styles/` — was 6 hits in `js/`, now 2, and both are
+  documented fallbacks: `dom.js`'s `ACCENT_HEAT_FALLBACK` and `brushDab.js`'s
+  `BRUSH_CURSOR`. `brushDab` cannot import the first without taking on the DOM dependency
+  `tests/brush-presets.test.cjs` forbids, so two is the floor, not a miss.
+- `tests/canvas-accent.test.cjs`, new, 5/5 — `accentHeat` reads and trims the live token,
+  falls back on an element that computes nothing, `drawBrushRing` honours `opts.accent`,
+  the ERASER ignores it (frost is a tool signal, not a workspace one), and a caller that
+  passes nothing still draws.
+- `npm test` — 1521 pass, 1 skipped, 0 fail.
+- `npx eslint` on the eight touched files — clean.
+
+**The colours on screen — VERIFIED BY FABIO 2026-09-20 ("1").** He took rounds 9c and 9d
+in the same pass, so the whole outstanding queue on this card is signed off: the crop and
+shape handles follow the workspace, the image workspace did not move, the brush ring
+follows while the ERASER stays frost, the voice picker is green inside a video Flow, the
+media picker from an image slot is rose, and the status bar takes the running op's colour
+and returns to cream at idle.
+
+Noticed, not actioned: `MpiCanvas.js` `getCSSColor` (the old `:95`) is still defined and
+never referenced. Pre-existing dead code, not this card's to remove.

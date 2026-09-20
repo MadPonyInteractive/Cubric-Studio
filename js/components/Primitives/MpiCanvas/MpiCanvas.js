@@ -15,12 +15,10 @@
 /* BRUSH_CURSOR / BRUSH_CURSOR_OUTLINE / BRUSH_ERASER moved to `brushDab.js`
  * alongside `drawBrushRing` (MPI-567) — the ring has a second destination now, a
  * flow's `paint` step, and it had already been forked into a worse copy there. */
-const BRUSH_DOT            = 'oklch(0.76 0.17 355)';         /* --accent-heat */
 const SLIDER_ARROW         = 'oklch(0.66 0.014 80)';       /* --ink-3 */
 const GRID_LINE            = 'oklch(0.95 0.005 80 / 0.8)'; /* --ink-1 80% */
 const GRID_LINE_SHADOW     = 'oklch(0.16 0.02 350 / 0.5)'; /* surface-canvas 50% */
 const MASK_POINT_POSITIVE  = 'oklch(0.78 0.13 150)';       /* --accent-ok */
-const MASK_POINT_NEGATIVE  = 'oklch(0.76 0.17 355)';       /* --accent-heat */
 const MASK_POINT_RING      = 'oklch(0.16 0.02 350 / 0.9)'; /* --surface-canvas 90% */
 const MASK_INVERT_FILL     = 'oklch(0 0 0)';               /* pure black — invert display */
 const MASK_BW_BG           = 'oklch(0 0 0)';               /* B/W view backdrop — mask draws white on it */
@@ -87,10 +85,10 @@ import { CropManager }       from './managers/CropManager.js';
 import { PaintManager }      from './managers/PaintManager.js';
 import { ShapeManager }      from './managers/ShapeManager.js';
 import { CompositeManager }  from './managers/CompositeManager.js';
-// BRUSH_CURSOR stays: the comparison slider is drawn in it too, not just the ring.
-import { drawBrushRing, BRUSH_CURSOR } from './managers/brushDab.js';
+import { drawBrushRing } from './managers/brushDab.js';
 import { UndoStack }         from './managers/UndoStack.js';
 import { InputController }   from './managers/InputController.js';
+import { accentHeat }        from '../../../utils/dom.js';
 
 const getCSSColor = (varName) => getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
 
@@ -1106,13 +1104,14 @@ class _CanvasCore {
         const ctx = this.overlayCtx;
         const s = this.view.scale || 1;
         const r = MASK_POINT_DRAW_R / s;
+        const negative = accentHeat(ctx.canvas);
         ctx.save();
         ctx.lineWidth = 2 / s;
         ctx.strokeStyle = MASK_POINT_RING;
         for (const p of this.mask.points) {
             ctx.beginPath();
             ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-            ctx.fillStyle = p.positive ? MASK_POINT_POSITIVE : MASK_POINT_NEGATIVE;
+            ctx.fillStyle = p.positive ? MASK_POINT_POSITIVE : negative;
             ctx.fill();
             ctx.stroke();
         }
@@ -1153,8 +1152,9 @@ class _CanvasCore {
         const H = this.screenUICanvas.height;
         // Screen-space bar: fixed fraction of the container, independent of pan/zoom.
         const barX = this.comparison.sliderPos * W;
+        const accent = accentHeat(ctx.canvas);
         ctx.save();
-        ctx.strokeStyle = BRUSH_CURSOR;
+        ctx.strokeStyle = accent;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(barX, 0);
@@ -1163,7 +1163,7 @@ class _CanvasCore {
 
         ctx.beginPath();
         ctx.arc(barX, H / 2, 16, 0, Math.PI * 2);
-        ctx.fillStyle = BRUSH_CURSOR;
+        ctx.fillStyle = accent;
         ctx.fill();
 
         ctx.fillStyle = SLIDER_ARROW;
@@ -1197,6 +1197,7 @@ class _CanvasCore {
             // flow's `paint` step draws, so the two surfaces cannot drift again.
             drawBrushRing(ctx, x, y, (brush.brushSize * scale) / 2, {
                 eraser: brush.brushType === 'eraser',
+                accent: accentHeat(ctx.canvas),
             });
         }
     }

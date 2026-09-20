@@ -98,3 +98,32 @@ export const inheritAccent = (portalEl, anchor) => {
     if (accent) portalEl.dataset.accent = accent;
     else delete portalEl.dataset.accent;
 };
+
+/** Vision's rose — what `--accent-heat` resolved to before the rebind engine existed. */
+const ACCENT_HEAT_FALLBACK = 'oklch(0.76 0.17 355)';
+
+/**
+ * The live `--accent-heat` where `el` sits, as a colour a canvas draw can use (MPI-736).
+ *
+ * A `ctx.fillStyle` cannot hold a CSS var, so every stage overlay — crop handles, shape
+ * handles, the brush ring, the negative mask dot — froze the rose as a literal. That was
+ * right while the token WAS the rose; it is wrong now that `[data-accent]` rebinds it per
+ * workspace (`styles/01_base.css`), because a crop handle in the video workspace kept
+ * drawing pink over an orange UI.
+ *
+ * Pass the element the draw already has in hand — `ctx.canvas` in every call site here.
+ * It must be READ at draw time, not baked: `navigation.js` changes the attribute on the
+ * app shell above a canvas that stays mounted, exactly the staleness `inheritAccent`
+ * exists to avoid.
+ *
+ * @param {Element} el - Any element inside the subtree whose accent is wanted.
+ * @returns {string} A CSS colour; the rose when `el` is detached and computes nothing.
+ */
+// ponytail: one property read per draw, no cache. getComputedStyle only forces a recalc
+// when styles are dirty, and these paths paint into a canvas rather than touch the DOM.
+// Cache per element if a profile ever says otherwise — invalidating it needs an accent
+// -change signal that does not exist yet.
+export const accentHeat = (el) => {
+    const live = el && getComputedStyle(el).getPropertyValue('--accent-heat').trim();
+    return live || ACCENT_HEAT_FALLBACK;
+};

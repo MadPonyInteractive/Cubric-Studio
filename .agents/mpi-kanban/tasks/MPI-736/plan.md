@@ -4,6 +4,13 @@ Brief: `brief.md`. Source of truth for values: `c:\AI\Mpi\Cubric Studio (Website
 
 ## Current State
 
+**2026-09-20, session 03654647 — PHASE 1c IS IN AND VERIFIED BY FABIO** ("1"). The five
+canvas literals read the live token off `ctx.canvas`; a crop handle in the video workspace
+draws orange. Detail below under "1c".
+
+**Rounds 9c and 9d are also VERIFIED** — he checked all three in the same pass. Nothing on
+this card is now awaiting an eye. Remaining: phase 2b and phase 5, neither started.
+
 **2026-09-19, session 8abe87b4 — the SWEEP IS FINISHED. What is left is phases, not
 surfaces.** Five commits, all pushed, master green: `d3ec007d` dialogs, `bc6af6fb` the four
 portalled pickers, `d3a46d7d` a red master that was not ours, `47e10d3b` voice + media
@@ -23,8 +30,8 @@ never a peer's work), two of class B's four rows (`MpiWaveform`/`MpiAudioPlayer`
 already correct), and the status bar's *"the emitters have to change"* (they never did).
 Open the file before budgeting for a row.
 
-Remaining, in the card's own order: phase 1c canvas constants, phase 2b `--accent-warn`,
-phase 5 docs (`PRODUCT.md`, `DESIGN.md`'s stale VT323 line).
+Remaining, in the card's own order: phase 2b `--accent-warn`, phase 5 docs
+(`PRODUCT.md`, `DESIGN.md`'s stale VT323 line). 1c is done and signed off.
 
 Phase 1a and 1b landed and are committed (`2a3677f3`, 28 files). `--accent-err`,
 `--accent-heat-hi` and `--accent-err-hi` exist in `styles/01_base.css`; every danger/error
@@ -380,10 +387,37 @@ Re-grepped 2026-09-18; the brief's line numbers had drifted.
 350 against audio at 170 is antipodal, so the mix walks through yellow. Use `oklab`.
 Precedent: `MpiWaveform.css:45`.
 
-### 1c. Canvas constants — MOVED TO PHASE 3 (2026-09-18)
+### 1c. Canvas constants — DONE + VERIFIED BY FABIO 2026-09-20
 
-Not done here, and deliberately. Moving these buys nothing visible until a rebind
-exists, and the correct plumbing is decided by phase 3, not guessed twice:
+**Phase 3 answered the blocker, so it unfroze.** `styles/01_base.css:210-229` is the
+rebind engine, `:root --accent-heat` is already Studio cream, and `navigation.js:297` sets
+the attribute on the app shell — which is above every canvas. `ctx.canvas` was the guess
+below and it is now provable.
+
+**One helper, not five constants:** `accentHeat(el)` in `js/utils/dom.js`, beside
+`inheritAccent`. It reads `--accent-heat` off the element at DRAW time and falls back to
+the rose when the element computes nothing (a detached overlay during teardown). No cache:
+one property read per draw, and these paths paint into a canvas rather than dirty the DOM,
+so `getComputedStyle` forces no recalc. A `ponytail:` comment names that ceiling.
+
+**`brushDab.js` stayed DOM-free** — `tests/brush-presets.test.cjs:3` pins it. The accent
+arrives as `opts.accent`; `BRUSH_CURSOR` is now the fallback for a caller that passes none.
+Shared primitive, so all THREE `drawBrushRing` callers pass it: `MpiCanvas.js:1198`,
+`MpiStepCutout.js:305`, `MpiStepPaint.js:397`. The eraser deliberately ignores it — frost
+is a TOOL signal and must not follow the workspace; a test pins that.
+
+**The row was smaller than the list.** Seven line numbers, five live literals: `MpiCanvas`
+`:22,28` are `--accent-ok` green (already noted below) and `:18` `BRUSH_DOT` was DEAD.
+Deleted rather than converted — phase 1's verify grep fails on a dead literal just as
+loudly as a live one. `getCSSColor` at the old `:95` is still dead and still left alone.
+
+**The grep does not reach zero, by design:** two `oklch(0.76 0.17 355)` remain in `js/`,
+`dom.js`'s `ACCENT_HEAT_FALLBACK` and `brushDab.js`'s `BRUSH_CURSOR`. Both are documented
+fallbacks, and `brushDab` cannot import the other one without acquiring the DOM dependency
+its test forbids.
+
+The 2026-09-18 reasoning that froze it, kept because it is what the answer was checked
+against:
 
 - `brushDab.js` is pinned DOM-free by its own test — `tests/brush-presets.test.cjs:3`
   says so in a comment: *"brushDab.js never touches `document`: it draws into a context
@@ -395,9 +429,10 @@ exists, and the correct plumbing is decided by phase 3, not guessed twice:
 - `ctx.canvas` is the element every one of these draw methods already has in hand, which
   is very likely the answer; it just should not be committed to before the rebind exists.
 
-Still frozen, still listed for phase 3: `js/utils/cropTool.js:34` ·
-`MpiCanvas.js:18,22,23,28` · `managers/ShapeManager.js:38`, `CropManager.js:29`,
-`brushDab.js:320`. `MpiCanvas.js:22,28` are `--accent-ok` green, not pink.
+The five that moved: `js/utils/cropTool.js` `HANDLE_FILL` · `MpiCanvas.js`
+`MASK_POINT_NEGATIVE` + the comparison slider · `ShapeManager.js` `SHAPE_HANDLE_FILL` ·
+`CropManager.js` `CROP_HANDLE_FILL` · `brushDab.js` `BRUSH_CURSOR`.
+`MpiCanvas.js:22,28` are `--accent-ok` green, not pink, and stay literals.
 
 **Noticed, not actioned:** `MpiCanvas.js:18` `BRUSH_DOT` and `MpiCanvas.js:95`
 `getCSSColor` are both dead — defined, never referenced. Pre-existing, left alone.
@@ -604,3 +639,11 @@ grep + lint + `npm test` above, with the button hover the single thing to look a
 - 2026-09-19: a future card type recorded, NOT built and deliberately not carded — an
   **element card** holding several media types takes Studio cream. Fabio flagged it as a
   heads-up while closing round 7. The `accent` column is where it will go.
+- 2026-09-20: **phase 1c unfroze.** It was moved to phase 3 on 2026-09-18 for one stated
+  reason — "the correct plumbing is decided by phase 3, not guessed twice". Phase 3 has
+  since shipped the `[data-accent]` rebind engine, so the plumbing is decided and the file
+  the 1c note guessed at (`ctx.canvas`) is the one that works. Nothing about the phase
+  changed; its precondition arrived.
+- 2026-09-20: 1c's "seven lines" was really five. Two are `--accent-ok` green and one
+  (`BRUSH_DOT`) was dead — the fifth session in a row where an inherited survey row cost
+  more to believe than to open. The lesson under "What the sweep taught" holds.

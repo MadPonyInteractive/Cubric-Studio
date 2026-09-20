@@ -5,7 +5,7 @@ Derived from `plan.md` phase titles, 2026-09-18.
 - [x] Phase 1 — make the token honest (zero visual delta, proven) — commit 2a3677f3
   - [x] 1a `--accent-err` born; every danger/error site off `--accent-heat`
   - [x] 1b ~33 hardcoded pinks onto the token
-  - [~] 1c canvas constants — MOVED to phase 3 (see plan.md; brushDab is pinned DOM-free by its own test)
+  - [x] 1c canvas constants — DONE 2026-09-20, one accentHeat() helper; brushDab stayed DOM-free, the accent arrives as opts.accent
 - [x] Phase 2a — `--accent-err` to a REAL RED: `oklch(0.70 0.19 27)`. Verified by Fabio in
       the live app on an error toast and the prompt box.
   - [x] Stop stops being red — it is a cancel, not a failure (Fabio, 2026-09-18).
@@ -134,6 +134,6 @@ Derived from `plan.md` phase titles, 2026-09-18.
     - [x] Flows need no special case; one of the five `image → vision` copies retired.
     - [x] `tests/status-bar-accent.test.cjs` 5/5, `npm test` 1468/1469, eslint clean.
     - [ ] Fabio's live check: run an image op, a video op and an audio Flow.
-  - [ ] 1c canvas constants land here (deferred from phase 1)
+  - [x] 1c canvas constants land here (deferred from phase 1) — 5 literals, 3 drawBrushRing callers, tests/canvas-accent.test.cjs
 - [ ] Phase 5 — finish `DESIGN.md` (VT323 wordmark, single mascot) and rewrite `PRODUCT.md`
       (its "pink/heat accent" line goes wrong the moment phase 3 lands)

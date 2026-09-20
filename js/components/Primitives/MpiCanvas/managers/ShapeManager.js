@@ -32,10 +32,12 @@
  */
 
 import { CropManager } from './CropManager.js';
+import { accentHeat } from '../../../../utils/dom.js';
 
 /* Stage canvas color constants — JS canvas draws cannot use CSS vars directly. */
 const SHAPE_OUTLINE      = 'oklch(0.95 0.005 80 / 0.9)';   /* --ink-1 */
-const SHAPE_HANDLE_FILL  = 'oklch(0.76 0.17 355)';         /* --accent-heat */
+/* The handle FILL is --accent-heat, which a workspace rebinds — read off the canvas at
+ * draw time with accentHeat(), never frozen here (MPI-736). */
 const SHAPE_HANDLE_EDGE  = 'oklch(0.95 0.005 80)';         /* --ink-1 */
 
 /** Half-extent floor in image px — below this the shape has no grabbable handles. */
@@ -451,7 +453,7 @@ export class ShapeManager {
 
         // Handles — fixed screen size at any zoom, exactly like the crop rect's.
         const hr = CropManager.HANDLE_DIAMETER / 2;
-        ctx.fillStyle = SHAPE_HANDLE_FILL;
+        ctx.fillStyle = accentHeat(ctx.canvas);
         ctx.strokeStyle = SHAPE_HANDLE_EDGE;
         ctx.lineWidth = 2;
 

@@ -20,14 +20,16 @@
 
 import { Hotkeys } from '../../../../managers/hotkeyManager.js';
 import { snapBodyRect, snapFreeRect, snapRatioWidth } from '../../../../utils/cropSnap.js';
+import { accentHeat } from '../../../../utils/dom.js';
 
 /* Stage canvas color constants — JS canvas draws cannot use CSS vars directly. */
 const CROP_SCRIM         = 'oklch(0.20 0.020 350 / 0.55)'; /* --surface-canvas */
 const CROP_BORDER        = 'oklch(0.95 0.005 80 / 0.85)';  /* --ink-1 */
 const CROP_THIRDS        = 'oklch(0.95 0.005 80 / 0.22)';  /* --ink-1 */
 const CROP_BOUNDS        = 'oklch(0.95 0.005 80 / 0.45)';  /* --ink-1 */
-const CROP_HANDLE_FILL   = 'oklch(0.76 0.17 355)';           /* --accent-heat */
 const CROP_HANDLE_STROKE = 'oklch(0.95 0.005 80)';         /* --ink-1 */
+/* The handle FILL is --accent-heat, which a workspace rebinds — read off the canvas at
+ * draw time with accentHeat(), never frozen here (MPI-736). */
 
 /** Snap radius in SCREEN px — converted to image px with the view scale. */
 const SNAP_PX = 8;
@@ -448,7 +450,7 @@ export class CropManager {
             [x,         y + h / 2, 'l' ], [x + w,     y + h / 2, 'r' ],
         ];
 
-        ctx.fillStyle   = CROP_HANDLE_FILL;
+        ctx.fillStyle   = accentHeat(ctx.canvas);
         ctx.strokeStyle = CROP_HANDLE_STROKE;
         ctx.lineWidth   = 2;
 

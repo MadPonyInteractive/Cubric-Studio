@@ -316,7 +316,14 @@ export function strokeBox(from, to, reach, scale) {
  * worse copy of a ring that had already been debugged.
  */
 
-/** `--accent-heat`. The paint ring, and the mask-point fill. */
+/**
+ * `--accent-heat` as it was before a workspace could rebind it (MPI-736).
+ *
+ * This file stays DOM-free — `tests/brush-presets.test.cjs` pins that, and it is what
+ * makes the dab testable in node with a recording stand-in for the context. So the live
+ * accent cannot be READ here; it arrives as `opts.accent` from the caller, which holds
+ * the canvas. This constant is the fallback for a caller that passes none.
+ */
 export const BRUSH_CURSOR = 'oklch(0.76 0.17 355)';
 /** `--surface-canvas` at 90%. The DARK half of every two-tone ring here. */
 export const BRUSH_CURSOR_OUTLINE = 'oklch(0.16 0.02 350 / 0.9)';
@@ -342,10 +349,12 @@ const RING_DASH = 4;
  * @param {number} x                       centre, canvas px
  * @param {number} y                       centre, canvas px
  * @param {number} r                       RADIUS, canvas px — callers scale, as with the dab
- * @param {{eraser?: boolean}} [opts]
+ * @param {{eraser?: boolean, accent?: string}} [opts] - `accent` is the live
+ *        `--accent-heat` the caller read off its canvas; the eraser ignores it, because
+ *        frost is a TOOL signal and must not follow the workspace.
  */
 export function drawBrushRing(ctx, x, y, r, opts = {}) {
-    const accent = opts.eraser ? BRUSH_ERASER : BRUSH_CURSOR;
+    const accent = opts.eraser ? BRUSH_ERASER : (opts.accent || BRUSH_CURSOR);
     ctx.save();
 
     ctx.beginPath();

@@ -31,10 +31,12 @@
 const SCRIM         = 'oklch(0.20 0.020 350 / 0.55)'; /* --surface-canvas 55% */
 const CROP_BORDER   = 'oklch(0.95 0.005 80 / 0.85)';  /* --ink-1 85% */
 const CROP_THIRDS   = 'oklch(0.95 0.005 80 / 0.22)';  /* --ink-1 22% */
-const HANDLE_FILL   = 'oklch(0.76 0.17 355)';           /* --accent-heat */
 const HANDLE_STROKE = 'oklch(0.95 0.005 80)';         /* --ink-1 */
+/* The handle FILL is not here: it is --accent-heat, which a workspace rebinds, so it is
+ * read off the overlay canvas at draw time with accentHeat() (MPI-736). */
 
 import { Hotkeys } from '../managers/hotkeyManager.js';
+import { accentHeat } from './dom.js';
 
 export function createCropTool({ overlayCanvas, targetElement, onChange, showGrid = true, allowOverflow = false }) {
     let _isEnabled = false;
@@ -603,7 +605,8 @@ export function createCropTool({ overlayCanvas, targetElement, onChange, showGri
             [px + pw, py + ph / 2, 'r'],
         ];
 
-        ctx.fillStyle = HANDLE_FILL;
+        const handleFill = accentHeat(ctx.canvas);
+        ctx.fillStyle = handleFill;
         ctx.strokeStyle = HANDLE_STROKE;
         ctx.lineWidth = 0.8;
 
@@ -619,7 +622,7 @@ export function createCropTool({ overlayCanvas, targetElement, onChange, showGri
             const hit = handles.find(([, , k]) => k === _activeHandle);
             if (hit) {
                 const [hx, hy] = hit;
-                ctx.fillStyle = HANDLE_FILL;
+                ctx.fillStyle = handleFill;
                 ctx.strokeStyle = HANDLE_STROKE;
                 ctx.beginPath();
                 ctx.arc(hx, hy, hr * 1.15, 0, Math.PI * 2);

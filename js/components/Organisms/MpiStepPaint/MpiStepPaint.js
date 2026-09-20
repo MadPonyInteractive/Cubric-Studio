@@ -11,7 +11,7 @@ import {
 import { UndoStack } from '../../Primitives/MpiCanvas/managers/UndoStack.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
-import { qs, on } from '../../../utils/dom.js';
+import { qs, on, accentHeat } from '../../../utils/dom.js';
 
 /**
  * MpiStepPaint — the `paint` step kind (MPI-567).
@@ -399,7 +399,7 @@ export const MpiStepPaint = ComponentFactory.create({
                 view.offsetX + _cursor.x * view.scale,
                 view.offsetY + _cursor.y * view.scale,
                 (paint.brushSize / 2) * view.scale,
-                { eraser: paint.brushType === 'eraser' },
+                { eraser: paint.brushType === 'eraser', accent: accentHeat(ctx.canvas) },
             );
         }
 
