@@ -1,0 +1,16 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-861",
+  "title": "gif-workspace.spec flake: the stage test plants masks while Reverse's reload is still in flight",
+  "description": "Observed 2026-09-20 verifying MPI-859: 'gif stage: right-click reverses the frames and clears every mask' failed 1 run in 4 when gif-cutout.spec.js and gif-workspace.spec.js run together. The test waits only for the /gif/entry REQUEST, then calls setTrackMasks; the reverse's response then runs loadFrames -> _syncMasks, whose new frame signature stashes and empties the masks, so hasFrameMasks() polls false for 5s. Not MPI-859.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-20T21:58:45+01:00",
+  "updated_at": "2026-09-20T21:58:45+01:00",
+  "links": {
+    "checklist": "checklist.md",
+    "files": "files.json",
+    "events": "events.jsonl"
+  }
+}

@@ -436,6 +436,17 @@ test('gif stage: right-click reverses the frames and clears every mask; Save fra
     await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-ctx-menu')),
       'the menu must dismiss itself after a choice').toBe(false);
 
+    // Reverse is not over when its REQUEST is. The response reloads the viewer
+    // with the new entry's frames, and a new frame list makes every position-keyed
+    // mask meaningless, so `_syncMasks` throws them away. Planting masks before
+    // that reload landed let it wipe them a beat later — the poll below then sat
+    // out its five seconds on a store that would never refill (MPI-861: one
+    // failure in four when this spec shares a run with gif-cutout.spec.js).
+    await expect.poll(() => window.evaluate(() =>
+      document.querySelector('.mpi-gif-viewer').getFrames().map(f => f.hash).join(',')),
+    'the reversed entry must be loaded before any mask is planted on it',
+    ).toBe([...FRAME_HASHES].reverse().join(','));
+
     // ── Clear all masks, with masks actually there ──────────────────────
     await window.evaluate((n) => {
       const out = [];

@@ -1,0 +1,7 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "tests/desktop/gif-workspace.spec.js",
+    ".agents/mpi-kanban/tasks/MPI-861/"
+  ]
+}

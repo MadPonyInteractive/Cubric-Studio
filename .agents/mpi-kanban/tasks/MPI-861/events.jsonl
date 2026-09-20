@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-861", "at": "2026-09-20T21:58:45+01:00", "actor": "claude", "summary": "Flaky desktop spec, reported by Fabio 2026-09-20 after four full runs of gif-cutout + gif-workspace together."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-861", "at": "2026-09-20T21:58:45+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Taking it now. tests/desktop/gif-workspace.spec.js is unclaimed; MPI-859's claim on the gif viewer files is needs_verification, not claimed."}
