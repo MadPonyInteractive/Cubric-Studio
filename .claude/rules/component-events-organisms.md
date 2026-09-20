@@ -218,6 +218,74 @@ GLOBAL EMITS (via Events.emit):
 LISTENS: PromptBox `media-change` — re-renders thumb slots from `promptBox.el.getMediaByRole(role)` for `startFrame` / `endFrame`.
 NOTE:    Video-history-only toolbar. Mount gate: `isVideo && activeModel.supportedOps.some(op => op.startsWith('i2v'))` — NOT `_hasPromptOps()` (capacity-based gate would hide the toolbar before user can inject the frame that unblocks it; block force-mounts PromptBox in this branch). Mounted into `#right-top-slot`; `__right-top` visibility under `--prompt-active` is `:empty`-scoped, so the slot becomes visible when this organism mounts a child. Thumb sizing CSS-only (`max-height` + `object-fit: contain`). Single listener for both prompt-box-tools events lives in MpiGroupHistoryBlock — do NOT pre-wire them anywhere else.
 
+## GIF Workspace Organisms
+
+### MpiGifViewer (Organism — js/components/Organisms/MpiGifViewer/MpiGifViewer.js)
+EMITS (local bus, via `instance.on()`):
+         `frame-change`   `{ idx: number, frame: Object }` — playhead moved (play, seek, step)
+         `play`           `{}` — playback started
+         `pause`          `{}` — playback paused or ended
+         `ended`          `{}` — playback reached end (when loop is disabled)
+         `preview-change` `{ preview: boolean }` — preview-toggle state flipped
+         `edit-change`    `{ editing: boolean, ownsDrag: boolean }` — canvas tool entered/exited; `ownsDrag` true while cut brush owns pointer events
+         `masks-change`   `{ overlay: string|null, edited: boolean, cleared: boolean }` — mask state changed (brush stroke, clear, track masks loaded)
+GLOBAL EMITS (via Events.emit):
+         `gif-viewer:context-menu` `{ x, y }` — right-click on the stage. Block builds context-menu items (incl. Reverse, removed from MpiToolOptionsGifTiming in MPI-771).
+LISTENS: (none — driven entirely via instance API; Block holds all subscriptions)
+NOTE:    No inner surface component (unlike MpiVideoViewer + MpiVideoSurface). `MpiCanvas` instances for crop/mask are mounted lazily via `enterMode()` and destroyed via `exitMode()`. Control bar and frame strip are NOT wired through this viewer.
+
+### MpiGifControlBar (Organism — js/components/Organisms/MpiGifControlBar/MpiGifControlBar.js)
+EMITS:   `range-change` `{ in: number, out: number }` — trim handles moved or `setFrameCount()` reset range (values are frame indices, not seconds)
+LISTENS: viewer local bus via `attachViewer()`: `frame-change`, `play`, `pause`, `preview-change`, `edit-change`
+HOTKEYS: `video.playPause` / `video.frame.back` / `video.frame.forward` — **reuses video IDs** (GIF and video workspaces never coexist; each handler gates on `_canDrive()`). Space suppressed as playback when `viewer.el.isToolOwningDrag()` is true.
+NOTE:    Internal `MpiTrimBar` uses `fps: 1` so range values are frame INDICES (integers). Bound on `attachViewer`, unbound on `detachViewer`/`destroy`.
+
+### MpiFrameStrip (Organism — js/components/Organisms/MpiFrameStrip/MpiFrameStrip.js)
+EMITS:   `frame-select`     `{ index: number }` — thumb clicked (navigates viewer to staged position)
+         `selection-change` `{ indices: number[], viewerIndices: number[] }` — selected set changed; `indices` = staged positions, `viewerIndices` = viewer-order positions (masks are keyed by viewer order)
+         `clear-frame-mask` `{ index: number, viewerIndex: number }` — right-click "Clear mask" on a thumb
+         `scrub`            `{ index: number }` — pointer-drag over strip (live viewer seek, no commit)
+         `stage-change`     `{ frames: Frame[], order: number[] }` — drag-reorder or delete committed
+         `update`           `{ frames: Frame[] }` — staged edits ready to save (without closing GIF)
+         `apply`            `{ frames: Frame[] }` — staged edits committed (export / trim applied)
+LISTENS: (none — driven via instance API)
+HOTKEYS: `gif.frame.delete`, `gif.frame.delete.ctrl`, `gif.frame.delete.shift` — bound at setup, unbound at destroy
+
+### MpiToolOptionsGifCutout (Organism — js/components/Organisms/MpiToolOptionsGifCutout/MpiToolOptionsGifCutout.js)
+PROPS:   `{ viewer }` — MpiGifViewer instance
+EMITS:   `mask-tint` `{ url: string|null }` — current-frame adjusted preview for display
+         `apply`     `{ frames, masks, adjust, invert, settings }` — cut-out confirmed
+GLOBAL EMITS (via Events.emit):
+         `settings:tool:update` `{ toolKey: 'gifCutout', key, value }` — keys: `method`, `grow`, `fillHoles`, `invert`, `tolerance`, `edgesOnly`, `textPrompt`
+LISTENS: (none on Events bus — Block owns viewer subscriptions and calls Block hooks on `el`)
+BLOCK HOOKS (called by MpiGroupHistoryBlock, not emitted on Events):
+         `el.onFrameChange()` — Block forwards from viewer `frame-change`
+         `el.onMasksChange()` — Block forwards from viewer `masks-change`
+         `el.setSelection(viewerIndices)` — Block forwards from strip `selection-change`
+NOTE:    **Block owns ONE persistent viewer subscription per viewer lifetime and forwards here** — prevents listener leak per rail visit. Mount calls `viewer.el.enterMode('mask')`; `destroy` calls `viewer.el.exitMode()`. `MpiMaskStrip` mounted `brush: false` — disarms canvas painting, keeping `setCutoutPreview()` display-only. **Tint is what goes away** — masks store "white=keep" but display is inverted. Methods `birefnet`/`sam3`/`colour`; scope All/Frame/Selected. `gifCutoutSam3`/`gifCutoutBirefnet` are dispatched by `runGifCutoutTrack()`, not `runCommand()`.
+
+### MpiToolOptionsGifTiming (Organism — js/components/Organisms/MpiToolOptionsGifTiming/MpiToolOptionsGifTiming.js)
+PROPS:   `{ viewer, mode: 'gifTrim'|'gifSpeed'|'gifLoop'|'gifOutput' }` — one panel; `mode` picks the visible section
+EMITS:   `apply` `{ tool: 'trim'|'speed'|'loop'|'output', values }`
+GLOBAL EMITS (via Events.emit):
+         `settings:tool:update` `{ toolKey: 'gifTiming', key, value }` — keys vary by mode: `fps` (gifSpeed), `loop` (gifLoop), `maxEdge`/`colours`/`transparent`/`edgeColour` (gifOutput)
+LISTENS: (none on Events bus)
+BLOCK HOOKS (called by MpiGroupHistoryBlock, not emitted on Events):
+         `el.onRangeChange({ in, out })` — Block pushes control bar range into the trim section
+         `el.setEncoder(fn)` — `gifOutput` only; Block injects `fn(settings)→Promise<{url,byteSize}>` for the inline preview pane
+NOTE:    All four modes share `project.toolSettings.gifTiming`. `reverse` mode was removed from this panel in MPI-771 and relocated to the `gif-viewer:context-menu` context menu.
+
+### MpiToolOptionsGifTransform (Organism — js/components/Organisms/MpiToolOptionsGifTransform/MpiToolOptionsGifTransform.js)
+PROPS:   `{ viewer, mode: 'gifResize'|'gifToVideo' }` — one panel; `mode` picks the visible section
+EMITS:   `apply` `{ tool: 'resize', width: number, height: number }` (`gifResize`)
+         `apply` `{ tool: 'toVideo', background: string }` (`gifToVideo`)
+GLOBAL EMITS (via Events.emit):
+         `settings:tool:update` `{ toolKey: 'gifTransform', key, value }` — keys: `keepAspect` (bool), `background` (hex)
+LISTENS: (none)
+NOTE:    `gifResize` reads `viewer.el.getFrameSize()` on mount; Apply disabled until frame size resolves. Crop is NOT here — GIF groups reuse `MpiToolOptionsCrop` over `MpiGifViewer`'s crop surface.
+
+---
+
 ### concatProgress (service — js/services/concatProgress.js)
 EMITS (Events bus, keyed by `jobId`):
          `concat:progress` `{ jobId: string, ratio: number }` — 0..1 progress from ffmpeg `time=` stderr lines

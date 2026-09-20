@@ -7,6 +7,38 @@
 
 ## Blocks
 
+### MpiGroupHistoryBlock — GIF workspace (MPI-757 umbrella)
+
+The `gif` mode's wiring, mounted alongside `MpiGifViewer` + `MpiFrameStrip` +
+`MpiGifControlBar`. Every subscription below is pushed onto `_unsubs`:
+`instance.on()` has **no per-listener unsubscribe**, only `destroy()`, so a panel
+that re-subscribed on its own mount would leak one listener per visit.
+
+LISTENS (viewer → strip / panel):
+         `frame-change`      `{ idx }` — mirrors to `frameStrip.el.setCurrentIndex(idx)`, then `_options?.el.onFrameChange?.()`
+         `masks-change`      `{ overlay, edited, cleared }` — the VIEWER owns the per-frame cut-out masks; the strip only mirrors them (`setMaskOverlay(overlay, edited)`) and the cut-out panel re-reads via `onMasksChange?.()`. `cleared` toasts, because a frame-list change silently dropping a mask is the failure Fabio hit
+
+LISTENS (strip → viewer):
+         `frame-select`      `{ index }` → `viewer.el.setFrameIndex(index)`
+         `scrub`             `{ index }` → the same
+         `stage-change`      `{ frames, order }` — a STAGED reorder/delete: the strip mutates its own working copy and never touches the server. Block feeds it straight to `viewer.el.setFrames(frames, order)`, resizes the control bar, then re-centres the marker on where the current frame's CONTENT landed, not its old numeric index. **`order` is what lets the masks travel with their frames**
+         `update` / `apply`  `{ frames }` → `_saveGifEntry('update' | 'new', frames)` → `POST /gif/entry`
+         `clear-frame-mask`  `{ viewerIndex }` → `viewer.el.clearFrameMasks(viewerIndex)`. The strip names the POSITION; the viewer owns the masks, so the clear goes to it. Masks are keyed by the viewer's frame position, which diverges from the strip's staged index after a reorder — hence `viewerIndex`, not `index`
+         `selection-change`  `{ viewerIndices }` → `_options?.el.setSelection?.(viewerIndices)`. Only the cut-out panel HAS a `setSelection`, so the optional call is the entire guard
+
+LISTENS (control bar → panel + strip):
+         `range-change`      `{ in, out }` → BOTH `_options?.el.onRangeChange?.(range)` and `frameStrip?.el.setRange(range)`. The Trim panel's numbers alone read as Trim doing nothing, so the strip paints the range too
+
+LISTENS (global):
+         `gif-viewer:context-menu` `{ x, y }` — on `Events`, not on the instance; the Block builds the menu (Delete frame / Clear this frame's mask / Reverse / Save frame)
+
+EMITS:   `history:stats-dirty` `{ group }` — on `Events`, after any write that changes the card's history
+
+TEARDOWN: one `_unsubs` entry calls `gifControlBar?.el.detachViewer?.()`, then
+`destroy()` on the strip and the control bar, **and removes the wrappers this Block
+created for them** — `instance.destroy()` drops only its own `el`, so an empty
+wrapper otherwise leaks into `#controls-mount` on every remount.
+
 ### MpiGalleryGrid
 EMITS:   `open-group`      `{ group: ItemGroup }`
          `compare`         `{ groups: [ItemGroup, ItemGroup] }`

@@ -65,7 +65,15 @@ const TOOL_OPTIONS_REGISTRY = {
     interpolate:  MpiToolOptionsInterpolate,
     resize:       MpiToolOptionsResize,
     resizeVideo:  MpiToolOptionsResize,
-    exportGif:    MpiToolOptionsGif,
+    exportGif:    MpiToolOptionsGif,            // label "GIF Maker" since MPI-760; key unchanged
+    gifCutout:    MpiToolOptionsGifCutout,
+    gifMaskBrush: MpiToolOptionsMaskBrush,      // shared image-mode panel; MpiGifViewer implements the same enterMode/exitMode + MpiMaskStrip surface
+    gifTrim:      MpiToolOptionsGifTiming,      // ─╮
+    gifSpeed:     MpiToolOptionsGifTiming,      //  │ one panel; props.mode picks the section
+    gifLoop:      MpiToolOptionsGifTiming,      //  │
+    gifOutput:    MpiToolOptionsGifTiming,      // ─╯
+    gifResize:    MpiToolOptionsGifTransform,   // ─╮ one panel; props.mode picks the section
+    gifToVideo:   MpiToolOptionsGifTransform,   // ─╯
 };
 ```
 
@@ -88,12 +96,21 @@ const TOOL_OPTIONS_REGISTRY = {
 **Video groups** (`_group.type === 'video'`):
 - `MpiVideoViewer`   props: `{ fps }`   slot: `#centre-slot`
 - `MpiVideoControlBar`   props: `{ fps, showTrim: true }`   slot: `#controls-mount` (shell-level, declared in `index.html` directly BELOW `#prompt-box-mount`; Block-owned lifetime — the instance `destroy()` empties it). MPI-731: as the block's last grid row it sat right above the PromptBox, whose upward chrome (expand toggle, op strip) covered its buttons; the slot's `z-index: 41` (PromptBox mount is 40) lets the bar's volume flyout paint over the PromptBox. The Flow `main-area` overlay stashes it; focus mode leaves it visible. Wired to viewer via `viewer.el.attachControlBar(controlBarInstance)` (which internally calls `controlBar.el.attachSurface(viewerSurfaceInstance)`). Block listens to `controlBar.on('range-change')` for trim persistence (debounced 250ms POST to `/project-media/.../update-meta`).
-- Tool options in `#right-top-slot`: `MpiToolOptionsCrop`, `MpiToolOptionsUpscale`, `MpiToolOptionsInterpolate`, `MpiToolOptionsPrompt` (prompt mode, video + frame-ops-capable model: `_modelHasFrameOps()` — any `i2v*`/`v2v*` op)
+- Tool options in `#right-top-slot`: `MpiToolOptionsCrop`, `MpiToolOptionsUpscale`, `MpiToolOptionsInterpolate`, `MpiToolOptionsGif` (`exportGif` mode, **"GIF Maker"** label since MPI-760; key unchanged, settings key `toolSettings.exportGif`), `MpiToolOptionsPrompt` (prompt mode, video + frame-ops-capable model: `_modelHasFrameOps()` — any `i2v*`/`v2v*` op)
 - `MpiPromptBox` (Organism) into `#prompt-box-mount` — gated by `_shouldShowPromptBox() = _hasPromptOps() || _modelHasFrameOps()`. `_modelHasFrameOps()` matches any `supportedOps` starting with `i2v` or `v2v`. Frame-ops capability bypass keeps PromptBox visible BEFORE any chip lands so the user can drop a start/end-frame image (or input video) from outside; the existing media-change listener unlocks the op as soon as a chip is staged. Block keeps handle in `_pb`.
 
 > **Video-history workspace gates:**
 > - `#right-top-slot` visibility under `--prompt-active` is `:empty`-scoped — slot stays visible whenever a child mounts. Image-history prompt mode keeps slot empty + hidden.
 > - `_applyPreview` in MpiGroupHistoryBlock short-circuits for `isVideo`. Latent previews are PNGs and cannot load into `<video>`; viewer stays on the previously-loaded video so the user can queue parallel ops. Mascot + StatusBar still drive feedback.
+
+**GIF groups** (`isGif === true`; `_group.type === 'image'`; detected via `kindOfItem(_group.history[_group.selectedIndex ?? 0])?.kind === 'gif'` — NOT via `_group.type === 'video'`):
+- `MpiGifViewer`   props: `{}`   slot: `#centre-slot`. No inner surface component: `MpiCanvas` instances for crop/mask surface are mounted lazily INSIDE the viewer when `enterMode('mask'|'crop')` is called. Neither control bar nor frame strip is wired through the viewer; the Block wires them directly.
+- `MpiFrameStrip`   props: `{}`   slot: first child of wrapper div appended to `#controls-mount` — sits visually above the control bar inside the shared slot.
+- `MpiGifControlBar`   props: `{}`   slot: second wrapper div in `#controls-mount`, sibling of the frame-strip wrapper. Wired via `gifControlBar.el.attachViewer(viewerInstance)` after both are mounted. Block listens to `gifControlBar.on('range-change')` and forwards to `frameStrip.el.setRange()` and the active timing-options panel's `el.onRangeChange()`.
+- Tool options in `#right-top-slot`: `MpiToolOptionsCrop` (`crop` rail entry, reused from image/video; `kind: 'gif'`), `MpiToolOptionsGifCutout` (`gifCutout`), `MpiToolOptionsMaskBrush` (`gifMaskBrush` — image-mode panel unchanged), `MpiToolOptionsGifTiming` (`gifTrim`/`gifSpeed`/`gifLoop`/`gifOutput` — one panel, `props.mode` picks the section), `MpiToolOptionsGifTransform` (`gifResize`/`gifToVideo` — one panel, `props.mode` picks the section)
+- No PromptBox — `_shouldShowPromptBox()` returns `false` for `isGif` (explicit gate).
+
+> **GIF group detection:** `_group.type` stays `'image'` for GIF groups (the group was originally created as an image); the `historyKind === 'gif'` branch gates on `kindOfItem(...).kind === 'gif'` checked against the selected history entry. Do NOT use `_group.type === 'video'` to detect GIF groups.
 
 ---
 
@@ -135,6 +152,10 @@ Self-contained tool-options compounds. Each mounts into `#right-top-slot` via th
 - `MpiToolOptionsUpscale`   props: `{ viewer, onApply }`   — `MpiOptionSelector` (factor) + `MpiDropdown` (model) + run. Emits `apply { factor, model }`.
 - `MpiToolOptionsInterpolate`   props: `{ viewer, onApply }`   — `MpiOptionSelector` (multiplier) + run. Emits `apply { multiplier }`.
 - `MpiToolOptionsPrompt`   props: `{ promptBox, project }`   — video-history-only toolbar. Two frame thumbs (Start / End) with role-tagged drop targets + swap button + clear-slot `x` + two action `MpiButton`s (Extend, Create new). Subscribes to PromptBox `media-change` to mirror chips by role via `promptBox.el.getMediaByRole(role)`. Drop on thumb → uploads with operation `frame-drop` → `promptBox.el.injectMedia({ url, mediaType: 'image', role })`; right-click frame capture uses operation `frame-capture`. Both staging operations are excluded from landing recent thumbnails. Swap fires `promptBox.el.swapMediaRoles('startFrame', 'endFrame')`. `x` fires `promptBox.el.removeMediaByRole(role)`. Buttons emit `prompt-box-tools:extend` / `prompt-box-tools:create-new` on the Events bus. Single listener lives in MpiGroupHistoryBlock — do NOT pre-wire elsewhere. Thumb sizing is CSS-only (`max-height` + `object-fit: contain`); no aspect-ratio prop or JS measurement.
+- `MpiToolOptionsGif`   props: `{ viewer, onApply }`   — GIF export panel for **video groups** only (label **"GIF Maker"** since MPI-760; `TOOL_OPTIONS_REGISTRY` key `exportGif` unchanged, settings key `project.toolSettings.exportGif`). Trim range from the attached `MpiVideoControlBar`, frame-count `MpiInput`, loop `MpiCheckbox`, quality `MpiDropdown`, output-format `MpiRadioGroup`. Emits `apply { settings }`. **This panel is for VIDEO groups only** — for GIF groups use `MpiToolOptionsGifTiming` (`gifOutput` mode) with a Block-injected encoder.
+- `MpiToolOptionsGifCutout`   props: `{ viewer }`   — cut-out tool for GIF groups. Three methods: `birefnet` (remove background, server-side), `sam3` (SAM3 video tracking), `colour` (client-side colour key). Scope: All / Frame / Selected (3-button radio). Block hooks on `el`: `el.onFrameChange()` (Block forwards from viewer `frame-change`), `el.onMasksChange()` (Block forwards from viewer `masks-change`), `el.setSelection(viewerIndices)` (Block forwards from strip `selection-change`). **Block owns ONE persistent viewer subscription per viewer lifetime and forwards here** — prevents listener leak per rail visit. Mount calls `viewer.el.enterMode('mask')`; `destroy` calls `viewer.el.exitMode()`. Internal mounts: `MpiRadioGroup` (method), `MpiColorPicker` (key colour), `MpiButton` (eyedropper, conditional on `'EyeDropper' in window`), `MpiProgressBar` (tolerance), `MpiCheckbox` (edgesOnly), `MpiRadioGroup` (scope), `MpiButton`×2 (Mask/Clear, dynamically remounted by `_mountTrackBtns()`), `MpiVideoSurface` (SAM3 preview video), `MpiCheckbox`×4 (object chip slots 0–3), `MpiProgressBar` (grow slider), `MpiCheckbox` (fill holes), `MpiCheckbox` (invert), `MpiButton` (Cut out), `MpiMaskStrip` (`brush: false`), `MpiInput` (text prompt). Settings persist to `project.toolSettings.gifCutout`.
+- `MpiToolOptionsGifTiming`   props: `{ viewer, mode: 'gifTrim'|'gifSpeed'|'gifLoop'|'gifOutput' }`   — one panel; `mode` picks the visible section (maskAdjust pattern). `gifTrim`: trim handles; Block pushes range via `el.onRangeChange({in,out})`. `gifSpeed`: playback-speed multiplier `MpiInput`. `gifLoop`: loop-count `MpiInput` (0 = infinite). `gifOutput`: quality `MpiDropdown`, colours `MpiInput`, transparent `MpiCheckbox`, edge-colour `MpiColorPicker`, inline preview pane (stale badge on settings change; rendered via Block-injected encoder fn set via `el.setEncoder(fn)`). All four modes share `project.toolSettings.gifTiming`. `reverse` mode was removed from this panel in MPI-771 and relocated to `gif-viewer:context-menu`.
+- `MpiToolOptionsGifTransform`   props: `{ viewer, mode: 'gifResize'|'gifToVideo' }`   — one panel; `mode` picks the visible section. `gifResize`: width/height `MpiInput` pair + keep-aspect `MpiCheckbox`; reads frame size via `viewer.el.getFrameSize()` on mount; Apply disabled until frame size resolves. `gifToVideo`: background `MpiColorPicker`. Crop is NOT here — GIF groups reuse `MpiToolOptionsCrop` over `MpiGifViewer`'s crop surface. Settings persist to `project.toolSettings.gifTransform`.
 
 ---
 
@@ -150,6 +171,45 @@ Pan/zoom transform targets the actual `.mpi-video-surface__video` element, not `
 **Instance API (on `el`):** `attachControlBar(instance)` / `detachControlBar()`, `getSurfaceInstance()`, `loadVideo(url, meta)` — `meta.fps`/`meta.frameCount`/`meta.trim` proxied to the attached control bar; `meta.trim = { in, out }` propagates as `setPendingTrim` (one-shot, applied on next `loadedmetadata`). Plus `enterCropMode(rect)`, `exitCropMode()`, `getCropRect()`, `setCropRatio(ratio)`, `captureSnapshot({ time })`, `getSourceElement()`, `resetView()`, `setRangeQuiet(in, out)`, `getRange()`, `setTopRight(items)`, `enterUpscaleMode()`, `exitUpscaleMode()`, `enterInterpolateMode()`, `exitInterpolateMode()`, `destroy()`.
 
 > Control bar lifetime is owned externally — `viewer.destroy()` only `detachSurface()` on the attached bar; it does NOT destroy it.
+
+---
+
+## MpiGifViewer (Organism — js/components/Organisms/MpiGifViewer/MpiGifViewer.js)
+
+Mounts the GIF stage for GIF-history groups. No inner surface component — both crop and mask canvases (`MpiCanvas`) are mounted lazily inside the viewer when `enterMode('mask'|'crop')` is called and destroyed when `exitMode()` is called.
+
+- `MpiSpinner`   slot: stage overlay — always mounted at setup
+- `MpiCanvas`    slot: stage — lazy; created only inside `_enterEdit('mask'|'crop')`; destroyed in `exitMode()`
+
+**Instance API (on `el`):** `loadFrames(frames, {loop})`, `setFrames(frames, order?)`, `setFrameIndex(idx)`, `stepFrame(delta)`, `play()`, `pause()`, `enterMode('mask'|'crop'|'none')`, `exitMode()`, `setGifUrl(url)`, `setPreview(bool)`, `setGenerating(bool)`. Mask surface: `setMaskTint(url)`, `setCutoutPreview(url|null)` (**display only** — `getFrameMaskURL`/`getCutMasks` read the `_masks` store, never the preview), `setTrackMasks(urls)`, `setTrackMask(idx, url)`, `clearFrameMasks('all'|idx)`, `getCutMasks()`, `getFrameMaskURL(idx)`, `setMaskBrushMode(mode)`, `setMaskBrushPreset(id)`, `setMaskInverted(bool)`, `setMaskBwView(bool)`, `setMaskPaintEnabled(bool)`, `setMaskOpacity(v)`, `setMaskDisplayFlip(v)`, `isMaskDisplayFlipped()`, `clearMask()`. Crop surface: `setCropRatio(r)`, `setCropSize(w, h)`, `getCropRect()`. Query: `getFrameSize()`, `isToolOwningDrag()`. `destroy()`.
+
+> Control bar and frame strip are NOT wired through this viewer — Block mounts both separately in `#controls-mount` and wires them directly.
+
+---
+
+## MpiGifControlBar (Organism — js/components/Organisms/MpiGifControlBar/MpiGifControlBar.js)
+
+Trim + playback bar for GIF-history groups. Mounted by `MpiGroupHistoryBlock` in a wrapper div inside `#controls-mount` (sibling of the frame-strip wrapper). Wired to the viewer post-mount via `attachViewer(viewerInstance)`.
+
+- `MpiButton` × 4: play/pause, frame-back, frame-forward, preview-toggle
+- `MpiTrimBar`   `{ fps: 1, duration: frameCount - 1 }` — `fps: 1` so the trim domain is frame INDICES (integers), not seconds
+
+**Instance API (on `el`):** `attachViewer(viewerInstance)` / `detachViewer()`, `setFrameCount(n)`, `getRange()`, `destroy()`.
+
+> Reuses hotkey IDs `video.playPause` / `video.frame.back` / `video.frame.forward`. Safe because GIF and video workspaces never coexist; each handler gates on `_canDrive()`. Space is suppressed as playback when `viewer.el.isToolOwningDrag()` is true (cut-out active with `brush:false` — drag should pan, not toggle play).
+
+---
+
+## MpiFrameStrip (Organism — js/components/Organisms/MpiFrameStrip/MpiFrameStrip.js)
+
+Frame thumbnail strip for GIF-history groups. Mounted by `MpiGroupHistoryBlock` in the first wrapper div inside `#controls-mount` (above the control bar).
+
+- `MpiButton` × 3: Discard, Update, Apply — mounted at setup
+- `MpiContextMenu.show()` used directly for right-click on thumbs (Organism importing Compound — permitted by 4-tier rule)
+
+**Instance API (on `el`):** `setFrames(frames, {currentIndex})`, `setCurrentIndex(idx)`, `setRange(range|null)`, `getStagedFrames()`, `commit(frames)`, `setMaskOverlay(masks|null, edited=[])`, `getSelection()`, `destroy()`.
+
+> `viewerIndices` in `selection-change` are viewer-order positions, not staged positions — mask data is keyed by viewer order because it persists across reorders.
 
 ---
 

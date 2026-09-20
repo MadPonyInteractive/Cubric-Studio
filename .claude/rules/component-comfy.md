@@ -257,6 +257,8 @@ controlId: {
 | `autoMaskImg`     | Auto Masking       | image     | 1              | —             | —            | no             | (none)              | universal   |
 | `resize`          | Resize             | image     | 1              | —             | —            | no             | (none)              | universal   |
 | `resizeVideo`     | Resize Video       | video     | 0              | 1             | —            | no             | (none)              | universal   |
+| `gifCutoutSam3`   | GIF Cut-out        | video     | —              | 1             | —            | no             | (none)              | universal — dispatched by `runGifCutoutTrack()` in commandExecutor, NOT `runCommand()`; registry entry is for dependency/availability tracking only |
+| `gifCutoutBirefnet`| GIF Remove Background | video  | —              | 1             | —            | no             | (none)              | universal — dispatched by `runGifCutoutTrack()` in commandExecutor, NOT `runCommand()`; registry entry is for dependency/availability tracking only |
 
 > `status: active` — operation has a workflow file and is working.
 > `status: stub` — operation is defined but not yet implemented (`stub: true` in commandRegistry).

@@ -78,6 +78,12 @@
 
 > **Shape-gizmo settings persist under `project.toolSettings.shapes`** — a THIRD bucket (MPI-368), shape `{ kind: 'rect'|'triangle'|'ellipse' }`. **ONE bucket for BOTH mounts**, unlike `mask`/`paint`: the kind is a property of the gizmo, not of the destination, so switching Mask → Paint must not silently change the shape under the user. The rest of what the panel shows is not its own — the shared `MpiMaskStrip` still writes `toolKey: 'mask'` on the `maskShapes` mount and `toolKey: 'paint'` on the `paintShapes` one. Geometry (position, size, rotation) is NOT persisted at all: an uncommitted gizmo is a preview, and `discardPreview()` drops it on every rail switch.
 
+> **GIF cut-out tool settings persist under `project.toolSettings.gifCutout`:** shape is `{ method: 'birefnet'|'sam3'|'colour', grow: number, fillHoles: boolean, invert: boolean, tolerance: number, edgesOnly: boolean, textPrompt: string }`. `MpiToolOptionsGifCutout` reads them on mount via `getToolSettings(project, 'gifCutout', DEFAULTS)` and writes each key through `Events.emit('settings:tool:update', { toolKey: 'gifCutout', key, value })`.
+
+> **GIF timing tool settings persist under `project.toolSettings.gifTiming`:** all four modes (`gifTrim`, `gifSpeed`, `gifLoop`, `gifOutput`) share ONE bucket. Shape: `{ fps: number, loop: number, maxEdge: number, colours: number, transparent: boolean, edgeColour: string }`. The trim range itself is NOT in toolSettings — it comes from the control bar's `getRange()` and is forwarded to the panel via `el.onRangeChange({in, out})` by the Block. Written via `settings:tool:update` with `toolKey: 'gifTiming'`.
+
+> **GIF transform tool settings persist under `project.toolSettings.gifTransform`:** shape `{ keepAspect: boolean, background: string }`. Shared by both `gifResize` and `gifToVideo` modes. Written via `settings:tool:update` with `toolKey: 'gifTransform'`.
+
 > **Model LoRA settings shape:** most models, including LTX, use the flat shape `modelSettings[modelId].loras: Array<6>`. Models that declare `model.loraStages` (WAN) use a staged object, e.g. `loras: { high: Array<6>, low: Array<6> }`. `MpiModelSettings`, `commandExecutor`, and preview `loraSnapshot` handling must support both shapes.
 
 > **Cue queue depth is local:** `state.generationQueueCount` includes the active Cue dispatch plus pending jobs. StatusBar subtracts the active dispatch and only displays pending depth, e.g. `GENERATING (2 queued)`. Do not poll ComfyUI queue depth for Cue mode.
