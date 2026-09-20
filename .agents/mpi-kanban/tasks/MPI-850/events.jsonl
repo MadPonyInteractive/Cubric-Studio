@@ -1,1 +1,7 @@
 {"schema":"mpi-kanban/event/v1","id":"MPI-850","type":"task.created","at":"2026-09-20T12:42:14Z","actor":"opus","column":"todo","maturity":"planned","summary":"The DeepInfra price module - two measured formulas and a generated price snapshot"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-850", "at": "2026-09-20T17:09:57+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started: phase 1 of MPI-849, new files only."}
+{"schema":"mpi-kanban/event/v1","id":"MPI-850","type":"task.updated","at":"2026-09-20T16:10:33Z","actor":"opus","summary":"Linked checklist/validation/files and the umbrella plan; implementation session attached."}
+{"schema":"mpi-kanban/event/v1","id":"MPI-850","type":"checklist.updated","at":"2026-09-20T16:10:33Z","actor":"opus","summary":"Three items derived from the MPI-849 plan: snapshot, module, tests."}
+{"schema":"mpi-kanban/event/v1","id":"MPI-850","type":"checklist.updated","at":"2026-09-20T16:16:04Z","actor":"opus","summary":"All three items done: snapshot, module, tests."}
+{"schema":"mpi-kanban/event/v1","id":"MPI-850","type":"validation.updated","at":"2026-09-20T16:16:04Z","actor":"opus","summary":"node --test tests/deepinfra-pricing.test.cjs: 29 pass, 0 fail. npm test: 1580 pass, 0 fail. Three mutations proved the suite bites."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-850", "at": "2026-09-20T17:16:04+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "29 tests green offline; every measured figure asserted to the cent."}

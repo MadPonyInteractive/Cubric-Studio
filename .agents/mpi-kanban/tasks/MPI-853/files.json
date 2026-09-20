@@ -1,0 +1,14 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Organisms/MpiModelManager/MpiModelManager.js",
+    "js/components/Organisms/MpiModelManager/MpiModelManager.css",
+    "js/components/Primitives/MpiTileSheet/MpiTileSheet.css",
+    "js/utils/icons.js",
+    "js/shell/heroStats.js",
+    "js/data/modelConstants/models.js",
+    "tests/paid-models-section.test.cjs",
+    "js/data/modelConstants/deepinfraPricing.js",
+    "tests/deepinfra-pricing.test.cjs"
+  ]
+}

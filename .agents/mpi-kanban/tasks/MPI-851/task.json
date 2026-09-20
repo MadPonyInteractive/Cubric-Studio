@@ -3,13 +3,18 @@
   "id": "MPI-851",
   "title": "The cloud executor - a provider on the ModelDef, one seam, a third lane, and install gates that ask a different question",
   "description": "Phase 1 of MPI-849 and the spine everything else hangs off. The seam is ONE line: js/services/generationService.js:903 const exec = runCommand({ ... everything above it is provider-agnostic and the 730 lines below it (save, sidecar, gallery card, terminals) are already written against a generic exec object with no ComfyUI assumption, so a provider-keyed swap of the factory lands a real gallery card for free. Must branch BEFORE runCommand, never inside it, or comfyController.runWorkflow cold-starts a local engine for a cloud call. Four traps verified in the tree: there are only two queue lanes, hardcoded in three places, and remote means the user's RunPod Pod, so a cloud job would block a Pod generation and show a badge that lies - a third lane is needed and tests/lane-agreement.test.cjs encodes the rules as literals; a zero-dep model reads INSTALLED by accident twice, because [].every() is true and because a dep loop that never runs leaves allPresent true, giving a green tick and an Uninstall button on something that downloads nothing; save-generation hard-requires a comfyViewUrl and guesses the extension from it, while DeepInfra returns base64 and JPEG on lite but PNG on Pro; and tests/resolve-model-deps.test.cjs:232 asserts every model resolves to at least one dep, so a weightless ModelDef fails npm test until that assertion learns the new shape.",
-  "column": "todo",
-  "maturity": "planned",
+  "column": "doing",
+  "maturity": "validating",
   "status": "active",
   "created_at": "2026-09-20T12:42:14Z",
-  "updated_at": "2026-09-20T12:42:14Z",
+  "updated_at": "2026-09-20T22:35:29Z",
   "links": {
     "brief": "brief.md",
-    "events": "events.jsonl"
-  }
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/"
+  },
+  "activeSessionTitle": "MPI-851: the cloud executor"
 }

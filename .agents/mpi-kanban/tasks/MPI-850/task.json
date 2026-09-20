@@ -3,14 +3,18 @@
   "id": "MPI-850",
   "title": "The DeepInfra price module - two measured formulas and a generated price snapshot",
   "description": "Phase 1 of MPI-849, and the only member that touches no existing file. Pure arithmetic that turns a model plus its settings into an estimated cost, so the prompt box, the agent confirm and the library tile all read one function instead of three copies. Two formulas cover everything and both were measured against real billing: open image models are price_per_unit x (w x h)/1048576 x (steps/default_steps), proven linear in area and steps by four FLUX schnell probes at 0.0005 USD per megapixel per step; video is tokens = floor(w x h x frames / 1024) with frames = 24 x duration + 1, proven exact by an ffprobe of a real Seedance clip at 40594 tokens. Of the fifteen agreed models nine price themselves from structured fields on the keyless /models/list, so a build-time script commits a price snapshot and every price change lands as a reviewable diff instead of silent drift; only the four Gemini-family ids and the two Seedance models need hand-held constants, plus a duration constant for Veo which has no duration field at all. Fully unit-testable offline with no app and no key.",
-  "column": "todo",
-  "maturity": "planned",
-  "status": "active",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
   "created_at": "2026-09-20T12:42:14Z",
-  "updated_at": "2026-09-20T13:05:08Z",
+  "updated_at": "2026-09-20T17:16:04+01:00",
   "links": {
     "brief": "brief.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
     "events": "events.jsonl",
     "handoffs": "handoffs/"
-  }
+  },
+  "activeSessionTitle": "MPI-850: the DeepInfra price module"
 }

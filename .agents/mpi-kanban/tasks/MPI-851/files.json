@@ -1,0 +1,19 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/services/generationService.js",
+    "js/services/cloudExecutor.js",
+    "js/services/generationStore.js",
+    "js/data/modelConstants/models.js",
+    "js/data/modelConstants/resolveModelDeps.js",
+    "js/data/modelRegistry.js",
+    "routes/comfy.js",
+    "routes/deepinfra.js",
+    "routes/projects.js",
+    "tests/lane-agreement.test.cjs",
+    "tests/resolve-model-deps.test.cjs",
+    "tests/cloud-executor.test.cjs",
+    "server.js",
+    "tests/op-strip-availability.test.cjs"
+  ]
+}

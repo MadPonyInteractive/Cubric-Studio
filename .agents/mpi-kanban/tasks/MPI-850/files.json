@@ -1,0 +1,9 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/data/modelConstants/deepinfraPricing.js",
+    "scripts/sync-deepinfra-prices.mjs",
+    "dev_configs/deepinfra-prices.json",
+    "tests/deepinfra-pricing.test.cjs"
+  ]
+}
