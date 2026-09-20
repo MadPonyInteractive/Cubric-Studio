@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-862",
+  "title": "Gallery card marks wear a chip background so they read on bright images",
+  "description": "A marked card's dot/square/triangle floats bare on the image (transparent ghost button) and vanishes on bright media. Give it the same chip background the Notes marker and kind chip wear.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-20T22:52:47+01:00",
+  "updated_at": "2026-09-20T23:37:40+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
