@@ -134,6 +134,49 @@
     max-height: none;
     overflow-y: auto;
     padding-inline: var(--s-3);
+    /* The base rule reserves 4rem here for MpiPromptBox's chip strip, which floats above
+       the box at z-index 40. The panel has its own composer now (MPI-797 Phase 2), so that
+       reservation is 4rem of dead space directly above it. */
+    padding-bottom: var(--s-3);
+}
+
+/* The composer bar from the MPI-843 drawing: its own raised surface, and the field
+   dissolved into it so the `>` and the text read as ONE terminal line rather than a
+   glyph sitting next to a boxed control.
+   Panel only, deliberately: the landing chat's composer is a full-width row under a
+   mascot and Fabio signed that look off in round 2 — the drawing is of the panel. */
+#agent-panel-mount .mpi-agent-chat__input-row {
+    align-items: center;
+    gap: var(--s-2);
+    padding: var(--s-2) var(--s-3);
+    background: var(--surface-2);
+    border-top: 1px solid var(--line);
+}
+
+#agent-panel-mount .mpi-agent-chat__input-wrap .mpi-input__field {
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    /* The floor has to go WITH the padding. MpiInput sizes an auto-height textarea for a
+       paragraph (`min-height: 2.6rem`); strip the padding and leave the floor and the
+       text sits at the TOP of a 42px box while the `>` centres in it — 21px apart, which
+       is what read as a broken row (Fabio, 2026-09-20). One line, then it grows. */
+    min-height: 0;
+}
+
+/* Send comes down with it. `--agent-composer-h` matched the button to the PADDED field
+   so the pair read as one control; against a dissolved one-line field a 39px button is
+   the tallest thing in the bar and drags the whole row up around it. */
+#agent-panel-mount .mpi-agent-chat__input-row .mpi-btn {
+    min-height: 0;
+}
+
+/* The field's own focus look went with its border; the bar carries it instead, so
+   there is still something to see when the caret is somewhere else. */
+#agent-panel-mount .mpi-agent-chat__input-row:focus-within {
+    background: var(--surface-1);
 }
 
 /* ── Entry types ─────────────────────────────────────────────────────────── */
@@ -292,7 +335,7 @@
     gap: var(--s-2);
 }
 
-/* ── Standalone input row ─────────────────────────────────────────────────── */
+/* ── The composer (both modes) ────────────────────────────────────────────── */
 .mpi-agent-chat__input-row {
     /* One collapsed line of the field — its line box plus its own vertical padding.
        Written from the type scale rather than `1lh`, because `lh` resolves against each
@@ -308,7 +351,44 @@
 
 .mpi-agent-chat__input-wrap {
     flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: var(--s-2);
+    /* The field WINS the row. An op can take nine images, two videos and two audio
+       files, and thirteen chips beside a shrinkable field would leave nowhere to type.
+       This floor is what makes the attachment strip the thing that gives way — it
+       shrinks and scrolls instead (see below) — at any panel width the user drags to. */
+    min-width: 9rem;
+}
+
+/* The light terminal register from the MPI-843 drawing, and it lives HERE and nowhere
+   else — the transcript stays prose. The glyph is decoration, so it is a `::before`
+   rather than a node: nothing to read out, nothing to select, no template change. */
+.mpi-agent-chat__input-wrap::before {
+    content: '>';
+    flex: 0 0 auto;
+    color: var(--accent-heat);
+    line-height: 1;
+}
+
+.mpi-agent-chat__input-wrap .mpi-input {
+    flex: 1 1 auto;
     min-width: 0;
+}
+
+/* The other half of the register. `caret-shape` is young; where the engine lacks it the
+   native bar stands in, which is the drawing's own stated fallback. */
+.mpi-agent-chat__input-wrap textarea {
+    caret-color: var(--accent-heat);
+    caret-shape: block;
+}
+
+/* A block caret parked on top of the hint reads as a rendering fault — the glyph shows
+   through the block. A bar caret gets away with it; this one does not, so the hint
+   stands down as soon as the field is focused rather than waiting for the first
+   keystroke. */
+.mpi-agent-chat__input-wrap .mpi-input__field:focus::placeholder {
+    color: transparent;
 }
 
 .mpi-agent-chat__input-row .mpi-agent-chat__send-btn {
@@ -331,6 +411,22 @@
     padding-bottom: var(--s-1);
 }
 
+/* In the composer the strip is the part that gives way: one line, shrinkable, and it
+   scrolls sideways once the chips outgrow what the field left it. Keeping it beside the
+   `>` rather than above is Fabio's call (2026-09-20) — this is what makes that safe when
+   an op takes thirteen files. Not scoped to the bubble copy of this class, which must
+   still wrap onto as many lines as it needs. */
+.mpi-agent-chat__input-row .mpi-agent-chat__attachments {
+    flex: 0 1 auto;
+    flex-wrap: nowrap;
+    min-width: 0;
+    padding-bottom: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    overscroll-behavior-x: contain;
+}
+
 /* The same strip inside a sent bubble: its own row under the text, not inline with it.
    No bottom padding here — the bubble's own padding closes the box. */
 .mpi-agent-chat__attachments--in-bubble {
@@ -348,6 +444,35 @@
     border-radius: var(--r-sm);
     border: 1px solid var(--line-soft);
     cursor: pointer;
+}
+
+/* A pending attachment is a NUMBER first and a picture second: the user and the agent
+   refer to "1", never to "the start frame". The wrapper exists to hang the badge on;
+   the thumb keeps its own look. */
+.mpi-agent-chat__attachment {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+}
+
+/* Only the pending ones are removable — a chip in a sent bubble is a record. */
+.mpi-agent-chat__input-row .mpi-agent-chat__attachment {
+    cursor: pointer;
+}
+
+.mpi-agent-chat__attachment-num {
+    position: absolute;
+    top: 0;
+    left: 0;
+    min-width: 14px;
+    padding: 0 3px;
+    background: var(--accent-heat);
+    color: var(--surface-canvas);
+    font-size: var(--t-2xs);
+    line-height: 14px;
+    text-align: center;
+    border-radius: var(--r-2);
+    pointer-events: none;
 }
 
 /* ── Empty state ─────────────────────────────────────────────────────────── */

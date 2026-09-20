@@ -2,10 +2,12 @@
  * MpiAgentChat — MPI-774 in-app agent chat UI (Compound).
  *
  * Props:
- *   standalone {boolean}  — true → renders its own input row + send button.
- *                           false/absent → the host (agentPanel.js) provides input
- *                           via MpiPromptBox in agent mode, routed through the
- *                           'agent:send' event on the app bus.
+ *   standalone {boolean}  — true → the landing chat: its own mascot above the transcript.
+ *                           false/absent → the panel (agentPanel.js): a compact header
+ *                           instead. BOTH render the composer (MPI-797 Phase 2); the
+ *                           panel no longer borrows MpiPromptBox's agent mode for input.
+ *                           The 'agent:send' listener below is what is left of that
+ *                           route and goes with the toggle in Phase 3.
  *
  * Public API (on el):
  *   el.setWorking(bool)                — set the agent:working state externally.
@@ -73,14 +75,13 @@ export const MpiAgentChat = ComponentFactory.create({
             <!-- Transcript -->
             <div class="mpi-agent-chat__transcript" id="ac-transcript"></div>
 
-            ${props.standalone ? `
-            <!-- Standalone input row -->
+            <!-- Composer — both modes (MPI-797 Phase 2). The panel used to borrow
+                 MpiPromptBox's agent mode for input; it has its own row now. -->
             <div class="mpi-agent-chat__input-row">
                 <div class="mpi-agent-chat__attachments" id="ac-attachments" style="display:none"></div>
                 <div class="mpi-agent-chat__input-wrap" id="ac-input-slot"></div>
                 <div id="ac-send-slot"></div>
             </div>
-            ` : ''}
 
         </div>
     `,
@@ -134,6 +135,25 @@ export const MpiAgentChat = ComponentFactory.create({
 
         // ── Entry builders ────────────────────────────────────────────────────
 
+        /**
+         * One numbered attachment chip. The NUMBER is the name the user and the agent
+         * share — a picture is "1", never "the start frame" or "picture 1" — so the
+         * composer and the sent bubble draw the same thing from one place.
+         */
+        function _attachmentChip(dataUrl, name, n) {
+            const chip = document.createElement('span');
+            chip.className = 'mpi-agent-chat__attachment';
+            const img = document.createElement('img');
+            img.src = dataUrl;
+            img.alt = name || 'attachment';
+            img.className = 'mpi-agent-chat__attachment-thumb';
+            const num = document.createElement('span');
+            num.className = 'mpi-agent-chat__attachment-num';
+            num.textContent = String(n);
+            chip.append(img, num);
+            return chip;
+        }
+
         /** User bubble (right-aligned). `id` (a history entry's) draws it once. */
         function _appendUser(text, attachments, id) {
             if (id && qs(`[data-entry-id="${CSS.escape(id)}"]`, transcript)) return;
@@ -149,13 +169,14 @@ export const MpiAgentChat = ComponentFactory.create({
             if (attachments && attachments.length) {
                 const row = document.createElement('div');
                 row.className = 'mpi-agent-chat__attachments mpi-agent-chat__attachments--in-bubble';
+                // Numbered here too (Fabio, 2026-09-20), so a follow-up can say "make 2
+                // warmer" and point at something still on screen. Counted on what is
+                // DRAWN, not on the array index — a history entry with no dataUrl is
+                // skipped, and a gap in the numbering would name a picture nobody sees.
+                let n = 0;
                 attachments.forEach(({ dataUrl, name }) => {
                     if (!dataUrl) return;
-                    const img = document.createElement('img');
-                    img.src = dataUrl;
-                    img.alt = name || 'attachment';
-                    img.className = 'mpi-agent-chat__attachment-thumb';
-                    row.appendChild(img);
+                    row.appendChild(_attachmentChip(dataUrl, name, ++n));
                 });
                 if (row.childElementCount) bubble.appendChild(row);
             }
@@ -532,104 +553,115 @@ export const MpiAgentChat = ComponentFactory.create({
 
         el.setWorking  = _setWorking;
 
-        // ── Panel mode: receive send requests from MpiPromptBox ──────────────
-        // agent:send is emitted by MpiPromptBox when in agent mode. Only the
-        // panel instance (standalone:false) handles it — standalone has its own input.
+        // ── Panel mode: send requests still arriving from MpiPromptBox ───────
+        // agent:send is emitted by MpiPromptBox's Agent/Prompt toggle. The panel now has
+        // its own composer below, which calls _sendMessage() directly — this listener is
+        // only what keeps the old toggle working until Phase 3 deletes it. The pair goes
+        // together then (emit at MpiPromptBox.js, this listener, the events.js entry and
+        // the emit in agent-chat.spec.js); removing it here would break the toggle in the
+        // window between the two phases. Two producers, one target, no double send.
         if (!props.standalone) {
             _unsubs.push(Events.on('agent:send', ({ text, attachments }) => {
                 _sendMessage(text, attachments || []);
             }));
         }
 
-        // ── Standalone input row ──────────────────────────────────────────────
-        if (props.standalone) {
-            const inputSlot    = qs('#ac-input-slot',   el);
-            const sendSlot     = qs('#ac-send-slot',    el);
-            const attachSlot   = qs('#ac-attachments',  el);
+        // ── The composer — both modes (MPI-797 Phase 2) ───────────────────────
+        const inputSlot    = qs('#ac-input-slot',   el);
+        const sendSlot     = qs('#ac-send-slot',    el);
+        const attachSlot   = qs('#ac-attachments',  el);
 
-            const mainInput = MpiInput.mount(inputSlot, {
-                type: 'textarea',
-                placeholder: 'Ask the agent…',
-                autoHeight: true,
-            });
-            const textareaEl = qs('textarea', mainInput.el);
-            // One line to start, level with Send (Fabio, round 2). MpiInput sets no `rows`,
-            // so the browser default of 2 made autoHeight's first measurement two lines tall
-            // and the box stood well above the button. Set here, not on the Primitive: every
-            // other auto-height textarea in the app is sized for a paragraph.
-            // The `input` event is how MpiInput's own auto-height handler re-measures; it
-            // ran once at mount, against two rows.
-            if (textareaEl) {
-                textareaEl.rows = 1;
-                textareaEl.dispatchEvent(new Event('input'));
-            }
+        const mainInput = MpiInput.mount(inputSlot, {
+            type: 'textarea',
+            placeholder: 'Ask the agent…',
+            autoHeight: true,
+        });
+        const textareaEl = qs('textarea', mainInput.el);
+        // One line to start, level with Send (Fabio, round 2). MpiInput sets no `rows`,
+        // so the browser default of 2 made autoHeight's first measurement two lines tall
+        // and the box stood well above the button. Set here, not on the Primitive: every
+        // other auto-height textarea in the app is sized for a paragraph.
+        //
+        // Then CLEAR the inline height rather than re-measuring (MPI-797 Phase 2). The
+        // panel is CLOSED at boot — zero width, no layout — so MpiInput's own mount-time
+        // resize() read `scrollHeight: 0` and wrote `height: 0px`, and a re-measure here
+        // would only write it again. With no inline height, `rows="1"` sizes the field
+        // intrinsically, which needs no layout and is right in both modes; autoHeight's
+        // inline value takes over on the first real keystroke, by which point the panel
+        // is open and the measurement means something.
+        if (textareaEl) {
+            textareaEl.rows = 1;
+            textareaEl.style.height = '';
+        }
 
-            const sendBtn = MpiButton.mount(sendSlot, {
-                icon: 'generate',
-                info: 'Send (Enter)',
-                size: 'sm',
-                variant: 'primary',
-            });
+        const sendBtn = MpiButton.mount(sendSlot, {
+            icon: 'generate',
+            info: 'Send (Enter)',
+            size: 'sm',
+            variant: 'primary',
+        });
 
-            // Enter = send, Shift+Enter = newline
-            if (textareaEl) {
-                _unsubs.push(on(textareaEl, 'keydown', (e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        _doSend();
-                    }
-                }));
-            }
-
-            sendBtn.on('click', () => _doSend());
-
-            function _doSend() {
-                const text = textareaEl ? textareaEl.value.trim() : '';
-                if (!text && !_pendingAttachments.length) return;
-                _sendMessage(text, _pendingAttachments.slice());
-                if (textareaEl) textareaEl.value = '';
-                _pendingAttachments = [];
-                _renderAttachments();
-            }
-
-            // Drag-and-drop images → dataUrl attachments
-            function _addImageFile(file) {
-                if (!file.type.startsWith('image/')) return;
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    _pendingAttachments.push({ dataUrl: ev.target.result, name: file.name });
-                    _renderAttachments();
-                };
-                reader.readAsDataURL(file);
-            }
-
-            function _renderAttachments() {
-                if (!attachSlot) return;
-                attachSlot.style.display = _pendingAttachments.length ? '' : 'none';
-                attachSlot.innerHTML = '';
-                _pendingAttachments.forEach((a, i) => {
-                    const img = document.createElement('img');
-                    img.src = a.dataUrl;
-                    img.alt = a.name;
-                    img.className = 'mpi-agent-chat__attachment-thumb';
-                    img.title = `Click to remove ${a.name}`;
-                    on(img, 'click', () => {
-                        _pendingAttachments.splice(i, 1);
-                        _renderAttachments();
-                    });
-                    attachSlot.appendChild(img);
-                });
-            }
-
-            // Drag-and-drop on root el
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev =>
-                _unsubs.push(on(el, ev, (e) => e.preventDefault()))
-            );
-            _unsubs.push(on(el, 'drop', (e) => {
-                const files = e.dataTransfer?.files;
-                if (files) Array.from(files).forEach(_addImageFile);
+        // Enter = send, Shift+Enter = newline
+        if (textareaEl) {
+            _unsubs.push(on(textareaEl, 'keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    _doSend();
+                }
             }));
         }
+
+        sendBtn.on('click', () => _doSend());
+
+        function _doSend() {
+            const text = textareaEl ? textareaEl.value.trim() : '';
+            if (!text && !_pendingAttachments.length) return;
+            _sendMessage(text, _pendingAttachments.slice());
+            // setValue, NOT `textareaEl.value = ''`. A plain assignment fires no `input`
+            // event, and `input` is the only thing MpiInput's auto-height listens to — so
+            // a field grown to four lines stayed four lines tall and empty after every
+            // send (Fabio, 2026-09-20). The Primitive's own setter re-measures, which is
+            // exactly why it exists; reaching past it for `.value` is the documented
+            // mistake at MpiInput.js:107.
+            mainInput.el.setValue('');
+            _pendingAttachments = [];
+            _renderAttachments();
+        }
+
+        // Drag-and-drop images → dataUrl attachments
+        function _addImageFile(file) {
+            if (!file.type.startsWith('image/')) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                _pendingAttachments.push({ dataUrl: ev.target.result, name: file.name });
+                _renderAttachments();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function _renderAttachments() {
+            if (!attachSlot) return;
+            attachSlot.style.display = _pendingAttachments.length ? '' : 'none';
+            attachSlot.innerHTML = '';
+            _pendingAttachments.forEach((a, i) => {
+                const chip = _attachmentChip(a.dataUrl, a.name, i + 1);
+                chip.title = `Click to remove ${a.name}`;
+                on(chip, 'click', () => {
+                    _pendingAttachments.splice(i, 1);
+                    _renderAttachments();
+                });
+                attachSlot.appendChild(chip);
+            });
+        }
+
+        // Drag-and-drop on root el
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev =>
+            _unsubs.push(on(el, ev, (e) => e.preventDefault()))
+        );
+        _unsubs.push(on(el, 'drop', (e) => {
+            const files = e.dataTransfer?.files;
+            if (files) Array.from(files).forEach(_addImageFile);
+        }));
 
         // ── Load history on mount ─────────────────────────────────────────────
         _reload().catch(err => clientLogger.warn('MpiAgentChat', 'history load failed', err));

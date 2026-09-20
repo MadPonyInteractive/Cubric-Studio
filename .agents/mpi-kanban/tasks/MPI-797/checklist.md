@@ -17,11 +17,18 @@ ACCEPTED by Fabio 2026-09-20 in his own app (verify mode `user-ux`). See validat
       `MpiProjectName.css` and the `MpiButton.css` edit was reverted. See validation.md.
 
 ## Phase 2 - the panel gets its own input row
-- [ ] Render `__input-row` in panel mode (drop the `standalone` gate).
-- [ ] Widen the standalone-only setup block to both modes.
-- [ ] Settle `agent:send`: keep it as the panel's send path, or delete the pair. Update `events.js:142`.
-- [ ] Attachments numbered 1, 2, 3.
-- [ ] `>` glyph and a block caret on the input; transcript stays prose.
+BUILT 2026-09-20, three rounds of Fabio's own eyes; no final "verified" yet. See validation.md.
+- [x] Render `__input-row` in panel mode (drop the `standalone` gate).
+- [x] Widen the standalone-only setup block to both modes.
+- [x] Settle `agent:send`: **DECIDED - delete the pair, executed in PHASE 3, not here.**
+      Its only producer is MpiPromptBox:2537, which phase 3 deletes; removing the listener
+      now breaks the toggle in the window between the phases. `events.js:142` is therefore
+      still accurate and is untouched - phase 3 updates it.
+- [x] Attachments numbered 1, 2, 3 - composer AND sent bubble, one `_attachmentChip()`.
+- [x] `>` glyph and a block caret on the input; transcript stays prose.
+- [x] Not in the plan, found by Fabio in the app: the box never collapsed after a send;
+      the hint stranded 21px above the `>`; the send button oversized; 13 attachments
+      could starve the field. All fixed and measured.
 
 ## Phase 3 - agent mode leaves MpiPromptBox
 - [ ] Remove the toggle and every `_agentMode` branch (~10 sites, 34 grep hits).

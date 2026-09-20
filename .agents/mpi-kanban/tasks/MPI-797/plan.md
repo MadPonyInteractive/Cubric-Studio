@@ -8,7 +8,27 @@ and `tasks/MPI-843/research/chat-merged.html` (the panel, drawn in place at its 
 
 ## Current State
 
-**PHASE 1 IS BUILT AND ACCEPTED (Fabio, 2026-09-20, in his own app). Phase 2 is next.**
+**PHASE 2 IS BUILT AND UNCOMMITTED-THEN-COMMITTED THIS SESSION; Fabio has NOT given it a
+final "verified" yet.** He drove it in his own app across three rounds and every fault he
+found is fixed and measured (`validation.md` § Phase 2). The card stays in `doing`.
+
+**The next action is Phase 3** — agent mode leaves MpiPromptBox — but read the two open
+threads below first, because Fabio named them himself at the handoff:
+
+1. **The panel header** should become Cosmo (face + name), not the word `Agent`.
+2. **The ledge** above the input — Cosmo docked, a guest mascot sliding in with its family
+   accent. Fabio calls it "the footer above the user text with the two MASCOTS", and
+   corrected the wording himself: **there is ONE agent, Cosmo.** The other four are never
+   agents and never speak — they are working indicators carrying their family accent while
+   their kind of work runs, then they hand back to Cosmo. Do not write "two agents"
+   anywhere in this track.
+
+Both are **MPI-846 Phase 3 / MPI-777 / MPI-842**, gated on the GIF clips, and the § "Out of
+scope, on purpose" section below still holds: the composer built here deliberately leaves
+room above the input row for the ledge. Do NOT fold them into this card — but expect Fabio
+to ask for them next, and MPI-777 is unblocked and queue-first.
+
+**Phase 1 was built and accepted (Fabio, 2026-09-20, in his own app).**
 Commits `47fcdc2a`, `fcefd4ff`, `ad155a98`, `9a71f2ce`, all pushed. Evidence and every
 measured number are in `validation.md`; the measuring rig is `research/measure-centre.html`
 (mounts the real component over http, no Electron — its header documents two traps that

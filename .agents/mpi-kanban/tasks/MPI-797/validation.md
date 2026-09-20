@@ -102,8 +102,122 @@ This is **pre-existing and not MPI-797's** — Agent is never hidden, and nothin
 phase changes it. It means Record is probably visible on group-history, where MPI-678
 intended it gated. Reported to Fabio, not actioned, and no card created.
 
+## Phase 2 — the panel gets its own input row (2026-09-20)
+
+Built, then driven by Fabio in his own app over three rounds. **No final "verified" —
+the card stays in `doing`.** Everything below was measured, not assumed.
+
+### What ran
+
+- `npm test` — **1619 pass, 0 fail, 1 skipped** (1620; the count moved from 1600 to 1620
+  during the session as peers landed `deepinfra-pricing` and others — not this card).
+- `tests/desktop/agent-chat.spec.js` — **33/33**, up from 29. Four new tests.
+- `eslint` clean on both component files and the spec.
+
+### The decision this phase owed: `agent:send`
+
+**Delete the pair — in Phase 3, not here.** The only producer is `MpiPromptBox.js:2537`,
+which Phase 3 deletes; the only consumer is this component's listener. Removing the
+listener in Phase 2 would silently break sending from the prompt box's toggle in the
+window between the two phases. So Phase 2 keeps it, the panel's own composer calls
+`_sendMessage()` directly (two producers, one target, no double send), and Phase 3
+removes emit + listener + the `events.js:142` entry + the spec's emit at once.
+`events.js:142` is untouched and still accurate today.
+
+### Four faults Fabio found by eye, and what they actually were
+
+None was in the plan. Each was measured before it was fixed.
+
+**1. The composer never collapsed after a send.** `_doSend` cleared the field with
+`textareaEl.value = ''`, which fires no `input` event — and `input` is the ONLY thing
+MpiInput's auto-height listens to. A field grown to four lines stayed four lines tall and
+empty. Fixed by calling the Primitive's own `mainInput.el.setValue('')`, which re-measures;
+that setter exists precisely for this and `MpiInput.js:107` documents reaching past it for
+`.value` as the mistake (seven modules, eleven sites). Measured **187px → 42px**.
+
+**2. The hint stranded above the `>`, which read as a broken row.** NOT the send button.
+`MpiInput.css:109` floors an auto-height textarea at `min-height: 2.6rem` — it is sized for
+a paragraph. Stripping the field's padding for the terminal look while leaving that floor
+put the text at the TOP of a 42px box while the `::before` glyph centred in it: **21px
+apart**. `min-height: 0` in panel mode. Measured field **42px → 17px**, and `wrapH ===
+fieldH`, which is what puts them on one baseline.
+
+**3. The send button was oversized — downstream of (2).**
+`--agent-composer-h` matched the button to the PADDED field so the pair read as one
+control. Against a dissolved one-line field a 39px button was the tallest thing in the bar
+and dragged the row up around it. Natural size in panel mode: **39px → 34px**, row 51px.
+
+**4. Latent, found while measuring (2): the textarea carried an inline `height: 0px`.**
+The panel is **closed at boot** — zero width, no layout — so MpiInput's own mount-time
+`resize()` read `scrollHeight: 0` and wrote it. Only the 2.6rem floor was hiding it, so
+removing the floor would have collapsed the field to nothing. A re-measure at mount would
+just write `0px` again. Fixed by CLEARING the inline height and letting `rows="1"` size the
+field intrinsically — needs no layout, right in both modes; auto-height takes over on the
+first real keystroke, when the panel is open.
+
+### Thirteen attachments — Fabio's "what if a model takes 9 images, 2 videos and 2 audios"
+
+Chips stay to the LEFT of the `>` — **his call, he likes it**. Safe because the **field wins
+the row**: a `min-width: 9rem` floor on the input wrap, and the strip is what gives way —
+`flex: 0 1 auto`, `nowrap`, `overflow-x: auto`. Measured with 13 chips:
+
+| | 420px panel | 280px (narrowest) |
+|---|---|---|
+| strip width / scroll width | 185px / 568px, scrolls | 45px / 568px, scrolls |
+| **field width** | **144px** | **144px** |
+| row overflow-x | 0 | 0 |
+
+### Numbering
+
+One `_attachmentChip()` helper draws the composer chip and the sent-bubble chip, so they
+cannot drift. The bubble numbering is Fabio's explicit ask (2026-09-20). Counted on what is
+**DRAWN**, not the array index — a history entry with no `dataUrl` is skipped and a gap
+would number a picture nobody can see. Bubble chips are not clickable; a sent chip is a
+record.
+
+### Scope taken, and the one thing deliberately left
+
+The composer bar (its own `--surface-2` surface, the field dissolved into it) is scoped to
+`#agent-panel-mount`. **The landing standalone chat keeps its bordered field** — the MPI-843
+drawing is of the panel, and Fabio signed the landing composer off in round 2. The fixes
+that are bugs rather than looks (collapse, placeholder-on-focus, numbering, the field floor)
+apply to both. One word from him moves the bar to the landing chat too.
+
+### A coverage gap worth knowing about
+
+Every pre-existing test in `agent-chat.spec.js` mounts into a plain host div, which cannot
+see a single line of the panel's CSS — **all of it is `#agent-panel-mount`-scoped, and both
+faults Fabio caught by eye lived exactly there.** There is now a test that drives the REAL
+panel mount and pins: no inline height, `min-height: 0`, field under 25px, `wrapH ===
+fieldH`, glyph present.
+
+### Each guard proven RED on pre-fix code, one back-out at a time
+
+A spec covering N fixes proves ONE unless they are backed out separately.
+
+| Guard | Backed out | Result |
+|---|---|---|
+| panel composer exists | both files to HEAD | fails at `expect(field).toBeVisible()` |
+| numbering | `_renderAttachments` only | send still passes, `toHaveCount(2)` gets **0** |
+| collapse after send | the `setValue('')` line only | expected **41.59px**, got **53px** |
+
+Files restored byte-identical after each (sha checked). The diff carries no EOL churn —
+`git diff --numstat` is identical with and without `--ignore-cr-at-eol`.
+
 ## Still to do on this card
 
-Phases 2 and 3, strictly in order — phase 3 removes the only existing way into agent
-mode, so it must not land before phase 1 is accepted. Their files are deliberately NOT
-claimed yet.
+Phase 3 only — agent mode leaves MpiPromptBox. It removes the last way into agent mode
+from the prompt box, which is now safe because Phase 1 (the Agent button) and Phase 2 (the
+panel's own composer) both ship.
+
+## Pre-existing, found while working here, NOT fixed and NOT carded
+
+- **`--r-sm` and `--r-md` are not defined anywhere.** The radii are `--r-1/2/3/pill`
+  (`styles/01_base.css:186-190`). `MpiAgentChat.css` is the ONLY file in the repo that uses
+  those two names — 6 declarations (mascot, bubble, confirm card, compacting notice, result
+  card, attachment thumb). All invalid, so all render square. Contained to one file and
+  mechanical once the values are picked.
+- `npm test` failed twice in seven runs on 2026-09-20, clean on every re-run:
+  `ENOENT mkdtemp` under `%TEMP%/cubric-tests/<pid>` (`tests/helpers/scratch.cjs:26`).
+  Nothing in the repo sweeps that shared parent, so something outside it does. Un-owned,
+  and it runs in CI. Same pile as the `gif-workspace.spec.js` flake.

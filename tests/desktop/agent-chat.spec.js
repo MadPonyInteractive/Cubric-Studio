@@ -1053,6 +1053,222 @@ test('agent panel: the real shell mount is closed by default, opens from the tog
   }
 });
 
+// MPI-797 Phase 2. Until now the panel had no input of its own — it borrowed
+// MpiPromptBox's agent mode over `agent:send`. Phase 3 deletes that toggle, so this is
+// the send path that has to work on its own, and the History workspace mounts no prompt
+// box at all. The attachment number is the second half: the user and the agent refer to
+// "1", never to "the start frame".
+test('panel mode has its own composer: Enter sends, and dropped images are numbered', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await installStubs(window);
+    await bootAndMountChat(window, false);
+
+    const field = window.locator('#e2e-agent-host textarea');
+    await expect(field).toBeVisible();
+    await field.click();
+    await window.keyboard.type('hello from the panel');
+    await window.keyboard.press('Enter');
+    await window.waitForTimeout(300);
+
+    const calls = await window.evaluate(() => window.__fetchCalls);
+    const msgCall = calls.find(c => c.url === '/agent/message');
+    expect(msgCall).toBeTruthy();
+    expect(msgCall.body.text).toBe('hello from the panel');
+
+    // Two files, so the index is proven rather than a hardcoded "1".
+    await window.evaluate(() => {
+      const dt = new DataTransfer();
+      for (const name of ['plate_a.png', 'plate_b.png']) {
+        const blob = new Blob([Uint8Array.from([137, 80, 78, 71])], { type: 'image/png' });
+        dt.items.add(new File([blob], name, { type: 'image/png' }));
+      }
+      document.getElementById('e2e-agent-host').firstElementChild
+        .dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true }));
+    });
+
+    // Scoped to the input row: the sent bubble draws the same chip from the same helper,
+    // so an unscoped locator counts both and the "composer cleared" check below passes
+    // on the bubble's copies.
+    const nums = window.locator(
+      '#e2e-agent-host .mpi-agent-chat__input-row .mpi-agent-chat__attachment-num');
+    await expect(nums).toHaveCount(2);
+    expect(await nums.allTextContents()).toEqual(['1', '2']);
+
+    // Sending carries the numbers into the bubble (Fabio, 2026-09-20): a follow-up says
+    // "make 2 warmer" and 2 has to still be on screen, pointing at the same picture.
+    await field.click();
+    await window.keyboard.type('take the style from 2');
+    await window.keyboard.press('Enter');
+    await window.waitForTimeout(400);
+
+    const inBubble = window.locator(
+      '#e2e-agent-host .mpi-agent-chat__attachments--in-bubble .mpi-agent-chat__attachment-num');
+    expect(await inBubble.allTextContents()).toEqual(['1', '2']);
+    await expect(nums).toHaveCount(0);   // and the composer's own strip is cleared
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+// Every other spec here mounts into a plain host div, which cannot see one line of the
+// panel's own CSS — all of it is scoped to `#agent-panel-mount`. Both of the faults Fabio
+// caught by eye (the hint stranded above the `>`, the box never collapsing) lived exactly
+// there, so this one drives the REAL panel.
+test('the real panel composer is one line at rest, with the glyph on the text baseline', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await installStubs(window);
+    await window.evaluate(async () => {
+      const { Events } = await import('/js/events.js');
+      Events.emit('engine:install-skipped');
+      await new Promise(r => setTimeout(r, 300));
+      Events.emit('ui:close-all-popups');
+      await new Promise(r => setTimeout(r, 100));
+      localStorage.removeItem('mpi_agent_panel_width');
+      document.getElementById('app-shell').classList.remove('hide');
+      const { state } = await import('/js/state.js');
+      state.agentMode = true;
+    });
+    await window.waitForTimeout(900);
+
+    const m = await window.evaluate(() => {
+      const p = document.getElementById('agent-panel-mount');
+      const ta = p.querySelector('textarea');
+      const wrap = p.querySelector('.mpi-agent-chat__input-wrap');
+      const cs = getComputedStyle(ta);
+      return {
+        fieldH: Math.round(ta.getBoundingClientRect().height),
+        wrapH: Math.round(wrap.getBoundingClientRect().height),
+        inlineHeight: ta.style.height,
+        minHeight: cs.minHeight,
+        glyph: getComputedStyle(wrap, '::before').content,
+      };
+    });
+
+    // The panel is CLOSED at boot, so a mount-time measurement reads scrollHeight 0 and
+    // writes `height: 0px`. Nothing inline is the correct state: `rows="1"` sizes it.
+    expect(m.inlineHeight).toBe('');
+    // The floor has to go with the padding, or the text sits at the top of a 42px box
+    // while the glyph centres in it.
+    expect(m.minHeight).toBe('0px');
+    expect(m.fieldH).toBeLessThan(25);
+    // One line means the glyph's box and the field's box are the same height — that is
+    // what puts them on the same baseline instead of 21px apart.
+    expect(m.wrapH).toBe(m.fieldH);
+    expect(m.glyph).toContain('>');
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+// Fabio, 2026-09-20, seen in his own app: the box grew with a long message and stayed
+// grown and empty after every send. `textareaEl.value = ''` fires no `input` event, and
+// `input` is all MpiInput's auto-height listens to, so nothing re-measured. The fix is
+// the Primitive's own setValue; this pins the height coming back.
+test('the composer collapses back to one line after a send', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await installStubs(window);
+    await bootAndMountChat(window, false);
+
+    const field = window.locator('#e2e-agent-host textarea');
+    await expect(field).toBeVisible();
+    const oneLine = await field.evaluate(el => el.getBoundingClientRect().height);
+
+    await field.click();
+    // Real keystrokes, so auto-height runs the way it does for a user.
+    await window.keyboard.type('the last time you used image-to-image to convert the '
+      + 'gunslinger, can you instead use KREA2 and its style for anime, then animate a '
+      + 'two-second video of it');
+    await window.waitForTimeout(200);
+    const grown = await field.evaluate(el => el.getBoundingClientRect().height);
+    expect(grown).toBeGreaterThan(oneLine);   // the harness reproduced the growth
+
+    await window.keyboard.press('Enter');
+    await window.waitForTimeout(300);
+
+    expect(await field.inputValue()).toBe('');
+    const after = await field.evaluate(el => el.getBoundingClientRect().height);
+    expect(after).toBe(oneLine);
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+// Fabio, 2026-09-20: the chips stay to the LEFT of the `>`, which he likes — but an op
+// can take nine images, two videos and two audio files, and he can reach that state. The
+// field therefore has a floor and the strip is what gives way, shrinking and scrolling.
+// Without the floor thirteen chips leave nowhere to type, which is the whole point of
+// this row.
+test('thirteen attachments shrink and scroll the strip; the field keeps its floor', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  try {
+    await installStubs(window);
+    await bootAndMountChat(window, false);
+
+    // A narrow host, so the squeeze is real rather than hidden by a wide window.
+    await window.evaluate(() => {
+      document.getElementById('e2e-agent-host').style.width = '420px';
+    });
+
+    // Real decodable bytes: a broken image sizes to its alt text, not to 40px, and would
+    // measure the squeeze wrong in both directions.
+    await window.evaluate(async (b64) => {
+      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      const dt = new DataTransfer();
+      for (let i = 1; i <= 13; i++) dt.items.add(new File([bytes], `drop_${i}.png`, { type: 'image/png' }));
+      document.getElementById('e2e-agent-host').firstElementChild
+        .dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true }));
+      await new Promise(r => setTimeout(r, 800));
+    }, PNG_B64);
+
+    const m = await window.evaluate(() => {
+      const host = document.getElementById('e2e-agent-host');
+      const strip = host.querySelector('.mpi-agent-chat__input-row .mpi-agent-chat__attachments');
+      const row = host.querySelector('.mpi-agent-chat__input-row');
+      return {
+        chips: strip.querySelectorAll('.mpi-agent-chat__attachment').length,
+        stripScrolls: strip.scrollWidth > strip.clientWidth + 1,
+        fieldW: Math.round(host.querySelector('.mpi-agent-chat__input-wrap').getBoundingClientRect().width),
+        rowOverflowX: row.scrollWidth - row.clientWidth,
+      };
+    });
+
+    expect(m.chips).toBe(13);
+    expect(m.stripScrolls).toBe(true);
+    expect(m.fieldW).toBeGreaterThanOrEqual(140);  // the 9rem floor
+    expect(m.rowOverflowX).toBe(0);                // the row itself never overflows
+
+    // Numbering runs past one digit.
+    const nums = window.locator('#e2e-agent-host .mpi-agent-chat__attachment-num');
+    expect(await nums.allTextContents()).toEqual(
+      ['1','2','3','4','5','6','7','8','9','10','11','12','13']);
+
+    // A block caret parked on the hint reads as a rendering fault, so the hint stands
+    // down on focus rather than on the first keystroke.
+    await window.locator('#e2e-agent-host textarea').focus();
+    const placeholderColor = await window.evaluate(() => getComputedStyle(
+      document.querySelector('#e2e-agent-host textarea'), '::placeholder').color);
+    expect(placeholderColor).toBe('rgba(0, 0, 0, 0)');
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
 test('history replay: user + agent entries visible after remount (kind-based, not role-based)', async ({}, testInfo) => {
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);
