@@ -1,0 +1,14 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "task_card": "MPI-847",
+  "owner_session": "654b820a-7e89-4f88-bd0e-2e1a71d09e96",
+  "updated_at": "2026-09-20T12:05:00Z",
+  "files": [
+    "routes/gifTransform.js",
+    "tests/gif-transform.test.cjs",
+    "tests/desktop/gif-transform.spec.js",
+    "docs/gif.md",
+    ".agents/mpi-kanban/tasks/MPI-847/"
+  ],
+  "notes": "Same files as MPI-844 and the same session holds that claim; this is the behaviour change that follows its honesty fix. Deliberately NOT touching gifMake's 1024, the panel default, DEFAULT_MAX_EDGE, or the gif.js / gifCutout.js fallbacks — raising those makes every new GIF heavier for everyone, which nobody asked for."
+}

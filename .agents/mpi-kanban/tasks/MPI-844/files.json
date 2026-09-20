@@ -1,0 +1,20 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "task_card": "MPI-844",
+  "owner_session": "654b820a-7e89-4f88-bd0e-2e1a71d09e96",
+  "updated_at": "2026-09-20T11:20:00Z",
+  "files": [
+    "services/gifFrames.js",
+    "routes/gif.js",
+    "routes/gifCutout.js",
+    "routes/gifMake.js",
+    "routes/gifMaker.js",
+    "routes/gifTransform.js",
+    "tests/gif-frames.test.cjs",
+    "tests/gif-transform.test.cjs",
+    "tests/desktop/gif-transform.spec.js",
+    "docs/gif.md",
+    ".agents/mpi-kanban/tasks/MPI-844/"
+  ],
+  "notes": "services/gifFrames.js is the shared primitive — buildGif's six card-writing callers all stamp the wrong size, so they are fixed in one pass rather than one route at a time. routes/gifToVideo.js is deliberately NOT here: it writes a video card from a real encode and never calls buildGif."
+}

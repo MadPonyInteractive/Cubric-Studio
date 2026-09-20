@@ -1,0 +1,19 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "task_card": "MPI-838",
+  "owner_session": "654b820a-7e89-4f88-bd0e-2e1a71d09e96",
+  "updated_at": "2026-09-20T09:45:00Z",
+  "files": [
+    "js/components/Primitives/MpiSpinner/MpiSpinner.css",
+    "js/components/Organisms/MpiToolOptionsGifTiming/MpiToolOptionsGifTiming.js",
+    "js/components/Compounds/MpiTrimBar/MpiTrimBar.js",
+    "js/components/Organisms/MpiGifControlBar/MpiGifControlBar.js",
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+    "js/components/Organisms/MpiFrameStrip/MpiFrameStrip.js",
+    "tests/desktop/gif-workspace.spec.js",
+    "docs/gif.md",
+    "docs/video-player.md",
+    ".agents/mpi-kanban/tasks/MPI-838/"
+  ],
+  "notes": "MpiTrimBar and MpiGroupHistoryBlock are SHARED with the video workspace — the trim-bar change is a NEW event only, and the Block edit sits beside the existing gif range-change wiring. MpiSpinner.css is a shared primitive: one additive [hidden] rule, no caller sets that attribute today. MpiFrameStrip joined on 2026-09-20: setRange now repaints range classes instead of rebuilding every thumb, because a drag calls it at 20 Hz. Single consumer (the Block), GIF-only."
+}

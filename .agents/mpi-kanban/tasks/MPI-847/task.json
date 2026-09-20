@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-847",
+  "title": "Crop and Resize floor their longest edge at 2048 instead of inheriting Make GIF's 1024",
+  "description": "Fabio, 2026-09-20, straight out of MPI-844: a 9:16 crop of full-res 1080x1920 frames built a 576x1024 .gif. The Block posts the CURRENT entry's output with every transform, so a crop inherits its cap, and Make GIF stamps maxEdge 1024 — raising the route's own fallback would have been a no-op. gifTransform now floors the cap at 2048 (a floor, not a replacement: an entry allowing more keeps its value). The frames in the store were always full-res; only the build ceiling was throwing pixels away.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-20T11:37:09+01:00",
+  "updated_at": "2026-09-20T11:37:40+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
