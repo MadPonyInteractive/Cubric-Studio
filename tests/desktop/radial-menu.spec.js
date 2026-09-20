@@ -162,11 +162,15 @@ test('the four destinations sit on their diagonals', async ({}, testInfo) => {
   }
 });
 
-test('the radial reaches the card, the gallery, Flows and the Model Library', async ({}, testInfo) => {
+test('the radial reaches the card, the gallery, Flows and the model picker', async ({}, testInfo) => {
   test.setTimeout(120000);
   const { app, window, consoleErrors, pageErrors } = await launchApp(testInfo);
   try {
     await releaseBootGate(window);
+    // MPI-848: the Models leg PICKS, and only falls back to the Library at zero installs.
+    // A dev box has weights and a runner has none, so the leg is environment-dependent
+    // unless one model is pinned usable here.
+    await pinOneModelInstalled(window);
     await openGallery(window, makeProject(testInfo, [
       { id: 'grp1', name: 'Group 1', type: 'image', history: [], selectedIndex: 0 },
     ]));
@@ -192,7 +196,9 @@ test('the radial reaches the card, the gallery, Flows and the Model Library', as
     await expect.poll(() => where(window), { timeout: 5000 }).toBe('gallery');
 
     await pick(window, 'models');
-    await expect(window.locator('.mpi-model-library')).toBeVisible({ timeout: 5000 });
+    await expect(window.locator('.mpi-model-picker')).toBeVisible({ timeout: 5000 });
+    await expect(window.locator('.mpi-model-library'), 'the leg picks, it does not install')
+      .toHaveCount(0);
 
     expect(pageErrors, `page errors: ${pageErrors.join(' | ')}`).toHaveLength(0);
     expect(consoleErrors, `console errors: ${consoleErrors.join(' | ')}`).toHaveLength(0);

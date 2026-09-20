@@ -7,7 +7,7 @@
  *   PAGE_GROUP_HISTORY → history view for a single ItemGroup (params: { groupId })
  *
  * Hold Tab for the radial (MPI-811) — four fixed destinations on the diagonals:
- * Gallery (top-left), Models (bottom-left), Flows (top-right) and your latest
+ * Gallery (top-left), Models (the PICKER, bottom-left — MPI-848), Flows (top-right) and your latest
  * workspace (bottom-right). It replaces the MPI-378 → MPI-611 Tab flipper: the ring
  * reaches every stop that ring had, and one key cannot be both a tap-flipper and a
  * hold-menu. It opens over EVERY surface — an open flow, either Library — so a page
@@ -25,6 +25,7 @@ import { gid, qs } from '../utils/dom.js';
 import { navigate, back, clearHistory, PAGE_LANDING, PAGE_GALLERY, PAGE_GROUP_HISTORY } from '../router.js';
 import { MpiRadialMenu } from '../components/Primitives/MpiRadialMenu/MpiRadialMenu.js';
 import { resolveFlipTarget } from '../data/projectModel.js';
+import { MODELS, isModelUsable } from '../data/modelRegistry.js';
 import { updateProject } from '../services/projectService.js';
 import { loadProjectGrid, releaseProjectGrid } from './projectUI.js';
 import { Overlays } from '../managers/overlayManager.js';
@@ -438,9 +439,9 @@ async function _performRestart(remote) {
  * Mounts the radial on first entry into a workspace.
  *
  * MPI-811 gave it a user ring again (Tab), so this now mounts in production too;
- * the Ctrl+Tab 'dev' context (MPI-338) is the part that stays gated. Models is
- * still reached from the prompt box's model button ('ui:open-model-picker'), not
- * from here.
+ * the Ctrl+Tab 'dev' context (MPI-338) is the part that stays gated. The Models leg
+ * opens the same picker the prompt box's model button does (MPI-848) — it is a
+ * second emitter of 'ui:open-model-picker', not a second picker.
  *
  * Mounting here rather than for the app's lifetime is what keeps Tab off the
  * landing page: hotkeyManager suppresses native Tab traversal as soon as ANY
@@ -473,11 +474,15 @@ function _syncRadial() {
             return;
         }
         if (action === 'models') {
-            if (qs('.mpi-model-library')) return;   // already there
             _leaveOverlaySurfaces();
-            // `models:open` carries its own no-engine guard (shell.js, MPI-390), so a
-            // pick with nothing to install toasts rather than opening an empty library.
-            Events.emit('models:open');
+            // MPI-848, Fabio 2026-09-20: this leg PICKS a model, it does not install one.
+            // The workspace Block owns the picker and applies the choice, so the overlay
+            // sweep above has to run first — the picker lives behind a Library or a flow.
+            // Nothing installed means the picker would open empty, and the Library is the
+            // only useful answer left; `models:open` carries its own no-engine guard
+            // (shell.js, MPI-390) so it toasts rather than opening an empty library.
+            if (MODELS.some(isModelUsable)) Events.emit('ui:open-model-picker', {});
+            else Events.emit('models:open');
             return;
         }
         if (action === 'flows') {

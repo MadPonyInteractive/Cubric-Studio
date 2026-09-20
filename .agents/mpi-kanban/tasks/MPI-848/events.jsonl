@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-848", "at": "2026-09-20T12:04:57+01:00", "actor": "claude", "column": "todo", "title": "Radial Models leg opens the model PICKER, not the Model Library"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-848", "at": "2026-09-20T12:05:14+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}

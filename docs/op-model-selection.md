@@ -13,10 +13,14 @@ are `.claude/rules/component-{mounts,events-*,state}.md`.
 | Op strip (second mount, inside the parameters popup) | `MpiPromptBox` | the operation |
 | Model button (bar) → `MpiModelPicker` overlay | the Block (Gallery / Group History) | the model |
 
-The radial is **not** a model/op surface any more. MPI-356 moved ops to the strip, and
-MPI-378 removed the workspace ring entirely — Tab is the workspace flipper now
-(`docs/shell.md` § navigation.js). The model button is the only way into the picker, and
-the only emitter of `ui:open-model-picker`. Do not re-add a Models shortcut to Tab.
+The radial is **not** an op surface — MPI-356 moved ops to the strip and they have not
+come back. It IS a model surface again: MPI-811's Tab ring has a Models leg, and MPI-848
+pointed it at the **picker** (`ui:open-model-picker`), not the Model Library, because
+"Models" in a navigation ring means *choose one*, not *install one*. So there are two
+emitters of that event — the prompt box's model button and the radial — and still ONE
+picker, owned by the Block. The radial leg calls `_leaveOverlaySurfaces()` first (the
+picker sits behind an open Library or flow) and falls back to `models:open` only when
+nothing is installed, where an empty picker would be a dead end.
 
 ## Two mounts, one choice list
 
