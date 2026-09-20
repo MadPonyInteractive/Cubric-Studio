@@ -242,7 +242,12 @@ export const Storage = {
   getRunpodConfig:     () => normalizeRunpodConfig(get(STORAGE_KEYS.RUNPOD_CONFIG, DEFAULT_RUNPOD_CONFIG)),
   setRunpodConfig:     (v) => set(STORAGE_KEYS.RUNPOD_CONFIG, normalizeRunpodConfig(v)),
 
+  // Auto-start ComfyUI. The stored value is a plain boolean and this getter is sync, so
+  // the default cannot ask whether an engine exists — `hasAutoStartComfy` exposes the
+  // third state (never set) so boot can seed it from the engine once, and an explicit
+  // off stays off (MPI-863). Read the pref, not the key, everywhere else.
   getAutoStartComfy:   () => get(STORAGE_KEYS.AUTO_START_COMFY, false),
+  hasAutoStartComfy:   () => get(STORAGE_KEYS.AUTO_START_COMFY, null) !== null,
   setAutoStartComfy:   (v) => set(STORAGE_KEYS.AUTO_START_COMFY, v),
 
   // Gallery playback volume, 0–1. Drives audio cards AND unmuted hover videos.

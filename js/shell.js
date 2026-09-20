@@ -544,6 +544,24 @@ async function _bootApp() {
   // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener
   Events.on('flow:restore', () => _activeFlow?.el.open());
 
+  // MPI-863: auto-start defaults ON for anyone who HAS a local engine. The pref is a
+  // sync localStorage boolean, so its default cannot ask the engine — seed it once here
+  // instead, and only here: this runs AFTER the install gate above, so a user who just
+  // installed reads as installed rather than as the `needsInstall` they booted with.
+  // The seed is ONE-WAY on purpose. Never-set reads as off through getAutoStartComfy,
+  // which is already the right answer with no engine, so writing a `false` would only
+  // make "no engine yet" permanent — it would freeze out the escape-hatch user (MPI-390)
+  // who installs one later. And an explicit off IS a real `false`, which is what
+  // hasAutoStartComfy distinguishes, so a user who turned it off never gets it back on.
+  if (!runpodCfg.autoConnectOnStart && !Storage.hasAutoStartComfy()) {
+    try {
+      const res = await fetch('/engine/version-check');
+      if ((await res.json()).needsInstall !== true) Storage.setAutoStartComfy(true);
+    } catch (err) {
+      clientLogger.warn('shell', `engine version-check failed while seeding auto-start: ${err.message}`);
+    }
+  }
+
   // ComfyUI Auto-start (optional). Local boot only here — when auto-connecting to a
   // Pod at start the remote path owns engine bring-up, so skip the local auto-start.
   // (MPI-85: gate on autoConnectOnStart, not `enabled` — an enabled-but-not-auto
