@@ -1,1 +1,1 @@
-{"schema":"mpi-kanban/task-files/v1","files":["js/shell/navigation.js","tests/desktop/radial-menu.spec.js","docs/op-model-selection.md","docs/events.md",".agents/mpi-kanban/tasks/MPI-848/**"]}
+{"schema":"mpi-kanban/task-files/v1","files":["js/shell/navigation.js","tests/desktop/radial-menu.spec.js","docs/op-model-selection.md","docs/events.md","docs/shell.md",".claude/rules/component-events-primitives.md",".agents/mpi-kanban/tasks/MPI-848/**"]}

@@ -23,9 +23,12 @@ would otherwise decide which branch of the leg runs.
 `npx eslint js/shell/navigation.js tests/desktop/radial-menu.spec.js` -> exit 0.
 `node --test tests/tab-flip-target.test.cjs` -> 3 passed.
 
-## Open
+CI on the fix commit `70943555`: **success** (2026-09-20T11:08:21Z).
 
-- [ ] Fabio's own confirmation in the running app (Tab -> Models from the gallery, from
-      a group history card, and from inside a parked flow).
-- [ ] `.claude/rules/component-events-primitives.md:102` still says the Models leg emits
-      `models:open`, not the picker. Rule files need explicit permission to edit.
+Fabio, 2026-09-20: "I already tested the routing, and it's working."
+
+## Closed out
+
+- `.claude/rules/component-events-primitives.md` line 102 said the Models leg emits
+  `models:open`, not the picker. Corrected with Fabio's explicit permission (2026-09-20);
+  `docs/shell.md`'s "Models took the slot" now names the picker too.

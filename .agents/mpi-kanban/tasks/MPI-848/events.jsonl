@@ -1,2 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-848", "at": "2026-09-20T12:04:57+01:00", "actor": "claude", "column": "todo", "title": "Radial Models leg opens the model PICKER, not the Model Library"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-848", "at": "2026-09-20T12:05:14+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-848", "at": "2026-09-20T12:08:23+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Shipped and spec-green; waiting on Fabio's own check in the app."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-848", "at": "2026-09-20T19:58:44+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio confirmed the routing in the app; spec green, CI green on 70943555."}
