@@ -32,6 +32,7 @@ EMITS:   `seek`         `{ time: number }` — playhead committed (drag end / tr
          `in-change`    `{ time: number }` — in handle committed
          `out-change`   `{ time: number }` — out handle committed
          `range-change` `{ in: number, out: number }` — fired alongside in/out commits
+         `range-preview` `{ in: number, out: number }` — in/out DURING drag (throttled ~50ms, MPI-838); the twin of `seek-preview`. Repaint only — a consumer that PERSISTS the range stays on `range-change`, which is why this is a separate name.
 LISTENS: (none — pure pointer drag state)
 PROPS:   `duration`, `fps`, `frameCount`, `value`, `inPoint`, `outPoint`, `wavePath`
 NOTE:    Two-handle trim seek bar. Pointer drag coalesces on RAF; commits on `pointerup`. Frame-snap via `Math.round(t*fps)/fps`. Constraints: `0 ≤ in+frame ≤ out ≤ duration`; playhead clamped to `[in, out]`. `seek-preview` enables live-scrub on the host video without re-firing on every RAF tick. **Waveform (MPI-829):** `wavePath`/`setWavePath(url)` paints the baked `<id>.wave.webp` mask in `--ink-4` under the selection tint; the track goes to 44px while the wave is painted (28px otherwise, MPI-837) and the layer's `inset: -8px 0` makes it span the handles cap to cap (58px). The mask is linear in TIME while positions are frame-indexed, so they differ by at most one frame's width at the clip end — sub-pixel, and not a reason to unpick `_pctOf`.
@@ -236,8 +237,9 @@ NOTE:    No inner surface component (unlike MpiVideoViewer + MpiVideoSurface). `
 
 ### MpiGifControlBar (Organism — js/components/Organisms/MpiGifControlBar/MpiGifControlBar.js)
 EMITS:   `range-change` `{ in: number, out: number }` — trim handles moved or `setFrameCount()` reset range (values are frame indices, not seconds)
+         `range-preview` `{ in: number, out: number }` — re-emitted from MpiTrimBar during a handle drag (MPI-838); the Block paints the frame strip and the panel note from it
 LISTENS: viewer local bus via `attachViewer()`: `frame-change`, `play`, `pause`, `preview-change`, `edit-change`
-HOTKEYS: `video.playPause` / `video.frame.back` / `video.frame.forward` — **reuses video IDs** (GIF and video workspaces never coexist; each handler gates on `_canDrive()`). Space suppressed as playback when `viewer.el.isToolOwningDrag()` is true.
+HOTKEYS: `video.playPause` / `video.frame.back` / `video.frame.forward` / `video.frame.first` / `video.frame.last` / `video.trim.in` / `video.trim.out` / `video.trim.clear` — **reuses video IDs** (GIF and video workspaces never coexist; each handler gates on `_canDrive()`). Space suppressed as playback when `viewer.el.isToolOwningDrag()` is true. Home/End land on the RANGE (in/out), matching `MpiVideoControlBar._frameBounds()` once a range is set; I/O snap to the frame on screen with the video twin's clamp; X clears (MPI-838).
 NOTE:    Internal `MpiTrimBar` uses `fps: 1` so range values are frame INDICES (integers). Bound on `attachViewer`, unbound on `detachViewer`/`destroy`.
 
 ### MpiFrameStrip (Organism — js/components/Organisms/MpiFrameStrip/MpiFrameStrip.js)
