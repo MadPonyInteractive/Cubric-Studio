@@ -28,8 +28,13 @@ With a wave, the handles measure 58px too — MPI-829's cap-to-cap property is i
 
 - `node --test tests/video-waveform-derivative.test.cjs`: 7 pass (the wave inset still ties
   to the handles').
-- `tests/desktop/gif-workspace.spec.js:253`, which carries MPI-834's `{ wave: 0, track: 28 }`
-  assertion, passes — now for the general reason rather than a GIF-only override.
+- MPI-834's `{ wave: 0, track: 28 }` assertion passes — now for the general reason rather
+  than a GIF-only override. It lives in `tests/desktop/gif-workspace.spec.js`, in the test
+  *"gif strip: right-click deletes a frame and offers the mask clear; the trim range paints
+  on the strip"*. Cite it by TITLE: the assertion was at line 306 in 2fa7d3eb and is at 308
+  now, because MPI-836 (7d2000fd) edited the file two hours later. The runner's own
+  `gif-workspace.spec.js:253:1` in this card's evidence is the test's line AT THAT RUN, not
+  the assertion's, and it has since moved to 255.
 
 ## The six red specs in that run are a live peer's, not this card's
 
