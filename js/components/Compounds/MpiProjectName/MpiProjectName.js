@@ -138,7 +138,11 @@ export const MpiProjectName = ComponentFactory.create({
         const agentBtn = _mountButton({
             icon: 'chat', label: 'Agent', size: 'sm', variant: 'ghost',
             extraClasses: 'mpi-project-name__agent',
-            info: 'Talk to the agent about this project',
+            // Reaches the STATUS BAR through MpiButton's `data-info`, which
+            // `statusBar.js` prints verbatim on hover — no tooltips in this app, and no
+            // hotkey lookup, so the key has to be written into the string. `A` is
+            // `agentMode.toggle` in `hotkeyRegistry.js:93` (Fabio, 2026-09-20).
+            info: '(A) Communicate',
         });
         agentBtn.addEventListener('click', () => emit('agent', {}));
 
