@@ -62,7 +62,7 @@ const MASK_POINT_DRAW_R = 6;
  *   flipMaskColor()
  *   setMaskOpacity(opacity)
  *   clearMask()
- *   getMaskDataURL(bg, fg)
+ *   getMaskDataURL(bg, fg, soft)
  *   setPointsMode(bool)       — point-prompt mode: clicks place SAM dots, not paint
  *   clearMaskPoints() / getMaskPointCount() / getPointsJSON()
  *   bakeAutoPicksInto('manual'|'subtract') — Add / Subtract the detected mask
@@ -1584,7 +1584,7 @@ class _CanvasCore {
      * @returns {{depth:number, bytes:number, lastEntryBytes:number}}
      */
     getUndoStats()          { return { depth: this.undoStack.depth, bytes: this.undoStack.bytes, lastEntryBytes: this.undoStack.lastEntryBytes }; }
-    getMaskDataURL(bg = null, fg = null) { return this.mask.getURL(bg, fg); }
+    getMaskDataURL(bg = null, fg = null, soft = false) { return this.mask.getURL(bg, fg, soft); }
     getManualURL()          { return this.mask.getManualURL(); }
     getSubtractURL()        { return this.mask.getSubtractURL(); }
     async setManualFromDataURL(url)   { await this.mask.setManualFromDataURL(url); this.draw(); }

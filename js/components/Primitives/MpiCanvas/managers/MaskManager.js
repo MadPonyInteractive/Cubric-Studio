@@ -919,8 +919,17 @@ export class MaskManager {
      * the cap went unnoticed until MPI-365 wired masks into the crop branch.
      * Upscaling here keeps the cap where it belongs — on the paint loop, not on the
      * contract with the graph.
+     *
+     * `soft` (MPI-835): write COVERAGE, not a binary cut — each pixel is `bg`
+     * mixed toward `fg` by its alpha. Image mode's export is binary on purpose
+     * (any alpha = masked, the inpaint contract `MpiCanvasViewer`'s composite twin
+     * shares). A GIF frame's BASE layer is an engine mask whose soft falloff IS the
+     * edge: `routes/gifCutout.js` reads luma as alpha and keeps it. Binarising that
+     * at `alpha > 0` grew a brushed frame's whole mask by the feather width — 3.3%
+     * more area on a real BiRefNet frame — while its untouched neighbours stayed
+     * soft, so one brush fix put a halo round every object in that frame.
      */
-    getURL(bg = null, fg = null) {
+    getURL(bg = null, fg = null, soft = false) {
         if (!this.maskCanvas) return null;
         if (!bg && !fg) {
             return this._toSourceScale(this.maskCanvas);
@@ -943,7 +952,13 @@ export class MaskManager {
 
         for (let i = 0; i < src.data.length; i += 4) {
             const a = src.data[i + 3];
-            if (a > 0) {
+            if (soft) {
+                const t = a / 255;
+                out.data[i]     = Math.round(bgR + (fgR - bgR) * t);
+                out.data[i + 1] = Math.round(bgG + (fgG - bgG) * t);
+                out.data[i + 2] = Math.round(bgB + (fgB - bgB) * t);
+                out.data[i + 3] = 255;
+            } else if (a > 0) {
                 out.data[i]     = fgR;
                 out.data[i + 1] = fgG;
                 out.data[i + 2] = fgB;

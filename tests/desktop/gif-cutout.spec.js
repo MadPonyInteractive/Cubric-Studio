@@ -909,6 +909,71 @@ test('mask base layer: shows as mask, erase removes it, paint restores it, clear
   }
 });
 
+// MPI-835 (Fabio, 2026-09-20): one brush fix on a BiRefNet frame put a halo round
+// every object in it. The brushed frame's composite went through the BINARY export
+// (any alpha = white), so the engine's soft falloff snapped to full keep — 3.3% more
+// area on his real mask — while untouched frames kept the soft track. The base test
+// above never saw it: its mask is hard black/white, where both exports agree.
+test('mask base layer: a brushed frame exports the engine soft edge as coverage, not as a binary cut', async ({}, testInfo) => {
+  const { app, window } = await launchApp(testInfo);
+  try {
+    const r = await window.evaluate(async () => {
+      const { MaskManager } = await import('/js/components/Primitives/MpiCanvas/managers/MaskManager.js');
+      const { UndoStack } = await import('/js/components/Primitives/MpiCanvas/managers/UndoStack.js');
+      const RAMP = [200, 120, 40, 8]; // x = 8..11: the falloff between keep and gone
+      const lumaRow = async (url, y) => {
+        const img = new Image();
+        img.src = url;
+        await img.decode();
+        const c = document.createElement('canvas');
+        c.width = c.height = 20;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const d = ctx.getImageData(0, y, 20, 1).data;
+        return Array.from({ length: 20 }, (_, x) => d[x * 4]);
+      };
+
+      const src = document.createElement('canvas');
+      src.width = src.height = 20;
+      const sctx = src.getContext('2d');
+      for (let x = 0; x < 20; x++) {
+        const v = x < 8 ? 255 : (RAMP[x - 8] ?? 0);
+        sctx.fillStyle = `rgb(${v}, ${v}, ${v})`;
+        sctx.fillRect(x, 0, 1, 20);
+      }
+      const track = src.toDataURL('image/png');
+
+      const mm = new MaskManager();
+      mm.undo = new UndoStack();
+      mm.init(20, 20);
+      await mm.setBaseFromDataURL(track);
+      // One fix, far from the edge being measured (row 2): paint outside, erase inside.
+      const dab = (type, x, y) => { mm.brushType = type; mm.brushSize = 4; mm.takeStrokeBox(); mm.paint(x, y); mm.takeStrokeBox(); };
+      dab('brush', 16, 14);
+      dab('eraser', 3, 14);
+
+      const out = {
+        track: await lumaRow(track, 2),
+        soft: await lumaRow(mm.getURL('black', 'white', true), 2),
+        softStroke: await lumaRow(mm.getURL('black', 'white', true), 14),
+        binary: await lumaRow(mm.getURL('black', 'white'), 2),
+        flipped: await lumaRow(mm.getURL('white', 'black', true), 2),
+      };
+      mm.destroy();
+      return out;
+    });
+
+    const near = (got, want, why) => got.forEach((v, x) => expect(Math.abs(v - want[x]), `${why} (x=${x}: ${v} vs ${want[x]})`).toBeLessThanOrEqual(1));
+    near(r.soft, r.track, 'away from the stroke the composite IS the track');
+    near(r.flipped, r.track.map(v => 255 - v), 'the playing tint is its exact complement');
+    expect(r.softStroke[16], 'the painted fix lands').toBe(255);
+    expect(r.softStroke[3], 'the erased fix lands').toBe(0);
+    expect(r.binary.slice(8, 12), 'image mode keeps its binary contract: any alpha is masked').toEqual([255, 255, 255, 255]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
 // ── Test 4 — Fabio's first hands-on check (2026-09-16), fixture project ─────
 //
 // A stray strip drag reordered his frames and dropped every mask, the trim bar

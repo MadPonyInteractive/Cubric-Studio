@@ -15,9 +15,11 @@
  *   edits    idx -> { manual, subtract } — the brush layers as working-res alpha
  *                   PNG data URLs (`MaskManager.getManualURL()` shape), which
  *                   survive a re-track (Fabio, 2026-09-16)
- *   composed idx -> B/W PNG of (track OR manual) AND NOT subtract at the frame's
- *                   own size, taken from the live canvas when the edits were saved
- *                   — `MaskManager` is the one compositor, this only stores its output
+ *   composed idx -> greyscale PNG of (track OR manual) AND NOT subtract at the
+ *                   frame's own size, taken from the live canvas when the edits were
+ *                   saved — COVERAGE, never a binary cut: the track's soft edge must
+ *                   come through a brush fix unchanged (MPI-835). `MaskManager` is
+ *                   the one compositor, this only stores its output
  */
 
 /** Frame lists whose masks stay stashed for the session (oldest dropped first). */

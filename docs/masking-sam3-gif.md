@@ -123,8 +123,14 @@ the VIEWER so both reach them.
 ### Where the masks live — `MpiGifViewer` + `gifFrameMasks.js`
 
 Per frame POSITION, because a track comes back per position: `track` (engine URL), `edits`
-(the brush's manual/subtract layers as working-res alpha PNGs) and `composed` (the B/W PNG
-the canvas exported when the edits were saved). A mask still describes its own frame's
+(the brush's manual/subtract layers as working-res alpha PNGs) and `composed` (the greyscale
+PNG the canvas exported when the edits were saved). **`composed` keeps COVERAGE — it is
+exported with `getURL('black', 'white', true)`, never the binary form** (MPI-835). An engine
+mask's soft falloff IS its edge, and `applyMaskAlpha()` reads luma as alpha; the binary export
+(any alpha = white, image mode's inpaint contract) grew a brushed frame's WHOLE mask by the
+feather width — 3.3% more area on a real BiRefNet frame — so one brush fix put a halo round
+every object in that frame while its untouched neighbours stayed clean (Fabio, 2026-09-20).
+A test mask must be SOFT to see this: hard black/white agrees under both exports. A mask still describes its own frame's
 pixels, so a staged strip reorder, delete or Discard CARRIES the masks along: the strip's
 `'stage-change'` sends `order` (each new position's old one), the Block passes it to
 `setFrames(frames, order)`, and `remap()` rebinds the store. Update/Apply then reload the same

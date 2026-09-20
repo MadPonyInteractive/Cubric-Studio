@@ -496,7 +496,7 @@ export const MpiGifViewer = ComponentFactory.create({
                 await mm.setManualFromDataURL(edits.manual);
                 await mm.setSubtractFromDataURL(edits.subtract);
                 if (_masks.edits.get(idx) !== edits) return null; // list changed meanwhile
-                const url = mm.getURL('black', 'white');
+                const url = mm.getURL('black', 'white', true);
                 _masks.composed.set(idx, url);
                 return url;
             } finally {
@@ -593,7 +593,10 @@ export const MpiGifViewer = ComponentFactory.create({
             if (!_canvas || _editIdx < 0 || !_dirty) return;
             const manual = _canvas.el.getManualURL();
             const subtract = _canvas.el.getSubtractURL();
-            const composed = (manual || subtract) ? _canvas.el.getMaskDataURL('black', 'white') : null;
+            // SOFT (MPI-835): the track under the brush layers carries the engine's
+            // own soft edge and the cut reads luma as alpha. The binary export grew
+            // the WHOLE frame's mask by that feather the moment one stroke landed.
+            const composed = (manual || subtract) ? _canvas.el.getMaskDataURL('black', 'white', true) : null;
             _masks.setEdits(_editIdx, { manual, subtract, composed });
             _dirty = false;
             _emitMasks();
@@ -735,7 +738,7 @@ export const MpiGifViewer = ComponentFactory.create({
                 // already flipped; the brush under the complement asks the canvas for
                 // the same composition with the colours swapped — white ground, black
                 // mask — which IS the complement once `--luma` reads it.
-                const flipped = _flipActive ? _canvas?.el.getMaskDataURL('white', 'black') : null;
+                const flipped = _flipActive ? _canvas?.el.getMaskDataURL('white', 'black', true) : null;
                 _setTint(_cutoutPreview ?? flipped ?? _masks.overlayAt(_index), true);
             }
         }
