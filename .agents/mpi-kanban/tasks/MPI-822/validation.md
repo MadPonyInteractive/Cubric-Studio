@@ -159,7 +159,14 @@ pass has MpiCanvas.js / MpiStepCutout.js / MpiStepPaint.js open), not in anythin
 committed. Worth knowing before someone meets them: they are real, and local-only.
 
 Unit suite, on a quiet box: **1524 pass / 0 fail / 1 skipped**. An earlier run reporting
-24 failures was CPU contention - the desktop suite was running at the same time. That closes MPI-822's user-ux
+24 failures was CPU contention - the desktop suite was running at the same time.
+
+**CI settled both questions, green on `ddd813da`: 144 passed, 0 failed.** That runner
+is clean - no uncommitted peer edits - and it exercises every button in the app, so
+the app-wide height change is proven not to have moved anything that matters. It also
+ran `gif-cutout`, `gif-timing` and `gif-transform` GREEN, which is the independent
+confirmation that the three local failures came from the shared tree's uncommitted
+state and never from anything committed here. That closes MPI-822's user-ux
 verification: the card is code-complete, self-verified and user-verified.
 
 Scope note, stated rather than glossed: those five steps are all MPI-822. **MPI-827's
