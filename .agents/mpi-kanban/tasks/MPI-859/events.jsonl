@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-859", "at": "2026-09-20T20:40:00+01:00", "actor": "claude", "column": "todo", "title": "GIF cut-out masks compose: Add / Subtract over All / Frame / Selected"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-859", "at": "2026-09-20T19:45:00+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Porting the image workspace's run -> candidate -> Add / Subtract commit onto the GIF cut-out panel, with the existing All / Frame / Selected scope saying where it lands."}

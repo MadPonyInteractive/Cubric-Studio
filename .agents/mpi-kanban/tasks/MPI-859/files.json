@@ -1,0 +1,18 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "task_card": "MPI-859",
+  "owner_session": "dec2f299-28c2-46b7-b6a5-3cf93794579f",
+  "updated_at": "2026-09-20T18:45:00Z",
+  "files": [
+    "js/components/Organisms/MpiToolOptionsGifCutout/MpiToolOptionsGifCutout.js",
+    "js/components/Organisms/MpiToolOptionsGifCutout/MpiToolOptionsGifCutout.css",
+    "js/components/Organisms/MpiGifViewer/MpiGifViewer.js",
+    "js/components/Organisms/MpiGifViewer/gifFrameMasks.js",
+    "js/components/Organisms/MpiGifViewer/maskCompose.js",
+    "js/components/types.js",
+    "tests/gif-frame-masks.test.cjs",
+    "tests/desktop/gif-cutout.spec.js",
+    "docs/masking-sam3-gif.md",
+    ".agents/mpi-kanban/tasks/MPI-859/**"
+  ]
+}
