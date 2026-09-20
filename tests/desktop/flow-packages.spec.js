@@ -78,8 +78,14 @@ test('Flow packages load from user_flows, serve their files, and a broken one sa
             out.okChip = tile('Spec Package')?.querySelector('.mpi-tile__chip')?.textContent || null;
             out.offChip = tile('Spec Broken')?.querySelector('.mpi-tile__chip')?.className || null;
 
-            // The preview through the exact src the tile sheet builds.
+            // The preview through the exact src the tile sheet builds. The thumb is
+            // `loading="lazy"`, so it only fetches once it is near the viewport — and
+            // since MPI-831 a package tile sits in the Third-party Flows section at the
+            // BOTTOM of the library, measured ~2700px down against a 720px viewport.
+            // Without the scroll the image never loads, `onload` never fires, and this
+            // await hangs until the 90s test timeout rather than failing an assertion.
             const img = tile('Spec Package')?.querySelector('img');
+            img?.scrollIntoView();
             if (img && !img.complete) await new Promise(res => { img.onload = img.onerror = res; });
             out.previewSrc = img?.getAttribute('src') || null;
             out.previewPixels = img?.naturalWidth || 0;
