@@ -94,6 +94,34 @@ test("the project's saved ratio is injected only on an op that takes a ratio", (
     assert.ok(sized > 0 && ratioed > 0, 'both kinds of op are in the registry');
 });
 
+/*
+ * The skill doc PUBLISHES tier pixels, because a tier is a name and an agent that maps
+ * "1K" onto one by how it sounds gets it wrong (fd13dae7: "1K" -> `high`, 1664x960).
+ * Numbers in prose drift silently, so the ones it prints are pinned to the code here.
+ */
+test('the resolutions table in cubric-vision-generate matches what the code advertises', () => {
+    const fs = require('node:fs');
+    const path = require('node:path');
+    const doc = fs.readFileSync(path.join(__dirname, '..', '.claude', 'skills', 'cubric-vision-generate', 'SKILL.md'), 'utf8');
+    const at169 = (id, tier) => {
+        const m = MODELS.find((x) => x.id === id);
+        const op = (m.supportedOps || [])[0];
+        return namedParamsFor(m, op).tierSizes?.[tier]?.['16:9'];
+    };
+    for (const [id, tier, size] of [
+        ['krea2', '1k', '1344x768'],
+        ['krea2', '2k', '1936x1088'],
+        ['minimax-h3', 'high', '1664x960'],
+        ['minimax-h3', 'very_high', '1920x1088'],
+    ]) {
+        assert.equal(at169(id, tier), size, `${id} ${tier} moved; the skill's Resolutions table now lies`);
+        assert.ok(doc.includes(size), `the table no longer prints ${size}`);
+    }
+    // And the claim the whole section rests on: a video model has no `1k` tier.
+    assert.equal(at169('minimax-h3', '1k'), undefined);
+    assert.ok(namedParamsFor(MODELS.find((m) => m.id === 'krea2'), 't2i').tierSizes, 'tierSizes is what the doc sends agents to read');
+});
+
 test('the registry has both sides of each param, or the two tests above prove little', () => {
     const all = PAIRS.map(([m, op]) => namedParamsFor(m, op));
     for (const key of ['turbo']) {

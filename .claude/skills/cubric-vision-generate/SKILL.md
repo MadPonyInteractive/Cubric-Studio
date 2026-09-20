@@ -59,7 +59,7 @@ curl -s -X POST "$CUBRIC_URL/connector/generate" \
 | Param | Type | Notes |
 |---|---|---|
 | `ratio` | string | A ratio label the model offers, e.g. `"9:16"` — not orientation-specific, it is matched against both. |
-| `qualityTier` | string | One of the model's own tiers (`krea2`: `1k`/`2k`; `wan`/`ltx`/`h3`: `very_low`…`4k`). Models with no quality axis (`flux`/`sdxl`/`klein`/`chroma`) reject any value here. |
+| `qualityTier` | string | One of the model's own tiers (`krea2`: `1k`/`2k`; `wan`/`ltx`/`h3`: `very_low`…`4k`). Models with no quality axis (`flux`/`sdxl`/`klein`/`chroma`) reject any value here. **A tier is a NAME, not a size, and the same name is a different size on another model** — see § Resolutions below before you map what the user said onto one. |
 | `turbo` | boolean | Maps to whichever turbo toggle the model has (`krea2Turbo` or `h3Turbo`) — send the same friendly `turbo` key either way. Rejected on a model with neither. |
 | `styleSelect` | integer | Index into the model's style rack (`styleLoraLabels`), 0 = no style. Rejected on a model/operation with no style rack. |
 | `stylization` | number | 0..1, the selected style's strength. Same style-rack gate as `styleSelect`. |
@@ -70,6 +70,32 @@ An invalid value is a **named error, never a silent fallback** — an unknown
 ratio label, a tier the model does not declare, a non-boolean `turbo`, an
 out-of-range `styleSelect`, all fail the request rather than running
 with something you did not ask for (see the error table below).
+
+### Resolutions: a tier is a NAME, and the pixels are in the catalogue
+
+**Never map what the user said onto a tier by how the name sounds.** The tier
+vocabulary is per-model, and the same name is a different size on another model.
+`GET /connector/models` gives every op `params.tierSizes` —
+`{ tier: { ratio: "WxH" } }`, the real output pixels. **Read those numbers and
+match on them**, then say the size you picked.
+
+Two models, two vocabularies, at 16:9:
+
+| Tier | `krea2` (image) | `minimax-h3` (video) | `wan` (video) |
+|---|---|---|---|
+| `very_low` … `medium` | — | 832x448 · 1152x640 · 1344x768 | 512x288 · 640x368 · 832x480 |
+| `1k` | **1344x768** | — | — |
+| `high` | — | 1664x960 | 1280x720 |
+| `very_high` | — | **1920x1088** | **1920x1088** |
+| `2k` | **1936x1088** | 2560x1472 | — |
+| `4k` | — | 3840x2176 | — |
+
+So a user asking for **"1K"**, meaning roughly 1920x1080, wants `very_high` on a
+video model and `2k` on `krea2` — *not* the tier called `1k`, which is smaller
+than half that, and not `high`, which is the miss this table exists to stop.
+A video model has **no `1k` tier at all**; "there is no 1K tier" is a correct
+reading of the names and still the wrong answer to the question. Sizes for
+other ratios are in `tierSizes` — the values above are one column of it.
 
 **No `batch`. Want three images? Send three submits.** An agent submit always
 runs at batch 1, whatever the open project's batch control says, and a body
@@ -217,7 +243,7 @@ it. Use `/connector/generate`.
 
 ## Agent tool routes (MPI-774)
 
-`GET /connector/models` — `{ ok, engine, hardware: {gpuName,vramGb,ramGb}, models, flows }`. Each model has `installed`, `ops` (each with its named `params` and `media`: the `media[].role` values that op takes for that model, `tag` where a prompt cites the slot), `missingDownloadGb`, `fit: {floorVramGb, ramGbAtYourVram, runs}`, and `guides` (knowledge ids of its prompting guide: read one before writing a prompt for that model). Requires a Vision window (`APP_UNAVAILABLE` otherwise).
+`GET /connector/models` — `{ ok, engine, hardware: {gpuName,vramGb,ramGb}, models, flows }`. Each model has `installed`, `ops` (each with its named `params` — including `tierSizes`, `{tier: {ratio: "WxH"}}`, the real output pixels behind each `qualityTier` name, see § Resolutions — and `media`: the `media[].role` values that op takes for that model, `tag` where a prompt cites the slot), `missingDownloadGb`, `fit: {floorVramGb, ramGbAtYourVram, runs}`, and `guides` (knowledge ids of its prompting guide: read one before writing a prompt for that model). Requires a Vision window (`APP_UNAVAILABLE` otherwise).
 
 `GET /connector/knowledge` — corpus index `{ ok, entries: [{id,kind,title,tags}] }`. `GET /connector/knowledge/:id` — one entry with `text`. Error: `UNKNOWN_ENTRY`.
 
