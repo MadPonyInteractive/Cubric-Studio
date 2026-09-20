@@ -35,6 +35,29 @@ pointer below before editing; they were read 2026-09-16.
   card (MPI-760), the SAM3 cut-out with video tracking cuts its full-colour frames into alpha
   (MPI-771, decision 11). MPI-757's "no background removal on video" (its decision 1) is the
   rejected BiRefNet Remove Background on video (MPI-758); it does not stop this route.
+
+  **CORRECTION, measured 2026-09-20 (MadPony-Identity MPI-78).** The whole mascot set was cut out
+  with **BiRefNet on this exact route** — `POST /connector/gif/cutout` with `method: "background"`,
+  `adjust {"grow": -1}` — on a 16 GB 4060 Ti: **87 GIFs, 3426 frames, 40.8 min, zero failures**,
+  with GPU memory sampled twice mid-run at **5,076 MiB** (samples, not an instrumented peak).
+
+  Be precise about what that does and does not kill. `background` reaches BiRefNet through
+  `runGifCutoutTrack()`, which feeds it `Input_Video` — the frames are encoded into a source video
+  first (`POST /gif-cutout/source`), so this is **not** the "batch of images" path the concern
+  above is about. That concern is untested here and may well hold on its own path. What the
+  measurement does establish is that the sentence is **misleading for the GIF route, which is the
+  only route this card uses**: on it, BiRefNet is comfortable, not a VRAM problem.
+
+  So background removal here is **a real choice, not a settled constraint**. SAM3 `name` tracks a
+  named subject and keeps all four tracked slots; BiRefNet `background` takes no prompt and did the
+  whole set in one pass. Both are live: MPI-760 and MPI-771 are `done`/`complete`, and MPI-859
+  (composing cut-out methods, commit `a6c423db`) is `doing`/`validating` — shipped as code, card
+  not yet closed.
+
+  One caveat that is NOT about VRAM and does decide some clips: BiRefNet looks for a single salient
+  subject, and it struggled on the multi-object scenes (the connecting set, with Studio plus a
+  desk, laptop, tower and two cables). Those are where the hand-fixes went. SAM3 by name may be the
+  better tool for those specifically — untested.
   **Gap:** the cut-out frames keep full alpha, but MPI-757's outputs are the `.gif` (one-bit
   alpha) and GIF to Video (h264 MP4, no alpha). Nothing yet writes the frames as a VP9 alpha WebM
   (`-c:v libvpx-vp9 -pix_fmt yuva420p`): an export in the GIF workspace or a script.
@@ -65,8 +88,13 @@ pointer below before editing; they were read 2026-09-16.
 - [ ] Stage the cut-out clips per character under `assets/mascot/{key}/`, named by state
       (e.g. `idle-1`, `greet-2`, `happy-1`, `peek`). Clip ids per state are in `docs/mascot-placement.md`'s
       clip index. Keep the stills as the reduced-motion and first-paint fallback.
-- [ ] Close the alpha WebM gap (Settled, above). Then, per clip: GIF Maker -> SAM3 cut-out ->
+- [ ] Close the alpha WebM gap (Settled, above). Then, per clip: GIF Maker -> cut-out ->
       VP9 alpha WebM. Transitions skip the cut-out and ship as plain WebM on black.
+      **The cut-out step is already done for the whole set** (2026-09-20, BiRefNet, see the
+      correction under Settled): 103 finished GIFs in the Vision project `Cubric Studio GIFs`,
+      84 of them background-free. So this step is a **conversion** of existing cut-out frames,
+      not a fresh cut-out pass — unless a clip needs re-cutting, in which case SAM3 `name` and
+      BiRefNet `background` are both available and neither is ruled out.
 - [ ] Check the combined weight of `assets/mascot/` against the portable build.
 
 ### Phase 2: shared clip queue
