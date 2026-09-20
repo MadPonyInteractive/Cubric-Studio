@@ -51,11 +51,16 @@ words: *"Install… promises a download and delivers a legal wall."*
 - **Dep-graph edits are not live until the server restarts** — a Ctrl+R reload does not clear
   `createRequire`'s cache of `models.js`.
 
-## Open decision 4
+## The no-engine gate is NOT this card's problem
 
-`js/shell.js:486` gates the whole library shut when no engine is installed — exactly the user
-who wants cloud models. *Recommendation: let it open when a DeepInfra key exists, showing only
-the paid section.* MPI-390's reasoning covers installing weights only.
+`js/shell.js:486` gates the library shut with no engine, and it is tempting to lift it here.
+**Do not.** `blockedByNoEngine()` guards six call sites and two of them are *creating* and
+*opening a project* (`js/shell/projectUI.js:261`, `:557`), so a user without ComfyUI cannot
+reach a project at all — lifting one gate would drop them into an app where every local model,
+Flow and canvas tool fails at the point of use.
+
+Fabio's call, 2026-09-20: that is its own job. **Carved out to MPI-856.** This card ships the
+paid section for users who already have ComfyUI, and leaves the gate exactly as it is.
 
 ## Also settle
 

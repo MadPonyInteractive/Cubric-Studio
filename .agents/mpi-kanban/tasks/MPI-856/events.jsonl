@@ -1,0 +1,1 @@
+{"schema":"mpi-kanban/event/v1","id":"MPI-856","type":"task.created","at":"2026-09-20T12:58:02Z","actor":"opus","column":"todo","maturity":"research","summary":"Run Cubric Studio with no local engine - the cloud-only user"}

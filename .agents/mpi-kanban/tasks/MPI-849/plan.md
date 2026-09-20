@@ -176,20 +176,46 @@ Three things this list forces, none of them obvious:
 2. **Spend history** — an append-only ledger in userData as the panel's source, plus the cost
    in the sidecar because one is written anyway.
 
-**Still open. This umbrella stays `needs-decision` until they land; each member carries a
-recommendation and can start on it.**
+3. **One key, the one that already exists.** Paid generation uses the **same** DeepInfra key
+   the prompt enhancer and the agent already use. **No second key, no new settings field, no
+   new onboarding.** Presence check is `hasEndpointKey('deepinfra')`
+   (`main/secretsStore.js:280`); keys are stored **per profile** and persist, so the check
+   answers correctly even while another provider is the active LLM connection. If a user has
+   the key they get the models; if not, they do not, and nothing else changes for them.
+   *One edge to handle:* the main process **nulls the key when the profile's bound base URL no
+   longer matches** (`:418-427`), so a user who repointed the DeepInfra profile at a custom
+   host reads as keyless. Treat that as "no key", not as an error.
+4. **The no-engine gate stays exactly as it is for this umbrella.** Fabio 2026-09-20: opening
+   the app without ComfyUI is a big thing, because everything ComfyUI-dependent would then
+   have to toast instead of run. Confirmed by the code — `blockedByNoEngine()` guards **six**
+   call sites, and two of them are **creating a project** (`js/shell/projectUI.js:261`) and
+   **opening a project** (`:557`), not merely the two libraries (`js/shell.js:486`, `:501`).
+   So without ComfyUI a user cannot reach a project at all.
+   **Carved out to its own card, MPI-856** — it is the door to the cloud-only user and a
+   prerequisite for nothing in this umbrella. MPI-849 ships paid models to users who already
+   have ComfyUI; the gate is untouched.
 
-3. **Which key does paid generation use?** The app holds ONE user-picked LLM connection, not
-   "a DeepInfra key" (`docs/llm.md:19-21`). A user on Ollama or OpenRouter has none.
-   *Recommendation: pin `profileId: 'deepinfra'` independently of the LLM pick.* Tying them
-   means someone who prefers Ollama for prompts silently loses cloud generation.
-4. **The Model Library is gated shut with no engine** (`js/shell.js:486`). That is exactly the
-   user who wants cloud models. *Recommendation: let it open when a DeepInfra key exists,
-   showing only the paid section.*
-5. **Edit ops have no pixel dimensions** (`imageSizedOps` suppresses the ratio control), so a
-   megapixel price has nothing to read. *Recommendation: price from the staged reference
-   image's own dimensions, and where even that is unknown show a range rather than a number —
-   never `$0.00`, which reads as free.*
+**Still open:**
+
+5. **Edit ops have no pixel dimensions.** *Answering Fabio's question directly: yes, it is the
+   OUTPUT we do not know.* On an edit op the output inherits the **source image's** size, so
+   the app deliberately hides the ratio picker (`modelShowsRatio` returns false when the op is
+   in `model.imageSizedOps`) and nothing in the settings says how big the result will be.
+   **But the problem is far smaller than it first looked.** Across the fifteen agreed models:
+   - **Nano Banana (all four ids): no dimensions needed at all.** They bill a *fixed token
+     count per resolution tier* — 1120 tokens for 1 K — not per actual pixel, and they never
+     return more than ~1 MP anyway. An edit is a flat $0.034 / $0.067 / $0.134.
+   - **Seedream 4 and 4.5, FLUX 2 Pro and Max: flat per image.** No dimensions needed.
+   - **Video (Seedance, Wan, Veo): needs a resolution *tier* and a duration**, both of which
+     the controls do carry.
+   - **Only two cases actually need real pixels:** **FLUX 2 Dev**, the one image model that
+     scales with area and steps, and **Seedream 5.0 Pro**, which changes price at a 1.5 K
+     threshold.
+
+   And for those two the dimensions are available: staged media already carry
+   `pixelDimensions` (`MpiPromptBox.js:583`, from the upload record). *Recommendation: read
+   the source image's own dimensions for those two models; for every other model price flat or
+   by tier and ignore the question. Never render `$0.00`, which reads as "free".*
 
 ## Plan Drift
 

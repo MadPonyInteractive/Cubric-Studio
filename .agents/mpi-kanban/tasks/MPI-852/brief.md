@@ -33,12 +33,18 @@ Then the global events: `settings:shared:update` (ratio, duration, **batch**),
 
 - **Grid tracks.** `MpiPromptBox.css:4` declares exactly 8; agent mode declares its own 5 at
   `:132-143`. A 9th column must join both or the bar reflows.
-- **Edit ops have no pixel dimensions.** `modelShowsRatio` returns false when the op is in
-  `model.imageSizedOps`, so the ratio control is not mounted and `injectionParams` carries no
-  size. Klein's `kleinEdit` and `depth` do this — output inherits the source image's size.
-  **`$0.00` on every edit op is the default failure mode, and it reads as "free".**
-  *Recommendation (open decision 5): price from the staged reference's own dimensions; where
-  even that is unknown, show a range, never a number.*
+- **Edit ops have no pixel dimensions — but this is smaller than it looks.** `modelShowsRatio`
+  returns false when the op is in `model.imageSizedOps`, so the ratio control is not mounted
+  and `injectionParams` carries no size: on an edit the output inherits the **source image's**
+  size and nothing in the settings says how big the result will be.
+  **Across the fifteen agreed models, only two cases actually need real pixels:**
+  **FLUX 2 Dev** (the one image model that scales with area and steps) and **Seedream 5.0
+  Pro** (a price change at a 1.5 K threshold). Everything else is flat or tiered:
+  Nano Banana bills a **fixed token count per resolution tier**, not per pixel, and never
+  returns more than ~1 MP; Seedream 4/4.5 and FLUX 2 Pro/Max are flat per image; the video
+  models need a tier plus a duration, both of which the controls carry.
+  For those two models the dimensions are available — staged media already carry
+  `pixelDimensions` (`MpiPromptBox.js:583`). **Never render `$0.00`; it reads as "free".**
 - **No steps control exists anywhere.** The formula's steps term has no live input; it comes
   from a ModelDef field, keyed off `resolveTurboControlId(model)` where a turbo toggle exists.
 - **`settings:model:select` is Gallery-only** and `pb.on('model-change')` does not fire on a

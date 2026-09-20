@@ -1,0 +1,15 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-856",
+  "title": "Run Cubric Studio with no local engine - the cloud-only user",
+  "description": "Carved out of MPI-849 by Fabio 2026-09-20 on his own observation: letting a user in without ComfyUI means everything ComfyUI-dependent has to toast instead of run, and that is a lot of things. Verified - blockedByNoEngine() guards SIX call sites and two of them are creating a project (js/shell/projectUI.js:261) and opening a project (:557), not just the Model Library and the Flow Library (js/shell.js:486, :501). So today a user without ComfyUI installed cannot reach a project at all, which means the whole app is gated behind a local engine. That is exactly the user paid cloud models are for: a weak GPU, nothing installed, willing to pay DeepInfra per image. This card is the door to that user. It is NOT a prerequisite for MPI-849 - that umbrella ships paid models to users who already have ComfyUI and leaves the gate untouched. The work is a surface-by-surface audit: every local model, every Flow, every canvas tool and every op that needs the engine must refuse at the point of use with a named toast rather than failing, and the three libraries plus the project lifecycle must open without one. Do the audit before estimating; the gate is one line but what is behind it is the app.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-09-20T12:58:02Z",
+  "updated_at": "2026-09-20T12:58:02Z",
+  "links": {
+    "brief": "brief.md",
+    "events": "events.jsonl"
+  }
+}
