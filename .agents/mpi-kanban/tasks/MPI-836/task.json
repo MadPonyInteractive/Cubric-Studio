@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-836",
+  "title": "GIF workspace: every operation respects the trim bar; Speed and Loop fold into GIF output, Timing group leaves the rail",
+  "description": "Setting the trim range then opening GIF output built the whole GIF (Fabio, 2026-09-20). No GIF op reads the control bar's range, while every video op does. One ranged-frames source for output, crop, resize, cut-out, reverse and GIF to Video; Trim, Speed and Loop count leave the rail and frame rate + loop count join the GIF output panel, mirroring the video GIF Maker.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-20T07:59:41+01:00",
+  "updated_at": "2026-09-20T08:00:14+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

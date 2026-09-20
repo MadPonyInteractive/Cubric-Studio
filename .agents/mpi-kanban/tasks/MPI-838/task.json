@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-838",
+  "title": "GIF workspace: the preview spinner never stops, the strip does not follow a handle drag, and Home/End/I/O are unbound",
+  "description": "Three faults from Fabio's pass over the new GIF output tool (2026-09-20). The preview pane's spinner spins forever (it is hidden on the wrong element). Dragging the trim handles does not repaint the frame strip until pointerup, because MpiTrimBar only emits range-change on commit. The GIF control bar binds three of the video hotkey ids and not Home/End/I/O.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-20T08:48:23+01:00",
+  "updated_at": "2026-09-20T08:48:23+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

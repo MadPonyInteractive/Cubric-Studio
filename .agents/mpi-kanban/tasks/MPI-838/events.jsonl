@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-838", "at": "2026-09-20T08:48:23+01:00", "actor": "claude", "column": "todo", "title": "GIF workspace: the preview spinner never stops, the strip does not follow a handle drag, and Home/End/I/O are unbound"}

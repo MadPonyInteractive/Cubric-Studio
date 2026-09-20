@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-835",
+  "title": "GIF Mask Brush fix grows the whole frame mask: composed export binarises the soft engine edge",
+  "description": "A brushed GIF frame re-exports its mask through MaskManager.getURL(bg, fg), which snaps every alpha above 0 to full white. BiRefNet masks carry a soft falloff, so the composite grows by the feather width and Cut-out shows (and cuts) a halo on that frame only. Export coverage instead.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-20T07:40:46+01:00",
+  "updated_at": "2026-09-20T08:07:03+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

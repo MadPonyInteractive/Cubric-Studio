@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/components/Primitives/MpiCanvas/managers/MaskManager.js", "js/components/Primitives/MpiCanvas/MpiCanvas.js", "js/components/Organisms/MpiGifViewer/MpiGifViewer.js", "js/components/Organisms/MpiGifViewer/gifFrameMasks.js", "tests/desktop/gif-cutout.spec.js", "docs/masking-sam3-gif.md"] }
