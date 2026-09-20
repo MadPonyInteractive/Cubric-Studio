@@ -20,6 +20,7 @@ confirmed is marked UNVERIFIED rather than guessed.
 | [01-aggregators.md](01-aggregators.md) | fal.ai, Replicate, Runware, Modal. Includes the one-vendor-for-both question |
 | [01b-more-aggregators.md](01b-more-aggregators.md) | The other twelve, ranked by whether their terms permit this at all |
 | [01c-comfy-platform.md](01c-comfy-platform.md) | **Added 2026-09-19.** Comfy Developer Platform + Comfy Router — absent from the original sweep, and a second answer to finding #6's blocker. Router prices converted to USD |
+| [01d-deepinfra-image-video.md](01d-deepinfra-image-video.md) | **Added 2026-09-20.** DeepInfra's image and video catalogue, MEASURED with real calls: Nano Banana costs to the cent, the ~1 MP ceiling, which tier censors. The strongest Option A candidate, because the app already holds the user's DeepInfra key |
 | [02-direct-provider-apis.md](02-direct-provider-apis.md) | Google, OpenAI, Runway, Luma, Black Forest Labs, ElevenLabs: prices, terms, watermarks |
 | [02b-chinese-providers.md](02b-chinese-providers.md) | **Kling, MiniMax, ByteDance.** The models actually asked for, and the worst legal picture |
 | [03-legal-and-contracts.md](03-legal-and-contracts.md) | Resale clauses, partner programmes, UK/EU obligations, VAT, content liability |
