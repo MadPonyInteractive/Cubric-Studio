@@ -1,0 +1,1 @@
+{"schema":"mpi-kanban/event/v1","id":"MPI-851","type":"task.created","at":"2026-09-20T12:42:14Z","actor":"opus","column":"todo","maturity":"planned","summary":"The cloud executor - a provider on the ModelDef, one seam, a third lane, and install gates that ask a different question"}

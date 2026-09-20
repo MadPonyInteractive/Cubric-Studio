@@ -1,0 +1,15 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-854",
+  "title": "The agent states a price and spends only after OK - plus the gate it cannot talk around",
+  "description": "Phase 2 of MPI-849. The in-app agent must say what a paid generation costs and dispatch only after the user presses OK. Fabio 2026-09-20: a batch raises ONE card carrying the batch total and the count, not one card per generation, batch size 4 in the SDXL shape; capacity is not a constraint since DeepInfra allows 200 concurrent requests per model. The mechanism ships already - agent:confirm to POST /agent/confirm, today kind install showing a download size - and kind is not an enum anywhere, so a new value is not rejected, it is simply never read: MpiAgentChat drops it and hardcodes Install undefined?, which makes the failure a wrong card rather than an error. Six edits, no new route, no new event, nothing in agentTools.mjs. The gate belongs at agentLoop.mjs:924, after the existing gates and before the body build, because generate() is fire-and-almost-forget and anything after it has already spent the money. Four paths bypass an agentLoop-only gate and each needs its own answer: POST /connector/generate has no consent gate by design and is the path the shipped skill takes, the user's own Cue press, the Flow branch where model.id is null, and crash-requeue, which exists precisely so a closed app can re-fire the exact call and would therefore re-spend silently.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-20T12:42:14Z",
+  "updated_at": "2026-09-20T12:42:14Z",
+  "links": {
+    "brief": "brief.md",
+    "events": "events.jsonl"
+  }
+}

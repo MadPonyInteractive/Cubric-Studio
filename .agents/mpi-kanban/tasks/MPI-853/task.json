@@ -1,0 +1,15 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-853",
+  "title": "The Paid models section at the foot of the Model Library",
+  "description": "Phase 2 of MPI-849. A final section listing the fifteen cloud models with their prices, stating that they need a DeepInfra key in the remote settings. These models have no weights, so nothing downloads, installs or uninstalls. _pluginSection is the precedent to copy verbatim - a third non-model section appended after the two model sections, outside the media and tier filters and outside the N available count - and section order is literal call order, there is no ORDER table. Four additive edits plus the two call sites plugins occupy, including the empty branch, or the section vanishes on any search matching no local model. Verified traps: MpiTileSheet is state-dumb by contract so the tile must be built WITHOUT calling _modelState, whose fallthrough renders an Install chip whose click is a silent no-op because _install returns early on an empty dependency list; the --available chip modifier literally draws a download arrow in its ::before so a paid tile needs its own modifier; the hero count inflates on both numerator and denominator; and _listSignature must gain a paid segment or the chip never repaints when the user saves a key. The orphan sweep was checked and is SAFE - it keys on DEPS not MODELS, and the guard already filters depless models - so do not touch it; the docs prohibition is against deleting a dep entry, a different edit, and a second notion of orphan is how MPI-310 destroyed 5.24 GB.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-20T12:42:14Z",
+  "updated_at": "2026-09-20T12:42:14Z",
+  "links": {
+    "brief": "brief.md",
+    "events": "events.jsonl"
+  }
+}

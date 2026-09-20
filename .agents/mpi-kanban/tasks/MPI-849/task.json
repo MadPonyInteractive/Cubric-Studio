@@ -1,0 +1,16 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-849",
+  "title": "Paid cloud models through the user's own DeepInfra key - UMBRELLA",
+  "description": "Umbrella over six members. Fabio 2026-09-20 chose Option A from docs/proprietary-models-research after a costed review: bring your own key, no credit system, no markup, no proxy, no lawyer. The app already holds the user's DeepInfra key for the prompt enhancer, so there is no new secret and no new onboarding; the user pays DeepInfra directly and holds that contract. Local ComfyUI models stay free and untouched. Fifteen models agreed, nine of which price themselves from structured API fields while six need the measured constants MPI-850 owns. The research is measured, not estimated - 01d-deepinfra-image-video.md carries real calls costing 0.68 USD: prices to the cent, the exact Seedance token formula from an ffprobe, which tier censors this content, and the 1MP ceiling. The idea holding all six members together: the install machinery does not need teaching to PASS for a weightless model, it already passes twice by accident, it needs teaching to ask a different question - is a key saved. Three decisions remain open, see plan.md; this card sits at needs-decision until they land.",
+  "column": "todo",
+  "maturity": "needs-decision",
+  "status": "active",
+  "created_at": "2026-09-20T12:42:14Z",
+  "updated_at": "2026-09-20T12:42:14Z",
+  "links": {
+    "plan": "plan.md",
+    "events": "events.jsonl",
+    "research": "research/"
+  }
+}

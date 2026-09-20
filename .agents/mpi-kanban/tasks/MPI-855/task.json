@@ -1,0 +1,15 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-855",
+  "title": "The spend readout in the Remote panel - this month, and what is left",
+  "description": "Phase 2 of MPI-849. The user sees what they have spent this month and what remains of the money they put into DeepInfra. Fabio 2026-09-20 accepted the shape: an append-only ledger in userData is the panel's source, plus the cost in the sidecar because one is written anyway - a sidecar-only history dies when a project is deleted and would make the panel scan every project. The per-call truth is inference_status.cost, returned ONLY on the native route, so dispatching through the OpenAI-compatible routes loses the cost entirely; DeepInfra's own usage endpoint cannot itemise token-priced image models, which is why the app must keep its own ledger. Mounts as a fourth form-group at the foot of the Remote connection subgroup, copying _renderConnProbe line for line, hidden for a non-DeepInfra profile, and fired by the user's click rather than automatically on open. SECURITY, and it is not optional: the balance lives on an endpoint that also returns the billing address and card last4, and secretRedaction.js cannot help because it is five regexes for key-shaped strings and a regex for a postcode or a four-digit last4 is not writable. Only field-picking is a mitigation. The leak is two hops from a log line to a PUBLIC GitHub issue URL, and the established safe pattern is remotePodLifecycle.js:1380, which reads a fat upstream object and answers five named scalars.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-20T12:42:14Z",
+  "updated_at": "2026-09-20T12:42:14Z",
+  "links": {
+    "brief": "brief.md",
+    "events": "events.jsonl"
+  }
+}
