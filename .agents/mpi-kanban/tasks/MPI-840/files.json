@@ -1,0 +1,19 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/agent.js",
+    "services/agentSessions.mjs",
+    "services/agentLoop.mjs",
+    "js/components/Compounds/MpiAgentChat/MpiAgentChat.js",
+    "tests/agent-sessions.test.cjs",
+    "tests/agent-loop.test.cjs",
+    "docs/agent-chat.md",
+    "routes/connector.js",
+    "js/shell/agentDispatch.js",
+    "services/agentTools.mjs",
+    "tests/agent-generation-relay.test.cjs",
+    "tests/agent-no-delete.test.cjs",
+    ".claude/skills/cubric-vision/SKILL.md",
+    ".claude/skills/cubric-vision-generate/SKILL.md"
+  ]
+}

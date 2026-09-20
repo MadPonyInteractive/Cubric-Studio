@@ -586,6 +586,76 @@ test('a generation that never landed survives a restart as a project note, and l
     assert.match(store.get('unfinished-generations.md').text, /"status":"CANCELLED"/);
 });
 
+/*
+ * Fabio, live 2026-09-20: a photoreal clip rendering, an anime one queued behind it, then
+ * "Scratch that. Leave it." It was meant to cancel the anime clip. The agent had thirteen
+ * tools and none of them cancels, so it read "leave it" as "leave it running", said so, and
+ * the clip he had taken back rendered anyway.
+ */
+test('the agent can cancel what it started: the latest by default, an earlier one by id', async () => {
+    const project = { folderPath: '/project', name: 'Test' };
+    const store = new Map();
+    const gen = (id, prompt, cardName) => ({ text: '', toolCalls: [{ id, type: 'function', function: { name: 'generate',
+        arguments: JSON.stringify({ modelId: 'test-model', operation: 't2v', prompt, cardName }) } }] });
+    const cancel = (id, args = {}) => ({ text: '', toolCalls: [{ id, type: 'function', function: { name: 'cancel_generation', arguments: JSON.stringify(args) } }] });
+    const { loop, tools } = await makeLoop({ engineResponses: [
+        gen('g1', 'A cowgirl on a haystack', 'Cowgirl'), { text: 'Generating.' },
+        gen('g2', 'A cowgirl on a haystack, anime', 'Cowgirl anime'), { text: 'Anime version started.' },
+        cancel('c1'), { text: 'Cancelled the anime one.' },
+        cancel('c2', { toolCallId: 'PHOTOREAL' }), cancel('c3'), { text: 'Both gone.' },
+    ] });
+    Object.assign(tools, {
+        readMemory: async (_f, file) => (store.has(file) ? { ok: true, file, text: store.get(file).text } : { ok: true, notes: [] }),
+        writeMemory: async (_f, note) => { store.set(note.file, note); return { ok: true }; },
+    });
+    // The route's half: a submit is held open under its requestId, and a cancel settles it
+    // CANCELLED — the same envelope a Stop press in the app produces.
+    const held = new Map();
+    tools.generate = (body) => new Promise((resolve) => held.set(body.requestId, resolve));
+    const cancelled = [];
+    tools.cancelGeneration = async (requestId) => {
+        cancelled.push(requestId);
+        if (!held.has(requestId)) return { ok: false, error: { code: 'NOT_IN_FLIGHT', message: 'gone' } };
+        held.get(requestId)({ ok: false, error: { code: 'CANCELLED', message: 'The generation was cancelled or produced no output.' } });
+        held.delete(requestId);
+        return { ok: true, output: { cancelled: true, was: 'pending' } };
+    };
+    const toolResults = () => loop._messages.filter((m) => m.role === 'tool').map((m) => JSON.parse(m.content));
+    const ledger = () => JSON.parse(/```json\n([\s\S]*?)\n```/.exec(store.get('unfinished-generations.md').text)?.[1] || '[]');
+
+    await loop.runTurn('a cowgirl video', [], project, 'auto', 'deepinfra', 't1');
+    await loop.runTurn('make it anime', [], project, 'auto', 'deepinfra', 't2');
+    const [photoreal, anime] = [...held.keys()];
+    assert.equal(held.size, 2, 'each submit carries its own requestId');
+    assert.equal(toolResults()[1].toolCallId, anime, 'the id the model is given is the one the route can cancel');
+
+    await loop.runTurn('Scratch that. Leave it.', [], project, 'auto', 'deepinfra', 't3');
+    await new Promise((r) => setImmediate(r));
+    await loop._unfinishedQueue;
+    assert.deepEqual(cancelled, [anime], 'no id given: the LATEST one it started');
+    assert.match(toolResults()[2].message, /^Cancelled: Cowgirl anime\. Still in flight: .+\(Cowgirl\)\./);
+    assert.deepEqual(ledger().map((e) => e.generate.cardName), ['Cowgirl'], 'a clip the user took back is not one to requeue');
+    const last = loop.getHistory().entries.filter((e) => e.kind === 'result').pop();
+    assert.deepEqual(last.error, { code: 'CANCELLED', message: 'Cancelled, as you asked.' });
+    assert.doesNotMatch(JSON.stringify(loop._notes), /Generation failed/, 'and the model is not told it failed');
+
+    // An id it was never given reaches nothing; then the default finds the one still running.
+    await loop.runTurn('and the first one', [], project, 'auto', 'deepinfra', 't4');
+    await new Promise((r) => setImmediate(r));
+    await loop._unfinishedQueue;
+    assert.deepEqual(cancelled, [anime, photoreal]);
+    assert.equal(toolResults()[3].error.code, 'NOT_IN_FLIGHT');
+    assert.match(toolResults()[3].error.message, /Still in flight: .+\(Cowgirl\)/);
+    assert.equal(store.get('unfinished-generations.md').hook, 'none');
+
+    // Nothing left: it says so, and points at the app's own Stop for the user's runs.
+    const after = await makeLoop({ engineResponses: [cancel('c9'), { text: 'Nothing to cancel.' }] });
+    await after.loop.runTurn('cancel it', [], project, 'auto', 'deepinfra', 't5');
+    const r = JSON.parse(after.loop._messages.find((m) => m.role === 'tool').content);
+    assert.equal(r.error.code, 'NOT_IN_FLIGHT');
+    assert.match(r.error.message, /Stop in the app/);
+});
+
 // ---------------------------------------------------------------------------
 // (e) image references: only this session's attachments and its own results
 // ---------------------------------------------------------------------------
@@ -1029,6 +1099,23 @@ describe('(h) notes, results, names, guides', () => {
         await loop.runTurn('Remember this', [], null, 'auto', 'deepinfra', 't-nomem');
         assert.equal(tools.calls.writeMemory.length, 0);
         assert.deepEqual(toolResults(loop).map((r) => r.error?.code), ['NO_PROJECT', 'NO_PROJECT']);
+    });
+
+    // Live, 2026-09-20: the model cleared unfinished-generations.md itself while the requeue
+    // was still rendering. The code rewrote it on landing, but an app close in that window
+    // would have lost the one clip the note exists to recover.
+    test('the unfinished ledger is the app\'s: the model can read it, never write it', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('w1', 'write_memory', { file: ' Unfinished-Generations.md', title: 'Unfinished generations', text: 'Nothing unfinished.' }),
+            call('r1', 'read_memory', { file: 'unfinished-generations.md' }),
+            { text: 'Done.' },
+        ] });
+        withMemory(tools);
+        await loop.runTurn('Clear the list', [], project, 'auto', 'deepinfra', 't-ledger');
+        assert.equal(tools.calls.writeMemory.length, 0, 'the model\'s write never reaches the file');
+        assert.deepEqual(toolResults(loop).map((r) => r.error?.code), ['APP_OWNED_NOTE', undefined]);
+        // and the step does not claim a note was made
+        assert.equal(loop.getHistory().entries.find((e) => e.tool === 'write_memory').label, 'Checking unfinished generations');
     });
 
     test('the project notes open the first turn with that project, and again after a switch', async () => {

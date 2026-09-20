@@ -128,6 +128,20 @@ const TOOL_DEFS = [
     {
         type: 'function',
         function: {
+            name: 'cancel_generation',
+            description: 'Stop a generation you started that has not finished, whether it is rendering or still waiting in the queue. Call it when the user takes a request back ("scratch that", "cancel it", "never mind", "stop"). With no toolCallId it stops the latest one you started; pass the toolCallId that generate returned to stop an earlier one. It cannot stop a generation the user started themselves.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    toolCallId: { type: 'string', description: 'The toolCallId generate returned. Omit it for the latest one.' },
+                },
+                additionalProperties: false,
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
             name: 'look',
             description: 'Describe a still image the App state line lists. Optionally ask a specific question, crop to a region, or request a bounding box. It cannot open videos, folders or any other path.',
             parameters: {
@@ -266,6 +280,7 @@ const EARLY_REFUSAL_MS = 1000;
 
 // The project note that holds what was asked for and never landed (`_trackUnfinished`).
 const UNFINISHED_FILE = 'unfinished-generations.md';
+const _isUnfinishedFile = (file) => String(file || '').trim().toLowerCase() === UNFINISHED_FILE;
 
 /**
  * What the model sees of a `list_models` answer (MPI-774 Phase 7).
@@ -371,6 +386,11 @@ export class AgentLoop {
         this._images = new Map();  // ref -> { path, kind: 'attachment' | 'result' }
         this._groups = new Set();  // card ids this session's own generations created (rename_card)
         this._projects = new Set(); // project keys list_projects / create_project gave (open_project)
+        // Generations this conversation started that have not settled, oldest first:
+        // toolCallId -> a short label. What `cancel_generation` can reach — and NOT reset with
+        // the conversation: a clip still rendering after a clear is still this session's.
+        this._inflight = new Map();
+        this._askedCancel = new Set(); // toolCallIds the USER took back, so settling is not a failure
 
         // What the model hears at the start of its next turn (finished generations). A
         // message pushed the moment a generation settles could land between a tool call and
@@ -978,6 +998,9 @@ ${knowledgeIndex}`.trim();
                 // turn. This is the same failure the media gate closed for one case: a refusal
                 // landing after `{ started: true }`. Here it is closed for all of them.
                 const toolCallId = crypto.randomUUID();
+                // The route holds its response for the whole render, so this id is the only
+                // handle on the job until it is over — `cancel_generation` sends it back.
+                body.requestId = toolCallId;
                 const pending = this._tools.generate(body);
                 const early = await Promise.race([
                     pending.then((r) => r, (err) => ({ ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } })),
@@ -996,6 +1019,7 @@ ${knowledgeIndex}`.trim();
                 // It is queued. Until it lands, this is the only trace of what was asked for.
                 const askedIn = currentProject;
                 await this._trackUnfinished(askedIn, args, 'running');
+                this._inflight.set(toolCallId, args.cardName || String(args.prompt || args.flowId || '').slice(0, 60));
 
                 // One settle path, attached two ways. `wait` awaits it so the result is in
                 // hand before the tool returns; the default attaches it and returns
@@ -1003,6 +1027,16 @@ ${knowledgeIndex}`.trim();
                 // twice and push the note twice.
                 const settle = async (r) => {
                     const ok = r && r.ok;
+                    this._inflight.delete(toolCallId);
+                    // Taken back by the user: not a failure, and not something to requeue — so
+                    // it leaves the unfinished ledger, and the model is not told it "failed".
+                    if (!ok && this._askedCancel.delete(toolCallId)) {
+                        this._trackUnfinished(askedIn, args, null);
+                        this._emit('agent:result', { toolCallId, ok: false, error: { code: 'CANCELLED', message: 'Cancelled, as you asked.' } });
+                        this._historyEntry('result', { toolCallId, ok: false, error: { code: 'CANCELLED', message: 'Cancelled, as you asked.' } });
+                        return;
+                    }
+                    this._askedCancel.delete(toolCallId);
                     this._trackUnfinished(askedIn, args, ok ? null : (r?.error?.code || 'FAILED'));
                     if (ok && r.output?.filePath) this._registerResult(r.output.filePath, r.output.modelId);
                     if (ok && r.output?.groupId) this._groups.add(r.output.groupId);
@@ -1034,6 +1068,8 @@ ${knowledgeIndex}`.trim();
                     }
                 };
                 const settleThrow = (err) => {
+                    this._inflight.delete(toolCallId);
+                    this._askedCancel.delete(toolCallId);
                     this._trackUnfinished(askedIn, args, 'RUNTIME_ERROR');
                     this._emit('agent:result', { toolCallId, ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
                     this._historyEntry('result', { toolCallId, ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
@@ -1136,11 +1172,39 @@ ${knowledgeIndex}`.trim();
                 }
                 return JSON.stringify(seen);
             }
+            case 'cancel_generation': {
+                // Only what THIS conversation started and has not settled. The id is never
+                // trusted further than that map: a made-up one reaches nothing.
+                const id = args.toolCallId ? String(args.toolCallId) : [...this._inflight.keys()].pop();
+                if (!id || !this._inflight.has(id)) {
+                    const others = [...this._inflight].map(([k, label]) => `${k} (${label})`).join('; ');
+                    return JSON.stringify({ ok: false, error: { code: 'NOT_IN_FLIGHT', message: args.toolCallId
+                        ? `Nothing you started is in flight under that toolCallId: it already finished or was already cancelled.${others ? ` Still in flight: ${others}.` : ''}`
+                        : 'Nothing you started is still running or queued, so there is nothing to cancel. A generation the user started is theirs to stop, with Stop in the app.' } });
+                }
+                const label = this._inflight.get(id);
+                this._askedCancel.add(id);
+                const r = await this._tools.cancelGeneration(id);
+                if (!r?.ok) {
+                    this._askedCancel.delete(id);
+                    return JSON.stringify(r);
+                }
+                const left = [...this._inflight].filter(([k]) => k !== id).map(([k, l]) => `${k} (${l})`).join('; ');
+                return JSON.stringify({ ok: true, cancelled: label, was: r.output?.was,
+                    message: `Cancelled: ${label}.${left ? ` Still in flight: ${left}.` : ' Nothing else of yours is in flight.'}` });
+            }
             case 'read_memory':
             case 'write_memory': {
                 // The project is the one the app has open, never a path the model names.
                 if (!currentProject?.folderPath) {
                     return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'No project is open, so there are no project notes. Call create_project (it opens what it makes) and then call this again. Do not ask the user to open or create one.' } });
+                }
+                // The unfinished ledger is the CODE's (`_writeUnfinished`): a line goes in
+                // when a generation is asked for and comes out when it lands. The model
+                // cleared it live while a requeue was still rendering — an app close in
+                // that window loses the one clip the note exists to recover. Read-only here.
+                if (toolName === 'write_memory' && _isUnfinishedFile(args.file)) {
+                    return JSON.stringify({ ok: false, error: { code: 'APP_OWNED_NOTE', message: 'The app keeps this note itself: a generation is listed when it is asked for and removed when it lands. Nothing to write. You can read it.' } });
                 }
                 const r = toolName === 'read_memory'
                     ? await this._tools.readMemory(currentProject.folderPath, args.file)
@@ -1581,6 +1645,7 @@ function _toolLabel(toolName, args) {
         case 'read_knowledge': return args.id ? `Reading: ${args.id}` : 'Reading knowledge index';
         case 'install_model':  return `Preparing install: ${args.modelId || '?'}`;
         case 'generate':       return `Starting generation`;
+        case 'cancel_generation': return 'Cancelling a generation';
         case 'look':           return 'Looking at image';
         case 'list_projects':  return 'Checking your projects';
         case 'create_project': return `Creating project: ${args.name || ''}`;
@@ -1588,7 +1653,7 @@ function _toolLabel(toolName, args) {
         case 'rename_card':    return `Naming a card: ${args.name || ''}`;
         case 'list_cards':     return args.groupId ? 'Reading a card' : 'Looking through the project';
         case 'read_memory':    return args.file ? 'Reading a project note' : 'Reading project notes';
-        case 'write_memory':   return `Noted: ${args.title || args.file || ''}`;
+        case 'write_memory':   return _isUnfinishedFile(args.file) ? 'Checking unfinished generations' : `Noted: ${args.title || args.file || ''}`;
         default:               return toolName;
     }
 }

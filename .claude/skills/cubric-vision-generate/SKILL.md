@@ -194,7 +194,16 @@ the vocabulary.
 
 - **No mask.** `inpaint` and `detail` need a painted mask and are refused with
   `MASK_UNSUPPORTED`.
-- **No job status or cancellation.** One submit, one result.
+- **No job status.** One submit, one result.
+
+### Cancelling a submit
+
+A submit holds its response for the whole render, so name it up front: add
+`"requestId": "<8-64 chars of letters, digits, - or _>"` to the `/connector/generate` body.
+`POST /connector/cancel {"requestId": "..."}` then stops it, rendering or still queued, and
+answers `{"ok": true, "output": {"cancelled": true, "was": "pending"|"running"}}`; the held
+submit resolves `CANCELLED`. `NOT_IN_FLIGHT` = it already finished, was already cancelled, or
+never carried a `requestId`. It reaches only a submit you named - never the user's own runs.
 
 Project switching is no longer on this list — `POST /connector/open-project`
 covers it (see [../cubric-vision/projects.md](../cubric-vision/projects.md) § Creating a

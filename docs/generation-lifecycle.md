@@ -112,6 +112,15 @@ The recurring hazard around **Stop** and **cloud+local concurrency (MPI-74 P6)**
 
 Rule of thumb when adding ANY new per-gen UI/state: if two gens (or a Stopped gen's late echo) can touch it, tag the signal with the gen id and reject foreign ids — don't key on `tool` alone. And if a control is *rendered* from one source of truth, it must *act* on that same source — a button drawn from `_lanes` but wired to `activeGenerations` is a dead button waiting to happen.
 
+## A generation belongs to the project it was ASKED in (MPI-839)
+
+A render outlives the state it started from: the user switches projects mid-render, or the job waits PENDING in the Cue queue across the switch. Anything read from `state.currentProject` after that instant is the WRONG project. Found live: a clip asked for in one project saved its media, sidecar and card into another, and its spinner painted in the gallery he had switched to.
+
+- **Freeze at ENQUEUE** — `enqueueGeneration` sets `config._originProject` beside `_controlSnapshot` (MPI-336, same class). `startGeneration` reads `config._originProject ?? state.currentProject`; the live read is only the fallback for a direct dispatch. The completion path never re-reads the live project (`tests/generation-project-pinning.test.cjs` pins the source).
+- **The card for a project that is no longer open** goes through `POST /project-groups` -> `updateProjectJson()`, upsert by group id. The renderer owns `itemGroups` only for the OPEN project — `persistGroups` writes the whole array back.
+- **Placeholders are project-scoped, busy state is not.** The registry entry carries `projectPath`; the gallery reads its placeholders through `activeGenerations.listFor('gallery', null, <open folderPath>)` and ignores a foreign `generation:started`. The PromptBox busy/Stop reads omit the third argument ON PURPOSE: the engine is one, and Stop must reach a render from any project.
+- Known gap: a loop re-fire builds a FRESH config from the live PromptBox, so it freezes to the project open at re-fire.
+
 ## An agent is the THIRD producer — and the route is the contract (MPI-546)
 
 `POST /connector/generate` lets an agent dispatch a real generation. Three things produce into

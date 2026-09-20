@@ -151,6 +151,80 @@ describe('one conversation per project', () => {
         assert.equal(sessions.busy(), false);
     });
 
+    // MPI-840 — a message typed while the agent was answering came back BUSY and the text
+    // was gone. It waits its turn now, in the order it was typed, in its own conversation.
+    test('a turn sent while another is running waits for it, and is not lost', async (t) => {
+        let release;
+        const held = new Promise((r) => { release = r; });
+        const { sessions, send, restore, events } = await makeSessions({ gate: () => held });
+        t.after(restore);
+        const turn = (text, project, turnId) => ({ text, attachments: [], project, mode: 'auto', profileId: 'deepinfra', turnId, model: 'fake' });
+
+        const running = send('slow', A);
+        sessions.queue(turn('make it 1K', A, 'q1'));
+        sessions.queue(turn('and one in beta', B, 'q2'));
+        await new Promise((r) => setImmediate(r));
+        assert.deepEqual(userTexts(sessions.history(A.folderPath)), ['slow'], 'nothing reaches the agent mid-turn');
+        assert.deepEqual(userTexts(sessions.history(B.folderPath)), []);
+
+        release();
+        await running;
+        assert.equal(sessions.busy(), false, 'the queue drained');
+        assert.deepEqual(userTexts(sessions.history(A.folderPath)), ['slow', 'make it 1K']);
+        assert.deepEqual(userTexts(sessions.history(B.folderPath)), ['and one in beta']);
+        assert.deepEqual(
+            events.filter((e) => e.event === 'agent:message').map((e) => e.data.text),
+            ['reply to slow', 'reply to make it 1K', 'reply to and one in beta'],
+        );
+    });
+
+    // The route has no harness of its own, so its one ordering rule is pinned on the source:
+    // busy() is read AFTER the attachment-staging awaits, with nothing async before the
+    // hand-off. Read before them, a turn queued once the running one had already ended
+    // would sit in a queue nothing drains.
+    test('the route decides queue-or-run after staging, and never answers BUSY', () => {
+        const src = require('node:fs').readFileSync(path.join(__dirname, '..', 'routes', 'agent.js'), 'utf8');
+        const post = src.slice(src.indexOf("router.post('/agent/message'"), src.indexOf("router.get('/agent/stream'"));
+        assert.doesNotMatch(post, /code: 'BUSY'/);
+        const staged = post.indexOf('tools.saveAttachment(');
+        const decided = post.indexOf('const queued = sessions.busy();');
+        assert.ok(staged > 0 && decided > staged, 'busy() must be read after the staging awaits');
+        assert.doesNotMatch(post.slice(decided), /\bawait\b/, 'nothing async between the decision and the hand-off');
+        assert.match(post.slice(decided), /if \(queued\) return sessions\.queue\(turn\);/);
+    });
+
+    test('a turn that throws still hands on to the queued one', async (t) => {
+        const { sessions, send, restore } = await makeSessions();
+        t.after(restore);
+        const { AgentLoop } = await import('../services/agentLoop.mjs');
+        const orig = AgentLoop.prototype.runTurn;
+        AgentLoop.prototype.runTurn = async function (text, ...rest) {
+            if (text === 'boom') throw new Error('boom');
+            return orig.call(this, text, ...rest);
+        };
+        t.after(() => { AgentLoop.prototype.runTurn = orig; });
+
+        sessions.queue({ text: 'after the crash', attachments: [], project: A, mode: 'auto', profileId: 'deepinfra', turnId: 'q1', model: 'fake' });
+        await assert.rejects(send('boom', A), /boom/);
+        assert.equal(sessions.busy(), false, 'a stuck queue would hold every later message forever');
+        assert.deepEqual(userTexts(sessions.history(A.folderPath)), ['after the crash']);
+    });
+
+    test('clearing a conversation drops the turns still waiting for it', async (t) => {
+        let release;
+        const held = new Promise((r) => { release = r; });
+        const { sessions, send, restore } = await makeSessions({ gate: () => held });
+        t.after(restore);
+        const running = send('slow', A);
+        sessions.queue({ text: 'for alpha', attachments: [], project: A, mode: 'auto', profileId: 'deepinfra', turnId: 'q1', model: 'fake' });
+        sessions.queue({ text: 'for beta', attachments: [], project: B, mode: 'auto', profileId: 'deepinfra', turnId: 'q2', model: 'fake' });
+        await sessions.reset(B.folderPath);
+        release();
+        await running;
+        assert.deepEqual(userTexts(sessions.history(A.folderPath)), ['slow', 'for alpha']);
+        assert.deepEqual(userTexts(sessions.history(B.folderPath)), []);
+    });
+
     test('D5: the landing conversation moves into a project that has none', async (t) => {
         const { sessions, send, restore, events, tools } = await makeSessions();
         t.after(restore);

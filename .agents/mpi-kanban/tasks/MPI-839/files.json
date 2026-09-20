@@ -2,8 +2,11 @@
   "schema": "mpi-kanban/task-files/v1",
   "files": [
     "js/services/generationService.js",
+    "js/services/activeGenerations.js",
+    "js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js",
     "routes/projects.js",
     "tests/generation-project-pinning.test.cjs",
-    "tests/flow-defer-commit.test.cjs"
+    "tests/flow-defer-commit.test.cjs",
+    "docs/generation-lifecycle.md"
   ]
 }

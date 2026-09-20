@@ -516,7 +516,8 @@ export const MpiAgentChat = ComponentFactory.create({
                 // The landing chat is the landing page's conversation, whatever project is still loaded.
                 const res = await agentSendMessage(text, attachments || [], _projectRef());
                 if (!res?.ok) {
-                    // BUSY, NO_PROFILE and a bad body come back as a 200 with ok: false.
+                    // NO_PROFILE and a bad body come back as a 200 with ok: false. A message
+                    // sent mid-answer is NOT one of them any more: it queues (MPI-840).
                     _appendError(res?.error?.code, res?.error?.message || 'The agent could not take that message.');
                     _setWorking(false);
                 } else if (_session === null) {

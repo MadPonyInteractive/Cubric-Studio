@@ -38,6 +38,10 @@ const ALLOWED_REQUESTS = new Set([
     // MPI-817: what the open project already holds. Read-only, off disk.
     'GET /connector/cards',
     'GET /connector/cards/:id',
+    // MPI-840 (Fabio, 2026-09-20: "The agent should be able to cancel generations"). Not a
+    // delete: it stops a render the agent ITSELF started, named by its own requestId, and a
+    // cancelled generation never made a card or a file. It cannot reach the user's own runs.
+    'POST /connector/cancel',
 ]);
 
 // Exports that only touch the agent's own scratch dirs, never a project.

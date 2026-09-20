@@ -39,7 +39,7 @@
  * availability) and the existing download / enqueue paths, so they live here.
  */
 
-import { enqueueGeneration, findMissingMediaSlot } from '../services/generationService.js';
+import { enqueueGeneration, findMissingMediaSlot, cancelPendingCueJob, cancelRunningCueJob } from '../services/generationService.js';
 import { submitFlowGeneration } from '../services/flowService.js';
 import { openProject, renameGroup } from '../services/projectService.js';
 import { navigate, PAGE_GALLERY } from '../router.js';
@@ -65,11 +65,18 @@ import { clientLogger } from '../services/clientLogger.js';
 let _source = null;
 /** Job ids already reported — the "one result out" half of the contract. */
 const _settled = new Set();
+/**
+ * Submit job id -> its Cue queue id, while it is in flight. The one thing `generation.cancel`
+ * needs: the queue's own cancel functions take a queueJobId, and only this file knows which
+ * one a relayed job became. Dropped the moment the job reports.
+ */
+const _queueJobs = new Map();
 
 /** POST a job's outcome back. Late/duplicate reports are dropped here and no-op'd server-side. */
 async function _report(jobId, payload) {
     if (_settled.has(jobId)) return;
     _settled.add(jobId);
+    _queueJobs.delete(jobId);
     try {
         await fetch(`/connector/jobs/${jobId}/result`, {
             method: 'POST',
@@ -310,6 +317,7 @@ function _submitGeneration(jobId, input = {}) {
     if (!queued) {
         return _fail(jobId, 'REJECTED', 'Vision rejected the job before it entered the queue.');
     }
+    if (!_settled.has(jobId)) _queueJobs.set(jobId, queued.queueJobId);
     return null;
 }
 
@@ -548,6 +556,9 @@ async function _submitFlow(jobId, input = {}) {
     if (!queued) {
         return _fail(jobId, 'REJECTED', 'Vision rejected the job before it entered the queue.');
     }
+    // ponytail: a two-leg flow's second leg enqueues under a NEW queue id, so a cancel that
+    // arrives during leg 2 answers NOT_IN_FLIGHT. Thread the leg's id back if that bites.
+    if (!_settled.has(jobId)) _queueJobs.set(jobId, queued.queueJobId);
     return null;
 }
 
@@ -821,9 +832,33 @@ async function _describeImage(jobId, input = {}) {
     return _fail(jobId, code, message);
 }
 
+/**
+ * Run one `generation.cancel` job: stop the submit that went out under `input.jobId`, whether
+ * it is still waiting in the Cue queue or already rendering. Through the queue's OWN cancel
+ * functions — the same ones the Cue panel's buttons call — so the lane drains, the next job
+ * promotes and the placeholder clears exactly as they do for a user's Stop. The cancelled
+ * submit reports `CANCELLED` by itself, through the `onCancel` it was enqueued with.
+ *
+ * Found live (Fabio, 2026-09-20): "Scratch that. Leave it." was meant to cancel a clip, and
+ * the agent had no way to — so it read "leave it" as "leave it running" and said so.
+ */
+function _cancelGeneration(jobId, input) {
+    const queueJobId = _queueJobs.get(input?.jobId);
+    const was = !queueJobId ? null
+        : cancelPendingCueJob(queueJobId).length ? 'pending'
+        : cancelRunningCueJob(queueJobId) ? 'running'
+        : null;
+    if (!was) {
+        return _fail(jobId, 'NOT_IN_FLIGHT',
+            'Nothing in flight by that requestId: it already finished or was already cancelled.');
+    }
+    return _report(jobId, { ok: true, output: { cancelled: true, was } });
+}
+
 /** Capability name → handler. The relay carries nothing else. */
 const _HANDLERS = {
     'generation.submit': _submitGeneration,
+    'generation.cancel': _cancelGeneration,
     'project.open': _openProject,
     'card.rename': _renameCard,
     'agent.list-models': _listModels,
@@ -859,6 +894,9 @@ export function initAgentDispatch() {
             _fail(job.jobId, 'UNSUPPORTED_CAPABILITY', `Unknown capability "${job.capability}".`);
             return;
         }
+        // A submit's id can be the caller's own `requestId`, and the route only refuses one
+        // that is still in flight — so a reused id must not be read as "already reported".
+        _settled.delete(job.jobId);
         clientLogger.info('connector', `Agent job ${job.jobId}: ${job.capability}`);
         // Through a promise so an async handler's rejection reports too — a bare
         // try/catch only sees a synchronous throw, and an unreported job hangs the

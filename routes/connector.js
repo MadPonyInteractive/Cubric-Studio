@@ -318,7 +318,7 @@ function _settleJob(jobId, payload) {
  * back. Rejects nothing — an unreachable renderer, a timeout and a renderer-side
  * failure all resolve to a clean `{ ok: false, error }` envelope.
  */
-function _dispatchToRenderer(capability, input) {
+function _dispatchToRenderer(capability, input, jobId = randomUUID()) {
   if (!_jobSubscribers.size) {
     return Promise.resolve({
       ok: false,
@@ -329,7 +329,8 @@ function _dispatchToRenderer(capability, input) {
     });
   }
 
-  const jobId = randomUUID();
+  // `jobId` is the caller's `requestId` when a submit carried one — that id is how a later
+  // `generation.cancel` names this job to the renderer, with no second table to keep in step.
   const frame = `event: job\ndata: ${JSON.stringify({ jobId, capability, input })}\n\n`;
 
   return new Promise((resolve) => {
@@ -519,12 +520,44 @@ router.post('/connector/generate', async (req, res) => {
 
   if (cardName !== undefined) input.cardName = cardName;
 
-  const result = await _dispatchToRenderer('generation.submit', input);
+  // `requestId` — the caller's own name for this submit, so it can cancel it later
+  // (`POST /connector/cancel`). This route holds its response for the whole render, so
+  // without one the caller has nothing to point at until it is too late to matter.
+  const { requestId } = req.body || {};
+  if (requestId !== undefined && !/^[\w-]{8,64}$/.test(String(requestId))) {
+    return _namedErr('INVALID_REQUEST_ID', 'body.requestId must be 8-64 characters of letters, digits, "-" or "_".');
+  }
+  if (requestId !== undefined && _pendingJobs.has(String(requestId))) {
+    return _namedErr('DUPLICATE_REQUEST_ID', 'A generation with that requestId is still in flight.');
+  }
+
+  const result = await _dispatchToRenderer('generation.submit', input, requestId !== undefined ? String(requestId) : undefined);
 
   if (!result.ok) {
     logger.warn('system', `connector generate failed: ${result.error?.code} ${result.error?.message}`);
   }
   res.json(result);
+});
+
+/**
+ * POST /connector/cancel { requestId } — stop a generation this caller submitted with that
+ * `requestId`, whether it is rendering or still waiting in the queue. Nothing else is touched:
+ * not the user's own runs, not another caller's. The cancelled submit's own held response
+ * then resolves `CANCELLED`, exactly as it does for a Stop press in the app.
+ * -> `{ ok: true, output: { cancelled: true, was: 'pending'|'running' } }`.
+ * Errors: BAD_REQUEST, NOT_IN_FLIGHT (finished, cancelled already, or never submitted),
+ * APP_UNAVAILABLE.
+ */
+router.post('/connector/cancel', async (req, res) => {
+  const { requestId } = req.body || {};
+  if (typeof requestId !== 'string' || !requestId) {
+    return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'body.requestId is required: the requestId the generation was submitted with.' } });
+  }
+  // Answered here when the route already knows: a settled job left `_pendingJobs`.
+  if (!_pendingJobs.has(requestId)) {
+    return res.json({ ok: false, error: { code: 'NOT_IN_FLIGHT', message: 'Nothing in flight by that requestId: it already finished, was already cancelled, or was never submitted.' } });
+  }
+  res.json(await _dispatchToRenderer('generation.cancel', { jobId: requestId }));
 });
 
 /** A POST to one of this server's own app routes, over loopback (the project routes live elsewhere). */

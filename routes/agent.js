@@ -102,11 +102,6 @@ router.post('/agent/message', async (req, res) => {
         return _unavailable(res, err);
     }
 
-    // D4: one turn at a time, whichever conversation it is in.
-    if (sessions.busy()) {
-        return res.json({ ok: false, error: { code: 'BUSY', message: 'The agent is still answering. Wait for it to finish.' } });
-    }
-
     const turnId = crypto.randomUUID();
 
     // Stage attachments eagerly so the response can report their ids
@@ -126,10 +121,17 @@ router.post('/agent/message', async (req, res) => {
         }
     }
 
+    // D4: one turn at a time, whichever conversation it is in. A message sent while one is
+    // running WAITS for it (MPI-840) — it used to be answered BUSY and the text was lost.
+    // Decided HERE, after the staging awaits and with nothing async before the hand-off
+    // below: a turn queued after the running one had already ended would never be drained.
+    const queued = sessions.busy();
+
     // Return at once; the reply arrives on /agent/stream, tagged with this `session`.
     res.json({
         ok: true,
         turnId,
+        queued,
         session: sessions.keyOf(project?.folderPath),
         attachments: stagedAttachments.filter((a) => a.id).map((a) => ({ id: a.id, name: a.name })),
     });
@@ -137,7 +139,9 @@ router.post('/agent/message', async (req, res) => {
     // Run the turn asynchronously. The STAGED records go in, not the raw data URLs:
     // staging them a second time would give the chat and the model different ids for
     // the same picture, and the loop registers these ids as the images it may read.
-    sessions.send({ text: text || '', attachments: stagedAttachments, project: project || null, mode, profileId, turnId, model, pinned: pinned || null })
+    const turn = { text: text || '', attachments: stagedAttachments, project: project || null, mode, profileId, turnId, model, pinned: pinned || null };
+    if (queued) return sessions.queue(turn);
+    sessions.send(turn)
         .catch((err) => logger.error('agent', `runTurn unhandled: ${err.message}`));
 });
 

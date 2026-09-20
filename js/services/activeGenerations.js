@@ -23,6 +23,7 @@ import { Events } from '../events.js';
  * @property {string}      status            — 'running' | 'complete' | 'error' | 'cancelled'
  * @property {string|null} latestPreviewUrl
  * @property {Object|null} placeholderGroup  — gallery only
+ * @property {string|null} projectPath       — folderPath of the project it was ASKED for in (MPI-839)
  * @property {string|null} queueJobId
  * @property {Object|null} queueDisplay
  * @property {Object}      exec
@@ -37,8 +38,8 @@ const _registry = new Map();
  * @param {{ scope, groupId, tempId, operation, modelId, placeholderGroup, exec }} opts
  * @returns {{ id: string }}
  */
-function start({ id = crypto.randomUUID(), scope, groupId = null, tempId = null, operation, modelId, placeholderGroup = null, extraTempIds = [], extraPlaceholders = [], exec, replaceItemId = null, sourceGroupId = null, queueJobId = null, queueDisplay = null, queueSource = null, isLoop = false }) {
-    const entry = { id, scope, groupId, tempId, extraTempIds, extraPlaceholders, operation, modelId, status: 'running', latestPreviewUrl: null, placeholderGroup, exec, promptId: null, replaceItemId, sourceGroupId, queueJobId, queueDisplay, queueSource, isLoop };
+function start({ id = crypto.randomUUID(), scope, groupId = null, tempId = null, operation, modelId, placeholderGroup = null, extraTempIds = [], extraPlaceholders = [], exec, replaceItemId = null, sourceGroupId = null, queueJobId = null, queueDisplay = null, queueSource = null, isLoop = false, projectPath = null }) {
+    const entry = { id, scope, groupId, tempId, extraTempIds, extraPlaceholders, operation, modelId, status: 'running', latestPreviewUrl: null, placeholderGroup, exec, promptId: null, replaceItemId, sourceGroupId, queueJobId, queueDisplay, queueSource, isLoop, projectPath };
     _registry.set(id, entry);
     Events.emit('generation:started', { id, scope, groupId, tempId, operation, placeholderGroup, extraTempIds, extraPlaceholders, replaceItemId, sourceGroupId, queueJobId, queueDisplay, queueSource, isLoop });
     return { id };
@@ -127,12 +128,18 @@ function list() {
 
 /**
  * Filter by scope. For 'gallery', groupId is ignored.
+ *
+ * `projectPath` (gallery only, MPI-839) narrows to gens ASKED FOR in that project —
+ * the registry is app-wide and a render outlives the project it started in. Omit it
+ * for the app-wide reads (busy state, Stop). An entry with no recorded project
+ * matches any.
  * @returns {GenerationEntry[]}
  */
-function listFor(scope, groupId) {
+function listFor(scope, groupId, projectPath) {
     return Array.from(_registry.values()).filter(e => {
         if (e.scope !== scope) return false;
         if (scope === 'groupHistory') return e.groupId === groupId;
+        if (projectPath !== undefined && e.projectPath && e.projectPath !== projectPath) return false;
         return true;
     });
 }

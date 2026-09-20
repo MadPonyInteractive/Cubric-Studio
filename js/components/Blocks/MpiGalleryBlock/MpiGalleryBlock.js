@@ -125,7 +125,15 @@ export const MpiGalleryBlock = ComponentFactory.create({
         // scoped to OUR own stopped ids only, so a concurrent local/remote lane
         // (MPI-74 P6) is never affected.
         const _stoppedPendingComplete = new Set();
-        const _runningGallery = activeGenerations.listFor('gallery', null).filter(e => e.status === 'running');
+        // MPI-839 — running gallery gens that belong to THIS project. A render outlives
+        // the project it was asked in, and the registry is app-wide, so an unscoped read
+        // painted a spinner in whichever gallery was mounted for a card landing
+        // elsewhere. Placeholder reads go through here; the busy/Stop reads below stay
+        // app-wide on purpose — the engine is one, and Stop must reach it from anywhere.
+        const _ownRunningEntries = () => activeGenerations
+            .listFor('gallery', null, state.currentProject?.folderPath ?? null)
+            .filter(e => e.status === 'running');
+        const _runningGallery = _ownRunningEntries();
         // Only the first-running entry gets a visible placeholder. Queued
         // siblings are tracked in activeGenerations but stay invisible until
         // their turn comes up.
@@ -1632,7 +1640,7 @@ export const MpiGalleryBlock = ComponentFactory.create({
         // (the one ComfyUI is actively processing); later ones stay invisible
         // until they bubble up to "first" position.
         const _firstRunningEntry = () => {
-            return activeGenerations.listFor('gallery', null).find(e => e.status === 'running') || null;
+            return _ownRunningEntries()[0] || null;
         };
         const _placeholdersForFirst = () => {
             const first = _firstRunningEntry();
@@ -1650,6 +1658,9 @@ export const MpiGalleryBlock = ComponentFactory.create({
 
         _unsubs.push(Events.on('generation:started', ({ id, scope }) => {
             if (scope !== 'gallery') return;
+            // A queued job from another project can dispatch while this gallery is
+            // mounted (MPI-839) — not ours to paint or to rebuild for.
+            if (!_ownRunningEntries().some(e => e.id === id)) return;
             _myGenIds.add(id);
             const currentGroups = _visibleProjectGroups();
             grid.el.setGroups([..._leadingGroups(), ...currentGroups]);

@@ -108,6 +108,11 @@ export async function generate(body) {
     return _post('/connector/generate', body, 1_800_000);
 }
 
+/** POST /connector/cancel { requestId } — stop a generation submitted under that requestId. */
+export async function cancelGeneration(requestId) {
+    return _post('/connector/cancel', { requestId });
+}
+
 /**
  * POST /connector/describe { imagePath, question?, crop? }
  * imagePath must be absolute. Crops and attachment resolution are done by the loop

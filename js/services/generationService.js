@@ -533,6 +533,13 @@ export function enqueueGeneration(config, callbacks = {}, opts = {}) {
             config.model, config.operation, config.injectionParams || {},
             { historyMode: config.historyMode === true });
     }
+    // MPI-839 — the project freezes at the same instant, for the same reason: a job
+    // can sit PENDING behind another render, and one dispatched after a project switch
+    // would otherwise adopt whichever project is open by then. `??=` so the SAME config
+    // object enqueued twice keeps the project it began in.
+    // ponytail: a loop re-fire builds a FRESH config from the live PromptBox, so it
+    // freezes to the project open at re-fire. Carry it from `loopSeed` if that bites.
+    config._originProject ??= state.currentProject;
 
     const queueJobId = opts.queueJobId || crypto.randomUUID();
     const source = opts.source || (state.loopArmed ? 'loop' : 'manual');
@@ -854,7 +861,9 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
     // another, with nothing in the first to say it had ever been asked for. Same class
     // as MPI-336's control snapshot — anything the SAVE path needs must be frozen at
     // dispatch, because a generation outlives the state it was started from.
-    const _originProject = state.currentProject;
+    // Frozen at ENQUEUE when the job came through the Cue queue (`enqueueGeneration`);
+    // the live read is only the fallback for a direct dispatch that skipped it.
+    const _originProject = config._originProject ?? state.currentProject;
     // True while the app still has the origin project open, which is what decides
     // whether the renderer may write the card itself (it owns `itemGroups` only for
     // the open one) or has to register it server-side.
@@ -942,6 +951,8 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         queueDisplay:      opts.queueDisplay ?? null,
         queueSource:       opts.queueSource ?? null,
         isLoop:            opts.isLoop === true,
+        // MPI-839 — lets a gallery paint placeholders for ITS project only.
+        projectPath:       _originProject?.folderPath ?? null,
     });
 
     // Stamp the gen id onto exec so commandExecutor's StatusBar lifecycle emits

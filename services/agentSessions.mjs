@@ -37,6 +37,7 @@ export class AgentSessions {
         this._loops = new Map();       // session key -> AgentLoop
         this._subscribers = new Set(); // SSE responses, one stream for every conversation
         this._carry = null;            // a request on its way to another conversation (D5)
+        this._queued = [];             // turns sent while another was running (MPI-840)
         this._probeLoop = null;
     }
 
@@ -69,7 +70,17 @@ export class AgentSessions {
 
     /** D4: one turn at a time across every conversation; a request being carried counts. */
     busy() {
-        return !!this._carry || [...this._loops.values()].some((l) => l._working);
+        return !!this._carry || this._queued.length > 0 || [...this._loops.values()].some((l) => l._working);
+    }
+
+    /**
+     * MPI-840: a turn sent while another is running waits its turn instead of being refused.
+     * It used to come back BUSY and the text was gone — nothing stored it. It does NOT reach
+     * the agent mid-thought: it runs after the current turn, so a correction to a generation
+     * already dispatched arrives after the dispatch.
+     */
+    queue(turn) {
+        this._queued.push(turn);
     }
 
     /** The history of a project's conversation ('' or no folder = the landing page), with its key. */
@@ -81,7 +92,10 @@ export class AgentSessions {
 
     /** Clear one conversation; the others keep theirs. */
     async reset(folderPath) {
-        const loop = this._loops.get(projectKey(folderPath));
+        const key = projectKey(folderPath);
+        // A cleared conversation must not be answered by a turn typed before the clear.
+        this._queued = this._queued.filter((t) => projectKey(t.project?.folderPath) !== key);
+        const loop = this._loops.get(key);
         if (loop) await loop.reset();
     }
 
@@ -118,10 +132,17 @@ export class AgentSessions {
     async send(turn) {
         const key = projectKey(turn.project?.folderPath);
         const loop = this._loops.get(key) || this._newLoop(key);
-        await loop.runTurn(turn.text, turn.attachments, turn.project || null, turn.mode, turn.profileId, turn.turnId, { model: turn.model, carried: !!turn.carried, pinned: turn.pinned || null });
-        const carry = this._carry;
-        this._carry = null;
-        if (carry) await this.send(carry);
+        try {
+            await loop.runTurn(turn.text, turn.attachments, turn.project || null, turn.mode, turn.profileId, turn.turnId, { model: turn.model, carried: !!turn.carried, pinned: turn.pinned || null });
+        } finally {
+            // The carry first: it is the second half of the request already running. Then what
+            // the user typed meanwhile, oldest first (MPI-840) — that send drains the rest.
+            // In a `finally` because `busy()` counts both: a turn that threw and handed on
+            // nothing would hold every later message in the queue forever.
+            const next = this._carry || this._queued.shift();
+            this._carry = null;
+            if (next) await this.send(next);
+        }
         return key;
     }
 

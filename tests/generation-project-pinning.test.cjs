@@ -89,9 +89,9 @@ test('the save path in generationService never re-reads the live project', () =>
         path.join(__dirname, '..', 'js', 'services', 'generationService.js'),
         'utf8',
     );
-    const FREEZE = 'const _originProject = state.currentProject;';
+    const FREEZE = 'const _originProject = config._originProject ?? state.currentProject;';
     const start = src.indexOf(FREEZE);
-    assert.ok(start > 0, '_originProject must be frozen at dispatch');
+    assert.ok(start > 0, '_originProject must be frozen at dispatch, from the enqueue-time project');
 
     const offenders = [];
     src.slice(start + FREEZE.length).split(/\r?\n/).forEach((line, i) => {
@@ -101,4 +101,57 @@ test('the save path in generationService never re-reads the live project', () =>
         offenders.push(`${i}: ${line.trim()}`);
     });
     assert.deepEqual(offenders, [], 'the completion path must use _originProject');
+});
+
+// A job can sit PENDING behind another render. Frozen only at dispatch, one that
+// dispatched after a project switch adopted whichever project was open by then.
+test('the project is frozen when the job is ENQUEUED, before it can wait in the queue', () => {
+    const src = fs.readFileSync(
+        path.join(__dirname, '..', 'js', 'services', 'generationService.js'),
+        'utf8',
+    );
+    const enqueue = src.indexOf('export function enqueueGeneration(');
+    const freeze = src.indexOf('config._originProject ??= state.currentProject;', enqueue);
+    const push = src.indexOf('_cueQueue.push(', enqueue);
+    assert.ok(enqueue > 0 && freeze > enqueue, 'enqueueGeneration must freeze config._originProject');
+    assert.ok(freeze < push, 'the freeze must happen before the job enters the queue');
+});
+
+// The other half of the card: the in-flight placeholder. The registry is app-wide, so
+// the gallery of the project he switched TO painted a spinner for a clip landing
+// elsewhere.
+test('a gallery only sees the running generations asked for in ITS project', async () => {
+    const { activeGenerations } = await import('../js/services/activeGenerations.js');
+    const gen = projectPath => activeGenerations.start({
+        scope: 'gallery', operation: 't2v_ms', modelId: 'minimax-h3', exec: {}, projectPath,
+    }).id;
+    const inA = gen('C:/Projects/Agent tests');
+    const inB = gen('C:/Projects/Mascots');
+    const legacy = gen(undefined);
+    try {
+        const ids = p => activeGenerations.listFor('gallery', null, p).map(e => e.id);
+        assert.deepEqual(ids('C:/Projects/Mascots'), [inB, legacy], 'A\'s render is not painted in B');
+        assert.deepEqual(ids('C:/Projects/Agent tests'), [inA, legacy], 'switching back finds it again');
+        assert.deepEqual(ids(null), [legacy], 'no project open: nothing project-bound');
+        // Busy state and Stop stay app-wide: the engine is one.
+        assert.deepEqual(ids(undefined), [inA, inB, legacy]);
+    } finally {
+        for (const id of [inA, inB, legacy]) activeGenerations.end(id);
+    }
+});
+
+test('the gallery reads its placeholders through the project-scoped list', () => {
+    const src = fs.readFileSync(
+        path.join(__dirname, '..', 'js', 'components', 'Blocks', 'MpiGalleryBlock', 'MpiGalleryBlock.js'),
+        'utf8',
+    );
+    assert.match(src, /listFor\('gallery', null, state\.currentProject\?\.folderPath \?\? null\)/);
+    assert.match(src, /const _runningGallery = _ownRunningEntries\(\);/);
+    assert.match(src, /_firstRunningEntry = \(\) => \{\s*return _ownRunningEntries\(\)\[0\] \|\| null;/);
+    // and the service hands the registry the project to scope by
+    const svc = fs.readFileSync(
+        path.join(__dirname, '..', 'js', 'services', 'generationService.js'),
+        'utf8',
+    );
+    assert.match(svc, /projectPath:\s+_originProject\?\.folderPath \?\? null,/);
 });

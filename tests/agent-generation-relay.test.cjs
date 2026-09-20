@@ -393,3 +393,58 @@ test('a required slot is filled BY ROLE: a reference alone is MEDIA_REQUIRED', (
   assert.equal(r.code, 'MEDIA_REQUIRED');
   assert.match(r.message, /"inputImage"/);
 });
+
+/*
+ * Cancel (Fabio, live 2026-09-20): the route holds a submit open for the whole render, so a
+ * caller had nothing to point at until it was too late to matter. `requestId` IS that handle:
+ * the submit goes out under it, and `/connector/cancel` names it back to the renderer.
+ */
+test('a submit sent with a requestId can be cancelled by it, and only while it is in flight', async () => {
+  const { base, stop } = await startServer();
+  const renderer = await fakeRenderer(base);
+  try {
+    const requestId = 'req-cowgirl-anime-0001';
+    const pending = postJson(`${base}/connector/generate`, { modelId: 'krea2', operation: 't2i', positive: 'anime', requestId });
+    const submit = await renderer.readFrame();
+    assert.equal(submit.data.jobId, requestId, 'the job goes out under the caller id, so a cancel can name it');
+    assert.equal(submit.data.input.requestId, undefined, 'and it is not part of what gets generated');
+
+    const dup = await postJson(`${base}/connector/generate`, { modelId: 'krea2', operation: 't2i', positive: 'again', requestId });
+    assert.equal(dup.json.error.code, 'DUPLICATE_REQUEST_ID');
+
+    // The cancel is relayed; the fake renderer does what agentDispatch does: reports the
+    // cancel done, and the cancelled submit reports CANCELLED through its own onCancel.
+    const cancelling = postJson(`${base}/connector/cancel`, { requestId });
+    const cancel = await renderer.readFrame();
+    assert.equal(cancel.data.capability, 'generation.cancel');
+    assert.deepEqual(cancel.data.input, { jobId: requestId });
+    await postJson(`${base}/connector/jobs/${requestId}/result`, { ok: false, error: { code: 'CANCELLED', message: 'cancelled' } });
+    await postJson(`${base}/connector/jobs/${cancel.data.jobId}/result`, { ok: true, output: { cancelled: true, was: 'pending' } });
+
+    assert.deepEqual((await cancelling).json, { ok: true, output: { cancelled: true, was: 'pending' } });
+    assert.equal((await pending).json.error.code, 'CANCELLED', 'the held submit resolves, it is not left hanging');
+
+    // Settled: the route answers by itself, nothing is relayed.
+    const again = await postJson(`${base}/connector/cancel`, { requestId });
+    assert.equal(again.json.error.code, 'NOT_IN_FLIGHT');
+    assert.equal((await postJson(`${base}/connector/cancel`, {})).status, 400);
+    const badId = await postJson(`${base}/connector/generate`, { modelId: 'krea2', operation: 't2i', requestId: 'no' });
+    assert.equal(badId.json.error.code, 'INVALID_REQUEST_ID');
+  } finally {
+    renderer.close();
+    await stop();
+  }
+});
+
+// The renderer half cannot run here (it enqueues into the real generation queue), so its
+// wiring is pinned on the source: both enqueue sites remember the queue id, the handler is
+// registered, and it goes through the queue's OWN cancel functions — the ones the Cue panel
+// calls — never around them, or the lane would not drain and the next job never promote.
+test('the renderer cancels a relayed job through the Cue queue\'s own cancel functions', () => {
+  const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'shell', 'agentDispatch.js'), 'utf8');
+  assert.match(src, /'generation\.cancel': _cancelGeneration,/);
+  assert.equal(src.match(/if \(!_settled\.has\(jobId\)\) _queueJobs\.set\(jobId, queued\.queueJobId\);/g)?.length, 2,
+    'a model op AND a Flow both record their queue id');
+  assert.match(src, /cancelPendingCueJob\(queueJobId\)\.length \? 'pending'\s+: cancelRunningCueJob\(queueJobId\) \? 'running'/);
+  assert.match(src, /_settled\.add\(jobId\);\s+_queueJobs\.delete\(jobId\);/, 'dropped the moment the job reports');
+});

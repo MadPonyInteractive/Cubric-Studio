@@ -66,6 +66,7 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
 | `read_knowledge` | `{ id?: string }` (no id = the index) | `GET /connector/knowledge[/:id]` |
 | `install_model` | `{ modelId: string }` required | **never directly**: emits `agent:confirm`; `POST /agent/confirm` runs it |
 | `generate` | `{ modelId?, operation?, flowId?, prompt?, negative?, ratio?, qualityTier?, turbo?, styleSelect?, stylization?, seed?, cardName?, fields?: object, params?: object, media?: [{ role, image }] }` | `POST /connector/generate`, fired and not awaited; a model op waits for its guide (below) |
+| `cancel_generation` | `{ toolCallId? }` (none = the LATEST it started) | `POST /connector/cancel { requestId }`. Only what THIS conversation started and has not settled (`_inflight`; else `NOT_IN_FLIGHT`), rendering or still queued; never the user's own runs. `generate` sends its `toolCallId` as the submit's `requestId`, which becomes the relay `jobId`; the renderer maps it to the Cue queue id and calls the queue's own `cancelPendingCueJob` / `cancelRunningCueJob`. A clip cancelled this way LEAVES the unfinished ledger and is not reported to the model as a failure. Found live 2026-09-20: with no cancel tool, "Scratch that. Leave it." was read as "leave it running". Allowlisted on purpose in `tests/agent-no-delete.test.cjs` - it is not a delete |
 | `look` | `{ image: string, question?: string, crop?: {x,y,width,height}, box?: boolean }`, `image` required | `POST /connector/describe` |
 | `list_projects` / `create_project` | `{}` / `{ name }` | `GET /connector/projects` / `POST /connector/create-project` |
 | `open_project` | `{ folderPath: string }` required | `POST /connector/open-project`, only a folder `list_projects` or `create_project` gave, the open project, or one the user typed (`UNKNOWN_PROJECT`) |
@@ -126,10 +127,12 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
 ## Agent routes (W2, `routes/agent.js`)
 
 - **`POST /agent/message { text, attachments?: [{ name, dataUrl }], project: { folderPath, name } | null,
-  mode: 'auto'|'ask', profileId, model? }`** -> `{ ok, turnId, session, attachments: [{ id, name }] }` at
+  mode: 'auto'|'ask', profileId, model? }`** -> `{ ok, turnId, queued, session, attachments: [{ id, name }] }` at
   once; the reply comes on the stream. `project` picks the conversation (null = the landing page); `model`
-  = the agent's pick (`''` = the preset's). Errors: `BAD_REQUEST`, `NO_PROFILE`, `BUSY` (a turn is running
-  in ANY conversation); on the stream `NO_KEY`, `NO_MODEL`.
+  = the agent's pick (`''` = the preset's). Errors: `BAD_REQUEST`, `NO_PROFILE`; on the stream `NO_KEY`,
+  `NO_MODEL`. One turn runs at a time across ALL conversations: a message sent meanwhile is `queued: true`
+  and runs after it, oldest first (`agentSessions.queue`, MPI-840) - it never reaches the agent mid-turn,
+  and there is no `BUSY` refusal any more. `/agent/reset` drops the turns still queued for that conversation.
 - **`GET /agent/history?project=`** -> `{ ok, session, working, pendingConfirm, usage: { promptTokens,
   contextWindow }, entries: [{ id, at, kind: 'user'|'agent'|'tool'|'result'|'confirm'|'handoff', text?,
   attachments?, tool?, args?, status?, output?, error? }] }`; empty for a project with no conversation.
@@ -170,6 +173,8 @@ Every event but `agent:session` also carries `session`, the key of its conversat
   thing CODE writes there: `unfinished-generations.md` (`AgentLoop._trackUnfinished`) - each `generate`
   call at submit, removed when it lands, so a cancel or a closed app leaves the exact call to requeue. An
   ordinary note (listed by the first message, read by `read_memory`); hidden from the list when empty.
+  **Read-only for the MODEL:** `write_memory` on it answers `APP_OWNED_NOTE` - it cleared the ledger live
+  while a requeue was still rendering, and an app close in that window loses the clip the note exists for.
   Never the conversation (Fabio, 2026-09-20). Oldest entries drop to fit one note (~2 long prompts, ~8 short).
 - **Landing jobs** (Project rule): "make X" with no project -> `create_project("New Project")`, open, generate;
   "a new project, the goal is X" -> named after the goal, created, opened, a project-brief `write_memory`, then it asks what to make
