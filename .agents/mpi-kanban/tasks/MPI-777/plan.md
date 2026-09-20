@@ -6,13 +6,32 @@ pointer below before editing; they were read 2026-09-16.
 
 ## Current State
 
-- Card created 2026-09-16 from MadPony-Identity MPI-78. **Blocked** until the clips are cut out
-  and converted, which needs MPI-757's GIF Maker and SAM3 cut-out (MPI-760, MPI-771 still open)
-  plus an alpha WebM export, and until the transition clips exist (MPI-78).
+- Card created 2026-09-16 from MadPony-Identity MPI-78. **UNBLOCKED 2026-09-20** — see the
+  drift note. Of the four things that blocked it, three have landed: MPI-760 and MPI-771 are
+  `done/complete`, the whole set is cut out (103 GIFs in the Vision project
+  `Cubric Studio GIFs`, 84 background-free), and the 19 transition clips exist. Only the alpha
+  WebM export is still missing, and **that no longer gates the work** — see below.
 - The app still shows stills: `assets/mascot/{key}/{pose}.webp`, one per character, staged by
   MPI-766. `heroCrew.js` `_poseSrc(key, pose)` is the only code that knows a file there, and its
   comment already expects animated alpha loops to replace the stills.
-- Next action once unblocked: Phase 1 (the alpha WebM export first).
+- **Next action: Phase 2, the shared clip queue.** Phase 1 (assets) now comes after it.
+
+### Why the order changed (Fabio, 2026-09-20)
+
+The queue does not care what format it plays. `_poseSrc` is two lines behind every mascot
+asset and every call site goes through it, so the spot map, the pools, the interrupt
+transitions and the teardown can all be built and unit-tested against the stills that ship
+today — then pointed at the GIFs, and at WebM later if the format decision goes that way.
+Building the queue first also means the format is chosen after somebody has watched the
+system move, rather than before.
+
+**The one design constraint this imposes, and it is load-bearing:** a GIF in an `<img>`
+cannot report when it ended, so the queue must be driven by a DURATION CLOCK, not by a
+media `ended` event. That is not a compromise — the clip facts above already give exact
+durations (3s = 73 frames, 5s = 124 frames, at 24fps), and a duration clock is the only
+design that works for all three of a still (instant), a GIF (known length) and a WebM
+(which could use `ended` but does not need to). Do not design Phase 2 around `ended`; it
+would work today only if the format decision went one way, and it silently forecloses it.
 
 ## Clip facts (from MPI-78)
 
@@ -83,7 +102,7 @@ pointer below before editing; they were read 2026-09-16.
 
 ## Implementation
 
-### Phase 1: assets
+### Phase 1: assets — RUNS AFTER PHASE 2 (see Current State, 2026-09-20)
 
 - [ ] Stage the cut-out clips per character under `assets/mascot/{key}/`, named by state
       (e.g. `idle-1`, `greet-2`, `happy-1`, `peek`). Clip ids per state are in `docs/mascot-placement.md`'s
@@ -97,7 +116,10 @@ pointer below before editing; they were read 2026-09-16.
       BiRefNet `background` are both available and neither is ruled out.
 - [ ] Check the combined weight of `assets/mascot/` against the portable build.
 
-### Phase 2: shared clip queue
+### Phase 2: shared clip queue — **STARTS HERE** (2026-09-20)
+
+Built against the stills, format-agnostic behind `_poseSrc`, and driven by a duration clock
+rather than a media `ended` event — see Current State for why that is not optional.
 
 - [ ] One small utility (a slot bound to one element): a pool of clips per state, `random`
       (no immediate repeat) or `ordered`, `loop` or play-once, and a request for the next state
@@ -162,7 +184,19 @@ decisions they name.
 
 ## Plan Drift
 
-(none yet)
+- **2026-09-20 — unblocked, and Phase 1 and Phase 2 swap places.** The card sat `blocked` on
+  four things; three landed while it sat there (MPI-760 and MPI-771 closed, the set cut out,
+  the transitions rolled), and the fourth — the alpha WebM export — turned out not to gate
+  anything. Fabio's call: build the queue first, against the stills, because `_poseSrc` makes
+  the queue format-agnostic and the format is better chosen after the motion can be seen.
+  Phase 1 (assets) is now the step AFTER Phase 2, and it is a conversion of existing cut-out
+  frames rather than a fresh cut-out pass. **Phase numbers were left alone on purpose** —
+  other cards and docs reference them, and renaming them to match a new order would break
+  those references for no gain. Read the order off `## Current State`, not off the numbers.
+- **2026-09-20 — the alpha WebM export still has no card.** It is named in Settled and in
+  Phase 1 and it exists nowhere else. It is not needed to start, but it IS needed to finish
+  Phase 1 if the format decision stays WebM. Whoever reaches Phase 1 should raise it with
+  Fabio rather than assume it exists.
 
 ## Verification
 
