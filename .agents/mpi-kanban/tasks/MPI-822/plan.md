@@ -5,13 +5,15 @@ implementation shape plus what changed once the code was read.
 
 ## Current State
 
-Code complete and self-verified; WAITING ON FABIO'S APP CHECK, ROUND 2 (verify mode
-is user-ux). npm test 1521 pass / 0 fail / 1 skipped, lint clean, the source contracts
-proven RED on pre-fix code, and the Q bug found, fixed and pinned by a desktop spec.
-Evidence: validation.md. Session `ba0b2680`, claim `5f2a7c14`.
+DONE. Fabio verified the five steps in the app, round 2, on 2026-09-20 - including
+the #flow-back -> reopen -> Q sequence that was the broken one. npm test 1521 pass /
+0 fail / 1 skipped, lint clean, the source contracts proven RED on pre-fix code, and
+the Q bug found, fixed and pinned by a desktop spec. Evidence: validation.md.
+Session `ba0b2680`, claim `5f2a7c14`.
 
-Next action: Fabio runs the five steps in validation.md, round 2. The Q bug is
-fixed (see below) and nothing else is pending.
+Next action: none for MPI-822 - the card closes once its own CI run (`f9c31fc3`) is
+judged green, per `.agents/mpi-kanban/close-out.md`. MPI-827 is a SEPARATE check that
+Fabio has not run: an AGENT-dispatched flow, watched from the Gallery.
 
 ## Plan Drift (2026-09-19, read before the diff)
 

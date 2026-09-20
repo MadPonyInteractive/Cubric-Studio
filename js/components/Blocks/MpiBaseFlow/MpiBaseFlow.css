@@ -950,6 +950,13 @@
     gap: var(--s-2);
     align-items: stretch;
 }
+/* `stretch` reaches the two mount HOSTS, not the buttons inside them: a block host
+   grew to the row height while its button kept its own. A text `md` button is 47px
+   (13px line + 28 padding + 2 border) and an icon one is 50px (20px glyph), so Cue
+   sat 3px short inside a 50px box and read as a dented Stop (Fabio, MPI-822). Flex
+   hosts pass the stretch through, so both buttons are exactly the row's height —
+   whichever of the two is the taller. */
+.mpi-base-flow__run-row > * { display: flex; }
 .mpi-base-flow__run-host { flex: 1; min-width: 0; }
 .mpi-base-flow__run-host > * { width: 100%; }
 

@@ -31,8 +31,15 @@
       in invisible. Retraction now gated to match the publish; all 8 MpiOverlay call
       sites swept. Pinned by `tests/desktop/flow-queue-hotkey.spec.js` (plan.md
       " The Q bug)
-- [ ] Fabio app check, round 2: `Cue x3`, result stays, Stop kills only the running job,
-      queue slide-over stops a pending one from inside the flow
+- [x] Fabio app check, round 2 (2026-09-20): `Cue x3`, result stays, Stop kills only
+      the running job, and the queue slide-over opens from inside the flow - including
+      after `#flow-back` and a reopen, which is the sequence that was broken. VERIFIED.
+- [x] Cue and Stop are EXACTLY the same height (Fabio, round 2: "this looks like the
+      stop button is broken, someone hit it"). Measured, not eyeballed: a text `md`
+      button is 47px and an icon-only `md` is 50px, and the row's `align-items:
+      stretch` only reached the two block mount hosts. Hosts are `display: flex` now,
+      so the stretch reaches the buttons. Pinned by
+      `tests/desktop/flow-run-row-heights.spec.js` (height AND both edges).
 
 Dropped from the original list, with the reason: **no per-run input snapshot was
 built.** The brief asked for one; the code already had it (plan.md § Plan Drift 1).

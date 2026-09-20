@@ -89,6 +89,38 @@ No generation was executed. Nothing below has been observed:
   itself opening above the flow overlay IS now proven, by the spec above),
 - the Cue/Stop row's layout at the flow frame's 236px control column.
 
+## SECOND APP PASS, 2026-09-20 - PASSED, with one UI fix after it
+
+Fabio ran the five steps below and accepted them, then flagged one thing in the
+frame: *"can we make sure that the queue and the stop button are actually exactly
+the same height, because this looks like the stop button is broken"*.
+
+**He was right, and it was never a Stop-button bug.** Measured in the running app:
+a text `md` MpiButton is **47px** (13px line + 14/14 padding + 2px border) and an
+icon-only `md` is **50px**, because `.mpi-btn--md.mpi-ibtn .mpi-icon` is a 20px
+glyph. `.mpi-base-flow__run-row` already declared `align-items: stretch`, but the
+stretch reached the two mount HOST divs, which are `display: block` - each stretched
+to 50px while the button inside kept its own height. So Cue sat 3px short inside a
+50px box, which is what read as a dented Stop. Fix: `.mpi-base-flow__run-row > * {
+display: flex; }` - the hosts pass the stretch through. Re-measured: both 50px,
+sharing top AND bottom edge. Pinned by `tests/desktop/flow-run-row-heights.spec.js`.
+
+Sizing `Stop` `md` (round 1) was still correct; it just could not fix an inequality
+that lives between the text and icon variants of the same size.
+
+**Noticed, NOT actioned - app-wide, needs Fabio's call.** That 47-vs-50 gap is in
+`MpiButton` itself, not in the flow: any row pairing a text button with an icon
+button of the same size is misaligned by 3px unless its container passes a stretch
+through. Making the sizes agree in `MpiButton.css` (a `min-height` per size) would
+change the height of every text button in the app, so it is a separate decision and
+deliberately out of this card. That closes MPI-822's user-ux
+verification: the card is code-complete, self-verified and user-verified.
+
+Scope note, stated rather than glossed: those five steps are all MPI-822. **MPI-827's
+own check - an AGENT-dispatched flow watched from the Gallery, card appearing and its
+latents painting - was not among them and has NOT been run.** MPI-827 therefore stays
+in `doing` on its source-contract evidence alone.
+
 ## What Fabio checks in the app
 
 1. Open any flow, press **Cue** three times. The button reads `Cue`, `Cue x2`,
