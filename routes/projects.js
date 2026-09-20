@@ -2458,6 +2458,44 @@ router.post('/project-media/:projectId/add-from-cards', async (req, res) => {
 });
 
 /**
+ * POST /project-groups
+ * Body: { folderPath: string, groups: Array }
+ * Register already-saved cards in a project that is NOT the one the app has open.
+ *
+ * MPI-839: the renderer owns `itemGroups` only for the OPEN project — `persistGroups`
+ * writes the whole array back on every mutation — so a run that finishes after the user
+ * switched projects cannot go through `projectService.addGroup`. Its media and sidecars
+ * are already on disk in the project it was dispatched in; this writes the record that
+ * makes them a card there instead of in whatever project happens to be open now.
+ */
+router.post('/project-groups', async (req, res) => {
+    try {
+        const { folderPath, groups } = req.body || {};
+        if (!folderPath || !Array.isArray(groups) || !groups.length) {
+            return res.status(400).json({ success: false, error: 'folderPath and a non-empty groups array are required' });
+        }
+        const jsonPath = path.join(folderPath, 'project.json');
+        await updateProjectJson(jsonPath, project => {
+            // Upsert by id: a brand-new card prepends, while a run that added to an
+            // existing card (GroupHistory, or a preview → final replacement) sends that
+            // card back with its new history and must REPLACE it, not duplicate it.
+            const incoming = new Map(groups.map(g => [g.id, g]));
+            const existing = (project.itemGroups || []).map(g => incoming.get(g.id) || g);
+            const seen = new Set((project.itemGroups || []).map(g => g.id));
+            return {
+                ...project,
+                itemGroups: [...groups.filter(g => !seen.has(g.id)), ...existing],
+                updatedAt: new Date().toISOString(),
+            };
+        });
+        res.json({ success: true, added: groups.length });
+    } catch (err) {
+        logger.error('project', 'project-groups add error', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+/**
  * POST /project/crop-media
  *
  * Crops an existing project image to a new file using Sharp.

@@ -1,0 +1,16 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-839",
+  "title": "A generation that lands after you switch projects saves into the WRONG project",
+  "description": "UMBRELLA: MPI-817 - In-app agent reliability (consolidation sweep 2026-09-19). Members and phase order: tasks/MPI-817/plan.md. generationService reads state.currentProject at COMPLETION, so a render finished after a project switch writes its media, sidecar and card into whichever project is open. Live, reported by Fabio 2026-09-20.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-20T08:55:00Z",
+  "updated_at": "2026-09-20T08:55:00Z",
+  "links": {
+    "checklist": "checklist.md",
+    "files": "files.json",
+    "events": "events.jsonl"
+  }
+}

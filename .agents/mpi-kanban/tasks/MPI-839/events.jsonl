@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-839", "at": "2026-09-20T08:55:00Z", "actor": "6fd0905b", "note": "Created under the MPI-817 umbrella from Fabio's live agent round."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-839", "at": "2026-09-20T08:55:00Z", "actor": "6fd0905b", "note": "Root cause located before the move: generationService saves with state.currentProject read at completion.", "from": "todo", "to": "doing"}

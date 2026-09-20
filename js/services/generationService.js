@@ -712,6 +712,42 @@ function _emitPromptBoxGenerationEndIfIdle() {
     Events.emit('promptbox:generation-end');
 }
 
+/**
+ * MPI-839 — register finished cards in the project they were dispatched in, when that is
+ * no longer the project the app has open.
+ *
+ * `projectService.addGroup` cannot do this: the renderer owns `itemGroups` only for the
+ * open project, and `persistGroups` writes the whole array back on every mutation, so a
+ * card written here for a closed project would be dropped by the next save. The route
+ * goes through `updateProjectJson()`, which is the only sanctioned writer of project.json.
+ *
+ * @param {{folderPath: string}} project  the ORIGIN project, frozen at dispatch
+ * @param {Array} groups  item groups whose media and sidecars are already on disk there
+ */
+async function _addGroupsToClosedProject(project, groups) {
+    if (!project?.folderPath || !groups?.length) return;
+    try {
+        const res = await fetch('/project-groups', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folderPath: project.folderPath, groups }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        clientLogger.info('generationService', 'card registered in the project it was dispatched in', {
+            folderPath: project.folderPath,
+            groups: groups.length,
+        });
+    } catch (err) {
+        // The media is on disk and correct; only the card record failed. Reconciliation
+        // picks up an unrecorded file in a project's Media dir, so this degrades to the
+        // existing orphan path rather than losing the generation.
+        clientLogger.error('generationService', 'could not register cards in the origin project', {
+            folderPath: project.folderPath,
+            error: err.message,
+        });
+    }
+}
+
 async function _deleteSavedItems(items) {
     const project = state.currentProject;
     if (!project?.id || !project?.folderPath) return;
@@ -810,6 +846,19 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         callbacks.onError?.(new Error(`Missing required ${missingSlot.mediaType} for ${operation}`));
         return null;
     }
+
+    // MPI-839 — the project this run was DISPATCHED in, frozen here and never re-read.
+    // The completion path used to ask `state.currentProject` again, so a render that
+    // finished after the user switched projects wrote its media, sidecar AND card into
+    // whichever project was open by then: a clip asked for in one project landed in
+    // another, with nothing in the first to say it had ever been asked for. Same class
+    // as MPI-336's control snapshot — anything the SAVE path needs must be frozen at
+    // dispatch, because a generation outlives the state it was started from.
+    const _originProject = state.currentProject;
+    // True while the app still has the origin project open, which is what decides
+    // whether the renderer may write the card itself (it owns `itemGroups` only for
+    // the open one) or has to register it server-side.
+    const _originIsOpen = () => state.currentProject?.folderPath === _originProject?.folderPath;
 
     // MPI-337: dispatch-time net for the mask guard — covers loop re-fire / stage-2
     // paths that skip enqueueGeneration, same as the media-slot net above.
@@ -1121,7 +1170,7 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
                         url: item.url,
                     })),
             };
-            const _proj = state.currentProject;
+            const _proj = _originProject;
             if (_proj && model.id) {
                 const _settings = getModelSettings(_proj, model.id);
                 const _loraSlots = Array.isArray(_settings.loras)
@@ -1183,10 +1232,10 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
             let resolvedDims = width ? { w: width, h: height } : { w: 0, h: 0 };
             let savedData = null;
 
-            if (state.currentProject?.folderPath) {
+            if (_originProject?.folderPath) {
                 try {
                     const data = await saveGeneration({
-                        folderPath: state.currentProject.folderPath,
+                        folderPath: _originProject.folderPath,
                         comfyViewUrl: url,
                         // Split video/audio output (B3): the separately-saved
                         // "Output_Audio" file is muxed into THIS video server-side
@@ -1305,7 +1354,7 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         // source video. Replaces builtItems[0] with the extended output and
         // deletes the intermediate item so only the extended video lands in
         // the history group. Source video is untouched.
-        if (isVideo && config.extend === true && config.sourceItemId && state.currentProject?.folderPath) {
+        if (isVideo && config.extend === true && config.sourceItemId && _originProject?.folderPath) {
             const intermediate = builtItems[0];
             const generatedAbs = intermediate?.filePath
                 ? (() => {
@@ -1328,7 +1377,7 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
                     const concatPromise = trackConcatJob({ jobId, label: 'Concatenating videos', silentComplete: true });
                     const extendBody = {
                         jobId,
-                        folderPath: state.currentProject.folderPath,
+                        folderPath: _originProject.folderPath,
                         sourceItemId: config.sourceItemId,
                         generatedFilePath: generatedAbs,
                         modelId: model.id,
@@ -1369,7 +1418,7 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
                     try {
                         const filename = generatedAbs.split(/[\\/]/).pop();
                         await fetch(
-                            `/project-media/${state.currentProject.id}/${encodeURIComponent(filename)}?folderPath=${encodeURIComponent(state.currentProject.folderPath)}&itemId=${encodeURIComponent(intermediate.id)}`,
+                            `/project-media/${_originProject.id}/${encodeURIComponent(filename)}?folderPath=${encodeURIComponent(_originProject.folderPath)}&itemId=${encodeURIComponent(intermediate.id)}`,
                             { method: 'DELETE' }
                         );
                     } catch (delErr) {
@@ -1434,12 +1483,14 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         if (_replaceItemId) {
             // Replacement run (preview → final): swap the matching history slot
             // in the owning group; do NOT add a new group.
-            const targetGroup = (state.currentProject?.itemGroups || [])
+            const targetGroup = (_originProject?.itemGroups || [])
                 .find(g => g.history?.some(h => h.id === _replaceItemId));
             const newItem = builtItems[0];
             if (targetGroup && newItem) {
                 const updatedGroup = replaceHistoryItemById(targetGroup, newItem);
-                await updateGroup(updatedGroup);
+                // MPI-839: `updateGroup` writes the OPEN project; server-side when it moved on.
+                if (_originIsOpen()) await updateGroup(updatedGroup);
+                else await _addGroupsToClosedProject(_originProject, [updatedGroup]);
                 activeGenerations.end(_regId, { revokePreview: false });
                 Events.emit('gallery:item-updated', { groupId: updatedGroup.id, item: newItem, group: updatedGroup });
                 Events.emit('generation:complete', { id: _regId, item: newItem, group: updatedGroup, cancelled: _wasCancelled() });
@@ -1457,7 +1508,7 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         } else if (opts.existingGroup) {
             // GroupHistory mode: use the latest state snapshot; deletes can land
             // while this job runs.
-            const latestGroup = (state.currentProject?.itemGroups || [])
+            const latestGroup = (_originProject?.itemGroups || [])
                 .find(g => g.id === opts.existingGroup.id);
             if (!latestGroup) {
                 clientLogger.warn('generationService', 'groupHistory completion ignored because group no longer exists', {
@@ -1482,7 +1533,9 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
                 width:  latestGroup.width  || width,
                 height: latestGroup.height || height,
             };
-            await updateGroup(updatedGroup);
+            // MPI-839: `updateGroup` writes the OPEN project; server-side when it moved on.
+            if (_originIsOpen()) await updateGroup(updatedGroup);
+            else await _addGroupsToClosedProject(_originProject, [updatedGroup]);
             activeGenerations.end(_regId, { revokePreview: false });
             const lastItem = builtItems[builtItems.length - 1];
             Events.emit('generation:complete', { id: _regId, item: lastItem, group: updatedGroup, cancelled: _wasCancelled() });
@@ -1523,7 +1576,16 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
             // Orphaned files are the existing .preview-assets + Cleanup GC path's
             // job (MPI-277/227), not a new mechanism.
             if (!opts.deferCommit) {
-                for (const g of groups) await addGroup(g);
+                // MPI-839: `addGroup` writes the OPEN project. When the user switched
+                // away while this ran, the media and sidecars are already saved in the
+                // origin project (frozen `_originProject` above) and only the card
+                // record is missing there — so it goes in server-side. Writing it here
+                // instead would file the card under whatever project is open now.
+                if (_originIsOpen()) {
+                    for (const g of groups) await addGroup(g);
+                } else {
+                    await _addGroupsToClosedProject(_originProject, groups);
+                }
             }
             activeGenerations.end(_regId, { revokePreview: false });
             const firstItem = builtItems[0];

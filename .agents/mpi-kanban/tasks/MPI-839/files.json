@@ -1,0 +1,9 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/services/generationService.js",
+    "routes/projects.js",
+    "tests/generation-project-pinning.test.cjs",
+    "tests/flow-defer-commit.test.cjs"
+  ]
+}

@@ -12,6 +12,8 @@ dispatch bug are all that same question at different layers.
 |---|---|---|---|
 | **MPI-774** | `doing` | `validating` | Fabio's round 1 and round 2 findings. Phase 5 is closed (ten fixes; fix 8 closed unreproduced 2026-09-19). **Phases 6 and 7 are open.** |
 | **MPI-816** | `todo` | `planned` | Agent-dispatched Flow runs die on `prompt_outputs_failed_validation`. Diagnosed to the line, not built. |
+| **MPI-839** | `doing` | `in-progress` | A generation that finishes after a project switch saves into whichever project is OPEN. Not agent-only — the same path serves a human press. Found live 2026-09-20. |
+| **MPI-840** | `todo` | `planned` | A message typed while the agent is answering is refused (`BUSY`) and lost. Found live 2026-09-20. |
 
 Member cards stay where they are — this umbrella does not close, move or merge them. Which of the
 two the board keeps long-term is Fabio's call, asked once below.

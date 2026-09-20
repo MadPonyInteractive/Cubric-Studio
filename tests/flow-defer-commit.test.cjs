@@ -19,13 +19,20 @@ const path = require('node:path');
 
 const read = p => fs.readFileSync(path.join(__dirname, '..', p), 'utf8');
 
-test('the gallery addGroup loop is guarded by deferCommit', () => {
+test('the gallery project writes are guarded by deferCommit', () => {
     const src = read('js/services/generationService.js');
-    assert.match(
-        src,
-        /if \(!opts\.deferCommit\) \{\s*\n\s*for \(const g of groups\) await addGroup\(g\);/,
-        'the ONLY project write in the gallery branch must be behind !opts.deferCommit',
-    );
+    // MPI-839 split this write in two: `addGroup` while the run's own project is
+    // still open, and a server-side register when the user switched away while it
+    // rendered (the renderer owns `itemGroups` only for the OPEN project). Both are
+    // project writes, so BOTH have to sit inside the one `!opts.deferCommit` gate.
+    const gate = src.indexOf('if (!opts.deferCommit) {');
+    const open = src.indexOf('for (const g of groups) await addGroup(g);');
+    const closed = src.indexOf('await _addGroupsToClosedProject(_originProject, groups);');
+    assert.ok(gate > 0, 'the deferCommit gate must exist');
+    for (const [name, at] of [['addGroup', open], ['_addGroupsToClosedProject', closed]]) {
+        assert.ok(at > gate && at - gate < 800,
+            `${name} must be inside the !opts.deferCommit gate — it is the ONLY project write allowed in the gallery branch`);
+    }
     assert.strictEqual((src.match(/await addGroup\(/g) || []).length, 1);
 });
 
