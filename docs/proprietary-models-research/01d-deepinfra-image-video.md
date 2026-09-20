@@ -197,6 +197,107 @@ The larger idea this opens: a user with no capable GPU runs generation on DeepIn
 local ComfyUI only for the light tools. That is a product-shape decision, not an integration
 one, and it is not taken here.
 
+## 7. Can a CREDIT system sit on DeepInfra? (asked 2026-09-20)
+
+Proposal: sell credits, spend them only on DeepInfra-backed cloud models (local ComfyUI stays
+free), charge users DeepInfra's exact prices with no markup, and take the revenue from
+**credits users never spend**.
+
+### 7a. Capacity is NOT the blocker
+
+`GET /v1/me/rate_limit` on this account returns `{"rate_limit": 200, "tpm_rate_limit":
+1100000}`, matching the documented default of **200 concurrent requests per model**, counted
+per model so two models give 400. DeepInfra's own docs call this "sufficient for most
+production applications, including services with hundreds of thousands of daily active
+users", and increases are requestable from the dashboard.
+
+Against the measured runtimes: Nano Banana Pro at 23 s gives 200/23 = **8.7 images/s, about
+31,000 per hour**; lite at 7 s gives about 103,000 per hour. A user generating one image every
+two minutes occupies 0.19 of a slot on Pro, so 200 slots is roughly **1,000 simultaneously
+active users** on one model alone. Not the constraint at any plausible near-term scale.
+
+**The TPM limit might bite for video, and this is UNVERIFIED.** 1.1M tokens/min against a
+measured 246,840 tokens for a 5 s 1080p Seedance clip is only **4.5 such clips per minute**,
+24x tighter than the concurrency limit. Whether `tpm_rate_limit` is even applied to
+image/video models or only to LLMs was not tested; the cheap test is ~30 concurrent 480p
+Seedance calls watching for 429s, about $1.50 on Seedance 1.5.
+
+### 7b. The blocker is DeepInfra's own contract
+
+[Terms of Service](https://deepinfra.com/terms), last modified 2026-08-17, read in full
+2026-09-20. This closes the "resale terms UNREAD" gap flagged at the top of this file.
+
+- **§11(a)(viii) forbids it by default.** Customer shall not "resell, sublicense, rent,
+  distribute, or otherwise make the Services available to any third party **except as
+  expressly permitted under this Agreement or the applicable Service Order**", nor "sell,
+  transfer, or share any account or access credentials". A credit system is precisely making
+  the Services available to third parties through our key. **It needs a Service Order**, i.e.
+  a negotiated written contract, which is a lawyer and a business entity, not a signup form.
+- **§11(a)(i)** additionally bars use "in any manner that is competitive with any business of
+  Provider". DeepInfra's business is selling inference by the unit. Reselling inference by the
+  unit is at least arguable as competitive; a solicitor should read this before anything is
+  built.
+- **§13 indemnity is uncapped and runs one way.** We would defend and indemnify DeepInfra
+  against all third-party claims arising from our use, our Customer Data and **our users'
+  conduct**. §10(v) makes us "responsible and liable for all acts and omissions of its Users
+  ... whether or not authorized". Meanwhile §12(b) caps THEIR liability at six months of fees.
+  Given this product's audience and the content it generates, that is the exposure that
+  matters most.
+- **The terms bind self-serve too**: "by accessing or using the Services, Customer agrees".
+- One genuinely good clause: **§7(b) Zero Data Retention** — DeepInfra will not train on
+  Customer Data and deletes it after the request. That is a real selling point for a
+  privacy-conscious local-first app, and it survives under BYO-key too.
+
+Under **bring your own key none of this applies to us**: the user is the Customer, holds the
+contract, carries the indemnity and pays DeepInfra directly.
+
+### 7c. The breakage model, arithmetically
+
+Charging at cost and earning only from unspent credits gives, with `S` = credit sales,
+`b` = fraction never spent, and merchant-of-record fees about 5 %:
+
+```
+net = S - 0.05S - (1-b)S  =  S x (b - 0.05)
+```
+
+**Payment fees are charged on every sale, but cost is only incurred on credits actually
+spent - so the fee eats the breakage directly.** Typical gift-card breakage is 5-10 %. At
+b = 8 % the net margin is **3 % of credit sales**; at b = 5 % it is **zero**. Earning
+£1,000/month needs roughly **£33,000/month in credit sales**, and £2,000/month needs £67,000.
+
+That volume needs the audience, which is the same gate
+[[project_cloud_tier_gated_on_audience_then_loan]] already puts everything behind. **The model
+does not bring money forward; it sits downstream of the same prerequisite.**
+
+The obvious lever - shorten expiry to raise `b` - is the one the law looks at hardest.
+
+### 7d. Two regulatory points for the solicitor, not settled here
+
+- **Expiry may be unenforceable.** Under the Consumer Rights Act 2015 Part 2 an expiry term is
+  permitted in principle, but is assessed for fairness, and CMA guidance singles out terms
+  "requiring the consumer to pay for services which have not been supplied". A revenue model
+  whose entire income is that term is betting the business on it surviving that test, and an
+  unfair term is not binding on the consumer, so the revenue can reverse retroactively.
+- **Holding prepaid balances.** Credits spendable only inside our own app most likely fall
+  under the FCA's Limited Network Exclusion from the Electronic Money Regulations 2011, the
+  same route store gift cards use, but the FCA assesses each case individually. Confirm rather
+  than assume.
+
+### 7e. The cheapest decisive step
+
+**Email DeepInfra (policy@deepinfra.com, named in §1) and ask whether a desktop app may sell
+prepaid credits redeemed against their models through our key, and what Service Order that
+needs.** It is free, it is one email, and a "no" kills the plan before a line is written. This
+is the same shape as the Kuaishou question already listed in the README's next steps.
+
+If the answer is no, or the legal cost is out of reach, the paths that need no permission and
+no lawyer are unchanged: **BYO-key** (no revenue, no exposure) and **Gumroad Flows**
+([[project_paid_flows_on_gumroad]]), which is already the near-term revenue shape.
+
+Note also that a **transparent markup is legally safer than at-cost-plus-breakage**: revenue
+then comes from delivering a service rather than from withholding one, which removes the
+unfair-terms exposure entirely. It does not remove the §11 permission requirement.
+
 ## Still unknown
 
 - DeepInfra's resale and end-user terms for the image and video catalogue. Irrelevant to
