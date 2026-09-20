@@ -24,12 +24,9 @@
     flex: 0 0 auto;
 }
 
-/* A GIF has no audio, so the 44px track MpiTrimBar grew for the video waveform (MPI-829)
-   is only a taller empty box here. Back to the 28px inline track (MPI-834). */
 .mpi-gif-control-bar__trim {
     flex: 1 1 auto;
     min-width: 0;
-    --mpi-trim-bar-track-h: 28px;
 }
 
 .mpi-gif-control-bar__count {

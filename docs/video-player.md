@@ -126,15 +126,18 @@ MPI-631/633 gallery memory doctrine.
   but a stale wave is the *previous clip's* audio drawn under this clip's handles.
 - **Colour:** `--ink-4`, and never an accent. The wave is context; the selection
   tint, both handles and the playhead sit on top of it and have to stay readable.
-- **Height:** the track is 44px (the mockup's `.tl-track`), and the wave layer
-  overruns it by `inset: -8px 0` — exactly the handles' own reach — so it spans
-  cap to cap and reads as the full height of the control. Measured: the wave and
-  the handles are both 58px with their tops and bottoms aligned to 0px. It ran at
-  28px until MPI-829 and the wave read as a thin smear at any level. The parent's
-  `padding: 8px 0` absorbs the overrun and the trim slot is `flex:1`, so nothing
-  clips and only the bar's own row grows (61px → 77px). The height is
-  `var(--mpi-trim-bar-track-h, 44px)`: the GIF control bar shares `MpiTrimBar`,
-  never has a wave, and sets that property to `28px` on its trim slot (MPI-834).
+- **Height: the WAVE buys the 44px, so only a clip that has one gets it.** The
+  track is 28px inline, and `:has(.mpi-trim-bar__wave:not([hidden]))` takes it to
+  44px (the mockup's `.tl-track`) — 28px reads as a thin smear at any level, which
+  is the whole reason MPI-829 grew it. Nothing else may drive that height: a host
+  does not know whether its clip has audio, the wave layer does (MPI-837, which
+  removed the GIF bar's override). Measured: silent track 28px / bar row 44px;
+  with a wave, track 44px, wave and handles both 58px with tops and bottoms
+  aligned to 0px, bar row 60px. The wave layer overruns the track by
+  `inset: -8px 0` — exactly the handles' own reach — so it spans cap to cap and
+  reads as the full height of the control; the parent's `padding: 8px 0` absorbs
+  the overrun and the trim slot is `flex:1`, so nothing clips and only the bar's
+  own row moves.
 - **No wave = the layer is `hidden`, not `mask-image: none`.** `none` means *no
   mask*, so the layer paints its whole 58px box in solid `--ink-4` — on every
   silent clip and every GIF, which is most of them. `_applyWave` sets

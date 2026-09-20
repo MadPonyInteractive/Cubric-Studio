@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-837",
+  "title": "The trim track is 28px unless the clip actually has a waveform",
+  "description": "Follow-on from MPI-834: a silent VIDEO kept the 44px track that exists only to hold a waveform. Key the height off the wave layer itself, so every clip without one gets the 28px track and the GIF bar needs no override.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-20T08:03:21+01:00",
+  "updated_at": "2026-09-20T08:03:47+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

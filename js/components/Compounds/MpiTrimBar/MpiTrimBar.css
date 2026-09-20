@@ -1,9 +1,8 @@
 /* ── MpiTrimBar — video trim seek bar ──────────────────────────────────── */
-/* Stage tokens only. 44px track with ±8px handle/playhead overflow, which is the
-   mockup `.tl-track` height. It ran at 28px inline beside the transport buttons until
-   MPI-829: once the track carries a waveform, 28px reads as a thin smear whatever the
-   clip's level, and the trim slot is `flex:1` with no height of its own, so the row
-   simply grows to fit. */
+/* Stage tokens only. The track is 28px inline beside the transport buttons, and 44px —
+   the mockup `.tl-track` height — only while a waveform is painted in it, because 28px
+   reads as a thin smear whatever the clip's level (MPI-829). The trim slot is `flex:1`
+   with no height of its own, so the bar's row simply grows and shrinks to fit. */
 
 .mpi-trim-bar {
     width: 100%;
@@ -14,15 +13,22 @@
 .mpi-trim-bar__track {
     position: relative;
     width: 100%;
-    /* A host that never carries a wave sets the property on its trim slot and keeps the
-       28px inline track — the GIF control bar does (MPI-834). */
-    height: var(--mpi-trim-bar-track-h, 44px);
+    /* 28px is the inline track this bar always had. The 44px one exists for ONE reason —
+       to give a waveform room to read — so it is spent only when a waveform is actually
+       there, which is what the wave layer's own `[hidden]` already says (MPI-837). A GIF
+       has no audio and a text-to-video clip is silent, so most clips stay at 28px and no
+       host needs to override anything. */
+    height: 28px;
     background: var(--surface-bar);
     border: 1px solid var(--line);
     cursor: pointer;
     user-select: none;
     -webkit-user-select: none;
     touch-action: none;
+}
+
+.mpi-trim-bar__track:has(.mpi-trim-bar__wave:not([hidden])) {
+    height: 44px;
 }
 
 /* The clip's audio, so an in/out point can be cut against a word or a beat (MPI-829).
