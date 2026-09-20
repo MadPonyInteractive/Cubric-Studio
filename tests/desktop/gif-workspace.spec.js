@@ -124,7 +124,9 @@ test('gif workspace: no PromptBox; play/step/scrub keep the strip centred; reord
     // Plan scope item 6 — no model generates a GIF in v1.
     expect(await window.evaluate(() => !!document.querySelector('#prompt-box-mount .mpi-prompt-box'))).toBe(false);
     // gif's own tool list: Cut-out (MPI-771), Transform + Export (MPI-773), Timing + Output (MPI-772).
-    expect(await window.evaluate(() => document.querySelectorAll('.mpi-history-tools__slot').length)).toBe(5);
+    // Four groups since MPI-836: Cut-out, Transform, Output, Export. The
+    // Timing group went with Trim, Speed and Loop count.
+    expect(await window.evaluate(() => document.querySelectorAll('.mpi-history-tools__slot').length)).toBe(4);
     // No tool is up when a GIF opens: a Crop box would cover the frames.
     expect(await window.evaluate(() => !!document.querySelector('.mpi-gif-viewer__edit:not([hidden])'))).toBe(false);
 
@@ -498,7 +500,8 @@ test('gif output: the preview pane encodes on demand and its badge goes stale wi
     // ── A settings change marks it stale, and does NOT clear it ─────────
     // The pane keeps the last build precisely so the next one can be compared
     // against it; the badge is what says the settings have moved on.
-    await window.locator('.mpi-tool-options-gif-timing input[inputmode="decimal"]').nth(1).fill('64');
+    // Fields since MPI-836: 0 rate, 1 loop, 2 longest edge, 3 colours.
+    await window.locator('.mpi-tool-options-gif-timing input[inputmode="decimal"]').nth(3).fill('64');
     await expect.poll(async () => (await pane()).stale).toBe(true);
     expect((await pane()).imgShown, 'a stale preview stays on screen to compare against').toBe(true);
 
@@ -509,16 +512,25 @@ test('gif output: the preview pane encodes on demand and its badge goes stale wi
     await expect.poll(async () => (await pane()).badgeText).toBe('4 KiB');
     expect((await pane()).stale).toBe(false);
 
-    // ── The other timing tools have NO pane at all ─────────────────────
+    // ── MPI-836: the TRIM RANGE and the rate are part of what it built ──
+    // The preview runs the same `_gifOutputEntry()` Apply does, so a moved handle
+    // changes the file it would produce — the badge has to say so, exactly as a
+    // colour change does, or the pane shows a build of frames nobody asked for.
+    await window.evaluate(() => document.querySelector('.mpi-gif-control-bar .mpi-trim-bar').setRange(1, 2));
+    await expect.poll(async () => (await pane()).stale, { timeout: 5000 }).toBe(true);
 
-    // Removed, not `[hidden]`: a class carrying `display` outranks the UA sheet,
-    // which is how three inert slider rows once reached the screen (MPI-382).
-    await window.evaluate(() => {
-      document.querySelector('.mpi-history-tools__btn[data-info="Speed"] button').click();
-    });
-    await window.waitForSelector('.mpi-tool-options-gif-timing');
-    expect(await window.evaluate(() => !!document.querySelector('.mpi-tool-options-gif-timing__preview')),
-      'Speed is not an encoder and must not carry a preview pane').toBe(false);
+    await window.locator('.mpi-tool-options-gif-timing #preview-btn-slot button').click();
+    await expect.poll(() => window.evaluate(() => window.__mpi769.previewCalls.length)).toBe(3);
+    const ranged = await window.evaluate(() => window.__mpi769.previewCalls[2]);
+    expect(ranged.frames.map(f => f.hash), 'the preview encodes the trimmed range').toEqual(['h2', 'h3']);
+
+    // ...and so is the frame rate, which is this panel's since MPI-836.
+    await window.locator('.mpi-tool-options-gif-timing input[inputmode="decimal"]').first().fill('20');
+    await expect.poll(async () => (await pane()).stale, { timeout: 5000 }).toBe(true);
+    await window.locator('.mpi-tool-options-gif-timing #preview-btn-slot button').click();
+    await expect.poll(() => window.evaluate(() => window.__mpi769.previewCalls.length)).toBe(4);
+    expect((await window.evaluate(() => window.__mpi769.previewCalls[3])).frames.map(f => f.delay),
+      'a typed rate retimes what the preview builds').toEqual([5, 5]);
   } finally {
     await closeApp(app);
   }

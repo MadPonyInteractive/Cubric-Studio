@@ -221,24 +221,17 @@ const GIF_TOOLS = [
             { mode: 'gifResize', icon: 'resize_stroke', info: 'Resize', desc: 'Resize: scale every frame to a new size' },
         ],
     },
-    {
-        mode: 'timing',
-        label: 'Timing',
-        group: [
-            // Reverse LEFT the rail (MPI-771 consistency audit, Fabio 2026-09-19):
-            // its whole panel was one sentence and an Apply, and the video
-            // workspace already reverses from the stage's right-click. It lives on
-            // `gif-viewer:context-menu` now; `timingEdit('reverse')` is unchanged.
-            { mode: 'gifTrim',    icon: 'frames',  info: 'Trim',       desc: 'Trim: drag the handles to keep a range of frames' },
-            { mode: 'gifSpeed',   icon: 'bolt',    info: 'Speed',      desc: 'Speed: set how long each frame is held' },
-            { mode: 'gifLoop',    icon: 'loop',    info: 'Loop count', desc: 'Loop count: how many times the GIF repeats' },
-        ],
-    },
+    // There is NO Timing group (MPI-836, Fabio 2026-09-20). Trim was a panel
+    // about the control bar's handles, and no other tool read them — the trim bar
+    // IS the trim now, and every operation keeps its range, as in the video
+    // workspace. Speed and Loop count are GIF output's fields, where the video
+    // GIF Maker has always had them. Reverse left earlier (MPI-771 audit) for the
+    // stage's right-click; `timingEdit()` still owns all four edits.
     {
         mode: 'output',
         label: 'Output',
         group: [
-            { mode: 'gifOutput', icon: 'gif', info: 'GIF output', desc: 'GIF output: colours, dithering and the edge colour behind transparency' },
+            { mode: 'gifOutput', icon: 'gif', info: 'GIF output', desc: 'GIF output: save the trimmed range as a new GIF, with its frame rate, loop count, colours and transparency' },
         ],
     },
     {

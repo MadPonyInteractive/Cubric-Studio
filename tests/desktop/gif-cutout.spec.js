@@ -1236,10 +1236,10 @@ test('gif strip: full trim range, frames fill the stage, a drag scrubs, hold-dra
     await window.keyboard.press('Space');
     await expect.poll(() => window.evaluate(() => document.querySelector('.mpi-gif-viewer').isPlaying())).toBe(false);
     await waitEditFrame(window);
-    // Leaving the canvas tools hands Space back. Trim lives in the `timing` slot,
-    // which `openRailTool` (cut-out only) cannot reach.
+    // Leaving the canvas tools hands Space back. GIF output lives in the `output`
+    // slot, which `openRailTool` (cut-out only) cannot reach.
     await window.evaluate(() => {
-      document.querySelector('.mpi-history-tools__btn[data-info="Trim"] button').click();
+      document.querySelector('.mpi-history-tools__btn[data-info="GIF output"] button').click();
     });
     await expect.poll(() => window.evaluate(() => document.querySelector('.mpi-gif-viewer').isMaskEditing())).toBe(false);
     await window.keyboard.press('Space');

@@ -56,6 +56,27 @@ export function toEntryOutput(v = {}) {
 }
 
 /**
+ * The control bar's trim range as inclusive frame positions `[lo, hi]` of a list
+ * `count` long. No range (or a reversed / out-of-bounds one) still lands inside
+ * the list, so a caller can slice without checking. The ONE reading of the trim
+ * bar: every GIF operation slices with it (MPI-836), and a mask batch aligned to
+ * the frame list is sliced by the same pair.
+ */
+export function rangeBounds(count, range) {
+    const last = Math.max(0, count - 1);
+    const a = clampInt(range?.in, 0, 0, last);
+    const b = clampInt(range?.out, last, 0, last);
+    return [Math.min(a, b), Math.max(a, b)];
+}
+
+/** The rate every frame of a list plays at, or null when the delays differ. */
+export function uniformFps(frames) {
+    const delay = frames?.[0]?.delay;
+    if (!delay || frames.some(f => f.delay !== delay)) return null;
+    return delayToFps(delay);
+}
+
+/**
  * One tool's edit of `{ frames, loop, output }`. Returns only the fields the tool
  * changes; the caller keeps the rest of the current entry.
  *
@@ -64,12 +85,10 @@ export function toEntryOutput(v = {}) {
  * @param {object} v - trim `{in, out}`, speed `{fps}`, loop `{loop}`, output (see toEntryOutput)
  */
 export function timingEdit(tool, frames, v = {}) {
-    const last = Math.max(0, frames.length - 1);
     switch (tool) {
         case 'trim': {
-            const a = clampInt(v.in, 0, 0, last);
-            const b = clampInt(v.out, last, 0, last);
-            return { frames: frames.slice(Math.min(a, b), Math.max(a, b) + 1) };
+            const [lo, hi] = rangeBounds(frames.length, v);
+            return { frames: frames.slice(lo, hi + 1) };
         }
         case 'speed': {
             const delay = fpsToDelay(v.fps);

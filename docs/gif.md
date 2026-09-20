@@ -193,7 +193,8 @@ VIEWER's frame position, which diverges from the strip's staged index after a
 reorder, so the Block hands `viewerIndex` to `viewer.el.clearFrameMasks()`.
 The strip also PAINTS the control bar's trim range (outside frames dimmed, an
 edge bar at in and out) through `setRange()` — the range was legible only as
-numbers in the Trim panel, which read as Trim doing nothing.
+numbers in the old Trim panel, which read as Trim doing nothing. Since MPI-836
+that dimming is what EVERY operation keeps, so it is the range readout.
 
 ## Cut-out (MPI-771)
 
@@ -202,19 +203,47 @@ into a new, always transparent entry via `POST /gif-cutout/apply` (the cut needs
 per-frame mask batch a plain entry write never takes). Graphs, runner, the panel and the
 tint preview: [masking-sam3-gif.md](masking-sam3-gif.md).
 
-## Timing and output tools (MPI-772)
+## The trim bar is the trim — EVERY operation keeps its range (MPI-836)
 
-Timing (Trim, Speed, Loop count) and Output (GIF output): one panel,
-`MpiToolOptionsGifTiming`, picked by mode; math in `gifTiming.js` beside it. Each
-Apply is a new entry through `POST /gif/entry`, edits the list the user sees
-(staged strip changes included) and writes no frame file. Trim keeps the control
-bar's handles (`MpiGifControlBar.getRange()`; a new frame count resets them and
-emits `range-change`, which the Block forwards to BOTH the panel's note and the
-strip's `setRange()`). An untouched range drops nothing, so the note says "All N
-frames are selected" rather than "Keeps frames 0 to N-1" — Apply would only
-toast back, which read as Trim being broken. Speed is `max(2, round(100 / fps))`, 0.1-50 fps. Loop
-writes `gif.loop`. Transparent sets `output.edgeColour`, off is `null`. Settings:
-`toolSettings.gifTiming`. Proof: `tests/desktop/gif-timing.spec.js`.
+The Block has ONE reading of the control bar's handles, `_opFrames()`: the frames
+on screen (staged strip edits included) sliced by `rangeBounds()`. GIF output,
+its preview, Crop, Resize, Reverse, GIF to Video and the Cut-out all take their
+frames from it, and the cut slices its per-frame mask batch by the same `lo`/`hi`.
+
+Until MPI-836 **nothing** read those handles except a Trim panel whose only
+content was a note about them: setting a range and opening GIF output rebuilt the
+whole GIF (Fabio, 2026-09-20). Every VIDEO operation already honoured its trim
+(`_activeVideoTrim`), so the GIF workspace was the inconsistent one.
+
+Two things this does NOT cover, and both are deliberate:
+
+- **The strip pill's Update / Apply** saves the STAGED LIST, and an Update writes
+  in place — a range there would delete the frames outside it.
+- **Save frame** is the frame on screen wherever the handles sit; a snapshot is
+  not an operation on the range.
+
+## GIF output (MPI-772, one tool since MPI-836)
+
+`MpiToolOptionsGifTiming`, with `gifTiming.js` beside it for the math. Apply is a
+new entry through `POST /gif/entry` that writes no frame file. Fields: **frame
+rate**, **loop count**, then longest edge, colours, transparent + edge colour —
+rate and loop first, as the video GIF Maker has them.
+
+**The rate field is BLANK, and that is load-bearing.** Blank means "keep every
+frame's own delay": an entry with mixed delays has no single rate, and seeding the
+field would silently retime the GIF on an Apply about colours. The note names the
+rate the ranged frames already play at (`uniformFps()`), or says they differ. A
+landed Apply CLEARS it again — that rate is the new entry's own now.
+
+Rate and loop never persist: they belong to the GIF on screen, so loop is read off
+the entry (`onFramesChange(item)`, because picking a history entry does not
+remount the panel). Only the build settings persist, in `toolSettings.gifTiming`.
+
+Speed math is `max(2, round(100 / fps))`, 0.1-50 fps. Transparent sets
+`output.edgeColour`, off is `null`. The preview's stale badge keys on the build
+settings AND rate, loop and range — it runs the same `_gifOutputEntry()` Apply
+does. Reverse is the stage's right-click, still `timingEdit('reverse')`. Proof:
+`tests/desktop/gif-timing.spec.js`, `tests/gif-timing.test.cjs`.
 
 **Reverse and Save frame are NOT on the rail** (MPI-771 audit, Fabio 2026-09-19): each was a
 sentence and an Apply, and each is a right-click the video workspace already had. Both are

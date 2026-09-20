@@ -35,7 +35,7 @@ import { MpiToolOptionsResize } from '../../Organisms/MpiToolOptionsResize/MpiTo
 import { MpiToolOptionsGif } from '../../Organisms/MpiToolOptionsGif/MpiToolOptionsGif.js';
 import { MpiToolOptionsGifCutout } from '../../Organisms/MpiToolOptionsGifCutout/MpiToolOptionsGifCutout.js';
 import { MpiToolOptionsGifTiming } from '../../Organisms/MpiToolOptionsGifTiming/MpiToolOptionsGifTiming.js';
-import { timingEdit, toEntryOutput } from '../../Organisms/MpiToolOptionsGifTiming/gifTiming.js';
+import { timingEdit, rangeBounds } from '../../Organisms/MpiToolOptionsGifTiming/gifTiming.js';
 import { MpiToolOptionsGifTransform } from '../../Organisms/MpiToolOptionsGifTransform/MpiToolOptionsGifTransform.js';
 import { MpiToolOptionsPrompt } from '../../Organisms/MpiToolOptionsPrompt/MpiToolOptionsPrompt.js';
 import { MpiPromptBox } from '../../Organisms/MpiPromptBox/MpiPromptBox.js';
@@ -135,17 +135,16 @@ const TOOL_OPTIONS_REGISTRY = {
     // a sentence and an Apply, and both are the video workspace's own
     // right-click items, so they moved to `gif-viewer:context-menu`. Their
     // handlers below are unchanged and the menu calls them.
-    gifTrim:      MpiToolOptionsGifTiming,
-    gifSpeed:     MpiToolOptionsGifTiming,
-    gifLoop:      MpiToolOptionsGifTiming,
+    // Trim / Speed / Loop count left the rail (MPI-836): the trim bar is the
+    // trim, and rate + loop count are GIF output fields.
     gifOutput:    MpiToolOptionsGifTiming,
     // MPI-773: Resize / GIF to Video. The gif Crop is `crop` above.
     gifResize:    MpiToolOptionsGifTransform,
     gifToVideo:   MpiToolOptionsGifTransform,
 };
 
-/** The MpiToolOptionsGifTiming modes (MPI-772). */
-const _GIF_TIMING_TOOLS = new Set(['gifTrim', 'gifSpeed', 'gifLoop', 'gifOutput']);
+/** The MpiToolOptionsGifTiming modes (MPI-772; one since MPI-836). */
+const _GIF_TIMING_TOOLS = new Set(['gifOutput']);
 /** The MpiToolOptionsGifTransform modes (MPI-773). */
 const _GIF_TRANSFORM_TOOLS = new Set(['gifResize', 'gifToVideo']);
 /** A GIF entry's build settings when the item carries none (docs/gif.md). */
@@ -583,6 +582,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 viewer.el.setFrames(frames, order);
                 gifControlBar.el.setFrameCount(frames.length);
                 frameStrip.el.setCurrentIndex(viewer.el.getFrameIndex());
+                _options?.el.onFramesChange?.();
             }));
             _unsubs.push(frameStrip.on('update', ({ frames }) => _saveGifEntry('update', frames)));
             _unsubs.push(frameStrip.on('apply',  ({ frames }) => _saveGifEntry('new', frames)));
@@ -598,9 +598,9 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             _unsubs.push(frameStrip.on('selection-change', ({ viewerIndices }) => {
                 _options?.el.setSelection?.(viewerIndices);
             }));
-            // MPI-772: the Trim panel shows which frames its Apply keeps, and
-            // MPI-771 paints the same range on the strip — the numbers alone
-            // read as Trim doing nothing (Fabio, 2026-09-18).
+            // GIF output's note says which frames its Apply keeps, and MPI-771
+            // paints the same range on the strip — since MPI-836 that dimming is
+            // what EVERY operation will keep (`_opFrames`).
             _unsubs.push(gifControlBar.on('range-change', (range) => {
                 _options?.el.onRangeChange?.(range);
                 frameStrip?.el.setRange(range);
@@ -650,6 +650,9 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 // still held the PREVIOUS frame list, so it was clamped to the
                 // old length — re-apply against the list it holds now.
                 frameStrip?.el.setRange(gifControlBar?.el.getRange());
+                // A history entry carries its own loop count, and the panel is
+                // NOT remounted when one is picked — hand it the new entry.
+                _options?.el.onFramesChange?.(item);
             } catch (err) {
                 clientLogger.warn('MpiGroupHistoryBlock', `gif load failed: ${err?.message || err}`);
                 _showToast('Could not load GIF frames', 'error');
@@ -712,6 +715,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 gifControlBar?.el.setFrameCount(item.gif?.frames?.length || 0);
                 frameStrip?.el.commit(item.gif?.frames || []);
                 frameStrip?.el.setRange(gifControlBar?.el.getRange());
+                _options?.el.onFramesChange?.(item);
                 _showToast(done, 'success');
                 return true;
             } catch (err) {
@@ -724,6 +728,24 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         }
 
         const _frameRefs = (frames) => frames.map(f => ({ hash: f.hash, delay: f.delay }));
+
+        /**
+         * The frames a GIF OPERATION works on (MPI-836): the list on screen, staged
+         * strip edits included, BETWEEN THE CONTROL BAR'S TRIM HANDLES. Every video
+         * operation already reads its trim through `_activeVideoTrim`; no GIF one
+         * read the range at all, so setting it and opening GIF output built the
+         * whole GIF (Fabio, 2026-09-20). Every operation takes its frames from
+         * here — never from `viewer.el.getFrames()` — and `lo`/`hi` slice anything
+         * aligned to the full list (the cut-out's mask batch).
+         *
+         * NOT the strip pill's Update / Apply: that SAVES the staged list, and an
+         * Update writes in place — a range there would delete the frames outside it.
+         */
+        function _opFrames() {
+            const all = viewer.el.getFrames();
+            const [lo, hi] = rangeBounds(all.length, gifControlBar?.el.getRange?.());
+            return { frames: all.slice(lo, hi + 1), lo, hi };
+        }
 
         /**
          * Strip pill Update/Apply (plan decision 10) and the timing/output
@@ -748,19 +770,28 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         }
 
         /**
-         * Timing/output tools' Apply (MPI-772): edit the frames the user sees
-         * (staged strip changes included) and save them as a new entry. No
-         * frame file is written; `gifTiming.js` owns the math.
+         * What GIF output saves and previews: the ranged frames, retimed when the
+         * panel names a rate, with its loop count and build settings. ONE function
+         * for both, or the preview stops being the thing Apply produces.
+         */
+        function _gifOutputEntry(values = {}) {
+            let { frames } = _opFrames();
+            if (values.fps != null) frames = timingEdit('speed', frames, values).frames;
+            return { frames, ...timingEdit('loop', frames, values), ...timingEdit('output', frames, values) };
+        }
+
+        /**
+         * GIF output's Apply, and the stage menu's Reverse (MPI-772): edit the
+         * ranged frames (`_opFrames`) and save them as a new entry. No frame file
+         * is written; `gifTiming.js` owns the math. Trim / Speed / Loop count were
+         * three more rail tools until MPI-836: the trim bar IS the trim, and rate
+         * and loop are GIF output's fields, as they are the video GIF Maker's.
          */
         function _handleGifTimingApply({ tool, values } = {}) {
-            const frames = viewer.el.getFrames();
-            if (!frames.length) return;
-            const edit = timingEdit(tool, frames, values);
-            if (tool === 'trim' && edit.frames.length === frames.length) {
-                _showToast('Move the trim handles in the control bar first', 'info');
-                return;
-            }
-            return _saveGifEntry('new', edit.frames || frames, edit);
+            if (!viewer.el.getFrameCount()) return;
+            if (tool === 'reverse') return _saveGifEntry('new', timingEdit('reverse', _opFrames().frames).frames);
+            const { frames, loop, output } = _gifOutputEntry(values);
+            return _saveGifEntry('new', frames, { loop, output });
         }
 
         /**
@@ -768,25 +799,18 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
          * `buildGif()` the Apply runs, to a temp file, no entry and no sidecar — a
          * preview encoded any other way would not be the thing being judged.
          *
-         * The frames are the ones ON SCREEN, staged strip edits included, exactly
-         * as `_handleGifTimingApply` takes them; only the output settings come from
-         * the panel, and `loop` from the current entry, because this tool does not
-         * change either of those.
-         * @param {{maxEdge:number, colours:number, transparent:boolean, edgeColour:string}} values
+         * Frames, rate, loop and output all come from `_gifOutputEntry`, the same
+         * call Apply makes — trim range included (MPI-836).
+         * @param {{fps:?number, loop:number, maxEdge:number, colours:number, transparent:boolean, edgeColour:string}} values
          */
         async function _previewGifOutput(values = {}) {
             const project = state.currentProject;
-            const frames = viewer.el.getFrames();
+            const { frames, loop, output } = _gifOutputEntry(values);
             if (!project?.folderPath || !frames.length) return null;
             const res = await fetch('/gif/preview', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    folderPath: project.folderPath,
-                    frames: _frameRefs(frames),
-                    loop: _group.history[_currentIdx]?.gif?.loop ?? 0,
-                    output: toEntryOutput(values),
-                }),
+                body: JSON.stringify({ folderPath: project.folderPath, frames: _frameRefs(frames), loop, output }),
             });
             const data = await res.json();
             if (!res.ok || !data.success) throw new Error(data.error || `HTTP ${res.status}`);
@@ -799,8 +823,14 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
          * CURRENT frame list before emitting.
          */
         async function _handleGifCutoutApply(payload) {
-            const { frames, masks, adjust, invert, settings } = payload || {};
+            const { adjust, invert, settings } = payload || {};
+            let { frames, masks } = payload || {};
             if (!Array.isArray(frames) || !frames.length || !Array.isArray(masks) || masks.length !== frames.length) return;
+            // The panel sends one mask per frame of the WHOLE list; the cut keeps
+            // the trim range, so both are sliced by the same pair (MPI-836).
+            const { lo, hi } = _opFrames();
+            frames = frames.slice(lo, hi + 1);
+            masks = masks.slice(lo, hi + 1);
             const landed = await _postGifEntry('/gif-cutout/apply', { frames, masks, adjust, invert, settings },
                 { done: 'Cut-out saved', failed: 'Cut-out failed' });
             if (landed) viewer.el.setCutoutPreview?.(null);
@@ -813,7 +843,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
          */
         function _handleGifCrop(settings = {}) {
             const rect = viewer.el.getCropRect?.();
-            const frames = viewer.el.getFrames();
+            const { frames } = _opFrames();
             if (!rect || !frames.length) { _showToast('No crop selected', 'warning'); return; }
             const isExact = settings.family === 'resolution';
             const n = isExact ? 1 : settings.divisible_by;
@@ -830,14 +860,16 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
 
         /** Resize / Save frame / GIF to Video (MPI-773). */
         async function _handleGifTransformApply({ tool, width, height, background } = {}) {
-            const frames = viewer.el.getFrames();
+            const { frames } = _opFrames();
             if (!frames.length) return;
             if (tool === 'resize') {
                 return _postGifEntry('/gif/resize', { frames: _frameRefs(frames), width, height },
                     { done: 'Resize saved', failed: 'Resize failed' });
             }
             if (tool === 'saveFrame') {
-                const f = frames[viewer.el.getFrameIndex()];
+                // The frame ON SCREEN, wherever the trim handles sit — a snapshot
+                // is not an operation on the range.
+                const f = viewer.el.getFrames()[viewer.el.getFrameIndex()];
                 try {
                     const blob = await (await fetch(f.url)).blob();
                     if (await _saveImageCard(blob, 'frame')) _showToast('Frame saved to gallery', 'success');
@@ -1143,8 +1175,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             exportGif: 'GIF Maker',
             gifCutout: 'Cut-out',
             gifMaskBrush: 'Mask Brush',
-            gifTrim: 'Trim', gifSpeed: 'Speed',
-            gifLoop: 'Loop count', gifOutput: 'GIF output',
+            gifOutput: 'GIF output',
             gifResize: 'Resize', gifToVideo: 'GIF to Video',
         };
 

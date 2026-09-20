@@ -6,18 +6,24 @@ const sharp = require('sharp');
 const { launchApp, closeApp } = require('./launch');
 
 /**
- * MPI-772 — GIF timing and output tools, real end to end.
+ * MPI-772, rewritten for MPI-836 — GIF output and the trim bar, real end to end.
  *
  * A real project on disk, a real 6-frame animated GIF imported through the
  * real upload route (which extracts its frames eagerly, docs/gif.md), the real
- * GIF workspace, real rail clicks and real `POST /gif/entry` builds. Every tool
+ * GIF workspace, real rail clicks and real `POST /gif/entry` builds. Each Apply
  * adds an entry; its built `.gif` is read back with sharp (pages, per-frame
  * delay in ms = hundredths x10, loop = total plays) and the frame store's file
  * count must never change: these tools rewrite the list, not the frames.
  *
- * Tools run in a chain (each Apply opens the entry it made):
- * Speed 16 fps -> Reverse (stage right-click) -> Loop 3 -> Trim 1..3 -> GIF
- * output (16 px, transparent).
+ * What MPI-836 changed, and what this test now pins: the rail had a Timing group
+ * (Trim, Speed, Loop count) and NOTHING read the control bar's trim handles —
+ * setting a range and opening GIF output rebuilt the whole GIF (Fabio,
+ * 2026-09-20). One panel now, and every operation keeps the range, as every video
+ * operation already did.
+ *
+ * The chain (each Apply opens the entry it made):
+ * rate 16 fps -> Reverse (stage right-click) -> trim 1..3 + loop 3 -> blank rate
+ * keeps the delays -> 16 px transparent -> Resize honours the range too.
  */
 test.setTimeout(180000);
 
@@ -70,7 +76,7 @@ async function pixel(gifPath, page, x, y) {
 
 const isColour = (px, [r, g, b]) => Math.abs(px.r - r) < 40 && Math.abs(px.g - g) < 40 && Math.abs(px.b - b) < 40;
 
-test('GIF timing tools: each Apply adds an entry with the expected frames, delays, loop and output; no new frame files', async ({}, testInfo) => {
+test('GIF output: rate, loop and build settings over the TRIM RANGE, and every operation keeps that range; no new frame files', async ({}, testInfo) => {
     let app, window;
     let projectFolderPath = null;
 
@@ -141,13 +147,18 @@ test('GIF timing tools: each Apply adds an entry with the expected frames, delay
             return g.history.map(i => ({ id: i.id, filePath: i.filePath, gif: i.gif }));
         }, groupId);
 
-        const openTool = async (slot, info) => {
+        const openTool = async (slot, info, panel = '.mpi-tool-options-gif-timing') => {
             await window.locator(`.mpi-history-tools__slot[data-mode="${slot}"] .mpi-history-tools__btn[data-info="${info}"] button`).click();
-            await window.waitForSelector('.mpi-tool-options-gif-timing');
+            await window.waitForSelector(panel);
         };
-        const setNumber = (nth, value) =>
+        /** Fields in mount order: 0 rate, 1 loop, 2 longest edge, 3 colours. */
+        const setNumber = (nth, value, panel = '.mpi-tool-options-gif-timing') =>
             // MpiInput renders a number field as type="text" inputmode="decimal".
-            window.locator('.mpi-tool-options-gif-timing input[inputmode="decimal"]').nth(nth).fill(String(value));
+            window.locator(`${panel} input[inputmode="decimal"]`).nth(nth).fill(String(value));
+        const note = window.locator('.mpi-tool-options-gif-timing #note');
+        /** Drag the control bar's handles, the way the trim bar's own API does. */
+        const setRange = (a, b) => window.evaluate(([i, o]) =>
+            document.querySelector('.mpi-gif-control-bar .mpi-trim-bar').setRange(i, o), [a, b]);
 
         /**
          * Right-click the GIF stage and choose one item (MPI-771 audit): Reverse
@@ -161,9 +172,9 @@ test('GIF timing tools: each Apply adds an entry with the expected frames, delay
         };
 
         /** Click the panel's Apply, then settle. */
-        const apply = async (expectedFrames) => {
+        const apply = async (expectedFrames, panel = '.mpi-tool-options-gif-timing') => {
             const before = (await history()).length;
-            await window.locator('.mpi-tool-options-gif-timing #actions-slot button').click();
+            await window.locator(`${panel} #actions-slot button`).click();
             return settle(before, expectedFrames);
         };
 
@@ -178,10 +189,18 @@ test('GIF timing tools: each Apply adds an entry with the expected frames, delay
             return { entry, gifPath, meta };
         };
 
-        // ── Speed: 16 fps -> delay 6 (60 ms) on every frame ──────────────────
-        await openTool('timing', 'Speed');
+        // ── The rail has no Timing group any more (MPI-836) ──────────────────
+        expect(await window.locator('.mpi-history-tools__slot[data-mode="timing"]').count(),
+            'Trim, Speed and Loop count left the rail').toBe(0);
+
+        // ── Frame rate 16 fps -> delay 6 (60 ms) on every frame ──────────────
+        await openTool('output', 'GIF output');
+        // The source delays differ (10..60), so a blank rate has none to name.
+        await expect(note).toContainText('All 6 frames');
+        await expect(note).toContainText('each frame keeps its own timing (they differ)');
+        await expect(note).toContainText('looping forever');
         await setNumber(0, 16);
-        await expect(window.locator('.mpi-tool-options-gif-timing #note')).toContainText('16.7 fps');
+        await expect(note).toContainText('16.7 fps');
         let r = await apply(6);
         expect(r.meta.pages).toBe(6);
         expect(r.meta.delay).toEqual([60, 60, 60, 60, 60, 60]);
@@ -200,33 +219,34 @@ test('GIF timing tools: each Apply adds an entry with the expected frames, delay
         expect(isColour(await pixel(r.gifPath, 0, 16, 12), COLOURS[5]), 'page 0 is the last source frame').toBe(true);
         expect(isColour(await pixel(r.gifPath, 5, 16, 12), COLOURS[0]), 'page 5 is the first source frame').toBe(true);
 
-        // ── Loop count: 3 total plays ────────────────────────────────────────
-        await openTool('timing', 'Loop count');
-        await setNumber(0, 3);
-        r = await apply(6);
+        // ── THE BUG (MPI-836): a range set, then Apply — with a loop count ───
+        // This exact sequence built all six frames before the fix.
+        await openTool('output', 'GIF output');
+        await setRange(1, 3);
+        await expect(note).toContainText('Frames 1 to 3 (3 of 6; the rest are dimmed on the strip)');
+        await expect(note).toContainText('at 16.7 fps', { timeout: 5000 });
+        await setNumber(1, 3);
+        await expect(note).toContainText('3 plays');
+        r = await apply(3);
+        expect(r.meta.pages, 'the trimmed range, not the whole GIF').toBe(3);
+        expect(r.entry.gif.frames.map(f => f.hash)).toEqual([...speedHashes].reverse().slice(1, 4));
         expect(r.entry.gif.loop).toBe(3);
         expect(r.meta.loop, 'sharp reports total plays').toBe(3);
-        expect(r.meta.pages).toBe(6);
+        // A landed Apply resets the handles to the new (shorter) list, and the
+        // panel reads the new entry's own loop count rather than keeping the
+        // value that was typed against the old one.
+        await expect(note).toContainText('All 3 frames');
+        await expect(note).toContainText('3 plays');
 
-        // ── Trim: frames 1..3 of the reversed list ───────────────────────────
-        await openTool('timing', 'Trim');
-        await window.evaluate(() => document.querySelector('.mpi-gif-control-bar .mpi-trim-bar').setRange(1, 3));
-        await expect(window.locator('.mpi-tool-options-gif-timing #note')).toContainText('Keeps frames 1 to 3 (3 of 6)');
-        r = await apply(3);
-        expect(r.meta.pages).toBe(3);
-        expect(r.meta.loop, 'the loop carries over').toBe(3);
-        expect(r.entry.gif.frames.map(f => f.hash)).toEqual([...speedHashes].reverse().slice(1, 4));
-        // The new entry resets the handles to every frame — and a full range
-        // drops nothing, so the note says THAT rather than "Keeps frames 0 to
-        // 2 (3 of 3)", which read as if Apply would trim (Fabio, 2026-09-18:
-        // "Trim does nothing"; Apply only toasts back at you).
-        await expect(window.locator('.mpi-tool-options-gif-timing #note'))
-            .toContainText('All 3 frames are selected');
+        // ── A BLANK rate keeps every frame's own delay ───────────────────────
+        // The field is blank on mount on purpose: an Apply about colours must not
+        // silently retime the GIF (and a mixed-delay entry has no rate to seed).
+        expect(await window.locator('.mpi-tool-options-gif-timing input[inputmode="decimal"]').first().inputValue(),
+            'the rate field opens blank').toBe('');
 
         // ── GIF output: 16 px longest edge, 16 colours, transparent ─────────
-        await openTool('output', 'GIF output');
-        await setNumber(0, 16);
-        await setNumber(1, 16);
+        await setNumber(2, 16);
+        await setNumber(3, 16);
         const picker = window.locator('.mpi-tool-options-gif-timing .mpi-color-picker');
         await expect(picker, 'the edge colour only matters for a transparent build').toBeHidden();
         // The switch track covers the input, so click the label (a real user click).
@@ -239,11 +259,29 @@ test('GIF timing tools: each Apply adds an entry with the expected frames, delay
         expect(r.meta.pageHeight).toBe(12);
         expect(r.meta.pages).toBe(3);
         expect(r.meta.loop).toBe(3);
+        expect(r.meta.delay, 'a blank rate left the delays alone').toEqual([60, 60, 60]);
         expect((await pixel(r.gifPath, 0, 0, 0)).a, 'the transparent column survives').toBe(0);
         expect((await pixel(r.gifPath, 0, 12, 6)).a, 'the colour stays opaque').toBe(255);
 
-        // ── Frames: the list changed five times, the store never did ─────────
-        expect(await storeCount()).toBe(storeBefore);
+        // ── Frames: the list changed four times, the store never did ─────────
+        // Rate, reverse, trim+loop and the build settings all rewrite the LIST.
+        expect(await storeCount(), 'no operation so far wrote a frame file').toBe(storeBefore);
+
+        // ── ...and EVERY operation keeps the range, not just this panel ──────
+        // Resize stands in for crop / cut-out / GIF to Video: they all take their
+        // frames from the Block's one `_opFrames()`. Unlike the four above it DOES
+        // write frames — that is what makes it the right witness here.
+        const transform = '.mpi-tool-options-gif-transform';
+        await openTool('transform', 'Resize', transform);
+        await setRange(0, 1);
+        await setNumber(0, 8, transform);
+        r = await apply(2, transform);
+        expect(r.meta.pages, 'Resize kept the two frames between the handles').toBe(2);
+        expect(r.meta.width).toBe(8);
+        // Two frames resized, two written (+ their thumbs) — and only two, because
+        // the four frames outside the handles were never resized at all.
+        expect(await storeCount(), 'resize wrote exactly the frames it kept').toBe(storeBefore + 4);
+
         expect((await history()).length).toBe(6);
     } finally {
         if (app) await closeApp(app);

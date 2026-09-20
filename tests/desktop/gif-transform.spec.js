@@ -172,9 +172,10 @@ test('GIF transform: Make GIF -> Crop 9:16 -> Speed 0.33 -> GIF to Video card; S
         const frame0 = path.join(projectFolderPath, 'Media', '.gif-frames', `${entry.gif.frames[0].hash}.png`);
         expect(await sharp(frame0).metadata()).toMatchObject({ width: 1080, height: 1920 });
 
-        // ── Speed 0.33 fps -> each image holds 3.03 s ────────────────────────
-        await openTool('timing', 'Speed');
-        await window.locator('.mpi-tool-options-gif-timing input[inputmode="decimal"]').fill('0.33');
+        // ── Frame rate 0.33 fps -> each image holds 3.03 s ──────────────────
+        // GIF output owns the rate since MPI-836 (field 0); there is no Speed tool.
+        await openTool('output', 'GIF output');
+        await window.locator('.mpi-tool-options-gif-timing input[inputmode="decimal"]').first().fill('0.33');
         before = (await gifHistory()).length;
         await window.locator('.mpi-tool-options-gif-timing #actions-slot button').click();
         await expect.poll(async () => (await gifHistory()).length, { timeout: 60000 }).toBe(before + 1);

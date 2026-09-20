@@ -1,26 +1,36 @@
 /**
- * MpiToolOptionsGifTiming — Organism: the GIF timing and output tools (MPI-772).
+ * MpiToolOptionsGifTiming — Organism: the GIF output tool (MPI-772, MPI-836).
  *
- * One panel for four rail modes; `props.mode` picks the section (the
- * maskAdjust/paintAdjust pattern). Every Apply saves a NEW GIF entry through
- * `POST /gif/entry` (the Block owns the call): the edit rewrites the frame list,
- * `loop` or `output` only, so no frame file is written. The math lives in
- * `gifTiming.js`.
+ * ONE tool now. Apply saves a NEW GIF entry through `POST /gif/entry` (the Block
+ * owns the call): frame rate, loop count and the build settings, over the frames
+ * between the control bar's trim handles.  The math lives in `gifTiming.js`.
  *
- *   gifTrim    — keep the frames between the control bar's trim handles
- *   gifSpeed   — one frame rate for every frame, 0.1-50 fps
- *   gifLoop    — total plays, 0 = forever
- *   gifOutput  — built `.gif` longest edge, colour limit, transparency + edge
- *                colour (rebuilds the `.gif` only)
+ * It had three siblings until MPI-836 — Trim, Speed and Loop count — and Trim was
+ * a panel whose only content was a note about the control bar (Fabio, 2026-09-20).
+ * Meanwhile no GIF operation read those handles at all: setting a range and opening
+ * this panel rebuilt the whole GIF. The trim bar is the trim now, every operation
+ * keeps its range (`_opFrames` in the Block), and rate + loop sit here, exactly
+ * where the video workspace's GIF Maker has always had them.
  *
- * Settings persist to project.json `toolSettings.gifTiming`.
+ * Frame rate is BLANK until the user types one: an entry with mixed delays has no
+ * single rate, and seeding the field would silently retime the GIF on an Apply
+ * about colours. Blank = keep every frame's own delay. The placeholder names the
+ * rate the frames already play at when they share one.
+ *
+ * The build settings persist to project.json `toolSettings.gifTiming`; RATE and
+ * LOOP never do — they belong to the GIF on screen, not to the tool, so loop is
+ * read off its entry on mount.
  *
  * Props:
- * @param {object} viewer - MpiGifViewer instance (reads getFrameCount())
- * @param {'gifTrim'|'gifSpeed'|'gifLoop'|'gifOutput'} mode
+ * @param {object} viewer - MpiGifViewer instance (frame count, frames, loop)
+ * @param {object} currentItem - the GIF entry being edited (`gif.loop` seeds the field)
+ * @param {'gifOutput'} mode
  *
  * Block hooks on el:
  *   onRangeChange({ in, out }) — the control bar's trim range (frame indices)
+ *   onFramesChange()           — the frame list moved under the panel (a staged
+ *                                strip edit, or an Apply landing): the note and
+ *                                the rate placeholder are read off it
  *   setEncoder(fn)             — `gifOutput` only (MPI-771 audit): fn(settings) →
  *                                Promise<{ url, byteSize }> for the preview pane.
  *                                Injected by the Block, the division
@@ -29,10 +39,10 @@
  *                                frame list.
  *
  * Emits:
- *   'apply' { tool: 'trim'|'speed'|'loop'|'output', values }
+ *   'apply' { tool: 'output', values } — `values.fps` is null when the field is blank
  *
  * `reverse` is still a `timingEdit()` tool — the GIF stage's context menu emits
- * it straight to the Block (MPI-771 audit); this panel no longer has that mode.
+ * it straight to the Block (MPI-771 audit); this panel has never had that mode.
  */
 
 import { ComponentFactory } from '../../factory.js';
@@ -48,29 +58,13 @@ import { getToolSettings } from '../../../data/projectModel.js';
 import { qs } from '../../../utils/dom.js';
 import {
     MIN_FPS, MAX_FPS, MAX_LOOP, MIN_EDGE, MAX_EDGE, MIN_COLOURS, MAX_COLOURS,
-    OUTPUT_DEFAULTS, clampNumber, fpsToDelay, delayToFps,
+    OUTPUT_DEFAULTS, clampNumber, fpsToDelay, delayToFps, rangeBounds, uniformFps,
 } from './gifTiming.js';
 
-const TOOLS = {
-    gifTrim: {
-        tool: 'trim', icon: 'frames', label: 'Trim',
-        desc: 'Keeps the frames between the trim handles in the control bar.',
-    },
-    gifSpeed: {
-        tool: 'speed', icon: 'bolt', label: 'Speed',
-        desc: 'Plays every frame at one rate. Below 1 fps each frame holds longer than a second.',
-    },
-    gifLoop: {
-        tool: 'loop', icon: 'loop', label: 'Loop count',
-        desc: 'How many times the GIF plays. 0 loops forever.',
-    },
-    gifOutput: {
-        tool: 'output', icon: 'gif', label: 'GIF output',
-        desc: 'Rebuilds the .gif file. The frames stay full colour.',
-    },
-};
+const DESC = 'Saves the frames between the trim handles as a new GIF. The frames stay full colour.';
 
-const DEFAULTS = Object.freeze({ fps: 10, loop: 0, ...OUTPUT_DEFAULTS });
+/** Only the build settings persist; rate and loop come from the GIF on screen. */
+const DEFAULTS = Object.freeze({ ...OUTPUT_DEFAULTS });
 
 /** Byte badge on the preview — same rounding as MpiToolOptionsGif's. */
 function formatBytes(n) {
@@ -82,8 +76,6 @@ function formatBytes(n) {
 
 function coerceSettings(raw) {
     return {
-        fps: clampNumber(raw.fps, DEFAULTS.fps, MIN_FPS, MAX_FPS),
-        loop: Math.round(clampNumber(raw.loop, DEFAULTS.loop, 0, MAX_LOOP)),
         maxEdge: Math.round(clampNumber(raw.maxEdge, DEFAULTS.maxEdge, MIN_EDGE, MAX_EDGE)),
         colours: Math.round(clampNumber(raw.colours, DEFAULTS.colours, MIN_COLOURS, MAX_COLOURS)),
         transparent: !!raw.transparent,
@@ -95,15 +87,11 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
     name: 'MpiToolOptionsGifTiming',
     css: ['js/components/Organisms/MpiToolOptionsGifTiming/MpiToolOptionsGifTiming.css'],
 
-    template: (props) => `
+    template: () => `
         <div class="mpi-tool-options-gif-timing">
-            <div class="mpi-tool-options-gif-timing__desc">${(TOOLS[props.mode] || TOOLS.gifTrim).desc}</div>
+            <div class="mpi-tool-options-gif-timing__desc">${DESC}</div>
             <div class="mpi-tool-options-gif-timing__section" id="fields-slot"></div>
             <div class="mpi-tool-options-gif-timing__note" id="note" hidden></div>
-            <!-- Output only, and REMOVED rather than [hidden] on the other three:
-                 a class carrying a display rule outranks the UA sheet's [hidden],
-                 which is how three inert slider rows once reached the screen
-                 (MPI-382, and MpiToolOptionsMaskAdjust carries the same note). -->
             <div class="mpi-tool-options-gif-timing__preview" id="preview-wrap">
                 <div class="mpi-tool-options-gif-timing__preview-head">
                     <span class="mpi-tool-options-gif-timing__preview-label">Preview</span>
@@ -121,10 +109,13 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
     `,
 
     setup: (el, props, emit) => {
-        const def = TOOLS[props.mode] || TOOLS.gifTrim;
         const viewer = props.viewer;
         let settings = coerceSettings(getToolSettings(state.currentProject || {}, 'gifTiming', DEFAULTS));
         let range = null;
+        /** Blank until the user types a rate: null = every frame keeps its delay. */
+        let fps = null;
+        /** Total plays. The GIF's own, never a remembered tool value. */
+        let loop = Math.round(clampNumber(props.currentItem?.gif?.loop, 0, 0, MAX_LOOP));
 
         // Destroying a child also drops its listeners (factory.js), so no unsubscribe list.
         const _children = [];
@@ -152,10 +143,16 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
             return child;
         };
 
-        /** The output settings the preview was built from — what makes it stale. */
+        /**
+         * Everything the preview was built from — what makes it stale. Rate, loop
+         * and the TRIM RANGE are in it as well as the build settings (MPI-836):
+         * the preview runs the same `_gifOutputEntry()` Apply does, so a moved
+         * handle or a new rate changes the file it would produce.
+         */
         const outputKey = () =>
-            `${settings.maxEdge}|${settings.colours}|${settings.transparent}|${settings.edgeColour}`;
-        /** Assigned by the preview block below; a no-op on the other three tools. */
+            [settings.maxEdge, settings.colours, settings.transparent, settings.edgeColour,
+                fps, loop, ...rangeBounds(viewer?.el.getFrameCount?.() || 0, range)].join('|');
+        /** Assigned by the preview block below. */
         let _markStale = () => {};
         let _destroyed = false;
 
@@ -166,6 +163,7 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
             _markStale();
         };
 
+        /** A persisted build setting. */
         const numberField = (key, label, min, max, step, info) => {
             const input = mountRow(MpiInput, { type: 'number', label, value: settings[key], min, max, step, info });
             const onValue = ({ value }) => {
@@ -176,55 +174,85 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
             input.on('change', onValue);
         };
 
+        /** The frames Apply will keep: the trim range over the list on screen. */
+        const rangedFrames = () => {
+            const frames = viewer?.el.getFrames?.() || [];
+            const [lo, hi] = rangeBounds(frames.length, range);
+            return frames.slice(lo, hi + 1);
+        };
+
         function renderNote() {
-            if (def.tool === 'speed') {
-                const delay = fpsToDelay(settings.fps);
-                setNote(`Each frame shows for ${(delay / 100).toFixed(2)} s (plays at ${delayToFps(delay).toFixed(1)} fps).`);
-            } else if (def.tool === 'trim') {
-                const count = viewer?.el.getFrameCount?.() || 0;
-                if (!range || !count) { setNote(''); return; }
-                const a = Math.round(Math.min(range.in, range.out));
-                const b = Math.round(Math.max(range.in, range.out));
-                // An untouched range drops nothing, and Apply refuses with a
-                // toast AFTER the click — which read as "Trim does nothing"
-                // (Fabio, 2026-09-18). Say it up front instead. The strip now
-                // paints the range too, so the handles are findable.
-                if (b - a + 1 >= count) {
-                    setNote(`All ${count} frames are selected — drag the handles in the control bar to pick a shorter range.`);
-                    return;
-                }
-                setNote(`Keeps frames ${a} to ${b} (${b - a + 1} of ${count}); the rest are dimmed on the strip.`);
-            }
+            const frames = viewer?.el.getFrames?.() || [];
+            const count = frames.length;
+            if (!count) { setNote(''); return; }
+            const [lo, hi] = rangeBounds(count, range);
+            const kept = hi - lo + 1;
+            // What the button will DO, before it is pressed. A refusal toast after
+            // the click read as the tool being broken (Fabio, 2026-09-18).
+            const which = kept >= count
+                ? `All ${count} frames`
+                : `Frames ${lo} to ${hi} (${kept} of ${count}; the rest are dimmed on the strip)`;
+            // Blank rate = keep each frame's delay, so the note names the rate
+            // they already play at rather than leaving "their own timing" abstract
+            // — that IS the value the field would have been seeded with, and a
+            // mixed-delay GIF has none to seed it with in the first place.
+            const current = uniformFps(rangedFrames());
+            const timing = fps === null
+                ? (current === null ? 'each frame keeps its own timing (they differ)' : `at ${current.toFixed(1)} fps`)
+                : `each frame shows for ${(fpsToDelay(fps) / 100).toFixed(2)} s (${delayToFps(fpsToDelay(fps)).toFixed(1)} fps)`;
+            setNote(`${which}, ${timing}, ${loop === 0 ? 'looping forever' : `${loop} play${loop === 1 ? '' : 's'}`}.`);
         }
 
-        // ── Fields per tool ──────────────────────────────────────────────────
-        let colourPicker = null;
-        if (def.tool === 'speed') {
-            numberField('fps', 'Frame rate (fps)', MIN_FPS, MAX_FPS, 0.01, 'One rate for every frame, 0.1 to 50 fps');
-        } else if (def.tool === 'loop') {
-            numberField('loop', 'Plays', 0, MAX_LOOP, 1, 'Total plays; 0 = loop forever, 1 = play once');
-        } else if (def.tool === 'output') {
-            numberField('maxEdge', 'Longest edge (px)', MIN_EDGE, MAX_EDGE, 1, 'The built .gif never grows past its frames');
-            numberField('colours', 'Colours', MIN_COLOURS, MAX_COLOURS, 1, 'Palette size, 2 to 256');
-            const transparent = mountRow(MpiCheckbox, {
-                label: 'Transparent', checked: settings.transparent, variant: 'switch',
-                name: 'gif-output-transparent', info: 'Keep the frames\' transparency in the .gif',
-            });
-            colourPicker = mountRow(MpiColorPicker, {
-                value: settings.edgeColour, info: 'Edge colour: soft edges blend into it before the cut',
-            });
-            const syncColour = () => { colourPicker.el.parentElement.hidden = !settings.transparent; };
-            transparent.on('change', ({ checked }) => { setValue('transparent', checked); syncColour(); });
-            colourPicker.on('change', ({ hex }) => setValue('edgeColour', hex));
-            syncColour();
-        }
+        // ── Fields ───────────────────────────────────────────────────────────
+        // Frame rate and loop count are the video GIF Maker's two, in its order,
+        // above the build settings (MPI-836).
+        const fpsInput = mountRow(MpiInput, {
+            type: 'number', label: 'Frame rate (fps)', value: '', min: MIN_FPS, max: MAX_FPS, step: 0.01,
+            placeholder: 'Unchanged',
+            info: 'One rate for every frame, 0.1 to 50 fps. Leave blank to keep the frames\' own timing',
+        });
+        const onFps = ({ value }) => {
+            const raw = String(value ?? '').trim();
+            fps = raw === '' ? null : clampNumber(raw, MIN_FPS, MIN_FPS, MAX_FPS);
+            renderNote();
+            _markStale();
+        };
+        fpsInput.on('input', onFps);
+        fpsInput.on('change', onFps);
+
+        const loopInput = mountRow(MpiInput, {
+            type: 'number', label: 'Loop count', value: loop, min: 0, max: MAX_LOOP, step: 1,
+            info: 'Total plays; 0 = loop forever, 1 = play once',
+        });
+        const onLoop = ({ value }) => {
+            loop = Math.round(clampNumber(value, loop, 0, MAX_LOOP));
+            renderNote();
+            _markStale();
+        };
+        loopInput.on('input', onLoop);
+        loopInput.on('change', onLoop);
+
+        numberField('maxEdge', 'Longest edge (px)', MIN_EDGE, MAX_EDGE, 1, 'The built .gif never grows past its frames');
+        numberField('colours', 'Colours', MIN_COLOURS, MAX_COLOURS, 1, 'Palette size, 2 to 256');
+        const transparent = mountRow(MpiCheckbox, {
+            label: 'Transparent', checked: settings.transparent, variant: 'switch',
+            name: 'gif-output-transparent', info: 'Keep the frames\' transparency in the .gif',
+        });
+        const colourPicker = mountRow(MpiColorPicker, {
+            value: settings.edgeColour, info: 'Edge colour: soft edges blend into it before the cut',
+        });
+        const syncColour = () => { colourPicker.el.parentElement.hidden = !settings.transparent; };
+        transparent.on('change', ({ checked }) => { setValue('transparent', checked); syncColour(); });
+        colourPicker.on('change', ({ hex }) => setValue('edgeColour', hex));
+        syncColour();
 
         const applyBtn = MpiButton.mount(qs('#actions-slot', el), {
-            icon: def.icon, label: 'Apply', size: 'sm', variant: 'primary',
-            info: `${def.label}: save as a new GIF entry`,
+            icon: 'gif', label: 'Apply', size: 'sm', variant: 'primary',
+            info: 'GIF output: save as a new GIF entry',
         });
         _children.push(applyBtn);
-        applyBtn.on('click', () => emit('apply', { tool: def.tool, values: { ...settings, ...range } }));
+        const applyValues = () => ({ ...settings, fps, loop });
+        applyBtn.on('click', () => emit('apply', { tool: 'output', values: applyValues() }));
 
         // ── Preview — GIF output only (MPI-771 consistency audit) ────────────
         // The video workspace's GIF Maker has had one since MPI-760; this tool
@@ -242,9 +270,7 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
         let _lastKey = '';
         el.setEncoder = (fn) => { _encoder = fn; };
 
-        if (def.tool !== 'output') {
-            qs('#preview-wrap', el)?.remove();
-        } else {
+        {
             const img = qs('#preview-img', el);
             const empty = qs('#preview-empty', el);
             const badge = qs('#preview-badge', el);
@@ -278,7 +304,7 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
                 const key = outputKey();
                 _setBusy(true);
                 try {
-                    const result = await _encoder({ ...settings });
+                    const result = await _encoder(applyValues());
                     if (_destroyed || !result?.url) return;
                     img.src = result.url;
                     img.hidden = false;
@@ -298,6 +324,25 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
         el.onRangeChange = (r) => {
             range = r ? { in: r.in, out: r.out } : null;
             renderNote();
+            _markStale();
+        };
+        // A staged strip edit, or an Apply landing, changes what the note counts
+        // and what the last preview was built from. An `item` means a different
+        // ENTRY is on screen: the panel is not remounted when one is picked from
+        // the history list, so its loop count would otherwise stay the old one's.
+        el.onFramesChange = (item) => {
+            if (item) {
+                loop = Math.round(clampNumber(item.gif?.loop, 0, 0, MAX_LOOP));
+                loopInput.el.setValue(loop);
+                // The rate that was typed is now the entry's own — every frame of
+                // it carries that delay. Leaving it in the field would re-apply it
+                // to whatever entry is opened next, which is exactly the silent
+                // retime the blank default exists to prevent.
+                fps = null;
+                fpsInput.el.setValue('');
+            }
+            renderNote();
+            _markStale();
         };
 
         renderNote();
