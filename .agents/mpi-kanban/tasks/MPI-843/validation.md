@@ -73,15 +73,55 @@ question for whoever owns that track: **should an agent generation inherit the p
 current model and settings, or stay deliberately independent of them?** Worth a card either
 way, since the current state is neither documented nor obviously intended.
 
+## The merged panel — drawn 2026-09-20, `research/chat-merged.html`
+
+Drawn in place rather than floating: the panel docks left at its real 420px
+(`styles/shell/workspace.css:67`), under the top bar, prompt box starting to its right. Shows
+the third top-bar button (real `chat` icon path), the prompt box with the toggle slot struck
+out, the panel's own live input (`>` glyph, block caret, numbered attachment chip), and four
+ledge states (idle, Prism, Vinyl, Lingo) below the frame. An "op running" checkbox flips
+working/idle.
+
+Checked in the Browser pane at 1400x1000: panel 420px, ledge 52px, JetBrains Mono loaded, no
+transcript overflow. Toggling working -> idle: ledge height 52 -> 52, input-row top 813 -> 813,
+transcript 502 -> 502, guest settles at opacity 0 / translateX(16px). **The layout does not
+move**, which was the reason The Stage's strip was rejected.
+
+One thing the drawing had to pick, not previously decided: the block caret. `caret-shape:block`
+on the real input, native bar as the fallback; the drawn block shows only while the field is
+empty and unfocused. Implementer may skip the fake.
+
+### Round 2 — Fabio on the drawing, 2026-09-20
+
+- **Agent goes LEFT of Flows**, so the row reads Agent · Flows · Record and Flows lands in the
+  centre. Drawn as a `1fr auto 1fr` grid on `.mpi-project-name__centre`: Flows measured 0px
+  off the bar's centre, whatever its neighbours measure. This also pays back the half-button
+  drift MPI-678 accepted when Record joined.
+- **No background on the Agent button — the others have none.** Panel open = icon and label
+  take `--accent-heat`, the app's existing toggled-ghost rule (`MpiButton.css:318`), no fill,
+  no border. Implementer's note: that rule exists only for ICON ghosts today; the labelled
+  `.mpi-btn--ghost` has no `.is-active`. And on this bar heat is cream (L 0.78), slightly
+  DIMMER than the resting `--ink-2` (L 0.85) beside it — acceptable because the open panel
+  is the loud signal, but it is a real measurement, not a guess.
+- **The status bar is not the agent's.** The footer in the drawing IS the status bar; the
+  first pass wrote agent text into it. Redrawn as it is today (idle/remote scope, or the
+  running job). It already owns idle and remote information — the agent adds nothing to it.
+- **PRODUCT.md updated, with Fabio's sign-off** ("more truthful"): the agent chat joins the
+  list of mascot placements, and "always Studio" now reads "away from the landing and the
+  agent chat".
+
+**Awaiting Fabio's eyes on the redrawn panel** — that is the last gate on this card.
+
 ## Still open
 
-- MPI-777 open decision #4 (ledge vs the 48px Studio in `MpiAgentChat.js` ~44-94) is
-  answered in spirit by The Ledge, but the merged panel has not been drawn yet.
-- **PRODUCT.md contradicts the crew presence.** Under "Mascots & logo": *"Away from the
-  landing it is always Studio: a workspace does not swap in its own character, because the
-  accent already states the subject."* The accent half of the design matches principle 4
-  exactly; the mascot half reverses this line. Needs Fabio's sign-off and a PRODUCT.md edit,
-  and `PRODUCT.md` was claimed and heartbeating on 2026-09-20 at 09:55Z.
+- ~~MPI-777 open decision #4~~ — carried into `tasks/MPI-777/plan.md` 2026-09-20: answered
+  "neither", the panel gets its own ledge. **Knock-on found while carrying it:** MPI-777
+  Phase 4 had "Agent mode: Studio on the ledge" of the PROMPT BOX. Agent mode no longer
+  exists there, so that bullet is annotated as moved to the panel ledge.
+- ~~PRODUCT.md contradicts the crew presence~~ — RESOLVED 2026-09-20, see Round 2. No live
+  claim held the file when it was edited. One line left alone on purpose: *"Never animated
+  more than gentle 4s float"* is still true of what ships (`heroCrew.js` swaps stills), and
+  becomes false when MPI-777 lands clips — that edit belongs to MPI-777.
 - MPI-797 carries items these decisions rewrite. It is on the agent track — its owner
   updates it, not this card. An open message to MPI-817 already exists
   (`state/messages/be606244-ec07-4eb1-ab57-382af74723da.json`).

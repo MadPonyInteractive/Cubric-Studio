@@ -50,6 +50,12 @@ pointer below before editing; they were read 2026-09-16.
 3. Empty gallery: keep the head peek there too, or the still it uses today.
 4. Whether the prompt box ledge replaces the 48px Studio in `MpiAgentChat.js` (~44-94) or both
    stay.
+   **ANSWERED by MPI-843 (Fabio, 2026-09-20): neither.** The 48px Studio goes, and the agent
+   ledge is NOT on the prompt box. The agent panel gets its own ledge, docked above its own
+   input: Cosmo at 32px, the working mascot sliding in beside him, plus a persistent 20px
+   Cosmo in the panel header. Agent mode leaves `MpiPromptBox` entirely (the toggle becomes a
+   third top-bar button), so Phase 4's "Agent mode" bullet below moves to the panel ledge.
+   Drawing: `tasks/MPI-843/research/chat-merged.html`; decisions: `tasks/MPI-843/validation.md`.
 5. How often "now and then" is for the ledge visits.
 
 ## Implementation
@@ -101,6 +107,8 @@ pointer below before editing; they were read 2026-09-16.
 - [ ] Agent mode: Studio on the ledge for the whole mode. Idle x3 at rest, agent listening while
       the user types, agent thinking while the agent works, agent answer ready when the reply
       lands, then back to idle.
+      **MOVED by MPI-843 (open decision 4):** same states, but on the agent PANEL's ledge, not
+      the prompt box's. The prompt box has no agent mode any more.
 - [ ] Other modes: on model selection, the selected model's mascot (image -> Vision, video ->
       Video) plays its head peek once and leaves. Afterwards it returns now and then at a random
       spot inside a fixed central zone, clear of the image chips and the operation buttons.

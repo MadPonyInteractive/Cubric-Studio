@@ -61,8 +61,9 @@ It should feel like a creator's instrument: warm enough to inhabit, deliberate, 
   - Hovering in the corner of the editor canvas while a job is running ("Cubric is thinking…") — Studio alone.
   - Empty states — first-run landing, empty gallery, no-results filter.
   - Completion / success moments.
+  - The agent chat — Studio (Cosmo) is the panel's identity and the **only one who speaks**. When work of a family's kind actually runs, that family's mascot joins him on the panel's ledge in its own hue, then hands back. Never when no such op ran. The names (Cosmo, Lingo, Prism, Reel, Vinyl) live in the chat and the art; chrome keeps the role nouns.
 
-Away from the landing it is **always Studio**: a workspace does not swap in its own character, because the accent already states the subject. Never used as decorative wallpaper. Never animated more than gentle 4s float.
+Away from the landing and the agent chat it is **always Studio**: a workspace does not swap in its own character, because the accent already states the subject. Never used as decorative wallpaper. Never animated more than gentle 4s float.
 
 ## Out of scope
 

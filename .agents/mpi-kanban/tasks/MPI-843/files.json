@@ -1,6 +1,8 @@
 {
  "schema": "mpi-kanban/task-files/v1",
  "files": [
-  ".agents/mpi-kanban/tasks/MPI-843/**"
+  ".agents/mpi-kanban/tasks/MPI-843/**",
+  ".agents/mpi-kanban/tasks/MPI-777/plan.md",
+  "PRODUCT.md"
  ]
 }
