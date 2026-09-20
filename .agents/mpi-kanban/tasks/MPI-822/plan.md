@@ -91,11 +91,22 @@ wiped the live flow's publication. `.mpi-slide-over--queue`'s
 flow overlay's 10010, and the panel slid in invisible. Fix: gate the retraction on
 `mountTarget === 'main-area'`, symmetric with the publish.
 
-**Shared-primitive sweep** (`.claude/rules/root-cause.md`). All 8 `MpiOverlay.mount`
-call sites checked: MpiBaseFlow is `main-area` (publishes AND retracts); MpiModelPicker,
-MpiModelSettings, MpiCompareOverlay, MpiFlowLibrary, MpiModelManager and the component
-gallery are all `body` (now neither). `MpiModal.js:88-94` READS the var to floor above
-it and is unaffected. Nothing else in the repo touches `--main-overlay-z`.
+**Shared-primitive sweep** (`.claude/rules/root-cause.md`). **7** `MpiOverlay.mount`
+call sites in `js/` — MpiBaseFlow, MpiModelPicker, MpiModelSettings, MpiCompareOverlay,
+MpiFlowLibrary, MpiModelManager and the component gallery. Only MpiBaseFlow is
+`main-area`, so only it publishes AND retracts; the other six never reach that branch.
+`MpiModal.js:88-94` READS the var to floor above it and is unaffected. Nothing else in
+the repo touches `--main-overlay-z`.
+
+*Two corrections from the claim auditor, 2026-09-20, neither of which moves the fix —
+recorded because the pushed commit message of `f9c31fc3` carries the original wording
+and cannot be rewritten on a shared tree.* (a) The count was **8**, which included the
+usage example in `MpiOverlay.js:23`'s own doc comment; `js/` has 7. (An 8th real call
+lives in `tests/desktop/popup-contract.spec.js:61`, which the sweep never named.)
+(b) The six were called "all `body`". They are not: MpiCompareOverlay and the component
+gallery pass `{ closable: true }` with no `mountTarget`, so they take the **default,
+`tool-container`** (`MpiOverlay.js:68`, and the JSDoc at `:33`). What the sweep needed
+to establish — that no second overlay is `main-area` — holds either way.
 
 **The four statically-eliminated theories were all correct** - and so was the
 instruction to go and look instead of reading more code. The one surviving suspect,

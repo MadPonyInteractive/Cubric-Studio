@@ -96,9 +96,13 @@ frame: *"can we make sure that the queue and the stop button are actually exactl
 the same height, because this looks like the stop button is broken"*.
 
 **He was right, and it was never a Stop-button bug.** Measured in the running app:
-a text `md` MpiButton is **47px** (13px line + 14/14 padding + 2px border) and an
-icon-only `md` is **50px**, because `.mpi-btn--md.mpi-ibtn .mpi-icon` is a 20px
-glyph. `.mpi-base-flow__run-row` already declared `align-items: stretch`, but the
+a text `md` MpiButton is **47px** and an icon-only `md` is **50px**, because
+`.mpi-btn--md.mpi-ibtn .mpi-icon` is a 20px glyph where the text's line box is 17px.
+Both sit on 14/14 padding and a 1px border each side: 17+28+2 = 47, 20+28+2 = 50.
+(Written first as "13px line + 14/14 padding + 2px border", which sums to 43, not 47 —
+13px is the FONT SIZE, `--t-sm`, not the rendered line box. Caught by the claim auditor
+on 2026-09-20; the measurements were always right, the arithmetic label was not, and
+commit `149200d4` carries the original wording.) `.mpi-base-flow__run-row` already declared `align-items: stretch`, but the
 stretch reached the two mount HOST divs, which are `display: block` - each stretched
 to 50px while the button inside kept its own height. So Cue sat 3px short inside a
 50px box, which is what read as a dented Stop. Fix: `.mpi-base-flow__run-row > * {

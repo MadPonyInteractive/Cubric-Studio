@@ -8,8 +8,11 @@
 - [x] `preview:frame`, `generation:preview-reset` and `_cancel` resolve against the set
 - [x] Run button is `Cue` / `Cue xN` off `state.generationQueueCount`, always queues;
       the Generate↔Cancel morph and `.mpi-base-flow__run--cancel` are gone
-- [x] Separate Stop button (icon `stop`, `sm`, `secondary`, disabled when idle)
-      beside Cue, destroyed in `_teardownSlide`
+- [x] Separate Stop button (icon `stop`, `md`, `secondary`, disabled when idle)
+      beside Cue, destroyed in `_teardownSlide`. Written as `sm` when this list was
+      drafted; the first app pass changed it to `md` to match Cue and the item was
+      never corrected, so it read as shipped-as-specified for a day (claim auditor,
+      2026-09-20). `MpiBaseFlow.js:2251` is the truth.
 - [x] `generation.stop` bound per-show in `_bindKeys`, unbound in `_unbindKeys`
 - [x] `_triggerStop` in `MpiPromptBox.js` gets the same open-flow bail `_triggerRun`
       already has (see plan.md § Plan Drift 2)
