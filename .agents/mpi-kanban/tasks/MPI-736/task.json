@@ -7,7 +7,7 @@
   "maturity": "in-progress",
   "status": "active",
   "created_at": "2026-09-12T12:28:44+01:00",
-  "updated_at": "2026-09-18T15:52:08Z",
+  "updated_at": "2026-09-20T11:04:38Z",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -18,5 +18,10 @@
     "handoffs": "handoffs/",
     "research": "research/"
   },
-  "activeSessionTitle": "MPI-736 phase 1: make the action token honest"
+  "activeSessionTitle": "MPI-736 phase 1: make the action token honest",
+  "attention": {
+    "state": "required",
+    "reason": "Phase 5 (PRODUCT.md + DESIGN.md) is shipped and needs a read of the diff. PHASE 2b IS THE LAST ITEM AND IT IS A DECISION, NOT A TASK: --accent-warn off hue 60, boxed by video 48, prompt yellow 102 and --accent-err 27. Fabio picks a swatch the way --hub-accent cream was settled; do not compute a hue and present it as the answer.",
+    "updated_at": "2026-09-20T11:04:38Z"
+  }
 }

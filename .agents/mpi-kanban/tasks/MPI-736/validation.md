@@ -594,3 +594,76 @@ and returns to cream at idle.
 
 Noticed, not actioned: `MpiCanvas.js` `getCSSColor` (the old `:95`) is still defined and
 never referenced. Pre-existing dead code, not this card's to remove.
+
+## Phase 5 — the docs (2026-09-20, session 6eea5755)
+
+Prose only. No code changed, no token value invented: the source of truth stays
+`Cubric Studio (Website)\styles\landing.css:30-34` and `DESIGN.md` § The accent family
+already carries it.
+
+**`PRODUCT.md` — four rows, each checked against the code before it was rewritten:**
+
+- Strategic principle 2 said *"pixel for the wordmark only"*. The shipped wordmark font is
+  `Russo One` (`--font-wordmark`, `styles/01_base.css:197`).
+- Strategic principle 4 said *"The pink/heat accent"* — one accent. Replaced with the five-hue
+  subject rule and a pointer to `DESIGN.md`, which owns the values.
+- Strategic principle 6 and § Mascot & logo described a single waving robot. There are five
+  (`js/shell/heroCrew.js:22-27`, `assets/mascot/{studio,vision,prompt,audio,video}/`), and the
+  useful distinction is WHERE: the crew appears together on the landing hero only, and every
+  other surface in the app is Studio alone. That is now stated, because it is the question the
+  next session would otherwise have to re-derive from the grep.
+
+**`DESIGN.md` — the VT323 wordmark was FIVE places, not the one line the handoff named:**
+the `:5` blockquote (*"every gradient is banned except the wordmark"*), the token table's
+`Gradient pink→cyan` row, § Typography, § Components → Wordmark (a full `.wordmark` CSS block
+with a pink→cyan gradient), and the anti-pattern list. The shipped `.mpi-wordmark`
+(`styles/shell/titlebar.css:56`) is a live two-tone Russo One lockup — "Cubric" in `--ink-1`,
+the suffix in `--accent-heat` — with **no gradient at all**, and colour is the only thing that
+differs across the five apps.
+
+**Three rows the inherited survey never listed, found by opening the file.** This is the fifth
+time on this card that the file disagreed with the row, and it is why the rule is now: open it.
+
+1. § Logo + lettering bundle carried a `hue-rotate()` CSS-filter recipe over `favicon.png` /
+   `lettering.png`. Dead — `grep -rn "brand-logo\|brand-lettering\|hue-rotate" styles/ js/`
+   returns nothing. The app ships `assets/mascot/studio/logo.png` already on-palette.
+2. The block under it ("For production, replace the PNGs…") still named
+   `oklch(0.72 0.20 6)` as the emblem colour — **the stale Vision pink**, the same literal
+   round 8 dug out of `MpiSettings.css`. Deleted with the rest of the dead recipe.
+3. `DESIGN.md:31` declared `--accent-heat: oklch(0.76 0.17 355)`, Vision's rose, where the
+   code has had `var(--hub-accent)` cream since phase 3 landed.
+
+**Automated:**
+
+- A 50-token mechanical diff of `DESIGN.md`'s `:root` block against `styles/01_base.css`
+  (`scratchpad/tokdiff.py`): after the `--accent-heat` fix, **every token the doc declares
+  matches the code on name and value, 50/50, zero mismatches.**
+
+  **Corrected at close-out, by the claim auditor.** The first wording of this line said the
+  two "match on every name" and that nothing was missing. That was one-directional: the
+  script only reported doc-tokens-absent-from-code, never the reverse. The doc block is a
+  SUBSET — nine `:root` tokens exist in `01_base.css` and are not documented:
+  `--ink-on-accent`, `--mask-fill`, `--control-h-sm/md/lg`, `--font-wordmark`,
+  `--titlebar-h`, `--statusbar-h`, `--history-rail-w`. Seven are layout metrics, which the
+  doc's colour-and-motion block may legitimately not carry; `--ink-on-accent` and
+  `--mask-fill` are colour tokens and arguably belong. **Not added here** — that is a
+  decision about what DESIGN.md is for, not a phase-5 typo. So what is proven is that
+  nothing documented is WRONG, not that everything real is documented.
+- `grep -n "VT323" PRODUCT.md DESIGN.md` — one hit left, the deliberate "this is the mockups'
+  font, its `@font-face` is declared in `01_base.css` and referenced by nothing" note.
+- `grep -n "hue-rotate\|brand-logo\|lettering.png\|0.72 0.20 6"` — no live claims left.
+- Line endings held CRLF on both files (71 / 391, zero LF-only), so the diff is the 45/42
+  lines actually edited and not a whole-file flip.
+- No test or script reads either file; `tests/accent-family-literals.test.cjs` only names
+  `DESIGN.md` in a comment, and that section still exists.
+
+**Noticed, not actioned — both are Fabio's call, not mine:**
+
+- `.gradient-text` (`styles/01_base.css:355`) has exactly ONE live consumer: the engine-
+  starting `<h2>` in `MpiStartingComfy.js:35`. So the doc's ban was wrong at both ends — the
+  wordmark has no gradient and a heading does have one. The doc now records it as a known
+  inconsistency rather than pretending either way. Either the ban moves or the class goes.
+- `VT323`'s `@font-face` (`01_base.css:32`) and `assets/fonts/VT323.woff2` are dead weight —
+  referenced by nothing in `styles/` or `js/`. Code, not prose, so outside phase 5.
+- `PRODUCT.md` § Identity still scopes the app to *"image and video work"*; it emits audio
+  (Flows, text-to-speech). Real drift, wider than this phase, left for a yes.

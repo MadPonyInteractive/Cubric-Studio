@@ -135,5 +135,23 @@ Derived from `plan.md` phase titles, 2026-09-18.
     - [x] `tests/status-bar-accent.test.cjs` 5/5, `npm test` 1468/1469, eslint clean.
     - [ ] Fabio's live check: run an image op, a video op and an audio Flow.
   - [x] 1c canvas constants land here (deferred from phase 1) — 5 literals, 3 drawBrushRing callers, tests/canvas-accent.test.cjs
-- [ ] Phase 5 — finish `DESIGN.md` (VT323 wordmark, single mascot) and rewrite `PRODUCT.md`
-      (its "pink/heat accent" line goes wrong the moment phase 3 lands)
+- [x] Phase 5 — the docs. DONE 2026-09-20, awaiting Fabio's read of the diff.
+  - [x] `PRODUCT.md` four rows: principle 2 (pixel font → Russo One), principle 4 (one
+        pink accent → the five-hue subject rule), principle 6 + § Mascots & logo (one
+        waving robot → five characters, crew on the landing, Studio everywhere else).
+  - [x] `DESIGN.md` — the VT323 line was **five** places, not one: `:5` blockquote, the
+        token-table gradient row, § Typography, § Components → Wordmark, and the
+        anti-pattern list. The shipped wordmark is a live Russo One two-tone lockup with
+        no gradient at all.
+  - [x] **Two rows the survey never listed, found by opening the file:** § Logo + lettering
+        carried a dead `hue-rotate()` recipe over `favicon.png`/`lettering.png` with no
+        consumer in `styles/` or `js/`, and the block under it still held the STALE PINK
+        `oklch(0.72 0.20 6)` as the emblem colour. Both deleted.
+  - [x] `DESIGN.md:31` still declared `--accent-heat: oklch(0.76 0.17 355)` — Vision's
+        rose, where the code has `var(--hub-accent)` cream since phase 3. Fixed.
+  - [x] A 50-token mechanical diff of `DESIGN.md`'s `:root` block against
+        `styles/01_base.css`: every token the doc declares matches on name AND value, 50/50.
+        **Corrected at close-out:** the doc block is a SUBSET — nine real `:root` tokens are
+        undocumented (7 layout metrics, plus `--ink-on-accent` and `--mask-fill`). Nothing
+        documented is wrong; not everything real is documented. Left as a decision, not a fix.
+  - [ ] Fabio's read of the diff (prose, no pixels).

@@ -4,6 +4,32 @@ Brief: `brief.md`. Source of truth for values: `c:\AI\Mpi\Cubric Studio (Website
 
 ## Current State
 
+**2026-09-20, session 6eea5755 — PHASE 5 IS IN, awaiting Fabio's read of the diff.**
+`PRODUCT.md` and `DESIGN.md` now match what ships. Prose only, no code, no token value
+invented. Detail in `validation.md` § Phase 5.
+
+The handoff named "DESIGN.md's VT323 wordmark line" — it was **five** places, and opening
+the file turned up three more rows no survey had listed: a dead `hue-rotate()` logo recipe,
+the STALE PINK `oklch(0.72 0.20 6)` sitting under it as the emblem colour, and
+`DESIGN.md:31` still declaring `--accent-heat` as Vision's rose where the code has had
+`var(--hub-accent)` since phase 3. **That is the fifth time on this card that the file
+disagreed with the row.** A 50-token mechanical diff of `DESIGN.md`'s `:root` against
+`styles/01_base.css` matches value-for-value on all 50 tokens the doc declares — though the
+claim auditor caught that check being one-directional at close-out: nine real `:root` tokens
+are not in the doc at all, so nothing documented is wrong but not everything real is
+documented. Left as a decision about DESIGN.md's scope.
+
+**THE ONLY THING LEFT IS PHASE 2b** — `--accent-warn` off hue 60, boxed on three sides
+(video 48, prompt yellow 102, `--accent-err` 27). **It needs Fabio to pick a swatch**, the
+way `--hub-accent` cream was settled. Do not compute a hue and present it as the answer;
+the plan itself notes lightness separation may beat hue here.
+
+Two things phase 5 surfaced and deliberately did NOT decide, both Fabio's:
+`.gradient-text` has one live consumer (`MpiStartingComfy.js:35`), so the "gradient banned
+except the wordmark" rule was wrong at both ends — the doc records it as a known
+inconsistency; and `PRODUCT.md` § Identity still scopes the app to "image and video work"
+when it emits audio.
+
 **2026-09-20, session 03654647 — PHASE 1c IS IN AND VERIFIED BY FABIO** ("1"). The five
 canvas literals read the live token off `ctx.canvas`; a crop handle in the video workspace
 draws orange. Detail below under "1c".
@@ -12,9 +38,7 @@ draws orange. Detail below under "1c".
 this card is awaiting an eye. Shipped as `a8816ac6`, pushed, and CI run `35501151862`
 went GREEN (lint + npm test + desktop specs, 18m26s).
 
-**Remaining: phase 2b and phase 5, neither started.** Phase 5 is the one to take first —
-it is prose with no decision in it. Phase 2b needs Fabio to pick a swatch, the way the
-`--hub-accent` cream was settled; do not compute a hue and present it as the answer.
+*(Phase 5 has since shipped — see the 2026-09-20 session 6eea5755 note above.)*
 
 **2026-09-19, session 8abe87b4 — the SWEEP IS FINISHED. What is left is phases, not
 surfaces.** Five commits, all pushed, master green: `d3ec007d` dialogs, `bc6af6fb` the four
@@ -600,9 +624,12 @@ piece left), and whatever Fabio finds next.
 
 Landing, Model Library, settings, queue, and any dialog not tied to one media type: primary
 action filled `--ink-1` with dark text, emphasis from value not hue (2026-09-15 decision).
-Then rewrite `DESIGN.md` and `PRODUCT.md`, which still describe one pink accent at a stale
+
+~~Then rewrite `DESIGN.md` and `PRODUCT.md`, which still describe one pink accent at a stale
 value (`oklch(0.72 0.20 6)`), a VT323 wordmark (the code uses Russo One) and a single
-mascot.
+mascot.~~ **DONE 2026-09-20** — all three, plus three rows the survey had not listed. The
+stale pink was not in a token block at all; it was in a dead logo-recolor recipe. See
+`validation.md` § Phase 5.
 
 ## Verification
 
@@ -652,3 +679,15 @@ grep + lint + `npm test` above, with the button hover the single thing to look a
 - 2026-09-20: 1c's "seven lines" was really five. Two are `--accent-ok` green and one
   (`BRUSH_DOT`) was dead — the fifth session in a row where an inherited survey row cost
   more to believe than to open. The lesson under "What the sweep taught" holds.
+- 2026-09-20: phase 5 grew from "two prose fixes" to eight. `DESIGN.md`'s VT323 claim was
+  five places, not a line, and three more rows had never been surveyed at all — a dead
+  `hue-rotate()` logo recipe, the stale pink `oklch(0.72 0.20 6)` hiding inside it, and a
+  `--accent-heat` still declared as Vision's rose. Folded in rather than carded: same file,
+  same sentence-level job, and leaving a stale token value in the design doc while
+  correcting the prose around it would have been worse than not touching it. **Sixth
+  occurrence of the survey-row lesson — it is not drift any more, it is the method.**
+- 2026-09-20: phase 5 was supposed to hold no decision, and it turned up two. `.gradient-text`
+  has exactly one live consumer, an `<h2>`, so the "banned except the wordmark" rule was
+  wrong at both ends; and `PRODUCT.md` § Identity scopes the app to image and video when it
+  emits audio. Both WRITTEN DOWN, neither decided — they are product calls, and the phase's
+  whole point was that it needed no eye.

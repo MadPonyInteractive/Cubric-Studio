@@ -47,21 +47,22 @@ It should feel like a creator's instrument: warm enough to inhabit, deliberate, 
 ## Strategic principles
 
 1. **Mid-tone always.** Neither dark mode nor light mode. Warm dusk mauve / taupe at every surface. The screen reads inhabitable, not glowing.
-2. **Mono everywhere; pixel for the wordmark only.** Single monospaced family carries every UI surface, label, and body text. Pixel font reserved for the `Cubric Studio` wordmark.
+2. **Mono everywhere; one display face for the wordmark only.** Single monospaced family (JetBrains Mono) carries every UI surface, label, and body text. `Russo One` is reserved for the `Cubric Studio` wordmark and nothing else.
 3. **Imagery is the page in galleries; chrome retreats.** When the user is browsing assets, layouts use bold asymmetric strips that treat images as the layout, not as cards in a grid.
-4. **Heat used theatrically, never decoratively.** The pink/heat accent appears only on primary actions, active states, and meaningful "now-happening" moments. Never as background, never as gradient text outside the wordmark.
+4. **Accent used theatrically, and it states a SUBJECT.** Cubric ships as a family of apps and each owns a hue — Studio cream, Vision rose, Prompt yellow, Audio green, Video orange. A surface takes the hue of the media type it is about: image-related is Vision, audio Audio, video Video, text-about-text Prompt, everywhere in the app and not just generations. A surface about no media type, or about several at once, takes Studio cream — that is cream's meaning, not a fallback. Components read one action token, `--accent-heat`, and a subtree rebinds it; never a hue at the call site. Even so, it stays an accent: primary actions, active states, "now-happening" moments. Never as background, never as gradient text. Values and the rebind mechanics live in `DESIGN.md` § The accent family.
 5. **Honest state in the footer, never the title bar.** VRAM, RAM, queue, ETA live in the global status bar so the title bar can carry identity, not telemetry.
-6. **The mascot has personality, but a quiet one.** Used in idle / thinking / empty / "all done" moments. Not on every screen.
+6. **The mascots have personality, but a quiet one.** Five characters, one per app, each wearing its family hue. Used in idle / thinking / empty / "all done" moments. Not on every screen.
 
-## Mascot & logo
+## Mascots & logo
 
-- **Logo:** the boxy robot face with cyan eyes + pink C-emblem, body recolored from blue to Stage mauve so it sits on the surface without demanding attention. See `DESIGN.md` for the recolor recipe.
-- **Mascot (full-body):** the friendly waving robot. Used sparingly:
-  - Hovering in the corner of the editor canvas while a job is running ("Cubric is thinking…").
+- **Logo:** the Studio robot's head — boxy face, cyan eyes, C-emblem — shipped already on-palette as `assets/mascot/studio/logo.png` and used as-is.
+- **Mascots (full-body): five, one per app.** Studio runs the crew, Vision makes the images, Prompt shapes the words, Video puts them in motion, Audio gives them sound. Each wears its family hue, so the cast and the colour code say the same thing. Used sparingly:
+  - The landing hero — all five on a lit stage, Studio centre. This is the only place the crew appears together.
+  - Hovering in the corner of the editor canvas while a job is running ("Cubric is thinking…") — Studio alone.
   - Empty states — first-run landing, empty gallery, no-results filter.
   - Completion / success moments.
 
-Never used as decorative wallpaper. Never animated more than gentle 4s float.
+Away from the landing it is **always Studio**: a workspace does not swap in its own character, because the accent already states the subject. Never used as decorative wallpaper. Never animated more than gentle 4s float.
 
 ## Out of scope
 

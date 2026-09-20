@@ -2,7 +2,7 @@
 
 Stage direction (warm dusk, drenched, content-forward) is the locked-in design language. This file is the source of truth for tokens, type, components, and motion.
 
-> All colors are OKLCH. No `#000`, no `#fff`. Every neutral is tinted toward 350° (mauve). Every gradient is banned except the wordmark.
+> All colors are OKLCH. No `#000`, no `#fff`. Every neutral is tinted toward 350° (mauve). Gradient text is banned.
 
 ## Tokens
 
@@ -27,8 +27,11 @@ Stage direction (warm dusk, drenched, content-forward) is the locked-in design l
   --line:            oklch(0.72 0.018 350 / 0.16);
   --line-soft:       oklch(0.72 0.015 350 / 0.08);
 
-  /* Action accent — ONE token, rebound per workspace. See "The accent family" below. */
-  --accent-heat:     oklch(0.76 0.17 355);   /* the action colour HERE — primary actions, active states */
+  /* Action accent — ONE token, rebound per workspace. See "The accent family" below.
+     The :root default is Studio's cream, NOT Vision's rose: a general button belongs to
+     the hub. Pointed at --hub-accent rather than restating its value, so the hub identity
+     and the shared action colour cannot drift apart. */
+  --accent-heat:     var(--hub-accent);      /* the action colour HERE — primary actions, active states */
   --accent-heat-hi:  oklch(from var(--accent-heat) calc(l + 0.02) calc(c + 0.03) h);  /* hover lift */
 
   /* Status — these stay status colours and do NOT follow the workspace */
@@ -88,7 +91,7 @@ Stage direction (warm dusk, drenched, content-forward) is the locked-in design l
 | `--accent-err` | Destructive buttons, error toasts, invalid-field borders, failure text. | Anything merely "primary" or "active". It was a literal alias of `--accent-heat` until MPI-736; that is exactly the bug. |
 | `--accent-frost` | Focus rings, AI-state, secondary chips, frost-lined gauges, eyes on the mascot. | Decorative outlines on cards. |
 | `--surface-canvas` | Editor canvas zone, vignette gradient stops. | Outer chrome — chrome stays at `--surface-0` / `--surface-1`. |
-| Gradient pink→cyan | The wordmark only (`background-clip: text`). | Anywhere else. Banned. |
+| Gradient text (`background-clip: text`) | Nothing. The wordmark used to be the one exception and no longer is — see § Wordmark. | Anywhere. One live consumer survives, `.gradient-text` on the engine-starting title (`MpiStartingComfy.js`); it is a known inconsistency, not a licence. |
 
 ## The accent family
 
@@ -162,7 +165,7 @@ Don't ship a light mode. Don't ship a "darker" mode. The single mid-tone is the 
 ## Typography
 
 **Family:** `JetBrains Mono` (already vendored in `assets/fonts/`). All UI, labels, numbers, body. Variable monospaced.
-**Wordmark only:** `VT323` (loaded from Google Fonts in mockups; bundle locally for prod).
+**Wordmark only:** `Russo One` (`--font-wordmark`, vendored in `assets/fonts/`). Not a pixel font — the pixel `VT323` this file used to name is the `docs/redesign/` mockups' wordmark. Its `@font-face` is still declared in `01_base.css` and referenced by nothing in `styles/` or `js/`.
 
 **Hierarchy via scale + weight contrast (ratio ≥ 1.25). Never via color.**
 
@@ -181,43 +184,41 @@ Cap reading column at 65ch. UI ignores this rule.
 
 ### Wordmark
 
+A live two-tone lockup, not an image and not a gradient. `styles/shell/titlebar.css`:
+
 ```html
-<span class="wordmark">Cubric Studio</span>
+<span class="mpi-wordmark mpi-wordmark--titlebar" aria-label="Cubric Studio">Cubric<span class="mpi-wordmark__suffix">Studio</span></span>
 ```
 
 ```css
-.wordmark {
-  font-family: "VT323", monospace;
-  letter-spacing: 0.04em;
-  background: linear-gradient(100deg, var(--accent-heat) 0%, var(--accent-frost) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+.mpi-wordmark {
+  font-family: var(--font-wordmark);   /* Russo One */
+  font-weight: 400;
+  color: var(--ink-1);
+  letter-spacing: 0.02em;
 }
+.mpi-wordmark__suffix { color: var(--accent-heat); }
 ```
 
-This is the **only** place gradient text is allowed.
+**Colour is the only thing that differs across the family.** "Cubric" stays `--ink-1` in every
+app; the suffix takes `--accent-heat`, which the `[data-accent]` rebind resolves to that app's
+hue — so the hub reads cream, Vision rose, Prompt yellow, Audio green, Video orange, from one
+rule. Never a second font, never a second lockup.
 
-### Logo + lettering bundle (titlebar / landing header)
+### Logo (titlebar / landing header / About)
 
-Use the existing `favicon.png` (logo) and `lettering.png` (wordmark) from the project. Recolor live with CSS filters until proper mauve PNGs are produced:
+The Studio robot's head, shipped already on-palette and used as-is: **no CSS filter recolor.**
+The old `hue-rotate()` recipe over `favicon.png` / `lettering.png` belonged to the mockups and
+has no consumer left in `styles/` or `js/`; the lines above are the only place it is still
+named, as history.
 
-```css
-.brand-logo {
-  filter: hue-rotate(-50deg) saturate(0.78) brightness(1.05);
-}
-.brand-lettering {
-  filter: hue-rotate(-30deg) saturate(0.85) brightness(1.08);
-}
-```
+Two files, and the difference matters when you size one:
 
-This shifts the blue body to mauve while keeping cyan eyes and pink emblem.
-
-For production, replace the PNGs with mauve-recolored versions:
-- Body: `oklch(0.50 0.022 350)` → final mauve (matches `--surface-0`)
-- Eyes: `oklch(0.78 0.13 220)` → frost cyan (matches `--accent-frost`)
-- Emblem panels + C: `oklch(0.72 0.20 6)` → heat pink (matches `--accent-heat`)
-- Outline / linework: `oklch(0.22 0.02 350)` → deep mauve
+- `logo.webp` (128×86) is **cropped to the art** — titlebar and the agent's head. Size it by
+  `height`, and the number is what renders.
+- `logo.png` (256×256) carries 44px of transparent padding above the art and 38px below —
+  About uses it at a size where that does not show. Sizing it into a square box renders the
+  robot at 68% of the box, which is the MPI-845 defect.
 
 ### Buttons
 
@@ -368,6 +369,17 @@ Always visible. Always at the bottom. Always carries: Idle/Generating state (wit
 
 ## Mascot rules
 
+**There are five, one per app, and they are the accent family in character form** — Studio,
+Vision, Prompt, Audio, Video, with the art colours in the table above. Poses live at
+`assets/mascot/<key>/{idle,greet,happy}.webp`.
+
+The landing hero stands all five on a lit stage, Studio centre (`js/shell/heroCrew.js` — the
+only code that knows a mascot file path). Everywhere else in the app it is **Studio alone** —
+the flat `assets/mascot/*.png` poses for the generating peek, the empty gallery, the engine-
+starting card and the agent chat, and `studio/logo.*` for the titlebar, About and the agent's
+head. A workspace does NOT swap in its own character: the accent already says what the surface
+is about, and five robots taking turns would be noise.
+
 - **Where it appears:**
   - Idle / "thinking" — small float in the corner of the editor canvas while a job runs.
   - Empty states — first-run landing, empty filter result.
@@ -381,7 +393,7 @@ Always visible. Always at the bottom. Always carries: Idle/Generating state (wit
 ## Anti-patterns banned in Stage
 
 - `#000` / `#fff` (use OKLCH neutrals).
-- Gradient text outside the wordmark.
+- Gradient text. The wordmark was the one exception and no longer is.
 - Glassmorphism by default. Allowed only for the canvas dock backdrop, kept subtle.
 - Side-stripe accents (`border-left: 3px solid …`). Use full borders, dots, or kickers instead.
 - The hero-metric template (big number + small label + supporting stats + gradient accent).
