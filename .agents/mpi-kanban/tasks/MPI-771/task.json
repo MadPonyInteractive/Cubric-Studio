@@ -20,8 +20,9 @@
   },
   "activeSessionTitle": "MPI-771: Fabio's SECOND pass on the GIF workspace (five items)",
   "attention": {
-    "state": "required",
-    "reason": "Both passes are built and green. What is left is Fabio's eye pass on the WHOLE workspace - Cut-out's strip and the new Mask Preview section, the output preview pane, Shift-select on the frame strip, and Space now playing in Cut-out. Nothing closes before it.",
-    "updated_at": "2026-09-19T15:56:35Z"
+    "state": "none",
+    "reason": "Closed on Fabio's sign-off 2026-09-19; the validation attention was left over from when the card sat in doing.",
+    "at": "2026-09-20T07:05:50Z",
+    "actor": "claude"
   }
 }

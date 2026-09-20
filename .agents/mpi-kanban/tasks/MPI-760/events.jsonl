@@ -9,3 +9,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "attention.required", "id": "MPI-760", "at": "2026-09-17T12:20:17Z", "actor": "claude:14adfdd8", "reason": "MPI-760 UI half built and auto-verified 2026-09-17; left: types.js typedef, file under MPI-774 claim 91f0ea6b; text in tasks/MPI-760/types-hunk.md"}
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-760", "at": "2026-09-19T19:59:35Z", "actor": "claude", "note": "Fabio signed the GIF cards off, 2026-09-19 - closing on his verification"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-760", "at": "2026-09-19T20:59:36+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio signed off the GIF cards, 2026-09-19"}
+{"schema": "mpi-kanban/event/v1", "type": "attention.cleared", "id": "MPI-760", "at": "2026-09-20T07:05:50Z", "actor": "claude", "note": "Card is done; the validation attention was stale."}

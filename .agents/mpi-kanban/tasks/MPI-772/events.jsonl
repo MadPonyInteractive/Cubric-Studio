@@ -8,3 +8,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "checklist.updated", "id": "MPI-772", "at": "2026-09-17T12:20:17Z", "actor": "claude:14adfdd8", "summary": "preloadStyles.js item done (88cfe347)"}
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-772", "at": "2026-09-19T19:59:35Z", "actor": "claude", "note": "Fabio signed the GIF cards off, 2026-09-19 - closing on his verification"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-772", "at": "2026-09-19T20:59:38+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio signed off the GIF cards, 2026-09-19"}
+{"schema": "mpi-kanban/event/v1", "type": "attention.cleared", "id": "MPI-772", "at": "2026-09-20T07:05:50Z", "actor": "claude", "note": "Card is done; the validation attention was stale."}

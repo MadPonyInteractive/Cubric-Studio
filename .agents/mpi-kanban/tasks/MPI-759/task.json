@@ -19,8 +19,9 @@
     "research": "research/"
   },
   "attention": {
-    "state": "required",
-    "reason": "Needs Fabio's eye check (see validation.md)",
-    "updated_at": "2026-09-16T11:05:05Z"
+    "state": "none",
+    "reason": "Closed on Fabio's sign-off 2026-09-19; the validation attention was left over from when the card sat in doing.",
+    "at": "2026-09-20T07:05:50Z",
+    "actor": "claude"
   }
 }
