@@ -403,6 +403,23 @@ async function pickScope(window, value) {
     document.querySelector('.mpi-tool-options-gif-cutout #scope-slot .mpi-radio-group__btn.is-active')?.dataset.value)).toBe(value);
 }
 
+/**
+ * MPI-859: a run only PROPOSES. The commit row is what puts it in the masks, so
+ * every landing run in this file ends in one of these — the image workspace's
+ * "Add is mandatory" rule, ported.
+ * @param {'add'|'subtract'} verb
+ */
+async function commitMask(window, verb) {
+  const hidden = () => window.evaluate(() =>
+    document.querySelector('.mpi-tool-options-gif-cutout #commit-slot')?.hidden);
+  await expect.poll(hidden, { timeout: 20000 }).toBe(false);
+  await window.evaluate((slot) => {
+    document.querySelector(`.mpi-tool-options-gif-cutout ${slot} button`).click();
+  }, verb === 'add' ? '#add-btn-slot' : '#sub-btn-slot');
+  // It hides again once the proposal has been folded in — the commit is done.
+  await expect.poll(hidden, { timeout: 20000 }).toBe(true);
+}
+
 /** Pick a Cut-out mask method (Decision 15) and wait for its buttons. */
 async function pickMethod(window, value) {
   await window.evaluate((v) => {
@@ -643,6 +660,12 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     expect(await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #preview-wrap')?.hidden)).toBe(false);
     await expect.poll(() => window.evaluate(() => window.__mpi771.spin), { message: 'the viewer spun for the run, then stopped' })
       .toEqual([true, false]);
+    // The run PROPOSED; Cut out is still locked on it alone (MPI-859) — the only
+    // reason the button is live is the brush dab from before the run.
+    expect(await window.evaluate(() =>
+      document.querySelector('.mpi-tool-options-gif-cutout #commit-slot')?.hidden),
+      'the commit row is up, waiting for a verb').toBe(false);
+    await commitMask(window, 'add');
     // Every frame now carries a tint; the brushed frame keeps its marker.
     await expect.poll(() => window.evaluate(() =>
       document.querySelectorAll('.mpi-frame-strip__thumb-tint').length)).toBe(3);
@@ -679,6 +702,10 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     runParams = await window.evaluate(() => window.__mpi771.runParams[3]);
     expect(runParams.Input_Video, 'a one-frame source video, not the full one')
       .not.toBe(await window.evaluate(() => window.__mpi771.runParams[0].Input_Video));
+    // It found nothing, so Add composes nothing in: frame 2 keeps the mask Track
+    // All gave it. Before MPI-859 this run REPLACED that mask with the empty one
+    // and the frame cut to nothing — the shape of Fabio's complaint.
+    await commitMask(window, 'add');
     await expect.poll(() => window.evaluate(() =>
       document.querySelectorAll('.mpi-frame-strip__thumb-tint').length), { timeout: 15000 }).toBe(3);
 
@@ -755,7 +782,11 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     expect(f1(C, C), 'frame 1: the erased centre is cut').toBe(0);
     expect(f1(C, C - 16), 'frame 1: the rest of its track is kept').toBe(255);
     const f2 = await alphaOf(2);
-    expect(f2(C, C), 'frame 2: its single-frame track found nothing').toBe(0);
+    // MPI-859: a single-frame run that found NOTHING, Added, leaves frame 2 with
+    // the mask Track All gave it. A method can no longer undo an earlier one by
+    // coming up empty — that is the whole point of the commit half.
+    expect(f2(C, C), 'frame 2: the empty run took nothing away').toBe(255);
+    expect(f2(SZ - 7, SZ - 7), 'frame 2: outside its tracked circle is still cut').toBe(0);
 
     // Fabio 2026-09-17: a cut-out is always a transparent GIF, and says how it was made.
     expect(sidecar.gif.output.edgeColour, 'a cut-out builds transparent').toBe('#000000');
@@ -775,8 +806,11 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
 
     const runsBefore = await window.evaluate(() => window.__mpi771.runParams.length);
     // ── By colour: keyed in the renderer, no engine call ──────────────────
-    // The current frame (0) is the red still, so red is keyed out: frame 0's
-    // track goes black, green and blue stay white. Brush fixes still apply.
+    // MPI-859: By colour now proposes the COLOUR IT FOUND, like every other
+    // method proposes what it found, and Subtract takes it out of the masks. The
+    // current frame (0) is the red still, so the whole of frame 0 is proposed and
+    // subtracting it empties its mask; green and blue match nothing, so those two
+    // frames keep the masks they already had. Brush fixes still apply on top.
     await gotoFrame(window, 0);
     await pickMethod(window, 'colour');
     await expect.poll(() => window.evaluate(() =>
@@ -788,6 +822,7 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     await expect.poll(() => window.evaluate((n) => window.__mpi771.spin.slice(n), spinsBefore), { timeout: 15000 })
       .toEqual([true, false]);
     expect(await window.evaluate(() => window.__mpi771.runParams.length), 'By colour never calls the engine').toBe(runsBefore);
+    await commitMask(window, 'subtract');
 
     const before2 = await historyLenNow();
     await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #cutout-slot button').click());
@@ -808,13 +843,17 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
       return (x, y) => data[(y * info.width + x) * info.channels + 3];
     };
     const k0 = await keyedAlpha(0);
-    expect(k0(C, C), 'frame 0: the key colour is cut').toBe(0);
+    expect(k0(C, C), 'frame 0: the key colour is subtracted out').toBe(0);
     expect(k0(6, 6), 'frame 0: the brushed corner is still kept').toBe(255);
     const k1 = await keyedAlpha(1);
     expect(k1(C, C), 'frame 1: the erased centre stays cut').toBe(0);
-    expect(k1(SZ - 7, SZ - 7), 'frame 1: green is not the key, kept').toBe(255);
+    // MPI-859, and the whole reason the card exists: green is not the key, so the
+    // colour run took nothing from frame 1 and the SAM3 mask it was carrying is
+    // still there. Under the old replace model this read 255, because keying
+    // green threw the tracked circle away and kept the entire frame.
+    expect(k1(SZ - 7, SZ - 7), 'frame 1: By colour found nothing, so its track survived').toBe(0);
     const k2 = await keyedAlpha(2);
-    expect(k2(C, C), 'frame 2: blue is not the key, kept').toBe(255);
+    expect(k2(C, C), 'frame 2: blue is not the key, its tracked centre is kept').toBe(255);
 
     const runsAfterColour = await window.evaluate(() => window.__mpi771.runParams.length);
 

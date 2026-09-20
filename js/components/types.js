@@ -275,8 +275,12 @@
  * Mask and Clear act on the SCOPE beside them: All, Frame, or Selected (the
  * frame strip's Ctrl-click set, pushed in by the Block).
  *
- * Requires viewer.el: getFrames(), getFrameIndex(), setTrackMasks(),
- *   setTrackMask(), hasFrameMasks(), getFrameMaskURL(), getCutMasks(),
+ * A run PROPOSES and Add / Subtract commits it (MPI-859), so two methods stack
+ * on one frame instead of the second replacing the first.
+ *
+ * Requires viewer.el: getFrames(), getFrameIndex(), setCandidateMasks(),
+ *   commitCandidates(), discardCandidates(), hasCandidates(), candidateAt(),
+ *   hasFrameMasks(), getFrameMaskURL(), getCutMasks(),
  *   clearFrameMasks(), setGenerating()
  * Block hooks on el: onFrameChange(), onMasksChange(), setSelection()
  *
@@ -2625,6 +2629,11 @@
  *   — MPI-771 cut-out masks, keyed by frame POSITION, shared with the Mask
  *     Brush so a hand fix survives a re-mask:
  *   setTrackMasks(urls) / setTrackMask(idx, url)
+ *   setCandidateMasks(entries)        — MPI-859: what a method run PROPOSED.
+ *                                       Shown, but invisible to getCutMasks()
+ *                                       and hasFrameMasks() until committed.
+ *   commitCandidates('add'|'subtract') — fold it into each frame's track
+ *   discardCandidates() / hasCandidates() / candidateAt(idx)
  *   hasFrameMasks() / getFrameMaskURL(idx) / getCutMasks()
  *   clearFrameMasks('all' | idx)      — throw the track AND brush layers away
  *                                       for good, so a re-mask starts clean.

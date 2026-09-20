@@ -63,3 +63,68 @@ test('a list never masked changes nothing, and the stash is bounded', () => {
     assert.equal(m.sync(list('l8')), true);
     assert.equal(m.maskFor(0), 't8');
 });
+
+// ── MPI-859: a method run PROPOSES; Add / Subtract commits it ────────────────
+// Fabio, 2026-09-20: Background then By colour on one frame kept only the second,
+// because every method replaced the track. A proposal is what makes them compose.
+
+test('a proposal shows, but it is not mask content until it is committed', () => {
+    const m = new GifFrameMasks();
+    m.sync(list('a', 'b'));
+    m.setCandidates([[0, 'cand-a']]);
+
+    assert.equal(m.hasCandidates(), true);
+    assert.equal(m.candidateAt(0), 'cand-a');
+    assert.equal(m.overlayAt(0), 'cand-a', 'the proposal is what the user is being asked about');
+    // The MPI-426 rule: an uncommitted run must not reach the cut, in either
+    // direction — the answer may be Subtract as easily as Add.
+    assert.equal(m.maskFor(0), null, 'the cut cannot see it');
+    assert.equal(m.hasAny(), false, 'and it does not unlock Cut out');
+});
+
+test('a proposal outranks a committed mask on display only', () => {
+    const m = new GifFrameMasks();
+    m.sync(list('a', 'b'));
+    m.setTrackAll(['track-a', 'track-b']);
+    m.setCandidates([[0, 'cand-a']]);
+
+    assert.equal(m.overlayAt(0), 'cand-a');
+    assert.equal(m.overlayAt(1), 'track-b', 'a frame outside the run keeps what it had');
+    assert.equal(m.maskFor(0), 'track-a', 'the cut still reads the committed mask');
+    assert.deepEqual(m.overlay(2), ['cand-a', 'track-b']);
+});
+
+test('a run supersedes the last proposal; Clear backs one out', () => {
+    const m = new GifFrameMasks();
+    m.sync(list('a', 'b'));
+    m.setCandidates([[0, 'first-a'], [1, 'first-b']]);
+    m.setCandidates([[1, 'second-b']]);
+    assert.deepEqual(m.candidateIndices(), [1], 'two live proposals would need two commit rows');
+    assert.equal(m.candidateAt(0), null);
+
+    assert.equal(m.clearCandidates(), true);
+    assert.equal(m.clearCandidates(), false, 'nothing left to drop');
+
+    m.setCandidates([[0, 'cand-a']]);
+    m.clear(0);
+    assert.equal(m.hasCandidates(), false, 'Clear throws the proposal away with the mask');
+});
+
+test('a proposal never outlives its frame list, but survives a reorder', () => {
+    const m = new GifFrameMasks();
+    const source = list('a', 'b');
+    m.sync(source);
+    m.setTrackAll(['track-a', 'track-b']);
+    m.setCandidates([[0, 'cand-a']]);
+
+    // A reorder is the same frames in another order, so the proposal follows its own.
+    m.remap(list('b', 'a'), [1, 0]);
+    assert.equal(m.candidateAt(1), 'cand-a', 'frame a moved to position 1 and took it along');
+
+    m.setCandidates([[0, 'cand-again']]);
+    m.sync(list('cut-a', 'cut-b'));
+    assert.equal(m.hasCandidates(), false, 'the preview contract: it does not outlive the list');
+    m.sync(list('b', 'a'));
+    assert.equal(m.hasCandidates(), false, 'and it is never stashed, so it cannot come back');
+    assert.equal(m.maskFor(0), 'track-b', 'the committed masks DID come back');
+});

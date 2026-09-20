@@ -15,11 +15,20 @@
  *      buttons became two plus a scope so "Selected" — the strip's Ctrl-click
  *      set, pushed in by the Block through `setSelection()` — could be added
  *      without a fifth and sixth button (Fabio, 2026-09-18). "Selected" is
- *      aria-disabled while nothing is selected. Masking replaces TRACKS only;
- *      brush fixes survive, and a scope narrower than All leaves the frames it
- *      did not touch alone. While a run is in flight the Mask button becomes
- *      Stop, the viewer spins and the status bar shows an indeterminate clock
- *      (the image Detect row's idiom).
+ *      aria-disabled while nothing is selected. A scope narrower than All leaves
+ *      the frames it did not touch alone. While a run is in flight the Mask
+ *      button becomes Stop, the viewer spins and the status bar shows an
+ *      indeterminate clock (the image Detect row's idiom).
+ *   1b. A run PROPOSES; **Add** and **Subtract** commit it (MPI-859). Masking used
+ *      to land straight on the frame's track and replace it, so Background then By
+ *      colour on one frame kept only the second — "the masks should be additive…
+ *      the image workspace already solved all the masking that needs to be solved"
+ *      (Fabio, 2026-09-20). This IS that model, the one `MpiMaskDetectRow` mounts:
+ *      the run renders as a proposal, the commit row appears, and the verb folds it
+ *      into what the frame already had (`maskCompose.js`). Every method is a source,
+ *      BiRefNet included. Brush fixes still survive both verbs, and `Cut out` stays
+ *      locked while a proposal is uncommitted — the image workspace's MPI-426 rule,
+ *      because the user's answer may be Subtract as easily as Add.
  *   2. SAM3 only: the numbered preview (`SAM3_TrackPreview`) says which index is which
  *      object; the 4 chips keep or drop them. A toggle re-dispatches the LAST
  *      scope, which is cheap: `SAM3_VideoTrack` is cached, only the mask node
@@ -81,22 +90,28 @@ const DEFAULTS = {
 
 const METHODS = {
     birefnet: {
-        label: 'Background', icon: 'image', op: 'gifCutoutBirefnet', progress: 'Removing background',
-        info: 'Remove background: keeps the foreground, no prompt needed (BiRefNet)',
-        hint: 'Keeps the <b>foreground</b> and removes the background.',
+        label: 'Background', icon: 'image', op: 'gifCutoutBirefnet', progress: 'Finding the foreground',
+        info: 'Remove background: finds the foreground, no prompt needed (BiRefNet)',
+        hint: 'Finds the <b>foreground</b>. <b>Add</b> it to keep it.',
     },
     sam3: {
         label: 'By name', icon: 'text', op: 'gifCutoutSam3', progress: 'Tracking',
-        info: 'By name: keeps the objects you name (SAM3)',
-        hint: 'Name what to <b>keep</b>: <b>mascot</b>, <b>logo</b>. Tick <b>Invert</b> to remove it instead.',
+        info: 'By name: finds the objects you name (SAM3)',
+        hint: 'Name what to find: <b>mascot</b>, <b>logo</b>. <b>Add</b> it to keep it.',
     },
     colour: {
         label: 'By colour', icon: 'mask_fill_holes_stroke', op: null, progress: 'Keying colour',
-        info: 'By colour: removes one colour. No GPU',
-        hint: 'Removes one <b>colour</b>. <b>Pick</b> it from the screen.',
+        info: 'By colour: finds one colour. No GPU',
+        hint: 'Finds one <b>colour</b> — <b>Pick</b> it from the screen. <b>Subtract</b> it to remove it.',
     },
 };
-const HINT_TAIL = ' A mask is a starting point: step through the frames and fix any of them with the <b>Mask Brush</b>.';
+// Every method is a SOURCE and the verb decides (MPI-859), so the hint names the
+// usual verb rather than claiming the method keeps or removes anything by itself.
+const HINT_TAIL = ' Each run adds to what the frames already have, so methods can be combined.'
+    + ' Fix any frame by hand with the <b>Mask Brush</b>.';
+/** Replaces the method hint while a run is waiting to be committed. */
+const PROPOSAL_HINT = 'The highlight is what this run <b>found</b>.'
+    + ' <b>Add</b> it to the masks, or <b>Subtract</b> it from them.';
 /** A colour setting change re-keys the last scope once the user pauses. */
 const REKEY_MS = 250;
 
@@ -130,6 +145,10 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             <div class="mpi-tool-options-gif-cutout__row mpi-tool-options-gif-cutout__row--split" id="track-slot">
                 <div id="mask-btn-slot"></div>
                 <div id="clear-btn-slot"></div>
+            </div>
+            <div class="mpi-tool-options-gif-cutout__row mpi-tool-options-gif-cutout__row--split" id="commit-slot" hidden>
+                <div id="add-btn-slot"></div>
+                <div id="sub-btn-slot"></div>
             </div>
 
             <div class="mpi-tool-options-gif-cutout__preview" id="preview-wrap" hidden>
@@ -228,6 +247,10 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             if (!METHODS[value] || value === _method || _busy) return;
             _method = value;
             _lastScope = null;
+            // A proposal belongs to the method that made it, and the commit row
+            // says nothing about which — leaving it up would offer the old run
+            // under the new method's name.
+            viewer.el.discardCandidates?.();
             _save('method', value);
             _syncMethod();
             // The tint's side depends on the method, so an existing mask re-tints.
@@ -403,6 +426,9 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             if (_busy) actionBtns.clear.el.setDisabled?.(true);
             actionBtns.clear.on('click', () => {
                 if (_busy) return;
+                // `clearFrameMasks` drops the proposal with the mask (GifFrameMasks
+                // `clear`/`clearAll`), which is also how a proposal is BACKED OUT —
+                // there is no Discard button, exactly as in the image workspace.
                 if (_scope === 'all') viewer.el.clearFrameMasks('all');
                 else {
                     const target = _scopeTarget();
@@ -416,6 +442,41 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             });
         }
         _mountTrackBtns();
+
+        // ── Add / Subtract — the commit half (MPI-859) ────────────────────────
+        //
+        // `MpiMaskDetectRow`'s pair, in its own row for the same reason: Mask is
+        // the RUN and stays where it is, so re-running to get a better proposal
+        // never means hunting for a button that moved. Mounted once — unlike
+        // Mask/Clear, neither of these swaps identity.
+
+        const commitRow = qs('#commit-slot', el);
+        const addBtn = MpiButton.mount(qs('#add-btn-slot', el), {
+            label: 'Add', icon: 'plus', size: 'sm', variant: 'secondary',
+            info: 'Add the masked area to the chosen frames’ masks',
+        });
+        const subBtn = MpiButton.mount(qs('#sub-btn-slot', el), {
+            label: 'Subtract', icon: 'minus', size: 'sm', variant: 'secondary',
+            info: 'Cut the masked area out of the chosen frames’ masks',
+        });
+        const _commit = async (mode) => {
+            if (_busy) return;
+            addBtn.el.setDisabled?.(true);
+            subBtn.el.setDisabled?.(true);
+            try {
+                // `commitCandidates` emits 'masks-change', so the Block's
+                // `onMasksChange` re-syncs the row, the tint and Cut out for us.
+                await viewer.el.commitCandidates(mode);
+            } catch (err) {
+                clientLogger.warn('MpiToolOptionsGifCutout', `mask ${mode} failed`, err);
+                StatusBar.notify(`Could not ${mode} the mask: ` + err.message, 'error');
+            } finally {
+                if (!_destroyed) { addBtn.el.setDisabled?.(false); subBtn.el.setDisabled?.(false); }
+            }
+        };
+        addBtn.on('click', () => _commit('add'));
+        subBtn.on('click', () => _commit('subtract'));
+        _children.push(addBtn, subBtn);
 
         /**
          * The Block pushes the strip's Ctrl-click selection here (VIEWER
@@ -524,7 +585,7 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
 
         /** Show the controls of the current method only. */
         function _syncMethod() {
-            qs('#hint', el).innerHTML = METHODS[_method].hint + HINT_TAIL;
+            _syncHint();
             qs('#prompt-slot', el).hidden = _method !== 'sam3';
             qs('#colour-section', el).hidden = _method !== 'colour';
             if (_method !== 'sam3') previewWrap.hidden = true;
@@ -535,13 +596,29 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         }
         _syncMethod();
 
+        /**
+         * While a run waits to be committed the hint says what the highlight
+         * means, because it is the one time it does NOT mark what disappears.
+         */
+        function _syncHint() {
+            qs('#hint', el).innerHTML = viewer.el.hasCandidates?.()
+                ? PROPOSAL_HINT
+                : METHODS[_method].hint + HINT_TAIL;
+        }
+
         /** Adjust and Cut out need a mask on at least one frame — tracked or brushed. */
         function _syncHasMasks() {
             const has = !!viewer.el.hasFrameMasks?.();
+            // A PROPOSAL is not a mask (MPI-859): it shows, and Cut out stays locked
+            // until a verb commits it. `hasFrameMasks()` cannot see it by design.
+            const proposed = !!viewer.el.hasCandidates?.();
             qs('#adjust-section', el).hidden = !has;
+            commitRow.hidden = !proposed || _busy;
+            _syncHint();
             // Mask stays live with no masks yet — it is how the first one is made.
-            // Clear is the one that needs something to throw away.
-            actionBtns.clear?.el.setDisabled?.(!has || _busy);
+            // Clear is the one that needs something to throw away, and a proposal
+            // counts: backing one out is the other half of its job.
+            actionBtns.clear?.el.setDisabled?.((!has && !proposed) || _busy);
             cutoutBtn.el.setDisabled?.(!has || _busy);
         }
         _syncHasMasks();
@@ -612,7 +689,16 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                 const urls = [];
                 for (const f of targets) {
                     if (run.cancelled || _destroyed) return null;
-                    const { url } = await colourKeyMaskUrl(f.url, { colour, tolerance: _tolerance, edgesOnly: _edgesOnly });
+                    // `selectMatching` — the KEYED COLOUR, not what survives it
+                    // (MPI-859). Every method now hands back the region it FOUND
+                    // and the verb says what to do with it, so By colour has to
+                    // speak the same way BiRefNet and SAM3 do: they find the
+                    // subject, it finds the background. Its keep-mask polarity
+                    // only made sense while a run REPLACED the frame's mask —
+                    // unioning "everything except red" onto a tracked subject
+                    // would keep the whole frame. The image workspace's colour
+                    // detect has always run it this way (MpiCanvasViewer.js).
+                    const { url } = await colourKeyMaskUrl(f.url, { colour, tolerance: _tolerance, edgesOnly: _edgesOnly, selectMatching: true });
                     urls.push(url);
                     // Yield so the spinner paints and Stop stays clickable.
                     await new Promise(resolve => setTimeout(resolve, 0));
@@ -652,6 +738,10 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             const method = _method;
             const targets = isAll ? frames : picked.map(p => frames[p.idx]);
             _lastScope = scope;
+            // A run supersedes the last proposal — including one this run may never
+            // replace (it was stopped, or it failed), which must not be left on
+            // screen looking like its result.
+            viewer.el.discardCandidates?.();
             _setBusy(true, isAll ? 'all' : 'frame');
 
             const landMasks = (urls) => {
@@ -659,11 +749,14 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                     StatusBar.notify('The frames changed while masking — mask again', 'warning');
                     return false;
                 }
-                // `setTrackMasks` replaces the WHOLE list, so it is only right for
-                // 'all'; every picked scope lands frame by frame so the frames it
-                // did not touch keep the masks they already had.
-                if (isAll) viewer.el.setTrackMasks(urls);
-                else picked.forEach((p, i) => viewer.el.setTrackMask(p.idx, urls[i] || null));
+                // A PROPOSAL, keyed by the position each result belongs to — which
+                // is what the scope decided. It replaces the last proposal and
+                // touches no frame's mask until Add or Subtract (MPI-859); frames
+                // outside the scope are not proposed for at all, so they keep what
+                // they had whatever the verb turns out to be.
+                viewer.el.setCandidateMasks(isAll
+                    ? urls.map((u, i) => [i, u])
+                    : picked.map((p, i) => [p.idx, urls[i] || null]));
                 return true;
             };
 
@@ -762,8 +855,14 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             const token = ++_tintToken;
             let url = null;
             let entry;
+            // A proposal outranks the committed mask: it is what the user is being
+            // asked about, and `getFrameMaskURL` cannot see it (MPI-859).
+            let proposed = false;
             try {
-                url = await viewer.el.getFrameMaskURL(viewer.el.getFrameIndex());
+                const idx = viewer.el.getFrameIndex();
+                const cand = viewer.el.candidateAt?.(idx) || null;
+                proposed = !!cand;
+                url = cand || await viewer.el.getFrameMaskURL(idx);
                 if (url) entry = await _loadAlpha(url);
             } catch (err) {
                 clientLogger.warn('MpiToolOptionsGifCutout', 'mask decode failed', err);
@@ -774,7 +873,11 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
 
             const { width, height, alpha } = entry;
             let out = alpha;
-            const range = _grow ? rangeFor({ grow: _grow }) : null;
+            // A PROPOSAL is shown AS ITSELF — the region the method found, which
+            // is what Add / Subtract is about to act on. Grow and Invert describe
+            // the COMMITTED mask at cut time, so neither has happened yet and
+            // neither belongs in this preview (MPI-859).
+            const range = (!proposed && _grow) ? rangeFor({ grow: _grow }) : null;
             if (range) {
                 const field = _fieldFor(url, entry);
                 const out32 = new Uint32Array(width * height);
@@ -792,7 +895,11 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             // writes it straight into the alpha channel, so white=keep is what
             // alpha IS. `Invert` flips that exactly as the server does, and the
             // tint is then the complement of whatever survives.
-            const flip = !_invert;
+            // …and a proposal is the one thing that rule does NOT cover: nothing
+            // has gone anywhere yet. Highlighting its complement would mark the
+            // whole frame for a SAM3 subject, and everything-but-the-colour for a
+            // key. The hint line says which verb the region wants.
+            const flip = !proposed && !_invert;
             if (flip) {
                 const flipped = new Uint8Array(out.length);
                 for (let i = 0; i < out.length; i++) flipped[i] = 255 - out[i];
@@ -867,6 +974,10 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
             _trackExec?.cancel?.();
             if (_keyRun) _keyRun.cancelled = true;
             if (_busy) { StatusBar.progress.cancel(); viewer.el.setGenerating?.(false); }
+            // The preview contract: an uncommitted proposal must not outlive its
+            // tool (docs/masking-tools.md). Add is mandatory here for the same
+            // reason it is in the image workspace since MPI-382.
+            viewer.el.discardCandidates?.();
             emit('mask-tint', { url: null });
             // Mask/Clear are re-mounted outside `_children` (_mountTrackBtns).
             actionBtns.mask?.destroy?.();

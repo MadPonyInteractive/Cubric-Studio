@@ -20,6 +20,13 @@
  *                   saved — COVERAGE, never a binary cut: the track's soft edge must
  *                   come through a brush fix unchanged (MPI-835). `MaskManager` is
  *                   the one compositor, this only stores its output
+ *   candidate idx -> the mask a METHOD RUN just produced, waiting for Add or
+ *                   Subtract (MPI-859). A proposal, never mask content: it is
+ *                   absent from `maskFor()` and from `hasAny()`, so a run that is
+ *                   never committed cannot reach the cut — the image workspace's
+ *                   MPI-426 rule, which is what makes the methods compose instead
+ *                   of each one replacing the last. `overlayAt()` DOES show it,
+ *                   because display is the whole point of a proposal
  */
 
 /** Frame lists whose masks stay stashed for the session (oldest dropped first). */
@@ -35,6 +42,7 @@ export class GifFrameMasks {
         this.track = new Map();
         this.edits = new Map();
         this.composed = new Map();
+        this.candidate = new Map();
         /** signature -> { track, edits, composed } of a list the store left */
         this._stash = new Map();
     }
@@ -59,6 +67,10 @@ export class GifFrameMasks {
         this.track = back?.track || new Map();
         this.edits = back?.edits || new Map();
         this.composed = back?.composed || new Map();
+        // A proposal is never stashed and never restored: an uncommitted preview
+        // must not outlive the list it was proposed for (docs/masking-tools.md
+        // § The preview contract).
+        this.candidate.clear();
         return had || !!back;
     }
 
@@ -75,6 +87,9 @@ export class GifFrameMasks {
         this.track = pick(this.track);
         this.edits = pick(this.edits);
         this.composed = pick(this.composed);
+        // A reorder is the SAME frames in another order, so a proposal still
+        // describes its own frame — unlike `sync()`, where the list itself changed.
+        this.candidate = pick(this.candidate);
         this._sig = frameSignature(frames);
     }
 
@@ -106,6 +121,28 @@ export class GifFrameMasks {
     }
 
     /**
+     * Replace the whole proposal set with what a method run just produced
+     * (MPI-859). A run SUPERSEDES the last one: two live proposals would ask the
+     * user to commit two things with one button.
+     * @param {Array<[number, string]>} entries position -> mask URL
+     */
+    setCandidates(entries) {
+        this.candidate.clear();
+        (entries || []).forEach(([idx, url]) => { if (url) this.candidate.set(idx, url); });
+    }
+
+    /** @returns {boolean} true when there was a proposal to drop */
+    clearCandidates() {
+        if (!this.candidate.size) return false;
+        this.candidate.clear();
+        return true;
+    }
+
+    hasCandidates() { return this.candidate.size > 0; }
+    candidateAt(idx) { return this.candidate.get(idx) || null; }
+    candidateIndices() { return [...this.candidate.keys()].sort((a, b) => a - b); }
+
+    /**
      * Throw one position's mask away — track AND brush layers. Clearing with the
      * brush only writes a full-frame `subtract`, which survives every re-mask by
      * design, so without this a frame the user "cleared" could never be masked
@@ -115,6 +152,7 @@ export class GifFrameMasks {
         this.track.delete(idx);
         this.edits.delete(idx);
         this.composed.delete(idx);
+        this.candidate.delete(idx);
     }
 
     /** `clear()` for every position. */
@@ -122,6 +160,7 @@ export class GifFrameMasks {
         this.track.clear();
         this.edits.clear();
         this.composed.clear();
+        this.candidate.clear();
     }
 
     hasEdits(idx) { return this.edits.has(idx); }
@@ -139,9 +178,13 @@ export class GifFrameMasks {
         return this.track.get(idx) || null;
     }
 
-    /** `maskFor()` for display: a stale edit reads as its track. */
+    /**
+     * `maskFor()` for display: a stale edit reads as its track, and a PROPOSAL
+     * outranks both — it is what the user is being asked about (MPI-859).
+     */
     overlayAt(i) {
-        return (this.edits.has(i) && this.composed.get(i)) || this.track.get(i) || null;
+        return this.candidate.get(i)
+            || (this.edits.has(i) && this.composed.get(i)) || this.track.get(i) || null;
     }
 
     /** `overlayAt()` for every position, for the frame strip. */

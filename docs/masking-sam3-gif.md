@@ -133,9 +133,10 @@ the VIEWER so both reach them.
 
 ### Where the masks live — `MpiGifViewer` + `gifFrameMasks.js`
 
-Per frame POSITION, because a track comes back per position: `track` (engine URL), `edits`
-(the brush's manual/subtract layers as working-res alpha PNGs) and `composed` (the greyscale
-PNG the canvas exported when the edits were saved). **`composed` keeps COVERAGE — it is
+Per frame POSITION, because a track comes back per position: `track` (the frame's accumulated
+mask), `edits` (the brush's manual/subtract layers as working-res alpha PNGs), `composed` (the
+greyscale PNG the canvas exported when the edits were saved) and `candidate` (MPI-859: a run
+waiting for Add or Subtract — shown, never cut, never stashed). **`composed` keeps COVERAGE — it is
 exported with `getURL('black', 'white', true)`, never the binary form** (MPI-835). An engine
 mask's soft falloff IS its edge, and `applyMaskAlpha()` reads luma as alpha; the binary export
 (any alpha = white, image mode's inpaint contract) grew a brushed frame's WHOLE mask by the
@@ -194,14 +195,41 @@ Cut-out; Fabio chose that over a second Cut out button (2026-09-16).
    seeds it at mount) and is aria-disabled while empty. Four buttons collapsed to two so
    Selected could exist without a fifth and sixth (Fabio, 2026-09-18).
    `runGifCutoutTrack({ op })` is called from the panel; a narrower scope is the same
-   graph on a source video of just those frames, and lands frame by frame (`setTrackMask`)
-   so untouched positions keep the masks they had — `setTrackMasks` replaces the whole list
-   and is only right for All. A run spins
+   graph on a source video of just those frames, and lands only on those positions, so
+   untouched ones keep the masks they had. A run spins
    the viewer (`setGenerating`) and drives the status bar directly (indeterminate clock,
    `complete()` when masks landed, `cancel()` otherwise), the image Detect row's idiom. There is **no count input**: each name is stamped `name:4`, the same 4
    as the chips (`OBJECT_SLOTS` = `max_objects`), because a bare name finds ONE object
    ([masking-sam3.md](masking-sam3.md) § the `name:N` trap). Source videos are cached per
    frame signature. Results that land after the frame list changed are dropped.
+1b. **Add / Subtract — the commit half (MPI-859).** A run does not land on the frames; it
+   PROPOSES. `viewer.el.setCandidateMasks(entries)` stores the result as a `candidate` layer
+   and the `#commit-slot` row appears; **Add** or **Subtract** folds it into each frame's
+   track (`maskCompose.js`), then the proposal is gone. Before this every method called
+   `setTrackMask` and REPLACED the track, so Background then By colour on one frame kept only
+   the second — "the masks should be additive… the image workspace already solved all the
+   masking that needs to be solved" (Fabio, 2026-09-20). It is that model, ported
+   ([masking-tools.md](masking-tools.md) § Add / Subtract), and four rules come with it:
+   - **A proposal is not mask content.** `maskFor()` and `hasFrameMasks()` cannot see it, so
+     `Cut out` stays locked on a run alone and an uncommitted run can never reach the cut —
+     the image workspace's MPI-426 rule, because the answer may be Subtract as easily as Add.
+     `overlayAt()` DOES show it: display is the whole point of a proposal.
+   - **Every method is a SOURCE — it hands back the region it FOUND, and the verb decides.**
+     That is why By colour runs `selectMatching: true` (the keyed colour) and not its
+     keep-mask: unioning "everything except red" onto a tracked subject would keep the whole
+     frame. BiRefNet and SAM3 find the subject and want Add; By colour finds the background
+     and wants Subtract. The method hints name the usual verb.
+   - **The composite is per-channel, not `source-over`.** A GIF mask is an opaque greyscale
+     PNG, so Add is `lighten` (max) and Subtract is `darken` over the inverted candidate
+     (min of base and NOT candidate). Both keep a soft edge, for MPI-835's reason.
+   - **All-black is a MASK, not "no mask".** A Subtract that takes everything means cut the
+     whole frame; no mask at all means the user never touched it and `getCutMasks()` hands it
+     a 1x1 white PNG. Collapsing the two would silently ignore that Subtract.
+
+   A proposal is dropped by a new run, a method change, Clear, a frame-list change and tool
+   teardown — the preview contract, so there is no Discard button, exactly as in the image
+   workspace. The tint shows a proposal AS ITSELF (no Grow, no Invert flip): it is the one
+   time the highlight is not "what disappears", and the hint line says so while it is up.
 2. **Read the preview** (`Output_Preview`, via `MpiVideoSurface`) for which index is which.
 3. **Chips** — 4 checkboxes, default all kept. A toggle re-dispatches the LAST scope (all,
    or that one frame) with the cached video — cheap, per the graph note above. `''` when all

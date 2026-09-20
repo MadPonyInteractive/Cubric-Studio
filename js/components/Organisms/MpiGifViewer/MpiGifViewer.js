@@ -67,6 +67,18 @@
  * staged reorder/delete and emptied when a different list loads (`gifFrameMasks.js`):
  *   setTrackMasks(urls) / setTrackMask(idx, url) — engine masks (Track All /
  *                                            Track Single Frame). Brush fixes stay.
+ *   setCandidateMasks(entries)             — MPI-859: what a METHOD RUN proposed,
+ *                                            position -> URL. A proposal, not mask
+ *                                            content: it shows on the tint and the
+ *                                            strip, and `hasFrameMasks()` /
+ *                                            `getCutMasks()` cannot see it, so an
+ *                                            uncommitted run never reaches the cut
+ *   commitCandidates('add'|'subtract')     — Promise<boolean>: fold every proposal
+ *                                            into its frame's track (`maskCompose.js`),
+ *                                            which is what makes two methods STACK
+ *                                            on one frame instead of the second
+ *                                            replacing the first (Fabio, 2026-09-20)
+ *   discardCandidates() / hasCandidates() / candidateAt(idx)
  *   getFrameMaskURL(idx)                   — Promise: what `idx` would cut with
  *                                            (a composed B/W PNG when it was
  *                                            brushed, the track URL, or null)
@@ -131,6 +143,7 @@ import { clientLogger } from '../../../services/clientLogger.js';
 import { Events } from '../../../events.js';
 import { qs, on } from '../../../utils/dom.js';
 import { GifFrameMasks } from './gifFrameMasks.js';
+import { composeFrameMask } from './maskCompose.js';
 
 /** Frames kept decoded around the current index, each side. */
 const CACHE_RADIUS = 6;
@@ -540,6 +553,55 @@ export const MpiGifViewer = ComponentFactory.create({
         };
 
         el.hasFrameMasks = () => _masks.hasAny();
+
+        // ── Candidate masks — a run PROPOSES, Add / Subtract commits (MPI-859) ──
+        //
+        // Before this, every method landed through `setTrackMask` and REPLACED the
+        // frame's track, so Background then By colour on one frame kept only the
+        // second (Fabio, 2026-09-20). The image workspace solved this years-of-
+        // cards ago and the fix is its model, not a new one: a run renders as a
+        // proposal and waits for an explicit verb.
+
+        el.setCandidateMasks = (entries) => {
+            _masks.setCandidates(entries);
+            _emitMasks();
+        };
+
+        el.hasCandidates = () => _masks.hasCandidates();
+        el.candidateAt = (idx) => _masks.candidateAt(idx);
+
+        el.discardCandidates = () => {
+            if (!_masks.clearCandidates()) return false;
+            _emitMasks();
+            return true;
+        };
+
+        /**
+         * Fold every proposal into the mask its frame already has.
+         * @param {'add'|'subtract'} mode
+         * @returns {Promise<boolean>} false when there was nothing to commit
+         */
+        el.commitCandidates = async (mode) => {
+            const idxs = _masks.candidateIndices();
+            if (!idxs.length) return false;
+            for (const idx of idxs) {
+                try {
+                    const url = await composeFrameMask(_masks.track.get(idx) || null, _masks.candidateAt(idx), mode);
+                    // `setTrack` drops the composite with it, so a brushed frame is
+                    // rebuilt against the NEW base by `_recomposeStale()` below.
+                    _masks.setTrack(idx, url);
+                } catch (err) {
+                    clientLogger.warn('MpiGifViewer', `mask ${mode} failed on frame ${idx}: ${err?.message || err}`);
+                }
+            }
+            _masks.clearCandidates();
+            // The brush frame holds its layers on the CANVAS, so its base has to be
+            // reloaded there; every other frame is store-only.
+            if (idxs.includes(_editIdx)) _refreshEditBase();
+            _emitMasks();
+            await _recomposeStale();
+            return true;
+        };
 
         /**
          * Throw masks away for good — track AND brush layers, so a re-mask starts
