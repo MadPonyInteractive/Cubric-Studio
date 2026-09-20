@@ -40,9 +40,16 @@ claims about them.
 its export. Its doc comment claimed "routes that land an entry from existing frames read it
 here", which was exactly the bug.
 
-## Open question for Fabio — NOT fixed here
+## Open question for Fabio — ANSWERED, see MPI-847
 
 Every crop and resize defaults to `maxEdge: 1024`, so a full-res 1080×1920 crop silently
 builds a 576×1024 `.gif`. That default predates this card and may well be right for a
 format meant to stay small, but it is now legible on the card and worth a decision: leave
 it, raise it, or expose it on the Crop/Resize panels the way GIF output exposes it.
+
+**Fabio answered the same day: raise it to 2048.** Done in MPI-847 — as a FLOOR on the
+inherited cap, because the route's own default was never what fired.
+
+## Closed
+
+Committed `79bcf0cd`, pushed, and **CI GREEN on its own commit** (run 35505263447).

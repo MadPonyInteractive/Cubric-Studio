@@ -46,3 +46,7 @@ because the numbers repeat:
 A deliberately small longest edge set in GIF output does not survive a later crop: the
 floor raises it to 2048. Re-apply GIF output after cropping when a small file is the
 point. Recorded in `docs/gif.md` beside the floor.
+
+## Closed
+
+Committed `43e1d90d`, pushed, and **CI GREEN on its own commit** (run 35505802176).

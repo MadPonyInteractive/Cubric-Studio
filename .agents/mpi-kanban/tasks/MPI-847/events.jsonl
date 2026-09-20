@@ -1,2 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-847", "at": "2026-09-20T11:37:09+01:00", "actor": "claude", "column": "todo", "title": "Crop and Resize floor their longest edge at 2048 instead of inheriting Make GIF's 1024"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-847", "at": "2026-09-20T11:37:40+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio asked for it directly; implementing the floor."}
+{"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-847", "at": "2026-09-20T12:01:36+01:00", "actor": "claude", "note": "CI GREEN on its own commit 43e1d90d (run 35505802176). Closing."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-847", "at": "2026-09-20T12:01:37+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 43e1d90d (run 35505802176)."}
