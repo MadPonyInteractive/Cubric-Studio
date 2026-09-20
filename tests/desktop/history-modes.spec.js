@@ -146,8 +146,10 @@ test('image, video and gif groups each mount their own viewer, rail and control 
     expect(dom.videoViewer).toBe(false);
     expect(dom.gifBar).toBe(true);
     expect(dom.frameStrip).toBe(true);
-    // gif's own tool list: Cut-out (MPI-771), Transform + Export (MPI-773), Timing + Output (MPI-772).
-    expect(dom.railSlots).toBe(5);
+    // gif's own tool list: Cut-out (MPI-771), Transform + Export (MPI-773) and
+    // Output (MPI-772). There is no Timing group since MPI-836 — the trim bar is
+    // the trim, and rate + loop count are GIF output's fields.
+    expect(dom.railSlots).toBe(4);
     // Plan scope item 6: no model generates a GIF in v1.
     expect(dom.promptBox).toBe(false);
   } finally {
