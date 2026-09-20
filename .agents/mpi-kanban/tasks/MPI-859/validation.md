@@ -29,15 +29,59 @@ alpha back off disk with sharp — so they are pixel evidence, not UI state:
   circle alone, so outside the circle is still cut (0). It used to read 255: keying green
   threw the SAM3 mask away and kept the whole frame. That is Fabio's complaint, in a test.
 
-## Not covered by a test — one live judgement for Fabio
+## The live judgement — ANSWERED, and now covered by a test
 
-A proposal is drawn with the SAME tint as a committed mask, and it is the one time the
-highlight is not "what disappears" — it is "what this run found". The hint line says so while
-the commit row is up, and the method hints name the usual verb (Add for Background / By name,
-Subtract for By colour). Whether that reads clearly on a real clip, or whether a proposal
-needs its own colour the way the image workspace's green pick does, is Fabio's call.
+The question was: a proposal was drawn with the SAME tint as a committed mask, and it is the
+one time the highlight is not "what disappears" — it is "what this run found". Does that read
+clearly, or does a proposal need its own colour?
+
+**Fabio, 2026-09-20: green.** A proposal wears `--accent-ok`; a committed mask keeps
+`--mask-fill` white. Relayed by a peer session as board message
+`2a2cfb4f-1f69-4bd4-80ad-8f2a40be951c`, and the same answer was already written down: the
+carve-out at `styles/01_base.css:142` and `MpiGifViewer.css:91` says green means "a proposal
+still waiting on Add / Subtract / Apply", and made the GIF tint white only *because* "Mask /
+Mask all / Mask selected do not propose anything, they WRITE the frame's mask". `a6c423db`
+deleted that premise. Both comments are rewritten to state the live rule.
+
+He heard and overrode the argument against: GIF runs are the common path, so the green is on
+screen far more than the image workspace's flash. If it reads noisy on a real clip that is a
+follow-up, not a reopening.
+
+### What shipped for it
+
+- `gifFrameMasks.isProposalAt(i)` — `overlayAt()` hands back one URL by design and cannot say
+  which kind won, so the draw site asks.
+- `mask-tint` carries `proposed`. It is NOT derivable at the draw site: Grow / Invert push the
+  COMMITTED mask through the same `setCutoutPreview()` override.
+- Both surfaces, because Cut-out drives both: `--proposal` on the CSS tint (playback) and
+  `MpiCanvas.setMaskDisplayProposal()` (the canvas, which is what is up while the tool is).
+  Without the second, a proposal was green playing and white the moment you paused.
+- A proposal is never complemented. `_setPlayingTint` used to flip it: the panel only pushes a
+  preview for the frame it is ON, so the other frames of a multi-frame run flipped and
+  whitened one beat into playback.
+- Not under `bwView` — that view finds specks in black and white on purpose.
+
+### Verified
+
+- `tests/gif-frame-masks.test.cjs` — 7 pass, 0 fail, with `isProposalAt` asserted against a
+  committed mask on the neighbouring frame and after `clearCandidates()`.
+- `gif-cutout.spec.js` asserts the green in `commitMask()`, the one chokepoint every landing
+  run in the file goes through: the canvas reports a proposal while the commit row is up, and
+  stops the moment Add / Subtract folds it in.
+- **Proven RED on the pre-fix behaviour**: backing out the single line that arms
+  `_cutoutProposal` fails the real round-trip spec at `commitMask`. Restored byte-identical.
+- 16/16 GIF desktop specs in the real app; `npm test` 1599 pass, 0 fail, 1 skipped; eslint
+  clean on all nine changed files.
 
 `routes/` is untouched, so a RELOAD is enough to see this — no app restart needed.
+
+## Seen once, not reproduced, not ours
+
+`gif-workspace.spec.js` "gif stage: right-click reverses the frames and clears every mask"
+failed once in four full runs (a thumb-tint count after a per-frame mask clear) and passed
+alone and in two later full runs. It cannot be this change: that test sets track masks and
+never a candidate, so `isProposalAt()` is false throughout and every new branch evaluates to
+the arguments the old code passed.
 
 ## Known, not fixed here
 
