@@ -4686,3 +4686,6 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-835", "at": "2026-09-20T07:41:26+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-830", "at": "2026-09-20T07:50:56+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio verified the cut-out live (background/BiRefNet, his own GPU); routes, handlers, tests, skill, docs and the component maps all shipped"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-834", "at": "2026-09-20T07:51:22+01:00", "actor": "claude", "from": "doing", "to": "done"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-837", "at": "2026-09-20T08:03:21+01:00", "actor": "claude", "column": "todo", "title": "The trim track is 28px unless the clip actually has a waveform"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-837", "at": "2026-09-20T08:03:47+01:00", "actor": "claude", "from": "todo", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-837", "at": "2026-09-20T08:25:52+01:00", "actor": "claude", "from": "doing", "to": "done"}
