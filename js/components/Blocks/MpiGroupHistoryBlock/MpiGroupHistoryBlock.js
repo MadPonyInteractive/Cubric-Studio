@@ -1076,7 +1076,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             // CSS tint, so the panel can mount the shared MpiMaskStrip over it — the
             // viewer drives whichever surface is on screen.
             if (mode === 'gifCutout') {
-                _options.on?.('mask-tint', ({ url, proposed }) => viewer.el.setCutoutPreview?.(url, proposed));
+                _options.on?.('mask-tint', ({ url, proposalUrl }) => viewer.el.setCutoutPreview?.(url, proposalUrl));
                 // The panel's "Selected" scope acts on the strip's Ctrl-click
                 // selection. Seed it at mount — the selection may predate the
                 // panel — then `selection-change` keeps it current.

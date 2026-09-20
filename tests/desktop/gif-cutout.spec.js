@@ -407,33 +407,54 @@ async function pickScope(window, value) {
 }
 
 /**
+ * What the user can SEE, off real pixels and real layout - not flags. Two bugs
+ * shipped past flag-reading versions of these (Fabio, 2026-09-20):
+ *   - the Add / Subtract row set `hidden` and stayed on screen, because `__row`'s
+ *     `display` outranks the UA `[hidden]` rule. `.hidden` read true throughout.
+ *   - the proposal drew BLACK with the strip's invert-display on, while the flag
+ *     that was meant to make it green read true.
+ */
+const commitRowShown = (window) => window.evaluate(() => {
+  const row = document.querySelector('.mpi-tool-options-gif-cutout #commit-slot');
+  return !!row && getComputedStyle(row).display !== 'none' && row.getBoundingClientRect().height > 0;
+});
+/** Counts of GREEN (a proposal) and WHITE/BLACK-free mask pixels on the canvas overlay. */
+const overlayColours = (window) => window.evaluate(() => {
+  const ov = document.querySelector('.mpi-gif-viewer__edit .mpi-canvas canvas[data-role="overlay"]');
+  if (!ov || !ov.width) return { green: 0, white: 0 };
+  const { data } = ov.getContext('2d').getImageData(0, 0, ov.width, ov.height);
+  let green = 0; let white = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < 40) continue;
+    const r = data[i]; const g = data[i + 1]; const b = data[i + 2];
+    if (g > r + 40 && g > b + 25) green++;
+    else if (r > 200 && g > 200 && b > 200) white++;
+  }
+  return { green, white };
+});
+
+/**
  * MPI-859: a run only PROPOSES. The commit row is what puts it in the masks, so
  * every landing run in this file ends in one of these — the image workspace's
  * "Add is mandatory" rule, ported.
  * @param {'add'|'subtract'} verb
+ * @param {{ empty?: boolean }} [opts] `empty`: the run found NOTHING, so there is
+ *        a proposal to commit and not one green pixel to look for
  */
-async function commitMask(window, verb) {
-  const hidden = () => window.evaluate(() =>
-    document.querySelector('.mpi-tool-options-gif-cutout #commit-slot')?.hidden);
-  // The canvas is the surface that is UP while the tool is; the CSS tint only
-  // shows during playback, and `_setTint(null)` deliberately leaves its classes
-  // on a hidden element, so it cannot answer this.
-  const proposalTint = () => window.evaluate(() =>
-    document.querySelector('.mpi-gif-viewer__edit .mpi-canvas')?.isMaskDisplayProposal());
-  await expect.poll(hidden, { timeout: 20000 }).toBe(false);
-  // MPI-859 (Fabio, 2026-09-20): an uncommitted run wears the pending green, not
-  // the white of a mask that exists. It is the one highlight here that means
-  // "what this run found" rather than "what disappears".
-  await expect.poll(proposalTint, { timeout: 20000 }).toBe(true);
+async function commitMask(window, verb, { empty = false } = {}) {
+  await expect.poll(() => commitRowShown(window), { timeout: 20000 }).toBe(true);
+  // MPI-859: an uncommitted run is GREEN on the canvas - the surface that is up
+  // while the tool is. Pixels, so the strip's invert-display cannot fake it.
+  if (!empty) {
+    await expect.poll(async () => (await overlayColours(window)).green, { timeout: 20000 }).toBeGreaterThan(0);
+  }
   await window.evaluate((slot) => {
     document.querySelector(`.mpi-tool-options-gif-cutout ${slot} button`).click();
   }, verb === 'add' ? '#add-btn-slot' : '#sub-btn-slot');
-  // It hides again once the proposal has been folded in — the commit is done.
-  await expect.poll(hidden, { timeout: 20000 }).toBe(true);
-  // ...and the green goes with it: what is left is a committed mask.
-  await expect.poll(proposalTint, { timeout: 20000 }).toBe(false);
+  // The row leaves the SCREEN once the proposal is folded in, and the green with it.
+  await expect.poll(() => commitRowShown(window), { timeout: 20000 }).toBe(false);
+  await expect.poll(async () => (await overlayColours(window)).green, { timeout: 20000 }).toBe(0);
 }
-
 /** Pick a Cut-out mask method (Decision 15) and wait for its buttons. */
 async function pickMethod(window, value) {
   await window.evaluate((v) => {
@@ -631,6 +652,9 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     })).toBe('mascot');
     expect(await window.evaluate(() => document.querySelector('.mpi-tool-options-gif-cutout #cutout-slot button')?.disabled),
       'Cut out starts disabled — no mask on any frame').toBe(true);
+    // Fabio, 2026-09-20: Add / Subtract sat on screen with nothing to commit, two
+    // dead buttons - `hidden` was set, and `__row`'s display beat it.
+    expect(await commitRowShown(window), 'no proposal, no Add / Subtract on screen').toBe(false);
 
     // ── Brush BEFORE any track (Fabio: the brush works with no track) ────
     // Frame 0: paint a dab in the corner, outside where the track will land.
@@ -676,9 +700,7 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
       .toEqual([true, false]);
     // The run PROPOSED; Cut out is still locked on it alone (MPI-859) — the only
     // reason the button is live is the brush dab from before the run.
-    expect(await window.evaluate(() =>
-      document.querySelector('.mpi-tool-options-gif-cutout #commit-slot')?.hidden),
-      'the commit row is up, waiting for a verb').toBe(false);
+    expect(await commitRowShown(window), 'the commit row is up, waiting for a verb').toBe(true);
     await commitMask(window, 'add');
     // Every frame now carries a tint; the brushed frame keeps its marker.
     await expect.poll(() => window.evaluate(() =>
@@ -719,7 +741,10 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     // It found nothing, so Add composes nothing in: frame 2 keeps the mask Track
     // All gave it. Before MPI-859 this run REPLACED that mask with the empty one
     // and the frame cut to nothing — the shape of Fabio's complaint.
-    await commitMask(window, 'add');
+    // An EMPTY proposal - and the mask Track All gave this frame is still on screen
+    // under it, white: a run never hides the mask it is about to change.
+    expect((await overlayColours(window)).white, 'the committed mask shows under a proposal').toBeGreaterThan(0);
+    await commitMask(window, 'add', { empty: true });
     await expect.poll(() => window.evaluate(() =>
       document.querySelectorAll('.mpi-frame-strip__thumb-tint').length), { timeout: 15000 }).toBe(3);
 
@@ -897,6 +922,10 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
       document.querySelectorAll('.mpi-frame-strip__thumb-tint').length), { timeout: 15000 }).toBeGreaterThan(0);
     await gotoFrame(window, 0);
     await pickMethod(window, 'birefnet');
+    // ALL frames - the everyday path, and the one Fabio ran (2026-09-20). This leg
+    // used to inherit 'frame' from the single-frame run far above, so the scope
+    // every real Background cut uses had no coverage at all.
+    await pickScope(window, 'all');
     await window.evaluate(() => { window.__mpi771.maskPrefix = 'mask_'; });
     // A clean store: the proof below must read this one run and nothing else.
     await window.evaluate(() => document.querySelector('.mpi-gif-viewer').clearFrameMasks('all'));
@@ -928,6 +957,15 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     await expect.poll(() => proposalAt(0.5, 0.5), { timeout: 20000 }).not.toBeNull();
     expect(await proposalAt(0.5, 0.5), 'the subject is NOT in a Background proposal').toBeLessThan(128);
     expect(await proposalAt(0.05, 0.05), 'the background IS').toBeGreaterThan(128);
+
+    // Fabio, 2026-09-20: "it just painted black in the background. Never saw the
+    // green." His strip had invert-display ON, and the canvas checked that flag
+    // before the proposal one. The proposal rides MaskManager's own auto-pick
+    // layer now - the image workspace's - which is green whatever the strip says.
+    await expect.poll(async () => (await overlayColours(window)).green, { timeout: 20000 }).toBeGreaterThan(0);
+    await window.evaluate(() => document.querySelector('.mpi-gif-viewer').setMaskInverted(true));
+    expect((await overlayColours(window)).green, 'a proposal stays green under invert-display').toBeGreaterThan(0);
+    await window.evaluate(() => document.querySelector('.mpi-gif-viewer').setMaskInverted(false));
 
     // ...and the default direction, on disk: Background -> Add -> Cut out, Invert
     // OFF, is the everyday path. The mask is what gets CUT, so the background

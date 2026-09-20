@@ -51,9 +51,9 @@
  * the one subscription to each viewer event and forwards here.
  *
  * Emits:
- *   'mask-tint' { url: string|null, proposed?: boolean } — current-frame adjusted
- *     preview. `proposed` = the bitmap is a method run waiting on Add / Subtract,
- *     which the viewer draws in the pending green instead of the committed white
+ *   'mask-tint' { url: string|null, proposalUrl: string|null } — the current
+ *     frame's adjusted mask (white) and, while a run waits on Add / Subtract, the
+ *     proposal drawn green OVER it. Either may be null
  *   'apply' { frames, masks, adjust, invert, settings } — Cut-out pressed;
  *     `settings` says which method made the masks (stamped on the sidecar)
  */
@@ -756,8 +756,14 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                 }
                 // BiRefNet returns the FOREGROUND; the chip says Background, and
                 // the store holds what gets cut, so the proposal is the other half.
+                // 80 frames at 1920x768 measure 1.5 s against a real engine.
                 if (METHODS[method].invertResult) {
                     urls = await Promise.all(urls.map(u => (u ? invertMaskUrl(u) : u)));
+                    // The list can change during that await as easily as during the run.
+                    if (_destroyed || frameSignature(viewer.el.getFrames()) !== listSig) {
+                        StatusBar.notify('The frames changed while masking — mask again', 'warning');
+                        return false;
+                    }
                 }
                 // A PROPOSAL, keyed by the position each result belongs to — which
                 // is what the scope decided. It replaces the last proposal and
@@ -793,30 +799,40 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
                     objectIndices: _indicesString(),
                 });
                 let landed = false;
+                // Landing is ASYNC now (the Background flip decodes), so the run is
+                // not over until it is: `onDone` waits on this, or the panel went idle
+                // with the masks still in flight and reported the run as cancelled.
+                let landing = Promise.resolve();
                 _trackExec = exec;
                 exec.onPreview = (url) => {
                     if (_destroyed || _trackExec !== exec || method !== 'sam3') return;
                     previewVideo.el._setSrc(url);
                     previewWrap.hidden = false;
                 };
-                exec.onMasks = async (urls) => {
+                exec.onMasks = (urls) => {
                     if (_destroyed || _trackExec !== exec) return;
                     if (method === 'sam3' && _method === 'sam3') previewWrap.hidden = false;
-                    const ok = await landMasks(urls);
-                    // Re-checked AFTER the await: landMasks decodes for the
-                    // Background flip, and a stop or a re-run in that window must
-                    // not land a superseded batch.
-                    if (_destroyed || _trackExec !== exec) return;
-                    landed = ok || landed;
+                    // Chained, so two batches land in order; and CAUGHT, because nothing
+                    // in the app logs an unhandled rejection — a throw in here used to
+                    // leave a finished 80-frame run showing nothing and saying nothing.
+                    landing = landing
+                        .then(() => landMasks(urls))
+                        .then((ok) => { landed = ok || landed; })
+                        .catch((err) => {
+                            clientLogger.warn('MpiToolOptionsGifCutout', 'masks came back but could not be landed', err);
+                            StatusBar.notify('The masks came back but could not be shown: ' + (err?.message || err), 'error');
+                        });
                 };
                 exec.onError = (err) => {
                     if (_destroyed) return;
                     clientLogger.warn('MpiToolOptionsGifCutout', 'mask run failed', err);
                 };
                 exec.onDone = () => {
-                    if (_destroyed) return;
-                    _trackExec = null;
-                    _setBusy(false, null, landed ? 'done' : 'cancel');
+                    landing.then(() => {
+                        if (_destroyed) return;
+                        if (_trackExec === exec) _trackExec = null;
+                        _setBusy(false, null, landed ? 'done' : 'cancel');
+                    });
                 };
             } catch (err) {
                 _setBusy(false);
@@ -865,68 +881,70 @@ export const MpiToolOptionsGifCutout = ComponentFactory.create({
         }
 
         let _tintToken = 0;
-        async function _updateCurrentTint() {
-            if (_destroyed) return;
-            const token = ++_tintToken;
-            let url = null;
-            let entry;
-            // A proposal outranks the committed mask: it is what the user is being
-            // asked about, and `getFrameMaskURL` cannot see it (MPI-859).
-            let proposed = false;
-            try {
-                const idx = viewer.el.getFrameIndex();
-                const cand = viewer.el.candidateAt?.(idx) || null;
-                proposed = !!cand;
-                url = cand || await viewer.el.getFrameMaskURL(idx);
-                if (url) entry = await _loadAlpha(url);
-            } catch (err) {
-                clientLogger.warn('MpiToolOptionsGifCutout', 'mask decode failed', err);
-                return;
-            }
-            if (_destroyed || token !== _tintToken) return;
-            if (!url) { emit('mask-tint', { url: null }); return; }
-
-            const { width, height, alpha } = entry;
-            let out = alpha;
-            // A PROPOSAL is shown AS ITSELF — the region the method found, which
-            // is what Add / Subtract is about to act on. Grow and Invert describe
-            // the COMMITTED mask at cut time, so neither has happened yet and
-            // neither belongs in this preview (MPI-859).
-            const range = (!proposed && _grow) ? rangeFor({ grow: _grow }) : null;
-            if (range) {
-                const field = _fieldFor(url, entry);
-                const out32 = new Uint32Array(width * height);
-                writeRange(field, out32, range.lo, range.hi);
-                out = new Uint8Array(width * height);
-                for (let i = 0; i < out.length; i++) out[i] = out32[i] & 0xff;
-            }
-            // THE TINT IS THE MASK, drawn as itself (MPI-859) — the image
-            // workspace's rule. The store holds what gets cut, so with Invert off
-            // the highlight is still what disappears (Fabio, 2026-09-18), and it
-            // needs no translation to be. Nothing flips it, Invert included: the
-            // Mask Brush shows this same store, and a tint that moved under Invert
-            // would put the two tools on opposite regions again. Invert is a
-            // cut-time switch — it says the mask is what SURVIVES — not a redraw.
-
+        /** Coverage bytes -> the white-with-alpha PNG both display surfaces take. */
+        function _alphaBitmap(width, height, alpha) {
             const canvas = document.createElement('canvas');
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d');
             const imgData = ctx.createImageData(width, height);
-            for (let i = 0; i < out.length; i++) {
+            for (let i = 0; i < alpha.length; i++) {
                 imgData.data[i * 4] = 255;
                 imgData.data[i * 4 + 1] = 255;
                 imgData.data[i * 4 + 2] = 255;
-                imgData.data[i * 4 + 3] = out[i];
+                imgData.data[i * 4 + 3] = alpha[i];
             }
             ctx.putImageData(imgData, 0, 0);
-            // `proposed` rides along rather than being re-derived at the draw site:
-            // `overlayAt()` hands back one URL by design and cannot say which kind it
-            // is, and this preview is not always a proposal — Grow / Invert push the
-            // COMMITTED mask through the same path (MPI-859).
-            emit('mask-tint', { url: canvas.toDataURL('image/png'), proposed });
+            return canvas.toDataURL('image/png');
         }
 
+        /**
+         * THE TINT IS THE MASK, drawn as itself (MPI-859) — the image workspace's
+         * rule. The store holds what gets cut, so with Invert off the highlight is
+         * still what disappears (Fabio, 2026-09-18) with no translation. Nothing
+         * flips it, Invert included: the Mask Brush shows this same store, and a
+         * tint that moved under Invert would put the two tools on opposite regions
+         * again. Invert is a cut-time switch, not a redraw.
+         *
+         * A PROPOSAL goes out as its OWN bitmap and is drawn green OVER the mask,
+         * never instead of it: a run that replaced the view read as having
+         * destroyed the mask already there (Fabio, 2026-09-20). It is shown as the
+         * region the method found — Grow describes the committed mask at cut time.
+         */
+        async function _updateCurrentTint() {
+            if (_destroyed) return;
+            const token = ++_tintToken;
+            let url = null;
+            let proposalUrl = null;
+            try {
+                const idx = viewer.el.getFrameIndex();
+                const committed = await viewer.el.getFrameMaskURL(idx);
+                if (committed) {
+                    const entry = await _loadAlpha(committed);
+                    const { width, height } = entry;
+                    let out = entry.alpha;
+                    const range = _grow ? rangeFor({ grow: _grow }) : null;
+                    if (range) {
+                        const field = _fieldFor(committed, entry);
+                        const out32 = new Uint32Array(width * height);
+                        writeRange(field, out32, range.lo, range.hi);
+                        out = new Uint8Array(width * height);
+                        for (let i = 0; i < out.length; i++) out[i] = out32[i] & 0xff;
+                    }
+                    url = _alphaBitmap(width, height, out);
+                }
+                const cand = viewer.el.candidateAt?.(idx) || null;
+                if (cand) {
+                    const entry = await _loadAlpha(cand);
+                    proposalUrl = _alphaBitmap(entry.width, entry.height, entry.alpha);
+                }
+            } catch (err) {
+                clientLogger.warn('MpiToolOptionsGifCutout', 'mask decode failed', err);
+                return;
+            }
+            if (_destroyed || token !== _tintToken) return;
+            emit('mask-tint', { url, proposalUrl });
+        }
         // The Block owns the ONE persistent subscription to each viewer event for
         // the viewer's whole lifetime and forwards here — the factory's own
         // `instance.on()` has no per-listener unsubscribe, so a panel that

@@ -93,12 +93,15 @@ test('a proposal outranks a committed mask on display only', () => {
     assert.equal(m.maskFor(0), 'track-a', 'the cut still reads the committed mask');
     assert.deepEqual(m.overlay(2), ['cand-a', 'track-b']);
 
-    // The URL alone cannot say which kind won, and the two kinds wear different
-    // colours (MPI-859) — green proposes, white disappears.
-    assert.equal(m.isProposalAt(0), true);
-    assert.equal(m.isProposalAt(1), false, 'a committed mask is never tinted as a proposal');
+    // The stage draws BOTH layers - the frame's own mask in white, the proposal in
+    // green over it (MPI-859) - so a run never hides the mask it is about to change.
+    assert.equal(m.committedAt(0), 'track-a', 'the mask under a proposal is still shown');
+    assert.equal(m.candidateAt(0), 'cand-a');
+    assert.equal(m.committedAt(1), 'track-b');
+    assert.equal(m.candidateAt(1), null, 'a frame outside the run proposes nothing');
     m.clearCandidates();
-    assert.equal(m.isProposalAt(0), false, 'and the frame goes back to its own mask');
+    assert.equal(m.candidateAt(0), null);
+    assert.equal(m.committedAt(0), 'track-a', 'and backing a run out leaves the mask alone');
 });
 
 test('a run supersedes the last proposal; Clear backs one out', () => {

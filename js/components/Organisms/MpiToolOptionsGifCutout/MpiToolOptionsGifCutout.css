@@ -84,7 +84,12 @@
     border-top: 1px solid var(--line-soft);
 }
 
+/* `__row` is in this list because its `display` outranks the UA `[hidden]` rule:
+   the Add / Subtract row set `hidden` and stayed on screen, two dead buttons
+   under every run (Fabio, 2026-09-20). A spec reading the `.hidden` PROPERTY
+   cannot see that - assert on the computed display. */
 .mpi-tool-options-gif-cutout__section[hidden],
+.mpi-tool-options-gif-cutout__row[hidden],
 .mpi-tool-options-gif-cutout__preview[hidden] {
     display: none;
 }

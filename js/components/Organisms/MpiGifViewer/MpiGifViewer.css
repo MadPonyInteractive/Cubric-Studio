@@ -124,7 +124,9 @@
 
 /* A method run waiting on Add / Subtract (MPI-859). The one tint that does NOT
    mark what disappears — nothing has gone anywhere yet — so it wears the colour
-   those two verbs already answer to everywhere else in the app. */
+   those two verbs already answer to everywhere else in the app. Its OWN element,
+   after the white one in the DOM: the proposal stacks OVER the mask it is about
+   to change instead of replacing it. */
 .mpi-gif-viewer__mask-tint--proposal {
     background: var(--accent-ok);
 }

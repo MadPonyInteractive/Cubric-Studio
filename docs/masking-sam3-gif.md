@@ -225,8 +225,7 @@ Cut-out; Fabio chose that over a second Cut out button (2026-09-16).
    time the highlight is not "what disappears", and the hint line says so while it is up.
    It is also the one time the tint is GREEN (`--accent-ok`, Fabio 2026-09-20) — the colour
    Add / Subtract / Apply already answer to app-wide; a committed mask keeps `--mask-fill`
-   white. The panel says which kind it is on `mask-tint`, because Grow / Invert push the
-   COMMITTED mask through the same override and the draw site cannot tell them apart.
+   white, and stays on screen UNDER the green.
 2. **Read the preview** (`Output_Preview`, via `MpiVideoSurface`) for which index is which.
 3. **Chips** — 4 checkboxes, default all kept. A toggle re-dispatches the LAST scope (all,
    or that one frame) with the cached video — cheap, per the graph note above. `''` when all
@@ -250,11 +249,16 @@ Cut-out; Fabio chose that over a second Cut out button (2026-09-16).
 
 ### Tints
 
-- `'mask-tint' { url, proposed }` — the current frame's ADJUSTED mask as white-with-alpha →
-  `MpiGifViewer.el.setCutoutPreview(url, proposed)`. `proposed` picks the colour, on BOTH
-  surfaces: `--proposal` on the CSS tint and `MpiCanvas.setMaskDisplayProposal()` on the
-  canvas. Only the canvas one is visible while the tool is up; without it a proposal was
-  green during playback and white the moment you paused.
+- `'mask-tint' { url, proposalUrl }` — the current frame's ADJUSTED mask as white-with-alpha,
+  plus the run still waiting on Add / Subtract → `MpiGifViewer.el.setCutoutPreview(url,
+  proposalUrl)`. The proposal is drawn GREEN OVER the white, never instead of it — a run that
+  replaced the view read as having destroyed the mask under it (Fabio, 2026-09-20). On the
+  canvas it rides `MaskManager`'s own `autoPickMasks` layer, the image workspace's, so it is
+  green whatever the strip's invert-display says (a flag checked after `displayInverted` drew
+  it BLACK); during playback a second `--proposal` tint element stacks over the white one.
+  **Assert these on PIXELS and computed layout**: the flag-reading specs passed while the
+  proposal was black and the `hidden` Add / Subtract row sat on screen (`__row`'s `display`
+  outranks `[hidden]`).
   **Since the MPI-771 consistency audit (Fabio, 2026-09-19) Cut-out is a CANVAS tool.** It was
   the only mask-producing tool in the app with no opacity / invert / B-W / clear, and the
   reason was never the mask — those are methods on `MpiCanvas`, which `MpiGifViewer` funnels
