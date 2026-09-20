@@ -19,7 +19,9 @@
  * delay. The Trim tool (MPI-772) reads the range through getRange().
  *
  * Hotkeys reuse the EXISTING `video.playPause` / `video.frame.back` /
- * `video.frame.forward` ids (space / ← / →) rather than new `gif.*` ones — a
+ * `video.frame.forward` / `video.frame.first` / `video.frame.last` /
+ * `video.trim.in` / `video.trim.out` / `video.trim.clear` ids
+ * (space / ← / → / home / end / i / o / x) rather than new `gif.*` ones — a
  * Group History card mounts EITHER this bar or MpiVideoControlBar, never
  * both, so the two never compete for the same keypress; each gates on its
  * own `_canDrive()`, exactly like two live MpiVideoControlBars already do
@@ -35,8 +37,10 @@
  *   destroy()
  *
  * Emits:
- *   'range-change' { in, out } — trim handles moved, or a new frame count reset
- *                                them (frame indices)
+ *   'range-change'  { in, out } — trim handles moved, or a new frame count reset
+ *                                 them (frame indices)
+ *   'range-preview' { in, out } — a handle is being DRAGGED (throttled ~50ms).
+ *                                 Repaint only; persist on 'range-change'.
  */
 
 import { ComponentFactory } from '../../factory.js';
@@ -102,6 +106,9 @@ export const MpiGifControlBar = ComponentFactory.create({
         const curEl = qs('.mpi-gif-control-bar__current', el);
         const totEl = qs('.mpi-gif-control-bar__total', el);
 
+        /** Last frame INDEX — the trim bar's far end, since its domain is frame index. */
+        const _lastFrame = () => Math.max(0, _frameCount - 1);
+
         const _fmt = (n) => String(Math.max(0, Math.round(n) || 0)).padStart(4, '0');
         const _renderCount = () => {
             curEl.textContent = _fmt(_viewer?.el.getFrameIndex() ?? 0);
@@ -129,6 +136,10 @@ export const MpiGifControlBar = ComponentFactory.create({
         trim.on('seek',         ({ time }) => _viewer?.el.setFrameIndex(time));
         trim.on('seek-preview', ({ time }) => _viewer?.el.setFrameIndex(time));
         trim.on('range-change', ({ in: i, out: o }) => emit('range-change', { in: i, out: o }));
+        // Live during a handle drag, so the frame strip's dimmed range can follow the
+        // handles instead of jumping on pointerup (Fabio, 2026-09-20). Repaint only —
+        // nothing downstream may PERSIST on this one.
+        trim.on('range-preview', ({ in: i, out: o }) => emit('range-preview', { in: i, out: o }));
 
         el.attachViewer = (viewerInstance) => {
             if (!viewerInstance?.el || _viewer === viewerInstance) return;
@@ -187,6 +198,26 @@ export const MpiGifControlBar = ComponentFactory.create({
             hk('video.playPause',     () => { if (!_spaceIsTheCanvas) _togglePlay(); });
             hk('video.frame.back',    () => _viewer.el.stepFrame(-1));
             hk('video.frame.forward', () => _viewer.el.stepFrame(+1));
+            // Home/End land on the RANGE, not the file: the video twin's `_frameBounds()`
+            // returns the clip's last frame only while the range is full and `_out`
+            // otherwise, so in/out IS the video semantics here (MPI-838). Both pause
+            // first, as it does — jumping an ends while playing reads as a skip.
+            hk('video.frame.first',   () => { _viewer.el.pause(); _viewer.el.setFrameIndex(trim.el.getRange().in); });
+            hk('video.frame.last',    () => { _viewer.el.pause(); _viewer.el.setFrameIndex(trim.el.getRange().out); });
+            // I snaps in to the frame on screen, O snaps out, X clears — the same three
+            // the video bar binds, with its clamp. Units are FRAME INDEX (`fps: 1`), so
+            // the far end is the last frame, not a duration in seconds.
+            hk('video.trim.in', () => {
+                const cur = _viewer.el.getFrameIndex();
+                const { out } = trim.el.getRange();
+                trim.el.setRange(cur, out > cur ? out : _lastFrame());
+            });
+            hk('video.trim.out', () => {
+                const cur = _viewer.el.getFrameIndex();
+                const { in: inPoint } = trim.el.getRange();
+                trim.el.setRange(inPoint < cur ? inPoint : 0, cur);
+            });
+            hk('video.trim.clear', () => trim.el.setRange(0, _lastFrame()));
         };
 
         el.detachViewer = () => {

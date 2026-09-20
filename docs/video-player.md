@@ -195,8 +195,9 @@ lines up a scrub position with a frame 1:1 regardless of that frame's real
 delay, so feeding it frame count as both `duration` and `frameCount` sidesteps
 GIF's non-uniform timing entirely rather than trying to normalize it.
 
-It reuses the `video.playPause` / `video.frame.back` / `video.frame.forward`
-hotkey ids rather than minting new ones — a Group History card mounts EITHER
+It reuses the `video.playPause` / `video.frame.back` / `video.frame.forward` /
+`video.frame.first` / `video.frame.last` / `video.trim.in` / `video.trim.out` /
+`video.trim.clear` hotkey ids rather than minting new ones — a Group History card mounts EITHER
 this bar or `MpiVideoControlBar`, never both, so they never compete for a
 keypress, each gated on its own `_canDrive()` exactly like two live
 `MpiVideoControlBar`s already coexist (see "A bar you cannot see..." above).
@@ -253,6 +254,17 @@ before any frame loads, when the smallest legal range is one frame, and
 `MpiTrimBar.setDuration()` only clamps a range — so `setFrameCount()` resets
 the range to every frame whenever the count changes. Without that the out
 handle sat on frame 1 of every GIF.
+
+### `range-preview` is not `range-change` fired early (MPI-838)
+
+`MpiTrimBar` emits **`range-preview` { in, out }** during an in/out drag,
+throttled on the same rAF + `PREVIEW_MIN_MS` pair as the playhead's
+`seek-preview`, so a consumer can repaint mid-drag — the GIF frame strip's
+dimmed range does. **`range-change` stays a commit**, fired on pointerup only,
+because the video Block PERSISTS the trim on it and would otherwise write on
+every frame of a drag. A consumer that saves listens to `range-change`; a
+consumer that only paints may listen to either. The video bar subscribes to
+three named trim events and ignores the new one.
 
 ## GIF Maker (MPI-760)
 

@@ -605,6 +605,15 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 _options?.el.onRangeChange?.(range);
                 frameStrip?.el.setRange(range);
             }));
+            // ...and the same two while a handle is still DOWN, so the dimming tracks
+            // the drag instead of arriving on pointerup (Fabio, 2026-09-20). Both are
+            // repaints — `onRangeChange` is a note plus a stale badge — so a throttled
+            // stream of them is cheap. Nothing here persists; that stays on the commit
+            // above.
+            _unsubs.push(gifControlBar.on('range-preview', (range) => {
+                _options?.el.onRangeChange?.(range);
+                frameStrip?.el.setRange(range);
+            }));
 
             _unsubs.push(() => {
                 try { gifControlBar?.el.detachViewer?.(); } catch (_) { /* noop */ }

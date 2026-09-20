@@ -35,6 +35,10 @@
  *   'in-change'    { time }       — in handle committed
  *   'out-change'   { time }       — out handle committed
  *   'range-change' { in, out }    — fired alongside in/out commits
+ *   'range-preview'{ in, out }    — in/out during drag (throttled ~50ms), the
+ *                                   twin of 'seek-preview'. A consumer that
+ *                                   PERSISTS the range must stay on
+ *                                   'range-change'; this one is for repaint.
  *
  * Drag coalescing: pointer moves accumulate a target seconds value and
  * commit on the next RAF tick. Final value re-emits on pointerup so
@@ -224,13 +228,20 @@ export const MpiTrimBar = ComponentFactory.create({
             const role = _dragRole;
             if (_applyDrag(target)) {
                 _renderPositions();
-                if (role === 'playhead') {
-                    const now = performance.now();
-                    if (_value !== _lastPreviewValue && (now - _lastPreviewTs) >= PREVIEW_MIN_MS) {
-                        _lastPreviewTs = now;
-                        _lastPreviewValue = _value;
-                        emit('seek-preview', { time: _value });
-                    }
+                // One throttle serves all three roles: only one drags at a time, and
+                // both slots reset on pointerup.
+                //
+                // `range-preview` is a NEW event, deliberately not `range-change` fired
+                // early. This bar is shared with MpiVideoControlBar, whose Block
+                // PERSISTS the trim on `range-change` — firing that mid-drag would write
+                // on every frame of a drag (MPI-838).
+                const live = role === 'playhead' ? _value : (role === 'in' ? _in : _out);
+                const now = performance.now();
+                if (live !== _lastPreviewValue && (now - _lastPreviewTs) >= PREVIEW_MIN_MS) {
+                    _lastPreviewTs = now;
+                    _lastPreviewValue = live;
+                    if (role === 'playhead') emit('seek-preview', { time: _value });
+                    else emit('range-preview', { in: _in, out: _out });
                 }
             }
         }

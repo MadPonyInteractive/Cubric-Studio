@@ -274,9 +274,16 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
             const img = qs('#preview-img', el);
             const empty = qs('#preview-empty', el);
             const badge = qs('#preview-badge', el);
-            const spinner = MpiSpinner.mount(qs('#preview-spinner', el), { size: 'sm' });
+            // Hide the WRAPPER, never the mount result. Two reasons, and either alone
+            // is a bug: `.mpi-spinner` carries `display: inline-block`, which outranks
+            // the UA sheet's `[hidden]` rule, so the attribute on `spinner.el` does
+            // nothing; and this wrapper is a full-pane SCRIM (see the .css), so hiding
+            // the spinner alone would leave the preview permanently dimmed. The panel's
+            // own CSS guards THIS element (MPI-382, MPI-838).
+            const spinnerWrap = qs('#preview-spinner', el);
+            const spinner = MpiSpinner.mount(spinnerWrap, { size: 'sm' });
             _children.push(spinner);
-            spinner.el.hidden = true;
+            spinnerWrap.hidden = true;
 
             const previewBtn = MpiButton.mount(qs('#preview-btn-slot', el), {
                 icon: 'refresh_stroke', label: 'Generate preview', size: 'sm', variant: 'secondary',
@@ -286,7 +293,7 @@ export const MpiToolOptionsGifTiming = ComponentFactory.create({
 
             const _setBusy = (on) => {
                 _busy = on;
-                spinner.el.hidden = !on;
+                spinnerWrap.hidden = !on;
                 applyBtn.el.setDisabled(on);
                 previewBtn.el.setDisabled(on);
             };

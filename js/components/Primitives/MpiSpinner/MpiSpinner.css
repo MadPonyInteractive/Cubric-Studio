@@ -12,6 +12,13 @@
     vertical-align: middle;
 }
 
+/* The block carries `display`, so the UA sheet's `[hidden]` rule loses to it and a
+   caller writing `inst.el.hidden = true` gets a spinner that keeps spinning (MPI-838).
+   Callers hide their own wrapper — this is the floor under the ones that do not. */
+.mpi-spinner[hidden] {
+    display: none;
+}
+
 /* ── Sizes ────────────────────────────────────────────────────────────────── */
 .mpi-spinner--sm {
     width: 16px;

@@ -1158,3 +1158,158 @@ test('gif mask display: PLAYING in the Mask Brush keeps the highlight on what go
     await closeApp(app);
   }
 });
+
+/**
+ * MPI-838 — three faults Fabio found checking the MPI-836 output tool.
+ *
+ * 1. The preview pane's spinner spun for the life of the panel, and the pane
+ *    stayed dimmed with it: the code hid `spinner.el` (`.mpi-spinner`, which
+ *    carries `display: inline-block`, so the bare attribute loses) instead of
+ *    the wrapper — and that wrapper is a full-pane SCRIM, not just a slot.
+ * 2. The frame strip's dimmed range only moved on pointerup, because MpiTrimBar
+ *    emitted `range-change` there and nothing during the drag. It now emits a
+ *    throttled `range-preview`; `range-change` still fires on commit ONLY,
+ *    because the video Block persists trim on it.
+ * 3. Home / End / I / O / X were unbound here — the GIF bar bound three of the
+ *    `video.*` ids and not these five.
+ *
+ * All three assert the failing direction, so this spec is red on the old code.
+ */
+test('gif 838: the preview pane clears when idle, the strip follows a handle mid-drag, and Home/End/I/O/X drive the bar', async ({}, testInfo) => {
+  const { app, window } = await launchApp(testInfo);
+  try {
+    await setupProject(window);
+    await window.evaluate(async () => {
+      const { navigate, PAGE_GROUP_HISTORY } = await import('/js/router.js');
+      navigate(PAGE_GROUP_HISTORY, { groupId: 'gGif' });
+    });
+    await expect.poll(() => window.evaluate(() => !!document.querySelector('.mpi-frame-strip__thumb'))).toBe(true);
+    const last = FRAME_HASHES.length - 1;
+
+    // ── 1. The spinner, and the scrim behind it ─────────────────────────
+    // Hold `/gif/preview` open so the busy state can be read while it is
+    // genuinely busy, rather than raced against an instant stub.
+    await window.evaluate(() => {
+      const inner = window.fetch.bind(window);
+      window.__gate = { release: null };
+      window.fetch = (...args) => {
+        if (String(args[0] || '').includes('/gif/preview')) {
+          return new Promise((resolve) => { window.__gate.release = () => resolve(inner(...args)); });
+        }
+        return inner(...args);
+      };
+    });
+
+    await window.evaluate(() => {
+      document.querySelector('.mpi-history-tools__btn[data-info="GIF output"] button').click();
+    });
+    await window.waitForSelector('.mpi-tool-options-gif-timing__preview');
+
+    // `checkVisibility()`, not `.hidden`: the old code SET `hidden` — on the
+    // wrong element — so the attribute alone reads as fixed while the spinner
+    // is still on screen and the pane is still dimmed.
+    const busy = () => window.evaluate(() => {
+      const wrap = document.querySelector('.mpi-tool-options-gif-timing #preview-spinner');
+      return {
+        scrim: wrap.checkVisibility(),
+        spinner: !!wrap.querySelector('.mpi-spinner')?.checkVisibility(),
+      };
+    });
+    expect(await busy(), 'an idle preview pane shows no spinner and no scrim')
+      .toEqual({ scrim: false, spinner: false });
+
+    await window.locator('.mpi-tool-options-gif-timing #preview-btn-slot button').click();
+    await expect.poll(async () => (await busy()).spinner, 'a running encode must show the spinner').toBe(true);
+    expect((await busy()).scrim, 'and the scrim that comes with it').toBe(true);
+
+    await window.evaluate(() => window.__gate.release());
+    await expect.poll(async () => (await busy()).scrim, 'both go when the encode lands').toBe(false);
+    expect(await busy()).toEqual({ scrim: false, spinner: false });
+
+    // The primitive's own floor: `hidden` on a `.mpi-spinner` must now stick,
+    // whichever caller writes it.
+    expect(await window.evaluate(() => {
+      const s = document.querySelector('.mpi-tool-options-gif-timing #preview-spinner .mpi-spinner');
+      s.hidden = true;
+      const v = s.checkVisibility();
+      s.hidden = false;
+      return v;
+    }), '`.mpi-spinner[hidden]` must hide the primitive itself').toBe(false);
+
+    // ── 2. The strip follows the handles LIVE ───────────────────────────
+    const paint = () => window.evaluate(() => ({
+      outside: document.querySelectorAll('.mpi-frame-strip__thumb--outside').length,
+      in: document.querySelector('.mpi-frame-strip__thumb--range-in')?.dataset.index,
+      out: document.querySelector('.mpi-frame-strip__thumb--range-out')?.dataset.index,
+    }));
+    expect(await paint()).toEqual({ outside: 0, in: '0', out: String(last) });
+
+    // Count `range-change` too: it must NOT fire while the button is down.
+    // MpiTrimBar is shared with the video bar, whose Block PERSISTS on it.
+    await window.evaluate(() => {
+      window.__commits = 0;
+      document.querySelector('.mpi-gif-control-bar .mpi-trim-bar')
+        .addEventListener('mpitrimbar:range-change', () => { window.__commits += 1; });
+    });
+
+    const box = await window.locator('.mpi-trim-bar__track').boundingBox();
+    await window.locator('.mpi-trim-bar__handle--in').hover();
+    await window.mouse.down();
+    await window.mouse.move(box.x + box.width * 0.5, box.y + box.height / 2, { steps: 8 });
+
+    // Still DOWN. This is the whole fault: before `range-preview` the strip sat
+    // undimmed until the handle was released.
+    await expect.poll(async () => (await paint()).outside,
+      'the strip must dim while the handle is still down').toBeGreaterThan(0);
+    const mid = await paint();
+    expect(Number(mid.in), 'the in edge follows the handle mid-drag').toBeGreaterThan(0);
+    expect(mid.out, 'the out edge does not move with it').toBe(String(last));
+    expect(await window.evaluate(() => window.__commits),
+      'range-change is a COMMIT — it must not fire mid-drag').toBe(0);
+
+    await window.mouse.up();
+    await expect.poll(() => window.evaluate(() => window.__commits),
+      'and it must fire exactly once on release').toBe(1);
+    expect(await paint(), 'the release lands on what the drag had already painted').toMatchObject({ out: String(last) });
+
+    // ── 3. Home / End / I / O / X ───────────────────────────────────────
+    const key = (k) => window.evaluate((kk) =>
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: kk, bubbles: true })), k);
+    const state = () => window.evaluate(() => ({
+      frame: Number(document.querySelector('.mpi-gif-control-bar__current').textContent),
+      range: document.querySelector('.mpi-gif-control-bar .mpi-trim-bar').getRange(),
+    }));
+
+    // X clears first, so the keys below start from a known full range.
+    await key('x');
+    expect(await state(), 'X resets the range to every frame').toMatchObject({ range: { in: 0, out: last } });
+
+    await key('End');
+    expect((await state()).frame, 'End goes to the OUT point').toBe(last);
+    await key('Home');
+    expect((await state()).frame, 'Home goes to the IN point').toBe(0);
+
+    await key('ArrowRight');
+    await key('ArrowRight');
+    expect((await state()).frame).toBe(2);
+    await key('i');
+    expect((await state()).range, 'I snaps IN to the frame on screen').toEqual({ in: 2, out: last });
+
+    await key('End');
+    expect((await state()).frame, 'End now lands on the trimmed out point').toBe(last);
+    await key('ArrowLeft');
+    await key('o');
+    expect((await state()).range, 'O snaps OUT to the frame on screen').toEqual({ in: 2, out: last - 1 });
+
+    await key('Home');
+    expect((await state()).frame, 'Home now lands on the trimmed in point').toBe(2);
+
+    // The strip is the readout for all of it — the keys go through the same
+    // `range-change` the handles do.
+    expect(await paint()).toMatchObject({ in: '2', out: String(last - 1) });
+    await key('x');
+    expect(await paint(), 'X clears the dimming too').toEqual({ outside: 0, in: '0', out: String(last) });
+  } finally {
+    await closeApp(app);
+  }
+});

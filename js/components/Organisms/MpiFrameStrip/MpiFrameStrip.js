@@ -272,6 +272,21 @@ export const MpiFrameStrip = ComponentFactory.create({
             }
         }
 
+        /**
+         * Repaint the range dimming on the thumbs that are already up, without
+         * rebuilding them. `setRange` runs on every throttled frame of a handle drag
+         * since MPI-838, and `_renderWindow()` recreates every `<img>` in the window —
+         * cached or not, that is DOM churn at 20 Hz for three class flips.
+         */
+        function _paintRange() {
+            for (const d of thumbsEl.children) {
+                const i = +d.dataset.index;
+                d.classList.toggle('mpi-frame-strip__thumb--outside', !!_range && (i < _range.in || i > _range.out));
+                d.classList.toggle('mpi-frame-strip__thumb--range-in',  !!_range && i === _range.in);
+                d.classList.toggle('mpi-frame-strip__thumb--range-out', !!_range && i === _range.out);
+            }
+        }
+
         function _applyTransform() {
             const trackWidth = trackEl.clientWidth;
             if (!trackWidth) return; // hidden ancestor (MpiOverlay Stash Pattern) — nothing to size against
@@ -324,7 +339,7 @@ export const MpiFrameStrip = ComponentFactory.create({
                 if (_range && _range.in === next.in && _range.out === next.out) return;
                 _range = next;
             }
-            _renderWindow();
+            _paintRange();
         };
 
         el.getStagedFrames = () => _staged.slice();

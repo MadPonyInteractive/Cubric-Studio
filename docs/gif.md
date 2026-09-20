@@ -222,6 +222,22 @@ Two things this does NOT cover, and both are deliberate:
 - **Save frame** is the frame on screen wherever the handles sit; a snapshot is
   not an operation on the range.
 
+### The strip is the readout, live (MPI-838)
+
+The dimmed range on `MpiFrameStrip` is what says which frames every operation
+will keep, so it follows a handle **while it is still down**, not on release.
+`MpiTrimBar` emits a throttled `range-preview` during an in/out drag, the GIF bar
+re-emits it and the Block forwards it to `frameStrip.setRange()` and the panel
+note — the twin of the playhead's `seek-preview`. `range-change` still fires on
+**commit only**: the video Block persists its trim on that event
+([video-player.md](video-player.md) § GIF control bar).
+
+The keys are the video bar's, on the ids it already binds: **Home** to the in
+point, **End** to the out point, **I** snaps in to the frame on screen, **O**
+snaps out, **X** clears — all in FRAME INDEX. Home/End land on the RANGE rather
+than the file because the video twin's `_frameBounds()` does the same once a
+range is set. Proof: `tests/desktop/gif-workspace.spec.js` § `gif 838`.
+
 ## GIF output (MPI-772, one tool since MPI-836)
 
 `MpiToolOptionsGifTiming`, with `gifTiming.js` beside it for the math. Apply is a
