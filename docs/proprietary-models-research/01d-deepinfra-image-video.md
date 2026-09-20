@@ -197,7 +197,15 @@ Each bill below is `inference_status.cost` from the API response, and each decom
 
 Additive to `00-cubric-vision-integration-points.md`, which already costs the cloud executor:
 
-1. **No new key.** Reuse `secrets:get-deepinfra-key-request`.
+1. **No new key.** Reuse the existing resolve: `resolveConnection(profileId, ask)`
+   (`routes/llm.js:113-117`), which asks over the fork bridge on
+   **`secrets:get-endpoint-profile-request`**. An earlier draft of this file, and
+   `00-cubric-vision-integration-points.md:78`, both named a
+   `secrets:get-deepinfra-key-request` channel — **it does not exist in shipping code**
+   (verified 2026-09-20: the only hit is a dead branch of `tests/llm-service.test.cjs:324`).
+   Writing against it returns `null` after a 5 s timeout and reads as "no key saved".
+   Since MPI-774 the key is held as the **`deepinfra` connection profile's** key, and the
+   main process nulls it when the profile's base URL no longer matches the bound one.
 2. A per-model price function keyed on `pricing.type`, fed by the ModelDef, recomputed as
    references are added. Hand-maintained numbers with a "checked on" date.
 3. A confirm step for the in-app agent: it states the estimate, and only the user's OK button

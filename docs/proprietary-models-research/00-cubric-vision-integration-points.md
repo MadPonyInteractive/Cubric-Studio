@@ -75,7 +75,7 @@ This is the single most important internal fact for costing the options.
 | Provider | Key stored where | Used by |
 |---|---|---|
 | RunPod | `main/secretsStore.js`, Electron `safeStorage` with an AES-256-GCM fallback | `routes/remotePodLifecycle.js`, whole remote-pod lifecycle |
-| DeepInfra | same store, `secrets:get-deepinfra-key-request` over the fork bridge, falls back to `DEEPINFRA_API_KEY` env | `routes/llm.js`, prompt enhancement |
+| DeepInfra | same store, `secrets:get-endpoint-profile-request` over the fork bridge (via `resolveConnection(profileId, ask)`, `routes/llm.js:113-117`), falls back to `DEEPINFRA_API_KEY` env | `routes/llm.js`, prompt enhancement |
 | Pod wrapper token | same store | remote engine auth |
 
 The full pattern is in place: encrypted at rest in the user-data partition, fetched over the
