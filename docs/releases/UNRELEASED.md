@@ -176,7 +176,8 @@
   dot, hold to pick a shape — and FILTER can show only the shapes you choose.
 
 - **The radial menu is back.** Hold TAB and pick Gallery, Models, Flows or your latest
-  workspace — a quick way to move between them.
+  workspace — a quick way to move between them. Models opens the model picker, so you can
+  change the model you are generating with from anywhere.
 
 - **The card right-click menu is reorganised, and every entry explains itself.** Three groups
   now: make something new (Compare, Combine, Make GIF, Cue all), then this card's own details
