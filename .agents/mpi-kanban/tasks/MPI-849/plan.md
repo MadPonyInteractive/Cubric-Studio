@@ -219,7 +219,15 @@ Three things this list forces, none of them obvious:
 
 ## Plan Drift
 
-- None yet.
+- **2026-09-20, planning session close.** Three drifts, all recorded above and none affecting
+  the phase order: (a) an early note claimed prices would be hand-maintained per model — wrong,
+  **62 of 69 live models price themselves** from structured fields, so MPI-850 became a
+  generated snapshot plus six constants rather than a hand-kept table; (b) the fork-bridge
+  channel named in the research doc (`secrets:get-deepinfra-key-request`) **does not exist** —
+  fixed in `4af0e8ef`, the live one is `secrets:get-endpoint-profile-request`; (c) the
+  no-engine gate turned out to guard **creating and opening a project**, not just the two
+  libraries, so it left this umbrella entirely and became MPI-856.
+- No implementation has started. Phase 1 is unclaimed.
 
 ## Verification
 
