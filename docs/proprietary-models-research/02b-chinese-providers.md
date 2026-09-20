@@ -116,7 +116,18 @@ Current model, MiniMax H3:
 |---|---|---|
 | 768P | 4 to 15s | $0.08 |
 | 2K | 4 to 15s | $0.13 |
+| **768P -> 2K regeneration** | 4 to 15s | **$0.05** |
 | 6th and later image reference | per reference | $0.04 |
+
+**The regeneration row is the interesting one** (found 2026-09-20, MPI-860). It is a second
+pass that exists only in the API — it is NOT in the open weights, so no local install can do
+it. It accepts an arbitrary uploaded video (`base_video`: public URL, `mm_file://{file_id}` or
+base64), not only a prior MiniMax `task_id`, and its input spec — 24 fps, audio required, both
+axes /32, area 589,824 to 1,032,192 px, 107 to 362 frames in steps of 17 — is exactly the
+canvas and frame grid our local H3 already produces. So a draft generated free on the user's
+own GPU can be finished at 2K for $0.05/s, and $0.08 + $0.05 equals the direct 2K rate to the
+cent. Full detail, the tier-eligibility table and the untested part (does re-diffusion actually
+repair temporal smear) are on MPI-860's brief.
 
 Legacy Hailuo 2.x, billed per completed clip rather than per second:
 
@@ -134,9 +145,49 @@ RPM), plus AWS Marketplace bundles from $10,000/month.
 
 ### Terms
 
-The master terms are a framework that defers to product-specific terms at
-platform.minimax.io/protocol/terms-of-service, which is JavaScript-rendered and could not be
-read. That is the single most important unread document for this provider.
+**READ 2026-09-20 (MPI-860). This section was the single most important unread document in
+this folder, and it is now read.** The master terms defer to product-specific terms at
+platform.minimax.io/protocol/terms-of-service. WebFetch returns an empty shell — the page is
+JavaScript-rendered, and it needs a real browser, not a fetch. Effective 2026-03-30, provided
+by Nanonoble Pte Ltd, 152 Beach Road #14-02 Gateway East, Singapore.
+
+**The resale bar carries the permissive carve-out.** You may not:
+
+> "(c) Independently sublicense, resell, or distribute any or all services **outside of any
+> integrated applications**"
+
+That is the standard line every readable provider draws — wrap it in your own product and
+charge your users, fine; resell the API access itself, forbidden. Read against finding #3 in
+the README, MiniMax lands with OpenAI, Runway and fal, not with Kling and BytePlus.
+
+**End users are explicitly contemplated**, which is what a credit-based app needs:
+
+> "You are responsible for all use of the service by end-users, access by end-users to
+> applications and your content, and activities under your account, and you must ensure that
+> each end-user complies with applicable terms under this Agreement."
+
+**Keys may never move.** You may not "transfer any part of our products and services, **any
+access keys**, technical documents, API lists..." — so a shipped or shared key is out. A
+bring-your-own-key design satisfies this: the key is the user's, encrypted at rest on their
+own machine.
+
+**No territorial exclusion for the hosted API.** The only region clause bars ITAR content and
+HIPAA-regulated Client Data *if* you select the United States as your service region. Nothing
+excludes the UK or EU — unlike the H3 weight licence.
+
+Governing law is Singapore, disputes go to SIAC arbitration, all payments are USD. On
+termination by MiniMax, prepaid fees are retained as liquidated damages, so do not prepay.
+
+One tension worth a solicitor's eye before any credit-based build: "You agree to use our
+Service exclusively for your own products or projects" sits alongside the end-user clause and
+the integrated-application carve-out. Read together they describe a wrapped product with a
+flow-down obligation on us, which is workable — but it is not our call to make.
+
+**Still open after this read:** output ownership is not addressed in the Platform terms (the
+"AI Output" section is accuracy disclaimers only). It is probably in the Hailuo Video product
+terms, which is now the one unread MiniMax document. Billing on failure and indemnity remain
+UNVERIFIED here, though the video *packages* page states that generation failures and
+security-review rejections are not deducted.
 
 What the H3 weight licence says (governing self-hosting, possibly flowing through): section
 V.2 requires every downstream user of a derived product to be bound to the same protections;
@@ -148,7 +199,9 @@ Notably, **no mandatory UI attribution is required for the hosted H3 API** (unli
 self-hosted weights, which require "MiniMax H3" displayed prominently). That makes MiniMax
 cleaner than Kling on branding.
 
-Billing on failure: UNVERIFIED. Indemnity: UNVERIFIED.
+Failed jobs are NOT billed on the video packages: "Video generation failures or videos that
+trigger security review will not result in a deduction". Whether the same holds on
+pay-as-you-go H3 is unstated. Indemnity: UNVERIFIED.
 
 ---
 
@@ -238,7 +291,7 @@ UNVERIFIED. The Platform Customer Code of Conduct page did not return readable c
 |---|---|---|---|
 | UK self-serve signup | Yes, confirmed | Yes for the API; **no** for H3 weights | **Uncertain, test at purchase** |
 | Card only, no company | Yes | Yes | Yes |
-| End users generating through our app | **Blocked without written consent** | UNVERIFIED, terms unreadable | **"Non-sublicensable", needs a solicitor** |
+| End users generating through our app | **Blocked without written consent** | **Permitted inside an "integrated application"; end users explicitly contemplated** (read 2026-09-20) | **"Non-sublicensable", needs a solicitor** |
 | Attribution required | Yes on consumer; API scope UNVERIFIED | **No** for hosted H3 API | UNVERIFIED |
 | Output ownership | User owns; Kuaishou gets a promotion licence | User owns | UNVERIFIED |
 | Failed jobs billed | **No** | UNVERIFIED | UNVERIFIED |

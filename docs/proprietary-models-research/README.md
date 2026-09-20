@@ -10,6 +10,12 @@ there too.
 clause here was read live on 2026-09-11 and carries a source. Anything that could not be
 confirmed is marked UNVERIFIED rather than guessed.
 
+**Two things have moved since.** BYO-key through DeepInfra was costed and **rejected**
+2026-09-20 (MPI-849). MiniMax was researched again on the same day and came out the other way
+— its developer ToS finally read, and an API-only 768p->2K second pass found that our local H3
+output already qualifies for: **MPI-860**, which is an idea card, not a commitment. Read its
+brief before re-opening finding #4 or the MiniMax price table.
+
 ---
 
 ## The files
@@ -55,6 +61,15 @@ form" without written consent. BytePlus grants a "non-sublicensable" licence and
 percent liquidated damages for unauthorised API resale. MiniMax's developer ToS could not be
 read at all (it only renders signed in). None of the three is safe to ship without a lawyer
 and, for Kling, a written answer from Kuaishou.
+
+> **Update 2026-09-20 (MPI-860): this finding no longer holds for MiniMax.** The developer ToS
+> was read — it is JavaScript-rendered, so WebFetch returns an empty shell and it needs a real
+> browser, not a sign-in. It carries the permissive shape: the resale bar carves out "outside
+> of any **integrated applications**", end users are explicitly contemplated, keys may not be
+> transferred, there is no territorial exclusion, and no attribution is required on the hosted
+> API. MiniMax is now the *best* of the three on terms as well as the cheapest on price.
+> Kling and BytePlus are unchanged. Clauses and what is still open:
+> [02b-chinese-providers.md](02b-chinese-providers.md) § MiniMax Hailuo / Terms.
 
 **5. Aggregators are cheaper than going direct, not more expensive.** fal is 10 to 33 percent
 under Kling direct; Runware is 8 to 41 percent under on several models. The reason to go
@@ -145,8 +160,12 @@ Four of these cost almost nothing and remove most of the uncertainty:
    available at all, and it is the model most often asked for.
 3. **Ask fal.ai whether arbitrary third-party ComfyUI custom nodes are supported.** One
    question, and it decides one-vendor versus two-vendor.
-4. **Sign in to platform.minimax.io and export the developer ToS.** It only renders signed in,
-   and it is currently the most important unread document in this research.
+4. ~~**Sign in to platform.minimax.io and export the developer ToS.**~~ **DONE 2026-09-20
+   (MPI-860).** No sign-in was needed — the page is JavaScript-rendered, so it reads fine in a
+   real browser and returns an empty shell to WebFetch. Result in
+   [02b-chinese-providers.md](02b-chinese-providers.md); it reverses finding #4 for MiniMax.
+   The one MiniMax document still unread is the Hailuo **Video** product terms, which is where
+   output ownership probably lives.
 
 Then, if the answers are good: prototype Option A behind the dev gate with one provider, since
 it is the largest share of the internal work and none of the legal or billing work. If it
@@ -160,10 +179,13 @@ already exists.
 - **Every price moves monthly.** Confirm at checkout before anything enters a financial model.
   Several competitor pricing pages are client-rendered and returned only marketing shells, so
   those figures come from dated third-party reviews and are labelled as such.
-- **Several key contracts could not be read.** Kling's API paid-service protocol, MiniMax's
-  developer ToS, the BytePlus video-model specific terms and Kie.ai's terms of use are all
-  either JavaScript-rendered or 403. The most important legal documents in this decision are
-  the ones we have not seen in full.
+- **Several key contracts could not be read.** Kling's API paid-service protocol, the BytePlus
+  video-model specific terms and Kie.ai's terms of use are all either JavaScript-rendered or
+  403. The most important legal documents in this decision are the ones we have not seen in
+  full. **MiniMax's developer ToS was on this list and came off it on 2026-09-20** — the
+  lesson generalises: a "could not be read" verdict from WebFetch on a legal page usually
+  means client-rendered, not gated. Retry the remaining three in a real browser before
+  treating them as unreadable.
 - **OpenAI's Sora API shuts down 2026-09-24**, thirteen days after this research. It is in the
   tables for completeness only. `gpt-image-1` retires 2026-10-23; target `gpt-image-2`.
 - **One gap was not filled:** real cost data from a small studio that has actually run a
