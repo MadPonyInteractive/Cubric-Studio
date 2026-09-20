@@ -8,11 +8,13 @@ come from Fabio (2026-09-15/16); the design work stays in MadPony-Identity, the 
 here.
 
 **Source of truth for where every clip goes: [`docs/mascot-placement.md`](../../../../docs/mascot-placement.md)**
-(spot map, playback rules, clip index). It moved into this repo on 2026-09-20: MadPony-Identity
-made the artwork, where it goes in the app is this repo's business. The prompts and roll records
-stayed there (`../MadPony-Identity/production/cubric-mascots/animations/`: `generating-card.md`,
-`states.md`, `scenarios.md`, `transitions.md`, `connecting.md`) and are only needed to re-roll a
-clip, not to wire one.
+(spot map, playback rules, clip index). It moved into this repo on 2026-09-20, with the roll
+records: MadPony-Identity made the artwork, everything about using it now lives here.
+
+The roll records are `docs/mascot-generating-card.md`, `mascot-states.md`, `mascot-scenarios.md`,
+`mascot-transitions.md` and `mascot-connecting.md` — whole prompts, seeds, roll tables and what
+failed and why. **You need them to RE-ROLL a clip, not to wire one**; for wiring, placement and the
+manifest are enough. Only the source artwork (`plates/`, `sheets/`) stayed in MadPony-Identity.
 
 ## The assets, as actually delivered (2026-09-20)
 

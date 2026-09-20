@@ -42,7 +42,7 @@ All three are Studio, which is the mascot that is on screen most (rule 8: in age
 
 `ref2v_001`, `i2v_062`, `i2v_063`, `i2v_066` (the first gallery peeks, superseded by peek 2), and `t2v_016`,
 `t2v_038`, `t2v_043`, `t2v_046` (transition rolls beyond the 15 picks). They are fine files, just not assigned;
-`t2v_046` is recorded in `../../MadPony-Identity/production/cubric-mascots/animations/transitions.md` as a clean alternate to `t2v_045`.
+`t2v_046` is recorded in `mascot-transitions.md` as a clean alternate to `t2v_045`.
 
 ## The map
 

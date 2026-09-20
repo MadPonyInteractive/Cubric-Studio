@@ -25,7 +25,7 @@ converts them to alpha WebM (rule 10) once the app can. The wiring card is Cubri
 
 - Vision project `C:\Users\Fabio\Documents\Cubric Vision\Projects\Cubric Studio Mascots\`, files in `Media/`. Every card is
   named Mascot + clip (e.g. "Studio idle 2"); the file name belongs to the app (`ref2v_*`, `i2v_*`), listed below.
-- Prompts and roll records: `../../MadPony-Identity/production/cubric-mascots/animations/generating-card.md`, `../../MadPony-Identity/production/cubric-mascots/animations/states.md`, `../../MadPony-Identity/production/cubric-mascots/animations/scenarios.md` in this folder.
+- Prompts and roll records: `mascot-generating-card.md`, `mascot-states.md`, `mascot-scenarios.md` in this folder.
 - 768x768, 24fps. 3s clips are 73 frames, 5s clips are 124.
 - Clips sit on flat light grey. The background comes off in the app: GIF Maker turns a clip into a GIF card, and the
   SAM3 cut-out (by name, with video tracking) cuts its frames into alpha (Vision MPI-757). Not BiRefNet: it takes too much
@@ -59,15 +59,15 @@ converts them to alpha WebM (rule 10) once the app can. The wiring card is Cubri
     mascot at once, the clip swaps underneath at the transition's densest moment, and the new clip plays as it clears.
     The app picks one of the mascot's three at random. Rolled 2026-09-16; see below.
 
-## Transitions (Fabio 2026-09-16, rolled the same day: `../../MadPony-Identity/production/cubric-mascots/animations/transitions.md`)
+## Transitions (Fabio 2026-09-16, rolled the same day: `mascot-transitions.md`)
 
 Overlay graphics, not mascot clips: they sit on a layer above the mascot, and the clip swaps underneath at the
 transition's **swap time**, the moment it hides the mascot most. Record the swap time for each one.
 
 - **Three per mascot, 15 in all, each 1s.** In practice 0.917s (22 frames), the nearest length H3 can make; see
-  `../../MadPony-Identity/production/cubric-mascots/animations/transitions.md` Settings.
+  `mascot-transitions.md` Settings.
 - **Text to video on plain MiniMax H3** (`minimax-h3`), not H3 Reference: there is no picture to start from. Same settings
-  as the H3 Reference rolls (`../../MadPony-Identity/production/cubric-mascots/animations/generating-card.md` Settings: 1:1, quality medium, 768x768, turbo on, seed random), except
+  as the H3 Reference rolls (`mascot-generating-card.md` Settings: 1:1, quality medium, 768x768, turbo on, seed random), except
   the duration. Check that H3 accepts 1s before queueing; if not, report back rather than rolling longer.
 - **Solid black background**, the same in every clip, and the same flat cartoon style as the mascots: thick outlines,
   flat colours.
@@ -106,7 +106,7 @@ The top edge of `MpiPromptBox` (`js/components/Organisms/MpiPromptBox/`) is a fl
 ## The landing while a pod connects (Fabio, 2026-09-17)
 
 While the app connects to a RunPod GPU, the hero crew leaves the landing and Studio alone stands between a laptop and a
-computer tower, trying to join their two cables and never managing it (`../../MadPony-Identity/production/cubric-mascots/animations/connecting.md`). Wide 21:9 loops (1536x640,
+computer tower, trying to join their two cables and never managing it (`mascot-connecting.md`). Wide 21:9 loops (1536x640,
 except screwdriver at 1920x768) across the crew band.
 
 - **Loops, cycled** (rule 2's shared queue): every loop opens and closes on the same frame, and the app plays them in
@@ -157,7 +157,7 @@ been fatal on the transitions' soft smoke.
 
 The final app format is still VP9 alpha WebM, pending an export in Cubric-Vision; the GIFs are the reviewable stage.
 
-**Generating card** (`../../MadPony-Identity/production/cubric-mascots/animations/generating-card.md`):
+**Generating card** (`mascot-generating-card.md`):
 
 | Mascot | Getting ready | Working |
 |---|---|---|
@@ -167,7 +167,7 @@ The final app format is still VP9 alpha WebM, pending an export in Cubric-Vision
 | Audio | `ref2v_010` | `ref2v_015` |
 | Video | `ref2v_012` | `ref2v_013` |
 
-**State clips** (`../../MadPony-Identity/production/cubric-mascots/animations/states.md`), idles 5s, the rest 3s:
+**State clips** (`mascot-states.md`), idles 5s, the rest 3s:
 
 | Mascot | Idle 1-3 | Greet | Happy | Failed |
 |---|---|---|---|---|
@@ -177,7 +177,7 @@ The final app format is still VP9 alpha WebM, pending an export in Cubric-Vision
 | Audio | `i2v_025`-`027` | wave `028`, ear cup `029` | hop `030`, head pop `031` | `032` |
 | Video | `i2v_033`-`035` | wave `036`, director frame `037` | hop `038`, head pop `039` | `040` |
 
-**Scenario clips** (`../../MadPony-Identity/production/cubric-mascots/animations/scenarios.md`), rolled 2026-09-15. Gallery peeks approved by Fabio 2026-09-16; **the rest not yet
+**Scenario clips** (`mascot-scenarios.md`), rolled 2026-09-15. Gallery peeks approved by Fabio 2026-09-16; **the rest not yet
 reviewed**. 5s: job cancelled, search no
 results, engine starting, landing no projects. 3s: the rest.
 
@@ -195,7 +195,7 @@ peeks `i2v_062`, `i2v_063` and `i2v_066` also stay in the gallery, superseded by
 Studio only: engine starting `i2v_041`, landing no projects `i2v_042`, update ready `i2v_043`, agent thinking `i2v_044`,
 agent listening `i2v_045`, agent answer ready `i2v_046`.
 
-**Transitions** (`../../MadPony-Identity/production/cubric-mascots/animations/transitions.md` § Picks, which also gives each one's swap time and size), rolled 2026-09-16, all 15
+**Transitions** (`mascot-transitions.md` § Picks, which also gives each one's swap time and size), rolled 2026-09-16, all 15
 approved by Fabio the same day. The clip names differ from the rest: they are `t2v_*` (text to video). Every roll that reached the frame
 edge is archived.
 
@@ -207,7 +207,7 @@ edge is archived.
 | Audio | `t2v_011` | `t2v_039` | sound pulse `t2v_044` |
 | Video | `t2v_024` | `t2v_042` | film reel burst `t2v_026` |
 
-**Studio connecting** (`../../MadPony-Identity/production/cubric-mascots/animations/connecting.md`). Reviewed by Fabio 2026-09-20: of the five 1920x768 re-rolls **only screwdriver
+**Studio connecting** (`mascot-connecting.md`). Reviewed by Fabio 2026-09-20: of the five 1920x768 re-rolls **only screwdriver
 survived**; the rest morphed more or animated worse than the 1536x640 originals and are archived (`i2v_078`, `i2v_079`,
 `i2v_080`, `i2v_082`). Plug flip `i2v_073` failed and is archived.
 
