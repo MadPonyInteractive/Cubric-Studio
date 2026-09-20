@@ -1,0 +1,17 @@
+{
+ "schema": "mpi-kanban/task-files/v1",
+ "files": [
+  ".agents/mpi-kanban/tasks/MPI-797/**",
+  "js/components/Compounds/MpiProjectName/MpiProjectName.js",
+  "js/components/Compounds/MpiProjectName/MpiProjectName.css",
+  "js/components/Compounds/MpiAgentChat/MpiAgentChat.js",
+  "js/components/Compounds/MpiAgentChat/MpiAgentChat.css",
+  "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+  "js/components/Organisms/MpiPromptBox/MpiPromptBox.css",
+  "js/components/Primitives/MpiButton/MpiButton.css",
+  "js/shell/navigation.js",
+  "js/events.js",
+  "tests/agent-ui-surfaces.test.cjs",
+  "tests/desktop/agent-chat.spec.js"
+ ]
+}
