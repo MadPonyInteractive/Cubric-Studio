@@ -50,8 +50,23 @@ readout in the prompt box is therefore a small adapter per type, not one formula
 | `time` | per second of GPU time, not knowable before the run | **dead branch** - only SD v1-4, v1-5, 2-1 and Deliberate, all four deprecated 2024-09-27 in favour of `sdxl-turbo`. Every shippable image and video model is priced before dispatch |
 
 **The dashboard hides the per-image price behind a `*`.** The real text is in
-`pricing.full` on `https://api.deepinfra.com/models/<owner>/<model>`, prose not structure,
-so it cannot be parsed reliably. A shipped price table would be hand-maintained per model.
+`pricing.full` on `https://api.deepinfra.com/models/<owner>/<model>`.
+
+**But most of it IS machine-readable, and an early note here claiming otherwise was wrong.**
+Counted 2026-09-20 over the keyless `/models/list`: of **69 live (non-deprecated) image and
+video models, 62 carry a fully structured price** — `cents_per_image_unit` with
+`default_width`/`default_height`/`default_iterations`, or `cents_per_output_sec`. Those 62
+need no hand-maintenance at all; section 2b's formula consumes the fields directly.
+
+**Exactly 7 need hand-maintained constants**, because their per-resolution token counts exist
+only in the `pricing.full` prose or nowhere: `nano-banana-2-lite`, `nano-banana-2`,
+`nano-banana-pro`, `gemini-3-pro-image`, `Seedance-1.5-Pro`, `Seedance-2.0` (all
+`input_tokens`) and `FastWan2.2-TI2V-5B` (`frame_units`). Seedance's prose carries no token
+figure at all, which is why section 2c had to measure it.
+
+`/models/list` needs **no API key**, so a build-time script can regenerate a committed price
+snapshot: the app then prices offline, and every price change lands as a reviewable diff
+rather than a silent drift.
 
 ## 2b. The two formulas that actually price the prompt box
 
