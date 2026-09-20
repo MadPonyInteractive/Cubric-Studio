@@ -30,10 +30,61 @@ import { pluginDepUniverse, setPluginDepStatus } from './pluginsRegistry.js';
 import { Events } from '../events.js';
 import { state } from '../state.js';
 import { clientLogger } from '../services/clientLogger.js';
+// MPI-851 — "installed" for a cloud model is "a key is saved"; this is the only
+// renderer-side way to ask. Set/has/clear only: there is no get channel by design.
+import { secretsClient } from '../core/secretsClient.js';
 
 // ── Per-dep status cache (populated by syncModelInstalled) ────────────────────
 // Map of modelId → Map of depId → installed: boolean
 const _modelDepStatusCache = new Map();
+
+// ── Cloud key presence (MPI-851) ─────────────────────────────────────────────
+// A cloud model is "installed" when a key is saved — there is nothing on disk to
+// stat. The real check lives in the main process (`secrets:has-endpoint-key`, and
+// it nulls the key when the profile's bound base URL no longer matches, which
+// correctly reads as no key), but `isModelUsable` is SYNCHRONOUS and called from
+// render paths, so the answer is mirrored here and refreshed on the edges that can
+// change it. Unknown starts as false: a tile that appears when the key check lands
+// is right, one that offers a generation the user cannot pay for is not.
+const CLOUD_PROFILE_ID = 'deepinfra';
+let _hasCloudKey = false;
+let _cloudKeyAsked = false;
+
+/** @returns {boolean} true when a key for the cloud provider is saved. */
+export function hasCloudKey() {
+    if (!_cloudKeyAsked) { _cloudKeyAsked = true; refreshCloudKey(); }
+    return _hasCloudKey;
+}
+
+/**
+ * Re-read whether the cloud key exists and, when the answer changed, patch every
+ * cloud model's `installed` flag and re-emit `models:checked` — the signal the
+ * Model Library and the model pickers already listen to, so saving a key repaints
+ * them without a reopen.
+ *
+ * @returns {Promise<boolean>} the fresh answer.
+ */
+export async function refreshCloudKey() {
+    _cloudKeyAsked = true;
+    let has = false;
+    try {
+        has = await secretsClient.hasEndpointKey(CLOUD_PROFILE_ID);
+    } catch (err) {
+        clientLogger.warn('modelRegistry', `cloud key check failed: ${err?.message || err}`);
+    }
+    const changed = has !== _hasCloudKey;
+    _hasCloudKey = has;
+    // Naive readers (the Model Library's tiles, the footprint table) read
+    // `model.installed` straight off the entry, so keep it honest for them too.
+    for (const model of MODELS) if (model.provider) model.installed = has;
+    if (changed) {
+        Events.emit('models:checked', {
+            installedModelIds: MODELS.filter(m => m.installed).map(m => m.id),
+            driftedModelIds: getDriftedModelIds(),
+        });
+    }
+    return has;
+}
 
 // Baked Pod-image nodes whose stale-image warning has already fired this session,
 // so the connect-edge sync (which runs on every connect/disconnect) doesn't spam
@@ -137,7 +188,11 @@ export async function syncModelInstalled() {
         // R31 (MPI-208): resolve against the EFFECTIVE engine so a "Run locally"
         // override checks LOCAL install-state while the app is remote-connected.
         const engine = remoteEngineClient.effectiveEngine();
-        const modelPayload = MODELS.map(model => ({
+        // MPI-851 — cloud models never reach the disk check. Sending one would ask the
+        // server "are these zero files present?", and zero files are always present.
+        // Their own answer is the key, refreshed here on the same edge.
+        refreshCloudKey();
+        const modelPayload = MODELS.filter(model => !model.provider).map(model => ({
             id: model.id,
             deps: resolveFullUniverse(model, null, engine)
                 .map(depId => DEPS[depId]).filter(Boolean)
@@ -486,6 +541,11 @@ export function getModelDepStatus(modelId) {
 export function isModelUsable(modelOrId) {
     const model = typeof modelOrId === 'string' ? getModelById(modelOrId) : modelOrId;
     if (!model) return false;
+    // MPI-851 — a cloud model has nothing on disk to be complete. Answered BEFORE the
+    // dep cache, which would otherwise say yes for the wrong reason: an empty dep list
+    // passes `[].every()` and the server's `allPresent` loop never runs, so a keyless
+    // user would get a green tick and a card that dies at the HTTP call.
+    if (model.provider) return hasCloudKey();
     // Flat models: the engine-split weights (engines[].extraDeps) make the bare
     // server `installed` flag (all-deps-present, engine-agnostic) wrong on a Pod —
     // so flat models with engine deps ALSO go through deriveInstalledOps below.
@@ -536,6 +596,9 @@ export function isOperationInstalled(modelOrId, op) {
     if (!model) return false;
     if (!op) return isModelUsable(model);
     if (!(model.supportedOps || []).includes(op)) return false;
+    // MPI-851 — same answer per op: the key is the install, and a cloud model declares
+    // no `operations` block, so there is no per-op weight set to derive.
+    if (model.provider) return hasCloudKey();
     if (!hasOperationGroups(model)) return isModelUsable(model);
     const depStatus = getModelDepStatus(model.id);
     if (!depStatus) return model.installed === true; // no cache yet → trust server flag

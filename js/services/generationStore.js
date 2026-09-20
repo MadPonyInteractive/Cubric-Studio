@@ -11,7 +11,7 @@
  *                                                                                 → error
  *   'cancelling' is an overlay boolean (not a phase) — interrupt is advisory.
  *
- * Lane accounting: 'local' and 'remote', MAX 1 active each. FIFO pending queue.
+ * Lane accounting: 'local', 'remote' and 'cloud', MAX 1 active each. FIFO pending queue.
  * Loop re-fire: a once-per-lane-drain callback slot (fires exactly once per
  * completion, never in the dispatch pass — INV-5).
  *
@@ -70,7 +70,11 @@ const LEGAL_TRANSITIONS = new Map([
 
 // ── Lane config ───────────────────────────────────────────────────────────────
 
-const LANES = ['local', 'remote'];
+// MPI-851 — three lanes, and the third is not a nicety. `remote` means the USER'S
+// POD in this app, so a cloud job parked there would hold the Pod's single slot
+// (blocking a real Pod generation) and wear a badge that says the wrong thing. A
+// DeepInfra call shares nothing with either engine: no VRAM, no queue, no boot.
+const LANES = ['local', 'remote', 'cloud'];
 const MAX_ACTIVE_PER_LANE = 1;
 
 // ── Factory ───────────────────────────────────────────────────────────────────
@@ -98,6 +102,7 @@ export function createGenerationStore({ emit, logger } = {}) {
     const _laneState = {
         local:  { activeJobId: null },
         remote: { activeJobId: null },
+        cloud:  { activeJobId: null },
     };
 
     /** FIFO pending queue (jobs not yet assigned to an active lane slot). */
@@ -106,13 +111,16 @@ export function createGenerationStore({ emit, logger } = {}) {
     /**
      * Loop re-fire callbacks — one slot per lane.
      * Invoked exactly once when the lane drains (active job reaches terminal).
-     * @type {{ local: function|null, remote: function|null }}
+     * @type {{ local: function|null, remote: function|null, cloud: function|null }}
      */
-    const _loopCallbacks = { local: null, remote: null };
+    const _loopCallbacks = { local: null, remote: null, cloud: null };
 
     // ── Private helpers ────────────────────────────────────────────────────────
 
     function _laneOf(job) {
+        // MPI-851: 'cloud' is its own lane — see the LANES note. Anything else still
+        // falls back to 'remote', which is what keeps an unknown engine off 'local'.
+        if (job.engine === 'cloud') return 'cloud';
         return job.engine === 'local' ? 'local' : 'remote';
     }
 
@@ -262,7 +270,7 @@ export function createGenerationStore({ emit, logger } = {}) {
      * @param {object} opts
      * @param {string}   opts.jobId       - Stable UUID for this job (caller-generated).
      * @param {string}  [opts.genId]      - generationService _regId, so the derived status bar can correlate this job to its id-tagged tool:* events (MPI-208 Phase 4).
-     * @param {'local'|'remote'} opts.engine
+     * @param {'local'|'remote'|'cloud'} opts.engine
      * @param {string}  [opts.scope]      - 'gallery' | 'groupHistory' | etc.
      * @param {object}  [opts.display]    - Frozen display snapshot (queue panel use).
      * @param {*}       [opts.loopSeed]   - Opaque loop seed (for loop re-fire).
@@ -278,7 +286,11 @@ export function createGenerationStore({ emit, logger } = {}) {
         }
 
         const abort = new AbortController();
-        const lane  = engine === 'local' ? 'local' : 'remote';
+        // MPI-851: through _laneOf, not a second copy of the rule. This line carried its
+        // own engine->lane mapping, so teaching _laneOf about the cloud lane alone left
+        // every registered cloud job sitting on the POD lane — the same two-copies drift
+        // that tests/lane-agreement.test.cjs exists to catch one level up.
+        const lane  = _laneOf({ engine });
 
         const job = {
             jobId,
@@ -452,7 +464,7 @@ export function createGenerationStore({ emit, logger } = {}) {
      * The callback is invoked exactly once per lane drain (INV-5).
      * Pass null to clear.
      *
-     * @param {'local'|'remote'} lane
+     * @param {'local'|'remote'|'cloud'} lane
      * @param {function|null} cb
      */
     function setLoopCallback(lane, cb) {

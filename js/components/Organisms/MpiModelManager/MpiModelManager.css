@@ -136,6 +136,16 @@
 
 
 /* Empty state */
+/* One line under the DeepInfra section head (MPI-853): these models cost money and
+ * need a key, and a user meeting them for the first time should learn both here
+ * rather than from a failed generation. */
+.mpi-model-library__paid-note {
+    margin: calc(var(--s-2) * -1) 0 var(--s-4);
+    color: var(--ink-4);
+    font-size: var(--t-xs);
+    line-height: 1.5;
+    max-width: 68ch;
+}
 .mpi-model-library__empty {
     padding: var(--s-6) 0;
     color: var(--ink-4);

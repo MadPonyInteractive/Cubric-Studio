@@ -229,11 +229,28 @@ function testRealRegistryIntegrity() {
     // dep id is a real entry in DEPS.
     for (const model of MODELS) {
         const universe = resolveFullUniverse(model, exists); // throws on unknown dep
+        // MPI-851 — a CLOUD model resolving to nothing is the correct answer, not
+        // authoring drift: it has no weights at all, it runs on the user's own key at the
+        // provider, and "installed" for it means a key is saved. The exemption is keyed
+        // on `provider` and nothing else, so an ordinary model that loses its deps still
+        // trips this (see the negative control below).
+        if (model.provider) {
+            assert.equal(universe.length, 0, `${model.id} is a cloud model but declares deps`);
+            continue;
+        }
         assert.ok(universe.length > 0, `${model.id} resolves to no deps`);
         for (const id of universe) {
             assert.ok(exists(id), `${model.id} references missing dep "${id}"`);
         }
     }
+
+    // NEGATIVE CONTROL for that exemption. A local model with an empty dep universe is
+    // still a fault — and it is a dangerous one, because `[].every()` is true and the
+    // server's `allPresent` loop never runs, so such a model reads INSTALLED in two
+    // places at once and offers a generation whose weights are nowhere on disk.
+    const weightless = { id: 'synthetic-weightless', supportedOps: ['t2i'], dependencies: [] };
+    assert.equal(resolveFullUniverse(weightless, exists).length, 0, 'the control must resolve to nothing');
+    assert.ok(!weightless.provider, 'the control must NOT be exempt');
 
     // wan-22 is the merged model — split ids gone. It was the LAST op-keyed model in
     // the library (MPI-470 left it with one selectable op, so its Model Library card

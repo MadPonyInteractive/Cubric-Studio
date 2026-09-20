@@ -25,6 +25,11 @@ import { renderIcon } from '/js/utils/icons.js';
 import { openExternal } from '../../../utils/openExternal.js';
 import { formatBytes } from '../../../utils/formatBytes.js';
 import { tradeTable, sizeToGb } from '../../../data/modelConstants/footprint.js';
+// MPI-853 — a cloud model's tile shows what it COSTS where a local model shows its
+// size, because that is the same question answered in the currency that applies.
+// `estimateCost` keys on DeepInfra's own model id, which is what `cloud.endpointId` is.
+import { estimateCost, PRICES_CHECKED_ON } from '../../../data/modelConstants/deepinfraPricing.js';
+import { hasCloudKey } from '../../../data/modelRegistry.js';
 
 /**
  * MpiModelManager — the Model Library (MPI-215).
@@ -696,6 +701,19 @@ export const MpiModelManager = ComponentFactory.create({
         // Gated by a licence the licensor grants elsewhere, and not yet proven on this
         // machine. Descriptor-driven: a licence with no `verify` block never matches, so
         // every model in the library today is untouched.
+        // MPI-853 — a CLOUD model, which is a different KIND of thing in this library
+        // rather than a differently-installed model: nothing to download, nothing to
+        // uninstall, no VRAM, no disk. It gets its own section and its own tile so that
+        // none of the install machinery has to learn a special case, and so nothing
+        // renders an Install button whose click can only ever do nothing.
+        const _isPaid = model => !!model?.provider;
+
+        /** What one image costs at this model's default size, as user-facing copy. */
+        function _paidPriceText(model) {
+            const quote = estimateCost(model?.cloud?.endpointId);
+            return quote?.display || 'price unknown';
+        }
+
         function _needsLicenceProof(model) {
             const licence = model && getModelLicence(model.id);
             return !!(licence?.verify) && !hasAcceptedLicence(model.id);
@@ -830,6 +848,23 @@ export const MpiModelManager = ComponentFactory.create({
                     <span class="mpi-detail__field-label">GPU weight</span>
                     <div class="mpi-detail__toggle-row" id="detail-arch-row"></div>
                 </div>
+                ${_isPaid(model) ? `
+                <div class="mpi-detail__field">
+                    <div class="mpi-detail__disk-row">
+                        <span class="mpi-detail__field-label" style="margin:0">Cost</span>
+                        <span class="mpi-detail__disk-val">${_paidPriceText(model)} per image</span>
+                    </div>
+                    <div class="mpi-detail__disk-split">Billed by DeepInfra to your own account, at their price. Prices checked ${PRICES_CHECKED_ON}.</div>
+                </div>
+                <div class="mpi-detail__field">
+                    <div class="mpi-detail__disk-row">
+                        <span class="mpi-detail__field-label" style="margin:0">Your key</span>
+                        <span class="mpi-detail__disk-val">${hasCloudKey() ? 'Saved' : 'Not saved'}</span>
+                    </div>
+                    <div class="mpi-detail__disk-split">${hasCloudKey()
+                        ? 'Runs in the cloud — no GPU, no download, nothing kept on this machine but the picture.'
+                        : 'Save a DeepInfra key in Settings → Remote → Language Models to use this model.'}</div>
+                </div>` : `
                 <div id="detail-vram"></div>
                 <div class="mpi-detail__field">
                     <div class="mpi-detail__disk-row">
@@ -839,7 +874,7 @@ export const MpiModelManager = ComponentFactory.create({
                     ${st.onDiskBytes !== null && st.onDiskBytes < st.sizeBytes
                         ? `<div class="mpi-detail__disk-split">${st.onDiskBytes > 0 ? `${formatBytes(st.onDiskBytes)} on disk · ` : ''}<span class="mpi-detail__disk-todo">${formatBytes(st.sizeBytes - st.onDiskBytes)} to download</span></div>`
                         : ''}
-                </div>
+                </div>`}
                 <div class="mpi-detail__field" id="detail-licence" style="display:none;">
                     <span class="mpi-detail__field-label">Licence</span>
                     <div class="mpi-detail__licence" id="detail-licence-row"></div>
@@ -897,7 +932,11 @@ export const MpiModelManager = ComponentFactory.create({
             // VRAM→RAM trade table (MPI-168) — all models. Image models (SDXL etc.)
             // are small so the curve floors at MIN_FLOOR (8GB) and resolves in a row
             // or two, but the memory need is still worth showing.
-            qs('#detail-vram', detailBody).innerHTML = _tradeTableHtml(model);
+            // A cloud model has no weights to fit in anyone's VRAM, so its panel does not
+            // carry the slot at all — the trade table would otherwise read "0GB of weights ·
+            // min 8GB VRAM" on something that needs no GPU whatsoever.
+            const vramSlot = qs('#detail-vram', detailBody);
+            if (vramSlot) vramSlot.innerHTML = _tradeTableHtml(model);
 
             // Licence row (MPI-451) — gated models only, so every permissively licensed
             // model in the library looks exactly as it did. The acceptance dialog is
@@ -944,7 +983,14 @@ export const MpiModelManager = ComponentFactory.create({
             detailStats.textContent = _dlStatsText(st.job);
 
             detailActions.innerHTML = '';
-            if (st.isActiveDownload) {
+            // MPI-853 — a cloud model offers NO action here. "Uninstall" is the one that
+            // must never appear: there is nothing on disk, and the backend uninstall would
+            // sweep a dep list that is empty by contract. Nor an Install, whose click does
+            // nothing. The panel is a description and a price; the only thing a user can
+            // act on is the key, and that lives in Settings where it is already explained.
+            if (_isPaid(model)) {
+                // fall through to the toggle/licence teardown below with an empty footer
+            } else if (st.isActiveDownload) {
                 const cancel = MpiButton.mount(ce('div'), { text: 'Cancel', variant: 'secondary', size: 'md' });
                 cancel.on('click', () => downloadService.cancel(model.id));
                 detailActions.appendChild(cancel.el); _detailActionBtns.push(cancel);
@@ -1071,6 +1117,11 @@ export const MpiModelManager = ComponentFactory.create({
                 // repaints: the sig is built from MODELS only, so installing a plugin
                 // would leave the button reading "Install" until something unrelated
                 // moved the model list.
+                // MPI-853 — the cloud half of the same argument: the sig is built from
+                // per-model install state, and a cloud model has none. Saving a key
+                // changes what this section says and nothing else, so without this the
+                // note keeps telling a user with a key that they need one.
+                + `##paid:${hasCloudKey() ? 1 : 0}:${MODELS.filter(m => m.provider).map(m => m.id).join(',')}`
                 + '##plugins:' + PLUGINS.map((p) => {
                     // MPI-579 — EVERY install key, not just the plugin's own dep job: a
                     // plugin that runs on a MODEL is installed by that model's job, so
@@ -1315,6 +1366,61 @@ export const MpiModelManager = ComponentFactory.create({
             bodySlot.appendChild(wrap);
         }
 
+        // ── DeepInfra models (MPI-853) ────────────────────────────────────────
+        // The FOOT of the library, the same place and the same shape the Flow Library
+        // gives third-party flows: a kind of its own, after everything local. It sits
+        // outside the media and tier filters and outside the "N installed / N available"
+        // counts for the reason the plugins row does — those numbers describe weights on
+        // this machine, and a cloud model has none. Search still applies.
+        //
+        // The tile is built WITHOUT `_modelState`. That function's fallthrough renders an
+        // `Install` chip, and `_install` begins `if (!dependencies.length) return;` — so
+        // the click would do nothing at all, silently, which reads as a broken download.
+        function _paidSection() {
+            const q = _searchQuery;
+            const list = MODELS.filter(m => _isPaid(m)
+                && (q === '' || (m.name || '').toLowerCase().includes(q)
+                    || (m.dropdownMeta || '').toLowerCase().includes(q)));
+            if (!list.length) return;
+
+            const header = ce('div', { className: 'mpi-model-library__section' });
+            header.innerHTML = `<span>DeepInfra models</span><span class="mpi-model-library__section-n">${list.length}</span>`;
+            bodySlot.appendChild(header);
+
+            const note = ce('div', {
+                className: 'mpi-model-library__paid-note',
+                textContent: hasCloudKey()
+                    ? 'These run at DeepInfra on your own key — nothing downloads, and DeepInfra bills you directly for what you use.'
+                    : 'These run at DeepInfra on your own key. Save one in Settings → Remote → Language Models to use them; DeepInfra bills you directly for what you use.',
+            });
+            bodySlot.appendChild(note);
+
+            const sheet = MpiTileSheet.mount(ce('div'), {
+                items: list.map(_paidTileItem),
+                previewCache: _previewCache,
+            });
+            sheet.on('select', ({ item }) => openDetail(item.source));
+            _sheets.push(sheet);
+            bodySlot.appendChild(sheet.el);
+        }
+
+        function _paidTileItem(model) {
+            return {
+                id: model.id,
+                name: model.name,
+                media: model.mediaType === 'video' ? 'video' : 'image',
+                preview: model.mediaType === 'video' ? model.video : model.image,
+                meta: `${model.dropdownMeta || 'CLOUD'} · per image`,
+                showMediaBadge: true,
+                featured: !!model.featured,
+                deprecated: !!model.deprecated,
+                // A price, never an Install chip: `--available` draws a download arrow in
+                // its ::before, on a thing that never downloads.
+                state: `<span class="mpi-tile__chip mpi-tile__chip--paid">${_paidPriceText(model)}</span>`,
+                source: model,
+            };
+        }
+
         // ── Render the contact sheet ────────────────────────────────────────
         // force=true bypasses the signature guard — used by the draft-toggle path,
         // where the change IS the sig change but we still want an unconditional rebuild.
@@ -1333,7 +1439,9 @@ export const MpiModelManager = ComponentFactory.create({
             const passesSearch = m => _searchQuery === ''
                 || (m.name || '').toLowerCase().includes(_searchQuery)
                 || (m.dropdownMeta || '').toLowerCase().includes(_searchQuery);
-            const visible = MODELS.filter(m => passesSize(m) && passesMedia(m) && passesSearch(m));
+            // MPI-853 — cloud models are sectioned separately below, so they are not
+            // candidates for Installed/Available here.
+            const visible = MODELS.filter(m => !_isPaid(m) && passesSize(m) && passesMedia(m) && passesSearch(m));
 
             // A model is "installed" for sectioning when its installed flag is set OR
             // at least one op is installed OR an arch weight AND its common deps are on
@@ -1345,8 +1453,12 @@ export const MpiModelManager = ComponentFactory.create({
             const available = visible.filter(m => !isInstalled(m));
 
             // Live count line in the head.
-            const totalInstalled = MODELS.filter(isInstalled).length;
-            subEl.innerHTML = `<span class="mpi-model-library__count">${totalInstalled} installed</span> · ${MODELS.length - totalInstalled} available — install a pack and its files fetch automatically.`;
+            // MPI-853 — counted over LOCAL models only. Adding a cloud model must not
+            // move either number: nothing about it is installed or installable, and a
+            // line that says "9 installed" because a tile appeared is simply wrong.
+            const localModels = MODELS.filter(m => !_isPaid(m));
+            const totalInstalled = localModels.filter(isInstalled).length;
+            subEl.innerHTML = `<span class="mpi-model-library__count">${totalInstalled} installed</span> · ${localModels.length - totalInstalled} available — install a pack and its files fetch automatically.`;
 
             if (!visible.length) {
                 bodySlot.appendChild(ce('div', {
@@ -1357,12 +1469,16 @@ export const MpiModelManager = ComponentFactory.create({
                 // matches no MODEL, and returning here would hide the only thing that
                 // DOES match.
                 _pluginSection();
+                // Same reasoning as the plugins row above: a search that matches no LOCAL
+                // model must still show the cloud ones it does match.
+                _paidSection();
                 return;
             }
 
             _section('Installed', installed);
             _section('Available', available);
             _pluginSection();
+            _paidSection();
 
             // Keep an open detail panel coherent after a full rebuild (install state
             // moved, engine switched, re-sync landed). Guard: openDetail must not be

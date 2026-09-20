@@ -62,7 +62,11 @@ function _renderModels(installedCount) {
     accent.className = 'mpi-landing__stat-accent';
     accent.textContent = String(installedCount);
     el.appendChild(accent);
-    el.appendChild(document.createTextNode(` / ${MODELS.length}`));
+    // MPI-853 — LOCAL models only, on both halves. This slot answers "how much of the
+    // library is on this disk", and a cloud model is on nobody's disk: counting it in the
+    // denominator makes an unchanged machine look less complete, and the install check
+    // that fills the numerator never sees one anyway.
+    el.appendChild(document.createTextNode(` / ${MODELS.filter(m => !m.provider).length}`));
 }
 
 // MPI-404: with no engine at all (the MPI-390 escape hatch taken, no Pod
@@ -291,7 +295,11 @@ export function initHeroStats() {
     _renderSession(null);
     _renderGpu();
 
-    _unsubs.push(Events.on('models:checked', ({ installedModelIds }) => _paintModels(installedModelIds?.length ?? 0)));
+    _unsubs.push(Events.on('models:checked', ({ installedModelIds }) => _paintModels(
+        // The cloud half of the same rule: `models:checked` now also fires when a DeepInfra
+        // key is saved, and cloud models carry `installed` from that key — real, and not
+        // what this number means.
+        (installedModelIds || []).filter(id => !MODELS.find(m => m.id === id)?.provider).length)));
     // MPI-404: an engine arriving (or a Pod connecting) can turn the count from
     // unknown into knowable without the installed SET changing, and the
     // models:checked emit is diff-gated (modelRegistry.js) — so repaint on those

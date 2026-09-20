@@ -7,6 +7,9 @@
  */
 
 import { runCommand } from './commandExecutor.js';
+// MPI-851 — the same handle, the same four callbacks, no ComfyUI. Chosen at the
+// dispatch below by `model.provider` alone.
+import { runCloudCommand } from './cloudExecutor.js';
 import { saveGeneration, addGroup, updateGroup, serializeGroup } from './projectService.js';
 import { createImageItem, createVideoItem, createAudioItem, createItemGroup, appendToHistory, getModelSettings, getSharedSettings, getOpSettings, replaceHistoryItemById } from '../data/projectModel.js';
 import { Events } from '../events.js';
@@ -63,6 +66,9 @@ const _cueQueue = [];
 const _lanes = {
     remote: { active: null, lastJobForLoop: null },
     local:  { active: null, lastJobForLoop: null },
+    // MPI-851 — a cloud job shares nothing with either engine, so it must not hold
+    // either engine's slot. `remote` is the user's POD here, not "somewhere else".
+    cloud:  { active: null, lastJobForLoop: null },
 };
 
 /**
@@ -84,6 +90,10 @@ const _lanes = {
  */
 function _laneOf(jobOrOpts) {
     const opts = jobOrOpts?.opts || jobOrOpts || {};
+    // MPI-851 — a cloud model has no engine for local/remote to describe, and the
+    // Run-locally toggle cannot apply to it (there is nothing local to run). Read the
+    // MODEL, before the toggle: a cue job carries its config, which carries the model.
+    if (jobOrOpts?.config?.model?.provider || jobOrOpts?.model?.provider) return 'cloud';
     if (opts.forceLocal === true) return 'local';
     return remoteEngineClient.isRemote() ? 'remote' : 'local';
 }
@@ -233,7 +243,9 @@ function _buildQueueDisplay(config = {}, opts = {}, source = 'manual', isLoop = 
         // MPI-74: per-job engine label for the Cue badge. Only meaningful while
         // the app is remote-connected; a force-local run shows 'local'. UI-only
         // until MPI-82's spine reads opts.forceLocal — inert on routing for now.
-        engine: opts.forceLocal ? 'local' : 'remote',
+        // MPI-851: 'cloud' is a third value here for the same reason it is a third
+        // lane — a DeepInfra job badged 'remote' claims the user's Pod is running it.
+        engine: model.provider ? 'cloud' : (opts.forceLocal ? 'local' : 'remote'),
     };
 }
 
@@ -372,7 +384,7 @@ function _onLaneDrain(lane, { skipNext = false } = {}) {
  * pass never enqueues, it never recurses: at most one intent per lane per call.
  */
 function _dispatchNextCue() {
-    for (const lane of ['remote', 'local']) {
+    for (const lane of ['cloud', 'remote', 'local']) {
         if (_lanes[lane].active || _laneBusy(lane)) continue;
 
         const idx = _cueQueue.findIndex(job => _laneOf(job) === lane);
@@ -900,7 +912,13 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
     // events (all emitted with id === _regId).
     const _regId = crypto.randomUUID();
 
-    const exec = runCommand({
+    // MPI-851 — THE SEAM. Everything above this line is provider-agnostic (media and
+    // mask guards, the frozen origin project, the control snapshot) and everything
+    // below it already speaks to a generic `exec`. Branch the FACTORY, never inside
+    // `runCommand`: it reaches `comfyController.runWorkflow`, which calls
+    // `ensureServerRunning`, so a cloud dispatch through it would cold-start a local
+    // ComfyUI on a machine that may have no GPU at all.
+    const exec = (model.provider ? runCloudCommand : runCommand)({
         genId: _regId,
         operation,
         modelId: model.id,
@@ -936,7 +954,11 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         // MPI-548: same `??` derivation as enqueueGeneration, so a DIRECT startGeneration
         // (bypassing the Cue queue) honours the toggle too. Idempotent when the queue
         // already normalised it.
-        forceLocal: (opts.forceLocal ?? (state.engineOverride === 'local')) === true,
+        // MPI-851: never for a cloud model. With the toggle on it would arrive as a
+        // force-local job, land on the local lane and fail in `_findModelNotLocal`
+        // looking for weights that do not exist — for a model whose whole point is
+        // that it needs none.
+        forceLocal: model.provider ? false : (opts.forceLocal ?? (state.engineOverride === 'local')) === true,
     });
 
     activeGenerations.start({
@@ -1135,6 +1157,12 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         const _controlState = config._controlSnapshot
             ?? _snapshotControlState(model, operation, injectionParams, { historyMode: config.historyMode === true });
         if (_controlState) generationSettings.controlState = _controlState;
+
+        // MPI-851 — what the provider ACTUALLY billed (`inference_status.cost`), not the
+        // app's estimate. `generationSettings` passes through `save-generation` verbatim
+        // and comes back off the sidecar on reload, so the record survives with no server
+        // edit. Absent on every local generation, which costs nothing but electricity.
+        if (outputInfo.cost) generationSettings.cost = outputInfo.cost;
 
         // Multi-stage video preview tagging: when this run was a Preview-only pass,
         // tag the saved sidecar with stage='preview' + frozenParams (so a later

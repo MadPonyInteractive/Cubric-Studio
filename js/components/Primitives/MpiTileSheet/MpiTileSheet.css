@@ -239,6 +239,12 @@
 .mpi-tile__chip--available::before { content: "↓"; }
 .mpi-tile__chip--partial { color: var(--accent-frost); }
 .mpi-tile__chip--partial::before { content: "◑"; }
+/* A cloud model (MPI-853): it shows a PRICE where a local model shows its size.
+ * Deliberately NOT --available, whose down-arrow promises a download that can never
+ * happen here. Rose is Vision's own family colour, used as a literal the way the rest
+ * of Vision's identity is (01_base.css) - never a status token, which frost is. */
+.mpi-tile__chip--paid { color: var(--vision-accent); text-transform: none; letter-spacing: 0.06em; }
+.mpi-tile__chip--paid::before { content: "☁"; }
 /* A Flow package that failed validation (MPI-532) — listed, never runnable. */
 .mpi-tile__chip--unavailable { color: var(--accent-warn); }
 .mpi-tile__chip--unavailable::before { content: "!"; }

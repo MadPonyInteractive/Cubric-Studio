@@ -6,6 +6,8 @@
  * @property {string}   [dropdownMeta] - Short UI category shown in compact model selectors
  * @property {string}   [type]       - Model family (e.g. 'sdxl', 'wan'); also the default enhancer-recipe key
  * @property {string}   [enhanceRecipe] - Explicit enhancer-recipe id, overriding `type` when they diverge. Both keys are read by `resolveRecipe()` in `js/data/recipes/registry.js` — the LOCAL recipe index (MPI-35, MPI-677). They used to name a recipe inside the sibling Cubric Prompt app (MPI-5); the recipes moved here, so the keys kept their values and changed their address.
+ * @property {'deepinfra'} [provider] - CLOUD model (MPI-851). Its presence is the whole discriminator: a model with a `provider` has no weights, no ComfyUI graph and no engine — it runs on the user's own API key at the provider, who bills them directly. It MUST declare no `dependencies`, `commonDeps`, `operations`, `workflows`, `engines` or `variants`: the dep resolver, the orphan sweep and the install UI all key on those, and an empty `dependencies: []` reads as INSTALLED by accident in two places (`resolveModelDeps.js` `[].every()`, `routes/comfy.js` `allPresent`). "Installed" for these means A KEY IS SAVED — see `hasCloudKey()` in modelRegistry.js, which `isModelUsable`/`isOperationInstalled` answer from before they ever consult the dep cache. Dispatch branches at `generationService.js`'s `runCommand` call and never reaches ComfyUI.
+ * @property {{endpointId:string, body?:Record<string,*>, imageField?:string}} [cloud] - The provider-side call this model makes. `endpointId` is the provider's own model id (`black-forest-labs/FLUX-1-schnell`), which is ALSO the key `dev_configs/deepinfra-prices.json` prices it under — the two must stay equal or the estimate silently describes another model. `body` is constant fields merged into every request (leave a field out to take the provider's own default; DeepInfra's default step count is what its published price assumes). `imageField` names the body field a reference image goes in, for edit ops.
  * @property {'image'|'video'} mediaType
  * @property {'low'|'balanced'|'high'} [sizeTier] - Weight-size tier (MPI-168). Shown as a Low/Balanced/High badge + L/B/H marker. A model has ONE tier; siblings ship as separate cards. Absent → treated as 'balanced' by UI.
  * @property {string}   [modelFamily] - Soft grouping key for same-base-model tier variants, e.g. 'LTX-2.3' (MPI-168). Drives tier clustering + the "show L/B/H only when 2+ tiers of a family installed" rule. UI-only; no resolver effect.
@@ -1819,5 +1821,45 @@ export const MODELS = [
             // already cached by Klein, the OpenPose ones (body/hand/face) are new.
             'comfyui_controlnet_aux',
         ],
+    },
+
+    // ── Cloud models (MPI-851) ────────────────────────────────────────────────
+    // No weights, no graph, no engine. They run at DeepInfra on the key the prompt
+    // enhancer and the agent already hold, and DeepInfra bills the user directly —
+    // see the MPI-849 umbrella for why there is no credit system. Everything that
+    // makes one work is the `provider` field above; the rest of this entry is an
+    // ordinary ModelDef, so ratios, the op strip and Reuse behave as they always do.
+    //
+    // FLUX Schnell is the cheapest real generation on the platform (about $0.0005 at
+    // 1 MP), which is what makes it the one that proves the path end to end. The rest
+    // of Fabio's fifteen land with their tiles and preview art in MPI-853.
+    {
+        id: 'flux-schnell-cloud',
+        name: 'FLUX Schnell (Cloud)',
+        dropdownMeta: 'CLOUD',
+        provider: 'deepinfra',
+        cloud: {
+            endpointId: 'black-forest-labs/FLUX-1-schnell',
+            // Deliberately empty. DeepInfra's own default step count is the one its
+            // published per-image price assumes, so sending our own would quote the
+            // user one number and bill them another.
+            body: {},
+            // `num_images`, whose own published maximum is 4 — the same cap the batch
+            // control already has, which is why a cloud batch needs no new UI. The route
+            // clamps to this, so a control that ever offers more cannot overspend.
+            maxBatch: 4,
+        },
+        mediaType: 'image',
+        type: 'flux',
+        supportedOps: ['t2i'],
+        // Distilled at cfg 1: a negative prompt does nothing, and the endpoint has no
+        // field to put one in.
+        capabilities: { negativePrompt: false },
+        // Batch is REAL here and costs four times as much, because the provider bills per
+        // image. It is the same control SDXL uses, capped at the same 4.
+        batchOps: ['t2i'],
+        description: 'FLUX Schnell running in the cloud on your own DeepInfra key, so it needs no GPU, no download and no engine. Four-step distilled: fast, cheap (about $0.0005 an image) and good at clean graphic images, product shots and quick concepts. You pay DeepInfra directly for what you use, and nothing is stored here but the picture.',
+        // A cloud model ships no graph. The key is the install.
+        workflows: {},
     },
 ];

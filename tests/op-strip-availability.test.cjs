@@ -336,8 +336,11 @@ test('every declared batchOp is an op the model actually runs', async () => {
             assert.ok(m.supportedOps.includes(op), `${m.id}: batchOps names ${op}, which it does not support`);
         }
     }
-    // Guards against the field being silently dropped in a refactor: 2 Chroma + 5 SDXL.
-    assert.strictEqual(declared, 7, 'exactly the 7 models with partial batch support declare batchOps');
+    // Guards against the field being silently dropped in a refactor: 2 Chroma + 5 SDXL,
+    // plus FLUX Schnell (Cloud) since MPI-851 — a cloud model bills PER IMAGE, so its
+    // batch is real money rather than one more latent, and it is capped by the
+    // endpoint's own `num_images` maximum of 4 (the same cap the control already has).
+    assert.strictEqual(declared, 8, 'exactly the 8 models with partial batch support declare batchOps');
 });
 
 test('style strength defaults per model, without disturbing op defaults', async () => {
