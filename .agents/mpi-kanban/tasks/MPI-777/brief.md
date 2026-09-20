@@ -47,9 +47,10 @@ question on this card's assets, not whether the clips exist.
 
 ## Split of work
 
-- **MadPony-Identity:** decides where each clip goes, when it shows and how it behaves; cuts the
-  clips out and converts them once this app's GIF tooling (MPI-757) can do it.
-- **Here:** everything in code.
+- **MadPony-Identity:** made the artwork, and still holds the source (`plates/`, `sheets/`) and
+  MPI-78's history. **Nothing live is left there.** The cut-outs are done (2026-09-20) and
+  placement moved here, so this card no longer waits on that repo for anything.
+- **Here:** everything else — where each clip goes, when it shows, how it behaves, and the code.
 
 ## Directions (Fabio)
 
@@ -63,11 +64,15 @@ question on this card's assets, not whether the clips exist.
 3. **The prompt box top edge is the mascots' ledge** (`MpiPromptBox`).
    - Agent mode: **Studio is there the whole time**, as the user's companion. It is the only
      mascot that never leaves. Idle x3, agent listening, agent thinking, agent answer ready.
+     **SUPERSEDED by MPI-843 (Fabio, 2026-09-20):** agent mode leaves the prompt box entirely
+     (the toggle becomes a third top-bar button), and these states move to the agent PANEL's own
+     ledge. Same states, different home — see `plan.md` open decision 4. **Studio is called
+     Cosmo there**, and Cosmo has no Failed clip (`i2v_016`), so that ledge cannot show one.
    - Other modes: the selected model's mascot visits. Image model -> Vision, video model ->
      Video. It peeks up over the edge once on model selection, then comes back now and then at a
      random spot inside a fixed central zone, clear of the image chips and operation buttons.
    - The head peeks are head-only and cut by their own bottom edge: they need CSS to sit behind
      the prompt box edge. They play once and leave, so they do not need to loop.
 4. **Flows** can show mascots too; it is Audio's only home today. Not specified yet.
-5. The rest of the spot map in `placement.md` (Generating card, float latent window, toasts,
+5. The rest of the spot map in `docs/mascot-placement.md` (Generating card, float latent window, toasts,
    empty states, engine starting, update ready, job cancelled) follows once the queue exists.

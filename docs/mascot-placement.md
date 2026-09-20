@@ -15,6 +15,10 @@ converts them to alpha WebM (rule 10) once the app can. The wiring card is Cubri
 
 - **Studio** is the agent and, from 2.0.0, the app itself. It owns the agent chat box and the app-wide spots: engine
   starting, landing with no projects, update available.
+  **In the agent chat he is called Cosmo** (MPI-843, 2026-09-20): same mascot, same clips, different name, and he is
+  the only one of the five who speaks there. This document says Studio throughout; the agent-panel code says Cosmo.
+  Note what that means for a Failed state — **Studio/Cosmo has no Failed clip**, see the gaps in
+  `mascot-gif-manifest.md`.
 - **Per operation** (the brief's mapping, not re-confirmed since): image -> **Vision**, video -> **Video**, audio -> **Audio**,
   prompt tools -> **Prompt**. A per-job spot (Generating card, toasts, gallery, search, cancelled) plays the mascot of the
   operation involved. "op's" in the map below means that mascot.

@@ -6,4 +6,4 @@
 - [ ] Phase 2: shared clip queue utility, with its unit test
 - [ ] Phase 3: landing hero crew on the queue (Fabio checks)
 - [ ] Phase 4: prompt box ledge, agent mode and model modes (Fabio checks)
-- [ ] Phase 5: the rest of the spot map in `placement.md`, then Flows
+- [ ] Phase 5: the rest of the spot map in `docs/mascot-placement.md`, then Flows

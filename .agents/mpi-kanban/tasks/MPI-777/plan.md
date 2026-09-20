@@ -1,7 +1,7 @@
 # MPI-777 - Animated mascots in the app: shared clip queue, landing crew, prompt box ledge
 
-Directions and the why: `brief.md`. Spot map and clip ids:
-`../MadPony-Identity/production/cubric-mascots/animations/placement.md`. Re-grep every code
+Directions and the why: `brief.md`. Spot map and clip ids: `docs/mascot-placement.md` (moved into
+this repo 2026-09-20, with the roll records and `docs/mascot-gif-manifest.md`). Re-grep every code
 pointer below before editing; they were read 2026-09-16.
 
 ## Current State
@@ -63,7 +63,7 @@ pointer below before editing; they were read 2026-09-16.
 ### Phase 1: assets
 
 - [ ] Stage the cut-out clips per character under `assets/mascot/{key}/`, named by state
-      (e.g. `idle-1`, `greet-2`, `happy-1`, `peek`). Clip ids per state are in `placement.md`'s
+      (e.g. `idle-1`, `greet-2`, `happy-1`, `peek`). Clip ids per state are in `docs/mascot-placement.md`'s
       clip index. Keep the stills as the reduced-motion and first-paint fallback.
 - [ ] Close the alpha WebM gap (Settled, above). Then, per clip: GIF Maker -> SAM3 cut-out ->
       VP9 alpha WebM. Transitions skip the cut-out and ship as plain WebM on black.
@@ -120,7 +120,7 @@ pointer below before editing; they were read 2026-09-16.
       Model Library queued install, History peek, job cancelled, update available, filter with no
       match (MPI-749), gallery scope empty. Clip per spot and the rules for each
       (the float latent window gets getting ready then working, nothing else; waiting spots use
-      the working clip) are in `placement.md`.
+      the working clip) are in `docs/mascot-placement.md`.
 - [ ] Flows, once Fabio specifies them.
 
 ## Completed
@@ -147,5 +147,7 @@ decisions they name.
 
 ## Preservation Notes
 
-- `placement.md` in MadPony-Identity owns spot and clip choices. When a decision is made here,
-  record it there too, or tell a MadPony-Identity session to.
+- `docs/mascot-placement.md` owns spot and clip choices, **and it now lives in this repo**
+  (moved 2026-09-20). Record a decision made here straight into it — there is no longer a second
+  copy in MadPony-Identity to keep in step. That repo keeps only the source artwork
+  (`plates/`, `sheets/`) and the MPI-78 card's history.
