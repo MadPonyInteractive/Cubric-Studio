@@ -75,6 +75,63 @@ follow-up, not a reopening.
 
 `routes/` is untouched, so a RELOAD is enough to see this — no app restart needed.
 
+## Fabio's live check, 2026-09-20 - and the model it overturned
+
+He masked a duck with Background, pressed Add, and the highlight jumped to the OTHER side of
+the frame; then picked the eye's black with By colour, pressed Add, and nothing visibly
+changed. Both were one fault: the store held "what stays" and MPI-771 complemented it on the
+way to the screen, so the verbs spoke the opposite language to everything visible. His words:
+"if you just grabbed all the masking system from the image workspace and imported it here,
+the job would be done. That's what I asked in the first place."
+
+### What changed (the port)
+
+- **The store holds WHAT GETS CUT and is drawn as itself.** Green proposes, Add turns those
+  same pixels white, Subtract takes them out - `MaskManager.bakeAutoPicksInto()`'s behaviour,
+  per frame. A committed mask looks exactly as it did: the complement of "what stays" is the
+  same pixels as "what gets cut".
+- **Every method proposes the region its LABEL names.** Background masks the background
+  (BiRefNet returns the foreground; `invertResult` flips it as it lands). By name the named
+  object, By colour the colour.
+- **The whole MPI-771 display translation is deleted**: `displayComplement` /
+  `_complementMaskLayer` (nothing else in the app used them), `_maskFlip`, `_flipActive`,
+  `setMaskDisplayFlip`, the brush's paint/erase swap, the panel's `flip`, the CSS
+  `--complement` class. Net: less code than before.
+- **`getCutMasks()` flips once at the boundary** (`utils/maskUtils.js` `invertMaskUrl`), so
+  `routes/gifCutout.js`, `applyMaskAlpha`, Grow / Fill Holes / Invert and MPI-858's alpha
+  ceiling are untouched and see exactly what they saw before.
+- **Invert is a cut-time switch, never a redraw** - "the mask is what survives". The tint no
+  longer moves when it is toggled; Cut-out and the Mask Brush show the same store always.
+
+### Two behaviour changes Fabio should know about
+
+1. **By name + Add now marks the named object for REMOVAL** (it used to keep it). Keeping a
+   named subject is Invert, or Mask-all then Subtract - the flow he described himself.
+2. **Toggling Invert no longer moves the highlight.** It changes what the cut keeps, not what
+   the mask looks like.
+
+### Verified
+
+- 16/16 GIF desktop specs in the real app; `npm test` 1599 pass, 0 fail; eslint clean.
+- New pixel proof ON DISK for the everyday path, in the real round trip: Background -> Add ->
+  Cut out with Invert off leaves the subject at alpha 255 and the background at 0, and the
+  Background proposal itself is proven to be the engine mask's other half.
+- The round-trip story (name the mascot, KEEP it) now runs with Invert on and every one of
+  its alpha assertions stands verbatim - the boundary flip and the route's invert proven to
+  cancel exactly.
+- The three mask-display specs changed their FIXTURES to the new store space and kept every
+  assertion about where the highlight lands. One of them was sampling the stage's letterbox
+  corner, which only ever worked because the complement bled tint out there; it samples the
+  frame's own box now.
+- One `npm test` run in this session showed 18 failures in ffmpeg/store/stems tests - none in
+  files this card touches, a different set each run, all green alone and on the re-run. 19
+  Electron processes were live on the box at the time.
+
+### Not done here, needs Fabio's permission
+
+`.claude/rules/component-mounts.md:184` still lists the removed viewer API
+(`setMaskDisplayFlip` and friends). Rule files are not edited without being asked.
+
 ## Seen once, not reproduced, not ours
 
 `gif-workspace.spec.js` "gif stage: right-click reverses the frames and clears every mask"
