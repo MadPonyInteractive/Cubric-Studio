@@ -892,11 +892,19 @@
     gap: var(--s-2);
     font-size: var(--t-2xs);
 }
+/* The cogwheel annotates the field beside it, so it matches that field's height —
+   which is the boxed model name / dropdown trigger at 39px, NOT a button size. An
+   `sm` button is 34px and `align-items: center` left it floating 2.5px inside each
+   edge, which is what read as a dent (Fabio, MPI-822).
+   Only the COG's host becomes a flex container, never `> *`: the model name is a
+   span relying on text-overflow: ellipsis, and ellipsis does not survive its box
+   becoming a flex container. */
 .mpi-base-flow__model-pick {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     gap: var(--s-2);
 }
+.mpi-base-flow__model-cog-host { display: flex; }
 /* The dropdown (or the static name) takes the width; the cogwheel keeps its own. */
 .mpi-base-flow__model-pick > :first-child {
     flex: 1;

@@ -40,6 +40,18 @@
       stretch` only reached the two block mount hosts. Hosts are `display: flex` now,
       so the stretch reaches the buttons. Pinned by
       `tests/desktop/flow-run-row-heights.spec.js` (height AND both edges).
+- [x] **App-wide: one height per control size.** Fabio, same pass: "fix the MpiButton
+      height gap app-wide too, I am tired of these buttons always adding the wrong
+      height" - pointing at the `Krea 2` row's cogwheel. New `--control-h-sm|md|lg`
+      tokens (34/50/62px) in `styles/01_base.css`, applied as `min-height` per size
+      in `MpiButton.css`. Measured before: text 31/47/58 vs icon 34/50/62. After:
+      every variant equals its token. Nothing shrank - the token is the taller side.
+- [x] The `Krea 2` row is a SECOND, different gap and needed its own fix: that box is
+      39px on its own padding scale, and the cog is an `sm` button at 34px, so
+      equalising MpiButton alone would have left it 5px out. `.mpi-base-flow__model-pick`
+      stretches and the cog's host is a flex container; the model name's
+      `text-overflow: ellipsis` is deliberately NOT swept into that (a flex box loses
+      it) and the spec asserts a long name still clips.
 
 Dropped from the original list, with the reason: **no per-run input snapshot was
 built.** The brief asked for one; the code already had it (plan.md § Plan Drift 1).

@@ -1717,7 +1717,7 @@ export const MpiBaseFlow = ComponentFactory.create({
                 }
 
                 if (showCog) {
-                    const cogHost = ce('div');
+                    const cogHost = ce('div', { className: 'mpi-base-flow__model-cog-host' });
                     pick.appendChild(cogHost);
                     const cog = MpiButton.mount(cogHost, {
                         icon: 'settings',

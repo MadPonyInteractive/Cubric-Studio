@@ -108,12 +108,58 @@ sharing top AND bottom edge. Pinned by `tests/desktop/flow-run-row-heights.spec.
 Sizing `Stop` `md` (round 1) was still correct; it just could not fix an inequality
 that lives between the text and icon variants of the same size.
 
-**Noticed, NOT actioned - app-wide, needs Fabio's call.** That 47-vs-50 gap is in
-`MpiButton` itself, not in the flow: any row pairing a text button with an icon
-button of the same size is misaligned by 3px unless its container passes a stretch
-through. Making the sizes agree in `MpiButton.css` (a `min-height` per size) would
-change the height of every text button in the app, so it is a separate decision and
-deliberately out of this card. That closes MPI-822's user-ux
+## APP-WIDE: one height per control size (Fabio asked for it, same pass)
+
+*"fix the MpiButton height gap app-wide too, I am tired of these buttons always
+adding the wrong height ... look in this flow where it says KREA2: it has a settings
+button, and it's all messed up. It happens too often."*
+
+**Measured first, across every variant and size** - the gap was never md-only:
+
+| size | text | icon | icon+text | token now |
+|---|---|---|---|---|
+| sm | 31 | 34 | 34 | **34** |
+| md | 47 | 50 | 50 | **50** |
+| lg | 58 | 62 | 62 | **62** |
+
+A text button is a line box (10/13/15px); an icon button is a glyph box (16/20/24px).
+`--control-h-sm|md|lg` (`styles/01_base.css`) is now the single answer, applied as
+`min-height` per size in `MpiButton.css`. The token is the TALLER side, so icon
+buttons are untouched and text buttons grow 3-4px; nothing shrinks, and the `image`
+prop's 32px face still wins because a minimum is a floor, not a clamp.
+
+**The `Krea 2` row was a DIFFERENT gap, and the app-wide fix does not reach it.**
+Said plainly because the ask assumed it would: that box is `.mpi-base-flow__model-name`
+at **39px** on its own 10px padding scale - deliberately mirroring
+`.mpi-dropdown__trigger` so the slot keeps its shape when a second model installs -
+while the cog is an `sm` button at 34px. Making MpiButton's sizes agree leaves it 5px
+short. Fixed at the row: `.mpi-base-flow__model-pick` is `align-items: stretch` and
+the cog's host is a flex container, so the cog takes the field's height. Only the
+cog's host - the model name relies on `text-overflow: ellipsis`, which does not
+survive its box becoming a flex container, and the spec asserts a long name still
+clips.
+
+Pinned by `tests/desktop/control-heights.spec.js`: every variant at every size equals
+its token, the cog matches the field's height AND top edge, and the ellipsis still
+clips. It fails if a new variant arrives at its own height, or if the tokens and
+MpiButton drift apart.
+
+**Blast radius checked, not assumed.** Every text button in the app is 3-4px taller.
+`grep` found nothing depending on the old numbers (no hardcoded 31/34/47/50/58/62 in
+js/ or styles/ beyond an unrelated 34px glyph box, no spec asserting them), and the
+FULL desktop suite was run rather than a subset: **142 passed, 3 failed**.
+
+The three are `gif-cutout`, `gif-timing` and `gif-transform`, and they are NOT this
+change. Proven rather than argued: the three `min-height` lines were neutralised in
+place and `gif-transform` failed identically without them. Their symptoms are a GIF
+history entry never written and a frame PNG missing from disk - neither reachable by
+a stylesheet. They also passed in CI at `addb1c43`, the commit immediately before this
+work, so the cause sits in the shared tree's UNCOMMITTED peer edits (MPI-736's canvas
+pass has MpiCanvas.js / MpiStepCutout.js / MpiStepPaint.js open), not in anything
+committed. Worth knowing before someone meets them: they are real, and local-only.
+
+Unit suite, on a quiet box: **1524 pass / 0 fail / 1 skipped**. An earlier run reporting
+24 failures was CPU contention - the desktop suite was running at the same time. That closes MPI-822's user-ux
 verification: the card is code-complete, self-verified and user-verified.
 
 Scope note, stated rather than glossed: those five steps are all MPI-822. **MPI-827's

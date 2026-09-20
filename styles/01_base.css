@@ -169,6 +169,18 @@
   --s-7:   72px;
   --s-8:   112px;
 
+  /* Control heights — ONE height per size, whatever the control holds.
+     A control's height used to fall out of its content: a text button came to 47px
+     at `md` and the same button with an icon came to 50px, because the glyph box is
+     taller than a 13px line box. Any row pairing them was 3-4px out and read as a
+     dented button (Fabio, MPI-822 — "it happens too often"). These are the settled
+     numbers, taken from the tallest variant at each size so nothing shrank:
+     padding + the icon box + 2px border. A control that wants to sit beside another
+     wears the matching token rather than arriving at its own answer. */
+  --control-h-sm: 34px;
+  --control-h-md: 50px;
+  --control-h-lg: 62px;
+
   /* Radius */
   --r-1:    0px;     /* sharp — Stage prefers angular over rounded */
   --r-2:    4px;     /* small affordances */

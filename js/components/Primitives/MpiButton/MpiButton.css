@@ -29,19 +29,29 @@
 .mpi-btn--pill { border-radius: var(--r-pill); }
 
 /* ── Sizes ────────────────────────────────────────────────────────────────── */
+/* `min-height` is what makes a size ONE height. Without it the height fell out of
+   the content: a text button is a line box (10/13/15px), an icon button is a glyph
+   box (16/20/24px), so text sat 3-4px shorter than the icon button beside it and the
+   pair read as broken. The token is the taller of the two, so icon buttons are
+   unchanged and text buttons grow to meet them — nothing shrinks, and no call site
+   has to pass a height. A taller child (the `image` prop's 32px face) still wins,
+   because this is a MINIMUM. */
 .mpi-btn--sm {
     padding: 8px 14px;
     font-size: var(--t-2xs);
+    min-height: var(--control-h-sm);
 }
 
 .mpi-btn--md {
     padding: 14px 24px;
     font-size: var(--t-sm);
+    min-height: var(--control-h-md);
 }
 
 .mpi-btn--lg {
     padding: 18px 32px;
     font-size: var(--t-md);
+    min-height: var(--control-h-lg);
 }
 
 /* ── Variants ─────────────────────────────────────────────────────────────── */
