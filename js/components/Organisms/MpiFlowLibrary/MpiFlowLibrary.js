@@ -241,6 +241,10 @@ export const MpiFlowLibrary = ComponentFactory.create({
                 media: 'image',
                 preview: flow.preview,
                 state: _badgeHtml(flow),
+                // Desaturated until the flow can actually run (MPI-831). Same signal the
+                // chip beside it reads, so the two can never disagree — a grid of full-colour
+                // thumbs reads as a catalogue of what you HAVE, and most of it is not.
+                dimmed: !flowAvailability(flow).available,
                 source: flow,
             };
             if (_isThirdParty(flow) && MEDIA_SECTIONS.some(s => s.media === flow.mediaType)) {
@@ -815,7 +819,15 @@ export const MpiFlowLibrary = ComponentFactory.create({
         function _patchTile(flowId) {
             const flow = listFlows().find(a => a.id === flowId);
             if (!flow) return;
-            _sheets.forEach(s => s?.el?.patchState(flowId, _badgeHtml(flow)));
+            // Chip AND thumb, off one availability read. Patching only the chip is what
+            // leaves a finished install showing a grey thumb under a `Ready` badge until
+            // something else forces a rebuild — and a rebuild is the one thing this path
+            // exists to avoid (MPI-235).
+            const dimmed = !flowAvailability(flow).available;
+            _sheets.forEach((s) => {
+                s?.el?.patchState(flowId, _badgeHtml(flow));
+                s?.el?.setDimmed(flowId, dimmed);
+            });
             if (_activeDetail && _activeDetail.id === flowId) openDetail(flow);
         }
 

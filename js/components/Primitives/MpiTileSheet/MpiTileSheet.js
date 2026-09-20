@@ -56,6 +56,7 @@ const TILE_FLAGS = [
  * @property {boolean} [featured]       - Gold sparkle flag on the thumb
  * @property {boolean} [deprecated]     - Warning flag on the thumb (model is on its way out)
  * @property {boolean} [dot]            - Recently-installed heat dot
+ * @property {boolean} [dimmed]         - Desaturates the thumb (not installed yet)
  * @property {boolean} [waiting]        - Queued-install waiting mascot
  * @property {string}  [state]          - HTML for the fixed-height bottom row
  * @property {boolean} [selected]       - Renders the tile as the current choice
@@ -69,6 +70,7 @@ const TILE_FLAGS = [
  * Instance methods (on instance.el):
  *   setItems(items)         — full rebuild
  *   patchState(id, html)    — swap one tile's bottom row in place; no-op if absent
+ *   setDimmed(id, bool)     — toggle the uninstalled desaturation
  *   setWaiting(id, bool)    — toggle the waiting mascot
  *   setSelected(id|null)    — move the selected modifier
  *   getTile(id)             — the tile element, or null
@@ -135,7 +137,7 @@ export const MpiTileSheet = ComponentFactory.create({
         function _buildTile(item) {
             const isVideo = item.media === 'video';
             const tile = ce('button', {
-                className: `mpi-tile mpi-tile--${isVideo ? 'video' : 'image'}${item.selected ? ' mpi-tile--selected' : ''}`,
+                className: `mpi-tile mpi-tile--${isVideo ? 'video' : 'image'}${item.selected ? ' mpi-tile--selected' : ''}${item.dimmed ? ' mpi-tile--dimmed' : ''}`,
                 type: 'button',
             });
 
@@ -221,6 +223,15 @@ export const MpiTileSheet = ComponentFactory.create({
         el.patchState = (id, html) => {
             const ref = _tiles.get(id);
             if (ref) ref.stateEl.innerHTML = html ?? '';
+        };
+
+        // Uninstalled desaturation (MPI-831). A sibling of setWaiting rather than a
+        // third argument on patchState: the two travel together for the Flow Library
+        // but nothing else sets `dimmed`, and widening the shared signature would
+        // hand three surfaces a parameter none of them mean.
+        el.setDimmed = (id, isDimmed) => {
+            const ref = _tiles.get(id);
+            if (ref) ref.tile.classList.toggle('mpi-tile--dimmed', !!isDimmed);
         };
 
         el.setWaiting = (id, isWaiting) => {

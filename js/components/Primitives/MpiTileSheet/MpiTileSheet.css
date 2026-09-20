@@ -68,6 +68,19 @@
 }
 .mpi-tile:hover .mpi-tile__thumb-media { transform: scale(1.04); filter: saturate(1) brightness(1); }
 
+/* Not installed yet (MPI-831). Consumer-set, like the media flags — the Model
+   Library, the App Library and the picker never pass `dimmed`, so their tiles are
+   unchanged. It dims the MEDIA, not the whole thumb: the media flag sitting on top
+   keeps its colour, because what a Flow makes does not change with whether its
+   weights have landed.
+   The hover twin below is not optional. `.mpi-tile:hover .mpi-tile__thumb-media`
+   outranks a plain `.mpi-tile--dimmed .mpi-tile__thumb-media` on specificity, so
+   without it the grey lifts under the pointer and the state reads as a hover
+   effect. Equal specificity, so it must stay AFTER the hover rule above. Hover
+   moves brightness only — the grey IS the install state. */
+.mpi-tile--dimmed .mpi-tile__thumb-media { filter: grayscale(0.85) brightness(0.72); }
+.mpi-tile--dimmed:hover .mpi-tile__thumb-media { filter: grayscale(0.85) brightness(0.88); }
+
 /* Fallback gradient when no preview asset (mirrors the mockup placeholder) */
 .mpi-tile__thumb--placeholder::after {
     content: "";

@@ -10,27 +10,28 @@ card the two redirect URLs.
 
 ## Current State
 
-**Phases 1 and 2 are shipped and Fabio-verified (2026-09-20). Next action: phase 3, the
-dimmed uninstalled tiles.** Nothing is committed yet — the working tree carries the change.
+**Phases 1, 2 and 3 are shipped and Fabio-verified. 1 and 2 are pushed (`3a27fc32`, red
+fixed by `510e3a03`); phase 3 is verified but UNCOMMITTED — the working tree carries it.
+Next action: phase 4, the two paid tiles.** MPI-81 still owes the two redirect URLs, and
+the plan's standing answer is to ship the plain product URLs with a comment rather than
+wait.
 
-Phase 3 starts from a decision the plan still leaves open: `MpiTileSheet` is shared by the
-Model Library, the App Library and the model picker, so decide the desaturation's blast
-radius BEFORE writing. Phase 2 set the precedent and it should be followed — the media
-flags are **opt-in keys the consumer sets**, so the other three surfaces were untouched
-without a single conditional. The same shape works for the dim: a class the consumer asks
-for, not a rule every tile sheet inherits.
+Phase 3 as built, in three places:
 
-**Verifying phase 3 needs installed packages, and the seeded ones DO NOT last.**
+- `MpiTileSheet` grows a `dimmed` item key and an `el.setDimmed(id, bool)` — a sibling of
+  the existing `setWaiting`, **not** a third argument on `patchState`. Nothing but the Flow
+  Library sets `dimmed`, and widening the shared signature would hand three surfaces a
+  parameter none of them mean. Opt-in throughout, exactly as phase 2 settled it.
+- The CSS dims `.mpi-tile__thumb-media`, not `.mpi-tile__thumb`: the media flag sitting on
+  top keeps phase 2's colour, because what a Flow MAKES does not change with whether its
+  weights have landed.
+- `_patchTile` sets chip AND class off one `flowAvailability` read, which is the trap.
 
-- Two valid packages go in `%TEMP%\cubric-agent-profile\user_flows\` (`seed-image-flow`,
-  `seed-audio-flow`), built by `scratchpad/seed_packages.cjs` — the recipe is in
-  `## Plan Drift`, and rebuilding takes one command.
-- **Expect them to be gone.** The agent profile lives under `%TEMP%`, and it was wiped and
-  rebuilt from scratch mid-session on 2026-09-20 (every file in it restamped within one
-  minute). `npm run app:isolated` reuses the profile PATH, not its contents. Check
-  `GET /user-flows` returns both before trusting a Library screenshot — an empty result and
-  a correctly-absent section look identical.
-- Both preview off ONE file, so the two tiles look identical. That is the seed, not a bug.
+**The seeded packages are GONE and phase 3 did not need them.** The profile under `%TEMP%`
+was evicted again — `scratchpad/seed_packages.cjs` went with it — and the boot log said
+`[userFlows] 0 package(s)`. It did not matter: the dim keys on availability, not on origin,
+so the eight built-in `Get models` tiles exercise every path. **Phase 4 will need them
+back**, and the seeder must be rewritten from the recipe in `## Plan Drift`.
 
 What is already there, and matters:
 
@@ -92,18 +93,27 @@ that. So the flag carries media instead.
 **Verified** 2026-09-20: live DOM shows flags on exactly the two package tiles and nowhere
 else; Fabio confirmed in the app.
 
-## Phase 3 — dimmed uninstalled tiles
+## Phase 3 — dimmed uninstalled tiles — SHIPPED
 
-Desaturate the thumb of any tile that is not installed. The CSS is trivial; the work is
-that `patchState` must toggle a class on the tile, or a finishing install leaves a grey
-thumb under a `Ready` chip.
+Desaturate the thumb of any tile that is not installed. The blast-radius question is
+settled the way phase 2 settled it: a `dimmed` key the consumer opts into, so the Model
+Library, the App Library and the model picker are untouched with no conditional anywhere.
 
-`MpiTileSheet` is shared by the Model Library, the App Library and the model picker, so
-decide the blast radius before writing: either all surfaces get it (preferred, consistent)
-or the class is set by the consumer and only the Flow Library opts in.
+The real work was never the CSS. Two things could each have shipped looking fine:
 
-**Verify:** install a Flow's models and watch the thumb regain colour **without a full grid
-rebuild** — `_patchTile` is the path, and MPI-235 is why it must stay a patch.
+- **The patch path.** `_patchTile` swapped only the chip, so a finishing install would have
+  left a grey thumb under a `Ready` badge until something forced a rebuild — and a rebuild
+  is the one thing that path exists to avoid (MPI-235). It now sets both off one
+  `flowAvailability` read, so the two cannot disagree.
+- **The hover cascade.** `.mpi-tile:hover .mpi-tile__thumb-media` (0,3,0) outranks a plain
+  `.mpi-tile--dimmed .mpi-tile__thumb-media` (0,2,0), so the base rule alone would have let
+  the colour flood back under the pointer — the install state reading as a hover effect.
+  The fix is a same-specificity `.mpi-tile--dimmed:hover` twin placed AFTER the hover rule.
+  Hover moves brightness only; the grey is the state.
+
+**Verified** 2026-09-20 (see `validation.md`): 0 chip/class mismatches across 13 tiles,
+computed `filter` asserted during a real hover, and the un-dim proven to keep the SAME tile
+element rather than rebuilding the grid.
 
 ## Phase 4 — the two paid tiles
 
@@ -171,6 +181,17 @@ the package replaces the link tile with the real Flow rather than adding a secon
   re-creates `user_flows/` the moment it scans, so moving the original back drops it
   INSIDE as `user_flows/user_flows_off`. It does not error — the section just renders one
   broken tile named after the folder. Move the package folders, not their parent.
+- **2026-09-20 — phase 3 needed no packages, and the handoff said it did.** The dim keys on
+  `flowAvailability`, not on `user:`, so every uninstalled built-in exercises it; the
+  third-party tiles run the identical `_tileItem`. The seeded packages were gone again
+  (`[userFlows] 0 package(s)`) and `scratchpad/seed_packages.cjs` had been evicted with
+  them. Phase 4 DOES need them, so the seeder has to be rebuilt from the recipe above.
+- **2026-09-20 — `js/components/types.js` was NOT updated, deliberately.** MPI-857 and
+  MPI-859 both held fresh write claims on it. Its `MpiTileSheetItem` typedef was already
+  three keys behind (phase 2 never updated it either) and is now four, plus `setDimmed` is
+  missing from the instance-method list. Carried as a checklist item, to be done when the
+  claims clear — it is one docblock, and fighting two live peers over it is not worth a
+  merge conflict.
 - **Raised and overruled:** phase 4's two paid tiles are Mad Pony products, so
   "Third-party Flows" sits over the only two Flows we take money for. Worse, the code
   cannot separate them — post-install a Mad Pony package and a stranger's are both
@@ -187,6 +208,10 @@ the package replaces the link tile with the real Flow rather than adding a secon
   after them, icon `cube`, no CSS needed — `--cube` has no rule and inherits the base
   header colour exactly as `--image` does.
 - **Phase 2 — the media flag** (see the phase, built differently from the plan).
+- **Phase 3 — dimmed uninstalled tiles.** Opt-in `dimmed` key + `setDimmed()` on the
+  primitive, `_tileItem` setting it from `flowAvailability`, `_patchTile` toggling chip and
+  class together, and the same-specificity hover twin that keeps the grey under the pointer.
+  Fabio-verified 2026-09-20 in the real Electron window; evidence table in `validation.md`.
 
 Proven 2026-09-20, in an isolated instance with two seeded packages:
 
