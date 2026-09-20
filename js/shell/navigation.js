@@ -76,6 +76,19 @@ export function initNavigation(refs) {
     // Gallery breadcrumb — always goes to main gallery
     _projectNameInst.on('gallery', () => navigate(PAGE_GALLERY));
 
+    // MPI-797: the Agent toggle moved here from MpiPromptBox (MPI-843). The button is
+    // the VISIBLE TWIN of the `A` hotkey, which `agentPanel.js` already binds to the
+    // same write — both sides meet at `state.agentMode` and the panel reacts to it, so
+    // nothing else needs wiring. The listener below repaints the button, which is why
+    // the bar never reads state itself.
+    _projectNameInst.on('agent', () => { state.agentMode = !state.agentMode; });
+
+    // App-lifetime, like `_projectNameInst` itself (one instance, set once above, not
+    // remounted per workspace) — so the button follows the panel however it was opened:
+    // this button, `A`, or anything else that writes the state.
+    Events.onState('agentMode', (val) => _projectNameInst.el.setAgentActive(!!val));
+    _projectNameInst.el.setAgentActive(!!state.agentMode);
+
     // MPI-589: the quick route to Flows, now that the library is no longer dev-gated.
     // The bar emits; opening is the shell's business, and `flows:open` already carries
     // the no-engine guard.

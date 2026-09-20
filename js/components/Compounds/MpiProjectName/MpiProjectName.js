@@ -42,11 +42,13 @@ function _mountButton(props) {
  *   setGroupLabel(label)               — pass '' to hide (we are not inside a group)
  *   setStats({ count, bytes, label })  — update stats; any field optional
  *   setRecordVisible(visible)          — show/hide Record (gallery-only, MPI-678)
+ *   setAgentActive(active)             — paint Agent as toggled on (MPI-797; shell owns state.agentMode)
  *   getToolbarSlot()                   — empty slot navigation.js mounts MpiGalleryToolbar into (MPI-749)
  *
  * Emits:
  *   'up'      {} — up-arrow clicked (navigate up one level)
  *   'gallery' {} — gallery breadcrumb segment clicked
+ *   'agent'   {} — Agent clicked (shell flips state.agentMode; MPI-797)
  *   'flows'   {} — Flows clicked (shell opens the Flow Library)
  *   'record'  {} — Record clicked (shell owns the recorder)
  */
@@ -126,6 +128,20 @@ export const MpiProjectName = ComponentFactory.create({
         // Both emit — the shell decides what each one means.
         const centreGroup = ce('div', { className: 'mpi-project-name__centre' });
 
+        // MPI-797: the Agent toggle left MpiPromptBox for this bar (MPI-843's drawing,
+        // approved by Fabio 2026-09-20), so the prompt box goes back to being purely a
+        // generation surface and the user can generate and talk at the same time.
+        // It is mounted FIRST so the row reads Agent - Flows - Record: with `__centre`'s
+        // 1fr auto 1fr grid that puts Flows dead centre, which also pays back the half-
+        // button drift MPI-678 accepted. Emits like its two neighbours — the shell owns
+        // what it means, and `agentPanel.js` already binds `A` to the same state.
+        const agentBtn = _mountButton({
+            icon: 'chat', label: 'Agent', size: 'sm', variant: 'ghost',
+            extraClasses: 'mpi-project-name__agent',
+            info: 'Talk to the agent about this project',
+        });
+        agentBtn.addEventListener('click', () => emit('agent', {}));
+
         const flowsBtn = _mountButton({
             icon: 'layers', label: 'Flows', size: 'sm', variant: 'ghost',
             extraClasses: 'mpi-project-name__flows',
@@ -144,7 +160,7 @@ export const MpiProjectName = ComponentFactory.create({
         });
         recordBtn.addEventListener('click', () => emit('record', {}));
 
-        centreGroup.append(flowsBtn, recordBtn);
+        centreGroup.append(agentBtn, flowsBtn, recordBtn);
 
         // ── Toolbar slot (MPI-749) ──────────────────────────────────────────────
         // Empty here: navigation.js mounts MpiGalleryToolbar into it on the gallery
@@ -230,6 +246,15 @@ export const MpiProjectName = ComponentFactory.create({
          */
         el.setRecordVisible = (visible) => {
             _toggle(recordBtn, !visible);
+        };
+        /**
+         * MPI-797: paint the Agent button to match an open panel. The shell owns
+         * `state.agentMode` and calls this; the bar never reads state itself, the way
+         * it never reads which page it is on. `--accent-heat`, no fill (Fabio, round 2
+         * on MPI-843's drawing) — the toggled-ghost look in `MpiButton.css`.
+         */
+        el.setAgentActive = (active) => {
+            agentBtn.setActive(!!active);
         };
         /** @returns {HTMLElement} the toolbar slot — see the slot comment above (MPI-749) */
         el.getToolbarSlot = () => toolbarSlot;

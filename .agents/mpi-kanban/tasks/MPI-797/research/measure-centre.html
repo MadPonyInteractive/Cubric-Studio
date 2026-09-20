@@ -1,0 +1,101 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MPI-797 — centre bar measurement</title>
+<!-- MPI-797. Mounts the REAL MpiProjectName against the REAL stylesheets, so the
+     project bar can be measured without booting Electron. Run it with:
+
+       python -m http.server 8791 --bind 127.0.0.1      (from the repo root)
+       npx playwright-cli -s=mpi797 open \
+         "http://127.0.0.1:8791/.agents/mpi-kanban/tasks/MPI-797/research/measure-centre.html"
+       npx playwright-cli -s=mpi797 eval "JSON.stringify(window.__result)"
+
+     Two traps it was written around, both of which produce numbers that look like
+     layout bugs rather than harness bugs:
+       - the <base> tag below (see its own note);
+       - these buttons carry `transition: color`, so reading getComputedStyle right
+         after toggling `.is-active` returns an INTERPOLATED oklab() value. Wait out
+         the transition before reading a colour, or the toggled look reads as broken. -->
+<!-- LOAD-BEARING. ComponentFactory injects component CSS by RELATIVE path
+     ('js/components/.../X.css'), so without this the browser resolves them against
+     THIS file's folder and 404s — the component then mounts completely unstyled and
+     every measurement below is a lie that looks like a layout bug. Serve the repo
+     root and open this by its full path; the base tag does the rest. -->
+<base href="/">
+<link rel="stylesheet" href="/styles/01_base.css">
+<style>
+  /* Harness box only. Everything measured below comes from the REAL stylesheets. */
+  body { margin: 0; background: #1a1a1a; }
+  #bar { position: relative; width: 1400px; height: 48px; display: flex; align-items: center; }
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<script type="module">
+import { MpiProjectName } from '/js/components/Compounds/MpiProjectName/MpiProjectName.js';
+
+const inst = MpiProjectName.mount(document.getElementById('bar'), {});
+inst.el.setProjectName('A Project');
+inst.el.setStats({ count: 12, bytes: 1234567, label: 'ASSETS' });
+
+await new Promise(r => setTimeout(r, 800));   // let the factory's CSS loads land
+
+const bar = document.getElementById('bar');
+const q = (s) => bar.querySelector(s);
+
+function measure() {
+  const centre = q('.mpi-project-name__centre');
+  const barR = bar.getBoundingClientRect();
+  const cR = centre.getBoundingClientRect();
+  const off = (el) => {
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return +((r.left + r.width / 2) - (barR.left + barR.width / 2)).toFixed(2);
+  };
+  const w = (el) => (el ? +el.getBoundingClientRect().width.toFixed(2) : null);
+  return {
+    display: getComputedStyle(centre).display,
+    cols: getComputedStyle(centre).gridTemplateColumns,
+    groupWidth: +cR.width.toFixed(2),
+    halfGroup: +(cR.width / 2).toFixed(2),
+    flowsOffCentre: off(q('.mpi-project-name__flows')),
+    agentW: w(q('.mpi-project-name__agent')),
+    flowsW: w(q('.mpi-project-name__flows')),
+    recordW: w(q('.mpi-project-name__record')),
+  };
+}
+
+inst.el.setRecordVisible(true);
+const withRecord = measure();
+inst.el.setRecordVisible(false);
+const noRecord = measure();
+inst.el.setRecordVisible(true);
+
+// The toggled look, straight off the real cascade.
+const agent = q('.mpi-project-name__agent');
+inst.el.setAgentActive(false);
+const restColour = getComputedStyle(agent).color;
+const restBg = getComputedStyle(agent).backgroundColor;
+inst.el.setAgentActive(true);
+const activeColour = getComputedStyle(agent).color;
+const activeBg = getComputedStyle(agent).backgroundColor;
+
+const probe = document.createElement('span');
+probe.style.color = 'var(--accent-heat)';
+document.body.appendChild(probe);
+const heat = getComputedStyle(probe).color;
+probe.style.color = 'var(--ink-2)';
+const ink2 = getComputedStyle(probe).color;
+
+window.__result = {
+  withRecord, noRecord,
+  agent: { restColour, restBg, activeColour, activeBg },
+  tokens: { heat, ink2 },
+  heatMatches: activeColour === heat,
+  activeHasNoFill: activeBg === 'rgba(0, 0, 0, 0)' || activeBg === 'transparent',
+};
+window.__ready = true;
+</script>
+</body>
+</html>

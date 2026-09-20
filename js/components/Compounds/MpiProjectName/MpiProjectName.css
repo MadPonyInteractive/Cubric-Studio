@@ -23,11 +23,22 @@
    sit beside it. The GROUP is now dead-centre, which puts Flows half a Record button
    left of where MPI-589 placed it. */
 
+/* MPI-797: a GRID, not a flex row, so FLOWS is dead centre rather than the group.
+   The wrapper is absolutely centred, so its width is shrink-to-fit: under that sizing
+   the two `1fr` columns each resolve to the WIDER of Agent and Record, which makes
+   them equal, which puts the `auto` middle column's centre on the bar's centre —
+   whatever its neighbours measure, and whether or not Record is mounted (a hidden
+   Record leaves an empty third column that is still 1fr). That repays the half-button
+   drift MPI-678 accepted when Record joined and shoved Flows off centre.
+   `justify-items: center` is load-bearing: the default `stretch` would pull Agent and
+   Record out to their column's full width. */
 .mpi-project-name__centre {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    justify-items: center;
     align-items: center;
     gap: 0.25rem;
 }
@@ -161,8 +172,15 @@
    pinned right on group-history, where the slot is empty.
    `max-width` reserves the right half of the bar minus the centre group: `__centre`
    is absolutely positioned, so flex cannot see it and would let the toolbar slide
-   under Flows + Record instead of shrinking its sliders. 7.25rem = half the Flows +
-   Record group (~96px) + the flex gap + 8px clearance. Measured live, validation.md. */
+   under the buttons instead of shrinking its sliders.
+
+   MPI-797 RE-MEASURED this: Agent made the group a third wider, so the old 7.25rem
+   (half a ~96px Flows + Record group, plus gap and clearance) no longer clears it and
+   the sliders would slide under Record. Measured live with the real component at
+   1400px — Agent 90 + Flows 90 + Record 97.2 + two 0.25rem gaps = 292.41px, so half
+   the group is 146.2px = 9.14rem; + 8px clearance = 9.64rem, taken to 9.75rem.
+   The three-button case is the right one to size against: Record is gallery-only, and
+   the gallery is the only page that mounts a toolbar here. */
 
 .mpi-project-name__toolbar {
     display: flex;
@@ -170,7 +188,7 @@
     justify-content: flex-end;
     margin-left: auto;
     min-width: 0;
-    max-width: calc(50% - 7.25rem);
+    max-width: calc(50% - 9.75rem);
 }
 
 /* Narrow window: the gallery controls win over the N ASSETS · SIZE readout (Fabio,
@@ -234,6 +252,21 @@
 
 .mpi-btn.mpi-ibtn.mpi-btn--ghost.mpi-project-name__record:hover:not(:disabled) {
     color: var(--accent-heat-hi);
+}
+
+/* MPI-797: the open-panel look. The BUTTON needs nothing — an icon+label button still
+   carries `mpi-ibtn`, so MpiButton's `.mpi-btn.mpi-ibtn.mpi-btn--ghost.is-active`
+   already gives it `--accent-heat` and no fill, which is what Fabio asked for.
+   The LABEL is the part that does not follow: `.mpi-ibtn.is-active .mpi-ibtn__label`
+   pins `--ink-1` at (0,3,0), so an active Agent button read heat glyph + near-white
+   text — measured, not assumed. Stated at (0,4,0) to outrank it, the same weight
+   lesson the Record rules below record. MpiButton is NOT changed: a labelled icon
+   button going `--ink-1` when toggled is correct everywhere else.
+   Heat here is Studio cream at L 0.78, marginally DIMMER than the resting `--ink-2`
+   at L 0.85 — accepted (Fabio, round 2 on MPI-843): the open 420px panel is the loud
+   signal, the button only has to agree with it. */
+.mpi-btn.mpi-ibtn.mpi-project-name__agent.is-active .mpi-ibtn__label {
+    color: var(--accent-heat);
 }
 
 .mpi-project-name__record .mpi-ibtn__label {
