@@ -155,6 +155,8 @@ test('list_cards makes the project`s refs usable, and keeps the paths from the m
     const loop = new AgentLoop({ tools: {
         listCards: async (folderPath, groupId, limit) => ({ ok: true, ...(groupId ? await cards.readCard(folderPath, groupId) : await cards.listCards(folderPath, { limit })) }),
         look: async (args) => { looked.push(args); return { ok: true, output: { text: 'a duck' } }; },
+        storedLook: async () => null,
+        storeLook: async () => {},
     } });
     const project = { folderPath: root, name: 'Cowgirl on a Bull' };
 

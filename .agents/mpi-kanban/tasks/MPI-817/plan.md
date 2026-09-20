@@ -169,6 +169,15 @@ action: the sidecar-stored look (`services/agentLoop.mjs` + `agentTools.mjs`), t
 a second look at the same card makes zero vision calls. Then denoise as a named param, whose
 `describe_model` half lives in MPI-797's `agentDispatch.js`: message before touching it.
 
+**Update 23:58Z, same session.** The sidecar-stored look is BUILT, suite-green and proven
+against the real `update-meta` route (`validation.md`, last section). NOT live-seen: it needs a
+restart and one "make a still, then tell me what you see". Open question put to Fabio: a kept
+description outlives the describer that wrote it, so a better vision model will not re-read
+cards the old one already described. Single next action: denoise as a named param. START by
+reading where `controlState.op.denoise` comes from (default vs his last slider: still NOT
+checked), then message MPI-797 before any edit to `js/shell/agentDispatch.js`. After that: the
+vision-model test on the cowgirl PNG, which spends cents on his DeepInfra key and needs his yes.
+
 ## Phase C, first piece: batch ask + wake on drain (DESIGN NOTE 2026-09-20, not built, not approved)
 
 Raised by Fabio after the step-cap find. Two halves of one job.

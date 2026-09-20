@@ -834,3 +834,45 @@ No standing prompt line was added.
 - NOT proven: a real provider accepting tool messages in history with no `tools` param. OpenAI
   shape and Ollama `/api/chat` both allow it on paper; if one 400s it surfaces as
   `ENDPOINT_ERROR`. Owed: one live chain after a restart.
+
+## A look is kept once, in the card's sidecar (built 2026-09-20 23:55Z, session 3ed1701d, NOT live-seen)
+
+Fabio's decision from the restyle round: "if an image is described, it's described forever".
+`AgentLoop._lookOnce(ref)` serves BOTH the auto-look in `settle()` and a plain `look` call:
+sidecar first (`agentTools.storedLook`, straight off disk), vision model only on a miss, then
+`storeLook` writes `look: {text, at}`. A question, a crop or a box never touches the store. An
+attachment has no `itemId`, so it is described live as before.
+
+Two shape decisions the plan left open:
+- **The write goes through `POST /project-media/agent/update-meta`, not a second writer.** That
+  route owns `updateItemMeta`'s per-sidecar queue, which is not exported, and `routes/projects.js`
+  is held by a live peer (MPI-851). Going through the route needed no edit there and cannot race
+  a trim or a rename on the same card.
+- **`storeLook` never creates a sidecar.** The route starts a missing one from `{}`; a file
+  holding only `look` would read as a real item.
+
+Evidence:
+- `tests/agent-loop.test.cjs` § (k), four tests. Seen RED first on the old code: `one picture,
+  one vision call` actual 2, expected 1. Green after.
+- `tests/agent-tools-post.test.cjs` "a kept look": real temp sidecar, test-owned server. One
+  POST for a real card, none for a missing sidecar, none for a file outside `Media/`.
+- **The real route, not a stand-in:** scratch script mounting the real `routes/projects.js`
+  router on its own port over a temp project. Miss `null` -> store -> hit returns the text;
+  the sidecar kept `prompt` and `modelId` beside the new `look`; `item-none.json` was not created.
+- `npm test` -> 1663 tests, 1661 pass, 0 fail, 1 skipped (live key), 1 todo (MPI-797's, not
+  this card's). eslint clean on the six changed files.
+- `tests/agent-no-delete.test.cjs` allowlists the route, with the reason.
+
+Known limit, written into `docs/agent-findings.md`: if the renderer rewrites a sidecar from a
+copy that predates the look, the field is dropped and the next look is a miss. One extra vision
+call, nothing wrong on screen. NOT measured whether any renderer path does that.
+
+Open question for Fabio: a kept description outlives the describer that wrote it. When the
+vision model is swapped for a better one, every card already described keeps the OLD model's
+reading (the cowgirl's "leaning forward" would survive). Recording which describer wrote it
+needs `agent.describe` to report its model, and that lives in `js/shell/agentDispatch.js`
+(MPI-797 holds it).
+
+**Owed by Fabio's eyes:** restart the app (`services/` loads at boot), ask for one still with a
+follow-up that makes the agent look ("make a fox, then tell me what you see"). Pass = ONE
+`agent.describe` in app.log for that picture, and `look` present in its `Media/.meta/<id>.json`.

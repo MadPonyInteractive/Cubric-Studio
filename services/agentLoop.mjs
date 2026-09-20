@@ -626,6 +626,25 @@ export class AgentLoop {
         return this._images.get(ref) || null;
     }
 
+    /**
+     * The plain description of a picture, made ONCE per card and kept in the card's sidecar
+     * (Fabio, 2026-09-20: "if an image is described, it's described forever"). It dies with
+     * the card, and it is the only record of what the describer said: live, a wrong pose in a
+     * prompt could not be traced to the vision model or to the chat model's paraphrase.
+     *
+     * Only the UNPROMPTED description is kept. A question, a crop or a box is a different
+     * answer and goes to `_tools.look` directly. An attachment has no `itemId`, so no sidecar:
+     * it is described live every time.
+     */
+    async _lookOnce(ref) {
+        const kept = ref.itemId ? await this._tools.storedLook(ref.path, ref.itemId).catch(() => null) : null;
+        if (kept) return { ok: true, output: { text: kept } };
+        const r = await this._tools.look({ imagePath: ref.path });
+        // Awaited: the model's own look at a waited still arrives within the same turn.
+        if (r?.ok && r.output?.text && ref.itemId) await this._tools.storeLook(ref.path, ref.itemId, r.output.text).catch(() => {});
+        return r;
+    }
+
     /** The staged file behind one of this session's attachment ids, or null. */
     attachmentPath(id) {
         const img = this._resolveImage(id);
@@ -1240,7 +1259,7 @@ ${knowledgeIndex}`.trim();
                     // Auto-look at image results (brief item 10)
                     if (ok && r.output?.type === 'image' && r.output?.filePath) {
                         try {
-                            const lr = await this._tools.look({ imagePath: _decodeProjectFileUrl(r.output.filePath) });
+                            const lr = await this._lookOnce(this._resolveImage(r.output.filePath));
                             if (lr?.ok) {
                                 this._historyEntry('tool', {
                                     tool: 'look', args: { image: r.output.filePath }, status: 'done', label: 'Looked at result',
@@ -1298,6 +1317,7 @@ ${knowledgeIndex}`.trim();
                 if (!ref) {
                     return JSON.stringify({ ok: false, error: { code: 'IMAGE_NOT_FOUND', message: `Image reference not found: ${args.image}. Use an attachment id from this conversation, or the filePath of something you generated.` } });
                 }
+                if (!args.question && !args.crop && !args.box) return JSON.stringify(await this._lookOnce(ref));
                 const lookArgs = { imagePath: ref.path };
                 if (args.question) lookArgs.question = args.question;
                 if (args.crop) lookArgs.crop = args.crop;

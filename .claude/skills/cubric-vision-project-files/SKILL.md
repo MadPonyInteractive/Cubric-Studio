@@ -69,6 +69,7 @@ and `name` is the generated one; prefer `customName` when it exists.
 | `generationMs` | wall-clock for that generation |
 | `createdAt` | ISO timestamp |
 | `notes` | Free text from the gallery's Card notes. Absent until first saved. |
+| `look` | `{ text, at }`: what the in-app agent's describer said this picture shows, kept the first time it looked. Images only, absent until then. A machine's reading, not the user's words: it can be wrong, and when a prompt got a pose wrong this is where to check whether the eyes did. |
 
 ### Naming and notes land in two different files
 

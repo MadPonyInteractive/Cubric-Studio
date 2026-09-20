@@ -75,6 +75,44 @@ test('a refusal is still an ANSWER: a 400 with a JSON body resolves, as it did u
     assert.deepEqual(result, refusal, 'the loop reads { ok, error } off the body; a thrown 400 would hide the named reason');
 });
 
+// A card's description is kept in its sidecar (Fabio, 2026-09-20). The READ is off disk; the
+// WRITE goes through the route that owns the per-sidecar queue, and must never create a sidecar.
+test('a kept look: read off the sidecar, written through update-meta, and only for a real card', async () => {
+    const tools = await esm('services/agentTools.mjs');
+    const fsx = require('node:fs');
+    const project = fsx.mkdtempSync(path.join(require('node:os').tmpdir(), 'cubric-look-'));
+    const media = path.join(project, 'Media');
+    fsx.mkdirSync(path.join(media, '.meta'), { recursive: true });
+    fsx.writeFileSync(path.join(media, '.meta', 'item-1.json'), JSON.stringify({ prompt: 'a fox' }));
+    const image = path.join(media, 't2i_001.png');
+    try {
+        assert.equal(await tools.storedLook(image, 'item-1'), null, 'a sidecar with no look is a miss');
+
+        const posts = [];
+        await withServer((req, res, body) => {
+            posts.push({ url: req.url, body: JSON.parse(body) });
+            res.setHeader('Content-Type', 'application/json');
+            res.end('{"success":true}');
+        }, async () => {
+            await tools.storeLook(image, 'item-1', 'An upright rider.');
+            await tools.storeLook(image, 'item-none', 'No sidecar, so no card.');
+            await tools.storeLook(path.join(media, '.preview-assets', 'abc.png'), 'item-1', 'Not in Media/.');
+        });
+
+        assert.equal(posts.length, 1, 'a missing sidecar is never created, and a file outside Media/ has no card');
+        assert.equal(posts[0].url, `/project-media/agent/update-meta?folderPath=${encodeURIComponent(project)}`);
+        assert.equal(posts[0].body.itemId, 'item-1');
+        assert.equal(posts[0].body.updates.look.text, 'An upright rider.');
+        assert.deepEqual(Object.keys(posts[0].body.updates), ['look'], 'it merges ONE field and touches no other');
+
+        // What the route does with that body: `{ ...prev, ...updates }`.
+        fsx.writeFileSync(path.join(media, '.meta', 'item-1.json'), JSON.stringify({ prompt: 'a fox', ...posts[0].body.updates }));
+        assert.equal(await tools.storedLook(image, 'item-1'), 'An upright rider.');
+    } finally {
+        fsx.rmSync(project, { recursive: true, force: true });
+    }
+});
+
 test('a dead server REJECTS rather than hanging, so the loop can report it', async () => {
     const tools = await esm('services/agentTools.mjs');
     const prevPort = process.env.CUBRIC_PORT;

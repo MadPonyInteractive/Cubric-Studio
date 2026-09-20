@@ -81,6 +81,9 @@ function makeFakeTools({ generateDelay = 0, installResult = { ok: true } } = {})
             calls.look.push(args);
             return { ok: true, output: { text: 'A generated image showing a fox.' } };
         },
+        // No sidecar by default, so every look is live; block (k) swaps in a real store.
+        storedLook: async () => null,
+        storeLook: async () => {},
         openProject: async (folderPath) => {
             calls.openProject.push({ folderPath });
             return { ok: true };
@@ -1565,6 +1568,81 @@ describe('(j) out of rounds', () => {
         assert.equal(err?.data.code, 'STEP_LIMIT');
         assert.match(err.data.message, /still running/i);
         assert.doesNotMatch(err.data.message, /simpler request/i, 'the request was not the problem');
+    });
+});
+
+// ---------------------------------------------------------------------------
+// (k) a look is made once and kept with the card
+// ---------------------------------------------------------------------------
+// Fabio, 2026-09-20: "if an image is described, it's described forever". Live that night every
+// waited still was described TWICE (settle's auto-look, then the model's own look on the same
+// file, two `agent.describe` 8 s apart), and what either said was recorded nowhere, so a wrong
+// description could not be told from a wrong paraphrase. The card's sidecar is now the record.
+
+describe('(k) a look is made once and kept with the card', () => {
+    const call = (id, name, args) => ({ text: '', toolCalls: [{ id, type: 'function', function: { name, arguments: JSON.stringify(args) } }] });
+    const project = { folderPath: '/project', name: 'Test' };
+    const toolResults = (loop) => loop._messages.filter((m) => m.role === 'tool').map((m) => JSON.parse(m.content));
+
+    /** The sidecar, as a Map: what `agentTools.storedLook` / `storeLook` do against disk. */
+    function withStore(tools, kept = new Map()) {
+        tools.calls.storeLook = [];
+        tools.storedLook = async (imagePath, itemId) => kept.get(itemId) || null;
+        tools.storeLook = async (imagePath, itemId, text) => { tools.calls.storeLook.push({ itemId, text }); kept.set(itemId, text); };
+        return kept;
+    }
+
+    test('a waited still is described ONCE: the model\'s own look reads what the auto-look kept', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', { modelId: 'test-model', operation: 't2i', prompt: 'A fox', wait: true }),
+            call('l1', 'look', { image: '/path/result.png' }),
+            { text: 'Done.' },
+        ] });
+        withStore(tools);
+        await loop.runTurn('Make a fox and tell me what you see', [], project, 'auto', 'deepinfra', 't-once');
+
+        assert.equal(tools.calls.look.length, 1, 'one picture, one vision call');
+        assert.deepEqual(tools.calls.storeLook, [{ itemId: 'item-1', text: 'A generated image showing a fox.' }]);
+        const looked = toolResults(loop).at(-1);
+        assert.equal(looked.ok, true);
+        assert.equal(looked.output.text, 'A generated image showing a fox.', 'the kept description is what the model reads');
+    });
+
+    test('a description kept by an earlier conversation is read, and the vision model is never called', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', { modelId: 'test-model', operation: 't2i', prompt: 'A fox', wait: true }),
+            { text: 'Done.' },
+        ] });
+        withStore(tools, new Map([['item-1', 'An upright rider, both revolvers raised.']]));
+        await loop.runTurn('Make a fox', [], project, 'auto', 'deepinfra', 't-kept');
+        await loop.runTurn('And?', [], project, 'auto', 'deepinfra', 't-kept-2');
+
+        assert.equal(tools.calls.look.length, 0);
+        assert.deepEqual(tools.calls.storeLook, [], 'nothing is rewritten over what is already kept');
+    });
+
+    test('a question, a crop or a box is a different answer: always asked, never kept', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', { modelId: 'test-model', operation: 't2i', prompt: 'A fox', wait: true }),
+            call('l1', 'look', { image: '/path/result.png', question: 'Which way do the revolvers point?' }),
+            call('l2', 'look', { image: '/path/result.png', crop: { x: 0, y: 0, width: 8, height: 8 } }),
+            { text: 'Done.' },
+        ] });
+        withStore(tools);
+        await loop.runTurn('Make a fox', [], project, 'auto', 'deepinfra', 't-asked');
+
+        assert.equal(tools.calls.look.length, 3, 'the auto-look, then both asked looks');
+        assert.equal(tools.calls.look[1].question, 'Which way do the revolvers point?');
+        assert.equal(tools.calls.storeLook.length, 1, 'only the unprompted description is "the" description');
+    });
+
+    test('an attachment is no card: it has no sidecar, so it is described live and nothing is kept', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [call('l1', 'look', { image: 'att_1' }), { text: 'A fox.' }] });
+        withStore(tools);
+        await loop.runTurn('What is this?', [{ id: 'att_1', name: 'fox.png', filePath: '/tmp/cubric-agent/attachments/att_1.png' }], null, 'auto', 'deepinfra', 't-att');
+
+        assert.equal(tools.calls.look.length, 1);
+        assert.deepEqual(tools.calls.storeLook, []);
     });
 });
 

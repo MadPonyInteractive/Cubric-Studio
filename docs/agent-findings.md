@@ -121,17 +121,21 @@ NOT checked. Without it a model with no edit op cannot be asked for a faithful r
 Approved shape: a named param on every op with the slider (i2i, upscale, detail), advertised by
 `describe_model`, meaning "the higher it is, the more the image changes". Never a prompt line.
 
-### Its eyes were wrong and nothing recorded what they said (2026-09-20, OPEN, approved)
+### Its eyes were wrong and nothing recorded what they said (2026-09-20; the record is BUILT, the eyes are OPEN)
 
 Source: rider upright, both revolvers raised, pointing UP. Its prompts: "leaning forward",
 "pointing outward at her sides". No ComfyUI activity during `agent.describe`, so the describer
 was the remote vision model; whether IT misread or the chat model paraphrased is unprovable,
 because a look's text lives in server memory only. Also every waited still is looked at TWICE
-(`settle()` auto-looks, then the model calls `look` on the same file). Approved: **a look is
-stored once in the card's sidecar**, read first, vision model only on a miss; it dies with the
-card. Store only the unprompted description: a look with a question or a box is a different
-answer. Wider principle he named: the sidecar is the home for card-scoped derived information.
-Also approved: TEST vision models on that real picture before recommending one.
+(`settle()` auto-looks, then the model calls `look` on the same file). Built 2026-09-21: **a
+look is kept once in the card's sidecar** (`look: {text, at}`, `AgentLoop._lookOnce`), read
+first, vision model only on a miss; it dies with the card. Only the unprompted description is
+kept: a question, a crop or a box is a different answer and always goes live. The read is off
+disk; the write goes through `POST /project-media/agent/update-meta` because that route owns the
+per-sidecar write queue, and `storeLook` never creates a sidecar. **Consequence to remember when
+the describer changes: a wrong description is now wrong forever**, until the field is cleared.
+Wider principle he named: the sidecar is the home for card-scoped derived information.
+Still open, approved: TEST vision models on that real picture before recommending one.
 
 ## What worked, and should be copied
 

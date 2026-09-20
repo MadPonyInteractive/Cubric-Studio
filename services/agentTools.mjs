@@ -124,6 +124,42 @@ export async function look(args) {
     return _post('/connector/describe', args);
 }
 
+/**
+ * Where a card's kept description lives: `<project>/Media/.meta/<itemId>.json`, field `look`.
+ * Null for a file that is not directly in a project's `Media/` (a crop, an attachment, a
+ * preview asset), which has no card to die with.
+ */
+export function lookStore(imagePath, itemId) {
+    const mediaDir = path.dirname(String(imagePath || ''));
+    if (!itemId || path.basename(mediaDir) !== 'Media') return null;
+    return { folderPath: path.dirname(mediaDir), metaPath: path.join(mediaDir, '.meta', `${itemId}.json`) };
+}
+
+/** The description kept for this card, or null. A read: straight off disk, no route. */
+export async function storedLook(imagePath, itemId) {
+    const store = lookStore(imagePath, itemId);
+    if (!store) return null;
+    try {
+        return JSON.parse(await fs.readFile(store.metaPath, 'utf8')).look?.text || null;
+    } catch { return null; }
+}
+
+/**
+ * Keep a card's description. POST /project-media/agent/update-meta, because that route owns
+ * the per-sidecar write queue (`updateItemMeta`): a second writer beside it could drop a trim
+ * or a rename landing at the same moment. Never CREATES a sidecar: the route starts a missing
+ * one from `{}`, and a file holding only `look` would read as a real item.
+ * If the renderer later rewrites the sidecar without this field, the next look is a miss and
+ * is described again: one extra vision call, nothing wrong on screen.
+ */
+export async function storeLook(imagePath, itemId, text) {
+    const store = lookStore(imagePath, itemId);
+    if (!store) return;
+    try { await fs.access(store.metaPath); } catch { return; }
+    await _post(`/project-media/agent/update-meta?folderPath=${encodeURIComponent(store.folderPath)}`,
+        { itemId, updates: { look: { text, at: new Date().toISOString() } } }, 10_000);
+}
+
 /** GET /connector/projects — the user's projects, most recent first. */
 export async function listProjects() {
     return _get('/connector/projects', 30_000);
