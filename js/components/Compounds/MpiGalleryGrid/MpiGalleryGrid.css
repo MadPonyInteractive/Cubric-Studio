@@ -428,10 +428,17 @@
  * button's is-active accent, so no `color` here. */
 .mpi-group-card--favourited .mpi-group-card__fav-wrap .mpi-btn.mpi-ibtn.mpi-btn--ghost,
 .mpi-group-card--favourited .mpi-group-card__fav-wrap .mpi-btn.mpi-ibtn.mpi-btn--ghost:hover:not(:disabled) {
-    padding-left: 12px;
-    padding-right: 12px;
     background: color-mix(in oklch, var(--surface-bar) 72%, transparent);
     border-color: color-mix(in oklch, var(--line-soft) 86%, transparent);
+}
+
+/* The mark is a compact chip — the kind chip's size — marked or not: a full `sm` button
+ * parked on every marked card crowds the media, and one size in both states means no
+ * jump on the click that marks it. Must FOLLOW the shared rule above: equal specificity,
+ * and that rule's 12px side padding is for the reuse button. */
+.mpi-group-card .mpi-group-card__top-actions .mpi-group-card__fav-wrap .mpi-btn.mpi-ibtn.mpi-btn--ghost {
+    padding: 4px;
+    min-height: 0;
 }
 
 /* ── Card mark shape menu (MPI-785, cardMarkMenu.js) ─────────────────────────
