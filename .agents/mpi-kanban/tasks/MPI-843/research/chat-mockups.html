@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Agent chat — three mockups</title>
+<style>
+@font-face{font-family:'JetBrains Mono';src:url('../../../../../assets/fonts/JetBrainsMono-Regular.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'JetBrains Mono';src:url('../../../../../assets/fonts/JetBrainsMono-Bold.woff2') format('woff2');font-weight:700;font-display:swap}
+
+:root{
+  --surface-0: oklch(0.50 0.022 350);
+  --surface-1: oklch(0.46 0.022 350);
+  --surface-2: oklch(0.42 0.022 350);
+  --surface-3: oklch(0.55 0.024 350);
+  --surface-bar: oklch(0.34 0.022 350);
+  --surface-canvas: oklch(0.28 0.020 350);
+  --surface-viewer: oklch(0.20 0.020 350);
+
+  --ink-1: oklch(0.98 0.008 80);
+  --ink-2: oklch(0.85 0.012 80);
+  --ink-3: oklch(0.66 0.014 80);
+  --ink-4: oklch(0.50 0.018 80);
+
+  --line: oklch(0.72 0.018 350 / 0.16);
+  --line-soft: oklch(0.72 0.015 350 / 0.08);
+
+  --hub-accent: oklch(0.78 0.028 80);
+  --vision-accent: oklch(0.76 0.17 355);
+  --prompt-accent: oklch(0.88 0.13 102);
+  --accent-audio: oklch(0.84 0.11 170);
+  --video-accent: oklch(0.78 0.15 48);
+
+  --accent-heat: var(--hub-accent);
+  --accent-frost: oklch(0.82 0.13 220);
+  --accent-ok: oklch(0.78 0.13 150);
+  --accent-err: oklch(0.70 0.19 27);
+
+  --t-2xs:10px; --t-xs:11px; --t-sm:13px; --t-md:15px; --t-lg:19px; --t-xl:32px;
+  --s-1:4px; --s-2:8px; --s-3:14px; --s-4:22px; --s-5:32px; --s-6:48px;
+  --r-1:0px; --r-2:4px; --r-3:12px; --r-pill:999px;
+  --ease:cubic-bezier(0.16,1,0.3,1); --t-fast:200ms; --t-base:280ms; --t-slow:480ms;
+
+  --z-sticky:100;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; padding:var(--s-5) var(--s-4) var(--s-6);
+  background:var(--surface-canvas);
+  color:var(--ink-1);
+  font-family:'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size:var(--t-sm); line-height:1.55;
+}
+
+/* ── page chrome ─────────────────────────────────────────── */
+.page-head{max-width:76ch;margin:0 auto var(--s-5)}
+.page-head h1{font-size:var(--t-lg);margin:0 0 var(--s-2);letter-spacing:-0.01em;text-wrap:balance}
+.page-head p{color:var(--ink-2);margin:0 0 var(--s-3)}
+.qs{margin:0;padding:0;list-style:none;border-top:1px solid var(--line)}
+.qs li{padding:var(--s-2) 0;border-bottom:1px solid var(--line-soft);color:var(--ink-2)}
+.qs b{color:var(--ink-1);font-weight:400}
+.finding{
+  margin:var(--s-4) 0 0;padding:var(--s-3);
+  background:var(--surface-bar);border:1px solid var(--line);border-radius:var(--r-2);
+}
+.finding h2{font-size:var(--t-sm);margin:0 0 var(--s-2);color:var(--accent-frost);font-weight:700}
+.finding p{margin:0 0 var(--s-2);color:var(--ink-2)}
+.finding p:last-child{margin-bottom:0}
+.finding code{color:var(--ink-1);background:var(--surface-2);padding:1px 4px;border-radius:var(--r-2)}
+
+.rail{
+  display:grid;gap:var(--s-5);
+  grid-template-columns:repeat(auto-fit,minmax(380px,1fr));
+  max-width:1360px;margin:0 auto;align-items:start;
+}
+
+.slot{min-width:0}
+.slot-head{display:flex;align-items:baseline;gap:var(--s-2);margin-bottom:var(--s-3)}
+.slot-head .n{color:var(--ink-4);font-size:var(--t-2xs)}
+.slot-head h3{font-size:var(--t-md);margin:0;letter-spacing:-0.01em}
+
+/* ── the panel shell (real app proportions) ──────────────── */
+.mpi-agent-chat{
+  width:100%;height:560px;display:flex;flex-direction:column;
+  background:var(--surface-1);border:1px solid var(--line);border-radius:var(--r-2);
+  overflow:hidden;
+}
+.mpi-agent-chat__header{
+  display:flex;align-items:center;gap:var(--s-2);
+  padding:var(--s-2) var(--s-3);
+  background:var(--surface-bar);border-bottom:1px solid var(--line);
+  flex:0 0 auto;
+}
+.mpi-agent-chat__header-label{font-size:var(--t-xs);color:var(--ink-2);letter-spacing:0.04em}
+.mpi-agent-chat__header-action{margin-left:auto;color:var(--ink-4);font-size:var(--t-xs)}
+.mpi-agent-chat__working-dot{
+  width:6px;height:6px;border-radius:var(--r-pill);background:var(--ink-4);flex:0 0 auto;
+}
+.mpi-agent-chat__working-dot--on{background:var(--accent-frost);animation:pulse 1.6s var(--ease) infinite}
+
+.mpi-agent-chat__transcript{
+  flex:1 1 auto;overflow-y:auto;padding:var(--s-3);
+  display:flex;flex-direction:column;gap:var(--s-3);
+}
+.mpi-agent-chat__entry--user{align-self:flex-end;max-width:85%}
+.mpi-agent-chat__entry--user .mpi-agent-chat__bubble{
+  background:var(--surface-2);border:1px solid var(--line);
+  padding:var(--s-2) var(--s-3);border-radius:var(--r-2);color:var(--ink-1);
+}
+.mpi-agent-chat__entry--message{color:var(--ink-1);max-width:70ch}
+.mpi-agent-chat__entry--tool{
+  display:flex;align-items:center;gap:var(--s-2);
+  color:var(--ink-3);font-size:var(--t-xs);
+}
+.mpi-agent-chat__entry--tool::before{
+  content:'';width:5px;height:5px;border-radius:var(--r-pill);
+  background:var(--ink-4);flex:0 0 auto;
+}
+.mpi-agent-chat__entry--tool--done::before{background:var(--accent-ok)}
+.mpi-agent-chat__entry--tool--failed::before{background:var(--accent-err)}
+
+.mpi-agent-chat__result-card{
+  border:1px solid var(--line);border-radius:var(--r-2);overflow:hidden;
+  background:var(--surface-2);max-width:220px;
+}
+.thumb{
+  height:124px;background:var(--surface-viewer);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--ink-4);font-size:var(--t-2xs);letter-spacing:0.06em;
+  border-bottom:1px solid var(--line);
+}
+.result-meta{padding:var(--s-2);font-size:var(--t-2xs);color:var(--ink-2);display:flex;justify-content:space-between;gap:var(--s-2)}
+
+.mpi-agent-chat__input-row{
+  flex:0 0 auto;display:flex;align-items:center;gap:var(--s-2);
+  padding:var(--s-2) var(--s-3);
+  background:var(--surface-2);border-top:1px solid var(--line);
+}
+.mpi-agent-chat__input-wrap{
+  flex:1 1 auto;display:flex;align-items:center;gap:var(--s-2);
+  color:var(--ink-4);font-size:var(--t-sm);min-width:0;
+}
+.send{
+  flex:0 0 auto;padding:var(--s-1) var(--s-3);
+  background:var(--accent-heat);color:var(--surface-canvas);
+  border:none;border-radius:var(--r-2);font:inherit;font-size:var(--t-xs);cursor:pointer;
+}
+
+/* ── mascot stand-in: chunky robot head ──────────────────── */
+.bot{
+  flex:0 0 auto;display:grid;place-items:center;
+  background:var(--surface-bar);
+  border:1.5px solid var(--acc,var(--hub-accent));
+  border-radius:var(--r-2);position:relative;
+}
+.bot::before,.bot::after{
+  content:'';position:absolute;top:36%;
+  width:20%;height:22%;min-width:3px;min-height:3px;
+  background:var(--acc,var(--hub-accent));
+}
+.bot::before{left:24%}
+.bot::after{right:24%}
+.bot--32{width:32px;height:32px}
+.bot--40{width:40px;height:40px}
+.bot--20{width:20px;height:20px;border-width:1px}
+.bot--48{width:48px;height:48px}
+.bot.is-working{animation:bob 2.4s var(--ease) infinite}
+
+.cosmo{--acc:var(--hub-accent)}
+.prism{--acc:var(--vision-accent)}
+.reel{--acc:var(--video-accent)}
+.vinyl{--acc:var(--accent-audio)}
+.lingo{--acc:var(--prompt-accent)}
+
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.35}}
+@keyframes blink{0%,49%{opacity:1}50%,100%{opacity:0}}
+.caret{display:inline-block;width:7px;height:1.05em;background:var(--accent-heat);vertical-align:-0.18em;animation:blink 1.1s steps(1) infinite}
+
+@media (prefers-reduced-motion:reduce){
+  .bot.is-working,.mpi-agent-chat__working-dot--on{animation:none}
+  .caret{animation:none;opacity:1}
+  .strip{transition:none}
+}
+
+/* ══ A · THE LEDGE ══════════════════════════════════════ */
+.ledge{
+  flex:0 0 auto;display:flex;align-items:center;gap:var(--s-2);
+  padding:var(--s-2) var(--s-3);
+  background:var(--surface-1);border-top:1px solid var(--line-soft);
+}
+.ledge__who{display:flex;align-items:center;gap:var(--s-2);min-width:0}
+.ledge__name{font-size:var(--t-xs);color:var(--ink-1)}
+.ledge__state{font-size:var(--t-2xs);color:var(--ink-2)}
+.ledge__guest{
+  margin-left:auto;display:flex;align-items:center;gap:var(--s-2);
+  padding-left:var(--s-3);border-left:1px solid var(--line-soft);
+}
+.ledge__guest-txt{font-size:var(--t-2xs);color:var(--ink-2);text-align:right}
+.ledge__guest-txt b{display:block;color:var(--video-accent);font-weight:400;font-size:var(--t-xs)}
+
+/* ══ B · THE LOG ════════════════════════════════════════ */
+.log .mpi-agent-chat__transcript{gap:var(--s-2);font-size:var(--t-xs);line-height:1.65}
+.line{display:grid;grid-template-columns:62px 1fr;gap:var(--s-2);align-items:start}
+.line__who{
+  color:var(--acc,var(--ink-4));text-align:right;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.line__body{color:var(--ink-1);min-width:0}
+.line--you{--acc:var(--ink-3)}
+.line--you .line__body{color:var(--ink-2)}
+.line--sys{--acc:var(--ink-4)}
+.line--sys .line__body{color:var(--ink-3)}
+.line--work{--acc:var(--video-accent)}
+.line--work .line__body{color:var(--ink-2);display:flex;align-items:center;gap:var(--s-2)}
+.log .mpi-agent-chat__input-row{background:var(--surface-bar)}
+.prompt-glyph{color:var(--accent-heat);flex:0 0 auto}
+
+/* ══ C · THE STAGE ══════════════════════════════════════ */
+.stage__id{display:flex;align-items:center;gap:var(--s-2)}
+.strip{
+  flex:0 0 auto;overflow:hidden;
+  height:60px;                      /* idle: 0. shown expanded for evaluation */
+  border-top:1px solid var(--line);
+  background:var(--surface-bar);
+  display:flex;align-items:center;gap:var(--s-3);
+  padding:0 var(--s-3);
+  transition:height var(--t-base) var(--ease);
+}
+.strip__txt{min-width:0}
+.strip__who{font-size:var(--t-xs);color:var(--video-accent)}
+.strip__op{font-size:var(--t-2xs);color:var(--ink-2)}
+.strip__bar{
+  margin-left:auto;flex:0 0 96px;height:3px;background:var(--surface-2);
+  border-radius:var(--r-pill);overflow:hidden;
+}
+.strip__bar i{display:block;height:100%;width:62%;background:var(--video-accent)}
+
+/* ── rationale ───────────────────────────────────────────── */
+.why{margin-top:var(--s-3);padding-top:var(--s-3);border-top:1px solid var(--line)}
+.why dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:var(--s-1) var(--s-3)}
+.why dt{color:var(--ink-4);font-size:var(--t-2xs);white-space:nowrap}
+.why dd{margin:0;color:var(--ink-2);font-size:var(--t-xs)}
+.why .tradeoff{margin:var(--s-3) 0 0;color:var(--ink-1);font-size:var(--t-xs)}
+.why .tradeoff b{color:var(--accent-heat);font-weight:400}
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <h1>Agent chat · three positions</h1>
+  <p>MPI-843. Real tokens, real BEM names, real panel proportions (380&nbsp;×&nbsp;560). Mascot faces are labelled stand-ins — the real GIF drops into the same box.</p>
+  <ul class="qs">
+    <li><b>1 · Where does Cosmo sit?</b> Bottom by the input · inline · header + strip</li>
+    <li><b>2 · Does the terminal register work?</b> Light · full · none</li>
+    <li><b>3 · Where does the animation land</b> without stealing the transcript?</li>
+  </ul>
+
+  <div class="finding">
+    <h2>Two things found while reading the real code</h2>
+    <p><b>The terminal question is smaller than it looks.</b> The whole app is <em>already</em> monospace — JetBrains Mono, every surface, by PRODUCT.md principle 2. So "terminal" isn't a font change. It's only: a prompt glyph, a blinking caret, and whether the transcript is prose or a command log. <code>VT323.woff2</code> is also already in <code>assets/fonts/</code>, but using it would be a second display face and principle 2 reserves that slot for the wordmark.</p>
+    <p><b>PRODUCT.md currently forbids the crew presence.</b> Under “Mascots &amp; logo”: <em>“Away from the landing it is <strong>always Studio</strong>: a workspace does not swap in its own character, because the accent already states the subject.”</em> The accent half of the decision matches principle 4 exactly. The mascot half reverses this line. It needs Fabio's sign-off and a PRODUCT.md edit, not a quiet override.</p>
+  </div>
+</div>
+
+<div class="rail">
+
+  <!-- ════════ A · THE LEDGE ════════ -->
+  <section class="slot">
+    <div class="slot-head"><span class="n">A</span><h3>The Ledge</h3></div>
+
+    <div class="mpi-agent-chat">
+      <div class="mpi-agent-chat__header">
+        <span class="mpi-agent-chat__header-label">COSMO</span>
+        <span class="mpi-agent-chat__header-action">reset</span>
+        <span class="mpi-agent-chat__working-dot mpi-agent-chat__working-dot--on"></span>
+      </div>
+
+      <div class="mpi-agent-chat__transcript">
+        <div class="mpi-agent-chat__entry--user"><div class="mpi-agent-chat__bubble">take the cowgirl plate to 16:9 and push it toward dusk</div></div>
+        <div class="mpi-agent-chat__entry--message">Reframing the plate and warming the grade. I'll keep the horse's edge intact.</div>
+        <div class="mpi-agent-chat__entry--tool mpi-agent-chat__entry--tool--done">krea2 · edit · ref_boost 0.7 · 6.2s</div>
+        <div class="mpi-agent-chat__result-card">
+          <div class="thumb">1920 × 1080</div>
+          <div class="result-meta"><span>cowgirl_dusk_02</span><span>seed 41180</span></div>
+        </div>
+        <div class="mpi-agent-chat__entry--message">That's the dusk pass. Want it moving?</div>
+        <div class="mpi-agent-chat__entry--user"><div class="mpi-agent-chat__bubble">yes, 4 seconds, slow push in</div></div>
+        <div class="mpi-agent-chat__entry--tool">ltx · i2v · 4.0s · 24fps</div>
+      </div>
+
+      <div class="ledge">
+        <div class="ledge__who">
+          <span class="bot bot--32 cosmo"></span>
+          <span>
+            <span class="ledge__name">Cosmo</span><br>
+            <span class="ledge__state">holding the thread</span>
+          </span>
+        </div>
+        <div class="ledge__guest">
+          <span class="ledge__guest-txt"><b>Reel</b>animating · 0:38</span>
+          <span class="bot bot--32 reel is-working"></span>
+        </div>
+      </div>
+
+      <div class="mpi-agent-chat__input-row">
+        <div class="mpi-agent-chat__input-wrap"><span class="prompt-glyph">&gt;</span><span>ask Cosmo</span><span class="caret"></span></div>
+        <button class="send">SEND</button>
+      </div>
+    </div>
+
+    <div class="why">
+      <dl>
+        <dt>Cosmo</dt><dd>Bottom ledge, docked above the input — your lean.</dd>
+        <dt>Terminal</dt><dd>Light. A <code>&gt;</code> glyph and a caret on the input only; transcript stays prose.</dd>
+        <dt>Animation</dt><dd>Fixed 32px on the ledge. The guest mascot slides in beside Cosmo, so there is exactly <em>one</em> place the eye checks for “who is working”. Never reflows the transcript.</dd>
+      </dl>
+      <p class="tradeoff"><b>Trade:</b> the crew never interrupts reading, and the layout never moves — but the mascots are small and sit far from the message they relate to. The animation is decoration at the edge of vision, not a moment.</p>
+    </div>
+  </section>
+
+  <!-- ════════ B · THE LOG ════════ -->
+  <section class="slot">
+    <div class="slot-head"><span class="n">B</span><h3>The Log</h3></div>
+
+    <div class="mpi-agent-chat log">
+      <div class="mpi-agent-chat__header">
+        <span class="mpi-agent-chat__header-label">SESSION · cowgirl</span>
+        <span class="mpi-agent-chat__header-action">reset</span>
+        <span class="mpi-agent-chat__working-dot mpi-agent-chat__working-dot--on"></span>
+      </div>
+
+      <div class="mpi-agent-chat__transcript">
+        <div class="line line--you"><span class="line__who">you</span><span class="line__body">take the cowgirl plate to 16:9 and push it toward dusk</span></div>
+        <div class="line cosmo" style="--acc:var(--hub-accent)"><span class="line__who">cosmo</span><span class="line__body">Reframing the plate and warming the grade. I'll keep the horse's edge intact.</span></div>
+        <div class="line line--sys"><span class="line__who">prism</span><span class="line__body">krea2 · edit · ref_boost 0.7 · <span style="color:var(--accent-ok)">ok</span> 6.2s</span></div>
+        <div class="line line--sys"><span class="line__who"></span><span class="line__body">
+          <span class="mpi-agent-chat__result-card" style="display:inline-block">
+            <span class="thumb" style="display:flex">1920 × 1080</span>
+            <span class="result-meta" style="display:flex"><span>cowgirl_dusk_02</span><span>41180</span></span>
+          </span>
+        </span></div>
+        <div class="line" style="--acc:var(--hub-accent)"><span class="line__who">cosmo</span><span class="line__body">That's the dusk pass. Want it moving?</span></div>
+        <div class="line line--you"><span class="line__who">you</span><span class="line__body">yes, 4 seconds, slow push in</span></div>
+        <div class="line line--work"><span class="line__who">reel</span><span class="line__body"><span class="bot bot--20 reel is-working"></span> ltx · i2v · 4.0s · 0:38 left</span></div>
+        <div class="line" style="--acc:var(--hub-accent)"><span class="line__who">cosmo</span><span class="line__body">Reel has it. I'll bring it back when the frames land.<span class="caret"></span></span></div>
+      </div>
+
+      <div class="mpi-agent-chat__input-row">
+        <div class="mpi-agent-chat__input-wrap"><span class="prompt-glyph">&gt;</span><span>_</span></div>
+        <button class="send">SEND</button>
+      </div>
+    </div>
+
+    <div class="why">
+      <dl>
+        <dt>Cosmo</dt><dd>Inline. No portrait at all — he's the <code>cosmo</code> gutter mark in cream.</dd>
+        <dt>Terminal</dt><dd>Full. Bubbles gone, a named gutter, a caret on the streaming line. Densest of the three.</dd>
+        <dt>Animation</dt><dd>A 20px sprite inline in the working line, in the gutter's colour. Scrolls away with its own line.</dd>
+      </dl>
+      <p class="tradeoff"><b>Trade:</b> the most “pro instrument” of the three and the best at long sessions — but the crew loses its faces and becomes colour-plus-name. It is the option that most directly costs you the emotional payoff you started this for. Worth seeing before rejecting.</p>
+    </div>
+  </section>
+
+  <!-- ════════ C · THE STAGE ════════ -->
+  <section class="slot">
+    <div class="slot-head"><span class="n">C</span><h3>The Stage</h3></div>
+
+    <div class="mpi-agent-chat">
+      <div class="mpi-agent-chat__header">
+        <span class="stage__id"><span class="bot bot--20 cosmo"></span><span class="mpi-agent-chat__header-label">COSMO</span></span>
+        <span class="mpi-agent-chat__header-action">reset</span>
+        <span class="mpi-agent-chat__working-dot mpi-agent-chat__working-dot--on"></span>
+      </div>
+
+      <div class="mpi-agent-chat__transcript">
+        <div class="mpi-agent-chat__entry--user"><div class="mpi-agent-chat__bubble">take the cowgirl plate to 16:9 and push it toward dusk</div></div>
+        <div class="mpi-agent-chat__entry--message">Reframing the plate and warming the grade. I'll keep the horse's edge intact.</div>
+        <div class="mpi-agent-chat__entry--tool mpi-agent-chat__entry--tool--done">krea2 · edit · ref_boost 0.7 · 6.2s</div>
+        <div class="mpi-agent-chat__result-card">
+          <div class="thumb">1920 × 1080</div>
+          <div class="result-meta"><span>cowgirl_dusk_02</span><span>seed 41180</span></div>
+        </div>
+        <div class="mpi-agent-chat__entry--message">That's the dusk pass. Want it moving?</div>
+        <div class="mpi-agent-chat__entry--user"><div class="mpi-agent-chat__bubble">yes, 4 seconds, slow push in</div></div>
+      </div>
+
+      <div class="strip">
+        <span class="bot bot--40 reel is-working"></span>
+        <span class="strip__txt">
+          <span class="strip__who">Reel</span><br>
+          <span class="strip__op">ltx · i2v · 4.0s · 0:38 left</span>
+        </span>
+        <span class="strip__bar"><i></i></span>
+      </div>
+
+      <div class="mpi-agent-chat__input-row">
+        <div class="mpi-agent-chat__input-wrap"><span>Ask Cosmo…</span></div>
+        <button class="send">SEND</button>
+      </div>
+    </div>
+
+    <div class="why">
+      <dl>
+        <dt>Cosmo</dt><dd>Header, as a persistent 20px identity. Never moves, never competes.</dd>
+        <dt>Terminal</dt><dd>None. Deliberately — to give you the honest comparison against A and B.</dd>
+        <dt>Animation</dt><dd>A dedicated strip between transcript and input. <b>Height 0 when idle</b>, 60px while an op runs, then collapses. The GIF gets real room at 40px and is the only moving thing on screen.</dd>
+      </dl>
+      <p class="tradeoff"><b>Trade:</b> the only one where the animation is a <em>moment</em> rather than an ornament, and the transcript stays clean — but it is the only one whose layout moves. The collapse needs care under <code>prefers-reduced-motion</code>, and a fast op makes the strip flash open and shut.</p>
+    </div>
+  </section>
+
+</div>
+
+</body>
+</html>

@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-843", "at": "2026-09-20T11:20:18+01:00", "actor": "claude", "column": "todo", "title": "Agent chat UI study"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-843", "at": "2026-09-20T17:12:05+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio asked for the three mockups now, before archiving the session."}
