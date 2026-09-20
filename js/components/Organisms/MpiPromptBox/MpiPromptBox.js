@@ -81,6 +81,11 @@ import { MpiEnhanceDialog } from '../../Compounds/MpiEnhanceDialog/MpiEnhanceDia
 // ponytail: the agent takes as many references as the widest op it can drive (H3's nine
 // pictures); raise it if a model ever takes more.
 const AGENT_MAX_IMAGES = 9;
+// A video reaches the agent BY REFERENCE, never as bytes (`_sendAgentTurn`), so it has to be a
+// file the open project already holds: a gallery card, or a dropped file the box has just
+// imported. With no project a dropped file is a blob: url nothing else can read.
+// ponytail: one op takes more than one clip today only as separate slots; raise with the ops.
+const AGENT_MAX_VIDEOS = 2;
 
 // The cog's status-bar line ([data-info] → js/shell/statusBar.js). Two of them: in agent
 // mode opening the panel TAKES the settings off the agent, and that has to be readable
@@ -335,7 +340,10 @@ export const MpiPromptBox = ComponentFactory.create({
 
         function _maxMediaForCurrentOperation(mediaType) {
             // MPI-797: in Agent mode a chip is an attachment for the agent, not an op slot.
-            if (_agentMode) return mediaType === 'image' ? AGENT_MAX_IMAGES : 0;
+            if (_agentMode) {
+                if (mediaType === 'image') return AGENT_MAX_IMAGES;
+                return mediaType === 'video' && state.currentProject ? AGENT_MAX_VIDEOS : 0;
+            }
             const activeMax = _maxMediaForOperation(activeOperation, mediaType);
             if (activeMax > 0) return activeMax;
             if (!model?.supportedOps?.length) return 0;
@@ -1212,7 +1220,9 @@ export const MpiPromptBox = ComponentFactory.create({
         }
 
         function _showIncompatibleToast() {
-            _showMediaToast('Media type not supported for this model.');
+            _showMediaToast(_agentMode
+                ? 'The agent takes images, and videos once a project is open.'
+                : 'Media type not supported for this model.');
         }
 
         el.injectMedia = ({ url, mediaType, role, name }) => {
@@ -2512,13 +2522,24 @@ export const MpiPromptBox = ComponentFactory.create({
                 } catch { return null; }
             }))).filter(Boolean);
 
+            // A video goes BY REFERENCE: `url` is a file the open project already holds, and a
+            // clip as a base64 data URL is hundreds of MB through a JSON body. `itemId` is
+            // what the agent's GIF tools name a card by; any entry of any card's history.
+            const pathOf = (u) => { try { return new URL(u, window.location.origin).searchParams.get('path'); } catch { return null; } };
+            const videoItems = el.getMediaItems().filter(m => m.mediaType === 'video' && pathOf(m.url));
+            for (const item of videoItems) {
+                const entry = (state.currentProject?.itemGroups || []).flatMap(g => g.history || [])
+                    .find(h => pathOf(h?.filePath) === pathOf(item.url));
+                attachments.push({ url: item.url, name: item.name || pathOf(item.url).split(/[\\/]/).pop(), mediaType: 'video', itemId: entry?.id || null });
+            }
+
             // Route through the bus — no direct method call on the panel instance.
             Events.emit('agent:send', { text, attachments });
             textareaEl.value = '';
             _writeMode('');
             updateHeight();
             // Clear the chips that were attached (non-pinned).
-            if (imageItems.length) el.clearMedia();
+            if (imageItems.length || videoItems.length) el.clearMedia();
         }
 
         if (_modeToggleSlot) {

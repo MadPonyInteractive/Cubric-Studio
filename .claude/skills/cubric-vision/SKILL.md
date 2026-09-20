@@ -78,6 +78,8 @@ Each skill is self-contained. Load the one the task needs, not all of them.
 | POST | `/connector/cancel` | Stop a submit you sent with a `requestId`, rendering or queued: `cubric-vision-generate` § Cancelling a submit |
 | POST | `/connector/open-project` | Make a project the open one before generating: [projects.md](projects.md) |
 | POST | `/connector/rename-card` | Name a gallery card, or clear its name: [projects.md](projects.md) § Naming cards |
+| POST | `/connector/card-mark` | Set or clear a card's shape mark (dot, square, triangle): [projects.md](projects.md) § Marks and what the user can see |
+| GET | `/connector/visible-cards` | The cards the gallery is SHOWING under the user's filter, in its order: same section |
 
 `/connector/jobs/stream` and `/connector/jobs/:id/result` are the app window's own
 relay, never an agent's. There is no `/connector/enhance` any more, and no

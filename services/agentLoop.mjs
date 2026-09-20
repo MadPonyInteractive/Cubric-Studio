@@ -203,11 +203,11 @@ const TOOL_DEFS = [
         type: 'function',
         function: {
             name: 'rename_card',
-            description: 'Give a gallery card you generated in this conversation a short name, so you and the user can refer to it. Only your own cards.',
+            description: 'Give a gallery card a short name, so you and the user can refer to it: a card you generated, or one list_cards or visible_cards returned. A card that already has a name keeps it unless the user asks for a new one.',
             parameters: {
                 type: 'object',
                 properties: {
-                    groupId: { type: 'string', description: 'The card id a finished generation reported.' },
+                    groupId: { type: 'string', description: 'The card id a finished generation reported, or a groupId from list_cards or visible_cards.' },
                     name: { type: 'string', description: 'A short human name, e.g. "Mira at the harbour".' },
                 },
                 required: ['groupId', 'name'],
@@ -225,7 +225,136 @@ const TOOL_DEFS = [
                 properties: {
                     groupId: { type: 'string', description: 'A groupId from the list, to read that one card in full.' },
                     limit: { type: 'integer', description: 'How many cards to list, newest first. Default 12, at most 30.' },
+                    mark: { type: 'string', enum: ['dot', 'square', 'triangle'], description: 'Only the cards the user marked with this shape. "dot" is the one that draws as a circle. A row carries its mark when it has one.' },
                 },
+                additionalProperties: false,
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'visible_cards',
+            description: 'The cards the user is LOOKING AT: what the gallery shows right now under their filter, in the order it shows them ("the cards I can see", "these", "the first three"). Rows are list_cards rows and every ref works the same way; each row\'s `kind` says image or video, so counting or telling them apart needs no look. `filter` is the filter in the app\'s own words, empty when nothing is hidden: say what you are about to act on before you act on many cards. GALLERY_NOT_OPEN means the gallery is not on screen: say so, never fall back to the whole project.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    limit: { type: 'integer', description: 'How many rows to return, from the top of the gallery. Default and most: 30. `total` is how many are showing.' },
+                },
+                additionalProperties: false,
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'mark_card',
+            description: 'Set or clear the shape mark on a gallery card in the open project: the mark the user filters the gallery by. Only when the user asks for it.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    groupId: { type: 'string', description: 'A groupId from list_cards or visible_cards, or one a finished generation reported.' },
+                    mark: { type: 'string', enum: ['dot', 'square', 'triangle', 'none'], description: '"dot" draws as a circle. "none" clears the mark.' },
+                },
+                required: ['groupId', 'mark'],
+                additionalProperties: false,
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'make_gif',
+            description: 'Make an animated GIF in the open project, as a NEW gallery card. Either `images` (two or more still cards, played in that order; the first one\'s size wins) or `video` (a clip of one video card, which needs fps). Every ref is a gallery card: one list_cards returned, or one a finished generation or GIF step reported. You cannot see a GIF move: look reads ONE still, so say it is made and that motion, flicker and pacing need the user\'s eye.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    images: { type: 'array', items: { type: 'string' }, description: 'Refs of two or more still image cards, in play order.' },
+                    video: { type: 'string', description: 'The ref of one video card.' },
+                    fps: { type: 'number', description: 'Frames per second, 1-60. Required with video.' },
+                    sizePreset: { type: 'string', enum: ['original', '480xauto', '320xauto', 'autox480', 'autox320'], description: 'The number is the NAMED axis, not the longest edge. Default original.' },
+                    loop: { type: 'integer', description: 'TOTAL plays: 0 (default) = forever, 1 = once.' },
+                    trimIn: { type: 'number', description: 'Clip start in seconds. Only with video, and only together with trimOut.' },
+                    trimOut: { type: 'number', description: 'Clip end in seconds.' },
+                },
+                additionalProperties: false,
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'edit_gif',
+            description: 'Retime, trim, loop, recolour, resize or crop a GIF card. Lands a new ENTRY on the same card; the entry you edited stays on it. Send at least one setting. crop and resize cannot share a call: send the second as its own call, on the ref the first returned. You cannot see the result move.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    gif: { type: 'string', description: 'The ref of a GIF card.' },
+                    fps: { type: 'number', description: '0.1-50. A GIF cannot play faster than 50.' },
+                    loop: { type: 'integer', description: 'TOTAL plays: 0 = forever.' },
+                    trim: {
+                        type: 'object',
+                        description: 'Frame INDICES, inclusive, not seconds.',
+                        properties: { in: { type: 'integer' }, out: { type: 'integer' } },
+                        required: ['in', 'out'],
+                    },
+                    output: {
+                        type: 'object',
+                        description: 'colours 2-256. edgeColour "#rrggbb" builds a TRANSPARENT GIF with soft edges blended toward that colour; "opaque" builds an opaque one. maxEdge caps the longest edge.',
+                        properties: { colours: { type: 'integer' }, edgeColour: { type: 'string' }, maxEdge: { type: 'integer' } },
+                    },
+                    resize: {
+                        type: 'object',
+                        properties: { width: { type: 'integer' }, height: { type: 'integer' } },
+                        required: ['width', 'height'],
+                    },
+                    crop: {
+                        type: 'object',
+                        description: 'A box in source pixels. fill "#rrggbb" covers any area the box takes from outside the frame; outWidth/outHeight set the output resolution.',
+                        properties: { x: { type: 'integer' }, y: { type: 'integer' }, width: { type: 'integer' }, height: { type: 'integer' }, fill: { type: 'string' }, outWidth: { type: 'integer' }, outHeight: { type: 'integer' } },
+                        required: ['x', 'y', 'width', 'height'],
+                    },
+                },
+                required: ['gif'],
+                additionalProperties: false,
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'cutout_gif',
+            description: 'Cut the subject out of every frame of a GIF card, onto transparency ("remove the background", "make it a sticker"). Lands a new ENTRY on the same card; the source entry stays. A GPU run: about 16 s for 30 frames, longer by name. method "background" keeps the whole subject and takes no prompt; "name" tracks what prompt names and keeps EVERY object it tracks. A cut-out can be clean on one frame and ragged in motion, and you cannot see it move, so never call one good: say it is made and ask the user to watch it. Came back wrong: change prompt or adjust and run it again on the same ref.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    gif: { type: 'string', description: 'The ref of a GIF card.' },
+                    method: { type: 'string', enum: ['background', 'name'] },
+                    prompt: { type: 'string', description: 'What to track, e.g. "robot". Required for method "name".' },
+                    adjust: {
+                        type: 'object',
+                        description: 'Mask adjust. grow is in output pixels.',
+                        properties: { grow: { type: 'number' }, outward: { type: 'number' }, inward: { type: 'number' }, edge: { type: 'number' }, fillHoles: { type: 'boolean' } },
+                    },
+                    invert: { type: 'boolean', description: 'Swap which side survives.' },
+                },
+                required: ['gif', 'method'],
+                additionalProperties: false,
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
+            name: 'gif_to_video',
+            description: 'Turn a GIF card into a video, as a NEW card beside it; the GIF is left alone. Video carries no transparency, so a cut-out plays on black unless you pass background.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    gif: { type: 'string', description: 'The ref of a GIF card.' },
+                    background: { type: 'string', description: '"#rrggbb" behind whatever a transparent GIF leaves clear.' },
+                },
+                required: ['gif'],
                 additionalProperties: false,
             },
         },
@@ -384,7 +513,7 @@ export class AgentLoop {
         // Every image this session is allowed to reach: attachment ids the user
         // sent, and the outputs its own generations produced. See _resolveImage.
         this._images = new Map();  // ref -> { path, kind: 'attachment' | 'result' }
-        this._groups = new Set();  // card ids this session's own generations created (rename_card)
+        this._groups = new Set();  // card ids rename_card may name: this session's own, and any the app listed (`_seeCards`)
         this._projects = new Set(); // project keys list_projects / create_project gave (open_project)
         // Generations this conversation started that have not settled, oldest first:
         // toolCallId -> a short label. What `cancel_generation` can reach — and NOT reset with
@@ -553,9 +682,59 @@ export class AgentLoop {
     }
 
     /** Register a generation's output so a later `look` or reference can name it. */
-    _registerResult(filePath, modelId = null) {
+    _registerResult(filePath, modelId = null, itemId = null) {
         if (!filePath || typeof filePath !== 'string') return;
-        this._images.set(filePath, { path: _decodeProjectFileUrl(filePath), kind: 'result', modelId });
+        this._images.set(filePath, { path: _decodeProjectFileUrl(filePath), kind: 'result', modelId, itemId });
+    }
+
+    /**
+     * What the model reads of a card listing (`list_cards`, `visible_cards`). `files` is the
+     * allowlist's half, not the model's: every ref it lists is a file inside the project's own
+     * Media/ (the service checks), and from here on `look`, `generate` and the GIF tools
+     * resolve it like one of this session's own results.
+     */
+    _seeCards(r) {
+        if (!r?.ok) return JSON.stringify(r);
+        const { files = {}, ...seen } = r;
+        // A card the app LISTED is one `rename_card` may name. The gate used to be "only what
+        // this conversation generated", from before the agent could see the project at all;
+        // live, 2026-09-20, Fabio asked it to name his unnamed square and triangle cards and
+        // it refused all four and told him to do it by hand. A made-up id still reaches nothing.
+        for (const c of seen.cards || (seen.card ? [seen.card] : [])) if (c?.groupId) this._groups.add(c.groupId);
+        for (const [ref, f] of Object.entries(files)) {
+            this._images.set(ref, { path: f.path, kind: 'result', modelId: f.modelId || null, itemId: f.itemId || null });
+        }
+        return JSON.stringify(seen);
+    }
+
+    /**
+     * One GIF verb, awaited (MPI-817 Phase E). The routes name a card by ITEM id and the model
+     * only ever says `ref`, so `refs` maps each body key to the ref(s) behind it and the item
+     * id comes off the same `_images` entry `look` and `generate` resolve: no second id for
+     * the model to carry, and nothing reachable that the allowlist does not already hold.
+     * The reply's own ref is registered the same way, so a chain of steps feeds itself.
+     */
+    async _gif(run, refs, body, newCard) {
+        const toolCallId = crypto.randomUUID();   // keys the chat's result card, as generate's does
+        for (const [key, ref] of Object.entries(refs)) {
+            const list = [].concat(ref);
+            const ids = list.map((one) => this._resolveImage(one)?.itemId);
+            const missing = list.filter((_, i) => !ids[i]);
+            if (missing.length) {
+                return JSON.stringify({ ok: false, error: { code: 'NOT_A_CARD', message: `Not a gallery card you can reach: ${missing.join(', ')}. Use a ref list_cards returned, or one a finished generation or GIF step reported. An attachment is not a card.` } });
+            }
+            body[key] = Array.isArray(ref) ? ids : ids[0];
+        }
+        const r = await run(body);
+        if (!r?.ok || !r.output) return JSON.stringify(r);
+        const { itemId, ...output } = r.output;
+        this._registerResult(output.filePath, null, itemId);
+        // rename_card reaches only cards this conversation MADE. edit and cutout land on a
+        // card that was already there, which may be the user's own.
+        if (newCard && output.groupId) this._groups.add(output.groupId);
+        this._emit('agent:result', { toolCallId, ok: true, output: r.output });
+        this._historyEntry('result', { toolCallId, ok: true, output: r.output });
+        return JSON.stringify({ ok: true, output, message: `Done. Its ref is "${output.filePath}".` });
     }
 
     /**
@@ -1038,7 +1217,7 @@ ${knowledgeIndex}`.trim();
                     }
                     this._askedCancel.delete(toolCallId);
                     this._trackUnfinished(askedIn, args, ok ? null : (r?.error?.code || 'FAILED'));
-                    if (ok && r.output?.filePath) this._registerResult(r.output.filePath, r.output.modelId);
+                    if (ok && r.output?.filePath) this._registerResult(r.output.filePath, r.output.modelId, r.output.itemId);
                     if (ok && r.output?.groupId) this._groups.add(r.output.groupId);
                     this._emit('agent:result', {
                         toolCallId,
@@ -1152,7 +1331,7 @@ ${knowledgeIndex}`.trim();
             }
             case 'rename_card': {
                 if (!this._groups.has(args.groupId)) {
-                    return JSON.stringify({ ok: false, error: { code: 'UNKNOWN_CARD', message: 'You can only name cards you generated in this conversation: use the card id a finished generation reported.' } });
+                    return JSON.stringify({ ok: false, error: { code: 'UNKNOWN_CARD', message: 'No such card that you have seen: use a groupId from list_cards or visible_cards, or the card id a finished generation reported.' } });
                 }
                 return JSON.stringify(await this._tools.renameCard(args.groupId, args.name));
             }
@@ -1161,16 +1340,32 @@ ${knowledgeIndex}`.trim();
                 if (!currentProject?.folderPath) {
                     return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'No project is open, so there are no cards to list.' } });
                 }
-                const r = await this._tools.listCards(currentProject.folderPath, args.groupId, args.limit);
-                if (!r?.ok) return JSON.stringify(r);
-                // `files` is the allowlist's half, not the model's: every ref it lists is a
-                // file inside this project's own Media/ (the service checks), and from here
-                // on `look` and `generate` resolve it like one of this session's own results.
-                const { files = {}, ...seen } = r;
-                for (const [ref, f] of Object.entries(files)) {
-                    this._images.set(ref, { path: f.path, kind: 'result', modelId: f.modelId || null });
+                return this._seeCards(await this._tools.listCards(currentProject.folderPath, args.groupId, args.limit, args.mark));
+            }
+            case 'visible_cards':
+                return this._seeCards(await this._tools.visibleCards(args.limit));
+            case 'mark_card':
+                return JSON.stringify(await this._tools.markCard(args.groupId, args.mark === 'none' ? false : args.mark));
+            case 'make_gif': {
+                const { images, video, ...rest } = args;
+                if ((images === undefined) === (video === undefined)) {
+                    return JSON.stringify({ ok: false, error: { code: 'BAD_REQUEST', message: 'Send either images (two or more still cards) or video (one video card), not both and not neither.' } });
                 }
-                return JSON.stringify(seen);
+                return this._gif(this._tools.makeGif, images !== undefined ? { itemIds: images } : { videoItemId: video }, rest, true);
+            }
+            case 'edit_gif': {
+                const { gif, ...rest } = args;
+                // The route's "opaque" is a null edgeColour, which a tool schema cannot say.
+                if (rest.output?.edgeColour === 'opaque') rest.output = { ...rest.output, edgeColour: null };
+                return this._gif(this._tools.editGif, { itemId: gif }, rest, false);
+            }
+            case 'cutout_gif': {
+                const { gif, ...rest } = args;
+                return this._gif(this._tools.cutoutGif, { itemId: gif }, rest, false);
+            }
+            case 'gif_to_video': {
+                const { gif, ...rest } = args;
+                return this._gif(this._tools.gifToVideo, { itemId: gif }, rest, true);
             }
             case 'cancel_generation': {
                 // Only what THIS conversation started and has not settled. The id is never
@@ -1369,6 +1564,15 @@ ${knowledgeIndex}`.trim();
             // portrait start frame at 16:9 and the crop cut the head at the eyes (Phase 4).
             const list = Array.isArray(attachments) ? attachments : [];
             for (const [i, att] of list.entries()) {
+                // A video was handed over BY REFERENCE (`routes/agent.js`): a file the open
+                // project holds, so it registers like a card `list_cards` returned, under the
+                // same ref, and NOT as an attachment — `generate` places an attachment as a
+                // picture, and a reset deletes one. No thumb in the chat: nothing was staged.
+                if (att.reference && att.filePath) {
+                    this._images.set(att.id, { path: att.filePath, kind: 'result', modelId: null, itemId: att.itemId || null });
+                    contentParts.push({ type: 'text', text: `[Attached video ${i + 1}: ${att.name} (ref: ${att.id}). A clip in this project. look cannot open a video: pass the ref to generate as media, or to make_gif.${att.itemId ? '' : ' It is not a gallery card yet, so make_gif cannot take it until list_cards returns it.'}]` });
+                    continue;
+                }
                 if (att.id && att.filePath) {
                     this._images.set(att.id, { path: att.filePath, kind: 'attachment', name: att.name });
                     stagedAttachments.push({ id: att.id, name: att.name });
@@ -1652,6 +1856,12 @@ function _toolLabel(toolName, args) {
         case 'open_project':   return `Opening project`;
         case 'rename_card':    return `Naming a card: ${args.name || ''}`;
         case 'list_cards':     return args.groupId ? 'Reading a card' : 'Looking through the project';
+        case 'visible_cards':  return 'Looking at what the gallery shows';
+        case 'mark_card':      return args.mark === 'none' ? 'Clearing a card mark' : 'Marking a card';
+        case 'make_gif':       return 'Making a GIF';
+        case 'edit_gif':       return 'Editing a GIF';
+        case 'cutout_gif':     return 'Cutting out the subject';
+        case 'gif_to_video':   return 'Turning a GIF into a video';
         case 'read_memory':    return args.file ? 'Reading a project note' : 'Reading project notes';
         case 'write_memory':   return _isUnfinishedFile(args.file) ? 'Checking unfinished generations' : `Noted: ${args.title || args.file || ''}`;
         default:               return toolName;

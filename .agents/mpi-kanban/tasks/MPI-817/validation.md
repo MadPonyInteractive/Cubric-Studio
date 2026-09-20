@@ -658,3 +658,129 @@ a restart still has to find its frame through `list_cards`, this note only holds
 "requeue what I lost". Pass = it names the clip from its first message, reads the note, and
 sends the same prompt and settings with no questions. Then let it land and check
 `<project>/Agent/unfinished-generations.md` reads "Nothing unfinished."
+
+## LIVE PASS 2026-09-20 19:02Z — Phase E and the video hand-off, in ONE message
+
+Fabio, in his own app after a restart (ComfyUI up 19:01:24Z), a video chip in the agent box and
+one message: *"Can you convert this video into a GIF and remove its background so that only
+the duck is visible?"* His words after: "I did it all in one go, and it worked quite nicely."
+
+- `app.log`: `Agent job 90b03c89…: gif.make` at 19:01:51.873Z, then
+  `Agent job e10d7af2…: gif.cutout` at 19:02:04.420Z, ComfyUI `got prompt` 1.7 s later loading
+  SAM3 — so it chose `method: "name"` for "only the duck". No error line, no `threw`.
+- The chat went straight to MAKING A GIF with NO `list_cards` step first: the ref and its item
+  id arrived with the attachment, which is the by-reference hand-off working end to end (drop
+  guard, send, route, loop). Both results drew in the chat; the cut-out landed as an entry on
+  the same GIF card, as designed.
+- The honest-limit held with no prompt line: *"Give it a look to confirm the edges hold up
+  in motion."* It did not call the cut-out good.
+
+Closes: checklist "Phase E" and "A video cannot be handed to the agent". NOT covered by this
+run: `edit_gif`, `gif_to_video`, a dropped Explorer FILE (he used a card), and all of Phase F.
+
+## Phase E — the agent's four GIF tools (2026-09-20, built; live pass above)
+
+`make_gif` / `edit_gif` / `cutout_gif` / `gif_to_video` over MPI-830's routes. The model says
+`ref`, never an item id: `list_cards` and a finished generation put the SHOWING version's
+`itemId` on the `_images` entry, and the tools look it up there. A ref with none is
+`NOT_A_CARD` and no route is called.
+
+- `tests/agent-cards.test.cjs` → `the GIF tools turn a ref into the item id the card is
+  SHOWING…`, on a real project folder: a cold ref reaches no route; `video: i2v_006.mp4` is
+  sent as `videoItemId: item-clip`; a card with `selectedIndex: 1` sends `item-still`, not the
+  first in its history; both sources at once is `BAD_REQUEST`; the make reply's ref feeds
+  `cutout_gif`, whose reply feeds `edit_gif`; `edgeColour: "opaque"` is sent as `null`; the
+  model's copy of the output has no `itemId` while the chat's result card keeps it; `make`
+  joins `_groups`, a cut-out on a card already there does not.
+- `tests/agent-no-delete.test.cjs`: four routes added on purpose, with the reason.
+- Full suite: 1582 tests, 1581 pass, 0 fail, 1 skipped (live key). eslint clean on the five
+  files touched.
+
+**Owed by Fabio's eyes (restart first — `services/*.mjs` is server code):** in a project with
+a video card, ask the agent in your own words to turn it into a GIF and remove its
+background. Pass = a GIF card lands, a transparent entry lands on that same card, both show
+in the chat, and the agent says the motion needs your eye instead of calling it good. Proof
+line in `app.log`: two `Agent job <id>: gif.make` / `gif.cutout`.
+
+## LIVE ROUND 2026-09-20 19:07–19:12Z — Phase F, Fabio's own app, his words pasted back
+
+`app.log`: `gallery.visible` 19:07:18Z, `card.mark` 19:10:40Z, `gallery.visible` 19:12:04Z. There
+is NO `card.rename` line: the four refusals happened in the loop and never reached the renderer.
+
+| His ask | What ran | Verdict |
+|---|---|---|
+| "give names to all the square and triangle cards that don't have a name yet" | `visible_cards` → 4 × `rename_card`, ALL refused `UNKNOWN_CARD` | It FOUND exactly the four. **The refusal was a bug, fixed below.** |
+| "mark the latest card with a circle" | `mark_card` → `dot` on `gif_001` | PASS. "circle" reached `dot` from the tool description alone. |
+| "From the stuff I'm looking at... is any of these an image?" | `visible_cards` → "filtered to Squares, 5 cards", 4 videos + 1 image, by name | PASS. The filter came back in the panel's own words, the set was the grid's. |
+| Landing page: "How many videos am I looking at?" | no tool call; said the gallery is not on screen, offered to list once a project is open | PASS on the rule (it did NOT fall back to a project). The answer rambled and wrongly said a listing cannot tell a video from a still. |
+
+**Fixed from this round:** `rename_card` was gated to cards this conversation GENERATED — a gate
+from before `list_cards` existed. A card the app LISTED is now nameable (`_seeCards` adds its
+`groupId`); an id it was never shown is still `UNKNOWN_CARD`. Test: `agent-card-marks.test.cjs`
+→ `the loop: …`. And `visible_cards` now says each row's `kind` tells image from video with no
+`look`, for the confused landing answer. Tool-description changes only; no prompt line.
+82 agent tests pass, 0 fail, lint clean. **The rename fix is NOT live-seen** (server code:
+restart, then repeat the first ask).
+
+## Phase F — marks and the visible set (2026-09-20, built; live round above)
+
+`list_cards` rows carry `mark` and take a `mark` filter; `mark_card` sets or clears one;
+`visible_cards` returns what the gallery grid is SHOWING, in its order, with the filter in
+the panel's own words. The renderer names the ids, the route builds the rows off disk.
+
+- `tests/agent-card-marks.test.cjs`, six tests on a real project folder and the REAL router
+  with a fake renderer: a legacy `favourite: true` reads `dot`, an unmarked row has no `mark`
+  key, `mark=circle` is `BAD_REQUEST`; the visible set keeps the RENDERER's order and returns
+  an ARCHIVED card `/connector/cards` never can, drops an id disk does not have, `limit=1` is
+  the grid's first with `total` still 2, `folderPath` never leaks; `GALLERY_NOT_OPEN` returns
+  no cards at all; `card-mark` relays `false` for a clear and 400s a non-string; the loop
+  sends `"none"` as `false` and registers a visible card's `ref` with its item id; the
+  renderer handler is pinned to the grid's own `matchesGallerySort` / `byGalleryOrder`.
+- `tests/agent-no-delete.test.cjs`: both routes added on purpose, with the reason a cleared
+  mark is not a delete.
+- Full suite: 1588 tests, 1587 pass, 0 fail, 1 skipped (live key). eslint clean on all nine
+  files touched.
+- NOT covered by a test, only by the live check: `_markCard` / `_visibleCards` running in the
+  real renderer (the module cannot load under Node), and the card repainting its mark.
+
+**Owed by Fabio's eyes (same restart):** mark a few cards by hand, some triangle, some circle.
+(1) "Name all the triangle cards" → exactly those. (2) "Mark the newest video with a square" →
+the square appears on the card at once, and the filter panel finds it. (3) Filter the gallery
+(say videos only + triangles) and ask for something on "the cards I'm looking at" → it says
+the filter back in the panel's words and hits exactly the grid's set, top one first.
+(4) From the landing page or a card's history view, ask the same → it says the gallery is
+not on screen and does NOT act on the whole project.
+
+## A video handed to the agent (2026-09-20, built, NOT live-seen)
+
+His report, second time: "I can't send videos to the agent" (toast: "Media type not supported
+for this model"). Root cause, two gates in series, both fixed:
+
+1. `MpiPromptBox.js` `_maxMediaForCurrentOperation`: agent mode returned 0 for anything but
+   an image, so a dragged card, a dropped file and "send to prompt" all died at the toast.
+   Now a video is accepted once a project is open (`AGENT_MAX_VIDEOS = 2`), and the toast
+   in agent mode says what the agent takes instead of blaming a model.
+2. Transport: `_sendAgentTurn` only gathered image chips, as base64 data URLs, into a stager
+   that takes JPEG/PNG/WebP. A clip is NOT sent as bytes. With a project open every video
+   chip is already a project file (a card, or a drop the box imported), so it is sent as
+   `{ url, name, mediaType: 'video', itemId }`; `routes/agent.js` honours the path only
+   inside that project's `Media/` (`agentCards.ownedMedia`, the check `list_cards` uses);
+   the loop registers it as a card-like ref (kind `result`, with its item id), so `generate`
+   takes it as media by url and `make_gif` by item id. Nothing is copied or staged.
+
+- `tests/agent-video-attachment.test.cjs`, four tests: a path outside the project, a `..`
+  escape and a `blob:` are all refused; a referenced clip is announced to the model as
+  `[Attached video 1: … (ref: …)]`, resolves as kind `result`, is never served by the
+  attachment route, and `make_gif` sends its `videoItemId`; a clip with no item id yet says
+  why `make_gif` cannot take it and is refused `NOT_A_CARD`; both gates are pinned in source.
+- Full suite: 1600 tests, 1599 pass, 0 fail, 1 skipped. eslint clean.
+- NOT covered by a test: the prompt box itself (it cannot load under Node). The drop, the
+  chip and the send are proven only by the live check below.
+- Known ceilings: no video thumb in the chat bubble (nothing is staged to show); on the
+  landing page, with no project, a video is still refused.
+
+**Owed by Fabio's eyes (restart the app: `routes/agent.js` and `services/` are server code):**
+agent mode, project open. (1) Drag a video CARD onto the box → a chip, no toast. Ask "make
+this a GIF" → `gif.make` in app.log, a GIF card lands. (2) Drop a video FILE from Explorer →
+it imports as a card and chips; ask for something that takes a clip. (3) With no project
+open, drop a video → the new toast, no chip.

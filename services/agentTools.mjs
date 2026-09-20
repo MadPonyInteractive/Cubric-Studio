@@ -145,6 +145,27 @@ export async function renameCard(groupId, name) {
 }
 
 /**
+ * POST /connector/gif/{make,edit,cutout,to-video} — MPI-830's routes; bodies and error codes in
+ * `.claude/skills/cubric-vision-gif/SKILL.md`. Awaited: the ffmpeg verbs are seconds, a cut-out
+ * is a GPU run. Cards are named by ITEM id, which the loop looks up from the model's `ref`.
+ */
+export async function makeGif(body) {
+    return _post('/connector/gif/make', body);
+}
+
+export async function editGif(body) {
+    return _post('/connector/gif/edit', body);
+}
+
+export async function cutoutGif(body) {
+    return _post('/connector/gif/cutout', body);
+}
+
+export async function gifToVideo(body) {
+    return _post('/connector/gif/to-video', body);
+}
+
+/**
  * GET /connector/memory[/:file]?folderPath= — the project's agent notes: the index
  * `{ ok, notes }`, or one note `{ ok, file, text }`.
  */
@@ -157,9 +178,19 @@ export async function readMemory(folderPath, file) {
  * GET /connector/cards[/:groupId]?folderPath= — what the project already holds: the newest
  * cards `{ ok, cards, total, files }`, or one card in full `{ ok, card, files }`.
  */
-export async function listCards(folderPath, groupId, limit) {
-    const q = `?folderPath=${encodeURIComponent(String(folderPath ?? ''))}${limit ? `&limit=${encodeURIComponent(limit)}` : ''}`;
+export async function listCards(folderPath, groupId, limit, mark) {
+    const q = `?folderPath=${encodeURIComponent(String(folderPath ?? ''))}${limit ? `&limit=${encodeURIComponent(limit)}` : ''}${mark ? `&mark=${encodeURIComponent(mark)}` : ''}`;
     return _get(groupId ? `/connector/cards/${encodeURIComponent(String(groupId))}${q}` : `/connector/cards${q}`, 30_000);
+}
+
+/** GET /connector/visible-cards — the cards the gallery grid is SHOWING, in its order, with the filter in words. */
+export async function visibleCards(limit) {
+    return _get(`/connector/visible-cards${limit ? `?limit=${encodeURIComponent(limit)}` : ''}`, 30_000);
+}
+
+/** POST /connector/card-mark { groupId, mark } — a CARD_MARKS id, or false to clear it. */
+export async function markCard(groupId, mark) {
+    return _post('/connector/card-mark', { groupId, mark: mark || false }, 60_000);
 }
 
 /** POST /connector/memory { folderPath, file, title, hook?, text } — create or replace one note. */

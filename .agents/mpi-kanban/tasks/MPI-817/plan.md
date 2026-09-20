@@ -98,6 +98,52 @@ the Mask Brush, per-frame scope.
 **Verify:** ask the agent, in Fabio's own words, to turn a video card into a GIF and remove
 its background — and the cards land.
 
+**BUILT 2026-09-20, owes the live check above.** `make_gif` / `edit_gif` / `cutout_gif` /
+`gif_to_video` in `services/agentLoop.mjs` (defs + `_gif()` + four branches), four thin
+wrappers in `services/agentTools.mjs`, four routes allowlisted on purpose in
+`tests/agent-no-delete.test.cjs`. The one design point this plan left open — routes take ITEM
+ids, the model only knows `ref` — was settled without a second id: `services/agentCards.mjs`
+puts the SHOWING version's `itemId` in its `files` map, `generate`'s `output.itemId` rides into
+`_registerResult`, and the GIF tools look the item id up from the same `_images` entry `look`
+resolves. A ref with none is `NOT_A_CARD` and reaches no route. All four are AWAITED (MPI-840's
+queue catches anything typed during a cut-out). The motion limit went into the tool
+descriptions, no prompt line added. Test: `tests/agent-cards.test.cjs`, last test. Not built, on
+purpose: fire-and-queue for `cutout` — add it only if a live cut-out blocks a turn badly.
+
+### Phase F — the agent's view of cards: marks and the visible set (open, specified)
+
+*Asked for by Fabio 2026-09-20. Full spec, traps included, in handoff `889a2340` § plan.pending
+items 3 and 4 — read it there, it is not repeated here.* Two halves that ship together:
+(1) card MARKS — `markOf(group)` on each `list_cards` row, a `mark_card` tool copying the
+`rename_card` path, a `mark` filter on `list_cards`; (2) THE VISIBLE SET — a relay capability in
+`js/shell/agentDispatch.js` over `state.gallerySort`, never a `list_cards` argument, reusing
+`matchesGallerySort` + `byGalleryOrder`. No card of its own: it lives here.
+
+**BUILT 2026-09-20, owes Fabio's live check (validation.md § Phase F).** Shape that was not in
+the spec: the renderer answers with GROUP IDS only (`gallery.visible`), and the ROUTE builds
+the rows off disk with `agentCards.cardsByIds` — one row builder, one filter predicate, no
+second copy of either. `cardsByIds` skips `_groups()` on purpose so the archived scope works.
+`markGroup(groupId, mark)` is new in `js/services/projectService.js`, beside `renameGroup` and
+for its reason (lookup inside the mutation queue); the spec's `updateGroup(group)` would have
+written back a captured copy. Decision taken, his to reverse: `mark_card` has NO own-cards gate
+(rename_card has one) because marking the user's cards is the ask. Both routes are public, so
+the external `cubric-vision` skill documents them (`projects.md` § Marks and what the user can
+see). 1588 tests, 0 fail. **Nothing is committed yet.**
+
+## Current State (2026-09-20, session 5d913141)
+
+Phase E and the video hand-off PASSED LIVE 19:02Z (`validation.md` § LIVE PASS): one message
+with a video chip, `gif.make` then `gif.cutout`, no `list_cards` first. The video fix was not in
+the handoff — Fabio hit "I can't send videos to the agent" again mid-session and it was built
+then: the box takes a video in agent mode once a project is open, and it goes BY REFERENCE
+(url + item id), never bytes. Phase F PASSED LIVE 19:07-19:12Z on all four checks. That round
+found `rename_card` refusing Fabio's own listed cards (a gate older than `list_cards`): fixed —
+a card the app LISTED is nameable, a made-up id is still `UNKNOWN_CARD` — and that fix is the
+one thing NOT live-seen. Everything is UNCOMMITTED. Next action: restart, repeat "give names to
+the unnamed square and triangle cards", then `mpi-end-session`
+(MPI-840 closable; MPI-839 once its reopen-the-origin-project landing passes). Message
+`be606244` (MPI-842) was answered: reply `a7dc92be`.
+
 ## Parallel Batch — Phase A and Phase B
 
 Disjoint footprints, so these two can run at once. Phases B and C both need Fabio in the room, so

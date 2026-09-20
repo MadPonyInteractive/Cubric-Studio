@@ -519,6 +519,26 @@ export async function renameGroup(groupId, customName) {
 }
 
 /**
+ * Set or clear a card's mark (`favourite`, MPI-785), persist, and emit. Looked up INSIDE the
+ * mutation queue for the reason `renameGroup` gives. The caller validates `mark`: an id
+ * outside CARD_MARKS would persist and then match no row of the filter panel.
+ * @param {string} groupId
+ * @param {string|false} mark - a CARD_MARKS id, or false for none
+ * @returns {Promise<Object|null>} the updated group, or null when the open project has no such card
+ */
+export async function markGroup(groupId, mark) {
+    return _enqueueMutation(async () => {
+        const group = state.currentProject?.itemGroups?.find(g => g.id === groupId);
+        if (!group) return null;
+        const updated = { ...group, favourite: mark || false };
+        state.currentProject = updateGroupInProject(state.currentProject, updated);
+        await persistGroups();
+        Events.emit('project:group-updated', { group: updated });
+        return updated;
+    });
+}
+
+/**
  * Remove a group from the current project, persist, and emit.
  * @param {string} groupId
  */

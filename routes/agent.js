@@ -28,6 +28,7 @@
 
 const express = require('express');
 const crypto  = require('crypto');
+const path    = require('path');
 const logger  = require('./logger');
 const { ask } = require('./forkBridge');
 
@@ -112,6 +113,18 @@ router.post('/agent/message', async (req, res) => {
         if (tools) {
             for (const att of attachments) {
                 try {
+                    // A VIDEO arrives by reference (MpiPromptBox `_sendAgentTurn`): a clip as a
+                    // data URL is hundreds of MB, and it is already a file of the open project.
+                    // Nothing is copied; the path is only honoured inside that project's Media/,
+                    // because the loop ships what it registers to the engine, maybe a remote Pod.
+                    if (!att.dataUrl && att.url) {
+                        const { ownedMedia } = await import('../services/agentCards.mjs');
+                        const owned = project?.folderPath ? ownedMedia(project.folderPath, att.url) : null;
+                        if (!owned) throw new Error('A video can be handed to the agent only from the open project.');
+                        stagedAttachments.push({ id: path.basename(owned), name: att.name, filePath: owned,
+                            reference: true, mediaType: 'video', itemId: typeof att.itemId === 'string' ? att.itemId : null });
+                        continue;
+                    }
                     const { id, filePath } = await tools.saveAttachment(att.name, att.dataUrl);
                     stagedAttachments.push({ id, name: att.name, filePath });
                 } catch (err) {

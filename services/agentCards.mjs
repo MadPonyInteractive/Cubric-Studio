@@ -18,6 +18,7 @@
 import path from 'path';
 import fs from 'fs/promises';
 import { MemoryError } from './agentMemory.mjs';
+import { CARD_MARKS, markOf } from '../js/utils/galleryFilter.js';
 
 export const DEFAULT_LIMIT = 12;
 export const MAX_LIMIT = 30;
@@ -46,6 +47,9 @@ function _ownedMedia(folderPath, ref) {
     return resolved.toLowerCase().startsWith(media.toLowerCase()) ? resolved : null;
 }
 
+/** The same check for `POST /agent/message`, which takes a video by reference. */
+export const ownedMedia = _ownedMedia;
+
 async function _readJson(file) {
     try { return JSON.parse(await fs.readFile(file, 'utf8')); } catch { return null; }
 }
@@ -59,12 +63,17 @@ async function _project(folderPath) {
     return project;
 }
 
-/** The sidecar of the version the card is SHOWING - `selectedIndex`, not the newest. */
-async function _selected(folderPath, group) {
+/** The item id of the version the card is SHOWING - `selectedIndex`, not the newest. */
+function _selectedId(group) {
     const history = Array.isArray(group.history) ? group.history : [];
     const itemId = history[group.selectedIndex ?? 0] ?? history[history.length - 1];
-    if (typeof itemId !== 'string' || !/^[\w-]+$/.test(itemId)) return null;
-    return _readJson(path.join(folderPath, 'Media', '.meta', `${itemId}.json`));
+    return typeof itemId === 'string' && /^[\w-]+$/.test(itemId) ? itemId : null;
+}
+
+/** That version's sidecar. */
+async function _selected(folderPath, group) {
+    const itemId = _selectedId(group);
+    return itemId ? _readJson(path.join(folderPath, 'Media', '.meta', `${itemId}.json`)) : null;
 }
 
 /** `{ role, ref }` for each picture a generation was made from, where the project still has it. */
@@ -85,6 +94,8 @@ function _row(folderPath, group, meta) {
         kind: group.type,
         createdAt: group.createdAt,
         versions: Array.isArray(group.history) ? group.history.length : 0,
+        // `markOf`, never `.favourite` raw: a pre-MPI-785 project stored the heart as `true`.
+        ...(markOf(group) ? { mark: markOf(group) } : {}),
         // The ref `look` and `generate` take. Absent when the file is not the project's own.
         ...(file ? { ref: path.basename(file) } : {}),
         ...(meta?.uploaded ? { uploaded: true } : {}),
@@ -95,6 +106,9 @@ function _row(folderPath, group, meta) {
         ...(meta?.duration ? { durationSeconds: meta.duration } : {}),
         ...(prompt ? { prompt: prompt.length > ROW_PROMPT_CHARS ? `${prompt.slice(0, ROW_PROMPT_CHARS)}…` : prompt } : {}),
         _file: file || null,
+        // What the GIF routes name a card by. The model never sees it: it says `ref`, and
+        // the loop looks the item id up from the same allowlist entry.
+        _itemId: _selectedId(group),
     };
 }
 
@@ -103,11 +117,11 @@ function _groups(project) {
         .filter((g) => g && typeof g.id === 'string' && g.archived !== true);
 }
 
-/** `_file` is for the caller's allowlist and never part of what the model reads. */
+/** `_file` and `_itemId` are for the caller's allowlist and never part of what the model reads. */
 function _split(rows) {
     const files = {};
-    const cards = rows.map(({ _file, ...row }) => {
-        if (_file && row.ref) files[row.ref] = { path: _file, modelId: row.modelId || null };
+    const cards = rows.map(({ _file, _itemId, ...row }) => {
+        if (_file && row.ref) files[row.ref] = { path: _file, modelId: row.modelId || null, itemId: _itemId };
         return row;
     });
     return { cards, files };
@@ -117,11 +131,30 @@ function _split(rows) {
  * The project's cards, newest first, one short row each.
  * @returns {Promise<{cards: object[], total: number, files: Record<string, {path: string, modelId: string|null}>}>}
  */
-export async function listCards(folderPath, { limit = DEFAULT_LIMIT } = {}) {
+export async function listCards(folderPath, { limit = DEFAULT_LIMIT, mark } = {}) {
     const project = await _project(folderPath);
     const n = Math.min(Math.max(Number(limit) || DEFAULT_LIMIT, 1), MAX_LIMIT);
+    if (mark && !CARD_MARKS.some((m) => m.id === mark)) {
+        throw new MemoryError('BAD_REQUEST', `mark must be one of: ${CARD_MARKS.map((m) => m.id).join(', ')}.`);
+    }
     const groups = _groups(project)
+        .filter((g) => !mark || markOf(g) === mark)
         .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+    const rows = await Promise.all(groups.slice(0, n)
+        .map(async (g) => _row(folderPath, g, await _selected(folderPath, g))));
+    return { ..._split(rows), total: groups.length };
+}
+
+/**
+ * Rows for the group ids the RENDERER named, in ITS order: the gallery's visible set
+ * (`GET /connector/visible-cards`). Deliberately not `_groups()` — the archived scope shows
+ * exactly the cards that filter drops. `total` is how many are showing, before `limit`.
+ */
+export async function cardsByIds(folderPath, ids, { limit = MAX_LIMIT } = {}) {
+    const project = await _project(folderPath);
+    const byId = new Map((Array.isArray(project.itemGroups) ? project.itemGroups : []).map((g) => [g?.id, g]));
+    const groups = (Array.isArray(ids) ? ids : []).map((id) => byId.get(id)).filter(Boolean);
+    const n = Math.min(Math.max(Number(limit) || MAX_LIMIT, 1), MAX_LIMIT);
     const rows = await Promise.all(groups.slice(0, n)
         .map(async (g) => _row(folderPath, g, await _selected(folderPath, g))));
     return { ..._split(rows), total: groups.length };

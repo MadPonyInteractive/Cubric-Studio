@@ -140,6 +140,42 @@ Errors: `BAD_REQUEST` (no `groupId`, or `name` neither a string nor `null`),
 `NO_PROJECT`, `NO_SUCH_CARD` (not in the project the app has open - open that project
 first with `/connector/open-project`), `APP_UNAVAILABLE`.
 
+## Marks and what the user can see
+
+A card can carry one shape mark: `dot`, `square` or `triangle`. **The dot DRAWS as a
+circle**, so "the circles" means `dot`. The user filters the gallery by them, which makes a
+mark the cheapest way for them to point at a set of cards.
+
+```bash
+# read: every card the user marked with a triangle (each row of a plain list carries `mark` too)
+curl -s "$CUBRIC_URL/connector/cards?folderPath=<urlencoded folder>&mark=triangle"
+
+# write: set one, or clear it with false
+curl -s -X POST "$CUBRIC_URL/connector/card-mark" \
+  -H 'Content-Type: application/json' \
+  -d '{"groupId":"<card id>","mark":"triangle"}'
+```
+
+On disk the mark is `itemGroups[].favourite`: the id, or `false`. A project from before the
+marks stores `true`, which means `dot`. Never write it into `project.json` while the project
+is open, for the reason § Naming cards gives. Errors: `BAD_REQUEST`, `INVALID_MARK` (not one
+of the three), `NO_PROJECT`, `NO_SUCH_CARD`, `APP_UNAVAILABLE`.
+
+**"The cards I'm looking at" cannot be read off disk.** The gallery's filter (which kinds,
+which marks, previews only, active or archived) lives in the app window's memory; only the
+sort order is saved. Ask the app:
+
+```bash
+curl -s "$CUBRIC_URL/connector/visible-cards?limit=30"
+```
+
+Returns the same rows as `/connector/cards`, but exactly the cards the grid is showing, **in
+the grid's order** (so "the first three" means something), plus `total`, `order`, `scope`,
+`filtered`, and `filter`: the filter in the app's own words (`"Videos · Triangles"`), empty
+when nothing is hidden. In the archived scope it returns archived cards, which
+`/connector/cards` never does. `GALLERY_NOT_OPEN` means the gallery is not on screen - say
+so; do not fall back to the whole project, or "what I can see" silently becomes every card.
+
 ## Media
 
 | Verb | Path | Purpose |

@@ -143,7 +143,8 @@ checklist; this one closes when all three phases do.
         ecosystem tops out at star 3,315 and Fabio's own line in the playbook is *"for Seedance,
         people do not touch the prompt without a skill."* Kling 3.0 is community-only. LTX 2.5's
         step 0 is already done, accidentally, and recorded.
-- [ ] **Phase E — the agent's four GIF tools** (Fabio, 2026-09-19, ready to build, nothing to
+- [x] **Phase E — the agent's four GIF tools** — LIVE PASS 2026-09-20 19:02Z, `validation.md`
+      § LIVE PASS. (Fabio, 2026-09-19, ready to build, nothing to
       design). MPI-830 shipped `POST /connector/gif/{make,edit,cutout,to-video}` (08053cbb),
       tested, landing real gallery cards through the renderer job channel. This is the tool
       table over it in `services/agentTools.mjs` + `services/agentLoop.mjs`, plus the prompt
@@ -154,6 +155,15 @@ checklist; this one closes when all three phases do.
       - The knowledge index ALREADY carries the GIF skill (`agentCorpus` matches
         `cubric-vision*` by prefix), so until this lands the model can read about GIFs it
         has no tool to make. That asymmetry is why it should not sit.
+      - **BUILT 2026-09-20, suite green (1582 / 0 fail), NOT live-seen.** Stays unticked until
+        Fabio's check in `validation.md` § Phase E passes.
+- [x] **Phase F — the agent's view of cards: marks and the visible set** — LIVE PASS 2026-09-20
+      19:07-19:12Z on all four checks (`validation.md` § LIVE ROUND). The round also found
+      `rename_card` refusing his own cards; fixed, suite-green, **owes one repeat of "name the
+      unnamed square and triangle cards" after a restart.** (Fabio, 2026-09-20).
+      Spec in `plan.md` § Phase F and handoff `889a2340`. **Closes on:** mark a few cards by
+      hand, ask for an operation on "all the triangles", then set a gallery filter and ask for
+      one on "the cards I'm looking at" — each hits exactly that set, in the grid's order.
 - [x] **Fabio's call (2026-09-19): the member cards STAY separate** — on the condition that they
       get picked up later or ride as phases of this umbrella. Neither is allowed to go quiet. Do
       not fold, close or merge them without asking him again.
@@ -216,13 +226,20 @@ not the whole answer; the third is the same argument.
 
 Raised this pass, NOT built, nothing here goes quiet:
 
-- [ ] **A video cannot be handed to the agent** (his toast: "Media type not supported for
+- [x] **A video cannot be handed to the agent** — LIVE PASS 2026-09-20 19:02Z. (his toast: "Media type not supported for
       this model"). Two gates. The drop guard in `MpiPromptBox.js` checks the SELECTED
       MODEL's media types, which means nothing in agent mode - and that file is held by
       MPI-736 (live, session 8abe87b4), so it was logged, not touched. Behind it,
       `saveAttachment` takes JPEG/PNG/WebP only. For a clip ALREADY in the project,
       `list_cards` is the answer and needs no attaching; this item is about an OUTSIDE video.
       Probably MPI-797's territory (the agent box's own input).
+      - **BUILT 2026-09-20 after he hit it again ("We still have the same issue"), NOT
+        live-seen.** Both gates, and the premise above was half wrong: with a project open an
+        OUTSIDE file is imported into the project by the box itself (`_importMediaFile`), so
+        every video chip is already a project file. It goes BY REFERENCE (url + item id),
+        never as bytes; `routes/agent.js` honours the path only inside the open project's
+        `Media/`. No project open = still refused, with a toast that says why.
+        Evidence: `validation.md` § A video handed to the agent.
 - [x] **The agent offers a shape the model cannot make.** Source 768x1024 (3:4), H3 snapped
       it to 9:16, and the agent wrote "if you'd rather it keep the full 768x1024 framing, I
       can adjust". It cannot: H3 has no 3:4. Built 2026-09-19 (session 40e3efaf): the result

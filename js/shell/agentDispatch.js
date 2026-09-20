@@ -41,7 +41,8 @@
 
 import { enqueueGeneration, findMissingMediaSlot, cancelPendingCueJob, cancelRunningCueJob } from '../services/generationService.js';
 import { submitFlowGeneration } from '../services/flowService.js';
-import { openProject, renameGroup } from '../services/projectService.js';
+import { openProject, renameGroup, markGroup } from '../services/projectService.js';
+import { CARD_MARKS, markOf, matchesGallerySort, byGalleryOrder, describeGalleryFilter, isGalleryFiltered } from '../utils/galleryFilter.js';
 import { navigate, PAGE_GALLERY } from '../router.js';
 import { MODELS, getModelById, isOperationInstalled, getModelDepStatus } from '../data/modelRegistry.js';
 import { DEPS } from '../data/modelConstants/dependencies.js';
@@ -626,6 +627,65 @@ async function _renameCard(jobId, input = {}) {
 }
 
 /**
+ * Run one `card.mark` job (MPI-817 Phase F): set or clear a card's mark, through this
+ * renderer for the reason `_renameCard` gives. The mark is checked HERE against CARD_MARKS:
+ * a free string would persist and then match no row of the filter panel, leaving a card
+ * marked and un-findable.
+ */
+async function _markCard(jobId, input = {}) {
+    const { groupId, mark } = input;
+    if (!state.currentProject) {
+        return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision. Create or open one, then send this request again.');
+    }
+    if (mark && !CARD_MARKS.some(m => m.id === mark)) {
+        return _fail(jobId, 'INVALID_MARK', `mark must be one of: ${CARD_MARKS.map(m => m.id).join(', ')}, or false to clear it.`);
+    }
+    const group = await markGroup(groupId, mark || false);
+    if (!group) {
+        return _fail(jobId, 'NO_SUCH_CARD',
+            `No card "${groupId}" in the open project "${state.currentProject.name}". Open the project it belongs to first.`);
+    }
+    return _report(jobId, { ok: true, output: { groupId: group.id, mark: markOf(group) } });
+}
+
+/**
+ * Run one `gallery.visible` job (MPI-817 Phase F): the cards the gallery grid is SHOWING,
+ * in the grid's order. `state.gallerySort` lives only in this window (`order` is the one
+ * key that persists), so nothing reading project.json can answer this.
+ *
+ * The predicate and the comparator are the grid's own (`MpiGalleryGrid` filters with this
+ * exact pair): a second copy of a filter drifts, and the agent then acts on cards the user
+ * cannot see. Ids only — the route builds the rows off disk with the one row builder.
+ *
+ * No gallery on screen is a named refusal, never the unfiltered project: "everything I can
+ * see" must not silently become every card.
+ * ponytail: a Flow overlay open over the gallery still answers with the grid beneath it.
+ */
+function _visibleCards(jobId) {
+    if (!state.currentProject) {
+        return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision, so no gallery is showing.');
+    }
+    if (state.currentPage !== PAGE_GALLERY) {
+        return _fail(jobId, 'GALLERY_NOT_OPEN', 'The gallery is not on screen, so there is no set of cards the user is looking at. Ask them to open the gallery, or use list_cards for the whole project.');
+    }
+    const sort = state.gallerySort;
+    const groups = (state.currentProject.itemGroups || [])
+        .filter(g => matchesGallerySort(g, g.history?.[g.selectedIndex] ?? { type: g.type }, sort))
+        .sort(byGalleryOrder(sort.order));
+    return _report(jobId, {
+        ok: true,
+        output: {
+            folderPath: state.currentProject.folderPath,
+            groupIds: groups.map(g => g.id),
+            order: sort.order,
+            scope: sort.scope,
+            filtered: isGalleryFiltered(sort),
+            filter: describeGalleryFilter(sort),
+        },
+    });
+}
+
+/**
  * Validate the `params` object against a flow's box steps (MPI-774).
  * Returns `{ ok: true }` or `{ ok: false, code, message }`.
  * Pure function — no side effects, exported for tests.
@@ -861,6 +921,8 @@ const _HANDLERS = {
     'generation.cancel': _cancelGeneration,
     'project.open': _openProject,
     'card.rename': _renameCard,
+    'card.mark': _markCard,
+    'gallery.visible': _visibleCards,
     'agent.list-models': _listModels,
     'agent.install-model': _installModel,
     'agent.describe': _describeImage,

@@ -42,6 +42,16 @@ const ALLOWED_REQUESTS = new Set([
     // delete: it stops a render the agent ITSELF started, named by its own requestId, and a
     // cancelled generation never made a card or a file. It cannot reach the user's own runs.
     'POST /connector/cancel',
+    // MPI-817 Phase E: the GIF verbs. None removes anything: make and to-video land a NEW card,
+    // edit and cutout add an ENTRY to the card's history and leave the source entry on it.
+    'POST /connector/gif/make',
+    'POST /connector/gif/edit',
+    'POST /connector/gif/cutout',
+    'POST /connector/gif/to-video',
+    // MPI-817 Phase F. visible-cards is a read. card-mark sets a card's dot | square | triangle;
+    // clearing one is `mark: false`, a field going back to empty - no card, file or entry goes.
+    'GET /connector/visible-cards',
+    'POST /connector/card-mark',
 ]);
 
 // Exports that only touch the agent's own scratch dirs, never a project.

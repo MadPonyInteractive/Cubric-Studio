@@ -888,10 +888,59 @@ async function _cards() {
  * UNKNOWN_CARD. They ride `_memoryReply` because they throw the same named error.
  */
 router.get('/connector/cards', (req, res) =>
-  _memoryReply(res, async () => (await _cards()).listCards(req.query.folderPath, { limit: req.query.limit })));
+  _memoryReply(res, async () => (await _cards()).listCards(req.query.folderPath, { limit: req.query.limit, mark: req.query.mark })));
 
 router.get('/connector/cards/:groupId', (req, res) =>
   _memoryReply(res, async () => (await _cards()).readCard(req.query.folderPath, req.params.groupId)));
+
+/**
+ * GET /connector/visible-cards[?limit=] — the cards the gallery grid is SHOWING, in the
+ * grid's order (MPI-817 Phase F) -> { ok, cards, total, files, order, scope, filtered, filter }.
+ *
+ * Two halves on purpose. WHICH cards is the renderer's answer (`gallery.visible`): the
+ * filter lives only in that window's memory, so nothing on disk can know it. WHAT each card
+ * is comes from the same row builder `/connector/cards` uses, so a visible card reads like
+ * any other and its `ref` joins the same allowlist. `filter` is the panel's own words
+ * ("Videos · Triangles"), empty when nothing is hidden.
+ * Errors: APP_UNAVAILABLE, NO_PROJECT, GALLERY_NOT_OPEN (never the unfiltered project).
+ */
+router.get('/connector/visible-cards', async (req, res) => {
+  const seen = await _dispatchToRenderer('gallery.visible', {});
+  if (!seen.ok) return res.json(seen);
+  const { folderPath, groupIds, ...filter } = seen.output || {};
+  return _memoryReply(res, async () =>
+    ({ ...filter, ...(await (await _cards()).cardsByIds(folderPath, groupIds, { limit: req.query.limit })) }));
+});
+
+/**
+ * POST /connector/card-mark { groupId, mark } — set or clear a gallery card's mark (MPI-785's
+ * dot | square | triangle; the dot DRAWS as a circle). `mark: false` or null clears it, which
+ * removes nothing. The card must be in the project the app has open. The renderer checks the
+ * mark against CARD_MARKS: INVALID_MARK, NO_PROJECT, NO_SUCH_CARD.
+ */
+router.post('/connector/card-mark', async (req, res) => {
+  const { groupId, mark } = req.body || {};
+
+  if (!groupId || typeof groupId !== 'string') {
+    return res.status(400).json({
+      ok: false,
+      error: { code: 'BAD_REQUEST', message: 'body.groupId is required.' },
+    });
+  }
+  if (mark !== null && mark !== false && typeof mark !== 'string') {
+    return res.status(400).json({
+      ok: false,
+      error: { code: 'BAD_REQUEST', message: 'body.mark must be a mark id, or false to clear it.' },
+    });
+  }
+
+  const result = await _dispatchToRenderer('card.mark', { groupId, mark: mark || false });
+
+  if (!result.ok) {
+    logger.warn('system', `connector card-mark failed: ${result.error?.code} ${result.error?.message}`);
+  }
+  res.json(result);
+});
 
 /**
  * POST /connector/install { modelId }

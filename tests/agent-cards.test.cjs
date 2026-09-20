@@ -172,3 +172,52 @@ test('list_cards makes the project`s refs usable, and keeps the paths from the m
     const closed = JSON.parse(await loop._executeTool('list_cards', {}, 't1', null));
     assert.equal(closed.error.code, 'NO_PROJECT');
 });
+
+// MPI-817 Phase E. The GIF routes name a card by ITEM id; the model only ever says `ref`.
+test('the GIF tools turn a ref into the item id the card is SHOWING, and a chain feeds itself', async (t) => {
+    const { AgentLoop } = await esm('services/agentLoop.mjs');
+    const cards = await esm('services/agentCards.mjs');
+    const { root, file } = makeProject(t);
+    const sent = [];
+    const reply = (name, output) => async (body) => { sent.push([name, body]); return { ok: true, output }; };
+    const gifUrl = url(file('gif_007.gif'));
+    const cutUrl = url(file('gif_008.gif'));
+    const loop = new AgentLoop({ tools: {
+        listCards: async (folderPath, groupId, limit) => ({ ok: true, ...(groupId ? await cards.readCard(folderPath, groupId) : await cards.listCards(folderPath, { limit })) }),
+        makeGif: reply('make', { itemId: 'item-gif', groupId: 'g-gif', type: 'image', filePath: gifUrl, frames: 24, loop: 0 }),
+        cutoutGif: reply('cutout', { itemId: 'item-cut', groupId: 'g-user', type: 'image', filePath: cutUrl, frames: 24, loop: 0 }),
+        editGif: reply('edit', { itemId: 'item-edit', groupId: 'g-user', type: 'image', filePath: cutUrl }),
+    } });
+    const results = [];
+    loop._emit = (event, data) => { if (event === 'agent:result') results.push(data); };
+    const project = { folderPath: root, name: 'Cowgirl on a Bull' };
+    const run = async (tool, args) => JSON.parse(await loop._executeTool(tool, args, 't1', project));
+
+    const cold = await run('make_gif', { video: 'i2v_006.mp4', fps: 12 });
+    assert.equal(cold.error.code, 'NOT_A_CARD', 'a ref nothing listed reaches no route');
+    assert.equal(sent.length, 0);
+
+    await run('list_cards', {});
+    const made = await run('make_gif', { video: 'i2v_006.mp4', fps: 12, trimIn: 1, trimOut: 3 });
+    assert.deepEqual(sent[0], ['make', { videoItemId: 'item-clip', fps: 12, trimIn: 1, trimOut: 3 }]);
+    assert.equal(made.output.itemId, undefined, 'the model is never handed a second kind of id');
+    assert.equal(results[0].output.itemId, 'item-gif', 'the chat`s result card still gets the whole output');
+
+    // `selectedIndex: 1` — the version on show, not the first in the history.
+    await run('make_gif', { images: ['i2i_001.png', 'flowOutpaint_002.png'] });
+    assert.deepEqual(sent[1], ['make', { itemIds: ['item-still', 'item-out'] }]);
+
+    const both = await run('make_gif', { images: ['i2i_001.png', 'flowOutpaint_002.png'], video: 'i2v_006.mp4' });
+    assert.equal(both.error.code, 'BAD_REQUEST');
+
+    // The reply's ref is what the next step takes.
+    await run('cutout_gif', { gif: gifUrl, method: 'background' });
+    assert.deepEqual(sent[2], ['cutout', { itemId: 'item-gif', method: 'background' }]);
+
+    await run('edit_gif', { gif: cutUrl, output: { colours: 64, edgeColour: 'opaque' } });
+    assert.deepEqual(sent[3], ['edit', { itemId: 'item-cut', output: { colours: 64, edgeColour: null } }]);
+
+    // rename_card reaches what this conversation MADE. A cut-out lands on a card already there.
+    assert.ok(loop._groups.has('g-gif'));
+    assert.ok(!loop._groups.has('g-user'), 'an edit of the user`s card does not make it the agent`s to rename');
+});
