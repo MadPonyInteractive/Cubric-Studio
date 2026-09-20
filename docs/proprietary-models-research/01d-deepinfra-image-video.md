@@ -47,7 +47,7 @@ readout in the prompt box is therefore a small adapter per type, not one formula
 | `input_tokens` | per-token, output image = a fixed token count | the whole Nano Banana family, Seedance |
 | `output_length` | per second of video, tiered by resolution | Wan, Veo, Pixverse 6, PrunaAI |
 | `frame_units` | per frame / per clip | Cosmos3, FastWan |
-| `time` | per second of GPU time, not knowable before the run | legacy SD 1.x / 2.1 only |
+| `time` | per second of GPU time, not knowable before the run | **dead branch** - only SD v1-4, v1-5, 2-1 and Deliberate, all four deprecated 2024-09-27 in favour of `sdxl-turbo`. Every shippable image and video model is priced before dispatch |
 
 **The dashboard hides the per-image price behind a `*`.** The real text is in
 `pricing.full` on `https://api.deepinfra.com/models/<owner>/<model>`, prose not structure,
