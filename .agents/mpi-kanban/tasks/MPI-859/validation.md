@@ -127,10 +127,11 @@ the job would be done. That's what I asked in the first place."
   files this card touches, a different set each run, all green alone and on the re-run. 19
   Electron processes were live on the box at the time.
 
-### Not done here, needs Fabio's permission
+### Rule file - done with permission
 
-`.claude/rules/component-mounts.md:184` still lists the removed viewer API
-(`setMaskDisplayFlip` and friends). Rule files are not edited without being asked.
+Fabio said yes (2026-09-20): .claude/rules/component-mounts.md no longer lists the removed
+display-flip API, records that the store is what gets cut, and lists the proposal API. Every
+method named there was checked against MpiGifViewer.js.
 
 ## Seen once, not reproduced, not ours
 
