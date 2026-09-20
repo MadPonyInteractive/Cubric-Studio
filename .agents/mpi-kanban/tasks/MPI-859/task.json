@@ -1,0 +1,15 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-859",
+  "title": "GIF cut-out masks compose: Add / Subtract over All / Frame / Selected, the image workspace's model",
+  "description": "Fabio, 2026-09-20: masking a frame Background then By colour keeps only the last one, because every method calls setTrackMask and REPLACES the frame's track layer. The image workspace already solved this - a detect run renders green and waits for an explicit Add or Subtract (bakeAutoPicksInto). Port that: every method (BiRefNet included) becomes a source, the existing All / Frame / Selected scope says where it lands, and Mask becomes Add + Subtract. Clear already exists. Engine half shipped as MPI-858 (a cut intersects with the frame's own alpha).",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-20T20:40:00+01:00",
+  "updated_at": "2026-09-20T20:40:00+01:00",
+  "links": {
+    "brief": "brief.md",
+    "events": "events.jsonl"
+  }
+}
