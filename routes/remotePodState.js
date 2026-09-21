@@ -79,12 +79,23 @@ async function _guard(res) {
  */
 async function _resolveLocalModelPath(type, filename) {
   const path = require('path');
+  const fs = require('fs-extra');
   const { getSearchedModelsRoots, getExtraModelFolders, findFileRecursive } = require('./shared');
-  const base = path.basename(String(filename || '').replace(/\\/g, '/'));
+  const rel = String(filename || '').replace(/\\/g, '/');
+  const base = path.basename(rel);
   if (!base) return null;
   const buckets = (await getSearchedModelsRoots()).map((root) => path.join(root, type));
   const extras = await getExtraModelFolders();
   const roots = [...buckets, ...((extras[type]) || [])];
+  // MPI-882: the dropdown value IS the path ComfyUI listed, subfolders and all, so the
+  // exact path wins before any basename hunt. Klein ships a `flux2-klein/styles/4b` rack
+  // and a `.../9b` one that share four names, and the basename search uploaded whichever
+  // the walk met first — the Pod then ran the wrong rack's weight under the right name.
+  for (const root of roots) {
+    const exact = path.join(root, rel);
+    if (await fs.pathExists(exact)) return exact;
+  }
+  // No exact hit: the stored value may predate a folder move, so fall back to the basename.
   for (const root of roots) {
     const hit = await findFileRecursive(root, base);
     if (hit) return hit;

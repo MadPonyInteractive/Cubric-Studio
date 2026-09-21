@@ -20,7 +20,7 @@
 'use strict';
 
 import { ComfyUIController, getEngine } from './comfyController.js';
-import { getUniversalWorkflow, getModelById, getModelDepStatus, isOperationInstalled } from '../data/modelRegistry.js';
+import { getUniversalWorkflow, getModelById, getModelDepStatus, isOperationInstalled, syncModelInstalled } from '../data/modelRegistry.js';
 import { remoteEngineClient } from './remoteEngineClient.js';
 import { resolveDeps, resolveWorkflowFile, variantDepsOf, archVariantOptions } from '../data/modelConstants/resolveModelDeps.js';
 import { downloadService } from './downloadService.js';
@@ -267,6 +267,19 @@ function _resolveUpscaleFilename(value) {
 
 const _baseName = (f) => String(f || '').replace(/\\/g, '/').split('/').pop();
 const _pathKey = (f) => String(f || '').replace(/\\/g, '/').toLowerCase();
+
+/**
+ * MPI-882: is this filename one WE ship as a dependency, rather than a file the user
+ * dropped in a LoRA folder? Matched on the basename because that is all ComfyUI's
+ * rejection carries. Decides which repair a missing-file toast can honestly offer.
+ * @param {string} name  basename from a ComfyUI value_not_in_list rejection
+ * @returns {boolean}
+ */
+function _isShippedDepFile(name) {
+    const base = _baseName(name).toLowerCase();
+    if (!base) return false;
+    return Object.values(DEPS).some(d => d?.filename && _baseName(d.filename).toLowerCase() === base);
+}
 
 /**
  * Resolve a saved LoRA/upscale name to the EXACT string in the current asset
@@ -2348,10 +2361,22 @@ export function runCommand(payload) {
             if (err?.code === 'lora_missing_local') {
                 const name = err.loraName || 'A selected LoRA';
                 clientLogger.warn('comfy', `Local LoRA missing from model folders: ${name}`);
-                Events.emit('ui:warning', {
-                    message: `"${name}" was not found in your LoRA/upscale folders. `
-                        + 'Add it in Settings → External Connections (drag-drop), or pick another in Model Settings.',
-                });
+                // MPI-882: a style rack is BAKED into the model's graph, so a missing one
+                // is a hole in the model's download, not a slot the user picked — sending
+                // them to Model Settings pointed at a dropdown that cannot reach it. The
+                // re-sync below then drops the model out of the pickers and shows it as
+                // installable again, which is the repair.
+                Events.emit('ui:warning', _isShippedDepFile(name)
+                    ? {
+                        title: 'Model files are missing',
+                        message: `"${name}" is part of this model's download and is not on disk. `
+                            + 'Open the Model Library and install the model again to repair it.',
+                    }
+                    : {
+                        message: `"${name}" was not found in your LoRA/upscale folders. `
+                            + 'Add it in Settings → External Connections (drag-drop), or pick another in Model Settings.',
+                    });
+                syncModelInstalled();
                 exec.onError?.(err);
                 return;
             }
@@ -2371,6 +2396,9 @@ export function runCommand(payload) {
                         ? `"${name}" isn't on the remote Pod. Install this operation there, or switch to the local engine.`
                         : `"${name}" isn't installed. Open the Model Library and install this model's operation, then try again.`,
                 });
+                // MPI-882: install state just proved itself wrong — re-read it so the
+                // model leaves the pickers instead of dispatching again on the next click.
+                syncModelInstalled();
                 exec.onError?.(err);
                 return;
             }

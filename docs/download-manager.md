@@ -117,7 +117,7 @@ store, never the dead flag:
   `remoteModelsCheck`. Aborts the uninstall if the volume can't be verified.
 - **Local** (`_localSharedDepsMap`, MPI-216): stats local disk via
   `comfy.js`'s exported `localModelsCheck` (same custom-root + default-root +
-  recursive-search + completeness logic as `/comfy/models/check`). Computed once
+  declared-path + completeness logic as `/comfy/models/check`). Computed once
   before the delete loop; fail-safe **aborts** (`500 shared-dep-check-failed`) if
   the check throws. Plus any dep held by a live in-flight job (`_inFlightDepIds`,
   store SOT — MPI-276).
@@ -130,13 +130,18 @@ until MPI-654 and both drifts they produced were invisible: MPI-607 (the library
 copy lacked the `targetPath` branch — flow deps read not-installed forever) and
 MPI-654 itself (the copies searched different scopes, so a same-named weight in
 another bucket read installed to the installer and not-installed to the library —
-badge stuck, Install downloading nothing). **The search is scoped to the dep's own
-bucket** — the first segment of `filename` IS the ComfyUI folder-type key
-(`yamlHelper.js` derives the yaml from it), so a same-named file in another bucket
-is a different weight the consuming node can never load. Recursive INSIDE the
-bucket stays (users nest). Widening it back to the whole custom root also aims the
-uninstall delete at a user's unrelated same-named file. Pinned by
-`tests/dep-path-agreement.test.cjs`.
+badge stuck, Install downloading nothing). **A dep is present only at the relative
+path it DECLARES** — custom root first, then the default root (the yaml keeps it
+searchable), and nothing else. There is no basename search any more: MPI-654 had
+narrowed it from the whole custom root to the dep's own bucket, and MPI-882 removed
+the rest, because ComfyUI's loader enum IS the relative path. Klein ships one style
+rack per size (`loras/flux2-klein/styles/4b` and `.../9b`) and four names are in
+both, so the 4B deps resolved onto the 9B files: four weights never downloaded, the
+library read fully installed, and every Klein 4B generation died on
+`value_not_in_list` with a toast naming one LoRA the user had never picked. A copy
+at any other path is a file the consuming node cannot load, and adopting it also
+aims the uninstall delete at it. Pinned by `tests/dep-path-agreement.test.cjs`
+(deep-path and sibling-rack cases included).
 
 **The `models:checked` emit gate is keyed on the dep caches too, not just the model
 set (MPI-681).** `syncModelInstalled` writes three things — `MODELS[].installed`, the

@@ -781,30 +781,27 @@ async function resolveComfyPath(dep, customRoot, config) {
         if (dep.filename && await isCompleteOnDisk(directPath)) {
             localPath = directPath;
         } else if (dep.filename) {
-            const baseFilename = path.basename(dep.filename);
-            // MPI-654: search the dep's OWN bucket, never the whole custom root. The first
-            // segment of `filename` IS the ComfyUI folder-type key (yamlHelper.js derives
-            // the yaml from it), so a same-named file in another bucket is a DIFFERENT
-            // weight the consuming node can never load. Adopting it made this resolver
-            // report the dep installed and the installer skip the download, while the
-            // models library — bucket-scoped since it was written — still read
-            // not-installed: the badge never flipped and Install did nothing. Recursive
-            // INSIDE the bucket stays; users nest (diffusion_models/vendor/x.safetensors).
-            const bucket = path.dirname(dep.filename).split(/[\\/]/)[0];
-            const searchRoot = bucket === '.' ? customRoot : path.join(customRoot, bucket);
-            const found = await findFileRecursive(searchRoot, baseFilename);
-            if (found) {
-                localPath = found;
-            } else {
-                // Not in the custom root — fall back to the default root, which the
-                // YAML keeps searchable. A dep the engine installed under the default
-                // mpi_models must resolve to that existing file (so status checks see
-                // it as installed) rather than a phantom path under the custom root.
-                // For a brand-new download neither exists, so this returns directPath
-                // under the custom root and the file lands there as intended.
-                const defaultPath = path.join(getDefaultModelsRoot(), dep.filename);
-                localPath = (await isCompleteOnDisk(defaultPath)) ? defaultPath : directPath;
-            }
+            // MPI-882: a dep is on disk only at the RELATIVE PATH IT DECLARES. This used
+            // to fall back to the dep's BASENAME anywhere inside its bucket (MPI-654 had
+            // already narrowed it from the whole custom root), and a rack that ships the
+            // same names in sibling folders breaks on that: Klein's
+            // `loras/flux2-klein/styles/4b` and `.../9b` both carry Doodle, Vintage,
+            // Anime and Chibi, so the 4B deps resolved onto the 9B files. The installer
+            // skipped four downloads, the library badge read fully installed, and every
+            // Klein 4B generation died on ComfyUI `value_not_in_list` — its loader enum
+            // is the relative path, not the basename, so a copy at any other path is a
+            // file the consuming node can never load. Same reasoning as MPI-654's
+            // wrong-bucket case, one level deeper; a user who nests OUR weight somewhere
+            // of their own now reads not-installed, which is the truth for a graph that
+            // names the declared path.
+            //
+            // The DEFAULT root stays in the ladder — the YAML keeps it searchable, so a
+            // dep the engine installed under the default mpi_models must resolve to that
+            // existing file rather than a phantom under the custom root. For a brand-new
+            // download neither exists, so this returns directPath under the custom root
+            // and the file lands there as intended.
+            const defaultPath = path.join(getDefaultModelsRoot(), dep.filename);
+            localPath = (await isCompleteOnDisk(defaultPath)) ? defaultPath : directPath;
         } else {
             localPath = customRoot;
         }

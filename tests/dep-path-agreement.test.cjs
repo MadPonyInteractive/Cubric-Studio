@@ -36,6 +36,10 @@ const { isDepInstalledOnDisk } = require('../routes/downloadCompletion');
 const { localModelsCheck } = require('../routes/comfy');
 
 const DEP = { id: 'probe', type: 'diffusion_models', filename: 'diffusion_models/foo.safetensors' };
+// MPI-882: a dep whose declared path goes DEEPER than the bucket. Klein ships one style
+// rack per size under `loras/flux2-klein/styles/4b` and `.../9b`, and four of the names
+// (Doodle, Vintage, Anime, Chibi) are in both.
+const DEEP_DEP = { id: 'probe-deep', type: 'loras', filename: 'loras/rack/styles/4b/bar.safetensors' };
 
 function place(rel) {
     const p = path.join(SCRATCH, rel);
@@ -44,13 +48,13 @@ function place(rel) {
 }
 
 // What the download manager does per dep (routes/downloadManager.js).
-async function installerSaysInstalled(customRoot) {
-    const { localPath } = await resolveComfyPath({ type: DEP.type, filename: DEP.filename }, customRoot, {});
-    return isDepInstalledOnDisk(DEP, localPath);
+async function installerSaysInstalled(customRoot, dep) {
+    const { localPath } = await resolveComfyPath({ type: dep.type, filename: dep.filename }, customRoot, {});
+    return isDepInstalledOnDisk(dep, localPath);
 }
 
-async function librarySaysInstalled() {
-    const res = await localModelsCheck([{ id: 'm', deps: [DEP] }]);
+async function librarySaysInstalled(dep) {
+    const res = await localModelsCheck([{ id: 'm', deps: [dep] }]);
     return res.m.deps[0].installed;
 }
 
@@ -59,13 +63,22 @@ const CASES = [
     // The custom root is ADDITIVE — the yaml keeps the default root searchable, so a weight
     // installed there before the user repointed the folder still counts as present.
     ['a weight left in the DEFAULT root while a custom root is set', 'default_models/diffusion_models/foo.safetensors', true],
-    // Users nest inside a bucket; both readers must still find it.
-    ['the weight nested inside the right bucket', 'custom_models/diffusion_models/vendor/foo.safetensors', true],
+    // MPI-882: a copy nested somewhere else inside the bucket is NOT this dep. ComfyUI's
+    // loader enum is the path relative to the search root, so a graph that names
+    // `foo.safetensors` cannot load `vendor/foo.safetensors` — reporting it installed
+    // skipped the download and left a model that fails at dispatch. This case expected
+    // `true` until MPI-882.
+    ['the weight nested ELSEWHERE inside the right bucket', 'custom_models/diffusion_models/vendor/foo.safetensors', false],
     // THE REGRESSION. The first segment of `filename` IS the ComfyUI folder-type key, so a
     // same-named file in another bucket is a different weight the consuming node can never
     // load. Before the fix the installer adopted it and skipped the download.
     ['a same-named weight in the WRONG bucket', 'custom_models/loras/foo.safetensors', false],
     ['nothing on disk anywhere', null, false],
+    // MPI-882. Klein 4B's eight style LoRAs and Klein 9B's seven share four basenames,
+    // one folder apart. The 4B deps adopted the 9B files: four weights never downloaded,
+    // the model read installed, and every generation died on `value_not_in_list`.
+    ['the deep weight at its declared path', 'custom_models/loras/rack/styles/4b/bar.safetensors', true, DEEP_DEP],
+    ['a same-named weight in the SIBLING rack', 'custom_models/loras/rack/styles/9b/bar.safetensors', false, DEEP_DEP],
 ];
 
 (async () => {
@@ -80,13 +93,13 @@ const CASES = [
         assert.strictEqual(path.resolve(customRoot), path.resolve(CUSTOM_ROOT),
             'the sandbox yaml is not in effect — this test would be measuring the real engine');
 
-        for (const [name, file, expected] of CASES) {
+        for (const [name, file, expected, dep = DEP] of CASES) {
             fs.emptyDirSync(CUSTOM_ROOT);
             fs.emptyDirSync(DEFAULT_ROOT);
             if (file) place(file);
 
-            const library = await librarySaysInstalled();
-            const installer = await installerSaysInstalled(customRoot);
+            const library = await librarySaysInstalled(dep);
+            const installer = await installerSaysInstalled(customRoot, dep);
 
             assert.strictEqual(library, installer,
                 `the library and the installer disagree about ${name}: `
