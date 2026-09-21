@@ -1,0 +1,8 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "task": "MPI-872",
+  "note": "Website repo, NOT Cubric-Vision. The app half is already shipped (f31d7377) and must not change: it opens cubric.studio/flows/<id> by design.",
+  "paths": [
+    "c:\\AI\\Mpi\\Cubric Studio (Website)"
+  ]
+}

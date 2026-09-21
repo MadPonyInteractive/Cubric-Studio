@@ -9,6 +9,7 @@ requirements and open questions: [brief.md](brief.md). Gate: MPI-595 Gate A.
 |---|---|---|---|
 | MPI-532 | Community Flow packages: the `user_flows/` loader, manifest schema, validator | 1 | Keeps MPI-560 as its umbrella (the Flow track); this umbrella only ORDERS it. Retargeted from 1.6 to blocking 2.0. |
 | MPI-781 | Package Head Swap and DramaBox, take them out of the app | 2 | Blocked on phase 1. |
+| MPI-872 | The `cubric.studio/flows/<id>` redirects — what the app's shipped Get-it buttons actually open | 3 | Website repo, not this one. Blocked on the two coded URLs from MadPony-Identity MPI-81 (Fabio-only). |
 
 ## Phase 1 — the loader (MPI-532)
 
@@ -39,6 +40,17 @@ restart, runs, and still appears after an in-place app update.
 
 Done when: a fresh app shows neither Flow, both packages work from `user_flows/`, and no
 grep hit for the two ids survives outside the dep registries and the packages' own repo.
+
+
+## Phase 3 — the redirects (MPI-872)
+
+Added 2026-09-21. The app half shipped in MPI-831 phase 4 and advertises both Flows with a **Get it** button opening `https://cubric.studio/flows/<id>`. Those redirects do not exist, so **the buttons 404 on our own domain right now**.
+
+The coded Gumroad URL is deliberately never in the app: the first-100-free offer code rides in that URL and Cubric-Vision is public AGPL, so a committed one could be spent to zero by people who never open the app. The redirect is therefore not a convenience — it is the mechanism.
+
+Blocked on the two coded URLs, which only Fabio can make (Gumroad has no write API). The route can be built and tested against the plain product URLs first.
+
+**Release-day order:** 2.0 published → redirects resolve → products published.
 
 ## Closing
 

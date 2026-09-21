@@ -83,10 +83,10 @@ at pickup.
             codes created** — MadPony-Identity MPI-81, Fabio-only (Gumroad has no write API).
             Drafted before the release, published ON release day: both manifests declare
             `compat.minAppVersion 2.0.0`, so a buyer on 1.6.1 installs a disabled tile.
-      - [ ] **The two redirects RESOLVE** — `cubric.studio/flows/head-swap` and
+      - [ ] **The two redirects RESOLVE — owned by MPI-872** (raised 2026-09-21; before that this link had no card at all) — `cubric.studio/flows/head-swap` and
             `cubric.studio/flows/drama-box` must land on the coded Gumroad URLs. **THIS IS
-            THE WEAK LINK: it lives in `c:\AI\Mpi\Cubric Studio (Website)`, it is nobody's
-            card as of 2026-09-20, and it is what the shipped buttons actually open.** The
+            THE WEAK LINK: it lives in `c:\AI\Mpi\Cubric Studio (Website)` and it is what the
+            shipped buttons actually open.** The
             coded URL is deliberately NOT in the app — Cubric-Vision is public AGPL and a
             committed code could be spent to zero by people who never run the app.
             **Verify by loading both URLs in a browser and arriving at a Gumroad page with
