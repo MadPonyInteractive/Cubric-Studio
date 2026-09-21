@@ -89,3 +89,22 @@ The duration slider offers **1–30 seconds** on `seedance-15-pro-cloud`, whose 
 range is **4–12**. `buildSizeFields` clamps, so nothing breaks and nothing is over-billed
 against the pick — but a user who drags to 30 gets a 12 s clip with no indication that the
 control lied to them. The clamp is correct; the control's range is not.
+
+## Fabio's look, 2026-09-21 — FAILED
+
+His words, verbatim:
+
+> "Considering your UI pricing, it's not looking good."
+
+So the user-ux check this card was held for did NOT pass. The arithmetic, the wiring and
+the seam are all proven and stay; what is rejected is how the tag LOOKS sitting in the bar.
+A muted `--ink-2` caption in `--t-xs` between the model button and CUE is not it.
+
+The card goes back to `in-progress`. The redesign is the next session's first job and
+Fabio has named the tool for it: **run the `impeccable` skill on the price tag.** He asked
+explicitly that it not be started in this session.
+
+Nothing below the presentation layer is in question — do NOT re-derive `estimateRunCost`,
+the `cloudRunFields` seam, the `Input_Duration` fix or the event wiring. They are green,
+pushed (8c74a29e, CI 35597739341 success) and independently guarded by
+`tests/cloud-price-tag.test.cjs`.
