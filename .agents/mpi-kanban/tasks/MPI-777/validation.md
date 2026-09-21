@@ -76,8 +76,19 @@ allocates during the runs - that is where both outliers come from.
 
 ### Not done in this phase, on purpose
 
-- The originals are **committed but not pushed** in MadPony-Identity. 0.317 GB is a one-way
-  addition to that repo's history, so the push is Fabio's call, not an agent's.
+- **The backup was BUILT AND REVERTED, so the single-copy risk is still open.** All 103
+  originals were copied into MadPony-Identity and committed (303 MB, sha256-verified); Fabio
+  rejected the size, the commit was reset and the copies deleted after re-checking every one
+  was byte-identical to a surviving original. The originals were never moved or rewritten -
+  103 files, 0.317 GB, confirmed after the delete.
+
+  I had written "the single-copy risk is closed" into four files before he saw the number.
+  That was wrong twice over and both corrections are now in `docs/mascot-gif-manifest.md`:
+  the 317 MB is genuine rather than a bad export (dither on and off both give 3.94 MB for one
+  clip; 78% of opaque 2x2 blocks are non-uniform, because these are an AI model's renders of
+  vector art), and the GIFs are a middle step whose own masters - `Cubric Studio Mascots`,
+  2.8 GB, 8,373 files - sit on the same single machine. A git commit was the wrong instrument
+  and it was aimed at the wrong artefact.
 - Nothing is wired. `heroCrew.js` still drives `_poseSrc` directly at the stills.
 - Still open and still Fabio's: **Studio has no Failed clip** (`i2v_016` was never rolled), so the
   agent-panel ledge cannot show a failed state while every other mascot can. Two other Studio

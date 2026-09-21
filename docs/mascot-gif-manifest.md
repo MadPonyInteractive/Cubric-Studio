@@ -4,8 +4,19 @@
 
 The 103 finished GIFs live in their own Vision project,
 `C:\Users\Fabio\Documents\Cubric Vision\Projects\Cubric Studio GIFs\`, copied there by Fabio on 2026-09-20.
-**They are no longer single-copy:** all 103 are also in `MadPony-Identity/runs/2026-09-20-mpi-78-gif-cutouts/gifs/`,
-sha256-verified against the originals on 2026-09-21 (MPI-777 Phase 1). The originals were not moved or rewritten.
+**They are still single-copy, and a git backup was tried and rejected (2026-09-21).** Committing all 103 into
+`MadPony-Identity` was 303 MB and Fabio turned it down; the commit was reverted and the copies deleted. Two things
+came out of that and are worth not rediscovering:
+
+- **The 317 MB is real, not a bad export.** Dithering is not the cause — re-encoding with dither on and off both give
+  3.94 MB for a 768x768 51-frame clip. These frames are an AI video model's *renders* of vector art, so 78% of opaque
+  2x2 pixel blocks are non-uniform: LZW has almost no runs to work with and the palette fills with near-duplicate
+  shades. Quantising to 128 colours drops that clip to 1.16 MB with no visible change at draw size, which is the same
+  reason the staged WebM set is only 13.7 MB.
+- **These GIFs are a middle step, not masters** (see "Two things the copy did not carry" below). The originals behind
+  them are the video cards in `Cubric Studio Mascots` — 2.8 GB, 8,373 files, also on one machine. Backing up the GIFs
+  would protect the least valuable link. If a re-derivable full-resolution master is ever wanted, alpha WebM at native
+  768 measures 0.505 MB per clip at crf 18, about 52 MB for all 103.
 
 **This file exists because the conversion lost the names.** A GIF card is called `gif_NNN` and its file on disk is
 `gif_<hash>.gif`; neither says which clip it came from or what it is for. The table below is that link. For **where

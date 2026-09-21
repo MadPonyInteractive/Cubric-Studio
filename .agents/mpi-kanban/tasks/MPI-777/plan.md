@@ -21,8 +21,12 @@ pointer below before editing; they were read 2026-09-16.
   `assets/mascot/{key}/{state}.webm`, VP9 alpha, 13.7 MB for the whole set, built by
   `scripts/stage-mascot-clips.mjs` off the table in `docs/mascot-gif-manifest.md`. The stills
   stay as the fallback. The 8 unstaged are the documented spares, not unlabelled clips.
-  All 103 originals are now also in `MadPony-Identity/runs/2026-09-20-mpi-78-gif-cutouts/gifs/`,
-  sha256-verified — the single-copy risk is closed.
+- **The single-copy risk is still OPEN, and Phase 1 did NOT close it.** A 303 MB git backup of
+  the 103 originals into `MadPony-Identity` was built, rejected by Fabio and reverted on
+  2026-09-21; the copies are deleted and the originals are untouched. The GIFs are only a middle
+  step anyway — the masters are the video cards in the `Cubric Studio Mascots` project, 2.8 GB
+  and 8,373 files on the same one machine. Whatever answers this is not a git commit, and it is
+  not part of this card.
 - **Next action: Phase 3**, the landing hero crew on the queue. `heroCrew.js` still drives
   `_poseSrc` directly, and `_poseSrc` is still pointing at the `.webp` stills — Phase 3 is where
   it starts choosing a clip. Phase 4's two ledges come after.
@@ -251,6 +255,21 @@ decisions they name.
   an absolute threshold cannot tell a rim from honest antialiasing, because a light-edged
   character legitimately reads brighter than the page. It compares against a reference downscale
   instead.
+
+- **2026-09-21 — the backup half of Phase 1 was built and thrown away, and the checklist item it
+  was meant to tick is open again.** The plan treated "stage the clips" and "stop the 103 GIFs
+  being single-copy" as one job. They are not. Staging produces 13.7 MB the app needs; the backup
+  is 317 MB the app never touches, and Fabio rejected committing it. Two things were learned by
+  being wrong about it:
+  - *The 317 MB is not a bad export.* Dither on and off both give 3.94 MB for one 768x768 51-frame
+    clip; 78% of opaque 2x2 pixel blocks are non-uniform. These are an AI video model's renders of
+    vector art, so LZW has no runs and the palette fills with near-duplicate shades. 128 colours
+    takes that clip to 1.16 MB with no visible change — the same reason the WebM set is 13.7 MB.
+  - *The GIFs are the wrong thing to back up.* They are a middle step; the masters are the video
+    cards in `Cubric Studio Mascots`, 2.8 GB and 8,373 files, on the same single machine. A
+    backup card should aim at those, not at these.
+
+  Do not re-attempt a git backup of the GIFs on this card.
 
 ## Verification
 

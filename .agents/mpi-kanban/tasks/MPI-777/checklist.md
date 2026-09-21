@@ -12,10 +12,12 @@ because nothing mascot-related stays in that repo any more.
       matters — every other mascot has one, Studio/Cosmo does not, so the agent-panel ledge cannot
       show a failed state. Rolling recipe and prompts: `docs/mascot-states.md`,
       `docs/mascot-scenarios.md`
-- [x] **Get the 103 GIFs into version control.** All 103 copied to
-      `MadPony-Identity/runs/2026-09-20-mpi-78-gif-cutouts/gifs/` and sha256-verified against the
-      originals, which were not moved or rewritten. **Committed there but NOT PUSHED** — the push
-      is Fabio's, see validation.md
+- [ ] **Get the 103 GIFs backed up — STILL OPEN, and git is not the answer.** Tried 2026-09-21:
+      all 103 copied into `MadPony-Identity` and committed, 303 MB. Fabio rejected it, the commit
+      was reverted and the copies deleted. The 317 MB is genuine (AI-rendered frames, not a bad
+      export — see `docs/mascot-gif-manifest.md`), and the GIFs are a middle step regardless: the
+      masters are `Cubric Studio Mascots`, 2.8 GB on one machine. Needs an off-repo answer, and
+      probably its own card aimed at the 2.8 GB rather than these 317 MB
 - [x] **Settle the format: WebM.** Decided on measurement, not preference — as GIF the set is
       ~57 MB and costs ~305 MiB of VRAM for five mascots on the landing; as VP9 alpha it is
       13.7 MB and ~13 MiB, because alpha VP9 is software-decoded. The "missing exporter" that
