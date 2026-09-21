@@ -54,5 +54,32 @@ the owner of the model, not by a trace — record it and keep it out of the mask
       no mask omits it, `inpaint` with a mask dispatches, `inpaint` without one refuses,
       and the refusal names painting.
 - [x] `npm test` clean.
-- [ ] **user-ux:** Fabio re-runs the original ask — the boy's reflection alone turns
-      demonic, under a normal boy. That judgement is his, not an agent's.
+- [x] **user-ux round 1**, Fabio in his own app, 2026-09-21. The mask half is RIGHT: the
+      agent read `app:masking`, refused to paint or pick the area, named the Mask tool, said
+      what to paint, chose `kleinEdit` and checked its note. Three faults came back with it,
+      all fixed below.
+
+## 6. What the live check found
+
+- [x] **The masked edit could never run.** Five dispatches across two models died in the
+      engine before rendering: `InpaintCropImproved ... Expected torch.Size([682, 512]),
+      got torch.Size([1024, 768])`. The mask came off the open card at 768x1024; the image
+      was the chat ATTACHMENT the agent had been handed, `att_564c16a9.webp`, measured at
+      512x682 — a thumbnail rendition, not the card's file. Nothing bound a mask to the
+      picture it was painted over, so the two arrived from different places and the engine
+      asserted them equal. `activeMask` now publishes `{ dataUrl, url }` and
+      `bindMaskedSource` points the `inputImage` slot at the mask's own picture. Reference
+      slots are untouched: kleinEdit injection is ordinal, so moving one would change which
+      image is the edit.
+- [x] **The reply was mostly reasoning.** Four paragraphs of it before the answer, quoting
+      the masking rule and the kleinEdit note by name, while the strip beside the chat had
+      already listed every read as it happened. The prompt had six rules about what to DO
+      and none about how to speak. A Voice rule now covers it, and keeps the one-short-line
+      "why" the Model and Memory rules deliberately ask for.
+- [x] **"History" is our word, not the app's.** Fabio: "most users will never know what
+      history means." The UI writes it nowhere — the back link says GALLERY and the tools
+      sit in a rail down the left. The Masking rule, the `MASK_UNSUPPORTED` refusal,
+      `docs/agent/masking.md` and the Honest-limits line now say: click the card in the
+      gallery to open it, then pick the Mask tool from the toolbar down the left.
+- [ ] **user-ux round 2:** Fabio re-runs the same ask. The mask now has to REACH a render,
+      and the reply has to open with the answer. That judgement is his, not an agent's.

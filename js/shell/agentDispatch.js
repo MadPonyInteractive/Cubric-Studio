@@ -44,7 +44,7 @@ import { submitFlowGeneration } from '../services/flowService.js';
 import { openProject, renameGroup, markGroup } from '../services/projectService.js';
 import { CARD_MARKS, markOf, matchesGallerySort, byGalleryOrder, describeGalleryFilter, isGalleryFiltered } from '../utils/galleryFilter.js';
 import { navigate, PAGE_GALLERY } from '../router.js';
-import { activeMaskDataUrl } from './activeMask.js';
+import { activeMask } from './activeMask.js';
 import { MODELS, getModelById, isOperationInstalled, getModelDepStatus } from '../data/modelRegistry.js';
 import { DEPS } from '../data/modelConstants/dependencies.js';
 import { resolveFullUniverse } from '../data/modelConstants/resolveModelDeps.js';
@@ -225,15 +225,40 @@ export function resolveSettingsOwner(input = {}, pinned, project, pinnedM) {
  * and a null would be indistinguishable from an unpainted canvas anyway.
  *
  * @param {string} operation
- * @param {string|null} maskDataUrl - the mask the user has painted right now, or null.
- * @returns {{ maskDataUrl: string|null, error?: { code: string, message: string } }}
+ * @param {{dataUrl: string, url: string}|null} mask - the mask painted right now and the
+ *   image it was drawn over, or null.
+ * @returns {{ maskDataUrl: string|null, maskUrl: string|null, error?: { code: string, message: string } }}
  */
-export function resolveMask(operation, maskDataUrl) {
-    if (!maskDataUrl && getCommand(operation)?.requiresMask) {
-        return { maskDataUrl: null, error: { code: 'MASK_UNSUPPORTED',
-            message: `Nothing was generated: "${operation}" only runs on a painted mask, and none is painted. Ask the user to open the card in History, choose the Mask tool and paint over the area to change, then send this again once they say it is drawn. You cannot paint it yourself.` } };
+export function resolveMask(operation, mask) {
+    if (!mask?.dataUrl && getCommand(operation)?.requiresMask) {
+        return { maskDataUrl: null, maskUrl: null, error: { code: 'MASK_UNSUPPORTED',
+            message: `Nothing was generated: "${operation}" only runs on a painted mask, and none is painted. Ask the user to click the card in the gallery to open it, choose the Mask tool from the toolbar down the left, and paint over the area to change; send this again once they say it is drawn. You cannot paint it yourself.` } };
     }
-    return { maskDataUrl: maskDataUrl || null };
+    return { maskDataUrl: mask?.dataUrl || null, maskUrl: mask?.url || null };
+}
+
+/**
+ * A masked edit runs on the picture the mask was painted over — whatever image the model
+ * named. The mask and its picture are one thing, and the engine asserts they are the same
+ * size (`InpaintCropImproved`): live 2026-09-21 the mask came off the open card at
+ * 768x1024 while the model edited the chat attachment it had been handed, a 512x682
+ * thumbnail rendition, and five runs across two models died before rendering a pixel.
+ *
+ * Only `inputImage` moves — that is the slot every masked op edits (`kleinEdit`,
+ * `krea2Edit`, `qwenEdit`, `edit`, `inpaint`, `detail`, `i2i`). Later ordinal slots are
+ * references and stay exactly as the model sent them.
+ *
+ * A swap is not a correction to announce: the model named the only picture it could see.
+ *
+ * @param {Array} mediaItems
+ * @param {string|null} maskUrl
+ * @returns {Array} the items, with the edited slot pointing at the mask's own picture.
+ */
+export function bindMaskedSource(mediaItems, maskUrl) {
+    if (!maskUrl) return mediaItems;
+    return mediaItems.map(item => (
+        item.role === 'inputImage' && item.url !== maskUrl ? { ...item, url: maskUrl } : item
+    ));
 }
 
 /**
@@ -281,7 +306,7 @@ function _submitGeneration(jobId, input = {}) {
             : `"${operation}" is not available on ${model.name || modelId} — unsupported, or its weights are not installed.`);
     }
 
-    const mask = resolveMask(operation, activeMaskDataUrl());
+    const mask = resolveMask(operation, activeMask());
     if (mask.error) {
         return _fail(jobId, mask.error.code, mask.error.message);
     }
@@ -292,7 +317,7 @@ function _submitGeneration(jobId, input = {}) {
     if (!resolvedMedia.ok) {
         return _fail(jobId, resolvedMedia.code, resolvedMedia.message);
     }
-    const { mediaItems } = resolvedMedia;
+    const mediaItems = bindMaskedSource(resolvedMedia.mediaItems, mask.maskUrl);
 
     if (seed !== undefined && !isValidSeed(seed)) {
         return _fail(jobId, 'INVALID_SEED', 'seed must be an integer between 0 and 4294967295.');

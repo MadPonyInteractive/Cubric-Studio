@@ -3547,8 +3547,15 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         // viewer of its own — and a painted mask lives nowhere else. Read exactly as the
         // `run` handler above reads it, so an agent submit and a Cue press send the same
         // mask rather than two subtly different ones.
-        const _readMaskForAgent = () =>
-            (viewer?.el?.hasMask?.() ? viewer.el.getCurrentMaskDataURL?.() : null) || null;
+        //
+        // The url of the version ON SCREEN travels with it: that is the picture the mask
+        // was drawn over, and a masked edit has to run on it (see `setMaskReader`).
+        const _readMaskForAgent = () => {
+            const dataUrl = (viewer?.el?.hasMask?.() ? viewer.el.getCurrentMaskDataURL?.() : null) || null;
+            if (!dataUrl) return null;
+            const url = resolveMediaUrl(_group.history[_currentIdx]?.filePath);
+            return url ? { dataUrl, url } : null;
+        };
         setMaskReader(_readMaskForAgent);
 
         // ── Cleanup ───────────────────────────────────────────────────────────

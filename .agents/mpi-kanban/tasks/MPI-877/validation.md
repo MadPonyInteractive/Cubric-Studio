@@ -92,3 +92,87 @@ known failure in `agent-video-attachment.test.cjs`, untouched by this card.
 (server-absolute). Correct in the browser, unresolvable under Node, and it makes any module
 graph that reaches it un-requireable from the CJS tests. Pre-existing, out of this card's
 scope, worth a card of its own.
+
+---
+
+# Round 2 — what Fabio's live check found, 2026-09-21
+
+Round 1's claim held: the agent asks for the mask instead of running maskless. Three
+faults came back with it. All three are fixed, and the first one is why nothing rendered.
+
+## 1. A mask reached a picture it was never painted on
+
+Five dispatches, two models, zero cards:
+
+```
+[13:45:15] kleinEdit / klein-9b  — InpaintCropImproved failed: AssertionError: Mask
+[13:45:18] kleinEdit / klein-9b    dimensions do not match image dimensions.
+[13:45:27] kleinEdit / klein-9b    Expected torch.Size([682, 512]), got
+[13:48:31] krea2Edit / krea2       torch.Size([1024, 768])
+[13:48:35] krea2Edit / krea2
+```
+
+`inpaint_cropandstitch.py:1352` — `assert mask.shape[1:] == image.shape[1:3]`, so
+"expected" is the IMAGE: 512x682, against a 768x1024 mask.
+
+Measured, not inferred:
+
+| | size | what it is |
+|---|---|---|
+| mask | 768x1024 | the open card, `t2i_003`, at its real size |
+| image | 512x682 | `AppData/Roaming/Cubric Studio/agent/attachments/att_564c16a9.webp` |
+
+`sharp(...).metadata()` on that attachment returns `512x682 webp`. `routes/projects.js:91`
+documents `<id>.thumb.webp` as "the 512 rendition". Exactly 2/3 of the card in both axes.
+
+**Root cause.** The mask came from `activeMask` (the workspace) and the image from whatever
+the model named (a chat attachment). Nothing connected them. A mask is a region OF a
+picture; publishing the pixels alone let it land on a different one. A *correct* attachment
+would have broken the same way the moment the user painted on another card.
+
+**Fix.** `setMaskReader` publishes `{ dataUrl, url }` — the mask and the picture under it.
+`bindMaskedSource(mediaItems, maskUrl)` points `inputImage` at that picture. Only that slot:
+kleinEdit takes three images and injection is ordinal, so rewriting a reference would change
+which picture is the edit.
+
+**Proven red, one fault at a time** (`tests/agent-mask-dispatch.test.cjs`, 14 tests):
+
+- binding backed out -> 12 pass / 2 fail, and the diff is the live bug verbatim:
+  `actual '/...att_564c16a9.webp'` vs `expected '/...t2i_003.png'`.
+- `maskUrl` dropped from `resolveMask` -> 12 pass / 2 fail.
+- restored -> 14 pass.
+
+## 2. The reply was the reasoning
+
+Four paragraphs before the answer, naming its sources: "According to the masking rule, I
+need to ask the user to paint a mask", "The kleinEdit note says it tends to cover a bare
+subject". The strip beside the chat had already shown `READING: APP:MASKING` and `READING
+KLEIN-9B'S SETTINGS` as they happened.
+
+The seam is the pronoun — the deliberation says "the user", the answer says "you", and both
+went into `message.content`, so no `thinking` field could have split them (`think: false` is
+advisory and `llmEngines.mjs:258` takes `data.message.content` whole).
+
+The prompt carried six rules about what to DO and none about how to speak, and two of them
+("say in one short line which model you used and why") read as a licence to justify
+everything. A **Voice rule** now names the three shapes it took and keeps those two one-line
+"why"s intact. `tests/agent-loop.test.cjs` pins it.
+
+## 3. "History" is our name for it
+
+Fabio: "most users will never know what history means." `PAGE_GROUP_HISTORY` is internal;
+the UI writes it nowhere. Corrected in the Masking rule, the `MASK_UNSUPPORTED` refusal,
+`docs/agent/masking.md` and the Honest-limits line, and the refusal test now asserts the
+word never comes back.
+
+## Suite
+
+`npm test`: **1748 tests, 1746 pass, 0 fail.** The 1 todo is the pre-existing MPI-867 entry
+in `agent-video-attachment.test.cjs` (it prints an AssertionError and is counted as `todo`,
+not `fail`), untouched by this card. `npm run lint` and `npm run lint:components` clean.
+
+## Still not verified here
+
+**No real generation has rendered.** The size mismatch is fixed by construction and pinned
+by a spec, but round 1 proved that a trace is not a render. Round 2 is Fabio re-running the
+same ask in his own app: the boy's reflection alone turns demonic, under a normal boy.

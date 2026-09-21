@@ -542,6 +542,52 @@ test('the Settings rule matches a named resolution on tierSizes, never on a tier
  * keeping, never the conversation around it. So: one project note, written at submit, removed
  * on landing, listed by the message that already lists notes.
  */
+/**
+ * Fabio, live 2026-09-21, on the agent's first masked-edit reply: "why is he giving me his
+ * thought process?" Four paragraphs of it arrived before the answer - "According to the
+ * masking rule, I need to ask the user to paint a mask", "The kleinEdit note says it tends
+ * to cover a bare subject" - and the strip beside the chat had ALREADY listed every one of
+ * those reads as it made them. The prompt carried six rules about what to DO and not one
+ * about how to speak, and two of them ("say in one short line which model you used and
+ * why") read as a licence to justify everything.
+ *
+ * The seam that gives it away is the pronoun: the deliberation says "the user", the answer
+ * says "you". Both went into `message.content`, so no `thinking` field could have split them.
+ */
+test('the Voice rule keeps the reasoning out of the reply', () => {
+    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
+    const rule = loop.slice(loop.indexOf('Voice rule:'), loop.indexOf('\n', loop.indexOf('Voice rule:')));
+    assert.ok(rule, 'the system prompt has no Voice rule at all');
+    assert.match(rule, /write the reply, never the thinking that produced it/);
+    // The app's own status strip is why saying it again is waste, not modesty.
+    assert.match(rule, /already shows the user every step/);
+    // The three shapes the live reply took, each named so it cannot come back.
+    assert.match(rule, /Do not name a rule, a note, an op's description or a knowledge entry/);
+    assert.match(rule, /Do not write your plan and then carry it out in the same message/);
+    assert.match(rule, /address them as "you", never as "the user"/);
+    // Model rule and Memory rule both ask for one line of why. The Voice rule has to keep
+    // them, or it silently deletes two rules that are deliberate.
+    assert.match(rule, /that is the one short line it asks for, not a paragraph/);
+});
+
+/**
+ * Same session: "most users will never know what history means". `History` is the internal
+ * name of `PAGE_GROUP_HISTORY`; the UI never writes it anywhere - the back link says
+ * GALLERY, and the tools sit in a rail down the left.
+ */
+test('the agent routes the user to the mask in the words the app actually uses', () => {
+    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
+    const rule = loop.slice(loop.indexOf('Masking rule:'), loop.indexOf('\n', loop.indexOf('Masking rule:')));
+    assert.match(rule, /click the card in the gallery to open it/);
+    assert.match(rule, /toolbar down the left/);
+    assert.match(rule, /Never send them to "History"/);
+
+    // The Honest-limits list said "drive History tools" and taught the same name.
+    const honest = loop.split('\n').filter((l) => l.includes('I cannot paint masks'));
+    assert.equal(honest.length, 1, 'the mask limit is written in exactly one place');
+    assert.doesNotMatch(honest[0], /History/i);
+});
+
 test('a generation that never landed survives a restart as a project note, and landing removes it', async () => {
     const project = { folderPath: '/project', name: 'Test' };
     const store = new Map(); // file -> { title, hook, text }: the project's Agent/ folder

@@ -22,7 +22,17 @@ let _read = null;
 
 /**
  * Publish a mask reader. Called by the workspace that owns a canvas.
- * @param {() => (string|null)} read - returns the current mask as a data URL, or null.
+ *
+ * The reader hands back the mask AND the image it was painted on, never the pixels alone.
+ * The two are one thing: a mask is a region OF a picture, and the engine asserts they have
+ * the same dimensions (`InpaintCropImproved`, inpaint_cropandstitch.py:1352). Live,
+ * 2026-09-21: the mask came off the open card at 768x1024 while the agent edited the chat
+ * ATTACHMENT it had been handed, a 512x682 thumbnail rendition, and five runs across two
+ * models died before rendering a pixel. Pixels published with no identity are what let a
+ * mask reach a picture it was never drawn on.
+ *
+ * @param {() => ({dataUrl: string, url: string}|null)} read - the painted mask and the url
+ *   of the image under it, or null when nothing is painted.
  */
 export function setMaskReader(read) {
     _read = typeof read === 'function' ? read : null;
@@ -37,10 +47,15 @@ export function clearMaskReader(read) {
     if (_read === read) _read = null;
 }
 
-/** The mask the user has painted right now, or null. Never throws. */
-export function activeMaskDataUrl() {
+/**
+ * The mask the user has painted right now and the image it belongs to, or null.
+ * Never throws.
+ * @returns {{dataUrl: string, url: string}|null}
+ */
+export function activeMask() {
     try {
-        return _read?.() || null;
+        const m = _read?.();
+        return m?.dataUrl ? m : null;
     } catch {
         return null;
     }

@@ -1,13 +1,15 @@
 # Localised edits — working on a mask
 
-A **mask** is an area the user paints over a picture in the History workspace. Paint one and
+A **mask** is an area the user paints over one picture. Paint one and
 the operation works on that area alone, at the source image's own size. It is how any change
 confined to a region should be made: a maskless edit re-renders the whole picture, and a
 whole picture is almost never what the user asked to change.
 
 **You never paint a mask. You ask for one, and then you use it.** The app hands whatever the
 user has painted to every generation you dispatch, so once they say it is drawn you simply
-run the op.
+run the op. The mask travels with the picture it was painted over, and that picture is what
+gets edited - so a mask is never applied to some other image you were handed, such as one
+attached to the conversation.
 
 Masking is a property of the **app**, not of one model. Every local model with an edit
 operation honours a mask — Klein, Krea 2, Qwen, Boogu, Chroma, SDXL, Pony, Illustrious.
@@ -50,7 +52,10 @@ Reach for the op that matches the job, and make sure a mask is painted.
 
 1. The user asks for a change confined to a region.
 2. Say so, and ask for the mask: name the op you will run, say what to paint over, and tell
-   them the Mask tool is in the History workspace on that card. A roughly square area is the
+   them the way there in the app's own words: click the card in the gallery to open it, then
+   pick the Mask tool from the toolbar down the left. Never say "History" or "the History
+   workspace" to them - that is our name for it and it is written nowhere on screen. A
+   roughly square area is the
    natural shape — the graph squares the painted region off anyway.
 3. They paint it and tell you to go ahead.
 4. Dispatch the op, prompting for the masked area only.
