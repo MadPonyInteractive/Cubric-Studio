@@ -18,4 +18,4 @@
 
 - [x] `npm test` green — 1710 tests, 1708 pass, 0 fail, 1 todo (MPI-867's, declared)
 - [x] `npm run lint:components` green, and `eslint` clean on all four changed files
-- [ ] Fabio: an unprompted agent t2i reaches for a local model
+- [x] Fabio: an unprompted agent t2i reaches for a local model (ill-anime, 2026-09-21)

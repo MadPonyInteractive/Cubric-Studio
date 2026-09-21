@@ -69,3 +69,13 @@ input, same 912x1152 out: `flowOutpaint_001` 6m 35s and `_002` 6m 27s with turbo
 against `_003` 1m 14s, `_004` 1m 14s and `_005` 1m 12s with it on. The flow's own field
 comment says "Off for a keeper", which is true of a final render and wrong for a 768px tile
 — Fabio caught it mid-run.
+
+## Fabio's look - 2026-09-21, PASSED
+
+Asked for and given in the app, on the three things only his eyes could settle: the Model
+Library's DeepInfra section, the picker subtitle now reading `15 cloud`, and a video tile on
+hover.
+
+> *"I checked the app. It looks good. Cards and videos are displayed properly."*
+
+That closes the card. Verify mode was `user-ux`, and the user has verified.

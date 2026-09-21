@@ -80,3 +80,22 @@ provider's own dashboard.
 
 Also confirmed there: `{ batch: 6 }` returns `usd 0.403776` / `about $0.40`, an unknown
 endpoint id returns null, and `require()` reaches the ESM module from CJS on Node 24.
+
+
+## Fabio's live check — 2026-09-21, PASSED
+
+Restarted the app first, which this needed: both halves are server-side
+(`modelPriority.js` is required by `routes/connector.js`, which answers
+`GET /connector/models`), so a renderer reload would have tested the old module.
+
+He asked the in-app agent, naming no model:
+
+> "Can you please do a pretty image of a boy fishing in a river? Do it in cartoon style,
+> 2D flat shader."
+
+The agent's own trace reads `CHECKING AVAILABLE MODELS` -> `READING ILL-ANIME'S SETTINGS`
+-> `READING: GUIDE:ILLUSTRIOUS`. It reached for **ill-anime, a local model**, and went
+looking for its settings — the stylised-art note doing exactly what the ranking is for.
+No cloud model was touched and nothing was billed.
+
+That is the half that needed human eyes. Closing the card.
