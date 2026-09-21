@@ -50,7 +50,7 @@ const router = express.Router();
 const logger = require('./logger');
 const { ask } = require('./forkBridge');
 const { MODELS } = require('../js/data/modelConstants/models.js');
-const { buildSizeFields } = require('../js/data/modelConstants/deepinfraSizing.js');
+const { buildSizeFields, batchFieldFor } = require('../js/data/modelConstants/deepinfraSizing.js');
 
 const PROFILE_ID = 'deepinfra';
 const INFERENCE_BASE = 'https://api.deepinfra.com/v1/inference';
@@ -203,7 +203,20 @@ router.post('/deepinfra/generate', async (req, res) => {
             logger.warn('system', `deepinfra generate: ${model.id} returned no media`);
             return _fail(res, 'CONTENT_FILTERED', null);
         }
-        for (const image of images) {
+        // ONE OUTPUT PER OUTPUT ASKED FOR (MPI-875). The provider is under no obligation
+        // to hand back the count it was given, and on 2026-09-21 `google/nano-banana-2`
+        // answered a single-image request with the SAME generation twice — byte-identical
+        // pixels, a fresh C2PA signature on each copy, and one charge for the pair. Every
+        // extra copy becomes its own gallery card downstream (`generationService` builds
+        // one card per url) carrying the whole call's cost, so the count is kept here,
+        // where it was decided. Header contract: "N outputs, ONE call, ONE bill".
+        const wanted = Math.max(1, Math.min(batchFieldFor(model.cloud.endpointId)?.max || 1,
+            Number(batch) || 1));
+        if (images.length > wanted) {
+            // Counts only. The body is never logged — see the file header.
+            logger.warn('system', `deepinfra generate: ${model.id} returned ${images.length} outputs for ${wanted} asked; keeping ${wanted}`);
+        }
+        for (const image of images.slice(0, wanted)) {
             const id = crypto.randomUUID();
             await fs.writeFile(path.join(OUTPUT_DIR, `${id}.${image.ext}`), Buffer.from(image.base64, 'base64'));
             viewUrls.push(served(id, image.ext));

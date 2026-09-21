@@ -27,6 +27,7 @@
  */
 
 import { MODELS } from './models.js';
+import { estimateCost } from './deepinfraPricing.js';
 
 /** Every image task shares one order: the op id IS the task id for all of them. */
 const IMAGE_TASKS = ['t2i', 'i2i', 'control', 'inpaint', 'upscale', 'detail'];
@@ -111,20 +112,67 @@ const OP_NOTES = {
 
 const _ranked = new Map();
 
-function _rank(pairs) {
+/** How many LOCAL models each task ranked, so the paid ones can carry on from there. */
+const _localCount = new Map();
+
+function _rank(pairs, task) {
     pairs.forEach(([modelId, op], i) => {
         const note = [NOTES[`${modelId}:${op}`] || NOTES[modelId], OP_NOTES[op]].filter(Boolean).join('; ');
         _ranked.set(`${modelId}:${op}`, { rank: i + 1, ...(note ? { note } : {}) });
     });
+    _localCount.set(task, pairs.length);
 }
 
-_rank(EDIT);
-_rank(T2V);
-_rank(I2V);
+_rank(EDIT, 'edit');
+_rank(T2V, 't2v');
+_rank(I2V, 'i2v');
 for (const task of IMAGE_TASKS) {
     _rank(IMAGE_ORDER
         .filter(id => MODELS.find(m => m.id === id)?.supportedOps?.includes(task))
-        .map(id => [id, task]));
+        .map(id => [id, task]), task);
+}
+
+/**
+ * The paid models rank AFTER every local one, and say what they cost (MPI-875).
+ *
+ * Live on 2026-09-21 the agent picked `nano-banana-2-cloud` for a plain t2i and billed the
+ * user for it unasked. It was not ignoring a ranking: no cloud model appeared in any list
+ * above, so `opPriority` answered null — and null reads to the agent as "unranked", not as
+ * "avoid". MPI-865 gave the HUMAN picker a cloud badge; this is the agent's equivalent.
+ *
+ * A rank alone would not do it. The agent also has to be able to say what a cloud run
+ * costs when someone asks for one on purpose, so the note carries the price — read from
+ * the same snapshot the picker quotes, never typed here, because a hand-written price
+ * drifts silently while the snapshot fails `sync-deepinfra-prices.mjs --check` loudly.
+ *
+ * The four tasks below are every task a cloud model declares an op for. Roster order
+ * decides the order among them; the price is in each note, so nothing is hidden by it.
+ */
+const CLOUD_TASKS = ['t2i', 'edit', 't2v', 'i2v'];
+
+/** What this model charges, in the terms the agent should repeat to the user. */
+function _cloudNote(model) {
+    const video = model.mediaType === 'video';
+    // A 1K image and a 720p clip: the commonest run, and the figure the agent quotes as
+    // "about". Veo publishes no duration field at all, so `duration` is ignored there and
+    // its own fixed clip length is priced instead — which is why this says "a clip"
+    // rather than naming a length it cannot promise.
+    const est = estimateCost(model.cloud.endpointId,
+        video ? { resolution: '720p', duration: 5 } : { resolution: '1k' });
+    const price = est ? `${est.display} ${video ? 'a clip' : 'an image'}` : 'real money';
+    return `PAID: runs at ${model.provider} and charges the user's own account, ${price}. `
+        + 'Every model ranked above this one is local and free. Pick it only when the user '
+        + 'asked for this model, or for the cloud, by name.';
+}
+
+for (const task of CLOUD_TASKS) {
+    const offset = _localCount.get(task) || 0;
+    MODELS
+        .filter(model => model.provider && model.cloud?.endpointId && model.supportedOps?.includes(task))
+        .forEach((model, i) => _ranked.set(`${model.id}:${task}`, {
+            rank: offset + i + 1,
+            note: _cloudNote(model),
+        }));
 }
 
 /**

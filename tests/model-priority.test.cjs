@@ -77,6 +77,42 @@ test('klein 9B edit declares the habit that made a restyle wrong (MPI-817)', () 
     assert.match(opPriority('klein-9b', 'kleinEdit').note, /cover a bare subject/);
 });
 
+test('a PAID model ranks below every local one, and says what it costs (MPI-875)', () => {
+    // Live on 2026-09-21 the agent picked `nano-banana-2-cloud` for a plain t2i and billed
+    // the user unasked. It was not ignoring the ranking: no cloud model was in the table at
+    // all, so `opPriority` answered null — and null reads as "unranked", not as "avoid".
+    const cloud = MODELS.filter((m) => m.provider);
+    assert.ok(cloud.length > 0, 'no cloud models — re-anchor this test');
+
+    for (const model of cloud) {
+        for (const op of model.supportedOps || []) {
+            const entry = opPriority(model.id, op);
+            assert.ok(entry, `${model.id}:${op} is unranked, which reads to the agent as "unranked", not "avoid"`);
+
+            // Below the last LOCAL model that does the same task. Rank 1 for a paid model
+            // would be the same bug wearing a number.
+            const localsBelow = MODELS.filter((m) => !m.provider && (m.supportedOps || []).includes(op))
+                .map((m) => opPriority(m.id, op)?.rank)
+                .filter((r) => Number.isFinite(r) && r >= entry.rank);
+            assert.equal(localsBelow.length, 0,
+                `${model.id}:${op} ranks ${entry.rank}, at or above a local model doing the same task`);
+
+            // The note is the half a rank cannot carry: what it costs, so the agent can
+            // answer for it when a user asks for the cloud on purpose.
+            assert.match(entry.note, /^PAID: /, `${model.id}:${op} has no paid warning`);
+            assert.match(entry.note, /about \$\d/, `${model.id}:${op} names no price`);
+        }
+    }
+});
+
+test('the local order is untouched by the paid models being ranked (MPI-875)', () => {
+    // The paid entries are appended after the locals are ranked, so adding one must not
+    // renumber anything a local model was promised.
+    assert.equal(opPriority('krea2', 't2i').rank, 1);
+    assert.equal(opPriority('boogu-edit-high', 'edit').rank, 1);
+    assert.equal(opPriority('minimax-h3', 't2v_ms').rank, 1);
+});
+
 test('nothing an agent must not drift to is ranked', () => {
     // An `-nsfw` variant is the user's explicit choice, never a default the ranking makes.
     for (const m of MODELS.filter((x) => x.id.includes('nsfw'))) {

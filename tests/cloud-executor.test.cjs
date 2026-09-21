@@ -23,6 +23,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 
 const { runCloudCommand, cloudErrorMessage } = require('../js/services/cloudExecutor.js');
@@ -305,6 +306,44 @@ test('the route resolves the endpoint from the MODEL ID, so a client cannot name
             assert.equal(json.error.code, 'PROVIDER_ERROR');
         }
     } finally {
+        server.close();
+    }
+});
+
+test('an OVER-DELIVERY is clamped to the count asked for (MPI-875)', async () => {
+    // Live on 2026-09-21: `google/nano-banana-2` answered a one-image request with the
+    // same generation TWICE — byte-identical pixels, a fresh C2PA signature on each copy,
+    // and one charge for the pair. Unclamped, the second copy becomes its own gallery card
+    // (`generationService` builds one per url) carrying the WHOLE call's cost, which is
+    // what made a single $0.067 run read as two.
+    const savedEnv = process.env.DEEPINFRA_API_KEY;
+    process.env.DEEPINFRA_API_KEY = 'not-a-real-key-the-provider-is-stubbed';
+    const realFetch = global.fetch;
+    const server = await routeServer();
+    // The 1x1 PNG from DeepInfra's own published `out_example`.
+    const pixel = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVQI12PQz3wAAAJDAXkkWn+MAAAAAElFTkSuQmCC';
+    try {
+        global.fetch = async (url, init) => {
+            if (!String(url).includes('api.deepinfra.com')) return realFetch(url, init);
+            return new Response(JSON.stringify({
+                images: [pixel, pixel],
+                seed: 42,
+                inference_status: { cost: 0.067257 },
+            }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+        };
+        const { json } = await post(server, { modelId: MODEL_ID, prompt: 'a cube', batch: 1 });
+        assert.equal(json.ok, true, `the route refused: ${json.error?.code}`);
+        assert.equal(json.viewUrls.length, 1, 'the second delivery would have become a second card');
+        // And the bill is the CALL's, which is why the extra card is wrong rather than
+        // merely untidy: both cards would have carried this whole figure.
+        assert.equal(json.cost.usd, 0.067257);
+
+        const id = /output\/([^?]+)/.exec(json.viewUrls[0])[1];
+        fs.rmSync(path.join(os.tmpdir(), 'cubric-deepinfra', id), { force: true });
+    } finally {
+        global.fetch = realFetch;
+        if (savedEnv === undefined) delete process.env.DEEPINFRA_API_KEY;
+        else process.env.DEEPINFRA_API_KEY = savedEnv;
         server.close();
     }
 });

@@ -62,3 +62,35 @@ In the running app: the estimate appears only for a paid model; matches the meas
 `01d` for that configuration; moves when a reference is added or removed and when ratio, tier
 or duration changes; **multiplies by the batch count** (a batch of 4 on Nano Banana Pro reads
 about $0.54); survives an op switch; and disappears when Run-locally is on.
+
+
+## Decided by Fabio, 2026-09-21: ASK EVERY TIME (via MPI-876)
+
+His words, passed through the MPI-876 session unedited:
+
+> "I think asking every time is in order. The agent should never do a cloud generation
+> without the user clicking a yes button or OK button. We do this in this first version. If
+> users start complaining that it's pissing them off, then we'll revisit later."
+
+So in v1 there is **no "don't ask again", no per-conversation memory, and no per-model
+exemption** — including for a sub-cent model. The "it will get tiring at $0.07" objection was
+heard and deliberately overruled. This tag must not be built on an assumption that anything
+suppresses the confirm, and it must not grow a "hide this" affordance of its own.
+
+**The wording is shared with [[MPI-876]]'s confirm card.** Draft agreed between the two
+sessions, Fabio has it and may still rewrite it:
+
+```
+one run   Run this on Nano Banana 2?
+          Runs on your DeepInfra key and costs {display}.
+batch     Run this on Nano Banana 2, over 6 cards?
+          Runs on your DeepInfra key and costs {display} for 6 generations.
+null      Run this on <model>?
+          Runs on your DeepInfra key. The cost is not known until it finishes.
+```
+
+`{display}` is `estimateCost().display` verbatim — it carries its own "about", never renders
+"$0.00", and drops to one significant figure below a cent, so it is never reformatted and a
+batch figure never comes from multiplying the string. Whatever sentence wraps it, THE NUMBER
+IS THAT STRING. The modal deliberately hides `PRICES_CHECKED_ON`; a persistent tag is the one
+surface where showing the date may be right, and that is this card's call, not drift.
