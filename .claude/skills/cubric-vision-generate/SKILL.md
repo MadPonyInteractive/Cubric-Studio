@@ -166,7 +166,7 @@ Failure returns `{"ok": false, "error": {"code": ..., "message": ...}}`:
 | `UNKNOWN_MODEL` | No model with that id. |
 | `OP_UNAVAILABLE` | The model does not support that operation, or its weights are not installed. |
 | `MEDIA_REQUIRED` | A required media slot is empty. Names the slot. |
-| `MASK_UNSUPPORTED` | The operation needs a painted mask (`inpaint`, `detail`), which has no agent form. |
+| `MASK_UNSUPPORTED` | The operation needs a painted mask (`inpaint`, `detail`) and none is painted. Ask the user to paint one in History, then send the same call again. |
 | `BAD_REQUEST` | A media role the operation does not have (the message lists its roles), a media entry with no `url`, or one role given twice. |
 | `CANCELLED` | Cancelled, or produced no output. |
 | `TIMEOUT` | No result in 30 minutes. The generation may still be running. |
@@ -218,10 +218,21 @@ the vocabulary.
 - **Klein Edit follows the SOURCE image size.** `ratio` is refused on it; size the
   image you stage.
 
+### Masks
+
+A mask the user has painted in History is attached to your submit automatically — you
+cannot paint one, and you do not pass one. It makes the op work on that area alone, at the
+source image's own size, and the model sees **nothing outside it**, so the prompt describes
+only what that area should become.
+
+`inpaint` and `detail` are refused with `MASK_UNSUPPORTED` when nothing is painted; ask the
+user to paint and send the call again. `edit`, `kleinEdit`, `krea2Edit`, `qwenEdit` and
+`i2i` honour a mask but do **not** refuse without one — with no mask they re-render the
+whole picture and report success. `control` ignores a mask entirely. Video has no mask
+support yet.
+
 ### What it does not do yet
 
-- **No mask.** `inpaint` and `detail` need a painted mask and are refused with
-  `MASK_UNSUPPORTED`.
 - **No job status.** One submit, one result.
 
 ### Cancelling a submit

@@ -29,8 +29,8 @@ enhancer never rewrites `inpaint` prompts (see Settings).
   `control`, `upscale` and `detail` keep the input image's own shape.
 - Media roles: `t2i` takes no image. `i2i`, `control`, `inpaint`, `upscale` and `detail`
   each take exactly one required `inputImage`. `inpaint` and `detail` work on a mask the
-  user paints in History; you cannot paint one, so suggest those ops to the user instead of
-  running them.
+  user paints in History; you cannot paint one, so ask for it and run the op once they say
+  it is drawn. `i2i` takes the same mask; `control` ignores one. Full model: `app:masking`.
 - `control` is where this card differs from most others in Vision: it offers the full
   four-type picker (depth, pose, scribble, canny), not depth alone, with an adjustable
   control strength.

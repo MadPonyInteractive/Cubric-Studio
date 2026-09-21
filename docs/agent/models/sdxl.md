@@ -26,8 +26,8 @@ use this guide:
 - The job is structural (copy a pose, a depth map, a scribble or an edge map onto a new
   subject) or an upscale on an existing SDXL-family image: the same recipe drives every op.
 - The user wants a masked fix (`inpaint` or `detail`): both need a mask painted in History
-  first, which the agent cannot do itself. Suggest that step rather than calling the op with
-  no mask.
+  first, which you cannot do yourself. Ask for it, naming the area, then run the op once
+  they say it is drawn; the mask reaches your call on its own.
 - The user wants a 4x upscale that invents plausible new detail rather than a faithful
   resize: `nvidia-pid`. For a resize with nothing invented, point them at the plain Upscale
   tool in the tool rail instead; it uses no model and is far faster.
@@ -46,8 +46,10 @@ Media roles (one required image per op that takes one; `t2i` takes none): `i2i`,
 (SDXL does not carry the extra reference slots some other models get on `control`).
 
 - `inpaint` and `detail` both require a mask (`requiresMask: true`) painted onto the image in
-  History. The in-app agent cannot paint one, so when a request calls for either op, suggest
-  the user mask the area first rather than trying to run the op with none.
+  History. You cannot paint one, so ask the user to and dispatch once they say it is drawn;
+  called with none, both are refused and told to ask. `i2i` takes the same mask and does NOT
+  refuse without one, so a localised ask with no mask repaints the whole picture. `control`
+  ignores a mask. Full model: `app:masking`.
 - `control` also exposes a `controlType` picker (depth, pose, scribble, canny, one shared
   ControlNet-Union checkpoint) and a strength slider. Never restate what the chosen control
   type already carries (a pose, an edge map) in the prompt; describe the subject and scene it

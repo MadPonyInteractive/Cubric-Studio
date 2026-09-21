@@ -87,6 +87,7 @@ import { MpiOkCancel } from '../../Compounds/MpiOkCancel/MpiOkCancel.js';
 import { MpiReusePromptDialog } from '../../Compounds/MpiReusePromptDialog/MpiReusePromptDialog.js';
 import { getPlugin, pluginAvailability } from '../../../data/pluginsRegistry.js';
 import { splitDeclaredValues } from '../../../utils/declaredFields.js';
+import { setMaskReader, clearMaskReader } from '../../../shell/activeMask.js';
 
 /**
  * Registry mapping MpiHistoryTools `activate { mode }` keys to the compound
@@ -3542,9 +3543,18 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             }));
         }
 
+        // MPI-877: the agent dispatches from `js/shell/agentDispatch.js`, which has no
+        // viewer of its own — and a painted mask lives nowhere else. Read exactly as the
+        // `run` handler above reads it, so an agent submit and a Cue press send the same
+        // mask rather than two subtly different ones.
+        const _readMaskForAgent = () =>
+            (viewer?.el?.hasMask?.() ? viewer.el.getCurrentMaskDataURL?.() : null) || null;
+        setMaskReader(_readMaskForAgent);
+
         // ── Cleanup ───────────────────────────────────────────────────────────
 
         el.destroy = async () => {
+            clearMaskReader(_readMaskForAgent);
             clearTimeout(_mascotLingerTimer);
             _previewPlayer.stop();
             _options?.destroy?.();

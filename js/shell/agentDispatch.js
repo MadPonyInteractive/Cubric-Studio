@@ -44,6 +44,7 @@ import { submitFlowGeneration } from '../services/flowService.js';
 import { openProject, renameGroup, markGroup } from '../services/projectService.js';
 import { CARD_MARKS, markOf, matchesGallerySort, byGalleryOrder, describeGalleryFilter, isGalleryFiltered } from '../utils/galleryFilter.js';
 import { navigate, PAGE_GALLERY } from '../router.js';
+import { activeMaskDataUrl } from './activeMask.js';
 import { MODELS, getModelById, isOperationInstalled, getModelDepStatus } from '../data/modelRegistry.js';
 import { DEPS } from '../data/modelConstants/dependencies.js';
 import { resolveFullUniverse } from '../data/modelConstants/resolveModelDeps.js';
@@ -203,6 +204,39 @@ export function resolveSettingsOwner(input = {}, pinned, project, pinnedM) {
 }
 
 /**
+ * MPI-877 — whether this submit runs against the user's painted mask, and whether it may
+ * run at all without one.
+ *
+ * The agent does not PAINT a mask; it uses the one the user painted. Two halves, and both
+ * were broken live on 2026-09-21:
+ *
+ * - A mask is attached to EVERY op, with no model or op check, because that is what the
+ *   app itself does: `commandExecutor.js:791` injects `Input_Mask` on truthiness alone,
+ *   and every local workflow declaring the node honours it. Localised editing is a
+ *   property of the app, not of one model. Dispatch carried no mask at all, so an agent
+ *   `edit` ran whole-image, silently, with `ok: true` — it repainted a whole subject when
+ *   only a reflection was asked for.
+ * - A `requiresMask` op is refused only when there is NO mask. The refusal used to be
+ *   blanket, and it fired while the mask was already painted and on screen, sending the
+ *   user away to run the op himself. So the message now says paint one, and never that
+ *   this endpoint cannot supply it.
+ *
+ * Omitted rather than null when absent: `generationService` reads `config.maskDataUrl`
+ * and a null would be indistinguishable from an unpainted canvas anyway.
+ *
+ * @param {string} operation
+ * @param {string|null} maskDataUrl - the mask the user has painted right now, or null.
+ * @returns {{ maskDataUrl: string|null, error?: { code: string, message: string } }}
+ */
+export function resolveMask(operation, maskDataUrl) {
+    if (!maskDataUrl && getCommand(operation)?.requiresMask) {
+        return { maskDataUrl: null, error: { code: 'MASK_UNSUPPORTED',
+            message: `Nothing was generated: "${operation}" only runs on a painted mask, and none is painted. Ask the user to open the card in History, choose the Mask tool and paint over the area to change, then send this again once they say it is drawn. You cannot paint it yourself.` } };
+    }
+    return { maskDataUrl: maskDataUrl || null };
+}
+
+/**
  * Run one `generation.submit` job. Every exit path reports exactly once — an
  * unreported job leaves the caller's HTTP request hanging until the route's
  * timeout, which reads as a dead app.
@@ -247,11 +281,9 @@ function _submitGeneration(jobId, input = {}) {
             : `"${operation}" is not available on ${model.name || modelId} — unsupported, or its weights are not installed.`);
     }
 
-    // A painted mask has no agent form. Refused by name: the enqueue guard would toast
-    // and cancel instead, which reaches the agent as a bare CANCELLED it can't act on.
-    if (getCommand(operation)?.requiresMask) {
-        return _fail(jobId, 'MASK_UNSUPPORTED',
-            `"${operation}" needs a painted mask, which this endpoint cannot supply.`);
+    const mask = resolveMask(operation, activeMaskDataUrl());
+    if (mask.error) {
+        return _fail(jobId, mask.error.code, mask.error.message);
     }
 
     // MPI-765: media by reference, resolved exactly as the Flow branch resolves it.
@@ -293,6 +325,7 @@ function _submitGeneration(jobId, input = {}) {
         positive,
         negative,
         mediaItems,
+        ...(mask.maskDataUrl ? { maskDataUrl: mask.maskDataUrl } : {}),
         // Explicit only — an unset seed must stay random, never pinned to 0.
         ...(seed !== undefined ? { seed } : {}),
         injectionParams: mergedInjection,

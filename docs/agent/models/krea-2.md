@@ -21,10 +21,12 @@ Both run `t2i`, `i2i`, `control`, `krea2Edit`, `inpaint`, `detail`, `upscale`.
   first: production found it fails more often than Boogu or Qwen Image Edit at the
   same job. Reach for it when those are not installed, or when Krea 2's own bake is
   worth the extra risk.
-- The user wants to paint out or regenerate one area of an image: suggest `inpaint` or
-  `detail`, but do not try to run either yourself. Both need a mask painted in History,
-  which has no agent form, and the app refuses the call outright (`MASK_UNSUPPORTED`).
-  Tell the user what to paint and what to type; they run it.
+- The user wants to paint out or regenerate one area of an image: `inpaint` or `detail`.
+  Both need a mask painted in History. You cannot paint one, so ask the user to, naming the
+  area, and run the op yourself once they say it is drawn; the mask reaches your call on
+  its own. Dispatched with none, both are refused (`MASK_UNSUPPORTED`). `krea2Edit` and
+  `i2i` take the same mask and do NOT refuse without one, so a localised ask with no mask
+  painted repaints the whole picture. Full model: `app:masking`.
 
 ## Settings
 
@@ -53,8 +55,8 @@ Both run `t2i`, `i2i`, `control`, `krea2Edit`, `inpaint`, `detail`, `upscale`.
   `inputImage` plus an optional `inputImage2`, and the order is load bearing: chip 1 is
   the SCENE, chip 2 is the SUBJECT. Swapping them silently degrades the result, and two
   subjects in one pass loses both faces, so edit one subject per pass. `inpaint` and
-  `detail` also take `inputImage`, but see Pick it when: the agent cannot supply the
-  mask both require.
+  `detail` also take `inputImage`, and both run once the user has painted the mask they
+  require. See Pick it when.
 
 ## The prompt shape
 
@@ -65,9 +67,8 @@ perspective, style or medium, lighting and mood, palette, composition, texture. 
 language, and weighting distorts the whole prompt rather than one token.
 
 `krea2Edit` and `inpaint` are instructions, not descriptions, and the enhancer never
-touches either. For `krea2Edit` you write the final text yourself and submit it; for
-`inpaint` you are handing the same kind of line to the user to type once they have
-painted a mask. Either way, keep it short and imperative, one verb per change,
+touches either. You write the final text yourself and submit it for both, and for `inpaint`
+once the user has painted the mask. Keep it short and imperative, one verb per change,
 decomposed rather than narrated. "Change her clothes to explorer clothes and change her
 expression to scared" measured as working where "create a photo of this woman wearing
 explorer clothes, running scared" measured as failing, on the same reference and seed.

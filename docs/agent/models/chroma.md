@@ -30,7 +30,8 @@ on this card: masked, denoise-driven work runs through `detail` instead.
   `upscale` and `detail` inherit the input image's own shape instead.
 - Media roles: `t2i` takes no image. `i2i`, `control`, `upscale` and `detail` each take
   exactly one required `inputImage`. `detail` works on a mask the user paints in History;
-  you cannot paint one, so suggest it to the user instead of running it.
+  you cannot paint one, so ask for it and run the op once they say it is drawn. `i2i` takes
+  the same mask; `control` ignores one. Full model: `app:masking`.
 - Style rack, live on every op this card supports: None, B&W Sketch, Lenovo, Brushwork,
   Anime. Default strength is 0.6, not Vision's usual 1.0: both checkpoints are heavily
   distilled, and 0.8 to 1.0 breaks the LoRA into artefacts instead of styling it. Model

@@ -5,7 +5,8 @@ different jobs:
 
 - `klein-4b`, `klein-9b` (FLUX.2 Klein, two sizes, one graph): a generator (`t2i`,
   `i2i`), a structure copier (`control`), an instruction editor (`kleinEdit`), and two
-  masked ops (`inpaint`, `detail`) the agent can only suggest, never run.
+  masked ops (`inpaint`, `detail`) that run on a mask the user paints. Ask for one,
+  then dispatch (`app:masking`).
 - `boogu-edit-high`, `boogu-edit-balanced` (Boogu Image Edit): an instruction editor
   only, one op, `edit`.
 - `qwen-edit` (Qwen Image Edit): an instruction editor, `qwenEdit`, plus a structure
@@ -34,9 +35,11 @@ different jobs:
 - Klein ships ONE tier on both sizes: cfg 1.0, 4 steps, fixed. No turbo toggle, no
   `qualityTier` on any op. More steps measurably overcooks it.
 - `inpaint` and `detail` need a mask painted in History on Klein, exactly as on Krea 2.
-  The agent has no way to paint one, and the app refuses the call outright
-  (`MASK_UNSUPPORTED`). Tell the user what to paint and what to type; do not attempt
-  either op yourself.
+  You cannot paint one, so ask the user to, naming the area, and dispatch once they say it
+  is drawn; the mask reaches your call on its own. Dispatched with none, both are refused
+  (`MASK_UNSUPPORTED`) and told to ask. `kleinEdit` and `i2i` honour a mask too and do NOT
+  refuse without one, so a localised ask with no mask painted repaints the whole picture.
+  `control` ignores a mask entirely. Full model: `app:masking`.
 - Ratios, per op, not a blanket set. Klein's `t2i`, `i2i`, `inpaint`, `detail` and
   `upscale` all offer the nine standard labels (`1:1`, `3:4`, `4:5`, `5:8`, `9:16`,
   `4:3`, `5:4`, `8:5`, `16:9`). `control` and `kleinEdit` offer none: both keep the

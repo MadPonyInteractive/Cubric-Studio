@@ -21,8 +21,8 @@ even though they share an architecture.
   an upscale on an existing `pony-mix` image: the same recipe drives every op, the same as
   SDXL.
 - The user wants a masked fix (`inpaint` or `detail`): both need a mask painted in History
-  first, which the agent cannot do itself. Suggest that step rather than calling the op with
-  no mask.
+  first, which you cannot do yourself. Ask for it, naming the area, then run the op once
+  they say it is drawn; the mask reaches your call on its own.
 
 ## Settings
 
@@ -35,8 +35,10 @@ Media roles (one required image per op that takes one; `t2i` takes none): `i2i`,
 `inpaint`, `upscale` and `detail` each take a single required `inputImage`.
 
 - `inpaint` and `detail` both require a mask (`requiresMask: true`) painted onto the image in
-  History. The in-app agent cannot paint one, so when a request calls for either op, suggest
-  the user mask the area first rather than trying to run the op with none.
+  History. You cannot paint one, so ask the user to and dispatch once they say it is drawn;
+  called with none, both are refused and told to ask. `i2i` takes the same mask and does NOT
+  refuse without one, so a localised ask with no mask repaints the whole picture. `control`
+  ignores a mask. Full model: `app:masking`.
 - `control` also shows a `controlType` picker (depth, pose, scribble, canny) and a strength
   slider; describe the subject and scene, never the pose or edges the control map already
   supplies.
