@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-870", "at": "2026-09-21T10:18:10+01:00", "actor": "f756c6e3", "column": "todo", "title": "The agent wakes when the generations drain, and one ask can fan out over many cards"}

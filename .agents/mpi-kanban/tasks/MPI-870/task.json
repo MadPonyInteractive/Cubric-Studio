@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-870",
+  "title": "The agent wakes when the generations drain, and one ask can fan out over many cards",
+  "description": "A finished generation is silent until the user types: settle() pushes the note into _notes and nothing runs a turn. Fabio hit it live twice on 2026-09-21. Wake an IDLE conversation when _inflight drains, through agentSessions.queue. The RENDERER owns the wake, because the connector generate route has no project targeting and only the renderer knows which project is open. Second half: generate takes a cards list so one ask fans out over many, with a yes/no confirm card above 5 cards (Fabio, 2026-09-21). Seven design rules and the open questions are in MPI-817 plan.md, section Phase C, first piece.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-21T10:18:10+01:00",
+  "updated_at": "2026-09-21T10:18:10+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
