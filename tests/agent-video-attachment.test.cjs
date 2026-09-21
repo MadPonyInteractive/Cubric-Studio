@@ -114,11 +114,13 @@ test('the server gate: a referenced path is honoured only inside the open projec
 // `image/` and silently ignores a dropped clip, so there is no way to hand the agent a
 // video today. Nothing is broken-but-hidden — the transport is simply unreachable.
 //
-// Left as a `todo` rather than deleted, so the contract stays on the board on every run.
+// Owned by MPI-867 now (Fabio split it out of MPI-797's close-out, 2026-09-21). Left as a
+// `todo` rather than deleted, so the contract stays on the board on every run, and making
+// this pass is that card's definition of done.
 // Restoring it is not a line of Phase 3: MpiPromptBox staged its clip with its own private
 // `_importMediaFile`, there is no shared import service, and the panel composer has no
 // project-media machinery at all. That is a surface of its own, and Fabio's call.
-test('the UI gate: a video can be handed to the agent by reference', { todo: 'MPI-817 lost its UI half to MPI-797 Phase 3 — the panel composer takes images only' }, () => {
+test('the UI gate: a video can be handed to the agent by reference', { todo: 'MPI-867: MPI-817 lost its UI half to MPI-797 Phase 3 — the panel composer takes images only' }, () => {
     // assert.ok on a boolean, not assert.match on the source: a failing `match` prints the
     // whole component into the run, and this one is EXPECTED to fail until the gap is filled.
     const chat = read('js', 'components', 'Compounds', 'MpiAgentChat', 'MpiAgentChat.js');
