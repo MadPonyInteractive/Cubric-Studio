@@ -128,6 +128,22 @@ test('every cloud model produces real price copy for its tile', () => {
     }
 });
 
+test('the price chip is coloured by what the price BUYS', () => {
+    // DESIGN.md "colour states what a surface is ABOUT": Vision rose for an image model,
+    // Video orange for a clip one. Fabio, 2026-09-21, on seeing fifteen cloud tiles all
+    // wearing rose. Asserted on the SOURCE because the alternative is a screenshot.
+    assert.match(MANAGER, /mpi-tile__chip--paid-video/,
+        'the tile no longer distinguishes a clip model from an image one');
+    assert.match(MANAGER, /model\.mediaType === 'video'\s*\?\s*' mpi-tile__chip--paid-video'/,
+        'the video modifier must key on mediaType, not on the price or the op');
+
+    const sheet = read('js', 'components', 'Primitives', 'MpiTileSheet', 'MpiTileSheet.css');
+    assert.match(sheet, /\.mpi-tile__chip--paid\s*\{[^}]*--vision-accent/,
+        'the base paid chip must stay Vision rose, so paid FLOWS are unaffected');
+    assert.match(sheet, /\.mpi-tile__chip--paid-video\s*\{[^}]*--video-accent/,
+        'the video chip must use the family token, never a hex or a color-mix');
+});
+
 test('a sub-cent model quotes a figure, not a shrug', () => {
     // "under $0.01" on a tile does not answer the question a user is actually asking,
     // which is whether a batch of four is worth it.

@@ -241,10 +241,16 @@
 .mpi-tile__chip--partial::before { content: "◑"; }
 /* A cloud model (MPI-853): it shows a PRICE where a local model shows its size.
  * Deliberately NOT --available, whose down-arrow promises a download that can never
- * happen here. Rose is Vision's own family colour, used as a literal the way the rest
- * of Vision's identity is (01_base.css) - never a status token, which frost is. */
+ * happen here. Never a status token, which frost is.
+ *
+ * The hue states WHAT THE PRICE BUYS, which is DESIGN.md's rule that colour states what
+ * a surface is about: Vision rose for an image model, Video orange for a clip model.
+ * Fabio, 2026-09-21, on seeing fifteen cloud tiles all wearing rose. The base rule stays
+ * rose so every other paid surface (Flows) is unaffected, and the video modifier is
+ * additive rather than a second full rule. */
 .mpi-tile__chip--paid { color: var(--vision-accent); text-transform: none; letter-spacing: 0.06em; }
 .mpi-tile__chip--paid::before { content: "☁"; }
+.mpi-tile__chip--paid-video { color: var(--video-accent); }
 /* A Flow package that failed validation (MPI-532) — listed, never runnable. */
 .mpi-tile__chip--unavailable { color: var(--accent-warn); }
 .mpi-tile__chip--unavailable::before { content: "!"; }

@@ -1438,8 +1438,14 @@ export const MpiModelManager = ComponentFactory.create({
                 featured: !!model.featured,
                 deprecated: !!model.deprecated,
                 // A price, never an Install chip: `--available` draws a download arrow in
-                // its ::before, on a thing that never downloads.
-                state: `<span class="mpi-tile__chip mpi-tile__chip--paid">${_paidPriceText(model)}</span>`,
+                // its ::before, on a thing that never downloads. The hue says what the
+                // price buys — rose for an image model, Video orange for a clip one —
+                // which is DESIGN.md's "colour states what a surface is about", not a
+                // decoration. A GIF would still be Vision here: the split is what the
+                // thing IS, and `mediaType` is exactly that.
+                state: `<span class="mpi-tile__chip mpi-tile__chip--paid${
+                    model.mediaType === 'video' ? ' mpi-tile__chip--paid-video' : ''
+                }">${_paidPriceText(model)}</span>`,
                 source: model,
             };
         }
