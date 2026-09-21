@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-866", "at": "2026-09-21T09:14:02+01:00", "actor": "claude", "column": "todo", "title": "A red master has no owner once the session that caused it ends"}
