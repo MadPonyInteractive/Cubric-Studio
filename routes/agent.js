@@ -5,10 +5,12 @@
  *
  * Mounts the routes the chat UI and the agent loop share:
  *   POST /agent/message   — send a user turn (returns immediately; reply via SSE)
+ *   POST /agent/wake      — run a turn for the OPEN project's conversation if its generations
+ *                           have landed and nothing has reported them yet (MPI-870)
  *   GET  /agent/stream    — SSE for every conversation: agent:working, agent:message,
  *                           agent:tool, agent:confirm, agent:result, agent:compacting,
- *                           agent:error, agent:user (a carried request) (each with `session`),
- *                           and agent:session on a move
+ *                           agent:error, agent:user (a carried request), agent:drained
+ *                           (each with `session`), and agent:session on a move
  *   GET  /agent/history?project= — one conversation's history + working / confirm state
  *   GET  /agent/attachment/:id — the staged image behind a history attachment id
  *   POST /agent/confirm   — respond to an install confirmation card
@@ -156,6 +158,40 @@ router.post('/agent/message', async (req, res) => {
     if (queued) return sessions.queue(turn);
     sessions.send(turn)
         .catch((err) => logger.error('agent', `runTurn unhandled: ${err.message}`));
+});
+
+// ---------------------------------------------------------------------------
+// POST /agent/wake
+// ---------------------------------------------------------------------------
+
+// MPI-870. The renderer posts this when `agent:drained` says a conversation's generations
+// have all landed, and again whenever a project is opened. `body.project` is THE PROJECT THE
+// RENDERER HAS OPEN, never the one that drained — a dispatch lands in whatever project is
+// open, and only the renderer knows which that is. Everything else about the body matches
+// POST /agent/message, because a wake runs a real turn: it needs the same connection, model
+// and pinned panel the user's own turn would have got.
+//
+// Answers `woke: false` and does nothing at all when that conversation has no pending notes,
+// is already running or queued, or has woken too many times with nothing typed in between.
+// That no-op is the contract: it lets the renderer post on every project open without
+// deciding anything.
+router.post('/agent/wake', async (req, res) => {
+    const { project, mode, profileId, model, pinned } = req.body || {};
+
+    if (!profileId) {
+        return res.json({ ok: false, error: { code: 'NO_PROFILE', message: 'body.profileId is required.' } });
+    }
+    if (mode !== 'auto' && mode !== 'ask') {
+        return _bad(res, "body.mode must be 'auto' or 'ask'.");
+    }
+    if (project != null && (typeof project !== 'object' || typeof project.folderPath !== 'string')) {
+        return _bad(res, 'body.project must be null or { folderPath, name }.');
+    }
+
+    let sessions;
+    try { sessions = await getSessions(); } catch (err) { return _unavailable(res, err); }
+
+    res.json(sessions.wake({ project: project || null, mode, profileId, model, pinned: pinned || null }));
 });
 
 // ---------------------------------------------------------------------------

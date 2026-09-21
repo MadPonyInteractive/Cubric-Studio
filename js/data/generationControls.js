@@ -373,13 +373,24 @@ export function isValidSeed(value) {
  * @param {object|null} project
  * @param {object|null} model
  * @param {string} operation
+ * `provenance` is the record of WHICH SIDE chose each effective value (MPI-870). The agent
+ * said it used "a low denoise"; the sidecar said 0.3, which is also the i2i op default, so
+ * nothing on disk could tell whether it chose that or inherited it. Same for duration. It
+ * describes the resolve only — the caller decides where to record it.
+ *
+ * @param {object|null} project
+ * @param {object|null} model
+ * @param {string} operation
  * @param {{ratio?, qualityTier?, turbo?, styleSelect?, stylization?}} named
- * @returns {{ok:true, injectionParams:object, width:number, height:number}|{ok:false, code:string, message:string}}
+ * @returns {{ok:true, injectionParams:object, width:number, height:number,
+ *            provenance:Object<string,{from:'asked'|'defaulted', value:*}>}|{ok:false, code:string, message:string}}
  */
 export function resolveNamedParams(project, model, operation, named = {}) {
     const { ratio, qualityTier, turbo, styleSelect, stylization, duration: durationWanted, denoise: denoiseWanted } = named;
     const injectionParams = {};
     const modelName = model?.name || model?.id || 'this model';
+    const provenance = {};
+    const _from = (key, asked, value) => { provenance[key] = { from: asked ? 'asked' : 'defaulted', value }; };
 
     // qualityTier gates which ratio table `ratio` is checked against, so it is
     // validated first.
@@ -404,6 +415,8 @@ export function resolveNamedParams(project, model, operation, named = {}) {
         injectionParams.Width = ratioDims.width;
         injectionParams.Height = ratioDims.height;
         if (ratioDims.label) injectionParams.Ratio_Label = ratioDims.label;
+        _from('ratio', ratio !== undefined, ratioDims.label || `${ratioDims.width}x${ratioDims.height}`);
+        _from('qualityTier', qualityTier !== undefined, qualityTier ?? null);
     }
 
     const turboControlId = resolveTurboControlId(model);
@@ -411,11 +424,13 @@ export function resolveNamedParams(project, model, operation, named = {}) {
         if (typeof turbo !== 'boolean') return _err('INVALID_TURBO', 'turbo must be a boolean.');
         if (!turboControlId) return _err('INVALID_TURBO', `${modelName} has no turbo toggle.`);
         injectionParams.Input_is_Turbo = turbo;
+        _from('turbo', true, turbo);
     } else if (turboControlId) {
         const saved = getModelSettings(project || {}, model?.id)[turboControlId];
         injectionParams.Input_is_Turbo = typeof saved === 'boolean'
             ? saved
             : !!resolveThreeLayerDefault(turboControlId, model, operation, PROMPT_CONTROL_DEFAULTS[turboControlId]);
+        _from('turbo', false, injectionParams.Input_is_Turbo);
     }
 
     const showsStyle = modelShowsStyleRack(model, operation);
@@ -439,6 +454,8 @@ export function resolveNamedParams(project, model, operation, named = {}) {
             : (typeof modelBucket.stylization === 'number'
                 ? modelBucket.stylization
                 : resolveThreeLayerDefault('stylization', model, operation, PROMPT_CONTROL_DEFAULTS.stylization));
+        _from('styleSelect', styleSelect !== undefined, injectionParams['Input_Style_Selector.selector']);
+        _from('stylization', stylization !== undefined, injectionParams['Input_Style_Selector.strength_model']);
     }
 
     // Agents never batch (Fabio, 2026-09-15): a batch of N holds N latents in VRAM at
@@ -465,6 +482,7 @@ export function resolveNamedParams(project, model, operation, named = {}) {
                 : resolveThreeLayerDefault('duration', model, operation, PROMPT_CONTROL_DEFAULTS.duration);
         }
         injectionParams.Input_Duration = duration;
+        _from('duration', durationWanted !== undefined, duration);
     } else if (durationWanted !== undefined) {
         return _err('INVALID_DURATION', `"${operation}" does not produce a clip, so it has no duration to set.`);
     }
@@ -481,6 +499,7 @@ export function resolveNamedParams(project, model, operation, named = {}) {
         injectionParams.Denoise = denoiseWanted !== undefined
             ? denoiseWanted
             : (_isValidDenoise(saved) ? saved : _denoiseDefault(operation));
+        _from('denoise', denoiseWanted !== undefined, injectionParams.Denoise);
     } else if (denoiseWanted !== undefined) {
         return _err('INVALID_DENOISE', `"${operation}" has no denoise: it does not start from a picture it keeps.`);
     }
@@ -488,6 +507,7 @@ export function resolveNamedParams(project, model, operation, named = {}) {
     return {
         ok: true,
         injectionParams,
+        provenance,
         width: ratioDims.width,
         height: ratioDims.height,
         // What the run will ACTUALLY be, so a caller reports the truth rather than the

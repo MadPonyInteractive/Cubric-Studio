@@ -3,6 +3,7 @@
  *
  * Routes:
  *   POST /agent/message   { text, attachments, project, mode, model, profileId, pinned } → { ok, turnId, session }
+ *   POST /agent/wake      { project, mode, model, profileId, pinned } → { ok, woke, session }
  *   GET  /agent/stream    SSE with named events (bridged to the app event bus)
  *   GET  /agent/history?project= → { ok, session, working, pendingConfirm, usage, entries }
  *   POST /agent/confirm   { confirmId, yes }
@@ -38,6 +39,7 @@ export const AGENT_EVENT_NAMES = [
     'agent:error',
     'agent:user',
     'agent:session',
+    'agent:drained',
 ];
 
 // ── Shared SSE singleton ──────────────────────────────────────────────────────
@@ -47,6 +49,10 @@ export const AGENT_EVENT_NAMES = [
 // instances and future consumers — gets them without opening a second connection.
 
 let _es = null;
+// The bus subscriptions this module owns, kept beside the EventSource because they share its
+// lifetime exactly: both are opened once at shell init and live until the window does. Nothing
+// calls them today — a teardown for a singleton that is never torn down would be scaffolding.
+const _streamUnsubs = [];
 
 /**
  * Open the shared SSE connection (idempotent — safe to call multiple times).
@@ -65,6 +71,50 @@ export function agentInitStream() {
         });
     });
     on(_es, 'error', () => clientLogger.warn('agentService', 'SSE connection error'));
+
+    // MPI-870 — the wake, owned by the renderer because only the renderer knows which
+    // project is OPEN. A finished generation is otherwise silent until the user types.
+    //
+    // Both posts send the OPEN project, never the drained one: the connector's generate
+    // route has no project targeting, so a wake turn that generated anything would land it
+    // in whatever project is open. Project A drains while B is open -> this asks the server
+    // to wake B, which has nothing pending and no-ops; A's notes wait in memory until A is
+    // reopened, where `project:changed` posts again and A reports what landed.
+    // That second post IS the "while you were away" report; it needs no condition here,
+    // because an idle conversation with nothing pending answers `woke: false`.
+    _streamUnsubs.push(Events.on('agent:drained', () => agentWake()));
+    _streamUnsubs.push(Events.on('project:changed', () => agentWake()));
+}
+
+/**
+ * POST /agent/wake — ask the server to run a turn for the OPEN project's conversation, if
+ * its generations have landed and nothing has reported them yet. The server decides; this
+ * only says which project the user is looking at. Never throws: a wake that cannot be sent
+ * leaves the chat exactly as silent as it was before MPI-870.
+ * @returns {Promise<{ok:boolean, woke?:boolean, session?:string}>}
+ */
+export async function agentWake() {
+    try {
+        const { model, mode } = Storage.getAgentPrefs();
+        const { profileId } = Storage.getLlmConnection();
+        if (!profileId) return { ok: false };
+        const p = state.currentProject;
+        const res = await window.fetch('/agent/wake', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                project: p?.folderPath ? { folderPath: p.folderPath, name: p.name } : null,
+                mode,
+                model,
+                profileId,
+                pinned: _pinnedForTurn(),
+            }),
+        });
+        return res.ok ? res.json() : { ok: false };
+    } catch (err) {
+        clientLogger.warn('agentService', 'wake failed', err);
+        return { ok: false };
+    }
 }
 
 /**

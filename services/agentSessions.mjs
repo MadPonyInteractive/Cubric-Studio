@@ -83,6 +83,37 @@ export class AgentSessions {
         this._queued.push(turn);
     }
 
+    /**
+     * MPI-870 — run a turn for a conversation whose generations have landed, so a finished
+     * image is not silent until the user types. Called by the RENDERER, for THE PROJECT IT
+     * HAS OPEN — never for the one that drained. The connector's generate route has no
+     * project targeting, so a wake turn that generated anything would land it in whatever
+     * project is open; the server cannot see which that is and the renderer can.
+     *
+     * That is also why this is safe to call on every project open: an idle conversation with
+     * nothing pending answers `woke: false` and costs one function call. The post on open is
+     * the "while you were away" report for work that finished in a project the user had left.
+     *
+     * @param {object} turn  the same shape `send` takes, minus the text
+     * @returns {{ok: true, woke: boolean, session: string}}
+     */
+    wake(turn) {
+        const key = projectKey(turn.project?.folderPath);
+        const loop = this._loops.get(key);
+        // Rule 1: only an IDLE conversation. A turn queued for this one, or being carried
+        // into it, reads the same notes at its own start — waking would report them twice.
+        const spokenFor = this._queued.some((t) => projectKey(t.project?.folderPath) === key)
+            || projectKey(this._carry?.project?.folderPath) === key;
+        if (!loop || spokenFor || !loop.canWake()) return { ok: true, woke: false, session: key };
+
+        const wakeTurn = { ...turn, text: '', attachments: [], turnId: crypto.randomUUID(), wake: true };
+        // D4 still holds: one turn at a time, app-wide. A wake does not jump the queue — it
+        // joins it, so a wake raised while another project's turn runs is not simply lost.
+        if (this.busy()) this.queue(wakeTurn);
+        else this.send(wakeTurn).catch(() => { /* reported on the stream */ });
+        return { ok: true, woke: true, session: key };
+    }
+
     /** The history of a project's conversation ('' or no folder = the landing page), with its key. */
     history(folderPath) {
         const key = projectKey(folderPath);
@@ -133,7 +164,7 @@ export class AgentSessions {
         const key = projectKey(turn.project?.folderPath);
         const loop = this._loops.get(key) || this._newLoop(key);
         try {
-            await loop.runTurn(turn.text, turn.attachments, turn.project || null, turn.mode, turn.profileId, turn.turnId, { model: turn.model, carried: !!turn.carried, pinned: turn.pinned || null });
+            await loop.runTurn(turn.text, turn.attachments, turn.project || null, turn.mode, turn.profileId, turn.turnId, { model: turn.model, carried: !!turn.carried, pinned: turn.pinned || null, wake: !!turn.wake });
         } finally {
             // The carry first: it is the second half of the request already running. Then what
             // the user typed meanwhile, oldest first (MPI-840) — that send drains the rest.

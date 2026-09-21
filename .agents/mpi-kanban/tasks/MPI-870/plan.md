@@ -123,3 +123,62 @@ restyle. It keeps the describer swappable.
 Recording WHICH describer wrote a stored look (MPI-817). The held-dispatch 30-minute clock that
 starts at DISPATCH rather than at RUN (`agentTools.mjs` `_post`) — same area, separate defect,
 derived from code and not measured.
+
+## Completed — 2026-09-21
+
+All of it, code-side. `npm test` 1704/1707 pass, lint clean.
+
+**The three honesty fixes**
+
+- The cache-read label. `_lookOnce` records whether it read the card's kept text; the tool's
+  DONE frame carries `Fetching saved image description` when it did. The started frame still
+  says `Looking at image`, because nothing knows yet — `_appendTool` reuses the line by id and
+  replaces its text, so the correction needs no renderer change. History keeps the corrected
+  label, or a remount redraws the claim the run disproved.
+- One log line per look, `_logLook`, cached vs fresh + the ref + 240 chars. `routes/logger.js`
+  reached from ESM by dynamic import, category `agent`. Never throws.
+- Asked vs defaulted. `resolveNamedParams` returns `provenance` — `{from, value}` per named
+  param — and `agentDispatch` writes one line. **Deliberately the log, not the sidecar:** the
+  sidecar route is `generationSettings.controlState`, which `promptReuse` reads back and
+  applies to the user's own settings, so a provenance key there would ride into them.
+
+**The wake.** `_maybeDrained()` emits `agent:drained` at the END of `settle` (after the
+auto-look note, or the wake speaks without the description). `AgentSessions.wake(turn)` runs a
+turn for the project the RENDERER names; `loop.canWake()` holds rules 1 and 5, and the
+queue/carry check holds the rest. `POST /agent/wake` mirrors `/agent/message`'s body.
+`agentService` posts on `agent:drained` AND on `project:changed`, always for the OPEN project —
+no key comparison anywhere, because an idle conversation with nothing pending answers
+`woke: false`. That no-op IS the "while you were away" report.
+
+**The batch.** `cards: [ref...]` on `generate`; `_fanOut` loops the existing single-dispatch
+path. Confirm above 5 (`BATCH_CONFIRM_ABOVE`), `agent:confirm` gains `kind: 'batch'`, and
+`MpiAgentChat._appendConfirm` now takes the event object and draws either kind.
+
+## Current State
+
+Built and unit-verified; NOT yet seen in the app. The next action is Fabio's three live checks
+in `validation.md`, after a RESTART — both services load at boot.
+
+## Plan Drift — 2026-09-21
+
+- **Rule 6 is closed by reading, not building.** `gallery.visible` already refuses with
+  `GALLERY_NOT_OPEN` when `state.currentPage !== PAGE_GALLERY` (`agentDispatch._visibleCards`),
+  so "everything I can see" never silently becomes the whole project while a workspace is
+  mounted. Nothing to build.
+- **The fan-out sits ABOVE the media gate, not below it.** Built below first, and every batch
+  refused with `MEDIA_REQUIRED`: `cards` is what fills that slot, and the gate is per picture.
+  Each fanned-out call re-enters and meets every gate itself. `GUIDE_NOT_READ` is the one
+  answer that cannot differ per card, so the batch stops on it rather than repeating it N times.
+- **A batch confirm cannot reuse the install card's resolve.** `reset()` resolved a pending
+  confirm with the string `'declined'`, which is truthy — handed to a batch it reads as YES and
+  queues every card the user just walked away from. Both kinds now resolve in their own
+  vocabulary, and there is a test for exactly that.
+- **One test's anchor moved.** `agent-sessions.test.cjs` scanned `routes/agent.js` from
+  `/agent/message` to `/agent/stream`, so it read the new `/agent/wake` route as part of the
+  message handler. Bounded to the next `router.` instead; the rule it guards is unchanged.
+
+## Not done, and why
+
+`docs/agent-chat.md` documents neither `cards` nor the wake. It is outside this card's
+ownership, and message `e7c38539` has an open question about who owns it and about its 378
+lines against a 200-line budget. Flagged, not edited.

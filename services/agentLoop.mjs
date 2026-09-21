@@ -92,7 +92,7 @@ const TOOL_DEFS = [
         type: 'function',
         function: {
             name: 'generate',
-            description: 'Start an image or video generation (model op or Flow). Fires without blocking — the result appears in the chat when ready. With no project open this returns NO_PROJECT: call create_project, then send the same generate again.',
+            description: 'Start an image or video generation (model op or Flow). Fires without blocking — the result appears in the chat when ready. With no project open this returns NO_PROJECT: call create_project, then send the same generate again. To run the SAME op over several existing cards ("upscale all of these"), pass them all in `cards` on ONE call rather than calling this tool once per card.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -120,6 +120,11 @@ const TOOL_DEFS = [
                             properties: { role: { type: 'string' }, image: { type: 'string', description: 'One of the refs the App state line lists as images you can look at.' } },
                             required: ['role', 'image'],
                         },
+                    },
+                    cards: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        description: 'Run this same op once per card, in ONE call: the refs go into the op\'s required image slot and everything else (model, operation, prompt, settings) is shared. Use it whenever the user asks for the same thing over several pictures — one call instead of one per card, and the user is asked to confirm above five. Model ops only, never a Flow, and it replaces `media`: do not send both. The cards are not described afterwards; look at one yourself if you need to.',
                     },
                 },
                 additionalProperties: false,
@@ -397,6 +402,20 @@ const TOOL_DEFS = [
     },
 ];
 
+// MPI-870 — what a WAKE turn may call. A wake was not asked for: the user did not type,
+// and they may be mid-edit in a workspace, so the two tools that move them off what they
+// are looking at are off the table (rule 4 of Fabio's seven).
+const WAKE_TOOL_DEFS = TOOL_DEFS.filter((t) => t.function?.name !== 'open_project' && t.function?.name !== 'create_project');
+
+// MPI-870 — above how many cards a fan-out asks the user first. Fabio, 2026-09-21: five.
+// Below it the batch IS what they asked for, and a yes/no card is in the way.
+const BATCH_CONFIRM_ABOVE = 5;
+
+// MPI-870 — the runaway bound (rule 5). A wake turn can itself dispatch a generation, whose
+// drain would wake again; this caps the chain when the user has said nothing in between.
+// The knob, not a law of nature: raise it if three ever proves too few.
+const MAX_WAKES_IN_A_ROW = 3;
+
 // Max tool ROUNDS in one user turn (a round is one model reply, however many calls it
 // carries). 8 was exactly one still -> look -> animate chain with no round left to say so
 // (Fabio, 2026-09-20): every generate costs about four — settings, guide, generate, look.
@@ -540,6 +559,8 @@ export class AgentLoop {
         this._boxSteps = new Map(); // flowId -> its box steps [{param, role}], from list_models
         this._ops = new Map();     // "modelId\nop" -> that op's entry (media slots, params), from list_models
         this._boxed = new Set();   // image paths a `look` with box: true measured (the box gate)
+        this._lookWasCached = false; // did the look just served read the card's kept text? (MPI-870)
+        this._wakeStreak = 0;      // consecutive wake turns with nothing typed in between (MPI-870)
 
         // SSE subscribers
         this._subscribers = new Set();
@@ -559,6 +580,41 @@ export class AgentLoop {
         for (const sub of this._subscribers) {
             try { sub.write(payload); } catch { /* stale connection */ }
         }
+    }
+
+    /**
+     * MPI-870 — the generations this conversation started have all landed.
+     *
+     * A finished generation is otherwise SILENT: `settle` pushes its note into `_notes`,
+     * which is read at the START of the next turn, so nothing reaches the user until they
+     * type. Fabio hit it twice on the morning of 2026-09-21 — once sitting for thirty
+     * minutes with the answer one inch away from the chat.
+     *
+     * This only ANNOUNCES the drain. The wake itself is posted by the RENDERER, because the
+     * connector's generate route has no project targeting — a dispatch lands in whatever
+     * project is OPEN — so waking project A's conversation while B is open would render A's
+     * work into B. The server does not track the open project; the renderer is the side
+     * that does. It comes back through `AgentSessions.wake()`.
+     *
+     * Additions join `_inflight` before the earlier ones settle, so the drain is the true
+     * end of a batch and this fires once. `_inflight` is memory only: a restart mid-batch
+     * loses the wake, and `unfinished-generations.md` already covers what was asked for.
+     */
+    _maybeDrained() {
+        if (this._inflight.size) return;
+        this._emit('agent:drained', {});
+    }
+
+    /**
+     * MPI-870 — may a wake turn run in this conversation right now? Rules 1 and 5:
+     *
+     * - Nothing pending, no wake. This is also what makes the renderer's SECOND post — the
+     *   one on project open, the "while you were away" report — safe to send unconditionally.
+     * - A turn already running reads the notes anyway, so waking would say it twice.
+     * - The streak caps a wake chain the user never joined.
+     */
+    canWake() {
+        return !this._working && this._notes.length > 0 && (this._wakeStreak || 0) < MAX_WAKES_IN_A_ROW;
     }
 
     // -------------------------------------------------------------------------
@@ -585,7 +641,11 @@ export class AgentLoop {
     // -------------------------------------------------------------------------
 
     async reset() {
-        if (this._pendingConfirm) this._pendingConfirm.resolve('declined');
+        // Each kind of card resolves in its OWN vocabulary: a batch waits on a boolean, and
+        // handing it the install path's 'declined' string would read as YES (MPI-870).
+        if (this._pendingConfirm) {
+            this._pendingConfirm.resolve(this._pendingConfirm.kind === 'batch' ? false : 'declined');
+        }
         // Only this conversation's staged files: another project's chat still shows its own.
         const staged = [...this._images.values()].filter((i) => i.kind === 'attachment').map((i) => i.path);
         this._pendingConfirm = null;
@@ -602,6 +662,7 @@ export class AgentLoop {
         this._guides.clear();
         this._boxSteps.clear();
         this._boxed.clear();
+        this._wakeStreak = 0;
         try { await this._tools.discardAttachments(staged); } catch { /* non-fatal */ }
     }
 
@@ -642,10 +703,16 @@ export class AgentLoop {
      */
     async _lookOnce(ref) {
         const kept = ref.itemId ? await this._tools.storedLook(ref.path, ref.itemId).catch(() => null) : null;
-        if (kept) return { ok: true, output: { text: kept } };
+        // Read by the tool-done frame, so the chat line can say a cache read out loud (MPI-870).
+        this._lookWasCached = !!kept;
+        if (kept) {
+            _logLook(ref, kept, true);
+            return { ok: true, output: { text: kept } };
+        }
         const r = await this._tools.look({ imagePath: ref.path });
         // Awaited: the model's own look at a waited still arrives within the same turn.
         if (r?.ok && r.output?.text && ref.itemId) await this._tools.storeLook(ref.path, ref.itemId, r.output.text).catch(() => {});
+        _logLook(ref, r?.ok ? r.output?.text : `FAILED: ${r?.error?.message || 'no reason given'}`, false);
         return r;
     }
 
@@ -866,6 +933,89 @@ export class AgentLoop {
     }
 
     /**
+     * MPI-870 — run one op over many cards from ONE tool call.
+     *
+     * `generate` takes a single card, so "upscale all 50 of these" was 50 tool calls, 50 chat
+     * lines, 50 auto-look vision calls and ~100 notes waiting for the next turn. This is the
+     * same single-dispatch path, called in a loop: nothing about how a generation runs changes,
+     * which is the point — a second dispatch path would drift from the first.
+     *
+     * Above five cards the user is asked first (Fabio, 2026-09-21). Below it, fanning out is
+     * what they asked for and a card in the way is noise.
+     */
+    async _fanOut(args, turnId, currentProject) {
+        const cards = args.cards.map(String);
+        if (args.flowId) {
+            return JSON.stringify({ ok: false, error: { code: 'BATCH_UNSUPPORTED', message: 'A Flow cannot be run over a list of cards: its fields and boxes belong to ONE picture. Call generate once per card, or use a model op.' } });
+        }
+        const role = await this._batchImageRole(args);
+        if (!role) {
+            return JSON.stringify({ ok: false, error: { code: 'BATCH_UNSUPPORTED', message: `"${args.operation}" does not start from a picture, so there is nothing for a list of cards to fill. Drop cards and send it once.` } });
+        }
+        if (cards.length > BATCH_CONFIRM_ABOVE && !await this._askBatch(turnId, cards.length, args)) {
+            return JSON.stringify({ ok: false, declined: true, message: `The user said no to running "${args.operation}" over ${cards.length} cards. Ask what they would like instead; do not send it again unless they say so.` });
+        }
+
+        const started = [];
+        const refused = [];
+        for (const image of cards) {
+            // `wait` is dropped: awaiting each one would run fifty renders end to end inside a
+            // single turn, and the fan-out exists precisely so the chat stays free meanwhile.
+            const one = { ...args, cards: undefined, wait: undefined, media: [{ role, image }] };
+            let res;
+            try {
+                res = JSON.parse(await this._executeTool('generate', one, turnId, currentProject, { batch: true }));
+            } catch (err) {
+                res = { ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } };
+            }
+            // The guide belongs to the MODEL, not the card, so it cannot come out differently
+            // further down the list: fifty copies of one message is not a report. Stop on it.
+            if (res?.error?.code === 'GUIDE_NOT_READ') return JSON.stringify(res);
+            if (res?.ok) started.push(image);
+            else refused.push({ card: image, code: res?.error?.code || 'ERROR', message: res?.error?.message || 'no reason given' });
+        }
+
+        // One result, whatever the count. A refusal is reported per card because they differ —
+        // one missing ref among fifty must not read as "the batch failed".
+        return JSON.stringify({
+            ok: started.length > 0,
+            started: started.length,
+            refused,
+            message: refused.length
+                ? `Started ${started.length} of ${cards.length}. ${refused.length} were refused — tell the user which, and why.`
+                : `Started all ${started.length}. They will appear in the chat as they finish; none of them is described, so look at one if you need to.`,
+        });
+    }
+
+    /**
+     * The role a batch's cards fill: the op's first REQUIRED image slot, or null when it has
+     * none. Read off the same op entry `_missingMedia` uses, so a batch and a single call can
+     * never disagree about what an op takes.
+     */
+    async _batchImageRole(args) {
+        if (!args.modelId || !args.operation) return null;
+        const key = `${args.modelId}\n${args.operation}`;
+        if (!this._ops.has(key)) {
+            try { this._rememberGuides(await this._tools.listModels()); } catch { return null; }
+        }
+        const slots = this._ops.get(key)?.media || [];
+        return slots.find((s) => s.required && s.type === 'image')?.role || null;
+    }
+
+    /** The yes/no card above the batch threshold. Resolves false if the conversation is reset. */
+    async _askBatch(turnId, count, args) {
+        const confirmId = crypto.randomUUID();
+        const what = `${args.operation} with ${args.modelId}`;
+        this._emit('agent:confirm', { turnId, confirmId, kind: 'batch', count, what });
+        this._historyEntry('confirm', { tool: 'generate', args, confirmId, kind: 'batch', count, what });
+        const yes = await new Promise((resolve) => {
+            this._pendingConfirm = { confirmId, kind: 'batch', count, what, resolve, turnId };
+        });
+        this._pendingConfirm = null;
+        return yes === true;
+    }
+
+    /**
      * The first Flow box param whose image no `look` with `box: true` measured, or null. Structural,
      * like the guide gate: live (Phase 4) the model guessed Head Swap boxes at {0,0,512,512} with the
      * box tool right there, and the swap came out half done.
@@ -1054,7 +1204,13 @@ ${knowledgeIndex}`.trim();
     // Execute a single tool call
     // -------------------------------------------------------------------------
 
-    async _executeTool(toolName, args, turnId, currentProject) {
+    /**
+     * @param {object} [opts]
+     * @param {boolean} [opts.batch]  this call is one item of a fan-out (`_fanOut`), not a
+     *   call the model made. Only `generate` reads it, and only to skip the auto-look: fifty
+     *   cards would be fifty vision calls the user never asked for (MPI-870).
+     */
+    async _executeTool(toolName, args, turnId, currentProject, opts = {}) {
         switch (toolName) {
             case 'list_models': {
                 const r = await this._tools.listModels();
@@ -1110,6 +1266,15 @@ ${knowledgeIndex}`.trim();
                     // says creating one is the agent's job. A concrete tool result beats a prompt
                     // rule every time, so the result now names the call that fixes it.
                     return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'Nothing was generated: no project is open. Call create_project now, named after what you are making — it opens what it makes — then send this same generate again. Do not ask the user to open or create one; that is your job.' } });
+                }
+                // MPI-870 — the fan-out, ahead of the gates below on purpose. The media gate is
+                // per picture and `cards` is exactly what fills that slot, so asking it of the
+                // OUTER call refuses every batch with MEDIA_REQUIRED before a single card is
+                // tried. Each fanned-out call re-enters this case carrying its own media and
+                // meets every gate properly; `_fanOut` stops the batch on the one gate whose
+                // answer cannot differ per card (the guide).
+                if (Array.isArray(args.cards) && args.cards.length) {
+                    return this._fanOut(args, turnId, currentProject);
                 }
                 if (!args.flowId && args.modelId) {
                     const unread = await this._unreadGuide(String(args.modelId));
@@ -1242,6 +1407,7 @@ ${knowledgeIndex}`.trim();
                         this._trackUnfinished(askedIn, args, null);
                         this._emit('agent:result', { toolCallId, ok: false, error: { code: 'CANCELLED', message: 'Cancelled, as you asked.' } });
                         this._historyEntry('result', { toolCallId, ok: false, error: { code: 'CANCELLED', message: 'Cancelled, as you asked.' } });
+                        this._maybeDrained();
                         return;
                     }
                     this._askedCancel.delete(toolCallId);
@@ -1261,8 +1427,10 @@ ${knowledgeIndex}`.trim();
                         ? `[Generation finished: card ${r.output?.groupId}, ${r.output?.type} ${r.output?.filePath}${r.output?.pixelDimensions ? `, ${r.output.pixelDimensions.w}x${r.output.pixelDimensions.h}` : ''}]`
                         : `[Generation failed: ${r?.error?.code || 'ERROR'}: ${r?.error?.message || 'no reason given'}${paramMiss ? ` Call describe_model with "${args.flowId || args.modelId}" for the values it accepts.` : ''}]`);
 
-                    // Auto-look at image results (brief item 10)
-                    if (ok && r.output?.type === 'image' && r.output?.filePath) {
+                    // Auto-look at image results (brief item 10). Never on a batch item: the
+                    // whole point of one call over fifty cards is that it does not cost fifty
+                    // vision calls (MPI-870).
+                    if (ok && !opts.batch && r.output?.type === 'image' && r.output?.filePath) {
                         try {
                             const lr = await this._lookOnce(this._resolveImage(r.output.filePath));
                             if (lr?.ok) {
@@ -1274,6 +1442,9 @@ ${knowledgeIndex}`.trim();
                             }
                         } catch { /* look failure is non-fatal */ }
                     }
+                    // LAST, deliberately: the auto-look note above is part of what the wake
+                    // turn reports, and a wake that ran before it would speak without it.
+                    this._maybeDrained();
                 };
                 const settleThrow = (err) => {
                     this._inflight.delete(toolCallId);
@@ -1282,6 +1453,7 @@ ${knowledgeIndex}`.trim();
                     this._emit('agent:result', { toolCallId, ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
                     this._historyEntry('result', { toolCallId, ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
                     this._notes.push(`[Generation failed: RUNTIME_ERROR: ${err.message}]`);
+                    this._maybeDrained();
                 };
 
                 // MPI-817 — WAITING IS THE ONLY WAY TO CHAIN. Fire-and-forget puts the
@@ -1546,7 +1718,12 @@ ${knowledgeIndex}`.trim();
     // Run a turn (called by POST /agent/message)
     // -------------------------------------------------------------------------
 
-    async runTurn(text, attachments, project, mode, profileId, turnId, { model: pickedModel, carried = false, pinned = null } = {}) {
+    async runTurn(text, attachments, project, mode, profileId, turnId, { model: pickedModel, carried = false, pinned = null, wake = false } = {}) {
+        // MPI-870: the streak is what the runaway bound counts, and anything the user
+        // actually typed clears it. Reset BEFORE the turn runs — a wake that dispatches a
+        // generation must see its own predecessor's count, not a cleared one.
+        if (wake) this._wakeStreak = (this._wakeStreak || 0) + 1;
+        else this._wakeStreak = 0;
         this._working = true;
         this._lastMode = mode;
         this._emit('agent:working', { turnId, working: true });
@@ -1622,7 +1799,14 @@ ${knowledgeIndex}`.trim();
             const handover = carried
                 ? '[Handed over: the user asked this in another conversation, which already opened this project for it. Do only what is left of the request; if opening this project was all of it, say it is open and ask what to make.]'
                 : '';
-            const opening = [this._appStateLine(project), this._pinnedSettingsLine(pinned), handover, await this._projectNotesLine(project), ...this._notes.splice(0)];
+            // MPI-870. A wake turn has no user message at all — only the notes below it — so
+            // without this line the model reads an empty turn and answers as if interrupted.
+            // It is not a limit (those live in tool descriptions and tool results): it is the
+            // only thing that says what KIND of turn this is.
+            const woke = wake
+                ? '[Nothing was typed: your generations have finished and this turn exists to report them. Say what landed, briefly, the way you would to someone who walked back to the screen. Do not start new work unless they already asked for it.]'
+                : '';
+            const opening = [this._appStateLine(project), this._pinnedSettingsLine(pinned), handover, woke, await this._projectNotesLine(project), ...this._notes.splice(0)];
             contentParts.unshift(...opening.filter(Boolean).map((t) => ({ type: 'text', text: t })));
 
             // Add user message to LLM context (plain text for OpenAI compat)
@@ -1630,8 +1814,10 @@ ${knowledgeIndex}`.trim();
             this._messages.push({ role: 'user', content: userContent });
 
             // Add to UI history. The sender's chat drew its own bubble; a carried request has no
-            // sender in this conversation, so it is announced.
-            const userEntry = this._historyEntry('user', { text, attachments: stagedAttachments });
+            // sender in this conversation, so it is announced. A WAKE has no sender at all, so it
+            // gets no bubble — an empty user entry would draw a blank message the user never sent
+            // (MPI-870).
+            const userEntry = wake ? null : this._historyEntry('user', { text, attachments: stagedAttachments });
             if (carried) this._emit('agent:user', { turnId, id: userEntry.id, text, attachments: stagedAttachments });
 
             // Build engine. Ollama is not an OpenAI-compatible host for this job — see
@@ -1650,7 +1836,7 @@ ${knowledgeIndex}`.trim();
                 const outOfRounds = steps >= MAX_STEPS;
                 const llmRes = await engine.chat(outOfRounds
                     ? { model, messages: [...this._messages, { role: 'system', content: OUT_OF_ROUNDS }], options: chatOptions }
-                    : { model, messages: this._messages, tools: TOOL_DEFS, options: chatOptions });
+                    : { model, messages: this._messages, tools: wake ? WAKE_TOOL_DEFS : TOOL_DEFS, options: chatOptions });
                 this._lastUsage = llmRes.usage;
 
                 const toolCalls = outOfRounds ? null : llmRes.toolCalls;
@@ -1691,6 +1877,7 @@ ${knowledgeIndex}`.trim();
 
                     let resultText;
                     let toolStatus = 'done';
+                    this._lookWasCached = false;
                     try {
                         resultText = await this._executeTool(toolName, args, turnId, project);
                         // The app now has this project open, so a generate later in the same
@@ -1720,10 +1907,17 @@ ${knowledgeIndex}`.trim();
                         toolStatus = 'failed';
                     }
 
+                    // Whether a look cost a vision call is only known once it has run, and the
+                    // started frame has already said "Looking at image". The chat reuses the
+                    // line by id and replaces its text, so correcting it here is the whole fix
+                    // (MPI-870) — history carries the corrected label too, or a remount would
+                    // redraw the claim the run disproved.
+                    const doneLabel = toolName === 'look' && this._lookWasCached ? LOOK_CACHED_LABEL : label;
+
                     // Update history entry status
                     const histEntry = this._history.find((e) => e.id === toolEntryId);
-                    if (histEntry) { histEntry.status = toolStatus; histEntry.output = resultText; }
-                    this._emit('agent:tool', { turnId, id: toolEntryId, tool: toolName, status: toolStatus, label });
+                    if (histEntry) { histEntry.status = toolStatus; histEntry.output = resultText; histEntry.label = doneLabel; }
+                    this._emit('agent:tool', { turnId, id: toolEntryId, tool: toolName, status: toolStatus, label: doneLabel });
 
                     // Append tool result to LLM context
                     this._messages.push({ role: 'tool', tool_call_id: tc.id, content: resultText });
@@ -1759,6 +1953,13 @@ ${knowledgeIndex}`.trim();
     async confirm(confirmId, yes) {
         const pc = this._pendingConfirm;
         if (!pc || pc.confirmId !== confirmId) return { ok: false, error: { code: 'UNKNOWN_CONFIRM', message: 'Unknown or already-answered confirmId.' } };
+
+        // A batch card answers a boolean and nothing runs here: `_fanOut` is still inside the
+        // turn, holding this promise, and it dispatches (MPI-870).
+        if (pc.kind === 'batch') {
+            pc.resolve(yes === true);
+            return { ok: true };
+        }
 
         if (!yes) {
             pc.resolve(JSON.stringify({ declined: true, message: 'User declined the installation.' }));
@@ -1877,6 +2078,36 @@ async function _imageSize(filePath) {
         return width && height ? `${width}x${height}` : '';
     } catch { return ''; }
 }
+
+/**
+ * MPI-870 — ONE truncated line per look, cached or fresh.
+ *
+ * The description of a picture the user ATTACHES is written nowhere: a staged attachment
+ * registers with no `itemId` (a temp copy a reset deletes), so `_lookOnce` has no sidecar
+ * to keep it in. Live on 2026-09-21 the tags said `upper body` for a full-body bent-forward
+ * selfie and carried no pose tag at all, and "did the describer misread it, or did the tag
+ * step drop the pose?" could not be answered by anything on disk. With this line it is a
+ * grep. Never throws: a missing log line must not cost the look.
+ */
+const LOOK_LOG_CHARS = 240;
+function _logLook(ref, text, cached) {
+    import('../routes/logger.js').then(({ default: logger }) => {
+        const one = String(text || '').replace(/\s+/g, ' ').trim();
+        const name = String(ref?.path || '').split(/[\\/]/).pop();
+        logger.info('agent', `look ${cached ? 'CACHED' : 'FRESH'} ${ref?.kind || 'image'} ${name}: `
+            + `${one.slice(0, LOOK_LOG_CHARS)}${one.length > LOOK_LOG_CHARS ? '…' : ''}`);
+    }).catch(() => { /* a log line never costs a look */ });
+}
+
+/**
+ * MPI-870 — what a `look` says when it read the card's kept description and made NO vision
+ * call. Fabio's wording. His reason is a product goal, not cosmetics: users who work with
+ * agents read the status line to tell whether their credits are being spent, and a saving
+ * they cannot see does not count as one. Live at ~09:18Z on 2026-09-21 the chat printed
+ * "Looking at image" over zero vision calls, and he did not believe the answer was real
+ * until the log was read back to him.
+ */
+const LOOK_CACHED_LABEL = 'Fetching saved image description';
 
 function _toolLabel(toolName, args) {
     switch (toolName) {

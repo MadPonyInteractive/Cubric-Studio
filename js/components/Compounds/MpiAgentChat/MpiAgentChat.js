@@ -220,9 +220,16 @@ export const MpiAgentChat = ComponentFactory.create({
             return div;
         }
 
-        /** Install confirm card with Yes / No buttons. */
-        function _appendConfirm(confirmId, modelName, downloadGb) {
-            if (qs(`[data-confirm-id="${CSS.escape(confirmId)}"]`, transcript)) return;
+        /**
+         * Yes / No card. Two kinds share it (MPI-870): `install` names a model and its
+         * download, `batch` names how many cards one ask is about to fan out over.
+         * @param {{confirmId:string, kind?:string, modelName?:string, downloadGb?:number,
+         *          count?:number, what?:string}} data
+         */
+        function _appendConfirm(data) {
+            const { confirmId, kind, modelName, downloadGb, count, what } = data || {};
+            if (!confirmId || qs(`[data-confirm-id="${CSS.escape(confirmId)}"]`, transcript)) return;
+            const isBatch = kind === 'batch';
             const div = document.createElement('div');
             div.className = 'mpi-agent-chat__entry mpi-agent-chat__entry--confirm';
             div.dataset.confirmId = confirmId;
@@ -232,13 +239,20 @@ export const MpiAgentChat = ComponentFactory.create({
 
             const titleEl = document.createElement('div');
             titleEl.className = 'mpi-agent-chat__confirm-title';
-            titleEl.textContent = `Install ${modelName || 'model'}?`;
+            titleEl.textContent = isBatch
+                ? `Run this over ${count} cards?`
+                : `Install ${modelName || 'model'}?`;
             card.appendChild(titleEl);
 
-            if (downloadGb != null) {
+            // The same slot under the title carries the cost being agreed to: gigabytes for an
+            // install, how many generations are about to queue for a batch.
+            const subtitle = isBatch
+                ? (what ? `${what} — ${count} generations` : `${count} generations`)
+                : (downloadGb != null ? `Download: ${Number(downloadGb).toFixed(1)} GB` : '');
+            if (subtitle) {
                 const sizeEl = document.createElement('div');
                 sizeEl.className = 'mpi-agent-chat__confirm-size';
-                sizeEl.textContent = `Download: ${Number(downloadGb).toFixed(1)} GB`;
+                sizeEl.textContent = subtitle;
                 card.appendChild(sizeEl);
             }
 
@@ -246,7 +260,7 @@ export const MpiAgentChat = ComponentFactory.create({
             actionsEl.className = 'mpi-agent-chat__confirm-actions';
 
             const yesBtn = MpiButton.mount(document.createElement('div'), {
-                text: 'Yes, install',
+                text: isBatch ? `Yes, run all ${count}` : 'Yes, install',
                 variant: 'primary',
                 size: 'sm',
             });
@@ -370,7 +384,7 @@ export const MpiAgentChat = ComponentFactory.create({
                     _appendTool(data.id, data.label, data.status);
                     break;
                 case 'agent:confirm':
-                    _appendConfirm(data.confirmId, data.modelName, data.downloadGb);
+                    _appendConfirm(data);
                     break;
                 case 'agent:result':
                     if (data.ok && data.output) _appendResult(data.output, data.toolCallId);
@@ -522,7 +536,7 @@ export const MpiAgentChat = ComponentFactory.create({
             // Restore pending confirm (only this one is still actionable)
             if (history.pendingConfirm) {
                 const pc = history.pendingConfirm;
-                _appendConfirm(pc.confirmId, pc.modelName, pc.downloadGb);
+                _appendConfirm(pc);
             }
 
             _loading = null;

@@ -1,0 +1,17 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "services/agentLoop.mjs",
+    "services/agentSessions.mjs",
+    "routes/agent.js",
+    "js/services/agentService.js",
+    "js/events.js",
+    "js/data/generationControls.js",
+    "js/shell/agentDispatch.js",
+    "tests/agent-sessions.test.cjs",
+    "tests/agent-loop.test.cjs",
+    "tests/agent-wake.test.cjs",
+    "js/components/Compounds/MpiAgentChat/MpiAgentChat.js",
+    ".agents/mpi-kanban/tasks/MPI-870/"
+  ]
+}

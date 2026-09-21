@@ -1621,6 +1621,39 @@ describe('(k) a look is made once and kept with the card', () => {
         assert.deepEqual(tools.calls.storeLook, [], 'nothing is rewritten over what is already kept');
     });
 
+    // MPI-870. Live at ~09:18Z on 2026-09-21 the chat printed "Looking at image" over a read
+    // that made ZERO vision calls, and Fabio did not believe the answer was real until the log
+    // was read back to him. A saving the user cannot see does not count as one: people who work
+    // with agents read this line to tell whether their credits are being spent.
+    test('a cache read says so in the chat line; a fresh look does not', async (t) => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [
+            // An ATTACHMENT has no sidecar, so this one can only be a real vision call.
+            call('l0', 'look', { image: 'att_1' }),
+            { text: 'A fox.' },
+            call('g1', 'generate', { modelId: 'test-model', operation: 't2i', prompt: 'A fox', wait: true }),
+            call('l1', 'look', { image: '/path/result.png' }),
+            { text: 'Done.' },
+        ] });
+        withStore(tools);
+        await loop.runTurn('What is this?', [{ id: 'att_1', name: 'fox.png', filePath: '/tmp/cubric-agent/attachments/att_1.png' }], project, 'auto', 'deepinfra', 't-label-1');
+        await loop.runTurn('Now make one and tell me what you see', [], project, 'auto', 'deepinfra', 't-label-2');
+
+        const frames = fakeRes.events.filter((e) => e.event === 'agent:tool' && e.data.tool === 'look');
+        const done = frames.filter((e) => e.data.status === 'done');
+        assert.equal(frames.filter((e) => e.data.status === 'started').every((e) => e.data.label === 'Looking at image'), true,
+            'the started frame cannot know yet, and says the honest thing for a look about to run');
+        assert.equal(done.length, 2, 'the attachment, then the card the auto-look had already described');
+        assert.equal(done[0].data.label, 'Looking at image', 'an attachment has no sidecar: that one really did cost a vision call');
+        assert.equal(done[1].data.label, 'Fetching saved image description');
+        assert.equal(tools.calls.look.length, 2, 'the attachment and the auto-look — the model\'s own look spent nothing');
+
+        // History carries the corrected label too, or a remounted chat redraws the claim the
+        // run disproved.
+        const entries = loop.getHistory().entries.filter((e) => e.kind === 'tool' && e.tool === 'look');
+        assert.equal(entries.at(-1).label, 'Fetching saved image description');
+        t.diagnostic(`look labels: ${done.map((e) => e.data.label).join(' | ')}`);
+    });
+
     test('a question, a crop or a box is a different answer: always asked, never kept', async () => {
         const { loop, tools } = await makeLoop({ engineResponses: [
             call('g1', 'generate', { modelId: 'test-model', operation: 't2i', prompt: 'A fox', wait: true }),
@@ -1643,6 +1676,157 @@ describe('(k) a look is made once and kept with the card', () => {
 
         assert.equal(tools.calls.look.length, 1);
         assert.deepEqual(tools.calls.storeLook, []);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// (l) one ask, many cards (MPI-870)
+// ---------------------------------------------------------------------------
+//
+// `generate` took ONE card, so "upscale all 50 visible" was 50 tool calls, 50 chat lines,
+// 50 auto-look vision calls and ~100 notes waiting for the next turn. `cards` is the same
+// op fanned out over the existing single-dispatch path — one call, one result — and above
+// five the user is asked first (Fabio, 2026-09-21).
+
+describe('(l) one ask, many cards', () => {
+    const call = (id, name, args) => ({ text: '', toolCalls: [{ id, type: 'function', function: { name, arguments: JSON.stringify(args) } }] });
+    const project = { folderPath: '/project', name: 'Test' };
+    const lastToolResult = (loop) => JSON.parse(loop._messages.filter((m) => m.role === 'tool').at(-1).content);
+
+    /** A model whose `upscale` declares a required image slot, so a batch has somewhere to go. */
+    function withOps(tools) {
+        tools.listModels = async () => ({
+            ok: true,
+            models: [{
+                id: 'test-model',
+                name: 'Test Model',
+                installed: true,
+                guides: [],
+                ops: [
+                    { op: 'upscale', media: [{ role: 'inputImage', type: 'image', required: true }] },
+                    { op: 't2i', media: [] },
+                ],
+            }],
+            flows: [],
+        });
+        return tools;
+    }
+
+    /** Register N gallery refs the way a listing would, so `cards` can name them. */
+    function seeCards(loop, n) {
+        const refs = [];
+        for (let i = 1; i <= n; i += 1) {
+            const p = `/project/Media/card_${i}.png`;
+            loop._registerResult(p, 'test-model', `item-${i}`);
+            refs.push(p);
+        }
+        return refs;
+    }
+
+    test('five cards fan out with no confirm: one tool call in, one result out, five dispatches', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [{ text: 'placeholder' }, { text: 'Started them.' }] });
+        withOps(tools);
+        const refs = seeCards(loop, 5);
+        loop._fakeEngine.calls.length = 0;
+        // Built here rather than driven through the model: the point under test is the fan-out,
+        // and a five-card argument list is noise in an engine script.
+        const out = JSON.parse(await loop._executeTool('generate',
+            { modelId: 'test-model', operation: 'upscale', cards: refs }, 'turn-batch-5', project));
+
+        assert.equal(out.ok, true);
+        assert.equal(out.started, 5);
+        assert.deepEqual(out.refused, []);
+        assert.equal(tools.calls.generate.length, 5, 'one dispatch per card, through the normal path');
+        assert.deepEqual(tools.calls.generate.map((b) => b.media[0].role), Array(5).fill('inputImage'),
+            'each card lands in the op\'s own required image slot');
+        assert.equal(new Set(tools.calls.generate.map((b) => b.media[0].url)).size, 5, 'five different pictures');
+        assert.equal(tools.calls.generate.every((b) => b.modelId === 'test-model' && b.operation === 'upscale'), true,
+            'and everything else is shared, exactly as asked once');
+    });
+
+    test('no auto-look on batch items: fifty cards must not cost fifty vision calls', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
+        withOps(tools);
+        const refs = seeCards(loop, 3);
+        await loop._executeTool('generate', { modelId: 'test-model', operation: 'upscale', cards: refs }, 'turn-batch-look', project);
+        await new Promise((r) => setTimeout(r, 30));
+        assert.equal(tools.calls.look.length, 0);
+    });
+
+    test('above five, the user is asked — and No dispatches nothing', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
+        withOps(tools);
+        const refs = seeCards(loop, 6);
+        const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 'upscale', cards: refs }, 'turn-batch-no', project);
+
+        const evt = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+        assert.equal(evt.data.kind, 'batch');
+        assert.equal(evt.data.count, 6);
+        assert.equal(evt.data.what, 'upscale with test-model');
+        assert.equal(tools.calls.generate.length, 0, 'nothing may run before the answer');
+
+        await loop.confirm(evt.data.confirmId, false);
+        const out = JSON.parse(await pending);
+        assert.equal(out.ok, false);
+        assert.equal(out.declined, true);
+        assert.equal(tools.calls.generate.length, 0);
+    });
+
+    test('above five, Yes runs all of them', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
+        withOps(tools);
+        const refs = seeCards(loop, 6);
+        const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 'upscale', cards: refs }, 'turn-batch-yes', project);
+        const evt = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+        await loop.confirm(evt.data.confirmId, true);
+
+        const out = JSON.parse(await pending);
+        assert.equal(out.started, 6);
+        assert.equal(tools.calls.generate.length, 6);
+    });
+
+    test('a reset while the card is up is a NO, not a yes', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
+        withOps(tools);
+        const refs = seeCards(loop, 6);
+        const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 'upscale', cards: refs }, 'turn-batch-reset', project);
+        await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+
+        // The install card resolves with the STRING 'declined', which is truthy: handed to a
+        // batch it would read as Yes and queue every card the user just walked away from.
+        await loop.reset();
+        const out = JSON.parse(await pending);
+        assert.equal(out.declined, true);
+        assert.equal(tools.calls.generate.length, 0);
+    });
+
+    test('one bad ref among many is reported per card, not as a failed batch', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
+        withOps(tools);
+        const refs = seeCards(loop, 3);
+        const out = JSON.parse(await loop._executeTool('generate',
+            { modelId: 'test-model', operation: 'upscale', cards: [...refs, '/project/Media/never.png'] }, 'turn-batch-bad', project));
+
+        assert.equal(out.ok, true, 'three of four started: the batch did not fail');
+        assert.equal(out.started, 3);
+        assert.equal(out.refused.length, 1);
+        assert.equal(out.refused[0].code, 'IMAGE_NOT_FOUND');
+        assert.equal(out.refused[0].card, '/project/Media/never.png');
+    });
+
+    test('refused by name where a list of cards has nowhere to go: a t2i op, and a Flow', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
+        withOps(tools);
+        const refs = seeCards(loop, 2);
+
+        const t2i = JSON.parse(await loop._executeTool('generate',
+            { modelId: 'test-model', operation: 't2i', cards: refs }, 'turn-batch-t2i', project));
+        assert.equal(t2i.error.code, 'BATCH_UNSUPPORTED');
+
+        const flow = JSON.parse(await loop._executeTool('generate',
+            { flowId: 'head-swap', cards: refs }, 'turn-batch-flow', project));
+        assert.equal(flow.error.code, 'BATCH_UNSUPPORTED', 'a Flow\'s fields and boxes belong to ONE picture');
+        assert.equal(tools.calls.generate.length, 0);
     });
 });
 

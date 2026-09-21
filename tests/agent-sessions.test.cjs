@@ -184,7 +184,10 @@ describe('one conversation per project', () => {
     // would sit in a queue nothing drains.
     test('the route decides queue-or-run after staging, and never answers BUSY', () => {
         const src = require('node:fs').readFileSync(path.join(__dirname, '..', 'routes', 'agent.js'), 'utf8');
-        const post = src.slice(src.indexOf("router.post('/agent/message'"), src.indexOf("router.get('/agent/stream'"));
+        // Bounded by the NEXT route, whichever it is — anchoring on `/agent/stream` meant a
+        // route added between the two was scanned as part of this handler (MPI-870 added one).
+        const start = src.indexOf("router.post('/agent/message'");
+        const post = src.slice(start, src.indexOf('router.', start + 1));
         assert.doesNotMatch(post, /code: 'BUSY'/);
         const staged = post.indexOf('tools.saveAttachment(');
         const decided = post.indexOf('const queued = sessions.busy();');

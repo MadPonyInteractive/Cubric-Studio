@@ -92,6 +92,21 @@ async function _report(jobId, payload) {
 const _fail = (jobId, code, message) => _report(jobId, { ok: false, error: { code, message } });
 
 /**
+ * MPI-870 — one line saying which named params the agent CHOSE and which it inherited.
+ *
+ * Live on 2026-09-21 the agent said it used "a low denoise" and the sidecar recorded 0.3,
+ * which is also the i2i op default: nothing on disk could settle whether it picked that or
+ * fell into it, and the same hole covers duration. Deliberately the LOG and not the sidecar
+ * — the sidecar route is `generationSettings.controlState`, which `promptReuse` reads back
+ * and applies to the user's own settings, so a provenance key there would ride into them.
+ */
+function _logNamedParamProvenance(model, operation, provenance) {
+    const parts = Object.entries(provenance || {}).map(([k, v]) => `${k}=${v.value} (${v.from})`);
+    if (!parts.length) return;
+    clientLogger.info('connector', `agent named params — ${model?.id}:${operation} — ${parts.join(', ')}`);
+}
+
+/**
  * Report a finished generation. A `cardName` (MPI-776) is applied first, through the
  * same `renameGroup` the rename route uses, so the reply describes the named card.
  * The gallery path awaits `addGroup` before it calls `onComplete`, so the card is
@@ -264,6 +279,7 @@ function _submitGeneration(jobId, input = {}) {
     if (!named.ok) {
         return _fail(jobId, named.code, named.message);
     }
+    _logNamedParamProvenance(model, operation, named.provenance);
 
     // Raw injectionParams is the documented escape hatch and always wins over the
     // resolved named values (plan.md decision #3).
