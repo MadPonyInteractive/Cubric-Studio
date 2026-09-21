@@ -1,0 +1,17 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-881",
+  "title": "Server-absolute imports under js/ make 19 modules un-requireable from the CJS tests",
+  "description": "19 modules under js/ import by server-absolute path (from '/js/utils/dom.js'). It resolves in the renderer because the app serves the repo root, and Node cannot resolve it at all - it fails with ERR_MODULE_NOT_FOUND, Cannot find module at a drive-root path, so ANY module graph reaching one of these files is un-requireable from the CJS suite. Found 2026-09-21 on MPI-877: importing js/shell/navigation.js from js/shell/agentDispatch.js pulled navigation -> MpiAudioRecorder -> MpiLevelMeter and broke tests/agent-pinned-settings.test.cjs, which has nothing to do with audio. MPI-877 routed around it (new import-free js/shell/activeMask.js) rather than fixing it. Fix: relative paths, matching every other module in each folder, plus an ESLint guard so it cannot come back.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-21T14:30:38+01:00",
+  "updated_at": "2026-09-21T14:36:21+01:00",
+  "links": {
+    "checklist": "checklist.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "validation": "validation.md"
+  }
+}

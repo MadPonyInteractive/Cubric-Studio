@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js",
+    "js/components/Compounds/MpiGalleryGrid/cardMarkMenu.js",
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js",
+    "js/components/Compounds/MpiMediaPicker/MpiMediaPicker.js",
+    "js/components/Compounds/MpiMemoryMonitor/MpiMemoryMonitor.js",
+    "js/components/Compounds/MpiProjectName/MpiProjectName.js",
+    "js/components/Organisms/MpiModelManager/MpiModelManager.js",
+    "js/components/Primitives/MpiCanvas/managers/InputController.js",
+    "js/components/Primitives/MpiFader/MpiFader.js",
+    "js/components/Primitives/MpiIcon/MpiIcon.js",
+    "js/components/Primitives/MpiLevelMeter/MpiLevelMeter.js",
+    "js/components/Primitives/MpiOverlay/MpiOverlay.js",
+    "js/services/frameSink.js",
+    "eslint.config.js",
+    ".eslint-rules/no-server-absolute-import.js",
+    ".agents/mpi-kanban/tasks/MPI-881/"
+  ]
+}
