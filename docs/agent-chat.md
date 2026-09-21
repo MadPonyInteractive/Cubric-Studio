@@ -6,6 +6,9 @@ and compacts itself. Spec: `.agents/mpi-kanban/tasks/MPI-774/brief.md`. Contract
 kept current. *(MPI-774 shipped this as an Agent | Prompt toggle inside the prompt box; MPI-797 gave
 the panel its own composer and then deleted the toggle.)*
 
+**What the agent was SEEN to do wrong live, and why:** [agent-findings.md](agent-findings.md). This
+file is the contract; that one is the evidence.
+
 ## Shape
 
 - **Loop** `services/agentLoop.mjs`: one loop is one conversation, in server memory; `routes/agent.js`
