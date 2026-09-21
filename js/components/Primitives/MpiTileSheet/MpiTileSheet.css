@@ -131,6 +131,13 @@
 .mpi-tile__flag--featured   { color: var(--accent-warn); }
 .mpi-tile__flag--deprecated { color: var(--accent-heat); }
 
+/* Cloud flag (MPI-865) — the SAME rule the price chip takes below: the hue says what
+   the model makes, not that it is paid. Rose for an image model, Video orange for a
+   clip one. The tile root already carries the media class, so this needs no second
+   flag key. */
+.mpi-tile__flag--cloud                  { color: var(--vision-accent); }
+.mpi-tile--video .mpi-tile__flag--cloud { color: var(--video-accent); }
+
 /* Media flags take the SAME three colours the media section headers use, so a
    badge on a tile and a header above a grid read as one language. Image has no
    header colour of its own (it inherits the muted header ink), which is too dim

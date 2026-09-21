@@ -12,6 +12,11 @@ import { renderIcon } from '../../../utils/icons.js';
 const TILE_FLAGS = [
     { key: 'featured',   icon: 'sparkle', info: 'Featured',                badge: 'warning' },
     { key: 'deprecated', icon: 'warning', info: 'Marked for deprecation',  badge: 'danger'  },
+    // Cloud flag (MPI-865) — a model with a `provider`: no weights, no engine, billed to
+    // the user by the provider per run. One key, not a cloudImage/cloudVideo pair: the
+    // tile root already carries `mpi-tile--video`/`--image`, so the family colour is a
+    // CSS descendant rule rather than a second table row saying the same thing twice.
+    { key: 'cloud',      icon: 'cloud',   info: 'Runs on your own API key', badge: 'secondary' },
     // Media flags (MPI-831) — what the tile PRODUCES. Every other grid is split by
     // media, so its header answers this and no tile needs to; the Flow Library's
     // Third-party section holds all three media types at once, which leaves the tile
@@ -55,6 +60,7 @@ const TILE_FLAGS = [
  * @property {boolean} [showMediaBadge] - Render the Image/Video pill
  * @property {boolean} [featured]       - Gold sparkle flag on the thumb
  * @property {boolean} [deprecated]     - Warning flag on the thumb (model is on its way out)
+ * @property {boolean} [cloud]          - Cloud flag on the thumb (runs on the user's own API key)
  * @property {boolean} [dot]            - Recently-installed heat dot
  * @property {boolean} [dimmed]         - Desaturates the thumb (not installed yet)
  * @property {boolean} [waiting]        - Queued-install waiting mascot

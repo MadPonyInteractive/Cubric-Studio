@@ -60,21 +60,32 @@ export const MpiModelPicker = ComponentFactory.create({
         overlay.el.appendToContainer(el);
 
         function _tileItem(model, activeId) {
+            // A cloud model (MPI-865) has no weights, so two of the tile's parts describe
+            // something it does not have. The size tier is a WEIGHT class, and defaulting
+            // it made every cloud tile read `CLOUD · BALANCED`; `dropdownMeta` alone is
+            // true. LoRA & Upscale is the other: both live in local `loras/` and
+            // `upscale_models/` folders a DeepInfra endpoint cannot reach, and no cloud
+            // ModelDef declares either — so the control is dropped rather than disabled,
+            // which would keep advertising a setting that is never coming.
+            const isCloud = !!model.provider;
             const tier = model.sizeTier || 'balanced';
             return {
                 id: model.id,
                 name: model.name,
                 media: model.mediaType === 'video' ? 'video' : 'image',
                 preview: model.mediaType === 'video' ? model.video : model.image,
-                meta: `${model.dropdownMeta || ''}${model.dropdownMeta ? ' · ' : ''}${TIER_WORD[tier] || tier}`,
+                meta: isCloud
+                    ? (model.dropdownMeta || 'CLOUD')
+                    : `${model.dropdownMeta || ''}${model.dropdownMeta ? ' · ' : ''}${TIER_WORD[tier] || tier}`,
                 showMediaBadge: true,
                 featured: !!model.featured,
                 deprecated: !!model.deprecated,
+                cloud: isCloud,
                 selected: model.id === activeId,
                 // A <button> may not nest inside the tile <button>, so this is a
                 // span; the capture-phase handler below stops it from reaching the
                 // tile's own click (which would select the model and close).
-                state: model.showSettings === false ? '' :
+                state: (isCloud || model.showSettings === false) ? '' :
                     `<span class="mpi-model-picker__lora" role="button">${renderIcon('settings', 'sm')}LoRA &amp; Upscale</span>`,
                 source: model,
             };
@@ -116,7 +127,14 @@ export const MpiModelPicker = ComponentFactory.create({
             _sheets.forEach(s => s.el.destroy?.());
             _sheets = [];
             bodySlot.innerHTML = '';
-            subEl.textContent = `${_models.length} installed`;
+            // MPI-853 took cloud models out of both library counts, because nothing about
+            // them is installed or installable. The same fact is true one surface over:
+            // "24 installed" was counting sixteen models that were never downloaded. With
+            // no key saved there are no cloud models and the line is unchanged.
+            const cloudN = _models.filter(m => m.provider).length;
+            subEl.textContent = cloudN
+                ? `${_models.length - cloudN} installed · ${cloudN} cloud`
+                : `${_models.length} installed`;
             _mediaBlock(_models, 'image', activeId);
             _mediaBlock(_models, 'video', activeId);
         }
