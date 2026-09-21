@@ -204,11 +204,134 @@ A spec covering N fixes proves ONE unless they are backed out separately.
 Files restored byte-identical after each (sha checked). The diff carries no EOL churn —
 `git diff --numstat` is identical with and without `--ignore-cr-at-eol`.
 
+## Phase 3 — agent mode leaves MpiPromptBox (2026-09-21)
+
+Built. **Verify mode is `user-ux`, so this is NOT closed** — Fabio's eyes in the real app
+are the evidence. Everything below ran here first.
+
+### What ran
+
+- `npm test` — **1668 pass, 0 fail**, 1 skipped (the baseline one) and 1 todo (added
+  deliberately below). 1670 total.
+- `tests/desktop/agent-chat.spec.js` — **31/31**. It was 33: two tests drove the deleted
+  toggle and their subject no longer exists, and a third merged into the inverse test.
+- `eslint` clean on every changed file.
+- No EOL churn: `git diff --numstat` is identical with and without `--ignore-cr-at-eol`.
+
+### The decision the plan left open: `state.agentSettingsPinned`
+
+The brief offered "delete the read side too" and the plan offered "or re-home the trigger".
+**Re-homed**, and the brief's own recommendation was withdrawn on reading the code, because
+it was wrong about the size of the thing.
+
+It is not a "read side". The pinned panel is a feature spanning the whole stack:
+`resolveSettingsOwner` in `agentDispatch.js` with its two refusal codes (`NO_PINNED_MODEL`,
+`MODEL_PINNED`), `_pinnedForTurn` in `agentService.js`, `_pinnedSettingsLine` in
+`services/agentLoop.mjs` (the sentence the LLM is actually told), and
+`tests/agent-pinned-settings.test.cjs` — 123 lines, 8 tests. Deleting it on a card about a
+UI toggle would have been scope this card has no business taking, would have bulldozed a
+file MPI-817 had claimed, and would have ANSWERED the open product question Fabio parked
+("should an agent generation inherit the prompt box's model and settings?" — MPI-843
+validation, "worth a card either way") by force.
+
+The trigger was `_agentMode`, which was only ever a mirror of `state.agentMode`. That flag
+survives Phase 3 — Phase 1 moved its setter to the top bar's Agent button. So the rule now
+reads `state.agentMode === true` at each of the three live sites, and its meaning is
+unchanged: **agent panel open + cog open = the user owns the model and the settings.**
+
+The one line that needed re-homing rather than re-pointing: `_applyAgentView` used to
+re-sync the flag when the mode changed, and it is deleted. Replaced by an
+`Events.onState('agentMode', ...)` that does the same two things (the flag, and the cog's
+`[data-info]` copy), plus a once-at-mount branch for a box mounted while the panel is open.
+
+### What went, and the one principle that decided it
+
+Everything that made the prompt box LESS OF A PROMPT BOX while agent mode was on is gone,
+because the box is now always a prompt box. Everything about settings OWNERSHIP stayed.
+
+| Went | Why |
+|---|---|
+| `mode-toggle-slot`, `_setAgentMode`, `_applyAgentView`, `_sendAgentTurn`, `_agentMode` (28 hits) | the agent face |
+| `AGENT_MAX_IMAGES` / `AGENT_MAX_VIDEOS`, the chip/badge branches, `_fitMediaToOperation` | chips are op slots again, with their frame pills |
+| `.mpi-prompt-box--agent-mode` (grid + hide list + run column) | the box is never stripped |
+| `.mpi-prompt-box__popup--agent` | it hid the op strip INSIDE the parameters popup. That rested on the box being the agent's face; the user drives this box themselves now, so hiding their own op selector was wrong. The op was never part of the handover — the table in `docs/agent-chat.md` has always given it to the agent either way |
+| `.mpi-prompt-box__col--mode` (MPI-736's cream rebind) | the toggle's head is gone; the box is the selected model's colour |
+| `__stop-host` class | its ONE consumer was the deleted agent-mode rule |
+| `agent:send` — emit, listener, `events.js:142`, the spec's emit | settled in Phase 2, executed here as a set |
+
+| Stayed | |
+|---|---|
+| `state.agentSettingsPinned` and all four writers | re-homed onto `state.agentMode` |
+| the PINNED popup (no outside-click, no Escape) | **unchanged on purpose — needs Fabio's eye.** The rule still reads true, but it now holds in a situation that could not exist before: the panel open for a long stretch while he uses the prompt box normally. Fabio has rejected a prompt-rule answer to this twice, so it was not quietly changed |
+| `COG_INFO_AGENT` | the copy is still accurate |
+
+### A REGRESSION this phase causes, not yet fixed — MPI-817's video attachments
+
+**`_sendAgentTurn` was the only UI path for handing the agent a video.** It pushed
+`{ url, name, mediaType: 'video', itemId }` — by reference, never bytes — and the drop
+guard that accepted a clip was the `AGENT_MAX_VIDEOS` branch. Both died with the toggle.
+
+The SERVER half is untouched and still correct (`routes/agent.js`, `ownedMedia`,
+`reference: true`, the loop registering the clip under its basename). It simply has no UI
+that can reach it. The panel's own composer guards on `image/` and silently ignores a
+dropped clip, so **there is no way to hand the agent a video today.**
+
+Not fixed here, deliberately: MpiPromptBox staged its clip with its own private
+`_importMediaFile`, there is no shared import service, and MpiAgentChat has no
+project-media machinery at all. That is a surface of its own, not a line of Phase 3.
+
+`tests/agent-video-attachment.test.cjs` was split rather than trimmed: the route gate still
+asserts as it did, and the UI gate is a `todo` naming the gap, so it stays on the board on
+every run instead of vanishing. Messaged to the live MPI-817 session (4ea0febf) because it
+lands in the middle of its close-out. **Fabio's call whether Phase 3 ships with it.**
+
+### The test debt the plan flagged, paid on the new surface
+
+`tests/agent-ui-surfaces.test.cjs` pinned the deleted lines by regex at 73, 82, 86, 88, 89
+and 99. Every assertion moved to the surface that replaced it rather than being deleted:
+rule 1 ("Stop stays reachable in agent mode") became "the box is never stripped down", the
+pinned-panel tests now assert the `state.agentMode` trigger, and a new guard asserts
+`agent:send` is gone from all three sides at once so neither half can be left dangling.
+
+**Each proven RED on pre-fix code, one back-out at a time** (a suite covering N changes
+proves ONE otherwise):
+
+| Backed out to HEAD | Guards that went red |
+|---|---|
+| `MpiPromptBox.js` | no agent face; run cluster; pinned panel armed by state; cog copy; agent:send gone |
+| `MpiPromptBox.css` | nothing hides the run column; Studio cream; no agent face; run cluster |
+| `MpiAgentChat.js` | agent:send gone |
+| `js/events.js` | agent:send gone |
+
+Restored byte-identical after each (sha checked), and the suite is clean again at the end.
+
+### Found while verifying: MPI-863 red 16 of 31 desktop specs — FIXED HERE
+
+Not this card's, met here, and fixed because it blocked this card's verification.
+
+`e2bc81f5` (MPI-863, pushed, card `validating`) seeds auto-start ComfyUI at boot from
+`/engine/version-check`. A spec profile is always fresh, so `hasAutoStartComfy()` is always
+false and the seed always runs — and **on a box that HAS an engine** it answers installed,
+turns auto-start ON, boot tries to start ComfyUI inside the E2E harness, and it fails there.
+The "ComfyUI failed to start" modal then puts an `.mpi-modal-backdrop` over the window that
+swallows every click for the rest of the run.
+
+Proven not-mine before touching it: the same failure reproduces with **all eight of this
+session's files swapped to their HEAD blobs** (~40s, restored sha-checked).
+
+It is machine-dependent, which is the worst shape for a suite — a runner with no engine
+reads `needsInstall: true` and never seeds, so CI may well be green on it. Fixed with one
+clause on the seed, `&& !_isE2E()`, using the guard `shell.js:255` already defines for
+exactly this (MPI-446: an E2E profile is engine-blind by design). Shipped behaviour is
+untouched. MPI-863's own contract test pinned the gate verbatim, so it gained the third
+clause. Messaged to MPI-863 (5e03b0f1) — Fabio named that session as still running, and it
+held no claim on either file when this session checked.
+
+Desktop specs went 15 passed / 16 failed → **31/31**.
+
 ## Still to do on this card
 
-Phase 3 only — agent mode leaves MpiPromptBox. It removes the last way into agent mode
-from the prompt box, which is now safe because Phase 1 (the Agent button) and Phase 2 (the
-panel's own composer) both ship.
+Fabio's eyes on Phase 2 and Phase 3 in the real app. Nothing else is built on this card.
 
 ## Pre-existing, found while working here, NOT fixed and NOT carded
 

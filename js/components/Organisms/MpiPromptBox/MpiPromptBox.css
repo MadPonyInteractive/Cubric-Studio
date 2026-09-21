@@ -1,7 +1,7 @@
 /* BEM Block naming — mpi-prompt-box */
 .mpi-prompt-box {
     display: grid;
-    grid-template-columns: auto 1fr auto auto auto auto auto auto;
+    grid-template-columns: auto 1fr auto auto auto auto auto;
     align-items: end;
     gap: var(--s-2);
     background: var(--surface-bar);
@@ -113,53 +113,17 @@
     flex-shrink: 0;
 }
 
-.mpi-prompt-box__col--mode {
-    flex-shrink: 0;
-}
-
 .mpi-prompt-box__col--run {
     flex-shrink: 0;
 }
 
-/* MPI-797 Agent mode: the text, the chips, the Agent|Prompt toggle and Stop, nothing else.
-   The grid collapses with them: a hidden slot leaves the grid, which would otherwise push
-   the textarea into an `auto` column and the toggle into the stretching one.
+/* MPI-797 Phase 3: the agent face is GONE from this box. There is no `--agent-mode`
+   modifier and no `__popup--agent` any more -- the box is a prompt box in every
+   workspace, whole, whether the agent panel is open beside it or not. The agent has its
+   own composer (MpiAgentChat). What survives from MPI-774 Phase 7 is the
+   settings-ownership rule, and it is JS-only now: with the panel open, an open cog pins
+   state.agentSettingsPinned (see MpiPromptBox.js openPopup). */
 
-   MPI-774 Phase 7 put the MODEL button and the COG back (Fabio, 2026-09-19): they are the
-   pinned-settings panel. Closed cog = the agent picks the model and the settings from model
-   defaults; open cog = the user owns both and the agent is told which model it is writing
-   for. Five tracks now: text, head, cog, model, Stop (MPI-817 swapped the last two). */
-.mpi-prompt-box--agent-mode {
-    grid-template-columns: 1fr auto auto auto auto;
-}
-
-.mpi-prompt-box--agent-mode > :is(
-    .mpi-prompt-box__op-strip,
-    .mpi-prompt-box__col--neg,
-    .mpi-prompt-box__col--enhance,
-    .mpi-prompt-box__col--engine
-) {
-    display: none;
-}
-
-/* MPI-774 Phase 7: no op strip in the parameters popup while agent mode is on. Fabio:
-   "if the user wants to go and change operations, then he just needs to close the agent
-   mode. That's too much already." The op is the agent's, whether the panel is pinned or
-   not — only the model and the knobs change hands.
-   A class on the POPUP, not on the box: the popup is portaled to document.body, so
-   `.mpi-prompt-box--agent-mode` can never reach it from up there (_applyAgentView). */
-.mpi-prompt-box__popup--agent .mpi-prompt-box__settings-ops {
-    display: none;
-}
-
-/* MPI-774: the run column STAYS in Agent mode, with only Stop in it — the agent has no
-   cancel tool and never will, so the user's own Stop has to be reachable while it
-   generates. The button and its whole cancel path already exist and are origin-blind
-   (`emit('cancel')` → MpiGalleryBlock), and `setGenerating` arms it from
-   activeGenerations, so an agent-started generation enables it like any other. */
-.mpi-prompt-box--agent-mode .mpi-prompt-box__col--run > :not(.mpi-prompt-box__stop-host) {
-    display: none;
-}
 
 /* MPI-736: the bar's own controls — model selector, settings cog, queue, stop — are
    `secondary`, which is pure surface+ink and so carried no accent at all. The plan's
@@ -202,15 +166,6 @@
 .mpi-prompt-box__col .mpi-ibtn:hover:not(:disabled) .mpi-ibtn__label {
     color: var(--accent-heat-hi);
 }
-
-/* The agent's own head is Studio cream, not the model's colour (see MpiAgentChat.css).
-   MPI-736: --accent-heat-hi restated here too — without it the head inherited the box's
-   lift, which was the rose and is now the selected model's. */
-.mpi-prompt-box__col--mode {
-    --accent-heat:    var(--hub-accent);
-    --accent-heat-hi: oklch(from var(--accent-heat) calc(l + 0.02) calc(c + 0.03) h);
-}
-
 
 /* Strip MpiInput chrome in prompt col — textarea is bare underline field */
 .mpi-prompt-box__col--prompt .mpi-input {

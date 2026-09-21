@@ -383,86 +383,21 @@ test('landing page has #landingAgentSlot with agent chat', async ({}, testInfo) 
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Part 2 — MpiPromptBox Agent|Prompt toggle surface
+// Part 2 — MpiPromptBox has no agent face (MPI-797 Phase 3)
 // ─────────────────────────────────────────────────────────────────────────────
+// Two tests used to live here driving the Agent|Prompt toggle: Enter sends to the agent,
+// Shift+Enter makes a newline. The toggle is gone and the panel's own composer owns both
+// (see "panel mode has its own composer" in Part 5). What is left is the inverse, and it
+// is now unconditional rather than a statement about one mode.
 
-test('PromptBox agent mode: Enter sends exactly one POST /agent/message', async ({}, testInfo) => {
+test('the prompt box never posts to /agent/message, in any state', async ({}, testInfo) => {
+  // There is no agent mode to enter any more: the box has one face, and Enter in it can
+  // only ever be a newline. generation.run is Ctrl+Enter, so plain Enter reaches nothing.
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);
   try {
     await installStubs(window);
     await bootAndMountPromptBox(window);
-
-    // Enter agent mode
-    const modeBtn = window.locator('#e2e-pb-host .mpi-prompt-box__col--mode .mpi-ibtn');
-    await modeBtn.click();
-    await window.waitForTimeout(200);
-
-    // Type and press Enter in the prompt textarea
-    const field = window.locator('#e2e-pb-host #textarea-slot textarea');
-    await expect(field).toBeVisible();
-    await field.click();
-    await window.keyboard.type('agent prompt send');
-    await window.keyboard.press('Enter');
-    await window.waitForTimeout(400);
-
-    const calls = await window.evaluate(() => window.__fetchCalls);
-    const msgCalls = calls.filter(c => c.url === '/agent/message');
-    expect(msgCalls).toHaveLength(1);
-    expect(msgCalls[0].body.text).toBe('agent prompt send');
-
-    expect(pageErrors).toEqual([]);
-  } finally {
-    await closeApp(app);
-  }
-});
-
-test('PromptBox agent mode: Shift+Enter adds newline, does not send', async ({}, testInfo) => {
-  test.setTimeout(90000);
-  const { app, window, pageErrors } = await launchApp(testInfo);
-  try {
-    await installStubs(window);
-    await bootAndMountPromptBox(window);
-
-    // Enter agent mode
-    const modeBtn = window.locator('#e2e-pb-host .mpi-prompt-box__col--mode .mpi-ibtn');
-    await modeBtn.click();
-    await window.waitForTimeout(200);
-
-    const field = window.locator('#e2e-pb-host #textarea-slot textarea');
-    await expect(field).toBeVisible();
-    await field.click();
-    await window.keyboard.type('line one');
-    await window.keyboard.press('Shift+Enter');
-    await window.keyboard.type('line two');
-    await window.waitForTimeout(200);
-
-    // No send yet
-    const calls = await window.evaluate(() => window.__fetchCalls);
-    const msgCalls = calls.filter(c => c.url === '/agent/message');
-    expect(msgCalls).toHaveLength(0);
-
-    // Value has a newline
-    const value = await field.inputValue();
-    expect(value).toContain('\n');
-
-    expect(pageErrors).toEqual([]);
-  } finally {
-    await closeApp(app);
-  }
-});
-
-test('PromptBox prompt mode: Enter does NOT post to /agent/message', async ({}, testInfo) => {
-  // generation.run is Ctrl+Enter, so plain Enter in the textarea never reaches
-  // generation in prompt mode — our agent-mode handler also returns early when
-  // _agentMode=false. Assert no /agent/message call either way.
-  test.setTimeout(90000);
-  const { app, window, pageErrors } = await launchApp(testInfo);
-  try {
-    await installStubs(window);
-    await bootAndMountPromptBox(window);
-
-    // Do NOT toggle agent mode — stay in Prompt mode
 
     const field = window.locator('#e2e-pb-host #textarea-slot textarea');
     await expect(field).toBeVisible();
@@ -472,8 +407,25 @@ test('PromptBox prompt mode: Enter does NOT post to /agent/message', async ({}, 
     await window.waitForTimeout(300);
 
     const calls = await window.evaluate(() => window.__fetchCalls);
-    const msgCalls = calls.filter(c => c.url === '/agent/message');
-    expect(msgCalls).toHaveLength(0);
+    expect(calls.filter(c => c.url === '/agent/message')).toHaveLength(0);
+
+    // Enter made a newline in the prompt, and did not clear the field to "send" it.
+    expect(await field.inputValue()).toContain('\n');
+
+    // And it holds with the agent panel OPEN beside it — the state that used to BE agent
+    // mode. The box is a prompt box either way; that is the whole of this phase.
+    await window.evaluate(async () => {
+      const { state } = await import('/js/state.js');
+      state.agentMode = true;
+    });
+    await window.waitForTimeout(200);
+    await field.click();
+    await window.keyboard.type('still a prompt');
+    await window.keyboard.press('Enter');
+    await window.waitForTimeout(300);
+
+    const after = await window.evaluate(() => window.__fetchCalls);
+    expect(after.filter(c => c.url === '/agent/message')).toHaveLength(0);
 
     expect(pageErrors).toEqual([]);
   } finally {
@@ -642,7 +594,13 @@ test('Mascot flips back to idle when agent:working false follows true', async ({
 // MPI-797 (Fabio, 2026-09-17): in Agent mode the box is an agent box — its own text and a
 // usage hint, only the toggle beside it, no generation from the run hotkey, and image chips
 // that are numbered, never "Start frame".
-test('PromptBox Agent mode: own text and hint, the toggle, Stop but no Run, numbered chips', async ({}, testInfo) => {
+test('the prompt box keeps its whole face while the agent panel is open', async ({}, testInfo) => {
+  // The inverse of the test this replaces. MPI-774 gave the box an agent face: the toggle
+  // swapped its text, stripped it to five columns, renumbered its chips and turned Ctrl+Enter
+  // into "send to agent". MPI-797 Phase 3 deleted all of it, so the contract is now that
+  // `state.agentMode` — the flag that face hung on — changes NOTHING here. Asserted as a
+  // before/after on one mount, because "nothing changed" is only meaningful against a
+  // measured before.
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);
   try {
@@ -657,7 +615,6 @@ test('PromptBox Agent mode: own text and hint, the toggle, Stop but no Run, numb
     // (docs/testing-desktop-specs.md, trap 5; docs/red-master.md, cause 1).
     await window.evaluate(() => { document.querySelector('#e2e-pb-host').style.width = '1024px'; });
     const field = window.locator(`${pb} #textarea-slot textarea`);
-    const toggle = window.locator(`${pb} .mpi-prompt-box__col--mode .mpi-ibtn`);
     const chips = window.locator(`${pb} .mpi-prompt-box-media-strip__chip`);
     const inject = (n) => window.evaluate((count) => {
       for (let i = 0; i < count; i++) {
@@ -670,11 +627,15 @@ test('PromptBox Agent mode: own text and hint, the toggle, Stop but no Run, numb
       // so the assertion below reads as the face left to right (MPI-817 put the cog before
       // the model button). `.filter` preserves THIS list's order, not the DOM's, so this
       // array is the only thing making the expectation mean anything about order.
-      const slots = ['op-strip-slot', 'bottom-neg-slot', 'textarea-slot', 'mode-toggle-slot', 'enhance-slot',
+      // `mode-toggle-slot` is deliberately absent: MPI-797 Phase 3 deleted it, and a
+      // querySelector for it below would throw rather than report it missing.
+      const slots = ['op-strip-slot', 'bottom-neg-slot', 'textarea-slot', 'enhance-slot',
         'settings-cog-slot', 'settings-badge-slot', 'engine-toggle-slot', 'bottom-right-slot'];
       return {
         slots: slots.filter((id) => getComputedStyle(box.querySelector(`#${id}`)).display !== 'none'),
         textShare: box.querySelector('#textarea-slot').getBoundingClientRect().width / box.getBoundingClientRect().width,
+        runCluster: [...box.querySelector('.mpi-prompt-box__col--run').children]
+          .map((c) => getComputedStyle(c).display !== 'none'),
       };
     }, pb);
 
@@ -688,80 +649,55 @@ test('PromptBox Agent mode: own text and hint, the toggle, Stop but no Run, numb
     });
     await field.click();
     await window.keyboard.type('my prompt');
-    const promptFace = await shown();
-    expect(promptFace.slots).toContain('bottom-right-slot');
-    // One staged image in Prompt mode: the start-frame pill, no number.
     await inject(1);
     await expect(chips.locator('.mpi-prompt-box-media-strip__role')).toHaveText('Start frame');
     await expect(chips.locator('.mpi-prompt-box-media-strip__index')).toHaveCount(0);
 
-    // The toggle is the agent's head (MPI-797): the Studio robot, as tall as the Enhance
-    // button beside it, muted while off, full colour while on.
-    const head = toggle.locator('img.mpi-ibtn__img');
-    await expect(head).toHaveAttribute('src', 'assets/mascot/studio/logo.webp');
-    await expect.poll(() => head.evaluate((el) => el.complete && el.naturalWidth)).toBeGreaterThan(0);
-    const enhance = window.locator(`${pb} #enhance-slot .mpi-ibtn`);
-    await expect(enhance).toBeVisible();
-    const [toggleBox, enhanceBox, headBox] = await Promise.all([toggle, enhance, head].map((l) => l.boundingBox()));
-    expect(Math.abs(toggleBox.height - enhanceBox.height)).toBeLessThanOrEqual(1);
-    expect(headBox.height).toBeGreaterThanOrEqual(enhanceBox.height - 4);    await window.mouse.move(0, 0);
-    await expect.poll(() => head.evaluate((el) => getComputedStyle(el).filter)).toBe('grayscale(1)');
+    // There is no toggle to find. Asserted by absence from the DOM, not by a hidden slot:
+    // the element is deleted from the template, not display:none'd.
+    await expect(window.locator(`${pb} #mode-toggle-slot`)).toHaveCount(0);
+    await expect(window.locator(`${pb} .mpi-prompt-box__col--mode`)).toHaveCount(0);
 
-    await toggle.click();
-    await expect.poll(() => head.evaluate((el) => getComputedStyle(el).filter)).toBe('none');    await expect(field).toHaveValue('');
-    await expect(field).toHaveAttribute('placeholder', 'Talk to the agent. Shift+Enter for a new line, Enter to send.');
-    const agentFace = await shown();
-    // The run column STAYS in agent mode (MPI-774 fix 6, Fabio): the agent has no cancel
-    // tool, so the user's Stop is the only way to halt a generation it started, and
-    // hiding the column wholesale took Stop with it. Run and Clear are hidden by name.
-    expect(agentFace.slots).toEqual(['textarea-slot', 'mode-toggle-slot', 'settings-cog-slot', 'settings-badge-slot', 'bottom-right-slot']);
-    // The text still dominates the face, but each column it shares with costs it width.
-    // The history of this one number, because it has gone red three times: 0.8 when agent
-    // mode had two slots; 0.797 measured once Stop's column stayed (MPI-774 fix 6), so the
-    // bar moved to 0.75; 0.6865 measured once MPI-774 Phase 7 put the model button and the
-    // cog back, so the bar moved to 0.65 — and that one went red on the runner without any
-    // column changing at all, because 0.6865 was measured at 1280 and CI is 1024. The host
-    // width is pinned above now, so this number no longer encodes the measuring box.
-    // The assertion means "the field dominates the face", never the arithmetic —
-    // MEASURE it after any column change, do not compute it.
-    expect(agentFace.textShare).toBeGreaterThan(0.60);
-    expect(await window.evaluate((sel) => {
-      const col = document.querySelector(`${sel} .mpi-prompt-box__col--run`);
-      return [...col.children].map((c) => ({
-        stop: c.classList.contains('mpi-prompt-box__stop-host'),
-        shown: getComputedStyle(c).display !== 'none',
-      }));
-    }, pb)).toEqual([{ stop: false, shown: false }, { stop: true, shown: true }, { stop: false, shown: false }]);
+    const before = await shown();
+    // The full face: every column the model and op call for, Run/Stop/Clear all present.
+    expect(before.slots).toContain('bottom-right-slot');
+    expect(before.slots).toContain('op-strip-slot');
+    expect(before.slots).toContain('enhance-slot');
+    // The run cluster is runHost, stopHost, clearHost — all three on screen, none hidden
+    // by name. MPI-774 used to leave only the middle one up in agent mode.
+    expect(before.runCluster).toEqual([true, true, true]);
 
-    // The same chip is now just number 1. Two more on an op that takes two (start and last
-    // frame): all three stay, numbered, no frame pill.
-    await expect(chips.locator('.mpi-prompt-box-media-strip__index')).toHaveText(['1']);
-    await expect(chips.locator('.mpi-prompt-box-media-strip__role')).toHaveCount(0);
-    await inject(2);
-    await expect(chips).toHaveCount(3);
-    expect(await chips.locator('.mpi-prompt-box-media-strip__index').allTextContents()).toEqual(['1', '2', '3']);
-    await expect(chips.locator('.mpi-prompt-box-media-strip__role')).toHaveCount(0);
+    // ── Open the agent panel. Nothing below this line may differ. ──────────────
+    await window.evaluate(async () => {
+      const { state } = await import('/js/state.js');
+      state.agentMode = true;
+    });
+    await window.waitForTimeout(250);
 
-    // The run hotkey starts no generation: it sends the message, as Enter does.
-    await field.click();
-    await window.keyboard.type('hello agent');
-    await window.keyboard.press('Control+Enter');
-    await window.waitForTimeout(400);
-    expect(await window.evaluate(() => window.__runs)).toBe(0);
-    const sent = (await window.evaluate(() => window.__fetchCalls)).filter((c) => c.url === '/agent/message');
-    expect(sent.map((c) => c.body.text)).toEqual(['hello agent']);
-    await expect(field).toHaveValue('');
-    await expect(chips).toHaveCount(0);
-
-    // Back to Prompt mode: the prompt is still there, and the chips fit the op again.
-    await inject(3);
-    await toggle.click();
+    const after = await shown();
+    expect(after.slots).toEqual(before.slots);
+    expect(after.runCluster).toEqual([true, true, true]);
+    expect(Math.abs(after.textShare - before.textShare)).toBeLessThan(0.01);
+    // The prompt is the user's, still there, with the prompt placeholder — not swapped for
+    // an empty agent field and "Talk to the agent".
     await expect(field).toHaveValue('my prompt');
     await expect(field).toHaveAttribute('placeholder', 'Type your prompt...');
-    // Wan 2.2 takes a start and a last frame: the third chip goes, the frame pills return.
+    // The chip is still a start frame, not attachment number 1.
+    await expect(chips.locator('.mpi-prompt-box-media-strip__role')).toHaveText('Start frame');
+    await expect(chips.locator('.mpi-prompt-box-media-strip__index')).toHaveCount(0);
+    // Wan 2.2's op takes two frames, so a third chip is still evicted by the op — it is not
+    // an agent attachment strip that takes nine.
+    await inject(2);
     await expect(chips).toHaveCount(2);
-    expect(await chips.locator('.mpi-prompt-box-media-strip__role').allTextContents()).toEqual(['Start frame', 'Last frame']);
-    expect((await shown()).slots).toContain('bottom-right-slot');
+
+    // Ctrl+Enter runs a generation. It used to send the message to the agent instead, and
+    // nothing reaches /agent/message from this box any more.
+    await field.click();
+    await window.keyboard.press('Control+Enter');
+    await window.waitForTimeout(400);
+    expect(await window.evaluate(() => window.__runs)).toBe(1);
+    expect((await window.evaluate(() => window.__fetchCalls))
+      .filter((c) => c.url === '/agent/message')).toHaveLength(0);
 
     expect(pageErrors).toEqual([]);
   } finally {
@@ -769,23 +705,35 @@ test('PromptBox Agent mode: own text and hint, the toggle, Stop but no Run, numb
   }
 });
 
-// MPI-774 Phase 7 (Fabio, 2026-09-19): the pinned settings panel. Agent mode keeps the
-// model button and the cog. Cog SHUT, the agent picks the model and every setting from
-// model defaults; cog OPEN, the user owns both and the agent keeps the prompt, the media,
-// the op and the card name. Open means PINNED: the panel cannot be dismissed by a stray
-// click or by Escape, only by the cog, because handing that ownership back by accident is
-// worse than a popup that stays up. The dispatch half is agent-pinned-settings.test.cjs;
-// this is the interaction only a real window can prove.
-test('agent mode: the cog pins the settings panel, and only the cog unpins it', async ({}, testInfo) => {
+// MPI-774 Phase 7 (Fabio, 2026-09-19): the pinned settings panel. Cog SHUT, the agent picks
+// the model and every setting from model defaults; cog OPEN, the user owns both and the
+// agent keeps the prompt, the media, the op and the card name. Open means PINNED: the panel
+// cannot be dismissed by a stray click or by Escape, only by the cog, because handing that
+// ownership back by accident is worse than a popup that stays up. The dispatch half is
+// agent-pinned-settings.test.cjs; this is the interaction only a real window can prove.
+//
+// MPI-797 Phase 3 re-homed the TRIGGER and nothing else. It used to be the prompt box's own
+// `_agentMode`, set by a toggle in the box; that toggle and the whole agent face are gone,
+// so the rule now reads `state.agentMode` — the same flag the local one always mirrored,
+// set by the top bar's Agent button. The box is no longer stripped down for this, so the cog
+// and the model button are simply always there, and the popup no longer drops its op strip:
+// the user is driving this prompt box themselves now, and that op is theirs.
+test('the cog pins the settings panel while the agent panel is open, and only the cog unpins it', async ({}, testInfo) => {
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);
   try {
     await installStubs(window);
     await bootAndMountPromptBox(window);
     const pb = '#e2e-pb-host .mpi-prompt-box';
-    const toggle = window.locator(`${pb} .mpi-prompt-box__col--mode .mpi-ibtn`);
     const cog = window.locator(`${pb} #settings-cog-slot button`);
-    const popup = window.locator('body > .mpi-popup.mpi-prompt-box__popup--agent');
+    // No `--agent` variant on the popup any more, so it needs a different anchor: the
+    // parameters popup is the one holding the op strip. `body > .mpi-popup` alone is a
+    // strict-mode violation — MpiRatioSelector portals its own popup to body too.
+    const popup = window.locator('body > .mpi-popup:has(.mpi-prompt-box__settings-ops)');
+    const setAgentMode = (on) => window.evaluate(async (v) => {
+      const { state } = await import('/js/state.js');
+      state.agentMode = v;
+    }, on);
     const pinnedFlag = () => window.evaluate(async () => {
       const { state } = await import('/js/state.js');
       return state.agentSettingsPinned;
@@ -796,29 +744,39 @@ test('agent mode: the cog pins the settings panel, and only the cog unpins it', 
       window.__pbInst.el.setModel(getModelById('wan-22'));
     });
 
-    // Prompt mode: nothing is pinned, and the popup carries no agent class.
+    // Panel shut: nothing is pinned, and the cog is an ordinary popup trigger.
     expect(await pinnedFlag()).toBe(false);
+    expect(await cog.getAttribute('data-info')).toBe('Generation parameters');
+    await cog.click();
+    await expect(popup).toHaveClass(/is-active/);
+    expect(await pinnedFlag()).toBe(false);
+    // ...and an ordinary popup closes on an outside click.
+    await window.mouse.click(5, 5);
+    await window.waitForTimeout(150);
+    await expect(popup).not.toHaveClass(/is-active/);
 
-    await toggle.click();
-    // The two columns the pinned panel is made of are back in agent mode.
+    await setAgentMode(true);
+    // The two columns the pinned panel is made of are always on screen now.
     await expect(cog).toBeVisible();
     await expect(window.locator(`${pb} #settings-badge-slot button`)).toBeVisible();
     // Opening it has to be readable BEFORE the click — this is the status-bar line.
-    expect(await cog.getAttribute('data-info'))
+    await expect.poll(() => cog.getAttribute('data-info'))
       .toBe('In agent mode, when you open this panel, you control the settings and the model, not the agent.');
-    // Agent mode alone pins nothing: the panel has to be OPENED.
+    // An open panel alone pins nothing: the cog has to be OPENED.
     expect(await pinnedFlag()).toBe(false);
 
     await cog.click();
     await expect(popup).toHaveClass(/is-active/);
     expect(await pinnedFlag()).toBe(true);
 
-    // No op strip in it. Fabio: "if the user wants to go and change operations, then he
-    // just needs to close the agent mode. That's too much already."
+    // The op strip STAYS in it now (MPI-797 Phase 3). It used to be hidden by
+    // `.mpi-prompt-box__popup--agent` because the box was the agent's face and the op was
+    // the agent's; the user drives this box themselves while the panel is open, so hiding
+    // their own op selector was wrong. The handover has never included the op.
     expect(await window.evaluate(() => {
       const el = document.querySelector('body > .mpi-popup .mpi-prompt-box__settings-ops');
       return el ? getComputedStyle(el).display : 'missing';
-    })).toBe('none');
+    })).not.toBe('none');
 
     // A click on the page outside the panel does NOT hand the settings back.
     await window.mouse.click(5, 5);
@@ -837,13 +795,17 @@ test('agent mode: the cog pins the settings panel, and only the cog unpins it', 
     await expect(popup).not.toHaveClass(/is-active/);
     expect(await pinnedFlag()).toBe(false);
 
-    // Leaving agent mode with the panel open unpins it too: the ownership is an
-    // agent-mode meaning of "this popup is open", and prompt mode has no agent to take
-    // it from.
+    // Closing the agent panel with the cog still open unpins it too: the ownership is a
+    // panel-open meaning of "this popup is open", and with no agent there is nobody to take
+    // it from. This is the line `_applyAgentView` used to carry, and the one reason Phase 3
+    // could not simply delete the toggle block outright.
     await cog.click();
     expect(await pinnedFlag()).toBe(true);
-    await toggle.click();
+    await setAgentMode(false);
+    await window.waitForTimeout(150);
     expect(await pinnedFlag()).toBe(false);
+    // The copy goes back with it.
+    await expect.poll(() => cog.getAttribute('data-info')).toBe('Generation parameters');
 
     expect(pageErrors).toEqual([]);
   } finally {
@@ -937,25 +899,23 @@ test('the settings popup survives a window resize: on screen, first open, no sec
   }
 });
 
-test('toggle sits between textarea-slot and enhance-slot in the prompt bar', async ({}, testInfo) => {
+test('the prompt bar runs textarea-slot straight into enhance-slot', async ({}, testInfo) => {
+  // This pinned `mode-toggle-slot` between the two. MPI-797 Phase 3 deleted that slot, and
+  // the pair closing up is exactly what proves it: an ordering assertion that still passed
+  // with a stale slot in the middle would prove nothing.
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);
   try {
     await installStubs(window);
     await bootAndMountPromptBox(window);
 
-    // Verify DOM order: textarea-slot → mode-toggle-slot → enhance-slot
-    const order = await window.evaluate(() => {
+    const ids = await window.evaluate(() => {
       const pb = document.querySelector('#e2e-pb-host .mpi-prompt-box');
-      const slots = Array.from(pb.children).map(c => c.id).filter(id => [
-        'textarea-slot', 'mode-toggle-slot', 'enhance-slot',
-      ].includes(id));
-      return slots;
+      return Array.from(pb.children).map(c => c.id).filter(Boolean);
     });
 
-    expect(order[0]).toBe('textarea-slot');
-    expect(order[1]).toBe('mode-toggle-slot');
-    expect(order[2]).toBe('enhance-slot');
+    expect(ids).not.toContain('mode-toggle-slot');
+    expect(ids.indexOf('enhance-slot')).toBe(ids.indexOf('textarea-slot') + 1);
 
     expect(pageErrors).toEqual([]);
   } finally {
@@ -963,7 +923,7 @@ test('toggle sits between textarea-slot and enhance-slot in the prompt bar', asy
   }
 });
 
-test('agent panel: the real shell mount is closed by default, opens from the toggle and pushes the workspace right', async ({}, testInfo) => {
+test('agent panel: the real shell mount is closed by default, opens on state.agentMode and pushes the workspace right', async ({}, testInfo) => {
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);
   try {
@@ -1003,8 +963,10 @@ test('agent panel: the real shell mount is closed by default, opens from the tog
     expect(closed.open).toBe(false);
     expect(closed.panelWidth).toBe(0);
 
-    const toggle = window.locator('#e2e-pb-host .mpi-prompt-box__col--mode .mpi-ibtn');
-    await toggle.click();
+    // MPI-797: Phase 1 moved the setter to the top bar's Agent button and Phase 3 deleted
+    // the prompt box's toggle. `agentPanel.js` reacts to the STATE and does not care who
+    // sets it, which is what this drives — the button's own surface is MpiProjectName's.
+    await window.evaluate(() => { window.__testState.agentMode = true; });
     await window.waitForTimeout(600); // width transition is --t-base
     expect(await window.evaluate(() => window.__testState.agentMode)).toBe(true);
 
@@ -1040,7 +1002,7 @@ test('agent panel: the real shell mount is closed by default, opens from the tog
     expect((await measure()).panelWidth).toBe(280);
     expect(await window.evaluate(() => localStorage.getItem('mpi_agent_panel_width'))).toBe('280');
 
-    await toggle.click();
+    await window.evaluate(() => { window.__testState.agentMode = false; });
     await window.waitForTimeout(600);
     const toggled = await measure();
     expect(await window.evaluate(() => window.__testState.agentMode)).toBe(false);
@@ -1053,10 +1015,9 @@ test('agent panel: the real shell mount is closed by default, opens from the tog
   }
 });
 
-// MPI-797 Phase 2. Until now the panel had no input of its own — it borrowed
-// MpiPromptBox's agent mode over `agent:send`. Phase 3 deletes that toggle, so this is
-// the send path that has to work on its own, and the History workspace mounts no prompt
-// box at all. The attachment number is the second half: the user and the agent refer to
+// MPI-797 Phase 2. The panel used to have no input of its own — it borrowed
+// MpiPromptBox's agent mode over `agent:send`. Phase 3 deleted that toggle AND the event,
+// so this IS the send path now, and the History workspace mounts no prompt box at all. The attachment number is the second half: the user and the agent refer to
 // "1", never to "the start frame".
 test('panel mode has its own composer: Enter sends, and dropped images are numbered', async ({}, testInfo) => {
   test.setTimeout(90000);
@@ -1452,11 +1413,14 @@ test('the panel swaps conversations with the project, and switching back restore
     await expect(window.locator('#e2e-agent-host .mpi-agent-chat__entry--user')).toContainText('alpha question');
     await expect(window.locator('#e2e-agent-host .mpi-agent-chat__entry--message')).toContainText('alpha answer');
 
-    // Sent from the panel: the open project, by folder and name only.
-    await window.evaluate(async () => {
-      const { Events } = await import('/js/events.js');
-      Events.emit('agent:send', { text: 'from the panel', attachments: [] });
-    });
+    // Sent from the panel: the open project, by folder and name only. Typed into the
+    // panel's own composer, because MPI-797 Phase 3 deleted `agent:send` — that emit was
+    // standing in for the prompt box's toggle, and both halves are gone.
+    const composer = window.locator('#e2e-agent-host .mpi-agent-chat__input-row textarea');
+    await expect(composer).toBeVisible();
+    await composer.click();
+    await window.keyboard.type('from the panel');
+    await window.keyboard.press('Enter');
     await window.waitForTimeout(300);
     const calls = await window.evaluate(() => window.__fetchCalls);
     const posts = calls.filter(c => c.url === '/agent/message');

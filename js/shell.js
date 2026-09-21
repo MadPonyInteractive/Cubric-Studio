@@ -553,7 +553,15 @@ async function _bootApp() {
   // make "no engine yet" permanent — it would freeze out the escape-hatch user (MPI-390)
   // who installs one later. And an explicit off IS a real `false`, which is what
   // hasAutoStartComfy distinguishes, so a user who turned it off never gets it back on.
-  if (!runpodCfg.autoConnectOnStart && !Storage.hasAutoStartComfy()) {
+  // Not under E2E (MPI-797, 2026-09-21). A spec profile is fresh, so `hasAutoStartComfy`
+  // is always false and this seed always runs — and on a dev box that HAS an engine it
+  // answers "installed", turns auto-start ON, and boot then tries to start ComfyUI inside
+  // the harness. It fails there, and the "ComfyUI failed to start" modal's backdrop
+  // swallows every click for the rest of the run (16 of 31 in agent-chat.spec.js). The
+  // suite is meant to be engine-blind, which is the same reason `_isE2E` exists right
+  // above (MPI-446) — and without this the specs pass or fail on whether the machine
+  // running them happens to own an engine.
+  if (!runpodCfg.autoConnectOnStart && !Storage.hasAutoStartComfy() && !_isE2E()) {
     try {
       const res = await fetch('/engine/version-check');
       if ((await res.json()).needsInstall !== true) Storage.setAutoStartComfy(true);

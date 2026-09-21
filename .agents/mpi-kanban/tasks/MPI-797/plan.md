@@ -8,12 +8,34 @@ and `tasks/MPI-843/research/chat-merged.html` (the panel, drawn in place at its 
 
 ## Current State
 
-**PHASE 2 IS BUILT AND UNCOMMITTED-THEN-COMMITTED THIS SESSION; Fabio has NOT given it a
-final "verified" yet.** He drove it in his own app across three rounds and every fault he
-found is fixed and measured (`validation.md` § Phase 2). The card stays in `doing`.
+**ALL THREE PHASES ARE BUILT AND ACCEPTED.** Fabio verified Phase 2 and Phase 3 together
+in his own app on 2026-09-21 ("it looks good, mate"); Phase 1 was accepted 2026-09-20.
+The card stays in `doing` because of the open item (1) below, NOT because anything is
+unverified.
 
-**The next action is Phase 3** — agent mode leaves MpiPromptBox — but read the two open
-threads below first, because Fabio named them himself at the handoff:
+Phase 3 (2026-09-21): the agent face is gone from MpiPromptBox. `npm test` 1668 pass / 0
+fail, `agent-chat.spec.js` 31/31, every new guard proven red on pre-fix code one back-out
+at a time. Full write-up in `validation.md` § Phase 3. Three things there need Fabio
+rather than a re-read:
+
+1. **A REGRESSION this phase causes.** `_sendAgentTurn` was the only UI path for handing
+   the agent a VIDEO (MPI-817, shipped 2026-09-20). It died with the toggle. The server
+   half is intact; nothing can reach it. Restoring it needs project-media staging in the
+   panel composer, which is a surface of its own — NOT a line of Phase 3. Its test is a
+   `todo`, not deleted. His call whether Phase 3 ships with it.
+2. **`state.agentSettingsPinned` was RE-HOMED, not deleted** — onto `state.agentMode`.
+   The plan's other option (delete the read side) turned out to mean deleting a
+   whole-stack feature with its own 8-test suite, on a card about a UI toggle.
+3. **The PINNED popup was deliberately left alone** and now holds in a situation that
+   could not exist before (the panel open while he uses the prompt box). He has ruled on
+   that behaviour twice, so it was not quietly changed. Worth a look in the app.
+
+Also fixed here, not this card's: MPI-863's boot seed (`e2bc81f5`) turned auto-start
+ComfyUI ON inside the E2E harness and red 16 of 31 desktop specs on any box that has an
+engine. One `!_isE2E()` clause. Proven not-ours first by swapping this session's eight
+files to their HEAD blobs.
+
+**The two open threads below still stand, because Fabio named them himself:**
 
 1. **The panel header** should become Cosmo (face + name), not the word `Agent`.
 2. **The ledge** above the input — Cosmo docked, a guest mascot sliding in with its family
@@ -63,20 +85,20 @@ load-bearing.
 
 ### Phase 1: the Agent button joins the top bar
 
-- [ ] `MpiProjectName.js` - a third `_mountButton`, icon `chat` (already in `icons.js`),
+- [x] `MpiProjectName.js` - a third `_mountButton`, icon `chat` (already in `icons.js`),
       label `Agent`, `size:'sm'`, `variant:'ghost'`, emitting `agent`. It goes **first** in
       `centreGroup`, so the row reads Agent - Flows - Record.
-- [ ] `MpiProjectName.css` - `.mpi-project-name__centre` becomes a `1fr auto 1fr` grid so
+- [x] `MpiProjectName.css` - `.mpi-project-name__centre` becomes a `1fr auto 1fr` grid so
       **Flows sits dead centre** whatever its neighbours measure. Measured 0px off centre in
       the mockup. This also pays back the half-button drift MPI-678 accepted.
-- [ ] **Re-measure `.mpi-project-name__toolbar`'s `max-width`.** The current `7.25rem` is
+- [x] **Re-measure `.mpi-project-name__toolbar`'s `max-width`.** The current `7.25rem` is
       documented at `MpiProjectName.css:162-165` as "half the Flows + Record group (~96px)";
       a third button invalidates that number, and the toolbar sliders slide under the group
       when it is wrong.
-- [ ] `navigation.js` (beside the `flows`/`record` handlers at :82 and :88) - `agent` flips
+- [x] `navigation.js` (beside the `flows`/`record` handlers at :82 and :88) - `agent` flips
       `state.agentMode`. `agentPanel.js:64` already binds the `A` hotkey to exactly that, so
       the button is its visible twin and the panel needs no change.
-- [ ] The toggled look: icon and label take `--accent-heat`, **no fill** (Fabio, round 2).
+- [x] The toggled look: icon and label take `--accent-heat`, **no fill** (Fabio, round 2).
       **Trap:** `MpiButton.css:318` only defines `.is-active` for ICON ghosts
       (`.mpi-btn.mpi-ibtn.mpi-btn--ghost`); a labelled ghost has no active rule, so this
       needs one adding rather than a class reused. On this bar heat is cream at L 0.78,
@@ -88,21 +110,21 @@ load-bearing.
 
 ### Phase 2: the panel gets its own input row
 
-- [ ] `MpiAgentChat.js` template - drop the `props.standalone ?` gate on the input row
+- [x] `MpiAgentChat.js` template - drop the `props.standalone ?` gate on the input row
       (lines 76-83) so panel mode renders `__input-row` too.
-- [ ] `MpiAgentChat.js` setup - the standalone-only block (545-632: `MpiInput`, send button,
+- [x] `MpiAgentChat.js` setup - the standalone-only block (545-632: `MpiInput`, send button,
       Enter/Shift+Enter, `_doSend`, `_addImageFile`, `_renderAttachments`, the drop
       handlers) stops being standalone-only. It is already written; it only needs its `if`
       widening. Fabio's item (1) is satisfied by its placeholder.
-- [ ] **Decide `agent:send`'s fate, do not leave it half-wired.** Its only producer is
+- [x] **Decide `agent:send`'s fate, do not leave it half-wired.** Its only producer is
       `MpiPromptBox.js:2516`, which Phase 3 deletes; its only consumer is
       `MpiAgentChat.js:539`, and `tests/desktop/agent-chat.spec.js:1242` emits it to prove
       the panel listens. Either keep the event as the panel's own send path (documented at
       `events.js:142` - update that line, it names MpiPromptBox as the producer) or delete
       the pair and call `_sendMessage` directly, and delete the spec's emit with it.
-- [ ] Item (3): attachments are numbered 1, 2, 3 - never "start frame" or "picture 1".
+- [x] Item (3): attachments are numbered 1, 2, 3 - never "start frame" or "picture 1".
       `_renderAttachments` (606) draws thumbs with no number today; add the index.
-- [ ] The light terminal register from the drawing: a `>` glyph and a block caret on the
+- [x] The light terminal register from the drawing: a `>` glyph and a block caret on the
       input only, transcript stays prose. `caret-shape: block` with the native bar as
       fallback; the mockup's drawn caret is a mockup device, not a thing to port.
 - **Verify:** type in the panel and send with no prompt box on screen (the History
@@ -113,12 +135,12 @@ load-bearing.
 
 The removal is ~10 sites across a 2766-line file. Grep `_agentMode` first - 34 hits.
 
-- [ ] Delete: `mode-toggle-slot` (template, :110), `_setAgentMode` (2485), `_sendAgentTurn`
+- [x] Delete: `mode-toggle-slot` (template, :110), `_setAgentMode` (2485), `_sendAgentTurn`
       (2493), `_applyAgentView` (2446), the agent branches in `_readMode`/`_writeMode`
       (172-175), `AGENT_MAX_IMAGES` (83), `COG_INFO_AGENT` (89), the Enter branch (1491-1498,
       2556), the chip/badge branches (337, 421, 937, 958, 1470), `_fitMediaToOperation`'s
       agent caller, and `.mpi-prompt-box--agent-mode` / `__popup--agent` in the CSS.
-- [ ] **`state.agentSettingsPinned` goes dead and it is NOT only cosmetic.** It is written
+- [x] **`state.agentSettingsPinned` goes dead and it is NOT only cosmetic.** It is written
       only inside MpiPromptBox (1669, 1675, 2454, 2760) but READ by `agentService.js:81` and
       `agentDispatch.js:212`, where it decides whether the agent inherits the user's pinned
       model and settings. Remove the writers and that branch is permanently false - dead
@@ -127,7 +149,7 @@ The removal is ~10 sites across a 2766-line file. Grep `_agentMode` first - 34 h
       deliberately between deleting the read side too and re-homing the trigger, and say
       which in `validation.md`. The open product question - should an agent generation
       inherit the prompt box's model and settings? - stays with the agent track.
-- [ ] **Test debt, and it is real.** `tests/agent-ui-surfaces.test.cjs` is a source-contract
+- [x] **Test debt, and it is real.** `tests/agent-ui-surfaces.test.cjs` is a source-contract
       suite whose regexes pin these exact lines (73, 82, 86, 88, 89, 99) - it goes red the
       moment the code goes. `tests/desktop/agent-chat.spec.js` pins `mode-toggle-slot` in
       the slot order at 673, 717, 947, 951, 957. Move the assertions to the new surface;
@@ -159,3 +181,19 @@ Both were live when this plan was written - check `state/index.json` again befor
 Fabio checks: the Agent button opens the panel and reads as on; Flows is centred; he can
 talk to Cosmo and generate in the prompt box at the same time; a dropped image arrives
 numbered; the status bar is untouched.
+
+## Plan Drift
+
+- **2026-09-21, Phase 3.** The plan asked for a deliberate choice between deleting
+  `state.agentSettingsPinned`'s read side and re-homing its trigger. Re-homed. Deleting it
+  would have reached `agentDispatch.js`, `agentService.js`, `services/agentLoop.mjs` and a
+  123-line 8-test suite — a whole-stack feature — and would have answered by force the
+  product question MPI-843 parked. Re-homing is three lines and loses nothing.
+- **2026-09-21, Phase 3.** The plan's delete list did not mention
+  `.mpi-prompt-box__popup--agent`, `.mpi-prompt-box__col--mode`, `__stop-host` or
+  `docs/agent-chat.md`. All four are consequences of the same removal and went with it;
+  the reasoning is in `validation.md`.
+- **2026-09-21, Phase 3.** The plan did not anticipate that deleting `_sendAgentTurn`
+  removes MPI-817's video-by-reference path, shipped the day before. It is a real
+  regression, recorded rather than papered over, and it is the one thing that might stop
+  this card closing.

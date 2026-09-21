@@ -66,30 +66,24 @@ import { MpiEnhanceDialog } from '../../Compounds/MpiEnhanceDialog/MpiEnhanceDia
  *   'input' | 'mode-change' | 'media-change' | 'media-imported'
  *   'run' | 'cancel' | 'model-change' | 'operation-change'
  *
- * Agent mode (state.agentMode, MPI-774/797): the box shows only its text, chips and the
- * Agent|Prompt toggle; the text is the agent's own; chips are images, numbered.
+ * Agent mode left this box in MPI-797 Phase 3. There is no Agent|Prompt toggle and no
+ * agent face: the box is a prompt box in every workspace, always. The agent has its own
+ * composer in the panel (MpiAgentChat), reached from the top bar's Agent button or `A`.
  *
- * The pinned settings panel (state.agentSettingsPinned, MPI-774 Phase 7): agent mode keeps
- * the model button and the cog. Cog shut, the agent picks the model and resolves every
- * setting from MODEL DEFAULTS; cog open, the user owns the model and the settings and the
- * agent is told which model it is writing for. It always keeps the prompt, the media, the
- * op and the card name. The panel is PINNED while it is open — no outside-click, no
- * Escape, the cog only — because giving that ownership back by accident is worse than a
- * popup that stays up. Enforcement is in `js/shell/agentDispatch.js`, not in the prompt.
+ * The pinned settings panel (state.agentSettingsPinned, MPI-774 Phase 7) STAYS, and its
+ * trigger is now `state.agentMode` — the panel being open — instead of this box's own
+ * deleted agent face. The meaning is unchanged: while the agent panel is open, cog shut
+ * means the agent picks the model and resolves every setting from MODEL DEFAULTS; cog open
+ * means the user owns the model and the settings and the agent is told which model it is
+ * writing for. It always keeps the prompt, the media, the op and the card name. The panel
+ * is PINNED while it is open — no outside-click, no Escape, the cog only — because giving
+ * that ownership back by accident is worse than a popup that stays up. Enforcement is in
+ * `js/shell/agentDispatch.js`, not in the prompt.
  */
 
-// ponytail: the agent takes as many references as the widest op it can drive (H3's nine
-// pictures); raise it if a model ever takes more.
-const AGENT_MAX_IMAGES = 9;
-// A video reaches the agent BY REFERENCE, never as bytes (`_sendAgentTurn`), so it has to be a
-// file the open project already holds: a gallery card, or a dropped file the box has just
-// imported. With no project a dropped file is a blob: url nothing else can read.
-// ponytail: one op takes more than one clip today only as separate slots; raise with the ops.
-const AGENT_MAX_VIDEOS = 2;
-
-// The cog's status-bar line ([data-info] → js/shell/statusBar.js). Two of them: in agent
-// mode opening the panel TAKES the settings off the agent, and that has to be readable
-// before the click, not discovered after it (Fabio, 2026-09-19).
+// The cog's status-bar line ([data-info] → js/shell/statusBar.js). Two of them: with the
+// agent panel open, opening this panel TAKES the settings off the agent, and that has to be
+// readable before the click, not discovered after it (Fabio, 2026-09-19).
 const COG_INFO = 'Generation parameters';
 const COG_INFO_AGENT = 'In agent mode, when you open this panel, you control the settings and the model, not the agent.';
 export const MpiPromptBox = ComponentFactory.create({
@@ -111,8 +105,6 @@ export const MpiPromptBox = ComponentFactory.create({
 
             <div class="mpi-prompt-box__col mpi-prompt-box__col--neg" id="bottom-neg-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--prompt" id="textarea-slot"></div>
-            <!-- MPI-774: agent toggle sits directly after the text field, before enhance -->
-            <div class="mpi-prompt-box__col mpi-prompt-box__col--mode" id="mode-toggle-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--enhance hide" id="enhance-slot"></div>
             <!-- MPI-817: cog BEFORE the model button (Fabio, 2026-09-19). The parameters
                  popup is anchored on the cog and carries a caret; with the cog last but one
@@ -130,9 +122,6 @@ export const MpiPromptBox = ComponentFactory.create({
 
     setup: (el, props, emit) => {
         let isExpansionLocked = state.promptExpanded === false;
-        // MPI-774: agent mode toggle. When true, Enter=send to agent (not generation).
-        // Initialized from global state so mode survives workspace navigation.
-        let _agentMode = state.agentMode === true;
         // MPI-474: the box cycles through THREE fields, not two. A boolean could not
         // carry the third, and the audio negative is a genuinely separate prompt —
         // LTX's NAG patches video cross-attention and audio cross-attention from two
@@ -168,25 +157,20 @@ export const MpiPromptBox = ComponentFactory.create({
         let positiveValue      = props.value || _draft.positive || '';
         let negativeValue      = props.negativeValue || _draft.negative || '';
         let negativeAudioValue = props.negativeAudioValue || _draft.negativeAudio || '';
-        // MPI-797: Agent mode types its own message. Sharing the positive field meant a
-        // sent message wiped the prompt. Not in the draft: the conversation is not saved.
-        let agentValue = '';
 
         // Field access by mode, so every read/write site stays a one-liner and a
-        // fourth mode would not mean hunting ternaries. Agent mode overrides all three.
-        const _readMode = (m = promptMode) => _agentMode ? agentValue
-            : m === 'negative' ? negativeValue : m === 'negativeAudio' ? negativeAudioValue : positiveValue;
+        // fourth mode would not mean hunting ternaries.
+        const _readMode = (m = promptMode) =>
+            m === 'negative' ? negativeValue : m === 'negativeAudio' ? negativeAudioValue : positiveValue;
         const _writeMode = (v, m = promptMode) => {
-            if (_agentMode) agentValue = v;
-            else if (m === 'negative') negativeValue = v;
+            if (m === 'negative') negativeValue = v;
             else if (m === 'negativeAudio') negativeAudioValue = v;
             else positiveValue = v;
         };
         const _placeholderFor = (m) =>
-            _agentMode ? 'Talk to the agent. Shift+Enter for a new line, Enter to send.'
-                : m === 'negative' ? 'Type negative prompt...'
-                    : m === 'negativeAudio' ? 'Type negative audio prompt...'
-                        : 'Type your prompt...';
+            m === 'negative' ? 'Type negative prompt...'
+                : m === 'negativeAudio' ? 'Type negative audio prompt...'
+                    : 'Type your prompt...';
         const _iconFor = (m) =>
             // volumeOff (struck-through speaker), not 'audio' — a plain speaker read
             // as a POSITIVE audio prompt, which is the opposite of what this stop is.
@@ -339,11 +323,6 @@ export const MpiPromptBox = ComponentFactory.create({
         }
 
         function _maxMediaForCurrentOperation(mediaType) {
-            // MPI-797: in Agent mode a chip is an attachment for the agent, not an op slot.
-            if (_agentMode) {
-                if (mediaType === 'image') return AGENT_MAX_IMAGES;
-                return mediaType === 'video' && state.currentProject ? AGENT_MAX_VIDEOS : 0;
-            }
             const activeMax = _maxMediaForOperation(activeOperation, mediaType);
             if (activeMax > 0) return activeMax;
             if (!model?.supportedOps?.length) return 0;
@@ -425,8 +404,6 @@ export const MpiPromptBox = ComponentFactory.create({
          * one per chip.
          */
         function _pruneUnsupportedMedia() {
-            // Agent-mode chips wait for the agent; leaving Agent mode prunes them (_fitMediaToOperation).
-            if (_agentMode) return;
             const accepted = new Set(_mediaSlotsForOperation().map(slot => slot.mediaType));
             const doomed = _mediaItems.filter(m => !accepted.has(m.mediaType));
             if (!doomed.length) return;
@@ -512,7 +489,7 @@ export const MpiPromptBox = ComponentFactory.create({
             // (e.g. i2i → krea2Edit on the 2nd image) BEFORE the cap below would
             // otherwise evict the existing chip. Skipped for role-tagged drops
             // (start/end-frame carry their own slot) and models with no bigger op.
-            if (!role && !_agentMode) {
+            if (!role) {
                 const existing = _mediaItems.filter(m => m.mediaType === mediaType).length;
                 const wouldBe = existing + 1;
                 if (wouldBe > _maxMediaForCurrentOperation(mediaType)) {
@@ -942,9 +919,7 @@ export const MpiPromptBox = ComponentFactory.create({
             // nothing rather than an affordance that injects into a missing node.
             // Roles here are the ASSIGNED ones (_withAssignedRoles ran at line 330), so
             // the pill reports where the asset is really going, not a stale tag.
-            // MPI-797: in Agent mode a chip is an attachment: no frame pill, no slot tag,
-            // always its position (Fabio: "numbered 1, 2, 3 only").
-            const _hasEndSlot = !_agentMode && _mediaSlotsForOperation().some(s => s.key === 'endFrame');
+            const _hasEndSlot = _mediaSlotsForOperation().some(s => s.key === 'endFrame');
             const _imageCount = items.filter(m => m.mediaType === 'image').length;
             // Everything the pill renders from, as one string. The reorder fast path
             // below keys on the item SET, and that invariant ("same set => same chip
@@ -963,8 +938,8 @@ export const MpiPromptBox = ComponentFactory.create({
                 _mediaSlotsForOperation().filter(s => s.tag).map(s => [s.key, s.tag]));
             // Roles are the ASSIGNED ones (_withAssignedRoles ran before this), so the
             // badge reports where the asset really goes, not a stale tag.
-            const _badgeFor = (item, idx) => _agentMode ? String(idx + 1)
-                : _tagBySlot.get(item.role) ?? (items.length > 1 ? String(idx + 1) : '');
+            const _badgeFor = (item, idx) =>
+                _tagBySlot.get(item.role) ?? (items.length > 1 ? String(idx + 1) : '');
 
             // What the fast path below may NOT change: the role pill, and whether a
             // badge element exists at all. Its TEXT is fine to re-stamp in place (that
@@ -1220,9 +1195,7 @@ export const MpiPromptBox = ComponentFactory.create({
         }
 
         function _showIncompatibleToast() {
-            _showMediaToast(_agentMode
-                ? 'The agent takes images, and videos once a project is open.'
-                : 'Media type not supported for this model.');
+            _showMediaToast('Media type not supported for this model.');
         }
 
         el.injectMedia = ({ url, mediaType, role, name }) => {
@@ -1477,7 +1450,7 @@ export const MpiPromptBox = ComponentFactory.create({
             // Never on a negative field — the tags address references, and a negative
             // prompt has none. (H3 has no negative node at all, but the guard is cheap
             // and keeps this correct for any future tagged op that does.)
-            const tags = promptMode === 'positive' && !_agentMode ? _stagedRefTags() : [];
+            const tags = promptMode === 'positive' ? _stagedRefTags() : [];
             if (!tags.length) return _closeRefPicker();
 
             const query = matchRefTagQuery(textareaEl.value, textareaEl.selectionStart, tags);
@@ -1496,17 +1469,6 @@ export const MpiPromptBox = ComponentFactory.create({
             if (!btn) return;
             e.preventDefault();
             _insertRefTag(_refMatches[Number(btn.dataset.idx)]);
-        }));
-
-        // MPI-774: agent mode — Enter sends to agent; Shift+Enter = newline.
-        // Ref picker takes priority when open (checked first inside its own handler below).
-        _unsubs.push(on(textareaEl, 'keydown', (e) => {
-            if (!_agentMode) return;
-            if (_refPickerOpen()) return; // picker handles its own Enter
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                _sendAgentTurn();
-            }
         }));
 
         _unsubs.push(on(textareaEl, 'keydown', (e) => {
@@ -1674,9 +1636,12 @@ export const MpiPromptBox = ComponentFactory.create({
             positionPopup();
             popupNode.classList.add('is-active');
             cogBtn.el.classList.add('is-active');
-            // MPI-774 Phase 7: in agent mode, OPEN means PINNED — the user has taken the
-            // model and the settings, and agentDispatch drops the agent's own.
-            if (_agentMode) state.agentSettingsPinned = true;
+            // MPI-774 Phase 7: with the agent panel open, OPEN means PINNED — the user has
+            // taken the model and the settings, and agentDispatch drops the agent's own.
+            // MPI-797 Phase 3 re-homed the trigger from this box's own deleted agent face
+            // onto state.agentMode, which is the same flag it always mirrored; what changed
+            // is only that the top bar's Agent button sets it now, not a toggle in here.
+            if (state.agentMode === true) state.agentSettingsPinned = true;
         };
         const closePopup = () => {
             popupActive = false;
@@ -1772,10 +1737,10 @@ export const MpiPromptBox = ComponentFactory.create({
         // Popup stays open until user clicks outside or presses Escape.
         const onPopupOutsideClick = (e) => {
             if (!popupActive) return;
-            // MPI-774 Phase 7: in agent mode the panel is PINNED, not a popup — while it
-            // is open the user owns the model and the settings, and that ownership cannot
-            // be given back by a stray click on the canvas. The cog is the only way out.
-            if (_agentMode) return;
+            // MPI-774 Phase 7: with the agent panel open this panel is PINNED, not a popup —
+            // while it is open the user owns the model and the settings, and that ownership
+            // cannot be given back by a stray click on the canvas. The cog is the only way out.
+            if (state.agentMode === true) return;
             if (e === _clickFromInsidePopup) return;
             if (popupNode.contains(e.target) || cogBtn.el.contains(e.target)) return;
             // Ignore clicks inside any portaled child surface (dropdown list,
@@ -1803,10 +1768,10 @@ export const MpiPromptBox = ComponentFactory.create({
         _unsubs.push(Events.on('ui:close-all-popups', ({ reason } = {}) => {
             if (reason === 'overlay-open') return;
             // Same exemption as the outside-click above (MPI-774 Phase 7): Escape and every
-            // other unqualified close-all reaches this pulse, and in agent mode the panel
-            // closes on the cog or not at all. `destroy()` still tears it down — that path
-            // removes popupNode outright rather than closing it.
-            if (_agentMode) return;
+            // other unqualified close-all reaches this pulse, and with the agent panel open
+            // this panel closes on the cog or not at all. `destroy()` still tears it down —
+            // that path removes popupNode outright rather than closing it.
+            if (state.agentMode === true) return;
             if (popupActive) closePopup();
         }));
 
@@ -2353,9 +2318,6 @@ export const MpiPromptBox = ComponentFactory.create({
 
             const runHost   = document.createElement('div');
             const stopHost  = document.createElement('div');
-            // MPI-774: Agent mode keeps this column for Stop alone — the class is what
-            // the agent-mode rule spares.
-            stopHost.className = 'mpi-prompt-box__stop-host';
             const clearHost = document.createElement('div');
             runSlotEl.appendChild(runHost);
             runSlotEl.appendChild(stopHost);
@@ -2449,132 +2411,27 @@ export const MpiPromptBox = ComponentFactory.create({
 
         _renderRunCluster();
 
-        // ── MPI-774: Agent | Prompt toggle ─────────────────────────────────────
-        const _modeToggleSlot = qs('#mode-toggle-slot', el);
-
-        // MPI-797: the Agent face — its own text and hint, chips by number, no ref picker.
-        function _applyAgentView() {
-            el.classList.toggle('mpi-prompt-box--agent-mode', _agentMode);
-            // MPI-774 Phase 7 — the pinned settings panel. The popup is portaled to
-            // document.body, so it cannot inherit the box's agent class: it carries its
-            // own, which is what drops the op strip out of it.
-            popupNode.classList.toggle('mpi-prompt-box__popup--agent', _agentMode);
-            // Pinning is an AGENT-MODE meaning of "this popup is open": leaving the mode
-            // hands the settings straight back, whether the popup stays up or not.
-            state.agentSettingsPinned = _agentMode && popupActive;
-            // The only copy readable BEFORE the click. `info` is what statusBar.js reads
-            // off [data-info]; it observes the attribute, so a live swap re-renders.
-            cogBtn.el.setAttribute('data-info', _agentMode ? COG_INFO_AGENT : COG_INFO);
-            textareaEl.value = _readMode();
-            textareaEl.placeholder = _placeholderFor(promptMode);
-            _closeRefPicker();
-            updateHeight();
-            if (!_agentMode) _fitMediaToOperation();
-            _renderStrip(_withAssignedRoles());
+        // ── MPI-774 Phase 7: the pinned settings panel follows state.agentMode ──
+        // MPI-797 Phase 3 deleted this box's Agent|Prompt toggle and its whole agent
+        // face. What survives is the SETTINGS OWNERSHIP rule, and it needs this one
+        // re-sync: `openPopup` pins on the way in, but the panel can also close while
+        // the cog is still open, and that hands the settings straight back. The deleted
+        // toggle block carried the same line inside `_applyAgentView`.
+        _unsubs.push(Events.onState('agentMode', (val) => {
+            state.agentSettingsPinned = val === true && popupActive;
+            cogBtn.el.setAttribute('data-info', val === true ? COG_INFO_AGENT : COG_INFO);
+        }));
+        // A box mounted while the panel is already open needs the same two lines once.
+        if (state.agentMode === true) {
+            state.agentSettingsPinned = popupActive;
+            cogBtn.el.setAttribute('data-info', COG_INFO_AGENT);
         }
-
-        // Agent mode stages images whatever the op takes. Back in Prompt mode the op
-        // decides again, the way a drop does: a bigger op if the model has one, else the
-        // trailing chips go (never the pinned one), and a type with no slot is pruned.
-        function _fitMediaToOperation() {
-            _pruneUnsupportedMedia();
-            const count = () => _mediaItems.filter(m => m.mediaType === 'image').length;
-            if (count() > _maxMediaForCurrentOperation('image')) {
-                const biggerOp = _opForMediaCount('image', count());
-                if (biggerOp && biggerOp !== activeOperation) el.setOperation(biggerOp, { programmatic: true });
-            }
-            let over = count() - _maxMediaForCurrentOperation('image');
-            if (over <= 0) return;
-            for (const m of _mediaItems.filter(i => i.mediaType === 'image' && !i.pinned).reverse()) {
-                if (over-- <= 0) break;
-                _removeItem(m.id, { silent: true });
-            }
-            _emitMediaChange();
-        }
-
-        function _setAgentMode(on_) {
-            if (on_ === _agentMode) return;
-            _agentMode = on_;
-            _applyAgentView();
-            // Write to global state so the shell panel and any remount can react.
-            state.agentMode = on_;
-        }
-
-        async function _sendAgentTurn() {
-            const text = textareaEl ? textareaEl.value.trim() : '';
-            if (!text) return;
-
-            // Gather image chips from the prompt box and convert to dataUrls.
-            const imageItems = el.getMediaItems().filter(m => m.mediaType === 'image');
-            const attachments = (await Promise.all(imageItems.map(async (item) => {
-                try {
-                    const res = await window.fetch(item.url);
-                    const blob = await res.blob();
-                    return await new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onload = (ev) => resolve({
-                            dataUrl: ev.target.result,
-                            name: item.name || item.url.split('/').pop() || 'image.jpg',
-                        });
-                        reader.onerror = reject;
-                        reader.readAsDataURL(blob);
-                    });
-                } catch { return null; }
-            }))).filter(Boolean);
-
-            // A video goes BY REFERENCE: `url` is a file the open project already holds, and a
-            // clip as a base64 data URL is hundreds of MB through a JSON body. `itemId` is
-            // what the agent's GIF tools name a card by; any entry of any card's history.
-            const pathOf = (u) => { try { return new URL(u, window.location.origin).searchParams.get('path'); } catch { return null; } };
-            const videoItems = el.getMediaItems().filter(m => m.mediaType === 'video' && pathOf(m.url));
-            for (const item of videoItems) {
-                const entry = (state.currentProject?.itemGroups || []).flatMap(g => g.history || [])
-                    .find(h => pathOf(h?.filePath) === pathOf(item.url));
-                attachments.push({ url: item.url, name: item.name || pathOf(item.url).split(/[\\/]/).pop(), mediaType: 'video', itemId: entry?.id || null });
-            }
-
-            // Route through the bus — no direct method call on the panel instance.
-            Events.emit('agent:send', { text, attachments });
-            textareaEl.value = '';
-            _writeMode('');
-            updateHeight();
-            // Clear the chips that were attached (non-pinned).
-            if (imageItems.length || videoItems.length) el.clearMedia();
-        }
-
-        if (_modeToggleSlot) {
-            const modeBtn = MpiButton.mount(_modeToggleSlot, {
-                image: 'assets/mascot/studio/logo.webp', // the agent's head, the Studio robot (MPI-797)
-                info: 'Switch to Agent mode (chat)',
-                size: 'sm',
-                variant: 'ghost',
-                toggleable: true,
-                active: _agentMode,
-            });
-            modeBtn.on('click', (data) => _setAgentMode(data.active));
-            _unsubs.push(() => modeBtn.destroy?.());
-
-            // Sync button when state.agentMode changes from another component
-            // (e.g. a future control or from navigation restoring state).
-            _unsubs.push(Events.onState('agentMode', (val) => {
-                if (val !== _agentMode) {
-                    _agentMode = val;
-                    _applyAgentView();
-                    modeBtn.el.setActive?.(val);
-                }
-            }));
-        }
-        // A box mounted while Agent mode is on (a workspace switch) opens on its Agent face.
-        if (_agentMode) _applyAgentView();
 
         // ── Run / Stop / Loop hotkeys ──────────────────────────────────────────
         const _triggerRun = () => {
             // An open Flow overlay owns Ctrl+Enter → it runs the Flow, not the PromptBox
             // behind it. bind() fires all handlers, so bail here when a Flow is live.
             if (qs('.mpi-base-flow')) return;
-            // MPI-797: Agent mode has no Cue: the run hotkey sends the message, as Enter
-            // does (the hotkey manager takes Ctrl+Enter before the textarea sees it).
-            if (_agentMode) { _sendAgentTurn(); return; }
             // MPI-73: the run hotkey bypasses the (now-disabled) Cue button — block
             // it too while the remote engine is connecting/disconnecting.
             if (_remoteTransitioning) return;
@@ -2600,7 +2457,6 @@ export const MpiPromptBox = ComponentFactory.create({
         };
 
         const _triggerLoop = () => {
-            if (_agentMode) return; // no Cue in Agent mode, so no loop to arm (MPI-797)
             state.loopArmed = !state.loopArmed;
             if (state.loopArmed) _seedLoopIfIdle();
         };

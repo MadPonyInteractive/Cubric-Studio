@@ -6,8 +6,9 @@
  *                           false/absent → the panel (agentPanel.js): a compact header
  *                           instead. BOTH render the composer (MPI-797 Phase 2); the
  *                           panel no longer borrows MpiPromptBox's agent mode for input.
- *                           The 'agent:send' listener below is what is left of that
- *                           route and goes with the toggle in Phase 3.
+ *                           MPI-797 Phase 3 deleted that route outright — the 'agent:send'
+ *                           event, its only producer (the prompt box's toggle) and the
+ *                           listener that stood in for this composer are all gone.
  *
  * Public API (on el):
  *   el.setWorking(bool)                — set the agent:working state externally.
@@ -552,19 +553,6 @@ export const MpiAgentChat = ComponentFactory.create({
         }
 
         el.setWorking  = _setWorking;
-
-        // ── Panel mode: send requests still arriving from MpiPromptBox ───────
-        // agent:send is emitted by MpiPromptBox's Agent/Prompt toggle. The panel now has
-        // its own composer below, which calls _sendMessage() directly — this listener is
-        // only what keeps the old toggle working until Phase 3 deletes it. The pair goes
-        // together then (emit at MpiPromptBox.js, this listener, the events.js entry and
-        // the emit in agent-chat.spec.js); removing it here would break the toggle in the
-        // window between the two phases. Two producers, one target, no double send.
-        if (!props.standalone) {
-            _unsubs.push(Events.on('agent:send', ({ text, attachments }) => {
-                _sendMessage(text, attachments || []);
-            }));
-        }
 
         // ── The composer — both modes (MPI-797 Phase 2) ───────────────────────
         const inputSlot    = qs('#ac-input-slot',   el);

@@ -53,8 +53,13 @@ test('hasAutoStartComfy separates "never set" from an explicit false', async () 
 
 test('the boot seed is one-way and gated on the unset state', () => {
     const shell = fs.readFileSync(path.join(__dirname, '..', 'js', 'shell.js'), 'utf8');
-    const seed = shell.match(/if \(!runpodCfg\.autoConnectOnStart && !Storage\.hasAutoStartComfy\(\)\) \{[\s\S]*?\n  \}/);
-    assert.ok(seed, 'the auto-start seed block is gone or its gate changed — it must skip a set pref AND a remote auto-connect boot');
+    // Three gates, not two (MPI-797 added the third, 2026-09-21): a set pref, a remote
+    // auto-connect boot, and the E2E harness. A spec profile is always fresh, so this seed
+    // always ran there — and on a dev box that HAS an engine it turned auto-start ON, boot
+    // tried to start ComfyUI inside the harness, and the failure modal's backdrop swallowed
+    // every click for the rest of the run. The suite is engine-blind by design (MPI-446).
+    const seed = shell.match(/if \(!runpodCfg\.autoConnectOnStart && !Storage\.hasAutoStartComfy\(\) && !_isE2E\(\)\) \{[\s\S]*?\n  \}/);
+    assert.ok(seed, 'the auto-start seed block is gone or its gate changed — it must skip a set pref, a remote auto-connect boot AND the E2E harness');
 
     const body = seed[0];
     assert.ok(

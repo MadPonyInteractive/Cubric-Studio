@@ -94,16 +94,34 @@ test('a clip that is not a card yet is still usable as media, and says why make_
     assert.equal(out.error.code, 'NOT_A_CARD');
 });
 
-// Neither half loads under Node (the box imports the app, the route needs a live session
-// layer), so the two gates are pinned where they are written.
-test('the two gates: the drop guard lets a video through in agent mode, and it is sent by reference', () => {
-    const box = read('js', 'components', 'Organisms', 'MpiPromptBox', 'MpiPromptBox.js');
-    assert.match(box, /mediaType === 'video' && state\.currentProject \? AGENT_MAX_VIDEOS : 0/, 'a video is accepted in agent mode once a project is open');
-    const send = box.slice(box.indexOf('async function _sendAgentTurn('));
-    assert.match(send, /attachments\.push\(\{ url: item\.url,[^}]*mediaType: 'video', itemId:/, 'and travels as a url + item id, never a data URL');
-
+// The route does not load under Node (it needs a live session layer), so its gate is pinned
+// where it is written.
+test('the server gate: a referenced path is honoured only inside the open project', () => {
     const route = read('routes', 'agent.js');
     const branch = route.slice(route.indexOf('if (!att.dataUrl && att.url)'), route.indexOf('tools.saveAttachment('));
     assert.match(branch, /ownedMedia\(project\.folderPath, att\.url\)/, 'the route honours the path only inside the open project');
     assert.match(branch, /reference: true/);
+});
+
+// ── The UI gate is OWED AGAIN (MPI-797 Phase 3, 2026-09-21) ──────────────────
+// This used to assert MPI-817's other half against MpiPromptBox: its drop guard accepted a
+// video in agent mode with a project open, and `_sendAgentTurn` pushed it as
+// `{ url, name, mediaType: 'video', itemId }` — by reference, never bytes.
+//
+// MPI-797 Phase 3 deleted agent mode from the prompt box, and that send path went with it.
+// The SERVER half above is untouched and still correct; what is gone is the only UI that
+// could reach it. The panel's own composer (`MpiAgentChat._addImageFile`) guards on
+// `image/` and silently ignores a dropped clip, so there is no way to hand the agent a
+// video today. Nothing is broken-but-hidden — the transport is simply unreachable.
+//
+// Left as a `todo` rather than deleted, so the contract stays on the board on every run.
+// Restoring it is not a line of Phase 3: MpiPromptBox staged its clip with its own private
+// `_importMediaFile`, there is no shared import service, and the panel composer has no
+// project-media machinery at all. That is a surface of its own, and Fabio's call.
+test('the UI gate: a video can be handed to the agent by reference', { todo: 'MPI-817 lost its UI half to MPI-797 Phase 3 — the panel composer takes images only' }, () => {
+    // assert.ok on a boolean, not assert.match on the source: a failing `match` prints the
+    // whole component into the run, and this one is EXPECTED to fail until the gap is filled.
+    const chat = read('js', 'components', 'Compounds', 'MpiAgentChat', 'MpiAgentChat.js');
+    assert.ok(/mediaType: 'video', itemId:/.test(chat),
+        'a clip travels as a url + item id, never a data URL');
 });

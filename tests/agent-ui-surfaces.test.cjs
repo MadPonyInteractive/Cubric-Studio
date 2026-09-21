@@ -6,8 +6,9 @@
  * this suite, so each one is asserted where it is declared — the CSS rule, or the branch
  * in the component source. They exist to fail when a later edit quietly takes one back.
  *
- *  1. Agent mode keeps Stop reachable (the agent has no cancel tool; the user's Stop is
- *     the only way to halt a generation it started).
+ *  1. Stop stays reachable (the agent has no cancel tool; the user's Stop is the only way
+ *     to halt a generation it started). MPI-797 Phase 3 answered this by deleting the
+ *     prompt box's agent face entirely, so rule 1 is now "the box is never stripped down".
  *  2. A video result is a <video>, and a result whose file will not load falls back to a
  *     readable tile instead of a broken image box.
  *  3. The agent's surfaces are Studio cream, not Vision rose.
@@ -28,65 +29,65 @@ const CHAT_CSS = 'js/components/Compounds/MpiAgentChat/MpiAgentChat.css';
 const LLM_JS = 'js/components/Organisms/MpiLlmSettings/MpiLlmSettings.js';
 const LLM_CSS = 'js/components/Organisms/MpiLlmSettings/MpiLlmSettings.css';
 
-// ── 1. Stop stays reachable in Agent mode ─────────────────────────────────────
+// ── 1. The prompt box is a prompt box, always (MPI-797 Phase 3) ──────────────
+// Rule 1 used to read "agent mode must not hide the run column, because the user's Stop is
+// the only way to halt a generation the agent started". Phase 3 answers it far harder: the
+// prompt box is never stripped down at all, so the whole run cluster is always on screen.
+// These guard that, which is the same protection stated at the new surface.
 
-test('agent mode does not hide the run column — Stop is the only way to halt a generation', () => {
+test('the prompt box has no agent face left — no modifier, no toggle slot, no agent branch', () => {
     const css = read(PROMPT_BOX_CSS);
-    // The block that hides the prompt-mode columns in agent mode.
-    const hidden = css.match(/\.mpi-prompt-box--agent-mode > :is\(([^)]*)\)/);
-    assert.ok(hidden, 'the agent-mode hide rule must exist');
-    assert.ok(!hidden[1].includes('__col--run'),
-        'the run column holds Stop: hiding it leaves an agent generation uncancellable');
-    // Only Stop shows in it: everything else in the column is hidden by name.
-    assert.match(css, /\.mpi-prompt-box--agent-mode \.mpi-prompt-box__col--run > :not\(\.mpi-prompt-box__stop-host\)/);
-    // Five visible columns in agent mode: the text, the head, the model button, the cog and
-    // Stop. It was three until MPI-774 Phase 7 put the pinned settings panel back (below);
-    // the track count and the hide list have to agree or the textarea lands in an `auto`
-    // column and the toggle in the stretching one.
-    const cols = css.match(/\.mpi-prompt-box--agent-mode \{[^}]*grid-template-columns:\s*([^;]+);/);
-    assert.ok(cols, 'agent mode declares its own column track');
-    assert.equal(cols[1].trim().split(/\s+/).length, 5);
-    // The class the rule spares has to be the one the component puts on the host.
-    assert.match(read(PROMPT_BOX_JS), /stopHost\.className = 'mpi-prompt-box__stop-host'/);
+    const js = read(PROMPT_BOX_JS);
+    // A rule matching the modifier, not a mention of the name inside a comment.
+    assert.doesNotMatch(css, /^\s*\.mpi-prompt-box--agent-mode[\s.>:,{]/m,
+        'the --agent-mode modifier is what stripped the box down; it must stay deleted');
+    assert.doesNotMatch(css, /^\s*\.mpi-prompt-box__popup--agent[\s.>:,{]/m,
+        'the popup lost its agent class with the box`s agent face');
+    assert.doesNotMatch(js, /\b_agentMode\b(?![^\n]*\/\/)/,
+        'no agent branch may come back into the prompt box; the agent has its own composer');
+    assert.ok(!js.includes('mode-toggle-slot'), 'the Agent|Prompt toggle slot is gone');
 });
 
-// ── 1b. The pinned settings panel (MPI-774 Phase 7) ──────────────────────────
+test('nothing hides the run column any more — Stop is always reachable', () => {
+    const css = read(PROMPT_BOX_CSS);
+    // Any rule that sets display:none on the run column, whatever prefixes it.
+    const hides = css.match(/[^}]*__col--run[^{}]*\{[^}]*display:\s*none[^}]*\}/g);
+    assert.equal(hides, null,
+        'the user`s Stop is the only way to halt a generation the agent started');
+});
+
+test('the run column keeps its full cluster: no stop-only special case survives', () => {
+    const js = read(PROMPT_BOX_JS);
+    // __stop-host existed ONLY so the agent-mode rule could spare it. Rule gone, class gone.
+    assert.ok(!js.includes('mpi-prompt-box__stop-host'),
+        'the class had one consumer (the deleted agent-mode rule) and goes with it');
+    assert.ok(!read(PROMPT_BOX_CSS).includes('__stop-host'));
+});
+
+// ── 1b. The pinned settings panel (MPI-774 Phase 7, re-homed in MPI-797 Phase 3) ──
 // Fabio, 2026-09-19: one boolean. Cog shut, the agent picks the model and the settings from
 // MODEL DEFAULTS; cog open, the user owns both and the agent still owns the prompt, the
 // media, the op and the card name. Enforcement is code in agentDispatch (its own test file,
-// agent-pinned-settings.test.cjs) — these four assert the SURFACE that arms it.
+// agent-pinned-settings.test.cjs) — these assert the SURFACE that arms it.
+//
+// Phase 3 changed the TRIGGER and nothing else: the box's own `_agentMode` is gone, so the
+// rule reads `state.agentMode` — the flag that local mirrored all along, now set by the top
+// bar's Agent button instead of a toggle in here.
 
-test('agent mode keeps the model button and the cog — they are the pinned panel', () => {
-    const css = read(PROMPT_BOX_CSS);
-    const hidden = css.match(/\.mpi-prompt-box--agent-mode > :is\(([^)]*)\)/)[1];
-    assert.ok(!hidden.includes('__col--settings'), 'the model button IS the pinned model');
-    assert.ok(!hidden.includes('__col--cog'), 'the cog is what pins and unpins the panel');
-    // The op strip stays gone in both mounts. Fabio: "if the user wants to go and change
-    // operations, then he just needs to close the agent mode. That's too much already."
-    assert.ok(hidden.includes('__op-strip'), 'the bar strip stays hidden');
-    assert.match(css, /\.mpi-prompt-box__popup--agent \.mpi-prompt-box__settings-ops\s*\{[^}]*display:\s*none/,
-        'the popup carries a SECOND op-strip mount and it has to go too');
-});
-
-test('the popup gets its own agent class — it is portaled and cannot inherit the box`s', () => {
-    const js = read(PROMPT_BOX_JS);
-    assert.match(js, /popupNode\.classList\.toggle\('mpi-prompt-box__popup--agent', _agentMode\)/);
-    // Portaled: the class on `el` can never reach document.body.
-    assert.match(js, /document\.body\.appendChild\(popupNode\)/);
-});
-
-test('in agent mode the panel is PINNED: no outside-click, no close-all, cog only', () => {
+test('the pinned panel is armed by state.agentMode, not by a deleted local flag', () => {
     const js = read(PROMPT_BOX_JS);
     const outside = js.match(/const onPopupOutsideClick = \(e\) => \{([\s\S]*?)\n        \};/);
     assert.ok(outside, 'the outside-click dismiss must still exist');
-    assert.match(outside[1], /if \(_agentMode\) return;/,
+    assert.match(outside[1], /if \(state\.agentMode === true\) return;/,
         'a stray click on the canvas must not hand the settings back to the agent');
     const closeAll = js.match(/Events\.on\('ui:close-all-popups',([\s\S]*?)\}\)\);/);
     assert.ok(closeAll, 'the close-all pulse handler must still exist');
-    assert.match(closeAll[1], /if \(_agentMode\) return;/, 'Escape reaches this pulse');
-    // Open/close are what WRITE the boolean the dispatch gate reads.
-    assert.match(js, /if \(_agentMode\) state\.agentSettingsPinned = true;/);
-    assert.match(js, /state\.agentSettingsPinned = _agentMode && popupActive;/);
+    assert.match(closeAll[1], /if \(state\.agentMode === true\) return;/, 'Escape reaches this pulse');
+    // Open is what WRITES the boolean the dispatch gate reads.
+    assert.match(js, /if \(state\.agentMode === true\) state\.agentSettingsPinned = true;/);
+    // The panel can also close while the cog is still open, and that hands the settings
+    // straight back. `_applyAgentView` carried this line before Phase 3 deleted it.
+    assert.match(js, /Events\.onState\('agentMode',[\s\S]{0,200}state\.agentSettingsPinned = val === true && popupActive;/);
     // A destroyed box must not leave the flag set with no panel to see.
     assert.match(js, /state\.agentSettingsPinned = false;[\s\S]{0,200}popupNode\.parentNode\.removeChild/);
 });
@@ -96,7 +97,18 @@ test('the cog says what opening it costs, before the click', () => {
     // [data-info] is the status-bar line (js/shell/statusBar.js), and it is the only copy
     // readable BEFORE the panel is open.
     assert.match(js, /const COG_INFO_AGENT = 'In agent mode, when you open this panel, you control the settings and the model, not the agent\.'/);
-    assert.match(js, /cogBtn\.el\.setAttribute\('data-info', _agentMode \? COG_INFO_AGENT : COG_INFO\)/);
+    assert.match(js, /setAttribute\('data-info', val === true \? COG_INFO_AGENT : COG_INFO\)/);
+});
+
+// ── 1c. agent:send went with the toggle (MPI-797 Phase 3) ────────────────────
+// It had one producer (the toggle) and one consumer (the panel's stand-in listener), and
+// the panel's own composer calls _sendMessage directly. Deleted as a set so neither half
+// can be left dangling — this is the guard that they stay deleted together.
+
+test('agent:send is gone from every side: emit, listener and the event catalogue', () => {
+    assert.ok(!read(PROMPT_BOX_JS).includes('agent:send'), 'the producer went with the toggle');
+    assert.ok(!read(CHAT_JS).includes("Events.on('agent:send'"), 'the stand-in listener goes too');
+    assert.ok(!read('js/events.js').includes('agent:send'), 'and its entry in the catalogue');
 });
 
 // ── 2. A video result, and a result that did not arrive ───────────────────────
@@ -143,7 +155,10 @@ test('the agent surfaces rebind the accent to Studio cream', () => {
     // One rebind per surface subtree covers the Primitives mounted inside it too — a
     // literal per rule would leave their hover and active states rose.
     assert.match(read(CHAT_CSS), /\.mpi-agent-chat \{[^}]*--accent-heat:\s*var\(--hub-accent\)/);
-    assert.match(read(PROMPT_BOX_CSS), /\.mpi-prompt-box__col--mode \{[^}]*--accent-heat:\s*var\(--hub-accent\)/);
+    // The prompt box's `__col--mode` rebound the same cream for the toggle's head. MPI-797
+    // Phase 3 deleted the toggle, so there is one agent surface now, not two — and the box
+    // must NOT carry a cream rebind of its own: it is the selected model's colour (MPI-736).
+    assert.doesNotMatch(read(PROMPT_BOX_CSS), /^\s*\.mpi-prompt-box__col--mode[\s.>:,{]/m);
 });
 
 // ── 4. Language Models loads visibly ──────────────────────────────────────────

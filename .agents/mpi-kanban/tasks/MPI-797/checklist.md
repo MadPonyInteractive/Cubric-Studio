@@ -31,11 +31,30 @@ BUILT 2026-09-20, three rounds of Fabio's own eyes; no final "verified" yet. See
       could starve the field. All fixed and measured.
 
 ## Phase 3 - agent mode leaves MpiPromptBox
-- [ ] Remove the toggle and every `_agentMode` branch (~10 sites, 34 grep hits).
-- [ ] Decide `state.agentSettingsPinned`: it is read by `agentService.js` and `agentDispatch.js`.
-- [ ] Move the assertions in `tests/agent-ui-surfaces.test.cjs` and `tests/desktop/agent-chat.spec.js`.
-- [ ] `npm test` + `npm run lint` green.
+BUILT 2026-09-21; no "verified" yet. See validation.md.
+- [x] Remove the toggle and every `_agentMode` branch. 28 hits, all gone; also the CSS
+      modifier, `__popup--agent`, `__col--mode`, `__stop-host` and the `docs/` copy.
+- [x] Decide `state.agentSettingsPinned`: **RE-HOMED onto `state.agentMode`, not deleted.**
+      "Delete the read side" turned out to mean deleting a whole-stack feature
+      (`agentDispatch` + `agentService` + `agentLoop.mjs` + an 8-test suite) on a card
+      about a UI toggle, and answering by force the product question MPI-843 parked.
+- [x] Move the assertions in `tests/agent-ui-surfaces.test.cjs` and
+      `tests/desktop/agent-chat.spec.js`. Each new guard proven RED on pre-fix code, one
+      back-out at a time; files restored sha-checked.
+- [x] `npm test` (1668 pass / 0 fail) + `eslint` green; `agent-chat.spec.js` 31/31.
+- [x] Not in the plan, found while verifying: MPI-863's boot seed (`e2bc81f5`) turned
+      auto-start ComfyUI ON inside the E2E harness and red 16 of 31 desktop specs on any
+      box with an engine. One `!_isE2E()` clause. Proven not-ours first.
+
+## Open, needs Fabio - not blockers this session can clear
+- [ ] **A REGRESSION Phase 3 causes:** MPI-817's video-by-reference had its ONLY UI path in
+      `_sendAgentTurn`. The server half is intact; nothing can reach it. Restoring it needs
+      project-media staging in the panel composer - a surface of its own, not a Phase 3
+      line. Its test is a `todo`, not deleted. Messaged to MPI-817 (4ea0febf).
+- [ ] **The PINNED popup was left exactly as it was** and now holds while the panel is open
+      and he uses the prompt box normally - a situation that could not exist before. He has
+      ruled on it twice, so it was not quietly changed. Worth a look in the app.
 
 ## Close
-- [ ] Fabio's `user-ux` check (see plan's Verification).
-- [ ] Record what shipped, and the `agentSettingsPinned` decision, in `validation.md`.
+- [ ] Fabio's `user-ux` check of Phase 2 AND Phase 3 (see plan's Verification).
+- [x] Record what shipped, and the `agentSettingsPinned` decision, in `validation.md`.

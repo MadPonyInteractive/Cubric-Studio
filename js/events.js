@@ -139,8 +139,6 @@ export const Events = new EventBus();
  *                      conversation (D5); the chat draws its bubble once, by id
  * 'agent:session'    { from, to }                          — a conversation moved into a project
  *                      (the landing chat opened it); chats showing either side reload
- * 'agent:send'       { text, attachments }                 — request to send a message to the agent
- *                      (emitted by MpiPromptBox in agent mode; consumed by MpiAgentChat panel)
  * 'gallery:open-card' { itemId, groupId }                  — a chat result card was clicked; the shell
  *                      (agentPanel.js) opens that card's history when the open project holds it
  * 'comfy:starting'   —                               — ComfyUI server is starting up

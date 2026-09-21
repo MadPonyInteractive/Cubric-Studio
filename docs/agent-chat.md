@@ -1,8 +1,10 @@
 # Agent chat — the in-app agent contract (MPI-774, slice A)
 
-An Agent | Prompt toggle turns the prompt box into a chat with a **server-side** loop that recommends
-and installs models, generates through the connector, sees images through the describer, and compacts
-itself. Spec: `.agents/mpi-kanban/tasks/MPI-774/brief.md`. Contract first (2026-09-15), kept current.
+The Agent button in the top bar (or `A`) opens a chat panel driven by a **server-side** loop that
+recommends and installs models, generates through the connector, sees images through the describer,
+and compacts itself. Spec: `.agents/mpi-kanban/tasks/MPI-774/brief.md`. Contract first (2026-09-15),
+kept current. *(MPI-774 shipped this as an Agent | Prompt toggle inside the prompt box; MPI-797 gave
+the panel its own composer and then deleted the toggle.)*
 
 ## Shape
 
@@ -18,14 +20,17 @@ itself. Spec: `.agents/mpi-kanban/tasks/MPI-774/brief.md`. Contract first (2026-
 - **Chat** `js/components/Compounds/MpiAgentChat/`, twice: the landing slot (standalone, beside the
   headline: the landing page's conversation) and the shell panel `#agent-panel-mount`
   (`js/shell/agentPanel.js`: the open project's), LEFT, from under the topbar to the status bar,
-  open while `state.agentMode` is true (the PromptBox toggle). Its right edge drags
-  (`MpiResizeHandle`; 280-900 px, at most half the area, stored as `AGENT_PANEL_WIDTH`, default 420),
-  and the workspace, prompt box and controls start right of it (MPI-797). The PromptBox sends with
-  `agent:send`, image chips as attachments. The toggle is the agent's head, the Studio robot (`MpiButton` `image`,
-  `assets/mascot/studio/logo.webp`, as tall as the Enhance button). **In Agent mode the PromptBox is an agent box:** only the
-  text and the toggle show; the text is the agent's own (the prompt survives), with a usage hint;
-  chips are images, numbered by position, up to 9, whatever the op takes; Ctrl+Enter sends too; back
-  in Prompt mode the chips fit the op again. A chat reloads from
+  open while `state.agentMode` is true (the top bar's Agent button, or the `A` hotkey). Its right
+  edge drags (`MpiResizeHandle`; 280-900 px, at most half the area, stored as `AGENT_PANEL_WIDTH`,
+  default 420), and the workspace, prompt box and controls start right of it (MPI-797).
+  **Each chat owns its own composer** (MPI-797 Phase 2): text field, send button, drag-and-drop
+  attachments numbered 1, 2, 3 in both the composer and the sent bubble, Enter to send and
+  Shift+Enter for a newline. **The PromptBox is not part of this** — MPI-797 Phase 3 deleted its
+  Agent|Prompt toggle, its agent face and the `agent:send` event that carried its text here, so the
+  prompt box is a prompt box in every workspace and the two can be used side by side. What survives
+  of that coupling is settings ownership only: with the panel open, opening the prompt box's cog
+  sets `state.agentSettingsPinned` and the user takes the model and the settings for the turn (see
+  below). A chat reloads from
   `/agent/history?project=` on mount, `project:changed` and `agent:session`, and renders only events
   whose `session` is its own. A result card emits `gallery:open-card`; the shell opens that card.
 - **One stream.** `agentService.agentInitStream()` (shell boot) opens the only `/agent/stream` and
@@ -38,7 +43,7 @@ itself. Spec: `.agents/mpi-kanban/tasks/MPI-774/brief.md`. Contract first (2026-
 
 | # | Brief item | Route / event / UI |
 |---|---|---|
-| 1 | Toggle, Enter sends, drop images, landing entry | `MpiPromptBox` toggle -> `state.agentMode`; shell panel; landing slot; `POST /agent/message` with `project: null` |
+| 1 | Entry, Enter sends, drop images, landing entry | Top-bar Agent button / `A` -> `state.agentMode`; shell panel and landing slot, each with its own composer (MPI-797); `POST /agent/message` with `project: null` |
 | 2 | Mascot always in the box | `idle.png` / `waiting.png` in `MpiAgentChat`, flipped by `agent:working` |
 | 3 | Knows models, ops, fit, docs | `list_models` + `describe_model` -> `GET /connector/models`; `read_knowledge` -> `GET /connector/knowledge[/:id]` |
 | 4 | Recommends; VRAM<->RAM trade | `fit` on `GET /connector/models` (`footprint.js` `tradeTable`) |
@@ -314,16 +319,18 @@ with Krea 2 it ran `krea2 i2i` and cited "its best realism op, rank 1" (live, ha
 
 ## Agent surfaces (Phase 5)
 
-- **Stop stays reachable in Agent mode.** The agent has no cancel tool and will not get one, so the
-  user's own Stop is the only way to halt a generation it started. Agent mode keeps
-  `.mpi-prompt-box__col--run` and hides everything in it but `.mpi-prompt-box__stop-host`; the cancel
-  path behind it is origin-blind and already arms itself from `activeGenerations`.
+- **Stop stays reachable while the agent generates.** The agent has no cancel tool and will not get
+  one, so the user's own Stop is the only way to halt a generation it started. MPI-774 did this by
+  keeping `.mpi-prompt-box__col--run` and hiding everything in it but `.mpi-prompt-box__stop-host`;
+  **MPI-797 Phase 3 dropped both, because the prompt box is never hidden any more** and its whole run
+  cluster is always on screen. The cancel path behind it is origin-blind and arms itself from
+  `activeGenerations`, so it halts an agent-started generation like any other.
 - **A video result is a `<video>`.** `MpiAgentChat._appendResult` built an `<img>` for every result,
   so a video result painted as a broken tile captioned "video". Either element's `error` swaps in a
   fallback tile, which is also what a stopped generation's missing file now shows.
-- **The agent is Studio cream.** `.mpi-agent-chat` and the prompt box's `__col--mode` rebind
-  `--accent-heat` to `--hub-accent` for their subtree, so the Primitives mounted inside them carry it
-  through their hover and active states too.
+- **The agent is Studio cream.** `.mpi-agent-chat` rebinds `--accent-heat` to `--hub-accent` for its
+  subtree, so the Primitives mounted inside it carry it through their hover and active states too.
+  (The prompt box's `__col--mode` did the same for the toggle's head; both went in MPI-797 Phase 3.)
 - **Language Models loads visibly.** Every control in that section mounts from an async read, so a
   cold open used to paint labels with nothing under them; the section now shows a spinner and keeps
   its subgroups out of the flow until the read lands.
@@ -331,7 +338,10 @@ with Krea 2 it ran `krea2 i2i` and cited "its best realism op, rank 1" (live, ha
 ## The pinned settings panel (Phase 7, Fabio 2026-09-19)
 
 One boolean — `state.agentSettingsPinned` — decides who owns the model and the settings of an
-agent-dispatched generation. Agent mode keeps the model button and the cog for exactly this.
+agent-dispatched generation. **MPI-797 Phase 3 re-homed its trigger** from the prompt box's deleted
+agent face onto `state.agentMode` (the panel being open), which is the same flag that face always
+mirrored: with the panel open, an open cog pins. The prompt box is no longer stripped down for this,
+so the model button and cog are simply always there.
 
 | | Cog shut — agent drives | Cog open — the USER drives |
 |---|---|---|
@@ -339,12 +349,14 @@ agent-dispatched generation. Agent mode keeps the model button and the cog for e
 | model | agent picks by task + rank | **the user** |
 | ratio / quality / turbo / style / stylization | agent, **from MODEL DEFAULTS** | **the user** |
 
-- **Open means PINNED.** The popup survives outside-click and Escape in agent mode and closes on the
-  cog alone — handing that ownership back by accident is worse than a popup that stays up. It loses
-  its op strip through its own `.mpi-prompt-box__popup--agent` class (it is portaled, so the box's
-  class cannot reach it). Fabio: *"if the user wants to go and change operations, then he just needs
-  to close the agent mode."* The cog's `[data-info]` says what opening it costs — the only copy
-  readable before the click.
+- **Open means PINNED.** The popup survives outside-click and Escape while the agent panel is open
+  and closes on the cog alone — handing that ownership back by accident is worse than a popup that
+  stays up. The cog's `[data-info]` says what opening it costs — the only copy readable before the
+  click. **MPI-797 Phase 3 dropped `.mpi-prompt-box__popup--agent`**, which used to hide the op strip
+  inside this popup (Fabio: *"if the user wants to go and change operations, then he just needs to
+  close the agent mode."*). That rested on the prompt box being the agent's face; now the user drives
+  the prompt box themselves while the panel is open, so hiding their own op selector was wrong. The
+  op was never part of the handover — the table above has always given it to the agent either way.
 - **Enforcement is code, never a prompt rule** — `resolveSettingsOwner` (`js/shell/agentDispatch.js`),
   rejected as a prompt rule twice. Pinned, the named params are dropped and a foreign `modelId` is
   **refused** (`MODEL_PINNED`), never silently swapped: running the user's model under the agent's
