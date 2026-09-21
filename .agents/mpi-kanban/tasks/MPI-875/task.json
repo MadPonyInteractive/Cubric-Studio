@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-875",
+  "title": "A cloud run can land twice, and the agent reaches for a paid model unprompted",
+  "description": "Two cloud-safety bugs found live on 2026-09-21. (1) One DeepInfra call returned two copies of one image and became two gallery cards; the route must honour the count it asked for. (2) Cloud models carry no rank and no note, so the in-app agent picked a billed model for a plain t2i. Brief: brief.md.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-21T12:17:59+01:00",
+  "updated_at": "2026-09-21T12:18:42+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

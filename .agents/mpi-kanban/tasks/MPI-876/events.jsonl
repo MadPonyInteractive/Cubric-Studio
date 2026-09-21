@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-876", "at": "2026-09-21T12:24:36+01:00", "actor": "claude-opus-5 (4d2449a8)", "column": "todo", "title": "The agent asks before it spends, and says roughly how much"}

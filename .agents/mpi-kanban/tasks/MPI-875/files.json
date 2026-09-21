@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/deepinfra.js",
+    "js/data/modelConstants/modelPriority.js",
+    "tests/cloud-executor.test.cjs",
+    "tests/model-priority.test.cjs",
+    ".agents/mpi-kanban/tasks/MPI-875/"
+  ]
+}

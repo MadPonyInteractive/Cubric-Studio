@@ -156,8 +156,17 @@ path. Confirm above 5 (`BATCH_CONFIRM_ABOVE`), `agent:confirm` gains `kind: 'bat
 
 ## Current State
 
-Built and unit-verified; NOT yet seen in the app. The next action is Fabio's three live checks
-in `validation.md`, after a RESTART — both services load at boot.
+**Done and PROVEN LIVE.** All three checks in `validation.md` passed in Fabio's own app on
+2026-09-21, plus all three folded-in fixes. Code committed as `9be177b8`.
+
+The single next action is: **push `9be177b8`, wait for CI to judge it, then close the card.**
+It is held in `doing` / `validating` for that reason alone — a card does not close on its own
+unjudged commit (`close-out.md`), and `.husky/pre-push` enforces it. Nothing else is owed.
+
+Spun out of this card and NOT part of it: **MPI-876**, the spend gate — the agent must not run
+a billed cloud model without a Yes, and must say roughly what it costs. Fabio's ask on
+2026-09-21 after watching the agent reach for a paid model unprompted. Planned, not started,
+and its `plan.md` is self-contained.
 
 ## Plan Drift — 2026-09-21
 

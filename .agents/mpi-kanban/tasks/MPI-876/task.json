@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-876",
+  "title": "The agent asks before it spends, and says roughly how much",
+  "description": "Fabio, 2026-09-21: the in-app agent must not run a BILLED cloud model without a yes/no card first, and that card has to say in one short sentence roughly what it will cost. Today a cloud op just runs. The gate is the agent:confirm seam in services/agentLoop.mjs (kind install exists for a download, kind batch was added by MPI-870) plus _appendConfirm in MpiAgentChat.js; the PRICE comes from dev_configs/deepinfra-prices.json via deepinfraPricing.js. Composes with MPI-870's batch confirm: N cloud cards is ONE card naming N x the per-image price, never N cards. Depends on MPI-875 for the rank and the cost note; this card is the gate only, not the ranking. Under the MPI-817 agent-reliability umbrella.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-21T12:24:36+01:00",
+  "updated_at": "2026-09-21T12:24:36+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

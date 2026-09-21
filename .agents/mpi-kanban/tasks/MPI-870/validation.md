@@ -36,7 +36,42 @@ New coverage:
   description`, only one vision call is spent between them, and history carries the corrected
   label so a remount does not redraw the disproved claim.
 
-## Live, in Fabio's own app — 2026-09-21 11:02–11:03Z, check 2 PASSED
+## Live, in Fabio's own app — 2026-09-21, ALL THREE CHECKS PASSED
+
+Every live check and every folded-in fix is verified in his own app, by him. The card is held in
+`validating` rather than closed for ONE reason only: commit `9be177b8` is unpushed and CI has
+not judged it. A card does not close on its own unjudged commit (`close-out.md`). Push, let CI
+go green on it, then close — nothing else is owed.
+
+### Check 3, the batch — PASSED, 11:26–11:28Z
+
+Six i2i restyles from ONE ask in "Cowgirl on a Bull", one confirm, one chat line, one numbered
+report. The fan-out is visible in `app.log` as six `generation.submit` calls **1.01 s apart** —
+the loop paying `EARLY_REFUSAL_MS` per item, which is exactly the shape intended:
+
+```
+11:26:36.900  ill-anime:i2i — ratio=3:4 (asked), qualityTier=null (defaulted), denoise=0.3 (defaulted)
+11:26:37.918  ill-anime:i2i — ratio=4:5 (asked), qualityTier=null (defaulted), denoise=0.3 (defaulted)
+… four more, one per second …
+```
+
+**No auto-look on batch items, confirmed:** zero `[agent] look` lines inside the submit window
+(11:26:36–41). The nine looks around it are three SOURCE images before the batch and six the
+agent chose to make afterwards to write its report. Worth recording as a design fact rather than
+a defect: the batch removes the AUTOMATIC vision calls; a wake turn may still spend them
+deliberately, and here it did, and the report was better for it.
+
+Those six lines are also fix 3 answering the question that started this whole track: denoise
+`0.3` was **inherited**, not chosen. Before MPI-870 the sidecar said `0.3` and nothing on disk
+could tell the two apart.
+
+### Fix 1, the cache-read label — PASSED, 11:28Z+
+
+He asked the agent to describe "Cowgirl arena 3D" (`i2i_010`), a card it had described minutes
+earlier. The chat printed **`FETCHING SAVED IMAGE DESCRIPTION`** and served the kept text. No
+new `agent.describe` job in the log. Screenshot in his 2026-09-21 message.
+
+### Checks 1 and 2 — PASSED, 11:02–11:03Z
 
 App booted 11:01:11Z, so the build carried every fix. He asked for one t2i in "Anime Kids and
 Dog", **left for another project while it rendered**, and came back.
