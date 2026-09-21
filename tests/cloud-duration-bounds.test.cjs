@@ -70,13 +70,26 @@ test('a local video model keeps the app range', async () => {
     assert.deepEqual(durationBoundsFor(undefined), { min: 1, max: 30 });
 });
 
-test('Veo 3.1 publishes no duration field, so its range is unchanged', async () => {
+test('Veo 3.1 publishes no duration field, so it is fixed at the 8 s it returns', async () => {
     const { durationBoundsFor } = await CONTROLS();
     const { durationRangeFor } = await SIZING();
-    const veo = await byId('veo-31-cloud');
-    assert.equal(durationRangeFor(veo.cloud.endpointId), null, 'fixture guard: Veo still has no duration field');
-    // Narrowing a slider that changes nothing would not fix it. That is its own card.
-    assert.deepEqual(durationBoundsFor(veo), { min: 1, max: 30 });
+    for (const id of ['veo-31-cloud', 'veo-31-fast-cloud']) {
+        const veo = await byId(id);
+        assert.equal(durationRangeFor(veo.cloud.endpointId), null, `fixture guard: ${id} still has no duration field`);
+        // MPI-880. Not a narrowed slider — a collapsed range, which is what makes the
+        // control render as a line. The 8 is CLIP_SECONDS, the number the run is priced on.
+        assert.deepEqual(durationBoundsFor(veo), { min: 8, max: 8 }, id);
+    }
+});
+
+test('a fixed-length model injects its own length whatever was saved against another', async () => {
+    const { PROMPT_BOX_CONTROLS, durationBoundsFor } = await CONTROLS();
+    const ctrl = PROMPT_BOX_CONTROLS.duration;
+    const bounds = durationBoundsFor(await byId('veo-31-cloud'));
+    // The bucket is `shared`: a 3 set on Wan is the value the entry is holding when Veo
+    // is picked, and 3 is the shipped default — the live under-quote the card measured.
+    assert.deepEqual(ctrl.getInjectionParams.call({ ...ctrl, value: 3, _bounds: bounds }), { Input_Duration: 8 });
+    assert.deepEqual(ctrl.getInjectionParams.call({ ...ctrl, value: 30, _bounds: bounds }), { Input_Duration: 8 });
 });
 
 // ── 3. the bounds reach the slider and the injection ─────────────────────────────────
@@ -105,4 +118,40 @@ test('the mounted slider takes its min and max from the bounds, not from constan
     assert.ok(/min: bounds\.min/.test(entry) && /max: bounds\.max/.test(entry),
         'the duration slider must mount with the model bounds');
     assert.ok(!/Math\.min\(30,/.test(entry), 'a hardcoded 30 is left in the duration control');
+    // MPI-880 — the 8 is CLIP_SECONDS', never retyped here.
+    assert.ok(!/\b8\b/.test(entry), 'a literal 8 is left in the duration control');
+});
+
+// ── 4. a fixed-length model gets a line, not a slider (MPI-880) ──────────────────────
+
+/**
+ * Enough DOM for the mount and no more. The point is which ELEMENTS get created: a
+ * slider host would appear as a second child under `.mpi-prompt-box__slider-track`, and
+ * MpiProgressBar would paint `width: NaN%` into it at min === max.
+ */
+function fakeDocument() {
+    const make = (tag) => ({
+        tagName: tag, className: '', textContent: '', style: {}, children: [],
+        appendChild(kid) { this.children.push(kid); return kid; },
+    });
+    return { createElement: make, host: make('div') };
+}
+
+test('Veo mounts a static line — no slider, and it reads the length the run is billed at', async () => {
+    const { PROMPT_BOX_CONTROLS } = await CONTROLS();
+    const doc = fakeDocument();
+    const prior = global.document;
+    global.document = doc;
+    try {
+        // value 3 in the shared bucket — the shipped default, and the live under-quote.
+        PROMPT_BOX_CONTROLS.duration.mount(doc.host, { model: await byId('veo-31-cloud'), value: 3 });
+    } finally {
+        if (prior === undefined) delete global.document; else global.document = prior;
+    }
+
+    const classes = doc.host.children.map(c => c.className);
+    assert.deepEqual(classes, ['mpi-prompt-box__slider-lbl'], 'the label row must be the only child — no slider track');
+    const [name, value] = doc.host.children[0].children.map(c => c.textContent);
+    assert.equal(name, 'Duration');
+    assert.equal(value, '8 s');
 });

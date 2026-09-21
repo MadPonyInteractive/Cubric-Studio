@@ -25,6 +25,7 @@ import { PROMPT_CONTROL_DEFAULTS } from '../../../data/promptControlDefaults.js'
 import { Events } from '../../../events.js';
 import { getModelRatios, usesQualityTier } from '../../../utils/ratios.js';
 import { durationRangeFor } from '../../../data/modelConstants/deepinfraSizing.js';
+import { fixedDurationFor } from '../../../data/modelConstants/deepinfraPricing.js';
 // MPI-547 — the qualityTier resolve (per-model bucket wins, legacy shared
 // fallback, else the model's cheapest tier) and the op→model→global default
 // are shared with `js/shell/agentDispatch.js`'s named-param resolver via this
@@ -91,16 +92,23 @@ const APP_DURATION_BOUNDS = { min: 1, max: 30 };
  * the length that ran, with the price tag quoting the clamped figure the slider disagreed
  * with. Bounding the CONTROL is what makes the two agree.
  *
- * A local model has no published range and keeps the app's 1..30, as does a cloud model
- * with no duration field at all — Veo 3.1 has none, and a slider that changes nothing is
- * its own defect, not one a narrower range would fix.
+ * A local model has no published range and keeps the app's 1..30.
+ *
+ * A FIXED-LENGTH model collapses to one second count (MPI-880). Veo 3.1 publishes no
+ * duration field at all: the clip comes back 8 s whatever is asked for, so the range is
+ * 8..8 and the control renders a static line rather than a slider — see the `duration`
+ * entry. The 8 is `deepinfraPricing`'s own `CLIP_SECONDS`, so the number shown and the
+ * number priced cannot drift apart.
  *
  * @param {object} [model] - the ModelDef the prompt box currently has picked
  * @returns {{min:number, max:number}}
  */
 export function durationBoundsFor(model) {
     const endpointId = model?.provider ? model?.cloud?.endpointId : null;
-    return (endpointId && durationRangeFor(endpointId)) || APP_DURATION_BOUNDS;
+    if (!endpointId) return APP_DURATION_BOUNDS;
+    const fixed = fixedDurationFor(endpointId);
+    if (fixed) return { min: fixed, max: fixed };
+    return durationRangeFor(endpointId) || APP_DURATION_BOUNDS;
 }
 
 function _emitUpdate(ctrl, opts, key, value) {
@@ -589,6 +597,12 @@ export const PROMPT_BOX_CONTROLS = {
      *
      * The range is the PICKED model's, via `durationBoundsFor` — a local model keeps the
      * app's 1..30, a cloud model gets the provider's own bounds (MPI-879).
+     *
+     * A FIXED-LENGTH model (Veo 3.1) gets NO slider at all: the label row alone, reading
+     * "Duration  8 s" (MPI-880). A control that cannot change anything is the defect, so
+     * the answer is to stop offering the gesture, not to narrow it — and it sidesteps
+     * MpiProgressBar's `(value - min) / (max - min)`, which is 0/0 at min === max and
+     * paints `width: NaN%`.
      */
     duration: {
         nodeTitle: 'Input_Duration',
@@ -623,6 +637,10 @@ export const PROMPT_BOX_CONTROLS = {
             lblRow.appendChild(nameEl);
             lblRow.appendChild(valEl);
             hostEl.appendChild(lblRow);
+
+            // Fixed length — the line above IS the control. Nothing to mount and nothing
+            // to listen to; `initial` is the model's one length, clamped to it above.
+            if (bounds.min === bounds.max) return;
 
             const barHost = document.createElement('div');
             barHost.className = 'mpi-prompt-box__slider-track';

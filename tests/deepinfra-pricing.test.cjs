@@ -146,6 +146,18 @@ test('Veo carries no duration field, so its fixed clip length prices it', () => 
     near(estimateCost('google/veo-3.1-fast').usd, 1.20, 1e-9, 'Veo 3.1 Fast');
 });
 
+test('a supplied duration cannot move a fixed-length price (MPI-880)', () => {
+    // The provider returns 8 s whatever is sent, so a duration reaching here is a number
+    // no run will ever bill. It quoted $1.20 against a $3.20 charge at the duration
+    // control's default of 3, and $12.00 against the same $3.20 at 30.
+    for (const duration of [3, 30, 0.5]) {
+        near(estimateCost('google/veo-3.1', { duration }).usd, 3.20, 1e-9, `Veo 3.1 at ${duration}`);
+        near(estimateCost('google/veo-3.1-fast', { duration }).usd, 1.20, 1e-9, `Veo 3.1 Fast at ${duration}`);
+    }
+    // And a model whose length IS the caller's still honours it.
+    near(estimateCost('Wan-AI/Wan3.0-Video', { resolution: '1080p', duration: 5 }).usd, 1.00, 1e-9, 'Wan still reads duration');
+});
+
 // ── negative controls: refuse, never guess ───────────────────────────────────────────────
 
 test('an unknown model id refuses', () => {

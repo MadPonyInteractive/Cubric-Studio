@@ -1,0 +1,9 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Organisms/MpiPromptBox/PromptBoxControls.js",
+    "js/data/modelConstants/deepinfraPricing.js",
+    "tests/cloud-duration-bounds.test.cjs",
+    "tests/deepinfra-pricing.test.cjs"
+  ]
+}

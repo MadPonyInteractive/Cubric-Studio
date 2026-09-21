@@ -102,11 +102,29 @@ const SEEDANCE_RATE_PER_M = {
  * Veo has no `duration` field at all — fixed-length clips — so its structured per-second
  * rate has nothing to multiply until a length is supplied. 8 s reproduces the published
  * headlines: $0.40/s -> $3.20, $0.15/s -> $1.20.
+ *
+ * This WINS over a supplied `opts.duration` (MPI-880), which is the opposite of how it
+ * read until then. A length reaching us for one of these models is not a length the
+ * provider will honour — the clip comes back 8 s whatever was sent — so trusting it
+ * quoted a price no run could ever bill: $1.20 against a $3.20 charge at the duration
+ * control's shipped default of 3 s, $12.00 against the same $3.20 at 30. The control no
+ * longer offers a range here, but it is not the only writer of `Input_Duration`
+ * (generationControls.js's agent path is another), so the guard belongs at the money.
  */
 const CLIP_SECONDS = {
     'google/veo-3.1': 8,
     'google/veo-3.1-fast': 8,
 };
+
+/**
+ * The one length this model can return, for a model whose clips are fixed (MPI-880).
+ * Exported so the duration control can say "8 s" without retyping the number — the same
+ * constant that prices the run is the one the user is shown.
+ * @returns {number|null} null when the model's length is the caller's to choose.
+ */
+export function fixedDurationFor(modelId) {
+    return CLIP_SECONDS[modelId] || null;
+}
 
 /** Seedream 5.0 Pro is the one model that bills extra per input image after the first. */
 const EXTRA_INPUT_IMAGE_USD = {
@@ -158,7 +176,7 @@ function priceGeminiImage(modelId, opts) {
 }
 
 function priceTokenVideo(modelId, pricing, opts) {
-    const seconds = opts.duration || CLIP_SECONDS[modelId];
+    const seconds = CLIP_SECONDS[modelId] || opts.duration;
     if (!seconds) return null;
     const label = String(opts.resolution || '480p').toLowerCase();
     const px = VIDEO_PIXELS[label];
@@ -175,7 +193,7 @@ function priceTokenVideo(modelId, pricing, opts) {
 }
 
 function priceOutputLength(modelId, pricing, opts) {
-    const seconds = opts.duration || CLIP_SECONDS[modelId];
+    const seconds = CLIP_SECONDS[modelId] || opts.duration;
     if (!seconds) return null;
     const label = String(opts.resolution || '').toLowerCase();
     const cents = pricing.cents_per_output_sec_by_resolution?.[label] ?? pricing.cents_per_output_sec;
