@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-863", "at": "2026-09-21T00:37:52+01:00", "actor": "claude", "column": "todo", "title": "Auto-start ComfyUI defaults ON once an engine is installed"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-863", "at": "2026-09-21T00:38:47+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Seeding the auto-start pref from engine install state"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-863", "at": "2026-09-21T00:42:21+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Code committed e2bc81f5, tests green; awaiting a CI verdict on its own commit"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-863", "at": "2026-09-21T01:00:55+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI run 35545481031 green on d6726460"}

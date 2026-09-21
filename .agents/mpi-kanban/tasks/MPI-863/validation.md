@@ -23,6 +23,19 @@ Commit: `e2bc81f5` — `js/core/storage.js`, `js/shell.js`, `tests/autostart-com
   reuse-default pins still hold.
 - `npx eslint js/core/storage.js js/shell.js tests/autostart-comfy-default.test.cjs` — clean.
 
+## CI
+
+Run `35545481031` on `d6726460` (carries `e2bc81f5`): **success**. Card closed on that run.
+
+## Follow-on by a peer, not a defect here
+
+MPI-797 added a third gate to the seed block, `&& !_isE2E()`, and updated the test's regex
+with it. A spec profile is always fresh, so the seed always ran under the harness; on a dev
+box that HAS an engine it turned auto-start ON, boot tried to start ComfyUI inside the
+harness, and the failure modal's backdrop swallowed every click for the rest of the run.
+The suite is engine-blind by design (MPI-446). Correct fix, owned by that card's commit —
+it landed after run `35545481031`, and the test passes with it (2 pass, re-run 2026-09-21).
+
 ## Not verified in a running app
 
 The seed is renderer boot code; it was not watched execute in a live Electron session. The
