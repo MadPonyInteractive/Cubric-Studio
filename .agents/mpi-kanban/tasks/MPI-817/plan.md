@@ -208,6 +208,18 @@ truth: upright, both revolvers raised, pointing UP. Worth a sweep once:
 which other controls does the PromptBox inject that `resolveNamedParams` does not? Duration
 and denoise were both that; `upscaleFactor` and `useGrid` are the obvious suspects.
 
+**Update 2026-09-21 08:30Z.** Fabio closed MPI-816 and MPI-840/839/820; the project-switch fix
+has its `UNRELEASED.md` line. **The describer is replaced on evidence** - `gemma-4-26B-A4B-it`,
+10/10 and half the price of Scout's 6/10 (`validation.md`, the table). **His 07:45Z app test ran
+a build from BEFORE the kept look and denoise** (boot 22:22Z, fixes 23:52Z / 00:30Z), so both
+still owe a live check after ONE restart. That run did prove two things that are not mine: the
+agent promised to report back although the rule forbids it (fourth time a prompt line has lost),
+and a finished generation is SILENT until he types - the wake-on-drain gap, which is what he
+actually hit. Next: (1) the wake, now the top-ranked unbuilt piece and the thing he feels;
+(2) record WHICH describer wrote a stored look - he asked for it, it needs `agent.describe` to
+report its model, and that is in MPI-797's `agentDispatch.js`; (3) a second, harder bench image
+(two characters, unusual poses) through `research/vision-bench.mjs`; (4) the `:i2i` NOTE.
+
 ## Phase C, first piece: batch ask + wake on drain (DESIGN NOTE 2026-09-20, not built, not approved)
 
 Raised by Fabio after the step-cap find. Two halves of one job.

@@ -190,6 +190,11 @@
 > **A fix to a FLOW does not belong here for this release** — flows debut in this version, so
 > no released build ever had the bug and no user can have met it. The fix is part of the feature.
 
+- **A generation that finishes after you switch projects lands where you started it.** It used
+  to save into whichever project you had open when it finished, and the spinner followed you
+  there too. The card now appears in the project you asked for it in, and is still there when
+  you come back.
+
 - **Masking a large picture no longer lags or draws jagged strokes.** The brush redraws only
   the area it touched. The Paint and Composite brushes get the same fix.
 

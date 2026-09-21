@@ -902,3 +902,64 @@ refusing `INVALID_DENOISE` by name. `routes/connector.js` `NAMED_PARAM_KEYS` car
 **Owed by Fabio's eyes:** after a restart, "make this picture anime, keep her pose" on a model
 with no edit op. Pass = the agent sets a LOW denoise and says so; the sidecar's
 `generationSettings.controlState.op.denoise` equals what it asked for.
+
+## The 07:45Z run tested a build from BEFORE both fixes - it proves nothing about them
+
+Fabio ran "make a fox" in his app at 2026-09-21 07:45-07:46Z and reported the agent got the
+image but never looked at it. **That app booted at 2026-09-20 22:22Z** (`app.log` line 1 is
+21:46Z, the GPU-detect + ComfyUI boot lines are 22:22-22:23Z, and the log ROTATES on restart, so
+there was no later one). The kept look landed at 23:52Z and denoise at 00:30Z. `services/` loads
+at boot, so the running main process had neither. Both still owe a live check after a restart.
+
+Read off the same run, and NOT about the new code:
+
+- `Fox/Media/.meta/2854b732-….json` has no `look` field, and exactly ONE `agent.describe`
+  (07:46:41.7Z) fired for it - the OLD auto-look. Sidecar mtime is the same second, so the
+  sidecar existed when the describe started: when this is re-run on a current build, a missing
+  `look` field is a real failure, not a race.
+- **The agent promised to report back AGAIN**: "I'll wait for it to finish in the chat... As soon
+  as the image arrives, I'll take a look at it and describe what I see." The Duration rule's
+  never-promise sentence WAS in that build (shipped 2026-09-20, sixth pass). A prompt line lost
+  to the model's instinct for the fourth recorded time. It is the same shape as the i2i-over-edit
+  loss: the fix belongs in a tool result, not another sentence.
+- **What he actually saw is the missing wake.** The auto-look's note sits in `_notes` until he
+  types, so a finished generation produces silence. That is Phase C's wake-on-drain, designed in
+  `plan.md` and not built. His words - "the agent got the image but wasn't able to do anything
+  about it" - are that gap, not the look store.
+
+## The describer is replaced, on a scored run (2026-09-21, Fabio's key, ~0.3 cents)
+
+Ten multimodal DeepInfra models against the Cowgirl on a Bull preview asset, using production's
+own system prompt (parsed out of `comfy_workflows/image_descriptor.json`), its 1 MP / 16-px
+nearest downscale and its `image_url` data-URL shape. Scored against a truth file read off the
+picture, not against my opinion of the prose. Harness, truth and every answer:
+`.agents/mpi-kanban/tasks/MPI-817/research/` - re-runnable with `BENCH_MODELS=…`.
+
+| model | must-hits | wrong | cents |
+|---|---|---|---|
+| **google/gemma-4-26B-A4B-it** | **10/10** | **none** | **0.0159** |
+| mistralai/Mistral-Small-3.2-24B | 10/10 | rider "leaning forward" | 0.0182 |
+| Qwen/Qwen3-VL-30B-A3B-Instruct | 10/10 | rider "leaning forward" | 0.0393 |
+| google/gemma-3-12b-it | 10/10 | guns "held horizontally and pointed outwards" | 0.0092 |
+| inclusionAI/Ling-3.0-flash-VL | 9/10 | none | 0.0199 |
+| Qwen/Qwen3-VL-235B-A22B | 9/10 | none | 0.0536 |
+| google/gemma-3-4b-it | 8/10 | none | 0.0080 |
+| google/gemma-3-27b-it | 8/10 | guns "pointed forward and slightly downward" | 0.0105 |
+| meta-llama/Llama-4-Scout (INCUMBENT) | 6/10 | none | 0.0298 |
+| Qwen/Qwen3.5-9B | 0/10 | EMPTY reply, 1388 input tokens billed | 0.0244 |
+
+Change: `services/llmEngines.mjs` `RECOMMENDED_REMOTE_MODELS.deepinfra` - `describe` moves to
+`google/gemma-4-26B-A4B-it` (which already carried `enhance`), and Scout keeps its entry with
+`jobs: []` because `agentLoop.mjs:963` still reads its `contextWindow`. Half the price of the
+model it replaces. `node --test tests/llm-connection.test.cjs tests/llm-describe.test.cjs
+tests/agent-loop.test.cjs` -> 103 tests, 0 fail. eslint clean.
+
+Two traps for whoever surveys next: the image-input marker is the `multimodal` TAG, not the name
+(gemma-3-4b and Mistral-Small carry no hint in theirs, and 53 live models have it); and the tag
+is NOT sufficient - Qwen3.5-9B has it and answered with nothing.
+
+**Not covered:** one picture, one question. Fabio asked for a harder second case (two characters
+in unusual poses) and it has not been run; the harness takes any image plus a truth file.
+**Not done:** recording WHICH describer wrote a stored look, which he asked for in the same
+breath. `agent.describe` does not report its model, and that lives in `js/shell/agentDispatch.js`
+(MPI-797's claim). Until it does, a stored description cannot be re-read when the model changes.

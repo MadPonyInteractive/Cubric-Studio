@@ -487,9 +487,17 @@ export const RECOMMENDED_REMOTE_MODELS = {
             contextWindow: 262_144,
             note: 'less censorship',
         },
-        { id: 'google/gemma-4-26B-A4B-it', jobs: ['enhance'], contextWindow: 262_144 },
+        // `describe` moved here from Llama-4-Scout on 2026-09-21, on a scored run of ten
+        // multimodal DeepInfra models over the picture that broke the old one — the agent
+        // wrote "leaning forward" and "pointing outward at her sides" for a rider sitting
+        // upright with a revolver raised in each hand. Harness, truth file and every answer:
+        // `.agents/mpi-kanban/tasks/MPI-817/research/`. Scout scored 6/10 on the checked
+        // facts; this scored 10/10 with nothing wrong, and it is CHEAPER (0.016c vs 0.030c
+        // for one description). Two models Fabio would have reached for first both put the
+        // rider "leaning forward": Mistral-Small-3.2 and Qwen3-VL-30B.
+        { id: 'google/gemma-4-26B-A4B-it', jobs: ['enhance', 'describe'], contextWindow: 262_144 },
         { id: 'google/gemma-3-12b-it', jobs: ['enhance'], contextWindow: 131_072 },
-        { id: 'meta-llama/Llama-4-Scout-17B-16E-Instruct', jobs: ['describe'], contextWindow: 327_680 },
+        { id: 'meta-llama/Llama-4-Scout-17B-16E-Instruct', jobs: [], contextWindow: 327_680 },
     ],
     openrouter: [],
     openai: [],

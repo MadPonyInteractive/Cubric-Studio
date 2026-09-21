@@ -1,0 +1,46 @@
+{
+ "note": "Cowgirl on a Bull preview asset. Read off the picture 2026-09-21: seated upright, one revolver in EACH raised hand, both barrels angled UP. Wide-brim hat, braided hair, fringed leather duster, jeans, boot in stirrup. Dark bull with white patches, long horns, head low and turned, dust, wooden rodeo fences, sepia wash, low frontal camera.",
+ "focus": "revolver|pistol|six-shooter|handgun",
+ "must": [
+  "revolver|pistol|six-shooter|handgun",
+  "both hands|each hand|two revolvers|two pistols|one in each",
+  "point\\w* up|upward|skyward|toward the sky|into the sky|overhead|raised above|angled up",
+  "cowboy hat|wide-brim|wide brim",
+  "braid",
+  "fringe",
+  "horn",
+  "dust",
+  "fence|corral|arena|chute|pen\\b",
+  "sepia|vintage|muted|desaturat|warm.{0,12}ton"
+ ],
+ "mustNot": [
+  "(revolver|pistol|gun|barrel|weapon)s?[^.]{0,80}(outward|to the side|at her sides|at their sides|sideways|horizontal|downward|pointed down|aiming down)",
+  "(outward|to the sides?|sideways)[^.]{0,50}(revolver|pistol|gun|barrel)",
+  "leaning forward|leans forward|hunched forward|bent forward|crouched forward",
+  "three (revolver|pistol|gun)"
+ ],
+ "priceIn": {
+  "google/gemma-3-4b-it": 0.05,
+  "google/gemma-3-12b-it": 0.05,
+  "inclusionAI/Ling-3.0-flash-VL": 0.06,
+  "google/gemma-3-27b-it": 0.08,
+  "mistralai/Mistral-Small-3.2-24B-Instruct-2506": 0.075,
+  "Qwen/Qwen3.5-9B": 0.1,
+  "google/gemma-4-26B-A4B-it": 0.07,
+  "meta-llama/Llama-4-Scout-17B-16E-Instruct": 0.1,
+  "Qwen/Qwen3-VL-30B-A3B-Instruct": 0.15,
+  "Qwen/Qwen3-VL-235B-A22B-Instruct": 0.2
+ },
+ "priceOut": {
+  "google/gemma-3-4b-it": 0.1,
+  "google/gemma-3-12b-it": 0.15,
+  "inclusionAI/Ling-3.0-flash-VL": 0.18,
+  "google/gemma-3-27b-it": 0.16,
+  "mistralai/Mistral-Small-3.2-24B-Instruct-2506": 0.2,
+  "Qwen/Qwen3.5-9B": 0.15,
+  "google/gemma-4-26B-A4B-it": 0.34,
+  "meta-llama/Llama-4-Scout-17B-16E-Instruct": 0.3,
+  "Qwen/Qwen3-VL-30B-A3B-Instruct": 0.6,
+  "Qwen/Qwen3-VL-235B-A22B-Instruct": 0.88
+ }
+}

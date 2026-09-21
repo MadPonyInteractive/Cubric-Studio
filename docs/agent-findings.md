@@ -141,7 +141,18 @@ disk; the write goes through `POST /project-media/agent/update-meta` because tha
 per-sidecar write queue, and `storeLook` never creates a sidecar. **Consequence to remember when
 the describer changes: a wrong description is now wrong forever**, until the field is cleared.
 Wider principle he named: the sidecar is the home for card-scoped derived information.
-Still open, approved: TEST vision models on that real picture before recommending one.
+
+**The describer was then replaced on evidence (2026-09-21).** Ten multimodal DeepInfra models,
+production's own prompt, resize and message shape, scored against a truth file read off the
+picture: `.agents/mpi-kanban/tasks/MPI-817/research/` (harness, truth, every answer).
+`google/gemma-4-26B-A4B-it` scored 10/10 with nothing wrong and costs 0.016c per description;
+the incumbent `meta-llama/Llama-4-Scout-17B-16E-Instruct` scored 6/10 at 0.030c — it missed the
+dust, the horns, the fringe and the whole sepia treatment. **Mistral-Small-3.2 and Qwen3-VL-30B
+both put the rider "leaning forward"**, the original error, so the obvious pick would have been
+wrong twice. Two traps for the next survey: the marker for image input is the `multimodal` TAG,
+not the name (`gemma-3-4b-it` and `Mistral-Small-3.2` carry no hint in theirs), and the tag is
+not sufficient — `Qwen/Qwen3.5-9B` is tagged multimodal and returned an EMPTY string while
+billing 1388 input tokens. Probe before trusting either signal.
 
 ## What worked, and should be copied
 
