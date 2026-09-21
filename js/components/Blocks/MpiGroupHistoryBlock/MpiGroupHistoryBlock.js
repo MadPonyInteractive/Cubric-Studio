@@ -600,10 +600,13 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             }));
             // GIF output's note says which frames its Apply keeps, and MPI-771
             // paints the same range on the strip — since MPI-836 that dimming is
-            // what EVERY operation will keep (`_opFrames`).
+            // what EVERY operation will keep (`_opFrames`). MPI-871 adds the third
+            // consumer: the viewer, which until then played straight past the
+            // out-handle because nobody had ever told it the range existed.
             _unsubs.push(gifControlBar.on('range-change', (range) => {
                 _options?.el.onRangeChange?.(range);
                 frameStrip?.el.setRange(range);
+                viewer?.el.setRange(range);
             }));
             // ...and the same two while a handle is still DOWN, so the dimming tracks
             // the drag instead of arriving on pointerup (Fabio, 2026-09-20). Both are
@@ -613,6 +616,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             _unsubs.push(gifControlBar.on('range-preview', (range) => {
                 _options?.el.onRangeChange?.(range);
                 frameStrip?.el.setRange(range);
+                viewer?.el.setRange(range);
             }));
 
             _unsubs.push(() => {

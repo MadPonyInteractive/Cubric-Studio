@@ -38,6 +38,17 @@
  *   getFrames() / getFrameCount() / getFrameIndex()
  *   setFrameIndex(idx)                     — jump to an exact index (clamped)
  *   stepFrame(delta)                       — relative step (clamped, no wrap)
+ *   setRange(range|null)                   — MPI-871: the control bar's trim
+ *                                            handles, which PLAYBACK obeys —
+ *                                            play runs `in -> out` and wraps to
+ *                                            `in`, and a loop count counts
+ *                                            passes of the RANGE. Scrubbing and
+ *                                            stepping stay free of it (see
+ *                                            `setFrameIndex`). `null` = the
+ *                                            whole list. A mirror, exactly like
+ *                                            MpiFrameStrip's `setRange`: the
+ *                                            Block pushes it, the viewer never
+ *                                            reads the trim itself.
  *   play() / pause() / isPlaying()
  *   setGifUrl(url)                         — the built `.gif`'s resolved URL,
  *                                            shown when preview mode is on
@@ -150,6 +161,14 @@ import { MaskManager } from '../../Primitives/MpiCanvas/managers/MaskManager.js'
 import { clientLogger } from '../../../services/clientLogger.js';
 import { Events } from '../../../events.js';
 import { qs, on } from '../../../utils/dom.js';
+// `gifTiming.js` is not an Organism: it is the pure, DOM-free trim/timing math that
+// happens to sit in one's folder, and `js/shell/gifJobs.js` and MpiGroupHistoryBlock
+// already import it from outside. Taking the range through it is the opposite of
+// coupling to the timing PANEL — it is the ONE reading of the trim, which is exactly
+// why the viewer must not re-derive it. The real fix is moving the module to
+// js/utils/; that is a 5-file change and MPI-871 does not own three of them.
+// eslint-disable-next-line mpi/no-same-tier-component-import -- see above
+import { rangeBounds } from '../MpiToolOptionsGifTiming/gifTiming.js';
 import { GifFrameMasks } from './gifFrameMasks.js';
 import { composeFrameMask } from './maskCompose.js';
 import { invertMaskUrl } from '../../../utils/maskUtils.js';
@@ -272,6 +291,16 @@ export const MpiGifViewer = ComponentFactory.create({
         let _index = 0;
         let _loop = 0; // total plays; 0 = forever
         let _playsDone = 0;
+        /**
+         * The control bar's trim handles (MPI-871), or null for the whole list.
+         * POSITIONS, not frame identities — the same thing MpiFrameStrip paints,
+         * so a reorder leaves the handles where they sit on the timeline instead
+         * of chasing the frames that used to be under them. Every read goes
+         * through `_bounds()`, so a shrunken list can never leave it dangling.
+         */
+        let _range = null;
+        /** The trim as inclusive `[lo, hi]` of the current list. */
+        const _bounds = () => rangeBounds(_frames.length, _range);
         let _playing = false;
         let _playTimer = null;
         let _preview = false;
@@ -326,14 +355,19 @@ export const MpiGifViewer = ComponentFactory.create({
             const delayMs = Math.max(MIN_DELAY_MS, (Number(f?.delay) || 10) * 10);
             _playTimer = setTimeout(() => {
                 if (!_playing) return;
-                if (_index >= _frames.length - 1) {
+                const [lo, hi] = _bounds();
+                if (_index < lo || _index > hi) {
+                    // A handle moved under a playing head. Rejoin at the in-handle
+                    // WITHOUT counting a pass — the pass it was on never finished.
+                    _index = lo;
+                } else if (_index >= hi) {
                     _playsDone++;
                     if (_loop !== 0 && _playsDone >= _loop) {
                         _stopPlayback();
                         emit('ended');
                         return;
                     }
-                    _index = 0;
+                    _index = lo;
                 } else {
                     _index++;
                 }
@@ -350,6 +384,9 @@ export const MpiGifViewer = ComponentFactory.create({
             _frames = Array.isArray(frames) ? frames.slice() : [];
             _loop = Number.isFinite(+loop) ? +loop : 0;
             _index = 0;
+            // A different clip's handles mean nothing here. The control bar resets
+            // its own range on the new count and pushes it back down.
+            _range = null;
             _cache.clear();
             // A saved revision of the same list keeps its masks; the strip
             // re-reads them either way.
@@ -385,6 +422,12 @@ export const MpiGifViewer = ComponentFactory.create({
         el.getFrameCount  = () => _frames.length;
         el.getFrameIndex  = () => _index;
 
+        /**
+         * Clamped to the LIST, deliberately not to the trim range (MPI-871,
+         * Fabio's choice (a)): the control bar's I and O snap the handles to the
+         * frame on screen, so a head that could not leave the range would leave
+         * the range able only to shrink. Playback is where the trim binds.
+         */
         el.setFrameIndex = (idx) => {
             if (!_frames.length) return;
             const clamped = Math.max(0, Math.min(_frames.length - 1, Math.round(idx)));
@@ -396,10 +439,25 @@ export const MpiGifViewer = ComponentFactory.create({
 
         el.stepFrame = (delta) => el.setFrameIndex(_index + (Number(delta) || 0));
 
+        el.setRange = (range) => {
+            const a = Number(range?.in), b = Number(range?.out);
+            _range = (Number.isFinite(a) && Number.isFinite(b)) ? { in: a, out: b } : null;
+        };
+
         el.play = () => {
-            if (_playing || _preview || _frames.length < 2) return;
+            const [lo, hi] = _bounds();
+            // `hi <= lo` is the old `_frames.length < 2` guard plus its trim twin:
+            // a one-frame range has nothing to advance to either.
+            if (_playing || _preview || hi <= lo) return;
             _playing = true;
             _playsDone = 0;
+            // Pressing play with the head parked outside the handles starts at the
+            // in-handle rather than running the frames the trim excludes.
+            if (_index < lo || _index > hi) {
+                _index = lo;
+                _preloadWindow(_index);
+                _render();
+            }
             // The brush canvas would reload every frame: play the plain frames
             // under their mask tint instead (Fabio, 2026-09-16).
             if (_editing) _hideEditCanvas();

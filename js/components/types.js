@@ -2621,6 +2621,14 @@
  *                                       them meaningless).
  *   getFrames() / getFrameCount() / getFrameIndex()
  *   setFrameIndex(idx) / stepFrame(delta)
+ *   setRange(range|null)              — MPI-871: the control bar's trim
+ *                                       handles, mirrored down by the Block
+ *                                       exactly as MpiFrameStrip's setRange
+ *                                       is. PLAYBACK obeys it (in -> out,
+ *                                       wrapping to in, loop counting passes
+ *                                       of the range); setFrameIndex and
+ *                                       stepFrame deliberately do not, so
+ *                                       the bar's I/O can still widen it.
  *   play() / pause() / isPlaying()
  *   setGifUrl(url)                    — built `.gif`'s resolved URL, shown
  *                                       when preview mode is on

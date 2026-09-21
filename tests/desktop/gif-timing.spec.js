@@ -21,9 +21,15 @@ const { launchApp, closeApp } = require('./launch');
  * 2026-09-20). One panel now, and every operation keeps the range, as every video
  * operation already did.
  *
+ * MPI-871 added the consumer MPI-836 forgot: PLAYBACK. The viewer had no concept
+ * of a range and wrapped on the whole list, so a clip trimmed to frames 0-9 of 79
+ * still played frame 22 (Fabio, 2026-09-21). That block runs first, before the
+ * chain edits anything, and reads the frame the viewer is SHOWING.
+ *
  * The chain (each Apply opens the entry it made):
- * rate 16 fps -> Reverse (stage right-click) -> trim 1..3 + loop 3 -> blank rate
- * keeps the delays -> 16 px transparent -> Resize honours the range too.
+ * playback stays inside the handles -> rate 16 fps -> Reverse (stage right-click)
+ * -> trim 1..3 + loop 3 -> blank rate keeps the delays -> 16 px transparent ->
+ * Resize honours the range too.
  */
 test.setTimeout(180000);
 
@@ -76,7 +82,7 @@ async function pixel(gifPath, page, x, y) {
 
 const isColour = (px, [r, g, b]) => Math.abs(px.r - r) < 40 && Math.abs(px.g - g) < 40 && Math.abs(px.b - b) < 40;
 
-test('GIF output: rate, loop and build settings over the TRIM RANGE, and every operation keeps that range; no new frame files', async ({}, testInfo) => {
+test('GIF output: PLAYBACK and every operation obey the TRIM RANGE (rate, loop, build settings); no new frame files', async ({}, testInfo) => {
     let app, window;
     let projectFolderPath = null;
 
@@ -192,6 +198,75 @@ test('GIF output: rate, loop and build settings over the TRIM RANGE, and every o
         // ── The rail has no Timing group any more (MPI-836) ──────────────────
         expect(await window.locator('.mpi-history-tools__slot[data-mode="timing"]').count(),
             'Trim, Speed and Loop count left the rail').toBe(0);
+
+        // ── MPI-871: PLAYBACK obeys the handles too, not just the operations ──
+        // Ahead of the chain below, while the six source frames are untouched.
+        // Every assertion reads the frame the viewer is SHOWING — its <img>'s
+        // resolved src, matched back to the frame list — never a flag or an
+        // internal counter, which is the lesson MPI-859 paid for: a flag-reading
+        // spec passed while the display was visibly wrong.
+        {
+            const shownIndex = () => window.evaluate(() => {
+                const src = document.querySelector('.mpi-gif-viewer__frame')?.src || '';
+                const viewer = document.querySelector('.mpi-gif-viewer');
+                const frames = viewer?.getFrames?.() || [];
+                // Compare the RESOLVED urls: the <img> reports an absolute one.
+                return frames.findIndex(f => new URL(f.url, location.href).href === src);
+            });
+            const play  = () => window.evaluate(() => document.querySelector('.mpi-gif-viewer').play());
+            const pause = () => window.evaluate(() => document.querySelector('.mpi-gif-viewer').pause());
+
+            // Handles on frames 1..3 of 6. Before MPI-871 the loop walked 0..5.
+            await setRange(1, 3);
+            await window.evaluate(() => document.querySelector('.mpi-gif-viewer').setFrameIndex(5));
+            await expect.poll(shownIndex, { timeout: 5000 }).toBe(5); // scrubbing outside still allowed
+
+            await play();
+            // Sample across several source delays (10..60 hundredths = 100..600 ms),
+            // so this covers many wraps, not one lucky tick.
+            const seen = new Set();
+            for (let i = 0; i < 40; i++) {
+                seen.add(await shownIndex());
+                await window.waitForTimeout(100);
+            }
+            await pause();
+            const outside = [...seen].filter(i => i < 1 || i > 3);
+            expect(outside, `playback left the handles and showed frames ${outside}`).toEqual([]);
+            expect(seen.has(1), 'the wrap lands on the in-handle, not frame 0').toBe(true);
+            expect(seen.has(3), 'the out-handle frame still plays').toBe(true);
+
+            // A loop count counts passes of the RANGE, not of the list. The imported
+            // GIF loops forever, so re-arm the same frames with a finite count —
+            // which also proves `loadFrames` drops the old clip's handles.
+            await window.evaluate(() => {
+                const v = document.querySelector('.mpi-gif-viewer');
+                v.loadFrames(v.getFrames(), { loop: 2 });
+                v.setRange({ in: 1, out: 3 });
+            });
+            // Frames 1..3 carry source delays 20/30/40 hundredths, so two passes of
+            // the RANGE take ~1.8 s. Two passes of the whole SIX-frame list would be
+            // ~4.2 s, and would end on frame 5 — this is what separates the two.
+            const ended = window.evaluate(() => new Promise((resolve) => {
+                // ComponentFactory re-emits every `emit()` as `<name>:<event>`,
+                // lowercased and bubbling — the DOM half of the instance emitter.
+                document.querySelector('.mpi-gif-viewer')
+                    .addEventListener('mpigifviewer:ended', () => resolve(true), { once: true });
+            }));
+            await play();
+            expect(await Promise.race([ended, window.waitForTimeout(4000).then(() => false)]),
+                'two passes of a 3-frame range end inside 4 s; the whole list would not').toBe(true);
+            expect(await shownIndex(), 'it ended on the out-handle, not the last frame').toBe(3);
+
+            // Leave the workspace exactly as the chain below expects it: the same
+            // six frames, forever-looping, handles wide, parked on frame 0.
+            await pause();
+            await window.evaluate(() => {
+                const v = document.querySelector('.mpi-gif-viewer');
+                v.loadFrames(v.getFrames(), { loop: 0 });
+            });
+            await setRange(0, 5);
+            await expect.poll(shownIndex, { timeout: 5000 }).toBe(0);
+        }
 
         // ── Frame rate 16 fps -> delay 6 (60 ms) on every frame ──────────────
         await openTool('output', 'GIF output');
