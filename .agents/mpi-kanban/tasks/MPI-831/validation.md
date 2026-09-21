@@ -99,7 +99,37 @@ That pass is worth more than the seeded one it followed, because it is what ever
 before they have bought anything — and it exercised the delete→Refresh path, which is the
 same `renderList()` that has to put the advert BACK when a package goes away.
 
-**Not yet done:** the `types.js` typedef sync, and moving the `--purchase` chip into
-`MpiTileSheet.css` once MPI-853's claim clears (message `86e7cdf6`). Both are blocked on
-live peer claims, neither is phase work. The card stays in `doing` at `validating` until
-they land and the work is committed.
+## The two follow-ups — landed 2026-09-21, `04b2b0bb`
+
+Both were blocked on live peer write claims, not on work. All of them cleared overnight:
+MPI-857 (`4521ef17`) `released`, MPI-859 (`c964cf70`) `verified`, MPI-853 (`9b973c12`,
+`baacdcc8`) `released` 08:18Z, and MPI-871 (`7cb48bdd`) let go of `types.js` at 10:37:32Z —
+that record's `status` is `verified`, not `released`, but it carries `released_at` and
+`released_paths` and the file is absent from the index. `index.json`'s `active_file_claims`
+held four records at that point and none of them named either file, which is the authority —
+not the heartbeats, and not a record's own `status` word.
+
+Two corrections the claim auditor caught in this card's own prose, recorded rather than
+quietly fixed: `04b2b0bb`'s message says the chip moved "beside its four siblings" — there
+are **five** (`--installed`, `--available`, `--partial`, `--paid`, `--unavailable`), because
+MPI-853's `--paid` landed after the checklist item was written; and that same message calls
+MPI-871's claim `released` when the record says `verified`. Neither changes what shipped.
+
+| Check | Method | Result |
+|---|---|---|
+| The chip rule now lives with its siblings | `MpiTileSheet.css`, unscoped, declarations unchanged | moved beside `--installed/--available/--partial/--paid/--unavailable` |
+| Nothing can outrank the lower specificity | `grep` for `mpi-tile__chip` across `js/` + `styles/` | **no rule outside `MpiTileSheet.css`**, and every rule there is a single-class modifier |
+| `--purchase` and `--unavailable` never co-occur | `_flowState()` / `_paidTile()` | two different branches (`MpiFlowLibrary.js:266` vs `:327`) |
+| The typedef matches the component | against `MpiTileSheet.js`'s own docblock | `cloud`, `dimmed`, `mediaImage`, `mediaVideo`, `mediaAudio` added; `setDimmed` added to the method list |
+| Lint | `npx eslint` on both component dirs + `types.js` | clean |
+| **Both specs for the surface, not just the one named like the card** | `npm run test:desktop -- tests/desktop/flow-packages.spec.js tests/desktop/flow-library-filters.spec.js` | **5/5 in 46.1s** |
+| CI on the commit itself | run `35590645127` on `04b2b0bb` | **`completed / success`** — read from `conclusion`, never from a piped `gh run watch` exit code |
+
+`flow-library-filters.spec.js` is in that run deliberately: it is the spec that counts
+`.mpi-tile__chip--purchase` elements per filter, and it is the one phase 4 shipped red by
+verifying against `flow-packages.spec.js` alone. The class name did not change here, so the
+count could not move — but the cheap proof is running it, not reasoning about it.
+
+The one thing a cascade grep cannot prove is the rendered colour, and that was already
+proved on the parked rule: `oklch(0.78 0.028 80)` with the `↗` glyph, in Fabio's own
+Electron window above. Moving a rule to a file with no competing selector cannot change it.
