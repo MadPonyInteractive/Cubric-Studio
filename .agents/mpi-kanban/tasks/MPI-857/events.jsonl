@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-857", "at": "2026-09-20T18:58:00+01:00", "actor": "claude", "column": "todo", "title": "GIF frame strip: duplicate a frame from the right-click menu"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-857", "at": "2026-09-20T18:58:00+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio asked for it directly; implementing the menu row now."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-857", "at": "2026-09-21T10:52:58+01:00", "actor": "claude-opus-5 (a9e2df21)", "from": "doing", "to": "done", "reason": "Swept at Fabio's request 2026-09-21: code shipped and on origin inside a CI-green tree; evidence in validation.md."}
