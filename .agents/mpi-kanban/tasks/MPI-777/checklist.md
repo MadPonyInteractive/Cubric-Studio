@@ -24,7 +24,8 @@ because nothing mascot-related stays in that repo any more.
       mascot question is already answered by MPI-843, see plan.md open decision 4
 - [ ] Open decisions settled with Fabio (hover interrupts, and the rest in plan.md)
 - [ ] Phase 1: cut-out clips staged under `assets/mascot/{key}/`, stills kept as fallback
-- [ ] Phase 2: shared clip queue utility, with its unit test
+- [x] Phase 2: shared clip queue utility, with its unit test - `js/utils/mascotClipQueue.js`,
+      8 tests, each guard proven RED on a broken rule (validation.md)
 - [ ] Phase 3: landing hero crew on the queue (Fabio checks)
 - [ ] Phase 4: prompt box ledge, agent mode and model modes (Fabio checks)
 - [ ] Phase 5: the rest of the spot map in `docs/mascot-placement.md`, then Flows

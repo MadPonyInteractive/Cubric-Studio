@@ -1,0 +1,8 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/utils/mascotClipQueue.js",
+    "tests/mascot-clip-queue.test.cjs",
+    ".agents/mpi-kanban/tasks/MPI-777/"
+  ]
+}

@@ -1,21 +1,21 @@
 {
- "schema": "mpi-kanban/task-card/v1",
- "id": "MPI-846",
- "title": "Mascot crew (umbrella): names, registry, chat presence, animations",
- "description": "Umbrella over MPI-843, MPI-842 and MPI-777. Names the five mascots, puts one registry file behind them, and gives the agent chat a crew presence where Cosmo is the only speaker. BLOCKED until the GIF workspace lands and the clips are rolled to GIF in MadPony-Identity - do not pick this up before then. Phases and parallel batches in plan.md.",
- "column": "todo",
- "maturity": "blocked",
- "status": "active",
- "created_at": "2026-09-20T11:32:47+01:00",
- "updated_at": "2026-09-20T10:33:39Z",
- "links": {
-  "brief": "brief.md",
-  "plan": "plan.md",
-  "checklist": "checklist.md",
-  "validation": "validation.md",
-  "files": "files.json",
-  "events": "events.jsonl",
-  "handoffs": "handoffs/",
-  "research": "research/"
- }
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-846",
+  "title": "Mascot crew (umbrella): names, registry, chat presence, animations",
+  "description": "Umbrella over MPI-843, MPI-842 and MPI-777. Names the five mascots, puts one registry file behind them, and gives the agent chat a crew presence where Cosmo is the only speaker. UNBLOCKED 2026-09-21 (Fabio): the blocker was \"until the clips are rolled to GIF\", and they are - 103 GIFs delivered in the Vision project `Cubric Studio GIFs`, 84 with transparency and 19 opaque transition clips that are MEANT to be opaque (rendered on black, composited with mix-blend-mode: screen). Measured 2026-09-21: all 103 are 10fps, 98 at 768x768, median 2.5 MB, 0.32 GB total, and the cut-out alpha is 1-BIT - hard edges, zero partial alpha values. So they are USABLE but not yet SHIPPABLE: they need downscaling to display size whatever the format, and the 1-bit edge is the open question the alpha WebM export in MPI-777 Settled was meant to answer. That decision is deliberately deferred - MPI-777 Phase 2 is format-agnostic behind heroCrew._poseSrc, so the queue gets built and watched first, then the format is chosen. Phases and parallel batches in plan.md.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-20T11:32:47+01:00",
+  "updated_at": "2026-09-21T11:05:00+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
 }

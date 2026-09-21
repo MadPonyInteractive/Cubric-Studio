@@ -14,7 +14,11 @@ pointer below before editing; they were read 2026-09-16.
 - The app still shows stills: `assets/mascot/{key}/{pose}.webp`, one per character, staged by
   MPI-766. `heroCrew.js` `_poseSrc(key, pose)` is the only code that knows a file there, and its
   comment already expects animated alpha loops to replace the stills.
-- **Next action: Phase 2, the shared clip queue.** Phase 1 (assets) now comes after it.
+- **Phase 2 is BUILT (2026-09-21): `js/utils/mascotClipQueue.js`, 8 unit tests green.**
+  It is DOM-free behind a `paint` callback, matching `createPreviewClipPlayer`, so it drives a
+  still, a GIF or an alpha WebM without knowing which. Nothing is wired to it yet.
+- **Next action: Phase 1, the assets.** The clips exist and were measured 2026-09-21 — see the
+  drift note. They need downscaling before placement whatever the format decision is.
 
 ### Why the order changed (Fabio, 2026-09-20)
 
@@ -121,10 +125,10 @@ would work today only if the format decision went one way, and it silently forec
 Built against the stills, format-agnostic behind `_poseSrc`, and driven by a duration clock
 rather than a media `ended` event — see Current State for why that is not optional.
 
-- [ ] One small utility (a slot bound to one element): a pool of clips per state, `random`
+- [x] One small utility (a slot bound to one element): a pool of clips per state, `random`
       (no immediate repeat) or `ordered`, `loop` or play-once, and a request for the next state
       that takes effect when the current clip ends, unless it is an interrupt (next item).
-- [ ] **Transition on interrupt.** A request that cannot wait (hover) plays a transition
+- [x] **Transition on interrupt.** A request that cannot wait (hover) plays a transition
       overlay at once on a layer above the mascot. At the overlay's densest moment the mascot
       underneath swaps to the requested clip's first frame (the shared rest frame), then the
       overlay clears and the clip plays. The transition is picked at random from the mascot's own
@@ -133,9 +137,9 @@ rather than a media `ended` event — see Current State for why that is not opti
       mascot, 1s each, rendered on black, so they need no cut-out. Composite them with
       `mix-blend-mode: screen`, which drops the black and keeps soft smoke edges that a SAM3 mask
       would harden.
-- [ ] Preload a slot's pools and the transitions so the first swap never shows a blank frame.
-- [ ] Reduced motion: the slot shows the still and never plays.
-- [ ] Tear down cleanly (timers, listeners) when the owning component unmounts.
+- [x] Preload a slot's pools and the transitions so the first swap never shows a blank frame.
+- [x] Reduced motion: the slot shows the still and never plays.
+- [x] Tear down cleanly (timers, listeners) when the owning component unmounts.
 - **Verify:** a unit test that a random pool never repeats back to back, a play-once clip hands
   back to the rest pool, a waiting request starts only at the end of the current clip, and an
   interrupt starts the transition at once and swaps at its swap time.
