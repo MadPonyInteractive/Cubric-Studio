@@ -4,6 +4,8 @@
 
 The 103 finished GIFs live in their own Vision project,
 `C:\Users\Fabio\Documents\Cubric Vision\Projects\Cubric Studio GIFs\`, copied there by Fabio on 2026-09-20.
+**They are no longer single-copy:** all 103 are also in `MadPony-Identity/runs/2026-09-20-mpi-78-gif-cutouts/gifs/`,
+sha256-verified against the originals on 2026-09-21 (MPI-777 Phase 1). The originals were not moved or rewritten.
 
 **This file exists because the conversion lost the names.** A GIF card is called `gif_NNN` and its file on disk is
 `gif_<hash>.gif`; neither says which clip it came from or what it is for. The table below is that link. For **where
@@ -43,6 +45,39 @@ All three are Studio, which is the mascot that is on screen most (rule 8: in age
 `ref2v_001`, `i2v_062`, `i2v_063`, `i2v_066` (the first gallery peeks, superseded by peek 2), and `t2v_016`,
 `t2v_038`, `t2v_043`, `t2v_046` (transition rolls beyond the 15 picks). They are fine files, just not assigned;
 `t2v_046` is recorded in `mascot-transitions.md` as a clean alternate to `t2v_045`.
+
+## Staged into the app (MPI-777 Phase 1, 2026-09-21)
+
+95 of the 103 are staged as `assets/mascot/{key}/{state}.webm` — VP9 with alpha, **13.7 MB for the
+whole set**. The 8 spares above are not staged; they are covered by the backup. The stills
+(`{key}/{idle,greet,happy}.webp`) stay as the reduced-motion and first-paint fallback.
+
+`scripts/stage-mascot-clips.mjs` rebuilds them from this table, so the state names below are
+derived from the "What it is" column and not kept anywhere else. `--verify` re-checks the result;
+`--dry-run` prints the plan without encoding.
+
+State names: `idle-1..3`, `greet-1` (wave) / `greet-2` (the character's own), `happy-1` (hop) /
+`happy-2` (head pop), `failed`, `cancelled`, `heads-up`, `no-results`, `peek`, `getting-ready`,
+`working`, `transition-smoke` / `transition-explosion` / `transition-third`. Studio also has
+`engine-starting`, `update-ready`, `agent-listening`, `agent-thinking`, `agent-answer-ready`, the
+four `connecting-*` band loops and `connected`. Prompt's and Audio's first gallery peek is parked
+as `peek-superseded`.
+
+Three things here were measured rather than assumed, and each would be easy to undo by accident:
+
+- **One scale for every clip, 620/768.** The clips all came off one character sheet and the stills
+  are 620 tall, so a single factor keeps every size relationship the artwork already has — a
+  clip and a still draw the character at the same size. Cropping each clip to its own subject
+  would destroy that.
+- **Alpha is premultiplied across the resize** (`premultiply → scale → unpremultiply`). Scaling
+  straight alpha smears body colour into the transparent ring and shows up as a light rim around
+  the character. This is what `--verify` guards, against a reference downscale rather than an
+  absolute threshold — an absolute one cannot tell a rim from honest antialiasing.
+- **WebM, not GIF, and VRAM is the reason.** Chromium keeps a decoded animated GIF as GPU
+  textures: five mascots at the landing's draw size measured **~305 MiB**, against **~13 MiB** for
+  the same clips as alpha WebM. Alpha VP9 is software-decoded (`VpxVideoDecoder`,
+  `kIsPlatformVideoDecoder=false`), so it never takes a GPU decoder at all. CPU cost of that
+  software decode measured 0.7% against GIF's 0.5%.
 
 ## The map
 

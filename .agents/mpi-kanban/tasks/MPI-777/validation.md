@@ -1,5 +1,88 @@
 # MPI-777 Validation
 
+## Phase 1 - the staged clips (2026-09-21)
+
+`scripts/stage-mascot-clips.mjs` + 95 clips under `assets/mascot/{key}/*.webm`, 13.7 MB.
+Nothing consumes them yet - `_poseSrc` still returns the `.webp` stills, and pointing it at a
+clip is Phase 3. So this phase closes on the asset checks below, not on a UI.
+
+### What ran
+
+- `node scripts/stage-mascot-clips.mjs` - 95 of 103 manifest rows staged, 8 skipped as the
+  documented spares. Every staged file decodes; alpha present on all 84 cut-out clips and absent
+  on all 11 transitions, which is correct (they composite with `mix-blend-mode: screen`).
+- `node scripts/stage-mascot-clips.mjs --verify` - **rim check passed on every staged clip**,
+  worst delta -0.06 against tolerance +1.00.
+- `eslint scripts/stage-mascot-clips.mjs` - clean.
+- Real Electron, five staged clips at the landing's 360px draw height: all five playing
+  (`paused:false`, `currentTime` advancing, `videoWidth` 620), and pixels inside each video's box
+  read exactly `30,30,34` - the page background through the alpha.
+
+### The rim, which Fabio caught by eye and no check was looking for
+
+The first encode put a faint light outline around every character. Worth recording because the
+obvious diagnoses were all wrong:
+
+| tried | ring luminance (bg 30.00) | verdict |
+|---|---|---|
+| first encode, `scale` then vp9 | 36.69 | the rim |
+| crf 20 instead of 32 | 36.46 | not the bitrate |
+| `yuva444p` (no chroma subsampling) | - | encoder refuses it without `-strict experimental` |
+| **`premultiply` → `scale` → `unpremultiply`** | **29.72** | fixed, and 0.221 -> 0.200 MB |
+
+Scaling **straight** alpha interpolates RGB across the silhouette boundary, so body colour lands
+in pixels that should be fully transparent; any alpha softness then reveals it. It is a resize
+bug, not a codec one - which is why more bitrate did nothing.
+
+### The first version of the guard was wrong in a way that read as two failures
+
+An absolute threshold ("ring must sit at the background") flagged `prompt/working` (32.64) and
+`studio/peek` (31.73). Both were fine. Downscaling legitimately produces antialiased edge pixels
+carrying the character's own colour, so a light-edged mascot reads **above** the background and a
+dark-edged one below (`vision/getting-ready`, 28.49). The check now compares against a reference
+downscale of the same frame through sharp, which premultiplies; every staged clip lands 0.15-0.40
+**below** its reference.
+
+Chasing that also produced a wrong intermediate result worth not repeating: the first comparison
+used `gif_6f1eec7e` as "Prompt's Working", which is Video's. Resolve a clip's source through the
+staging script's own dry run, never by eye from the manifest table.
+
+**The guard was proven red.** `vision/idle-1` re-encoded without the premultiply step: `--verify`
+reported `rim +7.26 over a correct downscale` and exited 1. Source restored byte-identical
+(sha256 `dd3fa438...`) and the check went green again.
+
+### VRAM, because the format decision turned on it
+
+Fabio's challenge - video must be heavy on VRAM, and VRAM is what ComfyUI needs - measured in
+real Electron, 5 clips at the landing's draw size, 12 interleaved rounds plus earlier runs:
+
+| | runs | median GPU delta | CPU |
+|---|---|---|---|
+| empty window (control) | 7 | +7 MiB (-266 … +87) | 0% |
+| 5 animated GIFs | 9 | **+305 MiB** (+261 … +350 in 8 of 9) | 0.5% |
+| 5 alpha WebM | 10 | **+13 MiB** (-34 … +50 in 9 of 10) | 0.7% |
+
+Chromium holds a decoded animated GIF as GPU textures: 620x620x4 B x ~51 frames x 5 = ~344 MiB
+nominal against ~305 measured. Alpha VP9 never reaches the hardware decoder -
+`kVideoDecoderName=VpxVideoDecoder`, `kIsPlatformVideoDecoder=false` - so it is decoded in
+software and only the frames in flight become textures.
+
+This bears on Phase 3 directly: the queue **preloads a slot's whole pool**, and a mascot's pool is
+7 clips. As GIF that is nominally ~2.4 GB of texture cache across five mascots.
+
+Limits of the measurement, stated because the numbers look cleaner than the method: `nvidia-smi`
+reports only TOTAL GPU memory on Windows (per-process is `[N/A]` under WDDM) and Fabio's own app
+allocates during the runs - that is where both outliers come from.
+
+### Not done in this phase, on purpose
+
+- The originals are **committed but not pushed** in MadPony-Identity. 0.317 GB is a one-way
+  addition to that repo's history, so the push is Fabio's call, not an agent's.
+- Nothing is wired. `heroCrew.js` still drives `_poseSrc` directly at the stills.
+- Still open and still Fabio's: **Studio has no Failed clip** (`i2v_016` was never rolled), so the
+  agent-panel ledge cannot show a failed state while every other mascot can. Two other Studio
+  slots are also missing - Happy head pop (`i2v_015`) and landing no projects (`i2v_042`).
+
 ## Phase 2 - the shared clip queue (2026-09-21)
 
 Built. `js/utils/mascotClipQueue.js` + `tests/mascot-clip-queue.test.cjs`. Nothing is wired to

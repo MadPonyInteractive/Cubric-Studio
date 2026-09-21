@@ -12,18 +12,21 @@ because nothing mascot-related stays in that repo any more.
       matters — every other mascot has one, Studio/Cosmo does not, so the agent-panel ledge cannot
       show a failed state. Rolling recipe and prompts: `docs/mascot-states.md`,
       `docs/mascot-scenarios.md`
-- [ ] **Get the 103 GIFs into version control.** They exist only in
-      `C:\Users\Fabio\Documents\Cubric Vision\Projects\Cubric Studio GIFs\Media\` — one folder, one
-      machine, no second copy. Phase 1 stages them under `assets/mascot/{key}/`; until then the
-      whole deliverable is unbacked
-- [ ] **Settle the format:** the 103 GIFs as they are (1-bit alpha, fine on flat vector art with
-      thick outlines), or build the VP9 alpha WebM export first. Phase 1 waits on this answer, not
-      on the assets
+- [x] **Get the 103 GIFs into version control.** All 103 copied to
+      `MadPony-Identity/runs/2026-09-20-mpi-78-gif-cutouts/gifs/` and sha256-verified against the
+      originals, which were not moved or rewritten. **Committed there but NOT PUSHED** — the push
+      is Fabio's, see validation.md
+- [x] **Settle the format: WebM.** Decided on measurement, not preference — as GIF the set is
+      ~57 MB and costs ~305 MiB of VRAM for five mascots on the landing; as VP9 alpha it is
+      13.7 MB and ~13 MiB, because alpha VP9 is software-decoded. The "missing exporter" that
+      three places recorded as a blocker was one ffmpeg invocation
 - [ ] **Settle the remaining placement points** (were MPI-78's, now this card's): Flows — Audio's
       only home; where the Prompt mascot appears; the empty-gallery spot. The 48px agent-chat
       mascot question is already answered by MPI-843, see plan.md open decision 4
 - [ ] Open decisions settled with Fabio (hover interrupts, and the rest in plan.md)
-- [ ] Phase 1: cut-out clips staged under `assets/mascot/{key}/`, stills kept as fallback
+- [x] Phase 1: cut-out clips staged under `assets/mascot/{key}/`, stills kept as fallback —
+      95 clips, 13.7 MB, `scripts/stage-mascot-clips.mjs`, rim guard proven red (validation.md).
+      The 8 not staged are the documented spares; they needed no labelling from Fabio
 - [x] Phase 2: shared clip queue utility, with its unit test - `js/utils/mascotClipQueue.js`,
       8 tests, each guard proven RED on a broken rule (validation.md)
 - [ ] Phase 3: landing hero crew on the queue (Fabio checks)

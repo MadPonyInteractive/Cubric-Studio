@@ -17,8 +17,15 @@ pointer below before editing; they were read 2026-09-16.
 - **Phase 2 is BUILT (2026-09-21): `js/utils/mascotClipQueue.js`, 8 unit tests green.**
   It is DOM-free behind a `paint` callback, matching `createPreviewClipPlayer`, so it drives a
   still, a GIF or an alpha WebM without knowing which. Nothing is wired to it yet.
-- **Next action: Phase 1, the assets.** The clips exist and were measured 2026-09-21 — see the
-  drift note. They need downscaling before placement whatever the format decision is.
+- **Phase 1 is DONE (2026-09-21).** 95 of the 103 clips are staged as
+  `assets/mascot/{key}/{state}.webm`, VP9 alpha, 13.7 MB for the whole set, built by
+  `scripts/stage-mascot-clips.mjs` off the table in `docs/mascot-gif-manifest.md`. The stills
+  stay as the fallback. The 8 unstaged are the documented spares, not unlabelled clips.
+  All 103 originals are now also in `MadPony-Identity/runs/2026-09-20-mpi-78-gif-cutouts/gifs/`,
+  sha256-verified — the single-copy risk is closed.
+- **Next action: Phase 3**, the landing hero crew on the queue. `heroCrew.js` still drives
+  `_poseSrc` directly, and `_poseSrc` is still pointing at the `.webp` stills — Phase 3 is where
+  it starts choosing a clip. Phase 4's two ledges come after.
 
 ### Why the order changed (Fabio, 2026-09-20)
 
@@ -106,19 +113,24 @@ would work today only if the format decision went one way, and it silently forec
 
 ## Implementation
 
-### Phase 1: assets — RUNS AFTER PHASE 2 (see Current State, 2026-09-20)
+### Phase 1: assets — DONE 2026-09-21 (ran after Phase 2, see Current State)
 
-- [ ] Stage the cut-out clips per character under `assets/mascot/{key}/`, named by state
+- [x] Stage the cut-out clips per character under `assets/mascot/{key}/`, named by state
       (e.g. `idle-1`, `greet-2`, `happy-1`, `peek`). Clip ids per state are in `docs/mascot-placement.md`'s
       clip index. Keep the stills as the reduced-motion and first-paint fallback.
-- [ ] Close the alpha WebM gap (Settled, above). Then, per clip: GIF Maker -> cut-out ->
+- [x] Close the alpha WebM gap (Settled, above). Then, per clip: GIF Maker -> cut-out ->
       VP9 alpha WebM. Transitions skip the cut-out and ship as plain WebM on black.
       **The cut-out step is already done for the whole set** (2026-09-20, BiRefNet, see the
       correction under Settled): 103 finished GIFs in the Vision project `Cubric Studio GIFs`,
       84 of them background-free. So this step is a **conversion** of existing cut-out frames,
       not a fresh cut-out pass — unless a clip needs re-cutting, in which case SAM3 `name` and
       BiRefNet `background` are both available and neither is ruled out.
-- [ ] Check the combined weight of `assets/mascot/` against the portable build.
+      **The "gap" was never a missing tool** — it is one ffmpeg invocation, and it now lives in
+      `scripts/stage-mascot-clips.mjs`. The transitions are detected as opaque at staging time
+      and encoded without an alpha plane, so no list of which ones they are has to be kept.
+- [x] Check the combined weight of `assets/mascot/` against the portable build.
+      13.7 MB of clips on top of the 15 MB `assets/` tree. As GIF the same set would have been
+      ~57 MB, which is the other half of why the format went WebM.
 
 ### Phase 2: shared clip queue — **STARTS HERE** (2026-09-20)
 
@@ -179,7 +191,10 @@ rather than a media `ended` event — see Current State for why that is not opti
 
 ## Completed
 
-(none yet)
+- **Phase 2 (2026-09-21)** — `js/utils/mascotClipQueue.js` + 8 unit tests, every rule proven RED
+  on a broken version. No consumer until Phase 3.
+- **Phase 1 (2026-09-21)** — `scripts/stage-mascot-clips.mjs` and the 95 staged clips under
+  `assets/mascot/{key}/`, plus the originals backed up. Evidence in `validation.md`.
 
 ## Remaining Work
 
@@ -201,6 +216,41 @@ decisions they name.
   Phase 1 and it exists nowhere else. It is not needed to start, but it IS needed to finish
   Phase 1 if the format decision stays WebM. Whoever reaches Phase 1 should raise it with
   Fabio rather than assume it exists.
+
+- **2026-09-21 — the clips, MEASURED.** This is the note `## Current State` pointed at from
+  2026-09-21 and which was never actually written down; it lived only in handoff `4364eec5`.
+  103 GIFs, 0.317 GB, **all 10 fps** (the source clips were 24), 98 at 768x768 plus four
+  1536x640 and one 1920x768, median 2.5 MB, max 18.7 MB. 84 carry transparency and 19 are
+  opaque — the opaque ones are the transitions and are MEANT to be, rendered on black and
+  composited with `mix-blend-mode: screen`. The cut-out alpha is **1-bit**: no partial alpha
+  value in any frame sampled. That confirms the 2026-09-16 WebM decision rather than reopening
+  it.
+
+- **2026-09-21 — Phase 1 shipped, and three things in the plan above were wrong.**
+  1. *The 8 clips reading `mascot: "?"` never needed Fabio.* They are already resolved in
+     `docs/mascot-gif-manifest.md` § Spares: `ref2v_001` and the three first gallery peeks
+     (superseded by peek 2), plus four transition rolls beyond the 15 picks. Unassigned spares,
+     not unnamed mascots. The handoff carried this as a question for Fabio; it was not one.
+  2. *The missing alpha WebM exporter was not missing.* It is one ffmpeg invocation
+     (`-c:v libvpx-vp9 -pix_fmt yuva420p`), measured at 1.4 s per clip. Three separate places
+     recorded it as a blocker.
+  3. *VRAM points the opposite way to the intuition.* Fabio's question — surely video is heavy
+     on VRAM, and VRAM is what ComfyUI needs — turned out to favour WebM. Chromium holds a
+     decoded animated GIF as GPU textures (~305 MiB for five mascots at the landing's draw
+     size, 9 runs), while alpha VP9 is **software**-decoded (`VpxVideoDecoder`,
+     `kIsPlatformVideoDecoder=false`) and measured ~13 MiB, inside the empty-window noise.
+     CPU for that software decode: 0.7% vs GIF's 0.5%. This matters for Phase 3 specifically,
+     because the queue preloads a slot's whole pool.
+
+- **2026-09-21 — a rim Fabio caught by eye, which no test was looking for.** The first encode put
+  a faint light outline around every character. It was not the codec and not the bitrate (crf 20
+  was no better): scaling **straight** alpha smears body colour into the transparent ring.
+  `premultiply → scale → unpremultiply` fixes it and makes the file smaller. `--verify` now
+  guards it, and the guard was proven red (+7.26) on a deliberately un-premultiplied encode.
+  The first version of that check used an absolute threshold and produced two false failures —
+  an absolute threshold cannot tell a rim from honest antialiasing, because a light-edged
+  character legitimately reads brighter than the page. It compares against a reference downscale
+  instead.
 
 ## Verification
 
