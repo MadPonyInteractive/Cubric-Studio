@@ -29,7 +29,7 @@
 import { state } from '../state.js';
 import { addGroup, updateGroup } from '../services/projectService.js';
 import { createImageItem, createVideoItem, createItemGroup, appendToHistory } from '../data/projectModel.js';
-import { timingEdit, toEntryOutput } from '../components/Organisms/MpiToolOptionsGifTiming/gifTiming.js';
+import { timingEdit, toEntryOutput } from '../utils/gifTiming.js';
 import { stampDetectionCount } from '../utils/maskTextPrompt.js';
 import { runGifCutoutTrack } from '../services/commandExecutor.js';
 import { truncateCardName } from '../utils/displayHelpers.js';

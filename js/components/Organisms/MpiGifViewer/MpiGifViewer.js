@@ -161,14 +161,11 @@ import { MaskManager } from '../../Primitives/MpiCanvas/managers/MaskManager.js'
 import { clientLogger } from '../../../services/clientLogger.js';
 import { Events } from '../../../events.js';
 import { qs, on } from '../../../utils/dom.js';
-// `gifTiming.js` is not an Organism: it is the pure, DOM-free trim/timing math that
-// happens to sit in one's folder, and `js/shell/gifJobs.js` and MpiGroupHistoryBlock
-// already import it from outside. Taking the range through it is the opposite of
-// coupling to the timing PANEL — it is the ONE reading of the trim, which is exactly
-// why the viewer must not re-derive it. The real fix is moving the module to
-// js/utils/; that is a 5-file change and MPI-871 does not own three of them.
-// eslint-disable-next-line mpi/no-same-tier-component-import -- see above
-import { rangeBounds } from '../MpiToolOptionsGifTiming/gifTiming.js';
+// Taking the range through `rangeBounds` is the opposite of coupling to the timing
+// PANEL — it is the ONE reading of the trim, which is exactly why the viewer must
+// not re-derive it. (MPI-757: the module moved out of that panel's folder to
+// js/utils/, which is what it always was: pure, DOM-free math with four consumers.)
+import { rangeBounds } from '../../../utils/gifTiming.js';
 import { GifFrameMasks } from './gifFrameMasks.js';
 import { composeFrameMask } from './maskCompose.js';
 import { invertMaskUrl } from '../../../utils/maskUtils.js';

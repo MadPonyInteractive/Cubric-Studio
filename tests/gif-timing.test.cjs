@@ -6,8 +6,7 @@ const { pathToFileURL } = require('url');
 
 let T;
 before(async () => {
-    T = await import(pathToFileURL(path.join(__dirname, '..', 'js', 'components', 'Organisms',
-        'MpiToolOptionsGifTiming', 'gifTiming.js')).href);
+    T = await import(pathToFileURL(path.join(__dirname, '..', 'js', 'utils', 'gifTiming.js')).href);
 });
 
 const frames = ['a', 'b', 'c', 'd', 'e'].map((hash, i) => ({ hash, delay: 10 + i }));

@@ -282,7 +282,8 @@ range is set. Proof: `tests/desktop/gif-workspace.spec.js` § `gif 838`.
 
 ## GIF output (MPI-772, one tool since MPI-836)
 
-`MpiToolOptionsGifTiming`, with `gifTiming.js` beside it for the math. Apply is a
+`MpiToolOptionsGifTiming`, with `js/utils/gifTiming.js` for the math (it sat beside
+the panel until MPI-757; four of its five consumers are not the panel). Apply is a
 new entry through `POST /gif/entry` that writes no frame file. Fields: **frame
 rate**, **loop count**, then longest edge, colours, transparent + edge colour —
 rate and loop first, as the video GIF Maker has them.

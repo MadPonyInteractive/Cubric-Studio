@@ -59,7 +59,7 @@ import { qs } from '../../../utils/dom.js';
 import {
     MIN_FPS, MAX_FPS, MAX_LOOP, MIN_EDGE, MAX_EDGE, MIN_COLOURS, MAX_COLOURS,
     OUTPUT_DEFAULTS, clampNumber, fpsToDelay, delayToFps, rangeBounds, uniformFps,
-} from './gifTiming.js';
+} from '../../../utils/gifTiming.js';
 
 const DESC = 'Saves the frames between the trim handles as a new GIF. The frames stay full colour.';
 

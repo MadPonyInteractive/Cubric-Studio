@@ -2,8 +2,11 @@
  * gifTiming — the frame-list math behind the GIF timing and output tools (MPI-772).
  *
  * Pure: no DOM, no fetch. `MpiToolOptionsGifTiming` shows what a value will do,
- * `MpiGroupHistoryBlock` turns an Apply into a `POST /gif/entry` body, and
- * `tests/gif-timing.test.cjs` pins the numbers. Every edit rewrites only the
+ * `MpiGroupHistoryBlock` turns an Apply into a `POST /gif/entry` body,
+ * `MpiGifViewer` reads the trim through `rangeBounds`, `js/shell/gifJobs.js`
+ * applies the edit, and `tests/gif-timing.test.cjs` pins the numbers. It lives in
+ * `js/utils/` rather than beside the panel (MPI-757) because four of those five
+ * consumers are not that panel. Every edit rewrites only the
  * frame list, `loop` or `output`: no frame file is ever written (docs/gif.md).
  *
  * Delays are GIF hundredths of a second. Chromium plays 0 or 1 as 10, so 2 is

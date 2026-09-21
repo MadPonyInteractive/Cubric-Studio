@@ -35,7 +35,7 @@ import { MpiToolOptionsResize } from '../../Organisms/MpiToolOptionsResize/MpiTo
 import { MpiToolOptionsGif } from '../../Organisms/MpiToolOptionsGif/MpiToolOptionsGif.js';
 import { MpiToolOptionsGifCutout } from '../../Organisms/MpiToolOptionsGifCutout/MpiToolOptionsGifCutout.js';
 import { MpiToolOptionsGifTiming } from '../../Organisms/MpiToolOptionsGifTiming/MpiToolOptionsGifTiming.js';
-import { timingEdit, rangeBounds } from '../../Organisms/MpiToolOptionsGifTiming/gifTiming.js';
+import { timingEdit, rangeBounds } from '../../../utils/gifTiming.js';
 import { MpiToolOptionsGifTransform } from '../../Organisms/MpiToolOptionsGifTransform/MpiToolOptionsGifTransform.js';
 import { MpiToolOptionsPrompt } from '../../Organisms/MpiToolOptionsPrompt/MpiToolOptionsPrompt.js';
 import { MpiPromptBox } from '../../Organisms/MpiPromptBox/MpiPromptBox.js';
