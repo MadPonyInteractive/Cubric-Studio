@@ -1,6 +1,6 @@
 # MPI-849 — Paid cloud models through the user's own DeepInfra key
 
-**Umbrella.** Six members. Decision taken by Fabio 2026-09-20 after a costed review of all
+**Umbrella.** Eight members. Decision taken by Fabio 2026-09-20 after a costed review of all
 three options in `docs/proprietary-models-research/`: **Option A, bring your own key.** No
 credit system, no markup, no proxy, no company, no lawyer. The user pastes nothing new — the
 app already holds their DeepInfra key for the prompt enhancer. They pay DeepInfra directly and
@@ -22,6 +22,13 @@ touches a local generation path except by adding a branch beside it.
 | MPI-853 | The **Paid models** section at the foot of the Model Library | 2 |
 | MPI-854 | The agent states a price and dispatches only after OK — plus the server-side gate | 2 |
 | MPI-855 | The spend readout in the Remote panel — this month, and what is left | 2 |
+| MPI-864 | Preview art for the fifteen cloud tiles, which all render a placeholder | 3 |
+| MPI-865 | The model PICKER: family colours, and a paid badge in the featured-star slot | 3 |
+
+**Phase 3 is the surface the catalogue exposed.** Both cards came from Fabio's own review of
+the finished section on 2026-09-21, not from this plan predicting them, and both are about the
+same thing: fifteen models arrived at once and the library has no way to say what they are
+apart from a price. Neither blocks the phase 2 members.
 
 ## Current State
 
@@ -132,6 +139,25 @@ Each depends on phase 1 and on nothing in this batch.
   its price; a direct
   `POST /connector/generate` for a paid model without consent is refused with a coded error;
   `npm test` green including `tests/agent-no-delete.test.cjs`. **Verify mode:** `user-ux`.
+## Phase 3 — what fifteen tiles at once exposed
+
+Opened from Fabio's review, 2026-09-21. Independent of phase 2 and of each other.
+
+- [ ] **MPI-864** — preview art for the fifteen cloud tiles. Ownership:
+  `js/data/modelConstants/models.js` (the `image`/`video` keys only),
+  `comfy_workflows/display/` (new files). Briefings: `dos_and_donts.md`. **Verify:** every
+  cloud tile in both the Model Library and the picker renders real art rather than a
+  placeholder, at the same `.webp` convention every local model uses; `npm test` green.
+  **Verify mode:** `user-ux`. **Read the card's brief before sourcing anything** — the route
+  is settled but the licensing question is not.
+- [ ] **MPI-865** — the model PICKER's cloud models. Ownership:
+  `js/components/Compounds/MpiModelPicker/` (all files),
+  `js/components/Primitives/MpiTileSheet/MpiTileSheet.css`, `js/utils/icons.js`.
+  Briefings: `components.md`, `dos_and_donts.md`. **Verify:** a cloud model in the picker
+  carries a badge in the featured-star slot and the right family colour; `CLOUD · BALANCED`
+  is gone; the `LORA & UPSCALE` control does not offer what a DeepInfra endpoint cannot do;
+  `npm test` green. **Verify mode:** `user-ux`.
+
 - [ ] **MPI-855** — the spend readout. Ownership:
   `js/components/Organisms/MpiLlmSettings/` (all files), `routes/deepinfraAccount.js` (new),
   `services/spendLedger.mjs` (new). Briefings: `components.md`, `dos_and_donts.md`,

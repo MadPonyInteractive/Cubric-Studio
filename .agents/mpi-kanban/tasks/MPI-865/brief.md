@@ -1,5 +1,7 @@
 # MPI-865 — Cloud models in the model PICKER: family colours and a paid badge
 
+**Phase 3 of MPI-849** (the paid-cloud-models umbrella). Plan: `.agents/mpi-kanban/tasks/MPI-849/plan.md`.
+
 Fabio, 2026-09-21, looking at the model selection library (`MpiModelPicker`, NOT the Model
 Library `MpiModelManager` that MPI-853 covered). The sixteen cloud models now appear there
 mixed in with the local ones and nothing distinguishes them.
