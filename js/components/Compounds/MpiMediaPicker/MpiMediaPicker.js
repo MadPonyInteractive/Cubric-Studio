@@ -5,7 +5,7 @@ import { state } from '../../../state.js';
 import { Storage } from '../../../core/storage.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
 import { qs, ce, on } from '../../../utils/dom.js';
-import { renderIcon } from '/js/utils/icons.js';
+import { renderIcon } from '../../../utils/icons.js';
 import { toWavFile } from '../../../utils/toWavFile.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import {

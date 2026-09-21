@@ -21,7 +21,7 @@ import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
 import { mountPodDiskBar } from '../../../services/podDiskBar.js';
 import { getModelLicence, hasAcceptedLicence } from '../../../data/modelConstants/licences.js';
 import { qs, qsa, ce, on } from '../../../utils/dom.js';
-import { renderIcon } from '/js/utils/icons.js';
+import { renderIcon } from '../../../utils/icons.js';
 import { openExternal } from '../../../utils/openExternal.js';
 import { formatBytes } from '../../../utils/formatBytes.js';
 import { tradeTable, sizeToGb } from '../../../data/modelConstants/footprint.js';

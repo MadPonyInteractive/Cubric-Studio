@@ -1,5 +1,5 @@
 import { ComponentFactory } from '../../factory.js';
-import { ce } from '/js/utils/dom.js';
+import { ce } from '../../../utils/dom.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 
 /**

@@ -9,6 +9,7 @@ const requireDestroyOnEvents = require('./.eslint-rules/require-destroy-on-event
 const noSameTierComponentImport = require('./.eslint-rules/no-same-tier-component-import');
 const noHardcodedHexColor = require('./.eslint-rules/no-hardcoded-hex-color');
 const noBareFormControl = require('./.eslint-rules/no-bare-form-control');
+const noServerAbsoluteImport = require('./.eslint-rules/no-server-absolute-import');
 
 const mpiPlugin = {
   rules: {
@@ -21,6 +22,7 @@ const mpiPlugin = {
     'no-same-tier-component-import': noSameTierComponentImport,
     'no-hardcoded-hex-color': noHardcodedHexColor,
     'no-bare-form-control': noBareFormControl,
+    'no-server-absolute-import': noServerAbsoluteImport,
   },
 };
 
@@ -59,6 +61,9 @@ module.exports = [
       mpi: mpiPlugin,
     },
     rules: {
+      // 'error', not 'warn' like the rest: the others are conventions, this one is a
+      // module that cannot be loaded (MPI-881).
+      'mpi/no-server-absolute-import': 'error',
       'mpi/no-raw-dom-query': 'warn',
       'mpi/no-raw-event-listener': 'warn',
       'mpi/no-window-hotkey': 'warn',

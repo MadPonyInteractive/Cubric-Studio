@@ -1,5 +1,5 @@
 import { ComponentFactory } from '../../factory.js';
-import { qs, on } from '/js/utils/dom.js';
+import { qs, on } from '../../../utils/dom.js';
 
 /**
  * MpiFader — dB gain fader Primitive (MPI-604).

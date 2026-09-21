@@ -12,8 +12,8 @@
 
 import { MpiPopup } from '../../Primitives/MpiPopup/MpiPopup.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
-import { ce, qs, on } from '/js/utils/dom.js';
-import { CARD_MARKS } from '/js/utils/galleryFilter.js';
+import { ce, qs, on } from '../../../utils/dom.js';
+import { CARD_MARKS } from '../../../utils/galleryFilter.js';
 
 export const MARK_HOLD_MS = 250;
 

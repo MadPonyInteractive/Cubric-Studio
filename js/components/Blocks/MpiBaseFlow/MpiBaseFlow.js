@@ -22,7 +22,7 @@ import { Hotkeys } from '../../../managers/hotkeyManager.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
 import { isVideoFile } from '../../../utils/file.js';
 import { qs, ce, on } from '../../../utils/dom.js';
-import { renderIcon } from '/js/utils/icons.js';
+import { renderIcon } from '../../../utils/icons.js';
 import { getStepKind, stepValueToParam, stepValueToMedia, isFrameKind } from './stepKinds.js';
 import { enqueueGeneration, findMissingMediaSlot } from '../../../services/generationService.js';
 import { getCommand } from '../../../data/commandRegistry.js';

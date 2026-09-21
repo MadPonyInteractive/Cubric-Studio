@@ -1,5 +1,5 @@
 import { ComponentFactory } from '../../factory.js';
-import { qs } from '/js/utils/dom.js';
+import { qs } from '../../../utils/dom.js';
 
 /**
  * MpiLevelMeter — audio level meter Primitive (MPI-573).

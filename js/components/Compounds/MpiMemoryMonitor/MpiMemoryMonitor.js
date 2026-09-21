@@ -1,9 +1,9 @@
 import { ComponentFactory } from '../../factory.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiProgressBar } from '../../Primitives/MpiProgressBar/MpiProgressBar.js';
-import { ce, qs } from '/js/utils/dom.js';
-import { Hotkeys } from '/js/managers/hotkeyManager.js';
-import { Events } from '/js/events.js';
+import { ce, qs } from '../../../utils/dom.js';
+import { Hotkeys } from '../../../managers/hotkeyManager.js';
+import { Events } from '../../../events.js';
 
 /**
  * MpiMemoryMonitor — Compound: MpiProgressBar (×2) + MpiButton (unload).

@@ -5,7 +5,7 @@
 
 import { CropManager } from './CropManager.js';
 import { ShapeManager } from './ShapeManager.js';
-import { Hotkeys } from '/js/managers/hotkeyManager.js';
+import { Hotkeys } from '../../../../managers/hotkeyManager.js';
 
 /**
  * @typedef {Object} Managers

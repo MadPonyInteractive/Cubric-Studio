@@ -32,7 +32,7 @@
 
 import {
     Input, ALL_FORMATS, UrlSource, VideoSampleSink,
-} from '/node_modules/mediabunny/dist/bundles/mediabunny.mjs';
+} from '../../node_modules/mediabunny/dist/bundles/mediabunny.mjs';
 import { clientLogger } from './clientLogger.js';
 
 // One live sink per URL. decodable=false → callers fall back to native <video>.
