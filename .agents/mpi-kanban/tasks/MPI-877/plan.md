@@ -4,9 +4,17 @@ Sits **in front of MPI-876** (Fabio, 2026-09-21).
 
 ## Current State
 
-Not started. Planned from a live failure in Fabio's own app on 2026-09-21, and from
-Fabio's own explanation of what localised edits are — which is knowledge the agent's
-docs do not contain anywhere.
+**Not started — planned only, and not authorised to start.** Written 2026-09-21 from a
+live failure in Fabio's own app plus his own explanation of localised edits, which is
+knowledge the agent's docs do not contain anywhere.
+
+Research already banked, so the next session does not redo it: both faults are pinned to
+file:line below, and the Klein master graph has been traced — `i2i` **does** honour a
+painted mask (node 592 gates the shared encode). `control` is the one open question; do
+not put it in the docs either way until it is traced or benched.
+
+Card sits ahead of MPI-876 on Fabio's instruction. MPI-876 is likewise planned and
+unauthorised.
 
 ## What happened, live
 
