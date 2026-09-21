@@ -1,0 +1,11 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Organisms/MpiGifViewer/MpiGifViewer.js",
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+    "tests/desktop/gif-timing.spec.js",
+    ".agents/mpi-kanban/tasks/MPI-871/",
+    "js/components/types.js"
+  ],
+  "note": "Derived from plan.md steps 2-4 and confirmed by grep. MpiGifViewer.js gains the range input and the three index sites (wrap, setFrameIndex/stepFrame, _playsDone). MpiGroupHistoryBlock.js gains one line in each of the two existing range subscribers (~604 range-change, ~613 range-preview) - no other hunk. gif-timing.spec.js is EXTENDED, not replaced. types.js holds MpiGifViewer's instance-method typedef, which the new setRange belongs in. ONE entry is added, inside the MpiGifViewerProps block; nothing else in the file is touched. No claim was on it - guard-claim gates every unclaimed file while a peer session is live, which is what blocked the first attempt."
+}
