@@ -149,6 +149,27 @@ That inversion is the single idea holding all six members together.
 
 **2026-09-21 - MPI-852 is BUILT and PUSHED, and Fabio's look FAILED.** The price tag is live in the prompt box as its own grid column (`#price-tag-slot`, 8 tracks now, before `#bottom-right-slot` which `_renderRunCluster` innerHTML-clears). `estimateRunCost()` in `cloudExecutor.js` prices what `buildSizeFields()` will actually SEND rather than what the controls hold - an out-of-bounds size is fitted on the way out and the fitted size is what is billed, so pricing the pick over-quotes FLUX 2 dev by four times at 4K - and `runCloudCommand` now builds its own POST body from the same `cloudRunFields()`, so the quoted run and the dispatched run cannot drift. 13 tests, each proved red by backing its own fix out one at a time; `npm test` 1723/1721, 0 fail, 1 declared todo; CI **35597739341** success on `8c74a29e`. **A money bug fell out of it:** `cloudExecutor` read the duration as `params.Duration`, which nothing in this app has ever written - the control injects `Input_Duration` - so every cloud video generation since MPI-851 was dispatched with NO duration and billed at the provider's own default clip length. Fixed in the same function. That in turn exposed the slider offering 1-30s on a model that accepts 4-12, carded and already fixed by a peer as **MPI-879** (`c6cb3e63`). **Four of MPI-852's brief premises are false** against the shipped code (`tasks/MPI-852/checklist.md` section 0); the one that mattered is that hiding the tag on `state.engineOverride === 'local'` would have hidden a real charge, because `generationService` routes on `model.provider` before it reads `forceLocal`. **What is NOT done: the presentation.** Fabio, on seeing it: "Considering your UI pricing, it's not looking good." The card is back at `in-progress` and the next session's first job is the **`impeccable` skill on the tag**, at his explicit instruction and explicitly not in the session that built it. Nothing below the presentation layer is in question.
 
+**2026-09-21 — MPI-852's PLACEMENT is settled: the estimate goes INSIDE the Cue button.** The
+`impeccable` pass first restyled the tag in place (a recessed `--surface-canvas` pill, uppercase
+tabular, `--ink-1`, sitting on the button row via `min-height: var(--control-h-sm)` instead of
+the old hand-tuned `padding-bottom`). That is **on disk, uncommitted, verified** — 13/13 on
+`cloud-price-tag`, `lint:components` clean, bar height 63 px unchanged, zero overflow at the
+widest figure — and Fabio's answer was that it was still the same idea restyled: *"No ideas for
+placing it inside the queue button, like most websites have. No ideas to place it maybe above
+the model selector button."* Four placements were then mocked in the live bar and he chose
+**A1, inline inside Cue** (`▶ CUE │ ABOUT $0.14`), which keeps the bar at 63 px and removes the
+8th grid track entirely. Rejected with reasons: **A2** (stacked in Cue) grows the bar to 80 px;
+**C** (under the model name) grows it to 77 px and says the wrong thing, since the figure moves
+with duration, batch and references rather than with the model; **B** (floating above the bar)
+is dead because that band belongs to the **op strip**, which is right-aligned at `bottom: 100%`
+and lands on top of it — proven in a screenshot, not predicted. **"about" stays** — he floated
+`~` or `±` and then withdrew it, so `formatPrice` and its tests are NOT to be touched (`±` was
+wrong anyway: it reads as a tolerance, not a value). Two mechanics were established for the
+build and should not be re-derived: `MpiButton.setLabel` only rewrites `.mpi-ibtn__label`
+textContent, so an appended span survives a `Cue x2` relabel; and the **armed** state fills the
+button solid with `--accent-heat` and rebinds its label to `--ink-on-accent`, so the price span
+needs the same rebind or it is `--ink-1` on solid yellow.
+
 ## Completed
 
 - [x] **MPI-850** — the price module, the sync script and the committed snapshot.
