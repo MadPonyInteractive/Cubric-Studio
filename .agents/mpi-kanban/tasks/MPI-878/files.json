@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".github/workflows/tests.yml",
+    "playwright.desktop.config.js",
+    "docs/red-master.md",
+    ".agents/mpi-kanban/tasks/MPI-878/"
+  ],
+  "note": "Two files. tests.yml gets a paths-ignore block on the push trigger and its desktop step becomes a 4-way shard matrix. playwright.desktop.config.js is touched ONLY if the shard split needs a config-side change - the intent is that it does not (workers:1 and fullyParallel:false are correct for per-runner sharding), so it is claimed defensively and may end up unmodified. NOT touched: .husky/pre-push - both gates stay exactly as they are, this card changes what CI RUNS, never what it BLOCKS. Also not touched: .github/workflows/red-master-watch.yml, which reads the same query and gets more accurate for free once board commits stop producing verdicts. Checked all three live file claims (MPI-851, MPI-858, MPI-852) at 2026-09-21T12:23Z - none holds either path. EXTENDED 2026-09-21T12:27:04Z: red-master.md:31 hands out `gh run download -n playwright-results`, and the shard split renames that artifact to playwright-results-<shard>. Leaving it would send whoever meets a red master to an artifact name that no longer exists. Its two-gate table also needs the paths-ignore line. Not held by any live claim."
+}

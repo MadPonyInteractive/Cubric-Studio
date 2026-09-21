@@ -1,8 +1,8 @@
 name: Tests
 
 # MPI-443 made `npm test` + `npm run test:desktop` a release gate, but the gate was a
-# human step in mpi-version-bump. This runs both on every push so a red suite is seen
-# before a release, not during one.
+# human step in mpi-version-bump. This runs both on every push that carries code (see the
+# paths-ignore note below) so a red suite is seen before a release, not during one.
 #
 # windows-latest runs BOTH: Electron needs no xvfb on Windows, and Playwright drives it
 # through the `electron` npm binary, so there is no `npx playwright install` step.
@@ -14,14 +14,44 @@ name: Tests
 # when it is absent. So no PAT, no registry and no vendored copy are needed here.
 # (The dangling symlink itself is a shipped-artifact problem, tracked on MPI-416.)
 
+# MPI-878 — the paths-ignore below. Measured over 48h on master (198 completed runs):
+# 128 of them, 65% of runs and 36.8 of 56 CI-hours, were docs/.agents/.md-only commits
+# running this whole thing for no signal. `.husky/pre-push` already skips its master gate
+# for exactly that set (its `DOCS_RE`), so the two now agree — keep them in step if either
+# changes. 8 of the 21 reds in that window also sat on docs-only commits: they could not
+# have caused anything, they inherited the red, spent 17 minutes proving it, and then
+# became "master's last completed run" — which is the query BOTH `.husky/pre-push` and
+# `red-master-watch.yml` gate on. A skipped push creates no run at all, so that query now
+# returns the last real CODE verdict.
+
 on:
   push:
     # Release branches are cut per version and named bare (1.3.0, 1.3.1) — a hotfix
     # landing there never touches master, so master alone would leave it untested
     # while the v* tag build still runs off it.
     branches: [master, '[0-9]*.[0-9]*.[0-9]*']
+    # Skips only when EVERY changed file matches, so a push mixing code and docs still
+    # runs. ORDER MATTERS — GitHub takes the LAST matching pattern, so the negation has
+    # to follow both `**/*.md` and `docs/**` or it is overridden and silently does nothing.
+    # (Repeated verbatim under pull_request below — GitHub Actions does not support
+    # YAML anchors, so the two lists have to be kept in sync by hand.)
+    paths-ignore:
+      - '.agents/**'
+      - '**/*.md'
+      - 'docs/**'
+      # NOT ignorable: these .md files are test INPUT, not prose.
+      # `tests/agent-corpus.test.cjs:74` asserts at least one `docs/agent/*.md` ships, and
+      # :139 requires a `docs/agent/models/<recipeModelId>.md` for every recipe. Nothing
+      # else under docs/ or .agents/ is read by a test at runtime (the `docs` in
+      # documents-heal.test.cjs is the user's Documents folder, not this directory).
+      - '!docs/agent/**'
   pull_request:
     branches: [master]
+    paths-ignore:
+      - '.agents/**'
+      - '**/*.md'
+      - 'docs/**'
+      - '!docs/agent/**'
   workflow_dispatch:
 
 permissions:
@@ -44,7 +74,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  tests:
+  # Lint and the unit suite are ~80 seconds together, against the desktop suite's ~16
+  # minutes. Keeping them as their own job preserves what MPI-833 bought — a typo is red
+  # in seconds, not at the end of a long run — and `needs:` below means a lint failure
+  # never spends four runners.
+  unit:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -65,15 +99,41 @@ jobs:
 
       - run: npm test
 
-      # The suite takes its own free port (tests/desktop/globalSetup.js), so nothing
-      # on the runner can collide with it.
-      - run: npm run test:desktop
+  # MPI-878. 63 specs at `workers: 1` took 16.1 minutes of the run's 17.4 (measured on
+  # run 35595318785, 11:42:28 -> 11:58:32), and that wall-clock is what an agent waits on
+  # before it can close a card. Split across four runners instead.
+  #
+  # The parallelism is ACROSS runners, never inside one: `playwright.desktop.config.js`
+  # keeps `workers: 1` / `fullyParallel: false`, because the specs share one CUBRIC_PORT
+  # per process and launch an Electron app each. Every shard is its own process on its own
+  # machine, so each runs `globalSetup` and takes its own free port — they cannot collide.
+  desktop:
+    needs: unit
+    runs-on: windows-latest
+    strategy:
+      # A red master hides the next break (docs/red-master.md). Cancelling the other three
+      # shards the moment one fails would rebuild that exact blind spot inside a single run.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run test:desktop -- --shard=${{ matrix.shard }}/4
 
       - name: Upload Playwright artifacts
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-results
+          # Per-shard, or the four uploads collide and only one survives.
+          name: playwright-results-${{ matrix.shard }}
           # Each failing spec leaves its whole Electron profile behind under
           # user-data/ — 301 MB of Chromium cache in the first red run, for zero
           # diagnostic value. The traces, screenshots and error-context are the

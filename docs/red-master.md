@@ -28,7 +28,7 @@ git show --stat <first-red-commit>
 Could that commit touch the failing spec at all? A docs-only commit cannot; that is a flake.
 
 ```bash
-gh run download <id> -n playwright-results -D <scratchpad>/ci-art
+gh run download <id> -D <scratchpad>/ci-art   # all four shards' artifacts
 ```
 **Look at `test-failed-1.png` before theorising.** The 2026-09-19 radial failure was a
 "No models installed" dialog sitting over the gallery — visible in one glance, invisible in
@@ -55,8 +55,9 @@ Green here and red in CI is an ANSWER, not a dead end — see cause 1.
 4. **A flake.** A different spec each run, usually an Electron boot timeout. CI retries
    twice (`playwright.desktop.config.js`, `retries: 2` on CI), so a completed `failure` is
    almost never one any more. If it is: `gh run rerun --failed <id>`.
-5. **Lint (MPI-833).** `npm run lint` runs on the runner as of 2026-09-19, BEFORE both
-   suites, and it lints the whole repo (`eslint .`), not just `js/`. The rule that bites is
+5. **Lint (MPI-833).** `npm run lint` runs on the runner as of 2026-09-19, in the `unit`
+   job that the four `desktop` shards `needs:`, and it lints the whole repo (`eslint .`),
+   not just `js/`. The rule that bites is
    `no-undef` (MPI-832): a rename that leaves one use of the old name behind is a
    `ReferenceError` in the user’s app, and the suite cannot see it — the source-contract
    tests are regexes that never execute the line. Red in seconds rather than twenty
@@ -70,6 +71,14 @@ Green here and red in CI is an ANSWER, not a dead end — see cause 1.
 | **Master gate** | did master's last completed run fail? | any code push. Docs / `.agents/` / `.md`-only pushes skip it |
 
 Both fail OPEN (no `gh`, no network, shallow clone) and both yield to `--no-verify`.
+
+**A board-only push no longer produces a verdict at all** (MPI-878). `tests.yml` carries a
+`paths-ignore` matching the same set as the hook's `DOCS_RE`, so a docs or `.agents/` commit
+creates no run — which means "master's last completed run", the query both gates and
+`red-master-watch.yml` read, is now always the last real CODE verdict. Before this, 65% of
+master's runs were board commits, and eight of twenty-one reds in a 48-hour window sat on a
+docs-only commit that had merely inherited someone else's break. If either list changes,
+change the other: `.github/workflows/tests.yml` and `.husky/pre-push`.
 
 ## The rules that go with them
 
