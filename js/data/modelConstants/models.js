@@ -1870,6 +1870,7 @@ export const MODELS = [
             // only way the fourteen models added below could each be capped correctly:
             // eleven have no native batch at all and Veo calls its own `sample_count`.
         },
+        image: 'flux-schnell-cloud.webp',
         mediaType: 'image',
         type: 'flux',
         supportedOps: ['t2i'],
@@ -1918,6 +1919,7 @@ export const MODELS = [
         // /create-enhancer-recipe; until then this is an explicit choice rather than
         // a silent fallthrough.
         enhanceRecipe: 'flux-2',
+        image: 'seedream-4-cloud.webp',
         mediaType: 'image',
         type: 'seedream4',
         qualityTiers: ['2k', '4k'],
@@ -1939,6 +1941,7 @@ export const MODELS = [
         cloud: { endpointId: 'ByteDance/Seedream-4.5', body: {}, imageField: 'image' },
         // Stand-in, as above — see the note on seedream-4-cloud.
         enhanceRecipe: 'flux-2',
+        image: 'seedream-45-cloud.webp',
         mediaType: 'image',
         type: 'seedream4',
         supportedOps: ['t2i', 'edit'],
@@ -1959,6 +1962,7 @@ export const MODELS = [
         cloud: { endpointId: 'ByteDance/Seedream-5.0-Pro', body: {}, imageField: 'image' },
         // Stand-in, as above — see the note on seedream-4-cloud.
         enhanceRecipe: 'flux-2',
+        image: 'seedream-5-pro-cloud.webp',
         mediaType: 'image',
         type: 'seedream5',
         // NO '1k' tier, deliberately. Its own field description says 1.5K "costs the same
@@ -1983,6 +1987,7 @@ export const MODELS = [
         dropdownMeta: 'CLOUD',
         provider: 'deepinfra',
         cloud: { endpointId: 'black-forest-labs/FLUX-2-dev', body: {}, imageField: 'input_image_1' },
+        image: 'flux2-dev-cloud.webp',
         mediaType: 'image',
         type: 'flux2',
         // The ONE model in the fifteen whose price scales with AREA and step count, so
@@ -2005,6 +2010,7 @@ export const MODELS = [
         dropdownMeta: 'CLOUD',
         provider: 'deepinfra',
         cloud: { endpointId: 'black-forest-labs/FLUX-2-pro', body: {}, imageField: 'input_image' },
+        image: 'flux2-pro-cloud.webp',
         mediaType: 'image',
         type: 'flux2pro',
         // 256-1440, NOT the 128-1920 its Dev sibling takes. Same family, different box —
@@ -2026,6 +2032,7 @@ export const MODELS = [
         dropdownMeta: 'CLOUD',
         provider: 'deepinfra',
         cloud: { endpointId: 'black-forest-labs/FLUX-2-max', body: {}, imageField: 'input_image' },
+        image: 'flux2-max-cloud.webp',
         mediaType: 'image',
         type: 'flux2pro',
         supportedOps: ['t2i', 'edit'],
@@ -2054,6 +2061,7 @@ export const MODELS = [
         cloud: { endpointId: 'google/nano-banana-2-lite', body: {}, imageField: 'image' },
         // Stand-in, as above — see the note on seedream-4-cloud.
         enhanceRecipe: 'flux-2',
+        image: 'nano-banana-2-lite-cloud.webp',
         mediaType: 'image',
         type: 'nanobanana',
         ratios: {
@@ -2074,6 +2082,7 @@ export const MODELS = [
         cloud: { endpointId: 'google/nano-banana-2', body: {}, imageField: 'image' },
         // Stand-in, as above — see the note on seedream-4-cloud.
         enhanceRecipe: 'flux-2',
+        image: 'nano-banana-2-cloud.webp',
         mediaType: 'image',
         type: 'nanobanana',
         supportedOps: ['t2i', 'edit'],
@@ -2091,36 +2100,24 @@ export const MODELS = [
         name: 'Nano Banana Pro',
         dropdownMeta: 'CLOUD',
         provider: 'deepinfra',
+        // DeepInfra publishes this model a SECOND time as `google/gemini-3-pro-image` —
+        // byte-identical pricing and input fields, and that card's own description calls
+        // itself Nano Banana Pro. It shipped briefly as its own tile so both searchable
+        // names were on the grid; Fabio dropped that tile on 2026-09-21 (MPI-864) because
+        // two tiles for one model sells one thing twice. `deepinfraPricing.js` still prices
+        // the second endpoint — the equivalence is a fact about DeepInfra, not about our
+        // roster, and a saved history item naming it must still quote. Do not put it back
+        // on the grid.
         cloud: { endpointId: 'google/nano-banana-pro', body: {}, imageField: 'image' },
         // Stand-in, as above — see the note on seedream-4-cloud.
         enhanceRecipe: 'flux-2',
+        image: 'nano-banana-pro-cloud.webp',
         mediaType: 'image',
         type: 'nanobanana',
         supportedOps: ['t2i', 'edit'],
         imageSizedOps: ['edit'],
         capabilities: { negativePrompt: false, batch: false },
-        description: 'Nano Banana Pro on your own DeepInfra key, about $0.134 an image — the strongest of the family at text in the image and at following a long prompt exactly. This is the same model as Gemini 3 Pro Image below, under Google\'s other name for it; pick either.',
-        workflows: {},
-    },
-    {
-        id: 'gemini-3-pro-image-cloud',
-        name: 'Gemini 3 Pro Image',
-        dropdownMeta: 'CLOUD',
-        provider: 'deepinfra',
-        // The SAME model as nano-banana-pro: byte-identical pricing and input fields, and
-        // the Gemini card's own description calls itself Nano Banana Pro. Both ship on
-        // Fabio's call (2026-09-21) because both names are what people search for — so
-        // each description says plainly that it is the other, rather than selling one
-        // thing twice.
-        cloud: { endpointId: 'google/gemini-3-pro-image', body: {}, imageField: 'image' },
-        // Stand-in, as above — see the note on seedream-4-cloud.
-        enhanceRecipe: 'flux-2',
-        mediaType: 'image',
-        type: 'nanobanana',
-        supportedOps: ['t2i', 'edit'],
-        imageSizedOps: ['edit'],
-        capabilities: { negativePrompt: false, batch: false },
-        description: 'Gemini 3 Pro Image on your own DeepInfra key, about $0.134 an image. This is the same model as Nano Banana Pro above, under Google\'s other name for it — identical price and identical output. Pick whichever name you think in.',
+        description: 'Nano Banana Pro on your own DeepInfra key, about $0.134 an image — the strongest of the family at text in the image and at following a long prompt exactly. Google also calls it Gemini 3 Pro Image; it is the same model either way.',
         workflows: {},
     },
 
@@ -2131,6 +2128,7 @@ export const MODELS = [
         dropdownMeta: 'CLOUD',
         provider: 'deepinfra',
         cloud: { endpointId: 'ByteDance/Seedance-1.5-Pro', body: {}, imageField: 'first_frame_image' },
+        video: 'seedance-15-pro-cloud.mp4',
         mediaType: 'video',
         type: 'seedance',
         qualityTiers: ['480p', '720p', '1080p'],
@@ -2151,6 +2149,7 @@ export const MODELS = [
         dropdownMeta: 'CLOUD',
         provider: 'deepinfra',
         cloud: { endpointId: 'ByteDance/Seedance-2.0', body: {}, imageField: 'first_frame_image' },
+        video: 'seedance-2-cloud.mp4',
         mediaType: 'video',
         type: 'seedance',
         supportedOps: ['t2v', 'i2v'],
@@ -2171,6 +2170,7 @@ export const MODELS = [
         // six video models. Nothing here encodes that — deepinfraSizing.js reads both off
         // the snapshot, which is the whole reason it reads them off the snapshot.
         cloud: { endpointId: 'Wan-AI/Wan3.0-Video', body: {}, imageField: 'media' },
+        video: 'wan3-cloud.mp4',
         mediaType: 'video',
         type: 'wan3',
         qualityTiers: ['480p', '720p', '1080p'],
@@ -2195,6 +2195,7 @@ export const MODELS = [
         // shipped recipe for Veo: a modern cloud video model prompted in cinematic
         // natural language rather than in Wan's shot-list style.
         enhanceRecipe: 'kling-3.0',
+        video: 'veo-31-fast-cloud.mp4',
         mediaType: 'video',
         type: 'veo',
         qualityTiers: ['720p', '1080p'],
@@ -2220,6 +2221,7 @@ export const MODELS = [
         cloud: { endpointId: 'google/veo-3.1', body: {}, imageField: 'image' },
         // Stand-in, as above — see the note on seedream-4-cloud.
         enhanceRecipe: 'kling-3.0',
+        video: 'veo-31-cloud.mp4',
         mediaType: 'video',
         type: 'veo',
         supportedOps: ['t2v', 'i2v'],

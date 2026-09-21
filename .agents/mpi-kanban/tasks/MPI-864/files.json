@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/data/modelConstants/models.js",
+    "comfy_workflows/display/",
+    "tests/deepinfra-catalogue.test.cjs",
+    ".agents/mpi-kanban/tasks/MPI-864/"
+  ],
+  "note": "models.js is touched only inside the cloud ModelDefs (lines ~1900-2240), one `image:` or `video:` key each. comfy_workflows/display/ gains new files only - no existing local-model art is edited. tests/deepinfra-catalogue.test.cjs was added to ownership on 2026-09-21 when Fabio dropped Gemini 3 Pro Image from the roster (it is Nano Banana Pro under a second DeepInfra id): that test pins the catalogue count and asserts the twins ship as two tiles, so it moves with the removal. No claim on any of these paths was active when this card was taken."
+}

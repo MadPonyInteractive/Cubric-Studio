@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-874", "at": "2026-09-21T11:58:15+01:00", "actor": "claude", "column": "todo", "title": "cardName is silently ignored on a Flow submit"}

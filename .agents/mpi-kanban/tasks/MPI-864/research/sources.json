@@ -1,0 +1,158 @@
+[
+  {
+    "id": "seedream-4-cloud",
+    "name": "Seedream 4",
+    "endpoint": "ByteDance/Seedream-4",
+    "kind": "image",
+    "page": "https://deepinfra.com/ByteDance/Seedream-4",
+    "bytes": 336896,
+    "cover": "https://shared.deepinfra.com/models/ByteDance/Seedream-4/cover_image.480f154335adb8c3ec195ffa092027f8701dc877e90a8b9bc9ed2a718232522d.webp",
+    "other": []
+  },
+  {
+    "id": "seedream-45-cloud",
+    "name": "Seedream 4.5",
+    "endpoint": "ByteDance/Seedream-4.5",
+    "kind": "image",
+    "page": "https://deepinfra.com/ByteDance/Seedream-4.5",
+    "bytes": 345008,
+    "cover": "https://shared.deepinfra.com/models/ByteDance/Seedream-4.5/cover_image.633808cbc1fec2c06d29c16089ae8613e95459cd5e73f9ce9bb63d728315182c.webp",
+    "other": [
+      "https://shared.deepinfra.com/models/ByteDance/Seedream-4.5/sample_output.8515c57faa20fedcfc9a26fd768fe5bf3eb8279cbcd3dd1927d0847ccf4adb03.jpg"
+    ]
+  },
+  {
+    "id": "seedream-5-pro-cloud",
+    "name": "Seedream 5.0 Pro",
+    "endpoint": "ByteDance/Seedream-5.0-Pro",
+    "kind": "image",
+    "page": "https://deepinfra.com/ByteDance/Seedream-5.0-Pro",
+    "bytes": 336372,
+    "cover": "https://shared.deepinfra.com/models/ByteDance/Seedream-5.0-Pro/cover_image.925057d241f1ab5341918efd79a1a5043e26fcc09d0a128dddd6e9c46de5bef8.webp",
+    "other": []
+  },
+  {
+    "id": "flux2-dev-cloud",
+    "name": "FLUX 2 Dev",
+    "endpoint": "black-forest-labs/FLUX-2-dev",
+    "kind": "image",
+    "page": "https://deepinfra.com/black-forest-labs/FLUX-2-dev",
+    "bytes": 357535,
+    "cover": "https://shared.deepinfra.com/models/black-forest-labs/FLUX-2-dev/cover_image.97fe66df97f4d737785e650b4a585a19be4e18d52cc430bc2d1b2b6080ae2f31.webp",
+    "other": []
+  },
+  {
+    "id": "flux2-pro-cloud",
+    "name": "FLUX 2 Pro",
+    "endpoint": "black-forest-labs/FLUX-2-pro",
+    "kind": "image",
+    "page": "https://deepinfra.com/black-forest-labs/FLUX-2-pro",
+    "bytes": 355221,
+    "cover": "https://shared.deepinfra.com/models/black-forest-labs/FLUX-2-pro/cover_image.507c610a18708c5b7f04c1eb00fc961fcbccf17e9b13db0e88102cb144cb1ec8.webp",
+    "other": []
+  },
+  {
+    "id": "flux2-max-cloud",
+    "name": "FLUX 2 Max",
+    "endpoint": "black-forest-labs/FLUX-2-max",
+    "kind": "image",
+    "page": "https://deepinfra.com/black-forest-labs/FLUX-2-max",
+    "bytes": 366302,
+    "cover": "https://shared.deepinfra.com/models/black-forest-labs/FLUX-2-max/cover_image.e62a755696c193f02011a7395b2c0cfcb2727967897a922046f819cdc458c94d.webp",
+    "other": []
+  },
+  {
+    "id": "nano-banana-2-lite-cloud",
+    "name": "Nano Banana 2 Lite",
+    "endpoint": "google/nano-banana-2-lite",
+    "kind": "image",
+    "page": "https://deepinfra.com/google/nano-banana-2-lite",
+    "bytes": 332137,
+    "cover": "https://shared.deepinfra.com/models/google/nano-banana-2-lite/cover_image.a39e8c50a5f3c38e113ad81b5db58fcfd891be235acbefdc253ef4c4f54ed2f7.webp",
+    "other": []
+  },
+  {
+    "id": "nano-banana-2-cloud",
+    "name": "Nano Banana 2",
+    "endpoint": "google/nano-banana-2",
+    "kind": "image",
+    "page": "https://deepinfra.com/google/nano-banana-2",
+    "bytes": 335954,
+    "cover": "https://shared.deepinfra.com/models/google/nano-banana-2/cover_image.d6d3caddde6f1cb8ca5080c512e89452b6c09d8294e13a6823b8f6818a7acad6.webp",
+    "other": [
+      "https://shared.deepinfra.com/models/google/nano-banana-2/sample_output.34420404a81a2f128db005dc129c56aaf9807dce43bd3a947941fc3a76dc9882.png"
+    ]
+  },
+  {
+    "id": "nano-banana-pro-cloud",
+    "name": "Nano Banana Pro",
+    "endpoint": "google/nano-banana-pro",
+    "kind": "image",
+    "page": "https://deepinfra.com/google/nano-banana-pro",
+    "bytes": 337656,
+    "cover": "https://shared.deepinfra.com/models/google/nano-banana-pro/cover_image.0d2a5d51b6260ed40e85c1ca9d98f6579f181228c4f2b8c9a98875c8ba265146.webp",
+    "other": []
+  },
+  {
+    "id": "gemini-3-pro-image-cloud",
+    "name": "Gemini 3 Pro Image",
+    "endpoint": "google/gemini-3-pro-image",
+    "kind": "image",
+    "page": "https://deepinfra.com/google/gemini-3-pro-image",
+    "bytes": 337874,
+    "cover": "https://shared.deepinfra.com/models/google/gemini-3-pro-image/cover_image.ce46365e7d520577cc803c2b935c6745c4a6884019381b718cb21a1a9250d681.webp",
+    "other": []
+  },
+  {
+    "id": "seedance-15-pro-cloud",
+    "name": "Seedance 1.5 Pro",
+    "endpoint": "ByteDance/Seedance-1.5-Pro",
+    "kind": "video",
+    "page": "https://deepinfra.com/ByteDance/Seedance-1.5-Pro",
+    "bytes": 327936,
+    "cover": "https://shared.deepinfra.com/models/ByteDance/Seedance-1.5-Pro/cover_image.3a04465c7b080e6a46070c9ea13aa88e223bb62c44ee8d822f157834af15805d.webp",
+    "other": []
+  },
+  {
+    "id": "seedance-2-cloud",
+    "name": "Seedance 2.0",
+    "endpoint": "ByteDance/Seedance-2.0",
+    "kind": "video",
+    "page": "https://deepinfra.com/ByteDance/Seedance-2.0",
+    "bytes": 339818,
+    "cover": "https://shared.deepinfra.com/models/ByteDance/Seedance-2.0/cover_image.501370619f0554dc4c09a5ddc365f0a022ad2b4aab2f1f41bb491059764fb217.webp",
+    "other": []
+  },
+  {
+    "id": "wan3-cloud",
+    "name": "Wan 3.0",
+    "endpoint": "Wan-AI/Wan3.0-Video",
+    "kind": "video",
+    "page": "https://deepinfra.com/Wan-AI/Wan3.0-Video",
+    "bytes": 328642,
+    "cover": "https://shared.deepinfra.com/models/Wan-AI/Wan3.0-Video/cover_image.77d9879ea56720b56d7d9fda4366547989157aa8005fc34f3e322917e2d57fbc.webp",
+    "other": []
+  },
+  {
+    "id": "veo-31-fast-cloud",
+    "name": "Veo 3.1 Fast",
+    "endpoint": "google/veo-3.1-fast",
+    "kind": "video",
+    "page": "https://deepinfra.com/google/veo-3.1-fast",
+    "bytes": 324796,
+    "cover": "https://shared.deepinfra.com/models/google/veo-3.1-fast/cover_image.a773baaf91598677a503558b49af3ee640e170d61955e17e0cb4017388b67fc6.webp",
+    "other": [
+      "https://shared.deepinfra.com/models/google/veo-3.1-fast/sample_output.7a835ff75a0e8cdb3b3e04c4b51c86abf14c0dafea426ee03c452aec89bb237b.mp4"
+    ]
+  },
+  {
+    "id": "veo-31-cloud",
+    "name": "Veo 3.1",
+    "endpoint": "google/veo-3.1",
+    "kind": "video",
+    "page": "https://deepinfra.com/google/veo-3.1",
+    "bytes": 324453,
+    "cover": "https://shared.deepinfra.com/models/google/veo-3.1/cover_image.7e5c95f84a02e69592af61e2ac601aced4d8e64819c9c1276c20eb3414242cbb.webp",
+    "other": []
+  }
+]

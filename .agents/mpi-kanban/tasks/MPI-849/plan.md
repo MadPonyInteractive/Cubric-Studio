@@ -80,6 +80,34 @@ picker's subtitle counted cloud models as installed, contradicting the decision 
 made next door — now `8 installed · 16 cloud`, and byte-identical with no key saved. **Next:
 Fabio's look, then MPI-864.**
 
+**2026-09-21 — MPI-864 is at `validating`, and phase 3 is built.** Every cloud tile has its
+art; no placeholder is left on the grid. One uniform source was found where the brief expected
+fifteen separate hunts: **DeepInfra hosts its own cover per model** on `shared.deepinfra.com`,
+linked from each model's HTML page, and for every one of them it is a sample generation rather
+than a logo. (Not the `out_example` field the brief already ruled out — that remains a schema
+placeholder.) Five covers cropped 768x768 → 614x768; three **outpainted** to 768x960 through
+the app's own Outpaint flow where a 20% width crop took real picture (the chalkboard's frame,
+the mermaid's tail, the Nano Banana Pro device); Nano Banana 2 regenerated on itself at 4:5 on
+Fabio's ask. Fabio supplied four clips from his own downloads and DeepInfra hosted the fifth
+(Veo 3.1 Fast); all five transcoded to the local convention — h264 854x480, muted, 8–10s, with
+a 480x270 poster `.webp` per clip, which `MpiTileSheet.js` posters by filename and every local
+video model already ships. `npm test` 1707, **1705 pass, 0 fail, 1 todo** (MPI-867's declared
+one). **Owed: Fabio's look at the Library, the picker subtitle and a video tile on hover.**
+
+**2026-09-21 — Gemini 3 Pro Image is OFF the roster, Fabio's call mid-card.** It is
+`nano-banana-pro` under DeepInfra's second id, and shipping both sold one thing twice. The
+ModelDef is gone, Nano Banana Pro's description absorbed the name so a search for "Gemini 3"
+still lands, and `deepinfraPricing.js` **keeps** the second endpoint because a saved history
+item naming it must still quote — the equivalence is a fact about DeepInfra, not about our
+roster. The catalogue test now asserts exactly that shape. **Fourteen of Fabio's models plus
+the schnell test model: `CLOUD.length === 15`.**
+
+**Two findings carded from the same run, neither an umbrella member.** [[MPI-873]] — an agent
+submit **cannot name its project**; `/connector/generate` takes no project and runs in whatever
+the app has open, so five outpaints landed in `Cubric Studio Mascots` when the app moved between
+the `open-project` call and the submits. [[MPI-874]] — `cardName` is **silently ignored on a
+Flow submit** while working on a model op, which the skill documents as working on both.
+
 **The credits path is BUILT but never exercised (2026-09-21, Fabio's balance at $2.26).**
 `routes/deepinfra.js:80` maps HTTP 402 to `NO_CREDIT` and `cloudExecutor.js:50` toasts a
 top-up message, all from MPI-851. Two unverified assumptions sit under it: (a) that DeepInfra

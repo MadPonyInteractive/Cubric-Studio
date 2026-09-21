@@ -1,7 +1,8 @@
 'use strict';
 
 /**
- * deepinfra-catalogue.test.cjs — MPI-853, the fifteen cloud models.
+ * deepinfra-catalogue.test.cjs — MPI-853, the cloud models (fourteen, after MPI-864
+ * dropped the Gemini 3 Pro Image tile as a duplicate of Nano Banana Pro).
  *
  * `deepinfra-pricing.test.cjs` next door asserts what a generation COSTS. This asserts
  * what the app is allowed to ASK FOR, which is the other half of the same promise: a size
@@ -22,6 +23,8 @@
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const { MODELS } = require('../js/data/modelConstants/models.js');
 const {
@@ -32,6 +35,9 @@ const { getModelRatios, qualityTiersFor, usesQualityTier, usesOrientation, RATIO
     require('../js/utils/ratios.js');
 
 const CLOUD = MODELS.filter(m => m.provider === 'deepinfra');
+
+/** DeepInfra's second id for Nano Banana Pro. Priced, but deliberately off the grid. */
+const GEMINI_TWIN = 'google/gemini-3-pro-image';
 
 /** Every row of every ratio table a cloud model can reach, with its tier. */
 function everyRatioRow(model) {
@@ -50,13 +56,37 @@ function everyRatioRow(model) {
 
 // ── The catalogue is complete and priced ─────────────────────────────────────
 
-test('ships Fabio\'s fifteen models plus the schnell test model', () => {
-    assert.equal(CLOUD.length, 16, 'the fifteen catalogue models plus flux-schnell-cloud');
+test('ships Fabio\'s fourteen models plus the schnell test model', () => {
+    assert.equal(CLOUD.length, 15, 'the fourteen catalogue models plus flux-schnell-cloud');
     assert.ok(CLOUD.some(m => m.id === 'flux-schnell-cloud'));
-    // Ids are unique, and so are the endpoints they point at — except the Gemini twins,
-    // which are two DeepInfra ids for one model and ship as two tiles on purpose.
+    // Ids are unique, and so are the endpoints they point at.
     assert.equal(new Set(CLOUD.map(m => m.id)).size, CLOUD.length);
     assert.equal(new Set(CLOUD.map(m => m.cloud.endpointId)).size, CLOUD.length);
+});
+
+// MPI-864 — every cloud tile showed a placeholder, because no cloud ModelDef carried the
+// `image`/`video` a local one does. The tile reads ONE of them by mediaType and has no
+// fallback (`MpiModelManager.js` `_tileItem`), so a still on a video model is as blank as
+// nothing at all. This fails if a new cloud model arrives without its art, which is exactly
+// how the fifteen placeholders happened.
+test('every cloud model ships the preview art its tile reads', () => {
+    const display = path.join(__dirname, '..', 'comfy_workflows', 'display');
+    for (const model of CLOUD) {
+        const key = model.mediaType === 'video' ? 'video' : 'image';
+        const file = model[key];
+        assert.ok(file, `${model.id} (${model.mediaType}) has no \`${key}\` — its tile renders a placeholder`);
+        assert.ok(fs.existsSync(path.join(display, file)),
+            `${model.id}: comfy_workflows/display/${file} is missing`);
+
+        // A video tile posters itself by filename convention, foo.mp4 -> foo.webp
+        // (`MpiTileSheet.js`). A missing poster is a SILENT no-op: the tile paints nothing
+        // until the clip's moov atom arrives. Every local video model ships one.
+        if (key === 'video') {
+            const poster = file.replace(/\.[^.]+$/, '.webp');
+            assert.ok(fs.existsSync(path.join(display, poster)),
+                `${model.id}: ${poster} is missing, so its tile has no poster frame`);
+        }
+    }
 });
 
 test('every cloud model is in the price snapshot and can quote a price', () => {
@@ -259,14 +289,22 @@ test('every clip model still publishes its duration range in prose', () => {
     assert.equal(durationRangeFor('google/veo-3.1'), null);
 });
 
-// ── The Gemini twins ─────────────────────────────────────────────────────────
+// ── The Gemini twin, which is NOT on the grid ────────────────────────────────
 
-test('the two ids for one model are priced alike and each says so', () => {
+test('gemini-3-pro-image is Nano Banana Pro and ships as ONE tile, not two', () => {
+    // It shipped briefly as its own tile so both searchable names were on the grid.
+    // Fabio dropped it on 2026-09-21 (MPI-864): two tiles for one model sells one thing
+    // twice, and the two cards had identical price, identical fields and identical output.
+    assert.equal(CLOUD.filter(m => m.cloud.endpointId === GEMINI_TWIN).length, 0,
+        'google/gemini-3-pro-image is Nano Banana Pro under a second DeepInfra id — one tile only');
+
     const pro = CLOUD.find(m => m.id === 'nano-banana-pro-cloud');
-    const gemini = CLOUD.find(m => m.id === 'gemini-3-pro-image-cloud');
-    assert.equal(estimateCost(pro.cloud.endpointId).usd, estimateCost(gemini.cloud.endpointId).usd);
-    // Shipping both is deliberate — both names are what people search for — so each
-    // description must name the other rather than sell one thing twice.
+    assert.ok(pro, 'the surviving tile is nano-banana-pro-cloud');
+    // The name it lost still has to be findable, or someone searching "Gemini 3" finds
+    // nothing and concludes the app cannot run it.
     assert.match(pro.description, /Gemini 3 Pro Image/);
-    assert.match(gemini.description, /Nano Banana Pro/);
+
+    // The pricing module keeps the second endpoint, because a saved history item naming it
+    // must still quote. That is a fact about DeepInfra, not about the roster.
+    assert.equal(estimateCost(GEMINI_TWIN).usd, estimateCost(pro.cloud.endpointId).usd);
 });
