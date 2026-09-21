@@ -1,1 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-866", "at": "2026-09-21T09:14:02+01:00", "actor": "claude", "column": "todo", "title": "A red master has no owner once the session that caused it ends"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-866", "at": "2026-09-21T09:18:23+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio picked option 1, the scheduled watcher"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-866", "at": "2026-09-21T09:23:26+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Watcher shipped and proven offline; awaiting a real red to confirm the phone push"}

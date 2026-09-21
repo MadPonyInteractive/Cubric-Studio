@@ -1,0 +1,130 @@
+name: Red master watch
+
+# MPI-866. A red master used to sit unnoticed until somebody tried to push.
+#
+# The failure this exists for (2026-09-21): a spec broke in f31d7377, the session that
+# broke it closed minutes later, and master stayed red for about eight hours overnight.
+# Every piece of machinery worked — `.husky/pre-push` refused every push and even blamed
+# the right commit — but all of it is triggered BY someone pushing. Nothing was watching
+# in between, so the first to find out was the next agent to walk into it, and by then
+# four more commits had inherited the red and a day was blocked.
+#
+# So this runs on a clock instead of on a push, server-side, needing nobody's machine to
+# be awake. That is the whole point: the eight hours it is built to catch were overnight.
+#
+# WHY IT PUSHES TO NTFY ITSELF rather than leaning on notify-new-issue.yml: GitHub does
+# not fire workflow events for things created with GITHUB_TOKEN (anti-recursion), so an
+# issue opened here would NOT trigger that workflow and the phone would never ring. The
+# issue is still opened, but as the dedupe record and the assignable item, not as the
+# notification path.
+
+on:
+  schedule:
+    # Every 30 minutes. Scheduled runs are best-effort and GitHub delays them under load,
+    # which is fine: this is sized against an eight-hour window, not a ten-minute one.
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+# A group of one, for the same reason tests.yml uses one: overlapping ticks must not
+# cancel each other, or the tick that would have raised the alarm is the one that dies.
+concurrency:
+  group: red-master-watch-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check master's last verdict, and raise or clear
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: |
+          set -euo pipefail
+
+          # The SAME query .husky/pre-push gates on, deliberately: if the two ever
+          # disagree, the watcher says one thing while the hook does another. `completed`
+          # matters — an in-flight fix must not read as a verdict either way.
+          verdict=$(gh run list --repo "$REPO" --branch master --workflow tests.yml \
+            --status completed --limit 1 \
+            --json headSha,conclusion,url \
+            --jq '.[0] | "\(.headSha)\t\(.conclusion)\t\(.url)"')
+          sha=$(printf '%s' "$verdict" | cut -f1)
+          conclusion=$(printf '%s' "$verdict" | cut -f2)
+          url=$(printf '%s' "$verdict" | cut -f3)
+          echo "last completed run on master: ${conclusion:-none} (${sha:-none})"
+
+          # The open alarm, if there is one. The label IS the state: one open issue means
+          # "already raised", which is what stops a phone buzzing every half hour for the
+          # whole time somebody is working on the fix.
+          existing=$(gh issue list --repo "$REPO" --label red-master --state open \
+            --limit 1 --json number --jq '.[0].number // empty')
+
+          if [ "$conclusion" = "failure" ]; then
+            if [ -n "$existing" ]; then
+              echo "master is red and issue #$existing is already open — staying quiet."
+              exit 0
+            fi
+
+            # --force so a missing label is created and an existing one is left alone.
+            gh label create red-master --repo "$REPO" --color B60205 \
+              --description "master's last completed test run is failing" --force
+
+            short=$(printf '%s' "$sha" | cut -c1-8)
+            printf '%s\n' \
+              "The last completed \`tests.yml\` run on master failed." \
+              "" \
+              "| | |" \
+              "|---|---|" \
+              "| commit | \`$sha\` |" \
+              "| run | $url |" \
+              "" \
+              "Every push to master is blocked until this is green: \`.husky/pre-push\` refuses a red trunk." \
+              "" \
+              "**A red master is the job of whoever meets it** — \`docs/red-master.md\` has the five commands and the four known causes. Check which commit the red STARTED on before assuming it is yours; last time four commits inherited it." \
+              "" \
+              "This issue closes itself when master is green again." \
+              "" \
+              "<sub>Opened by \`.github/workflows/red-master-watch.yml\` (MPI-866).</sub>" \
+              > /tmp/red-master-body.md
+
+            gh issue create --repo "$REPO" --label red-master \
+              --title "master is red at $short" --body-file /tmp/red-master-body.md
+
+            # The notification. Never fails the job: a missing topic or an ntfy outage
+            # must not turn the watcher itself into a second red.
+            if [ -n "${TOPIC:-}" ]; then
+              curl -fsS --max-time 20 \
+                -H "Title: master is RED at $short" \
+                -H "Tags: rotating_light" \
+                -H "Priority: high" \
+                -H "Click: $url" \
+                -d "Pushes to master are blocked until this is green." \
+                "https://ntfy.sh/${TOPIC}" || echo "ntfy push failed; the issue is still open."
+            else
+              echo "NTFY_TOPIC is not set — issue opened, no phone push."
+            fi
+
+          elif [ "$conclusion" = "success" ]; then
+            if [ -n "$existing" ]; then
+              gh issue close "$existing" --repo "$REPO" \
+                --comment "master is green again at \`$sha\` ($url). Closed by the watcher."
+              echo "master recovered — closed #$existing."
+            else
+              echo "master is green and nothing was raised."
+            fi
+
+          else
+            # cancelled, timed_out, skipped, or no completed run at all. Not a verdict, so
+            # it must not raise an alarm AND must not clear one: a cancelled run says
+            # nothing about whether the tree is broken.
+            # ponytail: no escalation if this persists. Runs ending cancelled in bulk would
+            # be a concurrency regression, and tests.yml is where that lives.
+            echo "last completed run is '${conclusion:-none}' — no verdict, leaving state alone."
+          fi
