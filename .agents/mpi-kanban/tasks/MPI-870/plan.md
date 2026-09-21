@@ -66,6 +66,58 @@ over the existing single-dispatch path. One call, one chat line, one `{started, 
   report arrives when the origin project is reopened.
 - Ask for the same op over 6 cards. Pass = one confirm, one chat line, one result.
 
+## Folded in 2026-09-21 — three small honesty fixes from the live round
+
+Added on Fabio's instruction after the 09:14Z restart proved the kept look works. None of them
+is the wake; all three are about the agent telling the truth about what it just did.
+
+### 1. A cache read must not say "Looking at image"
+
+`agentLoop.mjs:1886` returns `'Looking at image'` for every `look` tool call, cache hit or not.
+Live at ~09:18Z the chat printed it while making **zero** vision calls, and Fabio did not believe
+the answer was real until the log was read back to him.
+
+His wording: **"Fetching saved image description"**, or close to it.
+
+**Why it matters beyond honesty, in his words:** users who work with LLMs and agents watch for
+this. A line that says the description came from storage tells them their credits are NOT being
+spent. Keeping the user's expenditure as low as possible is a product goal, and a saving the user
+cannot see does not count as one. So the label is a feature, not a cosmetic fix.
+
+### 2. One log line per look
+
+The description of an ATTACHED photo is written nowhere. A staged attachment registers as
+`kind: 'attachment'` with no `itemId` (`agentLoop.mjs:1607`) because it is a temp copy, not a
+gallery card — a reset deletes it — so `_lookOnce` has no sidecar to write to. Giving it a card
+id is not a one-liner and is not worth it.
+
+One truncated log line per look is. It was the original 2026-09-20 proposal; the sidecar replaced
+it for cards and attachments fell through the gap. With it, "was the description wrong?" is a
+grep instead of a guess — which is exactly the question that could not be answered about the
+09:14:50Z describe of Fabio's photo.
+
+### 3. A named param should record asked vs defaulted
+
+The agent said it used "a low denoise". The sidecar says `0.3`, which is also the i2i op default,
+so nothing on disk can tell whether it chose the value or inherited it. Same for duration. A
+one-word record on the injected param closes it.
+
+## What the restyle round actually taught about descriptions (Fabio, 2026-09-21)
+
+**Do not chase explicit vocabulary.** The prompt carried no nudity tag at all and `i2i_001` still
+came back bare below the waist — an uncensored model does not add clothes that were not asked
+for. So the missing nudity was NOT the cause of the drift.
+
+**What drifted was the POSE and the FRAMING.** The tags said `upper body` for a full-body,
+bent-forward, buttocks-dominant selfie, and carried no pose tag at all — no bent over, no leaning
+forward, no from above. At denoise 0.3 the room held perfectly (TV, bookshelf, entertainment
+centre, hardwood floor) and the pose was rewritten, because the pose was never in the words.
+
+So the bar for a describer feeding a restyle is **pose and framing fidelity**, not explicit
+vocabulary. That is also the portable bar: several hosted vision models refuse to describe
+nudity, and one that describes everything present without naming it still produces a faithful
+restyle. It keeps the describer swappable.
+
 ## Not in this card
 
 Recording WHICH describer wrote a stored look (MPI-817). The held-dispatch 30-minute clock that

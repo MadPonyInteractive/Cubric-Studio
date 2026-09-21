@@ -251,6 +251,39 @@ After that, the WAKE is still the top unbuilt piece and still has **no card**; i
 § "Phase C, first piece" below. Fabio has not yet answered its one open question (a confirm card
 above N fanned-out cards; vote 5).
 
+**Update 2026-09-21 09:35Z, same session — B+C PASSED LIVE, and the wake is now MPI-870.**
+Fabio restarted at 09:14:19Z and ran it. `describe` -> **two** `list-models` (it reconsidered,
+which it did not do before) -> `submit`: `i2i_001`, op **i2i**, model **ill-anime**,
+`injectionParams.Denoise: 0.3` — the first agent run where denoise actually reaches the graph.
+Prompt was Danbooru tags built from a description of his photo. **B passed too**: "Can you
+describe it for me please?" made **zero** `agent.describe` calls (two all boot: the source at
+09:14:50, the result's auto-look at 09:15:32) and the agent quoted the stored text.
+Commits `314355ec` (code, CI green) and `8c6864b5` (evidence) are on origin.
+
+**What the round then found, and it is NOT the nudity.** The pose drifted: bent-forward
+full-body selfie came back as a standing upper-body figure. The tags carried no nudity word and
+`i2i_001` still came back bare below the waist — an uncensored model does not add clothes that
+were not asked for, so modesty was never the cause. The cause is that the tags said `upper body`
+for a full-body bent-forward frame and carried **no pose tag at all**. At denoise 0.3 the room
+held perfectly and the pose was rewritten, because the pose was never in the words. Fabio's bar
+for a describer feeding a restyle: **pose and framing fidelity, not explicit vocabulary** — which
+is also what keeps the describer swappable when a hosted model refuses explicit content.
+
+**Cannot be attributed, and that is the gap:** whether the describer misread his photo or the
+description->tags step dropped the pose. A staged attachment has no `itemId`
+(`agentLoop.mjs:1607`), so `_lookOnce` never writes it a sidecar and the source description
+exists nowhere on disk.
+
+**MPI-870 created** (top of `todo`, `planned`, `plan.md` written): the wake on drain, the batch
+ask with Fabio's confirm threshold of **5**, plus three small honesty fixes folded in on his
+instruction — the `Looking at image` label lying on a cache read (his wording: *"Fetching saved
+image description"*, and his reason: a visible saving tells the user their credits are not being
+spent, which is a product goal), one truncated log line per look so an attachment's description
+is auditable, and a record of whether a named param was **asked** or **defaulted** (the agent
+said "low denoise"; 0.3 is also the i2i default and disk cannot tell them apart).
+
+Single next action: **build MPI-870.** Nothing on MPI-817 is owed — both live checks are paid.
+
 ## Phase C, first piece: batch ask + wake on drain (DESIGN NOTE 2026-09-20, not built, not approved)
 
 Raised by Fabio after the step-cap find. Two halves of one job.
