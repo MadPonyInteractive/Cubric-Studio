@@ -57,7 +57,14 @@ test('Flow Library filters, search and count compose, persist, and tear down', a
 
       lib.el.open();
       const out = {};
-      out.total = listFlows().length;
+      // The grid is two kinds of tile, not one (MPI-831 phase 4): every installable Flow,
+      // plus an advert tile for each paid Flow the user has not bought. `listFlows()` is
+      // the INSTALLABLE registry and never knew about the second kind, so counting it
+      // alone made the unfiltered grid look two tiles too big the moment the paid tiles
+      // shipped. The adverts are real grid members — they carry a media flag and they
+      // answer the filters — so they belong in the total rather than out of the selector.
+      out.paidAds = root.querySelectorAll('.mpi-tile__chip--purchase').length;
+      out.total = listFlows().length + out.paidAds;
       out.unfiltered = tiles().length;
       out.subBefore = sub();
       out.countEl = root.querySelector('.mpi-flow-library__count')?.textContent || null;
@@ -137,7 +144,10 @@ test('Flow Library filters, search and count compose, persist, and tear down', a
       return out;
     });
 
-    expect(r.unfiltered, 'no filter = every flow').toBe(r.total);
+    expect(r.unfiltered, 'no filter = every flow, plus an advert per unbought paid Flow').toBe(r.total);
+    // The adverts are the point of MPI-831: if they ever stop rendering, the two Flows we
+    // sell vanish from the library silently and this spec would still pass on 13 === 13.
+    expect(r.paidAds, 'the paid Flow adverts must be on the unfiltered grid').toBeGreaterThan(0);
     expect(r.countEl, 'the count is the accented span').toMatch(/^\d+ installed$/);
     expect(r.subBefore).toMatch(/^\d+ installed · \d+ available — install a flow and its models fetch automatically\.$/);
     expect(r.searchFocused, 'search must never autofocus — it swallows Tab').toBe(false);
@@ -151,10 +161,16 @@ test('Flow Library filters, search and count compose, persist, and tear down', a
     expect(r.clearedAll, 'clearing every filter restores the grid').toBe(r.total);
 
     // MPI-781: DramaBox is a Flow package now, not a built-in; four ship in the app.
-    expect(r.audioCreate, 'Media=Audio + Type=Create').toHaveLength(4);
+    // MPI-831 phase 4 then put DramaBox back on this grid as a PAID advert, so the filter
+    // returns five: the four shipped audio Flows, plus the advert for the one you buy.
+    // That it answers Media=Audio + Type=Create at all is the behaviour being pinned —
+    // an advert that ignored the filters would sit in a grid it does not belong to.
+    expect(r.audioCreate, 'Media=Audio + Type=Create').toHaveLength(5);
     for (const title of ['Text to Speech', 'Song', 'Sound & Music', 'Stems']) {
       expect(r.audioCreate.some(t => t.includes(title)), title).toBe(true);
     }
+    expect(r.audioCreate.some(t => t.includes('DramaBox') && t.includes('Get it')),
+      'the DramaBox advert answers the audio filters').toBe(true);
     expect(r.audioOnly, 'Create must not leak in from a mutated payload copy').toBeGreaterThan(r.audioCreate.length);
 
     expect(r.reopened, 'selections survive close + reopen').toEqual(r.audioCreate);
