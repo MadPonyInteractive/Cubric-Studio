@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-877", "at": "2026-09-21T13:13:07+01:00", "actor": "claude", "column": "todo", "title": "The agent learns localised edits: offer the mask, then prompt only what is inside it"}

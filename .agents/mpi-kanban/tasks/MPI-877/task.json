@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-877",
+  "title": "The agent learns localised edits: offer the mask, then prompt only what is inside it",
+  "description": "The agent does not know localised edits exist. Fabio, 2026-09-21, live: asked for a boy's REFLECTION to turn demonic, the agent ran a maskless kleinEdit which repainted the whole subject, then talked itself into inpaint - hit MASK_UNSUPPORTED - and told him to run it himself, after he had ALREADY painted the mask. Two faults. (1) Teaching: a mask makes edit/detail/inpaint localised on EVERY local model, not Krea2 - commandExecutor.js:791 injects Input_Mask with no model or op check, and klein/boogu/qwen/chroma/krea2 workflows all declare the node. The model then sees ONLY the masked area, so prompting about the rest of the scene is useless and confusing. (2) Plumbing: agentDispatch.js has no maskDataUrl at all, so even the right op would silently run whole-image; and its requiresMask refusal is blanket rather than conditional on a mask existing. v1 scope agreed by Fabio: the agent ADVISES the user to paint, names the tools, then dispatches against the mask the user drew when told to go ahead. Images and GIFs only - video masking is coming. DEFERRED to a later version: the agent creating or selecting masks itself (with five people in frame it cannot know which one the user means).",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-21T13:13:07+01:00",
+  "updated_at": "2026-09-21T13:13:07+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
