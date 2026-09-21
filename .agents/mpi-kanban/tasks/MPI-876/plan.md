@@ -97,18 +97,31 @@ them off, then we'll revisit later."* So the tiring-at-$0.07 objection is heard 
 overruled for v1 — do not design a suppression path in, and do not re-raise it without user
 complaints to point at.
 
-**Test with `flux-schnell-cloud`** (`black-forest-labs/FLUX-1-schnell`), his instruction for any
-DeepInfra testing. `estimateCost` puts it at **$0.0005 an image** against nano-banana-2's
-$0.067 — 134x cheaper, so a full gate test costs fractions of a cent.
+**Test model: ASK HIM WHICH. Do not spend until he answers.** He said *"If you need to do any
+tests with Deep Infra, FluxKline is the model to do them with."* That is **FLUX.2 Klein** —
+`models.js:1124` literally reads `name: 'FLUX.2 Klein 9B'`, with `klein-4b` its sibling. He was
+naming the family he tests with daily, not inventing a name.
 
-> He said "FluxKline", and there is no Flux Klein: `klein-4b` / `klein-9b` are LOCAL models and
-> no cloud model carries that name. `flux-schnell-cloud` is the only reading that is both a
-> DeepInfra model and an obvious test choice on price. Confirm with him in one line before
-> spending anything, rather than inherit this guess silently.
+The catch: **the cloud twin is not in our catalogue.** DeepInfra hosts
+`black-forest-labs/FLUX-2-klein-4b` (~$0.014/image) and `-klein-9b` (~$0.015), both taking
+`input_image_1..4`, but neither has a ModelDef, neither is in `dev_configs/deepinfra-prices.json`,
+and `estimateCost` returns **null** for both. (That is the null case 3 above, live.)
 
-It also happens to be the perfect regression case for the sub-cent trap: its `display` is
-`about $0.0005`, which is exactly the string that cannot be multiplied back out for a batch.
-Use it to prove `{ batch: N }` rather than a multiply.
+So two readings, leading to different work:
+
+1. **"Test against the cloud twin of my local Klein"** — what his words support, and sensible:
+   it is the only cloud model whose output he could compare against a local render of the same
+   family. Needs the model ADDED first — `/mpi-add-model` work and a card of its own, not
+   something to do in passing.
+2. **"Use the cheap one"** — then `flux-schnell-cloud` (`black-forest-labs/FLUX-1-schnell`) at
+   **$0.0005/image** is right: 28x cheaper than Klein 4B, 134x cheaper than nano-banana-2.
+
+An earlier draft of this plan asserted reading 2 as fact. It was wrong, and the MPI-849 session
+caught it. Ask; do not inherit either reading.
+
+Whichever wins, `flux-schnell-cloud` stays the right **sub-cent regression case**: its `display`
+is `about $0.0005`, the exact string that cannot be multiplied back out, so it is what proves
+`{ batch: N }` rather than a multiply.
 
 ## The copy — DRAFT, Fabio's to reword
 
