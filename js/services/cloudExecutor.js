@@ -38,7 +38,8 @@
 
 import { generationStore, PHASES } from './generationStore.js';
 import { getModelById } from '../data/modelRegistry.js';
-import { batchFieldFor } from '../data/modelConstants/deepinfraSizing.js';
+import { batchFieldFor, buildSizeFields } from '../data/modelConstants/deepinfraSizing.js';
+import { estimateCost } from '../data/modelConstants/deepinfraPricing.js';
 import { ratioSettingsFromParams } from '../utils/promptReuse.js';
 import { clientLogger } from './clientLogger.js';
 import { Events } from '../events.js';
@@ -55,6 +56,105 @@ const ERROR_COPY = {
 /** @returns {string} actionable copy for a coded provider failure. */
 export function cloudErrorMessage(code, fallback) {
     return ERROR_COPY[code] || fallback || ERROR_COPY.PROVIDER_ERROR;
+}
+
+/**
+ * The size, batch and reference fields this run will be DISPATCHED with.
+ *
+ * Exported because the prompt box's price tag (MPI-852) has to price the run that is
+ * about to happen, not a second reading of the controls. Two derivations of "how big,
+ * how many, with what" would drift the moment either changed, and the user would be
+ * quoted one figure and billed for another.
+ *
+ * @param {object} model - the ModelDef, which must carry `cloud.endpointId`
+ * @param {object} params - `injectionParams` from the run payload
+ * @param {Array} [mediaItems] - staged media, for the one image the native route takes
+ * @returns {{batch:number, width:number, height:number, ratioLabel:string,
+ *   qualityTier:string, duration:number, imagePath:string|null}}
+ */
+export function cloudRunFields(model, params = {}, mediaItems = []) {
+    // The batch control's own node title, clamped to what this endpoint accepts. A
+    // batch is N images in ONE call and ONE bill, so the cost that comes back covers
+    // all of them — never multiply it per card.
+    //
+    // The cap comes from the provider's published maximum in the price snapshot, not
+    // from a number written on the ModelDef (MPI-853): of the sixteen cloud models
+    // only two have a native batch at all, and they do not even call it the same
+    // thing. A model with none clamps to 1 here and the route never sends a count.
+    const batch = Math.max(1, Math.min(batchFieldFor(model?.cloud?.endpointId)?.max || 1,
+        Number(params.Input_Batch_Size || params.Batch_Size || params.batchSize) || 1));
+
+    // The size the user actually picked, in the three currencies the providers use
+    // between them. `ratioSettingsFromParams` is the SAME recovery generationService
+    // does at :495 — the quality tier injects no workflow param, so the only record
+    // of it is the pixels matching a row of this model's own ratio table. Sent
+    // alongside the pixels rather than instead of them, because which one the
+    // provider wants is its business, resolved in deepinfraSizing.js.
+    const picked = ratioSettingsFromParams(params, {}, model) || {};
+
+    return {
+        batch,
+        width:  params.Width  || params.width  || 0,
+        height: params.Height || params.height || 0,
+        // Nano Banana takes a ratio LABEL and no pixels; the video models take a
+        // resolution tier and a ratio; Veo takes no duration at all. All three are sent
+        // when known and the route decides which the endpoint can actually hear.
+        ratioLabel: picked.selectedRatio || params.Ratio_Label || params.ratioLabel || '',
+        qualityTier: picked.qualityTier || '',
+        // `Input_Duration` is the duration control's own node title, and the only key
+        // anything in this app writes a duration under — PromptBoxControls.js:623 and
+        // generationControls.js:484 are both it. This read was `params.Duration` until
+        // MPI-852, which matches nothing: every cloud video generation was dispatched
+        // with NO duration, so `buildSizeFields` omitted the field, the provider ran its
+        // own default length, and the user was billed for that instead of for the clip
+        // they asked for. Found by the price tag, which could not price a video at all.
+        duration: Number(params.Input_Duration) || 0,
+        // The native route takes ONE image; an edit op sends the first staged asset and
+        // the model's own `imageField` names where.
+        imagePath: _firstImagePath(mediaItems),
+    };
+}
+
+/**
+ * What the next run on this model will cost, before it runs (MPI-852).
+ *
+ * Prices what `buildSizeFields` will actually SEND, not what the controls hold. The two
+ * differ: a size outside a model's published bounds is fitted on the way out, and the
+ * fitted size is what gets billed. Pricing the user's pick instead would quote a figure
+ * for a picture they are not getting.
+ *
+ * Two fields the pricing formula takes are deliberately NOT sourced here:
+ *   - `steps` — no cloud model's body carries one and `buildSizeFields` emits none, so
+ *     every call runs the provider's own `default_iterations` and the formula's step
+ *     term is exactly 1. Sourcing a number would only be a way to get it wrong.
+ *   - references beyond the first — the native route sends ONE image, so a second or
+ *     third staged reference changes no field in the body and cannot change the bill.
+ *
+ * @returns {{usd:number, unit:number, batch:number, display:string, checkedOn:string}|null}
+ *   null for a local model, and for any shape `estimateCost` refuses to guess at.
+ */
+export function estimateRunCost(model, params = {}, mediaItems = []) {
+    const endpointId = model?.cloud?.endpointId;
+    if (!model?.provider || !endpointId) return null;
+
+    const want = cloudRunFields(model, params, mediaItems);
+    const sent = buildSizeFields(endpointId, want);
+    // Seedream's shape is one 'WIDTHxHEIGHT' string; the FLUX models send a pair; the
+    // Gemini family sends neither and is priced off token counts, so 0 is correct there.
+    const [sizeW, sizeH] = String(sent.size || '').split('x').map(Number);
+
+    return estimateCost(endpointId, {
+        width:  sent.width  || sizeW || 0,
+        height: sent.height || sizeH || 0,
+        // Only the video models carry a resolution tier. Every image ratio we ship is a
+        // nominal 1 MP, which is the Gemini family's '1k' bucket.
+        resolution: sent.resolution || '1k',
+        // Veo publishes no duration field at all, so `sent` carries none and the pricing
+        // module falls back to that model's own fixed clip length.
+        duration: sent.duration || want.duration || 0,
+        references: want.imagePath ? 1 : 0,
+        batch: want.batch,
+    });
 }
 
 /**
@@ -139,24 +239,9 @@ export function runCloudCommand(payload) {
         }
 
         const params = payload.injectionParams || {};
-        // The batch control's own node title, clamped to what this endpoint accepts. A
-        // batch is N images in ONE call and ONE bill, so the cost that comes back covers
-        // all of them — never multiply it per card.
-        //
-        // The cap comes from the provider's published maximum in the price snapshot, not
-        // from a number written on the ModelDef (MPI-853): of the sixteen cloud models
-        // only two have a native batch at all, and they do not even call it the same
-        // thing. A model with none clamps to 1 here and the route never sends a count.
-        const batch = Math.max(1, Math.min(batchFieldFor(model.cloud.endpointId)?.max || 1,
-            Number(params.Input_Batch_Size || params.Batch_Size || params.batchSize) || 1));
-
-        // The size the user actually picked, in the three currencies the providers use
-        // between them. `ratioSettingsFromParams` is the SAME recovery generationService
-        // does at :495 — the quality tier injects no workflow param, so the only record
-        // of it is the pixels matching a row of this model's own ratio table. Sent
-        // alongside the pixels rather than instead of them, because which one the
-        // provider wants is its business, resolved in deepinfraSizing.js.
-        const picked = ratioSettingsFromParams(params, {}, model) || {};
+        // The same derivation the prompt box's price tag reads, so the run that is
+        // quoted and the run that is dispatched cannot be two different runs.
+        const fields = cloudRunFields(model, params, payload.mediaItems);
         const seed = Number.isFinite(params.Seed) ? params.Seed
             : (Number.isFinite(payload.seed) ? payload.seed : null);
         exec.seed = seed;
@@ -180,19 +265,7 @@ export function runCloudCommand(payload) {
                     operation: payload.operation,
                     prompt: payload.positive || '',
                     seed,
-                    batch,
-                    width:  params.Width  || params.width  || 0,
-                    height: params.Height || params.height || 0,
-                    // Nano Banana takes a ratio LABEL and no pixels; the video models
-                    // take a resolution tier and a ratio; Veo takes no duration at all.
-                    // All three are sent when known and the route decides which the
-                    // endpoint can actually hear.
-                    ratioLabel: picked.selectedRatio || params.Ratio_Label || params.ratioLabel || '',
-                    qualityTier: picked.qualityTier || '',
-                    duration: Number(params.Duration) || 0,
-                    // The native route takes ONE image; an edit op sends the first
-                    // staged asset and the model's own `imageField` names where.
-                    imagePath: _firstImagePath(payload.mediaItems),
+                    ...fields,
                 }),
             });
         } catch (err) {

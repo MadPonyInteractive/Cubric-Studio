@@ -17,6 +17,7 @@ import { getSelectedOp } from '../../../utils/modelHelpers.js';
 import { PROMPT_BOX_CONTROLS, getInjectionParamsFromControls, visibleControlIds } from './PromptBoxControls.js';
 import { state } from '../../../state.js';
 import { uploadMediaFile } from '../../../services/mediaUploadService.js';
+import { estimateRunCost } from '../../../services/cloudExecutor.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { qs, qsa, on, off } from '../../../utils/dom.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
@@ -116,6 +117,10 @@ export const MpiPromptBox = ComponentFactory.create({
             <div class="mpi-prompt-box__col mpi-prompt-box__col--cog" id="settings-cog-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--settings" id="settings-badge-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--engine hide" id="engine-toggle-slot"></div>
+            <!-- MPI-852: what the next run costs, for a model that bills the user's own
+                 account. Its OWN column, never inside the run slot below, which
+                 _renderRunCluster clears with innerHTML. -->
+            <div class="mpi-prompt-box__col mpi-prompt-box__col--price hide" id="price-tag-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--run" id="bottom-right-slot"></div>
         </div>
     `,
@@ -469,6 +474,11 @@ export const MpiPromptBox = ComponentFactory.create({
             const renderedItems = _withAssignedRoles();
             _renderStrip(renderedItems);
             _saveMedia();
+            // Every reference add, remove, reorder, role-swap and prune routes through
+            // here. Only the 0 <-> 1 transition can move the price — the native cloud
+            // route sends ONE image — but that transition is a real one on every
+            // Gemini model, so the tag has to follow it.
+            _refreshPriceTag();
             emit('media-change', { imageCount: el.imageCount, videoCount: el.videoCount, audioCount: el.audioCount, items: renderedItems });
         }
 
@@ -1689,6 +1699,14 @@ export const MpiPromptBox = ComponentFactory.create({
 
         _unsubs.push(Events.on('settings:shared:update', ({ key }) => { if (key === 'batch') _renderBadge(); }));
 
+        // Every mounted control persists through PromptBoxControls._emitUpdate, which
+        // emits exactly one of these two — so these two cover ratio, quality tier,
+        // duration, batch and turbo between them, and no `ratio:*` subscription is
+        // needed on top. Unfiltered by key on purpose: the set of keys that move a
+        // price is a provider's business, and a filter here would go stale silently.
+        _unsubs.push(Events.on('settings:shared:update', () => _refreshPriceTag()));
+        _unsubs.push(Events.on('settings:model:update', () => _refreshPriceTag()));
+
         // The picker overlay is opened by whoever owns it, not by this box — the
         // radial (step 7) fires the same event.
         modelBtn.on('click', () => Events.emit('ui:open-model-picker', {}));
@@ -1959,6 +1977,41 @@ export const MpiPromptBox = ComponentFactory.create({
             const _accent = model?.mediaType === 'image' ? 'vision' : (model?.mediaType || 'studio');
             el.dataset.accent = _accent;
             popupNode.dataset.accent = _accent;
+
+            // The controls above were just destroyed and rebuilt, so Width, Height and
+            // the tier can have moved with no event of their own — this is the only
+            // place the price can be recomputed from values that are certainly current.
+            _refreshPriceTag();
+        }
+
+        // ── The live price tag (MPI-852) ───────────────────────────────────────
+        // A paid model charges the user's own DeepInfra account, so the bar says what
+        // the next run will cost before they press Cue. The figure is `estimateCost`'s
+        // own `display` string VERBATIM — it carries its own "about", drops to one
+        // significant figure below a cent and never renders "$0.00", so reformatting it
+        // here could only make it wrong.
+        //
+        // Priced through cloudExecutor's OWN field derivation, so the run that is quoted
+        // and the run that is dispatched cannot be two different runs.
+        //
+        // NOT gated on the Run-locally toggle, whatever the card's brief says:
+        // generationService routes on `model.provider` (:96) and forces
+        // `forceLocal: false` for a cloud model (:961), so that toggle cannot divert a
+        // cloud run. Hiding the price there would hide a charge that still happens.
+        //
+        // `qs()` per call rather than a closure const, for the reason the op-slot lookup
+        // below already gives: this runs from _refreshOpSlot and _emitMediaChange, both
+        // of which can fire before a const declared here would be initialised.
+        function _refreshPriceTag() {
+            const slot = qs('#price-tag-slot', el);
+            if (!slot) return;
+            const estimate = model?.provider
+                ? estimateRunCost(model, getInjectionParamsFromControls(_activeControls), el.getMediaItems?.() ?? [])
+                : null;
+            slot.classList.toggle('hide', !estimate);
+            slot.innerHTML = estimate
+                ? `<span class="mpi-prompt-box__price">${estimate.display}</span>`
+                : '';
         }
 
         // ── Negative mode toggle ───────────────────────────────────────────────

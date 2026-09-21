@@ -1,7 +1,10 @@
 /* BEM Block naming — mpi-prompt-box */
 .mpi-prompt-box {
     display: grid;
-    grid-template-columns: auto 1fr auto auto auto auto auto;
+    /* neg · prompt · enhance · cog · settings · engine · price · run (MPI-852 added the
+       price track; there is no second declaration to keep in step — the agent-mode grid
+       went with the agent face in MPI-797 Phase 3). */
+    grid-template-columns: auto 1fr auto auto auto auto auto auto;
     align-items: end;
     gap: var(--s-2);
     background: var(--surface-bar);
@@ -113,8 +116,25 @@
     flex-shrink: 0;
 }
 
+.mpi-prompt-box__col--price {
+    flex-shrink: 0;
+    /* The button row is `align-items: end`; this column is text with no control box
+       under it, so it needs its own baseline nudge to sit on the buttons' line. */
+    padding-bottom: var(--s-2);
+}
+
 .mpi-prompt-box__col--run {
     flex-shrink: 0;
+}
+
+/* MPI-852: money, so it is stated quietly and not sold. --ink-2 keeps it a caption
+   beside the Cue button rather than a second call to action, and tabular numerals stop
+   the bar twitching as the figure changes under a ratio or duration control. */
+.mpi-prompt-box__price {
+    font-size: var(--t-xs);
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 /* MPI-797 Phase 3: the agent face is GONE from this box. There is no `--agent-mode`

@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.css",
+    "js/services/cloudExecutor.js",
+    "tests/cloud-price-tag.test.cjs",
+    ".agents/mpi-kanban/tasks/MPI-852/"
+  ]
+}
