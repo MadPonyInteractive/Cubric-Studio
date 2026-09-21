@@ -633,7 +633,12 @@
  * @property {boolean} [showMediaBadge] - Render the Image/Video pill
  * @property {boolean} [featured] - Gold sparkle flag on the thumb (editorial spotlight)
  * @property {boolean} [deprecated] - Warning flag on the thumb (model is on its way out)
+ * @property {boolean} [cloud] - Cloud flag on the thumb (runs on the user's own API key, MPI-865)
+ * @property {boolean} [mediaImage] - "Makes an image" flag; only for a grid NOT split by media (MPI-831)
+ * @property {boolean} [mediaVideo] - "Makes a video" flag; same opt-in rule
+ * @property {boolean} [mediaAudio] - "Makes audio" flag; same opt-in rule
  * @property {boolean} [dot] - Recently-installed heat dot
+ * @property {boolean} [dimmed] - Desaturates the thumb (not installed yet)
  * @property {boolean} [waiting] - Queued-install waiting mascot
  * @property {string} [state] - HTML for the fixed-height bottom row
  * @property {boolean} [selected] - Renders the tile as the current choice
@@ -653,8 +658,8 @@
  * their own status logic and pass the bottom row in as HTML (`item.state`).
  *
  * Instance methods (on instance.el):
- *   setItems(items) · patchState(id, html) · setWaiting(id, bool) ·
- *   setSelected(id|null) · getTile(id)
+ *   setItems(items) · patchState(id, html) · setDimmed(id, bool) ·
+ *   setWaiting(id, bool) · setSelected(id|null) · getTile(id)
  *
  * Emits:
  * 'select' { id: string, item: MpiTileSheetItem }

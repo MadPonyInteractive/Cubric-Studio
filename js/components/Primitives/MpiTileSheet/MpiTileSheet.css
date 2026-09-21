@@ -258,6 +258,17 @@
 .mpi-tile__chip--paid { color: var(--vision-accent); text-transform: none; letter-spacing: 0.06em; }
 .mpi-tile__chip--paid::before { content: "☁"; }
 .mpi-tile__chip--paid-video { color: var(--video-accent); }
+/* A Flow sold separately (MPI-831): one payment, then you download it and run it locally.
+ * NOT --paid above, which is a cloud model billed per run and wears a cloud glyph — same
+ * word, two promises, and the cloud glyph would be wrong in the one place a user decides
+ * to spend money.
+ *
+ * `--accent-heat` is the ACTION colour, and this is the only chip on the grid that is a
+ * call to do something; the others report a state. ↗ rather than a download arrow: the
+ * click leaves the app for a web page, and promising a download the click does not start
+ * is what MPI-666 removed. */
+.mpi-tile__chip--purchase { color: var(--accent-heat); }
+.mpi-tile__chip--purchase::before { content: "↗"; }
 /* A Flow package that failed validation (MPI-532) — listed, never runnable. */
 .mpi-tile__chip--unavailable { color: var(--accent-warn); }
 .mpi-tile__chip--unavailable::before { content: "!"; }

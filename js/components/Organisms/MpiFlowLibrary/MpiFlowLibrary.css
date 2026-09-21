@@ -133,22 +133,6 @@
 .mpi-flow-library__media-head .mpi-icon { width: 12px; height: 12px; }
 .mpi-flow-library__media-head-n { color: var(--ink-3); }
 
-/* The fourth tile state (MPI-831 phase 4): a Flow that is for sale. The other three chips
-   live in MpiTileSheet.css and THIS ONE BELONGS THERE TOO — it is here because MPI-853 held
-   a live write claim on that file while this shipped, and it had just landed
-   `.mpi-tile__chip--paid` in it for CLOUD models, which is a different thing wearing a name
-   this one would otherwise want: that chip means "runs on someone else's GPU, priced per
-   run" and carries a cloud glyph. Move this rule into MpiTileSheet.css beside its siblings
-   when that claim clears; a message is filed. Scoped under the library so that, until then,
-   it cannot reach the Model Library's grid.
-
-   `--accent-heat` is the ACTION colour, and this is the only chip on the grid that is a
-   call to do something — the other three report a state. ↗ rather than the download arrow
-   the neighbouring `Get models` chip uses: this click leaves the app for a web page, and
-   promising a download that the click does not start is exactly what MPI-666 removed. */
-.mpi-flow-library .mpi-tile__chip--purchase { color: var(--accent-heat); }
-.mpi-flow-library .mpi-tile__chip--purchase::before { content: "↗"; }
-
 .mpi-flow-library__empty {
     padding: var(--s-6) 0;
     color: var(--ink-4);
