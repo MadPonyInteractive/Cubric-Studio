@@ -26,8 +26,9 @@ LISTENS (strip → viewer):
          `clear-frame-mask`  `{ viewerIndex }` → `viewer.el.clearFrameMasks(viewerIndex)`. The strip names the POSITION; the viewer owns the masks, so the clear goes to it. Masks are keyed by the viewer's frame position, which diverges from the strip's staged index after a reorder — hence `viewerIndex`, not `index`
          `selection-change`  `{ viewerIndices }` → `_options?.el.setSelection?.(viewerIndices)`. Only the cut-out panel HAS a `setSelection`, so the optional call is the entire guard
 
-LISTENS (control bar → panel + strip):
-         `range-change`      `{ in, out }` → BOTH `_options?.el.onRangeChange?.(range)` and `frameStrip?.el.setRange(range)`. The Trim panel's numbers alone read as Trim doing nothing, so the strip paints the range too
+LISTENS (control bar → panel + strip + viewer):
+         `range-change`      `{ in, out }` → ALL THREE of `_options?.el.onRangeChange?.(range)`, `frameStrip?.el.setRange(range)` and `viewer?.el.setRange(range)`. The Trim panel's numbers alone read as Trim doing nothing, so the strip paints the range too; the viewer takes it because PLAYBACK obeys the handles (MPI-871 — it wraps to `in`, not to frame 0). Scrubbing/stepping deliberately stay outside the range, or the bar's I/O could never widen it
+         `range-preview`     `{ in, out }` → the same three, while a handle is still DOWN, so the dimming and the playhead track the drag instead of arriving on pointerup. All three are repaints; nothing here persists — that stays on `range-change`
 
 LISTENS (global):
          `gif-viewer:context-menu` `{ x, y }` — on `Events`, not on the instance; the Block builds the menu (Delete frame / Clear this frame's mask / Reverse / Save frame)
