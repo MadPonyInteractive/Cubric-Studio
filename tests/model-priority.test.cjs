@@ -55,6 +55,28 @@ test('the notes carry what a rank cannot, on the entries where they change the p
     assert.match(opPriority('ill-anime', 't2i').note, /anime/);
 });
 
+test('an i2i op carries the technique note as well as the model note (MPI-817)', () => {
+    // Live 2026-09-21: "make this anime" went to klein's editor, which dressed the subject, and
+    // "can you use a different technique?" could not be answered — no i2i op had a note at all.
+    // The model half says which look it paints, the op half says how a restyle is run; a restyle
+    // needs both, so one must never replace the other.
+    const illAnime = opPriority('ill-anime', 'i2i').note;
+    assert.match(illAnime, /anime/, 'the model note survives');
+    assert.match(illAnime, /repaints the whole picture from the WORDS/, 'the i2i note is appended');
+    assert.match(illAnime, /denoise/, 'and it names the brake');
+
+    // Every i2i op gets it, not just the one that broke.
+    assert.match(opPriority('krea2', 'i2i').note, /repaints the whole picture/);
+
+    // Scoped to i2i: an edit op and another image task are untouched.
+    assert.doesNotMatch(opPriority('klein-9b', 'kleinEdit').note, /repaints the whole picture/);
+    assert.doesNotMatch(opPriority('krea2', 'upscale').note, /repaints the whole picture/);
+});
+
+test('klein 9B edit declares the habit that made a restyle wrong (MPI-817)', () => {
+    assert.match(opPriority('klein-9b', 'kleinEdit').note, /cover a bare subject/);
+});
+
 test('nothing an agent must not drift to is ranked', () => {
     // An `-nsfw` variant is the user's explicit choice, never a default the ranking makes.
     for (const m of MODELS.filter((x) => x.id.includes('nsfw'))) {

@@ -79,7 +79,7 @@ const I2V = [
 const NOTES = {
     'boogu-edit-high:edit': 'the strongest editor here, but it takes exactly one image',
     'boogu-edit-balanced:edit': 'the same editor on a lighter tier, and still one image only',
-    'klein-9b:kleinEdit': 'the native editor: it follows the instruction and keeps the likeness',
+    'klein-9b:kleinEdit': 'the native editor: it follows the instruction and keeps the likeness, but it tends to cover a bare subject unless the instruction says to keep it as it is',
     'klein-4b:kleinEdit': 'the small native editor — lighter, and weaker on realism',
     'krea2:krea2Edit': 'faster than Qwen Edit and strong on realism, but it tends to change the surroundings too',
     'qwen-edit:qwenEdit': 'the slowest of these, and the only one that leaves everything outside the edit area untouched',
@@ -93,11 +93,27 @@ const NOTES = {
     'pony-mix': 'stylised character art, not photography',
 };
 
+/**
+ * Keyed by op: what the TECHNIQUE buys and costs, whatever model runs it. Appended to the
+ * model's own note rather than replacing it, because a restyle needs both halves — which
+ * model paints the look, and how the op gets there.
+ *
+ * MPI-817, Fabio 2026-09-21: a restyle is i2i FIRST, edit only on escalation. The reverse
+ * rule shipped while the describer misread pictures, so prompting i2i from a description was
+ * unsafe; a kept, correct description now makes it the better route. Live the same morning,
+ * with no i2i note at all, "make this anime" went to klein's editor, which dressed the
+ * subject — and "can you use a different technique?" could not be answered, because nothing
+ * told the agent another technique existed.
+ */
+const OP_NOTES = {
+    i2i: 'the restyle route: it repaints the whole picture from the WORDS, so prompt it with the description of THIS image and then the style you want, never a better scene. denoise decides how much moves — keep it low to hold the pose and composition. If the result strays too far from the original, offer an edit op instead',
+};
+
 const _ranked = new Map();
 
 function _rank(pairs) {
     pairs.forEach(([modelId, op], i) => {
-        const note = NOTES[`${modelId}:${op}`] || NOTES[modelId];
+        const note = [NOTES[`${modelId}:${op}`] || NOTES[modelId], OP_NOTES[op]].filter(Boolean).join('; ');
         _ranked.set(`${modelId}:${op}`, { rank: i + 1, ...(note ? { note } : {}) });
     });
 }
