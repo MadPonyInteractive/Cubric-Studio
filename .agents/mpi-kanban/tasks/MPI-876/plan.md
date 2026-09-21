@@ -97,31 +97,27 @@ them off, then we'll revisit later."* So the tiring-at-$0.07 objection is heard 
 overruled for v1 — do not design a suppression path in, and do not re-raise it without user
 complaints to point at.
 
-**Test model: ASK HIM WHICH. Do not spend until he answers.** He said *"If you need to do any
-tests with Deep Infra, FluxKline is the model to do them with."* That is **FLUX.2 Klein** —
-`models.js:1124` literally reads `name: 'FLUX.2 Klein 9B'`, with `klein-4b` its sibling. He was
-naming the family he tests with daily, not inventing a name.
+**Test with `flux-schnell-cloud`** (`black-forest-labs/FLUX-1-schnell`), **$0.0005 an image** —
+134x cheaper than the nano-banana-2 run that started all this, so a full gate test costs
+fractions of a cent. **Settled by Fabio directly on 2026-09-21**, not inferred: he transcribed
+it as "FluxKline" by speech-to-text and confirmed in the next breath that he meant Flux Schnell.
 
-The catch: **the cloud twin is not in our catalogue.** DeepInfra hosts
-`black-forest-labs/FLUX-2-klein-4b` (~$0.014/image) and `-klein-9b` (~$0.015), both taking
-`input_image_1..4`, but neither has a ModelDef, neither is in `dev_configs/deepinfra-prices.json`,
-and `estimateCost` returns **null** for both. (That is the null case 3 above, live.)
+> Recorded because two sessions spent real effort on it: "FluxKline" reads convincingly as
+> **FLUX.2 Klein**, since `models.js:1124` is literally `name: 'FLUX.2 Klein 9B'` and that is
+> the family he tests with daily. The MPI-849 session raised that, correctly on the evidence
+> available, and it was only his own word that settled it. **Do not re-open this from the
+> roster** — the name in `models.js` will keep suggesting Klein forever.
 
-So two readings, leading to different work:
+It is also the right **sub-cent regression case**: its `display` is `about $0.0005`, the exact
+string that cannot be multiplied back out, so it is what proves `{ batch: N }` rather than a
+multiply.
 
-1. **"Test against the cloud twin of my local Klein"** — what his words support, and sensible:
-   it is the only cloud model whose output he could compare against a local render of the same
-   family. Needs the model ADDED first — `/mpi-add-model` work and a card of its own, not
-   something to do in passing.
-2. **"Use the cheap one"** — then `flux-schnell-cloud` (`black-forest-labs/FLUX-1-schnell`) at
-   **$0.0005/image** is right: 28x cheaper than Klein 4B, 134x cheaper than nano-banana-2.
-
-An earlier draft of this plan asserted reading 2 as fact. It was wrong, and the MPI-849 session
-caught it. Ask; do not inherit either reading.
-
-Whichever wins, `flux-schnell-cloud` stays the right **sub-cent regression case**: its `display`
-is `about $0.0005`, the exact string that cannot be multiplied back out, so it is what proves
-`{ batch: N }` rather than a multiply.
+Useful thing learned while chasing it, worth keeping: **Klein's cloud twin is not in our
+catalogue at all.** DeepInfra hosts `black-forest-labs/FLUX-2-klein-4b` (~$0.014) and
+`-klein-9b` (~$0.015), taking `input_image_1..4`, but neither has a ModelDef, neither is in
+`dev_configs/deepinfra-prices.json`, and `estimateCost` returns **null** for both — a live
+instance of null case 3, found an hour after that case was written down. Not this card's work;
+a roster gap for MPI-849 if anyone wants the local/cloud comparison.
 
 ## The copy — DRAFT, Fabio's to reword
 
