@@ -4,6 +4,20 @@ Sits **in front of MPI-876** (Fabio, 2026-09-21).
 
 ## Current State
 
+**BUILT 2026-09-21, card still in `doing`, waiting on Fabio's own re-run.** Started on his
+word; he settled the card's one open question in the same message — **`control` does NOT
+respect masks**. Commits `54e25445` (code + docs) and `ab9e2661` (board). Evidence, the
+full op table and what was NOT verified: `validation.md`. Remaining Work items 1–4 are all
+done; only the `user-ux` close is outstanding, and it is his to make.
+
+One design change against the plan below: reaching the viewer through `navigation.js` was
+tried and backed out — it drags the whole component tree into `agentDispatch`'s CJS
+require, where `MpiLevelMeter.js:2` imports a server-absolute `/js/utils/dom.js` Node
+cannot resolve, so every dispatch test died on an audio module. The mask now travels
+through a new import-free `js/shell/activeMask.js`.
+
+Below is the plan as written before the work, kept for its research.
+
 **Not started — planned only, and not authorised to start.** Written 2026-09-21 from a
 live failure in Fabio's own app plus his own explanation of localised edits, which is
 knowledge the agent's docs do not contain anywhere.
