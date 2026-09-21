@@ -10,10 +10,17 @@ card the two redirect URLs.
 
 ## Current State
 
-**All four phases are built and Fabio-verified. 1–3 are pushed (`3a27fc32`, red fixed by
-`510e3a03`, phase 3 as `33b0c11b`); phase 4 is VERIFIED BUT UNCOMMITTED — the working tree
-carries `MpiFlowLibrary.js`, `MpiFlowLibrary.css` and two new `comfy_workflows/display/`
-webps.** Next action: commit phase 4, then close out.
+**All four phases are built, Fabio-verified, committed and pushed.** Phase 4 is
+`f31d7377`, carried onto `origin/master` by a peer's push. Next action: close out.
+
+**Phase 4 turned master RED, and a peer fixed it under this card's id.**
+`tests/desktop/flow-library-filters.spec.js` asserts tile COUNTS per filter and per search
+term, and two advert tiles moved every number — 1 failed, 150 passed, red for about eight
+hours before anyone owned it (a peer raised MPI-866 for that). The fix is `ea154779`,
+already on `origin/master`, and master has gone green three times since. **The mistake was
+choosing the spec whose NAME matched the feature**: phase 4 was verified against
+`flow-packages.spec.js` only, and the surface's other spec never ran. Any future change to
+this grid runs BOTH.
 
 Two follow-ups survive the card's phases and are the only reason it is not `done`. Neither
 is phase work; both are blocked on a live peer's write claim:
@@ -221,6 +228,8 @@ tiles unchanged at 15. Awaiting Fabio's own look.
   missing from the instance-method list. Carried as a checklist item, to be done when the
   claims clear — it is one docblock, and fighting two live peers over it is not worth a
   merge conflict.
+- **2026-09-21 — the paid tiles are now gated for the 2.0 release, on both sides.** Fabio asked for a hard gate rather than a hope. `MPI-595` Gate A's MPI-780 line became a four-link chain (packages exist ✓, app advertises them ✓, Gumroad products published, redirects resolve), and MadPony-Identity `MPI-81` gained a final step plus a correction: its brief still said the app would take the coded Gumroad URLs, which this card reversed. **The redirects `cubric.studio/flows/<id>` have NO OWNER** — website work, no card, and they are what the shipped buttons open. Until they exist those buttons 404.
+- **2026-09-21 — MPI-780, MPI-743 and MPI-828 adopted into the MPI-560 Flow umbrella** (Fabio's go; MPI-595 Gate D had been waiting on it). 743 and 828 both sit in a PAYING user's path. Gate D's other survivors (586, 591, 557, 355) were deliberately not swept.
 - **2026-09-20 — phase 3 was ALREADY COMMITTED when phase 4 picked it up.** The handoff and
   this plan both said the working tree carried it; `33b0c11b` is an ancestor of HEAD and the
   tree was clean of every MPI-831 file. Nothing was lost — but "uncommitted" in a

@@ -69,6 +69,32 @@ at pickup.
       as `user_flows/` packages, which needs MPI-532's loader, then MPI-781 packages the two
       (added 2026-09-16, Fabio: "it blocks 2.0"). The known-issue fallback below does not fit
       this one: shipping the two inside the app gives them away for free. Ask Fabio.
+
+      **This gate is a CHAIN, and 2.0 must not cut until all four links hold** (Fabio,
+      2026-09-20). The app half is finished and the rest is outside this repo, which is
+      exactly how it goes out of date unnoticed:
+
+      - [x] **The packages exist** — MPI-781, built and validated, private repo
+            `MadPonyInteractive/Cubric-Flows`.
+      - [x] **The app advertises them** — MPI-831 phase 4 (`f31d7377`): a Get-it tile per
+            Flow in the Flow Library, hiding once the bought package installs. Nothing
+            further is needed here whatever Gumroad does.
+      - [ ] **The two Gumroad products are PUBLISHED, priced, with their 100-use 100%-off
+            codes created** — MadPony-Identity MPI-81, Fabio-only (Gumroad has no write API).
+            Drafted before the release, published ON release day: both manifests declare
+            `compat.minAppVersion 2.0.0`, so a buyer on 1.6.1 installs a disabled tile.
+      - [ ] **The two redirects RESOLVE** — `cubric.studio/flows/head-swap` and
+            `cubric.studio/flows/drama-box` must land on the coded Gumroad URLs. **THIS IS
+            THE WEAK LINK: it lives in `c:\AI\Mpi\Cubric Studio (Website)`, it is nobody's
+            card as of 2026-09-20, and it is what the shipped buttons actually open.** The
+            coded URL is deliberately NOT in the app — Cubric-Vision is public AGPL and a
+            committed code could be spent to zero by people who never run the app.
+            **Verify by loading both URLs in a browser and arriving at a Gumroad page with
+            the discount applied — not by reading config.** Until then the buttons 404.
+
+      Failure mode this chain exists to stop: 2.0 ships, a user opens the Flow Library, sees
+      two things for sale, clicks Get it, and gets a 404 on our own domain. That is worse
+      than not advertising them at all.
 - [ ] Every Gate A card that did not clear has a known-issue bullet written.
 
 ## Gate B — must verify (no code expected)

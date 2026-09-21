@@ -35,6 +35,11 @@ member when the phase covering it lands, and say so in its card.
 | MPI-799 | Community Flow registry — public GitHub repo, submissions reviewed by MPI. **Open at 2.0 release**; needs Fabio's decisions | 7 |
 | MPI-831 | Flow Library: the **Third-party Flows** section, source badges, dimmed uninstalled tiles, and the two paid Gumroad tiles | 8 |
 | MPI-841 | The Flow Library **browses the registry** — a user discovers third-party Flows in the app, never on a website | 8 |
+| MPI-780 | **Umbrella**: the two PAID Flows — Head Swap and DramaBox leave the app (MPI-781, shipped) and sell as Gumroad packages. **Blocks 2.0**, gated as a four-link chain in MPI-595 Gate A | 8 |
+| MPI-743 | A refused licence gate is a silent no-op — the tile just falls back to Install. Reaches a PAID buyer: Head Swap pulls the Klein 9B gate on first install | 8 |
+| MPI-828 | No licence attribution row in the Flow drawer — H3 §III.3.a / §IV.2 owe it on the surface where the model is PRESENTED, and a Flow user may never open the Model Library | 8 |
+
+**Adopted 2026-09-21 on Fabio's go** (MPI-595 Gate D asked for exactly this): MPI-780, MPI-743 and MPI-828 were loose Flow cards with no umbrella. 743 and 828 are the two that sit in a PAYING user's path — a silent no-op after a refused licence gate, and a missing attribution row — so they are release-shaped, not polish. Gate D also names **586, 591, 557, 355** as survivors still to adopt or to exempt; they were NOT swept here, because Fabio's go covered the cards in play, not the whole list.
 
 Adjacent, deliberately NOT members: **MPI-455** (end-frame conditioning — op-side wiring on
 the shipped `ltx_i2v.json`, not a Flow) and **MPI-533** (the tombstone ledger phase 5's
