@@ -196,7 +196,15 @@ vision-model test on the cowgirl PNG, which spends cents on his DeepInfra key an
 denoise. Single next action: the vision-model test on the cowgirl PNG. It needs his yes first
 (it spends on his DeepInfra key), and the key is not in the agent shell (see
 `~/.claude/memory/general.md` for where it lives). After that, the `:i2i` NOTE in
-`modelPriority.js` (data only, inside his rule, not yet approved by name). Worth a sweep once:
+`modelPriority.js` (data only, inside his rule, not yet approved by name). Candidates, looked up
+keyless 2026-09-21 (`api.deepinfra.com/models/<id>`, $ per 1M in/out): the CURRENT describer
+`meta-llama/Llama-4-Scout-17B-16E-Instruct` 0.10/0.30 (`llmEngines.mjs`
+`RECOMMENDED_REMOTE_MODELS`, picked on ONE call that "returned a named subject");
+`Qwen/Qwen3-VL-30B-A3B-Instruct` 0.15/0.60; `Qwen/Qwen3-VL-235B-A22B-Instruct` 0.20/0.88;
+`google/gemma-4-26B-A4B-it` 0.07/0.34 (vision input unconfirmed). Qwen3-VL-8B and
+Qwen2.5-VL-32B are DEPRECATED there, so the 4B he rates on the ComfyUI side has no hosted twin.
+A describe is ~1.5k in + ~300 out, so 4 models x 5 runs is under one cent. Score on the known
+truth: upright, both revolvers raised, pointing UP. Worth a sweep once:
 which other controls does the PromptBox inject that `resolveNamedParams` does not? Duration
 and denoise were both that; `upscaleFactor` and `useGrid` are the obvious suspects.
 
