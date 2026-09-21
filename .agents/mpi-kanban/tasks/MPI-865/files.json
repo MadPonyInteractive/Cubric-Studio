@@ -1,0 +1,13 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Compounds/MpiModelPicker/MpiModelPicker.js",
+    "js/components/Compounds/MpiModelPicker/MpiModelPicker.css",
+    "js/components/Primitives/MpiTileSheet/MpiTileSheet.js",
+    "js/components/Primitives/MpiTileSheet/MpiTileSheet.css",
+    "js/utils/icons.js",
+    "tests/model-picker-cloud.test.cjs",
+    ".agents/mpi-kanban/tasks/MPI-865/"
+  ],
+  "note": "MpiTileSheet.js is an amendment to the plan's declared ownership: a badge in the featured-star slot is a row in that file's TILE_FLAGS table, which the plan's list omitted. js/utils/icons.js is listed but expected to be untouched - the `cloud` glyph already exists."
+}

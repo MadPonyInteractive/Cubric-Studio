@@ -48,6 +48,48 @@ two paid Flow adverts and `flow-library-filters.spec.js` counted only the instal
 (15 tiles against 13). Fixed in `ea154779`, pushed with `--no-verify` as the hook itself
 instructs. CI run **35574612819** on `2af8696d` is the one to watch to green.
 
+**2026-09-21 — MPI-853 is CLOSED.** CI `35574612819` reads `conclusion: success` on
+`2af8696d`, and two later runs agree (`5f380c6a`, `610648bd`), so the red master MPI-831
+caused is gone. Phase 2 now has three members left (MPI-852, MPI-854, MPI-855) and **phase 3
+is the active work: MPI-865 first, then MPI-864** — 865 is self-contained, 864 cannot start
+until Fabio approves one set of fifteen source URLs. **A finding worth carrying:** a session
+record's `heartbeat_at` keeps moving after the session logs `session_closed`, so freshness
+alone cannot tell a live peer from a closed one — read `recent_events` for `session_closed`
+and check for a handoff before treating a claim as live.
+
+**2026-09-21 — MPI-865 is CLOSED**, signed off in the app from a screenshot of the picker: the
+badge sits in the featured-star slot, rose across the sixteen image tiles and orange down the
+video row, `CLOUD` with no `BALANCED`, no LoRA control on a cloud tile, and `7 installed ·
+16 cloud`. **Phase 3 now has only MPI-864 left**, and it is blocked on one approval from Fabio
+covering fifteen source URLs before anything is downloaded.
+
+**Two cards opened from that same review, NEITHER an umbrella member.** **MPI-868** — the
+`IMAGE`/`VIDEO` labels still do not carry their family colours; it is the wider colour pass
+this umbrella twice declined, it spans five selectors across four surfaces through the shared
+`MpiTileSheet` Primitive, and Fabio has now asked for it twice. **MPI-869** — prove the
+out-of-credits path; it verifies what MPI-851 already shipped rather than building anything,
+so it belongs beside the umbrella, not inside it.
+
+**2026-09-21 — MPI-865 built (detail).** 34 lines across three files: a `cloud` row in
+`TILE_FLAGS`, the family colour as a CSS descendant rule off the tile's existing
+`mpi-tile--video` class (no second flag key), and both picker bugs — the tier word and the
+LoRA control, each dropped only after asserting against the real ModelDefs that no cloud model
+has the thing they named. Nine tests, **each proved red by backing its own fix out one at a
+time**; `npm test` exit 0, `lint:components` exit 0. One thing folded in beyond the brief: the
+picker's subtitle counted cloud models as installed, contradicting the decision MPI-853 already
+made next door — now `8 installed · 16 cloud`, and byte-identical with no key saved. **Next:
+Fabio's look, then MPI-864.**
+
+**The credits path is BUILT but never exercised (2026-09-21, Fabio's balance at $2.26).**
+`routes/deepinfra.js:80` maps HTTP 402 to `NO_CREDIT` and `cloudExecutor.js:50` toasts a
+top-up message, all from MPI-851. Two unverified assumptions sit under it: (a) that DeepInfra
+answers an empty balance with **402** — a 400 or 500 instead lands on `CONTENT_FILTERED`, which
+tells the user the model refused their prompt and sends them rewording instead of topping up;
+and (b) the **monthly usage cap is a different stop from prepaid exhaustion** and currently
+falls through to `PROVIDER_ERROR`, which never mentions raising the limit. The cap is testable
+for free by lowering it in the dashboard; prepaid exhaustion needs the balance to actually hit
+zero. Do not spend the balance down just to test this.
+
 **Two numbers to put in front of Fabio, neither changed unilaterally.** (1) FLUX 2 Pro's true price is a flat **$0.015** and `formatPrice`'s deliberate 2-decimal convention renders it "about $0.01", understating by a third; the convention is tested (`formatPrice(0.137632) === 'about $0.14'`) and was his call, so it stands until he says otherwise. (2) Seedance 2.0 at 5 s 1080p computes **$1.89** against this plan's $2.07 headline, and Seedance 1.5 $0.29 against $0.30 — the gap is the plan's own recorded risk that "the 720p and 1080p video pixel dimensions are assumed, not measured", not a new fault.
 
 **The research is done and measured, not estimated.** `docs/proprietary-models-research/01d-deepinfra-image-video.md`
@@ -121,7 +163,9 @@ Each depends on phase 1 and on nothing in this batch.
   duration changes, survives an op switch (the remount path that fires no event), and hides
   when Run-locally is on. **It multiplies by the batch count** — a batch of 4 on Nano Banana
   Pro reads about $0.54, not $0.13. **Verify mode:** `user-ux`.
-- [ ] **MPI-853** — the Paid models section. Ownership:
+- [x] **MPI-853** — the Paid models section. **CLOSED 2026-09-21** on CI `35574612819`
+  (`conclusion: success` on `2af8696d`, the run carrying `ea154779`'s red-master fix) plus
+  Fabio's in-app approval. Ownership:
   `js/components/Organisms/MpiModelManager/` (all files),
   `js/components/Primitives/MpiTileSheet/MpiTileSheet.css`, `js/shell.js`,
   `js/shell/heroStats.js`. Briefings: `components.md`, `dos_and_donts.md`. **Verify:** the
@@ -150,7 +194,12 @@ Opened from Fabio's review, 2026-09-21. Independent of phase 2 and of each other
   placeholder, at the same `.webp` convention every local model uses; `npm test` green.
   **Verify mode:** `user-ux`. **Read the card's brief before sourcing anything** — the route
   is settled but the licensing question is not.
-- [ ] **MPI-865** — the model PICKER's cloud models. Ownership:
+- [x] **MPI-865** — the model PICKER's cloud models. **CLOSED 2026-09-21**, Fabio signed it
+  off in the app. Ownership as below **plus
+  `js/components/Primitives/MpiTileSheet/MpiTileSheet.js`** — a badge in the featured-star
+  slot is a row in that file's `TILE_FLAGS` table, which this list omitted; its owner session
+  978b71ce reads `closed` and the claim was released with a reason. `js/utils/icons.js` was
+  claimed but untouched: the `cloud` glyph already existed. Ownership:
   `js/components/Compounds/MpiModelPicker/` (all files),
   `js/components/Primitives/MpiTileSheet/MpiTileSheet.css`, `js/utils/icons.js`.
   Briefings: `components.md`, `dos_and_donts.md`. **Verify:** a cloud model in the picker

@@ -89,3 +89,27 @@ the fifteen ratio tables are generated from the bounds each model publishes.
 and Veo: nine models carry an explicit stand-in `enhanceRecipe` because a `type` with no
 recipe silently resolves to `chroma`, which a test forbids. Each wants
 `/create-enhancer-recipe` properly.
+
+## Closed — 2026-09-21
+
+**CI is green and it is the run that proves the fix.** `gh run view 35574612819 --json
+conclusion` reads `success` on `2af8696d` (workflow *Tests*, 07:47–08:05Z). `ea154779` — the
+MPI-831 spec fix for the red master four commits inherited — sits one commit BEFORE
+`2af8696d` (08:46:38 against 08:46:53 local), so that run carries the fix rather than
+predating it. Two further runs agree: `5f380c6a` (35574837883) and `610648bd` (35574969419),
+both `success`. Master is green.
+
+**Fabio approved the catalogue in the app on 2026-09-21** and the three things he raised were
+handled rather than deferred silently: the price chip now takes Video orange on a clip model
+(`2af8696d`), and the other two became MPI-864 (preview art) and MPI-865 (the picker), folded
+into the MPI-849 umbrella as phase 3.
+
+**Still open, and deliberately NOT changed by this card** — both are judgement calls for
+Fabio, carried in the MPI-849 plan's Current State:
+
+1. FLUX 2 Pro's true `$0.015` renders as "about $0.01" under `formatPrice`'s tested 2-decimal
+   rule, understating by a third.
+2. Seedance 2.0 at 5 s 1080p computes `$1.89` against the plan's `$2.07` headline — the
+   plan's own recorded risk that the 1080p pixel dimensions are assumed, not measured.
+
+Neither blocks the section, and neither is a regression; they are numbers awaiting a decision.
