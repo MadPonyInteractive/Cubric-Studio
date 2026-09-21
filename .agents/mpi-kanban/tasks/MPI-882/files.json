@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/shared.js",
+    "tests/dep-path-agreement.test.cjs",
+    "js/services/commandExecutor.js",
+    "docs/download-manager.md",
+    "routes/remotePodState.js"
+  ]
+}

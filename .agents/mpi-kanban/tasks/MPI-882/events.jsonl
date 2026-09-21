@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "id": "MPI-882", "type": "task.created", "at": "2026-09-21T13:41:34Z", "actor": "claude", "summary": "Card opened in doing: dep presence is decided by basename, so a sibling weight masks an absent one."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-882", "type": "task.moved", "at": "2026-09-21T13:49:17Z", "actor": "claude", "from": "doing", "to": "done", "summary": "Deps resolve at their declared path; the four Klein 4B styles the 9B rack was masking now read missing."}
