@@ -151,3 +151,18 @@ Worth a glance while checking 1: the chat should say `Fetching saved image descr
 second look at a card it already described, and `logs/app.log` should carry one
 `[agent] look CACHED|FRESH …` line per look and one `[connector] agent named params — …` line
 per dispatch.
+
+
+## CI — 2026-09-21, GREEN, and the card closes
+
+Run [35594795855](https://github.com/MadPonyInteractive/Cubric-Studio/actions/runs/35594795855),
+`conclusion: success` on `baee6cc0`.
+
+`9be177b8` (the code) has no run of its own: it and `baee6cc0` went up in ONE push, and a push
+gets ONE run, at the tip. So `baee6cc0`'s run IS the verdict on `9be177b8`'s code — the tree it
+tested contains both commits. Read from `gh run view <id> --json conclusion`, never a watcher's
+exit code (a piped `gh run watch` exits 0 on a red run).
+
+That was the single thing this card was held in `validating` for. Everything else — the
+automated suite, all three live checks, all three honesty fixes — was already recorded above and
+confirmed by Fabio in his own app. Card moved to `done` / `complete`.
