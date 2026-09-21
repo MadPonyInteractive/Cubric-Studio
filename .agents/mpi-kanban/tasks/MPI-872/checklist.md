@@ -7,3 +7,7 @@
 - [ ] Verify in a browser: both URLs land on the right product WITH the discount applied.
 - [ ] Verify from inside a released 2.0 build by clicking the Flow Library tiles.
 - [ ] Tick link 4 of the MPI-780 chain in MPI-595's Gate A checklist.
+- [ ] **Any release cut BEFORE this card lands, not just 2.0** — the tiles have no version
+      gate, so either the redirects resolve first (a placeholder page counts) or that
+      release's notes carry a known-issue bullet. Plan.md § "The gate says 2.0; the code
+      says every build".

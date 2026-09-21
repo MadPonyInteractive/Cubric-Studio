@@ -53,6 +53,30 @@ product page **with the discount applied**. Then do it once more from inside a r
 build, by clicking the tiles in the Flow Library — that is the path a buyer actually takes,
 and it is the only one that proves the app, the redirect and the product agree.
 
+## The gate says 2.0; the code says every build (Fabio, 2026-09-21)
+
+**There is no version gate on the two Get-it tiles.** `PAID_FLOWS` in
+`js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js` is a plain constant with no
+`APP_CONFIG.dev_mode` check and no version comparison, so the tiles render in **any** build
+cut from master — a 1.6.2 hotfix included. The MPI-595 Gate A chain that blocks on this card
+names **2.0 only**, which is narrower than the code's reach.
+
+So the failure mode the chain exists to stop (a user clicks Get it and 404s on our own
+domain) is reachable before 2.0, by a release nobody attached the gate to. `minAppVersion`
+does not help: the packages declare `2.0.0`, which only means a buyer on 1.6.x installs a
+*disabled* tile — it says nothing about the advert, and the advert is what 404s.
+
+Whoever cuts the next release, whatever its number, owns one of these:
+
+- these redirects resolve first (the cheap version is a placeholder landing page for
+  `/flows/<id>` ahead of the Gumroad products — a real page beats a 404 even with nothing to
+  buy on it yet); or
+- a known-issue bullet in that release's notes saying the two tiles are adverts for products
+  that are not on sale yet.
+
+Not proposing a code gate: Fabio settled that the tiles ship as they are, and adding one
+would mean shipping an app release to remove it later.
+
 ## Order on release day
 
 2.0 published → these redirects resolve → the Gumroad products published. A product live
