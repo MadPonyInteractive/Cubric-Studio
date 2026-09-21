@@ -1,0 +1,17 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/shell/agentDispatch.js",
+    "js/shell/navigation.js",
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+    "services/agentLoop.mjs",
+    "docs/agent/masking.md",
+    "docs/agent/models/flux-2.md",
+    "docs/agent/models/krea-2.md",
+    "docs/agent/models/chroma.md",
+    "docs/agent/models/illustrious.md",
+    "docs/agent/models/pony.md",
+    "docs/agent/models/sdxl.md",
+    "tests/agent-mask-dispatch.test.cjs"
+  ]
+}

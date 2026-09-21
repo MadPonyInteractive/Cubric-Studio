@@ -3,7 +3,6 @@
   "next_id": 881,
   "columns": {
     "todo": [
-      "MPI-877",
       "MPI-876",
       "MPI-874",
       "MPI-873",
@@ -85,6 +84,7 @@
       "MPI-259"
     ],
     "doing": [
+      "MPI-877",
       "MPI-852",
       "MPI-777",
       "MPI-866",

@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-877", "at": "2026-09-21T13:13:07+01:00", "actor": "claude", "column": "todo", "title": "The agent learns localised edits: offer the mask, then prompt only what is inside it"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-877", "at": "2026-09-21T14:13:14+01:00", "actor": "13e4cab5-c168-40d2-91c3-8696b52a559c", "from": "todo", "to": "doing", "reason": "Fabio said start it, and settled the card's one open question: the control op does NOT respect masks"}
