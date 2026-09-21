@@ -60,6 +60,36 @@ model.
 | **detail** above ~0.5 denoise behaves almost like inpaint; below it, it is detailing, but it can still change the subject a lot | Fabio, 2026-09-21, from production |
 | Images and GIFs only, today. Video masking is coming | Fabio, 2026-09-21 |
 
+### Which ops honour the mask — read off the graph, 2026-09-21
+
+Fabio asked whether `i2i` and `control` respect a mask too. Traced in
+`comfy_workflows/klein_9b_t2i.json` (the master graph; branches
+`1 t2i · 2 i2i · 3 depth · 4 edit · 5 inpaint · 6 detail · 7 upscale`). `Input_Mask` is
+node **296**, and it gates **three `MpiIfElse` switches by its own presence**:
+
+| Node | mask present | no mask | What it means |
+|---|---|---|---|
+| **592** | `InpaintCropImproved` (581) | `Input_Image` (474) whole frame | feeds `ImageScaleToTotalPixels` → `VAEEncode "Encode ref 1"` → `SamplerCustomAdvanced` — **the shared main image-encode path** |
+| **656** | `LanPaint_KSampler` (652) | `SamplerCustomAdvanced` (185) | mask swaps the sampler for the hold-outside-still one |
+| **576** | reroute `masked edit` ← `InpaintStitchImproved` (582) | plain `VAEDecode` (166) | stitches the crop back at **source size** |
+
+**So `i2i` does honour a mask** — node 592 sits on the shared encode that the main sampler
+consumes, so any branch running through it gets the crop instead of the whole frame.
+Fabio's recollection was right.
+
+**`control` is NOT settled.** The depth branch builds its own conditioning and was not
+traced to `Encode ref 1`. Do not claim it either way in the docs until it is checked —
+trace it, or bench it.
+
+Two more facts fall out, both confirming Fabio's account:
+
+- `InpaintCropImproved` runs `output_resize_to_target_size: true` at **1024x1024**, and
+  `InpaintStitchImproved` puts it back. Only a 1024 crop is ever sampled, whatever the
+  source is — that is exactly why this is how 8K and 16K images get edited at all.
+- `MpiMaskSquareBbox` (584, `padding: 64`) squares the mask bbox and feeds it as
+  `optional_context_mask`. The graph squares it off anyway, which is why a square mask is
+  the natural shape to draw.
+
 **The right answer to the live ask** was: mask the boy *in the reflection*, run **`edit`**
 (any local model that has it — Klein included), prompt `convert the boy into a demon`.
 Nothing about rivers, rods, cartoon style or "matching the surrounding scene" — the model
@@ -121,8 +151,11 @@ half. The advise-and-use half is what Fabio moved forward into v1.)
    `flux-2.md:35` currently teaches the opposite), plus the advise-then-use flow, the
    delta-only prompting rule, and images/GIFs-only.
    **Verify:** Fabio's own re-run of the reflection ask.
-4. **Check the GIF surface** before claiming it. The card says images and GIFs; confirm
-   the GIF ops honour `Input_Mask` rather than assuming it.
+4. **Settle `control`, and check the GIF surface**, before either goes in the docs. `i2i`
+   is answered above (yes). `control` is not — trace the depth branch or bench it. Same
+   for the GIF ops: the card says images and GIFs, so confirm rather than assume.
+   **Verify:** each op the docs claim is backed by a traced node or a bench run, named in
+   `validation.md`. An unproven op is left out, not hedged.
 
 ## Verification
 
