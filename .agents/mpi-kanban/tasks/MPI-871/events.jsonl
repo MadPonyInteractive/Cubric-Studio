@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-871", "at": "2026-09-21T10:27:23+01:00", "actor": "claude-opus-5 (a9e2df21)", "column": "todo", "title": "GIF playback ignores the trim bar - the viewer plays the whole clip, not the trimmed range"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-871", "at": "2026-09-21T10:28:57+01:00", "actor": "claude-opus-5 (a9e2df21)", "from": "todo", "to": "todo", "reason": "Brief, plan, checklist and handoff written from Fabio's live report; ready for a fresh session."}
