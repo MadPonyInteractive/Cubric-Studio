@@ -24,6 +24,7 @@ import { getCommandComponents, modelShowsStyleRack, modelShowsRatio, modelShowsB
 import { PROMPT_CONTROL_DEFAULTS } from '../../../data/promptControlDefaults.js';
 import { Events } from '../../../events.js';
 import { getModelRatios, usesQualityTier } from '../../../utils/ratios.js';
+import { durationRangeFor } from '../../../data/modelConstants/deepinfraSizing.js';
 // MPI-547 — the qualityTier resolve (per-model bucket wins, legacy shared
 // fallback, else the model's cheapest tier) and the op→model→global default
 // are shared with `js/shell/agentDispatch.js`'s named-param resolver via this
@@ -75,6 +76,31 @@ function _resolveDefault(ctrl, controlId, opts) {
     // Delegates to generationControls.js (MPI-547) — agentDispatch.js's named-param
     // resolver needs this exact three-layer order too, so it lives in ONE place now.
     return resolveThreeLayerDefault(controlId, opts.model, opts.opName, ctrl.defaultValue);
+}
+
+/** The app's own duration range, for a model that publishes none of its own. */
+const APP_DURATION_BOUNDS = { min: 1, max: 30 };
+
+/**
+ * The seconds this model will actually accept (MPI-879).
+ *
+ * A cloud model's range is the provider's, read from the price snapshot — Seedance 1.5
+ * takes 4-12, Seedance 2.0 4-15, Wan 3.0 2-30. `buildSizeFields` clamps the dispatched
+ * value into that range whatever the control holds, so an unbounded slider never failed a
+ * request: it silently returned a shorter clip than the one the user dragged to, billed at
+ * the length that ran, with the price tag quoting the clamped figure the slider disagreed
+ * with. Bounding the CONTROL is what makes the two agree.
+ *
+ * A local model has no published range and keeps the app's 1..30, as does a cloud model
+ * with no duration field at all — Veo 3.1 has none, and a slider that changes nothing is
+ * its own defect, not one a narrower range would fix.
+ *
+ * @param {object} [model] - the ModelDef the prompt box currently has picked
+ * @returns {{min:number, max:number}}
+ */
+export function durationBoundsFor(model) {
+    const endpointId = model?.provider ? model?.cloud?.endpointId : null;
+    return (endpointId && durationRangeFor(endpointId)) || APP_DURATION_BOUNDS;
 }
 
 function _emitUpdate(ctrl, opts, key, value) {
@@ -556,19 +582,31 @@ export const PROMPT_BOX_CONTROLS = {
     },
 
     /**
-     * duration — Video length (int, 1..30, step 1).
+     * duration — Video length in seconds (int, step 1).
      * Mounts MpiProgressBar slider and injects into node titled "Duration"
      * (MpiInt, inputs.value / inputs.int). Persists per-model under
      * modelSettings[modelId].duration.
+     *
+     * The range is the PICKED model's, via `durationBoundsFor` — a local model keeps the
+     * app's 1..30, a cloud model gets the provider's own bounds (MPI-879).
      */
     duration: {
         nodeTitle: 'Input_Duration',
         scope: 'shared',
         defaultValue: PROMPT_CONTROL_DEFAULTS.duration,
         mount(hostEl, opts = {}) {
+            // Stored on the control because `getInjectionParams` takes no opts and still
+            // has to clamp — the registry entry is a singleton, same as `value`.
+            const bounds = durationBoundsFor(opts.model);
+            this._bounds = bounds;
+            const _clamp = (v) => Math.min(bounds.max, Math.max(bounds.min, Math.round(v)));
+
             const saved = _readSaved(this, opts);
             const savedNum = Number(saved.duration ?? this.defaultValue);
-            const initial = Number.isFinite(savedNum) ? Math.min(30, Math.max(1, Math.round(savedNum))) : this.defaultValue;
+            // A saved value is clamped on the way IN as well as on the way out: the bucket
+            // is `shared`, so one number is carried across every video model and a 30 saved
+            // against a local model must not open Seedance at 30.
+            const initial = _clamp(Number.isFinite(savedNum) ? savedNum : this.defaultValue);
             this.value = initial;
 
             hostEl.className = 'mpi-prompt-box__slider-control';
@@ -591,8 +629,8 @@ export const PROMPT_BOX_CONTROLS = {
             hostEl.appendChild(barHost);
 
             this._instance = MpiProgressBar.mount(barHost, {
-                min: 1,
-                max: 30,
+                min: bounds.min,
+                max: bounds.max,
                 step: 1,
                 value: initial,
                 interactive: true,
@@ -605,11 +643,11 @@ export const PROMPT_BOX_CONTROLS = {
             const _renderLabel = (v) => { valEl.textContent = `${v} s`; };
 
             this._instance.on('input', ({ value }) => {
-                _renderLabel(Math.min(30, Math.max(1, Math.round(value))));
+                _renderLabel(_clamp(value));
             });
 
             this._instance.on('change', ({ value }) => {
-                const v = Math.min(30, Math.max(1, Math.round(value)));
+                const v = _clamp(value);
                 this.value = v;
                 _renderLabel(v);
                 _emitUpdate(this, opts, 'duration', v);
@@ -619,7 +657,10 @@ export const PROMPT_BOX_CONTROLS = {
             return this.value ?? this.defaultValue;
         },
         getInjectionParams() {
-            const v = Math.min(30, Math.max(1, Math.round(Number(this.value ?? this.defaultValue) || this.defaultValue)));
+            // Falls back to the app range when called off a spread copy of the entry
+            // (the reconcile/snapshot path), which carries `value` but never `_bounds`.
+            const b = this._bounds || APP_DURATION_BOUNDS;
+            const v = Math.min(b.max, Math.max(b.min, Math.round(Number(this.value ?? this.defaultValue) || this.defaultValue)));
             return { Input_Duration: v };
         },
     },

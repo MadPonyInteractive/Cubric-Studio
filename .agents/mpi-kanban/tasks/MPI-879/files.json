@@ -1,0 +1,9 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Organisms/MpiPromptBox/PromptBoxControls.js",
+    "tests/cloud-duration-bounds.test.cjs",
+    ".agents/mpi-kanban/tasks/MPI-879/"
+  ],
+  "note": "One source file - the `duration` entry in PromptBoxControls.js - plus a new test file of this card's own. Checked the four live claims at 2026-09-21T12:32Z (MPI-851, MPI-858, MPI-852, MPI-878): none holds PromptBoxControls.js. MPI-852 holds MpiPromptBox.js and tests/cloud-price-tag.test.cjs, which is why the guard for this fix goes in a NEW file instead of joining the neighbouring cloud-price-tag suite. NOT touched: js/data/modelConstants/deepinfraSizing.js (durationRangeFor already exports what this needs and buildSizeFields' out-bound clamp stays as the backstop), and js/services/cloudExecutor.js."
+}

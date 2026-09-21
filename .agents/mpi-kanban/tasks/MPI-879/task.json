@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-879",
+  "title": "The duration slider offers lengths the cloud video models reject",
+  "description": "Measured 2026-09-21 in a live renderer: with seedance-15-pro-cloud picked, the duration slider in the settings popup renders min=1 max=30. That model publishes 4-12 seconds (durationRangeFor('ByteDance/Seedance-1.5-Pro'), parsed from the price snapshot's own prose). buildSizeFields clamps on the way out, so nothing is over-billed against the pick and no request is rejected - the defect is the CONTROL. A user who drags to 30 gets a 12-second clip, is billed for 12, and nothing on screen said so; since MPI-852 the price tag quotes the clamped length, so the number and the slider visibly disagree. Fix: bound the duration control by the model's own published range when the model is cloud (provider + cloud.endpointId). Local models keep 1-30. The four shipped ranges differ (Seedance 1.5 4-12, Seedance 2.0 4-15, Wan 3.0 2-30) and Veo 3.1 publishes no duration field at all - that one is a separate defect (a control that changes nothing) and is NOT in scope here. Control: 'duration' in js/components/Organisms/MpiPromptBox/PromptBoxControls.js, nodeTitle Input_Duration.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-21T13:31:48+01:00",
+  "updated_at": "2026-09-21T13:32:44+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
