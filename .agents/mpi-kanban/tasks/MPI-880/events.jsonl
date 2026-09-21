@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-880", "at": "2026-09-21T13:43:57+01:00", "actor": "c82329c2-1701-4441-be1f-11722a657910", "column": "todo", "title": "Veo's duration slider is a lie that misprices the run - lock it to the 8 seconds Veo returns"}
