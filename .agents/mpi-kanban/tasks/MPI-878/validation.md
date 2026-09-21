@@ -38,11 +38,15 @@ takes its own free `CUBRIC_PORT` — confirmed in all four shards' logs.
 
 ## Phase 1 — paths-ignore
 
-Proven by this card's own close: the commit moving MPI-878 to `done` is board-only, and it
-created **no CI run at all** (`gh run list --limit 3` after the push — the newest run is
-still 35599750388 on the code commit `cfc0355e`). Baseline for contrast: the two board
-commits immediately before this card, `8c74a29e` and `423cb430`, each spent a full
-17-minute Windows suite.
+Proven by this card's own close: `854289ae`, the commit moving MPI-878 to `done`, is
+board-only (`git diff-tree --name-only` — four files, all under `.agents/`) and it created
+**no CI run at all**. Checked with `gh run list --limit 4` after the push: no run carries
+that sha. The newest run at that moment was `e7e7a4f2`'s, a peer push that carried code
+(`c6cb3e63`) and so correctly ran — which is the other half of the proof, that the skip is
+not just "CI stopped firing".
+
+Baseline for contrast: the two board commits immediately before this card, `8c74a29e` and
+`423cb430`, each spent a full 17-minute Windows suite for nothing.
 
 ### What is NOT proven
 
