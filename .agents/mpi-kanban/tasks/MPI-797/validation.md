@@ -329,9 +329,26 @@ held no claim on either file when this session checked.
 
 Desktop specs went 15 passed / 16 failed → **31/31**.
 
-## Still to do on this card
+## CLOSED - Fabio, 2026-09-21
 
-Fabio's eyes on Phase 2 and Phase 3 in the real app. Nothing else is built on this card.
+All three phases verified in his own app: Phase 1 on 2026-09-20, Phases 2 and 3 together on
+2026-09-21 ("it looks good, mate"). Shipped as 47fcdc2a / fcefd4ff / ad155a98 / 9a71f2ce
+(Phase 1), e4dd9143 (Phase 2) and 45f5f403 (Phase 3).
+
+**The video regression does NOT close with this card - it is MPI-867**, split out on Fabio's
+call rather than folded in, because restoring it is a new surface and not a line of Phase 3.
+The `todo` in `tests/agent-video-attachment.test.cjs` names MPI-867, and making it pass is
+that card's definition of done.
+
+Two things recorded here that outlive this card:
+
+- **The pinned popup was deliberately left alone**, and Fabio signed it off. It now holds in a
+  situation that could not exist before - the agent panel open while he uses the prompt box
+  normally. He has rejected a prompt-rule answer to this twice; do not "fix" it without him.
+- **The open product question stays open**, and it belongs to the agent track: should an agent
+  generation inherit the prompt box's current model and settings, or stay deliberately
+  independent? MPI-843 parked it. Re-homing `agentSettingsPinned` rather than deleting it is
+  what kept it answerable - the machinery that would implement either answer is still there.
 
 ## Pre-existing, found while working here, NOT fixed and NOT carded
 

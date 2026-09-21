@@ -47,14 +47,15 @@ BUILT 2026-09-21; no "verified" yet. See validation.md.
       box with an engine. One `!_isE2E()` clause. Proven not-ours first.
 
 ## Open, needs Fabio - not blockers this session can clear
-- [ ] **A REGRESSION Phase 3 causes:** MPI-817's video-by-reference had its ONLY UI path in
+- [x] **A REGRESSION Phase 3 causes:** SPLIT OUT AS MPI-867 (Fabio, 2026-09-21) - not folded
+      in, because restoring it is a new surface. MPI-817's video-by-reference had its ONLY UI path in
       `_sendAgentTurn`. The server half is intact; nothing can reach it. Restoring it needs
       project-media staging in the panel composer - a surface of its own, not a Phase 3
       line. Its test is a `todo`, not deleted. Messaged to MPI-817 (4ea0febf).
-- [ ] **The PINNED popup was left exactly as it was** and now holds while the panel is open
+- [x] **The PINNED popup was left exactly as it was** and now holds while the panel is open
       and he uses the prompt box normally - a situation that could not exist before. He has
       ruled on it twice, so it was not quietly changed. Worth a look in the app.
 
 ## Close
-- [ ] Fabio's `user-ux` check of Phase 2 AND Phase 3 (see plan's Verification).
+- [x] Fabio's `user-ux` check of Phase 2 AND Phase 3 (see plan's Verification).
 - [x] Record what shipped, and the `agentSettingsPinned` decision, in `validation.md`.

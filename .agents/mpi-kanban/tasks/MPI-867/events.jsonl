@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-867", "at": "2026-09-21T09:38:08+01:00", "actor": "claude", "column": "todo", "title": "Hand the agent a video again: the panel composer takes clips by reference"}
