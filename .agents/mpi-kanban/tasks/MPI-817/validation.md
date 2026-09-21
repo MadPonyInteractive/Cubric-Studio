@@ -963,3 +963,69 @@ in unusual poses) and it has not been run; the harness takes any image plus a tr
 **Not done:** recording WHICH describer wrote a stored look, which he asked for in the same
 breath. `agent.describe` does not report its model, and that lives in `js/shell/agentDispatch.js`
 (MPI-797's claim). Until it does, a stored description cannot be re-read when the model changes.
+
+## LIVE 2026-09-21 08:28-08:41Z — the restart, what it proved, and what it broke
+
+Fabio restarted at `08:28:39Z` (`APP_USER_DATA set to`, the only boot in this log after
+22:22:36Z — **app.log APPENDS across restarts here, it does not rotate**, so line 1 is the
+previous run's tail and dates nothing).
+
+**Check (a), the kept look: PASSED on the write half.**
+
+```
+08:29:28  generation.submit
+08:30:01  agent.describe      <- exactly one, whole boot
+08:30:05  look written to the sidecar
+```
+
+`Kaiju Giant Bowl/Media/.meta/8a0fac58….json` carries `look: {text, at}`. The text is correct
+for the frame (bowl, city street, rubble, cars, smoke, dark sky) — the new `gemma-4-26B-A4B-it`
+describer reading a picture the old Scout would have invented a pose for.
+
+**Check (a), the READ half: FAILED.** At `08:36:10` a second `agent.describe` fired for Fabio's
+"Tell me what you see." — six minutes after the text was already on disk. `agentLoop.mjs` served
+it live because `if (!args.question && !args.crop && !args.box)` is the only door to
+`_lookOnce`, and the model passed his sentence as `question`. By the letter of his 2026-09-20
+decision that is correct (a question is a different answer); in practice the most natural way to
+ask for the plain description is a question, so the cache would never be hit. Fixed in the
+`question` param's description (it had none).
+
+**Check (b), denoise: NOT RUN, and the reason is the finding.** "Make this anime, keep her pose"
+went to `edit_001` / `kleinEdit` / `klein-9b`, whose `controlState.op` is `null` — an edit op has
+no denoise. The agent never reached an i2i op, so nothing about denoise was exercised.
+
+Klein covered the subject. Fabio asked for **a different technique**; the agent submitted
+`edit_002`, `kleinEdit` / `klein-9b` again, with a stronger sentence
+(`"Keep her bare chest uncovered with no bra, no top…"`), and **no `list-models` in between** —
+it never reconsidered. It could not: `NOTES` carried a note for all four edit ops and none for
+any i2i op, so "another technique" did not exist in its world. The result was right after two
+passes; the request was not honoured.
+
+### Fabio's ladder for a restyle (2026-09-21, approved direction)
+
+1. A restyle ask is **i2i first**. Low denoise holds the composition.
+2. Prefer a model whose style matches the ask (`ill-anime` for anime).
+3. No matching model: i2i on whatever they have, prompted well — **describe the picture, then
+   add the style**.
+4. **Edit is the escalation**, reached only when the user says "that's too different".
+
+This does not reverse his 2026-09-20 "edit is more truthful". That held because i2i prompted from
+a *wrong* description is unsafe, and Scout misread poses. A correct, kept description is the
+precondition, and it only started holding this morning.
+
+### Built 2026-09-21 (commit 314355ec, suite 1673 / 0 fail)
+
+| # | Where | Change |
+|---|---|---|
+| B | `agentLoop.mjs` look schema | `question` gains a description: omit it for the plain description (kept, free, instant); a question always spends a fresh vision call |
+| C1 | `agentLoop.mjs` Model rule | Narrowed, not added to: a **local** instruction is the edit task; a whole-picture **restyle** is i2i, and the i2i note says how |
+| C2 | `modelPriority.js` | New `OP_NOTES`, keyed by op and **appended** to the model note rather than replacing it — a restyle needs both halves. One entry: `i2i` |
+| C3 | same note | The restyle prompt is built from the card's kept description, never a better scene |
+| — | `modelPriority.js` | `klein-9b:kleinEdit` declares its observed habit: it tends to cover a bare subject |
+
+`tests/model-priority.test.cjs` gains two tests. The composition one is **proven red** with the
+join backed out (`pass 6 / fail 1`), green with it.
+
+**Still owed:** one live run — "make this anime" on an imported photo should now reach i2i on
+`ill-anime` at a low denoise, with the prompt visibly built from the description and no clothing
+added. That run is also the first real exercise of the denoise named param.

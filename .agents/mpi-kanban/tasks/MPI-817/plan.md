@@ -220,6 +220,37 @@ actually hit. Next: (1) the wake, now the top-ranked unbuilt piece and the thing
 report its model, and that is in MPI-797's `agentDispatch.js`; (3) a second, harder bench image
 (two characters, unusual poses) through `research/vision-bench.mjs`; (4) the `:i2i` NOTE.
 
+**Update 2026-09-21 08:55Z, session f756c6e3 (resumed from handoff 247bcfc4).** The push the
+handoff asked for was already done — a peer's push published the shared branch, so 520a2099,
+7e762e8b and d112cbb7 all reached origin. Fabio restarted at 08:28:39Z and ran both owed checks.
+**The kept look's WRITE half passed** (one `agent.describe`, `look` on the sidecar, and the new
+gemma describer read the frame correctly). **Its READ half failed** and **denoise never ran** —
+both recorded in `validation.md` § LIVE 2026-09-21 with the log lines.
+
+Built and committed as `314355ec` (suite 1673 / 0 fail, composition test proven red backed out):
+the `look` `question` param now says to omit it for the plain description; the Model rule's
+flat "changing an existing picture is the edit task, not i2i" is **narrowed** to a local
+instruction, with a restyle routed to i2i; and `modelPriority.js` gains `OP_NOTES` — a note
+keyed by op, **appended** to the model note — carrying the i2i restyle route, plus klein-9b's
+observed habit of covering a bare subject.
+
+**Fabio's ladder for a restyle** (his words, 2026-09-21): i2i first, a style-matching model if
+one exists, else i2i on whatever they have prompted from the description plus the style, and
+edit only on escalation when the user says it strayed too far. It does not reverse his
+"edit is more truthful" from 2026-09-20 — that held while the describer misread pictures, and a
+correct kept description is what changed.
+
+Single next action: `314355ec` is committed and **NOT pushed** — the pre-push gate blocks on a
+PEER's unjudged commit (MPI-797's close e0fc0eec, run 35579221191). Not ours, not a red master,
+and `--no-verify` is wrong here. Push when that run reads `conclusion: success`. Then ONE live
+run in Fabio's app: "make this anime" on an imported photo should reach i2i on `ill-anime` at a
+low denoise, prompt visibly built from the kept description, no clothing added — which is also
+the first real exercise of the denoise named param.
+
+After that, the WAKE is still the top unbuilt piece and still has **no card**; it lives only in
+§ "Phase C, first piece" below. Fabio has not yet answered its one open question (a confirm card
+above N fanned-out cards; vote 5).
+
 ## Phase C, first piece: batch ask + wake on drain (DESIGN NOTE 2026-09-20, not built, not approved)
 
 Raised by Fabio after the step-cap find. Two halves of one job.
