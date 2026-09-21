@@ -46,6 +46,14 @@ assertion and ship the bug.
 `cloud-executor`, `deepinfra-catalogue`: 85 tests, 0 failures.
 `npx eslint` on both changed files: clean.
 
+## CI
+
+`c6cb3e63` reached origin inside a peer's push (`e7e7a4f2`, MPI-852), so no run fired on the
+commit itself and the three commits above it are board/docs only, which MPI-878's
+`paths-ignore` skips. The first run whose tree contains this change is run 35600833135 on
+`e7e7a4f2`: `conclusion: success`, all five jobs green (unit + the four desktop shards).
+Read off the `conclusion` field, not a piped `gh run watch`.
+
 ## Left behind
 
 Veo 3.1 (`veo-31-cloud`, `veo-31-fast-cloud`) publishes no `duration` field, so its slider
