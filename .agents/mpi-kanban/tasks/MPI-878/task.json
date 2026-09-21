@@ -3,14 +3,15 @@
   "id": "MPI-878",
   "title": "CI: board-only commits stop running the suite, and the desktop suite shards",
   "description": "Measured over 48h on master (198 completed runs): 128 of them - 65% of runs and 36.8 of 56 CI-hours - were docs/.agents/.md-only commits that ran the full 17-min Windows suite for no signal, because tests.yml has no paths-ignore even though .husky/pre-push already skips its gate for exactly that set (DOCS_RE). 8 of the 21 reds in that window sat on docs-only commits: they cannot have caused anything, they inherited the red, burned 17 min proving it, and then became \"master's last completed run\" - which is the query BOTH the master gate and red-master-watch.yml read. Second half: the desktop suite is 16 of those 17 minutes, 63 specs at workers:1, fullyParallel:false - shard it 4 ways so the wall-clock an agent waits on before closing a card drops to ~5 min. Not a husky change: both gates stay. Fabio, 2026-09-21, on the token and wall-clock cost of agents waiting on CI.",
-  "column": "doing",
-  "maturity": "in-progress",
-  "status": "active",
+  "column": "done",
+  "maturity": "complete",
+  "status": "completed",
   "created_at": "2026-09-21T13:24:47+01:00",
-  "updated_at": "2026-09-21T13:24:47+01:00",
+  "updated_at": "2026-09-21T13:38:20+01:00",
   "links": {
     "checklist": "checklist.md",
     "files": "files.json",
-    "events": "events.jsonl"
+    "events": "events.jsonl",
+    "validation": "validation.md"
   }
 }
