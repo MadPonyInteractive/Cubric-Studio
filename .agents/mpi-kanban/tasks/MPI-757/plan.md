@@ -10,6 +10,42 @@ the ordering and anything left behind.
 
 ## Current State
 
+**2026-09-21 (session `1288fdab`) - EVERY MEMBER CARD IS NOW `done`. The umbrella itself is
+the only thing still open, and what is left is a decision, not code.**
+
+Everything below this block is older than this line and was written while MPI-771 was still
+in progress. Read it for HOW things were built, not for what is open.
+
+Member cards, checked on the board today: MPI-768, MPI-759, MPI-769, MPI-770, MPI-771,
+MPI-772, MPI-773, MPI-760 all `done/complete`; MPI-758 `done/rejected`. The three GIF cards
+raised after the table was written are done too: MPI-857 (duplicate a frame), MPI-858 (an
+already-transparent clip came back black) and MPI-871 (playback ignored the trim bar).
+
+**MPI-871, closed 2026-09-21, is the one that changes this plan's architecture notes.**
+MPI-836 made the control bar's trim bar the single trim and taught the options panel and
+MpiFrameStrip about it; the VIEWER was never told, so playback walked the whole list and
+wrapped to frame 0. `MpiGifViewer` now takes `el.setRange(range|null)` and the Block pushes
+it from both the `range-change` and `range-preview` subscribers. Two deliberate non-changes
+a future session must not 'fix': `setFrameIndex`/`stepFrame` stay clamped to the LIST, not
+the range (the bar binds `video.trim.in`/`out` to `getFrameIndex()`, so a head that cannot
+leave the range leaves the range able only to narrow), and the range needs no rebind on
+reorder because it is POSITIONAL, exactly as the strip treats it.
+
+**The single next action is Fabio's call on two open items, then close the umbrella:**
+
+1. The frame STRIP thumbnails still highlight the stored mask ('what stays') while the stage
+   highlights what goes. Recorded as 'Noticed, not actioned' on 2026-09-19 and never
+   answered. His call whether it matters at 40 px.
+2. `rangeBounds` is imported by `MpiGifViewer` from `Organisms/MpiToolOptionsGifTiming/
+   gifTiming.js`, which trips `mpi/no-same-tier-component-import`. MPI-871 took a one-line
+   `eslint-disable` with the reasoning inline, because `npm run lint` is `--max-warnings=0`
+   and would otherwise red CI. The real fix is moving that pure module to `js/utils/` - it is
+   already shared (`js/shell/gifJobs.js` imports it, `tests/gif-timing.test.cjs` resolves it
+   by path). 5 files, ~5 lines. Needs a card, or a deliberate 'leave it'.
+
+Neither is code this card owes. If Fabio waives both, MPI-757 closes on the members'
+evidence - there is no umbrella-level verification left to run.
+
 **2026-09-19 (session `5e86d76c`) — READ THIS FIRST.** MPI-771 is `doing`/`in-progress`.
 
 **Both of Fabio's passes are BUILT.** The consistency audit shipped earlier today (findings 1,
