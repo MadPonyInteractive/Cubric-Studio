@@ -4,10 +4,10 @@
   "title": "GIF workspace: frames, cut-out, Make GIF, GIF Maker",
   "description": "UMBRELLA over the GIF workspace (brainstorm with Fabio 2026-09-14/15): a dedicated GIF history workspace built on full-colour frames, a SAM3 cut-out, timing/transform/export tools, Make GIF from a gallery selection, and GIF Maker from video. Members and phase order: tasks/MPI-757/plan.md.",
   "column": "doing",
-  "maturity": "in-progress",
+  "maturity": "validating",
   "status": "active",
   "created_at": "2026-09-14T16:57:46+01:00",
-  "updated_at": "2026-09-21T10:53:47+01:00",
+  "updated_at": "2026-09-21T11:51:20+01:00",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -17,5 +17,6 @@
     "events": "events.jsonl",
     "handoffs": "handoffs/",
     "research": "research/"
-  }
+  },
+  "activeSessionTitle": "MPI-757 close-out: gifTiming.js -> js/utils/, umbrella evidence written"
 }

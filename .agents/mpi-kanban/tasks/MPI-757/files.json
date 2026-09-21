@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/utils/gifTiming.js", "js/components/Organisms/MpiToolOptionsGifTiming/MpiToolOptionsGifTiming.js", "js/components/Organisms/MpiGifViewer/MpiGifViewer.js", "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js", "js/shell/gifJobs.js", "tests/gif-timing.test.cjs", "docs/gif.md"] }

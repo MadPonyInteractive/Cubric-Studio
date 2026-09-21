@@ -31,20 +31,24 @@ the range (the bar binds `video.trim.in`/`out` to `getFrameIndex()`, so a head t
 leave the range leaves the range able only to narrow), and the range needs no rebind on
 reorder because it is POSITIONAL, exactly as the strip treats it.
 
-**The single next action is Fabio's call on two open items, then close the umbrella:**
+**Both open items are now RESOLVED (session `cbc52582`, 2026-09-21). See
+`validation.md` for the evidence; the card closes on it.**
 
-1. The frame STRIP thumbnails still highlight the stored mask ('what stays') while the stage
-   highlights what goes. Recorded as 'Noticed, not actioned' on 2026-09-19 and never
-   answered. His call whether it matters at 40 px.
-2. `rangeBounds` is imported by `MpiGifViewer` from `Organisms/MpiToolOptionsGifTiming/
-   gifTiming.js`, which trips `mpi/no-same-tier-component-import`. MPI-871 took a one-line
-   `eslint-disable` with the reasoning inline, because `npm run lint` is `--max-warnings=0`
-   and would otherwise red CI. The real fix is moving that pure module to `js/utils/` - it is
-   already shared (`js/shell/gifJobs.js` imports it, `tests/gif-timing.test.cjs` resolves it
-   by path). 5 files, ~5 lines. Needs a card, or a deliberate 'leave it'.
-
-Neither is code this card owes. If Fabio waives both, MPI-757 closes on the members'
-evidence - there is no umbrella-level verification left to run.
+1. Frame-strip highlight polarity - **not a defect, and the note was already stale when
+   it was written.** MPI-859 (2026-09-20) made the store hold what gets CUT rather than
+   what stays, and the strip reads that same store: `_emitMasks()` -> `_masks.overlay()`
+   -> `overlayAt()`, no inversion anywhere down to `MpiFrameStrip`'s `thumb-tint`. Stage
+   and strip highlight the same pixels and both mean "this goes". The one remaining
+   difference is deliberate and commented in `gifFrameMasks.js`: the stage draws a
+   pending proposal as a separate green layer, the strip folds it in - "one thumb, one
+   tint". No code changed. **Do not re-raise this.**
+2. Cross-Organism import - **FIXED, Fabio authorised it.** `gifTiming.js` moved to
+   `js/utils/gifTiming.js` and MPI-871's `eslint-disable` is gone. Four of its five
+   consumers were never the timing panel. The lint rule's `locate()` returns null
+   outside `js/components/`, so the new path is not tier-checked - the disable is not
+   relocated, it is unnecessary. `npm run lint` clean, 30/30 on
+   `tests/gif-timing.test.cjs` + `tests/connector-gif-jobs.test.cjs`, `git mv` recorded
+   as a rename so history follows.
 
 **2026-09-19 (session `5e86d76c`) — READ THIS FIRST.** MPI-771 is `doing`/`in-progress`.
 
