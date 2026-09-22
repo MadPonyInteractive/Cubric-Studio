@@ -92,6 +92,18 @@ field any kind paints from.
 - A quote that cannot be taken at all (the app unreachable) raises **no card and blocks
   nothing**: that call is about to fail in the submit for the same reason, spending nothing.
 
+## Fabio's live run, 2026-09-22 — single run PASSES, batch of two FAILS
+
+- **Single run: pass.** "Use FLUX Schnell" → card read `Run this on FLUX Schnell (Cloud)?` /
+  `Runs on your DeepInfra key and costs about $0.0005.` No declined cleanly and the agent
+  said so; Yes landed "Pony runs off on the beach", 1344x768. Items 1 below: done.
+- **"Can you do a batch of two?" → TWO spend cards, $0.0005 each.** Fabio: a batch of two
+  should be ONE card with the price for both, then run both. Likely cause, NOT yet verified
+  in code: t2i has no image slot, so `_fanOut` refuses `cards` with BATCH_UNSUPPORTED, and
+  `/connector/generate` refuses `batch` ("Agents never batch", Fabio 2026-09-15), so the
+  model just called `generate` twice and each call asked. The 2026-09-15 rule was about N
+  latents held in VRAM at once, not N queued submits — check that before designing.
+
 ## Left for Fabio — the half no test here can reach
 
 1. **One real gated run.** A cloud model, any prompt. The card should read
