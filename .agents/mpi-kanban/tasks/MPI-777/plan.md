@@ -33,18 +33,35 @@ pointer below before editing; they were read 2026-09-16.
   - *Done:* hover no longer plays a transition, only a click does. The queue took a
     per-request `transition` flag for it; the hover still interrupts, it just cuts straight
     to the greet.
-  - *Handed to a new session:* **the transition overlay paints a black square.** The clips are
-    opaque VP9 on black and depend on `mix-blend-mode: screen`, and Chromium ignores the blend
-    on a `<video>` because it composites it on its own layer. Measured, with `isolation`
-    ruled out — see validation.md § Round 2. Likely fix: re-encode the 15 transitions with an
-    alpha plane from luma in `scripts/stage-mascot-clips.mjs` and stop depending on the blend.
-- **Next action: Phase 3b**, the two landing changes Fabio asked for at the same time, then
-  Phase 4. They are landing-shell work, the same surface as Phase 3, so they stay on this card:
-  - The crew labels should carry the mascot NAMES — Cosmo, Lingo, Prism, Reel, Vinyl
-    (mapping in MPI-846's plan). Note this **narrows MPI-846's "chrome labels stay role
-    nouns"**: the crew labels are identity, not controls. Record the call in MPI-846.
-  - The landing's agent slot loses the Prism mascot and the "Ask me anything" lettering;
-    Cosmo peeks over the rule instead and the input box moves up to where the line is.
+  - *Done 2026-09-22 (Phase 3b):* **the transition overlay composites.** It painted a black
+    square because the clips were opaque VP9 on black relying on `mix-blend-mode: screen`,
+    which Chromium skips on a `<video>` it has promoted to its own layer. The blend is gone;
+    `scripts/stage-mascot-clips.mjs` keys the black into an alpha plane instead
+    (`a = max(r,g,b)`). 43.7% → 0.0% near-black over the mascot, validation.md § Round 3.
+- **Phase 3b is BUILT and Fabio has LOOKED (2026-09-22): "everything looks great".** Three
+  things came out of that look and are done - the puff now TAKES the character (he vanishes
+  as it starts and fades back in under its densest moment, via a `--vanished` class on the
+  member and a new `.mpi-landing__crew-body` wrapper that exists so the overlay is not
+  hidden with him), the agent ledge is the HEAD PEEK clip bottom-aligned to the rule instead
+  of a standing clip hung by the crew's constants, and its top is no longer sheared. A
+  fourth is NOT mine: the agent introduces itself as "Cubric" and should say Cosmo
+  (`services/agentLoop.mjs:1271`), which a live peer claims - message `8cd24a3c` sent, and
+  told to Fabio. Evidence: validation.md § Round 4.
+- All three of the original Phase 3b items landed: the
+  overlay composites (above), the crew labels carry the mascot names (Lingo, Prism, Cosmo,
+  Reel, Vinyl — which narrows MPI-846's "chrome labels stay role nouns", recorded there and
+  in `docs/shell.md`), and the landing agent slot lost the 48px still and the "Ask me
+  anything" lettering for Cosmo peeking over the block's top rule with the composer on the
+  line. Evidence: validation.md § Round 3.
+- **"Some animations are cut off before they finish" (Fabio, 2026-09-22) was MEASURED and is
+  not a bug.** Every clip that is allowed to finish plays to its end; the only two cuts are
+  the deliberate interrupts, and Fabio's call on the naked one (hover) is that cutting
+  straight in is fine, just never with a transition. No code changed. Do not re-open it on a
+  hunch about clip lengths — the table is in validation.md § Round 3.
+- **Next action: Phase 4**, the two ledges. Note the landing agent slot above is NOT one of
+  them: it is the standalone chat on the landing. Phase 4 is the agent PANEL's ledge (Cosmo,
+  per MPI-843) and the prompt box's. The `__ledge` block built for the landing is the
+  obvious thing to lift for the panel's.
 - **Then Phase 4**, the two ledges — the agent panel's (Cosmo, per MPI-843) and the prompt
   box's (the selected model's mascot peeking). Different surfaces, and the agent one still
   cannot show a failed state until Fabio re-rolls `i2v_016`.
@@ -190,17 +207,16 @@ rather than a media `ended` event — see Current State for why that is not opti
 ### Phase 3b: what Fabio asked for after seeing Phase 3 (2026-09-22)
 
 - [x] Hover reaches the greet with no transition; only a click plays one.
-- [ ] **The transition overlay composites instead of painting a black square.** Not a missing
-      step and not a CSS typo — `mix-blend-mode: screen` is computed and ignored, because
-      Chromium composites a `<video>` on its own layer. Re-encode the transitions with an alpha
-      plane from luma (`scripts/stage-mascot-clips.mjs` currently detects them as opaque and
-      strips it deliberately) and drop the blend dependency; alpha VP9 already composites here,
-      which is what every mascot clip is.
-- [ ] Crew labels carry the mascot names (Cosmo, Lingo, Prism, Reel, Vinyl). This narrows
-      MPI-846's "chrome labels stay role nouns" — a crew label is identity, not a control, so
-      record the call on that card.
-- [ ] The landing agent slot: drop the Prism mascot and the "Ask me anything" lettering, put
-      Cosmo peeking over the rule, and move the input box up to the line.
+- [x] **The transition overlay composites instead of painting a black square.** The black now
+      comes off at STAGING time: `scripts/stage-mascot-clips.mjs` keys it into an alpha plane
+      (`a = max(r,g,b)`, then the same unpremultiply every cut-out clip gets), and
+      `.mpi-landing__crew-fx` carries no blend. Do not re-add one — Chromium will ignore it.
+      `--verify` gained a keyed-clip branch, proven red on an unkeyed encode.
+- [x] Crew labels carry the mascot names (Lingo, Prism, Cosmo, Reel, Vinyl). Recorded on
+      MPI-846 by message and in `docs/shell.md`.
+- [x] The landing agent slot: Cosmo peeks over the block's top rule and the composer sits on
+      the line. He follows `currentPage` — this chat is mounted once at boot and never
+      destroyed, so without that his clips would decode behind an open project for ever.
 - **Verify:** `user-ux`, Fabio on the landing.
 
 ### Phase 4: prompt box ledge

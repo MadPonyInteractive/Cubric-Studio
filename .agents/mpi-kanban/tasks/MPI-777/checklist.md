@@ -35,10 +35,19 @@ because nothing mascot-related stays in that repo any more.
       good, and they are well connected."** Hover then lost its transition (queue gained a
       per-request `transition` flag, new test proven red first). Three follow-ups became
       Phase 3b below.
-- [ ] Phase 3b: the transition overlay paints a BLACK SQUARE (`mix-blend-mode: screen` ignored
-      on a `<video>` — re-encode the transitions with alpha instead), crew labels take the
-      mascot names, and the landing agent slot swaps Prism + "Ask me anything" for Cosmo
-      peeking over the rule with the input moved up
+- [x] Phase 3b BUILT 2026-09-22, Fabio's look outstanding. The 15 transitions are re-encoded
+      with an alpha plane keyed from their own black (`a = max(r,g,b)` in
+      `scripts/stage-mascot-clips.mjs`, guarded by a new `--verify` branch proven red on an
+      unkeyed clip) and `.mpi-landing__crew-fx` carries no blend at all: measured 43.7% →
+      **0.0%** near-black over the mascot, same pixels. Crew labels are Lingo, Prism, Cosmo,
+      Reel, Vinyl. The landing agent slot lost the 48px still and "Ask me anything" for Cosmo
+      peeking over the block's top rule with the composer on the line.
+- [x] Phase 3b, folded in (Fabio, 2026-09-22): "some animations are cut off before they
+      finish". MEASURED, and it is not a length bug — every clip that is allowed to finish
+      plays to its end (idle 5.2/5.2, 4.1/4.1, greet 3.0/3.0, happy 3.0/3.0, overlay
+      0.89/0.9). The only cuts are the two deliberate interrupts, and Fabio's call on the
+      naked one: "it's fine if it just cuts into the greeting animation right away. No
+      worries. Just no transition." No code changed for it.
 - [x] Phase 3 detail, for the record — BUILT 2026-09-22.
       `heroCrew.js` paints two stacked `<video>` per member plus a screen-blended transition
       layer; `_poseSrc` is gone. Self-checks in validation.md: 1779/0 tests, eslint clean,

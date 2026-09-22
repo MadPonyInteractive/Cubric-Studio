@@ -90,7 +90,7 @@ async function readManifest() {
     return rows;
 }
 
-/** Opaque clips (the transitions, rendered on black for `mix-blend-mode: screen`) keep no alpha. */
+/** Cut-out clips arrive with an alpha plane; the transitions are rendered on black. */
 async function hasAlpha(file) {
     // Page 0 only: a clip is cut out or it is not, the frames do not disagree.
     const { data, info } = await sharp(file).ensureAlpha().extractChannel(3)
@@ -101,16 +101,36 @@ async function hasAlpha(file) {
 
 const even = n => Math.trunc(n / 2) * 2;
 
-async function encode(src, dst, { alpha, w, h }) {
+/**
+ * The transitions are rendered on black, and the landing used to drop that black with
+ * `mix-blend-mode: screen`. CHROMIUM IGNORES THAT BLEND: it promotes a `<video>` to its
+ * own composited layer and the overlay paints as a black square over the mascot
+ * (measured 2026-09-22 — the computed value really is `screen`, and `isolation: isolate`
+ * on the parent changes nothing). So the black comes off here instead, where it stays off.
+ *
+ * `a = max(r,g,b)` keys the effect out of its own background and leaves RGB alone, which
+ * IS premultiplied data — hence no `premultiply` step, and the same `unpremultiply` after
+ * the scale that every cut-out clip gets. Alpha VP9 composites correctly here (every
+ * mascot clip is one), and the key keeps the soft smoke edges that were the whole reason
+ * `screen` beat a cut-out mask.
+ *
+ * `max` rather than a luma weighting: a saturated flash must not read semi-transparent.
+ * Measured against the blend it replaces — mean |screen − over| is 2.1/255 on the dark
+ * stage, invisible; on a light background the puff occludes rather than washing out,
+ * which is what a puff of smoke should do anyway.
+ */
+const LUMA_KEY = "geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='max(max(r(X,Y),g(X,Y)),b(X,Y))'";
+
+async function encode(src, dst, { alpha, keyed, w, h }) {
     const tw = even(w * STILL_H / SOURCE_H), th = even(h * STILL_H / SOURCE_H);
     const scale = `scale=${tw}:${th}:flags=lanczos`;
-    const vf = alpha
-        ? `format=rgba,premultiply=inplace=1,${scale},unpremultiply=inplace=1`
-        : `format=rgba,${scale}`;
+    let vf = `format=rgba,${scale}`;
+    if (alpha) vf = `format=rgba,premultiply=inplace=1,${scale},unpremultiply=inplace=1`;
+    if (keyed) vf = `format=gbrap,${LUMA_KEY},${scale},unpremultiply=inplace=1`;
     await run('ffmpeg', [
         '-v', 'error', '-y', '-i', src,
         '-vf', vf,
-        '-c:v', 'libvpx-vp9', '-pix_fmt', alpha ? 'yuva420p' : 'yuv420p',
+        '-c:v', 'libvpx-vp9', '-pix_fmt', alpha || keyed ? 'yuva420p' : 'yuv420p',
         '-b:v', '0', '-crf', '32', '-row-mt', '1', '-an', dst,
     ]);
     return { tw, th };
@@ -149,6 +169,28 @@ function ringLuminance(data, W, H, bg = 30, R = 4) {
     return n ? sum / n : NaN;
 }
 
+/**
+ * The guard for the keyed transitions. The rim check below cannot cover them — it
+ * compares against a downscale of the SOURCE, and the source is the opaque render the
+ * key exists to remove. What can go wrong here is simpler and total: the key silently
+ * not applying, which is the black square all over again. A keyed clip must therefore
+ * be neither fully opaque nor fully transparent.
+ */
+async function keyedAlpha(dst, frame, tmp) {
+    const png = path.join(tmp, 'verify-key.png');
+    await run('ffmpeg', ['-v', 'error', '-y', '-c:v', 'libvpx-vp9', '-i', dst,
+        '-vf', `select=eq(n\\,${frame})`, '-vframes', '1', '-pix_fmt', 'rgba', png]);
+    const { data, info } = await sharp(png).ensureAlpha().extractChannel(3)
+        .raw().toBuffer({ resolveWithObject: true });
+    let clear = 0, solid = 0;
+    for (let i = 0; i < info.width * info.height; i++) {
+        if (data[i] === 0) clear++;
+        else if (data[i] === 255) solid++;
+    }
+    const n = info.width * info.height;
+    return { clear: clear / n, partial: (n - clear - solid) / n };
+}
+
 async function verify(staged, tmp) {
     const FRAME = 10;
     const fails = [];
@@ -156,7 +198,16 @@ async function verify(staged, tmp) {
     for (const s of staged) {
         const dst = path.join(OUT_ROOT, s.key, `${s.slug}.webm`);
         try { await fs.access(dst); } catch { fails.push(`${s.key}/${s.slug}: not staged`); continue; }
-        if (!await hasAlpha(s.file)) continue;    // opaque transitions have no rim to have
+        if (!await hasAlpha(s.file)) {
+            // A transition is ~9 frames, so FRAME would run off the end; 4 is mid-effect.
+            if (!s.slug.startsWith('transition-')) continue;
+            const { clear, partial } = await keyedAlpha(dst, 4, tmp);
+            if (clear < 0.2 || partial < 0.02) {
+                fails.push(`${s.key}/${s.slug}: key did not take — ${(clear * 100).toFixed(0)}% clear, `
+                    + `${(partial * 100).toFixed(0)}% partial (an unkeyed clip reads 0% and 0%)`);
+            }
+            continue;
+        }
 
         const meta = await sharp(s.file, { animated: true }).metadata();
         const { data } = await sharp(s.file, { animated: true }).ensureAlpha()
@@ -229,11 +280,15 @@ async function main() {
         const dst = path.join(dir, `${s.slug}.webm`);
         if (dryRun) { console.log(`would stage ${s.key}/${s.slug}.webm  <- ${s.file} (${s.w}x${s.h})`); continue; }
         s.alpha = await hasAlpha(s.file);
+        // An opaque TRANSITION gets its alpha keyed out of its own black (see `encode`).
+        // Any other opaque clip stays opaque: the key would eat a character's dark side.
+        s.keyed = !s.alpha && s.slug.startsWith('transition-');
         await fs.mkdir(dir, { recursive: true });
         const { tw, th } = await encode(s.file, dst, s);
         const size = (await fs.stat(dst)).size;
         bytes += size;
-        console.log(`${s.key}/${s.slug}.webm  ${tw}x${th}  alpha=${s.alpha ? 'yes' : 'no '}  ${(size / 1e6).toFixed(3)} MB`);
+        const how = s.alpha ? 'cut-out' : s.keyed ? 'keyed  ' : 'opaque ';
+        console.log(`${s.key}/${s.slug}.webm  ${tw}x${th}  ${how}  ${(size / 1e6).toFixed(3)} MB`);
     }
 
     console.log(`\nstaged ${dryRun ? 0 : staged.length} of ${rows.length} manifest rows, ${(bytes / 1e6).toFixed(1)} MB total`);

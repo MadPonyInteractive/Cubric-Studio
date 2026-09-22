@@ -237,11 +237,34 @@
   opacity: 1;
 }
 
-/* The transition overlays are rendered on pure black with soft light-coloured edges:
-   screen drops the black with no cut-out, which a mask would harden. They share the
+/* The character and his contact shadow, so a transition can take BOTH and leave the
+   overlay untouched — fx is the body's sibling, not its child, precisely for this.
+   Going is instant (`transition: none`): he is gone before the puff has drawn a frame.
+   Coming back is the fade, and heroCrew.js drops the class at the overlay's densest
+   moment, so he re-forms under cover. */
+.mpi-landing__crew-body {
+  position: absolute;
+  inset: 0;
+}
+
+.mpi-landing__crew-body,
+.mpi-landing__crew-member::after {
+  transition: opacity var(--t-slow) var(--ease);
+}
+
+.mpi-landing__crew-member--vanished .mpi-landing__crew-body,
+.mpi-landing__crew-member--vanished::after {
+  opacity: 0;
+  transition: none;
+}
+
+/* The transition overlays are rendered on pure black with soft light-coloured edges.
+   That black comes off at STAGING time (scripts/stage-mascot-clips.mjs keys it into an
+   alpha plane), NOT here: this rule carried `mix-blend-mode: screen` until 2026-09-22,
+   and Chromium ignores a blend on a <video> it has promoted to its own compositing
+   layer, so the overlay painted as a black square over the mascot. They share the
    clip's geometry because they were rendered in the same 768px frame. */
 .mpi-landing__crew-fx {
-  mix-blend-mode: screen;
   z-index: 1;
 }
 
@@ -469,10 +492,12 @@
   pointer-events: none;
 }
 
+/* The rule IS the ledge Cosmo peeks over (MpiAgentChat.css, `__ledge`), so nothing may
+   sit between it and the composer: the input starts on the line (Fabio, 2026-09-22). */
 .mpi-landing__agent-slot .mpi-agent-chat {
   max-height: 100%;
   min-height: 0;
-  padding-top: var(--s-3);
+  padding-top: 0;
   border-top: 1px solid var(--line);
   pointer-events: auto;
 }
@@ -485,22 +510,10 @@
   max-height: none;
 }
 
-/* The line beside the headline speaks at the picker heading's size ("Pick up where you
-   left off."), so the hero reads as two ways in at one tier below the headline, not as
-   a widget parked next to it. It also carries the live state ("Thinking…"). */
-.mpi-landing__agent-slot .mpi-agent-chat__mascot-label {
-  font-family: var(--font-main);
-  font-size: max(var(--t-lg), calc(var(--t-xl) * var(--hero-k)));
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-  color: var(--ink-1);
-  text-wrap: balance;
-}
-
-.mpi-landing__agent-slot .mpi-agent-chat__mascot {
-  width: max(40px, calc(64px * var(--hero-k)));
-  height: max(40px, calc(64px * var(--hero-k)));
+/* Cosmo scales with the hero the way the lettering he replaced did, so he keeps his
+   relationship to the crew below instead of standing at a fixed size in a shrunk hero. */
+.mpi-landing__agent-slot .mpi-agent-chat__ledge {
+  --ledge-w: max(132px, calc(182px * var(--hero-k)));
 }
 
 /* The panel's own top rule already separates it; a second rule over the input doubles it. */

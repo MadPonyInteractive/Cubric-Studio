@@ -23,29 +23,55 @@
 }
 
 /* ── Mascot ──────────────────────────────────────────────────────────────── */
-.mpi-agent-chat__mascot-wrap {
-    display: flex;
-    align-items: center;
-    gap: var(--s-3);
-    padding: var(--s-2) 0;
-    flex-shrink: 0;
+/* ── Cosmo's ledge (standalone only) ──────────────────────────────────────────
+   The rest clip is the HEAD PEEK (Fabio, 2026-09-22), which is the one clip drawn for
+   exactly this: measured on `studio/peek.webm`, the head occupies rows 443-619 of the
+   620 frame and its BOTTOM EDGE is always 619 — it is cut by the frame, not floating in
+   it. So the framing is simply "sit the clip's bottom edge on the rule and show the top
+   of it": `bottom: 0` plus a window height. The head is 177/620 = 29% of the box, and
+   the window is a little taller than that so the top of his head is never sheared.
+
+   The working clip is a STANDING figure (`agent-thinking`, rows 187-556), so it cannot
+   be bottom-aligned — feet on the rule and nothing else visible. It is hung by its own
+   head row instead, which lands his head in the same window. Measured, both of them. */
+.mpi-agent-chat--standalone {
+    position: relative;
 }
 
-.mpi-agent-chat__mascot {
-    width: 48px;
-    height: 48px;
-    object-fit: contain;
-    flex-shrink: 0;
-    border-radius: var(--r-sm);
+.mpi-agent-chat__ledge {
+    --ledge-w: 182px;                               /* the clip box, so the head is ~52px */
+    position: absolute;
+    left: var(--s-4);
+    bottom: 100%;
+    width: var(--ledge-w);
+    height: calc(var(--ledge-w) * 62 / 182);        /* the head, plus headroom above it */
+    overflow: hidden;
+    pointer-events: none;
 }
 
-.mpi-agent-chat__mascot--waiting {
-    animation: mpi-agent-float 1.4s var(--ease) infinite;
+.mpi-agent-chat__ledge-clip {
+    position: absolute;
+    left: 0;
+    bottom: 0;                                      /* the clip's cut edge IS the rule */
+    width: 100%;
+    opacity: 0;
+    transition: opacity var(--t-fast) var(--ease);
 }
 
-.mpi-agent-chat__mascot-label {
-    color: var(--ink-3);
-    font-size: var(--t-sm);
+/* The standing clip, hung by its head row (187/620 of the box) with the same headroom. */
+.mpi-agent-chat__ledge-clip--standing {
+    bottom: auto;
+    top: calc(var(--ledge-w) * -187 / 620 + var(--ledge-w) * 10 / 182);
+}
+
+.mpi-agent-chat__ledge-clip--live {
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mpi-agent-chat__ledge-clip {
+        transition: none;
+    }
 }
 
 /* ── Panel header (panel mode only — standalone shows mascot instead) ──────── */

@@ -26,13 +26,20 @@ import { PAGE_LANDING } from '../router.js';
 import { gid, qs, qsa, ce, on } from '../utils/dom.js';
 import { createMascotClipQueue } from '../utils/mascotClipQueue.js';
 
-/** Stage order, left to right. Position, size, accent and paint order live in the CSS. */
+/**
+ * Stage order, left to right. Position, size, accent and paint order live in the CSS.
+ *
+ * The labels carry the MASCOT NAMES (Fabio, 2026-09-22), mapped in MPI-846. That narrows
+ * MPI-846's "chrome labels stay role nouns", which exists so nobody has to learn six
+ * names to find a button — a crew label is identity, not a control, and the role line
+ * under it still says what the character does.
+ */
 const CREW = Object.freeze([
-    { key: 'prompt', name: 'Prompt', role: 'shapes the words' },
-    { key: 'vision', name: 'Vision', role: 'makes the images' },
-    { key: 'studio', name: 'Studio', role: 'runs the crew' },
-    { key: 'video',  name: 'Video',  role: 'puts them in motion' },
-    { key: 'audio',  name: 'Audio',  role: 'gives them sound' },
+    { key: 'prompt', name: 'Lingo', role: 'shapes the words' },
+    { key: 'vision', name: 'Prism', role: 'makes the images' },
+    { key: 'studio', name: 'Cosmo', role: 'runs the crew' },
+    { key: 'video',  name: 'Reel',  role: 'puts them in motion' },
+    { key: 'audio',  name: 'Vinyl', role: 'gives them sound' },
 ]);
 
 /**
@@ -76,6 +83,8 @@ const GREET_EVERY_MS = 3200;
 const AWAKE = 'mpi-landing__crew-member--awake';
 const HELD = 'mpi-landing__crew--held';
 const LIVE = 'mpi-landing__crew-clip--live';
+/** The character, hidden while a transition covers his spot. See `_paintFx`. */
+const GONE = 'mpi-landing__crew-member--vanished';
 
 // Stage fit, in reference px (the 1120×1000 hero at a 1920×1032 window).
 const STAGE_W = 1120;
@@ -85,7 +94,10 @@ const VISION_H = 260;     // the tallest character under the quote
 const STUDIO_H = 360;     // the tallest character under the headline
 // Label thresholds from the label widths measured 2026-09-15 (names 61-74px, role lines
 // 86-125px) against the closest pair of characters (Video and Audio, 194 stage px apart),
-// with a 12px gap. ponytail: re-measure if the label copy or font changes.
+// with a 12px gap. The mascot names that replaced the role nouns are all SHORTER than
+// that measurement, so these stay conservative rather than needing a re-measure; the role
+// lines, which are the wider half and set NAMES_MIN's neighbour, did not change.
+// ponytail: re-measure if the label copy or font changes.
 const ROLES_MIN = 0.66;
 const NAMES_MIN = 0.41;
 const CREW_MIN = 0.25;    // below this there is no room worth drawing a crew in
@@ -152,6 +164,10 @@ function _paintClip(m, id) {
         m.shown.classList.remove(LIVE);
         m.shown.pause();
         m.shown = next;
+        // If a transition made him vanish, he comes back HERE — the queue calls this at
+        // the overlay's densest moment, so he fades in under cover and is whole again as
+        // the smoke clears, rather than popping in after it. A no-op on an ordinary swap.
+        m.el.classList.remove(GONE);
     };
     // Reduced motion: the queue paints once and schedules nothing, so not playing leaves
     // the video holding its first frame — which is the rest frame every clip opens on.
@@ -159,15 +175,25 @@ function _paintClip(m, id) {
     else next.play().then(show, () => {});
 }
 
-/** The transition layer above the mascot. `null` clears it. */
+/**
+ * The transition layer above the mascot. `null` clears it.
+ *
+ * The character goes AT ONCE when the overlay starts and fades back in when the new clip
+ * is live under it (`_paintClip`), so he reads as vanishing into the puff and re-forming
+ * inside it — standing there while it goes off in front of him is what this replaced
+ * (Fabio, 2026-09-22). Clearing also un-hides him, so a cleared overlay can never leave
+ * an invisible mascot behind.
+ */
 function _paintFx(m, id) {
     if (!id) {
+        m.el.classList.remove(GONE);
         m.fx.classList.remove(LIVE);
         m.fx.pause();
         m.fx.removeAttribute('src');
         m.fx.load();
         return;
     }
+    m.el.classList.add(GONE);
     m.fx.src = _clipSrc(m.key, id);
     m.fx.classList.add(LIVE);
     m.fx.play().catch(() => {});
@@ -200,8 +226,13 @@ function _buildMember({ key, name, role }) {
     const fx = clip(' mpi-landing__crew-fx');
     // No alt text on the clips: the figcaption below carries the same name and role, and
     // the `<img>` this replaced only ever duplicated it.
+    // a and b share a wrapper so the character can be hidden WITHOUT the overlay: the
+    // puff has to take him with it (Fabio, 2026-09-22), and fx is its sibling, not its
+    // child. Fading the two clips directly instead would turn every ordinary swap into
+    // a crossfade, which is not what Phase 3 shipped.
+    const body = ce('span', { className: 'mpi-landing__crew-body' }, [a, b]);
     const el = ce('figure', { className: `mpi-landing__crew-member mpi-landing__crew-member--${key}` }, [
-        ce('span', { className: 'mpi-landing__crew-lift' }, ce('span', { className: 'mpi-landing__crew-float' }, [a, b, fx])),
+        ce('span', { className: 'mpi-landing__crew-lift' }, ce('span', { className: 'mpi-landing__crew-float' }, [body, fx])),
         ce('figcaption', { className: 'mpi-landing__crew-label' }, [
             ce('b', { className: 'mpi-landing__crew-name' }, name),
             ce('span', { className: 'mpi-landing__crew-role' }, role),

@@ -240,3 +240,197 @@ timing, the sizing and the footing are ACCEPTED. What follows is what he asked t
 - **Also handed over:** the crew labels should carry the mascot NAMES (Cosmo, Lingo, Prism,
   Reel, Vinyl - MPI-846), and the landing's agent area should lose the Prism mascot and the
   "Ask me anything" lettering, with Cosmo peeking over the rule and the input moving up to it.
+
+### Round 3 - Phase 3b: the overlay composites, the names land, Cosmo takes the rule (2026-09-22)
+
+Session `5a4e6dea`, resumed from handoff `d148ec27`. Verify mode is still `user-ux`, so this
+round does NOT close the phase - everything below is self-verification.
+
+#### The cut-off report, measured first and NOT fixed
+
+Fabio, on resuming: *"some have different lengths in seconds, and they're being cut off before
+they finish. The animation should play till the end before the next animation starts playing."*
+
+Measured in a live instance (own profile, own port 57931, never `:3000`) with a 40ms poll that
+records a clip's `currentTime` and `duration` at the moment it is replaced:
+
+| path | clip | played | cut |
+|---|---|---|---|
+| idle loop, all five | idle-1/2/3 | 5.2/5.2, 4.1/4.1, 5.1/5.1 | **0** |
+| ambient greet | greet-1/2 | 3.0/3.0 | **0** |
+| click -> happy | happy-1 | 3.0/3.0 | **0** |
+| transition overlay | transition-third | 0.89/0.9 | 0.01 |
+| hover -> greet | idle-2 | 0.14/5.2 | **5.06** |
+| click -> happy | idle-2 | 2.54/5.2 | **2.66** |
+
+So no clip is cut by a wrong length: `_warm` is reading the real per-clip durations and every
+clip that is allowed to finish finishes. The only two cuts are the deliberate interrupts. The
+click's is hidden under the overlay - which was the black square, so it hid nothing. The
+hover's is naked, and that is what reads as "cut off".
+
+That fork was Fabio's, because waiting is exactly what he ruled out on 2026-09-22 ("it must not
+wait up to 5s behind an idle"). His call: **"It's fine if it just cuts into the greeting
+animation right away. No worries. Just no transition. Otherwise, it's explosions everywhere."**
+So hover keeps its bare interrupt and **no code changed for this report**.
+
+One thing found and deliberately left: the queue runs its FIRST clip on the nominal length
+(5200) until `loadedmetadata` lands, so a mascot whose first draw is a short clip (vision
+`idle-3`, 4.1s) holds its last frame up to 1.1s longer. That is a hold on the rest frame every
+clip opens on, not a cut, and it happens once per slot at mount. Not worth code.
+
+*Probe bug worth recording:* the first run keyed members by `className.split('--').pop()`, which
+returns `awake` the moment `--awake` is on, so all five collapsed onto one key and EVERY poll
+read as a swap - 150 fake cut-offs. Key off `/crew-member--([a-z]+)/`.
+
+#### The transition overlay now composites
+
+Root cause was already measured in Round 2 (Chromium skips `mix-blend-mode` on a `<video>` it
+has promoted to its own layer). The fix removes the dependency rather than fighting it:
+`scripts/stage-mascot-clips.mjs` keys the black of an opaque `transition-*` clip into an alpha
+plane - `a = max(r,g,b)`, RGB untouched, which IS premultiplied data, so it feeds the same
+`scale -> unpremultiply` every cut-out clip already gets. `mix-blend-mode: screen` is gone from
+`.mpi-landing__crew-fx`.
+
+- **`max(r,g,b)`, not a luma weighting**, so a saturated flash cannot read semi-transparent.
+- **It reproduces what the CSS was asking for.** Computed per pixel on a real frame,
+  `|screen - over|` is **2.11/255 mean** on the dark stage (worst 38.9). On a light background
+  it diverges (9.4 mean) because the puff occludes instead of washing out - which is what a
+  puff of smoke should do, and the stage is dark anyway.
+- **The alpha is real and soft**: corner alpha 0, max 255, and 11-49% of the frame partial
+  across frames 2/4/6 - the soft smoke edges that were the whole reason `screen` beat a cut-out.
+- **A/B on the same pixels, in the app.** The real `.mpi-landing__crew-fx` element, held on
+  frame 0.4, screenshotted, and the mascot's own 270x360 box measured:
+  **43.7% near-black before (42,439 px), 0.0% after (1 px)**. The "before" was the pre-fix blob
+  read straight out of `HEAD`, staged beside it and deleted after.
+- **The guard was proven red.** `--verify` gained a keyed-clip branch (a keyed transition must
+  be neither fully clear nor fully opaque). Encoding one transition without the key:
+  `studio/transition-smoke: key did not take - 0% clear, 0% partial`. Restored, green again.
+  The premultiply rim check was NOT weakened - it still skips opaque sources, and still reports
+  `worst rim delta -0.06, tolerance +1.00`.
+- Weight: the 15 clips go 0.45 MB -> 2.3 MB. `assets/mascot/` is 29 MB with the stills.
+
+#### The two landing changes
+
+- **Crew labels carry the mascot names**: Lingo, Prism, Cosmo, Reel, Vinyl, read back off the
+  live DOM. The role lines are unchanged, which is the point - the name is identity, the line
+  is the job. This narrows MPI-846's "chrome labels stay role nouns"; recorded there by message,
+  and in `docs/shell.md`. The label-width thresholds stay: every new name is SHORTER than the
+  61-74px the 2026-09-15 measurement used, and the role lines that set the tighter bound did
+  not change.
+- **The landing agent slot is Cosmo on the rule.** The 48px `<img>` and the "Ask me anything"
+  lettering are gone (`.mpi-agent-chat__mascot*` has no reference left anywhere). He is two
+  stacked looping clips in a 46px window with `overflow: hidden`, positioned by the staged
+  clip's own geometry - the same `620/370` and `187/370` the crew uses - so the rule cuts him
+  at the shoulders. No queue and no timers: both clips loop, and the working state is an
+  opacity cross to `studio/working.webm`. Measured: ledge bottom 188.59 = the block's top rule,
+  composer top 188.59, i.e. the input sits ON the line. Confirmed it is CosmO and not another
+  mascot by cropping the crew's own Studio head from the same screenshot - same character.
+
+#### What ran
+
+- `npm test` - **1793 tests, 1791 pass, 0 fail**, 1 skipped (the one visible assertion is inside
+  a pre-existing `todo`, `tests/agent-video-attachment.test.cjs`, MPI-867).
+- `npx eslint` on every touched JS file - clean. No stylelint config exists in this repo.
+- `node scripts/stage-mascot-clips.mjs --verify` - passes, and proven able to fail (above).
+- Live instance, port 57931, past the 18+ gate and the changelog:
+  - **Teardown, the one that hangs a run if it is wrong.** `HTMLMediaElement.prototype.play`
+    wrapped and the counter zeroed AT the navigation (zeroing it earlier counts the crew's own
+    legitimate swaps - the first attempt read 1 for exactly that reason): moving `currentPage`
+    off landing leaves **0 `play()` calls in 10s**, 0 crew videos, and both ledge clips paused.
+    Back on landing: 6 calls, five crew plus the ledge's rest clip, `currentTime` advancing.
+  - **The ledge had to be taught to follow the page.** `MpiAgentChat` is mounted ONCE at boot by
+    `projectUI.js` and never destroyed, because the landing is only `.hide`d. Two looping clips
+    would therefore have decoded behind an open project for the app's lifetime - a regression on
+    two free PNGs. It now pauses on `currentPage` like heroCrew, and `el.destroy()` releases both.
+  - **Reduced motion**: a second standalone chat mounted with `matchMedia` stubbed - both ledge
+    clips `paused: true` at `currentTime` 0 through a 3s window. Holds a first frame, never plays.
+  - Hover: fx layer never lights, Vision lands on `greet-1`. Click: fx plays `transition-smoke`
+    with the clip swapping under it.
+  - Console: two `[WARNING] [agentService] SSE connection error` lines, and only on a RELOAD -
+    the page's old SSE stream dying. Pre-existing and unrelated.
+
+#### What Fabio has to look at
+
+The landing, at a normal window size:
+
+- **Click a character.** The puff should read as smoke over the mascot - no black square, no
+  hard edge round it. This is the one that was broken.
+- The crew labels: Lingo, Prism, Cosmo, Reel, Vinyl over the role lines.
+- The agent slot beside the headline: Cosmo peeking over the line with the input on it. Is 46px
+  the right amount of him, and is he in the right place along the rule?
+- Type something so he takes his working clip, and check the cross reads as a change of state.
+
+### Round 4 - Fabio's look at Phase 3b (2026-09-22)
+
+**"Everything looks great"** - the keyed transitions, the names and the ledge are accepted in
+principle. Four things came out of the look; three are done, one is a peer's file.
+
+#### 1. The puff must TAKE him (done)
+
+*"When I click one of the mascots, before the transition plays, the mascot should disappear.
+Then the transition plays, and only then does the mascot appear in the background again, maybe
+with a fade-in, so that it actually seems like it vanished with the explosion."*
+
+`--vanished` on the member hides `.mpi-landing__crew-body` and the contact shadow, instantly
+(`transition: none`), the moment `_paintFx` gets a clip. He comes back in `_paintClip`'s `show()`
+- which the queue calls at the overlay's DENSEST moment - so the fade runs under the smoke and he
+is whole before it clears, rather than popping in after it.
+
+**The body wrapper is the load-bearing part of this.** The two clip layers and the fx layer were
+siblings, so hiding "the mascot" would have hidden the overlay with him. Wrapping a and b lets
+the overlay stay. It also keeps the fade OFF the clip layers themselves: putting a transition on
+`.mpi-landing__crew-clip` would have turned every ordinary swap into a crossfade, which is not
+what Phase 3 shipped and Fabio accepted.
+
+Traced live through a click, polling computed opacity every 60ms:
+
+| ms | body opacity | overlay |
+|---|---|---|
+| 63-361 | **0** | playing, 0.04 -> 0.34 |
+| 421 | 0.54 (fade running) | 0.40 - the swap moment |
+| 848 | 1 | 0.82 |
+| 960 | 1 | cleared |
+
+**Regression guarded:** every member's body opacity polled at 50ms for ~15s of idle swaps and
+ambient greets - **0 dips below 0.999**. A hover keeps opacity 1 and never lights the fx layer.
+So the vanish belongs to the transition path alone.
+
+#### 2. The ledge is the PEEK clip, and its top is no longer sheared (done)
+
+*"On the agent chat, it should be the peeking head... its top is cut off."*
+
+Both halves were one mistake: I had framed a STANDING clip (`idle-1`) by the crew's
+`187/370` constants with zero headroom, so the top of his head sat exactly on the window edge.
+
+Measured `studio/peek.webm` rather than assuming: the head occupies rows **443-619** of the 620
+frame and its bottom edge is **always 619** - it is cut BY the frame, which is precisely what a
+ledge clip is. Frame 29 returns to frame 0's position, so it loops with no jump. That makes the
+framing trivial: sit the clip's bottom edge on the rule (`bottom: 0`) and let the window height
+decide how much of him clears it. One variable, `--ledge-w`, now sets both.
+
+The working clip could not follow it: `agent-thinking`, `agent-listening`, `agent-answer-ready`
+and `working` are all STANDING figures (measured, rows 187-556 / 61-581), so bottom-aligning one
+shows his feet. It is hung by its own head row instead (`--standing`), which lands his head in
+the same window at the same size - checked by screenshot in both states. The working clip also
+moved from `working` to `agent-thinking`, which is what `docs/mascot-placement.md` always
+mapped to `_setWorking(true)` for this slot.
+
+#### 3. The agent calls itself Cubric (NOT done - a live peer owns the file)
+
+*"The agent answered that his name is Cubric, when his name is actually Cosmo."*
+
+Correct, and the line is `services/agentLoop.mjs:1271` - `You are Cubric, a helpful assistant
+built into Cubric Vision`. **I did not touch it.** Claim `cd2d4679` (session `eca958d8`, MPI-890)
+covers `services/agentLoop.mjs` with a live heartbeat, and a system prompt is not something to
+edit around a peer who may have that string in their own working tree. Message
+`8cd24a3c` sent to that session with the line number, the fix, and why Cosmo is right (MPI-846:
+Cosmo is the only speaker; Cubric is the company and the product). Flagged to Fabio rather than
+left silent.
+
+#### What ran
+
+- `npm test` - 1793 tests, 1791 pass, **0 fail**, 1 skipped. eslint clean.
+- Fresh isolated instance (port 55661, own profile, never `:3000`): the traces above, plus the
+  ledge in both states by screenshot, and `studio/peek.webm` confirmed live on the rest clip.
+- `tests/desktop/agent-chat.spec.js` follows the clips: `studio/peek.webm` at rest,
+  `studio/agent-thinking.webm` while working.

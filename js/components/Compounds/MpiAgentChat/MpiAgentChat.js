@@ -38,6 +38,7 @@ import { resolveMediaUrl, cardAttachmentSource } from '../../../utils/mediaActio
 import { Events }              from '../../../events.js';
 import { clientLogger }        from '../../../services/clientLogger.js';
 import { state }               from '../../../state.js';
+import { PAGE_LANDING }        from '../../../router.js';
 import {
     agentSendMessage,
     agentGetHistory,
@@ -60,16 +61,20 @@ export const MpiAgentChat = ComponentFactory.create({
                 <span class="mpi-agent-chat__working-dot" id="ac-working-dot"></span>
             </div>
             ` : `
-            <!-- Mascot (standalone landing mode only) -->
-            <div class="mpi-agent-chat__mascot-wrap">
-                <img
-                    class="mpi-agent-chat__mascot"
-                    id="ac-mascot"
-                    src="assets/mascot/idle.png"
-                    alt="Agent mascot"
-                    width="48" height="48"
-                />
-                <span class="mpi-agent-chat__mascot-label" id="ac-mascot-label">Ask me anything</span>
+            <!-- Cosmo's ledge (standalone landing mode only). He stands BEHIND the block's
+                 top rule, which cuts him off at the shoulders, so only a peek clears it —
+                 the composer then sits straight on that line (Fabio, 2026-09-22; this
+                 replaced a 48px still and an "Ask me anything" label). Two stacked clips
+                 rather than one with a swapped src: assigning src to the visible
+                 element blanks it until the first frame decodes (MPI-777 Phase 3). Both
+                 loop, so nothing here needs a timer or the clip queue. -->
+            <div class="mpi-agent-chat__ledge" aria-hidden="true">
+                <video class="mpi-agent-chat__ledge-clip mpi-agent-chat__ledge-clip--live"
+                       id="ac-ledge-rest" src="assets/mascot/studio/peek.webm"
+                       muted playsinline loop preload="auto"></video>
+                <video class="mpi-agent-chat__ledge-clip mpi-agent-chat__ledge-clip--standing"
+                       id="ac-ledge-work" src="assets/mascot/studio/agent-thinking.webm"
+                       muted playsinline loop preload="auto"></video>
             </div>
             `}
 
@@ -98,10 +103,14 @@ export const MpiAgentChat = ComponentFactory.create({
         let _queued = [];      // [name, data] that arrived during that load
         const _buttons = [];   // confirm-card buttons, destroyed when the transcript is cleared
 
-        const mascotEl   = qs('#ac-mascot',        el);
-        const labelEl    = qs('#ac-mascot-label',  el);
+        const ledgeRest  = qs('#ac-ledge-rest',    el);
+        const ledgeWork  = qs('#ac-ledge-work',    el);
         const workingDot = qs('#ac-working-dot',   el);
         const transcript = qs('#ac-transcript',    el);
+        /** Reduced motion holds a first frame and never plays, exactly as the crew does. */
+        const _still = ledgeRest && matchMedia('(prefers-reduced-motion: reduce)').matches;
+        // Cosmo starts on his rest loop. Muted and playsInline, so no gesture is needed.
+        if (ledgeRest && !_still) ledgeRest.play().catch(() => {});
 
         // A link the agent writes (the docs site when it cannot answer something) is a bare
         // `<a href>` in rendered markdown, and clicking one inside Electron navigates the whole
@@ -110,22 +119,43 @@ export const MpiAgentChat = ComponentFactory.create({
         _unsubs.push(wireMarkdownLinks(transcript));
 
         // ── Working state helpers ─────────────────────────────────────────────
+        const LIVE_CLIP = 'mpi-agent-chat__ledge-clip--live';
+        let _ledgeLive = ledgeRest;
+
+        /**
+         * Cross the two ledge clips. Both are already decoded and looping, so this is an
+         * opacity swap with no blank frame and nothing to schedule — the label that used
+         * to say "Thinking…" is gone, so Cosmo's own clip IS the working state now.
+         */
+        function _setLedge(working) {
+            if (!ledgeRest || !ledgeWork) return;
+            const [next, prev] = working ? [ledgeWork, ledgeRest] : [ledgeRest, ledgeWork];
+            const show = () => {
+                next.classList.add(LIVE_CLIP);
+                prev.classList.remove(LIVE_CLIP);
+                prev.pause();
+                _ledgeLive = next;
+            };
+            if (_still) show();
+            else next.play().then(show, show);
+        }
+
+        // This chat is mounted ONCE at boot (projectUI.js) and never destroyed, because the
+        // landing is only `.hide`d — so without this the ledge would keep decoding behind an
+        // open project for the app's lifetime. Follow the page, exactly as heroCrew does.
+        if (ledgeRest) {
+            _unsubs.push(Events.onState('currentPage', (page) => {
+                if (page !== PAGE_LANDING) { ledgeRest.pause(); ledgeWork.pause(); }
+                else if (!_still) _ledgeLive.play().catch(() => {});
+            }));
+        }
+
         function _setWorking(working) {
             _working = working;
             // Panel mode: toggle working dot
             if (workingDot) workingDot.classList.toggle('mpi-agent-chat__working-dot--on', working);
-            // Standalone mode: mascot flip
-            if (mascotEl) {
-                if (working) {
-                    mascotEl.src = 'assets/mascot/waiting.png';
-                    mascotEl.classList.add('mpi-agent-chat__mascot--waiting');
-                    if (labelEl) labelEl.textContent = 'Thinking…';
-                } else {
-                    mascotEl.src = 'assets/mascot/idle.png';
-                    mascotEl.classList.remove('mpi-agent-chat__mascot--waiting');
-                    if (labelEl) labelEl.textContent = 'Ask me anything';
-                }
-            }
+            // Standalone mode: Cosmo swaps to his working clip on the ledge
+            _setLedge(working);
             emit('working', { working });
         }
 
@@ -731,6 +761,13 @@ export const MpiAgentChat = ComponentFactory.create({
         el.destroy = () => {
             _unsubs.forEach(fn => fn());
             _buttons.splice(0).forEach((b) => b.destroy());
+            // Hiding a video keeps its decoder alive; only this releases it (MPI-777).
+            for (const v of [ledgeRest, ledgeWork]) {
+                if (!v) continue;
+                v.pause();
+                v.removeAttribute('src');
+                v.load();
+            }
         };
     },
 });

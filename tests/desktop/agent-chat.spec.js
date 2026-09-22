@@ -121,15 +121,17 @@ async function bootAndMountPromptBox(window) {
 // Part 1 — standalone MpiAgentChat (landing page surface)
 // ─────────────────────────────────────────────────────────────────────────────
 
-test('standalone chat mounts — mascot visible', async ({}, testInfo) => {
+test('standalone chat mounts — Cosmo on the ledge', async ({}, testInfo) => {
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);
   try {
     await installStubs(window);
     await bootAndMountChat(window, true);
 
-    const mascot = window.locator('#e2e-agent-host .mpi-agent-chat__mascot');
-    await expect(mascot).toBeVisible();
+    // MPI-777 Phase 3b: the 48px still and its "Ask me anything" label became Cosmo
+    // peeking over the block's top rule, on the same clips the landing crew plays.
+    const mascot = window.locator('#e2e-agent-host .mpi-agent-chat__ledge-clip--live');
+    await expect(mascot).toHaveAttribute('src', /studio\/peek\.webm/);
     expect(pageErrors).toEqual([]);
   } finally {
     await closeApp(app);
@@ -250,7 +252,7 @@ test('SSE agent:message event renders text in transcript', async ({}, testInfo) 
   }
 });
 
-test('SSE agent:working flips mascot to waiting state', async ({}, testInfo) => {
+test('SSE agent:working flips Cosmo to his working clip', async ({}, testInfo) => {
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);
   try {
@@ -262,9 +264,10 @@ test('SSE agent:working flips mascot to waiting state', async ({}, testInfo) => 
     });
     await window.waitForTimeout(200);
 
-    const mascot = window.locator('#e2e-agent-host .mpi-agent-chat__mascot');
+    // The two ledge clips are both loaded and looping; the live one is the state.
+    const mascot = window.locator('#e2e-agent-host .mpi-agent-chat__ledge-clip--live');
     const src = await mascot.getAttribute('src');
-    expect(src).toContain('waiting.png');
+    expect(src).toContain('studio/agent-thinking.webm');
 
     expect(pageErrors).toEqual([]);
   } finally {
@@ -565,21 +568,21 @@ test('Mascot flips back to idle when agent:working false follows true', async ({
     await installStubs(window);
     await bootAndMountChat(window, true);
 
-    const mascot = window.locator('#e2e-agent-host .mpi-agent-chat__mascot');
+    const mascot = window.locator('#e2e-agent-host .mpi-agent-chat__ledge-clip--live');
 
-    // Fire working:true — should switch to waiting.png
+    // Fire working:true — Cosmo takes his working clip
     await window.evaluate(() => {
       window.__fireSse('agent:working', { turnId: 't1', working: true });
     });
     await window.waitForTimeout(200);
-    expect(await mascot.getAttribute('src')).toContain('waiting.png');
+    expect(await mascot.getAttribute('src')).toContain('studio/agent-thinking.webm');
 
-    // Fire working:false — should switch back to idle.png
+    // Fire working:false — back to the rest loop
     await window.evaluate(() => {
       window.__fireSse('agent:working', { turnId: 't1', working: false });
     });
     await window.waitForTimeout(200);
-    expect(await mascot.getAttribute('src')).toContain('idle.png');
+    expect(await mascot.getAttribute('src')).toContain('studio/peek.webm');
 
     expect(pageErrors).toEqual([]);
   } finally {
@@ -1375,8 +1378,8 @@ test('a chat renders only its own conversation\'s events', async ({}, testInfo) 
     const messages = window.locator('#e2e-agent-host .mpi-agent-chat__entry--message');
     await expect(messages).toHaveCount(1);
     await expect(messages).toContainText('for the landing page');
-    const mascot = window.locator('#e2e-agent-host .mpi-agent-chat__mascot');
-    expect(await mascot.getAttribute('src')).toContain('idle.png');
+    const mascot = window.locator('#e2e-agent-host .mpi-agent-chat__ledge-clip--live');
+    expect(await mascot.getAttribute('src')).toContain('studio/peek.webm');
 
     expect(pageErrors).toEqual([]);
   } finally {
@@ -1517,8 +1520,8 @@ test('a BUSY reply shows its message and stops working', async ({}, testInfo) =>
     await window.waitForTimeout(300);
 
     await expect(window.locator('#e2e-agent-host .mpi-agent-chat__entry--error')).toContainText('still answering');
-    const mascot = window.locator('#e2e-agent-host .mpi-agent-chat__mascot');
-    expect(await mascot.getAttribute('src')).toContain('idle.png');
+    const mascot = window.locator('#e2e-agent-host .mpi-agent-chat__ledge-clip--live');
+    expect(await mascot.getAttribute('src')).toContain('studio/peek.webm');
 
     expect(pageErrors).toEqual([]);
   } finally {
