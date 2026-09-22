@@ -198,6 +198,22 @@ options labelled `undefined` on the cloud video models. `QUALITY_LABELS`
 `QUALITY_LABELS[t]` straight into the label. The comment on line 140 records the same failure
 happening once before for Krea2's `1k`. Phase 1 territory (the catalogue), not the price tag.
 
+**2026-09-22 — A1 SIGNED OFF, and MPI-852 is at `validating`.** Fabio's answer in the app
+was "1". The build is committed as `bc616327` (code) and `3f629042` (board + notes). The
+card is deliberately NOT `done`: close-out forbids closing on an unjudged run of a card's
+own code commit, and `pre-push` refuses code-and-close in one push. **It closes on a green
+run of `bc616327`.** The undefined quality tiers he spotted in the same breath are carded
+as **MPI-883** with the full diagnosis in its own plan — his instruction was a fresh
+session for it, not folded in here.
+
+**The push is HALF DONE and the block is a PEER'S, again.** `pre-push` refused the whole
+range on `MPI-882 moves to done, and CI has not judged its code commit 6710f45c` — the same
+shape that blocked the last handoff, a different card. Took the hook's own route:
+`git push origin 6710f45c:master` landed the code alone (master is now at `6710f45c`,
+which also published the previous session's `90410216` and `a54de439`). **Still local:
+`c79d0118` (a peer's MPI-877), `3f79ec62` (the MPI-882 close), `bc616327` and `3f629042`.**
+Run **35693471780** on `6710f45c` is what unblocks them.
+
 ## Completed
 
 - [x] **MPI-850** — the price module, the sync script and the committed snapshot.
