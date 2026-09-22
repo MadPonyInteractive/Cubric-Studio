@@ -1,10 +1,12 @@
 /* BEM Block naming — mpi-prompt-box */
 .mpi-prompt-box {
     display: grid;
-    /* neg · prompt · enhance · cog · settings · engine · price · run (MPI-852 added the
-       price track; there is no second declaration to keep in step — the agent-mode grid
-       went with the agent face in MPI-797 Phase 3). */
-    grid-template-columns: auto 1fr auto auto auto auto auto auto;
+    /* neg · prompt · enhance · cog · settings · engine · run. MPI-852 briefly added an
+       eighth track for the price and then took it back out: the figure now rides inside
+       the Cue button, so the bar is back to the seven it had. There is no second
+       declaration to keep in step — the agent-mode grid went with the agent face in
+       MPI-797 Phase 3. */
+    grid-template-columns: auto 1fr auto auto auto auto auto;
     align-items: end;
     gap: var(--s-2);
     background: var(--surface-bar);
@@ -116,55 +118,69 @@
     flex-shrink: 0;
 }
 
-.mpi-prompt-box__col--price {
-    flex-shrink: 0;
-}
-
 .mpi-prompt-box__col--run {
     flex-shrink: 0;
 }
 
-/* MPI-852: a READOUT, not a caption and not a control. The first version was a bare
-   --ink-2 sentence dropped between two outlined buttons and it read as text that had
-   fallen out of something (Fabio, 2026-09-21: "Considering your UI pricing, it's not
-   looking good").
-   This bar's vocabulary is 34px outlined `secondary` chips in --accent-heat; the app's
-   READOUT vocabulary is MpiMemoryMonitor's uppercase tracked label over a tabular value.
-   A cost quote is telemetry, so it takes the second one, and it is FRAMED rather than
-   coloured: a borderless pill filled with --surface-canvas, DARKER than the bar it sits
-   in. Buttons rise and readouts sink, so a recessed well can never be misread as
-   pressable the way an outlined chip would. It was --surface-2 (lighter than the bar)
-   for one screenshot and that was worse than the caption it replaced: the only filled
-   object in the row, paler than everything around it, out-shouting CUE two columns
-   along. The pill radius is the rule, not a flourish -- DESIGN.md reserves pills for
-   status indicators, and this is one.
-   INK, never --accent-heat: the accent states what a surface is ABOUT (image, video,
-   audio, text) and money is not a media type. --ink-1 on --surface-canvas is about 8:1,
-   which is what stops 11px reading as a disabled caption; the well does the quieting so
-   the figure itself does not have to be a whisper.
-   `min-height: var(--control-h-sm)` is what sits it on the button row honestly -- the
-   column used to carry a hand-tuned `padding-bottom` against the grid's `align-items:
-   end`, which is a nudge, not an alignment.
+/* MPI-852: the price lives INSIDE the Cue button -- `CUE | ABOUT $0.14` (Fabio,
+   2026-09-21, placement A1 of four mocked in the live bar). The money goes on the
+   control that spends it, which is the one placement that needs no column, no track and
+   no vertical alignment against a 34px button row: it IS the button row.
+   Two earlier attempts are recorded so they are not retried. A bare --ink-2 sentence
+   dropped between two outlined buttons read as text that had fallen out of something.
+   Reframing it as a recessed --surface-canvas pill in its own column fixed the object
+   but not the placement, which is what Fabio was actually objecting to -- and a
+   --surface-2 (lighter-than-bar) fill before that was worse still: the only filled
+   object in the row, paler than everything, out-shouting CUE two columns along.
+   Three placements were rejected WITH the tag still in its own column: stacked inside
+   Cue (grows the bar 63 -> 80px), under the model name (77px, and a price under a model
+   name reads as the MODEL's price when the figure moves with duration, batch and
+   references), and floating above the bar -- which is structurally dead, not merely
+   ugly: that band is the op strip's (`position: absolute; bottom: 100%`), and the left
+   end of it is where media chips fill from.
+   It takes the button's own type: `.mpi-btn` is already uppercase, 0.06em and 600, so
+   only the size, the tabular figures and the colour are stated here.
+   The two halves are deliberately NOT the same colour. CUE is `primary`, so its label
+   carries --accent-heat (measured: oklch(0.76 0.17 355) in Vision); the figure is
+   --ink-2. That split IS the meaning -- the accent is the action, the ink is the
+   readout -- and it is why the price can sit on the loudest control in the bar without
+   competing with it. INK, never --accent-heat: the accent states what a surface is
+   ABOUT (image, video, audio, text) and money is not a media type.
    `text-transform` is presentation only: `estimate.display` is still passed through
    VERBATIM (it carries its own "about" and its own sub-cent precision rule). Restyling
    that string is allowed; reformatting it is not.
-   No hover or focus state, deliberately -- it is not interactive. No transition on the
-   figure either: it retargets on every frame of a duration drag, and a flash there is
-   decoration firing thirty times a second. */
+   No transition on the figure: it retargets on every frame of a duration drag, and a
+   flash there is decoration firing thirty times a second. */
 .mpi-prompt-box__price {
-    display: inline-flex;
-    align-items: center;
-    min-height: var(--control-h-sm);
-    padding: 0 var(--s-3);
-    background: var(--surface-canvas);
-    border-radius: var(--r-pill);
+    position: relative;
+    padding-left: var(--s-3);
     font-size: var(--t-xs);
     font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--ink-1);
+    color: var(--ink-2);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
+    pointer-events: none;
+    transition: color var(--t-fast) var(--ease);
+}
+
+/* The separator rule between the label and the figure. A pseudo-element on
+   `currentColor` rather than a `border-left` on a token, because this span recolours in
+   the armed state and a bordered token would have to be rebound there too; currentColor
+   follows the text on its own. */
+.mpi-prompt-box__price::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 1em;
+    background: currentColor;
+    opacity: 0.35;
+}
+
+.mpi-prompt-box__cue-btn:hover .mpi-prompt-box__price {
+    color: var(--ink-1);
 }
 
 /* MPI-797 Phase 3: the agent face is GONE from this box. There is no `--agent-mode`
@@ -834,6 +850,17 @@
    washed out long before this card touched it. The token is 8.26:1 at its worst. The
    label is 11px, so it needs the full 4.5:1, not the 3:1 large-text exemption. */
 .mpi-prompt-box__col--run .mpi-prompt-box__cue-btn--armed .mpi-ibtn__label {
+    color: var(--ink-on-accent);
+}
+
+/* MPI-852: the price rides inside this button and sets its own --ink-2, so the rule
+   above does not reach it and the armed state would ship a warm grey figure on solid
+   accent. Same token, same reason, same measured 8.26:1 -- and it must not be a
+   quieter ink than the label it sits beside, because on a solid fill there is no
+   recession left to be quiet against. The separator follows on `currentColor`.
+   Three classes, and later in the file than the hover rule, so it outranks it on both
+   counts -- armed-and-hovered needs no selector of its own. */
+.mpi-prompt-box__col--run .mpi-prompt-box__cue-btn--armed .mpi-prompt-box__price {
     color: var(--ink-on-accent);
 }
 

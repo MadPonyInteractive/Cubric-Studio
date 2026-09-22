@@ -174,22 +174,35 @@ test('the dispatched body is built from cloudRunFields, so the quote cannot drif
     assert.match(src, /\.\.\.fields,/, 'and spread it into the request body');
 });
 
-test('the price tag has its own grid column, and the bar declares a track for it', () => {
+test('the price tag is built inside the Cue button, where the innerHTML clear cannot eat it', () => {
     const js = SRC('js/components/Organisms/MpiPromptBox/MpiPromptBox.js');
     const css = SRC('js/components/Organisms/MpiPromptBox/MpiPromptBox.css');
 
-    // `_renderRunCluster` does `innerHTML = ''` on the run slot — a tag mounted in there
-    // would be wiped on every queue-count change.
-    const cols = js.match(/class="mpi-prompt-box__col [^"]*" id="([a-z-]+)"/g) || [];
-    const ids = cols.map(c => c.match(/id="([a-z-]+)"/)[1]);
-    assert.ok(ids.includes('price-tag-slot'), 'the price tag needs a column of its own');
-    assert.equal(ids.indexOf('price-tag-slot'), ids.indexOf('bottom-right-slot') - 1,
-        'and it sits immediately before the run slot');
+    // `_renderRunCluster` does `innerHTML = ''` on the run slot on every queue-count
+    // change, so a span injected from outside is wiped. It has to be CREATED in there,
+    // and re-filled at the end of the same function or it comes back empty.
+    const cluster = js.slice(js.indexOf('function _renderRunCluster()'));
+    const body = cluster.slice(0, cluster.indexOf('\n        }\n'));
+    assert.match(body, /priceEl\.className = 'mpi-prompt-box__price hide'/,
+        'the price span is created inside _renderRunCluster');
+    assert.match(body, /runBtn\.el\.appendChild\(priceEl\)/,
+        'and appended to the Cue button itself, not to the slot');
+    assert.ok(body.lastIndexOf('_refreshPriceTag()') > body.indexOf('runBtn.el.appendChild(priceEl)'),
+        'and refilled after the rebuild, or it comes back blank');
 
+    // It is not in a column any more, and the track count has to have come back down
+    // with it — a track with no column leaves a dead gap the width of the gap rule.
+    assert.ok(!js.includes('price-tag-slot'), 'the price column is gone');
+    const cols = js.match(/class="mpi-prompt-box__col [^"]*" id="([a-z-]+)"/g) || [];
     const tracks = css.match(/grid-template-columns:\s*([^;]+);/);
     assert.ok(tracks, 'the bar declares its tracks once');
-    assert.equal(tracks[1].trim().split(/\s+/).length, ids.length,
-        'a column with no track reflows the whole bar');
+    assert.equal(tracks[1].trim().split(/\s+/).length, cols.length,
+        'a track with no column, or a column with no track, reflows the whole bar');
+
+    // Armed fills the button solid with --accent-heat. The label is rebound to
+    // --ink-on-accent there; a price left at --ink-2 would ship unreadable.
+    assert.match(css, /--run \.mpi-prompt-box__cue-btn--armed \.mpi-prompt-box__price \{\s*color: var\(--ink-on-accent\)/,
+        'the armed state rebinds the price, not just the label');
 });
 
 test('the tag is recomputed where every control is rebuilt, and where media changes', () => {

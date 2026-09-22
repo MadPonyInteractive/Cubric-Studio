@@ -117,10 +117,12 @@ export const MpiPromptBox = ComponentFactory.create({
             <div class="mpi-prompt-box__col mpi-prompt-box__col--cog" id="settings-cog-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--settings" id="settings-badge-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--engine hide" id="engine-toggle-slot"></div>
-            <!-- MPI-852: what the next run costs, for a model that bills the user's own
-                 account. Its OWN column, never inside the run slot below, which
-                 _renderRunCluster clears with innerHTML. -->
-            <div class="mpi-prompt-box__col mpi-prompt-box__col--price hide" id="price-tag-slot"></div>
+            <!-- MPI-852: the price has NO column of its own. It lives inside the Cue
+                 button, reading CUE | ABOUT $0.14 — the money goes on the control that
+                 spends it (Fabio, 2026-09-21, placement A1 of four mocked in the live
+                 bar). _renderRunCluster clears this slot with innerHTML, so the span is
+                 CREATED in there and never injected from out here.
+                 Still no backticks in here: this markup is a template literal. -->
             <div class="mpi-prompt-box__col mpi-prompt-box__col--run" id="bottom-right-slot"></div>
         </div>
     `,
@@ -2003,15 +2005,15 @@ export const MpiPromptBox = ComponentFactory.create({
         // below already gives: this runs from _refreshOpSlot and _emitMediaChange, both
         // of which can fire before a const declared here would be initialised.
         function _refreshPriceTag() {
-            const slot = qs('#price-tag-slot', el);
-            if (!slot) return;
+            const tag = qs('.mpi-prompt-box__price', el);
+            if (!tag) return;
             const estimate = model?.provider
                 ? estimateRunCost(model, getInjectionParamsFromControls(_activeControls), el.getMediaItems?.() ?? [])
                 : null;
-            slot.classList.toggle('hide', !estimate);
-            slot.innerHTML = estimate
-                ? `<span class="mpi-prompt-box__price">${estimate.display}</span>`
-                : '';
+            // `hide`, not an empty string: the span draws its own separator rule against
+            // the label, and an empty one would leave that rule hanging beside CUE.
+            tag.classList.toggle('hide', !estimate);
+            tag.textContent = estimate ? estimate.display : '';
         }
 
         // ── Negative mode toggle ───────────────────────────────────────────────
@@ -2388,6 +2390,15 @@ export const MpiPromptBox = ComponentFactory.create({
             fillEl.className = 'mpi-prompt-box__cue-fill';
             runBtn.el.appendChild(fillEl);
 
+            // MPI-852: the price rides INSIDE this button, after the label. It has to be
+            // created here rather than injected: this function clears the slot with
+            // innerHTML on every queue-count change, so anything put in from outside is
+            // wiped. It survives a relabel — `setLabel` only rewrites `.mpi-ibtn__label`
+            // — which is what lets `Cue x2` and `Loop x3` keep their figure.
+            const priceEl = document.createElement('span');
+            priceEl.className = 'mpi-prompt-box__price hide';
+            runBtn.el.appendChild(priceEl);
+
             // Tap = enqueue. Hold ≥700ms = toggle loopArmed (suppresses click).
             const _resetFill = () => {
                 fillEl.style.transition = 'none';
@@ -2460,6 +2471,10 @@ export const MpiPromptBox = ComponentFactory.create({
 
             // Sync armed class on initial mount.
             runBtn.el.classList.toggle('mpi-prompt-box__cue-btn--armed', !!state.loopArmed);
+
+            // The span above was just rebuilt empty, so the figure has to be put back.
+            // Without this the price vanishes on every queue-count change.
+            _refreshPriceTag();
         }
 
         _renderRunCluster();
