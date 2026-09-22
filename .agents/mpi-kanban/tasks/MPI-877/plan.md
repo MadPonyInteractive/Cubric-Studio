@@ -4,7 +4,34 @@ Sits **in front of MPI-876** (Fabio, 2026-09-21).
 
 ## Current State
 
-**ROUND 2 BUILT 2026-09-21, card still in `doing`, waiting on Fabio's own re-run.**
+**ROUND 3 BUILT 2026-09-22, card still in `doing`, waiting on Fabio's own re-run.**
+
+Round 2 RENDERED. Fabio ran it live: `kleinEdit` / `klein-9b` on his own card, mask and image
+both 768x1024, `InpaintCropImproved` with no assertion, 37.21 s. The round-2 binding fix is
+proven live and the narration and "History" faults were not raised again. Two new things came
+back, and both are fixed and pushed:
+
+- **The edit landed as a NEW GALLERY CARD** and the History workspace drew no latents. One
+  cause, the round-2 shape one level up: `activeMask` published the mask and its picture but
+  not the CARD they belong to, so dispatch had nothing to route at and fell through to
+  `scope: 'gallery'`. The reader now publishes `groupId` and `maskedGenerationOpts()` sends a
+  masked submit where a Cue press in that workspace goes (`5a873926`).
+- **The prompt was written for the whole picture, not the crop.** Fabio's call, and it closed
+  MPI-885, which had carded a graph change: "the model only sees the masked area, so why
+  prompt other stuff in it?" The Masking rule now carries the worked pair in the SYSTEM
+  PROMPT rather than only in the fetched doc, plus translate-never-echo, the ban on naming the
+  region or what it sits in, and the PER-OP shapes — instruction for the `edit` family,
+  description for `detail` (whose denoise decides sharpen-vs-replace), add-or-remove for
+  `inpaint` (`09680f2d`).
+
+Evidence and the red-proofs: `validation.md` § Round 3. `checklist.md` § 7.
+
+**Open for Fabio, on the card:** should the agent RUN `detail` / `inpaint`, or teach the user
+to run them? Built as run-but-say-first; he asked the question and has not answered it.
+
+---
+
+_Round 2's note, kept:_
 
 Round 1 (`54e25445` + `ab9e2661`) is pushed. Fabio ran it live and the mask half held: the
 agent read `app:masking`, refused to paint or pick the area, named the Mask tool, said what
