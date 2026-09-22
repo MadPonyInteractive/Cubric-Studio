@@ -20,7 +20,7 @@ touches a local generation path except by adding a branch beside it.
 | MPI-851 | The cloud executor: `provider` on the ModelDef, the one-line seam, a third queue lane, the install gates | 1 |
 | MPI-852 | The live price tag in the prompt box, recomputing as references and settings change | 2 |
 | MPI-853 | The **Paid models** section at the foot of the Model Library | 2 |
-| MPI-854 | The agent states a price and dispatches only after OK — plus the server-side gate | 2 |
+| ~~MPI-854~~ → **MPI-876** | The agent states a price and dispatches only after OK — plus the server-side gate. **854 closed as a duplicate 2026-09-22; MPI-876 carries it** | 2 |
 | MPI-855 | The spend readout in the Remote panel — this month, and what is left | 2 |
 | MPI-864 | Preview art for the fifteen cloud tiles, which all render a placeholder | 3 |
 | MPI-865 | The model PICKER: family colours, and a paid badge in the featured-star slot | 3 |
@@ -50,7 +50,9 @@ instructs. CI run **35574612819** on `2af8696d` is the one to watch to green.
 
 **2026-09-21 — MPI-853 is CLOSED.** CI `35574612819` reads `conclusion: success` on
 `2af8696d`, and two later runs agree (`5f380c6a`, `610648bd`), so the red master MPI-831
-caused is gone. Phase 2 now has three members left (MPI-852, MPI-854, MPI-855) and **phase 3
+caused is gone. Phase 2 now has three members left (MPI-852, MPI-854, MPI-855) — *superseded:
+MPI-852 shipped 2026-09-21, and MPI-854 folded into MPI-876 on 2026-09-22; see the entry at the
+foot of this file* — and **phase 3
 is the active work: MPI-865 first, then MPI-864** — 865 is self-contained, 864 cannot start
 until Fabio approves one set of fifteen source URLs. **A finding worth carrying:** a session
 record's `heartbeat_at` keeps moving after the session logs `session_closed`, so freshness
@@ -268,7 +270,9 @@ Each depends on phase 1 and on nothing in this batch.
   unchanged by adding a paid model; the section still renders on a search matching no local
   model; the chip repaints when a key is saved without reopening the library; `npm test` green
   (the orphan sweep and dep audit untouched). **Verify mode:** `user-ux`.
-- [ ] **MPI-854** — the agent states a price, and the gate that cannot be talked around.
+- [ ] **MPI-876** (was MPI-854, closed as a duplicate 2026-09-22) — the agent states a price,
+  and the gate that cannot be talked around. **Read `tasks/MPI-876/plan.md`, not this bullet**;
+  it holds Fabio's own answers plus everything 854 knew, under "ABSORBED: MPI-854".
   Ownership: `services/agentLoop.mjs`, `js/components/Compounds/MpiAgentChat/` (all files),
   `routes/connector.js`, `routes/agent.js`, `js/events.js`. Briefings: `events.md`,
   `components.md`, `root-cause.md`. **Verify:** the agent asking for a paid generation raises a
@@ -497,7 +501,25 @@ label map is therefore always one model behind. Only `1.5k` needed a map entry.
 anyone reads `QUALITY_LABELS[...]` directly again. Fabio confirmed it live on Seedance 2.0:
 `480p / 720p / 1080p`, with A1's `CUE | ABOUT $0.31` in the same frame.
 
-**Phase 2 now has MPI-854 and MPI-855 left.** Check MPI-854 against **MPI-876** before
-starting it - 876 ("The agent asks before it spends, and says roughly how much") reads as
-the same gate 854 describes, and both sit in `todo/planned`. That is an `mpi-umbrella`
-question, not something to resolve by implementing one of them.
+**2026-09-22 — SETTLED: MPI-854 and MPI-876 WERE the same card.** Fabio's call. `mpi-umbrella`
+compared them: same seam (`agent:confirm` in `services/agentLoop.mjs` + `MpiAgentChat.js`),
+same price source, same batch rule reached independently, same `user-ux` verify mode — written
+a day apart by two sessions that could not see each other, and impossible to parallelise.
+
+**MPI-876 survives; MPI-854 is `done/rejected` as a duplicate, with nothing built.** 876 is the
+richer plan (Fabio's 2026-09-21 "ask EVERY time, no suppression", the `estimateCost` contract
+and its sub-cent `{ batch: N }` trap, the `null` path, the `reset()`-is-a-NO trap MPI-870 paid
+for, the copy table, and `flux-schnell-cloud` at $0.0005 as the test model). 854 was never a
+subset of it, so its implementation map moved across verbatim into MPI-876's plan under
+**"ABSORBED: MPI-854"** — the gate site `agentLoop.mjs:924`, the four bypass paths, the six
+edits, and the `agent-no-delete` test trap. Full reasoning: `tasks/MPI-854/validation.md`.
+
+**So phase 2 now has MPI-876 and MPI-855 left, and MPI-876 belongs to BOTH umbrellas** — it
+also sits under MPI-817 (agent reliability). Whoever ships it reports here too.
+
+**Its real start gate is MPI-851**, still `doing/validating` on two checks only Fabio can do:
+it ships the `provider` field that the "is this op billed" predicate reads. MPI-850 is `done`.
+
+**Noted while merging:** a live peer held `services/agentLoop.mjs` and
+`tests/agent-loop.test.cjs` at ~09:00Z on 2026-09-22. Read `state/index.json` before claiming
+them for MPI-876.

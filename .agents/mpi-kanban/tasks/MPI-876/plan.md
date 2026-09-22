@@ -121,10 +121,18 @@ a roster gap for MPI-849 if anyone wants the local/cloud comparison.
 
 ## The copy — DRAFT, Fabio's to reword
 
-**MPI-852** (MPI-849 phase 2, `todo`) is the live price tag in the prompt box: the same
-estimator, quoted to the human. Two different sentences for one number is the drift worth
-avoiding. That session handed the wording here on 2026-09-21 because MPI-852 has not started,
-and will match whatever ships first verbatim.
+**MPI-852 SHIPPED FIRST — it is `done/complete` as of 2026-09-21, and this paragraph used to
+say it had not started.** It is the live price tag in the prompt box: the same estimator,
+quoted to the human. Fabio chose **A1, the estimate inline INSIDE the Cue button**, and what
+is on screen right now reads `CUE | ABOUT $0.14`. The figure there is `estimateCost().display`
+verbatim, the tag is hidden for every local model, and the two no-price cases collapse back to
+a clean `CUE` rather than showing an empty one.
+
+So the drift question is already answered, not still open: the number is the same call and the
+same string on both surfaces. **The one place the two surfaces deliberately DIVERGE is `null`.**
+MPI-852 shows nothing when it cannot quote; this card must still ASK and say it cannot be
+quoted — a price tag may stay silent, a spend gate may not. That is the "different surface,
+different answer" case below, and it is not drift.
 
 **Settled, and not to be re-decided by either card:** the NUMBER is `estimateCost().display`
 **verbatim**. It carries its own "about", never renders "$0.00", and drops to one significant
@@ -199,3 +207,99 @@ tests. **Read-only** on `deepinfraPricing.js`, `models.js` and `modelPriority.js
 - A local model asks nothing at all.
 - `estimateCost` returning null still asks, and says it cannot be quoted.
 - `reset()` while the card is up is a NO.
+
+---
+
+# ABSORBED: MPI-854, the implementation map
+
+*Folded in 2026-09-22 by `mpi-umbrella`. **MPI-854 and this card were the same job**, written a
+day apart by two sessions under two different umbrellas — MPI-854 as MPI-849 phase 2
+(2026-09-20), this card under MPI-817 (2026-09-21). Same seam, same two files, so they could
+never have run in parallel. MPI-854 is now `done/rejected` as a duplicate and everything it
+knew is below; nothing was dropped. **This card is therefore BOTH umbrellas' phase — report it
+to MPI-849 as well as MPI-817 when it ships.***
+
+Everything above is the WHAT and the words. This half is the WHERE and the how, and it is the
+part that had no home in this card before the merge.
+
+## Dependencies, as MPI-854 stated them
+
+`MPI-850` (the estimate) — **`done/complete`**, this is `deepinfraPricing.js` above.
+`MPI-851` (the `provider` field on the ModelDef) — **still `doing/validating`**, on two live
+checks only Fabio can do. **That is the real gate on starting this card**, not anything in the
+plan: the predicate that decides "is this op billed" reads the field MPI-851 ships.
+
+## Where the gate goes
+
+**`services/agentLoop.mjs:924`** — after the existing gates, before the body build, and well
+before the fire at `:1004`. `generate()` is fire-and-almost-forget and the 2-second race that
+follows only learns whether it was *refused*, so anything placed after `:1004` has already
+spent the money. `:924` is also before the ratio snap, so the price quoted is the price of what
+actually gets sent — which is the same reason the copy section insists on passing the REAL
+width/height.
+
+> A live peer held `services/agentLoop.mjs` and `tests/agent-loop.test.cjs` at 2026-09-22
+> ~09:00Z. Check `state/index.json` before claiming them.
+
+## The mechanism already ships — six edits, no new route, no new event
+
+`agent:confirm` → `POST /agent/confirm`. The route validates only `confirmId` and `yes` and is
+entirely **kind-blind**. **`kind` is not an enum anywhere — it is written once and read
+nowhere.** A new value is not rejected, it is *ignored*, and the card repaints as
+"Install undefined?". So the failure mode here is a **wrong card, not an error** — which is
+exactly the MPI-883 shape that just closed, one level up.
+
+1. Emit the new kind with the estimate, and put the whole pending call on `_pendingConfirm` —
+   it carries only install fields today.
+2. Add the new fields to the `pendingConfirm` projection in `GET /agent/history`, **or a
+   reload loses the price and the Yes button still spends.**
+3. Branch `confirm()` on `pc.kind`, defaulting to `'install'` for a card left pending across
+   the upgrade; the decline text hardcodes "the installation".
+4. Branch the card in `MpiAgentChat` and actually pass `kind` through, in **both** the SSE path
+   and the history-replay path.
+5. Update the four places that describe the card as install-only.
+6. Nothing in `services/agentTools.mjs` — see the test trap.
+
+## Four paths bypass an agentLoop-only gate
+
+This is the "gate it cannot talk around" half, and it is the part most likely to be forgotten,
+because the card passes its own demo without it.
+
+- **`POST /connector/generate` has no consent gate at all, by design** — the sibling install
+  route says so in as many words, *"a CLI agent's user is its own gate"* — and it is the path
+  the shipped `cubric-vision-generate` skill takes. If the requirement is "no paid generation
+  ever runs without consent", the enforcing check belongs **here, server-side**, with the
+  *card* raised by `agentLoop`.
+- **The user's own Cue press** through `enqueueGeneration` — not this card. That is MPI-852's
+  price tag (shipped) plus MPI-851's gate.
+- **The Flow branch**, where `model.id` is null, so a model-keyed predicate never fires.
+- **Crash-requeue.** `unfinished-generations.md` is written at submit precisely so a closed app
+  can re-fire the exact call — a paid requeue would **re-spend silently** and must raise a
+  fresh confirm.
+
+## Test trap
+
+`tests/agent-no-delete.test.cjs` drives every `agentTools.mjs` export against a real throwaway
+server and asserts each observed `METHOD /path` is allowlisted; it also pins the tool-name list
+and rejects any name matching `/delete|remove|…|purge/`. Touching `agentTools.mjs` is what
+trips it — edit 6 says don't.
+
+## Settled by Fabio, 2026-09-20 (MPI-854's own session)
+
+- A batch raises **ONE** card carrying the batch total and the count, never one card per
+  generation. Agrees with this card's `{ batch: N }` rule, reached independently.
+- **Batch size 4**, the SDXL shape.
+- Capacity is not a constraint: **DeepInfra allows 200 concurrent requests per model**,
+  verified on the account.
+
+## Verify — MPI-854's list, merged
+
+Everything in **Verification** above, plus:
+
+- A direct `POST /connector/generate` for a paid model without consent is refused with a
+  **coded error an agent can read**.
+- A reload mid-confirm repaints the card **with** its price.
+- `No` records a decline that does not say "installation".
+- `npm test` green.
+
+**Verify mode:** `user-ux` — both cards said so independently.
