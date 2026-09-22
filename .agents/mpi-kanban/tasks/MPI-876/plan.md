@@ -303,3 +303,39 @@ Everything in **Verification** above, plus:
 - `npm test` green.
 
 **Verify mode:** `user-ux` — both cards said so independently.
+
+## Phase 2 — `count` becomes a REAL batch where the model can batch (Fabio, 2026-09-22)
+
+**The 2026-09-15 "agents never batch" rule is REVISED.** Its recorded reason (MPI-547
+`plan.md:130`, "N latents in VRAM at once") was disproven live: a local SDXL batch of 4 ran as
+ONE job at 8.9/16 GB with four "Generating..." cards up front. Fabio's real reason, recalled
+2026-09-22: **most models do not batch safely — images 2+ come back with artefacts. Only SDXL and
+the DeepInfra cloud models are safe to batch.**
+
+**Why it matters:** `59777960` shipped `count` as N queued single jobs. The gallery draws a card
+only for a RUNNING job (`MpiGalleryBlock.js:137-139`, `:1638-1649`), so a batch of four showed
+ONE waiting card and the rest were invisible in the Cue queue. A user who leaves and comes back
+sees one card and makes three more. Worse on video. A real batch pre-creates N placeholders
+(`MpiGalleryBlock.js:1458-1504` `_galleryGenerationOptions` → `extraTempIds`/`extraPlaceholders`).
+
+**The build:**
+1. Where `modelShowsBatch(model, op)` (`js/data/commandRegistry.js:1543`) is true, `count` →
+   ONE submit with batch N (capped at the batch control's max; above it, ceil(N/max) jobs).
+   `agentDispatch.js` `_submitGeneration` (~:429-450) must build `extraTempIds`/
+   `extraPlaceholders` like the gallery does. Cloud: MPI-851 already sends `num_images` (cap 4).
+2. Where it is false, keep the fan-out of N single jobs (today's path).
+3. Lift the refusal: `routes/connector.js:451` `BATCH_UNSUPPORTED`, `js/data/generationControls.js:461-464`
+   (pins `Input_Batch_Size` to 1), `docs/generation-lifecycle.md:175`,
+   `.claude/skills/cubric-vision-generate/SKILL.md:102,180`, `tests/connector-named-params.test.cjs:264`.
+4. Spend card unchanged: one card, N x unit price. Check the sidecar of a cloud batch is the CALL's cost
+   (MPI-851's own outstanding check).
+5. Seeds: a batch shares one seed; the fan-out keeps `seed + i`.
+
+**Open, check before building:** `modelShowsBatch` is also true for Chroma `t2i` (`batchOps: ['t2i']`).
+Fabio said only SDXL + cloud are safe — confirm Chroma with him, or gate on something narrower.
+**Still open from the pinned-queue path:** a model that cannot batch still shows one card for N
+queued jobs. Drawing placeholders for queued agent jobs (tag a fan-out with a shared batch id) is the
+fix there — Fabio has not chosen it yet.
+
+**Verify:** Fabio live: "batch of four" on flux-schnell-cloud AND on an SDXL model → four
+"Generating..." cards immediately, one spend card for cloud, four images land into them.
