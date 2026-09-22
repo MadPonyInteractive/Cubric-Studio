@@ -56,6 +56,6 @@ because nothing mascot-related stays in that repo any more.
       0 `play()` calls in 8s after navigating away, and reduced motion holding frame 0 with
       0 `play()` calls in 9s
 - [ ] Phase 4: prompt box ledge, agent mode and model modes (Fabio checks)
-  - [x] 4A: the agent PANEL's crew ledge (agent mode moved here by MPI-843) - built 2026-09-22, Fabio's look outstanding
+  - [x] 4A: the agent PANEL's crew ledge (agent mode moved here by MPI-843) - built 2026-09-22; reworked same day to full figures, feet on the rule, on the clip queue - Fabio's look outstanding
   - [ ] 4B: the prompt box ledge, model modes - `MpiPromptBox` claimed by da9175f5 (stale heartbeat)
 - [ ] Phase 5: the rest of the spot map in `docs/mascot-placement.md`, then Flows

@@ -597,16 +597,31 @@ test('panel crew ledge: Cosmo states, the guest follows the newest job, a closed
     await bootAndMountChat(window, false);
 
     const crew  = window.locator('#e2e-agent-host .mpi-agent-chat__crew');
-    const cosmo = crew.locator('.mpi-agent-chat__ledge').first().locator('.mpi-agent-chat__ledge-clip--live');
+    const cosmo = crew.locator('.mpi-agent-chat__crew-stand').first().locator('.mpi-agent-chat__crew-clip--live');
+    // Cosmo's queue runs only while the panel is SEEN: open, away from the landing.
+    await window.evaluate(async () => {
+      const { state } = await import('/js/state.js');
+      state.currentPage = 'gallery';
+      state.agentMode = true;
+    });
     const guest = window.locator('#e2e-agent-host #ac-guest');
     const heightBefore = await crew.evaluate(n => n.getBoundingClientRect().height);
-    expect(heightBefore).toBe(52);
-    expect(await cosmo.getAttribute('src')).toContain('studio/peek.webm');
+    expect(heightBefore).toBe(112);
+    // Full standing figures from his rotating pools, never the head peek (Fabio, 2026-09-22).
+    await expect(cosmo).toHaveAttribute('src', /studio\/(idle-\d|agent-listening|greet-\d)\.webm/);
+    // Feet ON the rule: the clip's measured feet row (--feet of 620) sits on the ledge's bottom edge.
+    const footGap = await cosmo.evaluate((v) => {
+      const r = v.getBoundingClientRect();
+      const floor = v.closest('.mpi-agent-chat__crew').getBoundingClientRect().bottom;
+      const feet = Number(getComputedStyle(v).getPropertyValue('--feet'));
+      return Math.abs(r.top + r.height * feet / 620 - floor);
+    });
+    expect(footGap).toBeLessThan(1);
     await expect(window.locator('#e2e-agent-host #ac-crew-state')).toHaveText('listening');
 
     await window.evaluate(() => document.querySelector('#e2e-agent-host .mpi-agent-chat').setWorking(true));
     await expect(window.locator('#e2e-agent-host #ac-crew-state')).toHaveText('holding the thread');
-    expect(await cosmo.getAttribute('src')).toContain('studio/agent-thinking.webm');
+    await expect(cosmo).toHaveAttribute('src', /studio\/agent-thinking\.webm/);
 
     // The panel is closed (agentMode off): count every play() from here on.
     await window.evaluate(async () => {
@@ -630,7 +645,7 @@ test('panel crew ledge: Cosmo states, the guest follows the newest job, a closed
     await expect(guest).toHaveAttribute('data-accent', 'vision');
     await expect(window.locator('#e2e-agent-host #ac-guest-name')).toHaveText('Prism');
     await expect(window.locator('#e2e-agent-host #ac-guest-state')).toHaveText(/^upscaling · 0:0\d$/);
-    expect(await window.locator('#e2e-agent-host #ac-guest-clip').getAttribute('src')).toContain('vision/peek.webm');
+    expect(await window.locator('#e2e-agent-host #ac-guest-clip').getAttribute('src')).toContain('vision/working.webm');
 
     // A newer job takes the slot; when it ends the older one still running comes back.
     await emit('generation:started', { id: 'g2', operation: 'i2v' });

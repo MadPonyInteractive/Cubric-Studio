@@ -76,6 +76,34 @@ pointer below before editing; they were read 2026-09-16.
   (newest running generation, `getCommandAccent`), `_seen`/`_syncPlay` gating, the header
   20px Cosmo, the spec's 0-play guard. Likely wants the shared `mascotClipQueue`
   (Phase 2) to rotate idle pools and state clips, as heroCrew does, instead of two loops.
+- **Phase 4A REWORKED (2026-09-22), Fabio's look outstanding.** Full standing figures on a
+  112px ledge, feet on the composer's top rule (measured per clip, `_FEET`), Cosmo driven by
+  `mascotClipQueue` (idles + agent-listening, thinking, answer-ready, greet, happy), guest on
+  its `working` clip. validation.md § Phase 4A rework. Not used for Cosmo, on purpose:
+  `working`/`getting-ready` (those read as the guest's job / engine start) - add if Fabio
+  wants them. **Open, same card:** the landing ledge's thinking swap flakes 6/20 on HEAD
+  (play() not settling in 5s, probably behind heroCrew's clip warm-up) - undiagnosed.
+  4B still blocked: no reply on message 2568a53a.
+- **Fabio's look at the 4A rework (2026-09-22): "It looks good, though" - feet on the rule and
+  the size are accepted. Four changes, for a FRESH session:**
+  1. **Flicker on every clip swap** ("flickers to nothing for a few ms"), which the landing
+     does not do. Hypothesis, unproven: `.mpi-agent-chat__crew-clip` has an opacity
+     `transition` (200ms) so the a/b swap crossfades through a dim midpoint; the landing's
+     `.mpi-landing__crew-clip` swap is instant. Compare the two CSS rules first, and whether
+     `show()` fires before the next clip has a painted frame.
+  2. **Click Cosmo -> a different animation, e.g. the explosion transition** as on the landing
+     (`heroCrew` click = `happy` with a transition overlay; needs an fx layer + `paintTransition`
+     and `TRANSITIONS` swapAtMs for studio: smoke 583, explosion 333, third 333).
+  3. **Thinking/processing = the clip where he SITS AT THE KEYBOARD** (probably `working` or
+     `connecting-laptop` - look at the studio clips, do not guess), not agent-thinking.
+  4. **State-driven, not a rotation.** "Right now it is just going through all the animations,
+     not leaving anything new for the user to check out." Different clips at different points
+     of the conversation (looking at images, thinking, prompting...), and the GUEST should
+     reflect what the agent is DOING: Lingo when it is writing a prompt, Prism when it is
+     looking at images - not only the running generation's mascot. Source: the agent's own
+     SSE (`agent:tool` label/name, `agent:working`, `agent:message`, `agent:result`) - map
+     tool names to mascot + clip. Guests should vary too (working / getting-ready / heads-up /
+     happy), not always one loop. Keep idle rotation for true rest only.
 - All three of the original Phase 3b items landed: the
   overlay composites (above), the crew labels carry the mascot names (Lingo, Prism, Cosmo,
   Reel, Vinyl — which narrows MPI-846's "chrome labels stay role nouns", recorded there and

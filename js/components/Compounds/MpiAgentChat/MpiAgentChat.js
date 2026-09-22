@@ -31,7 +31,8 @@
 import { ComponentFactory }    from '../../factory.js';
 import { MpiButton }           from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiInput }            from '../../Primitives/MpiInput/MpiInput.js';
-import { qs, on }              from '../../../utils/dom.js';
+import { qs, on, ce }          from '../../../utils/dom.js';
+import { createMascotClipQueue } from '../../../utils/mascotClipQueue.js';
 import { renderIcon }          from '../../../utils/icons.js';
 import { renderMarkdownInto, wireMarkdownLinks } from '../../../utils/markdown.js';
 import { resolveMediaUrl, cardAttachmentSource } from '../../../utils/mediaActions.js';
@@ -51,7 +52,7 @@ import {
  * Cosmo's ledge, in both modes. On the landing he stands BEHIND the block's top rule, which
  * cuts him off at the shoulders, so only a peek clears it and the composer sits straight on
  * that line (Fabio, 2026-09-22; this replaced a 48px still and an "Ask me anything" label).
- * In the panel the same block sits on the crew ledge, smaller. Two stacked clips rather than
+ * Landing only: the panel's crew ledge plays standing figures instead. Two stacked clips rather than
  * one with a swapped src: assigning src to the visible element blanks it until the first
  * frame decodes (MPI-777 Phase 3). Both loop, so nothing here needs a timer or the clip queue.
  */
@@ -70,6 +71,34 @@ const _COSMO_LEDGE = `
  * names mirror heroCrew.js `CREW`; `studio` has no guest, because Cosmo is already there.
  */
 const _GUESTS = Object.freeze({ vision: 'Prism', video: 'Reel', audio: 'Vinyl', prompt: 'Lingo' });
+
+/**
+ * The panel ledge plays STANDING figures with their feet on the composer's top rule
+ * (Fabio, 2026-09-22 - the head peeks were "too boring" and belong over the prompt box).
+ * The feet are not on the frame edge, and not on one row for every clip: measured as the
+ * lowest alpha row of each 620x620 clip, constant across its frames. 557 for every idle,
+ * greet, happy and agent-state clip; the working clips differ per mascot. Copied here
+ * and nowhere else. ponytail: re-measure if a clip is re-staged.
+ */
+const _FEET_ROW = 557;
+const _FEET = Object.freeze({
+    'vision/working': 570, 'video/working': 528, 'audio/working': 584, 'prompt/working': 580,
+});
+const _feet = (key, clip) => _FEET[`${key}/${clip}`] ?? _FEET_ROW;
+
+/**
+ * Cosmo's pools on the panel ledge, driven by the shared clip queue as the landing crew
+ * is. `ms` is a first guess: the real length is read off each clip's metadata (`_probe`).
+ */
+const _COSMO_STATES = () => ({
+    idle:     { clips: ['idle-1', 'idle-2', 'idle-3', 'agent-listening'].map(id => ({ id, ms: 2200 })), loop: true },
+    thinking: { clips: [{ id: 'agent-thinking', ms: 1250 }], loop: true },
+    answer:   { clips: [{ id: 'agent-answer-ready', ms: 1250 }] },
+    greet:    { clips: ['greet-1', 'greet-2'].map(id => ({ id, ms: 1250 })) },
+    happy:    { clips: [{ id: 'happy-1', ms: 1250 }] },
+});
+/** Added to a measured length, so the queue's timer never cuts the rest frame the next clip opens on. */
+const _CLIP_PAD_MS = 60;
 
 /** Pause and drop the source: the only thing that frees a hidden video's decoder. */
 function _releaseClip(v) {
@@ -106,7 +135,12 @@ export const MpiAgentChat = ComponentFactory.create({
                  place the eye checks for "who is working". Fixed height: nothing here may
                  reflow the transcript or move the composer. -->
             <div class="mpi-agent-chat__crew" aria-hidden="true">
-                ${_COSMO_LEDGE}
+                <div class="mpi-agent-chat__crew-stand">
+                    <video class="mpi-agent-chat__crew-clip mpi-agent-chat__crew-clip--live"
+                           id="ac-cosmo-a" muted playsinline preload="auto"></video>
+                    <video class="mpi-agent-chat__crew-clip"
+                           id="ac-cosmo-b" muted playsinline preload="auto"></video>
+                </div>
                 <span class="mpi-agent-chat__crew-txt">
                     <span class="mpi-agent-chat__crew-name">Cosmo</span>
                     <span class="mpi-agent-chat__crew-state" id="ac-crew-state">listening</span>
@@ -116,8 +150,8 @@ export const MpiAgentChat = ComponentFactory.create({
                         <span class="mpi-agent-chat__crew-name" id="ac-guest-name"></span>
                         <span class="mpi-agent-chat__crew-state" id="ac-guest-state"></span>
                     </span>
-                    <div class="mpi-agent-chat__ledge">
-                        <video class="mpi-agent-chat__ledge-clip mpi-agent-chat__ledge-clip--live"
+                    <div class="mpi-agent-chat__crew-stand">
+                        <video class="mpi-agent-chat__crew-clip mpi-agent-chat__crew-clip--live"
                                id="ac-guest-clip" muted playsinline loop preload="auto"></video>
                     </div>
                 </div>
@@ -153,6 +187,8 @@ export const MpiAgentChat = ComponentFactory.create({
         const crewState  = qs('#ac-crew-state',    el);
         const guest      = qs('#ac-guest',         el);
         const guestClip  = qs('#ac-guest-clip',    el);
+        const cosmoA     = qs('#ac-cosmo-a',       el);
+        const cosmoB     = qs('#ac-cosmo-b',       el);
         /** Reduced motion holds a first frame and never plays, exactly as the crew does. */
         const _still = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -194,9 +230,68 @@ export const MpiAgentChat = ComponentFactory.create({
             ? state.currentPage === PAGE_LANDING
             : !!state.agentMode && state.currentPage !== PAGE_LANDING;
         function _syncPlay() {
-            const live = [_ledgeLive, _guestKey && guestClip].filter(Boolean);
+            _syncCosmo();
+            const live = [props.standalone && _ledgeLive, _guestKey && guestClip].filter(Boolean);
             if (_seen() && !_still) live.forEach(v => v.play().catch(() => {}));
             else [ledgeRest, ledgeWork, guestClip].forEach(v => v?.pause());
+        }
+
+        // ── Cosmo on the panel ledge ──────────────────────────────────────────
+        // A clip queue, as each landing crew member has, so he rotates his idles and plays
+        // his agent states instead of holding one loop. It exists only while the panel is
+        // seen: its timer chain re-arms for ever, and the panel is never destroyed.
+        const _cosmoStates = _COSMO_STATES();
+        let _cosmoQueue = null;
+        let _cosmoShown = cosmoA;
+        let _cosmoSeq = 0;
+        let _probed = false;
+
+        /** Write each clip's real length into the object the queue times against, then let go of it. */
+        function _probe() {
+            if (_probed) return;
+            _probed = true;
+            for (const def of Object.values(_cosmoStates)) for (const c of def.clips) {
+                const v = ce('video', { preload: 'metadata', muted: true, src: `assets/mascot/studio/${c.id}.webm` });
+                on(v, 'loadedmetadata', () => {
+                    if (v.duration) c.ms = Math.round(v.duration * 1000) + _CLIP_PAD_MS;
+                    _releaseClip(v);
+                }, { once: true });
+            }
+        }
+
+        /** Two stacked clips, swapped once the hidden one plays: a src on the visible one blanks it. */
+        function _paintCosmo(id) {
+            const next = _cosmoShown === cosmoA ? cosmoB : cosmoA;
+            const seq = ++_cosmoSeq;
+            next.style.setProperty('--feet', _feet('studio', id));
+            next.src = `assets/mascot/studio/${id}.webm`;
+            const show = () => {
+                // A play() from a swap already overtaken, or from a queue since torn down, must not flip.
+                if (seq !== _cosmoSeq || !_cosmoQueue || _cosmoShown === next) return;
+                next.classList.add('mpi-agent-chat__crew-clip--live');
+                _cosmoShown.classList.remove('mpi-agent-chat__crew-clip--live');
+                _cosmoShown.pause();
+                _cosmoShown = next;
+            };
+            if (_still) on(next, 'loadeddata', show, { once: true });
+            else next.play().then(show, () => {});
+        }
+
+        function _syncCosmo() {
+            if (!cosmoA) return;
+            const seen = _seen();
+            if (seen && !_cosmoQueue) {
+                _probe();
+                _cosmoQueue = createMascotClipQueue({
+                    states: _cosmoStates, rest: 'idle', paint: _paintCosmo, reducedMotion: _still,
+                });
+                if (_working) _cosmoQueue.request('thinking', { interrupt: true, transition: false });
+                else _cosmoQueue.request('greet');
+            } else if (!seen && _cosmoQueue) {
+                _cosmoQueue.destroy();
+                _cosmoQueue = null;
+                [cosmoA, cosmoB].forEach(_releaseClip);
+            }
         }
         _unsubs.push(Events.onState('currentPage', _syncPlay));
         if (!props.standalone) _unsubs.push(Events.onState('agentMode', _syncPlay));
@@ -235,7 +330,8 @@ export const MpiAgentChat = ComponentFactory.create({
                 guest.dataset.accent = key;
                 qs('#ac-guest-name', el).textContent = name;
                 // Set while the slot is still out of view, so the blank first frame is never seen.
-                guestClip.src = `assets/mascot/${key}/peek.webm`;
+                guestClip.style.setProperty('--feet', _feet(key, 'working'));
+                guestClip.src = `assets/mascot/${key}/working.webm`;
             }
             if (!guest.classList.contains('mpi-agent-chat__crew-guest--in')) {
                 _guestSince = Date.now();
@@ -255,7 +351,10 @@ export const MpiAgentChat = ComponentFactory.create({
             }));
             for (const name of ['generation:complete', 'generation:cancelled', 'generation:error']) {
                 _unsubs.push(Events.on(name, ({ id } = {}) => {
-                    if (_running.delete(id)) _paintGuest();
+                    if (!_running.delete(id)) return;
+                    _paintGuest();
+                    // A finished job is worth a cheer, once his own work is done.
+                    if (name === 'generation:complete' && !_working) _cosmoQueue?.request('happy');
                 }));
             }
         }
@@ -266,8 +365,11 @@ export const MpiAgentChat = ComponentFactory.create({
             _working = working;
             // Panel mode: toggle working dot
             if (workingDot) workingDot.classList.toggle('mpi-agent-chat__working-dot--on', working);
-            // Cosmo swaps to his working clip on the ledge, in both modes
+            // Cosmo swaps to his working clip on the ledge, in both modes. The panel cuts
+            // straight in (a thought cannot wait out an idle) and lets the answer wait its turn.
             _setLedge(working);
+            if (working) _cosmoQueue?.request('thinking', { interrupt: true, transition: false });
+            else if (_cosmoQueue?.current().state === 'thinking') _cosmoQueue.request('answer');
             if (crewState) crewState.textContent = working ? 'holding the thread' : 'listening';
             emit('working', { working });
         }
@@ -878,7 +980,9 @@ export const MpiAgentChat = ComponentFactory.create({
             clearInterval(_guestTimer);
             _guestKey = null;
             // Hiding a video keeps its decoder alive; only this releases it (MPI-777).
-            [ledgeRest, ledgeWork, guestClip].forEach(_releaseClip);
+            _cosmoQueue?.destroy();
+            _cosmoQueue = null;
+            [ledgeRest, ledgeWork, guestClip, cosmoA, cosmoB].forEach(_releaseClip);
         };
     },
 });

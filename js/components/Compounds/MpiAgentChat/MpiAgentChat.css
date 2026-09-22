@@ -69,30 +69,46 @@
 }
 
 /* ── The panel's crew ledge (MPI-843 drawing, MPI-777 Phase 4) ────────────────
-   52px ALWAYS, guest or not, so the transcript and the composer never move. Both heads
-   sit on the ledge's bottom edge — the composer's top rule — exactly as Cosmo does on
-   the landing, so the same `__ledge` block serves at a smaller `--ledge-w`. Every peek
-   clip was measured (union alpha bbox over all frames): the head spans columns ~95-515
-   of 620 in all five, so one negative inline margin trims the empty sides for all. */
+   A fixed height, guest or not, so the transcript and the composer never move. Both
+   figures STAND on the ledge's bottom edge — the composer's top rule (Fabio,
+   2026-09-22: full figures, not head peeks). Each clip's feet are its lowest alpha row,
+   set per clip as `--feet` by the JS (`_FEET`), so the clip hangs that row on the rule.
+   The row is sized for the tallest clip: a working clip reaches row ~55 from feet at
+   ~582, i.e. 0.85 of the clip box, and 0.85 x 132 = 112. Figures span columns ~75-545
+   of 620, so one negative inline margin trims the empty sides for all. */
 .mpi-agent-chat__crew {
+    --crew-w: 132px;                                /* the clip box; an idle Cosmo is ~81px tall */
     flex: 0 0 auto;
     display: flex;
     align-items: flex-end;
     gap: var(--s-2);
-    height: 52px;
+    height: 112px;
     padding: 0 var(--s-3);
     overflow: hidden;
     border-top: 1px solid var(--line-soft);
-    margin-bottom: calc(var(--s-3) * -1);           /* cancel the block's gap: heads ON the rule */
+    margin-bottom: calc(var(--s-3) * -1);           /* cancel the block's gap: feet ON the rule */
 }
 
-.mpi-agent-chat__crew .mpi-agent-chat__ledge {
-    --ledge-w: 115px;                               /* the head ~34px tall, ~77px wide */
+.mpi-agent-chat__crew-stand {
     position: relative;
-    left: auto;
-    bottom: auto;
     flex: 0 0 auto;
-    margin-inline: calc(var(--ledge-w) * -90 / 620);
+    align-self: stretch;
+    width: var(--crew-w);
+    margin-inline: calc(var(--crew-w) * -70 / 620);
+    pointer-events: none;
+}
+
+.mpi-agent-chat__crew-clip {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    bottom: calc(var(--crew-w) * (var(--feet, 557) - 620) / 620);
+    opacity: 0;
+    transition: opacity var(--t-fast) var(--ease);
+}
+
+.mpi-agent-chat__crew-clip--live {
+    opacity: 1;
 }
 
 .mpi-agent-chat__crew-txt {
@@ -143,6 +159,7 @@
 
 @media (prefers-reduced-motion: reduce) {
     .mpi-agent-chat__ledge-clip,
+    .mpi-agent-chat__crew-clip,
     .mpi-agent-chat__crew-guest {
         transition: none;
     }

@@ -478,3 +478,39 @@ Built to the MPI-843 drawing Fabio approved (`tasks/MPI-843/research/chat-merged
   the timing stand.
 - **Look REJECTED:** too small and too static - taller ledge, full-figure clips with feet on
   the composer's rule, peeks move to the prompt box (4B). See plan.md Current State.
+
+### Phase 4A rework - full figures, feet on the rule (2026-09-22)
+
+- **Feet measured per clip** (`scratchpad/feet.py`: libvpx-vp9 decode, `alphaextract`,
+  per-frame bbox bottom). The feet row is CONSTANT across each clip's frames: 557 for every
+  studio idle/greet/happy/agent-state clip and the guests' idles; working clips differ -
+  studio 582, vision 570, video 528, audio 584, prompt 580 (median; a prop dips to 612 on a
+  few frames). Copied into `_FEET` in `MpiAgentChat.js`, applied as `--feet`, and the CSS
+  hangs that row on the ledge floor.
+- **Height from the tallest clip:** a working clip reaches row ~55 above feet at ~582 =
+  0.85 of the box; at `--crew-w: 132px` that is 112px, so the row is 112px (was 52).
+- **Cosmo on `mascotClipQueue`:** idle pool idle-1..3 + agent-listening (random, loop),
+  agent-thinking (loop, cut in on working), agent-answer-ready once after, greet on panel
+  open, happy-1 when a job completes. Real lengths read off `loadedmetadata` by detached
+  metadata-only probes that release themselves. The queue exists only while the panel is
+  seen; unseen it is destroyed and both clips released.
+- **Guest:** its `working` clip instead of `peek`. Logic and timing untouched.
+- **Landing ledge untouched** (`_COSMO_LEDGE` is standalone-only now).
+- Screenshots (harness, 1280 wide): idle Cosmo; thinking + Prism (holding the photo);
+  thinking + Reel (with the camera). Feet on the composer's top rule in all. Checked by eye.
+
+#### What ran
+
+- `tests/desktop/agent-chat.spec.js` **32/32**. The crew test now asserts 112px, a full
+  figure src from the pools, **feet within 1px of the floor** (live clip's `--feet` row vs
+  the crew's bottom), agent-thinking on working, guest `vision/working.webm`, and still
+  **0 `play()`** while the panel is closed. It sets `currentPage='gallery'` + `agentMode`
+  first, because the queue only runs while seen.
+- `npm test`: 1800, 1798 pass, **0 fail** (+ the MPI-867 todo).
+- eslint on the component: clean.
+- `--repeat-each=5` on the mascot tests: 19/20. The one failure is a LANDING test
+  (`Mascot flips back to idle...`) timing out on the standalone `_setLedge` swap - a path
+  this rework does not touch. **Proved pre-existing:** the same two landing tests on the
+  HEAD blobs failed **6/20** (`scratchpad/headswap.py`). Likely `ledgeWork`'s load queued
+  behind heroCrew warming ~35 clips at landing boot, so `play()` does not settle in 5s -
+  NOT diagnosed yet; recorded in plan.md, not patched with a longer timeout.
