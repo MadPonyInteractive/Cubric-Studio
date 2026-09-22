@@ -1626,11 +1626,23 @@
  *                                 (the gallery's own panel, js/components/galleryFilterPanel.js,
  *                                 on a local sort — MPI-785) opens with every kind that cannot
  *                                 fill this slot hidden; the user can widen it.
- * @property {Function} [onPick] - (item: {filePath: string, mediaType: string}) => void.
+ * @property {string} [toHistoryLabel] - Label for a destination toggle in the head (MPI-887),
+ *                                 a toggleable MpiButton shaped like the FILTER button it
+ *                                 sits beside. Present it and both outcomes carry `toHistory`,
+ *                                 saying the user wants what they chose added to the opener's
+ *                                 own card history rather than staged as a reference. Omit it
+ *                                 and no toggle renders and `toHistory` is always false — a Flow
+ *                                 slot, Place and the gallery toolbar have one destination.
+ *                                 The picker never acts on it: only the opener knows what a
+ *                                 history entry would attach to.
+ * @property {Function} [onPick] - (item: {filePath: string, mediaType: string, item: object,
+ *                                 toHistory: boolean}) => void.
  *                                 Called before the modal hides. The media is ALREADY in the
  *                                 project and on disk, so the caller takes the path as-is —
- *                                 nothing is hashed, copied or placed.
- * @property {Function} [onImport] - (files: File[]) => void. Files chosen from the FILESYSTEM.
+ *                                 nothing is hashed, copied or placed. `item` is the source
+ *                                 MediaItem whole, for an opener that has to copy it.
+ * @property {Function} [onImport] - (files: File[], {toHistory: boolean}) => void. Files chosen
+ *                                 from the FILESYSTEM.
  *                                 Omit it and no Import button renders. The caller is expected
  *                                 to route these through its own place/hash path, so an
  *                                 imported file is handled identically whichever surface

@@ -1,0 +1,14 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/projects.js",
+    "js/components/Compounds/MpiMediaPicker/MpiMediaPicker.js",
+    "js/components/Compounds/MpiMediaPicker/MpiMediaPicker.css",
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+    "js/components/types.js",
+    "tests/project-copy-item.test.cjs",
+    "tests/desktop/media-picker-to-history.spec.js",
+    ".agents/mpi-kanban/tasks/MPI-887/"
+  ]
+}

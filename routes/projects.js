@@ -2316,14 +2316,145 @@ router.post('/project/save-generation', async (req, res) => {
 });
 
 /**
+ * Copy ONE card's media into a project's `Media/` + `.meta/` under a fresh id.
+ *
+ * The media file, a sidecar cloned from the source's (so the prompt, seed and
+ * settings that made the image survive the copy), and every companion rendition
+ * the source had. The SOURCE IS NEVER TOUCHED — this is a copy, and it has to be:
+ * deleting a history entry deletes its file, so two cards pointing at one file on
+ * disk means deleting either one guts the other.
+ *
+ * Shared by `add-from-cards` (cross-project, one new card per copy) and
+ * `copy-item` (same-project, the copy becomes a history entry on an open card).
+ *
+ * @param {object} args
+ * @param {object} args.item     - the source MediaItem (needs `filePath`)
+ * @param {string} args.mediaDir - destination `<project>/Media`
+ * @param {string} args.metaDir  - destination `<project>/Media/.meta`
+ * @param {string} [args.type]   - caller's type hint, used only for the sidecar default
+ * @param {string} [args.name]   - caller's display-name hint, same
+ * @returns {Promise<{id: string, meta: object, destMedia: string}|null>} null when the
+ *          source media is missing on disk.
+ */
+async function copyItemIntoProject({ item, mediaDir, metaDir, type, name }) {
+    const srcMedia = pathFromProjectFileUrl(item?.filePath);
+    if (!srcMedia || !(await fs.pathExists(srcMedia))) return null;
+
+    const id = uuidv4();
+    const ext = path.extname(srcMedia);
+    // Unique on-disk name; keep readable stem, avoid collisions.
+    const stem = path.basename(srcMedia, ext).replace(/_\d+$/, '') || 'copied';
+    const destName = `${stem}_${id.slice(0, 8)}${ext}`;
+    const destMedia = path.join(mediaDir, destName);
+    await fs.copy(srcMedia, destMedia);
+
+    // Clone the source sidecar when present so metadata survives; else
+    // synthesize a minimal one from the item fields the client sent.
+    const srcMetaCandidate = pathFromProjectFileUrl(item?.filePath)
+        ? path.join(path.dirname(srcMedia), '.meta', `${item.id}.json`)
+        : null;
+    let meta = {};
+    if (srcMetaCandidate && await fs.pathExists(srcMetaCandidate)) {
+        try { meta = await fs.readJson(srcMetaCandidate); } catch (_) { meta = {}; }
+    }
+    meta.id = id;
+    meta.filePath = `/project-file?path=${encodeURIComponent(destMedia)}`;
+    meta.createdAt = new Date().toISOString();
+    if (!meta.type) meta.type = type || 'image';
+    if (!meta.displayName) meta.displayName = name || stem;
+
+    // Copy companion renditions if the source had them. The large one keeps
+    // its own `.1280.webp` tail so the copy lands on the same names the
+    // ladder and the GC both look for (MPI-633).
+    const srcThumb = pathFromProjectFileUrl(item?.thumbPath) || pathFromProjectFileUrl(meta.thumbPath);
+    if (srcThumb && await fs.pathExists(srcThumb)) {
+        const destThumb = path.join(metaDir, `${id}.thumb${path.extname(srcThumb)}`);
+        await fs.copy(srcThumb, destThumb);
+        meta.thumbPath = `/project-file?path=${encodeURIComponent(destThumb)}`;
+    } else {
+        delete meta.thumbPath;
+    }
+    const srcLarge = pathFromProjectFileUrl(item?.thumbPathLg) || pathFromProjectFileUrl(meta.thumbPathLg);
+    if (srcLarge && await fs.pathExists(srcLarge)) {
+        const destLarge = imageThumbPath(path.join(metaDir, `${id}.thumb.jpg`), { width: IMAGE_RENDITION_PX.large });
+        await fs.copy(srcLarge, destLarge);
+        meta.thumbPathLg = `/project-file?path=${encodeURIComponent(destLarge)}`;
+    } else {
+        delete meta.thumbPathLg;
+    }
+    const srcProxy = pathFromProjectFileUrl(item?.proxyPath) || pathFromProjectFileUrl(meta.proxyPath);
+    if (srcProxy && await fs.pathExists(srcProxy)) {
+        const destProxy = videoProxyPath(path.join(metaDir, `${id}.thumb.jpg`));
+        await fs.copy(srcProxy, destProxy);
+        meta.proxyPath = `/project-file?path=${encodeURIComponent(destProxy)}`;
+    } else {
+        delete meta.proxyPath;
+    }
+    // MPI-623: a 3D Scene card is an image card carrying a `.ply`. The sidecar
+    // is cloned wholesale above, so without this the copy would arrive with a
+    // `splatPath` pointing back into the SOURCE project — a card that looks
+    // fine until it is opened, or until the source project is deleted.
+    // Hundreds of MB, so `fs.copy` is the slow step of copying a Scene card.
+    const srcSplat = pathFromProjectFileUrl(item?.splatPath) || pathFromProjectFileUrl(meta.splatPath);
+    if (srcSplat && await fs.pathExists(srcSplat)) {
+        const destSplat = path.join(metaDir, `${id}.splat${path.extname(srcSplat)}`);
+        await fs.copy(srcSplat, destSplat);
+        meta.splatPath = `/project-file?path=${encodeURIComponent(destSplat)}`;
+    } else {
+        delete meta.splatPath;
+    }
+
+    // MPI-768: a GIF card's `gif.frames` are hashes into the SOURCE
+    // project's content-addressed `.gif-frames` store — the sidecar clone
+    // above carries the field wholesale, but without copying the actual
+    // frame files (+ thumbs) the copy would 404 the moment the source
+    // project is deleted, same class of bug splatPath has above.
+    if (meta.gif && Array.isArray(meta.gif.frames) && meta.gif.frames.length) {
+        await copyGifFrames(path.dirname(srcMedia), mediaDir, meta.gif);
+    }
+
+    await fs.writeJson(path.join(metaDir, `${id}.json`), meta, { spaces: 2 });
+
+    return { id, meta, destMedia };
+}
+
+/**
+ * The sidecar fields a client needs to build the copied MediaItem, in the same
+ * shape `save-generation` hands back — so a caller that already knows how to turn
+ * a generation into an item needs no second reader for a copy.
+ */
+function copiedItemResponse(id, meta) {
+    return {
+        itemId:             id,
+        filePath:           meta.filePath,
+        displayName:        meta.displayName,
+        type:               meta.type,
+        pixelDimensions:    meta.pixelDimensions || { w: 0, h: 0 },
+        thumbPath:          meta.thumbPath   || null,
+        thumbPathLg:        meta.thumbPathLg || null,
+        proxyPath:          meta.proxyPath   || null,
+        wavePath:           meta.wavePath    || null,
+        splatPath:          meta.splatPath   || null,
+        gif:                meta.gif         ?? null,
+        fps:                meta.fps         || 0,
+        duration:           meta.duration    || 0,
+        frameCount:         meta.frameCount  || 0,
+        hasAudio:           meta.hasAudio    || false,
+        prompt:             meta.prompt      ?? '',
+        negativePrompt:     meta.negativePrompt ?? '',
+        seed:               meta.seed        ?? -1,
+        model:              meta.model       ?? null,
+        operation:          meta.operation   ?? null,
+        generationSettings: meta.generationSettings ?? null,
+    };
+}
+
+/**
  * POST /project-media/:projectId/add-from-cards
  *
- * Copies gallery cards from another project into this project. For each card we
- * copy its currently-selected media file (and companion thumb) into this
- * project's Media/ + .meta/, write a fresh UUID-keyed sidecar cloned from the
- * source sidecar (so all metadata survives), then append a single-item group to
- * project.json via the atomic writer. Source project is left untouched (copy,
- * not move).
+ * Copies gallery cards from another project into this project: one new
+ * single-item card per copy, appended to project.json via the atomic writer.
+ * Source project is left untouched (copy, not move).
  *
  * Body:
  *   folderPath  {string}  — absolute target project folder path
@@ -2346,96 +2477,22 @@ router.post('/project-media/:projectId/add-from-cards', async (req, res) => {
 
         const newGroups = [];
         for (const card of cards) {
-            const item = card?.item;
-            const srcMedia = pathFromProjectFileUrl(item?.filePath);
-            if (!srcMedia || !(await fs.pathExists(srcMedia))) continue;
-
-            const id = uuidv4();
-            const ext = path.extname(srcMedia);
-            // Unique on-disk name; keep readable stem, avoid collisions.
-            const stem = path.basename(srcMedia, ext).replace(/_\d+$/, '') || 'copied';
-            const destName = `${stem}_${id.slice(0, 8)}${ext}`;
-            const destMedia = path.join(mediaDir, destName);
-            await fs.copy(srcMedia, destMedia);
-
-            // Clone the source sidecar when present so metadata survives; else
-            // synthesize a minimal one from the item fields the client sent.
-            const srcMetaCandidate = pathFromProjectFileUrl(item?.filePath)
-                ? path.join(path.dirname(srcMedia), '.meta', `${item.id}.json`)
-                : null;
-            let meta = {};
-            if (srcMetaCandidate && await fs.pathExists(srcMetaCandidate)) {
-                try { meta = await fs.readJson(srcMetaCandidate); } catch (_) { meta = {}; }
-            }
-            meta.id = id;
-            meta.filePath = `/project-file?path=${encodeURIComponent(destMedia)}`;
-            meta.createdAt = new Date().toISOString();
-            if (!meta.type) meta.type = card.type || 'image';
-            if (!meta.displayName) meta.displayName = card.name || stem;
-
-            // Copy companion renditions if the source had them. The large one keeps
-            // its own `.1280.webp` tail so the copy lands on the same names the
-            // ladder and the GC both look for (MPI-633).
-            const srcThumb = pathFromProjectFileUrl(item?.thumbPath) || pathFromProjectFileUrl(meta.thumbPath);
-            if (srcThumb && await fs.pathExists(srcThumb)) {
-                const destThumb = path.join(metaDir, `${id}.thumb${path.extname(srcThumb)}`);
-                await fs.copy(srcThumb, destThumb);
-                meta.thumbPath = `/project-file?path=${encodeURIComponent(destThumb)}`;
-            } else {
-                delete meta.thumbPath;
-            }
-            const srcLarge = pathFromProjectFileUrl(item?.thumbPathLg) || pathFromProjectFileUrl(meta.thumbPathLg);
-            if (srcLarge && await fs.pathExists(srcLarge)) {
-                const destLarge = imageThumbPath(path.join(metaDir, `${id}.thumb.jpg`), { width: IMAGE_RENDITION_PX.large });
-                await fs.copy(srcLarge, destLarge);
-                meta.thumbPathLg = `/project-file?path=${encodeURIComponent(destLarge)}`;
-            } else {
-                delete meta.thumbPathLg;
-            }
-            const srcProxy = pathFromProjectFileUrl(item?.proxyPath) || pathFromProjectFileUrl(meta.proxyPath);
-            if (srcProxy && await fs.pathExists(srcProxy)) {
-                const destProxy = videoProxyPath(path.join(metaDir, `${id}.thumb.jpg`));
-                await fs.copy(srcProxy, destProxy);
-                meta.proxyPath = `/project-file?path=${encodeURIComponent(destProxy)}`;
-            } else {
-                delete meta.proxyPath;
-            }
-            // MPI-623: a 3D Scene card is an image card carrying a `.ply`. The sidecar
-            // is cloned wholesale above, so without this the copy would arrive with a
-            // `splatPath` pointing back into the SOURCE project — a card that looks
-            // fine until it is opened, or until the source project is deleted.
-            // Hundreds of MB, so `fs.copy` is the slow step of copying a Scene card.
-            const srcSplat = pathFromProjectFileUrl(item?.splatPath) || pathFromProjectFileUrl(meta.splatPath);
-            if (srcSplat && await fs.pathExists(srcSplat)) {
-                const destSplat = path.join(metaDir, `${id}.splat${path.extname(srcSplat)}`);
-                await fs.copy(srcSplat, destSplat);
-                meta.splatPath = `/project-file?path=${encodeURIComponent(destSplat)}`;
-            } else {
-                delete meta.splatPath;
-            }
-
-            // MPI-768: a GIF card's `gif.frames` are hashes into the SOURCE
-            // project's content-addressed `.gif-frames` store — the sidecar clone
-            // above carries the field wholesale, but without copying the actual
-            // frame files (+ thumbs) the copy would 404 the moment the source
-            // project is deleted, same class of bug splatPath has above.
-            if (meta.gif && Array.isArray(meta.gif.frames) && meta.gif.frames.length) {
-                await copyGifFrames(path.dirname(srcMedia), mediaDir, meta.gif);
-            }
-
-            await fs.writeJson(path.join(metaDir, `${id}.json`), meta, { spaces: 2 });
+            const copied = await copyItemIntoProject({
+                item: card?.item, mediaDir, metaDir, type: card?.type, name: card?.name,
+            });
+            if (!copied) continue;
 
             newGroups.push({
                 id:            uuidv4(),
-                type:          card.type || meta.type || 'image',
-                name:          card.name || meta.displayName,
+                type:          card.type || copied.meta.type || 'image',
+                name:          card.name || copied.meta.displayName,
                 createdAt:      new Date().toISOString(),
                 selectedIndex: 0,
                 open:          false,
                 favourite:     false,
                 archived:      false,
                 customName:    null,
-                history:       [id],
+                history:       [copied.id],
             });
         }
 
@@ -2453,6 +2510,51 @@ router.post('/project-media/:projectId/add-from-cards', async (req, res) => {
         res.json({ success: true, added: newGroups.length });
     } catch (err) {
         logger.error('project', 'add-from-cards error', err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+/**
+ * POST /project-media/:projectId/copy-item
+ *
+ * MPI-887. Copy ONE card's media inside the project it already lives in, and hand
+ * the copy back as item fields — the caller decides what it becomes. The renderer
+ * makes it a history entry on the card the user has open, which is how an image
+ * from a DIFFERENT gallery card finally reaches Composite: that slot only ever
+ * took an entry already in the open card's history.
+ *
+ * Writes NO project.json. The renderer owns `itemGroups` for the open project
+ * (see `/project-groups` below for the other half of that rule), so a route that
+ * appended the group here would be clobbered by the next `persistGroups`.
+ *
+ * It copies rather than pointing both cards at one file deliberately: deleting a
+ * history entry deletes its file, so a shared path means deleting either card
+ * guts the other.
+ *
+ * Body:
+ *   folderPath {string} — absolute project folder path (source AND destination)
+ *   item       {object} — the source MediaItem (needs `filePath`; `id`/`thumbPath` help)
+ *   type       {string} [optional] — sidecar type fallback
+ *   name       {string} [optional] — sidecar displayName fallback
+ *
+ * Returns { success, ...copiedItemResponse } — 404 when the source media is gone.
+ */
+router.post('/project-media/:projectId/copy-item', async (req, res) => {
+    try {
+        const { folderPath, item, type, name } = req.body || {};
+        if (!folderPath) return res.status(400).json({ success: false, error: 'folderPath required' });
+        if (!item?.filePath) return res.status(400).json({ success: false, error: 'item.filePath required' });
+
+        const mediaDir = path.join(folderPath, 'Media');
+        const metaDir  = path.join(mediaDir, '.meta');
+        await fs.ensureDir(metaDir);
+
+        const copied = await copyItemIntoProject({ item, mediaDir, metaDir, type, name });
+        if (!copied) return res.status(404).json({ success: false, error: 'source media not found' });
+
+        res.json({ success: true, ...copiedItemResponse(copied.id, copied.meta) });
+    } catch (err) {
+        logger.error('project', 'copy-item error', err);
         res.status(500).json({ success: false, error: err.message });
     }
 });

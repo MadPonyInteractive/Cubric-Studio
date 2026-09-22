@@ -1,0 +1,17 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-887",
+  "title": "Bring an outside image into a card's history as an entry, so Composite can reach it",
+  "description": "Fabio, 2026-09-22, found while testing MPI-877 round 3. Composite is the app's answer to an edit that changed something it should not have: put the original underneath the edited version and cut back the part you wanted kept. It cannot be reached for the case that needs it most. `MpiToolOptionsComposite.js:16` states the constraint: 'ONE SLOT, AND IT IS NOT FILLED BY SELECTION (user, 2026-08-04). Right-click the canvas on the entry you want underneath -> Send to Composite'. The slot only ever takes an entry ALREADY in the open card's history, so two pictures that live in different gallery cards can never be composited, and there is no way to import one as a history entry. Fabio tried it on his own demon-reflection test and could not: the edited result and the original were separate cards. His proposed shape, his words: 'we could update the overlay media gallery to be able to add entries as history entries instead of adding them to the prompt box. A simple toggle for the overlay media gallery could work nicely.' That is the Choose media overlay - today every pick lands in the Prompt Box as staged media; the toggle would instead append the pick to the open card's history as a new entry, where Send to Composite can then reach it. Scope is the overlay plus whatever writes a history entry; it is NOT the agent's business - the agent cannot use Composite at all (`agentLoop.mjs:1199`) and only ever TELLS the user how. Blocks the composite half of the agent's result-review rule, which is otherwise ready to write: teaching a fix the user cannot perform is worse than saying nothing. Raised out of scope deliberately - Fabio is taking it in a separate session. Related: MPI-877 (an edit of an existing image lands as a history entry on its card, not a new gallery card) and MPI-886 (a dragged card arrives as the card, not a copy of its picture) - all three are the same theme, that work on an existing picture belongs to that picture's card.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "ready",
+  "created_at": "2026-09-22T08:39:24Z",
+  "updated_at": "2026-09-22T11:54:04+01:00",
+  "links": {
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl"
+  }
+}

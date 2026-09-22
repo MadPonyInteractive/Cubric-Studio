@@ -27,6 +27,21 @@
     color: var(--ink-2);
 }
 
+/* ── destination toggle (MPI-887) ────────────────────────────────────────── */
+/* `margin-left: auto` rather than a second `justify-content`: it groups the toggle
+   with FILTER on the right and leaves the title where it was. The slot is empty for
+   every opener that has one destination, and an empty flex child would still eat the
+   head's gap. */
+.mpi-media-picker__dest {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+}
+
+.mpi-media-picker__dest:empty {
+    display: none;
+}
+
 /* ── FILTER (galleryFilterPanel.js, MPI-785) ─────────────────────────────── */
 .mpi-media-picker__filters {
     display: flex;

@@ -1552,6 +1552,75 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             return uploaded;
         }
 
+        /**
+         * MPI-887 — media the user chose in the Choose-media overlay with its destination
+         * switch flicked on, landing as an entry on THIS card.
+         *
+         * That is the only way a picture from a different gallery card can reach
+         * Composite: its slot takes an entry already in the open card's history and
+         * nothing else (`MpiToolOptionsComposite.js`). It is also why the picked branch
+         * COPIES rather than pointing a second entry at the source card's file —
+         * deleting a history entry deletes its file on disk, so a shared path would mean
+         * deleting either card guts the other. `/copy-item` clones the sidecar with it,
+         * so the entry keeps the prompt that made it.
+         *
+         * An IMPORT needs no copy: `uploadMediaFile` has already written the file and its
+         * sidecar into this project, and nothing else owns them.
+         *
+         * @param {{filePath: string, item?: object, uploaded?: object}} payload
+         */
+        async function _addPickedEntry({ item: picked, uploaded }) {
+            const project = state.currentProject;
+            if (!project?.folderPath || !project?.id) {
+                clientLogger.warn('MpiGroupHistoryBlock', 'No current project for a history pick');
+                return;
+            }
+            _setBusy(true);
+            try {
+                let src = uploaded;
+                if (!src) {
+                    const res = await fetch(`/project-media/${project.id}/copy-item`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            folderPath: project.folderPath,
+                            item: picked,
+                            type: _group.type,
+                            name: picked?.displayName || null,
+                        }),
+                    });
+                    const data = await res.json().catch(() => null);
+                    if (!res.ok || !data?.success) throw new Error(data?.error || `copy-item ${res.status}`);
+                    src = data;
+                }
+
+                const stem = (src.displayName || extractFilenameFromPath(src.filePath) || 'added')
+                    .replace(/\.[^.]+$/, '');
+                const entry = createImageItem({
+                    id:              src.itemId || crypto.randomUUID(),
+                    filePath:        src.filePath,
+                    operation:       'imported',
+                    displayName:     truncateCardName(stem),
+                    pixelDimensions: src.pixelDimensions || { w: 0, h: 0 },
+                    uploaded:        true,
+                    ...(src.thumbPath   ? { thumbPath:   src.thumbPath }   : {}),
+                    ...(src.thumbPathLg ? { thumbPathLg: src.thumbPathLg } : {}),
+                });
+
+                _group = appendToHistory(_group, entry);
+                _setCurrentIdx(_group.selectedIndex);
+                _persistGroup();
+                historyList.el.appendEntry(entry);
+                Events.emit('history:stats-dirty', { group: _group });
+                await viewer.el.loadEntry?.(entry, _currentIdx);
+            } catch (err) {
+                clientLogger.error('MpiGroupHistoryBlock', 'add picked media to history failed', err);
+                _showToast('Could not add that image to this card', 'error');
+            } finally {
+                _setBusy(false);
+            }
+        }
+
         const _dropOverlay = MpiMediaDropOverlay.mount(document.createElement('div'), {
             onDrop: async ({ files }) => {
                 // No Place/reference-media tool exists for gif yet (v1's tool
@@ -1825,6 +1894,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 _refreshOpOptions();
                 _syncPromptToolDisabled();
             }));
+            _unsubs.push(_pb.on('stage-to-history', (payload) => { _addPickedEntry(payload); }));
             _unsubs.push(_pb.on('run', ({ operation, positive, negative, negativeAudio, mediaItems, injectionParams, previewOnly }) => {
                 const maskDataUrl = viewer.el.hasMask?.()
                     ? viewer.el.getCurrentMaskDataURL?.()

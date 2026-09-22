@@ -66,6 +66,11 @@ import { MpiEnhanceDialog } from '../../Compounds/MpiEnhanceDialog/MpiEnhanceDia
  * Emits:
  *   'input' | 'mode-change' | 'media-change' | 'media-imported'
  *   'run' | 'cancel' | 'model-change' | 'operation-change'
+ *   'stage-to-history' { filePath, mediaType, item?, uploaded? } — MPI-887, `stageMedia`
+ *      only. The user armed the picker's "Add to history" toggle, so this media belongs
+ *      in the open card's history, not on the strip. `item` = a picked card's MediaItem,
+ *      which the listener must COPY; `uploaded` = a file just imported into the project,
+ *      which it must not. Exactly one of the two is set.
  *
  * Agent mode left this box in MPI-797 Phase 3. There is no Agent|Prompt toggle and no
  * agent face: the box is a prompt box in every workspace, always. The agent has its own
@@ -558,11 +563,24 @@ export const MpiPromptBox = ComponentFactory.create({
          * upload card, so a file reaches the strip identically whichever surface
          * brought it — the same split MpiToolOptionsPlace makes with `place.importFile`.
          */
-        async function _importMediaFile(file, mediaType) {
+        async function _importMediaFile(file, mediaType, { toHistory = false } = {}) {
             const project = state.currentProject;
             const uploaded = project
                 ? await uploadMediaFile(file, mediaType, project.folderPath, project.id)
                 : null;
+            // MPI-887: the picker's switch says this file is an entry on the open card,
+            // not a reference. It is ALREADY in the project (uploadMediaFile wrote the
+            // media and its sidecar), so there is nothing to copy — and `media:imported`
+            // is deliberately not emitted, because its listener would build a second,
+            // separate gallery card for the same file.
+            if (toHistory && uploaded) {
+                emit('stage-to-history', {
+                    filePath: uploaded.filePath,
+                    uploaded,
+                    mediaType,
+                });
+                return;
+            }
             // No project → a blob: url, which _saveMedia deliberately never persists.
             _tryAddMedia({
                 url: uploaded ? uploaded.filePath : URL.createObjectURL(file),
@@ -891,8 +909,19 @@ export const MpiPromptBox = ComponentFactory.create({
             _picker?.el?.destroy?.();
             _picker = MpiMediaPicker.mount(document.createElement('div'), {
                 mediaType: 'image',
-                onPick: ({ filePath }) => el.injectMedia({ url: filePath, mediaType: 'image' }),
-                onImport: (files) => { if (files?.[0]) _importMediaFile(files[0], 'image'); },
+                // MPI-887: the box's own destination is a reference chip, but the
+                // history workspace behind it has a second one — the open card's
+                // history, which is the only place Composite's slot can reach. The
+                // toggle only exists where `stageMedia` does, so the gallery box
+                // never offers a card it does not have.
+                ...(_stageMedia ? { toHistoryLabel: 'Add to history' } : {}),
+                onPick: ({ filePath, item, toHistory }) => {
+                    if (toHistory) emit('stage-to-history', { filePath, item, mediaType: 'image' });
+                    else el.injectMedia({ url: filePath, mediaType: 'image' });
+                },
+                onImport: (files, { toHistory } = {}) => {
+                    if (files?.[0]) _importMediaFile(files[0], 'image', { toHistory });
+                },
             });
             const close = () => { _picker?.el?.destroy?.(); _picker = null; };
             _picker.el.addEventListener('pick', close);

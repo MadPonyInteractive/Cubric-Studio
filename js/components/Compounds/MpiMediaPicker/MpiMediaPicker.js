@@ -54,9 +54,18 @@ import { mountGalleryFilter } from '../../galleryFilterPanel.js';
  *   picker.el.show();
  *
  * Props:
+ * TWO DESTINATIONS, WHEN THE OPENER HAS TWO (MPI-887). `toHistoryLabel` puts a toggle
+ * in the head and rides its state on both outcomes as `toHistory`. The picker still
+ * only ever reports what was chosen — it is the opener that owns the second
+ * destination, because only the opener knows what a "history entry" would attach to.
+ * Omit the prop and no toggle renders at all: a Flow slot, Place and the gallery
+ * toolbar have exactly one thing to do with a pick and are untouched.
+ *
  * @param {'image'|'video'|'audio'} [mediaType='image'] - The slot's type. The filter
  *        opens with every other kind hidden; the user can still widen it.
- * @param {Function} [onPick] - (item:{filePath:string,mediaType:string}) => void
+ * @param {string} [toHistoryLabel] - Label for the destination toggle. Omit it and the
+ *        toggle is not rendered and `toHistory` is always false.
+ * @param {Function} [onPick] - (item:{filePath:string,mediaType:string,item:object,toHistory:boolean}) => void
  * @param {Function} [onImport] - (files:File[]) => void — from the upload card.
  *        Omit it and the upload card is not rendered.
  * @param {'narration'|'character'|null} [voiceRoute=null] - Opt in to the shipped voice
@@ -72,8 +81,10 @@ import { mountGalleryFilter } from '../../galleryFilterPanel.js';
  *        Organism that opens an audio slot hands them in.
  *
  * Emits:
- * 'pick'   { filePath, mediaType } — a tile was chosen (modal closes)
- * 'import' { files }               — files chosen from disk, or one voice decoded from
+ * 'pick'   { filePath, mediaType, item, toHistory } — a tile was chosen (modal closes).
+ *                                    `item` is the source MediaItem, so an opener that
+ *                                    has to COPY the media has its id and renditions.
+ * 'import' { files, toHistory }    — files chosen from disk, or one voice decoded from
  *                                    the library (modal closes)
  * 'cancel' {}                      — Cancel pressed (NOT on Escape/backdrop)
  */
@@ -89,6 +100,7 @@ export const MpiMediaPicker = ComponentFactory.create({
         <div class="mpi-media-picker" role="dialog" aria-modal="true" aria-label="Choose media">
             <div class="mpi-media-picker__head">
                 <div class="mpi-media-picker__title">Choose media</div>
+                <div class="mpi-media-picker__dest" id="dest-slot"></div>
                 <div class="mpi-media-picker__filters" id="filters-slot"></div>
             </div>
             <div class="mpi-media-picker__grid" id="grid-slot"></div>
@@ -103,6 +115,28 @@ export const MpiMediaPicker = ComponentFactory.create({
         // is named for the mascot, not the media (styles/01_base.css).
         el.dataset.accent = slotType === 'image' ? 'vision' : slotType;
         let _preview = null;
+
+        // ── The destination toggle (MPI-887) ─────────────────────────────────
+        // The same shape as the FILTER button it sits beside — a toggleable ghost
+        // icon button, not a form switch: the head is a row of picker controls, and a
+        // switch read as a settings row dropped into it (Fabio, 2026-09-22).
+        //
+        // Deliberately NOT remembered between opens. A destination that silently stayed
+        // on would put the next pick somewhere the user did not look at, and a history
+        // entry is a file on disk, not a chip they can flick off.
+        // ponytail: no persistence; add one only if he asks for it after living with it.
+        let _destBtn = null;
+        let _dest = false;
+        if (props.toHistoryLabel) {
+            _destBtn = MpiButton.mount(qs('#dest-slot', el), {
+                icon: 'layers', label: props.toHistoryLabel, size: 'sm', variant: 'ghost',
+                toggleable: true,
+                extraClasses: 'mpi-media-picker__dest-btn',
+                info: 'Add what you pick to this card’s history instead of staging it as a reference',
+            });
+            _destBtn.on('toggle', ({ active }) => { _dest = active; });
+        }
+        const _toHistory = () => _dest;
 
         /** Real basename out of a `/project-file?path=<urlencoded absolute path>` URL. */
         function _basename(filePath) {
@@ -232,8 +266,9 @@ export const MpiMediaPicker = ComponentFactory.create({
                 const files = Array.from(importInput.files || []);
                 importInput.value = '';
                 if (!files.length) return;
-                props.onImport(files);
-                emit('import', { files });
+                const toHistory = _toHistory();
+                props.onImport(files, { toHistory });
+                emit('import', { files, toHistory });
                 modal.el.hide();
             }));
         }
@@ -566,7 +601,9 @@ export const MpiMediaPicker = ComponentFactory.create({
             }
 
             _unsubs.push(on(media, 'click', () => {
-                const picked = { filePath: item.filePath, mediaType: type };
+                // `item` rides along whole: an opener that has to COPY this media needs
+                // its id to find the sidecar and its renditions to copy them (MPI-887).
+                const picked = { filePath: item.filePath, mediaType: type, item, toHistory: _toHistory() };
                 props.onPick?.(picked);
                 emit('pick', picked);
                 modal.el.hide();
@@ -659,6 +696,7 @@ export const MpiMediaPicker = ComponentFactory.create({
             _unsubs.forEach(fn => fn());
             _unsubs.length = 0;
             cancel?.el?.destroy?.();
+            _destBtn?.el?.destroy?.();
             modal?.el?.destroy?.();
         };
     },
