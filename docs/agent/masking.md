@@ -1,9 +1,10 @@
 # Localised edits — working on a mask
 
 A **mask** is an area the user paints over one picture. Paint one and
-the operation works on that area alone, at the source image's own size. It is how any change
-confined to a region should be made: a maskless edit re-renders the whole picture, and a
-whole picture is almost never what the user asked to change.
+the operation works on that area alone, at the source image's own size. A maskless edit
+re-renders the whole picture instead — which is sometimes fine, and sometimes exactly the
+damage the user did not want. Which of the two a request wants is the first thing to settle,
+and it is not always yours to decide: see **Which route** below.
 
 **You never paint a mask. You ask for one, and then you use it.** The app hands whatever the
 user has painted to every generation you dispatch, so once they say it is drawn you simply
@@ -15,6 +16,28 @@ Masking is a property of the **app**, not of one model. Every local model with a
 operation honours a mask — Klein, Krea 2, Qwen, Boogu, Chroma, SDXL, Pony, Illustrious.
 Cloud models do not: nothing is painted on their side.
 
+## Which route
+
+A mask is more effective. It is not always worth what it costs the user, who has to paint
+it. Forcing one on every regional change is its own failure.
+
+One question settles it: **does the request name a PART of the picture?**
+
+| The ask | Route | Do you ask? |
+|---|---|---|
+| no part named — "make it night", "make this an oil painting" | whole picture | no, just run it |
+| a part, **and words protecting the rest** — "without changing anything else", "only this area", "keep the rest as it is" | masked | no, they chose already — ask for the mask |
+| a part, no such words — "change her hair to red", "change his pose" | either | yes — one line, both routes, your recommendation, then wait |
+
+> Fabio, 2026-09-22: *"a lot of these edits don't need a mask. The mask is more effective,
+> but shouldn't always be forced on the user."*
+
+Three bounds keep that third row from turning into a menu:
+
+- **At most three routes**, one line each, each naming what it does in the user's words.
+- **Only at a genuine fork.** A request with one honest answer gets no options.
+- **Always recommend one.** Never "here are your options, which would you like?"
+
 ## The one rule that changes your prompt
 
 **The model sees only what is inside the mask** — cropped out and blown up to fill the
@@ -23,8 +46,7 @@ it is noise the model tries to draw.
 
 Mask the boy's reflection in the river, and the prompt is:
 
-> convert the boy into a demon: glowing red eyes, sharp horns, pale grey skin, a sinister
-> grin
+> convert the boy into a demon version of himself
 
 Not the river, not the fishing rod, not the cartoon style, not "matching the surrounding
 scene". None of it is visible to the model, all of it competes with the instruction.
@@ -49,6 +71,21 @@ that crop is simply the picture.
 
 Prompt the **delta only**: what that area should become.
 
+### Keep it short
+
+Crop-local is necessary and not sufficient. The same mask was run again with a prompt that
+named nothing outside it:
+
+> convert the boy into a demon: glowing red eyes, sharp horns, pale grey skin, a sinister
+> grin
+
+The adjective list **replaced** the boy instead of transforming him — the likeness went with
+it, and the plain `convert the boy into a demon version of himself` kept more of it. Both
+rendered, Fabio, 2026-09-22.
+
+So for the edit family: a **verb** and a **target**. Add a detail only when the user named
+that detail themselves.
+
 ## The shape depends on the op
 
 Three ops, three ways of writing the same ask. Using one op's shape on another wastes the
@@ -57,7 +94,7 @@ run — ask what the model is looking at, and what it is being asked to do with 
 **`edit` / `kleinEdit` / `krea2Edit` / `qwenEdit` — an instruction.** A verb, on what is
 already there. It re-renders the mask, so tell it what to make of it.
 
-> convert the boy into a demon: glowing red eyes, sharp horns, pale grey skin, a sinister grin
+> convert the boy into a demon version of himself
 
 **`detail` — a description of what is already there.** A noun phrase, not an instruction:
 there is no verb for it to follow. Mask a face and describe the face you want that face to
@@ -99,10 +136,20 @@ result comes back reporting success.
 So when the ask is local, do not reach for `inpaint` because it is the op that mentions masks.
 Reach for the op that matches the job, and make sure a mask is painted.
 
+### When it comes back wrong
+
+Nothing about the graph predicts which op wins on a given picture. `inpaint` beat `kleinEdit`
+on the reflection above, which `kleinEdit` was the obvious choice for (Fabio, 2026-09-22).
+
+So the next move after a bad result is a **different op**, or a **simpler prompt** — never
+more adjectives on the same one. Piling detail onto a prompt that already missed is how a
+run gets spent twice for one answer.
+
 ## The flow
 
-1. The user asks for a change confined to a region.
-2. Say so, and ask for the mask: name the op you will run, say what to paint over, and tell
+1. The user asks for a change to part of a picture. Settle the route first (**Which route**):
+   a mask, or the whole picture. If it is theirs to choose, offer it in one line and wait.
+2. Once a mask is the route: name the op you will run, say what to paint over, and tell
    them the way there in the app's own words: click the card in the gallery to open it, then
    pick the Mask tool from the toolbar down the left. Never say "History" or "the History
    workspace" to them - that is our name for it and it is written nowhere on screen. A

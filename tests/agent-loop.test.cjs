@@ -645,6 +645,88 @@ test('the agent routes the user to the mask in the words the app actually uses',
     assert.doesNotMatch(honest[0], /History/i);
 });
 
+/**
+ * MPI-888, out of MPI-877 round 3. The Masking rule funnelled EVERY regional change into a
+ * painted mask. Fabio: "any edit can be just an edit. It doesn't need to be a localised
+ * edit ... The mask is more effective, but shouldn't always be forced on the user."
+ *
+ * The fork is one question — does the ask name a PART of the picture — with three answers,
+ * because two of the three are not a choice at all: a whole-picture ask has no fork, and an
+ * ask that already says "without changing anything else" has chosen. Only the middle case is
+ * the user's, and it is the one that was being decided for them.
+ */
+test('the Route rule offers the two routes instead of forcing a mask', () => {
+    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
+    const rule = loop.slice(loop.indexOf('Route rule:'), loop.indexOf('\n', loop.indexOf('Route rule:')));
+    assert.ok(rule, 'there is a Route rule');
+    // The one question, and each of its three answers.
+    assert.match(rule, /does the request name a PART of the picture/);
+    assert.match(rule, /No part named[\s\S]*run it, ask nothing/);
+    assert.match(rule, /words that protect the rest[\s\S]*ask for the mask, offer nothing else/);
+    assert.match(rule, /the choice is\s+theirs|the choice is theirs/);
+    // Fabio's words, because the rule exists against the reflex, not against a bug.
+    assert.match(rule, /shouldn't always be forced on the user/);
+    // The three bounds, or the offer becomes a menu on every turn.
+    assert.match(rule, /at most THREE routes/);
+    assert.match(rule, /only at a GENUINE fork/);
+    assert.match(rule, /always RECOMMEND one/);
+
+    // The Masking rule now starts AFTER that fork rather than declaring it.
+    const masking = loop.slice(loop.indexOf('Masking rule:'), loop.indexOf('\n', loop.indexOf('Masking rule:')));
+    assert.match(masking, /once a mask is the route \(Route rule\)/);
+    assert.doesNotMatch(masking, /is a masked edit, and it is how every local model does localised work/);
+
+    const doc = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'docs', 'agent', 'masking.md'), 'utf8');
+    assert.match(doc, /## Which route/);
+    assert.match(doc, /shouldn't always be forced on the user/);
+});
+
+/**
+ * The worked example in the system prompt WAS the prompt that failed. It was written down
+ * last session as the prompt the model "needed" and never rendered before being written.
+ * Fabio rendered both: the adjective list replaced the boy instead of transforming him and
+ * the likeness went with it, while the plain instruction kept more of him.
+ *
+ * This is the highest-leverage string in the rule — the model copies the example it is shown,
+ * which is the whole reason the pair was moved into the system prompt in the first place.
+ */
+test('the worked example is the prompt that rendered well, and the long one is its counter-example', () => {
+    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
+    const rule = loop.slice(loop.indexOf('Masking rule:'), loop.indexOf('\n', loop.indexOf('Masking rule:')));
+    assert.match(rule, /The prompt it needed was "convert the boy into a demon version of himself"/);
+    // The adjective list still appears — as what went wrong, never as the thing to copy.
+    assert.match(rule, /the adjective list REPLACED the boy/);
+    assert.match(rule, /losing the likeness the shorter prompt kept/);
+    // And the shape it demonstrates, stated so it generalises past this one picture.
+    assert.match(rule, /the instruction is a VERB and a TARGET/);
+    assert.match(rule, /add a detail only when the user named it themselves/);
+
+    const doc = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'docs', 'agent', 'masking.md'), 'utf8');
+    assert.match(doc, /### Keep it short/);
+    assert.match(doc, /> convert the boy into a demon version of himself/);
+    // The doc taught the long prompt in TWO places; neither may still recommend it.
+    assert.doesNotMatch(doc, /^> convert the boy into a demon: glowing red eyes, sharp horns, pale grey skin, a sinister grin$/m);
+});
+
+/**
+ * Fabio found `inpaint` beat `kleinEdit` on the reflection — the picture `kleinEdit` was the
+ * obvious choice for. "Different cases sometimes need different approaches." Nothing in the
+ * rule said what to do with a bad masked result, and the reflex is to add adjectives to the
+ * prompt that just missed, which spends a second run answering the same question.
+ */
+test('a bad masked result moves to another op or a shorter prompt, never more adjectives', () => {
+    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
+    const rule = loop.slice(loop.indexOf('Route rule:'), loop.indexOf('\n', loop.indexOf('Route rule:')));
+    assert.match(rule, /a DIFFERENT OP or a SIMPLER PROMPT, never more adjectives/);
+    assert.match(rule, /inpaint beat kleinEdit/);
+    // Say which op is going out, so the user can redirect it before the GPU spends.
+    assert.match(rule, /say which op you are sending/);
+
+    const doc = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'docs', 'agent', 'masking.md'), 'utf8');
+    assert.match(doc, /### When it comes back wrong/);
+    assert.match(doc, /never\s+more adjectives on the same one/);
+});
+
 test('a generation that never landed survives a restart as a project note, and landing removes it', async () => {
     const project = { folderPath: '/project', name: 'Test' };
     const store = new Map(); // file -> { title, hook, text }: the project's Agent/ folder
