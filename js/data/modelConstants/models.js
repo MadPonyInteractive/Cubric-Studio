@@ -971,7 +971,7 @@ export const MODELS = [
         // and completing. The minimum card is NOT set here — the Model Library derives it
         // from the weights via tradeTable() (footprint.js), labelled an estimate.
         sizeTier: 'low',
-        featured: true,
+        featured: false,         // 9B carries the featured slot for the family
         // The SIZE goes in the name (MPI-619). 4B and 9B are one architecture, but the
         // public knows them as two named models and their LoRAs do not interchange, so a
         // shared name plus an L/B letter read as one model in two speeds — which is how a
@@ -1119,7 +1119,7 @@ export const MODELS = [
         // L/B badge only renders once 2+ tiers of the family are installed, so a 4B-only
         // user sees no change from 4B gaining the family key.
         sizeTier: 'balanced',
-        featured: false,          // 4B carries the featured slot for the family
+        featured: true,
         name: 'FLUX.2 Klein 9B',  // see 4B's note — the size is part of the name (MPI-619)
         modelFamily: 'FLUX.2-Klein',
         dropdownMeta: 'PHOTO',
