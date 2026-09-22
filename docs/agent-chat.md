@@ -379,3 +379,33 @@ so the model button and cog are simply always there.
 - **Rejected, do not rebuild:** "every setting the user did not ask for is THEIRS, the box wins". A
   beginner never opens the panel, so a previous session's leftovers contaminate everything. "The
   panel wins" is only safe when somebody is tending the panel.
+
+## The open workspace (MPI-890, Fabio 2026-09-22)
+
+`workspace` rides the same five seams as `pinned` above — `agentService._workspaceForTurn()` →
+`POST /agent/message` and `/agent/wake` → `agentSessions.send` → `runTurn` →
+`AgentLoop._appStateLine` — and exists for the same reason: renderer UI state the agent cannot
+otherwise see. Fabio: *"If the user is in the history workspace, he shouldn't be forced to go into
+the gallery space to drag an image and send it to the agent."* He could not — that view has no drag
+surface, so with a card open the agent's only honest moves were `list_cards` or asking for an
+attachment.
+
+- **Shape:** `{ page, groupId, card: { name, type }, activeEntry: { itemId, filePath, modelId } }`.
+  Only the group-history page fills the last three; everywhere else it is page-only.
+- **The live selection needs no new plumbing.** `MpiGroupHistoryBlock` promotes and persists
+  `group.selectedIndex` on every `entry-selected`, so `state.currentProject` already holds which
+  entry is in front of the user.
+- **The entry carries its PATH, and the path is checked at the route.** `_sanitiseWorkspace` in
+  `routes/agent.js` resolves it against the project and runs it through `agentCards.ownedMedia`,
+  the same containment the video-by-reference attachment uses — `look` and `generate` ship what the
+  allowlist names to the engine, which may be a remote Pod. An entry that fails the check costs the
+  agent the shortcut, never the turn.
+- **It is sanitised with the staging awaits, not after `sessions.busy()`.** D4 requires nothing
+  async between that decision and the hand-off; putting the check after it queues a turn nothing
+  drains. `tests/agent-sessions.test.cjs` pins the ordering on the source, and it caught exactly
+  this.
+- **Registered before the App state line is built.** `_registerWorkspaceEntry` puts the entry in
+  `_images`, so the ref the line names is one `look` and `generate` can actually resolve — the
+  invariant that line documents about itself.
+- **No workspace on a CARRY.** The carried half of a request runs in a different project; the view
+  belongs to the one the user left.

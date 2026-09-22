@@ -157,14 +157,15 @@ export class AgentSessions {
      * another project, if any. The caller does not wait for this.
      * @param {{text: string, attachments: Array, project: ?{folderPath: string, name: string},
      *          mode: string, profileId: string, turnId: string, model?: string, carried?: boolean,
-     *          pinned?: ?{modelId: string, name: string, mediaType: string, ops: string[]}}} turn
+     *          pinned?: ?{modelId: string, name: string, mediaType: string, ops: string[]},
+     *          workspace?: ?{page: string, groupId: ?string, card: ?object, activeEntry: ?object}}} turn
      * @returns {Promise<string>} the key of the conversation the turn ran in
      */
     async send(turn) {
         const key = projectKey(turn.project?.folderPath);
         const loop = this._loops.get(key) || this._newLoop(key);
         try {
-            await loop.runTurn(turn.text, turn.attachments, turn.project || null, turn.mode, turn.profileId, turn.turnId, { model: turn.model, carried: !!turn.carried, pinned: turn.pinned || null, wake: !!turn.wake });
+            await loop.runTurn(turn.text, turn.attachments, turn.project || null, turn.mode, turn.profileId, turn.turnId, { model: turn.model, carried: !!turn.carried, pinned: turn.pinned || null, workspace: turn.workspace || null, wake: !!turn.wake });
         } finally {
             // The carry first: it is the second half of the request already running. Then what
             // the user typed meanwhile, oldest first (MPI-840) — that send drains the rest.
@@ -205,6 +206,9 @@ export class AgentSessions {
             // The panel does not change between the two halves of one carried request, so
             // the carried turn is told the same pinned model the original was (MPI-774 P7).
             pinned: turn.pinned || null,
+            // No workspace (MPI-890): the carry runs in a DIFFERENT project, and the view the
+            // user is standing in belongs to the one they left. Carrying it would point the
+            // agent at a card that is not open where the turn now runs.
             turnId: crypto.randomUUID(),
             carried: true,
         };

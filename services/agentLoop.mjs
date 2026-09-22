@@ -744,7 +744,7 @@ export class AgentLoop {
      * refs `look`/`generate` resolve (the `_images` allowlist, so the two cannot differ).
      * ponytail: the latest 8 refs; a longer session lists what it most likely means.
      */
-    _appStateLine(project) {
+    _appStateLine(project, workspace = null) {
         const where = project
             ? `project "${project.name}" is open. Generations land there.`
             : 'no project is open. A generation needs one: ask the user to open or create a project.';
@@ -761,7 +761,13 @@ export class AgentLoop {
         // "none" here once read as "the project is empty": live, 2026-09-19, the agent told
         // Fabio it could not see the duck picture in a project holding eighteen cards.
         const more = project ? ' That is only what THIS conversation has touched; the project holds more, and list_cards reaches it.' : '';
-        return `[App state: ${where} Images you can look at: ${refs.length ? refs.join(', ') : 'none'}.${more} A ref with no "made by" was not made here, so you do not know what made it — say so rather than guessing, and never assume it came from the model selected now.]`;
+        // MPI-890: where the user is STANDING. With a card open they are looking at one
+        // entry and there is no drag surface in that view, so "this image" means that entry
+        // and nothing else — it is registered above, so the ref named here resolves.
+        const standing = workspace?.activeEntry?.filePath
+            ? ` The user is looking at the card "${workspace.card?.name || 'untitled'}", and the entry open in front of them is ${workspace.activeEntry.filePath}. "This image", "it" and "this one" mean that entry.`
+            : '';
+        return `[App state: ${where}${standing} Images you can look at: ${refs.length ? refs.join(', ') : 'none'}.${more} A ref with no "made by" was not made here, so you do not know what made it — say so rather than guessing, and never assume it came from the model selected now.]`;
     }
 
     /**
@@ -791,6 +797,21 @@ export class AgentLoop {
         if (!key) return false;
         if (this._projects.has(key) || key === projectKey(currentProject?.folderPath)) return true;
         return this._history.some((e) => e.kind === 'user' && projectKey(e.text).includes(key));
+    }
+
+    /**
+     * MPI-890 — register the entry the user is looking at, so "this image" resolves.
+     *
+     * The path arrived already checked against the open project's Media/ by
+     * `_sanitiseWorkspace` in `routes/agent.js`; registering it here is what makes the
+     * App state line and the `_images` allowlist agree, which is the one invariant that
+     * line documents about itself. Nothing is registered when the user is not standing in
+     * a card, and re-registering the same entry on a later turn is a no-op by key.
+     */
+    _registerWorkspaceEntry(workspace) {
+        const entry = workspace?.activeEntry;
+        if (!entry?.filePath) return;
+        this._registerResult(entry.filePath, entry.modelId, entry.itemId);
     }
 
     /** Register a generation's output so a later `look` or reference can name it. */
@@ -1279,7 +1300,7 @@ Installation rule: Always call install_model to show the user a Yes / No confirm
 
 Project rule: a generation lands in the open project. Never invent a folder path: open_project only takes a folderPath from list_projects or create_project, or one the user typed. To open a project by name, find it with list_projects. With no project open: if the user asks for anything to be MADE, create a project named after what they are making (create_project opens it for you) and make it in that same turn — never ask them to open or create one first, that is your job. Background they give you (the story, the era, who the characters are) is material for the work, never a reason to stop: note what will matter later with write_memory, then still make what they asked for, all of it. Only when they describe a project and ask for NOTHING to be made do you end the turn by asking what they want first.
 
-Cards rule: the App state line lists only what this conversation has touched. The open project holds everything made before it, and list_cards reads it. When the user points at something already there ("the duck video", "the last one", "that picture", a card's name) and no ref for it is listed, call list_cards BEFORE telling them you cannot see it and before asking them to attach anything. Read one card in full when its prompt or settings matter: to redo it with a change, to continue it, or to work out what was made from what (madeFrom). What a card says it ran is the truth about that file; your own memory of a run is not. Which one is "the last", "the latest" or "the one before" is answered by the list's order, newest first, and it counts everything in the project: what the user made by hand, and what you made in a conversation you no longer remember. A project note never answers it: a note holds only what you chose to write down, and the newest card is often missing from it. If a generation of yours reported a failure, check list_cards before you redo it: the file may have landed anyway, and a second run of the same thing wastes minutes of the user's GPU.
+Cards rule: the App state line lists only what this conversation has touched. The open project holds everything made before it, and list_cards reads it. When the App state line says the user is looking at a card, they are standing in that card's history view: "this image", "it" and "this one" mean the entry it names, and there is no drag surface in that view for them to attach anything from. Work on that entry — do not call list_cards to find what is already in front of them, and never ask them to attach it. When the user points at something already there ("the duck video", "the last one", "that picture", a card's name) and no ref for it is listed, call list_cards BEFORE telling them you cannot see it and before asking them to attach anything. Read one card in full when its prompt or settings matter: to redo it with a change, to continue it, or to work out what was made from what (madeFrom). What a card says it ran is the truth about that file; your own memory of a run is not. Which one is "the last", "the latest" or "the one before" is answered by the list's order, newest first, and it counts everything in the project: what the user made by hand, and what you made in a conversation you no longer remember. A project note never answers it: a note holds only what you chose to write down, and the newest card is often missing from it. If a generation of yours reported a failure, check list_cards before you redo it: the file may have landed anyway, and a second run of the same thing wastes minutes of the user's GPU.
 
 Docs rule: when you cannot answer a question about the app itself — a feature you have no tool for, a screen you cannot see, a setting you do not know — say so plainly and point them at the documentation as a markdown link, [the documentation](https://docs.cubric.studio). Offer it instead of guessing at how the app works. It is for questions about Vision, not for image or video advice, which is yours to answer.
 
@@ -1835,7 +1856,7 @@ ${knowledgeIndex}`.trim();
     // Run a turn (called by POST /agent/message)
     // -------------------------------------------------------------------------
 
-    async runTurn(text, attachments, project, mode, profileId, turnId, { model: pickedModel, carried = false, pinned = null, wake = false } = {}) {
+    async runTurn(text, attachments, project, mode, profileId, turnId, { model: pickedModel, carried = false, pinned = null, workspace = null, wake = false } = {}) {
         // MPI-870: the streak is what the runaway bound counts, and anything the user
         // actually typed clears it. Reset BEFORE the turn runs — a wake that dispatches a
         // generation must see its own predecessor's count, not a cleared one.
@@ -1923,7 +1944,10 @@ ${knowledgeIndex}`.trim();
             const woke = wake
                 ? '[Nothing was typed: your generations have finished and this turn exists to report them. Say what landed, briefly, the way you would to someone who walked back to the screen. Do not start new work unless they already asked for it.]'
                 : '';
-            const opening = [this._appStateLine(project), this._pinnedSettingsLine(pinned), handover, woke, await this._projectNotesLine(project), ...this._notes.splice(0)];
+            // MPI-890: register the open card's active entry BEFORE the App state line is
+            // built, so the line lists it among the refs it is the allowlist for.
+            this._registerWorkspaceEntry(workspace);
+            const opening = [this._appStateLine(project, workspace), this._pinnedSettingsLine(pinned), handover, woke, await this._projectNotesLine(project), ...this._notes.splice(0)];
             contentParts.unshift(...opening.filter(Boolean).map((t) => ({ type: 'text', text: t })));
 
             // Add user message to LLM context (plain text for OpenAI compat)

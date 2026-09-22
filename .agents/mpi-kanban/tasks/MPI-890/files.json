@@ -1,0 +1,14 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "task": "MPI-890",
+  "owner_session": ".agents/mpi-kanban/state/sessions/eca958d8-5c1e-4d04-8719-db5c2b2417bc.json",
+  "updated_at": "2026-09-22T11:55:11Z",
+  "files": [
+    "js/services/agentService.js",
+    "routes/agent.js",
+    "services/agentSessions.mjs",
+    "services/agentLoop.mjs",
+    "tests/agent-loop.test.cjs",
+    "docs/agent-chat.md"
+  ]
+}

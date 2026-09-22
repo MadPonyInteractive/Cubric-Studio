@@ -2380,3 +2380,122 @@ test('LIVE: real loop against fake tools with DeepInfra', { skip: !process.env.D
 
     assert.ok(msgEvt || toolEvts.length > 0, 'Live run should produce at least a message or tool call');
 });
+
+// ---------------------------------------------------------------------------
+// (e) MPI-890 — the agent reads the open workspace
+// ---------------------------------------------------------------------------
+
+/**
+ * Fabio, 2026-09-22: "If the user is in the history workspace, he shouldn't be forced to go
+ * into the gallery space to drag an image and send it to the agent." He could not: the App
+ * state line carried the open project and this conversation's refs and nothing else, so with
+ * a card open the agent's only honest moves were list_cards or asking for an attachment —
+ * and that view has no drag surface to attach from.
+ */
+describe('(e) the open workspace reaches the agent', () => {
+    const PROJECT = require('node:path').join(require('node:os').tmpdir(), 'mpi890-project');
+    const ENTRY = require('node:path').join(PROJECT, 'Media', 'g1', 'i1.png');
+
+    const workspace = () => ({
+        page: 'group-history',
+        groupId: 'g1',
+        card: { name: 'Demon boy', type: 'image' },
+        activeEntry: { itemId: 'i1', filePath: ENTRY, modelId: 'klein-9b' },
+    });
+
+    test('the App state line names the card and the entry in front of the user', async () => {
+        const AgentLoop = await loadAgentLoop();
+        const loop = new AgentLoop();
+        const ws = workspace();
+        loop._registerWorkspaceEntry(ws);
+        const line = loop._appStateLine({ name: 'Demons', folderPath: PROJECT }, ws);
+
+        assert.match(line, /The user is looking at the card "Demon boy"/);
+        assert.ok(line.includes(ENTRY), 'the line must name the entry, not just the card');
+        assert.match(line, /"This image", "it" and "this one" mean that entry/);
+    });
+
+    /**
+     * The invariant the App state line documents about ITSELF: it is the only set of refs
+     * `look` and `generate` resolve, "so the two cannot differ". An entry named in the line
+     * but missing from `_images` is a picture the agent offers and then cannot open.
+     */
+    test('the named entry resolves through the _images allowlist', async () => {
+        const AgentLoop = await loadAgentLoop();
+        const loop = new AgentLoop();
+        loop._registerWorkspaceEntry(workspace());
+
+        const resolved = loop._resolveImage(ENTRY);
+        assert.ok(resolved, 'the entry named in the App state line must resolve for look/generate');
+        assert.equal(resolved.path, ENTRY);
+        assert.equal(resolved.modelId, 'klein-9b', 'provenance travels with it, per MPI-817');
+        assert.equal(resolved.itemId, 'i1', 'the itemId is what lets a look be stored on the card');
+    });
+
+    test('no card open: the line says nothing about standing anywhere', async () => {
+        const AgentLoop = await loadAgentLoop();
+        const loop = new AgentLoop();
+        const ws = { page: 'gallery', groupId: null, card: null, activeEntry: null };
+        loop._registerWorkspaceEntry(ws);
+
+        const line = loop._appStateLine({ name: 'Demons', folderPath: PROJECT }, ws);
+        assert.doesNotMatch(line, /The user is looking at/);
+        assert.equal(loop._images.size, 0, 'nothing to register means nothing registered');
+        // And a turn that predates the renderer change sends no workspace at all.
+        assert.doesNotMatch(loop._appStateLine({ name: 'Demons', folderPath: PROJECT }), /The user is looking at/);
+    });
+
+    test('the Cards rule stops list_cards and the attachment ask when a card is open', () => {
+        const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
+        const rule = loop.slice(loop.indexOf('Cards rule:'), loop.indexOf('\n', loop.indexOf('Cards rule:')));
+        assert.match(rule, /no drag surface in that view/);
+        assert.match(rule, /do not call list_cards to find what is already in front of them/);
+        assert.match(rule, /never ask them to attach it/);
+    });
+
+    /**
+     * The trust boundary. `look` and `generate` ship whatever the allowlist names to the
+     * engine, which may be a remote Pod, so a filePath from the renderer is checked against
+     * the open project's Media/ before it ever reaches the loop.
+     */
+    describe('the route checks the entry before the loop registers it', () => {
+        const { _sanitiseWorkspace } = require('../routes/agent.js');
+        const project = { folderPath: PROJECT, name: 'Demons' };
+
+        test('an entry inside the project Media/ survives, resolved to an absolute path', async () => {
+            const clean = await _sanitiseWorkspace({
+                page: 'group-history',
+                groupId: 'g1',
+                card: { name: 'Demon boy', type: 'image' },
+                activeEntry: { itemId: 'i1', filePath: 'Media/g1/i1.png', modelId: 'klein-9b' },
+            }, project);
+
+            assert.equal(clean.activeEntry.filePath, ENTRY);
+            assert.equal(clean.activeEntry.itemId, 'i1');
+            assert.equal(clean.card.name, 'Demon boy');
+        });
+
+        test('an entry outside the project Media/ is dropped, and the turn survives', async () => {
+            const clean = await _sanitiseWorkspace({
+                page: 'group-history',
+                groupId: 'g1',
+                card: { name: 'Demon boy', type: 'image' },
+                activeEntry: { itemId: 'i1', filePath: '../../../secrets.png', modelId: null },
+            }, project);
+
+            assert.equal(clean.activeEntry, null, 'a path outside Media/ must not become a ref');
+            assert.equal(clean.page, 'group-history', 'losing the entry costs the shortcut, never the turn');
+        });
+
+        test('no project open: there is nothing to contain the entry against, so it is dropped', async () => {
+            const clean = await _sanitiseWorkspace({
+                page: 'group-history',
+                groupId: 'g1',
+                card: null,
+                activeEntry: { itemId: 'i1', filePath: 'Media/g1/i1.png', modelId: null },
+            }, null);
+
+            assert.equal(clean.activeEntry, null);
+        });
+    });
+});

@@ -2,8 +2,8 @@
  * agentService.js — MPI-774: HTTP + SSE client for the in-app agent.
  *
  * Routes:
- *   POST /agent/message   { text, attachments, project, mode, model, profileId, pinned } → { ok, turnId, session }
- *   POST /agent/wake      { project, mode, model, profileId, pinned } → { ok, woke, session }
+ *   POST /agent/message   { text, attachments, project, mode, model, profileId, pinned, workspace } → { ok, turnId, session }
+ *   POST /agent/wake      { project, mode, model, profileId, pinned, workspace } → { ok, woke, session }
  *   GET  /agent/stream    SSE with named events (bridged to the app event bus)
  *   GET  /agent/history?project= → { ok, session, working, pendingConfirm, usage, entries }
  *   POST /agent/confirm   { confirmId, yes }
@@ -27,6 +27,7 @@ import { Events } from '../events.js';
 import { on } from '../utils/dom.js';
 import { state } from '../state.js';
 import { pinnedModel } from '../shell/agentDispatch.js';
+import { PAGE_GROUP_HISTORY } from '../router.js';
 import { isOperationInstalled } from '../data/modelRegistry.js';
 
 export const AGENT_EVENT_NAMES = [
@@ -108,6 +109,7 @@ export async function agentWake() {
                 model,
                 profileId,
                 pinned: _pinnedForTurn(),
+                workspace: _workspaceForTurn(),
             }),
         });
         return res.ok ? res.json() : { ok: false };
@@ -140,6 +142,44 @@ function _pinnedForTurn() {
 }
 
 /**
+ * Which workspace the user is standing in, and the entry in front of them (MPI-890).
+ *
+ * The same shape of telling as `pinned` above, and for the same reason: renderer UI state
+ * the agent cannot otherwise see. Fabio, 2026-09-22: "If the user is in the history
+ * workspace, he shouldn't be forced to go into the gallery space to drag an image and send
+ * it to the agent." He could not — the history view has no drag surface, so with a card
+ * open the agent's only honest moves were list_cards or asking for an attachment.
+ *
+ * `activeEntry` carries the entry's PATH, not just its id: the App state line is the only
+ * set of refs `look` and `generate` resolve, so an entry the agent is told about has to be
+ * resolvable by that same path or it names a picture it cannot then open.
+ *
+ * The group's own `selectedIndex` is the live selection — MpiGroupHistoryBlock promotes and
+ * persists it on every `entry-selected` — so nothing new has to be plumbed through the view.
+ * @returns {{page:string, groupId:?string, card:?{name:string,type:string},
+ *            activeEntry:?{itemId:string, filePath:string, modelId:?string}}}
+ */
+function _workspaceForTurn() {
+    const page = state.currentPage;
+    const groupId = state.currentParams?.groupId || null;
+    const base = { page, groupId: null, card: null, activeEntry: null };
+    if (page !== PAGE_GROUP_HISTORY || !groupId) return base;
+
+    const group = (state.currentProject?.itemGroups || []).find((g) => g.id === groupId);
+    if (!group) return base;
+
+    const item = group.history?.[group.selectedIndex ?? 0] || null;
+    return {
+        page,
+        groupId,
+        card: { name: group.customName || group.name, type: group.type },
+        activeEntry: item?.filePath
+            ? { itemId: item.id, filePath: item.filePath, modelId: item.modelId || null }
+            : null,
+    };
+}
+
+/**
  * POST /agent/message
  * @param {string} text
  * @param {Array}  attachments  — array of { dataUrl, name } objects
@@ -162,6 +202,8 @@ export async function agentSendMessage(text, attachments, project) {
         // can change it between turns; null when the panel is shut and the model is the
         // agent's own to pick. agentDispatch is what ENFORCES it; this only informs.
         pinned: _pinnedForTurn(),
+        // MPI-890: which workspace the user is standing in, and the entry in front of them.
+        workspace: _workspaceForTurn(),
     };
     const res = await window.fetch('/agent/message', {
         method: 'POST',

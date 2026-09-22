@@ -70,12 +70,44 @@ const _bad = (res, message) =>
 const _unavailable = (res, err) =>
     res.json({ ok: false, error: { code: 'ENDPOINT_ERROR', message: err.message } });
 
+/**
+ * MPI-890 — the workspace the renderer says the user is standing in, with its active entry
+ * resolved to an absolute path inside the open project's Media/, or dropped.
+ *
+ * The loop registers that entry in the `_images` allowlist, and `look` / `generate` ship
+ * whatever it names to the engine — which may be a remote Pod. So the path is checked HERE,
+ * at the boundary, by the same `ownedMedia` the video-by-reference attachment above uses.
+ * An entry that fails the check costs the agent the shortcut, never the turn.
+ */
+async function _sanitiseWorkspace(workspace, project) {
+    if (!workspace || typeof workspace.page !== 'string') return null;
+    const entry = workspace.activeEntry;
+    const clean = {
+        page: workspace.page,
+        groupId: typeof workspace.groupId === 'string' ? workspace.groupId : null,
+        card: workspace.card && typeof workspace.card.name === 'string' ? workspace.card : null,
+        activeEntry: null,
+    };
+    if (!entry || typeof entry.filePath !== 'string' || !project?.folderPath) return clean;
+
+    const { ownedMedia } = await import('../services/agentCards.mjs');
+    const owned = ownedMedia(project.folderPath, path.resolve(project.folderPath, entry.filePath));
+    if (owned) {
+        clean.activeEntry = {
+            itemId: typeof entry.itemId === 'string' ? entry.itemId : null,
+            filePath: owned,
+            modelId: typeof entry.modelId === 'string' ? entry.modelId : null,
+        };
+    }
+    return clean;
+}
+
 // ---------------------------------------------------------------------------
 // POST /agent/message
 // ---------------------------------------------------------------------------
 
 router.post('/agent/message', async (req, res) => {
-    const { text, attachments, project, mode, profileId, model, pinned } = req.body || {};
+    const { text, attachments, project, mode, profileId, model, pinned, workspace } = req.body || {};
 
     if (!text && !(Array.isArray(attachments) && attachments.length)) {
         return _bad(res, 'body.text or body.attachments is required.');
@@ -97,6 +129,9 @@ router.post('/agent/message', async (req, res) => {
     // a turn that arrives without it loses the telling, never the gate.
     if (pinned != null && (typeof pinned !== 'object' || typeof pinned.modelId !== 'string')) {
         return _bad(res, 'body.pinned must be null or { modelId, name, mediaType, ops }.');
+    }
+    if (workspace != null && (typeof workspace !== 'object' || typeof workspace.page !== 'string')) {
+        return _bad(res, 'body.workspace must be null or { page, groupId, card, activeEntry }.');
     }
 
     let sessions;
@@ -136,6 +171,10 @@ router.post('/agent/message', async (req, res) => {
         }
     }
 
+    // MPI-890: with the staging awaits, not after the decision below — the workspace check
+    // is another await, and D4 requires nothing async between busy() and the hand-off.
+    const turnWorkspace = await _sanitiseWorkspace(workspace, project);
+
     // D4: one turn at a time, whichever conversation it is in. A message sent while one is
     // running WAITS for it (MPI-840) — it used to be answered BUSY and the text was lost.
     // Decided HERE, after the staging awaits and with nothing async before the hand-off
@@ -154,7 +193,7 @@ router.post('/agent/message', async (req, res) => {
     // Run the turn asynchronously. The STAGED records go in, not the raw data URLs:
     // staging them a second time would give the chat and the model different ids for
     // the same picture, and the loop registers these ids as the images it may read.
-    const turn = { text: text || '', attachments: stagedAttachments, project: project || null, mode, profileId, turnId, model, pinned: pinned || null };
+    const turn = { text: text || '', attachments: stagedAttachments, project: project || null, mode, profileId, turnId, model, pinned: pinned || null, workspace: turnWorkspace };
     if (queued) return sessions.queue(turn);
     sessions.send(turn)
         .catch((err) => logger.error('agent', `runTurn unhandled: ${err.message}`));
@@ -176,7 +215,7 @@ router.post('/agent/message', async (req, res) => {
 // That no-op is the contract: it lets the renderer post on every project open without
 // deciding anything.
 router.post('/agent/wake', async (req, res) => {
-    const { project, mode, profileId, model, pinned } = req.body || {};
+    const { project, mode, profileId, model, pinned, workspace } = req.body || {};
 
     if (!profileId) {
         return res.json({ ok: false, error: { code: 'NO_PROFILE', message: 'body.profileId is required.' } });
@@ -187,11 +226,14 @@ router.post('/agent/wake', async (req, res) => {
     if (project != null && (typeof project !== 'object' || typeof project.folderPath !== 'string')) {
         return _bad(res, 'body.project must be null or { folderPath, name }.');
     }
+    if (workspace != null && (typeof workspace !== 'object' || typeof workspace.page !== 'string')) {
+        return _bad(res, 'body.workspace must be null or { page, groupId, card, activeEntry }.');
+    }
 
     let sessions;
     try { sessions = await getSessions(); } catch (err) { return _unavailable(res, err); }
 
-    res.json(sessions.wake({ project: project || null, mode, profileId, model, pinned: pinned || null }));
+    res.json(sessions.wake({ project: project || null, mode, profileId, model, pinned: pinned || null, workspace: await _sanitiseWorkspace(workspace, project) }));
 });
 
 // ---------------------------------------------------------------------------
@@ -289,3 +331,6 @@ router.post('/agent/probe', async (req, res) => {
 });
 
 module.exports = router;
+// MPI-890: exported for tests only — the containment check on the workspace entry is the
+// one thing here that is a trust boundary, and a route test cannot reach it otherwise.
+module.exports._sanitiseWorkspace = _sanitiseWorkspace;
