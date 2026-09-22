@@ -69,7 +69,18 @@ ATTACHED PIXELS: 768x1024
 
 768x1024, byte-for-byte the card's own file, where the bug staged 512x682.
 
-## What is NOT covered
+## Confirmed in the running app (2026-09-22)
+
+Fabio reloaded his live session, dragged a gallery card onto the agent chat and read the
+staged file in Explorer: `att_974df319.png` - **PNG, 768 x 1024, 1.47 MB**, the card size.
+The bug staged 512x682 WebP. The drag gesture - the one thing no harness here can reproduce -
+is the thing that was checked, so nothing about this fix is unverified any more.
+
+CI: no workflow ran on 712c3ff2 itself (a peer pushed it together with their own commit, so
+only the tip got a run), but `ed9d4a51` is its direct descendant and carries this code
+unchanged - conclusion **success**. That is a green judgement on this tree.
+
+## What was NOT covered before that
 
 The drag GESTURE itself. Chromium's synthesis of `dataTransfer.files` from a dragged `<img>`
 is the mechanism under test and Playwright cannot reproduce it, so the last step is a human
