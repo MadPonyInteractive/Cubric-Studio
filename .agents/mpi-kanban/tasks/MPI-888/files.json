@@ -1,0 +1,11 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "task": "MPI-888",
+  "owner_session": ".agents/mpi-kanban/state/sessions/6b5a38e3-6a7e-4a16-9121-9b59c9c1c404.json",
+  "updated_at": "2026-09-22T08:48:13Z",
+  "files": [
+    "services/agentLoop.mjs",
+    "docs/agent/masking.md",
+    "tests/agent-loop.test.cjs"
+  ]
+}
