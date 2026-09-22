@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-897",
+  "title": "Localised editing (umbrella): mask a region and have every model respect it",
+  "description": "Three uncovered todo cards that are the same capability at three scales - the model-level route, the huge-canvas route, and the video route. Grouped by refresh 2026-09-22. Members: MPI-602, MPI-355, MPI-557.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-22T11:13:07+01:00",
+  "updated_at": "2026-09-22T11:13:07+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

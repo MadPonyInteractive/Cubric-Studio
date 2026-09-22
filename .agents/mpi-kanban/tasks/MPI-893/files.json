@@ -1,0 +1,14 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "task": "MPI-893",
+  "owner_session": ".agents/mpi-kanban/state/sessions/9f58704d-1d78-4fb1-a8ac-f58ba5e4bf3e.json",
+  "updated_at": "2026-09-22T10:09:31Z",
+  "files": [
+    ".agents/mpi-kanban/project-profile.md",
+    ".agents/mpi-kanban/project-knowledge-index.md",
+    ".agents/mpi-kanban.local.md",
+    ".claude/rules/behaviour.md",
+    ".claude/settings.json",
+    ".agents/mpi-kanban/tasks/MPI-893/"
+  ]
+}

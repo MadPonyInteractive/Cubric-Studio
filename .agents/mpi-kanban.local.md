@@ -1,12 +1,16 @@
 ---
 rules_dir: .claude/rules
 critical_snapshot_file: CLAUDE.md
-critical_snapshot_anchor: critical-rules-snapshot-applies-to-all-agents-always-no-file-read-required
+critical_snapshot_anchor: critical-rules-snapshot-all-agents-always-no-file-read-required
 rules:
   - name: behaviour
     file: behaviour.md
   - name: kanban
     file: kanban.md
+  - name: root-cause
+    file: root-cause.md
+  - name: engine-recipes
+    file: engine-recipes.md
   - name: dos_and_donts
     file: dos_and_donts.md
   - name: components
@@ -43,11 +47,11 @@ rules:
     file: component-events-lifecycle.md
 bundles:
   - name: frontend-worker
-    rules: [behaviour, kanban, dos_and_donts, components, events, state]
+    rules: [behaviour, kanban, root-cause, dos_and_donts, components, events, state]
   - name: comfy-worker
-    rules: [behaviour, kanban, dos_and_donts, comfy_engine, comfy_injection]
+    rules: [behaviour, kanban, root-cause, dos_and_donts, comfy_engine, comfy_injection, engine-recipes]
   - name: component-maps
-    rules: [behaviour, component-mounts, component-events, component-state, component-comfy]
+    rules: [behaviour, root-cause, component-mounts, component-events, component-state, component-comfy]
 gpu_command_patterns:
   - "(?<![\w-])py(?:thon)?\S*(?:\s+-\S+)*\s+\S*scripts/pre_release_test\.py"
   - "(?<![\w-])node\S*(?:\s+-\S+)*\s+\S*scripts/smoke-workflows\.mjs(?![^&|;\n]*(?:--plan|--self-check))"
@@ -73,6 +77,15 @@ tell the dispatcher which one to resolve.
 Rules with no `## Sub-Agent Briefing` section, so deliberately unlisted:
 `README.md` (index), `comfy_injection_multistage.md`, `git.md` (its content is
 carried by the kanban briefing).
+
+`root-cause` and `engine-recipes` were added 2026-09-22 by refresh. Both had
+carried a `## Sub-Agent Briefing` for some time without ever being listed, and
+`root-cause` was the expensive one: `CLAUDE.md` § Sub-Agent Dispatch step 2
+tells every dispatcher to paste `root-cause.md § Sub-Agent Briefing`, and
+`/mpi-brief-rule root-cause` answered "no such rule" for every one of them. It
+is now in all three bundles, next to `behaviour` and `kanban`, because CARDINAL
+RULE 4 applies to every worker whatever it touches. `engine-recipes` is in
+`comfy-worker` only.
 
 ## `gpu_command_patterns` — why these four
 

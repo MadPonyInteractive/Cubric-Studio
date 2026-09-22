@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-893",
+  "title": "Mpi-Kanban refresh on 1.5.0: state index rebuild, behaviour.md git drift, two unlisted briefings, PowerShell-blind project hooks",
+  "description": "Refresh audit found the board CLEAN (277 cards, 0 violations) and all 17 validator failures in state/ plus four drift items outside it. Applying: state/index.json rebuilt from disk via validate_board --fix; behaviour.md git section restored from the 1.5.0 template (its surviving bullet BANNED git commit --only, contradicting CLAUDE.md which mandates it); root-cause.md and engine-recipes.md added to the briefing config (CLAUDE.md tells every dispatcher to paste root-cause.md, and /mpi-brief-rule could not resolve it); project PreToolUse hooks widened to Bash|PowerShell (guard-runpod-create was off on Desktop's primary shell, and it guards a route that rents a GPU); profile renamed to Cubric Studio; two index topics added (in-app agent, mascots); four umbrella cards for the uncovered todo clusters.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-22T11:09:01+01:00",
+  "updated_at": "2026-09-22T11:09:01+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

@@ -1,9 +1,9 @@
 ---
 schema: mpi-kanban/project-knowledge-index/v1
 profile: .agents/mpi-kanban/project-profile.md
-last_refresh: 2026-08-19
-last_refresh_notes: 'Three dead `**Memory:**` targets repointed, all deleted by the MPI-574 memory reorg (2026-08-17) four days after the previous sweep - `tool_litegraph_to_api_converter.md` to `docs/workflow-authoring/converters.md`, `tool_read_download_state_without_console.md` into `docs/download-manager.md`, and `tool_website_image_converter.md` dropped in favour of the command line the profile already carries. One topic added: the GPU lease, now enforced. Every other pointer resolved against disk.'
-prior_refresh_notes: 'Pointer sweep (2026-08-13). Seven `**Memory:**` targets no longer resolved — the four `feedback_*.md` files were folded into `memory/feedback-index.md` by the 2026-08-07 prune, and `project_cubric_studio_agent_vision.md` / `project_connector_ownership_split.md` / `project_hub_scalable_foundation.md` by MPI-521 (2026-08-10). All seven repointed; no topic changed.'
+last_refresh: 2026-09-22
+last_refresh_notes: 'Refresh on 1.5.0 (2026-09-22). Pointer sweep found 0 dead targets - all 104 resolved against disk, the first fully clean sweep in three refreshes. Two topics ADDED for subsystems that had grown docs and live cards with no entry: the in-app agent and the mascot crew. The agent topic exists mainly to separate two things the near-identical names hide - `docs/agent-*.md` at the docs root is the DEVELOPER contract, while `docs/agent/` is the running agent''s own CORPUS, so editing one changes what the shipped agent knows and editing the other does not. Nothing else changed; every existing topic still resolves.'
+prior_refresh_notes: 'Three dead `**Memory:**` targets repointed, all deleted by the MPI-574 memory reorg (2026-08-17) four days after the previous sweep - `tool_litegraph_to_api_converter.md` to `docs/workflow-authoring/converters.md`, `tool_read_download_state_without_console.md` into `docs/download-manager.md`, and `tool_website_image_converter.md` dropped in favour of the command line the profile already carries. One topic added: the GPU lease, now enforced. Every other pointer resolved against disk.'
 ---
 
 # Project Knowledge Index
@@ -182,6 +182,20 @@ Topic-to-files map. Match the topic closest to the current task and read the lis
 - **Also:** `routes/connector.js` header comment (route-is-the-contract seam), `js/shell/agentDispatch.js`
 - **Memory:** `project_cli_anything_is_the_cli_wrapper.md`, `feedback_verify_ui_driving_apis_live.md`
 - **Notes:** `generation.submit` (MPI-546) lets an agent dispatch through the SAME queue the PromptBox uses — real gallery card, not a bare `/proxy/prompt`. `project.open` (MPI-592) is the second relay capability: a submit runs in `state.currentProject` and nothing server-side can set it, so an agent that CREATED a project must open it or the output lands in the previous one behind an `ok: true`. `card.rename` (MPI-776) is relayed for the same reason: the renderer owns the open project's `itemGroups` and rewrites the whole array on every save, so a card name written to `project.json` from outside is lost. MPI-547 (open) adds named parameters (ratio/quality/turbo/style); today an agent only inherits the open project's settings. MPI-593 (backlog) is the delivery question — the skill is not in the portable build, so no installed app carries it.
+
+### The in-app agent (chat panel, server-side loop, corpus)
+
+- **Read first:** `docs/agent-chat.md` (the contract — the Agent button / `A` opens a panel driven by a **server-side** loop, not a renderer one)
+- **Also:** `docs/agent-corpus.md` (the shape the agent reads), `docs/agent-findings.md` (what it was SEEN to do in Fabio's own app and where each fix lives)
+- **Code:** `services/agentLoop.mjs`, `agentTools.mjs`, `agentCorpus.mjs`, `agentCards.mjs`, `agentMemory.mjs`, `agentSessions.mjs`; UI in `js/components/Compounds/MpiAgentChat/`
+- **Notes:** `docs/agent/` and `docs/agent-*.md` are **two different things** and the near-identical names hide it. `docs/agent-*.md` at the `docs/` root is the DEVELOPER contract. `docs/agent/` is the agent's own CORPUS — user-facing prose the running agent reads at runtime (`masking.md`, `gallery.md`, `formats.md`, `models/`, `prompt-enhancement.md`, `runpod-setup.md`). Editing a corpus file changes what the shipped agent knows; editing a contract file does not. Live cards: MPI-774 (slice A), MPI-817 (reliability umbrella), MPI-889 (the agent works INSIDE the app — reads the workspace, moves the view), MPI-888. Do not confuse any of this with the **connector** (an outside agent driving the app over HTTP) — that is its own topic above.
+
+### Mascots (the crew, clips, placement, state machine)
+
+- **Read first:** `docs/mascot-placement.md` (how a clip is wired into a surface), then `docs/mascot-gif-manifest.md` (the manifest the app loads)
+- **Also:** `docs/mascot-states.md`, `mascot-transitions.md`, `mascot-scenarios.md`, `mascot-connecting.md`, `mascot-generating-card.md`
+- **Memory:** `project_mascot_crew_names.md` (Cosmo/Lingo/Prism/Reel/Vinyl, Cosmo the only speaker, and the screening rule that killed six candidates — re-run it before naming a sixth)
+- **Notes:** the `mascot-*.md` files moved out of the MadPony-Identity sibling repo on 2026-09-20; `mascot-states.md` is the RECORD of how each clip was made (prompt, seed, what failed), not the wiring. Alpha WebM over animated GIF is settled and the reasoning is counter-intuitive — a GIF costs ~60 MiB VRAM per clip while alpha WebM costs nothing (see `~/.claude/memory/tools/alpha-video-in-chromium.md`). Live cards: MPI-777 (shared clip queue, landing crew, prompt box), MPI-846 (crew umbrella: names, registry, chat presence, animations).
 
 ### Cross-project / product
 

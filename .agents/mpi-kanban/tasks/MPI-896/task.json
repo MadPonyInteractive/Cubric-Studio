@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-896",
+  "title": "Feedback surface (umbrella): the app tells the user what it is doing, and when it failed",
+  "description": "Four uncovered todo cards that are one subject - what the app says back. Two are silent-failure bugs, two are missing affordances. Grouped by refresh 2026-09-22. Members: MPI-516, MPI-569, MPI-543, MPI-302.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-22T11:13:06+01:00",
+  "updated_at": "2026-09-22T11:13:06+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

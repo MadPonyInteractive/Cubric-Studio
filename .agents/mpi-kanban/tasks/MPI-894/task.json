@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-894",
+  "title": "Remote GPU estate (umbrella): RunPod API migration, Pod/engine parity, the unexplained OOM, capacity",
+  "description": "Five uncovered todo cards that all live on the remote-GPU seam and share the Pod/RunPod surface. Grouped by refresh 2026-09-22. Members: MPI-806, MPI-668, MPI-541, MPI-349, MPI-183. MPI-806 carries a HARD DATE - RunPod REST v1 returns 410 Gone on 2026-11-15.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-22T11:13:04+01:00",
+  "updated_at": "2026-09-22T11:13:04+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

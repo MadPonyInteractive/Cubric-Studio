@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-897", "at": "2026-09-22T11:13:07+01:00", "actor": "mpi-project-refresh (MPI-893)", "column": "todo", "title": "Localised editing (umbrella): mask a region and have every model respect it"}

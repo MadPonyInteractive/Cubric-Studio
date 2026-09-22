@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-895",
+  "title": "Upscale and refine evaluation (umbrella): what actually improves a finished frame",
+  "description": "Five uncovered todo cards that are all the same open question - which final-pass route is worth shipping - and today each would be evaluated separately against the same models. Grouped by refresh 2026-09-22. Members: MPI-707, MPI-578, MPI-477, MPI-478, MPI-343.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-09-22T11:13:05+01:00",
+  "updated_at": "2026-09-22T11:13:05+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

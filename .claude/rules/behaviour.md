@@ -31,8 +31,19 @@ specific to this codebase belongs in its own rule file.
 
 **Multi-agent isolation**
 
-- Never `git add -A`, `git add .`, or `git commit --only` in a session that may
-  be sharing the tree.
+- Never `git add -A`, `git add .`, or `git commit -a`. They sweep in every
+  peer's half-finished edit.
+- Staging by name is not enough: a plain `git commit` commits the whole INDEX,
+  so a peer's already-staged files ride along under your message. Commit with
+  the pathspec - `git commit --only <path> ...` - not just the `add`.
+- `--only` on an UNTRACKED path aborts the whole commit, tracked paths
+  included. `git add` new files first, then name them in the same `--only`
+  list.
+- A DIRECTORY pathspec hides that trap SILENTLY: `--only <dir>/` commits the
+  directory's tracked files, skips the untracked ones, prints nothing and exits
+  0. Name files, not directories.
+- Run `git status --short` AFTER every commit, not only before. Leftover `??`
+  lines under a path you just committed are the silent skip above.
 - Re-read `next_id` and any card you are about to touch immediately before
   writing it; another agent may have moved it.
 - Edit only the files you own. If you need one you do not own, say so and stop.

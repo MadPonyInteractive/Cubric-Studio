@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-896", "at": "2026-09-22T11:13:06+01:00", "actor": "mpi-project-refresh (MPI-893)", "column": "todo", "title": "Feedback surface (umbrella): the app tells the user what it is doing, and when it failed"}

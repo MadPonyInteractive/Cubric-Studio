@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-895", "at": "2026-09-22T11:13:05+01:00", "actor": "mpi-project-refresh (MPI-893)", "column": "todo", "title": "Upscale and refine evaluation (umbrella): what actually improves a finished frame"}
