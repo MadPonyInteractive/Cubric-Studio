@@ -6,11 +6,16 @@ import { initPaths } from './data/modelRegistry.js';
 import { checkForUpdate } from './services/updateChecker.js';
 import { restoreUiZoom } from './utils/uiZoom.js';
 import { installAudioOutput } from './utils/audioOutput.js';
+import { installErrorBridge } from './services/clientLogger.js';
 
 // MPI-374: re-apply the stored UI size before anything renders. Deliberately at
 // module top level, not inside init() — an await first would let the page paint
 // at 1.0 and resize under the user.
 restoreUiZoom();
+
+// MPI-899: top level, like the zoom above, so an uncaught renderer error reaches
+// app.log with its stack instead of DevTools only.
+installErrorBridge();
 
 // MPI-803: one capture-phase `play` listener that points every media element at the
 // chosen output device. Top level, like the zoom above — a listener installed inside

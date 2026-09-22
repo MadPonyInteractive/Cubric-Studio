@@ -16,6 +16,8 @@
 
 'use strict';
 
+import { on } from '../utils/dom.js';
+
 function _send(level, category, message, err) {
     // Also mirror to browser console for dev convenience
     const detail = err ? (err.stack || String(err)) : '';
@@ -36,3 +38,17 @@ export const clientLogger = {
     warn  : (category, message, err) => _send('warn',  category, message, err),
     error : (category, message, err) => _send('error', category, message, err),
 };
+
+/**
+ * Route every renderer error nothing caught into app.log. Without this, a throw inside
+ * a click handler (component `emit` has no try/catch) reached DevTools only, so a
+ * stale-UI bug Fabio saw live left no trace to diagnose it from (MPI-899).
+ */
+export function installErrorBridge() {
+    on(window, 'error', (e) => {
+        _send('error', 'uncaught', e.error?.message || e.message || 'error', e.error || `${e.filename}:${e.lineno}:${e.colno}`);
+    });
+    on(window, 'unhandledrejection', (e) => {
+        _send('error', 'unhandledrejection', e.reason?.message || String(e.reason), e.reason);
+    });
+}
