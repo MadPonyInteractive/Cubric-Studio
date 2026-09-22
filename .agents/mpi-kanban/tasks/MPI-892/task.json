@@ -1,0 +1,17 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-892",
+  "title": "The agent fills a Flow and hands it over instead of running it blind",
+  "description": "UMBRELLA: MPI-889 - The agent works INSIDE the app, not beside it: it reads the workspace, moves the view, and hands a Flow over (consolidation sweep 2026-09-22). Members and phase order: tasks/MPI-889/plan.md.\n\nPHASE 3, after MPI-890 and MPI-891. Fabio, 2026-09-22: 'There are flows that might be hard for the agent to use, and the user could change some things in what the agent added to the flow ... if the agent is going to use a flow, it might as well open the flow and show the user at least the last stage when the latents are coming in.' THIS ANSWERS MPI-877'S UNANSWERED QUESTION. For three rounds that card carried an open item - should the agent RUN `detail` and `inpaint`, or teach the user to run them? ('because detailing and inpainting are very trial-and-error based, it could be a good idea to just make the agent tell the user how to use them instead of trying to use them directly'). It was built as run-but-say-the-prompt-first and the alternative was refuse-and-explain. Fabio's Flow idea is a third and better shape: FILL AND HAND OVER. The agent picks the op or Flow, fills what it can, opens it, and the user sees what it filled and corrects the knobs the agent cannot see before the GPU spends. Same shape covers both: a Flow the agent fills badly is invisible until the result is wrong, and denoise, mask shape and wording are exactly the trial-and-error the agent should not be guessing at alone. The real work is on the Flow surface, which has to accept a state someone else filled and render its last stage live. Decide whether 'hand over' means the user presses run, or the agent runs and the Flow is merely open to watch - Fabio's words fit the first, and the first is what makes it an answer to the trial-and-error problem. ALSO SETTLE FIRST, and it is cheap: the Duration rule (`agentLoop.mjs:1166`) tells the agent 'you never speak first, a generation that finishes after your turn reaches you only when the user writes again', while the auto-look on settle (`agentLoop.mjs:1445`) pushes a '[You looked at it: ...]' note and then calls `_maybeDrained()`, whose comment describes a WAKE TURN that reports it. One of those two is stale. Which one decides whether an agent can come back unprompted at all - and the same answer gates the result-review rule that is otherwise specified and waiting (see MPI-888's validation.md, and MPI-887 for the composite half of it).",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "ready",
+  "created_at": "2026-09-22T09:04:15Z",
+  "updated_at": "2026-09-22T09:04:15Z",
+  "links": {
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl"
+  }
+}

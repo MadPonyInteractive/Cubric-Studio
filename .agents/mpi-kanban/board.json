@@ -1,8 +1,12 @@
 {
   "schema": "mpi-kanban/board/v1",
-  "next_id": 889,
+  "next_id": 893,
   "columns": {
     "todo": [
+      "MPI-892",
+      "MPI-891",
+      "MPI-890",
+      "MPI-889",
       "MPI-886",
       "MPI-876",
       "MPI-874",
@@ -14,7 +18,6 @@
       "MPI-860",
       "MPI-856",
       "MPI-849",
-      "MPI-854",
       "MPI-855",
       "MPI-846",
       "MPI-842",
@@ -104,6 +107,7 @@
       "MPI-603"
     ],
     "done": [
+      "MPI-854",
       "MPI-877",
       "MPI-883",
       "MPI-852",
@@ -282,7 +286,7 @@
       "MPI-713"
     ]
   },
-  "updated_at": "2026-09-22T08:58:57Z",
+  "updated_at": "2026-09-22T09:04:15Z",
   "events": [
     {
       "at": "2026-09-06T22:45:00Z",
@@ -5013,6 +5017,42 @@
       "from": "in-progress",
       "to": "validating",
       "note": "Built and proven: three tests, each fix backed out on its own, npm test 1763 pass 0 fail, both lints clean. Awaiting Fabio's live read of how the offer sounds."
+    },
+    {
+      "at": "2026-09-22T09:04:15Z",
+      "type": "task.created",
+      "task": "MPI-889",
+      "actor": "session-6b5a38e3",
+      "from": null,
+      "to": "todo",
+      "note": "The agent works INSIDE the app, not beside it: it reads the workspace, moves the view, and hands a Flow over"
+    },
+    {
+      "at": "2026-09-22T09:04:15Z",
+      "type": "task.created",
+      "task": "MPI-890",
+      "actor": "session-6b5a38e3",
+      "from": null,
+      "to": "todo",
+      "note": "The agent reads the open workspace, so \"this image\" is the entry in front of the user"
+    },
+    {
+      "at": "2026-09-22T09:04:15Z",
+      "type": "task.created",
+      "task": "MPI-891",
+      "actor": "session-6b5a38e3",
+      "from": null,
+      "to": "todo",
+      "note": "The agent moves the view to where its work will render"
+    },
+    {
+      "at": "2026-09-22T09:04:15Z",
+      "type": "task.created",
+      "task": "MPI-892",
+      "actor": "session-6b5a38e3",
+      "from": null,
+      "to": "todo",
+      "note": "The agent fills a Flow and hands it over instead of running it blind"
     }
   ]
 }

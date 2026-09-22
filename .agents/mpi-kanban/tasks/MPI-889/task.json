@@ -1,0 +1,17 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-889",
+  "title": "The agent works INSIDE the app, not beside it: it reads the workspace, moves the view, and hands a Flow over",
+  "description": "Fabio, 2026-09-22, at the end of the MPI-877 round-3 conversation. Today the agent is a chat that fires jobs into a void and reads the results back by description: it cannot see which workspace the user is standing in, it cannot move the view to where its own work will render, and it fills a Flow blind. Three cards, in dependency order, each shippable on its own. His three asks, in his words. (1) 'If the user is in the history workspace, he shouldn't be forced to go into the gallery space to drag an image and send it to the agent ... the agent needs to look at the active entry, because the user has no way of sending something to the agent in that mode.' (2) 'If the agent is going to perform something like an edit to an image, that needs to happen in the history workspace. The agent needs to change the mode from gallery to the history workspace so that the user can see the latents coming in.' (3) 'If the agent is going to use a flow, it might as well open the flow and show the user at least the last stage when the latents are coming in', because 'there are flows that might be hard for the agent to use, and the user could change some things in what the agent added to the flow.' The third one quietly answers a question MPI-877 carried unanswered for three rounds - should the agent RUN detail and inpaint, or teach the user to run them? Neither: FILL AND HAND OVER. The agent gets the user 80%% set up on knobs it cannot see (denoise, mask shape, wording) and steps aside before the GPU spends. This umbrella carries no code of its own and closes when its last member does. Related but NOT members, because they are already carded and moving: MPI-886 (a dragged card arrives as the CARD, not a copy of its picture) and MPI-887 (an outside image can become a history entry, so Composite can reach it). All five are one idea - work on an existing picture belongs to that picture's card - but those two have their own lives and a member's description is the only place membership is recorded, so folding them in would mean editing cards other sessions own.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "ready",
+  "created_at": "2026-09-22T09:04:15Z",
+  "updated_at": "2026-09-22T09:04:15Z",
+  "links": {
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "events": "events.jsonl"
+  }
+}

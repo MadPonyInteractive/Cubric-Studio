@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-889", "at": "2026-09-22T09:04:15Z", "actor": "session-6b5a38e3", "column": "todo", "title": "The agent works INSIDE the app, not beside it: it reads the workspace, moves the view, and hands a Flow over"}

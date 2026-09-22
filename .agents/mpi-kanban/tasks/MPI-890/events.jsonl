@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-890", "at": "2026-09-22T09:04:15Z", "actor": "session-6b5a38e3", "column": "todo", "title": "The agent reads the open workspace, so \"this image\" is the entry in front of the user"}
