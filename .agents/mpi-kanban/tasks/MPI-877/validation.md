@@ -317,3 +317,44 @@ entry). Lint clean.
 the user to run them. His words: "because detailing and inpainting are very trial-and-error
 based, it could be a good idea to just make the agent tell the user how to use them instead
 of trying to use them directly."
+
+
+# Round 3 — Fabio's verdict, 2026-09-22. BOTH FAULTS GREEN.
+
+He restarted the app, pressed Start Over, painted a mask over the boy's reflection and asked
+for it alone to turn demonic.
+
+| What to watch | Result |
+|---|---|
+| a NEW ENTRY ON THAT CARD, latents drawing in the open workspace | **green** — "the latents did show in the correct location in the image workspace and created an entry there" |
+| the prompt names nothing outside the mask | **green** — it sent `convert the boy into a demon: glowing red eyes, sharp horns, pale grey skin, a sinister grin`. No river, no reflection, no "reflected in the water" |
+| the demon keeps the boy's likeness and his upside-down pose | not met — and not this card's fault, see below |
+
+Fault 1's binding fix and Fault 2's crop-local prompt rule are both proven live. **The card
+closes on these two.**
+
+## Why the third line is not a fault of this card
+
+The prompt was correct by this card's rule and the result was still poor. Three causes came
+out of the conversation that followed, none of them MPI-877's, all of them carded:
+
+1. **The mask was forced.** The Masking rule funnelled every regional change into a painted
+   mask. Fabio: *"any edit can be just an edit ... The mask is more effective, but shouldn't
+   always be forced on the user."* → **MPI-888**.
+2. **The worked example was the prompt that failed.** That adjective list was written into
+   the system prompt last session as the prompt the model "needed", without ever being
+   rendered. Rendered, it replaced the boy instead of transforming him; Fabio's plainer
+   *"convert the boy into a demon version of himself"* kept more of the likeness, and
+   `inpaint` beat `kleinEdit` outright. → **MPI-888**.
+3. **The fix he reached for is unreachable.** Compositing the original's top half back over
+   the edit is what the Composite tool is for, and its slot only takes an entry already in
+   that card's history (`MpiToolOptionsComposite.js:16`), so two separate cards can never be
+   composited. → **MPI-887**.
+
+## The open question is answered
+
+*Should the agent RUN `detail` and `inpaint`, or teach the user to run them?* Fabio answered
+it sideways, with a third option better than either: **fill and hand over.** The agent picks
+the op, fills what it can, opens the workspace or the Flow, and the user checks the knobs it
+cannot see before spending the GPU. Uncarded — it is part of the workspace-awareness theme
+raised in the same conversation and waiting on his go.

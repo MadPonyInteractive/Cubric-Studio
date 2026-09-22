@@ -1,6 +1,6 @@
 {
   "schema": "mpi-kanban/board/v1",
-  "next_id": 887,
+  "next_id": 889,
   "columns": {
     "todo": [
       "MPI-886",
@@ -85,7 +85,8 @@
       "MPI-259"
     ],
     "doing": [
-      "MPI-877",
+      "MPI-887",
+      "MPI-888",
       "MPI-777",
       "MPI-866",
       "MPI-851",
@@ -103,6 +104,7 @@
       "MPI-603"
     ],
     "done": [
+      "MPI-877",
       "MPI-883",
       "MPI-852",
       "MPI-885",
@@ -280,7 +282,7 @@
       "MPI-713"
     ]
   },
-  "updated_at": "2026-09-22T07:01:42Z",
+  "updated_at": "2026-09-22T08:58:57Z",
   "events": [
     {
       "at": "2026-09-06T22:45:00Z",
@@ -4966,6 +4968,51 @@
       "from": "todo",
       "to": "done",
       "note": "Closed with no code change: the mask crop is what masking is. The defect was the prompt, fixed under MPI-877."
+    },
+    {
+      "at": "2026-09-22T08:39:24Z",
+      "type": "task.created",
+      "task": "MPI-887",
+      "actor": "session-6b5a38e3",
+      "from": null,
+      "to": "todo",
+      "note": "Bring an outside image into a card's history as an entry, so Composite can reach it"
+    },
+    {
+      "at": "2026-09-22T08:47:29Z",
+      "type": "task.created",
+      "task": "MPI-888",
+      "actor": "session-6b5a38e3",
+      "from": null,
+      "to": "todo",
+      "note": "The agent offers the route instead of forcing a mask, and prompts an edit as verb plus target"
+    },
+    {
+      "at": "2026-09-22T08:48:13Z",
+      "type": "task.moved",
+      "task": "MPI-888",
+      "actor": "session-6b5a38e3",
+      "from": "todo",
+      "to": "doing",
+      "note": "MPI-888: the agent offers the route instead of forcing a mask, and the edit prompt becomes verb plus target. Prompt text only."
+    },
+    {
+      "at": "2026-09-22T08:55:58Z",
+      "type": "task.moved",
+      "task": "MPI-877",
+      "actor": "session-6b5a38e3",
+      "from": "doing",
+      "to": "done",
+      "note": "Round 3 green on both faults: the edit landed as a history entry with latents in the open workspace, and the prompt named nothing outside the mask. The remaining result quality is MPI-888; the composite fix is MPI-887."
+    },
+    {
+      "at": "2026-09-22T08:55:58Z",
+      "type": "task.updated",
+      "task": "MPI-888",
+      "actor": "session-6b5a38e3",
+      "from": "in-progress",
+      "to": "validating",
+      "note": "Built and proven: three tests, each fix backed out on its own, npm test 1763 pass 0 fail, both lints clean. Awaiting Fabio's live read of how the offer sounds."
     }
   ]
 }
