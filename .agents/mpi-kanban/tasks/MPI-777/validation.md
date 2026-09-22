@@ -150,3 +150,93 @@ symptom from any time-advancing assertion.
 
 Nothing is mounted. `heroCrew.js` still drives `_poseSrc` directly; putting the crew on the queue
 is Phase 3, and the two ledges are Phase 4. The queue has no consumer until then.
+
+## Phase 3 - the landing hero crew on the queue (2026-09-22)
+
+`js/shell/heroCrew.js` + `styles/shell/landing.css` + `docs/shell.md`. `_poseSrc` and the
+`.webp` stills are gone from the landing; each member owns a `createMascotClipQueue` and paints
+two stacked `<video>` with a screen-blended transition layer above them.
+
+**Verify mode is `user-ux`, so this phase does NOT close on what follows.** Everything below is
+self-verification: it proves the thing runs, tears down and does what the plan asked. Whether the
+motion is right is Fabio's.
+
+### What ran
+
+- `npm test` - 1781 tests, 1779 pass, **0 fail**, 1 skipped, 1 todo (both pre-existing).
+- `npx eslint js/shell/heroCrew.js js/utils/mascotClipQueue.js` - clean. No stylelint config
+  exists in this repo, so the CSS has no linter to run.
+- Real Electron, own profile and own port (`node scripts/launch-instance.mjs`, port 57327,
+  never :3000), driven with playwright-cli at 1920x1032 past the 18+ gate and the changelog:
+  - **Five members, all on clips.** `prompt/idle-1`, `vision/idle-1`, `studio/idle-1`,
+    `video/idle-2`, `audio/idle-1`, every one `paused:false` with `currentTime` advancing, and
+    the B element of each already holding a different idle - so a swap had already happened
+    inside the first few seconds.
+  - **Geometry.** Vision's member box measures 195x260 and its video 436x436: 436/260 = 1.677,
+    which is the `620/370` the CSS asks for. A screenshot of the landing shows five characters
+    standing on the floor line under their labels, neither floating nor shrunken.
+  - **Durations are being read, not assumed.** `vision/idle-1` reported `duration` 5.1 where
+    `vision/idle-2` reported 5.2 and `video/idle-3` 5.2 - the per-mascot spread that the
+    nominal 5200 would have papered over.
+  - **Hover interrupts.** A `pointerenter` on Vision: at +700ms the fx layer is playing
+    `transition-third.webm` and the mascot underneath has already swapped to `greet-1`
+    (`currentTime` 0.31); at +1300ms the fx layer is cleared and paused and `greet-1` is at
+    0.92. That is the transition-covers-the-swap rule working end to end.
+  - **Click interrupts, and a one-clip pool works.** A click on Studio: fx layer playing,
+    `happy-1.webm` live underneath. Studio has no `happy-2` (i2v_015 was never rolled) and the
+    queue's `pool.length === 1` path handles it with no special case in heroCrew.
+  - **TEARDOWN, the one that hangs a test run if it is wrong.** `HTMLMediaElement.prototype.play`
+    wrapped with a counter, then `currentPage` moved off landing: `#heroCrew` empties (0 members,
+    0 videos) and **0 `play()` calls in the following 8 seconds**. The timer chain is dead, not
+    merely hidden.
+  - **Reduced motion.** `matchMedia` stubbed to report `prefers-reduced-motion: reduce`, then
+    back to landing: five members mount, each live video holds `currentTime` 0 of an idle clip,
+    `paused:true`, and **0 `play()` calls in 9 seconds**. "Shows a first frame and never plays",
+    with no separate still path to keep in step.
+  - **0 console messages** for the whole session - no errors, no warnings.
+
+### What Fabio has to look at
+
+The landing, at a normal window size:
+
+- The five idles at rest - do they read as alive without being busy, and does the random pool
+  avoid looking like a loop?
+- Hover a character: a transition should fire *at once*, not after a wait, and the greet should
+  appear from under it with no jump.
+- Click a character: same, with a happy clip. Studio's is the only one-clip pool.
+- The ambient greet every ~3.2s on a resting character - it deliberately WAITS for the current
+  idle to finish, so it should never cut one short.
+- Sizes and footing: each character the same height as before, feet on the floor line.
+
+### Not done in this phase, on purpose
+
+No walking clips (plan), and the two ledges are Phase 4. Studio still has no `failed` clip, so
+Phase 4's agent ledge cannot show a failed state until `i2v_016` is re-rolled - Fabio's.
+
+### Round 2 - Fabio looked at the landing (2026-09-22)
+
+**"The animations look good, and they are well connected."** The queue, the pools, the swap
+timing, the sizing and the footing are ACCEPTED. What follows is what he asked to change.
+
+- **Hover must not play a transition; only a click does.** Done in this session. The queue
+  gained a per-request `transition` flag (`request(name, { interrupt: true, transition: false })`)
+  so a hover still cuts the idle short - it must not wait up to 5s - but lands straight on the
+  greet. Click keeps the overlay. New unit test `a bare interrupt cuts straight to the clip and
+  never plays a transition`, **proven RED** on the previous queue (fail 1) and green after
+  (9/9). `npm test` 1786 / 1784 pass / 0 fail. Re-checked in a fresh isolated instance
+  (port 50161): hover moved Vision `idle-1 -> greet-2` with the fx layer never lit, and a click
+  on Studio still played `transition-third` on the fx layer.
+- **The transition overlay paints a BLACK SQUARE.** Confirmed, and it is not a missing step:
+  the overlay clips are opaque VP9 rendered on black and depend on `mix-blend-mode: screen` to
+  drop it. Measured on the frozen frame: computed `mix-blend-mode` really is `screen`, the
+  parent's `isolation` is `auto` and its `opacity` 1, and forcing `isolation: isolate` on
+  `.mpi-landing__crew-float` changed nothing. Chromium promotes a `<video>` to its own
+  composited layer and skips the blend. **Handed to a new session** - see the handoff.
+  The likely fix is to stop depending on the blend at all: re-encode the 15 transitions with an
+  alpha plane derived from luma, in `scripts/stage-mascot-clips.mjs`, which currently detects
+  them as opaque and strips the alpha on purpose. Alpha VP9 already composites correctly here -
+  that is what every mascot clip is - so the mascots themselves are the proof. It also keeps
+  the soft smoke edges, which is the reason `screen` was chosen over a cut-out.
+- **Also handed over:** the crew labels should carry the mascot NAMES (Cosmo, Lingo, Prism,
+  Reel, Vinyl - MPI-846), and the landing's agent area should lose the Prism mascot and the
+  "Ask me anything" lettering, with Cosmo peeking over the rule and the input moving up to it.

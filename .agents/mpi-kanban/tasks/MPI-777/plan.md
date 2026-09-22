@@ -27,9 +27,27 @@ pointer below before editing; they were read 2026-09-16.
   step anyway — the masters are the video cards in the `Cubric Studio Mascots` project, 2.8 GB
   and 8,373 files on the same one machine. Whatever answers this is not a git commit, and it is
   not part of this card.
-- **Next action: Phase 3**, the landing hero crew on the queue. `heroCrew.js` still drives
-  `_poseSrc` directly, and `_poseSrc` is still pointing at the `.webp` stills — Phase 3 is where
-  it starts choosing a clip. Phase 4's two ledges come after.
+- **Phase 3 is BUILT and Fabio has seen it (2026-09-22): "the animations look good, and they
+  are well connected."** The queue, the pools, the swap timing, the sizing and the footing are
+  accepted. Two changes came out of that look — one done, one handed on:
+  - *Done:* hover no longer plays a transition, only a click does. The queue took a
+    per-request `transition` flag for it; the hover still interrupts, it just cuts straight
+    to the greet.
+  - *Handed to a new session:* **the transition overlay paints a black square.** The clips are
+    opaque VP9 on black and depend on `mix-blend-mode: screen`, and Chromium ignores the blend
+    on a `<video>` because it composites it on its own layer. Measured, with `isolation`
+    ruled out — see validation.md § Round 2. Likely fix: re-encode the 15 transitions with an
+    alpha plane from luma in `scripts/stage-mascot-clips.mjs` and stop depending on the blend.
+- **Next action: Phase 3b**, the two landing changes Fabio asked for at the same time, then
+  Phase 4. They are landing-shell work, the same surface as Phase 3, so they stay on this card:
+  - The crew labels should carry the mascot NAMES — Cosmo, Lingo, Prism, Reel, Vinyl
+    (mapping in MPI-846's plan). Note this **narrows MPI-846's "chrome labels stay role
+    nouns"**: the crew labels are identity, not controls. Record the call in MPI-846.
+  - The landing's agent slot loses the Prism mascot and the "Ask me anything" lettering;
+    Cosmo peeks over the rule instead and the input box moves up to where the line is.
+- **Then Phase 4**, the two ledges — the agent panel's (Cosmo, per MPI-843) and the prompt
+  box's (the selected model's mascot peeking). Different surfaces, and the agent one still
+  cannot show a failed state until Fabio re-rolls `i2v_016`.
 
 ### Why the order changed (Fabio, 2026-09-20)
 
@@ -160,13 +178,29 @@ rather than a media `ended` event — see Current State for why that is not opti
   back to the rest pool, a waiting request starts only at the end of the current clip, and an
   interrupt starts the transition at once and swaps at its swap time.
 
-### Phase 3: landing hero crew on the queue
+### Phase 3: landing hero crew on the queue — BUILT 2026-09-22, Fabio's check outstanding
 
-- [ ] `js/shell/heroCrew.js`: rest pool = idle x3 random; hover = random of the two greets;
+- [x] `js/shell/heroCrew.js`: rest pool = idle x3 random; hover = random of the two greets;
       ambient = the existing random greet every few seconds on a resting member; click = random
       of the two happy clips. Hover and click go through a transition. Drop `GREET_FOR_MS` /
       `HAPPY_FOR_MS`: clips play to their end.
-- [ ] No walking clips on the landing.
+- [x] No walking clips on the landing.
+- **Verify:** `user-ux`, Fabio on the landing.
+
+### Phase 3b: what Fabio asked for after seeing Phase 3 (2026-09-22)
+
+- [x] Hover reaches the greet with no transition; only a click plays one.
+- [ ] **The transition overlay composites instead of painting a black square.** Not a missing
+      step and not a CSS typo — `mix-blend-mode: screen` is computed and ignored, because
+      Chromium composites a `<video>` on its own layer. Re-encode the transitions with an alpha
+      plane from luma (`scripts/stage-mascot-clips.mjs` currently detects them as opaque and
+      strips it deliberately) and drop the blend dependency; alpha VP9 already composites here,
+      which is what every mascot clip is.
+- [ ] Crew labels carry the mascot names (Cosmo, Lingo, Prism, Reel, Vinyl). This narrows
+      MPI-846's "chrome labels stay role nouns" — a crew label is identity, not a control, so
+      record the call on that card.
+- [ ] The landing agent slot: drop the Prism mascot and the "Ask me anything" lettering, put
+      Cosmo peeking over the rule, and move the input box up to the line.
 - **Verify:** `user-ux`, Fabio on the landing.
 
 ### Phase 4: prompt box ledge
@@ -195,6 +229,9 @@ rather than a media `ended` event — see Current State for why that is not opti
 
 ## Completed
 
+- **Phase 3 (2026-09-22)** — `js/shell/heroCrew.js` on the queue, plus the geometry in
+  `styles/shell/landing.css` and the rewritten `docs/shell.md` § heroCrew.js. Evidence in
+  `validation.md`; Fabio's look at the landing is still outstanding.
 - **Phase 2 (2026-09-21)** — `js/utils/mascotClipQueue.js` + 8 unit tests, every rule proven RED
   on a broken version. No consumer until Phase 3.
 - **Phase 1 (2026-09-21)** — `scripts/stage-mascot-clips.mjs` and the 95 staged clips under
@@ -270,6 +307,24 @@ decisions they name.
     backup card should aim at those, not at these.
 
   Do not re-attempt a git backup of the GIFs on this card.
+
+- **2026-09-22 — Phase 3 met three things the plan did not describe, all measured.**
+  1. *A clip is not a crop.* The `.webp` stills are tight crops of the character; a staged clip
+     is a 620×620 **frame** with the character standing in rows 187-556 (370 tall, x ~170-448).
+     Dropping a clip into the still's box drew every mascot at 0.60×. The fix is two constants
+     in `landing.css` — `620/370` tall, hanging `64/370` below the floor — and they are safe to
+     hardcode because the numbers are identical across all five mascots and every clip opens on
+     the same rest frame. The member also needs an explicit `width`: it used to be sized by the
+     `<img>`'s intrinsic width, and the contact shadow and floor glow are percentages of it.
+  2. *One `<video>` blinks.* Assigning `src` to the visible element blanks it until the first
+     frame decodes. Two stacked videos, the hidden one loading and starting before they trade,
+     with a sequence guard so an overtaken `play()` promise cannot flip them back.
+  3. *Clip lengths are per clip AND per mascot.* Vision's `idle-3` is 4.1s where Video's is
+     5.2s. A hand-written table is 40 numbers a re-encode invalidates silently, so `_warm`
+     reads `loadedmetadata` and writes the real value into the object the queue times against
+     — the queue re-reads `clip.ms` at every `_enter`, so nothing in it had to change. The
+     transitions' **swap** times are the exception: they are not derivable from the file, so
+     `TRANSITIONS` copies `docs/mascot-transitions.md` § Picks and is the only copy.
 
 ## Verification
 

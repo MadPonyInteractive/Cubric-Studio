@@ -6,6 +6,9 @@
     ".agents/mpi-kanban/tasks/MPI-777/",
     "scripts/stage-mascot-clips.mjs",
     "assets/mascot/",
-    "docs/mascot-gif-manifest.md"
+    "docs/mascot-gif-manifest.md",
+    "js/shell/heroCrew.js",
+    "styles/shell/landing.css",
+    "docs/shell.md"
   ]
 }

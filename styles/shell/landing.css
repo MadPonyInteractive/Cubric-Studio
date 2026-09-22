@@ -113,6 +113,11 @@
   top: calc(840px - var(--crew-h));
   left: var(--crew-x);
   height: var(--crew-h);
+  /* The box used to be sized by the still's intrinsic width. The clips are square
+     frames with the character inside, so the box has to state the character's own
+     aspect instead — the contact shadow and the floor glow are percentages of it.
+     0.75 is the measured character box across all five (464-471 wide at 620 tall). */
+  width: calc(var(--crew-h) * 0.75);
   margin: 0;
   translate: -50% 0;
   z-index: 2;
@@ -191,7 +196,9 @@
 .mpi-landing__crew-lift,
 .mpi-landing__crew-float {
   display: block;
+  position: relative;
   height: 100%;
+  width: 100%;
 }
 
 .mpi-landing__crew-lift {
@@ -206,12 +213,36 @@
   animation: mpi-landing-crew-float 4s ease-in-out var(--crew-phase, 0s) infinite;
 }
 
-.mpi-landing__crew-img {
-  display: block;
-  height: 100%;
+/* MPI-777 Phase 3. A clip is a 620×620 frame with the character standing inside it,
+   not a crop of the character, so the frame has to be blown up until the character
+   inside it lands on --crew-h and its feet land on the floor. Both numbers are
+   measured, identical across all five mascots, and hold for every clip because they
+   all open on the same rest frame: the character occupies rows 187-556 of 620, so
+   the frame is 620/370 of the character's height and hangs 64/370 below its feet.
+   Two videos are stacked because assigning `src` to the visible one blanks it until
+   the first frame decodes; heroCrew.js loads the hidden one and then trades them. */
+.mpi-landing__crew-clip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(-100% * 64 / 370);
+  height: calc(100% * 620 / 370);
   width: auto;
+  translate: -50% 0;
+  opacity: 0;
   user-select: none;
   pointer-events: none;
+}
+
+.mpi-landing__crew-clip--live {
+  opacity: 1;
+}
+
+/* The transition overlays are rendered on pure black with soft light-coloured edges:
+   screen drops the black with no cut-out, which a mask would harden. They share the
+   clip's geometry because they were rendered in the same 768px frame. */
+.mpi-landing__crew-fx {
+  mix-blend-mode: screen;
+  z-index: 1;
 }
 
 .mpi-landing__crew-label {

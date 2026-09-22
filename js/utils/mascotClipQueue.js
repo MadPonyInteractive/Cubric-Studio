@@ -16,10 +16,16 @@
  *
  * WHY SWAPS WAIT. Every state clip of a mascot opens and closes on the same rest
  * frame (MPI-78), so swapping at a clip's END never jumps and swapping mid-clip
- * always does. A request therefore waits by default. A request that cannot wait —
- * hover — would otherwise sit up to 5s behind an idle, so it INTERRUPTS: a ~1s
- * transition plays at once on a layer above, the mascot swaps underneath at the
- * transition's densest moment, and the overlay then clears onto the new clip.
+ * always does. A request therefore waits by default. A request that cannot wait
+ * would otherwise sit up to 5s behind an idle, so it INTERRUPTS.
+ *
+ * AN INTERRUPT COMES IN TWO STRENGTHS, and the caller picks (Fabio, 2026-09-22).
+ * With a transition, a ~1s overlay plays at once on a layer above, the mascot swaps
+ * underneath at the overlay's densest moment, and the overlay clears onto the new
+ * clip — it hides the mid-clip jump completely, but it is a bang, so it belongs on a
+ * deliberate act like a click. `transition: false` cuts straight to the new clip and
+ * accepts the jump: for a hover, landing on the greet immediately reads better than
+ * a puff of smoke every time the pointer crosses a character.
  */
 
 'use strict';
@@ -39,7 +45,7 @@
  * @param {(clipId: string|null) => void} [o.paintTransition] - overlay layer; null clears it.
  * @param {(clipId: string) => void} [o.preload] - called once per clip at construction.
  * @param {boolean} [o.reducedMotion] - show a first frame and never schedule anything.
- * @returns {{ request: (state: string, opts?: { interrupt?: boolean }) => void,
+ * @returns {{ request: (state: string, opts?: { interrupt?: boolean, transition?: boolean }) => void,
  *            current: () => { state: string, clip: string|null, pending: string|null },
  *            destroy: () => void }}
  */
@@ -118,10 +124,10 @@ export function createMascotClipQueue({
         _enter(next);
     }
 
-    function _interrupt(name) {
+    function _interrupt(name, withTransition) {
         _pending = null;
         if (_clipTimer) { clearTimeout(_clipTimer); _timers.delete(_clipTimer); _clipTimer = 0; }
-        if (!transitions.length) { _enter(name); return; }
+        if (!withTransition || !transitions.length) { _enter(name); return; }
         const t = transitions[Math.floor(Math.random() * transitions.length)];
         paintTransition(t.id);
         // The mascot swaps UNDER the overlay, at its densest moment; the overlay then
@@ -133,11 +139,11 @@ export function createMascotClipQueue({
     _enter(rest);
 
     return {
-        request(name, { interrupt = false } = {}) {
+        request(name, { interrupt = false, transition = true } = {}) {
             if (_dead) return;
             if (!states[name]) throw new Error(`mascotClipQueue: unknown state "${name}"`);
             if (reducedMotion) { _enter(name); return; }   // a still, whatever was asked for
-            if (interrupt) { _interrupt(name); return; }
+            if (interrupt) { _interrupt(name, transition); return; }
             if (name === _state) { _pending = null; return; }
             _pending = name;
         },

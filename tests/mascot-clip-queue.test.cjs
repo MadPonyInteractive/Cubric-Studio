@@ -116,6 +116,26 @@ test('an interrupt starts the transition at once and swaps at its swap time', as
     assert.equal(painted.filter(id => id === 'greet-1').length, 1, 'greet played once, not twice');
 });
 
+test('a bare interrupt cuts straight to the clip and never plays a transition', async (t) => {
+    // Fabio, 2026-09-22: hover lands on the greet, click gets the bang. The hover path
+    // is still an interrupt -- it must not wait out the idle -- it just skips the overlay.
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { queue, painted, overlay } = await makeQueue();
+
+    queue.request('greet', { interrupt: true, transition: false });
+    assert.deepEqual(overlay, [], 'no overlay at all');
+    assert.equal(painted.at(-1), 'greet-1', 'the swap is immediate, not on the clip boundary');
+    assert.equal(queue.current().state, 'greet');
+
+    // The interrupted idle's end timer has to be dead here too, or it fires at 5s and
+    // yanks the mascot back mid-greet -- the same hazard the transition path guards.
+    t.mock.timers.tick(2999);
+    assert.equal(queue.current().state, 'greet');
+    t.mock.timers.tick(1);
+    assert.equal(queue.current().state, 'idle', 'greet is play-once, so it rests after its own 3s');
+    assert.equal(painted.filter(id => id === 'greet-1').length, 1, 'greet played once, not twice');
+});
+
 test('reduced motion shows a still and schedules nothing', async (t) => {
     t.mock.timers.enable({ apis: ['setTimeout'] });
     const { queue, painted, overlay } = await makeQueue({ reducedMotion: true });

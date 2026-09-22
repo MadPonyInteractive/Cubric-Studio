@@ -31,6 +31,20 @@ because nothing mascot-related stays in that repo any more.
       The 8 not staged are the documented spares; they needed no labelling from Fabio
 - [x] Phase 2: shared clip queue utility, with its unit test - `js/utils/mascotClipQueue.js`,
       8 tests, each guard proven RED on a broken rule (validation.md)
-- [ ] Phase 3: landing hero crew on the queue (Fabio checks)
+- [x] Phase 3: landing hero crew on the queue — **Fabio saw it 2026-09-22: "the animations look
+      good, and they are well connected."** Hover then lost its transition (queue gained a
+      per-request `transition` flag, new test proven red first). Three follow-ups became
+      Phase 3b below.
+- [ ] Phase 3b: the transition overlay paints a BLACK SQUARE (`mix-blend-mode: screen` ignored
+      on a `<video>` — re-encode the transitions with alpha instead), crew labels take the
+      mascot names, and the landing agent slot swaps Prism + "Ask me anything" for Cosmo
+      peeking over the rule with the input moved up
+- [x] Phase 3 detail, for the record — BUILT 2026-09-22.
+      `heroCrew.js` paints two stacked `<video>` per member plus a screen-blended transition
+      layer; `_poseSrc` is gone. Self-checks in validation.md: 1779/0 tests, eslint clean,
+      real Electron (own profile + port 57327) showing all five on their clips, a click
+      playing its transition and swapping under it, a hover cutting straight to the greet,
+      0 `play()` calls in 8s after navigating away, and reduced motion holding frame 0 with
+      0 `play()` calls in 9s
 - [ ] Phase 4: prompt box ledge, agent mode and model modes (Fabio checks)
 - [ ] Phase 5: the rest of the spot map in `docs/mascot-placement.md`, then Flows
