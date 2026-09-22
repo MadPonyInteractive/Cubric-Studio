@@ -262,12 +262,10 @@ test('SSE agent:working flips Cosmo to his working clip', async ({}, testInfo) =
     await window.evaluate(() => {
       window.__fireSse('agent:working', { turnId: 't1', working: true });
     });
-    await window.waitForTimeout(200);
-
-    // The two ledge clips are both loaded and looping; the live one is the state.
+    // The two ledge clips are both loaded and looping; the live one is the state. It swaps
+    // when the working clip's play() settles, so wait on the swap rather than a fixed sleep.
     const mascot = window.locator('#e2e-agent-host .mpi-agent-chat__ledge-clip--live');
-    const src = await mascot.getAttribute('src');
-    expect(src).toContain('studio/agent-thinking.webm');
+    await expect(mascot).toHaveAttribute('src', /studio\/agent-thinking\.webm/);
 
     expect(pageErrors).toEqual([]);
   } finally {
@@ -574,15 +572,81 @@ test('Mascot flips back to idle when agent:working false follows true', async ({
     await window.evaluate(() => {
       window.__fireSse('agent:working', { turnId: 't1', working: true });
     });
-    await window.waitForTimeout(200);
-    expect(await mascot.getAttribute('src')).toContain('studio/agent-thinking.webm');
+    // The swap lands when play() settles: wait on it, never on a fixed sleep.
+    await expect(mascot).toHaveAttribute('src', /studio\/agent-thinking\.webm/);
 
     // Fire working:false — back to the rest loop
     await window.evaluate(() => {
       window.__fireSse('agent:working', { turnId: 't1', working: false });
     });
-    await window.waitForTimeout(200);
-    expect(await mascot.getAttribute('src')).toContain('studio/peek.webm');
+    await expect(mascot).toHaveAttribute('src', /studio\/peek\.webm/);
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
+// MPI-777 Phase 4 (MPI-843 drawing): the panel's crew ledge. Cosmo on the left, the mascot of
+// the newest running job sliding in on the right, and a closed panel decoding nothing.
+test('panel crew ledge: Cosmo states, the guest follows the newest job, a closed panel plays nothing', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await installStubs(window);
+    await bootAndMountChat(window, false);
+
+    const crew  = window.locator('#e2e-agent-host .mpi-agent-chat__crew');
+    const cosmo = crew.locator('.mpi-agent-chat__ledge').first().locator('.mpi-agent-chat__ledge-clip--live');
+    const guest = window.locator('#e2e-agent-host #ac-guest');
+    const heightBefore = await crew.evaluate(n => n.getBoundingClientRect().height);
+    expect(heightBefore).toBe(52);
+    expect(await cosmo.getAttribute('src')).toContain('studio/peek.webm');
+    await expect(window.locator('#e2e-agent-host #ac-crew-state')).toHaveText('listening');
+
+    await window.evaluate(() => document.querySelector('#e2e-agent-host .mpi-agent-chat').setWorking(true));
+    await expect(window.locator('#e2e-agent-host #ac-crew-state')).toHaveText('holding the thread');
+    expect(await cosmo.getAttribute('src')).toContain('studio/agent-thinking.webm');
+
+    // The panel is closed (agentMode off): count every play() from here on.
+    await window.evaluate(async () => {
+      const { state } = await import('/js/state.js');
+      state.agentMode = false;
+      window.__plays = 0;
+      const orig = HTMLMediaElement.prototype.play;
+      HTMLMediaElement.prototype.play = function (...a) {
+        if (this.closest('#e2e-agent-host')) window.__plays++;
+        return orig.apply(this, a);
+      };
+    });
+
+    const emit = (name, data) => window.evaluate(async ([n, d]) => {
+      const { Events } = await import('/js/events.js');
+      Events.emit(n, d);
+    }, [name, data]);
+
+    await emit('generation:started', { id: 'g1', operation: 'upscale' });
+    await expect(guest).toHaveClass(/mpi-agent-chat__crew-guest--in/);
+    await expect(guest).toHaveAttribute('data-accent', 'vision');
+    await expect(window.locator('#e2e-agent-host #ac-guest-name')).toHaveText('Prism');
+    await expect(window.locator('#e2e-agent-host #ac-guest-state')).toHaveText(/^upscaling · 0:0\d$/);
+    expect(await window.locator('#e2e-agent-host #ac-guest-clip').getAttribute('src')).toContain('vision/peek.webm');
+
+    // A newer job takes the slot; when it ends the older one still running comes back.
+    await emit('generation:started', { id: 'g2', operation: 'i2v' });
+    await expect(window.locator('#e2e-agent-host #ac-guest-name')).toHaveText('Reel');
+    await emit('generation:complete', { id: 'g2' });
+    await expect(window.locator('#e2e-agent-host #ac-guest-name')).toHaveText('Prism');
+
+    // The last one out: the guest leaves, and after its slide-out its decoder is released.
+    await emit('generation:cancelled', { id: 'g1' });
+    await expect(guest).not.toHaveClass(/mpi-agent-chat__crew-guest--in/);
+    await window.waitForTimeout(600);
+    expect(await window.locator('#e2e-agent-host #ac-guest-clip').getAttribute('src')).toBeNull();
+
+    // Nothing reflowed, and a closed panel never started a clip.
+    expect(await crew.evaluate(n => n.getBoundingClientRect().height)).toBe(heightBefore);
+    expect(await window.evaluate(() => window.__plays)).toBe(0);
 
     expect(pageErrors).toEqual([]);
   } finally {

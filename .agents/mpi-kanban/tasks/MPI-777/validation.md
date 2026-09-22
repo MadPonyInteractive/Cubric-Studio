@@ -434,3 +434,47 @@ left silent.
   ledge in both states by screenshot, and `studio/peek.webm` confirmed live on the rest clip.
 - `tests/desktop/agent-chat.spec.js` follows the clips: `studio/peek.webm` at rest,
   `studio/agent-thinking.webm` while working.
+
+### Round 5 - Fabio verifies Phase 3b (2026-09-22)
+
+*"Everything looks good."* Covers Round 4's three follow-ups: the vanish into the puff, the
+peek ledge's size and position, and the unsheared top. **Phase 3b VERIFIED.**
+
+He asked whether the ledge could cycle between Cosmo's peeks. It cannot: Studio has one
+approved peek (`i2v_068`, staged as `studio/peek.webm`); the only other roll, `i2v_063`, is the
+one he superseded on 2026-09-16. His ruling: leave it as a single loop. No code changed.
+
+## Phase 4A - the agent panel's crew ledge (2026-09-22)
+
+Built to the MPI-843 drawing Fabio approved (`tasks/MPI-843/research/chat-merged.html`).
+
+- **Framing measured, not guessed.** Union alpha bbox over every frame of each `peek.webm`:
+  studio 96-509 × 436-620, vision 111-511 × 438-620, video 95-520 × 264-620, audio 107-513 ×
+  391-620, prompt 75-538 × 344-620. All centred near column 305, so one `--ledge-w` and one
+  negative inline margin frame all five. Video's peek rises highest and loses ~14px of its
+  top at 115px - accepted.
+- **Guest source.** Generations carry no "the agent sent this" tag (`queueSource` is never
+  set by the connector path), so the guest is the newest generation still running, any
+  source - the honest "who is working". Marked `ponytail:` in the code with the upgrade path.
+- **Screenshot** at the panel's 420px, working + Prism guest: both heads on the composer's
+  rule, Cosmo on `agent-thinking`, "Prism" in rose, "upscaling · 0:00". Checked by eye.
+
+#### What ran
+
+- `npm test` - 1800 tests, 1798 pass, **0 fail**, 1 skipped (+1 known todo, MPI-867).
+- eslint on the component + spec, `--max-warnings=0`: clean.
+- `tests/desktop/agent-chat.spec.js`: **32/32**. New test: Cosmo's state line and clip
+  follow working; the guest takes Prism on `upscale`, Reel on a newer `i2v`, falls back to
+  Prism when that one completes, leaves on the last cancel and its `src` is released after
+  the slide-out; the row stays 52px throughout; **0 `play()` calls** while the panel is closed.
+- Two existing tests raced a fixed 200ms sleep against the async `play()` that commits the
+  swap (one failed in a full run, one in `--repeat-each=5`). Both now wait on the attribute;
+  the four ledge tests then went **20/20** over `--repeat-each=5`.
+
+#### Fabio's live look (2026-09-22)
+
+- **Behaviour VERIFIED:** "Functionality is all okay. It all worked. The Vision Prism showed
+  up at the right time and left at the right time." The guest data source, the state line and
+  the timing stand.
+- **Look REJECTED:** too small and too static - taller ledge, full-figure clips with feet on
+  the composer's rule, peeks move to the prompt box (4B). See plan.md Current State.

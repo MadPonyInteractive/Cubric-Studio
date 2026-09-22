@@ -68,8 +68,82 @@
     opacity: 1;
 }
 
+/* ── The panel's crew ledge (MPI-843 drawing, MPI-777 Phase 4) ────────────────
+   52px ALWAYS, guest or not, so the transcript and the composer never move. Both heads
+   sit on the ledge's bottom edge — the composer's top rule — exactly as Cosmo does on
+   the landing, so the same `__ledge` block serves at a smaller `--ledge-w`. Every peek
+   clip was measured (union alpha bbox over all frames): the head spans columns ~95-515
+   of 620 in all five, so one negative inline margin trims the empty sides for all. */
+.mpi-agent-chat__crew {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: flex-end;
+    gap: var(--s-2);
+    height: 52px;
+    padding: 0 var(--s-3);
+    overflow: hidden;
+    border-top: 1px solid var(--line-soft);
+    margin-bottom: calc(var(--s-3) * -1);           /* cancel the block's gap: heads ON the rule */
+}
+
+.mpi-agent-chat__crew .mpi-agent-chat__ledge {
+    --ledge-w: 115px;                               /* the head ~34px tall, ~77px wide */
+    position: relative;
+    left: auto;
+    bottom: auto;
+    flex: 0 0 auto;
+    margin-inline: calc(var(--ledge-w) * -90 / 620);
+}
+
+.mpi-agent-chat__crew-txt {
+    display: flex;
+    flex-direction: column;
+    align-self: center;
+    min-width: 0;
+}
+
+.mpi-agent-chat__crew-txt--end {
+    text-align: right;
+}
+
+.mpi-agent-chat__crew-name {
+    font-size: var(--t-xs);
+    color: var(--ink-1);
+}
+
+.mpi-agent-chat__crew-state {
+    font-size: var(--t-2xs);
+    color: var(--ink-2);
+    white-space: nowrap;
+}
+
+/* The guest slides in from the right when its job starts, and only then. Its
+   `[data-accent]` rebinds --accent-heat, so its name reads in its own family colour. */
+.mpi-agent-chat__crew-guest {
+    margin-left: auto;
+    display: flex;
+    align-items: flex-end;
+    align-self: stretch;
+    gap: var(--s-2);
+    padding-left: var(--s-3);
+    border-left: 1px solid var(--line-soft);
+    opacity: 0;
+    transform: translateX(16px);
+    transition: transform var(--t-base) var(--ease), opacity var(--t-base) var(--ease);
+}
+
+.mpi-agent-chat__crew-guest .mpi-agent-chat__crew-name {
+    color: var(--accent-heat);
+}
+
+.mpi-agent-chat__crew-guest--in {
+    opacity: 1;
+    transform: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .mpi-agent-chat__ledge-clip {
+    .mpi-agent-chat__ledge-clip,
+    .mpi-agent-chat__crew-guest {
         transition: none;
     }
 }
@@ -82,6 +156,12 @@
     padding: var(--s-2) var(--s-3);
     flex-shrink: 0;
     border-bottom: 1px solid var(--line-soft);
+}
+
+.mpi-agent-chat__header-face {
+    height: 20px;
+    width: auto;
+    flex-shrink: 0;
 }
 
 .mpi-agent-chat__header-label {

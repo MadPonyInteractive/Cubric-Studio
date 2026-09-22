@@ -39,12 +39,45 @@ import { Events }              from '../../../events.js';
 import { clientLogger }        from '../../../services/clientLogger.js';
 import { state }               from '../../../state.js';
 import { PAGE_LANDING }        from '../../../router.js';
+import { getCommandAccent, getCommandProgressLabel } from '../../../data/commandRegistry.js';
 import {
     agentSendMessage,
     agentGetHistory,
     agentPostConfirm,
     agentReset,
 } from '../../../services/agentService.js';
+
+/**
+ * Cosmo's ledge, in both modes. On the landing he stands BEHIND the block's top rule, which
+ * cuts him off at the shoulders, so only a peek clears it and the composer sits straight on
+ * that line (Fabio, 2026-09-22; this replaced a 48px still and an "Ask me anything" label).
+ * In the panel the same block sits on the crew ledge, smaller. Two stacked clips rather than
+ * one with a swapped src: assigning src to the visible element blanks it until the first
+ * frame decodes (MPI-777 Phase 3). Both loop, so nothing here needs a timer or the clip queue.
+ */
+const _COSMO_LEDGE = `
+            <div class="mpi-agent-chat__ledge" aria-hidden="true">
+                <video class="mpi-agent-chat__ledge-clip mpi-agent-chat__ledge-clip--live"
+                       id="ac-ledge-rest" src="assets/mascot/studio/peek.webm"
+                       muted playsinline loop preload="auto"></video>
+                <video class="mpi-agent-chat__ledge-clip mpi-agent-chat__ledge-clip--standing"
+                       id="ac-ledge-work" src="assets/mascot/studio/agent-thinking.webm"
+                       muted playsinline loop preload="auto"></video>
+            </div>`;
+
+/**
+ * The guest on the panel's crew ledge, keyed by `getCommandAccent` (what an op MAKES). The
+ * names mirror heroCrew.js `CREW`; `studio` has no guest, because Cosmo is already there.
+ */
+const _GUESTS = Object.freeze({ vision: 'Prism', video: 'Reel', audio: 'Vinyl', prompt: 'Lingo' });
+
+/** Pause and drop the source: the only thing that frees a hidden video's decoder. */
+function _releaseClip(v) {
+    if (!v) return;
+    v.pause();
+    v.removeAttribute('src');
+    v.load();
+}
 
 export const MpiAgentChat = ComponentFactory.create({
     name: 'MpiAgentChat',
@@ -56,30 +89,40 @@ export const MpiAgentChat = ComponentFactory.create({
             <!-- Compact header: label + working indicator (panel mode) -->
             ${!props.standalone ? `
             <div class="mpi-agent-chat__header" id="ac-header">
-                <span class="mpi-agent-chat__header-label">Agent</span>
+                <!-- MPI-843: Cosmo as a persistent 20px identity beside the label. Never moves. -->
+                <img class="mpi-agent-chat__header-face" src="assets/mascot/studio/logo.webp" alt="" draggable="false">
+                <span class="mpi-agent-chat__header-label">Cosmo</span>
                 <span class="mpi-agent-chat__header-action" id="ac-reset-slot"></span>
                 <span class="mpi-agent-chat__working-dot" id="ac-working-dot"></span>
             </div>
-            ` : `
-            <!-- Cosmo's ledge (standalone landing mode only). He stands BEHIND the block's
-                 top rule, which cuts him off at the shoulders, so only a peek clears it —
-                 the composer then sits straight on that line (Fabio, 2026-09-22; this
-                 replaced a 48px still and an "Ask me anything" label). Two stacked clips
-                 rather than one with a swapped src: assigning src to the visible
-                 element blanks it until the first frame decodes (MPI-777 Phase 3). Both
-                 loop, so nothing here needs a timer or the clip queue. -->
-            <div class="mpi-agent-chat__ledge" aria-hidden="true">
-                <video class="mpi-agent-chat__ledge-clip mpi-agent-chat__ledge-clip--live"
-                       id="ac-ledge-rest" src="assets/mascot/studio/peek.webm"
-                       muted playsinline loop preload="auto"></video>
-                <video class="mpi-agent-chat__ledge-clip mpi-agent-chat__ledge-clip--standing"
-                       id="ac-ledge-work" src="assets/mascot/studio/agent-thinking.webm"
-                       muted playsinline loop preload="auto"></video>
-            </div>
-            `}
+            ` : _COSMO_LEDGE}
 
             <!-- Transcript -->
             <div class="mpi-agent-chat__transcript" id="ac-transcript"></div>
+
+            ${!props.standalone ? `
+            <!-- The panel's crew ledge (MPI-843, MPI-777 Phase 4): Cosmo on the left, the
+                 mascot of whatever job is running sliding in on the right, so there is one
+                 place the eye checks for "who is working". Fixed height: nothing here may
+                 reflow the transcript or move the composer. -->
+            <div class="mpi-agent-chat__crew" aria-hidden="true">
+                ${_COSMO_LEDGE}
+                <span class="mpi-agent-chat__crew-txt">
+                    <span class="mpi-agent-chat__crew-name">Cosmo</span>
+                    <span class="mpi-agent-chat__crew-state" id="ac-crew-state">listening</span>
+                </span>
+                <div class="mpi-agent-chat__crew-guest" id="ac-guest">
+                    <span class="mpi-agent-chat__crew-txt mpi-agent-chat__crew-txt--end">
+                        <span class="mpi-agent-chat__crew-name" id="ac-guest-name"></span>
+                        <span class="mpi-agent-chat__crew-state" id="ac-guest-state"></span>
+                    </span>
+                    <div class="mpi-agent-chat__ledge">
+                        <video class="mpi-agent-chat__ledge-clip mpi-agent-chat__ledge-clip--live"
+                               id="ac-guest-clip" muted playsinline loop preload="auto"></video>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
 
             <!-- Composer — both modes (MPI-797 Phase 2). The panel used to borrow
                  MpiPromptBox's agent mode for input; it has its own row now. -->
@@ -107,10 +150,11 @@ export const MpiAgentChat = ComponentFactory.create({
         const ledgeWork  = qs('#ac-ledge-work',    el);
         const workingDot = qs('#ac-working-dot',   el);
         const transcript = qs('#ac-transcript',    el);
+        const crewState  = qs('#ac-crew-state',    el);
+        const guest      = qs('#ac-guest',         el);
+        const guestClip  = qs('#ac-guest-clip',    el);
         /** Reduced motion holds a first frame and never plays, exactly as the crew does. */
-        const _still = ledgeRest && matchMedia('(prefers-reduced-motion: reduce)').matches;
-        // Cosmo starts on his rest loop. Muted and playsInline, so no gesture is needed.
-        if (ledgeRest && !_still) ledgeRest.play().catch(() => {});
+        const _still = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
         // A link the agent writes (the docs site when it cannot answer something) is a bare
         // `<a href>` in rendered markdown, and clicking one inside Electron navigates the whole
@@ -136,26 +180,95 @@ export const MpiAgentChat = ComponentFactory.create({
                 prev.pause();
                 _ledgeLive = next;
             };
-            if (_still) show();
+            // Hidden, it only swaps: `_syncPlay` starts the live clip when the chat is seen again.
+            if (_still || !_seen()) show();
             else next.play().then(show, show);
         }
 
-        // This chat is mounted ONCE at boot (projectUI.js) and never destroyed, because the
-        // landing is only `.hide`d — so without this the ledge would keep decoding behind an
-        // open project for the app's lifetime. Follow the page, exactly as heroCrew does.
-        if (ledgeRest) {
-            _unsubs.push(Events.onState('currentPage', (page) => {
-                if (page !== PAGE_LANDING) { ledgeRest.pause(); ledgeWork.pause(); }
-                else if (!_still) _ledgeLive.play().catch(() => {});
-            }));
+        // Both chats are mounted ONCE and never destroyed — the landing chat by projectUI.js
+        // (the landing is only `.hide`d), the panel by agentPanel.js (it is only closed) — so
+        // without this their clips would decode unseen for the app's lifetime. Play only
+        // while the chat can be seen: the landing chat on the landing, the panel while it is
+        // open away from it.
+        const _seen = () => props.standalone
+            ? state.currentPage === PAGE_LANDING
+            : !!state.agentMode && state.currentPage !== PAGE_LANDING;
+        function _syncPlay() {
+            const live = [_ledgeLive, _guestKey && guestClip].filter(Boolean);
+            if (_seen() && !_still) live.forEach(v => v.play().catch(() => {}));
+            else [ledgeRest, ledgeWork, guestClip].forEach(v => v?.pause());
         }
+        _unsubs.push(Events.onState('currentPage', _syncPlay));
+        if (!props.standalone) _unsubs.push(Events.onState('agentMode', _syncPlay));
+
+        // ── The guest (panel only) ────────────────────────────────────────────
+        // Whoever's job is running: the NEWEST generation still in flight, whatever sent it.
+        // ponytail: generations carry no "the agent sent this" tag, so a job the user starts
+        // from the prompt box shows here too — which is still the honest "who is working".
+        // Tag `queueSource` at the connector if the ledge should ever show the agent's only.
+        const _running = new Map();   // generation id → operation, in start order
+        let _guestKey = null;
+        let _guestSince = 0;
+        let _guestTimer = null;
+
+        function _paintGuest() {
+            const last = [..._running.values()].pop();
+            const key  = last && getCommandAccent(last);
+            const name = key && _GUESTS[key];
+            if (!name) {
+                if (!_guestKey) return;
+                _guestKey = null;
+                guest.classList.remove('mpi-agent-chat__crew-guest--in');
+                clearInterval(_guestTimer);
+                // Hiding a video keeps its decoder alive; only dropping its src releases it —
+                // after the slide-out, or he would blank mid-exit. Skipped if a guest came back.
+                setTimeout(() => { if (!_guestKey) _releaseClip(guestClip); }, 400);
+                return;
+            }
+            const verb = getCommandProgressLabel(last).toLowerCase();
+            const tick = () => {
+                const s = Math.floor((Date.now() - _guestSince) / 1000);
+                qs('#ac-guest-state', el).textContent = `${verb} · ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+            };
+            if (key !== _guestKey) {
+                _guestKey = key;
+                guest.dataset.accent = key;
+                qs('#ac-guest-name', el).textContent = name;
+                // Set while the slot is still out of view, so the blank first frame is never seen.
+                guestClip.src = `assets/mascot/${key}/peek.webm`;
+            }
+            if (!guest.classList.contains('mpi-agent-chat__crew-guest--in')) {
+                _guestSince = Date.now();
+                clearInterval(_guestTimer);
+                _guestTimer = setInterval(tick, 1000);
+            }
+            tick();
+            const slideIn = () => guest.classList.add('mpi-agent-chat__crew-guest--in');
+            if (_still || !_seen()) slideIn();
+            else guestClip.play().then(slideIn, slideIn);
+        }
+
+        if (guest) {
+            _unsubs.push(Events.on('generation:started', ({ id, operation } = {}) => {
+                _running.set(id, operation);
+                _paintGuest();
+            }));
+            for (const name of ['generation:complete', 'generation:cancelled', 'generation:error']) {
+                _unsubs.push(Events.on(name, ({ id } = {}) => {
+                    if (_running.delete(id)) _paintGuest();
+                }));
+            }
+        }
+
+        _syncPlay();
 
         function _setWorking(working) {
             _working = working;
             // Panel mode: toggle working dot
             if (workingDot) workingDot.classList.toggle('mpi-agent-chat__working-dot--on', working);
-            // Standalone mode: Cosmo swaps to his working clip on the ledge
+            // Cosmo swaps to his working clip on the ledge, in both modes
             _setLedge(working);
+            if (crewState) crewState.textContent = working ? 'holding the thread' : 'listening';
             emit('working', { working });
         }
 
@@ -762,13 +875,10 @@ export const MpiAgentChat = ComponentFactory.create({
         el.destroy = () => {
             _unsubs.forEach(fn => fn());
             _buttons.splice(0).forEach((b) => b.destroy());
+            clearInterval(_guestTimer);
+            _guestKey = null;
             // Hiding a video keeps its decoder alive; only this releases it (MPI-777).
-            for (const v of [ledgeRest, ledgeWork]) {
-                if (!v) continue;
-                v.pause();
-                v.removeAttribute('src');
-                v.load();
-            }
+            [ledgeRest, ledgeWork, guestClip].forEach(_releaseClip);
         };
     },
 });

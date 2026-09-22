@@ -47,6 +47,35 @@ pointer below before editing; they were read 2026-09-16.
   fourth is NOT mine: the agent introduces itself as "Cubric" and should say Cosmo
   (`services/agentLoop.mjs:1271`), which a live peer claims - message `8cd24a3c` sent, and
   told to Fabio. Evidence: validation.md § Round 4.
+- **Phase 3b is VERIFIED (Fabio, 2026-09-22): "Everything looks good."** The vanish, the
+  peek ledge and the unsheared top all seen. He asked about cycling the ledge between
+  peeks: Cosmo has ONE approved peek (`i2v_068`; `i2v_063` was superseded by him on
+  2026-09-16), so it stays a single loop - his call, "let's not get caught up in doing
+  more". Do not re-raise. The Cubric->Cosmo prompt line is still the MPI-890 peer's
+  (message 8cd24a3c re-targeted to the FILE 2026-09-22; Fabio says the successor is "Agent 36").
+- **Phase 4A BUILT (2026-09-22), Fabio's look outstanding:** the agent panel's crew ledge in
+  `MpiAgentChat.js` - the landing's `__ledge` reused at `--ledge-w: 115px` on a fixed 52px
+  `__crew` row, a 20px `studio/logo` in the header (label now "Cosmo", per the drawing), and a
+  guest slot for the NEWEST running generation (`generation:started` -> terminal events;
+  mascot by `getCommandAccent`, verb by `getCommandProgressLabel`). Clips play only while
+  the panel is open away from the landing (`_seen`/`_syncPlay`, both modes now). Evidence:
+  validation.md § Phase 4A. **Next: 4B**, the prompt box ledge - blocked on the da9175f5
+  claim on `MpiPromptBox.js/.css` (heartbeat 06:05Z, stale; message 2568a53a sent).
+- **Fabio's look at 4A (2026-09-22): REWORK - "too boring".** Screenshot in the live app: the
+  52px row with two small head peeks is not enough. His words, in order:
+  1. The ledge must be **TALLER**. Cosmo has more clips rolled than any other mascot.
+  2. It must play the **other animations** - the generating/working and agent-state clips
+     (agent-thinking, agent-listening, agent-answer-ready, working, getting-ready, idle x3,
+     happy, greet ...), not head peeks. "If we just go with head peeks, not much happens."
+  3. **Full standing figures, FEET ON THE INPUT BOX**: the ground line where their feet stand
+     sits on the composer's top rule. So frame by the FEET row (measure each clip's bottom
+     alpha row), not the head row - the opposite of the landing peek.
+  4. **Head peeks belong over the PROMPT BOX, "every now and then"** - i.e. that is 4B, not
+     the panel. The panel should not use `peek` at all.
+  What stays from 4A: the fixed-height row (just taller), the guest slot + its data source
+  (newest running generation, `getCommandAccent`), `_seen`/`_syncPlay` gating, the header
+  20px Cosmo, the spec's 0-play guard. Likely wants the shared `mascotClipQueue`
+  (Phase 2) to rotate idle pools and state clips, as heroCrew does, instead of two loops.
 - All three of the original Phase 3b items landed: the
   overlay composites (above), the crew labels carry the mascot names (Lingo, Prism, Cosmo,
   Reel, Vinyl — which narrows MPI-846's "chrome labels stay role nouns", recorded there and
