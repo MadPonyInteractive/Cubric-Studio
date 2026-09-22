@@ -42,6 +42,19 @@ Offline half shipped in `d7d153d1`. Evidence: [validation.md](validation.md).
 - [x] `npm test` green: 1783 pass, 0 fail. `tests/agent-no-delete.test.cjs` gained its
       allowlist line for the new route, which is what its own header says to do.
 
+## Phase 2 — a real batch where the model batches cleanly (2026-09-22)
+
+- [x] Chroma + 6 local video models: `capabilities.batch: false` (Fabio: they cannot batch).
+- [x] `agentCanBatch` + `batch` named param (1-4), connector accepts it, loop `_runBatched` with
+      fan-out fallback on `BATCH_UNSUPPORTED`, dispatch draws N placeholders.
+- [x] Tests: connector batch accepted/refused, `agentCanBatch` exact list, loop batch-of-six =
+      [4,2] with one spend card, fallback fan-out. `npm test` 1802 pass; the 1 fail is
+      `mascot-clip-queue` (peer MPI-777's uncommitted `mascotClipQueue.js`).
+- [x] Fabio live 2026-09-22: batch of four on flux-schnell-cloud (twice) and ILL Anime → four
+      "Generating..." cards at once, one spend card, four images landed. Krea 2 batch of four ran
+      sequentially as designed. Chroma untested (not installed on his box).
+- [ ] Cloud batch sidecar cost = the CALL's cost (not checked live).
+
 ## Open for Fabio — nothing below is closable by an agent
 
 - [ ] One real gated run against a live key; `flux-schnell-cloud` at $0.0005 is the model

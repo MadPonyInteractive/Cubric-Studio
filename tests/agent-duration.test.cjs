@@ -175,6 +175,12 @@ test('every named param the connector accepts is declared AND forwarded by the a
     const schema = loop.slice(from, to);
 
     for (const key of keys) {
+        // `batch` is the loop's, not the model's: the model sends `count`, and `_fanOut`
+        // turns it into a batch where the model can take one (MPI-876 phase 2).
+        if (key === 'batch') {
+            assert.match(loop, /body\.batch = opts\.batchSize/, 'the loop no longer forwards its batch');
+            continue;
+        }
         assert.match(schema, new RegExp(`\\b${key}:\\s*\\{`),
             `'${key}' is accepted by the connector but not declared on the agent's generate tool — with additionalProperties:false the model cannot send it at all`);
         assert.match(loop, new RegExp(`body\\.${key} = `),

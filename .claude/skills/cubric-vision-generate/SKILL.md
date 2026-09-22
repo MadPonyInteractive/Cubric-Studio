@@ -98,11 +98,14 @@ A video model has **no `1k` tier at all**; "there is no 1K tier" is a correct
 reading of the names and still the wrong answer to the question. Sizes for
 other ratios are in `tierSizes` — the values above are one column of it.
 
-**No `batch`. Want three images? Send three submits.** An agent submit always
-runs at batch 1, whatever the open project's batch control says, and a body
-carrying `batch` is refused with `BATCH_UNSUPPORTED`. A batch of N holds N
-images in VRAM at once; N submits queue and each holds one. Each request blocks
-until its own run finishes, so fire them together and collect N results.
+**`batch` (1-4) only where the model batches cleanly.** On most models images 2+
+of a batch come back with artefacts, so `batch` > 1 runs as ONE job only on the
+SDXL family's `t2i` (sdxl-realistic, sdxl-nsfw, ill-anime, ill-anime-beauty,
+pony-mix) and the DeepInfra cloud models that batch natively (flux-schnell-cloud,
+Veo). Anywhere else it is refused with `BATCH_UNSUPPORTED`: send N submits
+instead. They queue, each request blocks until its own run finishes, so fire
+them together and collect N results. Unasked, a submit runs batch 1 whatever the
+open project's batch control says.
 
 `ratio`/`qualityTier`/`turbo`/`styleSelect`/`stylization`/`duration`/`denoise` all merge into
 `injectionParams` under the hood — a raw `injectionParams` key still wins over
@@ -177,7 +180,8 @@ Failure returns `{"ok": false, "error": {"code": ..., "message": ...}}`:
 | `INVALID_STYLIZATION` | `stylization` is not 0..1, or the model/operation has no style rack. |
 | `INVALID_DURATION` | `duration` is not a number of seconds in 1..30, or the operation makes a still and has no duration. |
 | `INVALID_DENOISE` | `denoise` is not a number in 0..1, or the operation has no denoise (it does not start from a picture it keeps). |
-| `BATCH_UNSUPPORTED` | The body carried `batch`. Agent submits always run batch 1: send N submits instead. |
+| `BATCH_UNSUPPORTED` | `batch` > 1 on a model/op that cannot batch cleanly, or on a Flow: send N submits instead. |
+| `INVALID_BATCH` | `batch` was not an integer 1-4. |
 | `INVALID_SEED` | `seed` is not an integer in 0..4294967295. |
 | `INVALID_CARD_NAME` | `cardName` is not a string. |
 

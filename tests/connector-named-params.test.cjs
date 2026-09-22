@@ -252,20 +252,48 @@ test('stylization: out of the 0..1 range is a named error', async () => {
     } finally { await stop(); }
 });
 
-// Agents never batch (Fabio, 2026-09-15): a batch of N holds N latents in VRAM at
-// once, N queued submits hold one. A `batch` field is refused by name, even 1, so an
-// agent learns the rule instead of having a value silently dropped.
-test('batch: any batch field is refused by name, even on a model that batches', async () => {
+// MPI-876 phase 2 (Fabio, 2026-09-22): a batch runs as ONE job only where the model's
+// images 2+ come back clean — the SDXL family's t2i and the cloud models. Elsewhere it is
+// refused by name so the caller queues N submits instead.
+test('batch: a clean-batching model carries batch to the renderer', async () => {
+    const { base, stop } = await startServer();
+    const renderer = await fakeRenderer(base);
+    try {
+        const pending = postJson(`${base}/connector/generate`, { ...SDXL, batch: 4 });
+        const frame = await renderer.readFrame();
+        assert.equal(frame.data.input.batch, 4);
+        await postJson(`${base}/connector/jobs/${frame.data.jobId}/result`, { ok: true, output: {} });
+        assert.equal((await pending).json.ok, true);
+    } finally { renderer.close(); await stop(); }
+});
+
+test('batch: refused by name where images 2+ artefact, and above the cap', async () => {
     const { base, stop } = await startServer();
     try {
-        const { status, json } = await postJson(`${base}/connector/generate`,
-            { ...SDXL, batch: 2 });
-        assert.equal(status, 400);
-        assert.equal(json.error.code, 'BATCH_UNSUPPORTED');
+        for (const [body, code] of [
+            [{ modelId: 'boogu-edit-high', operation: 'edit', batch: 2 }, 'BATCH_UNSUPPORTED'],
+            [{ modelId: 'chroma-flash', operation: 't2i', batch: 2 }, 'BATCH_UNSUPPORTED'],
+            [{ ...SDXL, batch: 5 }, 'INVALID_BATCH'],
+        ]) {
+            const { status, json } = await postJson(`${base}/connector/generate`, body);
+            assert.equal(status, 400, body.modelId);
+            assert.equal(json.error.code, code, body.modelId);
+        }
     } finally { await stop(); }
 });
 
-test('batch: a project saved at batch 3 still runs an agent submit at batch 1', () => {
+test('agentCanBatch: SDXL family t2i and the cloud, nothing else', () => {
+    const { agentCanBatch } = require('../js/data/generationControls.js');
+    const can = MODELS.flatMap((m) => (m.supportedOps || [])
+        .filter((op) => agentCanBatch(m, op)).map((op) => `${m.id}:${op}`));
+    assert.deepEqual(can.sort(), [
+        'flux-schnell-cloud:t2i', 'ill-anime-beauty:t2i', 'ill-anime:t2i', 'pony-mix:t2i',
+        'sdxl-nsfw:t2i', 'sdxl-realistic:t2i',
+        'veo-31-cloud:i2v', 'veo-31-cloud:t2v', 'veo-31-fast-cloud:i2v', 'veo-31-fast-cloud:t2v',
+    ]);
+});
+
+test('batch: a project saved at batch 3 still runs an unasked agent submit at batch 1', () => {
     const sdxl = MODELS.find((m) => m.id === SDXL.modelId);
     assert.ok(sdxl, 'fixture guard: sdxl-realistic is still a shipped model');
 

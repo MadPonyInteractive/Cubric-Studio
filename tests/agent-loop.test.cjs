@@ -44,7 +44,7 @@ function makeFakeEngine(responses) {
 /**
  * Build a fake tools object. generateDelay controls how long generate() takes.
  */
-function makeFakeTools({ generateDelay = 0, installResult = { ok: true }, quote = null } = {}) {
+function makeFakeTools({ generateDelay = 0, installResult = { ok: true }, quote = null, refuseBatch = false } = {}) {
     const calls = { listModels: [], readKnowledge: [], installModel: [], generate: [], look: [], openProject: [], placeAsset: [], quote: [] };
     return {
         calls,
@@ -80,6 +80,8 @@ function makeFakeTools({ generateDelay = 0, installResult = { ok: true }, quote 
         },
         generate: async (body) => {
             calls.generate.push(body);
+            // What the connector answers a model whose images 2+ artefact (MPI-876 phase 2).
+            if (refuseBatch && body.batch) return { ok: false, error: { code: 'BATCH_UNSUPPORTED', message: 'cannot batch cleanly' } };
             if (generateDelay > 0) {
                 await new Promise((r) => setTimeout(r, generateDelay));
             }
@@ -2261,10 +2263,11 @@ describe('(m) the spend gate', () => {
 
     // Fabio live, 2026-09-22: "a batch of two" on FLUX Schnell (Cloud) raised TWO cards at
     // $0.0005 each. t2i has no image slot, so `cards` cannot carry it; `count` does.
-    test('a batch of two on an op with no image slot is ONE card for both, then two runs', async () => {
+    // Phase 2: that fan-out is now the FALLBACK, for a model the connector will not batch.
+    test('a batch of two on a model that cannot batch is ONE card for both, then two runs', async () => {
         const { loop, tools, fakeRes } = await makeLoop({
             engineResponses: [{ text: 'ok' }],
-            toolOpts: { quote: (body) => ({ billed: true, modelName: 'FLUX Schnell (Cloud)', count: body.count || 1, display: 'about $0.001' }) },
+            toolOpts: { refuseBatch: true, quote: (body) => ({ billed: true, modelName: 'FLUX Schnell (Cloud)', count: body.count || 1, display: 'about $0.001' }) },
         });
         withOps(tools);
         const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 't2i', prompt: 'a pony', seed: 7, count: 2 }, 'turn-spend-count', project);
@@ -2278,9 +2281,25 @@ describe('(m) the spend gate', () => {
 
         assert.equal(fakeRes.events.filter((e) => e.event === 'agent:confirm').length, 1);
         assert.equal(tools.calls.quote.length, 1, 'the two runs must not each raise their own card');
-        assert.equal(tools.calls.generate.length, 2);
-        assert.deepEqual(tools.calls.generate.map((b) => b.seed), [7, 8], 'a given seed steps, or both are one picture');
+        assert.equal(tools.calls.generate[0].batch, 2, 'the batch is tried first');
+        const runs = tools.calls.generate.slice(1);
+        assert.equal(runs.length, 2);
+        assert.deepEqual(runs.map((b) => b.seed), [7, 8], 'a given seed steps, or both are one picture');
+        assert.ok(runs.every((b) => b.batch === undefined), 'the fallback runs are single jobs');
         assert.ok(tools.calls.generate.every((b) => b.count === undefined), 'count never reaches the connector');
+    });
+
+    test('count on a model that batches is ONE job per four, every card drawn up front', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }], toolOpts: { quote: (body) => ({ ...BILLED, count: body.count || 1 }) } });
+        withOps(tools);
+        const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 't2i', prompt: 'a pony', seed: 7, count: 6 }, 'turn-count-batch', project);
+        const evt = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+        assert.equal(evt.data.count, 6);
+        await loop.confirm(evt.data.confirmId, true);
+        const out = JSON.parse(await pending);
+        assert.equal(out.started, 6);
+        assert.deepEqual(tools.calls.generate.map((b) => [b.batch, b.seed]), [[4, 7], [2, 8]]);
+        assert.equal(fakeRes.events.filter((e) => e.event === 'agent:confirm').length, 1, 'one spend card for both jobs');
     });
 
     test('count is refused by name on a Flow and alongside cards, before any card is asked', async () => {

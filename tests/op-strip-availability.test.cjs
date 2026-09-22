@@ -301,10 +301,9 @@ test('batch is hidden on ops whose latent is VAE-encoded', async () => {
     const { modelShowsBatch } = await import('../js/data/commandRegistry.js');
     const { getModelById } = await import('../js/data/modelRegistry.js');
 
-    // Input_Batch_Size reaches only EmptyLatentImage, and on Chroma only t2i samples it.
+    // Chroma offers batch nowhere: images 2+ of a batch come back broken (Fabio, 2026-09-22).
     const chroma = getModelById('chroma-flash');
-    assert.strictEqual(modelShowsBatch(chroma, 't2i'), true, 'Chroma t2i batches for real');
-    for (const op of ['i2i', 'control', 'detail', 'upscale']) {
+    for (const op of ['t2i', 'i2i', 'control', 'detail', 'upscale']) {
         assert.strictEqual(modelShowsBatch(chroma, op), false, `Chroma ${op} must not offer batch`);
     }
 
@@ -336,7 +335,8 @@ test('every declared batchOp is an op the model actually runs', async () => {
             assert.ok(m.supportedOps.includes(op), `${m.id}: batchOps names ${op}, which it does not support`);
         }
     }
-    // Guards against the field being silently dropped in a refactor: 2 Chroma + 5 SDXL,
+    // Guards against the field being silently dropped in a refactor: 5 SDXL (Chroma dropped
+    // it for `capabilities.batch: false`, MPI-876 2026-09-22),
     // plus FLUX Schnell (Cloud) since MPI-851 — a cloud model bills PER IMAGE, so its
     // batch is real money rather than one more latent, and it is capped by the
     // endpoint's own `num_images` maximum of 4 (the same cap the control already has).
@@ -345,7 +345,7 @@ test('every declared batchOp is an op the model actually runs', async () => {
     // with a native batch (`sample_count`, max 4) — and at $3.20 a clip, four of them is
     // about $12.80 in one call, which is precisely why MPI-854's confirm shows a batch
     // total rather than a unit price.
-    assert.strictEqual(declared, 10, 'exactly the 10 models with partial batch support declare batchOps');
+    assert.strictEqual(declared, 8, 'exactly the 8 models with partial batch support declare batchOps');
 });
 
 test('style strength defaults per model, without disturbing op defaults', async () => {

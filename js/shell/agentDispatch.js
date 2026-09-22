@@ -181,12 +181,12 @@ export function pinnedModel() {
  * @returns {{model:object|null, project:object|null, named:object, error?:{code:string,message:string}}}
  */
 export function resolveSettingsOwner(input = {}, pinned, project, pinnedM) {
-    const { modelId, ratio, qualityTier, turbo, styleSelect, stylization, duration } = input;
+    const { modelId, ratio, qualityTier, turbo, styleSelect, stylization, duration, batch } = input;
     if (!pinned) {
         return {
             model: getModelById(modelId),
             project: null,
-            named: { ratio, qualityTier, turbo, styleSelect, stylization, duration },
+            named: { ratio, qualityTier, turbo, styleSelect, stylization, duration, batch },
         };
     }
     if (!pinnedM) {
@@ -202,7 +202,9 @@ export function resolveSettingsOwner(input = {}, pinned, project, pinnedM) {
         return { model: null, project, named: {}, error: { code: 'MODEL_PINNED',
             message: `Nothing was generated: the user has the settings panel open, so they own the model — it is "${pinnedM.id}" (${pinnedM.name}), not "${modelId}". Send this again with modelId "${pinnedM.id}", writing the prompt for that model. If it cannot do what was asked, say so and ask them to select a different one; you cannot change it.` } };
     }
-    return { model: pinnedM, project, named: {} };
+    // `batch` survives the pin: it is HOW MANY the user asked for (MPI-876), not a setting,
+    // and dropping it would run one picture where the agent says four are coming.
+    return { model: pinnedM, project, named: batch !== undefined ? { batch } : {} };
 }
 
 /**
@@ -437,6 +439,10 @@ function _submitGeneration(jobId, input = {}) {
         height,
         isGenerating: true,
     };
+    // A batch draws one card per image up front (MPI-876), the same shape the gallery's
+    // own Cue builds (MpiGalleryBlock `_galleryGenerationOptions`).
+    const extraTempIds = Array.from({ length: Math.max(1, Number(mergedInjection.Input_Batch_Size) || 1) - 1 }, () => crypto.randomUUID());
+    const extraPlaceholders = extraTempIds.map((id) => ({ ...placeholderGroup, id, history: [] }));
 
     const queued = enqueueGeneration(config, {
         // A card name names a NEW card. Added to the user's own card, it would rename theirs.
@@ -447,7 +453,7 @@ function _submitGeneration(jobId, input = {}) {
             'The generation failed. See the app log for the cause.'),
         onCancel: () => _fail(jobId, 'CANCELLED',
             'The generation was cancelled or produced no output.'),
-    }, historyOpts || { scope: 'gallery', tempId, placeholderGroup });
+    }, historyOpts || { scope: 'gallery', tempId, placeholderGroup, extraTempIds, extraPlaceholders });
 
     // A guard inside enqueueGeneration rejects by returning null — it fires
     // onCancel on its way out, so the report is already in flight. Belt and braces

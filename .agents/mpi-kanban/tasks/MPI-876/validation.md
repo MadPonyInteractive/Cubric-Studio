@@ -147,3 +147,10 @@ offered a local model — the card already said it (Voice rule territory, not th
    consent gate BY DESIGN — a CLI agent's user is its own gate — and the shipped
    `cubric-vision-generate` skill takes that path, so refusing there breaks it. Raised, not
    decided, and nothing here changes that route's behaviour.
+
+## Phase 2 - real batch (2026-09-22, session a49d49d5)
+
+- `npm test`: 1802 pass, 1 fail (`mascot-clip-queue`, peer MPI-777 uncommitted `mascotClipQueue.js`, not this change). Lint clean.
+- New: connector accepts `batch` on SDXL-family t2i + cloud, refuses `BATCH_UNSUPPORTED` / `INVALID_BATCH` by name; `agentCanBatch` pinned to its exact 10 model:op pairs; loop count 6 = jobs [4,2], seeds [7,8], one spend card; refused batch falls back to N single jobs.
+- **Fabio live, 2026-09-22: PASS.** FLUX Schnell (Cloud) batch of four twice and ILL Anime batch of four: four Generating cards up front, one spend card, four images landed. Krea 2 ran four sequential jobs as designed. Chroma not installed on his box, untested.
+- Not checked live: cloud batch sidecar cost equals the single call cost.

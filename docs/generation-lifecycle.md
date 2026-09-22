@@ -172,7 +172,7 @@ so `derived` is computed after the caller's overrides exactly as it is under a c
 producer count does not change: it still hands off to `flowService.submitFlowGeneration`.
 
 **Named params on the model path — ratio/qualityTier/turbo/styleSelect/stylization/seed
-(MPI-547; batch is pinned to 1, an agent queues N submits instead) — resolve through ONE module, not a copy in the route and a copy in the renderer.**
+(MPI-547; batch is 1 unless asked, and > 1 only where `agentCanBatch` says images 2+ come back clean — SDXL-family t2i and the cloud, MPI-876; elsewhere the agent queues N submits) — resolve through ONE module, not a copy in the route and a copy in the renderer.**
 `js/data/generationControls.js` is DOM-free (pure data + functions — no `state.js`, no
 Electron), so `routes/connector.js` `require()`s it for STATIC validation with no project open
 (an unknown ratio label, a tier the model does not declare, a non-boolean `turbo` — all a named

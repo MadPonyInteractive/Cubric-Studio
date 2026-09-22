@@ -129,7 +129,7 @@ const TOOL_DEFS = [
                     count: {
                         type: 'integer',
                         minimum: 1,
-                        description: 'How many of this exact generation to make, each its own card with its own seed ("a batch of two" is 2). They queue one after another, and the user is asked once for all of them. Model ops only, never a Flow, and never with `cards`. The results are not described afterwards; look at one yourself if you need to.',
+                        description: 'How many of this exact generation to make, each its own card ("a batch of two" is 2). The app runs them as one batch where the model can, and queues them one after another where it cannot; the user is asked once for all of them. Model ops only, never a Flow, and never with `cards`. The results are not described afterwards; look at one yourself if you need to.',
                     },
                 },
                 additionalProperties: false,
@@ -1030,6 +1030,15 @@ export class AgentLoop {
             return JSON.stringify({ ok: false, declined: true, message: `The user said no to ${what}. Ask what they would like instead; do not send it again unless they say so.` });
         }
 
+        // Phase 2 — `count` as a REAL batch where the model batches cleanly: one job per
+        // AGENT_BATCH_MAX, so the gallery draws every card up front instead of one card and
+        // N-1 invisible queued jobs. The connector refuses BATCH_UNSUPPORTED on a model whose
+        // images 2+ artefact, before anything is queued, and then it is the fan-out below.
+        if (!cards) {
+            const batched = await this._runBatched(args, n, turnId, currentProject);
+            if (batched) return batched;
+        }
+
         const started = [];
         const refused = [];
         for (const [i, run] of runs.entries()) {
@@ -1060,6 +1069,38 @@ export class AgentLoop {
                 ? `Started ${started.length} of ${n}. ${refused.length} were refused — tell the user which, and why.`
                 : `Started all ${started.length}. They will appear in the chat as they finish; none of them is described, so look at one if you need to.`,
         });
+    }
+
+    /**
+     * `count` as batched jobs (MPI-876 phase 2): ceil(n / 4) submits carrying `batch`. Null
+     * when the FIRST is refused BATCH_UNSUPPORTED — the model cannot batch cleanly, nothing
+     * was queued, and the caller fans out instead. Any other refusal is the answer.
+     */
+    async _runBatched(args, n, turnId, currentProject) {
+        // ponytail: mirrors AGENT_BATCH_MAX in js/data/generationControls.js, which the
+        // connector enforces; this loop imports nothing from js/data.
+        const MAX = 4;
+        let made = 0;
+        for (let i = 0; made < n; i++) {
+            const size = Math.min(MAX, n - made);
+            // A batch shares one seed; each further job steps it so they do not repeat.
+            const one = { ...args, count: undefined, wait: undefined, ...(args.seed !== undefined ? { seed: Number(args.seed) + i } : {}) };
+            let res;
+            try {
+                res = JSON.parse(await this._executeTool('generate', one, turnId, currentProject, { batch: true, batchSize: size }));
+            } catch (err) {
+                res = { ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } };
+            }
+            if (!res?.ok) {
+                if (made === 0 && res?.error?.code === 'BATCH_UNSUPPORTED') return null;
+                return JSON.stringify(made === 0 ? res : {
+                    ok: true, started: made, refused: [{ run: made + 1, code: res?.error?.code || 'ERROR', message: res?.error?.message || 'no reason given' }],
+                    message: `Started ${made} of ${n}. The rest were refused — tell the user why.`,
+                });
+            }
+            made += size;
+        }
+        return JSON.stringify({ ok: true, started: n, refused: [], message: `Started all ${n} as a batch; every card is already in the gallery. They land together, and none of them is described, so look at one if you need to.` });
     }
 
     /**
@@ -1471,6 +1512,8 @@ ${knowledgeIndex}`.trim();
                     if (args.styleSelect !== undefined) body.styleSelect = args.styleSelect;
                     if (args.stylization !== undefined) body.stylization = args.stylization;
                     if (args.seed !== undefined) body.seed = args.seed;
+                    // Set only by `_fanOut`, never by the model: the tool has no `batch` field.
+                    if (opts.batchSize > 1) body.batch = opts.batchSize;
                 }
                 // Resolve media references. An attachment is copied into the project
                 // here — only now that a generation uses it — and a result is passed

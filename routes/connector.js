@@ -409,13 +409,13 @@ router.get('/connector/jobs/stream', (req, res) => {
 // model's own capability data — no project is open here, so an unset param is
 // left off `input` and resolved against the real project by
 // `js/shell/agentDispatch.js`.
-const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'stylization', 'duration', 'denoise'];
+const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'stylization', 'duration', 'denoise', 'batch'];
 
 /**
  * POST /connector/generate
  * Body, EITHER a model op:  { modelId, operation, positive, negative?, injectionParams?,
  *                              ratio?, qualityTier?, turbo?, styleSelect?, stylization?,
- *                              duration?, denoise?, seed?, media? }
+ *                              duration?, denoise?, batch?, seed?, media? }
  *       OR a Flow (MPI-658): { flowId, fields?, media? }
  *
  * The two are not variants of one shape. A Flow has no model — it dispatches with
@@ -448,10 +448,10 @@ router.post('/connector/generate', async (req, res) => {
     return _bad('body.flowId, or body.modelId and body.operation, are required.');
   }
 
-  // Agents never batch (Fabio, 2026-09-15): N queued submits, not a batch of N that
-  // holds N latents in VRAM at once. Refused by name rather than silently run at 1.
-  if (batch !== undefined) {
-    return _namedErr('BATCH_UNSUPPORTED', 'Agent submits always run batch 1. Send N separate submits instead; they queue.');
+  // A model op validates `batch` with the other named params below: it runs as one job
+  // only where the model batches cleanly (MPI-876, `agentCanBatch`). A Flow never batches.
+  if (flowId && batch !== undefined) {
+    return _namedErr('BATCH_UNSUPPORTED', 'A Flow runs once per submit. Send N separate submits instead; they queue.');
   }
   // What actually gets dispatched: the index, once a style named by label is resolved below.
   let styleSelectValue = styleSelect;

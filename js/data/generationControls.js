@@ -1,7 +1,7 @@
 /**
  * generationControls.js — DOM-free resolver for the PromptBox controls an agent
  * submit can name (MPI-547): ratio, qualityTier, turbo (krea2Turbo/h3Turbo),
- * styleSelect, stylization, seed. Not batch: an agent submit always runs batch 1.
+ * styleSelect, stylization, seed, and batch where the model batches cleanly (agentCanBatch).
  *
  * WHY THIS FILE EXISTS: `js/shell/agentDispatch.js` used to carry its OWN copy of
  * the ratio/tier resolve (`_plannedSize`, MPI-546) alongside the real one living
@@ -254,6 +254,23 @@ export function namedParamsFor(model, operation) {
     };
 }
 
+// ── agent batch (MPI-876) ────────────────────────────────────────────────────
+
+/** The largest batch one agent submit runs: the batch picker's 1..4, and the cloud's own cap. */
+export const AGENT_BATCH_MAX = 4;
+
+/**
+ * Can an agent run `operation` on `model` as ONE batched job? Narrower than
+ * `modelShowsBatch` on purpose: a batch that runs is not a batch that comes back clean.
+ * On most models images 2+ artefact (Fabio, 2026-09-22); only the SDXL family's t2i
+ * and the cloud models batch safely. Everything else gets N queued jobs from the agent.
+ * ponytail: "t2i or cloud" is the rule today; a t2i model that artefacts must turn its
+ * batch off (`capabilities.batch: false`, as Chroma does) or this lets it through.
+ */
+export function agentCanBatch(model, operation) {
+    return modelShowsBatch(model, operation) && (model?.provider === 'deepinfra' || operation === 't2i');
+}
+
 // ── denoise (MPI-817) ────────────────────────────────────────────────────────
 
 /** Does `operation` carry the denoise slider? The op's own component list is the authority,
@@ -386,7 +403,7 @@ export function isValidSeed(value) {
  *            provenance:Object<string,{from:'asked'|'defaulted', value:*}>}|{ok:false, code:string, message:string}}
  */
 export function resolveNamedParams(project, model, operation, named = {}) {
-    const { ratio, qualityTier, turbo, styleSelect, stylization, duration: durationWanted, denoise: denoiseWanted } = named;
+    const { ratio, qualityTier, turbo, styleSelect, stylization, duration: durationWanted, denoise: denoiseWanted, batch } = named;
     const injectionParams = {};
     const modelName = model?.name || model?.id || 'this model';
     const provenance = {};
@@ -458,10 +475,18 @@ export function resolveNamedParams(project, model, operation, named = {}) {
         _from('stylization', stylization !== undefined, injectionParams['Input_Style_Selector.strength_model']);
     }
 
-    // Agents never batch (Fabio, 2026-09-15): a batch of N holds N latents in VRAM at
-    // once, N queued submits hold one. So an agent run pins batch to 1 instead of
-    // inheriting a project saved at 3; the route refuses a `batch` field by name.
-    if (modelShowsBatch(model, operation)) injectionParams.Input_Batch_Size = 1;
+    // batch (MPI-876). Asked for, it runs as ONE job only where the model batches cleanly
+    // (agentCanBatch), and is refused by name elsewhere so the caller queues N instead.
+    // Unasked, it is pinned to 1 rather than inheriting a project saved at 3.
+    if (batch !== undefined) {
+        if (!Number.isInteger(batch) || batch < 1 || batch > AGENT_BATCH_MAX) {
+            return _err('INVALID_BATCH', `batch must be an integer 1-${AGENT_BATCH_MAX}.`);
+        }
+        if (batch > 1 && !agentCanBatch(model, operation)) {
+            return _err('BATCH_UNSUPPORTED', `${modelName} cannot batch "${operation}" cleanly. Send separate submits instead; they queue.`);
+        }
+    }
+    if (modelShowsBatch(model, operation)) injectionParams.Input_Batch_Size = batch ?? 1;
 
     // duration (MPI-820). It was missing from this set entirely, so NO agent video ever
     // carried `Input_Duration` and every one ran the workflow's baked value — 2 for H3,

@@ -471,7 +471,11 @@ export const MODELS = [
         supportedOps: ['t2i', 'i2i', 'control', 'upscale', 'detail'],
         loraStrengths: ['model'],
         gen_speed: 'fast',
+        // No batch (Fabio, 2026-09-22): images 2+ of a batch come back broken on this
+        // model, so the control is off everywhere rather than offering a batch that
+        // is not one. Only the SDXL family and the cloud models batch safely.
         capabilities: {
+            batch: false,
             // Five style LoRAs on one MpiStyleLoras bank (MPI-365).
             styleLoras: true,
             // Chroma reaches control through a FLUX ControlNet (depth is its only type),
@@ -502,11 +506,6 @@ export const MODELS = [
         // requested shape and padded the real image inside it. Hiding the picker fixes
         // all three, because a control that is not mounted contributes no injection.
         imageSizedOps: ['control', 'detail', 'upscale'],
-        // Batch reaches ONLY EmptyLatentImage, which only t2i samples from here — depth
-        // and i2i both start from a VAE-encoded latent, so a batch > 1 there returned one
-        // image while the control claimed N. Narrower than SDXL's list, which keeps depth
-        // because its depth switches the conditioning pipe rather than the latent.
-        batchOps: ['t2i'],
         // Style strength starts at 0.6, not the global 1.0. BOTH Chroma checkpoints are
         // heavily distilled, and at 0.8 or 1.0 the style LoRAs stop styling and start
         // producing artefacts (user-measured). 0.6 is also what the graph's
@@ -585,7 +584,11 @@ export const MODELS = [
         loraStrengths: ['model'],
         gen_speed: 'fast',
         // Identical rack + branch shape to Flash — see that card for the reasoning.
+        // No batch (Fabio, 2026-09-22): images 2+ of a batch come back broken on this
+        // model, so the control is off everywhere rather than offering a batch that
+        // is not one. Only the SDXL family and the cloud models batch safely.
         capabilities: {
+            batch: false,
             styleLoras: true,
             controlStrength: true,
         },
@@ -594,10 +597,9 @@ export const MODELS = [
         controlTypes: ['depth'],
         styleOps: ['t2i', 'i2i', 'control', 'detail', 'upscale'],
         // Shares Flash's master graph, so it shares the depth-is-image-sized fix too —
-        // and the same batch reality: only t2i samples an EmptyLatentImage. Hyper is the
-        // MORE distilled of the two, so the 0.6 style strength matters at least as much.
+        // Hyper is the MORE distilled of the two, so the 0.6 style strength matters at
+        // least as much.
         imageSizedOps: ['control', 'detail', 'upscale'],
-        batchOps: ['t2i'],
         controlDefaults: { stylization: 0.6 },
         opInject: {
             t2i:     { Input_wf_type: 1 },
@@ -1304,7 +1306,7 @@ export const MODELS = [
         // what stops resolveWorkflowFile naming them. It is not cosmetic — a stale twin
         // still on disk would be found and RUN, silently producing the old graph's
         // output, which is worse than H3's missing-file 404 because nothing errors.
-        capabilities: { multiStage: true, audio: false, branchingContinue: true, motion: true, singleFileStages: true },
+        capabilities: { batch: false, multiStage: true, audio: false, branchingContinue: true, motion: true, singleFileStages: true },
         video: 'wan22_preview.mp4',
         type: 'wan',
         // Which LoRA strength knobs the settings UI shows for this model. Wan
@@ -1367,7 +1369,7 @@ export const MODELS = [
         // singleFileStages (MPI-466): LTX migrated onto MpiStageLatents, so ONE graph
         // carries both passes and `resolveWorkflowFile` must stop appending _stage2 —
         // that twin no longer exists and Finish would 404 on it.
-        capabilities: { multiStage: true, audio: true, singleFileStages: true },
+        capabilities: { batch: false, multiStage: true, audio: true, singleFileStages: true },
         video: 'ltx23_high_preview.mp4',
         type: 'ltx',
         // LTX has 6 flat user LoRA slots (Input_Lora_1..6), no high/low staging →
@@ -1440,7 +1442,7 @@ export const MODELS = [
         name: 'LTX 2.3',
         dropdownMeta: 'VIDEO',
         mediaType: 'video',
-        capabilities: { multiStage: true, audio: true, singleFileStages: true },
+        capabilities: { batch: false, multiStage: true, audio: true, singleFileStages: true },
         video: 'ltx23_balanced_preview.mp4',
         type: 'ltx',
         // Same LoRA node shape as ltx-23 High: live strength_clip input, surface
@@ -1525,7 +1527,7 @@ export const MODELS = [
         // Its OWN flag, not krea2's `turboToggle`: that one is wired to a control which
         // also emits `prompt:krea2-turbo` to hide the negative toggle, and both controls
         // would then share one perModel storage key across two model families.
-        capabilities: { multiStage: true, singleFileStages: true, negativePrompt: false, h3TurboToggle: true },
+        capabilities: { batch: false, multiStage: true, singleFileStages: true, negativePrompt: false, h3TurboToggle: true },
         video: 'minimax_h3_preview.mp4',
         // type drives the ratio ladder. 'h3' is NOT arbitrary: RATIO_MODES.h3,
         // BUILTIN_RATIOS.h3 and BUILTIN_QUALITY_TIERS.h3 were all authored against this
@@ -1640,7 +1642,7 @@ export const MODELS = [
         // weight at a DIFFERENT strength — this card's own ref2v distill at 1.0, against
         // fl2va's v1.0 at 0.75. (See the fl2va card for why this is not krea2's
         // `turboToggle`.)
-        capabilities: { multiStage: true, singleFileStages: true, audio: true, negativePrompt: false, h3TurboToggle: true },
+        capabilities: { batch: false, multiStage: true, singleFileStages: true, audio: true, negativePrompt: false, h3TurboToggle: true },
         // ponytail: the fl2va clip, on loan. A ref2va showcase has to wait for a run judged
         // on the CORRECT transformer — every r2va result before the 2026-08-07 re-export
         // came off the fl2va DiT and ignored its references, so no existing clip can be
@@ -1700,7 +1702,7 @@ export const MODELS = [
         // previewStage/Continue. audio:false (no audio). NO branchingContinue →
         // Finish-only. motion NOT set: the 5B workflow has no Input_Motion_Intensity
         // node, so the motionIntensity control stays hidden (unlike wan-22 14B).
-        capabilities: { multiStage: false, audio: false },
+        capabilities: { batch: false, multiStage: false, audio: false },
         video: 'wan22_5b_preview.mp4',
         type: 'wan5b',
         // Ships the quanhaol 4-step Turbo distill as a MODEL-ONLY LoRA (str 0.8,

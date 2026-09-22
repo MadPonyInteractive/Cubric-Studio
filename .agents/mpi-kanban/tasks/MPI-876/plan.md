@@ -331,8 +331,29 @@ sees one card and makes three more. Worse on video. A real batch pre-creates N p
    (MPI-851's own outstanding check).
 5. Seeds: a batch shares one seed; the fan-out keeps `seed + i`.
 
-**Open, check before building:** `modelShowsBatch` is also true for Chroma `t2i` (`batchOps: ['t2i']`).
-Fabio said only SDXL + cloud are safe — confirm Chroma with him, or gate on something narrower.
+**Settled with Fabio 2026-09-22:** Chroma and every LOCAL video model cannot batch at all — their
+batch control was a lie, now `capabilities.batch: false` (8 models). SDXL, Illustrious and Pony batch
+safely. Veo cloud takes `sample_count` 1-4, so it batches. pid and boogu-edit keep the app control
+but the agent fans them out.
+
+**BUILT 2026-09-22 (session a49d49d5), unit-green, VERIFIED LIVE by Fabio the same day** (cloud +
+ILL Anime batches of four; Krea 2 fans out). Uncommitted until handoff/close-out:
+- `agentCanBatch(model, op)` + `AGENT_BATCH_MAX = 4` in `generationControls.js`:
+  `modelShowsBatch && (provider deepinfra || op t2i)`. `resolveNamedParams` takes `batch`,
+  `INVALID_BATCH` / `BATCH_UNSUPPORTED` by name.
+- Connector: `batch` joined `NAMED_PARAM_KEYS`; refused only on a Flow.
+- Loop `_runBatched`: after the ONE spend card, ceil(n/4) submits with `body.batch`; seed steps per
+  job. First submit refused `BATCH_UNSUPPORTED` → null → the old fan-out. Model knowledge stays in
+  the app; the loop learns it from the refusal.
+- `agentDispatch`: `batch` survives the pin (it is a count, not a setting); extra placeholders built
+  from `Input_Batch_Size` like the gallery's Cue.
+- Known limit: a batch reports ONE result (the first image) to the agent — `onComplete` fires once.
+- **Fresh-chat miss, Fabio 2026-09-22:** "this image with ILL Anime, batch of four" → agent picked
+  i2i → fanned out, one card visible. By design (SDXL `batchOps: ['t2i']`; `Input_Batch_Size` only
+  reaches `EmptyLatentImage`, i2i samples a VAE-encoded latent). Next, Fabio to choose: (a) make i2i
+  batchable in the SDXL graph (`RepeatLatentBatch` after VAEEncode, then add i2i to `batchOps`), or
+  (b) draw placeholders for queued fan-out jobs (shared batch id) so every model shows N cards.
+
 **Still open from the pinned-queue path:** a model that cannot batch still shows one card for N
 queued jobs. Drawing placeholders for queued agent jobs (tag a fan-out with a shared batch id) is the
 fix there — Fabio has not chosen it yet.
