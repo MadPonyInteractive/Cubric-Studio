@@ -1,0 +1,11 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "task": "MPI-883",
+  "owner_session": ".agents/mpi-kanban/state/sessions/e86af08a-33d3-4cae-97d9-568f2366d5c0.json",
+  "files": [
+    "js/components/Compounds/MpiOptionSelector/MpiOptionSelector.js",
+    "tests/quality-tier-labels.test.cjs",
+    ".agents/mpi-kanban/tasks/MPI-883/"
+  ],
+  "note": "The plan's ownership, unchanged. js/data/modelConstants/models.js is deliberately NOT owned: the tier ids there are the provider's own vocabulary and are correct."
+}

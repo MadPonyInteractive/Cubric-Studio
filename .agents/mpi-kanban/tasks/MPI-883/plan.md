@@ -2,7 +2,9 @@
 
 ## Current State
 
-Not started. Diagnosed in full during MPI-852 (2026-09-21); nothing is written.
+**Done, 2026-09-22.** Shipped as a resolver plus one label, with a test that walks
+every shipped model's declared tiers. Evidence and the two RED runs are in
+`validation.md`. Card closed.
 
 ## The bug
 
@@ -70,3 +72,34 @@ keyed the same way, so it may have the same hole.
 `js/components/Compounds/MpiOptionSelector/MpiOptionSelector.js` and its test. Do NOT
 edit `js/data/modelConstants/models.js` - the tier ids there are correct and are the
 provider's own vocabulary; the label map is what is wrong.
+
+## Completed
+
+- `_qualityLabel(t) => QUALITY_LABELS[t] ?? t`, with the three reads in
+  `_buildQualityOptions` routed through it. This is the recurrence fix.
+- One label added: `'1.5k': '1.5K'`. `480p`/`720p`/`1080p` deliberately get no map
+  entry - the fallback already prints the exact spelling the rest of the app uses
+  for them, so identity entries would be duplication that still would not cover the
+  next new id.
+- `_tierHint` checked: it does NOT have the same hole. Its result is guarded by
+  `const hint = h ? ...`, so a missing key contributes an empty string.
+- `tests/quality-tier-labels.test.cjs` - walks every shipped `ModelDef.type` through
+  the real `qualityTiersFor()`, and lifts the real map and resolver out of the
+  component's source (it cannot be imported from Node: `MpiButton` -> `icons.js` on a
+  browser-absolute path). A third assertion fails if anyone reads `QUALITY_LABELS[...]`
+  directly again.
+- Proved RED twice: 3/3 on pre-fix code, then claim 1 alone with the `?? t` stripped,
+  which reproduced the reported bug exactly (8 undefined tiers across seedance, wan3,
+  veo) and nothing else.
+- Green: 3/3 on the new file, `npm test` 1762 tests / 0 fail, `lint:components` clean.
+
+## Plan Drift
+
+- 2026-09-22: the plan asked for four labels. Only one was needed. The fallback makes
+  `480p`/`720p`/`1080p` correct on its own, and the casing question the plan flagged
+  answers itself - lowercase `p` is what `deepinfraPricing.js`, `MpiModelManager.js`
+  and every cloud model description already print.
+- 2026-09-22: the code edit landed while the card was still in `todo`; it moved to
+  `doing` with `files.json` written immediately afterwards. Ownership was claimed in
+  `state/` before the first write, so no peer was at risk.
+
