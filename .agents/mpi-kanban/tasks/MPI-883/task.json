@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-883",
+  "title": "Cloud quality tiers render as undefined in the prompt box",
+  "description": "The QUALITY radio in the prompt box renders every option as the literal word `undefined` on the DeepInfra cloud models. Fabio spotted it on a video model, 2026-09-21. QUALITY_LABELS in js/components/Compounds/MpiOptionSelector/MpiOptionSelector.js:134-143 is a hardcoded id->label map holding very_low, low, medium, high, very_high, 1k, 2k, 4k. MPI-850/851 shipped cloud ModelDefs declaring tier ids that are NOT in it: ['480p','720p','1080p'] at models.js:2134, :2176 and :2201, and ['1.5k','2k'] at models.js:1971. _buildQualityOptions (MpiOptionSelector.js:176) prints QUALITY_LABELS[t] straight into both the option label and its info string, so a missing key prints `undefined` twice. The comment on line 140 records this exact failure happening once before, for Krea2's 1k tier - which is why that entry exists at all. Four keys are missing: 1.5k, 480p, 720p, 1080p. Root cause is the hardcoded map, not the models: qualityTiersFor() already reads ModelDef.qualityTiers generically (ratios.js:739), so the label map is the one place that did not get the same treatment. Fix the map, and consider whether a missing key should fall back to the raw id rather than printing `undefined` - a tier id is at least readable. Fabio asked for this in a NEW session (2026-09-21), not folded into MPI-852.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "ready",
+  "created_at": "2026-09-22T07:04:51+01:00",
+  "updated_at": "2026-09-22T06:06:10Z",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

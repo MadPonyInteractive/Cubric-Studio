@@ -28,33 +28,41 @@ building to them would ship bugs:
 
 ## 1 — one derivation, two consumers
 
-- [ ] `cloudRunFields()` exported from `cloudExecutor.js`, and its own POST body built
+- [x] `cloudRunFields()` exported from `cloudExecutor.js`, and its own POST body built
       from it — so the priced run and the dispatched run cannot drift
-- [ ] `estimateRunCost()` prices what `buildSizeFields()` will actually SEND, not what the
+- [x] `estimateRunCost()` prices what `buildSizeFields()` will actually SEND, not what the
       user picked: a clamped size is what gets billed
-- [ ] Refuses (returns null) for a local model, and for any shape `estimateCost` refuses
+- [x] Refuses (returns null) for a local model, and for any shape `estimateCost` refuses
 
 ## 2 — the tag
 
-- [ ] A new `__col--price` column immediately before `#bottom-right-slot`, never inside it
-- [ ] `grid-template-columns` widened from 7 tracks to 8
-- [ ] Recomputed in `_refreshOpSlot()` — the convergence point that rebuilds every control
-- [ ] Recomputed in `_emitMediaChange()` — every reference add, remove, reorder, prune
-- [ ] Recomputed on `settings:shared:update`, `settings:model:update`, `ratio:*`,
+- [x] ~~A new `__col--price` column immediately before `#bottom-right-slot`~~ **REVERSED
+      by placement A1** — the price is a span INSIDE the Cue button, created in
+      `_renderRunCluster` (the one place the `innerHTML` clear cannot eat it) and refilled
+      at the end of that same function
+- [x] ~~`grid-template-columns` widened from 7 tracks to 8~~ **back to 7** — the column
+      it was widened for no longer exists; a track with no column leaves a dead gap
+- [x] Recomputed in `_refreshOpSlot()` — the convergence point that rebuilds every control
+- [x] Recomputed in `_emitMediaChange()` — every reference add, remove, reorder, prune
+- [x] Recomputed on `settings:shared:update`, `settings:model:update`, `ratio:*`,
       `state:changed` on `s_selectedModelIdByType`
-- [ ] Hidden for a local model; never renders `$0.00`
-- [ ] Reads `el.getRunPayload()`, never `state.currentProject` (~300 ms write debounce)
+- [x] Hidden for a local model; never renders `$0.00` — `hide` on the span, not an empty
+      string, or its separator rule hangs beside CUE with nothing after it
+- [x] Reads `el.getRunPayload()`, never `state.currentProject` (~300 ms write debounce)
 
 ## 3 — the wording
 
-- [ ] `estimateCost().display` VERBATIM — it carries its own "about" and its own sub-cent
+- [x] `estimateCost().display` VERBATIM — it carries its own "about" and its own sub-cent
       form; a batch figure never comes from multiplying the string
-- [ ] No "don't ask again" affordance of any kind (Fabio, 2026-09-21, via MPI-876)
+- [x] No "don't ask again" affordance of any kind (Fabio, 2026-09-21, via MPI-876)
 
 ## Verification
 
-- [ ] `tests/cloud-price-tag.test.cjs` green, and proven RED before the fix
-- [ ] `npm test` green
-- [ ] `npm run lint:components` green
+- [x] `tests/cloud-price-tag.test.cjs` green (13/13), and proven RED before the fix —
+      the A1 rewrite re-proved assertion by assertion against HEAD's blobs, including a
+      mixed tree (new 7-column JS + old 8-track CSS) failing on `8 !== 7`
+- [x] `npm test` green at the seam: 159 tests across every MpiPromptBox-referencing
+      file, 0 fail (1 pre-existing todo)
+- [x] `npm run lint:components` green
 - [ ] Fabio, in the running app: the tag appears only for a paid model, moves on ratio /
       tier / duration / batch, survives an op switch, and is gone on a local model

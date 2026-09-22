@@ -108,3 +108,80 @@ Nothing below the presentation layer is in question — do NOT re-derive `estima
 the `cloudRunFields` seam, the `Input_Duration` fix or the event wiring. They are green,
 pushed (8c74a29e, CI 35597739341 success) and independently guarded by
 `tests/cloud-price-tag.test.cjs`.
+
+## Placement A1 built, 2026-09-21 — automated checks GREEN, Fabio's look pending
+
+The restyle-in-place (90410216) was rejected a SECOND time, and the criticism was
+placement, not styling: the tag had inherited its own column from the first rejected
+design and nothing had ever questioned it. Four placements were mocked in the live bar and
+Fabio chose **A1 — the estimate inline INSIDE the Cue button**, `CUE | ABOUT $0.14`.
+That is what is now built.
+
+**What changed (4 edits, 3 files):**
+
+- `MpiPromptBox.js` — the `#price-tag-slot` column div is DELETED. The price span is now
+  created inside `_renderRunCluster` and appended to `runBtn.el`, after `fillEl`; it must
+  be created there because that function clears the slot with `innerHTML` on every
+  queue-count change, and it survives a `Cue x2`/`Loop x3` relabel because `setLabel` only
+  rewrites `.mpi-ibtn__label`. `_refreshPriceTag()` is called at the end of the same
+  function, or the span comes back blank after every rebuild.
+- `MpiPromptBox.js` — `_refreshPriceTag` targets `qs('.mpi-prompt-box__price', el)` and
+  sets `textContent`, still toggling `hide` rather than emptying the string: the span
+  draws its own separator rule, and an empty one would leave that rule hanging beside CUE.
+- `MpiPromptBox.css` — grid drops from 8 tracks to 7, the track comment is corrected, and
+  `.mpi-prompt-box__col--price` is gone. The in-button treatment replaces the recessed
+  pill: no fill, no radius, no min-height, because it is no longer its own object.
+- `tests/cloud-price-tag.test.cjs` — the structural test is rewritten to pin the new
+  invariant. The other 12 arithmetic tests did not move.
+
+**Verified:**
+
+- `node --test tests/cloud-price-tag.test.cjs` → **13/13 pass**.
+- Every test referencing MpiPromptBox (19 files) → **159 tests, 158 pass, 0 fail**, 1
+  pre-existing todo.
+- `npm run lint:components` → **clean**. (It caught one real error first: the new template
+  comment used backticks inside a template literal — `Unexpected token CUE` — exactly what
+  the comment three lines above it warns about.)
+- **The rewritten test was proven RED against HEAD's blobs**, assertion by assertion, so it
+  pins something: span-created-in-cluster RED, price-column-gone RED, armed-rebind RED, and
+  a MIXED tree (new 7-column JS + HEAD's 8-track CSS) RED on `8 !== 7`. Working tree GREEN.
+- **Rendered and measured** on a static page serving the REAL stylesheets over http, seven
+  states: rest, a long figure ($12.80), a sub-cent figure ($0.0005), a batch relabel
+  (`Cue x4`), armed (`Loop x3`), local-model-no-price, and armed-no-price. Button height
+  **34 px in all seven** (the bar stays 63 px), `scrollWidth - clientWidth` **0 in all
+  seven**, and the two no-price cases collapse back to a clean `CUE` with no orphan
+  separator.
+
+**The armed state was the trap the handoff flagged, and it is closed.** Armed fills the
+button solid with `--accent-heat`; the existing rule rebinds only `.mpi-ibtn__label`, so a
+price left at `--ink-2` would have shipped warm grey on solid accent. Measured after the
+fix: armed price `oklch(0.16 0.02 0)` = `--ink-on-accent`, identical to the label. The
+separator is a `currentColor` pseudo-element at 0.35 opacity, so it follows the text into
+the armed state without a rebind of its own. The armed rule is three classes AND later in
+the file than the hover rule, so armed-and-hovered needs no selector.
+
+**One claim in the first draft of the CSS comment was wrong and is corrected in place:**
+it said the price takes `--ink-2` because that is the label's colour, "one object, one
+voice". It is not — `.mpi-prompt-box__col .mpi-ibtn__label` pins the label to
+`--accent-heat` (measured `oklch(0.76 0.17 355)` in Vision). The two-tone split is the
+actual design: accent = the action, ink = the readout. `formatPrice` was not touched;
+"about" stays.
+
+**Still Fabio's call** (`verify mode: user-ux`): does `CUE | ABOUT $0.14` read right in
+the running app, on a real paid model, as duration/batch/references move it.
+
+## Noticed, not fixed — the cloud models' quality tiers render as `undefined`
+
+Fabio spotted this mid-session, on the video models: the QUALITY radio in the prompt box
+shows three options all labelled `undefined`.
+
+Not this card, and not a mystery. `QUALITY_LABELS` in
+`js/components/Compounds/MpiOptionSelector/MpiOptionSelector.js:134-143` is a hardcoded
+id→label map holding `very_low … very_high`, `1k`, `2k`, `4k`. MPI-850/851 added cloud
+models declaring tier ids that are not in it — `['480p','720p','1080p']`
+(`models.js:2134,2176,2201`) and `['1.5k','2k']` (`models.js:1971`) — and
+`_buildQualityOptions` renders `QUALITY_LABELS[t]` straight into the option label, so a
+missing key prints the word `undefined`. The comment on line 140 records this exact
+failure happening once before, for Krea2's `1k`.
+
+It belongs to the MPI-849 umbrella's phase 1 (the cloud catalogue), not to the price tag.

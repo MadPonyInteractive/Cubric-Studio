@@ -170,6 +170,34 @@ textContent, so an appended span survives a `Cue x2` relabel; and the **armed** 
 button solid with `--accent-heat` and rebinds its label to `--ink-on-accent`, so the price span
 needs the same rebind or it is `--ink-1` on solid yellow.
 
+**2026-09-21 — A1 IS BUILT, and the automated half is green.** The price now lives inside the
+Cue button (`CUE | ABOUT $0.14`): the `#price-tag-slot` column is deleted, the bar is back to
+seven grid tracks, and the span is created in `_renderRunCluster` and appended to `runBtn.el`
+so the `innerHTML` clear cannot eat it, with `_refreshPriceTag()` at the end of that same
+function so it is refilled after every rebuild. 13/13 on `cloud-price-tag`, 159 tests across
+every MpiPromptBox-referencing file (0 fail), `lint:components` clean, and the rewritten
+structural test proved RED against HEAD's blobs assertion by assertion — including a mixed
+tree (new 7-column JS, old 8-track CSS) failing on `8 !== 7`. Seven states rendered and
+measured against the real stylesheets: 34 px button in all seven, zero overflow in all seven,
+and the no-price cases collapse to a clean `CUE` with no orphan separator. **The armed trap
+is closed and measured**: the price reads `oklch(0.16 0.02 0)` = `--ink-on-accent` there,
+identical to the label; the separator is a `currentColor` pseudo-element so it follows on its
+own. **Two facts the build corrected.** (a) The Cue button is NOT filled despite mounting
+`variant: 'primary'` — `MpiButton.js:74` maps every non-danger/ghost icon button down to
+`secondary`, so it renders as an outline; a harness that hardcodes `--primary` shows a solid
+slab that the app never draws. (b) The label is NOT `--ink-2`:
+`.mpi-prompt-box__col .mpi-ibtn__label` pins it to `--accent-heat`. So the two halves are
+deliberately two-tone — accent is the action, ink is the readout — and that is why the figure
+can sit on the loudest control in the bar without competing with it. **Next: Fabio's look.**
+
+**A defect found next door, not carded and not fixed:** the QUALITY radio renders three
+options labelled `undefined` on the cloud video models. `QUALITY_LABELS`
+(`MpiOptionSelector.js:134-143`) is a hardcoded id→label map holding `very_low … very_high`,
+`1k`, `2k`, `4k`; the cloud ModelDefs declare `['480p','720p','1080p']` (`models.js:2134,
+2176,2201`) and `['1.5k','2k']` (`models.js:1971`), and `_buildQualityOptions` prints
+`QUALITY_LABELS[t]` straight into the label. The comment on line 140 records the same failure
+happening once before for Krea2's `1k`. Phase 1 territory (the catalogue), not the price tag.
+
 ## Completed
 
 - [x] **MPI-850** — the price module, the sync script and the committed snapshot.
