@@ -1,0 +1,28 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "task": "MPI-876",
+  "claim": "6ccec97d-15aa-4ea9-a30c-74dae113a289",
+  "session": "32d752e9-2079-4612-ac4d-62fd88b43ca7",
+  "owned": [
+    "services/agentLoop.mjs",
+    "tests/agent-loop.test.cjs",
+    "js/components/Compounds/MpiAgentChat/MpiAgentChat.js",
+    "js/shell/agentDispatch.js",
+    "routes/connector.js",
+    ".agents/mpi-kanban/tasks/MPI-876/"
+  ],
+  "read_only": [
+    "js/services/cloudExecutor.js",
+    "js/data/modelConstants/deepinfraPricing.js",
+    "js/data/modelConstants/deepinfraSizing.js",
+    "js/data/modelConstants/models.js",
+    "js/data/modelConstants/modelPriority.js",
+    "services/agentTools.mjs",
+    "routes/agent.js"
+  ],
+  "notes": [
+    "agentDispatch.js and routes/connector.js are NOT in the plan's ownership list. They are here because the price has to be quoted off the RESOLVED run - named params, then the size deepinfraSizing actually fits and sends - and that resolution only exists in the renderer, where estimateRunCost already lives. agentLoop holds a ratio LABEL and no pixels, so pricing there would have been a second copy of the arithmetic and would have drifted from MPI-852's tag.",
+    "services/agentTools.mjs is read-only on purpose: tests/agent-no-delete.test.cjs pins its export list and its observed METHOD /path set, so touching it is what trips that suite (absorbed MPI-854 map, edit 6).",
+    "routes/agent.js is read-only: the pendingConfirm projection that needs the new fields is getHistory() in agentLoop.mjs, not the route."
+  ]
+}
