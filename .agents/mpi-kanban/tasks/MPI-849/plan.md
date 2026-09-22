@@ -523,3 +523,15 @@ it ships the `provider` field that the "is this op billed" predicate reads. MPI-
 **Noted while merging:** a live peer held `services/agentLoop.mjs` and
 `tests/agent-loop.test.cjs` at ~09:00Z on 2026-09-22. Read `state/index.json` before claiming
 them for MPI-876.
+
+**The merge commit `b0d478c1` is committed but NOT pushed, and not for any reason of ours.**
+`.husky/pre-push` refuses the whole outgoing range because a peer's `80e73b14` closes MPI-877
+on their own unjudged code commit `7289ee58` (`services/agentLoop.mjs`, `tests/agent-loop.test.cjs`,
+`docs/agent/masking.md`). The `.agents/`-only exemption does not rescue a range that carries
+someone else's unjudged close. That peer then handed off (`164a9a6a`) without clearing it, so
+nobody is currently queued to unblock it.
+
+**Do not run the split the hook prints.** `git push origin 7289ee58:master` would publish a
+peer's unjudged code under our hand. `b0d478c1` rides up on their next push — the tree is
+shared, and a peer's push publishes the branch. If it is still stuck next session, that is a
+question for Fabio or for whoever picks MPI-888 up, not a thing to route around.
