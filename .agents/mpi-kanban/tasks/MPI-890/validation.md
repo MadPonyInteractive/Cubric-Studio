@@ -170,3 +170,12 @@ reference-only or a foreign picture → null; a source pin on the wiring and the
 
 Restart. Open the card, select an entry, same kind of ask. Green: latents draw in the open
 workspace, the result is the card's next entry, and the card keeps its name.
+
+# Live read 3 — Fabio, 2026-09-22 — GREEN, closes the card
+
+Project "Agent tests", card `t2i_001` open. Three agent edits in a row ("give them primary
+colours", then "hands in the air, looking at the camera"): each landed as the card's next
+entry — `edit_008`, `edit_009`, `edit_010`, 4 entries — the latest ACTIVE in the open
+workspace, the "Generation finished" toast in place, and the card kept its name `t2i_001`.
+Each ask ran from the entry in front of him with no `list_cards` and no request to open the
+card. Fabio: "Yeah, it worked." Screenshot in the session transcript.

@@ -111,3 +111,11 @@ gallery" when the App state line says the user is already in it. `docs/agent/mas
 Evidence: new test "a sky or lighting change is whole-picture, and several asks are ONE
 edit" (it also asserts the OLD question is gone); the existing Route test moved to the new
 question. `npm test` 1796 / 0 fail. The live read is Fabio's, alongside MPI-890's live check 2.
+
+# Live reads — Fabio, 2026-09-22 — GREEN, closes the card
+
+- Live read 2 (MPI-890's): the dawn sky + red eyes ask ran as ONE whole-picture Klein 9B
+  edit, announced in one sentence — the rewritten Route rule held.
+- Live read 3 (MPI-890's): "give them primary colours" and "hands in the air, looking at the
+  camera" each ran as one whole-picture edit, said in one line, no forced mask, no fork
+  paragraph; results kept shapes, faces and background. Fabio: "Yeah, it worked."

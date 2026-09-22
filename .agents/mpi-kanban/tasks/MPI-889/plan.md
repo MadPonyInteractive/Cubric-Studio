@@ -13,9 +13,25 @@ Carries no code of its own. Closes when its last member does.
 
 | Card | Phase | What it is |
 |---|---|---|
-| MPI-890 | 1 | The agent reads the open workspace, so "this image" is the entry in front of the user |
+| MPI-890 | 1 | The agent reads the open workspace, so "this image" is the entry in front of the user — **done 2026-09-22** |
 | MPI-891 | 2 | The agent moves the view to where its work will render |
 | MPI-892 | 3 | The agent fills a Flow and hands it over instead of running it blind |
+
+## Current State
+
+Phase 1 (MPI-890) closed 2026-09-22 on Fabio's live read 3: an agent edit of the open card's
+entry lands as that card's next entry and keeps its name. MPI-888 closed with it. Next is
+phase 2 (MPI-891). Carried from the closing handoff, for phases 2-3:
+
+- **Flows with the agent** (Fabio, 2026-09-22): a Flow landing in the gallery is FINE, but
+  the user must SEE the Flow run, and pressing the card the agent hands back should bring
+  them to the gallery. Test agent-run Flows live.
+- Settle the Duration-rule vs wake-turn contradiction (`agentLoop.mjs` Duration rule vs the
+  auto-look on settle calling `_maybeDrained`) before MPI-892.
+- The result-review rule stays blocked on MPI-887. MPI-886's description still needs
+  widening (a card reached through `list_cards`, not only a drag); a DRAGGED card still
+  lands as a new card because it is copied into attachments.
+- Renaming the project FOLDER on a project rename: dropped by Fabio 2026-09-22.
 
 ## Phase order, and why it is a hard ordering
 

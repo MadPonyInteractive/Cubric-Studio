@@ -14,4 +14,4 @@ the opening lines).
 - [x] Tests in `tests/agent-loop.test.cjs`, three of the four halves proved red on their own
 - [x] `npm test` 1791 pass / 0 fail, both lints exit 0
 - [x] `docs/agent-chat.md` gets the seam, beside the `pinned` one
-- [ ] Fabio's live read — does it actually stop calling `list_cards`
+- [x] Fabio's live read — does it actually stop calling `list_cards` (live read 3 GREEN, 2026-09-22)
