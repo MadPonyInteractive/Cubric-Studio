@@ -45,6 +45,39 @@ export function resolveMediaUrl(filePath) {
     return `/project-file?path=${encodeURIComponent(filePath.replace(/\\/g, '/'))}`;
 }
 
+/** What `saveAttachment` (services/agentTools.mjs) will stage: JPEG, PNG and WebP, nothing else. */
+const STAGEABLE_STILL = /\.(png|jpe?g|webp)$/i;
+
+/**
+ * MPI-884 — the full-resolution file behind a dragged gallery card, for a drop target that
+ * wants the PICTURE rather than what the drag happens to carry. `null` = this card has no
+ * stageable still to offer, so the caller falls back to `dataTransfer.files` unchanged.
+ *
+ * A card's `<img>` is the 512 `.thumb.webp` rendition (`pickImageRendition` returns
+ * `item.thumbPath` for a card that has not promoted), and Chromium synthesises
+ * `dataTransfer.files` from that element's OWN image resource — so a drop handler reading
+ * `files` receives the thumbnail's bytes, not the card's file. Measured 2026-09-22: the file
+ * staged for the agent was byte-identical to `<itemId>.thumb.webp`, 512x682 for a 768x1024
+ * card, and the agent edited that. The card's real path rides the same drag in
+ * `application/mpi-media` (set by `MpiGalleryGrid`'s `dragstart`), which is what this reads.
+ *
+ * @param {string|object} payload — the `application/mpi-media` value, raw JSON or parsed.
+ * @returns {{url: string, name: string}|null}
+ */
+export function cardAttachmentSource(payload) {
+    let card = payload;
+    if (typeof payload === 'string') {
+        try { card = JSON.parse(payload); } catch { return null; }
+    }
+    // Video and audio cards have no still to attach; `type` is the group's, as the grid sets it.
+    if (!card || card.type !== 'image') return null;
+    // A GIF's filePath is the animated file and a blob/preview card has no on-disk file at
+    // all: both would turn a working (if small) attachment into a staging error.
+    const name = extractFilenameFromPath(card.filePath);
+    if (!name || !STAGEABLE_STILL.test(name)) return null;
+    return { url: resolveMediaUrl(card.filePath), name };
+}
+
 /**
  * Download media files.
  *  - Single file: browser <a download> (default Downloads folder / browser dialog).

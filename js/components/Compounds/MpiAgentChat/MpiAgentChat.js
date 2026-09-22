@@ -34,7 +34,7 @@ import { MpiInput }            from '../../Primitives/MpiInput/MpiInput.js';
 import { qs, on }              from '../../../utils/dom.js';
 import { renderIcon }          from '../../../utils/icons.js';
 import { renderMarkdownInto, wireMarkdownLinks } from '../../../utils/markdown.js';
-import { resolveMediaUrl }     from '../../../utils/mediaActions.js';
+import { resolveMediaUrl, cardAttachmentSource } from '../../../utils/mediaActions.js';
 import { Events }              from '../../../events.js';
 import { clientLogger }        from '../../../services/clientLogger.js';
 import { state }               from '../../../state.js';
@@ -641,6 +641,31 @@ export const MpiAgentChat = ComponentFactory.create({
             reader.readAsDataURL(file);
         }
 
+        /**
+         * MPI-884 — a gallery card dropped on the chat attaches the CARD'S FILE, never what
+         * the drag carries. Chromium builds `dataTransfer.files` out of the dragged `<img>`'s
+         * own resource, and that element is the 512 `.thumb.webp` rendition, so the old
+         * `files`-only drop staged a thumbnail: measured byte-identical to
+         * `<itemId>.thumb.webp`, and the agent went on to edit it and report ok. The real path
+         * rides the same drag in `application/mpi-media` — the payload MpiPromptBox's
+         * `_handleMediaDrop` has always read first, and this one never did.
+         * @returns {Promise<boolean>} false = nothing usable here; fall back to the files.
+         */
+        async function _addCardMedia(payload) {
+            const source = cardAttachmentSource(payload);
+            if (!source) return false;
+            try {
+                const res = await window.fetch(source.url);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const blob = await res.blob();
+                _addImageFile(new File([blob], source.name, { type: blob.type }));
+                return true;
+            } catch (err) {
+                clientLogger.warn('MpiAgentChat', `card attachment fetch failed: ${source.name}`, err);
+                return false;
+            }
+        }
+
         function _renderAttachments() {
             if (!attachSlot) return;
             attachSlot.style.display = _pendingAttachments.length ? '' : 'none';
@@ -660,9 +685,13 @@ export const MpiAgentChat = ComponentFactory.create({
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev =>
             _unsubs.push(on(el, ev, (e) => e.preventDefault()))
         );
-        _unsubs.push(on(el, 'drop', (e) => {
-            const files = e.dataTransfer?.files;
-            if (files) Array.from(files).forEach(_addImageFile);
+        _unsubs.push(on(el, 'drop', async (e) => {
+            // Both read BEFORE the first await: `dataTransfer` is emptied once the handler
+            // yields, so a card that falls through would find no files left to fall back to.
+            const card  = e.dataTransfer?.getData('application/mpi-media');
+            const files = e.dataTransfer?.files ? Array.from(e.dataTransfer.files) : [];
+            if (card && await _addCardMedia(card)) return;
+            files.forEach(_addImageFile);
         }));
 
         // ── Load history on mount ─────────────────────────────────────────────

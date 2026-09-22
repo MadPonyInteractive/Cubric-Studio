@@ -1,0 +1,10 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/components/Compounds/MpiAgentChat/MpiAgentChat.js",
+    "js/utils/mediaActions.js",
+    "tests/agent-attachment-full-res.test.cjs",
+    "docs/gallery.md",
+    ".agents/mpi-kanban/tasks/MPI-884/"
+  ]
+}

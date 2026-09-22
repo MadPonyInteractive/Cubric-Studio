@@ -1,0 +1,17 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-884",
+  "title": "A gallery card dropped on the agent chat attaches its 512 thumbnail, not the picture",
+  "description": "Proven 2026-09-22: the file staged for the agent is BYTE-IDENTICAL to the card's `<itemId>.thumb.webp`. `att_6ae33f4a.webp` (512x682) sha256-matches `Anime Kids and Dog/Media/.meta/998f15b2-....thumb.webp`, whose card t2i_003 is 768x1024 - and a second identical copy sits in that project's `.preview-assets/`, so the thumbnail went on to feed a real generation. Nothing in our code downscales: `saveAttachment` writes the posted bytes verbatim, and `MpiAgentChat._addImageFile` FileReaders the dropped File verbatim. The shrink is the DRAG. A card's `<img>` is the 512 rendition `pickImageRendition` picks for an unpromoted card, and Chromium synthesises `dataTransfer.files` from that element's own resource - so a drop handler that reads `files` gets the thumbnail. The card's real `filePath` rides the same drag in `application/mpi-media` (set by MpiGalleryGrid dragstart); MpiPromptBox's `_handleMediaDrop` reads it first, MpiAgentChat's drop never did. The agent then edits the thumbnail and reports ok, at a quality loss nobody is told about. Follows MPI-877, which fixed only the MASKED case.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-09-22T06:12:23Z",
+  "updated_at": "2026-09-22T06:19:11Z",
+  "links": {
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl"
+  }
+}
