@@ -33,6 +33,7 @@ import { MpiButton }           from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiInput }            from '../../Primitives/MpiInput/MpiInput.js';
 import { qs, on, ce }          from '../../../utils/dom.js';
 import { createMascotClipQueue } from '../../../utils/mascotClipQueue.js';
+import { TRANSITIONS, TRANSITION_MS } from '../../../shell/heroCrew.js';
 import { renderIcon }          from '../../../utils/icons.js';
 import { renderMarkdownInto, wireMarkdownLinks } from '../../../utils/markdown.js';
 import { resolveMediaUrl, cardAttachmentSource } from '../../../utils/mediaActions.js';
@@ -83,6 +84,8 @@ const _GUESTS = Object.freeze({ vision: 'Prism', video: 'Reel', audio: 'Vinyl', 
 const _FEET_ROW = 557;
 const _FEET = Object.freeze({
     'vision/working': 570, 'video/working': 528, 'audio/working': 584, 'prompt/working': 580,
+    'studio/working': 582,
+    'vision/getting-ready': 577, 'video/getting-ready': 580, 'audio/getting-ready': 546, 'prompt/getting-ready': 578,
 });
 const _feet = (key, clip) => _FEET[`${key}/${clip}`] ?? _FEET_ROW;
 
@@ -92,11 +95,28 @@ const _feet = (key, clip) => _FEET[`${key}/${clip}`] ?? _FEET_ROW;
  */
 const _COSMO_STATES = () => ({
     idle:     { clips: ['idle-1', 'idle-2', 'idle-3', 'agent-listening'].map(id => ({ id, ms: 2200 })), loop: true },
-    thinking: { clips: [{ id: 'agent-thinking', ms: 1250 }], loop: true },
+    // Thinking is Cosmo AT THE KEYBOARD (picked by eye, Fabio 2026-09-22); hand-on-chin is
+    // kept for while he looks at a picture.
+    thinking: { clips: [{ id: 'working', ms: 1250 }], loop: true },
+    looking:  { clips: [{ id: 'agent-thinking', ms: 1250 }], loop: true },
     answer:   { clips: [{ id: 'agent-answer-ready', ms: 1250 }] },
     greet:    { clips: ['greet-1', 'greet-2'].map(id => ({ id, ms: 1250 })) },
     happy:    { clips: [{ id: 'happy-1', ms: 1250 }] },
 });
+/**
+ * What the agent is DOING, by tool, on the ledge (Fabio, 2026-09-22: "Lingo when it is
+ * writing a prompt, Prism when it is looking at images"). `cosmo` is his state while the
+ * tool runs; `guest` is who stands in, on which clip (each picked by eye: Prism focusing
+ * his lens, Lingo unrolling a long scroll of text). No event marks the prompt being
+ * WRITTEN - it is text before the `generate` call - so Lingo arrives with that call and
+ * hands over to the job's own mascot when `generation:started` lands. Any tool not listed
+ * keeps Cosmo at the keyboard with no guest.
+ */
+const _TOOL_CREW = Object.freeze({
+    look:     { cosmo: 'looking', guest: { key: 'vision', clip: 'getting-ready', verb: 'looking closely' } },
+    generate: { cosmo: 'thinking', guest: { key: 'prompt', clip: 'working', verb: 'writing the prompt' } },
+});
+
 /** Added to a measured length, so the queue's timer never cuts the rest frame the next clip opens on. */
 const _CLIP_PAD_MS = 60;
 
@@ -135,11 +155,17 @@ export const MpiAgentChat = ComponentFactory.create({
                  place the eye checks for "who is working". Fixed height: nothing here may
                  reflow the transcript or move the composer. -->
             <div class="mpi-agent-chat__crew" aria-hidden="true">
-                <div class="mpi-agent-chat__crew-stand">
-                    <video class="mpi-agent-chat__crew-clip mpi-agent-chat__crew-clip--live"
-                           id="ac-cosmo-a" muted playsinline preload="auto"></video>
-                    <video class="mpi-agent-chat__crew-clip"
-                           id="ac-cosmo-b" muted playsinline preload="auto"></video>
+                <!-- Clickable for the landing's party trick: a puff, and he re-forms cheering.
+                     The body wraps both clips so the puff can take him and leave itself. -->
+                <div class="mpi-agent-chat__crew-stand mpi-agent-chat__crew-stand--cosmo" id="ac-cosmo">
+                    <div class="mpi-agent-chat__crew-body">
+                        <video class="mpi-agent-chat__crew-clip mpi-agent-chat__crew-clip--live"
+                               id="ac-cosmo-a" muted playsinline preload="auto"></video>
+                        <video class="mpi-agent-chat__crew-clip"
+                               id="ac-cosmo-b" muted playsinline preload="auto"></video>
+                    </div>
+                    <video class="mpi-agent-chat__crew-clip mpi-agent-chat__crew-fx"
+                           id="ac-cosmo-fx" muted playsinline preload="auto"></video>
                 </div>
                 <span class="mpi-agent-chat__crew-txt">
                     <span class="mpi-agent-chat__crew-name">Cosmo</span>
@@ -152,7 +178,9 @@ export const MpiAgentChat = ComponentFactory.create({
                     </span>
                     <div class="mpi-agent-chat__crew-stand">
                         <video class="mpi-agent-chat__crew-clip mpi-agent-chat__crew-clip--live"
-                               id="ac-guest-clip" muted playsinline loop preload="auto"></video>
+                               id="ac-guest-a" muted playsinline preload="auto"></video>
+                        <video class="mpi-agent-chat__crew-clip"
+                               id="ac-guest-b" muted playsinline preload="auto"></video>
                     </div>
                 </div>
             </div>
@@ -186,9 +214,15 @@ export const MpiAgentChat = ComponentFactory.create({
         const transcript = qs('#ac-transcript',    el);
         const crewState  = qs('#ac-crew-state',    el);
         const guest      = qs('#ac-guest',         el);
-        const guestClip  = qs('#ac-guest-clip',    el);
+        const guestA     = qs('#ac-guest-a',       el);
+        const guestB     = qs('#ac-guest-b',       el);
+        const cosmoStand = qs('#ac-cosmo',         el);
         const cosmoA     = qs('#ac-cosmo-a',       el);
         const cosmoB     = qs('#ac-cosmo-b',       el);
+        const cosmoFx    = qs('#ac-cosmo-fx',      el);
+        const CREW_LIVE  = 'mpi-agent-chat__crew-clip--live';
+        /** Cosmo, taken by a transition's puff. See `_paintCosmoFx`. */
+        const CREW_GONE  = 'mpi-agent-chat__crew-stand--vanished';
         /** Reduced motion holds a first frame and never plays, exactly as the crew does. */
         const _still = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -231,20 +265,39 @@ export const MpiAgentChat = ComponentFactory.create({
             : !!state.agentMode && state.currentPage !== PAGE_LANDING;
         function _syncPlay() {
             _syncCosmo();
-            const live = [props.standalone && _ledgeLive, _guestKey && guestClip].filter(Boolean);
+            const live = [props.standalone && _ledgeLive, guest?.classList.contains(_GUEST_IN) && _guestShown].filter(Boolean);
             if (_seen() && !_still) live.forEach(v => v.play().catch(() => {}));
-            else [ledgeRest, ledgeWork, guestClip].forEach(v => v?.pause());
+            else {
+                [ledgeRest, ledgeWork, guestA, guestB].forEach(v => v?.pause());
+                // A guest mid-farewell would wait for an `ended` that a paused clip never fires.
+                if (guest) _guestOut();
+            }
         }
 
         // ── Cosmo on the panel ledge ──────────────────────────────────────────
-        // A clip queue, as each landing crew member has, so he rotates his idles and plays
-        // his agent states instead of holding one loop. It exists only while the panel is
-        // seen: its timer chain re-arms for ever, and the panel is never destroyed.
+        // A clip queue, as each landing crew member has. He rests on his idles and plays
+        // what the agent is DOING the rest of the time (`_cosmoWant`), not a rotation. The
+        // queue exists only while the panel is seen: its timer chain re-arms for ever, and
+        // the panel is never destroyed.
         const _cosmoStates = _COSMO_STATES();
+        const _cosmoTransitions = Object.entries(TRANSITIONS.studio)
+            .map(([name, swapAtMs]) => ({ id: `transition-${name}`, ms: TRANSITION_MS, swapAtMs }));
         let _cosmoQueue = null;
         let _cosmoShown = cosmoA;
         let _cosmoSeq = 0;
         let _probed = false;
+        /** The agent tool running now, by name: what he is doing while he works. */
+        let _tool = null;
+
+        const _cosmoWant = () => (_working ? (_TOOL_CREW[_tool]?.cosmo || 'thinking') : 'idle');
+
+        /** Cut to what the agent is doing now, unless he is already doing it. */
+        function _cosmoFollow() {
+            const want = _cosmoWant();
+            if (want !== 'idle' && _cosmoQueue && _cosmoQueue.current().state !== want) {
+                _cosmoQueue.request(want, { interrupt: true, transition: false });
+            }
+        }
 
         /** Write each clip's real length into the object the queue times against, then let go of it. */
         function _probe() {
@@ -268,13 +321,29 @@ export const MpiAgentChat = ComponentFactory.create({
             const show = () => {
                 // A play() from a swap already overtaken, or from a queue since torn down, must not flip.
                 if (seq !== _cosmoSeq || !_cosmoQueue || _cosmoShown === next) return;
-                next.classList.add('mpi-agent-chat__crew-clip--live');
-                _cosmoShown.classList.remove('mpi-agent-chat__crew-clip--live');
+                next.classList.add(CREW_LIVE);
+                _cosmoShown.classList.remove(CREW_LIVE);
                 _cosmoShown.pause();
                 _cosmoShown = next;
+                // A puff took him (`_paintCosmoFx`): he re-forms here, under its densest moment.
+                cosmoStand.classList.remove(CREW_GONE);
             };
             if (_still) on(next, 'loadeddata', show, { once: true });
             else next.play().then(show, () => {});
+        }
+
+        /** The click's overlay, as the landing crew's: he goes at once and comes back with the new clip. */
+        function _paintCosmoFx(id) {
+            if (!id) {
+                cosmoStand.classList.remove(CREW_GONE);
+                cosmoFx.classList.remove(CREW_LIVE);
+                _releaseClip(cosmoFx);
+                return;
+            }
+            cosmoStand.classList.add(CREW_GONE);
+            cosmoFx.src = `assets/mascot/studio/${id}.webm`;
+            cosmoFx.classList.add(CREW_LIVE);
+            cosmoFx.play().catch(() => {});
         }
 
         function _syncCosmo() {
@@ -283,65 +352,128 @@ export const MpiAgentChat = ComponentFactory.create({
             if (seen && !_cosmoQueue) {
                 _probe();
                 _cosmoQueue = createMascotClipQueue({
-                    states: _cosmoStates, rest: 'idle', paint: _paintCosmo, reducedMotion: _still,
+                    states: _cosmoStates, transitions: _cosmoTransitions, rest: 'idle',
+                    paint: _paintCosmo, paintTransition: _paintCosmoFx, reducedMotion: _still,
                 });
-                if (_working) _cosmoQueue.request('thinking', { interrupt: true, transition: false });
+                if (_working) _cosmoFollow();
                 else _cosmoQueue.request('greet');
             } else if (!seen && _cosmoQueue) {
                 _cosmoQueue.destroy();
                 _cosmoQueue = null;
+                _paintCosmoFx(null);
                 [cosmoA, cosmoB].forEach(_releaseClip);
             }
         }
         _unsubs.push(Events.onState('currentPage', _syncPlay));
         if (!props.standalone) _unsubs.push(Events.onState('agentMode', _syncPlay));
 
+        // The landing's party trick, on a deliberate click only: a puff, a cheer, and back to
+        // whatever he was doing. The queue holds the "back to" behind the cheer.
+        if (cosmoStand) _unsubs.push(on(cosmoStand, 'click', () => {
+            if (!_cosmoQueue) return;
+            _cosmoQueue.request('happy', { interrupt: true });
+            if (_working) _cosmoQueue.request(_cosmoWant());
+        }));
+
         // ── The guest (panel only) ────────────────────────────────────────────
-        // Whoever's job is running: the NEWEST generation still in flight, whatever sent it.
+        // Whoever is doing the work: the NEWEST generation still in flight, whatever sent it,
+        // else the specialist for the agent's own tool (`_TOOL_CREW`). A job's guest arrives
+        // getting ready, works, and leaves on how it ended - a cheer, a shrug, a fall.
         // ponytail: generations carry no "the agent sent this" tag, so a job the user starts
         // from the prompt box shows here too — which is still the honest "who is working".
         // Tag `queueSource` at the connector if the ledge should ever show the agent's only.
         const _running = new Map();   // generation id → operation, in start order
-        let _guestKey = null;
+        let _toolGuest = null;        // { id, key, clip, verb } while a `_TOOL_CREW` tool runs
+        let _guestId = null;          // 'job:vision', 'tool:prompt' ... what the slot shows now
+        let _guestShown = guestA;
+        let _guestSeq = 0;
         let _guestSince = 0;
         let _guestTimer = null;
+        const _GUEST_IN = 'mpi-agent-chat__crew-guest--in';
+        const _GUEST_END = Object.freeze({
+            complete:  { clip: 'happy-1',   label: 'done' },
+            cancelled: { clip: 'cancelled', label: 'cancelled' },
+            error:     { clip: 'failed',    label: 'failed' },
+        });
 
-        function _paintGuest() {
+        /**
+         * Show one guest clip on the hidden twin and swap once it plays, as Cosmo does.
+         * `then` runs when a play-once clip ends. Resolves when the clip is on screen.
+         * Unseen, it only swaps: `_syncPlay` starts it when the panel opens again.
+         */
+        function _guestPlay(key, clip, { loop = true, then = null } = {}) {
+            const next = _guestShown === guestA ? guestB : guestA;
+            const seq = ++_guestSeq;
+            next.loop = loop;
+            next.style.setProperty('--feet', _feet(key, clip));
+            next.src = `assets/mascot/${key}/${clip}.webm`;
+            if (then) on(next, 'ended', () => { if (seq === _guestSeq) then(); }, { once: true });
+            const show = () => {
+                if (seq !== _guestSeq || _guestShown === next) return;
+                next.classList.add(CREW_LIVE);
+                _guestShown.classList.remove(CREW_LIVE);
+                _guestShown.pause();
+                _guestShown = next;
+            };
+            if (_still || !_seen()) { show(); return Promise.resolve(); }
+            return next.play().then(show, show);
+        }
+
+        function _guestWanted() {
             const last = [..._running.values()].pop();
             const key  = last && getCommandAccent(last);
-            const name = key && _GUESTS[key];
-            if (!name) {
-                if (!_guestKey) return;
-                _guestKey = null;
-                guest.classList.remove('mpi-agent-chat__crew-guest--in');
+            if (_GUESTS[key]) return { kind: 'job', key, verb: getCommandProgressLabel(last).toLowerCase() };
+            return _toolGuest && { kind: 'tool', ..._toolGuest };
+        }
+
+        /** Slide out, then drop both sources: hiding a video keeps its decoder alive. */
+        function _guestOut() {
+            if (_guestId || !guest.classList.contains(_GUEST_IN)) return;
+            guest.classList.remove(_GUEST_IN);
+            // After the slide-out, or he would blank mid-exit. Skipped if a guest came back.
+            setTimeout(() => { if (!_guestId) [guestA, guestB].forEach(_releaseClip); }, 400);
+        }
+
+        /** @param {'complete'|'cancelled'|'error'} [ended] - how the job that just left ended. */
+        function _paintGuest(ended) {
+            const want = _guestWanted();
+            const stateEl = qs('#ac-guest-state', el);
+            if (!want) {
+                if (!_guestId) return;
+                const leaving = _guestId.split(':')[1];
+                _guestId = null;
                 clearInterval(_guestTimer);
-                // Hiding a video keeps its decoder alive; only dropping its src releases it —
-                // after the slide-out, or he would blank mid-exit. Skipped if a guest came back.
-                setTimeout(() => { if (!_guestKey) _releaseClip(guestClip); }, 400);
+                const end = _GUEST_END[ended];
+                // Seen, he plays how it went before he leaves; unseen there is nothing to watch.
+                if (end && _seen() && !_still) {
+                    stateEl.textContent = end.label;
+                    _guestPlay(leaving, end.clip, { loop: false, then: _guestOut });
+                } else _guestOut();
                 return;
             }
-            const verb = getCommandProgressLabel(last).toLowerCase();
-            const tick = () => {
-                const s = Math.floor((Date.now() - _guestSince) / 1000);
-                qs('#ac-guest-state', el).textContent = `${verb} · ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-            };
-            if (key !== _guestKey) {
-                _guestKey = key;
-                guest.dataset.accent = key;
-                qs('#ac-guest-name', el).textContent = name;
-                // Set while the slot is still out of view, so the blank first frame is never seen.
-                guestClip.style.setProperty('--feet', _feet(key, 'working'));
-                guestClip.src = `assets/mascot/${key}/working.webm`;
+            const id = `${want.kind}:${want.key}`;
+            // A job taking over from a tool guest starts its clock too, or it counts from 1970.
+            const arriving = !guest.classList.contains(_GUEST_IN) || !_guestId?.startsWith('job:');
+            let shown = Promise.resolve();
+            if (id !== _guestId) {
+                _guestId = id;
+                guest.dataset.accent = want.key;
+                qs('#ac-guest-name', el).textContent = _GUESTS[want.key];
+                shown = want.kind === 'job'
+                    ? _guestPlay(want.key, 'getting-ready', { loop: false, then: () => _guestPlay(want.key, 'working') })
+                    : _guestPlay(want.key, want.clip);
             }
-            if (!guest.classList.contains('mpi-agent-chat__crew-guest--in')) {
-                _guestSince = Date.now();
-                clearInterval(_guestTimer);
+            clearInterval(_guestTimer);
+            if (want.kind === 'job') {
+                if (arriving) _guestSince = Date.now();
+                const tick = () => {
+                    const s = Math.floor((Date.now() - _guestSince) / 1000);
+                    stateEl.textContent = `${want.verb} · ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+                };
+                tick();
                 _guestTimer = setInterval(tick, 1000);
-            }
-            tick();
-            const slideIn = () => guest.classList.add('mpi-agent-chat__crew-guest--in');
-            if (_still || !_seen()) slideIn();
-            else guestClip.play().then(slideIn, slideIn);
+            } else stateEl.textContent = want.verb;
+            shown.then(() => { if (_guestId === id) guest.classList.add(_GUEST_IN); });
         }
 
         if (guest) {
@@ -349,14 +481,29 @@ export const MpiAgentChat = ComponentFactory.create({
                 _running.set(id, operation);
                 _paintGuest();
             }));
-            for (const name of ['generation:complete', 'generation:cancelled', 'generation:error']) {
+            for (const [name, ended] of [['generation:complete', 'complete'], ['generation:cancelled', 'cancelled'], ['generation:error', 'error']]) {
                 _unsubs.push(Events.on(name, ({ id } = {}) => {
                     if (!_running.delete(id)) return;
-                    _paintGuest();
+                    _paintGuest(ended);
                     // A finished job is worth a cheer, once his own work is done.
-                    if (name === 'generation:complete' && !_working) _cosmoQueue?.request('happy');
+                    if (ended === 'complete' && !_working) _cosmoQueue?.request('happy');
                 }));
             }
+        }
+
+        /** An agent tool started or finished: Cosmo and the guest follow what it is doing. */
+        function _onTool({ id, tool, status } = {}) {
+            if (!guest) return;
+            const crew = _TOOL_CREW[tool];
+            if (status === 'started') {
+                _tool = tool;
+                if (crew?.guest) _toolGuest = { id, ...crew.guest };
+            } else {
+                if (_tool === tool) _tool = null;
+                if (_toolGuest?.id === id) _toolGuest = null;
+            }
+            _cosmoFollow();
+            _paintGuest();
         }
 
         _syncPlay();
@@ -368,8 +515,13 @@ export const MpiAgentChat = ComponentFactory.create({
             // Cosmo swaps to his working clip on the ledge, in both modes. The panel cuts
             // straight in (a thought cannot wait out an idle) and lets the answer wait its turn.
             _setLedge(working);
-            if (working) _cosmoQueue?.request('thinking', { interrupt: true, transition: false });
-            else if (_cosmoQueue?.current().state === 'thinking') _cosmoQueue.request('answer');
+            if (working) _cosmoFollow();
+            else {
+                if (['thinking', 'looking'].includes(_cosmoQueue?.current().state)) _cosmoQueue.request('answer');
+                // A turn that ended mid-tool (an error, a stop) leaves nobody standing in.
+                _tool = null;
+                if (_toolGuest) { _toolGuest = null; _paintGuest(); }
+            }
             if (crewState) crewState.textContent = working ? 'holding the thread' : 'listening';
             emit('working', { working });
         }
@@ -658,6 +810,7 @@ export const MpiAgentChat = ComponentFactory.create({
                 case 'agent:tool':
                     // Brief item 12: only show label, never args.prompt
                     _appendTool(data.id, data.label, data.status);
+                    _onTool(data);
                     break;
                 case 'agent:confirm':
                     _appendConfirm(data);
@@ -978,11 +1131,11 @@ export const MpiAgentChat = ComponentFactory.create({
             _unsubs.forEach(fn => fn());
             _buttons.splice(0).forEach((b) => b.destroy());
             clearInterval(_guestTimer);
-            _guestKey = null;
+            _guestId = null;
             // Hiding a video keeps its decoder alive; only this releases it (MPI-777).
             _cosmoQueue?.destroy();
             _cosmoQueue = null;
-            [ledgeRest, ledgeWork, guestClip, cosmoA, cosmoB].forEach(_releaseClip);
+            [ledgeRest, ledgeWork, guestA, guestB, cosmoA, cosmoB, cosmoFx].forEach(_releaseClip);
         };
     },
 });

@@ -209,3 +209,47 @@ test('a destroyed slot ignores further requests', async (t) => {
     t.mock.timers.tick(60_000);
     assert.equal(painted.length, before, 'a destroyed slot still painted');
 });
+
+test('a request made while a transition is in flight queues behind the state it is entering', async (t) => {
+    // The agent panel: a click on a thinking Cosmo plays happy, then he must carry on
+    // thinking. Before the swap the queue is still IN thinking, so a plain "same state,
+    // nothing to do" check dropped the request and he fell back to idle after the cheer.
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { queue, painted } = await makeQueue({
+        states: {
+            idle: { clips: IDLE, pick: 'random', loop: true },
+            greet: { clips: GREET, loop: false },
+            thinking: { clips: [{ id: 'think-1', ms: 2000 }], loop: true },
+        },
+    });
+    queue.request('thinking', { interrupt: true, transition: false });
+    queue.request('greet', { interrupt: true });
+    queue.request('thinking');
+    assert.equal(queue.current().pending, 'thinking', 'the carry-on request was dropped');
+    t.mock.timers.tick(400);                      // the swap into the greet
+    t.mock.timers.tick(3000);                     // the greet's own end
+    assert.equal(queue.current().state, 'thinking', 'after the greet he went back to thinking, not idle');
+    assert.equal(painted.filter(id => id === 'greet-1').length, 1);
+});
+
+test('a newer interrupt cancels the swap an older transition was still waiting for', async (t) => {
+    t.mock.timers.enable({ apis: ['setTimeout'] });
+    const { queue, overlay } = await makeQueue({
+        states: {
+            idle: { clips: IDLE, pick: 'random', loop: true },
+            greet: { clips: GREET, loop: false },
+            thinking: { clips: [{ id: 'think-1', ms: 2000 }], loop: true },
+        },
+    });
+    queue.request('greet', { interrupt: true });            // swap armed for 400ms
+    t.mock.timers.tick(100);
+    queue.request('thinking', { interrupt: true, transition: false });
+    t.mock.timers.tick(400);
+    assert.equal(queue.current().state, 'thinking', 'the stale swap yanked him into the greet');
+    t.mock.timers.tick(100);
+    queue.request('greet', { interrupt: true });            // a second overlay at 600ms
+    t.mock.timers.tick(500);                                    // the FIRST overlay's clear time
+    assert.equal(overlay.at(-1), 'puff-1', 'the old clear cut the new overlay short');
+    t.mock.timers.tick(500);
+    assert.equal(overlay.at(-1), null);
+});

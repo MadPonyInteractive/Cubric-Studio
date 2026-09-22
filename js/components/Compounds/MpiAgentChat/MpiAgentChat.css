@@ -103,8 +103,36 @@
     left: 0;
     width: 100%;
     bottom: calc(var(--crew-w) * (var(--feet, 557) - 620) / 620);
+    /* No opacity transition: the a/b swap is instant, as the landing crew's is. A fade
+       crossed two half-transparent clips and read as a flicker to nothing (Fabio,
+       2026-09-22). The hidden twin only takes over once it plays, so there is no blank. */
     opacity: 0;
-    transition: opacity var(--t-fast) var(--ease);
+}
+
+/* Cosmo's stand takes a click (the landing's puff-and-cheer); the guest's does not. */
+.mpi-agent-chat__crew-stand--cosmo {
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+/* His two clips, so a puff can take him and leave itself: going is instant, coming
+   back fades in under the overlay's densest moment (heroCrew.js does the same). */
+.mpi-agent-chat__crew-body {
+    position: absolute;
+    inset: 0;
+    transition: opacity var(--t-base) var(--ease);
+}
+
+.mpi-agent-chat__crew-stand--vanished .mpi-agent-chat__crew-body {
+    opacity: 0;
+    transition: none;
+}
+
+/* The overlay shares the clip frame, dropped 60/620 so it centres on his body - the
+   same measured ratio as styles/shell/landing.css `.mpi-landing__crew-fx`. */
+.mpi-agent-chat__crew-fx {
+    z-index: 1;
+    translate: 0 calc(100% * 60 / 620);
 }
 
 .mpi-agent-chat__crew-clip--live {
@@ -159,7 +187,7 @@
 
 @media (prefers-reduced-motion: reduce) {
     .mpi-agent-chat__ledge-clip,
-    .mpi-agent-chat__crew-clip,
+    .mpi-agent-chat__crew-body,
     .mpi-agent-chat__crew-guest {
         transition: none;
     }

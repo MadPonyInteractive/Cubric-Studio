@@ -66,6 +66,10 @@ export function createMascotClipQueue({
     let _state = rest;
     let _clip = null;
     let _pending = null;
+    /** The state an interrupt under a transition will enter at its swap, until it does. */
+    let _incoming = null;
+    let _swapTimer = 0;
+    let _clearTimer = 0;
     let _dead = false;
     /** Last id played per state, so a random pool never repeats back to back. */
     const _last = Object.create(null);
@@ -127,13 +131,19 @@ export function createMascotClipQueue({
     function _interrupt(name, withTransition) {
         _pending = null;
         if (_clipTimer) { clearTimeout(_clipTimer); _timers.delete(_clipTimer); _clipTimer = 0; }
+        // A newer interrupt wins over one still waiting for its swap, or that swap lands later.
+        if (_swapTimer) { clearTimeout(_swapTimer); _timers.delete(_swapTimer); _swapTimer = 0; }
+        _incoming = null;
         if (!withTransition || !transitions.length) { _enter(name); return; }
         const t = transitions[Math.floor(Math.random() * transitions.length)];
+        _incoming = name;
+        // An older overlay still up is replaced, and its clear must not cut this one short.
+        if (_clearTimer) { clearTimeout(_clearTimer); _timers.delete(_clearTimer); }
         paintTransition(t.id);
         // The mascot swaps UNDER the overlay, at its densest moment; the overlay then
         // clears onto a clip already playing. Two timers, because the swap is not the end.
-        _after(t.swapAtMs, () => _enter(name));
-        _after(t.ms, () => paintTransition(null));
+        _swapTimer = _after(t.swapAtMs, () => { _swapTimer = 0; _incoming = null; _enter(name); });
+        _clearTimer = _after(t.ms, () => { _clearTimer = 0; paintTransition(null); });
     }
 
     _enter(rest);
@@ -144,7 +154,9 @@ export function createMascotClipQueue({
             if (!states[name]) throw new Error(`mascotClipQueue: unknown state "${name}"`);
             if (reducedMotion) { _enter(name); return; }   // a still, whatever was asked for
             if (interrupt) { _interrupt(name, transition); return; }
-            if (name === _state) { _pending = null; return; }
+            // Measured against the state an interrupt is about to enter, not the one it is
+            // leaving: "click, then carry on thinking" must queue the thinking, not drop it.
+            if (name === (_incoming || _state)) { _pending = null; return; }
             _pending = name;
         },
         current: () => ({ state: _state, clip: _clip, pending: _pending }),

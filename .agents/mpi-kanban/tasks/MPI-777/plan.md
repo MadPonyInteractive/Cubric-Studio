@@ -104,6 +104,23 @@ pointer below before editing; they were read 2026-09-16.
      SSE (`agent:tool` label/name, `agent:working`, `agent:message`, `agent:result`) - map
      tool names to mascot + clip. Guests should vary too (working / getting-ready / heads-up /
      happy), not always one loop. Keep idle rotation for true rest only.
+- **Phase 4A round 2 BUILT (2026-09-22, session 4b24af0e), Fabio's look outstanding:** all
+  four asks + his fifth (the transition was not centred - lowered 60/620 on the landing and
+  the panel, measured). Flicker = the clip's opacity transition, removed. Click = puff +
+  cheer. Thinking = `studio/working` (keyboard). `agent:tool` drives Cosmo and the guest
+  (look -> Prism, generate -> Lingo), job guests arrive/work/leave on how it ended.
+  validation.md § Phase 4A round 2. Still open: landing thinking-swap flake, 4B claim,
+  DOC DRIFT question (event map now also has agent:tool driving the crew).
+- **Fabio's look at round 2 (2026-09-22): "it seems to be good" - BUT Cosmo still flickers
+  on SOME swaps, not all.** Undiagnosed. The opacity fade is gone, so it is not that. Leads,
+  unproven: (a) swaps between clips with a different `--feet` (working 582 vs 557) - the
+  new clip is repositioned in the same frame it goes live?; (b) `working` does not share
+  the rest frame (a desk), so its entry/exit is a real jump that reads as a flicker;
+  (c) `show()` flips on play() resolve, which can come before a PAINTED frame - try
+  `requestVideoFrameCallback` before flipping; (d) a `_probe` length cutting the tail.
+  Find WHICH swaps flicker first (log from->to per swap, watch live) before fixing.
+  Also fixed after his look: the guest timer read `29835225:08` when a job took the slot
+  from a tool guest (clock never started) - spec regression, proved red on the old line.
 - All three of the original Phase 3b items landed: the
   overlay composites (above), the crew labels carry the mascot names (Lingo, Prism, Cosmo,
   Reel, Vinyl — which narrows MPI-846's "chrome labels stay role nouns", recorded there and

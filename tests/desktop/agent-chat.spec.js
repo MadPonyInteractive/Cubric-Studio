@@ -595,6 +595,8 @@ test('panel crew ledge: Cosmo states, the guest follows the newest job, a closed
   try {
     await installStubs(window);
     await bootAndMountChat(window, false);
+    // A project, so the panel has a conversation for the agent's tool events to belong to.
+    await openProject(window, ALPHA);
 
     const crew  = window.locator('#e2e-agent-host .mpi-agent-chat__crew');
     const cosmo = crew.locator('.mpi-agent-chat__crew-stand').first().locator('.mpi-agent-chat__crew-clip--live');
@@ -621,7 +623,39 @@ test('panel crew ledge: Cosmo states, the guest follows the newest job, a closed
 
     await window.evaluate(() => document.querySelector('#e2e-agent-host .mpi-agent-chat').setWorking(true));
     await expect(window.locator('#e2e-agent-host #ac-crew-state')).toHaveText('holding the thread');
+    // Thinking is Cosmo AT THE KEYBOARD (Fabio, 2026-09-22), with its own feet row (the desk).
+    await expect(cosmo).toHaveAttribute('src', /studio\/working\.webm/);
+    // The a/b swap is instant, as the landing crew's: a fade read as a flicker to nothing.
+    expect(await cosmo.evaluate(v => getComputedStyle(v).transitionProperty)).not.toMatch(/opacity|all/);
+
+    // What the agent is DOING drives the ledge, not a rotation: a look brings Prism in and
+    // puts Cosmo's hand on his chin; a generate call brings Lingo, who writes the prompt.
+    const guestName = window.locator('#e2e-agent-host #ac-guest-name');
+    const guestLive = window.locator('#e2e-agent-host #ac-guest .mpi-agent-chat__crew-clip--live');
+    const fire = (name, data) => window.evaluate(([n, d]) => window.__fireSse(n, { session: 'key:/p/alpha', ...d }), [name, data]);
+    await fire('agent:tool', { turnId: 't1', id: 'k1', tool: 'look', status: 'started', label: 'Looking' });
+    await expect(guestName).toHaveText('Prism');
+    await expect(window.locator('#e2e-agent-host #ac-guest-state')).toHaveText('looking closely');
+    await expect(guestLive).toHaveAttribute('src', /vision\/getting-ready\.webm/);
     await expect(cosmo).toHaveAttribute('src', /studio\/agent-thinking\.webm/);
+    // A job taking the slot from a tool guest starts its own clock (it read 29835225:08 live).
+    await fire('generation:started', { id: 'g0', operation: 'upscale' });
+    await expect(window.locator('#e2e-agent-host #ac-guest-state')).toHaveText(/^upscaling · 0:0\d$/);
+    await fire('generation:complete', { id: 'g0' });
+    await expect(window.locator('#e2e-agent-host #ac-guest-state')).toHaveText('looking closely');
+    await fire('agent:tool', { turnId: 't1', id: 'k1', tool: 'look', status: 'done', label: 'Looked' });
+    await expect(guest).not.toHaveClass(/mpi-agent-chat__crew-guest--in/);
+    await expect(cosmo).toHaveAttribute('src', /studio\/working\.webm/);
+    await fire('agent:tool', { turnId: 't1', id: 'k2', tool: 'generate', status: 'started', label: 'Generating' });
+    await expect(guestName).toHaveText('Lingo');
+    await expect(guestLive).toHaveAttribute('src', /prompt\/working\.webm/);
+    await fire('agent:tool', { turnId: 't1', id: 'k2', tool: 'generate', status: 'done', label: 'Queued' });
+    await expect(guest).not.toHaveClass(/mpi-agent-chat__crew-guest--in/);
+
+    // A click is the landing's party trick: a puff over him, centred on his body.
+    await window.locator('#e2e-agent-host #ac-cosmo').click();
+    await expect(window.locator('#e2e-agent-host #ac-cosmo-fx')).toHaveAttribute('src', /studio\/transition-\w+\.webm/);
+    await expect(window.locator('#e2e-agent-host #ac-cosmo-fx')).not.toHaveAttribute('src', /./, { timeout: 5000 });
 
     // The panel is closed (agentMode off): count every play() from here on.
     await window.evaluate(async () => {
@@ -645,7 +679,8 @@ test('panel crew ledge: Cosmo states, the guest follows the newest job, a closed
     await expect(guest).toHaveAttribute('data-accent', 'vision');
     await expect(window.locator('#e2e-agent-host #ac-guest-name')).toHaveText('Prism');
     await expect(window.locator('#e2e-agent-host #ac-guest-state')).toHaveText(/^upscaling · 0:0\d$/);
-    expect(await window.locator('#e2e-agent-host #ac-guest-clip').getAttribute('src')).toContain('vision/working.webm');
+    // Unseen, the arrival clip is set but never played: `_syncPlay` starts it on open.
+    expect(await guestLive.getAttribute('src')).toContain('vision/getting-ready.webm');
 
     // A newer job takes the slot; when it ends the older one still running comes back.
     await emit('generation:started', { id: 'g2', operation: 'i2v' });
@@ -657,7 +692,9 @@ test('panel crew ledge: Cosmo states, the guest follows the newest job, a closed
     await emit('generation:cancelled', { id: 'g1' });
     await expect(guest).not.toHaveClass(/mpi-agent-chat__crew-guest--in/);
     await window.waitForTimeout(600);
-    expect(await window.locator('#e2e-agent-host #ac-guest-clip').getAttribute('src')).toBeNull();
+    for (const id of ['#ac-guest-a', '#ac-guest-b']) {
+      expect(await window.locator(`#e2e-agent-host ${id}`).getAttribute('src')).toBeNull();
+    }
 
     // Nothing reflowed, and a closed panel never started a clip.
     expect(await crew.evaluate(n => n.getBoundingClientRect().height)).toBe(heightBefore);

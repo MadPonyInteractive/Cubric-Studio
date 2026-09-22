@@ -514,3 +514,36 @@ Built to the MPI-843 drawing Fabio approved (`tasks/MPI-843/research/chat-merged
   HEAD blobs failed **6/20** (`scratchpad/headswap.py`). Likely `ledgeWork`'s load queued
   behind heroCrew warming ~35 clips at landing boot, so `play()` does not settle in 5s -
   NOT diagnosed yet; recorded in plan.md, not patched with a longer timeout.
+
+## Phase 4A round 2 (2026-09-22, session 4b24af0e)
+
+Fabio's four asks from his look at the rework, plus his fifth in the go message ("the
+transition is not centred - drop it or lower it a bit").
+
+- **Flicker:** `.mpi-agent-chat__crew-clip` had `transition: opacity var(--t-fast)`, so the
+  a/b swap crossed two half-transparent clips. Removed; the landing's clip rule never had
+  one. Spec asserts `transitionProperty` has no `opacity`/`all` (the global theme rule in
+  `styles/shell/base.css` still transitions colours on every element - harmless).
+- **Transition not centred (landing AND panel):** measured alpha mass over every frame
+  (`scratchpad/bbox.py`): all 15 overlays centre at y 301-313 of 620, every idle at
+  363-370, so the puff sat ~60 rows above the body on all five mascots. Dropped by
+  `calc(100% * 60 / 620)` in `landing.css .mpi-landing__crew-fx` and the panel's
+  `__crew-fx`. Before/after composite checked by eye: centred on the body.
+- **Click:** Cosmo's stand takes a click -> `happy` under a random studio transition
+  (TRANSITIONS/TRANSITION_MS now exported from heroCrew.js), vanish-and-re-form as the
+  landing. Spec: click paints `#ac-cosmo-fx` with `studio/transition-*` and it clears.
+- **Thinking = keyboard:** `studio/working` (Cosmo typing at a desk, picked from a frame
+  grab). Feet row 582 (desk legs). `agent-thinking` (hand on chin) is now `looking`.
+- **State-driven:** `agent:tool` drives it. `look` -> Cosmo `looking` + Prism on
+  `getting-ready` (focusing his lens); `generate` -> Lingo on `working` (long text scroll)
+  until `generation:started` hands over to the job's mascot. A job's guest arrives on
+  `getting-ready`, works on `working`, and leaves on `happy-1`/`cancelled`/`failed`
+  (seen only; unseen it just slides out). Guest is now two stacked clips like Cosmo.
+  Feet rows measured for every new clip (getting-ready per mascot; end clips 557).
+- **Queue fixes found on the way (mascotClipQueue.js, +2 unit tests):** a request made
+  during a transition was compared to the state being LEFT, so "click, then carry on
+  thinking" was dropped and he fell back to idle; and a newer interrupt did not cancel an
+  older transition's pending swap/clear timers.
+
+Checks: `node --test tests/mascot-clip-queue.test.cjs` 11/11; agent-chat.spec.js 32/32;
+`npm test` 1803 pass 0 fail; eslint clean on all touched JS. **Awaiting Fabio's live look.**

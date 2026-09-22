@@ -62,7 +62,7 @@ const MISSING_CLIPS = Object.freeze({ studio: ['happy-2'] });
  * Measured per clip in `docs/mascot-transitions.md` § Picks; they are NOT derivable from
  * the file, so they are copied here and nowhere else.
  */
-const TRANSITIONS = Object.freeze({
+export const TRANSITIONS = Object.freeze({
     vision: { smoke: 583, explosion: 417, third: 375 },
     studio: { smoke: 583, explosion: 333, third: 333 },
     prompt: { smoke: 458, explosion: 375, third: 292 },
@@ -70,7 +70,7 @@ const TRANSITIONS = Object.freeze({
     video:  { smoke: 583, explosion: 458, third: 458 },
 });
 /** Every transition is one H3 length: 22 frames at 24fps. */
-const TRANSITION_MS = 900;
+export const TRANSITION_MS = 900;
 
 /**
  * Added to every measured duration. The queue's clock and the decoder are not the same

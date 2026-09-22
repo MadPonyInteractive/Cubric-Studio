@@ -263,9 +263,14 @@
    alpha plane), NOT here: this rule carried `mix-blend-mode: screen` until 2026-09-22,
    and Chromium ignores a blend on a <video> it has promoted to its own compositing
    layer, so the overlay painted as a black square over the mascot. They share the
-   clip's geometry because they were rendered in the same 768px frame. */
+   clip's geometry because they were rendered in the same 768px frame, but NOT its
+   centre: every mascot's puff centres ~60 rows above the body it covers (alpha mass,
+   all 5 x 3 overlays at y~306 of 620, every idle at y~366), so it read as floating off
+   his head (Fabio, 2026-09-22). Dropped by that much; the agent panel shares the ratio.
+   ponytail: re-measure if the overlays are re-rendered. */
 .mpi-landing__crew-fx {
   z-index: 1;
+  translate: -50% calc(100% * 60 / 620);
 }
 
 .mpi-landing__crew-label {
