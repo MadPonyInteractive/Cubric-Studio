@@ -185,3 +185,16 @@ missing key prints the word `undefined`. The comment on line 140 records this ex
 failure happening once before, for Krea2's `1k`.
 
 It belongs to the MPI-849 umbrella's phase 1 (the cloud catalogue), not to the price tag.
+
+## Closed 2026-09-22
+
+Both gates are met.
+
+- **Fabio's eyes** (`verify mode: user-ux`): he signed placement A1 off in the running app,
+  on a real paid model, with `1`. Nothing outstanding on his side.
+- **CI**: run `35694132707` on `3e2af47a` came back `conclusion: success`. That run carries
+  `bc616327`, the A1 code commit (the earlier green run `35693471780` on `6710f45c` only
+  unblocked the push and does not carry it).
+
+Card moves `doing/validating -> done/complete`. No code changed at close-out.
+

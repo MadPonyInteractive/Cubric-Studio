@@ -3,11 +3,11 @@
   "id": "MPI-852",
   "title": "The live price tag in the prompt box",
   "description": "Phase 2 of MPI-849. When a paid model is selected the prompt box shows what the next generation will cost, and it moves as the user adds reference images, changes ratio, tier or duration, or changes the batch count. Copy reads about 0.07 USD, never a four-decimal quote, because the Gemini models emit a variable number of text tokens worth about 2 percent. Mounts as a new grid column before bottom-right-slot, copying engine-toggle-slot for the column and hide pattern and badge-batch for the inner text; never inside bottom-right-slot, which innerHTML-clears itself. Two verified traps decide whether this works at all: the bar declares exactly 8 grid tracks and agent mode declares its own 5, so a 9th column reflows both unless declared; and _refreshOpSlot destroys and rebuilds every control on every op change, so Width and Height can change with NO event at all and an event-only price goes stale on every op switch. The harder one is that edit ops have no pixel dimensions - modelShowsRatio returns false when the op is in imageSizedOps, so the ratio control is not mounted and injectionParams carries no size, which makes 0.00 USD the default failure mode on every edit op. Must multiply by the batch count: a batch of 4 on Nano Banana Pro is about 0.54 USD.",
-  "column": "doing",
-  "maturity": "validating",
-  "status": "active",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
   "created_at": "2026-09-20T12:42:14Z",
-  "updated_at": "2026-09-22T06:06:10Z",
+  "updated_at": "2026-09-22T08:07:45+01:00",
   "links": {
     "brief": "brief.md",
     "events": "events.jsonl"
