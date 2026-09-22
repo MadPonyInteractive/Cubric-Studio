@@ -110,3 +110,14 @@ the owner of the model, not by a trace — record it and keep it out of the mask
       Identical on the Cue path; carded separately.
 - [ ] **user-ux round 3:** one masked ask in the app. The latents draw under the open card
       and the result is that card's next version, not a new card in the gallery.
+- [x] **The prompt was the defect, not the graph.** Fabio: "the model only sees the masked
+      area, so why prompt other stuff in it?" The Masking rule now carries the worked
+      good/bad pair in the SYSTEM PROMPT rather than only in the fetched doc, plus
+      translate-never-echo and the ban on naming the region or what it sits in. MPI-885,
+      which had carded a graph change, is closed against it.
+- [x] **The shape is per-op** (Fabio's second correction): `edit` family takes an
+      instruction, `detail` a description of what is already there (and its denoise decides
+      sharpen-vs-replace), `inpaint` an add or a remove. Both rules pinned in
+      `tests/agent-loop.test.cjs`, the `detail` shape proven red on its own.
+- [ ] **Open for Fabio:** should the agent RUN `detail` / `inpaint`, or teach the user to run
+      them? They are trial and error on knobs it cannot see.

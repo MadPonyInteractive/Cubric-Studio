@@ -40,3 +40,21 @@ framing the model is never shown.
 ## Not verified here
 
 Nothing. This is the diagnosis; neither direction has been tried.
+
+## Closed without a code change, 2026-09-22
+
+Fabio: *"The model only sees the masked area, so why prompt other stuff in it? It's never
+going to work, is it?"* Correct, and it settles this card against itself.
+
+The crop is the contract, not a bug. Both directions above would have widened what the model
+repaints in order to buy context that a correctly written prompt does not need. The prompt
+sent was the user's own outside-the-picture framing, echoed: "the boy in the water reflection
+… faint red aura reflected in the water", into a crop with no water context and an
+upside-down boy in it. Told about water and a reflection, the model drew them.
+
+Fixed as a prompt rule under MPI-877 — which is what that card is called. The good/bad pair
+moved from `docs/agent/masking.md` (fetched) into the Masking rule in the system prompt
+(always present), with translate-never-echo, a ban on naming the region or what it sits in,
+and a test pinning all three, proven red first.
+
+The graph trace above stays: it is the evidence for why the prompt rule is forced.

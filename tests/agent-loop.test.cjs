@@ -571,6 +571,63 @@ test('the Voice rule keeps the reasoning out of the reply', () => {
 });
 
 /**
+ * MPI-877 round 3. The rule and `docs/agent/masking.md` both already said "prompt the delta
+ * only", and the doc carried this very example — and the agent still echoed Fabio's own
+ * framing into the prompt: "turn the boy in the water reflection into a demon version of
+ * himself ... faint red aura reflected in the water". The model had an upside-down boy and
+ * no river, so it drew the water and the reflection it was told about: an upright demon with
+ * its own mirror image beneath it.
+ *
+ * Fabio's call, and it is not a graph bug — the crop IS what masking is: "the model only sees
+ * the masked area, so why prompt other stuff in it?" The worked pair therefore lives in the
+ * system prompt, which is always present, rather than only in a doc the agent has to fetch
+ * before it composes.
+ */
+test('the Masking rule tells the agent to translate the ask, not echo it', () => {
+    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
+    const rule = loop.slice(loop.indexOf('Masking rule:'), loop.indexOf('\n', loop.indexOf('Masking rule:')));
+    // Why the user's phrasing cannot be the prompt: they can see the whole picture, the model cannot.
+    assert.match(rule, /describe the picture from OUTSIDE/);
+    assert.match(rule, /Translate, never echo/);
+    // The three things that put the live failure in the prompt: the region, its surroundings,
+    // and the medium it sits in.
+    assert.match(rule, /not the region itself or what it sits in/);
+    // The good prompt, in full, so the shape is shown and not merely described.
+    assert.match(rule, /convert the boy into a demon/);
+    // And the doc says the same, for the turn that does fetch it.
+    const doc = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'docs', 'agent', 'masking.md'), 'utf8');
+    assert.match(doc, /The user's words are not the prompt/);
+    assert.match(doc, /never name the region/);
+});
+
+/**
+ * Fabio, same session, correcting the rule above: one masked-prompt shape is not enough.
+ * "These different operations have very different types of prompting. If I'm using detailing,
+ * I have to prompt what's already there" — mask a face, prompt "beautiful redhead woman with
+ * green eyes, freckles", and the denoise decides whether that sharpens her or replaces her.
+ * `inpaint` is add-or-remove, so it takes "remove the flower from the vase", or the bare noun.
+ * An instruction aimed at `detail` has no verb for it to follow, and a noun phrase aimed at
+ * `edit` gives it nothing to do — either way the run is spent.
+ */
+test('the masked prompt shape is per-op: instruction, description, add-or-remove', () => {
+    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
+    const rule = loop.slice(loop.indexOf('Masking rule:'), loop.indexOf('\n', loop.indexOf('Masking rule:')));
+    assert.match(rule, /take an INSTRUCTION, a verb on what is there/);
+    assert.match(rule, /detail takes a DESCRIPTION of what is already in the mask/);
+    // The denoise is half of what `detail` means — a description alone is not the rule.
+    assert.match(rule, /under about 0\.5 denoise that sharpens what is there, above it you get a NEW one/);
+    assert.match(rule, /inpaint adds or removes/);
+    assert.match(rule, /remove the flower from the vase/);
+    // Trial and error, and none of the knobs are visible to the agent: say it before sending.
+    assert.match(rule, /detail and inpaint are trial and error/);
+
+    const doc = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'docs', 'agent', 'masking.md'), 'utf8');
+    assert.match(doc, /## The shape depends on the op/);
+    assert.match(doc, /beautiful redhead woman, green eyes, freckles/);
+    assert.match(doc, /These two are trial and error/);
+});
+
+/**
  * Same session: "most users will never know what history means". `History` is the internal
  * name of `PAGE_GROUP_HISTORY`; the UI never writes it anywhere - the back link says
  * GALLERY, and the tools sit in a rail down the left.

@@ -17,18 +17,69 @@ Cloud models do not: nothing is painted on their side.
 
 ## The one rule that changes your prompt
 
-**The model sees only what is inside the mask.** It has no view of the rest of the picture,
-so describing the rest is not context — it is noise the model tries to draw.
+**The model sees only what is inside the mask** — cropped out and blown up to fill the
+frame. It has no view of the rest of the picture, so describing the rest is not context —
+it is noise the model tries to draw.
 
 Mask the boy's reflection in the river, and the prompt is:
 
-> convert the boy into a demon
+> convert the boy into a demon: glowing red eyes, sharp horns, pale grey skin, a sinister
+> grin
 
 Not the river, not the fishing rod, not the cartoon style, not "matching the surrounding
 scene". None of it is visible to the model, all of it competes with the instruction.
 
-Prompt the **delta only**: what that area should become. Short, imperative, one verb per
-change — the same shape every edit guide asks for, just narrower.
+**The user's words are not the prompt.** They describe the picture from OUTSIDE, because
+they can see all of it — "make the boy's reflection demonic" is a perfectly good ask and a
+terrible prompt. Translate it into what the crop should become; never echo it.
+
+This exact one failed live, 2026-09-22. Masked over that reflection, the prompt sent was:
+
+> turn the boy in the water reflection into a demon version of himself … faint red aura
+> reflected in the water
+
+The model had an upside-down boy in front of it and no river, no bank and no boy above it.
+Told about water and a reflection, it drew them: an **upright** demon rising out of the
+water with its own reflection beneath it. Nothing about the graph was wrong — the crop is
+what masking IS. The prompt described a picture the model was never given.
+
+So: never name the region ("the reflection", "the background", "the left side"), never name
+what it sits in ("in the water", "on the wall"), never name what surrounds it. To the model,
+that crop is simply the picture.
+
+Prompt the **delta only**: what that area should become.
+
+## The shape depends on the op
+
+Three ops, three ways of writing the same ask. Using one op's shape on another wastes the
+run — ask what the model is looking at, and what it is being asked to do with it.
+
+**`edit` / `kleinEdit` / `krea2Edit` / `qwenEdit` — an instruction.** A verb, on what is
+already there. It re-renders the mask, so tell it what to make of it.
+
+> convert the boy into a demon: glowing red eyes, sharp horns, pale grey skin, a sinister grin
+
+**`detail` — a description of what is already there.** A noun phrase, not an instruction:
+there is no verb for it to follow. Mask a face and describe the face you want that face to
+be.
+
+> beautiful redhead woman, green eyes, freckles
+
+Under about 0.5 denoise that sharpens what is there. Above it, you get a NEW redhead woman —
+same prompt, different job — so the denoise is as load-bearing as the words.
+
+**`inpaint` — add, or remove.** To remove, say so; the mask is the thing going away.
+
+> remove the flower from the vase
+
+To add, name the thing. Whether it wants the bare noun or a full sentence depends on how the
+mask is drawn, which you cannot see:
+
+> a flower  ·  add a flower to the vase
+
+**These two are trial and error.** Denoise, mask shape and wording all move the result, and
+none of them is visible to you. So say what you are about to send before you send it, and
+let the user correct the wording — one round of that is cheaper than three blind runs.
 
 ## Which operation
 
@@ -36,7 +87,7 @@ change — the same shape every edit guide asks for, just narrower.
 |---|---|---|
 | `edit` (and `kleinEdit`, `krea2Edit`, `qwenEdit`) | re-renders everything inside the mask | changing a thing that is already there |
 | `inpaint` | holds everything outside the mask still | adding a thing, or removing one |
-| `detail` | above ~0.5 denoise behaves almost like `inpaint`; below it it is detailing, but it can still change the subject a lot | sharpening or reworking a region |
+| `detail` | above ~0.5 denoise behaves almost like `inpaint`; below it it is detailing, but it can still change the subject a lot | sharpening or reworking a region — prompted as a DESCRIPTION |
 | `i2i` | honours it — the mask drives the same crop | a restyle confined to a region |
 | `control` | **does not honour it.** A mask changes nothing here | never reach for it to localise |
 

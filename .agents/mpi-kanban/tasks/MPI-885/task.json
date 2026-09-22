@@ -3,15 +3,16 @@
   "id": "MPI-885",
   "title": "A masked edit shows the model only the mask box, so it cannot keep what is outside it",
   "description": "Proven from the dispatched graph and the pixels, 2026-09-22 (Fabio's MPI-877 round-2 run, ComfyUI /history). On a masked edit the model is shown the CROP and nothing else: `Input_Mask` (node 296, output 4) drives an `MpiIfElse` (592) that forwards `InpaintCropImproved`'s crop instead of `Input_Image`, and `context_from_mask_extend_factor: 1.0` makes that crop the mask bounding box, resized to 1024x1024 before the VAE encode. Measured here: bbox 257x257 at (264,683) of a 768x1024 card. Extracting that region from the card shows it holds the boy's WHOLE reflection - head, hair, white shirt, rod, upside down. The model had the reflected boy. What it did NOT have is the rest of the frame: the boy himself on the bank, the bank, the orientation of the scene. Given a square of water with an inverted figure in it and no idea that figure is a mirror image, it rendered an UPRIGHT demon rising out of the water and drew its own reflection beneath it. Fabio: 'a demon face that has got nothing to do with the boy'. So the failure is the crop losing the RELATIONSHIP, not losing the subject. Not agent-specific: the Cue path in the History workspace injects the same `Input_Mask` into the same graph, so a hand-painted masked edit has always been cropped this way. Two candidate directions, Fabio's call: raise `context_from_mask_extend_factor` above 1.0 so the crop carries the surrounding frame (cheap, affects every masked op on every master graph), or feed the WHOLE picture into a free reference slot on the models that have one (kleinEdit takes three images and injection is ordinal - MPI-877 deliberately left those slots alone). Needs a real render to judge, not a spec. Split out of MPI-877, which fixed only where the edit LANDS and which picture the mask binds to.",
-  "column": "todo",
-  "maturity": "planned",
-  "status": "ready",
+  "column": "done",
+  "maturity": "rejected",
+  "status": "closed",
   "created_at": "2026-09-22T06:42:45Z",
-  "updated_at": "2026-09-22T06:53:37Z",
+  "updated_at": "2026-09-22T07:01:42Z",
   "links": {
     "checklist": "checklist.md",
     "validation": "validation.md",
     "files": "files.json",
     "events": "events.jsonl"
-  }
+  },
+  "resolution": "CLOSED WITHOUT A CODE CHANGE, Fabio's call, 2026-09-22: 'If I mask an area in edit mode, or even detail, or in paint mode, that's all the model is going to see, so it needs to be prompted accordingly. The model only sees the masked area, so why prompt other stuff in it?' The crop is not a defect - it is what masking IS, and both candidate directions on this card (raising context_from_mask_extend_factor, or feeding the whole picture into a reference slot) would have widened what the model repaints to buy context it should never have needed. The defect was the PROMPT. The agent echoed the user's own scene-level framing - 'the boy in the water reflection ... faint red aura reflected in the water' - into a crop that held an upside-down boy and no water context, so the model drew the water and the reflection it was told about. It needed 'convert the boy into a demon: glowing red eyes, sharp horns, pale grey skin, a sinister grin'. Fixed under MPI-877, whose title is already this ('prompt only what is inside it'): the worked good/bad pair moved out of docs/agent/masking.md, which the agent has to fetch, and into the Masking rule in the system prompt, which is always present - plus the translate-never-echo rule, the ban on naming the region or what it sits in, and a test pinning all three. The graph trace in validation.md is kept: it is the evidence for WHY the prompt rule is forced."
 }

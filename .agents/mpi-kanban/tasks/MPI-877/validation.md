@@ -278,3 +278,42 @@ The reroute is proven by spec, not by a render — the same gap round 2 had, one
 Round 3's live check is one masked ask in the app: the latents draw in the History
 workspace under the open card, and the result becomes its next version instead of a new
 card in the gallery.
+
+## Round 3, part 2 - the prompt, and its shape per op
+
+Fabio, once the crop mechanism was on the table: *"The model only sees the masked area, so
+why prompt other stuff in it? It's never going to work, is it?"* Right, and it closes
+MPI-885 against itself - the crop is what masking IS, and widening it would have bought
+context a correctly written prompt never needs.
+
+The prompt sent was his own outside-the-picture framing, echoed: "turn the boy in the water
+reflection into a demon version of himself ... faint red aura reflected in the water". The
+model had an upside-down boy and no river; told about water and a reflection, it drew them.
+
+Both the Masking rule and `docs/agent/masking.md` already said "prompt the delta only", and
+the doc carried this exact example. It still did not bind, because the doc is FETCHED and the
+prompt is composed later. So the worked pair moved into the system prompt, which is always
+present, with the translate-never-echo rule and the ban on naming the region or what it sits
+in.
+
+Then his second correction, which the rule did not cover at all: **the shape is per-op.**
+
+| op | what it wants | example |
+|---|---|---|
+| `edit` / `kleinEdit` / `krea2Edit` / `qwenEdit` | an INSTRUCTION - a verb on what is there | convert the boy into a demon |
+| `detail` | a DESCRIPTION of what is already there, as a noun phrase | beautiful redhead woman, green eyes, freckles |
+| `inpaint` | add, or remove | remove the flower from the vase / a flower |
+
+`detail`'s denoise is half of what it means: under ~0.5 that description sharpens her, above
+it you get a new redhead woman, same words. And both `detail` and `inpaint` are trial and
+error on knobs the agent cannot see, so the rule now makes it say what it is about to send
+before it sends it.
+
+`tests/agent-loop.test.cjs` pins both rules; the `detail` shape backed out on its own is
+81 pass / 1 fail. `npm test` 1759 tests, 1757 pass, 0 fail, 1 todo (the pre-existing MPI-867
+entry). Lint clean.
+
+**Open, Fabio's call:** whether the agent should RUN `detail` and `inpaint` at all, or teach
+the user to run them. His words: "because detailing and inpainting are very trial-and-error
+based, it could be a good idea to just make the agent tell the user how to use them instead
+of trying to use them directly."

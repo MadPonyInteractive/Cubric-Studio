@@ -4,7 +4,6 @@
   "columns": {
     "todo": [
       "MPI-886",
-      "MPI-885",
       "MPI-883",
       "MPI-876",
       "MPI-874",
@@ -106,6 +105,7 @@
       "MPI-603"
     ],
     "done": [
+      "MPI-885",
       "MPI-884",
       "MPI-882",
       "MPI-881",
@@ -280,7 +280,7 @@
       "MPI-713"
     ]
   },
-  "updated_at": "2026-09-22T06:54:39Z",
+  "updated_at": "2026-09-22T07:01:42Z",
   "events": [
     {
       "at": "2026-09-06T22:45:00Z",
@@ -4957,6 +4957,15 @@
       "task": "MPI-886",
       "actor": "session-1cedc5ee",
       "note": "Fabio's call: a dragged card should reach the agent as the card, not a copy of its picture. Video already works this way."
+    },
+    {
+      "at": "2026-09-22T07:01:42Z",
+      "type": "task.moved",
+      "task": "MPI-885",
+      "actor": "session-1cedc5ee",
+      "from": "todo",
+      "to": "done",
+      "note": "Closed with no code change: the mask crop is what masking is. The defect was the prompt, fixed under MPI-877."
     }
   ]
 }
