@@ -79,6 +79,7 @@ EMITS:   `input`            `{ positive: string, negative: string, activeMode: '
          `mode-change`      `{ mode: 'positive'|'negative' }`
          `media-change`     `{ imageCount: number, videoCount: number, items: MediaItem[] }`
          `media-imported`   `{ url: string, filename: string, mediaType: string, source: 'file' }` — also emitted on EventBus as `media:imported`
+         `stage-to-history` `{ filePath: string, mediaType: string, item?: MediaItem, uploaded?: Object }` — MPI-887, `stageMedia` boxes only. The user armed the picker's "Add to history" toggle, so this media belongs in the OPEN card's history, not on the strip. Exactly one of `item` (a picked card's MediaItem, which the listener must COPY via `POST /project-media/:id/copy-item` — deleting a history entry deletes its file, so two cards on one path means deleting either guts the other) or `uploaded` (a file just imported into this project, which it must NOT copy) is set. **An import taking this path deliberately does NOT emit `media-imported`/`media:imported`** — that listener would build a second, separate gallery card for the same file. Sole consumer: `MpiGroupHistoryBlock._addPickedEntry`.
          `run`              `{ operation: string, positive: string, negative: string, mediaItems: MediaItem[], injectionParams: Object }`
          `cancel`           `{}`
          `queue-clear`      `{}`
