@@ -225,6 +225,63 @@ test('the card is gone or another project is open: the run falls back to the gal
     assert.equal(maskedGenerationOpts(GROUP_ID), null, 'no project open must not throw');
 });
 
+// -- A MASKLESS edit of the card the user is standing in is its next version too ------
+//
+// MPI-890 live read 2, 2026-09-22: the agent knew the open entry, edited it whole-picture
+// in one pass as asked — and the result landed as a new gallery card while the workspace
+// Fabio was watching drew no latents. The shapes below are the REAL ones: an entry's
+// filePath as `projectFileUrlBusted` writes it, and the agent's media url as
+// `agentLoop._projectFileUrl` sends it. MPI-890's first red was a check fed a made-up shape.
+
+test.describe('workspaceGenerationOpts', () => {
+    const { workspaceGenerationOpts } = require('../js/shell/agentDispatch.js');
+    const ABS = 'C:\\Users\\Fabio\\Documents\\Cubric Vision\\Projects\\Anime Kids and Dog\\Media\\inpaint_005.png';
+    const ENTRY = { id: 'i4', filePath: `/project-file?path=${encodeURIComponent(ABS)}&v=1790062432237` };
+    const OPEN = { id: GROUP_ID, name: 't2i_003', history: [{ id: 'i1', filePath: '/project-file?path=x' }, ENTRY] };
+    const agentUrl = (abs) => `/project-file?path=${encodeURIComponent(abs)}`;
+    const standIn = (page) => {
+        state.currentProject = { itemGroups: [{ id: 'other', history: [] }, OPEN] };
+        state.currentPage = page;
+        state.currentParams = { groupId: GROUP_ID };
+    };
+    const reset = () => { state.currentProject = null; state.currentPage = null; state.currentParams = {}; };
+
+    test('editing an entry of the open card lands in that card, where the latents draw', () => {
+        standIn('group-history');
+        const opts = workspaceGenerationOpts([{ role: 'inputImage', url: agentUrl(ABS) }]);
+        assert.deepEqual(opts, { existingGroup: OPEN, scope: 'groupHistory', groupId: GROUP_ID });
+        assert.equal(opts.existingGroup, OPEN, 'the LIVE group, as the masked route hands it');
+        reset();
+    });
+
+    test('in the gallery, the same edit still makes a new card', () => {
+        standIn('gallery');
+        assert.equal(workspaceGenerationOpts([{ role: 'inputImage', url: agentUrl(ABS) }]), null);
+        reset();
+    });
+
+    test('a picture that is not an entry of the open card goes to the gallery', () => {
+        standIn('group-history');
+        const other = ABS.replace('inpaint_005', 't2i_009');
+        assert.equal(workspaceGenerationOpts([{ role: 'inputImage', url: agentUrl(other) }]), null);
+        // The open entry used only as a REFERENCE: the picture being edited is the first item.
+        assert.equal(workspaceGenerationOpts([
+            { role: 'inputImage', url: agentUrl(other) },
+            { role: 'inputImage2', url: agentUrl(ABS) },
+        ]), null);
+        assert.equal(workspaceGenerationOpts([]), null, 'a t2i has no picture to route by');
+        reset();
+    });
+
+    test('the submit routes by it, and never renames the card it adds to', () => {
+        const src = fs.readFileSync(path.join(repoRoot, 'js', 'shell', 'agentDispatch.js'), 'utf8');
+        assert.match(src, /maskedGenerationOpts\(mask\.maskGroupId\) \|\| workspaceGenerationOpts\(mediaItems\)/);
+        // Live read 2 named its result "Dawn sky with red eyes": routed into the open card,
+        // that name would have replaced "Boy fishing flat cartoon".
+        assert.match(src, /_reportDone\(jobId, done, historyOpts \? undefined : input\.cardName/);
+    });
+});
+
 test('resolveMask carries the card alongside the mask and its picture', () => {
     const r = resolveMask('kleinEdit', PAINTED);
     assert.equal(r.maskGroupId, GROUP_ID);

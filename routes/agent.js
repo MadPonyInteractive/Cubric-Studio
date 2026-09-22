@@ -90,8 +90,12 @@ async function _sanitiseWorkspace(workspace, project) {
     };
     if (!entry || typeof entry.filePath !== 'string' || !project?.folderPath) return clean;
 
+    // The ref goes in as the renderer sent it — a hydrated MediaItem's filePath is a
+    // `/project-file?path=…&v=…` url, which ownedMedia decodes. Resolving it against the
+    // folder first turned it into `C:\project-file?…`, which nothing decodes: every real
+    // entry was dropped and the App state line went silent (MPI-890 live read 1).
     const { ownedMedia } = await import('../services/agentCards.mjs');
-    const owned = ownedMedia(project.folderPath, path.resolve(project.folderPath, entry.filePath));
+    const owned = ownedMedia(project.folderPath, entry.filePath);
     if (owned) {
         clean.activeEntry = {
             itemId: typeof entry.itemId === 'string' ? entry.itemId : null,

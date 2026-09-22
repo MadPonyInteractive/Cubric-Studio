@@ -668,8 +668,8 @@ test('the Route rule offers the two routes instead of forcing a mask', () => {
     const rule = loop.slice(loop.indexOf('Route rule:'), loop.indexOf('\n', loop.indexOf('Route rule:')));
     assert.ok(rule, 'there is a Route rule');
     // The one question, and each of its three answers.
-    assert.match(rule, /does the request name a PART of the picture/);
-    assert.match(rule, /No part named[\s\S]*run it, ask nothing/);
+    assert.match(rule, /does the change stay inside ONE area of the picture/);
+    assert.match(rule, /does NOT stay in one area[\s\S]*run it as ONE edit, ask nothing/);
     assert.match(rule, /words that protect the rest[\s\S]*ask for the mask, offer nothing else/);
     assert.match(rule, /the choice is\s+theirs|the choice is theirs/);
     // Fabio's words, because the rule exists against the reflex, not against a bug.
@@ -687,6 +687,33 @@ test('the Route rule offers the two routes instead of forcing a mask', () => {
     const doc = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'docs', 'agent', 'masking.md'), 'utf8');
     assert.match(doc, /## Which route/);
     assert.match(doc, /shouldn't always be forced on the user/);
+});
+
+/**
+ * MPI-888 live read 1 (Fabio, 2026-09-22). "Make the sky reddish like dawn, and put red eyes
+ * in the forest" was forked into a masked job per ask, in eight paragraphs. The rule was
+ * obeyed — its question, "does the request name a PART?", let "the sky" through as a part.
+ * The question was wrong, so the test pins the new question AND the two cases the old one
+ * got wrong, not just more emphasis on the same words.
+ */
+test('a sky or lighting change is whole-picture, and several asks are ONE edit', () => {
+    const fs = require('node:fs');
+    const loop = fs.readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
+    const rule = loop.slice(loop.indexOf('Route rule:'), loop.indexOf('\n', loop.indexOf('Route rule:')));
+    assert.doesNotMatch(rule, /does the request name a PART/, 'the old question is gone, not kept beside the new one');
+    assert.match(rule, /light, sky, time of day, weather, season and style fall on everything in the frame/);
+    assert.match(rule, /several asks in one message are ONE edit/);
+    assert.match(rule, /never split them into a job each/);
+    assert.match(rule, /This can be done in one go/);
+    assert.match(rule, /one line, never a paragraph/);
+
+    // Told to open the card they are standing in (MPI-890 fault 3): the rule's own words.
+    const masking = loop.slice(loop.indexOf('Masking rule:'), loop.indexOf('\n', loop.indexOf('Masking rule:')));
+    assert.match(masking, /already looking at the card, skip the first half/);
+
+    const doc = fs.readFileSync(require('node:path').join(__dirname, '..', 'docs', 'agent', 'masking.md'), 'utf8');
+    assert.match(doc, /does the change stay inside ONE area of the picture/);
+    assert.match(doc, /several asks in one message are one edit/);
 });
 
 /**
@@ -2497,13 +2524,18 @@ describe('(e) the open workspace reaches the agent', () => {
     describe('the route checks the entry before the loop registers it', () => {
         const { _sanitiseWorkspace } = require('../routes/agent.js');
         const project = { folderPath: PROJECT, name: 'Demons' };
+        // The shape a hydrated MediaItem really carries (routes/projects.js projectFileUrlBusted):
+        // a url, cache-buster and all. MPI-890 live read 1 went red because these tests fed a
+        // relative `Media/g1/i1.png` the app never sends, and the real url was path.resolve()d
+        // into `C:\project-file?...` - which nothing decodes - so every real entry was dropped.
+        const fileUrl = (abs) => `/project-file?path=${encodeURIComponent(abs)}&v=1790062432237`;
 
         test('an entry inside the project Media/ survives, resolved to an absolute path', async () => {
             const clean = await _sanitiseWorkspace({
                 page: 'group-history',
                 groupId: 'g1',
                 card: { name: 'Demon boy', type: 'image' },
-                activeEntry: { itemId: 'i1', filePath: 'Media/g1/i1.png', modelId: 'klein-9b' },
+                activeEntry: { itemId: 'i1', filePath: fileUrl(ENTRY), modelId: 'klein-9b' },
             }, project);
 
             assert.equal(clean.activeEntry.filePath, ENTRY);
@@ -2516,7 +2548,7 @@ describe('(e) the open workspace reaches the agent', () => {
                 page: 'group-history',
                 groupId: 'g1',
                 card: { name: 'Demon boy', type: 'image' },
-                activeEntry: { itemId: 'i1', filePath: '../../../secrets.png', modelId: null },
+                activeEntry: { itemId: 'i1', filePath: fileUrl(require('node:path').join(PROJECT, '..', 'secrets.png')), modelId: null },
             }, project);
 
             assert.equal(clean.activeEntry, null, 'a path outside Media/ must not become a ref');
@@ -2528,7 +2560,7 @@ describe('(e) the open workspace reaches the agent', () => {
                 page: 'group-history',
                 groupId: 'g1',
                 card: null,
-                activeEntry: { itemId: 'i1', filePath: 'Media/g1/i1.png', modelId: null },
+                activeEntry: { itemId: 'i1', filePath: fileUrl(ENTRY), modelId: null },
             }, null);
 
             assert.equal(clean.activeEntry, null);

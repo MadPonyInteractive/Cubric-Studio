@@ -96,3 +96,77 @@ hand-built path.
    in the forest could possibly be masked, but there's no point."
 6. It was eight paragraphs. MPI-888's own green condition is ONE line with both routes and a
    recommendation. Red on that too.
+
+## Diagnosis of live read 1 — 2026-09-22, session 8fc9b288
+
+The project IS "Agent tests" (`project.json` name); its FOLDER is still `Anime Kids and Dog`,
+because a rename does not move the folder. `inpaint_005` is `selectedIndex: 3` of card
+`204f6a5b…`.
+
+- **(a) not restarted — RULED OUT.** The four edited files were last written 12:00–12:06Z;
+  the server booted 12:32Z and again 18:07:46Z; the red turn ran ~18:10:55Z. It ran the
+  new code.
+- **(b) wrong state keys — RULED OUT.** Every way into the history view
+  (`MpiGalleryBlock.js:293,447`, `agentPanel.js:79`, `navigation.js:517`) calls
+  `navigate(PAGE_GROUP_HISTORY, { groupId })`, and `router.js:40` stores that as
+  `state.currentParams`.
+- **(c) the sanitiser dropped the entry — ROOT CAUSE.** A hydrated MediaItem's `filePath`
+  is a `/project-file?path=C%3A%5C…%5Cinpaint_005.png&v=1790062432237` url, not the
+  relative `Media/…` the typedef and the unit tests assumed. `_sanitiseWorkspace` ran it
+  through `path.resolve(folderPath, …)` first, which on Windows yields
+  `C:\project-file?path=…`; `_decode` looks for `/project-file?` and no longer finds it, so
+  `ownedMedia` returned null for **every** real entry and the App state line went silent by
+  design. Probe on the real sidecar: old call → `null`, ref passed straight → the absolute
+  `…\Media\inpaint_005.png`.
+- `edit_003` came from a **cached `look`** logged at 18:10:55Z — a ref from an earlier turn
+  of the same conversation, which is all the agent had once the workspace line was gone.
+
+**Fix:** `routes/agent.js` passes the ref to `ownedMedia` as sent — the same way the
+video-by-reference attachment at `:159` already does. Scratch probe against the real
+project: real entry survives as the absolute path; a `/project-file` url decoding to
+`<project>\..\secrets.png` → null; no project → null.
+
+**Test:** the three route tests in `tests/agent-loop.test.cjs` now feed the real
+`/project-file?path=…&v=…` url (the escape case is a url decoding to `<project>\..\secrets.png`).
+Old route line swapped back alone → **1 fail**, exactly "an entry inside the project Media/
+survives"; fix restored → 0 fail. (The file was briefly under 848fbbb5's MPI-876 claim;
+released after 59777960, message 8ea8c49c.)
+
+`npm test` → **1796 tests, 1794 pass, 0 fail, 1 skipped, 1 todo** (the pre-existing MPI-867
+todo). `npm run lint` and `npm run lint:components` both exit 0.
+
+## Live check 2 — Fabio
+
+**Restart the app** (the fix is server-side: `routes/agent.js`, `services/agentLoop.mjs`).
+Same card, same entry, Start Over, same ask. Green: no LOOKING THROUGH THE PROJECT in the
+tool strip, it names inpaint_005, it never tells you to open the card — and (MPI-888) it
+runs the sky and the eyes as ONE whole-picture edit, or offers that in one line.
+
+# Live read 2 — Fabio, 2026-09-22 — the wire is GREEN, the landing is RED
+
+Ask: dawn, an orangey sky, red eyes lurking in the forest. No `list_cards` in the tool
+strip; it looked at the open entry, ran ONE whole-picture Klein 9B edit, and said so in one
+sentence. MPI-890's wire and MPI-888's rewrite both held.
+
+**Red:** the result landed as a NEW card ("Dawn sky with red eyes", `edit_007`), so the
+workspace he was watching drew no latents. Cause: `agentDispatch.js` routed only a MASKED
+submit into its card (MPI-877 round 3), on the premise "a maskless one names no card".
+MPI-890 broke that premise — the agent now edits the open card's entry by name. The size
+change (768x1024 → 880x1184) is expected: SDXL source, Klein's own resolutions (Fabio).
+
+**Fix:** `workspaceGenerationOpts(mediaItems)` — when the user is in a card's history and the
+edited picture (first media item, in declared slot order) is an entry of THAT card, the
+submit takes the same `existingGroup` + `scope: 'groupHistory'` opts a Cue press there sends.
+A card not open still goes to the gallery (navigating is MPI-891). Found on the way: on any
+history route, the masked one included, `_reportDone` would have RENAMED the user's card to
+the agent's `cardName`; a result added to an existing card now never renames it.
+
+Evidence: 4 new tests in `tests/agent-mask-dispatch.test.cjs` on the real url shapes (busted
+entry url with `%5C`, the agent's `_projectFileUrl`): lands in the card; gallery page → null;
+reference-only or a foreign picture → null; a source pin on the wiring and the rename guard.
+`npm test` 1800 / 1798 pass / 0 fail / 1 skipped / 1 todo; both lints 0.
+
+## Live check 3 — Fabio
+
+Restart. Open the card, select an entry, same kind of ask. Green: latents draw in the open
+workspace, the result is the card's next entry, and the card keeps its name.

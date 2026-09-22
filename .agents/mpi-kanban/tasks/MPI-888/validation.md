@@ -78,3 +78,36 @@ No unrelated test failed under any back-out.
 Whether the offer reads well in a live turn. It is prompt text: the tests prove the rule is
 present and says what it must, never that the model obeys it. That is a `user-ux` check and
 it belongs to Fabio, the same way MPI-877's did.
+
+# Live read 1 — Fabio, 2026-09-22 — RED (recorded under MPI-890's read)
+
+Ask, with a card open: *"make the sky a bit reddish, like dawn, like the sun is setting, and
+place some red eyes in the forest, peeking behind the trees."* It forked a masked job per
+ask, in eight paragraphs. Full transcript: `tasks/MPI-890/validation.md` § Live read 1.
+
+The rule was **obeyed, and it is wrong**. Its one question — "does the request name a
+PART?" — let "the sky" pass as a part. Fabio: "An edit model can do multiple things at once.
+The sky change would need to be on the full image. The eyes in the forest could possibly be
+masked, but there's no point. This can be done in one go." Two lessons the rewrite must
+carry, not emphasis on the old test:
+
+1. **Several asks in one message are ONE edit.** An edit model makes them in one pass. Never
+   split them into a job each.
+2. **A change of light, sky, time of day, weather, season or style is WHOLE-IMAGE** even
+   when it names a thing — it falls on everything in the frame. "Names a part" is the wrong
+   test; "does the change stay inside one area?" is the right one.
+
+Plus: the fork, when there is one, is ONE line (this read was eight paragraphs), and the
+Masking rule's "click the card in the gallery to open it" must not be said to a user the App
+state line says is already in the card (MPI-890 fault 3 — it is the rule's own words).
+
+**Rewritten 2026-09-22 (session 8fc9b288):** the Route rule's question is now "does the change
+stay inside ONE area of the picture?", with light / sky / time of day / weather / season /
+style named as whole-picture, several asks named as ONE edit, Fabio's words quoted, and the
+fork capped at "one line, never a paragraph". The Masking rule skips "click the card in the
+gallery" when the App state line says the user is already in it. `docs/agent/masking.md`
+§ Which route and its step 2 say the same, since the agent reads it at runtime.
+
+Evidence: new test "a sky or lighting change is whole-picture, and several asks are ONE
+edit" (it also asserts the OLD question is gone); the existing Route test moved to the new
+question. `npm test` 1796 / 0 fail. The live read is Fabio's, alongside MPI-890's live check 2.

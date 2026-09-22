@@ -43,7 +43,7 @@ import { enqueueGeneration, findMissingMediaSlot, cancelPendingCueJob, cancelRun
 import { submitFlowGeneration } from '../services/flowService.js';
 import { openProject, renameGroup, markGroup } from '../services/projectService.js';
 import { CARD_MARKS, markOf, matchesGallerySort, byGalleryOrder, describeGalleryFilter, isGalleryFiltered } from '../utils/galleryFilter.js';
-import { navigate, PAGE_GALLERY } from '../router.js';
+import { navigate, PAGE_GALLERY, PAGE_GROUP_HISTORY } from '../router.js';
 import { activeMask } from './activeMask.js';
 import { MODELS, getModelById, isOperationInstalled, getModelDepStatus } from '../data/modelRegistry.js';
 import { DEPS } from '../data/modelConstants/dependencies.js';
@@ -55,7 +55,7 @@ import { getCommand } from '../data/commandRegistry.js';
 import { resolveNamedParams, isValidSeed, resolveAgentMedia, namedParamsFor } from '../data/generationControls.js';
 import { resolveActiveModel } from '../utils/modelHelpers.js';
 import { CROP_RATIOS } from '../utils/ratios.js';
-import { resolveMediaUrl } from '../utils/mediaActions.js';
+import { resolveMediaUrl, extractAbsPath } from '../utils/mediaActions.js';
 import { stepValueToMedia } from '../components/Blocks/MpiBaseFlow/stepKinds.js';
 import { describeImage } from '../services/llmService.js';
 import { estimateRunCost } from '../services/cloudExecutor.js';
@@ -248,8 +248,8 @@ export function resolveMask(operation, mask) {
  * correctly, and appeared as a new card `edit_003` — while the History workspace the user
  * was watching, mask still on screen, drew no latents and no result.
  *
- * Only a MASKED submit is rerouted. A maskless one names no card and belongs in the
- * gallery, which is where every agent generation has always landed.
+ * A maskless submit names no card here; `workspaceGenerationOpts` below routes one that
+ * edits an entry of the card the user is standing in. Everything else goes to the gallery.
  *
  * ponytail: resolved from `state.currentProject` rather than passed as an object —
  * `enqueueGeneration` wants the live group, and the reader publishes an id precisely so
@@ -263,6 +263,34 @@ export function maskedGenerationOpts(maskGroupId) {
     if (!maskGroupId) return null;
     const group = (state.currentProject?.itemGroups || []).find(g => g.id === maskGroupId);
     return group ? { existingGroup: group, scope: 'groupHistory', groupId: group.id } : null;
+}
+
+/**
+ * Where a MASKLESS edit of the card the user is standing in lands (MPI-890). The same
+ * destination a Cue press in that workspace sends — so latents draw where the user is
+ * looking, and the result is the card's next version rather than a new card.
+ *
+ * Live 2026-09-22, MPI-890 live read 2: with the card open and the agent now TOLD which
+ * entry was in front of the user, it edited exactly that entry, whole-picture — and the
+ * result landed as a new gallery card while the open workspace drew nothing. The rule
+ * above ("a maskless one names no card") predates the agent knowing where the user is.
+ *
+ * Only when the edited picture — the first media item, which `resolveAgentMedia` sorts
+ * into the op's declared slot order — is an entry of THAT open card. A card the user is
+ * not looking at still goes to the gallery; moving the view is MPI-891's.
+ *
+ * @param {Array<{url:string}>} mediaItems
+ * @returns {{ existingGroup: object, scope: string, groupId: string }|null}
+ */
+export function workspaceGenerationOpts(mediaItems) {
+    const groupId = state.currentPage === PAGE_GROUP_HISTORY ? state.currentParams?.groupId : null;
+    const source = extractAbsPath(mediaItems?.[0]?.url);
+    if (!groupId || !source) return null;
+    const group = (state.currentProject?.itemGroups || []).find(g => g.id === groupId);
+    const same = (p) => p?.replace(/\\/g, '/').toLowerCase() === source.replace(/\\/g, '/').toLowerCase();
+    return group?.history?.some(item => same(extractAbsPath(item?.filePath)))
+        ? { existingGroup: group, scope: 'groupHistory', groupId: group.id }
+        : null;
 }
 
 /**
@@ -388,7 +416,7 @@ function _submitGeneration(jobId, input = {}) {
     // where a Cue press in that workspace goes — no gallery placeholder, because a
     // `groupHistory` gen owns its own frames (MpiGroupHistoryBlock's `scope !==
     // 'groupHistory'` guard is what draws them).
-    const historyOpts = maskedGenerationOpts(mask.maskGroupId);
+    const historyOpts = maskedGenerationOpts(mask.maskGroupId) || workspaceGenerationOpts(mediaItems);
 
     // A gallery gen MUST carry a tempId + placeholderGroup or the run is invisible
     // until it finishes: MpiGalleryBlock draws in-progress cards from the
@@ -411,7 +439,8 @@ function _submitGeneration(jobId, input = {}) {
     };
 
     const queued = enqueueGeneration(config, {
-        onComplete: (done) => _reportDone(jobId, done, input.cardName, named.duration, model.id),
+        // A card name names a NEW card. Added to the user's own card, it would rename theirs.
+        onComplete: (done) => _reportDone(jobId, done, historyOpts ? undefined : input.cardName, named.duration, model.id),
         // An `outputKind: 'text'` op produces a caption and no item (MPI-310).
         onText: (text) => _report(jobId, { ok: true, output: { text } }),
         onError: () => _fail(jobId, 'RUNTIME_ERROR',

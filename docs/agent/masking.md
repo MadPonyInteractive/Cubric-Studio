@@ -21,13 +21,23 @@ Cloud models do not: nothing is painted on their side.
 A mask is more effective. It is not always worth what it costs the user, who has to paint
 it. Forcing one on every regional change is its own failure.
 
-One question settles it: **does the request name a PART of the picture?**
+One question settles it: **does the change stay inside ONE area of the picture?**
+
+Whether the ask *names* a thing is the wrong test. Light, sky, time of day, weather, season
+and style fall on everything in the frame: "make the sky red, like dawn" names the sky and
+still changes the whole picture. And **several asks in one message are one edit** — an edit
+model makes them all in one pass, so never split them into a job each.
+
+> Fabio, 2026-09-22, on "make the sky reddish like dawn, and put red eyes in the forest":
+> *"An edit model can do multiple things at once. The sky change would need to be on the
+> full image. The eyes in the forest could possibly be masked, but there's no point. This
+> can be done in one go."*
 
 | The ask | Route | Do you ask? |
 |---|---|---|
-| no part named — "make it night", "make this an oil painting" | whole picture | no, just run it |
-| a part, **and words protecting the rest** — "without changing anything else", "only this area", "keep the rest as it is" | masked | no, they chose already — ask for the mask |
-| a part, no such words — "change her hair to red", "change his pose" | either | yes — one line, both routes, your recommendation, then wait |
+| not one area — "make it night", "make this an oil painting", a sky or lighting change, several asks at once | whole picture, ONE edit | no, just run it |
+| one area, **and words protecting the rest** — "without changing anything else", "only this area", "keep the rest as it is" | masked | no, they chose already — ask for the mask |
+| one area, no such words — "change her hair to red", "change his pose" | either | yes — one line, both routes, your recommendation, then wait |
 
 > Fabio, 2026-09-22: *"a lot of these edits don't need a mask. The mask is more effective,
 > but shouldn't always be forced on the user."*
@@ -151,7 +161,8 @@ run gets spent twice for one answer.
    a mask, or the whole picture. If it is theirs to choose, offer it in one line and wait.
 2. Once a mask is the route: name the op you will run, say what to paint over, and tell
    them the way there in the app's own words: click the card in the gallery to open it, then
-   pick the Mask tool from the toolbar down the left. Never say "History" or "the History
+   pick the Mask tool from the toolbar down the left. If they are already looking at the card
+   (the App state line says so), skip the first half. Never say "History" or "the History
    workspace" to them - that is our name for it and it is written nowhere on screen. A
    roughly square area is the
    natural shape — the graph squares the painted region off anyway.
