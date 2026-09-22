@@ -104,6 +104,27 @@ field any kind paints from.
   model just called `generate` twice and each call asked. The 2026-09-15 rule was about N
   latents held in VRAM at once, not N queued submits — check that before designing.
 
+## The batch-of-two fix, 2026-09-22 (session 848fbbb5)
+
+- **Cause confirmed in code**, as guessed: `generate` had no way to say "N of these".
+  `cards` needs a required image slot (`_batchImageRole`), `/connector/generate` refuses
+  `batch`, so the model called `generate` twice and each call asked.
+- **The 2026-09-15 rule holds:** `routes/connector.js` says it in its own comment — "N queued
+  submits, not a batch of N that holds N latents in VRAM at once". `count` IS N queued submits.
+- **Fix:** a `count` param on `generate`, routed into `_fanOut` AFTER the guide and media
+  gates (every run shares the outer call's media, so a refusal lands before any card). One
+  `_askSpend(…, n)`, then N single dispatches with `opts.batch`. A given seed steps per run
+  (`seed + i`), or both are one picture. Refused by name on a Flow and alongside `cards`.
+  `_batchQuoteBody` now takes a media list, so a `count` i2i quotes its shared reference too.
+- **Copy:** the spend/batch card titles read `Run this N times on <model>?` / `Run this N
+  times?` — "over N cards" was wrong for a `count` batch. Still Fabio's draft to reword.
+- `npm test`: 1795 tests, 1792 pass, 1 fail. The fail is `(e) … entry inside the project Media/
+  survives`, the live peer 8fc9b288's uncommitted MPI-890 `routes/agent.js` change, not this.
+  Both new tests go RED on HEAD's `agentLoop.mjs` (the HEAD run hangs on the second card).
+- **Owed:** Fabio's live re-run after an app RESTART (the loop is server-side; a reload is not
+  enough): "a batch of two" on `flux-schnell-cloud` → ONE card `Run this 2 times on FLUX
+  Schnell (Cloud)?` / `… costs about $0.001 for 2 generations.`, then two landed images.
+
 ## Left for Fabio — the half no test here can reach
 
 1. **One real gated run.** A cloud model, any prompt. The card should read

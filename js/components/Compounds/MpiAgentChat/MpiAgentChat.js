@@ -282,10 +282,11 @@ export const MpiAgentChat = ComponentFactory.create({
             // is the moment to be more specific about what is running, not less.
             titleEl.textContent = isSpend
                 ? (count > 1
-                    ? `Run this on ${modelName || 'this model'}, over ${count} cards?`
+                    // "times", not "over N cards": a `count` batch (MPI-876) has no cards to go over.
+                    ? `Run this ${count} times on ${modelName || 'this model'}?`
                     : `Run this on ${modelName || 'this model'}?`)
                 : isBatch
-                    ? `Run this over ${count} cards?`
+                    ? `Run this ${count} times?`
                     : `Install ${modelName || 'model'}?`;
             card.appendChild(titleEl);
 

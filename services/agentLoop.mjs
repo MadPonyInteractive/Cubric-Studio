@@ -92,7 +92,7 @@ const TOOL_DEFS = [
         type: 'function',
         function: {
             name: 'generate',
-            description: 'Start an image or video generation (model op or Flow). Fires without blocking — the result appears in the chat when ready. With no project open this returns NO_PROJECT: call create_project, then send the same generate again. To run the SAME op over several existing cards ("upscale all of these"), pass them all in `cards` on ONE call rather than calling this tool once per card.',
+            description: 'Start an image or video generation (model op or Flow). Fires without blocking — the result appears in the chat when ready. With no project open this returns NO_PROJECT: call create_project, then send the same generate again. To run the SAME op over several existing cards ("upscale all of these"), pass them all in `cards` on ONE call rather than calling this tool once per card. To make several of the SAME request ("a batch of two", "give me four"), send `count` on ONE call rather than calling this tool again.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -125,6 +125,11 @@ const TOOL_DEFS = [
                         type: 'array',
                         items: { type: 'string' },
                         description: 'Run this same op once per card, in ONE call: the refs go into the op\'s required image slot and everything else (model, operation, prompt, settings) is shared. Use it whenever the user asks for the same thing over several pictures — one call instead of one per card, and the user is asked to confirm above five. Model ops only, never a Flow, and it replaces `media`: do not send both. The cards are not described afterwards; look at one yourself if you need to.',
+                    },
+                    count: {
+                        type: 'integer',
+                        minimum: 1,
+                        description: 'How many of this exact generation to make, each its own card with its own seed ("a batch of two" is 2). They queue one after another, and the user is asked once for all of them. Model ops only, never a Flow, and never with `cards`. The results are not described afterwards; look at one yourself if you need to.',
                     },
                 },
                 additionalProperties: false,
@@ -982,14 +987,34 @@ export class AgentLoop {
      * what they asked for and a card in the way is noise.
      */
     async _fanOut(args, turnId, currentProject) {
-        const cards = args.cards.map(String);
+        // MPI-876 — or N of one request (`count`). Fabio, live 2026-09-22: "a batch of two"
+        // on t2i raised TWO spend cards, because `cards` needs an image slot and the connector
+        // refuses `batch`, so the model called generate twice. `count` is N queued submits,
+        // which is what the 2026-09-15 "agents never batch" rule asks for (N latents in VRAM
+        // at once is what it forbids), and it asks through the same one card as `cards`.
+        const cards = Array.isArray(args.cards) && args.cards.length ? args.cards.map(String) : null;
+        if (cards && args.count !== undefined) {
+            return JSON.stringify({ ok: false, error: { code: 'BAD_REQUEST', message: 'Send cards or count, not both: cards already makes one per card.' } });
+        }
         if (args.flowId) {
-            return JSON.stringify({ ok: false, error: { code: 'BATCH_UNSUPPORTED', message: 'A Flow cannot be run over a list of cards: its fields and boxes belong to ONE picture. Call generate once per card, or use a model op.' } });
+            return JSON.stringify({ ok: false, error: { code: 'BATCH_UNSUPPORTED', message: cards
+                ? 'A Flow cannot be run over a list of cards: its fields and boxes belong to ONE picture. Call generate once per card, or use a model op.'
+                : 'count is for model ops. A Flow runs once per call: call generate once per run.' } });
         }
-        const role = await this._batchImageRole(args);
-        if (!role) {
-            return JSON.stringify({ ok: false, error: { code: 'BATCH_UNSUPPORTED', message: `"${args.operation}" does not start from a picture, so there is nothing for a list of cards to fill. Drop cards and send it once.` } });
+        let role = null;
+        if (cards) {
+            role = await this._batchImageRole(args);
+            if (!role) {
+                return JSON.stringify({ ok: false, error: { code: 'BATCH_UNSUPPORTED', message: `"${args.operation}" does not start from a picture, so there is nothing for a list of cards to fill. Drop cards and send it once — with count if they want several.` } });
+            }
         }
+        const n = cards ? cards.length : Math.floor(Number(args.count));
+        const what = cards ? `running "${args.operation}" over ${n} cards` : `${n} runs of "${args.operation}"`;
+        // Each run's own fields. A given seed steps per run, or `count` would make N copies of
+        // one picture; with none, the connector rolls a fresh one per submit.
+        const runs = cards
+            ? cards.map((image) => ({ media: [{ role, image }] }))
+            : Array.from({ length: n }, (_, i) => (args.seed !== undefined ? { seed: Number(args.seed) + i } : {}));
         // MPI-876 — money first, and ONE card for the whole batch. A cloud fan-out is N
         // calls and N bills, so the figure quoted is N times the unit price; it is asked
         // here rather than per card so six billed cards raise one question, not six. It
@@ -997,20 +1022,21 @@ export class AgentLoop {
         // fan-out noise and this one is about money, and a user answering twice for one
         // action learns to stop reading. And a cloud batch BELOW the threshold still asks,
         // for the same reason — the threshold has nothing to do with spending.
-        const spend = await this._askSpend(turnId, this._batchQuoteBody(args, role, cards[0]), cards.length);
+        const spend = await this._askSpend(turnId, this._batchQuoteBody(args, runs[0].media || args.media), n);
         if (spend === false) {
-            return JSON.stringify({ ok: false, declined: true, code: 'SPEND_DECLINED', message: `The user said no to spending on running "${args.operation}" over ${cards.length} cards. Ask what they would like instead; do not send it again unless they say so.` });
+            return JSON.stringify({ ok: false, declined: true, code: 'SPEND_DECLINED', message: `The user said no to spending on ${what}. Ask what they would like instead; do not send it again unless they say so.` });
         }
-        if (spend === null && cards.length > BATCH_CONFIRM_ABOVE && !await this._askBatch(turnId, cards.length, args)) {
-            return JSON.stringify({ ok: false, declined: true, message: `The user said no to running "${args.operation}" over ${cards.length} cards. Ask what they would like instead; do not send it again unless they say so.` });
+        if (spend === null && n > BATCH_CONFIRM_ABOVE && !await this._askBatch(turnId, n, args)) {
+            return JSON.stringify({ ok: false, declined: true, message: `The user said no to ${what}. Ask what they would like instead; do not send it again unless they say so.` });
         }
 
         const started = [];
         const refused = [];
-        for (const image of cards) {
+        for (const [i, run] of runs.entries()) {
             // `wait` is dropped: awaiting each one would run fifty renders end to end inside a
             // single turn, and the fan-out exists precisely so the chat stays free meanwhile.
-            const one = { ...args, cards: undefined, wait: undefined, media: [{ role, image }] };
+            const one = { ...args, cards: undefined, count: undefined, wait: undefined, ...run };
+            const label = cards ? cards[i] : i + 1;
             let res;
             try {
                 res = JSON.parse(await this._executeTool('generate', one, turnId, currentProject, { batch: true }));
@@ -1020,8 +1046,8 @@ export class AgentLoop {
             // The guide belongs to the MODEL, not the card, so it cannot come out differently
             // further down the list: fifty copies of one message is not a report. Stop on it.
             if (res?.error?.code === 'GUIDE_NOT_READ') return JSON.stringify(res);
-            if (res?.ok) started.push(image);
-            else refused.push({ card: image, code: res?.error?.code || 'ERROR', message: res?.error?.message || 'no reason given' });
+            if (res?.ok) started.push(label);
+            else refused.push({ [cards ? 'card' : 'run']: label, code: res?.error?.code || 'ERROR', message: res?.error?.message || 'no reason given' });
         }
 
         // One result, whatever the count. A refusal is reported per card because they differ —
@@ -1031,14 +1057,14 @@ export class AgentLoop {
             started: started.length,
             refused,
             message: refused.length
-                ? `Started ${started.length} of ${cards.length}. ${refused.length} were refused — tell the user which, and why.`
+                ? `Started ${started.length} of ${n}. ${refused.length} were refused — tell the user which, and why.`
                 : `Started all ${started.length}. They will appear in the chat as they finish; none of them is described, so look at one if you need to.`,
         });
     }
 
     /**
-     * The body that prices a fan-out (MPI-876): the outer call, carrying the FIRST card as
-     * its picture.
+     * The body that prices a fan-out (MPI-876): the outer call, carrying the FIRST run's
+     * media — a `cards` batch's first card, or a `count` batch's shared media.
      *
      * The picture is there because two of the shipped cloud models bill for the reference
      * image as well as the output, and a batch always fills exactly one image slot — so
@@ -1046,12 +1072,14 @@ export class AgentLoop {
      * batch costs the same: the ratios this app offers are all a nominal 1 MP, and a
      * reference bills a flat token count whatever its size.
      */
-    _batchQuoteBody(args, role, firstCard) {
-        const ref = this._resolveImage(firstCard);
+    _batchQuoteBody(args, media = []) {
         // An attachment is only copied into the project when a generation uses it, which
         // has not happened yet. Quoting without it loses the reference's share of the
         // price, never the card itself.
-        const media = ref && ref.kind !== 'attachment' ? [{ role, url: _projectFileUrl(ref.path) }] : [];
+        media = media.flatMap((m) => {
+            const ref = this._resolveImage(m.image);
+            return ref && ref.kind !== 'attachment' ? [{ role: m.role, url: _projectFileUrl(ref.path) }] : [];
+        });
         const body = { modelId: String(args.modelId), operation: String(args.operation), media };
         for (const k of ['ratio', 'qualityTier', 'turbo', 'duration', 'denoise', 'stylization']) {
             if (args[k] !== undefined) body[k] = args[k];
@@ -1409,6 +1437,12 @@ ${knowledgeIndex}`.trim();
                         const roles = gap.slots.map((s) => `"${s.role}" (${s.type}${s.required ? ', required' : ''})`).join(', ');
                         return JSON.stringify({ ok: false, error: { code: 'MEDIA_REQUIRED', message: `Nothing was generated: "${args.operation}" needs ${gap.missing.type} in its "${gap.missing.role}" slot and your call passed none. Send it again with media: [{ role: "${gap.missing.role}", image: "<a ref the App state line lists>" }]. The slots this op takes: ${roles}.` } });
                     }
+                }
+                // MPI-876 — `count`, AFTER the guide and media gates, unlike `cards`: every run
+                // shares this call's media, so the outer call's answer is every run's answer, and
+                // a refusal here costs no spend card the user already said Yes to.
+                if (Number(args.count) > 1) {
+                    return this._fanOut(args, turnId, currentProject);
                 }
                 if (args.flowId) {
                     const miss = await this._unmeasuredBox(args);

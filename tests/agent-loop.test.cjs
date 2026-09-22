@@ -2232,6 +2232,42 @@ describe('(m) the spend gate', () => {
         assert.equal(JSON.parse(await pending).started, 2);
     });
 
+    // Fabio live, 2026-09-22: "a batch of two" on FLUX Schnell (Cloud) raised TWO cards at
+    // $0.0005 each. t2i has no image slot, so `cards` cannot carry it; `count` does.
+    test('a batch of two on an op with no image slot is ONE card for both, then two runs', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({
+            engineResponses: [{ text: 'ok' }],
+            toolOpts: { quote: (body) => ({ billed: true, modelName: 'FLUX Schnell (Cloud)', count: body.count || 1, display: 'about $0.001' }) },
+        });
+        withOps(tools);
+        const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 't2i', prompt: 'a pony', seed: 7, count: 2 }, 'turn-spend-count', project);
+
+        const evt = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+        assert.equal(evt.data.kind, 'spend');
+        assert.equal(evt.data.count, 2);
+        assert.equal(tools.calls.quote[0].count, 2);
+        await loop.confirm(evt.data.confirmId, true);
+        assert.equal(JSON.parse(await pending).started, 2);
+
+        assert.equal(fakeRes.events.filter((e) => e.event === 'agent:confirm').length, 1);
+        assert.equal(tools.calls.quote.length, 1, 'the two runs must not each raise their own card');
+        assert.equal(tools.calls.generate.length, 2);
+        assert.deepEqual(tools.calls.generate.map((b) => b.seed), [7, 8], 'a given seed steps, or both are one picture');
+        assert.ok(tools.calls.generate.every((b) => b.count === undefined), 'count never reaches the connector');
+    });
+
+    test('count is refused by name on a Flow and alongside cards, before any card is asked', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }], toolOpts: { quote: BILLED } });
+        withOps(tools);
+        const flow = JSON.parse(await loop._executeTool('generate', { flowId: 'head-swap', count: 2 }, 'turn-count-flow', project));
+        assert.equal(flow.error.code, 'BATCH_UNSUPPORTED');
+        const both = JSON.parse(await loop._executeTool('generate',
+            { modelId: 'test-model', operation: 'upscale', cards: seeCards(loop, 2), count: 2 }, 'turn-count-cards', project));
+        assert.equal(both.error.code, 'BAD_REQUEST');
+        assert.equal(fakeRes.events.filter((e) => e.event === 'agent:confirm').length, 0);
+        assert.equal(tools.calls.generate.length, 0);
+    });
+
     test('a free batch above the threshold still gets the batch card, unchanged', async () => {
         const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
         withOps(tools);
