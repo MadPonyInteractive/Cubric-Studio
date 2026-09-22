@@ -125,6 +125,13 @@ field any kind paints from.
   enough): "a batch of two" on `flux-schnell-cloud` → ONE card `Run this 2 times on FLUX
   Schnell (Cloud)?` / `… costs about $0.001 for 2 generations.`, then two landed images.
 
+**Fabio live, 2026-09-22 ~19:05 — batch of two PASSES.** Project "Deepinfra model tests":
+"a batch of two images on FLUX SCHNELL … a monkey riding a pony in 3D cartoon style" → ONE
+card, `Run this 2 times on FLUX Schnell (Cloud)?` / `Runs on your DeepInfra key and costs
+about $0.001 for 2 generations.`, Yes → two cards landed (t2i_006, t2i_007, 1024x1024).
+One nit seen in the reply, not fixed: after the Yes, the agent re-stated the price and
+offered a local model — the card already said it (Voice rule territory, not the gate).
+
 ## Left for Fabio — the half no test here can reach
 
 1. **One real gated run.** A cloud model, any prompt. The card should read
