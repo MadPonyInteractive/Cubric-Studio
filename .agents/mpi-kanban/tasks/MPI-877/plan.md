@@ -4,11 +4,32 @@ Sits **in front of MPI-876** (Fabio, 2026-09-21).
 
 ## Current State
 
-**BUILT 2026-09-21, card still in `doing`, waiting on Fabio's own re-run.** Started on his
-word; he settled the card's one open question in the same message — **`control` does NOT
-respect masks**. Commits `54e25445` (code + docs) and `ab9e2661` (board). Evidence, the
-full op table and what was NOT verified: `validation.md`. Remaining Work items 1–4 are all
-done; only the `user-ux` close is outstanding, and it is his to make.
+**ROUND 2 BUILT 2026-09-21, card still in `doing`, waiting on Fabio's own re-run.**
+
+Round 1 (`54e25445` + `ab9e2661`) is pushed. Fabio ran it live and the mask half held: the
+agent read `app:masking`, refused to paint or pick the area, named the Mask tool, said what
+to paint, chose `kleinEdit` and checked its note. Three faults came back with it, all fixed
+in `c79d0118` (pushed — a peer's push carried it).
+
+1. **The masked edit could never render.** Five dispatches across two models died in the
+   engine: `InpaintCropImproved ... Expected torch.Size([682, 512]), got
+   torch.Size([1024, 768])`. The mask came off the open card at 768x1024; the image was the
+   chat ATTACHMENT, `att_564c16a9.webp`, measured at 512x682 — a thumbnail rendition.
+   Nothing bound a mask to the picture it was painted over. `activeMask` now publishes
+   `{ dataUrl, url }` and `bindMaskedSource` points `inputImage` at the mask's own picture.
+2. **The reply was mostly reasoning** — four paragraphs before the answer, naming the
+   masking rule and the kleinEdit note out loud while the status strip had already listed
+   every read. A **Voice rule** now covers it.
+3. **"History" is our word, not the app's.** Corrected in the Masking rule, the
+   `MASK_UNSUPPORTED` refusal, `docs/agent/masking.md` and the Honest-limits line.
+
+Evidence and the red-proofs: `validation.md` § Round 2. `checklist.md` § 6.
+
+**The ONLY thing outstanding is Fabio's re-run**, and nothing has rendered yet. He must
+RESTART the app (`services/agentLoop.mjs` is server-side, so a reload will not pick the
+Voice rule up) and Start Over in the Agent panel, then repeat the ask: the boy's reflection
+alone turns demonic, under a normal boy. He said he will report back in the next session
+and will not touch the app before then.
 
 One design change against the plan below: reaching the viewer through `navigation.js` was
 tried and backed out — it drags the whole component tree into `agentDispatch`'s CJS
@@ -29,6 +50,24 @@ not put it in the docs either way until it is traced or benched.
 
 Card sits ahead of MPI-876 on Fabio's instruction. MPI-876 is likewise planned and
 unauthorised.
+
+
+## Plan Drift
+
+- **2026-09-21, round 2.** The card's `user-ux` verify mode earned its keep: every automated
+  check in round 1 was green and the feature still could not render. A mask was published as
+  bare pixels, so dispatch attached it to whatever image the model named. Fixed by giving the
+  mask its picture rather than by validating sizes at the crash site — a size check there
+  would have turned a crash into a refusal and left the mask pointed at the wrong image.
+- **2026-09-21.** The 512-wide chat attachment behind the mismatch is its own bug: a maskless
+  `edit`/`i2i` on an attached card edited the thumbnail and reported ok. Spawned out rather
+  than folded in, and a peer has since built it as **MPI-884** (`712c3ff2`, unpushed at the
+  time of this handoff). MPI-877's fix does not depend on it — the binding makes masked
+  edits correct whatever the attachment is.
+- **2026-09-21.** `MpiLevelMeter.js:2`, the server-absolute import named in Current State
+  above, was fixed by a peer as **MPI-881** (`11e7cdc9`). `activeMask.js` still stands on its
+  own merits (one slot, no DOM reach from dispatch) — do not "simplify" it away by reaching
+  for `navigation.js` now that the import is clean.
 
 ## What happened, live
 
