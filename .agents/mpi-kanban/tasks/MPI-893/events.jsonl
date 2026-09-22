@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-893", "at": "2026-09-22T11:09:01+01:00", "actor": "mpi-project-refresh", "column": "doing", "title": "Mpi-Kanban refresh on 1.5.0: state index rebuild, behaviour.md git drift, two unlisted briefings, PowerShell-blind project hooks"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-893", "at": "2026-09-22T11:16:25+01:00", "actor": "mpi-project-refresh", "from": "doing", "to": "done"}

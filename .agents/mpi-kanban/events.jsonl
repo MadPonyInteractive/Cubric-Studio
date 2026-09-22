@@ -4914,3 +4914,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-895", "at": "2026-09-22T11:13:05+01:00", "actor": "mpi-project-refresh (MPI-893)", "column": "todo", "title": "Upscale and refine evaluation (umbrella): what actually improves a finished frame"}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-896", "at": "2026-09-22T11:13:06+01:00", "actor": "mpi-project-refresh (MPI-893)", "column": "todo", "title": "Feedback surface (umbrella): the app tells the user what it is doing, and when it failed"}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-897", "at": "2026-09-22T11:13:07+01:00", "actor": "mpi-project-refresh (MPI-893)", "column": "todo", "title": "Localised editing (umbrella): mask a region and have every model respect it"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-893", "at": "2026-09-22T11:16:25+01:00", "actor": "mpi-project-refresh", "from": "doing", "to": "done"}
