@@ -21,15 +21,19 @@ const test = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { resolveMask, bindMaskedSource } = require('../js/shell/agentDispatch.js');
+const { resolveMask, bindMaskedSource, maskedGenerationOpts } = require('../js/shell/agentDispatch.js');
 const { setMaskReader, clearMaskReader, activeMask } = require('../js/shell/activeMask.js');
 const { COMMANDS } = require('../js/data/commandRegistry.js');
+const { state } = require('../js/state.js');
 
 const MASK = 'data:image/png;base64,iVBORw0KGgo=';
 // The picture the mask was painted over. A mask is a region OF an image, so the two
 // always travel together (MPI-877 round 2).
 const SRC = '/project-file?path=C:/p/Media/t2i_003.png';
-const PAINTED = { dataUrl: MASK, url: SRC };
+// And the card that picture belongs to: a masked edit is that card's next version
+// (MPI-877 round 3).
+const GROUP_ID = '204f6a5b-08d0-4815-b6f5-3bc6fe215138';
+const PAINTED = { dataUrl: MASK, url: SRC, groupId: GROUP_ID };
 const repoRoot = path.join(__dirname, '..');
 
 // ── The registry these tests are written against ──────────────────────────────
@@ -181,6 +185,69 @@ test('the model already named the mask\'s own picture: nothing is touched', () =
 
 test('an op with no image slot filled cannot be broken by a mask', () => {
     assert.deepEqual(bindMaskedSource([], SRC), []);
+});
+
+// -- A masked edit is the card's NEXT VERSION, not a new card --------------------
+//
+// Live, 2026-09-22, round 2 of this card: the edit finally rendered — right op, right
+// picture, right mask — and landed in the gallery as `edit_003`, while the workspace
+// Fabio was watching, mask still on screen, drew no latents and no result. Dispatch had
+// no card to name, so every agent submit was `scope: 'gallery'`. A Cue press in that same
+// workspace sends `existingGroup` + `scope: 'groupHistory'`.
+
+const CARD = { id: GROUP_ID, name: 't2i_003', history: [] };
+
+test('a masked submit lands in the history of the card the mask was painted on', () => {
+    state.currentProject = { itemGroups: [{ id: 'other' }, CARD] };
+    const opts = maskedGenerationOpts(resolveMask('kleinEdit', PAINTED).maskGroupId);
+    assert.deepEqual(opts, { existingGroup: CARD, scope: 'groupHistory', groupId: GROUP_ID });
+    // The LIVE group, not a copy: generationService re-reads history off the project, and
+    // `_reportDone` reports the group it is handed.
+    assert.equal(opts.existingGroup, CARD);
+    state.currentProject = null;
+});
+
+test('a maskless submit still goes to the gallery, as every agent generation always has', () => {
+    state.currentProject = { itemGroups: [CARD] };
+    assert.equal(maskedGenerationOpts(resolveMask('t2i', null).maskGroupId), null);
+    // Pixels with no card are the round-2 shape of this reader; they must not route.
+    assert.equal(maskedGenerationOpts(resolveMask('edit', { dataUrl: MASK, url: SRC }).maskGroupId), null);
+    state.currentProject = null;
+});
+
+test('the card is gone or another project is open: the run falls back to the gallery', () => {
+    // Deleted mid-run, or the agent opened another project between paint and submit.
+    // `generationService` cancels a groupHistory completion whose group no longer exists,
+    // so routing at a card that is not there would throw the render away.
+    state.currentProject = { itemGroups: [{ id: 'other' }] };
+    assert.equal(maskedGenerationOpts(GROUP_ID), null);
+    state.currentProject = null;
+    assert.equal(maskedGenerationOpts(GROUP_ID), null, 'no project open must not throw');
+});
+
+test('resolveMask carries the card alongside the mask and its picture', () => {
+    const r = resolveMask('kleinEdit', PAINTED);
+    assert.equal(r.maskGroupId, GROUP_ID);
+    // A refusal hands back nothing to route with either.
+    assert.equal(resolveMask('inpaint', null).maskGroupId, null);
+});
+
+test('the workspace publishes the card id, not just the pixels and their picture', () => {
+    // The seam the live bug sat in: dispatch can only route to a card the READER names.
+    // Asserted on the line, not by mounting a Block — this file is renderer-free.
+    const reader = fs.readFileSync(
+        path.join(repoRoot, 'js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js'), 'utf8',
+    ).split('\n').find((l) => l.includes('return url ? { dataUrl, url'));
+    assert.ok(reader?.includes('groupId: _group.id'),
+        'the History workspace stopped publishing the card its mask belongs to');
+
+    // And that dispatch still SENDS it. `maskedGenerationOpts` returning the right object
+    // is worth nothing if the enqueue call goes back to the gallery placeholder alone —
+    // which is exactly the shape the live bug had.
+    const enqueue = fs.readFileSync(path.join(repoRoot, 'js/shell/agentDispatch.js'), 'utf8')
+        .split('\n').find((l) => l.includes("scope: 'gallery', tempId, placeholderGroup"));
+    assert.ok(enqueue?.includes('historyOpts ||'),
+        'the submit no longer prefers the masked card over a new gallery card');
 });
 
 // ── The downstream contract: the key name is the whole interface ──────────────

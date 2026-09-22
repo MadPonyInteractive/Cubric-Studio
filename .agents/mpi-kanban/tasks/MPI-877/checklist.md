@@ -83,3 +83,28 @@ the owner of the model, not by a trace — record it and keep it out of the mask
       gallery to open it, then pick the Mask tool from the toolbar down the left.
 - [ ] **user-ux round 2:** Fabio re-runs the same ask. The mask now has to REACH a render,
       and the reply has to open with the answer. That judgement is his, not an agent's.
+
+## 7. Round 2's live check — it rendered, in the wrong place
+
+- [x] **user-ux round 2**, Fabio in his own app, 2026-09-22. The masked edit RAN:
+      `kleinEdit` / `klein-9b` on `t2i_003.png`, mask and image both 768x1024,
+      `InpaintCropImproved` with no assertion, `Prompt executed in 37.21 seconds`. Round
+      2's binding fix is proven live. The narration and the "History" wording were not
+      raised again.
+- [x] **The result was a NEW CARD, and the workspace drew nothing.** Fabio: "I didn't get
+      any latents in the history workspace, and the image landed in the gallery instead."
+      One cause: `activeMask` published the mask and its picture but not the CARD they
+      belong to, so dispatch had nothing to route at and fell through to
+      `scope: 'gallery'`. `MpiGroupHistoryBlock` draws live frames only for its own
+      `groupHistory`-scope run, which is why the run was invisible where he was watching.
+      The reader now publishes `groupId`, `resolveMask` carries it, and
+      `maskedGenerationOpts()` hands dispatch the same `{ existingGroup, scope:
+      'groupHistory', groupId }` a Cue press in that workspace sends. Maskless submits are
+      untouched; a card that has gone falls back to the gallery.
+- [x] **The demon was a creature, not the boy — and that is the GRAPH, not this card.**
+      On a masked edit `MpiIfElse` (592) forwards `InpaintCropImproved`'s crop, and
+      `context_from_mask_extend_factor: 1.0` makes that crop the mask bounding box and
+      nothing else — measured 257x257, pure water. Klein was asked for "the same boy" while
+      looking at ripples. Identical on the Cue path; carded separately.
+- [ ] **user-ux round 3:** one masked ask in the app. The latents draw under the open card
+      and the result is that card's next version, not a new card in the gallery.

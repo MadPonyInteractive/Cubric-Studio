@@ -1,8 +1,9 @@
 {
   "schema": "mpi-kanban/board/v1",
-  "next_id": 885,
+  "next_id": 886,
   "columns": {
     "todo": [
+      "MPI-885",
       "MPI-883",
       "MPI-876",
       "MPI-874",
@@ -278,7 +279,7 @@
       "MPI-713"
     ]
   },
-  "updated_at": "2026-09-22T06:12:58Z",
+  "updated_at": "2026-09-22T06:42:45Z",
   "events": [
     {
       "at": "2026-09-06T22:45:00Z",
@@ -4941,6 +4942,13 @@
       "from": "todo",
       "to": "doing",
       "note": "Starting MPI-727 - floating result dock off the last step."
+    },
+    {
+      "at": "2026-09-22T06:42:45Z",
+      "type": "task.created",
+      "task": "MPI-885",
+      "actor": "session-1cedc5ee",
+      "note": "Split out of MPI-877: a masked edit feeds the model only the mask bounding box, so 'the same boy' was unreachable. Graph-level, and the Cue path does it too."
     }
   ]
 }

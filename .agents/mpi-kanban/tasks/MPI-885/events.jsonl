@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-885", "at": "2026-09-22T06:42:45Z", "actor": "session-1cedc5ee", "column": "todo", "title": "A masked edit shows the model only the mask box, so it cannot keep what is outside it"}

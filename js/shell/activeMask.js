@@ -31,8 +31,15 @@ let _read = null;
  * models died before rendering a pixel. Pixels published with no identity are what let a
  * mask reach a picture it was never drawn on.
  *
- * @param {() => ({dataUrl: string, url: string}|null)} read - the painted mask and the url
- *   of the image under it, or null when nothing is painted.
+ * The card comes with them. A mask is painted on an OPEN card, so a masked edit is a new
+ * version of that card, not a new one beside it — `groupId` is what lets dispatch send it
+ * the way a Cue press in the same workspace does (`scope: 'groupHistory'`). Live,
+ * 2026-09-22: the edit rendered and landed in the gallery, and the workspace the user was
+ * watching drew no latents.
+ *
+ * @param {() => ({dataUrl: string, url: string, groupId: string}|null)} read - the painted
+ *   mask, the url of the image under it and the card that owns it, or null when nothing
+ *   is painted.
  */
 export function setMaskReader(read) {
     _read = typeof read === 'function' ? read : null;
@@ -48,9 +55,9 @@ export function clearMaskReader(read) {
 }
 
 /**
- * The mask the user has painted right now and the image it belongs to, or null.
- * Never throws.
- * @returns {{dataUrl: string, url: string}|null}
+ * The mask the user has painted right now, the image it belongs to and the card that
+ * owns it, or null. Never throws.
+ * @returns {{dataUrl: string, url: string, groupId: string}|null}
  */
 export function activeMask() {
     try {

@@ -225,16 +225,42 @@ export function resolveSettingsOwner(input = {}, pinned, project, pinnedM) {
  * and a null would be indistinguishable from an unpainted canvas anyway.
  *
  * @param {string} operation
- * @param {{dataUrl: string, url: string}|null} mask - the mask painted right now and the
- *   image it was drawn over, or null.
- * @returns {{ maskDataUrl: string|null, maskUrl: string|null, error?: { code: string, message: string } }}
+ * @param {{dataUrl: string, url: string, groupId: string}|null} mask - the mask painted
+ *   right now, the image it was drawn over and the card that owns it, or null.
+ * @returns {{ maskDataUrl: string|null, maskUrl: string|null, maskGroupId: string|null, error?: { code: string, message: string } }}
  */
 export function resolveMask(operation, mask) {
     if (!mask?.dataUrl && getCommand(operation)?.requiresMask) {
-        return { maskDataUrl: null, maskUrl: null, error: { code: 'MASK_UNSUPPORTED',
+        return { maskDataUrl: null, maskUrl: null, maskGroupId: null, error: { code: 'MASK_UNSUPPORTED',
             message: `Nothing was generated: "${operation}" only runs on a painted mask, and none is painted. Ask the user to click the card in the gallery to open it, choose the Mask tool from the toolbar down the left, and paint over the area to change; send this again once they say it is drawn. You cannot paint it yourself.` } };
     }
-    return { maskDataUrl: mask?.dataUrl || null, maskUrl: mask?.url || null };
+    return { maskDataUrl: mask?.dataUrl || null, maskUrl: mask?.url || null, maskGroupId: mask?.groupId || null };
+}
+
+/**
+ * Where a masked submit LANDS. A mask is painted on an open card, so the edit is the next
+ * version of that card — the same destination a Cue press in that workspace sends
+ * (`MpiGroupHistoryBlock._generationFromPromptPayload`: `existingGroup` +
+ * `scope: 'groupHistory'`). Dispatch had no card to name, so every agent submit went to
+ * the gallery. Live 2026-09-22, round 2 of this card: the masked edit finally rendered,
+ * correctly, and appeared as a new card `edit_003` — while the History workspace the user
+ * was watching, mask still on screen, drew no latents and no result.
+ *
+ * Only a MASKED submit is rerouted. A maskless one names no card and belongs in the
+ * gallery, which is where every agent generation has always landed.
+ *
+ * ponytail: resolved from `state.currentProject` rather than passed as an object —
+ * `enqueueGeneration` wants the live group, and the reader publishes an id precisely so
+ * dispatch never holds a component's object across a job.
+ *
+ * @param {string|null} maskGroupId
+ * @returns {{ existingGroup: object, scope: string, groupId: string }|null} the opts the
+ *   history path uses, or null when there is nothing to route to.
+ */
+export function maskedGenerationOpts(maskGroupId) {
+    if (!maskGroupId) return null;
+    const group = (state.currentProject?.itemGroups || []).find(g => g.id === maskGroupId);
+    return group ? { existingGroup: group, scope: 'groupHistory', groupId: group.id } : null;
 }
 
 /**
@@ -356,6 +382,12 @@ function _submitGeneration(jobId, input = {}) {
         injectionParams: mergedInjection,
     };
 
+    // A masked submit is a new version of the card the mask is painted on, and goes
+    // where a Cue press in that workspace goes — no gallery placeholder, because a
+    // `groupHistory` gen owns its own frames (MpiGroupHistoryBlock's `scope !==
+    // 'groupHistory'` guard is what draws them).
+    const historyOpts = maskedGenerationOpts(mask.maskGroupId);
+
     // A gallery gen MUST carry a tempId + placeholderGroup or the run is invisible
     // until it finishes: MpiGalleryBlock draws in-progress cards from the
     // activeGenerations entry's `placeholderGroup`, and live latents route by
@@ -384,7 +416,7 @@ function _submitGeneration(jobId, input = {}) {
             'The generation failed. See the app log for the cause.'),
         onCancel: () => _fail(jobId, 'CANCELLED',
             'The generation was cancelled or produced no output.'),
-    }, { scope: 'gallery', tempId, placeholderGroup });
+    }, historyOpts || { scope: 'gallery', tempId, placeholderGroup });
 
     // A guard inside enqueueGeneration rejects by returning null — it fires
     // onCancel on its way out, so the report is already in flight. Belt and braces

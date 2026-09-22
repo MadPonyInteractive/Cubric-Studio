@@ -3550,11 +3550,18 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         //
         // The url of the version ON SCREEN travels with it: that is the picture the mask
         // was drawn over, and a masked edit has to run on it (see `setMaskReader`).
+        //
+        // So does the CARD that picture belongs to. A mask is painted on an open card, so
+        // the edit is a new version OF that card — which is what `_runGenerate` above
+        // sends (`existingGroup` / `scope: 'groupHistory'`). Dispatch had no group to
+        // name, so every agent submit was `scope: 'gallery'`: live 2026-09-22 the edit
+        // rendered correctly and landed as a NEW card, while this workspace — the one the
+        // user was watching, with the mask still on screen — showed no latents at all.
         const _readMaskForAgent = () => {
             const dataUrl = (viewer?.el?.hasMask?.() ? viewer.el.getCurrentMaskDataURL?.() : null) || null;
             if (!dataUrl) return null;
             const url = resolveMediaUrl(_group.history[_currentIdx]?.filePath);
-            return url ? { dataUrl, url } : null;
+            return url ? { dataUrl, url, groupId: _group.id } : null;
         };
         setMaskReader(_readMaskForAgent);
 

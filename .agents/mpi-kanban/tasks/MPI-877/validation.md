@@ -176,3 +176,97 @@ not `fail`), untouched by this card. `npm run lint` and `npm run lint:components
 **No real generation has rendered.** The size mismatch is fixed by construction and pinned
 by a spec, but round 1 proved that a trace is not a render. Round 2 is Fabio re-running the
 same ask in his own app: the boy's reflection alone turns demonic, under a normal boy.
+
+---
+
+# Round 3 — the edit RENDERED, and landed in the wrong place, 2026-09-22
+
+Fabio re-ran the same ask in his own app. Round 2's fix held: the mask reached its own
+picture and the graph executed. Two things came back.
+
+## What actually ran — measured, not inferred
+
+From the card's sidecar (`Media/.meta/70a18b20-….json`) and ComfyUI's own `/history`:
+
+| | value |
+|---|---|
+| operation | `kleinEdit` |
+| model | `klein-9b` |
+| `inputImage` | `Media/t2i_003.png` — the card the mask was painted on |
+| staged mask | `mpi_staged_d601d8393461b4af.png`, **768x1024** |
+| staged image | `bff0c62f7b795cb2.png`, **768x1024** |
+| graph | `InpaintCropImproved` ran with `mask: ['296', 1]`, no assertion |
+| result | `Prompt executed in 37.21 seconds`, card `edit_003`, 768x1024 |
+
+So the mask/image mismatch is FIXED LIVE, and Fabio's suspicion that "another operation was
+used instead of edit" is settled: it was `kleinEdit`, masked, on his own card.
+
+## Fault 1 — the edit was a NEW CARD, not the card's next version
+
+Fabio: *"I didn't get any latents in the history workspace, and the image landed in the
+gallery instead."*
+
+Both halves are one cause. A Cue press in the History workspace dispatches
+`{ existingGroup: _group, scope: 'groupHistory', groupId: _group.id }`
+(`MpiGroupHistoryBlock._generationFromPromptPayload`). Dispatch had no card to name, so
+every agent submit was `{ scope: 'gallery', tempId, placeholderGroup }` — and
+`MpiGroupHistoryBlock` draws live frames only for `scope === 'groupHistory'` with its own
+group id, so the workspace he was watching, mask still on screen, showed nothing at all
+while the run went by. The result then appeared beside the original as `edit_003`.
+
+**Root cause.** `activeMask` published the mask and its picture, but not the CARD that
+picture belongs to — the same shape as round 2's bug one level up. A mask is painted on an
+open card, so a masked edit is that card's next version.
+
+**Fix.** The reader publishes `groupId`; `resolveMask` carries it as `maskGroupId`;
+`maskedGenerationOpts()` resolves it against `state.currentProject.itemGroups` and hands
+dispatch the history opts. Only a MASKED submit is rerouted — a maskless one names no card
+and belongs in the gallery, where every agent generation has always landed. A card that is
+gone (deleted, or another project opened between paint and submit) falls back to the
+gallery rather than routing at nothing, which `generationService` would cancel.
+
+**Proven red, one seam at a time** (`tests/agent-mask-dispatch.test.cjs`, 20 tests):
+
+- `groupId` dropped from the workspace reader → 18 pass / 1 fail.
+- `maskGroupId` dropped from `resolveMask` → 17 pass / 2 fail.
+- the enqueue call put back to the gallery placeholder alone → 18 pass / 1 fail.
+- all three restored → 20 pass.
+
+## Fault 2 — the demon has nothing to do with the boy. NOT a bug, and not ours to fix here
+
+Fabio: *"a demon face that has got nothing to do with the boy"*. The agent's own reply said
+the same: a separate creature emerging from the water rather than the boy's reflection
+turned demonic.
+
+Traced through the dispatched graph. On a masked edit the model never sees the rest of the
+picture:
+
+```
+296 Input_Mask ──boolean──> 592 MpiIfElse ──true──> 581 InpaintCropImproved output 1
+474 Input_Image ─────────── 592 MpiIfElse ──false─> (the whole picture, maskless path)
+592 -> 167 ImageScaleToTotalPixels -> 163 VAEEncode -> the sampler
+```
+
+With a mask, 592 forwards the CROP. `context_from_mask_extend_factor: 1.0` means the crop
+is the mask bounding box and nothing more — measured here, **257x257 at (264, 683)**, pure
+water — then `output_resize_to_target_size` blows it up to 1024x1024. Klein was asked for
+"the same boy, with red eyes and horns" while looking at a square of ripples. It invented a
+creature because it had never seen the boy.
+
+This is the shipped graph's behaviour on EVERY masked edit, the Cue path included — nothing
+agent-specific, and no part of this card. Carded separately; the two candidate directions
+are a `context_from_mask_extend_factor` above 1.0, or passing the full picture into a free
+reference slot on the models that have one.
+
+## Suite
+
+`npm test`: **1757 tests, 1755 pass, 0 fail**, 1 skipped, 1 todo (the pre-existing MPI-867
+entry in `agent-video-attachment.test.cjs`). `npm run lint` and `npm run lint:components`
+clean.
+
+## Still not verified here
+
+The reroute is proven by spec, not by a render — the same gap round 2 had, one level down.
+Round 3's live check is one masked ask in the app: the latents draw in the History
+workspace under the open card, and the result becomes its next version instead of a new
+card in the gallery.
