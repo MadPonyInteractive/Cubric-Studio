@@ -131,6 +131,9 @@ function _templateNumber(props) {
 // MPI-174 — built-in families there, new models declare ModelDef.qualityTiers.
 const tiersFor = qualityTiersFor;
 
+// Only ids whose label differs from the id itself. `480p`/`720p`/`1080p` are absent
+// on purpose: the resolver below prints the raw id, which is already the spelling the
+// rest of the app uses for them (deepinfraPricing.js, every cloud model description).
 const QUALITY_LABELS = {
     very_low:  'Very Low',
     low:       'Low',
@@ -138,9 +141,16 @@ const QUALITY_LABELS = {
     high:      'High',
     very_high: 'Very High',
     '1k':      '1K',   // Krea2 (MPI-242) — without this the tier picker renders `undefined`
+    '1.5k':    '1.5K', // Seedream 4.5 (MPI-850)
     '2k':      '2K',
     '4k':      '4K',
 };
+
+// MPI-883: `qualityTiersFor()` resolves a new ModelDef's tiers with no code change, so
+// the map above is always one model behind — the cloud catalogue landed `480p`/`720p`/
+// `1080p`/`1.5k` and the radio printed the word `undefined` three times over. A missing
+// key now falls back to the id. Plain at worst; never a bug report.
+const _qualityLabel = t => QUALITY_LABELS[t] ?? t;
 
 // 2K/4K carry a hint so the status bar teaches what the tier costs. All other
 // tiers show plain dims.
@@ -174,17 +184,17 @@ const _tierHint = (modelType, tier) =>
  */
 function _buildQualityOptions(modelType, selectedRatio, orientation) {
     return tiersFor(modelType).map(t => {
-        let info = QUALITY_LABELS[t];
+        let info = _qualityLabel(t);
         if (modelType) {
             const ratios = getModelRatios(modelType, orientation, t);
             const match = ratios.find(r => r.label === selectedRatio) || ratios[0];
             if (match?.w && match?.h) {
                 const h = _tierHint(modelType, t);
                 const hint = h ? ` · ${h}` : '';
-                info = `${QUALITY_LABELS[t]} — ${match.w}×${match.h}${hint}`;
+                info = `${_qualityLabel(t)} — ${match.w}×${match.h}${hint}`;
             }
         }
-        return { label: QUALITY_LABELS[t], value: t, info };
+        return { label: _qualityLabel(t), value: t, info };
     });
 }
 
