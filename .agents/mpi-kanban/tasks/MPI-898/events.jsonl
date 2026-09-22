@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-898", "at": "2026-09-22T22:29:51+01:00", "actor": "claude (af358fa2)", "column": "todo", "title": "A renamed or moved project folder opens EMPTY - the reconciler deletes every sidecar (blocks 2.0)"}

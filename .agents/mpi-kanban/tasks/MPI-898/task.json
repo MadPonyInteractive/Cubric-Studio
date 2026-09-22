@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-898",
+  "title": "A renamed or moved project folder opens EMPTY - the reconciler deletes every sidecar (blocks 2.0)",
+  "description": "DATA LOSS, 2.0 blocker. Every sidecar (Media/.meta/<uuid>.json) stores its media as an ABSOLUTE /project-file?path=<old folder>\\Media\\<file> url, with no relative fallback. Open a project whose folder was renamed or moved (Explorer rename, then drag it back in) and /load-meta-batch (routes/projects.js ~:3012) reports every item's media missing; projectReconciler.js:69-73 then DELETES each sidecar, drops the ids from history, drops the empty cards and re-persists project.json. The media files stay on disk, orphaned. The 2.0 Documents heal (routes/shared.js _getDocumentsFolder, ~:136) renames <Documents>/Cubric Vision -> Cubric Studio on first 2.x boot and rewrites only project-paths.json, so every default-root project opens EMPTY for every upgrading user. tests/documents-heal.test.cjs never touches a sidecar. Found read-only 2026-09-22 (code read, not yet reproduced); Fabio's live projects are still under Documents/Cubric Vision. Fix: a relocation heal on project open, BEFORE the reconciler's existence check.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-22T22:29:51+01:00",
+  "updated_at": "2026-09-22T22:29:51+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
