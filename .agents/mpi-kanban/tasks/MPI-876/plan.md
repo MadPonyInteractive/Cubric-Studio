@@ -348,11 +348,11 @@ ILL Anime batches of four; Krea 2 fans out). Uncommitted until handoff/close-out
 - `agentDispatch`: `batch` survives the pin (it is a count, not a setting); extra placeholders built
   from `Input_Batch_Size` like the gallery's Cue.
 - Known limit: a batch reports ONE result (the first image) to the agent — `onComplete` fires once.
-- **Fresh-chat miss, Fabio 2026-09-22:** "this image with ILL Anime, batch of four" → agent picked
-  i2i → fanned out, one card visible. By design (SDXL `batchOps: ['t2i']`; `Input_Batch_Size` only
-  reaches `EmptyLatentImage`, i2i samples a VAE-encoded latent). Next, Fabio to choose: (a) make i2i
-  batchable in the SDXL graph (`RepeatLatentBatch` after VAEEncode, then add i2i to `batchOps`), or
-  (b) draw placeholders for queued fan-out jobs (shared batch id) so every model shows N cards.
+- **Fresh-chat miss, Fabio 2026-09-22:** "this image with ILL Anime, batch of four" → the agent
+  chose i2i itself, which fans out. Fabio: that is an agent ROUTING bug (same image on another model
+  = reuse the prompt, t2i), reported to the in-app agent session, NOT this card.
+- Next: ask Fabio whether he wants placeholders for queued fan-out jobs (Krea/Klein show N cards),
+  or close-out once the cloud batch sidecar cost is checked.
 
 **Still open from the pinned-queue path:** a model that cannot batch still shows one card for N
 queued jobs. Drawing placeholders for queued agent jobs (tag a fan-out with a shared batch id) is the
