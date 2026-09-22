@@ -540,6 +540,43 @@ router.post('/connector/generate', async (req, res) => {
 });
 
 /**
+ * POST /connector/quote — what a generate body would COST, without generating it (MPI-876).
+ *
+ * The same body `/connector/generate` takes, plus `count` for a caller about to send the
+ * same op over N cards. Nothing is dispatched, nothing is queued and nothing is billed:
+ * the renderer resolves the run exactly as a submit would and prices what it WOULD send.
+ * -> `{ ok: true, output: { billed: false } }` for anything that cannot cost money, or
+ *    `{ ok: true, output: { billed: true, modelName, count, usd, display } }`, where
+ *    `display` is null when the model bills but its price is not knowable before the run.
+ *
+ * Deliberately NOT a flag on `/connector/generate`. Its body is built from a whitelist,
+ * so no field a caller sends can turn a submit into a quote — and a typo in the path
+ * here is a 404, not an unasked-for generation. On a money path the failure has to fall
+ * towards spending nothing.
+ *
+ * This exists for the in-app agent's spend gate; it is deliberately NOT a consent check
+ * on `/connector/generate` itself, which has no gate by design (a CLI agent's user is
+ * its own gate — see the sibling install route).
+ */
+router.post('/connector/quote', async (req, res) => {
+  const { modelId, operation, flowId, injectionParams, media, count } = req.body || {};
+  if (!flowId && (!modelId || !operation)) {
+    return res.status(400).json({ ok: false, error: { code: 'BAD_REQUEST', message: 'body.flowId, or body.modelId and body.operation, are required.' } });
+  }
+  const input = flowId ? { flowId: String(flowId) } : {
+    modelId: String(modelId),
+    operation: String(operation),
+    injectionParams: injectionParams || {},
+    ...(Array.isArray(media) && media.length ? { media } : {}),
+    ...Object.fromEntries(NAMED_PARAM_KEYS
+      .filter((k) => req.body[k] !== undefined)
+      .map((k) => [k, req.body[k]])),
+    ...(count !== undefined ? { count } : {}),
+  };
+  res.json(await _dispatchToRenderer('generation.quote', input));
+});
+
+/**
  * POST /connector/cancel { requestId } — stop a generation this caller submitted with that
  * `requestId`, whether it is rendering or still waiting in the queue. Nothing else is touched:
  * not the user's own runs, not another caller's. The cancelled submit's own held response

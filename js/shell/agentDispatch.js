@@ -58,6 +58,8 @@ import { CROP_RATIOS } from '../utils/ratios.js';
 import { resolveMediaUrl } from '../utils/mediaActions.js';
 import { stepValueToMedia } from '../components/Blocks/MpiBaseFlow/stepKinds.js';
 import { describeImage } from '../services/llmService.js';
+import { estimateRunCost } from '../services/cloudExecutor.js';
+import { formatPrice } from '../data/modelConstants/deepinfraPricing.js';
 import { downloadService } from '../services/downloadService.js';
 import { remoteEngineClient } from '../services/remoteEngineClient.js';
 import { state } from '../state.js';
@@ -426,6 +428,65 @@ function _submitGeneration(jobId, input = {}) {
     }
     if (!_settled.has(jobId)) _queueJobs.set(jobId, queued.queueJobId);
     return null;
+}
+
+/**
+ * `generation.quote` — what this submit would cost, without submitting it (MPI-876).
+ *
+ * The agent has to name a figure BEFORE it spends, and it holds a ratio LABEL and no
+ * pixels. The price is a function of the pixels actually sent: `priceImageUnits` scales
+ * by (w x h) / 1 MP, and `deepinfraSizing` fits a size to the endpoint's own bounds on
+ * the way out. So the quote has to be taken HERE, where the run is resolved, and through
+ * `estimateRunCost` — the same call the prompt box's price tag makes (MPI-852). Pricing
+ * it in the loop would be a second copy of the arithmetic, and the two surfaces would
+ * quote different money for one run.
+ *
+ * A READ: it resolves and prices, and dispatches nothing. It has its OWN capability and
+ * its own route rather than a flag on the submit, so a mistyped field can never turn a
+ * quote into a generation, or a generation into a silent no-op.
+ *
+ * `billed: false` means "no card needed" and is the answer for every local model. It is
+ * deliberately what an unresolvable call falls back to: that call is about to fail in
+ * `_submitGeneration` for the same reason, spending nothing. `billed: true` with
+ * `display: null` is the opposite case and must still raise a card — the model bills and
+ * the price is not knowable, which is a sentence, not a reason to skip the question.
+ *
+ * @param {object} input - the `generation.submit` body, plus `count` for a fan-out.
+ */
+function _quoteGeneration(jobId, input = {}) {
+    // A Flow carries no model id (`model.id: null`), so nothing behind one is a cloud
+    // model and there is nothing here to price.
+    if (input.flowId) return _report(jobId, { ok: true, output: { billed: false } });
+
+    const pinned = state.agentSettingsPinned === true;
+    const owner = resolveSettingsOwner(input, pinned, state.currentProject, pinned ? pinnedModel() : null);
+    const model = owner.model;
+    // `provider` is the whole discriminator (MPI-851): a model that has one runs on the
+    // user's own key and bills them, and a model that has none cannot cost anything.
+    if (!model?.provider) return _report(jobId, { ok: true, output: { billed: false } });
+
+    const modelName = model.name || model.id;
+    // Best effort from here down. Every failure below loses the NUMBER, never the card:
+    // the answer stays `billed: true` and the gate says it cannot be quoted.
+    const named = resolveNamedParams(owner.project, model, String(input.operation || ''), owner.named);
+    const params = { ...(named.ok ? named.injectionParams : {}), ...(input.injectionParams || {}) };
+    const media = resolveAgentMedia(String(input.operation || ''), model, input.media || []);
+    const quote = estimateRunCost(model, params, media.ok ? media.mediaItems : []);
+
+    // A fan-out is N separate calls and N bills of this same run, so the total is the
+    // unit times the count — multiplied as a NUMBER and formatted once. `display` itself
+    // can never be multiplied: below a cent it carries one significant figure, so six
+    // lots of "about $0.0005" cannot be read back out of the string.
+    const count = Math.max(1, Math.round(Number(input.count) || 1));
+    const usd = quote ? quote.usd * count : null;
+
+    return _report(jobId, { ok: true, output: {
+        billed: true,
+        modelName,
+        count,
+        usd,
+        display: usd === null ? null : formatPrice(usd),
+    } });
 }
 
 /**
@@ -1024,6 +1085,7 @@ function _cancelGeneration(jobId, input) {
 /** Capability name → handler. The relay carries nothing else. */
 const _HANDLERS = {
     'generation.submit': _submitGeneration,
+    'generation.quote': _quoteGeneration,
     'generation.cancel': _cancelGeneration,
     'project.open': _openProject,
     'card.rename': _renameCard,

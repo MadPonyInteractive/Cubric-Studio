@@ -44,10 +44,18 @@ function makeFakeEngine(responses) {
 /**
  * Build a fake tools object. generateDelay controls how long generate() takes.
  */
-function makeFakeTools({ generateDelay = 0, installResult = { ok: true } } = {}) {
-    const calls = { listModels: [], readKnowledge: [], installModel: [], generate: [], look: [], openProject: [], placeAsset: [] };
+function makeFakeTools({ generateDelay = 0, installResult = { ok: true }, quote = null } = {}) {
+    const calls = { listModels: [], readKnowledge: [], installModel: [], generate: [], look: [], openProject: [], placeAsset: [], quote: [] };
     return {
         calls,
+        // MPI-876 — `POST /connector/quote`. `billed: false` is the honest default: every
+        // test here runs a local model, and a local model can never cost anything. A test
+        // about the spend gate passes `quote`, an object or a function of the body.
+        quoteGeneration: async (body) => {
+            calls.quote.push(body);
+            const out = typeof quote === 'function' ? quote(body) : quote;
+            return { ok: true, output: out || { billed: false } };
+        },
         saveAttachment: async () => ({ id: 'att_test', filePath: '/tmp/att_test.jpg' }),
         placeAsset: async (folderPath, absPath) => {
             calls.placeAsset.push({ folderPath, absPath });
@@ -2012,6 +2020,257 @@ describe('(l) one ask, many cards', () => {
             { flowId: 'head-swap', cards: refs }, 'turn-batch-flow', project));
         assert.equal(flow.error.code, 'BATCH_UNSUPPORTED', 'a Flow\'s fields and boxes belong to ONE picture');
         assert.equal(tools.calls.generate.length, 0);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// (m) the agent asks before it spends (MPI-876)
+// ---------------------------------------------------------------------------
+//
+// Fabio, 2026-09-21, after watching the in-app agent run a billed cloud model unprompted:
+// the agent may not run one without a yes/no card, and the card has to say roughly what it
+// will cost. ASK EVERY TIME — there is deliberately no suppression path to test for.
+//
+// The price itself is `deepinfraPricing.js`'s job and is proven in tests/deepinfra-pricing
+// and tests/cloud-price-tag. What is proven HERE is the gate: that a billed run stops, that
+// a local one is never interrupted, that six billed cards ask once, and that every way of
+// walking away from the card resolves as a refusal rather than a spend.
+
+describe('(m) the spend gate', () => {
+    const project = { folderPath: '/project', name: 'Test' };
+    const BILLED = { billed: true, modelName: 'Nano Banana 2', count: 1, usd: 0.067296, display: 'about $0.07' };
+
+    /** A model whose `upscale` takes a picture, so a batch has somewhere to go. */
+    function withOps(tools) {
+        tools.listModels = async () => ({
+            ok: true,
+            models: [{
+                id: 'test-model', name: 'Test Model', installed: true, guides: [],
+                ops: [{ op: 'upscale', media: [{ role: 'inputImage', type: 'image', required: true }] }, { op: 't2i', media: [] }],
+            }],
+            flows: [],
+        });
+        return tools;
+    }
+
+    function seeCards(loop, n) {
+        const refs = [];
+        for (let i = 1; i <= n; i += 1) {
+            const p = `/project/Media/card_${i}.png`;
+            loop._registerResult(p, 'test-model', `item-${i}`);
+            refs.push(p);
+        }
+        return refs;
+    }
+
+    test('a billed model raises a card naming the price, and dispatches nothing until Yes', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }], toolOpts: { quote: BILLED } });
+        const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 't2i', prompt: 'a fox' }, 'turn-spend', project);
+
+        const evt = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+        assert.equal(evt.data.kind, 'spend');
+        assert.equal(evt.data.modelName, 'Nano Banana 2');
+        assert.equal(evt.data.count, 1);
+        // Verbatim from the estimator. The card never formats a number of its own.
+        assert.equal(evt.data.price, 'about $0.07');
+        assert.equal(tools.calls.generate.length, 0, 'the money is spent by generate, so nothing may reach it before the answer');
+
+        await loop.confirm(evt.data.confirmId, true);
+        const out = JSON.parse(await pending);
+        assert.equal(out.started, true);
+        assert.equal(tools.calls.generate.length, 1);
+    });
+
+    test('No spends nothing, and the refusal does not talk about an installation', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }], toolOpts: { quote: BILLED } });
+        const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 't2i', prompt: 'a fox' }, 'turn-spend-no', project);
+        const evt = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+
+        await loop.confirm(evt.data.confirmId, false);
+        const out = JSON.parse(await pending);
+        assert.equal(out.declined, true);
+        assert.equal(out.code, 'SPEND_DECLINED');
+        assert.doesNotMatch(out.message, /install/i, 'the install path\'s decline copy must not leak into a spend card');
+        assert.equal(tools.calls.generate.length, 0);
+    });
+
+    test('a local model is never asked about at all', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
+        const out = JSON.parse(await loop._executeTool('generate', { modelId: 'test-model', operation: 't2i', prompt: 'a fox' }, 'turn-local', project));
+
+        assert.equal(out.started, true);
+        assert.equal(tools.calls.generate.length, 1, 'it ran straight through');
+        assert.equal(fakeRes.events.some((e) => e.event === 'agent:confirm'), false, 'a free run must not raise a card');
+    });
+
+    test('a price that cannot be known still asks, and says so without naming a cause', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({
+            engineResponses: [{ text: 'ok' }],
+            toolOpts: { quote: { billed: true, modelName: 'Some Cloud Model', count: 1, usd: null, display: null } },
+        });
+        const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 't2i', prompt: 'a fox' }, 'turn-spend-null', project);
+
+        const evt = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+        assert.equal(evt.data.kind, 'spend', 'a price tag may stay silent; a spend gate may not');
+        assert.equal(evt.data.price, null);
+        assert.equal(tools.calls.generate.length, 0);
+        await loop.confirm(evt.data.confirmId, false);
+        await pending;
+    });
+
+    test('a reset while the spend card is up is a NO, not a yes', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }], toolOpts: { quote: BILLED } });
+        const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 't2i', prompt: 'a fox' }, 'turn-spend-reset', project);
+        await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+
+        // The install card resolves with the STRING 'declined', which is truthy. Handed to a
+        // spend card it would read as Yes and bill the user for a run they walked away from.
+        await loop.reset();
+        const out = JSON.parse(await pending);
+        assert.equal(out.declined, true);
+        assert.equal(tools.calls.generate.length, 0);
+    });
+
+    test('only a literal true is a yes: anything else the card is resolved with is a NO', async () => {
+        // The defence that actually bites on this path, and the reason backing `reset()`'s
+        // own branch out does not turn the test above red. `_askSpend` answers `yes === true`,
+        // so every other way a pending card can be resolved — the install path's 'declined'
+        // string, a stray truthy value, an undefined from a future caller — spends nothing.
+        for (const answer of ['declined', 'yes', 1, {}, undefined, null]) {
+            const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }], toolOpts: { quote: BILLED } });
+            const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 't2i', prompt: 'a fox' }, 'turn-spend-truthy', project);
+            await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+
+            loop._pendingConfirm.resolve(answer);
+            const out = JSON.parse(await pending);
+            assert.equal(out.declined, true, `resolving with ${JSON.stringify(answer)} was read as a yes`);
+            assert.equal(tools.calls.generate.length, 0);
+        }
+    });
+
+    test('the quote prices the body that is about to be SENT, not the call the model wrote', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }], toolOpts: { quote: BILLED } });
+        withOps(tools);
+        const [ref] = seeCards(loop, 1);
+        // No ratio asked for, so the loop snaps one off the picture. The quote must carry the
+        // snapped value: `priceImageUnits` scales by area, so pricing the model's default
+        // size would quote the wrong money for a 4:5 tile.
+        loop._ops.set('test-model\nupscale', { op: 'upscale', media: [{ role: 'inputImage', type: 'image', required: true }], params: { ratios: ['1:1', '16:9'] } });
+        const pending = loop._executeTool('generate',
+            { modelId: 'test-model', operation: 'upscale', media: [{ role: 'inputImage', image: ref }] }, 'turn-spend-body', project);
+
+        const evt = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+        await loop.confirm(evt.data.confirmId, true);
+        await pending;
+
+        assert.equal(tools.calls.quote.length, 1);
+        const quoted = tools.calls.quote[0];
+        const sent = tools.calls.generate[0];
+        assert.equal(quoted.modelId, sent.modelId);
+        assert.equal(quoted.operation, sent.operation);
+        assert.deepEqual(quoted.media, sent.media, 'the reference bills too on two of the shipped models');
+        assert.equal(quoted.ratio, sent.ratio, 'the snapped ratio, or the price is for a picture nobody asked for');
+    });
+
+    test('six billed cards are ONE card quoting the batch, and the batch card never also appears', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({
+            engineResponses: [{ text: 'ok' }],
+            toolOpts: { quote: (body) => ({ billed: true, modelName: 'Nano Banana 2', count: body.count || 1, usd: 0.403776, display: 'about $0.40' }) },
+        });
+        withOps(tools);
+        const refs = seeCards(loop, 6);
+        const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 'upscale', cards: refs }, 'turn-spend-batch', project);
+
+        const evt = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+        assert.equal(evt.data.kind, 'spend');
+        assert.equal(evt.data.count, 6);
+        // The batch figure, from ONE call carrying the count. `display` is never multiplied:
+        // below a cent it is one significant figure and cannot be read back out of the string.
+        assert.equal(evt.data.price, 'about $0.40');
+        assert.equal(tools.calls.quote[0].count, 6);
+
+        await loop.confirm(evt.data.confirmId, true);
+        const out = JSON.parse(await pending);
+        assert.equal(out.started, 6);
+        assert.equal(tools.calls.generate.length, 6);
+        const cards = fakeRes.events.filter((e) => e.event === 'agent:confirm');
+        assert.equal(cards.length, 1, 'one action, one question: the batch card must not stack on top of the spend card');
+        assert.equal(tools.calls.quote.length, 1, 'and the six fanned-out calls must not each raise their own');
+    });
+
+    test('No to a billed batch dispatches nothing at all', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({
+            engineResponses: [{ text: 'ok' }],
+            toolOpts: { quote: (body) => ({ billed: true, modelName: 'Nano Banana 2', count: body.count || 1, display: 'about $0.40' }) },
+        });
+        withOps(tools);
+        const refs = seeCards(loop, 6);
+        const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 'upscale', cards: refs }, 'turn-spend-batch-no', project);
+        const evt = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+
+        await loop.confirm(evt.data.confirmId, false);
+        const out = JSON.parse(await pending);
+        assert.equal(out.code, 'SPEND_DECLINED');
+        assert.equal(tools.calls.generate.length, 0);
+    });
+
+    test('a billed batch BELOW the five-card threshold still asks', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({
+            engineResponses: [{ text: 'ok' }],
+            toolOpts: { quote: (body) => ({ billed: true, modelName: 'Nano Banana 2', count: body.count || 1, display: 'about $0.13' }) },
+        });
+        withOps(tools);
+        const refs = seeCards(loop, 2);
+        const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 'upscale', cards: refs }, 'turn-spend-small', project);
+
+        // The threshold is about fan-out noise. This is about money, and two paid cards are
+        // still the user's money.
+        const evt = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+        assert.equal(evt.data.kind, 'spend');
+        assert.equal(evt.data.count, 2);
+        await loop.confirm(evt.data.confirmId, true);
+        assert.equal(JSON.parse(await pending).started, 2);
+    });
+
+    test('a free batch above the threshold still gets the batch card, unchanged', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
+        withOps(tools);
+        const refs = seeCards(loop, 6);
+        const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 'upscale', cards: refs }, 'turn-free-batch', project);
+
+        const evt = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+        assert.equal(evt.data.kind, 'batch', 'MPI-870\'s card is untouched where nothing is billed');
+        await loop.confirm(evt.data.confirmId, true);
+        assert.equal(JSON.parse(await pending).started, 6);
+    });
+
+    test('a reload mid-card repaints it WITH its price', async () => {
+        const { loop, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }], toolOpts: { quote: BILLED } });
+        const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 't2i', prompt: 'a fox' }, 'turn-spend-history', project);
+        const evt = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+
+        // What a refreshed chat paints from. Without these the card comes back as a bare
+        // yes/no over an unnamed amount of the user's money — and Yes still spends it.
+        const pc = loop.getHistory().pendingConfirm;
+        assert.equal(pc.confirmId, evt.data.confirmId);
+        assert.equal(pc.kind, 'spend');
+        assert.equal(pc.price, 'about $0.07');
+        assert.equal(pc.modelName, 'Nano Banana 2');
+        assert.equal(pc.count, 1);
+
+        await loop.confirm(evt.data.confirmId, false);
+        await pending;
+    });
+
+    test('a quote that cannot be taken never blocks a run, and never invents a card', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
+        // An app that cannot answer a quote cannot answer a generate either: the call below
+        // fails the same way and spends nothing, so a thrown quote is not a reason to ask.
+        tools.quoteGeneration = async () => { throw new Error('APP_UNAVAILABLE'); };
+        const out = JSON.parse(await loop._executeTool('generate', { modelId: 'test-model', operation: 't2i', prompt: 'a fox' }, 'turn-quote-dead', project));
+
+        assert.equal(out.started, true);
+        assert.equal(fakeRes.events.some((e) => e.event === 'agent:confirm'), false);
     });
 });
 

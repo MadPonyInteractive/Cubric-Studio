@@ -448,3 +448,73 @@ test('the renderer cancels a relayed job through the Cue queue\'s own cancel fun
   assert.match(src, /cancelPendingCueJob\(queueJobId\)\.length \? 'pending'\s+: cancelRunningCueJob\(queueJobId\) \? 'running'/);
   assert.match(src, /_settled\.add\(jobId\);\s+_queueJobs\.delete\(jobId\);/, 'dropped the moment the job reports');
 });
+
+// MPI-876 — POST /connector/quote, the read the agent's spend gate takes before it fires.
+// It is a separate route rather than a flag on the submit for one reason, and this is the
+// test of that reason: on a money path the failure has to fall towards spending nothing.
+
+test('quote relays its own capability, carrying the named params and the fan-out count', async () => {
+  const { base, stop } = await startServer();
+  const renderer = await fakeRenderer(base);
+  try {
+    const pending = postJson(`${base}/connector/quote`, {
+      modelId: 'krea2',
+      operation: 't2i',
+      ratio: '16:9',
+      qualityTier: '2k',
+      count: 6,
+    });
+
+    const frame = await renderer.readFrame();
+    assert.equal(frame.data.capability, 'generation.quote');
+    // The size fields are the price: `priceImageUnits` scales by area, so a quote that
+    // dropped the ratio would name the money for a picture nobody asked for.
+    assert.deepEqual(frame.data.input, {
+      modelId: 'krea2',
+      operation: 't2i',
+      injectionParams: {},
+      ratio: '16:9',
+      qualityTier: '2k',
+      count: 6,
+    });
+
+    await postJson(`${base}/connector/jobs/${frame.data.jobId}/result`, {
+      ok: true,
+      output: { billed: true, modelName: 'Krea 2', count: 6, usd: 0.4, display: 'about $0.40' },
+    });
+    const { json } = await pending;
+    assert.equal(json.output.display, 'about $0.40');
+  } finally {
+    renderer.close();
+    await stop();
+  }
+});
+
+test('neither route can be talked into being the other', async () => {
+  const { base, stop } = await startServer();
+  const renderer = await fakeRenderer(base);
+  try {
+    // A submit that asks to be a quote is still a submit — `input` is built from a
+    // whitelist, so the field is dropped rather than obeyed. The dangerous direction is
+    // the other one: a caller that believed it was only pricing something, and generated.
+    postJson(`${base}/connector/generate`, { modelId: 'krea2', operation: 't2i', positive: 'x', quoteOnly: true });
+    const submit = await renderer.readFrame();
+    assert.equal(submit.data.capability, 'generation.submit');
+    assert.equal(submit.data.input.quoteOnly, undefined);
+    await postJson(`${base}/connector/jobs/${submit.data.jobId}/result`, { ok: true, output: {} });
+
+    // And a quote never dispatches, whatever else the body carries.
+    postJson(`${base}/connector/quote`, { modelId: 'krea2', operation: 't2i', positive: 'x', seed: 7 });
+    const quote = await renderer.readFrame();
+    assert.equal(quote.data.capability, 'generation.quote');
+    await postJson(`${base}/connector/jobs/${quote.data.jobId}/result`, { ok: true, output: { billed: false } });
+
+    // A body naming neither a model op nor a Flow is refused before anything is relayed.
+    const bad = await postJson(`${base}/connector/quote`, {});
+    assert.equal(bad.status, 400);
+    assert.equal(bad.json.error.code, 'BAD_REQUEST');
+  } finally {
+    renderer.close();
+    await stop();
+  }
+});

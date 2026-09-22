@@ -131,7 +131,10 @@ export const Events = new EventBus();
  * 'agent:working'    { turnId, working: boolean }          — agent starting/stopping work; mascot flip
  * 'agent:message'    { turnId, id, text }                  — complete reply message from the model
  * 'agent:tool'       { turnId, id, tool, status, label }   — tool status line (label only, never args.prompt)
- * 'agent:confirm'    { turnId, confirmId, kind, modelId, modelName, downloadGb } — install confirm card
+ * 'agent:confirm'    { turnId, confirmId, kind, ... } — the yes/no card. `kind` says which,
+ *                    and each carries its own cost: 'install' { modelId, modelName, downloadGb },
+ *                    'batch' { count, what }, 'spend' { modelName, count, price } — price being
+ *                    estimateCost().display verbatim, or null when it cannot be quoted (MPI-876).
  * 'agent:result'     { toolCallId, ok, output?, error? }   — generation result card
  * 'agent:compacting' { turnId, on: boolean }               — compaction status notice
  * 'agent:error'      { turnId, code, message }             — agent error line

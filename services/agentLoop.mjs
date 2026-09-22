@@ -628,8 +628,20 @@ export class AgentLoop {
         return {
             ok: true,
             working: this._working,
+            // Every field the card paints from, or a reload repaints the wrong card. A
+            // `spend` card missing its price would come back as a bare yes/no over an
+            // unnamed amount of the user's money, and Yes would still spend it (MPI-876).
             pendingConfirm: this._pendingConfirm
-                ? { confirmId: this._pendingConfirm.confirmId, modelId: this._pendingConfirm.modelId, modelName: this._pendingConfirm.modelName, downloadGb: this._pendingConfirm.downloadGb }
+                ? {
+                    confirmId: this._pendingConfirm.confirmId,
+                    kind: this._pendingConfirm.kind,
+                    modelId: this._pendingConfirm.modelId,
+                    modelName: this._pendingConfirm.modelName,
+                    downloadGb: this._pendingConfirm.downloadGb,
+                    count: this._pendingConfirm.count,
+                    what: this._pendingConfirm.what,
+                    price: this._pendingConfirm.price,
+                }
                 : null,
             usage,
             entries: this._history,
@@ -642,9 +654,14 @@ export class AgentLoop {
 
     async reset() {
         // Each kind of card resolves in its OWN vocabulary: a batch waits on a boolean, and
-        // handing it the install path's 'declined' string would read as YES (MPI-870).
+        // handing it the install path's 'declined' string would read as YES (MPI-870). The
+        // spend card waits on a boolean too, so it is named here alongside it — though on
+        // that path this is the SECOND defence and not the one that bites: `_askSpend`
+        // answers `yes === true`, so no string of any kind can read as a yes. Kept because
+        // it is the money path, and because the next kind added here may not be so strict.
         if (this._pendingConfirm) {
-            this._pendingConfirm.resolve(this._pendingConfirm.kind === 'batch' ? false : 'declined');
+            const boolean = this._pendingConfirm.kind === 'batch' || this._pendingConfirm.kind === 'spend';
+            this._pendingConfirm.resolve(boolean ? false : 'declined');
         }
         // Only this conversation's staged files: another project's chat still shows its own.
         const staged = [...this._images.values()].filter((i) => i.kind === 'attachment').map((i) => i.path);
@@ -952,7 +969,18 @@ export class AgentLoop {
         if (!role) {
             return JSON.stringify({ ok: false, error: { code: 'BATCH_UNSUPPORTED', message: `"${args.operation}" does not start from a picture, so there is nothing for a list of cards to fill. Drop cards and send it once.` } });
         }
-        if (cards.length > BATCH_CONFIRM_ABOVE && !await this._askBatch(turnId, cards.length, args)) {
+        // MPI-876 — money first, and ONE card for the whole batch. A cloud fan-out is N
+        // calls and N bills, so the figure quoted is N times the unit price; it is asked
+        // here rather than per card so six billed cards raise one question, not six. It
+        // also REPLACES the batch card rather than stacking on it: the batch card is about
+        // fan-out noise and this one is about money, and a user answering twice for one
+        // action learns to stop reading. And a cloud batch BELOW the threshold still asks,
+        // for the same reason — the threshold has nothing to do with spending.
+        const spend = await this._askSpend(turnId, this._batchQuoteBody(args, role, cards[0]), cards.length);
+        if (spend === false) {
+            return JSON.stringify({ ok: false, declined: true, code: 'SPEND_DECLINED', message: `The user said no to spending on running "${args.operation}" over ${cards.length} cards. Ask what they would like instead; do not send it again unless they say so.` });
+        }
+        if (spend === null && cards.length > BATCH_CONFIRM_ABOVE && !await this._askBatch(turnId, cards.length, args)) {
             return JSON.stringify({ ok: false, declined: true, message: `The user said no to running "${args.operation}" over ${cards.length} cards. Ask what they would like instead; do not send it again unless they say so.` });
         }
 
@@ -988,6 +1016,29 @@ export class AgentLoop {
     }
 
     /**
+     * The body that prices a fan-out (MPI-876): the outer call, carrying the FIRST card as
+     * its picture.
+     *
+     * The picture is there because two of the shipped cloud models bill for the reference
+     * image as well as the output, and a batch always fills exactly one image slot — so
+     * quoting the outer args bare would quote a run that does not exist. Every card in a
+     * batch costs the same: the ratios this app offers are all a nominal 1 MP, and a
+     * reference bills a flat token count whatever its size.
+     */
+    _batchQuoteBody(args, role, firstCard) {
+        const ref = this._resolveImage(firstCard);
+        // An attachment is only copied into the project when a generation uses it, which
+        // has not happened yet. Quoting without it loses the reference's share of the
+        // price, never the card itself.
+        const media = ref && ref.kind !== 'attachment' ? [{ role, url: _projectFileUrl(ref.path) }] : [];
+        const body = { modelId: String(args.modelId), operation: String(args.operation), media };
+        for (const k of ['ratio', 'qualityTier', 'turbo', 'duration', 'denoise', 'stylization']) {
+            if (args[k] !== undefined) body[k] = args[k];
+        }
+        return body;
+    }
+
+    /**
      * The role a batch's cards fill: the op's first REQUIRED image slot, or null when it has
      * none. Read off the same op entry `_missingMedia` uses, so a batch and a single call can
      * never disagree about what an op takes.
@@ -1000,6 +1051,51 @@ export class AgentLoop {
         }
         const slots = this._ops.get(key)?.media || [];
         return slots.find((s) => s.required && s.type === 'image')?.role || null;
+    }
+
+    /**
+     * MPI-876 — the spend card. The agent never runs a BILLED model without a Yes, and the
+     * card says roughly what it will cost.
+     *
+     * Fabio, 2026-09-21, after watching the in-app agent run a paid cloud model unprompted:
+     * "The agent should never do a cloud generation without the user clicking a yes button
+     * or an OK button." ASK EVERY TIME — no suppression path, no per-model exemption, no
+     * per-conversation memory. That is deliberate for v1 and is not to be designed around
+     * without complaints to point at.
+     *
+     * The price is not computed here. `POST /connector/quote` resolves the run in the
+     * renderer and prices what it would actually SEND, through the same `estimateRunCost`
+     * the prompt box's live tag uses (MPI-852) — one number, one formula, two surfaces.
+     *
+     * @param {object} body  the connector body about to be sent, priced as it stands.
+     * @param {number} count how many generations this one card is about to agree to.
+     * @returns {Promise<true|false|null>} null when nothing about this run can be billed,
+     *   which is every local model and every Flow — those raise no card at all.
+     */
+    async _askSpend(turnId, body, count) {
+        let quote = null;
+        try {
+            const r = await this._tools.quoteGeneration(count > 1 ? { ...body, count } : body);
+            if (r?.ok && r.output?.billed) quote = r.output;
+        } catch {
+            // An app that cannot answer a quote cannot answer a generate either: the call
+            // below fails the same way and spends nothing. Never a reason to raise a card.
+        }
+        if (!quote) return null;
+
+        const confirmId = crypto.randomUUID();
+        // `price` is `estimateCost().display` verbatim — it carries its own "about", never
+        // renders "$0.00", and drops to one significant figure below a cent on purpose.
+        // Null when the model bills but its price is not knowable before the run: the card
+        // still asks, and says so. A price tag may stay silent; a spend gate may not.
+        const card = { kind: 'spend', modelName: quote.modelName, count: quote.count || count, price: quote.display || null };
+        this._emit('agent:confirm', { turnId, confirmId, ...card });
+        this._historyEntry('confirm', { tool: 'generate', args: body, confirmId, ...card });
+        const yes = await new Promise((resolve) => {
+            this._pendingConfirm = { confirmId, ...card, resolve, turnId };
+        });
+        this._pendingConfirm = null;
+        return yes === true;
     }
 
     /** The yes/no card above the batch threshold. Resolves false if the conversation is reset. */
@@ -1376,6 +1472,21 @@ ${knowledgeIndex}`.trim();
                 // not correct itself, because the refusal only arrived at the START of the next
                 // turn. This is the same failure the media gate closed for one case: a refusal
                 // landing after `{ started: true }`. Here it is closed for all of them.
+                // MPI-876 — the spend gate, and the LAST thing before the fire on purpose.
+                // It prices `body` as it now stands, after the ratio snap and after media
+                // resolution, so the figure quoted is the price of the run that is about to
+                // happen rather than of the call the model wrote. Nothing below it can be
+                // un-spent: `generate` is fire-and-almost-forget and the race that follows
+                // only learns whether it was REFUSED, so a gate after it has already cost
+                // the user money. A fan-out asked once for the whole batch in `_fanOut`; a
+                // local model is quoted `billed: false` and is never asked about at all.
+                if (!opts.batch) {
+                    const spend = await this._askSpend(turnId, body, 1);
+                    if (spend === false) {
+                        return JSON.stringify({ ok: false, declined: true, code: 'SPEND_DECLINED', message: `The user said no to spending on this generation. Nothing was generated and nothing was billed. Ask what they would like instead; do not send it again unless they say so.` });
+                    }
+                }
+
                 const toolCallId = crypto.randomUUID();
                 // The route holds its response for the whole render, so this id is the only
                 // handle on the job until it is over — `cancel_generation` sends it back.
@@ -1961,8 +2072,11 @@ ${knowledgeIndex}`.trim();
         if (!pc || pc.confirmId !== confirmId) return { ok: false, error: { code: 'UNKNOWN_CONFIRM', message: 'Unknown or already-answered confirmId.' } };
 
         // A batch card answers a boolean and nothing runs here: `_fanOut` is still inside the
-        // turn, holding this promise, and it dispatches (MPI-870).
-        if (pc.kind === 'batch') {
+        // turn, holding this promise, and it dispatches (MPI-870). A spend card is the same
+        // shape — the generate is suspended mid-call, waiting on this (MPI-876). Anything
+        // else is an install, including a card left pending across an upgrade, which is
+        // what the missing `kind` on an older one means.
+        if (pc.kind === 'batch' || pc.kind === 'spend') {
             pc.resolve(yes === true);
             return { ok: true };
         }

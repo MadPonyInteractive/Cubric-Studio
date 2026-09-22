@@ -221,15 +221,24 @@ export const MpiAgentChat = ComponentFactory.create({
         }
 
         /**
-         * Yes / No card. Two kinds share it (MPI-870): `install` names a model and its
-         * download, `batch` names how many cards one ask is about to fan out over.
+         * Yes / No card. Three kinds share it: `install` names a model and its download,
+         * `batch` names how many cards one ask is about to fan out over (MPI-870), and
+         * `spend` names what a billed cloud run is about to cost (MPI-876).
+         *
+         * The price is never formatted here. `price` arrives as `estimateCost().display`
+         * verbatim — it carries its own "about", and below a cent it is deliberately one
+         * significant figure, so re-rendering it as a number would say "$0.00". A `spend`
+         * card with no price is not a bug: some shapes cannot be priced before they run,
+         * and the card still has to ask.
+         *
          * @param {{confirmId:string, kind?:string, modelName?:string, downloadGb?:number,
-         *          count?:number, what?:string}} data
+         *          count?:number, what?:string, price?:string|null}} data
          */
         function _appendConfirm(data) {
-            const { confirmId, kind, modelName, downloadGb, count, what } = data || {};
+            const { confirmId, kind, modelName, downloadGb, count, what, price } = data || {};
             if (!confirmId || qs(`[data-confirm-id="${CSS.escape(confirmId)}"]`, transcript)) return;
             const isBatch = kind === 'batch';
+            const isSpend = kind === 'spend';
             const div = document.createElement('div');
             div.className = 'mpi-agent-chat__entry mpi-agent-chat__entry--confirm';
             div.dataset.confirmId = confirmId;
@@ -239,16 +248,35 @@ export const MpiAgentChat = ComponentFactory.create({
 
             const titleEl = document.createElement('div');
             titleEl.className = 'mpi-agent-chat__confirm-title';
-            titleEl.textContent = isBatch
-                ? `Run this over ${count} cards?`
-                : `Install ${modelName || 'model'}?`;
+            // A spend card keeps the model's name even in the batch wording: six billed runs
+            // is the moment to be more specific about what is running, not less.
+            titleEl.textContent = isSpend
+                ? (count > 1
+                    ? `Run this on ${modelName || 'this model'}, over ${count} cards?`
+                    : `Run this on ${modelName || 'this model'}?`)
+                : isBatch
+                    ? `Run this over ${count} cards?`
+                    : `Install ${modelName || 'model'}?`;
             card.appendChild(titleEl);
 
             // The same slot under the title carries the cost being agreed to: gigabytes for an
-            // install, how many generations are about to queue for a batch.
-            const subtitle = isBatch
-                ? (what ? `${what} — ${count} generations` : `${count} generations`)
-                : (downloadGb != null ? `Download: ${Number(downloadGb).toFixed(1)} GB` : '');
+            // install, how many generations are about to queue for a batch, and for a spend
+            // card the money. "your DeepInfra key" says WHOSE money it is — Vision ships
+            // bring-your-own-key, not credits, and the user paying is the whole reason this
+            // card exists.
+            const spendLine = price
+                ? (count > 1
+                    ? `Runs on your DeepInfra key and costs ${price} for ${count} generations.`
+                    : `Runs on your DeepInfra key and costs ${price}.`)
+                // Names no cause: a price is missing far more often because the endpoint is
+                // not in the price snapshot than because the model bills by GPU time, and
+                // telling the user the wrong one of those is worse than telling them neither.
+                : 'Runs on your DeepInfra key. The cost is not known until it finishes.';
+            const subtitle = isSpend
+                ? spendLine
+                : isBatch
+                    ? (what ? `${what} — ${count} generations` : `${count} generations`)
+                    : (downloadGb != null ? `Download: ${Number(downloadGb).toFixed(1)} GB` : '');
             if (subtitle) {
                 const sizeEl = document.createElement('div');
                 sizeEl.className = 'mpi-agent-chat__confirm-size';
@@ -260,7 +288,9 @@ export const MpiAgentChat = ComponentFactory.create({
             actionsEl.className = 'mpi-agent-chat__confirm-actions';
 
             const yesBtn = MpiButton.mount(document.createElement('div'), {
-                text: isBatch ? `Yes, run all ${count}` : 'Yes, install',
+                text: isSpend
+                    ? (count > 1 ? `Yes, run all ${count}` : 'Yes, run it')
+                    : isBatch ? `Yes, run all ${count}` : 'Yes, install',
                 variant: 'primary',
                 size: 'sm',
             });

@@ -171,3 +171,34 @@ test('Language Models shows a loading state instead of labels with nothing under
     assert.match(css, /\.mpi-llm-settings--loading \.mpi-llm-settings__loading \{\s*display: flex/);
     assert.match(css, /\.mpi-llm-settings--loading \.mpi-settings__subgroup \{\s*display: none/);
 });
+
+// ── 5. The spend card says whose money it is, and never formats the figure (MPI-876) ──
+// Same reason as the four above: this is DOM code and there is no DOM runner here, so each
+// rule is asserted where it is declared. These are not style points. The sentence is what
+// the user agrees to before their own DeepInfra account is billed, and every clause in it
+// was argued for: `docs`-free, it lives in the card's plan.md.
+
+test('the spend card quotes the estimator verbatim and never renders a number of its own', () => {
+    const js = read(CHAT_JS);
+    // `price` goes into the sentence exactly as it arrives. It already carries "about", and
+    // below a cent it is one significant figure — `toFixed`, `Number()` or a currency
+    // formatter over it would say "$0.00", which reads as free.
+    assert.match(js, /costs \$\{price\}/, 'the figure is interpolated whole');
+    assert.doesNotMatch(js, /price[^\n]*\.toFixed\(|Number\(price\)|toLocaleString\([^)]*price/,
+        'nothing may reformat the estimator\'s own string');
+});
+
+test('the spend card names whose key pays, and asks even when it cannot quote', () => {
+    const js = read(CHAT_JS);
+    assert.match(js, /Runs on your DeepInfra key and costs \$\{price\}\./);
+    assert.match(js, /Runs on your DeepInfra key and costs \$\{price\} for \$\{count\} generations\./,
+        'a batch quotes the BATCH figure and says how many it covers');
+    // A price tag may stay silent when it cannot quote; a spend gate may not. And the line
+    // names no CAUSE: a price is missing far more often because the endpoint is not in the
+    // snapshot than because the model bills by GPU time, and naming the wrong one of those
+    // tells the user something false.
+    assert.match(js, /Runs on your DeepInfra key\. The cost is not known until it finishes\./);
+    // In a quoted STRING, not anywhere in the file — the comment above that sentence
+    // explains the three reasons a price can be missing, and has to be free to say so.
+    assert.doesNotMatch(js, /(['"`])[^'"`\n]*GPU[^'"`\n]*\1/, 'the null line must not guess why');
+});

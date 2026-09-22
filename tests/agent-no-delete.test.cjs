@@ -52,6 +52,11 @@ const ALLOWED_REQUESTS = new Set([
     // clearing one is `mark: false`, a field going back to empty - no card, file or entry goes.
     'GET /connector/visible-cards',
     'POST /connector/card-mark',
+    // MPI-876: what a generate body WOULD cost, so the agent can ask before it spends the
+    // user's own money. A read — the renderer resolves the run and prices it, queues nothing,
+    // writes nothing and bills nothing. It is the opposite of a delete: it exists so that
+    // something irreversible cannot happen without the user pressing Yes first.
+    'POST /connector/quote',
     // MPI-817: a card's description is kept in its sidecar. A MERGE of one field (`look`) into
     // an existing sidecar; `storeLook` refuses to create one. The model has no tool for it.
     'POST /project-media/agent/update-meta',

@@ -108,6 +108,15 @@ export async function generate(body) {
     return _post('/connector/generate', body, 1_800_000);
 }
 
+/**
+ * POST /connector/quote — what that same generate body would cost, before it runs (MPI-876).
+ * A read: the renderer resolves the run and prices what it would send, and dispatches
+ * nothing. `count` is the size of a fan-out about to send this op over N cards.
+ */
+export async function quoteGeneration(body) {
+    return _post('/connector/quote', body);
+}
+
 /** POST /connector/cancel { requestId } — stop a generation submitted under that requestId. */
 export async function cancelGeneration(requestId) {
     return _post('/connector/cancel', { requestId });
