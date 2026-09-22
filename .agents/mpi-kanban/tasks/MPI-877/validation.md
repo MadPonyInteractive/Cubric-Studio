@@ -248,10 +248,18 @@ picture:
 ```
 
 With a mask, 592 forwards the CROP. `context_from_mask_extend_factor: 1.0` means the crop
-is the mask bounding box and nothing more — measured here, **257x257 at (264, 683)**, pure
-water — then `output_resize_to_target_size` blows it up to 1024x1024. Klein was asked for
-"the same boy, with red eyes and horns" while looking at a square of ripples. It invented a
-creature because it had never seen the boy.
+is the mask bounding box and nothing more — measured here, **257x257 at (264, 683)** — then
+`output_resize_to_target_size` blows it up to 1024x1024.
+
+Extracted from the card, that crop holds the boy's **whole reflection**: head, hair, white
+shirt, rod, upside down. What it does not hold is the rest of the frame — the boy himself on
+the bank, and any cue that the figure in the water is a mirror image. Klein rendered an
+UPRIGHT demon rising out of the water with its own reflection beneath it. The crop lost the
+relationship, not the subject.
+
+> Written first as "pure water, it had never seen the boy". That was read off the mask's mean
+> brightness with no look at the pixels, and Fabio rejected it on the spot. Corrected here and
+> on MPI-885.
 
 This is the shipped graph's behaviour on EVERY masked edit, the Cue path included — nothing
 agent-specific, and no part of this card. Carded separately; the two candidate directions

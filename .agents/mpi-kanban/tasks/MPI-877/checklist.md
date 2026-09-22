@@ -104,7 +104,9 @@ the owner of the model, not by a trace — record it and keep it out of the mask
 - [x] **The demon was a creature, not the boy — and that is the GRAPH, not this card.**
       On a masked edit `MpiIfElse` (592) forwards `InpaintCropImproved`'s crop, and
       `context_from_mask_extend_factor: 1.0` makes that crop the mask bounding box and
-      nothing else — measured 257x257, pure water. Klein was asked for "the same boy" while
-      looking at ripples. Identical on the Cue path; carded separately.
+      nothing else — measured 257x257. The pixels of that box hold the boy's whole
+      reflection, so the model DID see him; what it lost is the frame around it, and it
+      rendered an upright demon with its own reflection instead of a mirrored one.
+      Identical on the Cue path; carded separately.
 - [ ] **user-ux round 3:** one masked ask in the app. The latents draw under the open card
       and the result is that card's next version, not a new card in the gallery.

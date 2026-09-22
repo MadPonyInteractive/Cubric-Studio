@@ -1,8 +1,9 @@
 {
   "schema": "mpi-kanban/board/v1",
-  "next_id": 886,
+  "next_id": 887,
   "columns": {
     "todo": [
+      "MPI-886",
       "MPI-885",
       "MPI-883",
       "MPI-876",
@@ -279,7 +280,7 @@
       "MPI-713"
     ]
   },
-  "updated_at": "2026-09-22T06:43:59Z",
+  "updated_at": "2026-09-22T06:54:39Z",
   "events": [
     {
       "at": "2026-09-06T22:45:00Z",
@@ -4949,6 +4950,13 @@
       "task": "MPI-885",
       "actor": "session-1cedc5ee",
       "note": "Split out of MPI-877: a masked edit feeds the model only the mask bounding box, so 'the same boy' was unreachable. Graph-level, and the Cue path does it too."
+    },
+    {
+      "at": "2026-09-22T06:54:39Z",
+      "type": "task.created",
+      "task": "MPI-886",
+      "actor": "session-1cedc5ee",
+      "note": "Fabio's call: a dragged card should reach the agent as the card, not a copy of its picture. Video already works this way."
     }
   ]
 }

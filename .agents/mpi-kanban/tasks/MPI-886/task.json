@@ -1,0 +1,17 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-886",
+  "title": "A card dropped on the agent chat should arrive as the CARD, not a copy of its picture",
+  "description": "Fabio, 2026-09-22: 'If I drag a card to the agent, it should go in as a reference, so the agent should have access to the card, not the image. Well, to both: the latest selected active entry in the card, but the card as well.' MPI-884 fixed the PIXELS (the drop staged the 512 `.thumb.webp`; it now fetches the card's own file), but the file is still COPIED into the agent's attachments dir by `saveAttachment` and registered in `agentLoop` as `kind: 'attachment'` with no `itemId`. Four consequences, all live: (1) `_lookOnce` only caches a description against an `itemId`, so a dropped card is re-described by the vision model EVERY turn - the sidecar look it already owns is never read; (2) `generate` places the attachment into the project as a NEW picture, so an edit of a card the user dragged in lands as a new card even when it is plainly that card's next version - MPI-877 routes to the card's history only when a MASK is painted, because the mask was the only thing carrying a card id; (3) the agent cannot rename, mark or read the history of the thing it was just handed, and `list_cards` returning it later gives it a SECOND ref for the same picture; (4) an attachment is wiped on reset while the card is not. The shape is already in the codebase for VIDEO: `routes/agent.js:122-128` ships a clip `{ reference: true, itemId }` with nothing copied, and `agentLoop.mjs:1783` registers it as `kind: 'result'` under the card's own path. An image from a card should take the same route and carry the GROUP id too, so the agent has the card and its selected entry. `MpiGalleryGrid`'s dragstart payload already holds both. Real files only - an OS file drop stays an attachment, which is what that path is for. Follows MPI-884 (pixels) and MPI-877 (where a masked edit lands).",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "ready",
+  "created_at": "2026-09-22T06:54:39Z",
+  "updated_at": "2026-09-22T06:54:39Z",
+  "links": {
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl"
+  }
+}
