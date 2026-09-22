@@ -36,6 +36,49 @@ async function releaseBootGate(window) {
   });
 }
 
+// The runner has no model weights, so the boot sync writes every `installed` flag false —
+// and this spec drives the PromptBox's `+` card, which only exists when `stageMedia` is on,
+// which only happens when the box MOUNTS, which needs an installed prompt-capable model.
+// Every dev box has weights, so the first version of this spec was green here and red in CI
+// on a null `+` button (run 35720792152, shard 4, all three tests). docs/red-master.md
+// cause 1; docs/testing-desktop-specs.md trap 5.
+//
+// A getter, not an assignment: the boot sync re-writes `installed` from disk on every
+// `models:checked`, and a pinned property cannot be re-written, so there is no listener
+// order to get right. Same shape as focus-mode.spec.js.
+async function pinOneModelInstalled(window) {
+  await window.evaluate(async () => {
+    const { MODELS } = await import('/js/data/modelRegistry.js');
+    const model = MODELS.find(m => m.id === 'sdxl-realistic');
+    Object.defineProperty(model, 'installed', { get: () => true, set() {}, configurable: true });
+  });
+}
+
+// PROVOKE the runner's condition, so this spec fails HERE without the pin instead of only in
+// CI: answer /comfy/models/check with every model absent, exactly as a weightless runner
+// does, and run the real sync against it. Without this the pin is untestable locally and the
+// next person deletes it as cargo.
+async function provokeNoWeights(window) {
+  await window.evaluate(async () => {
+    const { MODELS, syncModelInstalled } = await import('/js/data/modelRegistry.js');
+    const results = Object.fromEntries(MODELS.map(m => [m.id, { installed: false, deps: [] }]));
+    const realFetch = window.fetch;
+    window.fetch = (url, init) => /\/comfy\/models\/check/.test(String(url))
+      ? Promise.resolve(new Response(JSON.stringify({ results }), {
+          status: 200, headers: { 'Content-Type': 'application/json' } }))
+      : realFetch(url, init);
+    try { await syncModelInstalled(); } finally { window.fetch = realFetch; }
+    await new Promise(r => setTimeout(r, 200));
+  });
+}
+
+/** Boot gate, the weightless-runner condition, and the one pin that survives it. */
+async function readyApp(window) {
+  await releaseBootGate(window);
+  await pinOneModelInstalled(window);
+  await provokeNoWeights(window);
+}
+
 /**
  * A project with two image cards, each backed by real media and a real sidecar.
  * `open` is the card the workspace opens on; `other` is the one picked in the overlay.
@@ -126,7 +169,7 @@ test('the Add to history toggle turns a pick into a history entry on the open ca
   const { app, window, pageErrors } = await launchApp(testInfo);
 
   try {
-    await releaseBootGate(window);
+    await readyApp(window);
     const folderPath = testInfo.outputPath('project');
     fs.mkdirSync(folderPath, { recursive: true });
     const seed = seedProject(folderPath);
@@ -176,7 +219,7 @@ test('with the toggle off the pick is still a reference chip, and no entry is ad
   const { app, window, pageErrors } = await launchApp(testInfo);
 
   try {
-    await releaseBootGate(window);
+    await readyApp(window);
     const folderPath = testInfo.outputPath('project');
     fs.mkdirSync(folderPath, { recursive: true });
     const seed = seedProject(folderPath);
@@ -206,7 +249,7 @@ test('an imported file lands as an entry too, and makes no second gallery card',
   const { app, window, pageErrors } = await launchApp(testInfo);
 
   try {
-    await releaseBootGate(window);
+    await readyApp(window);
     const folderPath = testInfo.outputPath('project');
     fs.mkdirSync(folderPath, { recursive: true });
     const seed = seedProject(folderPath);
@@ -248,7 +291,7 @@ test('an opener with one destination gets no toggle', async ({}, testInfo) => {
   const { app, window, pageErrors } = await launchApp(testInfo);
 
   try {
-    await releaseBootGate(window);
+    await readyApp(window);
 
     // A Flow slot's picker: no `toHistoryLabel`, because a Flow slot has nowhere to
     // put a history entry. The control must not render at all.

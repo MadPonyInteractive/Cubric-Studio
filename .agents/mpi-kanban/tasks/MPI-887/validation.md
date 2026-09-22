@@ -70,3 +70,25 @@ The composite half of the agent's result-review rule (MPI-877's neighbour): the 
 now tell a user how to reach Composite for a cross-card fix, because the user can actually
 perform it. The agent still cannot use Composite itself (`agentLoop.mjs`), which is
 unchanged and deliberate.
+
+## Master went red on this card's own commit, and the fix
+
+CI run 35720792152, shard 4: all three app-driving tests in
+`tests/desktop/media-picker-to-history.spec.js` died on
+`TypeError: Cannot read properties of null (reading 'click')` at the `+` card lookup.
+
+**Cause, not symptom.** The `+` card exists only when the PromptBox MOUNTS, which needs an
+installed prompt-capable model. Every dev box has weights; the runner has none, so the boot
+sync writes every `installed` flag false and the box never mounts. The evidence block above is
+honest about what it ran - it is just that a green local desktop run cannot see this class of
+failure at all. That is `docs/red-master.md` cause 1 and `docs/testing-desktop-specs.md`
+trap 5, both of which I should have read before writing a desktop spec, and did not.
+
+**Fix:** the documented pair, same shape as `focus-mode.spec.js` - `pinOneModelInstalled()`
+pins one flat model usable through a getter the boot sync cannot overwrite, and
+`provokeNoWeights()` answers `/comfy/models/check` with every model absent and runs the real
+sync, so the spec now reproduces the runner HERE instead of only in CI.
+
+**Proven both ways.** With the pin commented out the spec fails locally with CI's exact error
+at the same line; with it restored, 4/4 green against the provoked weightless condition - a
+stronger result than the original run, which passed only because this box has weights.
