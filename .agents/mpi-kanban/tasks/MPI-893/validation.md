@@ -9,7 +9,7 @@ Every claim below was run, not reasoned about.
   no duplicate ids, every board entry has a `task.json`, every `maturity` in the fixed enum and
   column-coherent, no `column` mismatch between card and board, root `events.jsonl` 4910 lines
   **0 unparseable**, only extra folder is `_archived`.
-- After the refresh: **4 violations**, all four the deliberately-left peer claims below.
+- After the refresh: **3 violations**, all three MPI-888's deliberately-left peer claims (MPI-887's cleared when its session re-registered mid-close-out).
 
 ## The state index
 
@@ -17,15 +17,39 @@ Every claim below was run, not reasoned about.
 disk. Verified it is status-driven, not heartbeat-driven, by reading `INDEX_ARRAYS` in the
 script before running it — that is what makes it safe for dormant sessions.
 
+The FIRST `--fix`, which is the one the numbers below describe. It cleared **12** of the 17
+violations (17 -> 5):
+
 | array | before | after |
 |---|---|---|
 | `active_sessions` | 10 | 15 |
 | `active_file_claims` | 6 | 7 |
 | `pending_file_states` | 280 | 294 |
-| `open_messages` | 41 | 39 |
+| `open_messages` | 41 | 37 |
 | `active_handoffs` | 38 | 35 |
 
-`index.json` backed up to the session scratchpad before the first `--fix`.
+`index.json` backed up to the session scratchpad before that `--fix`.
+
+**Corrected at close-out, after the claim auditor caught both (2026-09-22).** Two numbers
+written earlier in this session were wrong, and they were wrong in the direction that
+flatters the work:
+
+- This table first read `open_messages 41 -> 39`. **39 was never a `--fix` result.** The
+  first `--fix` produced 37; the count rose to 39 only because I then sent two messages
+  myself, and fell to 38 when I resolved `d91a49a9`. The profile's `41 -> 37` is the
+  correct figure for the run this table describes.
+- Commit `c645d95c`'s message says "**13** cleared by rebuilding the five derived arrays".
+  The rebuild cleared **12**. The 13th violation was cleared separately, by releasing
+  MPI-858's claim — a judgement call, not a rebuild. Attributing it to the rebuild
+  overstates what a no-judgement command did, which is the one property that made the
+  rebuild safe to run against dormant sessions. The commit message is left as written
+  rather than amended: it is a shared branch with seven peer commits stacked behind it,
+  and rewriting it is worth less than this correction is.
+
+Later `--fix` runs in the same session are NOT comparable to the table: peers were live
+throughout and the arrays moved under it (`active_sessions` reached 18, two sessions
+re-registered, one new session appeared mid-check). Final state: **3 violations**, all
+three MPI-888's claims.
 
 ## The five stuck claims — how each was decided
 
