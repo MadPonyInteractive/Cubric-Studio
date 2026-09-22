@@ -484,3 +484,20 @@ End to end, in the user's own app, with their own key:
 - `nano-banana-2` is deliberately **excluded** from the shortlist: its filter rejected this
   product's content twice while both its cheaper and its dearer sibling accepted the identical
   request.
+
+**2026-09-22 - MPI-852 and MPI-883 are both CLOSED.** The price tag shipped as placement
+A1 (the estimate inline INSIDE the Cue button, the bar back to seven grid tracks) and CI
+run `35694132707` on `3e2af47a`, which carries the A1 code commit `bc616327`, is green -
+so both gates on that `user-ux` card are met. MPI-883, the QUALITY radio printing the word
+`undefined` on every DeepInfra model, closed the same session: the fix is a resolver
+(`_qualityLabel(t) => QUALITY_LABELS[t] ?? t`), not four label strings, because
+`qualityTiersFor()` resolves a new ModelDef's tiers with no code change and the hardcoded
+label map is therefore always one model behind. Only `1.5k` needed a map entry.
+`tests/quality-tier-labels.test.cjs` now walks every shipped ModelDef type and fails if
+anyone reads `QUALITY_LABELS[...]` directly again. Fabio confirmed it live on Seedance 2.0:
+`480p / 720p / 1080p`, with A1's `CUE | ABOUT $0.31` in the same frame.
+
+**Phase 2 now has MPI-854 and MPI-855 left.** Check MPI-854 against **MPI-876** before
+starting it - 876 ("The agent asks before it spends, and says roughly how much") reads as
+the same gate 854 describes, and both sit in `todo/planned`. That is an `mpi-umbrella`
+question, not something to resolve by implementing one of them.
