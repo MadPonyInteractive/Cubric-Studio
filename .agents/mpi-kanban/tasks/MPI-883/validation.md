@@ -61,3 +61,14 @@ shape of the original bug.
 The code edit landed while the card was still in `todo`; it was moved to `doing` with
 `files.json` written immediately afterwards, before any board close. Ownership was
 claimed in `state/` before the first write, so no peer was at risk.
+
+## Confirmed in the running app, 2026-09-22
+
+Fabio screenshotted the prompt box on **Seedance 2.0** (a cloud video model, one of
+the three that printed `undefined`). The QUALITY radio reads **`480p` / `720p` /
+`1080p`**, correctly cased and correctly selected, with `480p` armed. That is the
+fallback doing its job on a real model - none of those three has a map entry.
+
+The same shot carries MPI-852's placement A1 beside it: `CUE | ABOUT $0.31`, the
+price inline inside the Cue button. Both cards are confirmed in one frame.
+
