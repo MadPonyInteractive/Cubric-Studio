@@ -141,7 +141,7 @@ function _loadImage(url) {
 }
 
 /**
- * The two-pass plan for a crop step (MPI-900), or null when one pass holds it. Loads the
+ * The pass plan for a crop step (MPI-900), or null when one pass holds it. Loads the
  * source for its real pixels — the rect alone does not say how big the picture is.
  *
  * @param {{url?:string}|null} media - the step's (user's own) media item
@@ -155,17 +155,19 @@ export async function planCropPasses(media, rect, maxGrow) {
 }
 
 /**
- * Pass 2's input: pass 1's RESULT padded out to the final frame. Pass 1 came back at the
- * graph's ~1 MP, so the frame is rescaled into its pixels (`nextPassRect`).
+ * The next pass's input: the previous pass's RESULT padded out to the next frame. That
+ * result came back at the graph's ~1 MP, so the frame is rescaled into its pixels
+ * (`nextPassRect`).
  *
- * @param {{url?:string}} result - pass 1's output item
- * @param {{first:Object, final:Object}} plan
+ * @param {{url?:string}} result - the previous pass's output item
+ * @param {Object} prev - the previous pass's frame (source px)
+ * @param {Object} next - the next pass's frame (source px)
  * @returns {Promise<File|null>}
  */
-export async function composeNextPass(result, plan) {
+export async function composeNextPass(result, prev, next) {
     if (!result?.url) return null;
     const img = await _loadImage(resolveMediaUrl(result.url));
-    return _padTo(img, nextPassRect(plan, { w: img.naturalWidth || img.width, h: img.naturalHeight || img.height }));
+    return _padTo(img, nextPassRect(prev, next, { w: img.naturalWidth || img.width, h: img.naturalHeight || img.height }));
 }
 
 /** @param {HTMLImageElement} img @param {{x:number,y:number,w:number,h:number}} rect */

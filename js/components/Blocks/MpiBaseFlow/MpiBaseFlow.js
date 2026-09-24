@@ -3399,7 +3399,7 @@ export const MpiBaseFlow = ComponentFactory.create({
          *
          * @param {Array<Object>} mediaItems
          * @param {Object} [values] - step values to derive from; `_stepValues` unless a
-         *   two-pass run swaps pass 1's rect in (`_planPasses`).
+         *   multi-pass run swaps pass 1's rect in (`_planPasses`).
          * @returns {Promise<Array<Object>|null>}
          */
         async function _deriveRunMedia(mediaItems, values = _stepValues) {
@@ -3443,12 +3443,13 @@ export const MpiBaseFlow = ComponentFactory.create({
 
         /**
          * A crop step with `maxGrow` whose frame adds more than one pass holds (MPI-900):
-         * run pass 1 at the capped rect, then pass 2 on pass 1's result out to the full
-         * frame. Returns the step values pass 1 derives from and the `runNextPass` hook
-         * flowService calls on pass 1's completion — or null for a one-pass run.
+         * run pass 1 at the first capped rect, then each next pass on the previous one's
+         * result, out to the full frame. Returns the step values pass 1 derives from and
+         * the `runNextPass` hook flowService calls on each completion — or null for a
+         * one-pass run.
          *
          * @param {Array<Object>} mediaItems - the user's own media, not the derived
-         * @returns {Promise<{values: Object, next: function(Object): Promise<Array<Object>|null>}|null>}
+         * @returns {Promise<{values: Object, next: function(Object): Promise<{media: Array<Object>, last: boolean}|null>}|null>}
          */
         async function _planPasses(mediaItems) {
             const step = (flow.steps || []).find(s => s.kind === 'crop' && s.role && s.maxGrow);
@@ -3456,15 +3457,18 @@ export const MpiBaseFlow = ComponentFactory.create({
             const media = step && mediaItems.find(m => m?.role === step.role);
             const plan = media ? await planCropPasses(media, value?.crop, step.maxGrow) : null;
             if (!plan) return null;
+            let ran = 0; // index of the pass that just completed
             return {
-                values: { ..._stepValues, [step.role]: { ...value, crop: plan.first } },
+                values: { ..._stepValues, [step.role]: { ...value, crop: plan[0] } },
                 next: async ({ item } = {}) => {
-                    const file = await composeNextPass(item, plan);
+                    const file = await composeNextPass(item, plan[ran], plan[ran + 1]);
+                    ran += 1;
                     const project = state.currentProject;
                     const url = file && project ? await _placePreviewAsset(file, 'image', project) : null;
-                    return url
-                        ? mediaItems.map(m => (m === media ? { ...m, url, source: 'flow-derived' } : m))
-                        : null;
+                    return url ? {
+                        media: mediaItems.map(m => (m === media ? { ...m, url, source: 'flow-derived' } : m)),
+                        last: ran === plan.length - 1,
+                    } : null;
                 },
             };
         }

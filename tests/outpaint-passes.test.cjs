@@ -1,9 +1,9 @@
 /**
- * outpaint-passes.test.cjs — MPI-900. A big outpaint runs as two passes.
+ * outpaint-passes.test.cjs — MPI-900. A big outpaint runs as several passes.
  *
- * Fabio's case: i2i_005, 1280x800, grown UP to 4:5 (1280x1600). One pass holds ~25%, so
- * pass 1 must add 200px on top only, and pass 2 must land the full frame on pass 1's
- * (rescaled) result.
+ * Fabio's rule (bench, 2026-09-24): a third per side holds in one pass, a third up AND a
+ * third down included; half or two thirds in ONE direction fails. So each pass grows each
+ * side by at most a third of what it already knows. His case: i2i_005, 1280x800.
  */
 
 'use strict';
@@ -15,37 +15,45 @@ const path = require('node:path');
 const load = () => import('file://' + path.join(__dirname, '..', 'js/utils/outpaintPasses.js').replace(/\\/g, '/'));
 const SRC = { w: 1280, h: 800 };
 
-test('a small extension is one pass', async () => {
+test('a third per side is one pass, on both sides at once', async () => {
     const { planOutpaintPasses } = await load();
     assert.equal(planOutpaintPasses(SRC, { x: 0, y: -200, w: 1280, h: 1000 }), null);
-    assert.equal(planOutpaintPasses(SRC, { x: -160, y: 0, w: 1600, h: 800 }), null);
+    assert.equal(planOutpaintPasses(SRC, { x: 0, y: -260, w: 1280, h: 1320 }), null);
+    assert.equal(planOutpaintPasses(SRC, { x: -400, y: 0, w: 2080, h: 800 }), null);
 });
 
-test('grow up 100%: pass 1 adds 25% on top only', async () => {
+test('half in one direction is two passes', async () => {
     const { planOutpaintPasses } = await load();
-    const plan = planOutpaintPasses(SRC, { x: 0, y: -800, w: 1280, h: 1600 });
-    assert.deepEqual(plan.first, { x: 0, y: -200, w: 1280, h: 1000 });
+    assert.deepEqual(planOutpaintPasses(SRC, { x: 0, y: -400, w: 1280, h: 1200 }), [
+        { x: 0, y: -267, w: 1280, h: 1067 },
+        { x: 0, y: -400, w: 1280, h: 1200 },
+    ]);
 });
 
-test('centred growth splits the 25% across both sides in proportion', async () => {
+test('doubling in one direction keeps going: each pass a third of what it knows', async () => {
     const { planOutpaintPasses } = await load();
-    const plan = planOutpaintPasses(SRC, { x: 0, y: -400, w: 1280, h: 1600 });
-    assert.deepEqual(plan.first, { x: 0, y: -100, w: 1280, h: 1000 });
+    assert.deepEqual(planOutpaintPasses(SRC, { x: 0, y: -800, w: 1280, h: 1600 }), [
+        { x: 0, y: -267, w: 1280, h: 1067 },
+        { x: 0, y: -623, w: 1280, h: 1423 },
+        { x: 0, y: -800, w: 1280, h: 1600 },
+    ]);
 });
 
-test('only the over-limit axis shrinks; an axis that cuts in stays', async () => {
+test('an edge that cuts in stays put; only overhang grows', async () => {
     const { planOutpaintPasses } = await load();
     // width +10% (fine), height +50% on the bottom (too much), left edge cropped IN by 40
-    const plan = planOutpaintPasses(SRC, { x: 40, y: 0, w: 1368, h: 1200 });
-    assert.deepEqual(plan.first, { x: 40, y: 0, w: 1368, h: 1000 });
+    assert.deepEqual(planOutpaintPasses(SRC, { x: 40, y: 0, w: 1368, h: 1200 }), [
+        { x: 40, y: 0, w: 1368, h: 1067 },
+        { x: 40, y: 0, w: 1368, h: 1200 },
+    ]);
 });
 
-test('pass 2 rect lands the final frame on the rescaled pass-1 result', async () => {
+test('the next pass lands on the rescaled result of the one before', async () => {
     const { planOutpaintPasses, nextPassRect } = await load();
-    const plan = planOutpaintPasses(SRC, { x: 0, y: -800, w: 1280, h: 1600 });
-    // 1280x1000 at ~1 MP comes back 1136x880 (16px grid)
-    const r = nextPassRect(plan, { w: 1136, h: 880 });
-    assert.deepEqual(r, { x: 0, y: -528, w: 1136, h: 1408 });
-    // the result sits at the BOTTOM of the final frame: its bottom edge is the frame's
-    assert.equal(r.y + r.h, 880);
+    const [p1, p2] = planOutpaintPasses(SRC, { x: 0, y: -800, w: 1280, h: 1600 });
+    // 1280x1067 at ~1 MP comes back 1120x928 (16px grid)
+    const r = nextPassRect(p1, p2, { w: 1120, h: 928 });
+    assert.deepEqual(r, { x: 0, y: -310, w: 1120, h: 1238 });
+    // growth is UP only, so the result's bottom edge is the next frame's
+    assert.equal(r.y + r.h, 928);
 });

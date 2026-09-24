@@ -1,8 +1,8 @@
 {
   "id": "9a2437bd-d5e3-4c4f-bdea-2897c2fb75df",
   "revision": 0,
-  "last_node_id": 684,
-  "last_link_id": 1437,
+  "last_node_id": 685,
+  "last_link_id": 1438,
   "nodes": [
     {
       "id": 268,
@@ -3147,8 +3147,7 @@
           "name": "STRING",
           "type": "STRING",
           "links": [
-            1409,
-            1431
+            1438
           ],
           "slot_index": 0
         }
@@ -4036,6 +4035,76 @@
         true
       ],
       "title": "Klein Or Krea"
+    },
+    {
+      "id": 685,
+      "type": "RegexReplace",
+      "pos": [
+        -1950.7388159070038,
+        2853.8845029376557
+      ],
+      "size": [
+        400,
+        220
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string",
+          "name": "string",
+          "type": "STRING",
+          "widget": {
+            "name": "string"
+          },
+          "link": 1438
+        },
+        {
+          "localized_name": "regex_pattern",
+          "name": "regex_pattern",
+          "type": "STRING",
+          "widget": {
+            "name": "regex_pattern"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "replace",
+          "name": "replace",
+          "type": "STRING",
+          "widget": {
+            "name": "replace"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            1409,
+            1431
+          ],
+          "slot_index": 0
+        }
+      ],
+      "title": "Trim Empty Prompt",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "RegexReplace"
+      },
+      "widgets_values": [
+        "",
+        "\\.\\s+$",
+        "",
+        true,
+        false,
+        false,
+        0
+      ]
     }
   ],
   "links": [
@@ -4665,7 +4734,7 @@
     ],
     [
       1409,
-      667,
+      685,
       0,
       658,
       0,
@@ -4841,7 +4910,7 @@
     ],
     [
       1431,
-      667,
+      685,
       0,
       671,
       1,
@@ -4894,6 +4963,14 @@
       493,
       0,
       "*"
+    ],
+    [
+      1438,
+      667,
+      0,
+      685,
+      0,
+      "STRING"
     ]
   ],
   "groups": [

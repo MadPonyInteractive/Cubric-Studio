@@ -148,9 +148,9 @@
  * @property {string}  title   - Shown above the canvas.
  * @property {string}  [hint]  - Guidance shown below the canvas (and below any fields row).
  * @property {string}  [tickerLabel] - Short label for the step ticker; falls back to `title`.
- * @property {number}  [maxGrow] - `crop` only (MPI-900): the most one pass may add on an
- *                               axis, as a fraction of the source. A frame past it runs as
- *                               TWO passes — capped first, then the full frame on that result
+ * @property {number}  [maxGrow] - `crop` only (MPI-900): the most one pass may add on a
+ *                               side, as a fraction of the picture it starts from. A frame
+ *                               past it runs as several passes, each on the previous result
  *                               (`utils/outpaintPasses.js`). Omit for one pass whatever the size.
  * @property {string}  [mediaRole] - Where a STEP_MEDIA kind's derived FILE lands, when that
  *                               is not the role it operates on (MPI-567). Omit and the file
@@ -1330,8 +1330,8 @@ export const FLOWS = [
         video: 'flow-outpaint.mp4',
         description: 'Extend an image past its edges. Choose the shape you want, drag the frame out '
             + 'over the sides you want filled, and say what should appear there if you like. A big '
-            + 'extension is filled in two passes — a quarter first, then the rest on that result — '
-            + 'so the model always has real picture next to what it paints. Runs on Krea 2, or on '
+            + 'extension is filled in steps — at most a third per side each time, the next step on '
+            + 'that result — so the model always has real picture next to what it paints. Runs on Krea 2, or on '
             + 'FLUX.2 Klein for a faster fill.',
         // A CHOOSABLE SLOT (MPI-590 mechanism, MPI-594 second user): the two Krea 2 cards
         // are the same architecture with a different bake, and both ship `krea2Edit` plus
@@ -1397,13 +1397,13 @@ export const FLOWS = [
                 // No `param`: this gizmo's value changes the PICTURE, not a widget —
                 // it binds through STEP_MEDIA instead (stepKinds.js).
                 kind: 'crop', role: 'image1',
-                // Past a quarter of the picture on an axis, the run takes two passes
-                // (MPI-900) — Fabio's own manual fix for i2i_005, automated.
-                maxGrow: 0.25,
+                // Past a third of the picture on any side, the run takes more passes
+                // (MPI-900): a third up AND down holds, half in one direction fails.
+                maxGrow: 1 / 3,
                 tickerLabel: 'Frame',
                 title: 'Choose the frame you want',
                 hint: 'Pick a shape, then drag the frame past the edges — black is what gets painted '
-                    + 'in. More than a quarter is filled in two passes, so it takes about twice as long.',
+                    + 'in. More than a third on one side is filled in steps, so it takes longer.',
             },
         ],
         fields: [

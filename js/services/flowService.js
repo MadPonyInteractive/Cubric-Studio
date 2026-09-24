@@ -81,32 +81,33 @@ export function chainCallbacks(flow, callbacks, submitLeg2) {
 }
 
 /**
- * A SECOND PASS of the same flow on the first pass's result (MPI-900 — a big outpaint).
- * Same shape as `chainCallbacks`, and the same one-completion rule: the caller hears pass
- * 2, never pass 1. The difference is media — pass 2 runs on a picture DERIVED from pass
- * 1's output, which only exists once pass 1 lands, so the caller hands a `next` that turns
- * pass 1's completion into pass 2's run media.
+ * The NEXT PASS of the same flow on this pass's result (MPI-900 — a big outpaint).
+ * Same shape as `chainCallbacks`, and the same one-completion rule: the caller hears the
+ * last pass, never an earlier one. The difference is media — the next pass runs on a
+ * picture DERIVED from this pass's output, which only exists once it lands, so the caller
+ * hands a `next` that turns this completion into the next pass's run media, and says
+ * whether that pass is the last.
  *
- * A pass 2 that cannot be prepared or enqueued is an ERROR, not a done: pass 1's card is
- * half the frame the user asked for, and reporting it as the result would read as the
- * model ignoring the shape.
+ * A next pass that cannot be prepared or enqueued is an ERROR, not a done: this pass's
+ * card is part of the frame the user asked for, and reporting it as the result would
+ * read as the model ignoring the shape.
  *
- * @param {function(Object): Promise<Array<Object>|null>} next - pass 1's completion → pass 2's media
+ * @param {function(Object): Promise<{media: Array<Object>, last: boolean}|null>} next
  * @param {Object} callbacks - the CALLER's callbacks
- * @param {function(Array<Object>): (Object|null)} submitNext - dispatches pass 2
- * @returns {Object} callbacks to hand enqueueGeneration for pass 1
+ * @param {function(Array<Object>, boolean): (Object|null)} submitNext - dispatches the next pass
+ * @returns {Object} callbacks to hand enqueueGeneration for this pass
  */
 export function nextPassCallbacks(next, callbacks, submitNext) {
     return {
         ...callbacks,
         onComplete: async (result) => {
-            let media = null;
+            let pass = null;
             try {
-                media = await next(result);
+                pass = await next(result);
             } catch (err) {
-                clientLogger.error('flowService', `second pass could not be prepared: ${err?.message || err}`);
+                clientLogger.error('flowService', `next pass could not be prepared: ${err?.message || err}`);
             }
-            if (!media || !submitNext(media)) callbacks.onError?.(new Error('The second pass could not start.'));
+            if (!pass?.media || !submitNext(pass.media, pass.last)) callbacks.onError?.(new Error('The next pass could not start.'));
         },
     };
 }
@@ -262,11 +263,12 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // Leg 2 never chains again — one chain, two legs.
     const legCallbacks = _leg.operation ? callbacks : chainCallbacks(flow, callbacks,
         () => submitFlowGeneration(flow, inputs, callbacks, { operation: flow.chain.operation, tempId }));
-    // Pass 2 of a two-pass run gets no `runNextPass`, so it ends there, and it keeps the
-    // tempId for the same reason leg 2 does.
+    // Every pass but the last carries `runNextPass` on; the last gets none, so it ends
+    // there. Each keeps the tempId for the same reason leg 2 does.
     const runCallbacks = runNextPass
         ? nextPassCallbacks(runNextPass, callbacks,
-            (media) => submitFlowGeneration(flow, { ...snapshot, runInputs, runMediaItems: media }, callbacks, { tempId }))
+            (media, last) => submitFlowGeneration(flow,
+                { ...snapshot, runInputs, runMediaItems: media, ...(last ? {} : { runNextPass }) }, callbacks, { tempId }))
         : legCallbacks;
 
     const res = enqueueGeneration(config, runCallbacks, opts);

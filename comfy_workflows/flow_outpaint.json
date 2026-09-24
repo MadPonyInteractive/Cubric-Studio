@@ -6,7 +6,7 @@
         0
       ],
       "text": [
-        "667",
+        "685",
         0
       ]
     },
@@ -295,7 +295,7 @@
         0
       ],
       "prompt": [
-        "667",
+        "685",
         0
       ]
     },
@@ -652,7 +652,7 @@
         0
       ],
       "text": [
-        "667",
+        "685",
         0
       ]
     },
@@ -862,6 +862,24 @@
     "class_type": "MpiIfElse",
     "_meta": {
       "title": "Klein Or Krea"
+    }
+  },
+  "685": {
+    "inputs": {
+      "regex_pattern": "\\.\\s+$",
+      "replace": "",
+      "case_insensitive": true,
+      "multiline": false,
+      "dotall": false,
+      "count": 0,
+      "string": [
+        "667",
+        0
+      ]
+    },
+    "class_type": "RegexReplace",
+    "_meta": {
+      "title": "Trim Empty Prompt"
     }
   }
 }
