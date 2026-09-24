@@ -3,6 +3,7 @@ import { MpiRadioGroup } from '../../Primitives/MpiRadioGroup/MpiRadioGroup.js';
 import { CropManager } from '../../Primitives/MpiCanvas/managers/CropManager.js';
 import { CROP_RATIOS } from '../../../utils/ratios.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
+import { planOutpaintPasses, nextPassRect } from '../../../utils/outpaintPasses.js';
 import { qs, on } from '../../../utils/dom.js';
 
 /**
@@ -122,17 +123,53 @@ export async function composePaddedImage(media, value) {
     const url = media?.url ? resolveMediaUrl(media.url) : '';
     if (!rect || !url || !(rect.w > 0) || !(rect.h > 0)) return null;
 
-    const img = await new Promise((resolve, reject) => {
+    const img = await _loadImage(url);
+    const nw = img.naturalWidth || img.width;
+    const nh = img.naturalHeight || img.height;
+    if (rect.x === 0 && rect.y === 0 && rect.w === nw && rect.h === nh) return null;
+    return _padTo(img, rect);
+}
+
+/** @param {string} url @returns {Promise<HTMLImageElement>} */
+function _loadImage(url) {
+    return new Promise((resolve, reject) => {
         const im = new Image();
         im.onload = () => resolve(im);
         im.onerror = reject;
         im.src = url;
     });
+}
 
-    const nw = img.naturalWidth || img.width;
-    const nh = img.naturalHeight || img.height;
-    if (rect.x === 0 && rect.y === 0 && rect.w === nw && rect.h === nh) return null;
+/**
+ * The two-pass plan for a crop step (MPI-900), or null when one pass holds it. Loads the
+ * source for its real pixels — the rect alone does not say how big the picture is.
+ *
+ * @param {{url?:string}|null} media - the step's (user's own) media item
+ * @param {{x:number,y:number,w:number,h:number}|null} rect
+ * @param {number} maxGrow - the step's `maxGrow`
+ */
+export async function planCropPasses(media, rect, maxGrow) {
+    if (!rect || !media?.url || !(maxGrow > 0)) return null;
+    const img = await _loadImage(resolveMediaUrl(media.url));
+    return planOutpaintPasses({ w: img.naturalWidth || img.width, h: img.naturalHeight || img.height }, rect, maxGrow);
+}
 
+/**
+ * Pass 2's input: pass 1's RESULT padded out to the final frame. Pass 1 came back at the
+ * graph's ~1 MP, so the frame is rescaled into its pixels (`nextPassRect`).
+ *
+ * @param {{url?:string}} result - pass 1's output item
+ * @param {{first:Object, final:Object}} plan
+ * @returns {Promise<File|null>}
+ */
+export async function composeNextPass(result, plan) {
+    if (!result?.url) return null;
+    const img = await _loadImage(resolveMediaUrl(result.url));
+    return _padTo(img, nextPassRect(plan, { w: img.naturalWidth || img.width, h: img.naturalHeight || img.height }));
+}
+
+/** @param {HTMLImageElement} img @param {{x:number,y:number,w:number,h:number}} rect */
+async function _padTo(img, rect) {
     const canvas = document.createElement('canvas');
     canvas.width = rect.w;
     canvas.height = rect.h;

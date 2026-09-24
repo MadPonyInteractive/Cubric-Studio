@@ -18,6 +18,7 @@ import { getFlowById, flowAvailability, flowModelParams, flowLoraPhases, flowMod
 import { getModelById } from '../data/modelRegistry.js';
 import { state } from '../state.js';
 import { Events } from '../events.js';
+import { clientLogger } from './clientLogger.js';
 
 /**
  * Queue a generation for a Flow.
@@ -79,6 +80,37 @@ export function chainCallbacks(flow, callbacks, submitLeg2) {
     };
 }
 
+/**
+ * A SECOND PASS of the same flow on the first pass's result (MPI-900 — a big outpaint).
+ * Same shape as `chainCallbacks`, and the same one-completion rule: the caller hears pass
+ * 2, never pass 1. The difference is media — pass 2 runs on a picture DERIVED from pass
+ * 1's output, which only exists once pass 1 lands, so the caller hands a `next` that turns
+ * pass 1's completion into pass 2's run media.
+ *
+ * A pass 2 that cannot be prepared or enqueued is an ERROR, not a done: pass 1's card is
+ * half the frame the user asked for, and reporting it as the result would read as the
+ * model ignoring the shape.
+ *
+ * @param {function(Object): Promise<Array<Object>|null>} next - pass 1's completion → pass 2's media
+ * @param {Object} callbacks - the CALLER's callbacks
+ * @param {function(Array<Object>): (Object|null)} submitNext - dispatches pass 2
+ * @returns {Object} callbacks to hand enqueueGeneration for pass 1
+ */
+export function nextPassCallbacks(next, callbacks, submitNext) {
+    return {
+        ...callbacks,
+        onComplete: async (result) => {
+            let media = null;
+            try {
+                media = await next(result);
+            } catch (err) {
+                clientLogger.error('flowService', `second pass could not be prepared: ${err?.message || err}`);
+            }
+            if (!media || !submitNext(media)) callbacks.onError?.(new Error('The second pass could not start.'));
+        },
+    };
+}
+
 export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg = {}) {
     const flow = typeof flowOrId === 'string' ? getFlowById(flowOrId) : flowOrId;
     if (!flow) {
@@ -131,7 +163,8 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // put the brief back into the phrase box as text Enhance did not own — and Enhance,
     // which never overwrites the user's writing, then silently refused to run again.
     // A caller with nothing run-only to say omits it and runs its snapshot.
-    const { runMediaItems, runInputs, ...snapshot } = inputs;
+    // `runNextPass` is run-only too (MPI-900): a function, and a plan for THIS press.
+    const { runMediaItems, runInputs, runNextPass, ...snapshot } = inputs;
     const run = runInputs || snapshot;
     // ponytail: the chained leg takes NO media. Its graph reads what leg 1 wrote to
     // disk, addressed by name (`Input_Name`), so re-sending the source image would only
@@ -229,8 +262,14 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // Leg 2 never chains again — one chain, two legs.
     const legCallbacks = _leg.operation ? callbacks : chainCallbacks(flow, callbacks,
         () => submitFlowGeneration(flow, inputs, callbacks, { operation: flow.chain.operation, tempId }));
+    // Pass 2 of a two-pass run gets no `runNextPass`, so it ends there, and it keeps the
+    // tempId for the same reason leg 2 does.
+    const runCallbacks = runNextPass
+        ? nextPassCallbacks(runNextPass, callbacks,
+            (media) => submitFlowGeneration(flow, { ...snapshot, runInputs, runMediaItems: media }, callbacks, { tempId }))
+        : legCallbacks;
 
-    const res = enqueueGeneration(config, legCallbacks, opts);
+    const res = enqueueGeneration(config, runCallbacks, opts);
     // Return the tempId so the caller (MpiBaseFlow) can match this job's live latent
     // previews (preview:frame → activeGenerations.byPromptId → entry.tempId; MPI-271).
     return res ? { ...res, tempId } : null;

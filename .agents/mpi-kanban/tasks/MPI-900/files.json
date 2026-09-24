@@ -1,0 +1,17 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/data/flowsRegistry.js",
+    "js/services/flowService.js",
+    "js/components/Organisms/MpiStepCrop/MpiStepCrop.js",
+    "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js",
+    "comfy_workflows/raw/flow_outpaint.json",
+    "comfy_workflows/flow_outpaint.json",
+    "docs/playbooks/add-flow/existing-flows/outpaint.md",
+    "tests/outpaint-passes.test.cjs",
+    "js/utils/outpaintPasses.js",
+    "tests/inject-params-titles.test.cjs",
+    "tests/flow-model-choice.test.cjs",
+    "js/shell/agentDispatch.js"
+  ]
+}

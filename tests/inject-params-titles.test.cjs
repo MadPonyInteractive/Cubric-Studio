@@ -330,15 +330,20 @@ test('the Outpaint Flow carries its I/O and declared control titles (MPI-594)', 
     }
     assert.ok(have.has('output_image'), `${file} must carry a capture node titled "output_image"`);
 
-    // …and the ABSENCE of one title is load-bearing here (MPI-594, caught in a live run).
-    // The outpaint instruction is BAKED and the flow declares no prompt, so `_buildParams`
-    // sends `Input_Positive: ''` on every run — which the injector happily writes, wiping
-    // the instruction. Head Swap has the same shape and solves it the same way: a
-    // fixed-prompt graph does not TITLE its prompt node. Do not "fix" this by re-adding
-    // the title; the empty string that clobbers it is deliberate everywhere else (nearly
-    // every graph carries a leftover authoring prompt that must be overwritten).
-    assert.ok(!have.has('input_positive'),
-        `${file}'s prompt is baked — titling it Input_Positive lets the run inject '' over it`);
+    // MPI-900: the flow now DECLARES an optional prompt, but the fill instruction stays
+    // baked in an UNTITLED node and `Input_Positive` is a SEPARATE node joined after it.
+    // `_buildParams` sends `Input_Positive: ''` on every run (MPI-594, caught live), so the
+    // bake must never carry that title or the empty string wipes the instruction.
+    const graph = JSON.parse(fs.readFileSync(path.join(WORKFLOWS, file), 'utf8'));
+    const user = Object.entries(graph).find(([, n]) => n._meta?.title === 'Input_Positive');
+    assert.ok(user, `${file} must carry the user's Input_Positive`);
+    const join = Object.values(graph).find(n => n.class_type === 'StringConcatenate'
+        && String(n.inputs?.string_b?.[0]) === user[0]);
+    assert.ok(join, 'Input_Positive must be JOINED after the bake, not replace it');
+    assert.equal(graph[join.inputs.string_a[0]]?.class_type, 'MpiText',
+        'the join\'s first half must be the baked instruction');
+    assert.ok(!/^input_/i.test(graph[join.inputs.string_a[0]]._meta?.title || ''),
+        'the baked instruction must stay untitled, or the run injects over it');
 });
 
 test('the Draw It In Flow carries its I/O, its model arm and its box (MPI-567)', () => {

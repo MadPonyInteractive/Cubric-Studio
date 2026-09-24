@@ -24,6 +24,7 @@ import { isVideoFile } from '../../../utils/file.js';
 import { qs, ce, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { getStepKind, stepValueToParam, stepValueToMedia, isFrameKind } from './stepKinds.js';
+import { planCropPasses, composeNextPass } from '../../Organisms/MpiStepCrop/MpiStepCrop.js';
 import { enqueueGeneration, findMissingMediaSlot } from '../../../services/generationService.js';
 import { getCommand } from '../../../data/commandRegistry.js';
 import { enhanceFlow } from '../../../services/llmService.js';
@@ -3397,9 +3398,11 @@ export const MpiBaseFlow = ComponentFactory.create({
          * so it stays manifest-expressible.
          *
          * @param {Array<Object>} mediaItems
+         * @param {Object} [values] - step values to derive from; `_stepValues` unless a
+         *   two-pass run swaps pass 1's rect in (`_planPasses`).
          * @returns {Promise<Array<Object>|null>}
          */
-        async function _deriveRunMedia(mediaItems) {
+        async function _deriveRunMedia(mediaItems, values = _stepValues) {
             const steps = (flow.steps || []).filter(s => s?.kind && s.role);
             if (!steps.length) return mediaItems;
 
@@ -3419,7 +3422,7 @@ export const MpiBaseFlow = ComponentFactory.create({
                 const source = step.sourceRole
                     ? out.find(m => m?.role === step.sourceRole) || null
                     : null;
-                const file = await stepValueToMedia(step.kind, _stepValues[step.role], media, step, source);
+                const file = await stepValueToMedia(step.kind, values[step.role], media, step, source);
                 if (!file) continue;   // this kind derives nothing, or nothing changed
                 const project = state.currentProject;
                 const url = project ? await _placePreviewAsset(file, 'image', project) : null;
@@ -3436,6 +3439,34 @@ export const MpiBaseFlow = ComponentFactory.create({
                     }];
             }
             return out;
+        }
+
+        /**
+         * A crop step with `maxGrow` whose frame adds more than one pass holds (MPI-900):
+         * run pass 1 at the capped rect, then pass 2 on pass 1's result out to the full
+         * frame. Returns the step values pass 1 derives from and the `runNextPass` hook
+         * flowService calls on pass 1's completion — or null for a one-pass run.
+         *
+         * @param {Array<Object>} mediaItems - the user's own media, not the derived
+         * @returns {Promise<{values: Object, next: function(Object): Promise<Array<Object>|null>}|null>}
+         */
+        async function _planPasses(mediaItems) {
+            const step = (flow.steps || []).find(s => s.kind === 'crop' && s.role && s.maxGrow);
+            const value = step && _stepValues[step.role];
+            const media = step && mediaItems.find(m => m?.role === step.role);
+            const plan = media ? await planCropPasses(media, value?.crop, step.maxGrow) : null;
+            if (!plan) return null;
+            return {
+                values: { ..._stepValues, [step.role]: { ...value, crop: plan.first } },
+                next: async ({ item } = {}) => {
+                    const file = await composeNextPass(item, plan);
+                    const project = state.currentProject;
+                    const url = file && project ? await _placePreviewAsset(file, 'image', project) : null;
+                    return url
+                        ? mediaItems.map(m => (m === media ? { ...m, url, source: 'flow-derived' } : m))
+                        : null;
+                },
+            };
         }
 
         const _run = async () => {
@@ -3525,8 +3556,10 @@ export const MpiBaseFlow = ComponentFactory.create({
             // above is what Reuse restores, and it must stay the user's own image
             // plus the rect that produced this one.
             let runMediaItems;
+            let passes = null;
             try {
-                runMediaItems = await _deriveRunMedia(mediaItems);
+                passes = await _planPasses(mediaItems);
+                runMediaItems = await _deriveRunMedia(mediaItems, passes?.values);
             } catch (err) {
                 clientLogger.error('MpiBaseFlow', `step media derivation failed: ${err?.message || err}`);
                 runMediaItems = null;
@@ -3544,7 +3577,10 @@ export const MpiBaseFlow = ComponentFactory.create({
             // `runInputs` beside `runMediaItems`, and for the same reason: the raw prompt
             // standing in for an unpressed Enhance is what RUNS, never what Reuse restores.
             const runInputs = withEnhanceFallback(_enhanceDecls, inputs);
-            const res = submitFlowGeneration(flow, { ...inputs, runMediaItems, runInputs }, {
+            const res = submitFlowGeneration(flow, {
+                ...inputs, runMediaItems, runInputs,
+                ...(passes ? { runNextPass: passes.next } : {}),
+            }, {
                 onComplete: ({ item, items, displayUrls } = {}) => {
                     _settle(run, 'Done — saved to your gallery.');
                     // Full only when the frame has actually gone idle; back to zero for
