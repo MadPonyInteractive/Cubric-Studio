@@ -119,7 +119,9 @@ function _logNamedParamProvenance(model, operation, provenance) {
  * The gallery path awaits `addGroup` before it calls `onComplete`, so the card is
  * already in the project here.
  */
-async function _reportDone(jobId, { item, group }, cardName, duration = null, modelId = null) {
+async function _reportDone(jobId, { item, group, items }, cardName, duration = null, modelId = null) {
+    // A batch lands as ONE report carrying every card, each with its SHARE of the one bill.
+    const costUsd = (items || [item]).reduce((sum, it) => sum + (Number(it?.generationSettings?.cost?.usd) || 0), 0);
     const named = cardName !== undefined && group?.id ? await renameGroup(group.id, cardName) : null;
     return _report(jobId, {
         ok: true,
@@ -143,6 +145,8 @@ async function _reportDone(jobId, { item, group }, cardName, duration = null, mo
             // that repeats the ask tells the user a number the file does not have.
             ...(duration ? { durationSeconds: duration.seconds, ...(duration.frames ? { frames: duration.frames } : {}) } : {}),
             ...(named ? { cardName: named.customName } : {}),
+            // MPI-855: what this generation billed, for the chat's session spend.
+            ...(costUsd > 0 ? { costUsd } : {}),
         },
     });
 }

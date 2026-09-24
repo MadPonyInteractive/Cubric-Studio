@@ -104,3 +104,5 @@ questions (Fabio's read).
 
 
 **CI GREEN (2026-09-24):** run 36020583772 on `8d229ed5` (descendant of `74d964a3`), unit + desktop 1-4 all success. Closed.
+
+**LIVE PASS, 402 chat wording (Fabio, 2026-09-24, after close):** Cosmo on Krea 2 past the monthly limit showed "DeepInfra refused the request: payment required. Either your balance is empty or you have reached the monthly spending limit you set. Nothing more was spent. Top up or raise the limit on your DeepInfra billing page." (screenshot). Dashboard at the time: ACCOUNT SUSPENDED (monthly limit reached), usage $3.48 / $3.48 limit, prepaid $0.96. Nothing about MPI-869 is left unverified.

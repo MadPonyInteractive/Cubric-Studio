@@ -1,0 +1,16 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/deepinfra.js",
+    "js/components/Organisms/MpiLlmSettings/MpiLlmSettings.js",
+    "js/shell/agentDispatch.js",
+    "services/agentLoop.mjs",
+    "routes/agent.js",
+    "js/components/Compounds/MpiAgentChat/MpiAgentChat.js",
+    "js/components/Compounds/MpiAgentChat/MpiAgentChat.css",
+    "tests/deepinfra-account.test.cjs",
+    "js/services/agentService.js",
+    "js/events.js",
+    "tests/agent-loop.test.cjs"
+  ]
+}

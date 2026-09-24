@@ -2489,3 +2489,42 @@ describe('(MPI-891) follow rides only on a typed turn', () => {
         });
     }
 });
+
+/**
+ * MPI-855 — the chat header shows what a conversation spent, chat and generations APART
+ * (Fabio: a question is about half a cent, one 1080p Seedance clip $1.90, and one total
+ * would hide which is the spend). Chat is DeepInfra's own `usage.estimated_cost` on each
+ * reply; a generation is its card's `cost.usd`, reported back as `output.costUsd`.
+ */
+describe('session spend (MPI-855)', () => {
+    test('chat replies and a cloud generation add up separately, and reset clears both', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({
+            engineResponses: [
+                {
+                    text: '',
+                    toolCalls: [{ id: 'tc-1', type: 'function', function: { name: 'generate', arguments: '{"modelId":"test-model","operation":"t2i","prompt":"A fox","wait":true}' } }],
+                    usage: { prompt_tokens: 100, estimated_cost: 0.002 },
+                },
+                { text: 'Here it is.', usage: { prompt_tokens: 120, estimated_cost: 0.003 } },
+            ],
+        });
+        tools.generate = async () => ({ ok: true, output: { itemId: 'item-1', groupId: 'group-1', type: 'video', filePath: '/path/clip.mp4', costUsd: 1.9 } });
+
+        await loop.runTurn('Make a clip', [], { folderPath: '/project', name: 'Test' }, 'auto', 'deepinfra', 'turn-spend');
+
+        const spend = loop.getHistory().spend;
+        assert.ok(Math.abs(spend.chatUsd - 0.005) < 1e-12, `chat is the sum of both replies, got ${spend.chatUsd}`);
+        assert.equal(spend.genUsd, 1.9, 'the clip is counted under generations, never under chat');
+        const last = fakeRes.events.filter((e) => e.event === 'agent:spend').pop();
+        assert.deepEqual({ chatUsd: last.data.chatUsd, genUsd: last.data.genUsd }, spend, 'the chat hears the running figures');
+
+        await loop.reset();
+        assert.deepEqual(loop.getHistory().spend, { chatUsd: 0, genUsd: 0 });
+    });
+
+    test('a provider with no estimated_cost and a local generation add nothing', async () => {
+        const { loop } = await makeLoop({ engineResponses: [{ text: 'Hello.', usage: { prompt_tokens: 10 } }] });
+        await loop.runTurn('Hi', [], { folderPath: '/project', name: 'Test' }, 'auto', 'deepinfra', 'turn-free');
+        assert.deepEqual(loop.getHistory().spend, { chatUsd: 0, genUsd: 0 });
+    });
+});

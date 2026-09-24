@@ -15,7 +15,8 @@
  *   el.destroy()                       — teardown (unsub, no SSE to close — shared singleton).
  *
  * SSE events consumed: agent:working, agent:message, agent:tool, agent:confirm,
- *                       agent:result, agent:compacting, agent:error, agent:user, agent:session.
+ *                       agent:result, agent:compacting, agent:error, agent:user, agent:session,
+ *                       agent:spend.
  * These are bridged from SSE to the app bus by agentService.agentInitStream().
  * This component subscribes via Events.on — it never opens its own EventSource.
  *
@@ -143,6 +144,8 @@ export const MpiAgentChat = ComponentFactory.create({
                 <!-- MPI-843: Cosmo as a persistent 20px identity beside the label. Never moves. -->
                 <img class="mpi-agent-chat__header-face" src="assets/mascot/studio/logo.webp" alt="" draggable="false">
                 <span class="mpi-agent-chat__header-label">Cosmo</span>
+                <!-- MPI-855: what this conversation spent on the user's key, chat and generations apart -->
+                <span class="mpi-agent-chat__spend hide" id="ac-spend" title="What this conversation has spent on your DeepInfra key: the chat itself, and the cloud generations it ran"></span>
                 <span class="mpi-agent-chat__header-action" id="ac-reset-slot"></span>
                 <span class="mpi-agent-chat__working-dot" id="ac-working-dot"></span>
             </div>
@@ -213,6 +216,7 @@ export const MpiAgentChat = ComponentFactory.create({
         const ledgeRest  = qs('#ac-ledge-rest',    el);
         const ledgeWork  = qs('#ac-ledge-work',    el);
         const workingDot = qs('#ac-working-dot',   el);
+        const spendEl    = qs('#ac-spend',         el);
         const transcript = qs('#ac-transcript',    el);
         const crewState  = qs('#ac-crew-state',    el);
         const guest      = qs('#ac-guest',         el);
@@ -518,6 +522,20 @@ export const MpiAgentChat = ComponentFactory.create({
         }
 
         _syncPlay();
+
+        /**
+         * MPI-855 — the session's spend, chat and generations kept APART: a question costs
+         * about half a cent and one 1080p clip $1.90, so one total would hide which is the
+         * spend. Hidden while both are zero (a local-only conversation costs nothing).
+         */
+        function _setSpend(spend) {
+            if (!spendEl) return;
+            const chat = Number(spend?.chatUsd) || 0;
+            const gen = Number(spend?.genUsd) || 0;
+            const usd = v => `$${v > 0 && v < 0.01 ? Number(v.toPrecision(1)) : v.toFixed(2)}`;
+            spendEl.classList.toggle('hide', !(chat > 0 || gen > 0));
+            spendEl.textContent = `Chat ${usd(chat)} · Generations ${usd(gen)}`;
+        }
 
         function _setWorking(working) {
             _working = working;
@@ -842,6 +860,9 @@ export const MpiAgentChat = ComponentFactory.create({
                 case 'agent:user':
                     _appendUser(data.text, _stagedThumbs(data.attachments), data.id);
                     break;
+                case 'agent:spend':
+                    _setSpend(data);
+                    break;
             }
         }
         /** Staged attachments are {id, name} with no dataUrl: shown through the attachment route. */
@@ -852,7 +873,7 @@ export const MpiAgentChat = ComponentFactory.create({
                 name: att.name || '',
             }));
         }
-        ['agent:working', 'agent:message', 'agent:tool', 'agent:confirm', 'agent:result', 'agent:compacting', 'agent:error', 'agent:user']
+        ['agent:working', 'agent:message', 'agent:tool', 'agent:confirm', 'agent:result', 'agent:compacting', 'agent:error', 'agent:user', 'agent:spend']
             .forEach((name) => _unsubs.push(Events.on(name, (data) => {
                 if (_loading) _queued.push([name, data]);
                 else _apply(name, data);
@@ -936,6 +957,7 @@ export const MpiAgentChat = ComponentFactory.create({
                 _loading = null;
                 _session = null;
                 _clear();
+                _setSpend(null);
                 _setWorking(false);
                 return;
             }
@@ -946,6 +968,7 @@ export const MpiAgentChat = ComponentFactory.create({
             if (_loading !== load) return; // a newer load took over
             _clear();
             _setWorking(false);
+            _setSpend(history.spend);
             _session = history.ok ? history.session : (props.standalone ? '' : null);
 
             if (history.entries) {

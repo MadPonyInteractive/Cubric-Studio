@@ -136,6 +136,11 @@ export const MpiLlmSettings = ComponentFactory.create({
                             <div id="mpiSettingsConnProbeSlot"></div>
                             <span class="mpi-settings__hint" id="mpiSettingsConnProbeResult"></span>
                         </div>
+                        <div class="mpi-settings__form-group" id="mpiSettingsConnSpendGroup">
+                            <label class="mpi-settings__field-label">Spend this month</label>
+                            <div id="mpiSettingsConnSpendSlot"></div>
+                            <span class="mpi-settings__hint" id="mpiSettingsConnSpendResult"></span>
+                        </div>
                     </div>
 
                     <div class="mpi-settings__subgroup">
@@ -591,6 +596,7 @@ export const MpiLlmSettings = ComponentFactory.create({
             await _renderConnKey(root, profileId);
             if (seq !== _detailsSeq) return;
             _renderConnProbe(root, profileId);
+            _renderConnSpend(root, profileId);
             _renderAgentBackend(root);
             _renderAgentMode(root);
             _renderAgentProbe(root, profileId);
@@ -720,6 +726,32 @@ export const MpiLlmSettings = ComponentFactory.create({
                     ? `Connected · ${json.modelCount} models · ${json.latencyMs} ms`
                     : _errorText(json));
                 if (json?.ok) await _refreshModels(root, profileId);
+            });
+        }
+
+        /**
+         * MPI-855 — this month's DeepInfra spend and what is left. On the user's click only:
+         * it is a billing read on their key. The route answers four numbers and nothing else.
+         */
+        function _renderConnSpend(root, profileId) {
+            const slot = qs('#mpiSettingsConnSpendSlot', root);
+            if (!slot) return;
+            const hidden = profileId !== 'deepinfra';
+            qs('#mpiSettingsConnSpendGroup', root)?.classList.toggle('hide', hidden);
+            _setText(root, '#mpiSettingsConnSpendResult', '');
+            if (hidden) return;
+            const usd = v => `$${Math.max(0, v).toFixed(2)}`;
+            const inst = _conn(MpiButton.mount(slot, { text: 'Check spend', variant: 'secondary', size: 'sm' }));
+            inst.on('click', async () => {
+                _setText(root, '#mpiSettingsConnSpendResult', 'Reading your DeepInfra account…');
+                const json = await _getJson('/deepinfra/account');
+                _setText(root, '#mpiSettingsConnSpendResult', json?.ok
+                    ? [
+                        `Spent ${usd(json.spentUsd)} this month`,
+                        json.balanceUsd !== null ? `${usd(json.balanceUsd)} of credit left` : null,
+                        json.limitUsd !== null ? `${usd(json.limitRoomUsd)} of your ${usd(json.limitUsd)} monthly limit left` : null,
+                    ].filter(Boolean).join(' · ')
+                    : _errorText(json));
             });
         }
 

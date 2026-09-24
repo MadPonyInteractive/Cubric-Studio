@@ -42,6 +42,7 @@ export const AGENT_EVENT_NAMES = [
     'agent:user',
     'agent:session',
     'agent:drained',
+    'agent:spend',
 ];
 
 // ── Shared SSE singleton ──────────────────────────────────────────────────────

@@ -545,6 +545,9 @@ export class AgentLoop {
         this._working = false;
         this._pendingConfirm = null; // { confirmId, resolve }
         this._lastUsage = null;    // provider usage from last response
+        // MPI-855: what this conversation spent on the user's key, kept APART because one
+        // question is about half a cent and one 1080p clip $1.90. See _addSpend.
+        this._spend = { chatUsd: 0, genUsd: 0 };
         this._contextWindow = 0;   // of the model the last turn ran on
 
         // Every image this session is allowed to reach: attachment ids the user
@@ -583,6 +586,19 @@ export class AgentLoop {
 
     addSubscriber(res) { this._subscribers.add(res); }
     removeSubscriber(res) { this._subscribers.delete(res); }
+
+    /**
+     * MPI-855 — add to the session's spend and tell the chat. Chat is the provider's own
+     * `usage.estimated_cost` (DeepInfra sends it on every reply; a provider that does not adds
+     * nothing); a generation is its card's `cost.usd`, already its batch share. ponytail: the
+     * `look` describer is not counted, it returns no usage; add it if its spend ever matters.
+     */
+    _addSpend(kind, usd) {
+        const v = Number(usd);
+        if (!(v > 0)) return;
+        this._spend = { ...this._spend, [kind]: this._spend[kind] + v };
+        this._emit('agent:spend', this._spend);
+    }
 
     _emit(event, data) {
         const body = { ...data, session: this.sessionKey };
@@ -655,6 +671,7 @@ export class AgentLoop {
                 }
                 : null,
             usage,
+            spend: this._spend,
             entries: this._history,
         };
     }
@@ -681,6 +698,8 @@ export class AgentLoop {
         this._messages = [];
         this._history = [];
         this._lastUsage = null;
+        this._spend = { chatUsd: 0, genUsd: 0 };
+        this._emit('agent:spend', this._spend);
         this._images.clear();
         this._groups.clear();
         this._projects.clear();
@@ -1643,6 +1662,7 @@ ${knowledgeIndex}`.trim();
                     this._trackUnfinished(askedIn, args, ok ? null : (r?.error?.code || 'FAILED'));
                     if (ok && r.output?.filePath) this._registerResult(r.output.filePath, r.output.modelId, r.output.itemId);
                     if (ok && r.output?.groupId) this._groups.add(r.output.groupId);
+                    if (ok) this._addSpend('genUsd', r.output?.costUsd);
                     this._emit('agent:result', {
                         toolCallId,
                         ok,
@@ -1898,6 +1918,7 @@ ${knowledgeIndex}`.trim();
                 messages: handoffMessages,
                 ...(askFor ? { options: { contextWindow: askFor } } : {}),
             });
+            this._addSpend('chatUsd', handoffRes.usage?.estimated_cost);
             const handoffText = handoffRes.text || '';
 
             // Rebuild messages: system + handoff + the last (up to 4) user turns that fit in half
@@ -2109,6 +2130,7 @@ ${knowledgeIndex}`.trim();
                     ? { model, messages: [...this._messages, { role: 'system', content: OUT_OF_ROUNDS }], options: chatOptions }
                     : { model, messages: this._messages, tools: wake ? WAKE_TOOL_DEFS : TOOL_DEFS, options: chatOptions });
                 this._lastUsage = llmRes.usage;
+                this._addSpend('chatUsd', llmRes.usage?.estimated_cost);
 
                 const toolCalls = outOfRounds ? null : llmRes.toolCalls;
 

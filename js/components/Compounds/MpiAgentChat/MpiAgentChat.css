@@ -200,6 +200,7 @@
     gap: var(--s-2);
     padding: var(--s-2) var(--s-3);
     flex-shrink: 0;
+    position: relative;
     border-bottom: 1px solid var(--line-soft);
 }
 
@@ -214,6 +215,18 @@
     font-weight: 600;
     color: var(--ink-2);
     flex: 1;
+}
+
+/* MPI-855 — the session's spend: a quiet readout, never a warning. Centred on the header
+   itself (Fabio), not in the gap between the label and Start over, so it stays put. */
+.mpi-agent-chat__spend {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: var(--t-xs);
+    color: var(--ink-3);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 /* Start over — quiet until it is armed, so it never competes with the transcript */
