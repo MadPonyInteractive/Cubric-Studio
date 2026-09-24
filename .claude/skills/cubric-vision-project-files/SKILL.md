@@ -31,6 +31,10 @@ faster move for bulk analysis.
       <uuid>.thumb.jpg    small preview, cheap for an agent to read
 ```
 
+**A project renamed in the app keeps its OLD folder name.** The name the user sees is
+`name` in `project.json`, not the folder: "Agent tests" lived in `Anime Kids and Dog/`.
+Find a project by that `name` (or the newest `project.json` mtime), never by folder.
+
 **`project.json` → `itemGroups[]`** is the gallery. Each group is one card:
 
 ```json
