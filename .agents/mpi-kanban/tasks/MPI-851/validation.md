@@ -109,3 +109,5 @@ contains the model, so no user's history can reference it.
 - The batch-of-four live check above ran under MPI-876 (`20d85814`, 4 x $0.000492, one `at`).
 
 All of MPI-851's evidence is in. It closes with the commit, on green CI.
+
+**CI GREEN (2026-09-24):** run 36020583772 on `8d229ed5` (descendant of `74d964a3`), unit + desktop 1-4 all success. Closed.

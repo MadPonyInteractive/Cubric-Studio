@@ -102,3 +102,5 @@ questions (Fabio's read).
 - **Not live-checked yet:** Cosmo's new 402 wording (needs a full restart; the limit is still
   $3.00, so one message shows it).
 
+
+**CI GREEN (2026-09-24):** run 36020583772 on `8d229ed5` (descendant of `74d964a3`), unit + desktop 1-4 all success. Closed.
