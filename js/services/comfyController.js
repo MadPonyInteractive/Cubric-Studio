@@ -1206,11 +1206,24 @@ function createEngine({ engine, alwaysLocal }) {
         }
         if (!entry) return;                       // not in history yet → still running
         const status = entry.status;
-        if (!status?.completed) return;           // incomplete → still running
+        // ComfyUI records an error AND an interrupt as `completed: false`, so the
+        // error check comes first — gating on `completed` alone read every failed or
+        // Stopped prompt as still running and polled it forever (MPI-901).
+        if (status?.status_str !== 'error' && !status?.completed) return; // still running
         // Re-check: a live terminal event may have landed during the await.
         if (!this._promptResolvers.has(promptId)) return;
 
         if (status.status_str === 'error') {
+            // Replay the real terminal through the prompt's own listener, like the
+            // success path below: `execution_error` rejects with the node's exception,
+            // `execution_interrupted` finishes the gen the way a live Stop does.
+            const terminal = (status.messages || []).find(([type]) => type === 'execution_error' || type === 'execution_interrupted');
+            const errListener = this._promptListeners.get(promptId);
+            if (terminal && errListener) {
+                clientLogger.warn('comfy', `Reconciled ${terminal[0]} gen ${promptId} from /history via ${source}`);
+                errListener({ type: terminal[0], data: terminal[1] });
+                return;
+            }
             const reject = this._promptRejectors.get(promptId);
             this._stopHistoryPoll(promptId);
             this._promptListeners.delete(promptId);
@@ -1710,10 +1723,14 @@ function createEngine({ engine, alwaysLocal }) {
                 //     app sat in "STARTING" (MPI-139 v0.26 floor regression).
                 // Accept BOTH so the resolve is engine-version-agnostic. `executed`
                 // events (above) have already populated `outputs` by the time either
-                // terminal arrives.
+                // terminal arrives. `execution_interrupted` (a Stop) is a terminal too:
+                // unhandled, it leaked the prompt's listener, resolver and /history poll
+                // for the life of the app (MPI-901). It resolves, never rejects — a Stop
+                // is not a fault, and whatever `executed` already saved still lands.
                 const isTerminalDone =
                     (msg.type === 'executing' && msg.data?.node === null) ||
-                    msg.type === 'execution_success';
+                    msg.type === 'execution_success' ||
+                    msg.type === 'execution_interrupted';
                 if (isTerminalDone) {
                     if (_terminalSafetyTimer) { clearTimeout(_terminalSafetyTimer); _terminalSafetyTimer = null; }
                     if (promptId) {

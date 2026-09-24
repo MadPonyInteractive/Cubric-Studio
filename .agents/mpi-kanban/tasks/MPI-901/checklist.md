@@ -1,0 +1,5 @@
+- [x] Failing test for error/interrupted history settle + execution_interrupted teardown
+- [x] `_reconcileFromHistory` settles an error entry
+- [x] `execution_interrupted` handled as terminal in runWorkflow listener
+- [x] Test green, `npm test` no new failures
+- [x] Doc line in docs/generation-lifecycle.md

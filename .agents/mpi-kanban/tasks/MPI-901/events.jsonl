@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-901", "at": "2026-09-24T08:11:32+01:00", "actor": "claude", "column": "todo", "title": "A remote job that fails or is Stopped never settles from /history, and execution_interrupted is ignored"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-901", "at": "2026-09-24T08:12:22+01:00", "actor": "claude", "from": "todo", "to": "doing"}

@@ -2233,7 +2233,11 @@ export function runCommand(payload) {
             // but the gallery card + status bar hang forever (MPI-152). Handle BOTH
             // so the completion is engine-version-agnostic; `_finishGeneration` is
             // idempotent (whichever terminal arrives first wins).
-            if (msg.type === 'execution_success') {
+            // `execution_interrupted` ends the run the same way (MPI-901): after a
+            // Stop the store is already cancelled and settle() no-ops, and an
+            // interrupt nobody Stopped here still frees the lane. Empty outputs
+            // take generationService's cancelled branch; saved ones still land.
+            if (msg.type === 'execution_success' || msg.type === 'execution_interrupted') {
                 _finishGeneration();
                 return;
             }

@@ -1,0 +1,9 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/services/comfyController.js",
+    "tests/remote-history-settle.test.cjs",
+    "docs/generation-lifecycle.md",
+    "js/services/commandExecutor.js"
+  ]
+}
