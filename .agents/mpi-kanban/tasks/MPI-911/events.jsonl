@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-911", "at": "2026-09-24T14:53:20+01:00", "actor": "claude", "column": "todo", "title": "Rebuild the Seedance 2.0 skill from the Higgsfield director skill"}

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-910",
+  "title": "Seedance 2.0 reference-to-video: wire the reference images, videos and audio",
+  "description": "seedance-2-cloud sends only first_frame_image, so its i2v puts the picture in as frame one of the clip. DeepInfra's ByteDance/Seedance-2.0 in_schema also takes reference_images (up to 9), reference_videos (up to 3), reference_audios (up to 3) and last_frame_image. Add a reference op (identity, location, prop, motion and voice references each with a named job) and a first+last-frame op. The references are URLs or asset:// ids, never uploads, so the real question is hosting: find whether DeepInfra offers an asset upload, else how the app serves a staged file to the provider. The recipe's i2v mode already writes the @Image/@Video tag shape this op would feed; until it ships, that shape names inputs the app never sends (MPI-903 records the routing fact). Found 2026-09-24: a character sheet was about to go in as a Seedance first frame.",
+  "column": "todo",
+  "maturity": "idea",
+  "status": "active",
+  "created_at": "2026-09-24T14:53:05+01:00",
+  "updated_at": "2026-09-24T14:53:05+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

@@ -1538,6 +1538,51 @@ describe('(h) notes, results, names, guides', () => {
         assert.match(toolResults(loop)[0].error.message, /"att_1"/);
         assert.equal(tools.calls.generate.length, 1, 'only the measured call reached the app');
     });
+
+    test('a box that takes over 0.6 of the image is refused, and a second one says stop', async () => {
+        const box = { x: 0, y: 0, width: 700, height: 900 };
+        const swap = (id) => call(id, 'generate', { flowId: 'head-swap', params: { box1: box }, media: [{ role: 'image1', image: 'att_1' }] });
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('l1', 'look', { image: 'att_1', question: 'the head', box: true }),
+            swap('g1'),
+            call('l2', 'look', { image: 'att_1', question: 'the head only', box: true }),
+            { text: 'Please crop it.' },
+        ] });
+        tools.listModels = async () => ({ ok: true, models: [], flows: [{ id: 'head-swap', boxParams: [{ param: 'box1', role: 'image1', ratio: 1 }] }] });
+        tools.look = async () => ({ ok: true, output: { box, square: box, squareShare: { w: 0.7, h: 0.9 } } });
+        loop._images.set('att_1', { path: '/tmp/att_1.png', kind: 'attachment' });
+        await loop.runTurn('Swap the head', [], project, 'auto', 'deepinfra', 't-over');
+        const [look1, gen, look2] = toolResults(loop);
+        assert.match(look1.hint, /whole person, not the head/);
+        assert.equal(gen.error.code, 'BOX_TOO_BIG');
+        assert.match(look2.hint, /Stop measuring/);
+        assert.equal(tools.calls.generate.length, 0);
+    });
+
+    test('with a mask painted, a masked op waits until app:masking is read', async () => {
+        const edit = (id) => call(id, 'generate', { modelId: 'test-model', operation: 'kleinEdit', prompt: 'convert the boy into a demon' });
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            edit('g1'),
+            call('k1', 'read_knowledge', { id: 'app:masking' }),
+            edit('g2'),
+            { text: 'Started.' },
+        ] });
+        tools.listModels = async () => ({ ok: true, models: [{ id: 'test-model', guides: [] }], flows: [] });
+        const workspace = { activeEntry: { filePath: '/project/Media/a.png' }, card: { name: 'a' }, masked: true };
+        await loop.runTurn('make him a demon', [], project, 'auto', 'deepinfra', 't-mask', { workspace });
+        assert.equal(toolResults(loop)[0].error.code, 'KNOWLEDGE_NOT_READ');
+        assert.equal(tools.calls.generate.length, 1, 'only the call after the read reached the app');
+    });
+
+    test('without a mask, the masking doc is not required', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', { modelId: 'test-model', operation: 'kleinEdit', prompt: 'make it night' }),
+            { text: 'Started.' },
+        ] });
+        tools.listModels = async () => ({ ok: true, models: [{ id: 'test-model', guides: [] }], flows: [] });
+        await loop.runTurn('make it night', [], project, 'auto', 'deepinfra', 't-nomask');
+        assert.equal(tools.calls.generate.length, 1);
+    });
 });
 
 // ---------------------------------------------------------------------------

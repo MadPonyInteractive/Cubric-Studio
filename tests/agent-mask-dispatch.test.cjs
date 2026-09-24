@@ -21,7 +21,7 @@ const test = require('node:test');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const { resolveMask, bindMaskedSource, maskedGenerationOpts } = require('../js/shell/agentDispatch.js');
+const { resolveMask, bindMaskedSource, maskedGenerationOpts, countMaskAreas, ONE_AREA_OPS } = require('../js/shell/agentDispatch.js');
 const { setMaskReader, clearMaskReader, activeMask } = require('../js/shell/activeMask.js');
 const { COMMANDS } = require('../js/data/commandRegistry.js');
 const { state } = require('../js/state.js');
@@ -325,4 +325,32 @@ test('maskDataUrl is still the name generationService and commandExecutor read',
     const inject = read('js/services/commandExecutor.js')
         .some((l) => l.includes("params['Input_Mask'] = payload.maskDataUrl"));
     assert.ok(inject, 'commandExecutor no longer injects maskDataUrl as Input_Mask');
+});
+
+// ── One painted area per run on the ops that crop one box ────────────────────
+
+/** A white-on-black RGBA grid with the given filled rectangles [x, y, w, h]. */
+function grid(w, h, rects) {
+    const px = new Uint8ClampedArray(w * h * 4);
+    for (const [rx, ry, rw, rh] of rects) {
+        for (let y = ry; y < ry + rh; y++) for (let x = rx; x < rx + rw; x++) px[(y * w + x) * 4] = 255;
+    }
+    return px;
+}
+
+test('countMaskAreas counts separate areas, merges a stroke gap, ignores specks', () => {
+    assert.equal(countMaskAreas(grid(96, 64, []), 96, 64), 0);
+    assert.equal(countMaskAreas(grid(96, 64, [[10, 10, 20, 20]]), 96, 64), 1);
+    assert.equal(countMaskAreas(grid(96, 64, [[2, 2, 15, 15], [75, 2, 15, 15]]), 96, 64), 2, 'both top corners');
+    assert.equal(countMaskAreas(grid(96, 64, [[10, 10, 10, 10], [21, 10, 10, 10]]), 96, 64), 1, 'a one-cell gap is one stroke');
+    assert.equal(countMaskAreas(grid(96, 64, [[10, 10, 20, 20], [80, 50, 1, 1]]), 96, 64), 1, 'a speck is not an area');
+});
+
+test('several painted areas refuse the one-box ops and pass detail', () => {
+    for (const op of ONE_AREA_OPS) {
+        assert.equal(resolveMask(op, PAINTED, 2).error?.code, 'MASK_SEVERAL_AREAS', `"${op}" ran on two areas`);
+        assert.equal(resolveMask(op, PAINTED, 1).error, undefined, `"${op}" refused one area`);
+        assert.equal(resolveMask(op, PAINTED, null).error, undefined, `"${op}" refused an unreadable count`);
+    }
+    assert.equal(resolveMask('detail', PAINTED, 3).error, undefined, 'detail works each area on its own');
 });

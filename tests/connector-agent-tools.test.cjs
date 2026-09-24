@@ -244,6 +244,17 @@ test('list_models ops carry their media roles, gated per model the way the Promp
     assert.deepEqual(mediaRolesFor(registry, 'no-such-op', findModelDef('ltx-23')), []);
 });
 
+test('a start frame says the clip opens on it, so a character sheet goes to a reference op', async () => {
+    const { mediaRolesFor } = require('../routes/connector');
+    const registry = await esm('js/data/commandRegistry.js');
+    const { findModelDef } = require('../js/data/generationControls.js');
+    const start = mediaRolesFor(registry, 'i2v_ms', findModelDef('minimax-h3')).find((r) => r.role === 'startFrame');
+    assert.match(start.use, /opens on this exact picture/);
+    assert.match(start.use, /character sheet[\s\S]*ref2v_/);
+    assert.ok(mediaRolesFor(registry, 'ref2v_ms', findModelDef('minimax-h3-ref2va')).every((r) => !r.use),
+        'a reference slot carries no first-frame warning');
+});
+
 // ── 4. create-project never mints a case-variant twin (Phase 7) ───────────────
 
 // Live (Fabio, 2026-09-19 10:09Z): "You can place it in the Fanvue project" logged

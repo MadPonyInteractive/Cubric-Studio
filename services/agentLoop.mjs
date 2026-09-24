@@ -440,6 +440,9 @@ const OUT_OF_ROUNDS = 'You are out of tool calls for this turn. In plain words, 
 // happen, and this constant is the knob if the trade ever reads wrong.
 const EARLY_REFUSAL_MS = 1000;
 
+// Ops that run on a painted mask; with one painted, generate wants app:masking read first.
+const MASKED_OPS = new Set(['edit', 'kleinEdit', 'krea2Edit', 'qwenEdit', 'inpaint', 'detail', 'i2i']);
+
 // The project note that holds what was asked for and never landed (`_trackUnfinished`).
 const UNFINISHED_FILE = 'unfinished-generations.md';
 const _isUnfinishedFile = (file) => String(file || '').trim().toLowerCase() === UNFINISHED_FILE;
@@ -564,6 +567,8 @@ export class AgentLoop {
         this._boxSteps = new Map(); // flowId -> its box steps [{param, role}], from list_models
         this._ops = new Map();     // "modelId\nop" -> that op's entry (media slots, params), from list_models
         this._boxed = new Set();   // image paths a `look` with box: true measured (the box gate)
+        this._overBoxed = new Map(); // image path -> measures whose square was too big for a head
+        this._masked = false;      // this turn's open card has a painted mask (the masking gate)
         this._lookWasCached = false; // did the look just served read the card's kept text? (MPI-870)
         this._wakeStreak = 0;      // consecutive wake turns with nothing typed in between (MPI-870)
 
@@ -684,6 +689,7 @@ export class AgentLoop {
         this._guides.clear();
         this._boxSteps.clear();
         this._boxed.clear();
+        this._overBoxed.clear();
         this._wakeStreak = 0;
         try { await this._tools.discardAttachments(staged); } catch { /* non-fatal */ }
     }
@@ -1056,7 +1062,7 @@ export class AgentLoop {
             }
             // The guide belongs to the MODEL, not the card, so it cannot come out differently
             // further down the list: fifty copies of one message is not a report. Stop on it.
-            if (res?.error?.code === 'GUIDE_NOT_READ') return JSON.stringify(res);
+            if (res?.error?.code === 'GUIDE_NOT_READ' || res?.error?.code === 'KNOWLEDGE_NOT_READ') return JSON.stringify(res);
             if (res?.ok) started.push(label);
             else refused.push({ [cards ? 'card' : 'run']: label, code: res?.error?.code || 'ERROR', message: res?.error?.message || 'no reason given' });
         }
@@ -1220,7 +1226,7 @@ export class AgentLoop {
             if (!step) continue; // an unknown param is the app's UNKNOWN_PARAM to report
             const media = Array.isArray(args.media) ? args.media.find((m) => m.role === step.role) : null;
             const ref = media ? this._resolveImage(media.image) : null;
-            if (!ref || !this._boxed.has(ref.path)) return { param, role: step.role, image: media?.image || null };
+            if (!ref || !this._boxed.has(ref.path)) return { param, role: step.role, image: media?.image || null, over: !!ref && this._overBoxed.has(ref.path) };
         }
         return null;
     }
@@ -1478,6 +1484,9 @@ ${knowledgeIndex}`.trim();
                     if (unread) {
                         return JSON.stringify({ ok: false, error: { code: 'GUIDE_NOT_READ', message: `Read this model's prompting guide first: read_knowledge with id "${unread}". Then write the prompt with what it says.` } });
                     }
+                    if (this._masked && MASKED_OPS.has(args.operation) && !this._readIds.has('app:masking')) {
+                        return JSON.stringify({ ok: false, error: { code: 'KNOWLEDGE_NOT_READ', message: 'Nothing was generated: the user has a mask painted and this op runs on it. Read read_knowledge "app:masking" first, then write the prompt for the masked area only and send this again.' } });
+                    }
                     const gap = await this._missingMedia(args);
                     if (gap) {
                         const roles = gap.slots.map((s) => `"${s.role}" (${s.type}${s.required ? ', required' : ''})`).join(', ');
@@ -1494,6 +1503,9 @@ ${knowledgeIndex}`.trim();
                     const miss = await this._unmeasuredBox(args);
                     if (miss) {
                         const where = miss.image ? `"${miss.image}"` : `the image you pass as media role "${miss.role}"`;
+                        if (miss.over) {
+                            return JSON.stringify({ ok: false, error: { code: 'BOX_TOO_BIG', message: `Nothing was generated: the box measured for ${miss.param} on ${where} covers the whole person, not the head. Measure it again with a question that says head only, at most once more; if that is still too big, ask the user to crop the photo to the head.` } });
+                        }
                         return JSON.stringify({ ok: false, error: { code: 'BOX_NOT_MEASURED', message: `Never guess a box. Measure ${miss.param} first: call look on ${where} with box: true and a question naming what to box, then pass the box it returns (its square when the step has ratio 1).` } });
                     }
                 }
@@ -1721,7 +1733,21 @@ ${knowledgeIndex}`.trim();
                 if (args.crop) lookArgs.crop = args.crop;
                 if (args.box) lookArgs.box = args.box;
                 const r = await this._tools.look(lookArgs);
-                if (args.box && r?.ok && r.output?.box) this._boxed.add(ref.path);
+                if (args.box && r?.ok && r.output?.box) {
+                    // ponytail: every box param today is a head (Head Swap), so 0.6 of either
+                    // side is "the whole person"; a Flow boxing something bigger needs its own bound.
+                    const sq = r.output.squareShare;
+                    if (sq && Math.max(sq.w, sq.h) > 0.6) {
+                        const tries = (this._overBoxed.get(ref.path) || 0) + 1;
+                        this._overBoxed.set(ref.path, tries);
+                        this._boxed.delete(ref.path);
+                        r.hint = tries === 1
+                            ? 'This square takes over 0.6 of the image: the describer boxed the whole person, not the head. Do not pass it. Measure once more with a question that says head only, or on a crop around that person.'
+                            : 'Still too big. Stop measuring: tell the user this photo could not be measured, say what came back, and ask them to crop it to the head.';
+                    } else {
+                        this._boxed.add(ref.path);
+                    }
+                }
                 return JSON.stringify(r);
             }
             case 'list_projects': {
@@ -1898,6 +1924,7 @@ ${knowledgeIndex}`.trim();
             this._notesProject = null;
             this._readIds.clear();
             this._boxed.clear();
+            this._overBoxed.clear();
             this._historyEntry('handoff', { text: handoffText });
         } catch (err) {
             // Compaction failure is non-fatal — log and continue
@@ -2046,6 +2073,7 @@ ${knowledgeIndex}`.trim();
             // MPI-890: register the open card's active entry BEFORE the App state line is
             // built, so the line lists it among the refs it is the allowlist for.
             this._registerWorkspaceEntry(workspace);
+            this._masked = !!(workspace?.activeEntry?.filePath && workspace.masked);
             const opening = [this._appStateLine(project, workspace), this._pinnedSettingsLine(pinned), handover, woke, await this._projectNotesLine(project), ...this._notes.splice(0)];
             contentParts.unshift(...opening.filter(Boolean).map((t) => ({ type: 'text', text: t })));
 

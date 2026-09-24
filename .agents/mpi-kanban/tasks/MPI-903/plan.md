@@ -39,7 +39,16 @@ and when, no incident stories, no dates, no "Fabio said"; no repetition; keep he
   for several" (mask blob count at dispatch, `agentDispatch.js` where the mask is read).
 - Head-swap box with squareShare over 0.6 → refuse, "measure again, head only".
 - `look` refusal → the result carries the "switch to the local describer" hint.
-- **Verify:** a unit test per gate, each mutation-proved (remove the check → red).
+- **Identity image vs first frame** (added 2026-09-24, two live misses: a character sheet sent as
+  the Seedance 2.0 first frame, then as the `minimax-h3` (fl2va) start frame when
+  `minimax-h3-ref2va` / `ref2v_ms` was the right op). The fact: an i2v / fl2v image IS frame one of
+  the clip; a character sheet, turnaround or collage is an identity reference and goes to a
+  reference op (`ref2v_*`); no installed reference op → say so and offer t2v or a scene still.
+  Prefer a code home: `describe_model` media roles name the job ("first frame" vs "reference"),
+  and/or the `generate` result on a first-frame op echoes "used as the clip's first frame". Rule
+  only if neither can carry it. Seedance 2.0 has no reference op until MPI-910.
+- **Verify:** a unit test per gate, each mutation-proved (remove the check → red). A harness case
+  for the sheet → reference-op routing.
 
 ### Phase 2 — Rules rewritten
 Per rule: keep + condense (Voice, Model, Route, Settings, Project, Cards, Memory, Chaining, Numbering,
@@ -58,7 +67,19 @@ Target: system prompt ≤ 9 KB. Index lists `app:*` only; `skill:*` leaves the i
 - New `docs/agent/flows.md` (boxes, frame/grow for outpaint) — takes the Box rule and
   `generate.params`' prose.
 - Trim tool descriptions to what the tool does and its args.
-- **Verify:** agent-corpus tests; budget test.
+- **No prices in guides** (added 2026-09-24): `seedance-2.0.md` said $2.07 while the estimate
+  said $1.90. Strip every price from `docs/agent/models/*.md` (seedance-2.0, seedance-1.5,
+  kling-3.0); the estimate / confirm card is the one home. Relative cost words ("the dearest
+  non-Veo model") may stay. The budget test's story ban gains a `\$\d` check over `docs/agent/`.
+- **200 lines per agent doc; a model may be a folder of skills** (Fabio, 2026-09-24).
+  `docs/agent/models/<id>.md` stays the router the gate requires (≤ 200 lines: when to pick the
+  model, settings, the core prompt shape, and which sub-skill to read for what);
+  `docs/agent/models/<id>/<topic>.md` are sub-skills, each ≤ 200 lines, listed as
+  `guide:<id>/<topic>` by `agentCorpus.mjs` and returned in `describe_model`'s guide ids beside
+  the router. Only the router is gated. `masking.md` (222 lines today) falls under the same cap.
+  No model needs a folder yet; MPI-911 (Seedance rebuild) is the first user.
+- **Verify:** agent-corpus tests (a fixture folder yields router + sub-skill ids; only the router
+  gates); budget test asserts every `docs/agent/**/*.md` ≤ 200 lines.
 
 ### Phase 4 — Prove
 - `npm run agent:test` × 3 again; every case at or above baseline. `--bite` still bites.
@@ -74,4 +95,6 @@ All phases.
 
 ## Plan Drift
 
-(none yet)
+- 2026-09-24 (before Phase 0, Fabio approved): added the identity-image routing gate (Phase 1),
+  no prices in guides and the 200-line / skill-folder rule (Phase 3). Spun out MPI-910 (Seedance
+  reference op) and MPI-911 (Seedance skill rebuild from the Higgsfield director skill).

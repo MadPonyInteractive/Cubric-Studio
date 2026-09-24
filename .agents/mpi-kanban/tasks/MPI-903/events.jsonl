@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-903", "at": "2026-09-24T13:42:37+01:00", "actor": "claude", "column": "todo", "title": "Agent knowledge: rules route, docs teach"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-903", "at": "2026-09-24T14:55:32+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "beginImplementation: plan amended with Fabio (identity-image gate, no prices in guides, 200-line skill folders); Phase 0 baseline next"}

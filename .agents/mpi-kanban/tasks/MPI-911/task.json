@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-911",
+  "title": "Rebuild the Seedance 2.0 skill from the Higgsfield director skill",
+  "description": "Our Seedance 2.0 guide and recipe come from ten community blog posts; the vendor-skill step (docs/recipes/playbook/08-vendor-prompt-skills.md) was deferred while Seedance sat outside v1.0 and never run after MPI-853 shipped it. Fabio supplied Higgsfield's Seedance director skill, built from thousands of production generations, and names it the more accurate source (kept out of git: .agents/mpi-kanban/private/seedance-skills/, with the ACTING, LIRA and prompt-builder-2-5 skills beside it). It disagrees with ours where it matters: lens by diagonal field of view in degrees, never mm or f-stops; a short optional quality suffix, not a long mandatory one; first-frame occupancy, spatial blocking, gaze and landmark locks; lighting as a lock; minimal identity anchors per reference; local positive locks over negative blocks. Heal via /create-enhancer-recipe: rewrite recipe modes and docs/agent/models/seedance-2.0 in our own words (third-party text, never shipped verbatim), record adopted and rejected conventions with reasons, and compare against the top GitHub Seedance skills. Every agent doc stays <= 200 lines, so this model becomes a folder of skills behind one router (MPI-903 adds the folder support). Depends on MPI-903.",
+  "column": "todo",
+  "maturity": "idea",
+  "status": "active",
+  "created_at": "2026-09-24T14:53:20+01:00",
+  "updated_at": "2026-09-24T14:53:20+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

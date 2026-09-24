@@ -129,8 +129,15 @@ function mediaRolesFor(registry, op, model) {
     type: i.mediaType,
     required: !!i.required,
     ...(i.tag ? { tag: i.tag } : {}),
+    ...(ROLE_USE[i.key] ? { use: ROLE_USE[i.key] } : {}),
   }));
 }
+
+/** What a frame slot DOES, where the role name alone reads like "an image of the subject". */
+const ROLE_USE = {
+  startFrame: 'The clip opens on this exact picture. A character sheet, turnaround or collage is not a first frame: send it to a reference-to-video op (ref2v_*) as a reference, or tell the user no installed model has one.',
+  endFrame: 'The clip ends on this exact picture.',
+};
 router.mediaRolesFor = mediaRolesFor;
 let _memoryMod = null;
 async function _memory() {

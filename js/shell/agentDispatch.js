@@ -237,12 +237,73 @@ export function resolveSettingsOwner(input = {}, pinned, project, pinnedM) {
  *   right now, the image it was drawn over and the card that owns it, or null.
  * @returns {{ maskDataUrl: string|null, maskUrl: string|null, maskGroupId: string|null, error?: { code: string, message: string } }}
  */
-export function resolveMask(operation, mask) {
+export function resolveMask(operation, mask, areas = null) {
     if (!mask?.dataUrl && getCommand(operation)?.requiresMask) {
         return { maskDataUrl: null, maskUrl: null, maskGroupId: null, error: { code: 'MASK_UNSUPPORTED',
             message: `Nothing was generated: "${operation}" only runs on a painted mask, and none is painted. Ask the user to click the card in the gallery to open it, choose the Mask tool from the toolbar down the left, and paint over the area to change; send this again once they say it is drawn. You cannot paint it yourself.` } };
     }
+    if (mask?.dataUrl && areas > 1 && ONE_AREA_OPS.has(operation)) {
+        return { maskDataUrl: null, maskUrl: null, maskGroupId: null, error: { code: 'MASK_SEVERAL_AREAS',
+            message: `Nothing was generated: the mask has ${areas} separate painted areas, and "${operation}" crops one box around all of them, so the result comes back unchanged. Ask the user to keep ONE area and run each area as its own edit, or use detail, which works each area on its own and takes one noun phrase per area.` } };
+    }
     return { maskDataUrl: mask?.dataUrl || null, maskUrl: mask?.url || null, maskGroupId: mask?.groupId || null };
+}
+
+/** Ops that crop ONE box around every painted area (InpaintCrop), unlike `detail`. */
+export const ONE_AREA_OPS = new Set(['edit', 'kleinEdit', 'krea2Edit', 'qwenEdit', 'inpaint']);
+
+/**
+ * Separate painted areas in a white-on-black mask, 8-connected on a coarse grid so a
+ * stroke's own gaps do not split it. Specks under 0.5% of the grid are ignored.
+ * ponytail: one grid-cell dilation; strokes two cells apart count as one area, which is
+ * right for a crop box that small.
+ * @param {Uint8ClampedArray} rgba @param {number} w @param {number} h
+ */
+export function countMaskAreas(rgba, w, h) {
+    const on = new Uint8Array(w * h);
+    for (let i = 0; i < w * h; i++) if (rgba[i * 4] > 127) on[i] = 1;
+    const grown = on.slice();
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        if (!on[y * w + x]) continue;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+            const nx = x + dx, ny = y + dy;
+            if (nx >= 0 && ny >= 0 && nx < w && ny < h) grown[ny * w + nx] = 1;
+        }
+    }
+    const seen = new Uint8Array(w * h);
+    const minCells = Math.max(1, Math.round(w * h * 0.005));
+    let areas = 0;
+    for (let start = 0; start < w * h; start++) {
+        if (!grown[start] || seen[start]) continue;
+        let size = 0;
+        const stack = [start];
+        seen[start] = 1;
+        while (stack.length) {
+            const i = stack.pop();
+            if (on[i]) size++;
+            const x = i % w, y = (i / w) | 0;
+            for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+                const nx = x + dx, ny = y + dy, j = ny * w + nx;
+                if (nx >= 0 && ny >= 0 && nx < w && ny < h && grown[j] && !seen[j]) { seen[j] = 1; stack.push(j); }
+            }
+        }
+        if (size >= minCells) areas++;
+    }
+    return areas;
+}
+
+/** Decode a mask data URL to a 96px grid and count its areas; null when it cannot be read. */
+async function _maskAreas(dataUrl) {
+    try {
+        const bmp = await createImageBitmap(await (await fetch(dataUrl)).blob());
+        const scale = 96 / Math.max(bmp.width, bmp.height);
+        const w = Math.max(1, Math.round(bmp.width * scale)), h = Math.max(1, Math.round(bmp.height * scale));
+        const ctx = new OffscreenCanvas(w, h).getContext('2d');
+        ctx.drawImage(bmp, 0, 0, w, h);
+        return countMaskAreas(ctx.getImageData(0, 0, w, h).data, w, h);
+    } catch {
+        return null;
+    }
 }
 
 /**
@@ -394,7 +455,7 @@ export function bindMaskedSource(mediaItems, maskUrl) {
  * unreported job leaves the caller's HTTP request hanging until the route's
  * timeout, which reads as a dead app.
  */
-function _submitGeneration(jobId, input = {}) {
+async function _submitGeneration(jobId, input = {}) {
     // A Flow is an OPERATION with no model (`model.id: null`), so it can never
     // arrive as a modelId and needs its own resolution. One capability either way:
     // the caller asks for a generation, and `flowId` is what says which kind.
@@ -434,7 +495,9 @@ function _submitGeneration(jobId, input = {}) {
             : `"${operation}" is not available on ${model.name || modelId} — unsupported, or its weights are not installed.`);
     }
 
-    const mask = resolveMask(operation, activeMask());
+    const painted = activeMask();
+    const areas = painted && ONE_AREA_OPS.has(operation) ? await _maskAreas(painted.dataUrl) : null;
+    const mask = resolveMask(operation, painted, areas);
     if (mask.error) {
         return _fail(jobId, mask.error.code, mask.error.message);
     }
