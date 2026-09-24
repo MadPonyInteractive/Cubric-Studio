@@ -1,1 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-902", "at": "2026-09-24T08:39:38+01:00", "actor": "claude", "column": "todo", "title": "Warn the user to update their NVIDIA driver when it is too old for the local engine"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-902", "at": "2026-09-24T13:10:59+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-902", "at": "2026-09-24T13:13:47+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Implemented and self-verified; see validation.md."}

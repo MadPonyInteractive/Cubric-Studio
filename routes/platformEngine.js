@@ -169,7 +169,8 @@ async function detectNvidiaGPU() {
     // Driver max-supported CUDA from the bare-call header (stdout).
     let cudaVersion = null;
     const headerRes = await _run('nvidia-smi', []);
-    const headerMatch = headerRes.stdout.match(/CUDA Version:\s+([\d.]+)/);
+    // r6xx drivers print `CUDA UMD Version: 13.4`; older ones `CUDA Version: 12.6`.
+    const headerMatch = headerRes.stdout.match(/CUDA (?:UMD )?Version:\s+([\d.]+)/);
     if (headerMatch) cudaVersion = headerMatch[1];
 
     logger.info('gpu-detect', `NVIDIA GPU detected: ${hasGPU ? gpuName : 'none'}, CUDA: ${cudaVersion || 'unknown'}`);
@@ -224,6 +225,56 @@ function selectNvidiaBuild(gpuName, cudaVersion) {
         if (maj < 11) return NVIDIA_LEGACY; // ancient driver → old card
     }
     return NVIDIA_DEFAULT;
+}
+
+/**
+ * The CUDA version the INSTALLED engine's torch was built for, read off its
+ * `torch-<ver>+cuNNN.dist-info` folder (`cu130` → "13.0"). Ground truth for what the
+ * driver must support: the build that was downloaded, whatever selected it.
+ * Windows embeds site-packages beside python.exe; a uv venv keeps it under lib/.
+ * @param {string} pythonPath  getPythonBin() result
+ * @returns {Promise<string|null>} null for a CPU/ROCm/MPS torch or an unreadable engine
+ */
+async function readEngineTorchCuda(pythonPath) {
+    const fs = require('fs').promises;
+    const binDir = path.dirname(pythonPath);
+    const candidates = [path.join(binDir, 'Lib', 'site-packages')];
+    const libDir = path.join(binDir, '..', 'lib');
+    for (const d of await fs.readdir(libDir).catch(() => [])) {
+        if (d.startsWith('python')) candidates.push(path.join(libDir, d, 'site-packages'));
+    }
+    for (const dir of candidates) {
+        for (const name of await fs.readdir(dir).catch(() => [])) {
+            const m = name.match(/^torch-[^+]+\+cu(\d+)(\d)\.dist-info$/);
+            if (m) return `${m[1]}.${m[2]}`;
+        }
+    }
+    return null;
+}
+
+// Minimum Windows driver branch per CUDA major, for the message only (NVIDIA's
+// CUDA toolkit/driver table). No entry → the message just says "the latest".
+const MIN_DRIVER_FOR_CUDA_MAJOR = { 12: '528', 13: '580' };
+
+/**
+ * Why this driver cannot run this torch, or null when it can (or either is unknown).
+ * CUDA keeps minor-version compatibility inside a major but none across majors, so
+ * a driver on CUDA 12.x cannot load a cu130 torch at all: `cudaGetDeviceCount`
+ * returns cudaErrorNotSupported and the engine dies with access violation
+ * 3221225477 — nothing on screen says "driver" (MPI-902).
+ * @param {string|null} driverCuda  nvidia-smi header, e.g. "12.6"
+ * @param {string|null} torchCuda   readEngineTorchCuda(), e.g. "13.0"
+ * @returns {string|null}
+ */
+function driverTooOldReason(driverCuda, torchCuda) {
+    const driverMajor = parseInt(driverCuda, 10);
+    const torchMajor = parseInt(torchCuda, 10);
+    if (!(driverMajor < torchMajor)) return null;
+    const minDriver = MIN_DRIVER_FOR_CUDA_MAJOR[torchMajor];
+    return `Your NVIDIA driver is too old for the local engine: it supports CUDA ${driverCuda}, `
+        + `the engine needs CUDA ${torchCuda}. Update your NVIDIA driver `
+        + `(${minDriver ? `version ${minDriver} or newer` : 'the latest version'}, from nvidia.com or the NVIDIA app), `
+        + 'then start the engine again.';
 }
 
 // Arch classifier: the SINGLE source of truth is the browser-safe ESM module
@@ -408,6 +459,8 @@ module.exports = {
     getComfyRepoRel,
     resolveDownloadConfig,
     selectNvidiaBuild,
+    readEngineTorchCuda,
+    driverTooOldReason,
     gpuArch,
     resolveUvBin,
     getEngineRoot,

@@ -41,7 +41,7 @@ const {
     curatedDepsPending,
     curatedDepsFailure,
 } = require('./shared');
-const { getPythonBin, getComfyPath, getEngineRoot, resolveDownloadConfig } = require('./platformEngine');
+const { getPythonBin, getComfyPath, getEngineRoot, resolveDownloadConfig, readEngineTorchCuda, driverTooOldReason } = require('./platformEngine');
 const remoteModels = require('./remoteModels');
 const { beginEngineJob } = require('./engineJobs');
 
@@ -615,6 +615,16 @@ router.post('/comfy/start', async (req, res) => {
         //    CPU and --lowvram is an NVIDIA/CUDA-oriented flag, neither correct here.
         const { gpu } = await resolveDownloadConfig();   // cached after first detect
         const vendor = gpu && gpu.vendor;
+        // MPI-902: a driver older than the engine's torch CUDA major cannot start it —
+        // the process dies with an access violation that says nothing about drivers.
+        // Refuse with the fix instead; the client shows this as the start error.
+        if (vendor === 'nvidia') {
+            const driverReason = driverTooOldReason(gpu.cudaVersion, await readEngineTorchCuda(pythonPath));
+            if (driverReason) {
+                logger.error('comfy', `Not starting ComfyUI — ${driverReason}`);
+                return res.status(500).json({ error: driverReason });
+            }
+        }
         const useCpu = !vendor;
         let modeArgs;
         if (vendor === 'apple') {
