@@ -14,3 +14,5 @@ Verify mode: auto. All checks run 2026-09-24.
   message (`comfyController.js` ~line 485).
 
 Not verified: the dialog on a real old-driver box (the field tester already updated his driver).
+
+- CI: Tests run 35998110320 on 7984c3e1 -> completed success. Claim audit: 0 FALSE, 14 proven, 4 live-only readings.
