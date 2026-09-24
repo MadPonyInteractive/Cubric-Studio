@@ -537,9 +537,15 @@ test('a result card opens its card history, only for a card the open project hol
       router.onNavigate((page, params) => window.__navs.push({ page, groupId: params.groupId }));
       state.currentProject = {
         id: 'p1', name: 'P', folderPath: '/p',
-        itemGroups: [{ id: 'g-in', type: 'image', items: [] }, { id: 'g-audio', type: 'audio', items: [] }],
+        // MPI-891: a result that MADE its card (history[0]) opens the gallery; a later entry
+        // opens that card's history; audio has no history view, so it is always the gallery.
+        itemGroups: [
+          { id: 'g-in', type: 'image', items: [], history: [{ id: 'i-earlier' }] },
+          { id: 'g-new', type: 'image', items: [], history: [{ id: 'i-g-new' }] },
+          { id: 'g-audio', type: 'audio', items: [] },
+        ],
       };
-      for (const groupId of ['g-out', 'g-audio', 'g-in']) {
+      for (const groupId of ['g-out', 'g-audio', 'g-new', 'g-in']) {
         window.__fireSse('agent:result', {
           toolCallId: groupId, ok: true,
           output: { itemId: `i-${groupId}`, groupId, type: 'image', filePath: `/tmp/${groupId}.png` },
@@ -549,9 +555,13 @@ test('a result card opens its card history, only for a card the open project hol
     await window.waitForTimeout(200);
 
     const cards = window.locator('#e2e-agent-host .mpi-agent-chat__result-card');
-    await expect(cards).toHaveCount(3);
-    for (let i = 0; i < 3; i++) await cards.nth(i).click();
-    expect(await window.evaluate(() => window.__navs)).toEqual([{ page: 'group-history', groupId: 'g-in' }]);
+    await expect(cards).toHaveCount(4);
+    for (let i = 0; i < 4; i++) await cards.nth(i).click();
+    expect(await window.evaluate(() => window.__navs)).toEqual([
+      { page: 'gallery', groupId: undefined },
+      { page: 'gallery', groupId: undefined },
+      { page: 'group-history', groupId: 'g-in' },
+    ]);
 
     expect(pageErrors).toEqual([]);
   } finally {
