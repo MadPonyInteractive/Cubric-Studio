@@ -30,5 +30,13 @@ sequence: `/migrate-project`, then `/load-meta-batch` on the folderPath it retur
 - Fixed, first open: `withMeta: 153, exists: 153, wouldDelete: 0, namingOldRoot: 0`, 256 ms.
 - Fixed, second open: same, 39 ms (nothing left to heal).
 
+## Close-out, 2026-09-24
+
+- CI `Tests` run 35953346495 on f89a8562: completed success.
+- Claim auditor: 22 proven, 1 overstated, 1 unproven (suite count, not re-run by it; CI
+  re-ran it green). OVERSTATED, in the f89a8562 commit body only: list/get/validate-project
+  stamp `folderPath` in the RESPONSE, they do not persist it; persisting is new with
+  `/migrate-project`. `docs/project-integrity.md` states it correctly.
+
 The Electron app was not booted (the `app:isolated` boot-repair risk to the real engine);
 the renderer path past these two routes is unchanged code.

@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-898", "at": "2026-09-22T22:53:01+01:00", "actor": "claude (506e5d9c)", "from": "todo", "to": "doing", "reason": "Implementation started."}
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-898", "at": "2026-09-22T23:00:37+01:00", "actor": "claude (506e5d9c)", "note": "specs red on HEAD, green after; suite 1807/0; live real-project copy 153/153 found"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-898", "at": "2026-09-22T23:00:37+01:00", "actor": "claude (506e5d9c)", "from": "doing", "to": "doing", "reason": "Auto-verified; awaiting close-out commit."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-898", "at": "2026-09-24T05:02:47+01:00", "actor": "claude (506e5d9c)", "from": "doing", "to": "done", "reason": "Verified: specs red->green, CI 35953346495 green on f89a8562, live 153/153 on a renamed real project copy."}
