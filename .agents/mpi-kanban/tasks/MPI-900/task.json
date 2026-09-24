@@ -3,11 +3,11 @@
   "id": "MPI-900",
   "title": "Outpaint fills a big extension in steps, grows in the direction asked, and can run on Klein",
   "description": "Fabio, 2026-09-24, live test of MPI-891: asked the agent to 'expand this image up' (i2i_005, 1280x800) to add text at the top for an Instagram post. The agent sent Outpaint at 4:5 and it failed twice over. (1) NO DIRECTION: js/shell/agentDispatch.js frameRectForRatio always CENTRES the source, so 8:5 -> 4:5 grows top AND bottom evenly; the agent has no way to say 'grow upward' (anchor the source to the bottom). (2) TOO MUCH IN ONE PASS: the fill was ~50% of the frame; one Outpaint pass only holds ~25%. Fabio did it by hand in two passes: Free frame grown ~25% up, then a second pass to 4:5 (screenshots in the MPI-891 thread). Scope, his words: 'open up a card to automate this flow for situations like this, so that the agent wouldn't have to do what I just did in different steps.' The Flow itself should: (a) when the area to fill is over ~25%, work it out and fill it step by step on its own; (b) offer another model (Klein) that does the same job faster. Plus the agent half: a direction/anchor on the frame so 'expand up' grows only the top. Not in scope: Flows landing in the gallery (confirmed fine, 2026-09-24).",
-  "column": "doing",
-  "maturity": "validating",
-  "status": "active",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
   "created_at": "2026-09-24T05:12:49+01:00",
-  "updated_at": "2026-09-24T07:20:00Z",
+  "updated_at": "2026-09-24T09:30:00Z",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -19,8 +19,8 @@
     "research": "research/"
   },
   "attention": {
-    "state": "required",
-    "reason": "Live Outpaint run on Klein 9B: original pixels unchanged, no seam",
-    "updated_at": "2026-09-24T07:20:00Z"
+    "state": "cleared",
+    "reason": "Fabio verified live 2026-09-24: no seam, original unchanged",
+    "updated_at": "2026-09-24T09:30:00Z"
   }
 }
