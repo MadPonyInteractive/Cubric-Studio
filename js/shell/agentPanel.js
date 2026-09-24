@@ -22,7 +22,7 @@ import { Storage, clampAgentPanelWidth } from '../core/storage.js';
 import { agentInitStream } from '../services/agentService.js';
 import { Hotkeys }         from '../managers/hotkeyManager.js';
 import { gid }             from '../utils/dom.js';
-import { navigate, PAGE_GROUP_HISTORY } from '../router.js';
+import { navigate, PAGE_GALLERY, PAGE_GROUP_HISTORY } from '../router.js';
 
 const OPEN = 'agent-panel-mount--open';
 const RESIZING = 'agent-panel-mount--resizing';
@@ -70,12 +70,20 @@ export function initAgentPanel() {
         state.agentMode = !state.agentMode;
     });
 
-    // 7. A result card in either chat opens that card's history, the way a gallery click
-    // does (audio has no history view there either). Only a card the open project holds:
-    // the landing chat has no project, and a card from an earlier project is not here.
+    // 7. A result card in either chat takes the user to where that result lives. Only a
+    // card the open project holds: the landing chat has no project, and a card from an
+    // earlier project is not here. Audio has no history view, so it is always the gallery.
+    //
+    // MPI-891 (D3, Fabio 2026-09-22): "pressing the card the agent hands back should bring
+    // them to the gallery". A result that MADE the card (its first entry: every Flow, every
+    // new picture) lives in the gallery; one that landed as a card's next entry lives in that
+    // card's history. ponytail: no scroll-to-card, a new card sorts to the top by default.
     // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener, like the one above
-    Events.on('gallery:open-card', ({ groupId } = {}) => {
+    Events.on('gallery:open-card', ({ itemId, groupId } = {}) => {
         const group = state.currentProject?.itemGroups?.find((g) => g.id === groupId);
-        if (group && group.type !== 'audio') navigate(PAGE_GROUP_HISTORY, { groupId });
+        if (!group) return;
+        const madeTheCard = group.history?.[0]?.id === itemId;
+        if (madeTheCard || group.type === 'audio') navigate(PAGE_GALLERY);
+        else navigate(PAGE_GROUP_HISTORY, { groupId });
     });
 }

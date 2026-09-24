@@ -158,12 +158,16 @@ router.post('/agent/message', async (req, res) => {
                     // data URL is hundreds of MB, and it is already a file of the open project.
                     // Nothing is copied; the path is only honoured inside that project's Media/,
                     // because the loop ships what it registers to the engine, maybe a remote Pod.
+                    // MPI-886: a gallery CARD dragged onto the chat takes the same road, carrying
+                    // its group id too, so the agent holds the card and not a copy of its picture.
                     if (!att.dataUrl && att.url) {
                         const { ownedMedia } = await import('../services/agentCards.mjs');
+                        const mediaType = att.mediaType === 'image' ? 'image' : 'video';
                         const owned = project?.folderPath ? ownedMedia(project.folderPath, att.url) : null;
-                        if (!owned) throw new Error('A video can be handed to the agent only from the open project.');
+                        if (!owned) throw new Error(`A ${mediaType} can be handed to the agent by reference only from the open project.`);
                         stagedAttachments.push({ id: path.basename(owned), name: att.name, filePath: owned,
-                            reference: true, mediaType: 'video', itemId: typeof att.itemId === 'string' ? att.itemId : null });
+                            reference: true, mediaType, itemId: typeof att.itemId === 'string' ? att.itemId : null,
+                            groupId: typeof att.groupId === 'string' ? att.groupId : null });
                         continue;
                     }
                     const { id, filePath } = await tools.saveAttachment(att.name, att.dataUrl);

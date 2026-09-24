@@ -438,10 +438,10 @@
     margin-top: var(--s-1);
 }
 
-/* Result card */
+/* Result card. Sized BY its media, long side capped: a fixed landscape box with
+   `object-fit: cover` cropped every portrait result (Fabio, 2026-09-24). */
 .mpi-agent-chat__result-card {
-    width: 120px;
-    height: 80px;
+    width: fit-content;
     border: 2px solid var(--accent-heat);
     border-radius: var(--r-sm);
     overflow: hidden;
@@ -455,14 +455,16 @@
 }
 
 .mpi-agent-chat__result-card :is(img, video) {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+    max-width: 120px;
+    max-height: 120px;
     display: block;
 }
 
-/* The file did not load — a stopped generation, or one whose media never landed. */
+/* The file did not load — a stopped generation, or one whose media never landed. No
+   media to size it, so it keeps the old fixed box. */
 .mpi-agent-chat__result-card--unavailable {
+    width: 120px;
+    height: 80px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -589,9 +591,10 @@
 }
 
 .mpi-agent-chat__attachment-thumb {
-    width: 40px;
     height: 40px;
-    object-fit: cover;
+    width: auto;
+    max-width: 72px;
+    object-fit: contain;
     border-radius: var(--r-sm);
     border: 1px solid var(--line-soft);
     cursor: pointer;

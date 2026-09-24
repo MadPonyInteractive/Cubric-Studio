@@ -44,6 +44,8 @@ import { submitFlowGeneration } from '../services/flowService.js';
 import { openProject, renameGroup, markGroup } from '../services/projectService.js';
 import { CARD_MARKS, markOf, matchesGallerySort, byGalleryOrder, describeGalleryFilter, isGalleryFiltered } from '../utils/galleryFilter.js';
 import { navigate, PAGE_GALLERY, PAGE_GROUP_HISTORY } from '../router.js';
+import { on } from '../utils/dom.js';
+import { Overlays } from '../managers/overlayManager.js';
 import { activeMask } from './activeMask.js';
 import { MODELS, getModelById, isOperationInstalled, getModelDepStatus } from '../data/modelRegistry.js';
 import { DEPS } from '../data/modelConstants/dependencies.js';
@@ -277,22 +279,88 @@ export function maskedGenerationOpts(maskGroupId) {
  * result landed as a new gallery card while the open workspace drew nothing. The rule
  * above ("a maskless one names no card") predates the agent knowing where the user is.
  *
- * Only when the edited picture — the first media item, which `resolveAgentMedia` sorts
- * into the op's declared slot order — is an entry of THAT open card. A card the user is
- * not looking at still goes to the gallery; moving the view is MPI-891's.
+ * Keyed on the edited picture — the first media item, which `resolveAgentMedia` sorts
+ * into the op's declared slot order.
+ *
+ * MPI-891 (D4, Fabio 2026-09-22) widened it from the OPEN card to the card that OWNS the
+ * entry: "If the agent is going to perform something like an edit to an image, that needs
+ * to happen in the history workspace." `_followWork` then opens that history. A card that
+ * is not open must also hold the output's media type — a still turned into a clip is a new
+ * card, not a video entry in an image card. The open card keeps MPI-890's rule unchanged.
  *
  * @param {Array<{url:string}>} mediaItems
+ * @param {string} [mediaType] - the output's `model.mediaType`
  * @returns {{ existingGroup: object, scope: string, groupId: string }|null}
  */
-export function workspaceGenerationOpts(mediaItems) {
-    const groupId = state.currentPage === PAGE_GROUP_HISTORY ? state.currentParams?.groupId : null;
+export function workspaceGenerationOpts(mediaItems, mediaType = 'image') {
+    const openId = state.currentPage === PAGE_GROUP_HISTORY ? state.currentParams?.groupId : null;
     const source = extractAbsPath(mediaItems?.[0]?.url);
-    if (!groupId || !source) return null;
-    const group = (state.currentProject?.itemGroups || []).find(g => g.id === groupId);
+    if (!source) return null;
     const same = (p) => p?.replace(/\\/g, '/').toLowerCase() === source.replace(/\\/g, '/').toLowerCase();
-    return group?.history?.some(item => same(extractAbsPath(item?.filePath)))
-        ? { existingGroup: group, scope: 'groupHistory', groupId: group.id }
-        : null;
+    const owns = (g) => g?.history?.some(item => same(extractAbsPath(item?.filePath)));
+    const groups = state.currentProject?.itemGroups || [];
+    const open = groups.find(g => g.id === openId);
+    const group = owns(open) ? open : groups.find(g => g.type === mediaType && owns(g));
+    return group ? { existingGroup: group, scope: 'groupHistory', groupId: group.id } : null;
+}
+
+// ── MPI-891: the view follows the work ───────────────────────────────────────────────
+// Fed by app-lifetime listeners in `initAgentDispatch`. Module state, not `state`: nothing
+// renders from either, and a pointer bit in the Proxy would fire `state:changed` per click.
+let _pointerHeld = false;
+let _overlayDepth = 0;
+
+/** Canvas modes that are the user WORKING: a brush, a crop, a composite slot. */
+const BUSY_CANVAS_MODES = new Set(['mask', 'paint', 'composite', 'crop']);
+
+/**
+ * Why the view must NOT move now, or null when it may (D2). Never mid-gesture: taking the
+ * screen while the user paints a mask or drags a composite slot is hostile. An open
+ * overlay (a Flow, the Model Manager, a modal) is its own surface — navigating under it
+ * changes nothing they can see.
+ *
+ * @param {{ pointerHeld?: boolean, overlayDepth?: number, canvasMode?: string|null }} [now]
+ * @returns {string|null}
+ */
+export function followBlocker({ pointerHeld = _pointerHeld, overlayDepth = _overlayDepth, canvasMode = state.canvasMode } = {}) {
+    if (pointerHeld) return 'pointer-held';
+    if (overlayDepth > 0) return 'overlay-open';
+    if (BUSY_CANVAS_MODES.has(canvasMode)) return `canvas-${canvasMode}`;
+    return null;
+}
+
+/**
+ * Take the user to where an agent job renders (D1): its card's history when it lands in a
+ * card, else the gallery. Only on `input.follow` — the loop sets it on a turn the user
+ * typed, never on a wake or a carry, and a CLI agent never sends it. Called BEFORE the
+ * enqueue, so the target workspace is mounted when the first frame arrives.
+ *
+ * ponytail: no word back to the model on a refusal. `/connector/generate` holds its reply
+ * for the whole render, so there is no early channel; the chat's result card is the click
+ * (D3). Add a relay ack if the agent ever has to SAY it stayed.
+ *
+ * @param {{ follow?: boolean }} input
+ * @param {{ groupId: string }|null} historyOpts
+ * @param {Parameters<typeof followBlocker>[0]} [now] - for tests; the live signals otherwise
+ * @returns {{ page: string, params: object }|null} where to go, or null to stay
+ */
+export function followTarget(input, historyOpts, now) {
+    if (!input?.follow || !state.currentProject) return null;
+    const page = historyOpts ? PAGE_GROUP_HISTORY : PAGE_GALLERY;
+    const here = state.currentPage === page
+        && (!historyOpts || state.currentParams?.groupId === historyOpts.groupId);
+    if (here) return null;
+    const blocked = followBlocker(now);
+    if (blocked) {
+        clientLogger.info('connector', `agent job renders on ${page}; view stays (${blocked})`);
+        return null;
+    }
+    return { page, params: historyOpts ? { groupId: historyOpts.groupId } : {} };
+}
+
+function _followWork(input, historyOpts) {
+    const to = followTarget(input, historyOpts);
+    if (to) navigate(to.page, to.params);
 }
 
 /**
@@ -418,7 +486,7 @@ function _submitGeneration(jobId, input = {}) {
     // where a Cue press in that workspace goes — no gallery placeholder, because a
     // `groupHistory` gen owns its own frames (MpiGroupHistoryBlock's `scope !==
     // 'groupHistory'` guard is what draws them).
-    const historyOpts = maskedGenerationOpts(mask.maskGroupId) || workspaceGenerationOpts(mediaItems);
+    const historyOpts = maskedGenerationOpts(mask.maskGroupId) || workspaceGenerationOpts(mediaItems, model.mediaType || 'image');
 
     // A gallery gen MUST carry a tempId + placeholderGroup or the run is invisible
     // until it finishes: MpiGalleryBlock draws in-progress cards from the
@@ -444,6 +512,7 @@ function _submitGeneration(jobId, input = {}) {
     const extraTempIds = Array.from({ length: Math.max(1, Number(mergedInjection.Input_Batch_Size) || 1) - 1 }, () => crypto.randomUUID());
     const extraPlaceholders = extraTempIds.map((id) => ({ ...placeholderGroup, id, history: [] }));
 
+    _followWork(input, historyOpts);
     const queued = enqueueGeneration(config, {
         // A card name names a NEW card. Added to the user's own card, it would rename theirs.
         onComplete: (done) => _reportDone(jobId, done, historyOpts ? undefined : input.cardName, named.duration, model.id),
@@ -743,6 +812,8 @@ async function _submitFlow(jobId, input = {}) {
 
     const injectionParams = { ...fieldInjection, ...boxInjection };
 
+    // A Flow always lands in the gallery (Fabio, 2026-09-22), so that is where it is watched.
+    _followWork(input, null);
     const queued = submitFlowGeneration(flow, {
         ...inputs,
         mediaItems,
@@ -1145,6 +1216,15 @@ export function initAgentDispatch() {
     if (_source) return;
 
     _source = new EventSource('/connector/jobs/stream');
+
+    // MPI-891 — `followBlocker`'s inputs, app-lifetime like the stream (never torn down).
+    // Capture phase, so a canvas that stops propagation still counts as a held button.
+    const release = () => { _pointerHeld = false; };
+    on(document, 'pointerdown', () => { _pointerHeld = true; }, true);
+    on(document, 'pointerup', release, true);
+    on(document, 'pointercancel', release, true);
+    on(window, 'blur', release);
+    Overlays.onDepthChange((depth) => { _overlayDepth = depth; });
 
     _source.addEventListener('job', (evt) => {
         let job;

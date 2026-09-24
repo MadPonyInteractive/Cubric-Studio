@@ -572,9 +572,11 @@ export const MpiAgentChat = ComponentFactory.create({
                 // DRAWN, not on the array index — a history entry with no dataUrl is
                 // skipped, and a gap in the numbering would name a picture nobody sees.
                 let n = 0;
-                attachments.forEach(({ dataUrl, name }) => {
-                    if (!dataUrl) return;
-                    row.appendChild(_attachmentChip(dataUrl, name, ++n));
+                attachments.forEach(({ dataUrl, url, name }) => {
+                    // A card sent by reference (MPI-886) has a url and no dataUrl.
+                    const src = dataUrl || url;
+                    if (!src) return;
+                    row.appendChild(_attachmentChip(src, name, ++n));
                 });
                 if (row.childElementCount) bubble.appendChild(row);
             }
@@ -834,7 +836,8 @@ export const MpiAgentChat = ComponentFactory.create({
         /** Staged attachments are {id, name} with no dataUrl: shown through the attachment route. */
         function _stagedThumbs(attachments) {
             return (attachments || []).map((att) => ({
-                dataUrl: att.id ? `/agent/attachment/${att.id}` : (att.dataUrl || ''),
+                // A card sent by reference (MPI-886) carries its own `/project-file` url.
+                dataUrl: att.url || (att.id ? `/agent/attachment/${att.id}` : (att.dataUrl || '')),
                 name: att.name || '',
             }));
         }
@@ -1083,6 +1086,17 @@ export const MpiAgentChat = ComponentFactory.create({
         async function _addCardMedia(payload) {
             const source = cardAttachmentSource(payload);
             if (!source) return false;
+            // MPI-886: with a project open the card goes BY REFERENCE, nothing copied, so the
+            // agent holds the card itself (its prompt, its history, where an edit lands). The
+            // landing chat has no project to hold a reference in, so it still copies.
+            let card = null;
+            try { card = JSON.parse(payload); } catch { /* cardAttachmentSource already vetted it */ }
+            if (_projectRef() && card?.groupId) {
+                _pendingAttachments.push({ url: source.url, name: source.name, mediaType: 'image',
+                    itemId: card.itemId || null, groupId: card.groupId });
+                _renderAttachments();
+                return true;
+            }
             try {
                 const res = await window.fetch(source.url);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1100,7 +1114,7 @@ export const MpiAgentChat = ComponentFactory.create({
             attachSlot.style.display = _pendingAttachments.length ? '' : 'none';
             attachSlot.innerHTML = '';
             _pendingAttachments.forEach((a, i) => {
-                const chip = _attachmentChip(a.dataUrl, a.name, i + 1);
+                const chip = _attachmentChip(a.dataUrl || a.url, a.name, i + 1);
                 chip.title = `Click to remove ${a.name}`;
                 on(chip, 'click', () => {
                     _pendingAttachments.splice(i, 1);

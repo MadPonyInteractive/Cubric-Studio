@@ -2586,3 +2586,27 @@ describe('(e) the open workspace reaches the agent', () => {
         });
     });
 });
+
+// ---------------------------------------------------------------------------
+// MPI-891 — `follow`: only a turn the user TYPED may move their view
+// ---------------------------------------------------------------------------
+
+describe('(MPI-891) follow rides only on a typed turn', () => {
+    const call = (id, name, args) => ({ text: '', toolCalls: [{ id, type: 'function', function: { name, arguments: JSON.stringify(args) } }] });
+    const project = { folderPath: '/project', name: 'Test' };
+    const gen = call('g1', 'generate', { modelId: 'test-model', operation: 't2i', prompt: 'A fox' });
+
+    for (const [label, opts, expected] of [
+        ['a typed turn', {}, true],
+        // A wake was not asked for, and a carry was asked in a view the user has since left.
+        ['a wake turn', { wake: true }, undefined],
+        ['a carried request', { carried: true }, undefined],
+    ]) {
+        test(`${label}: follow is ${expected ? 'sent' : 'not sent'}`, async () => {
+            const { loop, tools } = await makeLoop({ engineResponses: [gen, { text: 'Started.' }] });
+            await loop.runTurn('Make a fox', [], project, 'auto', 'deepinfra', `t-follow-${label}`, opts);
+            assert.equal(tools.calls.generate.length, 1, 'the generate reached the connector');
+            assert.equal(tools.calls.generate[0].follow, expected);
+        });
+    }
+});

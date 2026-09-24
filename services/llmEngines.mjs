@@ -466,7 +466,10 @@ export async function fetchDeepInfraPrices() {
  */
 export const RECOMMENDED_REMOTE_MODELS = {
     deepinfra: [
-        { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', jobs: ['agent'], contextWindow: 1_048_576 },
+        // `reasoningEffort` (MPI-891): measured 2026-09-24, with none this model has no
+        // reasoning channel and put its deliberation in the reply; with 'low' it came back in
+        // `reasoning_content` (600 chars) and the reply was clean.
+        { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', jobs: ['agent'], contextWindow: 1_048_576, reasoningEffort: 'low' },
         // `note` rides in the picker label beside "recommended". Qwen3-VL-30B is the one
         // model we have EVIDENCE for here: on 2026-09-18 it drove an adult image end to
         // end without refusing. That is the whole claim — one model, one test, that date.
@@ -637,6 +640,10 @@ export class DeepInfraEngine {
                 // Agent tool-call support (MPI-774). When no tools are supplied the body is
                 // identical to the original, so every existing enhance caller is unaffected.
                 ...(Array.isArray(req.tools) && req.tools.length && { tools: req.tools }),
+                // MPI-891: a hybrid model given no effort deliberates IN `content`, and the
+                // agent's reply was its thinking ("Actually, let me reconsider..."). With one,
+                // DeepSeek V4 moves that into `reasoning_content`, which is never shown.
+                ...(req.options?.reasoningEffort && { reasoning_effort: req.options.reasoningEffort }),
             }),
         }, this.timeoutMs, label);
         if (!res.ok) {

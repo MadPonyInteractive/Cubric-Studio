@@ -1,1 +1,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-891", "at": "2026-09-22T09:04:15Z", "actor": "session-6b5a38e3", "column": "todo", "title": "The agent moves the view to where its work will render"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-891", "at": "2026-09-22T21:35:36Z", "actor": "session-50d7bd93", "changes": {"maturity": "planned", "status": "active", "links.plan": "plan.md"}}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-891", "at": "2026-09-22T22:53:59+01:00", "actor": "session-50d7bd93", "from": "todo", "to": "doing", "reason": "Fabio confirmed D1-D4 2026-09-22 and folded in the same-image-other-model re-run miss"}
+{"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-891", "at": "2026-09-22T22:20:30Z", "actor": "session-50d7bd93", "reason": "npm test 1821/0, harness re-run 11/12; awaiting Fabio live check"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-891", "at": "2026-09-22T22:20:30Z", "actor": "session-50d7bd93", "changes": {"maturity": "validating"}}

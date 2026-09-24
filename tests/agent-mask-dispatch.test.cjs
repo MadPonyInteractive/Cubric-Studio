@@ -237,7 +237,7 @@ test.describe('workspaceGenerationOpts', () => {
     const { workspaceGenerationOpts } = require('../js/shell/agentDispatch.js');
     const ABS = 'C:\\Users\\Fabio\\Documents\\Cubric Vision\\Projects\\Anime Kids and Dog\\Media\\inpaint_005.png';
     const ENTRY = { id: 'i4', filePath: `/project-file?path=${encodeURIComponent(ABS)}&v=1790062432237` };
-    const OPEN = { id: GROUP_ID, name: 't2i_003', history: [{ id: 'i1', filePath: '/project-file?path=x' }, ENTRY] };
+    const OPEN = { id: GROUP_ID, name: 't2i_003', type: 'image', history: [{ id: 'i1', filePath: '/project-file?path=x' }, ENTRY] };
     const agentUrl = (abs) => `/project-file?path=${encodeURIComponent(abs)}`;
     const standIn = (page) => {
         state.currentProject = { itemGroups: [{ id: 'other', history: [] }, OPEN] };
@@ -254,13 +254,16 @@ test.describe('workspaceGenerationOpts', () => {
         reset();
     });
 
-    test('in the gallery, the same edit still makes a new card', () => {
+    // MPI-891 (D4) reversed this: it used to make a new card. The edit is that card's next
+    // version wherever the user stands, and `_followWork` opens the card to show it.
+    test('in the gallery, the same edit still lands in its own card', () => {
         standIn('gallery');
-        assert.equal(workspaceGenerationOpts([{ role: 'inputImage', url: agentUrl(ABS) }]), null);
+        const opts = workspaceGenerationOpts([{ role: 'inputImage', url: agentUrl(ABS) }], 'image');
+        assert.equal(opts?.groupId, GROUP_ID);
         reset();
     });
 
-    test('a picture that is not an entry of the open card goes to the gallery', () => {
+    test('a picture no card owns goes to the gallery', () => {
         standIn('group-history');
         const other = ABS.replace('inpaint_005', 't2i_009');
         assert.equal(workspaceGenerationOpts([{ role: 'inputImage', url: agentUrl(other) }]), null);
@@ -275,7 +278,7 @@ test.describe('workspaceGenerationOpts', () => {
 
     test('the submit routes by it, and never renames the card it adds to', () => {
         const src = fs.readFileSync(path.join(repoRoot, 'js', 'shell', 'agentDispatch.js'), 'utf8');
-        assert.match(src, /maskedGenerationOpts\(mask\.maskGroupId\) \|\| workspaceGenerationOpts\(mediaItems\)/);
+        assert.match(src, /maskedGenerationOpts\(mask\.maskGroupId\) \|\| workspaceGenerationOpts\(mediaItems, model\.mediaType/);
         // Live read 2 named its result "Dawn sky with red eyes": routed into the open card,
         // that name would have replaced "Boy fishing flat cartoon".
         assert.match(src, /_reportDone\(jobId, done, historyOpts \? undefined : input\.cardName/);

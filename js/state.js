@@ -128,6 +128,10 @@ const _state = {
                                      // statusbar, tools/history panels) so the user can focus
                                      // on canvas / gallery / video player. Custom titlebar stays.
                                      // Auto-resets when navigating to PAGE_LANDING.
+    canvasMode: null,                // MPI-891: the mounted MpiCanvas's activeMode ('mask' | 'paint' |
+                                     // 'composite' | 'crop' | 'compare' | 'none'), null with none mounted.
+                                     // Written by MpiCanvas's setter + destroy only. Read by
+                                     // agentDispatch.followBlocker: an agent never moves the view mid-edit.
 
     // ── Generation queue (session-only) ────────────────────────────────────────
     loopArmed: false,                // Hold-to-arm loop flag. Cue button hold ≥700ms toggles on.

@@ -29,6 +29,9 @@ const MASK_AUTO_FILL       = 'oklch(0.78 0.13 150)';       /* --accent-ok, match
  * bare coordinates, and polarity rides in WHICH list a point lands in. */
 const MASK_POINT_DRAW_R = 6;
 
+/** MPI-891: the canvas whose mode `state.canvasMode` currently reports. */
+let _modeOwner = null;
+
 /**
  * MpiCanvas — Interactive image viewer / editor canvas (Primitive)
  *
@@ -77,7 +80,7 @@ const MASK_POINT_DRAW_R = 6;
 
 import { ComponentFactory } from '../../factory.js';
 import { clientLogger }     from '../../../services/clientLogger.js';
-import { AUTO_PIXEL_THRESHOLD } from '../../../state.js';
+import { AUTO_PIXEL_THRESHOLD, state } from '../../../state.js';
 import { ViewManager }       from './managers/ViewManager.js';
 import { MaskManager }       from './managers/MaskManager.js';
 import { ComparisonManager } from './managers/ComparisonManager.js';
@@ -244,6 +247,10 @@ class _CanvasCore {
     set activeMode(v) {
         if (this._activeMode === v) return;
         this._activeMode = v;
+        // MPI-891: agentDispatch.followBlocker reads it. The last canvas to set a mode owns
+        // the key, so a Flow step's canvas tearing down cannot clear the history canvas's.
+        _modeOwner = this;
+        state.canvasMode = v;
         this.mask.isMaskingMode          = v === 'mask';
         this.crop.isCroppingMode         = v === 'crop';
         this.comparison.isComparisonMode = v === 'compare';
@@ -293,6 +300,7 @@ class _CanvasCore {
     set maskHidden(v)    { this._maskHidden = v; this.draw(); }
 
     destroy() {
+        if (_modeOwner === this) { _modeOwner = null; state.canvasMode = null; }
         // Disconnect ResizeObserver FIRST so resize() can't fire during teardown
         if (this.resizeObserver) {
             this.resizeObserver.disconnect();

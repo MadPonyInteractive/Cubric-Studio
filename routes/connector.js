@@ -519,6 +519,9 @@ router.post('/connector/generate', async (req, res) => {
     };
 
   if (cardName !== undefined) input.cardName = cardName;
+  // MPI-891: the in-app agent's "take the user to where this renders". Only `true` counts,
+  // so a CLI agent that never sends it never moves the user's view.
+  if (req.body?.follow === true) input.follow = true;
 
   // `requestId` — the caller's own name for this submit, so it can cancel it later
   // (`POST /connector/cancel`). This route holds its response for the whole render, so

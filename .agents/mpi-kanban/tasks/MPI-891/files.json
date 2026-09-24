@@ -1,0 +1,25 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "task": "MPI-891",
+  "owner_session": ".agents/mpi-kanban/state/sessions/995faba5-928f-4275-a7eb-500bb47698dd.json",
+  "updated_at": "2026-09-24T04:24:58Z",
+  "files": [
+    "services/agentLoop.mjs",
+    "js/shell/agentDispatch.js",
+    "routes/connector.js",
+    "js/state.js",
+    "js/components/Primitives/MpiCanvas/MpiCanvas.js",
+    "js/shell/agentPanel.js",
+    "scripts/agent-test.mjs",
+    "tests/agent-loop.test.cjs",
+    "tests/agent-view-follow.test.cjs",
+    "tests/desktop/agent-view-follow.spec.js",
+    "docs/agent-chat.md",
+    "tests/agent-mask-dispatch.test.cjs",
+    "js/components/Compounds/MpiAgentChat/MpiAgentChat.css",
+    "js/components/Compounds/MpiAgentChat/MpiAgentChat.js",
+    "routes/agent.js",
+    "tests/agent-card-reference.test.cjs",
+    "services/llmEngines.mjs"
+  ]
+}

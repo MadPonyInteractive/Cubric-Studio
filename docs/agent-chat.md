@@ -409,3 +409,31 @@ attachment.
   invariant that line documents about itself.
 - **No workspace on a CARRY.** The carried half of a request runs in a different project; the view
   belongs to the one the user left.
+
+## Moving the view (MPI-891, Fabio 2026-09-22)
+
+The reverse of the section above: the app takes the user to where the agent's work renders, so
+they see it arrive. **An app behaviour, never a tool** — the model only calls `generate`.
+
+- **`follow`** rides `generate`'s body only from a turn the user TYPED (`AgentLoop._follow`: not a
+  wake, not a carry). `/connector/generate` forwards it only as a literal `true`, so a CLI agent
+  never moves the user's screen.
+- **Where:** `agentDispatch._followWork`, called BEFORE the enqueue so the target is mounted when
+  the first frame arrives. A job routed into a card (`maskedGenerationOpts` /
+  `workspaceGenerationOpts`) opens that card's history; everything else, every Flow included,
+  opens the gallery.
+- **An edit lands in the card that OWNS the picture** (D4), open or not — widened from MPI-890's
+  "the open card only". A card that is not open must hold the output's media type: a clip made
+  from a still is a new card. A copied attachment belongs to no card (MPI-886), so it still
+  makes one.
+- **The guard, `followBlocker`:** no move while a button is held, while any `Overlays` entry is
+  up (a Flow, the Model Manager, a modal), or while the canvas is in `mask` / `paint` /
+  `composite` / `crop` — `state.canvasMode`, written only by `MpiCanvas`'s mode setter and
+  cleared by the canvas that set it on destroy. A refused move is logged and nothing else:
+  `/connector/generate` holds its reply for the whole render, so there is no early channel to
+  tell the model. The chat's result card is the click.
+- **The result card** (`gallery:open-card`, `agentPanel.js`) goes to where the result lives: the
+  card's first entry (a new card, a Flow) → the gallery; a later entry → that card's history.
+  Audio always goes to the gallery.
+- **"This image, but with model X"** is a RE-RUN (Model rule): the named model's text-to-image
+  from the source's prompt, no media — never an i2i restyle. Harness case `rerun-on-named-model`.

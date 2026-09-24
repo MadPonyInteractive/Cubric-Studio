@@ -478,6 +478,49 @@ const CASES = [
         },
     },
     {
+        // MPI-891, live 2026-09-22: "Can you generate this image but with an ILL anime model"
+        // ran ILL Anime i2i as a restyle. The ask was the same picture MADE by that model: a
+        // re-run, text-to-image from a prompt, no media. A model named "anime" is not "make
+        // this anime". The flip asks for the restyle outright, so i2i is then the right call.
+        id: 'rerun-on-named-model',
+        title: '"this image, but with model X" is a text-to-image re-run on X, not an i2i restyle',
+        setup: {
+            models: setInstalled((m) => m.id === 'ill-anime', true),
+            attachments: [FOX],
+            turns: ['Can you generate this image but with the ILL Anime model? Just one.'],
+        },
+        flip: { turns: ['Restyle this picture into anime with the ILL Anime model, keep it as it is otherwise. Just one.'] },
+        check(run) {
+            const ok = calledAll(run, 'generate').filter((c) => c.result?.ok);
+            const f = [];
+            if (!ok.length) return ['never generated'];
+            for (const c of ok) {
+                if (c.args.modelId !== 'ill-anime') f.push(`ran ${c.args.modelId}, not the named ill-anime`);
+                if (c.args.operation !== 't2i') f.push(`ran ${c.args.operation}, not a t2i re-run`);
+                if (c.args.media?.length) f.push('sent the picture as media: that is a restyle, not a re-run');
+            }
+            return f;
+        },
+    },
+    {
+        // MPI-891, live 2026-09-24: a mask painted and the exact words given, and the agent
+        // argued that image models garble text and sent Fabio to his own graphics tool. The
+        // flip installs no image model, so there is nothing that could run the edit.
+        id: 'text-in-picture',
+        title: 'words in a picture are an edit with the words quoted, never a refusal',
+        setup: {
+            models: KLEIN_AND_KREA,
+            attachments: [FOX],
+            turns: ['Put the words "Fox Shoot" across the top of this picture.'],
+        },
+        flip: { models: NO_IMAGE_MODELS },
+        check(run) {
+            const ok = calledAll(run, 'generate').filter((c) => c.result?.ok);
+            if (!ok.length) return ['never ran the edit'];
+            return ok.some((c) => /"Fox Shoot"/.test(c.args.prompt || '')) ? [] : ['the words are not quoted exactly in the prompt'];
+        },
+    },
+    {
         // Phase 5 round 1: Head Swap took the woman standing next to the one Fabio meant.
         // The describer had boxed her whole upper body, `square` matched that height in
         // width, and nothing looked at the result — the numbers here are that measurement
