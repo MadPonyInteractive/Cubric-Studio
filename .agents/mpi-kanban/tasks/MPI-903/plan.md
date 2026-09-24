@@ -2,9 +2,10 @@
 
 ## Current State
 
-Phases 0-1 committed (d06bfd04, NOT pushed: the push was denied by the permission classifier,
-Fabio pushes). Phases 2-3 done in the tree: system prompt 25.4 -> 9.5 KB, tools 17.7 -> 16.9 KB.
-Phase 4 (harness x3 after, plus the new sheet-goes-to-reference case and --bite) is next.
+Phases 0-3 committed: d06bfd04 (gates) and 879caf0c (rules/docs rewrite); system prompt 25.4 -> 9.5 KB,
+tools 17.7 -> 16.9 KB. Phase 4 re-run died on DeepInfra 402 (account out of credit) after 10/63
+conversations, all 10 passing. Next: once Fabio tops up, npm run agent:test (22 cases x3, incl. the
+new sheet-goes-to-reference), then --bite; compare to the baseline table in validation.md; close.
 
 Measured (scratchpad `measure.mjs`, the real `_buildSystemPrompt` + `TOOL_DEFS`): **43 KB, ~11k tokens
 on every request** — system prompt 25.4 KB (20 rules ~24 KB), tool schemas 17.7 KB, knowledge index
