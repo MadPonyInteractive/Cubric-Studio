@@ -185,3 +185,27 @@ where it landed; (4) press the handed-back result card — it goes where D3 deci
 - Not this card, carried for MPI-892: the Duration rule (`agentLoop.mjs:1354`, "you never speak
   first... reaches you only when the user writes again") is STALE since MPI-870 shipped wake
   turns. Fix it before MPI-892 builds on either belief.
+
+## Current State (2026-09-24, after live read 3)
+
+Check 3 passed live (validation.md 6). Folded in: op-neutral mask line, "move the mask + add verb"
+on a missed masked add, several areas = one run. Tests green, uncommitted. Next: Fabio re-checks
+the "this is not okay" reply live, then mpi-end-session closes MPI-891 + MPI-886.
+
+## Current State (2026-09-24, after live read 4) - supersedes the block above
+
+Uncommitted, tests green: masking rules rewritten after live read 4 (validation.md 7).
+Next session, in order:
+1. Fabio's NEW input, not yet actioned: small target area -> first upscale the picture with
+   the upscale tool and NO upscale model (plain enlarge, more pixels, nothing changed), THEN
+   inpaint. Belongs in the masking knowledge.
+2. Fabio's STRUCTURE concern: agent knowledge keeps growing; it should live in on-demand
+   skills/knowledge entries, not the always-loaded rules in services/agentLoop.mjs (the Masking
+   and Route rules are now very long single lines). Brainstorm with Fabio before moving
+   anything: what stays in the system prompt vs read_knowledge "app:masking" (docs/agent/*.md).
+3. Engine card to offer (not created): Klein edit/inpaint with far-apart masks silently
+   returns unchanged - crop per area like detail, or refuse. Fabio's call.
+4. Flag to Fabio, do not edit without asking: the Route rule's "inpaint beat kleinEdit"
+   (2026-09-22) is seed luck on Klein - same graph.
+5. Then mpi-end-session: close MPI-891 + MPI-886.
+

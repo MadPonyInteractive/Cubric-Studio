@@ -758,10 +758,25 @@ test('a bad masked result moves to another op or a shorter prompt, never more ad
     assert.match(rule, /inpaint beat kleinEdit/);
     // Say which op is going out, so the user can redirect it before the GPU spends.
     assert.match(rule, /say which op you are sending/);
+    // Fabio, 2026-09-24: a masked add that missed was fixed by the MASK and an "add" verb.
+    assert.match(rule, /A masked ADD that misses usually wants the MASK changed/);
+    assert.match(rule, /"add people sitting in the chairs"/);
+    assert.match(rule, /comes back UNCHANGED is the several-areas failure/);
+    // A mask keeps the source's pixels; a whole-picture edit comes back at the model's size.
+    assert.match(rule, /A mask is also how a picture KEEPS its pixels/);
+    assert.doesNotMatch(loop, /several separate areas are fine, one run/);
 
     const doc = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'docs', 'agent', 'masking.md'), 'utf8');
     assert.match(doc, /### When it comes back wrong/);
     assert.match(doc, /never\s+more adjectives on the same one/);
+    assert.match(doc, /usually wants the \*\*mask\*\* changed/);
+    assert.match(doc, /### Several separate areas: detail only/);
+    assert.match(doc, /### A mask keeps the pixels/);
+    // Detail over several areas is one list, a noun phrase per area (Fabio, 2026-09-24);
+    // edit and inpaint get one area per run.
+    assert.match(doc, /> cute girl with freckles, wooden chair, lady hand/);
+    assert.match(loop, /Several SEPARATE painted areas work on detail ONLY/);
+    assert.match(loop, /So for edit and inpaint, ONE area per run/);
 });
 
 test('a generation that never landed survives a restart as a project note, and landing removes it', async () => {
@@ -2524,7 +2539,13 @@ describe('(e) the open workspace reaches the agent', () => {
         const project = { name: 'Demons', folderPath: PROJECT };
 
         assert.match(loop._appStateLine(project, masked), /MASK painted on it/);
-        assert.match(loop._appStateLine(project, masked), /write the prompt for the crop/);
+        assert.match(loop._appStateLine(project, masked), /write the prompt for the masked area/);
+        // Live read 3: "an edit of that entry" steered a masked ADD to edit; the op is the
+        // Masking rule's call, and several painted areas are still one run.
+        assert.doesNotMatch(loop._appStateLine(project, masked), /an edit of that entry/);
+        // Live read 4: several areas are NOT one run on edit/inpaint (one crop box, the adds
+        // land outside the paint and are discarded). The line must not promise it.
+        assert.doesNotMatch(loop._appStateLine(project, masked), /several separate areas/);
         assert.doesNotMatch(loop._appStateLine(project, workspace()), /MASK/);
     });
 

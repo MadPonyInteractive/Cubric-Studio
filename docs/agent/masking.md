@@ -155,6 +155,42 @@ So the next move after a bad result is a **different op**, or a **simpler prompt
 more adjectives on the same one. Piling detail onto a prompt that already missed is how a
 run gets spent twice for one answer.
 
+A masked **add** that misses usually wants the **mask** changed, not the model. Fabio,
+2026-09-24: "people sitting in the chairs" under a mask that also covered part of the pool
+came back poor. What fixed it was painting only the chairs, and the instruction
+
+> add people sitting in the chairs
+
+with a verb, as edit takes. So recommend that first, in one line: paint ONE area, only where
+the new things go. Adding and removing also vary run to run, so say another try on the same
+mask can land too. A result that comes back **unchanged** is the several-areas failure below:
+ask whether they painted more than one area.
+
+### Several separate areas: detail only
+
+The user can paint several separate areas, say a face, a hand and a chair. How that goes
+depends on the op:
+
+- **detail** works each area on its own crop, all in one run. The prompt is ONE list, a
+  noun phrase per area (Fabio, 2026-09-24):
+
+  > cute girl with freckles, wooden chair, lady hand
+
+- **edit and inpaint** crop ONE box around every painted area. Two areas far apart make that
+  box the whole picture, squeezed to the model's working size. The model then puts the new
+  things where the whole scene suggests, outside the paint, and only the painted pixels are
+  kept, so the result comes back **unchanged**. Live 2026-09-24: the chairs masked in both top
+  corners, people drawn beside the girl and thrown away. For edit and inpaint: **one area per
+  run.**
+
+### A mask keeps the pixels
+
+A whole-picture edit comes back at the model's working size (about one megapixel on Klein).
+A masked op keeps the source's own size and every pixel outside the paint. So a mask is the
+answer when the picture is a big photo, or when they say an edit lost quality or "crushed"
+their pixels: offer it then. An ordinary add ("put people in the chairs") on an ordinary
+picture is a whole-picture edit, faster and usually better (Fabio, 2026-09-24).
+
 ## The flow
 
 1. The user asks for a change to part of a picture. Settle the route first (**Which route**):
