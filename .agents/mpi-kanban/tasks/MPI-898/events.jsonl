@@ -1,1 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-898", "at": "2026-09-22T22:29:51+01:00", "actor": "claude (af358fa2)", "column": "todo", "title": "A renamed or moved project folder opens EMPTY - the reconciler deletes every sidecar (blocks 2.0)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-898", "at": "2026-09-22T22:53:01+01:00", "actor": "claude (506e5d9c)", "from": "todo", "to": "doing", "reason": "Implementation started."}
+{"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-898", "at": "2026-09-22T23:00:37+01:00", "actor": "claude (506e5d9c)", "note": "specs red on HEAD, green after; suite 1807/0; live real-project copy 153/153 found"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-898", "at": "2026-09-22T23:00:37+01:00", "actor": "claude (506e5d9c)", "from": "doing", "to": "doing", "reason": "Auto-verified; awaiting close-out commit."}

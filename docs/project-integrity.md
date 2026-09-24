@@ -44,7 +44,7 @@ Located at `<projectFolder>/project.json`. Shape: `{ id, name, folderPath, creat
 
 **Key field: \****`id`** — UUID assigned at `/create-project`. **Authoritative project identifier.** All destructive ops (`/delete-project`) require the caller to pass `expectedId`; server refuses (409) if the on-disk `project.json` id differs from the expected id. This prevents stale `folderPath` values (e.g., imported projects moved on disk, or JSON copied between folders) from causing the wrong folder to be deleted.
 
-**Stale `folderPath` safety:** The `folderPath` field inside `project.json` is NOT trusted by the server. `/list-projects`, `/get-project`, and `/validate-project` all overwrite it with the actual disk path where the JSON was found before returning it to the client. This keeps `project.folderPath` in UI state always pointing at the real folder even if the JSON was moved manually.
+**Stale `folderPath` safety:** The `folderPath` field inside `project.json` is NOT trusted by the server. `/list-projects`, `/get-project`, and `/validate-project` all overwrite it with the actual disk path where the JSON was found before returning it to the client, and `/migrate-project` also PERSISTS the folder it was opened from (MPI-898). That last one is the one that matters: the reconciler hydrates from the project `/migrate-project` returns, so before MPI-898 a renamed or moved folder read its sidecars from the OLD path and every item was dropped. Any new route that returns a project to the client must stamp `folderPath` the same way.
 
 **Key field: \****`history[]`** — Array of UUID strings (NOT full objects). Each UUID corresponds to a `.meta/<uuid>.json` file in the Media folder.
 
@@ -205,11 +205,13 @@ After loading, `state.currentProject.itemGroups[n].history[m]` is the full sidec
 2. **Run schema migrations** (via `POST /migrate-project` route):
   - Server compares `project.schemaVersion` against `SCHEMA_VERSION`.
   - If behind, runs all pending migrations (e.g., `migrateV0toV1`, `migrateV1toV2`).
+  - Stamps `folderPath` with the folder it was opened from (see "Stale `folderPath` safety").
   - Writes updated `project.json` back to disk.
   - Returns migrated project to client.
 
 3. **Reconcile and hydrate** (client-side, via `reconcileAndHydrate()`):
   - **One request for the whole project**: `POST /load-meta-batch` with every UUID in every group. It answers `{ <uuid>: { meta, exists } }` — the sidecar, and whether the media file it points at is still on disk. A failed request **throws**: an empty answer reads as "no sidecar" for every item, which would rebuild them all as synthetic uploads, drop groups and persist that.
+  - **Relocation heal (MPI-898):** every sidecar ref is an ABSOLUTE `/project-file?path=` url, so a moved folder (Explorer rename, or the 2.0 `Cubric Vision` → `Cubric Studio` Documents heal) makes every item read missing, which the next step turns into a deleted sidecar. On a miss, `healRelocatedMeta()` takes the root the sidecar was saved under (the parent of its media's `Media` dir); if that is not the current folder and the media exists rebased onto it, every ref under the old root is rebased (the `&v=` tail kept) and the sidecar rewritten, then reported `exists: true`. Unmoved projects pay nothing; refs into another project are left alone. Spec: `tests/project-relocation-heal.test.cjs`.
   - Then, in memory, per UUID in each group's `history[]`:
       - `meta` present, `exists` true: keep the entry (fully hydrated).
       - `meta` present, `exists` false: remove UUID from history, delete the orphaned `.meta/` file (`DELETE /delete-meta`).

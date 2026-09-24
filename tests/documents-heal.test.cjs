@@ -120,6 +120,42 @@ test('the heal carries the hidden-project list too (MPI-809)', () => {
     ]);
 });
 
+test('a default-root project keeps its gallery across the heal (MPI-898)', async () => {
+    process.env.CUBRIC_TEST_APP_VERSION = '2.0.0';
+    const docs   = makeDocs();
+    const oldProject = path.join(docs, 'Cubric Vision', 'Projects', 'Mine');
+    const metaDir = path.join(oldProject, 'Media', '.meta');
+    fsN.mkdirSync(metaDir, { recursive: true });
+    const media = path.join(oldProject, 'Media', 'krea_001.png');
+    fsN.writeFileSync(media, 'pixels');
+    // A sidecar as the app writes it: an ABSOLUTE url into the pre-heal folder.
+    const id = 'dddddddd-0000-0000-0000-000000000898';
+    fsN.writeFileSync(path.join(metaDir, `${id}.json`),
+        JSON.stringify({ id, filePath: `/project-file?path=${encodeURIComponent(media)}` }));
+
+    const newProject = path.join(getProjectsRoot(), 'Mine');
+
+    const express = require('express');
+    const app = express();
+    app.use(express.json());
+    app.use(require('../routes/projects.js'));
+    const server = app.listen(0, '127.0.0.1');
+    try {
+        await new Promise(r => server.once('listening', r));
+        const res = await fetch(`http://127.0.0.1:${server.address().port}/load-meta-batch`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folderPath: newProject, ids: [id] }),
+        });
+        const item = (await res.json()).items[id];
+        assert.equal(item.exists, true, 'reads missing after the heal: the reconciler deletes it');
+        assert.equal(item.meta.filePath,
+            `/project-file?path=${encodeURIComponent(path.join(newProject, 'Media', 'krea_001.png'))}`);
+    } finally {
+        server.close();
+    }
+});
+
 test('new folder only: resolves new, nothing renamed', () => {
     process.env.CUBRIC_TEST_APP_VERSION = '2.0.0';
     const docs   = makeDocs();

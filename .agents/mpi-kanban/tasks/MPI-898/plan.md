@@ -38,6 +38,26 @@ Also consider, and decide in the plan drift: should the reconciler refuse to DEL
 EVERY item in a project reads missing? That pattern is a moved folder, never a user deleting
 150 files — but it is a guard, not the fix (root-cause rule): only as a second line.
 
+## Plan Drift
+
+- 2026-09-22: heal moved from `/migrate-project` to `/load-meta-batch`, at the existence
+  check. Fires only on a miss whose media exists rebased onto the current folder, so an
+  unmoved project pays nothing (no every-open scan of 1209 sidecars, no marker). Refs are
+  rebased by a generic walk, not a field list: the real Mascots sidecars carry 10 ref
+  fields (`thumbPathLg`, `wavePath`, `proxyPath`, `originalUrl` x2 were not in the list).
+- 2026-09-22: the FIRST break was not the sidecar delete. `project.json` stores its own
+  absolute `folderPath`; `/migrate-project` returned it unchanged and the reconciler
+  hydrated from it, so a moved project read its sidecars from the OLD folder (all
+  `meta: null`, every item dropped). `/migrate-project` now stamps the folder it was
+  opened from. Found by the live check on a real project copy (HEAD `withMeta: 0`).
+- 2026-09-22: "refuse to delete when everything reads missing" guard: NOT added. With
+  both fixes a move no longer reaches the delete branch; the guard would only mask.
+
+## Current State
+
+Both fixes in `routes/projects.js`, specs green, full suite + lint green, live check on
+a real project copy green. Next: close-out (`mpi-end-session`): commit + push.
+
 ## Verify
 
 **Verify mode:** auto

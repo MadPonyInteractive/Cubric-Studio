@@ -1,0 +1,19 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "task": "MPI-898",
+  "claim": "506e5d9c-mpi898",
+  "session": "506e5d9c-e52c-4a60-88ce-cb6a11e4a4f2",
+  "owned": [
+    "routes/projects.js",
+    "tests/project-relocation-heal.test.cjs",
+    "tests/documents-heal.test.cjs",
+    ".agents/mpi-kanban/tasks/MPI-898/"
+  ],
+  "read_only": [
+    "js/managers/projectReconciler.js",
+    "routes/shared.js"
+  ],
+  "notes": [
+    "Source: plan.md Fix + Verify sections, narrowed by the 2026-09-22 drift: the heal lives in /load-meta-batch, so the reconciler and shared.js are read, not edited."
+  ]
+}

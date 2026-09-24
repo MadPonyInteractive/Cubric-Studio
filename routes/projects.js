@@ -2963,6 +2963,45 @@ router.get('/load-meta', (req, res) => {
 });
 
 /**
+ * MPI-898: a sidecar whose media reads missing because its PROJECT FOLDER moved.
+ *
+ * Every ref in a sidecar is an absolute `/project-file?path=` url, so a renamed or
+ * moved folder (Explorer, or the 2.0 `Cubric Vision` -> `Cubric Studio` Documents heal)
+ * leaves them all pointing at the old root, every item reads missing, and the
+ * reconciler deletes the sidecar. The root it was saved under is the parent of the
+ * `Media` dir its media sits in; when that is not `projectRoot` and the media exists
+ * rebased onto `projectRoot`, every ref under the old root is rebased (query tail such
+ * as `&v=` kept) and the sidecar rewritten. Refs outside the old root are left alone.
+ *
+ * @returns {Promise<object|null>} the healed sidecar, or null when this is not a move
+ */
+async function healRelocatedMeta(metaPath, mediaPath, projectRoot) {
+    let mediaDir = path.dirname(mediaPath);
+    while (path.basename(mediaDir).toLowerCase() !== 'media') {
+        const up = path.dirname(mediaDir);
+        if (up === mediaDir) return null;
+        mediaDir = up;
+    }
+    const oldRoot = path.dirname(mediaDir);
+    if (_normAbs(oldRoot) === _normAbs(projectRoot)) return null;
+    const rebase = (abs) => path.join(projectRoot, path.relative(oldRoot, abs));
+    if (!(await fs.pathExists(rebase(mediaPath)))) return null;
+
+    const oldPrefix = `${_normAbs(oldRoot)}/`;
+    const walk = (v) => {
+        if (typeof v === 'string') {
+            const abs = decodeProjectFilePath(v);
+            if (!abs || !_normAbs(abs).startsWith(oldPrefix)) return v;
+            return v.replace(/([?&]path=)[^&]*/, (_, key) => key + encodeURIComponent(rebase(abs)));
+        }
+        if (Array.isArray(v)) return v.map(walk);
+        if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, walk(x)]));
+        return v;
+    };
+    return updateItemMeta(metaPath, walk);
+}
+
+/**
  * POST /load-meta-batch
  * The whole of a project's hydration in ONE request: every item's sidecar, plus
  * whether the media it points at is still on disk.
@@ -2991,6 +3030,7 @@ router.post('/load-meta-batch', async (req, res) => {
 
         const metaDir = path.join(path.normalize(folderPath), 'Media', '.meta');
         const items = {};
+        let relocated = 0;
         await Promise.all([...new Set(ids)].map(async (id) => {
             let meta = null;
             try {
@@ -3000,9 +3040,14 @@ router.post('/load-meta-batch', async (req, res) => {
                 return;
             }
             const mediaPath = pathFromProjectFileUrl(meta.filePath);
-            const exists = !!mediaPath && await fs.pathExists(mediaPath);
+            let exists = !!mediaPath && await fs.pathExists(mediaPath);
+            if (!exists && mediaPath) {
+                const healed = await healRelocatedMeta(path.join(metaDir, `${id}.json`), mediaPath, path.normalize(folderPath));
+                if (healed) { meta = healed; exists = true; relocated++; }
+            }
             items[id] = { meta, exists };
         }));
+        if (relocated) logger.info('project', `relocation heal: ${relocated} sidecar(s) rebased onto ${folderPath}`);
 
         res.json({ success: true, items });
     } catch (err) {
@@ -3047,10 +3092,12 @@ router.post('/migrate-project', async (req, res) => {
         if (!folderPath) return res.status(400).json({ success: false, error: 'folderPath required' });
 
         const jsonPath = path.join(folderPath, 'project.json');
-        const migrated = await updateProjectJson(jsonPath, project => {
+        const migrated = await updateProjectJson(jsonPath, async project => {
             // Import migration runner lazily to avoid circular deps
             const { migrateProject } = require('../js/migrations/projectMigrations.js');
-            return migrateProject(project, folderPath);
+            // MPI-898: the stored folderPath is where the project was LAST opened; after a
+            // rename or move it is stale, and the reconciler hydrates from it.
+            return { ...(await migrateProject(project, folderPath)), folderPath: folderPath.replace(/\\/g, '/') };
         });
         // MPI-227: one-time flatten+dedup of the preview-assets store (idempotent,
         // marker-guarded). Runs on the same project-open call, after project.json.
