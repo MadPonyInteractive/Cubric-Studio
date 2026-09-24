@@ -1,25 +1,26 @@
 # MPI-846 Plan - Mascot crew: names, registry, chat presence, animations
 
-## DO NOT START YET
+## Status (2026-09-24)
 
-Blocked on two external gates. Both must be true before this card moves to `doing`:
-
-1. **The GIF workspace lands** - MPI-838 (spinner, handle drag, Home/End/I/O) and
-   MPI-757 (frames, cut-out, Make GIF, GIF Maker).
-2. **The clips are rolled to GIF** - the mascot animations exist as video today. An agent
-   in `c:\AI\Mpi\MadPony-Identity\` is waiting on the GIF workspace to produce them with
-   Fabio.
-
-Until both hold, this card stays `todo` / `blocked`. Phase 1 is the only phase that can
-run early, because it ships no app code.
+The old "DO NOT START YET" gates are gone: the GIF workspace shipped and the clips are
+rolled - 95 of 103 are staged as alpha WebM in `assets/mascot/{key}/` (the 8 left are
+deliberate spares). MPI-777 closed with the shared clip queue, the landing crew, the agent
+panel crew and the flicker fix (`heroCrew.js` `handOverClip`) - verified by Fabio. Its
+unfinished phases were split into MPI-906..909 below. Fabio, 2026-09-24: no new clips are
+needed; place the ones not yet shown (`heads-up`, `no-results`, four head peeks,
+`engine-starting`, `update-ready`, `connecting` x4, `connected`).
 
 ## Members
 
 | Card | Title | State |
 |---|---|---|
-| MPI-843 | Agent chat UI study | `todo` / `research` |
+| MPI-843 | Agent chat UI study | `done` |
 | MPI-842 | Mascot crew identities | `todo` / `idea` |
-| MPI-777 | Animated mascots in the app: shared clip queue, landing crew, prompt box ledge | `todo` / `blocked` |
+| MPI-777 | Animated mascots in the app: shared clip queue, landing crew, agent panel crew | `done` (2026-09-24) |
+| MPI-906 | Mascots on the waiting spots | `todo` |
+| MPI-907 | Toast mascots | `todo` |
+| MPI-908 | Mascots on empty and one-off states | `todo` |
+| MPI-909 | Prompt box head peeks (was MPI-777 Phase 4B) | `todo` / `blocked` on the MpiPromptBox claim |
 
 Not members, on purpose:
 

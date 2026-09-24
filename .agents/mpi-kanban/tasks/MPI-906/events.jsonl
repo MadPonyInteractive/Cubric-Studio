@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-906", "at": "2026-09-24T13:49:54+01:00", "actor": "1e62e616-bbf2-4720-96a5-762aac1263da", "column": "todo", "title": "Mascots on the waiting spots: generating card, float preview, queued install, History peek, engine starting"}

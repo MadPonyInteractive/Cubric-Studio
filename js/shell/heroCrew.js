@@ -148,6 +148,33 @@ function _warm(m, id, clip) {
 }
 
 /**
+ * Hand a mascot from its live clip to the twin. The twin shows at once, but the old clip
+ * stays up on its last frame until the twin has DRAWN: a video going from opacity 0 to 1
+ * paints nothing for one frame, so dropping the old clip in the same frame left an empty
+ * frame at about half the swaps (screencast frames, MPI-777 round 3). Both clips sit on
+ * the shared rest frame there, so the frame they overlap cannot be seen. Also used by the
+ * agent panel's crew (MpiAgentChat.js).
+ */
+export function handOverClip(prev, next, live) {
+    next.classList.add(live);
+    // Only if nothing has moved on since: a newer swap may already have taken either clip.
+    const drop = () => {
+        if (!next.classList.contains(live) || !prev.classList.contains(live)) return;
+        prev.classList.remove(live);
+        prev.pause();
+    };
+    // Its NEXT video frame, ~40ms on: by then the flip has been drawn. Paused (reduced motion)
+    // there is no next frame, so it drops at once. ponytail: that can blank for one frame, on
+    // a swap reduced motion makes only on a click or a state change.
+    if (next.paused) { drop(); return; }
+    next.requestVideoFrameCallback(drop);
+    // A window that is not drawing (covered, or parked off-screen as the desktop suite's is)
+    // presents no frame, so that never comes and both clips would stay up for good. Nothing
+    // is on screen there to blink, so the bound drops it blind.
+    setTimeout(drop, 250);
+}
+
+/**
  * Swap the mascot's clip. Two stacked videos, because assigning `src` to the visible one
  * blanks it until the first frame decodes — five mascots blinking every few seconds. The
  * hidden one loads and starts, and only then do they trade places.
@@ -155,14 +182,14 @@ function _warm(m, id, clip) {
 function _paintClip(m, id) {
     const next = m.shown === m.a ? m.b : m.a;
     const seq = ++m.seq;
+    // Still up from a handover not finished yet: a src on a visible clip blanks it.
+    next.classList.remove(LIVE);
     next.src = _clipSrc(m.key, id);
     m.el.classList.toggle(AWAKE, !id.startsWith('idle'));
     const show = () => {
         // A play() promise from a swap that has already been overtaken must not flip.
         if (m.dead || seq !== m.seq || m.shown === next) return;
-        next.classList.add(LIVE);
-        m.shown.classList.remove(LIVE);
-        m.shown.pause();
+        handOverClip(m.shown, next, LIVE);
         m.shown = next;
         // If a transition made him vanish, he comes back HERE — the queue calls this at
         // the overlay's densest moment, so he fades in under cover and is whole again as
@@ -172,7 +199,9 @@ function _paintClip(m, id) {
     // Reduced motion: the queue paints once and schedules nothing, so not playing leaves
     // the video holding its first frame — which is the rest frame every clip opens on.
     if (m.reduced) on(next, 'loadeddata', show, { once: true });
-    else next.play().then(show, () => {});
+    // Flip on the first PRESENTED frame: play() resolves before any frame reaches the screen,
+    // and flipping then blanks him for a frame (MpiAgentChat.js `_paintCosmo`, measured).
+    else next.play().then(() => next.requestVideoFrameCallback(show), () => {});
 }
 
 /**

@@ -33,7 +33,7 @@ import { MpiButton }           from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiInput }            from '../../Primitives/MpiInput/MpiInput.js';
 import { qs, on, ce }          from '../../../utils/dom.js';
 import { createMascotClipQueue } from '../../../utils/mascotClipQueue.js';
-import { TRANSITIONS, TRANSITION_MS } from '../../../shell/heroCrew.js';
+import { TRANSITIONS, TRANSITION_MS, handOverClip } from '../../../shell/heroCrew.js';
 import { renderIcon }          from '../../../utils/icons.js';
 import { renderMarkdownInto, wireMarkdownLinks } from '../../../utils/markdown.js';
 import { resolveMediaUrl, cardAttachmentSource } from '../../../utils/mediaActions.js';
@@ -91,17 +91,19 @@ const _feet = (key, clip) => _FEET[`${key}/${clip}`] ?? _FEET_ROW;
 
 /**
  * Cosmo's pools on the panel ledge, driven by the shared clip queue as the landing crew
- * is. `ms` is a first guess: the real length is read off each clip's metadata (`_probe`).
+ * is. `ms` is each clip's real length (5.2s idles, 3.0s the rest, as heroCrew.js `POOLS`),
+ * which the queue runs on until `_probe` reads the exact one off the metadata. A short guess
+ * cut the first clips after the panel opened mid-motion, and that read as a flicker.
  */
 const _COSMO_STATES = () => ({
-    idle:     { clips: ['idle-1', 'idle-2', 'idle-3', 'agent-listening'].map(id => ({ id, ms: 2200 })), loop: true },
+    idle:     { clips: [...['idle-1', 'idle-2', 'idle-3'].map(id => ({ id, ms: 5200 })), { id: 'agent-listening', ms: 3000 }], loop: true },
     // Thinking is Cosmo AT THE KEYBOARD (picked by eye, Fabio 2026-09-22); hand-on-chin is
     // kept for while he looks at a picture.
-    thinking: { clips: [{ id: 'working', ms: 1250 }], loop: true },
-    looking:  { clips: [{ id: 'agent-thinking', ms: 1250 }], loop: true },
-    answer:   { clips: [{ id: 'agent-answer-ready', ms: 1250 }] },
-    greet:    { clips: ['greet-1', 'greet-2'].map(id => ({ id, ms: 1250 })) },
-    happy:    { clips: [{ id: 'happy-1', ms: 1250 }] },
+    thinking: { clips: [{ id: 'working', ms: 3000 }], loop: true },
+    looking:  { clips: [{ id: 'agent-thinking', ms: 3000 }], loop: true },
+    answer:   { clips: [{ id: 'agent-answer-ready', ms: 3000 }] },
+    greet:    { clips: ['greet-1', 'greet-2'].map(id => ({ id, ms: 3000 })) },
+    happy:    { clips: [{ id: 'happy-1', ms: 3000 }] },
 });
 /**
  * What the agent is DOING, by tool, on the ledge (Fabio, 2026-09-22: "Lingo when it is
@@ -235,6 +237,7 @@ export const MpiAgentChat = ComponentFactory.create({
         // ── Working state helpers ─────────────────────────────────────────────
         const LIVE_CLIP = 'mpi-agent-chat__ledge-clip--live';
         let _ledgeLive = ledgeRest;
+        let _ledgeSeq = 0;
 
         /**
          * Cross the two ledge clips. Both are already decoded and looping, so this is an
@@ -244,7 +247,11 @@ export const MpiAgentChat = ComponentFactory.create({
         function _setLedge(working) {
             if (!ledgeRest || !ledgeWork) return;
             const [next, prev] = working ? [ledgeWork, ledgeRest] : [ledgeRest, ledgeWork];
+            const seq = ++_ledgeSeq;
             const show = () => {
+                // Working then idle at once (a BUSY reply) starts two plays; the older resolving
+                // last must not flip him back to thinking while idle.
+                if (seq !== _ledgeSeq) return;
                 next.classList.add(LIVE_CLIP);
                 prev.classList.remove(LIVE_CLIP);
                 prev.pause();
@@ -312,24 +319,28 @@ export const MpiAgentChat = ComponentFactory.create({
             }
         }
 
-        /** Two stacked clips, swapped once the hidden one plays: a src on the visible one blanks it. */
+        /**
+         * Two stacked clips: a src on the visible one blanks it. The hidden one takes over on its
+         * first PRESENTED frame (play() resolving is earlier, before any frame is decoded to
+         * screen), and the old one holds its last frame until the new one has drawn
+         * (`handOverClip` - Fabio's "some swaps flicker"). heroCrew.js `_paintClip` is the twin.
+         */
         function _paintCosmo(id) {
             const next = _cosmoShown === cosmoA ? cosmoB : cosmoA;
             const seq = ++_cosmoSeq;
+            next.classList.remove(CREW_LIVE);   // still up from an unfinished handover
             next.style.setProperty('--feet', _feet('studio', id));
             next.src = `assets/mascot/studio/${id}.webm`;
             const show = () => {
                 // A play() from a swap already overtaken, or from a queue since torn down, must not flip.
                 if (seq !== _cosmoSeq || !_cosmoQueue || _cosmoShown === next) return;
-                next.classList.add(CREW_LIVE);
-                _cosmoShown.classList.remove(CREW_LIVE);
-                _cosmoShown.pause();
+                handOverClip(_cosmoShown, next, CREW_LIVE);
                 _cosmoShown = next;
                 // A puff took him (`_paintCosmoFx`): he re-forms here, under its densest moment.
                 cosmoStand.classList.remove(CREW_GONE);
             };
             if (_still) on(next, 'loadeddata', show, { once: true });
-            else next.play().then(show, () => {});
+            else next.play().then(() => next.requestVideoFrameCallback(show), () => {});
         }
 
         /** The click's overlay, as the landing crew's: he goes at once and comes back with the new clip. */
@@ -404,19 +415,19 @@ export const MpiAgentChat = ComponentFactory.create({
         function _guestPlay(key, clip, { loop = true, then = null } = {}) {
             const next = _guestShown === guestA ? guestB : guestA;
             const seq = ++_guestSeq;
+            next.classList.remove(CREW_LIVE);   // still up from an unfinished handover
             next.loop = loop;
             next.style.setProperty('--feet', _feet(key, clip));
             next.src = `assets/mascot/${key}/${clip}.webm`;
             if (then) on(next, 'ended', () => { if (seq === _guestSeq) then(); }, { once: true });
             const show = () => {
                 if (seq !== _guestSeq || _guestShown === next) return;
-                next.classList.add(CREW_LIVE);
-                _guestShown.classList.remove(CREW_LIVE);
-                _guestShown.pause();
+                handOverClip(_guestShown, next, CREW_LIVE);
                 _guestShown = next;
             };
             if (_still || !_seen()) { show(); return Promise.resolve(); }
-            return next.play().then(show, show);
+            // On its first presented frame, as `_paintCosmo`: play() resolving is too early.
+            return next.play().then(() => new Promise(r => next.requestVideoFrameCallback(() => { show(); r(); })), show);
         }
 
         function _guestWanted() {

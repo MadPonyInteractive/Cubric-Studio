@@ -609,7 +609,9 @@ test('panel crew ledge: Cosmo states, the guest follows the newest job, a closed
     await openProject(window, ALPHA);
 
     const crew  = window.locator('#e2e-agent-host .mpi-agent-chat__crew');
-    const cosmo = crew.locator('.mpi-agent-chat__crew-stand').first().locator('.mpi-agent-chat__crew-clip--live');
+    // `.last()`: a swap keeps the outgoing clip live until the new one has drawn (heroCrew.js
+    // `handOverClip`), so two can match for ~100ms; the assertions poll until one is left.
+    const cosmo = crew.locator('.mpi-agent-chat__crew-stand').first().locator('.mpi-agent-chat__crew-clip--live').last();
     // Cosmo's queue runs only while the panel is SEEN: open, away from the landing.
     await window.evaluate(async () => {
       const { state } = await import('/js/state.js');
@@ -641,7 +643,7 @@ test('panel crew ledge: Cosmo states, the guest follows the newest job, a closed
     // What the agent is DOING drives the ledge, not a rotation: a look brings Prism in and
     // puts Cosmo's hand on his chin; a generate call brings Lingo, who writes the prompt.
     const guestName = window.locator('#e2e-agent-host #ac-guest-name');
-    const guestLive = window.locator('#e2e-agent-host #ac-guest .mpi-agent-chat__crew-clip--live');
+    const guestLive = window.locator('#e2e-agent-host #ac-guest .mpi-agent-chat__crew-clip--live').last();   // as `cosmo`
     const fire = (name, data) => window.evaluate(([n, d]) => window.__fireSse(n, { session: 'key:/p/alpha', ...d }), [name, data]);
     await fire('agent:tool', { turnId: 't1', id: 'k1', tool: 'look', status: 'started', label: 'Looking' });
     await expect(guestName).toHaveText('Prism');
@@ -1638,12 +1640,19 @@ test('a BUSY reply shows its message and stops working', async ({}, testInfo) =>
       window.__messageReply = { ok: false, error: { code: 'BUSY', message: 'The agent is still answering. Wait for it to finish.' } };
     });
     await bootAndMountChat(window, true);
+    // Working then idle at once starts two plays. Make the thinking clip's resolve LAST, as it
+    // does under load: it must not flip him back to thinking while idle (flaked 6/20 on HEAD).
+    await window.evaluate(() => {
+      const work = document.querySelector('#e2e-agent-host #ac-ledge-work');
+      const play = work.play.bind(work);
+      work.play = () => play().then(() => new Promise(r => setTimeout(r, 400)));
+    });
 
     const field = window.locator('#e2e-agent-host textarea');
     await field.click();
     await window.keyboard.type('are you there');
     await window.keyboard.press('Enter');
-    await window.waitForTimeout(300);
+    await window.waitForTimeout(700);
 
     await expect(window.locator('#e2e-agent-host .mpi-agent-chat__entry--error')).toContainText('still answering');
     const mascot = window.locator('#e2e-agent-host .mpi-agent-chat__ledge-clip--live');

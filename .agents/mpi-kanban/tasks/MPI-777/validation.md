@@ -547,3 +547,46 @@ transition is not centred - drop it or lower it a bit").
 
 Checks: `node --test tests/mascot-clip-queue.test.cjs` 11/11; agent-chat.spec.js 32/32;
 `npm test` 1803 pass 0 fail; eslint clean on all touched JS. **Awaiting Fabio's live look.**
+
+## Round 3 flicker (2026-09-24, session "Mascots 12")
+
+- **Root cause, measured:** every a/b swap flipped when `play()` resolved (~8ms after the src),
+  before the new clip had presented a frame. Harness: static page, real `mascotClipQueue.js`,
+  real studio clips, a scripted agent turn, `requestVideoFrameCallback` counting presented
+  frames per clip. Flip with 0 presented frames: **18 of 23 swaps** on the old code, **0 of 23**
+  with the flip gated on the first presented frame (flip 8-100ms later; the old clip holds its
+  rest frame meanwhile). rVFC fires at opacity 0, so the hidden twin is fine.
+- Ruled out: `--feet` (per element, no move at flip); `_probe` (real lengths 5.2s idles, 3.0s
+  rest); pose pops (every clip shares the rest frame, alpha diff ~300px, idle-3 ~2.3k = edges).
+  Real but by design: `working` is the desk scene, so a cut in/out of it is a hard cut.
+- Fixed at all three swap sites: `_paintCosmo`, `_guestPlay` (MpiAgentChat.js), `_paintClip`
+  (heroCrew.js). `_setLedge` needs no rVFC (both clips stay loaded) but lacked a seq guard:
+  working->idle at once let the older play resolve last and leave him on `agent-thinking`
+  while idle - the landing flake. Guarded; the BUSY spec now forces that order and was RED on
+  HEAD (`agent-thinking.webm` live), green after.
+
+Checks: agent-chat.spec.js 32/32; `npm test` 1841 pass 0 fail; eslint clean. **Awaiting Fabio's
+live look (panel + landing).**
+
+### Round 3b - Fabio: "it still flickers", panel AND landing (2026-09-24)
+
+- The rVFC-before-flip fix above was NOT enough, and the static-page metric that said 0/23 was a
+  proxy. Real measurement: CDP `Page.startScreencast` on the desktop-suite Electron (every drawn
+  frame, ~37-40fps), crop each mascot, count non-background pixels per frame. Before: at ~half the
+  swaps the mascot's crop drops to **0 px for exactly one frame**, ~7ms after the class flip, on
+  the landing crew and the panel. Cause: a video going opacity 0 -> 1 paints nothing for a frame,
+  and the old clip was dropped in that same frame.
+- Fix: `handOverClip` (heroCrew.js, imported by MpiAgentChat.js) shows the new clip and drops the
+  old one only on the new clip's NEXT presented frame (Fabio's "hold the last frame until the next
+  starts"); both sit on the rest frame, so the overlap is invisible. Bounded by a 250ms timer: the
+  suite's off-screen window presents no frames and both clips stayed live for good without it.
+- Second cause, panel only: nominal lengths 2200/1250ms vs real 5200/3000 cut the first clips
+  after opening mid-wave (screencast showed a mid-wave -> rest cut with a double-image frame).
+  Nominals now the real lengths.
+- After: **0 one-frame blanks and 0 double-image frames over 44 landing + 40 panel swaps.**
+  Remaining pixel steps are held for many frames (the mascots' own motion, the desk-scene cut,
+  the guest sliding out).
+- Spec: the live-clip locators take `.last()`: two clips are legitimately live for ~100ms during
+  a handover, and Playwright fails a strict-mode match at once instead of retrying.
+
+Checks: agent-chat.spec.js 32/32; `npm test` 1845 pass 0 fail; eslint clean. **Awaiting Fabio's look.**

@@ -121,6 +121,17 @@ pointer below before editing; they were read 2026-09-16.
   Find WHICH swaps flicker first (log from->to per swap, watch live) before fixing.
   Also fixed after his look: the guest timer read `29835225:08` when a job took the slot
   from a tool guest (clock never started) - spec regression, proved red on the old line.
+- **Round 3 (2026-09-24, session "Mascots 12"): flicker ROOT CAUSE, proved on SCREENCAST
+  frames of the real app** (a static-page rVFC count said "fixed" and Fabio still saw it -
+  never trust that proxy again). A video going opacity 0 -> 1 draws NOTHING for one frame;
+  dropping the old clip in the same frame left the mascot region at 0 px for one frame at
+  ~half the swaps, landing AND panel. Fix = `handOverClip` (heroCrew.js, used by
+  MpiAgentChat.js): the new clip shows on its first presented frame, the old one holds its
+  last frame until the new one's NEXT frame (bounded 250ms for a window that is not drawing).
+  Second cause, panel only: its nominal `ms` were 2200/1250 against real 5200/3000, so the
+  first clips after opening cut mid-motion - set to the real lengths. Also: `_setLedge` seq
+  guard (the landing flake). After: 0 blank frames, 0 double images over 84 swaps.
+  validation.md § Round 3 flicker. **Next: Fabio looks again, panel + landing.**
 - All three of the original Phase 3b items landed: the
   overlay composites (above), the crew labels carry the mascot names (Lingo, Prism, Cosmo,
   Reel, Vinyl — which narrows MPI-846's "chrome labels stay role nouns", recorded there and
@@ -292,6 +303,8 @@ rather than a media `ended` event — see Current State for why that is not opti
       the line. He follows `currentPage` — this chat is mounted once at boot and never
       destroyed, so without that his clips would decode behind an open project for ever.
 - **Verify:** `user-ux`, Fabio on the landing.
+
+> **2026-09-24, on closing MPI-777 (Fabio):** 4B moved to MPI-909; Phase 5 split into MPI-906 (waiting spots), MPI-907 (toasts), MPI-908 (empty and one-off states); Flows stay undecided under MPI-846.
 
 ### Phase 4: prompt box ledge
 
