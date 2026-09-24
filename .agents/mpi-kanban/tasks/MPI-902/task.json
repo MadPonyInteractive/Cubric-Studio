@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-902",
+  "title": "Warn the user to update their NVIDIA driver when it is too old for the local engine",
+  "description": "",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-24T08:39:38+01:00",
+  "updated_at": "2026-09-24T08:39:38+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
