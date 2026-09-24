@@ -105,6 +105,8 @@ media, `--bite` to prove it bites.
 
 - [x] Re-run task in the Model rule: harness 0/3 on HEAD → 11/12, bites. (2026-09-22)
 - [x] View follow, D1-D4, limits line, docs; `npm test` 1821/0, eslint 0. Uncommitted. (2026-09-22)
+- [x] Full harness after reasoning_effort: 18/20, both FAILs a STALE assertion (fixed). (2026-09-24)
+- [x] MPI-900's agent half: `frame.grow` + passes on the agent path. Uncommitted. (2026-09-24)
 
 ## Current State (2026-09-24, after live read 1)
 
@@ -124,9 +126,28 @@ PASSED, and check 3 hit two other bugs. Since then, all committed with this hand
 - **Portrait crop in chat** fixed (MpiAgentChat.css).
 - **Outpaint** failure carded as MPI-900 (not this card).
 
-Next: run the full harness (`--runs 1`) — the last full run printed only "5 conversations" and
-no cases, cause unknown; then `npm test`; then ask Fabio to re-run checks 1, 3, 4, 5 after a
-full app RESTART (server files changed).
+**2026-09-24, session 51097130:**
+- The "5 conversations, no cases" run was the `--samples` branch (agent-test.mjs `main`), not a
+  silent failure. Full `--runs 1`: 18/20. Both FAILs were the harness demanding a separate
+  `open_project` after `create_project`, which opens what it makes since a2b243de. Fixed
+  (`openedAt`). reasoning_effort broke nothing.
+- **MPI-900's agent half, at Fabio's ask** (its checklist item; peer 84899fa3 told, message
+  23d2130d). `frame.grow` (up/down/left/right) in `frameRectForRatio` + `validateBoxParams`;
+  `_submitFlow` plans passes with `planOutpaintPasses` and chains them through flowService's
+  `runNextPass` (`_nextPassFor`, MpiBaseFlow `_planPasses`'s twin). Tool description + list_models
+  `frame.grow`. Built on `composeNextPass(result, prev, next)`, committed in 9c8c5841.
+  MPI-900 moved to session c3d96049 (Outpaint Fix 3); told via message 795acf67 (to task MPI-900).
+
+**Live read 2 (2026-09-24, DeepSeek-V4-Flash - Fabio's model):** 1, 4, 5, text-in-picture and
+expand-up PASS (validation.md § 5). Check 3: view held, but the agent never knew a mask was painted
+-> FIXED (`masked` on the workspace: agentService -> routes/agent.js -> App state line), NOT yet
+live-checked. Outpaint is now one pass by MPI-900 e7228875 (no `maxGrow`); the agent path follows.
+Check 5 decision (Fabio): a source with no prompt of its own (composite, IMPORTED image) is read
+with the describer (`look`) and the prompt written from what it sees - already what the agent does.
+
+Next: Fabio re-runs check 3 after a full restart (mask a corner, "put people in the chairs": the
+agent must say it uses the mask and prompt only that crop). Then mpi-end-session: close MPI-891 +
+MPI-886; ask about .claude/rules/ for `state.canvasMode` and the `masked` workspace field.
 
 ## Remaining Work
 
@@ -141,6 +162,8 @@ full app RESTART (server files changed).
 - 2026-09-22: **no desktop spec.** What unit tests cannot reach (navigate-then-mount, latents in
   the opened workspace) needs a real generation on the engine; Fabio's live check is that test.
   The decisions are covered in `tests/agent-view-follow.test.cjs` (mutation-proved).
+- 2026-09-24: MPI-900's agent half folded in here (Fabio: "all we have to do is make sure our
+  in-app agent can position the box"); its flow half stays MPI-900's.
 - 2026-09-22: D4 got a media-type rule (a clip from a still is a new card) for cards that are not
   open; the open card keeps MPI-890's rule. Released `js/events.js` to MPI-899 (never needed).
 

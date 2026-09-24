@@ -2514,6 +2514,20 @@ describe('(e) the open workspace reaches the agent', () => {
         assert.equal(resolved.itemId, 'i1', 'the itemId is what lets a look be stored on the card');
     });
 
+    // MPI-891 live read 2: a masked corner got "people in the chairs, keep the girl in
+    // front", and Klein, seeing only the crop, drew a second girl in it.
+    test('a painted mask is named on the line; no mask, no mention', async () => {
+        const AgentLoop = await loadAgentLoop();
+        const loop = new AgentLoop();
+        const masked = { ...workspace(), masked: true };
+        loop._registerWorkspaceEntry(masked);
+        const project = { name: 'Demons', folderPath: PROJECT };
+
+        assert.match(loop._appStateLine(project, masked), /MASK painted on it/);
+        assert.match(loop._appStateLine(project, masked), /write the prompt for the crop/);
+        assert.doesNotMatch(loop._appStateLine(project, workspace()), /MASK/);
+    });
+
     test('no card open: the line says nothing about standing anywhere', async () => {
         const AgentLoop = await loadAgentLoop();
         const loop = new AgentLoop();
@@ -2572,6 +2586,13 @@ describe('(e) the open workspace reaches the agent', () => {
 
             assert.equal(clean.activeEntry, null, 'a path outside Media/ must not become a ref');
             assert.equal(clean.page, 'group-history', 'losing the entry costs the shortcut, never the turn');
+        });
+
+        test('masked passes only as a real true', async () => {
+            const ws = { page: 'group-history', groupId: 'g1', card: null, activeEntry: null };
+            assert.equal((await _sanitiseWorkspace({ ...ws, masked: true }, project)).masked, true);
+            assert.equal((await _sanitiseWorkspace({ ...ws, masked: 'yes' }, project)).masked, false);
+            assert.equal((await _sanitiseWorkspace(ws, project)).masked, false);
         });
 
         test('no project open: there is nothing to contain the entry against, so it is dropped', async () => {

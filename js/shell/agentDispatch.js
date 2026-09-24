@@ -59,6 +59,8 @@ import { resolveActiveModel } from '../utils/modelHelpers.js';
 import { CROP_RATIOS } from '../utils/ratios.js';
 import { resolveMediaUrl, extractAbsPath } from '../utils/mediaActions.js';
 import { stepValueToMedia } from '../components/Blocks/MpiBaseFlow/stepKinds.js';
+import { composeNextPass } from '../components/Organisms/MpiStepCrop/MpiStepCrop.js';
+import { planOutpaintPasses } from '../utils/outpaintPasses.js';
 import { describeImage } from '../services/llmService.js';
 import { estimateRunCost } from '../services/cloudExecutor.js';
 import { formatPrice } from '../data/modelConstants/deepinfraPricing.js';
@@ -632,18 +634,31 @@ function _cropRatioValue(label) {
  * deliberately allowed to go negative — `composePaddedImage` draws at `-x, -y`, so a rect
  * that starts off-canvas simply insets the picture and the overhang is what gets painted.
  *
+ * `grow` puts ALL the new area on one side (MPI-900): "expand it up" for text above an
+ * Instagram post is `up`, and centring it split the room in two, half of it where nobody
+ * wanted it. A shape only grows one axis, so a side on the other axis is null, not a guess.
+ *
  * @param {{w:number,h:number}} natural  the source image's real pixels
  * @param {number} ratio                 target aspect, w/h
- * @returns {{x:number,y:number,w:number,h:number}}
+ * @param {'up'|'down'|'left'|'right'} [grow]  the one side to grow; omitted = both, evenly
+ * @returns {{x:number,y:number,w:number,h:number}|null} null when `grow` is on the axis
+ *   this shape does not grow
  */
-export function frameRectForRatio(natural, ratio) {
+export function frameRectForRatio(natural, ratio, grow) {
     const { w: nw, h: nh } = natural;
     let w = nw;
     let h = nh;
     if (ratio < nw / nh) h = Math.round(nw / ratio);  // taller than the source → grow top+bottom
     else if (ratio > nw / nh) w = Math.round(nh * ratio); // wider → grow left+right
-    return { x: Math.round((nw - w) / 2), y: Math.round((nh - h) / 2), w, h };
+    const vertical = h !== nh;
+    if (grow && vertical !== (grow === 'up' || grow === 'down')) return null;
+    const x = grow === 'left' ? nw - w : grow === 'right' ? 0 : Math.round((nw - w) / 2);
+    const y = grow === 'up' ? nh - h : grow === 'down' ? 0 : Math.round((nh - h) / 2);
+    return { x, y, w, h };
 }
+
+/** The sides `frame.grow` takes. */
+export const FRAME_GROW_SIDES = ['up', 'down', 'left', 'right'];
 
 /** An image url's real pixels. Rejects rather than resolving a guess — the rect is built
  *  from this, and a wrong size pads the wrong edges. */
@@ -679,6 +694,28 @@ async function _placePreviewAsset(file, project) {
     if (!res.ok) throw new Error(`place failed: ${res.status}`);
     const data = await res.json();
     return data?.success ? data.filePath : null;
+}
+
+/**
+ * The `runNextPass` hook flowService calls as each pass completes (MPI-900): the previous
+ * RESULT padded out to the next frame, swapped into the source's slot. MpiBaseFlow's
+ * `_planPasses` is the same hook over the user's frame; this one runs with no frame open.
+ *
+ * @param {Array<Object>} plan - every pass's frame in source px (`planOutpaintPasses`)
+ * @param {Array<Object>} mediaItems - the run's media, pass 1's padded picture in it
+ * @param {Object} source - the item in `mediaItems` each pass replaces
+ */
+function _nextPassFor(plan, mediaItems, source) {
+    let ran = 0; // index of the pass that just completed
+    return async ({ item } = {}) => {
+        const file = await composeNextPass(item, plan[ran], plan[ran + 1]);
+        ran += 1;
+        const url = file ? await _placePreviewAsset(file, state.currentProject) : null;
+        return url ? {
+            media: mediaItems.map(m => (m === source ? { ...m, url, filePath: url } : m)),
+            last: ran === plan.length - 1,
+        } : null;
+    };
 }
 
 async function _submitFlow(jobId, input = {}) {
@@ -745,14 +782,17 @@ async function _submitFlow(jobId, input = {}) {
     // A RATIO, not a rect. The model names the shape it wants and the arithmetic happens
     // here — the same reason `BOX_NOT_MEASURED` exists a few lines up.
     const cropStep = (flow.steps || []).find(s => s.kind === 'crop' && s.role);
+    let passPlan = null;
+    let cropSource = null;
     if (cropStep) {
         const label = params.frame?.ratio;
         const ratio = _cropRatioValue(label);
         if (!ratio) {
             return _fail(jobId, 'FRAME_REQUIRED',
-                `Nothing was generated: ${flow.title} grows a picture past its edges, so it needs the shape you want it to become — ${label ? `"${label}" is not one it offers` : 'your call passed none'}. Send it again with params: { frame: { ratio: "<one of these>" } }: ${CROP_RATIO_LABELS.join(', ')}.`);
+                `Nothing was generated: ${flow.title} grows a picture past its edges, so it needs the shape you want it to become — ${label ? `"${label}" is not one it offers` : 'your call passed none'}. Send it again with params: { frame: { ratio: "<one of these>" } }, plus grow: "up", "down", "left" or "right" when the new room goes on one side only: ${CROP_RATIO_LABELS.join(', ')}.`);
         }
 
+        const grow = params.frame?.grow; // a side, or absent: validateBoxParams checked it
         const source = mediaItems.find(m => m?.role === cropStep.role);
         if (!source?.url) {
             return _fail(jobId, 'MEDIA_REQUIRED',
@@ -762,11 +802,19 @@ async function _submitFlow(jobId, input = {}) {
         let padded = null;
         try {
             const natural = await _naturalSize(source.url);
-            const rect = frameRectForRatio(natural, ratio);
+            const rect = frameRectForRatio(natural, ratio, grow);
+            if (!rect) {
+                const taller = ratio < natural.w / natural.h;
+                return _fail(jobId, 'FRAME_DIRECTION',
+                    `Nothing was generated: ${label} makes this ${natural.w}x${natural.h} picture ${taller ? 'TALLER, so it grows up or down' : 'WIDER, so it grows left or right'}, never ${grow}. Pick a ${taller ? 'wider' : 'taller'} shape to grow ${grow}, or grow ${taller ? '"up" or "down"' : '"left" or "right"'}.`);
+            }
+            // More than one pass holds (MPI-900): pass 1 runs at the first capped frame and
+            // each next pass on the previous RESULT, the same plan the flow frame runs.
+            passPlan = cropStep.maxGrow ? planOutpaintPasses(natural, rect, cropStep.maxGrow) : null;
             // `composePaddedImage` returns null for a rect that matches the source exactly.
             // That is this flow doing nothing, so say so rather than spending a generation
             // to hand back a re-render of what the user already has.
-            const file = await stepValueToMedia(cropStep.kind, { crop: rect }, source, cropStep, null);
+            const file = await stepValueToMedia(cropStep.kind, { crop: passPlan ? passPlan[0] : rect }, source, cropStep, null);
             if (!file) {
                 return _fail(jobId, 'FRAME_UNCHANGED',
                     `Nothing was generated: that picture is already ${label} (${natural.w}x${natural.h}), so there is nothing to grow. Pick a different shape, or tell the user it is already the one they asked for.`);
@@ -783,6 +831,7 @@ async function _submitFlow(jobId, input = {}) {
         // `crop` is deliberately not one of the kinds that delivers to a second role.
         source.url = padded;
         source.filePath = padded;
+        cropSource = source;
     }
 
     const { inputs, injectionParams: fieldInjection, unknown } = resolveFlowFieldValues(flow, fields);
@@ -818,6 +867,7 @@ async function _submitFlow(jobId, input = {}) {
         ...inputs,
         mediaItems,
         ...(Object.keys(injectionParams).length ? { injectionParams } : {}),
+        ...(passPlan ? { runNextPass: _nextPassFor(passPlan, mediaItems, cropSource) } : {}),
     }, {
         onComplete: (done) => _reportDone(jobId, done, input.cardName),
         onText: (text) => _report(jobId, { ok: true, output: { text } }),
@@ -1002,6 +1052,12 @@ export function validateBoxParams(flow, params) {
                     message: `frame.ratio "${val.ratio ?? ''}" is not a shape this flow offers. One of: ${CROP_RATIO_LABELS.join(', ')}.`,
                 };
             }
+            if (val.grow !== undefined && !FRAME_GROW_SIDES.includes(val.grow)) {
+                return {
+                    ok: false, code: 'INVALID_FRAME',
+                    message: `frame.grow "${val.grow}" is not a side. One of: ${FRAME_GROW_SIDES.join(', ')}, or leave it out to grow both sides evenly.`,
+                };
+            }
             continue;
         }
         const step = boxSteps.find(s => s.param === key);
@@ -1093,7 +1149,7 @@ function _listModels(jobId) {
             // reported success (Fabio, 2026-09-19: "came back as the original image").
             // A crop step has no `param` by design — its value becomes a PADDED PICTURE,
             // not a widget — so it cannot ride in `boxParams` and gets its own key.
-            ...(cropStep ? { frame: { param: 'frame', role: cropStep.role, ratios: CROP_RATIO_LABELS } } : {}),
+            ...(cropStep ? { frame: { param: 'frame', role: cropStep.role, ratios: CROP_RATIO_LABELS, grow: FRAME_GROW_SIDES } } : {}),
         };
     });
 

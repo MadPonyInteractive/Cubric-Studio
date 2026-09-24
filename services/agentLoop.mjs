@@ -112,7 +112,7 @@ const TOOL_DEFS = [
                     cardName: { type: 'string', description: 'Optional short name for the card this generation creates.' },
                     wait: { type: 'boolean', description: 'Wait for this generation to finish and return its result, instead of starting it and moving on. Use it when a LATER step in the same request needs this output — the result carries the filePath you then pass as media. Leave it off for the last step, so the chat stays free while it runs.' },
                     fields: { type: 'object', description: 'Flow field values.' },
-                    params: { type: 'object', description: 'Flow step params: a box, e.g. { box1: { x, y, width, height } }, and for a Flow whose entry declares `frame`, the shape you want the picture grown to, e.g. { frame: { ratio: "9:16" } }. Take the ratio from that entry\'s own list.' },
+                    params: { type: 'object', description: 'Flow step params: a box, e.g. { box1: { x, y, width, height } }, and for a Flow whose entry declares `frame`, the shape you want the picture grown to, e.g. { frame: { ratio: "9:16" } }. Take the ratio from that entry\'s own list. A taller shape grows the top and bottom evenly and a wider one the left and right, unless you add grow: when the user says which side the new room goes on ("expand it up", "more sky", "room for a title above"), send it, e.g. { frame: { ratio: "4:5", grow: "up" } }. Pick a ratio that grows on that axis: up and down need a TALLER shape than the picture, left and right a WIDER one.' },
                     media: {
                         type: 'array',
                         items: {
@@ -771,6 +771,8 @@ export class AgentLoop {
         // and nothing else — it is registered above, so the ref named here resolves.
         const standing = workspace?.activeEntry?.filePath
             ? ` The user is looking at the card "${workspace.card?.name || 'untitled'}", and the entry open in front of them is ${workspace.activeEntry.filePath}. "This image", "it" and "this one" mean that entry.`
+                // MPI-891 live read 2: the mask reached the dispatch, never the prompt writer.
+                + (workspace.masked ? ' They have a MASK painted on it: an edit of that entry changes only the masked area, and the model sees only that crop, so write the prompt for the crop (Masking rule) and tell them you are using their mask. A change to the whole picture needs them to clear the mask first.' : '')
             : '';
         return `[App state: ${where}${standing} Images you can look at: ${refs.length ? refs.join(', ') : 'none'}.${more} A ref with no "made by" was not made here, so you do not know what made it — say so rather than guessing, and never assume it came from the model selected now.]`;
     }

@@ -37,6 +37,9 @@ import { opPriority } from '../js/data/modelConstants/modelPriority.js';
 import { resolveRecipe } from '../js/data/recipes/registry.js';
 import { DEFAULT_STYLE } from '../js/data/recipes/styles.js';
 import { runChecks } from './recipe-test.mjs';
+import { CROP_RATIOS } from '../js/utils/ratios.js';
+import { getFlowById } from '../js/data/flowsRegistry.js';
+import { agentFieldSpecs } from '../js/utils/declaredFields.js';
 
 const { mediaRolesFor } = createRequire(import.meta.url)('../routes/connector.js');
 
@@ -48,8 +51,18 @@ const LOOKS = readFixture('looks.json');
 // What GET /connector/models adds to the renderer's list, by the route's own functions.
 const GUIDES = guideIdsByModel();
 const CAPTURED = readFixture('connector-models.json');
+// A crop flow (Outpaint) as `_listModels` builds it NOW: the capture predates `frame`
+// (MPI-817) and its `grow` (MPI-900), so the model could not see either. `grow` mirrors
+// agentDispatch.js FRAME_GROW_SIDES, which cannot be imported here (it pulls the DOM).
+const CROP_LABELS = [...new Set([...(CROP_RATIOS.portrait || []), ...(CROP_RATIOS.landscape || [])].map((r) => r.label))];
+const withFrame = (f) => {
+    const flow = getFlowById(f.id);
+    const crop = flow?.steps?.find((s) => s.kind === 'crop' && s.role);
+    return crop ? { ...f, fields: agentFieldSpecs(flow), frame: { param: 'frame', role: crop.role, ratios: CROP_LABELS, grow: ['up', 'down', 'left', 'right'] } } : f;
+};
 const MODELS = {
     ...CAPTURED,
+    flows: CAPTURED.flows.map(withFrame),
     models: CAPTURED.models.map((m) => ({
         ...m,
         ops: m.ops.map((o) => ({
@@ -212,6 +225,11 @@ const refusedParams = (run) => calledAll(run, 'generate')
     .filter((c) => /^INVALID_/.test(c.result?.error?.code || ''))
     .map((c) => `${c.result.error.code} on ${c.args.modelId}/${c.args.operation}`);
 const modelById = (id) => MODELS.models.find((m) => m.id === id);
+/** Where the created project got opened: `create_project` opens what it makes (a2b243de) and
+ *  says `opened: true`; only when it could not does the model's own open_project count. */
+const openedAt = (calls, created, made) => (calls[created].result?.opened
+    ? created
+    : calls.findIndex((c, i) => i > created && c.tool === 'open_project' && c.result?.ok && c.args.folderPath === made.folderPath));
 /** open_project calls the loop refused: a folder nobody gave the model. */
 const invented = (run) => calledAll(run, 'open_project')
     .filter((c) => c.result?.error?.code === 'UNKNOWN_PROJECT')
@@ -357,7 +375,7 @@ const CASES = [
             if (created < 0) return ['no project was created'];
             const f = [];
             const made = calls[created].result.project;
-            const opened = calls.findIndex((c, i) => i > created && c.tool === 'open_project' && c.result?.ok && c.args.folderPath === made.folderPath);
+            const opened = openedAt(calls, created, made);
             if (opened < 0) f.push('did not open the project it created');
             else if (!calls.some((c, i) => i > opened && c.tool === 'generate' && c.result?.ok)) f.push('no generate went through after opening it');
             f.push(...invented(run));
@@ -387,12 +405,12 @@ const CASES = [
         flip: { turns: ['Make an image of a lighthouse keeper feeding a seal.'] },
         check(run) {
             const calls = run.turns.flatMap((t) => t.calls);
-            const created = calls.find((c) => c.tool === 'create_project' && c.result?.ok);
-            if (!created) return ['no project was created'];
+            const createdAt = calls.findIndex((c) => c.tool === 'create_project' && c.result?.ok);
+            if (createdAt < 0) return ['no project was created'];
             const f = [];
-            const made = created.result.project;
+            const made = calls[createdAt].result.project;
             if (!/lighthouse|seal/i.test(made.name)) f.push(`the project is named "${made.name}", not after the goal`);
-            const opened = calls.findIndex((c) => c.tool === 'open_project' && c.result?.ok && c.args.folderPath === made.folderPath);
+            const opened = openedAt(calls, createdAt, made);
             if (opened < 0) f.push('did not open the new project');
             const brief = calls.find((c, i) => i > opened && c.tool === 'write_memory' && c.result?.ok && /lighthouse/i.test(`${c.args.title} ${c.args.text}`));
             if (!brief) f.push('no project-brief note about the lighthouse film after opening it');
@@ -518,6 +536,29 @@ const CASES = [
             const ok = calledAll(run, 'generate').filter((c) => c.result?.ok);
             if (!ok.length) return ['never ran the edit'];
             return ok.some((c) => /"Fox Shoot"/.test(c.args.prompt || '')) ? [] : ['the words are not quoted exactly in the prompt'];
+        },
+    },
+    {
+        // MPI-900, live (Fabio, 2026-09-24): "expand this image up" on a 1280x800 picture for
+        // an Instagram post. Outpaint went out at 4:5 CENTRED, half the new room below the
+        // picture where nobody wanted it. The flip asks for room on both sides, so `grow`
+        // must be absent and the check must fail.
+        id: 'outpaint-grows-one-side',
+        title: '"expand it up" is Outpaint grown up only, at the shape asked for',
+        setup: {
+            attachments: [FOX],
+            look: { ok: true, output: { ...LOOKS.fox.output, imageSize: { w: 1280, h: 800 } } },
+            turns: ['Expand this picture upward so there is room for a title above the fox. It is for a 4:5 Instagram post.'],
+        },
+        flip: { turns: ['Expand this picture so there is more snow both above and below the fox. It is for a 4:5 Instagram post.'] },
+        check(run) {
+            const runs = calledAll(run, 'generate').filter((c) => c.args.flowId === 'outpaint' && c.result?.ok);
+            if (!runs.length) return ['never ran Outpaint'];
+            const frame = runs.at(-1).args.params?.frame || {};
+            const f = [];
+            if (frame.grow !== 'up') f.push(`frame.grow is ${JSON.stringify(frame.grow)}, not "up"`);
+            if (frame.ratio !== '4:5') f.push(`frame.ratio is ${JSON.stringify(frame.ratio)}, not "4:5"`);
+            return f;
         },
     },
     {

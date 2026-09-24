@@ -27,6 +27,7 @@ import { Events } from '../events.js';
 import { on } from '../utils/dom.js';
 import { state } from '../state.js';
 import { pinnedModel } from '../shell/agentDispatch.js';
+import { activeMask } from '../shell/activeMask.js';
 import { PAGE_GROUP_HISTORY } from '../router.js';
 import { isOperationInstalled } from '../data/modelRegistry.js';
 
@@ -156,8 +157,13 @@ function _pinnedForTurn() {
  *
  * The group's own `selectedIndex` is the live selection — MpiGroupHistoryBlock promotes and
  * persists it on every `entry-selected` — so nothing new has to be plumbed through the view.
+ *
+ * `masked` (MPI-891 live read 2): a painted mask reached the DISPATCH on its own, but the
+ * model writing the prompt never heard of it. Fabio masked a corner of the pool and asked
+ * for "people playing, sitting in the chairs"; the prompt described the whole scene ("keep
+ * the girl in front") and Klein, seeing only the crop, drew a second girl in it.
  * @returns {{page:string, groupId:?string, card:?{name:string,type:string},
- *            activeEntry:?{itemId:string, filePath:string, modelId:?string}}}
+ *            activeEntry:?{itemId:string, filePath:string, modelId:?string}, masked:boolean}}
  */
 function _workspaceForTurn() {
     const page = state.currentPage;
@@ -176,6 +182,7 @@ function _workspaceForTurn() {
         activeEntry: item?.filePath
             ? { itemId: item.id, filePath: item.filePath, modelId: item.modelId || null }
             : null,
+        masked: activeMask()?.groupId === groupId,
     };
 }
 

@@ -87,6 +87,7 @@ async function _sanitiseWorkspace(workspace, project) {
         groupId: typeof workspace.groupId === 'string' ? workspace.groupId : null,
         card: workspace.card && typeof workspace.card.name === 'string' ? workspace.card : null,
         activeEntry: null,
+        masked: workspace.masked === true,
     };
     if (!entry || typeof entry.filePath !== 'string' || !project?.folderPath) return clean;
 
