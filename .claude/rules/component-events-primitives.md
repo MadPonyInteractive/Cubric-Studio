@@ -354,7 +354,10 @@ EMITS:   `working` `{ working: boolean }` — component-local; mirrors `agent:wo
 GLOBAL EMITS (via Events.emit): `gallery:open-card` `{ itemId, groupId }` — a result-card thumbnail clicked. The one listener is the shell (`js/shell/agentPanel.js`): it opens that card's Group History when the open project holds the group and it is not audio; otherwise nothing happens.
 LISTENS: `agent:working`    `{ turnId, working }` — flips the working dot (panel mode) / mascot (standalone mode)
          `agent:message`   `{ turnId, id, text }` — appends a markdown reply bubble
-         `agent:tool`      `{ turnId, id, tool, status, label }` — appends/updates a tool status line keyed by `id`; renders `label` ONLY, never `args.prompt`
+         `agent:tool`      `{ turnId, id, tool, status, label }` — appends/updates a tool status line keyed by `id`; renders `label` ONLY, never `args.prompt`. **Panel mode also drives the crew ledge (MPI-777):** `tool` is looked up in `_TOOL_CREW` — `look` puts Cosmo on `looking` + Prism as guest, `generate` brings Lingo until the job's own `generation:started`; any other tool keeps Cosmo on `thinking`
+         `generation:started` `{ id, operation }` — **panel mode only**, crew ledge: the NEWEST running generation (any source, not just the agent's) takes the guest slot, mascot by `getCommandAccent(operation)`
+         `generation:complete` / `generation:cancelled` / `generation:error` `{ id }` — **panel mode only**: that job's guest plays `happy-1` / `cancelled` / `failed` and leaves (or the next-newest running job takes over); `complete` while not working also cheers Cosmo (`happy`)
+         state `currentPage` (both modes) + `agentMode` (panel) via `Events.onState` → `_syncPlay`: clips play only while the chat is SEEN; Cosmo's clip queue exists only then and is destroyed when hidden
          `agent:confirm`   `{ turnId, confirmId, kind, modelId, modelName, downloadGb }` — appends an install-confirm card (Yes/No `MpiButton`s → `agentPostConfirm(confirmId, yes)`)
          `agent:result`    `{ toolCallId, ok, output?, error? }` — appends a result thumbnail card on `ok`, an error line on `!ok`
          `agent:compacting` `{ turnId, on }` — appends a "Compacting conversation…" marker when `on`
