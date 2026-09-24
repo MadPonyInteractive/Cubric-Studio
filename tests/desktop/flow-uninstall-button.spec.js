@@ -51,7 +51,7 @@ test('a deps-only flow offers Uninstall, and sends its OWN deps under the flow k
       const { formatBytes } = await import('/js/utils/formatBytes.js');
 
       const DEPS_FLOW = 'minimax-music';   // no requiredModels — its whole footprint is its own
-      const MODELS_FLOW = 'outpaint';      // one model, no own deps — the negative case
+      const MODELS_FLOW = 'character-sheet'; // one model, no own deps — the negative case (outpaint gained a node dep in MPI-900)
 
       const ownDeps = (id) => getFlowById(id).requiredDeps || [];
       const markDeps = (id, present) =>

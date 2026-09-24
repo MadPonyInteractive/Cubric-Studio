@@ -4,6 +4,7 @@
     "js/services/comfyController.js",
     "tests/remote-history-settle.test.cjs",
     "docs/generation-lifecycle.md",
-    "js/services/commandExecutor.js"
+    "js/services/commandExecutor.js",
+    "tests/desktop/flow-uninstall-button.spec.js"
   ]
 }
