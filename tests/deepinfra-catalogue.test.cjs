@@ -64,6 +64,28 @@ test('ships Fabio\'s fourteen models plus the schnell test model', () => {
     assert.equal(new Set(CLOUD.map(m => m.cloud.endpointId)).size, CLOUD.length);
 });
 
+// MPI-851: the schnell test model must never reach a user. A release build stamps a real
+// hash into buildInfo.js, so stage exactly that: models.js and its one import chain under a
+// temp root with a non-dev BUILD_HASH, and read MODELS the way a shipped app would.
+test('a release build lists the fourteen, never the devOnly schnell test model', () => {
+    const root = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'mpi851-'));
+    const stage = (rel, text) => {
+        fs.mkdirSync(path.dirname(path.join(root, rel)), { recursive: true });
+        fs.writeFileSync(path.join(root, rel), text ?? fs.readFileSync(path.join(__dirname, '..', rel)));
+    };
+    stage('js/data/modelConstants/models.js');
+    stage('dev_configs/app_config.js');
+    stage('js/core/buildInfo.js', "export const BUILD_HASH = 'abc1234';\n");
+    try {
+        const shipped = require(path.join(root, 'js/data/modelConstants/models.js')).MODELS;
+        assert.ok(!shipped.some(m => m.devOnly), 'no devOnly model in a release build');
+        assert.equal(shipped.filter(m => m.provider === 'deepinfra').length, 14);
+        assert.equal(shipped.length, MODELS.length - 1, 'only the test model drops out');
+    } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});
+
 // MPI-864 — every cloud tile showed a placeholder, because no cloud ModelDef carried the
 // `image`/`video` a local one does. The tile reads ONE of them by mediaType and has no
 // fallback (`MpiModelManager.js` `_tileItem`), so a still on a video model is as blank as

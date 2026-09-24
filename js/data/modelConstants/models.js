@@ -33,7 +33,10 @@
  * @property {string[]} [commonDeps] - Always-required dep ids (operations-keyed models only): VAE, encoder, shared nodes.
  * @property {Record<string,{deps:string[]}>} [operations] - Per-operation unique dep ids (operations-keyed models only). Resolved into a flat list by resolveModelDeps.js before download.
  * @property {boolean}  installed    - Resolved at runtime by syncModelInstalled(); not set here
+ * @property {boolean}  [devOnly]    - A developer's TEST model (MPI-851): present in source runs, absent from `MODELS` in any build where `APP_CONFIG.dev_mode` is false. Filtered here, at the one export, so the library, the picker, the agent's model list and `/connector/generate` cannot disagree about it — they all read `MODELS`, renderer and server alike.
  */
+
+import { APP_CONFIG } from '../../../dev_configs/app_config.js';
 
 // ── Cloud ratio aspect sets (MPI-853) ────────────────────────────────────────
 // The generators that turn these into tables are `_cloudRatios` / `_cloudVideoRatios`,
@@ -56,7 +59,7 @@ const WAN3_ASPECTS = ['1:1', '3:4', '4:3', '9:16', '16:9'];
 const VEO_ASPECTS = ['9:16', '16:9'];
 
 /** @type {ModelDef[]} */
-export const MODELS = [
+const ALL_MODELS = [
     {
         id: 'sdxl-realistic',
         sizeTier: 'low',
@@ -1860,6 +1863,9 @@ export const MODELS = [
         name: 'FLUX Schnell (Cloud)',
         dropdownMeta: 'CLOUD',
         provider: 'deepinfra',
+        // A TEST model (Fabio, 2026-09-24): the cheapest real dispatch, kept for proving
+        // the cloud path, and not good enough to put in front of a user.
+        devOnly: true,
         cloud: {
             endpointId: 'black-forest-labs/FLUX-1-schnell',
             // Deliberately empty. DeepInfra's own default step count is the one its
@@ -2233,6 +2239,9 @@ export const MODELS = [
         workflows: {},
     },
 ];
+
+/** @type {ModelDef[]} Every model a user can see. A `devOnly` entry exists in source runs only. */
+export const MODELS = ALL_MODELS.filter(m => !m.devOnly || APP_CONFIG.dev_mode);
 
 // ── Cloud ratio generators (MPI-853) ─────────────────────────────────────────
 //

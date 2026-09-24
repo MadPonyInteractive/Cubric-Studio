@@ -91,3 +91,21 @@ multiplied per card.
   endpoint id, nothing more.
 - **Reference images** are wired (`cloud.imageField`) but no shipped model declares one yet,
   so the edit path is unexercised.
+
+## 2026-09-24 — the test model is dev-gated
+
+Fabio: FLUX Schnell (Cloud) is a TEST model, a bad one, and must not reach users; keep it
+for dev testing. `flux-schnell-cloud` now carries `devOnly: true`, and `models.js` exports
+`MODELS = ALL_MODELS.filter(m => !m.devOnly || APP_CONFIG.dev_mode)`. One filter at the one
+export, so the library, the picker, the agent's model list and the connector's generate
+route cannot disagree: all four read `MODELS`, renderer and server alike. No release tag
+contains the model, so no user's history can reference it.
+
+- **Evidence:** `tests/deepinfra-catalogue.test.cjs`, "a release build lists the fourteen",
+  stages models.js + app_config.js under a temp root with a stamped `BUILD_HASH` (what
+  `build-portable.mjs` does) and asserts 14 cloud models, no `devOnly`, one model dropped.
+  **Proved red** with the flag backed out (21 pass / 1 fail), green with it.
+- `npm test`: 1846 pass, 0 fail (the one listed is MPI-867's `todo`, not counted).
+- The batch-of-four live check above ran under MPI-876 (`20d85814`, 4 x $0.000492, one `at`).
+
+All of MPI-851's evidence is in. It closes with the commit, on green CI.
