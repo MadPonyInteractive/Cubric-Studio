@@ -189,13 +189,13 @@ test('the snapshot and the run are separated at both ends', () => {
     assert.ok(collect.length > 0 && !/_enhanceDecls/.test(collect),
         '_collectInputs must not apply the enhance fallback — its output is the snapshot Reuse restores');
     assert.match(src, /const runInputs = withEnhanceFallback\(_enhanceDecls, inputs\);/);
-    assert.match(src, /submitFlowGeneration\(flow, \{ \.\.\.inputs, runMediaItems, runInputs \}/);
+    assert.match(src, /submitFlowGeneration\(flow, \{\s*\.\.\.inputs, runMediaItems, runInputs,/);
     assert.match(src, /enhanceEchoTargets\(_enhanceDecls, _fieldValues, _enhanceWrote\)/,
         'the seed must drop a fallback echo saved by an older snapshot');
 
     const service = fs.readFileSync(repo('js/services/flowService.js'), 'utf8');
-    assert.match(service, /const \{ runMediaItems, runInputs, \.\.\.snapshot \} = inputs;/,
-        '`runInputs` must be stripped before `flowInputs`');
+    assert.match(service, /const \{ runMediaItems, runInputs, runNextPass, \.\.\.snapshot \} = inputs;/,
+        '`runInputs` (and MPI-900\'s `runNextPass`) must be stripped before `flowInputs`');
     assert.match(service, /positive: run\.positive \|\| ''/);
     assert.match(service, /\.\.\.\(run\.injectionParams \|\| \{\}\)/);
     assert.match(service, /flowInputs: snapshot,/);
