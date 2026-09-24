@@ -390,8 +390,10 @@ the gallery space to drag an image and send it to the agent."* He could not — 
 surface, so with a card open the agent's only honest moves were `list_cards` or asking for an
 attachment.
 
-- **Shape:** `{ page, groupId, card: { name, type }, activeEntry: { itemId, filePath, modelId } }`.
-  Only the group-history page fills the last three; everywhere else it is page-only.
+- **Shape:** `{ page, groupId, card: { name, type }, activeEntry: { itemId, filePath, modelId }, masked }`.
+  Only the group-history page fills the rest; everywhere else it is page-only. `masked` (MPI-891)
+  is `activeMask()?.groupId === groupId`; `routes/agent.js` passes only a real `true`, and the App
+  state line then tells the agent a mask is painted on that entry.
 - **The live selection needs no new plumbing.** `MpiGroupHistoryBlock` promotes and persists
   `group.selectedIndex` on every `entry-selected`, so `state.currentProject` already holds which
   entry is in front of the user.
