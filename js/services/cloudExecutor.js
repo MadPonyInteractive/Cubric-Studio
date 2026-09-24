@@ -300,9 +300,14 @@ export function runCloudCommand(payload) {
 
         // `cost` is the TRUE figure the provider billed (`inference_status.cost`), not
         // the app's estimate — it rides into the sidecar so a spend readout can sum
-        // what really happened rather than what was predicted.
-        exec.onComplete?.(body.viewUrls || [], {
-            cost: body.cost ? { ...body.cost, provider: model.provider } : null,
+        // what really happened rather than what was predicted. A batch is ONE bill for
+        // N images and `generationService` stamps this object on every card, so each card
+        // carries its share: a card's cost is its own, and summing cards gives the bill.
+        const urls = body.viewUrls || [];
+        exec.onComplete?.(urls, {
+            cost: body.cost
+                ? { ...body.cost, usd: body.cost.usd / Math.max(1, urls.length), provider: model.provider }
+                : null,
         });
     })();
 

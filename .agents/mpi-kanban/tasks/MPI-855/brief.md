@@ -69,9 +69,17 @@ of these. All three were seen live on 2026-09-21.
 
 | Shape | Calls | Bills | What the sidecars say |
 |---|---|---|---|
-| **Native provider batch** — `num_images` / `sample_count`, only 2 of the 16 endpoints have one | 1 | 1 | N cards, each carrying the WHOLE call's cost |
+| **Native provider batch** — `num_images` / `sample_count`, only 2 of the 16 endpoints have one | 1 | 1 | ~~N cards, each carrying the WHOLE call's cost~~ **Since 2026-09-24 (MPI-876): N cards, each carrying its SHARE (`usd / N`), same `at`** |
 | **Agent fan-out** — one ask, one confirm, N submits 1.01 s apart (MPI-870, seen in `app.log`) | N | N | N cards, each carrying its OWN call's cost — summing is CORRECT here |
 | **Duplicate delivery** — the provider returned one generation twice ([[MPI-875]]) | 1 | 1 | 2 cards, both carrying the whole cost |
+
+**UPDATE 2026-09-24 — the table is now mostly history.** `cloudExecutor.js` splits a batch's
+bill across its cards (Fabio: each card carries its own price), measured live: a FLUX Schnell
+batch of four wrote `usd 0.000492125` on four sidecars with one shared `at`, summing to the
+call's bill. And MPI-875 clamps the duplicate delivery to one card at the route. **So a
+per-card sum is now CORRECT for all three rows.** Sidecars written BEFORE 2026-09-24 still
+carry the old whole-call figure on every batch card, so a ledger reading history must still
+de-duplicate by `at` for those. The original analysis follows.
 
 So a per-card sum is right for exactly one of the three and over-counts on the other two.
 **Sum per CALL.** The cost object carries `at` (the reading timestamp), which is identical

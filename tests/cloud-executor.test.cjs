@@ -106,15 +106,17 @@ test('an UNSEEDED run records the seed the provider chose, not -1', async () => 
 test('a batch of four reaches the provider as ONE call, and lands four cards', async () => {
     // The SDXL shape: the batch control already caps at 4, and DeepInfra's own
     // `num_images` maximum is 4. One call, four images, ONE bill — so the agent's confirm
-    // (MPI-854) shows a batch total and the sidecar cost is not multiplied per card.
+    // (MPI-854) shows a batch total, and each card's sidecar carries its SHARE of the one
+    // bill (Fabio, 2026-09-24): $0.002 for four is $0.0005 a card, never $0.002 on each.
     let body = null;
     const four = ['a.jpg', 'b.jpg', 'c.jpg', 'd.jpg'].map(n => `http://127.0.0.1:3000/deepinfra/output/${n}`);
-    const { urls } = await dispatch((url, init) => {
+    const { urls, info } = await dispatch((url, init) => {
         body = JSON.parse(init.body);
-        return { ok: true, status: 200, json: async () => ({ ...OK_BODY, viewUrls: four }) };
+        return { ok: true, status: 200, json: async () => ({ ...OK_BODY, viewUrls: four, cost: { ...OK_BODY.cost, usd: 0.002 } }) };
     }, { injectionParams: { Input_Batch_Size: 4 } });
     assert.equal(body.batch, 4);
     assert.deepEqual(urls, four);
+    assert.equal(info.cost.usd, 0.0005);
 });
 
 test('a batch beyond what the endpoint accepts is clamped, not sent', async () => {
