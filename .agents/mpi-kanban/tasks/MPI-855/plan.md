@@ -20,7 +20,7 @@
 
 ## Phase 2: per-session Cosmo readout
 
-- `agentDispatch._reportDone`: `costUsd` from `item.generationSettings.cost.usd`.
+- `agentDispatch._reportDone`: `costUsd` = sum of `generationSettings.cost.usd` over `items` (a batch reports once), else the one item.
 - `agentLoop.mjs`: `_spend = { chatUsd, genUsd }`, chat += `usage.estimated_cost` per reply,
   gen += `output.costUsd` per settled generation; reset on `reset()`; in `getHistory()` and on an
   `agent:spend` event.
@@ -33,7 +33,5 @@ session with a chat and a cloud generation showing the two apart.
 
 ## Current State
 
-**2026-09-24 — both phases built, uncommitted, offline-verified; waiting on Fabio's look.**
-Details and red/green proofs in `validation.md`. The DeepInfra account is SUSPENDED (limit
-$3.48 reached), so a cloud generation for check 2 needs the limit raised first; Check spend
-should still read. Next after his OK: commit by pathspec (files.json lists them), close on CI.
+**2026-09-24 - shipped in `beacedd8`, live-verified by Fabio (both checks + centring).** Closes on
+that commit's green CI.

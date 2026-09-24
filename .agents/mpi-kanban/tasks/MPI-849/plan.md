@@ -32,6 +32,11 @@ apart from a price. Neither blocks the phase 2 members.
 
 ## Current State
 
+**2026-09-24 (close) - the umbrella is DONE.** MPI-855 shipped in `beacedd8` (Remote-panel
+Check spend from `/payment/checklist`, NO ledger by Fabio's go; Cosmo header line with chat and
+generations apart), live-verified. Every member is in `done`; see `validation.md`. The
+DeepInfra limit is back at $5.00 with a $10 top-up.
+
 Project mode: **scalable-foundation**. Full guardrails, no prototype shortcuts.
 
 **2026-09-24 (handoff) — MPI-851 and MPI-869 are built, verified, committed; both close on

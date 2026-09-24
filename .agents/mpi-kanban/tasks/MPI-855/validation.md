@@ -6,7 +6,7 @@
 
 - `tests/deepinfra-account.test.cjs`: drives the real `GET /deepinfra/account` with the probed
   `/payment/checklist` shape plus marker strings in the address, card and email fields. Asserts the
-  answer is four named numbers (.90 spent, .54 credit, .10 of  limit) and that no marker,
+  answer is four named numbers (spentUsd 2.90, balanceUsd 1.54, limitRoomUsd 2.10, limitUsd 5) and that no marker,
   `line1`, `postal_code`, `last4`, `name` or `email` reaches the response or any `logger.*`
   call, on success, on a 500 with a body, and on a thrown fetch. **Proved red** (3/1) with the route
   answering `...checklist` wholesale; green restored.
@@ -47,3 +47,7 @@ MPI-903 closed (`f41548bf`) and released agentLoop/agentDispatch; message `ce29c
 
 Fabio's one change: centre the readout in the header instead of beside Start over. Done in CSS
 (absolutely centred on the header); owed: his glance at it.
+
+**Centring confirmed (Fabio, 2026-09-24, screenshot): "That looks good."** The readout sits centred in the header, Start over untouched. Committed in `beacedd8`.
+
+**CI GREEN (2026-09-24):** run 36048835485 on `beacedd8`, unit + desktop 1-4 all success. Closed.
