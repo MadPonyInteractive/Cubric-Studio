@@ -2,10 +2,11 @@
 
 ## Current State
 
-Phases 0-3 committed: d06bfd04 (gates) and 879caf0c (rules/docs rewrite); system prompt 25.4 -> 9.5 KB,
-tools 17.7 -> 16.9 KB. Phase 4 re-run died on DeepInfra 402 (account out of credit) after 10/63
-conversations, all 10 passing. Next: once Fabio tops up, npm run agent:test (22 cases x3, incl. the
-new sheet-goes-to-reference), then --bite; compare to the baseline table in validation.md; close.
+Phases 0-3 committed: d06bfd04 (gates) and 879caf0c (rules/docs rewrite); system prompt 25.4 -> 9.8 KB,
+tools 17.7 -> 16.9 KB, floor 11,104 -> 7,039 tokens. Phase 4 (2026-09-24, session d7ed2a8c): first
+full run found 5 cases below baseline; fixed (see Plan Drift), re-proved, --bite 22/22. Uncommitted:
+services/agentLoop.mjs, scripts/agent-test.mjs, tests/agent-loop + agent-sessions. Next: record the
+final x3 run in validation.md, commit, close via mpi-end-session.
 
 Measured (scratchpad `measure.mjs`, the real `_buildSystemPrompt` + `TOOL_DEFS`): **43 KB, ~11k tokens
 on every request** — system prompt 25.4 KB (20 rules ~24 KB), tool schemas 17.7 KB, knowledge index
@@ -92,7 +93,7 @@ Target: system prompt ≤ 9 KB. Index lists `app:*` only; `skill:*` leaves the i
 
 ## Remaining Work
 
-Phase 4: harness x3 on the rewrite, the new case, --bite; record in validation.md; commit; close.
+Record the final x3 run (final code) in validation.md; commit; close.
 
 ## Plan Drift
 
@@ -110,3 +111,10 @@ Phase 4: harness x3 on the rewrite, the new case, --bite; record in validation.m
   the recipe briefs: the guide is the one home, and reading both paid for the same facts twice.
   Model guides' Sources sections still carry dates; the no-story ban covers docs/agent/*.md
   (top level) only, the guides heal with MPI-911 and later recipe heals.
+- Phase 4: the condense lost four imperatives the model relied on. Model rule: a whole-frame change
+  ("make it night") is the edit task, not i2i; i2i only for a restyle the user asks for. Text rule:
+  "run it, with no mask question". Project rule: an explicit "start a new project" creates one.
+  Memory: a rule sentence was not enough (5/8), so two tool-result nudges took it: create_project's
+  result asks for the brief note, and the first ok generate of a turn with no write_memory carries
+  `remember` (once per turn). no-delete's check now counts list_cards/visible_cards as reads (the
+  Cards rule sends "the fox card" there). Budget still 9,800 B; prompt lands at 9,764.

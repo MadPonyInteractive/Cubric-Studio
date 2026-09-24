@@ -52,18 +52,36 @@ System prompt 25.4 KB -> **9,490 bytes** (with the app:* index); tool schemas 17
 Agent, connector and GIF suites: 456 pass, 0 fail. `tests/agent-prompt-budget.test.cjs` mutation-proved
 (a date in a rule, a 210-line doc: each turns it red). eslint clean on touched files.
 
-## Phase 4 — harness after the rewrite: INCOMPLETE (DeepInfra 402)
+## Phase 4 — prove (2026-09-24, same model, 22 cases x 3)
 
-2026-09-24, same model, 21 cases x 3 (the run predates the new case). The account ran out of credit mid-run: every call after the
-tenth conversation answered `402 Payment Required`, so 56 of 66 runs made 0 calls. Not a behaviour
-result. What did run, before the 402:
+An earlier attempt died on DeepInfra `402 Payment Required` after 10 conversations; the account was
+topped up and every run below is a real behaviour result.
 
-| case | runs | note |
-|---|---|---|
-| picks-installed-model | 3/3 | 5-6 calls (4 at baseline), 55-70k in |
-| install-needed | 3/3 | ~28k in |
-| auto-video-medium-turbo | 3/3 | |
-| ask-first #1 | turn 0 correct | asked the settings before generating; turn 1 died on the 402 |
+**Run 1, on 879caf0c as committed: 17/22 at 3/3.** Five cases fell below the baseline:
 
-**Still owed:** the full x3 run (and `--bite`, and the new `sheet-goes-to-reference` case) once the
-DeepInfra balance is topped up. About $0.25 a full run.
+| case | runs | what it did | fix |
+|---|---|---|---|
+| ranked-editor | 0/3 | "make it a night scene" ran i2i | Model rule: a whole-frame change to what is in the picture is the edit task; i2i only for a restyle the user asks for |
+| text-in-picture | 0/3 | offered mask vs whole edit and waited | Text rule: "run it, with no mask question" (the condense dropped "run the edit") |
+| new-project-brief | 1/3 | no project made / no brief note | Project rule: "Asked to start a new project, create it... that alone asks for nothing to be made"; `create_project` result carries a `note` asking for the brief |
+| memory-write-unprompted | 1/3 | made the picture, promised to "keep track" | first ok `generate` of a turn with no `write_memory` carries `remember` (once per turn; `tests/agent-loop.test.cjs`, mutation-proved) |
+| no-delete | 2/3 | called `list_cards`, then refused correctly | CHECK fix, not behaviour: `list_cards`/`visible_cards` are reads, and the Cards rule sends "the fox card" there |
+
+Rule text alone moved memory-write-unprompted to 5/8 only, so the tool-result nudge took it (plan
+principle 1). A first rewording of the Model rule ("only a restyle into another look or medium")
+broke rerun-on-named-model (1/3: an anime MODEL read as a restyle ask); the final wording is 5/5.
+
+**Final run, on the final code: 21/22 at 3/3.** The one miss, picks-installed-model 2/3, sent
+`ratio: "3:2"` (krea2 does not offer it), met the `INVALID_RATIO` gate and recovered to 16:9; the
+same case went 5/5 straight after, and 3/3 in both earlier full runs (13/14 overall). Noise, not the
+rewrite: nothing in this phase touched Settings. Cost $0.2155 for 66 conversations.
+
+`--bite` on the final code: **21/22 bite.** video-limit's flip (a frame attached, "look at it and
+tell me if the motion is smooth") did not bite once: the model answered that one frame cannot show
+motion, without calling `look`, which is an honest answer, so the flip is the weak part, not the
+check. Re-run alone it bit, and it bit in both earlier `--bite` runs (3 of 4).
+
+Floor (`no-delete`, one call): **7,035 input tokens, down from 11,104 (-37%)**. System prompt
+9,764 bytes (budget 9,800), tool schemas unchanged. Agent + connector suites: 399 pass, 0 fail,
+1 todo (MPI-867). eslint clean on `services/agentLoop.mjs`, `scripts/agent-test.mjs`,
+`tests/agent-loop.test.cjs`, `tests/agent-sessions.test.cjs`.

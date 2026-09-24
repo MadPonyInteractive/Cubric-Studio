@@ -226,7 +226,9 @@ Every event but `agent:session` also carries `session`, the key of its conversat
   answers `BOX_TOO_BIG`; and dispatch refuses `MASK_SEVERAL_AREAS` when edit, kleinEdit, krea2Edit, qwenEdit or
   inpaint get a mask of 2+ separate areas (`countMaskAreas`, `js/shell/agentDispatch.js`: they crop ONE box around
   all of them). `describe_model`'s `startFrame` role carries a `use` line (`ROLE_USE`, `routes/connector.js`): the
-  clip opens on that exact picture, so a character sheet goes to a `ref2v_*` op.
+  clip opens on that exact picture, so a character sheet goes to a `ref2v_*` op. Two reminders ride on
+  results without refusing: `create_project`'s `note` asks for the brief note, and the first ok `generate` of a
+  turn with no successful `write_memory` carries `remember` (`MEMORY_NUDGE`, once per turn).
 - **Harness:** `npm run agent:test` (22 cases x 3, real model, fake tools; `--bite` proves each assertion,
   `--samples <md>` writes prompts to read). A case's `look` is one fixture, or a map keyed by the
   attachment's `filePath` when two images must answer differently — two portraits giving the identical

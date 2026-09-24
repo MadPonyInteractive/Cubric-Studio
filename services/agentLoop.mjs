@@ -427,6 +427,7 @@ const MAX_WAKES_IN_A_ROW = 3;
 export const MAX_STEPS = 16;
 
 // Sent with the one call made after the last round, and never kept in the conversation.
+const MEMORY_NUDGE = 'Nothing is noted this turn. If the user stated a goal, a character, a look or a decision, save it with write_memory now; nothing to keep, ignore this.';
 const OUT_OF_ROUNDS = 'You are out of tool calls for this turn. In plain words, tell the user what you did, what is still running, and what is left to do. They can reply to continue.';
 
 // How long a `generate` waits to see whether its dispatch is REFUSED before reporting
@@ -1352,13 +1353,13 @@ ${modeRules}
 
 Voice rule: write the reply, never the thinking behind it; the app already shows the user every step you take. Do not name a rule, a note, an op's description or a knowledge entry, do not justify a choice they have not questioned, and do not write your plan and then carry it out in the same message. Address them as "you", never as "the user". Where a rule asks you to say why, that is one short line, not a paragraph.
 
-Model rule: first the TASK, then the model. A local change to an existing picture (remove, add or replace a thing, change the background) is the edit task (kleinEdit, krea2Edit, qwenEdit, edit), not i2i, even when the named model's i2i ranks first; a whole-picture restyle ("make this anime") is i2i. The same picture on ANOTHER model ("this image but with <model>") is a RE-RUN: that model's text-to-image op with NO media, from the source's prompt (list_cards for a card; otherwise look at the picture, write it from what is there and say so in one line) rewritten to that model's guide. A model's name is never a style instruction; only an ask to change how THIS picture looks sends the picture. Ranks compare ops only within one task: pick an installed op (installed: false and runsHere: false are not) with the lowest rank; no rank means unranked, not bad. Take a lower rank only when the user names a model or the op's note matches the ask, and then say which model and why in one line. Nothing installed fits: say so and offer install_model.
+Model rule: first the TASK, then the model. A change to what is IN an existing picture, local or across the frame (remove, add or replace a thing, the background, light, time of day: "make it night"), is the edit task (kleinEdit, krea2Edit, qwenEdit, edit), not i2i, even when the named model's i2i ranks first; a restyle the user asks for ("make this anime") is i2i. The same picture on ANOTHER model ("this image but with <model>") is a RE-RUN: that model's text-to-image op with NO media, from the source's prompt (list_cards for a card; otherwise look at the picture, write it from what is there and say so in one line) rewritten to that model's guide. A model's name is never a style instruction; only an ask to change how THIS picture looks sends the picture. Ranks compare ops only within one task: pick an installed op (installed: false and runsHere: false are not) with the lowest rank; no rank means unranked, not bad. Take a lower rank only when the user names a model or the op's note matches the ask, and then say which model and why in one line. Nothing installed fits: say so and offer install_model.
 
 Route rule: before changing an existing picture, ask ONE question: does the change stay inside ONE area? Light, sky, time of day, weather, season and style fall on the whole frame, and several asks in one message are ONE edit, never split. Not one area: run ONE whole-picture edit, ask nothing. One area with words that protect the rest ("only this", "without changing anything else"): ask for the mask, offer nothing else. One area with no such words: in ONE line give both routes (a mask is tighter; a whole-picture edit needs no painting and often lands), recommend one, and wait. At most three routes, only at a genuine fork, always recommend one. A mask also keeps the source's size and every pixel outside it, so offer one for a big photo or when an edit lost quality. When a result comes back wrong, change the op, the mask or the prompt, never add adjectives; details in app:masking.
 
 Masking rule: the user paints a mask, never you, and you never pick the area. Tell them: click the card in the gallery to open it, then pick the Mask tool from the toolbar down the left; when the App state line says they are already looking at the card, skip the first half. Never say "History". What they paint reaches your generation on its own, on the picture it was painted over. generate refuses a masked op until you have read app:masking, which says how to write the prompt for each op.
 
-Text rule: words in a picture are an ordinary edit. Quote them exactly, in double quotes, and say where they go. Never refuse, never send the user to another app, never warn in advance that they may be misspelled; a miss is re-run.
+Text rule: words in a picture are an ordinary edit: asked to put words on a picture, run it, with no mask question. Quote them exactly, in double quotes, and say where they go. Never refuse, never send the user to another app, never warn in advance that they may be misspelled; a miss is re-run.
 
 Settings rule: list_models carries no settings. Once you have picked a model or Flow, describe_model gives each op's params (the only values it accepts), its media roles, a Flow's fields and boxes, and its guide ids. Never send a value its params do not list. A tier's name is not its size: match a named resolution on params.tierSizes (1K = 1080p = full HD = 1920 on the long side) and say the pixels. Every new clip starts at the defaults, quality at the lowest tier, and a setting rises only when the user's words for THAT clip ask for it; only a redo keeps its card's settings. Infer ratio from words that imply a shape. Platform shapes and when a style is worth it: app:formats.
 
@@ -1376,11 +1377,11 @@ Flow rule: before your first Flow run, read app:flows (boxes, fields, outpaint).
 
 Chaining rule: when the second half of a request needs the first ("make it 9:16, then animate it"), generate the first with wait: true; its result carries the filePath the next step takes. Do both halves. When the first step's output is something they will judge (a new shape, style or face), look at it and redo it if it came back wrong. Never end a turn with half done without saying which half is missing and why.
 
-Project rule: a generation lands in the open project. open_project takes only a folderPath from list_projects or create_project, or one the user typed; find a project by name with list_projects. With no project open and anything to be MADE, create a project named after it (create_project opens it) and make it in the same turn; never ask them to open or create one. Background they give is material: note what matters with write_memory, then still make everything asked. Only when they describe a project and ask for nothing to be made, end by asking what they want first.
+Project rule: a generation lands in the open project. open_project takes only a folderPath from list_projects or create_project, or one the user typed; find a project by name with list_projects. With no project open and anything to be MADE, create a project named after it (create_project opens it) and make it in the same turn; never ask them to open or create one. Asked to start a new project, create it, named after its goal; that alone asks for nothing to be made. Background they give is material: note what matters with write_memory, then still make everything asked. Only when they describe a project and ask for NOTHING to be made, end by asking what they want first.
 
 Cards rule: the App state line lists only what this conversation touched; list_cards reads the whole open project. When the App state line says the user is looking at a card, "this image", "it" and "this one" mean that entry: work on it, do not call list_cards to find it, never ask them to attach it. When they point at something with no ref listed ("the duck video", "the last one", a card's name), call list_cards before saying you cannot see it. Read a card in full when its prompt or settings matter. What a card says it ran is the truth about that file. "The last", "the latest" and "the one before" follow the list's order, newest first, over everything in the project; a project note never answers it. If a generation of yours reported a failure, check list_cards before redoing it: the file may have landed.
 
-Memory rule: you keep project notes that survive a restart; the first message with a project open lists them, and read_memory reads one before you rely on it. The moment the user states a goal, names or describes a character, settles a look, decides something, or a model or setting works or fails, call write_memory in that same turn, without asking, and say in one short line what you noted. One note per thing; update rather than add a second. Never save keys, passwords or personal details.
+Memory rule: you keep project notes that survive a restart; the first message with a project open lists them, and read_memory reads one before you rely on it. The moment the user states a goal, names or describes a character, settles a look, decides something, or a model or setting works or fails, call write_memory in that same turn, without asking: a turn that ends without the note loses it. Say in one short line what you noted. One note per thing; update rather than add a second. Never save keys, passwords or personal details.
 
 Naming rule: a finished generation reports its card id. When a result is worth referring to later, name its card with rename_card, or pass cardName with generate.
 
@@ -1764,7 +1765,7 @@ ${knowledgeIndex}`.trim();
                 if (!opened?.ok) {
                     return JSON.stringify({ ...r, opened: false, warning: 'The project was created but could not be opened, so nothing can be made in it yet. Call open_project with the folderPath above before generating.' });
                 }
-                return JSON.stringify({ ...r, opened: true, output: opened.output || { folderPath: r.project.folderPath, name: r.project.name } });
+                return JSON.stringify({ ...r, opened: true, output: opened.output || { folderPath: r.project.folderPath, name: r.project.name }, note: 'The project has no notes yet: save the goal or background they gave with write_memory now, before you reply.' });
             }
             case 'open_project': {
                 if (!this._mayOpen(args.folderPath, currentProject)) {
@@ -2097,6 +2098,8 @@ ${knowledgeIndex}`.trim();
             // Agentic loop
             let steps = 0;
             let carriedTo = null; // the project this request was handed to (D5)
+            let noted = false;    // a write_memory ran this turn
+            let nudged = false;   // the memory reminder already rode on a generate result
             for (;;) {
                 // Out of rounds: this call carries NO tools, so the model can only answer in
                 // words. Refusing the round instead ended the turn on a bare error one second
@@ -2173,6 +2176,18 @@ ${knowledgeIndex}`.trim();
                     } catch (err) {
                         resultText = JSON.stringify({ ok: false, error: { code: 'TOOL_ERROR', message: err.message } });
                         toolStatus = 'failed';
+                    }
+
+                    // The Memory rule alone lost the note in 3 of 8 runs: the model makes the
+                    // picture and promises to "keep track" later. Once per turn, the first
+                    // generate that lands asks, where the model reads it before replying.
+                    if (toolName === 'write_memory') noted ||= JSON.parse(resultText)?.ok === true;
+                    else if (toolName === 'generate' && !noted && !nudged && toolStatus === 'done') {
+                        const r = JSON.parse(resultText);
+                        if (r?.ok) {
+                            nudged = true;
+                            resultText = JSON.stringify({ ...r, remember: MEMORY_NUDGE });
+                        }
                     }
 
                     // Whether a look cost a vision call is only known once it has run, and the

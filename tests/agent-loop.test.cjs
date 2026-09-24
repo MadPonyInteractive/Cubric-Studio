@@ -1364,6 +1364,25 @@ describe('(h) notes, results, names, guides', () => {
         await loop.runTurn('make it night', [], project, 'auto', 'deepinfra', 't-nomask');
         assert.equal(tools.calls.generate.length, 1);
     });
+
+    test('the first generate of a turn with no note asks for one, once; a noted turn is not asked', async () => {
+        const gen = (id) => call(id, 'generate', { modelId: 'test-model', operation: 't2i', prompt: 'a crow on a roof' });
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            gen('g1'), gen('g2'), { text: 'Started.' },
+            call('m1', 'write_memory', { file: 'rook.md', title: 'Rook', text: 'A one-eyed crow.' }), gen('g3'), { text: 'Noted, started.' },
+        ] });
+        tools.listModels = async () => ({ ok: true, models: [{ id: 'test-model', guides: [] }], flows: [] });
+        tools.writeMemory = async () => ({ ok: true });
+        await loop.runTurn('Rook is a one-eyed crow. Make two of him.', [], project, 'auto', 'deepinfra', 't-n1');
+        const [first, second] = toolResults(loop);
+        assert.match(first.remember, /write_memory/);
+        assert.equal(second.remember, undefined, 'once per turn');
+        await loop.runTurn('Rook wears a compass. One more.', [], project, 'auto', 'deepinfra', 't-n2');
+        const after = toolResults(loop).slice(2);
+        assert.equal(after[0].ok, true, 'the note was written');
+        assert.equal(after[1].remember, undefined, 'a turn that noted something is not asked');
+        assert.equal(tools.calls.generate.length, 3);
+    });
 });
 
 // ---------------------------------------------------------------------------

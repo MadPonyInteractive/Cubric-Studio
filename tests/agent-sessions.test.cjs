@@ -375,6 +375,7 @@ describe('project jobs: list, create, open', () => {
         assert.equal(out.ok, true);
         assert.equal(out.opened, true);
         assert.equal(out.output.folderPath, 'C:/Projects/Second', 'the caller sees an open_project-shaped result');
+        assert.match(out.note, /write_memory now/, 'a new project asks for its brief note at the moment it exists');
 
         // A create whose open fails says so, rather than leaving the model to assume.
         tools.openProject = async () => ({ ok: false, error: { code: 'RUNTIME_ERROR', message: 'nope' } });
@@ -393,6 +394,7 @@ describe('project jobs: list, create, open', () => {
         const system = sessions._loops.get('')._messages[0].content;
         assert.match(system, /With no project open and anything to be MADE, create a project/);
         assert.match(system, /make it in the same turn/);
+        assert.match(system, /Asked to start a new project, create it, named after its goal/);
         assert.match(system, /then still make everything asked/);
         assert.match(system, /open_project takes only a folderPath from list_projects or create_project, or one the user typed/);
     });
