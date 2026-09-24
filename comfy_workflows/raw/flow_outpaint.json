@@ -1,8 +1,8 @@
 {
   "id": "9a2437bd-d5e3-4c4f-bdea-2897c2fb75df",
   "revision": 0,
-  "last_node_id": 686,
-  "last_link_id": 1442,
+  "last_node_id": 687,
+  "last_link_id": 1446,
   "nodes": [
     {
       "id": 494,
@@ -125,7 +125,8 @@
           "type": "IMAGE",
           "links": [
             1432,
-            1439
+            1439,
+            1444
           ]
         },
         {
@@ -133,7 +134,8 @@
           "name": "mask",
           "type": "MASK",
           "links": [
-            1441
+            1441,
+            1445
           ]
         },
         {
@@ -1380,7 +1382,7 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            1440
+            1443
           ],
           "slot_index": 0
         }
@@ -1486,7 +1488,7 @@
           "localized_name": "source",
           "name": "source",
           "type": "IMAGE",
-          "link": 1440
+          "link": 1446
         },
         {
           "localized_name": "mask",
@@ -1517,7 +1519,7 @@
         "Node name for S&R": "ComposeColorMatch"
       },
       "widgets_values": [
-        "Grade match (surround)",
+        "Off",
         1.0,
         1.0,
         0.0,
@@ -1531,6 +1533,68 @@
         false,
         1.0,
         0
+      ]
+    },
+    {
+      "id": 687,
+      "type": "MickmumpitzPanoHarmonizeBoundary",
+      "pos": [
+        -2866.4250342439855,
+        5299.644546979616
+      ],
+      "size": [
+        320,
+        200
+      ],
+      "flags": {},
+      "order": 57,
+      "mode": 0,
+      "title": "Match Fill To Original Edge",
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1443
+        },
+        {
+          "localized_name": "plate",
+          "name": "plate",
+          "type": "IMAGE",
+          "link": 1444
+        },
+        {
+          "localized_name": "inpaint_mask",
+          "name": "inpaint_mask",
+          "type": "MASK",
+          "link": 1445
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            1446
+          ]
+        },
+        {
+          "localized_name": "correction_field",
+          "name": "correction_field",
+          "type": "IMAGE",
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "ComfyUI-Mickmumpitz-Nodes",
+        "Node name for S&R": "MickmumpitzPanoHarmonizeBoundary"
+      },
+      "widgets_values": [
+        1.0,
+        8,
+        4000,
+        false
       ]
     }
   ],
@@ -1784,14 +1848,6 @@
       "IMAGE"
     ],
     [
-      1440,
-      682,
-      0,
-      686,
-      1,
-      "IMAGE"
-    ],
-    [
       1441,
       553,
       1,
@@ -1805,6 +1861,38 @@
       0,
       493,
       0,
+      "IMAGE"
+    ],
+    [
+      1443,
+      682,
+      0,
+      687,
+      0,
+      "IMAGE"
+    ],
+    [
+      1444,
+      553,
+      0,
+      687,
+      1,
+      "IMAGE"
+    ],
+    [
+      1445,
+      553,
+      1,
+      687,
+      2,
+      "MASK"
+    ],
+    [
+      1446,
+      687,
+      0,
+      686,
+      1,
       "IMAGE"
     ]
   ],

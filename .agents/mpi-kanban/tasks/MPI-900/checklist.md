@@ -9,4 +9,5 @@
 - [x] Prompt box: "What goes in the new area" (optional), joined after the baked fill instruction in the graph.
 - [x] Agent half: DONE under MPI-891 (message 795acf67) — `params.frame.grow` + passes on the agent path.
 - [x] Docs: existing-flows/outpaint.md rewritten for Klein-only + paste-back.
-- [ ] Live generation on the user's GPU (Klein 9B, one pass, paste-back) - Fabio's check: original pixels unchanged, no seam at the border, output = frame at source resolution.
+- [x] Seam at the paste-back border (live run 2026-09-24): `HarmonizeBoundary` (node 687) bends Klein's decode to meet the original before the paste-back; 686's grade Off. Offline proof step 7.9 -> 0.5 RGB.
+- [x] Live generation on the user's GPU (Klein 9B, one pass, paste-back) - Fabio's check: original pixels unchanged, no seam at the border, output = frame at source resolution.

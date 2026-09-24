@@ -27,12 +27,23 @@ by black pixels — a dark photo has black pixels of its own.
 
 **Klein repaints the whole frame, so the fill is pasted back.** Klein samples the padded image
 at ~1 MP (`ImageScaleToTotalPixels`, the OOM guard: a 4K plate gets a result, not an OOM) and
-its decode shifts the colour of EVERYTHING, original included. `Paste Fill Over Original`
-(ComposeColorMatch, `Grade match (surround)`) fits `original ≈ a·klein + b` per channel on the
-pixels outside the mask — same content in both, so the difference is pure grading drift —
-applies it to Klein's fill inside the mask, resizes the fill to the frame and composites it
-over the untouched original. The output is therefore the FRAME at source resolution, and the
-original pixels are byte-for-byte the user's. That is the product requirement: an extended
+its decode shifts the colour of EVERYTHING, original included. `Match Fill To Original Edge`
+(Mickmumpitz `HarmonizeBoundary`) takes `original − klein` on the original's side and solves a
+smooth harmonic field from it into the new area, so the fill meets the original EXACTLY at the
+border and its own texture is untouched. `Paste Fill Over Original` (ComposeColorMatch,
+correction `Off`) then resizes that fill to the frame and composites it over the untouched
+original. The output is therefore the FRAME at source resolution, and the original pixels are
+byte-for-byte the user's.
+
+**Why not the grade match alone.** The first live run used ComposeColorMatch's `Grade match
+(surround)` — one per-channel affine over the whole original — and left a straight tone line
+at the border (2026-09-24: -1 to +8 RGB along the seam, varying across the width, where the
+wall had a vignette Klein flattened). The drift is LOCAL, so no single affine removes it, and
+feathering the mask is out: the fill side of the composite is transparent black and the other
+side is the original, which may not change. Proven offline on that output before wiring: step
+≤0.5 RGB, original byte-identical, solve ~1 s at 4000 iterations. A faint line can remain when
+the source image's own edge row differs from the next (t2i generators often leave one) — that
+row is the user's pixels, not the seam. That is the product requirement: an extended
 video start/end frame may not change colour where it was not extended.
 
 **One pass (Fabio, 2026-09-24).** Klein filled half the height in one pass; a failed fill is
@@ -67,4 +78,6 @@ absent by the test. AnyPaint was evaluated the same day and dropped.
 
 ## Still open
 
-- **A real generation** on the user's GPU with the paste-back (MPI-900 checklist).
+- **Output size.** The paste-back returns the frame at SOURCE resolution; before MPI-900 it was
+  ~1 MP (Fabio, 2026-08-21). Awaiting Fabio's call. (The live run on 2026-09-24 confirmed no
+  seam and a byte-identical original.)

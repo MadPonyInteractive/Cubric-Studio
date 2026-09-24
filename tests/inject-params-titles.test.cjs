@@ -349,7 +349,19 @@ test('the Outpaint Flow carries its I/O and declared control titles (MPI-594)', 
     assert.ok(compose, `${file} must paste the fill back with ComposeColorMatch`);
     assert.deepEqual(compose.inputs.destination, [imageId, 0], 'destination is the untouched original');
     assert.deepEqual(compose.inputs.mask, [imageId, 1], 'the mask is Input_Image\'s alpha');
-    assert.equal(compose.inputs.correction, 'Grade match (surround)');
+    // …and the fill it pastes must be HARMONIZED first. A global grade left a straight
+    // tone step at the border in the first live run (2026-09-24: -1..+8 RGB along the
+    // seam, varying across the width) — the drift is local, so one affine cannot remove
+    // it. HarmonizeBoundary bends the decode to meet the original exactly at the edge;
+    // the paste-back then only composites, so its own grade stays Off.
+    const harmonize = graph[compose.inputs.source[0]];
+    assert.equal(harmonize?.class_type, 'MickmumpitzPanoHarmonizeBoundary',
+        'the paste-back source must be the harmonized decode, or the seam returns');
+    assert.equal(graph[harmonize.inputs.image[0]].class_type, 'VAEDecode');
+    assert.deepEqual(harmonize.inputs.plate, [imageId, 0], 'harmonize against the original');
+    assert.deepEqual(harmonize.inputs.inpaint_mask, [imageId, 1]);
+    assert.equal(harmonize.inputs.wrap_horizontal, false, 'an outpaint frame does not wrap');
+    assert.equal(compose.inputs.correction, 'Off');
     const out = Object.values(graph).find(n => n._meta?.title === 'Output_Image');
     const fed = graph[out.inputs.images[0]];
     const last = fed.class_type === 'MpiClearVram' ? graph[fed.inputs.passthrough[0]] : fed;

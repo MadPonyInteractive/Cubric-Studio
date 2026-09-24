@@ -319,7 +319,7 @@
   },
   "686": {
     "inputs": {
-      "correction": "Grade match (surround)",
+      "correction": "Off",
       "strength": 1,
       "saturation": 1,
       "black_point": 0,
@@ -338,7 +338,7 @@
         0
       ],
       "source": [
-        "682",
+        "687",
         0
       ],
       "mask": [
@@ -349,6 +349,30 @@
     "class_type": "ComposeColorMatch",
     "_meta": {
       "title": "Paste Fill Over Original"
+    }
+  },
+  "687": {
+    "inputs": {
+      "strength": 1,
+      "solve_scale": 8,
+      "iterations": 4000,
+      "wrap_horizontal": false,
+      "image": [
+        "682",
+        0
+      ],
+      "plate": [
+        "553",
+        0
+      ],
+      "inpaint_mask": [
+        "553",
+        1
+      ]
+    },
+    "class_type": "MickmumpitzPanoHarmonizeBoundary",
+    "_meta": {
+      "title": "Match Fill To Original Edge"
     }
   }
 }
