@@ -1307,17 +1307,24 @@ export const FLOWS = [
 
     // MPI-594 — OUTPAINT. One image in, the same picture back inside a bigger frame.
     //
-    // The graph is a Krea 2 EDIT that fills flat colour, and it never learns a rect:
-    // the `crop` step composes source + black bars into a single file and that file
-    // is what `Input_Image` loads (stepKinds.js § STEP_MEDIA). So there is no mask,
-    // no fill input and no box param here — deliberately, and the same reason the
-    // History crop tool has no auto-mask (docs/crop.md § The rect is not confined to
-    // the image): prompting an edit model to fill "the black area" beats handing it a
-    // painted mask.
+    // The graph is a FLUX.2 Klein 9B EDIT that fills the black, and it never learns a
+    // rect: the `crop` step composes source + transparent bars into a single file and
+    // that file is what `Input_Image` loads (stepKinds.js § STEP_MEDIA). So there is no
+    // fill input and no box param here — deliberately, and the same reason the History
+    // crop tool has no auto-mask (docs/crop.md § The rect is not confined to the image):
+    // prompting an edit model to fill "the black area" beats handing it a painted mask.
+    //
+    // KLEIN 9B ONLY, ONE PASS (MPI-900, Fabio 2026-09-24). Krea 2 was slower and failed
+    // more; Klein filled half the height in one pass, and a failed fill is simply re-run.
+    // Klein repaints the WHOLE frame at ~1 MP, so ComposeColorMatch (`Paste Fill Over
+    // Original`, Mickmumpitz pack) pastes only the new area back over the untouched
+    // original, grade-matched from the surround: the original pixels never change colour,
+    // which a video start/end frame needs. The new area's mask is the bars' ALPHA
+    // (`Input_Image`'s MASK output), never a black-pixel guess.
     //
     // AN OPTIONAL PROMPT (MPI-900, reverses MPI-594's "no prompt"). The fill instruction
     // stays baked in an UNTITLED node; `Input_Positive` is a second node the graph JOINS
-    // after it ("<bake>. <prompt>"), so the empty string `_buildParams` sends on every run
+    // after it ("<bake> <prompt>"), so the empty string `_buildParams` sends on every run
     // lands in the user's half and the bake survives.
     //
     // NO `result.compare`. The output is a DIFFERENT SHAPE from the input, so a wipe
@@ -1329,60 +1336,13 @@ export const FLOWS = [
         preview: 'flow-outpaint.webp',
         video: 'flow-outpaint.mp4',
         description: 'Extend an image past its edges. Choose the shape you want, drag the frame out '
-            + 'over the sides you want filled, and say what should appear there if you like. A big '
-            + 'extension is filled in steps — at most a third per side each time, the next step on '
-            + 'that result — so the model always has real picture next to what it paints. Runs on Krea 2, or on '
-            + 'FLUX.2 Klein for a faster fill.',
-        // A CHOOSABLE SLOT (MPI-590 mechanism, MPI-594 second user): the two Krea 2 cards
-        // are the same architecture with a different bake, and both ship `krea2Edit` plus
-        // the identity-edit LoRA this graph loads — so a user holding either one can
-        // outpaint, and is never asked for a second 12.25GB download. Both stay listed so a
-        // user who has neither picks which one the Install button downloads.
-        //
-        // KLEIN IS A DIFFERENT ARCHITECTURE IN THE SAME SLOT (MPI-900). The graph carries
-        // a second, Klein edit branch (Draw It In's chain) behind a LAZY `MpiIfElse`
-        // (`Klein Or Krea`), so only the picked branch's loaders ever run. `Input_Use_Klein`
-        // is what flips it, and every arm states it — a Krea arm that left it to the bake
-        // would still be right, until a re-export flipped the default.
-        requiredModels: [{ label: 'Base model', models: ['krea2', 'krea2-nsfw', 'klein-9b', 'klein-4b'] }],
-        // What differs between the arms, as injection params. The graph is the SFW one,
-        // so `krea2` restates its own baked values — cheap, and it keeps the pair readable
-        // as a pair rather than "the default plus an override".
-        //
-        // `Input_Bypass_Filter_Lora.strength_model` is not optional trim: the NSFW twin
-        // graph bakes that strength at 0 (`krea2_t2i_nsfw.json` node 245), so leaving it
-        // at 1 runs the lustify transformer with the SFW bypass still applied.
-        //
-        // The UNETLoader was UNTITLED in Fabio's export — titled `Input_Base_Model` in the
-        // raw graph 2026-08-21 so the pick has a node to land on. Without the title the
-        // dropdown would change the badge and nothing else, which is the exact failure
-        // any-of exists to avoid.
-        //
-        // The Klein arms are Draw It In's / Scribble's pair verbatim, including the dotted
-        // `Input_Edit_Clip.clip_name` — `clip_name` is off the injector's spray list, and
-        // 9B's transformer on 4B's encoder dies with a shape error (MPI-600).
-        modelParams: {
-            'krea2': {
-                'Input_Use_Klein': false,
-                'Input_Base_Model': 'krea2_raw_int8_convrot.safetensors',
-                'Input_Bypass_Filter_Lora.strength_model': 1,
-            },
-            'krea2-nsfw': {
-                'Input_Use_Klein': false,
-                'Input_Base_Model': 'lustify-v10-krea-raw-int8_convrot.safetensors',
-                'Input_Bypass_Filter_Lora.strength_model': 0,
-            },
-            'klein-9b': {
-                'Input_Use_Klein': true,
-                'Input_Edit_Model': 'flux-2-klein-9b-int8-convrot.safetensors',
-                'Input_Edit_Clip.clip_name': 'qwen_3_8b_int8_convrot.safetensors',
-            },
-            'klein-4b': {
-                'Input_Use_Klein': true,
-                'Input_Edit_Model': 'flux-2-klein-4b-int8-convrot.safetensors',
-                'Input_Edit_Clip.clip_name': 'qwen_3_4b.safetensors',
-            },
-        },
+            + 'over the sides you want filled, and say what should appear there if you like. Your '
+            + 'own pixels are kept exactly as they were. Runs on FLUX.2 Klein 9B.',
+        // The graph bakes 9B's transformer + encoder, so there is nothing to inject.
+        requiredModels: [{ label: 'Base model', models: ['klein-9b'] }],
+        // The one node pack no model declares (ComposeColorMatch) — same reasoning as
+        // Voice Changer declaring ComfyUI_Fill-ChatterBox.
+        requiredDeps: ['ComfyUI-Mickmumpitz-Nodes'],
         operation: 'flowOutpaint',
         workflow: 'flow_outpaint.json',
         mediaType: 'image',
@@ -1397,13 +1357,10 @@ export const FLOWS = [
                 // No `param`: this gizmo's value changes the PICTURE, not a widget —
                 // it binds through STEP_MEDIA instead (stepKinds.js).
                 kind: 'crop', role: 'image1',
-                // Past a third of the picture on any side, the run takes more passes
-                // (MPI-900): a third up AND down holds, half in one direction fails.
-                maxGrow: 1 / 3,
+                // No `maxGrow`: Klein fills in ONE pass (MPI-900, Fabio 2026-09-24).
                 tickerLabel: 'Frame',
                 title: 'Choose the frame you want',
-                hint: 'Pick a shape, then drag the frame past the edges — black is what gets painted '
-                    + 'in. More than a third on one side is filled in steps, so it takes longer.',
+                hint: 'Pick a shape, then drag the frame past the edges — black is what gets painted in.',
             },
         ],
         fields: [
@@ -1411,13 +1368,6 @@ export const FLOWS = [
                 // Optional: empty, the graph's baked instruction runs alone.
                 id: 'positive', type: 'text', rows: 2, label: 'What goes in the new area?',
                 placeholder: 'Leave empty to just continue the picture',
-            },
-            {
-                // Baked `true` in the graph, and kept as the default: an outpaint fills
-                // flat colour next to real pixels it can copy from, which is the case
-                // the accelerator LoRA costs least on. Off for a keeper.
-                id: 'Input_is_Turbo', type: 'toggle', label: 'Turbo', icon: 'bolt',
-                default: true,
             },
         ],
     },

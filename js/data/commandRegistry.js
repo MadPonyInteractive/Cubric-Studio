@@ -1076,10 +1076,11 @@ export const commands = {
     // prompt. That is a debug/provenance read, NOT a second output: `mediaType` is IMAGE
     // and `outputKind` is left unset, so the job ends on Output_Image the normal way.
     // MPI-594. Outpaint: ONE image in, the SAME picture back inside a bigger frame.
-    // The app hands the graph an image that ALREADY carries its black bars — the crop
-    // step composes source + fill and stores that as the run's input — so the graph
-    // never learns a rect and there is no box param here. `Input_Positive` is baked
-    // ("fill the back areas with the rest of the image"), so no prompt either.
+    // The app hands the graph an image that ALREADY carries its bars — the crop step
+    // composes source + transparent bars and stores that as the run's input — so the
+    // graph never learns a rect and there is no box param here. The fill instruction is
+    // baked ("Replace the black area with the rest of the image."); the optional
+    // `Input_Positive` is joined after it.
     flowOutpaint: {
         label: 'Flow: Outpaint',
         progressLabel: 'Outpainting',

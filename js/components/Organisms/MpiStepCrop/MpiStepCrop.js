@@ -100,11 +100,12 @@ function _resolveRatio(orientation, label) {
 
 /**
  * Compose the file the GRAPH actually runs on: the source drawn into the
- * reported rect, everything outside it filled.
+ * reported rect, everything outside it transparent.
  *
  * This is the whole of the flow's "outpaint" setup. The graph never learns a
- * rect — it loads ONE image that already carries its bars — so a workflow needs
- * no pad node, no mask and no fill input, and any future flow declaring a `crop`
+ * rect — it loads ONE image that already carries its bars, and its alpha IS the
+ * mask of the new area — so a workflow needs no pad node, no mask input and no
+ * fill input, and any future flow declaring a `crop`
  * step gets the same treatment for free (stepKinds.js § STEP_MEDIA).
  *
  * Pixels only: the caller places the result in the project's preview-asset
@@ -176,8 +177,9 @@ async function _padTo(img, rect) {
     canvas.width = rect.w;
     canvas.height = rect.h;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = FILL;
-    ctx.fillRect(0, 0, rect.w, rect.h);
+    // The new area is left TRANSPARENT, never painted (MPI-900): it exports as RGBA
+    // 0,0,0,0, so the graph's IMAGE still sees the black the fill instruction names,
+    // and `Input_Image`'s alpha MASK is exactly the area to paste Klein's fill into.
     // Top-left anchored, so a rect that starts off-canvas simply draws the source
     // at a negative offset — no clamping, no arithmetic, nothing to get wrong.
     ctx.drawImage(img, -rect.x, -rect.y);

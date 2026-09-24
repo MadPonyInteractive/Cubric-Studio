@@ -379,5 +379,5 @@ test('the Outpaint flow really does declare a crop step — the fixtures above a
     // The half that made the failure silent: no declared field is the frame, so a caller
     // reading `fields` alone sees a flow that needs nothing but a picture. MPI-900 added
     // the optional prompt; the frame still rides only in `params.frame`.
-    assert.deepEqual((outpaint.fields || []).map((f) => f.id), ['positive', 'Input_is_Turbo']);
+    assert.deepEqual((outpaint.fields || []).map((f) => f.id), ['positive']);
 });

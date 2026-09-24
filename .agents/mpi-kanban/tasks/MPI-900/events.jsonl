@@ -1,2 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-900", "at": "2026-09-24T05:12:49+01:00", "actor": "session-995faba5", "column": "todo", "title": "Outpaint fills a big extension in steps, grows in the direction asked, and can run on Klein"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-900", "at": "2026-09-24T05:25:21+01:00", "actor": "claude", "from": "todo", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-900", "at": "2026-09-24T07:20:00Z", "actor": "c3d96049-9a88-4a0f-8654-b22f15af7162", "summary": "Klein 9B only, one pass, ComposeColorMatch paste-back; unit green; awaiting live check"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-900", "at": "2026-09-24T07:20:00Z", "actor": "c3d96049-9a88-4a0f-8654-b22f15af7162", "patch": {"maturity": "validating", "status": "active", "attention": "required"}}

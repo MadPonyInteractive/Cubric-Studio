@@ -473,51 +473,25 @@ test('the Character Sheet fills its ONE LoRA rack, and no flat or phase-2 rack s
         'with Remove Head off the flow must emit the untouched sheet');
 });
 
-test('the Outpaint arms match the weights and the twin graph (MPI-594)', async () => {
-    // Second any-of flow, same pair, same two differences — and the same silent failure
-    // if either half drifts. Its UNETLoader was UNTITLED in the authored export, so this
-    // also pins the title that was added to the raw graph for the pick to land on:
-    // without it the dropdown changes the badge and the graph still loads krea2 SFW.
-    const { state, registry } = await load();
+test('Outpaint is Klein 9B only, and its baked weights are the ones 9B ships (MPI-900)', async () => {
+    // One model, no arms: the graph BAKES 9B's transformer, encoder and VAE, so nothing
+    // is injected. The silent failure left is a baked filename no dep of the one slot
+    // model downloads — the gate goes green and the run dies inside ComfyUI.
+    const { registry } = await load();
     const flow = registry.getFlowById('outpaint');
+    assert.deepEqual(flow.requiredModels.map(s => s.models), [['klein-9b']]);
+    assert.equal(flow.modelParams, undefined, 'one model, nothing to switch');
+
     const { DEPS } = await import('../js/data/modelConstants/dependencies.js');
-    const basename = depId => path.basename(DEPS[depId].filename);
+    const { MODELS } = await import('../js/data/modelConstants/models.js');
+    const shipped = new Set(MODELS.find(m => m.id === 'klein-9b').dependencies
+        .map(id => path.basename(DEPS[id]?.filename || '')));
 
     const graph = readJson('comfy_workflows/flow_outpaint.json');
-    const loader = Object.values(graph).find(n => n?._meta?.title === 'Input_Base_Model');
-    assert.ok(loader && loader.class_type === 'UNETLoader',
-        'outpaint must carry ONE injectable UNETLoader — hardcoded, it cannot follow a pick');
-    assert.equal(typeof loader.inputs.unet_name, 'string', 'unet_name must be a widget, not a link');
-
-    state.s_installedModelIds = [SFW, NSFW];
-
-    registry.setFlowModel('outpaint', SFW);
-    assert.equal(registry.flowModelParams(flow).Input_Base_Model, basename('krea2-raw-transformer'));
-    assert.equal(registry.flowModelParams(flow).Input_Base_Model, loader.inputs.unet_name,
-        'the SFW arm must restate the graph\'s own baked weight, or the default silently changes');
-
-    registry.setFlowModel('outpaint', NSFW);
-    const params = registry.flowModelParams(flow);
-    assert.equal(params.Input_Base_Model, basename('krea2-raw-transformer-nsfw'));
-
-    const twin = readJson('comfy_workflows/krea2_t2i_nsfw.json');
-    const twinBypass = Object.values(twin).find(n => n?._meta?.title === 'Input_Bypass_Filter_Lora');
-    assert.equal(
-        params['Input_Bypass_Filter_Lora.strength_model'],
-        twinBypass.inputs.strength_model,
-        'running lustify with the SFW bypass still applied is a half-switched model',
-    );
-
-    // Both members must actually be able to run THIS graph: it is an edit, and it loads
-    // the identity-edit LoRA. A member missing either would gate green and fail inside
-    // ComfyUI.
-    const { MODELS } = await import('../js/data/modelConstants/models.js');
-    for (const id of [SFW, NSFW]) {
-        const model = MODELS.find(m => m.id === id);
-        assert.ok(model.supportedOps.includes('krea2Edit'), `${id} cannot edit`);
-        assert.ok(model.dependencies.includes('krea2-lora-identity-edit'),
-            `${id} does not ship the identity-edit LoRA this graph loads`);
-    }
+    const baked = Object.values(graph).flatMap(n =>
+        ['unet_name', 'clip_name', 'vae_name'].map(k => n.inputs?.[k]).filter(v => typeof v === 'string'));
+    assert.equal(baked.length, 3, 'one transformer, one encoder, one VAE');
+    for (const file of baked) assert.ok(shipped.has(file), `klein-9b does not ship ${file}`);
 });
 
 test('the injector can actually WRITE both arms', () => {

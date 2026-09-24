@@ -308,25 +308,21 @@ test('the Character Sheet Flow carries its I/O and declared control titles (MPI-
 });
 
 test('the Outpaint Flow carries its I/O and declared control titles (MPI-594)', () => {
-    // flowOutpaint runs flow_outpaint.json on krea2 with model:{id:null}. Its ONE
+    // flowOutpaint runs flow_outpaint.json on klein-9b with model:{id:null}. Its ONE
     // media slot is `image1` -> `input_image`, and the image it loads is already
     // padded by the app, so there is no box, mask or fill title to pin — the crop
     // step binds through STEP_MEDIA, not injection.
     //
-    // `input_is_turbo` is the declared control, and the silent-skip case: the toggle
-    // flips, the run succeeds, and the accelerator LoRA branch stays on the graph's
-    // baked value whatever the user chose.
-    //
-    // `input_base_model` + `input_bypass_filter_lora` are the any-of arms (both Krea 2
-    // cards run this flow). The UNETLoader was UNTITLED as authored — lose the title
-    // again and the model picker changes the badge while krea2 SFW keeps loading.
+    // MPI-900 made it Klein 9B only: the Krea arm's titles (`input_is_turbo`,
+    // `input_base_model`, `input_bypass_filter_lora`, `input_use_klein`) are GONE, and
+    // pinned absent so a stale re-export cannot bring a dead branch back.
     const file = 'flow_outpaint.json';
     const have = titlesOf(file);
-    for (const title of [
-        'input_image', 'input_seed', 'input_is_turbo',
-        'input_base_model', 'input_bypass_filter_lora',
-    ]) {
+    for (const title of ['input_image', 'input_seed']) {
         assert.ok(have.has(title), `${file} must carry a node titled "${title}"`);
+    }
+    for (const title of ['input_is_turbo', 'input_base_model', 'input_bypass_filter_lora', 'input_use_klein']) {
+        assert.ok(!have.has(title), `${file} still carries the Krea arm's "${title}"`);
     }
     assert.ok(have.has('output_image'), `${file} must carry a capture node titled "output_image"`);
 
@@ -344,6 +340,20 @@ test('the Outpaint Flow carries its I/O and declared control titles (MPI-594)', 
         'the join\'s first half must be the baked instruction');
     assert.ok(!/^input_/i.test(graph[join.inputs.string_a[0]]._meta?.title || ''),
         'the baked instruction must stay untitled, or the run injects over it');
+
+    // MPI-900 paste-back: Klein repaints the whole frame, so what reaches Output_Image
+    // must be ComposeColorMatch with the ORIGINAL as destination and the loaded image's
+    // alpha MASK (slot 1) as the mask — or the original pixels shift colour.
+    const [imageId] = Object.entries(graph).find(([, n]) => n._meta?.title === 'Input_Image');
+    const compose = Object.values(graph).find(n => n.class_type === 'ComposeColorMatch');
+    assert.ok(compose, `${file} must paste the fill back with ComposeColorMatch`);
+    assert.deepEqual(compose.inputs.destination, [imageId, 0], 'destination is the untouched original');
+    assert.deepEqual(compose.inputs.mask, [imageId, 1], 'the mask is Input_Image\'s alpha');
+    assert.equal(compose.inputs.correction, 'Grade match (surround)');
+    const out = Object.values(graph).find(n => n._meta?.title === 'Output_Image');
+    const fed = graph[out.inputs.images[0]];
+    const last = fed.class_type === 'MpiClearVram' ? graph[fed.inputs.passthrough[0]] : fed;
+    assert.equal(last, compose, 'Output_Image must read the paste-back, not Klein\'s raw decode');
 });
 
 test('the Draw It In Flow carries its I/O, its model arm and its box (MPI-567)', () => {
