@@ -58,7 +58,7 @@ class EventBus {
      */
     emit(event, data) {
         this._listeners.get(event)?.forEach(h => {
-            try { h(data); } catch (e) { clientLogger.error(`[Events] Error in "${event}" handler:`, e); }
+            try { h(data); } catch (e) { clientLogger.error('Events', `Error in "${event}" handler`, e); }
         });
     }
 

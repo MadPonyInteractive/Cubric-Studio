@@ -14,6 +14,10 @@ test('an uncaught renderer error reaches app.log with its stack', async ({}, tes
         if (url === '/log') bodies.push(JSON.parse(opts.body));
         return real(url, opts);
       };
+      const { Events } = await import('/js/events.js');
+      const off = Events.on('mpi899:test', () => { throw new Error('mpi899-handler'); });
+      Events.emit('mpi899:test');
+      off();
       setTimeout(() => { throw new Error('mpi899-sync'); });
       Promise.reject(new Error('mpi899-async'));
       await new Promise(r => setTimeout(r, 200));
@@ -22,6 +26,9 @@ test('an uncaught renderer error reaches app.log with its stack', async ({}, tes
     });
     const sync = posted.find(b => b.message === 'mpi899-sync');
     const async_ = posted.find(b => b.message === 'mpi899-async');
+    const handler = posted.find(b => b.category === 'Events');
+    expect(handler?.message).toBe('Error in "mpi899:test" handler');
+    expect(handler?.detail).toContain('Error: mpi899-handler');
     expect(sync?.category).toBe('uncaught');
     expect(sync?.detail).toContain('Error: mpi899-sync');
     expect(async_?.category).toBe('unhandledrejection');
