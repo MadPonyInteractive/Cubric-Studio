@@ -13,3 +13,5 @@
 
 Not verified live: no RunPod Pod was rented to drive a real failed/interrupted remote prompt.
 The history shape is ComfyUI's `prompt_worker` `task_done(... completed=e.success ...)`.
+
+- CI run 35968854510 on `78f03418` (both MPI-901 commits): **success**. That push also carried the red-master fix (flow-uninstall-button spec used outpaint as its models-only case; MPI-900 gave outpaint a node dep).
