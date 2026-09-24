@@ -48,7 +48,8 @@ import { Events } from '../events.js';
 const ERROR_COPY = {
     NO_KEY: 'No DeepInfra key is saved. Add one in Settings → Remote → Language Models, and cloud models will work everywhere in the app.',
     NO_PROFILE: 'The DeepInfra connection is missing its address. Re-pick DeepInfra in Settings → Remote → Language Models.',
-    NO_CREDIT: 'DeepInfra rejected the charge. Top up your balance at deepinfra.com and try again — nothing was generated and nothing was billed.',
+    // HTTP 402 means an empty balance OR a hit monthly limit (MPI-869, measured) — name both.
+    NO_CREDIT: 'DeepInfra rejected the charge: either your balance is empty or you have reached the monthly spending limit you set. Top up or raise the limit at deepinfra.com — nothing was generated and nothing was billed.',
     CONTENT_FILTERED: 'The model refused this prompt or image. It is the provider\'s own filter, not a fault here — try another model or reword the prompt. Refused calls are not billed.',
     PROVIDER_ERROR: 'The provider could not complete this generation. Failed calls are not billed.',
 };
@@ -221,9 +222,18 @@ export function runCloudCommand(payload) {
             generationStore.settle(jobId, PHASES.ERROR, { error: code });
             clientLogger.error('cloudExecutor',
                 `Cloud generation failed (${payload.operation} / ${payload.modelId}): ${code}`);
-            Events.emit('ui:error', { title: 'Cloud generation failed', message: cloudErrorMessage(code, message) });
+            // A run refused for credit (MPI-869) is a toast, not the error dialog: nothing
+            // broke and there is no log worth downloading. It has no copy in ERROR_COPY on
+            // purpose — the route's message carries the cost and what is left. An agent's
+            // run gets no toast at all: the agent is told, and says it in the chat.
+            const userMessage = cloudErrorMessage(code, message);
+            if (code === 'LOW_BALANCE' || code === 'OVER_LIMIT') {
+                if (!payload.byAgent) Events.emit('ui:warning', { message: userMessage });
+            } else {
+                Events.emit('ui:error', { title: 'Cloud generation failed', message: userMessage });
+            }
             Events.emit('tool:indeterminate', { tool: 'groupHistory', id: payload.genId ?? null, active: false });
-            exec.onError?.(new Error(code));
+            exec.onError?.(Object.assign(new Error(code), { code, userMessage }));
         };
 
         const _settleCancelled = () => {
@@ -266,6 +276,9 @@ export function runCloudCommand(payload) {
                     prompt: payload.positive || '',
                     seed,
                     ...fields,
+                    // The price tag's own figure, so the route can refuse a run the
+                    // account cannot cover before it is sent (MPI-869).
+                    estimateUsd: estimateRunCost(model, params, payload.mediaItems)?.usd || 0,
                 }),
             });
         } catch (err) {

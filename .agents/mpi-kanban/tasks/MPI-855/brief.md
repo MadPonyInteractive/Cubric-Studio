@@ -105,3 +105,13 @@ The ESTIMATOR side is settled and needs no work here: `estimateCost(endpointId, 
 in `deepinfraPricing.js`, verified against a real charge on 2026-09-21 at 0.06% high
 (estimate 0.067296 against DeepInfra's 0.067257). It errs high, which is the direction Fabio
 asked for. Never multiply `display` — sub-cent figures render at one significant figure.
+
+## Scope added 2026-09-24 (Fabio)
+
+A per-SESSION readout for the agent (Cosmo), with CHAT and GENERATIONS shown separately:
+chat is about half a cent a question, one Seedance 2.0 1080p clip is $1.90, and a single
+total would hide which one is the spend. Chat cost is the sum of `usage.estimated_cost`, which
+DeepInfra returns on every chat reply (`services/llmEngines.mjs` passes `data.usage` through;
+`services/agentLoop.mjs` reads only the token counts today). Generation cost is already on each
+cloud card's sidecar (`cost.usd`, batch-split since `20d85814`). The display is one line in the
+chat header — coordinate `MpiAgentChat.js`, which other sessions edit.

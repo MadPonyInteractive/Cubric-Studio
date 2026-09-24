@@ -1,0 +1,13 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/deepinfra.js",
+    "js/services/cloudExecutor.js",
+    "js/services/generationService.js",
+    "js/shell/agentDispatch.js",
+    "tests/deepinfra-credit-gate.test.cjs",
+    "tests/cloud-executor.test.cjs",
+    "services/llmEngines.mjs",
+    "tests/llm-payment-required.test.cjs"
+  ]
+}

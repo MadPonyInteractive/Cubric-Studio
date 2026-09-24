@@ -545,6 +545,7 @@ async function _submitGeneration(jobId, input = {}) {
         // Explicit only — an unset seed must stay random, never pinned to 0.
         ...(seed !== undefined ? { seed } : {}),
         injectionParams: mergedInjection,
+        byAgent: true,
     };
 
     // A masked submit is a new version of the card the mask is painted on, and goes
@@ -583,8 +584,10 @@ async function _submitGeneration(jobId, input = {}) {
         onComplete: (done) => _reportDone(jobId, done, historyOpts ? undefined : input.cardName, named.duration, model.id),
         // An `outputKind: 'text'` op produces a caption and no item (MPI-310).
         onText: (text) => _report(jobId, { ok: true, output: { text } }),
-        onError: () => _fail(jobId, 'RUNTIME_ERROR',
-            'The generation failed. See the app log for the cause.'),
+        // A cloud failure names itself (MPI-869: e.g. LOW_BALANCE with the cost and what
+        // is left), so the agent can tell the user why; anything else stays generic.
+        onError: (err) => _fail(jobId, err?.code || 'RUNTIME_ERROR',
+            err?.userMessage || 'The generation failed. See the app log for the cause.'),
         onCancel: () => _fail(jobId, 'CANCELLED',
             'The generation was cancelled or produced no output.'),
     }, historyOpts || { scope: 'gallery', tempId, placeholderGroup, extraTempIds, extraPlaceholders });
@@ -934,8 +937,10 @@ async function _submitFlow(jobId, input = {}) {
     }, {
         onComplete: (done) => _reportDone(jobId, done, input.cardName),
         onText: (text) => _report(jobId, { ok: true, output: { text } }),
-        onError: () => _fail(jobId, 'RUNTIME_ERROR',
-            'The generation failed. See the app log for the cause.'),
+        // A cloud failure names itself (MPI-869: e.g. LOW_BALANCE with the cost and what
+        // is left), so the agent can tell the user why; anything else stays generic.
+        onError: (err) => _fail(jobId, err?.code || 'RUNTIME_ERROR',
+            err?.userMessage || 'The generation failed. See the app log for the cause.'),
         onCancel: () => _fail(jobId, 'CANCELLED',
             'The generation was cancelled or produced no output.'),
     });

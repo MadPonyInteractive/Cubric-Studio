@@ -34,6 +34,27 @@ apart from a price. Neither blocks the phase 2 members.
 
 Project mode: **scalable-foundation**. Full guardrails, no prototype shortcuts.
 
+**2026-09-24 (handoff) — MPI-851 and MPI-869 are built, verified, committed; both close on
+green CI.** MPI-851: `flux-schnell-cloud` is `devOnly`. MPI-869 grew past its brief at
+Fabio's ask: a PRE-FLIGHT credit gate in `POST /deepinfra/generate` (reads
+`/payment/checklist` numbers only — that body carries address + card last4) refuses
+`LOW_BALANCE` / `OVER_LIMIT` before dispatch; a person gets a toast, the agent says it in chat
+(`byAgent` payload flag; the Error now carries `code` + `userMessage` through generationService
+and agentDispatch). All three live-passed by Fabio. **Measured:** the monthly cap answers HTTP
+**402**, same as an empty balance, after a small lagging overrun ($3.01 of $3.00); the 402 copy
+(chat in `llmEngines.mjs`, generation `NO_CREDIT`) now names both causes — not yet seen live.
+**Fabio's DeepInfra limit is at $3.00 for testing — he restores $5.00.** **Next: MPI-855**, now
+also a per-session Cosmo readout with CHAT and GENERATIONS shown separately (Fabio: chat ~$0.03
+for 5-6 questions; one Seedance clip $1.90). Chat cost = sum of `usage.estimated_cost` DeepInfra
+already returns per reply (`llmEngines.mjs` passes `data.usage` through; agentLoop only reads
+tokens today).
+
+**2026-09-24 (later) — MPI-851's gate is built, uncommitted.** `devOnly: true` on
+`flux-schnell-cloud`, one filter at the `MODELS` export (`APP_CONFIG.dev_mode`); a staged
+release-build test proves 14 cloud models ship, red without the flag. 851 closes on its commit's
+green CI. **MPI-869 waits on Fabio** lowering the DeepInfra monthly cap (Billing → Monthly Usage
+→ Set Limit) to just above usage — note the schnell test model is still there in dev runs for it.
+
 **2026-09-24 — where the umbrella stands (newest first; read this before the history below).**
 MPI-876 (the spend gate, phase 2) closes: agent confirm shows the batch TOTAL, and since
 `20d85814` each batch card's sidecar carries its SHARE (`usd / N`, shared `at`), live-verified.

@@ -651,7 +651,12 @@ export class DeepInfraEngine {
             // naming image/vision input). This is additive — callers that only read
             // `err.message` are unaffected.
             const bodyText = await res.text().catch(() => '');
-            const err = new Error(`${label} chat failed: ${res.status} ${res.statusText}`);
+            // 402 is BOTH an empty balance and a hit monthly spending limit — measured on
+            // DeepInfra 2026-09-24 (MPI-869): the cap answered 402 at $3.01 of $3.00. So the
+            // copy names both, since "top up" alone cannot fix a limit the user set.
+            const err = new Error(res.status === 402
+                ? `${label} refused the request: payment required. Either your balance is empty or you have reached the monthly spending limit you set. Nothing more was spent. Top up or raise the limit on your ${label} billing page.`
+                : `${label} chat failed: ${res.status} ${res.statusText}`);
             err.status = res.status;
             err.bodyText = bodyText;
             throw err;

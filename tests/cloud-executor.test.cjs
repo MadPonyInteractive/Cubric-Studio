@@ -154,6 +154,28 @@ test('a coded provider refusal settles the lane and reports actionable copy', as
     assert.match(cloudErrorMessage('NO_KEY'), /Settings/);
 });
 
+// MPI-869: a run refused for credit carries the route's figures to whoever asked. A person
+// gets a toast; an agent gets no toast, because it is told and says it in the chat.
+test('a credit refusal toasts a person, stays silent for an agent, and names itself on the error', async () => {
+    const { Events } = require('../js/events.js');
+    const MESSAGE = 'Not enough DeepInfra credit: this costs about $1.90 and your balance has $1.56 left.';
+    const refusal = () => ({ ok: true, status: 200, json: async () => ({ ok: false, error: { code: 'LOW_BALANCE', message: MESSAGE } }) });
+    for (const byAgent of [false, true]) {
+        const seen = [];
+        const offs = ['ui:warning', 'ui:error'].map(ev => Events.on(ev, (p) => seen.push([ev, p.message])));
+        try {
+            const { outcome, err, exec } = await dispatch(refusal, { byAgent });
+            assert.equal(outcome, 'error');
+            assert.equal(err.code, 'LOW_BALANCE');
+            assert.equal(err.userMessage, MESSAGE);
+            assert.equal(jobOf(exec).phase, PHASES.ERROR);
+            assert.deepEqual(seen, byAgent ? [] : [['ui:warning', MESSAGE]]);
+        } finally {
+            offs.forEach(off => off());
+        }
+    }
+});
+
 test('an HTTP failure settles the lane', async () => {
     const { outcome, exec } = await dispatch(() => ({ ok: false, status: 500, json: async () => ({}) }));
     assert.equal(outcome, 'error');

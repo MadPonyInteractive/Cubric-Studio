@@ -826,7 +826,8 @@ async function _deleteSavedItems(items) {
  * @typedef {Object} GenerationCallbacks
  * @property {function(string):void}        [onPreview]  — called with preview URL
  * @property {function({item, group}):void} [onComplete] — called with final item and group
- * @property {function():void}              [onError]    — called on failure
+ * @property {function(Error=):void}        [onError]    — called on failure, with the
+ *                                                         Error when there is one
  * @property {function():void}              [onCancel]   — called on cancel/empty result
  * @property {function(string):void}        [onText]     — called with the caption from an
  *                                                         `outputKind: 'text'` op (MPI-310).
@@ -946,6 +947,9 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         // below, which is what Reuse Prompt reads back off the sidecar (MPI-620).
         flowModelIds: Array.isArray(config.flowModelIds) ? [...config.flowModelIds] : null,
         previewOnly: config.previewOnly === true,
+        // MPI-869: an agent's run reports a credit refusal in chat, so the executor must
+        // not also toast it.
+        byAgent: config.byAgent === true,
         historyMode: config.historyMode === true,
         isStage2: config.isStage2 === true,
         loadLatentName: config.loadLatentName,
@@ -1669,7 +1673,9 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         activeGenerations.end(_regId, { revokePreview: true });
         Events.emit('generation:error', { id: _regId, tempId: _stableTempId, extraTempIds: _stableExtraTempIds });
         _emitPromptBoxGenerationEndIfIdle();
-        callbacks.onError?.();
+        // Forwarded, not swallowed: a cloud failure carries its `code` and user copy on it
+        // (MPI-869), which is how the agent can say WHY instead of "see the app log".
+        callbacks.onError?.(err);
     };
 
     return { cancel: () => { exec.cancel(); } };
