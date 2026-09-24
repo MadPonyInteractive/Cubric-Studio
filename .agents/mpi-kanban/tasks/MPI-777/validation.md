@@ -590,3 +590,5 @@ live look (panel + landing).**
   a handover, and Playwright fails a strict-mode match at once instead of retrying.
 
 Checks: agent-chat.spec.js 32/32; `npm test` 1845 pass 0 fail; eslint clean. **Awaiting Fabio's look.**
+
+**CLOSED 2026-09-24.** Fabio, live: "no more blinking" + "you can close 777". Code `dbffb3ea`, CI run 36001893534 green. Unfinished phases moved to MPI-906..909 under MPI-846.
