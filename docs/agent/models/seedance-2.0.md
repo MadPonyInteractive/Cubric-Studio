@@ -4,7 +4,7 @@ Seedance 2.0 ships as one Vision card, `seedance-2-cloud`. It is a **cloud** car
 
 Two ops, and unlike its 1.5 sibling the recipe has a distinct mode for each: `t2v` uses the eight part director order, `i2v` uses the timeline multi-shot format with `@tag` references.
 
-It is a physics aware dual-branch transformer with native audio. It is also **the dearest model in the catalogue that is not a Veo**: about $2.07 for five seconds at 1080p, roughly seven times Seedance 1.5 Pro for the same clip. Say the number before running it.
+It is a physics aware dual-branch transformer with native audio. It is also **the dearest model in the catalogue that is not a Veo**, several times Seedance 1.5 Pro for the same clip.
 
 ## Pick it when
 
@@ -78,8 +78,6 @@ A bearded employee in a grey sweater sits at a modern brutalist office desk. He 
 ## Status and caveats
 
 The recipe is `draft` and community sourced: there were no official ByteDance documents in the research notebook, and its example prompts were reconstructed after a rate limit rather than captured. Treat the shape as sound and the details as unproven until someone hand tests real output.
-
-One price warning is load bearing and already handled in code: DeepInfra's structured feed publishes the **cheap** "with reference video" token band for this model, while an ordinary call bills the dearer one. `deepinfraPricing.js` overrides the feed with the measured rate deliberately, which is why the estimate says about $2.07 and not about $0.13.
 
 ## Sources
 

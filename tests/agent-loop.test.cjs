@@ -491,292 +491,73 @@ test('`wait` is declared on the generate tool, and the system prompt says when t
 });
 
 /**
- * Fabio, live 2026-09-19 20:15Z: "the same image you used for the last video". list_cards had
- * the right clip on top (i2v_007, 19:43Z, the agent's own). It then read its project note,
- * whose list of variants stopped one clip earlier, and built from THAT clip's frame. The rule
- * ranked a card over memory for what RAN and said nothing about which one is LAST.
+ * MPI-903: the always-loaded rules route, the docs teach. Each test pins the FACT a rule
+ * must still carry after the rewrite, not the prose around it. A rule is sliced from its
+ * "<Name> rule:" to the next newline, so never write another rule's "X rule:" inside one.
  */
-test('the Cards rule says recency is the list order, never a note', () => {
-    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
-    const rule = loop.slice(loop.indexOf('Cards rule:'), loop.indexOf('\n', loop.indexOf('Cards rule:')));
-    assert.match(rule, /"the last".*list's order, newest first/);
-    assert.match(rule, /A project note never answers it/);
+const RULES = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
+const rule = (name) => {
+    const at = RULES.indexOf(`${name} rule:`);
+    assert.ok(at > 0, `there is no ${name} rule`);
+    return RULES.slice(at, RULES.indexOf('\n', at));
+};
+
+test('Cards: recency is the list order, never a note; an open card is "this one"', () => {
+    const r = rule('Cards');
+    assert.match(r, /"The last".*list's order, newest first/);
+    assert.match(r, /a project note never answers it/);
+    assert.match(r, /do not call list_cards to find it, never ask them to attach it/);
 });
 
-/**
- * Fabio's fifth pass, 2026-09-19: "I'll let you know the actual length when it lands", twice.
- * It cannot: a finished generation lands in `_notes`, read at the START of the next turn, so
- * the agent never speaks first. The rule only said what to say BEFORE the answer is back.
- */
-test('the Duration rule forbids promising to report back, because the agent never speaks first', () => {
-    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
-    const rule = loop.slice(loop.indexOf('Duration rule:'), loop.indexOf('\n', loop.indexOf('Duration rule:')));
-    assert.match(rule, /Never promise to report back/);
-    assert.match(rule, /you never speak first.*only when the user writes again/);
+test('Duration: 2-3 s default, a sequence earns more, never promise to report back', () => {
+    const r = rule('Duration');
+    assert.match(r, /defaults to 2 to 3 seconds: ONE continuous action fits/);
+    assert.match(r, /Only a SEQUENCE/);
+    assert.match(r, /The user naming a length always wins/);
+    assert.match(r, /Never promise to report back: you never speak first.*only when the user writes again/);
+    assert.ok(r.length <= 1212, `the Duration rule is ${r.length} chars`);
 });
 
-/**
- * Fabio, live 2026-09-20, first text-to-video: "two kids playing with a dog" got 6 seconds,
- * 5 m 26 s of render, and the model morphed, so the wait was paid twice. The rule had told the
- * agent to judge the length and named "a sustained action, a camera move that travels" as what
- * earns seconds, which is exactly what it wrote. His call: 2-3 s is the default, a sequence
- * is what earns more.
- */
-test('the Duration rule defaults to 2-3 seconds and only a sequence earns more', () => {
-    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
-    const rule = loop.slice(loop.indexOf('Duration rule:'), loop.indexOf('\n', loop.indexOf('Duration rule:')));
-    assert.match(rule, /Default 2 to 3: ONE continuous action fits/);
-    assert.match(rule, /Only a SEQUENCE earns more/);
-    // His other call the same morning: remove before adding. The rule was 1212 chars before
-    // this change and must not grow past it again without someone deciding it should.
-    assert.ok(rule.length <= 1212, `the Duration rule is ${rule.length} chars`);
-    assert.doesNotMatch(rule, /a sustained action, a camera move that travels/, 'the sentence that sent a single action to 6 s');
-    assert.match(rule, /The user naming a length always wins/);
+test('Settings: a named resolution matches tierSizes; one clip\'s settings never carry', () => {
+    const r = rule('Settings');
+    assert.match(r, /params\.tierSizes/);
+    assert.match(r, /1K = 1080p = full HD = 1920 on the long side/);
+    assert.match(r, /quality at the lowest tier/);
+    assert.match(r, /only a redo keeps its card's settings/);
 });
 
-/** Same session: "1K" became `high` (1664x960) because a tier was picked by its NAME. */
-test('the Settings rule matches a named resolution on tierSizes, never on a tier name', () => {
-    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
-    const rule = loop.slice(loop.indexOf('Settings rule:'), loop.indexOf('\n', loop.indexOf('Settings rule:')));
-    assert.match(rule, /params\.tierSizes has each tier's real pixels/);
-    assert.match(rule, /1K = 1080p = full HD = 1920 on the long side/);
-    // An hour later: "1K" asked for ONE redo stuck to the next two clips ("matched to your 1K
-    // request from before"), a 3 s and a 10 s render at 2.09 MP he had to cancel.
-    assert.match(rule, /never carries to the next, only a redo keeps its card's settings/);
+test('Voice: the reply, never the reasoning', () => {
+    const r = rule('Voice');
+    assert.match(r, /write the reply, never the thinking behind it/);
+    assert.match(r, /Do not name a rule, a note, an op's description or a knowledge entry/);
+    assert.match(r, /do not write your plan and then carry it out in the same message/);
+    assert.match(r, /never as "the user"/);
+    assert.match(r, /one short line, not a paragraph/);
 });
 
-/**
- * Fabio, live 2026-09-20: he closed the app on two running clips, reopened it, asked "requeue
- * those two", and the agent had no trace of either: a conversation is memory only, and a clip
- * that never lands leaves no card. His scope, not mine: ONLY what never landed is worth
- * keeping, never the conversation around it. So: one project note, written at submit, removed
- * on landing, listed by the message that already lists notes.
- */
-/**
- * Fabio, live 2026-09-21, on the agent's first masked-edit reply: "why is he giving me his
- * thought process?" Four paragraphs of it arrived before the answer - "According to the
- * masking rule, I need to ask the user to paint a mask", "The kleinEdit note says it tends
- * to cover a bare subject" - and the strip beside the chat had ALREADY listed every one of
- * those reads as it made them. The prompt carried six rules about what to DO and not one
- * about how to speak, and two of them ("say in one short line which model you used and
- * why") read as a licence to justify everything.
- *
- * The seam that gives it away is the pronoun: the deliberation says "the user", the answer
- * says "you". Both went into `message.content`, so no `thinking` field could have split them.
- */
-test('the Voice rule keeps the reasoning out of the reply', () => {
-    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
-    const rule = loop.slice(loop.indexOf('Voice rule:'), loop.indexOf('\n', loop.indexOf('Voice rule:')));
-    assert.ok(rule, 'the system prompt has no Voice rule at all');
-    assert.match(rule, /write the reply, never the thinking that produced it/);
-    // The app's own status strip is why saying it again is waste, not modesty.
-    assert.match(rule, /already shows the user every step/);
-    // The three shapes the live reply took, each named so it cannot come back.
-    assert.match(rule, /Do not name a rule, a note, an op's description or a knowledge entry/);
-    assert.match(rule, /Do not write your plan and then carry it out in the same message/);
-    assert.match(rule, /address them as "you", never as "the user"/);
-    // Model rule and Memory rule both ask for one line of why. The Voice rule has to keep
-    // them, or it silently deletes two rules that are deliberate.
-    assert.match(rule, /that is the one short line it asks for, not a paragraph/);
+test('Route: one question, three answers, at most three routes, always recommend', () => {
+    const r = rule('Route');
+    assert.match(r, /does the change stay inside ONE area/);
+    assert.match(r, /Light, sky, time of day, weather, season and style fall on the whole frame/);
+    assert.match(r, /several asks in one message are ONE edit, never split/);
+    assert.match(r, /Not one area: run ONE whole-picture edit, ask nothing/);
+    assert.match(r, /words that protect the rest.*ask for the mask, offer nothing else/);
+    assert.match(r, /recommend one, and wait/);
+    assert.match(r, /At most three routes, only at a genuine fork, always recommend one/);
+    assert.match(r, /never add adjectives/);
+    assert.match(r, /keeps the source's size/);
 });
 
-/**
- * MPI-877 round 3. The rule and `docs/agent/masking.md` both already said "prompt the delta
- * only", and the doc carried this very example — and the agent still echoed Fabio's own
- * framing into the prompt: "turn the boy in the water reflection into a demon version of
- * himself ... faint red aura reflected in the water". The model had an upside-down boy and
- * no river, so it drew the water and the reflection it was told about: an upright demon with
- * its own mirror image beneath it.
- *
- * Fabio's call, and it is not a graph bug — the crop IS what masking is: "the model only sees
- * the masked area, so why prompt other stuff in it?" The worked pair therefore lives in the
- * system prompt, which is always present, rather than only in a doc the agent has to fetch
- * before it composes.
- */
-test('the Masking rule tells the agent to translate the ask, not echo it', () => {
-    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
-    const rule = loop.slice(loop.indexOf('Masking rule:'), loop.indexOf('\n', loop.indexOf('Masking rule:')));
-    // Why the user's phrasing cannot be the prompt: they can see the whole picture, the model cannot.
-    assert.match(rule, /describe the picture from OUTSIDE/);
-    assert.match(rule, /Translate, never echo/);
-    // The three things that put the live failure in the prompt: the region, its surroundings,
-    // and the medium it sits in.
-    assert.match(rule, /not the region itself or what it sits in/);
-    // The good prompt, in full, so the shape is shown and not merely described.
-    assert.match(rule, /convert the boy into a demon/);
-    // And the doc says the same, for the turn that does fetch it.
-    const doc = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'docs', 'agent', 'masking.md'), 'utf8');
-    assert.match(doc, /The user's words are not the prompt/);
-    assert.match(doc, /never name the region/);
-});
-
-/**
- * Fabio, same session, correcting the rule above: one masked-prompt shape is not enough.
- * "These different operations have very different types of prompting. If I'm using detailing,
- * I have to prompt what's already there" — mask a face, prompt "beautiful redhead woman with
- * green eyes, freckles", and the denoise decides whether that sharpens her or replaces her.
- * `inpaint` is add-or-remove, so it takes "remove the flower from the vase", or the bare noun.
- * An instruction aimed at `detail` has no verb for it to follow, and a noun phrase aimed at
- * `edit` gives it nothing to do — either way the run is spent.
- */
-test('the masked prompt shape is per-op: instruction, description, add-or-remove', () => {
-    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
-    const rule = loop.slice(loop.indexOf('Masking rule:'), loop.indexOf('\n', loop.indexOf('Masking rule:')));
-    assert.match(rule, /take an INSTRUCTION, a verb on what is there/);
-    assert.match(rule, /detail takes a DESCRIPTION of what is already in the mask/);
-    // The denoise is half of what `detail` means — a description alone is not the rule.
-    assert.match(rule, /under about 0\.5 denoise that sharpens what is there, above it you get a NEW one/);
-    assert.match(rule, /inpaint adds or removes/);
-    assert.match(rule, /remove the flower from the vase/);
-    // Trial and error, and none of the knobs are visible to the agent: say it before sending.
-    assert.match(rule, /detail and inpaint are trial and error/);
-
-    const doc = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'docs', 'agent', 'masking.md'), 'utf8');
-    assert.match(doc, /## The shape depends on the op/);
-    assert.match(doc, /beautiful redhead woman, green eyes, freckles/);
-    assert.match(doc, /These two are trial and error/);
-});
-
-/**
- * Same session: "most users will never know what history means". `History` is the internal
- * name of `PAGE_GROUP_HISTORY`; the UI never writes it anywhere - the back link says
- * GALLERY, and the tools sit in a rail down the left.
- */
-test('the agent routes the user to the mask in the words the app actually uses', () => {
-    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
-    const rule = loop.slice(loop.indexOf('Masking rule:'), loop.indexOf('\n', loop.indexOf('Masking rule:')));
-    assert.match(rule, /click the card in the gallery to open it/);
-    assert.match(rule, /toolbar down the left/);
-    assert.match(rule, /Never send them to "History"/);
-
-    // The Honest-limits list said "drive History tools" and taught the same name.
-    const honest = loop.split('\n').filter((l) => l.includes('I cannot paint masks'));
+test('Masking: the user paints, in the app\'s own words, and the prompt shape is gated on app:masking', () => {
+    const r = rule('Masking');
+    assert.match(r, /click the card in the gallery to open it/);
+    assert.match(r, /toolbar down the left/);
+    assert.match(r, /already looking at the card, skip the first half/);
+    assert.match(r, /Never say "History"/);
+    assert.match(r, /generate refuses a masked op until you have read app:masking/);
+    const honest = RULES.split('\n').filter((l) => l.includes('I cannot paint masks'));
     assert.equal(honest.length, 1, 'the mask limit is written in exactly one place');
     assert.doesNotMatch(honest[0], /History/i);
-});
-
-/**
- * MPI-888, out of MPI-877 round 3. The Masking rule funnelled EVERY regional change into a
- * painted mask. Fabio: "any edit can be just an edit. It doesn't need to be a localised
- * edit ... The mask is more effective, but shouldn't always be forced on the user."
- *
- * The fork is one question — does the ask name a PART of the picture — with three answers,
- * because two of the three are not a choice at all: a whole-picture ask has no fork, and an
- * ask that already says "without changing anything else" has chosen. Only the middle case is
- * the user's, and it is the one that was being decided for them.
- */
-test('the Route rule offers the two routes instead of forcing a mask', () => {
-    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
-    const rule = loop.slice(loop.indexOf('Route rule:'), loop.indexOf('\n', loop.indexOf('Route rule:')));
-    assert.ok(rule, 'there is a Route rule');
-    // The one question, and each of its three answers.
-    assert.match(rule, /does the change stay inside ONE area of the picture/);
-    assert.match(rule, /does NOT stay in one area[\s\S]*run it as ONE edit, ask nothing/);
-    assert.match(rule, /words that protect the rest[\s\S]*ask for the mask, offer nothing else/);
-    assert.match(rule, /the choice is\s+theirs|the choice is theirs/);
-    // Fabio's words, because the rule exists against the reflex, not against a bug.
-    assert.match(rule, /shouldn't always be forced on the user/);
-    // The three bounds, or the offer becomes a menu on every turn.
-    assert.match(rule, /at most THREE routes/);
-    assert.match(rule, /only at a GENUINE fork/);
-    assert.match(rule, /always RECOMMEND one/);
-
-    // The Masking rule now starts AFTER that fork rather than declaring it.
-    const masking = loop.slice(loop.indexOf('Masking rule:'), loop.indexOf('\n', loop.indexOf('Masking rule:')));
-    assert.match(masking, /once a mask is the route \(Route rule\)/);
-    assert.doesNotMatch(masking, /is a masked edit, and it is how every local model does localised work/);
-
-    const doc = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'docs', 'agent', 'masking.md'), 'utf8');
-    assert.match(doc, /## Which route/);
-    assert.match(doc, /shouldn't always be forced on the user/);
-});
-
-/**
- * MPI-888 live read 1 (Fabio, 2026-09-22). "Make the sky reddish like dawn, and put red eyes
- * in the forest" was forked into a masked job per ask, in eight paragraphs. The rule was
- * obeyed — its question, "does the request name a PART?", let "the sky" through as a part.
- * The question was wrong, so the test pins the new question AND the two cases the old one
- * got wrong, not just more emphasis on the same words.
- */
-test('a sky or lighting change is whole-picture, and several asks are ONE edit', () => {
-    const fs = require('node:fs');
-    const loop = fs.readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
-    const rule = loop.slice(loop.indexOf('Route rule:'), loop.indexOf('\n', loop.indexOf('Route rule:')));
-    assert.doesNotMatch(rule, /does the request name a PART/, 'the old question is gone, not kept beside the new one');
-    assert.match(rule, /light, sky, time of day, weather, season and style fall on everything in the frame/);
-    assert.match(rule, /several asks in one message are ONE edit/);
-    assert.match(rule, /never split them into a job each/);
-    assert.match(rule, /This can be done in one go/);
-    assert.match(rule, /one line, never a paragraph/);
-
-    // Told to open the card they are standing in (MPI-890 fault 3): the rule's own words.
-    const masking = loop.slice(loop.indexOf('Masking rule:'), loop.indexOf('\n', loop.indexOf('Masking rule:')));
-    assert.match(masking, /already looking at the card, skip the first half/);
-
-    const doc = fs.readFileSync(require('node:path').join(__dirname, '..', 'docs', 'agent', 'masking.md'), 'utf8');
-    assert.match(doc, /does the change stay inside ONE area of the picture/);
-    assert.match(doc, /several asks in one message are one edit/);
-});
-
-/**
- * The worked example in the system prompt WAS the prompt that failed. It was written down
- * last session as the prompt the model "needed" and never rendered before being written.
- * Fabio rendered both: the adjective list replaced the boy instead of transforming him and
- * the likeness went with it, while the plain instruction kept more of him.
- *
- * This is the highest-leverage string in the rule — the model copies the example it is shown,
- * which is the whole reason the pair was moved into the system prompt in the first place.
- */
-test('the worked example is the prompt that rendered well, and the long one is its counter-example', () => {
-    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
-    const rule = loop.slice(loop.indexOf('Masking rule:'), loop.indexOf('\n', loop.indexOf('Masking rule:')));
-    assert.match(rule, /The prompt it needed was "convert the boy into a demon version of himself"/);
-    // The adjective list still appears — as what went wrong, never as the thing to copy.
-    assert.match(rule, /the adjective list REPLACED the boy/);
-    assert.match(rule, /losing the likeness the shorter prompt kept/);
-    // And the shape it demonstrates, stated so it generalises past this one picture.
-    assert.match(rule, /the instruction is a VERB and a TARGET/);
-    assert.match(rule, /add a detail only when the user named it themselves/);
-
-    const doc = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'docs', 'agent', 'masking.md'), 'utf8');
-    assert.match(doc, /### Keep it short/);
-    assert.match(doc, /> convert the boy into a demon version of himself/);
-    // The doc taught the long prompt in TWO places; neither may still recommend it.
-    assert.doesNotMatch(doc, /^> convert the boy into a demon: glowing red eyes, sharp horns, pale grey skin, a sinister grin$/m);
-});
-
-/**
- * Fabio found `inpaint` beat `kleinEdit` on the reflection — the picture `kleinEdit` was the
- * obvious choice for. "Different cases sometimes need different approaches." Nothing in the
- * rule said what to do with a bad masked result, and the reflex is to add adjectives to the
- * prompt that just missed, which spends a second run answering the same question.
- */
-test('a bad masked result moves to another op or a shorter prompt, never more adjectives', () => {
-    const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
-    const rule = loop.slice(loop.indexOf('Route rule:'), loop.indexOf('\n', loop.indexOf('Route rule:')));
-    assert.match(rule, /a DIFFERENT OP or a SIMPLER PROMPT, never more adjectives/);
-    assert.match(rule, /inpaint beat kleinEdit/);
-    // Say which op is going out, so the user can redirect it before the GPU spends.
-    assert.match(rule, /say which op you are sending/);
-    // Fabio, 2026-09-24: a masked add that missed was fixed by the MASK and an "add" verb.
-    assert.match(rule, /A masked ADD that misses usually wants the MASK changed/);
-    assert.match(rule, /"add people sitting in the chairs"/);
-    assert.match(rule, /comes back UNCHANGED is the several-areas failure/);
-    // A mask keeps the source's pixels; a whole-picture edit comes back at the model's size.
-    assert.match(rule, /A mask is also how a picture KEEPS its pixels/);
-    assert.doesNotMatch(loop, /several separate areas are fine, one run/);
-
-    const doc = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'docs', 'agent', 'masking.md'), 'utf8');
-    assert.match(doc, /### When it comes back wrong/);
-    assert.match(doc, /never\s+more adjectives on the same one/);
-    assert.match(doc, /usually wants the \*\*mask\*\* changed/);
-    assert.match(doc, /### Several separate areas: detail only/);
-    assert.match(doc, /### A mask keeps the pixels/);
-    // Detail over several areas is one list, a noun phrase per area (Fabio, 2026-09-24);
-    // edit and inpaint get one area per run.
-    assert.match(doc, /> cute girl with freckles, wooden chair, lady hand/);
-    assert.match(loop, /Several SEPARATE painted areas work on detail ONLY/);
-    assert.match(loop, /So for edit and inpaint, ONE area per run/);
 });
 
 test('a generation that never landed survives a restart as a project note, and landing removes it', async () => {
@@ -2605,14 +2386,6 @@ describe('(e) the open workspace reaches the agent', () => {
         assert.equal(loop._images.size, 0, 'nothing to register means nothing registered');
         // And a turn that predates the renderer change sends no workspace at all.
         assert.doesNotMatch(loop._appStateLine({ name: 'Demons', folderPath: PROJECT }), /The user is looking at/);
-    });
-
-    test('the Cards rule stops list_cards and the attachment ask when a card is open', () => {
-        const loop = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'services', 'agentLoop.mjs'), 'utf8');
-        const rule = loop.slice(loop.indexOf('Cards rule:'), loop.indexOf('\n', loop.indexOf('Cards rule:')));
-        assert.match(rule, /no drag surface in that view/);
-        assert.match(rule, /do not call list_cards to find what is already in front of them/);
-        assert.match(rule, /never ask them to attach it/);
     });
 
     /**

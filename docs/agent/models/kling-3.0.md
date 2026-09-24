@@ -6,9 +6,9 @@ That is a deliberate stand-in, not an accident. A Vision model whose `type` reso
 
 ## Pick it when
 
-- Veo 3.1 is the best video model in Vision's cloud catalogue, and the dearest: about $3.20 for a clip on `veo-31-cloud`, about $1.20 on `veo-31-fast-cloud`. Explore on Fast, finish on the full model.
+- Veo 3.1 is the best video model in Vision's cloud catalogue, and the dearest; `veo-31-fast-cloud` costs a fraction of `veo-31-cloud`. Explore on Fast, finish on the full model.
 - The clip needs dialogue or synchronised sound. Both carry native audio.
-- Not for iteration at volume. A batch of four full Veo clips is roughly $12.80 in a single call.
+- Not for iteration at volume: a batch multiplies the dearest price in the catalogue.
 
 ## Settings, and where Veo differs from Kling
 

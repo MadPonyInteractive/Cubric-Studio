@@ -2,9 +2,9 @@
 
 ## Current State
 
-Planned 2026-09-24 from the MPI-891 close-out discussion; Fabio approved the direction. No code
-yet, card still in `todo` - `beginImplementation` (todo -> doing + files.json) before the first edit.
-Next: Phase 0 baseline. Handoff bf5770d4.
+Phases 0-1 committed (d06bfd04, NOT pushed: the push was denied by the permission classifier,
+Fabio pushes). Phases 2-3 done in the tree: system prompt 25.4 -> 9.5 KB, tools 17.7 -> 16.9 KB.
+Phase 4 (harness x3 after, plus the new sheet-goes-to-reference case and --bite) is next.
 
 Measured (scratchpad `measure.mjs`, the real `_buildSystemPrompt` + `TOOL_DEFS`): **43 KB, ~11k tokens
 on every request** — system prompt 25.4 KB (20 rules ~24 KB), tool schemas 17.7 KB, knowledge index
@@ -91,10 +91,21 @@ Target: system prompt ≤ 9 KB. Index lists `app:*` only; `skill:*` leaves the i
 
 ## Remaining Work
 
-All phases.
+Phase 4: harness x3 on the rewrite, the new case, --bite; record in validation.md; commit; close.
 
 ## Plan Drift
 
 - 2026-09-24 (before Phase 0, Fabio approved): added the identity-image routing gate (Phase 1),
   no prices in guides and the 200-line / skill-folder rule (Phase 3). Spun out MPI-910 (Seedance
   reference op) and MPI-911 (Seedance skill rebuild from the Higgsfield director skill).
+- Phase 1: the look-refusal hint is NOT a gate: the describer refuses in free text with no
+  structured signal, so it stays one sentence in the Looking rule.
+- Phase 2: the Guide rule stays as two sentences (adapt to the guide, never send its example):
+  that is prompt-writing content no gate can check. The Box rule became app:flows plus the
+  BOX_TOO_BIG gate, with a one-line Flow rule pointing at the doc (not gated). Deletion folded
+  into Honest limits; Installation dropped (install_model's own description + the Yes card).
+  System prompt lands at 9.5 KB with the app:* index, not 9 KB; the budget test pins 9.8 KB.
+- Phase 3: guides no longer append the "exact rules the Prompt Box enhancer applies" pointer to
+  the recipe briefs: the guide is the one home, and reading both paid for the same facts twice.
+  Model guides' Sources sections still carry dates; the no-story ban covers docs/agent/*.md
+  (top level) only, the guides heal with MPI-911 and later recipe heals.

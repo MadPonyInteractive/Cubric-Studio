@@ -11,7 +11,9 @@
  *   `docs/agent/models/<recipeId>.md`, written from the vendor's pack, the recipe, the model
  *   docs and field evidence. `guideIdsByModel()` maps every Vision model to its guide through
  *   the recipe the enhancer already resolves; the loop will not send a model's first prompt
- *   until that guide was read.
+ *   until that guide was read. A model that needs more than one 200-line doc keeps its
+ *   router guide there and sub-skills in `docs/agent/models/<recipeId>/<topic>.md`
+ *   (`guide:<recipeId>/<topic>`); only the router is gated.
  * - `kind: 'skill'` entries are the Cubric Vision skills (`.claude/skills/cubric-vision*`),
  *   with a preamble mapping their HTTP routes onto the in-app agent's tools.
  * - `kind: 'app'` entries are the markdown in `docs/agent/`; `text()` reads the file.
@@ -76,26 +78,46 @@ function modelEntries() {
 }
 
 /** Recipe ids that have a guide file. A readdir, never a read. */
-function guideRecipeIds() {
+function guideRecipeIds(dir = GUIDES_DIR) {
     try {
-        return fs.readdirSync(GUIDES_DIR).filter((f) => f.endsWith('.md')).map((f) => f.slice(0, -3)).sort();
+        return fs.readdirSync(dir).filter((f) => f.endsWith('.md')).map((f) => f.slice(0, -3)).sort();
     } catch {
         return [];
     }
 }
 
-function guideEntries() {
-    return guideRecipeIds().map((id) => {
+/**
+ * A model's sub-skills: `docs/agent/models/<id>/<topic>.md`, beside its router guide
+ * `<id>.md`. Every agent doc stays under 200 lines, so a model that needs more is a folder
+ * of topics the router points into. Sorted topic names; a readdir, never a read.
+ */
+function subSkillTopics(id, dir = GUIDES_DIR) {
+    try {
+        return fs.readdirSync(path.join(dir, id)).filter((f) => f.endsWith('.md')).map((f) => f.slice(0, -3)).sort();
+    } catch {
+        return [];
+    }
+}
+
+/** Router guides and their sub-skills. `dir` is for tests; the corpus reads GUIDES_DIR. */
+export function guideEntries(dir = GUIDES_DIR) {
+    return guideRecipeIds(dir).flatMap((id) => {
         const recipe = RECIPE_REGISTRY.find((r) => r.modelId === id);
-        const briefs = Object.keys(recipe?.modes ?? {}).map((mode) => `${id}:${mode}`);
-        return {
+        const name = recipe?.displayName ?? titleFromFilename(id);
+        const tags = ['guide', id, recipe?.family].filter(Boolean);
+        return [{
             id: `guide:${id}`,
             kind: 'guide',
-            title: `${recipe?.displayName ?? titleFromFilename(id)}: prompting guide`,
-            tags: ['guide', id, recipe?.family].filter(Boolean),
-            text: () => fs.readFileSync(path.join(GUIDES_DIR, `${id}.md`), 'utf8')
-                + (briefs.length ? `\n\n---\n\nThe exact rules the Prompt Box enhancer applies to this model: ${briefs.join(', ')}.\n` : ''),
-        };
+            title: `${name}: prompting guide`,
+            tags,
+            text: () => fs.readFileSync(path.join(dir, `${id}.md`), 'utf8'),
+        }, ...subSkillTopics(id, dir).map((topic) => ({
+            id: `guide:${id}/${topic}`,
+            kind: 'guide',
+            title: `${name}: ${topic.replace(/[-_]+/g, ' ')}`,
+            tags: [...tags, topic],
+            text: () => fs.readFileSync(path.join(dir, id, `${topic}.md`), 'utf8'),
+        }))];
     });
 }
 
@@ -103,11 +125,12 @@ function guideEntries() {
  * `{ [modelId]: guideIds[] }` for every Vision model: the guide of the recipe the enhancer
  * resolves for it (`resolveRecipe`), when that guide exists. One readdir for the lot.
  */
-export function guideIdsByModel() {
-    const have = new Set(guideRecipeIds());
+export function guideIdsByModel(dir = GUIDES_DIR) {
+    const have = new Set(guideRecipeIds(dir));
     return Object.fromEntries(MODELS.map((m) => {
         const recipe = resolveRecipe(m.enhanceRecipe ?? m.type);
-        return [m.id, recipe && have.has(recipe.modelId) ? [`guide:${recipe.modelId}`] : []];
+        const id = recipe?.modelId;
+        return [m.id, id && have.has(id) ? [`guide:${id}`, ...subSkillTopics(id, dir).map((t) => `guide:${id}/${t}`)] : []];
     }));
 }
 

@@ -87,7 +87,7 @@ const LIVE_HEAD_SWAP = [
     { name: 'box2', img: { w: 768, h: 1344 }, square: { x: -201, y: 173, width: 1171, height: 1171 } },
 ];
 
-test('boxShare: the two live over-boxed heads report a share the Box rule refuses', () => {
+test('boxShare: the two live over-boxed heads report a share the box gate refuses', () => {
     const { boxShare } = require('../routes/connector');
     const [box1, box2] = LIVE_HEAD_SWAP;
 
@@ -96,7 +96,7 @@ test('boxShare: the two live over-boxed heads report a share the Box rule refuse
     // box2: wider than the image it was measured on.
     assert.deepEqual(boxShare(box2.square, box2.img.w, box2.img.h), { w: 1.52, h: 0.87 });
 
-    // The Box rule's threshold: over 0.6 on either side is not a head.
+    // The box gate's threshold (agentLoop look): over 0.6 on either side is not a head.
     for (const c of LIVE_HEAD_SWAP) {
         const s = boxShare(c.square, c.img.w, c.img.h);
         assert.ok(s.w > 0.6 || s.h > 0.6, `${c.name} must read as over-boxed`);

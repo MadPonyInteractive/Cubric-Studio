@@ -45,3 +45,25 @@ message: **11,104 input tokens** (all three runs).
   it and a character sheet goes to a ref2v op. Test in `tests/connector-agent-tools.test.cjs`.
 - `look` refusal hint: NOT a gate. The describer's refusal is free text with no structured signal,
   so it stays one sentence in the Looking rule.
+
+## Phase 2-3 — rewrite measured
+
+System prompt 25.4 KB -> **9,490 bytes** (with the app:* index); tool schemas 17.7 KB -> **16,947 bytes**.
+Agent, connector and GIF suites: 456 pass, 0 fail. `tests/agent-prompt-budget.test.cjs` mutation-proved
+(a date in a rule, a 210-line doc: each turns it red). eslint clean on touched files.
+
+## Phase 4 — harness after the rewrite: INCOMPLETE (DeepInfra 402)
+
+2026-09-24, same model, 21 cases x 3 (the run predates the new case). The account ran out of credit mid-run: every call after the
+tenth conversation answered `402 Payment Required`, so 56 of 66 runs made 0 calls. Not a behaviour
+result. What did run, before the 402:
+
+| case | runs | note |
+|---|---|---|
+| picks-installed-model | 3/3 | 5-6 calls (4 at baseline), 55-70k in |
+| install-needed | 3/3 | ~28k in |
+| auto-video-medium-turbo | 3/3 | |
+| ask-first #1 | turn 0 correct | asked the settings before generating; turn 1 died on the 402 |
+
+**Still owed:** the full x3 run (and `--bite`, and the new `sheet-goes-to-reference` case) once the
+DeepInfra balance is topped up. About $0.25 a full run.

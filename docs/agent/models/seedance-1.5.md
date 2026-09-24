@@ -10,7 +10,7 @@ The model is a dual-branch diffusion transformer: it renders audio and video **s
 
 - The clip needs sound that lands on the picture: lip-sync, frame-exact foley, a layered ambient bed. This is its headline capability, not an add-on.
 - The user has no GPU, or does not want a 30 GB download. Nothing local is touched.
-- Cost matters more than absolute quality among the cloud video models. At roughly $0.30 for five seconds at 1080p it is around seven times cheaper than Seedance 2.0 for the same clip, and cheaper than Wan 3.0 or either Veo.
+- Cost matters more than absolute quality among the cloud video models. It is several times cheaper than Seedance 2.0 for the same clip, and cheaper than Wan 3.0 or either Veo.
 - Not when the user wants a purely silent clip and already has a local video model installed, because a local generation costs them nothing.
 
 ## Settings

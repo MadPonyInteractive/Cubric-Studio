@@ -81,7 +81,7 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
 | `rename_card` | `{ groupId, name }` required | `POST /connector/rename-card`, a card this conversation generated OR one the app listed to it (`list_cards` / `visible_cards`, via `_seeCards`); any other id is `UNKNOWN_CARD`. Until 2026-09-20 it was "generated only", a gate from before the agent could see the project: live, asked to name Fabio's unnamed marked cards, it refused all four and told him to do it by hand |
 | `read_memory` / `write_memory` | `{ file? }` / `{ file, title, text, hook? }` | `/connector/memory` for the OPEN project only (`NO_PROJECT`) |
 | `list_cards` | `{ groupId?, limit?, mark? }` | `GET /connector/cards[/:groupId]` (`services/agentCards.mjs`), the OPEN project only. Two hops: short rows newest first, or one card in full (whole prompt, settings that ran, `madeFrom`). Read off `project.json` + `Media/.meta/`, no renderer. Every `ref` it returns joins the `_images` allowlist, so `look` and `generate` take it, a video included; a sidecar path outside the project's own `Media/` gets no ref |
-| `make_gif` / `edit_gif` / `cutout_gif` / `gif_to_video` | `{ images: [ref] \| video: ref, fps?, sizePreset?, loop?, trimIn?, trimOut? }` / `{ gif, fps?, loop?, trim?, output?, resize?, crop? }` / `{ gif, method, prompt?, adjust?, invert? }` / `{ gif, background? }` | `POST /connector/gif/{make,edit,cutout,to-video}` (MPI-830; contract in `.claude/skills/cubric-vision-gif/SKILL.md`), AWAITED in the turn. The routes take ITEM ids and the model only says `ref`: each `_images` entry carries the `itemId` of the version the card is SHOWING (`list_cards` `files[ref].itemId`, a generation's `output.itemId`), so a ref with none is `NOT_A_CARD` and nothing the allowlist lacks is reachable. The reply's `filePath` is registered with its own item id, so a chain feeds itself; `itemId` is stripped from what the model reads. Only `make` and `to-video` add to `_groups` - `edit`/`cutout` land on a card that may be the user's. `edgeColour: "opaque"` is sent as `null`. The agent cannot judge motion (`look` reads one still): that limit lives in the tool descriptions, not the system prompt |
+| `make_gif` / `edit_gif` / `cutout_gif` / `gif_to_video` | `{ images: [ref] \| video: ref, fps?, sizePreset?, loop?, trimIn?, trimOut? }` / `{ gif, fps?, loop?, trim?, output?, resize?, crop? }` / `{ gif, method, prompt?, adjust?, invert? }` / `{ gif, background? }` | `POST /connector/gif/{make,edit,cutout,to-video}` (MPI-830; contract in `.claude/skills/cubric-vision-gif/SKILL.md`), AWAITED in the turn. The routes take ITEM ids and the model only says `ref`: each `_images` entry carries the `itemId` of the version the card is SHOWING (`list_cards` `files[ref].itemId`, a generation's `output.itemId`), so a ref with none is `NOT_A_CARD` and nothing the allowlist lacks is reachable. The reply's `filePath` is registered with its own item id, so a chain feeds itself; `itemId` is stripped from what the model reads. Only `make` and `to-video` add to `_groups` - `edit`/`cutout` land on a card that may be the user's. `edgeColour: "opaque"` is sent as `null`. The agent cannot judge motion (`look` reads one still): that limit lives once, in the honest limits (MPI-903) |
 | `visible_cards` / `mark_card` | `{ limit? }` / `{ groupId, mark: dot\|square\|triangle\|none }` required | `GET /connector/visible-cards` / `POST /connector/card-mark` (MPI-817 Phase F). **Visible is a RELAY answer, never a `list_cards` argument**: `state.gallerySort` persists only `order`, so the renderer (`gallery.visible` in `agentDispatch.js`) names the group ids with the grid's OWN `matchesGallerySort` + `byGalleryOrder`, and the route builds the rows off disk with `agentCards.cardsByIds` - which does NOT drop archived cards, because the archived scope shows exactly those. Gallery not on screen is `GALLERY_NOT_OPEN`, never the whole project. `filter` is `describeGalleryFilter`'s words. Marks are MPI-785's `CARD_MARKS`; a row carries `mark` via `markOf` (a legacy `favourite: true` is `dot`), `list_cards` takes `mark` to list one shape, and `"none"` is sent as `false`. The renderer validates the id (`INVALID_MARK`): a free string would persist and match no filter row. `markGroup` looks the card up INSIDE the mutation queue, as `renameGroup` does. No loop-side ownership gate, unlike `rename_card`: marking the user's own cards is the ask. "Circle" is the dot, said in the tool descriptions only |
 
 - **Never deletes** (Fabio, 2026-09-16): no tool deletes, and `agentTools.mjs` reaches an allowlist of
@@ -200,20 +200,34 @@ Every event but `agent:session` also carries `session`, the key of its conversat
 ## Loop rules (W2)
 
 - **System prompt:** role; mode (Auto: turbo on images, `medium` + turbo on video where `params` offer
-  them; Ask first: ask about every setting); model, settings, looking, guide, install, project,
-  deletion, memory and naming rules; the honest limits; the knowledge index.
+  them; Ask first: ask about every setting); one short rule per decision (voice, model, route,
+  masking, text, settings, guide, duration, numbering, looking, shape, flow, chaining, project,
+  cards, memory, naming, docs); the honest limits; the `app:*` knowledge index only (guide ids come
+  from `describe_model`, `skill:*` entries stay for outside agents on `GET /connector/knowledge`).
+  **MPI-903: rules route, docs teach.** A fact gets ONE home, in this order: a gate in a tool
+  result, a 1-3 sentence rule, a gated `docs/agent/*.md`, a catalogue entry. No dates, names or
+  incident stories in agent-facing text; docs carry right/wrong pairs. `tests/agent-prompt-budget.test.cjs`
+  pins the floor (system 9.8 KB, tools 17.2 KB of JSON; 43 KB before), the story ban, no price in
+  any agent doc, and 200 lines per doc: a model that needs more is `docs/agent/models/<id>/<topic>.md`
+  sub-skills behind its router guide (`guide:<id>/<topic>`, only the router is gated).
 - **Opening lines** of every user message: the app state (the open project by NAME; "Images you can look
   at:" = the `_images` allowlist), the project's notes index once per project (first turn, a switch, a
   compaction), then what finished since the last turn. A successful `open_project` updates the project
   for the rest of the turn, and its result carries the new project's notes.
 - **Gates** (a rule alone did not do it; a compaction clears them): a model op's `generate` answers `GUIDE_NOT_READ` until this context
-  read one of its `guides` (a guide names the mode of any default: a bare one skipped Ask first); a Flow `params` box answers
+  read its router guide, the first of its `guides` (a guide names the mode of any default: a bare one skipped Ask first); a Flow `params` box answers
   `BOX_NOT_MEASURED` until a `look` with `box` measured the image of its role (live, the model guessed 512 px boxes); an op with a
   required media slot answers `MEDIA_REQUIRED` in-turn, naming the slot and every role the op takes, when the call fills none of it.
   That last one is a gate and not the app's own check because `generate` is fired and not awaited: the renderer's identical refusal
   arrives AFTER `{started: true}`, which is the only thing the model tells the user about — live, it reported a video as started
-  from a picture it never sent (Fabio, 2026-09-19).
-- **Harness:** `npm run agent:test` (18 cases x 3, real model, fake tools; `--bite` proves each assertion,
+  from a picture it never sent (Fabio, 2026-09-19). MPI-903 added three more: with a mask painted on the open card
+  (`workspace.masked`) a masked op answers `KNOWLEDGE_NOT_READ` until `app:masking` was read; a `look` box whose
+  `squareShare` passes 0.6 is not a measure (the result carries a `hint`, the second one says stop) and the Flow
+  answers `BOX_TOO_BIG`; and dispatch refuses `MASK_SEVERAL_AREAS` when edit, kleinEdit, krea2Edit, qwenEdit or
+  inpaint get a mask of 2+ separate areas (`countMaskAreas`, `js/shell/agentDispatch.js`: they crop ONE box around
+  all of them). `describe_model`'s `startFrame` role carries a `use` line (`ROLE_USE`, `routes/connector.js`): the
+  clip opens on that exact picture, so a character sheet goes to a `ref2v_*` op.
+- **Harness:** `npm run agent:test` (22 cases x 3, real model, fake tools; `--bite` proves each assertion,
   `--samples <md>` writes prompts to read). A case's `look` is one fixture, or a map keyed by the
   attachment's `filePath` when two images must answer differently — two portraits giving the identical
   answer read to the model as a broken describer and it stopped rather than measuring. **Bounded
@@ -299,8 +313,8 @@ the Wan and LTX graphs, deliberately crop-never-pad — so 4:5 into 16:9 keeps t
 height and a head goes first. `ref2v_ms` is the exception (`MpiH3References`: aspect kept, no crop).
 
 A `box: true` answer also carries `boxShare` and `squareShare` — what the box and its
-square take of the image (`boxShare` in `routes/connector.js`). The Box rule refuses a `squareShare`
-over 0.6 on either side and measures again: asked for a head on a group photo the describer boxes the
+square take of the image (`boxShare` in `routes/connector.js`). The box gate (agentLoop `look`, `BOX_TOO_BIG`) refuses a `squareShare`
+over 0.6 on either side and asks for one more measure: asked for a head on a group photo the describer boxes the
 whole person, and `square` then matches that height in width, which swallows the neighbour (live,
 Phase 5: `1166x1166` at `x -245` on 1664x2304, and `1171x1171` on a 768x1344 photo). 0.6 is measured,
 not chosen: three real head boxes square to at most 0.52, the two bad ones start at 0.70

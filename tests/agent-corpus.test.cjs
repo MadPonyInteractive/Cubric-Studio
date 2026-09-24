@@ -126,7 +126,7 @@ function testOperationsIsRenderedFromTheRegistries() {
 // ── MPI-774 Phase 3b: model guides and the Vision skills ──────────────────────
 
 const { resolveRecipe } = require('../js/data/recipes/registry.js');
-const { guideIdsByModel, GUIDES_DIR, SKILL_DIRS, isVisionSkill } = require('../services/agentCorpus.mjs');
+const { guideIdsByModel, guideEntries, GUIDES_DIR, SKILL_DIRS, isVisionSkill } = require('../services/agentCorpus.mjs');
 
 function testEveryShippedModelHasAGuide() {
     // The loop will not send a model's first prompt before its guide is read, so a model
@@ -135,7 +135,7 @@ function testEveryShippedModelHasAGuide() {
     for (const m of MODELS) {
         const recipe = resolveRecipe(m.enhanceRecipe ?? m.type);
         assert.ok(recipe, `${m.id} resolves to no recipe`);
-        assert.deepStrictEqual(byModel[m.id], [`guide:${recipe.modelId}`],
+        assert.strictEqual(byModel[m.id][0], `guide:${recipe.modelId}`,
             `${m.id} (recipe ${recipe.modelId}) needs docs/agent/models/${recipe.modelId}.md`);
     }
 }
@@ -145,17 +145,39 @@ function testEveryGuideIsARealGuide() {
     const guides = listCorpus().filter((e) => e.kind === 'guide');
     assert.ok(guides.length > 0, 'no guide in the corpus');
     for (const g of guides) {
-        const id = g.id.slice('guide:'.length);
+        const rel = g.id.slice('guide:'.length);
+        const id = rel.split('/')[0];
         assert.ok(recipeIds.has(id), `${g.id} names no recipe: a guide file is named after its recipe id`);
         const text = g.text();
         assert.ok(text.startsWith('# '), `${g.id} must open with a heading`);
         const lines = text.trim().split('\n').length;
         assert.ok(lines >= 30 && lines <= 200, `${g.id} is ${lines} lines, want 30-200`);
-        assert.match(text, new RegExp(`The exact rules the Prompt Box enhancer applies to this model: ${id}:`),
-            `${g.id} must point at its recipe briefs`);
         assert.ok(!/TODO|TBD|\[INSERT/i.test(text), `${g.id} carries a placeholder`);
-        assert.ok(!/—/.test(realReadFileSync(path.join(GUIDES_DIR, `${id}.md`), 'utf8')),
+        assert.ok(!/—/.test(realReadFileSync(path.join(GUIDES_DIR, `${rel}.md`), 'utf8')),
             `${g.id} uses an em dash (Fabio's copy rule)`);
+        // MPI-903: the guide is the one home for how to prompt a model; a price lives in the
+        // estimate, never in a doc that goes stale the day a provider changes it.
+        assert.ok(!/\$\d/.test(text), `${g.id} quotes a price`);
+    }
+}
+
+/** MPI-903: a model over 200 lines becomes a folder of sub-skills behind its router guide. */
+function testAModelFolderListsItsSubSkillsAfterTheRouter() {
+    const os = require('node:os');
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'guides-'));
+    try {
+        const id = RECIPE_REGISTRY[0].modelId;
+        fs.writeFileSync(path.join(dir, `${id}.md`), '# Router\n');
+        fs.mkdirSync(path.join(dir, id));
+        fs.writeFileSync(path.join(dir, id, 'lenses.md'), '# Lenses\n');
+        fs.writeFileSync(path.join(dir, id, 'acting.md'), '# Acting\n');
+        const ids = guideEntries(dir).map((e) => e.id);
+        assert.deepEqual(ids, [`guide:${id}`, `guide:${id}/acting`, `guide:${id}/lenses`]);
+        assert.equal(guideEntries(dir)[2].text(), '# Lenses\n');
+        const byModel = Object.values(guideIdsByModel(dir)).find((g) => g.length);
+        assert.deepEqual(byModel, [`guide:${id}`, `guide:${id}/acting`, `guide:${id}/lenses`], 'the router comes first: the gate reads guides[0]');
+    } finally {
+        fs.rmSync(dir, { recursive: true, force: true });
     }
 }
 
@@ -204,6 +226,7 @@ const tests = [
     testOperationsIsRenderedFromTheRegistries,
     testEveryShippedModelHasAGuide,
     testEveryGuideIsARealGuide,
+    testAModelFolderListsItsSubSkillsAfterTheRouter,
     testEveryVisionSkillIsInTheCorpus,
     testTheBuildStagesTheSkillsWhereTheCorpusLooks,
 ];

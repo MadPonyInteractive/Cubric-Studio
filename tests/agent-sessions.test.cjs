@@ -391,10 +391,10 @@ describe('project jobs: list, create, open', () => {
         t.after(restore);
         await send('hi', null);
         const system = sessions._loops.get('')._messages[0].content;
-        assert.match(system, /if the user asks for anything to be MADE, create a project/);
-        assert.match(system, /make it in that same turn/);
-        assert.match(system, /never a reason to stop/);
-        assert.match(system, /open_project only takes a folderPath from list_projects or create_project, or one the user typed/);
+        assert.match(system, /With no project open and anything to be MADE, create a project/);
+        assert.match(system, /make it in the same turn/);
+        assert.match(system, /then still make everything asked/);
+        assert.match(system, /open_project takes only a folderPath from list_projects or create_project, or one the user typed/);
     });
 });
 

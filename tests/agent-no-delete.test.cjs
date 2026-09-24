@@ -109,7 +109,9 @@ test('the system prompt carries the deletion rule', async () => {
     const { loop } = await runOneTurn('hi');
     const system = loop._messages[0];
     assert.equal(system.role, 'system');
-    assert.match(system.content, /Deletion rule: You never delete anything/);
+    // MPI-903: the Deletion rule folded into the Honest limits, which already said it.
+    assert.match(system.content, /I never delete cards, media, notes or projects, and never look for a way/);
+    assert.match(system.content, /right-click it, Delete project/);
 });
 
 test('agentTools.mjs reaches only allowlisted routes, none of them a delete', async () => {

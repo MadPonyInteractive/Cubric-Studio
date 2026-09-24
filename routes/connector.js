@@ -267,7 +267,7 @@ router.boxFromDescribeAnswer = boxFromDescribeAnswer;
  * (`1166x1166` on a 1664x2304 photo, `1171x1171` on a 768x1344 one — a side wider than the
  * image), and `square` matched that height in width without complaint, so Head Swap took
  * the neighbour. The route does not guess what a head may cover; it reports the share and
- * lets the Box rule refuse a measurement that cannot be a head.
+ * lets the box gate (agentLoop `look`, BOX_TOO_BIG) refuse a measurement that cannot be a head.
  *
  * @returns {{ w: number, h: number }} the box's share of the image, 2 decimals, >1 when it
  *          is wider or taller than the image itself.
@@ -1123,7 +1123,7 @@ router.post('/connector/describe', async (req, res) => {
       height: side,
     };
     // The share each one takes of the image, so the caller can tell a head from a whole
-    // person before it passes the box to a Flow (MPI-774 Phase 5, Box rule).
+    // person before it passes the box to a Flow (MPI-774 Phase 5; the box gate in agentLoop since MPI-903).
     return res.json({ ok: true, output: {
       ...result.output,
       box: found,

@@ -90,6 +90,7 @@ const FRAME = { id: 'att_frame', name: 'frame-from-my-video.png', filePath: 'C:/
 // a name contradicting the description sent it hunting for the discrepancy instead of measuring.
 const PORTRAIT_A = { id: 'att_portrait_a', name: 'woman-at-bar.png', filePath: 'C:/Temp/cubric-agent/attachments/att_portrait_a.png' };
 const PORTRAIT_B = { id: 'att_portrait_b', name: 'donor-face.png', filePath: 'C:/Temp/cubric-agent/attachments/att_portrait_b.png' };
+const SHEET = { id: 'att_sheet', name: 'ninja-character-sheet.png', filePath: 'C:/Temp/cubric-agent/attachments/att_sheet.png' };
 const WAVES = 'Make a 5 second video of waves crashing on rocks at sunset.';
 
 // ── Fixture edits ─────────────────────────────────────────────────────────────
@@ -536,6 +537,29 @@ const CASES = [
             const ok = calledAll(run, 'generate').filter((c) => c.result?.ok);
             if (!ok.length) return ['never ran the edit'];
             return ok.some((c) => /"Fox Shoot"/.test(c.args.prompt || '')) ? [] : ['the words are not quoted exactly in the prompt'];
+        },
+    },
+    {
+        // MPI-903: a character sheet went in as a video's FIRST FRAME twice (Seedance 2.0 i2v,
+        // then MiniMax H3 fl2va) while the H3 reference op was installed. A sheet is an
+        // identity reference. The flip uninstalls the reference model, so no ref2v run exists.
+        id: 'sheet-goes-to-reference',
+        title: 'a character sheet feeds a reference-to-video op, never a start frame',
+        setup: {
+            attachments: [SHEET],
+            look: { ok: true, output: { text: 'A character sheet on a plain grey background: the same young woman in a black and purple ninja outfit shown three times, front view, back view and a close-up of her masked face.' } },
+            turns: ['This is my character. Make a short clip of her running across the rooftops at night.'],
+        },
+        flip: { models: setInstalled((m) => m.id === 'minimax-h3-ref2va', false) },
+        check(run) {
+            const ok = calledAll(run, 'generate').filter((c) => c.result?.ok);
+            if (!ok.length) return ['never generated'];
+            const f = [];
+            for (const c of ok) {
+                if (c.args.operation !== 'ref2v_ms') f.push(`ran ${c.args.operation}, not the reference op ref2v_ms`);
+                if ((c.args.media || []).some((m) => m.role === 'startFrame')) f.push('sent the sheet as a start frame');
+            }
+            return f;
         },
     },
     {
