@@ -14,3 +14,8 @@
 - `agentLoop.mjs:1334` — on `generate`, an attachment is PLACED into the project as a new picture.
 
 Nothing is fixed yet; this card is the gap.
+
+## Closed via MPI-891 (2026-09-24)
+
+- Folded into MPI-891 and shipped in bd283872: a dragged card arrives as the card (`reference: true`, `itemId`, `groupId`), not a copied attachment.
+- Live check 1 PASS (MPI-891 validation.md section 5, Fabio, 2026-09-24): dragged t2i_006 + "indoor swimming pool" -> edit_026 landed in that card, history open.

@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-905", "at": "2026-09-24T13:42:49+01:00", "actor": "claude", "column": "todo", "title": "Warn when the agent's model has under 120K context"}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-905", "type": "task.updated", "at": "2026-09-24T12:43:56Z", "actor": "claude", "summary": "Floor lowered to 64K (Fabio); compaction facts added."}

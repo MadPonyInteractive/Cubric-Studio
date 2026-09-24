@@ -1,0 +1,13 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "task": "MPI-886",
+  "owner_session": ".agents/mpi-kanban/state/sessions/695fde36-979c-407d-ab19-dd40878417d0.json",
+  "updated_at": "2026-09-24T12:45:00Z",
+  "files": [
+    "routes/agent.js",
+    "services/agentLoop.mjs",
+    "js/services/agentService.js",
+    "tests/agent-card-reference.test.cjs"
+  ],
+  "note": "Implemented inside MPI-891 (bd283872); MPI-891 files.json is the full list."
+}

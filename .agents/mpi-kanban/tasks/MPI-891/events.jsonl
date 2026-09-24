@@ -3,3 +3,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-891", "at": "2026-09-22T22:53:59+01:00", "actor": "session-50d7bd93", "from": "todo", "to": "doing", "reason": "Fabio confirmed D1-D4 2026-09-22 and folded in the same-image-other-model re-run miss"}
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-891", "at": "2026-09-22T22:20:30Z", "actor": "session-50d7bd93", "reason": "npm test 1821/0, harness re-run 11/12; awaiting Fabio live check"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-891", "at": "2026-09-22T22:20:30Z", "actor": "session-50d7bd93", "changes": {"maturity": "validating"}}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-891", "at": "2026-09-24T13:43:04+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Live checks 1-5 PASS on Fabio's runs; code committed (bd283872, 75014e94, 49a0c7b9, 02ea9168)."}

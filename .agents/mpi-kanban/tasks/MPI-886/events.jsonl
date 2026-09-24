@@ -1,1 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-886", "at": "2026-09-22T06:54:39Z", "actor": "session-1cedc5ee", "column": "todo", "title": "A card dropped on the agent chat should arrive as the CARD, not a copy of its picture"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-886", "at": "2026-09-24T13:43:02+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Skipped Doing: implemented inside MPI-891 (bd283872); backfilled before done."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-886", "at": "2026-09-24T13:43:03+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Live check 1 PASS (MPI-891 validation section 5): a dragged card arrives as the card."}

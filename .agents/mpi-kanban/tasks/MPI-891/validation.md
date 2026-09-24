@@ -116,3 +116,13 @@ Automated, 2026-09-22:
   a mask keeps the source's pixels (whole edit returns ~1 MP) -> offer it for big photos or
   "crushed my pixels"; an ordinary add on an ordinary picture is a whole-picture edit.
   Suites 401: 399 pass / 0 fail / 1 todo (MPI-867). eslint 0. Not live-checked.
+
+## 8. Close-out (2026-09-24)
+
+- Live checks on Fabio's runs: 1, 3 and 4 PASS (sections 5-6), 2 PASS (section 3). Check 5 PASS by
+  the rule only: Fabio found the re-run "nothing like the original" (a composite has no prompt, so a
+  text re-run keeps content, not composition); the product question it raised (offer the Krea edit
+  route when the source has no prompt) stays open, not carded. Code committed: bd283872, 75014e94,
+  49a0c7b9, 02ea9168; CI run 35997323591 green on 02ea9168.
+- Live read 4's rule text (several areas = detail only, one area per run on edit/inpaint) was not re-checked live. It is superseded by MPI-903's rewrite of the agent rules, which replaces the prose with a code refusal.
+- Closed with MPI-886 (folded in).
