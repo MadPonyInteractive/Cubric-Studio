@@ -5,6 +5,44 @@
 
 ---
 
+## MPI-911 answers (2026-09-24): these supersede Part A and Part B below
+
+Sources are `sources.md` rows 11-18: the official ByteDance guide (11) first, Higgsfield's
+director and acting skills (12, 13) where it is silent. Parts A and B are kept as the record of
+the blog-sourced draft; where they disagree with this section, this section wins.
+
+1. **Output format and length.** Prose in the vendor's formula order, with `Shot 1:` labels only
+   when the clip needs cuts. No source states a word limit, so the budget is sized from the
+   vendor's own examples: its three-shot case prompt with four references is 234 words, its
+   single prompts run 14-112 words (median about 45), and its image-to-video example is 63.
+   Our prompts carry no references, so the text does more of the work: **t2v 60-240 words**,
+   the enhancer told to aim at 220 or under (the ceiling admits the vendor's own longest
+   example; it was first set at 220, under it, and the condense tier on the enhancer of record
+   then landed 191-224, so the sizing moved to the vendor document rather than below it),
+   **i2v 40-180**, the enhancer told to aim at about 100 and never over 160 (the first frame
+   carries appearance and setting). The vendor gives no i2v ceiling; this one is settled by
+   measurement: seven one-sentence parts, and the condense tier on the enhancer of record lands
+   130-171 while the other tiers sit at 93-143.
+2. **Structural order.** Subject, action, scene, lighting, camera, style, quality, constraints
+   (row 11). The director's locks sit inside the slot they govern: first frame, blocking and gaze
+   in the subject and scene slots, field of view in the camera slot, the lighting lock in the
+   lighting slot, local positive locks in the constraints tail.
+3. **Vocabulary.** Lens as diagonal field of view in degrees, paired with camera distance and a
+   visible outcome: 47 normal, 84 wide, 107 very wide, 29 portrait, 18 telephoto, 8 long
+   observation (row 12). A focal length the user gives converts to its full-frame diagonal
+   (16mm 107°, 24mm 84°, 35mm 63°, 50mm 47°, 85mm 29°, 135mm 18°, 300mm 8°). Standard shot sizes and camera
+   moves stay (row 11). `{}` dialogue, `<>` sound effects, `()` music (row 11).
+4. **Mistakes.** Precise timestamps (row 11); a stacked camera move; a lens the content does not
+   suit; flat front light; an empty or late first frame; vague distance words; emotion named
+   instead of shown; transitions described instead of states; a multi-view reference sheet.
+5. **Negatives.** No negative field. Constraints are written into the prompt: a local lock beside
+   the rule it protects, and a short tail (subtitle-free, no logo, no watermark) (rows 11, 12).
+6. **What is unique.** Native joint audio; the vendor's own statement that precise timing is
+   unstable; the degrees-not-millimetres lens control from production use (row 12).
+7. **Examples.** Written fresh for the recipe, never copied from a source.
+
+---
+
 ## Part A — Research (the 7 standard questions)
 
 All questions queried against notebook `119a088d` ("Seedance Prompt Guies").

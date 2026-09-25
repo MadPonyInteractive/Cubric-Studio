@@ -93,6 +93,17 @@ using it, and our output will be measured against theirs whether we like it or
 not. Read the top two before drafting, and record which conventions were adopted
 and which were rejected with a reason.
 
+**Read and merged for `seedance-2.0` by MPI-911 (2026-09-24), and the survey was
+missing the source that outranks all of them.** ByteDance publishes its own
+Seedance 2.0 prompt guide (BytePlus ModelArk, `docs/ModelArk/2222480`). It is
+client-rendered, so WebFetch reads it as empty; a browser reads it. It **directly
+contradicts the top two community skills**: both teach `0-3s` timed segments,
+and the vendor states precise timing is unstable. A 3,000-star skill is the
+competition, not the specification, when the model's author says otherwise.
+The same pass found a supplied "Seedance" skill whose frontmatter names **2.5**
+(the version trap below, again): filed under 2.5, not merged. Read-outs:
+`docs/recipes/research/seedance-2.0/sources.md` rows 11-18.
+
 The same search is owed to every model in the registry that has one. **As of
 2026-08-17 all 12 recipes have had it** — see the survey below — but only
 `minimax-h3` and `flux-2` were *authored* this way; the rest had step 0 applied
@@ -160,7 +171,7 @@ being the only recipe authored from a vendor skill — now has one.
 | `ltx-2.3` | `Lightricks/LTX-2` → `…/gemma/encoders/prompts/gemma3_{t2v,i2v}_system_prompt.txt` | vendor's own shipped rewriter. NOT `Lightricks/LTX-Video` (retired 0.9.x line) and NOT the `gemma4_*` files in the same directory — those are **LTX-2.5's**, and are what got merged on 2026-08-17 by mistake. `base_encoder.py:84-90` selects by `model_type`; `MODELS-LTX-2.3.md` names Gemma 3. **Merge unresolved — see below** |
 | `ltx-2.5` *(not yet a recipe)* | `Lightricks/LTX-2` → `…/gemma/encoders/prompts/gemma4_{t2v,i2v}_system_prompt.txt` | **step 0 already done, 2026-08-17, accidentally** — read in full and transcribed while surveying `ltx-2.3`. Vendor-stated target "roughly 150–220 words"; framing triple; closing AESTHETIC QUALITY pass; camera movement "expected and good" |
 | `flux-2` | `black-forest-labs/skills` (official, ★99) + `black-forest-labs/flux2` → `docs/flux2_with_prompt_upsampling.md` | vendor skill — **the skills repo was ALREADY READ** (source #1, 2026-08-05); only the upsampling doc is outstanding. Note the skills have since moved to target FLUX **3** |
-| `seedance-1.5` / `seedance-2.0` | a large community ecosystem, top entry ★3,315 — **plus** `krea-ai/skills` → `krea-generate/references/models/seedance-2.md`, a serving-platform vendor reference found 2026-08-17 | community + platform vendor |
+| `seedance-1.5` / `seedance-2.0` | a large community ecosystem, top entry ★3,315 — **plus** `krea-ai/skills` → `krea-generate/references/models/seedance-2.md`, a serving-platform vendor reference found 2026-08-17. **For 2.0, the vendor's own guide exists** (BytePlus ModelArk `2222480`), found and merged by MPI-911 | 2.0: **official docs** — **merged 2026-09-24**; 1.5: community + platform vendor |
 | `kling-3.0` | community only, inside multi-model kits (`ai-shortfilm-prompts` ★352) | community |
 | `krea-2` | `krea-ai/skills` (official Krea org, ★18) → `krea-generate/references/models/krea-2.md` — **found 2026-08-17.** Note the recipe already carried Krea's own `docs/expansion.txt` rewriter as source #2 | vendor skill — **read, nothing adopted** (it is API-surface guidance; see the manifest) |
 | `chroma` | **no vendor prompting material exists** — searched 2026-08-17. The vendor ships inference/training code only: `lodestones/Chroma1-HD` config + `lodestone-rock/flow` | vendor code (rank 2) — **read; it corrected a shipped 20x-wrong token-window claim** |
@@ -288,6 +299,8 @@ establish what it is. That distinction has since been closed for exactly two
 rows: `wan-2.2` and `ltx-2.3` were read claim by claim on 2026-08-17 and their
 recipes changed on the strength of it. **`seedance-1.5`, `seedance-2.0` and
 `kling-3.0` remain search results**, and those three are out of v1.0 anyway.
+*(`seedance-2.0` was read and merged by MPI-911, 2026-09-24; `seedance-1.5` and
+`kling-3.0` still are search results.)*
 
 The reading is also where the survey's one hard error surfaced: `ltx-2.3`'s row
 named the wrong model line, and only opening the repo's README showed it. A

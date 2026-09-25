@@ -1,2 +1,6 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-911", "at": "2026-09-24T14:53:20+01:00", "actor": "claude", "column": "todo", "title": "Rebuild the Seedance 2.0 skill from the Higgsfield director skill"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-911", "at": "2026-09-24T19:41:30Z", "actor": "claude", "reason": "Plan written (mpi-create-plan): idea -> planned."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-911", "at": "2026-09-24T20:45:45+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started (mpi-continue)."}
+{"schema": "mpi-kanban/event/v1", "type": "checklist.updated", "id": "MPI-911", "at": "2026-09-24T19:46:00Z", "actor": "claude", "reason": "Checklist derived from plan; files.json ownership written from the plan (8 paths)."}
+{"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-911", "at": "2026-09-24T21:57:57Z", "actor": "claude", "reason": "Stage 1 green twice in both modes on the final text (t2v I+J, i2v I+J, 15/15 each, enhancer of record); verbatim check 0 shared 8-grams; tests green."}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-911", "at": "2026-09-24T21:57:57Z", "actor": "claude", "reason": "in-progress -> validating; next mpi-end-session. Stage 2 renders are Fabio's."}

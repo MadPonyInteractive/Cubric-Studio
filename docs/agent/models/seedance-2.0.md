@@ -1,87 +1,113 @@
 # Seedance 2.0: how to prompt it
 
-Seedance 2.0 ships as one Vision card, `seedance-2-cloud`. It is a **cloud** card (MPI-853): no weights, no ComfyUI graph, no engine. It runs at DeepInfra on the user's own API key, and DeepInfra bills them directly. "Installed" means a key is saved.
+Seedance 2.0 ships as one Vision card, `seedance-2-cloud`. It is a **cloud** card: no weights, no ComfyUI graph, no engine. It runs at DeepInfra on the user's own API key. "Installed" means a key is saved. The cost of a run is on the estimate card; show the user that before a run, never a figure from memory.
 
-Two ops, and unlike its 1.5 sibling the recipe has a distinct mode for each: `t2v` uses the eight part director order, `i2v` uses the timeline multi-shot format with `@tag` references.
+Two ops, `t2v` and `i2v`, and the recipe has a mode for each. The model makes picture and sound together.
 
-It is a physics aware dual-branch transformer with native audio. It is also **the dearest model in the catalogue that is not a Veo**, several times Seedance 1.5 Pro for the same clip.
+This file is the router. Five sub-skills hold the detail; the table near the end says which one a request needs. Read it with `read_knowledge` and its id before writing that part of the prompt.
 
 ## Pick it when
 
-- The shot needs believable physics: weight, momentum, friction, something shattering or fabric moving. That is what separates it from 1.5.
-- The user wants several shots in one clip, cut on a timeline, rather than one continuous take.
-- There are reference assets to honour: up to nine images, three videos and three audio clips, each given an explicit job.
-- Not for exploring. At this price, iterate on Seedance 1.5 Pro or Wan 3.0 and come here for the final.
+- The shot needs believable physical behaviour: weight, contact, cloth, water, a door that resists.
+- Sound matters: footsteps, a spoken line, room tone. It is generated with the picture, not added after.
+- A person has to act: a reaction, a look, a line of dialogue delivered under pressure.
+- The clip needs a cut or two inside it, planned in the prompt.
 
-## Settings
+## What the app sends, and what it sets
 
-- Ratios: `1:1`, `3:4`, `4:3`, `9:16`, `16:9`, `21:9`. `adaptive` is offered upstream and never sent: it hands the frame size to the model.
-- Quality tiers: `480p`, `720p`, `1080p`, the provider's own. Price scales with the tier, so a draft pass at 480p costs a fraction of the same clip at 1080p.
-- Duration: 4 to 15 seconds, the provider's published range. Two to five seconds per timeline segment, three to five segments.
-- No batch: one clip per call. Four variations means four calls and four bills.
-- **No negative prompt field.** Constraints go inline, positively, in part 8.
-- Vision sends one reference image per generation (the first staged asset, as `first_frame_image`). The wider `@tag` system below is the model's own; the extra slots are not wired into the app yet, so do not promise nine references.
+- Ratios: `1:1`, `3:4`, `4:3`, `9:16`, `16:9`, `21:9`. Quality tiers: `480p`, `720p`, `1080p`. Duration: 4 to 15 seconds. These come from the provider's published fields.
+- The app sets the duration, the ratio and the tier. **Never write any of them into the prompt**, and never a resolution word such as "4K".
+- No batch: one clip per call.
+- **No negative prompt field.** Constraints go into the prompt as short locks.
+- `i2v` sends one image, as the clip's **first frame**. Nothing else is sent: no reference images, no reference video, no reference audio. The model's `@Image` / `@Video` / `@Audio` tags therefore name nothing in this app; never write them, and never promise more than one image.
 
-## The prompt shape, t2v
+## The prompt shape, both ops
 
-Eight parts, in this exact order.
+Plain sentences in this order. It is ByteDance's own order for this model.
 
-1. **Subject.** Who or what, with physical detail: age, clothing, material.
-2. **Action.** One physics aware verb per shot. "Tires smoke as the car drifts ninety degrees", "glass shatters on impact, fragments scattering outward", "silk billows and ripples". Never "moves" or "becomes".
-3. **Scene and atmosphere.** Location, time of day, environment.
-4. **Camera.** One shot size, one movement, one angle. Never stack two moves in a shot, and never write a contradiction like "close-up wide shot" or "static tracking shot".
-5. **Lighting and style.** Film grain, teal and orange grade, golden hour, cyberpunk neon.
-6. **Audio.** Specific adjectives, because they are what trigger the native audio engine: reverb, a metallic clink, boots on grass, crowd murmur.
-7. **Quality suffix.** Append this string verbatim, every time. Its absence measurably degrades consistency and stability:
+1. **Subject.** Who or what, named in the opening words, with two or three stable visible features.
+2. **Action.** One main action, already under way, with the body part and its range, speed and force, and real physics.
+3. **Scene and first-frame blocking.** The place and time, and where everything is in the very first frame: screen side, depth, a measured distance or a contact with a landmark, which way the body faces, where the eyes look.
+4. **Lighting.** The main source, its direction, the camera's side relative to it, what stays dark.
+5. **Camera.** Shot size, at most one movement, height, and the lens as a diagonal field of view in degrees with the camera distance.
+6. **Sound.** Sound effects in `<>`, spoken lines in `{}`, music in `()` only when the user wants music.
+7. **Style and quality.** One compact style anchor and a few quality words ("sharp, natural colour, stable picture").
+8. **Constraints.** One or two locks for the likeliest failure, stated as the wanted state, then the tail: `subtitle-free, no logo, no watermark`.
+
+Density goes where control matters: placement, gaze, hands, props, lens, light, timing of speech. Decorative adjectives buy nothing. A longer prompt is not a stronger one.
+
+**One continuous take by default.** Cuts only when the user asks, or when the action cannot be staged from one camera position. Then `Shot 1:`, `Shot 2:`, each with its own camera, action and sound, and the transition named ("Hard cut to"). **Never timestamps or durations** ("0-3s", "0:03"): ByteDance states the model handles precise timing badly.
+
+## t2v
+
+The text carries everything, so the first frame must be written: who is in it, where, facing where. An empty opening frame, or a subject who walks in late, is the commonest wasted clip.
+
+## i2v
+
+The image is frame one. It already fixes the face, the clothes, the colours, the set and the opening framing. Write **only what happens from it**: the motion, the camera's one move, the sound. Name the subject the way the user did ("the woman in the frame"), keep the frame's light direction and lens unless the user asks for a change, and close with a lock that identity and clothing match the first frame. Re-describing the picture pulls the clip away from it.
+
+A cut leaves the first frame behind, so in `i2v` cut only when asked, and say what each new shot shows.
+
+## Sound
+
+- `{I'm not going back.}` A spoken line, only when the user gave one or wants the character to speak: never invent dialogue, and never put anything but spoken words inside the braces. Only those words are spoken. Name who says it, and keep one language per clip; a less common language is named ("says in Portuguese {...}").
+- `<a car door slams>` A sound effect. Specific, physical, tied to something on screen.
+- `(slow piano)` Music, only when asked for. Unrequested music is a common failure: say so in a lock when the scene is quiet.
+- Describe a voice in words (age, weight, pace) when it matters: the model cannot be handed a voice sample here.
+
+## Constraints
+
+Locks sit next to what they protect and say the wanted state first: "his hand stays on the rail throughout", "the pieces stay where they were across the cut". Useful ones: no duplicate characters (any scene with several people), no extra people, the first frame already holds the subject, the face stays in shadow. End every prompt with `subtitle-free, no logo, no watermark`: unrequested subtitles are the model's most frequent stray, and landscape ratios get fewer of them than portrait.
+
+## Sub-skills: which one the request needs
+
+| Read (`read_knowledge` id) | When |
+|---|---|
+| `guide:seedance-2.0/blocking` | Anyone or anything must be in a particular place: two people facing each other, a subject next to a landmark, the first frame's composition, left and right. |
+| `guide:seedance-2.0/optics` | The shot size, lens or camera move matters: a portrait, a wide environment, a long-lens look, handheld, a lens the user named in millimetres. |
+| `guide:seedance-2.0/light-and-physics` | The light has a job (backlight, a single window, night), or the action is physical (running, lifting, water, cloth, dust, a vehicle). |
+| `guide:seedance-2.0/performance` | A person acts, reacts or speaks: any emotion, any dialogue, any ensemble. |
+| `guide:seedance-2.0/shots-and-cuts` | More than one shot, a dialogue exchange, fast action, or a clip that must hold continuity across a cut. |
+
+Most prompts need one or two of them, not all five.
+
+## Example, t2v
+
+The user asks: "a fisherman pulling in his net at dawn".
 
 ```text
-4K ultra HD, rich detail, sharp clarity, cinematic textures, stable picture. Maintaining face and clothing consistency without distortion or high detail. Generate the video without subtitles.
+A grey-bearded fisherman in a yellow oilskin coat hauls a wet net over the side of a small wooden boat, both forearms straining, the heavy net slapping onto the deck and spilling seawater across his boots. A calm grey harbour at dawn; in the first frame he stands screen-left at the stern, body facing the water, eyes on the net, the harbour wall ten metres behind him. Low sun from camera-right rims his shoulders and the wet mesh, while the side of his face toward the camera stays in shadow. Medium shot, slow push-in at chest height, 47-degree field of view, camera about 4 metres away, natural proportions. <rope creaks against the gunwale> <water pours off the net> <gulls far off>. Naturalistic documentary look, fine grain, sharp detail, natural colour, stable picture. His grip stays on the net throughout; subtitle-free, no logo, no watermark.
 ```
 
-8. **Constraints.** Behavioural limits inline: no zoom, no warping, tripod stable, avoid hair lift.
+## Example, i2v
 
-## The prompt shape, i2v
-
-Same model, different shape: asset assignments first, then a timeline, then one global style block, then the same quality suffix.
+The user attaches a photo of a woman at a café window and asks: "she drinks her tea".
 
 ```text
-@Image1 as the first frame. @Video1 for camera movement reference.
-[0s-4s] Medium tracking shot, slow push-in, the boy dribbles forward, boots on grass.
-[4s-8s] Cut to a low angle, static, he strikes the ball, crowd murmur swells.
-Global style: warm afternoon sunlight, cinematic texture with film grain.
-4K ultra HD, rich detail, sharp clarity, cinematic textures, stable picture. Maintaining face and clothing consistency without distortion or high detail. Generate the video without subtitles.
+The woman in the frame slowly lifts the teacup to her lips with her right hand, pauses as the steam brushes her face, then lowers it halfway while her eyes drift toward the window. Her position, clothing and the room stay as they are in the first frame. The window light keeps its direction, falling across the cup and her hands. Fixed camera, very slow push-in, lens unchanged from the first frame. <a spoon rings softly against china> <rain on the glass>. Calm and natural, sharp, stable picture. Her face and hair match the first frame throughout; subtitle-free, no logo, no watermark.
 ```
 
-Every uploaded asset gets a named job. One camera movement per segment. One primary action per segment, or the result reads as a slideshow. Use timestamps for anything over about five seconds.
-
-## Adapting what the user asked for
-
-Keep their subject and intent, and invent one to three cinematic details per section when the input is thin. When it is long or contradictory, distil to one dominant subject, one action beat and one camera direction.
-
-Do not over describe a face in words when a character reference image is staged: the model then matches the text category rather than the face. For character consistency across clips, a three still reference pack (front, three quarter, profile) with neutral expressions and consistent lighting is the documented approach, even though the app currently sends only the first.
-
-Example. The user asks: "someone slams papers down at work."
-
-```text
-A bearded employee in a grey sweater sits at a modern brutalist office desk. He slams a stack of papers on the counter, motion weight with paper scattering outward. Static medium shot, overhead fluorescent lighting, cold blue tones, realistic gritty texture. Paper scraping sound, distant office hum. 4K ultra HD, rich detail, sharp clarity, cinematic textures, stable picture. Maintaining face and clothing consistency without distortion or high detail. Generate the video without subtitles.
-```
+Adapt the shape; never send an example as it stands.
 
 ## When a result disappoints
 
-- Motion looks weightless or floaty: the action verb was generic. Physics verbs are the whole point of this model.
-- The camera wanders or the framing fights itself: two movements were stacked in one shot, or the shot size and the movement contradicted each other.
-- Faces or clothing drift between shots: the quality suffix was dropped, or a staged reference face was also described in words.
-- The clip reads as a slideshow: more than one primary action was packed into a short segment.
-- The audio is flat: part 6 was missing or vague. Adjectives, not nouns, drive the audio engine.
-- The bill was larger than expected: check the duration and the tier. This model is priced per token and both axes move it.
+- **The opening frame is empty, or the subject arrives late:** the first frame was not written. `blocking`.
+- **People face the wrong way or look past each other:** body facing and gaze were not both stated. `blocking`.
+- **The lens drifted, or a portrait came out wide:** the lens was a shot size or millimetres, or two content types shared one shot. `optics`.
+- **The camera wobbles or wanders:** two movements in one shot, or "handheld" without saying what the operator does. `optics`.
+- **The light went flat:** no source and direction, or the camera sat on the lit side of a backlit subject. `light-and-physics`.
+- **Motion floats or looks weightless:** no contact, weight or follow-through; or a burst action the model cannot sustain. `light-and-physics`.
+- **The acting is a mask or a grimace:** an emotion was named instead of shown. `performance`.
+- **A cut reset the scene, or cut at a strange moment:** continuity was not locked, or a timestamp was used. `shots-and-cuts`.
+- **Two identical people:** add the no-duplicate lock; with several people in frame, give each a distinct feature.
+- **Subtitles or a watermark appeared:** the constraint tail was missing. Portrait ratios make subtitles likelier.
 
-## Status and caveats
+## Status
 
-The recipe is `draft` and community sourced: there were no official ByteDance documents in the research notebook, and its example prompts were reconstructed after a rate limit rather than captured. Treat the shape as sound and the details as unproven until someone hand tests real output.
+The recipe is `draft`: its shape follows ByteDance's published guide and a serving platform's production skill, and it passes the text checks, but no render has confirmed it yet. Treat the shape as sound and a surprising result as evidence worth reporting.
 
 ## Sources
 
-- The enhancer recipe `js/data/recipes/seedance-2.0.recipe.js`, and its research under `docs/recipes/research/seedance-2.0/`.
-- The model's own published input fields, captured into `dev_configs/deepinfra-prices.json` by `scripts/sync-deepinfra-prices.mjs`: the ratios, the tiers and the 4 to 15 second range are copied from there, not hand written.
-- `docs/proprietary-models-research/01d-deepinfra-image-video.md` section 2c for the measured token formula, and the MPI-849 plan's drift note for why the feed rate is overridden.
-- `js/data/modelConstants/models.js` (`seedance-2-cloud`) and `js/data/modelConstants/deepinfraSizing.js`, for what the app actually sends.
+- The enhancer recipe `js/data/recipes/seedance-2.0.recipe.js` and its research under `docs/recipes/research/seedance-2.0/` (`sources.md` rows 11 to 18).
+- The provider's published input fields, captured in `dev_configs/deepinfra-prices.json`: the ratios, tiers and duration range are copied from there.
+- `js/data/modelConstants/models.js` (`seedance-2-cloud`), for what the app actually sends.

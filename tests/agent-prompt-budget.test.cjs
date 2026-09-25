@@ -78,9 +78,11 @@ test('app docs carry no stories or prices, and no agent doc passes 200 lines', (
         assert.ok(lines <= DOC_LINES, `${rel} is ${lines} lines: split it into a folder of sub-skills behind a router`);
         assert.doesNotMatch(text, /\$\d/, `${rel} quotes a price: the estimate is the one home for a price`);
     }
-    // The model guides' Sources sections still date their provenance; MPI-911 and later heals
-    // bring those in line. The app docs are clean now and stay clean.
-    for (const file of docs.filter((f) => path.dirname(f) === path.join(ROOT, 'docs', 'agent'))) {
+    // Eight model guides still date their provenance. Each recipe heal cleans its guide and
+    // deletes its line here (MPI-911 did seedance-2.0); every other agent doc stays clean.
+    const DATED_GUIDES = new Set(['chroma', 'illustrious', 'krea-2', 'ltx-2.3', 'minimax-h3', 'pony', 'sdxl', 'wan-2.2']
+        .map((id) => path.join(ROOT, 'docs', 'agent', 'models', `${id}.md`)));
+    for (const file of docs.filter((f) => !DATED_GUIDES.has(f))) {
         const rel = path.relative(ROOT, file);
         const text = fs.readFileSync(file, 'utf8');
         assert.doesNotMatch(text, /20\d\d-\d\d-\d\d/, `${rel} carries a date`);
