@@ -5011,3 +5011,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-925", "at": "2026-09-25T16:06:38+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "All 11 16K path tests green (red on HEAD); full npm test green after one source-regex fix."}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-927", "at": "2026-09-25T17:13:50+01:00", "actor": "claude", "column": "doing", "title": "dos_and_donts: a user-image decode passes limitInputPixels:false"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-927", "at": "2026-09-25T17:14:15+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Rule section written; docs-only."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-924", "at": "2026-09-25T17:24:37+01:00", "actor": "claude-opus-5-5", "from": "doing", "to": "done", "reason": "CI green on 5e607ad2 (run 36146134617), which carries code commit 3e0dbed2"}
