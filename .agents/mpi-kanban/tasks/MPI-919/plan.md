@@ -28,3 +28,16 @@ gets up to four references; the server collages them into one picture before the
 
 - `tests/deepinfra-collage.test.cjs`: layout per count, cell geometry, ratio of image 1.
 - Live: real paid NB2 Lite edit with 2 and 4 refs through the route; read the output.
+
+## Current State (2026-09-25, handoff)
+
+Pushed: c90e6eff collage, dca6424f image-1 big cell (won the paid A/B), 214955b7 refs sent as
+DISK paths (filePath is the /project-file URL; cloud edits never saw their image since MPI-851)
++ route refuses an image op with no refs, 6b83283f Wan 3.0 i2v as [{type:'first_frame',url}]
+(was a 422 since ship; live 0.10 USD mp4). Fabio restarted, and a 2-image NB edit now fails
+"provider could not complete" (Reuse Prompt AND fresh drag-drop) - NOT yet diagnosed.
+
+## Plan Drift
+
+Scope grew into the cloud media path itself: every cloud model's input shape needs a sweep
+against DeepInfra's in_fields (Fabio's ask), because Wan proved they differ.
