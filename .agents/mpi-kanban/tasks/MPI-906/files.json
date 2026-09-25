@@ -1,0 +1,12 @@
+{
+  "files": [
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js",
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.css",
+    "main/float-latent.html",
+    "js/shell/floatLatentBridge.js",
+    "js/components/Primitives/MpiTileSheet/MpiTileSheet.js",
+    "js/components/Organisms/MpiModelManager/MpiModelManager.js",
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+    "js/components/Compounds/MpiStartingComfy/MpiStartingComfy.js"
+  ]
+}

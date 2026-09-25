@@ -5,6 +5,7 @@ import { state } from '../../../state.js';
 import { Storage } from '../../../core/storage.js';
 import { resolveMediaUrl } from '../../../utils/mediaActions.js';
 import { qs, ce, on } from '../../../utils/dom.js';
+import { mascotLoop } from '../../../utils/mascotLoop.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { toWavFile } from '../../../utils/toWavFile.js';
 import { clientLogger } from '../../../services/clientLogger.js';
@@ -659,9 +660,13 @@ export const MpiMediaPicker = ComponentFactory.create({
 
             if (!entries.length) {
                 const empty = ce('div', { className: 'mpi-media-picker__empty' });
-                empty.textContent = isGalleryFiltered(_sort) && _entries().length
+                const filteredOut = isGalleryFiltered(_sort) && _entries().length;
+                // MPI-908: Studio peeks into an empty project, and shrugs at a filter that hid everything.
+                empty.innerHTML = `${filteredOut
+                    ? mascotLoop('studio', 'no-results', 'mpi-media-picker__empty-mascot')
+                    : mascotLoop('studio', 'peek', 'mpi-media-picker__empty-mascot mpi-media-picker__empty-mascot--peek')}<span>${filteredOut
                     ? 'No media matches this filter.'
-                    : 'This project has no media yet.';
+                    : 'This project has no media yet.'}</span>`;
                 grid.appendChild(empty);
                 return;
             }

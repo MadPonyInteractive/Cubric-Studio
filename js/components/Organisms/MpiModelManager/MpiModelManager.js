@@ -21,6 +21,7 @@ import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
 import { mountPodDiskBar } from '../../../services/podDiskBar.js';
 import { getModelLicence, hasAcceptedLicence } from '../../../data/modelConstants/licences.js';
 import { qs, qsa, ce, on } from '../../../utils/dom.js';
+import { mascotLoop } from '../../../utils/mascotLoop.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { openExternal } from '../../../utils/openExternal.js';
 import { formatBytes } from '../../../utils/formatBytes.js';
@@ -1492,7 +1493,7 @@ export const MpiModelManager = ComponentFactory.create({
             if (!visible.length) {
                 bodySlot.appendChild(ce('div', {
                     className: 'mpi-model-library__empty',
-                    textContent: 'No models match — clear filters or search.',
+                    innerHTML: `${mascotLoop('studio', 'no-results', 'mpi-model-library__empty-mascot')}<span>No models match — clear filters or search.</span>`,
                 }));
                 // MPI-310 — still offer the plugins row: a search like "describe"
                 // matches no MODEL, and returning here would hide the only thing that

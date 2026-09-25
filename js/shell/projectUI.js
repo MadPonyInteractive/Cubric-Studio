@@ -15,6 +15,7 @@ import { blockedByNoEngine } from '../services/engineGate.js';
 import { clientLogger } from '../services/clientLogger.js';
 import { formatBytes } from '../utils/formatBytes.js';
 import { gid, on } from '../utils/dom.js';
+import { mascotLoop } from '../utils/mascotLoop.js';
 import { APP_VERSION } from '../core/appVersion.js';
 import { MpiOkCancel } from '../components/Compounds/MpiOkCancel/MpiOkCancel.js';
 import { MpiNewProject } from '../components/Compounds/MpiNewProject/MpiNewProject.js';
@@ -210,7 +211,7 @@ export async function loadProjectGrid() {
     if (projects.length === 0) {
       projectGrid.innerHTML = `
         <div class="mpi-landing__empty">
-          <img class="mpi-landing__empty-mascot" src="assets/mascot/greet.png" alt="">
+          ${mascotLoop('studio', 'peek', 'mpi-landing__empty-mascot')}
           <strong>No projects yet</strong>
           <p>Click "+ New project" to create your first AI project.</p>
         </div>`;
@@ -231,7 +232,7 @@ export async function loadProjectGrid() {
     clientLogger.error('projectUI', 'loadProjectGrid failed', err);
     projectGrid.innerHTML = `
       <div class="mpi-landing__empty">
-        <img class="mpi-landing__empty-mascot" src="assets/mascot/greet.png" alt="">
+        ${mascotLoop('studio', 'peek', 'mpi-landing__empty-mascot')}
         <strong>No projects yet</strong>
         <p>Click "+ New project" to create your first AI project.</p>
       </div>`;

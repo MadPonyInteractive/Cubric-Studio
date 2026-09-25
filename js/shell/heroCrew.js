@@ -147,6 +147,9 @@ function _warm(m, id, clip) {
     m.warm.push(v);
 }
 
+/** Each clip's newest handover, so an older one's pending drop can tell it is stale. */
+const _handOvers = new WeakMap();
+
 /**
  * Hand a mascot from its live clip to the twin. The twin shows at once, but the old clip
  * stays up on its last frame until the twin has DRAWN: a video going from opacity 0 to 1
@@ -157,8 +160,14 @@ function _warm(m, id, clip) {
  */
 export function handOverClip(prev, next, live) {
     next.classList.add(live);
+    const token = {};
+    _handOvers.set(prev, token);
+    _handOvers.set(next, token);
     // Only if nothing has moved on since: a newer swap may already have taken either clip.
+    // Class checks alone miss a swap straight BACK inside the bound (A->B, then B->A before
+    // B's timer fires): both clips are live again, and the stale timer blacked out A (MPI-908).
     const drop = () => {
+        if (_handOvers.get(prev) !== token || _handOvers.get(next) !== token) return;
         if (!next.classList.contains(live) || !prev.classList.contains(live)) return;
         prev.classList.remove(live);
         prev.pause();

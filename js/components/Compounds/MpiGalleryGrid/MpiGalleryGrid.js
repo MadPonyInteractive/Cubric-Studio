@@ -4,12 +4,14 @@ import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiWaveform } from '../../Primitives/MpiWaveform/MpiWaveform.js';
 import { ce, qs, qsa, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
-import { kindOfItem } from '../../../utils/assetKinds.js';
+import { kindOfItem, PANEL_KINDS } from '../../../utils/assetKinds.js';
+import { mascotLoop } from '../../../utils/mascotLoop.js';
 import { matchesGallerySort, isGalleryFiltered, byGalleryOrder, markOf, markIcon, DEFAULT_GALLERY_SORT } from '../../../utils/galleryFilter.js';
 import { wireCardMark, closeCardMarkMenu } from './cardMarkMenu.js';
 import { removeHistoryEntry } from '../../../data/projectModel.js';
 import { getModelById, tierLetterFor } from '../../../data/modelRegistry.js';
-import { getCommand, commandAllowsBranchingContinue, selectCueAllTargets } from '../../../data/commandRegistry.js';
+import { getCommand, getCommandAccent, commandAllowsBranchingContinue, selectCueAllTargets } from '../../../data/commandRegistry.js';
+import { handOverClip } from '../../../shell/heroCrew.js';
 import { flowModelChoices } from '../../../data/flowsRegistry.js';
 import { state } from '../../../state.js';
 import { Events } from '../../../events.js';
@@ -426,7 +428,10 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     <div class="mpi-group-card__thumb mpi-group-card__thumb--empty"></div>
                     <div class="mpi-group-card__preview">
                         <div class="mpi-group-card__spinner"></div>
-                        <img class="mpi-group-card__mascot" alt="" draggable="false">
+                        <span class="mpi-group-card__mascot">
+                            <video class="mpi-group-card__mascot-clip" muted playsinline loop preload="auto"></video>
+                            <video class="mpi-group-card__mascot-clip" muted playsinline loop preload="auto"></video>
+                        </span>
                     </div>
                 </div>
                 <div class="mpi-group-card__top-badge"></div>
@@ -459,7 +464,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
             let thumb        = qs('.mpi-group-card__thumb', cardEl);
             const preview    = qs('.mpi-group-card__preview', cardEl);
             const spinner    = qs('.mpi-group-card__spinner', cardEl);
-            const mascot     = qs('.mpi-group-card__mascot', cardEl);
+            const [mascotA, mascotB] = qsa('.mpi-group-card__mascot-clip', cardEl);
             let previewImg   = null;
             // Latent previews are paced and looped by the ONE shared consumer,
             // `previewClipPlayer` (MPI-571) — read that module for still-vs-clip
@@ -1646,33 +1651,56 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 if (idx >= 0) cardEl.setSelectionBadge(idx + 1);
             }
 
-            // ── Mascot (generating-card personality, MPI-265) ────────────────
-            // A pointer-events:none <img> overlaid on the generating card. Pure
-            // decoration: reads/mutates no state, sits above the spinner/preview.
-            // States (mutually-exclusive card classes): idle (big centered, replaces
-            // the spinner) → cooking (small, bottom-right) once a preview lands.
-            // idle↔greet face swaps on a self-rearming timer at a random 4–8s cadence;
-            // cooking drops the flip and shows the single waiting face.
+            // ── Mascot (generating-card personality, MPI-265, animated MPI-906) ──
+            // The op's mascot, overlaid on the generating card. Pure decoration:
+            // reads/mutates no state, sits above the spinner/preview. States
+            // (mutually-exclusive card classes): idle = big centred, `getting-ready`
+            // looping (replaces the spinner) → cooking = small bottom-right,
+            // `working` looping, once a preview lands (docs/mascot-placement.md).
             // (No done/happy state on the card — the finished-generation happy mascot
             //  lives on the success toast instead; the card rebuilds on complete.)
-            const MASCOT_SRC = {
-                idle:    'assets/mascot/idle.png',
-                greet:   'assets/mascot/greet.png',
-                waiting: 'assets/mascot/waiting.png',
-            };
-            let _mascotFlipTimer = null;
-            let _mascotFace = 'idle';   // current idle/greet face while flipping
+            // Two stacked videos swapped by `handOverClip`, as the landing crew:
+            // assigning `src` to the visible one blanks it until a frame decodes.
+            const MASCOT_CLIP = { idle: 'getting-ready', cooking: 'working' };
+            const MASCOT_LIVE = 'mpi-group-card__mascot-clip--live';
+            let _mascotShown = mascotA;
+            let _mascotSrc = null;
+            let _mascotSeq = 0;
             let _mascotCooking = false; // latch: cooking entered once per gen
-            function _stopMascotFlip() {
-                if (_mascotFlipTimer) { clearTimeout(_mascotFlipTimer); _mascotFlipTimer = null; }
+            /** Who is cooking: the op's accent key, else the card's media type (a
+             *  flow or agent placeholder carries no history yet). */
+            function _mascotKey() {
+                const op = group.history?.[group.selectedIndex ?? 0]?.operation;
+                if (op) return getCommandAccent(op);
+                return { image: 'vision', video: 'video', audio: 'audio' }[group.type] || 'studio';
             }
-            function _scheduleMascotFlip() {
-                _stopMascotFlip();
-                _mascotFlipTimer = setTimeout(() => {
-                    _mascotFace = _mascotFace === 'idle' ? 'greet' : 'idle';
-                    mascot.src = MASCOT_SRC[_mascotFace];
-                    _scheduleMascotFlip(); // re-arm
-                }, 4000 + Math.random() * 4000);
+            function _paintMascot(src) {
+                if (src === _mascotSrc) return; // a re-render asks for the clip already up
+                _mascotSrc = src;
+                const next = _mascotShown === mascotA ? mascotB : mascotA;
+                const seq = ++_mascotSeq;
+                next.classList.remove(MASCOT_LIVE); // still up from an unfinished handover
+                next.src = src;
+                const show = () => {
+                    if (seq !== _mascotSeq || _mascotShown === next) return;
+                    handOverClip(_mascotShown, next, MASCOT_LIVE);
+                    _mascotShown = next;
+                };
+                // Reduced motion holds the first frame. Otherwise flip on the first
+                // PRESENTED frame: play() resolves before one reaches the screen.
+                if (matchMedia('(prefers-reduced-motion: reduce)').matches) on(next, 'loadeddata', show, { once: true });
+                else next.play().then(() => next.requestVideoFrameCallback(show), () => {});
+            }
+            /** Hiding a video keeps its decoder; only dropping the src frees it. */
+            function _releaseMascot() {
+                _mascotSeq++;
+                _mascotSrc = null;
+                for (const v of [mascotA, mascotB]) {
+                    v.classList.remove(MASCOT_LIVE);
+                    v.pause();
+                    v.removeAttribute('src');
+                    v.load();
+                }
             }
             function _setMascotState(state) {
                 // state: 'idle' | 'cooking' | null (clear/hide)
@@ -1681,23 +1709,12 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     'mpi-group-card--mascot-cooking',
                 );
                 if (!state) {
-                    _stopMascotFlip();
-                    mascot.removeAttribute('src');
-                    _mascotFace = 'idle';
+                    _releaseMascot();
                     _mascotCooking = false;
                     return;
                 }
                 cardEl.classList.add(`mpi-group-card--mascot-${state}`);
-                if (state === 'cooking') {
-                    // Latents incoming → single waiting face, no idle/greet flip.
-                    _stopMascotFlip();
-                    mascot.src = MASCOT_SRC.waiting;
-                    return;
-                }
-                // idle: big centered, flips idle↔greet on the self-rearming timer.
-                _mascotFace = _mascotFace === 'greet' ? 'greet' : 'idle';
-                mascot.src = MASCOT_SRC[_mascotFace];
-                _scheduleMascotFlip();
+                _paintMascot(`assets/mascot/${_mascotKey()}/${MASCOT_CLIP[state]}.webm`);
             }
 
             // ── Public methods ───────────────────────────────────────────────
@@ -1846,7 +1863,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
             };
 
             // Removing the wrapper from the DOM is NOT teardown. The preview clip
-            // plays on a setInterval and the mascot flip re-arms itself, so a
+            // plays on a setInterval and the mascot video keeps its decoder, so a
             // detached card keeps painting frames forever — including the blobs
             // its own gen revoked when it ended → net::ERR_FILE_NOT_FOUND at the
             // clip rate, one stream per removed card, accumulating all session.
@@ -1855,7 +1872,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
             cardEl.destroy = () => {
                 _generating = false;
                 _previewPlayer.stop();
-                _stopMascotFlip();
+                _releaseMascot();
                 _unwireMark();
             };
 
@@ -2002,6 +2019,12 @@ export const MpiGalleryGrid = ComponentFactory.create({
             clientLogger.info('MpiGalleryGrid', `layout ${JSON.stringify({ reason, ...data })}`);
         }
 
+        /** Whose "no results" plays: the one kind the filter still shows, else Studio (MPI-908). */
+        function _noMatchMascot(sort) {
+            const shown = PANEL_KINDS.filter(k => !sort.hiddenKinds?.includes(k.kind));
+            return shown.length === 1 ? shown[0].accent : 'studio';
+        }
+
         function _rerenderJustified(reason = 'manual') {
             _pendingRenderReasons.add(reason);
             if (_renderTimeout) clearTimeout(_renderTimeout);
@@ -2104,7 +2127,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 } else if (filtered && !allGroups.length) {
                     const emptyEl = ce('div', { className: 'mpi-gallery-grid__scope-empty' });
                     emptyEl.innerHTML = `
-                        <img class="mpi-gallery-grid__scope-empty-mascot" src="assets/mascot/idle.png" alt="" draggable="false">
+                        ${mascotLoop(_noMatchMascot(sort), 'no-results', 'mpi-gallery-grid__scope-empty-mascot')}
                         <p class="mpi-gallery-grid__scope-empty-title">No cards match</p>
                     `;
                     const showAll = MpiButton.mount(ce('div'), { text: 'Show all', variant: 'secondary', size: 'sm' });

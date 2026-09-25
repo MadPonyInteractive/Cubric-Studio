@@ -110,6 +110,7 @@ export const TOOL_DEFS = [
                     stylization: { type: 'number' },
                     seed: { type: 'integer' },
                     cardName: { type: 'string', description: 'Optional short name for the card this generation creates.' },
+                    redo: { type: 'boolean', description: 'True when this retries a generation that failed or came out wrong.' },
                     wait: { type: 'boolean', description: 'Wait for this generation to finish and return its result, instead of starting it and moving on. Use it when a LATER step in the same request needs this output — the result carries the filePath you then pass as media. Leave it off for the last step, so the chat stays free while it runs.' },
                     fields: { type: 'object', description: 'Flow field values.' },
                     params: { type: 'object', description: 'Flow step params: a measured box, e.g. { box1: { x, y, width, height } }, or the frame an outpaint grows to, e.g. { frame: { ratio: "4:5", grow: "up" } }. app:flows says how to pick both.' },
@@ -2165,7 +2166,9 @@ ${knowledgeIndex}`.trim();
 
                     const toolEntryId = crypto.randomUUID();
                     const label = _toolLabel(toolName, args);
-                    this._emit('agent:tool', { turnId, id: toolEntryId, tool: toolName, status: 'started', label });
+                    // `redo` is the agent saying it is retrying: the panel's Cosmo reacts (MPI-908).
+                    // Never forwarded to the app - `generate` builds its request field by field.
+                    this._emit('agent:tool', { turnId, id: toolEntryId, tool: toolName, status: 'started', label, ...(args.redo === true && { redo: true }) });
                     this._historyEntry('tool', { id: toolEntryId, tool: toolName, args, status: 'started', label });
 
                     let resultText;
@@ -2222,7 +2225,11 @@ ${knowledgeIndex}`.trim();
                     // Update history entry status
                     const histEntry = this._history.find((e) => e.id === toolEntryId);
                     if (histEntry) { histEntry.status = toolStatus; histEntry.output = resultText; histEntry.label = doneLabel; }
-                    this._emit('agent:tool', { turnId, id: toolEntryId, tool: toolName, status: toolStatus, label: doneLabel });
+                    // A tool that ran but said no (NO_PROJECT, a refused param) is still `done`; the
+                    // panel's Cosmo flags it (MPI-908), so it is told apart here.
+                    let refused = false;
+                    try { refused = toolStatus === 'done' && JSON.parse(resultText)?.ok === false; } catch { /* not JSON */ }
+                    this._emit('agent:tool', { turnId, id: toolEntryId, tool: toolName, status: toolStatus, label: doneLabel, ...(refused && { refused: true }) });
 
                     // Append tool result to LLM context
                     this._messages.push({ role: 'tool', tool_call_id: tc.id, content: resultText });

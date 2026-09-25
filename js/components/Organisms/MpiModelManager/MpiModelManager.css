@@ -147,10 +147,21 @@
     max-width: 68ch;
 }
 .mpi-model-library__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--s-2);
     padding: var(--s-6) 0;
     color: var(--ink-4);
     font-size: var(--t-sm);
     text-align: center;
+}
+
+/* MPI-908: Studio's looping `no-results`, cropped to the figure (js/utils/mascotLoop.js).
+   Five times DESIGN.md's 64px cap, by Fabio's call (2026-09-25): at 64 it read as a speck. */
+.mpi-model-library__empty-mascot {
+    height: min(320px, 40vh);
+    width: auto;
 }
 
 /* ══ DETAIL DRAWER — right, absolute child of the overlay ══════════ */

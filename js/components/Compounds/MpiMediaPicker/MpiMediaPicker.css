@@ -81,9 +81,26 @@
 
 .mpi-media-picker__empty {
     grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--s-2);
     padding: var(--s-6) var(--s-4);
     text-align: center;
     color: var(--ink-4);
+}
+
+/* MPI-908: Studio's looping peek or no-results, cropped to the figure (js/utils/mascotLoop.js).
+   The peek's bottom edge is cut, so it sits on a rule. */
+.mpi-media-picker__empty-mascot {
+    /* Five times DESIGN.md's 64px cap for `no-results`, by Fabio's call (2026-09-25). */
+    height: min(320px, 40vh);
+    width: auto;
+}
+
+.mpi-media-picker__empty-mascot--peek {
+    height: 48px;
+    border-bottom: 1px solid var(--line);
 }
 
 /* ── tiles ─────────────────────────────────────────────────────────────── */

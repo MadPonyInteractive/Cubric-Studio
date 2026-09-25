@@ -18,6 +18,7 @@ import { formatBytes } from '../../../utils/formatBytes.js';
 import { DEPS } from '../../../data/modelConstants/dependencies.js';
 import { PAGE_GALLERY } from '../../../router.js';
 import { qs, ce, on } from '../../../utils/dom.js';
+import { mascotLoop } from '../../../utils/mascotLoop.js';
 import { openExternal } from '../../../utils/openExternal.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { hasAcceptedLicence } from '../../../data/modelConstants/licences.js';
@@ -923,7 +924,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
             if (!visible.length) {
                 bodySlot.appendChild(ce('div', {
                     className: 'mpi-flow-library__empty',
-                    textContent: 'No flows match — clear filters or search.',
+                    innerHTML: `${mascotLoop('studio', 'no-results', 'mpi-flow-library__empty-mascot')}<span>No flows match — clear filters or search.</span>`,
                 }));
                 return;
             }

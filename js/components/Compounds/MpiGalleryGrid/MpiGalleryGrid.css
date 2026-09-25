@@ -34,11 +34,12 @@
     height: 40px;
 }
 
-/* DESIGN.md § Mascot rules: the empty filter result, never above 64px, a gentle float. */
+/* The empty filter result, a gentle float. A looping `no-results` clip since MPI-908, cropped
+   to the figure by js/utils/mascotLoop.js, and five times DESIGN.md's 64px cap by Fabio's call
+   (2026-09-25): at 64 it read as a speck. */
 .mpi-gallery-grid__scope-empty-mascot {
-    width: 64px;
-    height: 64px;
-    object-fit: contain;
+    width: auto;
+    height: min(320px, 40vh);
     animation: mpi-card-mascot-float-corner 4s ease-in-out infinite;
 }
 
@@ -295,17 +296,18 @@
     }
 }
 
-/* ── Mascot (generating-card personality, MPI-265) ──────────────────────────
+/* ── Mascot (generating-card personality, MPI-265, animated MPI-906) ────────
    Decorative overlay above the spinner/preview. Positioned via top/left/width so
-   `transform` is free for the hover-float + happy-pop keyframes. Hidden until a
-   state class sets its src + geometry. Position/size transition on state change
-   gives the "shrink + slide to the corner" motion for free. */
+   `transform` is free for the hover-float keyframes. Hidden until a state class
+   sets its geometry. Position/size transition on state change gives the "shrink +
+   slide to the corner" motion for free. Two clips share one grid cell, so the
+   wrapper takes its height from the clip and only the live one shows. */
 .mpi-group-card__mascot {
     position: absolute;
     z-index: 3;
+    display: grid;
     pointer-events: none;
     user-select: none;
-    object-fit: contain;
     opacity: 0;
     /* geometry defaults (idle); overridden by cooking */
     top: 50%;
@@ -320,7 +322,19 @@
         opacity var(--t-base, 0.25s) var(--ease, ease);
 }
 
-.mpi-group-card__mascot[src] {
+.mpi-group-card--mascot-idle .mpi-group-card__mascot,
+.mpi-group-card--mascot-cooking .mpi-group-card__mascot {
+    opacity: 1;
+}
+
+.mpi-group-card__mascot-clip {
+    grid-area: 1 / 1;
+    width: 100%;
+    height: auto;
+    opacity: 0;
+}
+
+.mpi-group-card__mascot-clip--live {
     opacity: 1;
 }
 

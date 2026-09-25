@@ -718,6 +718,67 @@ test('panel crew ledge: Cosmo states, the guest follows the newest job, a closed
   }
 });
 
+// MPI-908 (Fabio, 2026-09-25): Cosmo notices when something goes wrong. Heads-up (his head
+// held up like a sign) on a refused tool, a failed job and a redo, then back to work; the
+// headless walk-off when the turn itself dies. A job the user took back is not a failure.
+test('panel crew ledge: Cosmo flags a refused tool, a failed job, a redo and a dead turn', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await installStubs(window);
+    await bootAndMountChat(window, false);
+    await openProject(window, ALPHA);
+    const cosmo = window.locator('#e2e-agent-host .mpi-agent-chat__crew-stand').first()
+      .locator('.mpi-agent-chat__crew-clip--live').last();
+    await window.evaluate(async () => {
+      const { state } = await import('/js/state.js');
+      state.currentPage = 'gallery';
+      state.agentMode = true;
+    });
+    const fire = (name, data) => window.evaluate(([n, d]) => window.__fireSse(n, { session: 'key:/p/alpha', ...d }), [name, data]);
+    const HEADS_UP = /studio\/heads-up\.webm/;
+    const WORKING = /studio\/working\.webm/;
+    await fire('agent:working', { working: true });
+    await expect(cosmo).toHaveAttribute('src', WORKING);
+
+    // A redo arrives WITH its generate: the tool must not cut the heads-up it flags.
+    await fire('agent:tool', { turnId: 't1', id: 'r1', tool: 'generate', status: 'started', label: 'Generating', redo: true });
+    await expect(cosmo).toHaveAttribute('src', HEADS_UP);
+    await expect(cosmo).toHaveAttribute('src', WORKING, { timeout: 8000 });
+
+    await fire('agent:tool', { turnId: 't1', id: 'r1', tool: 'generate', status: 'done', label: 'Generating', refused: true });
+    await expect(cosmo).toHaveAttribute('src', HEADS_UP);
+    await expect(cosmo).toHaveAttribute('src', WORKING, { timeout: 8000 });
+
+    // Taken back by the user: no reaction.
+    await fire('agent:result', { toolCallId: 'c1', ok: false, error: { code: 'CANCELLED', message: 'Cancelled, as you asked.' } });
+    await window.waitForTimeout(500);
+    await expect(cosmo).toHaveAttribute('src', WORKING);
+
+    await fire('agent:result', { toolCallId: 'c2', ok: false, error: { code: 'OOM', message: 'Out of memory' } });
+    await expect(cosmo).toHaveAttribute('src', HEADS_UP);
+    await expect(cosmo).toHaveAttribute('src', WORKING, { timeout: 8000 });
+
+    // A turn that hit a failure is saying "I couldn't": it ends on heads-up, never on the
+    // cheerful answer-ready (Fabio, 2026-09-25). The next clean turn gets its sign-off back.
+    await fire('agent:working', { working: false });
+    await expect(cosmo).toHaveAttribute('src', HEADS_UP, { timeout: 8000 });
+    await fire('agent:working', { working: true });
+    await expect(cosmo).toHaveAttribute('src', WORKING, { timeout: 8000 });
+    await fire('agent:working', { working: false });
+    await expect(cosmo).toHaveAttribute('src', /studio\/agent-answer-ready\.webm/, { timeout: 8000 });
+
+    // The turn dies: he walks off without his head, then rests.
+    await fire('agent:error', { code: 'ENDPOINT_ERROR', message: 'Agent unavailable' });
+    await expect(cosmo).toHaveAttribute('src', /studio\/cancelled\.webm/);
+    await expect(cosmo).toHaveAttribute('src', /studio\/(idle-\d|agent-listening)\.webm/, { timeout: 10000 });
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Part 4 — MPI-774 panel layout, toggle position, history replay
 // ─────────────────────────────────────────────────────────────────────────────

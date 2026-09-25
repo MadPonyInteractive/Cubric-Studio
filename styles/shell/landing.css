@@ -747,10 +747,12 @@
   text-align: center;
 }
 
+/* MPI-908: Cosmo's head peeking over a rule, looping (`studio/peek`, cropped to the head by
+   js/utils/mascotLoop.js). The rule is what he peeks over; the clip's bottom edge is cut. */
 .mpi-landing__empty-mascot {
-  height: 120px;
+  height: 72px;
   width: auto;
-  opacity: 0.55;
+  border-bottom: 1px solid var(--line);
 }
 
 .mpi-landing__empty strong {

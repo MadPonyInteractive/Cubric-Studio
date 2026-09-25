@@ -105,7 +105,14 @@ const _COSMO_STATES = () => ({
     answer:   { clips: [{ id: 'agent-answer-ready', ms: 3000 }] },
     greet:    { clips: ['greet-1', 'greet-2'].map(id => ({ id, ms: 3000 })) },
     happy:    { clips: [{ id: 'happy-1', ms: 3000 }] },
+    // Something went wrong (MPI-908, Fabio 2026-09-25). Studio has no usable failed clip, so
+    // he holds his head up like a sign when a tool or job fails or the agent redoes one, and
+    // wanders off without it when the turn itself dies.
+    headsUp:  { clips: [{ id: 'heads-up', ms: 3000 }] },
+    gaveUp:   { clips: [{ id: 'cancelled', ms: 5200 }] },
 });
+/** Play-once reactions that the next tool must wait out instead of cutting. */
+const _COSMO_NOTICES = new Set(['headsUp', 'gaveUp']);
 /**
  * What the agent is DOING, by tool, on the ledge (Fabio, 2026-09-22: "Lingo when it is
  * writing a prompt, Prism when it is looking at images"). `cosmo` is his state while the
@@ -205,6 +212,8 @@ export const MpiAgentChat = ComponentFactory.create({
     setup: (el, props, emit) => {
         const _unsubs = [];
         let _working = false;
+        /** Something went wrong in the turn in flight: it must not end on the cheerful sign-off. */
+        let _turnFailed = false;
         /** @type {Array<{dataUrl:string, name:string}>} */
         let _pendingAttachments = [];
         /** The conversation shown: '' = the landing page, else the server's key for the project; null = none yet. */
@@ -305,9 +314,19 @@ export const MpiAgentChat = ComponentFactory.create({
         /** Cut to what the agent is doing now, unless he is already doing it. */
         function _cosmoFollow() {
             const want = _cosmoWant();
-            if (want !== 'idle' && _cosmoQueue && _cosmoQueue.current().state !== want) {
-                _cosmoQueue.request(want, { interrupt: true, transition: false });
+            const now = _cosmoQueue?.current().state;
+            if (want !== 'idle' && _cosmoQueue && now !== want) {
+                // A redo's heads-up arrives WITH the tool it flags: cutting it would hide it.
+                _cosmoQueue.request(want, _COSMO_NOTICES.has(now) ? {} : { interrupt: true, transition: false });
             }
+        }
+
+        /** He noticed something went wrong: he plays it once, cutting in, then carries on. */
+        function _cosmoNotice(state) {
+            _turnFailed = true;
+            if (!_cosmoQueue || _cosmoQueue.current().state === state) return;
+            _cosmoQueue.request(state, { interrupt: true, transition: false });
+            if (_working) _cosmoQueue.request(_cosmoWant());
         }
 
         /** Write each clip's real length into the object the queue times against, then let go of it. */
@@ -538,6 +557,7 @@ export const MpiAgentChat = ComponentFactory.create({
         }
 
         function _setWorking(working) {
+            if (working && !_working) _turnFailed = false;
             _working = working;
             // Panel mode: toggle working dot
             if (workingDot) workingDot.classList.toggle('mpi-agent-chat__working-dot--on', working);
@@ -546,7 +566,9 @@ export const MpiAgentChat = ComponentFactory.create({
             _setLedge(working);
             if (working) _cosmoFollow();
             else {
-                if (['thinking', 'looking'].includes(_cosmoQueue?.current().state)) _cosmoQueue.request('answer');
+                // A turn that hit a failure is answering "I couldn't": never the cheerful sign-off
+                // (Fabio, 2026-09-25 - a refused animate ended on answer-ready and read as happy).
+                if (['thinking', 'looking'].includes(_cosmoQueue?.current().state)) _cosmoQueue.request(_turnFailed ? 'headsUp' : 'answer');
                 // A turn that ended mid-tool (an error, a stop) leaves nobody standing in.
                 _tool = null;
                 if (_toolGuest) { _toolGuest = null; _paintGuest(); }
@@ -842,6 +864,7 @@ export const MpiAgentChat = ComponentFactory.create({
                     // Brief item 12: only show label, never args.prompt
                     _appendTool(data.id, data.label, data.status);
                     _onTool(data);
+                    if (data.redo || data.refused || data.status === 'failed') _cosmoNotice('headsUp');
                     break;
                 case 'agent:confirm':
                     _appendConfirm(data);
@@ -849,6 +872,8 @@ export const MpiAgentChat = ComponentFactory.create({
                 case 'agent:result':
                     if (data.ok && data.output) _appendResult(data.output, data.toolCallId);
                     else if (!data.ok && data.error) _appendError(data.error.code, data.error.message);
+                    // A job the agent sent failed. One the user took back is not a failure.
+                    if (!data.ok && data.error?.code !== 'CANCELLED') _cosmoNotice('headsUp');
                     break;
                 case 'agent:compacting':
                     _appendCompacting(data.on);
@@ -856,6 +881,7 @@ export const MpiAgentChat = ComponentFactory.create({
                 case 'agent:error':
                     _appendError(data.code, data.message);
                     _setWorking(false);
+                    _cosmoNotice('gaveUp');
                     break;
                 case 'agent:user':
                     _appendUser(data.text, _stagedThumbs(data.attachments), data.id);

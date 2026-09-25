@@ -1,0 +1,18 @@
+{
+  "files": [
+    "js/components/Compounds/MpiAgentChat/MpiAgentChat.js",
+    "js/components/Compounds/MpiAgentChat/MpiAgentChat.css",
+    "js/shell/projectUI.js",
+    "styles/shell/landing.css",
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js",
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.css",
+    "js/components/Organisms/MpiModelManager/MpiModelManager.js",
+    "js/components/Organisms/MpiModelManager/MpiModelManager.css",
+    "js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js",
+    "js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.css",
+    "js/components/Compounds/MpiMediaPicker/MpiMediaPicker.js",
+    "js/components/Compounds/MpiMediaPicker/MpiMediaPicker.css",
+    "tests/desktop/agent-chat.spec.js",
+    "tests/desktop/empty-state-mascots.spec.js"
+  ]
+}

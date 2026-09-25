@@ -1703,6 +1703,25 @@ describe('(k) a look is made once and kept with the card', () => {
         assert.deepEqual(tools.calls.storeLook, [], 'nothing is rewritten over what is already kept');
     });
 
+    // MPI-908: the panel's Cosmo flags a tool that said no and a generation the agent redoes,
+    // so both have to reach the chat on the tool frames (a refusal is still status `done`).
+    test('a refused tool and a redo are marked on their agent:tool frames', async () => {
+        const { loop, fakeRes } = await makeLoop({ engineResponses: [
+            call('g0', 'generate', { modelId: 'test-model', operation: 't2i', prompt: 'A fox' }),
+            { text: 'No project.' },
+            call('g1', 'generate', { modelId: 'test-model', operation: 't2i', prompt: 'A fox', redo: true, wait: true }),
+            { text: 'Done.' },
+        ] });
+        await loop.runTurn('Make a fox', [], null, 'auto', 'deepinfra', 't-refused');
+        await loop.runTurn('Try again', [], project, 'auto', 'deepinfra', 't-redo');
+
+        const frames = fakeRes.events.filter((e) => e.event === 'agent:tool' && e.data.tool === 'generate').map((e) => e.data);
+        assert.deepEqual(frames.map((f) => [f.status, !!f.refused, !!f.redo]), [
+            ['started', false, false], ['done', true, false],
+            ['started', false, true], ['done', false, false],
+        ]);
+    });
+
     // MPI-870. Live at ~09:18Z on 2026-09-21 the chat printed "Looking at image" over a read
     // that made ZERO vision calls, and Fabio did not believe the answer was real until the log
     // was read back to him. A saving the user cannot see does not count as one: people who work
