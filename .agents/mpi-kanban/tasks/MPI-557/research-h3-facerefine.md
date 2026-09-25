@@ -88,26 +88,36 @@ that result does not rule this out. The open question is whether H3 at 0.35-0.45
 enough detail. The video says yes on skin texture. Bench it on our own clips before
 trusting that.
 
-## SAM3 instead of YOLO (the new direction)
+## Choosing the region - Ultralytics or SAM3, both already shipped
 
-- SAM3 is text-prompted ("hand", "face", "jacket") and tracks through video. Its video
-  tracker already ships (GIF cut-out by name, MPI-771; `docs/masking-sam3.md`), and it
-  uses the same `sam3.1_multiplex_fp16` checkpoint under the SAM License, which is
-  commercially clear. One model replaces a zoo of per-class YOLO files.
-- Adapter needed: a SAM3 mask batch -> per-frame bbox -> the same smoothing ->
-  `transform`. The pack's tracker only accepts ultralytics detectors, so this is new
-  node work (MpiNodes), not a widget change.
-- Use SAM3 to **select and track**. Keep a feathered rect or ellipse as the default
-  paste (see the author's rect-beats-SAM finding). Offer the SAM3 mask as the paste
-  shape only if the bench proves it.
-- Dropping YOLO also drops the pack's `ultralytics` (AGPL-3.0) and InsightFace
-  `buffalo_l` (identity tracking; its weights are non-commercial research only)
-  dependencies. **Check both licences before shipping anything from this pack as-is.**
+Fabio, 2026-09-25: *"It doesn't need to be a face... It's just using the Ultralytics
+detector. We can use SAM3, it's fine. This is just for research so that we find the best
+approach."*
+
+- **The detector is just one input.** The pack only needs a box per frame; the video
+  swaps face, person and clothing detectors without touching anything else. The app
+  already ships both options, so the region choice is a workflow change, not a new
+  dependency.
+- **Ultralytics** (already shipped, e.g. `face_yolov8n`): plugs into the pack's tracker
+  as-is. Its vocabulary is limited to the classes each detector file was trained on.
+- **SAM3** (already shipped; its video tracker powers GIF cut-out by name, MPI-771,
+  `docs/masking-sam3.md`): text-prompted ("hand", "jacket", anything), so no vocabulary
+  limit. The pack's tracker does not accept SAM3 directly, so it needs a small adapter:
+  SAM3 mask batch -> per-frame box -> the pack's smoothing -> `transform`.
+- Whichever picks the region, keep a feathered rect or ellipse as the default paste (see
+  the author's rect-beats-SAM finding). Use the region's own mask as the paste shape only
+  if the bench shows it is better.
+- Open for the bench: which gives steadier boxes over a clip, the Ultralytics tracker or
+  SAM3's video tracker?
+- Side note: the pack's optional identity tracking (`identity_model = insightface`) pulls
+  in InsightFace `buffalo_l`, whose weights are for non-commercial research only. It is
+  off the path when one subject is picked by rule, by hand or by SAM3.
 
 ## If picked up after 2.0 - bench first
 
 1. Install the pack on the bench and run its Auto Select template on 2-3 of our H3
    clips with small faces. Is it a GO by eye?
 2. Same clip: pack `colour_match 1.0` vs `colour_match 0` + detail transfer.
-3. Swap the detector for a person/hand box. Does the spine hold on non-face regions?
-4. Only then: the SAM3 adapter node, and a Flow.
+3. Same clip, three ways to pick the region: Ultralytics face, Ultralytics person/hand,
+   SAM3 by text (via the adapter). Compare how steady the box is and the result.
+4. Pick the best approach, then build the Flow.
