@@ -46,8 +46,23 @@ models on its own, and named the card. Cost: $0.43, 14 turns.
 Its one complaint: "I couldn't open the file myself, so I haven't seen it". That is plan
 phase 2 item 3.
 
+**Claude Desktop, Fabio's own install (2026-09-25, PASSED, by Fabio).** He double-clicked the
+`.mcpb`, installed it with the port at 3000, and fully relaunched the app. The prompt was one
+sentence: "Make me an image of a red bicycle in Cubric Studio, in a new project called MCP test.
+Use a free local model." Claude called `status`, `create_project`, `list_models`,
+`describe_model` and `generate`. **One card** landed in the new project "MCP test": "Red
+bicycle", Krea 2 t2i, 1152x896, 31 s. His screenshots show both the chat and the gallery.
+Two UX findings for phase 2:
+- Installing an unlisted `.mcpb` shows Claude Desktop's red warning: "Installing will grant this
+  extension access to everything on your computer… not verified by Anthropic."
+- Claude asks permission once per tool until the user picks "Always allow".
+
+The extension also loads into Claude Code sessions inside the desktop app, where its tools
+are deferred. This session saw `mcp__Cubric_Studio__*` appear and did not call them, because
+they drive the live `:3000` app.
+
 **Not checked:**
-- Claude Desktop with the `.mcpb` (Fabio's app, Fabio's install), Codex, Gemini CLI.
+- Codex, Gemini / Antigravity.
 - A video, a Flow, a paid cloud model.
 - The app closed while a client connects: the bridge returns its error, but no client has
   been seen handling that.
