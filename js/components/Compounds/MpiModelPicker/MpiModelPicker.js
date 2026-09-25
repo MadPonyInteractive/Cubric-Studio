@@ -72,6 +72,9 @@ export const MpiModelPicker = ComponentFactory.create({
             // Where the settings control would be, a cloud tile carries its price (MPI-914)
             // — the same chip, figure and unit as its Model Library tile, from the same
             // `modelQuote`, so choosing a model tells you what a run costs before you run it.
+            // The meta drops the library's `CLOUD ·` prefix: here the corner badge and the
+            // chip's ☁ already say it, and without it `PER 5S AT 1080P` fits one line, so
+            // the clip tiles stay the height of their row (Fabio, 2026-09-25).
             const isCloud = !!model.provider;
             const tier = model.sizeTier || 'balanced';
             const quote = isCloud ? modelQuote(model) : null;
@@ -81,7 +84,7 @@ export const MpiModelPicker = ComponentFactory.create({
                 media: model.mediaType === 'video' ? 'video' : 'image',
                 preview: model.mediaType === 'video' ? model.video : model.image,
                 meta: isCloud
-                    ? `${model.dropdownMeta || 'CLOUD'} · ${quote.unit}`
+                    ? quote.unit
                     : `${model.dropdownMeta || ''}${model.dropdownMeta ? ' · ' : ''}${TIER_WORD[tier] || tier}`,
                 showMediaBadge: true,
                 featured: !!model.featured,

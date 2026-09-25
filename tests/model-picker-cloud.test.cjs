@@ -65,7 +65,9 @@ test('the tile item derives its cloud flag from `provider`, the one discriminato
 });
 
 test('a cloud tile gets no tier word and no LoRA & Upscale control', () => {
-    assert.match(PICKER, /meta: isCloud\s*\n\s*\? `\$\{model\.dropdownMeta \|\| 'CLOUD'\} · \$\{quote\.unit\}`/,
+    // Unit alone, no `CLOUD ·`: the corner badge says cloud, and the prefix wrapped
+    // `PER 5S AT 1080P` onto a second line, stretching every clip tile in the row.
+    assert.match(PICKER, /meta: isCloud\s*\n\s*\? quote\.unit\s*\n/,
         'the meta must not fall back to a weight tier on a cloud model — that is the CLOUD · BALANCED bug');
     assert.match(PICKER, /state: isCloud\s*\n\s*\? `<span class="mpi-tile__chip mpi-tile__chip--paid/,
         'a cloud tile must take the price chip where the settings control would be');
