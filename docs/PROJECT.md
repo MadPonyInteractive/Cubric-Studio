@@ -75,7 +75,11 @@ picking an output, not a seed.
 first in `server.js`, refuses a foreign `Host` (DNS rebinding), a foreign `Origin`, and any
 `Sec-Fetch-Site` but `same-origin`/`none`. There is no CORS: the renderer is same-origin and every
 other client (CLI, agent tools, scripts) is Node. Loopback keeps other machines out, not other
-browser tabs — never re-add `cors()` (MPI-921).
+browser tabs — never re-add `cors()` (MPI-921). **The same holds for the local ComfyUI engine on
+48188:** never start it with `--enable-cors-header`. Bare, that flag sends ACAO `*` and replaces
+ComfyUI's own Origin/`Sec-Fetch-Site` check, so any web page could queue workflows and read
+outputs. The renderer reaches the engine through `main.js`'s two session hooks instead, which
+rewrite its Origin and add CORS headers for that port only (MPI-922).
 
 ## How to Orient in an Unfamiliar File
 

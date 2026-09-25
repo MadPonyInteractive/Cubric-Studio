@@ -368,9 +368,10 @@ function startMaskServer(maskBuf, previewBuf, emptyBuf) {
     const server = http.createServer((req, res) => {
       const u = new URL(req.url, 'http://127.0.0.1');
       const filename = u.searchParams.get('filename') || '';
-      // CORS like the real engine: the app starts ComfyUI with
-      // `--enable-cors-header` (routes/comfy.js), and the tint and the brush's
-      // base layer read mask pixels through `crossOrigin` images.
+      // The tint and the brush's base layer read mask pixels through
+      // `crossOrigin` images. The real engine gets its CORS headers from
+      // main.js's session hooks, which match only :48188, so this stand-in
+      // on a random port sends its own (MPI-922).
       res.writeHead(200, { 'Content-Type': 'image/png', 'Access-Control-Allow-Origin': '*' });
       // `mask_empty_*` = a track that found nothing (all black).
       res.end(filename.startsWith('mask_empty_') ? emptyBuf

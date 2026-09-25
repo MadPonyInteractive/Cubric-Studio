@@ -608,7 +608,8 @@ export const MpiBaseFlow = ComponentFactory.create({
             // A display is a ComfyUI `/view` URL, and the engine wipes temp on restart,
             // so it dies long before the saved result does. Its own probe, and a miss
             // drops ONLY the display: the pane falls back to the result, never to empty.
-            // ComfyUI runs with --enable-cors-header, so the HEAD reads a real status.
+            // main.js adds CORS headers to the renderer's ComfyUI responses, so the HEAD
+            // reads a real status (the engine itself sends none, MPI-922).
             const displayUrl = _lastDisplay?.[0]?.url;
             if (displayUrl) {
                 fetch(displayUrl, { method: 'HEAD' })

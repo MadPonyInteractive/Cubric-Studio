@@ -644,7 +644,11 @@ router.post('/comfy/start', async (req, res) => {
         if (useCpu) logger.info('comfy', 'No GPU detected — starting ComfyUI in CPU mode.');
         else if (vendor === 'apple') logger.info('comfy', 'Apple Silicon — starting ComfyUI with Metal/MPS.');
 
-        const args = [mainPath, '--listen', '127.0.0.1', '--port', COMFYUI_PORT.toString(), ...modeArgs, '--preview-method', 'taesd', '--enable-cors-header'];
+        // NEVER `--enable-cors-header` (MPI-922). Bare, it sends ACAO `*` AND replaces
+        // ComfyUI's origin check, so any web page in the user's browser could queue a
+        // workflow here. The renderer needs no flag: main.js's session hooks rewrite its
+        // Origin and add the CORS headers, for this port only. PROJECT.md invariant 15.
+        const args = [mainPath, '--listen', '127.0.0.1', '--port', COMFYUI_PORT.toString(), ...modeArgs, '--preview-method', 'taesd'];
 
         if (await fs.pathExists(extraConfigPath)) {
             logger.info('comfy', `Using extra model paths: ${extraConfigPath}`);

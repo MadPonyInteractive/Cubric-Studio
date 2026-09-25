@@ -294,7 +294,8 @@ Cut-out; Fabio chose that over a second Cut out button (2026-09-16).
 - The strip tint uses `mask-mode: luminance` (engine and composed masks are opaque B/W) and
   `cover` sizing to match the thumb's `object-fit: cover`.
 - Mask URLs from the engine are cross-origin; reading their pixels (tint, base layer) relies on
-  ComfyUI running with `--enable-cors-header`, which the app sets (`routes/comfy.js`).
+  the CORS headers `main.js`'s session hooks add to the renderer's ComfyUI responses. The
+  engine itself sends none: it runs without `--enable-cors-header` (MPI-922).
 
 ## Temp source video — no cancel hook (decision, MPI-771 UI half)
 

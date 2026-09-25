@@ -357,6 +357,11 @@ function saveWindowState() {
 function createWindow() {
   // Spoof Origin for ComfyUI requests to satisfy its strict local CSRF check
   // This resolves the "request with non matching host and origin" 403 error.
+  // These two hooks are the renderer's ONLY way into the engine: it runs without
+  // --enable-cors-header, which would open it to every web page (MPI-922). They are
+  // safe because this session loads nothing but the app — the web goes to the
+  // system browser (setWindowOpenHandler / will-navigate below). Preflights, ws,
+  // crossOrigin <img> and HEAD all pass through them (proved on Electron 41).
   session.defaultSession.webRequest.onBeforeSendHeaders(
     { urls: ['*://127.0.0.1/*', '*://localhost/*', 'ws://127.0.0.1/*', 'ws://localhost/*', 'wss://127.0.0.1/*', 'wss://localhost/*'] },
     (details, callback) => {

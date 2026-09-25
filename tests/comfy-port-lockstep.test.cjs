@@ -126,3 +126,17 @@ test('/comfy/status asks the port before reporting the engine down', () => {
     assert.match(handler, /if \(!alive\) return res\.json\(\{ running: false/,
         'only a port that does NOT answer may be reported as running:false');
 });
+
+test('the local engine is never started with --enable-cors-header (MPI-922)', () => {
+    // Bare, the flag sends ACAO `*` AND replaces ComfyUI's Origin/Sec-Fetch-Site check,
+    // so any web page in the user's browser could queue a workflow on 48188. The
+    // renderer gets in through main.js's two hooks (checked above) instead. The only
+    // code line allowed to name the flag is the one stripping it from an old .bat.
+    const code = f => read(f).split(/\r?\n/)
+        .filter(l => l.includes('enable-cors-header') && !l.trim().startsWith('//'))
+        .map(l => l.trim());
+    assert.deepStrictEqual(code('routes/comfy.js'), [],
+        'routes/comfy.js passes --enable-cors-header to the local engine again');
+    assert.deepStrictEqual(code('routes/engine.js'), [".replace(' --enable-cors-header', '');"],
+        'routes/engine.js patches --enable-cors-header into run_nvidia_gpu.bat again');
+});

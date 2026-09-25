@@ -98,8 +98,8 @@ its own component to show one.
   with several outputs and one display paints the display, with no toggle. The floating window
   (MPI-727) shows the display too.
 - **Reopen.** `s_flowResults` stores it as `display`. ComfyUI wipes temp on restart, so it dies
-  long before the saved result: its own HEAD probe at mount (ComfyUI runs with
-  `--enable-cors-header`), and a miss drops ONLY the display — the pane falls back to the result.
+  long before the saved result: its own HEAD probe at mount (`main.js` adds the CORS headers
+  that let it read a real status), and a miss drops ONLY the display — the pane falls back to the result.
   Reuse across an app restart has no display, by design (the sidecar holds none).
 
 **Name traps.** `Output_Preview` is taken — the multi-stage preview capture, read only on

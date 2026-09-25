@@ -604,9 +604,14 @@ async function _runEngineDownload(chosenModelsRoot) {
         const batPath = path.join(targetDir, COMFY_DIR, 'run_nvidia_gpu.bat');
         if (await fs.pathExists(batPath)) {
             let content = await fs.readFile(batPath, 'utf8');
-            if (!content.includes('--enable-cors-header')) {
-                logger.info('system', 'Patching run_nvidia_gpu.bat with taesd, cors and listen flags...');
-                content = content.replace('ComfyUI\\main.py', 'ComfyUI\\main.py --listen 127.0.0.1 --preview-method taesd --enable-cors-header');
+            // No --enable-cors-header, and strip it from a .bat an older build patched:
+            // it opens the engine to every web page (MPI-922, see comfy.js).
+            const patched = (content.includes('--preview-method taesd') ? content
+                : content.replace('ComfyUI\\main.py', 'ComfyUI\\main.py --listen 127.0.0.1 --preview-method taesd'))
+                .replace(' --enable-cors-header', '');
+            if (patched !== content) {
+                logger.info('system', 'Patching run_nvidia_gpu.bat with taesd and listen flags...');
+                content = patched;
                 await fs.writeFile(batPath, content, 'utf8');
             }
             // Force UTF-8 so a user running the .bat directly gets the same crash
