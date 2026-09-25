@@ -28,8 +28,8 @@ import { formatBytes } from '../../../utils/formatBytes.js';
 import { tradeTable, sizeToGb } from '../../../data/modelConstants/footprint.js';
 // MPI-853 — a cloud model's tile shows what it COSTS where a local model shows its
 // size, because that is the same question answered in the currency that applies.
-// `estimateCost` keys on DeepInfra's own model id, which is what `cloud.endpointId` is.
-import { estimateCost, PRICES_CHECKED_ON } from '../../../data/modelConstants/deepinfraPricing.js';
+// `modelQuote` is the one tile quote, shared with the model picker (MPI-914).
+import { modelQuote, PRICES_CHECKED_ON } from '../../../data/modelConstants/deepinfraPricing.js';
 import { hasCloudKey } from '../../../data/modelRegistry.js';
 
 /**
@@ -709,33 +709,9 @@ export const MpiModelManager = ComponentFactory.create({
         // renders an Install button whose click can only ever do nothing.
         const _isPaid = model => !!model?.provider;
 
-        /**
-         * What one output costs, and the unit that price is per — both, because they are
-         * not the same sentence for every cloud model (MPI-853).
-         *
-         * An image model prices itself from nothing. A per-second video model CANNOT:
-         * with no length there is no price, and `estimateCost` correctly returns null
-         * rather than guess — which on a tile reads as "price unknown", the one thing a
-         * paid tile must never say. So a clip model is quoted at a stated, representative
-         * length instead, and the unit says which. Veo is asked BARE on purpose: its
-         * clips are a fixed eight seconds, so its own constant is the true answer and a
-         * five-second hint would quote a clip it cannot make.
-         */
-        const VIDEO_QUOTE = { duration: 5, resolution: '1080p', width: 1920, height: 1080 };
-
-        function _paidQuote(model) {
-            const id = model?.cloud?.endpointId;
-            if (model?.mediaType !== 'video') {
-                return { text: estimateCost(id)?.display, unit: 'per image' };
-            }
-            const fixedLength = estimateCost(id);
-            if (fixedLength) return { text: fixedLength.display, unit: 'per clip' };
-            return { text: estimateCost(id, VIDEO_QUOTE)?.display, unit: 'per 5s at 1080p' };
-        }
-
         /** What one output costs, as user-facing copy. */
         function _paidPriceText(model) {
-            return _paidQuote(model).text || 'price unknown';
+            return modelQuote(model).text || 'price unknown';
         }
 
         function _needsLicenceProof(model) {
@@ -876,7 +852,7 @@ export const MpiModelManager = ComponentFactory.create({
                 <div class="mpi-detail__field">
                     <div class="mpi-detail__disk-row">
                         <span class="mpi-detail__field-label" style="margin:0">Cost</span>
-                        <span class="mpi-detail__disk-val">${_paidPriceText(model)} ${_paidQuote(model).unit}</span>
+                        <span class="mpi-detail__disk-val">${_paidPriceText(model)} ${modelQuote(model).unit}</span>
                     </div>
                     <div class="mpi-detail__disk-split">Billed by DeepInfra to your own account, at their price. Prices checked ${PRICES_CHECKED_ON}.</div>
                 </div>
@@ -1434,7 +1410,7 @@ export const MpiModelManager = ComponentFactory.create({
                 name: model.name,
                 media: model.mediaType === 'video' ? 'video' : 'image',
                 preview: model.mediaType === 'video' ? model.video : model.image,
-                meta: `${model.dropdownMeta || 'CLOUD'} · ${_paidQuote(model).unit}`,
+                meta: `${model.dropdownMeta || 'CLOUD'} · ${modelQuote(model).unit}`,
                 showMediaBadge: true,
                 featured: !!model.featured,
                 deprecated: !!model.deprecated,

@@ -22,8 +22,14 @@
   one line and clip tiles keep their row height.
 - CI: Tests #1281 green on `364c24b0`, which contains `6ad20095` and `ce0e0549`.
 
-## Left open
+## Follow-up: one quote, two surfaces (2026-09-25)
 
-- `MpiModelManager.js` still carries its own `_paidQuote` (identical logic). The file was held
-  by a live MPI-908 claim when this landed, so it was not touched. Swap it to `modelQuote` once
-  that claim is released — a 12-line deletion plus one import.
+- `MpiModelManager.js` `_paidQuote` + `VIDEO_QUOTE` deleted; `_paidPriceText`, the drawer price
+  line and the tile meta call `modelQuote`. `estimateCost` import dropped, `PRICES_CHECKED_ON` kept.
+  Done after the MPI-908 session (which held the file) closed; its claim record is still
+  `claimed` and was left for Fabio to release.
+- Proof the Library tiles are unchanged: `{text, unit}` for all 15 cloud models snapshotted from
+  the old `_paidQuote` logic BEFORE the edit and from `modelQuote` after — byte-identical, 15/15
+  priced.
+- `node --test tests/paid-models-section.test.cjs tests/model-picker-cloud.test.cjs` → 22 pass;
+  eslint clean.

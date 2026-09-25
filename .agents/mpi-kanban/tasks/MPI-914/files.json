@@ -1,1 +1,1 @@
-{ "schema": "mpi-kanban/task-files/v1", "files": ["js/components/Compounds/MpiModelPicker/MpiModelPicker.js", "js/data/modelConstants/deepinfraPricing.js", "tests/model-picker-cloud.test.cjs"] }
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/components/Compounds/MpiModelPicker/MpiModelPicker.js", "js/data/modelConstants/deepinfraPricing.js", "tests/model-picker-cloud.test.cjs", "js/components/Organisms/MpiModelManager/MpiModelManager.js"] }

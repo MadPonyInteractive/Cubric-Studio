@@ -2,3 +2,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-914", "at": "2026-09-25T07:43:02+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Starting: price chip on picker cloud tiles"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-914", "at": "2026-09-25T07:44:42+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Shipped; Fabio to eyeball the picker chip"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-914", "at": "2026-09-25T08:31:04+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio verified live; CI #1281 green on both commits"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-914", "at": "2026-09-25T08:50:12+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "Follow-up: MpiModelManager _paidQuote -> modelQuote (MPI-908 session closed)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-914", "at": "2026-09-25T08:51:24+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Library now uses shared modelQuote; quotes identical for all 15 cloud models"}
