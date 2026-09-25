@@ -46,24 +46,27 @@ function near(actual, expected, label) {
     assert.ok(actual.every((v, i) => Math.abs(v - expected[i]) < 24), `${label}: got ${actual}, want ${expected}`);
 }
 
-test('two references sit side by side, four fill a 2x2 grid, each in its numbered cell', async () => {
+// Image 1 fills a 1536 square on the left; the rest stack in a 640-wide column right of a
+// 16 px gutter (column x = 1552..2192). The layout that beat an even grid in a paid A/B.
+test('image 1 takes the big left cell, the others stack in the right column in number order', async () => {
     const two = await buildCollage(await refs(2));
     const twoMeta = await sharp(two.jpeg).metadata();
-    assert.deepEqual([twoMeta.width, twoMeta.height], [1024 * 2 + 16, 1024]);
-    near(await pixel(two.jpeg, 512, 512), COLOURS[0], 'image 1 left');
-    near(await pixel(two.jpeg, 1040 + 512, 512), COLOURS[1], 'image 2 right');
+    assert.deepEqual([twoMeta.width, twoMeta.height], [2192, 1536]);
+    near(await pixel(two.jpeg, 768, 768), COLOURS[0], 'image 1 big cell');
+    near(await pixel(two.jpeg, 1872, 768), COLOURS[1], 'image 2 column');
 
     const four = await buildCollage(await refs(4));
-    const fourMeta = await sharp(four.jpeg).metadata();
-    assert.deepEqual([fourMeta.width, fourMeta.height], [2064, 2064]);
-    const centres = [[512, 512], [1552, 512], [512, 1552], [1552, 1552]];
-    for (const [i, [x, y]] of centres.entries()) near(await pixel(four.jpeg, x, y), COLOURS[i], `image ${i + 1}`);
+    const cell = Math.floor((1536 - 2 * 16) / 3);
+    for (let j = 0; j < 3; j++) {
+        near(await pixel(four.jpeg, 1872, j * (cell + 16) + Math.floor(cell / 2)), COLOURS[j + 1], `image ${j + 2}`);
+    }
+    near(await pixel(four.jpeg, 768, 768), COLOURS[0], 'image 1 big cell');
 });
 
-test('a reference is contained, never cropped: a wide image leaves grey above and below', async () => {
+test('a reference is contained, never cropped: a wide image 1 leaves grey above and below', async () => {
     const sheet = await buildCollage(await refs(2, [[1200, 400], [600, 600]]));
-    near(await pixel(sheet.jpeg, 512, 20), [128, 128, 128], 'pad above image 1');
-    near(await pixel(sheet.jpeg, 20, 512), COLOURS[0], 'image 1 reaches the cell edge');
+    near(await pixel(sheet.jpeg, 768, 20), [128, 128, 128], 'pad above image 1');
+    near(await pixel(sheet.jpeg, 20, 768), COLOURS[0], 'image 1 reaches the cell edge');
 });
 
 test('the output ratio is IMAGE 1\'s, not the sheet\'s', async () => {
@@ -72,8 +75,8 @@ test('the output ratio is IMAGE 1\'s, not the sheet\'s', async () => {
 });
 
 test('the preamble numbers the cells the way the grid lays them out', () => {
-    assert.match(collagePreamble(2), /Image 1 on the left, Image 2 on the right\./);
-    assert.match(collagePreamble(4), /Image 4 at the bottom right\./);
+    assert.match(collagePreamble(2), /Image 1 is the large picture on the left, Image 2 the small one on the right\./);
+    assert.match(collagePreamble(4), /Image 3 the small one in the middle right, Image 4 the small one at the bottom right\./);
     assert.match(collagePreamble(3), /3 separate images/);
     assert.match(collagePreamble(4), /Instruction: $/, 'the user prompt is appended after it');
 });

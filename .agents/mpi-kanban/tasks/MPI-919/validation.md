@@ -23,6 +23,26 @@ carried out one of two instructions in the 3-ref run, and it regenerates rather 
 scene when fed a sheet: image 1 gets only part of the model's input resolution. Untested: NB2 /
 Pro on the same inputs, and a layout that gives image 1 a bigger cell.
 
+## Layout A/B -> image 1 gets the big cell (2026-09-25, ~$0.17 more)
+
+Same beach photo as image 1; image 2 = the dog CROPPED out of its photo (the uncropped one
+has a woman in swimwear, which NB2's filter refuses). Layout "hero" = image 1 in a 1536
+square on the left, the rest stacked in a 640-wide column.
+
+| model | layout | refs | billed | result |
+|---|---|---|---|---|
+| lite | hero (scratch script) | 2 | $0.0339 | scene KEPT (same framing, beach, pose), clean dog swap |
+| lite | hero (scratch script) | 3 | $0.0339 | BOTH instructions done (dog + kaiju); scene shifted a little |
+| NB2 | hero (scratch script) | 3 | $0.0679 | best: scene kept, the right dog (face mask matches), kaiju in the sea |
+| lite | hero (SHIPPED route) | 2 | $0.0339 | scene kept perfectly, but a dog-tiger HYBRID (dog front, tiger body/tail) |
+
+Hero replaced the grid in `routes/deepinfraCollage.js`. Caveat: the grid runs used the
+uncropped dog, so the dog-swap half of the comparison is not perfectly controlled; the scene
+preservation difference is not plausibly explained by image 2's crop. The last row repeats the
+first with the same layout and prompt: Lite is inconsistent run to run on multi-reference edits,
+NB2 held up on the hardest case (one sample). Pro not run (Fabio: too expensive, NB2 passing
+is the proxy).
+
 ## Not yet verified
 
 - The prompt box itself accepting four chips on a Nano Banana model (in the app). The slot count
