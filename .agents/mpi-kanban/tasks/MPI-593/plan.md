@@ -8,8 +8,11 @@ and stays; its record is in `validation.md`. The CLI (old steps 2 and 3) is drop
 **Phase 1 spike is DONE and verified (2026-09-25).** Files: `routes/mcp.js`, one mount line in
 `server.js`, `mcp/cubric-studio/` (manifest + bridge), `tests/mcp.test.cjs` (10/10). Evidence
 in `validation.md`. Fabio verified Claude Desktop and Codex against his own app. The three decisions are in
-`brief.md`, and phase 2 item 1 (the cost check) is DONE. **Next: phase 2 items 2 to 7. The
-privacy policy is a separate task in the Website repo.**
+`brief.md`, and phase 2 item 1 (the cost check) is DONE and verified with real money.
+**Next: phase 2 items 1b (a render must not gag the chat), 1c (guides) and 3 (results the agent
+can see), in that order, then 2 and 4 to 7.** The privacy policy runs in a separate session
+(Website repo); it will add `privacy_policies` to `mcp/cubric-studio/manifest.json` through a
+message to this card.
 
 ## Phase 1: spike (DONE)
 
