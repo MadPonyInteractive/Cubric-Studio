@@ -104,6 +104,26 @@ test('listRemoteModels: an untagged catalogue (OpenAI, OpenRouter) is kept whole
     } finally { restore(); }
 });
 
+test('MPI-912: the Ollama connection and the Ollama enhancer dropdown flag the same local model', async () => {
+    const { listRemoteModels } = await import('../services/llmEngines.mjs');
+    // Ollama's own /v1/models shape: untagged, ids carry their tag.
+    const restore = stubUpstream(async () => okJson({ data: [
+        { id: 'huihui_ai/dolphin3-abliterated:latest', object: 'model' },
+        { id: 'huihui_ai/gemma-4-abliterated:12b', object: 'model' },
+    ] }));
+    try {
+        const models = await listRemoteModels({ presetId: 'ollama', baseURL: 'http://localhost:11434/v1', key: null });
+        assert.deepEqual(models.map((m) => [m.id, m.recommendedFor]), [
+            ['huihui_ai/gemma-4-abliterated:12b', ['enhance']],
+            ['huihui_ai/dolphin3-abliterated:latest', []],
+        ]);
+    } finally { restore(); }
+    await withServer(async (base) => {
+        const { models } = await (await fetch(`${base}/llm/models`)).json();
+        assert.deepEqual(models.filter((m) => m.recommended).map((m) => m.id), ['gemma-4-abliterated-12b']);
+    });
+});
+
 test('GET /llm/connection/models answers the list with the connection\'s key', async () => {
     let auth = null;
     const restore = stubUpstream(async (_url, init) => { auth = init.headers.Authorization; return okJson(CATALOGUE); });

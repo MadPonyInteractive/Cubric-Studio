@@ -75,7 +75,8 @@ function engines() {
  */
 router.get('/llm/models', async (_req, res) => {
     try {
-        const { MODEL_REGISTRY, DEFAULT_MODEL_ID, modelName } = await engines();
+        const { MODEL_REGISTRY, DEFAULT_MODEL_ID, modelName, RECOMMENDED_REMOTE_MODELS, ollamaTagged } = await engines();
+        const localRec = RECOMMENDED_REMOTE_MODELS.ollama.filter((r) => r.jobs.includes('enhance')).map((r) => r.id);
         res.json({
             defaultModelId: DEFAULT_MODEL_ID,
             models: MODEL_REGISTRY.map((m) => ({
@@ -84,6 +85,8 @@ router.get('/llm/models', async (_req, res) => {
                 names: { ollama: modelName(m, 'ollama'), deepinfra: modelName(m, 'deepinfra') },
                 description: m.description,
                 ollama: !!m.ollamaName,
+                // Flagged for enhance on Ollama (MPI-912): same list the Ollama connection reads.
+                recommended: !!m.ollamaName && localRec.includes(ollamaTagged(m.ollamaName)),
                 deepinfra: !!m.deepInfraId,
                 // The raw DeepInfra id: the renderer maps a stored registry pick to it
                 // on the Remote (endpoint) branch (MPI-737).
@@ -295,7 +298,7 @@ router.post('/llm/enhance', async (req, res) => {
     const maxTokens = Number.isInteger(askedMax) && askedMax > 0 ? askedMax : undefined;
 
     try {
-        const { OllamaEngine, DeepInfraEngine, getModel, DEFAULT_MODEL_ID, ollamaTagged, modelName, resolveConnection, recommendedModel } = await engines();
+        const { OllamaEngine, chatEngineFor, getModel, DEFAULT_MODEL_ID, ollamaTagged, modelName, resolveConnection, recommendedModel } = await engines();
 
         // ── Endpoint branch (MPI-737): raw modelId, no MODEL_REGISTRY lookup ────
         if (backend === 'endpoint') {
@@ -312,7 +315,8 @@ router.post('/llm/enhance', async (req, res) => {
                     message: 'No enhancement model is picked for this connection. Pick one in Settings > Remote > Language Models.' } });
             }
             try {
-                const engine = new DeepInfraEngine(key, profile.baseURL, profile);
+                // The Ollama connection goes native, as describe does (MPI-912).
+                const { engine } = chatEngineFor(profileId, key, profile.baseURL, profile);
                 const result = await engine.complete(prompt, { model, system, maxTokens });
                 return res.json({ ok: true, text: String(result.text || '').trim(), backend: result.backend, model: result.model });
             } catch (err) {
@@ -465,7 +469,7 @@ router.post('/llm/describe', async (req, res) => {
     }
 
     // ── Resolve connection ────────────────────────────────────────────────────
-    const { resolveConnection, DeepInfraEngine, recommendedModel } = await engines();
+    const { resolveConnection, chatEngineFor, recommendedModel } = await engines();
     const { profile, key } = await resolveConnection(profileId, ask);
     if (!profile || !profile.baseURL) return void _connectionError(res, 'NO_PROFILE', 'Connection not found, or it has no base URL.');
     if (!key && profileId !== 'ollama') return void _connectionError(res, 'NO_KEY', 'No API key saved for this connection.');
@@ -556,7 +560,9 @@ router.post('/llm/describe', async (req, res) => {
 
     // ── Call the vision model ─────────────────────────────────────────────────
     try {
-        const engine = new DeepInfraEngine(key, profile.baseURL, profile);
+        // Ollama goes native (MPI-912): its /v1 shim has no `think` flag, so a reasoning
+        // vision model thought through its budget and answered EMPTY.
+        const { engine } = chatEngineFor(profileId, key, profile.baseURL, profile);
         const data = await engine.chat({ model, messages });
         res.json({ ok: true, text: String(data.text || '').trim(), backend: data.backend, model: data.model });
     } catch (err) {

@@ -1,0 +1,44 @@
+[
+ {
+  "model": "gemma3:12b",
+  "secs": "43.0",
+  "got": 9,
+  "bad": 1,
+  "text": "A muscular brown bull with a white patch on its forehead and chest charges forward, kicking up a cloud of tan dust that obscures its lower legs and the foreground ground. A young woman, appearing to be in her early twenties, rides the bull bareback, her body angled slightly to the right as she maintains a precarious grip. She has long, dark brown hair styled in a thick braid that falls down her back, and her face is partially obscured by a light brown cowboy hat with a slightly upturned brim. She wears a dark brown leather belt with a silver buckle, fitted blue jeans, and a long, dark brown duster coat with a fringed hemline and wide lapels; the coat’s sleeves are pushed up to her forearms. She holds two antique-style silver revolvers, one in each hand, pointed upwards and outwards, her arms extended. Her expression is neutral, her eyes focused forward. Behind the bull and the woman, a wooden fence forms a blurred backdrop, with vertical wooden posts and horizontal rails visible, suggesting a rodeo arena. The background is a muted tan color, blending into a dark, indistinct horizon. The lighting is dramatic and directional, originating from the upper left, casting strong shadows on the bull’s side and the woman’s face, while highlighting the dust cloud and the texture of the duster coat. The image is a photograph with a shallow depth of field, emphasizing the subjects in the midground and blurring the background. The overall style evokes a vintage, sepia-toned aesthetic, with a slightly grainy texture and a sense of motion blur suggesting the bull’s rapid movement. The shot is a medium shot, framing the woman and the bull from the waist up, capturing the dynamic action of the rodeo."
+ },
+ {
+  "model": "qwen3-vl:4b",
+  "secs": "27.8",
+  "got": 0,
+  "bad": 0,
+  "text": ""
+ },
+ {
+  "model": "huihui_ai/qwen3-vl-abliterated:4b",
+  "secs": "16.8",
+  "got": 0,
+  "bad": 0,
+  "text": ""
+ },
+ {
+  "model": "gemma4:e4b",
+  "secs": "31.5",
+  "got": 0,
+  "bad": 0,
+  "text": "A uniform, abstract digital texture fills the entire frame, characterized by a deep, matte black background overlaid with a dense, repeating pattern of"
+ },
+ {
+  "model": "huihui_ai/gemma-4-abliterated:12b",
+  "secs": "37.5",
+  "got": 0,
+  "bad": 0,
+  "text": ""
+ },
+ {
+  "model": "qwen3.5:latest",
+  "secs": "31.6",
+  "got": 0,
+  "bad": 0,
+  "text": ""
+ }
+]

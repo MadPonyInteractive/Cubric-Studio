@@ -393,7 +393,8 @@ export const MpiLlmSettings = ComponentFactory.create({
                 const downloaded = _ollama?.models?.[m.id]?.downloaded;
                 return {
                     value: m.id,
-                    label: m.names?.ollama || m.name,
+                    // Same "(recommended)" prefix the Remote rows use (`_remoteModelOptions`).
+                    label: `${m.recommended ? '(recommended) ' : ''}${m.names?.ollama || m.name}`,
                     info: m.description,
                     ...(typeof downloaded === 'boolean' && { meta: downloaded ? 'Downloaded' : 'Not downloaded' }),
                 };

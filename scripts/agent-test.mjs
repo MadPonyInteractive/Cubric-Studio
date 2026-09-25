@@ -19,6 +19,8 @@
  *   npm run agent:test -- --bite              # every flip, 1 run each, all must fail
  *   npm run agent:test -- --runs 1 --model <id>
  *   npm run agent:test -- --samples <file.md>  # the prompt-quality sample, for a human to read
+ *   npm run agent:test -- --preset ollama --model <tag>  # a LOCAL model through the real Ollama
+ *                                             # engine (MPI-912): no key, no cost; hold the GPU lease
  *
  * Cost per run is the provider's own `usage` times DeepInfra's live price for the model
  * (cached prompt tokens are priced as fresh input, so it errs high). Exit 1 on any failure.
@@ -28,7 +30,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { AgentLoop, projectKey } from '../services/agentLoop.mjs';
-import { DeepInfraEngine, fetchDeepInfraPrices, recommendedModel } from '../services/llmEngines.mjs';
+import { DeepInfraEngine, OllamaEngine, fetchDeepInfraPrices, recommendedModel } from '../services/llmEngines.mjs';
 import { listCorpus, guideIdsByModel } from '../services/agentCorpus.mjs';
 import * as commandRegistry from '../js/data/commandRegistry.js';
 import { resolveNamedParams } from '../js/data/generationControls.js';
@@ -651,14 +653,23 @@ const CASES = [
 // ── Running one conversation ──────────────────────────────────────────────────
 
 const usage = { calls: 0, prompt: 0, completion: 0 };
-const realChat = DeepInfraEngine.prototype.chat;
-DeepInfraEngine.prototype.chat = async function chat(req) {
-    const r = await realChat.call(this, req);
-    usage.calls += 1;
-    usage.prompt += r.usage?.prompt_tokens || 0;
-    usage.completion += r.usage?.completion_tokens || 0;
-    return r;
+// The preset the loop runs on: 'deepinfra' (default) or 'ollama' (--preset, MPI-912).
+// The loop picks the engine from it (`chatEngineFor`), so both engines are counted.
+let PRESET = 'deepinfra';
+const PROFILES = {
+    deepinfra: { id: 'deepinfra', name: 'DeepInfra', baseURL: DI_URL },
+    ollama: { id: 'ollama', name: 'Ollama', baseURL: 'http://localhost:11434/v1' },
 };
+for (const Engine of [DeepInfraEngine, OllamaEngine]) {
+    const realChat = Engine.prototype.chat;
+    Engine.prototype.chat = async function chat(req) {
+        const r = await realChat.call(this, req);
+        usage.calls += 1;
+        usage.prompt += r.usage?.prompt_tokens || 0;
+        usage.completion += r.usage?.completion_tokens || 0;
+        return r;
+    };
+}
 
 const settle = () => new Promise((r) => setTimeout(r, 50));
 
@@ -666,7 +677,7 @@ async function converse(setup, { model, key }) {
     const { tools, record } = fakeTools(setup);
     const loop = new AgentLoop({
         tools,
-        resolveEndpoint: async () => ({ profile: { id: 'deepinfra', name: 'DeepInfra', baseURL: DI_URL }, key }),
+        resolveEndpoint: async () => ({ profile: PROFILES[PRESET], key }),
     });
     const events = [];
     loop.addSubscriber({
@@ -683,7 +694,7 @@ async function converse(setup, { model, key }) {
     const turns = [];
     for (const [i, text] of setup.turns.entries()) {
         const turnId = `turn-${i}`;
-        await loop.runTurn(text, i === 0 ? (setup.attachments || []) : [], project, setup.mode || 'auto', 'deepinfra', turnId, { model });
+        await loop.runTurn(text, i === 0 ? (setup.attachments || []) : [], project, setup.mode || 'auto', PRESET, turnId, { model });
         await settle();
         const mine = events.filter((e) => e.data.turnId === turnId);
         const callIds = new Set(mine.filter((e) => e.event === 'agent:tool').map((e) => e.data.id));
@@ -751,7 +762,7 @@ async function writeSamples(file, { model, key }) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 function parseArgs(argv) {
-    const o = { runs: 3, cases: [], bite: false, model: '', verbose: false, samples: '' };
+    const o = { runs: 3, cases: [], bite: false, model: '', verbose: false, samples: '', preset: 'deepinfra' };
     for (let i = 0; i < argv.length; i++) {
         const a = argv[i];
         if (a === '--runs') o.runs = Number(argv[++i]);
@@ -760,6 +771,7 @@ function parseArgs(argv) {
         else if (a === '--bite') o.bite = true;
         else if (a === '--verbose') o.verbose = true;
         else if (a === '--samples') o.samples = argv[++i];
+        else if (a === '--preset') o.preset = argv[++i];
         else throw new Error(`Unknown argument: ${a}`);
     }
     return o;
@@ -767,13 +779,20 @@ function parseArgs(argv) {
 
 async function main() {
     const opts = parseArgs(process.argv.slice(2));
-    const key = process.env.DEEPINFRA_API_KEY;
-    if (!key) {
+    if (!PROFILES[opts.preset]) throw new Error(`Unknown --preset ${opts.preset}: ${Object.keys(PROFILES).join(' | ')}`);
+    PRESET = opts.preset;
+    const local = PRESET === 'ollama';
+    const key = local ? null : process.env.DEEPINFRA_API_KEY;
+    if (!key && !local) {
         console.error('DEEPINFRA_API_KEY is not set: this harness talks to the real model.');
         process.exit(2);
     }
-    const model = opts.model || recommendedModel('deepinfra', 'agent');
-    const price = (await fetchDeepInfraPrices())?.[model] || null;
+    const model = opts.model || recommendedModel(PRESET, 'agent');
+    if (!model) {
+        console.error(`No recommended agent model on ${PRESET}: pass --model <id>.`);
+        process.exit(2);
+    }
+    const price = local ? null : (await fetchDeepInfraPrices())?.[model] || null;
     if (opts.samples) {
         await writeSamples(path.resolve(opts.samples), { model, key });
         const cost = price ? (usage.prompt * price.in + usage.completion * price.out) / 1e6 : 0;

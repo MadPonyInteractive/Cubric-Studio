@@ -160,10 +160,20 @@ async function _fetchWithDeadline(url, init, timeoutMs, label) {
  *     is caught into `{}` — every tool would run with no arguments.
  *  2. A tool call carries no `id`, so `tool_call_id` on the result would be undefined.
  *  3. A tool RESULT is matched by `tool_name`, not by id.
+ *  4. A picture is NOT an `image_url` content part: native content is a string and the
+ *     picture is bare base64 in `images`. Passed through as parts, the model is blind and
+ *     describes noise (gemma4:e4b, MPI-912).
  */
 function toOllamaMessages(messages) {
     const nameById = new Map();
     return (messages || []).map((m) => {
+        if (Array.isArray(m.content)) {
+            const images = m.content
+                .filter((p) => p.type === 'image_url')
+                .map((p) => String(p.image_url?.url || '').replace(/^data:[^,]*,/, ''));
+            const content = m.content.filter((p) => p.type === 'text').map((p) => p.text).join('\n');
+            return { ...m, content, ...(images.length && { images }) };
+        }
         if (m.role === 'assistant' && Array.isArray(m.tool_calls)) {
             return {
                 ...m,
@@ -252,7 +262,9 @@ export class OllamaEngine {
             }),
         }, this.timeoutMs, 'Ollama');
         if (!res.ok) {
-            throw new Error(`Ollama chat failed: ${res.status} ${res.statusText}`);
+            // `status` + `bodyText` as DeepInfraEngine's, so describe can say NOT_VISION.
+            const bodyText = await res.text().catch(() => '');
+            throw Object.assign(new Error(`Ollama chat failed: ${res.status} ${res.statusText}`), { status: res.status, bodyText });
         }
         const data = await res.json();
         return {
@@ -458,7 +470,9 @@ export async function fetchDeepInfraPrices() {
  * Our recommendations per connection preset: EXACT ids, no fuzzy matching across
  * providers (one vendor's id means nothing on another). `jobs` names the rows that
  * hint the model: 'agent' | 'enhance' | 'describe'. `contextWindow` is only for
- * entries whose endpoint may not report one. Custom and Ollama get no hints.
+ * entries whose endpoint may not report one. Custom gets no hints. Ollama's ids are
+ * its own `/v1/models` ids, tag included, and the Ollama enhancer dropdown reads the
+ * same list (`GET /llm/models`), so a local flag lives here once (MPI-912).
  * MPI-774 fills `agent` (the model the harness proved); MPI-737 fills enhance and
  * describe (enhance ids from MODEL_REGISTRY.deepInfraId; describe chosen by live
  * call on 2026-09-16 — meta-llama/Llama-4-Scout-17B-16E-Instruct accepted a ~1 MP
@@ -501,6 +515,11 @@ export const RECOMMENDED_REMOTE_MODELS = {
         { id: 'google/gemma-4-26B-A4B-it', jobs: ['enhance', 'describe'], contextWindow: 262_144 },
         { id: 'google/gemma-3-12b-it', jobs: ['enhance'], contextWindow: 131_072 },
         { id: 'meta-llama/Llama-4-Scout-17B-16E-Instruct', jobs: [], contextWindow: 327_680 },
+    ],
+    // Local, so no price and no refusals to weigh: a flag here means measured on Fabio's
+    // 16 GB card. Enhance is the enhancer of record (every v1 recipe is Stage 1 green on it).
+    ollama: [
+        { id: 'huihui_ai/gemma-4-abliterated:12b', jobs: ['enhance'] },
     ],
     openrouter: [],
     openai: [],
@@ -945,16 +964,17 @@ export class ComfyUIEngine {
  * @param {string} profileId
  * @param {string|null} key
  * @param {string} baseURL
+ * @param {object|null} [profile]  passed to DeepInfraEngine so `backend` and errors name it
  * @returns {{engine: object, contextWindow: number|null}}
  */
-export function chatEngineFor(profileId, key, baseURL) {
+export function chatEngineFor(profileId, key, baseURL, profile = null) {
     if (profileId === 'ollama') {
         // OllamaEngine speaks the native route, which is rooted at the host, while the
         // profile's baseURL carries the `/v1` suffix the OpenAI shim needs.
         const root = String(baseURL || OLLAMA_BASE_URL).replace(/\/+v1\/?$/, '');
         return { engine: new OllamaEngine(root), contextWindow: OLLAMA_AGENT_CONTEXT };
     }
-    return { engine: new DeepInfraEngine(key, baseURL), contextWindow: null };
+    return { engine: new DeepInfraEngine(key, baseURL, profile), contextWindow: null };
 }
 
 /**

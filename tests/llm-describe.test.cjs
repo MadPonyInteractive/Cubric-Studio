@@ -231,6 +231,44 @@ test('POST /llm/describe: a question replaces the default instruction (no system
     }
 });
 
+test('MPI-912: describe on the Ollama connection goes native, with the picture in `images` and think off', async () => {
+    // The /v1 shim has no `think` flag, so a reasoning vision model spent its whole budget
+    // thinking and returned EMPTY (qwen3-vl, qwen3.5, gemma-4-abliterated), and gemma4:e4b
+    // described "an abstract digital texture": the picture never reached it.
+    const imgPath = await makeTmpJpeg('ollama');
+    let sent = null;
+    const restore = stubUpstream(async (url, init) => {
+        sent = { url, body: JSON.parse(init.body) };
+        return okJson({ message: { content: 'A white square.' }, prompt_eval_count: 10, eval_count: 4 });
+    });
+    try {
+        await withBridge(
+            { profile: { id: 'ollama', name: 'Ollama', baseURL: 'http://localhost:11434/v1' }, key: null },
+            () => withServer(async (base) => {
+                const res = await fetch(`${base}/llm/describe`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ profileId: 'ollama', modelId: 'gemma3:12b', imagePath: imgPath }),
+                });
+                const body = await res.json();
+                assert.equal(body.ok, true, JSON.stringify(body));
+                assert.equal(body.text, 'A white square.');
+                assert.equal(body.backend, 'ollama');
+            }),
+        );
+        assert.equal(sent.url, 'http://localhost:11434/api/chat');
+        assert.equal(sent.body.think, false);
+        const user = sent.body.messages.find((m) => m.role === 'user');
+        assert.equal(typeof user.content, 'string', 'native content is text, not OpenAI parts');
+        assert.ok(user.content.length > 0, 'the instruction text survived');
+        assert.equal(user.images?.length, 1);
+        assert.ok(!user.images[0].startsWith('data:'), 'images carry bare base64');
+    } finally {
+        restore();
+        fs.rmSync(imgPath, { force: true });
+    }
+});
+
 test('POST /llm/describe: NO_PROFILE when connection is not found', async () => {
     const imgPath = await makeTmpJpeg('noprofile');
     const restore = stubUpstream(async () => { throw new Error('should not reach upstream'); });
@@ -370,6 +408,34 @@ test('POST /llm/enhance endpoint branch: raw modelId is forwarded (no MODEL_REGI
             assert.equal(body.backend, 'deepinfra', 'backend must name the profile, not a hardcoded value');
         }));
         assert.equal(sentModel, 'google/gemma-4-26B-A4B-it', 'raw modelId was not forwarded to the endpoint');
+    } finally {
+        restore();
+    }
+});
+
+test('MPI-912: enhance on the Ollama connection goes native with think off; an empty pick runs the recommended model', async () => {
+    let sent = null;
+    const restore = stubUpstream(async (url, init) => {
+        sent = { url, body: JSON.parse(init.body) };
+        return okJson({ message: { content: 'Enhanced.' } });
+    });
+    try {
+        await withBridge(
+            { profile: { id: 'ollama', name: 'Ollama', baseURL: 'http://localhost:11434/v1' }, key: null },
+            () => withServer(async (base) => {
+                const res = await fetch(`${base}/llm/enhance`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ backend: 'endpoint', profileId: 'ollama', prompt: 'a cat on a mat' }),
+                });
+                const body = await res.json();
+                assert.equal(body.ok, true, JSON.stringify(body));
+                assert.equal(body.text, 'Enhanced.');
+            }),
+        );
+        assert.equal(sent.url, 'http://localhost:11434/api/chat');
+        assert.equal(sent.body.think, false);
+        assert.equal(sent.body.model, 'huihui_ai/gemma-4-abliterated:12b');
     } finally {
         restore();
     }
@@ -561,7 +627,7 @@ test('a keyless connection (Ollama /v1) never borrows DEEPINFRA_API_KEY and send
     let seen = null;
     const restore = stubUpstream(async (url, init) => {
         seen = { url, auth: init.headers.Authorization };
-        return okJson({ choices: [{ message: { content: 'ok' } }], usage: null });
+        return okJson({ message: { content: 'ok' } });
     });
     try {
         await withEnvKey('must-not-leave-deepinfra', () => withBridge({ profile: ollama, key: null }, () => withServer(async (base) => {
@@ -573,7 +639,8 @@ test('a keyless connection (Ollama /v1) never borrows DEEPINFRA_API_KEY and send
             const body = await res.json();
             assert.equal(body.ok, true, `keyless enhance failed: ${JSON.stringify(body)}`);
         })));
-        assert.ok(seen.url.startsWith('http://localhost:11434/v1/'), `wrong host: ${seen.url}`);
+        // Native since MPI-912 (the /v1 shim has no `think` flag); still the user's own host.
+        assert.equal(seen.url, 'http://localhost:11434/api/chat', `wrong host: ${seen.url}`);
         assert.equal(seen.auth, undefined, 'a keyless connection sent an Authorization header');
     } finally {
         restore();

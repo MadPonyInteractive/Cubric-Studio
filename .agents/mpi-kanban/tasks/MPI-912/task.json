@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-912",
+  "title": "Recommended flags on Ollama models, per job (enhance, describe, agent)",
+  "description": "The LLM settings picker flags recommended models per job for remote providers (RECOMMENDED_REMOTE_MODELS in services/llmEngines.mjs) but deliberately gives Ollama none, so a local user cannot tell which installed model to pick for which task. Flag enhance with the enhancer of record (gemma-4-abliterated-12b) and describe with a local vision model once a scored run backs it. Agent needs research first: the only local model Fabio has driven the agent with, dolphin3-abliterated, is too weak for the job; find an Ollama model smart enough for the agent that does not take all the VRAM, or leave agent unflagged. A flag nobody earned is worse than none.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-25T05:16:39+01:00",
+  "updated_at": "2026-09-25T05:18:33+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

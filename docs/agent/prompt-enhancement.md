@@ -61,7 +61,8 @@ Three, and the user picks one in Remote > Language Models. Nothing picks for the
 - **Remote** — the user's one OpenAI-compatible connection (DeepInfra, OpenRouter,
   OpenAI, a custom URL). No local VRAM, no queue. A hosted model may refuse adult material.
 - **Ollama** (local) — a second local runtime that Vision starts and unloads. It carries
-  the abliterated builds.
+  the abliterated builds; the one marked `(recommended)` is the enhancer every recipe is
+  tested on.
 
 The completion always reports which backend and model actually answered. Show it
 truthfully; never imply local when the cloud ran.

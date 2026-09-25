@@ -1,0 +1,1 @@
+{"schema":"mpi-kanban/task-files/v1","files":["services/llmEngines.mjs","routes/llm.js","js/components/Organisms/MpiLlmSettings/MpiLlmSettings.js","scripts/agent-test.mjs","tests/llm-connection.test.cjs","tests/llm-describe.test.cjs","docs/agent/prompt-enhancement.md","docs/llm.md",".agents/mpi-kanban/tasks/MPI-912/"]}

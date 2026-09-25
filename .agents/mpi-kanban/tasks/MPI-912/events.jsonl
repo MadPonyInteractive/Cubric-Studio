@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-912", "at": "2026-09-25T05:16:39+01:00", "actor": "claude", "column": "todo", "title": "Recommended flags on Ollama models, per job (enhance, describe, agent)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-912", "at": "2026-09-25T05:18:33+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio: card it, start it now. Plan: enhance flag, scored describe bench, agent research."}

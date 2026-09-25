@@ -1,0 +1,23 @@
+[
+ {
+  "model": "gemma4:12b",
+  "secs": "8.0",
+  "got": 10,
+  "bad": 1,
+  "text": "A woman with a fair complexion and dark hair tied back in a long braid sits atop a large, muscular bull in a dusty rodeo arena. She wears a wide-brimmed brown leather cowboy hat, a long brown suede duster coat with fringe along the sleeves and hem, a dark vest, and blue denim jeans. She holds a silver-barreled revolver in each hand, extending them outward and upward. She is perched in a leather rodeo saddle atop the bull, which features a thick coat of brown and white fur and large, curved horns. The bull is captured in mid-motion, kicking up clouds of sand and dirt from the ground beneath its hooves. The scene is set in a rustic outdoor enclosure with wooden fences and gate posts visible in the blurred background. The lighting is warm and diffused, casting a dusty, sepia-toned haze over the entire image. The camera angle is a side-profile medium shot, capturing the action from the waist up of the rider and the full body of the bull. The texture of the image has a grainy, vintage film look, resembling a weathered photograph."
+ },
+ {
+  "model": "gemma4:12b",
+  "secs": "9.3",
+  "got": 10,
+  "bad": 1,
+  "text": "A woman with light skin and long brown hair tied back in a braid sits atop a large, muscular bull in a dusty rodeo arena. She wears a wide-brimmed brown felt cowboy hat and a long, distressed leather duster coat with fringe detailing along the sleeves and hem. Her outfit includes a buttoned western shirt, a thick leather belt with a large metallic buckle, and blue jeans. She holds a silver and black revolver in each hand, pointing them upward and outward. The bull has a thick, brown and white patterned coat, large curved horns, and is captured in mid-motion, kicking up a cloud of fine dirt from the ground. A leather and rope western saddle sits beneath her. The background features a wooden fence and gate structure under a hazy, pale sky with a grainy, textured overlay that resembles vintage film stock. The lighting is warm and directional from the upper right, creating soft shadows on the bull's muscles and the folds of her coat. The shot is a medium-full body shot, taken from a slightly low angle, with a shallow depth of field that keeps the woman and the bull in sharp focus while the background remains soft. The overall style is a realistic, cinematic photograph with a desaturated, sepia-toned color palette and a gritty, weathered texture over the entire image."
+ },
+ {
+  "model": "gemma4:12b",
+  "secs": "14.1",
+  "got": 9,
+  "bad": 1,
+  "text": "A female cowboy rider with light skin and long, dark hair tied in a braid sits atop a charging bucking bull in a dusty rodeo arena. She wears a wide-brimmed brown leather cowboy hat, a long, distressed brown leather duster coat with fringe along the sleeves and hem, a collared shirt, and blue jeans tucked into tan leather cowboy boots. She holds a silver and wood-grip revolver in each hand, aiming them outward at approximately shoulder height. The bull is a large, muscular animal with a brown and white coat, featuring white markings on its face and front legs, and large, pale horns curving forward. The bull is in mid-motion, kicking up clouds of dust and dirt from the ground. The scene is set in an outdoor arena with a wooden fence and gate structure in the background, partially obscured by dust. The lighting is bright and warm, suggesting a sunny day, creating a hazy, desaturated atmosphere with a grainy, vintage film texture. The shot is a medium-full-body composition from a slightly low angle, capturing the dynamic action of the bucking bull and the rider."
+ }
+]

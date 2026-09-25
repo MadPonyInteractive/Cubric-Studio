@@ -59,7 +59,7 @@ nothing. The connection itself is `Storage.getLlmConnection()` -> `{ profileId }
 
 | Route | Does |
 |---|---|
-| `GET /llm/models` | The `MODEL_REGISTRY` catalogue for the Ollama picker (+ `deepInfraId` for the legacy mapping). |
+| `GET /llm/models` | The `MODEL_REGISTRY` catalogue for the Ollama picker (+ `deepInfraId` for the legacy mapping, + `recommended` from `RECOMMENDED_REMOTE_MODELS.ollama`'s enhance entries). |
 | `GET /llm/ollama` | Read-only Ollama state: running, per-model downloaded/size/pull progress. |
 | `POST /llm/ollama/start` | Starts an installed, stopped Ollama. Never installs. |
 | `POST /llm/ollama/install` | Silent winget install, Windows only, reached only from the user's own click. |
@@ -72,6 +72,9 @@ nothing. The connection itself is `Storage.getLlmConnection()` -> `{ profileId }
   lookup; none -> `recommendedModel(profileId, 'enhance')`. Errors `{ code, message }`
   (`BAD_REQUEST`, `NO_PROFILE`, `NO_KEY` - never for `ollama` - `ENDPOINT_ERROR`), flattened to
   text plus `errorCode` by `runServerBackend`, because every caller renders `error` as a string.
+  The engine is `chatEngineFor(profileId, …)`, as for describe and the agent: the Ollama connection
+  runs NATIVE (`OllamaEngine`, `think: false`), never the `/v1` shim, whose missing `think` flag
+  left a reasoning model answering EMPTY (MPI-912).
 - **`/llm/enhance` `ollama`:** a registry id; a stopped Ollama is started, a missing install or
   model is reported by name, and VRAM is released in `finally` on every exit path.
 - **`/llm/describe`** body `{ profileId, modelId?, imagePath, question?, crop? }` ->
@@ -84,12 +87,16 @@ nothing. The connection itself is `Storage.getLlmConnection()` -> `{ profileId }
   The default instruction is READ from node 38 (`Input_Describe_Prompt`) at runtime, never copied;
   node 38 unparseable -> `RUNTIME_ERROR`. A `question` replaces it as plain text (ChatML is
   ComfyUI-only). A 4xx naming image/vision input -> `NOT_VISION`, never a silent retry without the image.
+  On the Ollama connection `toOllamaMessages` turns the `image_url` part into native `images`
+  (bare base64); passed through as a part, the model never saw the picture (MPI-912).
 - **`DeepInfraEngine(key, baseURL, profile)`** reports the profile as `backend` (never a hardcoded
   `'deepinfra'`). It borrows `DEEPINFRA_API_KEY` only for a DeepInfra URL (or none); a keyless
-  connection (Ollama `/v1`) sends no `Authorization` at all.
-- **`RECOMMENDED_REMOTE_MODELS`** carries exact ids per preset: DeepInfra enhance =
-  `google/gemma-4-26B-A4B-it`, `google/gemma-3-12b-it`; describe =
-  `meta-llama/Llama-4-Scout-17B-16E-Instruct` (live-checked 2026-09-16; not abliterated).
+  connection sends no `Authorization` at all.
+- **`RECOMMENDED_REMOTE_MODELS`** carries exact ids per preset, and a flag only on a measured
+  result: DeepInfra enhance = `google/gemma-4-26B-A4B-it`, `google/gemma-3-12b-it`; describe =
+  `google/gemma-4-26B-A4B-it` (MPI-817's scored run). Ollama (its own `/v1/models` ids, tag
+  included) enhance = `huihui_ai/gemma-4-abliterated:12b`, the enhancer of record; describe and
+  agent carry none until a local model passes (MPI-912 `validation.md`).
 
 ## Enhance paths
 
