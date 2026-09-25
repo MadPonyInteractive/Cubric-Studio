@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-775", "at": "2026-09-15T19:26:21+01:00", "actor": "claude", "column": "todo", "title": "Brainstorm: YuE2 song model (Flow, audio workspace, DAW widgets)"}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-775", "type": "task.updated", "at": "2026-09-25T07:20:00Z", "actor": "claude", "summary": "Added pointer: the YuE2 piano roll lives in the Scene workspace (MPI-917), design its DAW widgets against that brief."}

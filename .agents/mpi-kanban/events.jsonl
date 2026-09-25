@@ -4993,3 +4993,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-913", "at": "2026-09-25T06:48:46+01:00", "actor": "d3e98b8e", "column": "todo", "title": "Agent on local Ollama holds VRAM while its own generations run"}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-916", "at": "2026-09-25T08:04:08+01:00", "actor": "d3e98b8e", "column": "todo", "title": "Agent tool contracts for the cases every model fails, so cheaper models pass"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-915", "at": "2026-09-25T08:35:21+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI run 36106766720 green on 364c24b0 (carries b9fd9207); Fabio verified live"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-917", "at": "2026-09-25T08:12:10+01:00", "actor": "claude", "column": "todo", "title": "Scene workspace: video lane, audio tracks and mixer"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-920", "at": "2026-09-25T08:51:26+01:00", "actor": "claude", "column": "todo", "title": "Delete warns when a card is used by reference"}

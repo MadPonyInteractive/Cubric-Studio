@@ -59,3 +59,11 @@ Mechanics: `js/data/modelConstants/licences.js`, `docs/download-manager.md` § T
 
 When the brainstorm has produced a plan, on this card or on cards it creates; the brainstorm
 decides which. Implementation is not this card's job.
+
+## The audio workspace now exists as a design: MPI-917 (2026-09-25)
+
+Fabio decided the app's first audio surface is the **Scene workspace (MPI-917)**: a video
+lane, free audio tracks and a mixer, built so the agent can put a score under chained clips.
+Its components (track lane, clip block, channel strip, time ruler) are built as reusable
+DAW parts. **The YuE2 piano roll's home is that workspace**, as a later panel or track
+type. Design this card's DAW widgets against MPI-917's brief, not from scratch.

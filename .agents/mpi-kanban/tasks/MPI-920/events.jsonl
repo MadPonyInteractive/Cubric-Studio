@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-920", "at": "2026-09-25T08:51:26+01:00", "actor": "claude", "column": "todo", "title": "Delete warns when a card is used by reference"}

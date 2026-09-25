@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-920",
+  "title": "Delete warns when a card is used by reference",
+  "description": "Fabio 2026-09-25: the gallery delete dialog gets an extra red line when the card is referenced elsewhere (a Mix recipe, a Flow Reuse input, a GIF, an extend source...), e.g. 'This card is used by 2 mixes. Delete anyway?'. Global, not Mix-only. Deleting stays allowed; a Mix then shows the clip red, like DaVinci (MPI-917).",
+  "column": "todo",
+  "maturity": "idea",
+  "status": "active",
+  "created_at": "2026-09-25T08:51:26+01:00",
+  "updated_at": "2026-09-25T08:51:26+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
