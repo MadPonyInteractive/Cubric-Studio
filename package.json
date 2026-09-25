@@ -33,7 +33,6 @@
     "7zip-bin": "^5.2.0",
     "axios": "^1.13.6",
     "body-parser": "^1.20.2",
-    "cors": "^2.8.5",
     "dompurify": "^3.4.13",
     "dotenv": "^17.4.2",
     "electron-context-menu": "^4.1.2",

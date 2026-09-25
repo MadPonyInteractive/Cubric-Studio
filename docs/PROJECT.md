@@ -71,6 +71,11 @@ seed-variable (LTX voice identity is, even single-speaker — [models/ltx/audio-
 the answer is a better workflow or an invisible re-roll behind a normal "generate again" — never
 "let the user pick a seed". Batch-of-N plus a gallery pick is acceptable, because the user is
 picking an output, not a seed.
+15. **The local server answers Cubric Studio itself, nobody else** — `routes/localOnly.js`, mounted
+first in `server.js`, refuses a foreign `Host` (DNS rebinding), a foreign `Origin`, and any
+`Sec-Fetch-Site` but `same-origin`/`none`. There is no CORS: the renderer is same-origin and every
+other client (CLI, agent tools, scripts) is Node. Loopback keeps other machines out, not other
+browser tabs — never re-add `cors()` (MPI-921).
 
 ## How to Orient in an Unfamiliar File
 

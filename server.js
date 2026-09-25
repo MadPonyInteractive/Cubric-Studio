@@ -23,7 +23,7 @@ require('dotenv').config({ quiet: true });
 
 const express = require('express');
 const bodyParser = require('body-parser');
-const cors = require('cors');
+const { localOnly } = require('./routes/localOnly');
 
 const app = express();
 // The desktop E2E suite hands each run its own free port so it never fights (or
@@ -33,7 +33,8 @@ const port = Number(process.env.CUBRIC_PORT) || 3000;
 
 // ── Middleware ─────────────────────────────────────────────────────────────────
 
-app.use(cors());
+// First, so a refused request is never parsed or served (MPI-921).
+app.use(localOnly(port));
 app.use(bodyParser.json({ limit: '100mb' }));
 
 // Case-insensitive /comfy_workflows/* resolver — MUST precede express.static so a
