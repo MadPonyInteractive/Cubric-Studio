@@ -198,6 +198,11 @@
 > **A fix to a FLOW does not belong here for this release** — flows debut in this version, so
 > no released build ever had the bug and no user can have met it. The fix is part of the feature.
 
+- **Web pages open in your browser can no longer reach Cubric Studio or its engine.** The
+  app's local server and the image engine behind it used to answer any web page, so a site you
+  visited could have started generations or read your pictures. Both now answer only Cubric
+  Studio itself.
+
 - **A generation that finishes after you switch projects lands where you started it.** It used
   to save into whichever project you had open when it finished, and the spinner followed you
   there too. The card now appears in the project you asked for it in, and is still there when
