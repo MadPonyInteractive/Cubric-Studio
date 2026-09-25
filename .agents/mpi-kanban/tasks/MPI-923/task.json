@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-923",
+  "title": "Wan 3.0 reference-to-video: reference images, videos and audio, plus first+last frame",
+  "description": "Sibling of MPI-910 (Seedance 2.0 references). wan3-cloud sends only [{type:'first_frame',url}] (6b83283f). DeepInfra's Wan-AI/Wan3.0-Video 'media' list also takes reference_image, reference_video and reference_audio (character, scene, voice) and last_frame; the reference types are mutually exclusive with first_frame/last_frame, so this is two ops: a reference op and a first+last-frame op. Unlike Seedance, url takes BASE64 as well as a URL (schema_in, checked 2026-09-25), so there is no hosting question - the route can inline the files the way it does for i2v. Limits: images 240-8000 px, max 20 MB; videos MP4/MOV 1-15 s, max 100 MB; audio WAV/MP3 1-15 s, max 15 MB. Needs a paid live run per op and a price check (video references may bill as input). Raised by Fabio during MPI-919.",
+  "column": "todo",
+  "maturity": "idea",
+  "status": "active",
+  "created_at": "2026-09-25T13:37:55+01:00",
+  "updated_at": "2026-09-25T13:37:55+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

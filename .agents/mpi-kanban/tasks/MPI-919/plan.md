@@ -46,6 +46,20 @@ retries the 2-image NB edit; Veo live run only if he okays $1.20.
 (edit_008). Veo 3.1 Fast i2v live OK ($1.20). The collage phase is DONE; what follows is the
 cloud media path, per Fabio's calls below.
 
+2026-09-25 (session 949bf2cd), item 1: ROOT CAUSE = `main.js` `pruneStaleMaskTemp` matches
+`cubric-*`, so it wipes every sibling temp dir (cubric-deepinfra, -agent, -gif, -tests,
+-agent-profile), not just `cubric-<uuid>` mask sessions. Route half DONE (uncommitted):
+`/deepinfra/output` no longer deletes on serve (a served file proves no save); `_sweepOutputs`
+ages files out after 24 h, test `tests/deepinfra-output-retention.test.cjs`. main.js half
+done after MPI-922 released it (uuid-shape regex + spec updated, 2/2 pass).
+
+2026-09-25 (949bf2cd) later: ALL SIX items done, uncommitted, unit suite green; evidence in
+validation.md "Next phase". Design: `cloud.imageFields` (numbered fields) + capability
+`multiReference`/`multiReference8` gate edit slots 2-4/5-8; `cloud.inputMaxPixels` shrinks
+FLUX-2 pro/max refs to 1 MP so `BFL_MEGAPIXEL_USD` quotes exactly. Fabio verified; shipped
+in a0e6b58a (with 1 MiB ratio rows and 16K-safe references). CLOSED. Gotcha: a harness with TEMP overridden needs
+DEEPINFRA_API_KEY in env - the key store falls back to os.tmpdir() without APP_USER_DATA.
+
 ## Next phase - Fabio's decisions (2026-09-25), in this order
 
 1. **Never lose paid work.** `mask-temp`'s startup prune deletes `os.tmpdir()/cubric-deepinfra`

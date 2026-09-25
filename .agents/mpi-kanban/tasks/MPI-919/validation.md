@@ -103,7 +103,54 @@ into 16:9 - Veo offers only 16:9 / 9:16, so the ratio the user picks matters.
 **Fabio, in the app, 2026-09-25 after restart:** the 2-image Nano Banana 2 Lite edit works
 (edit_008, "Replace the boat with the bowl.", 1152x928, the ratio of image 1).
 
-## Not yet verified
+## Next phase (session 949bf2cd, 2026-09-25, ~$0.75 paid probes + live runs)
+
+1. **Paid outputs survive.** Root cause `main.js` `pruneStaleMaskTemp` matched `cubric-*`; now
+   only `cubric-<uuid>`. `/deepinfra/output` no longer deletes on serve; `_sweepOutputs` ages
+   files out after 24 h. `tests/deepinfra-output-retention.test.cjs`; desktop spec
+   `mask-temp-ipc.spec.js` (run with private TEMP): stale uuid dir pruned, a file in
+   `cubric-deepinfra` kept - 2/2 pass.
+2. **Native multi-reference.** `cloud.imageFields` + `multiReference` / `multiReference8`: Seedream
+   5 Pro 4, FLUX-2 dev/pro 4, max 8, NB 4 (collage). Live via the real route, 2 refs: FLUX-2 pro
+   OK $0.06 (= 2 ref units: the 2048^2 ref was shrunk to 1 MP, unshrunk it is $0.105),
+   Seedream 5 Pro OK $0.1023 (= $0.099 + the $0.0033 second-image fee: `image_2` arrived),
+   FLUX-2 dev OK $0.01785. The two refs were the same scene, so the pictures prove nothing; the
+   bills do for pro and Seedream. `tests/deepinfra-multiref.test.cjs`.
+3. **Prices measured** (direct calls, `inference_status.cost`): FLUX-2 pro 1024^2 t2i $0.03,
+   1280x1024 $0.045, 1 MP + 2048^2 ref $0.09, + two 1 MP refs $0.06; max 1024^2 t2i $0.07.
+   = BFL per started 2^20-px megapixel, output + every input. Tiles quoted pro $0.015 and max
+   $0.10: both wrong. FLUX-2 dev billed $0.01785 = 0.01 x 50/28: it runs its default 50 steps
+   against a price set at 28 - every dev quote was 1.79x low. Now priced from the snapshot's
+   step default. `tests/deepinfra-pricing.test.cjs` pins all of it.
+4. **Ratio picker on edits** for Seedream 4/4.5, FLUX-2 pro/max. Every picker row sends a valid
+   size (Seedream 4.5 >= 3,686,400 px, FLUX-2 multiple of 32 in 256-1440). Live 16:9 edits:
+   Seedream 4 2752x1536 $0.04, FLUX-2 pro 1376x768 $0.06 (= quote: 1.008 MiB is 2 units).
+5. **HTTP 500 classification.** Captured: a Gemini refusal is 500 "…returned no image data"; a
+   garbage image is 422 (pydantic) on Seedream, 500 wrapping Google's `status: 400` on NB, and a
+   bare 500 "inference error" on FLUX-2 dev. 422 and a wrapped non-safety 4xx now read
+   PROVIDER_ERROR; the log line adds the wrapped status and the provider HOST only.
+6. MPI-923 opened (Wan 3.0 reference-to-video; base64 media, no hosting question).
+
+Full unit suite: 1908 tests, 1906 pass, 0 fail.
+
+**Follow-ups (Fabio, same session):**
+- FLUX-2 pro/max ratio rows capped at 2^20 px (`_cloudRatios` `maxArea`, sides snap DOWN; the
+  rows live on flux2-pro-cloud and max resolves them through the shared `type: 'flux2pro'`). The
+  model does NOT snap on its own: 1376x768 came back 1376x768 and billed 2 output units. New
+  rows: 1024^2, 864x1152, 896x1120, 768x1344 (and landscape twins), all <= 1 MiB.
+- 16K references (photographers). Reproduced: a 16384^2 JPEG failed the FLUX shrink AND the NB
+  collage ("Input image exceeds pixel limit", sharp's 268 MP default), and every other model
+  would have sent a 126 MB file raw. Now every reference is bounded (4096^2 area, or re-encoded
+  past 10 MB; FLUX-2 pro/max 1 MP), decoded with no pixel ceiling, EXIF-upright without a crop;
+  the collage reads image 1's size from the header (was a full ~800 MB decode). Live, real route,
+  a 126 MB 16384x10922 photo: NB2 Lite edit OK $0.0339, FLUX-2 pro OK $0.045 (1 ref unit), NB
+  collage with a 16384^2 image 1 OK $0.0339. Unit tests pin 16K + EXIF. Suite 1918: 1916 pass, 0 fail.
+
+**Fabio, 2026-09-25: verified ("1")** - closes the in-app checks below. Code commit a0e6b58a.
+
+## Previously open (closed by Fabio's verification above)
 
 - The prompt box itself accepting four chips on a Nano Banana model (in the app). The slot count
   is data-driven (`getAvailableCommands`, unit-tested), but no one has clicked it.
+- In the app: the ratio picker showing on a Seedream 4 / FLUX-2 pro edit, eight chips on FLUX-2
+  Max, and the price tag moving as references are added (FLUX-2 pro +$0.015 each).
