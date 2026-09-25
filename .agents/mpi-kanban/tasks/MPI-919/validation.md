@@ -94,8 +94,14 @@ base64, data URLs and links in `images` / `image_url` / `video_url` / `videos`; 
 and bytes of no known media type are refused, never saved as a card. Unit test pins every
 shape and the Seedream garbage case. Suite 1893: 1891 pass, 0 fail.
 
-Not run: NB Pro (NB2 proxy), Seedance 2 (same field as 1.5), Wan (6b83283f), Veo (`videos`
-read from the schema only, $1.20 fast / $3.20 full per run).
+Not run: NB Pro (NB2 proxy), Seedance 2 (same field as 1.5), Wan (6b83283f).
+
+**Veo 3.1 Fast i2v** (Fabio okayed one run): OK through the fixed route, $1.20, 65 s, a real
+1280x720 8 s h264+aac clip whose first frame is the input. The 1088x896 input is PILLARBOXED
+into 16:9 - Veo offers only 16:9 / 9:16, so the ratio the user picks matters.
+
+**Fabio, in the app, 2026-09-25 after restart:** the 2-image Nano Banana 2 Lite edit works
+(edit_008, "Replace the boat with the bowl.", 1152x928, the ratio of image 1).
 
 ## Not yet verified
 

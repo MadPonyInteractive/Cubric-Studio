@@ -42,6 +42,39 @@ DISK paths (filePath is the /project-file URL; cloud edits never saw their image
 `image_url` / Veo `videos` now read, unknown bytes refused. Next: Fabio restarts the app and
 retries the 2-image NB edit; Veo live run only if he okays $1.20.
 
+2026-09-25 later: d1cffbe0 pushed, CI green. Fabio confirmed the 2-image NB edit in the app
+(edit_008). Veo 3.1 Fast i2v live OK ($1.20). The collage phase is DONE; what follows is the
+cloud media path, per Fabio's calls below.
+
+## Next phase - Fabio's decisions (2026-09-25), in this order
+
+1. **Never lose paid work.** `mask-temp`'s startup prune deletes `os.tmpdir()/cubric-deepinfra`
+   as a "stale session dir" (live log 11:01Z, 11:16Z; a peer's harness pruned it mid-run and
+   a generated file hit ENOENT). A paid output must survive until the project copy exists.
+   Find the prune's pattern first, then move the output dir out of it (or exempt it), and
+   check `/deepinfra/output` deleting on serve cannot lose a file whose save failed.
+2. **Native multi-reference, collage ONLY for Nano Banana.** Seedream 5 Pro takes
+   `image`..`image_4`, FLUX-2 dev `input_image_1..4`, FLUX-2 pro `input_image`..`_4`, max
+   `..._8` (schema_in, 2026-09-25). Give those models their real slot count and fill the
+   numbered fields; `referenceCollage` stays on the three NB models only.
+3. **FLUX-2 price tag counts input images.** Pro edit billed $0.045 (1 MP out + ~1 MP in),
+   quoted $0.015; max billed $0.10, quoted $0.10 - measure before assuming the formula.
+   Multi-reference (item 2) multiplies this, so do it together.
+4. **Ratio selector on edits** for the models that take a resolution (Fabio's pick over
+   deriving from the image): Seedream 4/4.5 and FLUX-2 pro/max edits return SQUARE today
+   (2048^2 / 1024^2 for a 1088x896 source) because an edit sends no size. Drop `edit` from
+   those models' `imageSizedOps` so the existing picker shows; its rows are already snapped
+   to each model's step, so divisibility is not an issue. Seedream 4.5 floor: 3,686,400 px
+   (its published box text is copied from Seedream 4 and wrong) - every 2K row clears it.
+   Seedream 5 Pro and NB already follow image 1's ratio on their own.
+5. **HTTP 500 = "the model refused" is sometimes OUR malformed request.** DeepInfra wraps the
+   provider's answer: `{"detail":"Request to <host> failed with status: 400, response: ..."}`.
+   Recommendation: classify from `detail` without logging or returning it - a wrapped 4xx
+   parameter/decode error is PROVIDER_ERROR, a safety/blocked wording or a bare 500 stays
+   CONTENT_FILTERED - and log only the wrapped status + provider host. Capture one real
+   Gemini refusal body first to know what it says.
+6. Open a Wan 3.0 reference-to-video card next to MPI-910 (still pending).
+
 ## Plan Drift
 
 Scope grew into the cloud media path itself: every cloud model's input shape needs a sweep
