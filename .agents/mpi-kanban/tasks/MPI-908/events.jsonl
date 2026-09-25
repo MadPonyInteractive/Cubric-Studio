@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-908", "at": "2026-09-25T05:18:23+01:00", "actor": "a28366d2", "from": "todo", "to": "doing", "reason": "Implementation started: Phase 1 Cosmo fail clips (Fabio, 2026-09-25)."}
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-908", "at": "2026-09-25T15:35:00+01:00", "actor": "bae9042a", "note": "Later 2 update-ready dialog mascot verified by Fabio."}
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-908", "at": "2026-09-25T16:20:00+01:00", "actor": "bae9042a", "note": "Later 3 job-cancelled mascot verified by Fabio (local); cloud gap noted."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-908", "at": "2026-09-25T18:43:37+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio verified every checklist item live; d66a472b CI green"}

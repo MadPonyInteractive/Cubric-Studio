@@ -25,9 +25,9 @@ and ticks it here. Every handoff points at this plan.
 - [ ] MPI-931 Stop interrupts whatever the shared engine runs (commandExecutor.js ~1336, ~1396;
       does the pinned ComfyUI take a prompt_id on interrupt?). Research.
 - [ ] MPI-929 Cancel mascot silent for cloud jobs. Research; reproduce first.
-- [ ] MPI-928 Cloud Stop bills and drops the output. NEEDS FABIO'S DECISION: let the paid
-      result land as a card (like the local R09 path) and say it was charged, or replace Stop
-      after submit with an "already paid" note. Ask him early so it is not the last blocker.
+- [ ] MPI-928 Cloud Stop bills and drops the output. DECIDED (Fabio 2026-09-25): option A - the
+      paid result lands as a card marked already charged (like the local R09 path). Planned;
+      do it with MPI-929 (same Stopped-placeholder path).
 MPI-930 and MPI-931 share commandExecutor.js - do them in ONE session, never in parallel.
 
 ### Phase 4: close the mascot umbrella
