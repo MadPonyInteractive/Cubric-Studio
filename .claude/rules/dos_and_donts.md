@@ -172,6 +172,12 @@ Related: write through `state.<key>`, never `Storage.set*` directly, when the va
 
 ---
 
+## 🖼️ Decoding a user image — `limitInputPixels: false`, on EVERY input
+
+Photographers load 16384x16384 stills (268,435,456 px), just past sharp's default `limitInputPixels` (268,402,689). Any sharp call that can receive a user image passes `{ limitInputPixels: false }`, and not only the constructor: the limit also fires on `metadata()`, on a raw input `sharp(buf, { raw })`, on `joinChannel(buf, { raw })` and on `composite([{ input }])`, and each takes its own option. Measure with `metadata()`, never a decode (a 16K photo is 805 MB as raw RGB). Bound whatever leaves the machine (`_readReference` in `routes/deepinfra.js`, 1 MP in `/llm/describe`). **ffmpeg cannot take a 16K still at all**: its limit is compiled in (`Picture size 16384x16384 is invalid`), so shrink the image before ffmpeg sees it (Make GIF caps frames at 4096; the gallery thumbnail is MPI-926). Test with a real 16K file, as `tests/sharp-16k-inputs.test.cjs` does (MPI-925).
+
+---
+
 ## 📦 Imports — depth and case sensitivity
 
 Relative import depth varies by how deep a component sits under `js/`. Reference depths to reach `js/` root: `js/components/Compounds/<X>/file.js` → 3 ups; `js/components/Compounds/LandingPages/<X>/file.js` → 4 ups (extra `LandingPages/` segment). Wrong-depth import → boot JS halts → app stuck forever on the landing spinner; server log stays clean (error is browser-side). Case sensitivity (Linux-only): dev box is Windows (case-insensitive); Linux portables are case-sensitive. A relative import whose CASE doesn't match the on-disk filename resolves fine on Windows but 404s on Linux → same spinner failure. SWEEP before any portable/Linux release: walk the whole `js/` import graph and verify EXACT-CASE existence.

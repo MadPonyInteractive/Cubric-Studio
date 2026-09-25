@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-927", "at": "2026-09-25T17:13:50+01:00", "actor": "claude", "column": "doing", "title": "dos_and_donts: a user-image decode passes limitInputPixels:false"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-927", "at": "2026-09-25T17:14:15+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Rule section written; docs-only."}

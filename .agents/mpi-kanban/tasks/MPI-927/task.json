@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-927",
+  "title": "dos_and_donts: a user-image decode passes limitInputPixels:false",
+  "description": "Write the MPI-925 convention into .claude/rules/dos_and_donts.md (Fabio approved 2026-09-25).",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-25T17:13:50+01:00",
+  "updated_at": "2026-09-25T17:14:15+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
