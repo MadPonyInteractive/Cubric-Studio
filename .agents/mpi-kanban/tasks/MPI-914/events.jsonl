@@ -1,3 +1,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-914", "at": "2026-09-25T07:42:25+01:00", "actor": "claude", "column": "todo", "title": "Model picker shows the DeepInfra price on cloud tiles, like the Model Library"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-914", "at": "2026-09-25T07:43:02+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Starting: price chip on picker cloud tiles"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-914", "at": "2026-09-25T07:44:42+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Shipped; Fabio to eyeball the picker chip"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-914", "at": "2026-09-25T08:31:04+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio verified live; CI #1281 green on both commits"}

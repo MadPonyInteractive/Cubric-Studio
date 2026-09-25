@@ -15,10 +15,12 @@
   Veo 3.1 quotes `about $3.20 per clip`.
 - `npx eslint` on both source files → clean.
 
-## Needs Fabio
+## Fabio-verified (2026-09-25)
 
-- Does the picker's cloud tile look right with the price chip (open the model selector with a
-  DeepInfra key saved)?
+- Picker cloud tiles checked live with a key saved: "looks good". Follow-up `ce0e0549` drops the
+  `CLOUD ·` meta prefix in the picker (corner badge already says it) so `PER 5S AT 1080P` fits
+  one line and clip tiles keep their row height.
+- CI: Tests #1281 green on `364c24b0`, which contains `6ad20095` and `ce0e0549`.
 
 ## Left open
 
