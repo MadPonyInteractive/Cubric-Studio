@@ -133,6 +133,9 @@
   photo's hair, that jacket in this fabric. Mask what should change, add a reference with the
   **+** beside the prompt, and run an Edit. Drag the chips to reorder them when order matters.
 
+- **The gallery prompt box has a + button too.** Browse your project or your disk for a
+  reference picture instead of dragging one in.
+
 - **You can go and get an update instead of waiting to be asked.** Settings shows a new
   version at the top with a button to install it, and the startup prompt now has a **Don't ask
   again** checkbox.

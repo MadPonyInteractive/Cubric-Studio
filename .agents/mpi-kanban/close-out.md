@@ -49,7 +49,9 @@ docs-only close commit through by design; this is the check that gate cannot mak
 while the card's own code commit is unjudged, in flight, or brought NEW failing specs. It
 blames by spec set, so a close during someone else's red still goes through - if it blocks
 you, the red is yours. Code and close in one push is refused too: the message hands you
-the `git push origin <sha>:master` that sends the code alone.
+the `git push origin <sha>:master` that sends the code alone. That escape needs the close in
+its OWN commit: a commit carrying both the code and the `done` move can never pass, because
+CI must judge that very commit first (MPI-924, 2026-09-25).
 
 ## Release-awareness check (do NOT skip)
 
