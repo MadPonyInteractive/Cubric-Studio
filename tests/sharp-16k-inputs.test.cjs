@@ -259,10 +259,34 @@ test('save-generation: a 16K result with no pixelDimensions gets its size probed
         assert.equal(res.success, true, JSON.stringify(res));
         const sidecar = await fs.readJson(path.join(metaDir, 'aaaaaaaa-0000-0000-0000-00000000925a.json'));
         assert.deepEqual(sidecar.pixelDimensions, { w: SIDE, h: SIDE });
+        // MPI-926: and it gets both gallery renditions, which ffmpeg alone could not make.
+        for (const [key, w] of [['thumbPath', 512], ['thumbPathLg', 1280]]) {
+            assert.ok(sidecar[key], `no ${key} on a 16K result`);
+            const abs = decodeURIComponent(String(sidecar[key]).replace(/^.*[?&]path=/, ''));
+            assert.equal((await sharp(abs).metadata()).width, w, key);
+        }
     } finally {
         await stop();
         await new Promise(r => view.close(r));
     }
+});
+
+// ── services/ffmpegThumb.js (MPI-926) ────────────────────────────────────────
+
+test('extractImageThumb: a photo past ffmpeg\'s limit gets an upright thumbnail', async () => {
+    const { extractImageThumb } = require('../services/ffmpegThumb.js');
+    const { dir } = await fixtures();
+    // 280 MP stored landscape, EXIF 6 = shown portrait. ffmpeg honours the tag on the
+    // images it CAN decode, so the thumb of one it cannot must be upright too.
+    const src = path.join(dir, 'rotated280mp.jpg');
+    await sharp({ create: { width: 20000, height: 14000, channels: 3, background: '#2080c0' }, ...NO_LIMIT })
+        .jpeg({ quality: 40 }).withMetadata({ orientation: 6 }).toFile(src);
+    const out = await extractImageThumb(src, path.join(dir, 'rotated.thumb.jpg'));
+    assert.ok(out, 'no thumbnail');
+    assert.ok(out.endsWith('.thumb.webp'), out);
+    const m = await sharp(out).metadata();
+    assert.equal(m.format, 'webp');
+    assert.deepEqual([m.width, m.height], [512, 731], 'upright: 512 wide, portrait');
 });
 
 // ── routes/gifMake.js ────────────────────────────────────────────────────────

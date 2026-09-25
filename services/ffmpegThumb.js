@@ -4,7 +4,8 @@
  * ffmpegThumb.js — Extract a single JPG thumbnail from a video, or downscale
  * an image to a gallery-sized WebP thumbnail.
  *
- * Uses bundled ffmpeg (see ffmpegBinary.js). A video's poster is one frame at the
+ * Uses bundled ffmpeg (see ffmpegBinary.js), except for an image too big for ffmpeg to
+ * decode, which goes through sharp (`_pastFfmpegPictureLimit`, MPI-926). A video's poster is one frame at the
  * given timestamp (default 0s) and rides the same ladder as an image (MPI-689) —
  * it was a 256-wide JPG until then, which is why videos read as soft until hover.
  * Thumbs come in TWO sizes (MPI-633) — see IMAGE_RENDITION_PX below. 512 was the
@@ -30,6 +31,7 @@
 const path = require('path');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
+const sharp = require('sharp');
 const { ffmpegPath } = require('./ffmpegBinary');
 const logger = require('../routes/logger');
 
@@ -101,9 +103,32 @@ function imageThumbPath(outPath, { width = IMAGE_RENDITION_PX.small } = {}) {
         : webp.replace(/\.webp$/i, `.${width}.webp`);
 }
 
+/**
+ * ffmpeg's image decoders refuse a picture past `(w+128)*(h+128) > INT_MAX/8`, and the
+ * check is compiled in: 16255^2 thumbnails, 16256^2 fails "Picture size ... is invalid"
+ * (measured, MPI-926). Photographers load 16K stills, so those thumb through sharp.
+ * Everything ffmpeg CAN decode stays on ffmpeg — including BMP, which sharp cannot read.
+ */
+const FFMPEG_MAX_PICTURE = Math.floor(0x7fffffff / 8);
+
+async function _pastFfmpegPictureLimit(inputPath) {
+    // A format sharp cannot read (BMP) has no size here: ffmpeg decodes it, as before.
+    const { width: w, height: h } = await sharp(inputPath, { limitInputPixels: false }).metadata().catch(() => ({}));
+    return w > 0 && h > 0 && (w + 128) * (h + 128) > FFMPEG_MAX_PICTURE;
+}
+
 async function extractImageThumb(inputPath, outPath, { width = IMAGE_RENDITION_PX.small } = {}) {
     const webpPath = imageThumbPath(outPath, { width });
     try {
+        if (await _pastFfmpegPictureLimit(inputPath)) {
+            // rotate(): ffmpeg honours EXIF orientation, so this branch must too.
+            await sharp(inputPath, { limitInputPixels: false })
+                .rotate()
+                .resize({ width, withoutEnlargement: true })
+                .webp({ quality: 82 })
+                .toFile(webpPath);
+            return webpPath;
+        }
         const args = [
             '-y',
             '-i', inputPath,

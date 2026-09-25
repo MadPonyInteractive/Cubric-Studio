@@ -1,0 +1,8 @@
+{
+  "files": [
+    "services/ffmpegThumb.js",
+    "tests/sharp-16k-inputs.test.cjs",
+    "docs/gallery.md",
+    ".claude/rules/dos_and_donts.md"
+  ]
+}

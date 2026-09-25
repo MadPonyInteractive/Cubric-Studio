@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-926", "at": "2026-09-25T16:06:37+01:00", "actor": "claude", "column": "todo", "title": "A 16K image gets no gallery thumbnail: ffmpeg refuses the picture size"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-926", "at": "2026-09-25T17:23:28+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio: do MPI-926 now."}
