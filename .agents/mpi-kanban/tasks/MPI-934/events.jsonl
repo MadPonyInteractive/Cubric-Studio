@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-934", "at": "2026-09-25T18:33:14+01:00", "actor": "claude", "column": "doing", "title": "An SVG staged by an agent or dropped on a Flow input becomes a PNG"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-934", "at": "2026-09-25T18:45:11+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 001c3c81; staged SVG stored as PNG."}

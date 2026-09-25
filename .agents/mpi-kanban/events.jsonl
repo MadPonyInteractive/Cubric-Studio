@@ -5047,3 +5047,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-932", "at": "2026-09-25T17:31:39+01:00", "actor": "claude", "column": "todo", "title": "Finish the mascots, then fix the cancel path (umbrella): one line of handoffs to done"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-928", "at": "2026-09-25T18:42:43+01:00", "actor": "claude", "fields": ["description", "maturity"], "maturity": "planned"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-908", "at": "2026-09-25T18:43:37+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio verified every checklist item live; d66a472b CI green"}
+
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-934", "at": "2026-09-25T18:45:11+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 001c3c81; staged SVG stored as PNG."}
