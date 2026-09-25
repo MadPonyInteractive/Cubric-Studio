@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["routes/comfy.js", "routes/engine.js", "main.js", "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js", "docs/masking-sam3-gif.md", "docs/playbooks/add-flow/ui/result-pane.md", "tests/desktop/gif-cutout.spec.js", "docs/PROJECT.md", "tests/comfy-port-lockstep.test.cjs", "docs/DEVELOPMENT.md"] }

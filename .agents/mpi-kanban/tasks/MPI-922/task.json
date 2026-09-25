@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-922",
+  "title": "Local ComfyUI engine answers only Cubric Studio: drop the bare --enable-cors-header",
+  "description": "ComfyUI on :48188 starts with a bare --enable-cors-header, which sends ACAO * and replaces its own origin check, so any web page can run workflows. Same hole MPI-921 closed on :3000.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-25T12:58:57+01:00",
+  "updated_at": "2026-09-25T13:35:50+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
