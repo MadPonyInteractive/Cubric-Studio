@@ -59,9 +59,12 @@ Two things follow for local work:
   is gone. `scripts/workflow-to-api.mjs` and friends still default to `8188` (the bench)
   and honour `COMFY_URL`, so "am I probing the bench or the app?" is now answered by the
   port alone.
-- **`/comfy/start` refuses a port it did not open.** If something already answers on 48188
-  and we have no live child, it returns 409 with a plain message instead of adopting it.
-  Do not downgrade that to a warning that proceeds — proceeding is the bug.
+- **`/comfy/start` ATTACHES to an engine already on 48188 (MPI-484)**, which replaced
+  MPI-434's 409: 48188 is ours, shared by every app instance. That makes an `app:isolated`
+  instance run on the USER's engine whenever their app is up. So to test a change to how the
+  engine STARTS (its args, env or patch step), the user must stop their engine first; then
+  yours spawns its own (MPI-922). The probe still runs before the spawn
+  (`tests/comfy-port-lockstep.test.cjs`).
 
 To see what is listening: `netstat -ano | grep -E ":48188.*LISTENING"` (and `:8188` for the
 bench). Identify the PID before killing anything — 8188 is usually the user's. The port
