@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-915", "at": "2026-09-25T07:46:55+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio: go, put it next to Refresh"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-915", "at": "2026-09-25T07:50:38+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Shipped: folder button beside Refresh; unit + desktop specs green"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-915", "at": "2026-09-25T08:15:07+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "Reopened until CI judges b9fd9207 (pre-push done gate); Fabio verified live"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-915", "at": "2026-09-25T08:35:21+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI run 36106766720 green on 364c24b0 (carries b9fd9207); Fabio verified live"}

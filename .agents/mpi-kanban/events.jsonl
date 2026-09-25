@@ -4992,3 +4992,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-915", "at": "2026-09-25T08:15:07+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "Reopened until CI judges b9fd9207 (pre-push done gate); Fabio verified live"}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-913", "at": "2026-09-25T06:48:46+01:00", "actor": "d3e98b8e", "column": "todo", "title": "Agent on local Ollama holds VRAM while its own generations run"}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-916", "at": "2026-09-25T08:04:08+01:00", "actor": "d3e98b8e", "column": "todo", "title": "Agent tool contracts for the cases every model fails, so cheaper models pass"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-915", "at": "2026-09-25T08:35:21+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI run 36106766720 green on 364c24b0 (carries b9fd9207); Fabio verified live"}
