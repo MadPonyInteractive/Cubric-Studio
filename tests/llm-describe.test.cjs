@@ -495,28 +495,17 @@ test('DeepInfraEngine without profile still reports deepinfra backend (legacy pa
     assert.equal(engine.backend, 'deepinfra');
 });
 
-// MPI-774: the only flagged recommendation we ship. Qwen3-VL-30B drove an adult image
-// end to end without refusing (2026-09-18); DeepSeek V4 Flash was never tested that way
-// and is deliberately unflagged. The claim is comparative and it stays that way — this
-// test exists so nobody upgrades the wording into a promise about content.
-test('the recommendation note is on the one model that earned it, and stays comparative', async () => {
+// MPI-912: Qwen3-VL-30B carried an agent flag ("less censorship", MPI-774) on one refusal
+// test and scored 7/22 when it finally ran the agent suite, so it lost the flag. Any note a
+// recommendation carries stays comparative: never a promise about content.
+test('Qwen3-VL-30B is not an agent recommendation, and no note promises content', async () => {
     const { RECOMMENDED_REMOTE_MODELS } = await import('../services/llmEngines.mjs');
     const di = RECOMMENDED_REMOTE_MODELS.deepinfra || [];
-    const flagged = di.filter((r) => r.note);
-    assert.equal(flagged.length, 1, 'exactly one flagged recommendation');
-    assert.equal(flagged[0].id, 'Qwen/Qwen3-VL-30B-A3B-Instruct');
-    assert.equal(flagged[0].note, 'less censorship');
-    // The 235B sibling is NOT in the list: it costs more at every mix we care about and
-    // nobody has tested it. Neither is any other Qwen size.
-    assert.equal(di.filter((r) => r.id.startsWith('Qwen/')).length, 1);
-    // Never a promise. "Uncensored"/"unrestricted"/"NSFW" would be claims about content we
-    // cannot make from one test on one model.
-    for (const r of di) {
+    assert.ok(!di.some((r) => r.id === 'Qwen/Qwen3-VL-30B-A3B-Instruct' && r.jobs.includes('agent')));
+    for (const r of Object.values(RECOMMENDED_REMOTE_MODELS).flat()) {
         assert.doesNotMatch(r.note || '', /uncensored|unrestricted|nsfw|no limits|anything/i,
             `${r.id}: the note must stay comparative`);
     }
-    // It has to be an AGENT recommendation, or it lands on the wrong row in the picker.
-    assert.ok(flagged[0].jobs.includes('agent'));
 });
 
 test('RECOMMENDED_REMOTE_MODELS: deepinfra has enhance and describe entries', async () => {

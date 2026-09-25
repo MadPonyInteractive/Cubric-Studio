@@ -4990,3 +4990,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-915", "at": "2026-09-25T07:46:55+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio: go, put it next to Refresh"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-915", "at": "2026-09-25T07:50:38+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Shipped: folder button beside Refresh; unit + desktop specs green"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-915", "at": "2026-09-25T08:15:07+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "Reopened until CI judges b9fd9207 (pre-push done gate); Fabio verified live"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-913", "at": "2026-09-25T06:48:46+01:00", "actor": "d3e98b8e", "column": "todo", "title": "Agent on local Ollama holds VRAM while its own generations run"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-916", "at": "2026-09-25T08:04:08+01:00", "actor": "d3e98b8e", "column": "todo", "title": "Agent tool contracts for the cases every model fails, so cheaper models pass"}

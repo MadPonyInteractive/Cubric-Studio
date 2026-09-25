@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-916", "at": "2026-09-25T08:04:08+01:00", "actor": "d3e98b8e", "column": "todo", "title": "Agent tool contracts for the cases every model fails, so cheaper models pass"}

@@ -484,26 +484,9 @@ export const RECOMMENDED_REMOTE_MODELS = {
         // reasoning channel and put its deliberation in the reply; with 'low' it came back in
         // `reasoning_content` (600 chars) and the reply was clean.
         { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', jobs: ['agent'], contextWindow: 1_048_576, reasoningEffort: 'low' },
-        // `note` rides in the picker label beside "recommended". Qwen3-VL-30B is the one
-        // model we have EVIDENCE for here: on 2026-09-18 it drove an adult image end to
-        // end without refusing. That is the whole claim — one model, one test, that date.
-        // DeepSeek V4 Flash is deliberately left unflagged: nobody has tested it this way,
-        // and a flag nobody earned is worse than none.
-        //
-        // Wording is Fabio's (2026-09-19), chosen over "did not refuse in our tests".
-        // Whoever edits it: keep it comparative. "Less censorship" is a claim about this
-        // model relative to the other one in this list; "uncensored" would be a promise
-        // about content we cannot make from a single test, and it is not ours to make.
-        //
-        // Cheapest of the two Qwen3-VL sizes at every mix we care about: $0.15 in /
-        // $0.60 out per 1M against the 235B's $0.20 / $0.88 (DeepInfra, 2026-09-19). The
-        // 235B only wins on CACHED input, which needs ~60% cache hits to break even.
-        {
-            id: 'Qwen/Qwen3-VL-30B-A3B-Instruct',
-            jobs: ['agent'],
-            contextWindow: 262_144,
-            note: 'less censorship',
-        },
+        // Qwen3-VL-30B-A3B lost its `agent` flag on 2026-09-25 (MPI-912, Fabio): 7/22 on the
+        // agent suite. It carried "less censorship" from ONE refusal test (2026-09-18) and was
+        // never run through the suite. An agent flag needs the suite, whatever else a model does.
         // `describe` moved here from Llama-4-Scout on 2026-09-21, on a scored run of ten
         // multimodal DeepInfra models over the picture that broke the old one — the agent
         // wrote "leaning forward" and "pointing outward at her sides" for a rider sitting

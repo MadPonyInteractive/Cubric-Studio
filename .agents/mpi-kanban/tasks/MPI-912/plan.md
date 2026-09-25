@@ -81,6 +81,11 @@ read in an isolated app (`npm run app:isolated`), never `:3000`.
   16 GB, which cannot hold the agent's 32K (calls ran 7K-20K+ prompt tokens). Awaiting his
   answer: close, or card the 26B test.
 - Code, tests and research committed at handoff (2026-09-25).
+- 2026-09-25 (session d3e98b8e): 1d926ca3 pushed on a green master. Fabio asked for Flash on
+  Ollama Cloud + gemma4:26b for local. Flash: 402, not in Ollama's free usage (Fabio is on
+  `free`), path unmeasured. gemma4:26b on DeepInfra: 14/22, same as gemma4:12b. No agent flag
+  added, no code change; validation.md § 4. Agent VRAM hold carded as MPI-913. Next: Fabio's
+  close call, then `mpi-end-session`.
 
 ## Completed
 

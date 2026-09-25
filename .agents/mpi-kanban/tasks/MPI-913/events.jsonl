@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-913", "at": "2026-09-25T06:48:46+01:00", "actor": "d3e98b8e", "column": "todo", "title": "Agent on local Ollama holds VRAM while its own generations run"}

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-913",
+  "title": "Agent on local Ollama holds VRAM while its own generations run",
+  "description": "Found on MPI-912 (2026-09-25). Enhance releases Ollama VRAM on every exit (routes/llm.js enhance finally, releaseOwnModels, the MPI-14 rule: an idle local LLM took a sub-10s render past 3 minutes on 16 GB). The agent never does: nothing in services/agentLoop.mjs or the agent routes unloads Ollama, and its /api/chat requests carry no keep_alive, so Ollama keeps the agent model resident for its default 5 minutes after every turn, including while a LOCAL ComfyUI generation the agent itself dispatched is running. Fix: when the agent's engine is local Ollama (not a :cloud model, not a Remote connection) and the generation runs on the local engine (not RunPod), release Ollama before the generation starts. Cost: the model reloads on the next agent turn. Fabio's UX (2026-09-25): while such a generation runs, the chat tells the user Cosmo is waiting, because Cosmo runs on the same card and cannot share it with the generation (copy is a draft, his words: 'A generation is running. Cosmo is unavailable because Cosmo is running locally and cannot compete and cannot fit in your card'). Check first whether the agent turn already blocks on the generation (then the release is the whole fix) or keeps chatting (then the message is needed). Unlocks gemma4:26b as the local agent on 24-32 GB cards. services/agentLoop.mjs is claimed by MPI-908 (Mascots session) at time of writing.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-25T06:48:46+01:00",
+  "updated_at": "2026-09-25T06:48:46+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
