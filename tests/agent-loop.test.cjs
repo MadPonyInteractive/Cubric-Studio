@@ -1239,6 +1239,8 @@ describe('(h) notes, results, names, guides', () => {
         assert.equal(first.error.code, 'GUIDE_NOT_READ');
         assert.match(first.error.message, /"guide:test"/);
         assert.deepEqual(tools.calls.generate.map((b) => b.positive), ['A fox, adapted'], 'only the call after the read reached the app');
+        // MPI-916: the read that unlocks the refused call says so; gpt-oss-120b stopped there.
+        assert.match(toolResults(loop)[1].next, /has NOT run\. Send it again now/);
     });
 
     test('a Flow, or a model with no guide, is not held back', async () => {
@@ -1334,6 +1336,24 @@ describe('(h) notes, results, names, guides', () => {
             'box1 is image1: a box on image2, or a look without box, does not open it');
         assert.match(toolResults(loop)[0].error.message, /"att_1"/);
         assert.equal(tools.calls.generate.length, 1, 'only the measured call reached the app');
+    });
+
+    // MPI-916: gpt-oss-120b sent Head Swap with no params at all, and the gate only looked at the
+    // params it was sent, so the swap ran on the graph's baked default boxes.
+    test('a box Flow sent with no box at all waits for the first one to be measured', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('g1', 'generate', { flowId: 'head-swap', media: [{ role: 'image1', image: 'att_1' }, { role: 'image2', image: 'att_2' }] }),
+            { text: 'Measuring first.' },
+        ] });
+        tools.listModels = async () => ({ ok: true, models: [], flows: [
+            { id: 'head-swap', boxParams: [{ param: 'box1', role: 'image1', ratio: 1 }, { param: 'box2', role: 'image2', ratio: 1 }] },
+        ] });
+        loop._images.set('att_1', { path: '/tmp/att_1.png', kind: 'attachment' });
+        await loop.runTurn('Swap the head', [], project, 'auto', 'deepinfra', 't-nobox');
+        const [gen] = toolResults(loop);
+        assert.equal(gen.error.code, 'BOX_NOT_MEASURED');
+        assert.match(gen.error.message, /Measure box1 first: call look on "att_1"/);
+        assert.equal(tools.calls.generate.length, 0);
     });
 
     test('a box that takes over 0.6 of the image is refused, and a second one says stop', async () => {
@@ -1466,6 +1486,29 @@ describe('(i) the catalogue diet', () => {
         ]);
 
         assert.deepEqual(short.flows, [{ id: 'a-flow', title: 'A Flow', installed: true }]);
+    });
+
+    // MPI-916: with ranks 1-2 not installed, cheaper models took rank 5 over rank 3.
+    test('best marks the lowest-ranked op per task that is installed, runs here and is free', async () => {
+        const { compactCatalogue } = await import('../services/agentLoop.mjs');
+        const op = (o, rank, extra = {}) => ({ op: o, installed: true, rank, task: 'edit', ...extra });
+        const short = compactCatalogue({
+            ok: true,
+            models: [
+                { id: 'top', installed: false, ops: [op('edit', 1, { installed: false })] },
+                { id: 'wont-run', installed: true, fit: { runs: false }, ops: [op('edit', 2)] },
+                { id: 'krea', installed: true, ops: [op('krea2Edit', 5), { op: 't2i', installed: true, rank: 2, task: 't2i' }] },
+                { id: 'klein', installed: true, ops: [op('kleinEdit', 3)] },
+                { id: 'cloud', installed: true, ops: [op('edit', 0.5, { paid: true })] },
+                { id: 'plain', installed: true, ops: [{ op: 'x', installed: true }] },
+            ],
+            flows: [],
+        });
+        const flagged = short.models.flatMap((m) => m.ops.filter((o) => o.best).map((o) => `${m.id}:${o.op}`));
+        assert.deepEqual(flagged, ['krea:t2i', 'klein:kleinEdit'], 'one best per task, among what can run for free');
+        const krea = short.models.find((m) => m.id === 'krea').ops;
+        assert.equal(krea[0].task, 'edit', 'an op id that hides its task names it');
+        assert.equal(krea[1].task, undefined, 'an op id that IS the task does not repeat it');
     });
 
     test('list_models hands the model the short list, and still arms the guide gate', async () => {

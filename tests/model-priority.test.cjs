@@ -105,6 +105,18 @@ test('a PAID model ranks below every local one, and says what it costs (MPI-875)
     }
 });
 
+test('every ranked op names its task, and a paid one says so (MPI-916)', () => {
+    // The op ids differ per model (kleinEdit, krea2Edit), so only `task` tells the agent's
+    // catalogue which ops compete for its `best` mark; `paid` keeps a cloud op off it.
+    for (const [task, pairs] of RANKED) {
+        for (const [m, o] of pairs) assert.equal(opPriority(m, o).task, task, `${m}:${o}`);
+    }
+    assert.equal(opPriority('klein-9b', 'kleinEdit').paid, undefined, 'a local op is not paid');
+    for (const model of MODELS.filter((m) => m.provider)) {
+        for (const op of model.supportedOps || []) assert.equal(opPriority(model.id, op).paid, true, `${model.id}:${op}`);
+    }
+});
+
 test('the local order is untouched by the paid models being ranked (MPI-875)', () => {
     // The paid entries are appended after the locals are ranked, so adding one must not
     // renumber anything a local model was promised.
@@ -115,12 +127,27 @@ test('the local order is untouched by the paid models being ranked (MPI-875)', (
 
 test('nothing an agent must not drift to is ranked', () => {
     // An `-nsfw` variant is the user's explicit choice, never a default the ranking makes.
+    // It carries a note instead (Fabio, MPI-916): an explicit adult request takes it when installed.
     for (const m of MODELS.filter((x) => x.id.includes('nsfw'))) {
         for (const op of m.supportedOps || []) {
-            assert.equal(opPriority(m.id, op), null, `${m.id}:${op} must not be ranked`);
+            const entry = opPriority(m.id, op);
+            assert.equal(entry.rank, undefined, `${m.id}:${op} must not be ranked`);
+            assert.equal(entry.task, undefined, `${m.id}:${op} must never compete for best`);
+            assert.match(entry.note, /explicit adult request/);
         }
     }
     // A task with one candidate ranks nothing: there is no preference to express.
-    assert.equal(opPriority('minimax-h3-ref2va', 'ref2v_ms'), null);
     assert.equal(opPriority('nvidia-pid', 'pid'), null);
+});
+
+test('a character sheet is steered to the reference op, and a re-run away from i2i (MPI-916)', () => {
+    // ref2v is a list of one, ranked only so its note reaches the agent: unranked and
+    // unannotated, it lost to i2v's rank 1 and the sheet went in as a first frame.
+    const ref = opPriority('minimax-h3-ref2va', 'ref2v_ms');
+    assert.equal(ref.task, 'ref2v');
+    assert.match(ref.note, /character sheet/);
+    for (const [m, o] of RANKED.find(([t]) => t === 'i2v')[1]) {
+        assert.match(opPriority(m, o).note, /never a start frame/, `${m}:${o}`);
+    }
+    assert.match(opPriority('ill-anime', 'i2i').note, /re-run: that model's t2i, with no media/);
 });

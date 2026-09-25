@@ -19,8 +19,9 @@
  *
  * NOT RANKED, on purpose: the `-nsfw` variants (an agent must not drift to one on its own;
  * with only those installed the rule falls back to any op that does the task), and the
- * single-entry tasks `ref2v` (minimax-h3-ref2va) and `pid` (nvidia-pid) — a list of one
- * ranks nothing.
+ * single-entry task `pid` (nvidia-pid) — a list of one ranks nothing. `ref2v` is a list of
+ * one too, but it is RANKED (MPI-916): its note is what sends a character sheet there
+ * instead of to i2v's rank 1, and only a ranked op carries a note.
  *
  * Adding a model? `docs/playbooks/add-model/` step 5 — a model missing here is invisible
  * to the agent's preference, which reads as the agent ignoring it.
@@ -76,6 +77,10 @@ const I2V = [
     ['ltx-23', 'i2v_ms'],
 ];
 
+const REF2V = [
+    ['minimax-h3-ref2va', 'ref2v_ms'],
+];
+
 /** Keyed `modelId:op` where the strength is about that op, else by `modelId`. */
 const NOTES = {
     'boogu-edit-high:edit': 'the strongest editor here, but it takes exactly one image',
@@ -84,6 +89,7 @@ const NOTES = {
     'klein-4b:kleinEdit': 'the small native editor — lighter, and weaker on realism',
     'krea2:krea2Edit': 'faster than Qwen Edit and strong on realism, but it tends to change the surroundings too',
     'qwen-edit:qwenEdit': 'the slowest of these, and the only one that leaves everything outside the edit area untouched',
+    'minimax-h3-ref2va:ref2v_ms': 'the identity route: a character sheet, a turnaround or several views of one subject go in as references, and the clip is made new around them',
     'krea2': 'realism',
     'klein-9b': 'realism, well past any SDXL model',
     'chroma-flash': 'candid, real-life, influencer-style photography',
@@ -105,9 +111,16 @@ const NOTES = {
  * with no i2i note at all, "make this anime" went to klein's editor, which dressed the
  * subject — and "can you use a different technique?" could not be answered, because nothing
  * told the agent another technique existed.
+ *
+ * MPI-916: each note also says what its op is NOT, at the moment the op is chosen. Cheaper
+ * models ran "this image but with <model>" as that model's i2i, and fed a character sheet to
+ * i2v as its first frame, with the rule sitting in the system prompt and not in front of them.
  */
+const I2V_NOTE = 'animates THIS picture: it becomes the first frame exactly as it is, so a character sheet or several views of one subject is never a start frame (that is a reference op)';
 const OP_NOTES = {
-    i2i: 'the restyle route: it repaints the whole picture from the WORDS, so prompt it with the description of THIS image and then the style you want, never a better scene. denoise decides how much moves — keep it low to hold the pose and composition. If the result strays too far from the original, offer an edit op instead',
+    i2i: 'the restyle route, only when the user asks to change how THIS picture looks; "this picture, but with <model>" is a re-run: that model\'s t2i, with no media. It repaints the whole picture from the WORDS, so prompt it with the description of THIS image and then the style you want, never a better scene. denoise decides how much moves — keep it low to hold the pose and composition. If the result strays too far from the original, offer an edit op instead',
+    i2v_ms: I2V_NOTE,
+    i2v: I2V_NOTE,
 };
 
 const _ranked = new Map();
@@ -115,10 +128,14 @@ const _ranked = new Map();
 /** How many LOCAL models each task ranked, so the paid ones can carry on from there. */
 const _localCount = new Map();
 
+// `task` rides along so the agent's catalogue can mark the best op it can RUN per task
+// (`compactCatalogue` in services/agentLoop.mjs): "the lowest rank among what is installed"
+// is arithmetic that cheaper models get wrong (MPI-916). The op ids differ per model, so
+// only the task says that kleinEdit and krea2Edit compete.
 function _rank(pairs, task) {
     pairs.forEach(([modelId, op], i) => {
         const note = [NOTES[`${modelId}:${op}`] || NOTES[modelId], OP_NOTES[op]].filter(Boolean).join('; ');
-        _ranked.set(`${modelId}:${op}`, { rank: i + 1, ...(note ? { note } : {}) });
+        _ranked.set(`${modelId}:${op}`, { rank: i + 1, task, ...(note ? { note } : {}) });
     });
     _localCount.set(task, pairs.length);
 }
@@ -126,6 +143,7 @@ function _rank(pairs, task) {
 _rank(EDIT, 'edit');
 _rank(T2V, 't2v');
 _rank(I2V, 'i2v');
+_rank(REF2V, 'ref2v');
 for (const task of IMAGE_TASKS) {
     _rank(IMAGE_ORDER
         .filter(id => MODELS.find(m => m.id === id)?.supportedOps?.includes(task))
@@ -171,13 +189,27 @@ for (const task of CLOUD_TASKS) {
         .filter(model => model.provider && model.cloud?.endpointId && model.supportedOps?.includes(task))
         .forEach((model, i) => _ranked.set(`${model.id}:${task}`, {
             rank: offset + i + 1,
+            task,
+            // Never `best`: a paid run is picked only when asked for by name (the note).
+            paid: true,
             note: _cloudNote(model),
         }));
 }
 
 /**
+ * The `-nsfw` variants stay UNRANKED (no rank, no task, so never `best`), but carry a note:
+ * Fabio, 2026-09-25, an explicit adult request takes one when it is installed. Without the note
+ * an unranked op reads as merely "unranked", and the pick declined the ask outright.
+ */
+const NSFW_NOTE = 'the NSFW bake: take it, when installed, for an explicit adult request, never otherwise';
+for (const model of MODELS.filter(m => m.id.endsWith('-nsfw'))) {
+    for (const op of model.supportedOps || []) _ranked.set(`${model.id}:${op}`, { note: NSFW_NOTE });
+}
+
+/**
  * This op's place in its task's ranking, or null when the task has no ranking.
- * @returns {{ rank: number, note?: string } | null} rank 1 is the best for that task.
+ * @returns {{ rank?: number, task?: string, paid?: true, note?: string } | null} rank 1 is the best
+ *   for that task; an `-nsfw` op has a note and no rank.
  */
 export function opPriority(modelId, op) {
     return _ranked.get(`${modelId}:${op}`) || null;

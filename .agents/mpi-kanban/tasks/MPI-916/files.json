@@ -1,0 +1,14 @@
+{
+  "files": [
+    "services/agentLoop.mjs",
+    "js/data/modelConstants/modelPriority.js",
+    "tests/model-priority.test.cjs",
+    "tests/agent-loop.test.cjs",
+    "docs/agent-chat.md",
+    "docs/playbooks/add-model/03-model-registry.md",
+    ".agents/mpi-kanban/tasks/MPI-916/",
+    "scripts/agent-test.mjs",
+    "docs/agent/models/krea-2.md",
+    "tests/agent-prompt-budget.test.cjs"
+  ]
+}

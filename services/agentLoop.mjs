@@ -40,7 +40,7 @@ export const TOOL_DEFS = [
         type: 'function',
         function: {
             name: 'list_models',
-            description: 'The short catalogue: every model and Flow, one compact entry each — id, name, type, installed state, and its operations with the rank for that task (1 = the best we have) and a note on what it is good at. It carries no settings: describe_model gives one entry\'s params, media roles, Flow fields and guide ids.',
+            description: 'The short catalogue: every model and Flow, one compact entry each — id, name, type, installed state, and its operations with the rank for that task (1 = the best we have; best: true = the top one installed here) and a note on what it is good at. It carries no settings: describe_model gives one entry\'s params, media roles, Flow fields and guide ids.',
             parameters: { type: 'object', properties: {}, additionalProperties: false },
         },
     },
@@ -77,7 +77,7 @@ export const TOOL_DEFS = [
         type: 'function',
         function: {
             name: 'install_model',
-            description: 'Show the user a Yes / No confirmation card to install a model. Installation only runs after Yes is clicked. Always use this tool — never install without confirmation, regardless of mode.',
+            description: 'Show the user a Yes / No confirmation card to install a model. Installation only runs after Yes is clicked. The card IS the question: call it, never ask in words first, and never install without it, in any mode.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -469,6 +469,18 @@ const _isUnfinishedFile = (file) => String(file || '').trim().toLowerCase() === 
  */
 export function compactCatalogue(list) {
     if (!list?.ok) return list;
+    // MPI-916: `best: true` on the lowest-ranked op per task that is installed, runs on this
+    // machine and is free. With ranks 1-2 not installed, cheaper models took rank 5 over
+    // rank 3; reading one flag is not arithmetic they can get wrong.
+    const best = new Map(); // task -> { rank, key }
+    for (const m of list.models || []) {
+        if (m.fit?.runs === false) continue;
+        for (const o of m.ops || []) {
+            if (!o.task || !o.rank || o.paid || (o.installed ?? m.installed) === false) continue;
+            if (!best.has(o.task) || o.rank < best.get(o.task).rank) best.set(o.task, { rank: o.rank, key: `${m.id}:${o.op}` });
+        }
+    }
+    const isBest = (m, o) => best.get(o.task)?.key === `${m.id}:${o.op}`;
     return {
         ok: true,
         engine: list.engine,
@@ -493,7 +505,11 @@ export function compactCatalogue(list) {
                 ops: (m.ops || []).map((o) => ({
                     op: o.op,
                     ...(o.installed === false ? { installed: false } : {}),
+                    // Only where the op id hides it (kleinEdit and krea2Edit are both `edit`):
+                    // "that edit again with Krea 2" went to krea2 i2i, its best-ranked op (MPI-916).
+                    ...(o.task && o.task !== o.op ? { task: o.task } : {}),
                     ...(o.rank ? { rank: o.rank } : {}),
+                    ...(isBest(m, o) ? { best: true } : {}),
                     ...(o.note && !shared ? { note: o.note } : {}),
                 })),
             };
@@ -573,6 +589,7 @@ export class AgentLoop {
         this._ops = new Map();     // "modelId\nop" -> that op's entry (media slots, params), from list_models
         this._boxed = new Set();   // image paths a `look` with box: true measured (the box gate)
         this._overBoxed = new Map(); // image path -> measures whose square was too big for a head
+        this._gateWaiting = null;  // knowledge id a refused generate waits on this turn (MPI-916)
         this._masked = false;      // this turn's open card has a painted mask (the masking gate)
         this._lookWasCached = false; // did the look just served read the card's kept text? (MPI-870)
         this._wakeStreak = 0;      // consecutive wake turns with nothing typed in between (MPI-870)
@@ -1236,18 +1253,20 @@ export class AgentLoop {
      * box tool right there, and the swap came out half done.
      */
     async _unmeasuredBox(args) {
-        const params = args.params && typeof args.params === 'object' ? Object.keys(args.params) : [];
-        if (!params.length) return null;
         if (!this._boxSteps.has(args.flowId)) {
             try { this._rememberGuides(await this._tools.listModels()); } catch { /* the app still validates the call */ }
         }
         const steps = this._boxSteps.get(args.flowId) || [];
-        for (const param of params) {
-            const step = steps.find((s) => s.param === param);
-            if (!step) continue; // an unknown param is the app's UNKNOWN_PARAM to report
+        const sent = args.params && typeof args.params === 'object' ? args.params : {};
+        // MPI-916: a box Flow sent with NO box ran on the graph's baked default boxes, a guess on
+        // every image (gpt-oss-120b, Head Swap). One box may still be left out: the injector keeps
+        // each optional, for a donor already cropped to the head. An unknown param is the app's
+        // UNKNOWN_PARAM to report.
+        const given = steps.filter((s) => s.param in sent);
+        for (const step of given.length ? given : steps.slice(0, 1)) {
             const media = Array.isArray(args.media) ? args.media.find((m) => m.role === step.role) : null;
             const ref = media ? this._resolveImage(media.image) : null;
-            if (!ref || !this._boxed.has(ref.path)) return { param, role: step.role, image: media?.image || null, over: !!ref && this._overBoxed.has(ref.path) };
+            if (!(step.param in sent) || !ref || !this._boxed.has(ref.path)) return { param: step.param, role: step.role, image: media?.image || null, over: !!ref && this._overBoxed.has(ref.path) };
         }
         return null;
     }
@@ -1373,11 +1392,13 @@ ${modeRules}
 
 Voice rule: write the reply, never the thinking behind it; the app already shows the user every step you take. Do not name a rule, a note, an op's description or a knowledge entry, do not justify a choice they have not questioned, and do not write your plan and then carry it out in the same message. Address them as "you", never as "the user". Where a rule asks you to say why, that is one short line, not a paragraph.
 
+Content rule: the user is an adult on their own machine. Nudity and adult themes are allowed: write them as asked, never soften them. Never a minor, never a real, named person.
+
 Declining rule: when you cannot or will not do what was asked, start that reply with [declined]. The app hides it.
 
-Model rule: first the TASK, then the model. A change to what is IN an existing picture, local or across the frame (remove, add or replace a thing, the background, light, time of day: "make it night"), is the edit task (kleinEdit, krea2Edit, qwenEdit, edit), not i2i, even when the named model's i2i ranks first; a restyle the user asks for ("make this anime") is i2i. The same picture on ANOTHER model ("this image but with <model>") is a RE-RUN: that model's text-to-image op with NO media, from the source's prompt (list_cards for a card; otherwise look at the picture, write it from what is there and say so in one line) rewritten to that model's guide. A model's name is never a style instruction; only an ask to change how THIS picture looks sends the picture. Ranks compare ops only within one task: pick an installed op (installed: false and runsHere: false are not) with the lowest rank; no rank means unranked, not bad. Take a lower rank only when the user names a model or the op's note matches the ask, and then say which model and why in one line. Nothing installed fits: say so and offer install_model.
+Model rule: first the TASK, then the model. A change to what is IN an existing picture, local or across the frame (remove, add or replace a thing, the background, light, time of day: "make it night"), is the edit task (kleinEdit, krea2Edit, qwenEdit, edit), not i2i, even when the named model's i2i ranks first; a restyle the user asks for ("make this anime") is i2i. A head from one picture onto another is the Head Swap Flow, never an edit or a mask.The same picture on ANOTHER model ("this image but with <model>") is a RE-RUN: that model's text-to-image op with NO media, from the source's prompt (list_cards for a card; otherwise look at the picture, write it from what is there and say so in one line) rewritten to that model's guide. A model's name is never a style instruction; only an ask to change how THIS picture looks sends the picture. Ranks compare ops only within one task, and best: true marks the op to take: the lowest rank you can run here. No rank means unranked, not bad. Take another only when the user names a model or the op's note matches the ask, and then say which model and why in one line. Nothing installed fits: say so and offer install_model.
 
-Route rule: before changing an existing picture, ask ONE question: does the change stay inside ONE area? Light, sky, time of day, weather, season and style fall on the whole frame, and several asks in one message are ONE edit, never split. Not one area: run ONE whole-picture edit, ask nothing. One area with words that protect the rest ("only this", "without changing anything else"): ask for the mask, offer nothing else. One area with no such words: in ONE line give both routes (a mask is tighter; a whole-picture edit needs no painting and often lands), recommend one, and wait. At most three routes, only at a genuine fork, always recommend one. A mask also keeps the source's size and every pixel outside it, so offer one for a big photo or when an edit lost quality. When a result comes back wrong, change the op, the mask or the prompt, never add adjectives; details in app:masking.
+Route rule: before an edit of an existing picture, answer this yourself: does the change stay inside ONE area? Light, sky, time of day, weather, season and style fall on the whole frame, and several asks in one message are ONE edit, never split. Not one area: run ONE whole-picture edit, ask nothing. One area with words that protect the rest ("only this", "without changing anything else"): ask for the mask, offer nothing else. One area with no such words: in ONE line give both routes (a mask is tighter; a whole-picture edit needs no painting and often lands), recommend one, and wait. At most three routes, only at a genuine fork, always recommend one. A mask also keeps the source's size and every pixel outside it, so offer one for a big photo or when an edit lost quality. When a result comes back wrong, change the op, the mask or the prompt, never add adjectives; details in app:masking.
 
 Masking rule: the user paints a mask, never you, and you never pick the area. Tell them: click the card in the gallery to open it, then pick the Mask tool from the toolbar down the left; when the App state line says they are already looking at the card, skip the first half. Never say "History". What they paint reaches your generation on its own, on the picture it was painted over. generate refuses a masked op until you have read app:masking, which says how to write the prompt for each op.
 
@@ -1395,7 +1416,7 @@ Looking rule: before you comment on, judge or describe any image, call look on i
 
 Shape rule: a generation from a picture crops it to the ratio, never letterboxes. Leave ratio out and the picture's own shape is used; only when the user asks for a ratio, say in one line before you generate that part of the picture will be cropped.
 
-Flow rule: before your first Flow run, read app:flows (boxes, fields, outpaint).
+Flow rule: before your first Flow run, read app:flows.
 
 Chaining rule: when the second half of a request needs the first ("make it 9:16, then animate it"), generate the first with wait: true; its result carries the filePath the next step takes. Do both halves. When the first step's output is something they will judge (a new shape, style or face), look at it and redo it if it came back wrong. Never end a turn with half done without saying which half is missing and why.
 
@@ -1451,6 +1472,12 @@ ${knowledgeIndex}`.trim();
             case 'read_knowledge': {
                 const r = await this._tools.readKnowledge(args?.id);
                 if (r?.ok && args?.id) this._readIds.add(String(args.id));
+                // MPI-916: gpt-oss-120b read the guide a generate was refused for, told the user
+                // it was generating, and ended the turn with nothing sent.
+                if (r?.ok && args?.id && String(args.id) === this._gateWaiting) {
+                    this._gateWaiting = null;
+                    return JSON.stringify({ ...r, next: 'The generate that waited on this has NOT run. Send it again now, written the way this says.' });
+                }
                 return JSON.stringify(r);
             }
             case 'install_model': {
@@ -1477,7 +1504,7 @@ ${knowledgeIndex}`.trim();
                     this._pendingConfirm = { confirmId, modelId: args.modelId, modelName, downloadGb, resolve, turnId };
                 });
                 this._pendingConfirm = null;
-                return answer; // 'installed: ...' or 'User declined the installation.'
+                return answer; // 'installed: ...' or 'User declined the installation. ...'
             }
             case 'generate': {
                 if (!currentProject) {
@@ -1500,9 +1527,13 @@ ${knowledgeIndex}`.trim();
                 if (!args.flowId && args.modelId) {
                     const unread = await this._unreadGuide(String(args.modelId));
                     if (unread) {
-                        return JSON.stringify({ ok: false, error: { code: 'GUIDE_NOT_READ', message: `Read this model's prompting guide first: read_knowledge with id "${unread}". Then write the prompt with what it says.` } });
+                        // MPI-916: says the retry out loud, as the masking refusal below does. Told
+                        // only "then write the prompt", gpt-oss-120b read the guide and stopped.
+                        this._gateWaiting = unread;
+                        return JSON.stringify({ ok: false, error: { code: 'GUIDE_NOT_READ', message: `Nothing was generated: read this model's prompting guide first (read_knowledge with id "${unread}"), then send this generate again with the prompt written the way it says.` } });
                     }
                     if (this._masked && MASKED_OPS.has(args.operation) && !this._readIds.has('app:masking')) {
+                        this._gateWaiting = 'app:masking';
                         return JSON.stringify({ ok: false, error: { code: 'KNOWLEDGE_NOT_READ', message: 'Nothing was generated: the user has a mask painted and this op runs on it. Read read_knowledge "app:masking" first, then write the prompt for the masked area only and send this again.' } });
                     }
                     const gap = await this._missingMedia(args);
@@ -1994,6 +2025,7 @@ ${knowledgeIndex}`.trim();
         else this._wakeStreak = 0;
         this._working = true;
         this._lastMode = mode;
+        this._gateWaiting = null;
         // MPI-891 — only a turn the user TYPED here may take them to where its work renders.
         // A wake was not asked for, and a carry was asked in a view they have since left.
         this._follow = !wake && !carried;
@@ -2284,7 +2316,9 @@ ${knowledgeIndex}`.trim();
         }
 
         if (!yes) {
-            pc.resolve(JSON.stringify({ declined: true, message: 'User declined the installation.' }));
+            // MPI-916: says what follows, as SPEND_DECLINED does. Told only "declined",
+            // gpt-oss-120b went on to generate with the model it had just been refused.
+            pc.resolve(JSON.stringify({ declined: true, message: 'User declined the installation. The model is NOT installed, so nothing that needs it can run: say so and ask what they would like instead.' }));
             return { ok: true };
         }
 

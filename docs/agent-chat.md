@@ -215,8 +215,10 @@ Every event but `agent:session` also carries `session`, the key of its conversat
   compaction), then what finished since the last turn. A successful `open_project` updates the project
   for the rest of the turn, and its result carries the new project's notes.
 - **Gates** (a rule alone did not do it; a compaction clears them): a model op's `generate` answers `GUIDE_NOT_READ` until this context
-  read its router guide, the first of its `guides` (a guide names the mode of any default: a bare one skipped Ask first); a Flow `params` box answers
-  `BOX_NOT_MEASURED` until a `look` with `box` measured the image of its role (live, the model guessed 512 px boxes); an op with a
+  read its router guide, the first of its `guides` (a guide names the mode of any default: a bare one skipped Ask first), and the
+  `read_knowledge` that unlocks a refused call says in `next` that the call has NOT run (MPI-916: a model read the guide and ended
+  the turn); a Flow `params` box answers `BOX_NOT_MEASURED` until a `look` with `box` measured the image of its role (live, the model
+  guessed 512 px boxes), and so does a box Flow sent with NONE of its boxes, which would run on the graph's baked defaults; an op with a
   required media slot answers `MEDIA_REQUIRED` in-turn, naming the slot and every role the op takes, when the call fills none of it.
   That last one is a gate and not the app's own check because `generate` is fired and not awaited: the renderer's identical refusal
   arrives AFTER `{started: true}`, which is the only thing the model tells the user about — live, it reported a video as started
@@ -329,7 +331,23 @@ where it changes the pick, a one-line `note` — the half a ranking cannot hold 
 image", "leaves everything outside the edit area untouched"). One image order filtered by
 `supportedOps` covers all six image tasks; edit and the video tasks are explicit `{modelId, op}`
 lists, because those op ids are per model. `-nsfw` variants and single-candidate tasks are unranked
-on purpose.
+on purpose, except `ref2v`: a list of one, ranked only so its note (a character sheet or several
+views go here, never to i2v as a first frame) reaches the agent.
+
+**What the short list adds (MPI-916).** Each ranked op carries its `task` (`paid: true` on a cloud
+op), and `compactCatalogue` turns them into two fields: `best: true` on the lowest rank per task
+that is installed, runs here and is free, because "lowest INSTALLED rank" is arithmetic cheaper
+models get wrong (they took krea2Edit, rank 5, over kleinEdit, rank 3, with 1-2 not installed);
+and `task` on an op whose id hides it (`krea2Edit` is `edit`), so "that edit again with Krea 2"
+has a same-task op to land on. Notes also say what their op is NOT, at the moment it is chosen:
+i2i is not a re-run on a named model, i2v is not the home of a character sheet.
+
+**Adult content (MPI-916, Fabio's call).** The system prompt's Content rule says the user is an
+adult on their own machine, nudity and adult themes are allowed and written as asked, never a
+minor or a real, named person. Without it the recommended model declined a plain nude request
+with no tool call: the stance came from each model's training. The `-nsfw` variants stay unranked
+(never `best`) but carry a note that an explicit adult request takes one when installed. Harness
+case `adult-request`.
 
 **The Model rule names the TASK first, deliberately.** A rank attached to an op reads to the model as
 a rank attached to the WORK, and it will cross a task boundary to reach a 1: asked to redo an edit

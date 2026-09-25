@@ -17,10 +17,11 @@ Both run `t2i`, `i2i`, `control`, `krea2Edit`, `inpaint`, `detail`, `upscale`.
 - A reference should hand over its pose or composition only: `control` (depth is the
   only control type this model has).
 - One clear change needs to land on a specific image, with the source's own identity
-  and materials otherwise held: `krea2Edit`. Treat it as the third choice, not the
-  first: production found it fails more often than Boogu or Qwen Image Edit at the
-  same job. Reach for it when those are not installed, or when Krea 2's own bake is
-  worth the extra risk.
+  and materials otherwise held: `krea2Edit`. When YOU pick the editor, treat it as the
+  third choice, not the first: production found it fails more often than Boogu or Qwen
+  Image Edit at the same job. Reach for it when those are not installed, or when Krea
+  2's own bake is worth the extra risk. When the user asks for an edit ON Krea 2, it is
+  `krea2Edit`, never `i2i`: naming the model changes the model, not the task.
 - The user wants to paint out or regenerate one area of an image: `inpaint` or `detail`.
   Both need a mask painted in History. You cannot paint one, so ask the user to, naming the
   area, and run the op yourself once they say it is drawn; the mask reaches your call on

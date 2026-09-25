@@ -52,7 +52,10 @@ stylised art"). The image tasks share one order filtered by `supportedOps`, so a
 model is one id in `IMAGE_ORDER`, not six entries.
 
 Leave it unranked on purpose for an `-nsfw` variant (the agent must not drift to one) or a
-task with a single candidate (a list of one ranks nothing). `tests/model-priority.test.cjs`
+task with a single candidate (a list of one ranks nothing), unless that one op needs a note to
+be picked at all: only a ranked op carries a note, which is why `ref2v` is ranked alone. A new
+task list is registered with `_rank(pairs, '<task>')`; the task name is what the agent's
+`best` flag groups by, so two lists for one task must share it. `tests/model-priority.test.cjs`
 fails on an entry naming a model or an op that `models.js` does not have.
 
 ## Multi-tier models — N sibling cards, one per tier (LTX-2.3 / Boogu-Edit pattern)
