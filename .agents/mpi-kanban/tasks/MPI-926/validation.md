@@ -16,3 +16,7 @@ ffmpeg honours EXIF orientation (an orientation-6 800x400 JPEG thumbs 400x800). 
 - Neighbours (image-thumb-alpha, gallery-renditions, audio-waveform-alpha, gif-make, gif-frames, splat-companion, mcp): 65/65.
 - Full `npm test`: 1928 pass, 0 fail.
 - Alpha on the sharp branch (probe, not a suite test): a fully transparent 16384^2 RGBA PNG thumbs to a 512x512 WebP with `hasAlpha: true`, max alpha 0.
+
+## CI
+
+Run 36160802400 on `3d0c5cf9`: success.

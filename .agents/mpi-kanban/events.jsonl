@@ -5037,3 +5037,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-926", "at": "2026-09-25T17:23:28+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio: do MPI-926 now."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-924", "at": "2026-09-25T17:24:37+01:00", "actor": "claude-opus-5-5", "from": "doing", "to": "done", "reason": "CI green on 5e607ad2 (run 36146134617), which carries code commit 3e0dbed2"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-919", "at": "2026-09-25T17:27:14+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio verified in-app 2026-09-25; code a0e6b58a, CI green (run 36159838856)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-926", "at": "2026-09-25T17:35:50+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 3d0c5cf9; 16K thumbs verified."}
