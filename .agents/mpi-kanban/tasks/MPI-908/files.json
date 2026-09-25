@@ -13,6 +13,11 @@
     "js/components/Compounds/MpiMediaPicker/MpiMediaPicker.js",
     "js/components/Compounds/MpiMediaPicker/MpiMediaPicker.css",
     "tests/desktop/agent-chat.spec.js",
-    "tests/desktop/empty-state-mascots.spec.js"
+    "tests/desktop/empty-state-mascots.spec.js",
+    "js/shell/heroCrew.js",
+    "js/utils/mascotClipQueue.js",
+    "tests/mascot-clip-queue.test.cjs",
+    "tests/desktop/hero-connecting.spec.js",
+    "docs/mascot-placement.md"
   ]
 }

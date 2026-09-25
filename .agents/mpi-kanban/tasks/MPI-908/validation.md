@@ -73,3 +73,26 @@ Automated, PASSED:
   bits gone.
 
 Fabio's live check (2026-09-25, after a full restart): "1". His Z Image Turbo ask was NOT declined - the agent substituted FLUX.2 Klein 9B and generated - so the declined path did not fire live; it is covered by the node + desktop tests only. No marker text leaked, the normal turn ended normally. GIF re-cuts accepted.
+
+## Later 1: RunPod connecting band (2026-09-25, session 2bd5efc2)
+
+Automated, PASSED:
+- `tests/mascot-clip-queue.test.cjs` 12/12, new case: a looping state with `transition: true` redraws each clip under an overlay; a plain loop still does not.
+- `tests/desktop/hero-connecting.spec.js` 1/1: `remoteEnginePhase = connecting` -> Studio fx up, stage `--connecting`, `connecting-sparks` live, every crew video paused; sparks hands to spit-out; phase null -> crew back, no band clip live, all 5 members playing. `landing-grid-release.spec.js` still green.
+- Screenshots (1280x800): band Studio lands on the crew Cosmo's size and spot, feet on the floor line, scene inside the hero column.
+- eslint clean on heroCrew.js, mascotClipQueue.js, both tests.
+
+Fabio's live connect (2026-09-25): band worked; no success animation -> added `connected`:
+the band now follows the `remote:connection` payload (success = connected:true as the phase
+leaves connecting) and plays `studio/connected` once, then a transition back to the crew; a
+failure goes straight back; reduced motion skips it. Queue `transition` now covers a
+play-once state too (new unit case, 13/13). hero-connecting.spec.js covers success + failure,
+agent-chat.spec.js 33/33 still green.
+
+Fabio's live check (2026-09-25): VERIFIED - connected on a CPU pod and on a GPU pod, band loops and
+the connected animation played properly. His call: the scenes loop on one frame, so NO transition
+between them or going in; the only transition is on a successful connect. Done: band scenes swap
+bare, entry and failure are bare, success = transition + connected, then the crew fades back.
+The queue's per-state `transition` flag had no other use and is removed (mascotClipQueue.js and its
+test back to HEAD, 11/11). hero-connecting.spec.js re-asserted (no fx on entry/between/failure,
+fx on success) PASSED; eslint clean. docs/mascot-placement.md section + spot row updated.

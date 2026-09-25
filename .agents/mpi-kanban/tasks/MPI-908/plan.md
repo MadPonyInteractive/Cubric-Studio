@@ -6,6 +6,12 @@ archived) and no "landing no projects" clip (i2v_042 deleted) - hence the picks 
 
 ## Current State
 
+**(2bd5efc2, 2026-09-25) Later 1 (RunPod connecting) VERIFIED:** RunPod connecting band in
+heroCrew.js (`_buildBand`/`_paintBand`/`_syncConnecting`, driven by the `remote:connection`
+payload; `state.remoteEnginePhase` only on mount), landing.css band rules. Queue `transition`
+flag REMOVED again (Fabio: no transition between loops; only success gets one). Band +
+`connected` VERIFIED live (CPU + GPU pod). Next: update ready, then job cancelled. MPI-907 closed.
+
 **HANDOFF STATE (2026-09-25).** Fabio after a full app restart: "It's looking good, your
 changes" and the 320px no-results is right (Phase 2 empty states: VERIFIED). Phase 1 agent
 fail not yet seen live post-restart. Next, in order:

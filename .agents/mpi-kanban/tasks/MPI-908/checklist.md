@@ -1,5 +1,7 @@
 # MPI-908 Checklist
 
-- [ ] Cosmo notices a failure (agent chat) - built, green, awaiting Fabio
-- [ ] Empty states - built, green, awaiting Fabio
-- [ ] Later: job cancelled, update ready, RunPod connecting
+- [x] Cosmo notices a failure (agent chat) - Fabio verified 2026-09-25
+- [x] Empty states - Fabio verified 2026-09-25
+- [x] Later: RunPod connecting band + connected (Fabio verified 2026-09-25)
+- [ ] Later: update ready
+- [ ] Later: job cancelled

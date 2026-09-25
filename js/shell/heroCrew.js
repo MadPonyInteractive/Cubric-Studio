@@ -53,6 +53,27 @@ const POOLS = Object.freeze({
     happy: { clips: ['happy-1', 'happy-2'], nominalMs: 3000 },
 });
 
+/**
+ * While a RunPod pod connects, the crew leaves and Studio alone fights two cables in one
+ * wide scene (docs/mascot-placement.md § The landing while a pod connects). The four
+ * scenes play in turn; each opens and closes on the same frame, so they swap bare (Fabio,
+ * 2026-09-25: a puff between them is pointless). None of them ever connects, so none lies
+ * about the pod. `crew` is not a clip: it is the band's way of saying "show the crew", and
+ * its long `ms` only re-paints that same state. The ONE transition is on success: a puff,
+ * then `connected` plays once (lights on, arms up) and hands back to the crew. A failed
+ * connect goes straight back, since Studio's 1:1 failed clip does not match this scene.
+ */
+const BAND_POOLS = Object.freeze({
+    crew: { clips: ['crew'], nominalMs: 60000, loop: true },
+    connecting: {
+        clips: ['connecting-sparks', 'connecting-spit-out', 'connecting-laptop', 'connecting-screwdriver'],
+        nominalMs: 8000, loop: true, pick: 'ordered',
+    },
+    connected: { clips: ['connected'], nominalMs: 5200 },
+});
+const CREW_CLIP = 'crew';
+const CONNECTING = 'mpi-landing__crew--connecting';
+
 /** Clips that were never rolled. Studio's second happy is i2v_015 (MPI-777, Fabio's). */
 const MISSING_CLIPS = Object.freeze({ studio: ['happy-2'] });
 
@@ -167,6 +188,8 @@ export function handOverClip(prev, next, live) {
  * hidden one loads and starts, and only then do they trade places.
  */
 function _paintClip(m, id) {
+    // Off stage while a pod connects: its queue keeps time, but nothing decodes.
+    if (m.parked) return;
     const next = m.shown === m.a ? m.b : m.a;
     const seq = ++m.seq;
     next.src = _clipSrc(m.key, id);
@@ -213,8 +236,7 @@ function _paintFx(m, id) {
     m.fx.play().catch(() => {});
 }
 
-function _buildQueue(m) {
-    const states = _statesFor(m.key);
+function _buildQueue(m, states = _statesFor(m.key), paint = id => _paintClip(m, id), rest = 'idle') {
     const byId = new Map();
     for (const def of Object.values(states)) for (const c of def.clips) byId.set(c.id, c);
     const transitions = Object.entries(TRANSITIONS[m.key]).map(([name, swapAtMs]) => ({
@@ -223,10 +245,11 @@ function _buildQueue(m) {
     return createMascotClipQueue({
         states,
         transitions,
-        rest: 'idle',
-        paint: id => _paintClip(m, id),
+        rest,
+        paint,
         paintTransition: id => _paintFx(m, id),
-        preload: id => _warm(m, id, byId.get(id)),
+        // `crew` is the band's stand-in for "show the crew", not a file.
+        preload: id => { if (id !== CREW_CLIP) _warm(m, id, byId.get(id)); },
         reducedMotion: m.reduced,
     });
 }
@@ -257,6 +280,68 @@ function _buildMember({ key, name, role }) {
     const m = { key, el, a, b, fx, shown: a, seq: 0, warm: [], dead: false, hovered: false, reduced: _reducedMotion(), queue: null };
     m.queue = _buildQueue(m);
     return m;
+}
+
+/**
+ * Take the crew off stage under the connecting band, or bring it back. Parked members
+ * hold still and paint nothing; back on stage each starts a fresh idle, so none resumes
+ * a clip mid-pose.
+ */
+function _parkCrew(members, parked) {
+    for (const m of members) {
+        if (Boolean(m.parked) === parked) continue;
+        m.parked = parked;
+        if (parked) m.shown.pause();
+        else m.queue.request('idle', { interrupt: true, transition: false });
+    }
+}
+
+/** The band's paint: a connecting scene hides the crew (landing.css), `crew` brings it back. */
+function _paintBand(band, id) {
+    const connecting = id !== CREW_CLIP;
+    band.stage.classList.toggle(CONNECTING, connecting);
+    _parkCrew(band.members, connecting);
+    if (connecting) { _paintClip(band, id); return; }
+    band.seq++;   // a scene still waiting for its first frame must not flip back in
+    band.shown.pause();
+    band.shown.classList.remove(LIVE);
+}
+
+/**
+ * The connecting band: one wide scene across the stage, two stacked clips like a member,
+ * and a transition layer placed exactly where Studio's own is, so the success
+ * puff lands on him.
+ */
+function _buildBand(stage, members) {
+    const clip = (extra = '') => ce('video', {
+        className: `mpi-landing__crew-band-clip${extra}`, muted: true, playsInline: true, preload: 'auto',
+    });
+    const a = clip();
+    const b = clip();
+    const fx = ce('video', { className: 'mpi-landing__crew-clip mpi-landing__crew-fx', muted: true, playsInline: true, preload: 'auto' });
+    const el = ce('div', { className: 'mpi-landing__crew-band' }, [
+        ce('span', { className: 'mpi-landing__crew-body' }, [a, b]),
+        ce('span', { className: 'mpi-landing__crew-band-spot' }, fx),
+    ]);
+    const band = { key: 'studio', el, a, b, fx, shown: a, seq: 0, warm: [], dead: false, reduced: _reducedMotion(), stage, members, queue: null };
+    const states = {};
+    for (const [name, { clips, nominalMs, ...def }] of Object.entries(BAND_POOLS)) {
+        states[name] = { ...def, clips: clips.map(id => ({ id, ms: nominalMs })) };
+    }
+    band.queue = _buildQueue(band, states, id => _paintBand(band, id), CREW_CLIP);
+    return band;
+}
+
+/**
+ * Follow the pod: the band takes the stage while it connects, the crew has it otherwise.
+ * Reduced motion skips `connected`: its queue schedules nothing, so a play-once scene
+ * would hold the stage for good.
+ */
+function _syncConnecting(connecting, connected = false) {
+    if (!_crew || connecting === _crew.connecting) return;
+    _crew.connecting = connecting;
+    const next = connecting ? 'connecting' : (connected && !_crew.band.reduced ? 'connected' : CREW_CLIP);
+    _crew.band.queue.request(next, { interrupt: true, transition: next === 'connected' });
 }
 
 /**
@@ -316,7 +401,15 @@ function _mount() {
     const hero = root.closest('.mpi-landing__hero');
 
     const members = CREW.map(_buildMember);
-    const cleanups = [Events.onState('screenClear', _syncHold)];
+    const stage = root.closest('.mpi-landing__crew');
+    const band = _buildBand(stage, members);
+    const cleanups = [
+        Events.onState('screenClear', _syncHold),
+        // The emit, not `state.remoteEnginePhase`: only the payload says whether the
+        // connect that just ended succeeded.
+        Events.on('remote:connection', ({ connected = false, phase = null } = {}) =>
+            _syncConnecting(phase === 'connecting', connected)),
+    ];
     for (const m of members) {
         cleanups.push(
             // Both cut the current clip short — neither can wait up to 5s behind an idle —
@@ -328,16 +421,19 @@ function _mount() {
         );
         root.appendChild(m.el);
     }
+    root.appendChild(band.el);
 
     // Refit on a window resize (the hero) and on a quote that wraps differently.
     const observer = new ResizeObserver(() => _fit());
     const quote = qs('.mpi-landing__quote', hero);
     _crew = {
-        root, stage: root.closest('.mpi-landing__crew'), hero, h1: qs('.mpi-landing__headline h1', hero), quote,
-        members, cleanups, ambient: 0, observer,
+        root, stage, hero, h1: qs('.mpi-landing__headline h1', hero), quote,
+        members, band, connecting: false, cleanups, ambient: 0, observer,
     };
     // Same task as the append, so the entrance never gets a frame before the hold decides.
     _syncHold();
+    // Landing mid-connect (back from a project while the pod still boots): the band is already up.
+    _syncConnecting(state.remoteEnginePhase === 'connecting');
     observer.observe(hero);
     observer.observe(quote);
 }
@@ -348,7 +444,7 @@ function _destroy() {
     clearInterval(_crew.ambient);
     // Every queue MUST die here: its timer chain re-arms itself for ever, so one survivor
     // keeps the crew running behind an open project and hangs a test run with no output.
-    for (const m of _crew.members) {
+    for (const m of [..._crew.members, _crew.band]) {
         m.dead = true;
         m.queue.destroy();
         // Hiding a playing video keeps its decoder; only this releases it. The warm clips
@@ -357,6 +453,8 @@ function _destroy() {
         m.warm.length = 0;
     }
     _crew.cleanups.forEach(fn => fn());
+    // The stage is static markup and outlives the crew; the next mount decides afresh.
+    _crew.stage.classList.remove(CONNECTING);
     for (const v of qsa('video', _crew.root)) { v.pause(); v.removeAttribute('src'); v.load(); }
     _crew.root.replaceChildren();
     _crew = null;

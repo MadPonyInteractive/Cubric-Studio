@@ -113,14 +113,17 @@ While the app connects to a RunPod GPU, the hero crew leaves the landing and Stu
 computer tower, trying to join their two cables and never managing it (`mascot-connecting.md`). Wide 21:9 loops (1536x640,
 except screwdriver at 1920x768) across the crew band.
 
-- **Loops, cycled** (rule 2's shared queue): every loop opens and closes on the same frame, and the app plays them in
-  turn with one of Studio's transitions between each (rule 11), for as long as the connect takes.
+**BUILT 2026-09-25 (MPI-908)** in `js/shell/heroCrew.js` (the band: `_buildBand` / `_paintBand` / `_syncConnecting`),
+driven by the `remote:connection` payload. Fabio verified it live on a CPU and a GPU pod.
+
+- **Loops, cycled** (rule 2's shared queue, in order): every loop opens and closes on the same frame, so they swap
+  bare, for as long as the connect takes. **No transition between them, and none going in** (Fabio, 2026-09-25: "there
+  is no point"); the crew fades out as the first scene appears.
 - Studio never connects in any loop, so none of them lies about the pod's state.
-- **On connect success** (the app's existing event; `heroStats.js` ~248 is where the connecting phase ends): a Studio
-  transition plays at once over the current loop (rule 11, no waiting for the loop to end), **Studio connected** swaps in
-  under it and plays once (5s, ends with the lights on and his arms up), then a transition brings the crew back. The
-  transitions are the app's existing overlays; only the clip is generated. A failed connect is open: the 1:1 Studio
-  failed clip does not match this scene, so a transition straight back to the crew for now.
+- **On connect success** (`remote:connection` with `connected: true` as the phase leaves `connecting`): a Studio
+  transition plays at once over the current loop — the band's ONLY transition — **Studio connected** swaps in under it
+  and plays once (5s, ends with the lights on and his arms up), then the crew fades back in. A failed connect goes
+  straight back to the crew: the 1:1 Studio failed clip does not match this scene. Reduced motion skips `connected`.
 - The laptop, desk, tower and cables are part of the clip and are cut out with Studio.
 
 ## Spot map
@@ -146,7 +149,7 @@ except screwdriver at 1920x768) across the crew band.
 | Landing agent slot — **SHIPPED 2026-09-22** as Cosmo peeking over the block’s top rule, the composer on the line | `MpiAgentChat.js` `__ledge` (standalone only; the 48px still and the “Ask me anything” label are gone) | rest / `_setWorking(true)` | `studio/peek` looping (the HEAD PEEK - the one clip drawn for a ledge: measured rows 443-619, bottom edge always cut, and frame 29 returns to frame 0 so it loops), crossed to `studio/agent-thinking` while the agent works — two stacked looping clips, no queue and no timers. The peek is bottom-aligned to the rule; the standing clip is hung by its own head row instead, because bottom-aligning a standing figure shows feet | Studio |
 | Job cancelled | no visual yet; event `generation:cancelled` (`js/events.js:198`) | user cancels a job | job cancelled | op's |
 | Update available | `js/services/updateChecker.js:183` dialog, `MpiSettings.js:53` plate (no mascot today) | newer version found | Studio update ready | Studio |
-| Landing, connecting to a RunPod pod | `js/shell/heroStats.js` ~209-250 (remote phase `connecting`, same emit as `statusBar.js`) | remote connect starts | Studio connecting loops (21:9), cycled with transitions, replacing the whole crew until the connect resolves (§ The landing while a pod connects) | Studio |
+| Landing, connecting to a RunPod pod — **BUILT 2026-09-25** (MPI-908) | `js/shell/heroCrew.js` band, on `remote:connection` (phase `connecting`) | remote connect starts | Studio connecting loops (21:9), cycled bare, replacing the whole crew until the connect resolves; success = transition + `connected` once (§ The landing while a pod connects) | Studio |
 
 Not animated, by decision (2026-09-15): mode switch (Tab snaps straight into the next mode, no moment to fill), long idle
 (covered by rule 2). Parked: the hero crew passing a high five down the line, which needs sequencing code and an 8:5

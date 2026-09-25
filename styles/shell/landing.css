@@ -276,6 +276,56 @@
   translate: -50% calc(100% * 60 / 620);
 }
 
+/* ── Connecting band (MPI-908) ─────────────────────────────────────────────────
+   While a RunPod pod connects, heroCrew.js swaps the crew for one wide scene of Studio
+   between a laptop and a tower. The members fade out and back in; hidden, they take
+   no pointer. */
+.mpi-landing__crew-member {
+  transition: opacity var(--t-slow) var(--ease);
+}
+
+.mpi-landing__crew--connecting .mpi-landing__crew-member {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mpi-landing__crew-band {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Fitted on HEIGHT, never stretched: three scenes are 1240×516 and screwdriver is
+   1550×620, so it lands ~5% bigger (accepted in docs/mascot-placement.md).
+   At 520px Studio stands ~360px tall, the crew's Studio (rows 112-470 of 516), and
+   row 0.93 — the cable under his feet — sits on the floor line (y = 840).
+   Hidden is 0.001 for the same reason as the crew's clips. */
+.mpi-landing__crew-band-clip {
+  position: absolute;
+  left: 50%;
+  top: calc(840px - 520px * 0.93);
+  height: 520px;
+  width: auto;
+  translate: -50% 0;
+  opacity: 0.001;
+  user-select: none;
+}
+
+.mpi-landing__crew-band-clip.mpi-landing__crew-clip--live {
+  opacity: 1;
+}
+
+/* Studio's member box (below), so the band's transition inherits his fx geometry. */
+.mpi-landing__crew-band-spot {
+  position: absolute;
+  top: calc(840px - 360px);
+  left: 560px;
+  height: 360px;
+  width: 270px;
+  translate: -50% 0;
+}
+
 .mpi-landing__crew-label {
   position: absolute;
   left: 50%;
