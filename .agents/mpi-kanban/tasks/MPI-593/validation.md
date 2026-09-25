@@ -77,6 +77,19 @@ So the delay is Codex choosing a browser skill first, not our server. A user wit
 skill should not hit it. Codex's final link was the `/project-file?path=` URL, which is dead
 outside the app. That is phase 2 item 3 again.
 
+**Cost check, live in Claude Desktop with real money (2026-09-25, PASSED, by Fabio).** He shared
+the transcript. The request was "a video of a lizard climbing a wall in cartoon style, the best
+video model". Claude picked MiniMax H3 (local, free). The chat went SILENT through the render,
+and Fabio cancelled it in the app, per app.log (`CANCELLED` at 13:27:30Z, mid-`wait_generation`).
+Claude then GUESSED at a VRAM cause, because the CANCELLED text does not say who stopped it.
+Asked "how about paid ones?", Claude listed the cloud models with prices and asked first. Then,
+for Seedance 1.5 Pro, the gate did its job twice: `CONFIRM_COST` at "about $0.30" (1080p 5 s),
+and Claude told him and offered cheaper settings. He asked for the shortest and lowest, got
+`CONFIRM_COST` at "about $0.05" (480p 1 s), and said yes. One run: `t2v_001.mp4`, 496x864,
+billed $0.0487. Claude MCP log: `generate` ids 19 and 20 are quote-only (8 ms each); id 21 is
+quote plus submit, and returned 39 s later. Findings, all now in `plan.md` phase 2: the silent
+render (1b), unread guides (1c), and "I can't play the video myself" (3).
+
 **Not checked:**
 - Gemini / Antigravity.
 - A video, a Flow, a paid cloud model.
