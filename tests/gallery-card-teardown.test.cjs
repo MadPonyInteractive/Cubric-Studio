@@ -30,11 +30,16 @@ const PLAYER = fs.readFileSync(
     'utf8',
 );
 
-test('the card element exposes destroy(), stopping both of its timers', () => {
+test('the card element exposes destroy(), stopping its preview and releasing its mascot', () => {
     const body = SRC.match(/cardEl\.destroy = \(\) => \{([\s\S]*?)\n {12}\};/);
     assert.ok(body, 'cardEl.destroy is not defined');
     assert.match(body[1], /_previewPlayer\.stop\(\)/, 'destroy leaves the preview interval running');
-    assert.match(body[1], /_stopMascotFlip\(\)/, 'destroy leaves the mascot timer re-arming');
+    // MPI-906: the mascot is two looping videos, not a flip timer. Releasing drops their
+    // src, which is the only thing that frees a hidden video's decoder.
+    assert.match(body[1], /_releaseMascot\(\)/, 'destroy leaves the mascot videos decoding');
+    const release = SRC.match(/function _releaseMascot\(\) \{([\s\S]*?)\n {12}\}/);
+    assert.ok(release, '_releaseMascot is not defined');
+    assert.match(release[1], /removeAttribute\('src'\)/, '_releaseMascot keeps the decoder alive');
 });
 
 // MPI-565 (second half) — revoking a frame whose preload is in flight kills that
