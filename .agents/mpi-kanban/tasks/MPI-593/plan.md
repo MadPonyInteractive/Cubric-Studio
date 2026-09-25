@@ -1,66 +1,64 @@
-# MPI-593 Plan: step 1, split the cubric-vision skill
+# MPI-593 Plan: MCP-first (rewritten 2026-09-25)
 
-Source: `brief.md` § "The skill split" and § Sequencing (step 1 first, worth doing even if
-the CLI never ships). The measured layout came from MPI-677's plan, step 4 bullet "Split
-`.claude/skills/cubric-vision/SKILL.md`", which is the umbrella's 4b and points here.
+Source: `brief.md`. Step 1 of the old plan (the cubric-vision skill split) shipped 2026-09-15
+and stays; its record is in `validation.md`. The CLI (old steps 2 and 3) is dropped.
 
 ## Current State
 
-**2026-09-15: CARD BACK IN `todo` / `deferred` (Fabio): the CLI is not needed for release 2.0.**
-Steps 2 and 3 are NOT started. They wait on the four questions at the bottom of `brief.md`
-whenever this card is picked up again.
+**Phase 1 spike is DONE and verified (2026-09-25).** Files: `routes/mcp.js`, one mount line in
+`server.js`, `mcp/cubric-studio/` (manifest + bridge), `tests/mcp.test.cjs` (10/10). Evidence
+in `validation.md`. **Next: Fabio installs the `.mcpb` in Claude Desktop against his own app
+(needs a full quit and relaunch to load the new route), and answers the three questions at the
+bottom of `brief.md`. Phase 2 starts from his answers.**
 
-**Step 1 is DONE, verified, and committed with the MPI-677 handoff.** The router is 108 lines,
-plus `projects.md`, `on-disk-format.md`, `generating.md`, `flows.md` and
-`engine-and-remote.md`, all ≤200. § Connector was rewritten to match what
-`routes/connector.js` serves. Both outside anchors were repointed. Evidence: `validation.md`.
+## Phase 1: spike (DONE)
 
-Picked up 2026-09-15 as MPI-677's 4b (Fabio: "go with 4b on MPI-593"). MPI-547, MPI-556 and
-MPI-675 are done, so no other card edits `SKILL.md`.
+- `POST /mcp`: stateless Streamable HTTP. Methods: `initialize` (echoes a supported protocol
+  version and sends `instructions`), `ping`, `tools/list`, `tools/call`. Notifications get 202.
+  GET and DELETE get 405.
+- Tools: `status`, `list_models` (the in-app `compactCatalogue`), `describe_model`
+  (`catalogueEntry`), `list_projects`, `create_project` (opens it), `open_project`,
+  `generate`, `wait_generation`.
+- `generate` answers within 45 s. A slower job returns `{ running: true, jobId }`, and
+  `wait_generation` waits another 45 s each call. The cold test caught this: most MCP clients
+  give a tool call 60 s, a 73 s render read as a failure, and the agent ran it again.
+- The bridge is `node:http`, not fetch, for the same 300 s reason as `agentTools._post`.
 
-## Step 1: split the skill
+## Phase 2: safe for users (before any release)
 
-`SKILL.md` is 721 lines, over the 200-line budget. Sections move verbatim, by line range:
+Ownership when picked up: `routes/mcp.js`, `mcp/**`, `tests/mcp.test.cjs`. The routes in
+`routes/connector.js` and the in-app agent's files are live ground for MPI-916 and MPI-774.
+A change there goes through a message to that session, never a direct edit.
 
-| File | Takes | Lines (approx) |
-|---|---|---|
-| `SKILL.md` (router) | frontmatter, Before anything else, Hand over whole prompts, a "where everything else lives" table, Connector, Tests, Docs | ~110 |
-| `projects.md` | Projects, Media | ~117 |
-| `on-disk-format.md` | The on-disk format, Reference slots are positional | ~186 |
-| `generating.md` | Dispatching a generation, plus "Still true: do not POST a graph to `/proxy/prompt`" | ~137 |
-| `flows.md` | Running a Flow (and text-to-speech) | ~125 |
-| `engine-and-remote.md` | Engine control, RunPod remote engine, System | ~80 |
+1. **The cost check** (brief Q1). A paid op must show its price before it runs.
+2. **Reference images.** An agent passes a file path on the user's disk. The MCP layer stages
+   it into the project (`place-preview-asset`) and sends `media: [{role, url}]`. This unlocks
+   edit, i2i and i2v.
+3. **Results the agent can use.** Return a disk path, not a `/project-file?path=` URL, plus a
+   small image (MCP `image` content) so the agent can see what it made. Cold test 2 said it
+   "couldn't open the file myself, so I haven't seen it".
+4. **The rest of the tool set**, each a thin route call: `list_cards`, `rename_card`,
+   `read_knowledge` (model guides), `cancel_generation`, the GIF tools. Never `install_model`
+   without a size warning, and never anything that deletes.
+5. **App closed when the client starts.** Today every call fails with "Cubric Studio is not
+   running", and a client that started first has no tools until it reconnects. Decide whether
+   the bridge answers `initialize` itself and sends `tools/list_changed` once the app is up.
+6. Tool `title` fields and annotations throughout, which the Claude Desktop directory requires.
+7. Run the cold test on Codex and Claude Desktop as well as Claude Code.
 
-Also:
-- **Rewrite § Connector to what `routes/connector.js` serves.** MPI-677 step 2 deleted
-  `/connector/enhance` and the broker capabilities; the section still advertised them.
-- Fix the cross-references the split breaks (a "see X" whose X moved to another file).
-- Repoint the two outside anchors that name a moved section:
-  `.agents/mpi-kanban/project-knowledge-index.md:174` and
-  `docs/playbooks/add-flow/06-preview-image.md:139`. `CLAUDE.md:32` names the router path
-  and needs no edit.
-- Frontmatter `description:` must not change: it is the skill's external selector.
+## Phase 3: ship and list
 
-Ownership: `.claude/skills/cubric-vision/**`, `.agents/mpi-kanban/project-knowledge-index.md`,
-`docs/playbooks/add-flow/06-preview-image.md`.
+1. Build the `.mcpb` in the release flow and attach it to each GitHub release (`mpi-release`).
+2. Settings > "Connect an agent": per-client instructions to copy, and the `.mcpb` download.
+   UI work, a separate card.
+3. Listings: Claude Desktop extension submission, the MCP Registry (`mcp-publisher`), a Claude
+   Code plugin (MCP URL + slim skill), a Gemini CLI extension. Repo home per brief Q3.
+4. Docs: a docs-site page, and `llms.txt`. That repo is a hard no-push, so Fabio commits it.
+5. `docs/`: record `/mcp` in the connector subsystem doc and the portable distribution contract.
 
 ## Verification
 
-**Verify mode:** auto
-
-`verify_split.py` (session scratchpad; the command and its output go in `validation.md`):
-every file ≤200 lines; frontmatter identical to HEAD; every non-blank HEAD line present in
-the new files except the lines deliberately rewritten; every relative link resolves; every
-cross-referenced section exists in its file; both outside anchors repointed; the stale
-Connector text gone.
-
-## Remaining Work
-
-- Step 2, the CLI. Blocked on `brief.md` § Questions (where it lives, v1 verbs, headless).
-- Step 3, ship + discover. Worthless without step 2.
-
-## Plan Drift
-
-- **2026-09-15: five files, not four.** MPI-677's layout had `generating.md` holding both
-  dispatch and Flows (~196). MPI-658 and MPI-547 grew both sections, to 125 lines each, so
-  together they break the budget. Flows get `flows.md`.
+Per phase: `node --test tests/mcp.test.cjs` green, then the cold test. The cold test is a
+client with no Cubric context, one sentence, on an isolated instance (`npm run app:isolated`
+with `APP_DOCUMENTS` pointed at a scratch folder so no real project is touched). **The proof
+is the file on disk and how many files landed, never the agent's report.**

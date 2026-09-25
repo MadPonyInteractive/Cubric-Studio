@@ -1,5 +1,68 @@
 # MPI-593 Validation
 
+## Phase 1: the MCP spike (2026-09-25, PASSED, auto)
+
+**Unit:** `node --test tests/mcp.test.cjs`: 10 pass, 0 fail. The tests cover the protocol
+(version echo, notification 202, GET 405, unknown method -32601), each tool reaching its
+route, `list_models` being the compact catalogue, and the slow-job path. The slow-job test
+fails without the fix, because the first `generate` then returns the result itself and not
+`running`.
+
+**Manifest:** `npx @anthropic-ai/mcpb validate mcp/cubric-studio/manifest.json` gives
+`Manifest schema validation passes!`. `mcpb pack` gives `cubric-studio-0.1.0.mcpb`, 2.1 kB,
+2 files.
+
+**Live, through the stdio bridge** (what Claude Desktop runs). This was an isolated instance
+(`launch-instance.mjs`, its own port) with `APP_DOCUMENTS` set to a scratch folder, so
+`list_projects` returned `[]` and no real project was touched.
+- `initialize` returns `2025-06-18`, `cubric-studio 1.6.1`. `status` returns `ready: true`.
+- `list_models` returns 20,268 chars (~5k tokens): the compact catalogue, still the biggest answer.
+- `create_project "MCP spike"` returns `opened: true`, and `describe_model sdxl-realistic` works.
+- `generate sdxl-realistic t2i "a red bicycle…" cardName "Red bicycle"` returns `ok` in 21.9 s,
+  and `MCP spike/Media/t2i_001.png` is on disk at 1024x1024. It was opened and checked by eye:
+  a red bicycle against a brick wall.
+
+**Cold agent 1: Claude Code headless (Sonnet), HTTP straight to `/mcp`, no Cubric context.**
+The prompt was one sentence: "Cubric Studio is open on this computer. Make me an image of a
+yellow taxi in the rain at night, in a new project called Taxi test…". **It got there unaided,
+but with THREE images for one ask.** Server log: `create_project`, `list_models`,
+`describe_model`, `generate` (12:35:34), `status`, `generate` (12:36:51), `generate`
+(12:37:56). File times: `t2i_001.png` at 13:36:48 and `t2i_002.png` at 13:37:54 (local),
+63-73 s after their calls. The client stopped waiting at about 60 s. The agent reported "2k
+tier timed out twice", dropped to 1k, and never knew that the first two had landed.
+**This is the same failure the in-app agent had on 2026-09-19 with fetch's 300 s limit, one
+layer up.** On a paid model it is a double bill.
+
+**Fix:** `generate` answers within 45 s (`WAIT_MS`), and a slower job returns
+`{ running: true, jobId }` with a new tool, `wait_generation`. The server `instructions` and
+the tool description both say never to re-send `generate`.
+
+**Cold agent 2**: the same setup and prompt, plus "in the best quality it can do", in project
+"Taxi test 2". Server log: `status`, `list_models`, `create_project`, `describe_model`, ONE
+`generate` (12:40:34), then five `wait_generation` calls, about 46 s apart. The file is
+`Taxi test 2/Media/t2i_001.png`, **the only file**, landed 13:44:58 local after a 4 min 24 s
+2K render. The agent picked Krea 2 (rank 1, local, free), turned turbo off, skipped the paid
+models on its own, and named the card. Cost: $0.43, 14 turns.
+Its one complaint: "I couldn't open the file myself, so I haven't seen it". That is plan
+phase 2 item 3.
+
+**Not checked:**
+- Claude Desktop with the `.mcpb` (Fabio's app, Fabio's install), Codex, Gemini CLI.
+- A video, a Flow, a paid cloud model.
+- The app closed while a client connects: the bridge returns its error, but no client has
+  been seen handling that.
+
+**Distribution research sources** (2026-09-25; web research by a sub-agent, primary docs
+where marked):
+- Claude Desktop extensions and submission: claude.com/docs/connectors/building/mcpb and
+  claude.com/docs/connectors/building/submission (primary)
+- MCP Registry: modelcontextprotocol.io/registry/quickstart and /registry/package-types
+  (primary)
+- Claude Code plugins: claude.com/docs/plugins/submit (primary)
+- Gemini CLI extensions: github.com/google-gemini/gemini-cli docs/extensions (primary)
+- Codex MCP: developers.openai.com/codex/mcp (search summary, not fetched)
+- ChatGPT local MCP: community.openai.com (search summary, not fetched)
+
 ## Rejected, then reopened the same day (2026-09-17)
 
 `3e1997a7` closed this card on "there should be no command-line interface anywhere". That misread

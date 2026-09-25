@@ -106,6 +106,7 @@ app.use(llmRoutes);
 app.use(agentRoutes);  // MPI-774
 app.use(userFlowRoutes);  // MPI-532
 app.use(deepinfraRoutes);  // MPI-851
+app.use(require('./routes/mcp'));  // MPI-593 — outside agents over MCP
 
 installShutdown(cancelAllDownloads);  // MPI-779
 

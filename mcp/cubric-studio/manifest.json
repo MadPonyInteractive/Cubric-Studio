@@ -1,0 +1,46 @@
+{
+  "manifest_version": "0.2",
+  "name": "cubric-studio",
+  "display_name": "Cubric Studio",
+  "version": "0.1.0",
+  "description": "Make images and video in the Cubric Studio app on this computer.",
+  "long_description": "Lets Claude drive the Cubric Studio desktop app: list and open your projects, pick a model, and generate images and video that land in your gallery. Cubric Studio must be open. Nothing leaves your computer except what the models you choose already send.",
+  "author": {
+    "name": "Mad Pony Interactive",
+    "url": "https://cubric.studio"
+  },
+  "homepage": "https://cubric.studio",
+  "license": "AGPL-3.0-only",
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"],
+      "env": {
+        "CUBRIC_PORT": "${user_config.port}"
+      }
+    }
+  },
+  "user_config": {
+    "port": {
+      "type": "number",
+      "title": "Cubric Studio port",
+      "description": "Leave at 3000 unless you changed it.",
+      "default": 3000,
+      "required": false
+    }
+  },
+  "tools": [
+    { "name": "status", "description": "Is Cubric Studio open and ready." },
+    { "name": "list_models", "description": "The models and Flows the app offers." },
+    { "name": "describe_model", "description": "One model's ops and settings." },
+    { "name": "list_projects", "description": "Your projects." },
+    { "name": "create_project", "description": "Create and open a project." },
+    { "name": "open_project", "description": "Open a project so results land there." },
+    { "name": "generate", "description": "Generate an image or video, or run a Flow." }
+  ],
+  "compatibility": {
+    "platforms": ["win32", "darwin", "linux"]
+  }
+}
