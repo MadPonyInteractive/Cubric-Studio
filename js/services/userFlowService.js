@@ -25,6 +25,10 @@ const MEDIA_TYPES = ['image', 'video', 'audio'];
 const FILE_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const MARKUP_RE = /[<>"`]/;
 
+// The server's `user_flows/` path, from the last scan (MPI-915). Null until one answers.
+let _dir = null;
+export const userFlowsDir = () => _dir;
+
 /** `Head Swap` → `flowHeadSwap`: the saved-file prefix, never the `user:` key. */
 function _filePrefix(title) {
     const words = String(title).match(/[A-Za-z0-9]+/g) || ['Package'];
@@ -99,7 +103,8 @@ export async function loadUserFlows() {
     try {
         const res = await fetch('/user-flows');
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const { flows = [] } = await res.json();
+        const { flows = [], dir = null } = await res.json();
+        _dir = dir;
         const onDisk = new Set(flows.map(f => `${USER_FLOW_PREFIX}${f.id}`));
         FLOWS.filter(f => f.id.startsWith(USER_FLOW_PREFIX) && !onDisk.has(f.id))
             .forEach(f => unregisterUserFlow(f.id));

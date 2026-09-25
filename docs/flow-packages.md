@@ -122,8 +122,10 @@ there to help authors; this one is the security boundary.
   invalid package shows its first error and writes nothing.
 - **Copy** the folder into `user_flows/`, then restart or click the Library's **Refresh**
   (the icon at the end of the search row).
-- **Remove:** delete the folder, then Refresh. The drawer's **Uninstall** frees the Flow's
-  downloaded files (`requiredDeps`); it does not remove the package.
+- **Remove:** delete the folder, then Refresh. The folder icon beside Refresh opens
+  `user_flows/` in the OS file browser (MPI-915; `GET /user-flows` answers its path as
+  `dir`). The drawer's **Uninstall** frees the Flow's downloaded files (`requiredDeps`); it
+  does not remove the package.
 - **Where `user_flows/` is:** `<app folder>/user-data/user_flows/` on a released build;
   `%APPDATA%\Cubric Vision\user_flows\` when running from source. The server creates the
   folder on its first scan.
@@ -132,7 +134,7 @@ there to help authors; this one is the security boundary.
 - A package whose files are unreadable, or that fails validation, still shows as an
   **Unavailable** tile. Its drawer names the reason and has no Run.
 
-Routes: `GET /user-flows` (the scan, errors included) · `POST /user-flows/install
+Routes: `GET /user-flows` (the scan, errors included, plus `dir`) · `POST /user-flows/install
 { path, overwrite }` → always 200 with `status: installed | exists | invalid` · files at
 `/comfy_workflows/user-flows/<id>/<file>` and `/comfy_workflows/display/user-flows/<id>/<file>`,
 the paths every fetch site already uses, so no renderer call site knows about packages.

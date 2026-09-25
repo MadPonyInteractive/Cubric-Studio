@@ -24,7 +24,7 @@ import { renderIcon } from '../../../utils/icons.js';
 import { hasAcceptedLicence } from '../../../data/modelConstants/licences.js';
 import { flowInstallKeys, flowLicences, buildLicenceRows } from '../../../utils/flowLicences.js';
 import { MpiProjectDropOverlay } from '../../Primitives/MpiProjectDropOverlay/MpiProjectDropOverlay.js';
-import { registerUserFlow, loadUserFlows, USER_FLOW_PREFIX } from '../../../services/userFlowService.js';
+import { registerUserFlow, loadUserFlows, userFlowsDir, USER_FLOW_PREFIX } from '../../../services/userFlowService.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 
 /**
@@ -235,12 +235,35 @@ export const MpiFlowLibrary = ComponentFactory.create({
         // MPI-532 — the Model Library's Refresh, same control. Re-reads `user_flows/`, so a
         // package folder deleted (or copied in) by hand shows without a restart; then the
         // dep sync, which is what reads a newly listed Flow's install state.
+        // MPI-915 — the folder Refresh re-reads. Removing a package is deleting its folder, and
+        // nothing else in the app says where that folder is.
+        const folderBtn = MpiButton.mount(ce('div'), {
+            icon: 'folder', variant: 'ghost', size: 'md',
+            info: 'Open the Third-party Flows folder',
+        });
+        filterBar.el.appendTrailing(folderBtn.el);
+        _unsubs.push(on(folderBtn.el, 'click', _openFolder));
+
         const refreshBtn = MpiButton.mount(ce('div'), {
             icon: 'refresh', variant: 'ghost', size: 'md',
             info: 'Refresh Flows from disk',
         });
         filterBar.el.appendTrailing(refreshBtn.el);
         _unsubs.push(on(refreshBtn.el, 'click', _refresh));
+
+        async function _openFolder() {
+            try {
+                const res = await fetch('/open-folder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ folderPath: userFlowsDir() }),
+                });
+                if (!res.ok) throw new Error(await res.text());
+            } catch (err) {
+                clientLogger.warn('MpiFlowLibrary', 'open user_flows folder failed', err);
+                Events.emit('ui:error', { title: 'Third-party Flows', message: 'Could not open the Flows folder.' });
+            }
+        }
 
         async function _refresh() {
             refreshBtn.el.setAttribute('loading', 'true');
@@ -1145,6 +1168,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
             _destroyDetailBtns();
             closeBtn?.el?.destroy?.();
             backBtn?.el?.destroy?.();
+            folderBtn?.el?.destroy?.();
             refreshBtn?.el?.destroy?.();
             filterBar?.el?.destroy?.();
             _confirmDialog?.el?.destroy?.();

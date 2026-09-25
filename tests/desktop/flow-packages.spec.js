@@ -253,6 +253,41 @@ test('the Library Refresh drops a deleted package and shows a copied-in one, no 
     }
 });
 
+// MPI-915 — the folder button beside Refresh opens the folder the scan reads. The route is
+// intercepted: a real /open-folder would pop an Explorer window on the test machine.
+test('the Library folder button opens the user_flows folder the scan reads', async ({}, testInfo) => {
+    const flowsDir = path.join(testInfo.outputPath('user-data'), 'user_flows');
+    writePackage(path.join(flowsDir, 'spec-flow'), 'spec-flow', 'Spec Package');
+    const { app, window, pageErrors, consoleErrors } = await launchApp(testInfo);
+
+    try {
+        await window.waitForTimeout(6000);
+        let posted = null;
+        await window.route('**/open-folder', (route) => {
+            posted = route.request().postDataJSON();
+            route.fulfill({ status: 200, body: 'Folder opened' });
+        });
+
+        const clicked = await window.evaluate(async () => {
+            const { MpiFlowLibrary } = await import('/js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js');
+            const lib = MpiFlowLibrary.mount(document.createElement('div'));
+            window.__mpi915lib = lib;
+            lib.el.open();
+            const btn = lib.el.querySelector('[data-info="Open the Third-party Flows folder"]');
+            btn?.click();
+            return !!btn;
+        });
+        expect(clicked).toBe(true);
+        await expect.poll(() => posted).not.toBeNull();
+        expect(path.resolve(posted.folderPath)).toBe(path.resolve(flowsDir));
+        expect(pageErrors).toEqual([]);
+        expect(consoleErrors).toEqual([]);
+    } finally {
+        await window.evaluate(() => window.__mpi915lib?.el?.destroy?.()).catch(() => {});
+        await closeApp(app);
+    }
+});
+
 // The drop, end to end through the real overlay, route and registry. A synthetic File has
 // no disk path, so `webUtils.getPathForFile` is pointed at a real folder — everything after
 // that is the shipped code path. The zip and failure branches are unit-tested

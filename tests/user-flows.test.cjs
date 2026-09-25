@@ -194,6 +194,7 @@ test('routes: list, serve under the fetch paths, refuse traversal', async () => 
         const list = await get('/user-flows');
         assert.equal(list.status, 200);
         assert.deepEqual(JSON.parse(list.body).flows.map(f => f.id), ['test-flow']);
+        assert.equal(JSON.parse(list.body).dir, uf.userFlowsDir(), 'the open-folder button reads this path');
         assert.equal((await get('/comfy_workflows/user-flows/test-flow/workflow.json')).status, 200);
         assert.equal((await get('/comfy_workflows/display/user-flows/test-flow/preview.webp')).status, 200);
         assert.equal((await get('/comfy_workflows/user-flows/test-flow/missing.json')).status, 404);

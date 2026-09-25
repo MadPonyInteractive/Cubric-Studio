@@ -4,7 +4,7 @@
  * routes/userFlows.js — Flow packages from `<userData>/user_flows/` (MPI-532).
  *
  * Routes exposed:
- *   GET /user-flows                                    → { flows: [{ id, manifest, errors }] }
+ *   GET /user-flows                                    → { flows: [{ id, manifest, errors }], dir }
  *   POST /user-flows/install                           → install a dropped folder or .zip
  *   GET /comfy_workflows/user-flows/:id/:file          → a package file (its workflow.json)
  *   GET /comfy_workflows/display/user-flows/:id/:file  → a package file (its preview media)
@@ -22,7 +22,7 @@
 const path = require('path');
 const express = require('express');
 const logger = require('./logger');
-const { scanUserFlows, installPackage, packageFilePath } = require('../services/userFlows');
+const { scanUserFlows, installPackage, packageFilePath, userFlowsDir } = require('../services/userFlows');
 
 const router = express.Router();
 
@@ -33,7 +33,8 @@ router.get('/user-flows', (req, res) => {
             if (f.errors.length) logger.warn('userFlows', `${f.id}: ${f.errors.join(' | ')}`);
         }
         logger.info('userFlows', `${flows.length} package(s), ${flows.filter(f => !f.errors.length).length} valid`);
-        res.json({ flows });
+        // `dir` is for the Library's open-folder button (MPI-915); the scan just created it.
+        res.json({ flows, dir: userFlowsDir() });
     } catch (err) {
         logger.error('userFlows', `scan failed: ${err.message}`);
         res.status(500).json({ error: err.message });
