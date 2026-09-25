@@ -24,6 +24,13 @@
     color: var(--accent-err);
 }
 
+/* MPI-908: a mascot clip in the icon slot, cropped to the figure by js/utils/mascotLoop.js.
+   96px by Fabio's call (2026-09-25), past DESIGN.md's 64px cap: it heads a dialog. */
+.mpi-ok-cancel__mascot {
+    height: 96px;
+    width: auto;
+}
+
 /* Content Container — Title, Text, and Optional Input */
 .mpi-ok-cancel__content {
     display: flex;

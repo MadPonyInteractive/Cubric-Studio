@@ -131,6 +131,7 @@ function _addDownloadUrl(e, item) {
  *                                          (clip = { rate, length } when the run bursts clips)
  *   resetPreviewClip(tempId, clip)       — new sampler stage: drop the current clip window
  *   setSelectionMode(val)                — set selection mode externally
+ *   getGroup(groupId)                    — the group last handed to setGroups, or null
  *
  * Emits:
  *   'open-group'  { group }              — user opened a group (navigate to history)
@@ -148,6 +149,8 @@ function _addDownloadUrl(e, item) {
  *   'archive'     { groups: [...] }      — groups had `archived` flipped; persist to disk
  *   'cue-all'     { groups, skipped, reason } — queue one job per eligible group on the
  *                                          prompt box's current recipe (block dispatches)
+ *   'cancel-shown' { groupId }           — an `isCancelled` placeholder's mascot finished its
+ *                                          `cancelled` clip; the block removes the card (MPI-908)
  */
 export const MpiGalleryGrid = ComponentFactory.create({
     name: 'MpiGalleryGrid',
@@ -1674,11 +1677,12 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 if (op) return getCommandAccent(op);
                 return { image: 'vision', video: 'video', audio: 'audio' }[group.type] || 'studio';
             }
-            function _paintMascot(src) {
+            function _paintMascot(src, { once = false } = {}) {
                 if (src === _mascotSrc) return; // a re-render asks for the clip already up
                 _mascotSrc = src;
                 const next = _mascotShown === mascotA ? mascotB : mascotA;
                 const seq = ++_mascotSeq;
+                next.loop = !once;
                 next.src = src;
                 const show = () => {
                     if (seq !== _mascotSeq || _mascotShown === next) return;
@@ -1689,6 +1693,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 // PRESENTED frame: play() resolves before one reaches the screen.
                 if (matchMedia('(prefers-reduced-motion: reduce)').matches) on(next, 'loadeddata', show, { once: true });
                 else next.play().then(() => next.requestVideoFrameCallback(show), () => {});
+                return next;
             }
             /** Hiding a video keeps its decoder; only dropping the src frees it. */
             function _releaseMascot() {
@@ -1738,6 +1743,24 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     _clearPreviewImage();
                     _setMascotState('idle');
                 }
+            };
+
+            /**
+             * A Stopped job (MPI-908): the op's `cancelled` clip once, big and centred
+             * over a blank card, then `cancel-shown` tells the block to remove the card.
+             * A clip that cannot load ends it at once rather than stranding the card.
+             */
+            let _cancelled = false;
+            cardEl.setCancelled = () => {
+                if (_cancelled) return;
+                _cancelled = true;
+                _clearPreviewImage();
+                cardEl.classList.remove('mpi-group-card--mascot-cooking');
+                cardEl.classList.add('mpi-group-card--mascot-idle');
+                const clip = _paintMascot(`assets/mascot/${_mascotKey()}/cancelled.webm`, { once: true });
+                const done = () => emit('cancel-shown', { groupId: group.id });
+                on(clip, 'ended', done, { once: true });
+                on(clip, 'error', done, { once: true });
             };
 
             /**
@@ -2098,6 +2121,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
 
                         if (group.isGenerating) {
                             if (group.isImporting) card.el.setImporting();
+                            else if (group.isCancelled) card.el.setCancelled();
                             else card.el.setGenerating(group.latestPreviewUrl ?? null);
                         }
 
@@ -2398,6 +2422,8 @@ export const MpiGalleryGrid = ComponentFactory.create({
             }
             _groups = _groups.filter(g => g.id !== groupId);
         };
+
+        el.getGroup = (groupId) => _groups.find(g => g.id === groupId) || null;
 
         el.getCardByGroupId = (groupId) => {
             const entry = _cardMap.get(groupId);

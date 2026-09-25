@@ -6,6 +6,24 @@ archived) and no "landing no projects" clip (i2v_042 deleted) - hence the picks 
 
 ## Current State
 
+**(bae9042a, 2026-09-25) Later 2 (update ready) BUILT + Fabio VERIFIED live:** Fabio's
+calls: dialog ONLY (Settings plate stays bare), play once then hold, 96px. `MpiOkCancel` gained
+a `mascot: {key, clip}` prop (icon slot, wins over `icon`); `mascotLoop` gained `{ once }` (drops
+`loop`) + the `update-ready` crop; `promptUpdate` passes Studio update-ready. Spec
+`tests/desktop/update-ready-mascot.spec.js` green (forces the real prompt via localStorage
+`mpi_dev_force_update`). Overlays does NOT queue modals (request shows at once), so no onShow
+play hook is needed. types.js NOT updated - peer b01d20f2 holds it (component JSDoc documents
+the prop). Next: job cancelled (last item).
+
+**(bae9042a) PLAN COMPLETE. Later 3 (job cancelled) BUILT + Fabio VERIFIED (local model). Known
+gap, Fabio "not a big issue": does not play for CLOUD models, cause not investigated.** option A, gallery only.
+`activeGenerations.cancel` now emits `byUser: true` (the only Stop path; other cancelled emits are
+placeholder teardown). MpiGalleryBlock holds Stopped placeholders in `_cancelledPlaceholders`
+(in `_leadingGroups`, so every setGroups keeps them); grid card `setCancelled` plays the op's
+`cancelled` once (idle position), emits `cancel-shown` on ended/error -> block removes card. Late
+complete clears it via `_rebuildAfterEnd`. Spec `tests/desktop/cancelled-mascot.spec.js` green.
+After Fabio verifies: mpi-end-session closes MPI-908.
+
 **(2bd5efc2, 2026-09-25) Later 1 (RunPod connecting) VERIFIED:** RunPod connecting band in
 heroCrew.js (`_buildBand`/`_paintBand`/`_syncConnecting`, driven by the `remote:connection`
 payload; `state.remoteEnginePhase` only on mount), landing.css band rules. Queue `transition`

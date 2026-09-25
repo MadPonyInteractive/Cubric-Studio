@@ -210,7 +210,9 @@ function cancel(id) {
     entry.exec?.cancel?.();
     entry.status = 'cancelled';
     end(id, { revokePreview: true });
-    Events.emit('generation:cancelled', { id, tempId, extraTempIds });
+    // byUser: this is the Stop path; generationService also emits cancelled to tear a
+    // placeholder down (cache hit, text output), which no mascot should mourn (MPI-908).
+    Events.emit('generation:cancelled', { id, tempId, extraTempIds, byUser: true });
 }
 
 /** Cancel all active entries. */

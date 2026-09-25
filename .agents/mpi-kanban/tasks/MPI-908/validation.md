@@ -96,3 +96,17 @@ bare, entry and failure are bare, success = transition + connected, then the cre
 The queue's per-state `transition` flag had no other use and is removed (mascotClipQueue.js and its
 test back to HEAD, 11/11). hero-connecting.spec.js re-asserted (no fx on entry/between/failure,
 fx on success) PASSED; eslint clean. docs/mascot-placement.md section + spot row updated.
+
+Later 2, update ready (bae9042a, 2026-09-25): dialog only (Fabio), `studio/update-ready` once then
+held, 96px, via MpiOkCancel `mascot` prop + mascotLoop `{ once }`. update-ready-mascot.spec.js
+PASSED (real prompt via mpi_dev_force_update: src, loop=false, plays, ends, 96px tall, narrower
+than square); empty-state-mascots + delete-offers-archive specs 4/4 PASSED; eslint clean.
+Fabio live check: VERIFIED ("Is okay, it works") - forced prompt in his running app.
+
+Later 3, job cancelled (bae9042a, 2026-09-25): option A, gallery only. activeGenerations.cancel emits
+`byUser: true`; MpiGalleryBlock holds the Stopped placeholder (`_cancelledPlaceholders`), grid card
+`setCancelled` plays the op `cancelled` once then `cancel-shown` removes it; late complete removes at
+once; non-Stop cancelled (cache hit / text op) removes at once. cancelled-mascot.spec.js PASSED;
+agent-chat + gallery-generating-mascot + gallery-media-release 36/36 PASSED; 4 unit files 26/26.
+Fabio live check: VERIFIED ("It worked") on a local model. KNOWN GAP (Fabio: not a big issue):
+does not play for CLOUD models - cause not investigated; left as a follow-up.

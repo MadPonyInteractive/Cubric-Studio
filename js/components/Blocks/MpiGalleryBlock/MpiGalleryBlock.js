@@ -1654,7 +1654,10 @@ export const MpiGalleryBlock = ComponentFactory.create({
          * of them used to spread `_placeholdersForFirst()` by hand and one (combine)
          * forgot to, which is exactly the bug a helper prevents (MPI-671).
          */
-        const _leadingGroups = () => [..._importPlaceholders.values(), ..._placeholdersForFirst()];
+        /** Stopped jobs' placeholders, held while the op's mascot plays `cancelled` once
+         *  (MPI-908). Out on the grid's `cancel-shown`, or at once on a late complete. */
+        const _cancelledPlaceholders = new Map();
+        const _leadingGroups = () => [..._importPlaceholders.values(), ..._placeholdersForFirst(), ..._cancelledPlaceholders.values()];
 
         _unsubs.push(Events.on('generation:started', ({ id, scope }) => {
             if (scope !== 'gallery') return;
@@ -1712,7 +1715,10 @@ export const MpiGalleryBlock = ComponentFactory.create({
         const _rebuildAfterEnd = (id, tid, extraTempIds = []) => {
             _myGenIds.delete(id);
             const allTempIds = [tid, ...extraTempIds].filter(Boolean);
-            for (const t of allTempIds) grid.el.removeCard(t);
+            for (const t of allTempIds) {
+                _cancelledPlaceholders.delete(t);
+                grid.el.removeCard(t);
+            }
             const currentGroups = _visibleProjectGroups();
             grid.el.setGroups([..._leadingGroups(), ...currentGroups]);
         };
@@ -1750,7 +1756,7 @@ export const MpiGalleryBlock = ComponentFactory.create({
             _rebuildAfterEnd(id, tid, extraTempIds);
         }));
 
-        _unsubs.push(Events.on('generation:cancelled', ({ id, tempId: tid, extraTempIds = [] }) => {
+        _unsubs.push(Events.on('generation:cancelled', ({ id, tempId: tid, extraTempIds = [], byUser }) => {
             if (!_myGenIds.has(id)) {
                 // Second cancelled for an already-forgotten id = the interrupted
                 // gen returned EMPTY (no late complete is coming). Drop the bridge
@@ -1761,8 +1767,23 @@ export const MpiGalleryBlock = ComponentFactory.create({
             // The gen may still finish with real output after this Stop — remember
             // the id so the late generation:complete is re-admitted (MPI-195).
             _stoppedPendingComplete.add(id);
-            _rebuildAfterEnd(id, tid, extraTempIds);
+            // MPI-908: a Stop keeps each placeholder on screen for the op's `cancelled`
+            // clip; the grid says when it is over. Reduced motion has no clip to wait for.
+            if (byUser && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                for (const t of [tid, ...extraTempIds].filter(Boolean)) {
+                    const g = grid.el.getGroup(t);
+                    if (g) _cancelledPlaceholders.set(t, { ...g, isCancelled: true });
+                }
+            }
+            const held = (t) => _cancelledPlaceholders.has(t);
+            _rebuildAfterEnd(id, held(tid) ? null : tid, extraTempIds.filter(t => !held(t)));
         }));
+
+        grid.on('cancel-shown', ({ groupId }) => {
+            if (!_cancelledPlaceholders.delete(groupId)) return;
+            grid.el.removeCard(groupId);
+            grid.el.setGroups([..._leadingGroups(), ..._visibleProjectGroups()]);
+        });
 
         // Model settings overlay
         const _settingsOverlay = MpiModelSettings.mount(document.createElement('div'));

@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-928",
+  "title": "Stopping a cloud job throws away an image already paid for",
+  "description": "Cloud Stop (js/services/cloudExecutor.js) only aborts the client fetch; DeepInfra finishes and bills the run, and routes/deepinfra.js still saves the output to %TEMP%/cubric-deepinfra, but the gallery has already dropped the job so no card is made. Proven 2026-09-25: Fabio Stopped a Flux Pro run, the jpg landed at 17:16 local with no card (aa9dca8b-...jpg). Decision needed: let a Stopped cloud job finish in the background and save the paid result (card still lands), and/or warn on Stop that the run is billed anyway. Found under MPI-908.",
+  "column": "todo",
+  "maturity": "needs-decision",
+  "status": "active",
+  "created_at": "2026-09-25T17:21:01+01:00",
+  "updated_at": "2026-09-25T17:21:01+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

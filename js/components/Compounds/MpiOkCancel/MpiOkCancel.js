@@ -5,6 +5,7 @@ import { MpiModal } from '../../Primitives/MpiModal/MpiModal.js';
 import { MpiCheckbox } from '../../Primitives/MpiCheckbox/MpiCheckbox.js';
 import { qs } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
+import { mascotLoop } from '../../../utils/mascotLoop.js';
 
 /**
  * MpiOkCancel — Self-contained Confirmation Dialog (Compound)
@@ -34,6 +35,9 @@ import { renderIcon } from '../../../utils/icons.js';
  * @param {{label?: string, checked?: boolean}|null} [checkbox=null]  - Optional checkbox below input slot
  * @param {string|null} [icon=null]        - Optional icon name (from icons.js) shown large above the title
  * @param {string} [iconTone='']           - Icon tone modifier for the slot: '' | 'warning' | 'danger'
+ * @param {{key: string, clip: string}|null} [mascot=null] - A mascot clip in the icon slot instead
+ *                                           of an icon, played once and held on its last frame
+ *                                           (js/utils/mascotLoop.js). Wins over `icon`.
  *
  * Emits:
  * 'ok'     { inputValue?: string, checkboxChecked?: boolean } — Confirm button clicked
@@ -69,9 +73,11 @@ export const MpiOkCancel = ComponentFactory.create({
         el.show = () => modal.el.show();
         el.hide = () => modal.el.hide();
 
-        // ── Optional large icon above the title ──────────────────────────────
+        // ── Optional large icon (or mascot clip) above the title ─────────────
         const iconSlot = qs('#icon-slot', el);
-        if (props.icon) {
+        if (props.mascot) {
+            iconSlot.innerHTML = mascotLoop(props.mascot.key, props.mascot.clip, 'mpi-ok-cancel__mascot', { once: true });
+        } else if (props.icon) {
             iconSlot.innerHTML = renderIcon(props.icon, 'xl');
             if (props.iconTone) iconSlot.classList.add(`mpi-ok-cancel__icon--${props.iconTone}`);
         } else {

@@ -18,6 +18,15 @@
     "js/utils/mascotClipQueue.js",
     "tests/mascot-clip-queue.test.cjs",
     "tests/desktop/hero-connecting.spec.js",
-    "docs/mascot-placement.md"
+    "docs/mascot-placement.md",
+    "js/components/Compounds/MpiOkCancel/MpiOkCancel.js",
+    "js/components/Compounds/MpiOkCancel/MpiOkCancel.css",
+    "js/services/updateChecker.js",
+    "js/utils/mascotLoop.js",
+    "tests/desktop/update-ready-mascot.spec.js",
+    "js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js",
+    "js/services/activeGenerations.js",
+    "js/events.js",
+    "tests/desktop/cancelled-mascot.spec.js"
   ]
 }

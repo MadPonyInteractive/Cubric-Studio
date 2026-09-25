@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-929", "at": "2026-09-25T17:21:02+01:00", "actor": "claude", "column": "todo", "title": "Cancel mascot does not play when a cloud job is Stopped"}

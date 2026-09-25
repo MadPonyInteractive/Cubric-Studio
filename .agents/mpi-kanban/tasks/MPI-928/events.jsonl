@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-928", "at": "2026-09-25T17:21:01+01:00", "actor": "claude", "column": "todo", "title": "Stopping a cloud job throws away an image already paid for"}

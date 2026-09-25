@@ -180,6 +180,7 @@ async function showUpdateError(title, text) {
 
 function promptUpdate(current, latest) {
     const dialog = MpiOkCancel.mount(document.createElement('div'), {
+        mascot: { key: 'studio', clip: 'update-ready' },
         title: 'Update available',
         text: `A new version of Cubric Studio is available.\n\n`
             + `You have v${current}. Latest is v${latest}.\n\n`
