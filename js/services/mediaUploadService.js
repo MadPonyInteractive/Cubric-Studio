@@ -94,7 +94,8 @@ export async function uploadMediaFile(file, mediaType, projectFolderPath, projec
             // A video's trim-bar waveform (MPI-829); null for an image, and for a
             // silent clip, which is never owed one.
             wavePath: data.wavePath || null,
-            pixelDimensions: { w: width, h: height },
+            // The server's size: an SVG lands as a PNG at a size of its choosing (MPI-933).
+            pixelDimensions: data.pixelDimensions || { w: width, h: height },
             // Server-side video probe (null for images) — MPI-83 Bug 2.
             fps:        data.fps        ?? null,
             duration:   data.duration   ?? null,

@@ -1384,6 +1384,23 @@ router.post('/project-notes/save', async (req, res) => {
     }
 });
 
+// An SVG is a vector and every tool here reads pixels (thumbs, edits, describe,
+// references), so an imported one is rendered to PNG once and the SVG is not kept
+// (MPI-933, Fabio 2026-09-25). Long edge: the SVG's own, raised to 2048 because a
+// vector enlarges for free, capped at 4096.
+const SVG_MIN_EDGE = 2048;
+const SVG_MAX_EDGE = 4096;
+
+async function rasterizeSvg(svgBytes) {
+    const sharp = require('sharp');
+    const { width, height } = await sharp(svgBytes).metadata();
+    if (!(width > 0 && height > 0)) throw new Error('the SVG declares no size');
+    const long = Math.max(width, height);
+    const target = Math.min(SVG_MAX_EDGE, Math.max(SVG_MIN_EDGE, long));
+    // librsvg renders at 72 dpi = the declared size, so density scales it.
+    return sharp(svgBytes, { density: 72 * target / long }).png().toBuffer({ resolveWithObject: true });
+}
+
 router.post('/project-media/:projectId/upload', async (req, res) => {
     try {
         const { folderPath } = req.query;
@@ -1400,7 +1417,8 @@ router.post('/project-media/:projectId/upload', async (req, res) => {
         const mediaDir = path.join(folderPath, 'Media');
         await fs.ensureDir(mediaDir);
 
-        let finalFileName = filename;
+        const isSvg = mediaType !== 'video' && mediaType !== 'audio' && /\.svg$/i.test(filename);
+        let finalFileName = isSvg ? filename.replace(/\.svg$/i, '.png') : filename;
         if (autoSequence) {
             const ext = path.extname(finalFileName).slice(1) || 'png';
             const stem = path.basename(finalFileName, path.extname(finalFileName));
@@ -1410,7 +1428,15 @@ router.post('/project-media/:projectId/upload', async (req, res) => {
         }
 
         const filePath = path.join(mediaDir, finalFileName);
-        if (sourcePath) {
+        let svgSize = null;
+        if (isSvg) {
+            const svgBytes = sourcePath
+                ? await fs.readFile(sourcePath)
+                : Buffer.from(base64Data.replace(/^data:[^;]+;base64,/, ''), 'base64');
+            const { data, info } = await rasterizeSvg(svgBytes);
+            await fs.writeFile(filePath, data);
+            svgSize = { w: info.width, h: info.height };
+        } else if (sourcePath) {
             await fs.copy(sourcePath, filePath);
         } else {
             const base64Content = base64Data.replace(/^data:[^;]+;base64,/, '');
@@ -1437,7 +1463,8 @@ router.post('/project-media/:projectId/upload', async (req, res) => {
             uploaded:       true,
             flowId:          null,   // Flow provenance parity (MPI-256) — imports are never Flow gens
             flowInputs:      null,
-            pixelDimensions: { w: req.body.width || 0, h: req.body.height || 0 },
+            // An SVG's renderer-side size is its declared one, not the PNG's.
+            pixelDimensions: svgSize || { w: req.body.width || 0, h: req.body.height || 0 },
             generationMs:   null,
         };
         if (mediaType === 'video') {
@@ -1493,6 +1520,8 @@ router.post('/project-media/:projectId/upload', async (req, res) => {
             proxyPath: metaContent.proxyPath || null,
             wavePath: metaContent.wavePath || null,
             gif: metaContent.gif || null,
+            // The measured size wins over the renderer's (an SVG import, a video probe).
+            pixelDimensions: metaContent.pixelDimensions,
             // Video probe results so the client shows fps/duration immediately
             // without waiting for a reload + sidecar reconcile (MPI-83 Bug 2).
             fps:        metaContent.fps        ?? null,
