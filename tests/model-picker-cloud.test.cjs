@@ -65,10 +65,35 @@ test('the tile item derives its cloud flag from `provider`, the one discriminato
 });
 
 test('a cloud tile gets no tier word and no LoRA & Upscale control', () => {
-    assert.match(PICKER, /meta: isCloud\s*\n\s*\? \(model\.dropdownMeta \|\| 'CLOUD'\)/,
+    assert.match(PICKER, /meta: isCloud\s*\n\s*\? `\$\{model\.dropdownMeta \|\| 'CLOUD'\} · \$\{quote\.unit\}`/,
         'the meta must not fall back to a weight tier on a cloud model — that is the CLOUD · BALANCED bug');
-    assert.match(PICKER, /state: \(isCloud \|\| model\.showSettings === false\) \? '' :/,
-        'the settings control must be dropped for a cloud model');
+    assert.match(PICKER, /state: isCloud\s*\n\s*\? `<span class="mpi-tile__chip mpi-tile__chip--paid/,
+        'a cloud tile must take the price chip where the settings control would be');
+});
+
+// ── 5. the price, from the SAME quote the Model Library tile uses (MPI-914) ──────────────
+
+test('the picker prices cloud tiles through modelQuote, never its own arithmetic', () => {
+    assert.match(PICKER, /import \{ modelQuote \} from '..\/..\/..\/data\/modelConstants\/deepinfraPricing\.js';/,
+        'the picker must share the tile quote with the library — a second formula drifts');
+    assert.doesNotMatch(PICKER, /estimateCost/, 'the picker computes its own price instead of calling modelQuote');
+    assert.match(PICKER, /model\.mediaType === 'video' \? ' mpi-tile__chip--paid-video' : ''/,
+        'a clip model\'s price chip must take Video orange, as in the library');
+});
+
+test('every cloud model the picker can list has a real price and unit', async () => {
+    const { modelQuote } = await import('../js/data/modelConstants/deepinfraPricing.js');
+    for (const model of CLOUD) {
+        const q = modelQuote(model);
+        assert.match(q.text || '', /^about \$\d/, `${model.id} would read "price unknown" in the picker`);
+        assert.match(q.unit, /^per /, `${model.id} has no unit`);
+    }
+    // The three quote shapes: flat image, fixed-length clip (Veo), representative clip.
+    const byId = id => modelQuote(MODELS.find(m => m.id === id));
+    assert.equal(byId('flux-schnell-cloud').unit, 'per image');
+    assert.equal(modelQuote({ mediaType: 'video', cloud: { endpointId: 'google/veo-3.1' } }).unit, 'per clip');
+    assert.equal(modelQuote({ mediaType: 'video', cloud: { endpointId: 'google/veo-3.1' } }).text, 'about $3.20');
+    assert.equal(modelQuote({ mediaType: 'video', cloud: { endpointId: 'ByteDance/Seedance-2.0' } }).unit, 'per 5s at 1080p');
 });
 
 // ── 3. the flag exists, its icon exists, and the colour rule wins ────────────────────────

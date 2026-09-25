@@ -248,6 +248,32 @@ export function estimateCost(modelId, opts = {}) {
     return { usd, unit, batch, display: formatPrice(usd), checkedOn: SNAPSHOT.checkedOn };
 }
 
+const TILE_VIDEO_QUOTE = { duration: 5, resolution: '1080p', width: 1920, height: 1080 };
+
+/**
+ * A cloud model's headline price and the unit it is per — the figure a TILE quotes, in the
+ * Model Library (MPI-853) and the model picker (MPI-914) alike, so the two cannot disagree.
+ *
+ * An image model prices itself from nothing. A per-second video model CANNOT: with no
+ * length there is no price, and `estimateCost` correctly returns null rather than guess —
+ * which on a tile reads as "price unknown", the one thing a paid tile must never say. So a
+ * clip model is quoted at a stated, representative length instead, and the unit says which.
+ * Veo is asked BARE on purpose: its clips are a fixed eight seconds, so its own constant is
+ * the true answer and a five-second hint would quote a clip it cannot make.
+ *
+ * @param {{mediaType?:string, cloud?:{endpointId?:string}}} model  a cloud ModelDef.
+ * @returns {{text:string|undefined, unit:string}} `text` is undefined when unpriceable.
+ */
+export function modelQuote(model) {
+    const id = model?.cloud?.endpointId;
+    if (model?.mediaType !== 'video') {
+        return { text: estimateCost(id)?.display, unit: 'per image' };
+    }
+    const fixedLength = estimateCost(id);
+    if (fixedLength) return { text: fixedLength.display, unit: 'per clip' };
+    return { text: estimateCost(id, TILE_VIDEO_QUOTE)?.display, unit: 'per 5s at 1080p' };
+}
+
 /**
  * Price copy. Always "about", never a four-decimal quote: the Gemini models emit a variable
  * number of text tokens, so an estimate is good to about 2% and a precise-looking figure

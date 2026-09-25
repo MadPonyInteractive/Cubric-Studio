@@ -3,6 +3,7 @@ import { MpiOverlay } from '../../Primitives/MpiOverlay/MpiOverlay.js';
 import { MpiTileSheet } from '../../Primitives/MpiTileSheet/MpiTileSheet.js';
 import { ce, qs, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
+import { modelQuote } from '../../../data/modelConstants/deepinfraPricing.js';
 
 /**
  * MpiModelPicker — the model overlay (MPI-356).
@@ -67,15 +68,20 @@ export const MpiModelPicker = ComponentFactory.create({
             // `upscale_models/` folders a DeepInfra endpoint cannot reach, and no cloud
             // ModelDef declares either — so the control is dropped rather than disabled,
             // which would keep advertising a setting that is never coming.
+            //
+            // Where the settings control would be, a cloud tile carries its price (MPI-914)
+            // — the same chip, figure and unit as its Model Library tile, from the same
+            // `modelQuote`, so choosing a model tells you what a run costs before you run it.
             const isCloud = !!model.provider;
             const tier = model.sizeTier || 'balanced';
+            const quote = isCloud ? modelQuote(model) : null;
             return {
                 id: model.id,
                 name: model.name,
                 media: model.mediaType === 'video' ? 'video' : 'image',
                 preview: model.mediaType === 'video' ? model.video : model.image,
                 meta: isCloud
-                    ? (model.dropdownMeta || 'CLOUD')
+                    ? `${model.dropdownMeta || 'CLOUD'} · ${quote.unit}`
                     : `${model.dropdownMeta || ''}${model.dropdownMeta ? ' · ' : ''}${TIER_WORD[tier] || tier}`,
                 showMediaBadge: true,
                 featured: !!model.featured,
@@ -85,7 +91,11 @@ export const MpiModelPicker = ComponentFactory.create({
                 // A <button> may not nest inside the tile <button>, so this is a
                 // span; the capture-phase handler below stops it from reaching the
                 // tile's own click (which would select the model and close).
-                state: (isCloud || model.showSettings === false) ? '' :
+                state: isCloud
+                    ? `<span class="mpi-tile__chip mpi-tile__chip--paid${
+                        model.mediaType === 'video' ? ' mpi-tile__chip--paid-video' : ''
+                    }">${quote.text || 'price unknown'}</span>`
+                    : model.showSettings === false ? '' :
                     `<span class="mpi-model-picker__lora" role="button">${renderIcon('settings', 'sm')}LoRA &amp; Upscale</span>`,
                 source: model,
             };
