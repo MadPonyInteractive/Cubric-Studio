@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-921",
+  "title": "Local server answers only its own origin: drop the open cors(), refuse cross-site and DNS-rebound requests",
+  "description": "server.js app.use(cors()) let any web page in the user's browser call every route (generate, project delete, RunPod pod create). Found while scoping MPI-593.",
+  "column": "done",
+  "maturity": "complete",
+  "status": "done",
+  "created_at": "2026-09-25T12:36:36+01:00",
+  "updated_at": "2026-09-25T12:47:48+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

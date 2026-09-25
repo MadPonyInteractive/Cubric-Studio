@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["server.js", "routes/localOnly.js", "tests/local-only.test.cjs", "package.json", "package-lock.json", "docs/PROJECT.md"] }
