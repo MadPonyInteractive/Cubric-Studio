@@ -5012,3 +5012,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-927", "at": "2026-09-25T17:13:50+01:00", "actor": "claude", "column": "doing", "title": "dos_and_donts: a user-image decode passes limitInputPixels:false"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-927", "at": "2026-09-25T17:14:15+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Rule section written; docs-only."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-924", "at": "2026-09-25T17:24:37+01:00", "actor": "claude-opus-5-5", "from": "doing", "to": "done", "reason": "CI green on 5e607ad2 (run 36146134617), which carries code commit 3e0dbed2"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-916", "at": "2026-09-25T12:25:11+01:00", "actor": "claude", "from": "todo", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-916", "at": "2026-09-25T12:54:29Z", "actor": "94ca8eb9", "note": "Verified: pick 23/23 x3 on final code; Qwen3.6 23/23 x1; unit 500 pass 0 fail. Ready for close-out."}
