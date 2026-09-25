@@ -1,0 +1,9 @@
+{
+  "files": [
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+    "js/components/types.js",
+    "docs/workspaces.md",
+    "tests/desktop/media-picker-to-history.spec.js",
+    ".agents/mpi-kanban/tasks/MPI-924/"
+  ]
+}

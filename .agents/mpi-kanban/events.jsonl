@@ -5002,3 +5002,6 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-922", "at": "2026-09-25T12:59:55+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started: mapping every renderer path to :48188 before dropping the flag."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-922", "at": "2026-09-25T13:35:50+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Shipped e0daf53f, CI green (run 36134933248). Live on app:isolated: SDXL t2i + Scribble Flow through the renderer, foreign origins 403 on 48188."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-593", "at": "2026-09-25T13:29:33+01:00", "actor": "claude", "from": "todo", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-924", "at": "2026-09-25T14:13:36+01:00", "actor": "claude-opus-5-5", "column": "todo", "title": "Gallery prompt box gets the + card to browse for reference images"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-924", "at": "2026-09-25T14:14:19+01:00", "actor": "claude-opus-5-5", "from": "todo", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-924", "at": "2026-09-25T14:17:56+01:00", "actor": "claude-opus-5-5", "from": "doing", "to": "done", "reason": "Gallery + card shipped; desktop spec 5/5, lint clean"}

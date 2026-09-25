@@ -160,7 +160,8 @@ export const MpiPromptBox = ComponentFactory.create({
         // (MpiMediaPicker — the project's own gallery, plus the filesystem through its
         // upload card), and the strip itself made visible in history mode, where CSS
         // otherwise hides it because MpiToolOptionsPrompt owns the video frame thumbs.
-        // Default OFF: the gallery box keeps drag-drop as its only origin.
+        // Default OFF. MPI-924: the gallery box gets the `+` card without the prop —
+        // browsing beats drag-drop for some users — see `_addBtn`.
         const _stageMedia = props.stageMedia === true;
         if (_stageMedia) el.classList.add('mpi-prompt-box--stage-media');
 
@@ -885,8 +886,9 @@ export const MpiPromptBox = ComponentFactory.create({
         // wipes the strip's innerHTML), so it survives every repaint and always sits
         // at the head. Its presence also means a stageMedia strip is never `:empty`,
         // which is what keeps the affordance on screen with no chips staged.
+        // MPI-924: the gallery box always has it; a video history group still has not.
         let _picker = null;
-        const _addBtn = _stageMedia
+        const _addBtn = (_stageMedia || _wsKey === 'gallery')
             ? mountButton({
                 variant: 'ghost',
                 extraClasses: 'mpi-prompt-box-media-strip__add',
@@ -896,6 +898,10 @@ export const MpiPromptBox = ComponentFactory.create({
             _addBtn.title = 'Add a reference image';
             _addBtn.setAttribute('aria-label', 'Add a reference image');
             _unsubs.push(on(_addBtn, 'click', () => _openMediaPicker()));
+            // Seated now, not left to _renderStrip: an empty strip rendering empty takes
+            // its same-set fast path, which never appends — so a gallery box with no
+            // chips would never show the card (MPI-924).
+            _stripEl.appendChild(_addBtn);
         }
 
         /**

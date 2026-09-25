@@ -799,8 +799,9 @@
  *   because they are the same statement: a `+` card at the head of the media strip
  *   opening MpiMediaPicker, and the strip made visible in history mode — where CSS
  *   otherwise hides it because MpiToolOptionsPrompt owns the video frame thumbs.
- *   Image history groups turn it on; the gallery leaves it off and keeps drag-drop
- *   as its only origin. NOTE: `workspaceKey: 'history'` persists NO chips at all —
+ *   Image history groups turn it on. The gallery box leaves it off yet still gets
+ *   the `+` card (MPI-924) — only the history-mode strip and the picker's
+ *   "Add to history" toggle stay behind the prop. NOTE: `workspaceKey: 'history'` persists NO chips at all —
  *   the entry is rebuilt on every mount and references are per-edit by design.
  *
  * Instance methods (on instance.el):

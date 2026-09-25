@@ -287,6 +287,48 @@ test('an imported file lands as an entry too, and makes no second gallery card',
   }
 });
 
+// MPI-924: the gallery box has the `+` card too, for users who browse rather than drag.
+// It has no open card, so it must not offer the history destination.
+test('the gallery prompt box has the + card, and a pick stages a reference chip', async ({}, testInfo) => {
+  const { app, window, pageErrors } = await launchApp(testInfo);
+
+  try {
+    await readyApp(window);
+    const folderPath = testInfo.outputPath('project');
+    fs.mkdirSync(folderPath, { recursive: true });
+    const seed = seedProject(folderPath);
+
+    await window.evaluate(async (p) => {
+      const [{ state }, { navigate, PAGE_GALLERY }] = await Promise.all([
+        import('/js/state.js'),
+        import('/js/router.js'),
+      ]);
+      state.currentProject = p;
+      navigate(PAGE_GALLERY);
+      await new Promise(r => setTimeout(r, 800));
+    }, { ...seed.project, folderPath: folderPath.replace(/\\/g, '/') });
+    await expect(window.locator('.mpi-prompt-box-media-strip__add')).toHaveCount(1, { timeout: 10000 });
+
+    const res = await pickThroughOverlay(window, { caption: 'The original', toHistory: false });
+    expect(res.sawToggle, 'no history destination in the gallery').toBe(false);
+    expect(res.picked, `saw: ${JSON.stringify(res.captions)}`).toBe(true);
+
+    const after = await window.evaluate(async () => {
+      const { state } = await import('/js/state.js');
+      return {
+        cards: state.currentProject.itemGroups.length,
+        chips: document.querySelectorAll('.mpi-prompt-box-media-strip__chip').length,
+      };
+    });
+    expect(after.chips, 'the pick staged a reference chip').toBe(1);
+    expect(after.cards, 'no new gallery card').toBe(2);
+
+    expect(pageErrors, `page errors: ${pageErrors.join(' | ')}`).toHaveLength(0);
+  } finally {
+    await closeApp(app);
+  }
+});
+
 test('an opener with one destination gets no toggle', async ({}, testInfo) => {
   const { app, window, pageErrors } = await launchApp(testInfo);
 
