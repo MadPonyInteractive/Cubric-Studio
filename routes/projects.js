@@ -2118,7 +2118,8 @@ router.post('/project/save-generation', async (req, res) => {
         } else if (!resolvedDims || !resolvedDims.w || !resolvedDims.h) {
             try {
                 const sharp = require('sharp');
-                const probed = await sharp(filePath).metadata();
+                // A 16K photo (268 MP) is past sharp's default limit, metadata() included (MPI-925).
+                const probed = await sharp(filePath, { limitInputPixels: false }).metadata();
                 if (probed.width && probed.height) {
                     resolvedDims = { w: probed.width, h: probed.height };
                 }

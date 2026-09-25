@@ -13,6 +13,8 @@
  */
 
 const sharp = require('sharp');
+// Every input passes limitInputPixels: false: photographers load 16K images (268 MP),
+// past sharp's default limit, and the limit fires on metadata() too (MPI-925).
 
 /** Feather sigma when the caller doesn't pick one: ~2.5px at 1024px. */
 function defaultFeather(width, height) {
@@ -81,7 +83,7 @@ function fillMaskHoles(data, width, height, threshold = 128) {
  * @returns {Promise<{width: number, height: number}>} the written image's dimensions
  */
 async function compositeThroughMask({ basePath, overlayPath, maskBuffer, outPath, feather, fillHoles }) {
-    const { width, height } = await sharp(basePath).metadata();
+    const { width, height } = await sharp(basePath, { limitInputPixels: false }).metadata();
     if (!width || !height) throw new Error('Could not read base image dimensions');
 
     const sigma = Number.isFinite(feather) ? feather : defaultFeather(width, height);
@@ -89,7 +91,7 @@ async function compositeThroughMask({ basePath, overlayPath, maskBuffer, outPath
     // Mask → a single 8-bit channel the size of the base. flatten() first: a
     // mask layer may carry alpha (transparent = unmasked), and greyscale() would
     // keep it as a second channel, which joinChannel below would reject.
-    const maskRaw = await sharp(maskBuffer)
+    const maskRaw = await sharp(maskBuffer, { limitInputPixels: false })
         .resize(width, height, { fit: 'fill' })
         .flatten({ background: '#000000' })
         .greyscale()
@@ -109,7 +111,7 @@ async function compositeThroughMask({ basePath, overlayPath, maskBuffer, outPath
     // buffer as greyscale but writes it back as 3-channel sRGB, and joinChannel
     // would then read the 3x buffer as a garbage-sized alpha plane.
     const maskFinal = sigma >= 0.3
-        ? await sharp(maskRaw, { raw: { width, height, channels: 1 } })
+        ? await sharp(maskRaw, { raw: { width, height, channels: 1 }, limitInputPixels: false })
             .blur(sigma)
             .toColourspace('b-w')
             .raw()
@@ -136,19 +138,19 @@ async function compositeThroughMask({ basePath, overlayPath, maskBuffer, outPath
     // measured 2026-08-04 as exactly 4x1136 = 4544 transparent pixels. It could not
     // happen while this was `fit: 'fill'` (no crop, so the sizes always matched), which
     // is why MPI-373's cover change is what introduced it.
-    const overlayRgb = await sharp(overlayPath)
+    const overlayRgb = await sharp(overlayPath, { limitInputPixels: false })
         .resize(width, height, { fit: 'cover', position: 'centre' })
         .flatten({ background: '#000000' })
         .toColourspace('srgb')
         .raw()
         .toBuffer();
 
-    const overlay = await sharp(overlayRgb, { raw: { width, height, channels: 3 } })
-        .joinChannel(maskFinal, { raw: { width, height, channels: 1 } })
+    const overlay = await sharp(overlayRgb, { raw: { width, height, channels: 3 }, limitInputPixels: false })
+        .joinChannel(maskFinal, { raw: { width, height, channels: 1 }, limitInputPixels: false })
         .png()
         .toBuffer();
 
-    await sharp(basePath).composite([{ input: overlay }]).toFile(outPath);
+    await sharp(basePath, { limitInputPixels: false }).composite([{ input: overlay, limitInputPixels: false }]).toFile(outPath);
     return { width, height };
 }
 
@@ -168,10 +170,10 @@ async function compositeThroughMask({ basePath, overlayPath, maskBuffer, outPath
  * @returns {Promise<{width: number, height: number}>} the written image's dimensions
  */
 async function compositeOverlay({ basePath, overlayBuffer, outPath, opacity = 1 }) {
-    const { width, height } = await sharp(basePath).metadata();
+    const { width, height } = await sharp(basePath, { limitInputPixels: false }).metadata();
     if (!width || !height) throw new Error('Could not read base image dimensions');
 
-    let overlay = await sharp(overlayBuffer)
+    let overlay = await sharp(overlayBuffer, { limitInputPixels: false })
         .resize(width, height, { fit: 'fill' })
         .ensureAlpha()
         .png()
@@ -184,7 +186,7 @@ async function compositeOverlay({ basePath, overlayBuffer, outPath, opacity = 1 
     // overlapping dabs inside one stroke cannot build up darker than the rest.
     const a = Math.max(0, Math.min(1, Number(opacity)));
     if (a < 1) {
-        overlay = await sharp(overlay)
+        overlay = await sharp(overlay, { limitInputPixels: false })
             .composite([{
                 input: Buffer.from([255, 255, 255, Math.round(a * 255)]),
                 raw: { width: 1, height: 1, channels: 4 },
@@ -195,7 +197,7 @@ async function compositeOverlay({ basePath, overlayBuffer, outPath, opacity = 1 
             .toBuffer();
     }
 
-    await sharp(basePath).composite([{ input: overlay }]).toFile(outPath);
+    await sharp(basePath, { limitInputPixels: false }).composite([{ input: overlay, limitInputPixels: false }]).toFile(outPath);
     return { width, height };
 }
 

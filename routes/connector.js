@@ -1069,7 +1069,7 @@ router.post('/connector/describe', async (req, res) => {
       const sharp = _getSharp();
 
       // Get source dimensions for out-of-bounds check.
-      const meta = await sharp(imagePath).metadata();
+      const meta = await sharp(imagePath, { limitInputPixels: false }).metadata();
       const srcW = meta.width || 0;
       const srcH = meta.height || 0;
       const { x, y, width, height } = crop;
@@ -1079,7 +1079,7 @@ router.post('/connector/describe', async (req, res) => {
           message: `crop (${x},${y},${width},${height}) extends outside image (${srcW}×${srcH}).` } });
       }
 
-      await sharp(imagePath)
+      await sharp(imagePath, { limitInputPixels: false })
         .extract({ left: Math.round(x), top: Math.round(y), width: Math.round(width), height: Math.round(height) })
         .jpeg({ quality: 92 })
         .toFile(outPath);
@@ -1103,7 +1103,7 @@ router.post('/connector/describe', async (req, res) => {
     let found = null;
     let imageSize = null;
     try {
-      const meta = await _getSharp()(imagePath).metadata();
+      const meta = await _getSharp()(imagePath, { limitInputPixels: false }).metadata();
       imageSize = { w: meta.width, h: meta.height };
       found = boxFromDescribeAnswer(result.output?.text, { crop, origWidth: meta.width, origHeight: meta.height });
     } catch (err) {
@@ -1140,7 +1140,7 @@ router.post('/connector/describe', async (req, res) => {
   // loses the field rather than failing the look.
   let imageSize = null;
   try {
-    const meta = await _getSharp()(imagePath).metadata();
+    const meta = await _getSharp()(imagePath, { limitInputPixels: false }).metadata();
     if (meta.width && meta.height) imageSize = { w: meta.width, h: meta.height };
   } catch (err) {
     logger.warn('connector', `describe: could not read the size of ${imagePath}: ${err.message}`);

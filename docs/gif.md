@@ -219,6 +219,9 @@ Workspace tools land results through the Block's `_postGifEntry` (POST, then
 `/gif/ensure-frames` for the URLs, then append or replace the history entry).
 Make GIF (`routes/gifMake.js`) and GIF Maker (`routes/gifMaker.js`, [a video tool](video-player.md#gif-maker-mpi-760))
 write frames and call `buildGif()` themselves. A GIF opens with no tool up.
+Make GIF is the only way a still enters the store, so its canvas is capped at 4096 on the
+long edge (`FRAME_MAX_EDGE`, the builder's own `MAX_EDGE`): a 16K photo stored as-is also
+fails every later ffmpeg pass, `Picture size 16384x16384 is invalid` (MPI-925).
 
 **The frame strip is the discoverable surface.** Click a thumb to jump, drag to
 scrub, hold 300 ms then drag to reorder, and **right-click for Duplicate frame /

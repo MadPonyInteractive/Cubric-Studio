@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-925", "at": "2026-09-25T15:50:46+01:00", "actor": "claude", "column": "doing", "title": "Every user-image sharp() path decodes 16K (past the 268 MP limit)"}

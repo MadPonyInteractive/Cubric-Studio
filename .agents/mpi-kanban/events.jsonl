@@ -5006,3 +5006,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-924", "at": "2026-09-25T14:14:19+01:00", "actor": "claude-opus-5-5", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-924", "at": "2026-09-25T14:17:56+01:00", "actor": "claude-opus-5-5", "from": "doing", "to": "done", "reason": "Gallery + card shipped; desktop spec 5/5, lint clean"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-924", "at": "2026-09-25T15:13:33+01:00", "actor": "claude-opus-5-5", "from": "done", "to": "doing", "reason": "Reopened: the done-gate needs CI to judge 3e0dbed2 first; closes on green"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-925", "at": "2026-09-25T15:50:46+01:00", "actor": "claude", "column": "doing", "title": "Every user-image sharp() path decodes 16K (past the 268 MP limit)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-926", "at": "2026-09-25T16:06:37+01:00", "actor": "claude", "column": "todo", "title": "A 16K image gets no gallery thumbnail: ffmpeg refuses the picture size"}

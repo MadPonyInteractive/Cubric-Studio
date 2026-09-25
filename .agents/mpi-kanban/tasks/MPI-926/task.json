@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-926",
+  "title": "A 16K image gets no gallery thumbnail: ffmpeg refuses the picture size",
+  "description": "services/ffmpegThumb.js extractImageThumb returns null on 16384x16384 (ffmpeg: Picture size invalid, compiled-in limit). Found in MPI-925; thumb 16K stills with sharp or pre-shrink.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-25T16:06:37+01:00",
+  "updated_at": "2026-09-25T16:06:37+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

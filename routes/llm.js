@@ -494,41 +494,42 @@ router.post('/llm/describe', async (req, res) => {
     let imgBuffer;
     try {
         const sharp = _getSharp();
-        let pipeline = sharp(srcPath);
+        // Photographers load 16K stills (268 MP), past sharp's default pixel limit.
+        let pipeline = sharp(srcPath, { limitInputPixels: false });
+
+        // Size from the header, never a decode: the raw() round trip this replaced
+        // held a 16K photo as 805 MB of pixels just to learn its width.
+        const meta = await pipeline.metadata();
+        let srcW = meta.width || 0;
+        let srcH = meta.height || 0;
 
         // Apply crop if given (validate out-of-bounds here where we have dimensions).
         if (crop) {
-            const meta = await sharp(srcPath).metadata();
-            const srcW = meta.width || 0;
-            const srcH = meta.height || 0;
             const { x, y, width, height } = crop;
             if (x < 0 || y < 0 || x + width > srcW || y + height > srcH) {
                 return res.json({ ok: false, error: { code: 'BAD_IMAGE',
                     message: `crop (${x},${y},${width},${height}) extends outside image (${srcW}x${srcH}).` } });
             }
-            pipeline = sharp(srcPath).extract({
+            const rect = {
                 left: Math.round(x), top: Math.round(y),
                 width: Math.round(width), height: Math.round(height),
-            });
+            };
+            pipeline = pipeline.extract(rect);
+            srcW = rect.width;
+            srcH = rect.height;
         }
-
-        // Get post-crop dimensions for the downscale calculation.
-        const { data: rawBuf, info } = await pipeline.raw().toBuffer({ resolveWithObject: true });
-        const srcW = info.width;
-        const srcH = info.height;
 
         // Downscale to ≤ 1 MP in 16-px steps (nearest-exact), matching node 41.
         // Only downscale; images already within the limit are kept at native size.
         // Uses floor (not round) so the product is guaranteed ≤ DESCRIBE_MAX_PIXELS
         // after rounding.
-        let resizePipeline = sharp(rawBuf, { raw: { width: srcW, height: srcH, channels: info.channels } });
         if (srcW * srcH > DESCRIBE_MAX_PIXELS) {
             const scale = Math.sqrt(DESCRIBE_MAX_PIXELS / (srcW * srcH));
             const newW = Math.max(DESCRIBE_STEP, Math.floor(srcW * scale / DESCRIBE_STEP) * DESCRIBE_STEP);
             const newH = Math.max(DESCRIBE_STEP, Math.floor(srcH * scale / DESCRIBE_STEP) * DESCRIBE_STEP);
-            resizePipeline = resizePipeline.resize(newW, newH, { fit: 'fill', kernel: 'nearest' });
+            pipeline = pipeline.resize(newW, newH, { fit: 'fill', kernel: 'nearest' });
         }
-        imgBuffer = await resizePipeline.jpeg({ quality: 85 }).toBuffer();
+        imgBuffer = await pipeline.jpeg({ quality: 85 }).toBuffer();
     } catch (err) {
         logger.error('system', `llm describe image processing failed: ${err && err.message}`);
         return res.json({ ok: false, error: { code: 'BAD_IMAGE', message: `Image could not be read: ${err && err.message}` } });

@@ -22,7 +22,8 @@
  *   precedent as `routes/videoConcat.js`'s `_writeOutputSidecar`) but never
  *   touches `project.json` — the client's `addGroup()` owns that write.
  *
- * Sizing: the FIRST item's full-res pixel size is the canvas. Every item
+ * Sizing: the FIRST item's full-res pixel size is the canvas, shrunk to fit
+ * FRAME_MAX_EDGE when bigger (a 16K photo, MPI-925). Every item
  * (including the first) is resized `fit: 'contain'` into that canvas with
  * PADDING PIXELS EXACTLY RGBA(0,0,0,0) — `background: { r:0, g:0, b:0,
  * alpha:0 }` guarantees this; no source pixel can leak into the padding
@@ -51,6 +52,11 @@ const { nextSequence } = require('./projects');
 // Make GIF's fixed default (no prompt, plan Decision 8): each still holds 1 s.
 // 10 fps flashed a slideshow of unrelated images (Fabio, 2026-09-16).
 const DELAY_HUNDREDTHS = 100;
+
+// The largest .gif the builder makes (js/utils/gifTiming.js MAX_EDGE), so a frame
+// past it buys nothing. A 16K still (268 MP) stored as-is also fails every later
+// ffmpeg pass: "Picture size 16384x16384 is invalid" (MPI-925).
+const FRAME_MAX_EDGE = 4096;
 
 function _resolveAbsPath(rawFilePath) {
     const raw = String(rawFilePath || '');
@@ -109,16 +115,18 @@ router.post('/gif/make', async (req, res) => {
             sources.push(abs);
         }
 
-        const firstMeta = await sharp(sources[0]).metadata();
-        const targetW = firstMeta.width;
-        const targetH = firstMeta.height;
+        // limitInputPixels: false — photographers load 16K stills, past sharp's 268 MP default.
+        const firstMeta = await sharp(sources[0], { limitInputPixels: false }).metadata();
+        const scale = Math.min(1, FRAME_MAX_EDGE / Math.max(firstMeta.width || 0, firstMeta.height || 0));
+        const targetW = Math.round(firstMeta.width * scale);
+        const targetH = Math.round(firstMeta.height * scale);
         if (!targetW || !targetH) {
             return res.status(500).json({ success: false, error: 'could not read the first image\'s dimensions' });
         }
 
         const frames = [];
         for (const abs of sources) {
-            const buf = await sharp(abs)
+            const buf = await sharp(abs, { limitInputPixels: false })
                 .resize(targetW, targetH, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
                 .ensureAlpha()
                 .png()

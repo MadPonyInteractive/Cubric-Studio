@@ -10,6 +10,8 @@
  */
 
 const sharp = require('sharp');
+// Every input passes limitInputPixels: false: photographers load 16K images (268 MP),
+// past sharp's default limit, and the limit fires on metadata() too (MPI-925).
 
 const HEX_RE = /^#?([a-f0-9]{6})$/i;
 
@@ -74,7 +76,7 @@ function planExtendedCrop({ srcW, srcH, x, y, w, h }) {
  * @returns {Promise<{width:number,height:number}>} written pixel size
  */
 async function cropExtended(inputPath, outPath, { x, y, w, h, fill, outW, outH }) {
-    const meta = await sharp(inputPath).metadata();
+    const meta = await sharp(inputPath, { limitInputPixels: false }).metadata();
     const plan = planExtendedCrop({
         srcW: meta.width,
         srcH: meta.height,
@@ -90,12 +92,12 @@ async function cropExtended(inputPath, outPath, { x, y, w, h, fill, outW, outH }
     // the padded image first is the only way round it.
     let pipeline;
     if (plan.extends) {
-        const padded = await sharp(inputPath)
+        const padded = await sharp(inputPath, { limitInputPixels: false })
             .extend({ ...plan.extend, background: parseFill(fill) })
             .toBuffer();
-        pipeline = sharp(padded).extract(plan.extract);
+        pipeline = sharp(padded, { limitInputPixels: false }).extract(plan.extract);
     } else {
-        pipeline = sharp(inputPath).extract(plan.extract);
+        pipeline = sharp(inputPath, { limitInputPixels: false }).extract(plan.extract);
     }
 
     const resample = outW > 0 && outH > 0

@@ -644,7 +644,7 @@ test('client preview and server blend both COVER the underlay', () => {
     // `overlayRgb`, not `overlay`: the cover resize is MATERIALISED before the mask is
     // joined to it, because joinChannel in the same pipeline binds to the pre-crop image
     // and left a transparent strip at one edge. The pixel test above guards that half.
-    const overlay = svc.match(/const overlayRgb = await sharp\(overlayPath\)[\s\S]*?\.toBuffer\(\);/);
+    const overlay = svc.match(/const overlayRgb = await sharp\(overlayPath[^)]*\)[\s\S]*?\.toBuffer\(\);/);
     assert.ok(overlay, 'the overlay pipeline was not found in imageComposite.js');
     assert.match(overlay[0], /fit:\s*'cover'/,
         "the overlay is resized with something other than fit: 'cover' — the written file would "

@@ -1,0 +1,18 @@
+{
+  "files": [
+    "routes/connector.js",
+    "routes/gifCutout.js",
+    "routes/gifMake.js",
+    "routes/gifMaker.js",
+    "routes/gifToVideo.js",
+    "routes/gifTransform.js",
+    "routes/llm.js",
+    "routes/projects.js",
+    "services/gifFrames.js",
+    "services/imageComposite.js",
+    "services/imageCrop.js",
+    "tests/sharp-16k-inputs.test.cjs",
+    "tests/mask-tool-registry.test.cjs",
+    "docs/gif.md"
+  ]
+}
