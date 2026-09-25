@@ -8,7 +8,9 @@
  *   - the sheet's geometry, and that each reference lands in the cell its NUMBER names;
  *   - the output ratio follows IMAGE 1, not the sheet;
  *   - only a `referenceCollage` model is offered more than one reference;
- *   - the executor sends every reference in strip order, and a sheet prices as one image.
+ *   - the executor sends every reference in strip order, and a sheet prices as one image;
+ *   - every shipped model's OUTPUT shape (base64, a link in `images`, `image_url`, `videos`)
+ *     becomes real media, and bytes of no known type are refused, never saved.
  * No provider call: the stubbed shapes are enough, and a real one spends money.
  */
 
@@ -105,6 +107,19 @@ test('a gallery image travels as a DISK path, never as its /project-file URL', (
         ['C:\\Users\\Fabio\\Projects\\Kaiju\\Media\\t2i_002.png', 'D:\\refs\\dog.png']);
 });
 
+test('a prompt-box chip, which carries only `url`, reaches the route as a disk path', () => {
+    // What the executor is really handed at dispatch: the chip `_tryAddMedia` builds
+    // (MpiPromptBox.js), `{ id, url, file, mediaType, source }`, with NO filePath. The
+    // sidecar shape above is a later clone. Reading only filePath sent every in-app edit
+    // with no reference: a paid text-to-image before 214955b7, a refusal after it.
+    const lite = MODELS.find(m => m.id === 'nano-banana-2-lite-cloud');
+    const chip = (name) => ({ id: name, url: `/project-file?path=C%3A%5Cp%5CMedia%5C${name}`, file: null, mediaType: 'image', source: 'app' });
+    const items = [chip('t2i_002.png'), chip('dog.png')];
+    assert.deepEqual(cloudRunFields(lite, {}, items).imagePaths, ['C:\\p\\Media\\t2i_002.png', 'C:\\p\\Media\\dog.png']);
+    // And the price tag counts the reference: with none it quoted a text-to-image.
+    assert.ok(estimateRunCost(lite, {}, items).usd > estimateRunCost(lite, {}, []).usd);
+});
+
 test('an edit with no reference is REFUSED before any key or provider is touched', async () => {
     const express = require('express');
     const app = express();
@@ -137,4 +152,32 @@ test('the executor sends every reference in strip order, and a sheet prices as o
     const items = ['a.png', 'b.png', 'c.png', 'd.png'].map(filePath => ({ mediaType: 'image', filePath }));
     assert.deepEqual(cloudRunFields(lite, {}, items).imagePaths, ['a.png', 'b.png', 'c.png', 'd.png']);
     assert.equal(estimateRunCost(lite, {}, items).usd, estimateRunCost(lite, {}, items.slice(0, 1)).usd);
+});
+
+test('every shipped output shape becomes real media; a link read as base64 never does', async () => {
+    // The answer shapes each endpoint's schema_out publishes, measured live 2026-09-25.
+    const { _outputsOf, _bytesOf, _extOf } = require('../routes/deepinfra.js');
+    const png = await sharp({ create: { width: 4, height: 4, channels: 3, background: '#f00' } }).png().toBuffer();
+    const link = 'https://ark.example.com/seedream/0217.jpeg?X-Tos-Algorithm=x';
+    assert.deepEqual(_outputsOf({ images: [png.toString('base64')] }), [png.toString('base64')]); // Gemini, FLUX-2 dev
+    assert.deepEqual(_outputsOf({ images: [link] }), [link]);                                     // Seedream
+    assert.deepEqual(_outputsOf({ status: 'ok', image_url: link }), [link]);                      // FLUX-2 pro/max
+    assert.deepEqual(_outputsOf({ video_url: link }), [link]);                                    // Seedance, Wan
+    assert.deepEqual(_outputsOf({ status: 'ok', videos: [link, link] }), [link, link]);           // Veo
+    assert.deepEqual(_outputsOf({ status: 'ok' }), []);
+
+    assert.deepEqual(await _bytesOf(`data:image/png;base64,${png.toString('base64')}`), png);
+    assert.deepEqual(await _bytesOf(png.toString('base64')), png);
+    const realFetch = global.fetch;
+    global.fetch = async (url) => ({ ok: url === link, status: 404, arrayBuffer: async () => png });
+    try {
+        assert.deepEqual(await _bytesOf(link), png);
+        await assert.rejects(_bytesOf('https://gone.example.com/x'));
+    } finally { global.fetch = realFetch; }
+
+    assert.equal(_extOf(png), 'png');
+    assert.equal(_extOf(Buffer.from('ffd8ffe0', 'hex')), 'jpg');
+    assert.equal(_extOf(Buffer.from('000000186674797069736f6d', 'hex')), 'mp4');
+    // What the route used to write for Seedream: the link itself, base64-decoded.
+    assert.equal(_extOf(Buffer.from(link, 'base64')), null);
 });

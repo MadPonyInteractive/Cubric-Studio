@@ -224,8 +224,10 @@ export function runCloudCommand(payload) {
 
         const _settleError = (code, message) => {
             generationStore.settle(jobId, PHASES.ERROR, { error: code });
+            // The route's own message too: the dialog shows fixed copy per code, so without
+            // it here a refusal ("none arrived") and a provider fault read the same in the log.
             clientLogger.error('cloudExecutor',
-                `Cloud generation failed (${payload.operation} / ${payload.modelId}): ${code}`);
+                `Cloud generation failed (${payload.operation} / ${payload.modelId}): ${code}${message ? ` - ${message}` : ''}`);
             // A run refused for credit (MPI-869) is a toast, not the error dialog: nothing
             // broke and there is no log worth downloading. It has no copy in ERROR_COPY on
             // purpose — the route's message carries the cost and what is left. An agent's
@@ -335,10 +337,12 @@ export function runCloudCommand(payload) {
 // A staged gallery image's `filePath` is the renderer's `/project-file?path=<encoded>` URL,
 // not a disk path. The route reads files from DISK, so it must get the decoded path: sent
 // raw, every cloud edit on a gallery image failed to read its reference (MPI-851 to 919).
+// `url` first: a prompt-box chip carries ONLY `url` (MpiPromptBox `_tryAddMedia`), and
+// reading filePath alone sent every in-app edit with no reference at all.
 function _imagePaths(mediaItems) {
     return (mediaItems || [])
         .filter(m => m && (m.mediaType === 'image' || m.type === 'image'))
-        .map(m => m.filePath || m.path)
+        .map(m => m.url || m.filePath || m.path)
         .filter(Boolean)
         .map(p => extractAbsPath(p) || p);
 }

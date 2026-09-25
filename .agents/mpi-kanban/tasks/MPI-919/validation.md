@@ -61,6 +61,42 @@ image 1's ratio, $0.033882 (input tokens present). Suite 1882: 1880 pass, 0 fail
 
 **The running app must be RESTARTED** - its server process holds the old route.
 
+## The in-app "provider could not complete" was the SAME bug, one field over (2026-09-25)
+
+Live log (`%APPDATA%\Cubric Studio\logs\app.log`, not `Cubric Vision`): two
+`PROVIDER_ERROR` at 11:16/11:17Z with NO `deepinfra generate: ... answered HTTP` line, so the
+route refused before any provider call. A prompt-box chip is `{ id, url, file, mediaType,
+source }` (`_tryAddMedia`, also the pinned chip and agent media); `_imagePaths` read
+`filePath || path`, so every in-app cloud edit sent `imagePaths: []`. Before 214955b7 that
+billed a text-to-image; after it, the route's "none arrived" refusal, shown as the generic
+PROVIDER_ERROR copy. The earlier test used the SIDECAR shape (a later clone that has
+`filePath`), so it passed. Fix: `url` first. Test pins the real chip shape and that the price
+tag now counts the reference (it quoted a text-to-image). The executor's log line now carries
+the route's message, so a refusal and a provider fault no longer read the same.
+
+## Cloud media sweep (2026-09-25, ~$0.60 total)
+
+Every input field and type checked keyless against each endpoint's `schema_in`: all match
+(binary string; Wan's typed list fixed in 6b83283f). Outputs checked against `schema_out`.
+Live, real route, Fabio's `Kaiju Giant Bowl/Media/t2i_002.png`, "pencil sketch" edit:
+
+| model | before | after (billed) |
+|---|---|---|
+| FLUX-2 dev edit | OK | - ($0.018) |
+| Seedream 4 / 5 Pro edit | "OK" + 121/166-byte garbage file: `images` holds LINKS, decoded as base64 | real 2048x2048 / 2176x1792 JPEG ($0.04 / $0.099) |
+| Seedream 4.5 edit | (harness sent 1024: provider floor is 3,686,400 px; the app sends no size on an edit) | real 2048x2048 ($0.04) |
+| FLUX-2 pro / max edit | HTTP 500: BFL cannot decode a data URL; and `image_url` was never read | real 1024x1024 ($0.045 / $0.10) |
+| NB2 Lite edit (regression) | OK | real 1127x928 ($0.034) |
+| Seedance 1.5 Pro i2v | OK, first frame = input | same, h264+aac 640x640 ($0.047) |
+
+Fix in `routes/deepinfra.js`: `cloud.imageBareBase64` for FLUX-2 pro/max; one output reader for
+base64, data URLs and links in `images` / `image_url` / `video_url` / `videos`; bytes sniffed,
+and bytes of no known media type are refused, never saved as a card. Unit test pins every
+shape and the Seedream garbage case. Suite 1893: 1891 pass, 0 fail.
+
+Not run: NB Pro (NB2 proxy), Seedance 2 (same field as 1.5), Wan (6b83283f), Veo (`videos`
+read from the schema only, $1.20 fast / $3.20 full per run).
+
 ## Not yet verified
 
 - The prompt box itself accepting four chips on a Nano Banana model (in the app). The slot count

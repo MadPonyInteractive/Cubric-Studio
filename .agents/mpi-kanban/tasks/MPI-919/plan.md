@@ -37,7 +37,13 @@ DISK paths (filePath is the /project-file URL; cloud edits never saw their image
 (was a 422 since ship; live 0.10 USD mp4). Fabio restarted, and a 2-image NB edit now fails
 "provider could not complete" (Reuse Prompt AND fresh drag-drop) - NOT yet diagnosed.
 
+2026-09-25 (session 643d8190): diagnosed + fixed - chips carry only `url`, executor read
+`filePath`. Sweep done (validation.md): FLUX-2 pro/max bare base64, Seedream links /
+`image_url` / Veo `videos` now read, unknown bytes refused. Next: Fabio restarts the app and
+retries the 2-image NB edit; Veo live run only if he okays $1.20.
+
 ## Plan Drift
 
 Scope grew into the cloud media path itself: every cloud model's input shape needs a sweep
-against DeepInfra's in_fields (Fabio's ask), because Wan proved they differ.
+against DeepInfra's in_fields (Fabio's ask), because Wan proved they differ. The sweep then
+found the OUTPUT side broken too (Seedream, FLUX-2 pro/max, Veo) - same route, folded in.

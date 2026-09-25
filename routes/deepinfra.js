@@ -171,24 +171,45 @@ async function _readAccountRoom(key) {
     return checklist ? _accountRoom(checklist) : null;
 }
 
-/** Every base64 image the model answered with, each with its own extension. */
-function _extractImages(body) {
-    const list = body?.images || body?.image || body?.output
-        || (Array.isArray(body?.data) ? body.data.map(d => d?.b64_json) : null) || [];
-    return list.filter(raw => typeof raw === 'string' && raw).map((raw) => {
-        const dataUri = raw.match(/^data:image\/([a-z0-9+.-]+);base64,(.*)$/i);
-        if (dataUri) {
-            const kind = dataUri[1].toLowerCase();
-            return { base64: dataUri[2], ext: kind === 'jpeg' ? 'jpg' : kind };
-        }
-        // Bare base64: sniff the magic bytes rather than assume PNG. A `.png` holding
-        // JPEG bytes opens fine in most viewers and fails somewhere far away from here —
-        // measured on the first real generation, which came back JPEG.
-        const buf = Buffer.from(raw, 'base64');
-        const ext = buf.slice(0, 3).toString('hex') === 'ffd8ff' ? 'jpg'
-            : (buf.slice(0, 4).toString('ascii') === 'RIFF' ? 'webp' : 'png');
-        return { base64: raw, ext };
-    });
+/**
+ * Every output the model answered with: a data URL, bare base64, or an https link. The
+ * field AND the form differ per model (every shipped endpoint's schema_out, 2026-09-25):
+ * the Gemini family and FLUX-2 dev answer base64 in `images`, Seedream answers LINKS in
+ * `images`, FLUX-2 pro/max one `image_url` link, Seedance and Wan a `video_url` link,
+ * Veo a `videos` list.
+ */
+function _outputsOf(body) {
+    const one = body?.video_url || body?.output?.video_url || body?.image_url;
+    const list = one ? [one]
+        : body?.videos || body?.images || body?.image || body?.output
+            || (Array.isArray(body?.data) ? body.data.map(d => d?.b64_json) : null) || [];
+    return [].concat(list).filter(raw => typeof raw === 'string' && raw);
+}
+
+/** The bytes behind one output: fetched when it is a link, decoded when it is base64. */
+async function _bytesOf(raw) {
+    if (/^https?:\/\//i.test(raw)) {
+        const r = await fetch(raw, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return Buffer.from(await r.arrayBuffer());
+    }
+    const dataUri = /^data:[^;,]+;base64,/i.exec(raw);
+    return Buffer.from(dataUri ? raw.slice(dataUri[0].length) : raw, 'base64');
+}
+
+const IMAGE_MIME = { jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+
+/**
+ * The file's extension from its magic bytes, or null for anything else. Never trust a
+ * label: the first real generation came back as JPEG bytes in a field that implied PNG.
+ */
+function _extOf(buf) {
+    if (buf.slice(0, 3).toString('hex') === 'ffd8ff') return 'jpg';
+    if (buf.slice(0, 4).toString('hex') === '89504e47') return 'png';
+    if (buf.slice(0, 4).toString('ascii') === 'RIFF' && buf.slice(8, 12).toString('ascii') === 'WEBP') return 'webp';
+    if (buf.slice(4, 8).toString('ascii') === 'ftyp') return 'mp4';
+    if (buf.slice(0, 4).toString('hex') === '1a45dfa3') return 'webm';
+    return null;
 }
 
 router.post('/deepinfra/generate', async (req, res) => {
@@ -253,20 +274,23 @@ router.post('/deepinfra/generate', async (req, res) => {
     Object.assign(body, buildSizeFields(model.cloud.endpointId, sheet
         ? { width: sheet.width, height: sheet.height, qualityTier, duration, batch }
         : { width, height, ratioLabel, qualityTier, duration, batch }));
-    // Most endpoints take the picture as a bare data URL. Wan 3.0 takes a LIST of typed
+    // Most endpoints take the picture as a data URL. Wan 3.0 takes a LIST of typed
     // media (`[{ type: 'first_frame', url }]`), named by `cloud.imageMediaType`; a bare
     // string there is a 422 (measured 2026-09-25), so Wan's i2v never ran before this.
-    const placeImage = (dataUri) => {
+    // FLUX-2 pro/max take bare base64 (`cloud.imageBareBase64`): BFL cannot decode a data
+    // URL and answers a 500. The data URL names the file's REAL type, sniffed from its bytes.
+    const placeImage = (bytes) => {
+        const b64 = bytes.toString('base64');
+        const value = model.cloud.imageBareBase64 ? b64 : `data:${IMAGE_MIME[_extOf(bytes)] || 'image/png'};base64,${b64}`;
         body[model.cloud.imageField] = model.cloud.imageMediaType
-            ? [{ type: model.cloud.imageMediaType, url: dataUri }]
-            : dataUri;
+            ? [{ type: model.cloud.imageMediaType, url: value }]
+            : value;
     };
     if (sheet) {
-        placeImage(`data:image/jpeg;base64,${sheet.jpeg.toString('base64')}`);
+        placeImage(sheet.jpeg);
     } else if (refs[0] && model.cloud.imageField) {
         try {
-            const bytes = await fs.readFile(refs[0]);
-            placeImage(`data:image/png;base64,${bytes.toString('base64')}`);
+            placeImage(await fs.readFile(refs[0]));
         } catch (err) {
             return _fail(res, 'PROVIDER_ERROR', 'The reference image could not be read.');
         }
@@ -309,46 +333,45 @@ router.post('/deepinfra/generate', async (req, res) => {
     const served = (id, ext) => `http://127.0.0.1:${ownPort}/deepinfra/output/${id}.${ext}?filename=${id}.${ext}`;
     const viewUrls = [];
 
-    const videoUrl = json?.video_url || json?.output?.video_url || null;
-    if (videoUrl) {
-        const id = crypto.randomUUID();
-        // Video comes back as a link rather than base64. Fetched here so the project
-        // save path only ever talks to this app.
+    const outputs = _outputsOf(json);
+    if (!outputs.length) {
+        // A 200 with no image IS the Gemini family's content refusal.
+        logger.warn('system', `deepinfra generate: ${model.id} returned no media`);
+        return _fail(res, 'CONTENT_FILTERED', null);
+    }
+    // ONE OUTPUT PER OUTPUT ASKED FOR (MPI-875). The provider is under no obligation
+    // to hand back the count it was given, and on 2026-09-21 `google/nano-banana-2`
+    // answered a single-image request with the SAME generation twice — byte-identical
+    // pixels, a fresh C2PA signature on each copy, and one charge for the pair. Every
+    // extra copy becomes its own gallery card downstream (`generationService` builds
+    // one card per url) carrying the whole call's cost, so the count is kept here,
+    // where it was decided. Header contract: "N outputs, ONE call, ONE bill".
+    const wanted = Math.max(1, Math.min(batchFieldFor(model.cloud.endpointId)?.max || 1,
+        Number(batch) || 1));
+    if (outputs.length > wanted) {
+        // Counts only. The body is never logged — see the file header.
+        logger.warn('system', `deepinfra generate: ${model.id} returned ${outputs.length} outputs for ${wanted} asked; keeping ${wanted}`);
+    }
+    for (const raw of outputs.slice(0, wanted)) {
+        // A link is fetched here so the project save path only ever talks to this app.
+        let bytes;
         try {
-            const clip = await fetch(videoUrl, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
-            if (!clip.ok) throw new Error(`HTTP ${clip.status}`);
-            const ext = (new URL(videoUrl).pathname.split('.').pop() || 'mp4').toLowerCase();
-            await fs.writeFile(path.join(OUTPUT_DIR, `${id}.${ext}`), Buffer.from(await clip.arrayBuffer()));
-            viewUrls.push(served(id, ext));
+            bytes = await _bytesOf(raw);
         } catch (err) {
-            logger.warn('system', `deepinfra generate: ${model.id} clip fetch failed`);
-            return _fail(res, 'PROVIDER_ERROR', 'The clip was generated but could not be downloaded.');
+            logger.warn('system', `deepinfra generate: ${model.id} output fetch failed`);
+            return _fail(res, 'PROVIDER_ERROR', 'The result was generated but could not be downloaded.');
         }
-    } else {
-        const images = _extractImages(json);
-        if (!images.length) {
-            // A 200 with no image IS the Gemini family's content refusal.
-            logger.warn('system', `deepinfra generate: ${model.id} returned no media`);
-            return _fail(res, 'CONTENT_FILTERED', null);
+        // Bytes that are no picture or clip we know are never saved as one. Seedream's
+        // links were base64-decoded into 121-byte "PNGs" until 2026-09-25: billed, and a
+        // broken card with no error anywhere.
+        const ext = _extOf(bytes);
+        if (!ext) {
+            logger.warn('system', `deepinfra generate: ${model.id} answered ${bytes.length} bytes of no known media type`);
+            return _fail(res, 'PROVIDER_ERROR', 'The provider answered with something that is not a picture or a clip.');
         }
-        // ONE OUTPUT PER OUTPUT ASKED FOR (MPI-875). The provider is under no obligation
-        // to hand back the count it was given, and on 2026-09-21 `google/nano-banana-2`
-        // answered a single-image request with the SAME generation twice — byte-identical
-        // pixels, a fresh C2PA signature on each copy, and one charge for the pair. Every
-        // extra copy becomes its own gallery card downstream (`generationService` builds
-        // one card per url) carrying the whole call's cost, so the count is kept here,
-        // where it was decided. Header contract: "N outputs, ONE call, ONE bill".
-        const wanted = Math.max(1, Math.min(batchFieldFor(model.cloud.endpointId)?.max || 1,
-            Number(batch) || 1));
-        if (images.length > wanted) {
-            // Counts only. The body is never logged — see the file header.
-            logger.warn('system', `deepinfra generate: ${model.id} returned ${images.length} outputs for ${wanted} asked; keeping ${wanted}`);
-        }
-        for (const image of images.slice(0, wanted)) {
-            const id = crypto.randomUUID();
-            await fs.writeFile(path.join(OUTPUT_DIR, `${id}.${image.ext}`), Buffer.from(image.base64, 'base64'));
-            viewUrls.push(served(id, image.ext));
-        }
+        const id = crypto.randomUUID();
+        await fs.writeFile(path.join(OUTPUT_DIR, `${id}.${ext}`), bytes);
+        viewUrls.push(served(id, ext));
     }
 
     res.json({
@@ -398,3 +421,6 @@ module.exports = router;
 module.exports._accountRoom = _accountRoom;
 module.exports._creditRefusal = _creditRefusal;
 module.exports._accountSummary = _accountSummary;
+module.exports._outputsOf = _outputsOf;
+module.exports._bytesOf = _bytesOf;
+module.exports._extOf = _extOf;
