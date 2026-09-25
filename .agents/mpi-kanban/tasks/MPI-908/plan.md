@@ -9,6 +9,12 @@ archived) and no "landing no projects" clip (i2v_042 deleted) - hence the picks 
 **HANDOFF STATE (2026-09-25).** Fabio after a full app restart: "It's looking good, your
 changes" and the 320px no-results is right (Phase 2 empty states: VERIFIED). Phase 1 agent
 fail not yet seen live post-restart. Next, in order:
+0. **(b13c4313, handoff) Items 1-5 ALL DONE + Fabio VERIFIED** (validation.md): double frame,
+   reply marker (declined path proven by tests only - his live ask was substituted, not
+   declined), DESIGN.md + docs, GIF re-cuts, and MPI-907 toasts (STILLS per mascot by Fabio's
+   call, verified in the component gallery; MPI-907 is ready to close). Remaining mascot work:
+   this card's "Later" (job cancelled on a card, update ready, RunPod connecting x4 +
+   connected) and MPI-906 Phases 3-5 (parked). Ask Fabio which next. Old notes below.
 1. **Double-frame on swap (Fabio, NOT from this card - from the MPI-777 flicker fix):** hovering
    a landing mascot, and some agent-chat swaps, show the new clip ONE FRAME ON TOP of the old.
    Cause: `heroCrew.js` `handOverClip` keeps the old clip live until the new one's NEXT frame,

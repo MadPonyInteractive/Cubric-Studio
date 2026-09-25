@@ -220,7 +220,10 @@
    all open on the same rest frame: the character occupies rows 187-556 of 620, so
    the frame is 620/370 of the character's height and hangs 64/370 below its feet.
    Two videos are stacked because assigning `src` to the visible one blanks it until
-   the first frame decodes; heroCrew.js loads the hidden one and then trades them. */
+   the first frame decodes; heroCrew.js loads the hidden one and then trades them.
+   Hidden is 0.001, not 0: Chromium stops drawing a video at 0, and one going 0 -> 1
+   paints nothing for a frame. At 0.001 it is drawn (and rounds to invisible), so the
+   two can trade in one frame with no blank and no two poses stacked (MPI-908). */
 .mpi-landing__crew-clip {
   position: absolute;
   left: 50%;
@@ -228,7 +231,7 @@
   height: calc(100% * 620 / 370);
   width: auto;
   translate: -50% 0;
-  opacity: 0;
+  opacity: 0.001;
   user-select: none;
   pointer-events: none;
 }

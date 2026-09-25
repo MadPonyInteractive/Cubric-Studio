@@ -498,14 +498,15 @@ export const StatusBar = {
      * @param {string} message
      * @param {'success'|'info'|'warning'|'danger'} [variant='info']
      * @param {number} [duration=6000]
-     * @param {{sound?: boolean}} [opts] - sound: play the chime. Defaults true;
+     * @param {{sound?: boolean, mascot?: string}} [opts] - sound: play the chime. Defaults true;
      *        pass `{ sound: false }` for toasts fired as the IMMEDIATE feedback
      *        of a user action (Connect, Install, Cue…) so a click never rings.
+     *        mascot: whose still (MpiToast `mascot`); omitted = Studio.
      */
     notify(message, variant = 'info', duration = 6000, opts = {}) {
         const wrapper = document.createElement('div');
         document.body.appendChild(wrapper);
-        const t = MpiToast.mount(wrapper, { message, variant, duration, sound: opts.sound !== false });
+        const t = MpiToast.mount(wrapper, { message, variant, duration, sound: opts.sound !== false, mascot: opts.mascot });
         t.on('close', () => { t.destroy(); wrapper.remove(); });
     },
 

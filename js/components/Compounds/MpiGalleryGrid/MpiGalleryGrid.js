@@ -1679,7 +1679,6 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 _mascotSrc = src;
                 const next = _mascotShown === mascotA ? mascotB : mascotA;
                 const seq = ++_mascotSeq;
-                next.classList.remove(MASCOT_LIVE); // still up from an unfinished handover
                 next.src = src;
                 const show = () => {
                     if (seq !== _mascotSeq || _mascotShown === next) return;

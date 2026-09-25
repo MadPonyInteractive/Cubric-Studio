@@ -609,9 +609,9 @@ test('panel crew ledge: Cosmo states, the guest follows the newest job, a closed
     await openProject(window, ALPHA);
 
     const crew  = window.locator('#e2e-agent-host .mpi-agent-chat__crew');
-    // `.last()`: a swap keeps the outgoing clip live until the new one has drawn (heroCrew.js
-    // `handOverClip`), so two can match for ~100ms; the assertions poll until one is left.
-    const cosmo = crew.locator('.mpi-agent-chat__crew-stand').first().locator('.mpi-agent-chat__crew-clip--live').last();
+    // No `.last()`: a swap trades both clips in one frame (heroCrew.js `handOverClip`), so two
+    // live clips at once is the double-frame bug (MPI-908) and fails strict mode.
+    const cosmo = crew.locator('.mpi-agent-chat__crew-stand').first().locator('.mpi-agent-chat__crew-clip--live');
     // Cosmo's queue runs only while the panel is SEEN: open, away from the landing.
     await window.evaluate(async () => {
       const { state } = await import('/js/state.js');
@@ -721,7 +721,7 @@ test('panel crew ledge: Cosmo states, the guest follows the newest job, a closed
 // MPI-908 (Fabio, 2026-09-25): Cosmo notices when something goes wrong. Heads-up (his head
 // held up like a sign) on a refused tool, a failed job and a redo, then back to work; the
 // headless walk-off when the turn itself dies. A job the user took back is not a failure.
-test('panel crew ledge: Cosmo flags a refused tool, a failed job, a redo and a dead turn', async ({}, testInfo) => {
+test('panel crew ledge: Cosmo flags a refused tool, a failed job, a redo, a declined reply and a dead turn', async ({}, testInfo) => {
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);
   try {
@@ -767,6 +767,14 @@ test('panel crew ledge: Cosmo flags a refused tool, a failed job, a redo and a d
     await expect(cosmo).toHaveAttribute('src', WORKING, { timeout: 8000 });
     await fire('agent:working', { working: false });
     await expect(cosmo).toHaveAttribute('src', /studio\/agent-answer-ready\.webm/, { timeout: 8000 });
+
+    // A no in words with no tool failing ("no Z Image Turbo"): the server flags the reply
+    // `declined` (the agent's Declining rule), and the turn ends on heads-up too.
+    await fire('agent:working', { working: true });
+    await expect(cosmo).toHaveAttribute('src', WORKING, { timeout: 8000 });
+    await fire('agent:message', { turnId: 't3', id: 'm3', text: 'There is no Z Image Turbo installed.', declined: true });
+    await fire('agent:working', { working: false });
+    await expect(cosmo).toHaveAttribute('src', HEADS_UP, { timeout: 8000 });
 
     // The turn dies: he walks off without his head, then rests.
     await fire('agent:error', { code: 'ENDPOINT_ERROR', message: 'Agent unavailable' });

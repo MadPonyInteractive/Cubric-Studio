@@ -40,6 +40,11 @@ still the authority; this is only the join between a file on disk and a row in i
 - **Only the selected entry came across.** Each card in the GIFs project holds ONE entry, the finished one. The opaque
   pre-cut GIF and the original video card both stay behind in `Cubric Studio Mascots`, which is where to go to redo one.
 
+**Re-cut in place (2026-09-25).** Fabio cleaned leftover background out of `gif_011`, `gif_012` and `gif_013` inside the
+GIFs project and marked each with the dot (`favourite: "dot"`). A re-cut adds a history entry with a NEW file, so the
+map below points at the selected entry's file, and the old one stays in `Media/`. To re-point after a re-cut: the card's
+`history[selectedIndex]` id -> `Media/.meta/<id>.json` `filePath`, then `stage-mascot-clips.mjs --only <slug>`.
+
 ## Gaps: three Studio slots have no GIF
 
 | Slot | Clip | What happened |
@@ -109,8 +114,8 @@ Three things here were measured rather than assumed, and each would be easy to u
 | `gif_072` | `gif_5e6a1009.gif` | `i2v_052` | Heads up | 768x768 |
 | `gif_077` | `gif_b1f1c492.gif` | `i2v_057` | Search no results | 768x768 |
 | `gif_087` | `gif_d76304b8.gif` | `i2v_067` | Gallery peek | 768x768 |
-| `gif_011` | `gif_24868e18.gif` | `ref2v_004` | Getting ready | 768x768 |
-| `gif_012` | `gif_29488d42.gif` | `ref2v_005` | Working | 768x768 |
+| `gif_011` | `gif_69186173.gif` | `ref2v_004` | Getting ready | 768x768 |
+| `gif_012` | `gif_69186172.gif` | `ref2v_005` | Working | 768x768 |
 | `gif_092` | `gif_45ea9a20.gif` | `t2v_002` | Smoke puff | 768x768 |
 | `gif_100` | `gif_881131bd.gif` | `t2v_028` | Third (camera flash) | 768x768 |
 | `gif_102` | `gif_11ea8063.gif` | `t2v_035` | Explosion | 768x768 |
@@ -139,7 +144,7 @@ Three things here were measured rather than assumed, and each would be easy to u
 | `gif_113` | `gif_c4a29401.gif` | `i2v_075` | connecting loop (laptop) | 1536x640 |
 | `gif_114` | `gif_ac8d3834.gif` | `i2v_077` | connected (plays once on connect success) | 1536x640 |
 | `gif_115` | `gif_2c886f2c.gif` | `i2v_081` | connecting loop (screwdriver) | 1920x768 |
-| `gif_013` | `gif_2e8ff3fe.gif` | `ref2v_006` | Getting ready | 768x768 |
+| `gif_013` | `gif_69186177.gif` | `ref2v_006` | Getting ready | 768x768 |
 | `gif_019` | `gif_979e4747.gif` | `ref2v_014` | Working | 768x768 |
 | `gif_093` | `gif_4858a548.gif` | `t2v_007` | Third (tv switch) | 768x768 |
 | `gif_097` | `gif_1e2869ff.gif` | `t2v_019` | Smoke puff | 768x768 |

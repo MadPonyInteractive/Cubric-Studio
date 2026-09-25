@@ -1,0 +1,10 @@
+{
+  "files": [
+    "js/components/Primitives/MpiToast/MpiToast.js",
+    "js/components/Primitives/MpiToast/MpiToast.css",
+    "js/shell/statusBar.js",
+    "js/shell/notificationService.js",
+    "tests/desktop/toast-mascot.spec.js",
+    "docs/mascot-placement.md"
+  ]
+}

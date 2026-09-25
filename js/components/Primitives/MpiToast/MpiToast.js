@@ -9,7 +9,10 @@ import { Storage } from '../../../core/storage.js';
  *
  * Props:
  * @param {string} message - Notification text
- * @param {'info'|'success'|'warning'|'danger'} [variant='info'] - Visual style
+ * @param {'info'|'success'|'warning'|'danger'|'error'} [variant='info'] - Visual style ('error' = 'danger')
+ * @param {'studio'|'vision'|'video'|'audio'|'prompt'} [mascot='studio'] - Whose still: the op's for a
+ *        toast about a job, Studio (Cosmo) for app-wide messages. Stills, not clips: at 54px a
+ *        clip does not read (Fabio, MPI-907).
  * @param {number} [duration=3000] - Lifespan in ms (set to 0 for persistent)
  * @param {boolean} [sound=true] - Play the notification chime (once per burst).
  *        Pass false for the immediate feedback of a user action (Connect, Install, Cue).
@@ -139,8 +142,10 @@ export const MpiToast = ComponentFactory.create({
     css: ['js/components/Primitives/MpiToast/MpiToast.css'],
 
     template: (props) => {
-        const variant = props.variant || 'info';
+        // 'error' is what several callers say; it used to fall through to an "Info" toast.
+        const variant = props.variant === 'error' ? 'danger' : (props.variant || 'info');
         const message = props.message || '';
+        const key = props.mascot || 'studio';
 
         const mascotByVariant = {
             info: 'idle',
@@ -158,7 +163,7 @@ export const MpiToast = ComponentFactory.create({
         const label = labelByVariant[variant] || labelByVariant.info;
 
         return `<div class="mpi-toast mpi-toast--${variant}">
-            <img class="mpi-toast__mascot" src="assets/mascot/${mascot}.png" alt="" aria-hidden="true" onerror="this.style.display='none'">
+            <img class="mpi-toast__mascot" src="assets/mascot/${key}/${mascot}.webp" alt="" aria-hidden="true" onerror="this.style.display='none'">
             <div class="mpi-toast__content">
                 <div class="mpi-toast__meta">
                     <span class="mpi-toast__dot"></span>

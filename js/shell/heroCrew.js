@@ -147,40 +147,18 @@ function _warm(m, id, clip) {
     m.warm.push(v);
 }
 
-/** Each clip's newest handover, so an older one's pending drop can tell it is stale. */
-const _handOvers = new WeakMap();
-
 /**
- * Hand a mascot from its live clip to the twin. The twin shows at once, but the old clip
- * stays up on its last frame until the twin has DRAWN: a video going from opacity 0 to 1
- * paints nothing for one frame, so dropping the old clip in the same frame left an empty
- * frame at about half the swaps (screencast frames, MPI-777 round 3). Both clips sit on
- * the shared rest frame there, so the frame they overlap cannot be seen. Also used by the
- * agent panel's crew (MpiAgentChat.js).
+ * Hand a mascot from its live clip to the twin, both classes in one frame. The hidden
+ * clip sits at opacity 0.001, not 0, so it is still drawn and shows its frame the moment
+ * it goes live (landing.css `.mpi-landing__crew-clip`). At 0 it painted nothing for a
+ * frame, and keeping the old clip up to cover that stacked two poses on a mid-clip swap
+ * (hover, MPI-908). Also used by the agent panel's crew (MpiAgentChat.js) and the
+ * generating card (MpiGalleryGrid.js).
  */
 export function handOverClip(prev, next, live) {
     next.classList.add(live);
-    const token = {};
-    _handOvers.set(prev, token);
-    _handOvers.set(next, token);
-    // Only if nothing has moved on since: a newer swap may already have taken either clip.
-    // Class checks alone miss a swap straight BACK inside the bound (A->B, then B->A before
-    // B's timer fires): both clips are live again, and the stale timer blacked out A (MPI-908).
-    const drop = () => {
-        if (_handOvers.get(prev) !== token || _handOvers.get(next) !== token) return;
-        if (!next.classList.contains(live) || !prev.classList.contains(live)) return;
-        prev.classList.remove(live);
-        prev.pause();
-    };
-    // Its NEXT video frame, ~40ms on: by then the flip has been drawn. Paused (reduced motion)
-    // there is no next frame, so it drops at once. ponytail: that can blank for one frame, on
-    // a swap reduced motion makes only on a click or a state change.
-    if (next.paused) { drop(); return; }
-    next.requestVideoFrameCallback(drop);
-    // A window that is not drawing (covered, or parked off-screen as the desktop suite's is)
-    // presents no frame, so that never comes and both clips would stay up for good. Nothing
-    // is on screen there to blink, so the bound drops it blind.
-    setTimeout(drop, 250);
+    prev.classList.remove(live);
+    prev.pause();
 }
 
 /**
@@ -191,8 +169,6 @@ export function handOverClip(prev, next, live) {
 function _paintClip(m, id) {
     const next = m.shown === m.a ? m.b : m.a;
     const seq = ++m.seq;
-    // Still up from a handover not finished yet: a src on a visible clip blanks it.
-    next.classList.remove(LIVE);
     next.src = _clipSrc(m.key, id);
     m.el.classList.toggle(AWAKE, !id.startsWith('idle'));
     const show = () => {

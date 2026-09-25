@@ -526,6 +526,22 @@ test('Settings: a named resolution matches tierSizes; one clip\'s settings never
     assert.match(r, /only a redo keeps its card's settings/);
 });
 
+// MPI-908: a no in words fails no tool, so the panel's Cosmo cannot see it. The agent marks
+// the reply; the server hides the marker from the user and flags the frame.
+test('Declining: the marker is hidden from the user, flagged on the frame, kept in context', async () => {
+    assert.match(rule('Declining'), /start that reply with \[declined\]/);
+    const { loop, fakeRes } = await makeLoop({ engineResponses: [{ text: '[declined] There is no Z Image Turbo installed.' }] });
+    await loop.runTurn('Make a cat with Z Image Turbo', [], { folderPath: '/p', name: 'P' }, 'auto', 'deepinfra', 'turn-decline');
+    const msg = fakeRes.events.find((e) => e.event === 'agent:message').data;
+    assert.equal(msg.text, 'There is no Z Image Turbo installed.');
+    assert.equal(msg.declined, true);
+    assert.equal(loop._messages.at(-1).content, '[declined] There is no Z Image Turbo installed.');
+
+    const plain = await makeLoop({ engineResponses: [{ text: 'Done.' }] });
+    await plain.loop.runTurn('Hi', [], { folderPath: '/p', name: 'P' }, 'auto', 'deepinfra', 'turn-plain');
+    assert.equal(plain.fakeRes.events.find((e) => e.event === 'agent:message').data.declined, undefined);
+});
+
 test('Voice: the reply, never the reasoning', () => {
     const r = rule('Voice');
     assert.match(r, /write the reply, never the thinking behind it/);

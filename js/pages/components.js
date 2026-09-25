@@ -631,7 +631,14 @@ function mountAll() {
             {
                 variant: 'success',
                 message: 'Project exported to <a href="#folder" style="color:inherit;text-decoration:underline;">Documents/Cubric Studio/Exports</a> — all 24 history items, masks, and the project.json were copied. You can share that folder or re-import it on another machine to continue exactly where you left off.'
-            }
+            },
+            // MPI-907 — whose still: the finished-generations toast carries the op's mascot.
+            { variant: 'success', mascot: 'vision', message: 'Generation finished. (image op → Vision)' },
+            { variant: 'success', mascot: 'video', message: '2 generations finished. (video ops → Video)' },
+            { variant: 'success', mascot: 'audio', message: 'Generation finished. (audio op → Audio)' },
+            { variant: 'success', mascot: 'prompt', message: 'Generation finished. (Prompt)' },
+            { variant: 'success', message: '3 generations finished. (mixed kinds → Studio)' },
+            { variant: 'error', message: 'Could not key the frames: "error" reads as Failed.' }
         ];
 
         let _toastIdx = 0;
@@ -655,7 +662,8 @@ function mountAll() {
             // in the one place built to catch that.
             const t = MpiToast.mount(toastWrapper, {
                 message: fixture.message,
-                variant: fixture.variant
+                variant: fixture.variant,
+                mascot: fixture.mascot
             });
 
             t.on('close', () => {

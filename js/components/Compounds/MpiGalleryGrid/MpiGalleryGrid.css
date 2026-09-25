@@ -331,7 +331,8 @@
     grid-area: 1 / 1;
     width: 100%;
     height: auto;
-    opacity: 0;
+    /* 0.001, not 0, so it stays drawn: styles/shell/landing.css `.mpi-landing__crew-clip`. */
+    opacity: 0.001;
 }
 
 .mpi-group-card__mascot-clip--live {

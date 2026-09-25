@@ -105,8 +105,9 @@
     bottom: calc(var(--crew-w) * (var(--feet, 557) - 620) / 620);
     /* No opacity transition: the a/b swap is instant, as the landing crew's is. A fade
        crossed two half-transparent clips and read as a flicker to nothing (Fabio,
-       2026-09-22). The hidden twin only takes over once it plays, so there is no blank. */
-    opacity: 0;
+       2026-09-22). The hidden twin only takes over once it plays, so there is no blank.
+       0.001, not 0, so it stays drawn: styles/shell/landing.css `.mpi-landing__crew-clip`. */
+    opacity: 0.001;
 }
 
 /* Cosmo's stand takes a click (the landing's puff-and-cheer); the guest's does not. */

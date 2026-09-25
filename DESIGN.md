@@ -370,15 +370,19 @@ Always visible. Always at the bottom. Always carries: Idle/Generating state (wit
 ## Mascot rules
 
 **There are five, one per app, and they are the accent family in character form** — Studio,
-Vision, Prompt, Audio, Video, with the art colours in the table above. Poses live at
-`assets/mascot/<key>/{idle,greet,happy}.webp`.
+Vision, Prompt, Audio, Video, with the art colours in the table above. They are **animated
+alpha WebM clips** at `assets/mascot/<key>/<clip>.webm`, never flat poses; `studio/logo.*` stays
+the still for the titlebar, About and the agent panel header.
 
-The landing hero stands all five on a lit stage, Studio centre (`js/shell/heroCrew.js` — the
-only code that knows a mascot file path). Everywhere else in the app it is **Studio alone** —
-the flat `assets/mascot/*.png` poses for the generating peek, the empty gallery, the engine-
-starting card and the agent chat, and `studio/logo.*` for the titlebar, About and the agent's
-head. A workspace does NOT swap in its own character: the accent already says what the surface
-is about, and five robots taking turns would be noise.
+The landing hero stands all five on a lit stage, Studio centre (`js/shell/heroCrew.js`).
+Everywhere else a spot shows **the mascot of what it is about** — the op's (`getCommandAccent`)
+on a generating card, the filtered kind's on an empty filter — and Studio (Cosmo) for the
+agent and app-wide moments. The full spot map is `docs/mascot-placement.md`. Three ways to
+play one, never a fourth:
+- a spot that swaps clips uses two stacked videos traded by `handOverClip` (hidden clip at
+  `opacity: 0.001`, never 0 — `docs/shell.md`);
+- a spot that runs a pool (idle, greet, notices) drives it with `mascotClipQueue`;
+- a spot that loops ONE clip uses `mascotLoop()` (`js/utils/mascotLoop.js`), cropped to the figure.
 
 - **Where it appears:**
   - Idle / "thinking" — small float in the corner of the editor canvas while a job runs.
@@ -387,7 +391,8 @@ is about, and five robots taking turns would be noise.
 - **Where it never appears:**
   - Background wallpaper.
   - On every screen (it stops being a friend, becomes wallpaper).
-  - Bigger than 64px outside the landing.
+  - Bigger than 64px outside the landing — except the gallery's "No cards match", which is
+    `min(320px, 40vh)` by Fabio's call: it is the whole screen's content at that moment.
 - **Animation:** gentle vertical float, 4s, ease-in-out, 3px amplitude. Never spin, never wave continuously.
 
 ## Anti-patterns banned in Stage

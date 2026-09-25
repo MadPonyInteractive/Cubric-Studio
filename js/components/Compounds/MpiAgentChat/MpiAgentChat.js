@@ -345,13 +345,12 @@ export const MpiAgentChat = ComponentFactory.create({
         /**
          * Two stacked clips: a src on the visible one blanks it. The hidden one takes over on its
          * first PRESENTED frame (play() resolving is earlier, before any frame is decoded to
-         * screen), and the old one holds its last frame until the new one has drawn
-         * (`handOverClip` - Fabio's "some swaps flicker"). heroCrew.js `_paintClip` is the twin.
+         * screen), trading places with the old one in the same frame (`handOverClip`).
+         * heroCrew.js `_paintClip` is the twin.
          */
         function _paintCosmo(id) {
             const next = _cosmoShown === cosmoA ? cosmoB : cosmoA;
             const seq = ++_cosmoSeq;
-            next.classList.remove(CREW_LIVE);   // still up from an unfinished handover
             next.style.setProperty('--feet', _feet('studio', id));
             next.src = `assets/mascot/studio/${id}.webm`;
             const show = () => {
@@ -438,7 +437,6 @@ export const MpiAgentChat = ComponentFactory.create({
         function _guestPlay(key, clip, { loop = true, then = null } = {}) {
             const next = _guestShown === guestA ? guestB : guestA;
             const seq = ++_guestSeq;
-            next.classList.remove(CREW_LIVE);   // still up from an unfinished handover
             next.loop = loop;
             next.style.setProperty('--feet', _feet(key, clip));
             next.src = `assets/mascot/${key}/${clip}.webm`;
@@ -859,6 +857,8 @@ export const MpiAgentChat = ComponentFactory.create({
                     break;
                 case 'agent:message':
                     _appendMessage(data.text, data.id);
+                    // A no in words (the agent's Declining rule): the turn ends on heads-up, not answer.
+                    if (data.declined) _turnFailed = true;
                     break;
                 case 'agent:tool':
                     // Brief item 12: only show label, never args.prompt

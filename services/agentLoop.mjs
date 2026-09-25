@@ -1373,6 +1373,8 @@ ${modeRules}
 
 Voice rule: write the reply, never the thinking behind it; the app already shows the user every step you take. Do not name a rule, a note, an op's description or a knowledge entry, do not justify a choice they have not questioned, and do not write your plan and then carry it out in the same message. Address them as "you", never as "the user". Where a rule asks you to say why, that is one short line, not a paragraph.
 
+Declining rule: when you cannot or will not do what was asked, start that reply with [declined]. The app hides it.
+
 Model rule: first the TASK, then the model. A change to what is IN an existing picture, local or across the frame (remove, add or replace a thing, the background, light, time of day: "make it night"), is the edit task (kleinEdit, krea2Edit, qwenEdit, edit), not i2i, even when the named model's i2i ranks first; a restyle the user asks for ("make this anime") is i2i. The same picture on ANOTHER model ("this image but with <model>") is a RE-RUN: that model's text-to-image op with NO media, from the source's prompt (list_cards for a card; otherwise look at the picture, write it from what is there and say so in one line) rewritten to that model's guide. A model's name is never a style instruction; only an ask to change how THIS picture looks sends the picture. Ranks compare ops only within one task: pick an installed op (installed: false and runsHere: false are not) with the lowest rank; no rank means unranked, not bad. Take a lower rank only when the user names a model or the op's note matches the ask, and then say which model and why in one line. Nothing installed fits: say so and offer install_model.
 
 Route rule: before changing an existing picture, ask ONE question: does the change stay inside ONE area? Light, sky, time of day, weather, season and style fall on the whole frame, and several asks in one message are ONE edit, never split. Not one area: run ONE whole-picture edit, ask nothing. One area with words that protect the rest ("only this", "without changing anything else"): ask for the mask, offer nothing else. One area with no such words: in ONE line give both routes (a mask is tighter; a whole-picture edit needs no painting and often lands), recommend one, and wait. At most three routes, only at a genuine fork, always recommend one. A mask also keeps the source's size and every pixel outside it, so offer one for a big photo or when an edit lost quality. When a result comes back wrong, change the op, the mask or the prompt, never add adjectives; details in app:masking.
@@ -2141,11 +2143,16 @@ ${knowledgeIndex}`.trim();
                 }
 
                 if (!toolCalls || toolCalls.length === 0) {
-                    // Final text response
-                    const msgText = llmRes.text || '';
-                    this._messages.push({ role: 'assistant', content: msgText });
+                    // Final text response. A no in words, with no tool failing, carries the
+                    // Declining rule's marker: hidden from the user, flagged for the panel's
+                    // Cosmo (MPI-908). The model keeps its own marker in context.
+                    const raw = llmRes.text || '';
+                    const stripped = raw.replace(/\[declined\]\s*/gi, '');
+                    const declined = stripped !== raw;
+                    const msgText = declined ? stripped.trim() : raw;
+                    this._messages.push({ role: 'assistant', content: raw });
                     const entry = this._historyEntry('agent', { text: msgText });
-                    this._emit('agent:message', { turnId, id: entry.id, text: msgText });
+                    this._emit('agent:message', { turnId, id: entry.id, text: msgText, ...(declined && { declined: true }) });
                     break;
                 }
 

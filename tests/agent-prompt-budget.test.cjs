@@ -17,7 +17,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const ROOT = path.join(__dirname, '..');
-const SYSTEM_BUDGET = 9_800;   // bytes, measured 9,490 with the app:* index (MPI-903)
+const SYSTEM_BUDGET = 9_950;   // bytes, measured 9,490 with the app:* index (MPI-903); 9,880 with the Declining rule (MPI-908)
 const TOOLS_BUDGET = 17_200;   // bytes of JSON, measured 16,947 (MPI-903)
 const DOC_LINES = 200;
 

@@ -19,6 +19,7 @@ import { getModelById } from '../data/modelRegistry.js';
 import { PLUGINS, pluginDepKey } from '../data/pluginsRegistry.js';
 import { FLOWS, flowDepKey } from '../data/flowsRegistry.js';
 import { StatusBar } from './statusBar.js';
+import { getCommandAccent } from '../data/commandRegistry.js';
 
 let ipcRenderer = null;
 try {
@@ -57,6 +58,9 @@ export function jobDisplayName(jobId) {
 // Finished-gen counter for the coalesced completion notification (flushed when
 // state.generationQueueCount reaches 0). See the generation:complete handler.
 let _doneCount = 0;
+// Whose finished gens they were (`getCommandAccent`): one mascot names the toast's still,
+// a mix is Studio's (MPI-907). Cleared with the count.
+const _doneKeys = new Set();
 // When the most recent counted completion landed. MPI-540: the count had NO
 // expiry. `_maybeArmFlush` only ever flushes it on `generationQueueCount`
 // reaching 0, so a batch whose queue never cleanly drained — exactly what a
@@ -91,6 +95,7 @@ function _dropStaleCount() {
         clientLogger.warn('notificationService',
             `dropped ${_doneCount} stale finished-gen(s) — batch never drained, last completion ${Math.round((Date.now() - _doneAt) / 1000)}s ago`);
         _doneCount = 0;
+        _doneKeys.clear();
     }
 }
 
@@ -98,7 +103,9 @@ function _dropStaleCount() {
 // re-checked from a setTimeout closure without duplicating the routing.
 function _fireCompletionNotification() {
     const n = _doneCount;
+    const mascot = _doneKeys.size === 1 ? [..._doneKeys][0] : 'studio';
     _doneCount = 0;
+    _doneKeys.clear();
     try {
         const body = n === 1 ? 'Generation finished.' : `${n} generations finished.`;
         const osEligible = state.notificationPrefs?.generation !== false;
@@ -110,7 +117,7 @@ function _fireCompletionNotification() {
             });
             return;
         }
-        StatusBar.notify(body, 'success'); // in-app; rings the chime once
+        StatusBar.notify(body, 'success', undefined, { mascot }); // in-app; rings the chime once
     } catch (err) {
         clientLogger.error('notificationService', 'failed to notify:', err);
     }
@@ -180,9 +187,9 @@ export function initNotificationService() {
     // generation — don't count it. Still arm the flush: on a batch where the LAST item
     // was Stopped, this edge is what drains the queue, and the surviving siblings'
     // count deserves its one toast.
-    _unsubs.push(Events.on('generation:complete', ({ cancelled = false } = {}) => {
+    _unsubs.push(Events.on('generation:complete', ({ cancelled = false, item } = {}) => {
         _dropStaleCount(); // MPI-540 — before counting, or an orphan rides along on a fresh stamp
-        if (!cancelled) { _doneCount++; _doneAt = Date.now(); }
+        if (!cancelled) { _doneCount++; _doneAt = Date.now(); _doneKeys.add(getCommandAccent(item?.operation)); }
         _maybeArmFlush();
     }));
     _unsubs.push(Events.onState('generationQueueCount', (count) => {
@@ -258,6 +265,7 @@ export function initNotificationService() {
 export function destroyNotificationService() {
     if (_flushTimer) { clearTimeout(_flushTimer); _flushTimer = null; }
     _doneCount = 0;
+    _doneKeys.clear();
     _doneAt = 0;
     while (_unsubs.length) { _unsubs.pop()(); }
 }

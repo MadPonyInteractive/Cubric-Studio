@@ -111,6 +111,24 @@ test('a stale count does not inflate the batch that follows it', async () => {
     notif.destroyNotificationService();
 });
 
+test('the finished toast shows the op\'s mascot when one kind finished, Studio for a mix (MPI-907)', async () => {
+    const { notif, Events, state } = await harness();
+    const statusBar = await import(SRC + 'shell/statusBar.js');
+    const mascots = [];
+    statusBar.StatusBar.notify = (_msg, _variant, _duration, opts = {}) => mascots.push(opts.mascot);
+    const batch = async (...ops) => {
+        state.generationQueueCount = ops.length;
+        for (const operation of ops) Events.emit('generation:complete', { cancelled: false, item: { operation } });
+        state.generationQueueCount = 0;
+        await settle();
+    };
+    await batch('t2v', 'i2v');
+    await batch('t2i', 't2v');
+    await batch('t2i');
+    assert.deepStrictEqual(mascots, ['video', 'studio', 'vision']);
+    notif.destroyNotificationService();
+});
+
 test('a normal batch inside the window still coalesces to one notification', async () => {
     // The guard must not cost the thing it protects: three gens finishing seconds
     // apart are one batch and get exactly one summary toast.
