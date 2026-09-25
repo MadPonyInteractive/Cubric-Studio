@@ -90,6 +90,42 @@ billed $0.0487. Claude MCP log: `generate` ids 19 and 20 are quote-only (8 ms ea
 quote plus submit, and returned 39 s later. Findings, all now in `plan.md` phase 2: the silent
 render (1b), unread guides (1c), and "I can't play the video myself" (3).
 
+**Privacy (message 90fd9914, 2026-09-25, PASSED).** Commit `0bcac13c`: `privacy_policies` in the
+manifest, `mcp/cubric-studio/README.md` with the audited Privacy Policy section, and a
+`long_description` that says what reaches Anthropic. `npx -y @anthropic-ai/mcpb validate
+mcp/cubric-studio/manifest.json` -> `Manifest schema validation passes!`
+
+**Phase 2 items 1b, 1c and 3 (2026-09-25, session ae16d6d6).** `node --test tests/mcp.test.cjs`
+-> 16/16 (6 new: requestId, disk path + image content, video running at once + cancel, Stop in
+the chat, a stop in the app, read_knowledge). Live on an isolated instance (`APP_DOCUMENTS` =
+scratch, port 62646):
+- `read_knowledge` with no id -> 47 guides; `guide:sdxl` -> 9,476 chars.
+- SDXL t2i "a red bicycle against a brick wall" -> first call `running` at 45.1 s (cold
+  engine), `wait_generation` -> `filePath` = the real `...\MCP phase2\Media\t2i_001.png`, plus
+  `image/webp` content, 67,916 bytes = the gallery's own `.meta/<itemId>.thumb.webp`, 512x682.
+  Opened by eye: a red bicycle against a brick wall. A warm run: 17.3 s, 14 kB picture.
+- Stop in the chat (`notifications/cancelled` for the blocked `generate`) at 1.5, 3.5, 5 and
+  8 s into an SDXL run -> each answered `CANCELLED ... pressed Stop in the chat` within 0.1 to
+  0.6 s, and no file landed. The `/history` of the engine shows each prompt
+  `execution_interrupted`.
+- MiniMax H3 t2v_ms -> `running` at once (3.1 s, the "end your turn" text).
+- **FAILED twice, and not in routes/mcp.js:** one SDXL Stop at 5 s (13:58:31Z), and
+  `cancel_generation` on the H3 job 11 s in (14:03:23Z). The renderer answered
+  `cancelled: true`, but the held `/connector/generate` never answered: no CANCELLED, no
+  file, still `running` 9 min later (the connector's 30-min timeout would end it). Cause,
+  from the engine's `/history`: the isolated instance ATTACHES to the user's ComfyUI on
+  48188 (MPI-484). The H3 job was still pre-register, waiting on an engine busy with a render
+  of Fabio's app (`fec48cbb`, started 14:02:56Z, before my 14:03:12Z submit). The pre-register
+  `exec.cancel()` falls to a bare `interrupt()`, which killed THAT render
+  (`execution_interrupted@14:03:23`), and nothing ever fired my job's `onCancel`. The 5 s SDXL
+  failure is the same: my job queued behind Fabio's H3 `047e722a`, and my Stop at 13:58:31Z
+  interrupted it (`interrupted@13:58:32`). **So this test killed two of the user's renders.**
+  (His H3 `eae79bed` also ended `interrupted` at 13:57:51Z, but my instance sent no cancel
+  then, and every renderer `interrupt()` is cancel-driven, so that one is not attributed.) Two
+  renderer defects in `js/services/commandExecutor.js` (not this card's files; reported to
+  Fabio): a pre-register cancel settles nothing, and an interrupt has no owner on the shared
+  engine.
+
 **Not checked:**
 - Gemini / Antigravity.
 - A video, a Flow, a paid cloud model.

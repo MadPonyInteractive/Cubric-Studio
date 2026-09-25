@@ -39,7 +39,10 @@
     { "name": "list_projects", "description": "Your projects." },
     { "name": "create_project", "description": "Create and open a project." },
     { "name": "open_project", "description": "Open a project so results land there." },
-    { "name": "generate", "description": "Generate an image or video, or run a Flow." }
+    { "name": "generate", "description": "Generate an image or video, or run a Flow." },
+    { "name": "wait_generation", "description": "Check on a generation that is still running." },
+    { "name": "cancel_generation", "description": "Stop a running generation." },
+    { "name": "read_knowledge", "description": "A model's prompting guide." }
   ],
   "compatibility": {
     "platforms": ["win32", "darwin", "linux"]

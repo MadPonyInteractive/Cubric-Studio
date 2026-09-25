@@ -12,7 +12,10 @@
 - [x] Brief questions answered *(2026-09-25: price first, write a privacy policy, one public repo)*
 - [ ] Phase 2: safe for users (`plan.md`)
   - [x] 1. Cost check: `CONFIRM_COST` until the price is repeated *(live: Veo refused at about $3.20)*
-  - [ ] 2-7. Reference images, usable results, tool set, app-closed, titles, cold tests
+  - [x] 1b. A render does not gag the chat: running at once, cancel_generation, Stop in the chat *(built 2026-09-25; pre-register cancel defect is renderer-side, see validation.md)*
+  - [x] 1c. read_knowledge + read-the-guide instruction
+  - [x] 3. Results carry the disk path + the picture
+  - [ ] 2, 4-7. Reference images, rest of tool set, app-closed, titles, cold tests
 - [x] Privacy policy on cubric.studio *(2026-09-25, live at https://cubric.studio/privacy/, Website 801aa0c)*
-  - [ ] `privacy_policies` in the manifest + README Privacy Policy section (message 90fd9914)
+  - [x] `privacy_policies` in the manifest + README Privacy Policy section (message 90fd9914) *(0bcac13c, mcpb validate passes)*
 - [ ] Phase 3: ship and list (`plan.md`)

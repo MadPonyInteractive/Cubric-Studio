@@ -9,10 +9,20 @@ and stays; its record is in `validation.md`. The CLI (old steps 2 and 3) is drop
 `server.js`, `mcp/cubric-studio/` (manifest + bridge), `tests/mcp.test.cjs` (10/10). Evidence
 in `validation.md`. Fabio verified Claude Desktop and Codex against his own app. The three decisions are in
 `brief.md`, and phase 2 item 1 (the cost check) is DONE and verified with real money.
-**Next: phase 2 items 1b (a render must not gag the chat), 1c (guides) and 3 (results the agent
-can see), in that order, then 2 and 4 to 7.** The privacy policy runs in a separate session
-(Website repo); it will add `privacy_policies` to `mcp/cubric-studio/manifest.json` through a
-message to this card.
+Privacy: DONE, `0bcac13c` (manifest `privacy_policies`, README, long_description).
+**1b, 1c and 3 are BUILT (2026-09-25, session ae16d6d6), 16/16 tests**: jobs run
+under `requestId = jobId`, `cancel_generation`, `notifications/cancelled` stops the job its
+blocked call waits on, a video or Flow answers `running` after 3 s, CANCELLED says who stopped
+it, `read_knowledge`, and results carry the disk path plus the gallery's 512px thumb as MCP
+`image` content. Live evidence and ONE open defect in `validation.md`: a cancel of a job that
+is still pre-register (queued behind another render) settles nothing, and its bare
+`interrupt()` kills whatever the SHARED engine is running. That is `commandExecutor.js`, not
+this card's files. Owned by the Mascots 16 line (2026-09-25): the cloud-Stop twin is MPI-928,
+and the two local defects are in handoff `0fcf4385` awaiting Fabio's yes to become cards. **Never test a cancel while Fabio's app is up**: the
+isolated instance attaches to his ComfyUI on 48188, and this session killed two of his renders.
+1b/1c/3 are committed (handoff cbf11eef). **Next: phase 2 item 2 (reference images from a
+disk path or a card), then 4 to 7.** Item 1b(c), progress in the waits, is skipped: `running` at once
+made it moot.
 
 ## Phase 1: spike (DONE)
 

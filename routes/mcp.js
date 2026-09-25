@@ -13,17 +13,21 @@
  * (`routes/connector.js` header). The catalogue is shrunk by the same `compactCatalogue`
  * the in-app agent reads, because the raw list is ~9.5k tokens.
  *
- * SPIKE (MPI-593 phase 1): eight tools, enough to prove "make me an image" end to end.
- * The in-app agent's gates live in `agentLoop._executeTool`, not in the routes, so this file
- * carries its own spend gate (`spendGate`). The guide and mask gates do not apply here.
+ * MPI-593 phase 2: ten tools. The in-app agent's gates live in `agentLoop._executeTool`, not
+ * in the routes, so this file carries its own spend gate (`spendGate`). The guide gate is only
+ * an instruction here (read_knowledge); the mask gate does not apply.
  *
  * `routes/localOnly.js` runs first, so a browser page cannot reach this; Node, Rust and
  * Python clients send no Origin and pass on Host alone.
  */
 
 const crypto = require('crypto');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const express = require('express');
 const logger = require('./logger');
+const { extractImageThumb, extractVideoThumb } = require('../services/ffmpegThumb');
 const { version } = require('../package.json');
 
 const router = express.Router();
@@ -35,14 +39,84 @@ const SUPPORTED_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26'];
 // first one landed: two images for one ask, and on a paid model two bills. So a generation
 // answers within this window, and one still running hands back a jobId to wait on instead.
 const WAIT_MS = Number(process.env.CUBRIC_MCP_WAIT_MS) || 45_000;
-const _jobs = new Map(); // jobId -> promise of the route's answer; it never rejects
+const _jobs = new Map(); // jobId -> { done: promise of the answer (never rejects), stoppedBy }
+// JSON-RPC id of an in-flight generate / wait_generation call -> its jobId, so Stop in the
+// chat (`notifications/cancelled`) can name the render. ponytail: keyed by the bare rpc id
+// because this server is stateless; two clients with the same id in flight at once would
+// cross. Per-client sessions are the upgrade if that ever happens.
+const _inflight = new Map();
 
-function startJob(promise) {
+/**
+ * A tool call blocks the chat (Fabio, Claude Desktop, 2026-09-25): generate plus chained
+ * wait_generation calls held Claude silent through a whole video render, and Stop in the
+ * APP was the only way out. So the job is submitted under its own jobId as the connector's
+ * `requestId`, which is what `/connector/cancel` names.
+ */
+function startJob(t, body) {
     const jobId = crypto.randomUUID();
-    _jobs.set(jobId, promise.catch((err) => ({ ok: false, error: { code: 'FAILED', message: err.message } })));
+    const job = { stoppedBy: null };
+    job.done = t.generate({ ...body, requestId: jobId })
+        .catch((err) => ({ ok: false, error: { code: 'FAILED', message: err.message } }))
+        .then((r) => present(r, job));
+    _jobs.set(jobId, job);
     // ponytail: in memory, gone on restart; the card is in the gallery either way.
     setTimeout(() => _jobs.delete(jobId), 3_600_000).unref();
     return jobId;
+}
+
+const STOPPED = {
+    agent: 'Cancelled by cancel_generation, as asked. Nothing was made.',
+    chat: 'Cancelled: the user pressed Stop in the chat, so the render was stopped. Nothing was made.',
+    app: 'The user stopped this render in the Cubric Studio app (or it produced no output). Nothing was made. Do not run it again unless the user asks.',
+};
+
+/**
+ * Shape a finished answer for an outside agent: the real path on disk (not the renderer's
+ * `/project-file?path=` URL, which nothing outside the app can open) and a small picture of
+ * the result, so a vision model sees what it made. Cold test 2: "couldn't open the file
+ * myself, so I haven't seen it".
+ */
+async function present(r, job) {
+    if (r?.error?.code === 'CANCELLED') return { ...r, error: { ...r.error, message: STOPPED[job.stoppedBy || 'app'] } };
+    const out = r?.output;
+    if (!r?.ok || typeof out?.filePath !== 'string') return r;
+    const filePath = diskPath(out.filePath);
+    const image = out.type === 'image' || out.type === 'video' ? await thumbnail(filePath, out.itemId, out.type) : null;
+    return { ...r, output: { ...out, filePath }, ...(image ? { _image: image } : {}) };
+}
+
+function diskPath(p) {
+    try {
+        const u = new URL(p, 'http://127.0.0.1');
+        return u.pathname === '/project-file' && u.searchParams.get('path') ? path.normalize(u.searchParams.get('path')) : p;
+    } catch {
+        return p;
+    }
+}
+
+/** The gallery's own 512px `.thumb.webp` (a video's is its first frame), else one made now. */
+async function thumbnail(file, itemId, type) {
+    try {
+        const own = path.join(path.dirname(file), '.meta', `${itemId}.thumb.webp`);
+        if (itemId && fs.existsSync(own)) return (await fs.promises.readFile(own)).toString('base64');
+        const made = await (type === 'video' ? extractVideoThumb : extractImageThumb)(file, path.join(os.tmpdir(), `cubric-mcp-${crypto.randomUUID()}.webp`));
+        if (!made) return null;
+        const data = (await fs.promises.readFile(made)).toString('base64');
+        fs.promises.unlink(made).catch(() => {});
+        return data;
+    } catch {
+        return null; // the path is still in the answer; a missing picture is not a failed run
+    }
+}
+
+async function stopJob(jobId, by) {
+    const job = _jobs.get(jobId);
+    if (!job) return { ok: false, error: { code: 'UNKNOWN_JOB', message: `No generation "${jobId}" here. Its card may already be in the gallery.` } };
+    job.stoppedBy ??= by;
+    const r = await (await tools()).cancelGeneration(jobId);
+    if (r?.ok) return { ok: true, cancelled: true, message: 'Cancelled. Nothing was made.' };
+    if (job.stoppedBy === by) job.stoppedBy = null; // too late: it finished, so it was not stopped
+    return r;
 }
 
 /**
@@ -77,18 +151,23 @@ async function spendGate(t, body, confirmCost) {
     };
 }
 
-async function waitForJob(jobId) {
+const RUNNING = 'Do NOT call generate again: that makes a second one. cancel_generation stops it.';
+
+/** Up to `ms` for the answer, else `running`. `rpcKey` lets Stop in the chat find the job. */
+async function waitForJob(jobId, rpcKey, ms = WAIT_MS) {
     const job = _jobs.get(jobId);
     if (!job) return { ok: false, error: { code: 'UNKNOWN_JOB', message: `No generation "${jobId}" is running here. Its card may already be in the gallery.` } };
+    if (rpcKey !== undefined) _inflight.set(rpcKey, jobId);
     let timer;
-    const late = new Promise((resolve) => { timer = setTimeout(resolve, WAIT_MS, null); });
+    const late = new Promise((resolve) => { timer = setTimeout(resolve, ms, null); });
     try {
-        return (await Promise.race([job, late])) ?? {
+        return (await Promise.race([job.done, late])) ?? {
             ok: true, running: true, jobId,
-            message: 'Still running. Call wait_generation with this jobId. Do NOT call generate again: that makes a second one.',
+            message: `Still running. Tell the user, and call wait_generation with this jobId when they ask or you need the result. ${RUNNING}`,
         };
     } finally {
         clearTimeout(timer);
+        if (rpcKey !== undefined) _inflight.delete(rpcKey);
     }
 }
 
@@ -96,7 +175,9 @@ const INSTRUCTIONS = [
     'Cubric Studio is a desktop app for making images and video on this computer. These tools drive the copy the user has open.',
     'A generation lands in the project the app has OPEN. Before generating, find the project with list_projects and call open_project, or call create_project (it opens what it makes).',
     'Pick a model with list_models (the op marked best:true is the recommended one for its task), then call describe_model for that id: it lists the ops and the only values each param accepts.',
-    'generate returns the result\'s file path and card id, or { running: true, jobId } for a slow one: then call wait_generation until it finishes. Never re-send generate for a job that is still running. The card also appears in the app\'s gallery.',
+    'Before you write the first prompt for a model, call read_knowledge with each guide id describe_model lists for it: the guide says how that model wants to be prompted.',
+    'generate returns the result\'s file path on disk, its card id and a small picture of it, so you can see what you made. A video or a Flow returns { running: true, jobId } at once instead: tell the user it started, then END YOUR TURN so they can keep talking; call wait_generation when they ask whether it is done. An image slower than 45 s returns running too. Never re-send generate for a job that is still running, and call cancel_generation if the user wants it stopped. The card also appears in the app\'s gallery.',
+    'An image the user attaches in this chat never reaches the app as a file. To work on a picture, use a card from the app or a file path on the user\'s disk.',
     'Paid cloud models cost the user real money. generate answers CONFIRM_COST with the price and makes nothing: tell the user the price and ask. Only if they say yes, resend with confirmCost. Never confirm on their behalf.',
     'When you show the user a prompt, hand it back whole and pasteable, never as fragments.',
 ].join('\n');
@@ -166,7 +247,7 @@ const TOOLS = {
         run: async ({ folderPath }) => (await tools()).openProject(folderPath),
     },
     generate: {
-        description: 'Generate an image or video with a model op, or run a Flow, in the OPEN project. Send modelId + operation, or flowId, never both. Named params take only the values describe_model lists. Returns the result, or { running: true, jobId } when it takes longer than 45 s: then call wait_generation, never generate again. A paid model first answers CONFIRM_COST with its price and generates nothing.',
+        description: 'Generate an image or video with a model op, or run a Flow, in the OPEN project. Send modelId + operation, or flowId, never both. Named params take only the values describe_model lists. Returns the file path on disk plus a picture of the result. A video or Flow, or an image slower than 45 s, returns { running: true, jobId } instead: tell the user and end your turn, then call wait_generation when asked, never generate again. A paid model first answers CONFIRM_COST with its price and generates nothing.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -187,28 +268,55 @@ const TOOLS = {
             },
         },
         annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
-        run: async ({ confirmCost, ...body }) => {
+        run: async ({ confirmCost, ...body }, rpcKey) => {
             const t = await tools();
-            return (await spendGate(t, body, confirmCost)) ?? waitForJob(startJob(t.generate(body)));
+            const refused = await spendGate(t, body, confirmCost);
+            if (refused) return refused;
+            const slow = !!body.flowId || (await t.listModels())?.models?.find((m) => m.id === body.modelId)?.type === 'video';
+            const jobId = startJob(t, body);
+            if (!slow) return waitForJob(jobId, rpcKey);
+            // A few seconds still catch a bad param or a full queue before the agent moves on.
+            const r = await waitForJob(jobId, rpcKey, Math.min(WAIT_MS, 3_000));
+            return r.running
+                ? { ok: true, running: true, jobId, message: `Started. This takes minutes: tell the user it is running in Cubric Studio, then end your turn so they can keep talking. Call wait_generation with this jobId when they ask whether it is done. ${RUNNING}` }
+                : r;
         },
     },
     wait_generation: {
-        description: 'Wait up to 45 s more for a generation that answered { running: true, jobId }. Call it again while it still says running.',
+        description: 'Wait up to 45 s more for a generation that answered { running: true, jobId }. Answers running again if it is still going: tell the user rather than calling it in a loop.',
         inputSchema: obj({ jobId: { type: 'string' } }, ['jobId']),
         annotations: READ,
-        run: async ({ jobId }) => waitForJob(jobId),
+        run: async ({ jobId }, rpcKey) => waitForJob(jobId, rpcKey),
+    },
+    cancel_generation: {
+        description: 'Stop a generation that answered { running: true, jobId }, whether it is rendering or still queued. Only when the user asks.',
+        inputSchema: obj({ jobId: { type: 'string' } }, ['jobId']),
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+        run: async ({ jobId }) => stopJob(jobId, 'agent'),
+    },
+    read_knowledge: {
+        description: 'A prompting guide by id, as describe_model lists them under guides. With no id, the list of every guide.',
+        inputSchema: obj({ id: { type: 'string' } }),
+        annotations: READ,
+        run: async ({ id }) => (await tools()).readKnowledge(id),
     },
 };
 
 const rpcResult = (id, result) => ({ jsonrpc: '2.0', id, result });
 const rpcError = (id, code, message) => ({ jsonrpc: '2.0', id: id ?? null, error: { code, message } });
 
-async function callTool(name, args) {
+async function callTool(name, args, rpcKey) {
     const tool = TOOLS[name];
     if (!tool) return { isError: true, content: [{ type: 'text', text: `Unknown tool "${name}".` }] };
     try {
-        const r = await tool.run(args || {});
-        return { isError: r?.ok === false, content: [{ type: 'text', text: JSON.stringify(r) }] };
+        const { _image, ...r } = (await tool.run(args || {}, rpcKey)) ?? {};
+        return {
+            isError: r.ok === false,
+            content: [
+                { type: 'text', text: JSON.stringify(r) },
+                ...(_image ? [{ type: 'image', data: _image, mimeType: 'image/webp' }] : []),
+            ],
+        };
     } catch (err) {
         logger.warn('mcp', `${name} failed: ${err.message}`);
         return { isError: true, content: [{ type: 'text', text: `${name} failed: ${err.message}. Call status to check the app is open.` }] };
@@ -220,8 +328,18 @@ router.post('/mcp', async (req, res) => {
     if (!msg || Array.isArray(msg) || msg.jsonrpc !== '2.0' || typeof msg.method !== 'string') {
         return res.status(400).json(rpcError(msg?.id, -32600, 'One JSON-RPC 2.0 message per request.'));
     }
-    // A notification (no id) gets no answer: 202, empty body.
-    if (msg.id === undefined) return res.status(202).end();
+    // A notification (no id) gets no answer: 202, empty body. Stop in the chat arrives as
+    // `notifications/cancelled` naming the blocked call; a render behind it stops too.
+    if (msg.id === undefined) {
+        const jobId = msg.method === 'notifications/cancelled' && _inflight.get(String(msg.params?.requestId));
+        if (jobId) {
+            logger.info('mcp', `chat cancelled call ${msg.params.requestId}: stopping job ${jobId}`);
+            stopJob(jobId, 'chat')
+                .then((r) => logger.info('mcp', `cancel ${jobId}: ${JSON.stringify(r)}`))
+                .catch((err) => logger.warn('mcp', `cancel ${jobId} failed: ${err.message}`));
+        }
+        return res.status(202).end();
+    }
 
     const { id, method, params } = msg;
     switch (method) {
@@ -244,7 +362,7 @@ router.post('/mcp', async (req, res) => {
             }));
         case 'tools/call':
             logger.info('mcp', `tools/call ${params?.name}`);
-            return res.json(rpcResult(id, await callTool(params?.name, params?.arguments)));
+            return res.json(rpcResult(id, await callTool(params?.name, params?.arguments, String(id))));
         default:
             return res.json(rpcError(id, -32601, `Method not found: ${method}`));
     }
