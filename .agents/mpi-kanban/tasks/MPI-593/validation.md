@@ -61,8 +61,24 @@ The extension also loads into Claude Code sessions inside the desktop app, where
 are deferred. This session saw `mcp__Cubric_Studio__*` appear and did not call them, because
 they drive the live `:3000` app.
 
+**Codex in VS Code, Fabio's machine (2026-09-25, PASSED, slow).** Set up with
+`codex mcp add cubric-studio --url http://127.0.0.1:3000/mcp`, using the same sentence and the
+"5.6 Luna Light" model. **One card**: Krea 2, 1024x1024, 38.5 s render. Fabio had deleted the
+first "MCP test" in the UI at 13:08:42Z, per app.log, so this is a fresh project, not an
+overwrite. The whole run took 3 min 7 s. The Codex session log accounts for it:
+- 13:10:45 to 13:12:47Z (**2 min**): Codex tried to drive the app through a BROWSER. It read
+  Fabio's personal Playwright skill (`~/.agents/skills/playwright`) and ran `npx playwright-cli
+  open http://127.0.0.1:3000 --headed`, then a snapshot, each waiting 30 s.
+- 13:12:47Z: it searched its tool list for `/cubric|image|studio|project|model/`, found the MCP
+  tools, and from there took 56 s: two lists, create, describe, one `generate` that answered
+  as the render landed, and its reply.
+
+So the delay is Codex choosing a browser skill first, not our server. A user without a Playwright
+skill should not hit it. Codex's final link was the `/project-file?path=` URL, which is dead
+outside the app. That is phase 2 item 3 again.
+
 **Not checked:**
-- Codex, Gemini / Antigravity.
+- Gemini / Antigravity.
 - A video, a Flow, a paid cloud model.
 - The app closed while a client connects: the bridge returns its error, but no client has
   been seen handling that.

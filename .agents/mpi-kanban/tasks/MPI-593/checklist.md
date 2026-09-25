@@ -8,7 +8,7 @@
   - [x] Bridge drives the real app: project created, image lands on disk
   - [x] Cold Claude Code agent makes an image unaided, exactly one file
   - [x] Fabio: `.mcpb` in Claude Desktop against his own app *(2026-09-25, one card)*
-  - [ ] Codex (the VS Code extension shares `~/.codex/config.toml`)
+  - [x] Codex in VS Code *(2026-09-25, one card, slow start: see validation.md)*
 - [ ] Brief questions answered: spending, privacy policy URL, listing repo
 - [ ] Phase 2: safe for users (`plan.md`)
 - [ ] Phase 3: ship and list (`plan.md`)
