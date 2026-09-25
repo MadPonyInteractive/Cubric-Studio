@@ -86,6 +86,10 @@ read in an isolated app (`npm run app:isolated`), never `:3000`.
   `free`), path unmeasured. gemma4:26b on DeepInfra: 14/22, same as gemma4:12b. No agent flag
   added, no code change; validation.md § 4. Agent VRAM hold carded as MPI-913. Next: Fabio's
   close call, then `mpi-end-session`.
+- 2026-09-25 later: DeepInfra survey of 11 models (validation.md § 5). Qwen3-VL-30B's agent
+  flag dropped (7/22, Fabio) in 3c715f27, pushed. Pick V4-Flash-0731 itself 21/22 today.
+  Fabio's price rule: nothing over 2x the pick's off-promo price. Tool-contract work carded as
+  MPI-916 (next session). MPI-912 is ready to close; its close waits on Fabio.
 
 ## Completed
 

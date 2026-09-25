@@ -163,5 +163,10 @@ promos show only on the website, e.g. GLM-5.3-Flash $0.075 promo vs $0.15 full).
 per suite: GLM (2.3x), MiMo (2.3x) and V4.1-Flash (3.2x) are out on price whatever they score.
 Carried to MPI-916 (tool contracts so cheaper models pass).
 
+`--runs 3` on the top three (a case passes only on 3/3; logs `*-x3.log`): MiMo-V2.6-Flash
+20/22 (rerun 1/3, head 2/3), GLM-5.3-Flash 18/22 (rerun 0/3, picks-installed, ranked-editor,
+text-in-picture 2/3), DeepSeek-V4.1-Flash 18/22 (picks-installed 1/3, ranked-editor, rerun,
+head 2/3). None earns a flag, and all three are out on price anyway. Total survey spend ~$3.
+
 The hard cases, failed by nearly everyone: `rerun-on-named-model` (i2i instead of a t2i re-run),
 `sheet-goes-to-reference`, `over-boxed-head`, `ranked-editor`.
