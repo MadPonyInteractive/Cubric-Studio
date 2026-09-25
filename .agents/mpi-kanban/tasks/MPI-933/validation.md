@@ -17,3 +17,7 @@
 - SVGs imported BEFORE this change stay `.svg` with no thumbnail; nothing converts them.
 - `/project-media/:id/place-preview-asset` (agent staging into the reference store) does not convert; the agent skill already says to convert before staging.
 - Not driven in the running app: the server route is tested end to end, the client change is one line.
+
+## CI
+
+Run 36166484142 on `90d2dbc7`: success.

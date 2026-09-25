@@ -5040,3 +5040,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-926", "at": "2026-09-25T17:35:50+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 3d0c5cf9; 16K thumbs verified."}
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-933", "at": "2026-09-25T18:12:13+01:00", "actor": "claude", "column": "todo", "title": "An imported SVG becomes a PNG, so every image tool can use it"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-933", "at": "2026-09-25T18:17:55+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio: do it now, replace the svg."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-933", "at": "2026-09-25T18:30:38+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 90d2dbc7; SVG import renders to PNG."}
