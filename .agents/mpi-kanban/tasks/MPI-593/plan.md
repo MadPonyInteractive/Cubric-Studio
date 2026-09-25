@@ -36,11 +36,29 @@ A change there goes through a message to that session, never a direct edit.
    Live: `veo-31-cloud` t2v 8 s was refused with "about $3.20", and the log shows only
    `generation.quote`, no submit. Upgrade path if agents fake the confirm: a Yes in the app
    window.
+1b. **A running generation must not gag the chat (Fabio, 2026-09-25, Claude Desktop).** A
+   tool call blocks the conversation, and `generate` plus the chained `wait_generation` calls
+   held Claude silent through a 6 s MiniMax H3 video. Fabio had to press Stop in the APP (the
+   log shows `CANCELLED` at 13:27:30Z, mid-wait). Fix, in order:
+   (a) submit with `requestId = jobId`, add `cancel_generation {jobId}` over `/connector/cancel`;
+   (b) on `notifications/cancelled` for an in-flight generate/wait call, cancel that job. Stop
+   in the chat stops the render. Unverified: whether Claude Desktop sends that notification.
+   The MCP log shows none so far, but Fabio did not press Stop in Claude;
+   (c) shorter waits that return progress, so Claude can narrate between them;
+   (d) a video or anything slow returns `running` at once, so Claude can say "started, about N
+   min" and end its turn. "Is it done?" then calls `wait_generation`.
+1c. **Guides.** `describe_model` names the model's guide ids, but no tool reads them, so outside
+   agents prompt blind. The in-app agent is forced to read them (the guide gate). Add
+   `read_knowledge` over `agentTools.readKnowledge`, and say in `instructions` to read the
+   guide before the first prompt for a model.
 2. **Reference images.** An agent passes a file path on the user's disk. The MCP layer stages
    it into the project (`place-preview-asset`) and sends `media: [{role, url}]`. This unlocks
    edit, i2i and i2v.
 3. **Results the agent can use.** Return a disk path, not a `/project-file?path=` URL, plus a
-   small image (MCP `image` content) so the agent can see what it made. Cold test 2 said it
+   small image (MCP `image` content) so the agent can see what it made. Claude and Codex are
+   vision models, so the picture itself replaces the in-app `look` describer; a video returns
+   one frame. An image the user attaches in THEIR chat never reaches us as a file, so an edit
+   input has to be a Cubric card or a path on disk. Say so in `instructions`. Cold test 2 said it
    "couldn't open the file myself, so I haven't seen it".
 4. **The rest of the tool set**, each a thin route call: `list_cards`, `rename_card`,
    `read_knowledge` (model guides), `cancel_generation`, the GIF tools. Never `install_model`
