@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-931",
+  "title": "Stop interrupts whatever the shared engine is running, even another instance's job",
+  "description": "Every app instance attaches to the one ComfyUI on port 48188 (routes/comfy.js MPI-484). An interrupt with no prompt_id kills whatever is executing, whoever queued it. Both commandExecutor.js interrupt sites: ~1336 (pre-register) and ~1396 (frozen-engine interrupt). Research: does our pinned ComfyUI accept a prompt_id on its interrupt route (newer ComfyUI does)? If yes, send it; if not, delete our queued prompt instead of interrupting when ours is not the one running. Live 2026-09-25: an isolated instance's cancels interrupted Fabio's H3 renders 047e722a (13:58:32Z) and fec48cbb (14:03:23Z); the engine history shows execution_interrupted 1 s after each. WARNING for tests: an app:isolated instance shares Fabio's engine - check its queue is empty first. Reported by peer 'Agent integration plan 2' (MPI-593).",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-09-25T17:31:12+01:00",
+  "updated_at": "2026-09-25T17:31:12+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

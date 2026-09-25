@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-932",
+  "title": "Finish the mascots, then fix the cancel path (umbrella): one line of handoffs to done",
+  "description": "Fabio 2026-09-25: one umbrella so a single session line carries this to the end instead of a hundred sessions. Members, in order: close MPI-908; MPI-906 remaining spots (queued install, History peek, starting engine); the cancel path MPI-930 (local cancel before register hangs the agent/MCP 30 min), MPI-931 (Stop interrupts the shared engine's other jobs), MPI-929 (cancel mascot silent for cloud jobs), MPI-928 (cloud Stop bills and drops the output - needs Fabio's decision); then MPI-909 (prompt box peeks, blocked on the MpiPromptBox claim) and MPI-842, closing the mascot umbrella MPI-846. Order and state live in plan.md.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-25T17:31:39+01:00",
+  "updated_at": "2026-09-25T17:31:39+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
