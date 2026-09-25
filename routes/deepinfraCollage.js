@@ -33,7 +33,8 @@ const WHERE = {
 
 function _cell(file, width, height) {
     // `.rotate()` with no angle applies EXIF orientation, so a phone photo sits upright.
-    return sharp(file).rotate()
+    // No pixel ceiling: photographers load 16K frames, and 16384^2 is past sharp's default.
+    return sharp(file, { limitInputPixels: false }).rotate()
         .resize(width, height, { fit: 'contain', background: GREY })
         .flatten({ background: GREY })
         .toBuffer();
@@ -53,7 +54,11 @@ async function buildCollage(paths) {
     const [hero, ...column] = await Promise.all(refs.map((p, i) => (i === 0
         ? _cell(p, HERO, HERO)
         : _cell(p, COLUMN, cellHeight))));
-    const first = await sharp(refs[0]).rotate().toBuffer({ resolveWithObject: true });
+    // Header only: decoding image 1 just for its size cost ~800 MB of RAM on a 16K photo.
+    // EXIF orientations 5-8 are quarter turns, so the upright size swaps the sides.
+    const meta = await sharp(refs[0], { limitInputPixels: false }).metadata();
+    const turned = meta.orientation >= 5;
+    const first = { info: { width: turned ? meta.height : meta.width, height: turned ? meta.width : meta.height } };
 
     const jpeg = await sharp({
         create: { width: HERO + GUTTER + COLUMN, height: HERO, channels: 3, background: GREY },

@@ -62,10 +62,26 @@ test('no dimensions given falls back to the model default, not to zero', () => {
 });
 
 test('a closed model is flat per image — resolution is irrelevant', () => {
-    const small = estimateCost('black-forest-labs/FLUX-2-pro', { width: 512, height: 512 });
-    const large = estimateCost('black-forest-labs/FLUX-2-pro', { width: 2048, height: 2048 });
-    near(small.usd, 0.015, 1e-6, 'FLUX-2-pro small');
+    const small = estimateCost('ByteDance/Seedream-4', { width: 1024, height: 1024 });
+    const large = estimateCost('ByteDance/Seedream-4', { width: 2048, height: 2048 });
     assert.equal(small.usd, large.usd);
+});
+
+// MPI-919: real `inference_status.cost`, 2026-09-25. BFL bills per started 2^20-px megapixel
+// of the output and of every reference (each shrunk to 1 MP by the route).
+test('FLUX-2 pro/max price per started megapixel, references included', () => {
+    const pro = 'black-forest-labs/FLUX-2-pro';
+    const max = 'black-forest-labs/FLUX-2-max';
+    near(estimateCost(pro, { width: 1024, height: 1024 }).usd, 0.03, 1e-9, 'pro 1 MP t2i');
+    near(estimateCost(pro, { width: 1280, height: 1024 }).usd, 0.045, 1e-9, 'pro 1.25 MP t2i');
+    near(estimateCost(pro, { width: 1024, height: 1024, references: 1 }).usd, 0.045, 1e-9, 'pro edit');
+    near(estimateCost(pro, { width: 1024, height: 1024, references: 2 }).usd, 0.06, 1e-9, 'pro two refs');
+    near(estimateCost(max, { width: 1024, height: 1024 }).usd, 0.07, 1e-9, 'max 1 MP t2i');
+    near(estimateCost(max, { width: 1024, height: 1024, references: 1 }).usd, 0.10, 1e-9, 'max edit');
+});
+
+test('FLUX-2 dev is priced at the 50 steps it runs, not the 28 its price assumes', () => {
+    near(estimateCost('black-forest-labs/FLUX-2-dev', { width: 1024, height: 1024 }).usd, 0.01785, 1e-5, 'dev 1 MP');
 });
 
 test('Seedream 5.0 Pro bills for every input image after the first', () => {

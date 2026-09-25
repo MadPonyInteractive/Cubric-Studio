@@ -102,7 +102,10 @@ function pruneStaleMaskTemp() {
     const entries = fs.readdirSync(tmpRoot, { withFileTypes: true });
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
-      if (!entry.name.startsWith('cubric-')) continue;
+      // Only a mask session's own `cubric-<uuid>`: temp also holds cubric-deepinfra (paid
+      // cloud outputs), cubric-agent, cubric-gif, cubric-tests and cubric-agent-profile,
+      // and a bare `cubric-` prefix wiped them all at every launch (MPI-919).
+      if (!/^cubric-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(entry.name)) continue;
       if (entry.name === 'cubric-' + SESSION_ID) continue;
       const stalePath = path.join(tmpRoot, entry.name);
       try {

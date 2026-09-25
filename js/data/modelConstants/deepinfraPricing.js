@@ -10,7 +10,8 @@
  * Everything below was decomposed from `inference_status.cost` on real calls costing $0.68
  * in total, on 2026-09-20. `docs/proprietary-models-research/01d-deepinfra-image-video.md`
  * § 2b/2c/3 carries the raw figures. DO NOT re-derive them — it costs money, and it has
- * already been done to the cent.
+ * already been done to the cent. (Except where a later measurement corrected it: FLUX-2
+ * pro/max and dev's step count, MPI-919 — see BFL_MEGAPIXEL_USD and priceImageUnits.)
  *
  *   Open image models:  cost = (cents_per_image_unit / 100) x (w x h)/1048576
  *                              x (steps / default_iterations)
@@ -131,6 +132,25 @@ const EXTRA_INPUT_IMAGE_USD = {
     'ByteDance/Seedream-5.0-Pro': 0.0033,
 };
 
+/**
+ * FLUX-2 pro/max pass Black Forest Labs' own bill through (`usage_from_cost: true`), and the
+ * feed's `cents_per_image_unit` is NOT it. BFL bills per started MEGAPIXEL (2^20 px, rounded
+ * up) of the output AND of every input image: the first at `first`, each further one at
+ * `extra`. Measured 2026-09-25 (MPI-919), exact to the cent: pro 1024^2 t2i $0.03, 1280x1024
+ * $0.045, 1 MP out + one 2048^2 ref $0.09, + two 1 MP refs $0.06; max 1024^2 t2i $0.07, edit
+ * $0.10. routes/deepinfra.js shrinks each reference to 1 MP first (`cloud.inputMaxPixels`),
+ * so a reference is always exactly one unit and the quote stays exact.
+ */
+const BFL_MEGAPIXEL_USD = {
+    'black-forest-labs/FLUX-2-pro': { first: 0.03, extra: 0.015 },
+    'black-forest-labs/FLUX-2-max': { first: 0.07, extra: 0.03 },
+};
+
+function priceBflMegapixels(rate, opts) {
+    const out = Math.max(1, Math.ceil(((opts.width || 1024) * (opts.height || 1024)) / MEGAPIXEL));
+    return rate.first + rate.extra * (out - 1 + (opts.references || 0));
+}
+
 const MEGAPIXEL = 1048576;
 
 /** frames = 24 x duration + 1 — measured, and the +1 is worth 1% (01d § 2c). */
@@ -143,7 +163,8 @@ export function videoTokens(width, height, frames) {
     return Math.floor((width * height * frames) / 1024);
 }
 
-function priceImageUnits(modelId, pricing, opts) {
+function priceImageUnits(modelId, pricing, opts, defaultSteps) {
+    if (BFL_MEGAPIXEL_USD[modelId]) return priceBflMegapixels(BFL_MEGAPIXEL_USD[modelId], opts);
     const cents = pricing.cents_per_image_unit;
     if (!Number.isFinite(cents)) return null;
     let usd = cents / 100;
@@ -154,8 +175,11 @@ function priceImageUnits(modelId, pricing, opts) {
         const height = opts.height || pricing.default_height;
         usd *= (width * height) / MEGAPIXEL;
         // default_iterations 0 (both kleins) means the price carries no step term at all.
+        // No step count is ever sent, so the run takes the ENDPOINT's default, which is not
+        // always the one its price assumes: FLUX-2 dev runs 50 against a price set at 28,
+        // and billed $0.01785 for a 1 MP t2i (0.01 x 50/28, measured 2026-09-25).
         if (pricing.default_iterations) {
-            usd *= (opts.steps || pricing.default_iterations) / pricing.default_iterations;
+            usd *= (opts.steps || defaultSteps || pricing.default_iterations) / pricing.default_iterations;
         }
     }
 
@@ -211,7 +235,7 @@ export function priceFromEntry(modelId, entry, opts = {}) {
     if (!pricing) return null;
     switch (pricing.type) {
         case 'image_units':
-            return priceImageUnits(modelId, pricing, opts);
+            return priceImageUnits(modelId, pricing, opts, entry.limits?.num_inference_steps?.default);
         case 'input_tokens':
             return entry.type === 'text-to-video'
                 ? priceTokenVideo(modelId, pricing, opts)

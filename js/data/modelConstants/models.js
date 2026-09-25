@@ -7,7 +7,7 @@
  * @property {string}   [type]       - Model family (e.g. 'sdxl', 'wan'); also the default enhancer-recipe key
  * @property {string}   [enhanceRecipe] - Explicit enhancer-recipe id, overriding `type` when they diverge. Both keys are read by `resolveRecipe()` in `js/data/recipes/registry.js` — the LOCAL recipe index (MPI-35, MPI-677). They used to name a recipe inside the sibling Cubric Prompt app (MPI-5); the recipes moved here, so the keys kept their values and changed their address.
  * @property {'deepinfra'} [provider] - CLOUD model (MPI-851). Its presence is the whole discriminator: a model with a `provider` has no weights, no ComfyUI graph and no engine — it runs on the user's own API key at the provider, who bills them directly. It MUST declare no `dependencies`, `commonDeps`, `operations`, `workflows`, `engines` or `variants`: the dep resolver, the orphan sweep and the install UI all key on those, and an empty `dependencies: []` reads as INSTALLED by accident in two places (`resolveModelDeps.js` `[].every()`, `routes/comfy.js` `allPresent`). "Installed" for these means A KEY IS SAVED — see `hasCloudKey()` in modelRegistry.js, which `isModelUsable`/`isOperationInstalled` answer from before they ever consult the dep cache. Dispatch branches at `generationService.js`'s `runCommand` call and never reaches ComfyUI.
- * @property {{endpointId:string, body?:Record<string,*>, imageField?:string, imageMediaType?:string, imageBareBase64?:boolean}} [cloud] - The provider-side call this model makes. `endpointId` is the provider's own model id (`black-forest-labs/FLUX-1-schnell`), which is ALSO the key `dev_configs/deepinfra-prices.json` prices it under — the two must stay equal or the estimate silently describes another model. `body` is constant fields merged into every request (leave a field out to take the provider's own default; DeepInfra's default step count is what its published price assumes). `imageField` names the body field a reference image goes in, for edit ops. `imageMediaType` wraps it as `[{ type, url }]` for an endpoint whose field is a typed media list (Wan 3.0). `imageBareBase64` sends the picture as bare base64, not a data URL: FLUX-2 pro/max forward it to BFL, which cannot decode a data URL (HTTP 500, measured 2026-09-25).
+ * @property {{endpointId:string, body?:Record<string,*>, imageField?:string, imageMediaType?:string, imageBareBase64?:boolean, imageFields?:string[], inputMaxPixels?:number}} [cloud] - The provider-side call this model makes. `endpointId` is the provider's own model id (`black-forest-labs/FLUX-1-schnell`), which is ALSO the key `dev_configs/deepinfra-prices.json` prices it under — the two must stay equal or the estimate silently describes another model. `body` is constant fields merged into every request (leave a field out to take the provider's own default; DeepInfra's default step count is what its published price assumes). `imageField` names the body field a reference image goes in, for edit ops. `imageMediaType` wraps it as `[{ type, url }]` for an endpoint whose field is a typed media list (Wan 3.0). `imageBareBase64` sends the picture as bare base64, not a data URL: FLUX-2 pro/max forward it to BFL, which cannot decode a data URL (HTTP 500, measured 2026-09-25). `imageFields` lists an endpoint's numbered reference fields in order (MPI-919): reference N goes in field N, and the model also declares `capabilities.multiReference` (and `multiReference8` past four) so the edit op shows that many slots. `inputMaxPixels` shrinks each reference to that area before sending, for an endpoint that bills input by the megapixel.
  * @property {'image'|'video'} mediaType
  * @property {'low'|'balanced'|'high'} [sizeTier] - Weight-size tier (MPI-168). Shown as a Low/Balanced/High badge + L/B/H marker. A model has ONE tier; siblings ship as separate cards. Absent → treated as 'balanced' by UI.
  * @property {string}   [modelFamily] - Soft grouping key for same-base-model tier variants, e.g. 'LTX-2.3' (MPI-168). Drives tier clustering + the "show L/B/H only when 2+ tiers of a family installed" rule. UI-only; no resolver effect.
@@ -1936,7 +1936,6 @@ const ALL_MODELS = [
             '4k': _cloudRatios(SEEDREAM_ASPECTS, 4096, { min: 1280, max: 4096, step: 64 }),
         },
         supportedOps: ['t2i', 'edit'],
-        imageSizedOps: ['edit'],
         capabilities: { negativePrompt: false, batch: false },
         description: 'ByteDance Seedream 4, running at DeepInfra on your own key — no GPU, no download. Strong at photographic scenes and readable text in the image, at 2K or 4K. About $0.04 an image, billed to you by DeepInfra.',
         workflows: {},
@@ -1953,7 +1952,6 @@ const ALL_MODELS = [
         mediaType: 'image',
         type: 'seedream4',
         supportedOps: ['t2i', 'edit'],
-        imageSizedOps: ['edit'],
         capabilities: { negativePrompt: false, batch: false },
         description: 'Seedream 4.5 — the same shape as Seedream 4 with a newer checkpoint behind it: better prompt following and cleaner faces, at the same $0.04 an image. Runs at DeepInfra on your own key.',
         workflows: {},
@@ -1963,11 +1961,10 @@ const ALL_MODELS = [
         name: 'Seedream 5.0 Pro',
         dropdownMeta: 'CLOUD',
         provider: 'deepinfra',
-        // `image_2`..`image_4` exist upstream; the route sends one reference, so the
-        // extra slots are unused here rather than half-wired. This is also the only
-        // model in the fifteen that bills per EXTRA input image ($0.0033 each) — which
-        // is exactly why a second slot is not worth adding by accident.
-        cloud: { endpointId: 'ByteDance/Seedream-5.0-Pro', body: {}, imageField: 'image' },
+        // Native multi-reference (MPI-919): `image`..`image_4`, one reference each. The
+        // only model that bills per EXTRA input image ($0.0033 each); the quote counts them.
+        cloud: { endpointId: 'ByteDance/Seedream-5.0-Pro', body: {}, imageField: 'image',
+            imageFields: ['image', 'image_2', 'image_3', 'image_4'] },
         // Stand-in, as above — see the note on seedream-4-cloud.
         enhanceRecipe: 'flux-2',
         image: 'seedream-5-pro-cloud.webp',
@@ -1983,7 +1980,7 @@ const ALL_MODELS = [
         },
         supportedOps: ['t2i', 'edit'],
         imageSizedOps: ['edit'],
-        capabilities: { negativePrompt: false, batch: false },
+        capabilities: { negativePrompt: false, batch: false, multiReference: true },
         description: 'Seedream 5.0 Pro, the top of the Seedream line, on your own DeepInfra key. About $0.05 an image up to 1.5K and about $0.10 above it — the tier selector is what moves you between the two.',
         workflows: {},
     },
@@ -1994,7 +1991,8 @@ const ALL_MODELS = [
         name: 'FLUX 2 Dev',
         dropdownMeta: 'CLOUD',
         provider: 'deepinfra',
-        cloud: { endpointId: 'black-forest-labs/FLUX-2-dev', body: {}, imageField: 'input_image_1' },
+        cloud: { endpointId: 'black-forest-labs/FLUX-2-dev', body: {}, imageField: 'input_image_1',
+            imageFields: ['input_image_1', 'input_image_2', 'input_image_3', 'input_image_4'] },
         image: 'flux2-dev-cloud.webp',
         mediaType: 'image',
         type: 'flux2',
@@ -2008,8 +2006,8 @@ const ALL_MODELS = [
         supportedOps: ['t2i', 'edit'],
         imageSizedOps: ['edit'],
         enhanceRecipe: 'flux-2',
-        capabilities: { negativePrompt: false, batch: false },
-        description: 'FLUX 2 Dev in the cloud on your own DeepInfra key. The open FLUX 2 weights without the download: about $0.01 an image at this size. Price rises with pixels on this one, so a larger ratio costs more.',
+        capabilities: { negativePrompt: false, batch: false, multiReference: true },
+        description: 'FLUX 2 Dev in the cloud on your own DeepInfra key. The open FLUX 2 weights without the download: about $0.02 an image at this size. Price rises with pixels on this one, so a larger ratio costs more.',
         workflows: {},
     },
     {
@@ -2017,21 +2015,23 @@ const ALL_MODELS = [
         name: 'FLUX 2 Pro',
         dropdownMeta: 'CLOUD',
         provider: 'deepinfra',
-        cloud: { endpointId: 'black-forest-labs/FLUX-2-pro', body: {}, imageField: 'input_image', imageBareBase64: true },
+        // BFL bills every reference per started megapixel, so each is shrunk to 1 MP first
+        // (`inputMaxPixels`) and the quote stays exact — see BFL_MEGAPIXEL_USD.
+        cloud: { endpointId: 'black-forest-labs/FLUX-2-pro', body: {}, imageField: 'input_image', imageBareBase64: true,
+            imageFields: ['input_image', 'input_image_2', 'input_image_3', 'input_image_4'], inputMaxPixels: 1048576 },
         image: 'flux2-pro-cloud.webp',
         mediaType: 'image',
         type: 'flux2pro',
         // 256-1440, NOT the 128-1920 its Dev sibling takes. Same family, different box —
         // the reason these two cannot share a ratio type.
         ratios: {
-            portrait: _cloudRatios(IMG_PORTRAIT, 1024, { min: 256, max: 1440 }),
-            landscape: _cloudRatios(IMG_LANDSCAPE, 1024, { min: 256, max: 1440 }),
+            portrait: _cloudRatios(IMG_PORTRAIT, 1024, { min: 256, max: 1440, maxArea: 1048576 }),
+            landscape: _cloudRatios(IMG_LANDSCAPE, 1024, { min: 256, max: 1440, maxArea: 1048576 }),
         },
         supportedOps: ['t2i', 'edit'],
-        imageSizedOps: ['edit'],
         enhanceRecipe: 'flux-2',
-        capabilities: { negativePrompt: false, batch: false },
-        description: 'FLUX 2 Pro on your own DeepInfra key — Black Forest Labs\' hosted tier, sharper and more literal than Dev. A flat $0.015 an image whatever size you pick.',
+        capabilities: { negativePrompt: false, batch: false, multiReference: true },
+        description: 'FLUX 2 Pro on your own DeepInfra key — Black Forest Labs\' hosted tier, sharper and more literal than Dev. About $0.03 an image at this size, plus about $0.015 for each reference image.',
         workflows: {},
     },
     {
@@ -2039,15 +2039,16 @@ const ALL_MODELS = [
         name: 'FLUX 2 Max',
         dropdownMeta: 'CLOUD',
         provider: 'deepinfra',
-        cloud: { endpointId: 'black-forest-labs/FLUX-2-max', body: {}, imageField: 'input_image', imageBareBase64: true },
+        cloud: { endpointId: 'black-forest-labs/FLUX-2-max', body: {}, imageField: 'input_image', imageBareBase64: true,
+            imageFields: ['input_image', 'input_image_2', 'input_image_3', 'input_image_4',
+                'input_image_5', 'input_image_6', 'input_image_7', 'input_image_8'], inputMaxPixels: 1048576 },
         image: 'flux2-max-cloud.webp',
         mediaType: 'image',
         type: 'flux2pro',
         supportedOps: ['t2i', 'edit'],
-        imageSizedOps: ['edit'],
         enhanceRecipe: 'flux-2',
-        capabilities: { negativePrompt: false, batch: false },
-        description: 'FLUX 2 Max, the top FLUX tier, on your own DeepInfra key. The best prompt adherence of the three and the dearest at a flat $0.10 an image — worth it for a final, not for exploring.',
+        capabilities: { negativePrompt: false, batch: false, multiReference: true, multiReference8: true },
+        description: 'FLUX 2 Max, the top FLUX tier, on your own DeepInfra key. The best prompt adherence of the three and the dearest: about $0.07 an image, plus about $0.03 for each reference image — worth it for a final, not for exploring.',
         workflows: {},
     },
 
@@ -2080,7 +2081,7 @@ const ALL_MODELS = [
         imageSizedOps: ['edit'],
         // Up to four references in the prompt box, collaged into the ONE image this
         // endpoint takes (MPI-919). Gates slots 2-4 of the `edit` op.
-        capabilities: { negativePrompt: false, batch: false, referenceCollage: true },
+        capabilities: { negativePrompt: false, batch: false, multiReference: true, referenceCollage: true },
         description: 'Google\'s Nano Banana 2 Lite on your own DeepInfra key — the cheap end of the family at about $0.034 an image, and very good at edits that keep the rest of the picture intact. Output is about 1 MP whatever ratio you pick.',
         workflows: {},
     },
@@ -2099,7 +2100,7 @@ const ALL_MODELS = [
         imageSizedOps: ['edit'],
         // Up to four references in the prompt box, collaged into the ONE image this
         // endpoint takes (MPI-919). Gates slots 2-4 of the `edit` op.
-        capabilities: { negativePrompt: false, batch: false, referenceCollage: true },
+        capabilities: { negativePrompt: false, batch: false, multiReference: true, referenceCollage: true },
         // Its content filter refused this product's material twice during the research
         // while BOTH its cheaper and its dearer sibling accepted the identical request
         // (01d § 3). Shipped on Fabio's call. `CONTENT_FILTERED` in cloudExecutor.js is
@@ -2130,7 +2131,7 @@ const ALL_MODELS = [
         imageSizedOps: ['edit'],
         // Up to four references in the prompt box, collaged into the ONE image this
         // endpoint takes (MPI-919). Gates slots 2-4 of the `edit` op.
-        capabilities: { negativePrompt: false, batch: false, referenceCollage: true },
+        capabilities: { negativePrompt: false, batch: false, multiReference: true, referenceCollage: true },
         description: 'Nano Banana Pro on your own DeepInfra key, about $0.134 an image — the strongest of the family at text in the image and at following a long prompt exactly. Google also calls it Gemini 3 Pro Image; it is the same model either way.',
         workflows: {},
     },
@@ -2266,8 +2267,12 @@ export const MODELS = ALL_MODELS.filter(m => !m.devOnly || APP_CONFIG.dev_mode);
  * @param {{min?:number, max?:number, step?:number}} [bounds] - the model's own limits
  */
 function _cloudRatios(aspects, sidePx, bounds = {}) {
-    const { min = 0, max = Infinity, step = 32 } = bounds;
-    const area = sidePx * sidePx;
+    // `maxArea`: a hard pixel ceiling, for a model billed per STARTED megapixel (FLUX-2
+    // pro/max, BFL_MEGAPIXEL_USD). Round-to-nearest put 3:4 at 896x1184, 1.2% over 2^20,
+    // and that 1.2% billed a whole second megapixel (MPI-919). Sides snap DOWN under it.
+    const { min = 0, max = Infinity, step = 32, maxArea = 0 } = bounds;
+    const area = maxArea ? Math.min(sidePx * sidePx, maxArea) : sidePx * sidePx;
+    const snap = maxArea ? (v) => Math.max(step, Math.floor(v / step) * step) : (v) => _snapSide(v, step);
     return aspects.map((label) => {
         const [aw, ah] = label.split(':').map(Number);
         const aspect = aw / ah;
@@ -2278,8 +2283,8 @@ function _cloudRatios(aspects, sidePx, bounds = {}) {
         const scale = Math.min(max / Math.max(w, h), 1) * Math.max(min / Math.min(w, h), 1);
         return {
             label,
-            w: _snapSide(w * scale, step),
-            h: _snapSide(h * scale, step),
+            w: snap(w * scale),
+            h: snap(h * scale),
             icon: `rect_${label.replace(':', '_')}`,
         };
     });

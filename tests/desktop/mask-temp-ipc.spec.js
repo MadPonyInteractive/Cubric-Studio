@@ -144,12 +144,17 @@ test('mask-temp IPC: write/read/delete + session lifecycle', async ({}, testInfo
   }
 });
 
-test('mask-temp: stale cubric-* dirs pruned at boot', async ({}, testInfo) => {
-  // Plant a stale dir before launch.
-  const stalePath = path.join(os.tmpdir(), 'cubric-stale-' + Date.now());
+test('mask-temp: stale cubric-<uuid> dirs pruned at boot, siblings kept', async ({}, testInfo) => {
+  // Plant a stale session dir (the shape mask-temp mints) before launch.
+  const stalePath = path.join(os.tmpdir(), 'cubric-' + require('crypto').randomUUID());
   fs.mkdirSync(stalePath, { recursive: true });
   fs.writeFileSync(path.join(stalePath, 'leftover.txt'), 'old');
   expect(fs.existsSync(stalePath)).toBe(true);
+  // A sibling that is NOT a session dir: paid cloud outputs live here (MPI-919).
+  const keptPath = path.join(os.tmpdir(), 'cubric-deepinfra');
+  const keptFile = path.join(keptPath, 'mpi919-spec-' + Date.now() + '.txt');
+  fs.mkdirSync(keptPath, { recursive: true });
+  fs.writeFileSync(keptFile, 'paid');
 
   const userDataDir = testInfo.outputPath('user-data');
   fs.mkdirSync(userDataDir, { recursive: true });
@@ -163,9 +168,11 @@ test('mask-temp: stale cubric-* dirs pruned at boot', async ({}, testInfo) => {
   try {
     const window = await shellWindow(app);
 
-    // Confirm stale dir gone post-boot.
+    // Confirm stale dir gone post-boot, and the sibling untouched.
     expect(fs.existsSync(stalePath)).toBe(false);
+    expect(fs.existsSync(keptFile)).toBe(true);
   } finally {
     await app.close();
+    fs.rmSync(keptFile, { force: true });
   }
 });

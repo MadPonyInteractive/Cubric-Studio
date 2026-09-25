@@ -83,7 +83,9 @@ eraser in and the mask can never be erased further). Only `autoPickMasks` is RAM
 
 **Lifetime: survives a renderer reload, dies on app restart.** Ctrl+R keeps the main process, so
 `sessionId` and the TEMP dir persist; a restart mints a fresh UUID (`main.js`), cleans the old dir
-on quit, and prunes stale `cubric-*` dirs at boot. Masks are session-scoped by decision
+on quit, and prunes stale `cubric-<uuid>` session dirs at boot — ONLY that shape: temp also
+holds `cubric-deepinfra` (paid cloud outputs), `cubric-agent`, `cubric-gif`, and a bare
+`cubric-` prefix wiped them all (MPI-919). Masks are session-scoped by decision
 (`docs/archive/mpi-kanban/plans/2026-04-29-layered-mask-persistence.md`) — outliving a restart
 means moving the layers to `.meta/`, real work rather than a config flip.
 

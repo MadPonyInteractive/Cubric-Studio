@@ -84,10 +84,17 @@ Four FLUX-1-schnell probes: 1024x1024 1 step $0.0005; 1024x512 $0.00025; 1920x19
 the formula is linear in area and linear in steps with no rounding or tiering. It reproduces
 every published headline: FLUX-1-dev 0.9c x 1MP x 25/25 = $0.009, FLUX-2-dev = $0.01.
 `default_iterations: 0` (both kleins) means no step term, just per megapixel.
+**Correction (MPI-919, 2026-09-25, measured):** FLUX-2-dev RUNS its endpoint default of 50
+steps (`limits.num_inference_steps.default`), not the 28 its price assumes, so a 1 MP call
+bills $0.01785, not $0.01. Price with the endpoint's step default.
 
 **Closed image models (`default_width: 0`) — flat per image, resolution irrelevant:**
-FLUX-2-pro $0.015, FLUX-1.1-pro $0.04, FLUX-2-max $0.10, Seedream-4/4.5 $0.04,
-Seedream-5.0-Pro $0.099, Qwen-Image-Max $0.075.
+FLUX-1.1-pro $0.04, Seedream-4/4.5 $0.04, Seedream-5.0-Pro $0.099, Qwen-Image-Max $0.075.
+**NOT FLUX-2-pro/max** (MPI-919, 2026-09-25, measured): they pass BFL's bill through
+(`usage_from_cost: true`) — per STARTED megapixel (2^20 px, rounded up) of the output AND of
+every input image, first at pro $0.03 / max $0.07, each further one at $0.015 / $0.03. Pro 1 MP
+t2i $0.03, 1280x1024 $0.045, + a 2048^2 ref $0.09; max 1 MP t2i $0.07, edit $0.10. The feed's
+$0.015 / $0.10 were both wrong.
 
 **Video.** Wan and Veo state a price per second outright. Seedance is per token and states no
 token formula anywhere; one measured call (below) gives the constant.

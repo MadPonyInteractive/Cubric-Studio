@@ -112,9 +112,9 @@ export function cloudRunFields(model, params = {}, mediaItems = []) {
         // they asked for. Found by the price tag, which could not price a video at all.
         duration: Number(params.Input_Duration) || 0,
         // Every staged image, in strip order (the order IS the "Image 1 / Image 2" the
-        // prompt names). The native route takes ONE image, so the route sends the first,
-        // or collages up to four into one for a model declaring `referenceCollage`
-        // (MPI-919). The model's own `imageField` names where it goes.
+        // prompt names). The route puts reference N in the model's Nth `imageFields` entry,
+        // collages up to four into one for a model declaring `referenceCollage`, or sends
+        // image 1 alone in `imageField` (MPI-919).
         imagePaths: _imagePaths(mediaItems),
     };
 }
@@ -127,13 +127,9 @@ export function cloudRunFields(model, params = {}, mediaItems = []) {
  * fitted size is what gets billed. Pricing the user's pick instead would quote a figure
  * for a picture they are not getting.
  *
- * Two fields the pricing formula takes are deliberately NOT sourced here:
- *   - `steps` — no cloud model's body carries one and `buildSizeFields` emits none, so
- *     every call runs the provider's own `default_iterations` and the formula's step
- *     term is exactly 1. Sourcing a number would only be a way to get it wrong.
- *   - references beyond the first — the native route sends ONE image, so a second or
- *     third staged reference changes no field in the body and cannot change the bill. A
- *     Nano Banana collage (MPI-919) is that one image too, and input bills flat per image.
+ * `steps` is deliberately NOT sourced here: no cloud model's body carries one and
+ * `buildSizeFields` emits none, so every call runs the endpoint's own default, which the
+ * pricing module reads from the snapshot. Sourcing a number would only be a way to get it wrong.
  *
  * @returns {{usd:number, unit:number, batch:number, display:string, checkedOn:string}|null}
  *   null for a local model, and for any shape `estimateCost` refuses to guess at.
@@ -157,7 +153,9 @@ export function estimateRunCost(model, params = {}, mediaItems = []) {
         // Veo publishes no duration field at all, so `sent` carries none and the pricing
         // module falls back to that model's own fixed clip length.
         duration: sent.duration || want.duration || 0,
-        references: want.imagePaths.length ? 1 : 0,
+        // What the route actually SENDS: one per numbered field, or one image (a Nano
+        // Banana collage is one picture) for everything else.
+        references: Math.min(want.imagePaths.length, model.cloud.imageFields?.length || 1),
         batch: want.batch,
     });
 }

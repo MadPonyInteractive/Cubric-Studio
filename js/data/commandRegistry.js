@@ -434,14 +434,19 @@ export const commands = {
         progressLabel: 'Editing',
         mediaType: MEDIA_TYPE.IMAGE,
         requiresImages: 1,
-        // Slots 2-4 exist only for a model declaring `referenceCollage` (MPI-919): the
-        // Nano Banana family, whose DeepInfra endpoint takes ONE image, so routes/deepinfra.js
-        // collages every reference into one picture before the call. Boogu never sees them.
+        // Slots 2-4 exist only for a model declaring `multiReference`, 5-8 for
+        // `multiReference8` (MPI-919). Seedream 5 Pro and FLUX-2 fill their numbered
+        // fields natively (`cloud.imageFields`); the Nano Banana family's endpoint takes ONE
+        // image, so routes/deepinfra.js collages them (`referenceCollage`). Boogu never sees them.
         mediaInputs: [
             { key: 'inputImage',  mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image',   required: true,  ordinal: true },
-            { key: 'inputImage2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false, ordinal: true, requiresCapability: 'referenceCollage' },
-            { key: 'inputImage3', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_3', required: false, ordinal: true, requiresCapability: 'referenceCollage' },
-            { key: 'inputImage4', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_4', required: false, ordinal: true, requiresCapability: 'referenceCollage' },
+            { key: 'inputImage2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false, ordinal: true, requiresCapability: 'multiReference' },
+            { key: 'inputImage3', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_3', required: false, ordinal: true, requiresCapability: 'multiReference' },
+            { key: 'inputImage4', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_4', required: false, ordinal: true, requiresCapability: 'multiReference' },
+            { key: 'inputImage5', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_5', required: false, ordinal: true, requiresCapability: 'multiReference8' },
+            { key: 'inputImage6', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_6', required: false, ordinal: true, requiresCapability: 'multiReference8' },
+            { key: 'inputImage7', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_7', required: false, ordinal: true, requiresCapability: 'multiReference8' },
+            { key: 'inputImage8', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_8', required: false, ordinal: true, requiresCapability: 'multiReference8' },
         ],
         promptRequired: true,
         // Boogu-Image-Edit's op: a whole-image instruction edit that follows the SOURCE
