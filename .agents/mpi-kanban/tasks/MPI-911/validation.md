@@ -351,3 +351,13 @@ only at lines 231 and 273, both inside the i2v block (which begins at line 195).
    HEAD verbatim (scratch check: 32 quotes, 0 missing).
 4. **Rules stated in passing are rows:** e.g. D's "no offscreen voices" inside the gaze section
    (27) and A's "sound must match the body" inside 4.1 (93).
+
+## 8. Close-out (2026-09-25)
+
+- CI on `12920515`: run 36092294650, `completed success`.
+- Claim auditor against `12920515`: 38 proven, 0 false, 0 overstated.
+- Section 4 proposals, on Fabio's yes: (a) frontmatter-version clause and (c) enhancer-of-record
+  clause added to `.claude/rules/engine-recipes.md`; the create-enhancer-recipe skill's Stage 1
+  command (SKILL.md, five-case-corpus.md, validation-record.md) now names
+  `gemma-4-abliterated-12b`. (b) dropped: already in playbook 08:99.
+- Stage 2 renders remain Fabio's; the recipe stays `draft`.

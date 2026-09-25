@@ -17,7 +17,7 @@ There are **four tiers**, one per job a recipe must do
 Run them:
 
 ```bash
-npm run recipe:test -- <recipe-id> --engine dolphin3-abliterated --judge gemma-3-12b --runs 3
+npm run recipe:test -- <recipe-id> --engine gemma-4-abliterated-12b --judge gemma-3-12b --runs 3
 ```
 
 (This replaces the earlier five-case corpus, whose cases tested the same axes

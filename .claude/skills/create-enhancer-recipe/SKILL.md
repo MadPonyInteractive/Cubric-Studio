@@ -111,8 +111,12 @@ Full detail: [playbook 03](../../../docs/recipes/playbook/03-test-loop.md).
 **Run this yourself, to completion, without asking.**
 
 ```bash
-npm run recipe:test -- <recipe-id> --engine dolphin3-abliterated --judge gemma-3-12b --runs 3
+npm run recipe:test -- <recipe-id> --engine gemma-4-abliterated-12b --judge gemma-3-12b --runs 3
 ```
+
+The engine is the registry's enhancer of record (`services/llmEngines.mjs`), and
+twice-green counts only on it. `dolphin3-abliterated` (8B) is a cheaper wording
+probe before the count, never the count: it cannot hold a word cap (MPI-911).
 
 1. Run all four tiers × 3 runs. The harness applies the deterministic checks and
    an LLM judge, and exits non-zero on any failure.

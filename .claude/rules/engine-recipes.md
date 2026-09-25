@@ -137,6 +137,8 @@ A recipe's `systemPrompt` *is* a prompting skill. Search the vendor's and the co
   lines, and `base_encoder.py` picks `gemma3_*` (LTX-2.3) or `gemma4_*` (LTX-2.5) by encoder type.
   A survey merged `gemma4_*` into `ltx-2.3`, and the two disagree on colour, camera motion and
   length. A contradiction inside your own source manifest is the cheapest version check there is.
+  A skill's frontmatter names its model version: read it before the body (a Seedance **2.5**
+  builder sat beside the 2.0 skills in MPI-911, corroboration only).
 - **A wrong-version read is step 0 for the model it actually describes** — file it there.
 - **Rejection is part of the merge.** Wan's rewriter ends with rules that swap the user's subject;
   they are rejected, and written down where the next reader will hit them.
@@ -160,7 +162,9 @@ reopens.** Reasoning: `docs/recipes/playbook/09-field-evidence.md`; procedure: t
 
 - **Stage 1 is text-only and the agent's, run to completion without asking:**
   `npm run recipe:test -- <id> --engine <model> --judge gemma-3-12b --runs 3`. The judge always
-  runs on Ollama, whatever `--backend` says. **Green means the full sweep passed TWICE** — a
+  runs on Ollama, whatever `--backend` says. **Twice-green counts only on the enhancer of record**
+  (`gemma-4-abliterated-12b`, `services/llmEngines.mjs`); a smaller rung is a wording probe first,
+  never the count. **Green means the full sweep passed TWICE** — a
   129/129/127 green re-ran as 1/3. A 4B judge fabricates violations. **Never pipe the harness
   through `tee`**: the pipeline reports tee's exit code, so a failing sweep reads as exit 0. A
   local sweep holds the GPU — run it under the lease (`.agents/mpi-kanban/project-knowledge-index.md`
