@@ -4,13 +4,14 @@
   "display_name": "Cubric Studio",
   "version": "0.1.0",
   "description": "Make images and video in the Cubric Studio app on this computer.",
-  "long_description": "Lets Claude drive the Cubric Studio desktop app: list and open your projects, pick a model, and generate images and video that land in your gallery. Cubric Studio must be open. Nothing leaves your computer except what the models you choose already send.",
+  "long_description": "Lets Claude drive the Cubric Studio desktop app: list and open your projects, pick a model, and generate images and video that land in your gallery. Cubric Studio must be open. The extension talks only to the app on your own computer. What Claude reads through it (project names, file paths, prompts, results) becomes part of your Claude conversation, and a cloud model or remote GPU you chose in the app sends your prompt to that provider. Local generation stays on your computer.",
   "author": {
     "name": "Mad Pony Interactive",
     "url": "https://cubric.studio"
   },
   "homepage": "https://cubric.studio",
   "license": "AGPL-3.0-only",
+  "privacy_policies": ["https://cubric.studio/privacy/"],
   "server": {
     "type": "node",
     "entry_point": "server/index.js",
