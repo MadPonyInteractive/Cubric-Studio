@@ -13,5 +13,6 @@
 - [ ] Phase 2: safe for users (`plan.md`)
   - [x] 1. Cost check: `CONFIRM_COST` until the price is repeated *(live: Veo refused at about $3.20)*
   - [ ] 2-7. Reference images, usable results, tool set, app-closed, titles, cold tests
-- [ ] Privacy policy on cubric.studio (Website repo, Fabio publishes)
+- [x] Privacy policy on cubric.studio *(2026-09-25, live at https://cubric.studio/privacy/, Website 801aa0c)*
+  - [ ] `privacy_policies` in the manifest + README Privacy Policy section (message 90fd9914)
 - [ ] Phase 3: ship and list (`plan.md`)
