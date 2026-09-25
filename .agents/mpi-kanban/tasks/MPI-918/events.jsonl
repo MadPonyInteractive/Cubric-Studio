@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-918", "at": "2026-09-25T08:21:20+01:00", "actor": "claude", "column": "todo", "title": "Cloud edit models inside image Flows - Klein 9B on DeepInfra and Nano Banana as slot candidates"}

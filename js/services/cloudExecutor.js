@@ -69,9 +69,9 @@ export function cloudErrorMessage(code, fallback) {
  *
  * @param {object} model - the ModelDef, which must carry `cloud.endpointId`
  * @param {object} params - `injectionParams` from the run payload
- * @param {Array} [mediaItems] - staged media, for the one image the native route takes
+ * @param {Array} [mediaItems] - staged media, for the reference image(s)
  * @returns {{batch:number, width:number, height:number, ratioLabel:string,
- *   qualityTier:string, duration:number, imagePath:string|null}}
+ *   qualityTier:string, duration:number, imagePaths:string[]}}
  */
 export function cloudRunFields(model, params = {}, mediaItems = []) {
     // The batch control's own node title, clamped to what this endpoint accepts. A
@@ -110,9 +110,11 @@ export function cloudRunFields(model, params = {}, mediaItems = []) {
         // own default length, and the user was billed for that instead of for the clip
         // they asked for. Found by the price tag, which could not price a video at all.
         duration: Number(params.Input_Duration) || 0,
-        // The native route takes ONE image; an edit op sends the first staged asset and
-        // the model's own `imageField` names where.
-        imagePath: _firstImagePath(mediaItems),
+        // Every staged image, in strip order (the order IS the "Image 1 / Image 2" the
+        // prompt names). The native route takes ONE image, so the route sends the first,
+        // or collages up to four into one for a model declaring `referenceCollage`
+        // (MPI-919). The model's own `imageField` names where it goes.
+        imagePaths: _imagePaths(mediaItems),
     };
 }
 
@@ -129,7 +131,8 @@ export function cloudRunFields(model, params = {}, mediaItems = []) {
  *     every call runs the provider's own `default_iterations` and the formula's step
  *     term is exactly 1. Sourcing a number would only be a way to get it wrong.
  *   - references beyond the first — the native route sends ONE image, so a second or
- *     third staged reference changes no field in the body and cannot change the bill.
+ *     third staged reference changes no field in the body and cannot change the bill. A
+ *     Nano Banana collage (MPI-919) is that one image too, and input bills flat per image.
  *
  * @returns {{usd:number, unit:number, batch:number, display:string, checkedOn:string}|null}
  *   null for a local model, and for any shape `estimateCost` refuses to guess at.
@@ -153,7 +156,7 @@ export function estimateRunCost(model, params = {}, mediaItems = []) {
         // Veo publishes no duration field at all, so `sent` carries none and the pricing
         // module falls back to that model's own fixed clip length.
         duration: sent.duration || want.duration || 0,
-        references: want.imagePath ? 1 : 0,
+        references: want.imagePaths.length ? 1 : 0,
         batch: want.batch,
     });
 }
@@ -328,7 +331,9 @@ export function runCloudCommand(payload) {
 }
 
 /** The first staged image a reference slot holds, or null. */
-function _firstImagePath(mediaItems) {
-    const item = (mediaItems || []).find(m => m && (m.mediaType === 'image' || m.type === 'image'));
-    return item?.filePath || item?.path || null;
+function _imagePaths(mediaItems) {
+    return (mediaItems || [])
+        .filter(m => m && (m.mediaType === 'image' || m.type === 'image'))
+        .map(m => m.filePath || m.path)
+        .filter(Boolean);
 }

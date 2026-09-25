@@ -1,0 +1,12 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/data/commandRegistry.js",
+    "js/data/modelConstants/models.js",
+    "js/services/cloudExecutor.js",
+    "routes/deepinfra.js",
+    "routes/deepinfraCollage.js",
+    "tests/deepinfra-collage.test.cjs",
+    ".agents/mpi-kanban/tasks/MPI-919/"
+  ]
+}

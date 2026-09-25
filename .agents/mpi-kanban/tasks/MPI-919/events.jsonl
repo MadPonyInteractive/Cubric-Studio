@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-919", "at": "2026-09-25T08:21:21+01:00", "actor": "claude", "column": "todo", "title": "Nano Banana edits take up to four reference images from the prompt box - collaged into one before sending"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-919", "at": "2026-09-25T08:29:57+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Fabio 2026-09-25: go on 919"}

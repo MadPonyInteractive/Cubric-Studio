@@ -2078,7 +2078,9 @@ const ALL_MODELS = [
         },
         supportedOps: ['t2i', 'edit'],
         imageSizedOps: ['edit'],
-        capabilities: { negativePrompt: false, batch: false },
+        // Up to four references in the prompt box, collaged into the ONE image this
+        // endpoint takes (MPI-919). Gates slots 2-4 of the `edit` op.
+        capabilities: { negativePrompt: false, batch: false, referenceCollage: true },
         description: 'Google\'s Nano Banana 2 Lite on your own DeepInfra key — the cheap end of the family at about $0.034 an image, and very good at edits that keep the rest of the picture intact. Output is about 1 MP whatever ratio you pick.',
         workflows: {},
     },
@@ -2095,7 +2097,9 @@ const ALL_MODELS = [
         type: 'nanobanana',
         supportedOps: ['t2i', 'edit'],
         imageSizedOps: ['edit'],
-        capabilities: { negativePrompt: false, batch: false },
+        // Up to four references in the prompt box, collaged into the ONE image this
+        // endpoint takes (MPI-919). Gates slots 2-4 of the `edit` op.
+        capabilities: { negativePrompt: false, batch: false, referenceCollage: true },
         // Its content filter refused this product's material twice during the research
         // while BOTH its cheaper and its dearer sibling accepted the identical request
         // (01d § 3). Shipped on Fabio's call. `CONTENT_FILTERED` in cloudExecutor.js is
@@ -2124,7 +2128,9 @@ const ALL_MODELS = [
         type: 'nanobanana',
         supportedOps: ['t2i', 'edit'],
         imageSizedOps: ['edit'],
-        capabilities: { negativePrompt: false, batch: false },
+        // Up to four references in the prompt box, collaged into the ONE image this
+        // endpoint takes (MPI-919). Gates slots 2-4 of the `edit` op.
+        capabilities: { negativePrompt: false, batch: false, referenceCollage: true },
         description: 'Nano Banana Pro on your own DeepInfra key, about $0.134 an image — the strongest of the family at text in the image and at following a long prompt exactly. Google also calls it Gemini 3 Pro Image; it is the same model either way.',
         workflows: {},
     },

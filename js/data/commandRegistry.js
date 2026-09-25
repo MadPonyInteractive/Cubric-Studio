@@ -434,8 +434,14 @@ export const commands = {
         progressLabel: 'Editing',
         mediaType: MEDIA_TYPE.IMAGE,
         requiresImages: 1,
+        // Slots 2-4 exist only for a model declaring `referenceCollage` (MPI-919): the
+        // Nano Banana family, whose DeepInfra endpoint takes ONE image, so routes/deepinfra.js
+        // collages every reference into one picture before the call. Boogu never sees them.
         mediaInputs: [
-            { key: 'inputImage', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image', required: true },
+            { key: 'inputImage',  mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image',   required: true,  ordinal: true },
+            { key: 'inputImage2', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_2', required: false, ordinal: true, requiresCapability: 'referenceCollage' },
+            { key: 'inputImage3', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_3', required: false, ordinal: true, requiresCapability: 'referenceCollage' },
+            { key: 'inputImage4', mediaType: MEDIA_TYPE.IMAGE, title: 'Input_Image_4', required: false, ordinal: true, requiresCapability: 'referenceCollage' },
         ],
         promptRequired: true,
         // Boogu-Image-Edit's op: a whole-image instruction edit that follows the SOURCE

@@ -27,7 +27,7 @@
  * `logger.*`, which is exfiltratable by design.
  *
  *   POST /deepinfra/generate  { modelId, operation, prompt, seed, width, height,
- *                               ratioLabel, qualityTier, duration, imagePath, batch,
+ *                               ratioLabel, qualityTier, duration, imagePaths, batch,
  *                               estimateUsd }
  *     -> { ok:true, viewUrls:[…], cost:{ usd, model, at }, seed }
  *        The size arrives in every currency the caller knows and `buildSizeFields`
@@ -55,6 +55,7 @@ const logger = require('./logger');
 const { ask } = require('./forkBridge');
 const { MODELS } = require('../js/data/modelConstants/models.js');
 const { buildSizeFields, batchFieldFor } = require('../js/data/modelConstants/deepinfraSizing.js');
+const { buildCollage } = require('./deepinfraCollage');
 
 const PROFILE_ID = 'deepinfra';
 const INFERENCE_BASE = 'https://api.deepinfra.com/v1/inference';
@@ -190,8 +191,9 @@ function _extractImages(body) {
 }
 
 router.post('/deepinfra/generate', async (req, res) => {
-    const { modelId, prompt = '', seed = null, width = 0, height = 0, imagePath = null, batch = 1,
+    const { modelId, prompt = '', seed = null, width = 0, height = 0, imagePaths = [], batch = 1,
         ratioLabel = '', qualityTier = '', duration = 0, estimateUsd = 0 } = req.body || {};
+    const refs = (Array.isArray(imagePaths) ? imagePaths : []).filter(p => typeof p === 'string' && p);
 
     const model = MODELS.find(m => m.id === modelId);
     if (!model?.provider || !model.cloud?.endpointId) {
@@ -219,6 +221,19 @@ router.post('/deepinfra/generate', async (req, res) => {
     const body = { prompt, ...(model.cloud.body || {}) };
     if (Number.isFinite(seed) && seed >= 0) body.seed = seed;
 
+    // Several references for a model whose endpoint takes ONE: collage them (MPI-919).
+    // The ratio then comes from image 1, because the model follows its input's shape and
+    // the sheet's shape is not the picture the user is editing.
+    let sheet = null;
+    if (refs.length > 1 && model.capabilities?.referenceCollage && model.cloud.imageField) {
+        try {
+            sheet = await buildCollage(refs);
+        } catch (err) {
+            return _fail(res, 'PROVIDER_ERROR', 'The reference images could not be read.');
+        }
+        body.prompt = sheet.preamble + prompt;
+    }
+
     // The size, and the batch, in whatever shape THIS endpoint speaks — pixels, a size
     // string, a ratio label, or a resolution tier plus a ratio plus a duration. All four
     // exist across the sixteen shipped models (see js/data/modelConstants/deepinfraSizing.js),
@@ -227,12 +242,14 @@ router.post('/deepinfra/generate', async (req, res) => {
     // Re-derived server-side rather than trusted from the client for the same reason the
     // batch always was: every one of these fields moves the bill, and the renderer is not
     // the authority on spending. The caps are the endpoint's own published maxima.
-    Object.assign(body, buildSizeFields(model.cloud.endpointId, {
-        width, height, ratioLabel, qualityTier, duration, batch,
-    }));
-    if (imagePath && model.cloud.imageField) {
+    Object.assign(body, buildSizeFields(model.cloud.endpointId, sheet
+        ? { width: sheet.width, height: sheet.height, qualityTier, duration, batch }
+        : { width, height, ratioLabel, qualityTier, duration, batch }));
+    if (sheet) {
+        body[model.cloud.imageField] = `data:image/jpeg;base64,${sheet.jpeg.toString('base64')}`;
+    } else if (refs[0] && model.cloud.imageField) {
         try {
-            const bytes = await fs.readFile(imagePath);
+            const bytes = await fs.readFile(refs[0]);
             body[model.cloud.imageField] = `data:image/png;base64,${bytes.toString('base64')}`;
         } catch (err) {
             return _fail(res, 'PROVIDER_ERROR', 'The reference image could not be read.');

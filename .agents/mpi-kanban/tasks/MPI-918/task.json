@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-918",
+  "title": "Cloud edit models inside image Flows - Klein 9B on DeepInfra and Nano Banana as slot candidates",
+  "description": "Fabio 2026-09-25. Image Flows (Scribble, Draw It In, Outpaint, Object Stamp, and the Head Swap package) run their edit model as ONE stage inside a ComfyUI graph (crop, edit, stitch, composite, ColorMatch), so the shipped cloud path (MPI-851, which swaps the whole generation before runCommand) cannot reach it. The seam must be inside the graph: a new MpiNodes node that calls the app's /deepinfra/generate route (key never enters the graph, credit check reused), behind the existing lazy if_else switch so the local loader never runs, added as extra candidates in each Flow's model slot with a modelParams arm that flips the switch. Local engine only: a RunPod Pod cannot reach the app. Candidates, Fabio's call: Klein on DeepInfra (black-forest-labs/FLUX-2-klein-9b and -4b EXIST there, input_image_1..4, explicit width/height, about 0.015 USD/MP) as the general option, since every Flow's prompts were tuned on Klein; Nano Banana (2 Lite first) on the Flows it fits. Measured 2026-09-25: DeepInfra's Nano Banana family (lite, NB2, Pro, gemini-3-pro-image) takes ONE reference image on every route: a list is a 422, the chat route is model_not_found, and the OpenAI edits route with repeated image parts BILLS and silently keeps only the LAST image. So Nano Banana fits the one-reference Flows (Scribble, Draw It In, Outpaint; Object Stamp Auto only with a composite-only prompt) and must never be offered where the graph feeds two references. Open questions for the plan: crop alignment on stitch-back (NB returns ~1K JPEG at 10 snapped ratios; Klein takes explicit size); LoRA slots (loras: true) have no cloud equivalent; the cost must reach the card sidecar and spend readout; Klein cloud needs its own ModelDef + price snapshot entry. Phase 1 = a paid A/B on real Flow inputs (the exact image Klein receives) before any node is written. DeepInfra only - no Google key, no second provider (Fabio). DECIDED 2026-09-25 (Fabio): candidates are Klein 9B cloud (black-forest-labs/FLUX-2-klein-9b, new ModelDef) + Nano Banana. NO Klein 4B cloud, NO Qwen. No up-front A/B needed: Klein cloud is the model the prompts were tuned on; Nano Banana stitch alignment is checked in the first live run instead.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-25T08:21:20+01:00",
+  "updated_at": "2026-09-25T08:21:20+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
