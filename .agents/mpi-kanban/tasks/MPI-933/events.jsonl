@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-933", "at": "2026-09-25T18:12:13+01:00", "actor": "claude", "column": "todo", "title": "An imported SVG becomes a PNG, so every image tool can use it"}

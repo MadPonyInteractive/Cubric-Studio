@@ -5038,3 +5038,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-924", "at": "2026-09-25T17:24:37+01:00", "actor": "claude-opus-5-5", "from": "doing", "to": "done", "reason": "CI green on 5e607ad2 (run 36146134617), which carries code commit 3e0dbed2"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-919", "at": "2026-09-25T17:27:14+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio verified in-app 2026-09-25; code a0e6b58a, CI green (run 36159838856)."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-926", "at": "2026-09-25T17:35:50+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 3d0c5cf9; 16K thumbs verified."}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-933", "at": "2026-09-25T18:12:13+01:00", "actor": "claude", "column": "todo", "title": "An imported SVG becomes a PNG, so every image tool can use it"}
