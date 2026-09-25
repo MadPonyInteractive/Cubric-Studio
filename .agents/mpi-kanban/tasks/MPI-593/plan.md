@@ -7,9 +7,9 @@ and stays; its record is in `validation.md`. The CLI (old steps 2 and 3) is drop
 
 **Phase 1 spike is DONE and verified (2026-09-25).** Files: `routes/mcp.js`, one mount line in
 `server.js`, `mcp/cubric-studio/` (manifest + bridge), `tests/mcp.test.cjs` (10/10). Evidence
-in `validation.md`. **Next: Fabio installs the `.mcpb` in Claude Desktop against his own app
-(needs a full quit and relaunch to load the new route), and answers the three questions at the
-bottom of `brief.md`. Phase 2 starts from his answers.**
+in `validation.md`. Fabio verified Claude Desktop and Codex against his own app. The three decisions are in
+`brief.md`, and phase 2 item 1 (the cost check) is DONE. **Next: phase 2 items 2 to 7. The
+privacy policy is a separate task in the Website repo.**
 
 ## Phase 1: spike (DONE)
 
@@ -30,7 +30,12 @@ Ownership when picked up: `routes/mcp.js`, `mcp/**`, `tests/mcp.test.cjs`. The r
 `routes/connector.js` and the in-app agent's files are live ground for MPI-916 and MPI-774.
 A change there goes through a message to that session, never a direct edit.
 
-1. **The cost check** (brief Q1). A paid op must show its price before it runs.
+1. **The cost check: DONE 2026-09-25.** `spendGate` in `routes/mcp.js` quotes every
+   generate through `/connector/quote`. A billed run returns `CONFIRM_COST` with the price
+   until the call carries `confirmCost` equal to it; local models and Flows never ask.
+   Live: `veo-31-cloud` t2v 8 s was refused with "about $3.20", and the log shows only
+   `generation.quote`, no submit. Upgrade path if agents fake the confirm: a Yes in the app
+   window.
 2. **Reference images.** An agent passes a file path on the user's disk. The MCP layer stages
    it into the project (`place-preview-asset`) and sends `media: [{role, url}]`. This unlocks
    edit, i2i and i2v.

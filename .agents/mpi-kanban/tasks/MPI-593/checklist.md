@@ -9,6 +9,9 @@
   - [x] Cold Claude Code agent makes an image unaided, exactly one file
   - [x] Fabio: `.mcpb` in Claude Desktop against his own app *(2026-09-25, one card)*
   - [x] Codex in VS Code *(2026-09-25, one card, slow start: see validation.md)*
-- [ ] Brief questions answered: spending, privacy policy URL, listing repo
+- [x] Brief questions answered *(2026-09-25: price first, write a privacy policy, one public repo)*
 - [ ] Phase 2: safe for users (`plan.md`)
+  - [x] 1. Cost check: `CONFIRM_COST` until the price is repeated *(live: Veo refused at about $3.20)*
+  - [ ] 2-7. Reference images, usable results, tool set, app-closed, titles, cold tests
+- [ ] Privacy policy on cubric.studio (Website repo, Fabio publishes)
 - [ ] Phase 3: ship and list (`plan.md`)

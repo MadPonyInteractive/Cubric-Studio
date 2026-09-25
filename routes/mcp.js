@@ -14,8 +14,8 @@
  * the in-app agent reads, because the raw list is ~9.5k tokens.
  *
  * SPIKE (MPI-593 phase 1): eight tools, enough to prove "make me an image" end to end.
- * The in-app agent's gates (spend, guide, mask) live in `agentLoop._executeTool`, NOT in
- * the routes, so none of them apply here yet. That is phase 2 of the plan, before release.
+ * The in-app agent's gates live in `agentLoop._executeTool`, not in the routes, so this file
+ * carries its own spend gate (`spendGate`). The guide and mask gates do not apply here.
  *
  * `routes/localOnly.js` runs first, so a browser page cannot reach this; Node, Rust and
  * Python clients send no Origin and pass on Host alone.
@@ -45,6 +45,38 @@ function startJob(promise) {
     return jobId;
 }
 
+/**
+ * The spend gate for outside agents. The in-app agent asks with a Yes card
+ * (`agentLoop._askSpend`); an outside agent's chat is the only place to ask, so a billed run
+ * is refused until the call carries the price `/connector/quote` returned. The agent has to
+ * say the price before it can spend it. Local models and Flows never bill, so they never ask.
+ * ponytail: an agent that invents confirmCost gets through, and the client's approval prompt
+ * does show that argument. A confirm in the app window is the upgrade if this is not enough.
+ * @returns {Promise<object|null>} the refusal, or null to go ahead
+ */
+async function spendGate(t, body, confirmCost) {
+    let quote = null;
+    try {
+        const r = await t.quoteGeneration(body);
+        if (r?.ok && r.output?.billed) quote = r.output;
+    } catch {
+        // An app that cannot quote cannot generate either: the submit fails the same way.
+    }
+    if (!quote) return null;
+    // `display` carries its own "about"; null means the model bills but its price is unknowable.
+    const price = quote.display || 'price unknown';
+    if (confirmCost === price) return null;
+    return {
+        ok: false,
+        error: {
+            code: 'CONFIRM_COST',
+            message: `${confirmCost ? 'confirmCost does not match the current price. ' : ''}Nothing was generated. ${quote.modelName} is a paid model: this run costs ${quote.display || 'an amount it cannot know until it runs'}. Tell the user that price and ask. Only if they say yes, send the same generate again with confirmCost: "${price}".`,
+        },
+        price,
+        modelName: quote.modelName,
+    };
+}
+
 async function waitForJob(jobId) {
     const job = _jobs.get(jobId);
     if (!job) return { ok: false, error: { code: 'UNKNOWN_JOB', message: `No generation "${jobId}" is running here. Its card may already be in the gallery.` } };
@@ -65,6 +97,7 @@ const INSTRUCTIONS = [
     'A generation lands in the project the app has OPEN. Before generating, find the project with list_projects and call open_project, or call create_project (it opens what it makes).',
     'Pick a model with list_models (the op marked best:true is the recommended one for its task), then call describe_model for that id: it lists the ops and the only values each param accepts.',
     'generate returns the result\'s file path and card id, or { running: true, jobId } for a slow one: then call wait_generation until it finishes. Never re-send generate for a job that is still running. The card also appears in the app\'s gallery.',
+    'Paid cloud models cost the user real money. generate answers CONFIRM_COST with the price and makes nothing: tell the user the price and ask. Only if they say yes, resend with confirmCost. Never confirm on their behalf.',
     'When you show the user a prompt, hand it back whole and pasteable, never as fragments.',
 ].join('\n');
 
@@ -133,7 +166,7 @@ const TOOLS = {
         run: async ({ folderPath }) => (await tools()).openProject(folderPath),
     },
     generate: {
-        description: 'Generate an image or video with a model op, or run a Flow, in the OPEN project. Send modelId + operation, or flowId, never both. Named params take only the values describe_model lists. Returns the result, or { running: true, jobId } when it takes longer than 45 s: then call wait_generation, never generate again.',
+        description: 'Generate an image or video with a model op, or run a Flow, in the OPEN project. Send modelId + operation, or flowId, never both. Named params take only the values describe_model lists. Returns the result, or { running: true, jobId } when it takes longer than 45 s: then call wait_generation, never generate again. A paid model first answers CONFIRM_COST with its price and generates nothing.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -150,10 +183,14 @@ const TOOLS = {
                 seed: { type: 'integer' },
                 cardName: { type: 'string', description: 'A short name for the gallery card this creates.' },
                 fields: { type: 'object', description: 'A Flow\'s field values, as describe_model lists them.' },
+                confirmCost: { type: 'string', description: 'Only after the user agreed to the price a CONFIRM_COST answer named: that price, exactly as given.' },
             },
         },
         annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
-        run: async (args) => waitForJob(startJob((await tools()).generate(args))),
+        run: async ({ confirmCost, ...body }) => {
+            const t = await tools();
+            return (await spendGate(t, body, confirmCost)) ?? waitForJob(startJob(t.generate(body)));
+        },
     },
     wait_generation: {
         description: 'Wait up to 45 s more for a generation that answered { running: true, jobId }. Call it again while it still says running.',

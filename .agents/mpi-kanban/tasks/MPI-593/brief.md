@@ -63,14 +63,12 @@ Claude Desktop ──stdio──▶ .mcpb bridge ──HTTP──┘            
 3. **Ship and list.** The `.mcpb` on each GitHub release, the directories above, a Settings
    page that tells users how to connect, docs.
 
-## Questions for Fabio
+## Decisions (Fabio, 2026-09-25)
 
-1. **Spending.** A paid cloud model run over MCP bypasses the in-app agent's cost check
-   (MPI-876, which lives in `agentLoop`). Lean: the MCP `generate` refuses a paid op until the
-   call carries the price `/connector/quote` returned, so the agent must show the price first.
-   Claude Desktop also asks the user before every tool call by default.
-2. **Privacy policy.** The Claude Desktop directory rejects an extension without an HTTPS
-   privacy policy URL. Does cubric.studio have one?
-3. **Where the listings live.** The plugin, the Gemini extension and the registry entry each
-   need a public repo. Lean: one `cubric-studio-mcp` repo holding all three, since this repo's
-   master is already the app's release source.
+1. **Spending: the agent shows the price first.** "A bad generation can cost $4." DONE in
+   `routes/mcp.js` `spendGate`: a billed run answers `CONFIRM_COST` with the quoted price and
+   generates nothing until the call repeats that price in `confirmCost`.
+2. **Privacy policy: none exists, so write one.** The Claude Desktop directory needs an HTTPS
+   URL. Its home is the Website repo (cubric.studio); publishing it is Fabio's call.
+3. **Listings: one public repo** holding the Claude Code plugin, the Gemini extension and the
+   registry entry. Creating it is outward-facing, so it waits for phase 3 and a go-ahead.

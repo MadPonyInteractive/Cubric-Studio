@@ -29,6 +29,10 @@ test.before(async () => {
         seen.push(q.body);
         setTimeout(() => r.json({ ok: true, output: { filePath: 'C:/p/Bikes/Media/a.png' } }), q.body.positive === 'slow' ? 300 : 0);
     });
+    // `veo` bills, everything else is local.
+    app.post('/connector/quote', (q, r) => r.json({ ok: true, output: q.body.modelId === 'veo'
+        ? { billed: true, modelName: 'Veo 3', count: 1, usd: 4, display: 'about $4.00' }
+        : { billed: false } }));
     process.env.CUBRIC_MCP_WAIT_MS = '100';
     app.use(require('../routes/mcp'));
     await new Promise((resolve) => { server = app.listen(0, '127.0.0.1', resolve); });
@@ -103,6 +107,26 @@ test('a slow generate answers running + jobId, and wait_generation delivers it w
     assert.equal(r.output.filePath, 'C:/p/Bikes/Media/a.png');
     assert.equal(seen.length, before + 1);
     assert.equal((await call('wait_generation', { jobId: 'nope' })).isError, true);
+});
+
+test('a paid model generates nothing until the call repeats the quoted price', async () => {
+    const before = seen.length;
+    const ask = { modelId: 'veo', operation: 't2v', positive: 'a taxi' };
+
+    const refused = await call('generate', ask);
+    assert.equal(refused.isError, true);
+    const why = JSON.parse(refused.content[0].text);
+    assert.equal(why.error.code, 'CONFIRM_COST');
+    assert.equal(why.price, 'about $4.00');
+    assert.match(why.error.message, /about \$4\.00/);
+
+    assert.equal(JSON.parse((await call('generate', { ...ask, confirmCost: 'about $0.10' })).content[0].text).error.code, 'CONFIRM_COST');
+    assert.equal(seen.length, before, 'nothing reached /connector/generate');
+
+    const ran = await call('generate', { ...ask, confirmCost: 'about $4.00' });
+    assert.equal(ran.isError, false);
+    assert.equal(seen.length, before + 1);
+    assert.deepEqual(seen.at(-1), ask, 'confirmCost is not forwarded');
 });
 
 test('an unknown tool and an unknown method are errors, GET is 405', async () => {
