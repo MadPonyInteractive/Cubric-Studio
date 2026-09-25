@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-907", "at": "2026-09-24T13:50:07+01:00", "actor": "1e62e616-bbf2-4720-96a5-762aac1263da", "column": "todo", "title": "Toast mascots: idle / happy / heads-up / failed by toast type"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-907", "at": "2026-09-25T07:34:33+01:00", "actor": "b13c4313", "from": "todo", "to": "doing", "reason": "Implementation started: stills per mascot (Fabio dropped clips)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-907", "at": "2026-09-25T08:49:11+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Verified by Fabio in the component gallery (2026-09-25); CI green on cee50a30 (run 36108008937)."}
