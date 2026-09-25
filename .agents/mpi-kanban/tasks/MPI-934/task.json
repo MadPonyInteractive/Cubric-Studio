@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-934",
+  "title": "An SVG staged by an agent or dropped on a Flow input becomes a PNG",
+  "description": "placeContentAsset (place-preview-asset: agent loop, in-app agent, Flow input drop) stores an SVG as-is, which no generation can read. Render it to PNG there, as MPI-933 does for imports.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-25T18:33:14+01:00",
+  "updated_at": "2026-09-25T18:33:14+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

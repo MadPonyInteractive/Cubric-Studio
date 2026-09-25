@@ -84,6 +84,43 @@ test('a size already between 2048 and 4096 is kept', async () => {
     assert.deepEqual([m.width, m.height], [3000, 1000]);
 });
 
+// ── MPI-934: the reference store (agent staging, Flow input drops) ───────────
+
+/** POST place-preview-asset the way each caller does: a plain path (agent) or a data URL (Flow drop). */
+async function stageSvg(text, { viaPath }) {
+    const root = await scratchDir('svg-stage-');
+    await fs.writeJson(path.join(root, 'project.json'), { id: 'p', itemGroups: [], sequenceCounters: {} });
+    const src = path.join(root, 'logo.svg');
+    await fs.writeFile(src, text);
+    const app = express();
+    app.use(express.json({ limit: '50mb' }));
+    app.use(require('../routes/projects.js'));
+    const server = await new Promise(r => { const s = app.listen(0, '127.0.0.1', () => r(s)); });
+    try {
+        const dataUrl = viaPath ? src : `data:image/svg+xml;base64,${Buffer.from(text).toString('base64')}`;
+        return await fetch(`http://127.0.0.1:${server.address().port}/project-media/agent/place-preview-asset?folderPath=${encodeURIComponent(root)}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dataUrl, ext: '.svg' }),
+        }).then(r => r.json());
+    } finally {
+        await new Promise(r => server.close(r));
+    }
+}
+
+for (const viaPath of [true, false]) {
+    test(`a staged SVG (${viaPath ? 'agent path' : 'Flow drop data URL'}) lands in the reference store as a PNG`, async () => {
+        const res = await stageSvg(svg(800, 600), { viaPath });
+        assert.equal(res.success, true, JSON.stringify(res));
+        assert.match(res.absPath, /\.png$/, 'stored as .png');
+        assert.match(res.filePath, /\.png(&|$)/, 'the url a generation receives is the PNG');
+        const m = await sharp(res.absPath).metadata();
+        assert.equal(m.format, 'png');
+        assert.deepEqual([m.width, m.height], [2048, 1536], 'same size rule as an import');
+        const store = await fs.readdir(path.dirname(res.absPath));
+        assert.deepEqual(store.filter(f => /\.svg$/i.test(f)), [], 'no .svg (or tmp) left in the store');
+    });
+}
+
 test('transparency survives: what the SVG does not paint is alpha 0', async () => {
     const { res, mediaDir } = await importSvg(svg(400, 400, '<circle cx="200" cy="200" r="50" fill="#3c3"/>'));
     const file = path.join(mediaDir, res.filename);

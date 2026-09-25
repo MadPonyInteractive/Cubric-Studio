@@ -1,0 +1,7 @@
+{
+  "files": [
+    "routes/projects.js",
+    "tests/svg-import.test.cjs",
+    "docs/gallery.md"
+  ]
+}

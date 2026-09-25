@@ -406,6 +406,12 @@ async function placeContentAsset(sourceUrl, ext, mediaDir, projectRoot) {
     const tmpPath = path.join(storeDir, `.tmp-${process.pid}-${uuidv4()}${ext}`);
     try {
         await copySnapshotSource(sourceUrl, tmpPath);
+        // A generation reads pixels, so a staged SVG (agent, Flow input drop) is stored
+        // as the PNG an import would make of it (MPI-934, `rasterizeSvg`).
+        if (/^\.svg$/i.test(ext)) {
+            await fs.writeFile(tmpPath, (await rasterizeSvg(await fs.readFile(tmpPath))).data);
+            ext = '.png';
+        }
         const sha256 = await computeFileSha256(tmpPath);
         const absPath = path.join(storeDir, `${sha256}${ext}`);
         if (await fs.pathExists(absPath)) {
