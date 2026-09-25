@@ -41,6 +41,7 @@ import { getModelById } from '../data/modelRegistry.js';
 import { batchFieldFor, buildSizeFields } from '../data/modelConstants/deepinfraSizing.js';
 import { estimateCost } from '../data/modelConstants/deepinfraPricing.js';
 import { ratioSettingsFromParams } from '../utils/promptReuse.js';
+import { extractAbsPath } from '../utils/mediaActions.js';
 import { clientLogger } from './clientLogger.js';
 import { Events } from '../events.js';
 
@@ -331,9 +332,13 @@ export function runCloudCommand(payload) {
 }
 
 /** The first staged image a reference slot holds, or null. */
+// A staged gallery image's `filePath` is the renderer's `/project-file?path=<encoded>` URL,
+// not a disk path. The route reads files from DISK, so it must get the decoded path: sent
+// raw, every cloud edit on a gallery image failed to read its reference (MPI-851 to 919).
 function _imagePaths(mediaItems) {
     return (mediaItems || [])
         .filter(m => m && (m.mediaType === 'image' || m.type === 'image'))
         .map(m => m.filePath || m.path)
-        .filter(Boolean);
+        .filter(Boolean)
+        .map(p => extractAbsPath(p) || p);
 }

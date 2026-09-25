@@ -56,6 +56,7 @@ const { ask } = require('./forkBridge');
 const { MODELS } = require('../js/data/modelConstants/models.js');
 const { buildSizeFields, batchFieldFor } = require('../js/data/modelConstants/deepinfraSizing.js');
 const { buildCollage } = require('./deepinfraCollage');
+const { getCommand } = require('../js/data/commandRegistry.js');
 
 const PROFILE_ID = 'deepinfra';
 const INFERENCE_BASE = 'https://api.deepinfra.com/v1/inference';
@@ -191,13 +192,20 @@ function _extractImages(body) {
 }
 
 router.post('/deepinfra/generate', async (req, res) => {
-    const { modelId, prompt = '', seed = null, width = 0, height = 0, imagePaths = [], batch = 1,
+    const { modelId, operation = '', prompt = '', seed = null, width = 0, height = 0, imagePaths = [], batch = 1,
         ratioLabel = '', qualityTier = '', duration = 0, estimateUsd = 0 } = req.body || {};
     const refs = (Array.isArray(imagePaths) ? imagePaths : []).filter(p => typeof p === 'string' && p);
 
     const model = MODELS.find(m => m.id === modelId);
     if (!model?.provider || !model.cloud?.endpointId) {
         return _fail(res, 'PROVIDER_ERROR', 'That model does not run in the cloud.', 400);
+    }
+    // An op that needs a picture and arrives without one must not run: the endpoint
+    // takes the image as OPTIONAL, so it would bill a text-to-image from the prompt alone
+    // and hand it back as the "edit". Measured 2026-09-25: five paid edits that never
+    // saw their reference, with no error anywhere.
+    if ((getCommand(operation)?.requiresImages || 0) > refs.length) {
+        return _fail(res, 'PROVIDER_ERROR', 'This edit needs a reference image, and none arrived.', 400);
     }
 
     const { resolveConnection } = await engines();

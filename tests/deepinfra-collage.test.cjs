@@ -95,6 +95,43 @@ test('only a referenceCollage model is offered more than one edit reference', ()
     }
 });
 
+test('a gallery image travels as a DISK path, never as its /project-file URL', () => {
+    // The shape a staged gallery card really has (read off a sidecar, 2026-09-25): filePath
+    // IS the renderer URL. Sent raw, the route could not read it, so no edit saw its image.
+    const lite = MODELS.find(m => m.id === 'nano-banana-2-lite-cloud');
+    const url = '/project-file?path=C%3A%5CUsers%5CFabio%5CProjects%5CKaiju%5CMedia%5Ct2i_002.png&v=1790314891991';
+    const items = [{ mediaType: 'image', url, filePath: url }, { mediaType: 'image', filePath: 'D:\\refs\\dog.png' }];
+    assert.deepEqual(cloudRunFields(lite, {}, items).imagePaths,
+        ['C:\\Users\\Fabio\\Projects\\Kaiju\\Media\\t2i_002.png', 'D:\\refs\\dog.png']);
+});
+
+test('an edit with no reference is REFUSED before any key or provider is touched', async () => {
+    const express = require('express');
+    const app = express();
+    app.use(express.json());
+    app.use(require('../routes/deepinfra.js'));
+    const server = await new Promise(r => { const s = app.listen(0, '127.0.0.1', () => r(s)); });
+    const realFetch = global.fetch;
+    let upstream = false;
+    global.fetch = async (url, init) => {
+        if (String(url).includes('deepinfra.com')) { upstream = true; throw new Error('must not reach the provider'); }
+        return realFetch(url, init);
+    };
+    try {
+        const res = await fetch(`http://127.0.0.1:${server.address().port}/deepinfra/generate`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ modelId: 'nano-banana-2-lite-cloud', operation: 'edit', prompt: 'swap the boat', imagePaths: [] }),
+        });
+        const json = await res.json();
+        assert.equal(res.status, 400);
+        assert.equal(json.ok, false);
+        assert.equal(upstream, false);
+    } finally {
+        global.fetch = realFetch;
+        server.close();
+    }
+});
+
 test('the executor sends every reference in strip order, and a sheet prices as one image', () => {
     const lite = MODELS.find(m => m.id === 'nano-banana-2-lite-cloud');
     const items = ['a.png', 'b.png', 'c.png', 'd.png'].map(filePath => ({ mediaType: 'image', filePath }));

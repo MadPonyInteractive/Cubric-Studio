@@ -43,6 +43,24 @@ first with the same layout and prompt: Lite is inconsistent run to run on multi-
 NB2 held up on the hardest case (one sample). Pro not run (Fabio: too expensive, NB2 passing
 is the proxy).
 
+## Fabio's in-app run found the reference never arrived (2026-09-25)
+
+Kaiju Giant Bowl edit_003..007 (Lite and NB2, 1 and 2 refs): every output an unrelated NEW
+scene at 1408x768, ignoring image 1 (1088x896). Billed $0.033602 = output tokens only, ZERO
+input tokens: the image never reached the provider, so each "edit" was a paid text-to-image.
+
+Root cause: `cloudExecutor` sent the staged card's `filePath`, which is the renderer URL
+`/project-file?path=<encoded>`, and the route reads a DISK path. Broken since MPI-851 (with a
+matching server it fails "could not be read"); Fabio's running server predated this card, read
+the old `imagePath` field, saw nothing, and generated without the image. Fixed at the source
+(`extractAbsPath` in `_imagePaths`), and the route now refuses an op whose `requiresImages`
+exceeds the refs it received, before any key or spend, so a mismatch can never again bill a
+silent text-to-image. Re-run of edit_006's exact request (Lite, "Replace the boat With a
+warship", t2i_002.png) through the route: a real edit, same kaiju scene, sailboat -> warship,
+image 1's ratio, $0.033882 (input tokens present). Suite 1882: 1880 pass, 0 fail.
+
+**The running app must be RESTARTED** - its server process holds the old route.
+
 ## Not yet verified
 
 - The prompt box itself accepting four chips on a Nano Banana model (in the app). The slot count
