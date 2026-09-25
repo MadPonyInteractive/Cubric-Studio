@@ -253,12 +253,20 @@ router.post('/deepinfra/generate', async (req, res) => {
     Object.assign(body, buildSizeFields(model.cloud.endpointId, sheet
         ? { width: sheet.width, height: sheet.height, qualityTier, duration, batch }
         : { width, height, ratioLabel, qualityTier, duration, batch }));
+    // Most endpoints take the picture as a bare data URL. Wan 3.0 takes a LIST of typed
+    // media (`[{ type: 'first_frame', url }]`), named by `cloud.imageMediaType`; a bare
+    // string there is a 422 (measured 2026-09-25), so Wan's i2v never ran before this.
+    const placeImage = (dataUri) => {
+        body[model.cloud.imageField] = model.cloud.imageMediaType
+            ? [{ type: model.cloud.imageMediaType, url: dataUri }]
+            : dataUri;
+    };
     if (sheet) {
-        body[model.cloud.imageField] = `data:image/jpeg;base64,${sheet.jpeg.toString('base64')}`;
+        placeImage(`data:image/jpeg;base64,${sheet.jpeg.toString('base64')}`);
     } else if (refs[0] && model.cloud.imageField) {
         try {
             const bytes = await fs.readFile(refs[0]);
-            body[model.cloud.imageField] = `data:image/png;base64,${bytes.toString('base64')}`;
+            placeImage(`data:image/png;base64,${bytes.toString('base64')}`);
         } catch (err) {
             return _fail(res, 'PROVIDER_ERROR', 'The reference image could not be read.');
         }

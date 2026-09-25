@@ -7,7 +7,7 @@
  * @property {string}   [type]       - Model family (e.g. 'sdxl', 'wan'); also the default enhancer-recipe key
  * @property {string}   [enhanceRecipe] - Explicit enhancer-recipe id, overriding `type` when they diverge. Both keys are read by `resolveRecipe()` in `js/data/recipes/registry.js` — the LOCAL recipe index (MPI-35, MPI-677). They used to name a recipe inside the sibling Cubric Prompt app (MPI-5); the recipes moved here, so the keys kept their values and changed their address.
  * @property {'deepinfra'} [provider] - CLOUD model (MPI-851). Its presence is the whole discriminator: a model with a `provider` has no weights, no ComfyUI graph and no engine — it runs on the user's own API key at the provider, who bills them directly. It MUST declare no `dependencies`, `commonDeps`, `operations`, `workflows`, `engines` or `variants`: the dep resolver, the orphan sweep and the install UI all key on those, and an empty `dependencies: []` reads as INSTALLED by accident in two places (`resolveModelDeps.js` `[].every()`, `routes/comfy.js` `allPresent`). "Installed" for these means A KEY IS SAVED — see `hasCloudKey()` in modelRegistry.js, which `isModelUsable`/`isOperationInstalled` answer from before they ever consult the dep cache. Dispatch branches at `generationService.js`'s `runCommand` call and never reaches ComfyUI.
- * @property {{endpointId:string, body?:Record<string,*>, imageField?:string}} [cloud] - The provider-side call this model makes. `endpointId` is the provider's own model id (`black-forest-labs/FLUX-1-schnell`), which is ALSO the key `dev_configs/deepinfra-prices.json` prices it under — the two must stay equal or the estimate silently describes another model. `body` is constant fields merged into every request (leave a field out to take the provider's own default; DeepInfra's default step count is what its published price assumes). `imageField` names the body field a reference image goes in, for edit ops.
+ * @property {{endpointId:string, body?:Record<string,*>, imageField?:string, imageMediaType?:string}} [cloud] - The provider-side call this model makes. `endpointId` is the provider's own model id (`black-forest-labs/FLUX-1-schnell`), which is ALSO the key `dev_configs/deepinfra-prices.json` prices it under — the two must stay equal or the estimate silently describes another model. `body` is constant fields merged into every request (leave a field out to take the provider's own default; DeepInfra's default step count is what its published price assumes). `imageField` names the body field a reference image goes in, for edit ops. `imageMediaType` wraps it as `[{ type, url }]` for an endpoint whose field is a typed media list (Wan 3.0).
  * @property {'image'|'video'} mediaType
  * @property {'low'|'balanced'|'high'} [sizeTier] - Weight-size tier (MPI-168). Shown as a Low/Balanced/High badge + L/B/H marker. A model has ONE tier; siblings ship as separate cards. Absent → treated as 'balanced' by UI.
  * @property {string}   [modelFamily] - Soft grouping key for same-base-model tier variants, e.g. 'LTX-2.3' (MPI-168). Drives tier clustering + the "show L/B/H only when 2+ tiers of a family installed" rule. UI-only; no resolver effect.
@@ -2183,7 +2183,9 @@ const ALL_MODELS = [
         // Wan spells its tiers '1080P' and names its ratio field `ratio`, alone among the
         // six video models. Nothing here encodes that — deepinfraSizing.js reads both off
         // the snapshot, which is the whole reason it reads them off the snapshot.
-        cloud: { endpointId: 'Wan-AI/Wan3.0-Video', body: {}, imageField: 'media' },
+        // `media` is a LIST of typed items, not a data URL: an i2v picture goes in as
+        // `{ type: 'first_frame', url }` (MPI-919; a bare string is a 422).
+        cloud: { endpointId: 'Wan-AI/Wan3.0-Video', body: {}, imageField: 'media', imageMediaType: 'first_frame' },
         video: 'wan3-cloud.mp4',
         mediaType: 'video',
         type: 'wan3',
