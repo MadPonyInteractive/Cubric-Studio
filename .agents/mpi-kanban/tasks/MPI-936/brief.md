@@ -25,9 +25,8 @@ this likely rides on an engine bump (`/mpi-bump-engine`) first. Wiring: `/mpi-ad
 - **No Outputs clause.** Unlike Klein 9B (FLUX NC frees the IMAGES), images made with this
   model are NOT commercially usable either. The Klein description line "the IMAGES you make
   stay commercially usable" must NOT be copied.
-- **"Personal use" is not in the grant.** The licence says research or evaluation. The gate
-  and badge must quote what the licence says, not a looser paraphrase; wording to be
-  confirmed with Fabio before ship.
+- **Wording: "research or evaluation only, no commercial use"** - the licence's own terms.
+  Do NOT say "personal use": it is not in the grant (Fabio dropped it 2026-09-26).
 - §3(a): recipients get a copy of the agreement -> bundle it under `licences/<id>/`
   (root-relative `licenceUrl`, per the descriptor doc).
 - §3(c): the attribution notice "Qwen is licensed under the Qwen RESEARCH LICENSE AGREEMENT,
@@ -35,13 +34,25 @@ this likely rides on an engine bump (`/mpi-bump-engine`) first. Wiring: `/mpi-ad
   model drawer.
 - Commercial contact: model-business@notice.qwencloud.com.
 
+## Parked (2026-09-26)
+
+`deferred`: needs the ComfyUI 0.37 engine, and bumping before v2.0 is undecided. Unpark when
+the engine bump lands.
+
+## Weights source (decided 2026-09-26)
+
+- **Main transformer: NOT on R2.** Downloaded straight from Qwen's own HF repo
+  (`Qwen/Qwen-Image-2.1` or a Comfy-Org repack of THAT weight - check its licence carries over).
+  We never redistribute the research-licensed weight.
+- **Everything else (text encoder, VAE, ...) on R2 as usual** - but verify each one's own
+  licence first (the Qwen3-VL encoder must be Apache-2.0 or similar, not the research
+  licence) before re-hosting.
+
 ## Open questions for the build
 
-1. Weights source: re-host on R2 like everything else (redistribution is permitted
-   non-commercially with the licence copy) vs pull straight from `Qwen/Qwen-Image-2.1` on HF.
-   Is our distribution itself "commercial" given paid Flows? Fabio's call.
-2. Which quant fits (competitor pack uses an INT8 7B + Qwen3-VL 8B encoder, ~17 GB).
-3. Ops: t2i, edit with refs, transparent output - map onto existing op types.
+1. Which quant fits (competitor pack uses an INT8 7B + Qwen3-VL 8B encoder, ~17 GB) - and does
+   a quant exist from a source whose licence lets users fetch it without us re-hosting?
+2. Ops: t2i, edit with refs, transparent output - map onto existing op types.
 
 ## Not in scope
 
