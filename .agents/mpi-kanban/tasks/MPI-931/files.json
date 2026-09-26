@@ -1,0 +1,7 @@
+{
+  "files": [
+    "js/services/commandExecutor.js",
+    "js/services/comfyController.js",
+    "tests/desktop/cancel-targets-own-prompt.spec.js"
+  ]
+}

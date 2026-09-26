@@ -6,8 +6,10 @@ and ticks it here. Every handoff points at this plan.
 
 ## Current State
 
-(2026-09-25, session 667f09c0) Phase 1 done: MPI-908 closed (ab86625b). MPI-928 decided
-(option A). Next: Phase 2, MPI-906 queued install -> History peek -> starting-engine screen.
+(2026-09-26, session 667f09c0) Phases 1-2 done: MPI-908 and MPI-906 closed. Phase 3a built:
+MPI-930 + MPI-931 (pre-register Stop remembered; every interrupt names its prompt_id), spec
+tests/desktop/cancel-targets-own-prompt.spec.js red-then-green, 41 related specs green. Waiting on
+Fabio's live check, then CI, then close both. Next after that: MPI-929 + MPI-928 together.
 
 ## Members, in order
 
@@ -15,14 +17,13 @@ and ticks it here. Every handoff points at this plan.
 - [x] MPI-908 Mascots on empty and one-off states - CLOSED ab86625b (2026-09-25).
 
 ### Phase 2: the last mascot spots
-- [ ] MPI-906 Mascots on the waiting spots - left: Model Library queued install, History peek,
-      starting-engine screen (see its checklist; float latent window dropped by Fabio).
+- [x] MPI-906 Mascots on the waiting spots - CLOSED 2026-09-26 (code 86af0aeb, CI green).
 
 ### Phase 3: the cancel path (one owner, assigned by Fabio via peer "Agent integration plan 2")
-- [ ] MPI-930 A local cancel before register settles nothing -> agent/MCP hang 30 min
-      (commandExecutor.js exec.cancel ~1329). Planned.
-- [ ] MPI-931 Stop interrupts whatever the shared engine runs (commandExecutor.js ~1336, ~1396;
-      does the pinned ComfyUI take a prompt_id on interrupt?). Research.
+- [ ] MPI-930 A local cancel before register settles nothing -> agent/MCP hang 30 min.
+      BUILT 2026-09-26, awaiting Fabio's live check.
+- [ ] MPI-931 Stop interrupts whatever the shared engine runs. ComfyUI v0.34 takes prompt_id on
+      /interrupt (yes). BUILT 2026-09-26, awaiting Fabio's live check.
 - [ ] MPI-929 Cancel mascot silent for cloud jobs. Research; reproduce first.
 - [ ] MPI-928 Cloud Stop bills and drops the output. DECIDED (Fabio 2026-09-25): option A - the
       paid result lands as a card marked already charged (like the local R09 path). Planned;

@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-930", "at": "2026-09-25T17:30:51+01:00", "actor": "claude", "column": "todo", "title": "A local cancel before the job registers settles nothing, so the agent and MCP hang for 30 minutes"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-930", "at": "2026-09-26T07:07:47+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "MPI-932 Phase 3a: cancel path, one session"}
