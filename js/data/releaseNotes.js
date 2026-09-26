@@ -46,6 +46,37 @@ export const RELEASE_NOTES = {
   // build does read it. It is NOT the 2.0 changelog: docs/releases/UNRELEASED.md
   // still owns that. Once APP_VERSION passes 1.6.0 this entry is inert (lookup is
   // by exact key) and can be deleted with the matching .approved-1.6.0.json token.
+  '1.6.2': {
+    version: '1.6.2',
+    whatIsNew: [
+      'The mascot crew: they greet you on the landing page, the selected model\'s mascot peeks over the prompt box, and they play on a card while it generates.',
+      'Cloud models on your own DeepInfra key, including Nano Banana edits with up to four reference images. The prompt box shows what a paid run will cost before you press Cue.',
+      'The agent has its own resizable panel, asks before it spends money, and can use a mask you painted, outpaint, and make GIFs.',
+      'Outpaint takes a prompt and grows the picture in as many passes as it needs, with no seam where the fill meets the original.',
+      'GIF workspace: timing, trim, crop, resize and export tools, cut-out methods you can combine, and duplicating a frame from the strip.',
+      'Card marks replace the heart, Archive is the way out of a delete, and Cleanup slims a project.',
+      'Hold Tab for the radial menu again.',
+      'Choose the audio output device, and restart the engine from a button.',
+      'Other AI apps, such as Claude and Codex, can drive Cubric Studio over MCP.',
+    ],
+    breakingChanges: [],
+    importantChanges: [
+      'This is a preview build of the development line, not a public release, and some of what is in it is still being built. It is numbered 1.6.2 so it sits above 1.6.1 and below the next release, and you will still be offered the real 2.0 update when it ships.',
+      'The app is now called Cubric Studio and starts from CubricStudio.exe. If you pinned CubricVision.exe to the taskbar or the desktop, pin CubricStudio.exe instead. Your projects and settings stay where they are.',
+      'Head Swap and DramaBox are now Flow packages rather than part of the app. The Flow Library shows where to get them, and a package installs by dropping it on the library.',
+    ],
+    fixes: [
+      'Very large photos, up to 16K, open, edit and get a gallery thumbnail.',
+      'Upscalers show in the list when your models live in the default models folder.',
+      'Downloads no longer fail when antivirus software scans HTTPS traffic.',
+      'A renamed or moved project folder keeps its gallery.',
+      'Stop cancels only its own job, and a stopped cloud run keeps the result it already paid for.',
+      'The engine refuses to start on a graphics driver too old for it, and says so, instead of crashing.',
+    ],
+    engineNotes: [
+      'The ComfyUI engine is unchanged from 1.6.1. The Cubric custom-node pack moves to a newer version, which the app installs on first launch.',
+    ],
+  },
   '1.6.1': {
     version: '1.6.1',
     whatIsNew: [
