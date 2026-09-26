@@ -30,7 +30,7 @@
 
 | Task | Read first |
 |---|---|
-| **Driving the RUNNING app over HTTP** — projects, media, dispatch, engine/pod control, recovering a prompt from a sidecar | `.claude/skills/cubric-vision/SKILL.md`, then `docs/generation-lifecycle.md` § "the THIRD producer". A submit runs in whatever project the app has OPEN — `/connector/open-project` first |
+| **Driving the RUNNING app over HTTP** — projects, media, dispatch, engine/pod control, recovering a prompt from a sidecar | `.claude/skills/cubric-vision/SKILL.md`, then `docs/generation-lifecycle.md` § "the THIRD producer". A submit names its project with `folderPath`, open or closed (MPI-873); without one it runs in whatever project the app has OPEN. `/connector/open-project` only moves the user's view |
 | **Removing** a model/tier, or deprecating ONE op | `docs/playbooks/add-model/README.md` § "Removing or re-tiering". **Do NOT delete the dep entry** — the orphan sweep reads `DEPS`, so deleting it strands the weight on users' disks forever |
 | Product Pod runtime (`wrapper/wrapper.py`, `start.sh`) | `docs/runpod-remote-engine.md` § 5. **NOT an image rebuild** — edit → `./publish-runtime.sh dev` → restart Pod → test → `promote`. **NEVER `publish-runtime.sh stable`**: it lands untested on released users |
 | Debugging a live app bug | `docs/DEVELOPMENT.md` § Reading `logs/app.log` — filter by `[category]`, never read it whole. **A source/dev Electron run logs to `%APPDATA%\Cubric Studio\logs\app.log`** (`Cubric Vision` before MPI-708, 2026-09-17); **every PORTABLE build — each release since v1.5.0 and each hand-delivered 1.6.x — logs to `<install>\user-data\logs\app.log`** (`main.js` portable `userData`), so ask a tester for that path, never `%APPDATA%`; the repo's `logs/` holds only test harnesses |

@@ -137,9 +137,12 @@ outcome back to `/connector/jobs/:id/result`, which settles the caller's held HT
 
 **The relay carries more than one capability, and that is not a crack in the rule above.** MPI-592 added
 `project.open` beside `generation.submit`, for the same reason dispatch itself is renderer-side:
-`openProject` reconciles and hydrates through renderer state, and a submit runs in
-`state.currentProject`, which nothing server-side can set. Without it an agent that created a
-project generated into the PREVIOUS one — successfully, `ok: true`, into the wrong gallery.
+`openProject` reconciles and hydrates through renderer state, and a submit with no `folderPath`
+runs in `state.currentProject`, which nothing server-side can set. Without it an agent that
+created a project generated into the PREVIOUS one — successfully, `ok: true`, into the wrong
+gallery. **Since MPI-873 a submit names its project with `folderPath`, open or closed**: a
+closed one is read, not opened, its card lands through `/project-groups` (`updateProjectJson()`),
+and `agentDispatch.nameCard` writes `cardName` there. `project.open` now only moves the view.
 MPI-776 added `card.rename` (and `cardName` on a submit) for the same reason again: while a
 project is open the renderer owns its `itemGroups` and `persistGroups` writes the whole array
 back on every mutation, so a card name written to `project.json` from outside is overwritten on

@@ -9,8 +9,9 @@ and stays; its record is in `validation.md`. The CLI (old steps 2 and 3) is drop
 never dropped `cardName`. The unnamed cards were Add to project copies, and `add-from-cards`
 now keeps `customName`. A live Flow `cardName` into a CLOSED project PASSED over `/mcp`
 (`tasks/MPI-874/validation.md`), which closes the path MPI-873 left unproven live. Left on
-MCP: the docs-site draft, plus the two 2.0-gated items and the two stale-doc edits listed in
-handoff `59791c08`.
+MCP: the docs-site draft and the two 2.0-gated items. The stale "a submit runs in the OPEN
+project" lines (CLAUDE.md router row, `project-knowledge-index.md`, `docs/generation-lifecycle.md`)
+were fixed 2026-09-26 on Fabio's yes, with an `UNRELEASED.md` Fixes line for MPI-874.
 
 **Phase 1 spike is DONE and verified (2026-09-25).** Files: `routes/mcp.js`, one mount line in
 `server.js`, `mcp/cubric-studio/` (manifest + bridge), `tests/mcp.test.cjs` (10/10). Evidence
