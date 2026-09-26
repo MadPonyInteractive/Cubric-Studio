@@ -179,6 +179,11 @@ export async function createProject(name) {
     return _post('/connector/create-project', { name: String(name ?? '') }, 30_000);
 }
 
+/** GET /connector/current-project -> { ok, output: { folderPath, name } } | NO_PROJECT */
+export async function currentProject() {
+    return _get('/connector/current-project');
+}
+
 /** POST /connector/open-project { folderPath } */
 export async function openProject(folderPath) {
     return _post('/connector/open-project', { folderPath });

@@ -140,6 +140,26 @@ test('no gallery on screen is a named refusal, never the whole project', async (
     }
 });
 
+// MPI-593: an outside agent asks which project is open; the renderer answers, or refuses.
+test('current-project relays the renderer`s open project, or NO_PROJECT', async () => {
+    const { base, stop } = await startServer();
+    let open = { folderPath: 'C:/p/Harbour', name: 'Harbour' };
+    const renderer = await fakeRenderer(base, () => (open
+        ? { ok: true, output: open }
+        : { ok: false, error: { code: 'NO_PROJECT', message: 'No project is open in Vision.' } }));
+    try {
+        const seen = await (await fetch(`${base}/connector/current-project`)).json();
+        assert.equal(renderer.jobs[0].capability, 'project.current');
+        assert.deepEqual(seen, { ok: true, output: { folderPath: 'C:/p/Harbour', name: 'Harbour' } });
+        open = null;
+        const none = await (await fetch(`${base}/connector/current-project`)).json();
+        assert.equal(none.error.code, 'NO_PROJECT');
+    } finally {
+        renderer.close();
+        await stop();
+    }
+});
+
 test('card-mark relays a mark or a clear, and refuses a shape that is not a string', async () => {
     const { base, stop } = await startServer();
     const renderer = await fakeRenderer(base, (job) => ({ ok: true, output: { groupId: job.input.groupId, mark: job.input.mark || null } }));

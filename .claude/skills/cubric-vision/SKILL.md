@@ -77,6 +77,7 @@ Each skill is self-contained. Load the one the task needs, not all of them.
 | POST | `/connector/generate` | Run a model op or a Flow into a real gallery card: `cubric-vision-generate`, `cubric-vision-flows` |
 | POST | `/connector/cancel` | Stop a submit you sent with a `requestId`, rendering or queued: `cubric-vision-generate` § Cancelling a submit |
 | POST | `/connector/open-project` | Make a project the open one before generating: [projects.md](projects.md) |
+| GET | `/connector/current-project` | `{ folderPath, name }` of the project the app has open NOW (the user may have switched since you opened one); `NO_PROJECT` when none |
 | POST | `/connector/rename-card` | Name a gallery card, or clear its name: [projects.md](projects.md) § Naming cards |
 | POST | `/connector/card-mark` | Set or clear a card's shape mark (dot, square, triangle): [projects.md](projects.md) § Marks and what the user can see |
 | GET | `/connector/visible-cards` | The cards the gallery is SHOWING under the user's filter, in its order: same section |

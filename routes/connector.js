@@ -31,6 +31,7 @@
  *
  * MPI-592 adds the one thing a submit could not express:
  *   POST /connector/open-project    -> make a project the open one, then generate
+ *   GET  /connector/current-project -> which project the app has open (outside agents)
  * A submit runs in whatever project the app has open, so an agent that created a
  * project used to generate into the previous one and be told `ok: true`.
  *
@@ -717,6 +718,14 @@ router.post('/connector/open-project', async (req, res) => {
   }
   res.json(result);
 });
+
+/**
+ * GET /connector/current-project — the project the app window has open (MPI-593)
+ * -> { ok, output: { folderPath, name } }. For outside agents: the user may have switched
+ * project since the agent last opened one. Errors: APP_UNAVAILABLE, NO_PROJECT.
+ */
+router.get('/connector/current-project', async (_req, res) =>
+  res.json(await _dispatchToRenderer('project.current', {})));
 
 /**
  * POST /connector/rename-card — set or clear a gallery card's name (MPI-776).

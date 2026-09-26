@@ -996,6 +996,21 @@ async function _openProject(jobId, input = {}) {
 }
 
 /**
+ * Run one `project.current` job (MPI-593): which project the window has open. The in-app
+ * agent gets it with every turn; an outside agent (the MCP server) has no other way to
+ * know the user switched project since it last opened one.
+ */
+function _currentProject(jobId) {
+    if (!state.currentProject) {
+        return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision.');
+    }
+    return _report(jobId, {
+        ok: true,
+        output: { folderPath: state.currentProject.folderPath, name: state.currentProject.name },
+    });
+}
+
+/**
  * Run one `card.rename` job (MPI-776). Through this renderer and never a write to
  * `project.json`: while a project is open the renderer owns its `itemGroups`, and the
  * next save writes the whole array back over any edit made on disk.
@@ -1322,6 +1337,7 @@ const _HANDLERS = {
     'generation.quote': _quoteGeneration,
     'generation.cancel': _cancelGeneration,
     'project.open': _openProject,
+    'project.current': _currentProject,
     'card.rename': _renameCard,
     'card.mark': _markCard,
     'gallery.visible': _visibleCards,
