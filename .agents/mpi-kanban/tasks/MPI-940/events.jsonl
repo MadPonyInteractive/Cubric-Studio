@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-940", "at": "2026-09-26T17:32:07+01:00", "actor": "ab9e6fd6", "column": "todo", "title": "Cloud runs: a 3 s send window so Stop is free, then prompt-box batch of N as N parallel requests"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-940", "at": "2026-09-26T17:32:27+01:00", "actor": "ab9e6fd6", "fields": ["description"]}

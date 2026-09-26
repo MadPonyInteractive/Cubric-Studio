@@ -1,0 +1,13 @@
+{
+  "files": [
+    "js/services/cloudExecutor.js",
+    "tests/cloud-executor.test.cjs",
+    "js/services/generationService.js",
+    "js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js",
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js",
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+    "js/components/Organisms/MpiPromptBox/PromptBoxControls.js",
+    "js/data/commandRegistry.js",
+    "js/data/modelConstants/models.js"
+  ]
+}
