@@ -118,6 +118,12 @@
   scrollbar-color: var(--line) transparent;
 }
 
+/* MPI-942: the gallery starts flush under the topbar, where the agent panel starts (52px),
+ * so its first row and its scroll clip line up with the panel's top edge. */
+.tool-container:has(> .mpi-gallery-block) {
+  padding-top: 52px;
+}
+
 .tool-panel {
   width: 100%;
   flex: 0 0 auto;

@@ -80,6 +80,8 @@ body.mpi-focus-mode.page-gallery .mpi-gallery-grid {
 body.mpi-focus-mode.page-gallery .mpi-gallery-grid__grid {
     flex: 1 1 auto;
     height: 100%;
+    /* No topbar or agent panel to line up with here: keep the edge gap (MPI-942). */
+    padding-top: 1rem;
 }
 
 /* ── Group history workspace — collapse side rails + hide bottom slot ─────── */

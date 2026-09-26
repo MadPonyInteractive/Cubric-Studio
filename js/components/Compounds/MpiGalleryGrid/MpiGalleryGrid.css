@@ -100,7 +100,8 @@
     min-height: 0;
     overscroll-behavior: contain;
     scrollbar-gutter: stable;
-    padding: 1rem;
+    /* No top padding: the first row sits on the agent panel's top edge (MPI-942). */
+    padding: 0 1rem 1rem;
     display: flex;
     flex-direction: column;
     gap: 8px;
