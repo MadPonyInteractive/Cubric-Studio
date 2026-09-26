@@ -36,3 +36,4 @@ prompt ack, past cold-start boot).
 - Badge: MpiGalleryGrid.js top-left badge gets a 'CHARGED AFTER STOP' row (--accent-warn) when
   generationSettings.chargedAfterStop; mascot spec case 6 (charged card shows it, a plain card
   does not) PASSED; spec cases 1-6 PASSED; eslint clean.
+- CI: run 36228475482 on 5a74d23e SUCCESS (2026-09-26). Closed.

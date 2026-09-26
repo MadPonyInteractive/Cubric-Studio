@@ -17,3 +17,4 @@ by design. The clip plays for a Stop before the send.
 - tests/desktop/cancelled-mascot.spec.js case 4 (Stop, then generation:error: clip still plays
   past 0.5 s, then goes): FAILED against HEAD's MpiGalleryBlock.js (spec.js:106), PASSED with the
   fix. Whole spec (cases 1-5) PASSED.
+- CI: run 36228475482 on 5a74d23e SUCCESS (2026-09-26). Closed.
