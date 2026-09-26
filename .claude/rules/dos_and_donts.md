@@ -134,21 +134,27 @@ clientLogger.error('comfy', 'Description of error', err);
 
 ---
 
-## 🖱️ Context menus — three separated groups, and EVERY row explains itself
+## 🖱️ Context menus — separated groups, and EVERY row explains itself
 
-Any menu raised through `Events.emit('ui:context-menu', …)` is **three groups, separated,
-coarse → fine → irreversible** (Fabio, 2026-09-19, MPI-821):
+Any menu raised through `Events.emit('ui:context-menu', …)` is **separated groups,
+fine → irreversible** (Fabio, 2026-09-19, MPI-821; two groups since 2026-09-27, MPI-945):
 
-1. **make something NEW from the selection** — nothing here touches the cards
-   (Compare, Combine, Make GIF, Cue all)
-2. **edit THIS item's own data** (Rename, Card notes, Describe image)
-3. **files and the system**, ending on the irreversible pair — **Archive directly above
+1. **edit THIS item's own data** (Rename, Card notes, Describe image)
+2. **files and the system**, ending on the irreversible pair — **Archive directly above
    Delete**, Delete last (Add to project, Open in file system, Download, Archive, Delete)
+
+**Selection actions belong on the gallery's selection bar, NOT the card menu** (Fabio,
+2026-09-27, MPI-945). Anything that makes something NEW from a selection — Cue all,
+Compare, Combine, Make GIF — lives ONLY on the bar (`MpiGalleryGrid/selectionBar.js`), in
+the strip the hidden PromptBox leaves. Download, Archive and Delete are on BOTH. A new
+selection action goes on the bar; do not put one back in the menu.
+[docs/gallery-selection.md](../../docs/gallery-selection.md) § The selection bar.
 
 **Every row carries `info`, and a DISABLED row carries its REASON, not its label.** This app
 has no tooltips: `info` → `MpiButton`'s `data-info` → the status bar is the only place a row
 can explain itself, and a greyed row with no reason is the case that actually hurts
-("Select exactly 2 cards to compare", not "Compare").
+("Rename works on one card at a time", not "Rename"). The selection bar's buttons follow
+the same rule ("Select exactly 2 cards to compare", not "Compare").
 
 `MpiContextMenu` already supports `{ separator: true }` and `info` — **do not rebuild
 either**; until MPI-821 nothing in the repo used them, so there is no second precedent to
