@@ -198,6 +198,10 @@ Four surfaces emit `media:imported` — the gallery's `MpiMediaDropOverlay`, the
 
 The repaint is NOT its job. `addGroup()` persists and emits `project:group-added`, and `MpiGalleryBlock`'s listener on that event is what repaints the grid — for every add, not just imports. That costs one persist round-trip more than the old optimistic prepend, which is what the `media:import-started` / `media:import-settled` spinner (MPI-671) covers.
 
+**An image past 4K (8.3 MP) asks to shrink on the way in (MPI-943).** A 16K photo imports fine and then every tool is slow or fails: ComfyUI loads an image as float32, so 16384² is a ~3.2 GB tensor before a model runs. `prepareImageImport(files)` (`mediaUploadService.js`) probes each disk-backed image's HEADER (`POST /image-import/probe`, `routes/imageImport.js`) and, if any is large, opens ONE `MpiOkCancel` with a `select` for the whole drop: Keep original, or 1-5 MP (1 MP = 1024²). `uploadMediaFile` then imports a sharp-shrunk temp copy (`POST /image-import/reduce`) through the normal upload route; the user's file is never touched. Two traps:
+- **Multi-file drop sites must call `prepareImageImport` before their loop** (gallery, history's video branch, agent chat do). `uploadMediaFile` asks per file for anything unplanned, so a site that forgets still works but asks once PER IMAGE.
+- **Only a disk-backed File qualifies** (`webUtils.getPathForFile`): a snapshot or an in-page `new File()` has no path and imports as before. A spec must go through a real `<input type=file>` + `setInputFiles` — `tests/desktop/image-import-reduce.spec.js`. The probe also replaced a full renderer decode just to read the size (~1 GB for a 16K photo). Measured: 16K JPEG probe 5 ms, shrink to 2 MP 1.2 s.
+
 ## Record lives in the project bar, and is gallery-gated (MPI-678)
 
 Record was in the gallery toolbar's centre zone (MPI-573); it is now an `MpiProjectName` button beside Flows. It is a **project-level** action, not something that changes what the gallery shows, and its icon+label was the ~6rem of overflow the two sliders — the only `flex: 1 1 0` children in a 19rem track — were absorbing.

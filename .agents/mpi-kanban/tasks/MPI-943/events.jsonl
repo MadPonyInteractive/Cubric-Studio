@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-943", "at": "2026-09-26T22:32:11+01:00", "actor": "6dea5ede-7a5d-4a8e-bd25-e45405649cd1", "column": "todo", "title": "Offer to shrink very large images on import"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-943", "at": "2026-09-26T22:32:59+01:00", "actor": "6dea5ede-7a5d-4a8e-bd25-e45405649cd1", "from": "todo", "to": "doing", "reason": "building import-time reduction"}

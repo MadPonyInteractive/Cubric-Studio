@@ -3,6 +3,7 @@ import { MpiInput } from '../../Primitives/MpiInput/MpiInput.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiModal } from '../../Primitives/MpiModal/MpiModal.js';
 import { MpiCheckbox } from '../../Primitives/MpiCheckbox/MpiCheckbox.js';
+import { MpiDropdown } from '../../Primitives/MpiDropdown/MpiDropdown.js';
 import { qs } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { mascotLoop } from '../../../utils/mascotLoop.js';
@@ -33,6 +34,8 @@ import { mascotLoop } from '../../../utils/mascotLoop.js';
  * @param {string|null} [altLabel=null]    - Label for an optional THIRD action, between
  *                                           Cancel and the confirm button. Emits 'alt'.
  * @param {{label?: string, checked?: boolean}|null} [checkbox=null]  - Optional checkbox below input slot
+ * @param {{options: Array, value: string}|null} [select=null] - Optional MpiDropdown below the text
+ *                                           (MPI-943); its value rides every payload as `selectValue`
  * @param {string|null} [icon=null]        - Optional icon name (from icons.js) shown large above the title
  * @param {string} [iconTone='']           - Icon tone modifier for the slot: '' | 'warning' | 'danger'
  * @param {{key: string, clip: string}|null} [mascot=null] - A mascot clip in the icon slot instead
@@ -57,6 +60,7 @@ export const MpiOkCancel = ComponentFactory.create({
             <div class="mpi-ok-cancel__content">
                 <div class="mpi-ok-cancel__title"    id="title-slot"></div>
                 <div class="mpi-ok-cancel__text"     id="text-slot"></div>
+                <div class="mpi-ok-cancel__select"   id="select-slot"></div>
                 <div class="mpi-ok-cancel__input"    id="input-slot"></div>
                 <div class="mpi-ok-cancel__checkbox" id="checkbox-slot"></div>
             </div>
@@ -91,6 +95,20 @@ export const MpiOkCancel = ComponentFactory.create({
         // ── Content: Body text ───────────────────────────────────────────────
         const textSlot = qs('#text-slot', el);
         if (props.text) textSlot.textContent = props.text;
+
+        // ── Content: Optional dropdown (MPI-943) ─────────────────────────────
+        let selectValue = props.select?.value;
+        const selectSlot = qs('#select-slot', el);
+        if (props.select) {
+            const dropdown = MpiDropdown.mount(document.createElement('div'), {
+                options: props.select.options,
+                value: selectValue,
+            });
+            dropdown.on('change', ({ value }) => { selectValue = value; });
+            selectSlot.appendChild(dropdown.el);
+        } else {
+            selectSlot.style.display = 'none';
+        }
 
         // ── Content: Optional input field ────────────────────────────────────
         let inputComponent = null;
@@ -130,7 +148,7 @@ export const MpiOkCancel = ComponentFactory.create({
             const checkboxChecked = checkboxComponent
                 ? checkboxComponent.el.isChecked()
                 : undefined;
-            return { inputValue, checkboxChecked };
+            return { inputValue, checkboxChecked, selectValue: props.select ? selectValue : undefined };
         };
 
         // ── Enter key to confirm (via MpiModal's confirm event) ────────────

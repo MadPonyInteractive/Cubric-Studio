@@ -39,7 +39,7 @@ import { startGeneration, enqueueGeneration, clearPendingQueue, refreshQueueDept
 import { StatusBar } from '../../../shell/statusBar.js';
 import { activeGenerations } from '../../../services/activeGenerations.js';
 import { clientLogger } from '../../../services/clientLogger.js';
-import { uploadMediaFile } from '../../../services/mediaUploadService.js';
+import { uploadMediaFile, prepareImageImport } from '../../../services/mediaUploadService.js';
 import { addGroup, updateGroup, removeGroup, persistGroups, validatePreviewAssets, applyPromptReuseSettings, listProjects } from '../../../services/projectService.js';
 import { trackConcatJob } from '../../../services/concatProgress.js';
 import { buildPromptReuseSettings, resolvePromptReuseMediaItems, payloadHasReusableImages, payloadHasReusableVideos, payloadHasReusableAudio } from '../../../utils/promptReuse.js';
@@ -215,6 +215,8 @@ export const MpiGalleryBlock = ComponentFactory.create({
                     if (inject) remaining[mediaType]--;
                     return { file, mediaType, inject };
                 });
+                // One size question for the whole drop, not one per file (MPI-943).
+                if (!(await prepareImageImport(files.map(f => f.file)))) return;
 
                 // Sequential — server queues per-project.json writes; parallel
                 // would still serialise but order would be non-deterministic.

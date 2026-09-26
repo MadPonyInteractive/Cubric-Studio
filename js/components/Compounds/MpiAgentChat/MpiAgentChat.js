@@ -38,7 +38,7 @@ import { TRANSITIONS, TRANSITION_MS, handOverClip } from '../../../shell/heroCre
 import { renderIcon }          from '../../../utils/icons.js';
 import { renderMarkdownInto, wireMarkdownLinks } from '../../../utils/markdown.js';
 import { resolveMediaUrl, cardReference } from '../../../utils/mediaActions.js';
-import { uploadMediaFile }     from '../../../services/mediaUploadService.js';
+import { uploadMediaFile, prepareImageImport } from '../../../services/mediaUploadService.js';
 import { Events }              from '../../../events.js';
 import { clientLogger }        from '../../../services/clientLogger.js';
 import { state }               from '../../../state.js';
@@ -1191,6 +1191,8 @@ export const MpiAgentChat = ComponentFactory.create({
                 if (ref) _addReference(ref);
                 return;
             }
+            // One size question for the whole drop, not one per file (MPI-943).
+            if (!(await prepareImageImport(files))) return;
             for (const file of files) {
                 try { await _importFile(file); } catch (err) {
                     clientLogger.warn('MpiAgentChat', `import failed: ${file.name}`, err);

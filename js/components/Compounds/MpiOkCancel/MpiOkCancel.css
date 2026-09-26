@@ -57,6 +57,11 @@
     white-space: pre-line;
 }
 
+/* Optional dropdown (MPI-943) */
+.mpi-ok-cancel__select .mpi-dropdown {
+    width: 100%;
+}
+
 /* Optional Input Field Container */
 .mpi-ok-cancel__input {
     display: flex;

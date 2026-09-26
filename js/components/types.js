@@ -1524,6 +1524,9 @@
  *   When set, renders an MpiCheckbox between the input slot and actions.
  *   `label` — optional text next to the checkbox.
  *   `checked` — initial checked state (default true).
+ * @property {{options: Array, value: string}|null} [select=null]
+ *   When set, renders an MpiDropdown below the body text (MPI-943). `options` takes
+ *   MpiDropdown's option shapes; the current value rides every payload as `selectValue`.
  *
  * Instance methods (on instance.el):
  *   show() — Self-portals a blurred backdrop + centred dialog to document.body.
@@ -1537,8 +1540,9 @@
  *   d.el.show(); // all backdrop/Escape/queue handling is internal
  *
  * Emits:
- * 'ok'     { inputValue?: string, checkboxChecked?: boolean }
- *              — OK button clicked; checkboxChecked included when checkbox prop is set.
+ * 'ok'     { inputValue?: string, checkboxChecked?: boolean, selectValue?: string }
+ *              — OK button clicked; checkboxChecked included when checkbox prop is set,
+ *                selectValue when select is.
  * 'cancel' { inputValue?: string, checkboxChecked?: boolean }
  *              — Cancel BUTTON clicked only (NOT emitted on Escape or hide()).
  *                Same payload as 'ok' since MPI-629: a "don't ask again" checkbox is

@@ -79,7 +79,7 @@ import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
 import { MpiModelSettings } from '../../Compounds/MpiModelSettings/MpiModelSettings.js';
 import { MpiModelPicker } from '../../Compounds/MpiModelPicker/MpiModelPicker.js';
 import { MpiMediaDropOverlay } from '../../Primitives/MpiMediaDropOverlay/MpiMediaDropOverlay.js';
-import { uploadMediaFile } from '../../../services/mediaUploadService.js';
+import { uploadMediaFile, prepareImageImport } from '../../../services/mediaUploadService.js';
 import { MpiToast } from '../../Primitives/MpiToast/MpiToast.js';
 import { MpiCompareOverlay } from '../../Organisms/MpiCompareOverlay/MpiCompareOverlay.js';
 import { MpiContextMenu } from '../../Compounds/MpiContextMenu/MpiContextMenu.js';
@@ -1667,6 +1667,8 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                     }
                     return;
                 }
+                // One size question for the whole drop, not one per file (MPI-943).
+                if (!(await prepareImageImport(files.map(f => f.file)))) return;
                 for (const { file, mediaType } of files) {
                     const uploaded = await uploadMediaFile(file, mediaType, project.folderPath, project.id);
                     if (uploaded) _pb?.el?.injectMedia?.({ url: uploaded.filePath, mediaType });
