@@ -91,6 +91,11 @@ read in an isolated app (`npm run app:isolated`), never `:3000`.
   Fabio's price rule: nothing over 2x the pick's off-promo price. Tool-contract work carded as
   MPI-916 (next session). MPI-912 is ready to close; its close waits on Fabio.
 
+- 2026-09-26 (session 5c27e3c8): agent dropdown lists tested models with score + cost in the
+  meta (validation.md § 6), commits 84e1644b + 43cb4731, NOT pushed (classifier denied the push).
+  Fabio approved closing MPI-912. Next: push, CI green on 43cb4731, then move to done in its own
+  commit (pre-push refuses code + close in one push).
+
 ## Completed
 
 - Phase 1: `RECOMMENDED_REMOTE_MODELS.ollama` enhance flag, `/llm/models` `recommended`,
