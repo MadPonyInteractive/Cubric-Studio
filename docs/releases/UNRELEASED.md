@@ -223,6 +223,10 @@
 - **A model whose install was cut short can be installed again on a nearly full disk.** The
   leftover part-files now count as space the retry takes back, on a Pod and on your machine.
 
+- **Model downloads work with antivirus HTTPS scanning on.** Kaspersky, ESET, Avast and
+  Bitdefender made every download fail with a certificate error while your browser worked
+  fine. Cubric Studio now trusts the same certificates your computer does.
+
 - **Krea 2 Image to Image works on your whole picture** instead of a square cut out of the
   middle. Krea 2 and Krea 2 NSFW.
 

@@ -5056,3 +5056,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-930", "at": "2026-09-26T07:07:47+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "MPI-932 Phase 3a: cancel path, one session"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-931", "at": "2026-09-26T07:07:48+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "MPI-932 Phase 3a: cancel path, one session"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-906", "at": "2026-09-26T07:14:49+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio verified all spots live; 86af0aeb CI green (run 36222229404)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-935", "at": "2026-09-26T07:11:23+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started."}
+{"schema": "mpi-kanban/event/v1", "type": "validation.updated", "id": "MPI-935", "at": "2026-09-26T07:16:00+01:00", "actor": "claude", "summary": "Unit test (env-stripped, fingerprint compare) passes; isolated app boots."}

@@ -4,6 +4,8 @@ const fs = require('fs');
 const { randomUUID } = require('crypto');
 const { fork, spawn } = require('child_process');
 const logger = require('./routes/logger');
+// Before any request: trust the OS certificate store (MPI-935, routes/systemCa.js).
+require('./routes/systemCa').trustSystemCa();
 const { getEngineRoot } = require('./routes/platformEngine');
 const { cleanEngineScratch } = require('./routes/engineScratch');
 const secretsStore = require('./main/secretsStore');

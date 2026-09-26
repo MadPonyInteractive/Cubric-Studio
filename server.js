@@ -21,6 +21,10 @@
 // reaches users in app.log looking like an app message. Nothing reads the banner.
 require('dotenv').config({ quiet: true });
 
+// Before any request: trust the OS certificate store, so antivirus HTTPS scanning
+// stops failing every download with SELF_SIGNED_CERT_IN_CHAIN (MPI-935).
+require('./routes/systemCa').trustSystemCa();
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const { localOnly } = require('./routes/localOnly');
