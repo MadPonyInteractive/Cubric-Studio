@@ -18,7 +18,18 @@
   a guard.
 - Mascot heads-up on retries: correct by design (a redo = a failed attempt). Unchanged.
 
-## User-UX - PENDING (Fabio): re-check the video chip after reload
+## User-UX - VERIFIED (Fabio, 2026-09-26): the video chip works after a reload
+
+Every drop path is now verified by Fabio. Left for close-out: the restyle Model-rule decision
+(plan.md Plan Drift b).
+
+## CI
+
+- 9d6ef53d turned master red: two tests/desktop/agent-chat.spec.js drop specs still dropped raw
+  files with no project or upload stub. Fixed in 474a09f6 (spec drift, not a product bug);
+  agent-chat.spec.js passes 33/33 locally, and the shard that runs it passed in CI run
+  36237398325. That run's remaining red was MPI-909's prompt-box-peek.spec.js, fixed by its
+  owner in c94f353a.
 
 Needs an app restart (renderer + server code changed). In a project:
 1. Drag a VIDEO card onto the agent panel: a poster chip appears, and the prompt box shows no
