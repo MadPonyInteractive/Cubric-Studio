@@ -65,11 +65,12 @@ test('Remote rows list the connection models, recommended first', async ({}, tes
     await expect(label('#mpiSettingsLlmDescribeModelSlot')).toHaveText('(recommended) acme/see-pick');
     // MPI-912: the agent row has no "recommended": tested models on top, best score first,
     // each with its score and cost; the pick is still the default.
-    await expect(label('#mpiSettingsAgentModelSlot')).toHaveText('acme/agent-pick · 23/23 tests · $0.36/100 chats');
+    await expect(label('#mpiSettingsAgentModelSlot')).toHaveText('acme/agent-pick');
     await toggle('#mpiSettingsAgentModelSlot');
-    await expect(openList).toHaveText([
-      'acme/agent-pick · 23/23 tests · $0.36/100 chats', 'acme/zeta-chat · 18/23 tests (1 run) · $0.17/100 chats',
-      'acme/enhance-pick', 'acme/see-pick', 'acme/alpha-vision',
+    await expect(openList).toHaveText(['acme/agent-pick', 'acme/zeta-chat', 'acme/enhance-pick', 'acme/see-pick', 'acme/alpha-vision']);
+    // Score and cost sit under the name, beside the context window.
+    await expect(window.locator('.mpi-dropdown__list.is-open .mpi-dropdown__option-meta')).toHaveText([
+      '23/23 tests · $0.36/100 chats · 1M context', '18/23 tests · $0.17/100 chats', '128K context', '320K context',
     ]);
     await toggle('#mpiSettingsAgentModelSlot');
 

@@ -176,7 +176,8 @@ The hard cases, failed by nearly everyone: `rerun-on-named-model` (i2i instead o
 Fabio: no "recommended" on the agent row; every model that ran `scripts/agent-test.mjs` on top
 with its score and measured cost per chat, the user chooses. `agentTest` on
 `RECOMMENDED_REMOTE_MODELS` entries -> `listRemoteModels` -> `_remoteModelOptions` (agent branch).
-Label `<id> · 23/23 tests · $0.36/100 chats`, "(1 run)" on a single-run score.
+Meta under the name: `23/23 tests · $0.36/100 chats · 1M context` (Fabio 2026-09-26, after seeing it:
+moved out of the label, "(1 run)" dropped).
 
 Qwen/Qwen3.6-35B-A3B x3 (Fabio approved ~$0.45; `MPI-916/research/final3-*.log`): **19/23**,
 $0.4746 for 69 conversations ($0.00688 each, ~1.9x the pick). 2/3 on memory-read,

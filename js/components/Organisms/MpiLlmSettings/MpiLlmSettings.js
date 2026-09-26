@@ -549,8 +549,8 @@ export const MpiLlmSettings = ComponentFactory.create({
                     .sort((a, b) => b.agentTest.passed / b.agentTest.cases - a.agentTest.passed / a.agentTest.cases
                         || b.agentTest.runs - a.agentTest.runs);
                 const options = [
-                    // In the label, not the meta: the meta is capped at 11ch (MpiDropdown.css).
-                    ...tested.map(m => ({ value: m.id, label: `${m.id} · ${_agentTestLabel(m.agentTest)}`, meta: _windowLabel(m) })),
+                    // In the meta, under the name: the stacked list lifts its 11ch cap (MpiLlmSettings.css).
+                    ...tested.map(m => ({ value: m.id, label: m.id, meta: [_agentTestLabel(m.agentTest), _windowLabel(m)].filter(Boolean).join(' · ') })),
                     ...models.filter(m => !m.agentTest).map(m => ({ value: m.id, label: m.id, meta: _windowLabel(m) })),
                 ];
                 if (value && _remote?.ok && !options.some(o => o.value === value)) options.unshift({ value, label: value, meta: 'Not listed' });
@@ -833,9 +833,9 @@ export const MpiLlmSettings = ComponentFactory.create({
         }
 
         /** "1M context" — the window the agent compacts against. */
-        /** "23/23 tests · $0.36/100 chats", "(1 run)" when the score is one pass. */
-        function _agentTestLabel({ passed, cases, runs, perChat }) {
-            return `${passed}/${cases} tests${runs === 1 ? ' (1 run)' : ''} · $${(perChat * 100).toFixed(2)}/100 chats`;
+        /** "23/23 tests · $0.36/100 chats". */
+        function _agentTestLabel({ passed, cases, perChat }) {
+            return `${passed}/${cases} tests · $${(perChat * 100).toFixed(2)}/100 chats`;
         }
 
         function _windowLabel(m) {

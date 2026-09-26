@@ -99,8 +99,8 @@ nothing. The connection itself is `Storage.getLlmConnection()` -> `{ profileId }
   agent carry none until a local model passes (MPI-912 `validation.md`).
 - **`agentTest: { passed, cases, runs, perChat }`** on an entry = it ran `scripts/agent-test.mjs`
   (MPI-916 `validation.md` § 2f; `perChat` is USD per conversation, fixed at test time). The agent
-  dropdown lists these models on top, best score first, as `<id> · 23/23 tests · $0.36/100 chats`,
-  and has no "(recommended)" label (Fabio 2026-09-26). An entry may carry `agentTest` with
+  dropdown lists these models on top, best score first, with `23/23 tests · $0.36/100 chats` in the
+  meta under the name beside the context window, and has no "(recommended)" label (Fabio 2026-09-26). An entry may carry `agentTest` with
   `jobs: []`: tested and listed, not the default.
 
 ## Enhance paths
