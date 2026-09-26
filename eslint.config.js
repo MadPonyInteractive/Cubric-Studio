@@ -37,6 +37,12 @@ module.exports = [
       // not ours to fix: 259 `no-undef` from LiteGraph, IPython and bundled vendor
       // chunks alone. Without this, `npm run lint` is unusable locally (MPI-833).
       'engine/**',
+      // Card research and bench scratch. CI never runs on a `.agents/**`-only push
+      // (tests.yml paths-ignore, MPI-878) and the pre-push gate skips it, so a script
+      // committed there was never checked when it landed, and turned master red on the
+      // NEXT unrelated code push instead: MPI-944's `research/refs-cases.mjs`, a
+      // deliberate fragment, red on MPI-945's commit 7df2f423b. Lint what CI runs on.
+      '.agents/**',
     ],
   },
   {
