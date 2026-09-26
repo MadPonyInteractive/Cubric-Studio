@@ -52,6 +52,9 @@ const ALLOWED_REQUESTS = new Set([
     // clearing one is `mark: false`, a field going back to empty - no card, file or entry goes.
     'GET /connector/visible-cards',
     'POST /connector/card-mark',
+    // MPI-593: which project the app window has open, so an outside agent's reference image
+    // is staged into the project its render lands in. A read.
+    'GET /connector/current-project',
     // MPI-876: what a generate body WOULD cost, so the agent can ask before it spends the
     // user's own money. A read — the renderer resolves the run and prices it, queues nothing,
     // writes nothing and bills nothing. It is the opposite of a delete: it exists so that
