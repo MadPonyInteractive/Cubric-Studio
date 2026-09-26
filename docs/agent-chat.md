@@ -243,7 +243,7 @@ Every event but `agent:session` also carries `session`, the key of its conversat
   clip opens on that exact picture, so a character sheet goes to a `ref2v_*` op. Two reminders ride on
   results without refusing: `create_project`'s `note` asks for the brief note, and the first ok `generate` of a
   turn with no successful `write_memory` carries `remember` (`MEMORY_NUDGE`, once per turn).
-- **Harness:** `npm run agent:test` (22 cases x 3, real model, fake tools; `--bite` proves each assertion,
+- **Harness:** `npm run agent:test` (26 cases x 3, real model, fake tools; `--bite` proves each assertion,
   `--samples <md>` writes prompts to read). A case's `look` is one fixture, or a map keyed by the
   attachment's `filePath` when two images must answer differently — two portraits giving the identical
   answer read to the model as a broken describer and it stopped rather than measuring. **Bounded

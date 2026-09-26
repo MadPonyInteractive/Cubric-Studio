@@ -127,6 +127,23 @@ Fix: `denoise` is a named param on every op whose components list it, on the dur
 `{min, max, default}`, its meaning ("the higher it is, the more the image changes") in the tool
 description. No prompt line. `tests/agent-denoise.test.cjs`.
 
+### A second picture never reached the model (2026-09-26, tester's log; BUILT 2026-09-27, MPI-944)
+
+"Put the furniture from photo A into empty photo B, seen from B's angle": it looked at both,
+understood the job, and sent B ALONE to `boogu-edit-high:edit`, rank 1 for edits, which takes
+one image. The furniture was invented from its own prompt ("the same furniture as in the other
+photo", to a model that never saw it), and the reply said it was taken from photo A. Offline,
+1 run in 3 right with Boogu + Klein installed, 2 in 3 for a person into a reverse angle. The
+Boogu note said "one image" and nothing about what that rules out, so the rank won; the guide
+sent a second-image copy to Qwen only, so with no Qwen nothing named `kleinEdit`. Fix, both in
+data: the Boogu notes (`modelPriority.js` `ONE_IMAGE`) say it can never bring anything in from
+another picture and name the editors that can, in the guide's order (listing Klein first flipped
+an every-editor box off Qwen: the note outranks the guide); `flux-2.md` gives the Klein fallback
+and the load order (changed picture `inputImage`, content `inputImage2`). Cases
+`second-picture-*` 3/3 each. **The same shape as i2v's note (MPI-916): a limit stated without
+what it forbids does not stop the pick.** Whether an editor can actually redraw the content
+from the reversed viewpoint is unmeasured.
+
 ### Its eyes were wrong and nothing recorded what they said (2026-09-20; the record is BUILT, the eyes are OPEN)
 
 Source: rider upright, both revolvers raised, pointing UP. Its prompts: "leaning forward",

@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["js/data/modelConstants/modelPriority.js", "docs/agent/models/flux-2.md", "scripts/agent-test.mjs", "docs/agent-findings.md", "tests/model-priority.test.cjs", "tests/agent-prompt-budget.test.cjs", ".agents/mpi-kanban/tasks/MPI-944/", "docs/agent-chat.md"]}

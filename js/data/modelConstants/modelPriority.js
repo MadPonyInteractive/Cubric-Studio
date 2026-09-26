@@ -81,10 +81,17 @@ const REF2V = [
     ['minimax-h3-ref2va', 'ref2v_ms'],
 ];
 
+/**
+ * MPI-944, live 2026-09-26: "put the furniture from photo A into empty photo B (another
+ * angle)" went to Boogu, rank 1, with B alone, and the furniture was invented from the
+ * words. "One image" alone did not say what that rules out, so the rank won.
+ */
+const ONE_IMAGE = 'it takes exactly one image, so it can never bring in anything from another picture (a person, an object, the furniture of the same room from another angle): that is qwenEdit, else kleinEdit, else krea2Edit (the order the model guide gives), with the picture being changed first and the one holding the content second';
+
 /** Keyed `modelId:op` where the strength is about that op, else by `modelId`. */
 const NOTES = {
-    'boogu-edit-high:edit': 'the strongest editor here, but it takes exactly one image',
-    'boogu-edit-balanced:edit': 'the same editor on a lighter tier, and still one image only',
+    'boogu-edit-high:edit': `the strongest editor here, but ${ONE_IMAGE}`,
+    'boogu-edit-balanced:edit': `the same editor on a lighter tier, and ${ONE_IMAGE}`,
     'klein-9b:kleinEdit': 'the native editor: it follows the instruction and keeps the likeness, but it tends to cover a bare subject unless the instruction says to keep it as it is',
     'klein-4b:kleinEdit': 'the small native editor — lighter, and weaker on realism',
     'krea2:krea2Edit': 'faster than Qwen Edit and strong on realism, but it tends to change the surroundings too',

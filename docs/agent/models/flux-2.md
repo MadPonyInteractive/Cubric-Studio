@@ -20,10 +20,13 @@ different jobs:
   rated it the best understanding of the three editors here, precisely because it only
   takes one reference.
 - Something has to be copied out of a second or third image (a garment, a face, an
-  object) into a first: Qwen `qwenEdit`, then a Krea 2 `i2i` pass to recover the
-  quality Qwen's edit costs. Qwen's own single-image instruction edits are weak: a full
-  scene rewrite ("replace the dinosaur with a chicken") measured as ignored. Send that
-  to Boogu or `kleinEdit` instead.
+  object, a person or the furniture of the same place shot from another angle) into a
+  first: Qwen `qwenEdit`, then a Krea 2 `i2i` pass to recover the quality Qwen's edit
+  costs. Qwen not installed: `kleinEdit`, else `krea2Edit`. Never Boogu, which only ever
+  sees one picture. Load order: the picture being changed is `inputImage`, the one
+  holding the content is `inputImage2`. Qwen's own single-image instruction edits are
+  weak: a full scene rewrite ("replace the dinosaur with a chicken") measured as
+  ignored. Send that to Boogu or `kleinEdit` instead.
 - Copying pose or composition off a reference: `control`. Klein and Qwen both offer
   depth; Qwen alone also offers pose (OpenPose).
 - Removing an object or a head cleanly: suggest Klein's `inpaint`, but only as

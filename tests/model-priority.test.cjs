@@ -55,6 +55,24 @@ test('the notes carry what a rank cannot, on the entries where they change the p
     assert.match(opPriority('ill-anime', 't2i').note, /anime/);
 });
 
+test('a one-image editor names the editors that take a second picture, and they do (MPI-944)', () => {
+    // Live, "put A's furniture into empty angle B" went to rank-1 Boogu with B alone.
+    const commandRegistry = require('../js/data/commandRegistry.js');
+    const { mediaRolesFor } = require('../routes/connector.js');
+    const OWNER = { kleinEdit: 'klein-9b', qwenEdit: 'qwen-edit', krea2Edit: 'krea2' };
+    for (const id of ['boogu-edit-high', 'boogu-edit-balanced']) {
+        const note = opPriority(id, 'edit').note;
+        assert.match(note, /one image/, id);
+        assert.match(note, /another picture/, id);
+        assert.equal(mediaRolesFor(commandRegistry, 'edit', MODELS.find((m) => m.id === id)).length, 1, `${id} really takes one image`);
+        for (const [op, owner] of Object.entries(OWNER)) {
+            assert.match(note, new RegExp(op), `${id} names ${op}`);
+            const roles = mediaRolesFor(commandRegistry, op, MODELS.find((m) => m.id === owner)).map((r) => r.role);
+            assert.ok(roles.includes('inputImage2'), `${owner}:${op} takes a second picture`);
+        }
+    }
+});
+
 test('an i2i op carries the technique note as well as the model note (MPI-817)', () => {
     // Live 2026-09-21: "make this anime" went to klein's editor, which dressed the subject, and
     // "can you use a different technique?" could not be answered — no i2i op had a note at all.

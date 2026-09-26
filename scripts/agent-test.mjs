@@ -94,6 +94,13 @@ const PORTRAIT_A = { id: 'att_portrait_a', name: 'woman-at-bar.png', filePath: '
 const PORTRAIT_B = { id: 'att_portrait_b', name: 'donor-face.png', filePath: 'C:/Temp/cubric-agent/attachments/att_portrait_b.png' };
 const SHEET = { id: 'att_sheet', name: 'ninja-character-sheet.png', filePath: 'C:/Temp/cubric-agent/attachments/att_sheet.png' };
 const WAVES = 'Make a 5 second video of waves crashing on rocks at sunset.';
+// MPI-944: one place, two angles. Camera-roll names on purpose: the model has to look to
+// tell which picture holds the content and which is empty.
+const ROOM_FULL = { id: 'att_room_a', name: 'IMG_4410.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_room_a.jpg' };
+const ROOM_EMPTY = { id: 'att_room_b', name: 'IMG_4415.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_room_b.jpg' };
+const PARK_FULL = { id: 'att_park_a', name: 'IMG_5120.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_park_a.jpg' };
+const PARK_EMPTY = { id: 'att_park_b', name: 'IMG_5133.JPG', filePath: 'C:/Temp/cubric-agent/attachments/att_park_b.jpg' };
+const FURNISH = 'These are two photos of the same living room from different angles. The first has the furniture, the second is empty. Put the same furniture in the second photo, where it would be seen from that angle.';
 
 // ── Fixture edits ─────────────────────────────────────────────────────────────
 
@@ -117,6 +124,19 @@ const OTHER_EDITORS = ['boogu-edit-high', 'boogu-edit-balanced', 'klein-4b', 'qw
 const KLEIN_AND_KREA = setInstalled((m) => ['klein-9b', 'krea2'].includes(m.id), true,
     setInstalled((m) => OTHER_EDITORS.includes(m.id), false));
 const KREA_ONLY = setInstalled((m) => m.id === 'klein-9b', false, KLEIN_AND_KREA);
+// MPI-944: the tester's box (Boogu High + Klein 9B, no Qwen, no Krea 2), and every editor.
+const BOOGU_AND_KLEIN = setInstalled((m) => ['boogu-edit-high', 'klein-9b'].includes(m.id), true,
+    setInstalled((m) => [...OTHER_EDITORS, 'krea2'].includes(m.id), false));
+const EVERY_EDITOR = setInstalled((m) => ['boogu-edit-high', 'klein-9b', 'qwen-edit', 'krea2'].includes(m.id), true);
+const said = (text) => ({ ok: true, output: { text } });
+const ROOM_LOOKS = {
+    [ROOM_FULL.filePath]: said('Living room photographed from the doorway, looking toward the window wall. An orange accent wall on the left. A light grey L-shaped sectional sofa sits against the orange wall, chaise end toward the window. A low white oval coffee table in front of it on a cream rug. A potted fiddle-leaf fig in a white pot in the corner by the window. A black TV on a white low cabinet on the right wall. Beige tiled floor, daylight from the window.'),
+    [ROOM_EMPTY.filePath]: said('Empty living room photographed from the window corner, looking back toward the doorway. The orange accent wall is now on the right side of the frame. Beige tiled floor, white walls, bare, no furniture at all. Daylight from behind the camera.'),
+};
+const PARK_LOOKS = {
+    [PARK_FULL.filePath]: said('A woman in a red coat sitting on a wooden bench on the left side of a park path, facing the camera. A lamp post behind her, autumn trees, a pond on the right.'),
+    [PARK_EMPTY.filePath]: said('The same park path seen from the pond side, looking back at the wooden bench, which is now centre-right. Lamp post behind the bench. Nobody in the picture.'),
+};
 
 // ── Fake tools (the agentTools.mjs surface) ───────────────────────────────────
 
@@ -238,6 +258,19 @@ const invented = (run) => calledAll(run, 'open_project')
     .filter((c) => c.result?.error?.code === 'UNKNOWN_PROJECT')
     .map((c) => `tried to open a folder nobody gave it (${c.args.folderPath})`);
 const REFUSAL = /(refus|declin|won['’]?t|can['’]?t|cannot|unable|not able)/i;
+/** MPI-944: the first ok generate sent BOTH pictures, the one being changed as `inputImage`. */
+const gradeSecondPicture = (run, content, target) => {
+    const ok = calledAll(run, 'generate').filter((c) => c.result?.ok);
+    if (!ok.length) return ['never generated'];
+    const { modelId, operation, media = [] } = ok[0].args;
+    const slot = (att) => media.find((m) => m.image === att.id)?.role;
+    const slots = run.models.models.find((m) => m.id === modelId)?.ops.find((o) => o.op === operation)?.media?.map((r) => r.role) || [];
+    const f = [];
+    if (!slot(content)) f.push(`${modelId}/${operation} never got the picture holding the content: it would be invented from the words`);
+    else if (!slots.includes(slot(content))) f.push(`${modelId}/${operation} has no ${slot(content)} slot: the content picture is dropped`);
+    if (slot(target) !== 'inputImage') f.push(`the picture being changed went in as ${slot(target) || 'nothing'}, not inputImage`);
+    return f;
+};
 
 const CASES = [
     {
@@ -671,6 +704,36 @@ const CASES = [
             if (!ok.some((c) => /-nsfw$/.test(c.args.modelId || ''))) f.push(`ran ${ok[0].args.modelId}, not the installed krea2-nsfw`);
             return f;
         },
+    },
+    {
+        // MPI-944, live 2026-09-26: a tester's agent put "the furniture from photo A" into
+        // empty photo B through rank-1 Boogu, which takes one image, so B went alone and the
+        // furniture was invented. Offline it was 1/3 on this exact box. The flip attaches B
+        // only, so a one-image run is what the assertion sees.
+        id: 'second-picture-room',
+        title: 'furniture from angle A into empty angle B goes to a two-picture editor, not Boogu',
+        setup: { models: BOOGU_AND_KLEIN, look: ROOM_LOOKS, attachments: [ROOM_FULL, ROOM_EMPTY], turns: [FURNISH] },
+        flip: { attachments: [ROOM_EMPTY] },
+        check: (run) => gradeSecondPicture(run, ROOM_FULL, ROOM_EMPTY),
+    },
+    {
+        id: 'second-picture-room-every-editor',
+        title: 'the same ask with every editor installed',
+        setup: { models: EVERY_EDITOR, look: ROOM_LOOKS, attachments: [ROOM_FULL, ROOM_EMPTY], turns: [FURNISH] },
+        flip: { attachments: [ROOM_EMPTY] },
+        check: (run) => gradeSecondPicture(run, ROOM_FULL, ROOM_EMPTY),
+    },
+    {
+        id: 'second-picture-character',
+        title: 'a person from shot A placed into the empty reverse angle B',
+        setup: {
+            models: EVERY_EDITOR,
+            look: PARK_LOOKS,
+            attachments: [PARK_FULL, PARK_EMPTY],
+            turns: ['Same park, two angles. Put the woman from the first picture into the second one, sitting on the same bench, seen from this new angle.'],
+        },
+        flip: { attachments: [PARK_EMPTY] },
+        check: (run) => gradeSecondPicture(run, PARK_FULL, PARK_EMPTY),
     },
 ];
 
