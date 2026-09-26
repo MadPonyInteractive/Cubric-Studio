@@ -11,3 +11,4 @@ reaches `cancelled`, `onError('cancelled_before_dispatch')` fires, and no /promp
 - Related: cancelled-mascot, flow-queue-hotkey, gif-cutout, gallery-generating-mascot, agent-chat
   41/41 PASSED; generation-store + cloud-executor unit 24/24 PASSED; eslint clean.
 Fabio's live check: PENDING.
+- CI: run 36223262806 on 2380ed6a SUCCESS (2026-09-26).

@@ -18,3 +18,4 @@ prompt id = no interrupt. No bare `.interrupt()` call is left in js/ (grep).
 - Related suites: see MPI-930's validation.md (41/41 desktop, 24/24 unit, eslint clean).
 - Not covered by a spec: the generation path's ack-after-abort branch (needs a full pipeline).
 Fabio's live check: PENDING.
+- CI: run 36223262806 on 2380ed6a SUCCESS (2026-09-26).

@@ -57,7 +57,8 @@ test('gallery: a Stopped card plays the op mascot cancelled once, then goes', as
       const v = [...document.querySelectorAll('.mpi-group-card__mascot-clip')]
         .find(x => x.getAttribute('src')?.endsWith('/cancelled.webm'));
       const c = v?.closest('.mpi-group-card');
-      return v ? { src: v.getAttribute('src'), loop: v.loop, idle: !!c?.classList.contains('mpi-group-card--mascot-idle'), t: v.currentTime } : null;
+      return v ? { src: v.getAttribute('src'), loop: v.loop, idle: !!c?.classList.contains('mpi-group-card--mascot-idle'), t: v.currentTime,
+        name: c?.querySelector('.mpi-group-card__name')?.textContent } : null;
     });
     const mascotSrcs = () => window.evaluate(() =>
       [...document.querySelectorAll('.mpi-group-card__mascot-clip')].map(v => v.getAttribute('src')).filter(Boolean));
@@ -66,7 +67,7 @@ test('gallery: a Stopped card plays the op mascot cancelled once, then goes', as
     await start('mpi908-a');
     await expect.poll(mascotSrcs).toContain('assets/mascot/vision/getting-ready.webm');
     await stop('mpi908-a');
-    await expect.poll(() => clip()).toMatchObject({ src: 'assets/mascot/vision/cancelled.webm', loop: false, idle: true });
+    await expect.poll(() => clip()).toMatchObject({ src: 'assets/mascot/vision/cancelled.webm', loop: false, idle: true, name: 'Cancelling...' });
     await expect.poll(async () => (await clip())?.t ?? 0, { timeout: 3000 }).toBeGreaterThan(0.5);
     await expect.poll(mascotSrcs, { timeout: 9000 }).toEqual([]);
 

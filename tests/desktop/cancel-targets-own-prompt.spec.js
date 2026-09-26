@@ -55,6 +55,43 @@ test('MPI-930: a Stop before register ends the job cancelled, fires onError, and
   }
 });
 
+test('MPI-930: deleting a still-PENDING prompt ends its wait like a Stop; a running one is left to its interrupt', async ({}, testInfo) => {
+  // Found live 2026-09-26: a Stop while queued behind another instance's render deleted our
+  // prompt, which then never sent a terminal - the held /connector/generate hung.
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    const got = await window.evaluate(async () => {
+      const { getEngine } = await import('/js/services/comfyController.js');
+      const eng = getEngine(false);
+      const orig = window.fetch.bind(window);
+      window.fetch = (...args) => {
+        const url = String(args[0] || '');
+        if (/\/queue$/.test(url)) {
+          const body = args[1]?.method === 'POST' ? '{}'
+            : JSON.stringify({ queue_running: [[0, 'P-run']], queue_pending: [[1, 'P-wait']] });
+          return Promise.resolve(new Response(body, { status: 200, headers: { 'Content-Type': 'application/json' } }));
+        }
+        return orig(...args);
+      };
+      const heard = {};
+      for (const id of ['P-wait', 'P-run']) eng._promptListeners.set(id, (msg) => { heard[id] = msg.type; });
+      try {
+        await eng.deleteQueueItem('P-wait');
+        await eng.deleteQueueItem('P-run');
+      } finally {
+        eng._promptListeners.delete('P-wait');
+        eng._promptListeners.delete('P-run');
+        window.fetch = orig;
+      }
+      return heard;
+    });
+    expect(got).toEqual({ 'P-wait': 'execution_interrupted' });
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
 test('MPI-931: a Stop interrupts only its own prompt, including one Stopped before the ack', async ({}, testInfo) => {
   const { app, window, pageErrors } = await launchApp(testInfo);
   try {

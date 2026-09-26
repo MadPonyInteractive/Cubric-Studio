@@ -936,16 +936,28 @@ function createEngine({ engine, alwaysLocal }) {
     /**
      * Removes a specific queued (pending) job from ComfyUI's native queue.
      * Does not affect the currently running job — use `interrupt()` for that.
+     *
+     * A prompt deleted while PENDING never runs, so the engine never sends it a
+     * terminal and its runWorkflow() would wait forever — an agent or MCP submit
+     * held to its 30-min timeout (found verifying MPI-930). So the delete ends it
+     * the way a live Stop does: its own listener gets `execution_interrupted`
+     * (MPI-901: resolves with whatever was saved, here nothing). A RUNNING prompt
+     * is left to the real interrupt's terminal, which may still carry a save.
      * @param {string} promptId
      * @returns {Promise<boolean>}
      */
     async deleteQueueItem(promptId) {
         try {
+            const { pending } = await this.getQueue();
+            const wasPending = pending.some(item => item[1] === promptId);
             const res = await fetch(`${this.httpBase()}/queue`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ delete: [promptId] }),
             });
+            if (res.ok && wasPending) {
+                this._promptListeners.get(promptId)?.({ type: 'execution_interrupted', data: { prompt_id: promptId } });
+            }
             return res.ok;
         } catch (e) {
             clientLogger.error('comfy', 'deleteQueueItem failed', e);

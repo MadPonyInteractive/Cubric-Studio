@@ -1754,6 +1754,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
             cardEl.setCancelled = () => {
                 if (_cancelled) return;
                 _cancelled = true;
+                nameEl.textContent = 'Cancelling...'; // not "Generating..." while it walks off (Fabio)
                 _clearPreviewImage();
                 cardEl.classList.remove('mpi-group-card--mascot-cooking');
                 cardEl.classList.add('mpi-group-card--mascot-idle');
