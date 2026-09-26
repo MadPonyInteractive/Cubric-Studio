@@ -38,5 +38,10 @@ Sidecars: A 0, B 1, C 2. The isolated `app.log` has ONE `card registered in the 
 was dispatched in` (18:58:00.180Z, step 1, the closed path) and no `could not name` warning.
 Step 5 proves the closed-written card is read on open and survives the renderer's own save.
 
+## Shipped
+
+`c016e500e` pushed to master; CI `Tests` run 36264998716 green (unit, desktop 1-4). The claim
+auditor proved 23 claims (UNRELEASED bullet, this file, docs and skills), 0 findings.
+
 Not run live: a Flow into a closed project (unit-covered: `runOriginProject` -> `_originProject`,
 carried to every pass). The GIF tools are out of scope (open project only).

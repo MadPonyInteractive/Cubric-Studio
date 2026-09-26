@@ -10,4 +10,4 @@ Decision (Fabio, 2026-09-26): the named project may be CLOSED; the run lands in 
 - [x] Tests: `tests/agent-target-project.test.cjs` (8), `tests/mcp.test.cjs` (+1, 24/24), `flow-enhance-ownership` regex extended; full suite 1982 pass / 0 fail; eslint clean
 - [x] Skill docs (generate, core SKILL + projects.md, flows) + `docs/mcp-server.md`: `folderPath` documented, "whatever project is open" wording gone (GIF skill unchanged, still true)
 - [x] Live: open A, submit naming B, switch to C mid-render; card lands in B, A/C untouched; no-project submit still lands in the open one *(2026-09-26, validation.md)*
-- [ ] Commit + push (close-out)
+- [x] Commit + push (close-out) *(`c016e500e`, CI Tests run 36264998716 green: unit + desktop 1-4)*
