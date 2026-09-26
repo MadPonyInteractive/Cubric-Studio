@@ -176,6 +176,10 @@
   FLUX 2 Max, Nano Banana 2 Lite, Nano Banana 2, Nano Banana Pro, Seedance 1.5 Pro,
   Seedance 2.0, Wan 3.0, Veo 3.1 Fast and Veo 3.1.
 
+- **Dictate instead of typing.** A mic on the prompt box and the Agent panel: click it and speak,
+  or hold Ctrl+Space. Uses your DeepInfra key, about $0.0002 a minute. Turn on Settings, Audio,
+  Dictate in English to have any language you speak written in English.
+
 - **Claude, Codex and Google Antigravity can drive Cubric Studio.** Ask for an image, a video
   or a GIF and it lands in your project. Setup: github.com/MadPonyInteractive/cubric-studio-agents
 
