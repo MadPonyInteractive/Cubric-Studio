@@ -158,7 +158,7 @@ Phases A, E, F and the Phase C first piece are finished. What is actually left:
 the settings panel and I'll pick") is built. **No clock on a job** (his call): the route's
 30 minutes is gone, a closing window settles its own jobs `WINDOW_CLOSED`, MCP's job record
 lives an hour past its END. **Global memory (Phase B) is BUILT**, owes his three live checks
-(`validation.md` last section). Open with him: the big-batch report shape (350 cards).
+(`validation.md` last section). The big-batch report shape (his 350-photo case) is MPI-941 Phase 1, his call.
 
 **Built 2026-09-26, suite 1964 / 0 fail (`validation.md` § Session 43718bac):** items 1b (raw
 `injectionParams` dropped while pinned, Fabio's yes), 4 (all but the clock) and 5 (proven live on
