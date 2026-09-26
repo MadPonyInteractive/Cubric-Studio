@@ -61,7 +61,9 @@ function startJob(send) {
         .then((r) => present(r, job));
     _jobs.set(jobId, job);
     // ponytail: in memory, gone on restart; the card is in the gallery either way.
-    setTimeout(() => _jobs.delete(jobId), 3_600_000).unref();
+    // Kept an hour after it FINISHES, never timed from the start (MPI-817): three long videos
+    // can render for an hour and a half, and wait_generation must still find the last one.
+    job.done.then(() => setTimeout(() => _jobs.delete(jobId), 3_600_000).unref());
     return jobId;
 }
 

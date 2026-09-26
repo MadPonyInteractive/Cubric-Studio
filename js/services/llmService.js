@@ -854,7 +854,7 @@ export function buildDescribeInjectionParams(question) {
  * @param {object} [a.crop]       `{x,y,width,height}` crop hint for the endpoint route
  * @param {string} [a.scope]      generation scope ('gallery' | 'groupHistory')
  * @param {object} [a.group]      owning group, for the ComfyUI queue context
- * @returns {Promise<{ok:boolean, via:'comfy'|'endpoint', text?:string, errorCode?:string, error?:string, cancelled?:boolean}>}
+ * @returns {Promise<{ok:boolean, via:'comfy'|'endpoint', text?:string, model?:string, errorCode?:string, error?:string, cancelled?:boolean}>}
  *          Never rejects. On failure: `error` is a human-readable message. `via` names the
  *          backend that ran, so a caller can point at the right place to fix it.
  */
@@ -919,7 +919,9 @@ export async function describeImage({ imagePath, question, crop, scope, group } 
                 injectionParams,
             },
             {
-                onText: (text) => resolve({ ok: true, via: 'comfy', text: String(text || '').trim() }),
+                // `model` names the local describer the way the endpoint route names its own.
+                onText: (text) => resolve({ ok: true, via: 'comfy', text: String(text || '').trim(),
+                    model: `ComfyUI ${getPlugin(PLUGIN_ID)?.requiredDeps?.[0] || PLUGIN_ID}` }),
                 onError: (err) => resolve({ ok: false, via: 'comfy', error: (err && err.message) || 'The description failed.' }),
                 onCancel: () => resolve({ ok: false, via: 'comfy', cancelled: true, error: 'The description was cancelled.' }),
             },

@@ -94,7 +94,7 @@ test('a kept look: read off the sidecar, written through update-meta, and only f
             res.setHeader('Content-Type', 'application/json');
             res.end('{"success":true}');
         }, async () => {
-            await tools.storeLook(image, 'item-1', 'An upright rider.');
+            await tools.storeLook(image, 'item-1', 'An upright rider.', 'google/gemma-4-26B-A4B-it');
             await tools.storeLook(image, 'item-none', 'No sidecar, so no card.');
             await tools.storeLook(path.join(media, '.preview-assets', 'abc.png'), 'item-1', 'Not in Media/.');
         });
@@ -103,6 +103,9 @@ test('a kept look: read off the sidecar, written through update-meta, and only f
         assert.equal(posts[0].url, `/project-media/agent/update-meta?folderPath=${encodeURIComponent(project)}`);
         assert.equal(posts[0].body.itemId, 'item-1');
         assert.equal(posts[0].body.updates.look.text, 'An upright rider.');
+        // Fabio, 2026-09-21: a kept description outlives the describer that wrote it, so it
+        // says which one did.
+        assert.equal(posts[0].body.updates.look.describer, 'google/gemma-4-26B-A4B-it');
         assert.deepEqual(Object.keys(posts[0].body.updates), ['look'], 'it merges ONE field and touches no other');
 
         // What the route does with that body: `{ ...prev, ...updates }`.
@@ -119,6 +122,11 @@ test('a dead server REJECTS rather than hanging, so the loop can report it', asy
     process.env.CUBRIC_PORT = '1'; // nothing listens on 127.0.0.1:1
     try {
         await assert.rejects(() => tools.generate({}));
+        // It reached the chat and never app.log, so a dead loopback left no trace (MPI-817).
+        // The line names the route, and the cause's CODE, which is where the reason lives.
+        const logged = require('../routes/logger.js').getRecentLogs();
+        assert.match(logged, /\[agent\] loopback POST \/connector\/generate failed/);
+        assert.match(logged, /ECONNREFUSED/);
     } finally {
         if (prevPort === undefined) delete process.env.CUBRIC_PORT; else process.env.CUBRIC_PORT = prevPort;
     }

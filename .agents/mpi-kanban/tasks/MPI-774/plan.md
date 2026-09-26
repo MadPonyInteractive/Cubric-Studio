@@ -1341,16 +1341,16 @@ the window, because the KV cache shares VRAM with the weights on a 16GB card.
 Today every note is per project (`<project>/Agent/`), which is right, and there is nowhere to keep
 what holds across all of them. His v1, deliberately small:
 
-- [ ] **A global store beside the project one**, in app data (`<APP_USER_DATA>/agent/`, where the
+- [x] BUILT 2026-09-26 (session 43718bac, live check owed, `tasks/MPI-817/validation.md`): **A global store beside the project one**, in app data (`<APP_USER_DATA>/agent/`, where the
   attachments already live), so it outlives any one project. **Verify:** a note written in one
   project is read back in another, after a restart.
-- [ ] **Saved on the user's ask, not on the agent's judgement.** "Save that in global memory" is the
+- [x] BUILT 2026-09-26 (session 43718bac, live check owed, `tasks/MPI-817/validation.md`): **Saved on the user's ask, not on the agent's judgement.** "Save that in global memory" is the
   trigger; the per-project Memory rule keeps saving unprompted, and the two must not blur. **Verify:**
   a harness case — a plain statement goes to the project, "save that globally" goes to the global
   store.
-- [ ] **The agent can say it has both.** Asked whether it remembers things, it answers: per project,
+- [x] BUILT 2026-09-26 (session 43718bac, live check owed, `tasks/MPI-817/validation.md`): **The agent can say it has both.** Asked whether it remembers things, it answers: per project,
   and a global memory you can ask it to save to. **Verify:** a harness case on the answer.
-- [ ] **A README that is a POINTER FILE**, `@`-style pointers to the other notes, read first; each
+- [x] BUILT 2026-09-26 (session 43718bac, live check owed, `tasks/MPI-817/validation.md`): **A README that is a POINTER FILE**, `@`-style pointers to the other notes, read first; each
   note capped at 200 lines. The same shape as this repo's own `MEMORY.md`, for the same reason: the
   index is what gets loaded, the note is what gets opened. **Verify:** with several notes, one read
   of the README is enough to know which one to open.

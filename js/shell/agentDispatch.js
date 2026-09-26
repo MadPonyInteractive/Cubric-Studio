@@ -186,20 +186,25 @@ export function pinnedModel() {
  * @param {boolean} pinned      state.agentSettingsPinned
  * @param {object|null} project state.currentProject
  * @param {object|null} pinnedM the model the panel is showing, when pinned
- * @returns {{model:object|null, project:object|null, named:object, error?:{code:string,message:string}}}
+ * Raw `injectionParams` (the escape hatch) obey the same owner: pinned, they are dropped
+ * with the named params, or the agent could still move a setting the user set (Fabio,
+ * 2026-09-26).
+ *
+ * @returns {{model:object|null, project:object|null, named:object, injectionParams:object, error?:{code:string,message:string}}}
  */
 export function resolveSettingsOwner(input = {}, pinned, project, pinnedM) {
-    const { modelId, ratio, qualityTier, turbo, styleSelect, stylization, duration, batch } = input;
+    const { modelId, ratio, qualityTier, turbo, styleSelect, stylization, duration, batch, injectionParams } = input;
     if (!pinned) {
         return {
             model: getModelById(modelId),
             project: null,
             named: { ratio, qualityTier, turbo, styleSelect, stylization, duration, batch },
+            injectionParams: injectionParams || {},
         };
     }
     if (!pinnedM) {
-        return { model: null, project, named: {}, error: { code: 'NO_PINNED_MODEL',
-            message: 'The settings panel is open, so the user owns the model — but no model is selected. Ask them to pick one, or to close the panel and let you choose.' } };
+        return { model: null, project, named: {}, injectionParams: {}, error: { code: 'NO_PINNED_MODEL',
+            message: 'The settings panel is open, so the user owns the model — but no model is selected. Ask them to pick one, or to close the settings panel and let you choose.' } };
     }
     // Deliberately a REFUSAL, not a silent swap. Dropping a mismatched modelId would run
     // the user's model under the agent's narration — "making this with Krea2" while Klein
@@ -207,12 +212,12 @@ export function resolveSettingsOwner(input = {}, pinned, project, pinnedM) {
     // The agent is told the pinned model in the App state line, so a mismatch is its error
     // to fix, and a concrete tool result beats a prompt rule (MPI-774, proven three times).
     if (modelId && modelId !== pinnedM.id) {
-        return { model: null, project, named: {}, error: { code: 'MODEL_PINNED',
-            message: `Nothing was generated: the user has the settings panel open, so they own the model — it is "${pinnedM.id}" (${pinnedM.name}), not "${modelId}". Send this again with modelId "${pinnedM.id}", writing the prompt for that model. If it cannot do what was asked, say so and ask them to select a different one; you cannot change it.` } };
+        return { model: null, project, named: {}, injectionParams: {}, error: { code: 'MODEL_PINNED',
+            message: `Nothing was generated: the user has the settings panel open, so they own the model — it is "${pinnedM.id}" (${pinnedM.name}), not "${modelId}". Send this again with modelId "${pinnedM.id}", writing the prompt for that model. If it cannot do what was asked, say so and ask them to select a different one; you cannot change it. Also tell them they can close the settings panel instead, and you will pick the model.` } };
     }
     // `batch` survives the pin: it is HOW MANY the user asked for (MPI-876), not a setting,
     // and dropping it would run one picture where the agent says four are coming.
-    return { model: pinnedM, project, named: batch !== undefined ? { batch } : {} };
+    return { model: pinnedM, project, named: batch !== undefined ? { batch } : {}, injectionParams: {} };
 }
 
 /**
@@ -466,7 +471,7 @@ async function _submitGeneration(jobId, input = {}) {
     if (input.flowId) return _submitFlow(jobId, input);
 
     const {
-        modelId, operation, positive = '', negative = '', injectionParams = {}, media = [], seed,
+        modelId, operation, positive = '', negative = '', media = [], seed,
     } = input;
 
     if (!state.currentProject) {
@@ -495,7 +500,7 @@ async function _submitGeneration(jobId, input = {}) {
         // says what it CAN do instead: tell the user (Fabio's own example — "that makes
         // video, it doesn't make images, you need to select another model").
         return _fail(jobId, 'OP_UNAVAILABLE', pinned
-            ? `"${operation}" is not available on ${model.name || model.id} — unsupported, or its weights are not installed. The user has the settings panel open, so that model is theirs and you cannot change it: tell them this model cannot do it and ask them to select one that can.`
+            ? `"${operation}" is not available on ${model.name || model.id} — unsupported, or its weights are not installed. The user has the settings panel open, so that model is theirs and you cannot change it: tell them this model cannot do it and ask them to select one that can - or to close the settings panel, and you will pick the model.`
             : `"${operation}" is not available on ${model.name || modelId} — unsupported, or its weights are not installed.`);
     }
 
@@ -533,9 +538,10 @@ async function _submitGeneration(jobId, input = {}) {
     }
     _logNamedParamProvenance(model, operation, named.provenance);
 
-    // Raw injectionParams is the documented escape hatch and always wins over the
-    // resolved named values (plan.md decision #3).
-    const mergedInjection = { ...named.injectionParams, ...injectionParams };
+    // Raw injectionParams is the documented escape hatch and wins over the resolved
+    // named values (plan.md decision #3) - unless the user pinned the panel, when the
+    // owner has already dropped them.
+    const mergedInjection = { ...named.injectionParams, ...owner.injectionParams };
     const width = mergedInjection.Width || 0;
     const height = mergedInjection.Height || 0;
 
@@ -645,7 +651,7 @@ function _quoteGeneration(jobId, input = {}) {
     // Best effort from here down. Every failure below loses the NUMBER, never the card:
     // the answer stays `billed: true` and the gate says it cannot be quoted.
     const named = resolveNamedParams(owner.project, model, String(input.operation || ''), owner.named);
-    const params = { ...(named.ok ? named.injectionParams : {}), ...(input.injectionParams || {}) };
+    const params = { ...(named.ok ? named.injectionParams : {}), ...owner.injectionParams };
     const media = resolveAgentMedia(String(input.operation || ''), model, input.media || []);
     const quote = estimateRunCost(model, params, media.ok ? media.mediaItems : []);
 
@@ -1272,8 +1278,7 @@ async function _installModel(jobId, input = {}) {
 
     // `start()` returns the install CHAIN, which settles when the download FINISHES. The
     // contract is `started` (progress is /comfy/downloads/status): awaited, an 8.8 GB install
-    // held the agent's one-turn lock for four minutes, and a download past the relay's
-    // 30-minute budget would answer TIMEOUT while it carried on (MPI-774 Phase 4).
+    // held the agent's one-turn lock for four minutes (MPI-774 Phase 4).
     try {
         Promise.resolve(downloadService.start(model.id, missingDeps)).catch((err) => {
             clientLogger.warn('agentDispatch', `install ${model.id} failed after it started: ${err?.message}`);
@@ -1301,7 +1306,9 @@ async function _describeImage(jobId, input = {}) {
 
     const result = await describeImage({ imagePath, question, scope: 'gallery' });
     if (result.ok) {
-        return _report(jobId, { ok: true, output: { text: result.text } });
+        // `describer`: which vision model wrote this, kept beside the text in the card's
+        // sidecar, because a description outlives the describer (Fabio, 2026-09-21).
+        return _report(jobId, { ok: true, output: { text: result.text, ...(result.model && { describer: result.model }) } });
     }
     const code = result.errorCode || (result.cancelled ? 'CANCELLED' : 'RUNTIME_ERROR');
     const message = result.error || 'The description failed. See the app log for the cause.';

@@ -214,10 +214,11 @@ function testTheEnhancerBorrowsKleinsEncoder() {
     assert.ok(loader && 'clip_name' in loader.inputs && 'type' in loader.inputs, 'enhancer graph lost its Load CLIP');
 }
 
-function testEnginesForwardTheTokenCap() {
+async function testEnginesForwardTheTokenCap() {
     // `complete()` used to drop everything but `{ model, system }`, so a flow's cap read
-    // as one and was none. `chat()` builds its body before its first await, so a stubbed
-    // fetch sees it synchronously.
+    // as one and was none. DeepInfra's `chat()` builds its body before its first await, so
+    // a stubbed fetch sees it synchronously. Ollama's goes over `node:http` (MPI-817: fetch
+    // drops a response whose headers take over 300 s), so it is read off a host the test owns.
     const { OllamaEngine, DeepInfraEngine } = require('../services/llmEngines.mjs');
     const bodies = [];
     const realFetch = global.fetch;
@@ -227,14 +228,30 @@ function testEnginesForwardTheTokenCap() {
     };
     try {
         new DeepInfraEngine('key', 'http://stub').complete('p', { model: 'm', system: 's', maxTokens: 77 });
-        new OllamaEngine('http://stub').complete('p', { model: 'm', system: 's', maxTokens: 77 });
         new DeepInfraEngine('key', 'http://stub').complete('p', { model: 'm' });
     } finally {
         global.fetch = realFetch;
     }
     assert.strictEqual(bodies[0].max_tokens, 77);
-    assert.strictEqual(bodies[1].options.num_predict, 77);
-    assert.ok(!('max_tokens' in bodies[2]), 'no cap asked, no cap sent');
+    assert.ok(!('max_tokens' in bodies[1]), 'no cap asked, no cap sent');
+
+    let ollamaBody = null;
+    const server = require('node:http').createServer((req, res) => {
+        let body = '';
+        req.on('data', (c) => { body += c; });
+        req.on('end', () => {
+            ollamaBody = JSON.parse(body);
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ message: { content: 'ok' } }));
+        });
+    });
+    await new Promise((r) => server.listen(0, '127.0.0.1', r));
+    try {
+        await new OllamaEngine(`http://127.0.0.1:${server.address().port}`).complete('p', { model: 'm', system: 's', maxTokens: 77 });
+    } finally {
+        await new Promise((r) => server.close(r));
+    }
+    assert.strictEqual(ollamaBody.options.num_predict, 77);
 }
 
 // ── Recipe resolution (the same contract the broker responder had) ───────────

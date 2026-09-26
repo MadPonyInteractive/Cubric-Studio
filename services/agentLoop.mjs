@@ -380,11 +380,12 @@ export const TOOL_DEFS = [
         type: 'function',
         function: {
             name: 'read_memory',
-            description: 'Read your notes about the open project. No file: the list of notes. A file: that note in full.',
+            description: 'Read your notes. No file: the list. A file: that note in full.',
             parameters: {
                 type: 'object',
                 properties: {
-                    file: { type: 'string', description: 'A note file from the list, e.g. "main-character.md".' },
+                    file: { type: 'string', description: 'A note file from the list.' },
+                    scope: { type: 'string', enum: ['project', 'global'] },
                 },
                 additionalProperties: false,
             },
@@ -394,14 +395,15 @@ export const TOOL_DEFS = [
         type: 'function',
         function: {
             name: 'write_memory',
-            description: 'Save one note about the open project. Notes are kept after the app restarts. Writing an existing file replaces that note.',
+            description: 'Save one note; kept after a restart, and the same file replaces it.',
             parameters: {
                 type: 'object',
                 properties: {
-                    file: { type: 'string', description: 'A lowercase slug ending in .md, e.g. "main-character.md".' },
+                    file: { type: 'string', description: 'A lowercase slug ending in .md.' },
                     title: { type: 'string', description: 'A short title, at most 80 characters.' },
                     hook: { type: 'string', description: 'One line on when the note matters, at most 160 characters.' },
                     text: { type: 'string', description: 'The note in Markdown, at most about 600 words.' },
+                    scope: { type: 'string', enum: ['project', 'global'], description: 'Default project. global only when the user asks to keep it for every project.' },
                 },
                 required: ['file', 'title', 'text'],
                 additionalProperties: false,
@@ -585,6 +587,7 @@ export class AgentLoop {
         // its result, which a provider rejects.
         this._notes = [];
         this._notesProject = null; // folderPath whose project notes this context already lists
+        this._globalListed = false; // the global notes are listed once per context (MPI-774 Phase 6)
         this._readIds = new Set(); // knowledge ids read in this context (the guide gate)
         this._guides = new Map();  // modelId -> guide ids, from list_models
         this._boxSteps = new Map(); // flowId -> its box steps [{param, role}], from list_models
@@ -725,6 +728,7 @@ export class AgentLoop {
         this._projects.clear();
         this._notes = [];
         this._notesProject = null;
+        this._globalListed = false;
         this._readIds.clear();
         this._guides.clear();
         this._boxSteps.clear();
@@ -779,7 +783,7 @@ export class AgentLoop {
         }
         const r = await this._tools.look({ imagePath: ref.path });
         // Awaited: the model's own look at a waited still arrives within the same turn.
-        if (r?.ok && r.output?.text && ref.itemId) await this._tools.storeLook(ref.path, ref.itemId, r.output.text).catch(() => {});
+        if (r?.ok && r.output?.text && ref.itemId) await this._tools.storeLook(ref.path, ref.itemId, r.output.text, r.output.describer).catch(() => {});
         _logLook(ref, r?.ok ? r.output?.text : `FAILED: ${r?.error?.message || 'no reason given'}`, false);
         return r;
     }
@@ -838,7 +842,7 @@ export class AgentLoop {
     _pinnedSettingsLine(pinned) {
         if (!pinned?.modelId) return '';
         const ops = Array.isArray(pinned.ops) && pinned.ops.length ? pinned.ops.join(', ') : 'none installed';
-        return `[Settings panel: the user has it OPEN, so the model and every setting (ratio, quality, turbo, style) are THEIRS for this turn. You still write the prompt, choose the operation, supply the media and name the card. The model is "${pinned.modelId}" (${pinned.name}, ${pinned.mediaType}); the operations it can run are: ${ops}. Use modelId "${pinned.modelId}" on every generate and send no ratio, quality, turbo or style — yours are ignored. Write the prompt for THIS model. If it cannot do what the user asked, say so plainly, say what it does instead, and ask them to select a different model — never switch it yourself, and never pretend a different one ran.]`;
+        return `[Settings panel: the user has it OPEN, so the model and every setting (ratio, quality, turbo, style) are THEIRS for this turn. You still write the prompt, choose the operation, supply the media and name the card. The model is "${pinned.modelId}" (${pinned.name}, ${pinned.mediaType}); the operations it can run are: ${ops}. Use modelId "${pinned.modelId}" on every generate and send no ratio, quality, turbo or style — yours are ignored. Write the prompt for THIS model. If it cannot do what the user asked, say so plainly, say what it does instead, and ask them to select a different model or close the settings panel so you pick one — never switch it yourself, and never pretend a different one ran.]`;
     }
 
     /**
@@ -988,6 +992,22 @@ export class AgentLoop {
         const notes = (r.notes || []).filter((n) => !(n.file === UNFINISHED_FILE && n.hook === 'none'));
         if (!notes.length) return '[Project notes: none yet.]';
         return `[Project notes you kept earlier (read_memory with a file for the whole note):\n${notes
+            .map((n) => `- ${n.file}: ${n.title}${n.hook ? ` (${n.hook})` : ''}`).join('\n')}]`;
+    }
+
+    /**
+     * MPI-774 Phase 6 — the GLOBAL notes, listed once per context: the README of pointer
+     * lines, never the notes themselves (read_memory opens one). Nothing at all when there
+     * are none: most users never save one, and an empty line on every conversation is noise.
+     */
+    async _globalNotesLine() {
+        if (this._globalListed) return '';
+        let r;
+        try { r = await this._tools.readGlobalMemory(); } catch { return ''; }
+        if (!r?.ok) return '';
+        this._globalListed = true;
+        if (!r.notes?.length) return '';
+        return `[Global notes, kept for every project (read_memory with scope global and a file for the whole note):\n${r.notes
             .map((n) => `- ${n.file}: ${n.title}${n.hook ? ` (${n.hook})` : ''}`).join('\n')}]`;
     }
 
@@ -1426,7 +1446,7 @@ Project rule: a generation lands in the open project. open_project takes only a 
 
 Cards rule: the App state line lists only what this conversation touched; list_cards reads the whole open project. When the App state line says the user is looking at a card, "this image", "it" and "this one" mean that entry: work on it, do not call list_cards to find it, never ask them to attach it. When they point at something with no ref listed ("the duck video", "the last one", a card's name), call list_cards before saying you cannot see it. Read a card in full when its prompt or settings matter. What a card says it ran is the truth about that file. "The last", "the latest" and "the one before" follow the list's order, newest first, over everything in the project; a project note never answers it. If a generation of yours reported a failure, check list_cards before redoing it: the file may have landed.
 
-Memory rule: you keep project notes that survive a restart; the first message with a project open lists them, and read_memory reads one before you rely on it. The moment the user states a goal, names or describes a character, settles a look, decides something, or a model or setting works or fails, call write_memory in that same turn, without asking: a turn that ends without the note loses it. Say in one short line what you noted. One note per thing; update rather than add a second. Never save keys, passwords or personal details.
+Memory rule: your notes survive a restart, per project and global (all projects, only when asked); the first message lists them, and read_memory reads one before you rely on it. The moment the user states a goal, names or describes a character, settles a look, decides something, or a model or setting works or fails, call write_memory that turn, without asking: a turn ending without the note loses it. Say in one line what you noted. One note per thing: update it, never add a second. Never save keys, passwords or personal data.
 
 Naming rule: a finished generation reports its card id. When a result is worth referring to later, name its card with rename_card, or pass cardName with generate.
 
@@ -1747,7 +1767,8 @@ ${knowledgeIndex}`.trim();
                 // 9:16, then animate it") cannot be finished at all: the model has nowhere
                 // to wait and ends the turn with the animation undone. Measured live
                 // (Fabio, 2026-09-19) — the outpaint landed and the video was never asked
-                // for. Both transports resolve at 30 minutes, so the await is bounded.
+                // for. The await ends with the job: its result, a cancel, or the route's
+                // WINDOW_CLOSED when the window that took it goes away. There is no clock.
                 //
                 // Not the default: an unwaited generate keeps the chat answering while a
                 // five-minute video runs, and that is the right shape for the last step of
@@ -1891,6 +1912,13 @@ ${knowledgeIndex}`.trim();
             }
             case 'read_memory':
             case 'write_memory': {
+                // Global notes need no project: the landing page can save one (MPI-774 Phase 6).
+                if (args.scope === 'global') {
+                    const r = toolName === 'read_memory'
+                        ? await this._tools.readGlobalMemory(args.file)
+                        : await this._tools.writeGlobalMemory({ file: args.file, title: args.title, hook: args.hook, text: args.text });
+                    return JSON.stringify(r);
+                }
                 // The project is the one the app has open, never a path the model names.
                 if (!currentProject?.folderPath) {
                     return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'No project is open, so there are no project notes. Call create_project (it opens what it makes) and then call this again. Do not ask the user to open or create one.' } });
@@ -1975,6 +2003,7 @@ ${knowledgeIndex}`.trim();
             ];
             // What the dropped turns carried may be gone: list the notes again, re-read guides.
             this._notesProject = null;
+            this._globalListed = false;
             this._readIds.clear();
             this._boxed.clear();
             this._overBoxed.clear();
@@ -2134,7 +2163,7 @@ ${knowledgeIndex}`.trim();
             // built, so the line lists it among the refs it is the allowlist for.
             this._registerWorkspaceEntry(workspace);
             this._masked = !!(workspace?.activeEntry?.filePath && workspace.masked);
-            const opening = [this._appStateLine(project, workspace), this._pinnedSettingsLine(pinned), handover, woke, await this._projectNotesLine(project), ...this._notes.splice(0)];
+            const opening = [this._appStateLine(project, workspace), this._pinnedSettingsLine(pinned), handover, woke, await this._globalNotesLine(), await this._projectNotesLine(project), ...this._notes.splice(0)];
             contentParts.unshift(...opening.filter(Boolean).map((t) => ({ type: 'text', text: t })));
 
             // Add user message to LLM context (plain text for OpenAI compat)
@@ -2267,15 +2296,19 @@ ${knowledgeIndex}`.trim();
                     // line by id and replaces its text, so correcting it here is the whole fix
                     // (MPI-870) — history carries the corrected label too, or a remount would
                     // redraw the claim the run disproved.
-                    const doneLabel = toolName === 'look' && this._lookWasCached ? LOOK_CACHED_LABEL : label;
-
-                    // Update history entry status
-                    const histEntry = this._history.find((e) => e.id === toolEntryId);
-                    if (histEntry) { histEntry.status = toolStatus; histEntry.output = resultText; histEntry.label = doneLabel; }
                     // A tool that ran but said no (NO_PROJECT, a refused param) is still `done`; the
                     // panel's Cosmo flags it (MPI-908), so it is told apart here.
                     let refused = false;
                     try { refused = toolStatus === 'done' && JSON.parse(resultText)?.ok === false; } catch { /* not JSON */ }
+                    // Same correction for a refused generate: "Starting generation" over a refusal
+                    // made a refused round and its retry read as two runs (MPI-817).
+                    const doneLabel = toolName === 'look' && this._lookWasCached ? LOOK_CACHED_LABEL
+                        : toolName === 'generate' && refused ? GENERATE_REFUSED_LABEL
+                        : label;
+
+                    // Update history entry status
+                    const histEntry = this._history.find((e) => e.id === toolEntryId);
+                    if (histEntry) { histEntry.status = toolStatus; histEntry.output = resultText; histEntry.label = doneLabel; }
                     this._emit('agent:tool', { turnId, id: toolEntryId, tool: toolName, status: toolStatus, label: doneLabel, ...(refused && { refused: true }) });
 
                     // Append tool result to LLM context
@@ -2492,6 +2525,7 @@ function _logLook(ref, text, cached) {
  * until the log was read back to him.
  */
 const LOOK_CACHED_LABEL = 'Fetching saved image description';
+const GENERATE_REFUSED_LABEL = 'Generation not started';
 
 function _toolLabel(toolName, args) {
     switch (toolName) {
@@ -2514,7 +2548,8 @@ function _toolLabel(toolName, args) {
         case 'cutout_gif':     return 'Cutting out the subject';
         case 'gif_to_video':   return 'Turning a GIF into a video';
         case 'read_memory':    return args.file ? 'Reading a project note' : 'Reading project notes';
-        case 'write_memory':   return _isUnfinishedFile(args.file) ? 'Checking unfinished generations' : `Noted: ${args.title || args.file || ''}`;
+        case 'write_memory':   return _isUnfinishedFile(args.file) ? 'Checking unfinished generations'
+            : `${args.scope === 'global' ? 'Noted for every project' : 'Noted'}: ${args.title || args.file || ''}`;
         default:               return toolName;
     }
 }

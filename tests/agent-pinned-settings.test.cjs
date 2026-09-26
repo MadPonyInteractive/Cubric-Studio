@@ -61,6 +61,22 @@ test('pinned: the agent`s named params are DROPPED, not merely discouraged', () 
     assert.equal(owner.project, PROJECT);
 });
 
+test('pinned: raw injectionParams are dropped too - the escape hatch is no way round the panel', () => {
+    // Fabio, 2026-09-26: raw `injectionParams` merged over the resolved params whatever the
+    // pin said, so the agent could still change a setting he had set himself.
+    const raw = { Width: 640, Height: 640, Denoise: 0.9 };
+    const pinned = resolveSettingsOwner({ modelId: PINNED.id, injectionParams: raw }, true, PROJECT, PINNED);
+    assert.deepEqual(pinned.injectionParams, {}, 'pinned: nothing the agent sent reaches the graph');
+    const free = resolveSettingsOwner({ modelId: KREA.id, injectionParams: raw }, false, PROJECT, null);
+    assert.deepEqual(free.injectionParams, raw, 'unpinned: the escape hatch still works');
+    assert.deepEqual(resolveSettingsOwner({ modelId: KREA.id }, false, PROJECT, null).injectionParams, {});
+
+    // Both dispatch paths (submit and quote) read the gate's answer, never the raw body.
+    const src = require('node:fs').readFileSync(require.resolve('../js/shell/agentDispatch.js'), 'utf8');
+    assert.doesNotMatch(src, /input\.injectionParams/, 'the quote path must not read the raw body');
+    assert.doesNotMatch(src, /\{ \.\.\.named\.injectionParams, \.\.\.injectionParams \}/, 'the submit path must not merge the raw body');
+});
+
 test('pinned: a model the user did not pick is refused, never silently swapped', () => {
     const owner = resolveSettingsOwner({ modelId: KREA.id }, true, PROJECT, PINNED);
     assert.equal(owner.error?.code, 'MODEL_PINNED');
@@ -68,6 +84,23 @@ test('pinned: a model the user did not pick is refused, never silently swapped',
     // The refusal has to be actionable in-turn: it names the model to resend with.
     assert.match(owner.error.message, new RegExp(PINNED.id));
     assert.match(owner.error.message, /select a different one|cannot change it/);
+});
+
+test('pinned: every "this model cannot" answer also offers to pick, if they close the panel', async () => {
+    // Fabio, 2026-09-26, after the pinned-panel check passed: the agent told him to switch to
+    // MiniMax H3 himself and never said the other way out - "Alternatively, you can close the
+    // settings panel, and I'll pick the model."
+    const offer = /close the settings panel/;
+    assert.match(resolveSettingsOwner({ modelId: KREA.id }, true, PROJECT, PINNED).error.message, offer, 'MODEL_PINNED');
+    assert.match(resolveSettingsOwner({ modelId: KREA.id }, true, PROJECT, null).error.message, offer, 'NO_PINNED_MODEL');
+    const src = require('node:fs').readFileSync(require.resolve('../js/shell/agentDispatch.js'), 'utf8');
+    const opUnavailable = src.match(/'OP_UNAVAILABLE', pinned\s*\?\s*`([^`]*)`/);
+    assert.ok(opUnavailable, 'the pinned OP_UNAVAILABLE refusal moved: re-point this test');
+    assert.match(opUnavailable[1], offer, 'OP_UNAVAILABLE while pinned');
+
+    const { AgentLoop } = await import('../services/agentLoop.mjs');
+    const line = AgentLoop.prototype._pinnedSettingsLine({ modelId: 'flux-schnell', name: 'FLUX Schnell', mediaType: 'image', ops: ['t2i'] });
+    assert.match(line, offer, 'the per-turn Settings panel line');
 });
 
 test('pinned: the same model the user picked goes through', () => {

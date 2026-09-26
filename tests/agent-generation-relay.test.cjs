@@ -111,6 +111,41 @@ test('generate → job frame → result settles the waiting caller', async () =>
   }
 });
 
+// Fabio, 2026-09-26: "We shouldn't have a clock." Three 15 s videos on his GPU can take an
+// hour and a half, and a 30-minute ceiling answered TIMEOUT over a job still in the queue.
+// A job ends when it reports, is cancelled, or the window that took it goes away - and
+// the last one is the only thing the clock was ever really catching.
+test('a job ends when the window that took it closes: WINDOW_CLOSED, and no clock', async () => {
+  const src = require('node:fs').readFileSync(require.resolve('../routes/connector'), 'utf8');
+  assert.doesNotMatch(src, /JOB_TIMEOUT_MS/, 'no ceiling on a job: it ends on its own result');
+
+  const { base, stop } = await startServer();
+  const older = await fakeRenderer(base);
+  const newer = await fakeRenderer(base);
+  try {
+    // The job goes to the NEWEST window; the older one closing must not end it.
+    const first = postJson(`${base}/connector/generate`, { modelId: 'krea2', operation: 't2i' });
+    const frame = await newer.readFrame();
+    older.close();
+    const second = postJson(`${base}/connector/generate`, { modelId: 'krea2', operation: 't2i' });
+    const frame2 = await newer.readFrame();
+    await postJson(`${base}/connector/jobs/${frame.data.jobId}/result`, { ok: true, output: { itemId: 'a' } });
+    assert.equal((await first).json.ok, true, 'a job lives through another window closing');
+
+    newer.close();
+    const { json } = await second;
+    assert.equal(json.ok, false);
+    assert.equal(json.error.code, 'WINDOW_CLOSED');
+    assert.match(json.error.message, /closed or reloaded/);
+    const late = await postJson(`${base}/connector/jobs/${frame2.data.jobId}/result`, { ok: true });
+    assert.equal(late.json.received, false, 'a result after the window went is dropped, not double-settled');
+  } finally {
+    older.close();
+    newer.close();
+    await stop();
+  }
+});
+
 test('an error result from the renderer reaches the caller intact', async () => {
   const { base, stop } = await startServer();
   const renderer = await fakeRenderer(base);

@@ -173,7 +173,7 @@ Failure returns `{"ok": false, "error": {"code": ..., "message": ...}}`:
 | `MASK_UNSUPPORTED` | The operation needs a painted mask (`inpaint`, `detail`) and none is painted. Ask the user to paint one in History, then send the same call again. |
 | `BAD_REQUEST` | A media role the operation does not have (the message lists its roles), a media entry with no `url`, or one role given twice. |
 | `CANCELLED` | Cancelled, or produced no output. |
-| `TIMEOUT` | No result in 30 minutes. The generation may still be running. |
+| `WINDOW_CLOSED` | The app window closed or reloaded before the job finished. It may not land: check the gallery, and send it again if it is missing. There is no time limit: a job otherwise ends only with its own result. |
 | `INVALID_RATIO` | `ratio` is not a label this model/operation offers. |
 | `INVALID_QUALITY_TIER` | `qualityTier` is not one this model declares (or it has no tier axis at all). |
 | `INVALID_TURBO` | `turbo` is not a boolean, or the model has no turbo toggle. |
@@ -267,4 +267,4 @@ it. Use `/connector/generate`.
 
 `POST /connector/install { modelId }` — starts downloading missing deps. Returns `{ ok, modelId, downloadGb, started: true }`. Non-blocking; track via `GET /comfy/downloads/status`. Errors: `BAD_REQUEST`, `UNKNOWN_MODEL`, `ALREADY_INSTALLED`, `OFFLINE`, `APP_UNAVAILABLE`.
 
-`POST /connector/describe { imagePath, question?, crop? }` — runs the image describer. `crop` = `{x,y,width,height}` in original pixels; the route crops with sharp first. `question` injects a ChatML string into `Input_Describe_Prompt`. Returns `{ ok, output: { text } }`. Errors: `BAD_REQUEST`, `IMAGE_NOT_FOUND`, `CROP_OUT_OF_BOUNDS`, `DESCRIBER_MISSING`, `APP_UNAVAILABLE`, `RUNTIME_ERROR`, `TIMEOUT`.
+`POST /connector/describe { imagePath, question?, crop? }` — runs the image describer. `crop` = `{x,y,width,height}` in original pixels; the route crops with sharp first. `question` injects a ChatML string into `Input_Describe_Prompt`. Returns `{ ok, output: { text } }`. Errors: `BAD_REQUEST`, `IMAGE_NOT_FOUND`, `CROP_OUT_OF_BOUNDS`, `DESCRIBER_MISSING`, `APP_UNAVAILABLE`, `RUNTIME_ERROR`, `WINDOW_CLOSED`.

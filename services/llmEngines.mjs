@@ -35,6 +35,9 @@
  * Pure Node: native `fetch`, no Electron and no dependencies.
  */
 
+import http from 'node:http';
+import https from 'node:https';
+
 // ---------------------------------------------------------------------------
 // Model registry — the enhancer/judge LLMs, data not code.
 // ---------------------------------------------------------------------------
@@ -138,16 +141,55 @@ const OLLAMA_DEFAULT_CONTEXT = 8_192;
 export const REMOTE_CHAT_TIMEOUT_MS = 180_000;
 export const OLLAMA_CHAT_TIMEOUT_MS = 600_000;
 
+function _timeoutError(label, timeoutMs) {
+    const e = new Error(`${label} did not answer within ${Math.round(timeoutMs / 1000)}s. It may be overloaded or unreachable.`);
+    e.code = 'TIMEOUT';
+    return e;
+}
+
 /** `fetch` that fails loudly instead of hanging. `code: 'TIMEOUT'` for callers that branch. */
 async function _fetchWithDeadline(url, init, timeoutMs, label) {
     try {
         return await fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
     } catch (err) {
         if (err?.name !== 'TimeoutError' && err?.name !== 'AbortError') throw err;
-        const e = new Error(`${label} did not answer within ${Math.round(timeoutMs / 1000)}s. It may be overloaded or unreachable.`);
-        e.code = 'TIMEOUT';
-        throw e;
+        throw _timeoutError(label, timeoutMs);
     }
+}
+
+/**
+ * A JSON POST over `node:http(s)`, answering the slice of a fetch Response a chat reads
+ * (`ok`, `status`, `statusText`, `text()`, `json()`), with the same TIMEOUT error.
+ *
+ * NOT `fetch`, and only for a budget over five minutes. Node's fetch drops any response
+ * whose HEADERS take longer than 300 s, whatever `signal` says, and a non-streamed Ollama
+ * chat sends its headers only with the whole answer: `OLLAMA_CHAT_TIMEOUT_MS` (10 min) was
+ * really 5, failing as a bare `fetch failed` (MPI-817; the same limit `agentTools._post`
+ * already avoids). `http.request` has no such limit; `timeoutMs` is the only clock.
+ */
+function _postWithDeadline(url, body, timeoutMs, label) {
+    const u = new URL(url);
+    return new Promise((resolve, reject) => {
+        const req = (u.protocol === 'https:' ? https : http).request(u, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(timeoutMs),
+        }, (res) => {
+            let text = '';
+            res.setEncoding('utf8');
+            res.on('data', (chunk) => { text += chunk; });
+            res.on('error', reject);
+            res.on('end', () => resolve({
+                ok: res.statusCode >= 200 && res.statusCode < 300,
+                status: res.statusCode,
+                statusText: res.statusMessage,
+                text: async () => text,
+                json: async () => JSON.parse(text),
+            }));
+        });
+        req.on('error', (err) => reject(err?.name === 'AbortError' || err?.name === 'TimeoutError' ? _timeoutError(label, timeoutMs) : err));
+        req.end(body);
+    });
 }
 
 /**
@@ -220,10 +262,8 @@ export class OllamaEngine {
     }
 
     async chat(req) {
-        const res = await _fetchWithDeadline(`${this.baseUrl}/api/chat`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+        const res = await _postWithDeadline(`${this.baseUrl}/api/chat`,
+            JSON.stringify({
                 model: req.model,
                 messages: toOllamaMessages(req.messages),
                 stream: false,
@@ -259,8 +299,7 @@ export class OllamaEngine {
                     }),
                     ...(req.options?.stop !== undefined && { stop: req.options.stop }),
                 },
-            }),
-        }, this.timeoutMs, 'Ollama');
+            }), this.timeoutMs, 'Ollama');
         if (!res.ok) {
             // `status` + `bodyText` as DeepInfraEngine's, so describe can say NOT_VISION.
             const bodyText = await res.text().catch(() => '');

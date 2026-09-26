@@ -1029,3 +1029,96 @@ join backed out (`pass 6 / fail 1`), green with it.
 **Still owed:** one live run — "make this anime" on an imported photo should now reach i2i on
 `ill-anime` at a low denoise, with the prompt visibly built from the description and no clothing
 added. That run is also the first real exercise of the denoise named param.
+
+---
+
+# Session 43718bac (2026-09-26): the leftovers, from handoff b12a5213
+
+Fabio's answers to the Continue Brief: go on the five small defects; **yes** to closing the
+`injectionParams` hole while pinned; yes to one live DeepInfra call for the out-of-rounds path.
+Each fix below was seen RED before it was built.
+
+| # | What | Where | Test (red first) |
+|---|---|---|---|
+| 1 | A loopback call that THREW reached the chat and never `app.log`. Every `_post`/`_get` failure now logs `loopback <METHOD> <route> failed` with the error, and `logger.error` prints the `cause` chain (`cause: ECONNREFUSED ...`), where Node keeps the reason. Shared primitive: every `logger.error` caller gains it. | `services/agentTools.mjs` `_logLoopbackFailure`; `routes/logger.js` `_causeLines` | `tests/logger-cause.test.cjs` (new, 2); `tests/agent-tools-post.test.cjs` dead-server case |
+| 2 | A refused `generate` still read "Starting generation", so a refused round and its retry read as two runs. The done frame now says **"Generation not started"**, by the same by-id correction MPI-870 built for a cached look; history carries it too. | `services/agentLoop.mjs` `GENERATE_REFUSED_LABEL` | `tests/agent-loop.test.cjs` "refused IN-TURN" |
+| 3 | Ollama chat (`stream:false`) went over Node `fetch`, so its 10-minute budget died at the 300 s headers limit. `OllamaEngine.chat` now posts over `node:http(s)` (`_postWithDeadline`, fetch-shaped answer, same `TIMEOUT` error). Covers agent, enhance and describe: one client. | `services/llmEngines.mjs` | `tests/agent-loop.test.cjs` "posted WITHOUT fetch" + "never answers is a TIMEOUT" |
+| 4 | Pinned, raw `injectionParams` still merged over the resolved params: the agent could move a setting the user set. `resolveSettingsOwner` now owns them too (pinned = `{}`), and BOTH merge sites read the gate's answer: submit and quote. | `js/shell/agentDispatch.js` | `tests/agent-pinned-settings.test.cjs` (new case) |
+| 5 | A kept look did not say which describer wrote it. The renderer reports `describer` (the endpoint model id, or `ComfyUI qwen3vl-abliterated-clip` locally), `_lookOnce` passes it on, and the sidecar `look` carries `{ text, describer, at }`. | `js/services/llmService.js`, `js/shell/agentDispatch.js`, `services/agentLoop.mjs`, `services/agentTools.mjs` | `tests/agent-tools-post.test.cjs` kept-look case; `tests/agent-loop.test.cjs` "described ONCE" |
+
+**The test trap, paid for once.** Moving Ollama chat off `fetch` un-stubs every test that faked
+`global.fetch` for it. Seven were converted to a host the test owns (port 0): two in
+`agent-loop`, three in `llm-describe`, one in `llm-service`, one in `llm-connection`. The last one
+was missed by the first sweep and **reached localhost:11434 for real once** in the first full run
+(`model: 'm'`, no messages, 25 ms: a 404 or a refused connection, no model load). The full run
+caught it; it is converted. Search that finds them all: `OllamaEngine` in `tests/`.
+
+**Out-of-rounds, proven live** (item 6, Fabio's OK, 2026-09-26 ~17:55Z). One call on his
+DeepInfra key to `deepseek-ai/DeepSeek-V4-Flash-0731`, built exactly as `agentLoop.mjs` builds
+the closing request: three tool-call rounds of history, NO `tools` param, the `OUT_OF_ROUNDS`
+system line LAST (text checked against the source). HTTP 200 in 2.6 s, zero tool calls, a
+288-character plain answer naming what was made, what is running and what is left. $0.0000455.
+Script: session scratchpad `out_of_rounds_live.mjs`. Not proven: Ollama's native route (it would
+load a model on his GPU); `/api/chat` takes a tool-less request by its docs.
+
+**Held, not built — item 4 of the brief, the 30-minute clock.** Read, not measured: the route's
+own `JOB_TIMEOUT_MS` (`routes/connector.js:313`) starts at DISPATCH and resolves `TIMEOUT` ("may
+still be running") while a job is still queued; `agentTools._post` has the same 30 minutes. With
+MPI-870's fan-out ("upscale all 50") the tail of a deep queue now reaches it, the loop counts it
+settled, and the wake can report a drain while jobs still run. The fix moves the clock to job
+START (the renderer pings when the Cue job begins; the route re-arms its timer), which spans the
+renderer, the route the MCP shares, and the agent: a design change, so it goes to Fabio first.
+
+| Check | Result |
+|---|---|
+| `npm test` (whole suite) | **1965 tests, 1964 pass, 0 fail, 1 skipped** (live key) |
+| `npx eslint --max-warnings=0` on the six changed sources | clean |
+| `tests/agent-prompt-budget.test.cjs` | passes: no system-prompt text changed |
+
+Also closed: messages `83f75bbf`, `f3f1907c`, `a7dc92be` (sent by this card; every recipient
+card is `done`, and the conditions they raised are gone).
+
+## Same session, round 2: Fabio's answers, and three more builds
+
+**The pinned panel PASSED** (Fabio, after a restart: "It all checks out"). Recorded on MPI-774.
+His follow-up is built: every pinned refusal and the Settings panel line now offer "close the
+settings panel and I'll pick the model" (`tests/agent-pinned-settings.test.cjs`, red first).
+
+**No clock on a job** (Fabio: "We shouldn't have a clock... three videos that are 15 seconds
+each on a GPU like mine... might very well take an hour and a half"). A finished generation
+already ended the wait: the renderer reports, and the route answers. The 30 minutes only ever
+caught a job whose WINDOW went away mid-render, so that is what ends one now.
+- `routes/connector.js`: `JOB_TIMEOUT_MS` is gone. Each pending job remembers the window that
+  took it; when that window's job stream closes, `_settleWindowJobs` answers its jobs
+  `WINDOW_CLOSED` ("closed or reloaded... check the gallery, send it again if it is missing").
+  Another window closing leaves it alone. `tests/agent-generation-relay.test.cjs`, red first.
+- `services/agentTools.mjs` `_post`: no default clock; only the quick routes keep one.
+- `routes/mcp.js` (MPI-593's file, unclaimed): the job record was deleted an hour after START, so
+  `wait_generation` on a render longer than that answered UNKNOWN_JOB mid-render. The hour now
+  starts when the job finishes. `tests/mcp.test.cjs`, seen red with the old line put back.
+- `TIMEOUT` rows replaced by `WINDOW_CLOSED` in both skill docs and `docs/agent-chat.md`.
+
+**Global memory BUILT** (MPI-774 Phase 6 = this card's Phase B; Fabio's yes on his 09-18 spec):
+- Store: `services/agentMemory.mjs`, one set of internals over two roots. Global notes live in
+  `<APP_USER_DATA>/agent/memory/`, the same README-of-pointer-lines shape, the same caps (4 KB a
+  note, stricter than the spec's 200 lines, 100 notes).
+- Route: `/connector/memory` takes `scope=global` (query or POST body), no folderPath.
+- Tools: `read_memory` / `write_memory` take `scope: project | global`; global needs no project
+  (the landing page can save one). The write says "global only when the user asks to keep it
+  for every project". Label: "Noted for every project: <title>".
+- Listed once per conversation (and again after a compaction): `[Global notes, kept for every
+  project ...]`, pointer lines only; nothing at all when there are none.
+- Memory rule: "your notes survive a restart, per project and global (all projects, only when
+  asked)". Budgets held without raising either: system prompt 10,146 of 10,150 bytes (the rule
+  was reworded 3 bytes SHORTER), tool schemas 17,180 of 17,200 (two descriptions trimmed).
+- Tests, all red first: `tests/agent-memory.test.cjs` (store + route), `tests/agent-loop.test.cjs`
+  (write/read with no project, listed once, the rule, the tool wording).
+- **Owes Fabio's live check after a restart:** (1) in one project, "save globally that I always
+  want warm cinematic light", then restart, open another project, ask what it remembers: it
+  names the note; (2) a plain "my character is called Rook" lands in the PROJECT, not global;
+  (3) "do you remember things?" names both kinds.
+
+| Check | Result |
+|---|---|
+| `npm test` (whole suite) | **1974 tests, 1973 pass, 0 fail, 1 skipped** (live key) |
+| `npx eslint --max-warnings=0`, nine changed sources | clean |

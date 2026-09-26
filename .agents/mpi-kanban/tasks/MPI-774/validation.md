@@ -1222,3 +1222,19 @@ Raw `injectionParams` still merges over the resolved params while pinned. It is 
 escape hatch and the agent rarely reaches for it, but it is a hole in "the user owns the settings".
 The plan scoped the gate to `modelId` + named params, so it was left exactly there. Say the word
 and it is one line.
+
+**Answered 2026-09-26 (Fabio: "yes"), built in session 43718bac:** raw `injectionParams` are now
+dropped while pinned, by `resolveSettingsOwner` itself, and both the submit and the quote path read
+its answer. Test: `tests/agent-pinned-settings.test.cjs`, seen red first. Evidence: `tasks/MPI-817/validation.md`
+§ Session 43718bac. The five steps above are still owed.
+
+### PASSED 2026-09-26: Fabio ran the five steps above after a full restart
+
+His words: "I've just done number 2 checks. It all checks out." All five: cog copy, the panel held open
+against canvas clicks and Escape, the unpinned default tier, his model and ratio honoured while pinned,
+and the image-model-pinned video ask refused in words (FLUX Schnell pinned; the agent named MiniMax H3
+and asked him to switch). **One follow-up, built the same session (43718bac):** that refusal never offered
+the other way out. Every pinned refusal (MODEL_PINNED, NO_PINNED_MODEL, OP_UNAVAILABLE) and the per-turn
+Settings panel line now say the user can close the settings panel and the agent will pick the model
+(his wording: "Alternatively, you can close the settings panel, and I'll pick the model").
+Test: `tests/agent-pinned-settings.test.cjs`, seen red first. Not live-seen: needs a restart.

@@ -9,10 +9,15 @@
  * tool, and a CLI agent gets the same routes. There is no delete: agents never delete
  * (Fabio, 2026-09-16), and a note the user no longer wants is theirs to remove.
  *
+ * GLOBAL notes (MPI-774 Phase 6, Fabio 2026-09-18) are the same shape in app data,
+ * `<APP_USER_DATA>/agent/memory/`, beside the chat attachments: what holds across every
+ * project, saved only when the user asks. One set of internals below serves both roots.
+ *
  * ponytail: no lock. The in-app loop writes one note at a time; two CLI agents writing the
  * same project at once can lose an index line. Add a per-project lock if that ever happens.
  */
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 
 export const MEMORY_DIR = 'Agent';
@@ -25,13 +30,17 @@ const MAX_HOOK = 160;
 const FILE_RE = /^[a-z0-9][a-z0-9-]{0,60}\.md$/;
 const LINE_RE = /^- \[(.+)\]\(([a-z0-9][a-z0-9-]{0,60}\.md)\)(?::\s*(.*))?$/;
 
-const INDEX_HEADER = [
+const indexHeader = (what) => [
     '# Agent notes',
     '',
-    'What the Cubric agent remembers about this project, one line per note. The notes sit',
+    `What the Cubric agent remembers ${what}, one line per note. The notes sit`,
     'beside this file. You can edit or delete any of them.',
     '',
 ].join('\n');
+
+/** Where a store is, and how its errors and index name it. */
+const PROJECT = { where: 'in this project', what: 'about this project' };
+const GLOBAL = { where: 'in the global notes', what: 'across every project' };
 
 export class MemoryError extends Error {
     constructor(code, message) {
@@ -53,6 +62,14 @@ async function notesDir(folderPath) {
     return path.join(folderPath, MEMORY_DIR);
 }
 
+/** The global notes folder, in app data (os.tmpdir() standalone, as the attachments). */
+function globalDir() {
+    const base = process.env.APP_USER_DATA
+        ? path.join(process.env.APP_USER_DATA, 'agent')
+        : path.join(os.tmpdir(), 'cubric-agent');
+    return path.join(base, 'memory');
+}
+
 /** A note name is a bare lowercase slug, so it can never leave the notes folder. */
 function checkFile(file) {
     if (typeof file !== 'string' || !FILE_RE.test(file) || file === 'readme.md') {
@@ -72,23 +89,13 @@ const oneLine = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();
 
 /** `{ notes: [{ title, file, hook }] }`, empty before the first note. */
 export async function readIndex(folderPath) {
-    const dir = await notesDir(folderPath);
-    let text = '';
-    try {
-        text = await fs.readFile(path.join(dir, INDEX_FILE), 'utf8');
-    } catch { /* no notes yet */ }
-    return { notes: parseIndex(text) };
+    return _readIndexIn(await notesDir(folderPath));
 }
 
 /** `{ file, text }` of one note. */
 export async function readNote(folderPath, file) {
     checkFile(file);
-    const dir = await notesDir(folderPath);
-    try {
-        return { file, text: await fs.readFile(path.join(dir, file), 'utf8') };
-    } catch {
-        throw new MemoryError('UNKNOWN_NOTE', `No note "${file}" in this project.`);
-    }
+    return _readNoteIn(await notesDir(folderPath), file, PROJECT);
 }
 
 /**
@@ -96,7 +103,43 @@ export async function readNote(folderPath, file) {
  * current. Every other line of the index (the user may have edited it) is left alone.
  * @returns {Promise<{file: string, created: boolean}>}
  */
-export async function writeNote(folderPath, { file, title, hook, text } = {}) {
+export async function writeNote(folderPath, note = {}) {
+    const checked = _checkNote(note);
+    return _writeNoteIn(await notesDir(folderPath), checked, PROJECT);
+}
+
+/** The global notes: the same three calls, on app data instead of a project. */
+export async function readGlobalIndex() {
+    return _readIndexIn(globalDir());
+}
+
+export async function readGlobalNote(file) {
+    checkFile(file);
+    return _readNoteIn(globalDir(), file, GLOBAL);
+}
+
+export async function writeGlobalNote(note = {}) {
+    return _writeNoteIn(globalDir(), _checkNote(note), GLOBAL);
+}
+
+async function _readIndexIn(dir) {
+    let text = '';
+    try {
+        text = await fs.readFile(path.join(dir, INDEX_FILE), 'utf8');
+    } catch { /* no notes yet */ }
+    return { notes: parseIndex(text) };
+}
+
+async function _readNoteIn(dir, file, store) {
+    try {
+        return { file, text: await fs.readFile(path.join(dir, file), 'utf8') };
+    } catch {
+        throw new MemoryError('UNKNOWN_NOTE', `No note "${file}" ${store.where}.`);
+    }
+}
+
+/** The fields, checked before any folder is touched. */
+function _checkNote({ file, title, hook, text } = {}) {
     checkFile(file);
     title = oneLine(title).replace(/[[\]]/g, '');
     hook = oneLine(hook);
@@ -112,14 +155,16 @@ export async function writeNote(folderPath, { file, title, hook, text } = {}) {
     if (Buffer.byteLength(text, 'utf8') > MAX_NOTE_BYTES) {
         throw new MemoryError('NOTE_TOO_LONG', `A note holds at most ${MAX_NOTE_BYTES} bytes. Keep what matters, or split it.`);
     }
+    return { file, title, hook, text };
+}
 
-    const dir = await notesDir(folderPath);
+async function _writeNoteIn(dir, { file, title, hook, text }, store) {
     const indexPath = path.join(dir, INDEX_FILE);
     let index;
     try {
         index = await fs.readFile(indexPath, 'utf8');
     } catch {
-        index = INDEX_HEADER;
+        index = indexHeader(store.what);
     }
 
     const lines = index.split(/\r?\n/);
@@ -129,7 +174,7 @@ export async function writeNote(folderPath, { file, title, hook, text } = {}) {
         lines[at] = line;
     } else {
         if (parseIndex(index).length >= MAX_NOTES) {
-            throw new MemoryError('MEMORY_FULL', `This project already has ${MAX_NOTES} notes. Update or merge existing notes instead.`);
+            throw new MemoryError('MEMORY_FULL', `There are already ${MAX_NOTES} notes ${store.where}. Update or merge existing notes instead.`);
         }
         while (lines.length && lines[lines.length - 1] === '') lines.pop();
         // A note line directly under prose would read as part of that paragraph.

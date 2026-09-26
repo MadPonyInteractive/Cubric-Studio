@@ -38,7 +38,7 @@ A malformed body is HTTP 400; everything else is 200 with `ok: false`. Codes:
 | `NOT_A_GIF` | That card is not a GIF. `make` one first. |
 | `WRONG_TYPE` | A video was asked for and an image was given, or vice versa. |
 | `ENGINE_ERROR` | The cut-out graph failed or returned the wrong number of masks. |
-| `TIMEOUT` | No result in 30 minutes. The work may still be running in the app. |
+| `WINDOW_CLOSED` | The app window closed or reloaded before the work finished. Check the gallery, and send it again if it is missing. There is no time limit. |
 
 ## Getting footage in, and finding its item id
 

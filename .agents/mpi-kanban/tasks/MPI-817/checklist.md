@@ -3,11 +3,12 @@
 An umbrella's checklist tracks PHASES, not the members' own items. Each member card keeps its own
 checklist; this one closes when all three phases do.
 
-- [ ] **Phase A — MPI-816: flow-field dispatch.** Both fixes, the confirm step, the skill doc
+- [x] **Phase A — MPI-816: flow-field dispatch.** Both fixes, the confirm step, the skill doc
       update, the shared-primitive sweep. **Closes on:** four character sheets asked for in
-      Fabio's own words, four cards land.
-- [ ] **Phase B — MPI-774 Phase 6: global memory.** Design conversation with Fabio first; the
-      footprint is unknown until it happens.
+      Fabio's own words, four cards land. **MPI-816 closed `done` 2026-09-21** on that live pass.
+- [ ] **Phase B — MPI-774 Phase 6: global memory.** BUILT 2026-09-26 on Fabio's yes to his 09-18
+      spec (`services/agentMemory.mjs`, `scope: global` on the route and both tools, listed once
+      per conversation). **Owes his three live checks** (`validation.md` last section).
 - [ ] **Phase C — MPI-774 Phase 7: agent reliability.** Includes the decision on the narration
       bug (the agent reported four sheets as started after four dispatches had already failed).
       - [x] The narration bug (2026-09-19, a2b243de): `generate` races the dispatch against
@@ -16,12 +17,12 @@ checklist; this one closes when all three phases do.
       - [x] **The pinned settings panel** (2026-09-19, session 35aabda4): built whole, both traps
             included. Code-verified — 1398 unit tests, lint clean, agent-chat.spec 28/28 whole-file.
             Evidence: `tasks/MPI-774/validation.md` § Phase 7.
-      - [ ] **Fabio's own pass in the app** (Phase 7 is `user-ux`) — the five steps in that
+      - [x] **PASSED 2026-09-26, his words "It all checks out".** **Fabio's own pass in the app** (Phase 7 is `user-ux`) — the five steps in that
             validation section. Needs a full app RESTART, not a reload.
-      - [ ] The NSFW flag on `RECOMMENDED_REMOTE_MODELS` (Qwen3-VL-30B-A3B-Instruct only; the
+      - [x] **MOOT 2026-09-26**: MPI-912 took Qwen3-VL-30B's agent flag away at 7/22. The NSFW flag on `RECOMMENDED_REMOTE_MODELS` (Qwen3-VL-30B-A3B-Instruct only; the
             wording can only ever be "did not refuse in our tests", dated). Rides with the picker
             work.
-      - [ ] The Ollama picker, plus the six free Ollama cloud models. Shape to be agreed with him.
+      - [x] **Picker done by MPI-912 (2026-09-26)**; the free cloud models stay unconfirmed research. The Ollama picker, plus the six free Ollama cloud models. Shape to be agreed with him.
       - [x] **Focus mode leaves the agent panel behind** (2026-09-19, session ea603cb9). Fabio
             pressed F with the agent open and the chat kept its 420px. Collapsed, not hidden:
             `:has()` still matches a `display:none` panel, so hiding it takes the chat and
@@ -288,11 +289,11 @@ Raised this pass, NOT built, nothing here goes quiet:
 - [ ] The agent's note said "Base image for ALL animations". A note that generalises from
       two runs steers the third. Not built: the recency sentence is the smaller fix; if the
       live re-run still follows the note, the Memory rule is next.
-- [ ] `services/llmEngines.mjs`: Ollama's 600 s budget rides the same `fetch`, so it is
-      really 300 s. Its tests stub `global.fetch` - read `validation.md` § 2 before touching.
-- [ ] A refused `generate` still shows "Starting generation" in the step log, so a
+- [x] `services/llmEngines.mjs`: Ollama's 600 s budget rides the same `fetch`, so it is
+      really 300 s. **FIXED 2026-09-26** (session 43718bac): `node:http`, seven tests moved to own hosts. Its tests stub `global.fetch` - read `validation.md` § 2 before touching.
+- [x] **FIXED 2026-09-26** ("Generation not started"): A refused `generate` still shows "Starting generation" in the step log, so a
       `GUIDE_NOT_READ` round reads as two runs. Cosmetic; it confused the reading of one turn.
-- [ ] A loopback failure reaches the chat and NOT `app.log`: `fetch failed` left no trace.
+- [x] **FIXED 2026-09-26** (loopback failures logged with their cause chain): A loopback failure reaches the chat and NOT `app.log`: `fetch failed` left no trace.
       `settleThrow` should log `err.cause`.
 
 Done already, on MPI-774 and recorded there, not here: Phases 1-5, including fix 8 closed

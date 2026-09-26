@@ -17,7 +17,8 @@ file is the contract; that one is the evidence.
   CLI agent (MPI-593) gets the same surface. No second dispatch path (`routes/connector.js` header).
   **Its POSTs are `node:http`, never `fetch`**: Node's `fetch` drops any response whose headers take
   over 300 s (`UND_ERR_HEADERS_TIMEOUT`, reads as `fetch failed`), and `/connector/generate` holds
-  its response for the whole render. A 337 s clip came back "failed" with the file on disk, and the
+  its response for the whole render, with NO time limit: a job ends on its result, a cancel, or
+  `WINDOW_CLOSED` when the window that took it goes away (MPI-817). A 337 s clip came back "failed" with the file on disk, and the
   agent re-ran it. The table also REFUSES the default port under `node --test`: 3000 is the user's
   live app, and a test once created a project in it.
 - **Chat** `js/components/Compounds/MpiAgentChat/`, twice: the landing slot (standalone, beside the
@@ -79,7 +80,7 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
 | `list_projects` / `create_project` | `{}` / `{ name }` | `GET /connector/projects` / `POST /connector/create-project` |
 | `open_project` | `{ folderPath: string }` required | `POST /connector/open-project`, only a folder `list_projects` or `create_project` gave, the open project, or one the user typed (`UNKNOWN_PROJECT`) |
 | `rename_card` | `{ groupId, name }` required | `POST /connector/rename-card`, a card this conversation generated OR one the app listed to it (`list_cards` / `visible_cards`, via `_seeCards`); any other id is `UNKNOWN_CARD`. Until 2026-09-20 it was "generated only", a gate from before the agent could see the project: live, asked to name Fabio's unnamed marked cards, it refused all four and told him to do it by hand |
-| `read_memory` / `write_memory` | `{ file? }` / `{ file, title, text, hook? }` | `/connector/memory` for the OPEN project only (`NO_PROJECT`) |
+| `read_memory` / `write_memory` | `{ file?, scope? }` / `{ file, title, text, hook?, scope? }` | `/connector/memory` for the OPEN project (`NO_PROJECT`); `scope: "global"` needs no project |
 | `list_cards` | `{ groupId?, limit?, mark? }` | `GET /connector/cards[/:groupId]` (`services/agentCards.mjs`), the OPEN project only. Two hops: short rows newest first, or one card in full (whole prompt, settings that ran, `madeFrom`). Read off `project.json` + `Media/.meta/`, no renderer. Every `ref` it returns joins the `_images` allowlist, so `look` and `generate` take it, a video included; a sidecar path outside the project's own `Media/` gets no ref |
 | `make_gif` / `edit_gif` / `cutout_gif` / `gif_to_video` | `{ images: [ref] \| video: ref, fps?, sizePreset?, loop?, trimIn?, trimOut? }` / `{ gif, fps?, loop?, trim?, output?, resize?, crop? }` / `{ gif, method, prompt?, adjust?, invert? }` / `{ gif, background? }` | `POST /connector/gif/{make,edit,cutout,to-video}` (MPI-830; contract in `.claude/skills/cubric-vision-gif/SKILL.md`), AWAITED in the turn. The routes take ITEM ids and the model only says `ref`: each `_images` entry carries the `itemId` of the version the card is SHOWING (`list_cards` `files[ref].itemId`, a generation's `output.itemId`), so a ref with none is `NOT_A_CARD` and nothing the allowlist lacks is reachable. The reply's `filePath` is registered with its own item id, so a chain feeds itself; `itemId` is stripped from what the model reads. Only `make` and `to-video` add to `_groups` - `edit`/`cutout` land on a card that may be the user's. `edgeColour: "opaque"` is sent as `null`. The agent cannot judge motion (`look` reads one still): that limit lives once, in the honest limits (MPI-903) |
 | `visible_cards` / `mark_card` | `{ limit? }` / `{ groupId, mark: dot\|square\|triangle\|none }` required | `GET /connector/visible-cards` / `POST /connector/card-mark` (MPI-817 Phase F). **Visible is a RELAY answer, never a `list_cards` argument**: `state.gallerySort` persists only `order`, so the renderer (`gallery.visible` in `agentDispatch.js`) names the group ids with the grid's OWN `matchesGallerySort` + `byGalleryOrder`, and the route builds the rows off disk with `agentCards.cardsByIds` - which does NOT drop archived cards, because the archived scope shows exactly those. Gallery not on screen is `GALLERY_NOT_OPEN`, never the whole project. `filter` is `describeGalleryFilter`'s words. Marks are MPI-785's `CARD_MARKS`; a row carries `mark` via `markOf` (a legacy `favourite: true` is `dot`), `list_cards` takes `mark` to list one shape, and `"none"` is sent as `false`. The renderer validates the id (`INVALID_MARK`): a free string would persist and match no filter row. `markGroup` looks the card up INSIDE the mutation queue, as `renameGroup` does. No loop-side ownership gate, unlike `rename_card`: marking the user's own cards is the ask. "Circle" is the dot, said in the tool descriptions only |
@@ -124,6 +125,8 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
   file, text }`; **`POST /connector/memory { folderPath, file, title, text, hook? }`** -> `{ ok, file,
   created }` (`services/agentMemory.mjs`). `<project>/Agent/README.md` indexes one `<slug>.md` per note.
   No delete route. Errors: `BAD_REQUEST` (400), `NOT_A_PROJECT`, `UNKNOWN_NOTE`, `NOTE_TOO_LONG` (4 KB), `MEMORY_FULL` (100).
+  **`scope=global`** (query, or in the POST body) is the GLOBAL notes instead, `<APP_USER_DATA>/agent/memory/`,
+  same shape, no folderPath (MPI-774 Phase 6): saved only when the user asks, listed once per conversation.
 - **`GET /connector/projects`** -> `{ ok, projects: [{ name, folderPath, updatedAt }], total }`, most
   recent first, at most 50 (over `POST /list-projects`). **`POST /connector/create-project { name }`**
   -> `{ ok, project: { name, folderPath } }` in the default root, over `POST /create-project`, which never
@@ -140,7 +143,7 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
   instruction; relayed as `agent.describe` to `llmService.describeImage` ([llm.md](llm.md)). **`box`** (needs
   a `question`): both describers answer RELATIVE (Qwen3-VL 0-1000, Remote 0-1, measured), mapped over the
   crop or image to ORIGINAL pixels (`boxFromDescribeAnswer`) + `square` (for `ratio: 1`); unreadable -> `NO_BOX`. Errors: `BAD_REQUEST`,
-  `IMAGE_NOT_FOUND`, `CROP_OUT_OF_BOUNDS`, `NO_BOX`, `DESCRIBER_MISSING`, Remote codes, `APP_UNAVAILABLE`, `RUNTIME_ERROR`, `TIMEOUT`.
+  `IMAGE_NOT_FOUND`, `CROP_OUT_OF_BOUNDS`, `NO_BOX`, `DESCRIBER_MISSING`, Remote codes, `APP_UNAVAILABLE`, `RUNTIME_ERROR`, `WINDOW_CLOSED`.
 - **`POST /connector/generate`, Flow `params`** `{ box1: { x, y, width, height } }`: checked against the
   flow's `kind: 'box'` steps (known `param`, integers, square when `ratio: 1`), merged into
   `injectionParams`; no bounds check (every shipped box step declares `overflow: 'allow'`). Errors:

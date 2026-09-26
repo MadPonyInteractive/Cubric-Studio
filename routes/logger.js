@@ -95,10 +95,23 @@ let _queue = Promise.resolve();
 
 // ── Internal write ────────────────────────────────────────────────────────────
 
+/**
+ * An error's `cause` chain, one line per level. A stack never prints its cause, and Node's
+ * network errors keep the real reason there: `fetch failed` is only the wrapper round
+ * `UND_ERR_HEADERS_TIMEOUT` or `ECONNREFUSED` (MPI-817). Bounded, in case a chain loops.
+ */
+function _causeLines(err) {
+    const out = [];
+    for (let c = err?.cause, n = 0; c && n < 5; c = c.cause, n++) {
+        out.push(`cause: ${c.code ? `${c.code} ` : ''}${c.message || c}`);
+    }
+    return out.length ? `\n  ${out.join('\n  ')}` : '';
+}
+
 function _write(level, category, message, err) {
     const ts   = new Date().toISOString();
     const safeMessage = redactSecrets(message);
-    const safeErr = err ? redactSecrets(err.stack || err) : '';
+    const safeErr = err ? redactSecrets(`${err.stack || err}${_causeLines(err)}`) : '';
     const base = `[${ts}] [${level.toUpperCase()}] [${category}] ${safeMessage}`;
     const line = err ? `${base}\n  ${safeErr}` : base;
 

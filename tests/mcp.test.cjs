@@ -273,6 +273,28 @@ test('a slow generate answers running + jobId, and wait_generation delivers it w
     assert.equal((await call('wait_generation', { jobId: 'nope' })).isError, true);
 });
 
+// MPI-817: the job record used to be deleted an hour after it STARTED, so wait_generation on
+// a render longer than that (three 15 s videos on a mid GPU) answered UNKNOWN_JOB mid-render.
+// Its hour now starts when it finishes.
+test('a job record is kept an hour from when it FINISHES, never timed from the start', async () => {
+    const real = global.setTimeout;
+    const armed = [];
+    global.setTimeout = (fn, ms, ...rest) => {
+        if (ms === 3_600_000) armed.push(ms);
+        return real(fn, ms, ...rest);
+    };
+    try {
+        const first = JSON.parse((await call('generate', { modelId: 'krea2', operation: 't2i', positive: 'slow' })).content[0].text);
+        assert.equal(first.running, true);
+        assert.equal(armed.length, 0, 'no expiry is armed while the job still runs');
+        let r = first;
+        while (r.running) r = JSON.parse((await call('wait_generation', { jobId: first.jobId })).content[0].text);
+        assert.equal(armed.length, 1, 'the hour starts once it has finished');
+    } finally {
+        global.setTimeout = real;
+    }
+});
+
 test('a paid model generates nothing until the call repeats the quoted price', async () => {
     const before = seen.length;
     const ask = { modelId: 'veo', operation: 't2v', positive: 'a taxi' };

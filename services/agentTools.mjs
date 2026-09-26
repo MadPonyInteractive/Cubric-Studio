@@ -17,6 +17,7 @@ import http from 'node:http';
 import path from 'path';
 import crypto from 'crypto';
 import fs from 'fs/promises';
+import logger from '../routes/logger.js';
 
 // ---------------------------------------------------------------------------
 // Loopback helpers
@@ -34,11 +35,25 @@ function loopbackBase() {
     return `http://127.0.0.1:${process.env.CUBRIC_PORT || 3000}`;
 }
 
+/**
+ * A loopback call that THREW reaches the chat as an error, and used to reach nothing else:
+ * no line in app.log, so a dead route left no trace (MPI-817). Logged with its cause chain,
+ * which is where Node keeps the reason, then rethrown untouched for the loop to report.
+ */
+function _logLoopbackFailure(method, p, err) {
+    logger.error('agent', `loopback ${method} ${p} failed`, err);
+    throw err;
+}
+
 async function _get(p, timeoutMs = 10_000) {
-    const res = await fetch(`${loopbackBase()}${p}`, {
-        signal: AbortSignal.timeout(timeoutMs),
-    });
-    return res.json();
+    try {
+        const res = await fetch(`${loopbackBase()}${p}`, {
+            signal: AbortSignal.timeout(timeoutMs),
+        });
+        return await res.json();
+    } catch (err) {
+        return _logLoopbackFailure('GET', p, err);
+    }
 }
 
 /**
@@ -51,14 +66,19 @@ async function _get(p, timeoutMs = 10_000) {
  * Live, 2026-09-19: a 6 s H3 clip took 337 s. The chat said "fetch failed", the agent was
  * told the run had failed, told the user "no clip was ever created", and RE-RAN the same
  * five-minute render over a file that was sitting on disk. `http.request` has no such
- * limit; `timeoutMs` is now the only clock.
+ * limit.
+ *
+ * And NO default clock (Fabio, 2026-09-26: "We shouldn't have a clock"): a render, a
+ * cut-out or a describe queued behind others ends when the app reports it, and the route
+ * ends it with WINDOW_CLOSED if the window that took it goes away. A 30-minute default
+ * recorded jobs still in the queue as failed. `timeoutMs` is for the quick routes only.
  */
-function _post(p, body, timeoutMs = 1_800_000) {
+function _post(p, body, timeoutMs) {
     return new Promise((resolve, reject) => {
         const req = http.request(`${loopbackBase()}${p}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            signal: AbortSignal.timeout(timeoutMs),
+            ...(timeoutMs && { signal: AbortSignal.timeout(timeoutMs) }),
         }, (res) => {
             let text = '';
             res.setEncoding('utf8');
@@ -70,7 +90,7 @@ function _post(p, body, timeoutMs = 1_800_000) {
         });
         req.on('error', reject);
         req.end(JSON.stringify(body));
-    });
+    }).catch((err) => _logLoopbackFailure('POST', p, err));
 }
 
 // ---------------------------------------------------------------------------
@@ -105,7 +125,7 @@ export async function installModel(modelId) {
  * The loop fires this without awaiting; callers attach .then()/.catch().
  */
 export async function generate(body) {
-    return _post('/connector/generate', body, 1_800_000);
+    return _post('/connector/generate', body);
 }
 
 /**
@@ -161,12 +181,12 @@ export async function storedLook(imagePath, itemId) {
  * If the renderer later rewrites the sidecar without this field, the next look is a miss and
  * is described again: one extra vision call, nothing wrong on screen.
  */
-export async function storeLook(imagePath, itemId, text) {
+export async function storeLook(imagePath, itemId, text, describer) {
     const store = lookStore(imagePath, itemId);
     if (!store) return;
     try { await fs.access(store.metaPath); } catch { return; }
     await _post(`/project-media/agent/update-meta?folderPath=${encodeURIComponent(store.folderPath)}`,
-        { itemId, updates: { look: { text, at: new Date().toISOString() } } }, 10_000);
+        { itemId, updates: { look: { text, ...(describer && { describer }), at: new Date().toISOString() } } }, 10_000);
 }
 
 /** GET /connector/projects — the user's projects, most recent first. */
@@ -222,6 +242,15 @@ export async function gifToVideo(body) {
 export async function readMemory(folderPath, file) {
     const q = `?folderPath=${encodeURIComponent(String(folderPath ?? ''))}`;
     return _get(file ? `/connector/memory/${encodeURIComponent(String(file))}${q}` : `/connector/memory${q}`);
+}
+
+/** The GLOBAL notes (MPI-774 Phase 6): the same route with `scope=global`, no project. */
+export async function readGlobalMemory(file) {
+    return _get(file ? `/connector/memory/${encodeURIComponent(String(file))}?scope=global` : '/connector/memory?scope=global');
+}
+
+export async function writeGlobalMemory(note) {
+    return _post('/connector/memory', { ...note, scope: 'global' }, 10_000);
 }
 
 /**

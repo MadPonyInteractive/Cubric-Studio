@@ -45,6 +45,31 @@ function stubUpstream(upstream) {
     return () => { global.fetch = real; };
 }
 
+/**
+ * A stand-in Ollama host the test owns (MPI-817). Ollama chat goes over `node:http`, not
+ * `fetch` (Node's fetch drops a response whose headers take over 300 s), so a `fetch` stub
+ * no longer intercepts it: pointed at localhost:11434, these tests would reach a REAL Ollama.
+ * `seen` collects every request; `/api/chat` answers `chat`, anything else `{}`.
+ */
+async function withFakeOllama(chat, fn) {
+    const seen = [];
+    const server = require('node:http').createServer((req, res) => {
+        let body = '';
+        req.on('data', (c) => { body += c; });
+        req.on('end', () => {
+            seen.push({ url: req.url, headers: req.headers, body: body ? JSON.parse(body) : null });
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify(req.url === '/api/chat' ? chat : {}));
+        });
+    });
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    try {
+        return await fn(`http://127.0.0.1:${server.address().port}`, seen);
+    } finally {
+        await new Promise((resolve) => server.close(resolve));
+    }
+}
+
 /** Build a fake ok JSON response. */
 const okJson = (body) => ({ ok: true, status: 200, statusText: 'OK', json: async () => body, text: async () => JSON.stringify(body) });
 
@@ -237,13 +262,10 @@ test('MPI-912: describe on the Ollama connection goes native, with the picture i
     // described "an abstract digital texture": the picture never reached it.
     const imgPath = await makeTmpJpeg('ollama');
     let sent = null;
-    const restore = stubUpstream(async (url, init) => {
-        sent = { url, body: JSON.parse(init.body) };
-        return okJson({ message: { content: 'A white square.' }, prompt_eval_count: 10, eval_count: 4 });
-    });
+    const restore = stubUpstream(async (url) => { throw new Error(`unexpected upstream ${url}`); });
     try {
-        await withBridge(
-            { profile: { id: 'ollama', name: 'Ollama', baseURL: 'http://localhost:11434/v1' }, key: null },
+        await withFakeOllama({ message: { content: 'A white square.' }, prompt_eval_count: 10, eval_count: 4 }, (ollama, seen) => withBridge(
+            { profile: { id: 'ollama', name: 'Ollama', baseURL: `${ollama}/v1` }, key: null },
             () => withServer(async (base) => {
                 const res = await fetch(`${base}/llm/describe`, {
                     method: 'POST',
@@ -254,9 +276,10 @@ test('MPI-912: describe on the Ollama connection goes native, with the picture i
                 assert.equal(body.ok, true, JSON.stringify(body));
                 assert.equal(body.text, 'A white square.');
                 assert.equal(body.backend, 'ollama');
+                sent = seen.find((r) => r.url === '/api/chat');
             }),
-        );
-        assert.equal(sent.url, 'http://localhost:11434/api/chat');
+        ));
+        assert.equal(sent.url, '/api/chat');
         assert.equal(sent.body.think, false);
         const user = sent.body.messages.find((m) => m.role === 'user');
         assert.equal(typeof user.content, 'string', 'native content is text, not OpenAI parts');
@@ -415,13 +438,10 @@ test('POST /llm/enhance endpoint branch: raw modelId is forwarded (no MODEL_REGI
 
 test('MPI-912: enhance on the Ollama connection goes native with think off; an empty pick runs the recommended model', async () => {
     let sent = null;
-    const restore = stubUpstream(async (url, init) => {
-        sent = { url, body: JSON.parse(init.body) };
-        return okJson({ message: { content: 'Enhanced.' } });
-    });
+    const restore = stubUpstream(async (url) => { throw new Error(`unexpected upstream ${url}`); });
     try {
-        await withBridge(
-            { profile: { id: 'ollama', name: 'Ollama', baseURL: 'http://localhost:11434/v1' }, key: null },
+        await withFakeOllama({ message: { content: 'Enhanced.' } }, (ollama, seen) => withBridge(
+            { profile: { id: 'ollama', name: 'Ollama', baseURL: `${ollama}/v1` }, key: null },
             () => withServer(async (base) => {
                 const res = await fetch(`${base}/llm/enhance`, {
                     method: 'POST',
@@ -431,9 +451,10 @@ test('MPI-912: enhance on the Ollama connection goes native with think off; an e
                 const body = await res.json();
                 assert.equal(body.ok, true, JSON.stringify(body));
                 assert.equal(body.text, 'Enhanced.');
+                sent = seen.find((r) => r.url === '/api/chat');
             }),
-        );
-        assert.equal(sent.url, 'http://localhost:11434/api/chat');
+        ));
+        assert.equal(sent.url, '/api/chat');
         assert.equal(sent.body.think, false);
         assert.equal(sent.body.model, 'huihui_ai/gemma-4-abliterated:12b');
     } finally {
@@ -612,14 +633,10 @@ test('no model picked: describe and enhance fall to the connection\'s recommende
 });
 
 test('a keyless connection (Ollama /v1) never borrows DEEPINFRA_API_KEY and sends no Authorization', async () => {
-    const ollama = { id: 'ollama', name: 'Ollama', baseURL: 'http://localhost:11434/v1' };
     let seen = null;
-    const restore = stubUpstream(async (url, init) => {
-        seen = { url, auth: init.headers.Authorization };
-        return okJson({ message: { content: 'ok' } });
-    });
+    const restore = stubUpstream(async (url) => { throw new Error(`unexpected upstream ${url}`); });
     try {
-        await withEnvKey('must-not-leave-deepinfra', () => withBridge({ profile: ollama, key: null }, () => withServer(async (base) => {
+        await withFakeOllama({ message: { content: 'ok' } }, (host, reqs) => withEnvKey('must-not-leave-deepinfra', () => withBridge({ profile: { id: 'ollama', name: 'Ollama', baseURL: `${host}/v1` }, key: null }, () => withServer(async (base) => {
             const res = await fetch(`${base}/llm/enhance`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -627,9 +644,11 @@ test('a keyless connection (Ollama /v1) never borrows DEEPINFRA_API_KEY and send
             });
             const body = await res.json();
             assert.equal(body.ok, true, `keyless enhance failed: ${JSON.stringify(body)}`);
-        })));
+            const chat = reqs.find((r) => r.url === '/api/chat');
+            seen = chat && { url: chat.url, auth: chat.headers.authorization };
+        }))));
         // Native since MPI-912 (the /v1 shim has no `think` flag); still the user's own host.
-        assert.equal(seen.url, 'http://localhost:11434/api/chat', `wrong host: ${seen.url}`);
+        assert.equal(seen?.url, '/api/chat', `wrong route: ${seen?.url}`);
         assert.equal(seen.auth, undefined, 'a keyless connection sent an Authorization header');
     } finally {
         restore();

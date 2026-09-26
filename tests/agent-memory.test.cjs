@@ -115,6 +115,34 @@ describe('store', () => {
         assert.equal(again.created, false, 'a full project still takes an update');
         assert.equal((await m.readIndex(p)).notes.length, m.MAX_NOTES);
     });
+
+    // MPI-774 Phase 6 (Fabio, 2026-09-18; built 2026-09-26): notes that hold across every
+    // project live in app data, beside the attachments, so no one project owns them. Same
+    // shape as a project's: a README index of pointer lines, one note a file, same caps.
+    test('global notes live in app data, apart from every project, in the same README shape', async () => {
+        const m = await mem();
+        const prev = process.env.APP_USER_DATA;
+        process.env.APP_USER_DATA = tempDir('agent-global-');
+        try {
+            assert.deepEqual(await m.readGlobalIndex(), { notes: [] }, 'nothing before the first note');
+            const w = await m.writeGlobalNote({ file: 'house-style.md', title: 'House style', hook: 'every image', text: 'Warm light, 35mm.' });
+            assert.deepEqual(w, { file: 'house-style.md', created: true });
+
+            const dir = path.join(process.env.APP_USER_DATA, 'agent', 'memory');
+            assert.equal(fs.readFileSync(path.join(dir, 'house-style.md'), 'utf8'), 'Warm light, 35mm.\n');
+            assert.match(fs.readFileSync(path.join(dir, 'README.md'), 'utf8'), /^- \[House style\]\(house-style\.md\): every image$/m);
+            assert.deepEqual((await m.readGlobalIndex()).notes, [{ title: 'House style', file: 'house-style.md', hook: 'every image' }]);
+            assert.equal((await m.readGlobalNote('house-style.md')).text, 'Warm light, 35mm.\n');
+
+            // A project's notes and the global ones never mix.
+            const p = makeProject();
+            assert.deepEqual(await m.readIndex(p), { notes: [] });
+            await rejectsWith(m.readGlobalNote('../project.json'), 'BAD_REQUEST');
+            await rejectsWith(m.writeGlobalNote({ file: 'big.md', title: 't', text: 'x'.repeat(m.MAX_NOTE_BYTES + 1) }), 'NOTE_TOO_LONG');
+        } finally {
+            if (prev === undefined) delete process.env.APP_USER_DATA; else process.env.APP_USER_DATA = prev;
+        }
+    });
 });
 
 describe('connector routes', () => {
@@ -159,6 +187,24 @@ describe('connector routes', () => {
         const miss = await fetch(`${base}/connector/memory/nope.md${q(p)}`);
         assert.equal(miss.status, 200);
         assert.deepEqual((await miss.json()).error.code, 'UNKNOWN_NOTE');
+    });
+
+    test('scope=global reads and writes the global notes, and needs no project', async () => {
+        const prev = process.env.APP_USER_DATA;
+        process.env.APP_USER_DATA = tempDir('agent-global-route-');
+        try {
+            const w = await fetch(`${base}/connector/memory`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ scope: 'global', file: 'voice.md', title: 'Voice', text: 'Short replies.' }),
+            }).then((r) => r.json());
+            assert.deepEqual(w, { ok: true, file: 'voice.md', created: true });
+            const list = await fetch(`${base}/connector/memory?scope=global`).then((r) => r.json());
+            assert.deepEqual(list, { ok: true, notes: [{ title: 'Voice', file: 'voice.md', hook: '' }] });
+            const one = await fetch(`${base}/connector/memory/voice.md?scope=global`).then((r) => r.json());
+            assert.deepEqual(one, { ok: true, file: 'voice.md', text: 'Short replies.\n' });
+        } finally {
+            if (prev === undefined) delete process.env.APP_USER_DATA; else process.env.APP_USER_DATA = prev;
+        }
     });
 
     test('there is no delete route for notes', async () => {

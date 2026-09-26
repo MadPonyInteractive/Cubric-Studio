@@ -265,10 +265,15 @@ test('a chat that never answers times out with a message that names the endpoint
     global.fetch = (_url, init) => new Promise((_resolve, reject) => {
         init?.signal?.addEventListener('abort', () => reject(init.signal.reason));
     });
+    // Ollama chat is `node:http`, not `fetch` (MPI-817: fetch drops a response whose headers
+    // take over 300 s), so the stub above cannot hold it: a host that never answers can.
+    // Pointed at localhost:11434, this test reached a REAL Ollama.
+    const silent = require('node:http').createServer(() => { /* never answers */ });
+    await new Promise((r) => silent.listen(0, '127.0.0.1', r));
     try {
         for (const [engine, name] of [
             [new DeepInfraEngine('k', 'https://api.example/v1', { id: 'deepinfra', name: 'DeepInfra' }), 'DeepInfra'],
-            [new OllamaEngine('http://localhost:11434'), 'Ollama'],
+            [new OllamaEngine(`http://127.0.0.1:${silent.address().port}`), 'Ollama'],
         ]) {
             engine.timeoutMs = 25;
             const err = await engine.chat({ model: 'm', messages: [] }).then(() => null, (e) => e);
@@ -276,5 +281,9 @@ test('a chat that never answers times out with a message that names the endpoint
             assert.equal(err.code, 'TIMEOUT', `${name}: ${err.message}`);
             assert.match(err.message, /did not answer within/);
         }
-    } finally { global.fetch = real; }
+    } finally {
+        global.fetch = real;
+        silent.closeAllConnections();
+        await new Promise((r) => silent.close(r));
+    }
 });

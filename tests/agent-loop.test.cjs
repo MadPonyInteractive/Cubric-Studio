@@ -902,30 +902,77 @@ describe('(f) endpoint key resolution', () => {
         assert.equal(hosted.contextWindow, null, 'a hosted endpoint reports its own window');
     });
 
+    /**
+     * An Ollama host the test owns (MPI-817). Chat goes over `node:http`, not `fetch`, so a
+     * `global.fetch` stub no longer covers it: pointed at localhost:11434 these tests would
+     * reach a REAL Ollama. `sent` collects each request's body.
+     */
+    async function withFakeOllama(answer, fn) {
+        const sent = [];
+        const server = require('node:http').createServer((req, res) => {
+            let body = '';
+            req.on('data', (c) => { body += c; });
+            req.on('end', () => {
+                sent.push({ url: req.url, body: JSON.parse(body) });
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify(answer));
+            });
+        });
+        await new Promise((r) => server.listen(0, '127.0.0.1', r));
+        try {
+            return await fn(`http://127.0.0.1:${server.address().port}`, sent);
+        } finally {
+            await new Promise((r) => server.close(r));
+        }
+    }
+
+    test('Ollama chat is posted WITHOUT fetch, so the 300 s headers limit cannot reach it', async () => {
+        // Node's fetch drops any response whose HEADERS take over 300 s, whatever `signal`
+        // says, and a non-streamed Ollama chat sends its headers only with the whole answer:
+        // the 10-minute OLLAMA_CHAT_TIMEOUT_MS was really 5 (MPI-817). The limit is 300 s, so
+        // what is pinned is the transport: a dead `fetch` must not matter.
+        const { OllamaEngine } = await import('../services/llmEngines.mjs');
+        const origFetch = global.fetch;
+        global.fetch = async () => { throw new TypeError('fetch failed'); };
+        try {
+            await withFakeOllama({ message: { content: 'a prompt' } }, async (host, sent) => {
+                const res = await new OllamaEngine(host).chat({ model: 'm', messages: [{ role: 'user', content: 'hi' }] });
+                assert.equal(res.text, 'a prompt');
+                assert.equal(sent[0].url, '/api/chat');
+            });
+        } finally { global.fetch = origFetch; }
+    });
+
+    test('an Ollama that never answers is a TIMEOUT, named, not a hang', async () => {
+        const { OllamaEngine } = await import('../services/llmEngines.mjs');
+        const server = require('node:http').createServer(() => { /* never answers */ });
+        await new Promise((r) => server.listen(0, '127.0.0.1', r));
+        try {
+            const engine = new OllamaEngine(`http://127.0.0.1:${server.address().port}`);
+            engine.timeoutMs = 150;
+            await assert.rejects(engine.chat({ model: 'm', messages: [] }), (err) => err.code === 'TIMEOUT' && /Ollama did not answer within/.test(err.message));
+        } finally {
+            server.closeAllConnections();
+            await new Promise((r) => server.close(r));
+        }
+    });
+
     test('Ollama tool calls are translated into the dialect the loop speaks', async () => {
         const { OllamaEngine } = await import('../services/llmEngines.mjs');
         // Three differences, each of which fails QUIETLY rather than erroring.
-        const sent = [];
-        const origFetch = global.fetch;
-        global.fetch = async (url, opts) => {
-            sent.push({ url, body: JSON.parse(opts.body) });
-            return {
-                ok: true,
-                json: async () => ({
-                    message: {
-                        content: '',
-                        // 1. arguments is an OBJECT here; OpenAI gives a JSON string, and the
-                        //    loop JSON.parses it — an object throws and every tool would run
-                        //    with no arguments at all.
-                        tool_calls: [{ function: { name: 'generate', arguments: { modelId: 'krea2' } } }],
-                    },
-                    prompt_eval_count: 1200,
-                    eval_count: 34,
-                }),
-            };
+        const answer = {
+            message: {
+                content: '',
+                // 1. arguments is an OBJECT here; OpenAI gives a JSON string, and the
+                //    loop JSON.parses it — an object throws and every tool would run
+                //    with no arguments at all.
+                tool_calls: [{ function: { name: 'generate', arguments: { modelId: 'krea2' } } }],
+            },
+            prompt_eval_count: 1200,
+            eval_count: 34,
         };
-        try {
-            const engine = new OllamaEngine('http://localhost:11434');
+        await withFakeOllama(answer, async (host, sent) => {
+            const engine = new OllamaEngine(host);
             const res = await engine.chat({
                 model: 'm',
                 tools: [{ type: 'function', function: { name: 'generate' } }],
@@ -954,27 +1001,22 @@ describe('(f) endpoint key resolution', () => {
             const assistant = body.messages.find(m => m.role === 'assistant');
             assert.deepEqual(assistant.tool_calls[0].function.arguments, { image: 'a.png' }, 'an object on the wire');
             assert.equal(body.messages.find(m => m.role === 'tool').tool_name, 'look');
-        } finally { global.fetch = origFetch; }
+        });
     });
 
     test('a non-agent Ollama call keeps the 8k window and gains no tool keys', async () => {
         const { OllamaEngine } = await import('../services/llmEngines.mjs');
         // Enhance and describe share this client. They destructure { text }, so the new
         // keys must not reach them and the window must not move under them.
-        let body = null;
-        const origFetch = global.fetch;
-        global.fetch = async (_url, opts) => {
-            body = JSON.parse(opts.body);
-            return { ok: true, json: async () => ({ message: { content: 'a prompt' } }) };
-        };
-        try {
-            const res = await new OllamaEngine().chat({ model: 'm', messages: [{ role: 'user', content: 'hi' }] });
+        await withFakeOllama({ message: { content: 'a prompt' } }, async (host, sent) => {
+            const res = await new OllamaEngine(host).chat({ model: 'm', messages: [{ role: 'user', content: 'hi' }] });
+            const body = sent[0].body;
             assert.equal(body.options.num_ctx, 8192);
             assert.equal(body.tools, undefined);
             assert.equal(res.text, 'a prompt');
             assert.equal(res.toolCalls, undefined);
             assert.equal(res.usage, null, 'no counts reported, no invented ones');
-        } finally { global.fetch = origFetch; }
+        });
     });
 
     test('any other keyless connection is still refused, and nothing is spent', async () => {
@@ -1140,6 +1182,64 @@ describe('(h) notes, results, names, guides', () => {
         assert.deepEqual(tools.calls.writeMemory, [{ folderPath: '/project', file: 'ratio.md', title: 'Ratio', hook: undefined, text: '16:9' }]);
         assert.deepEqual(tools.calls.readMemory.at(-1), { folderPath: '/project', file: 'ratio.md' });
         assert.equal(loop.getHistory().entries.find((e) => e.tool === 'write_memory').label, 'Noted: Ratio');
+    });
+
+    // MPI-774 Phase 6: global notes (Fabio, 2026-09-18). Saved only when the user asks, read
+    // from anywhere, the landing page included: no project owns them.
+    function withGlobal(tools, notes = []) {
+        tools.calls.readGlobalMemory = [];
+        tools.calls.writeGlobalMemory = [];
+        tools.readGlobalMemory = async (file) => {
+            tools.calls.readGlobalMemory.push({ file });
+            return file ? { ok: true, file, text: 'Warm light.' } : { ok: true, notes };
+        };
+        tools.writeGlobalMemory = async (note) => {
+            tools.calls.writeGlobalMemory.push(note);
+            return { ok: true, file: note.file, created: true };
+        };
+    }
+
+    test('scope global writes and reads the global notes, with no project open', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('w1', 'write_memory', { scope: 'global', file: 'house-style.md', title: 'House style', text: 'Warm light.' }),
+            call('r1', 'read_memory', { scope: 'global', file: 'house-style.md' }),
+            { text: 'Saved for every project.' },
+        ] });
+        withMemory(tools);
+        withGlobal(tools);
+        await loop.runTurn('Save that globally: I always want warm light', [], null, 'auto', 'deepinfra', 't-global');
+        assert.deepEqual(tools.calls.writeGlobalMemory, [{ file: 'house-style.md', title: 'House style', hook: undefined, text: 'Warm light.' }]);
+        assert.equal(tools.calls.writeMemory.length, 0, 'nothing went to a project');
+        assert.deepEqual(toolResults(loop).map((r) => r.ok), [true, true]);
+        assert.equal(loop.getHistory().entries.find((e) => e.tool === 'write_memory').label, 'Noted for every project: House style');
+    });
+
+    test('the global notes are listed once, at the start of a conversation', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [{ text: 'Hi.' }, { text: 'Again.' }] });
+        withMemory(tools);
+        withGlobal(tools, [{ file: 'house-style.md', title: 'House style', hook: 'every image' }]);
+        await loop.runTurn('Hello', [], project, 'auto', 'deepinfra', 't-g1');
+        await loop.runTurn('Hello again', [], project, 'auto', 'deepinfra', 't-g2');
+        const [first, second] = userMessages(loop);
+        assert.match(first, /\[Global notes[^\]]*\n- house-style\.md: House style \(every image\)\]/);
+        assert.doesNotMatch(second, /Global notes/, 'listed once, not every turn');
+    });
+
+    test('asked what it remembers, the agent knows it keeps both: per project and global', async () => {
+        const { loop } = await makeLoop();
+        const rule = (await loop._buildSystemPrompt('auto')).split('\n').find((l) => l.startsWith('Memory rule:'));
+        assert.match(rule, /per project and global/);
+        assert.match(rule, /only when asked/, 'global is the user\'s call, never the agent\'s judgement');
+    });
+
+    test('the tools say global is only for what the user asks to keep for every project', async () => {
+        const { TOOL_DEFS } = await import('../services/agentLoop.mjs');
+        for (const name of ['read_memory', 'write_memory']) {
+            const scope = TOOL_DEFS.find((t) => t.function.name === name).function.parameters.properties.scope;
+            assert.deepEqual(scope?.enum, ['project', 'global'], name);
+        }
+        const write = JSON.stringify(TOOL_DEFS.find((t) => t.function.name === 'write_memory'));
+        assert.match(write, /only when the user asks/);
     });
 
     test('with no project open there are no notes to read or write', async () => {
@@ -1662,7 +1762,7 @@ describe('(i) the catalogue diet', () => {
     // turn, by which time it had already promised him a picture.
     test('a dispatch refused before anything is queued is refused IN-TURN, never "started"', async () => {
         const noGuide = { ...catalogue, models: [{ ...catalogue.models[0], guides: [] }] };
-        const { loop, tools } = await makeLoop({ engineResponses: [
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [
             call('g1', 'generate', { modelId: 'one-note', operation: 't2i', prompt: 'a cowgirl on a bull', styleSelect: 'Dark Brush' }),
             { text: 'ok' },
         ] });
@@ -1681,6 +1781,12 @@ describe('(i) the catalogue diet', () => {
         assert.match(r.error.message, /Nothing was generated/);
         assert.match(r.error.message, /describe_model with "one-note"/, 'and where the accepted values are');
         assert.equal(loop._notes.length, 0, 'nothing waiting for next turn: it already has it');
+        // The step line said "Starting generation" over a refusal, so a refused round and
+        // its retry read as two runs (MPI-817). The done frame corrects the line by id.
+        const done = fakeRes.events.find((e) => e.event === 'agent:tool' && e.data.tool === 'generate' && e.data.status === 'done');
+        assert.equal(done.data.refused, true);
+        assert.equal(done.data.label, 'Generation not started');
+        assert.equal(loop._history.find((h) => h.tool === 'generate').label, 'Generation not started', 'a remount redraws the corrected line');
     });
 });
 
@@ -1745,7 +1851,7 @@ describe('(k) a look is made once and kept with the card', () => {
     function withStore(tools, kept = new Map()) {
         tools.calls.storeLook = [];
         tools.storedLook = async (imagePath, itemId) => kept.get(itemId) || null;
-        tools.storeLook = async (imagePath, itemId, text) => { tools.calls.storeLook.push({ itemId, text }); kept.set(itemId, text); };
+        tools.storeLook = async (imagePath, itemId, text, describer) => { tools.calls.storeLook.push({ itemId, text, ...(describer && { describer }) }); kept.set(itemId, text); };
         return kept;
     }
 
@@ -1756,10 +1862,12 @@ describe('(k) a look is made once and kept with the card', () => {
             { text: 'Done.' },
         ] });
         withStore(tools);
+        // Fabio, 2026-09-21: the kept text says WHICH describer wrote it (the route reports it).
+        tools.look = async (args) => { tools.calls.look.push(args); return { ok: true, output: { text: 'A generated image showing a fox.', describer: 'google/gemma-4-26B-A4B-it' } }; };
         await loop.runTurn('Make a fox and tell me what you see', [], project, 'auto', 'deepinfra', 't-once');
 
         assert.equal(tools.calls.look.length, 1, 'one picture, one vision call');
-        assert.deepEqual(tools.calls.storeLook, [{ itemId: 'item-1', text: 'A generated image showing a fox.' }]);
+        assert.deepEqual(tools.calls.storeLook, [{ itemId: 'item-1', text: 'A generated image showing a fox.', describer: 'google/gemma-4-26B-A4B-it' }]);
         const looked = toolResults(loop).at(-1);
         assert.equal(looked.ok, true);
         assert.equal(looked.output.text, 'A generated image showing a fox.', 'the kept description is what the model reads');

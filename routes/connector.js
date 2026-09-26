@@ -302,23 +302,35 @@ function _activeSubscriber() {
   for (const client of _jobSubscribers) last = client; // Set preserves insertion order
   return last;
 }
-/** jobId -> { settle, timer } for generations awaiting a renderer result. */
+/** jobId -> { settle, client } for jobs awaiting a renderer result; `client` is the window that took it. */
 const _pendingJobs = new Map();
 
-// A generation queued behind others can legitimately run for a long time. This
-// only bounds how long the HTTP caller waits — the generation itself carries on
-// in the app, and its card still lands.
-// ponytail: one flat ceiling, no per-op tuning. Split it per mediaType if a real
-// video queue starts tripping it.
-const JOB_TIMEOUT_MS = 30 * 60 * 1000;
+// NO CLOCK on a job (Fabio, 2026-09-26: "We shouldn't have a clock"). A job ends when the
+// renderer reports it, when it is cancelled (which reports it), or when the window that
+// took it goes away - `_settleWindowJobs`, the one case a timer was ever really catching.
+// A 30-minute ceiling answered TIMEOUT over renders still queued: three 15 s videos on his
+// GPU can take an hour and a half, and the caller then counted them finished.
 
 function _settleJob(jobId, payload) {
   const pending = _pendingJobs.get(jobId);
-  if (!pending) return false; // already settled, or timed out
-  clearTimeout(pending.timer);
+  if (!pending) return false; // already settled
   _pendingJobs.delete(jobId);
   pending.settle(payload);
   return true;
+}
+
+/** The window that took these jobs is gone, and its queue with it: nothing will report them. */
+function _settleWindowJobs(client) {
+  for (const [jobId, pending] of _pendingJobs) {
+    if (pending.client !== client) continue;
+    _settleJob(jobId, {
+      ok: false,
+      error: {
+        code: 'WINDOW_CLOSED',
+        message: 'The app window closed or reloaded before this finished, so nothing is waiting on it now. It may not land: check the gallery, and send it again if it is missing.',
+      },
+    });
+  }
 }
 
 /**
@@ -342,20 +354,8 @@ function _dispatchToRenderer(capability, input, jobId = randomUUID()) {
   const frame = `event: job\ndata: ${JSON.stringify({ jobId, capability, input })}\n\n`;
 
   return new Promise((resolve) => {
-    const timer = setTimeout(() => {
-      _pendingJobs.delete(jobId);
-      resolve({
-        ok: false,
-        error: {
-          code: 'TIMEOUT',
-          message: `No result within ${Math.round(JOB_TIMEOUT_MS / 60000)} minutes. The generation may still be running in the app.`,
-        },
-      });
-    }, JOB_TIMEOUT_MS);
-    // Don't hold the process open on a job nobody is waiting for.
-    if (typeof timer.unref === 'function') timer.unref();
-
-    _pendingJobs.set(jobId, { settle: resolve, timer });
+    const pending = { settle: resolve, client: null };
+    _pendingJobs.set(jobId, pending);
 
     // Deliver to ONE renderer. A dead socket is dropped and the next-newest gets
     // it, so a window that closed without its close handler firing costs a retry
@@ -374,6 +374,7 @@ function _dispatchToRenderer(capability, input, jobId = randomUUID()) {
       }
       try {
         client.write(frame);
+        pending.client = client;
         return;
       } catch {
         _jobSubscribers.delete(client);
@@ -407,6 +408,7 @@ router.get('/connector/jobs/stream', (req, res) => {
 
   req.on('close', () => {
     _jobSubscribers.delete(res);
+    _settleWindowJobs(res);
   });
 });
 
@@ -912,19 +914,23 @@ async function _memoryReply(res, work) {
  *   GET  /connector/memory?folderPath=        -> { ok, notes: [{ title, file, hook }] }
  *   GET  /connector/memory/:file?folderPath=  -> { ok, file, text }
  *   POST /connector/memory { folderPath, file, title, hook?, text } -> { ok, file, created }
+ * `scope=global` (query, or `scope: 'global'` in the POST body) is the GLOBAL notes in app
+ * data instead, and takes no folderPath (MPI-774 Phase 6).
  * No delete route: the in-app agent never deletes (Fabio, 2026-09-16), and an outside
  * agent can remove a note file itself. Errors: BAD_REQUEST (400), NOT_A_PROJECT,
  * UNKNOWN_NOTE, NOTE_TOO_LONG, MEMORY_FULL.
  */
 router.get('/connector/memory', (req, res) =>
-  _memoryReply(res, (m) => m.readIndex(req.query.folderPath)));
+  _memoryReply(res, (m) => (req.query.scope === 'global' ? m.readGlobalIndex() : m.readIndex(req.query.folderPath))));
 
 router.get('/connector/memory/:file', (req, res) =>
-  _memoryReply(res, (m) => m.readNote(req.query.folderPath, req.params.file)));
+  _memoryReply(res, (m) => (req.query.scope === 'global'
+    ? m.readGlobalNote(req.params.file)
+    : m.readNote(req.query.folderPath, req.params.file))));
 
 router.post('/connector/memory', (req, res) => {
-  const { folderPath, ...note } = req.body || {};
-  return _memoryReply(res, (m) => m.writeNote(folderPath, note));
+  const { folderPath, scope, ...note } = req.body || {};
+  return _memoryReply(res, (m) => (scope === 'global' ? m.writeGlobalNote(note) : m.writeNote(folderPath, note)));
 });
 
 let _cardsMod = null;

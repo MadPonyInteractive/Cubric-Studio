@@ -136,7 +136,60 @@ written back a captured copy. Decision taken, his to reverse: `mark_card` has NO
 the external `cubric-vision` skill documents them (`projects.md` § Marks and what the user can
 see). 1588 tests, 0 fail. **Nothing is committed yet.**
 
-## Current State (2026-09-20, session 5d913141)
+## Current State (2026-09-26, session 43718bac, from handoff b12a5213)
+
+Reconciled against the board and the code; the dated updates below are history. **Every member
+but MPI-774 is `done`** (816, 820, 839, 840 closed 09-21; the wake is MPI-870, closed 09-21).
+Phases A, E, F and the Phase C first piece are finished. What is actually left:
+
+1. **MPI-774 closure, Fabio's to give.** (a) The pinned settings panel's five steps
+   (`tasks/MPI-774/validation.md` § "Fabio's check in the app") were never verdicted.
+   (b) Yes or no: raw `injectionParams` still merge over the resolved params while pinned
+   (`js/shell/agentDispatch.js:536-538`). One line. Its `attention` (Phase 5 pass, 09-17) is stale.
+2. **Phase B, global memory (MPI-774 Phase 6).** Not built. The v1 spec is written (four items),
+   `user-ux`. Build here, or defer to its own card: his call.
+3. **Phase D, model skill packs: the sanitised version EXISTS.** Every shipped model (36/36,
+   `guideIdsByModel()`) has a guide in `docs/agent/models/<recipe>.md`, written from the vendor
+   pack, gated before a first prompt, with the two-hop split already built (`guide:<id>/<topic>`,
+   Seedance 2.0 uses it) and H3's arc/roll gap closed. `isVisionSkill` filters the HTTP skills only,
+   so it is not the gap. Left, if anything: re-pull BFL's pack (moved to FLUX 3) and re-judge
+   Krea's for the agent. Fabio 2026-09-26: this is needed; re-scoped here, not rebuilt.
+**Round 2, same session (suite 1973 / 0 fail):** Fabio PASSED the pinned panel; its follow-up ("close
+the settings panel and I'll pick") is built. **No clock on a job** (his call): the route's
+30 minutes is gone, a closing window settles its own jobs `WINDOW_CLOSED`, MCP's job record
+lives an hour past its END. **Global memory (Phase B) is BUILT**, owes his three live checks
+(`validation.md` last section). Open with him: the big-batch report shape (350 cards).
+
+**Built 2026-09-26, suite 1964 / 0 fail (`validation.md` § Session 43718bac):** items 1b (raw
+`injectionParams` dropped while pinned, Fabio's yes), 4 (all but the clock) and 5 (proven live on
+DeepInfra). **Next:** Fabio's pinned-panel check (1a); his call on the 30-minute clock (a design
+change, below); Phase B's shape; then `mpi-end-session`, whose handoff points at MPI-941.
+
+4. **Five small defects, each confirmed in today's code:** `settleThrow` never logs `err.cause`
+   (`agentLoop.mjs:1734`); a refused `generate` still reads "Starting generation" (`:2502`); Ollama chat
+   is `stream:false` over Node `fetch`, so its 600 s budget dies at the 300 s headers limit
+   (`llmEngines.mjs:139-144`, `:223`); a held dispatch's 30-minute clock starts at dispatch
+   (`agentTools.mjs:108`, derived, never measured); a stored look does not record WHICH describer
+   wrote it (asked for by Fabio 09-21; `storeLook` writes text only).
+5. **One unproven path:** the tools-off `OUT_OF_ROUNDS` closing call has never run against a real
+   provider (no live turn has reached 16 rounds).
+
+Watch-only, no build: the agent ending an Auto-mode turn on a question; a note generalising from two
+runs; the `__ARG__` project (Fabio's to delete); Ollama's free cloud models (unconfirmed research).
+
+## Plan Drift
+
+- **2026-09-26 (session 43718bac):** members closed since 09-20: MPI-816, 820, 839, 840 (all 09-21),
+  and the wake/batch design became MPI-870 (closed 09-21). Items owned elsewhere now, dropped here:
+  hand the Flow back -> **MPI-892** (todo, under MPI-889); model knowledge in a skill vs the prompt ->
+  **MPI-903** (done); the Ollama picker telling the user nothing -> **MPI-912** (done); the NSFW flag on
+  Qwen3-VL-30B -> moot, MPI-912 removed its agent flag at 7/22 and `describe` moved to gemma-4-26B;
+  the deliberation leak -> MPI-891's `reasoningEffort: 'low'` on the default model. Found already
+  fixed: `NO_PROJECT` now tells the agent to call `create_project` (`agentLoop.mjs:1518`), and
+  create-project matches a name case-insensitively (`routes/connector.js:657`). The i2v centre-crop
+  item was built 09-19 (Shape rule + `imageSize`) and simply never ticked.
+
+## Current State history (2026-09-20, session 5d913141)
 
 Phase E and the video hand-off PASSED LIVE 19:02Z (`validation.md` § LIVE PASS): one message
 with a video chip, `gif.make` then `gif.cutout`, no `list_cards` first. The video fix was not in
