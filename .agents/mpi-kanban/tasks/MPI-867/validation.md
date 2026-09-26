@@ -20,8 +20,15 @@
 
 ## User-UX - VERIFIED (Fabio, 2026-09-26): the video chip works after a reload
 
-Every drop path is now verified by Fabio. Left for close-out: the restyle Model-rule decision
-(plan.md Plan Drift b).
+Every drop path is now verified by Fabio.
+
+## Restyle escalation (fold-in b) - Fabio's decision, 2026-09-26
+
+Fabio: keep i2i first for a restyle, because 2D cartoons came out well on i2i even at low
+denoise. When it fails, the agent switches approach instead of turning the slider again.
+The Model rule and the i2i op note now say so.
+`node --test tests/model-priority.test.cjs tests/agent-loop.test.cjs` -> 130 tests: 129 pass,
+0 fail, 1 skipped. eslint is clean on the three touched files.
 
 ## CI
 

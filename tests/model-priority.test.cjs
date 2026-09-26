@@ -64,6 +64,9 @@ test('an i2i op carries the technique note as well as the model note (MPI-817)',
     assert.match(illAnime, /anime/, 'the model note survives');
     assert.match(illAnime, /repaints the whole picture from the WORDS/, 'the i2i note is appended');
     assert.match(illAnime, /denoise/, 'and it names the brake');
+    // MPI-867, Fabio 2026-09-26: a "convert to 3D" i2i missed and the agent kept re-running it
+    // at other denoise values. A miss switches technique; it never turns the same slider again.
+    assert.match(illAnime, /next try is an edit op, never this op at another denoise/);
 
     // Every i2i op gets it, not just the one that broke.
     assert.match(opPriority('krea2', 'i2i').note, /repaints the whole picture/);

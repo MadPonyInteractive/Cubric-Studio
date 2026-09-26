@@ -38,13 +38,8 @@ file asks the user to open or create a project first. The landing chat never cop
 
 ## Current State
 
-2026-09-26 (handoff): steps 1-6 plus fold-in (a) are committed. Fabio verified the image
-card drop, the OS-file drop (it lands as a card) and that the prompt box no longer takes the
-drop. The landing-page drop is accepted as gallery-only. NEXT: (1) Fabio re-checks the video
-chip after a reload (fix: `_posterOf` in mediaActions.js). (2) Fabio decides the Model-rule
-wording (fold-in b, see Plan Drift). Proposed: a look a model is BUILT to paint goes to that
-model's i2i; a look no installed model paints (3D, clay, watercolour) goes to the edit task.
-Then close out with mpi-end-session.
+2026-09-26: ALL DONE. Every drop is verified by Fabio, the video chip included. Fold-in (b)
+is implemented on Fabio's call (see Plan Drift). NEXT: close out with mpi-end-session.
 Not done: while you drag a card over the agent panel, the prompt box still shows its "armed"
 highlight (its window dragenter). This is cosmetic only, because the drop no longer reaches it.
 
@@ -63,7 +58,11 @@ User-ux check only.
   agentLoop.mjs echoes the sent settings on generate's result; test in
   agent-loop.test.cjs. (b) "Convert this to 3D" went to i2i per the Model rule. That rule
   exists because on 2026-09-21 "make this anime" on Klein edit dressed the subject
-  (tests/model-priority.test.cjs:59). PENDING Fabio's call on the wording.
+  (tests/model-priority.test.cjs:59). DECIDED by Fabio: do not pick the task by look. 2D
+  cartoons went well on i2i, even at low denoise. So a restyle stays i2i FIRST, and a miss
+  switches technique instead of running the same op again at another denoise. That wording
+  is now in the Model rule (agentLoop.mjs) and in the i2i op note (modelPriority.js), pinned
+  in model-priority.test.cjs. It enforces the "edit only on escalation" half of MPI-817.
 
 - 2026-09-26: `tests/agent-card-reference.test.cjs` pinned the old "the landing chat copies"
   rule. Rewritten for Fabio's new rule: ask for a project, never copy.

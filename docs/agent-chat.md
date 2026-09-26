@@ -359,6 +359,12 @@ a rank attached to the WORK, and it will cross a task boundary to reach a 1: ask
 with Krea 2 it ran `krea2 i2i` and cited "its best realism op, rank 1" (live, harness
 `ranked-editor`). Ranks compare ops within one task only.
 
+**A restyle is i2i first; a miss switches technique (MPI-867, Fabio's call).** The rule does not
+try to predict which looks a model can paint. 2D cartoons came out well on i2i, even at low
+denoise. When the result misses, the next try is the edit task, never the same i2i at another
+denoise: "convert to 3D" was re-run five times on i2i while the agent claimed denoise values it
+never sent. Both the Model rule and the i2i op note say this.
+
 ## Agent surfaces (Phase 5)
 
 - **Stop stays reachable while the agent generates.** The agent has no cancel tool and will not get
