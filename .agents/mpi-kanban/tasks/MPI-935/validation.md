@@ -17,5 +17,6 @@
 - CI green on the code commit `c792794d` (Tests run 36223504102: unit + desktop 1-4).
 - Claim auditor: 14 PROVEN, 0 FALSE (2 unproven = the boot/lint runs above, not re-runnable
   read-only).
+- 2026-09-26, Fabio: live AV test SKIPPED - testers confirm on the next build (see plan.md).
 - Not done: live handshake through an AV/mitmproxy root (needs a CA installed into the
   Windows user store - Fabio's call).

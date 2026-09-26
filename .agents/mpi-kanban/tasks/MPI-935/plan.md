@@ -27,7 +27,10 @@ Shipped in `c792794d`, CI green; card closed 2026-09-26.
   `docs/releases/UNRELEASED.md` § Fixes.
 
 ## Remaining Work
-- Optional: live check through an AV / mitmproxy root (Fabio's call - installs a CA).
+- None. Live AV / mitmproxy check SKIPPED by Fabio's decision (2026-09-26): installing a
+  test root CA on his machine is a real trust risk, and the unit test already proves the
+  mechanism. Confirmation comes from testers with HTTPS-scanning AV on the next build. Do
+  not re-raise; Windows Sandbox is the route if a live proof is ever wanted.
 
 ## Plan Drift
 - 2026-09-26: brief scoped only `server.js`; `main.js` update check is the same bug, folded in.
