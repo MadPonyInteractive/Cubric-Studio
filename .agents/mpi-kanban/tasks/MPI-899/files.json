@@ -1,0 +1,6 @@
+{
+  "files": [
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+    "tests/desktop/prompt-box-badge.spec.js"
+  ]
+}

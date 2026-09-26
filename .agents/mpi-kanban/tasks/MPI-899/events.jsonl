@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-899", "at": "2026-09-22T22:51:19+01:00", "actor": "303bd49c", "column": "todo", "title": "Prompt box badge shows the previous model's batch count (x4 on Krea 2, which cannot batch)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-899", "at": "2026-09-22T22:51:52+01:00", "actor": "303bd49c", "from": "todo", "to": "doing", "reason": "investigating the badge x4 on Krea 2"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-899", "at": "2026-09-26T17:18:54+01:00", "actor": "ab9e6fd6", "from": "doing", "to": "done", "reason": "Can't repro (Fabio, 2026-09-26). Logging fixes shipped; reopen if it bites again."}
