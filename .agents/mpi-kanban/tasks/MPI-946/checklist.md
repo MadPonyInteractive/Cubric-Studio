@@ -10,5 +10,5 @@
 - [x] live: `_transcribe` against DeepInfra with Fabio's key - exact text back; a bad key maps to NO_KEY
 - [x] live, `app:isolated` renderer: greyed + "needs a key" with no key; key appears -> enabled via `models:checked`; click record -> real route -> NO_KEY toast; stubbed success inserts at the caret with a space; hold Ctrl+Space fills the FOCUSED box, one request despite autorepeat, Ctrl-up first keeps recording, Space-up stops; translate toggle sends `?translate=1`
 - [x] docs: `docs/dictation.md` + a row in `docs/README.md`
-- [ ] privacy page: Dictation paragraph written in the Website repo, NOT pushed - needs Fabio's yes
-- [ ] Fabio: one real dictation in his own app (his mic, his key) - the only path not run end to end
+- [x] privacy page: Dictation section pushed with Fabio's yes (Website repo 9ff2e4e)
+- [x] Fabio: one real dictation in his own app (his mic, his key) - works after a full restart
