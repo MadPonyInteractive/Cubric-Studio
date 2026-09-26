@@ -5050,3 +5050,6 @@
 
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-934", "at": "2026-09-25T18:45:11+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 001c3c81; staged SVG stored as PNG."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-932", "at": "2026-09-25T18:48:38+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Phase 2 (MPI-906) starting; umbrella carried by this line"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-935", "at": "2026-09-26T07:03:24+01:00", "actor": "claude", "column": "todo", "title": "Model downloads trust the Windows certificate store, so antivirus HTTPS scanning stops breaking them"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-936", "at": "2026-09-26T07:03:25+01:00", "actor": "claude", "column": "todo", "title": "Qwen-Image 2.1 as a non-commercial model behind a licence gate"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-936", "at": "2026-09-26T07:10:11+01:00", "actor": "claude", "from": "todo", "to": "todo", "reason": "Parked: needs ComfyUI 0.37 engine; no decision yet on bumping before v2.0"}
