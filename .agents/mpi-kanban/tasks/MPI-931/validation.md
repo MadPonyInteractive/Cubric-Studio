@@ -17,5 +17,7 @@ prompt id = no interrupt. No bare `.interrupt()` call is left in js/ (grep).
   prompt_id, Stop after AND before the ack); FAILED against HEAD's code - red first, then green.
 - Related suites: see MPI-930's validation.md (41/41 desktop, 24/24 unit, eslint clean).
 - Not covered by a spec: the generation path's ack-after-abort branch (needs a full pipeline).
-Fabio's live check: PENDING.
+Fabio's live check (2026-09-26 06:57:13Z): engine logged "Prompt a435da2c ... not currently running,
+skipping interrupt" and his render 39002730 finished. Re-run on 58138dcb (queued mode, see MPI-930):
+his render 9133c21b kept running through our Stop. PASSED.
 - CI: run 36223262806 on 2380ed6a SUCCESS (2026-09-26).

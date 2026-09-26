@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-931", "at": "2026-09-25T17:31:12+01:00", "actor": "claude", "column": "todo", "title": "Stop interrupts whatever the shared engine is running, even another instance's job"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-931", "at": "2026-09-26T07:07:48+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "MPI-932 Phase 3a: cancel path, one session"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-931", "at": "2026-09-26T08:31:15+01:00", "actor": "claude:e1d3639f (MPI-932 umbrella)", "from": "doing", "to": "done", "reason": "Live check passed 2026-09-26 on 58138dcb (CI green); evidence in validation.md"}
