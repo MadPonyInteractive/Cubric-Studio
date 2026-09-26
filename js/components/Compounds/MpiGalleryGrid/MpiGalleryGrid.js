@@ -1204,6 +1204,8 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         e.dataTransfer.setData('application/mpi-media', JSON.stringify({
                             groupId: group.id, itemId: s?.id,
                             filePath: s?.filePath, type: group.type,
+                            // The agent panel's chip for a clip (MPI-867).
+                            thumbPath: s?.thumbPath,
                         }));
                         _addDownloadUrl(e, s);
                     });
