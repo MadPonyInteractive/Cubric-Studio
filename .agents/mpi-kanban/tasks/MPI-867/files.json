@@ -1,0 +1,17 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "js/utils/mediaActions.js",
+    "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js",
+    "js/components/Compounds/MpiAgentChat/MpiAgentChat.js",
+    "js/services/mediaImportService.js",
+    "js/events.js",
+    "services/agentLoop.mjs",
+    "tests/agent-attachment-full-res.test.cjs",
+    "tests/agent-video-attachment.test.cjs",
+    "tests/agent-card-reference.test.cjs",
+    "docs/gallery.md",
+    "docs/agent-chat.md",
+    "tests/agent-loop.test.cjs"
+  ]
+}

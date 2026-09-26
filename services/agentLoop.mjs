@@ -20,6 +20,8 @@
  */
 
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 import {
     chatEngineFor,
     OLLAMA_AGENT_CONTEXT,
@@ -1765,12 +1767,12 @@ ${knowledgeIndex}`.trim();
                     // The filePath is the ref the next call passes as `media[].image` — it
                     // is already registered by `settle`, so the chain needs nothing else.
                     return JSON.stringify({ ok: true, output: r.output,
-                        message: `Finished. Use "${r.output?.filePath}" as the image for the next step.${snapNote}` });
+                        message: `Finished. Use "${r.output?.filePath}" as the image for the next step.${snapNote}${_sentNote(body)}` });
                 }
 
                 pending.then(settle).catch(settleThrow);
 
-                return JSON.stringify({ ok: true, started: true, toolCallId, message: `Generation started. The result will appear in the chat when ready.${snapNote}` });
+                return JSON.stringify({ ok: true, started: true, toolCallId, message: `Generation started. The result will appear in the chat when ready.${snapNote}${_sentNote(body)}` });
             }
             case 'look': {
                 const ref = this._resolveImage(args.image);
@@ -2093,7 +2095,13 @@ ${knowledgeIndex}`.trim();
                         contentParts.push({ type: 'text', text: `[Attached image ${i + 1}: ${att.name} (ref: ${att.id}${size ? `, ${size}` : ''}). A gallery card of this project${att.groupId ? ` (groupId ${att.groupId})` : ''}, the version it shows: list_cards with that groupId reads the prompt that made it, and an edit of it lands as that card's next version.]` });
                         continue;
                     }
-                    contentParts.push({ type: 'text', text: `[Attached video ${i + 1}: ${att.name} (ref: ${att.id}). A clip in this project. look cannot open a video: pass the ref to generate as media, or to make_gif.${att.itemId ? '' : ' It is not a gallery card yet, so make_gif cannot take it until list_cards returns it.'}]` });
+                    // MPI-867: a dragged video CARD, same as the image card above: the card joins
+                    // what rename_card / mark_card may name, and the bubble shows its poster.
+                    if (att.groupId) this._groups.add(att.groupId);
+                    const poster = _posterUrl(att.filePath, att.itemId);
+                    if (poster) stagedAttachments.push({ id: att.id, name: att.name, url: poster });
+                    const card = att.groupId ? `A gallery card of this project (groupId ${att.groupId}): list_cards with that groupId reads the prompt that made it.` : 'A clip in this project.';
+                    contentParts.push({ type: 'text', text: `[Attached video ${i + 1}: ${att.name} (ref: ${att.id}). ${card} look cannot open a video: pass the ref to generate as media, or to make_gif.${att.itemId ? '' : ' It is not a gallery card yet, so make_gif cannot take it until list_cards returns it.'}]` });
                     continue;
                 }
                 if (att.id && att.filePath) {
@@ -2412,6 +2420,26 @@ function messageChars(m) {
 /** `/project-file?path=<abs>` for a path the engine (or a Pod) reads by reference. */
 function _projectFileUrl(absPath) {
     return `/project-file?path=${encodeURIComponent(absPath)}`;
+}
+
+/**
+ * What a model-op generate actually SENT, for the tool result (MPI-867). Live 2026-09-26: the
+ * agent told Fabio it raised denoise to 0.65, then 0.85, and the log says `denoise=0.3
+ * (defaulted)` for all five runs: the number was in its reply and never in the call. The result
+ * only said "started", so nothing it read could contradict the claim.
+ */
+const _SENT_KEYS = ['ratio', 'qualityTier', 'turbo', 'duration', 'denoise', 'styleSelect', 'stylization', 'seed'];
+function _sentNote(body) {
+    if (!body.modelId) return '';
+    const sent = _SENT_KEYS.filter((k) => body[k] !== undefined).map((k) => `${k} ${body[k]}`);
+    return ` Settings you sent: ${sent.length ? sent.join(', ') : 'none'}. Every other setting runs at its default. Tell the user only settings listed here; to change one, send it.`;
+}
+
+/** A clip card's 512 poster, for the chat bubble: an <img> cannot paint the mp4 (MPI-867). */
+function _posterUrl(filePath, itemId) {
+    if (!itemId) return '';
+    const poster = path.join(path.dirname(filePath), '.meta', `${itemId}.thumb.webp`);
+    return fs.existsSync(poster) ? _projectFileUrl(poster) : '';
 }
 
 /**

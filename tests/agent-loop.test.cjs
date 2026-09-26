@@ -422,6 +422,22 @@ describe('(c) generate non-blocking', () => {
     });
 
     /**
+     * MPI-867. Live 2026-09-26: the agent told Fabio it raised denoise to 0.65, then 0.85, and
+     * the log said `denoise=0.3 (defaulted)` on all five runs: the number was in its reply and
+     * never in the call. The result has to name what WAS sent, so the claim has something to
+     * contradict it.
+     */
+    test('the generate result names the settings sent, and says the rest ran at defaults', async () => {
+        const { loop } = await makeLoop();
+        const project = { folderPath: '/project', name: 'Test' };
+        const out = JSON.parse(await loop._executeTool('generate',
+            { modelId: 'test-model', operation: 't2i', prompt: 'A fox', ratio: '5:8', wait: true }, 'turn-sent', project));
+        assert.equal(out.ok, true, JSON.stringify(out));
+        assert.match(out.message, /Settings you sent: ratio 5:8\. Every other setting runs at its default\./);
+        assert.doesNotMatch(out.message, /denoise/, 'a denoise never sent is never named');
+    });
+
+    /**
      * MPI-817. Non-blocking is right for the LAST step and wrong for every step something
      * else needs. Live (Fabio, 2026-09-19): "grow the top and bottom edges so the format
      * becomes 9:16, and after that animate it". The outpaint started, the turn ended, the

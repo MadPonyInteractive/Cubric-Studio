@@ -75,10 +75,12 @@ test('the route takes an image by reference too, with its card, only inside the 
     assert.match(branch, /groupId: typeof att\.groupId === 'string'/);
 });
 
-test('the chat sends a dragged card by reference while a project is open, and copies only on the landing page', () => {
+// MPI-867 (Fabio, 2026-09-26): the landing page no longer copies. With no project open the
+// user is asked to open or create one, because what reaches the agent is always a card.
+test('the chat sends a dragged card by reference, and with no project asks for one instead of copying', () => {
     const chat = read('js', 'components', 'Compounds', 'MpiAgentChat', 'MpiAgentChat.js');
-    const fn = chat.slice(chat.indexOf('async function _addCardMedia'), chat.indexOf('function _renderAttachments'));
-    assert.match(fn, /if \(_projectRef\(\) && card\?\.groupId\)/);
-    assert.match(fn, /mediaType: 'image',\s*itemId: card\.itemId \|\| null, groupId: card\.groupId/);
-    assert.ok(fn.indexOf('mediaType: \'image\'') < fn.indexOf('window.fetch'), 'the reference is tried BEFORE the copy');
+    const fn = chat.slice(chat.indexOf('function _needProject'), chat.indexOf('function _addReference'));
+    assert.match(fn, /if \(_projectRef\(\)\) return false;/);
+    assert.match(fn, /Events\.emit\('ui:info', \{ message: 'Open or create a project first/);
+    assert.ok(!chat.includes('window.fetch'), 'nothing is copied: no card is fetched to be restaged');
 });

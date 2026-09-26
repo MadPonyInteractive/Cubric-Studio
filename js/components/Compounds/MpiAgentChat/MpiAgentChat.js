@@ -37,7 +37,8 @@ import { createMascotClipQueue } from '../../../utils/mascotClipQueue.js';
 import { TRANSITIONS, TRANSITION_MS, handOverClip } from '../../../shell/heroCrew.js';
 import { renderIcon }          from '../../../utils/icons.js';
 import { renderMarkdownInto, wireMarkdownLinks } from '../../../utils/markdown.js';
-import { resolveMediaUrl, cardAttachmentSource } from '../../../utils/mediaActions.js';
+import { resolveMediaUrl, cardReference } from '../../../utils/mediaActions.js';
+import { uploadMediaFile }     from '../../../services/mediaUploadService.js';
 import { Events }              from '../../../events.js';
 import { clientLogger }        from '../../../services/clientLogger.js';
 import { state }               from '../../../state.js';
@@ -621,9 +622,10 @@ export const MpiAgentChat = ComponentFactory.create({
                 // DRAWN, not on the array index — a history entry with no dataUrl is
                 // skipped, and a gap in the numbering would name a picture nobody sees.
                 let n = 0;
-                attachments.forEach(({ dataUrl, url, name }) => {
-                    // A card sent by reference (MPI-886) has a url and no dataUrl.
-                    const src = dataUrl || url;
+                attachments.forEach(({ thumb, dataUrl, url, name }) => {
+                    // A card sent by reference (MPI-886) has a url and no dataUrl; a clip's
+                    // url is the mp4, so its poster rides as `thumb` (MPI-867).
+                    const src = thumb || dataUrl || url;
                     if (!src) return;
                     row.appendChild(_attachmentChip(src, name, ++n));
                 });
@@ -1122,51 +1124,38 @@ export const MpiAgentChat = ComponentFactory.create({
             _renderAttachments();
         }
 
-        // Drag-and-drop images → dataUrl attachments
-        function _addImageFile(file) {
-            if (!file.type.startsWith('image/')) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                _pendingAttachments.push({ dataUrl: ev.target.result, name: file.name });
-                _renderAttachments();
-            };
-            reader.readAsDataURL(file);
+        /**
+         * MPI-867 — the agent receives the CARD, never its pixels (Fabio, 2026-09-26): it is
+         * told which card is meant and looks only when the job needs it. Everything reaches it
+         * by reference, so everything must first be a card of the open project. With no
+         * project there is nowhere to make one, so the user is asked for one (Fabio's call).
+         */
+        function _needProject() {
+            if (_projectRef()) return false;
+            Events.emit('ui:info', { message: 'Open or create a project first: what you drop becomes a card there, then goes to the agent.' });
+            return true;
         }
 
-        /**
-         * MPI-884 — a gallery card dropped on the chat attaches the CARD'S FILE, never what
-         * the drag carries. Chromium builds `dataTransfer.files` out of the dragged `<img>`'s
-         * own resource, and that element is the 512 `.thumb.webp` rendition, so the old
-         * `files`-only drop staged a thumbnail: measured byte-identical to
-         * `<itemId>.thumb.webp`, and the agent went on to edit it and report ok. The real path
-         * rides the same drag in `application/mpi-media` — the payload MpiPromptBox's
-         * `_handleMediaDrop` has always read first, and this one never did.
-         * @returns {Promise<boolean>} false = nothing usable here; fall back to the files.
-         */
-        async function _addCardMedia(payload) {
-            const source = cardAttachmentSource(payload);
-            if (!source) return false;
-            // MPI-886: with a project open the card goes BY REFERENCE, nothing copied, so the
-            // agent holds the card itself (its prompt, its history, where an edit lands). The
-            // landing chat has no project to hold a reference in, so it still copies.
-            let card = null;
-            try { card = JSON.parse(payload); } catch { /* cardAttachmentSource already vetted it */ }
-            if (_projectRef() && card?.groupId) {
-                _pendingAttachments.push({ url: source.url, name: source.name, mediaType: 'image',
-                    itemId: card.itemId || null, groupId: card.groupId });
-                _renderAttachments();
-                return true;
-            }
-            try {
-                const res = await window.fetch(source.url);
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const blob = await res.blob();
-                _addImageFile(new File([blob], source.name, { type: blob.type }));
-                return true;
-            } catch (err) {
-                clientLogger.warn('MpiAgentChat', `card attachment fetch failed: ${source.name}`, err);
-                return false;
-            }
+        function _addReference(ref) {
+            _pendingAttachments.push(ref);
+            _renderAttachments();
+        }
+
+        /** A file from the OS becomes a gallery card first — the prompt box's import, not a copy of it. */
+        async function _importFile(file) {
+            const mediaType = file.type.startsWith('image/') ? 'image'
+                            : file.type.startsWith('video/') ? 'video'
+                            : null;
+            if (!mediaType) return;
+            const project = state.currentProject;
+            const uploaded = await uploadMediaFile(file, mediaType, project.folderPath, project.id);
+            if (!uploaded) return;
+            // Named here, before the card exists, so the reference can carry it.
+            const groupId = crypto.randomUUID();
+            Events.emit('media:imported', { ...uploaded, url: uploaded.filePath, mediaType, groupId });
+            const url = resolveMediaUrl(uploaded.filePath);
+            _addReference({ url, name: uploaded.filename, mediaType, itemId: uploaded.itemId, groupId,
+                thumb: uploaded.thumbPath ? resolveMediaUrl(uploaded.thumbPath) : url });
         }
 
         function _renderAttachments() {
@@ -1174,7 +1163,7 @@ export const MpiAgentChat = ComponentFactory.create({
             attachSlot.style.display = _pendingAttachments.length ? '' : 'none';
             attachSlot.innerHTML = '';
             _pendingAttachments.forEach((a, i) => {
-                const chip = _attachmentChip(a.dataUrl || a.url, a.name, i + 1);
+                const chip = _attachmentChip(a.thumb || a.dataUrl || a.url, a.name, i + 1);
                 chip.title = `Click to remove ${a.name}`;
                 on(chip, 'click', () => {
                     _pendingAttachments.splice(i, 1);
@@ -1189,12 +1178,24 @@ export const MpiAgentChat = ComponentFactory.create({
             _unsubs.push(on(el, ev, (e) => e.preventDefault()))
         );
         _unsubs.push(on(el, 'drop', async (e) => {
-            // Both read BEFORE the first await: `dataTransfer` is emptied once the handler
-            // yields, so a card that falls through would find no files left to fall back to.
+            // Handled here, so it goes no further: MpiPromptBox takes every card drop that
+            // reaches `window`, and a drop on this panel landed in both (MPI-867).
+            e.stopPropagation();
+            // Both read BEFORE the first await: `dataTransfer` is emptied once the handler yields.
             const card  = e.dataTransfer?.getData('application/mpi-media');
             const files = e.dataTransfer?.files ? Array.from(e.dataTransfer.files) : [];
-            if (card && await _addCardMedia(card)) return;
-            files.forEach(_addImageFile);
+            if ((!card && !files.length) || _needProject()) return;
+            // A card is the card or nothing: its `files` are the dragged 512 thumbnail (MPI-884).
+            if (card) {
+                const ref = cardReference(card);
+                if (ref) _addReference(ref);
+                return;
+            }
+            for (const file of files) {
+                try { await _importFile(file); } catch (err) {
+                    clientLogger.warn('MpiAgentChat', `import failed: ${file.name}`, err);
+                }
+            }
         }));
 
         // ── Load history on mount ─────────────────────────────────────────────

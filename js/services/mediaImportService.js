@@ -28,7 +28,7 @@ import {
     appendToHistory,
 } from '../data/projectModel.js';
 
-function _buildGroup({ url, filename, itemId, thumbPath, thumbPathLg, proxyPath, wavePath, mediaType, pixelDimensions, fps, duration, frameCount, hasAudio, gif }) {
+function _buildGroup({ url, filename, itemId, thumbPath, thumbPathLg, proxyPath, wavePath, mediaType, pixelDimensions, fps, duration, frameCount, hasAudio, gif, groupId }) {
     const isVideo = mediaType === 'video';
     const isAudio = mediaType === 'audio';
     const dims = pixelDimensions?.w > 0 && pixelDimensions?.h > 0
@@ -86,6 +86,8 @@ function _buildGroup({ url, filename, itemId, thumbPath, thumbPathLg, proxyPath,
         });
 
     const group = createItemGroup(mediaType, {
+        // The agent panel names the card before it exists, to hand it over by reference (MPI-867).
+        ...(groupId ? { id: groupId } : {}),
         name: displayName,
         ...(dims ? { width: dims.w, height: dims.h } : {}),
     });

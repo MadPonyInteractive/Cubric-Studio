@@ -45,37 +45,47 @@ export function resolveMediaUrl(filePath) {
     return `/project-file?path=${encodeURIComponent(filePath.replace(/\\/g, '/'))}`;
 }
 
-/** What `saveAttachment` (services/agentTools.mjs) will stage: JPEG, PNG and WebP, nothing else. */
-const STAGEABLE_STILL = /\.(png|jpe?g|webp)$/i;
-
 /**
- * MPI-884 — the full-resolution file behind a dragged gallery card, for a drop target that
- * wants the PICTURE rather than what the drag happens to carry. `null` = this card has no
- * stageable still to offer, so the caller falls back to `dataTransfer.files` unchanged.
+ * MPI-867 — a dragged gallery card as the agent receives it: the CARD, by reference, never
+ * its pixels (Fabio, 2026-09-26). The agent is told which card is meant and looks only if the
+ * job needs it; `thumb` is for the user's chip and bubble alone.
  *
- * A card's `<img>` is the 512 `.thumb.webp` rendition (`pickImageRendition` returns
- * `item.thumbPath` for a card that has not promoted), and Chromium synthesises
- * `dataTransfer.files` from that element's OWN image resource — so a drop handler reading
- * `files` receives the thumbnail's bytes, not the card's file. Measured 2026-09-22: the file
- * staged for the agent was byte-identical to `<itemId>.thumb.webp`, 512x682 for a 768x1024
- * card, and the agent edited that. The card's real path rides the same drag in
- * `application/mpi-media` (set by `MpiGalleryGrid`'s `dragstart`), which is what this reads.
+ * Reads `application/mpi-media` (set by `MpiGalleryGrid`'s `dragstart`), never
+ * `dataTransfer.files`: Chromium builds those from the card's `<img>`, the 512 `.thumb.webp`
+ * rendition, and that thumbnail is what the agent used to receive (MPI-884, measured
+ * byte-identical 2026-09-22).
  *
+ * `null` = nothing to hand over: an audio card, or a blob/preview card with no file on disk.
  * @param {string|object} payload — the `application/mpi-media` value, raw JSON or parsed.
- * @returns {{url: string, name: string}|null}
+ * @returns {{url: string, name: string, mediaType: 'image'|'video', itemId: string|null, groupId: string, thumb: string}|null}
  */
-export function cardAttachmentSource(payload) {
+export function cardReference(payload) {
     let card = payload;
     if (typeof payload === 'string') {
         try { card = JSON.parse(payload); } catch { return null; }
     }
-    // Video and audio cards have no still to attach; `type` is the group's, as the grid sets it.
-    if (!card || card.type !== 'image') return null;
-    // A GIF's filePath is the animated file and a blob/preview card has no on-disk file at
-    // all: both would turn a working (if small) attachment into a staging error.
+    // `type` is the group's, as the grid sets it. A GIF card is an image card.
+    if (!card?.groupId || (card.type !== 'image' && card.type !== 'video')) return null;
     const name = extractFilenameFromPath(card.filePath);
-    if (!name || !STAGEABLE_STILL.test(name)) return null;
-    return { url: resolveMediaUrl(card.filePath), name };
+    if (!name) return null;
+    const url = resolveMediaUrl(card.filePath);
+    return {
+        url, name, mediaType: card.type, itemId: card.itemId || null, groupId: card.groupId,
+        // An <img> cannot paint a clip: a video chip needs the card's poster.
+        thumb: card.thumbPath ? resolveMediaUrl(card.thumbPath) : _posterOf(card) || url,
+    };
+}
+
+/**
+ * A clip's poster when the drag did not carry it: the card's poster `<img>` sets its own
+ * payload without `thumbPath`. Every thumb is `Media/.meta/<itemId>.thumb.webp`, video
+ * posters included (`routes/projects.js`), which is where the server looks too.
+ */
+function _posterOf(card) {
+    const abs = card.type === 'video' && card.itemId ? extractAbsPath(card.filePath) : null;
+    if (!abs) return '';
+    const dir = abs.replace(/\\/g, '/').replace(/\/[^/]*$/, '');
+    return resolveMediaUrl(`${dir}/.meta/${card.itemId}.thumb.webp`);
 }
 
 /**
