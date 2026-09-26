@@ -1,56 +1,70 @@
 # MPI-867 brief
 
-Two faults, ONE surface: how media gets into the agent panel's composer. Fabio reported
-the second one on 2026-09-21, after MPI-797 closed, and it is not a separate card — the
-payload that fixes the drop routing is the same payload that carries a clip by reference.
+Rewritten 2026-09-26 with Fabio. Supersedes the 2026-09-21 brief (kept in git history).
 
-## Fault 1 — a clip cannot be handed to the agent at all (the card's original scope)
+## The principle (Fabio, 2026-09-26)
 
-See `task.json` and the `todo` gate in `tests/agent-video-attachment.test.cjs`.
-`MpiAgentChat._addImageFile` guards on `image/` and silently drops a clip.
+**The agent receives the CARD, never its pixels.** Handing Cosmo a card says *which card I
+mean*: "restyle this", "use this clip as the reference for a video". Most jobs never need
+the agent to see the media, so it does not. It looks only when the task needs it, through
+`look`. The THUMBNAIL is feedback for the USER only: the composer chip and the chat
+bubble show what was sent.
 
-## Fault 2 — a card dragged onto the agent panel lands in the PROMPT BOX
+The server side already works this way. `routes/agent.js` stages a by-reference
+attachment with no copy (`ownedMedia`, open project only). `agentLoop.mjs` ~2081 registers
+it as a ref and gives the model ONE text line (name, ref, size, groupId). The model
+receives text only, never image bytes. What is missing is all UI side.
 
-Fabio, 2026-09-21: "When the user drags something into the agent box, it should not be
-dragged into the prompt box, and that's what's happening."
+## Fault 1: a video card reaches the agent as its thumbnail
 
-Diagnosed, not guessed:
+`MpiAgentChat._addCardMedia` asks `cardAttachmentSource()` (`js/utils/mediaActions.js:67`),
+which returns null for anything but an image. The drop then falls back to
+`dataTransfer.files`, which for a card is Chromium's dragged `<img>`: the 512
+`.thumb.webp`. It is staged as a COPY and a still. The live "gecko climb" case ran
+`minimax-h3:i2v_ms` on that still.
 
-- `MpiPromptBox.js:610` listens on **`window`**, not on its own element:
-  `if (!_isMediaDrag(e) || el.contains(e.target)) return;`
-  The agent panel is not inside the prompt box's `el`, so the guard does not exclude it
-  and the window handler claims the drop. The comment above it states the intent plainly
-  — "make the WHOLE window the drop target for a media drag ... drop anywhere = attach to
-  prompt". That was TRUE when the prompt box was the app's only drop zone. MPI-797
-  Phase 2 gave the panel a composer of its own and made it false.
-- `MpiAgentChat.js:649` reads only `e.dataTransfer.files`. A gallery-card drag carries no
-  files — it carries `application/mpi-media` holding `{ filePath, type, name }`. So the
-  panel's own handler finds nothing, does nothing, does not stop propagation, and the
-  prompt box takes it.
+Fix: with a project open, a video card goes by reference like an image card already does:
+`{ url, name, mediaType: 'video', itemId, groupId }`. This is the shape the `todo` gate
+in `tests/agent-video-attachment.test.cjs:123` asserts. The loop's video line should
+match the image line: add groupId to `_groups`, point to `list_cards`, and give the
+chat bubble a `url` so the user sees what they sent. That url must be the card's STILL,
+because an `<img>` cannot paint an mp4.
 
-Why it only bites on CARD drags: an external file drag has `types` of `Files`, so
-`_isMediaDrag` is false and the window handler returns early. Dropping a real file on the
-panel already works (images only). Dropping a gallery card does not.
+## Fault 2: a drop on the agent panel also lands in the prompt box
 
-## Why this makes the card EASIER, not bigger
+`MpiPromptBox.js` ~641 listens on `window` and takes every `application/mpi-media` drop
+outside its own element ("drop anywhere = attach to prompt"). The panel handles the drop
+but never stops it, so it bubbles on to the window and the prompt box takes it too. That
+is the "Media type not supported for this model" toast. The app's convention is that a
+drop target stops propagation once it has handled the drop (`MpiGalleryBlock.js` ~272),
+so the panel should do the same. One owner, no second guard.
 
-The card's open design question was "a clip can only travel by reference once it is a file
-the open project already holds — so how does the composer get there: a shared import
-service, a card picker, or both?"
+## Fault 3: a file dropped from the OS (Fabio, 2026-09-26)
 
-A gallery card drag ALREADY carries `{ filePath, type, name }` by reference, for a file the
-project already owns. That is the answer to the by-reference half for every card in the
-gallery, with no import service and no picker — it is a payload the panel is simply not
-reading yet. A dropped *external* file still needs staging, and that part of the question
-stands.
+**A file dragged in from the file system becomes a gallery card FIRST, and only then goes
+to the agent**, by reference like any card. The machinery exists:
+`uploadMediaFile` (`js/services/mediaUploadService.js:40`) writes the media and its
+sidecar, and `Events.emit('media:imported', ...)` makes `mediaImportService.js:102` build
+the card. `MpiPromptBox._importMediaFile` is the one caller today; reuse the same service,
+never a copy of the function. This covers images AND clips, so it answers the old "a
+clip needs a shared import service" question.
 
-## Definition of done (unchanged, plus the routing)
+Open for the plan: with NO project open (the landing chat), there is nowhere to make a
+card. Today an image dropped there is copied as a staged attachment. Decide whether that
+stays or the drop asks for a project first.
 
-1. The `todo` gate in `tests/agent-video-attachment.test.cjs` passes: the panel produces
-   `{ url, name, mediaType: 'video', itemId }` — by reference, never a base64 data URL.
-2. A gallery card dropped on the agent panel attaches to the AGENT, and the prompt box
-   does not see it. Decide the mechanism: exclude the panel in the prompt box's window
-   guard, or have the panel handle `application/mpi-media` and stop propagation. Prefer
-   whichever keeps ONE owner of the rule rather than two guards that can drift.
-3. Fabio drops a clip and a card on the panel and the agent can act on both (verify mode
-   is `user-ux`).
+## Out of scope, separate line
+
+Letting `look` SEE a clip (a contact sheet via `services/cardView.js`) is message
+a082a6a6 from MCP3 (session 9e0c3d22). It is a capability for when the agent chooses to
+look, not part of handing over a card. Take it after `cardView.js` is committed.
+
+## Definition of done
+
+1. The `todo` gate in `tests/agent-video-attachment.test.cjs` passes (remove the `todo`).
+2. A card dropped on the agent panel attaches to the agent only. The prompt box does not
+   see it (no toast).
+3. A file dropped from the OS lands as a gallery card and is sent by reference.
+4. The chip and the chat bubble show a thumbnail for images and clips alike.
+5. Verify mode `user-ux`: Fabio drops a video card, an image card and an OS file on the
+   panel, then asks for something that needs no look, and the agent acts on the right card.
