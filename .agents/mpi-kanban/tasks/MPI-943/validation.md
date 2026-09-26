@@ -12,6 +12,8 @@
 - `tests/desktop/image-import-reduce.spec.js`: 2/2 (one dialog for a 24 MP + 25 MP + 0.5 MP drop, both large ones shrunk to 1 MP, the small one untouched; Cancel imports nothing). Before the gallery hunk it failed with "This image is very large" (per-file fallback), which is what proves the batching.
 - Full unit suite: 1990 tests, 1989 pass, 0 fail. Neighbouring desktop specs (gallery-drop-overlay-reset, agent-chat, media-picker-to-history, this one): 42/42. ESLint on the changed files: clean.
 
+- CI on d7290b689 (run 36274288785): unit + desktop 1-4 all success.
+
 ## Not covered (by decision)
 - Images already imported: re-drop from the original.
 - Flow input drops (`placeContentAsset`) and agent/MCP imports: no dialog.
