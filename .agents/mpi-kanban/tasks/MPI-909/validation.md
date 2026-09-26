@@ -21,3 +21,9 @@
 ## Fabio
 
 Verified in the app 2026-09-26 ("1"). Closed.
+
+## Red master, fixed
+
+The spec first went to CI on 474a09f6 (run 36237398325) and failed 3/3: the runner has no models,
+so the gallery showed "No models installed" and never mounted a prompt box. c94f353a mounts
+MpiPromptBox directly with explicit models (as prompt-box-badge.spec.js). CI on c94f353a: GREEN, run 36237999834, all 4 desktop shards + unit.
