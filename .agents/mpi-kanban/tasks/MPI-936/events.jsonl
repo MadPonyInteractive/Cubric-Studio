@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-936", "at": "2026-09-26T07:03:25+01:00", "actor": "claude", "column": "todo", "title": "Qwen-Image 2.1 as a non-commercial model behind a licence gate"}

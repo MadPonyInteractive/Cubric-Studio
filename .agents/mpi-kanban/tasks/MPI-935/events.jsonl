@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-935", "at": "2026-09-26T07:03:24+01:00", "actor": "claude", "column": "todo", "title": "Model downloads trust the Windows certificate store, so antivirus HTTPS scanning stops breaking them"}
