@@ -1,5 +1,11 @@
 # MPI-846 Plan - Mascot crew: names, registry, chat presence, animations
 
+## CLOSED (2026-09-26)
+
+Every member is done: MPI-843, MPI-777, MPI-906, MPI-907, MPI-908, MPI-909 built; MPI-842 closed
+on Fabio's call (the single registry file was not built). The member table below is history.
+Carried to done by umbrella MPI-932.
+
 ## Status (2026-09-24)
 
 The old "DO NOT START YET" gates are gone: the GIF workspace shipped and the clips are

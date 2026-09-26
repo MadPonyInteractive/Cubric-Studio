@@ -5075,3 +5075,8 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-938", "at": "2026-09-26T11:24:27+01:00", "actor": "claude", "column": "todo", "title": "Build the 1.6.2 hand-delivered Windows delta (1.6.1 -> master), never published"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-938", "at": "2026-09-26T11:24:56+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-938", "at": "2026-09-26T11:44:03+01:00", "actor": "claude", "from": "doing", "to": "done"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-842", "at": "2026-09-26T16:46:08+01:00", "actor": "ab9e6fd6", "from": "todo", "to": "doing", "reason": "Closing on Fabio's call (option a)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-842", "at": "2026-09-26T16:46:10+01:00", "actor": "ab9e6fd6", "from": "doing", "to": "done", "reason": "Shipped via MPI-843/777; Fabio: close as done."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-846", "at": "2026-09-26T16:46:11+01:00", "actor": "ab9e6fd6", "from": "todo", "to": "doing", "reason": "Closing the umbrella: every member done."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-846", "at": "2026-09-26T16:46:12+01:00", "actor": "ab9e6fd6", "from": "doing", "to": "done", "reason": "All seven members done."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-932", "at": "2026-09-26T16:46:14+01:00", "actor": "ab9e6fd6", "from": "doing", "to": "done", "reason": "Every phase closed; MPI-909 verified, master green."}

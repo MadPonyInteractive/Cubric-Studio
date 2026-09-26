@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-932", "at": "2026-09-25T17:31:39+01:00", "actor": "claude", "column": "todo", "title": "Finish the mascots, then fix the cancel path (umbrella): one line of handoffs to done"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-932", "at": "2026-09-25T18:48:38+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Phase 2 (MPI-906) starting; umbrella carried by this line"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-932", "at": "2026-09-26T16:46:14+01:00", "actor": "ab9e6fd6", "from": "doing", "to": "done", "reason": "Every phase closed; MPI-909 verified, master green."}

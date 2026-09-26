@@ -12,8 +12,8 @@ Stop after the POST keeps the paid result (card badge CHARGED AFTER STOP), the c
 longer gets cut by generation:error, and the cloud card clock starts at send (was "1s").
 Fabio: LOCAL card clock stays as is (cloud only).
 (2026-09-26, session ab9e6fd6) Phase 4: MPI-909 DONE - prompt box head peeks, Fabio verified in the
-app; tests/desktop/prompt-box-peek.spec.js. NEXT: MPI-842 (ask Fabio: still wanted?), close
-MPI-846, then this card.
+app; tests/desktop/prompt-box-peek.spec.js. MPI-842 closed on Fabio's call (single registry not
+built), MPI-846 closed, and this umbrella CLOSED 2026-09-26. Nothing left.
 
 ## Members, in order
 
