@@ -43,6 +43,21 @@ async function installStubs(window) {
       if (url === '/agent/confirm') {
         return { ok: true, json: async () => ({ ok: true }) };
       }
+      // MPI-867: a file dropped on the panel is imported as a gallery card first
+      // (uploadMediaFile), then persisted by the one media:imported listener.
+      if (url.startsWith('/project-media/') && url.includes('/upload')) {
+        const body = JSON.parse(opts.body);
+        window.__uploads = (window.__uploads || 0) + 1;
+        const filename = `imported_${String(window.__uploads).padStart(3, '0')}.png`;
+        return { ok: true, json: async () => ({ success: true, filename, filePath: `/p/Media/${filename}`,
+          // A decodable chip: a broken <img> sizes to its alt text and would skew layout checks.
+          thumbPath: body.base64Data && body.base64Data.startsWith('data:image/png') && body.base64Data.length > 60
+            ? body.base64Data
+            : 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==' }) };
+      }
+      if (url === '/update-project') {
+        return { ok: true, json: async () => ({ success: true }) };
+      }
       if (url === '/agent/reset' || url.startsWith('/agent/reset?')) {
         // The server drops the conversation; the next history read comes back empty.
         window.__histories[new URL(url, 'http://x').searchParams.get('project') || ''] = [];
@@ -1238,8 +1253,11 @@ test('panel mode has its own composer: Enter sends, and dropped images are numbe
     expect(msgCall).toBeTruthy();
     expect(msgCall.body.text).toBe('hello from the panel');
 
-    // Two files, so the index is proven rather than a hardcoded "1".
-    await window.evaluate(() => {
+    // Two files, so the index is proven rather than a hardcoded "1". A dropped file becomes
+    // a card of the open project before it reaches the agent (MPI-867), so one is open.
+    await window.evaluate(async () => {
+      const { state } = await import('/js/state.js');
+      state.currentProject = { id: 'p1', name: 'P', folderPath: '/p', itemGroups: [] };
       const dt = new DataTransfer();
       for (const name of ['plate_a.png', 'plate_b.png']) {
         const blob = new Blob([Uint8Array.from([137, 80, 78, 71])], { type: 'image/png' });
@@ -1386,14 +1404,19 @@ test('thirteen attachments shrink and scroll the strip; the field keeps its floo
 
     // Real decodable bytes: a broken image sizes to its alt text, not to 40px, and would
     // measure the squeeze wrong in both directions.
+    // Each file is imported as a card of the open project first (MPI-867), one after another.
     await window.evaluate(async (b64) => {
+      const { state } = await import('/js/state.js');
+      state.currentProject = { id: 'p1', name: 'P', folderPath: '/p', itemGroups: [] };
       const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
       const dt = new DataTransfer();
       for (let i = 1; i <= 13; i++) dt.items.add(new File([bytes], `drop_${i}.png`, { type: 'image/png' }));
       document.getElementById('e2e-agent-host').firstElementChild
         .dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true }));
-      await new Promise(r => setTimeout(r, 800));
     }, PNG_B64);
+    await expect(window.locator('#e2e-agent-host .mpi-agent-chat__input-row .mpi-agent-chat__attachment'))
+      .toHaveCount(13, { timeout: 15000 });
+    await window.waitForTimeout(300);
 
     const m = await window.evaluate(() => {
       const host = document.getElementById('e2e-agent-host');
