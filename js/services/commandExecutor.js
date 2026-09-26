@@ -922,6 +922,10 @@ export function runAutoMask(payload) {
     // detect that already completed (re-DETECT re-cancels the stale exec; the
     // "Nothing detected" path also calls cancel() after a clean finish).
     let _settled = false;
+    // Targeted (MPI-931): the shared engine may be running someone else's prompt.
+    // A Stop before the ack is applied when the ack lands.
+    let _promptId = null;
+    let _cancelled = false;
     const exec = {
         onDetected: null,
         onMasks:    null,
@@ -929,7 +933,8 @@ export function runAutoMask(payload) {
         onDone:     null,
         cancel() {
             if (_settled) return;
-            getEngine(payload.forceLocal === true).interrupt();
+            _cancelled = true;
+            if (_promptId) getEngine(payload.forceLocal === true).interrupt(_promptId);
         },
     };
 
@@ -1006,6 +1011,11 @@ export function runAutoMask(payload) {
         let _detectedFired = false;
 
         const onMessage = (msg) => {
+            if (msg.type === 'prompt_ack') {
+                _promptId = msg.prompt_id;
+                if (_cancelled) getEngine(payload.forceLocal === true).interrupt(_promptId);
+                return;
+            }
             if (msg.type !== 'executed') return;
 
             const nodeId    = msg.data?.node;
@@ -1082,6 +1092,9 @@ export function runAutoMask(payload) {
  */
 export function runGifCutoutTrack(payload) {
     let _settled = false;
+    // Targeted, as runAutoMask (MPI-931).
+    let _promptId = null;
+    let _cancelled = false;
     const exec = {
         onMasks:   null,
         onPreview: null,
@@ -1089,7 +1102,8 @@ export function runGifCutoutTrack(payload) {
         onDone:    null,
         cancel() {
             if (_settled) return;
-            getEngine(payload.forceLocal === true).interrupt();
+            _cancelled = true;
+            if (_promptId) getEngine(payload.forceLocal === true).interrupt(_promptId);
         },
     };
 
@@ -1139,6 +1153,11 @@ export function runGifCutoutTrack(payload) {
         }
 
         const onMessage = (msg) => {
+            if (msg.type === 'prompt_ack') {
+                _promptId = msg.prompt_id;
+                if (_cancelled) getEngine(payload.forceLocal === true).interrupt(_promptId);
+                return;
+            }
             if (msg.type !== 'executed') return;
             const nodeId     = msg.data?.node;
             const nodeOutput = msg.data?.output;
@@ -1326,14 +1345,15 @@ export function runCommand(payload) {
         // interrupt — never a bare interrupt() that leaves the pipeline running
         // toward an orphan /prompt POST (MPI-208 disease 3).
         jobId:           null,
+        cancelRequested: false,
         cancel() {
-            // Pre-register cancel (Stop before the job exists): nothing to abort
-            // yet — the async head checks the store signal at each await boundary,
-            // but there is no signal before register(). Fall back to a direct
-            // engine interrupt so a Stop during the earliest preflight still stops
-            // any server work; the store takes over the moment jobId is set.
             if (exec.jobId) { generationStore.cancel(exec.jobId); return; }
-            getEngine(payload.forceLocal === true).interrupt();
+            // Pre-register Stop (MPI-930): no job, no abort token yet, and nothing of
+            // ours on the engine to interrupt. Remember it; the job cancels itself the
+            // moment it registers and the abort gate stops it before /prompt. The old
+            // bare interrupt here settled nothing (the agent and MCP hung 30 min) and
+            // killed whatever the shared engine was running (MPI-931).
+            exec.cancelRequested = true;
         },
     };
 
@@ -1373,6 +1393,18 @@ export function runCommand(payload) {
         // (far below); until then it is a no-op, which is correct (nothing to close).
         const jobId = crypto.randomUUID();
         let _closeSSE = () => {};
+        // Stop OUR prompt, never the engine (MPI-931): every app instance shares one
+        // ComfyUI (routes/comfy.js, MPI-484), and a bare interrupt kills whatever runs.
+        // The targeted interrupt only fires if ours is the running prompt; the queue
+        // delete catches it still WAITING in ComfyUI's FIFO behind another gen (MPI-208:
+        // a cancelled gen otherwise ran when the queue advanced). No promptId = nothing
+        // of ours reached the engine. Both best-effort.
+        const _stopOwnPrompt = () => {
+            if (!exec.promptId) return;
+            const _eng = getEngine(payload.forceLocal === true);
+            try { _eng.interrupt(exec.promptId); } catch (_) { /* engine gone */ }
+            try { _eng.deleteQueueItem(exec.promptId); } catch (_) { /* engine gone / already ran */ }
+        };
         generationStore.register({
             jobId,
             genId: payload.genId ?? null,
@@ -1385,18 +1417,7 @@ export function runCommand(payload) {
             display: payload.previewOnly === true ? { previewKind: 'preview' } : undefined,
             interruptCb: () => {
                 try { _closeSSE(); } catch (_) { /* SSE already closed */ }
-                const _eng = getEngine(payload.forceLocal === true);
-                // interrupt() only aborts the CURRENTLY-RUNNING prompt. A job that was
-                // accepted but is still WAITING in ComfyUI's FIFO (queued behind another
-                // gen on the same lane) is untouched by interrupt — so it would run later
-                // when the queue advances, even though the user cancelled it (MPI-208:
-                // a cancelled image gen completed when the next gen started). Also delete
-                // THIS job's prompt from the engine queue by its promptId so a queued-
-                // but-not-running prompt is truly killed. Both best-effort.
-                try { _eng.interrupt(); } catch (_) { /* engine gone */ }
-                if (exec.promptId) {
-                    try { _eng.deleteQueueItem(exec.promptId); } catch (_) { /* engine gone / already ran */ }
-                }
+                _stopOwnPrompt();
             },
         });
         exec.jobId = jobId;
@@ -1416,6 +1437,12 @@ export function runCommand(payload) {
             exec.onError?.(new Error('cancelled_before_dispatch'));
             return true;
         };
+        // A Stop that landed before register (MPI-930) is honoured here, before any
+        // preflight can download a weight or open a dialog for a job nobody wants.
+        if (exec.cancelRequested) {
+            generationStore.cancel(jobId);
+            if (await _abortedBail()) return;
+        }
 
         // MPI-463: every failure exit from here to dispatch MUST move the store job
         // to a terminal. register() above took a LANE SLOT, and `running` is exactly
@@ -2100,6 +2127,10 @@ export function runCommand(payload) {
         const onMessage = (msg) => {
             if (msg.type === 'prompt_ack') {
                 exec.promptId = msg.prompt_id;
+                // A Stop that landed while /prompt was in flight had no promptId to
+                // target (MPI-931): stop the prompt now that we know it. The store is
+                // already terminal, so no phase moves below.
+                if (generationStore.getSignal(jobId)?.aborted) { _stopOwnPrompt(); return; }
                 // Stamp the promptId on the store record (for engine-filtered reconcile
                 // + cross-engine event matching) WITHOUT forcing a phase move — on a
                 // fast dispatch a work signal can advance the job past `accepted` before

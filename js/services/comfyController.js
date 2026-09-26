@@ -767,9 +767,14 @@ function createEngine({ engine, alwaysLocal }) {
      * Sends an interrupt signal to THIS engine's ComfyUI server to abort its
      * running pipeline. Per-engine (MPI-74 P6): Stopping a cloud job interrupts
      * only the cloud engine; a concurrent local job keeps running, and vice versa.
+     * With `promptId`, ComfyUI (v0.34) interrupts only if THAT prompt is the one
+     * running (MPI-931): every app instance shares one engine, and a bare interrupt
+     * kills whatever runs, whoever queued it. An older engine ignores the field and
+     * interrupts globally, which is the pre-MPI-931 behaviour.
+     * @param {string} [promptId]
      * @returns {Promise<void>}
      */
-    async interrupt() {
+    async interrupt(promptId) {
         // MPI-94 G2 — REVERTED 2026-06-15 (user feedback): a user-initiated Stop
         // should NOT raise a toast; it was noise. `interrupt()` is only ever the
         // user-Stop path (all callers are cancel()), so no toast belongs here.
@@ -777,7 +782,7 @@ function createEngine({ engine, alwaysLocal }) {
             await fetch(`${this.httpBase()}/interrupt`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ client_id: this.clientId })
+                body: JSON.stringify({ client_id: this.clientId, ...(promptId ? { prompt_id: promptId } : {}) })
             });
             this._isRunning = false;
         } catch (e) {
