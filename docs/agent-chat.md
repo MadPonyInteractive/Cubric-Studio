@@ -280,9 +280,9 @@ Settings: the connection block tops Remote > Language Models; the Agent row is "
   then `DEEPINFRA_API_KEY` for the `deepinfra` preset only while its URL is still DeepInfra's.
 - **`POST /llm/connection/probe { profileId }`** -> `{ ok, latencyMs, modelCount }`; **`GET
   /llm/connection/models?profileId=`** -> `{ ok, profileId, models: [{ id, contextWindow, vision,
-  recommendedFor[] }] }`, recommended first, a tagged catalogue (DeepInfra) cut to `chat` models. Errors
+  recommendedFor[], recommendedNote, agentTest }] }`, recommended first, a tagged catalogue (DeepInfra) cut to `chat` models. Errors
   `BAD_REQUEST` (400), `NO_PROFILE`, `NO_KEY` (not `ollama`), `ENDPOINT_ERROR` + `status`.
-- **`RECOMMENDED_REMOTE_MODELS`**: `{ [presetId]: [{ id, jobs: ('agent'|'enhance'|'describe')[], contextWindow? }] }`, exact ids.
+- **`RECOMMENDED_REMOTE_MODELS`**: `{ [presetId]: [{ id, jobs: ('agent'|'enhance'|'describe')[], contextWindow?, agentTest? }] }`, exact ids (`agentTest`: `docs/llm.md`).
   The agent's context window: that table, else the endpoint's own entry, else `FALLBACK_CONTEXT_WINDOW` (32,768).
 - **`DeepInfraEngine.chat`** forwards `tools` and returns `toolCalls` and `usage` beside `text`.
 - **`chatEngineFor(profileId, key, baseURL)`** picks the client, and `ollama` is NOT an

@@ -132,3 +132,9 @@ After the rule (`research/adult-*.log`): pick **3/3** (krea2-nsfw, nudity kept),
 fails; Qwen3.6 1/1; gpt-oss-120b 1/1; gpt-oss-20b 0/1 (never generated, empty reply);
 Qwen3-VL-30B 0/1 (never generated, reply "I asked for 2 to 3 seconds."). Neither failure is a
 refusal: the "less censorship" model loses on competence, and the rule makes the others comply.
+
+## 4. Qwen3.6 x3 (2026-09-26, Fabio approved)
+
+`research/final3-Qwen_Qwen3.6-35B-A3B.log`: **19/23** x3 (the x1 23/23 in § 2f was luck), $0.4746 for
+69 conversations ($0.00688 each). 2/3 on memory-read, rerun-on-named-model, outpaint-grows-one-side,
+auto-video-medium-turbo. Listed with that score in the agent dropdown (MPI-912 validation.md § 6).

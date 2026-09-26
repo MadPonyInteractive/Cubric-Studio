@@ -139,7 +139,7 @@ router.post('/llm/connection/probe', async (req, res) => {
 
 /**
  * GET /llm/connection/models?profileId= -> { ok, profileId, models: [{ id,
- * contextWindow, vision, recommendedFor, recommendedNote }] }, recommended first. Each job row
+ * contextWindow, vision, recommendedFor, recommendedNote, agentTest }] }, recommended first. Each job row
  * filters `recommendedFor` for its own job ('agent' | 'enhance' | 'describe').
  */
 router.get('/llm/connection/models', async (req, res) => {

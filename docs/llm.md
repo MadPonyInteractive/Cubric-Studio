@@ -97,6 +97,11 @@ nothing. The connection itself is `Storage.getLlmConnection()` -> `{ profileId }
   `google/gemma-4-26B-A4B-it` (MPI-817's scored run). Ollama (its own `/v1/models` ids, tag
   included) enhance = `huihui_ai/gemma-4-abliterated:12b`, the enhancer of record; describe and
   agent carry none until a local model passes (MPI-912 `validation.md`).
+- **`agentTest: { passed, cases, runs, perChat }`** on an entry = it ran `scripts/agent-test.mjs`
+  (MPI-916 `validation.md` § 2f; `perChat` is USD per conversation, fixed at test time). The agent
+  dropdown lists these models on top, best score first, as `<id> · 23/23 tests · $0.36/100 chats`,
+  and has no "(recommended)" label (Fabio 2026-09-26). An entry may carry `agentTest` with
+  `jobs: []`: tested and listed, not the default.
 
 ## Enhance paths
 
@@ -152,7 +157,7 @@ the late pass rebuilt every row under a dropdown the user had just opened (CI-on
 
 One `GET /llm/connection/models` fetch per render (`_refreshModels`) feeds every Remote model
 dropdown through `_remoteModelOptions(job, saved, filter)`: recommended-for-that-job first, labelled
-"(recommended)". Remote is greyed only on `NO_KEY` / `NO_PROFILE` (`_remoteBlocked`); an unreachable
+"(recommended)" — except the agent row, which lists its `agentTest` models first with score and cost. Remote is greyed only on `NO_KEY` / `NO_PROFILE` (`_remoteBlocked`); an unreachable
 endpoint stays pickable and shows its error under the model list. The describe list keeps the
 models the endpoint flags `vision` (plus the describe recommendation), and shows the whole list with a
 "this provider does not say which models can see" note when it reports no flags. The Ollama-model dropdown comes from `GET /llm/models`. The DeepInfra sign-up

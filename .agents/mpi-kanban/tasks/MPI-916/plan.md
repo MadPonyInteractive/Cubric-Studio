@@ -49,6 +49,10 @@ Pick full suite x3; the five targets full suite x1; record in `validation.md`. D
 pass / 0 fail); validation.md sections 1-3 carry every number. Ready for mpi-end-session. MPI-912
 still waits on Fabio's close call (recommended: close both together).
 
+2026-09-26 (session 5c27e3c8): Fabio: close MPI-916 and MPI-912 together (one mpi-end-session,
+after the dropdown lands on MPI-912); run Qwen3.6 x3 (research/final3-*.log); price = measured
+cost per chat. NEXT 1 built on MPI-912 (its validation.md § 6).
+
 NEXT (Fabio, 2026-09-25, after the results):
 1. **Agent model dropdown shows scores and prices** instead of a "recommended" flag: the three
    tested models at the top (DeepSeek-V4-Flash-0731, Qwen3.6-35B-A3B, gpt-oss-120b), each with
@@ -75,7 +79,8 @@ NEXT (Fabio, 2026-09-25, after the results):
    `minimax-h3:i2v_ms` with it as a first frame. Card MPI-867 (todo, planned) already covers the
    composer taking clips by reference; its `tests/agent-video-attachment.test.cjs:123` is the
    pending `todo`.
-3. **Live bug, the clip was killed by a GLOBAL interrupt.** Log `%APPDATA%\Cubric Studio\logs\
+3. **RESOLVED 2026-09-26, not an app bug:** Fabio: another agent session stopped two of his
+   generations then. Log reference kept. **Was: the clip was killed by a GLOBAL interrupt.** Log `%APPDATA%\Cubric Studio\logs\
    app-20260925-114624.log` lines 1328-1355: agent job submitted 14:02:56, a second prompt queued
    14:03:12, then `Global interrupt (no prompt_id specified)` at 14:03:23 -> CANCELLED.
    `js/services/comfyController.js:777` `interrupt()` POSTs `/interrupt` with no prompt_id, so a

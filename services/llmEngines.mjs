@@ -483,7 +483,16 @@ export const RECOMMENDED_REMOTE_MODELS = {
         // `reasoningEffort` (MPI-891): measured 2026-09-24, with none this model has no
         // reasoning channel and put its deliberation in the reply; with 'low' it came back in
         // `reasoning_content` (600 chars) and the reply was clean.
-        { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', jobs: ['agent'], contextWindow: 1_048_576, reasoningEffort: 'low' },
+        // `agentTest` (MPI-912, Fabio 2026-09-26): the agent dropdown lists every model that
+        // ran `scripts/agent-test.mjs` on top, with its score and measured cost per chat, and
+        // the user chooses; no "recommended" label on the agent row. Numbers from
+        // `.agents/mpi-kanban/tasks/MPI-916/validation.md` § 2f. `perChat` is USD per
+        // conversation (suite cost / conversations), fixed at test time, not a live price.
+        { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', jobs: ['agent'], contextWindow: 1_048_576, reasoningEffort: 'low',
+            agentTest: { passed: 23, cases: 23, runs: 3, perChat: 0.0036 } },
+        // x3 on 2026-09-26 (MPI-912 validation.md § 6): 23/23 on one run fell to 19/23 on three.
+        { id: 'Qwen/Qwen3.6-35B-A3B', jobs: [], agentTest: { passed: 19, cases: 23, runs: 3, perChat: 0.0069 } },
+        { id: 'openai/gpt-oss-120b', jobs: [], agentTest: { passed: 18, cases: 23, runs: 1, perChat: 0.0017 } },
         // Qwen3-VL-30B-A3B lost its `agent` flag on 2026-09-25 (MPI-912, Fabio): 7/22 on the
         // agent suite. It carried "less censorship" from ONE refusal test (2026-09-18) and was
         // never run through the suite. An agent flag needs the suite, whatever else a model does.
@@ -547,6 +556,7 @@ export async function listRemoteModels({ presetId, baseURL, key, timeoutMs = 10_
                 // Why THIS one of the recommended models, when there is more than one.
                 // Null on every row that has nothing to add, which is most of them.
                 recommendedNote: rec?.note ?? null,
+                agentTest: rec?.agentTest ? { ...rec.agentTest } : null,
             };
         });
     const rank = (m) => (m.recommendedFor.length ? 0 : 1);

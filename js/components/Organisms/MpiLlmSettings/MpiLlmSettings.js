@@ -541,6 +541,21 @@ export const MpiLlmSettings = ComponentFactory.create({
             const isRec = m => m.recommendedFor.includes(job);
             const rec = models.filter(isRec);
             const value = saved || rec[0]?.id || '';
+            if (job === 'agent') {
+                // MPI-912 (Fabio 2026-09-26): no "recommended" on the agent row. Every model
+                // that ran the agent suite goes on top with its score and measured cost, best
+                // score first, and the user chooses. The pick stays the default value.
+                const tested = models.filter(m => m.agentTest)
+                    .sort((a, b) => b.agentTest.passed / b.agentTest.cases - a.agentTest.passed / a.agentTest.cases
+                        || b.agentTest.runs - a.agentTest.runs);
+                const options = [
+                    // In the label, not the meta: the meta is capped at 11ch (MpiDropdown.css).
+                    ...tested.map(m => ({ value: m.id, label: `${m.id} · ${_agentTestLabel(m.agentTest)}`, meta: _windowLabel(m) })),
+                    ...models.filter(m => !m.agentTest).map(m => ({ value: m.id, label: m.id, meta: _windowLabel(m) })),
+                ];
+                if (value && _remote?.ok && !options.some(o => o.value === value)) options.unshift({ value, label: value, meta: 'Not listed' });
+                return { options, value, recommended: tested.length > 0 };
+            }
             const options = [
                 // `recommendedNote` says why THIS one, when more than one is recommended
                 // for the job — e.g. the model that did not refuse adult work in our tests
@@ -786,7 +801,7 @@ export const MpiLlmSettings = ComponentFactory.create({
                 Storage.setAgentPrefs({ ...Storage.getAgentPrefs(), model });
             });
             _setText(root, '#mpiSettingsAgentModelNote', _remote?.ok
-                ? (recommended ? 'The recommended model is the one we test the agent on.' : 'We have not tested the agent on this provider. Pick a model that can call tools, then use Test tool use.')
+                ? (recommended ? 'The models on top ran our agent tests: each shows its score and what it cost us.' :'We have not tested the agent on this provider. Pick a model that can call tools, then use Test tool use.')
                 : _errorText(_remote));
         }
 
@@ -818,6 +833,11 @@ export const MpiLlmSettings = ComponentFactory.create({
         }
 
         /** "1M context" — the window the agent compacts against. */
+        /** "23/23 tests · $0.36/100 chats", "(1 run)" when the score is one pass. */
+        function _agentTestLabel({ passed, cases, runs, perChat }) {
+            return `${passed}/${cases} tests${runs === 1 ? ' (1 run)' : ''} · $${(perChat * 100).toFixed(2)}/100 chats`;
+        }
+
         function _windowLabel(m) {
             if (!m.contextWindow) return '';
             return m.contextWindow >= 1_000_000

@@ -77,14 +77,16 @@ async function withBridge(answer, fn) {
 }
 
 test('listRemoteModels: chat models only, recommended first, window and vision from the catalogue', async () => {
-    const { listRemoteModels } = await import('../services/llmEngines.mjs');
+    const { listRemoteModels, RECOMMENDED_REMOTE_MODELS } = await import('../services/llmEngines.mjs');
     let auth = null;
     const restore = stubUpstream(async (url, init) => { auth = init.headers.Authorization; assert.equal(url, `${DI_URL}/models`); return okJson(CATALOGUE); });
     try {
         const models = await listRemoteModels({ presetId: 'deepinfra', baseURL: `${DI_URL}/`, key: 'k1' });
         assert.equal(auth, 'Bearer k1');
         assert.deepEqual(models.map((m) => m.id), ['deepseek-ai/DeepSeek-V4-Flash-0731', 'alpha/vision-model', 'zeta/chat-model']);
-        assert.deepEqual(models[0], { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', contextWindow: 1048576, vision: false, recommendedFor: ['agent'], recommendedNote: null });
+        assert.deepEqual(models[0], { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', contextWindow: 1048576, vision: false, recommendedFor: ['agent'], recommendedNote: null,
+            // MPI-912: the suite score and cost per chat ride along for the agent dropdown.
+            agentTest: RECOMMENDED_REMOTE_MODELS.deepinfra.find((r) => r.id === 'deepseek-ai/DeepSeek-V4-Flash-0731').agentTest });
         // `recommendedNote` says why THIS one when a job has more than one recommendation.
         // Null unless the table gives a reason - DeepSeek V4 Flash deliberately has none.
         assert.equal(models[1].vision, true);
@@ -98,8 +100,8 @@ test('listRemoteModels: an untagged catalogue (OpenAI, OpenRouter) is kept whole
     try {
         const models = await listRemoteModels({ presetId: 'openrouter', baseURL: 'https://openrouter.ai/api/v1', key: 'k' });
         assert.deepEqual(models, [
-            { id: 'a-model', contextWindow: null, vision: null, recommendedFor: [], recommendedNote: null },
-            { id: 'b-model', contextWindow: 8192, vision: null, recommendedFor: [], recommendedNote: null },
+            { id: 'a-model', contextWindow: null, vision: null, recommendedFor: [], recommendedNote: null, agentTest: null },
+            { id: 'b-model', contextWindow: 8192, vision: null, recommendedFor: [], recommendedNote: null, agentTest: null },
         ]);
     } finally { restore(); }
 });

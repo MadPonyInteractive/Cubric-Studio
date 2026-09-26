@@ -8,3 +8,4 @@
 - [x] 3a. `agent-test.mjs --preset ollama`
 - [ ] 3b. Agent screens (GPU): qwen3.5, gemma4:e4b, gemma-4-abliterated:12b; ask before pulls
 - [x] 4. Docs: `docs/llm.md`, `docs/agent/prompt-enhancement.md`
+- [x] 5. Agent dropdown: tested models on top with score and cost, no "recommended" (Fabio 2026-09-26)

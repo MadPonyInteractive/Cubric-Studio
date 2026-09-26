@@ -1,6 +1,7 @@
 // MPI-737: the Language Models rows on Remote — every job's model dropdown reads
 // the ONE shared connection list, our recommended models first as
 // "(recommended) <id>", and Image descriptions lists only models that can see.
+// The agent row lists its tested models first with score and cost instead (MPI-912).
 //
 // `/llm/connection/models` is stubbed IN-PAGE: win.route() does not reach the
 // renderer's fetch in Electron (memory: tool_electron_ui_check_fixture_fetch).
@@ -10,8 +11,8 @@ const { test, expect } = require('@playwright/test');
 const { launchApp, closeApp } = require('./launch');
 
 const MODELS = [
-  { id: 'acme/agent-pick',   contextWindow: 1_048_576, vision: false, recommendedFor: ['agent'] },
-  { id: 'acme/zeta-chat',    contextWindow: null,      vision: false, recommendedFor: [] },
+  { id: 'acme/agent-pick',   contextWindow: 1_048_576, vision: false, recommendedFor: ['agent'], agentTest: { passed: 23, cases: 23, runs: 3, perChat: 0.0036 } },
+  { id: 'acme/zeta-chat',    contextWindow: null,      vision: false, recommendedFor: [],        agentTest: { passed: 18, cases: 23, runs: 1, perChat: 0.0017 } },
   { id: 'acme/enhance-pick', contextWindow: 131_072,   vision: false, recommendedFor: ['enhance'] },
   { id: 'acme/see-pick',     contextWindow: 327_680,   vision: true,  recommendedFor: ['describe'] },
   { id: 'acme/alpha-vision', contextWindow: null,      vision: true,  recommendedFor: [] },
@@ -62,7 +63,15 @@ test('Remote rows list the connection models, recommended first', async ({}, tes
     await expect(label('#mpiSettingsLlmDescribeBackendSlot')).toHaveText('Remote');
     await expect(label('#mpiSettingsLlmEnhanceModelSlot')).toHaveText('(recommended) acme/enhance-pick', { timeout: 10000 });
     await expect(label('#mpiSettingsLlmDescribeModelSlot')).toHaveText('(recommended) acme/see-pick');
-    await expect(label('#mpiSettingsAgentModelSlot')).toHaveText('(recommended) acme/agent-pick');
+    // MPI-912: the agent row has no "recommended": tested models on top, best score first,
+    // each with its score and cost; the pick is still the default.
+    await expect(label('#mpiSettingsAgentModelSlot')).toHaveText('acme/agent-pick · 23/23 tests · $0.36/100 chats');
+    await toggle('#mpiSettingsAgentModelSlot');
+    await expect(openList).toHaveText([
+      'acme/agent-pick · 23/23 tests · $0.36/100 chats', 'acme/zeta-chat · 18/23 tests (1 run) · $0.17/100 chats',
+      'acme/enhance-pick', 'acme/see-pick', 'acme/alpha-vision',
+    ]);
+    await toggle('#mpiSettingsAgentModelSlot');
 
     // Enhancement: its recommendation first, then the rest in the endpoint's order.
     await toggle('#mpiSettingsLlmEnhanceModelSlot');
