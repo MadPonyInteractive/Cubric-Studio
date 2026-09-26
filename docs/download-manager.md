@@ -1171,6 +1171,13 @@ Consequences that cost a live session on 2026-08-10:
   the very dep whose 13.3GB `.part` was the thing occupying the volume. The credit rule is
   under the remote pre-flight gate, beside MPI-752.
 
+## TLS trust — the OS certificate store (MPI-935)
+
+Both Node processes (`main.js` and the forked `server.js`) add the OS certificate store to
+Node's bundled CA list at startup (`routes/systemCa.js`), so antivirus HTTPS scanning no longer
+fails every download. A `SELF_SIGNED_CERT_IN_CHAIN` on a user's machine now means a genuinely
+bad certificate. Test with `NODE_USE_SYSTEM_CA` UNSET — a shell that sets it hides the bug.
+
 ## A blip is not a verdict — same-url retry (MPI-460)
 
 The mirror walk above answers "this ROUTE is blocked". It does not answer "this route
