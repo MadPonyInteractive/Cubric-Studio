@@ -179,7 +179,7 @@
 
 - **Dictate instead of typing.** A mic on the prompt box and the Agent panel: click it and speak,
   or hold Ctrl+Space. Uses your DeepInfra key, about $0.0002 a minute. Turn on Settings, Audio,
-  Dictate in English to have any language you speak written in English.
+  Dictate in English to have any language you speak written in English (about $0.00045 a minute).
 
 - **Claude, Codex and Google Antigravity can drive Cubric Studio.** Ask for an image, a video
   or a GIF and it lands in your project. Setup: github.com/MadPonyInteractive/cubric-studio-agents
