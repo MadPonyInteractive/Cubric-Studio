@@ -28,7 +28,7 @@ the sidecar's `generationSettings.mediaItems`, never app.log (`docs/agent-findin
 ## Reproduced offline (2026-09-26)
 
 `scripts/agent-test.mjs` machinery, real agent model (`deepseek-ai/DeepSeek-V4-Flash-0731`),
-fake tools, 3 runs each, $0.05 total. Cases: `research/refs-cases.mjs`.
+fake tools, 3 runs each, $0.05 total. Cases: now `second-picture-*` in `scripts/agent-test.mjs` (the scratch fragment first committed here broke `eslint .` on master and was removed).
 
 | Case | Editors installed | Both pictures sent, B as `inputImage` |
 |---|---|---|
