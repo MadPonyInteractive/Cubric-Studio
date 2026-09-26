@@ -2,9 +2,34 @@
 
 ## Current State
 
-(2026-09-26, session ab9e6fd6) Card created and planned; nothing built. Next action: Phase 1.
-Design agreed with Fabio in chat (see description). Two phases, one card: the window protects
-every cloud run on its own and ships first; the batch builds on it.
+(2026-09-26, session 5cae2625) Phase 1 VERIFIED by Fabio. Phase 2 BUILT, full unit suite green,
+uncommitted; waiting on Fabio's in-app check (batch 2-4 on FLUX 2 Dev, ~$0.07 for 4). After his
+"1": close-out (mpi-end-session). Open question put to him: batch is `scope: 'shared'`, so an
+SDXL batch of 4 carries to a cloud image model (x4 money); price tag + xN badge show it.
+
+How Phase 2 landed - fan-out in the EXECUTOR, not N Cue jobs (Plan Drift below says why):
+- `cloudRunFields` returns `calls` (N where the endpoint has no native batch, else 1) beside
+  `batch`; `estimateRunCost` prices `batch * calls`. Cap 4 (mirrors AGENT_BATCH_MAX).
+- The executor sends `calls` POSTs with `Promise.allSettled` after the ONE window: fixed seed
+  steps +i per call; every call carries the WHOLE batch's `estimateUsd`; partial failure lands
+  the survivors + one `ui:warning`; all failed = one `_settleFailure`. `outputInfo.seeds[i]` ->
+  generationService `_seedOf(i)` so each card's sidecar has its own seed.
+- `modelShowsBatch` returns true for any `model.provider`; `visibleControlIds` appends `batch`
+  for a cloud model when the op lists none (t2v/i2v/edit). Knock-on: `agentCanBatch` now allows
+  every cloud op, so the agent's `count` on cloud is one parallel job (test updated).
+
+Phase 1 notes:
+
+How Phase 1 landed (not obvious from the diff):
+- `sendWindow = { ms: 3000 }` in `cloudExecutor.js` is an object only so the test can shrink it;
+  `tests/cloud-executor.test.cjs` pins it to 0 for every test not about the window.
+- The wait loops in 1 s steps and emits `generation:send-countdown { id: genId, seconds }`
+  (then `seconds: 0` right before the POST). It wakes on `controller.signal` only: every Stop
+  before the POST aborts the controller (`exec.cancel` and the store's `interruptCb`).
+- Card: MpiGalleryBlock routes the event by `activeGenerations.get(id)` tempIds ->
+  `grid.el.setSendCountdown` -> card `nameEl` "Sending in N...". The grid keeps a
+  `_sendCountdowns` map because the first tick beats its 16 ms debounced render.
+- Gallery cards only. A history-mode (groupHistory) cloud run waits too but shows no countdown.
 
 ## Phase 1: the send window (~3 s)
 
@@ -52,8 +77,16 @@ cloud image model -> four cards at once, four results; Stop within the window ->
 
 ## Completed
 
-(none)
+- 2026-09-26 Phase 1 built: `cloudExecutor.js` window + countdown event, `MpiGalleryBlock.js`
+  route, `MpiGalleryGrid.js` card label; 3 new tests in `tests/cloud-executor.test.cjs`
+  (30/30 pass). VERIFIED by Fabio in the app.
+- 2026-09-26 Phase 2 built: executor fan-out, per-card seeds, batch gate for cloud models.
+  Awaiting Fabio's in-app check.
 
 ## Plan Drift
 
-(none)
+- 2026-09-26: Phase 2's "fan out in generationService (N jobs) or in the gallery dispatch"
+  was neither. The Cue runs ONE job per lane (`_dispatchNextCue`, cloud lane included), so N
+  jobs would run one after another, not in parallel. Fanning out inside `runCloudCommand` keeps
+  it ONE job: one window, one Stop reaching all N, one lane slot, and generationService already
+  treats N urls from one exec as a batch (N cards, placeholders from `Input_Batch_Size`).

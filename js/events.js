@@ -223,6 +223,7 @@ export const Events = new EventBus();
  * Generation lifecycle events (emitted by generationService / activeGenerations):
  * 'generation:started'    { id, scope, groupId, tempId, placeholderGroup, extraTempIds, extraPlaceholders }
  * 'preview:frame'         { engine, promptId, seq, url } — unified latent-preview bus (MPI-269). Resolve via activeGenerations.byPromptId; seed via getLastPreview. See docs/preview-bus.md.
+ * 'generation:send-countdown' { id, seconds } — a cloud run's send window (MPI-940): whole seconds left before the POST, then 0 when it goes. A Stop inside it bills nothing. MpiGalleryBlock paints it on the card.
  * 'generation:cancelled'  { id, tempId, extraTempIds, byUser? } — `byUser:true` only from activeGenerations.cancel (a Stop); the other emits just tear a placeholder down (cache hit, text output, empty result)
  * 'generation:complete'   { id, item, group, items?, groups?, tempId?, extraTempIds?, deferred?, cancelled? } — generation succeeded; persisted UNLESS `deferred` (MPI-306 hold-until-Apply: media is on disk, the project record is withheld until the App's Apply commits it). `cancelled:true` = the user Stopped it but ComfyUI's advisory interrupt still returned output: the item SAVES and every repaint/teardown consumer must handle it normally, but it must NOT be reported to the user as a finished generation (no success toast, no chime).
  * 'generation-store:changed' { jobs, running, pending, depth } — generationStore snapshot after any job transition (MPI-208; the single source of truth all generation UI derives from)

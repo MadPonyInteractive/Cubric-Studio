@@ -132,15 +132,18 @@ test('a batch multiplies on a model with a native batch, clamped to the publishe
     assert.ok(CLOSE(over.usd, full.usd));
 });
 
-test('a batch does NOT multiply on a model with no native batch', () => {
-    // Its control never mounts (`capabilities.batch: false`), so a count can only arrive
-    // from a reused prompt — and multiplying it would quote a charge that cannot happen.
+test('a batch on a model with no native batch is N calls, quoted as N (MPI-940)', () => {
+    // It used to be quoted as one, because the control never mounted there. Since MPI-940
+    // it mounts and the executor sends N calls of one, each billed: four is four times one.
     const model = byId('nano-banana-pro-cloud');
     assert.equal(batchFieldFor(model.cloud.endpointId), null);
     const one = estimateRunCost(model, { Width: 1024, Height: 1024 }, []);
     const four = estimateRunCost(model, { Width: 1024, Height: 1024, Input_Batch_Size: 4 }, []);
-    assert.equal(four.batch, 1);
-    assert.ok(CLOSE(four.usd, one.usd));
+    assert.equal(four.batch, 4);
+    assert.ok(CLOSE(four.usd, one.usd * 4));
+    const fields = cloudRunFields(model, { Input_Batch_Size: 4 });
+    assert.deepEqual([fields.batch, fields.calls], [1, 4], 'no count reaches the endpoint; four calls do');
+    assert.equal(cloudRunFields(model, { Input_Batch_Size: 99 }).calls, 4, 'capped at the control\'s own 4');
 });
 
 // ── 3. refusing ──────────────────────────────────────────────────────────────────────

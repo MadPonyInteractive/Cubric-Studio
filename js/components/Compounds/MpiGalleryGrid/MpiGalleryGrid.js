@@ -130,6 +130,7 @@ function _addDownloadUrl(e, item) {
  *   updatePreview(tempId, previewUrl, clip) — push latent preview url to generating card
  *                                          (clip = { rate, length } when the run bursts clips)
  *   resetPreviewClip(tempId, clip)       — new sampler stage: drop the current clip window
+ *   setSendCountdown(tempId, seconds)    — cloud send window: "Sending in N..." (0 = sent, MPI-940)
  *   setSelectionMode(val)                — set selection mode externally
  *   getGroup(groupId)                    — the group last handed to setGroups, or null
  *
@@ -191,6 +192,9 @@ export const MpiGalleryGrid = ComponentFactory.create({
          * _rerenderJustified so debounced rebuilds don't drop badge state.
          */
         const _previewWarnings = new Map();
+        /** tempId → seconds left in a cloud run's send window (MPI-940). The first tick
+         *  beats the debounced render, so a card built mid-window reads it from here. */
+        const _sendCountdowns = new Map();
 
         const grid = qs('.mpi-gallery-grid__grid', el);
         const EMPTY_IMAGE_SRC = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
@@ -521,6 +525,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
             const kindEl       = qs('.mpi-group-card__kind', cardEl);
 
             let _generating = false;
+            let _sendLabel  = null; // "Sending in 3..." while a cloud run's send window runs (MPI-940)
             let _showInfo   = false;
             let _mark       = markOf(group);
 
@@ -1278,7 +1283,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     _swapThumbToEmpty();
                 }
 
-                nameEl.textContent = group.customName || selected?.name || group.name || '';
+                nameEl.textContent = _sendLabel || group.customName || selected?.name || group.name || '';
 
                 // Top-left badge: original source/model on row 1, current selected operation on row 2.
                 const originalModel = getModelById(original?.modelId);
@@ -1753,6 +1758,13 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 }
             };
 
+            /** A cloud run's send window (MPI-940): a Stop now costs nothing. 0 = sent. */
+            cardEl.setSendCountdown = (seconds) => {
+                if (_cancelled) return;
+                _sendLabel = seconds > 0 ? `Sending in ${seconds}...` : null;
+                nameEl.textContent = _sendLabel || group.name || '';
+            };
+
             /**
              * A Stopped job (MPI-908): the op's `cancelled` clip once, big and centred
              * over a blank card, then `cancel-shown` tells the block to remove the card.
@@ -2010,6 +2022,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 const { card, wrapper } = _makeCard(group);
                 entry = { card, el: wrapper, renderKey };
                 _cardMap.set(group.id, entry);
+                if (_sendCountdowns.has(group.id)) card.el.setSendCountdown(_sendCountdowns.get(group.id));
                 return entry;
             }
 
@@ -2419,6 +2432,12 @@ export const MpiGalleryGrid = ComponentFactory.create({
             _cardMap.get(tempId)?.card.el.resetPreviewClip(clip);
         };
 
+        el.setSendCountdown = (tempId, seconds) => {
+            if (seconds > 0) _sendCountdowns.set(tempId, seconds);
+            else _sendCountdowns.delete(tempId);
+            _cardMap.get(tempId)?.card.el.setSendCountdown(seconds);
+        };
+
         el.removeCard = (groupId) => {
             const entry = _cardMap.get(groupId);
             if (!entry) return;
@@ -2426,6 +2445,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
             entry.el.remove();
             _cardMap.delete(groupId);
             _aspectRatioCache.delete(groupId);
+            _sendCountdowns.delete(groupId);
             for (const key of _stabilizedIds) {
                 if (String(key).startsWith(`${groupId}|`)) _stabilizedIds.delete(key);
             }

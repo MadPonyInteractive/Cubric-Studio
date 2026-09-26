@@ -64,6 +64,7 @@ Defined in `js/events.js` as `MpiEventMap`. Key events:
 | `generation:complete` | Generation finished, item persisted `{ id, item, group, tempId? }` |
 | `generation:error` | Generation failed `{ id, tempId? }` |
 | `generation:cancelled` | Generation cancelled or produced no output `{ id, tempId? }` |
+| `generation:send-countdown` | A cloud run's send window (MPI-940) `{ id, seconds }`: whole seconds left before the POST, `0` when it goes. `cloudExecutor` emits; `MpiGalleryBlock` paints "Sending in N..." on the card |
 
 ## Cleanup Pattern (mandatory)
 

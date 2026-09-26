@@ -1709,6 +1709,13 @@ export const MpiGalleryBlock = ComponentFactory.create({
             for (const t of allTempIds) grid.el.resetPreviewClip(t, clip);
         }));
 
+        // A cloud run's send window (MPI-940): the card counts down to the POST.
+        _unsubs.push(Events.on('generation:send-countdown', ({ id, seconds }) => {
+            const entry = activeGenerations.get(id);
+            if (!entry || !_myGenIds.has(id)) return;
+            for (const t of [entry.tempId, ...(entry.extraTempIds || [])].filter(Boolean)) grid.el.setSendCountdown(t, seconds);
+        }));
+
         // After a job ends, rebuild the grid: remove its placeholders if they
         // were mounted (only the first-running's are), and re-mount the new
         // first-running's placeholders if any remain in the queue.

@@ -282,15 +282,18 @@ test('batch: refused by name where images 2+ artefact, and above the cap', async
     } finally { await stop(); }
 });
 
-test('agentCanBatch: SDXL family t2i and the cloud, nothing else', () => {
+test('agentCanBatch: SDXL family t2i and every op of every cloud model, nothing else', () => {
     const { agentCanBatch } = require('../js/data/generationControls.js');
     const can = MODELS.flatMap((m) => (m.supportedOps || [])
         .filter((op) => agentCanBatch(m, op)).map((op) => `${m.id}:${op}`));
+    // A cloud batch is N parallel calls where the endpoint has no native one (MPI-940), so
+    // every cloud op batches, and each image is its own call — nothing to artefact.
+    const cloud = MODELS.filter((m) => m.provider).flatMap((m) => m.supportedOps.map((op) => `${m.id}:${op}`));
+    assert.ok(cloud.includes('seedance-2-cloud:i2v') && cloud.includes('nano-banana-pro-cloud:edit'), 'fixture guard');
     assert.deepEqual(can.sort(), [
-        'flux-schnell-cloud:t2i', 'ill-anime-beauty:t2i', 'ill-anime:t2i', 'pony-mix:t2i',
-        'sdxl-nsfw:t2i', 'sdxl-realistic:t2i',
-        'veo-31-cloud:i2v', 'veo-31-cloud:t2v', 'veo-31-fast-cloud:i2v', 'veo-31-fast-cloud:t2v',
-    ]);
+        'ill-anime-beauty:t2i', 'ill-anime:t2i', 'pony-mix:t2i', 'sdxl-nsfw:t2i', 'sdxl-realistic:t2i',
+        ...cloud,
+    ].sort());
 });
 
 test('batch: a project saved at batch 3 still runs an unasked agent submit at batch 1', () => {

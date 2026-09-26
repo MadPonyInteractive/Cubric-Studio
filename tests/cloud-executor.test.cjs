@@ -26,8 +26,14 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 
-const { runCloudCommand, cloudErrorMessage } = require('../js/services/cloudExecutor.js');
+const { runCloudCommand, cloudErrorMessage, sendWindow } = require('../js/services/cloudExecutor.js');
 const { generationStore, PHASES } = require('../js/services/generationStore.js');
+const { Events } = require('../js/events.js');
+
+// The send window (MPI-940) is 3 s in the app. Every test below that is not ABOUT it runs
+// with none, so each dispatch still sends at once; the window's own tests set it short.
+const SHIPPED_WINDOW_MS = sendWindow.ms;
+sendWindow.ms = 0;
 const { MODELS } = require('../js/data/modelConstants/models.js');
 const PRICES = require('../dev_configs/deepinfra-prices.json');
 
@@ -259,6 +265,154 @@ test('a Stop BEFORE the run is sent sends nothing and settles cancelled', async 
     assert.equal(r.err.message, 'cancelled_before_dispatch');
     assert.deepEqual(calls, []);
     assert.equal(jobOf(exec).phase, PHASES.CANCELLED);
+});
+
+// ── the send window (MPI-940) ────────────────────────────────────────────────────────────
+
+test('the app waits 3 s before a cloud run is sent', () => {
+    assert.equal(SHIPPED_WINDOW_MS, 3000);
+});
+
+/** Dispatch with a send window of `ms`, recording every generation POST and countdown tick. */
+function dispatchWithWindow(ms) {
+    const calls = [];
+    const ticks = [];
+    const realFetch = global.fetch;
+    global.fetch = async (url) => { if (url === '/deepinfra/generate') calls.push(Date.now()); return okResponse(); };
+    const off = Events.on('generation:send-countdown', ({ id, seconds }) => { if (id === 'gen-w') ticks.push(seconds); });
+    sendWindow.ms = ms;
+    const startedAt = Date.now();
+    const exec = runCloudCommand({ genId: 'gen-w', modelId: MODEL_ID, operation: 't2i', positive: 'a cube' });
+    const ended = new Promise((resolve) => {
+        exec.onComplete = () => resolve({ outcome: 'complete' });
+        exec.onError = (err) => resolve({ outcome: 'error', err });
+    }).finally(() => { global.fetch = realFetch; off(); sendWindow.ms = 0; });
+    return { exec, ended, calls, ticks, startedAt };
+}
+
+test('a Stop INSIDE the send window sends nothing: cancelled, nothing billed', async () => {
+    const { exec, ended, calls } = dispatchWithWindow(1200);
+    await new Promise(r => setTimeout(r, 50)); // inside the window, before the POST
+    assert.equal(exec.stopKeepsResult, false, 'nothing is sent yet, so a Stop must still abort');
+    exec.cancel();
+    const r = await ended;
+    assert.equal(r.outcome, 'error');
+    assert.equal(r.err.message, 'cancelled_before_dispatch');
+    assert.deepEqual(calls, [], 'a Stop inside the window must never reach the provider');
+    assert.equal(jobOf(exec).phase, PHASES.CANCELLED);
+});
+
+test('with no Stop the run is sent once the window ends, counting down to it', async () => {
+    const { ended, calls, ticks, startedAt } = dispatchWithWindow(1200);
+    const r = await ended;
+    assert.equal(r.outcome, 'complete');
+    assert.equal(calls.length, 1);
+    assert.ok(calls[0] - startedAt >= 1150, `sent after ${calls[0] - startedAt} ms of a 1200 ms window`);
+    // Whole seconds left, then 0 when it goes: the card reads "Sending in 2...", "1...", then its name.
+    assert.deepEqual(ticks, [2, 1, 0]);
+});
+
+// ── a batch on a model with NO native batch: N calls of one, sent together (MPI-940) ──────
+
+const FAN_MODEL = 'nano-banana-pro-cloud';
+
+/** One provider answer per call, named after the seed it was sent, so cards are told apart. */
+const perCall = (bodies, fail = () => false) => (url, init) => {
+    if (url !== '/deepinfra/generate') return okResponse();
+    const body = JSON.parse(init.body);
+    bodies.push(body);
+    if (fail(body)) return { ok: false, status: 400, json: async () => ({ ok: false, error: { code: 'CONTENT_FILTERED' } }) };
+    return { ok: true, status: 200, json: async () => ({
+        ok: true, viewUrls: [`http://127.0.0.1:3000/deepinfra/output/${body.seed}.jpg`],
+        cost: { usd: 0.1, model: 'm', at: 'now' }, seed: body.seed,
+    }) };
+};
+
+test('a batch of four on a model with no native batch is four calls of one, sent together', async () => {
+    const bodies = [];
+    const { outcome, urls, info, exec } = await dispatch(perCall(bodies),
+        { modelId: FAN_MODEL, injectionParams: { Seed: 42, Width: 1024, Height: 1024, Input_Batch_Size: 4 } });
+    assert.equal(outcome, 'complete');
+    assert.equal(bodies.length, 4);
+    assert.ok(bodies.every(b => b.batch === 1), 'no count reaches an endpoint that has none');
+    // A fixed seed steps per call, or four calls buy four copies of one picture.
+    assert.deepEqual(bodies.map(b => b.seed), [42, 43, 44, 45]);
+    assert.equal(urls.length, 4);
+    // Each card records the seed ITS call ran, so Reuse reproduces that card.
+    assert.deepEqual(info.seeds, [42, 43, 44, 45]);
+    assert.equal(exec.seed, 42);
+    // Four bills of $0.10; each card carries its share, and the cards sum to the bill.
+    assert.ok(Math.abs(info.cost.usd - 0.1) < 1e-9);
+    // Every call carries the WHOLE batch's figure, so the route refuses all four if the
+    // account cannot cover the lot, instead of passing each one alone.
+    const { estimateRunCost } = require('../js/services/cloudExecutor.js');
+    const whole = estimateRunCost(MODELS.find(m => m.id === FAN_MODEL), { Width: 1024, Height: 1024, Input_Batch_Size: 4 }).usd;
+    assert.ok(bodies.every(b => b.estimateUsd === whole));
+    assert.equal(jobOf(exec).phase, PHASES.DONE);
+});
+
+test('a fan-out where some calls fail lands the rest, and says how many did not come back', async () => {
+    const warnings = [];
+    const off = Events.on('ui:warning', (p) => warnings.push(p.message));
+    const bodies = [];
+    const { outcome, urls, info } = await dispatch(perCall(bodies, (b) => b.seed % 2 === 1),
+        { modelId: FAN_MODEL, injectionParams: { Seed: 10, Input_Batch_Size: 4 } }).finally(off);
+    assert.equal(outcome, 'complete');
+    assert.equal(bodies.length, 4);
+    assert.equal(urls.length, 2, 'the two that were paid for land');
+    assert.deepEqual(info.seeds, [10, 12]);
+    assert.equal(warnings.length, 1);
+    assert.match(warnings[0], /^2 of 4 did not come back\./);
+    assert.match(warnings[0], /not billed/);
+});
+
+test('a fan-out Stopped once SENT keeps what landed, and a failed call says nothing (MPI-937)', async () => {
+    const warnings = [];
+    const off = Events.on('ui:warning', (p) => warnings.push(p.message));
+    const bodies = [];
+    const answer = perCall(bodies, (b) => b.seed === 11);
+    const realFetch = global.fetch;
+    global.fetch = (url, init) => new Promise((resolve) => setTimeout(() => resolve(answer(url, init)), 60));
+    const exec = runCloudCommand({ genId: 'gen-1', modelId: FAN_MODEL, operation: 't2i', positive: 'a cube',
+        injectionParams: { Seed: 10, Input_Batch_Size: 2 } });
+    const ended = new Promise((resolve) => {
+        exec.onComplete = (urls) => resolve({ outcome: 'complete', urls });
+        exec.onError = (err) => resolve({ outcome: 'error', err });
+    }).finally(() => { global.fetch = realFetch; off(); });
+    await new Promise(r => setTimeout(r, 20)); // both calls are in flight
+    exec.cancel();
+    const r = await ended;
+    assert.equal(r.outcome, 'complete');
+    assert.equal(r.urls.length, 1, 'the paid call lands');
+    assert.deepEqual(warnings, [], 'the user Stopped it: no toast for the call that failed');
+});
+
+test('a fan-out where every call fails settles as ONE error', async () => {
+    const seen = [];
+    const off = Events.on('ui:error', (p) => seen.push(p.title));
+    const bodies = [];
+    const { outcome, err, exec } = await dispatch(perCall(bodies, () => true),
+        { modelId: FAN_MODEL, injectionParams: { Input_Batch_Size: 3 } }).finally(off);
+    assert.equal(outcome, 'error');
+    assert.equal(err.code, 'CONTENT_FILTERED');
+    assert.equal(bodies.length, 3);
+    assert.equal(seen.length, 1, 'one dialog for the batch, not one per call');
+    assert.equal(jobOf(exec).phase, PHASES.ERROR);
+});
+
+test('a Stop inside the window stops EVERY call of a fan-out', async () => {
+    const bodies = [];
+    const realFetch = global.fetch;
+    global.fetch = perCall(bodies);
+    sendWindow.ms = 1200;
+    const exec = runCloudCommand({ genId: 'gen-f', modelId: FAN_MODEL, operation: 't2i', positive: 'a cube',
+        injectionParams: { Input_Batch_Size: 4 } });
+    const ended = new Promise((resolve) => { exec.onComplete = () => resolve('complete'); exec.onError = (e) => resolve(e.message); })
+        .finally(() => { global.fetch = realFetch; sendWindow.ms = 0; });
+    await new Promise(r => setTimeout(r, 50));
+    exec.cancel();
+    assert.equal(await ended, 'cancelled_before_dispatch');
+    assert.deepEqual(bodies, [], 'nothing sent, nothing billed');
 });
 
 test('an HTTP failure settles the lane', async () => {

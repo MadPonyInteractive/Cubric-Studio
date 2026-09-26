@@ -101,8 +101,9 @@ other ratios are in `tierSizes` — the values above are one column of it.
 **`batch` (1-4) only where the model batches cleanly.** On most models images 2+
 of a batch come back with artefacts, so `batch` > 1 runs as ONE job only on the
 SDXL family's `t2i` (sdxl-realistic, sdxl-nsfw, ill-anime, ill-anime-beauty,
-pony-mix) and the DeepInfra cloud models that batch natively (flux-schnell-cloud,
-Veo). Anywhere else it is refused with `BATCH_UNSUPPORTED`: send N submits
+pony-mix) and EVERY op of every DeepInfra cloud model: natively where the endpoint
+batches (flux-schnell-cloud, Veo), otherwise as N parallel calls, each billed on its
+own (N cards, N bills). Anywhere else it is refused with `BATCH_UNSUPPORTED`: send N submits
 instead. They queue, each request blocks until its own run finishes, so fire
 them together and collect N results. Unasked, a submit runs batch 1 whatever the
 open project's batch control says.

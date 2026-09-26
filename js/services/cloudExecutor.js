@@ -47,6 +47,15 @@ import { ratioSettingsFromParams } from '../utils/promptReuse.js';
 import { extractAbsPath } from '../utils/mediaActions.js';
 import { clientLogger } from './clientLogger.js';
 import { Events } from '../events.js';
+import { on } from '../utils/dom.js';
+
+/**
+ * How long a cloud run waits before it is sent (MPI-940). The POST is what bills, and a
+ * wrong model or setting is usually caught in the first few seconds, so a Stop inside this
+ * window costs nothing. 3 s, not 5: longer reads as lag (Fabio). An object only so the unit
+ * test can shrink it. ponytail: a user setting only if one is asked for.
+ */
+export const sendWindow = { ms: 3000 };
 
 /** Provider error codes the route can return, mapped to copy a user can act on. */
 const ERROR_COPY = {
@@ -74,20 +83,25 @@ export function cloudErrorMessage(code, fallback) {
  * @param {object} model - the ModelDef, which must carry `cloud.endpointId`
  * @param {object} params - `injectionParams` from the run payload
  * @param {Array} [mediaItems] - staged media, for the reference image(s)
- * @returns {{batch:number, width:number, height:number, ratioLabel:string,
+ * @returns {{batch:number, calls:number, width:number, height:number, ratioLabel:string,
  *   qualityTier:string, duration:number, imagePaths:string[]}}
  */
 export function cloudRunFields(model, params = {}, mediaItems = []) {
-    // The batch control's own node title, clamped to what this endpoint accepts. A
-    // batch is N images in ONE call and ONE bill, so the cost that comes back covers
-    // all of them — never multiply it per card.
+    // The batch control's own node title, capped at the control's own 1..4.
+    // ponytail: mirrors AGENT_BATCH_MAX (generationControls.js), which drags the app graph in.
+    const asked = Math.max(1, Math.min(4,
+        Number(params.Input_Batch_Size || params.Batch_Size || params.batchSize) || 1));
+    // Where the endpoint batches natively, the batch is N images in ONE call and ONE bill,
+    // so the cost that comes back covers all of them — never multiply it per card.
     //
     // The cap comes from the provider's published maximum in the price snapshot, not
     // from a number written on the ModelDef (MPI-853): of the sixteen cloud models
     // only two have a native batch at all, and they do not even call it the same
-    // thing. A model with none clamps to 1 here and the route never sends a count.
-    const batch = Math.max(1, Math.min(batchFieldFor(model?.cloud?.endpointId)?.max || 1,
-        Number(params.Input_Batch_Size || params.Batch_Size || params.batchSize) || 1));
+    // thing. A model with none sends no count, and its batch is `calls` requests of one,
+    // sent together (MPI-940): N calls, N bills.
+    const native = batchFieldFor(model?.cloud?.endpointId)?.max || 1;
+    const batch = Math.min(native, asked);
+    const calls = native > 1 ? 1 : asked;
 
     // The size the user actually picked, in the three currencies the providers use
     // between them. `ratioSettingsFromParams` is the SAME recovery generationService
@@ -99,6 +113,7 @@ export function cloudRunFields(model, params = {}, mediaItems = []) {
 
     return {
         batch,
+        calls,
         width:  params.Width  || params.width  || 0,
         height: params.Height || params.height || 0,
         // Nano Banana takes a ratio LABEL and no pixels; the video models take a
@@ -159,7 +174,8 @@ export function estimateRunCost(model, params = {}, mediaItems = []) {
         // What the route actually SENDS: one per numbered field, or one image (a Nano
         // Banana collage is one picture) for everything else.
         references: Math.min(want.imagePaths.length, model.cloud.imageFields?.length || 1),
-        batch: want.batch,
+        // Every image is priced, whether one call carries them or N calls do.
+        batch: want.batch * want.calls,
     });
 }
 
@@ -278,11 +294,23 @@ export function runCloudCommand(payload) {
             : (Number.isFinite(payload.seed) ? payload.seed : null);
         exec.seed = seed;
 
+        // The send window. Every Stop before the POST aborts `controller` (exec.cancel, and
+        // the store's interruptCb), so waking on it drops straight into the check below.
+        // The card counts down off `generation:send-countdown`; 0 means "sent".
+        for (let left = sendWindow.ms; left > 0 && !controller.signal.aborted; left -= 1000) {
+            Events.emit('generation:send-countdown', { id: payload.genId ?? null, seconds: Math.ceil(left / 1000) });
+            await new Promise((resolve) => {
+                const off = on(controller.signal, 'abort', () => { clearTimeout(t); resolve(); }, { once: true });
+                const t = setTimeout(() => { off(); resolve(); }, Math.min(1000, left));
+            });
+        }
+
         // A Stop can land between register() and the POST; the store's own signal is
         // the record of it, exactly as the local pipeline's abort boundaries read it.
         // A Stop before register() aborted the controller only: there was no job yet.
         if (generationStore.getSignal(jobId)?.aborted || controller.signal.aborted) { _settleCancelled(); return; }
 
+        if (sendWindow.ms > 0) Events.emit('generation:send-countdown', { id: payload.genId ?? null, seconds: 0 });
         generationStore.advance(jobId, PHASES.SUBMITTING);
         exec.stopKeepsResult = true;
         // The card's time clock starts on the ack. The route answers only once the provider
@@ -292,47 +320,62 @@ export function runCloudCommand(payload) {
         // One blocking call: nothing to stream, so the bar pulses instead of filling.
         Events.emit('tool:indeterminate', { tool: 'groupHistory', id: payload.genId ?? null, active: true });
 
-        let res;
-        try {
-            res = await fetch('/deepinfra/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                signal: controller.signal,
-                body: JSON.stringify({
-                    modelId: model.id,
-                    operation: payload.operation,
-                    prompt: payload.positive || '',
-                    seed,
-                    ...fields,
-                    // The price tag's own figure, so the route can refuse a run the
-                    // account cannot cover before it is sent (MPI-869).
-                    estimateUsd: estimateRunCost(model, params, payload.mediaItems)?.usd || 0,
-                }),
-            });
-        } catch (err) {
-            if (controller.signal.aborted) { _settleCancelled(); return; }
-            _settleFailure('PROVIDER_ERROR', err?.message);
-            return;
-        }
+        // The price tag's own figure, so the route can refuse a run the account cannot cover
+        // before it is sent (MPI-869). The WHOLE batch's figure on every call of a fan-out:
+        // four calls that could each be afforded alone must not together overdraw the account.
+        const estimateUsd = estimateRunCost(model, params, payload.mediaItems)?.usd || 0;
+        const _send = (callSeed) => fetch('/deepinfra/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal,
+            body: JSON.stringify({
+                modelId: model.id,
+                operation: payload.operation,
+                prompt: payload.positive || '',
+                seed: callSeed,
+                ...fields,
+                estimateUsd,
+            }),
+        }).then(async (res) => ({ res, callSeed, body: await res.json().catch(() => null) }));
+
+        // One call, or `fields.calls` of them sent together (MPI-940). Settled, not raced:
+        // once sent every call bills, so one failing must not throw away the others' results.
+        // A fixed seed steps per call, or four calls would buy four copies of one picture.
+        const answers = await Promise.allSettled(Array.from({ length: fields.calls },
+            (_, i) => _send(seed === null ? null : seed + i)));
+        if (controller.signal.aborted) { _settleCancelled(); return; }
 
         // Answered by our own route, which is the only "the provider took it" signal a
         // blocking call has.
-        generationStore.advance(jobId, PHASES.ACCEPTED);
+        if (answers.some(a => a.status === 'fulfilled')) generationStore.advance(jobId, PHASES.ACCEPTED);
 
-        let body = null;
-        try { body = await res.json(); } catch (_) { /* handled as a provider error below */ }
+        const _landed = (a) => a.status === 'fulfilled' && a.value.res.ok && a.value.body?.ok;
+        const landed = answers.filter(_landed).map(a => a.value);
+        const missed = answers.find(a => !_landed(a));
+        const missCode = missed?.value?.body?.error?.code || 'PROVIDER_ERROR';
+        const missMessage = missed?.value?.body?.error?.message || missed?.reason?.message;
+        if (!landed.length) { _settleFailure(missCode, missMessage); return; }
 
-        if (controller.signal.aborted) { _settleCancelled(); return; }
-        if (!res.ok || !body?.ok) {
-            _settleFailure(body?.error?.code || 'PROVIDER_ERROR', body?.error?.message);
-            return;
+        // Some of a fan-out came back and some did not: the ones that did are paid for and
+        // land; the rest were not billed, and say so. After a Stop only the log does (MPI-937).
+        if (missed) {
+            const lost = answers.length - landed.length;
+            clientLogger.warn('cloudExecutor',
+                `${lost} of ${answers.length} cloud calls failed (${payload.operation} / ${payload.modelId}): ${missCode}${missMessage ? ` - ${missMessage}` : ''}`);
+            if (!payload.byAgent && !_stopped()) {
+                Events.emit('ui:warning', { message: `${lost} of ${answers.length} did not come back. ${cloudErrorMessage(missCode, missMessage)}` });
+            }
         }
 
         // The provider picks the seed when we do not send one, and REPORTS it. Without
         // this the sidecar records -1 and Reuse Prompt can never reproduce the image —
         // which is the one thing a seed exists for. Measured on the first real generation
         // (MPI-851): cost and dimensions landed correctly, the seed came back as -1.
-        if (Number.isFinite(body.seed)) exec.seed = body.seed;
+        // Per card, since a fan-out's calls each ran their own.
+        const urls = landed.flatMap(l => l.body.viewUrls || []);
+        const seeds = landed.flatMap(l => (l.body.viewUrls || [])
+            .map(() => (Number.isFinite(l.body.seed) ? l.body.seed : l.callSeed)));
+        if (seeds.length) exec.seed = seeds[0];
 
         generationStore.advance(jobId, PHASES.FINALIZING);
         generationStore.settle(jobId, PHASES.DONE);
@@ -341,12 +384,15 @@ export function runCloudCommand(payload) {
         // `cost` is the TRUE figure the provider billed (`inference_status.cost`), not
         // the app's estimate — it rides into the sidecar so a spend readout can sum
         // what really happened rather than what was predicted. A batch is ONE bill for
-        // N images and `generationService` stamps this object on every card, so each card
-        // carries its share: a card's cost is its own, and summing cards gives the bill.
-        const urls = body.viewUrls || [];
+        // N images (or N bills, fanned out) and `generationService` stamps this object on
+        // every card, so each card carries its share: summing cards gives the bill.
+        const billed = landed.filter(l => l.body.cost);
         exec.onComplete?.(urls, {
-            cost: body.cost
-                ? { ...body.cost, usd: body.cost.usd / Math.max(1, urls.length), provider: model.provider }
+            seeds,
+            cost: billed.length
+                ? { ...billed[0].body.cost,
+                    usd: billed.reduce((sum, l) => sum + l.body.cost.usd, 0) / Math.max(1, urls.length),
+                    provider: model.provider }
                 : null,
         });
     })();

@@ -1553,6 +1553,10 @@ export function modelShowsRatio(model, operation) {
  * on others — a model-wide flag would have to kill the working ones too.
  */
 export function modelShowsBatch(model, operation) {
+    // A cloud model batches on every op it runs (MPI-940): natively where the endpoint can,
+    // otherwise as N calls of one (cloudExecutor `cloudRunFields`). For a cloud model
+    // `capabilities.batch` means NATIVE batch only, which the price snapshot already knows.
+    if (model?.provider) return true;
     if (model?.capabilities?.batch === false) return false;
     const batchOps = Array.isArray(model?.batchOps) ? model.batchOps : null;
     return batchOps === null || batchOps.includes(operation);

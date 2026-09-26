@@ -1627,7 +1627,11 @@ export function getInjectionParamsFromControls(activeControls) {
  * @returns {string[]} control ids, in the op's declared order
  */
 export function visibleControlIds(model, operation, ctx = {}) {
-    return getCommandComponents(operation).filter((id) => {
+    // A cloud batch is N calls on any op (MPI-940), so a cloud model offers it even where
+    // the op declares none: t2v, i2v and edit carry no `batch` for the local graphs' sake.
+    const ids = getCommandComponents(operation);
+    const offered = model?.provider && !ids.includes('batch') ? [...ids, 'batch'] : ids;
+    return offered.filter((id) => {
         if (!PROMPT_BOX_CONTROLS[id]) return false;
 
         // restores in gallery contexts.

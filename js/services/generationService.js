@@ -1273,6 +1273,9 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         // to the replaceItemId so save-generation overwrites the same sidecar.
         const _replaceItemId = config.replaceItemId || null;
 
+        // A cloud fan-out's cards each ran their own seed (MPI-940); everything else shares one.
+        const _seedOf = (i) => outputInfo.seeds?.[i] ?? exec.seed ?? -1;
+
         for (let i = 0; i < urls.length; i++) {
             const url = urls[i];
             const thisItemId = _replaceItemId && i === 0
@@ -1309,7 +1312,7 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
                         // See getFilePrefix: the strip code wins over the internal key
                         // (MPI-660).
                         filePrefix: _multiAudioLabel(url) || getFilePrefix(operation),
-                        meta: { prompt: positive, negativePrompt: negative, negativeAudioPrompt: negativeAudio, sourcePrompt, modelId: model.id, seed: exec.seed ?? -1, generationSettings },
+                        meta: { prompt: positive, negativePrompt: negative, negativeAudioPrompt: negativeAudio, sourcePrompt, modelId: model.id, seed: _seedOf(i), generationSettings },
                         generationMs: elapsedMs,
                         pixelDimensions: resolvedDims,
                         mediaType: model.mediaType,
@@ -1352,7 +1355,7 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
                 // undefined and hand back the enhancement as if the user had typed it.
                 sourcePrompt,
                 modelId: model.id,
-                seed: exec.seed ?? -1,
+                seed: _seedOf(i),
                 generationSettings: savedData?.generationSettings ?? generationSettings,
                 pixelDimensions: resolvedDims,
                 // Server returns aggregated generationMs on preview→final replace
