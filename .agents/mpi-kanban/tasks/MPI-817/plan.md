@@ -6,6 +6,12 @@ One question runs through both cards: **does the in-app agent do what it is aske
 truthfully when it does not?** Fabio's two review rounds, the global-memory gap and the flow
 dispatch bug are all that same question at different layers.
 
+> **Order, Fabio 2026-09-26: FINISH this umbrella next, then pick up MPI-941** (in-app agent
+> umbrella 2: `look` sees clips, MPI-904, MPI-913, MPI-905). This goes session to session by
+> handoff: when MPI-817 closes, its close-out hands off to MPI-941. The Current State below
+> dates from 2026-09-20, and several members may have closed since then, so check the board
+> before trusting it.
+
 ## Members
 
 | Card | Column | State | What it carries |
