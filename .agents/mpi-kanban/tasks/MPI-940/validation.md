@@ -24,5 +24,9 @@ generation ran as before; a full cloud generation left to finish landed normally
 - `tests/connector-named-params.test.cjs`: agentCanBatch = SDXL t2i + every cloud op.
 - `npx eslint --max-warnings=0` on the 4 changed js files -> exit 0.
 
-Pending: Fabio in the app (user-ux) - batch control on a no-native cloud model, N cards at once,
-N results; Stop in the window bills nothing.
+VERIFIED by Fabio in his app, 2026-09-26: "worked nicely" - batch on a no-native cloud model,
+N cards at once, N results; Stop in the window bills nothing.
+
+Close-out addition (message dc7efb3f from MPI-937): a partial fan-out failure after a Stop now
+logs only, no toast - pinned by "a fan-out Stopped once SENT keeps what landed..." in
+tests/cloud-executor.test.cjs. Code commit 2779cfcf.

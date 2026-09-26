@@ -2,10 +2,9 @@
 
 ## Current State
 
-(2026-09-26, session 5cae2625) Phase 1 VERIFIED by Fabio. Phase 2 BUILT, full unit suite green,
-uncommitted; waiting on Fabio's in-app check (batch 2-4 on FLUX 2 Dev, ~$0.07 for 4). After his
-"1": close-out (mpi-end-session). Open question put to him: batch is `scope: 'shared'`, so an
-SDXL batch of 4 carries to a cloud image model (x4 money); price tag + xN badge show it.
+(2026-09-26, session 5cae2625) DONE. Both phases verified by Fabio in the app; code in 2779cfcf.
+Open product question left with Fabio, not built: batch is `scope: 'shared'`, so an SDXL batch
+of 4 carries to a cloud image model (x4 money); the price tag and xN badge show it.
 
 How Phase 2 landed - fan-out in the EXECUTOR, not N Cue jobs (Plan Drift below says why):
 - `cloudRunFields` returns `calls` (N where the endpoint has no native batch, else 1) beside
