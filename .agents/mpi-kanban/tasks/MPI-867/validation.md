@@ -29,6 +29,12 @@ denoise. When it fails, the agent switches approach instead of turning the slide
 The Model rule and the i2i op note now say so.
 `node --test tests/model-priority.test.cjs tests/agent-loop.test.cjs` -> 130 tests: 129 pass,
 0 fail, 1 skipped. eslint is clean on the three touched files.
+The five runs are in app.log, 2026-09-26 08:56-08:59: `[connector] agent named params`, 3x
+krea2:i2i and 2x klein-9b:i2i, all `denoise=0.3 (defaulted)`.
+CI: b2a8b073 went red on tests/agent-prompt-budget.test.cjs, because the Model rule clause
+put the system prompt at 10248 bytes against a budget of 10150. I had run only two test files.
+The fix shortens the clause and leaves the budget alone: the prompt is now 10149 bytes, and
+the full detail stays in the i2i op note. `npm test` -> 1952 tests: 1951 pass, 0 fail.
 
 ## CI
 
