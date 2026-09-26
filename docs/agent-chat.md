@@ -212,7 +212,8 @@ Every event but `agent:session` also carries `session`, the key of its conversat
   **MPI-903: rules route, docs teach.** A fact gets ONE home, in this order: a gate in a tool
   result, a 1-3 sentence rule, a gated `docs/agent/*.md`, a catalogue entry. No dates, names or
   incident stories in agent-facing text; docs carry right/wrong pairs. `tests/agent-prompt-budget.test.cjs`
-  pins the floor (system 9.8 KB, tools 17.2 KB of JSON; 43 KB before), the story ban, no price in
+  pins the floor (system 10,150 bytes, 1 byte to spare after MPI-867, so run it on ANY rule edit;
+  tools 17.2 KB of JSON; 43 KB before), the story ban, no price in
   any agent doc, and 200 lines per doc: a model that needs more is `docs/agent/models/<id>/<topic>.md`
   sub-skills behind its router guide (`guide:<id>/<topic>`, only the router is gated).
 - **Opening lines** of every user message: the app state (the open project by NAME; "Images you can look
