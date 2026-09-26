@@ -178,6 +178,14 @@ at pickup.
 - [ ] **Re-adjudicate the four "not in this release" cards for a 2.0 scope** (MPI-591, MPI-578,
       MPI-532, MPI-573) — they were excluded from a 1.5, and MPI-573 has since gone `done`.
 
+## Agent connection (MPI-593) — `brief.md` § Agent connection
+
+- [ ] App `README.md` gets a "Use it from your AI agent" section linking `cubric-studio-agents`.
+- [ ] `UNRELEASED.md` bullet for the agent connection (MCP), claim-audited like the rest.
+- [ ] `.mcpb` home decided: agents-repo release only, or also `mpi-release` step 6.
+- [ ] Claude Desktop directory submission, AFTER 2.0 is live (reviewers test the released app).
+- [ ] MPI-873 (MPI-593 phase 4) in or out of 2.0.
+
 ## Gate D — hygiene before the bump
 
 - [ ] Unpushed commits pushed.

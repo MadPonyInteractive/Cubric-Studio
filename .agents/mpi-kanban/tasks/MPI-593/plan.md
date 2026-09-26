@@ -35,7 +35,7 @@ tools into `ALL_TOOLS` and never shows the model our `instructions`; a skill fix
 and headless runs refuse write tools unless `default_tools_approval_mode="approve"`. So the
 Codex fix is the phase 3 plugin (skill + `.mcp.json`), not a server change. **Codex cold test
 still owed**, only with Fabio's app CLOSED, with that approve flag and a skill in place.
-**Phase 3 items 1 and 5 DONE 2026-09-26 (5bdb59e7)**: `cubric-studio.mcpb` packed and attached at release (mpi-release step 6, checklist), `docs/mcp-server.md` + README row + contract note. **Codex cold test PASSED 2026-09-26** (skill + approve flag, one card, 74 s; item 7 closed). **Plugin BUILT and Codex-tested 2026-09-26** (`mcp/listing/`, installed in Fabio's Codex from the local folder, cold run PASSED). **Claude Code plugin cold test PASSED 2026-09-26** (same folder, `--plugin-dir`, 59 s, one card). **Next:** item 3 remainder: the Gemini extension, then the public repo (ask Fabio: only once everything in it is tested); item 2 Settings page (own card); item 4 docs site (Fabio commits) (the plugin repo, built only once tested locally), item 2 (Settings page, own card), item 4 (docs site).
+**Phase 3 items 1 and 5 DONE 2026-09-26 (5bdb59e7)**: `cubric-studio.mcpb` packed and attached at release (mpi-release step 6, checklist), `docs/mcp-server.md` + README row + contract note. **Codex cold test PASSED 2026-09-26** (skill + approve flag, one card, 74 s; item 7 closed). **Plugin BUILT and Codex-tested 2026-09-26** (`mcp/listing/`, installed in Fabio's Codex from the local folder, cold run PASSED). **Claude Code plugin cold test PASSED 2026-09-26** (same folder, `--plugin-dir`, 59 s, one card). **Gemini CLI DROPPED 2026-09-26 (session 2dc5c58a)**: extension built and Connected, but Google stopped serving Gemini CLI to individual logins on 2026-06-18 (`IneligibleTierError`, `validation.md`), so it reaches only paid-API-key users. Fabio chose Antigravity, Google's local agent: `plugins/cubric-studio/plugin.json` + `mcp_config.json` (`serverUrl`) added beside the Claude files, sharing the same SKILL.md; Claude validators still pass, Codex still lists the server. Browser chatbots (ChatGPT chat, Gemini web) can never reach `127.0.0.1`: ChatGPT users come in through Codex. **Antigravity cold test PASSED 2026-09-26** (Fabio, desktop app, his own app; one card, MCP only, guide read first; plugin still installed in his `~/.gemini/config/plugins/`). Every client the listing folder serves is now tested. **Public repo CREATED 2026-09-26** (Fabio's go): `MadPonyInteractive/cubric-studio-agents`, clone at `c:\AI\Mpi\cubric-studio-agents`; `mcp/listing/` REMOVED from this repo (the repo is the only copy); install from GitHub proven in Claude Code (https URL only) and Codex; Fabio's Codex repointed to it. **Registry PREPARED 2026-09-26 (session 2dc5c58a)**: `.mcpb` (bridge 0.2.0, sha256 `45ae25d0...`) released as `mcpb-v0.2.0` of the agents repo (README's Claude Desktop link now points there, works); `server.json` (`io.github.MadPonyInteractive/cubric-studio`, "Needs Cubric Studio 2.0+") pushed, passes the 2025-12-11 schema. Fabio: publish NOW is fine with the 2.0 note (2.0 is the only public release; 1.6.x were private). He OK'd downloading `mcp-publisher_windows_amd64.tar.gz` (v1.8.1, 7.5 MB, modelcontextprotocol/registry releases) to scratch and will approve the GitHub device code himself, and OK'd an `UNRELEASED.md` bullet about MCP. 2.0 items (app README section, UNRELEASED, `.mcpb` home, Claude Desktop directory AFTER 2.0, MPI-873 in/out) are in MPI-595 § Agent connection. MPI-873 folded here as phase 4. **Next:** mcp-publisher download -> `login github` (relay the code) -> `validate` -> `publish` from `c:\AI\Mpi\cubric-studio-agents`; then the UNRELEASED.md bullet; item 2 Settings page (own card); item 4 docs site (Fabio commits).
 
 ## Phase 1: spike (DONE)
 
@@ -108,6 +108,29 @@ A change there goes through a message to that session, never a direct edit.
    Code plugin (MCP URL + slim skill), a Gemini CLI extension. Repo home per brief Q3.
 4. Docs: a docs-site page, and `llms.txt`. That repo is a hard no-push, so Fabio commits it.
 5. **DONE 2026-09-26** (`docs/mcp-server.md`). `docs/`: record `/mcp` in the connector subsystem doc and the portable distribution contract.
+
+## Phase 4: a submit names its own project (member card MPI-873)
+
+Folded in 2026-09-26 at Fabio's request. **MPI-873 "An agent submit cannot name its project - it
+inherits whatever is open"** (`tasks/MPI-873/brief.md`). Still open on master: `routes/connector.js`
+header says a submit "runs in whatever project the app has open", and the MCP `generate` stages its
+media into `GET /connector/current-project`, the same ambient target. An outside agent is the
+worst case: the user keeps working in the app while the agent renders, so a switched project
+silently takes the run (measured 2026-09-21: five Flow outputs landed in the wrong project).
+
+- Optional project on the submit (`folderPath`), resolved per dispatch; absent = today's
+  behaviour. MCP `generate` (and the GIF tools) take the same optional field and pass it through,
+  staging reference media into THAT project, not the open one.
+- Settle first (MPI-873 brief): must the named project be open, or may the route write a closed
+  project's `project.json` through `updateProjectJson()` only? `/connector/open-project` stays for
+  an agent that means to move the user's view.
+- Ownership when picked up: `routes/connector.js` (`/connector/generate`), `js/shell/agentDispatch.js`,
+  `routes/mcp.js`, `tests/mcp.test.cjs`, `.claude/skills/cubric-vision-generate/SKILL.md`,
+  `.claude/skills/cubric-vision/projects.md`. `connector.js` and `agentDispatch.js` are shared with
+  the in-app agent (MPI-774 still in `doing`): check claims and message that session first.
+- **Verify:** open project A, submit naming B, switch the app to C mid-render; the card lands in B
+  and A/C are untouched (count files on disk). A submit with no project still lands in the open one.
+- Related, NOT folded: MPI-874 (`cardName` ignored on a Flow submit), same run, same route.
 
 ## Verification
 

@@ -9,7 +9,9 @@ Cubric-Vision is **master** (has `.claude/`, kanban, jsconfig, CLAUDE.md). The s
 `.claude/settings.json`, **deliberately NOT VS Code workspace folders.**
 
 Related on-disk siblings in neither list: `CubricStudio_Redesign` (design playground,
-intentionally no git), `Cubric Studio (Website)` and `Cubric Studio (Docs)` (separate repos).
+intentionally no git), `Cubric Studio (Website)` and `Cubric Studio (Docs)` (separate repos),
+and `cubric-studio-agents` (PUBLIC, the Claude Code / Codex / Antigravity plugin, the only copy
+since it left `mcp/listing/`; see `docs/mcp-server.md`).
 
 ## Why, and do not undo it
 

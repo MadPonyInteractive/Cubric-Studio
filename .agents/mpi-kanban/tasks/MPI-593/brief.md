@@ -50,7 +50,7 @@ Claude Desktop ──stdio──▶ .mcpb bridge ──HTTP──┘            
 | Claude Desktop | Settings > Extensions > Browse, or double-click the `.mcpb` | Anthropic's extension submission form. Needs a **privacy policy URL** (missing = rejected), tool titles and annotations. Free, reviewed. |
 | Claude Code | `/plugin install`, or `claude mcp add --transport http cubric-studio http://127.0.0.1:3000/mcp` | Plugin in a public repo, submitted to the official marketplace. A plugin can carry the MCP URL plus a skill. |
 | MCP Registry | Clients that read it (VS Code, GitHub, aggregators) | `mcp-publisher`, `server.json`, the `.mcpb` as a GitHub release asset. Automated, no human review. |
-| Gemini CLI | `gemini extensions install <repo>` | `gemini-extension.json` with `httpUrl`, submitted to the gallery |
+| Antigravity (replaced Gemini CLI, which Google stopped serving to personal logins on 2026-06-18) | copy the plugin folder into `~/.gemini/config/plugins/` | `plugin.json` + `mcp_config.json` (`serverUrl`) beside the Claude files, same skill. No public gallery found yet |
 | Codex | `codex plugin marketplace add <repo>`, then `codex plugin add` | A plugin (skill + `.mcp.json`) in the same public repo. A bare `codex mcp add` is NOT enough: Codex defers MCP tools and drops our `instructions`, so without the skill the model never finds them (2026-09-26, `validation.md`). |
 | Smithery, Glama, PulseMCP | Browsing | They index the registry and GitHub on their own |
 
@@ -70,5 +70,5 @@ Claude Desktop ──stdio──▶ .mcpb bridge ──HTTP──┘            
    generates nothing until the call repeats that price in `confirmCost`.
 2. **Privacy policy: none exists, so write one.** The Claude Desktop directory needs an HTTPS
    URL. Its home is the Website repo (cubric.studio); publishing it is Fabio's call.
-3. **Listings: one public repo** holding the Claude Code plugin, the Gemini extension and the
+3. **Listings: one public repo** holding the Claude Code plugin (also Codex's and Antigravity's) and the
    registry entry. Creating it is outward-facing, so it waits for phase 3 and a go-ahead.

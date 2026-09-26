@@ -232,6 +232,55 @@ Unverified until built. Headless cold tests need `default_tools_approval_mode="a
 interactive user gets an approval prompt for write tools, which is right.
 The Cubric cold test itself is still owed, and only with Fabio's app closed.
 
+**Public listings repo (2026-09-26, session 2dc5c58a, Fabio's go).** Created PUBLIC
+`MadPonyInteractive/cubric-studio-agents` (`5978e2f` the plugin folder + README + AGPL-3.0
+LICENSE, `d423922` README fix); an unauthenticated raw fetch of `marketplace.json` answers 200.
+Install from GitHub proven in THROWAWAY homes (Fabio's configs untouched):
+- Claude Code 2.1 (`CLAUDE_CONFIG_DIR`=scratch): `plugin marketplace add
+  MadPonyInteractive/cubric-studio-agents` FAILED, it clones over SSH ("No ED25519 host key is
+  known for github.com"); the `https://github.com/...git` URL added it, `plugin install
+  cubric-studio@cubric-studio` installed, `plugin list` enabled 0.1.0. README says use the URL.
+- Codex (`CODEX_HOME`=scratch, no auth): `marketplace add MadPonyInteractive/cubric-studio-agents`
+  resolved to HTTPS, `plugin add` installed, `codex mcp list` shows the server at `:3000/mcp`.
+Then the move: Fabio's `~/.codex/config.toml` marketplace repointed local -> git (backup diffed:
+only that block changed), a working clone at `c:\AI\Mpi\cubric-studio-agents` (diff = identical
+to `mcp/listing/`), and `mcp/listing/` removed from this repo (`git rm`).
+Also Fabio's follow-up in Antigravity (Gemini 3.1 Pro Low): "replace the bicycle with a motorbike"
+-> ONE `generate` (answered running), ONE `wait_generation` when he asked to see it;
+`edit_001.png` landed, 2 media files in the project in total. Fabio: "more than enough", stop.
+
+**Antigravity PLUGIN cold test (2026-09-26, session 2dc5c58a, PASSED, run by Fabio).** Antigravity
+desktop (no `agy` CLI ships with it), fresh install, no Google plugins ticked. The plugin folder
+`mcp/listing/plugins/cubric-studio/` gained `plugin.json` + `mcp_config.json` (`serverUrl`
+`:3000/mcp`) and was COPIED into `~/.gemini/config/plugins/cubric-studio` (still installed there).
+Settings showed skill `cubric-studio` (Plugin: cubric-studio) and MCP server
+`cubric-studio_cubric-studio`, 17 tools enabled. Target: Fabio's own app (open, :3000). Gemini 3.8
+Flash High, a conversation in Antigravity's `MpiAiSuite` workspace (no Cubric hints), the same
+sentence, project "Antigravity test"; Fabio approved each tool call, nothing else.
+- app.log 16:05:01Z-16:06:07Z: `status`, `create_project`, `list_models`, `describe_model`,
+  `read_knowledge`, ONE `generate` (quote, then submit: krea2 t2i, 4:3, 1k, turbo). MCP only, no
+  stray route hits. "Worked for 2m" including approvals.
+- Disk: `Documents/Cubric Vision/Projects/Antigravity test/Media/t2i_001.png`, **the only media
+  file**, plus its sidecar and thumb, `project.json`, `project.md`. Seen by Fabio: a red bicycle
+  against a stone wall, card named "Red Bicycle".
+So one plugin folder is proven in Claude Code, Codex AND Antigravity. Claude validators still pass
+with the Antigravity files present; `codex mcp list` still shows the server.
+
+**Gemini CLI extension (2026-09-26, session 2dc5c58a, BUILT, cold test BLOCKED by Google; DROPPED).**
+`mcp/listing/gemini-extension.json` (repo root: `gemini extensions install <github url>` has no
+subfolder flag), `httpUrl` to `:3000/mcp`, `contextFileName` pointing at the plugin's SKILL.md so
+one skill serves all clients. `gemini extensions validate` and `claude plugin validate` pass on
+the folder. Gemini CLI 0.61.0 (Fabio OK'd `npm i -g`, logged in himself): a local-path install
+HANGS silently on a folder-trust `[y/N]` prompt that `--consent` does not cover (answer `y` on
+stdin); the port-swapped copy then installed and `gemini mcp list` showed `cubric-studio ...
+(http) - Connected` against the isolated instance (:57950, 0 projects). The cold `gemini -p` died
+in 4 s: `IneligibleTierError: This client is no longer supported for Gemini Code Assist for
+individuals ... migrate to the Antigravity suite`. Google stopped serving Gemini CLI for free and
+AI Pro/Ultra personal logins on 2026-06-18; only paid API keys and enterprise remain. The
+successor is Antigravity CLI (`agy`), whose plugins are `plugin.json` + `mcp_config.json`
+(`serverUrl`) + `skills/`. Cleanup: test extension uninstalled, the two scratch entries removed
+from `~/.gemini/trustedFolders.json`, instance stopped (:57950 closed). No media made.
+
 **Claude Code PLUGIN cold test (2026-09-26, session 5bdb59e7, PASSED).** Fabio's app closed
 (:3000 down). Isolated instance on :59605, scratch `docs3` (0 projects before). A scratch COPY of
 `mcp/listing/plugins/cubric-studio` whose only diff is the `.mcp.json` port (3000 -> 59605), so

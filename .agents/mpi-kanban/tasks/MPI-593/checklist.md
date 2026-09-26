@@ -21,7 +21,21 @@
   - [x] 4. list_cards, rename_card, make/edit/cutout_gif, gif_to_video *(live, cut-out unit-tested only)*
   - [x] 5. Bridge answers a closed app, announces tools/list_changed when it opens
   - [x] 6. title + annotations on every tool
-  - [ ] 7. Cold tests: Claude Code PASSED; Claude Desktop PASSED *(Fabio, 2026-09-26: video described, one edit landed)*; Codex headless did not load MCP tools (see validation.md)
+  - [x] 7. Cold tests: Claude Code PASSED; Claude Desktop PASSED *(Fabio, 2026-09-26: video described, one edit landed)*; Codex PASSED with a skill + approve flag *(2026-09-26, 74 s, one card)*
 - [x] Privacy policy on cubric.studio *(2026-09-25, live at https://cubric.studio/privacy/, Website 801aa0c)*
   - [x] `privacy_policies` in the manifest + README Privacy Policy section (message 90fd9914) *(0bcac13c, mcpb validate passes)*
 - [ ] Phase 3: ship and list (`plan.md`)
+  - [x] 1. `cubric-studio.mcpb` packed and attached at release *(mpi-release step 6)*
+  - [ ] 2. Settings > Connect an agent *(own card, only if Fabio asks)*
+  - [ ] 3. Listings
+    - [x] `mcp/listing/` plugin folder, cold-tested in Claude Code, Codex and Antigravity *(2026-09-26, one card each, MCP only)*
+    - [x] Gemini CLI dropped: Google stopped serving personal logins 2026-06-18 *(IneligibleTierError, validation.md)*
+    - [x] Public listings repo `MadPonyInteractive/cubric-studio-agents` *(2026-09-26, install from GitHub proven in Claude Code + Codex; `mcp/listing/` moved out)*
+    - [ ] MCP Registry (`server.json`, `mcp-publisher`) *(ask first)*
+    - [ ] Claude Desktop directory submission *(ask first)*
+  - [ ] 4. Docs-site page + `llms.txt` *(hard no-push repo, Fabio commits)*
+  - [x] 5. `docs/mcp-server.md` + README row + contract note
+- [ ] Phase 4: a submit names its own project (member card MPI-873, `plan.md`)
+  - [ ] Decide: named project must be open, or write a closed one via `updateProjectJson()`
+  - [ ] Optional `folderPath` on `/connector/generate`, passed through MCP `generate` and the GIF tools
+  - [ ] Verify: submit naming B while the app switches A -> C lands in B only

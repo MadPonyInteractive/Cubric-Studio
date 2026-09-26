@@ -131,6 +131,25 @@ These surfaced while building the gate list and cost nothing to correct:
 
 ---
 
+## Agent connection (MPI-593) - what 2.0 owes it (added 2026-09-26)
+
+2.0 is the FIRST public release with `POST /mcp` (master only since 2026-09-25; 1.6.x were
+private tester builds). The public plugin repo `MadPonyInteractive/cubric-studio-agents` already
+tells users it needs 2.0. At the cut:
+
+- **App `README.md`**: a "Use it from your AI agent" section (Claude Code, Claude Desktop, Codex,
+  Antigravity; ChatGPT users via Codex) linking the agents repo. Today it says nothing about MCP.
+- **`UNRELEASED.md`**: a bullet for the agent connection. Today it has none, so the claim audit
+  would miss it.
+- **The `.mcpb`**: hosted as a release of the agents repo (bridge version, not app version). Decide
+  whether `mpi-release` step 6 still attaches a second copy to the app release; one home is simpler.
+- **Claude Desktop directory submission** goes AFTER 2.0 is live: reviewers install it and test it
+  against the released app. (The MCP Registry entry can go before; it says "needs 2.0".)
+- MPI-593 phase 4 (MPI-873, a submit names its own project) is the one known agent-surface
+  defect; in or out of 2.0 is Fabio's call.
+
+---
+
 ## Not in this release (recorded so it is a decision, not an oversight)
 
 - **MPI-591** (Extend Video takes H3) — deferred on purpose by Fabio, and hard-blocked: the two

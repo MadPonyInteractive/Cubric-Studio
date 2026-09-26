@@ -1,6 +1,6 @@
 # MCP server: outside agents drive the app (MPI-593)
 
-Claude Code, Claude Desktop, Codex and Gemini CLI control the installed app through
+Claude Code, Claude Desktop, Codex and Antigravity control the installed app through
 `POST /mcp` (`routes/mcp.js`, mounted in `server.js` after `localOnly`). The in-app agent is a
 different thing: [agent-chat.md](agent-chat.md). Both call the same `/connector/*` routes through
 `services/agentTools.mjs`; there is no second dispatch path.
@@ -63,24 +63,35 @@ npx -y @anthropic-ai/mcpb@2.1.2 pack mcp/cubric-studio <build folder>/cubric-stu
 The pack validates the manifest; the archive must hold exactly `manifest.json`, `README.md`,
 `server/index.js`.
 
-## The plugin (`mcp/listing/`)
+## The plugin (public repo `MadPonyInteractive/cubric-studio-agents`)
 
-One folder serves Claude Code AND Codex, shaped as the future public listings repo's root:
-`.claude-plugin/marketplace.json` plus `plugins/cubric-studio/` with `.claude-plugin/plugin.json`,
-`.mcp.json` (the `:3000/mcp` URL) and `skills/cubric-studio/SKILL.md`. Codex reads the
+**It lives ONLY in that repo** (moved out of `mcp/listing/` 2026-09-26; clone at
+`c:\AI\Mpi\cubric-studio-agents`), because Claude Code and Codex read `marketplace.json` from a
+repo's ROOT. A tool change needs no plugin change: the tools live in the app. One folder serves
+Claude Code, Codex AND Antigravity: `.claude-plugin/marketplace.json` plus `plugins/cubric-studio/` with
+`.claude-plugin/plugin.json` + `.mcp.json` (Claude Code, Codex), `plugin.json` + `mcp_config.json`
+(Antigravity, `serverUrl`), and one `skills/cubric-studio/SKILL.md` all three load. Codex reads the
 `.claude-plugin/` files and the Claude-format `.mcp.json` as they are; no `.codex-plugin/` is
 needed. The skill is the part that matters: it names the server, says the tools may be deferred
 and how to find them, and forbids the browser and the raw HTTP API. `claude plugin validate`
-must pass on both the folder and the plugin. Cold-tested 2026-09-26 in both clients: one image each, MCP only (Claude Code via `--plugin-dir`, tools named `mcp__plugin_cubric-studio_cubric-studio__*`). Gemini is not built yet.
+must pass on both the folder and the plugin. Cold-tested 2026-09-26 in all three: one image
+each, MCP only, the guide read first (Claude Code via `--plugin-dir`, tools named
+`mcp__plugin_cubric-studio_cubric-studio__*`; Antigravity by Fabio in the desktop app).
+
+**Only an agent running on the user's computer can reach `127.0.0.1`.** Browser chatbots
+(ChatGPT's chat, Gemini on the web) call MCP from their own cloud, so they never can; ChatGPT
+users come in through Codex, which their plan includes. **Gemini CLI is not a target**: Google
+stopped serving it to personal logins on 2026-06-18 (`IneligibleTierError`), and Antigravity
+replaced it.
 
 ## Per client
 
 | Client | Connect | Catch |
 |---|---|---|
-| Claude Code | `claude mcp add --transport http cubric-studio http://127.0.0.1:3000/mcp` | none seen |
+| Claude Code | `claude plugin marketplace add https://github.com/MadPonyInteractive/cubric-studio-agents.git`, then `claude plugin install cubric-studio@cubric-studio` | the `owner/repo` shorthand clones over SSH and fails without a GitHub SSH key |
 | Claude Desktop | double-click `cubric-studio.mcpb` | tools deferred inside Claude Code sessions of the Desktop app |
-| Codex | `codex plugin marketplace add <listing repo>`, then `codex plugin add cubric-studio@cubric-studio` | a bare `codex mcp add` is not enough, see below |
-| Gemini CLI | extension with `httpUrl` | not yet tested |
+| Codex | `codex plugin marketplace add MadPonyInteractive/cubric-studio-agents`, then `codex plugin add cubric-studio@cubric-studio` | a bare `codex mcp add` is not enough, see below |
+| Antigravity (desktop) | copy the repo's `plugins/cubric-studio/` into `~/.gemini/config/plugins/`, restart | no install-from-GitHub documented; every tool call asks for approval by default |
 
 **Codex (0.157) always defers MCP tools.** Its model sees one `exec` tool; ours sit in
 `ALL_TOOLS` and are found only if the model thinks to filter it, and our `instructions` never
