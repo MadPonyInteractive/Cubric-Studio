@@ -19,9 +19,11 @@
  *
  * MPI-592 adds a second capability, `project.open`, for the same reason dispatch
  * is here: `openProject` reconciles and hydrates through the renderer's state.
- * A submit runs in `state.currentProject` and nothing server-side can change it,
+ * A submit ran in `state.currentProject` and nothing server-side could change it,
  * so without this an agent that created a project generated into the PREVIOUS
- * one — successfully, with `ok: true`, into the wrong gallery.
+ * one — successfully, with `ok: true`, into the wrong gallery. MPI-873 lets the
+ * submit name its project itself (`folderPath`, open or closed, `targetProject`),
+ * so `project.open` is now only for moving the user's view.
  *
  * MPI-776 adds `card.rename`, and `cardName` on a submit, for the same reason: while
  * a project is open this renderer owns its `itemGroups` and `persistGroups` writes the
@@ -41,7 +43,7 @@
 
 import { enqueueGeneration, findMissingMediaSlot, cancelPendingCueJob, cancelRunningCueJob } from '../services/generationService.js';
 import { submitFlowGeneration } from '../services/flowService.js';
-import { openProject, renameGroup, markGroup } from '../services/projectService.js';
+import { openProject, renameGroup, markGroup, serializeGroup } from '../services/projectService.js';
 import { CARD_MARKS, markOf, matchesGallerySort, byGalleryOrder, describeGalleryFilter, isGalleryFiltered } from '../utils/galleryFilter.js';
 import { navigate, PAGE_GALLERY, PAGE_GROUP_HISTORY } from '../router.js';
 import { on } from '../utils/dom.js';
@@ -119,10 +121,10 @@ function _logNamedParamProvenance(model, operation, provenance) {
  * The gallery path awaits `addGroup` before it calls `onComplete`, so the card is
  * already in the project here.
  */
-async function _reportDone(jobId, { item, group, items }, cardName, duration = null, modelId = null) {
+async function _reportDone(jobId, { item, group, items }, cardName, duration = null, modelId = null, closedProject = null) {
     // A batch lands as ONE report carrying every card, each with its SHARE of the one bill.
     const costUsd = (items || [item]).reduce((sum, it) => sum + (Number(it?.generationSettings?.cost?.usd) || 0), 0);
-    const named = cardName !== undefined && group?.id ? await renameGroup(group.id, cardName) : null;
+    const named = cardName !== undefined && group?.id ? await nameCard(group, cardName, closedProject) : null;
     return _report(jobId, {
         ok: true,
         output: {
@@ -149,6 +151,65 @@ async function _reportDone(jobId, { item, group, items }, cardName, duration = n
             ...(costUsd > 0 ? { costUsd } : {}),
         },
     });
+}
+
+/**
+ * Name a card that just landed. `renameGroup` finds it only in the OPEN project; a card an
+ * agent sent to a closed one (MPI-873) is upserted there with its name, through the route
+ * that registered it (`/project-groups` -> `updateProjectJson()`). If the user opened that
+ * project meanwhile, `renameGroup` finds the card and the server write is never made.
+ *
+ * @param {object} group - the landed card
+ * @param {string|null} cardName
+ * @param {object|null} closedProject - the target when it was not the open project
+ * @returns {Promise<object|null>} the named card, or null
+ */
+export async function nameCard(group, cardName, closedProject) {
+    const named = await renameGroup(group.id, cardName);
+    if (named || !closedProject?.folderPath) return named;
+    const updated = { ...group, customName: cardName?.trim() || null };
+    try {
+        const res = await fetch('/project-groups', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folderPath: closedProject.folderPath, groups: [serializeGroup(updated)] }),
+        });
+        if (res.ok) return updated;
+        clientLogger.warn('connector', 'could not name the card in its closed project', { status: res.status, folderPath: closedProject.folderPath });
+    } catch (err) {
+        clientLogger.warn('connector', 'could not name the card in its closed project', { error: err.message, folderPath: closedProject.folderPath });
+    }
+    return null;
+}
+
+/**
+ * The project a submit runs in (MPI-873): the one `input.folderPath` names, else the open
+ * one. The route matched the name against the project list, so it arrives spelled as the app
+ * spells a project it opens.
+ *
+ * The open project comes back as the LIVE `state.currentProject`, never a copy:
+ * generationService decides where a card goes by comparing folderPaths, and a copy that read
+ * as closed would have its card written server-side and then overwritten by the open
+ * project's next save. A closed project is READ, not opened, so the user's view stays put.
+ *
+ * @returns {Promise<{project: object|null, open: boolean}|{error: {code: string, message: string}}>}
+ */
+export async function targetProject(input) {
+    const open = state.currentProject;
+    const same = (p) => p?.replace(/\\/g, '/').toLowerCase() === String(input.folderPath).replace(/\\/g, '/').toLowerCase();
+    if (!input.folderPath || same(open?.folderPath)) return { project: open || null, open: !!open };
+    try {
+        const res = await fetch('/get-project', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folderPath: input.folderPath }),
+        });
+        const data = await res.json();
+        if (data?.success && data.project?.id) return { project: data.project, open: false };
+        return { error: { code: 'PROJECT_NOT_FOUND', message: `Could not read the project at "${input.folderPath}": ${data?.error || 'no project there'}.` } };
+    } catch (err) {
+        return { error: { code: 'PROJECT_NOT_FOUND', message: `Could not read the project at "${input.folderPath}": ${err.message}.` } };
+    }
 }
 
 /**
@@ -474,8 +535,10 @@ async function _submitGeneration(jobId, input = {}) {
         modelId, operation, positive = '', negative = '', media = [], seed,
     } = input;
 
-    if (!state.currentProject) {
-        return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision. Create or open one, then send this request again.');
+    const target = await targetProject(input);
+    if (target.error) return _fail(jobId, target.error.code, target.error.message);
+    if (!target.project) {
+        return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision and the request named none. Send folderPath, or create or open a project, then send this request again.');
     }
 
     // Who owns the model and the settings — see resolveSettingsOwner. `owner.project` is
@@ -504,7 +567,9 @@ async function _submitGeneration(jobId, input = {}) {
             : `"${operation}" is not available on ${model.name || modelId} — unsupported, or its weights are not installed.`);
     }
 
-    const painted = activeMask();
+    // A mask is painted on a card of the OPEN project; a run sent to another project
+    // cannot be editing that card.
+    const painted = target.open ? activeMask() : null;
     const areas = painted && ONE_AREA_OPS.has(operation) ? await _maskAreas(painted.dataUrl) : null;
     const mask = resolveMask(operation, painted, areas);
     if (mask.error) {
@@ -556,13 +621,19 @@ async function _submitGeneration(jobId, input = {}) {
         ...(seed !== undefined ? { seed } : {}),
         injectionParams: mergedInjection,
         byAgent: true,
+        // MPI-873: where the card lands. The open project is the object enqueue would
+        // freeze anyway; a closed one gets its card registered server-side.
+        _originProject: target.project,
     };
 
     // A masked submit is a new version of the card the mask is painted on, and goes
     // where a Cue press in that workspace goes — no gallery placeholder, because a
     // `groupHistory` gen owns its own frames (MpiGroupHistoryBlock's `scope !==
-    // 'groupHistory'` guard is what draws them).
-    const historyOpts = maskedGenerationOpts(mask.maskGroupId) || workspaceGenerationOpts(mediaItems, model.mediaType || 'image');
+    // 'groupHistory'` guard is what draws them). Both read the OPEN project's cards, so
+    // a run sent to a closed one is always a new card.
+    const historyOpts = target.open
+        ? maskedGenerationOpts(mask.maskGroupId) || workspaceGenerationOpts(mediaItems, model.mediaType || 'image')
+        : null;
 
     // A gallery gen MUST carry a tempId + placeholderGroup or the run is invisible
     // until it finishes: MpiGalleryBlock draws in-progress cards from the
@@ -588,10 +659,12 @@ async function _submitGeneration(jobId, input = {}) {
     const extraTempIds = Array.from({ length: Math.max(1, Number(mergedInjection.Input_Batch_Size) || 1) - 1 }, () => crypto.randomUUID());
     const extraPlaceholders = extraTempIds.map((id) => ({ ...placeholderGroup, id, history: [] }));
 
-    _followWork(input, historyOpts);
+    // Following a run into a project the user does not have open would open it for them.
+    if (target.open) _followWork(input, historyOpts);
     const queued = enqueueGeneration(config, {
         // A card name names a NEW card. Added to the user's own card, it would rename theirs.
-        onComplete: (done) => _reportDone(jobId, done, historyOpts ? undefined : input.cardName, named.duration, model.id),
+        onComplete: (done) => _reportDone(jobId, done, historyOpts ? undefined : input.cardName, named.duration, model.id,
+            target.open ? null : target.project),
         // An `outputKind: 'text'` op produces a caption and no item (MPI-310).
         onText: (text) => _report(jobId, { ok: true, output: { text } }),
         // A cloud failure names itself (MPI-869: e.g. LOW_BALANCE with the cost and what
@@ -780,13 +853,14 @@ async function _placePreviewAsset(file, project) {
  * @param {Array<Object>} plan - every pass's frame in source px (`planOutpaintPasses`)
  * @param {Array<Object>} mediaItems - the run's media, pass 1's padded picture in it
  * @param {Object} source - the item in `mediaItems` each pass replaces
+ * @param {Object} project - the project the run lands in, open or not (MPI-873)
  */
-function _nextPassFor(plan, mediaItems, source) {
+function _nextPassFor(plan, mediaItems, source, project) {
     let ran = 0; // index of the pass that just completed
     return async ({ item } = {}) => {
         const file = await composeNextPass(item, plan[ran], plan[ran + 1]);
         ran += 1;
-        const url = file ? await _placePreviewAsset(file, state.currentProject) : null;
+        const url = file ? await _placePreviewAsset(file, project) : null;
         return url ? {
             media: mediaItems.map(m => (m === source ? { ...m, url, filePath: url } : m)),
             last: ran === plan.length - 1,
@@ -797,8 +871,10 @@ function _nextPassFor(plan, mediaItems, source) {
 async function _submitFlow(jobId, input = {}) {
     const { flowId, fields = {}, media = [], params = {} } = input;
 
-    if (!state.currentProject) {
-        return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision. Create or open one, then send this request again.');
+    const target = await targetProject(input);
+    if (target.error) return _fail(jobId, target.error.code, target.error.message);
+    if (!target.project) {
+        return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision and the request named none. Send folderPath, or create or open a project, then send this request again.');
     }
 
     const flow = getFlowById(flowId);
@@ -895,7 +971,7 @@ async function _submitFlow(jobId, input = {}) {
                 return _fail(jobId, 'FRAME_UNCHANGED',
                     `Nothing was generated: that picture is already ${label} (${natural.w}x${natural.h}), so there is nothing to grow. Pick a different shape, or tell the user it is already the one they asked for.`);
             }
-            padded = await _placePreviewAsset(file, state.currentProject);
+            padded = await _placePreviewAsset(file, target.project);
         } catch (err) {
             clientLogger.error('connector', 'agent frame derivation failed', err);
             return _fail(jobId, 'RUNTIME_ERROR', `The frame could not be built: ${err.message}`);
@@ -937,15 +1013,17 @@ async function _submitFlow(jobId, input = {}) {
 
     const injectionParams = { ...fieldInjection, ...boxInjection };
 
-    // A Flow always lands in the gallery (Fabio, 2026-09-22), so that is where it is watched.
-    _followWork(input, null);
+    // A Flow always lands in the gallery (Fabio, 2026-09-22), so that is where it is watched,
+    // unless it lands in a project the user does not have open.
+    if (target.open) _followWork(input, null);
     const queued = submitFlowGeneration(flow, {
         ...inputs,
         mediaItems,
         ...(Object.keys(injectionParams).length ? { injectionParams } : {}),
-        ...(passPlan ? { runNextPass: _nextPassFor(passPlan, mediaItems, cropSource) } : {}),
+        ...(passPlan ? { runNextPass: _nextPassFor(passPlan, mediaItems, cropSource, target.project) } : {}),
+        runOriginProject: target.project,
     }, {
-        onComplete: (done) => _reportDone(jobId, done, input.cardName),
+        onComplete: (done) => _reportDone(jobId, done, input.cardName, null, null, target.open ? null : target.project),
         onText: (text) => _report(jobId, { ok: true, output: { text } }),
         // A cloud failure names itself (MPI-869: e.g. LOW_BALANCE with the cost and what
         // is left), so the agent can tell the user why; anything else stays generic.

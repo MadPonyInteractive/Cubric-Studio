@@ -36,9 +36,16 @@ on every tool that writes.
 - **Spend gate** (`spendGate`). Every generate is quoted through `/connector/quote`. A billed run
   answers `CONFIRM_COST` with the price and submits nothing until the call repeats that price in
   `confirmCost`. Local models and Flows never ask.
+- **The project is named, not inherited** (MPI-873). `generate` and `list_cards` take
+  `folderPath`; `openFolder` checks it holds a `project.json` (else `PROJECT_NOT_FOUND`), and
+  `/connector/generate` swaps it for the project list's spelling, because the renderer decides
+  "open or closed?" by exact string. A closed project is fine: `agentDispatch.targetProject`
+  reads it over `/get-project` and `generationService` registers the card through
+  `/project-groups`. Without `folderPath` a run lands in whatever is open when it runs. The GIF
+  tools still work on the open project only.
 - **Reference images.** `media: [{ role, path }]`: a path on the user's disk is staged into the
-  project `GET /connector/current-project` names. An image pasted into the user's chat never
-  reaches us as a file, so an input is a card or a disk path.
+  project `folderPath` names, else the one `GET /connector/current-project` names. An image
+  pasted into the user's chat never reaches us as a file, so an input is a card or a disk path.
 - **Results** carry the disk path plus the gallery's 512px thumb as MCP `image` content, so a
   vision model sees what it made. `view_card` (`services/cardView.js`) shows a still, or a video
   or GIF as ONE contact sheet (frames picked by index, GIF delays from sharp).

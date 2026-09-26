@@ -31,7 +31,7 @@
     - [x] `mcp/listing/` plugin folder, cold-tested in Claude Code, Codex and Antigravity *(2026-09-26, one card each, MCP only)*
     - [x] Gemini CLI dropped: Google stopped serving personal logins 2026-06-18 *(IneligibleTierError, validation.md)*
     - [x] Public listings repo `MadPonyInteractive/cubric-studio-agents` *(2026-09-26, install from GitHub proven in Claude Code + Codex; `mcp/listing/` moved out)*
-    - [ ] MCP Registry (`server.json`, `mcp-publisher`) *(ask first)*
+    - [x] MCP Registry (`server.json`, `mcp-publisher`) *(2026-09-26, `io.github.MadPonyInteractive/cubric-studio` 0.2.0 live, `active`; UNRELEASED.md bullet added)*
     - [ ] Claude Desktop directory submission *(ask first)*
   - [ ] 4. Docs-site page + `llms.txt` *(hard no-push repo, Fabio commits)*
   - [x] 5. `docs/mcp-server.md` + README row + contract note

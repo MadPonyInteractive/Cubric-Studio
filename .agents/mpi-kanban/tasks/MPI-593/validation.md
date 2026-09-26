@@ -344,6 +344,17 @@ match `cubric-studio.mcpb`, so a 7th asset is safe. Docs: `docs/mcp-server.md` (
 step in `mpi-release` step 6 and `github-release-checklist.md`. `node --test tests/mcp.test.cjs
 tests/card-view.test.cjs` -> 24/24. Not proven until a real release attaches it.
 
+**MCP Registry publish (2026-09-26, session 71db950c, PASSED; Fabio OK'd download + publish).**
+`mcp-publisher` v1.8.1 (`mcp-publisher_windows_amd64.tar.gz`, sha256 `399ad0d6...` matches
+`registry_1.8.1_checksums.txt`) run from `c:\AI\Mpi\cubric-studio-agents`: `login github` (device
+code approved by Fabio), `validate` -> `server.json is valid`, `publish` -> `Server
+io.github.MadPonyInteractive/cubric-studio version 0.2.0`. Proof from the public API,
+`GET registry.modelcontextprotocol.io/v0/servers?search=cubric-studio`: one entry, version 0.2.0,
+mcpb identifier `.../releases/download/mcpb-v0.2.0/cubric-studio.mcpb`, `fileSha256 45ae25d0...`,
+`status: active`, `isLatest: true`, `publishedAt 2026-09-26T17:50:06Z`. A new `.mcpb` = new tag +
+bump `server.json` version + `mcp-publisher publish` again (entries are deprecated, never deleted).
+`docs/releases/UNRELEASED.md` got the agent-connection bullet (Fabio OK'd).
+
 **Distribution research sources** (2026-09-25; web research by a sub-agent, primary docs
 where marked):
 - Claude Desktop extensions and submission: claude.com/docs/connectors/building/mcpb and

@@ -155,12 +155,19 @@ async function spendGate(t, body, confirmCost) {
 }
 
 /**
- * The project the app window has open, asked fresh each time: the user can switch it in the
- * app between two calls, and a reference image must be staged INTO the project the render
- * lands in (a Reuse of the card resolves it from there).
+ * The project a call works in: the one it names, else the one the app window has open, asked
+ * fresh each time (the user can switch it in the app between two calls). A reference image
+ * must be staged INTO the project the render lands in (a Reuse of the card resolves it from
+ * there). A named project may be closed: the run lands in it and the user's view stays put
+ * (MPI-873).
  * @returns {Promise<{folder: string}|{error: object}>}
  */
-async function openFolder(t) {
+async function openFolder(t, folderPath) {
+    if (folderPath) {
+        const folder = path.resolve(String(folderPath));
+        if (fs.existsSync(path.join(folder, 'project.json'))) return { folder };
+        return { error: { ok: false, error: { code: 'PROJECT_NOT_FOUND', message: `No Cubric Studio project at "${folderPath}". Use a folderPath from list_projects or create_project.` } } };
+    }
     const r = await t.currentProject();
     if (r?.ok && r.output?.folderPath) return { folder: r.output.folderPath };
     if (r?.error?.code && r.error.code !== 'NO_PROJECT') return { error: r };
@@ -172,13 +179,13 @@ const MEDIA_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.t
 
 /**
  * `media: [{ role, path }]` -> the `[{ role, url }]` a generation takes. A file already in the
- * open project's `Media/` (a card's own) is passed as it is; any other file on the user's disk
+ * target project's `Media/` (a card's own) is passed as it is; any other file on the user's disk
  * is copied into the project's content-addressed store first (`placeAsset`), as the in-app
  * agent does with an attachment. Media reaches a render by reference, never as bytes.
  * @returns {Promise<{media: Array}|{error: object}>}
  */
-async function stageMedia(t, media) {
-    const open = await openFolder(t);
+async function stageMedia(t, media, folderPath) {
+    const open = await openFolder(t, folderPath);
     if (open.error) return open;
     const own = path.join(open.folder, 'Media');
     const out = [];
@@ -234,7 +241,7 @@ async function waitForJob(jobId, rpcKey, ms = WAIT_MS) {
 
 const INSTRUCTIONS = [
     'Cubric Studio is a desktop app for making images and video on this computer. These tools drive the copy the user has open.',
-    'A generation lands in the project the app has OPEN. Before generating, find the project with list_projects and call open_project, or call create_project (it opens what it makes).',
+    'Name the project every generate runs in: pass folderPath from list_projects or create_project. The project does not have to be open, and the user\'s view stays where it is. Without folderPath a generation lands in whatever project the app has open, which the user can change at any moment. Call open_project only when the user wants to see the project in the app.',
     'Pick a model with list_models (the op marked best:true is the recommended one for its task), then call describe_model for that id: it lists the ops and the only values each param accepts.',
     'Before you write the first prompt for a model, call read_knowledge with each guide id describe_model lists for it: the guide says how that model wants to be prompted.',
     'generate returns the result\'s file path on disk, its card id and a small picture of it, so you can see what you made. A video or a Flow returns { running: true, jobId } at once instead: tell the user it started, then END YOUR TURN so they can keep talking; call wait_generation when they ask whether it is done. An image slower than 45 s returns running too. Never re-send generate for a job that is still running, and call cancel_generation if the user wants it stopped. The card also appears in the app\'s gallery.',
@@ -316,16 +323,17 @@ const TOOLS = {
     },
     list_cards: {
         title: 'List cards',
-        description: 'What the open project already holds. No groupId: the newest cards, one short row each (name, kind, model, size, the start of its prompt, and its file path on disk). A groupId: that card in full, with the whole prompt, the settings that ran and madeFrom. A card\'s path is what generate takes as media; its itemId is what the GIF tools take.',
+        description: 'What a project already holds: the one folderPath names, else the open one. No groupId: the newest cards, one short row each (name, kind, model, size, the start of its prompt, and its file path on disk). A groupId: that card in full, with the whole prompt, the settings that ran and madeFrom. A card\'s path is what generate takes as media; its itemId is what the GIF tools take (GIF tools work in the open project only).',
         inputSchema: obj({
+            folderPath: { type: 'string', description: 'From list_projects or create_project. Omit for the project the app has open.' },
             groupId: { type: 'string', description: 'One card, from a row here or a generate result.' },
             limit: { type: 'integer', description: 'How many rows, newest first. Default 12, at most 30.' },
             mark: { type: 'string', enum: ['dot', 'square', 'triangle'], description: 'Only cards with this mark.' },
         }),
         annotations: READ,
-        run: async ({ groupId, limit, mark }) => {
+        run: async ({ folderPath, groupId, limit, mark }) => {
             const t = await tools();
-            const open = await openFolder(t);
+            const open = await openFolder(t, folderPath);
             if (open.error) return open.error;
             const r = await t.listCards(open.folder, groupId, limit, mark);
             if (!r?.ok) return r;
@@ -366,10 +374,11 @@ const TOOLS = {
     },
     generate: {
         title: 'Generate',
-        description: 'Generate an image or video with a model op, or run a Flow, in the OPEN project. Send modelId + operation, or flowId, never both. Named params take only the values describe_model lists. Returns the file path on disk plus a picture of the result. A video or Flow, or an image slower than 45 s, returns { running: true, jobId } instead: tell the user and end your turn, then call wait_generation when asked, never generate again. A paid model first answers CONFIRM_COST with its price and generates nothing.',
+        description: 'Generate an image or video with a model op, or run a Flow, in the project folderPath names (open or not), else in the project the app has open. Send modelId + operation, or flowId, never both. Named params take only the values describe_model lists. Returns the file path on disk plus a picture of the result. A video or Flow, or an image slower than 45 s, returns { running: true, jobId } instead: tell the user and end your turn, then call wait_generation when asked, never generate again. A paid model first answers CONFIRM_COST with its price and generates nothing.',
         inputSchema: {
             type: 'object',
             properties: {
+                folderPath: { type: 'string', description: 'The project the result lands in, from list_projects or create_project. It need not be open. Omit only to use whatever project the app has open.' },
                 modelId: { type: 'string' },
                 operation: { type: 'string', description: 'An op id from describe_model, e.g. t2i.' },
                 flowId: { type: 'string' },
@@ -400,9 +409,12 @@ const TOOLS = {
         run: async ({ confirmCost, media, ...body }, rpcKey) => {
             const t = await tools();
             if (Array.isArray(media) && media.length) {
-                const staged = await stageMedia(t, media);
+                const staged = await stageMedia(t, media, body.folderPath);
                 if (staged.error) return staged.error;
                 body.media = staged.media;
+            } else if (body.folderPath) {
+                const target = await openFolder(t, body.folderPath);
+                if (target.error) return target.error;
             }
             const refused = await spendGate(t, body, confirmCost);
             if (refused) return refused;

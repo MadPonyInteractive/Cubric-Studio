@@ -171,6 +171,38 @@ test('list_cards gives each card its disk path and item id in place of the in-ap
     assert.deepEqual(one.madeFrom, [{ role: 'inputImage', path: outside }]);
 });
 
+// MPI-873: the agent names the project, so the run and its references land there whatever
+// the app has open. A closed project is fine; a folder that is not a project submits nothing.
+test('a named project: its references are staged THERE and the submit carries it, whatever is open', async () => {
+    const named = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-named-'));
+    try {
+        fs.writeFileSync(path.join(named, 'project.json'), '{}');
+        fs.mkdirSync(path.join(named, 'Media'));
+        const own = path.join(named, 'Media', 'boat.png');
+        fs.writeFileSync(own, 'boat');
+        await call('open_project', { folderPath: project }); // the user is somewhere else
+
+        const before = seen.length;
+        const r = await call('generate', { modelId: 'krea2', operation: 'i2i', positive: 'x', folderPath: named,
+            media: [{ role: 'inputImage', path: own }, { role: 'inputImage2', path: outside }] });
+        assert.equal(r.isError, false);
+        assert.equal(seen.at(-1).folderPath, named);
+        assert.deepEqual(seen.at(-1).media[0], { role: 'inputImage', url: `/project-file?path=${encodeURIComponent(own)}` }, 'its own card passes as is');
+        assert.equal(placed.at(-1).folderPath, named, 'the outside file is copied into the NAMED project');
+
+        const list = JSON.parse((await call('list_cards', { folderPath: named })).content[0].text);
+        assert.equal(list.folder, named);
+
+        for (const folderPath of [media, path.join(media, 'nope')]) {
+            const gone = JSON.parse((await call('generate', { modelId: 'krea2', operation: 't2i', positive: 'x', folderPath })).content[0].text);
+            assert.equal(gone.error.code, 'PROJECT_NOT_FOUND');
+        }
+        assert.equal(seen.length, before + 1, 'a folder that is not a project submits nothing');
+    } finally {
+        fs.rmSync(named, { recursive: true, force: true });
+    }
+});
+
 test('view_card hands back the picture itself, and refuses what is not one', async () => {
     const still = path.join(media, 'still.png');
     await require('sharp')({ create: { width: 2048, height: 1024, channels: 3, background: '#c03030' } }).png().toFile(still);

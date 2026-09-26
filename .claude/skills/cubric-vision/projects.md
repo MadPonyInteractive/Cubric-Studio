@@ -74,8 +74,21 @@ Two things it does **not** do:
 
 ### Creating a project, then generating into it
 
-`/connector/generate` runs in **whatever project the app currently has open** —
-creating a project does not make it that project. Open it explicitly:
+**Name the project on the submit itself**: `folderPath` on `/connector/generate`, the
+same key `/create-project` and `/connector/projects` hand back (MPI-873). The project
+does not have to be open. The card lands there and the user's screen does not move.
+Without `folderPath` a run lands in **whatever project the app has open when it runs**,
+and the user can switch that between your calls. Nothing errors when that happens: the
+run succeeds into the wrong project with `"ok": true`.
+
+The full sequence:
+
+1. `POST /create-project` → keep `folderPath`.
+2. `POST /add-project-path` `{parentDir}`, if you passed a custom `folderPath`.
+3. `GET /connector/capabilities`, confirm `generationSubmit`.
+4. `POST /connector/generate` with `"folderPath": "<that folderPath>"`.
+
+Open the project only when the user wants to SEE it:
 
 ```bash
 curl -s -X POST "$CUBRIC_URL/connector/open-project" \
@@ -83,28 +96,14 @@ curl -s -X POST "$CUBRIC_URL/connector/open-project" \
   -d '{"folderPath":"C:/Users/me/Documents/Cubric Studio/Projects/Rider Study"}'
 ```
 
-`folderPath` is the key, the same one `/create-project` and `/list-projects` hand
-back. It opens the project for real — the app navigates to its gallery, exactly
-as if the user had clicked the row — so it is a **visible change to what is on
-their screen**. Returns `{"ok": true, "output": {folderPath, name, groupCount}}`
-read back from the app's live state, so `groupCount` is a cheap confirmation you
-landed where you meant to.
+It opens the project for real (the app navigates to its gallery, exactly as if the user
+had clicked the row), so it is a **visible change to what is on their screen**. Returns
+`{"ok": true, "output": {folderPath, name, groupCount}}` read back from the app's live
+state. Errors: `BAD_REQUEST` (no `folderPath`), `NO_SUCH_PROJECT` (nothing readable there;
+the message carries the underlying reason), `APP_UNAVAILABLE` (no window listening).
 
-The full sequence:
-
-1. `POST /create-project` → keep `folderPath`.
-2. `POST /add-project-path` `{parentDir}`, if you passed a custom `folderPath`.
-3. `POST /connector/open-project` with the `folderPath`.
-4. `GET /connector/capabilities`, confirm `generationSubmit`.
-5. `POST /connector/generate`.
-
-**Do not skip step 3 and hope.** `NO_PROJECT` is the good outcome; the bad one is
-the user having something open, in which case the run succeeds into the wrong
-project and the response says `"ok": true` either way.
-
-Errors: `BAD_REQUEST` (no `folderPath`), `NO_SUCH_PROJECT` (nothing readable
-there — the message carries the underlying reason), `APP_UNAVAILABLE` (no window
-listening).
+A submit into a project that is not open is always a NEW card: a painted mask, and
+"edit the card the user is standing in", belong to the open project only.
 
 ## Naming cards
 

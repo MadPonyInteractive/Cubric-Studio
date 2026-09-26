@@ -29,8 +29,11 @@ curl -s -X POST "$CUBRIC_URL/connector/generate" \
 ```
 
 Body: `modelId` and `operation` are required; `positive`, `negative`,
-`injectionParams`, `media` (reference images, see below) and `cardName` (see Naming
-the card) are optional. **The request resolves when the generation
+`injectionParams`, `media` (reference images, see below), `cardName` (see Naming
+the card) and `folderPath` are optional. **Send `folderPath`** (from
+`/connector/projects` or `/create-project`) to name the project the card lands in. It
+need not be open, and the user's view does not move. Without it the run lands in
+whatever project the app has open when it runs, which the user can change under you. **The request resolves when the generation
 finishes**, not when it is queued, so expect it to block for as long as the run
 takes (a queued video can be minutes; the route gives up after 30 and the
 generation carries on in the app regardless).
@@ -166,7 +169,9 @@ Failure returns `{"ok": false, "error": {"code": ..., "message": ...}}`:
 | Code | Meaning |
 | --- | --- |
 | `APP_UNAVAILABLE` | No Vision window is listening. The app must be OPEN. |
-| `NO_PROJECT` | No project is open. The run uses whatever project the app has open — it never switches for you. |
+| `NO_PROJECT` | No `folderPath` was sent and no project is open. |
+| `PROJECT_NOT_FOUND` | `folderPath` is not a project `/connector/projects` lists (any case or slash matches). Nothing ran. |
+| `INVALID_FOLDER_PATH` | `folderPath` is not a non-empty string. |
 | `UNKNOWN_MODEL` | No model with that id. |
 | `OP_UNAVAILABLE` | The model does not support that operation, or its weights are not installed. |
 | `MEDIA_REQUIRED` | A required media slot is empty. Names the slot. |
@@ -249,9 +254,10 @@ answers `{"ok": true, "output": {"cancelled": true, "was": "pending"|"running"}}
 submit resolves `CANCELLED`. `NOT_IN_FLIGHT` = it already finished, was already cancelled, or
 never carried a `requestId`. It reaches only a submit you named - never the user's own runs.
 
-Project switching is no longer on this list — `POST /connector/open-project`
-covers it (see [../cubric-vision/projects.md](../cubric-vision/projects.md) § Creating a
-project, then generating into it).
+Project switching is no longer on this list: a submit names its own project with
+`folderPath`, and `POST /connector/open-project` is only for moving the user's view (see
+[../cubric-vision/projects.md](../cubric-vision/projects.md) § Creating a project, then
+generating into it).
 
 ### Still true: do not POST a graph to `/proxy/prompt`
 

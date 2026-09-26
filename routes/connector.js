@@ -32,8 +32,9 @@
  * MPI-592 adds the one thing a submit could not express:
  *   POST /connector/open-project    -> make a project the open one, then generate
  *   GET  /connector/current-project -> which project the app has open (outside agents)
- * A submit runs in whatever project the app has open, so an agent that created a
- * project used to generate into the previous one and be told `ok: true`.
+ * A submit ran in whatever project the app had open, so an agent that created a
+ * project used to generate into the previous one and be told `ok: true`. MPI-873 adds
+ * `folderPath` on the submit itself, so a run no longer depends on what is open.
  *
  * MPI-776 adds card naming, relayed for the same reason:
  *   POST /connector/rename-card     -> set or clear a card's name in the open project
@@ -427,6 +428,7 @@ const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'styli
  *                              ratio?, qualityTier?, turbo?, styleSelect?, stylization?,
  *                              duration?, denoise?, batch?, seed?, media? }
  *       OR a Flow (MPI-658): { flowId, fields?, media? }
+ *       plus, on either:     { folderPath?, cardName?, requestId? }
  *
  * The two are not variants of one shape. A Flow has no model — it dispatches with
  * `model.id: null` — so `modelId` can never name one, and its controls are DECLARED
@@ -439,8 +441,8 @@ const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'styli
  * (which accepts a plain absolute path) and passes back the url that returns.
  *
  * Resolves when the generation reaches a terminal state, so the caller gets the
- * output it asked for rather than a job id to poll. Runs in whatever project the
- * app currently has open.
+ * output it asked for rather than a job id to poll. Runs in the project `folderPath`
+ * names, open or closed (MPI-873); without one, in whatever project the app has open.
  */
 router.post('/connector/generate', async (req, res) => {
   const {
@@ -542,6 +544,25 @@ router.post('/connector/generate', async (req, res) => {
   }
   if (requestId !== undefined && _pendingJobs.has(String(requestId))) {
     return _namedErr('DUPLICATE_REQUEST_ID', 'A generation with that requestId is still in flight.');
+  }
+
+  // MPI-873: the run names its own project instead of inheriting whichever one is open,
+  // which the user (or a second agent) can change between an open-project and this submit.
+  // It may be closed: the renderer then registers the card server-side and the view stays.
+  const { folderPath } = req.body || {};
+  if (folderPath !== undefined) {
+    if (typeof folderPath !== 'string' || !folderPath.trim()) {
+      return _namedErr('INVALID_FOLDER_PATH', 'body.folderPath must be a project folder, as /connector/projects lists it.');
+    }
+    const listed = await _appPost('/list-projects', {}).catch((err) => ({ error: err.message }));
+    if (!listed?.success) {
+      return res.json({ ok: false, error: { code: 'RUNTIME_ERROR', message: `Could not list the projects: ${listed?.error || 'unknown error'}` } });
+    }
+    const match = findProjectByFolder(listed.projects, folderPath);
+    if (!match) {
+      return _namedErr('PROJECT_NOT_FOUND', `No Cubric Studio project at "${folderPath}". Use a folderPath from /connector/projects.`);
+    }
+    input.folderPath = String(match.folderPath).replace(/\\/g, '/');
   }
 
   const result = await _dispatchToRenderer('generation.submit', input, requestId !== undefined ? String(requestId) : undefined);
@@ -661,6 +682,27 @@ function findProjectByName(projects, name) {
   return (projects || []).find((p) => String(p?.name ?? '').trim().toLowerCase() === want) || null;
 }
 router.findProjectByName = findProjectByName;
+
+/**
+ * The project a caller means by `folderPath`, matched the way Windows matches a path: any
+ * case, either slash, a trailing slash or not (MPI-873).
+ *
+ * The match is what gets dispatched, never the caller's spelling. The renderer decides
+ * "is this run's project the open one?" by exact string (`generationService`
+ * `_originIsOpen`, `activeGenerations.listFor`), and the open project's folderPath is the
+ * LISTED one with forward slashes (`/migrate-project`). A caller's `c:\p\bikes` for an open
+ * `C:/p/Bikes` would read as a closed project: the card goes in server-side, and the
+ * renderer's next save of the open project writes over it.
+ *
+ * @returns {object|null} the matching project from the list, or null.
+ */
+function findProjectByFolder(projects, folderPath) {
+  const norm = (p) => String(p ?? '').trim().replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+  const want = norm(folderPath);
+  if (!want) return null;
+  return (projects || []).find((p) => norm(p?.folderPath) === want) || null;
+}
+router.findProjectByFolder = findProjectByFolder;
 
 /**
  * POST /connector/create-project { name } — a new, empty project in the default projects

@@ -194,8 +194,8 @@ test('the snapshot and the run are separated at both ends', () => {
         'the seed must drop a fallback echo saved by an older snapshot');
 
     const service = fs.readFileSync(repo('js/services/flowService.js'), 'utf8');
-    assert.match(service, /const \{ runMediaItems, runInputs, runNextPass, \.\.\.snapshot \} = inputs;/,
-        '`runInputs` (and MPI-900\'s `runNextPass`) must be stripped before `flowInputs`');
+    assert.match(service, /const \{ runMediaItems, runInputs, runNextPass, runOriginProject, \.\.\.snapshot \} = inputs;/,
+        '`runInputs` (and MPI-900\'s `runNextPass`, MPI-873\'s `runOriginProject`) must be stripped before `flowInputs`');
     assert.match(service, /positive: run\.positive \|\| ''/);
     assert.match(service, /\.\.\.\(run\.injectionParams \|\| \{\}\)/);
     assert.match(service, /flowInputs: snapshot,/);

@@ -169,8 +169,10 @@
 - **Paid cloud models, on your own DeepInfra key.** No download and no GPU needed, billed to
   your DeepInfra account: Seedream 4, Seedream 4.5, Seedream 5.0 Pro, FLUX 2 Dev, FLUX 2 Pro,
   FLUX 2 Max, Nano Banana 2 Lite, Nano Banana 2, Nano Banana Pro, Seedance 1.5 Pro,
-  Seedance 2.0, Wan 3.0, Veo 3.1 Fast and Veo 3.1. A cloud run waits 3 seconds before it is
-  sent, so a Stop in that time costs nothing, and every cloud model runs a batch of up to four.
+  Seedance 2.0, Wan 3.0, Veo 3.1 Fast and Veo 3.1.
+
+- **Claude, Codex and Google Antigravity can drive Cubric Studio.** Ask for an image, a video
+  or a GIF and it lands in your project. Setup: github.com/MadPonyInteractive/cubric-studio-agents
 
 - **The video player's controls sit below the prompt box now**, so they are always in reach,
   and volume opens from the speaker button.

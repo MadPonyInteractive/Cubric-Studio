@@ -165,7 +165,9 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     // which never overwrites the user's writing, then silently refused to run again.
     // A caller with nothing run-only to say omits it and runs its snapshot.
     // `runNextPass` is run-only too (MPI-900): a function, and a plan for THIS press.
-    const { runMediaItems, runInputs, runNextPass, ...snapshot } = inputs;
+    // `runOriginProject` is the project an agent's submit named (MPI-873), open or not; a
+    // project record, so it must never ride into the sidecar's `flowInputs`.
+    const { runMediaItems, runInputs, runNextPass, runOriginProject, ...snapshot } = inputs;
     const run = runInputs || snapshot;
     // ponytail: the chained leg takes NO media. Its graph reads what leg 1 wrote to
     // disk, addressed by name (`Input_Name`), so re-sending the source image would only
@@ -211,6 +213,8 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
         // blob is already the sidecar's free-form run snapshot, so this needs no route,
         // projectModel or migration change.
         flowModelIds: flowModelIds(flow),
+        // Absent, `enqueueGeneration` freezes the project open at enqueue, as it always has.
+        ...(runOriginProject ? { _originProject: runOriginProject } : {}),
     };
 
     // The chained leg REUSES leg 1's tempId. MpiBaseFlow matches live latents and Stop
@@ -268,7 +272,7 @@ export function submitFlowGeneration(flowOrId, inputs = {}, callbacks = {}, _leg
     const runCallbacks = runNextPass
         ? nextPassCallbacks(runNextPass, callbacks,
             (media, last) => submitFlowGeneration(flow,
-                { ...snapshot, runInputs, runMediaItems: media, ...(last ? {} : { runNextPass }) }, callbacks, { tempId }))
+                { ...snapshot, runInputs, runMediaItems: media, runOriginProject, ...(last ? {} : { runNextPass }) }, callbacks, { tempId }))
         : legCallbacks;
 
     const res = enqueueGeneration(config, runCallbacks, opts);

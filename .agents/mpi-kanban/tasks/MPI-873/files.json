@@ -1,0 +1,13 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    "routes/connector.js",
+    "js/shell/agentDispatch.js",
+    "routes/mcp.js",
+    "tests/mcp.test.cjs",
+    ".claude/skills/cubric-vision-generate/SKILL.md",
+    ".claude/skills/cubric-vision/projects.md",
+    "docs/mcp-server.md",
+    ".agents/mpi-kanban/tasks/MPI-873/**"
+  ]
+}

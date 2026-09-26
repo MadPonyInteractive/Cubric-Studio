@@ -13,8 +13,10 @@ Part of the Cubric Studio skill family; the entry point is the `cubric-vision` s
 ([../cubric-vision/SKILL.md](../cubric-vision/SKILL.md)). Base URL `$CUBRIC_URL`,
 default `http://127.0.0.1:3000`. Nearly every route is `POST` with a JSON body. Check
 the app is up first with `curl -s -m 3 "$CUBRIC_URL/comfy/status"`: a refused
-connection means Vision is not running. A submit runs in whatever project the app has
-open: open the right one first (`POST /connector/open-project`, in the core skill).
+connection means Vision is not running. Name the project on the submit with
+`"folderPath"` (open or not; the user's view stays put). Without it a submit runs in
+whatever project the app has open, which the user can change under you (core skill,
+projects.md).
 
 ## Running a Flow (and text-to-speech)
 
