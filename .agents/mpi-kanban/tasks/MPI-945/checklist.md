@@ -1,9 +1,10 @@
 # MPI-945 checklist
 
-- [ ] `selectionBar.js` parts file of MpiGalleryGrid: count, Cue all (N), marks dot/square/triangle/none, close
-- [ ] Bar shows only in selection mode, in the strip the hidden prompt box leaves
-- [ ] Cue all moved off the card context menu into the bar
-- [ ] Marking the selection persists through the existing `favourite` event
-- [ ] `tests/desktop/gallery-cue-all.spec.js` drives the bar; new bar spec for marks
-- [ ] `docs/gallery-selection.md` updated
-- [ ] Committed, pushed, CI green
+- [x] `selectionBar.js` parts file of MpiGalleryGrid: count, Cue all (N), marks dot/square/triangle/none, close
+- [x] Bar shows only in selection mode, in the strip the hidden prompt box leaves
+- [x] Cue all moved off the card context menu into the bar
+- [x] Marking the selection persists through the existing `favourite` event
+- [x] `tests/desktop/gallery-cue-all.spec.js` drives the bar and covers its marks (persisted)
+- [x] `docs/gallery-selection.md` updated
+- [x] Round 2: Compare, Combine, Make GIF moved to the bar; Download, Archive, Delete on bar and menu
+- [ ] Committed, pushed, CI green (round 1 pushed 7df2f423b)

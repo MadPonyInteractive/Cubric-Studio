@@ -585,10 +585,10 @@ test('gif cutout: real Track dispatch + real Cut-out round trip (GPU engine fake
     for (const g of stills) await window.waitForSelector(cardSel(g.groupId), { timeout: 15000 });
 
     for (const g of stills) await window.locator(cardSel(g.groupId)).click({ modifiers: ['Control'] });
-    await window.locator(cardSel(stills[2].groupId)).click({ button: 'right' });
-    const menuSel = '.mpi-ctx-menu__item[data-key="make-gif"]';
-    await window.waitForSelector(menuSel);
-    await window.locator(menuSel).click();
+    // Make GIF is on the selection bar, not the card menu (MPI-945).
+    const barSel = '.mpi-gallery-grid__selection-bar [data-action="make-gif"]';
+    await window.waitForSelector(barSel, { state: 'visible' });
+    await window.locator(barSel).click();
 
     await window.waitForSelector('.mpi-gif-viewer', { timeout: 30000 });
     await expect.poll(

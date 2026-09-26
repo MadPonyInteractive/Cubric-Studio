@@ -163,8 +163,9 @@
   Cue all: each becomes its own job on your current prompt and settings.
 
 - **Selecting cards brings up a selection bar where the prompt box was.** It shows how many
-  cards are selected, holds Cue all, marks every selected card with a dot, square or
-  triangle (or clears them) in one click, and closes with X or Esc.
+  cards are selected and holds everything that works on a selection: Cue all, Compare,
+  Combine and Make GIF; a dot, square or triangle mark for every selected card in one click
+  (or clear them); then Download, Archive and Delete. Close it with X or Esc.
 
 - **Choose where your prompts are enhanced and your images described.** Prompt enhancement can
   run on ComfyUI, on Remote (DeepInfra, OpenRouter, OpenAI or any compatible address, with your
@@ -194,11 +195,12 @@
   workspace — a quick way to move between them. Models opens the model picker, so you can
   change the model you are generating with from anywhere.
 
-- **The card right-click menu is reorganised, and every entry explains itself.** Three groups
-  now: make something new (Compare, Combine, Make GIF), then this card's own details
-  (Rename, Card notes, Describe image), then anything that touches the files — Add to project,
-  Open in file system, Download, and finally Archive and Delete together at the bottom. Hover
-  any entry and the status bar says what it does, including why a greyed-out one is unavailable.
+- **The card right-click menu is reorganised, and every entry explains itself.** Two groups
+  now: this card's own details (Rename, Card notes, Describe image), then anything that
+  touches the files: Add to project, Open in file system, Download, and finally Archive and
+  Delete together at the bottom. Compare, Combine and Make GIF moved to the selection bar.
+  Hover any entry and the status bar says what it does, including why a greyed-out one is
+  unavailable.
 
 ## Fixes
 

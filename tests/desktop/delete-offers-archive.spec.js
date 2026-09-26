@@ -53,7 +53,7 @@ async function mountGrid(window, groups) {
   }, groups);
 }
 
-test('the card context menu is three separated groups, every row explaining itself', async ({}, testInfo) => {
+test('the card context menu is two separated groups, every row explaining itself', async ({}, testInfo) => {
   const { app, window } = await launchApp(testInfo);
 
   try {
@@ -73,10 +73,9 @@ test('the card context menu is three separated groups, every row explaining itse
       return out;
     });
 
-    // Coarse → fine → irreversible: make something new, edit this card, touch files.
+    // Fine → irreversible: edit this card, touch files. Cue all, Compare, Combine and
+    // Make GIF act on a selection and live on the selection bar (MPI-945).
     expect(rows.map(r => r.key)).toEqual([
-      'compare', 'combine', 'make-gif', // Cue all is on the selection bar (MPI-945)
-      '--',
       'rename', 'card-notes', 'describe',
       '--',
       'add-to-project', 'reveal', 'download', 'archive', 'delete',

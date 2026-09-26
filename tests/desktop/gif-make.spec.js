@@ -173,30 +173,21 @@ test('Make GIF: real gallery selection -> real /gif/make -> gif workspace -> hov
             await window.waitForSelector(cardSel(g.groupId), { timeout: 15000 });
         }
 
-        const menuSel = '.mpi-ctx-menu__item[data-key="make-gif"]';
-        const menuDisabled = () => window.evaluate(
-            (sel) => document.querySelector(sel)?.disabled, menuSel);
+        // Make GIF is on the selection bar, not the card menu (MPI-945).
+        const barSel = '.mpi-gallery-grid__selection-bar [data-action="make-gif"]';
+        const barDisabled = () => window.evaluate(
+            (sel) => document.querySelector(sel)?.disabled, barSel);
 
         // ── One card selected -> Make GIF is disabled ────────────────────────────
         await window.locator(cardSel(green.groupId)).click({ modifiers: ['Control'] });
-        await window.locator(cardSel(green.groupId)).click({ button: 'right' });
-        await window.waitForSelector(menuSel);
-        expect(await menuDisabled(), 'Make GIF must be disabled with only one card selected').toBe(true);
-
-        // Ctrl-click blue (NOT Escape — Escape is bound to gallery.selection.exit
-        // while a multi-select is active, MpiGalleryGrid.js `_enterSelectionMode`,
-        // and would clear the selection this spec is building). This click is
-        // itself an "outside click" for the still-open menu, which dismisses it
-        // (MpiContextMenu's own outside-click handler) while also toggling blue
-        // into the selection — click order so far: green, blue.
-        await window.locator(cardSel(blue.groupId)).click({ modifiers: ['Control'] });
-        await window.locator(cardSel(red.groupId)).click({ modifiers: ['Control'] });
+        await window.waitForSelector(barSel, { state: 'visible' });
+        expect(await barDisabled(), 'Make GIF must be disabled with only one card selected').toBe(true);
 
         // ── Three still images selected, click order green, blue, red ───────────
-        await window.locator(cardSel(red.groupId)).click({ button: 'right' });
-        await window.waitForSelector(menuSel);
-        expect(await menuDisabled(), 'Make GIF must be enabled for 3 selected still images').toBe(false);
-        await window.locator(menuSel).click();
+        await window.locator(cardSel(blue.groupId)).click({ modifiers: ['Control'] });
+        await window.locator(cardSel(red.groupId)).click({ modifiers: ['Control'] });
+        expect(await barDisabled(), 'Make GIF must be enabled for 3 selected still images').toBe(false);
+        await window.locator(barSel).click();
 
         // ── Real POST /gif/make ran; the app navigated to the GIF workspace ──────
         await window.waitForSelector('.mpi-gif-viewer', { timeout: 30000 });

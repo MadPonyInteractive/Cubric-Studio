@@ -116,7 +116,8 @@ function _addDownloadUrl(e, item) {
  *   - Shift-click: range-select from anchor to clicked card (rendered order).
  *   - Plain click in selection mode: toggles card.
  *   - Plain click outside selection mode: opens group.
- *   - Right-click: context menu (Compare / Download / Delete).
+ *   - Right-click: context menu (Rename … Download / Archive / Delete). Cue all, Compare,
+ *     Combine and Make GIF are on the selection bar only (MPI-945, selectionBar.js).
  *     If right-clicked card not in selection → replace selection with it first.
  *   - Escape or selection count → 0: exits selection mode.
  *
@@ -339,10 +340,11 @@ export const MpiGalleryGrid = ComponentFactory.create({
             _syncSelectionBar();
         }
 
-        // ── Selection bar (MPI-945) ───────────────────────────────────────────
-        // Sits where the hidden PromptBox was. Cue all lives here, not in the card
-        // context menu. The op is the one the prompt box is CURRENTLY on, read live
-        // through `getCueContext` because the block owns it — never the remembered
+        // ── Selection bar (MPI-945, selectionBar.js) ──────────────────────────
+        // Sits where the hidden PromptBox was. Cue all, Compare, Combine and Make GIF
+        // live ONLY here; Download, Archive and Delete are on the card menu too.
+        // Cue all's op is the one the prompt box is CURRENTLY on, read live through
+        // `getCueContext` because the block owns it — never the remembered
         // `s_selectedOpByModel`, which only USER picks write, so dragging an image in
         // (a programmatic i2i) would read wrong both ways (MPI-733).
         const _selectedGroups = () => [..._selectedIds]
@@ -352,21 +354,64 @@ export const MpiGalleryGrid = ComponentFactory.create({
             const { operation, model } = props.getCueContext?.() ?? {};
             return selectCueAllTargets(operation, model, _selectedGroups());
         };
-        // ponytail: re-read on selection change only; an op switched mid-selection
-        // shows a stale label until the next click, but onCue re-reads, so the jobs are right.
+        const CUE_INFO = {
+            'no-operation':     'No operation selected',
+            'not-batchable':    'Cue all does not support the current operation',
+            'wrong-media-type': 'No selected card matches the current operation',
+        };
+        // ponytail: re-read on selection change and render only; an op switched
+        // mid-selection shows a stale Cue label until then, but the click re-reads.
         function _syncSelectionBar() {
-            const marks = new Set(_selectedGroups().map(markOf));
+            const groups = _selectedGroups();
+            const n = groups.length;
+            const cue = _cueTargets();
+            // Make GIF (MPI-770): every SELECTED ITEM a still. kindOfItem's `image` row is
+            // the catch-all video, audio, 3D Scene and GIF all match first, so one check
+            // excludes all four. Click order becomes frame order (docs/gallery-selection.md).
+            const allStills = groups.every(g => kindOfItem(g.history?.[g.selectedIndex])?.kind === 'image');
+            const allVideo = groups.every(g => g.type === 'video');
+            const marks = new Set(groups.map(markOf));
             _selBar.update({
-                count: _selectedIds.size,
-                cue: _cueTargets(),
+                count: n,
                 mark: marks.size === 1 ? [...marks][0] : null,
+                actions: {
+                    // Counts the ELIGIBLE cards: a mixed pick filters to the op's type (MPI-733).
+                    'cue-all': {
+                        label: cue.eligible.length ? `Cue all (${cue.eligible.length})` : 'Cue all',
+                        disabled: !cue.eligible.length,
+                        info: CUE_INFO[cue.reason] ?? 'Queue one job per selected card on the current settings',
+                    },
+                    compare: n === 2
+                        ? { info: 'Open the two cards side by side' }
+                        : { disabled: true, info: 'Select exactly 2 cards to compare' },
+                    combine: n >= 2 && allVideo
+                        ? { info: 'Join the selected clips into one video, in click order' }
+                        : { disabled: true, info: 'Select 2 or more video cards to combine' },
+                    'make-gif': n < 2
+                        ? { disabled: true, info: 'Select 2 or more cards to make a GIF' }
+                        : allStills
+                            ? { info: 'Build a GIF from the selected stills, in click order' }
+                            : { disabled: true, info: 'Every selected card must be a still image (no video, audio, 3D Scene or GIF)' },
+                    download: { info: 'Save a copy of the selected media outside the project' },
+                    // The scope gate makes a visible selection homogeneous (MPI-678).
+                    archive: { info: groups[0]?.archived
+                        ? 'Put these cards back in the gallery'
+                        : 'Put these cards away. Nothing is deleted and Reuse keeps working' },
+                    delete: { info: 'Permanently delete these cards and their media files' },
+                },
             });
         }
         const _selBar = mountSelectionBar(el, {
-            onCue: () => {
-                const cue = _cueTargets();
-                if (!cue.eligible.length) return;
-                emit('cue-all', { groups: cue.eligible, skipped: cue.skipped, reason: cue.reason });
+            // Every action but a mark ends the selection, as a menu pick always did.
+            onAction: (key) => {
+                const groups = _selectedGroups();
+                if (key === 'cue-all') {
+                    const cue = _cueTargets();
+                    if (!cue.eligible.length) return;
+                    emit('cue-all', { groups: cue.eligible, skipped: cue.skipped, reason: cue.reason });
+                }
+                if (['compare', 'combine', 'make-gif', 'download', 'delete'].includes(key)) emit(key, { groups });
+                if (key === 'archive') _archive(groups, !groups[0]?.archived);
                 _exitSelectionMode();
             },
             // Same persistence as the card's own mark button: `favourite` → updateGroup.
@@ -379,8 +424,13 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 }
                 _rerenderJustified('mark');
             },
-            onClose: _exitSelectionMode,
         });
+
+        function _archive(groups, next) {
+            groups.forEach(g => { g.archived = next; });
+            emit('archive', { groups, archived: next });
+            _rerenderJustified('archive');
+        }
 
         // MPI-363 — Alt+drag = REAL OS file drag (Discord, Photoshop, upload
         // zones). The plain drag stays HTML5 (`application/mpi-media` +
@@ -1565,51 +1615,22 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 const useSelection = _selectedIds.has(group.id) && _selectedIds.size > 0;
                 const targetIds = useSelection ? Array.from(_selectedIds) : [group.id];
 
-                const compareDisabled = targetIds.length !== 2;
                 const _selectedVideoCount = targetIds
                     .map(id => _groups.find(g => g.id === id))
                     .filter(g => g && g.type === 'video').length;
-                const combineDisabled = targetIds.length < 2 || _selectedVideoCount !== targetIds.length;
 
-                // ── Make GIF (MPI-770) ────────────────────────────────────────
-                // Eligible = 2+ cards, every SELECTED ITEM a still image — not
-                // video, audio, 3D Scene or GIF (kindOfItem's `image` row is the
-                // catch-all everything else matches first, so `kind === 'image'`
-                // already excludes all four). targetIds is used as given: click
-                // order survives into the frame order (docs/gallery-selection.md).
-                const _makeGifItems = targetIds
-                    .map(id => _groups.find(g => g.id === id))
-                    .map(g => g?.history?.[g.selectedIndex]);
-                const _makeGifAllStillImages = _makeGifItems.length > 0 &&
-                    _makeGifItems.every(it => kindOfItem(it)?.kind === 'image');
-                const makeGifDisabled = targetIds.length < 2 || !_makeGifAllStillImages;
-                const makeGifInfo = targetIds.length < 2
-                    ? 'Select 2 or more cards to make a GIF'
-                    : (!_makeGifAllStillImages
-                        ? 'Every selected card must be a still image (no video, audio, 3D Scene or GIF)'
-                        : undefined);
-
-                // Cue all is NOT here: it moved to the selection bar (MPI-945).
+                // Cue all, Compare, Combine and Make GIF are NOT here: they act on a
+                // selection and live on the selection bar (MPI-945).
                 Events.emit('ui:context-menu', {
                     x: e.clientX,
                     y: e.clientY,
-                    // MPI-821: three groups, separated, coarse → fine → irreversible.
-                    // Top makes something NEW from the selection, middle edits this
-                    // card's own data, bottom touches FILES and the system and ends in
+                    // MPI-821: groups separated, fine → irreversible. The top edits this
+                    // card's own data, the bottom touches FILES and the system and ends in
                     // the two answers to "get this off my gallery". Every row carries
                     // `info`: this app has no tooltips, so MpiButton's `data-info` is
                     // the only place a menu row can explain itself, and a greyed row
                     // with no reason is the worst case.
                     items: [
-                        { key: 'compare',    icon: 'compare',   label: 'Compare',    disabled: compareDisabled,
-                            info: compareDisabled ? 'Select exactly 2 cards to compare' : 'Open the two cards side by side' },
-                        { key: 'combine',    icon: 'merge',     label: 'Combine',    disabled: combineDisabled,
-                            info: combineDisabled ? 'Select 2 or more video cards to combine' : 'Join the selected clips into one video, in click order' },
-                        { key: 'make-gif',   icon: 'gif',       label: 'Make GIF',   disabled: makeGifDisabled,
-                            info: makeGifInfo ?? 'Build a GIF from the selected stills, in click order' },
-
-                        { separator: true },
-
                         { key: 'rename',     icon: 'edit',      label: 'Rename',     disabled: targetIds.length !== 1,
                             info: targetIds.length !== 1 ? 'Rename works on one card at a time' : 'Give this card your own name' },
                         { key: 'card-notes', icon: 'text',      label: 'Card notes', disabled: targetIds.length !== 1,
@@ -1648,19 +1669,11 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         const selected = targetIds
                             .map(id => _groups.find(g => g.id === id))
                             .filter(Boolean);
-                        if (key === 'compare')    emit('compare',  { groups: selected });
-                        if (key === 'combine')    emit('combine',  { groups: selected });
-                        if (key === 'make-gif')   emit('make-gif', { groups: selected });
                         if (key === 'add-to-project') emit('add-to-project', { groups: selected });
                         if (key === 'reveal')     emit('reveal', { groups: selected });
                         if (key === 'rename')     _startRename();
                         if (key === 'card-notes') emit('card-notes', { group });
-                        if (key === 'archive') {
-                            const next = !group.archived;
-                            selected.forEach(g => { g.archived = next; });
-                            emit('archive', { groups: selected, archived: next });
-                            _rerenderJustified('archive');
-                        }
+                        if (key === 'archive')    _archive(selected, !group.archived);
                         if (key === 'describe')   emit('describe', { group: selected[0] });
                         if (key === 'download')   emit('download', { groups: selected });
                         if (key === 'delete')     emit('delete',   { groups: selected });

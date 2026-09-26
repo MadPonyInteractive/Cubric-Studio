@@ -160,11 +160,27 @@ test('Cue all follows the LIVE prompt-box op and queues one job per card, each s
       selected: 4,
     });
 
+    // Every bar action, in order, each explaining itself. 3 images + a video: Compare
+    // wants exactly 2, Combine all video, Make GIF all stills — so all three grey.
+    const barActions = await window.evaluate(() => [...document.querySelectorAll('.mpi-gallery-grid__selection-bar [data-action]')]
+      .map(b => ({ key: b.dataset.action, disabled: b.disabled, info: !!b.dataset.info })));
+    expect(barActions).toEqual([
+      { key: 'cue-all', disabled: true, info: true },
+      { key: 'compare', disabled: true, info: true },
+      { key: 'combine', disabled: true, info: true },
+      { key: 'make-gif', disabled: true, info: true },
+      { key: 'download', disabled: false, info: true },
+      { key: 'archive', disabled: false, info: true },
+      { key: 'delete', disabled: false, info: true },
+      { key: 'close', disabled: false, info: true },
+    ]);
+
     // ── 1b. Marks from the bar: every selected card, persisted, selection kept ──
     const savedMarks = () => JSON.parse(fs.readFileSync(path.join(folderPath, 'project.json'), 'utf8'))
       .itemGroups.map(g => g.favourite ?? false);
     await markFromBar(window, 'square');
-    await expect.poll(savedMarks).toEqual(['square', 'square', 'square', 'square']);    expect(await window.evaluate(() => ({
+    await expect.poll(savedMarks).toEqual(['square', 'square', 'square', 'square']);
+    expect(await window.evaluate(() => ({
       marked: document.querySelectorAll('.mpi-group-card--favourited').length,
       lit: document.querySelector('.mpi-gallery-grid__selection-bar [data-mark="square"]').classList.contains('is-active'),
       selected: document.querySelectorAll('.mpi-group-card--selected').length,
@@ -230,6 +246,19 @@ test('Cue all follows the LIVE prompt-box op and queues one job per card, each s
     const after = await readCueButton(window);
     expect({ barShown: after.barShown, promptHidden: after.promptHidden, selected: after.selected })
       .toEqual({ barShown: false, promptHidden: false, selected: 0 });
+
+    // ── 4. Archive from the bar: saved to disk, the cards leave the gallery ───
+    await ctrlClick(window, ['cue-img-1', 'cue-img-2']);
+    await window.evaluate(async () => {
+      document.querySelector('.mpi-gallery-grid__selection-bar [data-action="archive"]').click();
+      await new Promise(r => setTimeout(r, 300));
+    });
+    await expect.poll(() => JSON.parse(fs.readFileSync(path.join(folderPath, 'project.json'), 'utf8'))
+      .itemGroups.filter(g => g.archived).map(g => g.id)).toEqual(['cue-img-1', 'cue-img-2']);
+    expect(await window.evaluate(() => ({
+      gone: ['cue-img-1', 'cue-img-2'].filter(id => !document.querySelector(`.mpi-gallery-grid__row-wrap[data-group-id="${id}"]`)).length,
+      selecting: !!document.querySelector('.mpi-gallery-grid--selecting'),
+    }))).toEqual({ gone: 2, selecting: false });
 
     expect(pageErrors, `page errors: ${pageErrors.join(' | ')}`).toHaveLength(0);
   } finally {
