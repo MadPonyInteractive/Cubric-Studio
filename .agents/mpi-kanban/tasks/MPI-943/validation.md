@@ -18,5 +18,5 @@
 - Images already imported: re-drop from the original.
 - Flow input drops (`placeContentAsset`) and agent/MCP imports: no dialog.
 
-## Open
-- Fabio: does the dialog read right? (screenshot shared in session)
+## Verified by Fabio (2026-09-26)
+- The dialog looks good, tested live with one large image. The one-dialog-per-drop case is covered by the desktop spec above.
