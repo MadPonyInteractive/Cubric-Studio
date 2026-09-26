@@ -14,6 +14,22 @@
 | CI | run 36278564806 green on 6ee78cb83, which carries 77dfdee20 (this card's code commit) |
 | Fabio, his own app, his mic and key | works, after a full restart |
 
+## Reopened and re-closed 2026-09-27: "Dictate in English"
+
+Fabio dictated Portuguese with the toggle on and got Portuguese ("a rapazes a saltar no deserto").
+Root cause measured with a Kokoro `pf_dora` Portuguese clip: whisper-large-v3-**turbo** ignores
+`task: translate` (Portuguese in, same Portuguese out, HTTP 200); `openai/whisper-large-v3`
+answers English. The original translate check used English audio, so it proved nothing.
+
+| Check | Result |
+|---|---|
+| Fix `fb40544c3` | translate goes to `whisper-large-v3`; plain dictation stays on turbo |
+| Live `_transcribe`, same Portuguese clip | toggle off: "Uma raposa a saltar no deserto ao pôr do sol…"; toggle on: "A fox jumping in the desert at sunset with a soft golden light." |
+| `npm test` | 1997 pass, 0 fail |
+| CI | run 36279785885 green on `fb40544c3` (unit + 4 desktop shards) |
+| Fabio, his app after a full restart | "translation works now" |
+| Claim audit | 22 PROVEN, 1 OVERSTATED: the changelog bullet gave one price for both models. Exact fix sent to the MPI-945 session, which holds `UNRELEASED.md` |
+
 ## Cost
 
 Four billed test calls, 42 audio seconds: **$0.00014** by DeepInfra's own usage record. The

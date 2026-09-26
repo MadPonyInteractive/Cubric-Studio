@@ -20,4 +20,4 @@
 - [x] `docs/dictation.md`
 - [x] `docs/releases/UNRELEASED.md` line (Fabio approved; MPI-945 released the file)
 - [x] `.claude/rules/` component maps (Fabio approved): mounts for both mics, the dictation NOTE on MpiPromptBox (blocks map) and MpiAgentChat (primitives map)
-- [ ] Fabio: dictate in Portuguese with the toggle on, after a full restart
+- [x] Fabio: dictate in Portuguese with the toggle on, after a full restart - "translation works now"; CI green on fb40544c3
