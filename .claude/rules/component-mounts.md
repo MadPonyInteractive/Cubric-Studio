@@ -321,6 +321,7 @@ MpiGalleryGrid is now a Compound that handles both justified layout and card dis
 **Public API (on `instance.el`):**
 - `setGroups(groups)` — replace all groups and re-render; generating cards flow through `isGenerating` flag
 - `updatePreview(tempId, url)` — push latent preview to generating card during image generation
+- `setSendCountdown(tempId, seconds)` — cloud send window label "Sending in N..." (`0` = sent, MPI-940). Held in `_sendCountdowns` too, because the first tick beats the 16 ms debounced render and a card built mid-window must pick it up
 - `removeCard(groupId)` — remove single card from grid and `_cardMap`
 - `setSelectionMode(bool)` — toggle selection mode CSS on all cards
 

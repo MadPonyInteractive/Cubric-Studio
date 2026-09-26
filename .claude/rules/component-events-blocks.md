@@ -124,6 +124,7 @@ LISTENS: `workspace:set-operation` `{ operation: string }` — syncs PromptBox o
          `generation:complete` `{ id, item, group, tempId, extraTempIds }` — removes all N placeholders, `setGroups` from state
          `generation:error` `{ id, tempId, extraTempIds }` — removes all N placeholders, restores group list
          `generation:cancelled` `{ id, tempId, extraTempIds }` — removes all N placeholders, restores group list
+         `generation:send-countdown` `{ id, seconds }` (MPI-940) — a cloud run's send window: `grid.el.setSendCountdown(t, seconds)` on the entry's `tempId` + `extraTempIds`, only for an id in `_myGenIds`. The card reads "Sending in N..."; `0` = sent, back to its name. Gallery only: a history-mode cloud run waits too but shows no countdown
 EMITS:   `tool:running`   `{ tool: 'groupHistory', type: string }` — fired on generation start
          `tool:idle`      `{ tool: 'groupHistory', type: string }` — fired on generation success
          `tool:cancelled` `{ tool: 'groupHistory' }` — fired on user cancel, error, or empty result

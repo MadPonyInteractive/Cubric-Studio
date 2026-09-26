@@ -18,10 +18,11 @@ Session-scoped singleton. Survives navigation. Keyed by uuid; multi-entry (batch
 | `generation:complete` | `{ id, item, group, tempId?, extraTempIds? }` | `generationService` emits after project mutation + `end()` |
 | `generation:error` | `{ id, tempId?, extraTempIds? }` | `generationService` emits after `end()` |
 | `generation:cancelled` | `{ id, tempId?, extraTempIds? }` | `generationService` or `activeGenerations.cancel()` emits after `end()` |
+| `generation:send-countdown` | `{ id, seconds }` | `cloudExecutor` (MPI-940), once a second through a cloud run's 3 s send window, then `seconds: 0` just before the POST. A Stop inside it aborts before anything is sent. `id` is the gen id (`activeGenerations` entry id) |
 
 **API:** `start({ scope, groupId, tempId, operation, modelId, placeholderGroup, extraTempIds, extraPlaceholders, exec })` → `{ id }` · `get(id)` · `list()` · `listFor(scope, groupId|null)` · `setPreview(id, url)` · `setPromptId(id, promptId)` · `end(id, { revokePreview })` · `cancel(id)` · `cancelAll()`
 
-**Batch semantics:** `extraTempIds` + `extraPlaceholders` describe N-1 sibling placeholder cards for a batch > 1. Gallery renders all N up front, broadcasts preview to all, removes all on complete/error/cancelled, then `setGroups()` with the N real groups already in `state.currentProject.itemGroups` (generationService calls `addGroup` N times before emit).
+**Batch semantics:** `extraTempIds` + `extraPlaceholders` describe N-1 sibling placeholder cards for a batch > 1. Gallery renders all N up front, broadcasts preview to all, removes all on complete/error/cancelled, then `setGroups()` with the N real groups already in `state.currentProject.itemGroups` (generationService calls `addGroup` N times before emit). A cloud batch on an endpoint with no native batch is still ONE entry: `cloudExecutor` sends N calls of one inside the one exec (MPI-940) and hands back N urls, with each card's seed in `outputInfo.seeds`.
 
 **Scope values:** `'gallery'` | `'groupHistory'`
 

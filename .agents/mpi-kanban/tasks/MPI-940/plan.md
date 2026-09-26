@@ -3,8 +3,8 @@
 ## Current State
 
 (2026-09-26, session 5cae2625) DONE. Both phases verified by Fabio in the app; code in 2779cfcf.
-Open product question left with Fabio, not built: batch is `scope: 'shared'`, so an SDXL batch
-of 4 carries to a cloud image model (x4 money); the price tag and xN badge show it.
+Fabio 2026-09-26: batch STAYS `scope: 'shared'`, even though an SDXL batch of 4 carries to a
+cloud image model (x4 money); the price tag and xN badge show it. Do not re-raise.
 
 How Phase 2 landed - fan-out in the EXECUTOR, not N Cue jobs (Plan Drift below says why):
 - `cloudRunFields` returns `calls` (N where the endpoint has no native batch, else 1) beside
