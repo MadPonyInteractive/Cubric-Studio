@@ -159,8 +159,12 @@
 - **The cogwheel by the prompt shows the LoRAs your model is running** — name, strength, and a
   switch to mute one for the next run, without leaving the prompt you are working on.
 
-- **Cue all: run one operation over many pictures.** Select several gallery cards, right-click,
-  and each becomes its own job on your current prompt and settings.
+- **Cue all: run one operation over many pictures.** Select several gallery cards and press
+  Cue all: each becomes its own job on your current prompt and settings.
+
+- **Selecting cards brings up a selection bar where the prompt box was.** It shows how many
+  cards are selected, holds Cue all, marks every selected card with a dot, square or
+  triangle (or clears them) in one click, and closes with X or Esc.
 
 - **Choose where your prompts are enhanced and your images described.** Prompt enhancement can
   run on ComfyUI, on Remote (DeepInfra, OpenRouter, OpenAI or any compatible address, with your
@@ -191,7 +195,7 @@
   change the model you are generating with from anywhere.
 
 - **The card right-click menu is reorganised, and every entry explains itself.** Three groups
-  now: make something new (Compare, Combine, Make GIF, Cue all), then this card's own details
+  now: make something new (Compare, Combine, Make GIF), then this card's own details
   (Rename, Card notes, Describe image), then anything that touches the files — Add to project,
   Open in file system, Download, and finally Archive and Delete together at the bottom. Hover
   any entry and the status bar says what it does, including why a greyed-out one is unavailable.

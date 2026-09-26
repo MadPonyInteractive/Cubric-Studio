@@ -1,4 +1,7 @@
-// MPI-733 — Cue all: select N gallery cards, right-click, one queued job per card.
+// MPI-733 — Cue all: select N gallery cards, one queued job per card.
+// MPI-945 — Cue all moved off the card context menu into the selection bar, which
+// shows in the prompt box's place while selecting. The bar's marks ride along here:
+// one launch covers both.
 //
 // Mounted through MpiGalleryBlock, NEVER the grid alone. The first cut read the op
 // from `s_selectedOpByModel`, and every probe that mounted the grid standalone
@@ -75,22 +78,28 @@ async function ctrlClick(window, ids) {
   }, ids);
 }
 
-/** Right-click the first selected card; returns the cue-all row, the menu left OPEN. */
-async function openCueEntry(window) {
-  return window.evaluate(async (firstId) => {
-    document.querySelector(`.mpi-gallery-grid__row-wrap[data-group-id="${firstId}"] .mpi-group-card`)
-      .dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 60, clientY: 60 }));
-    await new Promise(r => setTimeout(r, 200));
-    const item = document.querySelector('.mpi-ctx-menu__item[data-key="cue-all"]');
+/** The selection bar's Cue all button as the user sees it. */
+async function readCueButton(window) {
+  return window.evaluate(() => {
+    const btn = document.querySelector('.mpi-gallery-grid__selection-cue');
     return {
-      label: item?.textContent?.trim() ?? null,
-      disabled: !!item?.disabled,
-      info: item?.dataset?.info ?? null,
-      // A right-click OUTSIDE the selection acts on that card alone — this count is
-      // what stops that silent fallback from reading as a pass.
+      label: btn?.textContent?.trim() ?? null,
+      disabled: !!btn?.disabled,
+      info: btn?.dataset?.info ?? null,
+      // The bar stands in for the prompt box: one shows, the other hides.
+      barShown: !!btn?.offsetParent,
+      promptHidden: document.querySelector('.mpi-prompt-box').classList.contains('hide'),
       selected: document.querySelectorAll('.mpi-group-card--selected').length,
     };
-  }, SELECTION[0]);
+  });
+}
+
+/** Click a mark in the bar (`none` clears). */
+async function markFromBar(window, mark) {
+  await window.evaluate(async (m) => {
+    document.querySelector(`.mpi-gallery-grid__selection-bar [data-mark="${m}"]`).click();
+    await new Promise(r => setTimeout(r, 300));
+  }, mark);
 }
 
 test('Cue all follows the LIVE prompt-box op and queues one job per card, each sweeping its own image', async ({}, testInfo) => {
@@ -142,13 +151,27 @@ test('Cue all follows the LIVE prompt-box op and queues one job per card, each s
     expect(await liveOp(window)).toBe('t2i');
     await rememberOp(window, 'i2i');
     await ctrlClick(window, SELECTION);
-    expect(await openCueEntry(window)).toEqual({
+    expect(await readCueButton(window)).toEqual({
       label: 'Cue all',
       disabled: true,
       info: 'Cue all does not support the current operation',
+      barShown: true,
+      promptHidden: true,
       selected: 4,
     });
-    await window.evaluate(() => document.body.click());
+
+    // ── 1b. Marks from the bar: every selected card, persisted, selection kept ──
+    const savedMarks = () => JSON.parse(fs.readFileSync(path.join(folderPath, 'project.json'), 'utf8'))
+      .itemGroups.map(g => g.favourite ?? false);
+    await markFromBar(window, 'square');
+    await expect.poll(savedMarks).toEqual(['square', 'square', 'square', 'square']);    expect(await window.evaluate(() => ({
+      marked: document.querySelectorAll('.mpi-group-card--favourited').length,
+      lit: document.querySelector('.mpi-gallery-grid__selection-bar [data-mark="square"]').classList.contains('is-active'),
+      selected: document.querySelectorAll('.mpi-group-card--selected').length,
+    }))).toEqual({ marked: 4, lit: true, selected: 4 });
+    await markFromBar(window, 'none');
+    await expect.poll(savedMarks).toEqual([false, false, false, false]);
+
     await ctrlClick(window, SELECTION); // toggle back off -> selection mode exits
 
     // ── 2. Stage an image the way a card drag does: the box picks i2i itself ──
@@ -173,16 +196,18 @@ test('Cue all follows the LIVE prompt-box op and queues one job per card, each s
     });
 
     await ctrlClick(window, SELECTION);
-    expect(await openCueEntry(window)).toEqual({
+    expect(await readCueButton(window)).toEqual({
       label: 'Cue all (3)',
       disabled: false,
       info: 'Queue one job per selected card on the current settings',
+      barShown: true,
+      promptHidden: true,
       selected: 4,
     });
 
-    // ── 3. One click -> three queued jobs ────────────────────────────────────
+    // ── 3. One click -> three queued jobs, and the prompt box comes back ──────
     const jobs = await window.evaluate(async () => {
-      document.querySelector('.mpi-ctx-menu__item[data-key="cue-all"]').click();
+      document.querySelector('.mpi-gallery-grid__selection-cue').click();
       await new Promise(r => setTimeout(r, 300));
       const { peekCueQueue, clearCueQueue } = await import('/js/services/generationService.js');
       const queued = peekCueQueue().map(job => ({
@@ -202,6 +227,9 @@ test('Cue all follows the LIVE prompt-box op and queues one job per card, each s
     }
     // The swept slot differs per job, in click order, video skipped in place.
     expect(jobs.map(j => j.urls[0])).toEqual(STILLS);
+    const after = await readCueButton(window);
+    expect({ barShown: after.barShown, promptHidden: after.promptHidden, selected: after.selected })
+      .toEqual({ barShown: false, promptHidden: false, selected: 0 });
 
     expect(pageErrors, `page errors: ${pageErrors.join(' | ')}`).toHaveLength(0);
   } finally {

@@ -12,11 +12,18 @@ relying on an entry.
 
 `_selectedIds` is a `Set`, so ctrl/cmd-click order survives into every context-menu action's `targetIds`, and the `#N` order badge shows it. **Shift-click REPLACES the selection** (`_rangeSelect`): it clears the set and walks from the anchor (the last ctrl-clicked card) to the clicked one in grid order, so earlier ctrl-picks outside that range are dropped. No ordering machinery exists beyond this; anything consuming selection order — Cue all's queue order, Make GIF's frame order — inherits it.
 
+## The selection bar (MPI-945)
+
+Entering selection mode HIDES the PromptBox (`grid.on('selection-start')` → `_pb.el.hide()`), and the grid shows its own bar in that strip: `N selected` · **Cue all (N)** · mark dot / square / triangle / clear · close (Esc works too). It is a parts file of the grid, `MpiGalleryGrid/selectionBar.js` (the `cardMarkMenu.js` precedent), appended as the grid root's last flex child and shown only under `.mpi-gallery-grid--selecting` — so the block needed no change, and the bar dies with the grid. `_syncCardSelectedState` refreshes it, which every selection change AND every render (a 16 ms debounce) runs.
+
+- **Marks** write `group.favourite` on every selected card and emit the SAME `favourite` event a card's own mark button does, so persistence is the old path. The mark is in the render key, so the rerender repaints the cards. A mark button is lit only when EVERY selected card wears that shape. The selection is kept, so the user can change their mind.
+- **A marked card keeps its mark chip while selecting** (`MpiGalleryGrid.css`); notes, reuse and an UNMARKED mark button still hide. Before MPI-945 all three hid, which made a bar mark invisible until the selection closed.
+
 ## Cue all — one queued job per selected card (MPI-733)
 
-Select N cards, right-click → **Cue all (N)**. Each eligible card becomes its own queued job, all on the PromptBox's current recipe (prompt, style, LoRAs, controls). It is a context-menu entry because entering selection mode HIDES the PromptBox (`grid.on('selection-start')` → `_pb.el.hide()`), so the Cue button is off screen once a multi-select exists. `hide()` is not `destroy()`, so `getRunPayload()` still returns the live recipe.
+Select N cards, press **Cue all (N)** on the selection bar (it was a context-menu entry until MPI-945). Each eligible card becomes its own queued job, all on the PromptBox's current recipe (prompt, style, LoRAs, controls). The PromptBox is hidden while selecting, but `hide()` is not `destroy()`, so `getRunPayload()` still returns the live recipe.
 
-**The op is the one the user can SEE, read live.** `MpiGalleryBlock` mounts the grid with `getCueContext: () => ({ operation: activeOperation, model: activeModel })`, and the grid calls it at right-click time. Never `s_selectedOpByModel`: that memory is written only for USER picks, and dragging an image in auto-selects `i2i` programmatically. The first cut read the memory and was wrong both ways — greyed under a visible `i2i`, and still enabled after the chip was cleared and the strip dropped to `t2i`.
+**The op is the one the user can SEE, read live.** `MpiGalleryBlock` mounts the grid with `getCueContext: () => ({ operation: activeOperation, model: activeModel })`, and the grid calls it on every bar refresh and again at click time — so an op changed mid-selection can leave the LABEL stale until the next click, never the jobs. Never `s_selectedOpByModel`: that memory is written only for USER picks, and dragging an image in auto-selects `i2i` programmatically. The first cut read the memory and was wrong both ways — greyed under a visible `i2i`, and still enabled after the chip was cleared and the strip dropped to `t2i`.
 
 **Eligible = the op declares exactly ONE REQUIRED media slot, of the card's type.** `selectCueAllTargets(operation, model, groups)` in `js/data/commandRegistry.js`, reading slots through `getCommandMediaInputs` / `filterMediaInputsForModel` — no whitelist. The looser "any slot of that type" queues jobs that cannot run: two-required-input flows get N graphs missing an input, and optional slots make text ops "batchable". A mixed selection FILTERS to the op's type, so the label counts eligible cards, not selected ones. Zero eligible → disabled, with the reason in `data-info` (the status bar; this app has no tooltips) for `no-operation` / `not-batchable` / `wrong-media-type`.
 
@@ -27,9 +34,9 @@ The batch axis is an image selection; the output can be video — `i2v` / `i2v_m
 **Dispatch** is `_cueAllDispatch` in `MpiGalleryBlock.js`: one `getRunPayload()` read, one `enqueueGeneration` per eligible card, and **no `getNextGeneration`** — a batch job must never re-fire itself. **It refuses while Loop is armed** (`state.loopArmed`): `_onLaneDrain` re-fires the last job, so a draining batch would never end, and silently disarming the user's Loop is worse. Two traps kept out on purpose:
 
 - The `grid.on('cue-all')` subscription sits OUTSIDE `_wirePromptBox`, which runs at two mount sites — inside it, a PromptBox remount stacks a second listener and cues every job twice.
-- No `_exitSelectionMode()` in the handler: the grid's `onSelect` already exits after every menu action.
+- No `_exitSelectionMode()` in the handler: the bar's `onCue` exits after emitting, which brings the PromptBox back.
 
-Regression spec: `tests/desktop/gallery-cue-all.spec.js`. It mounts through the BLOCK — a grid-only mount hands the op in and cannot see the op source — and holds jobs pending with no GPU by reporting both lanes busy through `generationStore.getSnapshot`. Unit: `tests/cue-all-eligibility.test.cjs`.
+Regression spec: `tests/desktop/gallery-cue-all.spec.js` (it also covers the bar's marks, persisted to `project.json`). It mounts through the BLOCK — a grid-only mount hands the op in and cannot see the op source — and holds jobs pending with no GPU by reporting both lanes busy through `generationStore.getSnapshot`. Unit: `tests/cue-all-eligibility.test.cjs`.
 
 ## Make GIF — one click, no dialog (MPI-770)
 

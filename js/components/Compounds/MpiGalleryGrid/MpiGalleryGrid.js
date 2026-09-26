@@ -8,6 +8,7 @@ import { kindOfItem, PANEL_KINDS } from '../../../utils/assetKinds.js';
 import { mascotLoop } from '../../../utils/mascotLoop.js';
 import { matchesGallerySort, isGalleryFiltered, byGalleryOrder, markOf, markIcon, DEFAULT_GALLERY_SORT } from '../../../utils/galleryFilter.js';
 import { wireCardMark, closeCardMarkMenu } from './cardMarkMenu.js';
+import { mountSelectionBar } from './selectionBar.js';
 import { removeHistoryEntry } from '../../../data/projectModel.js';
 import { getModelById, tierLetterFor } from '../../../data/modelRegistry.js';
 import { getCommand, getCommandAccent, commandAllowsBranchingContinue, selectCueAllTargets } from '../../../data/commandRegistry.js';
@@ -122,7 +123,8 @@ function _addDownloadUrl(e, item) {
  * Props:
  * @param {import('../../../data/projectModel.js').ItemGroup[]} [groups=[]] - Initial groups
  * @param {() => {operation: string|null, model: Object|null}} [getCueContext] - Reads the
- *        prompt box's CURRENT op/model at right-click time, for the `Cue all (N)` label.
+ *        prompt box's CURRENT op/model on each selection change and click, for the
+ *        selection bar's `Cue all (N)` (MPI-945, `selectionBar.js`).
  *        A callback because the block owns the PromptBox and this grid mounts before it.
  *
  * Instance methods (on instance.el):
@@ -334,7 +336,51 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 card.el.setSelected(_selectedIds.has(id));
                 card.el.setSelectionBadge?.(numberById.get(id) || 0);
             });
+            _syncSelectionBar();
         }
+
+        // ── Selection bar (MPI-945) ───────────────────────────────────────────
+        // Sits where the hidden PromptBox was. Cue all lives here, not in the card
+        // context menu. The op is the one the prompt box is CURRENTLY on, read live
+        // through `getCueContext` because the block owns it — never the remembered
+        // `s_selectedOpByModel`, which only USER picks write, so dragging an image in
+        // (a programmatic i2i) would read wrong both ways (MPI-733).
+        const _selectedGroups = () => [..._selectedIds]
+            .map(id => _groups.find(g => g.id === id))
+            .filter(Boolean);
+        const _cueTargets = () => {
+            const { operation, model } = props.getCueContext?.() ?? {};
+            return selectCueAllTargets(operation, model, _selectedGroups());
+        };
+        // ponytail: re-read on selection change only; an op switched mid-selection
+        // shows a stale label until the next click, but onCue re-reads, so the jobs are right.
+        function _syncSelectionBar() {
+            const marks = new Set(_selectedGroups().map(markOf));
+            _selBar.update({
+                count: _selectedIds.size,
+                cue: _cueTargets(),
+                mark: marks.size === 1 ? [...marks][0] : null,
+            });
+        }
+        const _selBar = mountSelectionBar(el, {
+            onCue: () => {
+                const cue = _cueTargets();
+                if (!cue.eligible.length) return;
+                emit('cue-all', { groups: cue.eligible, skipped: cue.skipped, reason: cue.reason });
+                _exitSelectionMode();
+            },
+            // Same persistence as the card's own mark button: `favourite` → updateGroup.
+            // The mark is in the render key, so the rerender repaints each card and,
+            // through _syncCardSelectedState, this bar.
+            onMark: (id) => {
+                for (const g of _selectedGroups()) {
+                    g.favourite = id || false;
+                    emit('favourite', { group: g, favourite: g.favourite });
+                }
+                _rerenderJustified('mark');
+            },
+            onClose: _exitSelectionMode,
+        });
 
         // MPI-363 — Alt+drag = REAL OS file drag (Discord, Photoshop, upload
         // zones). The plain drag stays HTML5 (`application/mpi-media` +
@@ -1543,34 +1589,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         ? 'Every selected card must be a still image (no video, audio, 3D Scene or GIF)'
                         : undefined);
 
-                // ── Cue all (MPI-733) ─────────────────────────────────────────
-                // The op to batch is the one the prompt box is CURRENTLY on, read
-                // live through `getCueContext` because the block owns it.
-                // Deliberately NOT the remembered pick: `s_selectedOpByModel` is
-                // written only for USER-driven picks, so dragging an image in —
-                // which auto-selects i2i programmatically — left this greyed while
-                // the strip plainly showed i2i, and clearing the chip (dropping to
-                // t2i, MPI-388 `dropToTextOpIfEmpty`) left it enabled under a
-                // text-only op. The op the user can SEE is the only one that can
-                // honestly be batched.
-                // Resolved here rather than in the block because the LABEL carries
-                // the eligible count; `commandRegistry` is a data read, so the grid
-                // still imports nothing from the generation layer, which owns the
-                // dispatch.
-                const { operation: _cueOp, model: _cueModel } = props.getCueContext?.() ?? {};
-                const _cue = selectCueAllTargets(
-                    _cueOp,
-                    _cueModel,
-                    targetIds.map(id => _groups.find(g => g.id === id)).filter(Boolean),
-                );
-                // Reaches the STATUS BAR through MpiButton's `data-info`. This app
-                // has no tooltips.
-                const _cueInfo = {
-                    'no-operation':     'No operation selected',
-                    'not-batchable':    'Cue all does not support the current operation',
-                    'wrong-media-type': 'No selected card matches the current operation',
-                }[_cue.reason] ?? 'Queue one job per selected card on the current settings';
-
+                // Cue all is NOT here: it moved to the selection bar (MPI-945).
                 Events.emit('ui:context-menu', {
                     x: e.clientX,
                     y: e.clientY,
@@ -1588,13 +1607,6 @@ export const MpiGalleryGrid = ComponentFactory.create({
                             info: combineDisabled ? 'Select 2 or more video cards to combine' : 'Join the selected clips into one video, in click order' },
                         { key: 'make-gif',   icon: 'gif',       label: 'Make GIF',   disabled: makeGifDisabled,
                             info: makeGifInfo ?? 'Build a GIF from the selected stills, in click order' },
-                        // Count comes off the ELIGIBLE set, not the selection: a
-                        // mixed image+video pick filters to the op's type rather
-                        // than refusing, so `Cue all (3)` on a 3-image/2-video
-                        // selection is the honest label (MPI-733).
-                        { key: 'cue-all',    icon: 'layers',    info: _cueInfo,
-                            label: _cue.eligible.length ? `Cue all (${_cue.eligible.length})` : 'Cue all',
-                            disabled: !_cue.eligible.length },
 
                         { separator: true },
 
@@ -1640,9 +1652,6 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         if (key === 'combine')    emit('combine',  { groups: selected });
                         if (key === 'make-gif')   emit('make-gif', { groups: selected });
                         if (key === 'add-to-project') emit('add-to-project', { groups: selected });
-                        if (key === 'cue-all')    emit('cue-all', {
-                            groups: _cue.eligible, skipped: _cue.skipped, reason: _cue.reason,
-                        });
                         if (key === 'reveal')     emit('reveal', { groups: selected });
                         if (key === 'rename')     _startRename();
                         if (key === 'card-notes') emit('card-notes', { group });
@@ -2547,6 +2556,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
             _cardMap.forEach(({ card }) => card.el.destroy?.());
             _cardMap.clear();
             closeCardMarkMenu();
+            _selBar.destroy();
         };
     }
 });

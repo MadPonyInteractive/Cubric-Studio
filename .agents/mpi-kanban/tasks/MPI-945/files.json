@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js", "js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.css", "js/components/Compounds/MpiGalleryGrid/selectionBar.js", "tests/desktop/gallery-cue-all.spec.js", "docs/gallery-selection.md", "tests/desktop/delete-offers-archive.spec.js", "docs/releases/UNRELEASED.md"]}

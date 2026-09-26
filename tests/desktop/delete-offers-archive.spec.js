@@ -75,7 +75,7 @@ test('the card context menu is three separated groups, every row explaining itse
 
     // Coarse → fine → irreversible: make something new, edit this card, touch files.
     expect(rows.map(r => r.key)).toEqual([
-      'compare', 'combine', 'make-gif', 'cue-all',
+      'compare', 'combine', 'make-gif', // Cue all is on the selection bar (MPI-945)
       '--',
       'rename', 'card-notes', 'describe',
       '--',

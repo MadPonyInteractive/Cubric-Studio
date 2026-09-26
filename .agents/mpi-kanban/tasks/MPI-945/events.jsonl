@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-945", "at": "2026-09-26T23:50:58+01:00", "actor": "claude", "column": "todo", "title": "Gallery selection bar: Cue all and card marks where the prompt box was"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-945", "at": "2026-09-26T23:51:30+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "building the selection bar"}
