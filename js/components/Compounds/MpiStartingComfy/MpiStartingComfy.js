@@ -2,6 +2,7 @@ import { ComponentFactory } from '../../factory.js';
 import { MpiSpinner } from '../../Primitives/MpiSpinner/MpiSpinner.js';
 import { qs } from '../../../utils/dom.js';
 import { startElapsedTicker } from '../../../utils/elapsedTicker.js';
+import { mascotLoop } from '../../../utils/mascotLoop.js';
 
 // The curated pip pass behind "Installing Python packages" is minutes of silence, and a
 // Pod boot can be too; a spinner alone reads as a hang after a while (MPI-792).
@@ -28,9 +29,7 @@ export const MpiStartingComfy = ComponentFactory.create({
     css: ['js/components/Compounds/MpiStartingComfy/MpiStartingComfy.css'],
     template: (props) => `
         <div class="mpi-starting-comfy">
-            <div class="mpi-starting-comfy__media">
-                <img src="assets/mascot/idle.png" alt="Starting Engine" class="mpi-starting-comfy__img" />
-            </div>
+            <div class="mpi-starting-comfy__media" data-ref="media"></div>
             <div class="mpi-starting-comfy__content">
                 <h2 class="mpi-starting-comfy__title gradient-text" data-ref="title">${props.title || 'Starting ComfyUI Engine...'}</h2>
                 <p class="mpi-starting-comfy__text text-muted" data-ref="text">${props.text || 'This may take a few moments...'}</p>
@@ -54,6 +53,7 @@ export const MpiStartingComfy = ComponentFactory.create({
         const textEl     = qs('[data-ref="text"]', el);
         const clockEl    = qs('[data-ref="clock"]', el);
         const quietEl    = qs('[data-ref="quiet"]', el);
+        const mediaEl    = qs('[data-ref="media"]', el);
         const _default   = { title: titleEl.textContent, text: textEl.textContent };
 
         const stopTicker = () => {
@@ -87,6 +87,9 @@ export const MpiStartingComfy = ComponentFactory.create({
             textEl.textContent  = (phase && phase.text)  || _default.text;
             if (_backdrop) { ticker?.touch(); return; } // already visible — idempotent
             el.setLoading(true);
+            // Studio's engine-starting loop (MPI-906), mounted only while shown: the
+            // component lives for the whole session, a looping clip must not.
+            mediaEl.innerHTML = mascotLoop('studio', 'engine-starting', 'mpi-starting-comfy__img');
             // One clock for the whole visible stretch: a phase change relabels, it
             // does not restart the count.
             ticker = startElapsedTicker((elapsed, hint) => {
@@ -107,6 +110,9 @@ export const MpiStartingComfy = ComponentFactory.create({
 
         el.hide = () => {
             stopTicker();
+            // Detaching a video keeps its decoder; only dropping the src frees it.
+            const clip = mediaEl.firstElementChild;
+            if (clip) { clip.pause(); clip.removeAttribute('src'); clip.load(); clip.remove(); }
             _backdrop?.remove(); _backdrop = null;
             _wrapper?.remove();  _wrapper  = null;
         };

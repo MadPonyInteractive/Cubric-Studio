@@ -147,8 +147,9 @@
     position: absolute;
     bottom: 76px;
     right: 18px;
-    width: 66px;
-    height: 66px;
+    /* The staged clip's figure fills ~60% of its frame (MPI-906, Fabio: bigger). */
+    width: 120px;
+    height: 120px;
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--t-base) var(--ease);

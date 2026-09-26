@@ -45,7 +45,7 @@ import { Events } from '../../../events.js';
 import { navigate, PAGE_GALLERY } from '../../../router.js';
 import { getModelsByType, isModelUsable, installedOpsForContext } from '../../../data/modelRegistry.js';
 import { canonicalModelId } from '../../../data/modelConstants/resolveModelDeps.js';
-import { getAvailableCommands, getCommandMediaInputs } from '../../../data/commandRegistry.js';
+import { getAvailableCommands, getCommandMediaInputs, getCommandAccent } from '../../../data/commandRegistry.js';
 import { enqueueGeneration, clearPendingQueue, refreshQueueDepth, cancelRunningCueJob } from '../../../services/generationService.js';
 import { generationStore } from '../../../services/generationStore.js';
 import { activeGenerations } from '../../../services/activeGenerations.js';
@@ -933,11 +933,15 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             }
         }
 
-        const _mascotEl = document.createElement('img');
+        // Waiting peek (MPI-906): the op's `working` loop. The src is set only while it
+        // shows — hiding a video keeps its decoder; only dropping the src frees it.
+        const _mascotEl = document.createElement('video');
         _mascotEl.className = 'mascot-peek';
         _mascotEl.id = 'mascot-peek';
-        _mascotEl.src = 'assets/mascot/waiting.png';
-        _mascotEl.alt = '';
+        _mascotEl.muted = true;
+        _mascotEl.loop = true;
+        _mascotEl.playsInline = true;
+        _mascotEl.setAttribute('aria-hidden', 'true');
         centreSlot.appendChild(_mascotEl);
 
         const historyList = MpiHistoryList.mount(qs('#right-bottom-slot', el), {
@@ -1244,21 +1248,31 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
 
         const _mascotShow = (src) => {
             clearTimeout(_mascotLingerTimer);
-            _mascotEl.src = src;
+            if (_mascotEl.getAttribute('src') !== src) {
+                _mascotEl.src = src;
+                // Reduced motion holds the first frame, the clip's rest pose.
+                if (!matchMedia('(prefers-reduced-motion: reduce)').matches) _mascotEl.play().catch(() => {});
+            }
             _mascotEl.classList.add('mascot-peek--visible');
+        };
+        const _mascotRelease = () => {
+            _mascotEl.classList.remove('mascot-peek--visible');
+            _mascotEl.pause();
+            _mascotEl.removeAttribute('src');
+            _mascotEl.load();
         };
         const _mascotHide = (delay = 0) => {
             clearTimeout(_mascotLingerTimer);
             if (delay > 0) {
-                _mascotLingerTimer = setTimeout(() => _mascotEl.classList.remove('mascot-peek--visible'), delay);
+                _mascotLingerTimer = setTimeout(_mascotRelease, delay);
             } else {
-                _mascotEl.classList.remove('mascot-peek--visible');
+                _mascotRelease();
             }
         };
 
-        const _setGenerating = (flag) => {
+        const _setGenerating = (flag, operation) => {
             viewer.el.setGenerating?.(flag);
-            if (flag) _mascotShow('assets/mascot/waiting.png');
+            if (flag) _mascotShow(`assets/mascot/${getCommandAccent(operation)}/working.webm`);
             // hide handled per-event below
         };
 
@@ -1283,7 +1297,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             _myGenIds.add(entry.id);
             const _isResize = entry.operation === 'resize' || entry.operation === 'resizeVideo';
             if (_isResize) _setBusy(true);
-            else _setGenerating(true);
+            else _setGenerating(true, entry.operation);
             if (entry.latestPreviewUrl) {
                 if (_isResize) _setBusy(false);
                 else _setGenerating(false);
@@ -1358,7 +1372,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             if (operation === 'resize' || operation === 'resizeVideo') {
                 _setBusy(true);
             } else {
-                _setGenerating(true);
+                _setGenerating(true, operation);
             }
             _syncPbGenerating();
         }));
@@ -2177,7 +2191,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             const next = _generationFromPromptPayload(payload);
             if (!next) return;
 
-            _setGenerating(true);
+            _setGenerating(true, next.config.operation);
             const callbacks = {
                 onCancel: () => { _activeExec = null; _setGenerating(false); },
                 onError:  () => { _activeExec = null; _setGenerating(false); },
@@ -2202,7 +2216,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 ...(trim ? { trim } : {}),
             }];
             const videoModel = { id: null, mediaType: 'video' };
-            _setGenerating(true);
+            _setGenerating(true, operation);
             enqueueGeneration(
                 { operation, model: videoModel, positive: '', negative: '', ...inputs, mediaItems, injectionParams },
                 {
@@ -2228,7 +2242,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             if (!currentItem?.filePath) { _showToast('No source image', 'error'); return; }
             const mediaItems = [{ url: resolveMediaUrl(currentItem.filePath), mediaType: 'image', source: 'history' }];
             const imageModel = { id: null, mediaType: 'image' };
-            _setGenerating(true);
+            _setGenerating(true, operation);
             enqueueGeneration(
                 { operation, model: imageModel, positive: '', negative: '', ...inputs, mediaItems, injectionParams },
                 {
@@ -3639,7 +3653,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
 
         el.destroy = async () => {
             clearMaskReader(_readMaskForAgent);
-            clearTimeout(_mascotLingerTimer);
+            _mascotHide(0);
             _previewPlayer.stop();
             _options?.destroy?.();
             _options = null;

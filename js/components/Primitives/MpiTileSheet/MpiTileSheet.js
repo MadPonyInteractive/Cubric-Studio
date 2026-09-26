@@ -1,6 +1,7 @@
 import { ComponentFactory } from '../../factory.js';
 import { ce, on } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
+import { mascotLoop } from '../../../utils/mascotLoop.js';
 
 /**
  * Thumb flags (MPI-514). Editorial per-item markers, rendered into ONE stacking
@@ -63,7 +64,7 @@ const TILE_FLAGS = [
  * @property {boolean} [cloud]          - Cloud flag on the thumb (runs on the user's own API key)
  * @property {boolean} [dot]            - Recently-installed heat dot
  * @property {boolean} [dimmed]         - Desaturates the thumb (not installed yet)
- * @property {boolean} [waiting]        - Queued-install waiting mascot
+ * @property {string|boolean} [waiting] - Queued-install waiting mascot: its key (vision | video | audio | studio; true = studio)
  * @property {string}  [state]          - HTML for the fixed-height bottom row
  * @property {boolean} [selected]       - Renders the tile as the current choice
  * @property {*}       [source]         - Consumer payload, echoed back on select
@@ -77,7 +78,7 @@ const TILE_FLAGS = [
  *   setItems(items)         — full rebuild
  *   patchState(id, html)    — swap one tile's bottom row in place; no-op if absent
  *   setDimmed(id, bool)     — toggle the uninstalled desaturation
- *   setWaiting(id, bool)    — toggle the waiting mascot
+ *   setWaiting(id, key|false) — show (that mascot) or drop the waiting mascot
  *   setSelected(id|null)    — move the selected modifier
  *   getTile(id)             — the tile element, or null
  *
@@ -96,7 +97,7 @@ export const MpiTileSheet = ComponentFactory.create({
         // otherwise a library that re-renders on every download tick leaks a
         // listener per tile per tick.
         let _tileUnsubs = [];
-        const _tiles = new Map();   // id -> { tile, stateEl, mascot }
+        const _tiles = new Map();   // id -> { tile, thumb, stateEl, mascot }
         // Consumer-owned preview cache (MPI-394). Absent = build fresh every time.
         const _previewCache = props.previewCache instanceof Map ? props.previewCache : null;
 
@@ -183,14 +184,6 @@ export const MpiTileSheet = ComponentFactory.create({
                 });
                 thumb.appendChild(col);
             }
-            // Queued-install waiting mascot (MPI-284) — always built so
-            // setWaiting() can toggle it without a rebuild.
-            const mascot = ce('img', {
-                className: `mpi-tile__mascot${item.waiting ? ' mpi-tile__mascot--visible' : ''}`,
-                src: 'assets/mascot/waiting.png',
-                alt: '',
-            });
-            thumb.appendChild(mascot);
             tile.appendChild(thumb);
 
             const body = ce('div', { className: 'mpi-tile__body' });
@@ -212,14 +205,38 @@ export const MpiTileSheet = ComponentFactory.create({
             tile.appendChild(body);
 
             _tileUnsubs.push(on(tile, 'click', () => emit('select', { id: item.id, item })));
-            _tiles.set(item.id, { tile, stateEl, mascot });
+            const ref = { tile, thumb, stateEl, mascot: null };
+            _tiles.set(item.id, ref);
+            _setWaiting(ref, item.waiting);
             return tile;
         }
 
-        function setItems(items) {
+        // Queued-install waiting mascot (MPI-284, animated MPI-906): the `working` loop,
+        // built only while waiting — a video per tile would hold a decoder per tile.
+        // Hiding a video keeps its decoder; only dropping the src frees it.
+        function _setWaiting(ref, waiting) {
+            if (waiting && !ref.mascot) {
+                const key = waiting === true ? 'studio' : waiting;
+                ref.thumb.insertAdjacentHTML('beforeend', mascotLoop(key, 'working', 'mpi-tile__mascot'));
+                ref.mascot = ref.thumb.lastElementChild;
+            } else if (!waiting && ref.mascot) {
+                ref.mascot.pause();
+                ref.mascot.removeAttribute('src');
+                ref.mascot.load();
+                ref.mascot.remove();
+                ref.mascot = null;
+            }
+        }
+
+        function _clearTiles() {
             _tileUnsubs.forEach(fn => fn?.());
             _tileUnsubs = [];
+            _tiles.forEach(ref => _setWaiting(ref, false));
             _tiles.clear();
+        }
+
+        function setItems(items) {
+            _clearTiles();
             el.innerHTML = '';
             (items || []).forEach(item => el.appendChild(_buildTile(item)));
         }
@@ -240,9 +257,9 @@ export const MpiTileSheet = ComponentFactory.create({
             if (ref) ref.tile.classList.toggle('mpi-tile--dimmed', !!isDimmed);
         };
 
-        el.setWaiting = (id, isWaiting) => {
+        el.setWaiting = (id, waiting) => {
             const ref = _tiles.get(id);
-            if (ref?.mascot) ref.mascot.classList.toggle('mpi-tile__mascot--visible', !!isWaiting);
+            if (ref) _setWaiting(ref, waiting);
         };
 
         el.setSelected = (id) => {
@@ -251,11 +268,7 @@ export const MpiTileSheet = ComponentFactory.create({
 
         el.getTile = (id) => _tiles.get(id)?.tile || null;
 
-        el.destroy = () => {
-            _tileUnsubs.forEach(fn => fn?.());
-            _tileUnsubs = [];
-            _tiles.clear();
-        };
+        el.destroy = _clearTiles;
 
         setItems(props.items);
     },

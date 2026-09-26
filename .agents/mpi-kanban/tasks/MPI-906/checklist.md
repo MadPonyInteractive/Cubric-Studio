@@ -2,6 +2,6 @@
 
 - [x] Generating card
 - [x] ~~Float latent window~~ (dropped by Fabio 2026-09-25)
-- [ ] Model Library queued install
-- [ ] History peek
-- [ ] Starting-engine screen
+- [x] Model Library queued install
+- [x] History peek
+- [x] Starting-engine screen

@@ -5049,3 +5049,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-908", "at": "2026-09-25T18:43:37+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio verified every checklist item live; d66a472b CI green"}
 
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-934", "at": "2026-09-25T18:45:11+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on 001c3c81; staged SVG stored as PNG."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-932", "at": "2026-09-25T18:48:38+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Phase 2 (MPI-906) starting; umbrella carried by this line"}

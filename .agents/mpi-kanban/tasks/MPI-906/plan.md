@@ -13,7 +13,8 @@ looping `<video>`s, `_paintMascot` swaps them via `handOverClip`, `_releaseMasco
 on done/refresh/destroy. Spec: `tests/desktop/gallery-generating-mascot.spec.js`.
 Gotcha: the clips' figure fills ~60% of the 620px frame (the old PNG ~88%), so at the same
 46% / 22% card width the mascot reads ~1/3 smaller - resize if Fabio says so.
-PARKED 2026-09-25: Fabio moved to MPI-908 (agent fail, empty states) and MPI-907 (toasts)
+2026-09-25 (667f09c0, umbrella MPI-932): Phases 3-5 BUILT, spec + related specs green; waiting on
+Fabio's live check. Old: PARKED 2026-09-25: Fabio moved to MPI-908 (agent fail, empty states) and MPI-907 (toasts)
 first; Phases 3-5 wait. Phase 2 dropped. `docs/mascot-placement.md` spot-map
 row for the generating card still says "Code today" - update at close-out.
 

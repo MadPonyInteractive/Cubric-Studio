@@ -6,14 +6,13 @@ and ticks it here. Every handoff points at this plan.
 
 ## Current State
 
-(2026-09-25, session bae9042a) Umbrella created. MPI-908 is fully verified and committed
-(d66a472b) but still in `doing` - close it first. Next: Phase 1.
+(2026-09-25, session 667f09c0) Phase 1 done: MPI-908 closed (ab86625b). MPI-928 decided
+(option A). Next: Phase 2, MPI-906 queued install -> History peek -> starting-engine screen.
 
 ## Members, in order
 
 ### Phase 1: close what is finished
-- [ ] MPI-908 Mascots on empty and one-off states - all verified; close via mpi-end-session
-      (evidence in its validation.md).
+- [x] MPI-908 Mascots on empty and one-off states - CLOSED ab86625b (2026-09-25).
 
 ### Phase 2: the last mascot spots
 - [ ] MPI-906 Mascots on the waiting spots - left: Model Library queued install, History peek,

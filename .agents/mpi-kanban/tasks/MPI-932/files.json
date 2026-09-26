@@ -1,0 +1,14 @@
+{
+  "files": [
+    "js/components/Primitives/MpiTileSheet/MpiTileSheet.js",
+    "js/components/Primitives/MpiTileSheet/MpiTileSheet.css",
+    "js/components/Organisms/MpiModelManager/MpiModelManager.js",
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.css",
+    "js/components/Compounds/MpiStartingComfy/MpiStartingComfy.js",
+    "js/components/Compounds/MpiStartingComfy/MpiStartingComfy.css",
+    "tests/desktop/waiting-spot-mascots.spec.js",
+    "docs/mascot-placement.md"
+  ],
+  "note": "Phase 2 (MPI-906) footprint. Phase 3 adds commandExecutor.js, cloudExecutor.js, routes/deepinfra.js and the gallery Stop path when it starts."
+}

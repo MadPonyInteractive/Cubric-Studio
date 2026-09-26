@@ -639,7 +639,7 @@
  * @property {boolean} [mediaAudio] - "Makes audio" flag; same opt-in rule
  * @property {boolean} [dot] - Recently-installed heat dot
  * @property {boolean} [dimmed] - Desaturates the thumb (not installed yet)
- * @property {boolean} [waiting] - Queued-install waiting mascot
+ * @property {string|boolean} [waiting] - Queued-install waiting mascot: its key (vision | video | audio | studio; true = studio), MPI-906
  * @property {string} [state] - HTML for the fixed-height bottom row
  * @property {boolean} [selected] - Renders the tile as the current choice
  * @property {*} [source] - Consumer payload, echoed back on select
@@ -659,7 +659,7 @@
  *
  * Instance methods (on instance.el):
  *   setItems(items) · patchState(id, html) · setDimmed(id, bool) ·
- *   setWaiting(id, bool) · setSelected(id|null) · getTile(id)
+ *   setWaiting(id, key|false) · setSelected(id|null) · getTile(id)
  *
  * Emits:
  * 'select' { id: string, item: MpiTileSheetItem }

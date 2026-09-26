@@ -719,6 +719,11 @@ export const MpiModelManager = ComponentFactory.create({
             return !!(licence?.verify) && !hasAcceptedLicence(model.id);
         }
 
+        /** The queued model's mascot key (MPI-906), or false when not queued. */
+        function _waitingMascot(model, st) {
+            return st.downloadState === 'queued' && (model.mediaType === 'video' ? 'video' : 'vision');
+        }
+
         // Tile item for the shared MpiTileSheet (MPI-356). The sheet owns the thumb,
         // the badges, the heat dot and the waiting mascot; the state row below stays
         // ours because only this component knows the install state machine.
@@ -740,7 +745,7 @@ export const MpiModelManager = ComponentFactory.create({
                 dot: !!model.justInstalled,
                 // Queued-install waiting mascot (MPI-284) — hidden until the job sits
                 // 'queued', dropped the moment it starts downloading (see _patchTile).
-                waiting: st.downloadState === 'queued',
+                waiting: _waitingMascot(model, st),
                 state: _tileState(st, model),
                 source: model,
             };
@@ -1534,7 +1539,7 @@ export const MpiModelManager = ComponentFactory.create({
                     s.el.patchState(modelId, _tileState(st, model));
                     // MPI-284: waiting mascot only while queued — drop it once the
                     // job starts downloading (or any other transition).
-                    s.el.setWaiting(modelId, st.downloadState === 'queued');
+                    s.el.setWaiting(modelId, _waitingMascot(model, st));
                 });
             }
             // Only rebuild the open slide-over on real STATE transitions (pause /
