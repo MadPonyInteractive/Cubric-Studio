@@ -103,8 +103,8 @@ out of the 2.0 roster on that basis while MPI-607 is open. Ship the art, then th
 Before writing "X changed from A to B", grep `UNRELEASED.md` and
 `js/data/releaseNotes.js` for the FEATURE itself. If it appears only in
 `UNRELEASED.md` — or in neither — then no released build contains A, so the line
-describes a difference nobody can perceive. Fold the correction into the existing
-unreleased entry, or write nothing. This is not the same as the stale-entry check
+describes a difference nobody can perceive. Write nothing — not a fold into the
+existing unreleased entry either, and do not propose one. This is not the same as the stale-entry check
 above: that one catches an entry contradicting what shipped; this catches an entry
 describing a delta against something that never shipped. (2026-08-07: proposed
 three lines about MiniMax H3's size tier and VRAM floor — for a model that has
@@ -120,6 +120,12 @@ in the file as precedent. **An existing entry is not authority; this rule is.**
 (2026-08-21, MPI-587: a Flow result pane that came back empty on reopen — real bug,
 correctly fixed, no entry owed. Fabio: "flows haven't been released yet, so any
 fixes to them are not gonna end up in an unreleased file or the released log.")
+
+**The same goes for an ADDITION to an unreleased feature.** Its entry is written once, when
+the feature lands; later polish before release is not news, because the user meets it the
+first time they try the feature. (2026-09-26, MPI-940: folded "a Stop in the first 3 s costs
+nothing, every cloud model batches up to four" into the unreleased cloud-models entry. Fabio:
+unnecessary — cloud models have never reached a user.)
 
 ### Versioning
 
