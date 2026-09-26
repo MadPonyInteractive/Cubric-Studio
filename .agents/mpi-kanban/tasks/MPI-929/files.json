@@ -1,0 +1,6 @@
+{
+  "files": [
+    "js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js",
+    "tests/desktop/cancelled-mascot.spec.js"
+  ]
+}

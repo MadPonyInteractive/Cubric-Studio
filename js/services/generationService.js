@@ -1167,6 +1167,9 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
         // and comes back off the sidecar on reload, so the record survives with no server
         // edit. Absent on every local generation, which costs nothing but electricity.
         if (outputInfo.cost) generationSettings.cost = outputInfo.cost;
+        // MPI-928: a cloud run Stopped after it was sent still bills, so its result lands;
+        // the card says why a Stopped run is in the gallery.
+        if (outputInfo.cost && _wasCancelled()) generationSettings.chargedAfterStop = true;
 
         // Multi-stage video preview tagging: when this run was a Preview-only pass,
         // tag the saved sidecar with stage='preview' + frozenParams (so a later

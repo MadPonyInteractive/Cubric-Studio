@@ -23,9 +23,12 @@
  *     bar has a shape to follow, and `tool:indeterminate` drives the pulse the same way
  *     the ESRGAN upscale already does.
  *
- *   - **Cancel is not a refund, and this module must not pretend otherwise.** Aborting
- *     the fetch stops us WAITING; the provider may well finish the job and bill it.
- *     The abort is real, the saving stops, the money is gone. The UI says so.
+ *   - **Cancel is not a refund, and this module must not pretend otherwise.** Once the
+ *     POST is sent the provider finishes and bills the run whatever we do, and our route
+ *     saves its output. So a Stop from then on does NOT abort: the store job cancels
+ *     (R09 — its late output still saves) and the paid result lands as a card, marked
+ *     `chargedAfterStop` (MPI-928, Fabio's option A). Before the POST a Stop aborts and
+ *     nothing is spent. `exec.stopKeepsResult` says which side of that line the job is on.
  *
  * THE ONE INVARIANT: every exit path must reach a terminal phase in `generationStore`.
  * `register()` takes a lane slot, and a job left non-terminal keeps that lane busy for
@@ -191,11 +194,12 @@ export function runCloudCommand(payload) {
         onComplete:      null,
         onError:         null,
         jobId:           null,
+        // True once the POST is sent: a Stop can no longer save the money, only the result.
+        stopKeepsResult: false,
         cancel() {
-            // Abort the wait. There is no queue item to delete and no engine to
-            // interrupt — and the provider is under no obligation to stop, so this
-            // stops us listening, not necessarily them charging.
-            controller.abort();
+            // Before the POST: abort, nothing is spent. After it: keep waiting, so the
+            // result the user already paid for is not thrown away.
+            if (!exec.stopKeepsResult) controller.abort();
             if (exec.jobId) generationStore.cancel(exec.jobId);
         },
     };
@@ -216,7 +220,7 @@ export function runCloudCommand(payload) {
             engine: 'cloud',
             scope: payload.scope || (payload.historyMode ? 'groupHistory' : 'gallery'),
             display: payload.previewOnly === true ? { previewKind: 'preview' } : undefined,
-            interruptCb: () => { try { controller.abort(); } catch (_) { /* already aborted */ } },
+            interruptCb: () => { if (!exec.stopKeepsResult) controller.abort(); },
         });
         exec.jobId = jobId;
 
@@ -262,9 +266,15 @@ export function runCloudCommand(payload) {
 
         // A Stop can land between register() and the POST; the store's own signal is
         // the record of it, exactly as the local pipeline's abort boundaries read it.
-        if (generationStore.getSignal(jobId)?.aborted) { _settleCancelled(); return; }
+        // A Stop before register() aborted the controller only: there was no job yet.
+        if (generationStore.getSignal(jobId)?.aborted || controller.signal.aborted) { _settleCancelled(); return; }
 
         generationStore.advance(jobId, PHASES.SUBMITTING);
+        exec.stopKeepsResult = true;
+        // The card's time clock starts on the ack. The route answers only once the provider
+        // has FINISHED, so an ack after the fetch timed only the tail: every cloud card read
+        // "1s" for a ten-second run. The run is the provider's from the moment it is sent.
+        exec.onPromptAck?.(jobId);
         // One blocking call: nothing to stream, so the bar pulses instead of filling.
         Events.emit('tool:indeterminate', { tool: 'groupHistory', id: payload.genId ?? null, active: true });
 
@@ -291,10 +301,9 @@ export function runCloudCommand(payload) {
             return;
         }
 
-        // Accepted by our own route, which is the only "the provider took it" signal a
-        // blocking call has. The clock starts here, past any connection setup.
+        // Answered by our own route, which is the only "the provider took it" signal a
+        // blocking call has.
         generationStore.advance(jobId, PHASES.ACCEPTED);
-        exec.onPromptAck?.(jobId);
 
         let body = null;
         try { body = await res.json(); } catch (_) { /* handled as a provider error below */ }

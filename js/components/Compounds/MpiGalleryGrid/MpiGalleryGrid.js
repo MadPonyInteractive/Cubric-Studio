@@ -1317,6 +1317,12 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         row.textContent = String(text).toUpperCase();
                         return row;
                     });
+                // MPI-928: a cloud run Stopped after it was sent still billed, so it landed.
+                if (selected?.generationSettings?.chargedAfterStop) {
+                    const row = ce('span', { className: 'mpi-group-card__top-badge-row mpi-group-card__top-badge-row--charged' });
+                    row.textContent = 'CHARGED AFTER STOP';
+                    badgeRows.push(row);
+                }
                 topBadgeEl.replaceChildren(...badgeRows);
                 topBadgeEl.classList.toggle('mpi-group-card__top-badge--hidden', badgeRows.length === 0);
 

@@ -93,6 +93,56 @@ test('gallery: a Stopped card plays the op mascot cancelled once, then goes', as
     });
     await expect.poll(mascotSrcs, { timeout: 1500 }).toEqual([]);
 
+    // 4. MPI-929: a cloud Stop settles through onError, so generation:error follows the Stop.
+    //    It must not cut the clip short: the card still walks off, then goes.
+    await start('mpi929-d');
+    await expect.poll(mascotSrcs).toContain('assets/mascot/vision/getting-ready.webm');
+    await stop('mpi929-d');
+    await expect.poll(mascotSrcs).toContain('assets/mascot/vision/cancelled.webm');
+    await window.evaluate(async () => {
+      const { Events } = await import('/js/events.js');
+      Events.emit('generation:error', { id: 'mpi929-d', tempId: 'mpi929-d-tmp', extraTempIds: [] });
+    });
+    await expect.poll(async () => (await clip())?.t ?? 0, { timeout: 3000 }).toBeGreaterThan(0.5);
+    await expect.poll(mascotSrcs, { timeout: 9000 }).toEqual([]);
+
+    // 5. MPI-928: a Stop on a cloud job already sent cannot un-bill it, so the result is still
+    //    coming. No walk-off: the card keeps cooking until the paid result lands, then goes.
+    await window.evaluate(async () => {
+      const { activeGenerations } = await import('/js/services/activeGenerations.js');
+      const { state } = await import('/js/state.js');
+      activeGenerations.start({
+        id: 'mpi928-e', scope: 'gallery', tempId: 'mpi928-e-tmp', operation: 't2i',
+        exec: { cancel() {}, stopKeepsResult: true },
+        projectPath: state.currentProject.folderPath,
+        placeholderGroup: { id: 'mpi928-e-tmp', type: 'image', name: 'Generating...', selectedIndex: 0, width: 1024, height: 1024,
+          history: [{ id: 'x', operation: 't2i', inputPreview: true }], isGenerating: true },
+      });
+    });
+    await expect.poll(mascotSrcs).toContain('assets/mascot/vision/getting-ready.webm');
+    await stop('mpi928-e');
+    await window.waitForTimeout(1500);
+    expect(await mascotSrcs()).not.toContain('assets/mascot/vision/cancelled.webm');
+    expect((await mascotSrcs()).length).toBe(1);
+    await window.evaluate(async () => {
+      const { Events } = await import('/js/events.js');
+      Events.emit('generation:complete', { id: 'mpi928-e', tempId: 'mpi928-e-tmp', cancelled: true });
+    });
+    await expect.poll(mascotSrcs, { timeout: 1500 }).toEqual([]);
+
+    // 6. MPI-928: the card that landed says why a Stopped run is in the gallery; others do not.
+    const badgeText = () => window.evaluate(() =>
+      [...document.querySelectorAll('.mpi-group-card__top-badge-row--charged')].map(r => r.textContent));
+    await window.evaluate(async () => {
+      const { addGroup } = await import('/js/services/projectService.js');
+      const { createItemGroup, createImageItem } = await import('/js/data/projectModel.js');
+      const item = (charged) => createImageItem({ operation: 't2i', modelId: 'flux-schnell-cloud',
+        generationSettings: charged ? { chargedAfterStop: true } : {} });
+      await addGroup(createItemGroup('image', { name: 'charged', history: [item(true)] }));
+      await addGroup(createItemGroup('image', { name: 'plain', history: [item(false)] }));
+    });
+    await expect.poll(badgeText).toEqual(['CHARGED AFTER STOP']);
+
     expect(pageErrors).toEqual([]);
   } finally {
     await closeApp(app);

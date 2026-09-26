@@ -511,6 +511,13 @@
     letter-spacing: 0.1em;
 }
 
+/* MPI-928: a cloud run Stopped after it was sent - billed anyway, so it landed. */
+.mpi-group-card__top-badge-row--charged {
+    color: var(--accent-warn);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+}
+
 .mpi-group-card__top-badge--hidden {
     display: none;
 }

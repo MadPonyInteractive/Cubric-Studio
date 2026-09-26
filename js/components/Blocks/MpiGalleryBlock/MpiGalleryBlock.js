@@ -1753,10 +1753,13 @@ export const MpiGalleryBlock = ComponentFactory.create({
         _unsubs.push(Events.on('generation:error', ({ id, tempId: tid, extraTempIds = [] }) => {
             const _bridged = _stoppedPendingComplete.delete(id);
             if (!_myGenIds.has(id) && !_bridged) return;
-            _rebuildAfterEnd(id, tid, extraTempIds);
+            // A Stopped cloud job settles through onError, right after the Stop (MPI-929):
+            // a card mid walk-off is `cancel-shown`'s to remove, not this one's.
+            const walkingOff = (t) => _cancelledPlaceholders.get(t)?.isCancelled === true;
+            _rebuildAfterEnd(id, walkingOff(tid) ? null : tid, extraTempIds.filter(t => !walkingOff(t)));
         }));
 
-        _unsubs.push(Events.on('generation:cancelled', ({ id, tempId: tid, extraTempIds = [], byUser }) => {
+        _unsubs.push(Events.on('generation:cancelled', ({ id, tempId: tid, extraTempIds = [], byUser, resultComing }) => {
             if (!_myGenIds.has(id)) {
                 // Second cancelled for an already-forgotten id = the interrupted
                 // gen returned EMPTY (no late complete is coming). Drop the bridge
@@ -1769,10 +1772,12 @@ export const MpiGalleryBlock = ComponentFactory.create({
             _stoppedPendingComplete.add(id);
             // MPI-908: a Stop keeps each placeholder on screen for the op's `cancelled`
             // clip; the grid says when it is over. Reduced motion has no clip to wait for.
-            if (byUser && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            // MPI-928: a paid cloud result is still coming, so no walk-off — the card keeps
+            // cooking until the late complete (or error) takes it.
+            if (byUser && (resultComing || !matchMedia('(prefers-reduced-motion: reduce)').matches)) {
                 for (const t of [tid, ...extraTempIds].filter(Boolean)) {
                     const g = grid.el.getGroup(t);
-                    if (g) _cancelledPlaceholders.set(t, { ...g, isCancelled: true });
+                    if (g) _cancelledPlaceholders.set(t, resultComing ? g : { ...g, isCancelled: true });
                 }
             }
             const held = (t) => _cancelledPlaceholders.has(t);

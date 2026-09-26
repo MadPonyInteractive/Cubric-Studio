@@ -207,12 +207,14 @@ function cancel(id) {
     if (!entry) return;
     const tempId = entry.tempId ?? null;
     const extraTempIds = entry.extraTempIds ?? [];
+    // A cloud job already sent is billed whatever we do, so its result still lands (MPI-928).
+    const resultComing = entry.exec?.stopKeepsResult === true;
     entry.exec?.cancel?.();
     entry.status = 'cancelled';
     end(id, { revokePreview: true });
     // byUser: this is the Stop path; generationService also emits cancelled to tear a
     // placeholder down (cache hit, text output), which no mascot should mourn (MPI-908).
-    Events.emit('generation:cancelled', { id, tempId, extraTempIds, byUser: true });
+    Events.emit('generation:cancelled', { id, tempId, extraTempIds, byUser: true, resultComing });
 }
 
 /** Cancel all active entries. */

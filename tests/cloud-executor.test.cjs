@@ -176,6 +176,65 @@ test('a credit refusal toasts a person, stays silent for an agent, and names its
     }
 });
 
+// ── Stop (MPI-928) ───────────────────────────────────────────────────────────────────────
+
+/** A provider that answers after `ms`, and rejects on abort the way real fetch does. */
+const slowProvider = (ms, calls) => (url, init) => new Promise((resolve, reject) => {
+    calls.push(url);
+    const t = setTimeout(() => resolve(okResponse()), ms);
+    init?.signal?.addEventListener('abort', () => { clearTimeout(t); reject(new Error('aborted')); });
+});
+
+test('a Stop once the run is SENT keeps the paid result: it lands, marked as Stopped', async () => {
+    const calls = [];
+    const realFetch = global.fetch;
+    global.fetch = slowProvider(60, calls);
+    const exec = runCloudCommand({ genId: 'gen-1', modelId: MODEL_ID, operation: 't2i', positive: 'a cube' });
+    const ended = new Promise((resolve) => {
+        exec.onComplete = (urls, info) => resolve({ outcome: 'complete', urls, info });
+        exec.onError = (err) => resolve({ outcome: 'error', err });
+    });
+    await new Promise(r => setTimeout(r, 20)); // the POST is in flight
+    assert.equal(exec.stopKeepsResult, true);
+    exec.cancel();
+    const r = await ended.finally(() => { global.fetch = realFetch; });
+    assert.equal(r.outcome, 'complete');
+    assert.deepEqual(r.urls, OK_BODY.viewUrls);
+    assert.equal(r.info.cost.usd, 0.0005);
+    assert.equal(jobOf(exec).cancelling, true);
+});
+
+test('the card clock starts when the run is SENT, not when the finished answer comes back', async () => {
+    const calls = [];
+    const realFetch = global.fetch;
+    global.fetch = slowProvider(60, calls);
+    const exec = runCloudCommand({ genId: 'gen-1', modelId: MODEL_ID, operation: 't2i', positive: 'a cube' });
+    let ackedAt = null;
+    exec.onPromptAck = () => { ackedAt = Date.now(); };
+    await new Promise((resolve) => { exec.onComplete = resolve; exec.onError = resolve; })
+        .finally(() => { global.fetch = realFetch; });
+    // The provider took 60 ms; the clock must cover it, not start after it.
+    assert.ok(ackedAt !== null && Date.now() - ackedAt >= 50, `clock covered ${Date.now() - ackedAt} ms of a 60 ms run`);
+});
+
+test('a Stop BEFORE the run is sent sends nothing and settles cancelled', async () => {
+    const calls = [];
+    const realFetch = global.fetch;
+    global.fetch = slowProvider(60, calls);
+    const exec = runCloudCommand({ genId: 'gen-1', modelId: MODEL_ID, operation: 't2i', positive: 'a cube' });
+    assert.equal(exec.stopKeepsResult, false);
+    const ended = new Promise((resolve) => {
+        exec.onComplete = () => resolve({ outcome: 'complete' });
+        exec.onError = (err) => resolve({ outcome: 'error', err });
+    });
+    exec.cancel();
+    const r = await ended.finally(() => { global.fetch = realFetch; });
+    assert.equal(r.outcome, 'error');
+    assert.equal(r.err.message, 'cancelled_before_dispatch');
+    assert.deepEqual(calls, []);
+    assert.equal(jobOf(exec).phase, PHASES.CANCELLED);
+});
+
 test('an HTTP failure settles the lane', async () => {
     const { outcome, exec } = await dispatch(() => ({ ok: false, status: 500, json: async () => ({}) }));
     assert.equal(outcome, 'error');
