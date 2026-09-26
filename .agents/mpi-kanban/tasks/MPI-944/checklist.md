@@ -6,4 +6,4 @@
 - [x] `--bite` on the three cases: every flip fails
 - [x] `tests/model-priority.test.cjs` + `tests/agent-prompt-budget.test.cjs` green
 - [x] Finding in `docs/agent-findings.md`
-- [ ] Committed, pushed, CI green
+- [x] Committed, pushed, CI green

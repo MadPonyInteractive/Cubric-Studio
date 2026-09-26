@@ -43,6 +43,10 @@ swapped): each caught, the right call passes.
 
 Harness spend for the card: about $0.25.
 
+## Shipped
+
+`983ecf44e` (the fix) + `6ee78cb83` (removed the research fragment that broke `eslint .` on master at 7df2f423b). CI run 36278564806 on `6ee78cb83`: unit + desktop 1-4 all green. The class is closed by 55265f1d7 (MPI-946 session): `eslint.config.js` ignores `.agents/**`.
+
 ## Not covered
 
 Whether Klein or Qwen can actually redraw the content from a reversed viewpoint. Routing only.
