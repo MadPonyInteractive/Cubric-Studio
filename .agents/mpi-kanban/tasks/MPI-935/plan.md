@@ -20,9 +20,7 @@ Ownership: routes/systemCa.js, server.js, main.js, tests/system-ca.test.cjs
 - `app:isolated` boots clean.
 
 ## Current State
-Built and verified 2026-09-26 (see validation.md). Uncommitted; next: `mpi-end-session`
-(commit routes/systemCa.js, server.js, main.js, tests/system-ca.test.cjs,
-docs/releases/UNRELEASED.md + this card).
+Shipped in `c792794d`, CI green; card closed 2026-09-26.
 
 ## Completed
 - `routes/systemCa.js` + calls in `server.js` and `main.js`; unit test; release note in

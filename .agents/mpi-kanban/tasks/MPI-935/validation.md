@@ -14,5 +14,8 @@
 - `npm run app:isolated` with `NODE_USE_SYSTEM_CA` unset -> READY on its own port: main.js
   and the forked server.js both boot past `trustSystemCa()` under Electron 41 (Node 24.14).
 - eslint on the four files: clean.
+- CI green on the code commit `c792794d` (Tests run 36223504102: unit + desktop 1-4).
+- Claim auditor: 14 PROVEN, 0 FALSE (2 unproven = the boot/lint runs above, not re-runnable
+  read-only).
 - Not done: live handshake through an AV/mitmproxy root (needs a CA installed into the
   Windows user store - Fabio's call).
