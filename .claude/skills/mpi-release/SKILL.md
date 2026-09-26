@@ -188,12 +188,19 @@ With the user's authorization, create the release on the existing tag and attach
 all 6 artifacts (full builds **and** update bundles — the update bundles are how
 existing users patch in place via the online `update.*` script; without them
 every update is a full re-download):
+First pack the Claude Desktop extension (MPI-593) from the release commit. The name has NO
+version on purpose: `releases/latest/download/cubric-studio.mcpb` is the permanent link the
+Settings page and the MCP Registry use.
+```bash
+npx -y @anthropic-ai/mcpb@2.1.2 pack mcp/cubric-studio D:/CubricStudio/Vision/Builds/v<ver>/cubric-studio.mcpb
+```
 ```bash
 gh release create v<ver> --repo MadPonyInteractive/Cubric-Studio \
   --title "v<ver>" --notes-file <body.md> --latest \
   D:/CubricStudio/Vision/Builds/v<ver>/CubricStudio-*-v<ver>.zip \
   D:/CubricStudio/Vision/Builds/v<ver>/CubricStudio-*-v<ver>.tar.gz \
-  D:/CubricStudio/Vision/Builds/v<ver>/CubricStudio-*-update-v<ver>.zip
+  D:/CubricStudio/Vision/Builds/v<ver>/CubricStudio-*-update-v<ver>.zip \
+  D:/CubricStudio/Vision/Builds/v<ver>/cubric-studio.mcpb
 ```
 Use the canonical asset names from `docs/releases/github-release-checklist.md`.
 **2.0.0 also attaches legacy `CubricVision-*` copies of these six alongside them**

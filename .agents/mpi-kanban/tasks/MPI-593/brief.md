@@ -51,7 +51,7 @@ Claude Desktop ──stdio──▶ .mcpb bridge ──HTTP──┘            
 | Claude Code | `/plugin install`, or `claude mcp add --transport http cubric-studio http://127.0.0.1:3000/mcp` | Plugin in a public repo, submitted to the official marketplace. A plugin can carry the MCP URL plus a skill. |
 | MCP Registry | Clients that read it (VS Code, GitHub, aggregators) | `mcp-publisher`, `server.json`, the `.mcpb` as a GitHub release asset. Automated, no human review. |
 | Gemini CLI | `gemini extensions install <repo>` | `gemini-extension.json` with `httpUrl`, submitted to the gallery |
-| Codex | A `url` entry in `~/.codex/config.toml` | No directory. We document it. |
+| Codex | `codex plugin marketplace add <repo>`, then `codex plugin add` | A plugin (skill + `.mcp.json`) in the same public repo. A bare `codex mcp add` is NOT enough: Codex defers MCP tools and drops our `instructions`, so without the skill the model never finds them (2026-09-26, `validation.md`). |
 | Smithery, Glama, PulseMCP | Browsing | They index the registry and GitHub on their own |
 
 ## Phases

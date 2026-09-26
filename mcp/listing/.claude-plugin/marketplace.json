@@ -1,0 +1,15 @@
+{
+  "name": "cubric-studio",
+  "description": "Cubric Studio for AI coding agents: drive the desktop app's image and video generation.",
+  "owner": {
+    "name": "Mad Pony Interactive",
+    "url": "https://cubric.studio"
+  },
+  "plugins": [
+    {
+      "name": "cubric-studio",
+      "source": "./plugins/cubric-studio",
+      "description": "Make images and video in the Cubric Studio app on this computer."
+    }
+  ]
+}

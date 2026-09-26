@@ -202,6 +202,99 @@ and Claude Desktop, Sonnet 5. Screenshots shared.
   file**, and `.preview-assets/79ee377c….png` = the sha256 of `happy.png`. Klein 9B `kleinEdit`.
   Finding: it did NOT call `read_knowledge` before its prompt, despite the instruction.
 
+**Why `codex exec` never used the tools (2026-09-26, session 5bdb59e7, FOUND, no app touched).**
+Probed with a throwaway MCP server (`lighthouse`, one read tool + one write tool, a nonce
+answer, every JSON-RPC method logged) on :47911, `cubric-studio` disabled, `-s read-only`,
+while Fabio's app stayed up on :3000 and was never contacted. Codex 0.157.1 run by run:
+1. Plain question ("What is the Lighthouse Weather forecast code for Lisbon?"): Codex sent
+   `initialize`, `tools/list`, then **web-searched** and invented an answer. No `tools/call`.
+   The rollout holds neither the tool nor the server `instructions` string.
+2. "Using the lighthouse MCP server, ...": found and called the tool, which then FAILED:
+   `MCP tool call requires approval, but approval policy is never`.
+3. Same + `-c mcp_servers.lighthouse.default_tools_approval_mode="approve"`: PASSED, nonce
+   returned.
+4. `readOnlyHint: true` tool ran with no approval; the `readOnlyHint: false` one was refused.
+5. Plain question again, with a 6-line skill in `<cwd>/.agents/skills/lighthouse/SKILL.md`
+   saying the tools are deferred and how to filter `ALL_TOOLS`: the model read the skill and
+   **called the tool**. PASSED.
+
+Cause, from Codex's own `exec` tool text in `codex.exe`: Codex runs in code mode (one `exec`
+tool) and ALWAYS defers MCP tools (`tool_search_always_defer_mcp_tools`, removed = forced on):
+"Some deferred nested tools may be omitted from this description ... To find one, filter
+`ALL_TOOLS` by `name` and `description`." Server `instructions` never reach the model. There is
+no per-server un-defer key (`RawMcpServerConfig`: `enabled_tools`, `disabled_tools`,
+`omit_tools_from`, `tool_timeout_sec`, `default_tools_approval_mode` = auto|prompt|writes|approve).
+The VS Code run on 09-25 found our tools only after 2 minutes, by filtering `ALL_TOOLS` itself.
+**Nothing our server sends fixes discovery; a skill does.** Codex plugins (`codex plugin
+marketplace add`) bundle skills + `.mcp.json`, and `codex.exe` also reads
+`.claude-plugin/plugin.json`, so the phase 3 Claude Code plugin may double as the Codex one.
+Unverified until built. Headless cold tests need `default_tools_approval_mode="approve"`; an
+interactive user gets an approval prompt for write tools, which is right.
+The Cubric cold test itself is still owed, and only with Fabio's app closed.
+
+**Claude Code PLUGIN cold test (2026-09-26, session 5bdb59e7, PASSED).** Fabio's app closed
+(:3000 down). Isolated instance on :59605, scratch `docs3` (0 projects before). A scratch COPY of
+`mcp/listing/plugins/cubric-studio` whose only diff is the `.mcp.json` port (3000 -> 59605), so
+Claude Code's own plugin MCP loading was exercised, not an override. `claude -p` 2.1.278, empty
+cwd, `--plugin-dir <copy> --setting-sources local --permission-mode dontAsk --allowedTools
+"mcp__plugin_cubric-studio_cubric-studio__*,Skill,ToolSearch" --model sonnet
+--no-session-persistence`, same sentence, project "Claude plugin test". (`--bare` would be
+colder but reads only ANTHROPIC_API_KEY, not OAuth.) The global CLAUDE.md still loaded.
+- init: server `plugin:cubric-studio:cubric-studio` connected, `source: plugin`; 17 tools as
+  `mcp__plugin_cubric-studio_cubric-studio__*`; skill `cubric-studio:cubric-studio` listed.
+- It ran the skill, then `status`, `create_project`, `list_models`, `describe_model`,
+  `read_knowledge` (`guide:krea-2`), ONE `generate`. 59 s, 11 turns, $0.29, 0 permission denials.
+- Disk: `Claude plugin test/Media/t2i_001.png`, the only media file. Opened by eye: a red steel
+  bicycle against a white brick wall, as its reply described. Krea 2.
+So one plugin folder is proven in BOTH Claude Code and Codex. Gemini is not built.
+
+**Codex PLUGIN cold test (2026-09-26, session 5bdb59e7, PASSED; Fabio OK'd the local install).**
+Plugin in `mcp/listing/` (shaped as the future public repo root): `.claude-plugin/marketplace.json`
++ `plugins/cubric-studio/{.claude-plugin/plugin.json, .mcp.json, skills/cubric-studio/SKILL.md}`.
+No `.codex-plugin/` needed: `codex plugin marketplace add C:\AI\Mpi\Cubric-Vision\mcp\listing` then
+`codex plugin add cubric-studio@cubric-studio` installed it (`installed, enabled 0.1.0`), and with
+Fabio's own `[mcp_servers.cubric-studio]` entry commented out `codex mcp list` still showed
+`cubric-studio` at `:3000/mcp`, so Codex parses the Claude-format `.mcp.json` (`type: http`).
+`claude plugin validate` passes on the marketplace and the plugin.
+- Running an instance ON :3000, to test the URL unmodified, was refused by auto mode (Fabio's
+  port). So the isolated instance ran on :51935 and `-c mcp_servers.cubric-studio.url=` pointed
+  the plugin's server there (`codex mcp list` confirms a `-c` URL replaces the plugin's). The
+  `:3000` URL itself is the one Fabio's VS Code Codex used on 09-25.
+- Cold run from an EMPTY cwd (the only Cubric skill = the plugin's), same sentence, project
+  "Codex plugin test", approve flag: 71 s. It read the plugin skill (one wrong-path try first),
+  then `status`, `list_projects`, `list_models`, `create_project`, `describe_model`,
+  `read_knowledge`, ONE `generate`. No browser, no HTTP scraping.
+- Disk (scratch `docs2`, 0 projects before): `Codex plugin test/Media/t2i_001.png`, the only media
+  file. Opened by eye: a red bicycle on a woodland path. Krea 2.
+- Fabio's `~/.codex/config.toml`: his entry restored; the install added only
+  `[marketplaces.cubric-studio]` and `[plugins."cubric-studio@cubric-studio"]` (backup diffed).
+Not tested: the same plugin in Claude Code (validated only), Gemini (not built).
+
+**Codex cold test (2026-09-26, session 5bdb59e7, PASSED; closes item 7).** Fabio's app closed
+(:3000 and :48188 down). Isolated instance on :58984 with `APP_DOCUMENTS` = a scratch folder
+(`list_projects` answered 0 projects; main.js's `APP_DOCUMENTS set to` log line prints Electron's
+own Documents path, not the env value the server gets, so do not trust that line). `codex exec`
+0.157.1, `-s read-only`, `-c mcp_servers.cubric-studio.url=...:58984/mcp`,
+`-c mcp_servers.cubric-studio.default_tools_approval_mode="approve"`, a draft skill at
+`<cwd>/.agents/skills/cubric-studio/SKILL.md` (server name + the `ALL_TOOLS` filter + "never the
+browser or the HTTP API"), and the VS Code test's sentence: "Make me an image of a red bicycle in
+Cubric Studio, in a new project called Codex cold test. Use a free local model."
+- 74 s end to end. Its only shell use: reading the skill (twice, first at a wrong path). Server
+  log: `status`, `list_models`, `create_project`, `describe_model`, `read_knowledge`, ONE
+  `generate`. No browser, no HTTP scraping. It read the guide first, which Claude Desktop skipped.
+- Disk: `Codex cold test/Media/t2i_001.png`, **the only media file**, plus its `.meta` sidecar,
+  `project.json`, `project.md`. Opened by eye: a red bicycle on a country lane. Krea 2, free.
+- Its reply linked the disk path (phase 2 item 3 working).
+So the skill is what makes Codex work, and it belongs in the Codex plugin.
+
+**Phase 3 items 1 and 5 (2026-09-26, session 5bdb59e7, PASSED, auto).** `npx -y @anthropic-ai/mcpb@2.1.2 pack mcp/cubric-studio <out>/cubric-studio.mcpb`
+validated the manifest and wrote a 4.0 kB bundle; `zipfile` lists exactly `manifest.json`,
+`README.md`, `server/index.js`. The updater patterns (`^Cubric(Vision|Studio)-...-update-v`) cannot
+match `cubric-studio.mcpb`, so a 7th asset is safe. Docs: `docs/mcp-server.md` (96 lines), a
+`docs/README.md` row, a note in `portable-distribution-contract.md` § Connector Manifest, the pack
+step in `mpi-release` step 6 and `github-release-checklist.md`. `node --test tests/mcp.test.cjs
+tests/card-view.test.cjs` -> 24/24. Not proven until a real release attaches it.
+
 **Distribution research sources** (2026-09-25; web research by a sub-agent, primary docs
 where marked):
 - Claude Desktop extensions and submission: claude.com/docs/connectors/building/mcpb and

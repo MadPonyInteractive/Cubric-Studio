@@ -19,10 +19,15 @@ online `update.*` script; GitHub is the only update source):
 - `CubricStudio-linux-x64-update-v<version>.zip`
 - `CubricStudio-macos-arm64-update-v<version>.zip`
 
+Claude Desktop extension (MPI-593), packed per the release skill step 6. **No version in the
+name**: `releases/latest/download/cubric-studio.mcpb` is a permanent link.
+
+- `cubric-studio.mcpb`
+
 **2.0.0 only:** also publish all six assets above under the legacy
 `CubricVision-*` names (same content, MPI-708 D1) — installs older than 1.5.0
 (the release that widened the updater) match only the old pattern. Drop the legacy set at 2.1; every
-other release ships the six `CubricStudio-*` assets above and nothing else.
+other release ships the six `CubricStudio-*` assets above plus `cubric-studio.mcpb`, nothing else.
 
 ## Draft first — the tag is not created until you publish
 
@@ -36,7 +41,7 @@ created at that moment, on the `--target` SHA.
 ```sh
 gh release create v<ver> -R MadPonyInteractive/Cubric-Studio \
   --target <sha> --draft --title "v<ver>" \
-  --notes-file <body.md> <6 assets>
+  --notes-file <body.md> <6 assets> cubric-studio.mcpb
 gh release edit <id> --draft=false --latest   # publishes; uses the tag, or creates it
 git fetch origin --tags && git rev-parse "v<ver>^{}"   # must equal <sha>
 ```

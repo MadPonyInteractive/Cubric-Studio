@@ -30,9 +30,12 @@ is asked (message `a082a6a6`) to wire the same helper into the in-app `look`, an
 the commit hash, sent (committed `3bb7c58d`, master-red fix `58138dcb`, CI green).
 **Claude Desktop cold test PASSED 2026-09-26 (Fabio, extension 0.2.0)**: video described via
 view_card, one edit landed; it skipped `read_knowledge` (instruction not obeyed, minor).
-**Next: Codex, the last of item 7.** Codex headless (0.157.1) never loaded the MCP tools and
-scraped `:3000` over HTTP instead; re-test Codex only with his app CLOSED, and first find why
-`codex exec` does not surface MCP tools (`tool_search`?). Then phase 3.
+**Codex cause FOUND 2026-09-26 (session 5bdb59e7, `validation.md`)**: Codex always defers MCP
+tools into `ALL_TOOLS` and never shows the model our `instructions`; a skill fixes discovery,
+and headless runs refuse write tools unless `default_tools_approval_mode="approve"`. So the
+Codex fix is the phase 3 plugin (skill + `.mcp.json`), not a server change. **Codex cold test
+still owed**, only with Fabio's app CLOSED, with that approve flag and a skill in place.
+**Phase 3 items 1 and 5 DONE 2026-09-26 (5bdb59e7)**: `cubric-studio.mcpb` packed and attached at release (mpi-release step 6, checklist), `docs/mcp-server.md` + README row + contract note. **Codex cold test PASSED 2026-09-26** (skill + approve flag, one card, 74 s; item 7 closed). **Plugin BUILT and Codex-tested 2026-09-26** (`mcp/listing/`, installed in Fabio's Codex from the local folder, cold run PASSED). **Claude Code plugin cold test PASSED 2026-09-26** (same folder, `--plugin-dir`, 59 s, one card). **Next:** item 3 remainder: the Gemini extension, then the public repo (ask Fabio: only once everything in it is tested); item 2 Settings page (own card); item 4 docs site (Fabio commits) (the plugin repo, built only once tested locally), item 2 (Settings page, own card), item 4 (docs site).
 
 ## Phase 1: spike (DONE)
 
@@ -94,13 +97,17 @@ A change there goes through a message to that session, never a direct edit.
 
 ## Phase 3: ship and list
 
-1. Build the `.mcpb` in the release flow and attach it to each GitHub release (`mpi-release`).
+1. **DONE 2026-09-26.** Build the `.mcpb` in the release flow and attach it to each GitHub release (`mpi-release`).
 2. Settings > "Connect an agent": per-client instructions to copy, and the `.mcpb` download.
    UI work, a separate card.
-3. Listings: Claude Desktop extension submission, the MCP Registry (`mcp-publisher`), a Claude
+3. **Codex needs a plugin, not just `codex mcp add`** (2026-09-26): its MCP tools are always
+   deferred and our `instructions` never reach the model, so a skill must say where the tools
+   are. Try the Claude Code plugin below as the Codex plugin too (`codex.exe` reads
+   `.claude-plugin/plugin.json` and `.mcp.json`); fall back to a `.codex-plugin/plugin.json`.
+   Listings: Claude Desktop extension submission, the MCP Registry (`mcp-publisher`), a Claude
    Code plugin (MCP URL + slim skill), a Gemini CLI extension. Repo home per brief Q3.
 4. Docs: a docs-site page, and `llms.txt`. That repo is a hard no-push, so Fabio commits it.
-5. `docs/`: record `/mcp` in the connector subsystem doc and the portable distribution contract.
+5. **DONE 2026-09-26** (`docs/mcp-server.md`). `docs/`: record `/mcp` in the connector subsystem doc and the portable distribution contract.
 
 ## Verification
 

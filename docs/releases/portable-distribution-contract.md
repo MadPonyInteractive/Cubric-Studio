@@ -726,6 +726,11 @@ nothing answers `system.memory.release` any more. Vision's connector surface is 
 routes (`routes/connector.js`; `GET /connector/capabilities` is the live answer), and the manifest
 lists only what those routes serve (MPI-774).
 
+Outside agents reach the app through **`POST /mcp`** (`routes/mcp.js`, MPI-593), not this
+manifest: [../mcp-server.md](../mcp-server.md). The app artifacts carry nothing extra for it. The
+Claude Desktop bridge ships as a separate release asset, `cubric-studio.mcpb`, packed from
+`mcp/cubric-studio/` and attached next to the six app artifacts (release skill step 6).
+
 **The ownership boundary has not moved.** The Cubric Studio hub owns the contract and the
 runtime — `@cubric/connector` and `@cubric/broker` — and product apps consume them. Never move
 SDK or broker source into this repo (the hub's `README.md` states the same boundary from the
