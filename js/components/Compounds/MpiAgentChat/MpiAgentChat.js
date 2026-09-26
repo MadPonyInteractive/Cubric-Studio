@@ -41,6 +41,7 @@ import { resolveMediaUrl, cardReference } from '../../../utils/mediaActions.js';
 import { uploadMediaFile, prepareImageImport } from '../../../services/mediaUploadService.js';
 import { Events }              from '../../../events.js';
 import { clientLogger }        from '../../../services/clientLogger.js';
+import { attachDictation }     from '../../../services/dictation.js';
 import { state }               from '../../../state.js';
 import { PAGE_LANDING }        from '../../../router.js';
 import { getCommandAccent, getCommandProgressLabel } from '../../../data/commandRegistry.js';
@@ -204,6 +205,7 @@ export const MpiAgentChat = ComponentFactory.create({
             <div class="mpi-agent-chat__input-row">
                 <div class="mpi-agent-chat__attachments" id="ac-attachments" style="display:none"></div>
                 <div class="mpi-agent-chat__input-wrap" id="ac-input-slot"></div>
+                <div id="ac-dictate-slot"></div>
                 <div id="ac-send-slot"></div>
             </div>
 
@@ -1096,6 +1098,10 @@ export const MpiAgentChat = ComponentFactory.create({
             size: 'sm',
             variant: 'primary',
         });
+
+        // MPI-946 — dictation. The words land in the composer and wait for Enter.
+        const dictateBtn = MpiButton.mount(qs('#ac-dictate-slot', el), { icon: 'mic', variant: 'secondary', size: 'sm' });
+        if (textareaEl) _unsubs.push(attachDictation(dictateBtn.el, textareaEl));
 
         // Enter = send, Shift+Enter = newline
         if (textareaEl) {

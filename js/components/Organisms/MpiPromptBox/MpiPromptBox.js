@@ -24,6 +24,7 @@ import { Hotkeys } from '../../../managers/hotkeyManager.js';
 import { activeGenerations } from '../../../services/activeGenerations.js';
 import { remoteEngineClient } from '../../../services/remoteEngineClient.js';
 import { MpiEnhanceDialog } from '../../Compounds/MpiEnhanceDialog/MpiEnhanceDialog.js';
+import { attachDictation } from '../../../services/dictation.js';
 
 /**
  * MpiPromptBox — Prompt input Block with self-composing operation slots.
@@ -119,6 +120,7 @@ export const MpiPromptBox = ComponentFactory.create({
             <div class="mpi-prompt-box__col mpi-prompt-box__col--neg" id="bottom-neg-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--prompt" id="textarea-slot"></div>
             <div class="mpi-prompt-box__col mpi-prompt-box__col--enhance hide" id="enhance-slot"></div>
+            <div class="mpi-prompt-box__col mpi-prompt-box__col--dictate" id="dictate-slot"></div>
             <!-- MPI-817: cog BEFORE the model button (Fabio, 2026-09-19). The parameters
                  popup is anchored on the cog and carries a caret; with the cog last but one
                  the popup clamps off the right edge and the caret ends up over the model
@@ -1434,6 +1436,11 @@ export const MpiPromptBox = ComponentFactory.create({
         });
 
         const textareaEl = qs('textarea', mainInput.el);
+
+        // MPI-946 — dictation. The words land in whichever field is showing (positive or a
+        // negative): the service fires `input`, and the box saves by mode on `input`.
+        const dictateBtn = MpiButton.mount(qs('#dictate-slot', el), { icon: 'mic', variant: 'secondary', size: 'sm' });
+        _unsubs.push(attachDictation(dictateBtn.el, textareaEl));
 
         // Hidden mirror textarea — measures content height without fighting
         // the live textarea's CSS min-height/layout cache. scrollHeight on the

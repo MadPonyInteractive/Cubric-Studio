@@ -153,6 +153,7 @@ export const MpiHotkeys = ComponentFactory.create({
                             <h4>Prompt Box</h4>
                             <ul>
                                 <li><span>ESCAPE</span><span>Blur text field (restore app hotkeys)</span></li>
+                                <li><span>HOLD CTRL+SPACE</span><span>Dictate: speak, release, and the words are written in (also the Agent panel)</span></li>
                             </ul>
                         </div>
 

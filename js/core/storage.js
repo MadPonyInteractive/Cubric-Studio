@@ -269,6 +269,9 @@ export const Storage = {
   getAudioInputGain:   () => Math.min(4, Math.max(0, Number(get(STORAGE_KEYS.AUDIO_INPUT_GAIN, 1)) || 1)),
   setAudioInputGain:   (v) => set(STORAGE_KEYS.AUDIO_INPUT_GAIN, Math.min(4, Math.max(0, Number(v) || 1))),
 
+  getDictationTranslate: () => get(STORAGE_KEYS.DICTATION_TRANSLATE, false) === true,
+  setDictationTranslate: (v) => set(STORAGE_KEYS.DICTATION_TRANSLATE, v === true),
+
   // MPI-803 — playback output. An empty `deviceId` means the OS default endpoint, which
   // is what the app did unconditionally before this existed. A stored id is machine-local,
   // so it is NOT validated against the current device list on load — a headset unplugged

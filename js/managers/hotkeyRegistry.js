@@ -68,6 +68,43 @@ export const HOTKEY_REGISTRY = [
             !!activeElement.closest?.('.mpi-prompt-box'),
     },
 
+    // ── Dictation (MPI-946) ───────────────────────────────────────────────────
+    // Hold Ctrl+Space, speak, release. Ctrl because a bare letter types into the box the
+    // words are meant for. `data-dictate` is set by js/services/dictation.js on each mic.
+    // The release is TWO entries because the keyup reads `control+space` when Space goes
+    // first and `space` when Ctrl goes first. Letting go of Ctrl alone keeps recording
+    // until Space is up.
+    {
+        id:               'dictation.hold',
+        key:              'control+space',
+        type:             KEY_TYPE.DOWN,
+        category:         'dictation',
+        scopeLabel:       'Dictation',
+        description:      'Hold to dictate into the prompt box or the Agent panel',
+        allowWhileTyping: true,
+        when: () => !!qs('[data-dictate]:not([disabled])'),
+    },
+    {
+        id:               'dictation.release',
+        key:              'control+space',
+        type:             KEY_TYPE.UP,
+        category:         'dictation',
+        scopeLabel:       'Dictation',
+        description:      'Release to write out what was said',
+        allowWhileTyping: true,
+        when: () => !!qs('[data-dictate="held"]'),
+    },
+    {
+        id:               'dictation.release.space',
+        key:              'space',
+        type:             KEY_TYPE.UP,
+        category:         'dictation',
+        scopeLabel:       'Dictation',
+        description:      'Release to write out what was said',
+        allowWhileTyping: true,
+        when: () => !!qs('[data-dictate="held"]'),
+    },
+
     // ── Focus Mode ────────────────────────────────────────────────────────────
     {
         id:               'focusMode.toggle',

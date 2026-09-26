@@ -154,9 +154,16 @@ export const MpiSettings = ComponentFactory.create({
                     <div class="mpi-settings__plate mpi-settings__plate--stack">
                         <div class="mpi-settings__plate-main">
                             <span class="mpi-settings__plate-label">Microphone</span>
-                            <span class="mpi-settings__plate-desc">Used by the Record button on any audio slot.</span>
+                            <span class="mpi-settings__plate-desc">Used by the Record button on any audio slot, and by the dictation mic.</span>
                         </div>
                         <div class="mpi-settings__plate-ctrl" id="mpiSettingsAudioDeviceSlot"></div>
+                    </div>
+                    <div class="mpi-settings__plate">
+                        <div class="mpi-settings__plate-main">
+                            <span class="mpi-settings__plate-label">Dictate in English</span>
+                            <span class="mpi-settings__plate-desc">The mic on the prompt box and the Agent panel writes down what you say. On: speak any language and get English. Off: the words come back in the language you spoke.</span>
+                        </div>
+                        <div class="mpi-settings__plate-ctrl" id="mpiSettingsDictateEnglishSlot"></div>
                     </div>
                     <div class="mpi-settings__plate mpi-settings__plate--stack">
                         <div class="mpi-settings__plate-main">
@@ -632,6 +639,10 @@ export const MpiSettings = ComponentFactory.create({
             // ── MPI-500: uninstall to the Recycle Bin (default OFF) ──────────
             _mountSwitchPlate('#mpiSettingsRecycleBinSlot', Storage.getRecycleBinDelete(),
                 (v) => Storage.setRecycleBinDelete(v));
+
+            // ── MPI-946: dictation writes English (Whisper's translate task) ──
+            _mountSwitchPlate('#mpiSettingsDictateEnglishSlot', Storage.getDictationTranslate(),
+                (v) => Storage.setDictationTranslate(v));
 
             // ── Desktop notification prefs (per-type OS opt-out) ─────────────
             const _saveNotifyPref = (key, checked) => {

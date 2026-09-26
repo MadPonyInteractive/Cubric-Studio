@@ -1,12 +1,12 @@
 /* BEM Block naming — mpi-prompt-box */
 .mpi-prompt-box {
     display: grid;
-    /* neg · prompt · enhance · cog · settings · engine · run. MPI-852 briefly added an
-       eighth track for the price and then took it back out: the figure now rides inside
-       the Cue button, so the bar is back to the seven it had. There is no second
+    /* neg · prompt · enhance · dictate · cog · settings · engine · run. MPI-852 briefly
+       added an eighth track for the price and then took it back out: the figure now rides
+       inside the Cue button. The eighth is the dictation mic (MPI-946). There is no second
        declaration to keep in step — the agent-mode grid went with the agent face in
        MPI-797 Phase 3. */
-    grid-template-columns: auto 1fr auto auto auto auto auto;
+    grid-template-columns: auto 1fr auto auto auto auto auto auto;
     align-items: end;
     gap: var(--s-2);
     background: var(--surface-bar);
@@ -142,6 +142,10 @@
 }
 
 .mpi-prompt-box__col--settings {
+    flex-shrink: 0;
+}
+
+.mpi-prompt-box__col--dictate {
     flex-shrink: 0;
 }
 
