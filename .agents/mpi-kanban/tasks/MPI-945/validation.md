@@ -24,7 +24,14 @@ Shipped in 7df2f423b.
 - `gif-make.spec.js` and `gif-cutout.spec.js` build their GIF through the bar (5/5 cutout green).
 - `npm test` 1997 pass / 0 fail; eslint clean. Delete is a ghost button (danger filled a solid red block).
 
-## Needs Fabio
+## CI
 
-- Look and feel of the bar in the real app, and whether anything else belongs on it
-  (candidates offered: Select all, Make GIF, Archive, Delete).
+- Round 1 (7df2f423b) judged inside run on 6ee78cb83: green (the red on 7df2f423b itself was
+  MPI-944's lint fragment, skipped desktop shards).
+- Round 2 (3bb2bc9f7) + rule text (6dd3d893c): run 36279729460 green, unit + 4 desktop shards.
+
+## Verified by Fabio (2026-09-27)
+
+- Tested live: "this looks good". Follow-up idea split to MPI-948 (send a selection to the agent).
+- Claim audit: 31 proven; one overstated UNRELEASED line (Cue all skips cards that do not fit
+  the op) reworded with Fabio's approval in the close commit.

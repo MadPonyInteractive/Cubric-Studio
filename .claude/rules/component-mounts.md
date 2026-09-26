@@ -35,14 +35,14 @@ Props: none
 - `MpiMediaDropOverlay`   props: `{ onDrop({ files: [{ file, mediaType }, ...] }) }` callback   slot: `document.createElement('div')` appended to `el` — full-area OS-file drop target; shown/hidden via window `dragenter`/`dragleave`/`drop` listeners (drag counter prevents flicker); ignores internal `application/mpi-media` drags; `onDrop` loops over files: uploads each, emits `media:imported` per file. PromptBox slots filled up to `_pb.el.remainingCapacity(mediaType)` (per-type); overflow files still become gallery cards but are not injected into the strip.
 - `MpiPromptBox` (Organism)   props: `{ model, modelList: installedImageModels, operation: 't2i', includeNegative: true }`   slot: `gid('prompt-box-mount')` — Block keeps handle in `_pb`, destroys before remount AND in `el.destroy`; only mounted when `installedImageModels.length > 0`
   - `updateContext`: called on `media-change` event — `{ imageCount, videoCount, hasMask: false }`
-- `MpiCompareOverlay`   props: none   slot: `document.createElement('div')` — singleton; shown on `grid 'compare-requested'` event from MpiGalleryGrid
+- `MpiCompareOverlay`   props: none   slot: `document.createElement('div')` — singleton; shown on `grid 'compare'` event from MpiGalleryGrid (the selection bar's Compare, MPI-945)
 - `MpiOkCancel`   props: `{ title: 'Delete', text: '...', okLabel: 'Delete', cancelLabel: 'Cancel' }`   slot: `document.createElement('div')` — singleton delete-confirmation dialog; shown on `grid 'delete'` event
 - `MpiAddToProject`   props: `{ projects: [{id,name}], onConfirm(projectId) }`   slot: `document.createElement('div')` — mounted on demand on `grid 'add-to-project'` event; dropdown picks a target project, `onConfirm` POSTs `/project-media/:id/add-from-cards` to copy the selected cards
 - `MpiModelSettings`   props: none   slot: `document.createElement('div')` — singleton settings overlay; opened by the model picker's `settings` event (MPI-356 — the PromptBox no longer emits `settings`; the LoRA/upscale gear left the popup with the dropdowns)
 - `MpiModelPicker` (Compound, MPI-356)   props: none   slot: `document.createElement('div')` — singleton model overlay opened on `ui:open-model-picker` via `el.open({ models, modelId })`. The Block owns the (workspace-filtered) list AND applies the pick — the picker holds no model logic. Its `settings` event opens `MpiModelSettings({ modelId })`.
 
 > **Note:** `MpiModelManager` is NOT mounted here — it is the **Model Library** overlay (MPI-215). It self-hosts an `MpiOverlay(mountTarget:'body')` and shell mounts it once as a lazy singleton, calling `el.open()` on `models:open` (`shell.js`). `MpiGalleryBlock` emits `Events.emit('models:open')`. PromptBox mounts only when `s_installedModelIds.length > 0`; post-install mount is keyed off `state:changed (s_installedModelIds)`, not a `models:closed` event.
-> **Selection:** No `MpiSelectionBar`. Ctrl/Cmd-click toggles card into selection; shift-click range-selects; right-click opens `MpiContextMenu` via `ui:context-menu` (MPI-751). `MpiCheckbox` is also removed from cards.
+> **Selection:** Ctrl/Cmd-click toggles card into selection; shift-click range-selects; right-click opens `MpiContextMenu` via `ui:context-menu` (MPI-751). `MpiCheckbox` is also removed from cards. The selection bar (MPI-945) is the GRID's — a parts file (`MpiGalleryGrid/selectionBar.js`), not a component, so nothing here mounts it; the Block only hides/shows the PromptBox on `selection-start`/`selection-end`.
 
 ---
 
@@ -299,9 +299,9 @@ MpiGalleryGrid is now a Compound that handles both justified layout and card dis
 **Primitives mounted:**
 - No toolbar controls (MPI-749): size, volume, FILTER, Archive and Info are `MpiGalleryToolbar`, in the project bar; the grid follows state.
 - `MpiButton` (SHOW ALL)   props: `{ text:'Show all', variant:'secondary', size:'sm' }`   slot: `ce('div')`, appended into `.mpi-gallery-grid__scope-empty` only when a filter hides every card — resets kinds + flags, keeps `order` and `scope`
-- `MpiCheckbox` (card selection)   props: `{ checked: false }`   slot: `.mpi-group-card__select-wrap` — mounted per card inside `_makeCard()`; `on('change')` drives selection state
 - `MpiButton` (card mark, MPI-785)   props: `{ icon: markIcon(mark), active: !!mark, size:'sm', variant:'ghost', info:'Mark (hold for more shapes)' }`   slot: `.mpi-group-card__fav-wrap` — per card; click/hold wired by `wireCardMark()` (`cardMarkMenu.js`)
 - `MpiPopup` (shape menu)   props: `{ active:true, position:'bottom', variant:'card-mark', triggerEl: mark button }`   slot: `ce('div')` — one app-wide, opened by a hold; `MpiButton` per `CARD_MARKS` shape (`icon, size:'sm', variant:'ghost', info: singular, active, extraClasses:'mpi-gallery-grid__mark-option'`) → `.mpi-gallery-grid__mark-menu`
+- Selection bar (MPI-945, `selectionBar.js` `mountSelectionBar(el, { onAction, onMark })`)   slot: `.mpi-gallery-grid__selection-bar`, appended ONCE as the grid root's last child, shown only under `.mpi-gallery-grid--selecting`, removed in `el.destroy`. `MpiButton`s, all `size:'sm'`: Cue all (`text`, `variant:'primary'`, `.mpi-gallery-grid__selection-cue`); icon `variant:'ghost'` with `data-action` = `compare` / `combine` / `make-gif` / `download` / `archive` / `delete` / `close`; marks `variant:'secondary'` with `data-mark` per `CARD_MARKS` + `none`. Disabled state, label and `data-info` pushed by `_syncSelectionBar` through `update()`
 
 **Card rendering:**
 - Cards are now rendered as DOM elements (not components)
@@ -323,7 +323,7 @@ MpiGalleryGrid is now a Compound that handles both justified layout and card dis
 - `updatePreview(tempId, url)` — push latent preview to generating card during image generation
 - `setSendCountdown(tempId, seconds)` — cloud send window label "Sending in N..." (`0` = sent, MPI-940). Held in `_sendCountdowns` too, because the first tick beats the 16 ms debounced render and a card built mid-window must pick it up
 - `removeCard(groupId)` — remove single card from grid and `_cardMap`
-- `setSelectionMode(bool)` — toggle selection mode CSS on all cards
+- `setSelectionMode(bool)` — enter / exit selection mode (`_enterSelectionMode` / `_exitSelectionMode`)
 
 ---
 

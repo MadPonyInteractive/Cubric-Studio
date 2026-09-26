@@ -68,7 +68,7 @@ NOT mechanically split these):
 | **Generation lifecycle** (dispatch guard, progress pipeline, Stop/lanes identity doctrine, queue-drain notifications) | [generation-lifecycle.md](generation-lifecycle.md) |
 | **Op & model selection** (op strip's two mounts, absent-vs-dim gating, op memory, media transitions, model picker, bar order) | [op-model-selection.md](op-model-selection.md) |
 | **Gallery** (cards, thumbnails, drag-drop, hover media) | [gallery.md](gallery.md) |
-| **Gallery selection** (multi-select refresh, click order, Cue all batch queueing) | [gallery-selection.md](gallery-selection.md) |
+| **Gallery selection** (the selection bar that replaces the prompt box — where Cue all, Compare, Combine, Make GIF and bulk marks live; multi-select refresh, click order, Cue all batch queueing, Make GIF) | [gallery-selection.md](gallery-selection.md) |
 | **Audio cards + the audio player** (the baked waveform mask, MpiWaveform, click-to-seek, the audio accent, MpiAudioPlayer) | [gallery-audio-cards.md](gallery-audio-cards.md) |
 | **Gallery kinds, filter panel + toolbar** (`ASSET_KINDS` — **adding a media kind like GIF**, `gallerySort`, the FILTER panel, `MpiGalleryToolbar` in the project bar) | [gallery-filters.md](gallery-filters.md) |
 | **GIF** (frames store, content-addressed + swept; the two-pass-palette-then-GCE-patch build; `gif` sidecar field; `routes/gif.js`) | [gif.md](gif.md) |

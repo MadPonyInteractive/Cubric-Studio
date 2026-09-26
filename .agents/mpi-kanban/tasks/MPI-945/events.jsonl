@@ -1,2 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-945", "at": "2026-09-26T23:50:58+01:00", "actor": "claude", "column": "todo", "title": "Gallery selection bar: Cue all and card marks where the prompt box was"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-945", "at": "2026-09-26T23:51:30+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "building the selection bar"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-945", "at": "2026-09-27T00:42:45+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio verified live 2026-09-27; CI 36279729460 green on 6dd3d893c (round 2 code 3bb2bc9f7)"}

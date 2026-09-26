@@ -160,7 +160,8 @@
   switch to mute one for the next run, without leaving the prompt you are working on.
 
 - **Cue all: run one operation over many pictures.** Select several gallery cards and press
-  Cue all: each becomes its own job on your current prompt and settings.
+  Cue all: each card that fits the current operation becomes its own job on your current
+  prompt and settings.
 
 - **Selecting cards brings up a selection bar where the prompt box was.** It shows how many
   cards are selected and holds everything that works on a selection: Cue all, Compare,
