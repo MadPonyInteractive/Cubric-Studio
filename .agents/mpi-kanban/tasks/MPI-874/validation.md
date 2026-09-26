@@ -48,3 +48,14 @@ outside agent drives it (scratchpad `live874.mjs`, `live874.log`):
 The isolated `app.log` has `card registered in the project it was dispatched in` at
 19:40:50.329Z, so the card went through the closed-project path and `nameCard`'s server
 write named it. That is the Flow-into-a-closed-project path MPI-873 left unproven live.
+
+## Close-out
+
+- Code commit `3006bb999`; CI run 36273202431 **success**
+  (`gh run view 36273202431 --json conclusion`).
+- Claim auditor: 8 PROVEN, 0 FALSE, 3 UNPROVEN-BY-GIT (runtime evidence above), and 1
+  OVERSTATED: "gallery completion awaits addGroup" is false under `deferCommit`. A Flow never
+  sets it (`flowService.js` opts; only `MpiGroupHistoryBlock` and `MpiStepCutout` do), so
+  `plan.md` now says so.
+- Not done: an `UNRELEASED.md` Fixes line (rename and copy both shipped in 1.1.0, so the bug
+  is user-visible) was proposed to Fabio at close-out, pending his yes.

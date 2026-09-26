@@ -3,7 +3,8 @@
 ## Current State
 
 The brief's premise is false, established 2026-09-26 (session b5b35494). The Flow path names
-its card: the gallery completion awaits `addGroup` and hands `_reportDone` the group, and a
+its card: the gallery completion awaits `addGroup` and hands `_reportDone` the group (a Flow
+never sets `deferCommit`, the one branch that skips the write), and a
 closed project is named by `nameCard`'s server write (MPI-873). What dropped the names on
 2026-09-21 was **Add to project**: the five unnamed cards in "Deepinfra model tests" are
 COPIES, and `add-from-cards` hard-codes `customName: null`. Evidence in `validation.md`.

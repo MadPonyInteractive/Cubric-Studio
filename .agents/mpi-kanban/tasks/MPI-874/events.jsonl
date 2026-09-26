@@ -3,3 +3,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "at": "2026-09-26T19:37:04Z", "actor": "b5b35494", "id": "MPI-874", "summary": "Updated activeSessionTitle, description, title"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "at": "2026-09-26T19:42:32Z", "actor": "b5b35494", "id": "MPI-874", "summary": "Updated maturity, status"}
 {"schema": "mpi-kanban/event/v1", "type": "validation.updated", "at": "2026-09-26T19:42:45Z", "actor": "b5b35494", "id": "MPI-874", "summary": "A+B+C verified: 13/13 targeted, full suite 0 fail, live Flow cardName into a closed project PASSED. Close-out (commit, CI) remains."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-874", "at": "2026-09-26T22:42:03+01:00", "actor": "b5b35494", "from": "doing", "to": "done", "reason": "Verified: 13/13 + full suite 0 fail, live Flow cardName into a closed project PASSED, CI green on 3006bb999."}
