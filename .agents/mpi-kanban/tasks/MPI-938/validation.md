@@ -9,7 +9,7 @@ GitHub Release, no manifest mirrored into the repo.
 |---|---|
 | Bundle | `CubricStudio-windows-x64-update-v1.6.2.zip`, **125.0 MB** (125,039,956 bytes) |
 | Built from | `c2f47ac8` (stamp `c4c63e46` + approval token), in the detached worktree `D:/tmp/cv-720` |
-| Mode | `delta`, `fromVersion 1.6.1` -> `toVersion 1.6.2`, 666 files, 18 deletes |
+| Mode | build `updateBundleMode: delta` (manifest `artifact.kind: update-bundle`), `fromVersion 1.6.1` -> `toVersion 1.6.2`, 666 files, 18 deletes |
 | Output | `D:\CubricStudio\Vision\Builds`, beside the full `CubricStudio-windows-x64-v1.6.2.zip` (538.7 MB) and `CubricStudio-v1.6.2-READ-ME-FIRST.md` |
 
 Changelog copy approved by Fabio (2026-09-26); he wrote the token himself (the agent path is
