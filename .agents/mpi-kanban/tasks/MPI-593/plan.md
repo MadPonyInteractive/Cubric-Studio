@@ -20,9 +20,17 @@ is still pre-register (queued behind another render) settles nothing, and its ba
 this card's files. Owned by the Mascots 16 line (2026-09-25): the cloud-Stop twin is MPI-928,
 and the two local defects are in handoff `0fcf4385` awaiting Fabio's yes to become cards. **Never test a cancel while Fabio's app is up**: the
 isolated instance attaches to his ComfyUI on 48188, and this session killed two of his renders.
-1b/1c/3 are committed (handoff cbf11eef). **Next: phase 2 item 2 (reference images from a
-disk path or a card), then 4 to 7.** Item 1b(c), progress in the waits, is skipped: `running` at once
-made it moot.
+1b/1c/3 are committed (handoff cbf11eef). Item 1b(c), progress in the waits, is skipped:
+`running` at once made it moot.
+**2, 4, 5, 6 BUILT 2026-09-26 (session 9e0c3d22), 21/21, live + cold Claude Code agent
+PASSED** (`validation.md`). 17 tools. Reference images are `media: [{ role, path }]`, staged
+into the project `GET /connector/current-project` names (MPI-916 built it, `f0d3018a`).
+`view_card` (`services/cardView.js`) shows a still, or a video/GIF as one contact sheet; MPI-916
+is asked (message `a082a6a6`) to wire the same helper into the in-app `look`, and is waiting on
+the commit hash of `cardView.js` — reply to that message after committing. **Next: item 7.** Claude Desktop needs Fabio: repack the `.mcpb`, and
+his `:3000` app must be restarted to load the new `routes/mcp.js`. Codex headless (0.157.1)
+never loaded the MCP tools and scraped `:3000` over HTTP instead; re-test Codex only with his
+app CLOSED, and first find why `codex exec` does not surface MCP tools (`tool_search`?).
 
 ## Phase 1: spike (DONE)
 
@@ -64,7 +72,7 @@ A change there goes through a message to that session, never a direct edit.
    agents prompt blind. The in-app agent is forced to read them (the guide gate). Add
    `read_knowledge` over `agentTools.readKnowledge`, and say in `instructions` to read the
    guide before the first prompt for a model.
-2. **Reference images.** An agent passes a file path on the user's disk. The MCP layer stages
+2. **Reference images (DONE 2026-09-26).** An agent passes a file path on the user's disk. The MCP layer stages
    it into the project (`place-preview-asset`) and sends `media: [{role, url}]`. This unlocks
    edit, i2i and i2v.
 3. **Results the agent can use.** Return a disk path, not a `/project-file?path=` URL, plus a

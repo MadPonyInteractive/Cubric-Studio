@@ -29,6 +29,15 @@ fs.mkdirSync(path.join(media, '.meta'));
 fs.writeFileSync(path.join(media, '.meta', 'it1.thumb.webp'), 'THUMB');
 const DONE = { ok: true, output: { itemId: 'it1', type: 'image', filePath: `/project-file?path=${encodeURIComponent(png)}&v=1` } };
 
+// A project with one card of its own, and a picture elsewhere on the user's disk.
+const project = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-project-'));
+fs.mkdirSync(path.join(project, 'Media'));
+const cardFile = path.join(project, 'Media', 'card.png');
+fs.writeFileSync(cardFile, 'card');
+const outside = path.join(media, 'photo.jpg');
+fs.writeFileSync(outside, 'photo');
+const placed = [];
+
 test.before(async () => {
     const app = express();
     app.use(bodyParser.json());
@@ -61,6 +70,23 @@ test.before(async () => {
     app.post('/connector/quote', (q, r) => r.json({ ok: true, output: q.body.modelId === 'veo'
         ? { billed: true, modelName: 'Veo 3', count: 1, usd: 4, display: 'about $4.00' }
         : { billed: false } }));
+    // The app window's open project, as the renderer would answer it.
+    let appOpen = null;
+    app.post('/connector/open-project', (q, r) => {
+        appOpen = q.body.folderPath;
+        r.json({ ok: true, output: { folderPath: q.body.folderPath, name: 'P' } });
+    });
+    app.get('/connector/current-project', (_q, r) => r.json(appOpen
+        ? { ok: true, output: { folderPath: appOpen, name: 'P' } }
+        : { ok: false, error: { code: 'NO_PROJECT', message: 'No project is open in Vision.' } }));
+    app.post('/project-media/agent/place-preview-asset', (q, r) => {
+        placed.push({ folderPath: q.query.folderPath, ...q.body });
+        r.json({ success: true, filePath: '/project-file?path=PLACED' });
+    });
+    app.get('/connector/cards', (q, r) => r.json({ ok: true, total: 1, cards: [{ groupId: 'g1', name: 'Bike', ref: 'card.png' }], files: { 'card.png': { path: cardFile, itemId: 'it9' } }, folder: q.query.folderPath }));
+    app.get('/connector/cards/:groupId', (_q, r) => r.json({ ok: true, card: { groupId: 'g1', ref: 'card.png', madeFrom: [{ role: 'inputImage', ref: 'src.png' }] }, files: { 'card.png': { path: cardFile, itemId: 'it9' }, 'src.png': { path: outside } } }));
+    app.post('/connector/rename-card', (q, r) => r.json({ ok: true, output: q.body }));
+    app.post('/connector/gif/cutout', (q, r) => setTimeout(() => r.json(DONE), 700));
     process.env.CUBRIC_MCP_WAIT_MS = '300';
     app.use(require('../routes/mcp'));
     await new Promise((resolve) => { server = app.listen(0, '127.0.0.1', resolve); });
@@ -71,6 +97,7 @@ test.before(async () => {
 test.after(() => {
     server.close();
     fs.rmSync(media, { recursive: true, force: true });
+    fs.rmSync(project, { recursive: true, force: true });
 });
 
 const rpc = (method, params, id = 1) => fetch(`${base}/mcp`, {
@@ -98,11 +125,74 @@ test('a notification is answered 202 with no body', async () => {
     assert.equal(await r.text(), '');
 });
 
-test('tools/list names the spike tools, each with an object schema', async () => {
+test('tools/list names every tool, each with a title, annotations and an object schema', async () => {
     const { result } = await (await rpc('tools/list')).json();
     const names = result.tools.map((t) => t.name);
-    assert.deepEqual(names, ['status', 'list_models', 'describe_model', 'list_projects', 'create_project', 'open_project', 'generate', 'wait_generation', 'cancel_generation', 'read_knowledge']);
-    for (const t of result.tools) assert.equal(t.inputSchema.type, 'object');
+    assert.deepEqual(names, ['status', 'list_models', 'describe_model', 'list_projects', 'create_project', 'open_project', 'list_cards', 'view_card', 'rename_card', 'generate', 'wait_generation', 'cancel_generation', 'read_knowledge', 'make_gif', 'edit_gif', 'cutout_gif', 'gif_to_video']);
+    for (const t of result.tools) {
+        assert.equal(t.inputSchema.type, 'object');
+        assert.ok(t.title && t.annotations.title === t.title, `${t.name} has a title`);
+        assert.equal(typeof t.annotations.readOnlyHint, 'boolean', `${t.name} says whether it writes`);
+        if (!t.annotations.readOnlyHint) assert.equal(t.annotations.destructiveHint, false, `${t.name} deletes nothing`);
+    }
+});
+
+test('reference images: none before a project is open, then a card passes as is and an outside file is staged', async () => {
+    const before = seen.length;
+    const ask = { modelId: 'krea2', operation: 'i2i', positive: 'make it red' };
+    const none = JSON.parse((await call('generate', { ...ask, media: [{ role: 'inputImage', path: cardFile }] })).content[0].text);
+    assert.equal(none.error.code, 'NO_PROJECT');
+    assert.equal((await call('list_cards')).isError, true);
+
+    assert.equal((await call('open_project', { folderPath: project })).isError, false);
+    const r = await call('generate', { ...ask, media: [{ role: 'inputImage', path: cardFile }, { role: 'inputImage2', path: outside }] });
+    assert.equal(r.isError, false);
+    assert.deepEqual(seen.at(-1).media, [
+        { role: 'inputImage', url: `/project-file?path=${encodeURIComponent(cardFile)}` },
+        { role: 'inputImage2', url: '/project-file?path=PLACED' },
+    ]);
+    assert.deepEqual(placed, [{ folderPath: project, dataUrl: outside, ext: '.jpg' }], 'only the outside file was copied in');
+
+    const gone = JSON.parse((await call('generate', { ...ask, media: [{ role: 'inputImage', path: path.join(media, 'nope.png') }] })).content[0].text);
+    assert.equal(gone.error.code, 'FILE_NOT_FOUND');
+    const txt = JSON.parse((await call('generate', { ...ask, media: [{ role: 'inputImage', path: __filename }] })).content[0].text);
+    assert.equal(txt.error.code, 'UNSUPPORTED_FILE');
+    assert.equal(seen.length, before + 1, 'a refused reference submits nothing');
+});
+
+test('list_cards gives each card its disk path and item id in place of the in-app ref', async () => {
+    await call('open_project', { folderPath: project });
+    const list = JSON.parse((await call('list_cards')).content[0].text);
+    assert.deepEqual(list.cards, [{ groupId: 'g1', name: 'Bike', path: cardFile, itemId: 'it9' }]);
+    assert.equal(list.files, undefined);
+    assert.equal(list.folder, project);
+    const one = JSON.parse((await call('list_cards', { groupId: 'g1' })).content[0].text).card;
+    assert.equal(one.path, cardFile);
+    assert.deepEqual(one.madeFrom, [{ role: 'inputImage', path: outside }]);
+});
+
+test('view_card hands back the picture itself, and refuses what is not one', async () => {
+    const still = path.join(media, 'still.png');
+    await require('sharp')({ create: { width: 2048, height: 1024, channels: 3, background: '#c03030' } }).png().toFile(still);
+    const r = await call('view_card', { path: still });
+    assert.equal(r.isError, false);
+    assert.deepEqual(JSON.parse(r.content[0].text), { ok: true, kind: 'image', width: 2048, height: 1024 });
+    const { width } = await require('sharp')(Buffer.from(r.content[1].data, 'base64')).metadata();
+    assert.equal(width, 1024, 'a big still is shrunk to the view size');
+    assert.equal(JSON.parse((await call('view_card', { path: __filename })).content[0].text).error.code, 'UNSUPPORTED_FILE');
+    assert.equal(JSON.parse((await call('view_card', { path: path.join(media, 'gone.png') })).content[0].text).error.code, 'FILE_NOT_FOUND');
+});
+
+test('rename_card reaches its route', async () => {
+    assert.deepEqual(JSON.parse((await call('rename_card', { groupId: 'g1', name: 'Red bike' })).content[0].text).output, { groupId: 'g1', name: 'Red bike' });
+});
+
+test('a slow GIF cut-out answers running, and wait_generation delivers its path', async () => {
+    const first = JSON.parse((await call('cutout_gif', { itemId: 'it9', method: 'background' })).content[0].text);
+    assert.equal(first.running, true);
+    let r = first;
+    while (r.running) r = JSON.parse((await call('wait_generation', { jobId: first.jobId })).content[0].text);
+    assert.equal(r.output.filePath, png);
 });
 
 test('list_projects reaches its connector route', async () => {
@@ -201,6 +291,52 @@ test('a paid model generates nothing until the call repeats the quoted price', a
     assert.equal(ran.isError, false);
     assert.equal(seen.length, before + 1);
     assert.deepEqual(withoutId(seen.at(-1)), ask, 'confirmCost is not forwarded');
+});
+
+test('the bridge answers for a closed app, then announces the real tools once it opens', async () => {
+    const http = require('node:http');
+    const free = http.createServer();
+    await new Promise((resolve) => free.listen(0, '127.0.0.1', resolve));
+    const port = free.address().port;
+    await new Promise((resolve) => free.close(resolve));
+
+    const { spawn } = require('node:child_process');
+    const bridge = spawn(process.execPath, [path.join(__dirname, '..', 'mcp', 'cubric-studio', 'server', 'index.js')], {
+        env: { ...process.env, CUBRIC_PORT: String(port), CUBRIC_BRIDGE_POLL_MS: '50' },
+    });
+    const lines = [];
+    let waiter = null;
+    require('node:readline').createInterface({ input: bridge.stdout }).on('line', (l) => { lines.push(JSON.parse(l)); waiter?.(); });
+    const next = async (pred) => {
+        while (!lines.some(pred)) await new Promise((resolve) => { waiter = resolve; });
+        return lines.find(pred);
+    };
+    const say = (m) => bridge.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', ...m })}\n`);
+    let app;
+    try {
+        say({ id: 1, method: 'initialize', params: { protocolVersion: '2025-06-18' } });
+        const init = await next((m) => m.id === 1);
+        assert.equal(init.result.capabilities.tools.listChanged, true);
+        assert.match(init.result.instructions, /not running/);
+        say({ id: 2, method: 'tools/list' });
+        assert.deepEqual((await next((m) => m.id === 2)).result.tools.map((t) => t.name), ['status']);
+        say({ id: 3, method: 'tools/call', params: { name: 'generate', arguments: {} } });
+        assert.equal((await next((m) => m.id === 3)).result.isError, true);
+
+        // The app opens: the bridge notices on its own and tells the client to list again.
+        app = http.createServer((q, r) => {
+            let b = '';
+            q.on('data', (c) => { b += c; });
+            q.on('end', () => r.end(JSON.stringify({ jsonrpc: '2.0', id: JSON.parse(b).id, result: { tools: [{ name: 'generate' }] } })));
+        });
+        await new Promise((resolve) => app.listen(port, '127.0.0.1', resolve));
+        await next((m) => m.method === 'notifications/tools/list_changed');
+        say({ id: 4, method: 'tools/list' });
+        assert.deepEqual((await next((m) => m.id === 4)).result.tools, [{ name: 'generate' }]);
+    } finally {
+        bridge.kill();
+        app?.close();
+    }
 });
 
 test('an unknown tool and an unknown method are errors, GET is 405', async () => {

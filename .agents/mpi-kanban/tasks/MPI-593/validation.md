@@ -132,6 +132,76 @@ scratch, port 62646):
 - The app closed while a client connects: the bridge returns its error, but no client has
   been seen handling that.
 
+**Phase 2 items 2, 4, 5, 6 (2026-09-26, session 9e0c3d22, PASSED, auto).**
+`node --test tests/mcp.test.cjs` -> 21/21 (5 new: every tool titled + annotated, reference
+images, list_cards paths, rename_card, a slow GIF cut-out as a job, the bridge with the app
+closed). `npx -y @anthropic-ai/mcpb validate mcp/cubric-studio/manifest.json` -> passes.
+Live on an isolated instance (`APP_DOCUMENTS` = scratch, port 62381; `:48188/queue` empty
+before each render):
+- `create_project mcp-ref-test`, then SDXL i2i with `media: [{ role: inputImage, path: <a png
+  OUTSIDE the project> }]` -> `ok`, 17.8 s. The file is staged as
+  `Media/.preview-assets/79ee377c….png`, sha256 equal to the source, and the item's sidecar
+  `mediaItems[0].url` names that staged copy.
+- A second i2i from the result's own `Media/i2i_001.png` path -> `ok`, and `.preview-assets`
+  still holds ONE file: a card's file passes as it is, never copied.
+- `list_cards` -> each row carries `path` + `itemId`, no `ref`. `rename_card` -> the card
+  reads "Mascot via MCP". `make_gif` from the two item ids -> `gif_001.gif`, 2 frames;
+  `edit_gif fps 2` -> `gif_002.gif` on the same card. A missing path -> `FILE_NOT_FOUND`.
+- Bridge against the live instance: `initialize` + `tools/list` forward, 16 titles. With the
+  app down (port 1): `tools/list` answers `status` alone, and the bridge exits 0 in 0.1 s when
+  stdin closes (the poll timer is `unref`ed).
+- **Cold agent 3: Claude Code headless (Sonnet), `--strict-mcp-config` to the isolated port.**
+  One sentence: edit the picture at a scratch path, "the same character, now wearing a red
+  scarf", new project "Ref test", a free local model. Server log: `list_models`,
+  `list_projects`, `describe_model`, `create_project`, `read_knowledge`, ONE `generate`.
+  Disk: `Ref test/Media/edit_001.png`, **the only file**, plus the staged input. Opened by
+  eye: the same camera-head robot, red scarf at the neck. Klein 9B `kleinEdit`, $0.37, 9 turns.
+- **Codex headless: FAILED, and it touched Fabio's live app.** The global `codex-cli` was
+  0.135.0, too old for his default `gpt-5.6-luna`; upgraded to 0.157.1 with his OK. Then
+  `codex exec -s read-only -c mcp_servers.cubric.url=<isolated>/mcp` ran 38 shell calls and
+  **no MCP tool**: the session file never contains our server `instructions`, so the tools
+  never reached the model (Codex's own loading, not this server). It read Fabio's Playwright
+  skill (the browser failed, sandbox EPERM), then scraped the app's JS off **`:3000`** and
+  POSTed there: `/create-project` made an EMPTY `Documents/Cubric Vision/Projects/Codex ref
+  test` (07:26 local); `/connector/generate` was refused `NO_PROJECT`, so nothing rendered.
+  His `~/.codex/config.toml` also still lists `cubric-studio` at `:3000/mcp`. Two lessons: a
+  shell-capable cold agent cannot be fenced off the live app by MCP config alone, so a Codex
+  cold test needs Fabio's app closed; and a user's Codex that cannot see the tools will
+  scrape the unauthenticated HTTP API instead.
+
+**current-project + view_card (2026-09-26, session 9e0c3d22, PASSED, auto).** MPI-916 landed
+`GET /connector/current-project` (`f0d3018a`, on Fabio's go); `routes/mcp.js` now asks it on
+every reference image and `list_cards` instead of remembering the last project it opened.
+New `services/cardView.js` + `view_card` tool: a still at most 1024px; a video or GIF as ONE
+contact sheet of frames from the middle of n equal slices, with their times.
+`node --test tests/card-view.test.cjs tests/mcp.test.cjs` -> 24/24. Two defects were found
+live and each is pinned by the test first failing on it:
+- **Undecodable sheet:** `-f webp -` to a pipe wrote a zero RIFF size (the muxer seeks back,
+  which a pipe allows only inside its 32 KB buffer); flat test colours stayed under 32 KB. Now
+  PNG through `image2pipe`, webp by sharp; the test clip carries noise to go over 32 KB.
+- **Black last cell:** an `fps=` time sampler dropped the last frame of a real 1.87 s clip.
+  Now frames are picked by index (GIF: sharp's `pages` + `delay`, since ffprobe gives a GIF no
+  duration); the test clip is 1.86 s at 24 fps.
+Live, isolated instance (port 61401): `current-project` -> NO_PROJECT before `open_project`, the
+folder after; an SDXL i2i with an outside file staged into that folder (`.preview-assets` 1 -> 2);
+`view_card` on a real 1152x480 clip -> 6 cells, 1544x432, decodes; opened by eye, a figure walking
+through backlit fog. Helper on a real 28-frame GIF -> 6 cells, the duck turning away.
+`mcpb validate` passes; repacked `cubric-studio-0.2.0.mcpb` (17 tools).
+In-app agent: `look` wiring asked of MPI-916 (message `a082a6a6`), `agentLoop.mjs` is theirs.
+
+**Claude Desktop cold test, extension 0.2.0, Fabio's own app (2026-09-26, PASSED, by Fabio).**
+He installed the repacked `.mcpb` (17 tools listed, version 0.2.0), fully restarted Cubric Studio
+and Claude Desktop, Sonnet 5. Screenshots shared.
+- "open the project 1.4 media and tell me what happens in the video extended_001" -> app.log
+  `[mcp]`: `list_projects`, `open_project`, `list_cards` x2, `view_card`. Claude showed the
+  contact sheet and described it correctly: a silhouetted figure on wet asphalt, backlit fog,
+  slow steps; 1152x480, ~1.9 s, has audio.
+- "make a new project called Desktop ref test, then take the picture at ...\happy.png and make a
+  version of it wearing a red scarf, free local model" -> `create_project`, `list_models`,
+  `describe_model`, ONE `generate`. Disk: `Desktop ref test/Media/edit_001.png`, **the only
+  file**, and `.preview-assets/79ee377c….png` = the sha256 of `happy.png`. Klein 9B `kleinEdit`.
+  Finding: it did NOT call `read_knowledge` before its prompt, despite the instruction.
+
 **Distribution research sources** (2026-09-25; web research by a sub-agent, primary docs
 where marked):
 - Claude Desktop extensions and submission: claude.com/docs/connectors/building/mcpb and

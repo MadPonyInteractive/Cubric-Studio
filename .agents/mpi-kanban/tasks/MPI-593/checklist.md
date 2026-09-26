@@ -15,7 +15,13 @@
   - [x] 1b. A render does not gag the chat: running at once, cancel_generation, Stop in the chat *(built 2026-09-25; pre-register cancel defect is renderer-side, see validation.md)*
   - [x] 1c. read_knowledge + read-the-guide instruction
   - [x] 3. Results carry the disk path + the picture
-  - [ ] 2, 4-7. Reference images, rest of tool set, app-closed, titles, cold tests
+  - [x] 2. Reference images: `media: [{ role, path }]`, outside files staged into the project *(2026-09-26, live + cold agent 3)*
+    - [x] Staged into the project the APP has open: `/connector/current-project` (MPI-916, `f0d3018a`) *(live)*
+  - [x] view_card: a still, or a video/GIF as one contact sheet *(2026-09-26, live; in-app `look` wiring asked of MPI-916, message a082a6a6)*
+  - [x] 4. list_cards, rename_card, make/edit/cutout_gif, gif_to_video *(live, cut-out unit-tested only)*
+  - [x] 5. Bridge answers a closed app, announces tools/list_changed when it opens
+  - [x] 6. title + annotations on every tool
+  - [ ] 7. Cold tests: Claude Code PASSED; Claude Desktop PASSED *(Fabio, 2026-09-26: video described, one edit landed)*; Codex headless did not load MCP tools (see validation.md)
 - [x] Privacy policy on cubric.studio *(2026-09-25, live at https://cubric.studio/privacy/, Website 801aa0c)*
   - [x] `privacy_policies` in the manifest + README Privacy Policy section (message 90fd9914) *(0bcac13c, mcpb validate passes)*
 - [ ] Phase 3: ship and list (`plan.md`)

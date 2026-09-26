@@ -13,7 +13,7 @@
  * (`routes/connector.js` header). The catalogue is shrunk by the same `compactCatalogue`
  * the in-app agent reads, because the raw list is ~9.5k tokens.
  *
- * MPI-593 phase 2: ten tools. The in-app agent's gates live in `agentLoop._executeTool`, not
+ * MPI-593 phase 2: seventeen tools, none that deletes or installs. The in-app agent's gates live in `agentLoop._executeTool`, not
  * in the routes, so this file carries its own spend gate (`spendGate`). The guide gate is only
  * an instruction here (read_knowledge); the mask gate does not apply.
  *
@@ -28,6 +28,7 @@ const path = require('path');
 const express = require('express');
 const logger = require('./logger');
 const { extractImageThumb, extractVideoThumb } = require('../services/ffmpegThumb');
+const { viewFile, isViewable } = require('../services/cardView');
 const { version } = require('../package.json');
 
 const router = express.Router();
@@ -52,10 +53,10 @@ const _inflight = new Map();
  * APP was the only way out. So the job is submitted under its own jobId as the connector's
  * `requestId`, which is what `/connector/cancel` names.
  */
-function startJob(t, body) {
+function startJob(send) {
     const jobId = crypto.randomUUID();
     const job = { stoppedBy: null };
-    job.done = t.generate({ ...body, requestId: jobId })
+    job.done = send(jobId)
         .catch((err) => ({ ok: false, error: { code: 'FAILED', message: err.message } }))
         .then((r) => present(r, job));
     _jobs.set(jobId, job);
@@ -151,6 +152,64 @@ async function spendGate(t, body, confirmCost) {
     };
 }
 
+/**
+ * The project the app window has open, asked fresh each time: the user can switch it in the
+ * app between two calls, and a reference image must be staged INTO the project the render
+ * lands in (a Reuse of the card resolves it from there).
+ * @returns {Promise<{folder: string}|{error: object}>}
+ */
+async function openFolder(t) {
+    const r = await t.currentProject();
+    if (r?.ok && r.output?.folderPath) return { folder: r.output.folderPath };
+    if (r?.error?.code && r.error.code !== 'NO_PROJECT') return { error: r };
+    return { error: { ok: false, error: { code: 'NO_PROJECT', message: 'No project is open in the app. open_project with a folderPath from list_projects, or create_project, then try again.' } } };
+}
+
+// What a model can take as a reference. Anything else fails inside the engine, far from here.
+const MEDIA_EXT = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.tif', '.tiff', '.mp4', '.webm', '.mov', '.mkv', '.wav', '.mp3', '.flac', '.ogg', '.m4a']);
+
+/**
+ * `media: [{ role, path }]` -> the `[{ role, url }]` a generation takes. A file already in the
+ * open project's `Media/` (a card's own) is passed as it is; any other file on the user's disk
+ * is copied into the project's content-addressed store first (`placeAsset`), as the in-app
+ * agent does with an attachment. Media reaches a render by reference, never as bytes.
+ * @returns {Promise<{media: Array}|{error: object}>}
+ */
+async function stageMedia(t, media) {
+    const open = await openFolder(t);
+    if (open.error) return open;
+    const own = path.join(open.folder, 'Media');
+    const out = [];
+    for (const m of media) {
+        const file = typeof m?.path === 'string' ? path.resolve(m.path) : '';
+        const fail = (code, message) => ({ error: { ok: false, error: { code, message: `Nothing was generated: ${message}` } } });
+        if (!m?.role) return fail('BAD_REQUEST', 'every media item needs a role, from describe_model.');
+        if (!MEDIA_EXT.has(path.extname(file).toLowerCase())) return fail('UNSUPPORTED_FILE', `"${m.path}" is not an image, video or audio file.`);
+        if (!fs.existsSync(file)) return fail('FILE_NOT_FOUND', `no file at "${m.path}". Use a path from list_cards, from a generate result, or one the user gave.`);
+        if (path.dirname(file) === own) {
+            out.push({ role: m.role, url: `/project-file?path=${encodeURIComponent(file)}` });
+            continue;
+        }
+        const placed = await t.placeAsset(open.folder, file);
+        if (!placed?.success || !placed.filePath) return fail('RUNTIME_ERROR', `could not copy "${m.path}" into the project: ${placed?.error || 'unknown error'}.`);
+        out.push({ role: m.role, url: placed.filePath });
+    }
+    return { media: out };
+}
+
+/** A card row as an outside agent can use it: the file's disk path and item id in place of the in-app `ref`. */
+function withPath(files, row) {
+    const { ref, ...rest } = row || {};
+    const f = files?.[ref];
+    return { ...rest, ...(f ? { path: f.path, ...(f.itemId ? { itemId: f.itemId } : {}) } : {}) };
+}
+
+/** The GIF verbs answer when the work is done; a cut-out is a GPU run of minutes, so each is a job like a render. */
+const gifJob = (verb) => async (args, rpcKey) => {
+    const t = await tools();
+    return waitForJob(startJob(() => t[verb](args)), rpcKey);
+};
+
 const RUNNING = 'Do NOT call generate again: that makes a second one. cancel_generation stops it.';
 
 /** Up to `ms` for the answer, else `running`. `rpcKey` lets Stop in the chat find the job. */
@@ -177,7 +236,8 @@ const INSTRUCTIONS = [
     'Pick a model with list_models (the op marked best:true is the recommended one for its task), then call describe_model for that id: it lists the ops and the only values each param accepts.',
     'Before you write the first prompt for a model, call read_knowledge with each guide id describe_model lists for it: the guide says how that model wants to be prompted.',
     'generate returns the result\'s file path on disk, its card id and a small picture of it, so you can see what you made. A video or a Flow returns { running: true, jobId } at once instead: tell the user it started, then END YOUR TURN so they can keep talking; call wait_generation when they ask whether it is done. An image slower than 45 s returns running too. Never re-send generate for a job that is still running, and call cancel_generation if the user wants it stopped. The card also appears in the app\'s gallery.',
-    'An image the user attaches in this chat never reaches the app as a file. To work on a picture, use a card from the app or a file path on the user\'s disk.',
+    'An image the user attaches in this chat never reaches the app as a file. To edit, animate or reference a picture, pass generate media: [{ role, path }]: the role from describe_model, the path of a card (list_cards gives each card\'s path) or of a file on the user\'s disk. A file from outside the project is copied into it first.',
+    'A video result carries only its first frame. To see a whole clip, a GIF, or any card larger, call view_card with its path.',
     'Paid cloud models cost the user real money. generate answers CONFIRM_COST with the price and makes nothing: tell the user the price and ask. Only if they say yes, resend with confirmCost. Never confirm on their behalf.',
     'When you show the user a prompt, hand it back whole and pasteable, never as fragments.',
 ].join('\n');
@@ -193,6 +253,7 @@ const READ = { readOnlyHint: true, openWorldHint: false };
 /** name -> { description, inputSchema, annotations, run(args) -> route answer } */
 const TOOLS = {
     status: {
+        title: 'App status',
         description: 'Is Cubric Studio open and ready to generate? Call this first when anything fails.',
         inputSchema: obj(),
         annotations: READ,
@@ -205,12 +266,14 @@ const TOOLS = {
         },
     },
     list_models: {
+        title: 'List models',
         description: 'Every model and Flow the app offers: id, what is installed, the ops each model runs and their rank per task. Settings are NOT here; describe_model has them.',
         inputSchema: obj(),
         annotations: READ,
         run: async () => (await catalogue()).compactCatalogue(await (await tools()).listModels()),
     },
     describe_model: {
+        title: 'Describe a model',
         description: 'One model or Flow in full: its ops, each op\'s params and the only values they accept, media roles, and a Flow\'s fields.',
         inputSchema: obj({ id: { type: 'string', description: 'A model or Flow id exactly as list_models gives it.' } }, ['id']),
         annotations: READ,
@@ -224,12 +287,14 @@ const TOOLS = {
         },
     },
     list_projects: {
+        title: 'List projects',
         description: 'The user\'s projects, most recent first, each with the folderPath open_project takes.',
         inputSchema: obj(),
         annotations: READ,
         run: async () => (await tools()).listProjects(),
     },
     create_project: {
+        title: 'Create project',
         description: 'Create a project and open it, so the next generation lands there. Returns the existing one if that name is taken.',
         inputSchema: obj({ name: { type: 'string' } }, ['name']),
         annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
@@ -241,12 +306,64 @@ const TOOLS = {
         },
     },
     open_project: {
+        title: 'Open project',
         description: 'Make a project the open one, so the next generation lands in it.',
         inputSchema: obj({ folderPath: { type: 'string', description: 'From list_projects or create_project.' } }, ['folderPath']),
         annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
         run: async ({ folderPath }) => (await tools()).openProject(folderPath),
     },
+    list_cards: {
+        title: 'List cards',
+        description: 'What the open project already holds. No groupId: the newest cards, one short row each (name, kind, model, size, the start of its prompt, and its file path on disk). A groupId: that card in full, with the whole prompt, the settings that ran and madeFrom. A card\'s path is what generate takes as media; its itemId is what the GIF tools take.',
+        inputSchema: obj({
+            groupId: { type: 'string', description: 'One card, from a row here or a generate result.' },
+            limit: { type: 'integer', description: 'How many rows, newest first. Default 12, at most 30.' },
+            mark: { type: 'string', enum: ['dot', 'square', 'triangle'], description: 'Only cards with this mark.' },
+        }),
+        annotations: READ,
+        run: async ({ groupId, limit, mark }) => {
+            const t = await tools();
+            const open = await openFolder(t);
+            if (open.error) return open.error;
+            const r = await t.listCards(open.folder, groupId, limit, mark);
+            if (!r?.ok) return r;
+            const { files, cards, card, ...rest } = r;
+            return card
+                ? { ...rest, card: { ...withPath(files, card), madeFrom: (card.madeFrom || []).map((m) => withPath(files, m)) } }
+                : { ...rest, cards: (cards || []).map((c) => withPath(files, c)) };
+        },
+    },
+    view_card: {
+        title: 'View a card',
+        description: 'Look at an image or video: a still comes back as a picture up to 1024px; a video or GIF as ONE contact sheet of frames spread across the clip, left to right then top to bottom, with each frame\'s time. Use it to judge motion, check a result, or see a card you did not make. Sound is not included.',
+        inputSchema: obj({
+            path: { type: 'string', description: 'A file on disk: a card\'s path from list_cards or a generate result, or an image or video the user named.' },
+            frames: { type: 'integer', description: 'Video only: how many frames, 2-12. Default 6.' },
+        }, ['path']),
+        annotations: READ,
+        run: async ({ path: p, frames }) => {
+            const file = typeof p === 'string' ? path.resolve(p) : '';
+            if (!isViewable(file)) return { ok: false, error: { code: 'UNSUPPORTED_FILE', message: `"${p}" is not an image, video or GIF.` } };
+            if (!fs.existsSync(file)) return { ok: false, error: { code: 'FILE_NOT_FOUND', message: `No file at "${p}".` } };
+            const v = await viewFile(file, { frames });
+            const info = v.kind === 'image'
+                ? { ok: true, kind: 'image', width: v.width, height: v.height }
+                : {
+                    ok: true, kind: 'video', width: v.width, height: v.height, durationSeconds: v.duration, hasAudio: v.hasAudio,
+                    sheet: `${v.times.length} frames, ${v.columns} per row, left to right then top to bottom, at ${v.times.map((s) => `${s}s`).join(', ')}.${v.hasAudio ? ' The clip has sound, which you cannot hear here.' : ''}`,
+                };
+            return { ...info, _image: v.data.toString('base64') };
+        },
+    },
+    rename_card: {
+        title: 'Rename card',
+        description: 'Give a card in the open project a name the user will recognise, in place of a generated one like t2i_004.',
+        inputSchema: obj({ groupId: { type: 'string' }, name: { type: 'string' } }, ['groupId', 'name']),
+        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+        run: async ({ groupId, name }) => (await tools()).renameCard(groupId, name),
+    },
     generate: {
+        title: 'Generate',
         description: 'Generate an image or video with a model op, or run a Flow, in the OPEN project. Send modelId + operation, or flowId, never both. Named params take only the values describe_model lists. Returns the file path on disk plus a picture of the result. A video or Flow, or an image slower than 45 s, returns { running: true, jobId } instead: tell the user and end your turn, then call wait_generation when asked, never generate again. A paid model first answers CONFIRM_COST with its price and generates nothing.',
         inputSchema: {
             type: 'object',
@@ -262,18 +379,33 @@ const TOOLS = {
                 duration: { type: 'number', description: 'Video ops only, in seconds.' },
                 styleSelect: { type: 'string' },
                 seed: { type: 'integer' },
+                denoise: { type: 'number', description: 'Only on an op whose params list it (i2i, upscale, detail): 0 to 1, higher changes more.' },
                 cardName: { type: 'string', description: 'A short name for the gallery card this creates.' },
+                media: {
+                    type: 'array',
+                    description: 'The pictures, clips or sounds the op starts from: an edit, image-to-image, image-to-video, a reference. describe_model lists each op\'s roles.',
+                    items: obj({
+                        role: { type: 'string', description: 'A media role describe_model lists for this op.' },
+                        path: { type: 'string', description: 'A file on disk: a card\'s path from list_cards or a generate result, or any image, video or audio file the user named.' },
+                    }, ['role', 'path']),
+                },
                 fields: { type: 'object', description: 'A Flow\'s field values, as describe_model lists them.' },
+                params: { type: 'object', description: 'A Flow\'s step params, as describe_model lists them.' },
                 confirmCost: { type: 'string', description: 'Only after the user agreed to the price a CONFIRM_COST answer named: that price, exactly as given.' },
             },
         },
         annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true },
-        run: async ({ confirmCost, ...body }, rpcKey) => {
+        run: async ({ confirmCost, media, ...body }, rpcKey) => {
             const t = await tools();
+            if (Array.isArray(media) && media.length) {
+                const staged = await stageMedia(t, media);
+                if (staged.error) return staged.error;
+                body.media = staged.media;
+            }
             const refused = await spendGate(t, body, confirmCost);
             if (refused) return refused;
             const slow = !!body.flowId || (await t.listModels())?.models?.find((m) => m.id === body.modelId)?.type === 'video';
-            const jobId = startJob(t, body);
+            const jobId = startJob((id) => t.generate({ ...body, requestId: id }));
             if (!slow) return waitForJob(jobId, rpcKey);
             // A few seconds still catch a bad param or a full queue before the agent moves on.
             const r = await waitForJob(jobId, rpcKey, Math.min(WAIT_MS, 3_000));
@@ -283,22 +415,75 @@ const TOOLS = {
         },
     },
     wait_generation: {
+        title: 'Wait for a generation',
         description: 'Wait up to 45 s more for a generation that answered { running: true, jobId }. Answers running again if it is still going: tell the user rather than calling it in a loop.',
         inputSchema: obj({ jobId: { type: 'string' } }, ['jobId']),
         annotations: READ,
         run: async ({ jobId }, rpcKey) => waitForJob(jobId, rpcKey),
     },
     cancel_generation: {
+        title: 'Cancel a generation',
         description: 'Stop a generation that answered { running: true, jobId }, whether it is rendering or still queued. Only when the user asks.',
         inputSchema: obj({ jobId: { type: 'string' } }, ['jobId']),
         annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
         run: async ({ jobId }) => stopJob(jobId, 'agent'),
     },
     read_knowledge: {
+        title: 'Read a prompting guide',
         description: 'A prompting guide by id, as describe_model lists them under guides. With no id, the list of every guide.',
         inputSchema: obj({ id: { type: 'string' } }),
         annotations: READ,
         run: async ({ id }) => (await tools()).readKnowledge(id),
+    },
+    make_gif: {
+        title: 'Make a GIF',
+        description: 'A new GIF card in the open project, from two or more still cards (itemIds, in order) or from a clip of one video card (videoItemId + fps). Item ids come from list_cards.',
+        inputSchema: obj({
+            itemIds: { type: 'array', items: { type: 'string' }, description: 'Still cards, in play order. The first one\'s size wins.' },
+            videoItemId: { type: 'string' },
+            fps: { type: 'number', description: 'Required with videoItemId. 1-60.' },
+            sizePreset: { type: 'string', enum: ['original', '480xauto', '320xauto', 'autox480', 'autox320'] },
+            loop: { type: 'integer', description: 'Total plays. 0 = forever (default).' },
+            trimIn: { type: 'number', description: 'Clip seconds, sent together with trimOut.' },
+            trimOut: { type: 'number' },
+        }),
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+        run: gifJob('makeGif'),
+    },
+    edit_gif: {
+        title: 'Edit a GIF',
+        description: 'A new version on the same GIF card: trim (frame indices, inclusive), fps (0.1-50), loop, output { colours, edgeColour ("#rrggbb" = transparent, null = opaque), maxEdge }, resize { width, height } or crop { x, y, width, height }. crop and resize cannot share a call. The old version stays on the card.',
+        inputSchema: obj({
+            itemId: { type: 'string' },
+            trim: obj({ in: { type: 'integer' }, out: { type: 'integer' } }),
+            fps: { type: 'number' },
+            loop: { type: 'integer' },
+            output: { type: 'object' },
+            resize: { type: 'object' },
+            crop: { type: 'object' },
+        }, ['itemId']),
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+        run: gifJob('editGif'),
+    },
+    cutout_gif: {
+        title: 'Cut out a GIF subject',
+        description: 'Cut the subject out of every frame onto transparency, as a new version on the same card. method "background" (BiRefNet, no prompt) or "name" (SAM3 tracks what prompt names; it keeps every object it tracks). adjust { grow, outward, inward, edge, fillHoles }, invert. Runs on the GPU and can take minutes: it may answer { running: true, jobId }.',
+        inputSchema: obj({
+            itemId: { type: 'string' },
+            method: { type: 'string', enum: ['background', 'name'] },
+            prompt: { type: 'string', description: 'What to keep, for method "name".' },
+            adjust: { type: 'object' },
+            invert: { type: 'boolean' },
+        }, ['itemId', 'method']),
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+        run: gifJob('cutoutGif'),
+    },
+    gif_to_video: {
+        title: 'GIF to video',
+        description: 'A new video card made from a GIF card; the GIF stays. background ("#rrggbb") fills what a transparent GIF leaves clear, or it plays on black.',
+        inputSchema: obj({ itemId: { type: 'string' }, background: { type: 'string' } }, ['itemId']),
+        annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+        run: gifJob('gifToVideo'),
     },
 };
 
@@ -356,8 +541,9 @@ router.post('/mcp', async (req, res) => {
             return res.json(rpcResult(id, {}));
         case 'tools/list':
             return res.json(rpcResult(id, {
+                // `title` twice: top level is the 2025-06-18 field, `annotations.title` what older clients read.
                 tools: Object.entries(TOOLS).map(([name, t]) => ({
-                    name, description: t.description, inputSchema: t.inputSchema, annotations: t.annotations,
+                    name, title: t.title, description: t.description, inputSchema: t.inputSchema, annotations: { title: t.title, ...t.annotations },
                 })),
             }));
         case 'tools/call':
