@@ -22,6 +22,11 @@ import Primitives only.
 
 - **The model is fixed server-side:** `openai/whisper-large-v3-turbo`, the same rule as
   `/deepinfra/generate` taking a model id: the renderer never names what the key is spent at.
+- **"Dictate in English" goes to `openai/whisper-large-v3` instead** (~$0.00045/min). Turbo was
+  never trained to translate: it accepts `task: translate` and answers in the language spoken.
+  Measured 2026-09-27 on a Portuguese clip: turbo translate = the Portuguese transcript, large-v3
+  translate = English. The first test of this toggle used ENGLISH audio, which proves nothing —
+  test a translate path with non-English speech.
 - **The recording goes up as MediaRecorder made it (WebM/Opus).** Whisper decodes it; measured
   2026-09-26, same text as the WAV at a fifth of the bytes. Nothing is saved, so the
   `.webm`-is-video trap that makes `MpiAudioRecorder` re-mux to WAV does not apply.

@@ -12,3 +12,12 @@
 - [x] docs: `docs/dictation.md` + a row in `docs/README.md`
 - [x] privacy page: Dictation section pushed with Fabio's yes (Website repo 9ff2e4e)
 - [x] Fabio: one real dictation in his own app (his mic, his key) - works after a full restart
+
+## Reopened 2026-09-27: "Dictate in English" returned Portuguese (Fabio)
+
+- [x] root cause measured: whisper-large-v3-turbo ignores `task: translate` (Portuguese Kokoro clip: turbo translate = Portuguese, large-v3 translate = English). The first translate test used English audio, so it proved nothing
+- [x] `routes/deepinfra.js`: translate goes to `openai/whisper-large-v3`; test pins the URL; live through `_transcribe`: toggle off = Portuguese, toggle on = "A fox jumping in the desert at sunset with a soft golden light."
+- [x] `docs/dictation.md`
+- [ ] `docs/releases/UNRELEASED.md` line (Fabio approved) - file held by MPI-945's claim, release asked
+- [ ] `.claude/rules/` component maps (Fabio approved)
+- [ ] Fabio: dictate in Portuguese with the toggle on, after a full restart

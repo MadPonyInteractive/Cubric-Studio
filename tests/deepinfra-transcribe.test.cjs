@@ -37,11 +37,13 @@ test('sends the recording as a data URL to the fixed Whisper endpoint and trims 
     } finally { f.restore(); }
 });
 
-test('the translate toggle asks for English out', async () => {
+test('the translate toggle asks large-v3 for English out - turbo ignores translate', async () => {
     const f = stubFetch(200, { text: 'Hello' });
     try {
         await _transcribe('k', Buffer.from('abc'), 'audio/webm', true);
         assert.equal(JSON.parse(f.calls[0].init.body).task, 'translate');
+        // Measured 2026-09-27: turbo answered Portuguese for Portuguese speech with task=translate.
+        assert.equal(f.calls[0].url, 'https://api.deepinfra.com/v1/inference/openai/whisper-large-v3');
     } finally { f.restore(); }
 });
 

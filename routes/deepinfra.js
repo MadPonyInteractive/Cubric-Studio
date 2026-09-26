@@ -454,11 +454,16 @@ router.post('/deepinfra/generate', async (req, res) => {
  * same reason `/generate` takes a model id and never an endpoint: the renderer is not the
  * authority on what the key is spent at.
  *
- * Billed per audio second at the catalogue rate (~$0.0002 a minute). Do NOT read
- * `inference_status.cost` off this model: on 2026-09-26 it answered $0.0027 for an 11 s clip
- * while the month's usage booked the same calls at 0.000333 cents a second, about 70x less.
+ * Billed per audio second at the catalogue rate (~$0.0002 a minute; large-v3 ~$0.00045). Do
+ * NOT read `inference_status.cost` off these models: on 2026-09-26 it answered $0.0027 for an
+ * 11 s clip while the month's usage booked the same calls at 0.000333 cents a second, ~70x less.
+ *
+ * TWO MODELS, because turbo was never trained to translate. It accepts `task: translate` and
+ * answers a transcript in the language spoken: measured 2026-09-27, Portuguese in, the same
+ * Portuguese out, while large-v3 answered English for the same clip. Fabio hit it first.
  */
 const STT_ENDPOINT = 'openai/whisper-large-v3-turbo';
+const STT_TRANSLATE_ENDPOINT = 'openai/whisper-large-v3';
 const STT_TIMEOUT_MS = 60000;
 // A minute of MediaRecorder's WebM/Opus is ~0.4 MB. This only stops an accidental hour.
 const STT_MAX_BYTES = 25 * 1024 * 1024;
@@ -476,7 +481,7 @@ const STT_MAX_BYTES = 25 * 1024 * 1024;
 async function _transcribe(key, audio, mime, translate) {
     let upstream;
     try {
-        upstream = await fetch(`${INFERENCE_BASE}/${STT_ENDPOINT}`, {
+        upstream = await fetch(`${INFERENCE_BASE}/${translate ? STT_TRANSLATE_ENDPOINT : STT_ENDPOINT}`, {
             method: 'POST',
             headers: { Authorization: `bearer ${key}`, 'Content-Type': 'application/json' },
             body: JSON.stringify({
