@@ -27,10 +27,12 @@ PASSED** (`validation.md`). 17 tools. Reference images are `media: [{ role, path
 into the project `GET /connector/current-project` names (MPI-916 built it, `f0d3018a`).
 `view_card` (`services/cardView.js`) shows a still, or a video/GIF as one contact sheet; MPI-916
 is asked (message `a082a6a6`) to wire the same helper into the in-app `look`, and is waiting on
-the commit hash of `cardView.js` — reply to that message after committing. **Next: item 7.** Claude Desktop needs Fabio: repack the `.mcpb`, and
-his `:3000` app must be restarted to load the new `routes/mcp.js`. Codex headless (0.157.1)
-never loaded the MCP tools and scraped `:3000` over HTTP instead; re-test Codex only with his
-app CLOSED, and first find why `codex exec` does not surface MCP tools (`tool_search`?).
+the commit hash, sent (committed `3bb7c58d`, master-red fix `58138dcb`, CI green).
+**Claude Desktop cold test PASSED 2026-09-26 (Fabio, extension 0.2.0)**: video described via
+view_card, one edit landed; it skipped `read_knowledge` (instruction not obeyed, minor).
+**Next: Codex, the last of item 7.** Codex headless (0.157.1) never loaded the MCP tools and
+scraped `:3000` over HTTP instead; re-test Codex only with his app CLOSED, and first find why
+`codex exec` does not surface MCP tools (`tool_search`?). Then phase 3.
 
 ## Phase 1: spike (DONE)
 
