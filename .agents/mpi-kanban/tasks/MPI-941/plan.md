@@ -117,6 +117,14 @@ another after it and never in a batch with it.
 2026-09-26: created by the MPI-867 close-out session (8db368e3). Nothing built. It waits for
 MPI-817 to close. Same day, MPI-817 session 43718bac: the big-batch fix went in as the NEW
 Phase 1 on Fabio's word; the old Phases 1-4 are now 2-5.
+Same day, session 545693a9: **MPI-817 and MPI-774 closed.** Start here with Phase 1. The agent
+now forgets its own notes (`write_memory` `delete: true`, 50 a list): budgets are unchanged, tool
+schemas 17,180 of 17,200, system prompt 10,146 of 10,150.
+
+**Watch-only, carried from MPI-817 (no build unless it recurs):** the agent ending an Auto-mode
+turn on a question; a note generalising from two runs; a project note RESTATING a global one
+(Fabio's `characters.md` copied "3D cartoon (global preference)", so forgetting the global note left
+the copy); Ollama's free cloud models (unconfirmed research); the `__ARG__` project (Fabio's to delete).
 
 ## Plan Drift
 

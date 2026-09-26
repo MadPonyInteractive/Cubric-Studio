@@ -6,8 +6,13 @@
  * The folder travels with the project, so the agent remembers it after a restart.
  *
  * Only `routes/connector.js` calls this: the loop reaches it over HTTP like every other
- * tool, and a CLI agent gets the same routes. There is no delete: agents never delete
- * (Fabio, 2026-09-16), and a note the user no longer wants is theirs to remove.
+ * tool, and a CLI agent gets the same routes.
+ *
+ * The agent keeps its notes tidy itself (Fabio, 2026-09-26): a write with `delete: true`
+ * forgets a note, and the list is capped at MAX_NOTES with a warning from WARN_NOTES, so a
+ * year of saves stays a list it can read every conversation. A forgotten note moves to
+ * `forgotten/`, never listed or read again, so the user can get back one dropped wrongly.
+ * Cards and projects are still the user's alone to delete (Fabio, 2026-09-16).
  *
  * GLOBAL notes (MPI-774 Phase 6, Fabio 2026-09-18) are the same shape in app data,
  * `<APP_USER_DATA>/agent/memory/`, beside the chat attachments: what holds across every
@@ -23,7 +28,9 @@ import path from 'node:path';
 export const MEMORY_DIR = 'Agent';
 export const INDEX_FILE = 'README.md';
 export const MAX_NOTE_BYTES = 4096;
-export const MAX_NOTES = 100;
+export const MAX_NOTES = 50;
+export const WARN_NOTES = 40;
+const FORGOTTEN_DIR = 'forgotten';
 const MAX_TITLE = 80;
 const MAX_HOOK = 160;
 
@@ -139,8 +146,9 @@ async function _readNoteIn(dir, file, store) {
 }
 
 /** The fields, checked before any folder is touched. */
-function _checkNote({ file, title, hook, text } = {}) {
+function _checkNote({ file, title, hook, text, delete: forget } = {}) {
     checkFile(file);
+    if (forget === true) return { file, forget };
     title = oneLine(title).replace(/[[\]]/g, '');
     hook = oneLine(hook);
     if (!title || title.length > MAX_TITLE) {
@@ -158,7 +166,8 @@ function _checkNote({ file, title, hook, text } = {}) {
     return { file, title, hook, text };
 }
 
-async function _writeNoteIn(dir, { file, title, hook, text }, store) {
+async function _writeNoteIn(dir, { file, title, hook, text, forget }, store) {
+    if (forget) return _forgetIn(dir, file, store);
     const indexPath = path.join(dir, INDEX_FILE);
     let index;
     try {
@@ -174,7 +183,7 @@ async function _writeNoteIn(dir, { file, title, hook, text }, store) {
         lines[at] = line;
     } else {
         if (parseIndex(index).length >= MAX_NOTES) {
-            throw new MemoryError('MEMORY_FULL', `There are already ${MAX_NOTES} notes ${store.where}. Update or merge existing notes instead.`);
+            throw new MemoryError('MEMORY_FULL', `There are already ${MAX_NOTES} notes ${store.where}. Delete a stale note, or merge two into one and delete the other, then save this.`);
         }
         while (lines.length && lines[lines.length - 1] === '') lines.pop();
         // A note line directly under prose would read as part of that paragraph.
@@ -185,5 +194,31 @@ async function _writeNoteIn(dir, { file, title, hook, text }, store) {
     await fs.mkdir(dir, { recursive: true });
     await fs.writeFile(path.join(dir, file), text.endsWith('\n') ? text : `${text}\n`);
     await fs.writeFile(indexPath, lines.join('\n'));
-    return { file, created: at < 0 };
+    const count = parseIndex(lines.join('\n')).length;
+    return count < WARN_NOTES
+        ? { file, created: at < 0 }
+        : { file, created: at < 0, warning: `${count} of ${MAX_NOTES} notes ${store.where}: merge or delete stale ones now, before the list is full.` };
+}
+
+/** Drop a note's index line and move its file to `forgotten/`. */
+async function _forgetIn(dir, file, store) {
+    const indexPath = path.join(dir, INDEX_FILE);
+    let index = '';
+    try {
+        index = await fs.readFile(indexPath, 'utf8');
+    } catch { /* no notes yet */ }
+    const lines = index.split(/\r?\n/);
+    const kept = lines.filter((l) => l.match(LINE_RE)?.[2] !== file);
+    const from = path.join(dir, file);
+    const exists = await fs.access(from).then(() => true, () => false);
+    if (!exists && kept.length === lines.length) {
+        throw new MemoryError('UNKNOWN_NOTE', `No note "${file}" ${store.where}.`);
+    }
+    if (exists) {
+        // ponytail: a second forget of the same name replaces the first in forgotten/.
+        await fs.mkdir(path.join(dir, FORGOTTEN_DIR), { recursive: true });
+        await fs.rename(from, path.join(dir, FORGOTTEN_DIR, file));
+    }
+    if (kept.length !== lines.length) await fs.writeFile(indexPath, kept.join('\n'));
+    return { file, forgotten: true };
 }

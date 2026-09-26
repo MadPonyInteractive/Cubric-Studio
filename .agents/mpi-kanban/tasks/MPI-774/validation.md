@@ -1238,3 +1238,12 @@ the other way out. Every pinned refusal (MODEL_PINNED, NO_PINNED_MODEL, OP_UNAVA
 Settings panel line now say the user can close the settings panel and the agent will pick the model
 (his wording: "Alternatively, you can close the settings panel, and I'll pick the model").
 Test: `tests/agent-pinned-settings.test.cjs`, seen red first. Not live-seen: needs a restart.
+
+### PASSED 2026-09-26: Phase 6, global memory (the last phase this card owed)
+
+Fabio, his own app, after a full restart: a global note saved in one project reached another and was
+APPLIED unasked; a plain note stayed in its project; "do you remember things?" named both kinds; and,
+on his follow-up, the agent forgot a global note (file moved to `forgotten/`). Evidence, disk checks
+and the 50-note cap: `tasks/MPI-817/validation.md` § LIVE 2026-09-26 and § LIVE PASS ~20:30Z.
+With Phase 5 (Fabio's rounds 09-17/18, above; Fix 8 closed unreproduced 09-19) and Phase 7 (pinned
+panel, above) passed, nothing on this card owes a check.

@@ -1212,6 +1212,8 @@ describe('(h) notes, results, names, guides', () => {
         assert.equal(tools.calls.writeMemory.length, 0, 'nothing went to a project');
         assert.deepEqual(toolResults(loop).map((r) => r.ok), [true, true]);
         assert.equal(loop.getHistory().entries.find((e) => e.tool === 'write_memory').label, 'Noted for every project: House style');
+        // Fabio's live run 2026-09-26: a global read showed "Reading a project note".
+        assert.equal(loop.getHistory().entries.find((e) => e.tool === 'read_memory').label, 'Reading a global note');
     });
 
     test('the global notes are listed once, at the start of a conversation', async () => {
@@ -1222,7 +1224,26 @@ describe('(h) notes, results, names, guides', () => {
         await loop.runTurn('Hello again', [], project, 'auto', 'deepinfra', 't-g2');
         const [first, second] = userMessages(loop);
         assert.match(first, /\[Global notes[^\]]*\n- house-style\.md: House style \(every image\)\]/);
+        assert.match(first, /\[Global notes, 1 of 50,/, 'it sees how full the list is');
         assert.doesNotMatch(second, /Global notes/, 'listed once, not every turn');
+    });
+
+    // Fabio 2026-09-26: the agent keeps its notes tidy itself, so it can forget one; the
+    // store moves the file aside (agent-memory.test.cjs), the loop only passes the ask on.
+    test('write_memory with delete forgets a note, project or global', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('d1', 'write_memory', { file: 'ratio.md', delete: true }),
+            call('d2', 'write_memory', { scope: 'global', file: 'house-style.md', delete: true }),
+            { text: 'Forgotten.' },
+        ] });
+        withMemory(tools);
+        withGlobal(tools);
+        await loop.runTurn('Forget the ratio and my house style', [], project, 'auto', 'deepinfra', 't-forget');
+        assert.equal(tools.calls.writeMemory[0].delete, true);
+        assert.equal(tools.calls.writeMemory[0].folderPath, '/project');
+        assert.equal(tools.calls.writeGlobalMemory[0].delete, true);
+        const labels = loop.getHistory().entries.filter((e) => e.tool === 'write_memory').map((e) => e.label);
+        assert.deepEqual(labels, ['Forgot: ratio.md', 'Forgot the global note: house-style.md']);
     });
 
     test('asked what it remembers, the agent knows it keeps both: per project and global', async () => {
@@ -1240,6 +1261,9 @@ describe('(h) notes, results, names, guides', () => {
         }
         const write = JSON.stringify(TOOL_DEFS.find((t) => t.function.name === 'write_memory'));
         assert.match(write, /only when the user asks/);
+        const params = TOOL_DEFS.find((t) => t.function.name === 'write_memory').function.parameters;
+        assert.equal(params.properties.delete?.type, 'boolean', 'the agent can forget a note');
+        assert.deepEqual(params.required, ['file'], 'a forget sends no title or text');
     });
 
     test('with no project open there are no notes to read or write', async () => {

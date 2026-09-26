@@ -136,7 +136,19 @@ written back a captured copy. Decision taken, his to reverse: `mark_card` has NO
 the external `cubric-vision` skill documents them (`projects.md` § Marks and what the user can
 see). 1588 tests, 0 fail. **Nothing is committed yet.**
 
-## Current State (2026-09-26, session 43718bac, from handoff b12a5213)
+## Current State (2026-09-26, session 545693a9, from handoff b148f249)
+
+Global memory PASSED live, checks 1 and 3 (`validation.md` § LIVE 2026-09-26 ~19:13Z); check 2
+(Rook stays in the project) never run. His run surfaced a mislabel (a global read said "Reading a
+project note"), fixed. **Then Fabio reversed the no-delete rule for NOTES** ("the agent needs to
+be able to edit its own notes, including deleting... imagine a year of global saves"): built,
+suite 1985 / 0 fail. `write_memory` takes `delete: true` (file moves to `forgotten/`), cap 100 ->
+50 a list, `warning` from 40, lists show "N of 50". Cards and projects stay user-only. A database
+only if users complain (his words: "sound solution for version 1").
+**Next:** Fabio's live pass after a restart (Rook in the project; "forget my cartoon
+preference"), then `mpi-end-session` for MPI-817 + MPI-774, handoff to MPI-941 Phase 1.
+
+## Current State history (2026-09-26, session 43718bac, from handoff b12a5213)
 
 Reconciled against the board and the code; the dated updates below are history. **Every member
 but MPI-774 is `done`** (816, 820, 839, 840 closed 09-21; the wake is MPI-870, closed 09-21).
@@ -179,6 +191,9 @@ runs; the `__ARG__` project (Fabio's to delete); Ollama's free cloud models (unc
 
 ## Plan Drift
 
+- **2026-09-26 (session 545693a9):** Phase B grew past its v1 spec on Fabio's word: the agent
+  forgets its own notes and the lists are capped at 50 with a warning from 40 (was 100, no
+  delete). Same files, same system, folded in here rather than a new card.
 - **2026-09-26 (session 43718bac):** members closed since 09-20: MPI-816, 820, 839, 840 (all 09-21),
   and the wake/batch design became MPI-870 (closed 09-21). Items owned elsewhere now, dropped here:
   hand the Flow back -> **MPI-892** (todo, under MPI-889); model knowledge in a skill vs the prompt ->

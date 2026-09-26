@@ -109,11 +109,47 @@ describe('store', () => {
         await rejectsWith(m.writeNote(p, { file: 'a.md', title: 't', text: '   ' }), 'BAD_REQUEST');
         await rejectsWith(m.readNote(p, 'missing.md'), 'UNKNOWN_NOTE');
 
-        for (let i = 0; i < m.MAX_NOTES; i++) await m.writeNote(p, { file: `n${i}.md`, title: `Note ${i}`, text: 'x' });
-        await rejectsWith(m.writeNote(p, { file: 'one-more.md', title: 'Too many', text: 'x' }), 'MEMORY_FULL');
+        // Fabio 2026-09-26: a list the agent reads every conversation stays small, and it is
+        // told to tidy BEFORE the wall, not only at it.
+        assert.equal(m.MAX_NOTES, 50);
+        for (let i = 0; i < m.MAX_NOTES; i++) {
+            const w = await m.writeNote(p, { file: `n${i}.md`, title: `Note ${i}`, text: 'x' });
+            if (i + 1 < m.WARN_NOTES) assert.equal(w.warning, undefined, `no warning at ${i + 1}`);
+            else assert.match(w.warning, new RegExp(`^${i + 1} of 50 notes .*merge or delete`));
+        }
+        await assert.rejects(m.writeNote(p, { file: 'one-more.md', title: 'Too many', text: 'x' }),
+            (err) => err.code === 'MEMORY_FULL' && /delete/i.test(err.message));
         const again = await m.writeNote(p, { file: 'n7.md', title: 'Note 7, updated', text: 'y' });
         assert.equal(again.created, false, 'a full project still takes an update');
         assert.equal((await m.readIndex(p)).notes.length, m.MAX_NOTES);
+        await m.writeNote(p, { file: 'n0.md', delete: true });
+        assert.equal((await m.writeNote(p, { file: 'one-more.md', title: 'Fits now', text: 'x' })).created, true, 'forgetting one makes room');
+    });
+
+    // Fabio 2026-09-26: the agent keeps its own notes tidy, so it can delete one. The file
+    // is moved aside, not erased: the user can still get back a note it dropped wrongly.
+    test('forgetting a note drops its line and moves the file to forgotten/, the rest stay', async () => {
+        const m = await mem();
+        const p = makeProject();
+        await m.writeNote(p, { file: 'ratio.md', title: 'Ratio', text: '16:9' });
+        await m.writeNote(p, { file: 'style.md', title: 'Style', text: 'Moody' });
+        const dir = path.join(p, 'Agent');
+        fs.appendFileSync(path.join(dir, 'README.md'), 'A line the user wrote.\n');
+
+        assert.deepEqual(await m.writeNote(p, { file: 'ratio.md', delete: true }), { file: 'ratio.md', forgotten: true });
+        const index = fs.readFileSync(path.join(dir, 'README.md'), 'utf8');
+        assert.doesNotMatch(index, /ratio\.md/);
+        assert.match(index, /- \[Style\]\(style\.md\)\n/);
+        assert.match(index, /A line the user wrote\./);
+        assert.deepEqual((await m.readIndex(p)).notes.map((n) => n.file), ['style.md']);
+        await rejectsWith(m.readNote(p, 'ratio.md'), 'UNKNOWN_NOTE');
+        assert.equal(fs.readFileSync(path.join(dir, 'forgotten', 'ratio.md'), 'utf8'), '16:9\n');
+
+        await rejectsWith(m.writeNote(p, { file: 'ratio.md', delete: true }), 'UNKNOWN_NOTE');
+        await rejectsWith(m.writeNote(p, { file: '../project.json', delete: true }), 'BAD_REQUEST');
+        const fresh = makeProject();
+        await rejectsWith(m.writeNote(fresh, { file: 'nope.md', delete: true }), 'UNKNOWN_NOTE');
+        assert.equal(fs.existsSync(path.join(fresh, 'Agent')), false, 'a missed forget creates nothing');
     });
 
     // MPI-774 Phase 6 (Fabio, 2026-09-18; built 2026-09-26): notes that hold across every
@@ -139,6 +175,10 @@ describe('store', () => {
             assert.deepEqual(await m.readIndex(p), { notes: [] });
             await rejectsWith(m.readGlobalNote('../project.json'), 'BAD_REQUEST');
             await rejectsWith(m.writeGlobalNote({ file: 'big.md', title: 't', text: 'x'.repeat(m.MAX_NOTE_BYTES + 1) }), 'NOTE_TOO_LONG');
+
+            assert.deepEqual(await m.writeGlobalNote({ file: 'house-style.md', delete: true }), { file: 'house-style.md', forgotten: true });
+            assert.deepEqual(await m.readGlobalIndex(), { notes: [] });
+            assert.equal(fs.readFileSync(path.join(dir, 'forgotten', 'house-style.md'), 'utf8'), 'Warm light, 35mm.\n');
         } finally {
             if (prev === undefined) delete process.env.APP_USER_DATA; else process.env.APP_USER_DATA = prev;
         }
@@ -207,8 +247,14 @@ describe('connector routes', () => {
         }
     });
 
-    test('there is no delete route for notes', async () => {
+    test('a note is forgotten through the same POST, delete: true; there is no DELETE route', async () => {
         const p = makeProject();
+        const post = (body) => fetch(`${base}/connector/memory`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        }).then((r) => r.json());
+        await post({ folderPath: p, file: 'goal.md', title: 'The goal', text: 'A trailer.' });
+        assert.deepEqual(await post({ folderPath: p, file: 'goal.md', delete: true }), { ok: true, file: 'goal.md', forgotten: true });
+        assert.deepEqual(await fetch(`${base}/connector/memory${q(p)}`).then((r) => r.json()), { ok: true, notes: [] });
         const r = await fetch(`${base}/connector/memory/goal.md${q(p)}`, { method: 'DELETE' });
         assert.equal(r.status, 404);
     });

@@ -955,12 +955,12 @@ async function _memoryReply(res, work) {
  * The agent's notes about one project, `<project>/Agent/` (`services/agentMemory.mjs`):
  *   GET  /connector/memory?folderPath=        -> { ok, notes: [{ title, file, hook }] }
  *   GET  /connector/memory/:file?folderPath=  -> { ok, file, text }
- *   POST /connector/memory { folderPath, file, title, hook?, text } -> { ok, file, created }
+ *   POST /connector/memory { folderPath, file, title, hook?, text } -> { ok, file, created, warning? }
+ *   POST /connector/memory { folderPath, file, delete: true }       -> { ok, file, forgotten }
  * `scope=global` (query, or `scope: 'global'` in the POST body) is the GLOBAL notes in app
- * data instead, and takes no folderPath (MPI-774 Phase 6).
- * No delete route: the in-app agent never deletes (Fabio, 2026-09-16), and an outside
- * agent can remove a note file itself. Errors: BAD_REQUEST (400), NOT_A_PROJECT,
- * UNKNOWN_NOTE, NOTE_TOO_LONG, MEMORY_FULL.
+ * data instead, and takes no folderPath (MPI-774 Phase 6). A forget rides the POST, so
+ * there is no DELETE route; the file moves to `forgotten/` (Fabio, 2026-09-26).
+ * Errors: BAD_REQUEST (400), NOT_A_PROJECT, UNKNOWN_NOTE, NOTE_TOO_LONG, MEMORY_FULL.
  */
 router.get('/connector/memory', (req, res) =>
   _memoryReply(res, (m) => (req.query.scope === 'global' ? m.readGlobalIndex() : m.readIndex(req.query.folderPath))));

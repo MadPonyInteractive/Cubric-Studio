@@ -1122,3 +1122,74 @@ caught a job whose WINDOW went away mid-render, so that is what ends one now.
 |---|---|
 | `npm test` (whole suite) | **1974 tests, 1973 pass, 0 fail, 1 skipped** (live key) |
 | `npx eslint --max-warnings=0`, nine changed sources | clean |
+
+## LIVE 2026-09-26 ~19:13-19:16Z: global memory, Fabio's own app (session 545693a9)
+
+Fabio ran it his own way after a full restart. Two screenshots, checked against the disk.
+
+| Check | Evidence | Result |
+|---|---|---|
+| (1) a global note survives a restart and reaches another project | "Agent tests": "save a global note saying that for cartoon generations I prefer 3D style over 2D" -> step `NOTED FOR EVERY PROJECT: CARTOON GENERATION PREFERENCE`. Disk: `%APPDATA%\Cubric Studio\agent\memory\cartoon-style.md` + `README.md`, both 20:13:44 local; the folder did not exist before. Restart, then "Untitled Project" (no user notes: its `Agent/` holds only `unfinished-generations.md`): "a cartoon image of a fox and a squirrel" -> the agent read the note unasked and made "a warm, sunlit 3D cartoon scene per your preference" (Klein 9B, `t2i_001`). | **PASS**, stronger than asked: APPLIED, not just recalled |
+| (2) a plain note lands in the PROJECT | Not run. Indirect only: the global folder holds exactly one note, the one he asked for. Unit: `tests/agent-loop.test.cjs` "scope global writes..." asserts nothing reaches a project, and the default scope is `project`. | **not live-seen** |
+| (3) "do you remember things?" names both kinds | "Yes - I keep notes per project (and globally too, when you ask), and they survive restarts", then the three project notes. | **PASS** |
+
+**Found on the run, fixed red-first:** the global read in the Untitled project showed
+`READING A PROJECT NOTE` (the project had no user notes, so it was the global one).
+`_toolLabel` read_memory ignored `scope`. Now `Reading a global note` / `Reading global notes`
+(`services/agentLoop.mjs`); the "scope global writes..." test asserts the read label too, seen red
+first. Labels are not in the prompt or the tool schemas: budgets untouched.
+
+Also on the fox run: two `GENERATION NOT STARTED` steps before the one that ran, then a guide read.
+The refusals are in-loop (no connector line); the label is fix #2 above doing its job.
+
+Fabio asked: can the agent LIST global notes (yes: listed at the start of every conversation, and
+`read_memory` scope global) and DELETE them (no, by design: "agents never delete", Fabio
+2026-09-16, `agentMemory.mjs` header; it can REPLACE a note by the same file name).
+
+| Check | Result |
+|---|---|
+| `npm test` (whole suite) | **1983 tests, 1982 pass, 0 fail, 1 skipped** (live key) |
+| `npx eslint --max-warnings=0` on `services/agentLoop.mjs`, `tests/agent-loop.test.cjs` | clean |
+
+## The agent keeps its own notes tidy (Fabio 2026-09-26, built same session, NOT live-seen)
+
+Fabio, on the "agents never delete" answer: "The agent needs to be able to edit its own [notes],
+including deleting some... can you imagine an agent that has been saving global notes for a
+year?" Then: "sounds like a sound solution for version 1... later, a database or something."
+The old cap was a wall with no door: at 100 notes a new one was refused with "merge", and a merge
+left the merged note behind. Cards and projects stay the user's alone (the 09-16 rule was theirs).
+
+| What | Where | Test (red first, all 7 seen failing) |
+|---|---|---|
+| `delete: true` on the same POST forgets a note: its index line goes, the file MOVES to `forgotten/` (never listed or read, the user can get it back), user lines untouched; a miss is `UNKNOWN_NOTE` and creates nothing | `services/agentMemory.mjs` `_forgetIn` | `tests/agent-memory.test.cjs` "forgetting a note..." + global + route |
+| Cap 100 -> **50** a list; from **40** every write carries `warning: "N of 50 notes ...: merge or delete stale ones now"`; `MEMORY_FULL` names delete; forgetting one makes room | `agentMemory.mjs` `MAX_NOTES`, `WARN_NOTES` | "the caps..." |
+| `write_memory` schema: `delete` boolean, `required: ['file']`; title/hook descriptions shortened (the store's errors still name the limits) | `services/agentLoop.mjs` | "the tools say global..." |
+| Labels `Forgot: <file>` / `Forgot the global note: <file>`; both lists open with "N of 50" | `agentLoop.mjs` `_toolLabel`, `_projectNotesLine`, `_globalNotesLine` | "write_memory with delete...", "listed once" |
+| Route comment + `docs/agent-chat.md` (no DELETE route; delete rides the POST) | `routes/connector.js` (comment only), docs | route test keeps the DELETE 404 |
+
+Fabio's own projects hold at most 5 notes each (`Documents\Cubric Vision\Projects\*\Agent\README.md`), so the new cap bites nobody.
+
+| Check | Result |
+|---|---|
+| `npm test` (whole suite) | **1985 tests, 1984 pass, 0 fail, 1 skipped** (live key) |
+| `tests/agent-prompt-budget.test.cjs` | tool schemas **17,180** of 17,200 (unchanged: the trims pay for `delete`); system prompt untouched |
+| `npx eslint --max-warnings=0`, five changed sources | clean |
+
+**Owes Fabio's live pass after a restart:** (a) "my character is called Rook" -> `Noted: ...`, the
+note in the PROJECT's `Agent/`, not the global folder; (b) "forget my cartoon preference" ->
+`Forgot the global note: cartoon-style.md`, the file in `%APPDATA%\Cubric Studio\agent\memory\forgotten\`,
+gone from the list.
+
+## LIVE PASS 2026-09-26 ~20:30Z: forget + the project/global split (Fabio's app, after a restart)
+
+| Check | Evidence (screenshot + disk) | Result |
+|---|---|---|
+| A plain note lands in the PROJECT (the old check 2) | "The fox character in this project is called Mr. Foxy and the squirrel... Squirrelly" -> `NOTED: MR. FOXY & SQUIRRELLY` (no "for every project"). Disk: `Untitled Project\Agent\characters.md` + its README line; the global folder never got it. | **PASS** |
+| The global read label | Same turn and the next: `READING A GLOBAL NOTE`, `READING GLOBAL NOTES`. | **PASS** (the fix above, live) |
+| The agent forgets a global note | "Okay you can delete that note." -> `FORGOT THE GLOBAL NOTE: CARTOON-STYLE.MD`, "Global memory is now empty." Disk: global `README.md` has no note line (21:30:00 local), `forgotten\cartoon-style.md` holds the original text, written 20:13:44, moved not rewritten. | **PASS** |
+
+Noticed, not actioned: `characters.md` copies the global preference into the project ("Preferred
+style is 3D cartoon (global preference)"), so forgetting the global note leaves that copy behind
+in this project. A note restating another note goes stale when the source changes.
+
+MPI-774 Phase 6 (global memory) and MPI-817 Phase B are verified live. Nothing on this card owes a check.

@@ -32,6 +32,7 @@ import {
     FALLBACK_CONTEXT_WINDOW,
 } from './llmEngines.mjs';
 import * as realTools from './agentTools.mjs';
+import { MAX_NOTES } from './agentMemory.mjs';
 
 // ---------------------------------------------------------------------------
 // Tool definitions — OpenAI tools format
@@ -400,12 +401,13 @@ export const TOOL_DEFS = [
                 type: 'object',
                 properties: {
                     file: { type: 'string', description: 'A lowercase slug ending in .md.' },
-                    title: { type: 'string', description: 'A short title, at most 80 characters.' },
-                    hook: { type: 'string', description: 'One line on when the note matters, at most 160 characters.' },
+                    title: { type: 'string', description: 'A short title.' },
+                    hook: { type: 'string', description: 'One line on when the note matters.' },
                     text: { type: 'string', description: 'The note in Markdown, at most about 600 words.' },
                     scope: { type: 'string', enum: ['project', 'global'], description: 'Default project. global only when the user asks to keep it for every project.' },
+                    delete: { type: 'boolean', description: 'Forget this note.' },
                 },
-                required: ['file', 'title', 'text'],
+                required: ['file'],
                 additionalProperties: false,
             },
         },
@@ -991,7 +993,7 @@ export class AgentLoop {
         // The unfinished-generations note with nothing in it is not worth a line of context.
         const notes = (r.notes || []).filter((n) => !(n.file === UNFINISHED_FILE && n.hook === 'none'));
         if (!notes.length) return '[Project notes: none yet.]';
-        return `[Project notes you kept earlier (read_memory with a file for the whole note):\n${notes
+        return `[Project notes you kept earlier, ${r.notes.length} of ${MAX_NOTES} (read_memory with a file for the whole note):\n${notes
             .map((n) => `- ${n.file}: ${n.title}${n.hook ? ` (${n.hook})` : ''}`).join('\n')}]`;
     }
 
@@ -1007,7 +1009,7 @@ export class AgentLoop {
         if (!r?.ok) return '';
         this._globalListed = true;
         if (!r.notes?.length) return '';
-        return `[Global notes, kept for every project (read_memory with scope global and a file for the whole note):\n${r.notes
+        return `[Global notes, ${r.notes.length} of ${MAX_NOTES}, kept for every project (read_memory with scope global and a file for the whole note):\n${r.notes
             .map((n) => `- ${n.file}: ${n.title}${n.hook ? ` (${n.hook})` : ''}`).join('\n')}]`;
     }
 
@@ -1913,10 +1915,12 @@ ${knowledgeIndex}`.trim();
             case 'read_memory':
             case 'write_memory': {
                 // Global notes need no project: the landing page can save one (MPI-774 Phase 6).
+                // `delete` goes on only when asked: a note write keeps its exact old shape.
+                const forget = args.delete === true ? { delete: true } : {};
                 if (args.scope === 'global') {
                     const r = toolName === 'read_memory'
                         ? await this._tools.readGlobalMemory(args.file)
-                        : await this._tools.writeGlobalMemory({ file: args.file, title: args.title, hook: args.hook, text: args.text });
+                        : await this._tools.writeGlobalMemory({ file: args.file, title: args.title, hook: args.hook, text: args.text, ...forget });
                     return JSON.stringify(r);
                 }
                 // The project is the one the app has open, never a path the model names.
@@ -1932,7 +1936,7 @@ ${knowledgeIndex}`.trim();
                 }
                 const r = toolName === 'read_memory'
                     ? await this._tools.readMemory(currentProject.folderPath, args.file)
-                    : await this._tools.writeMemory(currentProject.folderPath, { file: args.file, title: args.title, hook: args.hook, text: args.text });
+                    : await this._tools.writeMemory(currentProject.folderPath, { file: args.file, title: args.title, hook: args.hook, text: args.text, ...forget });
                 return JSON.stringify(r);
             }
             default:
@@ -2547,9 +2551,14 @@ function _toolLabel(toolName, args) {
         case 'edit_gif':       return 'Editing a GIF';
         case 'cutout_gif':     return 'Cutting out the subject';
         case 'gif_to_video':   return 'Turning a GIF into a video';
-        case 'read_memory':    return args.file ? 'Reading a project note' : 'Reading project notes';
-        case 'write_memory':   return _isUnfinishedFile(args.file) ? 'Checking unfinished generations'
-            : `${args.scope === 'global' ? 'Noted for every project' : 'Noted'}: ${args.title || args.file || ''}`;
+        case 'read_memory': {
+            const kind = args.scope === 'global' ? 'global' : 'project';
+            return args.file ? `Reading a ${kind} note` : `Reading ${kind} notes`;
+        }
+        case 'write_memory':
+            if (_isUnfinishedFile(args.file)) return 'Checking unfinished generations';
+            if (args.delete === true) return `${args.scope === 'global' ? 'Forgot the global note' : 'Forgot'}: ${args.file || ''}`;
+            return `${args.scope === 'global' ? 'Noted for every project' : 'Noted'}: ${args.title || args.file || ''}`;
         default:               return toolName;
     }
 }

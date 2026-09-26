@@ -26,9 +26,11 @@ Start with `/list-projects` to get an id, then `/get-project` for its contents.
 The in-app agent keeps Markdown notes per project, and any agent can read and add to them.
 `GET /connector/memory?folderPath=<project>` lists `{ notes: [{ title, file, hook }] }`,
 `GET /connector/memory/<file>?folderPath=<project>` reads one, and
-`POST /connector/memory { folderPath, file, title, text, hook? }` creates or replaces one.
-`file` is a lowercase slug ending in `.md`; a note holds 4 KB and a project 100 notes. There
-is no delete route: the notes are plain files in `<project>/Agent/`, indexed by `README.md`.
+`POST /connector/memory { folderPath, file, title, text, hook? }` creates or replaces one, and
+`POST /connector/memory { folderPath, file, delete: true }` forgets one (the file moves to
+`<project>/Agent/forgotten/`; there is no DELETE route). `file` is a lowercase slug ending in
+`.md`; a note holds 4 KB and a project 50 notes, and from 40 a write answers with a `warning`
+to merge or delete stale ones. The notes are plain files in `<project>/Agent/`, indexed by `README.md`.
 
 **`/update-project` merges `updates`, not a whole project.** The body is
 `{folderPath, updates}` and the route spreads `updates` over the record. Send the
