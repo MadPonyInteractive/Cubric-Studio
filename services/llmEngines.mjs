@@ -486,7 +486,7 @@ export const RECOMMENDED_REMOTE_MODELS = {
         // `agentTest` (MPI-912, Fabio 2026-09-26): the agent dropdown lists every model that
         // ran `scripts/agent-test.mjs` on top, with its score and measured cost per chat, and
         // the user chooses; no "recommended" label on the agent row. Numbers from
-        // `.agents/mpi-kanban/tasks/MPI-916/validation.md` § 2f. `perChat` is USD per
+        // `.agents/mpi-kanban/tasks/MPI-916/validation.md` § 2f (Qwen3.6: § 4). `perChat` is USD per
         // conversation (suite cost / conversations), fixed at test time, not a live price.
         { id: 'deepseek-ai/DeepSeek-V4-Flash-0731', jobs: ['agent'], contextWindow: 1_048_576, reasoningEffort: 'low',
             agentTest: { passed: 23, cases: 23, runs: 3, perChat: 0.0036 } },
