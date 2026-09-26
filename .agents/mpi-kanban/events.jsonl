@@ -5080,3 +5080,6 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-846", "at": "2026-09-26T16:46:11+01:00", "actor": "ab9e6fd6", "from": "todo", "to": "doing", "reason": "Closing the umbrella: every member done."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-846", "at": "2026-09-26T16:46:12+01:00", "actor": "ab9e6fd6", "from": "doing", "to": "done", "reason": "All seven members done."}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-932", "at": "2026-09-26T16:46:14+01:00", "actor": "ab9e6fd6", "from": "doing", "to": "done", "reason": "Every phase closed; MPI-909 verified, master green."}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-939", "at": "2026-09-26T17:15:20+01:00", "actor": "claude", "column": "todo", "title": "Portable log path in the CLAUDE.md router, and the private 1.6.x build recipe in mpi-release"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-939", "at": "2026-09-26T17:15:43+01:00", "actor": "claude", "from": "todo", "to": "doing"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-939", "at": "2026-09-26T17:16:35+01:00", "actor": "claude", "from": "doing", "to": "done"}

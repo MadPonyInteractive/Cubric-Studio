@@ -1,0 +1,9 @@
+{
+  "schema": "mpi-kanban/task-files/v1",
+  "files": [
+    ".agents/mpi-kanban/tasks/MPI-939/",
+    "CLAUDE.md",
+    ".claude/skills/mpi-release/SKILL.md"
+  ],
+  "note": "Doc-only heals from the MPI-938 close-out."
+}

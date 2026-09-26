@@ -105,6 +105,27 @@ mandatory user-facing copy gates). The version file edits belong to
   ComfyUI's own validation passed it. **Pod-green is not Windows-green** — the local
   portable half is the playbook's gate 5 and this check does not cover it.
 
+## Private 1.6.x build (hand-delivered, never published)
+
+None of the numbered Steps below apply: no `mpi-version-bump`, no CI, no tag, no
+GitHub Release. The recipe is a card checklist, done three times (MPI-720, MPI-782,
+MPI-938); **copy [`MPI-938/checklist.md`](../../../.agents/mpi-kanban/tasks/MPI-938/checklist.md)
+into a new card and follow its `validation.md` as the worked example.** In short:
+stamp the version triple by hand, add `RELEASE_NOTES['<ver>']` for its one reader, build
+from the detached worktree `D:/tmp/cv-720` with `--clean --platform win32 --arch x64
+--from-manifest <previous *.baseline-manifest.json in Builds> --no-source-manifest`,
+apply the delta over a copy of the previous stage **with that stage's own
+`update-from-zip.bat`**, hash the patched tree against the new full manifest, then save the
+new baseline and a `READ-ME-FIRST.md` beside the zip. Two traps:
+
+- **Fabio writes the approval token, not you.** `release-notes-approval.mjs approve
+  --yes` is classifier-denied for agents even on the private line. Show him the entry,
+  hand him `npm run release:approve -- --version <ver>`, and build only after.
+- **A delta over a pre-rename baseline retires `CubricVision.exe`.** Any baseline that
+  lists it (every 1.6.0/1.6.1 one) makes the delta delete it via `RETIRED_PATHS`; the
+  running exe is evicted to `CubricVision.exe.old`, which is never swept. The note must
+  tell the tester to launch and re-pin `CubricStudio.exe`.
+
 ## Steps
 
 ### 1. Stamp the version — via mpi-version-bump
