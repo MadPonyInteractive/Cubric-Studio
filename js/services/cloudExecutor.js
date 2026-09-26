@@ -244,10 +244,24 @@ export function runCloudCommand(payload) {
             exec.onError?.(Object.assign(new Error(code), { code, userMessage }));
         };
 
+        // Stopped at any point. After the send a Stop leaves `controller` alone (the result
+        // is paid for), so only the store's own signal records it.
+        const _stopped = () => controller.signal.aborted || generationStore.getSignal(jobId)?.aborted === true;
+
         const _settleCancelled = () => {
             generationStore.advance(jobId, PHASES.CANCELLED);
             Events.emit('tool:indeterminate', { tool: 'groupHistory', id: payload.genId ?? null, active: false });
             exec.onError?.(new Error('cancelled_before_dispatch'));
+        };
+
+        // A run the user Stopped and the provider then failed (MPI-937) was not billed and
+        // has no result coming, so it ends the way a Stop ends. The dialog is for a run the
+        // user still wanted; this one is only worth a log line.
+        const _settleFailure = (code, message) => {
+            if (!_stopped()) { _settleError(code, message); return; }
+            clientLogger.warn('cloudExecutor',
+                `Stopped cloud generation then failed (${payload.operation} / ${payload.modelId}): ${code}${message ? ` - ${message}` : ''}`);
+            _settleCancelled();
         };
 
         const model = getModelById(payload.modelId);
@@ -297,7 +311,7 @@ export function runCloudCommand(payload) {
             });
         } catch (err) {
             if (controller.signal.aborted) { _settleCancelled(); return; }
-            _settleError('PROVIDER_ERROR', err?.message);
+            _settleFailure('PROVIDER_ERROR', err?.message);
             return;
         }
 
@@ -310,7 +324,7 @@ export function runCloudCommand(payload) {
 
         if (controller.signal.aborted) { _settleCancelled(); return; }
         if (!res.ok || !body?.ok) {
-            _settleError(body?.error?.code || 'PROVIDER_ERROR', body?.error?.message);
+            _settleFailure(body?.error?.code || 'PROVIDER_ERROR', body?.error?.message);
             return;
         }
 

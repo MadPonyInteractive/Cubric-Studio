@@ -1,0 +1,8 @@
+{
+  "files": [
+    "js/services/cloudExecutor.js",
+    "js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js",
+    "tests/cloud-executor.test.cjs",
+    "tests/desktop/cancelled-mascot.spec.js"
+  ]
+}

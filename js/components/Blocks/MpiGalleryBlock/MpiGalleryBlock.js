@@ -1753,6 +1753,14 @@ export const MpiGalleryBlock = ComponentFactory.create({
         _unsubs.push(Events.on('generation:error', ({ id, tempId: tid, extraTempIds = [] }) => {
             const _bridged = _stoppedPendingComplete.delete(id);
             if (!_myGenIds.has(id) && !_bridged) return;
+            // MPI-937: a Stopped cloud run kept cooking for its paid result, and it failed
+            // instead. Nothing is coming, so it gets the walk-off its Stop put off.
+            if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                for (const t of [tid, ...extraTempIds].filter(Boolean)) {
+                    const g = _cancelledPlaceholders.get(t);
+                    if (g && !g.isCancelled) _cancelledPlaceholders.set(t, { ...g, isCancelled: true });
+                }
+            }
             // A Stopped cloud job settles through onError, right after the Stop (MPI-929):
             // a card mid walk-off is `cancel-shown`'s to remove, not this one's.
             const walkingOff = (t) => _cancelledPlaceholders.get(t)?.isCancelled === true;

@@ -130,6 +130,31 @@ test('gallery: a Stopped card plays the op mascot cancelled once, then goes', as
     });
     await expect.poll(mascotSrcs, { timeout: 1500 }).toEqual([]);
 
+    // 5b. MPI-937: that paid result FAILED instead (seen live, nano-banana-2). Nothing is
+    //     coming, so the card gets the walk-off its Stop put off, then goes.
+    await window.evaluate(async () => {
+      const { activeGenerations } = await import('/js/services/activeGenerations.js');
+      const { state } = await import('/js/state.js');
+      activeGenerations.start({
+        id: 'mpi937-f', scope: 'gallery', tempId: 'mpi937-f-tmp', operation: 't2i',
+        exec: { cancel() {}, stopKeepsResult: true },
+        projectPath: state.currentProject.folderPath,
+        placeholderGroup: { id: 'mpi937-f-tmp', type: 'image', name: 'Generating...', selectedIndex: 0, width: 1024, height: 1024,
+          history: [{ id: 'x', operation: 't2i', inputPreview: true }], isGenerating: true },
+      });
+    });
+    await expect.poll(mascotSrcs).toContain('assets/mascot/vision/getting-ready.webm');
+    await stop('mpi937-f');
+    await window.waitForTimeout(500);
+    expect(await mascotSrcs()).not.toContain('assets/mascot/vision/cancelled.webm');
+    await window.evaluate(async () => {
+      const { Events } = await import('/js/events.js');
+      Events.emit('generation:error', { id: 'mpi937-f', tempId: 'mpi937-f-tmp', extraTempIds: [] });
+    });
+    await expect.poll(() => clip()).toMatchObject({ src: 'assets/mascot/vision/cancelled.webm', loop: false });
+    await expect.poll(async () => (await clip())?.t ?? 0, { timeout: 3000 }).toBeGreaterThan(0.5);
+    await expect.poll(mascotSrcs, { timeout: 9000 }).toEqual([]);
+
     // 6. MPI-928: the card that landed says why a Stopped run is in the gallery; others do not.
     const badgeText = () => window.evaluate(() =>
       [...document.querySelectorAll('.mpi-group-card__top-badge-row--charged')].map(r => r.textContent));

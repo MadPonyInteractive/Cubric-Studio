@@ -204,6 +204,32 @@ test('a Stop once the run is SENT keeps the paid result: it lands, marked as Sto
     assert.equal(jobOf(exec).cancelling, true);
 });
 
+// MPI-937: seen live on nano-banana-2 — Stopped as it started, the provider then failed,
+// and the user got "Cloud generation failed" for a run they had already Stopped.
+test('a Stop once SENT, then a provider failure, ends as a Stop: no error dialog', async () => {
+    const { Events } = require('../js/events.js');
+    const seen = [];
+    const off = Events.on('ui:error', (p) => seen.push(p.title));
+    const realFetch = global.fetch;
+    // Only the generation route fails; the log line a failure writes is a fetch too.
+    global.fetch = async (url) => url === '/deepinfra/generate'
+        ? new Promise((resolve) => setTimeout(() => resolve({ ok: false, status: 500,
+            json: async () => ({ ok: false, error: { code: 'PROVIDER_ERROR' } }) }), 60))
+        : okResponse();
+    const exec = runCloudCommand({ genId: 'gen-1', modelId: MODEL_ID, operation: 't2i', positive: 'a cube' });
+    const ended = new Promise((resolve) => {
+        exec.onComplete = () => resolve({ outcome: 'complete' });
+        exec.onError = (err) => resolve({ outcome: 'error', err });
+    });
+    await new Promise(r => setTimeout(r, 20)); // the POST is in flight
+    exec.cancel();
+    const r = await ended.finally(() => { global.fetch = realFetch; off(); });
+    assert.equal(r.outcome, 'error');
+    assert.equal(r.err.code, undefined, 'a Stop carries no provider code to report');
+    assert.deepEqual(seen, []);
+    assert.equal(jobOf(exec).phase, PHASES.CANCELLED);
+});
+
 test('the card clock starts when the run is SENT, not when the finished answer comes back', async () => {
     const calls = [];
     const realFetch = global.fetch;
@@ -289,8 +315,8 @@ test('no exit from the dispatch body returns without settling the store job', ()
         // Safe either inline (`{ _settleCancelled(); return; }`) or with the settle on one
         // of the two lines above (`_settleError(...)` then a bare `return;`).
         const window = [lines[i], lines[i - 1] || '', lines[i - 2] || ''].join('\n');
-        assert.match(window, /_settleError\(|_settleCancelled\(/,
-            `cloudExecutor.js:${i + 1} returns without settling — the cloud lane wedges. Route it through _settleError/_settleCancelled.`);
+        assert.match(window, /_settleError\(|_settleCancelled\(|_settleFailure\(/,
+            `cloudExecutor.js:${i + 1} returns without settling — the cloud lane wedges. Route it through _settleError/_settleCancelled/_settleFailure.`);
     }
     // A scanner that finds nothing to check passes against any file at all.
     assert.ok(checked >= 5, `expected the bail returns to exist, found ${checked}`);
