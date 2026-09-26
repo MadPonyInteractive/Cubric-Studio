@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-947",
+  "title": "Settings > Connect an agent: one-click setup for Claude Desktop, Claude Code, Codex and Antigravity",
+  "description": "MPI-593 member, 2.0. A Settings page that connects the known agent apps automatically where it can, and shows the plain MCP address plus instructions for any other agent. See brief.md.",
+  "column": "todo",
+  "maturity": "research",
+  "status": "active",
+  "created_at": "2026-09-27T00:00:07+01:00",
+  "updated_at": "2026-09-27T00:00:07+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

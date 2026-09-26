@@ -5,7 +5,12 @@ and stays; its record is in `validation.md`. The CLI (old steps 2 and 3) is drop
 
 ## Current State
 
-**MPI-874 BUILT and verified 2026-09-26 (session b5b35494), not yet committed.** A Flow
+**Next: MPI-947** (created 2026-09-26, `todo`/`research`): Settings > Connect an agent, with
+AUTOMATIC setup for Claude Desktop, Claude Code, Codex and Antigravity where provable, and the
+plain MCP URL + instructions for any other agent (Fabio: the 09-25 "conventional installs" rule
+was about staying open to any agent, not a ban on automation). Brief: `tasks/MPI-947/brief.md`.
+
+**MPI-874 DONE 2026-09-26 (session b5b35494): `3006bb999` (CI green), closed `44b921b95`, docs `846fb9bf1`.** A Flow
 never dropped `cardName`. The unnamed cards were Add to project copies, and `add-from-cards`
 now keeps `customName`. A live Flow `cardName` into a CLOSED project PASSED over `/mcp`
 (`tasks/MPI-874/validation.md`), which closes the path MPI-873 left unproven live. Left on
@@ -107,7 +112,8 @@ A change there goes through a message to that session, never a direct edit.
 
 1. **DONE 2026-09-26.** Build the `.mcpb` in the release flow and attach it to each GitHub release (`mpi-release`).
 2. Settings > "Connect an agent": per-client instructions to copy, and the `.mcpb` download.
-   UI work, a separate card.
+   UI work, a separate card: **MPI-947** (created 2026-09-26). Fabio: connect the known clients
+   AUTOMATICALLY where possible, keep instructions + the MCP URL for any other agent.
 3. **Codex needs a plugin, not just `codex mcp add`** (2026-09-26): its MCP tools are always
    deferred and our `instructions` never reach the model, so a skill must say where the tools
    are. Try the Claude Code plugin below as the Codex plugin too (`codex.exe` reads
