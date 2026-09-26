@@ -475,7 +475,9 @@ export const MpiGalleryBlock = ComponentFactory.create({
 
             const cards = g.map(group => {
                 const item = getSelectedItem(group);
-                return item ? { type: group.type, name: group.name, item } : null;
+                // `customName` is what the user (or an agent's `cardName`) called it: a copy
+                // without it lands as `flowOutpaint_003` (MPI-874).
+                return item ? { type: group.type, name: group.name, customName: group.customName, item } : null;
             }).filter(Boolean);
             if (!cards.length) return;
 

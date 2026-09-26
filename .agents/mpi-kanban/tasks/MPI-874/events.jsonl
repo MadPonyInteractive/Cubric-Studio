@@ -1,1 +1,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-874", "at": "2026-09-21T11:58:15+01:00", "actor": "claude", "column": "todo", "title": "cardName is silently ignored on a Flow submit"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-874", "at": "2026-09-26T20:36:36+01:00", "actor": "b5b35494", "from": "todo", "to": "doing", "reason": "Implementation started: premise disproved; repurposed to Add to project dropping the card name (Fabio, A+B+C)."}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "at": "2026-09-26T19:37:04Z", "actor": "b5b35494", "id": "MPI-874", "summary": "Updated activeSessionTitle, description, title"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "at": "2026-09-26T19:42:32Z", "actor": "b5b35494", "id": "MPI-874", "summary": "Updated maturity, status"}
+{"schema": "mpi-kanban/event/v1", "type": "validation.updated", "at": "2026-09-26T19:42:45Z", "actor": "b5b35494", "id": "MPI-874", "summary": "A+B+C verified: 13/13 targeted, full suite 0 fail, live Flow cardName into a closed project PASSED. Close-out (commit, CI) remains."}

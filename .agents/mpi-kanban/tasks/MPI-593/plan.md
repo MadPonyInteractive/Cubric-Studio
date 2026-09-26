@@ -5,6 +5,13 @@ and stays; its record is in `validation.md`. The CLI (old steps 2 and 3) is drop
 
 ## Current State
 
+**MPI-874 BUILT and verified 2026-09-26 (session b5b35494), not yet committed.** A Flow
+never dropped `cardName`. The unnamed cards were Add to project copies, and `add-from-cards`
+now keeps `customName`. A live Flow `cardName` into a CLOSED project PASSED over `/mcp`
+(`tasks/MPI-874/validation.md`), which closes the path MPI-873 left unproven live. Left on
+MCP: the docs-site draft, plus the two 2.0-gated items and the two stale-doc edits listed in
+handoff `59791c08`.
+
 **Phase 1 spike is DONE and verified (2026-09-25).** Files: `routes/mcp.js`, one mount line in
 `server.js`, `mcp/cubric-studio/` (manifest + bridge), `tests/mcp.test.cjs` (10/10). Evidence
 in `validation.md`. Fabio verified Claude Desktop and Codex against his own app. The three decisions are in

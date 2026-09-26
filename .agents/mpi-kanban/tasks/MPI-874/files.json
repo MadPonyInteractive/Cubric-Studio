@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js", "routes/projects.js", "tests/project-copy-item.test.cjs", "tests/agent-target-project.test.cjs"] }

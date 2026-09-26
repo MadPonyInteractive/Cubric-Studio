@@ -1,13 +1,13 @@
 {
   "schema": "mpi-kanban/task-card/v1",
   "id": "MPI-874",
-  "title": "cardName is silently ignored on a Flow submit",
-  "description": "",
-  "column": "todo",
-  "maturity": "planned",
+  "title": "Add to project drops a card's name (was: cardName ignored on a Flow submit)",
+  "description": "The Flow-path premise was false: the unnamed cards were Add-to-project copies, which wrote customName null. Fix the copy; pin nameCard's open branch; prove a Flow cardName into a closed project live. Evidence in validation.md.",
+  "column": "doing",
+  "maturity": "validating",
   "status": "active",
   "created_at": "2026-09-21T11:58:15+01:00",
-  "updated_at": "2026-09-21T11:58:15+01:00",
+  "updated_at": "2026-09-26T19:42:32Z",
   "links": {
     "brief": "brief.md",
     "plan": "plan.md",
@@ -17,5 +17,6 @@
     "events": "events.jsonl",
     "handoffs": "handoffs/",
     "research": "research/"
-  }
+  },
+  "activeSessionTitle": "MPI-874: Add to project keeps the card name; live Flow cardName into a closed project"
 }

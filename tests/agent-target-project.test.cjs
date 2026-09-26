@@ -97,6 +97,23 @@ test('a card name reaches a card that landed in a closed project, on disk shape'
     } finally { f.restore(); state.currentProject = null; }
 });
 
+// MPI-874: the branch every run into the OPEN project takes, a Flow's included — the card is
+// already in `state.currentProject` (the gallery path awaits `addGroup` first), so it is
+// named there and never written server-side, even when a closed target was passed.
+test('a card name reaches a card in the open project through the project, not the server', async () => {
+    const { nameCard } = await esm('js/shell/agentDispatch.js');
+    const { state } = await esm('js/state.js');
+    const group = { id: 'g-flow', type: 'image', name: 'flowOutpaint_001', history: [], selectedIndex: 0, customName: null };
+    state.currentProject = { ...OPEN, itemGroups: [group] };
+    const f = stubFetch(() => reply(200, { success: true }));
+    try {
+        const named = await nameCard(group, ' Pony 4:5 ', { folderPath: 'C:/Projects/Boats' });
+        assert.equal(named.customName, 'Pony 4:5');
+        assert.equal(state.currentProject.itemGroups[0].customName, 'Pony 4:5');
+        assert.ok(!f.calls.some(c => c.url === '/project-groups'), 'no server write for a card the open project holds');
+    } finally { f.restore(); state.currentProject = null; }
+});
+
 test('findProjectByFolder matches any case, either slash, a trailing slash', () => {
     const { findProjectByFolder } = require('../routes/connector');
     const list = [{ folderPath: 'C:\\Projects\\Boats' }, { folderPath: 'D:/Other' }];

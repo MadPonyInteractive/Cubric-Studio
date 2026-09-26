@@ -182,3 +182,35 @@ test('add-from-cards still builds a card per copy after the extraction', async (
         await fs.remove(dest);
     }
 });
+
+// MPI-874: the copy was hard-coded `customName: null`, so five named Flow cards copied into
+// another project on 2026-09-21 arrived as `flowOutpaint_00N` and read as "cardName was
+// dropped". A card with no name still arrives with none, and a non-string is not a name.
+test('add-from-cards keeps each card\'s name, and only a real one', async () => {
+    const seed = await seedProject();
+    const dest = await fs.mkdtemp(path.join(os.tmpdir(), 'mpi874-dest-'));
+    await fs.writeJson(path.join(dest, 'project.json'), { id: 'p2', name: 'Dest', itemGroups: [] });
+    try {
+        await withServer(async (base) => {
+            const res = await fetch(`${base}/project-media/p2/add-from-cards`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    folderPath: dest,
+                    cards: [
+                        { type: 'image', name: 'krea_012', customName: '  Mirror demon ', item: seed.item },
+                        { type: 'image', name: 'krea_012', item: seed.item },
+                        { type: 'image', name: 'krea_012', customName: { evil: true }, item: seed.item },
+                    ],
+                }),
+            });
+            assert.equal(res.status, 200);
+            const { itemGroups } = await fs.readJson(path.join(dest, 'project.json'));
+            assert.deepEqual(itemGroups.map(g => g.customName), ['Mirror demon', null, null]);
+            assert.ok(itemGroups.every(g => g.name === 'krea_012'), 'the generated name is untouched');
+        });
+    } finally {
+        await fs.remove(seed.folderPath);
+        await fs.remove(dest);
+    }
+});

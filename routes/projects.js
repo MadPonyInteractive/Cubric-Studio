@@ -2527,7 +2527,8 @@ router.post('/project-media/:projectId/add-from-cards', async (req, res) => {
                 open:          false,
                 favourite:     false,
                 archived:      false,
-                customName:    null,
+                // The copy keeps the card's name (MPI-874); the source is untouched either way.
+                customName:    typeof card.customName === 'string' && card.customName.trim() ? card.customName.trim() : null,
                 history:       [copied.id],
             });
         }
