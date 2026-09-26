@@ -32,6 +32,41 @@
     transition: opacity var(--t-fast) var(--ease);
 }
 
+/* Head peeks (MPI-909). The framing is Cosmo's landing ledge (MpiAgentChat.css): every
+   peek.webm is cut by its own frame at the bottom, so the clip sits on the box's top rule
+   with `bottom: 0` and a window just taller than the head shows only what clears it.
+   --peek-x is set per peek by the JS: a random spot either side of the lock button. */
+.mpi-prompt-box__peek {
+    --peek-w: 182px;                                /* the clip box, so the head is ~52px */
+    position: absolute;
+    bottom: 100%;
+    left: var(--peek-x, 35%);
+    transform: translateX(-50%);
+    width: var(--peek-w);
+    height: calc(var(--peek-w) * 62 / 182);
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--t-fast) var(--ease);
+}
+
+.mpi-prompt-box__peek--live {
+    opacity: 1;
+}
+
+.mpi-prompt-box__peek-clip {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mpi-prompt-box__peek {
+        transition: none;
+    }
+}
+
 /* Operation strip — HOVERS above the bar, right-aligned, same layer as the
    media chips (MPI-356). Deliberately not a grid row: the bar has to keep its
    compact height so it never covers the gallery grid or the history canvas.

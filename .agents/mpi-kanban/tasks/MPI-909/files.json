@@ -1,0 +1,7 @@
+{
+  "files": [
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.js",
+    "js/components/Organisms/MpiPromptBox/MpiPromptBox.css",
+    "tests/desktop/prompt-box-peek.spec.js"
+  ]
+}

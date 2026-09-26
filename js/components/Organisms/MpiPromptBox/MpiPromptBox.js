@@ -100,6 +100,13 @@ export const MpiPromptBox = ComponentFactory.create({
         <div class="mpi-prompt-box">
             <div class="mpi-prompt-box__lock-container" id="expand-lock-slot"></div>
 
+            <!-- MPI-909: the selected model's mascot peeks over the top edge now and then.
+                 Before the strips in DOM order, so the chips and ops paint over it. -->
+            <div class="mpi-prompt-box__peek" aria-hidden="true">
+                <video class="mpi-prompt-box__peek-clip" id="prompt-box-peek"
+                       muted playsinline preload="auto"></video>
+            </div>
+
             ${props.model ? `
             <div class="mpi-prompt-box__drop-overlay">
                 <span class="mpi-prompt-box__drop-overlay-icon">${renderIcon('media', 'md')}</span>
@@ -815,8 +822,44 @@ export const MpiPromptBox = ComponentFactory.create({
             return supported[0];
         }
 
+        // ── Head peeks (MPI-909) ─────────────────────────────────────────────────
+        // A model SELECTION plays the model's peek once; a mount only arms the timer, so
+        // walking Gallery <-> History does not replay it. After that it comes back now and
+        // then at a random spot either side of the lock button (top centre), which keeps it
+        // clear of the chips on the left and the op strip on the right.
+        const _peekWrap = qs('.mpi-prompt-box__peek', el);
+        const _peekClip = qs('#prompt-box-peek', el);
+        const _PEEK_LIVE = 'mpi-prompt-box__peek--live';
+        let _peekTimer = null;
+        let _peekModelId = null;
+        function _playPeek() {
+            clearTimeout(_peekTimer);
+            if (!document.hidden && _peekClip.getAttribute('src')) {
+                const band = Math.random() < 0.5 ? 28 : 58;
+                _peekWrap.style.setProperty('--peek-x', `${band + Math.random() * 14}%`);
+                _peekClip.currentTime = 0;
+                _peekClip.play().catch(() => {});
+                _peekWrap.classList.add(_PEEK_LIVE);
+            }
+            // ponytail: 25-60 s by feel; tune here if it reads as too busy or too rare.
+            _peekTimer = setTimeout(_playPeek, 25000 + Math.random() * 35000);
+        }
+        function _peekForModel(m) {
+            if (!m || m.id === _peekModelId) return;
+            const first = _peekModelId === null;
+            _peekModelId = m.id;
+            // Named for the mascot, as getCommandAccent: image -> vision (Prism).
+            const key = m.mediaType === 'image' ? 'vision' : (m.mediaType || 'studio');
+            _peekClip.src = `assets/mascot/${key}/peek.webm`;
+            if (first) _peekTimer = setTimeout(_playPeek, 25000 + Math.random() * 35000);
+            else _playPeek();
+        }
+        _unsubs.push(on(_peekClip, 'ended', () => _peekWrap.classList.remove(_PEEK_LIVE)));
+        _peekForModel(model);
+
         el.setModel = (newModel) => {
             model = newModel;
+            _peekForModel(model);
             _currentModelType = newModel?.mediaType ?? _currentModelType;
             const picked = _pickOpForModel(newModel);
             if (picked && picked !== activeOperation) {
@@ -844,6 +887,7 @@ export const MpiPromptBox = ComponentFactory.create({
             if (!stillPresent) {
                 const next = modelList[0] ?? null;
                 model = next;
+                _peekForModel(model);
                 _currentModelType = next?.mediaType ?? _currentModelType;
                 if (next) {
                     nextOp = _pickOpForModel(next) ?? next.supportedOps?.[0] ?? activeOperation;
@@ -2711,6 +2755,10 @@ export const MpiPromptBox = ComponentFactory.create({
         // ── Cleanup ─────────────────────────────────────────────────────────────
         el.destroy = () => {
             _unsubs.forEach(fn => fn());
+            clearTimeout(_peekTimer);
+            _peekClip.pause();
+            _peekClip.removeAttribute('src');
+            _peekClip.load();
             _negBtn?.destroy?.();
             for (const strip of _opStrips) strip.destroy?.();
             _opStrips = [];

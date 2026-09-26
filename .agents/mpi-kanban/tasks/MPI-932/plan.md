@@ -11,11 +11,9 @@ re-run passed on 58138dcb). MPI-928/929 closed (code 5a74d23e, CI green; close 8
 Stop after the POST keeps the paid result (card badge CHARGED AFTER STOP), the cancel clip no
 longer gets cut by generation:error, and the cloud card clock starts at send (was "1s").
 Fabio: LOCAL card clock stays as is (cloud only).
-NEXT: Phase 4, MPI-909 (todo/blocked). Its blocker is claim
-.agents/mpi-kanban/state/files/131f8d6c-1933-42ab-becd-93a88318f5d4.json on MpiPromptBox.js/.css:
-owner da9175f5 did MPI-852, CLOSED 2026-09-22, files clean. Fabio was asked 2026-09-26 whether to
-release it - get his yes, set its status "complete", then move 909 todo -> doing and build.
-Then MPI-842 (ask Fabio: still wanted?), close MPI-846, then this card.
+(2026-09-26, session ab9e6fd6) Phase 4: MPI-909 DONE - prompt box head peeks, Fabio verified in the
+app; tests/desktop/prompt-box-peek.spec.js. NEXT: MPI-842 (ask Fabio: still wanted?), close
+MPI-846, then this card.
 
 ## Members, in order
 
