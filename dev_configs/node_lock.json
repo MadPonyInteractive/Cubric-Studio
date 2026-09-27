@@ -138,13 +138,6 @@
       "filename": "ComfyUI-MelodramaBox",
       "installRequirements": true
     },
-    "ComfyUI-SplatKit": {
-      "source": "git-commit",
-      "repo": "mickmumpitz/ComfyUI-SplatKit",
-      "commit": "f59de2529772b01ffa627545552a00d812af7475",
-      "filename": "ComfyUI-SplatKit",
-      "installRequirements": true
-    },
     "ComfyUI-Mickmumpitz-Nodes": {
       "source": "git-commit",
       "repo": "mickmumpitz/ComfyUI-Mickmumpitz-Nodes",

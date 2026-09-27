@@ -363,30 +363,15 @@ export const nodesDeps = {
         size: '0.3MB',
     },
 
-    // MPI-623. The 3D-scene pipeline's two third-party packs, both MIT, both pinned by
-    // git commit at the Phase 0 SHAs. SplatKit builds the COLMAP dataset (it produces
-    // datasets, never a trained splat - the training is Brush, a native binary); the
-    // Mickmumpitz pack carries the MickmumpitzPano* nodes the equirect half needs.
+    // MIT, pinned by git commit. Carries the MickmumpitzPano* nodes: the shipped Outpaint
+    // Flow uses MickmumpitzPanoHarmonizeBoundary, and MPI-623's equirect half uses the rest.
+    // Requirements (numpy, Pillow, opencv-python, ultralytics) are covered by the curated
+    // dev_configs/python_deps.in set like every other baked node; nothing compiled, no torch.
     //
-    // SplatKit FETCHES TWO THINGS AT RUNTIME, neither of them declared here yet: the MoGe
-    // checkpoint (-> ComfyUI/models/MoGe) and a colmap_sphere SphereSfM binary (-> bin/,
-    // SHA-256 verified, per-platform, BSD-3-Clause - its NOTICE must ship if we ever
-    // redistribute it). Pre-staging MoGe as a real dep is the remaining half of the card's
-    // dependency task, and it needs an R2 upload; these two pins do not.
-    //
-    // Requirements are covered by the curated dev_configs/python_deps.in set like every
-    // other baked node - SplatKit declares opencv-python, trimesh, scikit-image, click,
-    // matplotlib and huggingface_hub; the Mickmumpitz pack numpy, Pillow, opencv-python
-    // and ultralytics. Nothing in either is compiled and neither pins torch.
-    'ComfyUI-SplatKit': {
-        id: 'ComfyUI-SplatKit',
-        name: 'ComfyUI SplatKit',
-        type: 'custom_nodes',
-        filename: 'ComfyUI-SplatKit',
-        url: lockUrl('ComfyUI-SplatKit'),
-        installRequirements: true,
-        size: '0.55MB',
-    },
+    // Its 3D-scene partner ComfyUI-SplatKit is NOT here: 3D scene is not in 2.0 (Fabio,
+    // 2026-09-27), and a custom node is universal, so it would install on every user's
+    // engine for a feature with no surface (MPI-952). MPI-623 restores the entry, its
+    // node_lock.json pin and `click` in python_deps.in by reverting that commit.
     'ComfyUI-Mickmumpitz-Nodes': {
         id: 'ComfyUI-Mickmumpitz-Nodes',
         name: 'ComfyUI Mickmumpitz Nodes',
