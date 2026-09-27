@@ -2221,6 +2221,41 @@ describe('(l) one ask, many cards', () => {
         assert.deepEqual(ledger()[0].generate.cards, [refs[1], refs[3]], 'a requeue sends only what failed');
         assert.equal(ledger()[0].status, 'OOM');
     });
+
+    // MPI-948 (Phase 2, Fabio 2026-09-27): the photographer tester selected cards and dragged
+    // them onto the agent box, and the agent got one. A dropped selection is ONE set: one line
+    // in, one short ref out, where fifty separate attachments cost ~60 tokens a card in and
+    // fifty refs echoed back in `cards`.
+    test('a dropped set of fifty cards is ONE attachment line, and cards: ["set:<id>"] runs all fifty in click order', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
+        withOps(tools);
+        // Click order, deliberately not gallery order: 17 is coprime with 50, so this is a permutation.
+        const set = Array.from({ length: 50 }, (_, i) => (i * 17) % 50 + 1).map((n) => ({
+            id: `card_${n}.png`, name: `Card ${n}`, filePath: `/project/Media/card_${n}.png`, mediaType: 'image', itemId: `item-${n}`, groupId: `g${n}`,
+        }));
+        await loop.runTurn('upscale these', [{ id: 'set_ab12cd34', name: '50 cards', reference: true, set }], project, 'auto', 'deepinfra', 'turn-set');
+
+        const heard = loop._fakeEngine.calls[0].messages.filter((m) => m.role === 'user').at(-1).content;
+        assert.equal((heard.match(/\[Attached/g) || []).length, 1, 'fifty cards, one line');
+        assert.match(heard, /\[Attached set 1: 50 gallery cards \(ref: set:set_ab12cd34\)\. Pass \["set:set_ab12cd34"\] as cards/);
+        // Fabio live, 2026-09-27: "make NEW black-and-white versions of these" came back "they'll land
+        // as new cards", and each landed in its own card's history. Nothing told the agent where.
+        assert.match(heard, /An edit of each lands as that card's next version, never a new card\.\]/);
+        assert.ok(!heard.includes('card_7.png'), 'no card is listed one by one');
+        assert.ok(set.every((c) => loop._resolveImage(c.id)?.itemId === c.itemId), 'every card registered AS the card (MPI-886)');
+        assert.ok(set.every((c) => loop._groups.has(c.groupId)), 'and every card joins what rename_card / mark_card may name');
+        const user = loop.getHistory().entries.find((e) => e.kind === 'user');
+        assert.deepEqual(user.attachments, [{ id: 'set_ab12cd34', name: '50 cards', count: 50 }], 'the chip redraws from history with its count');
+
+        const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 'upscale', cards: ['set:set_ab12cd34'] }, 'turn-set', project);
+        const ask = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+        assert.equal(ask.data.count, 50, 'the confirm counts the cards, not the one ref');
+        await loop.confirm(ask.data.confirmId, true);
+        const out = JSON.parse(await pending);
+        assert.equal(out.started, 50);
+        assert.deepEqual(tools.calls.generate.map((b) => /card_\d+\.png/.exec(decodeURIComponent(b.media[0].url))[0]), set.map((c) => c.id),
+            'every card, in the order the user clicked them');
+    });
 });
 
 // ---------------------------------------------------------------------------

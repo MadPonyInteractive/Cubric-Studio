@@ -155,6 +155,19 @@ router.post('/agent/message', async (req, res) => {
         if (tools) {
             for (const att of attachments) {
                 try {
+                    // MPI-948: a dragged SELECTION takes the card road below once per card, and is
+                    // staged as ONE record: the loop gives the model one line and one `set:<id>` ref.
+                    if (Array.isArray(att.set)) {
+                        const { ownedMedia } = await import('../services/agentCards.mjs');
+                        const set = att.set.map((c) => {
+                            const owned = project?.folderPath ? ownedMedia(project.folderPath, c.url) : null;
+                            if (!owned) throw new Error('A set of cards can be handed to the agent only from the open project.');
+                            return { id: path.basename(owned), name: c.name, filePath: owned, mediaType: c.mediaType === 'image' ? 'image' : 'video',
+                                itemId: typeof c.itemId === 'string' ? c.itemId : null, groupId: typeof c.groupId === 'string' ? c.groupId : null };
+                        });
+                        stagedAttachments.push({ id: `set_${crypto.randomUUID().slice(0, 8)}`, name: att.name || `${set.length} cards`, reference: true, set });
+                        continue;
+                    }
                     // A VIDEO arrives by reference (MpiPromptBox `_sendAgentTurn`): a clip as a
                     // data URL is hundreds of MB, and it is already a file of the open project.
                     // Nothing is copied; the path is only honoured inside that project's Media/,

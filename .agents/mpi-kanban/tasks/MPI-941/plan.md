@@ -15,7 +15,7 @@ move this card to `doing` while MPI-817 is still open.
 | 5 | MPI-913 | Agent on local Ollama holds VRAM while its own generations run |
 | 6 | MPI-905 | Warn when the agent's model has under 64K context |
 | 7 | none (Fabio, 2026-09-27) | Clickable options: the agent's choices as buttons, not typed answers |
-| 8 | none (Fabio, 2026-09-27) | The spend line counts image analysis and prompt work: "Chat · Gens · Analysis" |
+| 8 | none (Fabio, 2026-09-27) | The spend line counts image analysis and prompt work as ONE "Agent" figure: "Agent · Generations" |
 
 The member cards stay on the board until their work lands here (umbrella rule). Their
 `task.json` descriptions hold the diagnosis; this plan holds the order and ownership.
@@ -184,23 +184,27 @@ Footprint: `services/agentLoop.mjs`, `js/components/Compounds/MpiAgentChat/MpiAg
 **Verify:** a unit test for the options event and its answer; then live: an offer shows buttons,
 and one click continues the turn.
 
-### Phase 8 - The spend line counts image analysis and prompt work (Fabio, 2026-09-27)
+### Phase 8 - The spend line counts image analysis and prompt work as AGENT (Fabio, 2026-09-27, revised)
 
 Today the panel reads "Chat $x · Generations $y" (`_setSpend`, `MpiAgentChat.js`), and a `look`'s
 describer call is not counted at all (the ponytail note on `_addSpend`, `services/agentLoop.mjs`:
 the describe route returns no usage). In the 2026-09-27 run, 16 describer calls cost about a
-third of a cent that no line showed. Fabio's shape: "Chat $x · Gens $y · Analysis $z", where
-Generations becomes "Gens" to make room and the new third item holds image analysis (`look`,
-box measuring) and prompt work (enhancement) the agent's run causes. Read DeepInfra's
-`usage.estimated_cost` off the describe reply the way chat already does (`/connector/describe`
-→ `/llm/describe`), add an `analysisUsd` bucket beside `chatUsd` and `genUsd`, and keep it hidden
-while zero, like the others. "Prompt work" came through dictated as "content announcement":
-confirm with Fabio which calls it covers before building.
+third of a cent that no line showed.
+
+**Revised shape (Fabio, 2026-09-27, same session as Phase 2):** ONE agent figure, no third item.
+"The agent does all that anyway": its chat, image analysis (`look`, box measuring) and prompt
+enhancement all add to the SAME bucket, and the label "Chat" becomes "Agent": "Agent $x ·
+Generations $y". The earlier "Chat · Gens · Analysis" split is dropped, and so is the "Gens"
+rename, which only existed to make room for a third item (assumed; Fabio did not say). Read
+DeepInfra's `usage.estimated_cost` off the describe reply the way chat already does
+(`/connector/describe` → `/llm/describe`) and add it to the existing chat bucket (`chatUsd`, or
+renamed `agentUsd` if the rename stays small). The dictated "content announcement" question is
+moot: whatever the agent's run spends that is not a generation lands in Agent.
 Footprint: `services/agentLoop.mjs` (`_addSpend`, `look`), `routes/connector.js` +
-`routes/llm.js` (pass usage back), `js/components/Compounds/MpiAgentChat/MpiAgentChat.js`
-(**MPI-946 claim**), `tests/agent-loop.test.cjs`.
-**Verify:** a unit test that a `look` with usage adds to `analysisUsd` and emits `agent:spend`;
-then live: the third item appears after a look.
+`routes/llm.js` (pass usage back), `js/components/Compounds/MpiAgentChat/MpiAgentChat.js`,
+`tests/agent-loop.test.cjs`.
+**Verify:** a unit test that a `look` with usage adds to the agent bucket and emits `agent:spend`;
+then live: the Agent figure rises after a look.
 
 ## Parallel Batch - Phase 4 and Phase 6
 
@@ -240,6 +244,24 @@ analysis (Phases 7 and 8 were folded in by Fabio the same night).
 `cards`), with `routes/agent.js` if the set arrives there. Its drag and chip halves only once the
 MPI-945 and MPI-946 claims have released, or after messaging their owners. Then plan and build
 Phase 3 (MPI-904 plain upscale); its live run is Phase 1's live proof.
+2026-09-27, session c0103e59, end: **Phases 1 and 2 are DONE** (Fabio "1"; checklist ticked).
+The rules maps are updated with his permission. **NEXT: Phase 3 (MPI-904). Plan it first**
+(no-model upscale with Siax or AnimeSharp, background removal, crop, as catalogue ops that
+`generate` runs with no modelId, each landing as a new entry on the source card). All of it is
+uncommitted until handoff or close, and this session's claim `c0103e59-mpi941` holds the files.
+Before that: **Phase 2 live-checked by Fabio: it works** (3 cards, one set
+chip, one KleinEdit batch line, one report; Phase 1's batch path was also live for the first time).
+Two fixes followed: the bubble chip's contrast, plus a composer flex basis that scrolled one chip;
+and the set line now says where an edit lands. His "NEW cards" wish (an edit as a new card, not
+the next version) was DROPPED with his agreement, because the tool schema is full. A quick
+re-check of the chip is left, then Phase 3.
+Earlier the same session: **Phase 2 is built and green, and waits on Fabio's live drag**
+(validation.md § Phase 2). Both UI halves went in too, because the MPI-945 and MPI-946 claims had
+closed. The `docs/agent-chat.md` batch row landed here, and message c95ee93e is resolved. Phase 8
+was revised by Fabio before any of it was built: ONE "Agent" figure. **NEXT:** once Fabio has
+done the live drag, plan Phase 3 (MPI-904, plain upscale). Its live run is Phase 1's live proof.
+A set's cards are not listed to the agent one by one, so "mark these" or "look at these" on a set
+cannot name a card; only `cards` takes a set. Add a way in only if a live run needs it.
 **Noticed, not built:** with a batch in flight, `cancel_generation` lists every in-flight item in
 its "Still in flight" text (349 ids), and there is no "cancel the whole batch". The user's Stop in
 the app covers the need today.
@@ -256,6 +278,12 @@ the copy); Ollama's free cloud models (unconfirmed research); the `__ARG__` proj
   job" and "a batch with failures" in `tests/agent-loop.test.cjs`. Red first: fifty cards took
   50.4 s to queue. Green: about 1 s (one refusal race). Full `npm test`: 1997 pass, 0 fail. Live
   check is Fabio's (below).
+- **Phase 2 code (2026-09-27, session c0103e59), uncommitted until handoff/close:** `_sets` plus the
+  set attachment line in `runTurn`, and `set:` expansion at the top of `_fanOut`
+  (`services/agentLoop.mjs`); the set branch in `routes/agent.js`; `cardReference` sets
+  (`js/utils/mediaActions.js`); `_dragCards` at both dragstarts (`MpiGalleryGrid.js`); the set chip
+  (`MpiAgentChat.js` + `.css`). Tests: `(l)` set case, two in `agent-card-reference.test.cjs`, and
+  `tests/desktop/agent-drag-set.spec.js`. Live check is Fabio's.
 
 ## Plan Drift
 
@@ -278,6 +306,8 @@ the copy); Ollama's free cloud models (unconfirmed research); the `__ARG__` proj
 - 2026-09-27: MPI-948 folded in as the new Phase 2, on Fabio's word. It is the INPUT half of
   Phase 1: the tester dragged a selection onto the agent box, and the drag carried one card. The
   shape moved from a selection-bar button to the drag. Old Phases 2-5 are 3-6.
+- 2026-09-27 (session c0103e59): Phase 8 revised by Fabio before any of it was built. One
+  "Agent" figure holds chat, analysis and enhancement; no separate Analysis item, no "Gens".
 - 2026-09-27: the `docs/agent-chat.md` `generate` row still needs a one-line mention. MPI-944
   (1bef7b92) claimed the file after this card took it; message c95ee93e asks them to release it
   or add the row.

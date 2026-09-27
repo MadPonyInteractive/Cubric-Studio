@@ -580,6 +580,7 @@ export class AgentLoop {
         // sent, and the outputs its own generations produced. See _resolveImage.
         this._images = new Map();  // ref -> { path, kind: 'attachment' | 'result' }
         this._groups = new Set();  // card ids rename_card may name: this session's own, and any the app listed (`_seeCards`)
+        this._sets = new Map();    // set id -> its card refs in click order: a dropped selection (MPI-948), expanded by `_fanOut`
         this._projects = new Set(); // project keys list_projects / create_project gave (open_project)
         // Generations this conversation started that have not settled, oldest first:
         // toolCallId -> a short label. What `cancel_generation` can reach — and NOT reset with
@@ -730,6 +731,7 @@ export class AgentLoop {
         this._emit('agent:spend', this._spend);
         this._images.clear();
         this._groups.clear();
+        this._sets.clear();
         this._projects.clear();
         this._notes = [];
         this._notesProject = null;
@@ -1065,7 +1067,12 @@ export class AgentLoop {
         // refuses `batch`, so the model called generate twice. `count` is N queued submits,
         // which is what the 2026-09-15 "agents never batch" rule asks for (N latents in VRAM
         // at once is what it forbids), and it asks through the same one card as `cards`.
-        const cards = Array.isArray(args.cards) && args.cards.length ? args.cards.map(String) : null;
+        // MPI-948: a dropped set is one ref for all its cards. Expanded first, so the confirm, the
+        // ledger and every refusal see the cards themselves, in the order the user clicked them.
+        if (Array.isArray(args.cards)) {
+            args = { ...args, cards: args.cards.flatMap((c) => (String(c).startsWith('set:') && this._sets.get(String(c).slice(4))) || [c]) };
+        }
+        const cards =Array.isArray(args.cards) && args.cards.length ? args.cards.map(String) : null;
         if (cards && args.count !== undefined) {
             return JSON.stringify({ ok: false, error: { code: 'BAD_REQUEST', message: 'Send cards or count, not both: cards already makes one per card.' } });
         }
@@ -2204,6 +2211,20 @@ ${knowledgeIndex}`.trim();
             // portrait start frame at 16:9 and the crop cut the head at the eyes (Phase 4).
             const list = Array.isArray(attachments) ? attachments : [];
             for (const [i, att] of list.entries()) {
+                // MPI-948: a dragged SELECTION, one set. Each card registers the way one dragged
+                // card does (below), and the model gets ONE line and ONE ref: fifty cards listed
+                // one by one cost ~60 tokens each and came back as fifty refs in `cards`. The
+                // instruction rides in this line because the tool-schema budget is full.
+                if (Array.isArray(att.set)) {
+                    for (const c of att.set) {
+                        this._images.set(c.id, { path: c.filePath, kind: 'result', modelId: null, itemId: c.itemId || null, reference: true });
+                        if (c.groupId) this._groups.add(c.groupId);
+                    }
+                    this._sets.set(att.id, att.set.map((c) => c.id));
+                    stagedAttachments.push({ id: att.id, name: att.name, count: att.set.length });
+                    contentParts.push({ type: 'text', text: `[Attached set ${i + 1}: ${att.set.length} gallery cards (ref: set:${att.id}). Pass ["set:${att.id}"] as cards to run one op over all of them. An edit of each lands as that card's next version, never a new card.]` });
+                    continue;
+                }
                 // A video was handed over BY REFERENCE (`routes/agent.js`): a file the open
                 // project holds, so it registers like a card `list_cards` returned, under the
                 // same ref, and NOT as an attachment — `generate` places an attachment as a

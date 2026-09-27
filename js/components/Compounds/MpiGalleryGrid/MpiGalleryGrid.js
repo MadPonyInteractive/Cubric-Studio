@@ -457,6 +457,18 @@ export const MpiGalleryGrid = ComponentFactory.create({
             return true;
         }
 
+        // MPI-948: a PLAIN drag that starts on a selected card carries the whole selection too,
+        // in click order (the rule above), as an ADDED `cards` field of `application/mpi-media`.
+        // The payload's own fields stay the dragged card's, so every drop target that reads
+        // one card (prompt box, folders) reads exactly what it did; the agent panel reads the set.
+        function _dragCards(group) {
+            if (!_selectionMode || !_selectedIds.has(group?.id) || _selectedIds.size < 2) return undefined;
+            return _selectedGroups().map((g) => {
+                const s = g.history?.[g.selectedIndex];
+                return { groupId: g.id, itemId: s?.id, filePath: s?.filePath, type: g.type, name: g.customName || g.name || s?.name || '' };
+            });
+        }
+
         // ── Card size (state.gallerySizeLevel; the slider is in MpiGalleryToolbar) ──
         // GAP also used by justified layout below; declared up here so the
         // slider's _computeCardWidth can use it before the layout section runs.
@@ -1307,6 +1319,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                             filePath: s?.filePath, type: group.type,
                             // The agent panel's chip for a clip (MPI-867).
                             thumbPath: s?.thumbPath,
+                            cards: _dragCards(group),
                         }));
                         _addDownloadUrl(e, s);
                     });
@@ -1467,6 +1480,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                             // derived group/item name. Carried so the PromptBox
                             // media chip shows the real name, not the raw filename.
                             name: group.customName || group.name || sel?.name || '',
+                            cards: _dragCards(group),
                         }));
                         _addDownloadUrl(e, sel);
                     });

@@ -590,17 +590,24 @@ export const MpiAgentChat = ComponentFactory.create({
          * share — a picture is "1", never "the start frame" or "picture 1" — so the
          * composer and the sent bubble draw the same thing from one place.
          */
-        function _attachmentChip(dataUrl, name, n) {
+        function _attachmentChip(dataUrl, name, n, count) {
             const chip = document.createElement('span');
             chip.className = 'mpi-agent-chat__attachment';
-            const img = document.createElement('img');
-            img.src = dataUrl;
-            img.alt = name || 'attachment';
-            img.className = 'mpi-agent-chat__attachment-thumb';
+            if (count) {
+                // MPI-948: a dropped selection is ONE chip, "12 cards", never twelve thumbnails.
+                chip.classList.add('mpi-agent-chat__attachment--set');
+                chip.innerHTML = `${renderIcon('layers', 'sm')}<span class="mpi-agent-chat__attachment-count">${count} cards</span>`;
+            } else {
+                const img = document.createElement('img');
+                img.src = dataUrl;
+                img.alt = name || 'attachment';
+                img.className = 'mpi-agent-chat__attachment-thumb';
+                chip.append(img);
+            }
             const num = document.createElement('span');
             num.className = 'mpi-agent-chat__attachment-num';
             num.textContent = String(n);
-            chip.append(img, num);
+            chip.append(num);
             return chip;
         }
 
@@ -624,12 +631,13 @@ export const MpiAgentChat = ComponentFactory.create({
                 // DRAWN, not on the array index — a history entry with no dataUrl is
                 // skipped, and a gap in the numbering would name a picture nobody sees.
                 let n = 0;
-                attachments.forEach(({ thumb, dataUrl, url, name }) => {
+                attachments.forEach(({ thumb, dataUrl, url, name, count }) => {
                     // A card sent by reference (MPI-886) has a url and no dataUrl; a clip's
-                    // url is the mp4, so its poster rides as `thumb` (MPI-867).
+                    // url is the mp4, so its poster rides as `thumb` (MPI-867). A set draws
+                    // its count, not a picture (MPI-948).
                     const src = thumb || dataUrl || url;
-                    if (!src) return;
-                    row.appendChild(_attachmentChip(src, name, ++n));
+                    if (!src && !count) return;
+                    row.appendChild(_attachmentChip(src, name, ++n, count));
                 });
                 if (row.childElementCount) bubble.appendChild(row);
             }
@@ -901,6 +909,7 @@ export const MpiAgentChat = ComponentFactory.create({
                 // A card sent by reference (MPI-886) carries its own `/project-file` url.
                 dataUrl: att.url || (att.id ? `/agent/attachment/${att.id}` : (att.dataUrl || '')),
                 name: att.name || '',
+                count: att.count,
             }));
         }
         ['agent:working', 'agent:message', 'agent:tool', 'agent:confirm', 'agent:result', 'agent:compacting', 'agent:error', 'agent:user', 'agent:spend']
@@ -1169,7 +1178,7 @@ export const MpiAgentChat = ComponentFactory.create({
             attachSlot.style.display = _pendingAttachments.length ? '' : 'none';
             attachSlot.innerHTML = '';
             _pendingAttachments.forEach((a, i) => {
-                const chip = _attachmentChip(a.thumb || a.dataUrl || a.url, a.name, i + 1);
+                const chip = _attachmentChip(a.thumb || a.dataUrl || a.url, a.name, i + 1, a.count);
                 chip.title = `Click to remove ${a.name}`;
                 on(chip, 'click', () => {
                     _pendingAttachments.splice(i, 1);
@@ -1192,6 +1201,7 @@ export const MpiAgentChat = ComponentFactory.create({
             const files = e.dataTransfer?.files ? Array.from(e.dataTransfer.files) : [];
             if ((!card && !files.length) || _needProject()) return;
             // A card is the card or nothing: its `files` are the dragged 512 thumbnail (MPI-884).
+            // A drag from a selection comes back as one set (MPI-948), and is one chip.
             if (card) {
                 const ref = cardReference(card);
                 if (ref) _addReference(ref);

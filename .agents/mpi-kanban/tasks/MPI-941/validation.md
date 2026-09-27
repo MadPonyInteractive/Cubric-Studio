@@ -30,3 +30,42 @@ Phase 3's: a plain upscale over dot-marked cards.
 
 **Live (Fabio): pending (see above).** On a real multi-select, ask for "upscale all of these". Expect one
 chat line counting up, no per-image result cards, and one short report at the end.
+
+## Phase 2 - MPI-948: a dragged selection is ONE set (session c0103e59, 2026-09-27)
+
+**Red first:** three new tests failed for the right reason before any code. `(l) a dropped set of fifty
+cards is ONE attachment line...` (tests/agent-loop.test.cjs): "fifty cards, one line" 0 !== 1.
+`the route takes a set...` and `a drag payload carrying the selection becomes ONE set reference...`
+(tests/agent-card-reference.test.cjs): no set branch, and `count` undefined.
+**Green:** all three pass. Full `npm test`: 2008 tests, 2007 pass, 0 fail, 1 skipped. Lint clean on the
+six touched source files.
+**Desktop:** new `tests/desktop/agent-drag-set.spec.js` passes (grid dragstart carries the selection in
+click order, an unselected card drags alone, the real panel draws ONE "3 cards" chip, and the POST
+carries ONE set of 3 in click order). It was written after the code, so it was proven to bite: with
+`_dragCards` neutered it FAILED (`Cannot read properties of undefined (reading 'map')`), and passed again
+once restored. Regression: `agent-chat.spec.js` 33/33, and `gallery-drop-overlay-reset`,
+`media-picker-cards`, `gallery-cue-all` 7/7.
+**Live, first try (Fabio, 2026-09-27): WORKS.** He dropped 3 cards and asked "Make new black-and-white versions of
+these". The agent read Klein 9B's guide and ran KleinEdit over the set: ONE progress line, "0 of 3
+done" then "3 of 3 done", no result card per image, no looks, and one wake sentence. That is also
+Phase 1's batch path, live for the first time, although it was not the 350-card scale. Found:
+(1) the set chip in the SENT bubble was nearly invisible, a fixed light ink on the cream bubble.
+It now inherits the bubble's ink, and the number leads the chip. Found while fixing it: ONE set
+chip grew a scrollbar in the composer, because the field's `flex: 1 1 auto` shared overflow with
+the strip. It is now `1 1 0`; the spec asserts the strip does not scroll, and it was proven red
+on the old value. `agent-chat.spec.js` + the set spec: 34/34.
+(2) He asked for NEW cards on purpose. Each edit landed in its own card's history, while the agent
+told him "they'll land as new cards". No new-card switch exists, and Fabio agreed to drop the idea
+rather than grow the full tool schema. The set line now says "An edit of each lands as that
+card's next version, never a new card", so the agent stops promising otherwise (unit test
+asserts it). Full `npm test`: 2008 pass, 0 fail.
+**VERIFIED by Fabio (2026-09-27): "1".** He also approved the rules update: `.claude/rules/component-events-blocks.md`
+(the grid's dragstart payload, and `cards`) and `component-events-primitives.md` (the chat's drop, the set chip,
+and the `batch` tool line). **Phase 1 is closed on the same run**: its batch path ran live (one line,
+no result cards, no looks, one wake sentence), 3 cards rather than 350. The confirm above 5 and the
+fifty-card timing are unit-proven.
+
+**Original live-check brief:** Select 3+ cards, drag one of the SELECTED cards onto the agent panel. Expect one chip,
+"N cards" with a layers icon, not N thumbnails. Then say "make these black and white" (one shared prompt,
+so no look per card): one confirm above 5, one progress line, one report. "Upscale these" still picks
+Krea 2 and looks at every card until Phase 3 ships a plain upscale.

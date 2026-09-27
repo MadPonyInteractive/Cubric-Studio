@@ -75,6 +75,30 @@ test('the route takes an image by reference too, with its card, only inside the 
     assert.match(branch, /groupId: typeof att\.groupId === 'string'/);
 });
 
+// MPI-948 (MPI-941 Phase 2): a dragged SELECTION is one set, and every card in it takes the
+// road one card takes — by reference, only inside the open project.
+test('the route takes a set: each card by reference inside the open project, ONE staged record', () => {
+    const route = read('routes', 'agent.js');
+    const branch = route.slice(route.indexOf('Array.isArray(att.set)'), route.indexOf('if (!att.dataUrl && att.url)'));
+    assert.ok(branch.length > 0, 'no set branch before the single-card one');
+    assert.match(branch, /ownedMedia\(project\.folderPath, c\.url\)/);
+    assert.match(branch, /reference: true, set \}/);
+});
+
+test('a drag payload carrying the selection becomes ONE set reference, in click order; one card stays one card', async () => {
+    const { cardReference } = await esm('js/utils/mediaActions.js');
+    const url = (n) => `/project-file?path=${encodeURIComponent(`C:/p/Media/t2i_00${n}.png`)}`;
+    const card = (n) => ({ groupId: `g${n}`, itemId: `i${n}`, filePath: url(n), type: 'image', name: `Card ${n}` });
+    const set = cardReference(JSON.stringify({ ...card(3), cards: [card(3), card(1), { ...card(9), type: 'audio' }, card(2)] }));
+    assert.equal(set.count, 3, 'an audio card has nothing to hand over, so it drops out');
+    assert.equal(set.name, '3 cards');
+    assert.deepEqual(set.set.map((r) => r.groupId), ['g3', 'g1', 'g2'], 'click order');
+    assert.ok(set.set.every((r) => r.url.startsWith('/project-file?path=')));
+    const one = cardReference({ ...card(3), cards: [card(3)] });
+    assert.equal(one.groupId, 'g3', 'a selection of one is a plain card');
+    assert.equal(one.set, undefined);
+});
+
 // MPI-867 (Fabio, 2026-09-26): the landing page no longer copies. With no project open the
 // user is asked to open or create one, because what reaches the agent is always a card.
 test('the chat sends a dragged card by reference, and with no project asks for one instead of copying', () => {

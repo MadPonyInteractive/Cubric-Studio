@@ -56,13 +56,22 @@ export function resolveMediaUrl(filePath) {
  * byte-identical 2026-09-22).
  *
  * `null` = nothing to hand over: an audio card, or a blob/preview card with no file on disk.
+ *
+ * MPI-948: a drag that started on a SELECTED card carries the whole selection as `cards`, in
+ * click order (`MpiGalleryGrid` dragstart). Two or more that can be handed over come back as
+ * ONE set `{ set, name, count }`: the agent gets one line and one ref for all of them.
  * @param {string|object} payload — the `application/mpi-media` value, raw JSON or parsed.
- * @returns {{url: string, name: string, mediaType: 'image'|'video', itemId: string|null, groupId: string, thumb: string}|null}
+ * @returns {{url: string, name: string, mediaType: 'image'|'video', itemId: string|null, groupId: string, thumb: string}|{set: object[], name: string, count: number}|null}
  */
 export function cardReference(payload) {
     let card = payload;
     if (typeof payload === 'string') {
         try { card = JSON.parse(payload); } catch { return null; }
+    }
+    if (Array.isArray(card?.cards)) {
+        const set = card.cards.map((c) => cardReference(c)).filter(Boolean);
+        if (set.length > 1) return { set, name: `${set.length} cards`, count: set.length };
+        return set[0] || null;
     }
     // `type` is the group's, as the grid sets it. A GIF card is an image card.
     if (!card?.groupId || (card.type !== 'image' && card.type !== 'video')) return null;

@@ -74,7 +74,7 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
 | `describe_model` | `{ id: string }` required | the same route, one entry whole: `params`, `media`, a Flow's `fields`/`boxParams`, `guides`, `fit` (`UNKNOWN_MODEL`) |
 | `read_knowledge` | `{ id?: string }` (no id = the index) | `GET /connector/knowledge[/:id]` |
 | `install_model` | `{ modelId: string }` required | **never directly**: emits `agent:confirm`; `POST /agent/confirm` runs it |
-| `generate` | `{ modelId?, operation?, flowId?, prompt?, negative?, ratio?, qualityTier?, turbo?, styleSelect?, stylization?, seed?, cardName?, fields?: object, params?: object, media?: [{ role, image }] }` | `POST /connector/generate`, fired and not awaited; a model op waits for its guide (below) |
+| `generate` | `{ modelId?, operation?, flowId?, prompt?, negative?, ratio?, qualityTier?, turbo?, styleSelect?, stylization?, seed?, cardName?, fields?: object, params?: object, media?: [{ role, image }] }` | `POST /connector/generate`, fired and not awaited; a model op waits for its guide (below). `cards` / `count` fan out as ONE batch (`_newBatch`, MPI-941): items settle silently into one progress line (an `agent:tool` of tool `batch`, replaced by id) and one `[Batch finished]` note, with no per-item result card, note or look; only items up to the first one that passes meet the 1 s refusal race, and the batch keeps one unfinished-ledger entry that ends holding only its failed cards |
 | `cancel_generation` | `{ toolCallId? }` (none = the LATEST it started) | `POST /connector/cancel { requestId }`. Only what THIS conversation started and has not settled (`_inflight`; else `NOT_IN_FLIGHT`), rendering or still queued; never the user's own runs. `generate` sends its `toolCallId` as the submit's `requestId`, which becomes the relay `jobId`; the renderer maps it to the Cue queue id and calls the queue's own `cancelPendingCueJob` / `cancelRunningCueJob`. A clip cancelled this way LEAVES the unfinished ledger and is not reported to the model as a failure. Found live 2026-09-20: with no cancel tool, "Scratch that. Leave it." was read as "leave it running". Allowlisted on purpose in `tests/agent-no-delete.test.cjs` - it is not a delete |
 | `look` | `{ image: string, question?: string, crop?: {x,y,width,height}, box?: boolean }`, `image` required | `POST /connector/describe` |
 | `list_projects` / `create_project` | `{}` / `{ name }` | `GET /connector/projects` / `POST /connector/create-project` |
@@ -100,6 +100,18 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
   `Media/` (`agentCards.ownedMedia`, MPI-817) and stages nothing; the loop registers it under its
   basename as kind `result` with the item id and groupId, so `generate` takes it as media,
   `make_gif` by item id, and the bubble draws a clip's `.meta/<itemId>.thumb.webp` poster.
+- **A dragged SELECTION is ONE set** (MPI-948, MPI-941 Phase 2). `MpiGalleryGrid`'s plain dragstart
+  on a card IN the selection adds `cards: [{ groupId, itemId, filePath, type, name }]` (click order,
+  the `_tryNativeDragOut` rule) to `application/mpi-media`; the payload's own fields stay the
+  dragged card's, so every other drop target is unchanged. `cardReference` turns 2+ into
+  `{ set, name, count }`: one chip ("12 cards", layers icon), redrawn from history by `count`.
+  The route stages each card by the road above and mints `set_<8 hex>`; the loop registers every
+  card and gives the model ONE line, `[Attached set N: 12 gallery cards (ref: set:<id>). Pass
+  ["set:<id>"] as cards ... An edit of each lands as that card's next version, never a new card.]`
+  (no new-card switch exists; untold, the agent promised new cards live), and `_fanOut` expands a
+  `set:` entry first, in click order. The
+  instruction rides in that line, not the tool schema (budget full). The agent is told no card
+  ref one by one, so a set is for `cards`; `visible_cards` stays the way to a FILTERED set.
 - `image` / `media[].image` is a ref from the `_images` allowlist (this conversation's attachment ids,
   its own results' `filePath`s), **nothing else**: any other string is `IMAGE_NOT_FOUND`, never read
   off disk (the engine may be a remote Pod). An attachment is copied into the project with `POST

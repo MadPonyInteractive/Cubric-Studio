@@ -517,7 +517,10 @@
 }
 
 .mpi-agent-chat__input-wrap {
-    flex: 1 1 auto;
+    /* Basis 0, not auto: from its content width the field shared every overflow with the
+       strip in proportion, so ONE 102px chip lost 2px and grew a scrollbar (MPI-948). From
+       0 it takes only the room left, and the strip gives way only once this is at its floor. */
+    flex: 1 1 0;
     display: flex;
     align-items: center;
     gap: var(--s-2);
@@ -621,6 +624,27 @@
     position: relative;
     display: inline-flex;
     flex: 0 0 auto;
+}
+
+/* MPI-948: a dropped selection is ONE chip, "12 cards", as tall as a thumb so the strip
+   keeps its one height. Its colour is whatever it sits on: the composer's ink, or the
+   cream bubble's own text. A fixed light ink vanished on the cream (Fabio, 2026-09-27). */
+.mpi-agent-chat__attachment--set {
+    align-items: center;
+    gap: var(--s-1);
+    height: 40px;
+    padding: 0 var(--s-2);
+    border: 1px solid currentColor;
+    border-radius: var(--r-2);
+    color: inherit;
+    font-size: var(--t-xs);
+    white-space: nowrap;
+}
+
+/* No picture to float the number over: it leads the chip instead. */
+.mpi-agent-chat__attachment--set .mpi-agent-chat__attachment-num {
+    position: static;
+    order: -1;
 }
 
 /* Only the pending ones are removable — a chip in a sent bubble is a record. */
