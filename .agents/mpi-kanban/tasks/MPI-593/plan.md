@@ -5,8 +5,11 @@ and stays; its record is in `validation.md`. The CLI (old steps 2 and 3) is drop
 
 ## Current State
 
-**MPI-947 in `doing` 2026-09-27 (session 593c46ac)**: research done (`tasks/MPI-947/research/connect-paths.md`),
-plan written, D1-D3 await Fabio. Memory `feedback_agent_access_uses_conventional_installs` updated on his yes.
+**MPI-947 DONE 2026-09-27 (session 593c46ac): `efb7453cf`** - Settings > Connect an agent
+(`routes/agentConnect.js`), verified by Fabio incl. D3 (Claude's install screen via
+`claude-desktop.exe <mcpb>`); agents README pushed `b5e04c6` (every-OS install steps, Gemini ->
+Antigravity). Mac/Linux branches unrun on real hardware. **Next on MPI-593:** the docs-site
+page + llms.txt DRAFT (Fabio commits, no-push repo), then MPI-595 after 2.0.
 **Next: MPI-947** (created 2026-09-26): Settings > Connect an agent, with
 AUTOMATIC setup for Claude Desktop, Claude Code, Codex and Antigravity where provable, and the
 plain MCP URL + instructions for any other agent (Fabio: the 09-25 "conventional installs" rule

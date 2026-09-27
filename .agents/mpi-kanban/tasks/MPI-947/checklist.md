@@ -22,4 +22,4 @@ Research phase (throwaway config dirs only, never Fabio's real agent configs):
 - [x] cubric-studio-agents README: cross-platform Claude Desktop step + "the easy way" + Gemini -> Antigravity hint, pushed `b5e04c6` (Fabio's yes)
 - [x] `.claude/settings.json` additionalDirectories += ../cubric-studio-agents (Fabio 2026-09-27)
 - [x] `.claude/rules/sibling-repos.md`: agents repo + ComfyUi-MpiNodes moved into the additionalDirectories list (Fabio's yes)
-- [ ] Commit Vision work, CI green, close MPI-947 (mpi-end-session)
+- [x] Commit Vision work (`efb7453cf`, red on CI, fixed `28a8ded46` GREEN run 36305422801), close MPI-947

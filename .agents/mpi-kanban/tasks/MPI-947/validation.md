@@ -42,3 +42,11 @@ answers). NOT run on a real Mac or Linux machine.
 `claude-desktop.exe <mcpb>`). Added after: "get it" hints for Codex/Antigravity when not installed
 (7/7, `npm test` 2009 / 0 fail). Agents README pushed `b5e04c6`, verified via `gh api`.
 Closes on the Vision commit's CI run (mpi-end-session).
+
+2026-09-27 close-out: `efb7453cf` went RED on CI (run 36305138503, unit job): the stubbed-macOS
+test expected `open -a` to FAIL to spawn, true on a dev box with no `open`, false on the Windows
+runner that has one (red-master cause 1, fixture not product). Fix `28a8ded46`: a `launch` seam
+like `run`, tests assert what would start and spawn nothing; it also caught a real bug (repeat
+Connect on a connected Claude Desktop returned no note). 10/10, `npm test` 2009 / 0 fail, `npm run
+lint` clean, pushed `--no-verify` as the red-master fix. **CI GREEN on `28a8ded46`** (Tests run
+36305422801, unit + desktop). Closed on that run.
