@@ -19,8 +19,10 @@ online `update.*` script; GitHub is the only update source):
 - `CubricStudio-linux-x64-update-v<version>.zip`
 - `CubricStudio-macos-arm64-update-v<version>.zip`
 
-Claude Desktop extension (MPI-593), packed per the release skill step 6. **No version in the
-name**: `releases/latest/download/cubric-studio.mcpb` is a permanent link.
+Claude Desktop extension (MPI-593), packed per the release skill step 6. This is a COPY: the
+one the Settings page, the agents README and the MCP Registry read is the
+`cubric-studio-agents` release (`docs/mcp-server.md` § The Claude Desktop bundle), and it does not change with
+an app release.
 
 - `cubric-studio.mcpb`
 

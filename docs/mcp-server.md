@@ -59,13 +59,23 @@ answers `initialize` itself, lists `status` alone, and sends `notifications/tool
 once the app is up. `manifest.json` carries its own version (not the app's): bump it only when
 the bridge or the manifest changes.
 
-**Released with every app release** as `cubric-studio.mcpb`, a stable name, so
-`https://github.com/MadPonyInteractive/Cubric-Studio/releases/latest/download/cubric-studio.mcpb`
-is a permanent link. Pack it (the release skill does, step 6):
+**Released in `MadPonyInteractive/cubric-studio-agents`**, as `cubric-studio.mcpb` on a
+`mcpb-v<version>` release, so
+`https://github.com/MadPonyInteractive/cubric-studio-agents/releases/latest/download/cubric-studio.mcpb`
+is the permanent link. It is the one everything reads: the Settings page
+(`routes/agentConnect.js` `MCPB_URL`), the agents README, and the MCP Registry, whose `server.json`
+names the versioned URL plus its `fileSha256` (the Registry only accepts a release URL containing
+`mcp`, which a `Cubric-Studio/releases/...` URL is not). The app release also attaches a copy (the
+release skill, step 6); nothing reads that one. A new bundle, only when the bridge or manifest
+changed:
 
 ```bash
-npx -y @anthropic-ai/mcpb@2.1.2 pack mcp/cubric-studio <build folder>/cubric-studio.mcpb
+npx -y @anthropic-ai/mcpb@2.1.2 pack mcp/cubric-studio <scratch>/cubric-studio.mcpb
 ```
+
+then `gh release create mcpb-v<ver> --repo MadPonyInteractive/cubric-studio-agents <scratch>/cubric-studio.mcpb`,
+bump `version` and `fileSha256` in that repo's `server.json`, and `mcp-publisher publish` from it
+(`~/.claude/memory/tools/agent-clients-mcp-plugins.md`).
 
 The pack validates the manifest; the archive must hold exactly `manifest.json`, `README.md`,
 `server/index.js`.
