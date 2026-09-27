@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-954", "at": "2026-09-27T11:42:46+01:00", "actor": "56a78131", "column": "todo", "title": "A 1.x -> 2.0 update on Linux/macOS applies, then reports FAILED: the old applier rewrites the running launcher"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-954", "at": "2026-09-27T11:43:40+01:00", "actor": "56a78131", "from": "todo", "to": "doing", "reason": "2.0 gate (MPI-595), Fabio 2026-09-27"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-954", "at": "2026-09-27T12:07:41+01:00", "actor": "56a78131", "from": "doing", "to": "doing", "reason": "Fixed in 37e5eca77; the Linux-box A/B (validation.md steps 1-4) is the remaining check, needs the box on"}

@@ -667,3 +667,7 @@ time on this card that the file disagreed with the row, and it is why the rule i
   referenced by nothing in `styles/` or `js/`. Code, not prose, so outside phase 5.
 - `PRODUCT.md` § Identity still scopes the app to *"image and video work"*; it emits audio
   (Flows, text-to-speech). Real drift, wider than this phase, left for a yes.
+
+## Closed 2026-09-27 on Fabio's verdict
+
+Fabio, 2026-09-27: "The colours are all good, so that card should be done. We can close it." That covers the rounds that were BUILT and waiting on his eye (9, 9b, 9c, 9d) and the open Phase 2b `--accent-warn` item. MPI-736 was the last open Phase 3 gate of MPI-708 (the rename), so the rename now waits only on the 2.0 cut itself.

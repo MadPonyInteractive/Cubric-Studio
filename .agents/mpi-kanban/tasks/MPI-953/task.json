@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-953",
+  "title": "The smoke runner runs Flows, not just model ops",
+  "description": "MPI-595 B2, Fabio 2026-09-27: test some Flows in the 2.0 smoke. The matrix is model x supportedOps; the 13 built-in Flows get static class_type coverage only. Add a Flow leg (selector, fixture media, --plan cost line) so a green run says something about Flows.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "done",
+  "created_at": "2026-09-27T11:42:45+01:00",
+  "updated_at": "2026-09-27T12:07:00+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

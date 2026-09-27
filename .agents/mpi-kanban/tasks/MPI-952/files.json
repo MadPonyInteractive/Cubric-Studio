@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["dev_configs/node_lock.json", "js/data/modelConstants/nodesDeps.js", "dev_configs/python_deps.in", "dev_configs/python_deps.txt", ".agents/mpi-kanban/tasks/MPI-952/"]}

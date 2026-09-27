@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["scripts/smoke-workflows.mjs", "tests/smoke-flows.test.cjs", "docs/playbooks/bump-engine/01-smoke-run.md", "docs/playbooks/bump-engine/README.md", "dev_configs/smoke-fixtures/", ".agents/mpi-kanban/tasks/MPI-953/"]}
