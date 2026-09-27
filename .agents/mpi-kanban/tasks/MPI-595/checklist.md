@@ -22,7 +22,7 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
   - [x] packages exist (MPI-781) · [x] app advertises them (MPI-831)
   - [ ] Gumroad products drafted, codes created (MadPony-Identity MPI-81, Fabio) — published ON release day
   - [ ] **MPI-872** redirects resolve — verified in a browser, landing on Gumroad with the discount
-- [ ] **A5 MPI-954** 1.x -> 2.0 launcher hop — fixed in `37e5eca77`; owes the Linux-box A/B (MPI-954 validation.md steps 1-4)
+- [ ] **A5 MPI-954** 1.x -> 2.0 launcher hop — fixed in `37e5eca77` (CI green); owes the Linux-box A/B (MPI-954 validation.md steps 1-4)
 - [ ] **A6 MPI-591** H3 in Extend Video — IN 2.0, Fabio finishes it in its own session, BEFORE B1 (watch: FL2VA needs a core newer than v0.34)
 - [x] **A7 MPI-952** SplatKit out of 2.0 (`b3c25a678`); Mickmumpitz stays for Outpaint
 - [x] Cleared: MPI-507/515 (rejected, MPI-734), MPI-575, MPI-522/523/527, MPI-873, MPI-708's gates 532/774/809/810/777
@@ -36,7 +36,7 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
   - [ ] DEV Pod image rebuilt at the lock (`/build-pod-image`), app restarted, Pod reports the pinned core
   - [ ] matrix run incl. a VIDEO op; `smoke-evidence.json` fresh; `release:check` green on that line
   - [ ] release Pod image PROMOTED (clean rebuild, never a renamed `-dev` tag)
-- [ ] **B2 MPI-953** Flow leg in the smoke runner — reopened on review: must derive from the real FLOWS and stage each Flow's requiredModels/requiredDeps
+- [x] **B2 MPI-953** Flow leg in the smoke runner — `49564ad53`: real FLOWS, stages each Flow's models + deps, volume counts only what Flows add; runs for real inside B1 with `--flows all`
 - [ ] **B3** Linux box, REMOTE-ONLY (no ComfyUI there): agent, DeepInfra, RunPod v2 (MPI-806 live leg), updater A/B through `update.sh` on a real 2.0 bundle
 - [ ] **B4** `npm test` and `npm run test:desktop` green
 - [x] **B5** MPI-656 Phase 1 — CLEARED by reading 2026-09-27: every YAML writer (`comfy.js:855/864/934`, `engine.js:671/678`) goes through `writeExtraModelPathsYaml` -> `setRoots`, so `model_roots.json` cannot drift from the YAML; the yaml-only seed and the both-equal rule are tested (`tests/model-roots.test.cjs:213,252`)
