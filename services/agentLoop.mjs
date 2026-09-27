@@ -33,6 +33,7 @@ import {
 } from './llmEngines.mjs';
 import * as realTools from './agentTools.mjs';
 import { MAX_NOTES } from './agentMemory.mjs';
+import { agentToolOp } from '../js/shell/agentToolOps.js';
 import { viewFile as _viewClipFile } from './cardView.js';
 
 // A video or GIF ref (MPI-941 Phase 4): `look` samples it into ONE contact sheet instead of
@@ -501,7 +502,7 @@ export function compactCatalogue(list) {
         ok: true,
         engine: list.engine,
         hardware: list.hardware,
-        detail: `describe_model with an id for its params, media, fields and guides.${list.tools?.length ? ' tools run with no modelId: generate with operation and fields, never a prompt; cards runs one over many.' : ''}`,
+        detail: `describe_model with an id for its params, media, fields and guides.${list.tools?.length ? ' tools run with no modelId: generate with operation and fields, never a prompt; cards runs one over many.' : ''} A miss moves to the next rank for the task, never the same op again.`,
         models: (list.models || []).map((m) => {
             // Most models write ONE note and hang it on every op ("anime and stylised art,
             // not photography", six times). Said once about the model, it reads the same and
@@ -693,6 +694,27 @@ export class AgentLoop {
     _maybeDrained() {
         if (this._inflight.size) return;
         this._emit('agent:drained', {});
+    }
+
+    /**
+     * MPI-941 Phase 9 (Fabio, live 2026-09-27): a WAKE turn re-sent `krea2Edit` on its own,
+     * and "try Klein 9B" then landed as `kleinEdit` and queued BEHIND it — nothing told the
+     * model a job of its own was still running when that message arrived, and
+     * `cancel_generation`'s own description covers only "take it back". Read into the opening
+     * of a real turn only (never a wake, which starts with `_inflight` empty by construction:
+     * `_maybeDrained` fires the wake only once it drains), so a quiet turn costs zero bytes.
+     */
+    _inflightLine() {
+        const items = [...this._inflight];
+        if (!items.length) return '';
+        if (items.length === 1) {
+            const [id, label] = items[0];
+            return `[Running now: ${label} (toolCallId ${id}). If the user's new ask replaces it, cancel it first.]`;
+        }
+        // A batch can hold hundreds sharing one op (MPI-941 Phase 1): never list them, just the count.
+        const labels = new Set(items.map(([, label]) => label));
+        const what = labels.size === 1 ? `${[...labels][0]} x${items.length}` : `${items.length} different jobs`;
+        return `[Running now: ${what}. If the user's new ask replaces them, cancel_generation (no id cancels the latest).]`;
     }
 
     /**
@@ -1739,7 +1761,24 @@ ${knowledgeIndex}`.trim();
                     if (args.modelId) body.modelId = String(args.modelId);
                     if (args.operation) body.operation = String(args.operation);
                     // MPI-904: a tool (no model) takes its settings in `fields`, as a Flow does.
-                    if (!args.modelId && args.fields) body.fields = args.fields;
+                    // MPI-941 Phase 9: crop's own `ratio` shares its name with a model's `ratio`,
+                    // and the model reached for the name it already knew — "Generation not
+                    // started" twice before it read crop's own fields. A top-level name that is
+                    // one of THIS tool's own fields is moved into `fields` and cleared HERE, so
+                    // every named-param line below it never sees it: the route refuses a named
+                    // param on a tool outright, never drops one.
+                    const toolFields = _isTool(args) ? agentToolOp(String(args.operation || ''))?.fields : null;
+                    if (toolFields) {
+                        const fields = { ...(args.fields || {}) };
+                        for (const key of Object.keys(toolFields)) {
+                            if (args[key] === undefined) continue;
+                            fields[key] = args[key];
+                            delete args[key];
+                        }
+                        if (Object.keys(fields).length) body.fields = fields;
+                    } else if (!args.modelId && args.fields) {
+                        body.fields = args.fields;
+                    }
                     if (args.prompt) body.positive = String(args.prompt);
                     if (args.negative) body.negative = String(args.negative);
                     if (args.ratio !== undefined) body.ratio = args.ratio;
@@ -1856,7 +1895,7 @@ ${knowledgeIndex}`.trim();
                 } else {
                     await this._trackUnfinished(askedIn, args, 'running');
                 }
-                this._inflight.set(toolCallId, args.cardName || String(args.prompt || args.flowId || '').slice(0, 60));
+                this._inflight.set(toolCallId, args.cardName || String(args.prompt || args.flowId || '').slice(0, 60) || _opLabel(args));
 
                 // One settle path, attached two ways. `wait` awaits it so the result is in
                 // hand before the tool returns; the default attaches it and returns
@@ -2351,11 +2390,14 @@ ${knowledgeIndex}`.trim();
             const woke = wake
                 ? '[Nothing was typed: your generations have finished and this turn exists to report them. Say what landed, briefly, the way you would to someone who walked back to the screen. Do not start new work unless they already asked for it.]'
                 : '';
+            // MPI-941 Phase 9: a real turn only — a wake starts with `_inflight` empty by
+            // construction, so this is zero bytes there and on every quiet turn.
+            const running = wake ? '' : this._inflightLine();
             // MPI-890: register the open card's active entry BEFORE the App state line is
             // built, so the line lists it among the refs it is the allowlist for.
             this._registerWorkspaceEntry(workspace);
             this._masked = !!(workspace?.activeEntry?.filePath && workspace.masked);
-            const opening = [this._appStateLine(project, workspace), this._pinnedSettingsLine(pinned), handover, woke, await this._globalNotesLine(), await this._projectNotesLine(project), ...this._notes.splice(0)];
+            const opening = [this._appStateLine(project, workspace), this._pinnedSettingsLine(pinned), handover, woke, running, await this._globalNotesLine(), await this._projectNotesLine(project), ...this._notes.splice(0)];
             contentParts.unshift(...opening.filter(Boolean).map((t) => ({ type: 'text', text: t })));
 
             // Add user message to LLM context (plain text for OpenAI compat)

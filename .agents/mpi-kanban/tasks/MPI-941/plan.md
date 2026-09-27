@@ -229,10 +229,11 @@ prompt does not grow (10,093 of 10,150).
    `note` on each op. What it lacks is his knowledge:
    - `krea2:krea2Edit` note says "strong on realism". Fabio: NOT a native editor (it re-renders); it keeps
      an anime or stylised look better than kleinEdit. Rewrite the note to say so.
-   - Chroma is good at realistic SKIN detail when upscaling and detailing (Fabio). Every image task shares
-     ONE order (`IMAGE_ORDER`: krea2, klein-9b, chroma...), so chroma sits 3rd for `detail` and `upscale`
-     with no note. Add `chroma-flash:detail` / `:upscale` notes ("the pick for realistic skin detail");
-     ranking it FIRST for `detail` is Fabio's call, ask.
+   - Skin detail (Fabio, corrected 2026-09-27 after a live Krea test; supersedes "Chroma for skin"): krea2
+     gives the BEST skin on detail/upscale at LOW denoise (the default 20); higher denoise changes the
+     character more. Chroma's denoise changes the character LESS, so it is the pick when identity matters
+     more than peak skin. Skin detailing needs the prompt to ask for it ("high skin detail, visible
+     pores"). All of it as NOTES on those ops; NO rank change (Fabio: "forget about Chroma" ranking).
    - ONE generic line, not per model, in the `list_models` header (`compactCatalogue` `detail`, paid only
      when the agent lists models): a miss moves to the next rank for the task, never the same op again.
    - Offer Fabio a pass where he dictates each model's strengths; `NOTES` takes them.
@@ -358,6 +359,16 @@ run's four problems became **Phase 9** (agent cleans up after itself) and **Phas
 (History prompt box), both approved ("go", with MPI-955 on the umbrella). **NEXT: the Parallel Batch
 Phase 9 + Phase 10**, then Phases 5, 7, 8. Ask Fabio before ranking Chroma first for `detail`.
 
+2026-09-27, session 575c1f1a: CI green on 7b9c77aa8 (one shard re-run after an Electron-download 500);
+the MPI-904/905/948 close pushed as `3ba17b3c3`. **Phases 9 + 10 built by a parallel batch, unit + desktop
+green, uncommitted, claim `575c1f1a-mpi941`; live check pending** (validation.md § Phases 9 and 10 has the
+brief). Fabio corrected the Chroma premise mid-build: no rank change, krea2 is the best skin at low denoise,
+Chroma keeps the character more (notes only). **Phases 9 + 10 VERIFIED by Fabio** ("Everything works",
+screenshots: a Klein edit cancelled for Krea on his word; crop 8:5 started first call). Checklist ticked;
+MPI-955 `validating`. **NEXT:** commit Phases 9 + 10 code, close MPI-955 once CI is green on it (separate
+commit, done-gate), then Phase 5 (MPI-913, local Ollama holds VRAM), 7 (clickable options), 8 (one Agent
+spend figure). Noticed, not built: the agent claims a tool needs no GPU (the "with no model" tool notes).
+
 **Watch-only, carried from MPI-817 (no build unless it recurs):** the agent ending an Auto-mode
 turn on a question; a note generalising from two runs; a project note RESTATING a global one
 (Fabio's `characters.md` copied "3D cartoon (global preference)", so forgetting the global note left
@@ -384,7 +395,17 @@ the copy); Ollama's free cloud models (unconfirmed research); the `__ARG__` proj
   `NOT_A_GIF` refusal points at the tools (`js/shell/gifJobs.js`). Tests: `agent-tool-ops.test.cjs`,
   the relay tool case, two `(l)` cases, `tests/desktop/agent-tool-ops.spec.js`. Live check is Fabio's.
 
+- **Phases 9 + 10 code (2026-09-27, session 575c1f1a), uncommitted until handoff/close:** `_inflightLine()`
+  + the tool-field fold + the retry-rank header line (`services/agentLoop.mjs`); skin/edit NOTES
+  (`modelPriority.js`); `_modelTakesImage` (`MpiGroupHistoryBlock.js`); `docs/agent-chat.md`. Tests in
+  `agent-loop.test.cjs`, `model-priority.test.cjs`, new `tests/desktop/history-prompt-model.spec.js`.
+  `routes/connector.js`, `agentToolOps.js`, `agentDispatch.js` needed no change. Live check is Fabio's.
+
 ## Plan Drift
+
+- 2026-09-27 (session 575c1f1a): Phase 9's Chroma item was corrected by Fabio mid-build after a live Krea
+  test. Krea2 gives the better skin at low denoise; Chroma's advantage is that its denoise moves the
+  character less. Notes only, no rank change, and the "ask Fabio before ranking Chroma first" gate is gone.
 
 - 2026-09-27: point 3's "better still" (one renderer job through Cue all's path) was NOT needed.
   An agent item already reaches `enqueueGeneration` through `agentDispatch._submitGeneration`, the

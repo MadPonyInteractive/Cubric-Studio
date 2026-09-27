@@ -709,6 +709,56 @@ test('the agent can cancel what it started: the latest by default, an earlier on
     assert.match(r.error.message, /Stop in the app/);
 });
 
+/*
+ * MPI-941 Phase 9 (Fabio, live 2026-09-27): a WAKE turn re-sent krea2Edit on its own; his
+ * "try Klein 9B" then landed as kleinEdit and queued BEHIND it. On a user turn the agent was
+ * never told a job of its own was still running, and cancel_generation's own description
+ * covers only "take it back" — not that anything needed taking back.
+ */
+test('a job still running tells the NEXT turn, names the id to cancel, and a quiet turn says nothing', async () => {
+    const project = { folderPath: '/project', name: 'Test' };
+    const gen = (id, args) => ({ text: '', toolCalls: [{ id, type: 'function', function: { name: 'generate', arguments: JSON.stringify(args) } }] });
+    const { loop, tools, engine } = await makeLoop({ engineResponses: [
+        gen('g1', { modelId: 'krea2', operation: 'krea2Edit', prompt: 'Make it night', cardName: 'Cowgirl edit' }),
+        { text: 'Editing.' },
+        { text: 'Sure, switching to Klein 9B.' },
+        { text: 'All done.' },
+    ] });
+    const held = new Map();
+    tools.generate = (body) => new Promise((resolve) => held.set(body.requestId, resolve));
+
+    await loop.runTurn('edit this to night', [], project, 'auto', 'deepinfra', 't1');
+    assert.equal(held.size, 1, 'the edit is still running when the turn ends');
+    const [toolCallId] = held.keys();
+
+    // The user's NEXT message must be told, so it can cancel before it asks for something else.
+    // (Each turn's own opening lines ride on the LATEST user message, not the whole transcript —
+    // that transcript keeps every past turn's text verbatim, "Running now" included.)
+    const lastUserMessage = () => loop._messages.filter((m) => m.role === 'user').at(-1).content;
+    await loop.runTurn('try Klein 9B instead', [], project, 'auto', 'deepinfra', 't2');
+    const heard = lastUserMessage();
+    assert.match(heard, /\[Running now: .*\(toolCallId [^)]+\)\. If the user's new ask replaces it, cancel it first\.\]/);
+    assert.ok(heard.includes(toolCallId), 'names the id cancel_generation actually takes');
+
+    // Settled: a QUIET turn after it lands says nothing at all — paid only while it applies.
+    held.get(toolCallId)({ ok: true, output: { itemId: 'i1', groupId: 'g1', type: 'image', filePath: '/p/x.png' } });
+    await new Promise((r) => setImmediate(r));
+    await loop._unfinishedQueue;
+    await loop.runTurn('thanks', [], project, 'auto', 'deepinfra', 't3');
+    assert.doesNotMatch(lastUserMessage(), /Running now:/);
+});
+
+// A wake turn never carries the line either: `_inflight` is empty by construction when one
+// starts (`_maybeDrained` only fires the wake once every job has settled), so this is the
+// same "zero bytes" guarantee proven directly rather than through that timing.
+test('a wake turn never carries the in-flight line, even if something were still running', async () => {
+    const project = { folderPath: '/project', name: 'Test' };
+    const { loop, engine } = await makeLoop({ engineResponses: [{ text: 'Landed.' }] });
+    loop._inflight.set('tc-x', 'krea2Edit');
+    await loop.runTurn('', [], project, 'auto', 'deepinfra', 't-wake', { wake: true });
+    assert.doesNotMatch(JSON.stringify(engine.calls[0].messages), /Running now:/);
+});
+
 // ---------------------------------------------------------------------------
 // (e) image references: only this session's attachments and its own results
 // ---------------------------------------------------------------------------
@@ -1608,7 +1658,10 @@ describe('(i) the catalogue diet', () => {
         assert.ok(!text.includes('guide:one'), 'guide ids are gone from the list');
         assert.ok(!text.includes('box1'), "a Flow's boxes are gone from the list");
         assert.ok(!text.includes('Expression'), "a Flow's fields are gone from the list");
-        assert.ok(text.length < JSON.stringify(catalogue).length / 2, `the list did not shrink (${text.length} chars)`);
+        // The LIST must halve; the header's fixed `detail` line (MPI-941 Phase 9 added the
+        // retry-rank rule to it) is not the list, and a 2-model fixture is too small to absorb it.
+        const listText = JSON.stringify({ ...short, detail: '' });
+        assert.ok(listText.length < JSON.stringify(catalogue).length / 2, `the list did not shrink (${listText.length} chars)`);
 
         const [one, big] = short.models;
         assert.deepEqual(one.ops, [{ op: 't2i', rank: 1 }, { op: 'i2i', rank: 2 }]);
@@ -1626,6 +1679,15 @@ describe('(i) the catalogue diet', () => {
         ]);
 
         assert.deepEqual(short.flows, [{ id: 'a-flow', title: 'A Flow', installed: true }]);
+    });
+
+    // MPI-941 Phase 9: said ONCE in the header, not per model or per op — a miss re-tries
+    // the next rank for the task, never the same op again.
+    test('the header names the retry rule once, whether or not the catalogue has tools', async () => {
+        const { compactCatalogue } = await import('../services/agentLoop.mjs');
+        assert.match(compactCatalogue(catalogue).detail, /a miss moves to the next rank for the task, never the same op again/i);
+        assert.match(compactCatalogue({ ...catalogue, tools: [{ op: 'crop', note: 'Crop.' }] }).detail,
+            /a miss moves to the next rank for the task, never the same op again/i);
     });
 
     // MPI-916: with ranks 1-2 not installed, cheaper models took rank 5 over rank 3.
@@ -2403,6 +2465,32 @@ describe('(l) one ask, many cards', () => {
         assert.ok(await waitForEvent(fakeRes, (e) => e.event === 'agent:result'));
         assert.deepEqual(tools.calls.generate[0].fields, { ratio: '1:1' });
         assert.equal(tools.calls.look.length, 0, 'a tool changes the frame or the size, not what is in it: nothing to look at');
+    });
+
+    // MPI-941 Phase 9 (Fabio, live 2026-09-27): "Generation not started" x2 before the agent
+    // read crop's settings. It had sent ratio TOP-LEVEL, the way a model op takes it, and the
+    // route refuses a named param on a tool call outright (routes/connector.js, reproduced
+    // below). A name that is one of the tool's OWN fields must ride in fields instead.
+    test('a tool call with a top-level named param that is one of its OWN fields is folded into fields, not refused', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
+        withTools(tools);
+        tools.generate = async (body) => {
+            tools.calls.generate.push(body);
+            // The connector's own rule: a tool call (no modelId, no flowId) takes no named
+            // param at all — everything is `fields` — so one present is refused outright.
+            const NAMED = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'stylization', 'duration', 'denoise', 'batch'];
+            if (!body.modelId && !body.flowId && NAMED.some((k) => body[k] !== undefined)) {
+                return { ok: false, error: { code: 'BAD_REQUEST', message: `"${body.operation}" runs with no model: its settings go in fields, not ${NAMED.filter((k) => body[k] !== undefined).join(', ')}.` } };
+            }
+            return { ok: true, output: { itemId: 'item-1', groupId: 'group-1', type: 'image', filePath: '/path/result.png' } };
+        };
+
+        const [ref] = seeCards(loop, 1);
+        const out = JSON.parse(await loop._executeTool('generate',
+            { operation: 'crop', ratio: '1:1', media: [{ role: 'inputImage', image: ref }] }, 'turn-tool-topratio', project));
+        assert.equal(out.ok, true, out.error?.message);
+        assert.equal(tools.calls.generate[0].ratio, undefined, 'never sent as a named param on a tool');
+        assert.deepEqual(tools.calls.generate[0].fields, { ratio: '1:1' });
     });
 });
 

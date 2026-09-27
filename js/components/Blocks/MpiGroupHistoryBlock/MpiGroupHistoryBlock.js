@@ -45,7 +45,7 @@ import { Events } from '../../../events.js';
 import { navigate, PAGE_GALLERY } from '../../../router.js';
 import { getModelsByType, isModelUsable, installedOpsForContext } from '../../../data/modelRegistry.js';
 import { canonicalModelId } from '../../../data/modelConstants/resolveModelDeps.js';
-import { getAvailableCommands, getCommandMediaInputs, getCommandAccent } from '../../../data/commandRegistry.js';
+import { getAvailableCommands, getCommandMediaInputs, getCommandAccent, isTextOnlyOp } from '../../../data/commandRegistry.js';
 import { enqueueGeneration, clearPendingQueue, refreshQueueDepth, cancelRunningCueJob } from '../../../services/generationService.js';
 import { generationStore } from '../../../services/generationStore.js';
 import { activeGenerations } from '../../../services/activeGenerations.js';
@@ -307,18 +307,28 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         // frame, Extend, Create new) only makes sense for models that accept image
         // input. After the combined→split model change, t2v-only models carry no
         // i2v op, so they must NOT be selectable here — gate the MODEL LIST, not the
-        // tools. Image history is unaffected.
+        // tools.
         const _modelSupportsI2V = (m) =>
             Array.isArray(m?.supportedOps) && m.supportedOps.some(op => op.startsWith('i2v'));
-        const _promptModelFilter = (m) => (isVideo ? _modelSupportsI2V(m) : true);
+        // MPI-955: image history mirrors the same gate. A model with no op that
+        // takes an image (e.g. a DeepInfra text-to-image-only model) left
+        // `_hasPromptOps()` false for every op, so the prompt tool — and the
+        // Cue/Stop/model-picker that live inside it — went dead with no way out.
+        // Every op key not in `isTextOnlyOp` (t2i, t2v...) requires an image or a
+        // video; for an image model that means "takes an image".
+        const _modelTakesImage = (m) =>
+            Array.isArray(m?.supportedOps) && m.supportedOps.some(op => !isTextOnlyOp(op));
+        const _promptModelFilter = (m) => (isVideo ? _modelSupportsI2V(m) : _modelTakesImage(m));
 
         const { model: activeModelInit, modelId: activeModelIdInit, installedModels: _allInstalledModels } =
             resolveActiveModel(isVideo ? 'video' : 'image');
-        // Models offered in this workspace's prompt box. For video, i2v-capable only.
+        // Models offered in this workspace's prompt box. For video, i2v-capable
+        // only; for image, models that take an image (MPI-955).
         const installedModels = _allInstalledModels.filter(_promptModelFilter);
         // If the resolver picked a model the filter excludes (e.g. last-selected was
-        // t2v), fall back to the first eligible model. May be undefined when no i2v
-        // model is installed — handled as read-only by _syncPromptToolDisabled.
+        // t2v, or a t2i-only image model), fall back to the first eligible model.
+        // May be undefined when no eligible model is installed — handled as
+        // read-only by _syncPromptToolDisabled.
         const activeModelInitEligible = installedModels.includes(activeModelInit)
             ? activeModelInit
             : (installedModels[0] || null);

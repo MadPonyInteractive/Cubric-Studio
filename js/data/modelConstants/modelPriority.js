@@ -88,15 +88,23 @@ const REF2V = [
  */
 const ONE_IMAGE = 'it takes exactly one image, so it can never bring in anything from another picture (a person, an object, the furniture of the same room from another angle): that is qwenEdit, else kleinEdit, else krea2Edit (the order the model guide gives), with the picture being changed first and the one holding the content second';
 
-/** Keyed `modelId:op` where the strength is about that op, else by `modelId`. */
+/** Keyed `modelId:op` where the strength is about that op, else by `modelId`. */// Neither adds skin detail unless the prompt asks for it.
+const KREA2_SKIN = 'the best skin detail here, but only at its own low default denoise — push it higher and the character changes too. Ask for it in the prompt, e.g. "high skin detail, visible pores"';
+const CHROMA_SKIN = 'denoise changes the character less than krea2\'s does here — pick it when keeping the character matters more than peak skin detail. Ask for detail in the prompt, e.g. "high skin detail, visible pores"';
+
 const NOTES = {
     'boogu-edit-high:edit': `the strongest editor here, but ${ONE_IMAGE}`,
     'boogu-edit-balanced:edit': `the same editor on a lighter tier, and ${ONE_IMAGE}`,
     'klein-9b:kleinEdit': 'the native editor: it follows the instruction and keeps the likeness, but it tends to cover a bare subject unless the instruction says to keep it as it is',
     'klein-4b:kleinEdit': 'the small native editor — lighter, and weaker on realism',
-    'krea2:krea2Edit': 'faster than Qwen Edit and strong on realism, but it tends to change the surroundings too',
+    'krea2:krea2Edit': 'not a native editor: it re-renders the whole picture rather than editing in place, so the surroundings shift too, but that same re-render holds an anime or stylised look through the edit better than kleinEdit does',
     'qwen-edit:qwenEdit': 'the slowest of these, and the only one that leaves everything outside the edit area untouched',
     'minimax-h3-ref2va:ref2v_ms': 'the identity route: a character sheet, a turnaround or several views of one subject go in as references, and the clip is made new around them',
+    // MPI-941 Phase 9 (Fabio, corrected after a live Krea test): rank is untouched either way.
+    'krea2:detail': KREA2_SKIN,
+    'krea2:upscale': KREA2_SKIN,
+    'chroma-flash:detail': CHROMA_SKIN,
+    'chroma-flash:upscale': CHROMA_SKIN,
     'krea2': 'realism',
     'klein-9b': 'realism, well past any SDXL model',
     'chroma-flash': 'candid, real-life, influencer-style photography',

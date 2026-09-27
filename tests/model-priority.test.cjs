@@ -65,6 +65,45 @@ test('the notes carry what a rank cannot, on the entries where they change the p
     assert.match(opPriority('ill-anime', 't2i').note, /anime/);
 });
 
+// MPI-941 Phase 9 (Fabio): krea2Edit is not a native editor — it re-renders the whole
+// picture — but that same re-render keeps a stylised look through the edit better than
+// kleinEdit does. The old note ("strong on realism") said the opposite of the second half.
+test('krea2Edit is not a native editor: it re-renders, and holds a stylised look better than kleinEdit', () => {
+    const note = opPriority('krea2', 'krea2Edit').note;
+    assert.match(note, /not a native editor/);
+    assert.match(note, /re-renders/);
+    assert.match(note, /kleinEdit/);
+    assert.doesNotMatch(note, /strong on realism/);
+});
+
+// MPI-941 Phase 9 (Fabio, corrected): krea2 gives the best skin detail on detail/upscale, but
+// only at its own low default denoise; chroma-flash's denoise changes the character less than
+// krea2's, the tradeoff for less peak detail. Neither adds detail unless asked for in the
+// prompt. Ranks stay exactly where they were — this is notes only, never a re-rank.
+test('krea2 is the best skin detail at low denoise; chroma-flash keeps the character more', () => {
+    for (const op of ['detail', 'upscale']) {
+        const note = opPriority('krea2', op).note;
+        assert.match(note, /best skin detail/, op);
+        assert.match(note, /denoise/, op);
+        assert.match(note, /"high skin detail, visible pores"/, op);
+    }
+    assert.equal(opPriority('krea2', 'detail').rank, 1);
+    assert.equal(opPriority('krea2', 'upscale').rank, 2);
+
+    for (const op of ['detail', 'upscale']) {
+        const note = opPriority('chroma-flash', op).note;
+        assert.match(note, /denoise changes the character less than krea2/, op);
+        assert.match(note, /"high skin detail, visible pores"/, op);
+        assert.doesNotMatch(note, /the pick for realistic skin detail/, op);
+    }
+    assert.equal(opPriority('chroma-flash', 'detail').rank, 3);
+    assert.equal(opPriority('chroma-flash', 'upscale').rank, 4);
+
+    // chroma-hyper is untouched: no new note, same rank right after Flash on both tasks.
+    assert.doesNotMatch(opPriority('chroma-hyper', 'detail').note, /denoise changes the character/);
+    assert.equal(opPriority('chroma-hyper', 'detail').rank, 4);
+});
+
 test('a one-image editor names the editors that take a second picture, and they do (MPI-944)', () => {
     // Live, "put A's furniture into empty angle B" went to rank-1 Boogu with B alone.
     const commandRegistry = require('../js/data/commandRegistry.js');

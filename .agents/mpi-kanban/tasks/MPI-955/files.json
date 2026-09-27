@@ -1,0 +1,7 @@
+{
+ "schema": "mpi-kanban/task-files/v1",
+ "files": [
+  "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js",
+  "tests/desktop/history-prompt-model.spec.js"
+ ]
+}

@@ -74,7 +74,7 @@ JSON Schema `parameters`, OpenAI `tools` format. An invented tool is refused wit
 | `describe_model` | `{ id: string }` required | the same route, one entry whole: `params`, `media`, a Flow's `fields`/`boxParams`, `guides`, `fit` (`UNKNOWN_MODEL`) |
 | `read_knowledge` | `{ id?: string }` (no id = the index) | `GET /connector/knowledge[/:id]` |
 | `install_model` | `{ modelId: string }` required | **never directly**: emits `agent:confirm`; `POST /agent/confirm` runs it |
-| `generate` | `{ modelId?, operation?, flowId?, prompt?, negative?, ratio?, qualityTier?, turbo?, styleSelect?, stylization?, seed?, cardName?, fields?: object, params?: object, media?: [{ role, image }] }` | `POST /connector/generate`, fired and not awaited; a model op waits for its guide (below). `cards` / `count` fan out as ONE batch (`_newBatch`, MPI-941): items settle silently into one progress line (an `agent:tool` of tool `batch`, replaced by id) and one `[Batch finished]` note, with no per-item result card, note or look; only items up to the first one that passes meet the 1 s refusal race, and the batch keeps one unfinished-ledger entry that ends holding only its failed cards. **No `modelId` and no `flowId` = a tool** (MPI-904, `js/shell/agentToolOps.js`): `imageUpscale`, `removeBackground`, `crop`, `downscale`, settings in `fields`, listed as `tools` by `list_models` and whole by `describe_model <op>`. It runs the History rail's universal op with the rail's params (`crop` is `resize` in crop mode; `downscale` is `resize` at the rail's MP size and refuses to enlarge, `ALREADY_SMALLER`), skips the guide gate and the auto-look, and an edited entry gets the result as its card's next entry |
+| `generate` | `{ modelId?, operation?, flowId?, prompt?, negative?, ratio?, qualityTier?, turbo?, styleSelect?, stylization?, seed?, cardName?, fields?: object, params?: object, media?: [{ role, image }] }` | `POST /connector/generate`, fired and not awaited; a model op waits for its guide (below). `cards` / `count` fan out as ONE batch (`_newBatch`, MPI-941): items settle silently into one progress line (an `agent:tool` of tool `batch`, replaced by id) and one `[Batch finished]` note, with no per-item result card, note or look; only items up to the first one that passes meet the 1 s refusal race, and the batch keeps one unfinished-ledger entry that ends holding only its failed cards. **No `modelId` and no `flowId` = a tool** (MPI-904, `js/shell/agentToolOps.js`): `imageUpscale`, `removeBackground`, `crop`, `downscale`, settings in `fields`, listed as `tools` by `list_models` and whole by `describe_model <op>`. A top-level name that is one of the tool's OWN fields (crop's `ratio` shares its name with a model's) rides in `fields` instead — the route refuses a named param on a tool outright (MPI-941 Phase 9). It runs the History rail's universal op with the rail's params (`crop` is `resize` in crop mode; `downscale` is `resize` at the rail's MP size and refuses to enlarge, `ALREADY_SMALLER`), skips the guide gate and the auto-look, and an edited entry gets the result as its card's next entry |
 | `cancel_generation` | `{ toolCallId? }` (none = the LATEST it started) | `POST /connector/cancel { requestId }`. Only what THIS conversation started and has not settled (`_inflight`; else `NOT_IN_FLIGHT`), rendering or still queued; never the user's own runs. `generate` sends its `toolCallId` as the submit's `requestId`, which becomes the relay `jobId`; the renderer maps it to the Cue queue id and calls the queue's own `cancelPendingCueJob` / `cancelRunningCueJob`. A clip cancelled this way LEAVES the unfinished ledger and is not reported to the model as a failure. Found live 2026-09-20: with no cancel tool, "Scratch that. Leave it." was read as "leave it running". Allowlisted on purpose in `tests/agent-no-delete.test.cjs` - it is not a delete |
 | `look` | `{ image: string, question?: string, crop?: {x,y,width,height}, box?: boolean }`, `image` required | `POST /connector/describe`. A video or GIF ref (MPI-941 Phase 4) is sampled first: `cardView.viewFile` tiles it into ONE contact sheet, written to `cropDir()` as a `.webp`, and that goes to describe instead of the clip itself — one call, the same cost as a still. The question opens with the sheet's own facts (frame count, duration, columns, times), the caller's question after. `crop` and `box` stay stills-only |
 | `list_projects` / `create_project` | `{}` / `{ name }` | `GET /connector/projects` / `POST /connector/create-project` |
@@ -238,6 +238,11 @@ Every event but `agent:session` also carries `session`, the key of its conversat
   at:" = the `_images` allowlist), the project's notes index once per project (first turn, a switch, a
   compaction), then what finished since the last turn. A successful `open_project` updates the project
   for the rest of the turn, and its result carries the new project's notes.
+- **In-flight line** (MPI-941 Phase 9): a real turn only (never a wake, which starts with `_inflight`
+  empty) whose `_inflight` is non-empty gets ONE `[Running now: ...]` line naming the job (or, with
+  several, the op label and a count — never every id) and the `toolCallId` `cancel_generation` takes.
+  Fixed a live queue-behind: a wake re-sent `krea2Edit` on its own and "try Klein 9B" landed behind it,
+  because nothing told the model its own job was still running. Zero bytes on every other turn.
 - **Gates** (a rule alone did not do it; a compaction clears them): a model op's `generate` answers `GUIDE_NOT_READ` until this context
   read its router guide, the first of its `guides` (a guide names the mode of any default: a bare one skipped Ask first), and the
   `read_knowledge` that unlocks a refused call says in `next` that the call has NOT run (MPI-916: a model read the guide and ended
@@ -286,7 +291,8 @@ Every event but `agent:session` also carries `session`, the key of its conversat
   entry it picked, the shape the guides already had. Measured on the real catalogue (21 models, 13
   flows): **~9,440 -> ~1,449 tokens**, and ~2,118 for a first turn that also describes its pick. The
   guide gate and the box gate read the FULL answer inside the loop, so they still bite with the ids
-  out of sight.
+  out of sight. Its `detail` header carries ONE generic line, paid only when `list_models` is called:
+  a miss moves to the next rank for the task, never the same op again (MPI-941 Phase 9).
 - **Attachments:** `<APP_USER_DATA>/agent/attachments/` (`os.tmpdir()/cubric-agent` standalone), wiped
   at server start; a reset discards only its conversation's files. Crops: `.../agent/crops/`.
 
@@ -357,6 +363,13 @@ image", "leaves everything outside the edit area untouched"). One image order fi
 lists, because those op ids are per model. `-nsfw` variants and single-candidate tasks are unranked
 on purpose, except `ref2v`: a list of one, ranked only so its note (a character sheet or several
 views go here, never to i2v as a first frame) reaches the agent.
+
+**Notes are Fabio's knowledge, not the code's guess (MPI-941 Phase 9).** `krea2Edit` is not a
+native editor — it re-renders the whole picture — but that same re-render holds an anime or
+stylised look better than `kleinEdit`. On `detail`/`upscale`, `krea2` gives the best skin detail
+but only at its own low default denoise (push it higher and the character changes too);
+`chroma-flash`'s denoise changes the character less than krea2's, the tradeoff for less peak
+detail — neither adds detail unless the prompt asks for it. Ranking is untouched throughout.
 
 **What the short list adds (MPI-916).** Each ranked op carries its `task` (`paid: true` on a cloud
 op), and `compactCatalogue` turns them into two fields: `best: true` on the lowest rank per task

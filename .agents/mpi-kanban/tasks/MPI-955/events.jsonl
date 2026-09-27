@@ -1,1 +1,3 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-955", "at": "2026-09-27T11:58:54+01:00", "actor": "claude:5b8e4d8c", "column": "todo", "title": "History's prompt box vanishes when the selected image model takes no image: no Cue, no Stop, no model picker"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-955", "at": "2026-09-27T12:09:34+01:00", "actor": "575c1f1a", "from": "todo", "to": "doing", "reason": "MPI-941 Phase 10 starts (parallel batch with Phase 9)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-955", "at": "2026-09-27T13:04:10+01:00", "actor": "575c1f1a", "from": "doing", "to": "doing", "reason": "Verified live by Fabio 2026-09-27; closes once CI judges its code commit (done-gate)"}

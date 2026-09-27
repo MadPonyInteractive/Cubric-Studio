@@ -8,5 +8,5 @@
 - [x] MPI-905: 64K context floor (verified by Fabio 2026-09-27)
 - [ ] Clickable options: the agent's choices as buttons, not typed answers
 - [ ] The spend line counts image analysis and prompt work as ONE "Agent" figure: "Agent · Generations"
-- [ ] Phase 9: the agent cleans up after itself (cancel a replaced run, model strengths in the index, crop takes a plain ratio)
-- [ ] MPI-955 (Phase 10): History's prompt box survives a text-to-image model being selected
+- [x] Phase 9: the agent cleans up after itself (cancel a replaced run, model strengths in the index, crop takes a plain ratio)
+- [x] MPI-955 (Phase 10): History's prompt box survives a text-to-image model being selected
