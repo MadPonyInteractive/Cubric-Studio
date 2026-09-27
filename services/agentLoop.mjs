@@ -448,6 +448,9 @@ const OUT_OF_ROUNDS = 'You are out of tool calls for this turn. In plain words, 
 // happen, and this constant is the knob if the trade ever reads wrong.
 const EARLY_REFUSAL_MS = 1000;
 
+// What a fan-out's result says about its cards once they are queued (MPI-941).
+const BATCH_STARTED = 'The chat shows one progress line, and one note comes when the last has finished. Do not look at them: the user judges them in the gallery.';
+
 // Ops that run on a painted mask; with one painted, generate wants app:masking read first.
 const MASKED_OPS = new Set(['edit', 'kleinEdit', 'krea2Edit', 'qwenEdit', 'inpaint', 'detail', 'i2i']);
 
@@ -1111,6 +1114,7 @@ export class AgentLoop {
 
         const started = [];
         const refused = [];
+        const batch = this._newBatch(turnId, args, currentProject, cards ? 'card' : 'run');
         for (const [i, run] of runs.entries()) {
             // `wait` is dropped: awaiting each one would run fifty renders end to end inside a
             // single turn, and the fan-out exists precisely so the chat stays free meanwhile.
@@ -1118,7 +1122,7 @@ export class AgentLoop {
             const label = cards ? cards[i] : i + 1;
             let res;
             try {
-                res = JSON.parse(await this._executeTool('generate', one, turnId, currentProject, { batch: true }));
+                res = JSON.parse(await this._executeTool('generate', one, turnId, currentProject, { batch, label }));
             } catch (err) {
                 res = { ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } };
             }
@@ -1128,6 +1132,7 @@ export class AgentLoop {
             if (res?.ok) started.push(label);
             else refused.push({ [cards ? 'card' : 'run']: label, code: res?.error?.code || 'ERROR', message: res?.error?.message || 'no reason given' });
         }
+        batch.close();
 
         // One result, whatever the count. A refusal is reported per card because they differ —
         // one missing ref among fifty must not read as "the batch failed".
@@ -1137,8 +1142,73 @@ export class AgentLoop {
             refused,
             message: refused.length
                 ? `Started ${started.length} of ${n}. ${refused.length} were refused — tell the user which, and why.`
-                : `Started all ${started.length}. They will appear in the chat as they finish; none of them is described, so look at one if you need to.`,
+                : `Started all ${started.length}. ${BATCH_STARTED}`,
         });
+    }
+
+    /**
+     * MPI-941 — a batch is ONE job to the agent (Fabio, 2026-09-26: 350 photos, Cue all).
+     *
+     * Its items settle into this, not into the chat and the notes: one progress line, replaced
+     * in place by id the way a step label is corrected, and ONE note when the last item has
+     * settled. No result card per item, no note per item, no look. `validated` is how the
+     * batch validates once: see the refusal race in `generate`.
+     *
+     * It also holds the batch's single line in the unfinished ledger, which is keyed on the
+     * prompt, so fifty items sharing one prompt were fifty writes to ONE entry, and the first
+     * to land erased it while forty-nine still ran. At the end the entry keeps only what failed.
+     * ponytail: an app close mid-batch leaves the whole list in the ledger, landed cards too;
+     * split it per card if a requeue ever re-runs too much.
+     */
+    _newBatch(turnId, args, project, unit) {
+        const id = crypto.randomUUID();
+        const what = `${args.operation} with ${args.modelId}`;
+        const failed = [];
+        const samples = [];
+        let started = 0;
+        let landed = 0;
+        let cancelled = 0;
+        let open = true;
+        let entry = null;
+        const line = (status) => {
+            const label = `${what}: ${landed + failed.length + cancelled} of ${started} done${failed.length ? `, ${failed.length} failed` : ''}`;
+            entry ||= this._historyEntry('tool', { id, tool: 'batch', args: {}, status, label });
+            Object.assign(entry, { status, label });
+            this._emit('agent:tool', { turnId, id, tool: 'batch', status, label });
+        };
+        const finish = () => {
+            if (open || !started || landed + failed.length + cancelled < started) return;
+            line(landed ? 'done' : 'failed');
+            const groups = new Map();
+            for (const f of failed) {
+                const k = `${f.code}: ${f.message}`;
+                groups.set(k, [...(groups.get(k) || []), f.label]);
+            }
+            const why = [...groups].map(([k, labels]) => `${k} (${labels.slice(0, 5).join(', ')}${labels.length > 5 ? `, ${labels.length - 5} more` : ''})`).join('; ');
+            this._notes.push(`[Batch finished: ${what}, ${started} ${unit}s: ${landed} landed${failed.length ? `, ${failed.length} failed: ${why}` : ''}${cancelled ? `, ${cancelled} cancelled` : ''}. They are in the gallery for the user to judge: report it in one sentence and look at none of them.${samples.length ? ` Asked how they came out, look at 3 at most, e.g. ${samples.join(', ')}.` : ''}]`);
+            const fails = failed.map((f) => f.label);
+            this._trackUnfinished(project, unit === 'card' ? { ...args, cards: fails } : { ...args, count: fails.length },
+                failed.length ? [...new Set(failed.map((f) => f.code))].join(', ') : null);
+            this._maybeDrained();
+        };
+        return {
+            validated: false,
+            start: (size = 1) => {
+                if (!started) this._trackUnfinished(project, args, 'running');
+                started += size;
+                line('started');
+            },
+            settle: (label, r, wasCancelled, size = 1) => {
+                if (r?.ok) {
+                    landed += size;
+                    if (samples.length < 3 && r.output?.filePath) samples.push(r.output.filePath);
+                } else if (wasCancelled) cancelled += size;
+                else for (let i = 0; i < size; i++) failed.push({ label, code: r?.error?.code || 'ERROR', message: r?.error?.message || 'no reason given' });
+                line('started');
+                finish();
+            },
+            close: () => { open = false; finish(); },
+        };
     }
 
     /**
@@ -1151,17 +1221,19 @@ export class AgentLoop {
         // connector enforces; this loop imports nothing from js/data.
         const MAX = 4;
         let made = 0;
+        const batch = this._newBatch(turnId, args, currentProject, 'run');
         for (let i = 0; made < n; i++) {
             const size = Math.min(MAX, n - made);
             // A batch shares one seed; each further job steps it so they do not repeat.
             const one = { ...args, count: undefined, wait: undefined, ...(args.seed !== undefined ? { seed: Number(args.seed) + i } : {}) };
             let res;
             try {
-                res = JSON.parse(await this._executeTool('generate', one, turnId, currentProject, { batch: true, batchSize: size }));
+                res = JSON.parse(await this._executeTool('generate', one, turnId, currentProject, { batch, batchSize: size, label: i + 1 }));
             } catch (err) {
                 res = { ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } };
             }
             if (!res?.ok) {
+                batch.close();
                 if (made === 0 && res?.error?.code === 'BATCH_UNSUPPORTED') return null;
                 return JSON.stringify(made === 0 ? res : {
                     ok: true, started: made, refused: [{ run: made + 1, code: res?.error?.code || 'ERROR', message: res?.error?.message || 'no reason given' }],
@@ -1170,7 +1242,8 @@ export class AgentLoop {
             }
             made += size;
         }
-        return JSON.stringify({ ok: true, started: n, refused: [], message: `Started all ${n} as a batch; every card is already in the gallery. They land together, and none of them is described, so look at one if you need to.` });
+        batch.close();
+        return JSON.stringify({ ok: true, started: n, refused: [], message: `Started all ${n} as a batch; every card is already in the gallery. ${BATCH_STARTED}` });
     }
 
     /**
@@ -1472,9 +1545,11 @@ ${knowledgeIndex}`.trim();
 
     /**
      * @param {object} [opts]
-     * @param {boolean} [opts.batch]  this call is one item of a fan-out (`_fanOut`), not a
-     *   call the model made. Only `generate` reads it, and only to skip the auto-look: fifty
-     *   cards would be fifty vision calls the user never asked for (MPI-870).
+     * @param {object} [opts.batch]  this call is one item of a fan-out (`_newBatch`), not a
+     *   call the model made. Only `generate` reads it: no spend card (asked once for the
+     *   batch), no refusal race once one item passed it, and the item settles into the batch
+     *   instead of the chat, the notes and an auto-look (MPI-870, MPI-941).
+     * @param {string|number} [opts.label]  the item's card ref or run number, for the batch note
      */
     async _executeTool(toolName, args, turnId, currentProject, opts = {}) {
         switch (toolName) {
@@ -1539,15 +1614,7 @@ ${knowledgeIndex}`.trim();
                     // rule every time, so the result now names the call that fixes it.
                     return JSON.stringify({ ok: false, error: { code: 'NO_PROJECT', message: 'Nothing was generated: no project is open. Call create_project now, named after what you are making — it opens what it makes — then send this same generate again. Do not ask the user to open or create one; that is your job.' } });
                 }
-                // MPI-870 — the fan-out, ahead of the gates below on purpose. The media gate is
-                // per picture and `cards` is exactly what fills that slot, so asking it of the
-                // OUTER call refuses every batch with MEDIA_REQUIRED before a single card is
-                // tried. Each fanned-out call re-enters this case carrying its own media and
-                // meets every gate properly; `_fanOut` stops the batch on the one gate whose
-                // answer cannot differ per card (the guide).
-                if (Array.isArray(args.cards) && args.cards.length) {
-                    return this._fanOut(args, turnId, currentProject);
-                }
+                const fanned = Array.isArray(args.cards) && args.cards.length;
                 if (!args.flowId && args.modelId) {
                     const unread = await this._unreadGuide(String(args.modelId));
                     if (unread) {
@@ -1560,12 +1627,22 @@ ${knowledgeIndex}`.trim();
                         this._gateWaiting = 'app:masking';
                         return JSON.stringify({ ok: false, error: { code: 'KNOWLEDGE_NOT_READ', message: 'Nothing was generated: the user has a mask painted and this op runs on it. Read read_knowledge "app:masking" first, then write the prompt for the masked area only and send this again.' } });
                     }
+                    // MPI-870 — the fan-out goes between the gates, on purpose. The guide and the
+                    // masking read above belong to the MODEL, so they refuse the batch before the
+                    // user is asked: after the ask, a Yes was spent on a batch that then refused
+                    // every card, and the retry asked again (Fabio live, 2026-09-27, MPI-941). The
+                    // media gate below is per picture, and `cards` is exactly what fills that slot:
+                    // asked of the OUTER call it refuses every batch. Each fanned-out call re-enters
+                    // this case carrying its own media and meets every gate.
+                    if (fanned) return this._fanOut(args, turnId, currentProject);
                     const gap = await this._missingMedia(args);
                     if (gap) {
                         const roles = gap.slots.map((s) => `"${s.role}" (${s.type}${s.required ? ', required' : ''})`).join(', ');
                         return JSON.stringify({ ok: false, error: { code: 'MEDIA_REQUIRED', message: `Nothing was generated: "${args.operation}" needs ${gap.missing.type} in its "${gap.missing.role}" slot and your call passed none. Send it again with media: [{ role: "${gap.missing.role}", image: "<a ref the App state line lists>" }]. The slots this op takes: ${roles}.` } });
                     }
                 }
+                // A Flow, or no model named: `_fanOut` refuses what it cannot fan out, by name.
+                if (fanned) return this._fanOut(args, turnId, currentProject);
                 // MPI-876 — `count`, AFTER the guide and media gates, unlike `cards`: every run
                 // shares this call's media, so the outer call's answer is every run's answer, and
                 // a refusal here costs no spend card the user already said Yes to.
@@ -1681,7 +1758,11 @@ ${knowledgeIndex}`.trim();
                 // handle on the job until it is over — `cancel_generation` sends it back.
                 body.requestId = toolCallId;
                 const pending = this._tools.generate(body);
-                const early = await Promise.race([
+                // MPI-941 — a batch validates ONCE. Its items share the model, op, params and
+                // guide, so once one is past this window the rest can only fail on their own
+                // picture, and that settles as the item's failure. Paid per card, 350 photos took
+                // six minutes to queue with the chat blocked.
+                const early = opts.batch?.validated ? null : await Promise.race([
                     pending.then((r) => r, (err) => ({ ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } })),
                     new Promise((resolve) => { setTimeout(() => resolve(null), EARLY_REFUSAL_MS); }),
                 ]);
@@ -1696,8 +1777,14 @@ ${knowledgeIndex}`.trim();
                     } });
                 }
                 // It is queued. Until it lands, this is the only trace of what was asked for.
+                // A batch keeps ONE ledger entry for all its items (`_newBatch`).
                 const askedIn = currentProject;
-                await this._trackUnfinished(askedIn, args, 'running');
+                if (opts.batch) {
+                    opts.batch.validated = true;
+                    opts.batch.start(opts.batchSize || 1);
+                } else {
+                    await this._trackUnfinished(askedIn, args, 'running');
+                }
                 this._inflight.set(toolCallId, args.cardName || String(args.prompt || args.flowId || '').slice(0, 60));
 
                 // One settle path, attached two ways. `wait` awaits it so the result is in
@@ -1707,20 +1794,25 @@ ${knowledgeIndex}`.trim();
                 const settle = async (r) => {
                     const ok = r && r.ok;
                     this._inflight.delete(toolCallId);
+                    const cancelled = this._askedCancel.delete(toolCallId) && !ok;
+                    if (ok && r.output?.filePath) this._registerResult(r.output.filePath, r.output.modelId, r.output.itemId);
+                    if (ok && r.output?.groupId) this._groups.add(r.output.groupId);
+                    if (ok) this._addSpend('genUsd', r.output?.costUsd);
+                    // MPI-941 — a batch item reports to its batch, never to the chat or the notes.
+                    if (opts.batch) {
+                        opts.batch.settle(opts.label, r, cancelled, opts.batchSize || 1);
+                        return;
+                    }
                     // Taken back by the user: not a failure, and not something to requeue — so
                     // it leaves the unfinished ledger, and the model is not told it "failed".
-                    if (!ok && this._askedCancel.delete(toolCallId)) {
+                    if (cancelled) {
                         this._trackUnfinished(askedIn, args, null);
                         this._emit('agent:result', { toolCallId, ok: false, error: { code: 'CANCELLED', message: 'Cancelled, as you asked.' } });
                         this._historyEntry('result', { toolCallId, ok: false, error: { code: 'CANCELLED', message: 'Cancelled, as you asked.' } });
                         this._maybeDrained();
                         return;
                     }
-                    this._askedCancel.delete(toolCallId);
                     this._trackUnfinished(askedIn, args, ok ? null : (r?.error?.code || 'FAILED'));
-                    if (ok && r.output?.filePath) this._registerResult(r.output.filePath, r.output.modelId, r.output.itemId);
-                    if (ok && r.output?.groupId) this._groups.add(r.output.groupId);
-                    if (ok) this._addSpend('genUsd', r.output?.costUsd);
                     this._emit('agent:result', {
                         toolCallId,
                         ok,
@@ -1734,10 +1826,9 @@ ${knowledgeIndex}`.trim();
                         ? `[Generation finished: card ${r.output?.groupId}, ${r.output?.type} ${r.output?.filePath}${r.output?.pixelDimensions ? `, ${r.output.pixelDimensions.w}x${r.output.pixelDimensions.h}` : ''}]`
                         : `[Generation failed: ${r?.error?.code || 'ERROR'}: ${r?.error?.message || 'no reason given'}${paramMiss ? ` Call describe_model with "${args.flowId || args.modelId}" for the values it accepts.` : ''}]`);
 
-                    // Auto-look at image results (brief item 10). Never on a batch item: the
-                    // whole point of one call over fifty cards is that it does not cost fifty
-                    // vision calls (MPI-870).
-                    if (ok && !opts.batch && r.output?.type === 'image' && r.output?.filePath) {
+                    // Auto-look at image results (brief item 10). A batch item never gets here:
+                    // one call over fifty cards must not cost fifty vision calls (MPI-870).
+                    if (ok && r.output?.type === 'image' && r.output?.filePath) {
                         try {
                             const lr = await this._lookOnce(this._resolveImage(r.output.filePath));
                             if (lr?.ok) {
@@ -1756,6 +1847,10 @@ ${knowledgeIndex}`.trim();
                 const settleThrow = (err) => {
                     this._inflight.delete(toolCallId);
                     this._askedCancel.delete(toolCallId);
+                    if (opts.batch) {
+                        opts.batch.settle(opts.label, { ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } }, false, opts.batchSize || 1);
+                        return;
+                    }
                     this._trackUnfinished(askedIn, args, 'RUNTIME_ERROR');
                     this._emit('agent:result', { toolCallId, ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });
                     this._historyEntry('result', { toolCallId, ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } });

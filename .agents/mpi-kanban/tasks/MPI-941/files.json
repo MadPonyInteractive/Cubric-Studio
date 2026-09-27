@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["services/agentLoop.mjs", "tests/agent-loop.test.cjs", "docs/agent-chat.md"] }

@@ -2136,6 +2136,91 @@ describe('(l) one ask, many cards', () => {
         assert.equal(flow.error.code, 'BATCH_UNSUPPORTED', 'a Flow\'s fields and boxes belong to ONE picture');
         assert.equal(tools.calls.generate.length, 0);
     });
+
+    // MPI-941 — Fabio, 2026-09-26: 350 photos through Cue all. Asked of the agent, that was 350
+    // chat bubbles, 350 notes in one wake turn, and a one-second refusal race per card: six
+    // minutes to queue with the chat blocked. A batch is ONE job to the agent.
+    test('fifty cards are ONE job: one progress line, one note, no result cards, no looks, queued fast', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }], toolOpts: { generateDelay: 1500 } });
+        withOps(tools);
+        const refs = seeCards(loop, 50);
+        const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 'upscale', cards: refs }, 'turn-batch-50', project);
+        const ask = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+        const t0 = Date.now();
+        await loop.confirm(ask.data.confirmId, true);
+        const out = JSON.parse(await pending);
+        const queueMs = Date.now() - t0;
+
+        assert.equal(out.started, 50);
+        // The first card still meets the refusal window (1 s); the other 49 must not.
+        assert.ok(queueMs < 1600, `queueing fifty took ${queueMs} ms: validate once, then queue`);
+
+        assert.ok(await waitForEvent(fakeRes, (e) => e.event === 'agent:drained'), 'the batch never drained');
+        assert.equal(fakeRes.events.filter((e) => e.event === 'agent:drained').length, 1, 'the wake fires once');
+        assert.equal(fakeRes.events.filter((e) => e.event === 'agent:result').length, 0, 'no result card per card');
+        const lines = fakeRes.events.filter((e) => e.event === 'agent:tool' && e.data.tool === 'batch');
+        assert.equal(new Set(lines.map((e) => e.data.id)).size, 1, 'ONE progress line, replaced in place');
+        assert.equal(lines.at(-1).data.status, 'done');
+        assert.match(lines.at(-1).data.label, /^upscale with test-model: 50 of 50 done$/);
+        assert.equal(loop._notes.length, 1, 'one note for the whole batch');
+        assert.match(loop._notes[0], /^\[Batch finished: upscale with test-model, 50 cards: 50 landed\./);
+        assert.equal(tools.calls.look.length, 0);
+        const hist = loop.getHistory().entries.filter((e) => e.kind === 'tool' && e.tool === 'batch');
+        assert.equal(hist.length, 1, 'a remount redraws the same one line');
+        assert.equal(hist[0].label, lines.at(-1).data.label);
+    });
+
+    // Fabio live, 2026-09-27: "Run this 8 times?", Yes, then the first card was refused for an
+    // unread Krea 2 guide, the agent read it and asked "Run this 8 times?" again. The guide and
+    // the masking read belong to the MODEL, so they gate the batch before anyone is asked.
+    test('an unread guide refuses a batch BEFORE the user is asked, never after their Yes', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
+        withOps(tools);
+        const base = tools.listModels;
+        tools.listModels = async () => { const r = await base(); r.models[0].guides = ['guide:test-model']; return r; };
+        const refs = seeCards(loop, 8);
+        const pending = loop._executeTool('generate', { modelId: 'test-model', operation: 'upscale', cards: refs }, 'turn-batch-guide', project);
+        const asked = await Promise.race([waitForEvent(fakeRes, (e) => e.event === 'agent:confirm', 500), pending.then(() => null)]);
+        if (asked) await loop.confirm(asked.data.confirmId, true);
+        const out = JSON.parse(await pending);
+
+        assert.equal(asked, null, 'the user was asked about a batch a model-wide gate refuses');
+        assert.equal(out.error.code, 'GUIDE_NOT_READ');
+        assert.equal(tools.calls.generate.length, 0);
+    });
+
+    test('a batch with failures: the note names them, and the ledger keeps only those cards to requeue', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
+        withOps(tools);
+        const store = new Map();
+        Object.assign(tools, {
+            readMemory: async (_f, file) => (store.has(file) ? { ok: true, file, text: store.get(file).text } : { ok: true, notes: [] }),
+            writeMemory: async (_f, note) => { store.set(note.file, note); return { ok: true }; },
+        });
+        const ledger = () => JSON.parse(/```json\n([\s\S]*?)\n```/.exec(store.get('unfinished-generations.md')?.text || '')?.[1] || '[]');
+        const refs = seeCards(loop, 5);
+        const release = [];
+        tools.generate = (body) => new Promise((resolve) => {
+            const bad = /card_[24]\.png/.test(decodeURIComponent(body.media[0].url));
+            release.push(() => resolve(bad
+                ? { ok: false, error: { code: 'OOM', message: 'out of memory' } }
+                : { ok: true, output: { itemId: 'i', groupId: 'g', type: 'image', filePath: '/project/Media/out.png' } }));
+        });
+        const out = JSON.parse(await loop._executeTool('generate', { modelId: 'test-model', operation: 'upscale', cards: refs }, 'turn-batch-fail', project));
+        assert.equal(out.started, 5);
+        await loop._unfinishedQueue;
+        assert.equal(ledger().length, 1, 'the batch is ONE ledger entry, not five colliding on one prompt');
+        assert.deepEqual(ledger()[0].generate.cards, refs);
+
+        for (const go of release) go();
+        await new Promise((r) => setImmediate(r));
+        await loop._unfinishedQueue;
+        assert.equal(loop._notes.length, 1);
+        assert.match(loop._notes[0], /3 landed, 2 failed: OOM: out of memory \(\/project\/Media\/card_2\.png, \/project\/Media\/card_4\.png\)/);
+        assert.equal(ledger().length, 1);
+        assert.deepEqual(ledger()[0].generate.cards, [refs[1], refs[3]], 'a requeue sends only what failed');
+        assert.equal(ledger()[0].status, 'OOM');
+    });
 });
 
 // ---------------------------------------------------------------------------

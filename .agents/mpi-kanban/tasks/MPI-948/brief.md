@@ -1,26 +1,31 @@
-# MPI-948 - Send a gallery selection to the agent as one layered chip
+# MPI-948 - A dragged gallery selection reaches the agent as ONE set chip
 
-Fabio, 2026-09-27, after testing MPI-945's selection bar.
+**UMBRELLA: MPI-941, Phase 2 (folded in 2026-09-27, Fabio).** The shape, footprint and
+verification live in `tasks/MPI-941/plan.md` § Phase 2. This brief keeps the why.
 
-## Ask
+## Why
 
-Select several gallery cards, send them to the agent in one go, then ask the agent to do
-something with all of them ("make a GIF of these", "upscale these", "describe each").
+Fabio, 2026-09-27, first after testing MPI-945's selection bar. Then he watched the photographer
+tester use the app alone: the tester's instinct was to select several cards and DRAG them onto
+the agent box. Today a plain drag carries only the card under the pointer
+(`MpiGalleryGrid.js` dragstart), so the user believes the agent got every card and it got one.
 
-## Shape
+## Decided (2026-09-27)
 
-- A **Send to agent** button on the selection bar (`MpiGalleryGrid/selectionBar.js`, MPI-945),
-  which holds every selection action.
-- In the agent composer (`MpiAgentChat`) the selection lands as **ONE chip**, not N thumbnails:
-  a `layers` icon (or similar) plus the count, reading as "N images sent".
-- The agent must receive every card in the set, in click order (the selection order rule,
-  `docs/gallery-selection.md`), with names it can refer to.
+- **The gesture is the drag, not a button.** A drag that starts on a selected card carries the
+  whole selection, in click order (`docs/gallery-selection.md`). The selection-bar "Send to
+  agent" button originally asked for here is skipped unless testers miss the drag.
+- **ONE chip in the composer**: a layers icon and "N cards", not N thumbnails.
+- **What reaches the agent: references, never pixels, and ONE set handle.** The loop registers
+  every card and writes one attachment line naming `set:<id>`, and `generate` `cards:
+  ["set:<id>"]` expands it. 350 cards cost one line in and one short ref out. It then runs as
+  MPI-941 Phase 1's one-job batch.
+- **Not the agent reading the selection by itself**: a selection clears on the next click, and
+  "these" would be ambiguous. `visible_cards` stays the way to reach a FILTERED set. A dropped set
+  is a hand-picked one.
 
-## Open questions (resolve before building)
+## Open, settle while building
 
-- What reaches the agent: card ids / names / file paths it can act on through its tools, or
-  the pixels? N images inlined into one turn can blow the model's context and cost.
-- Can one message carry both this chip and ordinary numbered attachment chips
-  (`_attachmentChip`, `MpiAgentChat.js`)? How is the set numbered against them?
-- Can the user remove the set, or open it to see which cards it holds?
-- Does a sent set persist in the chat history the way a thumbnail chip does?
+- Removing the chip before sending: yes, like any chip. Opening it to list its cards: only if
+  asked for.
+- A set chip and ordinary attachment chips in one message share one numbering sequence.

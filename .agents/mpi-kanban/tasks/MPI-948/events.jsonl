@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-948", "at": "2026-09-27T00:27:28+01:00", "actor": "claude", "column": "todo", "title": "Send a gallery selection to the agent as one layered chip"}
+{"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-948", "at": "2026-09-27T00:45:00+01:00", "actor": "claude:a8643a90", "fields": ["description", "title"], "reason": "MPI-948 folded into MPI-941 as Phase 2 (Fabio 2026-09-27)"}
