@@ -10,6 +10,10 @@ and stays; its record is in `validation.md`. The CLI (old steps 2 and 3) is drop
 `claude-desktop.exe <mcpb>`); agents README pushed `b5e04c6` (every-OS install steps, Gemini ->
 Antigravity). Mac/Linux branches unrun on real hardware. **Next on MPI-593:** the docs-site
 page + llms.txt DRAFT (Fabio commits, no-push repo), then MPI-595 after 2.0.
+**Pending Fabio's yes (skill edit):** `.claude/skills/mpi-release/SKILL.md:213-215` still says the
+app release's `releases/latest/download/cubric-studio.mcpb` is "the permanent link the Settings
+page and the MCP Registry use". False since `706eb8fa5`: both read the `cubric-studio-agents`
+`mcpb-v<ver>` release (`docs/mcp-server.md` § The Claude Desktop bundle). The app copy is harmless.
 **Next: MPI-947** (created 2026-09-26): Settings > Connect an agent, with
 AUTOMATIC setup for Claude Desktop, Claude Code, Codex and Antigravity where provable, and the
 plain MCP URL + instructions for any other agent (Fabio: the 09-25 "conventional installs" rule
