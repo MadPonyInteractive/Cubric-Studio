@@ -6,7 +6,7 @@ import { MpiPopup } from '../../Primitives/MpiPopup/MpiPopup.js';
 import { MpiToast } from '../../Primitives/MpiToast/MpiToast.js';
 import { Events } from '../../../events.js';
 import { renderIcon } from '../../../utils/icons.js';
-import { commands, getAvailableCommands, getCommandComponents, getCommandMediaInputs, filterMediaInputsForModel, matchRefTagQuery, stripOrdinalMediaRoles, modelShowsStyleRack, modelShowsRatio, modelShowsBatch, modelControlTypes, getOpHelp, isTextOnlyOp, pickTextOnlyOp, opAllowsEnhance } from '../../../data/commandRegistry.js';
+import { commands, getAvailableCommands, getCommandComponents, getCommandMediaInputs, filterMediaInputsForModel, matchRefTagQuery, stripOrdinalMediaRoles, modelShowsStyleRack, modelShowsRatio, modelShowsBatch, modelControlTypes, getOpHelp, isTextOnlyOp, pickTextOnlyOp, opAllowsEnhance, selectCueAllTargets } from '../../../data/commandRegistry.js';
 import { MpiOpHelpDialog } from '../../Compounds/MpiOpHelpDialog/MpiOpHelpDialog.js';
 import { MpiMediaPicker } from '../../Compounds/MpiMediaPicker/MpiMediaPicker.js';
 import { MpiLoraRack } from '../../Compounds/MpiLoraRack/MpiLoraRack.js';
@@ -18,6 +18,7 @@ import { PROMPT_BOX_CONTROLS, getInjectionParamsFromControls, visibleControlIds 
 import { state } from '../../../state.js';
 import { uploadMediaFile } from '../../../services/mediaUploadService.js';
 import { estimateRunCost } from '../../../services/cloudExecutor.js';
+import { formatPrice } from '../../../data/modelConstants/deepinfraPricing.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { qs, qsa, on, off } from '../../../utils/dom.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
@@ -237,7 +238,10 @@ export const MpiPromptBox = ComponentFactory.create({
             if (_wsKey === 'history') return;
             const items = el.getMediaItems()
                 .filter(m => typeof m.url === 'string' && !m.url.startsWith('blob:'))
-                .map(({ url, mediaType, role, name }) => ({ url, mediaType, role, name }));
+                // A stack chip keeps what makes it one (MPI-949), or it restores as its face.
+                .map(({ url, mediaType, role, name, stackId, count }) => (stackId
+                    ? { url, mediaType, role, name, stackId, count }
+                    : { url, mediaType, role, name }));
             state.promptMedia = { ...state.promptMedia, [_wsKey]: { id: _wsId, items } };
         }
         let activeOperation   = props.operation || 't2i';
@@ -353,6 +357,24 @@ export const MpiPromptBox = ComponentFactory.create({
 
         function _acceptsMediaType(mediaType) {
             return _maxMediaForCurrentOperation(mediaType) > 0;
+        }
+
+        // ── Stack chip (MPI-949) ───────────────────────────────────────────────
+        // A Gallery stack dropped here is ONE chip (its face member, a layers badge and
+        // the count); the Gallery Block runs one job per member in its slot. So an op can
+        // take a stack only when ONE member can be its input — `selectCueAllTargets`,
+        // the rule the Block's run relies on too.
+        function _stackChip() {
+            return _mediaItems.find(m => m.stackId);
+        }
+        function _stackBlockedReason(opKey) {
+            const chip = _stackChip();
+            if (!chip) return null;
+            const { reason } = selectCueAllTargets(opKey, model, [{ id: chip.id, type: chip.mediaType }]);
+            if (!reason) return null;
+            return reason === 'wrong-media-type'
+                ? `a stack of ${chip.mediaType}s cannot feed it`
+                : 'a stack runs only on an operation with one input';
         }
 
         function _withAssignedRoles(items = _mediaItems, operation = activeOperation) {
@@ -506,11 +528,16 @@ export const MpiPromptBox = ComponentFactory.create({
             if (!model?.supportedOps?.length) return null;
             return model.supportedOps
                 .map(op => ({ op, max: _maxMediaForOperation(op, mediaType) }))
-                .filter(o => o.max >= targetCount)
+                .filter(o => o.max >= targetCount && !_stackBlockedReason(o.op))
                 .sort((a, b) => a.max - b.max)[0]?.op ?? null;
         }
 
-        function _tryAddMedia({ url, file, mediaType, source, role, name }) {
+        function _tryAddMedia({ url, file, mediaType, source, role, name, stackId, count }) {
+            // MPI-949: one stack chip per box — a second stack replaces the first.
+            if (stackId) {
+                const prev = _stackChip();
+                if (prev) _removeItem(prev.id, { silent: true });
+            }
             // MPI-292: dropping an image while the current op caps this mediaType
             // below the resulting count up-jumps to the model's larger-capacity op
             // (e.g. i2i → krea2Edit on the 2nd image) BEFORE the cap below would
@@ -563,8 +590,15 @@ export const MpiPromptBox = ComponentFactory.create({
             const item = { id: crypto.randomUUID(), url, file: file || null, mediaType, source };
             if (role) item.role = role;
             if (name) item.name = name; // user-facing name (customName/derived) for chip label
+            if (stackId) Object.assign(item, { stackId, count: Number(count) || 0 });
             _mediaItems.push(item);
             _emitMediaChange();
+            // A stack landing under an op it cannot feed (a two-input op, say) moves the
+            // box to one it can, rather than leaving the op dim with no way to run.
+            if (stackId && _stackBlockedReason(activeOperation)) {
+                const fallback = _pickFallbackOp();
+                if (fallback && fallback !== activeOperation) el.setOperation(fallback, { programmatic: true });
+            }
         }
 
         /**
@@ -659,7 +693,15 @@ export const MpiPromptBox = ComponentFactory.create({
                 const appData = e.dataTransfer.getData('application/mpi-media');
                 if (appData) {
                     try {
-                        const { filePath, type, name } = JSON.parse(appData);
+                        const { filePath, type, name, stackId, kind, count } = JSON.parse(appData);
+                        // MPI-949: a Gallery stack is one chip of its members' kind. Only
+                        // the Gallery runs a stack; every other box refuses it.
+                        if (type === 'stack') {
+                            if (_wsKey !== 'gallery' || !_acceptsMediaType(kind)) { _showIncompatibleToast(); return; }
+                            if (!filePath) { _showMediaToast('This stack has nothing in it yet.'); return; }
+                            _tryAddMedia({ url: filePath, file: null, mediaType: kind, source: 'app', name, stackId, count });
+                            return;
+                        }
                         if (!_acceptsMediaType(type)) { _showIncompatibleToast(); return; }
                         _tryAddMedia({ url: filePath, file: null, mediaType: type, source: 'app', name });
                     } catch { /* malformed */ }
@@ -1039,7 +1081,7 @@ export const MpiPromptBox = ComponentFactory.create({
             // is what reorder needs), but a chip that had no badge has no element to
             // stamp — so a switch from an untagged op to a tagged one (Wan 5B i2v →
             // H3 ref2v_ms, both roleKey-less) would silently paint no tag.
-            const _chipKey = (item, idx) => `${_roleKey(item)}|${_badgeFor(item, idx) ? 1 : 0}`;
+            const _chipKey = (item, idx) => `${_roleKey(item)}|${_badgeFor(item, idx) ? 1 : 0}|${item.stackId ? `stack:${item.count}` : ''}`;
 
             // Reorder fast path: same chips, new order. Rebuilding the DOM here
             // would reload every <img src> mid-drag (flicker) and drop the
@@ -1097,10 +1139,16 @@ export const MpiPromptBox = ComponentFactory.create({
                     ? `<span class="mpi-prompt-box-media-strip__role${_isEnd ? ' mpi-prompt-box-media-strip__role--end' : ''}"
                        >${_isEnd ? 'Last frame' : 'Start frame'}</span>`
                     : '';
+                // MPI-949: a stack chip is its face member plus the Gallery's layers badge,
+                // so it reads as N cards, not one.
+                const stackHtml = item.stackId
+                    ? `<span class="mpi-prompt-box-media-strip__stack" data-info="Stack of ${item.count}: one run per ${item.mediaType}">${renderIcon('layers', 'xs')}<span>${item.count}</span></span>`
+                    : '';
                 chip.innerHTML = `
                     ${indexHtml}
                     ${mediaHtml}
                     ${roleHtml}
+                    ${stackHtml}
                 `;
                 // The two buttons are appended, not written into the innerHTML above:
                 // both are mounted MpiButtons now, and both are absolutely positioned,
@@ -1291,9 +1339,9 @@ export const MpiPromptBox = ComponentFactory.create({
             _showMediaToast('Media type not supported for this model.');
         }
 
-        el.injectMedia = ({ url, mediaType, role, name }) => {
+        el.injectMedia = ({ url, mediaType, role, name, stackId, count }) => {
             if (!_acceptsMediaType(mediaType)) { _showIncompatibleToast(); return false; }
-            _tryAddMedia({ url, file: null, mediaType, source: 'app', role, name });
+            _tryAddMedia({ url, file: null, mediaType, source: 'app', role, name, stackId, count });
             return true;
         };
 
@@ -1891,7 +1939,8 @@ export const MpiPromptBox = ComponentFactory.create({
         function _pickFallbackOp() {
             if (!model) return null;
             const cmds = getAvailableCommands(model.mediaType, model, _ctxWithInstalledOps(model));
-            const candidates = cmds.filter(c => (c.requiresImages ?? 0) > 0 || (c.requiresVideo ?? 0) > 0);
+            const candidates = cmds.filter(c => ((c.requiresImages ?? 0) > 0 || (c.requiresVideo ?? 0) > 0)
+                && !_stackBlockedReason(c.key));
             // MPI-295: the fallback op must FIT the media already present, not just be
             // the first image op. Restoring/injecting 2 images must land on an op with
             // capacity ≥ 2 (e.g. krea2Edit), never the cap-1 i2i — which would evict
@@ -1948,8 +1997,9 @@ export const MpiPromptBox = ComponentFactory.create({
             return filteredCmds.map(cmd => {
                 const isTextOnly = (cmd.requiresImages ?? 0) === 0 && (cmd.requiresVideo ?? 0) === 0;
                 const textOnlyBlocked = hasMedia && isTextOnly;
-                const disabled = !cmd.available || textOnlyBlocked;
-                const reason = disabled ? _opBlockedReason(cmd, textOnlyBlocked) : null;
+                const stackReason = _stackBlockedReason(cmd.key);
+                const disabled = !cmd.available || textOnlyBlocked || !!stackReason;
+                const reason = disabled ? ((!textOnlyBlocked && stackReason) || _opBlockedReason(cmd, textOnlyBlocked)) : null;
                 const describe = cmd.info || cmd.label;
                 return {
                     value: cmd.key,
@@ -2099,7 +2149,9 @@ export const MpiPromptBox = ComponentFactory.create({
             // `hide`, not an empty string: the span draws its own separator rule against
             // the label, and an empty one would leave that rule hanging beside CUE.
             tag.classList.toggle('hide', !estimate);
-            tag.textContent = estimate ? estimate.display : '';
+            // MPI-949: a staged stack runs once per member, so the tag quotes all of them.
+            const runs = _stackChip()?.count || 1;
+            tag.textContent = !estimate ? '' : runs > 1 ? `×${runs} ${formatPrice(estimate.usd * runs)}` : estimate.display;
         }
 
         // ── Negative mode toggle ───────────────────────────────────────────────
@@ -2422,6 +2474,13 @@ export const MpiPromptBox = ComponentFactory.create({
             };
         };
 
+        // MPI-949: Loop re-fires the last job forever, so a stack's batch would never end.
+        function _refuseLoopForStack() {
+            if (!_stackChip()) return false;
+            _showMediaToast('Loop cannot run a stack. Remove the stack to loop.');
+            return true;
+        }
+
         const _emitRun    = () => emit('run', el.getRunPayload());
         const _emitCancel = () => emit('cancel', {});
 
@@ -2510,8 +2569,9 @@ export const MpiPromptBox = ComponentFactory.create({
                 _holdTimer = setTimeout(() => {
                     _holdDidArm = true;
                     _holdSuppressClick = true;
-                    state.loopArmed = true;
                     _holdTimer = null;
+                    if (_refuseLoopForStack()) { _resetFill(); return; }
+                    state.loopArmed = true;
                     _seedLoopIfIdle();
                 }, HOLD_THRESHOLD_MS);
             });
@@ -2611,6 +2671,7 @@ export const MpiPromptBox = ComponentFactory.create({
         };
 
         const _triggerLoop = () => {
+            if (!state.loopArmed && _refuseLoopForStack()) return;
             state.loopArmed = !state.loopArmed;
             if (state.loopArmed) _seedLoopIfIdle();
         };
@@ -2742,7 +2803,7 @@ export const MpiPromptBox = ComponentFactory.create({
                 }
                 _restoringMedia = true;
                 try {
-                    for (const m of _saved) el.injectMedia({ url: m.url, mediaType: m.mediaType, role: m.role, name: m.name });
+                    for (const m of _saved) el.injectMedia({ url: m.url, mediaType: m.mediaType, role: m.role, name: m.name, stackId: m.stackId, count: m.count });
                 } finally {
                     _restoringMedia = false;
                 }

@@ -2636,9 +2636,24 @@ router.post('/project-groups', async (req, res) => {
             const incoming = new Map(groups.map(g => [g.id, g]));
             const existing = (project.itemGroups || []).map(g => incoming.get(g.id) || g);
             const seen = new Set((project.itemGroups || []).map(g => g.id));
+            // MPI-949: a Gallery stack run's card arrives carrying `stackId`, and joins that
+            // stack's `members` HERE, inside the one writer. The renderer's copy of the stack
+            // is frozen at dispatch, so N results sending it back would each erase the
+            // others. A stack that is gone leaves a dangling `stackId`, which the next open's
+            // `sanitizeStacks` clears.
+            const joining = new Map(); // stackId → new member ids
+            for (const g of groups) {
+                if (!g.stackId || isStack(g)) continue;
+                joining.set(g.stackId, [...(joining.get(g.stackId) || []), g.id]);
+            }
+            const itemGroups = [...groups.filter(g => !seen.has(g.id)), ...existing].map(g => {
+                const members = Array.isArray(g.members) ? g.members : [];
+                const add = isStack(g) && joining.get(g.id)?.filter(id => !members.includes(id));
+                return add?.length ? { ...g, members: [...members, ...add] } : g;
+            });
             return {
                 ...project,
-                itemGroups: [...groups.filter(g => !seen.has(g.id)), ...existing],
+                itemGroups,
                 updatedAt: new Date().toISOString(),
             };
         });

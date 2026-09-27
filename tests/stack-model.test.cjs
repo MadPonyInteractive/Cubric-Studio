@@ -104,6 +104,24 @@ test('adding members fills a result stack, never steals from another stack', () 
     assert.strictEqual(again, groups, 're-adding a member must be a no-op');
 });
 
+test('a result stack starts empty and filling, and settles to a plain stack or to nothing', () => {
+    const f = S.resultStackFields({ kind: 'video', name: 'Fox · Upscale', expected: 3 });
+    assert.deepStrictEqual(f, { kind: 'video', members: [], name: 'Fox · Upscale', customName: null, archived: false, expected: 3 });
+    assert.ok(!('createdAt' in f), 'createItemGroup dates it now; it must not borrow a slot');
+
+    const filled = [stackOf('s', ['a'], { expected: 3 }), { ...img('a'), stackId: 's' }];
+    const settled = S.applySettleResultStack(filled, 's');
+    assert.ok(!('expected' in settled.find(g => g.id === 's')), 'expected must go');
+    assert.deepStrictEqual(settled.find(g => g.id === 's').members, ['a'], 'members kept');
+
+    const empty = S.applySettleResultStack([stackOf('s', [], { expected: 3 }), img('b')], 's');
+    assert.deepStrictEqual(empty.map(g => g.id), ['b'], 'a result stack that got nothing is dropped');
+
+    const plain = [stackOf('s', ['a']), img('a')];
+    assert.strictEqual(S.applySettleResultStack(plain, 's'), plain, 'a stack not filling is untouched');
+    assert.strictEqual(S.applySettleResultStack(plain, 'a'), plain, 'a non-stack is untouched');
+});
+
 test('expandStacks: a stack becomes its members in stack order, other cards stay put', () => {
     const groups = [img('a'), img('b'), img('c'), stackOf('s', ['c', 'a', 'gone'])];
     const out = S.expandStacks([img('b'), groups[3]], groups).map(g => g.id);

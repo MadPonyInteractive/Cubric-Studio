@@ -85,6 +85,29 @@ export function stackFields(members, { name = 'Stack', customName = null } = {})
 }
 
 /**
+ * The fields of the EMPTY stack a Gallery run fills (MPI-949 Phase 3), for
+ * `createItemGroup(STACK_TYPE, …)`. It is dated now, so it lands at the top of the grid,
+ * and `expected` keeps it alive through a reload while it has no member yet.
+ * @param {{kind: 'image'|'video', name: string, expected: number}} opts
+ */
+export function resultStackFields({ kind, name, expected }) {
+    return { kind, members: [], name, customName: null, archived: false, expected };
+}
+
+/**
+ * A Gallery run's result stack is done filling: `expected` goes, and a stack that got
+ * no member at all goes with it. Unchanged when `stackId` is not a stack still filling.
+ * @returns {Array<Object>} new groups array
+ */
+export function applySettleResultStack(groups, stackId) {
+    const stack = groups.find(g => g.id === stackId);
+    if (!isStack(stack) || !(stack.expected > 0)) return groups;
+    if (!stack.members?.length) return groups.filter(g => g.id !== stackId);
+    const { expected: _drop, ...settled } = stack;
+    return groups.map(g => (g.id === stackId ? settled : g));
+}
+
+/**
  * The real cards behind a pick: each stack replaced by its members in stack order, every
  * other card kept. What Download, Reveal, Add to project, Delete all and a drag act on.
  * @param {Array<Object>} picked

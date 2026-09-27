@@ -111,10 +111,27 @@
   `strip.on(...)` results (undefined - a component `on()` returns no unsubscribe) into `_unsubs`, where
   destroy's try/catch swallowed the TypeError; unwrapped, `strip.destroy()` drops them.
 
+- [x] **Phase 3: Gallery run → new stack** (2026-09-27, session 00cc0995) - **VERIFIED by Fabio
+  2026-09-27**: real 3-card Klein 9B Edit filled "i2i_001 · Edit" 3/3; Cancel all tested, fine; the blank
+  0/3 card and the face showing the last result that landed are fine as they are. (One result swapped
+  image 1/2 - the sidecars prove all three jobs loaded member→inputImage, reference→inputImage2; it was
+  the model on that seed, not the run.) PromptBox stack chip (`_handleMediaDrop`
+  `type:'stack'`, gallery box only; one per box; `_saveMedia`/restore keep `stackId`/`count`; layers badge
+  `__stack`; op gating via `_stackBlockedReason` = `selectCueAllTargets` in `_opChoices`,
+  `_pickFallbackOp`, `_opForMediaCount`, plus a move-off after a stack lands on a blocked op; Loop refuses
+  via `_refuseLoopForStack` on hold and hotkey; price tag `×N` + `formatPrice(usd*N)`).
+  `buildCueAllJobItems(..., { chipId })` substitutes by chip id. Block `_runStack`: Loop refusal, live
+  members via `expandStacks` (kind-checked), op guard, jobs FIRST with `batchId`/`batchLabel` (op label)/
+  `batchTotal`/`stackId`, no `getNextGeneration`, then `addGroup(result stack)` with `expected` = queued.
+  Completion: `addGroupsToStack(groups, stackId)` (one mutation) or, closed project, cards carry
+  `stackId` and `/project-groups` appends them to the stack's members server-side. Settle: generationService
+  `_settleResultStacks` → `settleResultStack(id)` (clear `expected`, or remove a 0-member stack) when no job
+  of the run is live; status line names how many did not finish. Grid badge `k/N` while filling.
+
 ## Remaining Work
 
-**Next action:** Phase 3 (Gallery run → new stack). Phases 2 and 3b are verified. Then Phase 4 (Stack
-History workspace, wires `MpiThumbStrip` - API under Completed), 5, 6.
+**Next action:** Phase 4 (Stack History workspace, wires `MpiThumbStrip` - API under Completed). Phases
+1, A, 2, 3b, 3 are verified. Then 5, 6.
 
 ## Phase 1: Stack data foundation (auto) - DONE, see Completed
 
@@ -373,6 +390,25 @@ centre marker, drag scrubs), approved.
 - 2026-09-27: **two sessions/workers running Playwright at once share `test-results/desktop`** - one
   run's startup `rmdir`s the other's `testInfo.outputPath` project folder mid-test (`ENOTEMPTY`, or a
   spec red for no reason). Run desktop specs from ONE agent at a time.
+- 2026-09-27 (Phase 3): **a result stack settles from queue liveness, not per-job callbacks.** A job is
+  live while in `_cueQueue`, on a lane (`_lanes[x].active`), or in the registry - the registry entry ends
+  only AFTER `addGroupsToStack`, so the last result cannot be beaten by its own settle. The check is
+  coalesced to the next task and runs on `generation-queue:changed`, `generation:complete|error|cancelled`
+  and `project:changed` (that last one is the "on app start" clear: a fresh queue has no job for it).
+  The Block enqueues the jobs BEFORE `addGroup(result)` so the settle never sees a filling stack with no job.
+- 2026-09-27 (Phase 3): the closed-project path appends members in the ROUTE (`/project-groups`), inside
+  `updateProjectJson`: the renderer's copy of the stack is frozen at dispatch, so N results posting it
+  back would erase each other. Ownership grew accordingly: `stackModel.js` (`resultStackFields`,
+  `applySettleResultStack`), `projectService.js` (`addGroupsToStack`, `settleResultStack`),
+  `routes/projects.js`, `MpiGalleryGrid.js` (`k/N` badge + render key), `tests/flow-defer-commit.test.cjs`
+  (a source-shape guard on the deferCommit gate, now also naming `addGroupsToStack`).
+- 2026-09-27 (Phase 3): **member placeholders are NOT suppressed** (plan said suppress). The first running
+  job shows the ordinary "Generating..." card with live latents, its input preview = the member being
+  edited, and the result goes inside the stack when it lands. Zero extra code; Fabio to confirm.
+- 2026-09-27 (Phase 3): kleinEdit's label is "Edit", so a result stack reads "<source> · Edit" and the
+  queue row "Edit · k / N". The chip's `count` is a snapshot at drop; the run reads the stack's live members.
+- Known edge (Phase 3): a Stopped PAID cloud job whose result still arrives after the settle joins the
+  stack if the stack kept any member; if it had none, the settle removed it and the card lands loose.
 - The mutation wrappers were NOT split into separate pure `applyStack` callers as the brief suggested:
   `projectService` imports cleanly in bare Node, so `serializeGroup` is unit-tested directly.
 

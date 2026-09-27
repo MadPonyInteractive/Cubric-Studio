@@ -29,6 +29,8 @@ import {
     stackCreateBlockReason,
     applyStack,
     applyUnstack,
+    applyAddMembers,
+    applySettleResultStack,
 } from '../data/stackModel.js';
 import { clientLogger } from './clientLogger.js';
 
@@ -615,6 +617,50 @@ export async function unstackGroup(stackId) {
         if (wasRemembered) await updateProject({ lastGroupId: null });
         Events.emit('project:group-removed', { groupId: stackId });
         return [...stack.members];
+    });
+}
+
+/**
+ * Land a Gallery run's new cards INSIDE its result stack (MPI-949 Phase 3): the cards and
+ * the stack's grown `members` go in one write, read from `state` inside the queue, so N
+ * results finishing together cannot overwrite each other's membership. A stack the user
+ * removed meanwhile is no loss — the cards simply land as ordinary cards.
+ * @param {Array<Object>} groups - the new cards, no `stackId` yet
+ * @param {string} stackId
+ */
+export async function addGroupsToStack(groups, stackId) {
+    return _enqueueMutation(async () => {
+        if (!state.currentProject || !groups?.length) return;
+        let project = state.currentProject;
+        for (const g of groups) project = addGroupToProject(project, g);
+        const itemGroups = applyAddMembers(project.itemGroups, stackId, groups.map(g => g.id));
+        state.currentProject = { ...project, itemGroups };
+        await persistGroups();
+        for (const g of groups) Events.emit('project:group-added', { group: g });
+        const stack = itemGroups.find(g => g.id === stackId);
+        if (stack) Events.emit('project:group-updated', { group: stack });
+    });
+}
+
+/**
+ * A result stack's run is over (MPI-949): drop its `expected`, or the whole stack when no
+ * member arrived. Emits `project:group-updated`, or `project:group-removed` for a stack
+ * that went.
+ * @param {string} stackId
+ * @returns {Promise<{made: number, expected: number}|null>} null when it was not filling
+ */
+export async function settleResultStack(stackId) {
+    return _enqueueMutation(async () => {
+        const groups = state.currentProject?.itemGroups;
+        const stack = groups?.find(g => g.id === stackId);
+        if (!isStack(stack) || !(stack.expected > 0)) return null;
+        const itemGroups = applySettleResultStack(groups, stackId);
+        state.currentProject = { ...state.currentProject, updatedAt: new Date().toISOString(), itemGroups };
+        await persistGroups();
+        const settled = itemGroups.find(g => g.id === stackId);
+        if (settled) Events.emit('project:group-updated', { group: settled });
+        else Events.emit('project:group-removed', { groupId: stackId });
+        return { made: stack.members?.length ?? 0, expected: stack.expected };
     });
 }
 

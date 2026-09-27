@@ -25,11 +25,14 @@ test('the gallery project writes are guarded by deferCommit', () => {
     // still open, and a server-side register when the user switched away while it
     // rendered (the renderer owns `itemGroups` only for the OPEN project). Both are
     // project writes, so BOTH have to sit inside the one `!opts.deferCommit` gate.
+    // MPI-949 added a third: a Gallery stack run's cards land inside their result stack
+    // (`addGroupsToStack`), and the closed-project register carries their `stackId`.
     const gate = src.indexOf('if (!opts.deferCommit) {');
     const open = src.indexOf('for (const g of groups) await addGroup(g);');
-    const closed = src.indexOf('await _addGroupsToClosedProject(_originProject, groups);');
+    const stack = src.indexOf('await addGroupsToStack(groups, opts.stackId);');
+    const closed = src.indexOf('await _addGroupsToClosedProject(_originProject,', gate);
     assert.ok(gate > 0, 'the deferCommit gate must exist');
-    for (const [name, at] of [['addGroup', open], ['_addGroupsToClosedProject', closed]]) {
+    for (const [name, at] of [['addGroup', open], ['addGroupsToStack', stack], ['_addGroupsToClosedProject', closed]]) {
         assert.ok(at > gate && at - gate < 800,
             `${name} must be inside the !opts.deferCommit gate — it is the ONLY project write allowed in the gallery branch`);
     }

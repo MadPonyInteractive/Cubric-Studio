@@ -703,6 +703,27 @@
     z-index: 5;
 }
 
+/* MPI-949: a staged Gallery stack — the layers icon and its member count, the same
+   badge the stack card wears in the Gallery. Bottom-right: a video chip's type icon
+   holds bottom-left. */
+.mpi-prompt-box-media-strip__stack {
+    position: absolute;
+    right: var(--s-1);
+    bottom: var(--s-1);
+    height: 1.25rem;
+    padding: 0 var(--s-1);
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: color-mix(in oklch, var(--surface-0) 80%, transparent);
+    border: 1px solid var(--line-soft);
+    color: var(--ink-1);
+    font-size: var(--t-2xs);
+    font-weight: 600;
+    line-height: 1;
+    z-index: 5;
+}
+
 /* Frame-role pill (MPI-466) — which frame this image becomes. A button when the
    role is a choice (one image), a plain label when order already decides (two). */
 .mpi-prompt-box-media-strip__role {

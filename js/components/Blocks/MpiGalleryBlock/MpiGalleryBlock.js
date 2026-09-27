@@ -34,8 +34,8 @@ import { resolveActiveModel, setSelectedModelId, getSelectedModelId, getSelected
 import { truncateCardName } from '../../../utils/displayHelpers.js';
 import { MODELS, getModelsByType, getModelById, isModelUsable, isOperationInstalled, firstInstalledOp } from '../../../data/modelRegistry.js';
 import { canonicalModelId } from '../../../data/modelConstants/resolveModelDeps.js';
-import { getAvailableCommands } from '../../../data/commandRegistry.js';
-import { isStack, expandStacks } from '../../../data/stackModel.js';
+import { getAvailableCommands, getCommand, buildCueAllJobItems, selectCueAllTargets } from '../../../data/commandRegistry.js';
+import { isStack, expandStacks, stackableKind, resultStackFields, STACK_TYPE } from '../../../data/stackModel.js';
 import { startGeneration, enqueueGeneration, clearPendingQueue, refreshQueueDepth, removeCueJob, peekCueQueue, cancelRunningCueJob } from '../../../services/generationService.js';
 import { StatusBar } from '../../../shell/statusBar.js';
 import { activeGenerations } from '../../../services/activeGenerations.js';
@@ -1570,7 +1570,74 @@ export const MpiGalleryBlock = ComponentFactory.create({
                 };
             };
 
+            // ── Stack run: one job per member into a NEW result stack (MPI-949) ─────
+            // The recipe is read ONCE, so every job carries the same prompt, style, LoRAs
+            // and controls; only the member in the stack chip's slot varies. The PromptBox
+            // gated the op already (exactly one required input of the stack's kind).
+            const _runStack = (payload, chip) => {
+                // `_onLaneDrain` re-fires the last job while Loop is armed, so a batch
+                // would never end. Refusing is honest; silently disarming Loop is not.
+                if (state.loopArmed) {
+                    StatusBar.notify('Disarm Loop before running a stack.', 'warning');
+                    return;
+                }
+                const groups = state.currentProject?.itemGroups || [];
+                const source = groups.find(g => g.id === chip.stackId);
+                const members = isStack(source)
+                    ? expandStacks([source], groups).filter(m => stackableKind(m) === source.kind && m.history?.[m.selectedIndex]?.filePath)
+                    : [];
+                if (!members.length) {
+                    StatusBar.notify('That stack is gone. Drop a stack on the box again.', 'warning');
+                    return;
+                }
+                // The op strip dims an op a stack cannot feed, but the run hotkey does not
+                // go through the strip.
+                if (selectCueAllTargets(payload.operation, activeModel, [{ type: source.kind }]).reason) {
+                    StatusBar.notify('This operation cannot run over a stack. Pick one with a single input.', 'warning');
+                    return;
+                }
+                const opLabel = getCommand(payload.operation)?.label || payload.operation;
+                const result = createItemGroup(STACK_TYPE, resultStackFields({
+                    kind: activeModel?.mediaType === 'video' ? 'video' : 'image',
+                    name: truncateCardName(`${source.customName || source.name} · ${opLabel}`),
+                    expected: members.length,
+                }));
+                const batchId = crypto.randomUUID();
+                let queued = 0;
+                // Jobs FIRST, the stack after: the settle check drops a filling stack
+                // with no live job, so the stack must never be seen before its jobs are.
+                for (const m of members) {
+                    const sel = m.history[m.selectedIndex];
+                    // Same shape a dragged card produces (`_tryAddMedia`), so the job is
+                    // indistinguishable downstream from a hand-staged one.
+                    const item = {
+                        id: crypto.randomUUID(),
+                        url: sel.filePath,
+                        file: null,
+                        mediaType: source.kind,
+                        source: 'app',
+                        name: m.customName || m.name || sel.name || '',
+                    };
+                    const mediaItems = buildCueAllJobItems(payload.operation, activeModel, payload.mediaItems, item, { chipId: chip.id });
+                    const next = _galleryGenerationFromPayload({ ...payload, mediaItems });
+                    if (!next) continue;
+                    // NO getNextGeneration: a batch job must never re-fire itself.
+                    const job = enqueueGeneration(next.config, { onCancel: () => {} }, {
+                        ...next.opts,
+                        batchId,
+                        batchLabel: opLabel,
+                        batchTotal: members.length,
+                        stackId: result.id,
+                    });
+                    if (job) queued++;
+                }
+                // Nothing queued = the enqueue guard already said why (a missing input).
+                if (queued) addGroup({ ...result, expected: queued });
+            };
+
             pb.on('run', (payload) => {
+                const stackChip = payload.mediaItems?.find(m => m.stackId);
+                if (stackChip) { _runStack(payload, stackChip); return; }
                 const next = _galleryGenerationFromPayload(payload);
                 if (!next) return;
                 const callbacks = {
@@ -1740,6 +1807,13 @@ export const MpiGalleryBlock = ComponentFactory.create({
         // Keyed on the actual event (a group was added), not on a generation
         // ending, so any future deferred/out-of-band commit repaints for free.
         _unsubs.push(Events.on('project:group-added', () => {
+            grid.el.setGroups([..._leadingGroups(), ..._visibleProjectGroups()]);
+        }));
+
+        // A Gallery run's result stack that got no member at all is removed when its run
+        // settles (MPI-949) — no gesture here to repaint after, as a delete or Unstack has.
+        _unsubs.push(Events.on('project:group-removed', ({ groupId }) => {
+            if (!isStack(grid.el.getGroup(groupId))) return;
             grid.el.setGroups([..._leadingGroups(), ..._visibleProjectGroups()]);
         }));
 

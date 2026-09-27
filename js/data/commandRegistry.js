@@ -1819,10 +1819,11 @@ export function filterMediaInputsForModel(slots, model = null) {
 }
 
 /**
- * Which of a gallery multi-select can `operation` consume, one item per job? (MPI-733)
+ * Which cards can `operation` consume, one item per job? (MPI-733; since MPI-949 the
+ * members of a Gallery stack dropped on the prompt box)
  *
- * "Cue all" queues ONE job per selected card, each carrying exactly ONE media item and
- * bypassing the chip rail. So the question is not "does this op accept images" but "can a
+ * A stack run queues ONE job per member, each carrying exactly ONE member in the stack
+ * chip's slot. So the question is not "does this op accept images" but "can a
  * single item BE this op's input" — and that makes the rule exactly:
  *
  *   the op declares exactly ONE REQUIRED slot, and the group's media type matches it.
@@ -1899,15 +1900,28 @@ export function selectCueAllTargets(operation, model = null, groups = []) {
  * being varied. Every other staged chip rides along untouched, which is what makes
  * "hold this start frame, sweep the end frame" work.
  *
+ * MPI-949: a Gallery stack run names the slot outright — `chipId` is the staged STACK
+ * chip, and each member takes exactly that chip's place and role. The last-chip rule
+ * cannot serve it: with the stack in slot 1 and a reference image in slot 2, it would
+ * sweep the reference and leave the stack's face in slot 1 on every job.
+ *
  * @param {string} operation
  * @param {Object|null} model
- * @param {Array<{mediaType:string, role?:string}>} staged  `getRunPayload().mediaItems`
+ * @param {Array<{id?:string, mediaType:string, role?:string}>} staged  `getRunPayload().mediaItems`
  * @param {{mediaType:string}} card  the one batched item, role assigned here
+ * @param {{chipId?: string|null}} [opts]  the staged chip `card` replaces, when known
  * @returns {Array<Object>} mediaItems for this job
  */
-export function buildCueAllJobItems(operation, model, staged = [], card = null) {
+export function buildCueAllJobItems(operation, model, staged = [], card = null, { chipId = null } = {}) {
     const list = Array.isArray(staged) ? staged.filter(Boolean) : [];
     if (!card) return list;
+
+    const chipAt = chipId ? list.findIndex(m => m.id === chipId) : -1;
+    if (chipAt >= 0) {
+        const chipRole = list[chipAt].role;
+        const item = chipRole ? { ...card, role: chipRole } : { ...card };
+        return list.map((m, i) => (i === chipAt ? item : m));
+    }
 
     const role = [...list].reverse().find(m => m.mediaType === card.mediaType)?.role
         ?? filterMediaInputsForModel(getCommandMediaInputs(operation), model)

@@ -210,6 +210,36 @@ test('ORDINAL slots keep their order — the batch card never displaces the base
         'the base image must stay at index 0, or the edit runs on the wrong asset');
 });
 
+// MPI-949: a Gallery stack run names the chip. With the stack in slot 1 and a
+// reference in slot 2, the last-chip rule above would sweep the REFERENCE and leave
+// the stack's face in slot 1 on every job.
+test('a stack chip is substituted by id — the reference chip beside it stays put', async () => {
+    const { buildCueAllJobItems } = await import(REG);
+    const { MODELS } = await import('../js/data/modelConstants/models.js');
+    const klein = MODELS.find(m => (m.supportedOps || []).includes('kleinEdit'));
+    assert.ok(klein, 'a kleinEdit model must exist for this to mean anything');
+
+    const staged = [
+        { id: 'stack-chip', url: '/face.png', mediaType: 'image', role: 'inputImage', stackId: 's1', count: 3 },
+        { id: 'ref-chip', url: '/ref.png', mediaType: 'image', role: 'inputImage2' },
+    ];
+    const items = buildCueAllJobItems('kleinEdit', klein, staged, card(), { chipId: 'stack-chip' });
+    assert.deepStrictEqual(items.map(m => [m.id, m.url, m.role]), [
+        ['card', '/card.png', 'inputImage'],
+        ['ref-chip', '/ref.png', 'inputImage2'],
+    ]);
+    assert.strictEqual(items[0].stackId, undefined, 'the member replaces the chip, stack fields and all');
+
+    // Without the id, the old last-chip rule sweeps the reference - the bug this avoids.
+    const unnamed = buildCueAllJobItems('kleinEdit', klein, staged, card());
+    assert.deepStrictEqual(unnamed.map(m => m.id), ['stack-chip', 'card']);
+
+    // An id that is not staged falls back to the default rule rather than dropping the card.
+    assert.deepStrictEqual(
+        buildCueAllJobItems('kleinEdit', klein, staged, card(), { chipId: 'gone' }).map(m => m.id),
+        ['stack-chip', 'card']);
+});
+
 test('nothing staged falls back to the required slot, and junk does not throw', async () => {
     const { buildCueAllJobItems } = await import(REG);
 

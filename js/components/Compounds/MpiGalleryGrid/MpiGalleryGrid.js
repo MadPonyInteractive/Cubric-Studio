@@ -1362,8 +1362,13 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 stackBadge.hidden = !stack;
                 if (stack) {
                     const n = group.members?.length ?? 0;
-                    stackBadge.innerHTML = `${renderIcon('layers', 'sm')}<span class="mpi-group-card__stack-count">${n}</span>`;
-                    stackBadge.setAttribute('data-info', `Stack of ${n} ${group.kind === 'video' ? 'videos' : 'images'}`);
+                    const nouns = group.kind === 'video' ? 'videos' : 'images';
+                    // A Gallery run's result stack counts up to what it is still expecting.
+                    const filling = group.expected > 0;
+                    stackBadge.innerHTML = `${renderIcon('layers', 'sm')}<span class="mpi-group-card__stack-count">${filling ? `${n}/${group.expected}` : n}</span>`;
+                    stackBadge.setAttribute('data-info', filling
+                        ? `Filling: ${n} of ${group.expected} ${nouns} made`
+                        : `Stack of ${n} ${nouns}`);
                 }
 
                 if (src) {
@@ -2058,7 +2063,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 group?.isGenerating ? 'generating' : '',
                 group?.isImporting ? 'importing' : '',
                 // A stack repaints when its members change (count badge, face).
-                isStack(group) ? group.members?.join(',') : '',
+                isStack(group) ? `${group.members?.join(',')}/${group.expected ?? ''}` : '',
                 sel?.id || '',
                 sel?.filePath || '',
                 sel?.thumbPath || '',

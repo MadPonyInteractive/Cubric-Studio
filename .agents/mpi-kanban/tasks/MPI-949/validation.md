@@ -66,3 +66,36 @@ Four workers; every report re-checked against the files by the orchestrator (dif
 - Checked Phase 2 and 3b in his app: "Everything else checked and working". One defect, fixed: the
   stack-delete dialog clipped Cancel off its left edge with "Unstack and keep"; label is now "Unstack".
   `gallery-stack.spec.js` updated to [Cancel, Unstack, Delete all] → 1/1 passed; eslint clean.
+
+## Phase 3 - Gallery run into a new stack (user-ux) - VERIFIED by Fabio 2026-09-27
+
+- Unit: `cue-all-eligibility` +1 (chip-id substitution on a 2-chip Klein Edit keeps the reference in
+  slot 2; without the id the old last-chip rule sweeps the reference), `stack-model` +1
+  (`resultStackFields`, `applySettleResultStack` both ways), NEW `project-groups-stack` 2/2 (two closed-
+  project results each join the stack, re-post not listed twice, a card whose stack is gone still lands),
+  `flow-defer-commit` updated (source guard also names `addGroupsToStack`) -> 52/52 + 14/14 in the
+  targeted runs.
+- `npm test` -> 2157 tests, 2154 pass, 1 fail: `agent-denoise` read a PEER's in-flight
+  `services/agentLoop.mjs` (MPI-941) mid-edit; the file passes 7/7 alone. The earlier `agent-loop`
+  "short list" red is the same peer's uncommitted work.
+- eslint on every touched file + `npm run lint:components` -> clean.
+- NEW `tests/desktop/gallery-stack-run.spec.js` 1/1 (with `gallery-stack.spec.js` 1/1): stack of 3 ->
+  drop -> ONE chip, badge 3, text op dim with its reason; a second drop replaces the chip; reference in
+  slot 2 + kleinEdit; Run with both lanes busy -> 3 pending jobs, member b/c/a in slot 1 in stack order,
+  reference in slot 2, one batchId, no getNextGeneration, ONE queue row {isBatch, total 3, label Edit};
+  result stack "<source> · Edit" persisted with expected 3, badge 0/3; one result via
+  `addGroupsToStack` -> 1/3, card hidden in the stack; cancelBatch -> 0 pending, settles to members [1],
+  badge 1; a second run cancelled before anything lands -> the empty result stack is removed; Ctrl+L with a
+  stack staged -> not armed, refusal toast shown; 0 page errors.
+- Regression, 9 specs (prompt-box-badge, prompt-box-peek, media-picker-to-history, agent-drag-set,
+  cancel-targets-own-prompt, gallery-generating-mascot, gallery-archive, gallery-filter-panel,
+  flow-queue-hotkey) -> 18/18 passed.
+- NOT covered by a spec (Fabio's check): a real engine run filling the stack, the paid-cloud price tag
+  `×N`, the stack chip surviving a Gallery -> History -> Gallery round trip, closed-project fill live.
+
+- Fabio, 2026-09-27, in his app (project `test`): stack of 3 + a reference + Klein 9B Edit -> one queue
+  row "Edit · 0 / 3", result stack "i2i_001 · Edit" filled 3/3 and settled (`expected` gone, 3 members on
+  disk). Cancel all tested: "all good". Blank 0/3 card and the face tracking the last landed result: fine.
+  One result restyled the reference instead of image 1; its sidecar load list is member
+  `imageUpscale_002.png` -> inputImage, reference `t2i_002.png` -> inputImage2, identical to the other two
+  (seeds differ) - a model misread, not the run.

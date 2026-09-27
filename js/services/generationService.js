@@ -10,7 +10,9 @@ import { runCommand } from './commandExecutor.js';
 // MPI-851 — the same handle, the same four callbacks, no ComfyUI. Chosen at the
 // dispatch below by `model.provider` alone.
 import { runCloudCommand } from './cloudExecutor.js';
-import { saveGeneration, addGroup, updateGroup, serializeGroup } from './projectService.js';
+import { saveGeneration, addGroup, updateGroup, serializeGroup, addGroupsToStack, settleResultStack } from './projectService.js';
+import { isStack } from '../data/stackModel.js';
+import { StatusBar } from '../shell/statusBar.js';
 import { createImageItem, createVideoItem, createAudioItem, createItemGroup, appendToHistory, getModelSettings, getSharedSettings, getOpSettings, replaceHistoryItemById } from '../data/projectModel.js';
 import { Events } from '../events.js';
 import { generationStore } from './generationStore.js';
@@ -577,6 +579,7 @@ export function enqueueGeneration(config, callbacks = {}, opts = {}) {
     // mid-loop toggle would bounce the re-fire onto the other lane.
     const jobOpts = { ...opts, forceLocal: opts.forceLocal ?? (state.engineOverride === 'local') };
     const display = opts.queueDisplay || _buildQueueDisplay(config, jobOpts, source, isLoop);
+    if (opts.stackId) _resultStackOfJob.set(queueJobId, opts.stackId);
     _cueQueue.push({ queueJobId, config, callbacks, opts: { ...jobOpts, queueJobId, queueDisplay: display, source, isLoop }, display, source, isLoop });
     _updateQueueDepth();
     _dispatchNextCue();
@@ -713,6 +716,57 @@ export function cancelBatch(batchId) {
             cancelRunningCueJob(active.queueJobId);
         }
     }
+}
+
+// ── Result stacks (MPI-949 Phase 3) ─────────────────────────────────────────────
+// A Gallery stack run fills a NEW stack whose `expected` says how many cards are coming.
+// Once no job of that run is live — finished, failed, cancelled, or lost to a restart,
+// which this queue does not survive — the stack settles: `expected` goes, or the whole
+// stack when nothing arrived. A job is live while it is pending, on a lane, or still in
+// the registry; the registry entry ends only AFTER its card has landed, so the run's last
+// result can never be beaten by its own settle.
+const _resultStackOfJob = new Map(); // queueJobId → result stackId
+
+function _liveResultStackIds() {
+    const live = new Set([
+        ..._cueQueue.map(job => job.queueJobId),
+        _lanes.cloud.active?.queueJobId, _lanes.remote.active?.queueJobId, _lanes.local.active?.queueJobId,
+        ...activeGenerations.list().map(entry => entry.queueJobId),
+    ].filter(Boolean));
+    const stacks = new Set();
+    for (const [jobId, stackId] of _resultStackOfJob) {
+        if (live.has(jobId)) stacks.add(stackId);
+        else _resultStackOfJob.delete(jobId);
+    }
+    return stacks;
+}
+
+async function _settleResultStacks() {
+    const filling = (state.currentProject?.itemGroups || []).filter(g => isStack(g) && g.expected > 0);
+    if (!filling.length) return;
+    const live = _liveResultStackIds();
+    for (const stack of filling) {
+        if (live.has(stack.id)) continue;
+        const settled = await settleResultStack(stack.id);
+        const missing = settled ? settled.expected - settled.made : 0;
+        if (missing > 0) {
+            StatusBar.notify(`${stack.customName || stack.name}: ${missing} of ${settled.expected} did not finish.`, 'warning');
+        }
+    }
+}
+
+// Coalesced to the next task: a terminal emits before the lane drains or the next job
+// dispatches, and settling mid-transition is how a stack would settle one job early.
+let _settleTimer = null;
+function _scheduleResultStackSettle() {
+    if (_settleTimer) return;
+    _settleTimer = setTimeout(() => { _settleTimer = null; _settleResultStacks(); }, 0);
+}
+// `project:changed` covers the restart case: a project opens with a stack still filling
+// and nothing in this fresh queue for it.
+for (const ev of ['generation-queue:changed', 'generation:complete', 'generation:error', 'generation:cancelled', 'project:changed']) {
+    // eslint-disable-next-line mpi/require-destroy-on-events -- app-lifetime listener (service module singleton)
+    Events.on(ev, _scheduleResultStackSettle);
 }
 
 /** Force a state.generationQueueCount refresh (no-op for own-queue model). */
@@ -1675,10 +1729,13 @@ export function startGeneration(config, callbacks = {}, opts = {}) {
                 // origin project (frozen `_originProject` above) and only the card
                 // record is missing there — so it goes in server-side. Writing it here
                 // instead would file the card under whatever project is open now.
+                // MPI-949: a stack run lands in its result stack (closed: the route appends).
                 if (_originIsOpen()) {
-                    for (const g of groups) await addGroup(g);
+                    if (opts.stackId) await addGroupsToStack(groups, opts.stackId);
+                    else for (const g of groups) await addGroup(g);
                 } else {
-                    await _addGroupsToClosedProject(_originProject, groups);
+                    await _addGroupsToClosedProject(_originProject,
+                        opts.stackId ? groups.map(g => ({ ...g, stackId: opts.stackId })) : groups);
                 }
             }
             activeGenerations.end(_regId, { revokePreview: false });
