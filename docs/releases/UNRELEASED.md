@@ -39,6 +39,10 @@
 
 ## Important changes
 
+- **Cubric Vision is now Cubric Studio.** The separate apps we planned became one app, so it
+  takes the family name. Your projects folder is renamed for you; nothing to do. On Windows,
+  re-pin your shortcut to `CubricStudio.exe`: the old `CubricVision.exe` goes in 2.1.
+
 - **Mac users need macOS 14 (Sonoma) or later.** Some of the components the engine installs
   no longer build for older versions. Every M-series Mac can run it.
 
@@ -51,7 +55,7 @@
 - **Inpainting no longer erases on an empty prompt.** Name what you want gone — "remove the
   tattoo" — instead of clearing the prompt and painting over it. Both Klein cards.
 
-- **FLUX.2 Klein 4B is one weight lighter.** The 72 MB outpaint LoRA is gone, and Vision
+- **FLUX.2 Klein 4B is one weight lighter.** The 72 MB outpaint LoRA is gone, and Cubric Studio
   clears it off your disk if you had it.
 
 - **Krea 2 Inpaint is a lot better, and takes longer.** It now reads your picture as
@@ -112,7 +116,7 @@
   eight, not the same styles carried across.
 
 - **Some models now ask you to accept their licence before they download.** Klein 9B is the
-  first: request access from the people who made it, paste a Hugging Face token, and Vision
+  first: request access from the people who made it, paste a Hugging Face token, and Cubric Studio
   unlocks the download. Free to use, and the pictures you make are yours to sell.
 
 - **Klein inpaints properly now.** It samples with your mask as a real constraint and can see
@@ -153,7 +157,7 @@
   handles, so you can cut an in or out point on a word or a beat instead of guessing. Clips
   with no sound look exactly as before.
 
-- **Choose which speakers or headphones Vision plays through.** Settings has an Audio section
+- **Choose which speakers or headphones Cubric Studio plays through.** Settings has an Audio section
   with an Output picker and a Test button. Left empty, Windows keeps deciding.
 
 - **The cogwheel by the prompt shows the LoRAs your model is running** — name, strength, and a
@@ -181,8 +185,19 @@
   or hold Ctrl+Space. Uses your DeepInfra key, about $0.0002 a minute. Turn on Settings, Audio,
   Dictate in English to have any language you speak written in English (about $0.00045 a minute).
 
+- **An agent inside the app.** Press Agent in the top bar (or A) and ask in plain words: it
+  picks and installs models, runs generations and Flows, and looks at what it made. It asks
+  before anything costs money. Runs on your own DeepInfra, OpenRouter or OpenAI key, or free
+  on Ollama.
+
 - **Claude, Codex and Google Antigravity can drive Cubric Studio.** Ask for an image, a video
-  or a GIF and it lands in your project. Setup: github.com/MadPonyInteractive/cubric-studio-agents
+  or a GIF and it lands in your project. Settings > Connect an agent sets it up in one click.
+
+- **GIFs have their own workspace.** Make GIF from selected cards or GIF Maker from a clip, then
+  retime, trim and crop it, or cut the subject out of every frame onto transparency.
+
+- **Big photos just work.** 16K images import, thumbnail and edit, and anything over 4K offers
+  to shrink to a size every tool handles quickly. SVGs import as pictures too.
 
 - **The video player's controls sit below the prompt box now**, so they are always in reach,
   and volume opens from the speaker button.
@@ -269,7 +284,7 @@
 - **Clicking away closes a panel now, wherever you are** — Settings, Hotkeys and About
   included. The Cue queue stays open on purpose, so you can keep prompting.
 
-- **No more terminal windows flashing open when Vision starts** on Windows.
+- **No more terminal windows flashing open when Cubric Studio starts** on Windows.
 
 - **The colour picker no longer opens off the bottom of the screen.** It opens upward when
   there is no room below it.

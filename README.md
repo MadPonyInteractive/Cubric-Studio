@@ -84,6 +84,16 @@ guidance.
 https://github.com/user-attachments/assets/dd4c46e8-6941-49a2-b279-949fa1815aae
 
 
+## Use it from your AI agent
+
+Claude, Codex and Antigravity can drive Cubric Studio for you: ask for "an image of a red
+bicycle in a new project" and it lands in your gallery as a real card, with its prompt and
+settings saved. Open **Settings > Connect an agent** and press **Connect** next to your agent.
+The connection stays on your computer (`http://127.0.0.1:3000/mcp`), and the app must be open.
+Needs Cubric Studio 2.0 or newer.
+Manual install steps and what an agent can do:
+[cubric-studio-agents](https://github.com/MadPonyInteractive/cubric-studio-agents).
+
 ## Download and install
 
 Grab the portable build for your platform from
