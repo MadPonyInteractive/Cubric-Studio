@@ -4,9 +4,10 @@
  * Selection mode hides the PromptBox (the block's `selection-start`), so what acts on a
  * whole selection sits in the strip it leaves. Shown only under
  * `.mpi-gallery-grid--selecting` (CSS). Same order as the card menu, coarse → fine →
- * irreversible: count · Cue all · Compare, Combine, Make GIF · marks · Download, Archive,
- * Delete · close. Compare, Combine and Make GIF live ONLY here; Download, Archive and
- * Delete are on the card menu too (Fabio, 2026-09-27).
+ * irreversible: count · Stack · Compare, Combine, Make GIF · marks · Download, Archive,
+ * Delete · close. Stack, Compare, Combine and Make GIF live ONLY here; Download, Archive
+ * and Delete are on the card menu too (Fabio, 2026-09-27). Stack took Cue all's slot
+ * (MPI-949).
  *
  * The bar is dumb: the grid owns the selection, hands each action its disabled state and
  * status-bar reason through `update`, and gets every click back as `onAction(key)`.
@@ -34,7 +35,7 @@ export function mountSelectionBar(host, { onAction, onMark }) {
 
     const count = ce('span', { className: 'mpi-gallery-grid__selection-count' });
     const actions = {
-        'cue-all':  btn({ text: 'Cue all', variant: 'primary', extraClasses: 'mpi-gallery-grid__selection-cue' }),
+        stack:      btn({ text: 'Stack', variant: 'primary', extraClasses: 'mpi-gallery-grid__selection-stack' }),
         compare:    action('compare', 'compare'),
         combine:    action('combine', 'merge'),
         'make-gif': action('make-gif', 'gif'),
@@ -45,7 +46,7 @@ export function mountSelectionBar(host, { onAction, onMark }) {
         delete:     action('delete', 'trash'),
         close:      action('close', 'close'),
     };
-    actions['cue-all'].dataset.action = 'cue-all';
+    actions.stack.dataset.action = 'stack';
     actions.close.dataset.info = 'Exit selection (Esc)';
 
     const marks = CARD_MARKS.map(m => ({
@@ -58,7 +59,7 @@ export function mountSelectionBar(host, { onAction, onMark }) {
 
     const bar = ce('div', { className: 'mpi-gallery-grid__selection-bar' }, [
         count, sep(),
-        actions['cue-all'], sep(),
+        actions.stack, sep(),
         actions.compare, actions.combine, actions['make-gif'], sep(),
         ...marks.map(m => m.el), unmark, sep(),
         actions.download, actions.archive, actions.delete, sep(),

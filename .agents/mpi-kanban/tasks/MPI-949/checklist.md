@@ -2,9 +2,9 @@
 
 - [x] Stack data foundation
 - [x] Independent building blocks (Batch A)
-- [ ] Stack card in the Gallery
+- [x] Stack card in the Gallery
 - [ ] Gallery run into a new stack
-- [ ] Shared thumbnail strip (MpiThumbStrip)
+- [x] Shared thumbnail strip (MpiThumbStrip)
 - [ ] Stack History workspace
 - [ ] Stack crop
 - [ ] Docs, rules, close-out

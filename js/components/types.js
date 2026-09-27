@@ -2774,3 +2774,40 @@
  *   'update'       { frames } — pill's Update button
  *   'apply'        { frames } — pill's Apply button
  */
+
+/**
+ * @typedef {Object} MpiThumbStripProps (Compound — js/components/Compounds/MpiThumbStrip)
+ *
+ * Phase 3b of MPI-949. Generic thumbnail strip with a fixed centre marker,
+ * windowed rendering, and the full pointer grammar (click/scrub/Ctrl+Shift
+ * range/press-and-hold reorder). The GIF strip (MpiFrameStrip, Organism)
+ * composes this; the stack member strip (Phase 4) uses it directly.
+ *
+ * @property {Array<{key:string,thumbUrl:string,info?:string}>} [items=[]] - Initial items.
+ * @property {number}   [currentIndex=0]  - Initial current index.
+ * @property {boolean}  [allowReorder=false] - Enable press-and-hold reorder drag.
+ * @property {Function} [menuItems]       - (index, selectedIndices) => item[] | null
+ *                                          Called on right-click to build the context
+ *                                          menu (routed through ui:context-menu hop).
+ * @property {Function} [decorateThumb]   - (thumbEl, index) => void
+ *                                          Called after state classes are applied;
+ *                                          use to add host-specific classes or elements.
+ *                                          Also called from repaintThumbs().
+ *
+ * Instance methods (on el):
+ *   setItems(items, { currentIndex })   — full reload; clears selection.
+ *   setCurrentIndex(idx)               — move marker (no event).
+ *   setSelection(indices)              — programmatically set selection.
+ *   getSelection()                     — sorted Array of selected staged indices.
+ *   repaintThumbs()                    — cheap class-flip pass (calls decorateThumb
+ *                                        on visible thumbs without rebuilding DOM).
+ *   destroy()
+ *
+ * Emits:
+ *   'thumb-select'    { index }             — click, no modifier
+ *   'selection-change' { indices }          — Ctrl/Shift changed selection
+ *   'scrub'           { index }             — mid-drag
+ *   'scrub-end'       { index }             — pointer up after a scrub
+ *   'reorder'         { from, to }          — press-and-hold drag complete
+ *   'menu-select'     { key, index, selection } — context menu item picked
+ */

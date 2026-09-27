@@ -21,12 +21,10 @@
   8. The member strip and the GIF strip share ONE core, **`MpiThumbStrip`** (Phase 3b, Fabio's call);
      `MpiFrameStrip` composes it and keeps only the GIF layer.
   9. `pixelDimensions` is unreliable. Stack crop measures members with `/image-import/probe`.
-- **Live-peer dependency:** MPI-941 (session `cefc4ae6`, heartbeat 2026-09-27 08:58Z) claims
-  `js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js`, `js/shell/agentDispatch.js`,
-  `js/shell/agentToolOps.js`, `js/utils/mediaActions.js` and `.claude/rules/component-events-blocks.md`.
-  **Phase 2 cannot start until that claim releases the grid** - `mpi-message` the owner, never edit
-  through the claim. MPI-941 Phase 3 is building `toolRun` (tool runs on any group, no model): Phase 4
-  REUSES it for stack Apply instead of growing a second copy.
+- **Live peers:** MPI-941 (claim `5b8e4d8c-mpi941`) holds `js/shell/agentDispatch.js`,
+  `js/shell/agentToolOps.js`, `services/agentLoop.mjs`, `routes/connector.js` - never edit through it.
+  MPI-941 Phase 3 built `toolRun` (tool runs on any group, no model): Phase 4 REUSES it for stack Apply
+  instead of growing a second copy. The grid claim it held is released (2026-09-27 ~10:03Z).
 
 ### Decisions (defaults taken, Fabio to confirm - see end of session message)
 
@@ -82,12 +80,41 @@
   (with its spec, its `preloadStyles.js` line and its `types.js` block) - it duplicated the GIF strip.
   Replaced by Phase 3b below.
 
+- [x] **Phase 2: Stack card in the Gallery** (2026-09-27, session c94c87cb) - **VERIFIED by Fabio
+  2026-09-27** after one fix: the delete dialog's alt label is **"Unstack"** (was "Unstack and keep",
+  which pushed Cancel out of the 440px dialog). Selection bar **Stack** replaces Cue all (reason from
+  `stackCreateBlockReason`); grid resolves a stack's face through ONE pair `_faceOf` / `_shownItem`
+  (+ `_shownType`) so every thumb/aspect/kind/hover/drag reader shows the first member with no per-site
+  branch; stack look = `--stack` class (two offset edges via `::before/::after`, face inset by `--s-2`),
+  always-on `__stack-badge` (layers + count), model/op badge, sub-line, notes and reuse hidden. Card
+  menu **Unstack** (only when a stack is picked); Describe / Card notes disabled on a stack. Block:
+  `grid.on('stack')` → `stackGroups` (named after the first card), `unstack` → `unstackGroup` + repaint;
+  Delete with a stack in the pick → `_stackDeleteDialog` (Cancel / Unstack and keep / Delete all);
+  Download, Reveal, Add to project and Delete all act on members via new pure
+  `expandStacks(picked, groups)` in `stackModel.js`. Drag: `_dragPayload(group)` builds both dragstarts;
+  a stack sends `type:'stack', stackId, kind, count` + members as `cards`. Opening a stack = `ui:info`
+  until Phase 4. `el.refreshGroup(member)` also refreshes its stack card. All Cue-all grid/bar/block code
+  removed (`selectCueAllTargets`, `buildCueAllJobItems` + their unit test kept).
+  Tests: `tests/desktop/gallery-stack.spec.js` (replaces `gallery-cue-all.spec.js`) green 5/6 - the one
+  red was a concurrent Playwright run wiping `test-results/desktop` (see Drift); `stack-model` +1 test;
+  `npm test` 2111/0 fail; `lint:components` clean; 30/30 gallery regression specs green.
+
+- [x] **Phase 3b: shared `MpiThumbStrip`** (2026-09-27, background worker, integrated) - **VERIFIED by
+  Fabio 2026-09-27** ("everything else checked and working"). New Compound
+  `js/components/Compounds/MpiThumbStrip/` (359 + 73 lines); `MpiFrameStrip.js` 689 → 491 lines, API and
+  events unchanged. **Phase 4 API:** props `items [{key, thumbUrl, info?}]`, `currentIndex`,
+  `allowReorder`, `menuItems(index, selected) → items|null`, `decorateThumb(thumbEl, index)`; methods
+  `setItems(items, {currentIndex})` (clears selection, fires `selection-change`), `setCurrentIndex`,
+  `setSelection`, `getSelection`, `repaintThumbs`, `destroy`; events `thumb-select {index}`,
+  `selection-change {indices}`, `scrub {index}`, `scrub-end {index}` (switch the stack viewer on THIS),
+  `reorder {from,to}`, `menu-select {key, index, selection}`. Integration fix: MpiFrameStrip pushed
+  `strip.on(...)` results (undefined - a component `on()` returns no unsubscribe) into `_unsubs`, where
+  destroy's try/catch swallowed the TypeError; unwrapped, `strip.destroy()` drops them.
+
 ## Remaining Work
 
-**Next action:** Phase 2. **UNBLOCKED 2026-09-27 ~10:03Z** - MPI-941's grid claim (`cefc4ae6-mpi941`)
-is `complete`; its new claim `5b8e4d8c-mpi941` and the MPI-806/516/595 batch claims (`56a78131-*`) do
-not overlap this card's footprint (checked against `files.json`). Phase 3b (shared strip) is independent
-of Phases 2-3 and can run in parallel with them (disjoint files). Re-check claims before each start.
+**Next action:** Phase 3 (Gallery run → new stack). Phases 2 and 3b are verified. Then Phase 4 (Stack
+History workspace, wires `MpiThumbStrip` - API under Completed), 5, 6.
 
 ## Phase 1: Stack data foundation (auto) - DONE, see Completed
 
@@ -156,7 +183,7 @@ alone. Use `mpi-execute-parallel`.
   `js/components/Primitives/MpiCanvas/managers/CropManager.js`, `tests/crop-centred-rect.test.cjs`.
   **Verify:** unit tests for both helpers; the existing crop desktop spec still passes.
 
-## Phase 2: Stack card in the Gallery (user-ux) - unblocked 2026-09-27
+## Phase 2: Stack card in the Gallery (user-ux) - DONE, verified by Fabio (see Completed)
 
 - [ ] Selection bar: **Stack** replaces Cue all (`selectionBar.js`, `_syncSelectionBar`). Disabled +
   `info` from `stackCreateBlockReason`; emits `stack` with groups in click order. The block handler
@@ -329,6 +356,23 @@ centre marker, drag scrubs), approved.
   file, untouched) also stops listing stacked members as "visible". Intended: the agent sees what the
   user sees. `list_cards` still lists them (MPI-950).
 - 2026-09-27: `stackCreateBlockReason` also refuses 3D Scenes (`unsupported-kind`), not only GIF/audio.
+- 2026-09-27 (Phase 2): **the Cue-all dispatch loop is DELETED from `MpiGalleryBlock.js`** (and its
+  `buildCueAllJobItems` import, now unused). Phase 3's stack run rebuilds from
+  `git show 36e7fc24c:js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js` (`_cueAllDispatch`): the
+  chip item shape, the Loop refusal, and NO `getNextGeneration` on a batch job.
+- 2026-09-27 (Phase 2): `MpiOkCancel`'s action row does not wrap or shrink: three buttons whose labels
+  outgrow `min(440px, 90vw)` push Cancel off the LEFT edge (Fabio's screenshot). Fixed here by the
+  shorter "Unstack" label; the component itself still clips any long 3-button set (not this card).
+- 2026-09-27 (Phase 2): the stack-delete dialog says **"Delete all"**, not "Delete all N" - `MpiOkCancel`
+  has no label setter and destroying one inside its own emit breaks its `hide()`. A new stack is named
+  after its FIRST card (whose slot and face it takes); the badge says it is a stack.
+- 2026-09-27 (Phase 2): both card dragstarts now share `_dragPayload`, so a video drag also carries
+  `name` and an image drag also carries `thumbPath` (the agent chip shows the 512 thumb, not the master).
+- 2026-09-27 (Phase 2): a stack's `media-missing` names its FACE member (whose file it is), so the
+  Block prunes the member, never the stack.
+- 2026-09-27: **two sessions/workers running Playwright at once share `test-results/desktop`** - one
+  run's startup `rmdir`s the other's `testInfo.outputPath` project folder mid-test (`ENOTEMPTY`, or a
+  spec red for no reason). Run desktop specs from ONE agent at a time.
 - The mutation wrappers were NOT split into separate pure `applyStack` callers as the brief suggested:
   `projectService` imports cleanly in bare Node, so `serializeGroup` is unit-tested directly.
 

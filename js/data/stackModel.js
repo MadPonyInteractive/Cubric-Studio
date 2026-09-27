@@ -84,6 +84,20 @@ export function stackFields(members, { name = 'Stack', customName = null } = {})
     };
 }
 
+/**
+ * The real cards behind a pick: each stack replaced by its members in stack order, every
+ * other card kept. What Download, Reveal, Add to project, Delete all and a drag act on.
+ * @param {Array<Object>} picked
+ * @param {Array<Object>} groups - where member ids resolve (the project's cards)
+ * @returns {Array<Object>}
+ */
+export function expandStacks(picked = [], groups = []) {
+    const byId = new Map(groups.map(g => [g.id, g]));
+    return picked.flatMap(g => (isStack(g)
+        ? (g.members || []).map(id => byId.get(id)).filter(Boolean)
+        : [g]));
+}
+
 function _withoutStackId(group) {
     const { stackId: _drop, ...rest } = group;
     return rest;

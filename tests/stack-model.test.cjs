@@ -104,6 +104,13 @@ test('adding members fills a result stack, never steals from another stack', () 
     assert.strictEqual(again, groups, 're-adding a member must be a no-op');
 });
 
+test('expandStacks: a stack becomes its members in stack order, other cards stay put', () => {
+    const groups = [img('a'), img('b'), img('c'), stackOf('s', ['c', 'a', 'gone'])];
+    const out = S.expandStacks([img('b'), groups[3]], groups).map(g => g.id);
+    assert.deepStrictEqual(out, ['b', 'c', 'a'], 'a dead member id is skipped');
+    assert.deepStrictEqual(S.expandStacks([stackOf('e', [])], groups), []);
+});
+
 test('sanitize: a healthy project is returned untouched', () => {
     const groups = S.applyStack([img('a'), img('b'), img('c')], stackOf('s', ['a', 'b']));
     const out = S.sanitizeStacks(groups);

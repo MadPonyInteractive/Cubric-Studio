@@ -34,13 +34,14 @@ import { resolveActiveModel, setSelectedModelId, getSelectedModelId, getSelected
 import { truncateCardName } from '../../../utils/displayHelpers.js';
 import { MODELS, getModelsByType, getModelById, isModelUsable, isOperationInstalled, firstInstalledOp } from '../../../data/modelRegistry.js';
 import { canonicalModelId } from '../../../data/modelConstants/resolveModelDeps.js';
-import { getAvailableCommands, buildCueAllJobItems } from '../../../data/commandRegistry.js';
+import { getAvailableCommands } from '../../../data/commandRegistry.js';
+import { isStack, expandStacks } from '../../../data/stackModel.js';
 import { startGeneration, enqueueGeneration, clearPendingQueue, refreshQueueDepth, removeCueJob, peekCueQueue, cancelRunningCueJob } from '../../../services/generationService.js';
 import { StatusBar } from '../../../shell/statusBar.js';
 import { activeGenerations } from '../../../services/activeGenerations.js';
 import { clientLogger } from '../../../services/clientLogger.js';
 import { uploadMediaFile, prepareImageImport } from '../../../services/mediaUploadService.js';
-import { addGroup, updateGroup, removeGroup, persistGroups, validatePreviewAssets, applyPromptReuseSettings, listProjects } from '../../../services/projectService.js';
+import { addGroup, updateGroup, removeGroup, persistGroups, validatePreviewAssets, applyPromptReuseSettings, listProjects, stackGroups, unstackGroup } from '../../../services/projectService.js';
 import { trackConcatJob } from '../../../services/concatProgress.js';
 import { buildPromptReuseSettings, resolvePromptReuseMediaItems, payloadHasReusableImages, payloadHasReusableVideos, payloadHasReusableAudio } from '../../../utils/promptReuse.js';
 import {
@@ -144,23 +145,9 @@ export const MpiGalleryBlock = ComponentFactory.create({
               ].filter(Boolean)
             : [];
 
-        // `getCueContext` feeds the grid's `Cue all (N)` label the op/model the
-        // PromptBox is CURRENTLY on. A callback, not a value: this grid mounts
-        // before the PromptBox exists, and `activeOperation` is reassigned live by
-        // the operation-change handler below — including for PROGRAMMATIC picks,
-        // which is exactly the case a remembered-op read got wrong (MPI-733).
         const grid   = MpiGalleryGrid.mount(el, {
             groups: [..._placeholderGroups, ...groups],
-            getCueContext: () => ({ operation: activeOperation, model: activeModel }),
         });
-
-        /**
-         * Cue-all's dispatch loop, assigned by `_wirePromptBox` because it closes
-         * over `_galleryGenerationFromPayload`. Null until a PromptBox exists —
-         * which is also the honest answer when no model is installed (MPI-733).
-         * @type {((eligible: Object[], skipped: Object[]) => void)|null}
-         */
-        let _cueAllDispatch = null;
 
         // Record (MPI-573) used to be wired here off a `grid.on('record')`. MPI-678
         // moved the button to the project bar and the click handler to the shell,
@@ -179,6 +166,9 @@ export const MpiGalleryBlock = ComponentFactory.create({
         const _deletingGroupIds = new Set();
         const _visibleProjectGroups = () =>
             (state.currentProject?.itemGroups || []).filter(group => !_deletingGroupIds.has(group.id));
+        // MPI-949: the real cards behind a pick. A stack owns no media, so anything that
+        // acts on FILES (download, reveal, copy, delete) acts on its members.
+        const _withMembers = (g) => expandStacks(g, state.currentProject?.itemGroups || []);
 
         /**
          * tempId → spinner card for an import still in flight (MPI-671). A big video
@@ -288,6 +278,11 @@ export const MpiGalleryBlock = ComponentFactory.create({
         // exists (Phase 3).
         grid.on('open-group', ({ group }) => {
             if (group?.type === 'audio') return;
+            // MPI-949: the stack's History workspace is Phase 4.
+            if (isStack(group)) {
+                Events.emit('ui:info', { message: 'Opening a stack is not built yet. Right-click it to unstack.' });
+                return;
+            }
             if (getSelectedItem(group)?.splatPath) {
                 Events.emit('ui:info', { message: 'Scene viewer is not built yet.' });
                 return;
@@ -475,7 +470,7 @@ export const MpiGalleryBlock = ComponentFactory.create({
             }
             const byId = new Map(others.map(p => [p.id, p]));
 
-            const cards = g.map(group => {
+            const cards = _withMembers(g).map(group => {
                 const item = getSelectedItem(group);
                 // `customName` is what the user (or an agent's `cardName`) called it: a copy
                 // without it lands as `flowOutpaint_003` (MPI-874).
@@ -1071,7 +1066,7 @@ export const MpiGalleryBlock = ComponentFactory.create({
 
         // ── Download ────────────────────────────────────────────────────────────
         grid.on('download', ({ groups: g }) => {
-            const items = g.flatMap(group => {
+            const items = _withMembers(g).flatMap(group => {
                 const sel = getSelectedItem(group);
                 return sel ? [sel] : [];
             });
@@ -1081,8 +1076,9 @@ export const MpiGalleryBlock = ComponentFactory.create({
         // ── Open in file system ──────────────────────────────────────────────────
         // Single card → reveal + select the media file. Multiple → just open the
         // Media folder (no portable multi-file select across OSes).
-        grid.on('reveal', async ({ groups: g }) => {
-            if (!g?.length) return;
+        grid.on('reveal', async ({ groups: picked }) => {
+            const g = _withMembers(picked || []);
+            if (!g.length) return;
             try {
                 if (g.length === 1) {
                     const item = getSelectedItem(g[0]);
@@ -1191,13 +1187,64 @@ export const MpiGalleryBlock = ComponentFactory.create({
 
         _deleteDialog.on('cancel', () => { _pendingDeleteGroups = []; });
 
+        // ── Stacks (MPI-949, docs/stacks.md) ─────────────────────────────────────
+        // A stack's cards are real cards, so the reversible answer to Delete is to hand
+        // them back, not to archive. Unstack deletes NOTHING, loose cards in the same pick
+        // included; Delete all deletes the loose cards and every stacked one.
+        const _stackDeleteDialog = MpiOkCancel.mount(document.createElement('div'), {
+            title:       'Delete stack',
+            text:        'Permanently delete every card in the stack and its media files? Unstack puts the cards back in the gallery and deletes nothing.',
+            okLabel:     'Delete all',
+            okVariant:   'danger',
+            altLabel:    'Unstack',
+            cancelLabel: 'Cancel',
+        });
+
+        // `unstackGroup` emits project:group-removed, which this block does not repaint
+        // from (the cards it hands back were never removed), so it repaints here.
+        async function _unstack(stacks) {
+            for (const s of stacks) await unstackGroup(s.id);
+            grid.el.setGroups([..._leadingGroups(), ..._visibleProjectGroups()]);
+        }
+
+        _stackDeleteDialog.on('ok', async () => {
+            const g = _pendingDeleteGroups;
+            _pendingDeleteGroups = [];
+            // The stack card leaves with its members: removing a member prunes it, and
+            // the last one takes the stack (removeGroupFromProject). Hidden meanwhile.
+            const stackIds = g.filter(isStack).map(s => s.id);
+            stackIds.forEach(id => _deletingGroupIds.add(id));
+            try {
+                await _runGalleryDelete(_withMembers(g));
+            } finally {
+                stackIds.forEach(id => _deletingGroupIds.delete(id));
+                grid.el.setGroups([..._leadingGroups(), ..._visibleProjectGroups()]);
+            }
+        });
+        _stackDeleteDialog.on('alt', async () => {
+            const g = _pendingDeleteGroups;
+            _pendingDeleteGroups = [];
+            await _unstack(g.filter(isStack));
+        });
+        _stackDeleteDialog.on('cancel', () => { _pendingDeleteGroups = []; });
+
         // MPI-821: EVERY delete goes through the dialog. Right-click → Delete used to
         // wipe the cards and their files with no confirmation at all, which also made
         // the dialog's Archive reachable only from the Delete key.
         grid.on('delete', ({ groups: g }) => {
             _pendingDeleteGroups = g;
-            _deleteDialog.el.show();
+            (g.some(isStack) ? _stackDeleteDialog : _deleteDialog).el.show();
         });
+
+        grid.on('stack', async ({ groups: g }) => {
+            // Named after its first card, whose slot and face it takes; the badge says
+            // it is a stack. `stackGroups` emits project:group-added, which repaints.
+            const first = g[0];
+            const name = first?.customName || first?.name || getSelectedItem(first)?.name || 'Stack';
+            const stack = await stackGroups(g.map(group => group.id), { name });
+            if (!stack) StatusBar.notify('Those cards cannot be stacked.', 'warning');
+        });
+        grid.on('unstack', ({ groups: g }) => _unstack(g));
 
         // ── PromptBox setup ─────────────────────────────────────────────────────
         // Gallery is a mediaType-agnostic entry point — show ALL installed models
@@ -1533,63 +1580,6 @@ export const MpiGalleryBlock = ComponentFactory.create({
                 enqueueGeneration(next.config, callbacks, next.opts);
             });
 
-            // ── Cue all: N jobs off ONE recipe (MPI-733) ─────────────────────
-            // The recipe is read ONCE, so all N jobs carry the same prompt, style,
-            // LoRAs and controls; `mediaItems` is the single field that varies.
-            // Reassigning on a re-wire is intended — the newest PromptBox owns the
-            // recipe, and the grid subscription that calls this is registered once.
-            _cueAllDispatch = (eligible, skipped) => {
-                // `_onLaneDrain` re-fires the last job while Loop is armed, so a
-                // draining batch would never end. Refusing is honest; silently
-                // disarming the user's Loop is not.
-                if (state.loopArmed) {
-                    StatusBar.notify('Disarm Loop before cueing a batch.', 'warning');
-                    return;
-                }
-                const payload = _pb?.el?.getRunPayload?.();
-                if (!payload || !eligible.length) return;
-
-                // The slot the batch varies is the user's choice, read off the staged
-                // chips — `buildCueAllJobItems` owns that rule and is unit-tested,
-                // because its ordinal-slot handling breaks silently when wrong.
-                const staged = payload.mediaItems || [];
-
-                let queued = 0;
-                for (const group of eligible) {
-                    const sel = group?.history?.[group.selectedIndex];
-                    if (!sel?.filePath) continue;
-                    // Same shape a dragged card produces (`_tryAddMedia`), so the
-                    // job is indistinguishable downstream from a hand-staged one.
-                    const item = {
-                        id: crypto.randomUUID(),
-                        url: sel.filePath,
-                        file: null,
-                        mediaType: group.type,
-                        source: 'app',
-                        name: group.customName || group.name || sel.name || '',
-                    };
-
-                    const mediaItems = buildCueAllJobItems(
-                        payload.operation, activeModel, staged, item,
-                    );
-                    const next = _galleryGenerationFromPayload({ ...payload, mediaItems });
-                    if (!next) continue;
-                    // NO getNextGeneration: a batch job must never re-fire itself,
-                    // or one Cue all would become an endless queue.
-                    enqueueGeneration(next.config, { onCancel: () => {} }, next.opts);
-                    queued++;
-                }
-
-                if (!queued) {
-                    StatusBar.notify('Nothing could be cued from that selection.', 'warning');
-                    return;
-                }
-                const also = skipped.length
-                    ? ` ${skipped.length} card${skipped.length === 1 ? '' : 's'} skipped — wrong media type for this operation.`
-                    : '';
-                StatusBar.notify(`Cued ${queued} job${queued === 1 ? '' : 's'}.${also}`, 'info');
-            };
-
             pb.on('cancel', () => {
                 // Stop cancels EVERY running gallery gen, not just the first
                 // (MPI-157): the old `active[0]`-only logic missed a second
@@ -1923,20 +1913,6 @@ export const MpiGalleryBlock = ComponentFactory.create({
         grid.on('selection-start', () => _pb?.el?.hide());
         grid.on('selection-end',   () => _pb?.el?.show());
 
-        // ── Cue all (MPI-733) ────────────────────────────────────────────────
-        // Subscribed ONCE here, not inside `_wirePromptBox` — that runs at two
-        // mount sites, and a second wire would stack a duplicate `cue-all`
-        // listener on the same grid, cueing every job twice. The real work needs
-        // `_galleryGenerationFromPayload`, which is scoped to that function, so it
-        // hands the closure back through `_cueAllDispatch`.
-        grid.on('cue-all', ({ groups: eligible = [], skipped = [] }) => {
-            if (!_cueAllDispatch) {
-                StatusBar.notify('The prompt box is not ready yet.', 'warning');
-                return;
-            }
-            _cueAllDispatch(eligible, skipped);
-        });
-
         // ── Radial → operation sync ─────────────────────────────────────────────
         _unsubs.push(Events.on('workspace:set-operation', ({ operation }) => {
             activeOperation = operation;
@@ -2028,6 +2004,7 @@ export const MpiGalleryBlock = ComponentFactory.create({
             grid.destroy?.();
             _compareOverlay.destroy?.();
             _deleteDialog.destroy?.();
+            _stackDeleteDialog.destroy?.();
             _settingsOverlay.destroy?.();
             _modelPicker.destroy?.();
             _pb?.el?.destroy?.();

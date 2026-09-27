@@ -1027,3 +1027,77 @@
        visible. */
     visibility: visible;
 }
+
+/* ── Stack card (MPI-949) ────────────────────────────────────────────────────
+ * Two offset card edges peek out behind the first member, so a stack reads as a
+ * pile before its badge is read. Drawn INSIDE the card box: the justified packer
+ * sized it, and the next card sits one gap away. */
+
+.mpi-group-card--stack {
+    background: transparent;
+}
+
+.mpi-group-card--stack::before,
+.mpi-group-card--stack::after {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    background: var(--surface-3);
+    border: 1px solid var(--line-soft);
+    pointer-events: none;
+}
+
+/* Back edge, then the middle one. */
+.mpi-group-card--stack::before {
+    inset: 0 0 var(--s-2) var(--s-2);
+}
+
+.mpi-group-card--stack::after {
+    inset: var(--s-1);
+}
+
+.mpi-group-card--stack .mpi-group-card__media {
+    position: absolute;
+    inset: var(--s-2) var(--s-2) 0 0;
+    z-index: 1;
+    width: auto;
+    height: auto;
+}
+
+/* The corner furniture follows the face card in by the same offset. */
+.mpi-group-card--stack .mpi-group-card__top-actions {
+    top: calc(0.5rem + var(--s-2));
+    right: calc(0.5rem + var(--s-2));
+}
+
+.mpi-group-card--stack .mpi-group-card__kind {
+    right: calc(0.7rem + var(--s-2));
+}
+
+/* Layers glyph + member count. Always shown, unlike the hover-only top badge it
+   replaces on a stack. */
+.mpi-group-card__stack-badge {
+    position: absolute;
+    top: calc(0.6rem + var(--s-2));
+    left: 0.7rem;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-1);
+    padding: 3px 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: var(--t-2xs);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--ink-1);
+    background: color-mix(in oklch, var(--surface-bar) 58%, transparent);
+    border: 1px solid color-mix(in oklch, var(--line-soft) 72%, transparent);
+    z-index: 4;
+}
+
+.mpi-group-card__stack-badge[hidden] {
+    display: none;
+}
+
+.mpi-group-card--selected .mpi-group-card__stack-badge {
+    color: var(--accent-heat);
+}

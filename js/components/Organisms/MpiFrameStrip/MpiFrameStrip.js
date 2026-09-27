@@ -2,6 +2,11 @@
  * MpiFrameStrip — full-width GIF frame strip with a fixed centre marker
  * (MPI-769, Fabio's design / plan decisions 9-10).
  *
+ * Composes MpiThumbStrip (Phase 3b, MPI-949) for the generic strip behaviour
+ * (windowed rendering, centre marker, pointer grammar) and keeps only the GIF
+ * layer: staged/committed/origin bookkeeping, the Discard/Update/Apply pill,
+ * duplicate/delete, mask overlay, trim range, and the gif.frame.delete hotkeys.
+ *
  * The current frame always sits under the centre marker; the strip slides
  * under it as playback advances or the user scrubs. Click a thumbnail to
  * jump; drag anywhere to scrub. PRESS AND HOLD a thumbnail (HOLD_MS), then
@@ -12,8 +17,8 @@
  * edit STAGES in a local working copy — nothing is sent to the server until the
  * pill's Update (rewrite the current entry) or Apply (save a new one) is
  * clicked; Discard drops them. Only a window of thumbnails around the current
- * index is ever in the DOM (`_ensureWindow`), so a long GIF never renders
- * every frame at once.
+ * index is ever in the DOM (`MpiThumbStrip._ensureWindow`), so a long GIF
+ * never renders every frame at once.
  *
  * This component owns NO navigation authority — it is a peer of MpiGifViewer
  * under the Block's mediator. It emits intent ('frame-select', 'scrub') and
@@ -79,19 +84,9 @@
 
 import { ComponentFactory } from '../../factory.js';
 import { MpiButton } from '../../Primitives/MpiButton/MpiButton.js';
-import { MpiContextMenu } from '../../Compounds/MpiContextMenu/MpiContextMenu.js';
-import { qs, on } from '../../../utils/dom.js';
+import { MpiThumbStrip } from '../../Compounds/MpiThumbStrip/MpiThumbStrip.js';
+import { qs } from '../../../utils/dom.js';
 import { Hotkeys } from '../../../managers/hotkeyManager.js';
-
-const THUMB_W    = 64;
-const THUMB_GAP  = 6;
-const SLOT       = THUMB_W + THUMB_GAP;
-/** Frames rendered each side of the current index — generous but bounded. */
-const VIEW_RADIUS = 40;
-/** Drag threshold in px before a mousedown counts as a drag, not a click. */
-const DRAG_THRESHOLD = 4;
-/** Hold a thumbnail this long, without moving, to pick it up for a reorder. */
-const HOLD_MS = 300;
 
 export const MpiFrameStrip = ComponentFactory.create({
     name: 'MpiFrameStrip',
@@ -107,10 +102,7 @@ export const MpiFrameStrip = ComponentFactory.create({
                     <div data-mount="apply-btn"></div>
                 </div>
             </div>
-            <div class="mpi-frame-strip__track">
-                <div class="mpi-frame-strip__thumbs"></div>
-                <div class="mpi-frame-strip__marker"></div>
-            </div>
+            <div class="mpi-frame-strip__track"></div>
         </div>
     `,
 
@@ -120,92 +112,42 @@ export const MpiFrameStrip = ComponentFactory.create({
 
         const pillEl      = qs('.mpi-frame-strip__pill', el);
         const pillCountEl = qs('.mpi-frame-strip__pill-count', el);
-        const trackEl     = qs('.mpi-frame-strip__track', el);
-        const thumbsEl    = qs('.mpi-frame-strip__thumbs', el);
 
-        const discardBtn = MpiButton.mount(qs('[data-mount="discard-btn"]', el), { text: 'Discard', variant: 'ghost', size: 'sm', info: 'Undo these frame changes' });
-        const updateBtn = MpiButton.mount(qs('[data-mount="update-btn"]', el), { text: 'Update', variant: 'secondary', size: 'sm', info: 'Rewrite this entry' });
-        const applyBtn  = MpiButton.mount(qs('[data-mount="apply-btn"]', el),  { text: 'Apply',  variant: 'primary',   size: 'sm', info: 'Save as a new entry' });
+        // ── GIF layer state ───────────────────────────────────────────────
 
         /** @type {Array<{hash:string,url:string,thumbUrl:string,delay:number}>} */
         let _committed = [];
         let _staged = [];
         let _currentIndex = 0;
-        /** @type {Set<number>} staged indices marked for deletion */
-        const _selection = new Set();
-        /** Where a Shift range starts. Same contract as `MpiHistoryList`. */
-        let _anchor = 0;
-
-        let _windowStart = 0;
-        let _windowEnd = -1; // empty until first render
-
-        /** MPI-771 (UI half): index-aligned mask URLs from the cut-out tool's
-         *  last Track, or null. Index-keyed (not hash-keyed, unlike every
-         *  other list here) because a tracked mask belongs to a frame
-         *  POSITION, not its content. */
-        let _maskOverlay = null;
-        /** Positions whose mask was fixed with the Mask Brush — same keying. */
-        let _edited = new Set();
-
-        /** MPI-771: the control bar's trim handles, in frame indices, or null. */
-        let _range = null;
-
-        /** Committed index each staged frame came from: the identity a reorder keeps. */
+        /** Identity for each staged frame: its committed index (or a negative
+         *  dup-token). Same semantics as before — see the original header. */
         let _origin = [];
-        /** Identity for a frame no committed list held — a duplicate's copy. Negative
-         *  so it can never collide with a committed index, which keeps `_viewerPos`
-         *  one-to-one (MPI-857: a copy sharing its source's token collapsed both onto
-         *  one viewer position, and the mask clear then acted on the wrong frame). */
+        /** Negative so a dup-token never collides with a committed index. */
         let _dupToken = -1;
-        /** Origin -> position in the list the viewer holds (what the overlay is keyed by). */
+        /** Origin → position in the list the viewer holds (mask index key). */
         let _viewerPos = new Map();
 
-        const _syncViewerPos = () => { _viewerPos = new Map(_origin.map((o, i) => [o, i])); };
-        /** Where the VIEWER keys frame `i`'s mask — see setMaskOverlay. */
+        /** @type {number[]|null} — index-aligned mask URLs from the cut-out tool. */
+        let _maskOverlay = null;
+        /** Positions whose mask was fixed with the Mask Brush. */
+        let _edited = new Set();
+
+        /** The control bar's trim handles, in frame indices, or null. */
+        let _range = null;
+
+        const _syncViewerPos = () => {
+            _viewerPos = new Map(_origin.map((o, i) => [o, i]));
+        };
         const _viewerPosOf = (i) => _viewerPos.get(_origin[i]);
 
-        /**
-         * Publish the selection so the cut-out panel's "Selected" scope can act
-         * on it (Fabio, 2026-09-18). Emitted in VIEWER positions as well as
-         * staged ones: masks are keyed by the viewer's frame order, which
-         * diverges from the strip's staged order after a reorder — the same
-         * split the context menu's `clear-frame-mask` already carries.
-         */
+        // ── Selection (delegated to MpiThumbStrip, mapped to viewer coords) ──
+
         function _emitSelection() {
-            const indices = [..._selection].sort((a, b) => a - b);
+            const indices = strip.el.getSelection(); // staged indices
             emit('selection-change', {
                 indices,
                 viewerIndices: indices.map(_viewerPosOf).filter(v => v !== undefined),
             });
-        }
-
-        /** Replace the selection with the run from `_anchor` to `idx`, inclusive. */
-        function _rangeSelect(idx) {
-            const clamped = Math.max(0, Math.min(_staged.length - 1, idx));
-            _anchor = Math.max(0, Math.min(_staged.length - 1, _anchor));
-            _selection.clear();
-            const step = clamped >= _anchor ? 1 : -1;
-            for (let i = _anchor; i !== clamped + step; i += step) _selection.add(i);
-            _renderWindow();
-        }
-
-        /** A shorter frame list must not leave the trim paint hanging past the end. */
-        function _clampRange() {
-            if (!_range) return;
-            const last = Math.max(0, _staged.length - 1);
-            _range = { in: Math.min(_range.in, last), out: Math.min(_range.out, last) };
-        }
-        function _resetOrigin() {
-            _origin = _staged.map((_, i) => i);
-            _syncViewerPos();
-        }
-
-        /** Hand the staged list to the Block, with where each frame sat in the viewer's list. */
-        function _emitStage() {
-            const order = _origin.map(o => _viewerPos.get(o));
-            _syncViewerPos();
-            _syncPill();
-            emit('stage-change', { frames: _staged.slice(), order });
         }
 
         // ── Diff / pill ──────────────────────────────────────────────────
@@ -225,82 +167,190 @@ export const MpiFrameStrip = ComponentFactory.create({
             if (n > 0) pillCountEl.textContent = `${n} frame change${n === 1 ? '' : 's'}`;
         }
 
-        // ── Windowed rendering ───────────────────────────────────────────
+        // ── Item builder ─────────────────────────────────────────────────
 
-        function _ensureWindow(idx) {
-            const pad = Math.floor(VIEW_RADIUS / 2);
-            if (_windowEnd >= _windowStart && idx >= _windowStart + pad && idx <= _windowEnd - pad) return false;
-            _windowStart = Math.max(0, idx - VIEW_RADIUS);
-            _windowEnd = Math.min(_staged.length - 1, idx + VIEW_RADIUS);
-            return true;
-        }
-
-        function _renderWindow() {
-            thumbsEl.innerHTML = '';
-            thumbsEl.style.width = `${Math.max(0, _staged.length * SLOT)}px`;
-            for (let i = _windowStart; i <= _windowEnd; i++) {
-                const f = _staged[i];
-                if (!f) continue;
-                const d = document.createElement('div');
-                d.className = 'mpi-frame-strip__thumb';
-                d.dataset.index = String(i);
-                // Every gesture here is invisible otherwise — Fabio could not find
-                // the delete at all (2026-09-18). `[data-info]` is the status bar's
-                // hover channel (js/shell/statusBar.js).
-                d.dataset.info = `Frame ${i + 1}/${_staged.length} — click to jump, drag to scrub, `
+        function _makeItems() {
+            return _staged.map((f, i) => ({
+                key: f.hash ? `${f.hash}-${i}` : String(i),
+                thumbUrl: f.thumbUrl || f.url || '',
+                info: `Frame ${i + 1}/${_staged.length} — click to jump, drag to scrub, `
                     + 'hold then drag to reorder, Ctrl-click to select (Backspace deletes), '
-                    + 'right-click to duplicate / delete / clear mask';
-                if (i === _currentIndex) d.classList.add('is-current');
-                if (_selection.has(i)) d.classList.add('is-selected');
-                // MPI-771: the Trim tool's range, painted where the frames are.
-                if (_range) {
-                    if (i < _range.in || i > _range.out) d.classList.add('mpi-frame-strip__thumb--outside');
-                    if (i === _range.in)  d.classList.add('mpi-frame-strip__thumb--range-in');
-                    if (i === _range.out) d.classList.add('mpi-frame-strip__thumb--range-out');
-                }
-                if (_drag?.mode === 'thumb' && _drag.index === i) d.classList.add('mpi-frame-strip__thumb--lifted');
-                d.style.left = `${i * SLOT}px`;
-                const img = document.createElement('img');
-                img.src = f.thumbUrl || f.url || '';
-                img.alt = '';
-                img.draggable = false;
-                d.appendChild(img);
-                const vp = _viewerPosOf(i);
-                if (_edited.has(vp)) d.classList.add('mpi-frame-strip__thumb--edited');
-                const maskUrl = vp === undefined ? null : _maskOverlay?.[vp];
-                if (maskUrl) {
-                    const tint = document.createElement('div');
-                    tint.className = 'mpi-frame-strip__thumb-tint';
-                    tint.style.webkitMaskImage = `url("${maskUrl}")`;
-                    tint.style.maskImage = `url("${maskUrl}")`;
-                    d.appendChild(tint);
-                }
-                thumbsEl.appendChild(d);
+                    + 'right-click to duplicate / delete / clear mask',
+            }));
+        }
+
+        // ── Origin helpers ───────────────────────────────────────────────
+
+        function _resetOrigin() {
+            _origin = _staged.map((_, i) => i);
+            _syncViewerPos();
+        }
+
+        /** Hand the staged list to the Block, with where each frame sat in the viewer. */
+        function _emitStage() {
+            const order = _origin.map(o => _viewerPos.get(o));
+            _syncViewerPos();
+            _syncPill();
+            emit('stage-change', { frames: _staged.slice(), order });
+        }
+
+        // ── Range clamp ──────────────────────────────────────────────────
+
+        function _clampRange() {
+            if (!_range) return;
+            const last = Math.max(0, _staged.length - 1);
+            _range = { in: Math.min(_range.in, last), out: Math.min(_range.out, last) };
+        }
+
+        // ── decorateThumb — GIF-specific classes and elements ────────────
+        //
+        // MpiThumbStrip applies its own state classes (is-current, is-selected,
+        // mpi-thumb-strip__thumb--lifted) BEFORE calling this function, so the
+        // decorator can mirror them as the GIF-spec's `mpi-frame-strip__thumb--*`
+        // classes. This keeps the GIF desktop specs' selectors working unchanged
+        // while the generic strip uses its own BEM namespace.
+
+        function _decorateThumb(d, i) {
+            // Always add the frame-strip class so GIF specs' selectors still work.
+            d.classList.add('mpi-frame-strip__thumb');
+
+            // Mirror the lifted modifier so specs can find mpi-frame-strip__thumb--lifted.
+            d.classList.toggle('mpi-frame-strip__thumb--lifted',
+                d.classList.contains('mpi-thumb-strip__thumb--lifted'));
+
+            // Range decoration (MPI-771).
+            if (_range) {
+                d.classList.toggle('mpi-frame-strip__thumb--outside',
+                    i < _range.in || i > _range.out);
+                d.classList.toggle('mpi-frame-strip__thumb--range-in', i === _range.in);
+                d.classList.toggle('mpi-frame-strip__thumb--range-out', i === _range.out);
+            } else {
+                d.classList.remove('mpi-frame-strip__thumb--outside');
+                d.classList.remove('mpi-frame-strip__thumb--range-in');
+                d.classList.remove('mpi-frame-strip__thumb--range-out');
+            }
+
+            // Edited mark (MPI-771 Mask Brush).
+            const vp = _viewerPosOf(i);
+            d.classList.toggle('mpi-frame-strip__thumb--edited', _edited.has(vp));
+
+            // Mask tint: remove the old one (if any) and add a fresh one.
+            const old = qs('.mpi-frame-strip__thumb-tint', d);
+            if (old) old.remove();
+            const maskUrl = vp === undefined ? null : _maskOverlay?.[vp];
+            if (maskUrl) {
+                const tint = document.createElement('div');
+                tint.className = 'mpi-frame-strip__thumb-tint';
+                tint.style.webkitMaskImage = `url("${maskUrl}")`;
+                tint.style.maskImage = `url("${maskUrl}")`;
+                d.appendChild(tint);
             }
         }
 
-        /**
-         * Repaint the range dimming on the thumbs that are already up, without
-         * rebuilding them. `setRange` runs on every throttled frame of a handle drag
-         * since MPI-838, and `_renderWindow()` recreates every `<img>` in the window —
-         * cached or not, that is DOM churn at 20 Hz for three class flips.
-         */
-        function _paintRange() {
-            for (const d of thumbsEl.children) {
-                const i = +d.dataset.index;
-                d.classList.toggle('mpi-frame-strip__thumb--outside', !!_range && (i < _range.in || i > _range.out));
-                d.classList.toggle('mpi-frame-strip__thumb--range-in',  !!_range && i === _range.in);
-                d.classList.toggle('mpi-frame-strip__thumb--range-out', !!_range && i === _range.out);
-            }
+        // ── Context menu items (GIF-specific) ────────────────────────────
+        //
+        // MpiThumbStrip passes (index, selection) and MpiFrameStrip builds the
+        // items. The onSelect handling is done via strip's 'menu-select' event.
+        // An Organism MAY call MpiContextMenu.show() directly, but going through
+        // the shell hop is equivalent and avoids an extra import.
+
+        function _menuItems(index, selection) {
+            const targets = new Set(selection.includes(index) ? selection : [index]);
+            const vp = _viewerPosOf(index);
+            const hasMask = vp !== undefined && !!_maskOverlay?.[vp];
+            const n = targets.size;
+            return [
+                {
+                    key: 'duplicate',
+                    icon: 'copy',
+                    label: n > 1 ? `Duplicate ${n} frames` : 'Duplicate frame',
+                    info: 'Stages a copy right after each frame — Update or Apply saves it',
+                },
+                {
+                    key: 'delete',
+                    icon: 'trash',
+                    label: n > 1 ? `Delete ${n} frames` : 'Delete frame',
+                    danger: true,
+                    kbd: 'Backspace',
+                    disabled: _staged.length - n < 1,
+                    info: 'Stages the delete — Update or Apply saves it',
+                },
+                {
+                    key: 'clear-mask',
+                    icon: 'eraser',
+                    label: "Clear this frame's mask",
+                    disabled: !hasMask,
+                    info: hasMask
+                        ? "Throws this frame's cut-out mask and brush fixes away"
+                        : 'This frame has no cut-out mask',
+                },
+            ];
         }
 
-        function _applyTransform() {
-            const trackWidth = trackEl.clientWidth;
-            if (!trackWidth) return; // hidden ancestor (MpiOverlay Stash Pattern) — nothing to size against
-            const center = trackWidth / 2;
-            const thumbCenterX = _currentIndex * SLOT + THUMB_W / 2;
-            thumbsEl.style.transform = `translateX(${Math.round(center - thumbCenterX)}px)`;
-        }
+        // ── Mount MpiThumbStrip ──────────────────────────────────────────
+
+        const strip = MpiThumbStrip.mount(qs('.mpi-frame-strip__track', el), {
+            allowReorder: true,
+            decorateThumb: _decorateThumb,
+            menuItems: _menuItems,
+        });
+
+        // ── Wire MpiThumbStrip events ────────────────────────────────────
+        // A component's `on()` returns no unsubscribe; `strip.destroy()` drops these.
+
+        strip.on('thumb-select', ({ index }) => {
+            emit('frame-select', { index });
+        });
+
+        strip.on('selection-change', () => {
+            _emitSelection();
+        });
+
+        strip.on('scrub', ({ index }) => {
+            emit('scrub', { index });
+        });
+
+        strip.on('reorder', ({ from, to }) => {
+            // The strip has already moved the item visually. Sync _staged and _origin.
+            const [movedFrame]  = _staged.splice(from, 1);
+            _staged.splice(to, 0, movedFrame);
+            const [movedOrigin] = _origin.splice(from, 1);
+            _origin.splice(to, 0, movedOrigin);
+            // Rebuild the items so MpiThumbStrip's internal array matches _staged
+            // (keys, info strings). The strip re-renders — same positions, no flash.
+            strip.el.setItems(_makeItems(), { currentIndex: _currentIndex });
+            _emitStage();
+        });
+
+        strip.on('menu-select', ({ key, index, selection }) => {
+            const targets = new Set(selection.includes(index) ? selection : [index]);
+            if (key === 'duplicate') _duplicateIndices(targets);
+            else if (key === 'delete') _deleteIndices(targets);
+            else if (key === 'clear-mask') {
+                const vp = _viewerPosOf(index);
+                emit('clear-frame-mask', { index, viewerIndex: vp });
+            }
+        });
+
+        // ── Pill buttons ─────────────────────────────────────────────────
+
+        const discardBtn = MpiButton.mount(qs('[data-mount="discard-btn"]', el),
+            { text: 'Discard', variant: 'ghost', size: 'sm', info: 'Undo these frame changes' });
+        const updateBtn = MpiButton.mount(qs('[data-mount="update-btn"]', el),
+            { text: 'Update', variant: 'secondary', size: 'sm', info: 'Rewrite this entry' });
+        const applyBtn  = MpiButton.mount(qs('[data-mount="apply-btn"]', el),
+            { text: 'Apply',  variant: 'primary',   size: 'sm', info: 'Save as a new entry' });
+
+        discardBtn.on('click', () => {
+            _staged = _committed.slice();
+            _origin = _staged.map((_, i) => i);
+            _currentIndex = Math.max(0, Math.min(_staged.length - 1, _currentIndex));
+            strip.el.setItems(_makeItems(), { currentIndex: _currentIndex });
+            // setItems clears selection → strip emits selection-change → _emitSelection() fires
+            _emitStage();
+        });
+        updateBtn.on('click', () => emit('update', { frames: _staged.slice() }));
+        applyBtn.on('click',  () => emit('apply',  { frames: _staged.slice() }));
 
         // ── Public API ───────────────────────────────────────────────────
 
@@ -308,30 +358,17 @@ export const MpiFrameStrip = ComponentFactory.create({
             _committed = Array.isArray(frames) ? frames.slice() : [];
             _staged = _committed.slice();
             _resetOrigin();
-            _selection.clear();
-            _emitSelection();
             _clampRange();
             _currentIndex = Math.max(0, Math.min(_staged.length - 1, currentIndex || 0));
-            _windowEnd = -1; // force a full re-render
-            _ensureWindow(_currentIndex);
-            _renderWindow();
-            _applyTransform();
+            strip.el.setItems(_makeItems(), { currentIndex: _currentIndex });
             _syncPill();
         };
 
         el.setCurrentIndex = (idx) => {
             if (!_staged.length) return;
             const clamped = Math.max(0, Math.min(_staged.length - 1, Math.round(idx)));
-            if (clamped === _currentIndex && _windowEnd >= _windowStart) { _applyTransform(); return; }
-            const prev = _currentIndex;
             _currentIndex = clamped;
-            if (_ensureWindow(_currentIndex)) {
-                _renderWindow();
-            } else {
-                qs(`[data-index="${prev}"]`, thumbsEl)?.classList.remove('is-current');
-                qs(`[data-index="${_currentIndex}"]`, thumbsEl)?.classList.add('is-current');
-            }
-            _applyTransform();
+            strip.el.setCurrentIndex(clamped);
         };
 
         el.setRange = (range) => {
@@ -346,341 +383,103 @@ export const MpiFrameStrip = ComponentFactory.create({
                 if (_range && _range.in === next.in && _range.out === next.out) return;
                 _range = next;
             }
-            _paintRange();
+            // Cheap pass: re-decorate existing thumbs, no DOM rebuild.
+            strip.el.repaintThumbs();
         };
 
         el.getStagedFrames = () => _staged.slice();
 
-        /** VIEWER positions of the selected thumbs — the cut-out panel's
-         *  "Selected" scope reads this when it mounts, then tracks
-         *  'selection-change'. See `_emitSelection`. */
-        el.getSelection = () => [..._selection]
-            .sort((a, b) => a - b)
+        /** VIEWER positions of the selected thumbs — the cut-out panel reads this. */
+        el.getSelection = () => strip.el.getSelection()
             .map(_viewerPosOf)
             .filter(v => v !== undefined);
 
         el.setMaskOverlay = (masks, edited = []) => {
             _maskOverlay = Array.isArray(masks) ? masks : null;
             _edited = new Set(edited);
-            _renderWindow();
+            // Cheap pass: re-decorate existing thumbs with the new tint data.
+            strip.el.repaintThumbs();
         };
 
         el.commit = (frames) => {
             _committed = Array.isArray(frames) ? frames.slice() : _staged.slice();
             _staged = _committed.slice();
             _resetOrigin();
-            _selection.clear();
-            _emitSelection();
             _clampRange();
-            // The Block reloads the saved entry into the viewer via
-            // `loadFrames()` (a fresh `.gif` revision, new sequenced file per
-            // E5), which always resets ITS index to 0 — match it here, or the
-            // marker would keep pointing at wherever the pointer happened to
-            // be before Update/Apply while the counter already reads 0.
+            // The Block reloads the saved entry into the viewer via `loadFrames()`
+            // which always resets ITS index to 0 — match here so the marker and
+            // counter stay in sync.
             _currentIndex = 0;
-            _windowEnd = -1;
-            _ensureWindow(_currentIndex);
-            _renderWindow();
-            _applyTransform();
+            strip.el.setItems(_makeItems(), { currentIndex: 0 });
             _syncPill();
         };
 
-        // ── Resize ───────────────────────────────────────────────────────
-
-        const _ro = new ResizeObserver((entries) => {
-            const rect = entries[0]?.contentRect;
-            if (!rect || !rect.width || !rect.height) return; // Stash Pattern zero-rect
-            _applyTransform();
-        });
-        _ro.observe(trackEl);
-        _unsubs.push(() => _ro.disconnect());
-
-        // ── Drag: scrub, or (after a hold) reorder a thumb ────────────────
-        //
-        // mode 'press' — a thumb is down, undecided: a release is a click, a
-        //   move becomes 'scrub', HOLD_MS without moving becomes 'thumb'.
-        // mode 'scrub' — the strip follows the pointer, no edit.
-        // mode 'thumb' — the held thumb is lifted and follows the pointer:
-        //   it sits `round(dx / SLOT)` slots from where it was lifted.
-        //
-        // The strip OWNS its press (pointer events, `preventDefault`, capture —
-        // MpiTrimBar's idiom). Left to the browser, a press starts a text
-        // selection, and a press inside a selection starts Chromium's NATIVE
-        // drag: its ghost is the "copy" Fabio saw, and a native drag never
-        // delivers the release, so the lifted thumb kept reordering on hover.
-
-        let _drag = null;
-        let _holdTimer = 0;
-        const _clearHold = () => { clearTimeout(_holdTimer); _holdTimer = 0; };
-
-        // Bound to the TRACK, not the thumbs container: the track is the
-        // thumbs' own ancestor and is always the track's full visible width,
-        // so a click that lands past the currently-rendered window (or in
-        // any gap) still bubbles here and correctly falls into the scrub
-        // branch below (`closest('.mpi-frame-strip__thumb')` finds nothing).
-        // The capture sits on the track too: a thumb is re-rendered mid-drag.
-        _unsubs.push(on(trackEl, 'pointerdown', (e) => {
-            if (e.button !== 0) return;
-            e.preventDefault();
-            // preventDefault also keeps focus where it was; hotkeys skip a
-            // focused text field, so let it go the way a native press would.
-            document.activeElement?.blur?.();
-            try { trackEl.setPointerCapture(e.pointerId); } catch (_) { /* noop */ }
-            const thumbEl = e.target.closest('.mpi-frame-strip__thumb');
-            const base = { startX: e.clientX, startIndex: _currentIndex, moved: false };
-            if (!thumbEl) { _drag = { ...base, mode: 'scrub' }; return; }
-            // Ctrl toggles ONE, Shift takes a RANGE — the app's selection grammar
-            // (MpiHistoryList, MpiGalleryGrid). Shift was a synonym for Ctrl here.
-            const range  = e.shiftKey;
-            const toggle = !range && (e.ctrlKey || e.metaKey);
-            const index = Number(thumbEl.dataset.index);
-            _drag = { ...base, mode: 'press', index, liftIndex: index, range, toggle };
-            if (range || toggle) return;
-            _clearHold();
-            _holdTimer = setTimeout(() => {
-                if (_drag?.mode !== 'press') return;
-                _drag.mode = 'thumb';
-                _renderWindow(); // paints the lift
-            }, HOLD_MS);
-        }));
-
-        const _onMove = (e) => {
-            if (!_drag) return;
-            const dx = e.clientX - _drag.startX;
-            if (!_drag.moved && Math.abs(dx) > DRAG_THRESHOLD) _drag.moved = true;
-            if (!_drag.moved) return;
-
-            if (_drag.mode === 'press') {
-                _clearHold();
-                _drag.mode = 'scrub';
-            }
-
-            if (_drag.mode === 'scrub') {
-                const newIdx = Math.max(0, Math.min(_staged.length - 1, Math.round(_drag.startIndex - dx / SLOT)));
-                emit('scrub', { index: newIdx });
-                return;
-            }
-
-            // mode 'thumb' — the strip does not slide while a thumb is up, so
-            // slot N stays at the same x and the pointer maps 1:1 onto slots.
-            const targetIdx = Math.max(0, Math.min(_staged.length - 1, _drag.liftIndex + Math.round(dx / SLOT)));
-            if (targetIdx === _drag.index) return;
-            const [moved] = _staged.splice(_drag.index, 1);
-            _staged.splice(targetIdx, 0, moved);
-            const [movedOrigin] = _origin.splice(_drag.index, 1);
-            _origin.splice(targetIdx, 0, movedOrigin);
-            _drag.index = targetIdx;
-            _windowEnd = -1;
-            _ensureWindow(_currentIndex);
-            _renderWindow();
-            _applyTransform();
-            _syncPill();
-        };
-
-        const _onUp = () => {
-            if (!_drag) return;
-            _clearHold();
-            const d = _drag;
-            _drag = null;
-
-            if (d.mode === 'thumb') {
-                if (d.moved) _emitStage();
-                else emit('frame-select', { index: d.index });
-                _renderWindow(); // drops the lift
-                return;
-            }
-            if (d.mode === 'press') {
-                if (d.range) {
-                    // A first Shift-click with nothing selected anchors at the frame
-                    // the pointer is ON, not at a stale `_anchor` still sitting at 0
-                    // — the subtlety `MpiHistoryList:199-213` already solved.
-                    if (_selection.size === 0) _anchor = _currentIndex;
-                    _rangeSelect(d.index);
-                } else if (d.toggle) {
-                    if (_selection.has(d.index)) {
-                        _selection.delete(d.index);
-                    } else {
-                        _selection.add(d.index);
-                        _anchor = d.index;
-                    }
-                    _renderWindow();
-                } else {
-                    _selection.clear();
-                    _anchor = d.index;
-                    // Paint it ourselves. `frame-select` reaches the Block, which
-                    // calls back into `setCurrentIndex` — and that early-returns
-                    // when the index has not moved, so clicking the frame you are
-                    // already on left the old selection painted on screen.
-                    _renderWindow();
-                    emit('frame-select', { index: d.index });
-                }
-                _emitSelection();
-            }
-            // scrub end needs no extra event — the Block already applied every
-            // intermediate 'scrub' as it happened.
-        };
-
-        _unsubs.push(on(window, 'pointermove', _onMove));
-        _unsubs.push(on(window, 'pointerup', _onUp));
-        _unsubs.push(on(window, 'pointercancel', _onUp));
-
-        // ── Delete selected (staged only) ─────────────────────────────────
+        // ── Delete (staged only) ─────────────────────────────────────────
 
         const _canDrive = () => el.isConnected && el.getClientRects().length > 0;
 
         /**
-         * Stage a delete of `indices` (staged positions). Shared by the
-         * Backspace hotkey and the context menu's Delete — Fabio never found
-         * the hotkey at all (2026-09-18), so the menu is the discoverable way
-         * in and both must stage the SAME edit.
+         * Stage a delete of `indices` (staged positions). Shared by the Backspace
+         * hotkey and the context menu — both stage the SAME edit.
          * @param {Set<number>|number[]} indices
          */
         function _deleteIndices(indices) {
             const drop = indices instanceof Set ? indices : new Set(indices);
             if (drop.size === 0) return;
-            // A GIF needs at least one frame — never stage a delete that would
-            // empty the strip (the Block's save round trip rejects it anyway,
-            // but failing silently here is friendlier than a toast after the
-            // fact for a selection that could only ever produce it).
+            // A GIF needs at least one frame.
             if (_staged.length - drop.size < 1) return;
             _staged = _staged.filter((_, i) => !drop.has(i));
             _origin = _origin.filter((_, i) => !drop.has(i));
-            _selection.clear();
-            _emitSelection();
             _clampRange();
             _currentIndex = Math.max(0, Math.min(_staged.length - 1, _currentIndex));
-            _windowEnd = -1;
-            _ensureWindow(_currentIndex);
-            _renderWindow();
-            _applyTransform();
+            strip.el.setItems(_makeItems(), { currentIndex: _currentIndex });
+            // setItems clears selection → strip emits selection-change → _emitSelection() fires
             _emitStage();
         }
 
         /**
          * Stage a copy of every frame in `indices`, each right after itself
-         * (MPI-857, Fabio's ask). The frames store is content-addressed, so a
-         * repeat costs zero bytes — a duplicate is one more entry in the list
-         * and nothing on disk. Staged like every other strip edit; the pill's
-         * Update/Apply is what saves it.
+         * (MPI-857). The frames store is content-addressed, so a duplicate costs
+         * zero bytes — it's one more entry in the list.
          * @param {Set<number>|number[]} indices staged positions
          */
         function _duplicateIndices(indices) {
             const src = [...(indices instanceof Set ? indices : new Set(indices))].sort((a, b) => a - b);
             if (src.length === 0) return;
-            // Descending: each splice then leaves every lower position alone.
+            // Descending: each splice leaves every lower position alone.
             for (let k = src.length - 1; k >= 0; k--) {
                 const i = src[k];
                 if (!_staged[i]) continue;
-                // The copy's token is its own (see `_dupToken`), but it POINTS AT the
-                // source's viewer position, so `_emitStage`'s `order` carries the
-                // frame's cut-out mask onto the copy the way a reorder carries it.
+                // The copy gets its own negative token but POINTS AT the source's
+                // viewer position, so _emitStage's `order` carries the mask along.
                 const token = _dupToken--;
                 _viewerPos.set(token, _viewerPosOf(i));
                 _staged.splice(i + 1, 0, { ..._staged[i] });
                 _origin.splice(i + 1, 0, token);
                 if (i < _currentIndex) _currentIndex++;
             }
-            _selection.clear();
-            _emitSelection();
-            // A longer list resets the control bar's range to every frame, and the
-            // Block paints that back through `setRange` — nothing to clamp here.
-            _windowEnd = -1;
-            _ensureWindow(_currentIndex);
-            _renderWindow();
-            _applyTransform();
+            strip.el.setItems(_makeItems(), { currentIndex: _currentIndex });
+            // setItems clears selection → strip emits selection-change → _emitSelection()
             _emitStage();
         }
 
         // Bound to all three ids: the selection is made with Ctrl (or Shift)
-        // held, and the modifier is usually STILL held at the Backspace — which
-        // normalises to `control+backspace`, a different key entirely. See the
-        // three `gif.frame.delete*` entries in hotkeyRegistry.js.
+        // held, and the modifier is usually still held at the Backspace —
+        // which normalises to `control+backspace`, a different key entirely.
         const _deleteSelection = () => {
-            if (!_canDrive() || _selection.size === 0) return;
-            _deleteIndices(_selection);
+            if (!_canDrive() || strip.el.getSelection().length === 0) return;
+            _deleteIndices(new Set(strip.el.getSelection()));
         };
         for (const id of ['gif.frame.delete', 'gif.frame.delete.ctrl', 'gif.frame.delete.shift']) {
             _hotkeyUnsubs.push(Hotkeys.bind(id, _deleteSelection));
         }
 
-        // ── Context menu (Fabio's top ask, 2026-09-18) ────────────────────
-        //
-        // An Organism may import a Compound (4-tier rule), so this calls
-        // MpiContextMenu.show() directly rather than going through the shell's
-        // 'ui:context-menu' hop, which exists only for same-tier callers.
-
-        _unsubs.push(on(trackEl, 'contextmenu', (e) => {
-            const thumbEl = e.target.closest('.mpi-frame-strip__thumb');
-            if (!thumbEl) return;
-            e.preventDefault();
-            const index = Number(thumbEl.dataset.index);
-            if (!Number.isFinite(index) || !_staged[index]) return;
-            // Right-clicking INSIDE a Ctrl-click selection acts on the whole
-            // selection; anywhere else acts on that one frame and drops it.
-            const targets = _selection.has(index) ? new Set(_selection) : new Set([index]);
-            const vp = _viewerPosOf(index);
-            const hasMask = vp !== undefined && !!_maskOverlay?.[vp];
-            const n = targets.size;
-            MpiContextMenu.show({
-                x: e.clientX,
-                y: e.clientY,
-                items: [
-                    {
-                        key: 'duplicate',
-                        icon: 'copy',
-                        label: n > 1 ? `Duplicate ${n} frames` : 'Duplicate frame',
-                        info: 'Stages a copy right after each frame — Update or Apply saves it',
-                    },
-                    {
-                        key: 'delete',
-                        icon: 'trash',
-                        label: n > 1 ? `Delete ${n} frames` : 'Delete frame',
-                        danger: true,
-                        kbd: 'Backspace',
-                        // The last frame cannot go: a GIF needs one.
-                        disabled: _staged.length - n < 1,
-                        info: 'Stages the delete — Update or Apply saves it',
-                    },
-                    {
-                        key: 'clear-mask',
-                        icon: 'eraser',
-                        label: 'Clear this frame\'s mask',
-                        disabled: !hasMask,
-                        info: hasMask
-                            ? 'Throws this frame\'s cut-out mask and brush fixes away'
-                            : 'This frame has no cut-out mask',
-                    },
-                ],
-                onSelect: (key) => {
-                    if (key === 'duplicate') _duplicateIndices(targets);
-                    else if (key === 'delete') _deleteIndices(targets);
-                    else if (key === 'clear-mask') emit('clear-frame-mask', { index, viewerIndex: vp });
-                },
-            });
-        }));
-
-        // ── Pill buttons ───────────────────────────────────────────────────
-
-        discardBtn.on('click', () => {
-            _staged = _committed.slice();
-            _origin = _staged.map((_, i) => i);
-            _selection.clear();
-            _emitSelection();
-            _windowEnd = -1;
-            _ensureWindow(_currentIndex);
-            _renderWindow();
-            _applyTransform();
-            _emitStage();
-        });
-        updateBtn.on('click', () => emit('update', { frames: _staged.slice() }));
-        applyBtn.on('click',  () => emit('apply',  { frames: _staged.slice() }));
-
         // ── Teardown ─────────────────────────────────────────────────────
 
         el.destroy = () => {
-            _clearHold();
             _unsubs.forEach(fn => { try { fn(); } catch (_) { /* noop */ } });
             _hotkeyUnsubs.forEach(fn => { try { fn(); } catch (_) { /* noop */ } });
+            try { strip.destroy(); } catch (_) { /* noop */ }
             try { discardBtn.destroy(); } catch (_) { /* noop */ }
             try { updateBtn.destroy(); } catch (_) { /* noop */ }
             try { applyBtn.destroy(); } catch (_) { /* noop */ }

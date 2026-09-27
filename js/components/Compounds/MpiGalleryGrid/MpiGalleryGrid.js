@@ -11,7 +11,8 @@ import { wireCardMark, closeCardMarkMenu } from './cardMarkMenu.js';
 import { mountSelectionBar } from './selectionBar.js';
 import { removeHistoryEntry } from '../../../data/projectModel.js';
 import { getModelById, tierLetterFor } from '../../../data/modelRegistry.js';
-import { getCommand, getCommandAccent, commandAllowsBranchingContinue, selectCueAllTargets } from '../../../data/commandRegistry.js';
+import { getCommand, getCommandAccent, commandAllowsBranchingContinue } from '../../../data/commandRegistry.js';
+import { isStack, expandStacks, stackCreateBlockReason, STACK_BLOCK_INFO } from '../../../data/stackModel.js';
 import { handOverClip } from '../../../shell/heroCrew.js';
 import { flowModelChoices } from '../../../data/flowsRegistry.js';
 import { state } from '../../../state.js';
@@ -116,17 +117,17 @@ function _addDownloadUrl(e, item) {
  *   - Shift-click: range-select from anchor to clicked card (rendered order).
  *   - Plain click in selection mode: toggles card.
  *   - Plain click outside selection mode: opens group.
- *   - Right-click: context menu (Rename … Download / Archive / Delete). Cue all, Compare,
+ *   - Right-click: context menu (Rename … Download / Archive / Delete). Stack, Compare,
  *     Combine and Make GIF are on the selection bar only (MPI-945, selectionBar.js).
  *     If right-clicked card not in selection → replace selection with it first.
  *   - Escape or selection count → 0: exits selection mode.
  *
+ * Stacks (MPI-949, docs/stacks.md): a stack card owns no media and SHOWS its first
+ * member, through `_faceOf` / `_shownItem`. The grid needs the member cards in `groups`
+ * to paint it; the gallery scope keeps them off the grid itself.
+ *
  * Props:
  * @param {import('../../../data/projectModel.js').ItemGroup[]} [groups=[]] - Initial groups
- * @param {() => {operation: string|null, model: Object|null}} [getCueContext] - Reads the
- *        prompt box's CURRENT op/model on each selection change and click, for the
- *        selection bar's `Cue all (N)` (MPI-945, `selectionBar.js`).
- *        A callback because the block owns the PromptBox and this grid mounts before it.
  *
  * Instance methods (on instance.el):
  *   setGroups(groups)                    — replace all groups and re-render
@@ -151,8 +152,8 @@ function _addDownloadUrl(e, item) {
  *   'preview:finish'      { group, item } — preview-stage card Finish clicked (replaces preview with final)
  *   'preview:pop-continue'{ group, item } — Pop clicked while card is queued for Finish
  *   'archive'     { groups: [...] }      — groups had `archived` flipped; persist to disk
- *   'cue-all'     { groups, skipped, reason } — queue one job per eligible group on the
- *                                          prompt box's current recipe (block dispatches)
+ *   'stack'       { groups }             — stack the selected cards into one, in click order
+ *   'unstack'     { groups }             — dissolve these stacks; their cards come back
  *   'cancel-shown' { groupId }           — an `isCancelled` placeholder's mascot finished its
  *                                          `cancelled` clip; the block removes the card (MPI-908)
  */
@@ -341,49 +342,35 @@ export const MpiGalleryGrid = ComponentFactory.create({
         }
 
         // ── Selection bar (MPI-945, selectionBar.js) ──────────────────────────
-        // Sits where the hidden PromptBox was. Cue all, Compare, Combine and Make GIF
+        // Sits where the hidden PromptBox was. Stack, Compare, Combine and Make GIF
         // live ONLY here; Download, Archive and Delete are on the card menu too.
-        // Cue all's op is the one the prompt box is CURRENTLY on, read live through
-        // `getCueContext` because the block owns it — never the remembered
-        // `s_selectedOpByModel`, which only USER picks write, so dragging an image in
-        // (a programmatic i2i) would read wrong both ways (MPI-733).
         const _selectedGroups = () => [..._selectedIds]
             .map(id => _groups.find(g => g.id === id))
             .filter(Boolean);
-        const _cueTargets = () => {
-            const { operation, model } = props.getCueContext?.() ?? {};
-            return selectCueAllTargets(operation, model, _selectedGroups());
-        };
-        const CUE_INFO = {
-            'no-operation':     'No operation selected',
-            'not-batchable':    'Cue all does not support the current operation',
-            'wrong-media-type': 'No selected card matches the current operation',
-        };
-        // ponytail: re-read on selection change and render only; an op switched
-        // mid-selection shows a stale Cue label until then, but the click re-reads.
         function _syncSelectionBar() {
             const groups = _selectedGroups();
             const n = groups.length;
-            const cue = _cueTargets();
+            const stackBlock = stackCreateBlockReason(groups);
+            // A stack owns no item, and `kindOfItem(undefined)` falls to the catch-all
+            // `image` row, so every per-item check below would let one through as a still.
+            const hasStack = groups.some(isStack);
             // Make GIF (MPI-770): every SELECTED ITEM a still. kindOfItem's `image` row is
             // the catch-all video, audio, 3D Scene and GIF all match first, so one check
             // excludes all four. Click order becomes frame order (docs/gallery-selection.md).
-            const allStills = groups.every(g => kindOfItem(g.history?.[g.selectedIndex])?.kind === 'image');
+            const allStills = !hasStack && groups.every(g => kindOfItem(g.history?.[g.selectedIndex])?.kind === 'image');
             const allVideo = groups.every(g => g.type === 'video');
             const marks = new Set(groups.map(markOf));
             _selBar.update({
                 count: n,
                 mark: marks.size === 1 ? [...marks][0] : null,
                 actions: {
-                    // Counts the ELIGIBLE cards: a mixed pick filters to the op's type (MPI-733).
-                    'cue-all': {
-                        label: cue.eligible.length ? `Cue all (${cue.eligible.length})` : 'Cue all',
-                        disabled: !cue.eligible.length,
-                        info: CUE_INFO[cue.reason] ?? 'Queue one job per selected card on the current settings',
-                    },
-                    compare: n === 2
+                    // MPI-949: the selection becomes ONE card, in click order.
+                    stack: stackBlock
+                        ? { disabled: true, info: STACK_BLOCK_INFO[stackBlock] }
+                        : { info: 'Stack these cards into one card, in click order' },
+                    compare: n === 2 && !hasStack
                         ? { info: 'Open the two cards side by side' }
-                        : { disabled: true, info: 'Select exactly 2 cards to compare' },
+                        : { disabled: true, info: hasStack ? 'Compare opens two cards, not a stack' : 'Select exactly 2 cards to compare' },
                     combine: n >= 2 && allVideo
                         ? { info: 'Join the selected clips into one video, in click order' }
                         : { disabled: true, info: 'Select 2 or more video cards to combine' },
@@ -391,7 +378,9 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         ? { disabled: true, info: 'Select 2 or more cards to make a GIF' }
                         : allStills
                             ? { info: 'Build a GIF from the selected stills, in click order' }
-                            : { disabled: true, info: 'Every selected card must be a still image (no video, audio, 3D Scene or GIF)' },
+                            : { disabled: true, info: hasStack
+                                ? 'A stack cannot become a GIF frame. Unstack it first'
+                                : 'Every selected card must be a still image (no video, audio, 3D Scene or GIF)' },
                     download: { info: 'Save a copy of the selected media outside the project' },
                     // The scope gate makes a visible selection homogeneous (MPI-678).
                     archive: { info: groups[0]?.archived
@@ -405,12 +394,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
             // Every action but a mark ends the selection, as a menu pick always did.
             onAction: (key) => {
                 const groups = _selectedGroups();
-                if (key === 'cue-all') {
-                    const cue = _cueTargets();
-                    if (!cue.eligible.length) return;
-                    emit('cue-all', { groups: cue.eligible, skipped: cue.skipped, reason: cue.reason });
-                }
-                if (['compare', 'combine', 'make-gif', 'download', 'delete'].includes(key)) emit(key, { groups });
+                if (['stack', 'compare', 'combine', 'make-gif', 'download', 'delete'].includes(key)) emit(key, { groups });
                 if (key === 'archive') _archive(groups, !groups[0]?.archived);
                 _exitSelectionMode();
             },
@@ -432,6 +416,19 @@ export const MpiGalleryGrid = ComponentFactory.create({
             _rerenderJustified('archive');
         }
 
+        // ── Stacks (MPI-949) ──────────────────────────────────────────────────
+        // A stack owns no media: it SHOWS its first member. Every card reader of "the
+        // item this card shows" goes through these, so a stack paints, sizes, chips and
+        // drags as that member with no stack branch per site. Emits still carry the
+        // stack itself; only `media-missing` names the member, whose file it is.
+        const _faceOf = (g) => (isStack(g) ? _groups.find(m => m.id === g.members?.[0]) ?? null : g);
+        const _shownItem = (g) => {
+            const face = _faceOf(g);
+            return face?.history?.[face.selectedIndex];
+        };
+        const _shownType = (g) => _faceOf(g)?.type;
+        const _cardsOf = (g) => expandStacks([g], _groups);
+
         // MPI-363 — Alt+drag = REAL OS file drag (Discord, Photoshop, upload
         // zones). The plain drag stays HTML5 (`application/mpi-media` +
         // `DownloadURL`); `DownloadURL` is only a virtual-file promise that
@@ -449,7 +446,9 @@ export const MpiGalleryGrid = ComponentFactory.create({
             const ids = (_selectionMode && _selectedIds.has(group?.id)) ? [..._selectedIds] : [group?.id];
             const files = ids
                 .map(id => _groups.find(g => g.id === id))
-                .map(g => extractAbsPath(g?.history?.[g.selectedIndex]?.filePath))
+                .filter(Boolean)
+                .flatMap(_cardsOf)
+                .map(g => extractAbsPath(g.history?.[g.selectedIndex]?.filePath))
                 .filter(Boolean);
             if (!files.length) return false; // blob/preview cards have no on-disk file
             e.preventDefault();
@@ -461,11 +460,36 @@ export const MpiGalleryGrid = ComponentFactory.create({
         // in click order (the rule above), as an ADDED `cards` field of `application/mpi-media`.
         // The payload's own fields stay the dragged card's, so every drop target that reads
         // one card (prompt box, folders) reads exactly what it did; the agent panel reads the set.
+        // MPI-949: a stack hands over its MEMBERS, so the agent gets today's "N cards" set
+        // with no change on its side, and a stack of one reads as that one card.
         function _dragCards(group) {
-            if (!_selectionMode || !_selectedIds.has(group?.id) || _selectedIds.size < 2) return undefined;
-            return _selectedGroups().map((g) => {
+            const multi = _selectionMode && _selectedIds.has(group?.id) && _selectedIds.size >= 2;
+            if (!multi && !isStack(group)) return undefined;
+            return (multi ? _selectedGroups() : [group]).flatMap(_cardsOf).map((g) => {
                 const s = g.history?.[g.selectedIndex];
                 return { groupId: g.id, itemId: s?.id, filePath: s?.filePath, type: g.type, name: g.customName || g.name || s?.name || '' };
+            });
+        }
+
+        // The `application/mpi-media` value of a card drag. Both dragstarts (the image
+        // thumb and a poster-less video) build it here. A stack's own fields name the
+        // STACK (`type: 'stack'`), so a drop target that reads one card refuses it rather
+        // than taking its first member for the whole stack; the prompt box's stack chip
+        // reads `stackId`/`kind`/`count` (MPI-949 Phase 3).
+        function _dragPayload(group) {
+            const s = _shownItem(group);
+            const own = isStack(group)
+                ? { type: 'stack', stackId: group.id, kind: group.kind, count: group.members?.length ?? 0 }
+                : { type: group.type };
+            return JSON.stringify({
+                groupId: group.id, itemId: s?.id, filePath: s?.filePath, ...own,
+                // The agent panel's chip for a clip (MPI-867).
+                thumbPath: s?.thumbPath,
+                // User-facing name: customName (MPI-130) wins, else the derived group/item
+                // name. Carried so the PromptBox media chip shows the real name, not the
+                // raw filename.
+                name: group.customName || (isStack(group) ? group.name : group.name || s?.name) || '',
+                cards: _dragCards(group),
             });
         }
 
@@ -550,6 +574,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     </div>
                 </div>
                 <div class="mpi-group-card__top-badge"></div>
+                <div class="mpi-group-card__stack-badge" hidden></div>
                 <div class="mpi-group-card__order-badge mpi-selection-order-badge" style="display:none"></div>
                 <div class="mpi-group-card__top-actions">
                     <div class="mpi-group-card__fav-wrap"></div>
@@ -631,6 +656,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
             const stage2Badge  = qs('.mpi-group-card__stage2-badge', cardEl);
             const assetsBadge  = qs('.mpi-group-card__assets-badge', cardEl);
             const kindEl       = qs('.mpi-group-card__kind', cardEl);
+            const stackBadge   = qs('.mpi-group-card__stack-badge', cardEl);
 
             let _generating = false;
             let _sendLabel  = null; // "Sending in 3..." while a cloud run's send window runs (MPI-940)
@@ -848,7 +874,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 imageThumb.onerror = () => {
                     cardEl.classList.add('mpi-group-card--missing');
                     _swapThumbToEmpty();
-                    emit('media-missing', { group, itemId: selected?.id });
+                    emit('media-missing', { group: _faceOf(group) ?? group, itemId: selected?.id });
                 };
 
                 if (imageThumb.getAttribute('src') === src) {
@@ -959,7 +985,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 on(audio, 'ended', () => _waveform?.el.setProgress(1));
                 audio.addEventListener('error', () => {
                     cardEl.classList.add('mpi-group-card--missing');
-                    emit('media-missing', { group, itemId: selected?.id });
+                    emit('media-missing', { group: _faceOf(group) ?? group, itemId: selected?.id });
                 });
                 audio.src = src;
                 _applyVolume(audio);
@@ -1053,11 +1079,11 @@ export const MpiGalleryGrid = ComponentFactory.create({
             // `<video preload=metadata>`, and swapping it for an `<img>` is exactly
             // what `_swapThumbToVideo`'s fallback branch exists to avoid.
             function _isPosterLadderCard() {
-                const sel = group?.history?.[group.selectedIndex];
+                const sel = _shownItem(group);
                 if (!sel || sel.inputPreview) return false;
-                const isAudio = sel.type === 'audio' || group?.type === 'audio';
+                const isAudio = sel.type === 'audio' || _shownType(group) === 'audio';
                 if (isAudio) return false;
-                const isVideo = sel.type === 'video' || (group?.type === 'video' && sel.type !== 'image');
+                const isVideo = sel.type === 'video' || (_shownType(group) === 'video' && sel.type !== 'image');
                 return !isVideo || !!sel.thumbPath;
             }
 
@@ -1066,7 +1092,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
             // scroll-out demote swaps back down to.
             function _imageSrcFor(selected) {
                 const isVideo = selected?.type === 'video'
-                    || (group?.type === 'video' && selected?.type !== 'image');
+                    || (_shownType(group) === 'video' && selected?.type !== 'image');
                 // A GIF's `filePath` IS the animated file (MPI-759): the resting card
                 // is still until hover, so the ladder must never fall through to it
                 // any more than a video's `filePath` is a legal `<img>` fallback.
@@ -1078,7 +1104,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
 
             function _applyImageRendition() {
                 if (!_isPosterLadderCard()) return;
-                const selected = group?.history?.[group.selectedIndex];
+                const selected = _shownItem(group);
                 if (!selected) return;
                 _swapThumbToImage(_imageSrcFor(selected), selected);
             }
@@ -1195,9 +1221,9 @@ export const MpiGalleryGrid = ComponentFactory.create({
             function _promoteVideo(opts) {
                 if (_videoPromoted || !_videoSrc) return;
                 if (_mediaHolds.size && !opts?.userHover) return;
-                const sel = group?.history?.[group.selectedIndex];
+                const sel = _shownItem(group);
                 const isVideo = sel?.type === 'video'
-                    || (group?.type === 'video' && sel?.type !== 'image');
+                    || (_shownType(group) === 'video' && sel?.type !== 'image');
                 const isGif = !isVideo && kindOfItem(sel)?.kind === 'gif';
                 if (!isVideo && !isGif) return;
                 // A GIF has no loaded-but-not-playing state the way <video> does —
@@ -1219,8 +1245,8 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     });
                     img.addEventListener('error', () => {
                         cardEl.classList.add('mpi-group-card--missing');
-                        const s = group?.history?.[group.selectedIndex];
-                        emit('media-missing', { group, itemId: s?.id });
+                        const s = _shownItem(group);
+                        emit('media-missing', { group: _faceOf(group) ?? group, itemId: s?.id });
                     });
                     qs('.mpi-group-card__media', cardEl)?.appendChild(img);
                     img.src = _videoSrc;
@@ -1242,8 +1268,8 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 });
                 v.addEventListener('error', () => {
                     cardEl.classList.add('mpi-group-card--missing');
-                    const s = group?.history?.[group.selectedIndex];
-                    emit('media-missing', { group, itemId: s?.id });
+                    const s = _shownItem(group);
+                    emit('media-missing', { group: _faceOf(group) ?? group, itemId: s?.id });
                 });
                 qs('.mpi-group-card__media', cardEl)?.appendChild(v);
                 v.src = _videoSrc;
@@ -1307,21 +1333,14 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     });
                     v.addEventListener('error', () => {
                         cardEl.classList.add('mpi-group-card--missing');
-                        const s = group?.history?.[group.selectedIndex];
-                        emit('media-missing', { group, itemId: s?.id });
+                        const s = _shownItem(group);
+                        emit('media-missing', { group: _faceOf(group) ?? group, itemId: s?.id });
                     });
                     v.dataset.mpiDragBound = '1';
                     v.addEventListener('dragstart', (e) => {
                         if (_tryNativeDragOut(e, group)) return;
-                        const s = group?.history?.[group.selectedIndex];
-                        e.dataTransfer.setData('application/mpi-media', JSON.stringify({
-                            groupId: group.id, itemId: s?.id,
-                            filePath: s?.filePath, type: group.type,
-                            // The agent panel's chip for a clip (MPI-867).
-                            thumbPath: s?.thumbPath,
-                            cards: _dragCards(group),
-                        }));
-                        _addDownloadUrl(e, s);
+                        e.dataTransfer.setData('application/mpi-media', _dragPayload(group));
+                        _addDownloadUrl(e, _shownItem(group));
                     });
                     _replaceThumb(v);
                     _videoThumb = v;
@@ -1332,13 +1351,24 @@ export const MpiGalleryGrid = ComponentFactory.create({
 
             function _render() {
                 if (!group) return;
-                const selected = group.history?.[group.selectedIndex];
-                const original = group.history?.[0];
+                const selected = _shownItem(group);
+                const original = _faceOf(group)?.history?.[0];
                 const src = selected?.filePath || '';
+                // MPI-949: the face member's pixels, but the STACK's own name, count and
+                // look. What describes one member (model, op, size, notes, its prompt)
+                // would misdescribe the other N-1, so a stack shows none of it.
+                const stack = isStack(group);
+                cardEl.classList.toggle('mpi-group-card--stack', stack);
+                stackBadge.hidden = !stack;
+                if (stack) {
+                    const n = group.members?.length ?? 0;
+                    stackBadge.innerHTML = `${renderIcon('layers', 'sm')}<span class="mpi-group-card__stack-count">${n}</span>`;
+                    stackBadge.setAttribute('data-info', `Stack of ${n} ${group.kind === 'video' ? 'videos' : 'images'}`);
+                }
 
                 if (src) {
-                    const isVideo = selected?.type === 'video' || (group.type === 'video' && selected?.type !== 'image');
-                    const isAudio = selected?.type === 'audio' || group.type === 'audio';
+                    const isVideo = selected?.type === 'video' || (_shownType(group) === 'video' && selected?.type !== 'image');
+                    const isAudio = selected?.type === 'audio' || _shownType(group) === 'audio';
                     // MPI-759: a GIF is `type: 'image'`, so it never trips `isVideo`
                     // above — it rides the same still-until-hover overlay
                     // (_promoteVideo/_removeHoverVideo) as a video, just with the
@@ -1392,7 +1422,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     _swapThumbToEmpty();
                 }
 
-                nameEl.textContent = _sendLabel || group.customName || selected?.name || group.name || '';
+                nameEl.textContent = _sendLabel || group.customName || (stack ? group.name : selected?.name || group.name) || '';
 
                 // Top-left badge: original source/model on row 1, current selected operation on row 2.
                 const originalModel = getModelById(original?.modelId);
@@ -1418,11 +1448,11 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     ? ''
                     : (command?.label || selected?.operation || '');
                 const duration = Number(selected?.duration);
-                const dur = group.type === 'video' && Number.isFinite(duration) && duration > 0
+                const dur = _shownType(group) === 'video' && Number.isFinite(duration) && duration > 0
                     ? `${Math.max(1, Math.round(duration))}S`
                     : '';
                 const operationLine = [operationLabel, dur].filter(Boolean).join(' · ');
-                const badgeRows = [modelLabel, operationLine]
+                const badgeRows = (stack ? [] : [modelLabel, operationLine])
                     .filter(Boolean)
                     .map((text, idx) => {
                         const row = ce('span', {
@@ -1432,7 +1462,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         return row;
                     });
                 // MPI-928: a cloud run Stopped after it was sent still billed, so it landed.
-                if (selected?.generationSettings?.chargedAfterStop) {
+                if (!stack && selected?.generationSettings?.chargedAfterStop) {
                     const row = ce('span', { className: 'mpi-group-card__top-badge-row mpi-group-card__top-badge-row--charged' });
                     row.textContent = 'CHARGED AFTER STOP';
                     badgeRows.push(row);
@@ -1459,36 +1489,27 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 // the canonical source; the <audio> loadedmetadata handler refines
                 // it if the sidecar lacks one. This must run inside _render so a
                 // re-render doesn't blank the length set asynchronously.
-                if (group.type === 'audio') {
+                if (_shownType(group) === 'audio') {
                     const aDur = Number(selected?.duration);
                     subEl.textContent = (Number.isFinite(aDur) && aDur > 0)
                         ? `${Math.floor(aDur / 60)}:${String(Math.round(aDur % 60)).padStart(2, '0')}`
                         : '';
                 } else {
-                    subEl.textContent = [dimStr, timeStr].filter(Boolean).join(' · ');
+                    subEl.textContent = stack ? '' : [dimStr, timeStr].filter(Boolean).join(' · ');
                 }
 
                 if (!thumb.dataset.mpiDragBound) {
                     thumb.dataset.mpiDragBound = '1';
                     thumb.addEventListener('dragstart', (e) => {
                         if (_tryNativeDragOut(e, group)) return;
-                        const sel = group?.history?.[group.selectedIndex];
-                        e.dataTransfer.setData('application/mpi-media', JSON.stringify({
-                            groupId: group.id, itemId: sel?.id,
-                            filePath: sel?.filePath, type: group.type,
-                            // User-facing name: customName (MPI-130) wins, else the
-                            // derived group/item name. Carried so the PromptBox
-                            // media chip shows the real name, not the raw filename.
-                            name: group.customName || group.name || sel?.name || '',
-                            cards: _dragCards(group),
-                        }));
-                        _addDownloadUrl(e, sel);
+                        e.dataTransfer.setData('application/mpi-media', _dragPayload(group));
+                        _addDownloadUrl(e, _shownItem(group));
                     });
                 }
 
                 _mark = markOf(group);
                 _paintMark();
-                notesWrap.style.display = selected?.notes?.trim() ? '' : 'none';
+                notesWrap.style.display = !stack && selected?.notes?.trim() ? '' : 'none';
 
                 // Corner kind chip (MPI-749), read off the SELECTED item through the
                 // same function the gallery filter uses, so icon and filter agree.
@@ -1509,9 +1530,9 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     if (kind?.accent) kindEl.dataset.accent = kind.accent;
                     else delete kindEl.dataset.accent;
                 }
-                reuseWrap.style.display = (itemHasReusablePrompt(selected) || !!findOriginalReusableItem(group)) ? '' : 'none';
+                reuseWrap.style.display = !stack && (itemHasReusablePrompt(selected) || !!findOriginalReusableItem(group)) ? '' : 'none';
 
-                const _isPreview = selected?.stage === 'preview';
+                const _isPreview = !stack && selected?.stage === 'preview';
                 cardEl.classList.toggle('mpi-group-card--preview', _isPreview);
             }
 
@@ -1542,10 +1563,10 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 // Preview-stage cards behave like any other card for
                 // selection (shift/ctrl/right-click) but cannot be
                 // "opened" into history — they stay on the gallery.
-                const _selectedNow = group?.history?.[group.selectedIndex];
+                const _selectedNow = _shownItem(group);
                 const _isPreviewNow = _selectedNow?.stage === 'preview';
                 // Audio cards never open: no audio workspace exists yet. Click = seek.
-                const _isAudioNow = _selectedNow?.type === 'audio' || group?.type === 'audio';
+                const _isAudioNow = _selectedNow?.type === 'audio' || _shownType(group) === 'audio';
 
                 if (e.shiftKey) {
                     e.preventDefault();
@@ -1629,11 +1650,14 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 const useSelection = _selectedIds.has(group.id) && _selectedIds.size > 0;
                 const targetIds = useSelection ? Array.from(_selectedIds) : [group.id];
 
-                const _selectedVideoCount = targetIds
+                const _targets = targetIds
                     .map(id => _groups.find(g => g.id === id))
-                    .filter(g => g && g.type === 'video').length;
+                    .filter(Boolean);
+                const _selectedVideoCount = _targets.filter(g => g.type === 'video').length;
+                // MPI-949: a stack has no item of its own to caption or annotate.
+                const _stackCount = _targets.filter(isStack).length;
 
-                // Cue all, Compare, Combine and Make GIF are NOT here: they act on a
+                // Stack, Compare, Combine and Make GIF are NOT here: they act on a
                 // selection and live on the selection bar (MPI-945).
                 Events.emit('ui:context-menu', {
                     x: e.clientX,
@@ -1647,17 +1671,23 @@ export const MpiGalleryGrid = ComponentFactory.create({
                     items: [
                         { key: 'rename',     icon: 'edit',      label: 'Rename',     disabled: targetIds.length !== 1,
                             info: targetIds.length !== 1 ? 'Rename works on one card at a time' : 'Give this card your own name' },
-                        { key: 'card-notes', icon: 'text',      label: 'Card notes', disabled: targetIds.length !== 1,
-                            info: targetIds.length !== 1 ? 'Notes are written on one card at a time' : 'Write a note on this card' },
+                        { key: 'card-notes', icon: 'text',      label: 'Card notes', disabled: targetIds.length !== 1 || _stackCount > 0,
+                            info: targetIds.length !== 1 ? 'Notes are written on one card at a time'
+                                : (_stackCount ? 'Notes live on each card in the stack' : 'Write a note on this card') },
                         // MPI-310 — single image only: the captioner reads one image
                         // and writes one prompt, so a multi-select has no meaning.
                         { key: 'describe',   icon: 'chat',      label: 'Describe image',
-                            disabled: targetIds.length !== 1 || _selectedVideoCount > 0,
+                            disabled: targetIds.length !== 1 || _selectedVideoCount > 0 || _stackCount > 0,
                             info: targetIds.length !== 1
                                 ? 'Describe reads one image at a time'
-                                : (_selectedVideoCount > 0 ? 'Describe reads a still image, not a video' : 'Caption this image into a prompt') },
+                                : _stackCount ? 'Describe reads one image, not a stack'
+                                    : (_selectedVideoCount > 0 ? 'Describe reads a still image, not a video' : 'Caption this image into a prompt') },
 
                         { separator: true },
+
+                        // MPI-949: only offered when a stack is in the pick.
+                        ...(_stackCount ? [{ key: 'unstack', icon: 'layers', label: 'Unstack',
+                            info: 'Put the cards back in the gallery, each at its own date' }] : []),
 
                         { key: 'add-to-project', icon: 'folder', label: 'Add to project',
                             info: 'Copy the selected cards into another project' },
@@ -1691,6 +1721,7 @@ export const MpiGalleryGrid = ComponentFactory.create({
                         if (key === 'describe')   emit('describe', { group: selected[0] });
                         if (key === 'download')   emit('download', { groups: selected });
                         if (key === 'delete')     emit('delete',   { groups: selected });
+                        if (key === 'unstack')    emit('unstack',  { groups: selected.filter(isStack) });
                         if (useSelection) _exitSelectionMode();
                     },
                 });
@@ -1968,15 +1999,16 @@ export const MpiGalleryGrid = ComponentFactory.create({
         // GAP declared above (slider section) — used here too.
 
         function _ratioCacheKey(group) {
-            const sel = group?.history?.[group.selectedIndex];
+            const sel = _shownItem(group);
             return [group?.id || '', sel?.id || '', sel?.filePath || ''].join('|');
         }
 
         function _getDataAspectRatio(group) {
-            const sel = group?.history?.[group.selectedIndex];
+            const sel = _shownItem(group);
             const px = sel?.pixelDimensions;
             if (px?.w > 0 && px?.h > 0) return px.w / px.h;
-            if (group?.width > 0 && group?.height > 0) return group.width / group.height;
+            const face = _faceOf(group);
+            if (face?.width > 0 && face?.height > 0) return face.width / face.height;
             return null;
         }
 
@@ -1996,8 +2028,8 @@ export const MpiGalleryGrid = ComponentFactory.create({
             // default and draw a square. A waveform wants to be WIDE — 21:9 is what
             // the derivative is baked at. The justified packer handles a mixed
             // aspect natively, so nothing else in the layout moves.
-            const selected = group?.history?.[group.selectedIndex];
-            if (selected?.type === 'audio' || group?.type === 'audio') return 21 / 9;
+            const selected = _shownItem(group);
+            if (selected?.type === 'audio' || _shownType(group) === 'audio') return 21 / 9;
             const dataRatio = _getDataAspectRatio(group);
             if (dataRatio) {
                 _setAspectRatioCache(group, dataRatio);
@@ -2014,8 +2046,8 @@ export const MpiGalleryGrid = ComponentFactory.create({
         let _lastRenderLogAt = 0;
 
         function _getGroupRenderKey(group) {
-            const sel = group?.history?.[group.selectedIndex];
-            const original = group?.history?.[0];
+            const sel = _shownItem(group);
+            const original = _faceOf(group)?.history?.[0];
             const dims = sel?.pixelDimensions;
             return [
                 group?.id || '',
@@ -2025,6 +2057,8 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 markOf(group) || '',
                 group?.isGenerating ? 'generating' : '',
                 group?.isImporting ? 'importing' : '',
+                // A stack repaints when its members change (count badge, face).
+                isStack(group) ? group.members?.join(',') : '',
                 sel?.id || '',
                 sel?.filePath || '',
                 sel?.thumbPath || '',
@@ -2543,6 +2577,9 @@ export const MpiGalleryGrid = ComponentFactory.create({
                 entry.card?.el?.refreshGroup?.(newGroup);
                 entry.renderKey = _getGroupRenderKey(newGroup);
             }
+            // MPI-949: a hidden member has no card of its own — its stack shows it.
+            const stack = newGroup.stackId && _groups.find(g => g.id === newGroup.stackId);
+            if (stack) el.refreshGroup(stack);
         };
 
         el.setSelectionMode = (val) => {
