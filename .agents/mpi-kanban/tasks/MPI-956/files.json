@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/task-files/v1", "files": ["js/components/Primitives/MpiCanvas/MpiCanvas.js", "styles/01_base.css", "tests/desktop/compare-native-resolution.spec.js", "docs/playbooks/add-flow/ui/result-pane.md"]}
