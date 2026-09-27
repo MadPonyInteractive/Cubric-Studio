@@ -1953,3 +1953,68 @@ bounds. Native source staged as `<bench>/input/MPI591_062_native.mp4`.
 124 frames at 1920x800, and the DiT sits at ~12.3 GB with the graph peaking near 14.4 GB
 of the card's 16. Native fits, but it is not free, and this is the first honest read on
 what a user's own extend costs at a real clip size.
+
+### Phase 8 delta - THE FIRST END-TO-END RUN, AND WHAT IT FOUND (2026-09-27)
+
+SHIPPED AND PUSHED: b0817fa50 (the rewire, 13 files) on top of 9d93143aa (the raw source
+edit the converter commits on its own). npm test 2155/2155, four flow desktop specs green,
+the runtime twin validates against the engine on 48188, no ref2va left in either workflow
+file. Fabio picked option 3: the context length is a FIELD, default 39.
+
+THEN FABIO RAN IT IN THE APP - the first time this flow has EVER run end to end - and it
+failed at the audio splice:
+
+    MpiAudioSplice failed: ValueError: A 229688-sample patch placed at frame 75 runs 875
+    samples past the end of a 366625-sample track.
+
+ROOT-CAUSED, IN THE NODE, NOT THE GRAPH. `MpiAudioSplice` (ComfyUi-MpiNodes video.py:679)
+measures the track in ROUNDED WHOLE FRAMES before resolving a negative start:
+
+    frames = max(1, round(total / rate * fps))     # 366625 / 44100 * 24 = 199.52 -> 200
+    s = start + frames if start < 0 else start     # -125 + 200 = 75
+    i0 = min(total, round(s / fps * rate))         # 137812, and 137812 + 229688 > 366625
+
+At 44100 Hz and 24 fps a frame is 1837.5 samples, so a real clip's audio is almost never an
+exact frame multiple; the round() then puts "from the end" up to half a frame PAST the end.
+The graph places this patch to end exactly at the track end - deliberately, it is the
+re-take window - so any positive rounding error raises instead of landing short.
+
+IT IS PRE-EXISTING, NOT CAUSED BY THE REWIRE. The same knife-edge placement existed on the
+guide route (position = src - (C-16), end = joined exactly, for C=40). It surfaced now only
+because nobody had ever run this flow end to end - which is the THIRD SWEEP MISS this card
+has already recorded, now paid for.
+
+THE FIX IS A NODE CHANGE, so it needs /mpi-nodes-sync + a pin bump, not a graph edit:
+resolve a negative start from SAMPLES rather than from a rounded frame count
+(i0 = total + round(start / fps * rate) when start < 0), which lands 366625 - 229687.5 and
+ends exactly at the track end. Check MpiAudioRange's own negative handling in the same pass
+- if it rounds the same way, the window it CUT and the window written BACK disagree by the
+same half frame.
+
+ALSO LEFT BEHIND BY THE REWIRE, smaller and in the graph: #951 start 16 and #953 "16 - a"
+are the OLD context of 40 minus a 24-frame re-take. With the prefix the head is 39, so the
+re-take window is 23 frames, not 24. Wire both off #972's context_frames output like #941
+and #942 already are, instead of leaving a literal that only happens to be one frame out.
+
+OPEN, NOT DIAGNOSED: Fabio reports the live LATENT PREVIEW flickering hard during sampling -
+"almost giving me an epilepsy attack". Treat it as a photosensitivity issue in a shipping
+UI, not a cosmetic one. The finished video is fine, so it is the preview path. The new
+variable there is the noise mask: MpiH3MaskedPrefix returns a latent carrying a nested
+video+audio noise mask, and MpiVideoSamplingPreview decodes the whole in-progress latent
+every step through taeh3, so the preserved head and the still-noisy tail alternate in one
+decoded clip. Fabio's own guess was the flow preview or its CSS. NOT investigated: whether
+the preview alternates between masked and unmasked content, or whether the host renders each
+step's clip in a way that strobes. Start by deciding which side it is on before touching
+either.
+
+ALSO FOUND, SEPARATE CARD MATERIAL (Fabio asked, answered, not built): a user who installs
+LTX 2.3 HIGH gets no LTX arm in Extend Video, Add Foley or Upscale Video - all three name
+`ltx-23-balanced` only, and flow_ltx_extend.json bakes the int8 transformer filename, so
+naming `ltx-23` without a modelParams swap would die on value_not_in_list. The tiers differ
+by exactly one dep (bf16 39.13GB vs int8 20.03GB); everything else is shared. The fix has a
+precedent in the same file - scribble-object runs klein-9b/4b off ONE graph with
+modelParams, its loader titled `Input_Edit_Model` so the injector can reach it - and needs
+node #1 of the LTX graph retitled from "Load Diffusion Model" to an Input_* title. It cannot
+be VERIFIED here: nobody has the 39.13GB bf16 weight installed, and bf16 22B on a 16GB card
+offloads heavily, so "appears in the list" is not "works". Fabio has not said whether to
+card it, nor whether it covers all three flows or extend alone.
