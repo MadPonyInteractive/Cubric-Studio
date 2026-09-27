@@ -1,8 +1,8 @@
 {
   "id": "a1b2c3d4-0000-4000-8000-h3v2vextend",
   "revision": 0,
-  "last_node_id": 975,
-  "last_link_id": 134,
+  "last_node_id": 979,
+  "last_link_id": 145,
   "nodes": [
     {
       "id": 195,
@@ -492,8 +492,7 @@
           "name": "output",
           "type": "*",
           "links": [
-            91,
-            120
+            91
           ]
         }
       ],
@@ -948,102 +947,6 @@
       }
     },
     {
-      "id": 904,
-      "type": "ImageBatchExtendWithOverlap",
-      "pos": [
-        3780,
-        0
-      ],
-      "size": [
-        321.6236267089844,
-        146
-      ],
-      "flags": {},
-      "order": 51,
-      "mode": 0,
-      "inputs": [
-        {
-          "label": "source_images",
-          "name": "source_images",
-          "type": "IMAGE",
-          "link": 52
-        },
-        {
-          "label": "new_images",
-          "name": "new_images",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 127
-        },
-        {
-          "label": "overlap",
-          "name": "overlap",
-          "type": "INT",
-          "widget": {
-            "name": "overlap"
-          },
-          "link": null
-        },
-        {
-          "label": "overlap_side",
-          "name": "overlap_side",
-          "type": "COMBO",
-          "widget": {
-            "name": "overlap_side"
-          },
-          "link": null
-        },
-        {
-          "label": "overlap_mode",
-          "name": "overlap_mode",
-          "type": "COMBO",
-          "widget": {
-            "name": "overlap_mode"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "label": "source_images",
-          "name": "source_images",
-          "type": "IMAGE",
-          "links": []
-        },
-        {
-          "label": "start_images",
-          "name": "start_images",
-          "type": "IMAGE",
-          "links": []
-        },
-        {
-          "label": "extended_images",
-          "name": "extended_images",
-          "type": "IMAGE",
-          "links": [
-            46
-          ]
-        }
-      ],
-      "title": "Stitch (hard join)",
-      "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "79f529a84a8c20fe5dcdfa984c6be7a94102c014",
-        "Node name for S&R": "ImageBatchExtendWithOverlap",
-        "widget_ue_connectable": {}
-      },
-      "widgets_values": [
-        1,
-        "source",
-        "linear_blend"
-      ],
-      "widgets_values_named": {
-        "overlap": 1,
-        "overlap_side": "source",
-        "overlap_mode": "linear_blend"
-      }
-    },
-    {
       "id": 442,
       "type": "MpiSaveVideo",
       "pos": [
@@ -1061,7 +964,7 @@
         {
           "name": "images",
           "type": "IMAGE",
-          "link": 46
+          "link": 145
         },
         {
           "name": "audio",
@@ -1198,8 +1101,8 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            52,
-            118
+            136,
+            143
           ]
         },
         {
@@ -1663,7 +1566,7 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            127
+            144
           ]
         },
         {
@@ -1672,7 +1575,7 @@
           "links": []
         }
       ],
-      "title": "New Frames (after the flash)",
+      "title": "New Frames (after the context)",
       "properties": {
         "cnr_id": "comfyui-kjnodes",
         "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
@@ -1786,7 +1689,8 @@
           "name": "audio",
           "type": "AUDIO",
           "links": [
-            77
+            77,
+            138
           ]
         }
       ],
@@ -2320,7 +2224,8 @@
           "name": "fps",
           "type": "FLOAT",
           "links": [
-            92
+            92,
+            139
           ]
         },
         {
@@ -2328,7 +2233,8 @@
           "name": "frame_count",
           "type": "INT",
           "links": [
-            133
+            133,
+            135
           ]
         },
         {
@@ -2689,7 +2595,7 @@
           "label": "images",
           "name": "images",
           "type": "IMAGE",
-          "link": 118
+          "link": 141
         },
         {
           "label": "audio_vae",
@@ -2701,7 +2607,7 @@
           "label": "audio",
           "name": "audio",
           "type": "AUDIO",
-          "link": 120
+          "link": 142
         }
       ],
       "outputs": [
@@ -2956,6 +2862,266 @@
       "widgets_values_named": {
         "math_expression": "a - 1"
       }
+    },
+    {
+      "id": 976,
+      "type": "MpiMath",
+      "pos": [
+        900,
+        1250
+      ],
+      "size": [
+        300,
+        120
+      ],
+      "flags": {},
+      "order": 976,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "a",
+          "name": "a",
+          "type": "*",
+          "link": 135
+        },
+        {
+          "label": "b",
+          "name": "b",
+          "type": "*",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "label": "c",
+          "name": "c",
+          "type": "*",
+          "link": null,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "label": "result",
+          "name": "result",
+          "type": "*",
+          "links": [
+            137,
+            140
+          ]
+        }
+      ],
+      "title": "Grid Tail Start ((frames - 5) % 17)",
+      "properties": {
+        "Node name for S&R": "MpiMath",
+        "widget_ue_connectable": {},
+        "cnr_id": "ComfyUi-MpiNodes"
+      },
+      "widgets_values": [
+        "(a - 5) % 17"
+      ],
+      "widgets_values_named": {
+        "math_expression": "(a - 5) % 17"
+      }
+    },
+    {
+      "id": 977,
+      "type": "GetImageRangeFromBatch",
+      "pos": [
+        1260,
+        1250
+      ],
+      "size": [
+        289.7056640625,
+        102
+      ],
+      "flags": {},
+      "order": 977,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 136
+        },
+        {
+          "name": "masks",
+          "shape": 7,
+          "type": "MASK",
+          "link": null
+        },
+        {
+          "label": "start_index",
+          "name": "start_index",
+          "type": "INT",
+          "widget": {
+            "name": "start_index"
+          },
+          "link": 137
+        },
+        {
+          "label": "num_frames",
+          "name": "num_frames",
+          "type": "INT",
+          "widget": {
+            "name": "num_frames"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            141
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "title": "Source Tail on the H3 Grid",
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
+        "Node name for S&R": "GetImageRangeFromBatch"
+      },
+      "widgets_values": [
+        0,
+        4096
+      ],
+      "widgets_values_named": {
+        "start_index": 0,
+        "num_frames": 4096
+      }
+    },
+    {
+      "id": 978,
+      "type": "MpiAudioRange",
+      "pos": [
+        1260,
+        1450
+      ],
+      "size": [
+        315,
+        106
+      ],
+      "flags": {},
+      "order": 978,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 138
+        },
+        {
+          "name": "fps",
+          "type": "FLOAT",
+          "widget": {
+            "name": "fps"
+          },
+          "link": 139
+        },
+        {
+          "label": "start",
+          "name": "start",
+          "type": "INT",
+          "widget": {
+            "name": "start"
+          },
+          "link": 140
+        }
+      ],
+      "outputs": [
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": [
+            142
+          ]
+        }
+      ],
+      "title": "Source Audio Tail (same frame)",
+      "properties": {
+        "cnr_id": "ComfyUi-MpiNodes",
+        "ver": "ccc25d12b8f8ef19c991a2ac407d77cb3ef08a61",
+        "Node name for S&R": "MpiAudioRange"
+      },
+      "widgets_values": [
+        24,
+        0,
+        -1
+      ],
+      "widgets_values_named": {
+        "fps": 24,
+        "start": 0,
+        "end": -1
+      }
+    },
+    {
+      "id": 979,
+      "type": "ImageBatchMulti",
+      "pos": [
+        3780,
+        0
+      ],
+      "size": [
+        300,
+        120
+      ],
+      "flags": {},
+      "order": 979,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "image_1",
+          "name": "image_1",
+          "type": "IMAGE",
+          "link": 143
+        },
+        {
+          "label": "image_2",
+          "name": "image_2",
+          "type": "IMAGE",
+          "link": 144,
+          "shape": 7
+        },
+        {
+          "label": "inputcount",
+          "name": "inputcount",
+          "type": "INT",
+          "link": null,
+          "widget": {
+            "name": "inputcount"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "label": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "links": [
+            145
+          ]
+        }
+      ],
+      "title": "Stitch (hard join)",
+      "properties": {
+        "Node name for S&R": "ImageBatchMulti",
+        "widget_ue_connectable": {},
+        "cnr_id": "comfyui-kjnodes"
+      },
+      "widgets_values": [
+        2
+      ],
+      "widgets_values_named": {
+        "inputcount": 2
+      }
     }
   ],
   "links": [
@@ -3080,14 +3246,6 @@
       "BOOLEAN"
     ],
     [
-      46,
-      904,
-      2,
-      442,
-      0,
-      "IMAGE"
-    ],
-    [
       48,
       331,
       0,
@@ -3110,14 +3268,6 @@
       916,
       3,
       "INT"
-    ],
-    [
-      52,
-      916,
-      0,
-      904,
-      0,
-      "IMAGE"
     ],
     [
       55,
@@ -3464,28 +3614,12 @@
       "VAE"
     ],
     [
-      118,
-      916,
-      0,
-      971,
-      1,
-      "IMAGE"
-    ],
-    [
       119,
       387,
       0,
       971,
       2,
       "VAE"
-    ],
-    [
-      120,
-      906,
-      0,
-      971,
-      3,
-      "AUDIO"
     ],
     [
       121,
@@ -3534,14 +3668,6 @@
       941,
       2,
       "INT"
-    ],
-    [
-      127,
-      941,
-      0,
-      904,
-      1,
-      "IMAGE"
     ],
     [
       128,
@@ -3598,6 +3724,94 @@
       950,
       2,
       "*"
+    ],
+    [
+      135,
+      331,
+      3,
+      976,
+      0,
+      "INT"
+    ],
+    [
+      136,
+      916,
+      0,
+      977,
+      0,
+      "IMAGE"
+    ],
+    [
+      137,
+      976,
+      0,
+      977,
+      2,
+      "*"
+    ],
+    [
+      138,
+      950,
+      0,
+      978,
+      0,
+      "AUDIO"
+    ],
+    [
+      139,
+      331,
+      2,
+      978,
+      1,
+      "FLOAT"
+    ],
+    [
+      140,
+      976,
+      0,
+      978,
+      2,
+      "*"
+    ],
+    [
+      141,
+      977,
+      0,
+      971,
+      1,
+      "IMAGE"
+    ],
+    [
+      142,
+      978,
+      0,
+      971,
+      3,
+      "AUDIO"
+    ],
+    [
+      143,
+      916,
+      0,
+      979,
+      0,
+      "IMAGE"
+    ],
+    [
+      144,
+      941,
+      0,
+      979,
+      1,
+      "IMAGE"
+    ],
+    [
+      145,
+      979,
+      0,
+      442,
+      0,
+      "IMAGE"
     ]
   ],
   "groups": [],
