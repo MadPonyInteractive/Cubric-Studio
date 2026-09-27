@@ -126,6 +126,32 @@
     flex: 0 0 auto;
 }
 
+/* Stack mode (MPI-949): the member strip in #controls-mount, on the GIF frame strip's
+ * bar. MpiThumbStrip fills its host, so the host sets the height. */
+.mpi-group-history-block__member-strip {
+    position: relative;
+    height: 72px;
+    background: var(--surface-bar);
+    border-top: 1px solid var(--line-soft);
+}
+
+/* Stack mode (MPI-949): ◀ Version ▶ above the member's history list. */
+.mpi-group-history-block__version-step {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--s-2);
+    padding: var(--s-2);
+    border-bottom: 1px solid var(--line);
+}
+
+.mpi-group-history-block__version-label {
+    font-size: var(--t-2xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+}
+
 /* ── Bottom: floating PromptBox — shell-managed ─────────────────────────────── */
 .mpi-group-history-block__bottom {
     position: fixed;

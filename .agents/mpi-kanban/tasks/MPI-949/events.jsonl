@@ -6,3 +6,6 @@
 {"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "validation.updated", "at": "2026-09-27T09:50:36Z", "actor": "claude", "summary": "Phase 1 auto-verified: 29 stack/filter unit tests, npm test 2039/0 fail, eslint clean."}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "checklist.item_checked", "at": "2026-09-27T10:08:04Z", "actor": "claude", "summary": "Independent building blocks (Batch A)"}
 {"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "validation.updated", "at": "2026-09-27T10:08:04Z", "actor": "claude", "summary": "Batch A auto-verified: A1/A3/A4 tests green, A2 dropped for the shared MpiThumbStrip (Phase 3b); npm test 2079/0 fail."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "validation.updated", "at": "2026-09-27T16:27:14Z", "actor": "claude", "summary": "Phase 4 (Stack History workspace) automated checks green: stack-jobs 6/6, npm test 2172/0 fail, stack-history.spec 2/2, 12/12 regression specs; awaiting Fabio."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "checklist.item_checked", "at": "2026-09-27T16:53:05Z", "actor": "claude", "summary": "Stack History workspace"}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "validation.updated", "at": "2026-09-27T16:53:05Z", "actor": "claude", "summary": "Phase 4 (Stack History workspace) VERIFIED by Fabio in the app."}

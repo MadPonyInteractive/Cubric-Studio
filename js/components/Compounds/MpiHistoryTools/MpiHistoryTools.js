@@ -22,9 +22,10 @@
  *   tools.el.setDisabled({ prompt: { disabled: true, reason: 'No prompt-driven ops' } });
  *
  * Props:
- * @param {'image'|'video'|'gif'} mode - Determines the built-in tool list.
+ * @param {'image'|'video'|'gif'|'imageStack'|'videoStack'} mode - Determines the built-in tool list.
  *   `gif` (MPI-769) was empty-but-routed; MPI-771 lands its first group
  *   (Cut-out), MPI-772 Timing and Output, MPI-773 Transform and Export.
+ *   `imageStack` / `videoStack` (MPI-949) are a stack's rail: batch-safe tools only.
  *
  * Instance methods (on instance.el):
  *   setMode(mode)      — programmatically activate a mode; emits 'activate { mode }'.
@@ -247,7 +248,22 @@ const GIF_TOOLS = [
     },
 ];
 
-const TOOL_LISTS = { image: IMAGE_TOOLS, video: VIDEO_TOOLS, gif: GIF_TOOLS };
+// MPI-949 Phase 4: a stack's rail. Only tools that run the same way on every member —
+// the canvas families (Mask, Paint, Composite) edit ONE picture by hand and are absent,
+// not dimmed. Crop joins in Phase 5 (a per-member box); the video GIF Maker makes a new
+// card, not a version.
+const IMAGE_STACK_TOOLS = [
+    IMAGE_TOOLS[0],
+    { mode: 'transform', label: 'Transform', group: [{ mode: 'resize', icon: 'resize_stroke', info: 'Resize' }] },
+    IMAGE_TOOLS[2],
+];
+const VIDEO_STACK_TOOLS = [
+    VIDEO_TOOLS[0],
+    { mode: 'transform', label: 'Transform', group: [{ mode: 'resizeVideo', icon: 'resize_stroke', info: 'Resize' }] },
+    VIDEO_TOOLS[2],
+];
+
+const TOOL_LISTS = { image: IMAGE_TOOLS, video: VIDEO_TOOLS, gif: GIF_TOOLS, imageStack: IMAGE_STACK_TOOLS, videoStack: VIDEO_STACK_TOOLS };
 
 export const MpiHistoryTools = ComponentFactory.create({
     name: 'MpiHistoryTools',

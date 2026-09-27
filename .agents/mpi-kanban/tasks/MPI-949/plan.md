@@ -128,10 +128,29 @@
   `_settleResultStacks` → `settleResultStack(id)` (clear `expected`, or remove a 0-member stack) when no job
   of the run is live; status line names how many did not finish. Grid badge `k/N` while filling.
 
+- [x] **Phase 4: Stack History workspace** (2026-09-27, session 47374da7) - **VERIFIED by Fabio
+  2026-09-27** (validation.md § Phase 4). Opening a stack = `navigate(PAGE_GROUP_HISTORY,
+  { groupId: stackId })`; the Block resolves `_stackId` and sets `_group` to the first live member.
+  **Member contract:** `_group` is always the member on screen; only `_showMember(member)` moves it
+  (clears the old member's gen ids, re-keys the canvas mask store via `loadEntry(item, idx, { groupId })`,
+  `historyList.setGroups` + `setActiveIndex`, `setCurrentItem`, adopts the new member's running jobs).
+  `_syncStack()` follows `project:group-updated|removed` for the stack or any strip member (repaint, move
+  off a member that left, Gallery at 0). Strip = `MpiThumbStrip` in its own host in `#controls-mount`
+  (a video stack adds a second host for the video bar); menu Remove from stack (`removeFromStack`) /
+  Delete card (confirm; a card goes only when all its files went). ◀ Version ▶ = `stepStackVersions`
+  (pure `applyStepVersions`). Rail `imageStack` / `videoStack` (Prompt, Resize, Upscale + Remove BG /
+  Interpolate). Apply: `_runImageTool` / `_runVideoTool` / `_handleResizeApply` branch to
+  `_runStackTool` -> pure `stackToolJobs` (NEW `js/data/stackJobs.js`) -> `_enqueueBatch` (one batchId,
+  no getNextGeneration). Resize sizes: `/image-import/probe` (images), `<video>` metadata (videos).
+  Prompt: `_runStackPrompt` = pinned chip substituted per member via `buildCueAllJobItems(..., { chipId })`,
+  `_generationFromPromptPayload(payload, member)`, mask dropped, Loop refused. Header = whole-stack
+  stats (`stackStatsGroup`). PromptBox `setRunCount(n)` makes a paid model's tag quote xN.
+
 ## Remaining Work
 
-**Next action:** Phase 4 (Stack History workspace, wires `MpiThumbStrip` - API under Completed). Phases
-1, A, 2, 3b, 3 are verified. Then 5, 6.
+**Next action:** Phase 5 (Stack crop). Phases 1, A, 2, 3b, 3 and 4 are verified. Then 6. Phase 5 adds
+`crop` to `IMAGE_STACK_TOOLS` (`MpiHistoryTools.js`) and branches `_handleApply`'s crop for `_stackId`;
+member switches go through `_showMember` (save/restore the per-member crop rect there).
 
 ## Phase 1: Stack data foundation (auto) - DONE, see Completed
 
@@ -357,6 +376,25 @@ centre marker, drag scrubs), approved.
   does not touch `MpiGalleryGrid.js`. Test it by opening a stack built by the Phase 1 unit fixtures.
 
 ## Plan Drift
+
+- 2026-09-27 (Phase 4): **`toolRun` is NOT reused.** It maps the AGENT's fields (`upscaler`, `factor`)
+  to params; the rail's panels already build params in `_handleApply`. Stack Apply keeps the rail's
+  param building and fans it out per member (`stackToolJobs`), so a rail click and a stack Apply are one
+  graph with one param source.
+- 2026-09-27 (Phase 4): ownership grew: `stackModel.js` (`applyStepVersions`, `stackStatsGroup`),
+  `projectService.js` (`removeFromStack`, `stepStackVersions`), `js/shell/navigation.js` (accent from
+  `stack.kind`; no stats refresh for a stack - the Block reports it), `MpiGalleryBlock.js` (open),
+  `MpiPromptBox.js` (`setRunCount`), `MpiGroupHistoryBlock.css`, `tests/mask-tool-registry.test.cjs`
+  (source guard regex).
+- 2026-09-27 (Phase 4): **Crop is NOT on the stack rail** until Phase 5 - the single-card crop would
+  crop only the member on screen. Stack mode opens on Prompt, else Resize.
+- 2026-09-27 (Phase 4): `_syncQueueBlockedTools` does nothing in stack mode - its lock exists for the
+  single-card Resize PREVIEW job (MPI-253), and stack Resize has no preview.
+- 2026-09-27 (Phase 4): the stack init (`_paintStrip`, listeners) runs AFTER `_mountPromptBoxIfNeeded`:
+  `_paintStrip` -> `_syncRunCount` reads `_pb`, whose `let` sits later in setup (TDZ killed the mount).
+- 2026-09-27 (Phase 4): `navigation.js` filters header stats to the ROUTE's group id, so a member's own
+  `history:stats-dirty` is ignored in a stack; the Block emits `stackStatsGroup` (every member version
+  under the stack id) on each file-set change.
 
 - 2026-09-27 (Phase 1): **every removal is stack-consistent at the one primitive**,
   `removeGroupFromProject` (all four `removeGroup` callers): removing a STACK unstacks its members,

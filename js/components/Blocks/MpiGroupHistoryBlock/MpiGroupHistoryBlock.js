@@ -16,6 +16,7 @@ import { MpiVideoControlBar } from '../../Organisms/MpiVideoControlBar/MpiVideoC
 import { MpiGifViewer } from '../../Organisms/MpiGifViewer/MpiGifViewer.js';
 import { MpiGifControlBar } from '../../Organisms/MpiGifControlBar/MpiGifControlBar.js';
 import { MpiFrameStrip } from '../../Organisms/MpiFrameStrip/MpiFrameStrip.js';
+import { MpiThumbStrip } from '../../Compounds/MpiThumbStrip/MpiThumbStrip.js';
 import { MpiHistoryList } from '../../Compounds/MpiHistoryList/MpiHistoryList.js';
 import { MpiToolOptionsCrop } from '../../Organisms/MpiToolOptionsCrop/MpiToolOptionsCrop.js';
 import { MpiToolOptionsMaskBrush } from '../../Organisms/MpiToolOptionsMaskBrush/MpiToolOptionsMaskBrush.js';
@@ -45,7 +46,9 @@ import { Events } from '../../../events.js';
 import { navigate, PAGE_GALLERY } from '../../../router.js';
 import { getModelsByType, isModelUsable, installedOpsForContext } from '../../../data/modelRegistry.js';
 import { canonicalModelId } from '../../../data/modelConstants/resolveModelDeps.js';
-import { getAvailableCommands, getCommandMediaInputs, getCommandAccent, isTextOnlyOp } from '../../../data/commandRegistry.js';
+import { getAvailableCommands, getCommandMediaInputs, getCommandAccent, isTextOnlyOp, getCommand, buildCueAllJobItems } from '../../../data/commandRegistry.js';
+import { isStack, expandStacks, stackStatsGroup } from '../../../data/stackModel.js';
+import { stackTargets, stackToolJobs } from '../../../data/stackJobs.js';
 import { enqueueGeneration, clearPendingQueue, refreshQueueDepth, cancelRunningCueJob } from '../../../services/generationService.js';
 import { generationStore } from '../../../services/generationStore.js';
 import { activeGenerations } from '../../../services/activeGenerations.js';
@@ -58,7 +61,7 @@ import { loadAll as loadAssets } from '../../../services/assetService.js';
 import { extractFilenameFromPath, extractAbsPath, resolveMediaUrl, downloadMediaFiles } from '../../../utils/mediaActions.js';
 import { describeItem } from '../../../utils/describeAction.js';
 import { resolveActiveModel, setSelectedModelId, getSelectedOp, setSelectedOp } from '../../../utils/modelHelpers.js';
-import { updateGroup, addGroup, removeGroup, applyPromptReuseSettings } from '../../../services/projectService.js';
+import { updateGroup, addGroup, removeGroup, applyPromptReuseSettings, removeFromStack, stepStackVersions } from '../../../services/projectService.js';
 import { buildPromptReuseSettings, resolvePromptReuseMediaItems, payloadHasReusableImages, payloadHasReusableVideos, payloadHasReusableAudio } from '../../../utils/promptReuse.js';
 import {
     promoteHistoryEntry,
@@ -225,6 +228,21 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         // ── Resolve group ─────────────────────────────────────────────────────
 
         let _group = state.currentProject?.itemGroups?.find(g => g.id === props.groupId);
+
+        // MPI-949 Phase 4: a STACK opens as a mode of this workspace. `_group` is always
+        // ONE real card — the member on screen — so every reader below keeps working on
+        // a card with a history; `_showMember` moves between members. Members are read
+        // from `state` each time, never cached: runs, deletes and Remove from stack
+        // change them under the workspace.
+        const _stackId = isStack(_group) ? _group.id : null;
+        const _stackMembers = () => {
+            const groups = state.currentProject?.itemGroups || [];
+            const stack = groups.find(g => g.id === _stackId);
+            return stack ? expandStacks([stack], groups).filter(m => m.history?.length) : [];
+        };
+        if (_stackId) _group = _stackMembers()[0];
+        /** Strip picks (indices into `_stackMembers()`): what Apply runs on; none = all. */
+        let _picked = [];
 
         // Copied mask (MPI-311): { layers: {manual, subtract}, dims }. Block-scoped
         // and deliberately NOT the OS clipboard — the mask is a pair of layers plus
@@ -473,7 +491,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
 
         // ── Mount sub-components ──────────────────────────────────────────────
 
-        const historyTools = MpiHistoryTools.mount(qs('#left-slot', el), { mode: historyKind });
+        const historyTools = MpiHistoryTools.mount(qs('#left-slot', el), { mode: _stackId ? `${historyKind}Stack` : historyKind });
 
         const centreSlot = qs('#centre-slot', el);
         // Per-kind viewer table (plan decision 2) — replaces the old isVideo
@@ -497,6 +515,9 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         const RESIZE_QUEUE_DISABLED_REASON = 'Resize is disabled while Cue has running or queued jobs';
 
         function _syncQueueBlockedTools() {
+            // A stack's Resize runs no preview (MpiToolOptionsResize stackMode), which is
+            // what this lock protects, and the stack rail has no Crop to fall back to.
+            if (_stackId) return;
             // Count only REAL user Cue jobs, not tool-internal preview runs. The resize
             // tool fires its own `previewOnly` resize gen on mount; counting it here made
             // the gate disable resize and self-revert to crop the instant you selected it
@@ -524,8 +545,50 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         _unsubs.push(Events.onState('generationQueueCount', _syncQueueBlockedTools));
         _syncQueueBlockedTools();
 
+        // ── Stack member strip (MPI-949 Phase 4) — `#controls-mount`, above the video
+        // bar. Own wrappers for the same reason the GIF strip has them below: a mount
+        // replaces its container's HTML. Current = the member on screen; Ctrl/Shift
+        // picks = what Apply runs on. The viewer switches on click and on scrub END only,
+        // so scrubbing past 300 members never loads 300 pictures.
+        let memberStrip = null;
+        let _videoBarHost = gid('controls-mount');
+        if (_stackId) {
+            const controlsMount = gid('controls-mount');
+            const stripWrap = document.createElement('div');
+            stripWrap.className = 'mpi-group-history-block__member-strip';
+            controlsMount.appendChild(stripWrap);
+            if (isVideo) {
+                _videoBarHost = document.createElement('div');
+                controlsMount.appendChild(_videoBarHost);
+            }
+            memberStrip = MpiThumbStrip.mount(stripWrap, {
+                menuItems: (index, selection) => {
+                    const n = selection.includes(index) ? selection.length : 1;
+                    return [
+                        { key: 'remove', icon: 'layers', label: n > 1 ? `Remove ${n} from stack` : 'Remove from stack', info: 'The card goes back to the gallery' },
+                        { key: 'delete', icon: 'trash', label: n > 1 ? `Delete ${n} cards` : 'Delete card', danger: true },
+                    ];
+                },
+            });
+            memberStrip.on('thumb-select', ({ index }) => _showMemberAt(index));
+            memberStrip.on('scrub-end', ({ index }) => _showMemberAt(index));
+            memberStrip.on('selection-change', ({ indices }) => { _picked = indices; _syncRunCount(); });
+            memberStrip.on('menu-select', ({ key, index, selection }) => {
+                const members = _stackMembers();
+                const ids = (selection.includes(index) ? selection : [index]).map(i => members[i]?.id).filter(Boolean);
+                if (key === 'remove') removeFromStack(_stackId, ids);
+                if (key === 'delete') _confirmDeleteMembers(ids);
+            });
+            _unsubs.push(() => {
+                memberStrip?.destroy();
+                memberStrip = null;
+                stripWrap.remove();
+                if (_videoBarHost !== controlsMount) _videoBarHost.remove();
+            });
+        }
+
         if (isVideo) {
-            videoControlBar = MpiVideoControlBar.mount(gid('controls-mount'), { fps: 24, showTrim: true });
+            videoControlBar = MpiVideoControlBar.mount(_videoBarHost, { fps: 24, showTrim: true });
             viewer.el.attachControlBar(videoControlBar);
             _unsubs.push(() => {
                 try { viewer.el.detachControlBar?.(); } catch (_) { /* noop */ }
@@ -954,7 +1017,25 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         _mascotEl.setAttribute('aria-hidden', 'true');
         centreSlot.appendChild(_mascotEl);
 
-        const historyList = MpiHistoryList.mount(qs('#right-bottom-slot', el), {
+        // MPI-949 Phase 4: a stack's ◀ Version ▶ sits above the member's own history list —
+        // the "every member back one step" half of stack undo; the list is the per-member
+        // half. Both need their own host inside the slot (a mount replaces its container).
+        let _historyListHost = qs('#right-bottom-slot', el);
+        if (_stackId) {
+            const stepHost = document.createElement('div');
+            stepHost.className = 'mpi-group-history-block__version-step';
+            stepHost.innerHTML = `<span class="mpi-group-history-block__version-back"></span><span class="mpi-group-history-block__version-label">Version</span><span class="mpi-group-history-block__version-on"></span>`;
+            _historyListHost.appendChild(stepHost);
+            const back = MpiButton.mount(qs('.mpi-group-history-block__version-back', stepHost), { icon: 'frameBack', variant: 'ghost', size: 'sm', info: 'Every member one version back' });
+            const on = MpiButton.mount(qs('.mpi-group-history-block__version-on', stepHost), { icon: 'frameForward', variant: 'ghost', size: 'sm', info: 'Every member one version on' });
+            back.on('click', () => _stepVersions(-1));
+            on.on('click', () => _stepVersions(1));
+            _historyListHost = document.createElement('div');
+            qs('#right-bottom-slot', el).appendChild(_historyListHost);
+            _unsubs.push(() => { back.destroy?.(); on.destroy?.(); });
+        }
+
+        const historyList = MpiHistoryList.mount(_historyListHost, {
             history: _group.history,
             selectedIndex: _currentIdx,
             isVideo,
@@ -1071,6 +1152,8 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             _options = Compound.mount(slot, {
                 viewer, mode, kind: modeKind,
                 currentItem: _group.history[_currentIdx] || null,
+                // MPI-949: Resize's stack mode (long edge / %, a rule per member).
+                stackMode: !!_stackId,
                 // MPI-373: the Composite slots are filled from the app-local copy
                 // buffer that already backs Copy mask. Handed in as accessors rather
                 // than values — the panel mounts once and the buffer changes under it.
@@ -1302,18 +1385,24 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             _pb?.el?.setGenerating?.(busy);
         };
 
-        for (const entry of activeGenerations.listFor('groupHistory', _group.id)) {
-            if (entry.status !== 'running') continue;
-            _myGenIds.add(entry.id);
-            const _isResize = entry.operation === 'resize' || entry.operation === 'resizeVideo';
-            if (_isResize) _setBusy(true);
-            else _setGenerating(true, entry.operation);
-            if (entry.latestPreviewUrl) {
-                if (_isResize) _setBusy(false);
-                else _setGenerating(false);
-                _applyPreview(entry.latestPreviewUrl);
+        // Adopt the jobs already running on the card on screen: at mount, and when a
+        // stack switches member (MPI-949) — the ids are what every generation handler
+        // below filters on, so they must name the card the viewer shows.
+        function _adoptRunningGens() {
+            for (const entry of activeGenerations.listFor('groupHistory', _group.id)) {
+                if (entry.status !== 'running') continue;
+                _myGenIds.add(entry.id);
+                const _isResize = entry.operation === 'resize' || entry.operation === 'resizeVideo';
+                if (_isResize) _setBusy(true);
+                else _setGenerating(true, entry.operation);
+                if (entry.latestPreviewUrl) {
+                    if (_isResize) _setBusy(false);
+                    else _setGenerating(false);
+                    _applyPreview(entry.latestPreviewUrl);
+                }
             }
         }
+        _adoptRunningGens();
 
         /** Inline replacement for strategy.onGenerationPreview / onRehydratePreview. */
         function _applyPreview(url) {
@@ -1425,7 +1514,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         // Repaint the open viewer with `item` (preview→video swap, image reload).
         // Shared by the in-block generation:complete handler and the gallery
         // in-place-finish bridge below.
-        function _reloadViewerWithEntry(item) {
+        function _reloadViewerWithEntry(item, { groupId } = {}) {
             if (isVideo) {
                 viewer.el.exitCropMode?.();
                 viewer.el.loadVideo?.(resolveMediaUrl(item.filePath), {
@@ -1445,7 +1534,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 // prompt mode; reachable the moment Run works from inside a mask
                 // tool (MPI-372). Re-arm from the rail after the load too — the rail
                 // is the source of truth for which tool is active.
-                Promise.resolve(viewer.el.loadEntry?.(item, _currentIdx))
+                Promise.resolve(viewer.el.loadEntry?.(item, _currentIdx, { groupId }))
                     .then(() => {
                         _syncViewerToolMode();
                         viewer.el.setMaskHidden?.(false);
@@ -1533,6 +1622,215 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             }
             _syncPbGenerating();
         }));
+
+        // ── Stack mode (MPI-949 Phase 4) ─────────────────────────────────────────
+        // The member contract: `_group` is the member on screen, and ONLY `_showMember`
+        // moves it to another one. Each member keeps its own history; a stack tool runs
+        // one job per member with THAT member as `existingGroup`, so results land as each
+        // member's next version and the generation handlers above — keyed on `_group.id`
+        // — only ever draw the member on screen. A job finishing on another member never
+        // moves the view; its new version reaches the strip through `project:group-updated`.
+
+        const _memberThumb = (m) => {
+            const it = m.history[m.selectedIndex ?? 0] || m.history[0];
+            return resolveMediaUrl(it?.thumbPath || (isVideo ? '' : it?.filePath));
+        };
+
+        /** Member ids the strip shows, in order. */
+        let _stripIds = [];
+
+        /** Repaint the strip from `state`. Picks survive while the member list is the same. */
+        function _paintStrip() {
+            if (!memberStrip) return;
+            const members = _stackMembers();
+            const ids = members.map(m => m.id);
+            const keep = ids.join('|') === _stripIds.join('|') ? [..._picked] : [];
+            _stripIds = ids;
+            memberStrip.el.setItems(
+                members.map(m => ({ key: m.id, thumbUrl: _memberThumb(m), info: m.customName || m.name || '' })),
+                { currentIndex: Math.max(0, members.findIndex(m => m.id === _group.id)) },
+            );
+            _picked = keep;
+            if (keep.length) memberStrip.el.setSelection(keep);
+            _syncRunCount();
+        }
+
+        /** A paid model's price tag quotes every run one Cue press makes. */
+        function _syncRunCount() {
+            if (_stackId) _pb?.el?.setRunCount?.(stackTargets(_stackMembers(), _picked).length);
+        }
+
+        /** Put `member` (a fresh object from `state`) on screen. */
+        function _showMember(member) {
+            const switching = member.id !== _group.id;
+            if (_currentSelectionIndices.length > 0) {
+                historyList.el.exitSelectMode();
+                _onHistorySelectionExited();
+            }
+            if (switching) {
+                // The outgoing member's jobs keep running; this viewer stops drawing them.
+                _myGenIds.clear();
+                _stoppedPendingComplete.clear();
+                _endPreviewPlayback();
+                viewer.el.setGenerating?.(false);
+                _mascotHide(0);
+            }
+            _group = member;
+            _statsKey = _statsKeyOf(_group);
+            _setCurrentIdx(_group.selectedIndex ?? 0);
+            const item = _group.history[_currentIdx];
+            historyList.el.setGroups(_group.history);
+            historyList.el.setActiveIndex(_currentIdx);
+            _reloadViewerWithEntry(item, { groupId: _group.id });
+            _options?.el?.setCurrentItem?.(item);
+            _renderVideoChips();
+            if (switching) {
+                _adoptRunningGens();
+                _syncPbGenerating();
+            }
+            _paintStrip();
+        }
+
+        // The header counts the whole stack (`stackStatsGroup`); a member's own stats
+        // emits are ignored there, since the route names the stack. Refetched only when
+        // the set of files changes, never on a selection.
+        let _stackStatsKey = null;
+        function _stackStatsDirty() {
+            const groups = state.currentProject?.itemGroups || [];
+            const stack = groups.find(g => g.id === _stackId);
+            if (!stack) return;
+            const group = stackStatsGroup(stack, groups);
+            const key = _statsKeyOf(group);
+            if (key === _stackStatsKey) return;
+            _stackStatsKey = key;
+            Events.emit('history:stats-dirty', { group });
+        }
+
+        function _showMemberAt(index) {
+            const member = _stackMembers()[index];
+            if (member && member.id !== _group.id) _showMember(member);
+        }
+
+        /** The stack changed under the workspace: follow it, or leave when it is gone. */
+        function _syncStack() {
+            const members = _stackMembers();
+            if (!members.length) { navigate(PAGE_GALLERY); return; }
+            if (!members.some(m => m.id === _group.id)) _showMember(members[0]);
+            else _paintStrip();
+            _stackStatsDirty();
+        }
+
+        async function _stepVersions(delta) {
+            const moved = await stepStackVersions(_stackId, delta);
+            if (!moved) {
+                _showToast(delta < 0 ? 'No member has an earlier version' : 'No member has a later version');
+                return;
+            }
+            const fresh = _stackMembers().find(m => m.id === _group.id);
+            if (fresh && (fresh.selectedIndex ?? 0) !== _currentIdx) _showMember(fresh);
+        }
+
+        function _confirmDeleteMembers(ids) {
+            if (!ids.length) return;
+            const dialog = MpiOkCancel.mount(document.createElement('div'), {
+                title:       ids.length > 1 ? `Delete ${ids.length} cards?` : 'Delete card?',
+                text:        'Deletes the card and every version inside it, with their media files. This cannot be undone.',
+                okLabel:     'Delete',
+                cancelLabel: 'Cancel',
+            });
+            dialog.on('ok', async () => {
+                dialog.destroy?.();
+                const members = _stackMembers().filter(m => ids.includes(m.id));
+                let deleted = 0;
+                for (const m of members) {
+                    // A card goes only when every file went, as in the Gallery's delete.
+                    const ok = await Promise.all(m.history.map(_deleteItemFile));
+                    if (!ok.every(Boolean)) continue;
+                    await removeGroup(m.id);
+                    deleted++;
+                }
+                if (deleted) Events.emit('media:deleted', { count: deleted });
+                if (deleted < members.length) _showToast(`${members.length - deleted} card(s) could not be deleted`, 'error');
+            });
+            dialog.on('cancel', () => dialog.destroy?.());
+            dialog.el.show();
+        }
+
+        /**
+         * Member pixels for a Resize rule, keyed by member id. Images: the upright header
+         * size from `/image-import/probe` (`pixelDimensions` is unreliable, plan fact 9).
+         * Videos: the clip's own metadata. An unreadable member is simply absent.
+         */
+        async function _memberDims(members, mediaType) {
+            const items = members.map(m => m.history[m.selectedIndex ?? 0]);
+            if (mediaType === 'image') {
+                try {
+                    const res = await fetch('/image-import/probe', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ paths: items.map(it => extractAbsPath(it.filePath)) }),
+                    });
+                    const sizes = (await res.json()).sizes || [];
+                    return Object.fromEntries(members.map((m, i) => [m.id, sizes[i]]).filter(([, s]) => s));
+                } catch (err) {
+                    clientLogger.warn('MpiGroupHistoryBlock', `stack size probe failed: ${err?.message || err}`);
+                    return {};
+                }
+            }
+            const sizes = await Promise.all(items.map(it => new Promise((resolve) => {
+                const v = document.createElement('video');
+                v.preload = 'metadata';
+                v.onloadedmetadata = () => {
+                    resolve(v.videoWidth > 0 ? { w: v.videoWidth, h: v.videoHeight } : null);
+                    v.removeAttribute('src');
+                    v.load();
+                };
+                v.onerror = () => resolve(null);
+                v.src = resolveMediaUrl(it.filePath);
+            })));
+            return Object.fromEntries(members.map((m, i) => [m.id, sizes[i]]).filter(([, s]) => s));
+        }
+
+        /** One batch = one queue row with Cancel all (`batchId`), never a Loop re-fire. */
+        function _enqueueBatch(jobs, batchLabel) {
+            const batchId = crypto.randomUUID();
+            for (const { config, opts } of jobs) {
+                enqueueGeneration(config, { onCancel: () => {} }, { ...opts, batchId, batchLabel, batchTotal: jobs.length });
+            }
+        }
+
+        /** A rail tool's Apply on a stack: the picked members, or all of them. */
+        async function _runStackTool(operation, mediaType, injectionParams = {}, inputs = {}) {
+            const targets = stackTargets(_stackMembers(), _picked);
+            if (!targets.length) return;
+            const dims = injectionParams.rule ? await _memberDims(targets, mediaType) : {};
+            const { jobs, skipped } = stackToolJobs(targets, { operation, mediaType, injectionParams, inputs, dims, resolveUrl: resolveMediaUrl });
+            _enqueueBatch(jobs, TOOL_LABELS[operation] || getCommand(operation)?.label || operation);
+            if (skipped) _showToast(`${skipped} member(s) skipped: their size could not be read`, 'warning');
+        }
+
+        /**
+         * A PromptBox Run on a stack: the recipe is read once and each target member takes
+         * the pinned chip's place (image) or the source clip's (video, `_generationFromPromptPayload`
+         * resolves it from the member). No mask: it is painted on one picture.
+         */
+        function _runStackPrompt(payload) {
+            // `_onLaneDrain` re-fires the last job while Loop is armed, so a batch would never end.
+            if (state.loopArmed) { _showToast('Disarm Loop before running a stack', 'warning'); return; }
+            const pinned = payload.mediaItems?.find(m => m.pinned) || null;
+            const jobs = [];
+            for (const m of stackTargets(_stackMembers(), _picked)) {
+                const item = m.history[m.selectedIndex ?? 0];
+                const mediaItems = isVideo ? payload.mediaItems : buildCueAllJobItems(
+                    payload.operation, activeModel, payload.mediaItems,
+                    { ...(pinned || { mediaType: 'image', source: 'history' }), url: resolveMediaUrl(item.filePath) },
+                    { chipId: pinned?.id },
+                );
+                const next = _generationFromPromptPayload({ ...payload, mediaItems, maskDataUrl: null, historyMode: true }, m);
+                if (next) jobs.push(next);
+            }
+            _enqueueBatch(jobs, getCommand(payload.operation)?.label || payload.operation);
+        }
 
         // ── OS-file drop overlay ───────────────────────────────────────────────
 
@@ -1879,7 +2177,8 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 operation: activeOperation,
                 includeNegative: true,
                 workspaceKey: 'history',
-                workspaceId: _group.id,
+                // A stack keeps ONE draft across its members (MPI-949).
+                workspaceId: _stackId || _group.id,
                 // MPI-721: image groups stage their own reference media — the `+` card
                 // opens MpiMediaPicker and the strip becomes visible. Video groups do
                 // not: MpiToolOptionsPrompt owns their start/end frame thumbs.
@@ -1900,6 +2199,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             // there is nothing to clear — and the entry it generates from is now a chip
             // the user can see. Seed it here; _setCurrentIdx re-points it after that.
             _syncEntryChip();
+            _syncRunCount();
 
             _unsubs.push(_pb.on('model-change', ({ model }) => _adoptModel(model)));
             _unsubs.push(_pb.on('operation-change', ({ operation, programmatic }) => {
@@ -1922,6 +2222,10 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             }));
             _unsubs.push(_pb.on('stage-to-history', (payload) => { _addPickedEntry(payload); }));
             _unsubs.push(_pb.on('run', ({ operation, positive, negative, negativeAudio, mediaItems, injectionParams, previewOnly }) => {
+                if (_stackId) {
+                    _runStackPrompt({ operation, positive, negative, negativeAudio, mediaItems, injectionParams, previewOnly });
+                    return;
+                }
                 const maskDataUrl = viewer.el.hasMask?.()
                     ? viewer.el.getCurrentMaskDataURL?.()
                     : null;
@@ -2122,9 +2426,23 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         _syncPromptToolDisabled();
         _mountPromptBoxIfNeeded();
 
+        // Stack mode's first paint, AFTER the PromptBox: the strip's run count feeds `_pb`.
+        if (_stackId) {
+            _paintStrip();
+            _stackStatsDirty();
+            const _onStackChange = ({ group, groupId }) => {
+                const id = group?.id ?? groupId;
+                if (id === _stackId || _stripIds.includes(id)) _syncStack();
+            };
+            _unsubs.push(Events.on('project:group-updated', _onStackChange));
+            _unsubs.push(Events.on('project:group-removed', _onStackChange));
+        }
+
         // Initial tool: prompt if available (including frame-drop unlock), else crop.
         // A GIF opens with no tool: its Crop (MPI-773) would cover the frames.
+        // A stack's rail has no Crop yet (MPI-949): its first transform is Resize.
         if (_shouldShowPromptBox())      historyTools.el.setMode('prompt');
+        else if (_stackId)               historyTools.el.setMode(isVideo ? 'resizeVideo' : 'resize');
         else if (historyKind !== 'gif')  historyTools.el.setMode('crop');
 
         // Nav'd into history while a job for this group is already running:
@@ -2149,10 +2467,12 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         // MPI-677 step 1c — `sourcePrompt` is in this list for the same reason it is in
         // the gallery's mapper: an explicit destructure drops any field nobody adds to
         // it, and this one carries the short prompt behind an approved enhancement.
-        function _generationFromPromptPayload({ operation, positive, negative, negativeAudio, sourcePrompt = null, mediaItems = [], maskDataUrl, injectionParams = {}, previewOnly = false, historyMode = false, extend = false, sourceItemId = null, forceLocal = false }) {
+        // `group` (MPI-949): a stack run builds one job per member; every other caller runs
+        // on the card on screen.
+        function _generationFromPromptPayload({ operation, positive, negative, negativeAudio, sourcePrompt = null, mediaItems = [], maskDataUrl, injectionParams = {}, previewOnly = false, historyMode = false, extend = false, sourceItemId = null, forceLocal = false }, group = _group) {
             if (!activeModel) return;
 
-            const currentItem = _group.history[_currentIdx];
+            const currentItem = group === _group ? _group.history[_currentIdx] : group.history[group.selectedIndex ?? 0];
             const currentMediaType = isVideo ? 'video' : 'image';
             const mediaSlots = getCommandMediaInputs(operation);
             const wantsCurrentType = mediaSlots.some(slot => slot.mediaType === currentMediaType && slot.required !== false);
@@ -2195,7 +2515,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
 
             return {
                 config: { operation, model: activeModel, positive, negative, negativeAudio, sourcePrompt, mediaItems: resolvedMedia, maskDataUrl: resolvedMask, injectionParams, previewOnly, historyMode, extend, sourceItemId },
-                opts: { existingGroup: _group, scope: 'groupHistory', groupId: _group.id, forceLocal },
+                opts: { existingGroup: group, scope: 'groupHistory', groupId: group.id, forceLocal },
             };
         }
 
@@ -2217,6 +2537,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         // a plugin entry's prompt box is `positive`, not an injection param. Built-in
         // tools pass none and keep the empty-prompt behaviour they always had.
         function _runVideoTool(operation, injectionParams = {}, inputs = {}) {
+            if (_stackId) return _runStackTool(operation, 'video', injectionParams, inputs);
             const currentItem = _group.history[_currentIdx];
             if (!currentItem?.filePath) { _showToast('No source video', 'error'); return; }
             const trim = _activeVideoTrim(currentItem);
@@ -2250,6 +2571,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
         }
 
         function _runImageTool(operation, injectionParams = {}, inputs = {}) {
+            if (_stackId) return _runStackTool(operation, 'image', injectionParams, inputs);
             const currentItem = _group.history[_currentIdx];
             if (!currentItem?.filePath) { _showToast('No source image', 'error'); return; }
             const mediaItems = [{ url: resolveMediaUrl(currentItem.filePath), mediaType: 'image', source: 'history' }];
@@ -2336,6 +2658,8 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             const currentItem = _group.history[_currentIdx];
             const wantVideo = mode === 'resizeVideo';
             const mediaType = wantVideo ? 'video' : 'image';
+            // A stack's panel sends a rule (long edge / %), sized per member (MPI-949).
+            if (_stackId) return _runStackTool(wantVideo ? 'resizeVideo' : 'resize', mediaType, resizeParams);
             if (!currentItem?.filePath) {
                 _showToast(wantVideo ? 'No source video' : 'No source image', 'error');
                 return;
@@ -3058,6 +3382,34 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             }
         }
 
+        /**
+         * Delete one history entry's media file (and its sidecar) from the project.
+         * @returns {Promise<boolean>} true when the server deleted it
+         */
+        async function _deleteItemFile(item) {
+            const project = state.currentProject;
+            const filename = extractFilenameFromPath(item?.filePath);
+            if (!project?.folderPath || !filename) return false;
+            try {
+                const res = await fetch(
+                    `/project-media/${project.id}/${encodeURIComponent(filename)}?folderPath=${encodeURIComponent(project.folderPath)}&itemId=${encodeURIComponent(item.id)}`,
+                    { method: 'DELETE' }
+                );
+                if (!res.ok) {
+                    clientLogger.warn('MpiGroupHistoryBlock', 'delete media returned non-ok status', {
+                        status: res.status,
+                        itemId: item.id,
+                        filename,
+                    });
+                    return false;
+                }
+                return true;
+            } catch (err) {
+                clientLogger.warn('MpiGroupHistoryBlock', 'delete media failed:', err);
+                return false;
+            }
+        }
+
         async function _performHistoryDelete(indices) {
             if (!indices.length) return;
             historyList.el.exitSelectMode();
@@ -3069,27 +3421,7 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
                 deletedIndices = [];
                 for (const idx of sorted) {
                     const item = _group.history[idx];
-                    if (!item) continue;
-                    const filename = extractFilenameFromPath(item.filePath);
-                    if (filename) {
-                        try {
-                            const res = await fetch(
-                                `/project-media/${project.id}/${encodeURIComponent(filename)}?folderPath=${encodeURIComponent(project.folderPath)}&itemId=${encodeURIComponent(item.id)}`,
-                                { method: 'DELETE' }
-                            );
-                            if (!res.ok) {
-                                clientLogger.warn('MpiGroupHistoryBlock', 'delete media returned non-ok status', {
-                                    status: res.status,
-                                    itemId: item.id,
-                                    filename,
-                                });
-                                continue;
-                            }
-                            deletedIndices.push(idx);
-                        } catch (err) {
-                            clientLogger.warn('MpiGroupHistoryBlock', 'delete media failed:', err);
-                        }
-                    }
+                    if (item && await _deleteItemFile(item)) deletedIndices.push(idx);
                 }
             }
             if (!deletedIndices.length) return;
@@ -3101,7 +3433,10 @@ export const MpiGroupHistoryBlock = ComponentFactory.create({
             if (willEmptyGroup) {
                 Events.emit('media:deleted', { count: deletedIndices.length });
                 await removeGroup(_group.id);
-                navigate(PAGE_GALLERY);
+                // A stack member leaves the stack with its card, and the workspace stays on
+                // the rest (`_syncStack`, fed by `project:group-removed`); the Gallery only
+                // when none is left.
+                if (!_stackId) navigate(PAGE_GALLERY);
                 return;
             }
 

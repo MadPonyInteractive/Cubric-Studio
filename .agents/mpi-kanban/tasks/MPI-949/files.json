@@ -45,6 +45,8 @@
     "docs/gallery-selection.md",
     "docs/gallery.md",
     "docs/README.md",
-    "docs/releases/UNRELEASED.md"
+    "docs/releases/UNRELEASED.md",
+    "js/shell/navigation.js",
+    "js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.css"
   ]
 }

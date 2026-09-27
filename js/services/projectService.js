@@ -30,7 +30,9 @@ import {
     applyStack,
     applyUnstack,
     applyAddMembers,
+    applyRemoveMembers,
     applySettleResultStack,
+    applyStepVersions,
 } from '../data/stackModel.js';
 import { clientLogger } from './clientLogger.js';
 
@@ -617,6 +619,49 @@ export async function unstackGroup(stackId) {
         if (wasRemembered) await updateProject({ lastGroupId: null });
         Events.emit('project:group-removed', { groupId: stackId });
         return [...stack.members];
+    });
+}
+
+/**
+ * Take cards out of a stack and back into the gallery (MPI-949 Phase 4, the History strip's
+ * Remove from stack). One write; the stack goes with its last member. Emits
+ * `project:group-updated` for the stack and each card handed back, or
+ * `project:group-removed` for a stack that went.
+ * @param {string} stackId
+ * @param {string[]} memberIds
+ */
+export async function removeFromStack(stackId, memberIds) {
+    return _enqueueMutation(async () => {
+        const groups = state.currentProject?.itemGroups;
+        if (!groups) return;
+        const itemGroups = applyRemoveMembers(groups, stackId, memberIds);
+        if (itemGroups === groups) return;
+        state.currentProject = { ...state.currentProject, updatedAt: new Date().toISOString(), itemGroups };
+        await persistGroups();
+        const stack = itemGroups.find(g => g.id === stackId);
+        if (stack) Events.emit('project:group-updated', { group: stack });
+        else Events.emit('project:group-removed', { groupId: stackId });
+        for (const g of itemGroups.filter(g => memberIds.includes(g.id))) Events.emit('project:group-updated', { group: g });
+    });
+}
+
+/**
+ * ◀ Version ▶ (MPI-949 Phase 4): every member of a stack one version back or on, in one
+ * write. Emits `project:group-updated` per member that moved.
+ * @param {string} stackId
+ * @param {number} delta - -1 or 1
+ * @returns {Promise<number>} how many members moved
+ */
+export async function stepStackVersions(stackId, delta) {
+    return _enqueueMutation(async () => {
+        const groups = state.currentProject?.itemGroups;
+        if (!groups) return 0;
+        const { groups: itemGroups, moved } = applyStepVersions(groups, stackId, delta);
+        if (!moved.length) return 0;
+        state.currentProject = { ...state.currentProject, updatedAt: new Date().toISOString(), itemGroups };
+        await persistGroups();
+        for (const g of moved) Events.emit('project:group-updated', { group: g });
+        return moved.length;
     });
 }
 

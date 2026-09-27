@@ -784,7 +784,7 @@ test('Mask Comp reads the entry mask instead of a pasted one', () => {
 // the entry the user just left.
 test('changing entry re-reads the cut from the new entry mask', () => {
     const viewer = read('js/components/Organisms/MpiCanvasViewer/MpiCanvasViewer.js');
-    const load = viewer.match(/el\.loadEntry = async \(item, idx\) => \{[\s\S]*?\n {8}\};/);
+    const load = viewer.match(/el\.loadEntry = async \(item, idx[^)]*\) => \{[\s\S]*?\n {8}\};/);
     assert.ok(load, 'el.loadEntry was not found in MpiCanvasViewer');
     assert.match(load[0], /refreshCompositeHoleFromMask\?\.\(\)/,
         'loadEntry never re-reads the composite cut — Mask Comp goes dead on the next entry '

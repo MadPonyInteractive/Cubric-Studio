@@ -278,12 +278,8 @@ export const MpiGalleryBlock = ComponentFactory.create({
         // exists (Phase 3).
         grid.on('open-group', ({ group }) => {
             if (group?.type === 'audio') return;
-            // MPI-949: the stack's History workspace is Phase 4.
-            if (isStack(group)) {
-                Events.emit('ui:info', { message: 'Opening a stack is not built yet. Right-click it to unstack.' });
-                return;
-            }
-            if (getSelectedItem(group)?.splatPath) {
+            // MPI-949: a stack opens in the same workspace, in its stack mode.
+            if (!isStack(group) && getSelectedItem(group)?.splatPath) {
                 Events.emit('ui:info', { message: 'Scene viewer is not built yet.' });
                 return;
             }

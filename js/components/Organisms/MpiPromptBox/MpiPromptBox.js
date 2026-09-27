@@ -61,6 +61,7 @@ import { attachDictation } from '../../../services/dictation.js';
  *                                     rather than defaulted
  *   el.setOperation(key)
  *   el.setGenerating(bool)
+ *   el.setRunCount(n)               — runs one Cue press makes (a History stack, MPI-949); the price tag quotes ×n
  *   el.updateContext(ctx)
  *   el.setModel(model)
  *   el.setModelList(list)
@@ -164,6 +165,8 @@ export const MpiPromptBox = ComponentFactory.create({
         // per-card map — no growth/cleanup; only the last-touched card round-trips.
         const _wsId = props.workspaceId ?? null;
         const _matchesSlot = (saved) => (saved?.id ?? null) === _wsId;
+        /** Runs one Cue press makes (`el.setRunCount`, MPI-949). */
+        let _runCount = 1;
 
         // MPI-721: this box stages its own reference media. Two effects, one prop,
         // because they are the same statement: a `+` button at the head of the strip
@@ -1345,6 +1348,15 @@ export const MpiPromptBox = ComponentFactory.create({
             return true;
         };
 
+        // MPI-949: a stack's History workspace runs one job per member with no stack chip
+        // here, so its Block says how many runs one Cue press makes and the price tag
+        // quotes them all (`_runCount`, declared at the top of setup: the tag can paint
+        // before this line runs).
+        el.setRunCount = (n) => {
+            _runCount = Math.max(1, Number(n) || 1);
+            _refreshPriceTag();
+        };
+
         /**
          * MPI-721: point the pinned chip at the workspace's own image, or drop it.
          *
@@ -2150,7 +2162,7 @@ export const MpiPromptBox = ComponentFactory.create({
             // the label, and an empty one would leave that rule hanging beside CUE.
             tag.classList.toggle('hide', !estimate);
             // MPI-949: a staged stack runs once per member, so the tag quotes all of them.
-            const runs = _stackChip()?.count || 1;
+            const runs = _stackChip()?.count || _runCount;
             tag.textContent = !estimate ? '' : runs > 1 ? `×${runs} ${formatPrice(estimate.usd * runs)}` : estimate.display;
         }
 

@@ -173,3 +173,25 @@ test('sanitize: a card in two stacks stays in the first; a stack inside a stack 
     assert.deepStrictEqual(out.find(g => g.id === 's2').members, ['b']);
     assert.strictEqual(out.find(g => g.id === 'a').stackId, 's1');
 });
+
+test('step versions: every member moves one, clamped to its own history', () => {
+    const three = (id, sel) => ({ ...card(id), selectedIndex: sel, history: [{ id: `${id}1` }, { id: `${id}2` }, { id: `${id}3` }], stackId: 's' });
+    const groups = [three('a', 2), three('b', 0), { ...card('c'), stackId: 's' }, three('x', 2), stackOf('s', ['a', 'b', 'c'])];
+    const back = S.applyStepVersions(groups, 's', -1);
+    assert.deepStrictEqual(back.moved.map(g => g.id), ['a']);
+    assert.strictEqual(back.groups.find(g => g.id === 'a').selectedIndex, 1);
+    assert.strictEqual(back.groups.find(g => g.id === 'b').selectedIndex, 0);
+    assert.strictEqual(back.groups.find(g => g.id === 'x').selectedIndex, 2, 'a card outside the stack never moves');
+    const on = S.applyStepVersions(groups, 's', 1);
+    assert.deepStrictEqual(on.moved.map(g => g.id), ['b']);
+    const none = S.applyStepVersions([three('a', 0), stackOf('s', ['a'])], 's', -1);
+    assert.strictEqual(none.moved.length, 0);
+    assert.strictEqual(S.applyStepVersions(groups, 'nope', 1).groups, groups);
+});
+
+test('header stats: every member version, under the stack id', () => {
+    const s = stackOf('s', ['a', 'b']);
+    const out = S.stackStatsGroup(s, [img('a'), img('b'), img('x'), s]);
+    assert.strictEqual(out.id, 's');
+    assert.deepStrictEqual(out.history.map(h => h.id), ['a-v1', 'b-v1']);
+});

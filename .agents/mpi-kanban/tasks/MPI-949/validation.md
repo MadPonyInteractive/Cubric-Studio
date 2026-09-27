@@ -99,3 +99,29 @@ Four workers; every report re-checked against the files by the orchestrator (dif
   One result restyled the reference instead of image 1; its sidecar load list is member
   `imageUpscale_002.png` -> inputImage, reference `t2i_002.png` -> inputImage2, identical to the other two
   (seeds differ) - a model misread, not the run.
+
+## Phase 4 - Stack History workspace (user-ux) - VERIFIED by Fabio 2026-09-27
+
+- Unit: NEW `tests/stack-jobs.test.cjs` 6/6 (targets = picks or all, file-less members dropped; upscale ->
+  one job per member on its CURRENT version with the member as `existingGroup`; a picked subset gives
+  exactly its jobs; resize rule -> 1024x768 / 576x1024 per member, a member with no size skipped, % ->
+  half; video saved trim rides along, a whole-clip trim does not; plugin inputs reach every job).
+  `stack-model` +2 (`applyStepVersions` clamps per member and never touches a card outside the stack;
+  `stackStatsGroup`). `mask-tool-registry` source guard widened for `loadEntry(item, idx, { groupId })`.
+- `npm test` -> 2174 tests, 2172 pass, 0 fail. `npm run lint:components` + eslint on every touched file
+  -> clean.
+- NEW `tests/desktop/stack-history.spec.js` 2/2: real project, 3 cards x 2 versions stacked -> click the
+  stack in the Gallery opens History with a 3-thumb strip, member 1 on screen, rail = prompt / transform /
+  enhance only (Mask, Paint, Composite absent); click member 3 -> its history list, route still names the
+  stack; ◀ -> all three `selectedIndex` 0 on disk, ◀ again clamps, ▶ -> all 1; Upscale with both lanes
+  busy -> 3 pending jobs, member order, each on its v2 file, `groupHistory` + own `existingGroup`, one
+  batchId, ONE queue row {isBatch, 3, "Upscale"}; Ctrl-pick 1 and 3 -> 2 jobs, one row of 2; strip
+  right-click Remove from stack -> stack members [1, 3], card 2 loses `stackId`, strip shows 2; 0 page
+  errors. Video stack (in-memory): `#controls-mount` holds strip host then video-bar host, video viewer,
+  stack rail, shell accent `video`; leaving empties `#controls-mount`.
+- Regression, 7 specs (crop-resize-output, gallery-stack-run, gallery-stack, history-modes,
+  history-prompt-model, media-picker-to-history, thumb-strip) -> 12/12 passed.
+- NOT covered by a spec (Fabio's check): a real Upscale / Remove BG / Resize on a stack landing as new
+  versions; a Prompt run on a stack; Delete card from the strip; deleting a member's last version; the
+  paid-cloud price tag quoting xN in a stack; a video stack with real clips.
+- Fabio, 2026-09-27: checked in the app -> "1" (verified).

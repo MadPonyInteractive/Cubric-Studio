@@ -308,7 +308,9 @@ function _updateBreadcrumb(page, params) {
         // the shared cream. The PromptBox sits between them and overrides this with the
         // SELECTED MODEL's colour on itself, which is the rule — it is not the
         // workspace's, it is the model's.
-        _appShell.dataset.accent = group?.type === 'image' ? 'vision' : (group?.type || 'vision');
+        // A stack (MPI-949) wears its members' kind.
+        const kind = group?.type === 'stack' ? group.kind : group?.type;
+        _appShell.dataset.accent = kind === 'image' ? 'vision' : (kind || 'vision');
         _projectNameInst.el.setBackLabel('Gallery');
         _projectNameInst.el.setGalleryLabel('');
         _projectNameInst.el.setGroupLabel(group?.customName || group?.name || 'Group');
@@ -317,7 +319,8 @@ function _updateBreadcrumb(page, params) {
         const initialBytes = (hs.groupId === group?.id) ? hs.bytes : 0;
         _projectNameInst.el.setStats({ count: initialCount, bytes: initialBytes, label: 'ENTRIES' });
         _projectNameInst.el.setRecordVisible(false);
-        if (group) refreshGroupStats(group);
+        // A stack has no history of its own: the Block reports it (`stackStatsGroup`).
+        if (group && group.type !== 'stack') refreshGroupStats(group);
     }
 }
 

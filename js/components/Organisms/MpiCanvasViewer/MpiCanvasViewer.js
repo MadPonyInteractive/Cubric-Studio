@@ -9,7 +9,8 @@
  * @param {string} [groupId=null]        - Owning group's id (component of TEMP mask key path)
  *
  * Instance API (on el):
- *   el.loadEntry(item, idx)            — save current mask, load item's image, restore idx's mask
+ *   el.loadEntry(item, idx, {groupId}?) — save current mask, load item's image, restore idx's mask;
+ *                                        `groupId` re-keys the mask store to another card (a stack member)
  *   el.loadCompare(itemA, itemB)       — load two images in compare mode
  *   el.enterMode(mode)                — enter 'crop'|'mask'|'paint'|'composite'|'automask' (or 'none' to exit all)
  *   el.exitMode()                     — exit any active tool mode
@@ -77,7 +78,9 @@ export const MpiCanvasViewer = ComponentFactory.create({
         const initialImageUrl = props.initialImageUrl || '';
         const initialIdx = props.initialIdx ?? 0;
         const initialItem = props.initialItem || null;
-        const _groupId = props.groupId || null;
+        // `let`: a stack's History workspace shows one member at a time (MPI-949), and
+        // `loadEntry(..., { groupId })` moves the mask key to the member on screen.
+        let _groupId = props.groupId || null;
 
         // ── State ─────────────────────────────────────────────────────────────
 
@@ -1093,7 +1096,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
         /** @type {import('../../../data/projectModel.js').HistoryItem|null} */
         let _currentItem = initialItem;
 
-        el.loadEntry = async (item, idx) => {
+        el.loadEntry = async (item, idx, { groupId } = {}) => {
             const sameEntry = !!(
                 item?.id
                 && _currentItem?.id
@@ -1125,6 +1128,8 @@ export const MpiCanvasViewer = ComponentFactory.create({
                 catch (err) { console.warn('[MpiCanvasViewer] persist layers failed:', err); }
                 await _persistCurrentAutoPicks();
             }
+            // Only AFTER the outgoing entry persisted under its own card's key.
+            if (groupId) _groupId = groupId;
 
             // Capture active tool mode so it can be restored after image swap.
             const _modeToRestore = _currentMode;

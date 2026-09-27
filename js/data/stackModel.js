@@ -121,6 +121,15 @@ export function expandStacks(picked = [], groups = []) {
         : [g]));
 }
 
+/**
+ * What a stack's workspace header counts (MPI-949): every version of every member, as one
+ * history, under the STACK's id — the header only shows stats for the card the route names.
+ * @returns {{id: string, history: Array<Object>}}
+ */
+export function stackStatsGroup(stack, groups = []) {
+    return { id: stack.id, history: expandStacks([stack], groups).flatMap(m => m.history || []) };
+}
+
 function _withoutStackId(group) {
     const { stackId: _drop, ...rest } = group;
     return rest;
@@ -171,6 +180,30 @@ export function applyRemoveMembers(groups, stackId, memberIds = []) {
             if (out.has(g.id)) return { ..._withoutStackId(g), archived: stack.archived === true };
             return g;
         });
+}
+
+/**
+ * The History workspace's ◀ Version ▶ (MPI-949 Phase 4): every member's current version
+ * moves `delta` steps, clamped to its own history, so a member with no earlier (or later)
+ * version stays put. Only a member whose index moves is replaced.
+ * @param {number} delta - -1 or 1
+ * @returns {{groups: Array<Object>, moved: Array<Object>}} new groups, and the members that moved
+ */
+export function applyStepVersions(groups, stackId, delta) {
+    const stack = groups.find(g => g.id === stackId);
+    if (!isStack(stack)) return { groups, moved: [] };
+    const members = new Set(stack.members);
+    const moved = [];
+    const out = groups.map(g => {
+        if (!members.has(g.id) || !g.history?.length) return g;
+        const from = g.selectedIndex ?? 0;
+        const to = Math.min(g.history.length - 1, Math.max(0, from + delta));
+        if (to === from) return g;
+        const next = { ...g, selectedIndex: to };
+        moved.push(next);
+        return next;
+    });
+    return { groups: moved.length ? out : groups, moved };
 }
 
 /**
