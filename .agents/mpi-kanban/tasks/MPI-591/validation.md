@@ -2333,3 +2333,11 @@ delta staged. Build script: research/bench/rewire_h3_tail_and_join.py.
 NEXT: Fabio re-runs the same clip. Expect 199 frames, no jump at 96/97, no double frame.
 
 **VERIFIED BY FABIO, 2026-09-27:** second run on the same tiger clip - "the join is clean now". Together with run 1 (no splice error, flicker gone) Phase 8 is verified as a PRODUCT, not only by instrument.
+
+## Phase 6 - docs (2026-09-27, session 8e78a04f)
+
+Written: `docs/playbooks/add-flow/existing-flows/ltx-extend.md` and `docs/playbooks/add-flow/any-of-models.md`. Checked by re-reading the diff against the code it describes: node ids and class types read out of `comfy_workflows/flow_h3_extend.json` (54 nodes; #904 absent, #979 `ImageBatchMulti`), the MpiNodes pin (`bc92a1b` in `dev_configs/node_lock.json`), `getUniversalWorkflow` in `modelRegistry.js`, the three `hiddenWhen` model clauses in `flowsRegistry.js`, and the test names cited. Every relative link resolves. Line budget: 195 and 200. The "Expect 199 frames" line above was an expectation, never counted, so the doc does not claim it. No test covers docs; nothing else to run.
+
+## CLOSE - Fabio, 2026-09-27: "This is done and dusted."
+
+Speech retest (the open "iiuupppiii" item): Fabio changed the line to "youpeee" and the H3 arm SAID it, with some effect on the voice he puts down to the seed. He will not repeat it; H3 speech on this flow is accepted as working. CI green on the card's last code commit (83f943a9d, run 36341437640). Not taken into this card, both Fabio's calls he chose not to open now: an LTX-HIGH card (Extend / Foley / Upscale Video name ltx-23-balanced only) and the A3 accelerator arm. Carried forward, not card work: the MpiH3MaskedPrefix description sentence (next MpiNodes change) and the stale ref2va lines in 01-smoke-run.md (MPI-806, message a213eb54).

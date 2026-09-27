@@ -2097,3 +2097,11 @@ CURRENT STATE / NEXT: the remaining items are the pre-existing Phase 8 pending l
 (ltx-extend.md, any-of-models.md; add the off-grid tail trap and the #904 blend to the flow doc),
 the stale ref2va lines in 01-smoke-run.md (MPI-806 owns it), the LTX-HIGH card question, A3
 accelerators, and the MpiH3MaskedPrefix description sentence about encoding the on-grid tail.
+
+PHASE 6 DOCS DONE (2026-09-27, session 8e78a04f): ltx-extend.md (195 lines) now carries the H3
+candidate, the byModel slot, Turbo / Input_Context and their model clauses, § The H3 arm with its
+mechanism and three traps, the LTX-HIGH precedent fix, and the H3 verification. any-of-models.md
+(200 lines, at budget) gains § A slot may pick a different GRAPH. CURRENT STATE / NEXT: only
+Fabio's calls remain - close the card, or open the LTX-HIGH card / the A3 accelerator arm first.
+The MpiH3MaskedPrefix sentence waits for the next MpiNodes change (pin bump); 01-smoke-run.md
+stays MPI-806's.

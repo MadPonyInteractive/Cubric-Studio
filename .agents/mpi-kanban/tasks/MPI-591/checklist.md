@@ -136,7 +136,11 @@ do not tick an item until its gate is green.
       weak — `MpiH3EncodeAV`/`MpiH3DecodeAV`, which now carry video AND audio masking; that is
       LTX's own mechanism and we already own it. Gate: bench first (control vs treatment, one seed,
       one continuation-shaped prompt), then Fabio watches it in the app.
-- [ ] 6 — Docs: `existing-flows/ltx-extend.md` + `any-of-models.md`.
+- [x] 6 — Docs: `existing-flows/ltx-extend.md` + `any-of-models.md`. DONE 2026-09-27 (session
+      8e78a04f): the H3 candidate, `byModel`, Turbo, Input_Context, the model clauses, the H3
+      mechanism, and the three run-found traps (off-grid END lost in the encode, overlap-1 blend,
+      audio index from a rounded frame count). any-of-models.md gains § A slot may pick a
+      different GRAPH. Both files within the 200-line budget (195 / 200).
 
 ## Phase 1/2 ordering — decided 2026-08-31
 

@@ -93,6 +93,29 @@ So:
   that flow's graph, that the arms differ, and that the widgets are on the injector's spray list.
   Mutation-checked: restoring node 55's generic title turns it red.
 
+## A slot may pick a different GRAPH, not just different params (`byModel`, MPI-591)
+
+`modelParams` swaps widgets inside ONE graph; Extend Video's LTX 2.3 and MiniMax H3 arms share no
+nodes at all. So the op's `UNIVERSAL_WORKFLOWS` entry declares `byModel: { '<model id>':
+'<file>.json' }`, and `getUniversalWorkflow(op, flowModelIds)` (`modelRegistry.js`) returns the
+first picked id's file, else the plain `workflow` (`models[0]`'s graph). **Reach for `modelParams`
+first**; `byModel` is only for candidates with no node set in common.
+
+- **The id and the graph move together.** The `byModel` key must name the model whose deps supply
+  the graph's weights. Extend Video's H3 arm was first keyed on an id whose DiT the graph did not
+  load: same architecture, same size, different weights — the slot gated on a 19.53GB download
+  and then died `value_not_in_list` at the loader, with the picker correct the whole way.
+- **`flowModelIds` is a whitelisted hop.** `generationService.js` names it in the `runCommand`
+  payload (the hop MPI-504's `loraModelId` was lost on) and in `generationSettings`, which is how
+  Reuse Prompt comes back on the same arm (MPI-620).
+- **Declared fields are shared by every arm**, and each graph carries its own titles. An arm's
+  dead control goes off screen with `hiddenWhen: { model }` / `{ modelNot }`
+  ([ui/carousel-frame/fields.md](ui/carousel-frame/fields.md) § The model clauses).
+- **Pinned** by `tests/flow-model-choice.test.cjs` § 'the Extend Video pick selects the GRAPH'
+  (slot member, file exists, every declared `Input_*` title and baked weight present in that arm)
+  and `inject-params-titles.test.cjs`, which reads a flow's graph as the SET of its files. A user
+  Flow package carries ONE graph: `byModel` is not offered there (`services/userFlows.js`).
+
 ## Do NOT reach for `modelFamily`
 
 MPI-316 removed that field from both Krea 2 cards on purpose: it drives the H/B/L **tier letter**,
