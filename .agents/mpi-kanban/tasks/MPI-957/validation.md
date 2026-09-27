@@ -40,6 +40,9 @@ native canvases keep their pixels; overlay/mask/paint coordinate spaces untouche
 - Unit: the 6 `.cjs` suites importing MpiCanvas.js, 103/103.
 - ESLint clean on MpiCanvas.js.
 
+- CI (Tests) green on 59d20b1b6.
+- Rules: `.claude/rules/component-mounts.md` names the `-mip` canvases (9064a1bd6, approved by Fabio).
+
 ## Remaining
 
 Human eyes: a real 8K/16K photo in History (a tool mode) and in Compare, zoomed out.
