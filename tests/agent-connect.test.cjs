@@ -44,6 +44,15 @@ route._setRun(async (line) => {
     return ok();
 });
 
+// The app launcher: records what would start. Never a real spawn: a CI runner has an `open` of
+// its own on PATH, so a test leaning on the launch FAILING passed here and went red there.
+const launched = [];
+let launchFails = false;
+route._setLaunch(async (exe, args) => {
+    launched.push([exe, ...args]);
+    if (launchFails) throw new Error(`spawn ${exe} ENOENT`);
+});
+
 // fetch: the test's own server is real, GitHub is a fake that answers with the URL it was asked.
 const realFetch = global.fetch;
 const fetched = [];
@@ -162,12 +171,20 @@ test('Antigravity gets the plugin folder from the public repo, and loses only th
 
 test('Claude Desktop is handed the latest release .mcpb, and a launch that fails says so', async () => {
     fetched.length = 0;
-    // The fake alias is an empty file, so the launch itself fails: the answer must say so.
+    launched.length = 0;
+    const mcpb = path.join(os.tmpdir(), 'cubric-studio.mcpb');
     const r = await post('/agent-connect/claude-desktop/connect');
     assert.deepEqual(fetched, [`https://github.com/${REPO}/releases/latest/download/cubric-studio.mcpb`]);
-    assert.equal(fs.readFileSync(path.join(os.tmpdir(), 'cubric-studio.mcpb'), 'utf8'), `from ${fetched[0]}`);
-    assert.equal(r.ok, false);
-    assert.match(r.error.message, /spawn/);
+    assert.equal(fs.readFileSync(mcpb, 'utf8'), `from ${fetched[0]}`);
+    assert.deepEqual(launched, [[path.join(home, 'Local', 'Microsoft', 'WindowsApps', 'claude-desktop.exe'), mcpb]]);
+    assert.equal(r.ok, true, 'installed only once the user clicks Install, so a started launch is ok');
+    assert.match(r.note, /click Install/);
+
+    launchFails = true;
+    const bad = await post('/agent-connect/claude-desktop/connect');
+    launchFails = false;
+    assert.equal(bad.ok, false);
+    assert.match(bad.error.message, /spawn/);
 
     assert.equal((await post('/agent-connect/claude-desktop/disconnect')).ok, false, 'no uninstall for Claude Desktop');
     assert.equal((await post('/agent-connect/__proto__/connect')).ok, false);
@@ -190,9 +207,9 @@ test('on macOS: `command -v`, Claude.app, its Application Support extensions, an
         assert.ok(ran.includes('command -v claude') && !ran.some((l) => l.startsWith('where')));
         assert.equal(client(s, 'antigravity').detected, true, 'found by ~/.gemini/antigravity, not an install path');
 
-        // `open` does not exist on this Windows runner: the failure proves it was the command run.
-        const r = await post('/agent-connect/claude-desktop/connect');
-        assert.match(r.error.message, /spawn open/);
+        launched.length = 0;
+        await post('/agent-connect/claude-desktop/connect');
+        assert.deepEqual(launched, [['open', '-a', app, path.join(os.tmpdir(), 'cubric-studio.mcpb')]]);
     } finally {
         Object.defineProperty(process, 'platform', real);
     }

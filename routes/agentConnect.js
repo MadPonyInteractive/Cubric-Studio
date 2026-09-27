@@ -66,6 +66,12 @@ let run = (cmdline) => new Promise((resolve) => {
 
 const onPath = async (bin) => (await run(`${isWin() ? 'where' : 'command -v'} ${bin}`)).ok;
 
+/** Start a GUI app and settle once it started, or reject when it could not. A test seam like `run`. */
+let launch = (claudeDesktopExe, args) => new Promise((resolve, reject) => {
+    const child = spawn(claudeDesktopExe, args, { detached: true, stdio: 'ignore' });
+    child.once('spawn', () => { child.unref(); resolve(); }).once('error', reject);
+});
+
 const parseJson = (text) => { try { return JSON.parse(text); } catch { return null; } };
 
 /** Run CLI steps in order. A connect stops at the first failure; a disconnect runs them all. */
@@ -134,11 +140,7 @@ const CLIENTS = {
         connect: async () => {
             const file = path.join(os.tmpdir(), 'cubric-studio.mcpb');
             fs.writeFileSync(file, await download(MCPB_URL));
-            const claudeDesktopExe = isMac() ? 'open' : findClaudeDesktop();
-            const args = isMac() ? ['-a', findClaudeDesktop(), file] : [file];
-            const child = spawn(claudeDesktopExe, args, { detached: true, stdio: 'ignore' });
-            await new Promise((resolve, reject) => child.once('spawn', resolve).once('error', reject));
-            child.unref();
+            await (isMac() ? launch('open', ['-a', findClaudeDesktop(), file]) : launch(findClaudeDesktop(), [file]));
         },
         waitsForUser: 'Claude Desktop is showing its install screen: click Install there.',
         disconnectHint: "open Claude Desktop's Settings > Extensions and remove Cubric Studio.",
@@ -228,7 +230,8 @@ router.post('/agent-connect/:id/:action', async (req, res) => {
         await c[action]();
         const client = await describe(id);
         const ok = action === 'connect' ? client.connected || Boolean(c.waitsForUser) : !client.connected;
-        const note = action === 'connect' ? (client.connected ? c.restart : c.waitsForUser) : undefined;
+        // Claude Desktop's install screen always waits for the user, connected already or not.
+        const note = action === 'connect' ? (c.waitsForUser || c.restart) : undefined;
         if (!ok) logger.warn('agent-connect', `${action} ${id} ran but status says connected=${client.connected}`);
         res.json({ ok, client, note, error: ok ? undefined : { message: `${c.name} still reads as ${client.connected ? 'connected' : 'not connected'}.` } });
     } catch (err) {
@@ -238,5 +241,7 @@ router.post('/agent-connect/:id/:action', async (req, res) => {
 });
 
 module.exports = router;
-// Test seam: the suite swaps the CLI runner so nothing reaches a real agent install.
+// Test seams: the suite swaps the CLI runner and the app launcher, so no test reaches a real
+// agent install or starts a real app (a runner can have an `open` of its own on PATH).
 module.exports._setRun = (fn) => { run = fn; };
+module.exports._setLaunch = (fn) => { launch = fn; };
