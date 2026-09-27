@@ -47,3 +47,26 @@ The live `https://api.runpod.io/v2/openapi.json` (OpenAPI 3.1, info.version 2.0.
    Reconnect (start), delete; list + grow a volume.
 2. Runtime: `./publish-runtime.sh dev` -> restart a dev Pod -> let the watchdog fire (or call
    `_self_stop`) and see the Pod go EXITED -> `promote`. Never `stable`.
+
+## 2026-09-27 live legs (Fabio ran the app, this session read the log)
+
+- **Runtime on dev**: mpi-ci `a5cf42a` (the v2 self-stop + a log line naming it) published with
+  `./publish-runtime.sh dev`. Public dev manifest `wrapper_sha256` = local
+  `27fcd294...`; stable untouched (`85ef00e1...`, = mpi-ci `07970da`).
+- **App create on v2, CPU download mode**: `createPod REST -> http 201`, Pod `xnf6hdfgym9tiu`,
+  EU-RO-1, `v0.23.0-dev-cpu`, dev runtime channel. `cpu3c` and `cpu3g` were refused with HTTP 400
+  first, `cpu5c` took it. **Open question**: stock, or a v2 constraint on those flavours? The
+  CPU fallback logs only the status; log `_createRejectReason(created.json)` there to know.
+- **Watchdog**: Fabio quit the app without Disconnect; the Pod went to stopped by itself
+  (console: paused, Not running, $0.00/hr, volume kept). The dev wrapper only calls
+  `POST /v2/pods/{id}/action`, so the stop IS the v2 call. The Pod log line
+  `self-stop issued (v2 action, HTTP ...)` was not read.
+
+## Still owed
+
+1. `./publish-runtime.sh promote` (Fabio's yes): ships this AND `77641aa` (MPI-756 reclaimBytes,
+   dev-tested 2026-09-15, never promoted) to every user's Pod.
+2. GPU create leg (the nested `gpu{}` body): Connect the cheapest GPU -> ready -> Disconnect ->
+   Reconnect -> Disconnect; read `[runpod]` in `%APPDATA%/Cubric Studio/logs/app.log`.
+3. The cpu3c/cpu3g 400s above.
+
