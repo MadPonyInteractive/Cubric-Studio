@@ -5,7 +5,7 @@
 
 ## MpiCanvas (Primitive: interactive image canvas)
 
-DOM structure: `.mpi-canvas` root → `.mpi-canvas__stack` (CSS-transform pan/zoom target) → `canvas[data-role=base]` + `canvas[data-role=overlay]` (both image-native px) + `canvas[data-role=screen-ui]` (container px, sibling of stack).
+DOM structure: `.mpi-canvas` root → `.mpi-canvas__stack` (CSS-transform pan/zoom target) → `canvas[data-role=base]` + `canvas[data-role=compare]` + `canvas[data-role=overlay]` + `canvas[data-role=screen-ui]` (container px, sibling of stack). Base and overlay are the BEFORE image's native px. **Compare is the AFTER media's OWN native px** (MPI-956), cover-fitted over the base by CSS `left/top/width/height` and cut at the slider with `clip-path`; hidden (`display:none`, 0x0) outside compare mode. Never draw one compare side into the other's canvas — that squashed an 8K after into a 1K before's grid.
 
 Props: `{ onBrushSizeChange?: fn, onBrushTypeChange?: fn }`
 

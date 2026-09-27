@@ -106,7 +106,7 @@ PromptBoxControls own the scope decision via their `scope: 'shared' | 'perOp'` f
 - Persisted to `localStorage` via `Storage.getPixelMode` / `setPixelMode` (key `mpi_pixel_mode`). Hydrated into `state.pixelMode` at module init in `js/state.js`.
 - `state:changed` subscriber in `state.js` mirrors writes to Storage and swaps `<html>` class `pixel-mode-{value}`. Initial class applied in `shell.js` boot.
 - CSS rules live in `styles/01_base.css` — never write `image-rendering` inline on canvas/img/video elements.
-- Auto mode: `MpiCanvas._applyTransform` + `MpiMaskedImagePreview._applyTransform` set `dataset.zoomMode = 'pixel' | 'smooth'` on the stack el from `view.scale` vs the exported `AUTO_PIXEL_THRESHOLD` constant (3.0 = 300%). CSS only consumes `data-zoom-mode` under `html.pixel-mode-auto`.
+- Auto mode: `MpiCanvas._applyTransform` + `MpiMaskedImagePreview._applyTransform` set `dataset.zoomMode = 'pixel' | 'smooth'` on the stack el from `view.scale` vs the exported `AUTO_PIXEL_THRESHOLD` constant (3.0 = 300%). CSS only consumes `data-zoom-mode` under `html.pixel-mode-auto`. A canvas magnified by a DIFFERENT amount than its stack carries its own `data-zoom-mode`, which wins (same specificity, later rule): MpiCanvas's `canvas[data-role=compare]` sets it in `_drawComparisonLayer` from `view.scale × cssWidth / canvas.width` (MPI-956).
 - Video: in auto mode, video is always smooth (no zoom in viewer today). Static smooth/pixel modes apply uniformly.
 - New viewer surfaces that need to honor the toggle: add their selector to the four CSS rule blocks in `styles/01_base.css` (smooth / pixel / auto-base / auto-zoom).
 
