@@ -233,8 +233,8 @@
       "use_audio": true,
       "truncate_to_audio": false,
       "images": [
-        "904",
-        2
+        "979",
+        0
       ],
       "audio": [
         "952",
@@ -297,25 +297,6 @@
     "class_type": "ModelAttentionBackend",
     "_meta": {
       "title": "ModelAttentionBackend"
-    }
-  },
-  "904": {
-    "inputs": {
-      "overlap": 1,
-      "overlap_side": "source",
-      "overlap_mode": "linear_blend",
-      "source_images": [
-        "916",
-        0
-      ],
-      "new_images": [
-        "941",
-        0
-      ]
-    },
-    "class_type": "ImageBatchExtendWithOverlap",
-    "_meta": {
-      "title": "Stitch (hard join)"
     }
   },
   "905": {
@@ -518,7 +499,7 @@
     },
     "class_type": "GetImageRangeFromBatch",
     "_meta": {
-      "title": "New Frames (after the flash)"
+      "title": "New Frames (after the context)"
     }
   },
   "942": {
@@ -721,7 +702,7 @@
         0
       ],
       "images": [
-        "916",
+        "977",
         0
       ],
       "audio_vae": [
@@ -729,7 +710,7 @@
         0
       ],
       "audio": [
-        "906",
+        "978",
         0
       ]
     },
@@ -791,6 +772,74 @@
     "class_type": "MpiMath",
     "_meta": {
       "title": "Last Source Frame (frame_count - 1)"
+    }
+  },
+  "976": {
+    "inputs": {
+      "math_expression": "(a - 5) % 17",
+      "a": [
+        "331",
+        3
+      ]
+    },
+    "class_type": "MpiMath",
+    "_meta": {
+      "title": "Grid Tail Start ((frames - 5) % 17)"
+    }
+  },
+  "977": {
+    "inputs": {
+      "num_frames": 4096,
+      "images": [
+        "916",
+        0
+      ],
+      "start_index": [
+        "976",
+        0
+      ]
+    },
+    "class_type": "GetImageRangeFromBatch",
+    "_meta": {
+      "title": "Source Tail on the H3 Grid"
+    }
+  },
+  "978": {
+    "inputs": {
+      "end": -1,
+      "audio": [
+        "950",
+        0
+      ],
+      "fps": [
+        "331",
+        2
+      ],
+      "start": [
+        "976",
+        0
+      ]
+    },
+    "class_type": "MpiAudioRange",
+    "_meta": {
+      "title": "Source Audio Tail (same frame)"
+    }
+  },
+  "979": {
+    "inputs": {
+      "inputcount": 2,
+      "image_1": [
+        "916",
+        0
+      ],
+      "image_2": [
+        "941",
+        0
+      ]
+    },
+    "class_type": "ImageBatchMulti",
+    "_meta": {
+      "title": "Stitch (hard join)"
     }
   }
 }
