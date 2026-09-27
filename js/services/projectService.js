@@ -11,6 +11,7 @@ import { navigate, PAGE_LANDING } from '../router.js';
 import { Storage } from '../core/storage.js';
 import { reconcileAndHydrate } from '../managers/projectReconciler.js';
 import {
+    createItemGroup,
     addGroupToProject,
     updateGroupInProject,
     removeGroupFromProject,
@@ -21,6 +22,14 @@ import {
     getToolSettings,
     setToolSettings,
 } from '../data/projectModel.js';
+import {
+    STACK_TYPE,
+    isStack,
+    stackFields,
+    stackCreateBlockReason,
+    applyStack,
+    applyUnstack,
+} from '../data/stackModel.js';
 import { clientLogger } from './clientLogger.js';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -557,6 +566,59 @@ export async function removeGroup(groupId) {
 }
 
 /**
+ * Turn cards into ONE stack card (MPI-949), persist once, and emit `project:group-added`
+ * for the stack — the Gallery repaints from that, and the members drop out of it because
+ * the gallery scope hides any card with a `stackId`. N+1 groups change in a single write.
+ * Looked up INSIDE the mutation queue, for the reason `renameGroup` gives.
+ * @param {string[]} memberIds - in the user's click order
+ * @param {{name?: string, customName?: string|null}} [opts]
+ * @returns {Promise<Object|null>} the new stack, or null when those cards cannot be stacked
+ */
+export async function stackGroups(memberIds, opts = {}) {
+    return _enqueueMutation(async () => {
+        const groups = state.currentProject?.itemGroups;
+        if (!groups) return null;
+        const members = memberIds.map(id => groups.find(g => g.id === id));
+        if (members.some(g => !g || g.stackId) || stackCreateBlockReason(members)) return null;
+        const stack = createItemGroup(STACK_TYPE, stackFields(members, opts));
+        state.currentProject = {
+            ...state.currentProject,
+            updatedAt:  new Date().toISOString(),
+            itemGroups: applyStack(groups, stack),
+        };
+        await persistGroups();
+        Events.emit('project:group-added', { group: stack });
+        return stack;
+    });
+}
+
+/**
+ * Dissolve a stack (MPI-949): its members come back to the gallery at their own dates,
+ * in the stack's archive scope. Persists once and emits `project:group-removed` for the
+ * stack; the caller repaints the grid, since the members were never removed.
+ * @param {string} stackId
+ * @returns {Promise<string[]|null>} the member ids handed back, or null when it is not a stack
+ */
+export async function unstackGroup(stackId) {
+    return _enqueueMutation(async () => {
+        const groups = state.currentProject?.itemGroups;
+        const stack = groups?.find(g => g.id === stackId);
+        if (!isStack(stack)) return null;
+        const wasRemembered = state.currentProject.lastGroupId === stackId;
+        state.currentProject = {
+            ...state.currentProject,
+            updatedAt:  new Date().toISOString(),
+            itemGroups: applyUnstack(groups, stackId),
+        };
+        await persistGroups();
+        // The Tab flipper's remembered card is gone, same as removeGroup (MPI-378).
+        if (wasRemembered) await updateProject({ lastGroupId: null });
+        Events.emit('project:group-removed', { groupId: stackId });
+        return [...stack.members];
+    });
+}
+
+/**
  * One in-memory group in its ON-DISK shape: the card's own fields, and `history` as UUID
  * strings. THE ONLY place that converts full objects → UUID strings — every write of a
  * group to `project.json` goes through it, whichever route carries it.
@@ -581,6 +643,14 @@ export function serializeGroup(g) {
         history:       (g.history || []).map(item =>
             typeof item === 'string' ? item : item.id
         ),
+        // MPI-949: stack fields only where they apply, so an ordinary card's on-disk
+        // shape is unchanged.
+        ...(isStack(g) ? {
+            kind:    g.kind,
+            members: [...(g.members || [])],
+            ...(g.expected > 0 ? { expected: g.expected } : {}),
+        } : {}),
+        ...(g.stackId ? { stackId: g.stackId } : {}),
     };
 }
 

@@ -18,6 +18,7 @@
  */
 
 import { createDefaultLoras, getLoraStages } from '../data/projectModel.js';
+import { isStack, sanitizeStacks } from '../data/stackModel.js';
 
 /**
  * Reconcile a migrated project: load .meta/ files, drop broken entries,
@@ -45,6 +46,14 @@ export async function reconcileAndHydrate(project) {
     let mediaFiles = null;
 
     for (const group of groups) {
+        // MPI-949: a stack owns no media — its history is empty by design, so the
+        // empty-group drop below would delete every stack on every open. Its members
+        // are ordinary cards and hydrate normally; membership is repaired after the loop.
+        if (isStack(group)) {
+            hydratedGroups.push({ ...group, history: [], selectedIndex: 0 });
+            continue;
+        }
+
         const hydratedHistory = [];
 
         for (const id of (group.history ?? [])) {
@@ -88,8 +97,13 @@ export async function reconcileAndHydrate(project) {
         });
     }
 
+    // A member dropped above (its media is gone) must leave its stack, and a stack with
+    // nothing left must go — or the gallery would hide cards behind a stack that is not there.
+    const stacks = sanitizeStacks(hydratedGroups);
+    if (stacks.changed) wasModified = true;
+
     return {
-        project: { ...projectWithSettings, itemGroups: hydratedGroups },
+        project: { ...projectWithSettings, itemGroups: stacks.groups },
         wasModified,
     };
 }

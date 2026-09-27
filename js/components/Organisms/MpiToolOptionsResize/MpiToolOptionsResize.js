@@ -1,7 +1,7 @@
 /**
  * MpiToolOptionsResize — Organism: resize / flip / rotate tool options.
  *
- * Size source:
+ * Size source (default mode):
  *   - SDXL/FLUX: ratio radio (orientation + label) × multiplier (x1 | x2).
  *     Width/Height inputs hidden; derived from preset × multiplier.
  *   - FREE: manual Width/Height inputs.
@@ -17,6 +17,17 @@
  * Apply emits the full-resolution params; the parent block runs the full
  * workflow via generationService and appends the result as a new history
  * entry. Apply never overwrites the source.
+ *
+ * Stack mode (stackMode: true) — MPI-949:
+ *   Offers only two families — LONG EDGE (resize so the longest side equals a
+ *   pixel length; default 1024) and % (scale by a percentage; default 50).
+ *   Live preview is suppressed; Apply emits:
+ *     { params: { rule: { kind: 'longEdge'|'percent', value: number },
+ *                 upscale_method, keep_proportion, pad_color, crop_position,
+ *                 divisible_by, flip, rotation } }
+ *   The block (Phase 4) calls deriveResizeDims(rule.kind, memberW, memberH,
+ *   { [rule.kind]: rule.value }) per stack member to get absolute dims.
+ *   Default (no prop) = today's panel exactly.
  */
 
 import { ComponentFactory } from '../../factory.js';
@@ -80,6 +91,14 @@ const FAMILIES = [
 const SCALES = [...SCALE_VALUES].map(value => ({
     label: `÷${value}`, value, info: `Divide width and height by ${value}`,
 }));
+
+/** Stack-mode family options (MPI-949). */
+const STACK_FAMILIES = [
+    { label: 'Long Edge', value: 'longEdge', info: 'Resize so the longest side equals this length in pixels, keeping proportions' },
+    { label: '%',         value: 'percent',  info: 'Scale by a percentage, keeping proportions (e.g. 50 = half size)' },
+];
+/** Default value for each stack family. */
+const STACK_DEFAULTS = Object.freeze({ longEdge: 1024, percent: 50 });
 
 const ORIENTATIONS = [
     { label: 'Portrait',  value: 'portrait',  icon: 'ratio_9_16', info: 'Portrait orientation' },
@@ -178,6 +197,7 @@ export const MpiToolOptionsResize = ComponentFactory.create({
             <div class="mpi-tool-options-resize__section">
                 <div class="mpi-tool-options-resize__section-label">Resolution Type</div>
                 <div class="mpi-tool-options-resize__row" id="resize-family-slot"></div>
+                <div class="mpi-tool-options-resize__row" id="resize-stack-value-slot" hidden></div>
                 <div class="mpi-tool-options-resize__row" id="resize-orientation-slot"></div>
                 <div class="mpi-tool-options-resize__row" id="resize-ratio-slot"></div>
                 <div class="mpi-tool-options-resize__row" id="resize-multiplier-slot"></div>
@@ -222,7 +242,7 @@ export const MpiToolOptionsResize = ComponentFactory.create({
     `,
 
     setup: (el, props, emit) => {
-        const { viewer, kind = 'image' } = props;
+        const { viewer, kind = 'image', stackMode = false } = props;
         let currentItem = props.currentItem ?? null;
 
         let settings = coerceSettings(
@@ -251,6 +271,11 @@ export const MpiToolOptionsResize = ComponentFactory.create({
         let multRadio = null;
         let _previewImg = null;
         let _previewSpinner = null;
+
+        // Stack mode state (MPI-949). Unused in non-stack mode.
+        let _stackFamily = 'longEdge';
+        let _stackValue = STACK_DEFAULTS.longEdge;
+        let _stackValueInput = null;
 
         const persist = (key, value) => {
             clearTimeout(_persistTimers.get(key));
@@ -281,32 +306,83 @@ export const MpiToolOptionsResize = ComponentFactory.create({
         };
 
         // ── Resolution Type controls ─────────────────────────────────────────
-        const familyRadio = mount('#resize-family-slot', MpiRadioGroup, {
-            name: 'resize-family', value: settings.family, options: FAMILIES,
-            info: 'Resolution preset family',
-        });
-        _unsubs.push(familyRadio.on('select', ({ value }) => {
-            settings = { ...settings, family: value };
-            if (PRESET_FAMILIES.has(value)) {
-                const list = _ratioListFor(value, settings.orientation);
-                if (!list.some(r => r.label === settings.ratioLabel)) {
-                    settings = { ...settings, ratioLabel: list[0]?.label ?? DEFAULTS.ratioLabel };
-                    persist('ratioLabel', settings.ratioLabel);
+        if (stackMode) {
+            // Stack mode (MPI-949): only LONG EDGE and % families.
+            const rebuildStackValueInput = () => {
+                if (_stackValueInput) { _stackValueInput.destroy?.(); _stackValueInput = null; }
+                qs('#resize-stack-value-slot', el).innerHTML = '';
+                const isLongEdge = _stackFamily === 'longEdge';
+                _stackValueInput = MpiInput.mount(document.createElement('div'), {
+                    type: 'number',
+                    label: isLongEdge ? 'Long Edge' : 'Percent',
+                    value: _stackValue,
+                    min: 1,
+                    step: isLongEdge ? 1 : 0.1,
+                    info: isLongEdge
+                        ? 'Target length for the longest side, in pixels'
+                        : 'Scale factor (e.g. 50 = half size)',
+                });
+                qs('#resize-stack-value-slot', el).appendChild(_stackValueInput.el);
+                _children.push(_stackValueInput);
+                _stackValueInput.on('change', ({ value }) => {
+                    const n = Number(value);
+                    _stackValue = _stackFamily === 'longEdge'
+                        ? Math.max(1, Math.round(n))
+                        : Math.max(1, n);
+                });
+            };
+
+            const stackFamilyRadio = mount('#resize-family-slot', MpiRadioGroup, {
+                name: 'resize-stack-family', value: _stackFamily, options: STACK_FAMILIES,
+                info: 'Resize rule for stacked images',
+            });
+            _unsubs.push(stackFamilyRadio.on('select', ({ value }) => {
+                _stackFamily = value;
+                _stackValue = STACK_DEFAULTS[value];
+                rebuildStackValueInput();
+            }));
+
+            rebuildStackValueInput();
+
+            // Hide all non-stack resolution slots.
+            qs('#resize-stack-value-slot', el).hidden = false;
+            qs('#resize-orientation-slot', el).hidden = true;
+            qs('#resize-ratio-slot', el).hidden = true;
+            qs('#resize-multiplier-slot', el).hidden = true;
+            qs('#resize-megapixels-slot', el).hidden = true;
+            qs('#resize-scale-slot', el).hidden = true;
+            qs('#resize-free-pair', el).hidden = true;
+            qs('#resize-derived-pair', el).hidden = true;
+            qs('#resize-reset-dims-slot', el).hidden = true;
+            qs('#resize-preview-slot', el).hidden = true;
+        } else {
+            const familyRadio = mount('#resize-family-slot', MpiRadioGroup, {
+                name: 'resize-family', value: settings.family, options: FAMILIES,
+                info: 'Resolution preset family',
+            });
+            _unsubs.push(familyRadio.on('select', ({ value }) => {
+                settings = { ...settings, family: value };
+                if (PRESET_FAMILIES.has(value)) {
+                    const list = _ratioListFor(value, settings.orientation);
+                    if (!list.some(r => r.label === settings.ratioLabel)) {
+                        settings = { ...settings, ratioLabel: list[0]?.label ?? DEFAULTS.ratioLabel };
+                        persist('ratioLabel', settings.ratioLabel);
+                    }
+                    _applyPresetDims();
+                } else if (value === 'free') {
+                    // The other types moved width/height under the free inputs;
+                    // show what Apply will actually send.
+                    widthInput.el.setValue(settings.width);
+                    heightInput.el.setValue(settings.height);
+                } else {
+                    _applyDerivedDims();
                 }
-                _applyPresetDims();
-            } else if (value === 'free') {
-                // The other types moved width/height under the free inputs;
-                // show what Apply will actually send.
-                widthInput.el.setValue(settings.width);
-                heightInput.el.setValue(settings.height);
-            } else {
-                _applyDerivedDims();
-            }
-            persist('family', value);
-            rebuildResolutionControls();
-            syncConditionalRows();
-            schedulePreview();
-        }));
+                persist('family', value);
+                rebuildResolutionControls();
+                syncConditionalRows();
+                schedulePreview();
+            }));
+        }
 
         function rebuildResolutionControls() {
             // Tear down preset-only controls
@@ -520,10 +596,12 @@ export const MpiToolOptionsResize = ComponentFactory.create({
         _unsubs.push(rotationRadio.on('select', ({ value }) => setValue('rotation', value)));
 
         _previewImg = qs('.mpi-tool-options-resize__preview-img', el);
-        const spinnerHost = qs('#resize-preview-spinner', el);
-        _previewSpinner = MpiSpinner.mount(spinnerHost, { size: 'sm' });
-        _children.push(_previewSpinner);
-        _previewSpinner.el.style.display = 'none';
+        if (!stackMode) {
+            const spinnerHost = qs('#resize-preview-spinner', el);
+            _previewSpinner = MpiSpinner.mount(spinnerHost, { size: 'sm' });
+            _children.push(_previewSpinner);
+            _previewSpinner.el.style.display = 'none';
+        }
 
         const applyBtn = mount('#resize-actions-slot', MpiButton, {
             icon: 'check', label: 'Apply', variant: 'primary', size: 'sm',
@@ -531,7 +609,22 @@ export const MpiToolOptionsResize = ComponentFactory.create({
         });
         _unsubs.push(applyBtn.on('click', () => {
             cancelPreview();
-            emit('apply', { params: params() });
+            if (stackMode) {
+                emit('apply', {
+                    params: {
+                        rule: { kind: _stackFamily, value: _stackValue },
+                        upscale_method: settings.upscale_method,
+                        keep_proportion: settings.keep_proportion,
+                        pad_color: { ...settings.pad_color },
+                        crop_position: settings.crop_position,
+                        divisible_by: settings.divisible_by,
+                        flip: settings.flip,
+                        rotation: settings.rotation,
+                    },
+                });
+            } else {
+                emit('apply', { params: params() });
+            }
         }));
 
         function syncConditionalRows() {
@@ -672,6 +765,7 @@ export const MpiToolOptionsResize = ComponentFactory.create({
 
         el.getParams = params;
         el.setCurrentItem = async (item) => {
+            if (stackMode) return;
             if (!item || item.id === currentItem?.id) return;
             currentItem = item;
             cancelPreview();
@@ -679,13 +773,15 @@ export const MpiToolOptionsResize = ComponentFactory.create({
             schedulePreview();
         };
 
-        rebuildResolutionControls();
+        if (!stackMode) rebuildResolutionControls();
         syncConditionalRows();
 
-        (async () => {
-            await _refreshThumbnail({ syncDims: true });
-            schedulePreview();
-        })();
+        if (!stackMode) {
+            (async () => {
+                await _refreshThumbnail({ syncDims: true });
+                schedulePreview();
+            })();
+        }
 
         el.destroy = () => {
             _destroyed = true;

@@ -4,6 +4,7 @@ import { ce, on, qs } from '../../../utils/dom.js';
 import { renderIcon } from '../../../utils/icons.js';
 import { mountButton } from '../../Primitives/MpiButton/MpiButton.js';
 import {
+    cancelBatch,
     cancelPendingCueJob,
     cancelRunningCueJob,
     clearPendingQueue,
@@ -263,7 +264,61 @@ export const MpiQueuePanel = ComponentFactory.create({
             return button;
         };
 
+        // MPI-949 — a batch row collapses N jobs sharing a batchId into one line.
+        // It shows "label · done / total" and a single Cancel all button that calls
+        // cancelBatch (removes pending + stops running). The button stores the batchId
+        // in data-batch-id so the click handler can route it without touching any
+        // peer component's internals.
+        const _renderBatchRow = (job, index) => {
+            const card = ce('article', {
+                className: [
+                    'mpi-queue-panel__item',
+                    `mpi-queue-panel__item--${job.status}`,
+                    'mpi-queue-panel__item--batch',
+                ].filter(Boolean).join(' '),
+            });
+            card.appendChild(ce('span', {
+                className: 'mpi-queue-panel__index',
+                textContent: String(index + 1).padStart(2, '0'),
+            }));
+
+            const thumb = ce('div', { className: 'mpi-queue-panel__thumb mpi-queue-panel__thumb--batch' });
+            const frame = ce('span', { className: 'mpi-queue-panel__thumb-frame' });
+            frame.appendChild(ce('span', {
+                className: 'mpi-queue-panel__thumb-label',
+                textContent: `${job.batchDone}/${job.batchTotal}`,
+            }));
+            thumb.appendChild(frame);
+            card.appendChild(thumb);
+
+            const body = ce('div', { className: 'mpi-queue-panel__body' });
+            const status = ce('div', {
+                className: `mpi-queue-panel__status mpi-queue-panel__status--${_statusTone(job)}`,
+            });
+            status.appendChild(ce('span', { className: 'mpi-queue-panel__dot' }));
+            status.appendChild(ce('span', { textContent: _statusLabel(job) }));
+            body.appendChild(status);
+            body.appendChild(ce('div', {
+                className: 'mpi-queue-panel__prompt',
+                textContent: `${job.batchLabel || job.modelName || 'Batch'} · ${job.batchDone} / ${job.batchTotal}`,
+            }));
+
+            const cancelBtn = mountButton({
+                size: 'sm',
+                variant: 'ghost',
+                extraClasses: 'mpi-queue-panel__action mpi-queue-panel__action--cancel',
+            }, `${renderIcon('close', 'xs')}<span>Cancel all</span>`);
+            cancelBtn.dataset.batchId = job.batchId;
+            cancelBtn.dataset.queueAction = 'cancel-batch';
+            cancelBtn.setAttribute('aria-label', 'Cancel all jobs in batch');
+            body.appendChild(cancelBtn);
+
+            card.appendChild(body);
+            return card;
+        };
+
         const _renderJob = (job, index) => {
+            if (job.isBatch) return _renderBatchRow(job, index);
             const card = ce('article', {
                 className: [
                     'mpi-queue-panel__item',
@@ -323,14 +378,21 @@ export const MpiQueuePanel = ComponentFactory.create({
         let _lastSig = '';
         const _cardByJobId = new Map();
 
+        // MPI-949: batch rows use batchId+done/total instead of queueJobId so the
+        // signature changes when progress advances (batchDone increments).
         const _signature = (items) => items
-            .map(j => `${j.queueJobId || ''}|${j.status}|${j.isLoop ? 1 : 0}|${j.previewKind || ''}|${j.previewUrl ? 1 : 0}|${j.promptExcerpt || ''}|${j.width}x${j.height}|${j.modelName || ''}|${j.operation || ''}|${j.engine || ''}`)
+            .map(j => j.isBatch
+                ? `batch:${j.batchId}|${j.status}|${j.batchDone}/${j.batchTotal}|${j.previewUrl ? 1 : 0}`
+                : `${j.queueJobId || ''}|${j.status}|${j.isLoop ? 1 : 0}|${j.previewKind || ''}|${j.previewUrl ? 1 : 0}|${j.promptExcerpt || ''}|${j.width}x${j.height}|${j.modelName || ''}|${j.operation || ''}|${j.engine || ''}`)
             .join('\n');
+
+        // MPI-949: batch rows are keyed by 'batch:<batchId>'; unbatched by queueJobId.
+        const _cardKey = (job) => job.isBatch ? `batch:${job.batchId}` : job.queueJobId;
 
         const _patchPreview = (items) => {
             items.forEach((job) => {
                 if (!job.previewUrl) return;
-                const card = _cardByJobId.get(job.queueJobId);
+                const card = _cardByJobId.get(_cardKey(job));
                 if (!card) return;
                 const img = qs('.mpi-queue-panel__thumb-img', card);
                 if (img && img.getAttribute('src') !== job.previewUrl) {
@@ -369,7 +431,8 @@ export const MpiQueuePanel = ComponentFactory.create({
 
             items.forEach((job, index) => {
                 const card = _renderJob(job, index);
-                if (job.queueJobId) _cardByJobId.set(job.queueJobId, card);
+                const key = _cardKey(job);
+                if (key) _cardByJobId.set(key, card);
                 listEl.appendChild(card);
             });
         };
@@ -380,7 +443,9 @@ export const MpiQueuePanel = ComponentFactory.create({
             const button = event.target.closest?.('.mpi-queue-panel__action');
             if (!button || !listEl.contains(button)) return;
             const queueJobId = button.dataset.queueJobId;
-            if (button.dataset.queueAction === 'stop') cancelRunningCueJob(queueJobId);
+            // MPI-949: batch rows use cancel-batch; individual rows use stop/cancel.
+            if (button.dataset.queueAction === 'cancel-batch') cancelBatch(button.dataset.batchId);
+            else if (button.dataset.queueAction === 'stop') cancelRunningCueJob(queueJobId);
             else cancelPendingCueJob(queueJobId);
         }));
         _unsubs.push(Events.on('generation-queue:changed', _render));

@@ -19,6 +19,7 @@
 'use strict';
 
 import { MODELS } from './modelConstants/models.js';
+import { isStack, applyUnstack, applyRemoveMembers } from './stackModel.js';
 
 const generateId = () => crypto.randomUUID();
 
@@ -169,7 +170,7 @@ export function createAudioItem(overrides = {}) {
 /**
  * @typedef {Object} ItemGroup
  * @property {string}         id           - Unique id
- * @property {'image'|'video'|'audio'} type - Fixed at creation, never changes
+ * @property {'image'|'video'|'audio'|'stack'} type - Fixed at creation, never changes. `'stack'` = a card holding other cards (MPI-949, js/data/stackModel.js): its `history` is always empty.
  * @property {string}         name         - User-assigned name
  * @property {string}         createdAt    - ISO timestamp
  * @property {number}         selectedIndex - Index into `history` of the current selected entry
@@ -178,6 +179,10 @@ export function createAudioItem(overrides = {}) {
  * @property {false|'dot'|'square'|'triangle'|true} [favourite=false] - The card's mark (MPI-785), or false. Legacy `true` (the old heart) reads as 'dot' — always read it through `markOf()` in js/utils/galleryFilter.js.
  * @property {boolean}        [archived=false]  - Whether this group is put away in the gallery's archive scope. Subtractive: an archived group is hidden from every active-scope filter and from the media picker. A flag flip only — nothing moves on disk.
  * @property {string|null}    [customName=null] - User-assigned card name; overrides the derived label when set. Null = fall back to derived.
+ * @property {'image'|'video'} [kind]      - Stack only: what its members are.
+ * @property {string[]}       [members]    - Stack only: member group ids in click order — the source of truth for membership.
+ * @property {number}         [expected]   - Stack only: the member count a Gallery run is still filling it towards.
+ * @property {string}         [stackId]    - Set on a card that sits inside a stack; the gallery hides it (galleryFilter.js).
  */
 
 /**
@@ -360,15 +365,30 @@ export function addGroupToProject(project, group) {
 /**
  * Removes a group from a project by id.
  * Returns a new project object — does not mutate the original.
+ *
+ * MPI-949: every removal leaves stack membership consistent, whichever caller made it.
+ * Removing a STACK hands its members back to the gallery (an unstack, never a delete —
+ * deleting the members is the caller's explicit choice). Removing a MEMBER drops it from
+ * its stack, and a stack left with no members goes with it.
  * @param {Project} project
  * @param {string} groupId
  * @returns {Project}
  */
 export function removeGroupFromProject(project, groupId) {
+    const groups = project.itemGroups;
+    const target = groups.find(g => g.id === groupId);
+    let itemGroups;
+    if (isStack(target)) {
+        itemGroups = applyUnstack(groups, groupId);
+    } else if (target?.stackId) {
+        itemGroups = applyRemoveMembers(groups, target.stackId, [groupId]).filter(g => g.id !== groupId);
+    } else {
+        itemGroups = groups.filter(g => g.id !== groupId);
+    }
     return {
         ...project,
         updatedAt:  new Date().toISOString(),
-        itemGroups: project.itemGroups.filter(g => g.id !== groupId),
+        itemGroups,
     };
 }
 

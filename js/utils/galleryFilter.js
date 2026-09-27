@@ -15,6 +15,7 @@
  * Relative import only, so Node can load it (tests/gallery-filter.test.cjs).
  */
 import { PANEL_KINDS, kindOfItem } from './assetKinds.js';
+import { isStack } from '../data/stackModel.js';
 
 export const DEFAULT_GALLERY_SORT = Object.freeze({
     order: 'newest',
@@ -49,13 +50,21 @@ export function markOf(group) {
 }
 
 function _inScope(group, sort) {
+    // MPI-949: a card inside a stack is in NO scope — the stack card stands for it, in the
+    // grid, the filter panel's counts and the media picker alike (unstack to reach one).
+    if (group?.stackId) return false;
     return !!group?.archived === (sort.scope === 'archived');
+}
+
+/** The item a card's KIND is read from: a stack owns no item, so it reads as its members' kind. */
+function _kindItem(group, item) {
+    return isStack(group) ? { type: group.kind } : item;
 }
 
 /** Does this card (its group + selected history item) show under `sort`? */
 export function matchesGallerySort(group, item, sort) {
     if (!_inScope(group, sort)) return false;
-    if (sort.hiddenKinds?.includes(kindOfItem(item).kind)) return false;
+    if (sort.hiddenKinds?.includes(kindOfItem(_kindItem(group, item)).kind)) return false;
     if (sort.marks?.length && !sort.marks.includes(markOf(group))) return false;
     if (sort.previews && item?.stage !== 'preview') return false;
     return true;
@@ -98,6 +107,6 @@ export function describeGalleryFilter(sort, kinds = PANEL_KINDS) {
  * `entries` = [{ group, item }], `item` being the group's selected history item.
  */
 export function listedKinds(entries, sort) {
-    const present = new Set(entries.filter(e => _inScope(e.group, sort)).map(e => kindOfItem(e.item).kind));
+    const present = new Set(entries.filter(e => _inScope(e.group, sort)).map(e => kindOfItem(_kindItem(e.group, e.item)).kind));
     return PANEL_KINDS.filter(k => present.has(k.kind) || sort.hiddenKinds?.includes(k.kind));
 }

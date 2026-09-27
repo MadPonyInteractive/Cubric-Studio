@@ -19,7 +19,7 @@
  */
 
 import { Hotkeys } from '../../../../managers/hotkeyManager.js';
-import { snapBodyRect, snapFreeRect, snapRatioWidth } from '../../../../utils/cropSnap.js';
+import { snapBodyRect, snapFreeRect, snapRatioWidth, largestCentredRect } from '../../../../utils/cropSnap.js';
 import { accentHeat } from '../../../../utils/dom.js';
 
 /* Stage canvas color constants — JS canvas draws cannot use CSS vars directly. */
@@ -133,33 +133,7 @@ export class CropManager {
      */
     _applyRatioToRect() {
         if (!this._imgW || !this._imgH) return;
-
-        const ratio = this.lockedRatio;
-
-        // FREE mode: full image rect, no ratio constraint
-        if (ratio == null) {
-            this.cropRect = { x: 0, y: 0, w: this._imgW, h: this._imgH };
-            return;
-        }
-
-        let w, h;
-
-        // Fit by width first
-        w = this._imgW;
-        h = w / ratio;
-
-        if (h > this._imgH) {
-            // Doesn't fit vertically, fit by height instead
-            h = this._imgH;
-            w = h * ratio;
-        }
-
-        this.cropRect = {
-            x: (this._imgW - w) / 2,
-            y: (this._imgH - h) / 2,
-            w,
-            h,
-        };
+        this.cropRect = largestCentredRect(this._imgW, this._imgH, this.lockedRatio);
     }
 
     // ── Handle hit-testing ─────────────────────────────────────────────────────

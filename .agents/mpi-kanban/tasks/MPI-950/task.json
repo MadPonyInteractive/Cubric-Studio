@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-950",
+  "title": "Agents see stacks as stacks",
+  "description": "Follow-up to MPI-949 (Gallery stacks): in-app agent + MCP read, create and return stacks as stacks. MPI-949 v1 sends a dragged stack as its members (today's N-cards set). Blocked on MPI-941's claims (agentLoop.mjs, routes/agent.js).",
+  "column": "todo",
+  "maturity": "blocked",
+  "status": "active",
+  "created_at": "2026-09-27T09:53:36+01:00",
+  "updated_at": "2026-09-27T08:54:19Z",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

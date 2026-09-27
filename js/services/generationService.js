@@ -30,6 +30,7 @@ import { ratioSettingsFromParams } from '../utils/promptReuse.js';
 import { labelFromComfyOutputUrl } from '../utils/comfyOutputUrls.js';
 import { MpiToast } from '../components/Primitives/MpiToast/MpiToast.js';
 import { ce } from '../utils/dom.js';
+import { collapseQueueBatches } from './generationBatch.js';
 
 // ── Cue queue (in-app, TWO-LANE dispatch) ───────────────────────────────────
 // We own the pending array. MPI-74 P6: there are now TWO dispatch lanes — a
@@ -246,6 +247,10 @@ function _buildQueueDisplay(config = {}, opts = {}, source = 'manual', isLoop = 
         // MPI-851: 'cloud' is a third value here for the same reason it is a third
         // lane — a DeepInfra job badged 'remote' claims the user's Pod is running it.
         engine: model.provider ? 'cloud' : (opts.forceLocal ? 'local' : 'remote'),
+        // MPI-949: batch membership fields for grouped queue rows.
+        batchId:    opts.batchId    ?? null,
+        batchLabel: opts.batchLabel ?? null,
+        batchTotal: opts.batchTotal != null ? Number(opts.batchTotal) : null,
     };
 }
 
@@ -292,6 +297,10 @@ function _queueSnapshotItem(job, status) {
         replaceItemId: job.display?.replaceItemId ?? job.config?.replaceItemId ?? null,
         sourceGroupId: job.display?.sourceGroupId ?? job.opts?.sourceGroupId ?? null,
         engine: job.display?.engine || (job.opts?.forceLocal ? 'local' : 'remote'),
+        // MPI-949: carry batch fields for collapseQueueBatches.
+        batchId:    job.display?.batchId    ?? job.opts?.batchId    ?? null,
+        batchLabel: job.display?.batchLabel ?? job.opts?.batchLabel ?? null,
+        batchTotal: job.display?.batchTotal ?? job.opts?.batchTotal ?? null,
     };
 }
 
@@ -623,7 +632,9 @@ export function cancelRunningCueJob(queueJobId) {
         // user sees a live STOP whose registry lookup finds nothing and no-ops.
         // Nothing is left to interrupt — drain the orphaned lane so the card clears
         // and the next pending job can promote.
-        const orphanLane = _lanes.remote.active?.queueJobId === queueJobId ? 'remote'
+        // MPI-851 fix: was [remote, local] — cloud lane was missing.
+        const orphanLane = _lanes.cloud.active?.queueJobId === queueJobId ? 'cloud'
+            : _lanes.remote.active?.queueJobId === queueJobId ? 'remote'
             : _lanes.local.active?.queueJobId === queueJobId ? 'local'
             : null;
         if (!orphanLane) return false;
@@ -633,7 +644,9 @@ export function cancelRunningCueJob(queueJobId) {
 
     // Which lane holds this intent? Resolved from the dispatched intent, not the
     // registry (the intent carries the lane; MPI-74 P6 keeps the OTHER lane clear).
-    const lane = _lanes.remote.active?.queueJobId === queueJobId ? 'remote'
+    // MPI-851 fix: was [remote, local] — cloud lane was missing.
+    const lane = _lanes.cloud.active?.queueJobId === queueJobId ? 'cloud'
+        : _lanes.remote.active?.queueJobId === queueJobId ? 'remote'
         : _lanes.local.active?.queueJobId === queueJobId ? 'local'
         : null;
     // Capture the EXACT intent object we are about to cancel. `activeGenerations.
@@ -682,6 +695,26 @@ export function cancelRunningCueJob(queueJobId) {
     return true;
 }
 
+/**
+ * MPI-949 — cancels all pending and running jobs that share a `batchId`.
+ * Pending jobs are removed FIRST so a lane drain cannot promote the next
+ * batch member between the two operations. Then any running job in the batch
+ * is stopped via the normal orphan-drain path.
+ * @param {string} batchId
+ */
+export function cancelBatch(batchId) {
+    if (!batchId) return;
+    // Step 1: drain the pending side first — the drain cannot promote a removed job.
+    removeCueJob(j => j.opts.batchId === batchId);
+    // Step 2: stop any running job in this batch across ALL three lanes.
+    for (const lane of ['cloud', 'remote', 'local']) {
+        const active = _lanes[lane].active;
+        if (active?.opts?.batchId === batchId) {
+            cancelRunningCueJob(active.queueJobId);
+        }
+    }
+}
+
 /** Force a state.generationQueueCount refresh (no-op for own-queue model). */
 export function refreshQueueDepth() {
     _updateQueueDepth();
@@ -699,18 +732,22 @@ export function peekCueQueue() {
 
 /** Read-only snapshot for user-facing queue panels. */
 export function getGenerationQueueSnapshot() {
-    // Up to two running jobs (one per lane). Remote first so a mixed queue reads
-    // cloud-then-local top-down. The panel renders the flat `items` list and
-    // tags each with its LOCAL/REMOTE chip (MPI-74 P5), so two running rows just
-    // work — no panel change beyond a 2-running index fix.
-    const runningJobs = [_lanes.remote.active, _lanes.local.active].filter(Boolean);
+    // Up to three running jobs (one per lane: cloud, remote, local). Cloud first,
+    // then remote, then local — a mixed queue reads top-down in priority order.
+    // MPI-949: `collapseQueueBatches` folds jobs sharing a batchId into ONE display
+    // row so the panel shows "Upscale 3/10" instead of ten individual entries.
+    // The raw `running`/`pending`/`depth`/`runningCount`/`pendingCount` fields
+    // remain as raw counts so callers outside the panel (queue depth, Clear button
+    // enabled state) see the true number of jobs in flight.
+    // MPI-851 fix: was [remote, local] — cloud lane was invisible to the snapshot.
+    const runningJobs = [_lanes.cloud.active, _lanes.remote.active, _lanes.local.active].filter(Boolean);
     const running = runningJobs.map(job => _queueSnapshotItem(job, 'running'));
     const pending = _cueQueue.map(job => _queueSnapshotItem(job, 'pending'));
     return {
         running: running[0] || null,
         runningItems: running,
         pending,
-        items: [...running, ...pending],
+        items: collapseQueueBatches([...running, ...pending]),
         depth: pending.length + running.length,
         pendingCount: pending.length,
         runningCount: running.length,
@@ -725,7 +762,10 @@ export function getGenerationQueueSnapshot() {
 // async register gap — otherwise a just-dispatched job would read as idle for a tick.
 function _emitPromptBoxGenerationEndIfIdle() {
     if (activeGenerations.list().some(entry => entry.status === 'running')) return;
-    if (_lanes.remote.active || _lanes.local.active) return;
+    // MPI-851 fix: was [remote, local] — a running cloud job kept the prompt bar
+    // locked in "Generating…" with the Stop button live, but a cloud lane stop
+    // did not re-check this condition and the bar stranded.
+    if (_lanes.cloud.active || _lanes.remote.active || _lanes.local.active) return;
     if (_runningCount() > 0 || _cueQueue.length > 0) return;
     if (state.loopArmed) return;
     Events.emit('promptbox:generation-end');

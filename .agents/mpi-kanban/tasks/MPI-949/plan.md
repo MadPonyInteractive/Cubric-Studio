@@ -1,0 +1,357 @@
+# MPI-949 Plan - Gallery stacks replace Cue all
+
+## Current State
+
+- **Project mode:** scalable-foundation. Full guardrails: ComponentFactory, BEM, state proxy,
+  `updateProjectJson`, root-cause rule.
+- **Design:** `brief.md` (settled with Fabio 2026-09-27). **Evidence:** `research/investigation.md`
+  (four read-only sweeps with file:line refs - read the section for your phase before coding).
+- **Facts that correct the brief** (this plan already follows them):
+  1. **Resize is a Comfy job** (`resize.json`), not sharp. Only **Crop** is a direct server loop. So
+     Resize joins Upscale/Remove BG/Interpolate/Prompt as a GPU batch.
+  2. **No grouped queue entry exists.** "One entry, cancel-all" must be built (`opts.batchId`).
+  3. **`buildCueAllJobItems` sweeps the LAST chip of the type**, so stack chip + reference chip would put
+     each member in the reference slot. It needs substitution by chip id.
+  4. **Grid order is `createdAt`.** A stack borrows its first member's `createdAt` to take that slot.
+  5. **A history-less card is deleted on load** (reconciler) and rejected by `/project-groups`, and
+     `serializeGroup` is a whitelist. Stacks need explicit support in all three.
+  6. **`type:'stack'` breaks every `group.type` / `kindOfItem(selectedItem)` reader** (filters, Make
+     GIF, drag payloads, `selectCueAllTargets`, History startup at Block `:294`).
+  7. **Paid cloud price tag shows ONE run.** With a stack staged it must show the ×N total.
+  8. The member strip and the GIF strip share ONE core, **`MpiThumbStrip`** (Phase 3b, Fabio's call);
+     `MpiFrameStrip` composes it and keeps only the GIF layer.
+  9. `pixelDimensions` is unreliable. Stack crop measures members with `/image-import/probe`.
+- **Live-peer dependency:** MPI-941 (session `cefc4ae6`, heartbeat 2026-09-27 08:58Z) claims
+  `js/components/Compounds/MpiGalleryGrid/MpiGalleryGrid.js`, `js/shell/agentDispatch.js`,
+  `js/shell/agentToolOps.js`, `js/utils/mediaActions.js` and `.claude/rules/component-events-blocks.md`.
+  **Phase 2 cannot start until that claim releases the grid** - `mpi-message` the owner, never edit
+  through the claim. MPI-941 Phase 3 is building `toolRun` (tool runs on any group, no model): Phase 4
+  REUSES it for stack Apply instead of growing a second copy.
+
+### Decisions (defaults taken, Fabio to confirm - see end of session message)
+
+- **D1 Unstack order:** members return to their OWN `createdAt` slots (where they were before
+  stacking). No new sort-key field. A result stack's members were made at Run time, so they land
+  beside where the stack was anyway.
+- **D2 Divisible-by in a stack rounds DOWN** (box stays inside the image), so no Fill strip and no
+  ratio skew across N members. The single-card Crop keeps rounding up.
+- **D3 Changing the ratio in a stack re-seeds EVERY member** to its centred box and clears the dots.
+- **D4 A stack that drops to 1 member stays a stack.** It is deleted only at 0 members.
+- **D5 Stacked cards are hidden from the Flow media picker too.** Unstack to pick one.
+- **D6 Stack card icon = `layers`**, the same icon as the agent's "N cards" chip.
+- **D7 Stack crop does not persist a family change**, so the single-card Crop keeps the user's
+  free/resolution pick.
+
+## Completed
+
+- [x] **Phase 1: Stack data foundation** (2026-09-27). `js/data/stackModel.js` (pure: `isStack`,
+  `stackableKind`, `stackCreateBlockReason` + `STACK_BLOCK_INFO`, `stackFields`, `applyStack`,
+  `applyUnstack`, `applyRemoveMembers`, `applyAddMembers`, `sanitizeStacks`); `serializeGroup` writes
+  `kind`/`members`/`expected` on stacks and `stackId` on members only (ordinary cards' on-disk shape
+  unchanged); reconciler keeps history-less stacks and runs `sanitizeStacks` after hydration;
+  `/project-groups` accepts a stack; `removeGroupFromProject` is stack-consistent; `projectService`
+  `stackGroups(memberIds, opts)` / `unstackGroup(stackId)` (one persist each); `galleryFilter` hides
+  `stackId` cards in every scope and reads a stack's kind from `stack.kind`. Tests:
+  `tests/stack-model.test.cjs` (10), `tests/stack-reconcile.test.cjs` (6, fetch fully stubbed,
+  mutation-checked), `tests/gallery-filter.test.cjs` (+1). `npm test` 2039/0 fail.
+- [x] **Batch A - A3 Resize long edge / %** (2026-09-27). `deriveResizeDims(family, srcW, srcH,
+  { longEdge, percent })` - families `'longEdge'` / `'percent'`, `Math.max(1, Math.round(src * k))` like
+  scale/MP. `MpiToolOptionsResize` prop **`stackMode`** (documented in `types.js`): only LONG EDGE / %,
+  preview suppressed, Apply emits `{ params: { rule: { kind: 'longEdge'|'percent', value }, upscale_method,
+  keep_proportion, pad_color, crop_position, divisible_by, flip, rotation } }`; single-card payload
+  unchanged. The Block resolves per member: `deriveResizeDims(rule.kind, w, h, { [rule.kind]: rule.value })`.
+  `tests/resize-dims.test.cjs` 15/15; `crop-resize-output.spec.js` 2/2.
+- [x] **Batch A - A4 Crop maths** (2026-09-27). `largestCentredRect(imgW, imgH, ratio)` in `cropSnap.js`
+  (ratio = w/h number, null = full image) - `CropManager._applyRatioToRect` now delegates (one
+  implementation, byte-identical). `roundDownToDivisible(v, n)` in `cropRounding.js` (largest multiple
+  of n <= v, min n). `tests/crop-centred-rect.test.cjs` 15/15; `crop-resize-output.spec.js` 2/2.
+  `js/shell/agentToolOps.js:114-118` (MPI-941's) has an inline size-only copy that could call it later.
+- [x] **Batch A - A1 Grouped queue entry** (2026-09-27). `enqueueGeneration` opts `batchId`,
+  `batchLabel`, `batchTotal`; pure `collapseQueueBatches(items)` in NEW `js/services/generationBatch.js`
+  folds a batch into ONE snapshot row `{ isBatch, batchId, batchLabel, batchTotal, batchDone, status,
+  queueJobId, canStop, canCancel, … }` (`getGenerationQueueSnapshot().items`; the raw `running`/`pending`
+  counts stay raw); `cancelBatch(batchId)` exported (pending removed FIRST, then each lane's running
+  member). `MpiQueuePanel` renders the batch row ("label · done / total", one **Cancel all**,
+  `data-queue-action="cancel-batch"`; `--batch` modifier has no CSS of its own yet). **Also fixed three
+  pre-existing cloud-lane gaps at the root** (MPI-851 made `cloud` a third lane but these read only
+  remote/local): the snapshot's running rows, `cancelRunningCueJob`'s orphan + lane lookups, and
+  `_emitPromptBoxGenerationEndIfIdle`. Reviewed against `cloudExecutor`'s cancel contract: a post-send
+  Stop still keeps the paid result (the store cancels + drains; the identity-guarded drain only fires in
+  the pre-register case, same as remote/local). `tests/generation-batch-queue.test.cjs` 8/8.
+- [x] **Batch A - A2 dropped** (2026-09-27, Fabio): the standalone `MpiMemberStrip` it built was deleted
+  (with its spec, its `preloadStyles.js` line and its `types.js` block) - it duplicated the GIF strip.
+  Replaced by Phase 3b below.
+
+## Remaining Work
+
+**Next action:** Phase 2. **UNBLOCKED 2026-09-27 ~10:03Z** - MPI-941's grid claim (`cefc4ae6-mpi941`)
+is `complete`; its new claim `5b8e4d8c-mpi941` and the MPI-806/516/595 batch claims (`56a78131-*`) do
+not overlap this card's footprint (checked against `files.json`). Phase 3b (shared strip) is independent
+of Phases 2-3 and can run in parallel with them (disjoint files). Re-check claims before each start.
+
+## Phase 1: Stack data foundation (auto) - DONE, see Completed
+
+Everything else reads this. Sequential; no UI.
+
+- [ ] Pure module `js/data/stackModel.js`: `isStack`, `stackKind`, `createStackGroup(members,
+  {name, createdAt})` (kind from members, `createdAt` borrowed from the first-clicked member),
+  `unstack(stack, groups)` (clears `stackId`, copies `archived` onto members), `resolveMembers`,
+  `sanitizeStacks(groups)` (prune missing member ids, clear orphan `stackId`s, drop empty stacks),
+  `stackCreateBlockReason(groups)` (mixed kinds / contains a stack / audio or GIF / fewer than 2).
+  `kind` comes from each member's selected item through `kindOfItem`.
+  Ownership: `js/data/stackModel.js`, `tests/stack-model.test.cjs`.
+  **Verify:** `node --test tests/stack-model.test.cjs` green, with a case for every block reason and
+  every sanitize branch.
+- [ ] Persistence: add `kind`, `members`, `stackId` (plus result-stack `expected` total) to
+  `createItemGroup` typedef (`projectModel.js:169-203`) and `serializeGroup` (`projectService.js:570`).
+  Exempt stacks from the reconciler's empty-history drop (`projectReconciler.js:79-82`) and run
+  `sanitizeStacks` there. Accept stacks in `POST /project-groups` (`routes/projects.js:2620`).
+  **Verify:** unit test: a stack survives serialize → reconcile → serialize byte-identical, and a
+  stack with a deleted member is pruned while a stack with 0 members is dropped.
+- [ ] `projectService` single-persist mutations `stackGroups(memberIds, opts)` and
+  `unstackGroup(stackId)`, and a stack-aware `removeGroup` path (delete-all-N vs unstack-and-keep).
+  N+1 group changes, ONE `persistGroups`, inside `_enqueueMutation`, re-reading groups from `state`.
+  **Verify:** unit test on the mutation (stubbed persist): one write per call, and members'
+  `stackId` is set and then cleared.
+- [ ] Gallery scope: `_inScope` / `matchesGallerySort` (`js/utils/galleryFilter.js:51-62`) hide any
+  group with `stackId`. A stack's kind for filtering is `stack.kind`, never `kindOfItem(undefined)`.
+  `listedKinds` skips members.
+  **Verify:** extend `tests/gallery-filter.test.cjs`: members hidden, a video
+  stack filtered as video, and the kind counts exclude members.
+
+## Parallel Batch A: independent building blocks (auto)
+
+Runs after Phase 1, while MPI-941 still holds the grid. Disjoint files, and each task is checkable
+alone. Use `mpi-execute-parallel`.
+
+- [x] **A1 Grouped queue entry.** `opts.batchId` / `batchLabel` through `_buildQueueDisplay`
+  (`generationService.js:208`); `getGenerationQueueSnapshot` collapses one batch into one row ("Upscale
+  3/10"); `cancelBatch(batchId)` = `removeCueJob(j => j.opts.batchId === id)` FIRST, then
+  `cancelRunningCueJob`. Check the cloud-lane gaps at `:706`, `:626-638`, `:728`. If they are real,
+  fix them at the root in the same pass. The `MpiQueuePanel` row renders the batch and its cancel.
+  Ownership: `js/services/generationService.js`, `js/components/Compounds/MpiQueuePanel/*`,
+  `tests/generation-batch-queue.test.cjs`. Briefings: components, state, root-cause.
+  **Verify:** unit test: 3 enqueued jobs sharing a batchId → one snapshot row with count 3;
+  `cancelBatch` leaves 0 pending and cancels the running one; unbatched jobs unchanged.
+- [x] ~~**A2 `MpiMemberStrip` Compound.**~~ DROPPED - see Phase 3b. New Compound (Primitives-only imports): `setMembers([{groupId,
+  thumbUrl, name, dot}])`, `setSelected(id)`, ctrl/shift pick; emits `member-select`,
+  `pick-change`, `remove-member`, `delete-member`; right-click via `Events.emit('ui:context-menu')`;
+  `destroy()` unbinds. Register `.css` in `js/shell/preloadStyles.js`, props in `js/components/types.js`.
+  Ask Fabio about the dev components gallery.
+  Ownership: `js/components/Compounds/MpiMemberStrip/*`, `js/shell/preloadStyles.js`,
+  `js/components/types.js`, `tests/desktop/member-strip.spec.js`. Briefings: components, dos_and_donts.
+  **Verify:** `npm run lint:components` clean; a desktop spec mounts it through `ComponentFactory`
+  and asserts select / pick-change / context-menu events and a clean destroy.
+- [x] **A3 Resize long-edge and %.** `deriveResizeDims` (`js/utils/ratios.js:838`) gains `longEdge`
+  and `percent`. `MpiToolOptionsResize` gains those two families, stack-only (a prop). Apply carries
+  the rule, not absolute W×H, when in stack mode.
+  Ownership: `js/utils/ratios.js`, `js/components/Organisms/MpiToolOptionsResize/*`,
+  `tests/resize-dims.test.cjs`. Briefings: components.
+  **Verify:** unit test: long edge 1024 on 4000×3000 → 1024×768 and on 1080×1920 → 576×1024; 50% →
+  half. The existing resize families are unchanged (the single-card spec still passes).
+- [x] **A4 Crop maths.** `largestCentredRect(w, h, ratio)` in `js/utils/cropSnap.js`;
+  `CropManager._applyRatioToRect` delegates to it (one implementation). A round-DOWN variant of
+  divisible rounding in `js/utils/cropRounding.js` for stacks (D2).
+  Ownership: `js/utils/cropSnap.js`, `js/utils/cropRounding.js`,
+  `js/components/Primitives/MpiCanvas/managers/CropManager.js`, `tests/crop-centred-rect.test.cjs`.
+  **Verify:** unit tests for both helpers; the existing crop desktop spec still passes.
+
+## Phase 2: Stack card in the Gallery (user-ux) - unblocked 2026-09-27
+
+- [ ] Selection bar: **Stack** replaces Cue all (`selectionBar.js`, `_syncSelectionBar`). Disabled +
+  `info` from `stackCreateBlockReason`; emits `stack` with groups in click order. The block handler
+  calls `stackGroups`. Remove every Cue-all grid/bar/block part per the inventory
+  (`research/investigation.md` § Cue-all inventory); keep `selectCueAllTargets`,
+  `buildCueAllJobItems` and their unit test.
+- [ ] Card: thumbnail, aspect and kind chip from the first member's selected item; `layers` badge +
+  count; offset card edges (CSS, tokens only). Render key includes each member's selected item id.
+  A member's `project:group-updated` repaints its stack.
+- [ ] Right-click on a stack: **Unstack**; **Delete** → `_deleteDialog` stack branch ("Unstack and
+  keep" / "Delete all N"); Download = all members; Archive. Every `group.type` / `kindOfItem` reader
+  on the gallery path is made stack-aware at its root, not guarded per site: Make GIF, Describe,
+  reuse, compare, notes, reveal, add-to-project, flipper. Opening a stack stays inert until Phase 4.
+- [ ] Drag: a stack's dragstart carries its members as `cards` (the agent gets today's "N cards" set,
+  with no agent-side change) plus `{type:'stack', stackId, kind, filePath: first member}` for the
+  PromptBox.
+  Ownership: `MpiGalleryGrid.js`, `selectionBar.js`, `MpiGalleryGrid.css`, `MpiGalleryBlock.js`,
+  `tests/desktop/gallery-stack.spec.js` (replaces `gallery-cue-all.spec.js`, keeping its marks /
+  archive / bar-order checks).
+  **Verify:** desktop spec on `app:isolated`: stack 3 cards → one card with badge 3, members hidden,
+  survives a project reload; mixed image+video → Stack disabled with a reason; right-click Unstack →
+  3 cards back; Delete → both dialog branches; drag onto the agent composer → one "3 cards" chip.
+  **Fabio checks the look.**
+
+## Phase 3: Gallery run → new stack (user-ux)
+
+- [ ] PromptBox stack chip: `_handleMediaDrop` / `_tryAddMedia` accept `{stackId, count,
+  mediaType: kind, url: first member}`; `_saveMedia` + restore keep `stackId`/`count`; `layers` badge +
+  count in `_renderStrip`, with stack-ness in `_chipKey`; one stack chip per box. Op gating: a staged
+  stack disables any op where `selectCueAllTargets(op, model, [{type: kind}])` is not eligible, with a
+  plain `info` reason; `_pickFallbackOp` / `_opForMediaCount` never land on a blocked op. Loop cannot
+  be armed or run with a stack. The price tag shows ×N and the total.
+- [ ] `buildCueAllJobItems(operation, model, staged, card, {chipId})`: substitute the member INTO the
+  stack chip's slot. The default behaviour is unchanged for existing callers.
+- [ ] Block run (`MpiGalleryBlock.js` `pb.on('run')`): a stack chip → create the result stack
+  ("<source> · <op>", `expected: N`, `createdAt` now) → N `enqueueGeneration` with `opts.batchId` +
+  `opts.stackId`, and no `getNextGeneration`.
+- [ ] `generationService` completion: `opts.stackId` stamps `stackId` and appends to the stack's
+  `members` in the same mutation (open AND closed-project paths). Member placeholders are
+  suppressed; the stack card shows "4/10" until done. Cancel or failure keeps what finished, and the
+  status line names how many are missing. A result stack with 0 members is removed.
+  Ownership: `js/components/Organisms/MpiPromptBox/*`, `js/data/commandRegistry.js`,
+  `MpiGalleryBlock.js`, `js/services/generationService.js`, `tests/cue-all-eligibility.test.cjs`,
+  `tests/desktop/gallery-stack-run.spec.js`.
+  **Verify:** unit: chip-id substitution keeps a reference chip in place on a 2-chip Klein Edit. Desktop
+  spec with the lane-busy stub (from the old Cue-all spec): a stack of 3 + Klein Edit → 3 pending jobs,
+  each with the member in slot 1 and the reference in slot 2; ONE queue row; cancel-all → 0 pending;
+  Text-to-image is disabled with the reason. **Fabio runs a real 3-card Klein Edit and sees a new
+  stack fill.**
+
+## Phase 3b: Shared thumbnail strip - `MpiThumbStrip` (user-ux: Fabio feels the GIF strip)
+
+Fabio 2026-09-27: no duplicated strip code. The GIF strip (`MpiFrameStrip`, Organism, 689 lines) and the
+stack's member strip share ONE core; the stack uses the GIF film-strip UX (current member under a fixed
+centre marker, drag scrubs), approved.
+
+- [ ] New Compound **`js/components/Compounds/MpiThumbStrip/`** (imports Primitives only) extracted from
+  `MpiFrameStrip`'s generic half: windowed rendering (`VIEW_RADIUS`, `_ensureWindow`/`_renderWindow`),
+  fixed centre marker + `translateX` (`_applyTransform`, ResizeObserver with the 0x0 bail), pointer
+  grammar (click → select, drag past `DRAG_THRESHOLD` → scrub, Ctrl toggle / Shift range with the anchor
+  subtlety, optional press-and-hold reorder behind a prop), the right-click → caller-supplied items. A
+  Compound cannot import `MpiContextMenu` (same tier), so it goes through `Events.emit('ui:context-menu')`
+  (the shell hop that exists for same-tier callers); `MpiFrameStrip` (an Organism) may keep calling
+  `MpiContextMenu.show()` by supplying items through a prop callback instead. Per-thumb decoration
+  (range classes, mask tint, edited, lifted, stack dot) through a `decorateThumb(thumbEl, index)` prop +
+  a cheap class-flip pass (the `_paintRange` idiom). Items are `{ key, thumbUrl, info? }`.
+- [ ] **`MpiFrameStrip` keeps its name, its instance API and every event byte-for-byte** (setFrames,
+  setCurrentIndex, setRange, getStagedFrames, getSelection, setMaskOverlay, commit; frame-select,
+  selection-change, clear-frame-mask, scrub, stage-change, update, apply) and composes `MpiThumbStrip`,
+  keeping only the GIF layer: staged/committed/origin/viewerPos bookkeeping, the Discard/Update/Apply
+  pill, duplicate/delete, mask overlay, trim range, `gif.frame.delete*` hotkeys. **The GIF Block is not
+  touched.**
+- [ ] Stack use (wired in Phase 4): `MpiThumbStrip` directly, items = members' current versions (video →
+  poster), menu = Remove from stack / Delete, `decorateThumb` paints the moved-crop dot, selection = the
+  Apply picks. Scrub switches the viewer only on scrub END (a 350-member scrub must not load every member).
+  Ownership: `js/components/Compounds/MpiThumbStrip/*` (new), `js/components/Organisms/MpiFrameStrip/*`,
+  `js/shell/preloadStyles.js`, `js/components/types.js`, `tests/desktop/thumb-strip.spec.js` (new).
+  Ask Fabio about the dev components gallery.
+  **Verify:** `npm run lint:components` clean; new desktop spec mounts `MpiThumbStrip` alone (select,
+  scrub, ctrl/shift, menu items via the event hop, destroy); EVERY GIF desktop spec green (`ls
+  tests/desktop | grep -i gif` - frame strip reorder / delete / duplicate / mask / range / hotkeys);
+  `MpiFrameStrip.js` shrinks to the GIF layer. **Fabio: open a GIF, scrub, reorder, Ctrl-select +
+  Backspace, right-click duplicate - must feel identical.**
+
+## Phase 4: Stack History workspace (user-ux)
+
+- [ ] Block stack mode: resolve a stack → its first member BEFORE `historyKind` (`:294`); a single
+  `_switchMember(groupId)` re-points `_group`, `_setCurrentIdx`, `MpiHistoryList` (`setGroups` then
+  `setActiveIndex`), the viewer (`_reloadViewerWithEntry`) and the options panel. The canvas viewer
+  gets a `groupId` setter (mask store). Event listeners filter by the member-id set and NEVER jump the
+  workspace to whichever member finished.
+- [ ] `MpiHistoryTools` `imageStack` / `videoStack` lists (hidden tools absent). `MpiThumbStrip` (Phase 3b)
+  goes in `#controls-mount` (own wrapper). The **◀ Version ▶** stepper (MpiButtons) moves every
+  member's `selectedIndex` by one, clamped, in one persist.
+- [ ] Batch Apply: a pure builder (`js/data/stackJobs.js`) maps (member group, current item, tool
+  params) → a job spec, reusing MPI-941's `toolRun` / `workspaceGenerationOpts` path for
+  upscale / remove-BG / resize and the History generation path for prompt / video tools. Targets =
+  picked members, or all. One `batchId` and one queue row. Video trim comes from `item.trim`. Resize
+  uses the A3 rule per member. Prompt runs substitute each member into the pinned chip (chip-id
+  `buildCueAllJobItems`), drop the viewer mask, and refuse under Loop. `_syncQueueBlockedTools` must
+  not lock the rail mid-batch in a way that strands the user (decide from the code, keep the
+  single-card behaviour).
+- [ ] Member lifecycle: strip right-click Remove from stack / Delete; deleting a member's last
+  version removes it from the stack and STAYS in the workspace; a stack at 0 members is deleted and
+  the view goes back to the Gallery.
+  Ownership: Block, `js/components/Compounds/MpiHistoryTools/MpiHistoryTools.js`,
+  `js/components/Organisms/MpiCanvasViewer/MpiCanvasViewer.js`, `js/data/stackJobs.js`,
+  `tests/stack-jobs.test.cjs`, `tests/desktop/stack-history.spec.js`. Opening a stack from the Gallery
+  (inert since Phase 2) is wired here.
+  **Verify:** unit: the stackJobs builder for each tool, and picked subset → k specs. Desktop spec:
+  open a stack of 3, click member 2 → its history shows; ◀ → all three `selectedIndex` drop by one
+  (persisted); Upscale with the lane-busy stub → 3 pending jobs, 1 row; pick 2 → 2 jobs; Paint/Mask
+  absent. **Fabio runs a real Upscale on a stack.**
+
+## Phase 5: Stack crop (user-ux)
+
+- [ ] Crop panel stack mode: ratio type only, Divisible-by round-down (D2), Fill Outside kept, and no
+  family persistence (D7). Member dims come from `/image-import/probe` (batched, on entering crop). A
+  Block-side `Map<itemId, rect>` is seeded with `largestCentredRect`. The viewer gains
+  `getCropRect` / `setCropRect`, saved on member switch and restored on `entry-loaded` (the
+  MpiGifViewer precedent). Dot = rect differs from the seeded one. A ratio change re-seeds all members
+  (D3).
+- [ ] Apply loops `POST /project/crop-media` per target member (picked or all) with a progress line.
+  Each result goes through a fresh group read from `state` → `appendToHistory` → `updateGroup` and
+  emits `media:updated` + `history:stats-dirty`.
+- [ ] Check the EXIF trap: does import normalise orientation? If `cropExtended` really crops
+  orientation ≥5 photos in the wrong place, file a SEPARATE card (it is a pre-existing single-card bug)
+  and tell Fabio. Do not patch it inside the stack loop.
+  Ownership: Block, `js/components/Organisms/MpiToolOptionsCrop/*`, `MpiCanvasViewer.js`,
+  `tests/desktop/stack-crop.spec.js`.
+  **Verify:** desktop spec: 3 members of different sizes, 9:16, move the box on one → Apply → 3 new
+  versions, each probed at 9:16 within divisible rounding and fully inside the source, the moved one
+  offset. **Fabio stacks real photos and crops 9:16.**
+
+## Phase 6: Docs, rules, close-out (auto)
+
+- [ ] `docs/stacks.md` (new, ≤200 lines, routed from `docs/README.md`); rewrite
+  `docs/gallery-selection.md` (Cue all out, Stack in) and `docs/gallery.md:281-283`;
+  `docs/releases/UNRELEASED.md` drops the never-shipped Cue all note and adds Stacks; stale comments
+  from the inventory.
+- [ ] `.claude/rules/` (`component-events-blocks.md`, `component-mounts.md`, `dos_and_donts.md`):
+  **ASK Fabio before editing** (CLAUDE.md rule 5). `component-events-blocks.md` is also in MPI-941's
+  claim.
+  **Verify:** `npm test` green; `npm run lint` + `npm run lint:components` clean; the gallery / history /
+  crop / stack desktop specs green; `grep -rn "cue-all\|_cueAllDispatch\|getCueContext" js/` returns
+  nothing.
+
+## Execution notes
+
+- Order: Phase 1 → Batch A (`mpi-execute-parallel`) → Phase 2 (after MPI-941 frees the grid) →
+  3 → 4 → 5 → 6. Phases 2-5 stay sequential: they share `MpiGalleryBlock.js`, the Block and
+  `generationService.js`.
+- If MPI-941 still holds the grid after Batch A, Phase 4's Block + strip work can go first, since it
+  does not touch `MpiGalleryGrid.js`. Test it by opening a stack built by the Phase 1 unit fixtures.
+
+## Plan Drift
+
+- 2026-09-27 (Phase 1): **every removal is stack-consistent at the one primitive**,
+  `removeGroupFromProject` (all four `removeGroup` callers): removing a STACK unstacks its members,
+  removing a MEMBER prunes it, the last member takes the stack with it. So Phase 2's "Unstack and keep"
+  is plain `removeGroup(stack)`, and "Delete all N" = the existing gallery delete over the MEMBER cards
+  (files + cards); the stack disappears with the last one. No separate stack-delete mutation.
+- 2026-09-27: `sanitizeStacks` keeps a 0-member stack only while `expected > 0`. **Phase 3 must clear
+  `expected` when its batch settles AND on app start** (the cue queue does not survive a restart), or an
+  empty "0/N" result stack lingers.
+- 2026-09-27: `stackGroups` emits `project:group-added` (the gallery repaints from it). `unstackGroup`
+  emits `project:group-removed`, which the gallery does NOT listen to, so the Phase 2 handler repaints
+  (`setGroups`) after awaiting it.
+- 2026-09-27: the scope hide is in `matchesGallerySort`, so `agentDispatch._visibleCards` (MPI-941's
+  file, untouched) also stops listing stacked members as "visible". Intended: the agent sees what the
+  user sees. `list_cards` still lists them (MPI-950).
+- 2026-09-27: `stackCreateBlockReason` also refuses 3D Scenes (`unsupported-kind`), not only GIF/audio.
+- The mutation wrappers were NOT split into separate pure `applyStack` callers as the brief suggested:
+  `projectService` imports cleanly in bare Node, so `serializeGroup` is unit-tested directly.
+
+## Verification
+
+**Verify mode:** user-ux
+
+Phase 1, Batch A and Phase 6 are `auto`. Phases 2, 3, 4 and 5 are `user-ux`: stop after each for
+Fabio to look at it in the running app.
+
+End to end: in a real project, Fabio stacks 10 photos → drops the stack + one reference into the box
+→ Klein Edit → a new stack of 10 fills under one queue row; opens it → ◀ Version, fixes two members
+by hand, re-runs Upscale on 3 picked members; crops the stack to 9:16; unstacks → every card is back
+with its new versions. `npm test`, lint and the stack desktop specs green; CI green on the closing
+commit.
+
+## Preservation Notes
+
+- New durable knowledge → `docs/stacks.md` (the reconciler exemption, the `createdAt` borrow, the
+  batchId queue model, chip-id substitution, the member-switch contract).
+- Rules maps need Fabio's permission (CLAUDE.md rule 5).
+- Hand MPI-950: `services/agentCards.mjs` `_groups` lists hidden members + a `versions:0` stack row;
+  `list_cards` / `readCard` need stack awareness.
+- Pre-existing bug candidates found here (separate cards, not this one): cloud-lane gaps in
+  `getGenerationQueueSnapshot` / `cancelRunningCueJob` (if A1 shows they are not already handled), and
+  crop EXIF orientation (Phase 5 check).

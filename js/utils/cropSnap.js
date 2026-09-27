@@ -9,6 +9,41 @@
  * image px (tol = px / view.scale) and applies the returned rect.
  */
 
+/**
+ * Largest centred rect of the given ratio that fits inside (imgW × imgH).
+ *
+ * Extracted from CropManager._applyRatioToRect — same fit order (width first,
+ * then height) and same arithmetic, so single-card crop is byte-identical.
+ *
+ * @param {number} imgW
+ * @param {number} imgH
+ * @param {number|null} ratio - width/height float (e.g. 16/9), or null for FREE (full image)
+ * @returns {{ x: number, y: number, w: number, h: number }} in image pixels
+ */
+export function largestCentredRect(imgW, imgH, ratio) {
+    // FREE mode: full image rect, no ratio constraint
+    if (ratio == null) {
+        return { x: 0, y: 0, w: imgW, h: imgH };
+    }
+
+    // Fit by width first
+    let w = imgW;
+    let h = w / ratio;
+
+    if (h > imgH) {
+        // Doesn't fit vertically, fit by height instead
+        h = imgH;
+        w = h * ratio;
+    }
+
+    return {
+        x: (imgW - w) / 2,
+        y: (imgH - h) / 2,
+        w,
+        h,
+    };
+}
+
 /** Nearest target within `tol`, else `value` unchanged. */
 export function snapValue(value, targets, tol) {
     let best = value;

@@ -2617,10 +2617,16 @@ router.post('/project-groups', async (req, res) => {
         // every later read EXCEPT the reconciler, which drops it as empty on the next open and
         // saves the project without it — so the wrong shape is refused here, loudly, instead
         // of landing as a card that silently deletes itself (MPI-839, live 2026-09-20).
-        const malformed = groups.find(g => !g?.id || !Array.isArray(g.history) || !g.history.length
-            || g.history.some(h => typeof h !== 'string'));
+        // A STACK (MPI-949, js/data/stackModel.js) owns no media: its history is empty by
+        // design and its `members` are card ids — that is its well-formed shape.
+        const isStack = g => g?.type === 'stack';
+        const malformed = groups.find(g => !g?.id || !Array.isArray(g.history)
+            || g.history.some(h => typeof h !== 'string')
+            || (isStack(g)
+                ? g.history.length || !Array.isArray(g.members) || g.members.some(m => typeof m !== 'string')
+                : !g.history.length));
         if (malformed) {
-            return res.status(400).json({ success: false, error: `group "${malformed?.id}" must carry an id and a non-empty history of item id strings` });
+            return res.status(400).json({ success: false, error: `group "${malformed?.id}" must carry an id and a non-empty history of item id strings (a stack: an empty history and a members array of card ids)` });
         }
         const jsonPath = path.join(folderPath, 'project.json');
         await updateProjectJson(jsonPath, project => {

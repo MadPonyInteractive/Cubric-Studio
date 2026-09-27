@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-949",
+  "title": "Gallery stacks replace Cue all",
+  "description": "Stack = one card holding N image or N video cards. Drop it in the prompt box to run one op per member (results = new stack); open it for batch-safe History tools (results = new version per member). Replaces Cue all. Design: brief.md.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-27T09:53:34+01:00",
+  "updated_at": "2026-09-27T10:43:14+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

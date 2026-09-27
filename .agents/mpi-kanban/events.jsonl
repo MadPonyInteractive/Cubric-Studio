@@ -5109,3 +5109,13 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-948", "at": "2026-09-27T00:45:00+01:00", "actor": "claude:a8643a90", "fields": ["description", "title"], "reason": "MPI-948 folded into MPI-941 as Phase 2 (Fabio 2026-09-27)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-941", "at": "2026-09-27T00:45:00+01:00", "actor": "claude:a8643a90", "fields": ["description"], "reason": "MPI-948 folded into MPI-941 as Phase 2 (Fabio 2026-09-27)"}
 {"schema": "mpi-kanban/event/v1", "type": "task.updated", "id": "MPI-941", "at": "2026-09-27T01:30:00+01:00", "actor": "claude:a8643a90", "fields": ["description"], "reason": "MPI-904 moved up to Phase 3 after the Phase 1 live run (Fabio 2026-09-27)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-949", "at": "2026-09-27T09:53:34+01:00", "actor": "claude", "column": "todo", "title": "Gallery stacks replace Cue all"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-950", "at": "2026-09-27T09:53:36+01:00", "actor": "claude", "column": "todo", "title": "Agents see stacks as stacks"}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "task.updated", "at": "2026-09-27T08:54:19Z", "actor": "claude", "summary": "Brainstorm design written to brief.md."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-950", "type": "task.updated", "at": "2026-09-27T08:54:19Z", "actor": "claude", "summary": "Description names MPI-949."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "task.updated", "at": "2026-09-27T09:12:16Z", "actor": "claude", "summary": "Large plan attached (plan.md, research/investigation.md); maturity idea -> planned."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-949", "at": "2026-09-27T10:43:14+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Implementation started: Phase 1 stack data foundation."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "checklist.item_checked", "at": "2026-09-27T09:50:36Z", "actor": "claude", "summary": "Stack data foundation"}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "validation.updated", "at": "2026-09-27T09:50:36Z", "actor": "claude", "summary": "Phase 1 auto-verified: 29 stack/filter unit tests, npm test 2039/0 fail, eslint clean."}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "checklist.item_checked", "at": "2026-09-27T10:08:04Z", "actor": "claude", "summary": "Independent building blocks (Batch A)"}
+{"schema": "mpi-kanban/event/v1", "id": "MPI-949", "type": "validation.updated", "at": "2026-09-27T10:08:04Z", "actor": "claude", "summary": "Batch A auto-verified: A1/A3/A4 tests green, A2 dropped for the shared MpiThumbStrip (Phase 3b); npm test 2079/0 fail."}

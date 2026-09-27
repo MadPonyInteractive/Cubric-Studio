@@ -116,6 +116,25 @@ test('the description names the kinds still shown, then the flags', () => {
     assert.strictEqual(F.describeGalleryFilter(s, listed), 'Videos');
 });
 
+test('MPI-949: a stacked card is in no scope; a stack filters as its members\' kind', () => {
+    const member = { stackId: 's' };
+    assert.strictEqual(F.matchesGallerySort(member, IMG, sort()), false);
+    assert.strictEqual(F.matchesGallerySort({ ...member, archived: true }, IMG, sort({ scope: 'archived' })), false);
+
+    // The callers hand a stack `{ type: g.type }`, since it has no selected item.
+    const videoStack = { type: 'stack', kind: 'video' };
+    const asCallersPass = { type: 'stack' };
+    assert.strictEqual(F.matchesGallerySort(videoStack, asCallersPass, sort()), true);
+    assert.strictEqual(F.matchesGallerySort(videoStack, asCallersPass, sort({ hiddenKinds: ['video'] })), false);
+    assert.strictEqual(F.matchesGallerySort(videoStack, asCallersPass, sort({ hiddenKinds: ['image'] })), true);
+
+    const entries = [
+        { group: videoStack, item: asCallersPass },
+        { group: member, item: IMG }, // hidden inside it — must not list Images
+    ];
+    assert.deepStrictEqual(F.listedKinds(entries, sort()).map(k => k.kind), ['video']);
+});
+
 test('the default sort cannot be mutated through a shared reference', () => {
     assert.ok(Object.isFrozen(F.DEFAULT_GALLERY_SORT));
     assert.ok(Object.isFrozen(F.DEFAULT_GALLERY_SORT.hiddenKinds));

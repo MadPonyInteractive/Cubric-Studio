@@ -223,6 +223,7 @@
  * @property {Object} viewer - MpiCanvasViewer OR MpiVideoViewer instance
  * @property {'image'|'video'} kind
  * @property {Object|null} [currentItem] - Selected history item used to seed source dimensions
+ * @property {boolean} [stackMode=false] - Stack mode (MPI-949): only the LONG EDGE and % families; Apply emits `{ params: { rule: { kind: 'longEdge'|'percent', value }, upscale_method, keep_proportion, pad_color, crop_position, divisible_by, flip, rotation } }` instead of absolute width/height.
  *
  * Persists project.toolSettings.resize:
  * { width, height, upscale_method, keep_proportion, pad_color: {r,g,b},

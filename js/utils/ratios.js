@@ -828,17 +828,22 @@ export function findClosestRatio(width, height, ratioList) {
  * Resize output that keeps the source aspect (MPI-796). `megapixels` targets a
  * pixel count, using ComfyUI's megapixel (1024 x 1024 = 1 MP, as its
  * ImageScaleToTotalPixels node does). `scale` divides both sides.
- * @param {'megapixels'|'scale'|string} family
+ * `longEdge` resizes so the longest side equals that pixel length (MPI-949).
+ * `percent` scales by a percentage — 50 = half size (MPI-949).
+ * All four modes preserve the source aspect ratio.
+ * @param {'megapixels'|'scale'|'longEdge'|'percent'|string} family
  * @param {number} srcW
  * @param {number} srcH
- * @param {{megapixels?:number, scale?:number|string}} opts
+ * @param {{megapixels?:number, scale?:number|string, longEdge?:number, percent?:number}} opts
  * @returns {{width:number,height:number}|null} null for any other family, or
  *   while the source size is unknown.
  */
-export function deriveResizeDims(family, srcW, srcH, { megapixels, scale }) {
+export function deriveResizeDims(family, srcW, srcH, { megapixels, scale, longEdge, percent }) {
     if (!(srcW > 0 && srcH > 0)) return null;
     const k = family === 'megapixels' ? Math.sqrt((Number(megapixels) * 1024 * 1024) / (srcW * srcH))
             : family === 'scale'      ? 1 / Number(scale)
+            : family === 'longEdge'   ? (Number(longEdge) > 0 ? Number(longEdge) / Math.max(srcW, srcH) : NaN)
+            : family === 'percent'    ? (Number(percent) > 0 ? Number(percent) / 100 : NaN)
             : NaN;
     if (!(k > 0 && Number.isFinite(k))) return null;
     return {

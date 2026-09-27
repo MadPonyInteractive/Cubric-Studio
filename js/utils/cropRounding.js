@@ -17,6 +17,23 @@
  * @param {number} max   - the largest allowed result (available source span)
  * @returns {number} a multiple of n, clamped to [n .. max-floored], never > max
  */
+/**
+ * Round DOWN to the largest multiple of n that does not exceed v.
+ * Used in stack crop (Phase 5) where a Fill strip must not be introduced:
+ * rounding up an edge-touching dimension adds pixels the source cannot supply
+ * and skews the ratio. Single-card crop keeps using roundToDivisible.
+ *
+ * @param {number} v - the selected dimension in pixels
+ * @param {number} n - the divisor (>= 1)
+ * @returns {number} largest multiple of n that is <= v, minimum n (0-size is invalid)
+ */
+export function roundDownToDivisible(v, n) {
+    const div = Math.max(1, Math.round(n) || 1);
+    const down = Math.floor(v / div) * div;
+    // Never return 0 (a 0px crop is invalid)
+    return Math.max(div, down);
+}
+
 export function roundToDivisible(value, n, max) {
     const div = Math.max(1, Math.round(n) || 1);
     const up = Math.ceil(value / div) * div;
