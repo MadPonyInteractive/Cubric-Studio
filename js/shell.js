@@ -621,7 +621,7 @@ function _connectPct(elapsedMs) {
 // Pod's runtime status; a terminal not-running status past a short grace = a dead
 // host, not a slow boot, so bail. Returns true (ready), false (timeout), or the
 // string 'not-running' (host failed to start the Pod). Mirrors the Settings path.
-const _BOOT_NOT_RUNNING = new Set(['EXITED', 'TERMINATED', 'DEAD']);
+const _BOOT_NOT_RUNNING = new Set(['EXITED', 'TERMINATED', 'DEAD', 'ERROR']); // ERROR: RunPod v2 (MPI-806)
 async function _pollRemoteReady({ timeoutMs = 1200000, intervalMs = 4000, slowAfterMs = 150000, notRunningGraceMs = 30000, onSlow } = {}) {
   const start = Date.now();
   let slowFired = false;

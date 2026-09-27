@@ -41,7 +41,7 @@ async function patch(id, body) {
   }
 }
 
-test('client.updateVolume sends PATCH /networkvolumes/{id} with the size only', async () => {
+test('client.updateVolume sends PATCH /network-volumes/{id} with the size only', async () => {
   const realFetch = globalThis.fetch;
   let seen = null;
   globalThis.fetch = async (url, opts) => {
@@ -55,7 +55,7 @@ test('client.updateVolume sends PATCH /networkvolumes/{id} with the size only', 
     globalThis.fetch = realFetch;
   }
   assert.equal(r.ok, true);
-  assert.equal(seen.url, 'https://rest.runpod.io/v1/networkvolumes/vol-1');
+  assert.equal(seen.url, 'https://api.runpod.io/v2/network-volumes/vol-1');
   assert.equal(seen.opts.method, 'PATCH');
   assert.deepEqual(JSON.parse(seen.opts.body), { size: 80 });
 });

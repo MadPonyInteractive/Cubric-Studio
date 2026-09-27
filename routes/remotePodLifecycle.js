@@ -613,7 +613,7 @@ async function _podRuntimeStatus(podId) {
     // route can self-heal _mode.active. A network throw (caught below) is NOT
     // absence, so this flag only flips on a real HTTP response.
     _lastPodAbsent = (r && r.status === 404);
-    // REST shape varies; desiredStatus is the v1 field. Normalise to uppercase.
+    // REST shape varies; v2 uses `status`, v1 used `desiredStatus`. Normalise to uppercase.
     const raw = p.desiredStatus || p.currentStatus || p.status || null;
     _lastPodStatus = raw ? String(raw).toUpperCase() : null;
     // MPI-135 (C): grab maintenance off the machine object from this same call.
@@ -647,7 +647,8 @@ async function _podRuntimeStatus(podId) {
 // (testable) and the mutation in `_selfHealIfPodDead`.
 function _isPodDead(podStatus, connecting, absent) {
   if (connecting) return false;
-  return absent === true || podStatus === 'EXITED' || podStatus === 'TERMINATED';
+  // MPI-806: v2 adds ERROR, an unrecoverable container state; it is as dead as EXITED.
+  return absent === true || podStatus === 'EXITED' || podStatus === 'TERMINATED' || podStatus === 'ERROR';
 }
 
 function _selfHealIfPodDead(podStatus, connecting) {
@@ -1206,7 +1207,8 @@ router.post('/remote/pod/reconnect', async (req, res) => {
       _setStarting(true); // spans the background resume until status sees ready
       return res.json({ starting: true, ready: false, podId, recreated: false });
     }
-    const msg = (started.json && (started.json.error || started.json.message)) || `start ${started.status}`;
+    // MPI-806: v2 errors use RFC 9457 {title,status,detail}; v1 used {message}
+    const msg = (started.json && (started.json.error || started.json.detail || started.json.title || started.json.message)) || `start ${started.status}`;
     logger.warn('runpod', `Pod resume failed (${msg}); recreating fresh`);
 
     // 3. Resume failed → delete the stuck Pod and create fresh (also poll-for-ready).
@@ -1346,12 +1348,10 @@ router.get('/remote/pod/specs', async (req, res) => {
     }
 
     // Container RAM + billable session figures from the live Pod. RunPod's REST
-    // Pod shape (rest.runpod.io/v1) has NO `runtime.uptimeInSeconds` — that field
-    // is GraphQL-only, so reading it always yielded null. The REST Pod instead
-    // exposes `lastStartedAt` (UTC ISO, when the Pod last STARTED) and `costPerHr`
-    // ($/hr, the real billed rate). MPI-80: uptime = now − lastStartedAt is
-    // billing-true and (per the OOM self-heal) survives a ComfyUI container
-    // restart — lastStartedAt only moves on a real Pod start/resume.
+    // Pod shape has NO `runtime.uptimeInSeconds` — that field is GraphQL-only.
+    // v1 used `lastStartedAt`/`costPerHr`/`memoryInGb`; v2 uses `startedAt`/
+    // `cost`/`gpu.memory` (total system RAM in GB). MPI-806: read v2 first,
+    // v1 as fallback. MPI-80: uptime = now − startedAt is billing-true.
     let ramGb = null;
     let uptimeSeconds = null;
     let pricePerHr = null;
@@ -1361,14 +1361,16 @@ router.get('/remote/pod/specs', async (req, res) => {
         const p = r.json || {};
         const m = p.machine || {};
         ramGb =
-          Number(p.memoryInGb) ||
-          Number(m.memoryInGb) ||
-          Number(p.containerMemoryInGb) ||
+          Number(p.gpu?.memory) ||        // v2: total system RAM under gpu.memory
+          Number(p.memoryInGb) ||          // v1
+          Number(m.memoryInGb) ||          // v1 machine
+          Number(p.containerMemoryInGb) || // v1
           null;
-        const cost = Number(p.costPerHr ?? p.adjustedCostPerHr);
+        const cost = Number(p.cost ?? p.costPerHr ?? p.adjustedCostPerHr); // v2 cost first
         if (Number.isFinite(cost) && cost > 0) pricePerHr = cost;
-        if (p.lastStartedAt) {
-          const started = new Date(p.lastStartedAt).getTime();
+        const startedAt = p.startedAt || p.lastStartedAt; // v2 first, v1 fallback
+        if (startedAt) {
+          const started = new Date(startedAt).getTime();
           if (Number.isFinite(started)) {
             const secs = Math.floor((Date.now() - started) / 1000);
             if (secs > 0) uptimeSeconds = secs;
@@ -1440,9 +1442,10 @@ router.get('/remote/pod/stats', async (req, res) => {
 
     const ram = _metricFromPod(pod, {
       totalGbPaths: [
-        'memoryInGb',
-        'machine.memoryInGb',
-        'containerMemoryInGb',
+        'gpu.memory',           // v2: total system RAM
+        'memoryInGb',           // v1
+        'machine.memoryInGb',   // v1 machine
+        'containerMemoryInGb',  // v1
       ],
       usedGbPaths: [
         'machine.currentStats.memoryUsedInGb',
@@ -1470,6 +1473,7 @@ router.get('/remote/pod/stats', async (req, res) => {
         'machine.podHostCurrentUtilization.memory.usedBytes',
       ],
       percentPaths: [
+        'runtime.memory.util', // v2 (MPI-806)
         'machine.currentStats.memoryUtilPercent',
         'machine.currentStats.memory.percent',
         'machine.currentStats.systemMemoryUtilPercent',
@@ -1602,8 +1606,9 @@ async function remoteVolumeFreeBytes() {
     const podId = _startedPodId || (_mode.active && _mode.podId) || null;
     if (!key || !podId) return null;
     // Resolve the pod's volume id, then its configured size from the volume list.
+    // MPI-806: v2 uses mounts.network[0].volumeId; v1 used networkVolumeId at top level.
     const podRes = await client.getPod(key, podId);
-    const volumeId = podRes?.json?.networkVolumeId || null;
+    const volumeId = podRes?.json?.networkVolumeId || podRes?.json?.mounts?.network?.[0]?.volumeId || null;
     const volRes = await client.listVolumes(key);
     const list = Array.isArray(volRes?.json)
       ? volRes.json
@@ -1630,10 +1635,12 @@ async function remoteVolumeFreeBytes() {
 // REST pod object; `volumeList` is the account's network-volume array.
 function resolveDiskTotalBytes(pod, volumeList) {
   pod = pod || {};
-  const volumeId = pod.networkVolumeId || null;
+  // MPI-806: v2 uses mounts.network[0].volumeId; v1 used networkVolumeId top-level.
+  const volumeId = pod.networkVolumeId || pod.mounts?.network?.[0]?.volumeId || null;
   // Ephemeral: no network volume → denominator is the container disk.
+  // MPI-806: v2 uses `disk`; v1 used `containerDiskInGb` — read both.
   if (!volumeId) {
-    const diskGb = Number(pod.containerDiskInGb);
+    const diskGb = Number(pod.containerDiskInGb ?? pod.disk);
     if (!diskGb || diskGb <= 0) return null;
     return { totalBytes: diskGb * 1e9, ephemeral: true };
   }
@@ -1655,8 +1662,9 @@ async function _remoteDiskTotalBytes() {
     const podRes = await client.getPod(key, podId);
     const pod = podRes?.json || {};
     // Only pay for the volume list when the pod actually has a volume.
+    // MPI-806: v2 uses mounts.network[0].volumeId; v1 used networkVolumeId top-level.
     let list = null;
-    if (pod.networkVolumeId) {
+    if (pod.networkVolumeId || pod.mounts?.network?.[0]?.volumeId) {
       const volRes = await client.listVolumes(key);
       list = Array.isArray(volRes?.json)
         ? volRes.json

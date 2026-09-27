@@ -20,6 +20,15 @@ test('terminal status TERMINATED → dead', () => {
   assert.equal(_isPodDead('TERMINATED', false, false), true);
 });
 
+test('v2 status ERROR (unrecoverable container) → dead (MPI-806)', () => {
+  assert.equal(_isPodDead('ERROR', false, false), true);
+});
+
+test('v2 booting statuses PROVISIONING / STARTING → not dead (MPI-806)', () => {
+  assert.equal(_isPodDead('PROVISIONING', false, false), false);
+  assert.equal(_isPodDead('STARTING', false, false), false);
+});
+
 test('404-absent Pod → dead even with no status string', () => {
   assert.equal(_isPodDead(null, false, true), true);
 });

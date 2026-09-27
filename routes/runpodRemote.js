@@ -2,7 +2,7 @@
  * routes/runpodRemote.js — RunPod REST + GraphQL client and HTTP routes.
  *
  * Backend client for the RunPod remote engine (MPI-64). Talks to:
- *   - REST  https://rest.runpod.io/v1     — Pod / network-volume / template CRUD
+ *   - REST  https://api.runpod.io/v2      — Pod / network-volume / template CRUD (MPI-806: migrated from rest.runpod.io/v1 which retires 2026-11-15)
  *   - GraphQL https://api.runpod.io/graphql — GPU catalog + data-center availability
  *
  * The user's API key is NEVER stored here and NEVER logged. It is fetched on demand
@@ -30,7 +30,7 @@ const express = require('express');
 const router = express.Router();
 const logger = require('./logger');
 
-const REST = 'https://rest.runpod.io/v1';
+const REST = 'https://api.runpod.io/v2';
 const GQL = 'https://api.runpod.io/graphql';
 
 // Cloudflare fronts the RunPod proxy AND the API; default fetch UA can be blocked
@@ -104,9 +104,60 @@ async function _graphql(apiKey, query, variables) {
   return json;
 }
 
+// --- v1 → v2 spec translation ------------------------------------------------
+//
+// MPI-806: v2 pod-create body is nested (gpu/cpu/mounts objects) while the app
+// builds the spec in the flat v1 shape internally (shared with the GraphQL create
+// path). Translate at the REST boundary so every call site is unaffected.
+//
+// v1 → v2 field renames:
+//   imageName            → image
+//   containerDiskInGb    → disk
+//   gpuTypeIds:[id]      → gpu.id
+//   gpuCount             → gpu.count
+//   allowedCudaVersions  → gpu.allowedCudaVersions
+//   minMemoryInGb        → gpu.minRamPerGpu
+//   computeType:'CPU' +
+//   cpuFlavorIds:[id]    → cpu.id
+//   vcpuCount            → cpu.vcpuCount
+//   networkVolumeId +
+//   volumeMountPath      → mounts.network[{volumeId, path}]
+//   dataCenterIds        → dataCenterIds (unchanged)
+function _toV2PodSpec(spec) {
+  const body = {};
+  if (spec.name !== undefined) body.name = spec.name;
+  if (spec.imageName !== undefined) body.image = spec.imageName;
+  if (spec.containerDiskInGb !== undefined) body.disk = spec.containerDiskInGb;
+  if (spec.ports !== undefined) body.ports = spec.ports;
+  if (spec.env !== undefined) body.env = spec.env;
+  if (spec.dataCenterIds !== undefined) body.dataCenterIds = spec.dataCenterIds;
+
+  if (Array.isArray(spec.gpuTypeIds) && spec.gpuTypeIds.length) {
+    body.gpu = { id: spec.gpuTypeIds[0] };
+    if (spec.gpuCount !== undefined) body.gpu.count = spec.gpuCount;
+    if (Array.isArray(spec.allowedCudaVersions) && spec.allowedCudaVersions.length) {
+      body.gpu.allowedCudaVersions = spec.allowedCudaVersions;
+    }
+    if (typeof spec.minMemoryInGb === 'number') body.gpu.minRamPerGpu = spec.minMemoryInGb;
+  }
+
+  if (spec.computeType === 'CPU' && Array.isArray(spec.cpuFlavorIds) && spec.cpuFlavorIds.length) {
+    body.cpu = { id: spec.cpuFlavorIds[0], vcpuCount: spec.vcpuCount };
+  }
+
+  if (spec.networkVolumeId) {
+    body.mounts = {
+      network: [{ volumeId: spec.networkVolumeId, path: spec.volumeMountPath || '/workspace' }],
+    };
+  }
+
+  return body;
+}
+
 // --- client functions (exported for remoteEngine.js + tests) ----------------
 
 const client = {
+  // v2 GET /v2/pods — probes the authenticated key; list wraps as {"pods":[...]}
   async validate(apiKey) {
     const r = await _rest(apiKey, 'GET', '/pods');
     return { valid: r.ok, status: r.status };
@@ -160,9 +211,11 @@ const client = {
     // aborts the whole connect and can leave a bare Pod. A 4xx (enum lag, stock,
     // schema) is a real reject and must NOT retry — only gateway 5xx do.
     // ponytail: fixed 2-retry with short linear backoff; enough for a proxy blip.
+    // MPI-806: translate internal v1-format spec to v2 nested format before sending.
+    const v2spec = _toV2PodSpec(spec);
     let r;
     for (let attempt = 0; attempt < 3; attempt += 1) {
-      r = await _rest(apiKey, 'POST', '/pods', spec);
+      r = await _rest(apiKey, 'POST', '/pods', v2spec);
       if (r.ok || r.status < 502 || r.status > 504) return r;
       if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 2000 * (attempt + 1)));
     }
@@ -223,11 +276,13 @@ const client = {
     }
     return { ok: true, status: 200, json: { id: pod.id, desiredStatus: pod.desiredStatus } };
   },
+  // MPI-806: v1 POST /pods/{id}/start → v2 POST /v2/pods/{id}/action {action:'start'}
   async startPod(apiKey, id) {
-    return _rest(apiKey, 'POST', `/pods/${id}/start`);
+    return _rest(apiKey, 'POST', `/pods/${id}/action`, { action: 'start' });
   },
+  // MPI-806: v1 POST /pods/{id}/stop → v2 POST /v2/pods/{id}/action {action:'stop'}
   async stopPod(apiKey, id) {
-    return _rest(apiKey, 'POST', `/pods/${id}/stop`);
+    return _rest(apiKey, 'POST', `/pods/${id}/action`, { action: 'stop' });
   },
   async deletePod(apiKey, id) {
     return _rest(apiKey, 'DELETE', `/pods/${id}`);
@@ -235,23 +290,31 @@ const client = {
   async getPod(apiKey, id) {
     return _rest(apiKey, 'GET', `/pods/${id}`);
   },
-  // List the account's Pods. RunPod REST `GET /pods` returns an array (same
-  // endpoint validate() probes). Used by the orphan-Pod sweep (MPI-64 4.3.3).
+  // List the account's Pods. v2 GET /v2/pods wraps as {"pods":[...]} (v1 was bare array).
+  // Callers unwrap via Array.isArray(r.json) || r.json.pods — both shapes handled.
   async listPods(apiKey) {
     return _rest(apiKey, 'GET', '/pods');
   },
+  // MPI-806: v1 /networkvolumes → v2 /network-volumes (hyphen added)
   async listVolumes(apiKey) {
-    return _rest(apiKey, 'GET', '/networkvolumes');
+    return _rest(apiKey, 'GET', '/network-volumes');
   },
+  // MPI-806: v1 /networkvolumes → v2 /network-volumes; dataCenterId → dataCenter
   async createVolume(apiKey, spec) {
-    return _rest(apiKey, 'POST', '/networkvolumes', spec);
+    // v1 spec uses dataCenterId; v2 uses dataCenter — translate at the boundary
+    const v2spec = { ...spec };
+    if (v2spec.dataCenterId !== undefined && v2spec.dataCenter === undefined) {
+      v2spec.dataCenter = v2spec.dataCenterId;
+      delete v2spec.dataCenterId;
+    }
+    return _rest(apiKey, 'POST', '/network-volumes', v2spec);
   },
   async deleteVolume(apiKey, id) {
-    return _rest(apiKey, 'DELETE', `/networkvolumes/${id}`);
+    return _rest(apiKey, 'DELETE', `/network-volumes/${id}`);
   },
   // MPI-762: grow a volume. RunPod refuses a size not larger than the current one.
   async updateVolume(apiKey, id, size) {
-    return _rest(apiKey, 'PATCH', `/networkvolumes/${id}`, { size });
+    return _rest(apiKey, 'PATCH', `/network-volumes/${id}`, { size });
   },
   async createTemplate(apiKey, spec) {
     return _rest(apiKey, 'POST', '/templates', spec);
@@ -328,7 +391,7 @@ router.get('/runpod/pods', (req, res) =>
     const pods = Array.isArray(r.json) ? r.json : (r.json && (r.json.pods || r.json.data)) || [];
     res.status(r.ok ? 200 : r.status).json({
       count: pods.length,
-      costPerHrTotal: pods.reduce((sum, p) => sum + (Number(p.costPerHr) || 0), 0),
+      costPerHrTotal: pods.reduce((sum, p) => sum + (Number(p.cost ?? p.costPerHr) || 0), 0), // v2 `cost` (MPI-806)
       pods: pods.map((p) => sanitizePodJson(p)),
     });
   }));
@@ -342,7 +405,18 @@ router.get('/runpod/pods/:id', (req, res) =>
 router.get('/runpod/volumes', (req, res) =>
   _withKey(res, async (key) => {
     const r = await client.listVolumes(key);
-    res.status(r.ok ? 200 : r.status).json(r.json);
+    if (!r.ok) return res.status(r.status).json(r.json);
+    // MPI-806: v2 wraps as {networkVolumes:[...]}; v1 returned bare array.
+    // Renderer reads vol.dataCenterId but v2 uses vol.dataCenter — add alias.
+    const raw = Array.isArray(r.json)
+      ? r.json
+      : (r.json && (r.json.networkVolumes || r.json.volumes)) || [];
+    const vols = raw.map((v) =>
+      v && v.dataCenter !== undefined && v.dataCenterId === undefined
+        ? { ...v, dataCenterId: v.dataCenter }
+        : v,
+    );
+    res.status(200).json({ networkVolumes: vols });
   }));
 
 router.post('/runpod/volumes', (req, res) =>

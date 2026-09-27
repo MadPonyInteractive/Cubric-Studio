@@ -70,9 +70,10 @@ Community Cloud is unsupported (unstable/limited for this use case).
 - ComfyUI forwarding: `POST /proxy/prompt`, `/interrupt`, `/queue`, `/upload/image`;
   `GET /proxy/view`, `/queue`.
 - Companion routers: `routes/remoteEngine.js` (key resolver, wrapper-token gen/store/clear,
-  `waitForWrapperReady`, `proxyUrl`), `routes/runpodRemote.js` (RunPod REST+GraphQL
-  `client`), `routes/remoteModels.js` (model status/install forwarding),
-  `routes/downloadManager.js` (remote download SSE bridge).
+  `waitForWrapperReady`, `proxyUrl`), `routes/runpodRemote.js` (RunPod REST `client` on
+  `https://api.runpod.io/v2` + GraphQL on `https://api.runpod.io/graphql` — MPI-806 migrated
+  from `rest.runpod.io/v1`, which retires 2026-11-15), `routes/remoteModels.js` (model
+  status/install forwarding), `routes/downloadManager.js` (remote download SSE bridge).
 
 ## 2. Pod lifecycle (create-on-Connect + STOP-on-quit, delete-fallback)
 
@@ -265,14 +266,16 @@ difference between hunting for a 96 GB instance and taking whatever is in stock.
 - **Delete a volume only after deleting its attached Pod** — RunPod refuses to delete an
   attached volume even when the Pod is EXITED. Settings deletes the tracked Pod first.
 - **Grow a volume from Settings (MPI-762).** `PATCH /runpod/volumes/:id` → REST
-  `PATCH /networkvolumes/{id}` with `{size}` only. RunPod refuses a size not larger than the
+  `PATCH /network-volumes/{id}` with `{size}` only. RunPod refuses a size not larger than the
   current one (a volume never shrinks) and caps it at 4000 GB, so the field floors at the
   current size. A RUNNING Pod sees the new quota with no restart (user-observed on console
   resizes), and the disk bar + disk gate re-read `size` on every call. Sizes are decimal GB,
   same as the badge and bar. A GPU Pod's container disk was mirrored to the OLD size at
   create (MPI-329), so until the next create it is smaller than the volume.
-- **No volume USED-bytes from RunPod (MPI-169).** REST `/networkvolumes` returns only
-  `{id,name,size,dataCenterId}` (size = the configured quota); GraphQL `NetworkVolume`
+- **No volume USED-bytes from RunPod (MPI-169).** REST `/network-volumes` returns only
+  `{id,name,size,dataCenter}` (size = the configured quota; MPI-806: `dataCenter` in v2,
+  `dataCenterId` in v1 — the `/runpod/volumes` route adds a `dataCenterId` alias for
+  renderer compat); GraphQL `NetworkVolume`
   rejects `used`/`usedBytes`/`consumedBytes`/`currentPerGBUsage`. The ONLY truthful used
   figure comes from inside a running Pod: wrapper `GET /wrapper/disk` runs `du -sb`
   on `$CUBRIC_VOLUME_MOUNT` (0.2.23+). So the disk bar is **connected-Pod-only** (works
@@ -585,7 +588,7 @@ is committed).
 
 **Volume persists through Reset** — RunPod console "Reset" wipes container/ephemeral disk only; Uptime keeps climbing, volume usage stays full, models survive. Confirmed 2026-06-17. Clear volume via manual `rm` (wrapper/SSH) or destroy the network volume itself.
 
-**REST Pod shape — no `uptimeInSeconds`** — `GET /pods/{id}` has NO `runtime` object; `p.runtime?.uptimeInSeconds` is always null. Use `lastStartedAt` (UTC ISO) to compute uptime. Live fields: `costPerHr`/`adjustedCostPerHr`, `desiredStatus`, `machine` (dataCenterId, location, gpuAvailable, maintenanceStart/End/Note). NO image-pull progress field exists anywhere.
+**REST Pod shape on v2 (MPI-806, read off `api.runpod.io/v2/openapi.json` 2026-09-27)** — `status` replaces `desiredStatus`, enum PROVISIONING/STARTING/RUNNING/EXITED/ERROR/TERMINATED (ERROR counts as not-running beside EXITED/TERMINATED); `startedAt` replaces `lastStartedAt`; `cost` replaces `costPerHr`; `disk` replaces `containerDiskInGb`; `mounts.network[0].volumeId` replaces `networkVolumeId`; `gpu.memory` is total SYSTEM RAM, not VRAM; `runtime` is `{uptime, gpus[{util, memoryUtil}], cpu{util}, memory{util}}` and null unless RUNNING. **There is NO `machine` object on v2**, so the MPI-135 maintenance-host detect below reads nothing and never fires (degrades to the normal readiness watchdog). `gpu.id` on create is a free string, so the MPI-159 enum-lag 400 cannot happen on v2 and that GraphQL fallback goes dormant. NO image-pull progress field exists anywhere.
 
 **Watchdog is a crash backstop, NOT an idle timer** — the Pod-side watchdog (`wrapper.py Watchdog`) resets on ANY authenticated traffic; `MpiMemoryMonitor` polls `/wrapper/stats` every 2s so the deadline never expires while the app is alive. It fires only when the app dies. Never add "stop Pod after N min idle while connected" — architecturally impossible without stopping the stats poll. Fixed 10-min backstop (`CUBRIC_IDLE_TIMEOUT_S=600`, not user-configurable). MPI-103 live-verified: Pod stayed up 57 min idle-with-app.
 

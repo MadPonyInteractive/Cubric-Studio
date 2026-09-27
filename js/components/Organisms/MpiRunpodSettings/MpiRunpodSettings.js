@@ -401,7 +401,7 @@ export const MpiRunpodSettings = ComponentFactory.create({
             // running. The status route now reports the Pod's runtime status; a
             // terminal not-running status past a short grace = a dead host, not a
             // slow boot, so bail early instead of faking progress.
-            const _NOT_RUNNING = new Set(['EXITED', 'TERMINATED', 'DEAD']);
+            const _NOT_RUNNING = new Set(['EXITED', 'TERMINATED', 'DEAD', 'ERROR']); // ERROR: RunPod v2 (MPI-806)
             while (Date.now() - start < timeoutMs) {
                 if (_connectAbort) return false; // MPI-86: Cancel pressed — stop polling
                 if (!slowFired && Date.now() - start >= slowAfterMs) {
