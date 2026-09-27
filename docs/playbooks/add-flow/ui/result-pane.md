@@ -53,6 +53,14 @@ pairing is pinned by `tests/flow-result-compare.test.cjs`.
 surface wrapped in a full-screen takeover. **Change the compare behaviour in the view, never in
 one of the two consumers** — that is the whole reason it was lifted out.
 
+**Each side keeps its OWN pixels, whichever order they were picked in (MPI-956).** The before
+side is MpiCanvas's base canvas; the after side is its own `canvas[data-role="compare"]` at the
+after media's native size, cover-fitted over the base by CSS and clipped at the bar with
+`clip-path`. It used to be drawn into the overlay, which is sized to the BEFORE image, so a 1K
+picked first turned an 8K second into a pixelated 1K. Never draw one side into the other's
+pixel grid. Auto pixel mode is set per canvas for the same reason: the two sides are magnified
+by different amounts. Pinned by `tests/desktop/compare-native-resolution.spec.js`.
+
 ## The result pane: every video result gets the real player (MPI-585)
 
 A **single video** result mounts `MpiVideoViewer` + `MpiVideoControlBar` — the same pair the

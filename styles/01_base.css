@@ -453,6 +453,11 @@ html.pixel-mode-auto .mpi-canvas__stack[data-zoom-mode="pixel"] canvas,
 html.pixel-mode-auto .mpi-masked-preview__stack[data-zoom-mode="pixel"] .mpi-masked-preview__base,
 html.pixel-mode-auto .mpi-masked-preview__stack[data-zoom-mode="pixel"] .mpi-masked-preview__masked { image-rendering: pixelated; }
 
+/* A canvas shown at its own scale (MpiCanvas's compare side, MPI-956) carries its own
+   data-zoom-mode, which wins over the stack's: same specificity, later rule. */
+html.pixel-mode-auto .mpi-canvas__stack canvas[data-zoom-mode="pixel"]  { image-rendering: pixelated; }
+html.pixel-mode-auto .mpi-canvas__stack canvas[data-zoom-mode="smooth"] { image-rendering: auto; }
+
 .spinner {
   width: 36px;
   height: 36px;

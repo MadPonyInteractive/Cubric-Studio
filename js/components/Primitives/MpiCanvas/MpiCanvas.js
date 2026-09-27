@@ -141,6 +141,17 @@ class _CanvasCore {
         this.baseCtx = this.baseCanvas.getContext('2d');
         this.stackEl.appendChild(this.baseCanvas);
 
+        // Compare canvas — the "after" media at ITS OWN native px, laid over the base by
+        // CSS (MPI-956). It used to be drawn into the overlay, i.e. into the BEFORE image's
+        // pixel grid, so a 1K before turned an 8K after into a pixelated 1K. Sits under the
+        // overlay so paint/mask/grid still draw on top of it, as they did.
+        this.compareCanvas = document.createElement('canvas');
+        this.compareCanvas.dataset.role = 'compare';
+        this.compareCanvas.style.position = 'absolute';
+        this.compareCanvas.style.display = 'none';
+        this.compareCtx = this.compareCanvas.getContext('2d');
+        this.stackEl.appendChild(this.compareCanvas);
+
         // Overlay canvas — image native px. Mask/crop/grid (transparent).
         // image-rendering owned by styles/01_base.css (`html.pixel-mode-*` + stackEl data-zoom-mode).
         this.overlayCanvas = document.createElement('canvas');
@@ -319,20 +330,23 @@ class _CanvasCore {
         this.undoStack?.destroy?.();
         this.comparison?.destroy?.();
         // Zero canvas dims before removal — forces Chromium to release GPU texture backing immediately
-        for (const c of [this.baseCanvas, this.overlayCanvas, this.screenUICanvas]) {
+        for (const c of [this.baseCanvas, this.compareCanvas, this.overlayCanvas, this.screenUICanvas]) {
             if (c) { c.width = 0; c.height = 0; }
         }
         // Remove all canvases + stack from DOM
-        for (const node of [this.baseCanvas, this.overlayCanvas, this.screenUICanvas, this.stackEl]) {
+        for (const node of [this.baseCanvas, this.compareCanvas, this.overlayCanvas, this.screenUICanvas, this.stackEl]) {
             if (node && node.parentNode) node.parentNode.removeChild(node);
         }
         // Close ImageBitmap if held — GPU memory not released until .close()
         if (this._processedBitmap instanceof ImageBitmap) this._processedBitmap.close();
         this.baseCanvas = null;
+        this.compareCanvas = null;
         this.overlayCanvas = null;
         this.screenUICanvas = null;
         this.stackEl = null;
         this.baseCtx = null;
+        this.compareCtx = null;
+        this._compareDrawn = null;
         this.overlayCtx = null;
         this.screenUICtx = null;
         this.canvas = null;
@@ -830,6 +844,7 @@ class _CanvasCore {
         if (this.baseCanvas.width === 0 || this.baseCanvas.height === 0) return;
         this._refitForCrop(display);
         this._renderBase();
+        this._drawComparisonLayer();
         this._renderOverlay();
         this._renderScreenUI();
     }
@@ -932,10 +947,7 @@ class _CanvasCore {
             this.comp.drawPlaced(ctx, this.shape, W / (this.img.width || W));
         }
 
-        // 1. Comparison clip layer (image-px math; overlay ctx un-transformed)
-        if (this.comparison.isComparisonMode && this.comparison.afterWidth) {
-            this._drawComparisonLayer();
-        }
+        // 1. (The comparison layer is its own canvas under this one — `_drawComparisonLayer`.)
 
         // 1b. Paint (MPI-375) — UNDER the mask, because it is image content and the
         // mask is an annotation over it. Drawn in every mode, not just the Paint
@@ -1015,37 +1027,65 @@ class _CanvasCore {
         this._drawBrushIndicator();
     }
 
+    /**
+     * The "after" side (MPI-956). Its backing store is the after media's OWN native px
+     * (clamped like the base), and CSS places it over the base frame — so each side keeps
+     * its pixels whichever order the two were picked in. An image is rasterized once; a
+     * video repaints every draw, which is how its frames already arrived here.
+     */
     _drawComparisonLayer() {
-        const ctx = this.overlayCtx;
+        const cc = this.compareCanvas;
         const imgAfter = this.comparison.imgAfter;
-        if (!imgAfter) return;
-
         const afterW = this.comparison.afterWidth;
         const afterH = this.comparison.afterHeight;
-        if (!afterW || !afterH) return;
+        const on = this.comparison.isComparisonMode && _isDrawable(imgAfter) && afterW > 0 && afterH > 0;
+        cc.style.display = on ? '' : 'none';
+        if (!on) {
+            // Free the backing store: at 8K it is 256 MB, and the History viewer outlives
+            // every compare it shows.
+            if (cc.width) { cc.width = 0; cc.height = 0; this._compareDrawn = null; }
+            return;
+        }
 
+        const ratio = Math.min(1, MAX_TEXTURE_SIZE / Math.max(afterW, afterH));
+        const w = Math.round(afterW * ratio);
+        const h = Math.round(afterH * ratio);
+        if (cc.width !== w || cc.height !== h) {
+            cc.width = w;
+            cc.height = h;
+            this._compareDrawn = null;
+        }
+        if (this.comparison.afterKind === 'video' || this._compareDrawn !== imgAfter) {
+            this.compareCtx.clearRect(0, 0, w, h);
+            this.compareCtx.drawImage(imgAfter, 0, 0, w, h);
+            this._compareDrawn = imgAfter;
+        }
+
+        // Cover-fit into the base frame, in stack px (= base canvas px).
         const baseW = this.baseCanvas.width;
         const baseH = this.baseCanvas.height;
-
-        ctx.save();
         const relScale = Math.max(baseW / afterW, baseH / afterH);
         const compW = afterW * relScale;
         const compH = afterH * relScale;
         const compX = (baseW - compW) / 2;
         const compY = (baseH - compH) / 2;
+        cc.style.left   = compX + 'px';
+        cc.style.top    = compY + 'px';
+        cc.style.width  = compW + 'px';
+        cc.style.height = compH + 'px';
 
         // sliderPos is a fraction of the CONTAINER (screen space) so the split bar
-        // stays fixed while the image pans/zooms under it. Overlay ctx is un-transformed
-        // image-px, so convert: screen bar x → image-px via the inverse view transform.
+        // stays fixed while the image pans/zooms under it: screen bar x → stack px via
+        // the inverse view transform. The clip also trims the cover overflow to the frame.
         const rect = this.container.getBoundingClientRect();
-        const sliderScreenX = this.comparison.sliderPos * rect.width;
-        const clipX = (sliderScreenX - this.view.offsetX) / (this.view.scale || 1);
+        const clipX = (this.comparison.sliderPos * rect.width - this.view.offsetX) / (this.view.scale || 1);
+        const left = Math.max(clipX, 0) - compX;
+        cc.style.clipPath = `inset(${-compY}px ${compX + compW - baseW}px ${compY + compH - baseH}px ${left}px)`;
 
-        ctx.beginPath();
-        ctx.rect(clipX, 0, baseW - clipX, baseH);
-        ctx.clip();
-        ctx.drawImage(imgAfter, compX, compY, compW, compH);
-        ctx.restore();
+        // Auto pixel mode keys off the scale THIS canvas's pixels are shown at, which
+        // differs from the stack's whenever the two sides differ in resolution.
+        const scale = (this.view.scale || 1) * compW / w;
+        cc.dataset.zoomMode = scale >= AUTO_PIXEL_THRESHOLD ? 'pixel' : 'smooth';
     }
 
     /** Recolor a mask layer's opaque pixels to `color`, via a scratch buffer so
