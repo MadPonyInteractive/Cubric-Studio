@@ -326,3 +326,16 @@ port alone). Bench writes to `D:\WORK\Images\Outputs`, never `<ComfyUI>\output`.
       -3.55 dB, +124 Hz centroid drift.
 - [ ] RULE TO ENFORCE: significance on this bench is ~0.9 dB. Trends across 3+ ordered
       points survive it; single adjacent pairs below it are not findings.
+- [x] PHASE 8b (2026-09-27): MpiAudioSplice/MpiAudioRange resolve a negative index from the
+      last sample - MpiNodes bc92a1b, pushed, pinned. check_audio_range.py reproduces the run's
+      error on the old code, passes on the new.
+- [x] #951/#953 read #974 = context_frames - 24; #950 end reads #975 = frame_count - 1.
+      Raw 10820348b, runtime staged, injection validator green.
+- [x] Flow pane latent strobe: decode off-screen and swap src (MpiBaseFlow._paintResult).
+      Old path 7-12 blank frames / 10 s, new 0. tests/flow-latent-no-strobe.test.cjs.
+- [x] FABIO RE-RUNS Extend Video on H3 end to end (restart the app first so the engine
+      reinstalls MpiNodes at bc92a1b). Checks: no splice error, sound continuous across the
+      seam, pane preview steady.
+- [ ] NOTED: audio shorter than picture joins ~20 ms early (needs silence pad, not a trim).
+- [x] PHASE 8c: #971 encodes the on-grid source TAIL (#976-#978) and #979 ImageBatchMulti replaces
+      the #904 50/50 blend. Fabio, second run: "the join is clean now" (2026-09-27).

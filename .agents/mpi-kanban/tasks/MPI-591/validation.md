@@ -2282,3 +2282,54 @@ a 1.00 s source asked for 56 pins 22; a 0.50 s source asked for 22 pins 5. The g
 at 17m+5 and the 56 ceiling is only the dropdown, so the cap is the port's to choose. Combos are
 enforced server-side (`execution.py:1071`). And `context_latent` needs the previous clip's sampler
 output latent, which an IMPORTED video does not have - the pixel path must survive in the port.
+
+### Phase 8b - the splice fix, the offset rewire, the Flow pane strobe (2026-09-27)
+
+* `check_audio_range.py` on the bench interpreter (G:/ComfyUi/python_embeded): ALL OK, five
+  groups - the exact failing case (229688 / -125 / 366625 lands at 136937 and ends on the last
+  sample), the 1-sample overhang at a 15-frame re-take, a frame-long patch still raises, a
+  negative cut spliced back is bit-exact on 366625 / 367500 / 366626-sample tracks, -1 is the
+  last sample. Against HEAD~ video.py it raises Fabio's exact message: "A 229688-sample patch
+  placed at frame 75 runs 875 samples past the end of a 366625-sample track."
+* Whole-chain simulation (scratch, not kept): contexts 39/90/141 x source padding
+  -881/0/1024/2048/700 samples: no raise, padding trimmed exactly, placement error +1/0/-1 sample.
+* `sync-raw-workflows.mjs` against 48188: converted, injection validator "All 1 file(s) conform".
+  Runtime inputs read back: 950.end <- 975, 951.start <- 974, 953 = "b - a" (a <- 213, b <- 974),
+  974 = "a - 24" (a <- 972[1]), 975 = "a - 1" (a <- 331[3]).
+* Strobe, headless Chromium, 141 distinct 512x213 JPEG blobs at 24 fps, 10 s after 1 s warm-up,
+  three runs: old `_paintResult` 11 / 7 / 12 blank frames of 601 samples, new 0 / 0 / 0.
+* `npm test`: 2175 tests, 2173 pass, 0 fail, 2 skipped (DEEPINFRA_API_KEY unset; POSIX-only).
+* Desktop, own port 60513: flow-audio-player, flow-close-destroys-instance,
+  flow-result-follows-steps, flow-step-field-hidden - 9/9.
+* NOT YET: Fabio's end-to-end H3 run. That is the product check this card still waits on.
+
+### Phase 8 delta 3 - FABIO'S SPEECH RUN: THE SPLICE HELD, THE JOIN SNAPPED (2026-09-27)
+
+Second end-to-end run (tiger clip, 97 frames, context 90, 4 s): NO splice error, flicker gone
+by his eye - both fixes above confirmed in the product. But the join "snapped", and output
+frame 96 was a double exposure. Two causes, both in the graph, both pre-existing, both invisible
+on the bench because 062 is 124 frames = ON the 17k+5 grid:
+
+THE SNAP - the H3 video VAE packs only 17k+5 frames and drops the remainder at the END. #971
+encoded the whole 97-frame source, got its first 90 frames, so the context ended at source frame
+89 while the stitch appended the new footage after frame 96. MEASURED (seam.py, scratch): the
+first clean new frame matches SOURCE FRAME 91 (9.56) and sits 27.16 from source 96 against a
+median step of 14.85. A snap of up to 16 frames on ANY off-grid source. Fix: #976 =
+(frame_count - 5) % 17, #977/#978 cut picture and audio (from #950, already trimmed) at that
+frame, and #971 encodes the on-grid TAIL. MpiH3MaskedPrefix's docstring says it "accepts
+off-grid clips" - it does, but the ENCODE upstream of it does not keep the end, so any graph
+that feeds it a whole off-grid clip repeats this. Worth a sentence in the node's description on
+the next MpiNodes change.
+
+THE GHOST - #904 ImageBatchExtendWithOverlap(overlap 1, linear_blend) is not a hard join: alpha
+= linspace(0,1,3)[1:-1] = 0.5, a 50/50 blend of the last source frame and the first new one, and
+the picture came out one frame shorter than the audio. It hid the guide route's flash; there is
+no flash now. Replaced by #979 ImageBatchMulti (plain concat; core ImageBatch is deprecated on
+0.34, overlap 0 on the KJ node slices source[:-0] = nothing). Output is now S + new frames,
+matching the audio.
+
+Commits: 265bb6f35 (runtime + pin), ba4095163 (Flow pane), 2412611af (raw); runtime of this
+delta staged. Build script: research/bench/rewire_h3_tail_and_join.py.
+NEXT: Fabio re-runs the same clip. Expect 199 frames, no jump at 96/97, no double frame.
+
+**VERIFIED BY FABIO, 2026-09-27:** second run on the same tiger clip - "the join is clean now". Together with run 1 (no splice error, flicker gone) Phase 8 is verified as a PRODUCT, not only by instrument.

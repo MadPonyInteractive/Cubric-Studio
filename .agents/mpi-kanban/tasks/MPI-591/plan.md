@@ -2018,3 +2018,82 @@ node #1 of the LTX graph retitled from "Load Diffusion Model" to an Input_* titl
 be VERIFIED here: nobody has the 39.13GB bf16 weight installed, and bf16 22B on a 16GB card
 offloads heavily, so "appears in the list" is not "works". Fabio has not said whether to
 card it, nor whether it covers all three flows or extend alone.
+
+### Phase 8 delta 2 - THE SPLICE FIX, THE OFFSET REWIRE, AND WHICH SIDE THE FLICKER WAS ON (2026-09-27)
+
+CURRENT STATE: all three items below are on disk and verified by instrument. What remains is
+FABIO'S RE-RUN of Extend Video on H3 end to end, after restarting the app so the engine
+reinstalls MpiNodes at the new pin. Nothing in this card is a verified PRODUCT until that run
+lands (key decision from Phase 8, still standing).
+
+THE SPLICE, FIXED IN THE NODE - MpiNodes bc92a1b, pushed, pinned in node_lock.json.
+MpiAudioRange and MpiAudioSplice now share one frame->sample resolution (`_frame_sample`): a
+negative index counts back from the LAST SAMPLE, multiplied before divided. The handoff's
+one-line fix was NOT enough on its own, and the reason is worth keeping: once #951 reads
+context - 24 = 15 frames, 15 x 1837.5 = 27562.5 samples, so the patch cut at +15 and its
+-(L-15) placement round ONE SAMPLE apart and a strict check raises again. The splice therefore
+drops an overhang of <= 1 ms and still raises on anything larger (a real wrong window is a
+frame, ~40 ms, or more). `check_audio_range.py` (pack root, precedent check_splat.py) reproduces
+Fabio's exact error on the OLD code and passes on the new one.
+
+THE "TRIM AAC PADDING" NODE NEVER RELIABLY TRIMMED. #950 (end -1) only trimmed because the old
+rounding snapped the track to whole frames - which trimmed padding under half a frame and NOT
+otherwise, and AAC's 1024-sample priming alone is 0.56 of a frame. With -1 now the real last
+sample, #950's end is wired to the source's frame_count - 1 (new #975): the trim is exact.
+
+THE OFFSETS, WIRED - #974 = #972.context_frames - 24 feeds #951.start and #953 ("b - a"). The
+literal 16 re-took 23 frames at context 39 and 74 frames - three seconds of the source's real
+audio - at 90; the re-take is now 24 frames at every context. Raw committed by the converter
+(10820348b); runtime twin staged. Build script: research/bench/rewire_h3_audio_offsets.py.
+Whole-chain simulation (#950 -> #907 -> #951/#953 -> #952, contexts 39/90/141, padding
+-881/0/1024/2048/700): no raise anywhere, padding trimmed exactly, patch within +-1 sample.
+
+THE FLICKER WAS THE APP, NOT THE NODE - Fabio: the FLOW PANE, not the gallery card, not LTX.
+Node side ruled out by reading core: KSamplerX0Inpaint returns latent_image in the masked
+region (samplers.py:642), so the preserved head decodes identically every step. App side:
+MpiBaseFlow._paintResult rebuilt the <img> per frame (innerHTML = '', new element, fit on
+load) and a new <img> is EMPTY until its blob decodes - at the H3 clip rate (24 fps) the pane
+showed its background between frames. The gallery card decodes off-screen and swaps src, which
+is why it never flickered. Fix: the pane does the same once a latent is on screen. MEASURED in
+headless Chromium, 141 distinct 512x213 JPEG blobs at 24 fps, 10 s steady state, 3 runs:
+old path 7 / 11 / 12 blank frames, new path 0 / 0 / 0.
+
+NOT FIXED, NOTED: a source whose audio is SHORTER than its picture (Fabio's 062 is short by
+0.48 frame, 881 samples) still joins the generated audio ~20 ms early. It needs silence padding
+to frame_count, not a trim; pre-existing and inaudible at this size, but it is the next
+sub-frame error in this chain if one is ever heard.
+
+### Phase 8 delta 3 - FABIO'S SPEECH RUN: THE SPLICE HELD, THE JOIN SNAPPED (2026-09-27)
+
+Second end-to-end run (tiger clip, 97 frames, context 90, 4 s): NO splice error, flicker gone
+by his eye - both fixes above confirmed in the product. But the join "snapped", and output
+frame 96 was a double exposure. Two causes, both in the graph, both pre-existing, both invisible
+on the bench because 062 is 124 frames = ON the 17k+5 grid:
+
+THE SNAP - the H3 video VAE packs only 17k+5 frames and drops the remainder at the END. #971
+encoded the whole 97-frame source, got its first 90 frames, so the context ended at source frame
+89 while the stitch appended the new footage after frame 96. MEASURED (seam.py, scratch): the
+first clean new frame matches SOURCE FRAME 91 (9.56) and sits 27.16 from source 96 against a
+median step of 14.85. A snap of up to 16 frames on ANY off-grid source. Fix: #976 =
+(frame_count - 5) % 17, #977/#978 cut picture and audio (from #950, already trimmed) at that
+frame, and #971 encodes the on-grid TAIL. MpiH3MaskedPrefix's docstring says it "accepts
+off-grid clips" - it does, but the ENCODE upstream of it does not keep the end, so any graph
+that feeds it a whole off-grid clip repeats this. Worth a sentence in the node's description on
+the next MpiNodes change.
+
+THE GHOST - #904 ImageBatchExtendWithOverlap(overlap 1, linear_blend) is not a hard join: alpha
+= linspace(0,1,3)[1:-1] = 0.5, a 50/50 blend of the last source frame and the first new one, and
+the picture came out one frame shorter than the audio. It hid the guide route's flash; there is
+no flash now. Replaced by #979 ImageBatchMulti (plain concat; core ImageBatch is deprecated on
+0.34, overlap 0 on the KJ node slices source[:-0] = nothing). Output is now S + new frames,
+matching the audio.
+
+Commits: 265bb6f35 (runtime + pin), ba4095163 (Flow pane), 2412611af (raw); runtime of this
+delta staged. Build script: research/bench/rewire_h3_tail_and_join.py.
+NEXT: Fabio re-runs the same clip. Expect 199 frames, no jump at 96/97, no double frame.
+
+VERIFIED (Fabio, 2026-09-27, second run): "the join is clean now". Phase 8 is DONE as a product.
+CURRENT STATE / NEXT: the remaining items are the pre-existing Phase 8 pending list - Phase 6 docs
+(ltx-extend.md, any-of-models.md; add the off-grid tail trap and the #904 blend to the flow doc),
+the stale ref2va lines in 01-smoke-run.md (MPI-806 owns it), the LTX-HIGH card question, A3
+accelerators, and the MpiH3MaskedPrefix description sentence about encoding the on-grid tail.

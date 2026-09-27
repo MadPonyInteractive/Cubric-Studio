@@ -12,6 +12,10 @@
     "tests/flow-model-choice.test.cjs",
     "docs/playbooks/add-flow/existing-flows/ltx-extend.md",
     "docs/playbooks/add-flow/any-of-models.md",
-    "js/services/generationService.js"
+    "js/services/generationService.js",
+    "js/components/Blocks/MpiBaseFlow/MpiBaseFlow.js",
+    "tests/flow-latent-no-strobe.test.cjs",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/video.py",
+    "C:/AI/Mpi/ComfyUi-MpiNodes/check_audio_range.py"
   ]
 }
