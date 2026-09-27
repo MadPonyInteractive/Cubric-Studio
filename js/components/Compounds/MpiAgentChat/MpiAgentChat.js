@@ -527,12 +527,14 @@ export const MpiAgentChat = ComponentFactory.create({
         }
 
         /** An agent tool started or finished: Cosmo and the guest follow what it is doing. */
-        function _onTool({ id, tool, status } = {}) {
+        function _onTool({ id, tool, status, noPrompt } = {}) {
             if (!guest) return;
             const crew = _TOOL_CREW[tool];
             if (status === 'started') {
                 _tool = tool;
-                if (crew?.guest) _toolGuest = { id, ...crew.guest };
+                // A tool run (plain upscale, cut-out, crop: MPI-904) writes no prompt, so
+                // no prompt writer stands in; the job's own mascot arrives when it starts.
+                if (crew?.guest && !noPrompt) _toolGuest = { id, ...crew.guest };
             } else {
                 if (_tool === tool) _tool = null;
                 if (_toolGuest?.id === id) _toolGuest = null;

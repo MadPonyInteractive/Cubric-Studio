@@ -70,6 +70,7 @@ import { downloadService } from '../services/downloadService.js';
 import { remoteEngineClient } from '../services/remoteEngineClient.js';
 import { state } from '../state.js';
 import { runGifJob, GIF_HANDLERS } from './gifJobs.js';
+import { AGENT_TOOL_OPS, agentToolOp, toolOperation, toolRun } from './agentToolOps.js';
 import { clientLogger } from '../services/clientLogger.js';
 
 let _source = null;
@@ -530,6 +531,8 @@ async function _submitGeneration(jobId, input = {}) {
     // arrive as a modelId and needs its own resolution. One capability either way:
     // the caller asks for a generation, and `flowId` is what says which kind.
     if (input.flowId) return _submitFlow(jobId, input);
+    // No model and no Flow: one of the agent's image tools (MPI-904).
+    if (!input.modelId) return _submitTool(jobId, input);
 
     const {
         modelId, operation, positive = '', negative = '', media = [], seed,
@@ -635,6 +638,60 @@ async function _submitGeneration(jobId, input = {}) {
         ? maskedGenerationOpts(mask.maskGroupId) || workspaceGenerationOpts(mediaItems, model.mediaType || 'image')
         : null;
 
+    return _enqueueAgentRun(jobId, input, config, target, historyOpts, {
+        width, height, batchSize: Number(mergedInjection.Input_Batch_Size) || 1, duration: named.duration,
+    });
+}
+
+/**
+ * `generation.submit` with no model and no Flow: one of the agent's image tools
+ * (`agentToolOps.js`, MPI-904). The universal op the History rail runs, with the params
+ * the rail sends, dispatched the way the rail dispatches it (`model.id: null`). An edited
+ * card entry gets the result as its next entry, exactly as a model edit does.
+ */
+async function _submitTool(jobId, input = {}) {
+    const { operation, fields = {}, media = [] } = input;
+    if (!agentToolOp(operation)) {
+        return _fail(jobId, 'UNKNOWN_OPERATION', `"${operation}" needs a modelId. With no model, operation must be one of: ${AGENT_TOOL_OPS.map(t => t.op).join(', ')}.`);
+    }
+    const target = await targetProject(input);
+    if (target.error) return _fail(jobId, target.error.code, target.error.message);
+    if (!target.project) {
+        return _fail(jobId, 'NO_PROJECT', 'No project is open in Vision and the request named none. Send folderPath, or create or open a project, then send this request again.');
+    }
+    const model = { id: null, mediaType: 'image' };
+    const resolved = resolveAgentMedia(toolOperation(operation), model, media);
+    if (!resolved.ok) return _fail(jobId, resolved.code, resolved.message);
+
+    // ponytail: decodes the picture for its size, crop only; read the entry's
+    // pixelDimensions instead if a crop over hundreds of 16K photos proves slow.
+    let natural = null;
+    if (operation === 'crop') {
+        try { natural = await _naturalSize(resolved.mediaItems[0].url); } catch { /* toolRun refuses it */ }
+    }
+    const run = toolRun(operation, fields, natural);
+    if (!run.ok) return _fail(jobId, run.code, run.message);
+
+    const config = {
+        operation: run.operation,
+        model,
+        positive: '',
+        negative: '',
+        mediaItems: resolved.mediaItems,
+        injectionParams: run.injectionParams,
+        byAgent: true,
+        _originProject: target.project,
+    };
+    const historyOpts = target.open ? workspaceGenerationOpts(resolved.mediaItems, 'image') : null;
+    return _enqueueAgentRun(jobId, input, config, target, historyOpts);
+}
+
+/**
+ * The half of an agent submit that is the same for a model op and a tool: the gallery
+ * placeholder, following the work, the enqueue and its reports.
+ */
+function _enqueueAgentRun(jobId, input, config, target, historyOpts, { width = 0, height = 0, batchSize = 1, duration = null } = {}) {
+    const { model } = config;
     // A gallery gen MUST carry a tempId + placeholderGroup or the run is invisible
     // until it finishes: MpiGalleryBlock draws in-progress cards from the
     // activeGenerations entry's `placeholderGroup`, and live latents route by
@@ -656,14 +713,14 @@ async function _submitGeneration(jobId, input = {}) {
     };
     // A batch draws one card per image up front (MPI-876), the same shape the gallery's
     // own Cue builds (MpiGalleryBlock `_galleryGenerationOptions`).
-    const extraTempIds = Array.from({ length: Math.max(1, Number(mergedInjection.Input_Batch_Size) || 1) - 1 }, () => crypto.randomUUID());
+    const extraTempIds = Array.from({ length: Math.max(1, batchSize) - 1 }, () => crypto.randomUUID());
     const extraPlaceholders = extraTempIds.map((id) => ({ ...placeholderGroup, id, history: [] }));
 
     // Following a run into a project the user does not have open would open it for them.
     if (target.open) _followWork(input, historyOpts);
     const queued = enqueueGeneration(config, {
         // A card name names a NEW card. Added to the user's own card, it would rename theirs.
-        onComplete: (done) => _reportDone(jobId, done, historyOpts ? undefined : input.cardName, named.duration, model.id,
+        onComplete: (done) => _reportDone(jobId, done, historyOpts ? undefined : input.cardName, duration, model.id,
             target.open ? null : target.project),
         // An `outputKind: 'text'` op produces a caption and no item (MPI-310).
         onText: (text) => _report(jobId, { ok: true, output: { text } }),
@@ -1324,7 +1381,9 @@ function _listModels(jobId) {
         };
     });
 
-    return _report(jobId, { ok: true, output: { engine, models, flows } });
+    // MPI-904: the image tools that run with no model. They install with the engine, as
+    // every universal op does, so there is no install state to report.
+    return _report(jobId, { ok: true, output: { engine, models, flows, tools: AGENT_TOOL_OPS } });
 }
 
 /**

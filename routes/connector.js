@@ -428,7 +428,9 @@ const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'styli
  *                              ratio?, qualityTier?, turbo?, styleSelect?, stylization?,
  *                              duration?, denoise?, batch?, seed?, media? }
  *       OR a Flow (MPI-658): { flowId, fields?, media? }
- *       plus, on either:     { folderPath?, cardName?, requestId? }
+ *       OR a tool (MPI-904): { operation, fields?, media } with NO modelId: imageUpscale,
+ *                              removeBackground or crop (js/shell/agentToolOps.js)
+ *       plus, on any:        { folderPath?, cardName?, requestId? }
  *
  * The two are not variants of one shape. A Flow has no model — it dispatches with
  * `model.id: null` — so `modelId` can never name one, and its controls are DECLARED
@@ -456,8 +458,21 @@ router.post('/connector/generate', async (req, res) => {
   if (flowId && modelId) {
     return _bad('body.flowId and body.modelId are alternatives — send one, not both.');
   }
-  if (!flowId && (!modelId || !operation)) {
+  if (!flowId && !operation) {
     return _bad('body.flowId, or body.modelId and body.operation, are required.');
+  }
+  // MPI-904: an operation with no model is one of the agent's image tools
+  // (js/shell/agentToolOps.js). Its settings are `fields`; the model's named params
+  // mean nothing to it, so one sent is a caller error rather than something dropped.
+  const tool = !flowId && !modelId;
+  if (tool) {
+    const { AGENT_TOOL_OPS, agentToolOp } = await import('../js/shell/agentToolOps.js');
+    if (!agentToolOp(String(operation))) {
+      return _bad(`"${operation}" needs body.modelId. With no model, body.operation must be one of: ${AGENT_TOOL_OPS.map((t) => t.op).join(', ')}.`);
+    }
+  }
+  if (tool && NAMED_PARAM_KEYS.some((k) => req.body?.[k] !== undefined)) {
+    return _namedErr('BAD_REQUEST', `"${operation}" runs with no model: its settings go in fields, not ${NAMED_PARAM_KEYS.filter((k) => req.body[k] !== undefined).join(', ')}.`);
   }
 
   // A model op validates `batch` with the other named params below: it runs as one job
@@ -512,6 +527,8 @@ router.post('/connector/generate', async (req, res) => {
   const input = flowId
     ? { flowId: String(flowId), fields: fields || {}, media: Array.isArray(media) ? media : [],
         ...(params && typeof params === 'object' ? { params } : {}) }
+    : tool ? { operation: String(operation), fields: fields && typeof fields === 'object' ? fields : {},
+        ...(Array.isArray(media) && media.length ? { media } : {}) }
     : {
       modelId: String(modelId),
       operation: String(operation),
@@ -897,7 +914,11 @@ router.get('/connector/models', async (req, res) => {
     media: registry ? mediaRolesFor(registry, f.operation, null) : [],
   }));
 
-  res.json({ ok: true, engine: engine || 'local', hardware, models, flows: flowList });
+  // MPI-904: the image tools with no model, ranked like any op. Rebuilt without them, this
+  // reply hid them from the agent (Fabio live, 2026-09-27: the upscale still went to Krea 2).
+  const tools = (listResult.output?.tools || []).map((t) => ({ ...t, ...(opPriority('', t.op) || {}) }));
+
+  res.json({ ok: true, engine: engine || 'local', hardware, models, flows: flowList, tools });
 });
 
 /**

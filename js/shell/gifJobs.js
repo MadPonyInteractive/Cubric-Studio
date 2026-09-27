@@ -83,7 +83,8 @@ function _findGif(itemId) {
     const isGif = found.item.gif?.frames?.length
         || /\.gif$/i.test(found.item.filePath || '');
     if (!isGif) {
-        throw new JobError('NOT_A_GIF', `Item "${itemId}" is not a GIF.`);
+        // MPI-904: a still's tools are generate's, with no model — say so, or the agent stops here.
+        throw new JobError('NOT_A_GIF', `Item "${itemId}" is not a GIF. For a still, call generate with no modelId: operation removeBackground, or crop with fields { ratio }.`);
     }
     return found;
 }

@@ -355,6 +355,56 @@ test('a modelId submit relays media; a text submit carries no media key', async 
   }
 });
 
+test('a tool runs with NO modelId: operation, fields and media reach the renderer, nothing else (MPI-904)', async () => {
+  const { base, stop } = await startServer();
+  const renderer = await fakeRenderer(base);
+  try {
+    const media = [{ role: 'inputImage', url: '/project-file?path=C%3A%2Fp%2FMedia%2Fa.png' }];
+    const pending = postJson(`${base}/connector/generate`, {
+      operation: 'imageUpscale', fields: { upscaler: '4x-AnimeSharp', factor: 3 }, media, cardName: 'big',
+    });
+    const frame = await renderer.readFrame();
+    assert.deepEqual(frame.data.input, {
+      operation: 'imageUpscale', fields: { upscaler: '4x-AnimeSharp', factor: 3 }, media, cardName: 'big',
+    });
+    await postJson(`${base}/connector/jobs/${frame.data.jobId}/result`, { ok: true, output: {} });
+    assert.equal((await pending).json.ok, true);
+
+    // Not a tool: refused here, naming the tools, before any renderer sees it.
+    const notTool = await postJson(`${base}/connector/generate`, { operation: 't2i' });
+    assert.equal(notTool.status, 400);
+    assert.match(notTool.json.error.message, /imageUpscale, removeBackground, crop/);
+    // A model's named param on a tool is a caller error, never silently dropped.
+    const named = await postJson(`${base}/connector/generate`, { operation: 'crop', ratio: '1:1', media });
+    assert.equal(named.status, 400);
+    assert.match(named.json.error.message, /fields/);
+  } finally {
+    renderer.close();
+    await stop();
+  }
+});
+
+// Fabio live, 2026-09-27: "upscale every card marked with a dot" still went to Krea 2. The
+// renderer listed the tools and this route rebuilt its reply without them, so the agent never
+// saw one: the unit tests had stubbed `listModels` below the route.
+test('list_models carries the tools through the route, the plain upscale ranked first for upscale', async () => {
+  const { base, stop } = await startServer();
+  const renderer = await fakeRenderer(base);
+  try {
+    const pending = fetch(`${base}/connector/models`).then((r) => r.json());
+    const frame = await renderer.readFrame();
+    assert.equal(frame.data.capability, 'agent.list-models');
+    const tool = { op: 'imageUpscale', note: 'Plain upscale.', fields: {}, media: [{ role: 'inputImage', type: 'image', required: true }] };
+    await postJson(`${base}/connector/jobs/${frame.data.jobId}/result`,
+      { ok: true, output: { engine: 'local', models: [], flows: [], tools: [tool, { op: 'crop', note: 'Crop.' }] } });
+    const out = await pending;
+    assert.deepEqual(out.tools, [{ ...tool, rank: 1, task: 'upscale' }, { op: 'crop', note: 'Crop.' }]);
+  } finally {
+    renderer.close();
+    await stop();
+  }
+});
+
 test('media comes back in DECLARED slot order, whatever order the caller sent', () => {
   // Klein Edit's slots are ordinal: injection strips the role and item order is the
   // meaning. Returned in the caller's order, the REFERENCE gets edited — with ok:true.

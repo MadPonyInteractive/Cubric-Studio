@@ -2256,6 +2256,107 @@ describe('(l) one ask, many cards', () => {
         assert.deepEqual(tools.calls.generate.map((b) => /card_\d+\.png/.exec(decodeURIComponent(b.media[0].url))[0]), set.map((c) => c.id),
             'every card, in the order the user clicked them');
     });
+
+    // MPI-904 (MPI-941 Phase 3, Fabio live 2026-09-27): asked to upscale the dotted cards, the agent
+    // could only reach Krea 2's upscale, whose guide wants a prompt per picture: 8 looks, 8 prompts,
+    // 8 generates, 8 auto-looks, and Phase 1's batch never engaged. A plain upscale is a TOOL: no
+    // model, no guide, no prompt, no look.
+    const TOOLS = [
+        { op: 'imageUpscale', note: 'Plain upscale.', fields: { factor: { values: [1.5, 2, 3, 4], default: 2 } }, media: [{ role: 'inputImage', type: 'image', required: true }] },
+        { op: 'crop', note: 'Crop to a ratio.', fields: { ratio: { values: ['1:1'], required: true } }, media: [{ role: 'inputImage', type: 'image', required: true }] },
+    ];
+    function withTools(tools) {
+        withOps(tools);
+        const base = tools.listModels;
+        // A guide on the model proves the tool never meets the model's guide gate.
+        tools.listModels = async () => { const r = await base(); r.models[0].guides = ['guide:test-model']; r.tools = TOOLS; return r; };
+        return tools;
+    }
+
+    test('a tool over fifty cards: no modelId, no guide, fields on every item, ONE batch, no look, the view stays', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
+        withTools(tools);
+        loop._follow = true;
+        const refs = seeCards(loop, 50);
+        const fields = { upscaler: '4x-AnimeSharp', factor: 2 };
+        const pending = loop._executeTool('generate', { operation: 'imageUpscale', fields, cards: refs }, 'turn-tool-50', project);
+        const ask = await waitForEvent(fakeRes, (e) => e.event === 'agent:confirm');
+        assert.ok(ask, 'fifty cards still ask first');
+        assert.equal(ask.data.what, 'imageUpscale', 'the card names the tool, never "with undefined"');
+        await loop.confirm(ask.data.confirmId, true);
+        const out = JSON.parse(await pending);
+
+        assert.equal(out.started, 50);
+        assert.equal(tools.calls.generate.length, 50);
+        for (const b of tools.calls.generate) {
+            assert.equal(b.modelId, undefined);
+            assert.equal(b.operation, 'imageUpscale');
+            assert.deepEqual(b.fields, fields);
+            assert.equal(b.media[0].role, 'inputImage');
+            assert.equal(b.positive, undefined, 'no prompt');
+            // Fifty items following the work would be fifty navigations while the user watches.
+            assert.equal(b.follow, undefined, 'a batch item never moves the view');
+        }
+        assert.ok(await waitForEvent(fakeRes, (e) => e.event === 'agent:drained'));
+        const lines = fakeRes.events.filter((e) => e.event === 'agent:tool' && e.data.tool === 'batch');
+        assert.match(lines.at(-1).data.label, /^imageUpscale: 50 of 50 done$/);
+        assert.equal(tools.calls.readKnowledge.length, 0, 'no guide read');
+        assert.equal(tools.calls.look.length, 0, 'no look');
+    });
+
+    // Fabio live, 2026-09-27: with the tools listed apart from the ranking, Krea 2's upscale still
+    // carried best: true, and the Model rule says best: true is the op to take.
+    test('a ranked tool competes for best: the plain upscale takes it from a model upscale', async () => {
+        const { compactCatalogue } = await import('../services/agentLoop.mjs');
+        const short = compactCatalogue({
+            ok: true,
+            models: [{ id: 'krea2', installed: true, ops: [{ op: 'upscale', installed: true, task: 'upscale', rank: 2, note: 'detail' }] }],
+            flows: [],
+            tools: [{ op: 'imageUpscale', note: 'Plain upscale.', task: 'upscale', rank: 1 }, { op: 'crop', note: 'Crop.' }],
+        });
+        assert.deepEqual(short.tools, [
+            { op: 'imageUpscale', task: 'upscale', rank: 1, best: true, note: 'Plain upscale.' },
+            { op: 'crop', note: 'Crop.' },
+        ]);
+        assert.equal(short.models[0].ops[0].best, undefined, 'the model upscale is no longer the one to take');
+    });
+
+    // Fabio live, 2026-09-27, the first working run: Lingo stood in "writing the prompt" for an
+    // upscale that has none, and the agent said the six results would "land as new cards" when
+    // each landed as its own card's next version.
+    test('a tool call says it writes no prompt, and says where its result lands', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [
+            call('c1', 'generate', { operation: 'imageUpscale', cards: ['/project/Media/card_1.png', '/project/Media/card_2.png'] }),
+            { text: 'ok' },
+        ] });
+        withTools(tools);
+        seeCards(loop, 2);
+        await loop.runTurn('upscale these', [], project, 'auto', 'deepinfra', 'turn-tool-crew');
+        const started = fakeRes.events.find((e) => e.event === 'agent:tool' && e.data.tool === 'generate' && e.data.status === 'started');
+        assert.equal(started.data.noPrompt, true, 'no prompt, so no prompt writer on the ledge');
+        assert.match(lastToolResult(loop).message, /next version of its own card, never a new card/);
+        await waitForEvent(fakeRes, (e) => e.event === 'agent:drained');
+        assert.match(loop._notes[0], /Each landed as the next version of its own card, never a new card/);
+    });
+
+    test('one tool call lands with no look, and the catalogue lists the tools with describe_model for each', async () => {
+        const { loop, tools, fakeRes } = await makeLoop({ engineResponses: [{ text: 'ok' }] });
+        withTools(tools);
+        const cat = JSON.parse(await loop._executeTool('list_models', {}, 'turn-tool-cat', project));
+        assert.deepEqual(cat.tools, [{ op: 'imageUpscale', note: 'Plain upscale.' }, { op: 'crop', note: 'Crop to a ratio.' }]);
+        assert.match(cat.detail, /no modelId/);
+        const crop = JSON.parse(await loop._executeTool('describe_model', { id: 'crop' }, 'turn-tool-cat', project));
+        assert.deepEqual(crop.tool, TOOLS[1]);
+
+        const [ref] = seeCards(loop, 1);
+        const out = JSON.parse(await loop._executeTool('generate',
+            { operation: 'crop', fields: { ratio: '1:1' }, media: [{ role: 'inputImage', image: ref }] }, 'turn-tool-one', project));
+        assert.equal(out.ok, true);
+        assert.match(out.message, /next version of the card it came from, never a new card/);
+        assert.ok(await waitForEvent(fakeRes, (e) => e.event === 'agent:result'));
+        assert.deepEqual(tools.calls.generate[0].fields, { ratio: '1:1' });
+        assert.equal(tools.calls.look.length, 0, 'a tool changes the frame or the size, not what is in it: nothing to look at');
+    });
 });
 
 // ---------------------------------------------------------------------------

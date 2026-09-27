@@ -69,3 +69,56 @@ fifty-card timing are unit-proven.
 "N cards" with a layers icon, not N thumbnails. Then say "make these black and white" (one shared prompt,
 so no look per card): one confirm above 5, one progress line, one report. "Upscale these" still picks
 Krea 2 and looks at every card until Phase 3 ships a plain upscale.
+
+## Phase 3 - MPI-904: plain upscale, background removal, crop with no model (session cefc4ae6, 2026-09-27)
+
+**Built.** The agent's `generate` runs a TOOL when it names no `modelId` and no `flowId`:
+`imageUpscale` (fields upscaler `4x-NMKD-Siax` | `4x-AnimeSharp`, factor 1.5/2/3/4), `removeBackground`
+(fields background `#rrggbb`, else transparent) and `crop` (fields ratio + position, via the `resize` op
+in its crop mode). Defined once in `js/shell/agentToolOps.js`; listed as `tools` by `list_models`,
+whole by `describe_model <op>`. Each runs the History rail's universal op with the rail's params and
+lands as the source card's next entry. No tool-schema or system-prompt byte changed.
+**Unit:** `tests/agent-tool-ops.test.cjs` 6/6 (fields -> params, crop maths, refusals by name);
+`tests/agent-generation-relay.test.cjs` + the tool case (operation-only reaches the renderer; a
+non-tool op and a named param on a tool are 400s); `tests/agent-loop.test.cjs` two cases, red first
+(BATCH_UNSUPPORTED): fifty cards over `imageUpscale` are ONE batch with no guide read, no look, no
+prompt, fields on every item and no `follow`, and the confirm names "imageUpscale"; the catalogue
+lists the tools and one tool call gets no auto-look. Full `npm test`: 2017 pass, 0 fail (budget
+tests unchanged).
+**Desktop:** new `tests/desktop/agent-tool-ops.spec.js` passes: a real POST through the route, the
+job stream and `_submitTool` (the crop decodes the picture, then refuses a bad ratio; no picture is
+MEDIA_REQUIRED), then two tool jobs sit in the Cue queue as `imageUpscale` (Upscale_Factor 3,
+4x-AnimeSharp.pth, model.id null) and `resize` crop at the picture's short side, both scoped
+`groupHistory` to the source card. Every non-connector fetch hangs first, so nothing reached the
+shared engine.
+
+**Live check brief (Fabio):** mark 10+ cards with the dot and ask "upscale every card marked with a
+dot" (or drag a set of them and say "upscale these"). Expect: no guide read, no looks, no prompts;
+one confirm card above 5; ONE progress line "imageUpscale: n of N done"; each result as the NEXT
+entry of its own card; the view stays where you are. Then try "remove the background of this one"
+and "crop this to square". Watch-for: the agent reaching for an edit model on "remove the
+background" (the Model rule names backgrounds under edit); if it does, that rule is reworded at no
+net byte cost.
+
+**Live try 1 (Fabio, 2026-09-27 ~08:56): FAILED, the tool was never chosen.** "Upscale every card
+marked with a dot" went to Krea 2 again: read its settings, GUIDE_NOT_READ, read guide:krea-2, then
+"Run this 6 times? upscale with krea2". Two causes, both fixed, red first:
+(1) `GET /connector/models` rebuilt its reply as `{ engine, hardware, models, flows }` and DROPPED
+the renderer's `tools`, so the agent never saw one. The unit tests stubbed `listModels` below the
+route and the desktop spec never called it. New relay test: the route carries `tools`.
+(2) Even listed, Krea 2's `upscale` carried `best: true` for the task and the system prompt's Model
+rule says best is the op to take. `modelPriority.js` now ranks the tool (`['', 'imageUpscale']`)
+first for `upscale`, Krea 2 is rank 2 with a note ("re-renders ... only when the user asks for more
+or new detail; a plain enlargement is the imageUpscale tool"), and `compactCatalogue` lets tools
+compete for `best`. Tests: `model-priority` + `(l)` best case. Full `npm test`: 2020 pass, 0 fail.
+
+**Live try 2 (Fabio, 2026-09-27 ~09:39): WORKS.** "Upscale all the images with a dot": no guide, no look, no
+prompt; "Run this 6 times? imageUpscale", ONE line to "6 of 6 done", each result the next entry of its own
+card (t2i_039 -> imageUpscale_001, 1152x928 -> 2304x1856). Sidecar: Upscale_Model 4x_NMKD-Siax_200k.pth, factor 2
+(the History rail showing "None" is its own saved dropdown, not the run). Fabio: Siax as default is fine,
+as long as the user can ask for another method (AnimeSharp is in the tool note). Two findings, fixed, red
+first: (1) Lingo stood in "writing the prompt" for a run with no prompt: a tool `generate` now emits
+`noPrompt` and the chat sends no guest (agent-chat.spec crew case); (2) the agent said "new cards": a tool
+result on a card and its batch note now say it lands as the card's next version. npm test 2037 pass, 0 fail;
+agent-chat.spec 34/34 (one composer test flaked once, passed alone). NOT yet live-checked: those two fixes,
+removeBackground and crop.

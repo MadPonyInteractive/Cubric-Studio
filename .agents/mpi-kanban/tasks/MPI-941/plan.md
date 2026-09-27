@@ -266,6 +266,19 @@ cannot name a card; only `cards` takes a set. Add a way in only if a live run ne
 its "Still in flight" text (349 ids), and there is no "cancel the whole batch". The user's Stop in
 the app covers the need today.
 
+2026-09-27, session cefc4ae6, end: **Phase 3's plain upscale WORKS live** (Fabio's 6 dotted cards:
+one confirm, one line, no looks, each on its own card; validation.md live try 2). After it: Lingo no
+longer stands in for a tool run (`noPrompt`), and a tool's result says it lands as the card's next
+version. **NEXT:** Fabio live-checks those two plus "remove the background of this one" and "crop this
+to square"; then tick Phase 3, close MPI-904 as folded in, and go to Phase 4.
+Earlier the same session: **Phase 3 (MPI-904) is built and green, and waits on Fabio's live
+check** (validation.md § Phase 3 has the brief: "upscale every card marked with a dot"). A tool is a
+`generate` with no `modelId` and no `flowId`: `imageUpscale`, `removeBackground`, `crop`, settings in
+`fields`, defined once in `js/shell/agentToolOps.js`. Uncommitted until handoff/close; claim
+`cefc4ae6-mpi941` holds the files (it took over `c0103e59-mpi941`). **NEXT after his "1":** tick the
+checklist, close MPI-904 as folded in, then Phase 4 (clip look). If the live run sends "remove the
+background" to an edit model, reword the system prompt's Model rule at no net byte cost first.
+
 **Watch-only, carried from MPI-817 (no build unless it recurs):** the agent ending an Auto-mode
 turn on a question; a note generalising from two runs; a project note RESTATING a global one
 (Fabio's `characters.md` copied "3D cartoon (global preference)", so forgetting the global note left
@@ -284,6 +297,13 @@ the copy); Ollama's free cloud models (unconfirmed research); the `__ARG__` proj
   (`js/utils/mediaActions.js`); `_dragCards` at both dragstarts (`MpiGalleryGrid.js`); the set chip
   (`MpiAgentChat.js` + `.css`). Tests: `(l)` set case, two in `agent-card-reference.test.cjs`, and
   `tests/desktop/agent-drag-set.spec.js`. Live check is Fabio's.
+- **Phase 3 code (2026-09-27, session cefc4ae6), uncommitted until handoff/close:** new
+  `js/shell/agentToolOps.js`; `_submitTool` + the shared `_enqueueAgentRun` tail and `tools` in
+  `_listModels` (`js/shell/agentDispatch.js`); the operation-only branch in `routes/connector.js`;
+  `tools` in `compactCatalogue` / `catalogueEntry` / `_rememberGuides`, `fields` on a tool call, no
+  auto-look on a tool, no `follow` on a batch item, `_opLabel` (`services/agentLoop.mjs`); the
+  `NOT_A_GIF` refusal points at the tools (`js/shell/gifJobs.js`). Tests: `agent-tool-ops.test.cjs`,
+  the relay tool case, two `(l)` cases, `tests/desktop/agent-tool-ops.spec.js`. Live check is Fabio's.
 
 ## Plan Drift
 
@@ -308,6 +328,16 @@ the copy); Ollama's free cloud models (unconfirmed research); the `__ARG__` proj
   shape moved from a selection-bar button to the drag. Old Phases 2-5 are 3-6.
 - 2026-09-27 (session c0103e59): Phase 8 revised by Fabio before any of it was built. One
   "Agent" figure holds chat, analysis and enhancement; no separate Analysis item, no "Gens".
+- 2026-09-27 (session cefc4ae6), Phase 3 as approved by Fabio ("go" on the brief): crop is the
+  existing `resize` op in its `crop` mode (a ratio + position), NOT the `crop-media` route, which
+  writes with Sharp behind an open History workspace (the block never re-reads its group, so its
+  next save drops the entry). Box crop ("crop to her face"), exact-size resize, flip and rotate are
+  out. A batch item no longer sends `follow` (fifty navigations). The MCP `generate` schema and docs
+  are untouched (MPI-593's); the route now serves tools to any caller.
+- 2026-09-27, Fabio's first live try: the tool was never picked. `GET /connector/models` dropped
+  `tools`, and Krea 2's upscale held `best: true`. Folded in: the route forwards `tools`, and
+  `modelPriority.js` ranks the plain upscale first for `upscale` (Krea 2 rank 2, with a note).
+  Footprint grew by `js/data/modelConstants/modelPriority.js` + `tests/model-priority.test.cjs`.
 - 2026-09-27: the `docs/agent-chat.md` `generate` row still needs a one-line mention. MPI-944
   (1bef7b92) claimed the file after this card took it; message c95ee93e asks them to release it
   or add the row.

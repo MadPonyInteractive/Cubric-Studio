@@ -482,7 +482,9 @@ export function compactCatalogue(list) {
     // machine and is free. With ranks 1-2 not installed, cheaper models took rank 5 over
     // rank 3; reading one flag is not arithmetic they can get wrong.
     const best = new Map(); // task -> { rank, key }
-    for (const m of list.models || []) {
+    // The tools compete too, as the ops of a model with no id (MPI-904): the plain upscale
+    // ranks first for `upscale`, and a flag the loop never computed for it could not say so.
+    for (const m of [...(list.models || []), { id: '', ops: list.tools || [] }]) {
         if (m.fit?.runs === false) continue;
         for (const o of m.ops || []) {
             if (!o.task || !o.rank || o.paid || (o.installed ?? m.installed) === false) continue;
@@ -494,7 +496,7 @@ export function compactCatalogue(list) {
         ok: true,
         engine: list.engine,
         hardware: list.hardware,
-        detail: 'describe_model with an id for its params, media, fields and guides.',
+        detail: `describe_model with an id for its params, media, fields and guides.${list.tools?.length ? ' tools run with no modelId: generate with operation and fields, never a prompt; cards runs one over many.' : ''}`,
         models: (list.models || []).map((m) => {
             // Most models write ONE note and hang it on every op ("anime and stylised art,
             // not photography", six times). Said once about the model, it reads the same and
@@ -528,16 +530,40 @@ export function compactCatalogue(list) {
             title: f.title,
             installed: f.installed,
         })),
+        // MPI-904: the image tools with no model (upscale, background removal, crop).
+        tools: (list.tools || []).map((t) => ({
+            op: t.op,
+            ...(t.task ? { task: t.task } : {}),
+            ...(t.rank ? { rank: t.rank } : {}),
+            ...(isBest({ id: '' }, t) ? { best: true } : {}),
+            note: t.note,
+        })),
     };
 }
 
-/** One model or Flow out of a `list_models` answer, whole. `null` when the id is neither. */
+/** A `generate` with no model and no Flow runs a tool (MPI-904, `js/shell/agentToolOps.js`). */
+const _isTool = (args) => !args.modelId && !args.flowId;
+
+/** "upscale with krea2", or just "imageUpscale" for a tool, which has no model (MPI-904). */
+const _opLabel = (args) => (args.modelId ? `${args.operation} with ${args.modelId}` : String(args.operation));
+
+/**
+ * Where a tool's result lands, said in its result: on a card it is that card's next version.
+ * Told only "they are in the gallery", the agent announced six upscales as "new cards" (Fabio
+ * live, 2026-09-27). An attachment has no card, so its result is a new one and says nothing.
+ */
+const LANDS_ON_CARD = 'next version of the card it came from, never a new card';
+const LANDS_ON_CARDS = 'next version of its own card, never a new card';
+
+/** One model, Flow or tool out of a `list_models` answer, whole. `null` when the id is none. */
 export function catalogueEntry(list, id) {
     const wanted = String(id ?? '');
     const model = (list?.models || []).find((m) => m.id === wanted);
     if (model) return { model };
     const flow = (list?.flows || []).find((f) => f.id === wanted);
-    return flow ? { flow } : null;
+    if (flow) return { flow };
+    const tool = (list?.tools || []).find((t) => t.op === wanted);
+    return tool ? { tool } : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -958,7 +984,7 @@ export class AgentLoop {
 
     async _writeUnfinished(project, args, status) {
         if (!project?.folderPath) return;
-        const keyOf = (call) => `${call.flowId || call.modelId}\n${call.prompt || JSON.stringify(call.fields || {})}`;
+        const keyOf = (call) => `${call.flowId || call.modelId || call.operation}\n${call.prompt || JSON.stringify(call.fields || {})}`;
         try {
             if (this._unfinishedFor !== project.folderPath) {
                 const r = await this._tools.readMemory(project.folderPath, UNFINISHED_FILE).catch(() => null);
@@ -975,7 +1001,7 @@ export class AgentLoop {
                 ? `Asked for and never landed. \`generate\` is the exact call: send it again to requeue.\n\n\`\`\`json\n[\n${entries.map((e) => JSON.stringify(e)).join(',\n')}\n]\n\`\`\`\n`
                 : 'Nothing unfinished.\n');
             while (entries.length > 1 && Buffer.byteLength(render(), 'utf8') > 4000) entries.shift();
-            const names = entries.map((e) => e.generate.cardName || String(e.generate.prompt || e.generate.flowId || '').slice(0, 30));
+            const names = entries.map((e) => e.generate.cardName || String(e.generate.prompt || e.generate.flowId || e.generate.operation || '').slice(0, 30));
             await this._tools.writeMemory(project.folderPath, {
                 file: UNFINISHED_FILE,
                 title: 'Generations that never finished',
@@ -1029,6 +1055,8 @@ export class AgentLoop {
             for (const o of m.ops || []) this._ops.set(`${m.id}\n${o.op}`, o);
         }
         for (const f of list?.flows || []) this._boxSteps.set(f.id, Array.isArray(f.boxParams) ? f.boxParams : []);
+        // A tool has no model: its op is keyed with an empty model id.
+        for (const t of list?.tools || []) this._ops.set(`\n${t.op}`, t);
     }
 
     /**
@@ -1143,13 +1171,14 @@ export class AgentLoop {
 
         // One result, whatever the count. A refusal is reported per card because they differ —
         // one missing ref among fifty must not read as "the batch failed".
+        const lands = cards && _isTool(args) ? ` Each lands as the ${LANDS_ON_CARDS}.` : '';
         return JSON.stringify({
             ok: started.length > 0,
             started: started.length,
             refused,
             message: refused.length
-                ? `Started ${started.length} of ${n}. ${refused.length} were refused — tell the user which, and why.`
-                : `Started all ${started.length}. ${BATCH_STARTED}`,
+                ? `Started ${started.length} of ${n}. ${refused.length} were refused — tell the user which, and why.${lands}`
+                : `Started all ${started.length}. ${BATCH_STARTED}${lands}`,
         });
     }
 
@@ -1169,7 +1198,7 @@ export class AgentLoop {
      */
     _newBatch(turnId, args, project, unit) {
         const id = crypto.randomUUID();
-        const what = `${args.operation} with ${args.modelId}`;
+        const what = _opLabel(args);
         const failed = [];
         const samples = [];
         let started = 0;
@@ -1192,7 +1221,7 @@ export class AgentLoop {
                 groups.set(k, [...(groups.get(k) || []), f.label]);
             }
             const why = [...groups].map(([k, labels]) => `${k} (${labels.slice(0, 5).join(', ')}${labels.length > 5 ? `, ${labels.length - 5} more` : ''})`).join('; ');
-            this._notes.push(`[Batch finished: ${what}, ${started} ${unit}s: ${landed} landed${failed.length ? `, ${failed.length} failed: ${why}` : ''}${cancelled ? `, ${cancelled} cancelled` : ''}. They are in the gallery for the user to judge: report it in one sentence and look at none of them.${samples.length ? ` Asked how they came out, look at 3 at most, e.g. ${samples.join(', ')}.` : ''}]`);
+            this._notes.push(`[Batch finished: ${what}, ${started} ${unit}s: ${landed} landed${failed.length ? `, ${failed.length} failed: ${why}` : ''}${cancelled ? `, ${cancelled} cancelled` : ''}.${unit === 'card' && _isTool(args) ? ` Each landed as the ${LANDS_ON_CARDS}.` : ''} They are in the gallery for the user to judge: report it in one sentence and look at none of them.${samples.length ? ` Asked how they came out, look at 3 at most, e.g. ${samples.join(', ')}.` : ''}]`);
             const fails = failed.map((f) => f.label);
             this._trackUnfinished(project, unit === 'card' ? { ...args, cards: fails } : { ...args, count: fails.length },
                 failed.length ? [...new Set(failed.map((f) => f.code))].join(', ') : null);
@@ -1284,8 +1313,8 @@ export class AgentLoop {
      * never disagree about what an op takes.
      */
     async _batchImageRole(args) {
-        if (!args.modelId || !args.operation) return null;
-        const key = `${args.modelId}\n${args.operation}`;
+        if (!args.operation) return null;
+        const key = `${args.modelId || ''}\n${args.operation}`;
         if (!this._ops.has(key)) {
             try { this._rememberGuides(await this._tools.listModels()); } catch { return null; }
         }
@@ -1341,7 +1370,7 @@ export class AgentLoop {
     /** The yes/no card above the batch threshold. Resolves false if the conversation is reset. */
     async _askBatch(turnId, count, args) {
         const confirmId = crypto.randomUUID();
-        const what = `${args.operation} with ${args.modelId}`;
+        const what = _opLabel(args);
         this._emit('agent:confirm', { turnId, confirmId, kind: 'batch', count, what });
         this._historyEntry('confirm', { tool: 'generate', args, confirmId, kind: 'batch', count, what });
         const yes = await new Promise((resolve) => {
@@ -1668,7 +1697,9 @@ ${knowledgeIndex}`.trim();
                 }
                 // Build connector body
                 const body = {};
-                if (this._follow) body.follow = true;
+                // Not a batch item: fifty cards following the work are fifty navigations while
+                // the user watches, and the batch's one progress line is in the chat anyway.
+                if (this._follow && !opts.batch) body.follow = true;
                 if (args.cardName) body.cardName = String(args.cardName);
                 if (args.flowId) {
                     body.flowId = String(args.flowId);
@@ -1677,6 +1708,8 @@ ${knowledgeIndex}`.trim();
                 } else {
                     if (args.modelId) body.modelId = String(args.modelId);
                     if (args.operation) body.operation = String(args.operation);
+                    // MPI-904: a tool (no model) takes its settings in `fields`, as a Flow does.
+                    if (!args.modelId && args.fields) body.fields = args.fields;
                     if (args.prompt) body.positive = String(args.prompt);
                     if (args.negative) body.negative = String(args.negative);
                     if (args.ratio !== undefined) body.ratio = args.ratio;
@@ -1694,11 +1727,12 @@ ${knowledgeIndex}`.trim();
                 // here — only now that a generation uses it — and a result is passed
                 // back by its project-file url (contract § Tools).
                 let sourcePath = null;
+                let sourceIsCard = false;
                 if (Array.isArray(args.media) && args.media.length) {
                     const resolved = [];
                     for (const m of args.media) {
                         const ref = this._resolveImage(m.image);
-                        if (!sourcePath && ref) sourcePath = ref.path;
+                        if (!sourcePath && ref) { sourcePath = ref.path; sourceIsCard = !!ref.itemId; }
                         if (!ref) {
                             return JSON.stringify({ ok: false, error: { code: 'IMAGE_NOT_FOUND', message: `Image reference not found: ${m.image}. Use an attachment id from this conversation, or the filePath of something you generated.` } });
                         }
@@ -1834,8 +1868,10 @@ ${knowledgeIndex}`.trim();
                         : `[Generation failed: ${r?.error?.code || 'ERROR'}: ${r?.error?.message || 'no reason given'}${paramMiss ? ` Call describe_model with "${args.flowId || args.modelId}" for the values it accepts.` : ''}]`);
 
                     // Auto-look at image results (brief item 10). A batch item never gets here:
-                    // one call over fifty cards must not cost fifty vision calls (MPI-870).
-                    if (ok && r.output?.type === 'image' && r.output?.filePath) {
+                    // one call over fifty cards must not cost fifty vision calls (MPI-870). Nor
+                    // does a tool (no model and no Flow, MPI-904): it changes the size, the frame
+                    // or the background, and the user judges that in the gallery (Fabio: no looks).
+                    if (ok && (args.modelId || args.flowId) && r.output?.type === 'image' && r.output?.filePath) {
                         try {
                             const lr = await this._lookOnce(this._resolveImage(r.output.filePath));
                             if (lr?.ok) {
@@ -1897,7 +1933,8 @@ ${knowledgeIndex}`.trim();
 
                 pending.then(settle).catch(settleThrow);
 
-                return JSON.stringify({ ok: true, started: true, toolCallId, message: `Generation started. The result will appear in the chat when ready.${snapNote}${_sentNote(body)}` });
+                const lands = _isTool(args) && sourceIsCard ? ` It lands as the ${LANDS_ON_CARD}.` : '';
+                return JSON.stringify({ ok: true, started: true, toolCallId, message: `Generation started. The result will appear in the chat when ready.${lands}${snapNote}${_sentNote(body)}` });
             }
             case 'look': {
                 const ref = this._resolveImage(args.image);
@@ -2364,7 +2401,10 @@ ${knowledgeIndex}`.trim();
                     const label = _toolLabel(toolName, args);
                     // `redo` is the agent saying it is retrying: the panel's Cosmo reacts (MPI-908).
                     // Never forwarded to the app - `generate` builds its request field by field.
-                    this._emit('agent:tool', { turnId, id: toolEntryId, tool: toolName, status: 'started', label, ...(args.redo === true && { redo: true }) });
+                    // `noPrompt`: a tool (MPI-904) writes no prompt, so the panel sends no prompt writer.
+                    this._emit('agent:tool', { turnId, id: toolEntryId, tool: toolName, status: 'started', label,
+                        ...(args.redo === true && { redo: true }),
+                        ...(toolName === 'generate' && _isTool(args) && { noPrompt: true }) });
                     this._historyEntry('tool', { id: toolEntryId, tool: toolName, args, status: 'started', label });
 
                     let resultText;

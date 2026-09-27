@@ -49,6 +49,16 @@ test('an image task takes the shared order, filtered by the models that declare 
     assert.equal(opPriority('klein-4b', 'inpaint').rank, 3, 'klein-4b moves up where chroma is absent');
 });
 
+// MPI-904 (Fabio live, 2026-09-27): "upscale every card marked with a dot" took Krea 2's upscale,
+// best: true for the task, which re-renders from a prompt per picture. A plain enlargement is the
+// imageUpscale tool, which has no model, so it ranks first and Krea 2 says what it is for.
+test('the plain upscale tool ranks first for upscale; a model upscale says it re-renders for detail', () => {
+    assert.deepEqual(opPriority('', 'imageUpscale'), { rank: 1, task: 'upscale' });
+    assert.equal(opPriority('krea2', 'upscale').rank, 2);
+    assert.match(opPriority('krea2', 'upscale').note, /imageUpscale/);
+    assert.equal(opPriority('', 'crop'), null, 'crop and removeBackground are not in a ranked task');
+});
+
 test('the notes carry what a rank cannot, on the entries where they change the pick', () => {
     assert.match(opPriority('qwen-edit', 'qwenEdit').note, /outside the edit area/);
     assert.match(opPriority('boogu-edit-high', 'edit').note, /one image/);

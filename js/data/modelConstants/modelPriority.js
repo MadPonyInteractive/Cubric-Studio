@@ -125,7 +125,9 @@ const NOTES = {
  */
 const I2V_NOTE = 'animates THIS picture: it becomes the first frame exactly as it is, so a character sheet or several views of one subject is never a start frame (that is a reference op)';
 const OP_NOTES = {
-    i2i: 'the restyle route, only when the user asks to change how THIS picture looks; "this picture, but with <model>" is a re-run: that model\'s t2i, with no media. It repaints the whole picture from the WORDS, so prompt it with the description of THIS image and then the style you want, never a better scene. denoise decides how much moves — keep it low to hold the pose and composition. If the result comes back wrong (the look did not take, or it strays from the original), the next try is an edit op, never this op at another denoise',
+    // MPI-904: a model upscale is a diffusion pass, and the plain tool ranks above it.
+    upscale: 're-renders the picture at the new size to add or change detail, from a prompt written per picture; only when the user asks for more or new detail. A plain enlargement is the imageUpscale tool, with no model',
+    i2i:'the restyle route, only when the user asks to change how THIS picture looks; "this picture, but with <model>" is a re-run: that model\'s t2i, with no media. It repaints the whole picture from the WORDS, so prompt it with the description of THIS image and then the style you want, never a better scene. denoise decides how much moves — keep it low to hold the pose and composition. If the result comes back wrong (the look did not take, or it strays from the original), the next try is an edit op, never this op at another denoise',
     i2v_ms: I2V_NOTE,
     i2v: I2V_NOTE,
 };
@@ -152,9 +154,15 @@ _rank(T2V, 't2v');
 _rank(I2V, 'i2v');
 _rank(REF2V, 'ref2v');
 for (const task of IMAGE_TASKS) {
-    _rank(IMAGE_ORDER
-        .filter(id => MODELS.find(m => m.id === id)?.supportedOps?.includes(task))
-        .map(id => [id, task]), task);
+    _rank([
+        // MPI-904 (Fabio live, 2026-09-27): the agent's plain upscale, a tool with no model
+        // (`agentToolOps.js`), keyed with an empty model id. Ranked first: "upscale these"
+        // means bigger, and a model's upscale re-renders from a prompt per picture.
+        ...(task === 'upscale' ? [['', 'imageUpscale']] : []),
+        ...IMAGE_ORDER
+            .filter(id => MODELS.find(m => m.id === id)?.supportedOps?.includes(task))
+            .map(id => [id, task]),
+    ], task);
 }
 
 /**

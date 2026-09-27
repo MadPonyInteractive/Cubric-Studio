@@ -678,6 +678,12 @@ test('panel crew ledge: Cosmo states, the guest follows the newest job, a closed
     await expect(guestLive).toHaveAttribute('src', /prompt\/working\.webm/);
     await fire('agent:tool', { turnId: 't1', id: 'k2', tool: 'generate', status: 'done', label: 'Queued' });
     await expect(guest).not.toHaveClass(/mpi-agent-chat__crew-guest--in/);
+    // MPI-904 (Fabio live, 2026-09-27): a plain upscale writes no prompt, so Lingo stays home.
+    await fire('agent:tool', { turnId: 't1', id: 'k3', tool: 'generate', status: 'started', label: 'Generating', noPrompt: true });
+    await expect(cosmo).toHaveAttribute('src', /studio\/working\.webm/);
+    await window.waitForTimeout(300);
+    await expect(guest).not.toHaveClass(/mpi-agent-chat__crew-guest--in/);
+    await fire('agent:tool', { turnId: 't1', id: 'k3', tool: 'generate', status: 'done', label: 'Queued' });
 
     // A click is the landing's party trick: a puff over him, centred on his body.
     await window.locator('#e2e-agent-host #ac-cosmo').click();
