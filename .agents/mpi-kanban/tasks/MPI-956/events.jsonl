@@ -2,3 +2,4 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-956", "at": "2026-09-27T13:33:26+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "fixing compare resolution"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-956", "at": "2026-09-27T13:47:51+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "shipped: compare keeps each side native"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-956", "at": "2026-09-27T13:49:05+01:00", "actor": "claude", "from": "done", "to": "doing", "reason": "code verified locally; closes when CI is green on its own commit (done-gate)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-956", "at": "2026-09-27T14:01:04+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "CI green on d1482d666 (run 36320295259), carrying fix 0c7bb02f9"}

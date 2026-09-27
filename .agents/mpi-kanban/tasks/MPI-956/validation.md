@@ -35,3 +35,7 @@ by different amounts. The canvas is freed when compare ends.
 
 Zoomed OUT, an 8K side shows moire on fine detail. It is the same when the 8K is the BASE (reverse
 order, and on HEAD), so it is how MpiCanvas shows any large image below 1:1, not this bug.
+
+## CI
+
+Run 36320295259 on `d1482d666` (carries the fix `0c7bb02f9`): success, 2026-09-27.
