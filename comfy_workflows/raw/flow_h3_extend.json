@@ -1,8 +1,8 @@
 {
   "id": "a1b2c3d4-0000-4000-8000-h3v2vextend",
   "revision": 0,
-  "last_node_id": 973,
-  "last_link_id": 129,
+  "last_node_id": 975,
+  "last_link_id": 134,
   "nodes": [
     {
       "id": 195,
@@ -1770,6 +1770,15 @@
             "name": "fps"
           },
           "link": 92
+        },
+        {
+          "label": "end",
+          "name": "end",
+          "type": "INT",
+          "widget": {
+            "name": "end"
+          },
+          "link": 134
         }
       ],
       "outputs": [
@@ -1817,6 +1826,15 @@
           "name": "audio",
           "type": "AUDIO",
           "link": 93
+        },
+        {
+          "label": "start",
+          "name": "start",
+          "type": "INT",
+          "widget": {
+            "name": "start"
+          },
+          "link": 131
         }
       ],
       "outputs": [
@@ -1929,7 +1947,7 @@
           "name": "b",
           "shape": 7,
           "type": "*",
-          "link": null
+          "link": 132
         },
         {
           "name": "c",
@@ -1947,17 +1965,17 @@
           ]
         }
       ],
-      "title": "Splice Start (16 - frames)",
+      "title": "Splice Start (re-take start - frames)",
       "properties": {
         "cnr_id": "ComfyUi-MpiNodes",
         "ver": "ccc25d12b8f8ef19c991a2ac407d77cb3ef08a61",
         "Node name for S&R": "MpiMath"
       },
       "widgets_values": [
-        "16 - a"
+        "b - a"
       ],
       "widgets_values_named": {
-        "math_expression": "16 - a"
+        "math_expression": "b - a"
       }
     },
     {
@@ -2309,7 +2327,9 @@
           "localized_name": "frame_count",
           "name": "frame_count",
           "type": "INT",
-          "links": []
+          "links": [
+            133
+          ]
         },
         {
           "localized_name": "duration",
@@ -2791,7 +2811,8 @@
           "type": "INT",
           "links": [
             126,
-            128
+            128,
+            130
           ]
         },
         {
@@ -2815,6 +2836,125 @@
       ],
       "widgets_values_named": {
         "context_frames": 39
+      }
+    },
+    {
+      "id": 974,
+      "type": "MpiMath",
+      "pos": [
+        3000,
+        1800
+      ],
+      "size": [
+        300,
+        120
+      ],
+      "flags": {},
+      "order": 974,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "a",
+          "name": "a",
+          "type": "*",
+          "link": 130
+        },
+        {
+          "label": "b",
+          "name": "b",
+          "type": "*",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "label": "c",
+          "name": "c",
+          "type": "*",
+          "link": null,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "label": "result",
+          "name": "result",
+          "type": "*",
+          "links": [
+            131,
+            132
+          ]
+        }
+      ],
+      "title": "Re-take Start (context - 24)",
+      "properties": {
+        "Node name for S&R": "MpiMath",
+        "widget_ue_connectable": {},
+        "cnr_id": "ComfyUi-MpiNodes"
+      },
+      "widgets_values": [
+        "a - 24"
+      ],
+      "widgets_values_named": {
+        "math_expression": "a - 24"
+      }
+    },
+    {
+      "id": 975,
+      "type": "MpiMath",
+      "pos": [
+        900,
+        1100
+      ],
+      "size": [
+        300,
+        120
+      ],
+      "flags": {},
+      "order": 975,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "a",
+          "name": "a",
+          "type": "*",
+          "link": 133
+        },
+        {
+          "label": "b",
+          "name": "b",
+          "type": "*",
+          "link": null,
+          "shape": 7
+        },
+        {
+          "label": "c",
+          "name": "c",
+          "type": "*",
+          "link": null,
+          "shape": 7
+        }
+      ],
+      "outputs": [
+        {
+          "label": "result",
+          "name": "result",
+          "type": "*",
+          "links": [
+            134
+          ]
+        }
+      ],
+      "title": "Last Source Frame (frame_count - 1)",
+      "properties": {
+        "Node name for S&R": "MpiMath",
+        "widget_ue_connectable": {},
+        "cnr_id": "ComfyUi-MpiNodes"
+      },
+      "widgets_values": [
+        "a - 1"
+      ],
+      "widgets_values_named": {
+        "math_expression": "a - 1"
       }
     }
   ],
@@ -3418,6 +3558,46 @@
       954,
       1,
       "INT"
+    ],
+    [
+      130,
+      972,
+      1,
+      974,
+      0,
+      "INT"
+    ],
+    [
+      131,
+      974,
+      0,
+      951,
+      1,
+      "*"
+    ],
+    [
+      132,
+      974,
+      0,
+      953,
+      1,
+      "*"
+    ],
+    [
+      133,
+      331,
+      3,
+      975,
+      0,
+      "INT"
+    ],
+    [
+      134,
+      975,
+      0,
+      950,
+      2,
+      "*"
     ]
   ],
   "groups": [],
