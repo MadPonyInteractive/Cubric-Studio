@@ -15,6 +15,10 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
 - [x] **A1 MPI-806** RunPod REST v2 — app client + tests + watchdog source: Vision `97f729c5e`, mpi-ci `e62a9aa`
   - [ ] Pod runtime watchdog `_self_stop` on v2 with a status check; `publish-runtime.sh dev` -> restart a Pod -> see it stop -> `promote` (Fabio's go; NEVER `stable`)
   - [ ] Live app leg on v2: create / stop / start / delete a Pod, list + grow a volume (Fabio's go)
+    - [x] 2026-09-27 GPU leg (create via GraphQL RAM floor, v2 reads/start/delete) + CPU create; volume grow not run
+    - [ ] REST v2 GPU create live: the RAM-floor create now goes REST v2 (uncommitted, 2026-09-27); one Connect after an app restart proves it
+  - [x] **GraphQL retires early 2027** — Fabio 2026-09-27: create moves in 2.0 (done, above); picker catalogue is a **2.1 blocker** (MPI-894 phase 1b), not a 2.0 gate
+  - [x] Runtime `promote` — Fabio's yes 2026-09-27; stable `wrapper_sha256` = `27fcd294…` = dev, served hash verified
   - [ ] 2.0 ships by ~2026-11-01
 - [x] **A2 MPI-516** vanished-prompt detector, with the re-read guard: `c3a0f839d`, CI green
 - [x] **A3 MPI-736** colour — Fabio 2026-09-27: all good, closed

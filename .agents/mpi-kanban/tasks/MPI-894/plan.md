@@ -32,6 +32,15 @@ touches a `/runpod/*` call is cheaper written once against v2 than twice.
    cards build on. **Verify:** every `/runpod/*` route exercised against v2, and
    `GET /runpod/pods` still lists without renting (a `POST` RENTS - see
    `tool_probe_a_runpod_pod_for_ground_truth.md`).
+1b. **GraphQL -> REST v2 for the picker catalogue — a 2.1 BLOCKER** (Fabio 2026-09-27: not
+   in 2.0, must be in 2.1). RunPod retires GraphQL in **early 2027** (docs.runpod.io/
+   release-notes). 2.0 already creates every Pod through v2 (MPI-806 moved the RAM-floor
+   create off GraphQL); what is left is `client.gpuTypes` + `client.dataCenters`
+   (`routes/runpodRemote.js`: price, per-DC RAM `lowestPrice`, stock) -> `/v2/catalog/gpus`
+   and `/v2/catalog/datacenters?include=GPU_AVAILABILITY`, then delete `_graphql`,
+   `createPodGraphql` and the dormant MPI-159 enum fallback. **Verify:** `grep -n graphql
+   routes/` is empty, and the Settings picker shows the same cards, prices, RAM and stock
+   for EU-RO-1 as before.
 2. **MPI-668 + MPI-183 together.** Both are engine-parity: MPI-668 adds the missing check
    of the Pod's ComfyUI core against `node_lock.json`, MPI-183 bumps the Builder image to
    the version that check would demand. **Verify:** a deliberately stale image is REJECTED

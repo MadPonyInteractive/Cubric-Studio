@@ -40,10 +40,13 @@ Community Cloud is unsupported (unstable/limited for this use case).
   `/teardown`, `/cleanup-orphans`; `GET /remote/pod/specs`.
   - `create`/`reconnect` accept an optional **`minMemoryInGb`** system-RAM FLOOR (MPI-160).
     RunPod honors it as a hard placement filter (live-proven: 200GB → SUPPLY_CONSTRAINT,
-    90/none → create), so a high-RAM-only host is deterministic. High-RAM creates route
-    through the **GraphQL** `podFindAndDeployOnDemand` path (proven; the REST enum path was
-    NOT proven to accept the field). A no-matching-host refusal returns `ramFloorMissed` so
-    the UI shows an honest "no ≥N GB host" message + respects the auto-retry/wait toggle.
+    90/none → create), so a high-RAM-only host is deterministic. Since MPI-806 a floor create
+    goes through **REST v2** like any other, as `gpu.minRamPerGpu` (it used GraphQL
+    `podFindAndDeployOnDemand` before; the proof above was taken there). RunPod words a
+    stock-out and a floor miss IDENTICALLY ("no longer any instances available"), so a
+    refusal returns `ramFloorMissed` only when the card is in stock in that DC
+    (`_isGpuAvailable`); then the UI shows "no ≥N GB host" + respects the auto-retry/wait
+    toggle, otherwise the normal out-of-stock copy.
   - Every GPU create carries **`allowedCudaVersions`** — a hard driver-floor placement
     filter (MPI-188). RunPod lands the Pod ONLY on a host whose driver supports one of the
     listed CUDA versions; without it, placement is driver-roulette and a host with a driver
@@ -72,7 +75,8 @@ Community Cloud is unsupported (unstable/limited for this use case).
 - Companion routers: `routes/remoteEngine.js` (key resolver, wrapper-token gen/store/clear,
   `waitForWrapperReady`, `proxyUrl`), `routes/runpodRemote.js` (RunPod REST `client` on
   `https://api.runpod.io/v2` + GraphQL on `https://api.runpod.io/graphql` — MPI-806 migrated
-  from `rest.runpod.io/v1`, which retires 2026-11-15), `routes/remoteModels.js` (model
+  from `rest.runpod.io/v1`, which retires 2026-11-15; **GraphQL retires early 2027** and still
+  feeds the picker catalogue `gpuTypes`/`dataCenters` — the 2.1 move, MPI-894), `routes/remoteModels.js` (model
   status/install forwarding), `routes/downloadManager.js` (remote download SSE bridge).
 
 ## 2. Pod lifecycle (create-on-Connect + STOP-on-quit, delete-fallback)

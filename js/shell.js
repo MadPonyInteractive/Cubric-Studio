@@ -939,9 +939,13 @@ async function _runRemoteBoot(runpod) {
     const datacenter = anyRegion ? null : (runpod.datacenter || null);
     const volumeId = anyRegion ? null : (runpod.volumeId || null);
     const containerDiskGb = anyRegion ? (runpod.containerDiskGb || 100) : undefined;
+    // MPI-160: the system-RAM floor, as Settings Connect sends it. This path is boot
+    // auto-connect AND the auto-retry wait; without it every retry placed with no floor.
+    const minMemoryInGb = (runpod.gpuType && runpod.gpuType !== '__cpu__' && Number(runpod.minRamGb) > 0)
+      ? Number(runpod.minRamGb) : undefined;
     const body = warm
-      ? { podId: runpod.podId, gpuTypeId: runpod.gpuType, volumeId, datacenter, containerDiskGb }
-      : { gpuTypeId: runpod.gpuType, volumeId, datacenter, containerDiskGb };
+      ? { podId: runpod.podId, gpuTypeId: runpod.gpuType, volumeId, datacenter, containerDiskGb, minMemoryInGb }
+      : { gpuTypeId: runpod.gpuType, volumeId, datacenter, containerDiskGb, minMemoryInGb };
     clientLogger.info('shell', `[RunPod] auto-connect-on-start: ${warm ? 'reconnect' : 'create'} gpu=${runpod.gpuType} dc=${datacenter || 'any'} vol=${volumeId || 'none'} podId=${runpod.podId || 'none'}`);
     // MPI-110: with auto-retry on, a fresh create can still be sniped between the
     // availability poll and the create. Retry the create, re-waiting for the GPU

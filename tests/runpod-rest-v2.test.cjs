@@ -114,6 +114,13 @@ test('createPod: CUDA driver floor goes under gpu.allowedCudaVersions', async ()
   assert.deepEqual(req.body.dataCenterIds, ['EU-RO-1']);
 });
 
+test('createPod: system-RAM floor goes under gpu.minRamPerGpu', async () => {
+  const spec = { gpuTypeIds: ['NVIDIA GeForce RTX 5090'], gpuCount: 1, minMemoryInGb: 80 };
+  const req = await captureRequest(() => client.createPod('key', spec));
+  assert.equal(req.body.gpu.minRamPerGpu, 80);
+  assert.equal(req.body.minMemoryInGb, undefined);
+});
+
 test('startPod: POST /pods/{id}/action with action:start', async () => {
   const req = await captureRequest(() => client.startPod('key', 'pod-xyz'));
   assert.equal(req.url, `${BASE}/pods/pod-xyz/action`);

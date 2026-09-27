@@ -891,8 +891,8 @@ async function _createPodInternal(key, { gpuTypeId, volumeId, datacenter, contai
   // RunPod auto-places on any region with the GPU in stock ("Any region", MPI-78).
   if (datacenter) spec.dataCenterIds = [datacenter];
   // MPI-160: optional system-RAM FLOOR. RunPod honors minMemoryInGb as a hard
-  // placement filter (live-proven: a 200GB ask fails SUPPLY_CONSTRAINT while 90/none
-  // create) — so a user who needs a high-RAM host for LTX (or any heavy model) picks
+  // placement filter (live-proven on GraphQL: a 200GB ask fails SUPPLY_CONSTRAINT while
+  // 90/none create; v2 sends it as gpu.minRamPerGpu) — so a user who needs a high-RAM host for LTX (or any heavy model) picks
   // a GPU and sets a floor; RunPod only lands a host with >= that much system RAM.
   // Only meaningful for a GPU Pod (RunPod ignores it on CPU download mode).
   if (!noGpu && Number.isFinite(minMemoryInGb) && minMemoryInGb > 0) {
@@ -914,26 +914,10 @@ async function _createPodInternal(key, { gpuTypeId, volumeId, datacenter, contai
   // currently stray; the post-create sweep below then keeps only the fresh Pod.
   await _sweepOrphanPods(key, null);
 
-  // MPI-160: when a system-RAM floor is requested, create via GraphQL. minMemoryInGb
-  // is live-PROVEN honored on podFindAndDeployOnDemand; the REST POST /pods enum path
-  // was NOT proven to accept it (it may silently ignore the floor or schema-400). The
-  // GraphQL path returns the same {ok,status,json:{id}} shape, so the flow below is
-  // identical. Never for CPU download mode (GraphQL create has no computeType).
-  if (spec.minMemoryInGb && !noGpu) {
-    logger.info('runpod', `RAM floor ${spec.minMemoryInGb}GB requested → GraphQL create`);
-    const gql = await client.createPodGraphql(key, spec);
-    const gqlPodId = gql.json && gql.json.id;
-    if (gql.ok && gqlPodId) {
-      logger.info('runpod', `createPod (RAM-floor GraphQL) -> podId=${gqlPodId}`);
-      return _afterPodCreated(key, gqlPodId, token, noGpu, { wait, timeoutMs });
-    }
-    // Failed — surface the reason (a genuine "no host with >= N GB" is a stock-shaped
-    // SUPPLY_CONSTRAINT the shell retry loop can wait on; see _createRejectReason).
-    const reason = _createRejectReason(gql.json);
-    logger.warn('runpod', `RAM-floor GraphQL create failed: ${reason}`);
-    return { ok: false, message: reason || 'No host met the requested system-RAM floor', ramFloorMissed: true };
-  }
-
+  // MPI-806: a RAM-floor create goes through REST v2 like any other — v2 takes the floor
+  // as gpu.minRamPerGpu (_toV2PodSpec). It used to go through GraphQL, which RunPod
+  // retires in early 2027.
+  if (spec.minMemoryInGb) logger.info('runpod', `RAM floor ${spec.minMemoryInGb}GB requested (v2 gpu.minRamPerGpu)`);
   let created = await client.createPod(key, spec);
   // MPI-667: a refused CPU create walks the rest of CPU_FLAVORS before giving up, so a
   // stock-out on one flavor no longer blocks download mode. GPU creates keep the single
@@ -941,7 +925,7 @@ async function _createPodInternal(key, { gpuTypeId, volumeId, datacenter, contai
   // card is the user's choice, not ours to substitute.
   if (!created.ok && noGpu) {
     for (const flavor of CPU_FLAVORS.slice(1)) {
-      logger.warn('runpod', `CPU flavor ${spec.cpuFlavorIds[0]} refused (http ${created.status}); retrying on ${flavor}`);
+      logger.warn('runpod', `CPU flavor ${spec.cpuFlavorIds[0]} refused (http ${created.status}: ${_createRejectReason(created.json) || 'no reason'}); retrying on ${flavor}`);
       spec.cpuFlavorIds = [flavor];
       created = await client.createPod(key, spec);
       if (created.ok) break;
@@ -999,7 +983,12 @@ async function _createPodInternal(key, { gpuTypeId, volumeId, datacenter, contai
           ? `RunPod rejected the request (400) — that GPU may be unavailable in this data center, or out of stock. Try another card or data center.`
           : `create returned ${created.status}`));
     logger.warn('runpod', `createPod REST -> http ${created.status} ok=${created.ok} podId=none reason="${reason}"`);
-    return { ok: false, message: reason, gpuUnsupported: gpuEnumReject };
+    // MPI-160: RunPod answers a stock-out and a RAM-floor miss with the SAME "no longer any
+    // instances available" text, so blame the floor only when the card IS in stock in this
+    // DC. Live 2026-09-27: an out-of-stock RTX 4000 Ada read as "No ≥30 GB host available".
+    const ramFloorMissed = !!spec.minMemoryInGb && !gpuEnumReject && !!datacenter
+      && await _isGpuAvailable(key, gpuTypeId, datacenter);
+    return { ok: false, message: reason, gpuUnsupported: gpuEnumReject, ramFloorMissed };
   }
   logger.info('runpod', `createPod REST -> http ${created.status} ok=${created.ok} podId=${podId}`);
   return _afterPodCreated(key, podId, token, noGpu, { wait, timeoutMs });
@@ -1093,6 +1082,7 @@ async function _deleteTrackedPod(key) {
   const podId = _startedPodId || (_mode.active && _mode.podId) || null;
   if (!podId) return { deleted: false, reason: 'inactive' };
   const deleted = await client.deletePod(key, podId);
+  logger.info('runpod', `Pod delete ${podId} -> http ${deleted.status}`);
   if (deleted.ok) {
     await clearWrapperToken();
     if (podId === _startedPodId) _startedPodId = null;
@@ -1269,6 +1259,7 @@ router.post('/remote/pod/stop-active', async (req, res) => {
     const key = await getRunPodApiKey();
     if (!key) return res.json({ stopped: false, reason: 'no_api_key' });
     const stopped = await client.stopPod(key, podId);
+    logger.info('runpod', `Pod stop ${podId} -> http ${stopped.status}`);
     if (stopped.ok && podId === _startedPodId) _startedPodId = null;
     res.json({ stopped: !!stopped.ok, podId });
   } catch (err) {

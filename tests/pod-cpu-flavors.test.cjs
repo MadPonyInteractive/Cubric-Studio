@@ -102,3 +102,36 @@ test('a GPU Pod does not carry the CPU vCPU count', async () => {
   });
   assert.equal(specs[0].vcpuCount, undefined, 'vcpuCount is a CPU-download-mode field only');
 });
+
+// MPI-806: RunPod retires GraphQL in early 2027, so a RAM-floor GPU create goes through
+// REST v2 (the floor rides as gpu.minRamPerGpu), never GraphQL. A refusal with a floor
+// set reports ramFloorMissed ONLY when the card is in stock in that DC: RunPod words a
+// stock-out and a floor miss identically, and live 2026-09-27 an out-of-stock RTX 4000 Ada
+// was reported to the user as "No ≥30 GB host available".
+const FLOOR_ARGS = {
+  gpuTypeId: 'NVIDIA GeForce RTX 5090', volumeId: 'vol1', datacenter: 'EU-RO-1', minMemoryInGb: 80, wait: false,
+};
+const inStock = (available) => async () => [
+  { id: 'EU-RO-1', gpuAvailability: [{ gpuTypeId: 'NVIDIA GeForce RTX 5090', available }] },
+];
+
+test('a RAM-floor GPU create goes through REST, not GraphQL', async () => {
+  const specs = [];
+  let gql = 0;
+  client.createPodGraphql = async () => { gql += 1; return CREATED; };
+  client.createPod = async (_key, spec) => { specs.push(spec); return CREATED; };
+  await _createPodInternal('key', FLOOR_ARGS);
+  assert.equal(gql, 0, 'REGRESSION: a RAM-floor create went to GraphQL, which RunPod retires in early 2027');
+  assert.equal(specs.length, 1);
+  assert.equal(specs[0].minMemoryInGb, 80, 'the floor must travel on the REST spec');
+});
+
+test('a floor refusal blames the floor only when the card is in stock', async () => {
+  client.createPod = async () => REFUSED;
+  client.dataCenters = inStock(true);
+  assert.equal((await _createPodInternal('key', FLOOR_ARGS)).ramFloorMissed, true,
+    'card in stock + refused = the floor is what RunPod could not meet');
+  client.dataCenters = inStock(false);
+  assert.equal((await _createPodInternal('key', FLOOR_ARGS)).ramFloorMissed, false,
+    'REGRESSION: an out-of-stock card was reported to the user as a RAM-floor miss');
+});
