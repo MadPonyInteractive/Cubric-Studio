@@ -123,7 +123,13 @@ The live `https://api.runpod.io/v2/openapi.json` (OpenAPI 3.1, info.version 2.0.
   RAM floor (pre-existing since MPI-160; the 2026-09-05 L4 OOM is what the floor prevents).
   It now sends the floor exactly as Settings Connect does; both callers pass the full saved
   config. eslint clean.
-- ~~Owed: one Connect on the restarted app~~ (done above) (the server loads the new create path only on
+- ~~Owed: one Connect on the restarted app~~ (done above)
+- **Auto-retry ON by default** (Fabio 2026-09-27): `js/core/storage.js` default only, so new
+  installs get it and a saved config keeps its own value (checked: fresh config -> true, saved
+  false -> false; `runpod-skip-local-engine` 6/6). Three `UNRELEASED.md` Fixes bullets cover
+  it, the floor on retry, and the sold-out-read-as-RAM toast.
+- **Push held** (Fabio): master carries the H3 session's unpushed `10820348b` (raw workflow,
+  generated files still staged); push after that session closes, then close this card. (the server loads the new create path only on
   restart) -> log shows `RAM floor NGB requested (v2 gpu.minRamPerGpu)` + `createPod REST ->
   http 201` -> Disconnect -> Delete.
 

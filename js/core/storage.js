@@ -94,8 +94,11 @@ export const DEFAULT_RUNPOD_CONFIG = Object.freeze({
   skipLocalEngine: false,
   // autoRetry: when ON, the GPU picker also lists out-of-stock cards and Connect
   // waits in the background (polling availability) for the picked GPU to free
-  // before connecting — without blocking local generation (MPI-110). Default OFF.
-  autoRetry: false,
+  // before connecting — without blocking local generation (MPI-110). Default ON since
+  // 2026-09-27 (Fabio): RunPod stock is so thin that the card the picker showed in stock
+  // is often gone by Connect, and a retry lands it in seconds. New installs only — a
+  // saved config keeps its own value.
+  autoRetry: true,
   // stageOnConnect: when ON, every installed model's weights are copied to the Pod's
   // fast container disk the moment it connects (MPI-329), so the FIRST generation is
   // instant. Default ON; OFF = weights stage lazily on first use (gen-preflight),

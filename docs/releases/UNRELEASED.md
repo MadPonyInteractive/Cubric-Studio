@@ -325,6 +325,15 @@
 
 - **Download-only Pods no longer fail when one CPU size sells out** — the app tries the others.
 
+- **Connect waits for your GPU by default.** RunPod stock moves minute to minute, so a card
+  shown in stock is often gone by the time you press Connect. New installs now keep trying in
+  the background until it frees up; you can still turn it off in Remote.
+
+- **Waiting for a GPU keeps your minimum system RAM.** A Pod that connected after a wait, or on
+  start-up, was placed on any host and ignored the floor you set.
+
+- **A sold-out GPU is no longer reported as "no host with enough RAM".**
+
 - **The History workspace shows how many versions a card holds, and their size, again.**
 
 - **Disk sizes use the same gigabytes as RunPod and Hugging Face.** Windows File Explorer still
