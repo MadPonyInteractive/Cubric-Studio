@@ -136,6 +136,74 @@ releaser's call. An evidence file from before scope recording is called out as u
 what it left out. (`--models` also crashed in `printPlan` before this, so the flag never ran
 at all.)
 
+## Running Flows — `--flows`
+
+Flows are **off by default** — a plain smoke run exercises model ops only, same as before.
+Opt in:
+
+```bash
+node scripts/smoke-workflows.mjs --flows all                    # all 14 flow entries
+node scripts/smoke-workflows.mjs --flows ltx-extend,scribble    # specific ids
+node scripts/smoke-workflows.mjs --plan --flows all             # dry run, no Pod
+```
+
+**Why off by default.** A model bump never touches a Flow graph — the bump smoke is about
+the ComfyUI engine and its nodes, not the Flow registry. Run `--flows all` when a Flow is
+added or changed, or when you suspect a node update broke one.
+
+### The Flow set
+
+The runner imports `js/data/flowsRegistry.js` and smokes the real `FLOWS` (id + `operation`),
+so a new Flow is covered the day it lands. Each Flow brings its own installs: its
+`requiredModels` (the first model of a choice group on the default arm, the arm's model on a
+`byModel` arm) go through the same per-model install as the matrix, and its `requiredDeps`
+install as the app does it, under `flow:<id>`. `--plan` prints both, and the GB the Flows add
+to the volume counts only weights the model matrix does not already install. One Flow, `ltx-extend`, has a `byModel` arm for
+`minimax-h3-ref2va` that uses a different graph (`flow_h3_extend.json`). That arm is
+expanded at resolve time, so `--flows all` produces **14 entries**, not 13.
+`--flows ltx-extend` likewise produces 2.
+
+### Probe media
+
+Flow ops that need media read from `dev_configs/smoke-fixtures/`:
+
+| file | type | used by |
+|---|---|---|
+| (none: the matrix's own probe image) | 128×128 grey PNG, staged for the model ops | image-input flows (outpaint, scribble, scribble-object, object-stamp, character-sheet, ltx-upscale) |
+| `smoke-probe.mp4` | 1 s, 128×128, H.264, silent | video-input flows (ltx-extend, ltx-foley) |
+| `smoke-probe.wav` | 1 s, mono 22050 Hz, PCM silent | audio-input flows (stems, voice-changer, chatter-box) |
+
+A Flow op whose required fixture is absent is **SKIP**-ted, not FAIL-ed. The fixtures are
+committed to the repo, so they should always be present; a missing file is a tree problem,
+not a flow failure.
+
+### Evidence
+
+Flow results sit alongside model results in `smoke-evidence.json`:
+
+```json
+{ "model": "flow", "op": "ltx-extend", "status": "PASS", ... }
+{ "model": "flow", "op": "ltx-extend/minimax-h3-ref2va", "status": "PASS", ... }
+```
+
+The merge key is `flow/<op>`. `release:check` **does not gate on Flow coverage** — it
+checks `counts.fail > 0` and the engine version match; Flow results are additive. A run
+without `--flows` leaves no Flow entries and is still accepted. A run with flows that FAIL
+blocks as expected.
+
+Audio-output flows (ltx-foley, voice-changer, chatter-box, stems, minimax-music,
+sound-and-music) are counted by audio files produced, not images. A graph that emits zero
+audio when audio is expected is a FAIL, same as a model op that emits no media.
+
+### When to run
+
+| situation | what to run |
+|---|---|
+| Engine bump only | Model ops only (default); skip `--flows` |
+| Flow added or changed | `--flows all` alongside the model matrix |
+| Node update that touches audio/flow nodes | `--flows all` |
+| Investigating a specific Flow regression | `--flows <id>` |
+
 ## `--plan` DESTROYS the last run's transcript — back it up first
 
 `_transcribe` opens `dev_configs/smoke-run.txt` with mode `'w'` on the **first log line**, so

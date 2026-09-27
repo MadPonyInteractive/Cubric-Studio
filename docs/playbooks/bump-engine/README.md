@@ -258,6 +258,7 @@ without it.
 - [ ] **DEV** Pod image rebuilt at the new lock (`build-pod-image`) — `v<ver>-dev-<profile>`, only `POD_IMAGE_VERSION_DEV`/`_CPU_DEV` touched, user-facing `POD_IMAGE_VERSION` untouched
 - [ ] **Pod reports the new version** — asserted before any smoke run
 - [ ] Smoke matrix executed and green ([01-smoke-run.md](01-smoke-run.md)); skips named explicitly
+- [ ] **If a Flow was added or changed:** `--flows all` run and green; flow entries in evidence (`model: 'flow'`)
 - [ ] Evidence file written; `mpi-release` gate satisfied
 - [ ] Windows-half limitation stated in the evidence — Pod-green ≠ Windows-green
 

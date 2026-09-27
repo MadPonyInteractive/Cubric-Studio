@@ -11,6 +11,8 @@
  *   node scripts/smoke-workflows.mjs --plan            # resolve + print, spend nothing
  *   node scripts/smoke-workflows.mjs                   # full run (default: every model)
  *   node scripts/smoke-workflows.mjs --models qwen-edit,klein-4b
+ *   node scripts/smoke-workflows.mjs --flows all       # also smoke every Flow graph
+ *   node scripts/smoke-workflows.mjs --flows ltx-extend,scribble
  *   node scripts/smoke-workflows.mjs --retry-failed    # re-run ONLY the ops that are not PASS
  *   node scripts/smoke-workflows.mjs --keep-volume     # skip the teardown prompt
  *   node scripts/smoke-workflows.mjs --gpu "NVIDIA L4" # force a card
@@ -142,14 +144,17 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 async function loadRegistry() {
     const u = (p) => `file:///${path.join(REPO, p).replace(/\\/g, '/')}`;
-    const [{ MODELS }, { DEPS }, resolve, { sizeToGb }, { COMMANDS }] = await Promise.all([
+    const [{ MODELS }, { DEPS }, resolve, { sizeToGb }, { COMMANDS }, { UNIVERSAL_WORKFLOWS },
+        { FLOWS, flowDepKey, getFlowDependencies }] = await Promise.all([
         import(u('js/data/modelConstants/models.js')),
         import(u('js/data/modelConstants/dependencies.js')),
         import(u('js/data/modelConstants/resolveModelDeps.js')),
         import(u('js/data/modelConstants/footprint.js')),
         import(u('js/data/commandRegistry.js')),
+        import(u('js/data/modelConstants/universal_workflows.js')),
+        import(u('js/data/flowsRegistry.js')),
     ]);
-    return { MODELS, DEPS, COMMANDS, ...resolve, sizeToGb };
+    return { MODELS, DEPS, COMMANDS, UNIVERSAL_WORKFLOWS, FLOWS, flowDepKey, getFlowDependencies, ...resolve, sizeToGb };
 }
 
 const isWeight = (d) => d && d.size && d.type !== 'custom_nodes' && d.type !== 'json';
@@ -1465,12 +1470,279 @@ function filterOps(set, keep) {
     });
 }
 
+// ── Flow smoke leg ─────────────────────────────────────────────────────────────
+// Flows are derived from the real FLOWS array in flowsRegistry.js, which loads fine
+// in bare Node (confirmed: import returns FLOWS.length 13). No hand-kept catalog needed.
+
+const FIXTURE_DIR = path.join(REPO, 'dev_configs', 'smoke-fixtures');
+
+/**
+ * For a `requiredModels` slot list, pick the smoke model id for each slot.
+ * Default arm: first candidate per slot. byModel arm: use armModelId for its slot.
+ * @param {Array<string|{models:string[]}>} requiredModels
+ * @param {string|null} armModelId
+ * @returns {string[]}
+ */
+function smokeModelIds(requiredModels, armModelId = null) {
+    return (requiredModels || []).map(entry => {
+        const cands = typeof entry === 'string' ? [entry] : (entry.models || []);
+        if (armModelId && cands.includes(armModelId)) return armModelId;
+        return cands[0] || null;
+    }).filter(Boolean);
+}
+
+/**
+ * Resolve which flows to smoke. Derived from the real FLOWS array — no hand-kept catalog.
+ * @param {object} reg - loaded registry (must include FLOWS and UNIVERSAL_WORKFLOWS)
+ * @param {'all'|string[]} only - 'all' for every flow, or an array of flow ids
+ * @returns {Array<{id, op, arm, wfFile, label, requiredModelIds, flowDepIds}>}
+ *   Each byModel arm is expanded as a separate entry.
+ *   requiredModelIds: model ids needed for this arm (first of each slot, or arm model for its slot).
+ *   flowDepIds: dep ids this flow needs (from requiredDeps + requiredPlugins).
+ */
+export function resolveFlowSmokeSet(reg, only) {
+    const { FLOWS = [], UNIVERSAL_WORKFLOWS: UW = {}, getFlowDependencies } = reg;
+    const base = (only === 'all')
+        ? FLOWS
+        : only.map(id => {
+            const f = FLOWS.find(f => f.id === id);
+            if (!f) die(`--flows: unknown flow id '${id}'. Known: ${FLOWS.map(f => f.id).join(', ')}`);
+            return f;
+        });
+
+    const entries = [];
+    for (const flow of base) {
+        const { id, operation: op } = flow;
+        // dep ids for this flow (includes requiredPlugins deps via getFlowDependencies)
+        const depObjs = getFlowDependencies ? getFlowDependencies(id) : [];
+        const flowDepIds = depObjs.map(d => Object.keys(reg.DEPS || {}).find(k => reg.DEPS[k] === d)).filter(Boolean);
+
+        const wfDef = UW[op];
+        if (!wfDef) {
+            entries.push({ id, op, arm: null, wfFile: null, label: id,
+                requiredModelIds: smokeModelIds(flow.requiredModels, null), flowDepIds });
+            continue;
+        }
+        // Default arm — always included
+        entries.push({ id, op, arm: null, wfFile: wfDef.workflow, label: id,
+            requiredModelIds: smokeModelIds(flow.requiredModels, null), flowDepIds });
+        // byModel arms — each uses a different graph file
+        for (const [modelId, wf] of Object.entries(wfDef.byModel || {})) {
+            entries.push({ id, op, arm: modelId, wfFile: wf, label: `${id}/${modelId}`,
+                requiredModelIds: smokeModelIds(flow.requiredModels, modelId), flowDepIds });
+        }
+    }
+    return entries;
+}
+
+/**
+ * Resolve the install needs (model deps GB + flow-specific dep GB) for a flow set.
+ * Used to size the volume and drive the CPU Pod install loop.
+ * @param {object} reg
+ * @param {Array} flowSet - from resolveFlowSmokeSet
+ * @returns {{ models: ModelDef[], depEntries: Array<{flowId, installKey, deps}>, gbTotal: number }}
+ */
+export function flowInstallNeeds(reg, flowSet, alreadyDepIds = []) {
+    const { MODELS = [], DEPS = {}, resolveDeps, sizeToGb } = reg;
+    const gbOf = deps => deps.reduce((s, d) => s + (isWeight(d) ? sizeToGb(d.size) : 0), 0);
+
+    // Union of model ids across all flow entries
+    const modelIds = new Set(flowSet.flatMap(e => e.requiredModelIds || []));
+    const models = [...modelIds].map(id => MODELS.find(m => m.id === id)).filter(Boolean);
+
+    // Flow dep entries, de-duped by flowId (arms share the same flow deps)
+    const seen = new Set();
+    const depEntries = [];
+    for (const e of flowSet) {
+        if (seen.has(e.id)) continue;
+        seen.add(e.id);
+        const deps = (reg.getFlowDependencies || (() => []))(e.id);
+        if (!deps.length) continue;
+        depEntries.push({ flowId: e.id, installKey: reg.flowDepKey(e.id), deps });
+    }
+
+    // GB the Flows ADD to the volume: the union of their model deps and their own deps,
+    // minus what the model matrix already installs (alreadyDepIds = set.depIds). Counting
+    // a shared weight twice would size, and bill, a volume for weights it never holds.
+    const have = new Set(alreadyDepIds);
+    const added = new Map();
+    for (const m of models) {
+        for (const id of (resolveDeps ? resolveDeps(m, null, null, ENGINE, { arch: ARCH }) : [])) {
+            if (!have.has(id) && DEPS[id]) added.set(id, DEPS[id]);
+        }
+    }
+    for (const d of depEntries.flatMap(e => e.deps)) {
+        if (d && !have.has(d.id)) added.set(d.id, d);
+    }
+
+    return { models, depEntries, gbTotal: gbOf([...added.values()]) };
+}
+
+/**
+ * Offline prep for one flow op — parallel to prepOp() but uses UNIVERSAL_WORKFLOWS for
+ * file resolution and accepts a probeFiles map {image, video, audio} of Pod-absolute
+ * paths (or placeholder strings for --plan / preflight).
+ * @returns {{graph:object, applied:string[]} | {status:'SKIP'|'FAIL', why:string}}
+ */
+export function prepFlowOp(reg, entry, probeFiles) {
+    const { COMMANDS } = reg;
+    const { op, wfFile } = entry;
+    if (!wfFile) return { status: 'SKIP', why: `no UNIVERSAL_WORKFLOWS entry for op '${op}'` };
+    const p = path.join(WF_DIR, wfFile);
+    if (!existsSync(p)) return { status: 'SKIP', why: `workflow file missing: ${wfFile}` };
+
+    const graph = JSON.parse(readFileSync(p, 'utf8'));
+
+    for (const mi of COMMANDS[op]?.mediaInputs || []) {
+        if (!mi.required) continue;
+        const probe = probeFiles[mi.mediaType];
+        if (!probe) return { status: 'SKIP', why: `no ${mi.mediaType} fixture — add one to dev_configs/smoke-fixtures/` };
+        injectByTitle(graph, mi.title, probe);
+    }
+
+    healSeparators(graph);
+    return { graph, applied: minimizeGraph(graph) };
+}
+
+function printFlowPlan(reg, flowSet, flowNeeds) {
+    if (!flowSet.length) return 0;
+    log(`\n── Flow set ──`);
+    for (const e of flowSet) {
+        const missing = e.wfFile && !existsSync(path.join(WF_DIR, e.wfFile)) ? '   ← FILE MISSING' : '';
+        const models = e.requiredModelIds?.length ? `  models=[${e.requiredModelIds.join(',')}]` : '';
+        const deps   = e.flowDepIds?.length       ? `  deps=${e.flowDepIds.length}` : '';
+        log(`  ${e.label.padEnd(34)} ${e.wfFile || '(no workflow)'}${models}${deps}${missing}`);
+    }
+    if (flowNeeds?.gbTotal > 0) {
+        const mIds = flowNeeds.models.map(m => m.id).join(', ') || 'none';
+        log(`  flow models to install: ${mIds}`);
+        if (flowNeeds.depEntries.length) {
+            for (const de of flowNeeds.depEntries) {
+                log(`  flow deps [${de.flowId}]: ${de.deps.length} dep(s)`);
+            }
+        }
+        log(`  flow install adds ~${flowNeeds.gbTotal.toFixed(1)} GB to the volume`);
+    }
+    // Fixture check: warn about any missing fixtures at plan time so the runner
+    // doesn't surprise the user at hardware-rental time.
+    const fixtures = [
+        { key: 'video', file: 'smoke-probe.mp4' },
+        { key: 'audio', file: 'smoke-probe.wav' },
+    ];
+    const needsMedia = new Set(flowSet.flatMap(e => {
+        const mis = reg.COMMANDS?.[e.op]?.mediaInputs || [];
+        return mis.filter(mi => mi.required).map(mi => mi.mediaType);
+    }));
+    for (const { key, file } of fixtures) {
+        if (!needsMedia.has(key)) continue;
+        if (!existsSync(path.join(FIXTURE_DIR, file))) {
+            log(`  ⚠ dev_configs/smoke-fixtures/${file} missing — flows needing ${key} input will SKIP`);
+        }
+    }
+    return flowSet.length;
+}
+
+function preflightFlows(reg, flowSet) {
+    if (!flowSet.length) return 0;
+    // Use placeholder Pod paths — prepFlowOp only sets node values, never validates paths.
+    const probeFiles = {
+        image: '/workspace/comfyui/input/smoke-probe.png',
+        video: '/workspace/comfyui/input/smoke-probe.mp4',
+        audio: '/workspace/comfyui/input/smoke-probe.wav',
+    };
+    const problems = [];
+    for (const e of flowSet) {
+        const r = prepFlowOp(reg, e, probeFiles);
+        if (r.status) problems.push(`  ${r.status} flow/${e.label} — ${r.why}`);
+    }
+    const fails = problems.filter(l => l.trim().startsWith('FAIL')).length;
+    if (problems.length) {
+        log(`\n  flow preflight (offline, free): ${problems.length} flow(s) would not execute:`);
+        problems.forEach(l => log(l));
+    } else {
+        log(`\n  flow preflight (offline, free): all ${flowSet.length} flow graph(s) resolve ✓`);
+    }
+    return fails;
+}
+
+/** Upload flow fixture files (video, audio) to the Pod. Returns a probeFiles map. */
+async function stageProbeMedia() {
+    const result = {};
+    const fixtures = [
+        { key: 'video', file: 'smoke-probe.mp4' },
+        { key: 'audio', file: 'smoke-probe.wav' },
+    ];
+    for (const { key, file } of fixtures) {
+        const localPath = path.join(FIXTURE_DIR, file);
+        if (!existsSync(localPath)) {
+            log(`  ⚠ fixture missing: dev_configs/smoke-fixtures/${file} — flows needing ${key} input will SKIP`);
+            continue;
+        }
+        const up = await app('/remote/upload/media', {
+            method: 'POST', body: JSON.stringify({ localPath, filename: file }),
+        });
+        if (!up?.success || !(up.path || up.name)) {
+            log(`  ⚠ ${file} upload failed — flows needing ${key} input will SKIP`);
+            continue;
+        }
+        result[key] = up.path || up.name;
+        log(`  probe ${key} on the Pod: ${result[key]}`);
+    }
+    return result;
+}
+
+async function runFlowOp(reg, entry, probeFiles) {
+    const prep = prepFlowOp(reg, entry, probeFiles);
+    if (prep.status) return { op: entry.label, status: prep.status, why: prep.why };
+    const { graph, applied } = prep;
+
+    const ack = await app('/proxy/prompt', {
+        method: 'POST', body: JSON.stringify({ prompt: graph }),
+    });
+    const { prompt_id } = ack || {};
+    if (!prompt_id) return { op: entry.label, status: 'FAIL', why: 'no prompt_id returned' };
+    const partial = summarizeNodeErrors(ack.node_errors);
+    if (partial) return { op: entry.label, status: 'FAIL', why: `partial validation: ${partial}`, budget: applied };
+
+    const t0 = Date.now();
+    while (Date.now() - t0 < 15 * 60 * 1000) {
+        await sleep(4000);
+        const h = await app(`/proxy/history/${prompt_id}`).catch(() => null);
+        const rec = h?.[prompt_id];
+        if (!rec) {
+            const gone = await orphanReason(prompt_id, Date.now() - t0);
+            if (gone) return { op: entry.label, status: 'FAIL', why: gone, budget: applied };
+            continue;
+        }
+        const st = rec.status || {};
+        if (st.status_str === 'error' || (st.completed === false && st.messages?.some(m => m[0] === 'execution_error'))) {
+            const err = st.messages?.find(m => m[0] === 'execution_error')?.[1];
+            return { op: entry.label, status: 'FAIL', why: `${err?.node_type || '?'}: ${String(err?.exception_message || 'execution_error').slice(0, 180)}`, budget: applied };
+        }
+        if (st.completed) {
+            const outs = Object.values(rec.outputs || {});
+            // Count all media types including audio (flow outputs images, videos, or audio).
+            const media = outs.reduce((n, o) =>
+                n + (o.images?.length || 0) + (o.gifs?.length || 0) + (o.videos?.length || 0)
+                  + (o.audio?.length || 0) + (o.audios?.length || 0), 0);
+            if (!media) return { op: entry.label, status: 'FAIL', why: 'completed but produced no media', budget: applied };
+            return { op: entry.label, status: 'PASS', secs: Math.round((Date.now() - t0) / 1000), media, budget: applied };
+        }
+    }
+    await app('/proxy/interrupt', { method: 'POST' }).catch(() => {});
+    return { op: entry.label, status: 'FAIL', why: 'timed out after 15 min', budget: applied };
+}
+
 let reg_resolveFile = () => null;
 
 async function main() {
     const reg = await loadRegistry();
     reg_resolveFile = (m, op) => reg.resolveWorkflowFile(m, op, ENGINE, { variantTokens: { arch: ARCH } });
     let only = opt('models')?.split(',').map(s => s.trim()).filter(Boolean);
+    const flowsOpt = opt('flows');
+    const flowSet = flowsOpt != null
+        ? resolveFlowSmokeSet(reg, flowsOpt === 'all' ? 'all' : flowsOpt.split(',').map(s => s.trim()).filter(Boolean))
+        : [];
 
     // A scoped run REPLACED the evidence file until MPI-501's session. Resolve the merge
     // base first: every reason to refuse is knowable now, and refusing is only free now.
@@ -1490,8 +1762,12 @@ async function main() {
 
     let set = resolveSmokeSet(reg, only);
     if (opFilter) set = filterOps(set, opFilter);
+    // Sized AFTER the matrix set: a Flow model/dep the matrix already installs costs no extra volume.
+    const flowNeeds = flowSet.length ? flowInstallNeeds(reg, flowSet, set.depIds) : { models: [], depEntries: [], gbTotal: 0 };
     const opCount = printPlan(reg, set);
+    const flowCount = printFlowPlan(reg, flowSet, flowNeeds);
     const preflightFails = preflightOps(reg, set);
+    const flowPreflightFails = preflightFlows(reg, flowSet);
     const podLockOk = checkPodLock();
     const nodesOk = await checkFirstPartyNodes(set);
     const inputsOk = await checkRequiredInputs(set);
@@ -1501,9 +1777,10 @@ async function main() {
     if (!nodesOk) die('the MpiNodes pin predates a node the workflows use - bump it before renting anything.');
     if (!inputsOk) die('shipped graphs are missing required node inputs - fix them before renting anything.');
     if (preflightFails) die(`${preflightFails} op(s) fail preflight offline — fix the graph/registry before renting anything.`);
+    if (flowPreflightFails) die(`${flowPreflightFails} flow(s) fail preflight offline — fix the workflow/registry before renting anything.`);
 
     log(`\n── Live run ──`);
-    const volume = await ensureVolume(set.totalGb);
+    const volume = await ensureVolume(set.totalGb + flowNeeds.gbTotal);
 
     // The CPU Pod is not an optimisation — it is what makes the installs below REMOTE.
     // /comfy/models/download/start branches on remoteModels.isRemoteActive()
@@ -1528,7 +1805,7 @@ async function main() {
     const fit = volumeFitVerdict({
         usedBytes: disk?.success ? disk.used : null,
         totalBytes: disk?.success ? disk.total : null,
-        setBytes: set.totalGb * GiB,
+        setBytes: (set.totalGb + flowNeeds.gbTotal) * GiB,
         headroomBytes: FIT_MARGIN_GB * RP_GB,
     });
     log(`  ${fit.line}`);
@@ -1599,6 +1876,38 @@ async function main() {
     // Playbook step 4: verify BEFORE renting a GPU. A weight that failed here and is
     // only discovered at sampling time has already cost the expensive half of the run.
     if (bad.length) await abort(`install failed after a retry for: ${bad.join(', ')}`);
+
+    // ── Flow model + dep installs (CPU Pod, same download mode) ──────────────
+    // Audio flows (voice-changer, chatter-box, stems, minimax-music, sound-and-music) have
+    // NO requiredModels and GBs of their own weights in requiredDeps. outpaint and others
+    // may need model + dep weights not in the model-matrix set. Install them here, before
+    // the GPU Pod is rented.
+    const alreadyInstalledModelIds = new Set(set.map(e => e.model.id));
+    const newFlowModels = flowNeeds.models.filter(m => !alreadyInstalledModelIds.has(m.id));
+    if (newFlowModels.length) {
+        log(`\n  installing ${newFlowModels.length} flow-required model(s)…`);
+        const flowModelEntries = newFlowModels.map(m => ({ model: m }));
+        const flowModelBad = await installModels(flowModelEntries);
+        if (flowModelBad.length) await abort(`flow model install failed: ${flowModelBad.join(', ')}`);
+    }
+    for (const de of flowNeeds.depEntries) {
+        log(`\n  installing flow deps [${de.flowId}]…`);
+        await app('/comfy/models/download/start', {
+            method: 'POST',
+            body: JSON.stringify({ modelId: de.installKey, dependencies: de.deps }),
+        });
+        await waitReady(`install ${de.installKey}`, installProbe(de.installKey),
+            3 * 60 * 60 * 1000, { watchLog: true });
+    }
+    if (flowNeeds.depEntries.length) {
+        const jobs = (await app('/comfy/downloads/status')).jobs || [];
+        const flowBad = jobs
+            .filter(j => flowNeeds.depEntries.some(de => de.installKey === j.modelId))
+            .filter(j => (j.deps || []).some(d => d.status === 'failed' || d.status === 'error'))
+            .map(j => j.modelId);
+        if (flowBad.length) await abort(`flow dep install failed: ${flowBad.join(', ')}`);
+    }
+
     log(`  installs verified: no failed deps`);
 
     // The GPU Pod mounts the same volume, so the CPU Pod has to go first.
@@ -1652,6 +1961,10 @@ async function main() {
     }
 
     const probe = await stageProbeImage();
+    // Upload flow fixture files (video, audio) if the flow leg is requested.
+    const probeMedia = flowSet.length ? await stageProbeMedia() : {};
+    const probeFiles = { image: probe, ...probeMedia };
+
     const results = [];
     const vramGb = await podVramGb(gpu.id);
     for (const e of set) {
@@ -1663,11 +1976,20 @@ async function main() {
         }
     }
 
+    // ── flow leg. Runs on the same GPU Pod after all model ops.
+    if (flowSet.length) log(`\n── Flows ──`);
+    for (const e of flowSet) {
+        const r = await runFlowOp(reg, e, probeFiles).catch(err => ({ op: e.label, status: 'FAIL', why: err.message }));
+        results.push({ model: 'flow', ...r });
+        log(`  ${r.status.padEnd(4)} flow/${r.op}${r.why ? ' — ' + r.why : ` (${r.secs}s, ${r.media} out)`}`);
+    }
+
     // ── report. A SKIP is never folded into the pass count. That is the whole card.
     const n = (s) => results.filter(r => r.status === s).length;
     const skipped = results.filter(r => r.status === 'SKIP').map(r => `${r.model}/${r.op}`);
     log(`\nPASS ${n('PASS')} · SKIP ${n('SKIP')}${skipped.length ? ` (${skipped.join(', ')})` : ''} · FAIL ${n('FAIL')}`);
     log(`budget applied: ${BUDGET.steps} step · ${BUDGET.edge}px target · seed ${BUDGET.seed}`);
+    if (flowSet.length) log(`flows smoked: ${flowSet.length} (${flowSet.filter(e => results.find(r => r.model === 'flow' && r.op === e.label)?.status === 'PASS').length} PASS)`);
     if (set.scope.unproven.length) {
         log(`SCOPED — ${set.scope.unproven.length} of ${set.scope.modelsInRegistry} models UNPROVEN: ${set.scope.unproven.join(', ')}`);
     }
@@ -1677,7 +1999,7 @@ async function main() {
         at: new Date().toISOString(), engine, datacenter: DATACENTER,
         gpu: gpu.displayName || gpu.id, volume: { id: volume.id, size: volume.size },
         budget: BUDGET, results,
-        counts: { pass: n('PASS'), skip: n('SKIP'), fail: n('FAIL'), opsPlanned: opCount },
+        counts: { pass: n('PASS'), skip: n('SKIP'), fail: n('FAIL'), opsPlanned: opCount + flowCount },
         // What this file does NOT prove. Without it a `--models klein-4b` run writes an
         // evidence file that reads exactly like the full matrix: 7 pass, 0 fail. The
         // runner refuses to fold an in-run SKIP into the pass count; a whole FAMILY
