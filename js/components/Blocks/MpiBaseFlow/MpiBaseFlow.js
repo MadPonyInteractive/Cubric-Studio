@@ -2688,9 +2688,33 @@ export const MpiBaseFlow = ComponentFactory.create({
             }
         }
 
+        /** The latent frame decoding off-screen; a newer frame supersedes it. */
+        let _latentPending = null;
+
         /** Paint a single URL (a live latent preview) into the result pane. */
         function _paintResult(url, { blurring = false } = {}) {
             if (!url || !_resultMediaEl) return;
+            const live = _resultMediaEl.firstElementChild;
+            if (blurring && live?.classList.contains('mpi-base-flow__result-latent')) {
+                // A clip previewer paints here at its own rate - 24 fps on H3. A new
+                // <img> per frame is EMPTY until its blob decodes, so the pane showed
+                // its background between every two frames: a full-pane strobe, flagged
+                // as a photosensitivity risk (MPI-591). Decode off-screen, then swap
+                // the src of the element already fitted and on screen.
+                const next = new Image();
+                _latentPending = next;
+                next.onload = () => {
+                    if (_latentPending !== next || !live.isConnected) return;
+                    _latentPending = null;
+                    const resized = next.naturalWidth !== live.naturalWidth
+                        || next.naturalHeight !== live.naturalHeight;
+                    live.src = url;
+                    if (resized) _fitWhenReady(live);
+                };
+                next.onerror = () => { if (_latentPending === next) _latentPending = null; };
+                next.src = url;
+                return;
+            }
             // A re-run's first latent arrives while the PREVIOUS run's comparison or
             // video player is still up; without this it would paint underneath one.
             _teardownResultSurfaces();
