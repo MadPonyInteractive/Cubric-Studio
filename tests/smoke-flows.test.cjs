@@ -199,11 +199,12 @@ test('prepFlowOp minimizeGraph applied: budget nodes are reduced in all-14 flow 
 
 test('resolveFlowSmokeSet: requiredModelIds on default arm is first candidate per slot', async () => {
     const reg = await loadRegistry();
-    // ltx-extend slot has models: ['ltx-23-balanced', 'minimax-h3-ref2va'] — first is ltx-23-balanced
+    // ltx-extend slot has models: ['ltx-23-balanced', 'minimax-h3'] — first is ltx-23-balanced
+    // (MPI-591 Phase 8 moved the H3 candidate from ref2va to the fl2va id)
     const entries = resolveFlowSmokeSet(reg, ['ltx-extend']);
     const def = entries.find(e => e.arm === null);
     assert.ok(def.requiredModelIds.includes('ltx-23-balanced'), `default arm should pick ltx-23-balanced, got: ${def.requiredModelIds}`);
-    assert.ok(!def.requiredModelIds.includes('minimax-h3-ref2va'), 'default arm must not include the byModel arm model');
+    assert.ok(!def.requiredModelIds.includes('minimax-h3'), 'default arm must not include the byModel arm model');
 });
 
 test('resolveFlowSmokeSet: requiredModelIds on byModel arm uses arm-specific model', async () => {

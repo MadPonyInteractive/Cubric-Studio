@@ -1888,3 +1888,68 @@ there. Three different context rules exist right now:
 | H3 bench (`MotionContext`) | `min(request, available)` snapped to the run grid, default 22 | 0.917 s, max 2.333 s |
 
 The port should land on one rule: default 56, clamp to available, snap down.
+
+## PHASE 8 - THE SHIPPABLE MECHANISM, AND 56 IS DEAD (2026-09-27)
+
+**Fabio's call, opening this session:** FL2VA is the default, and it should LAND instead
+of referencing the video. That decides the fork the last handoff left open.
+
+**WHAT THE SHIPPED FLOW'S `MpiH3References` ACTUALLY IS.** Not a reference path. It is a
+wrapper around core's `MiniMaxH3ReferenceToVideo` with every ref slot `None`, and its job
+in this graph is to produce the encoded prompt (output 0) and the empty AV latent
+(output 1) that the whole graph rides. Nothing is wired into its `ref_image_*` inputs. So
+"remove the references" is really "replace the conditioning factory", and the fl2va
+counterpart is `MpiH3ImageToVideo` with no `first_frame` - exactly what the bench arms
+already use at #472.
+
+**THE CONTEXT MECHANISM CAN SHIP WITHOUT THE PORT.** The pending "MpiNodes port" item is
+smaller than the handoff believed: `MpiH3MaskedPrefix` already exists in the pack and is
+already pinned (1.2.16). It writes the prior clip's encoded tail into the front of the
+target latent and masks that region out of sampling, so nothing is regenerated and
+nothing has to be trimmed. `MiniMaxH3MotionContext` - third-party, never in node_lock
+(D6) - is not needed for anything that ships.
+
+**56 IS NOT REACHABLE ON THE SHIPPABLE NODE. The queued default change is void.**
+`MpiH3MaskedPrefix` snaps `context_frames` DOWN to **39 / 90 / 141 ...** (step 51): those
+are the lengths that sit on H3's 17k+5 video grid AND divide by 3, so audio's 40 Hz clock
+lands on a whole step too. 56 satisfies the video grid but NOT the audio one - which is
+also a standing question mark over the Phase 7b cut-back arm, whose 56 came from
+MotionContext's looser grid. The neighbours of Fabio's "about 2 seconds" are therefore:
+
+| context | seconds | preserved head on source 062 (hard cut at 3.200 s = frame 76.8) |
+|---|---|---|
+| **39** | 1.625 s | frames 85-123, entirely AFTER the cut: the eyes ECU only |
+| **90** | 3.750 s | frames 34-123, so the head REPLAYS the cut: wide -> cut -> eyes |
+
+Phase 8's two arms are exactly that pair, and the winner is the default that ships. The
+table in "THE CONTEXT DEFAULT IS 56" above is superseded for the H3 side: the third rule
+(MotionContext, default 22) is bench-only and cannot ship at all.
+
+**THE ARMS.** `make_prefix_arm.py` derives both from `arm_speech_c2_10step.json` - the arm
+Fabio judged "perfect" by ear - changing only the mechanism and the resolution:
+
+  #601 MiniMaxH3MotionContext  ->  #602 MpiH3EncodeAV + #603 MpiH3MaskedPrefix
+  conditioning to the guider straight from #472 (a first-frame guide inside the
+  preserved head fights the prefix, per the node's own docstring)
+  1152x480 -> NATIVE 1920x800, the source's own size, which is what the shipped flow
+  runs (ImageResizeKJv2 crops to /32, never scales)
+
+Held identical: 10 steps, shift_audio 1, fl2v turbo LoRA, beta/euler, seed 591000591, and
+the same approved prompt. Both arms produce exactly **102 new frames** (39 -> grid 141,
+90 -> grid 192), so they compare to each other and to the approved arm.
+
+**A DISPATCH WAS LOST TO A SILENT BLOCK, AND IT WILL HAPPEN AGAIN TO ANY OLD ARM.** Since
+MPI-800, `MpiLoadVideo.string` is "relative to ComfyUI's input/ folder (an absolute path
+must be inside input/, output/ or temp/)". A path outside those roots is treated as
+MISSING, and with `block_if_empty` ON that returns an `ExecutionBlocker` rather than
+raising: **the prompt comes back `success` in ~20 s with `outputs: {}`, no error anywhere,
+and the bench log shows only the loaders running.** Every corpus-1 and corpus-2 arm in
+research/bench/ carries an absolute `out/corpus2/...` path and will fail this way if
+re-run. The fix is to stage the clip into `<bench>/input/` and name it relatively.
+`validate.py` does NOT catch it - the graph is valid; it is the path that is out of
+bounds. Native source staged as `<bench>/input/MPI591_062_native.mp4`.
+
+**NATIVE COSTS, MEASURED (RTX 4060 Ti, 16 GB):** the source VAE encode alone is ~3 min for
+124 frames at 1920x800, and the DiT sits at ~12.3 GB with the graph peaking near 14.4 GB
+of the card's 16. Native fits, but it is not free, and this is the first honest read on
+what a user's own extend costs at a real clip size.

@@ -154,10 +154,12 @@ pick selects a different GRAPH FILE (`byModel`, see [any-of-models.md](../../any
 arms do not carry the same nodes. The injector skips a title the running graph does not have IN
 SILENCE, so a field belonging to one arm renders live and dead on the others.
 
-Extend Video has one of each: `negative` is `{ model: 'minimax-h3-ref2va' }` because H3 takes no
-negative conditioning, and `Input_is_Turbo` is `{ modelNot: 'minimax-h3-ref2va' }` because only the
-H3 graph carries that boolean. **A dead toggle is worse than a dead text box** — the user works the
-control and nothing happens, which reads as a broken app rather than an inapplicable one.
+Extend Video has one of each: `negative` is `{ model: 'minimax-h3' }` because H3 takes no
+negative conditioning, and `Input_is_Turbo` and `Input_Context` are `{ modelNot: 'minimax-h3' }`
+because only the H3 graph carries those nodes. **A dead toggle is worse than a dead text box** — the
+user works the control and nothing happens, which reads as a broken app rather than an inapplicable
+one. (The id is the fl2va DiT since MPI-591 Phase 8; it was `minimax-h3-ref2va` until 2026-09-27,
+when the H3 arm's graph was rewired to fl2va.)
 
 With no pick resolved yet, a `modelNot` field stays hidden: it belongs to an arm that is not
 running, and an unresolved slot is not a reason to show it.

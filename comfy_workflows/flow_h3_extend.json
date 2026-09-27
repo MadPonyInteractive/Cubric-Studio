@@ -51,43 +51,6 @@
       "title": "Input_Positive"
     }
   },
-  "330": {
-    "inputs": {
-      "ref_image_size": "match",
-      "clip": [
-        "390",
-        0
-      ],
-      "vae": [
-        "388",
-        0
-      ],
-      "audio_vae": [
-        "387",
-        0
-      ],
-      "prompt": [
-        "232",
-        0
-      ],
-      "width": [
-        "916",
-        1
-      ],
-      "height": [
-        "916",
-        2
-      ],
-      "length": [
-        "213",
-        0
-      ]
-    },
-    "class_type": "MpiH3References",
-    "_meta": {
-      "title": "Input_Refs"
-    }
-  },
   "331": {
     "inputs": {
       "video": "None",
@@ -131,7 +94,7 @@
   },
   "392": {
     "inputs": {
-      "unet_name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+      "unet_name": "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
       "weight_dtype": "default"
     },
     "class_type": "UNETLoader",
@@ -210,7 +173,7 @@
         0
       ],
       "conditioning": [
-        "903",
+        "970",
         0
       ]
     },
@@ -254,8 +217,8 @@
         0
       ],
       "latent_image": [
-        "330",
-        1
+        "972",
+        0
       ]
     },
     "class_type": "SamplerCustomAdvanced",
@@ -336,53 +299,6 @@
       "title": "ModelAttentionBackend"
     }
   },
-  "902": {
-    "inputs": {
-      "start_index": -1,
-      "num_frames": 39,
-      "images": [
-        "916",
-        0
-      ]
-    },
-    "class_type": "GetImageRangeFromBatch",
-    "_meta": {
-      "title": "Guide Clip (last 39 frames)"
-    }
-  },
-  "903": {
-    "inputs": {
-      "frame_idx": 0,
-      "positive": [
-        "330",
-        0
-      ],
-      "latent": [
-        "330",
-        1
-      ],
-      "vae": [
-        "388",
-        0
-      ],
-      "audio_vae": [
-        "387",
-        0
-      ],
-      "image": [
-        "902",
-        0
-      ],
-      "audio": [
-        "940",
-        0
-      ]
-    },
-    "class_type": "MiniMaxH3AddGuide",
-    "_meta": {
-      "title": "Anchor Guide Clip"
-    }
-  },
   "904": {
     "inputs": {
       "overlap": 1,
@@ -393,7 +309,7 @@
         0
       ],
       "new_images": [
-        "949",
+        "941",
         0
       ]
     },
@@ -588,31 +504,16 @@
       "title": "Resize To Target (32-divisible)"
     }
   },
-  "940": {
-    "inputs": {
-      "start": -39,
-      "end": -1,
-      "audio": [
-        "906",
-        0
-      ],
-      "fps": [
-        "331",
-        2
-      ]
-    },
-    "class_type": "MpiAudioRange",
-    "_meta": {
-      "title": "Guide Audio (last 39 frames)"
-    }
-  },
   "941": {
     "inputs": {
-      "start_index": 40,
       "num_frames": 4096,
       "images": [
         "409",
         0
+      ],
+      "start_index": [
+        "972",
+        1
       ]
     },
     "class_type": "GetImageRangeFromBatch",
@@ -623,79 +524,19 @@
   "942": {
     "inputs": {
       "fps": 24,
-      "start": 40,
       "end": -1,
       "audio": [
         "404",
         0
+      ],
+      "start": [
+        "972",
+        1
       ]
     },
     "class_type": "MpiAudioRange",
     "_meta": {
       "title": "Generated Audio Tail"
-    }
-  },
-  "946": {
-    "inputs": {
-      "start_index": 39,
-      "num_frames": 1,
-      "images": [
-        "409",
-        0
-      ]
-    },
-    "class_type": "GetImageRangeFromBatch",
-    "_meta": {
-      "title": "Flash Frame (first free frame)"
-    }
-  },
-  "947": {
-    "inputs": {
-      "start_index": 40,
-      "num_frames": 1,
-      "images": [
-        "409",
-        0
-      ]
-    },
-    "class_type": "GetImageRangeFromBatch",
-    "_meta": {
-      "title": "Its Successor"
-    }
-  },
-  "948": {
-    "inputs": {
-      "method": "reinhard",
-      "strength": 1,
-      "multithread": true,
-      "image_ref": [
-        "947",
-        0
-      ],
-      "image_target": [
-        "946",
-        0
-      ]
-    },
-    "class_type": "ColorMatch",
-    "_meta": {
-      "title": "Level-match Flash Frame"
-    }
-  },
-  "949": {
-    "inputs": {
-      "image1": [
-        "948",
-        0
-      ],
-      "image2": [
-        "941",
-        0
-      ]
-    },
-    "class_type": "ImageBatch",
-    "_meta": {
-      "title": "Matched Flash + New Frames"
     }
   },
   "950": {
@@ -768,10 +609,14 @@
   },
   "954": {
     "inputs": {
-      "math_expression": "a + 40/24",
+      "math_expression": "a + b/24",
       "a": [
         "214",
         2
+      ],
+      "b": [
+        "973",
+        0
       ]
     },
     "class_type": "MpiMath",
@@ -795,7 +640,7 @@
   },
   "956": {
     "inputs": {
-      "lora_name": "minimax-h3\\minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
+      "lora_name": "minimax-h3\\minimax_h3_fl2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
       "strength_model": 1,
       "model": [
         "464",
@@ -825,6 +670,91 @@
     "class_type": "MpiIfElse",
     "_meta": {
       "title": "Turbo ? 8-step LoRA : no LoRA"
+    }
+  },
+  "970": {
+    "inputs": {
+      "clip": [
+        "390",
+        0
+      ],
+      "vae": [
+        "388",
+        0
+      ],
+      "prompt": [
+        "232",
+        0
+      ],
+      "width": [
+        "916",
+        1
+      ],
+      "height": [
+        "916",
+        2
+      ],
+      "length": [
+        "213",
+        0
+      ]
+    },
+    "class_type": "MpiH3ImageToVideo",
+    "_meta": {
+      "title": "H3 conditioning (fl2va - no references, no guide)"
+    }
+  },
+  "971": {
+    "inputs": {
+      "vae": [
+        "388",
+        0
+      ],
+      "images": [
+        "916",
+        0
+      ],
+      "audio_vae": [
+        "387",
+        0
+      ],
+      "audio": [
+        "906",
+        0
+      ]
+    },
+    "class_type": "MpiH3EncodeAV",
+    "_meta": {
+      "title": "Encode the source (one call - keeps the motion)"
+    }
+  },
+  "972": {
+    "inputs": {
+      "latent": [
+        "970",
+        1
+      ],
+      "context_latent": [
+        "971",
+        0
+      ],
+      "context_frames": [
+        "973",
+        0
+      ]
+    },
+    "class_type": "MpiH3MaskedPrefix",
+    "_meta": {
+      "title": "THE MECHANISM (preserved head, masked out of sampling)"
+    }
+  },
+  "973": {
+    "inputs": {
+      "int": 39
+    },
+    "class_type": "MpiInt",
+    "_meta": {
+      "title": "Input_Context"
     }
   }
 }

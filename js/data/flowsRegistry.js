@@ -464,7 +464,13 @@ export const FLOWS = [
         // the choice is resolved in `universal_workflows.js` (`flowLtxExtend.byModel`) and
         // reaches the executor as `flowModelIds`. LTX stays FIRST because it is the
         // recommended candidate the picker stars, and what every existing extend ran on.
-        requiredModels: [{ label: 'Model', models: ['ltx-23-balanced', 'minimax-h3-ref2va'] }],
+        // MPI-591 Phase 8 (2026-09-27): the H3 candidate is 'minimax-h3' — the fl2va DiT —
+        // NOT ref2va. The graph was rewired to fl2va + MpiH3MaskedPrefix, and the id names
+        // the dep set that supplies its transformer and its fl2v turbo LoRA. A user who
+        // already has base H3 gains this flow with no download; a ref2va-only user gets a
+        // 19.53GB one. Both H3 ModelDefs share the same licence descriptor, so the consent
+        // gate does not re-fire either way.
+        requiredModels: [{ label: 'Model', models: ['ltx-23-balanced', 'minimax-h3'] }],
         operation: 'flowLtxExtend',
         // The LTX graph. The H3 arm's file is NOT named here — `byModel` owns that, and this
         // field is read only by the tests that check declared fields against node titles.
@@ -506,7 +512,7 @@ export const FLOWS = [
                         // skips the title in silence. The model rule (MPI-591) is what takes
                         // it off screen there; MPI-664's `{ field, is }` could not, because it
                         // keys on another FIELD's value rather than on the pick.
-                        hiddenWhen: { model: 'minimax-h3-ref2va' },
+                        hiddenWhen: { model: 'minimax-h3' },
                     },
                 ],
             },
@@ -536,7 +542,40 @@ export const FLOWS = [
                 // the model rule rather than a comment apologising for it.
                 id: 'Input_is_Turbo', type: 'toggle', label: 'Turbo', icon: 'bolt',
                 default: true,
-                hiddenWhen: { modelNot: 'minimax-h3-ref2va' },
+                hiddenWhen: { modelNot: 'minimax-h3' },
+            },
+            {
+                // MPI-591 Phase 8. How much of the source the extension is SHOWN, written
+                // into the front of the latent and masked out of sampling by
+                // MpiH3MaskedPrefix. Not a free number: the node snaps DOWN to 39 / 90 /
+                // 141, the only lengths that sit on H3's 17k+5 video grid AND divide by 3,
+                // so audio's 40 Hz clock lands on a whole step too. 56 frames — the value
+                // the bench arms used on the third-party MotionContext node — satisfies the
+                // video grid but NOT the audio one, which is why it is absent here.
+                //
+                // DEFAULT 39, measured (both arms native 1920x800, same seed, same prompt,
+                // 2026-09-27). 39 preserves 1.625 s and continues the shot as the prompt
+                // describes it. 90 preserves 3.75 s and, when that window contains a shot
+                // change, the model COPIES the edit: the 90 arm cut back to the source's
+                // earlier wide shot and held it for all 102 generated frames, against a
+                // prompt that asked for none of that. More context is not better, it is
+                // more imitative — so the richer setting is something the user reaches for
+                // deliberately, and 141 is offered for the same reason.
+                //
+                // The old graph hardcoded 39 with nothing guarding a shorter source. Now the
+                // stitch offsets read the node's OWN snapped count, so asking for more than
+                // the clip holds degrades instead of breaking.
+                id: 'Input_Context', type: 'select', label: 'Show it this much of the clip',
+                default: 39,
+                options: [
+                    { v: 39, label: '1.6 seconds',
+                      info: 'Continues the last shot. Follows your prompt most closely.' },
+                    { v: 90, label: '3.8 seconds',
+                      info: 'Sees more of the scene. If the last seconds contain a cut, expect it to cut too.' },
+                    { v: 141, label: '5.9 seconds',
+                      info: 'The whole scene, for carrying complex action across a cut. Slowest.' },
+                ],
+                hiddenWhen: { modelNot: 'minimax-h3' },
             },
         ],
     },

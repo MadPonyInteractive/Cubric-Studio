@@ -73,13 +73,22 @@ export const UNIVERSAL_WORKFLOWS = {
     flowLtxExtend: {
         workflow: 'flow_ltx_extend.json',
         byModel: {
-            // ref2va, NOT 'minimax-h3' (which is the fl2va DiT). The card's original text said
-            // 'minimax-h3' because v1 was meant to be fl2va; Phase 1 ran on ref2va instead and
-            // Phase 3 BAKED it — the graph's UNETLoader takes
-            // minimax_h3_ref2va_pruned_int8_convrot and its turbo LoRA is the ref2v-trained
-            // one, both supplied only by this model's dep set. Naming the fl2va id would gate
-            // on a 19.53GB weight the graph never loads and then fail value_not_in_list.
-            'minimax-h3-ref2va': 'flow_h3_extend.json',
+            // fl2va, and this REVERSES the ref2va entry that stood here until 2026-09-27
+            // (MPI-591 Phase 8, Fabio: "FL2VA should be the default one for sure. It should
+            // land instead of referencing the video"). The graph moved with the id: its
+            // UNETLoader now takes minimax_h3_fl2va_pruned_int8_convrot, the turbo LoRA is
+            // the fl2v-trained 8-step, and MpiH3References is gone in favour of
+            // MpiH3ImageToVideo + MpiH3MaskedPrefix. Both weights are supplied ONLY by this
+            // model's dep set, so the id and the graph have to move together — naming
+            // ref2va now would gate on a 19.53GB weight the graph no longer loads and then
+            // fail value_not_in_list, which is the same trap the old comment described in
+            // the other direction.
+            //
+            // Why fl2va is the right DiT here: it continues from PIXELS, which is what an
+            // extend is. It also ignores reference images rather than erroring on them, so
+            // leaving the old reference path wired would have been dead weight that looked
+            // alive.
+            'minimax-h3': 'flow_h3_extend.json',
         },
     },
     flowLtxFoley: {

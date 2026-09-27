@@ -211,7 +211,7 @@ test('hiddenWhen keys on the picked model, so a per-arm control is off screen el
     // and the LTX arm shows a dead Turbo toggle — a control the user works and nothing
     // happens, which reads as a broken app rather than an inapplicable one.
     const { hiddenFieldIds } = await esm('js/utils/declaredFields.js');
-    const H3 = 'minimax-h3-ref2va';
+    const H3 = 'minimax-h3';
     const fields = [
         { id: 'positive', type: 'text' },
         { id: 'negative', type: 'text', hiddenWhen: { model: H3 } },
@@ -243,12 +243,31 @@ test('the Extend Video FlowDef declares the Turbo toggle and hides each arm\'s d
     assert.equal(turbo.type, 'toggle');
     assert.equal(turbo.default, true,
         'non-turbo is 25 steps against 6 — the default stays Turbo');
-    assert.deepEqual(turbo.hiddenWhen, { modelNot: 'minimax-h3-ref2va' },
+    assert.deepEqual(turbo.hiddenWhen, { modelNot: 'minimax-h3' },
         'only the H3 graph carries Input_is_Turbo, so the toggle must hide on LTX');
 
     const negative = (flow.steps || []).flatMap(s => s.fields || []).find(f => f.id === 'negative');
-    assert.deepEqual(negative.hiddenWhen, { model: 'minimax-h3-ref2va' },
+    assert.deepEqual(negative.hiddenWhen, { model: 'minimax-h3' },
         'H3 takes no negative conditioning, so the box must hide on that arm');
+
+    // MPI-591 Phase 8 — the context length. Every option must be a length
+    // MpiH3MaskedPrefix accepts WITHOUT snapping: 39 + 51k, the lengths that sit on H3's
+    // 17k+5 video grid and also divide by 3 so audio's 40 Hz clock lands whole. Offering
+    // 56 (on the video grid, NOT divisible by 3 — and what the bench arms used on the
+    // third-party MotionContext node) would silently snap down to 39 and the field would
+    // be lying about what it does.
+    const context = (flow.fields || []).find(f => f.id === 'Input_Context');
+    assert.ok(context, 'the context-length field is not declared');
+    assert.equal(context.type, 'select');
+    assert.equal(context.default, 39,
+        '39 continues the shot; 90 imitates a cut it can see — measured 2026-09-27');
+    assert.deepEqual(context.options.map(o => o.v), [39, 90, 141]);
+    for (const { v } of context.options) {
+        assert.equal((v - 39) % 51, 0, `${v} is not on the prefix grid (39 + 51k)`);
+        assert.equal(v % 3, 0, `${v} does not divide by 3, so the audio clock drifts`);
+    }
+    assert.deepEqual(context.hiddenWhen, { modelNot: 'minimax-h3' },
+        'only the H3 graph carries Input_Context');
 });
 
 test('format: duration reads as m:ss, short enough to sit beside its slider', async () => {

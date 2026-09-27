@@ -635,7 +635,7 @@ test('the Extend Video pick selects the GRAPH, not just params (MPI-591)', async
     const flow = registry.getFlowById('ltx-extend');
     assert.deepEqual(
         registry.flowModelSlots(flow).map(s => s.models),
-        [['ltx-23-balanced', 'minimax-h3-ref2va']],
+        [['ltx-23-balanced', 'minimax-h3']],
         'one slot, two candidates, LTX first — models[0] is the recommended one the picker stars',
     );
 
@@ -645,8 +645,13 @@ test('the Extend Video pick selects the GRAPH, not just params (MPI-591)', async
     assert.equal(getUniversalWorkflow('flowLtxExtend', []), 'flow_ltx_extend.json');
     assert.equal(getUniversalWorkflow('flowLtxExtend', null), 'flow_ltx_extend.json');
     assert.equal(getUniversalWorkflow('flowLtxExtend', ['ltx-23-balanced']), 'flow_ltx_extend.json');
-    assert.equal(getUniversalWorkflow('flowLtxExtend', ['minimax-h3-ref2va']), 'flow_h3_extend.json',
+    // MPI-591 Phase 8: the H3 candidate is the fl2va id. ref2va must now fall THROUGH to
+    // the LTX file like any other non-member, which is the half that would silently rot if
+    // only the positive case were asserted.
+    assert.equal(getUniversalWorkflow('flowLtxExtend', ['minimax-h3']), 'flow_h3_extend.json',
         'the pick has to reach the FILE — this is the whole card');
+    assert.equal(getUniversalWorkflow('flowLtxExtend', ['minimax-h3-ref2va']), 'flow_ltx_extend.json',
+        'ref2va is no longer a member of this slot — it must not resolve to the H3 graph');
     assert.equal(getUniversalWorkflow('interpolate', ['minimax-h3-ref2va']), 'video_interpolate.json',
         'an op with no byModel must ignore the ids rather than resolve to null');
     assert.equal(getUniversalWorkflow('notAnOperation', ['minimax-h3-ref2va']), null);
