@@ -66,6 +66,7 @@ const PAID_FLOWS = [
         preview: 'flow-head-swap.webp',
         mediaType: 'image',
         type: 'edit',
+        url: 'https://mad-pony-interactive.gumroad.com/l/khsbf',
     },
     {
         paid: true,
@@ -76,21 +77,15 @@ const PAID_FLOWS = [
         preview: 'flow-drama-box.webp',
         mediaType: 'audio',
         type: 'create',
+        url: 'https://mad-pony-interactive.gumroad.com/l/odacbs',
     },
 ];
 
-/**
- * Where the Get-it button goes. NOT the Gumroad URL, deliberately, and not for tidiness:
- * the first 100 buyers of each Flow get it free through a 100%-off offer code carried IN
- * the URL, and this repo is public AGPL — a coded URL committed here could be spent to
- * zero by anyone who never opens the app. It also lets the code be changed or retired
- * without shipping a release.
- *
- * So the app links to its own site and the redirect is configured there. MadPony-Identity
- * MPI-81 owes that redirect its target; until Fabio has created the two products there is
- * no Gumroad URL to point it at, and nothing here changes when there is.
- */
-const paidFlowUrl = id => `https://cubric.studio/flows/${id}`;
+// `url` is the plain Gumroad product page, and Get it opens it directly (Fabio,
+// 2026-09-27; this replaced the cubric.studio/flows redirect of MPI-872). No offer code is
+// in the URL, deliberately: this repo is public AGPL. The first-100-free code is set to
+// apply AUTOMATICALLY on each product in Gumroad, and once its 100 uses are spent the same
+// page charges full price, so nothing here changes when the offer ends.
 
 /**
  * MpiFlowLibrary — the Flow Library overlay (MPI-256).
@@ -686,7 +681,7 @@ export const MpiFlowLibrary = ComponentFactory.create({
 
             detailActions.innerHTML = '';
             const get = MpiButton.mount(ce('div'), { text: 'Get it', variant: 'primary', size: 'md' });
-            get.on('click', () => openExternal(paidFlowUrl(entry.id)));
+            get.on('click', () => openExternal(entry.url));
             detailActions.appendChild(get.el); _detailBtns.push(get);
 
             scrim.classList.add('is-open');
