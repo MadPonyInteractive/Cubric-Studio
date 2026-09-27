@@ -1,8 +1,8 @@
 {
   "id": "a1b2c3d4-0000-4000-8000-h3v2vextend",
   "revision": 0,
-  "last_node_id": 957,
-  "last_link_id": 110,
+  "last_node_id": 973,
+  "last_link_id": 129,
   "nodes": [
     {
       "id": 195,
@@ -347,86 +347,6 @@
       }
     },
     {
-      "id": 902,
-      "type": "GetImageRangeFromBatch",
-      "pos": [
-        420,
-        1200
-      ],
-      "size": [
-        289.7056640625,
-        102
-      ],
-      "flags": {},
-      "order": 20,
-      "mode": 0,
-      "inputs": [
-        {
-          "label": "images",
-          "name": "images",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 51
-        },
-        {
-          "label": "masks",
-          "name": "masks",
-          "shape": 7,
-          "type": "MASK",
-          "link": null
-        },
-        {
-          "label": "start_index",
-          "name": "start_index",
-          "type": "INT",
-          "widget": {
-            "name": "start_index"
-          },
-          "link": null
-        },
-        {
-          "label": "num_frames",
-          "name": "num_frames",
-          "type": "INT",
-          "widget": {
-            "name": "num_frames"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "label": "IMAGE",
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            23
-          ]
-        },
-        {
-          "label": "MASK",
-          "name": "MASK",
-          "type": "MASK",
-          "links": []
-        }
-      ],
-      "title": "Guide Clip (last 39 frames)",
-      "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "GetImageRangeFromBatch",
-        "widget_ue_connectable": {}
-      },
-      "widgets_values": [
-        -1,
-        39
-      ],
-      "widgets_values_named": {
-        "start_index": -1,
-        "num_frames": 39
-      }
-    },
-    {
       "id": 905,
       "type": "EmptyAudio",
       "pos": [
@@ -506,8 +426,8 @@
           "name": "frames",
           "type": "INT",
           "links": [
-            18,
-            97
+            97,
+            116
           ]
         },
         {
@@ -572,8 +492,8 @@
           "name": "output",
           "type": "*",
           "links": [
-            81,
-            91
+            91,
+            120
           ]
         }
       ],
@@ -589,222 +509,6 @@
       "widgets_values_named": {
         "boolean": true
       }
-    },
-    {
-      "id": 330,
-      "type": "MpiH3References",
-      "pos": [
-        1260,
-        0
-      ],
-      "size": [
-        400,
-        584
-      ],
-      "flags": {},
-      "order": 27,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "clip",
-          "type": "CLIP",
-          "link": 105
-        },
-        {
-          "name": "vae",
-          "type": "VAE",
-          "link": 13
-        },
-        {
-          "name": "audio_vae",
-          "type": "VAE",
-          "link": 14
-        },
-        {
-          "name": "ref_image_1",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "ref_image_2",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "ref_image_3",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "ref_image_4",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "ref_image_5",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "ref_image_6",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "ref_image_7",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "ref_image_8",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "ref_image_9",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "ref_video_1",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "ref_video_audio_1",
-          "shape": 7,
-          "type": "AUDIO",
-          "link": null
-        },
-        {
-          "name": "ref_video_2",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "ref_video_audio_2",
-          "shape": 7,
-          "type": "AUDIO",
-          "link": null
-        },
-        {
-          "name": "ref_video_3",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": null
-        },
-        {
-          "name": "ref_video_audio_3",
-          "shape": 7,
-          "type": "AUDIO",
-          "link": null
-        },
-        {
-          "name": "ref_audio_1",
-          "shape": 7,
-          "type": "AUDIO",
-          "link": null
-        },
-        {
-          "name": "ref_audio_2",
-          "shape": 7,
-          "type": "AUDIO",
-          "link": null
-        },
-        {
-          "name": "ref_audio_3",
-          "shape": 7,
-          "type": "AUDIO",
-          "link": null
-        },
-        {
-          "name": "prompt",
-          "type": "STRING",
-          "widget": {
-            "name": "prompt"
-          },
-          "link": 15
-        },
-        {
-          "name": "width",
-          "type": "INT",
-          "widget": {
-            "name": "width"
-          },
-          "link": 53
-        },
-        {
-          "name": "height",
-          "type": "INT",
-          "widget": {
-            "name": "height"
-          },
-          "link": 54
-        },
-        {
-          "name": "length",
-          "type": "INT",
-          "widget": {
-            "name": "length"
-          },
-          "link": 18
-        }
-      ],
-      "outputs": [
-        {
-          "name": "positive",
-          "type": "CONDITIONING",
-          "links": [
-            20
-          ]
-        },
-        {
-          "name": "latent",
-          "type": "LATENT",
-          "links": [
-            21,
-            32
-          ]
-        },
-        {
-          "name": "ref_tags",
-          "type": "STRING",
-          "links": []
-        }
-      ],
-      "title": "Input_Refs",
-      "properties": {
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "da23e9112c292f073a95b8e5e60df69ea49bae04",
-        "Node name for S&R": "MpiH3References"
-      },
-      "widgets_values": [
-        "",
-        1344,
-        768,
-        124,
-        "match"
-      ],
-      "widgets_values_named": {
-        "prompt": "",
-        "width": 1344,
-        "height": 768,
-        "length": 124,
-        "ref_image_size": "match"
-      },
-      "color": "#432",
-      "bgcolor": "#653"
     },
     {
       "id": 454,
@@ -899,95 +603,6 @@
       }
     },
     {
-      "id": 903,
-      "type": "MiniMaxH3AddGuide",
-      "pos": [
-        1680,
-        240
-      ],
-      "size": [
-        300,
-        158
-      ],
-      "flags": {},
-      "order": 30,
-      "mode": 0,
-      "inputs": [
-        {
-          "label": "positive",
-          "name": "positive",
-          "type": "CONDITIONING",
-          "link": 20
-        },
-        {
-          "label": "latent",
-          "name": "latent",
-          "type": "LATENT",
-          "link": 21
-        },
-        {
-          "label": "vae",
-          "name": "vae",
-          "shape": 7,
-          "type": "VAE",
-          "link": 22
-        },
-        {
-          "label": "audio_vae",
-          "name": "audio_vae",
-          "shape": 7,
-          "type": "VAE",
-          "link": 74
-        },
-        {
-          "label": "image",
-          "name": "image",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 23
-        },
-        {
-          "label": "audio",
-          "name": "audio",
-          "shape": 7,
-          "type": "AUDIO",
-          "link": 75
-        },
-        {
-          "label": "frame_idx",
-          "name": "frame_idx",
-          "type": "INT",
-          "widget": {
-            "name": "frame_idx"
-          },
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "label": "positive",
-          "name": "positive",
-          "type": "CONDITIONING",
-          "links": [
-            27
-          ]
-        }
-      ],
-      "title": "Anchor Guide Clip",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.34.0",
-        "Node name for S&R": "MiniMaxH3AddGuide",
-        "widget_ue_connectable": {}
-      },
-      "widgets_values": [
-        0
-      ],
-      "widgets_values_named": {
-        "frame_idx": 0
-      }
-    },
-    {
       "id": 412,
       "type": "BasicScheduler",
       "pos": [
@@ -1056,7 +671,7 @@
         {
           "name": "conditioning",
           "type": "CONDITIONING",
-          "link": 27
+          "link": 124
         }
       ],
       "outputs": [
@@ -1117,7 +732,7 @@
           "label": "latent_image",
           "name": "latent_image",
           "type": "LATENT",
-          "link": 32
+          "link": 125
         }
       ],
       "outputs": [
@@ -1261,9 +876,7 @@
           "name": "passthrough",
           "type": "*",
           "links": [
-            83,
-            85,
-            86
+            83
           ]
         }
       ],
@@ -1360,7 +973,7 @@
           "name": "new_images",
           "shape": 7,
           "type": "IMAGE",
-          "link": 76
+          "link": 127
         },
         {
           "label": "overlap",
@@ -1585,8 +1198,8 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            51,
-            52
+            52,
+            118
           ]
         },
         {
@@ -1594,7 +1207,7 @@
           "name": "width",
           "type": "INT",
           "links": [
-            53
+            114
           ]
         },
         {
@@ -1602,7 +1215,7 @@
           "name": "height",
           "type": "INT",
           "links": [
-            54
+            115
           ]
         },
         {
@@ -2000,61 +1613,6 @@
       }
     },
     {
-      "id": 940,
-      "type": "MpiAudioRange",
-      "pos": [
-        1260,
-        720
-      ],
-      "size": [
-        315,
-        106
-      ],
-      "flags": {},
-      "order": 24,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "audio",
-          "type": "AUDIO",
-          "link": 81
-        },
-        {
-          "name": "fps",
-          "type": "FLOAT",
-          "widget": {
-            "name": "fps"
-          },
-          "link": 82
-        }
-      ],
-      "outputs": [
-        {
-          "name": "audio",
-          "type": "AUDIO",
-          "links": [
-            75
-          ]
-        }
-      ],
-      "title": "Guide Audio (last 39 frames)",
-      "properties": {
-        "cnr_id": "ComfyUi-MpiNodes",
-        "ver": "ccc25d12b8f8ef19c991a2ac407d77cb3ef08a61",
-        "Node name for S&R": "MpiAudioRange"
-      },
-      "widgets_values": [
-        24,
-        -39,
-        -1
-      ],
-      "widgets_values_named": {
-        "fps": 24,
-        "start": -39,
-        "end": -1
-      }
-    },
-    {
       "id": 941,
       "type": "GetImageRangeFromBatch",
       "pos": [
@@ -2080,6 +1638,24 @@
           "shape": 7,
           "type": "MASK",
           "link": null
+        },
+        {
+          "label": "start_index",
+          "name": "start_index",
+          "type": "INT",
+          "widget": {
+            "name": "start_index"
+          },
+          "link": 126
+        },
+        {
+          "label": "num_frames",
+          "name": "num_frames",
+          "type": "INT",
+          "widget": {
+            "name": "num_frames"
+          },
+          "link": null
         }
       ],
       "outputs": [
@@ -2087,7 +1663,7 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            90
+            127
           ]
         },
         {
@@ -2103,11 +1679,11 @@
         "Node name for S&R": "GetImageRangeFromBatch"
       },
       "widgets_values": [
-        40,
+        39,
         4096
       ],
       "widgets_values_named": {
-        "start_index": 40,
+        "start_index": 39,
         "num_frames": 4096
       }
     },
@@ -2130,6 +1706,15 @@
           "name": "audio",
           "type": "AUDIO",
           "link": 84
+        },
+        {
+          "label": "start",
+          "name": "start",
+          "type": "INT",
+          "widget": {
+            "name": "start"
+          },
+          "link": 128
         }
       ],
       "outputs": [
@@ -2149,221 +1734,13 @@
       },
       "widgets_values": [
         24,
-        40,
+        39,
         -1
       ],
       "widgets_values_named": {
         "fps": 24,
-        "start": 40,
+        "start": 39,
         "end": -1
-      }
-    },
-    {
-      "id": 946,
-      "type": "GetImageRangeFromBatch",
-      "pos": [
-        3360,
-        480
-      ],
-      "size": [
-        289.7056640625,
-        102
-      ],
-      "flags": {},
-      "order": 45,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 85
-        },
-        {
-          "name": "masks",
-          "shape": 7,
-          "type": "MASK",
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            88
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": []
-        }
-      ],
-      "title": "Flash Frame (first free frame)",
-      "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "GetImageRangeFromBatch"
-      },
-      "widgets_values": [
-        39,
-        1
-      ],
-      "widgets_values_named": {
-        "start_index": 39,
-        "num_frames": 1
-      }
-    },
-    {
-      "id": 947,
-      "type": "GetImageRangeFromBatch",
-      "pos": [
-        3360,
-        720
-      ],
-      "size": [
-        289.7056640625,
-        102
-      ],
-      "flags": {},
-      "order": 46,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "images",
-          "shape": 7,
-          "type": "IMAGE",
-          "link": 86
-        },
-        {
-          "name": "masks",
-          "shape": 7,
-          "type": "MASK",
-          "link": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            87
-          ]
-        },
-        {
-          "name": "MASK",
-          "type": "MASK",
-          "links": []
-        }
-      ],
-      "title": "Its Successor",
-      "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "GetImageRangeFromBatch"
-      },
-      "widgets_values": [
-        40,
-        1
-      ],
-      "widgets_values_named": {
-        "start_index": 40,
-        "num_frames": 1
-      }
-    },
-    {
-      "id": 948,
-      "type": "ColorMatch",
-      "pos": [
-        3360,
-        960
-      ],
-      "size": [
-        315,
-        126
-      ],
-      "flags": {},
-      "order": 48,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image_ref",
-          "type": "IMAGE",
-          "link": 87
-        },
-        {
-          "name": "image_target",
-          "type": "IMAGE",
-          "link": 88
-        }
-      ],
-      "outputs": [
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "links": [
-            89
-          ]
-        }
-      ],
-      "title": "Level-match Flash Frame",
-      "properties": {
-        "cnr_id": "comfyui-kjnodes",
-        "ver": "35e5956193769d18a13136cdedb73a36a05c73e6",
-        "Node name for S&R": "ColorMatch"
-      },
-      "widgets_values": [
-        "reinhard",
-        1,
-        true
-      ],
-      "widgets_values_named": {
-        "method": "reinhard",
-        "strength": 1,
-        "multithread": true
-      }
-    },
-    {
-      "id": 949,
-      "type": "ImageBatch",
-      "pos": [
-        3780,
-        240
-      ],
-      "size": [
-        236.775,
-        46
-      ],
-      "flags": {},
-      "order": 50,
-      "mode": 0,
-      "inputs": [
-        {
-          "name": "image1",
-          "type": "IMAGE",
-          "link": 89
-        },
-        {
-          "name": "image2",
-          "type": "IMAGE",
-          "link": 90
-        }
-      ],
-      "outputs": [
-        {
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            76
-          ]
-        }
-      ],
-      "title": "Matched Flash + New Frames",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.34.0",
-        "Node name for S&R": "ImageBatch"
       }
     },
     {
@@ -2607,7 +1984,7 @@
           "name": "b",
           "shape": 7,
           "type": "*",
-          "link": null
+          "link": 129
         },
         {
           "name": "c",
@@ -2632,10 +2009,10 @@
         "Node name for S&R": "MpiMath"
       },
       "widgets_values": [
-        "a + 40/24"
+        "a + b/24"
       ],
       "widgets_values_named": {
-        "math_expression": "a + 40/24"
+        "math_expression": "a + b/24"
       }
     },
     {
@@ -2730,11 +2107,11 @@
         "Node name for S&R": "MpiLoraModel"
       },
       "widgets_values": [
-        "minimax-h3\\minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
+        "minimax-h3\\minimax_h3_fl2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
         1
       ],
       "widgets_values_named": {
-        "lora_name": "minimax-h3\\minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
+        "lora_name": "minimax-h3\\minimax_h3_fl2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
         "strength_model": 1
       }
     },
@@ -2816,7 +2193,7 @@
           "name": "Text",
           "type": "STRING",
           "links": [
-            15
+            113
           ]
         }
       ],
@@ -2925,7 +2302,6 @@
           "name": "fps",
           "type": "FLOAT",
           "links": [
-            82,
             92
           ]
         },
@@ -3015,9 +2391,8 @@
           "name": "VAE",
           "type": "VAE",
           "links": [
-            14,
             36,
-            74
+            119
           ]
         }
       ],
@@ -3060,9 +2435,9 @@
           "name": "VAE",
           "type": "VAE",
           "links": [
-            13,
-            22,
-            34
+            34,
+            112,
+            117
           ]
         }
       ],
@@ -3120,11 +2495,11 @@
         }
       },
       "widgets_values": [
-        "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
         "default"
       ],
       "widgets_values_named": {
-        "unet_name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "unet_name": "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
         "weight_dtype": "default"
       },
       "color": "#323",
@@ -3151,7 +2526,7 @@
           "type": "CLIP",
           "slot_index": 0,
           "links": [
-            105
+            111
           ]
         }
       ],
@@ -3169,6 +2544,277 @@
         "clip_name": "qwen3vl_32b_h3_ultra_uncensored_heretic_int8_convrot.safetensors",
         "type": "minimax",
         "device": "default"
+      }
+    },
+    {
+      "id": 970,
+      "type": "MpiH3ImageToVideo",
+      "pos": [
+        1100,
+        900
+      ],
+      "size": [
+        300,
+        120
+      ],
+      "flags": {},
+      "order": 970,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "link": 111
+        },
+        {
+          "label": "vae",
+          "name": "vae",
+          "type": "VAE",
+          "link": 112
+        },
+        {
+          "label": "prompt",
+          "name": "prompt",
+          "type": "STRING",
+          "link": 113,
+          "widget": {
+            "name": "prompt"
+          }
+        },
+        {
+          "label": "width",
+          "name": "width",
+          "type": "INT",
+          "link": 114,
+          "widget": {
+            "name": "width"
+          }
+        },
+        {
+          "label": "height",
+          "name": "height",
+          "type": "INT",
+          "link": 115,
+          "widget": {
+            "name": "height"
+          }
+        },
+        {
+          "label": "length",
+          "name": "length",
+          "type": "INT",
+          "link": 116,
+          "widget": {
+            "name": "length"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            124
+          ]
+        },
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            121
+          ]
+        }
+      ],
+      "title": "H3 conditioning (fl2va - no references, no guide)",
+      "properties": {
+        "Node name for S&R": "MpiH3ImageToVideo",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        "",
+        1344,
+        768,
+        124
+      ],
+      "widgets_values_named": {
+        "prompt": "",
+        "width": 1344,
+        "height": 768,
+        "length": 124
+      }
+    },
+    {
+      "id": 971,
+      "type": "MpiH3EncodeAV",
+      "pos": [
+        1100,
+        1250
+      ],
+      "size": [
+        300,
+        120
+      ],
+      "flags": {},
+      "order": 971,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "vae",
+          "name": "vae",
+          "type": "VAE",
+          "link": 117
+        },
+        {
+          "label": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "link": 118
+        },
+        {
+          "label": "audio_vae",
+          "name": "audio_vae",
+          "type": "VAE",
+          "link": 119
+        },
+        {
+          "label": "audio",
+          "name": "audio",
+          "type": "AUDIO",
+          "link": 120
+        }
+      ],
+      "outputs": [
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            122
+          ]
+        },
+        {
+          "name": "info",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "title": "Encode the source (one call - keeps the motion)",
+      "properties": {
+        "Node name for S&R": "MpiH3EncodeAV",
+        "widget_ue_connectable": {}
+      }
+    },
+    {
+      "id": 973,
+      "type": "MpiInt",
+      "pos": [
+        700,
+        1450
+      ],
+      "size": [
+        300,
+        120
+      ],
+      "flags": {},
+      "order": 973,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "int",
+          "type": "INT",
+          "links": [
+            123,
+            129
+          ]
+        }
+      ],
+      "title": "Input_Context",
+      "properties": {
+        "Node name for S&R": "MpiInt",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        39
+      ],
+      "widgets_values_named": {
+        "int": 39
+      }
+    },
+    {
+      "id": 972,
+      "type": "MpiH3MaskedPrefix",
+      "pos": [
+        1500,
+        1100
+      ],
+      "size": [
+        300,
+        120
+      ],
+      "flags": {},
+      "order": 972,
+      "mode": 0,
+      "inputs": [
+        {
+          "label": "latent",
+          "name": "latent",
+          "type": "LATENT",
+          "link": 121
+        },
+        {
+          "label": "context_latent",
+          "name": "context_latent",
+          "type": "LATENT",
+          "link": 122
+        },
+        {
+          "label": "context_frames",
+          "name": "context_frames",
+          "type": "INT",
+          "link": 123,
+          "widget": {
+            "name": "context_frames"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            125
+          ]
+        },
+        {
+          "name": "context_frames",
+          "type": "INT",
+          "links": [
+            126,
+            128
+          ]
+        },
+        {
+          "name": "new_frames",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "name": "report",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "title": "THE MECHANISM (preserved head, masked out of sampling)",
+      "properties": {
+        "Node name for S&R": "MpiH3MaskedPrefix",
+        "widget_ue_connectable": {}
+      },
+      "widgets_values": [
+        39
+      ],
+      "widgets_values_named": {
+        "context_frames": 39
       }
     }
   ],
@@ -3198,84 +2844,12 @@
       "*"
     ],
     [
-      13,
-      388,
-      0,
-      330,
-      1,
-      "VAE"
-    ],
-    [
-      14,
-      387,
-      0,
-      330,
-      2,
-      "VAE"
-    ],
-    [
-      15,
-      232,
-      0,
-      330,
-      21,
-      "STRING"
-    ],
-    [
-      18,
-      213,
-      0,
-      330,
-      24,
-      "INT"
-    ],
-    [
-      20,
-      330,
-      0,
-      903,
-      0,
-      "CONDITIONING"
-    ],
-    [
-      21,
-      330,
-      1,
-      903,
-      1,
-      "LATENT"
-    ],
-    [
-      22,
-      388,
-      0,
-      903,
-      2,
-      "VAE"
-    ],
-    [
-      23,
-      902,
-      0,
-      903,
-      4,
-      "IMAGE"
-    ],
-    [
       24,
       195,
       0,
       405,
       0,
       "INT"
-    ],
-    [
-      27,
-      903,
-      0,
-      423,
-      1,
-      "CONDITIONING"
     ],
     [
       28,
@@ -3292,14 +2866,6 @@
       435,
       1,
       "GUIDER"
-    ],
-    [
-      32,
-      330,
-      1,
-      435,
-      4,
-      "LATENT"
     ],
     [
       33,
@@ -3406,36 +2972,12 @@
       "INT"
     ],
     [
-      51,
-      916,
-      0,
-      902,
-      0,
-      "IMAGE"
-    ],
-    [
       52,
       916,
       0,
       904,
       0,
       "IMAGE"
-    ],
-    [
-      53,
-      916,
-      1,
-      330,
-      22,
-      "INT"
-    ],
-    [
-      54,
-      916,
-      2,
-      330,
-      23,
-      "INT"
     ],
     [
       55,
@@ -3526,30 +3068,6 @@
       "BOOLEAN"
     ],
     [
-      74,
-      387,
-      0,
-      903,
-      3,
-      "VAE"
-    ],
-    [
-      75,
-      940,
-      0,
-      903,
-      5,
-      "AUDIO"
-    ],
-    [
-      76,
-      949,
-      0,
-      904,
-      1,
-      "IMAGE"
-    ],
-    [
       77,
       950,
       0,
@@ -3582,22 +3100,6 @@
       "*"
     ],
     [
-      81,
-      906,
-      0,
-      940,
-      0,
-      "*"
-    ],
-    [
-      82,
-      331,
-      2,
-      940,
-      1,
-      "FLOAT"
-    ],
-    [
       83,
       409,
       0,
@@ -3612,54 +3114,6 @@
       942,
       0,
       "AUDIO"
-    ],
-    [
-      85,
-      409,
-      0,
-      946,
-      0,
-      "*"
-    ],
-    [
-      86,
-      409,
-      0,
-      947,
-      0,
-      "*"
-    ],
-    [
-      87,
-      947,
-      0,
-      948,
-      0,
-      "IMAGE"
-    ],
-    [
-      88,
-      946,
-      0,
-      948,
-      1,
-      "IMAGE"
-    ],
-    [
-      89,
-      948,
-      0,
-      949,
-      0,
-      "IMAGE"
-    ],
-    [
-      90,
-      941,
-      0,
-      949,
-      1,
-      "IMAGE"
     ],
     [
       91,
@@ -3774,14 +3228,6 @@
       "*"
     ],
     [
-      105,
-      390,
-      0,
-      330,
-      0,
-      "CLIP"
-    ],
-    [
       106,
       909,
       0,
@@ -3820,6 +3266,158 @@
       957,
       2,
       "BOOLEAN"
+    ],
+    [
+      111,
+      390,
+      0,
+      970,
+      0,
+      "CLIP"
+    ],
+    [
+      112,
+      388,
+      0,
+      970,
+      1,
+      "VAE"
+    ],
+    [
+      113,
+      232,
+      0,
+      970,
+      2,
+      "STRING"
+    ],
+    [
+      114,
+      916,
+      1,
+      970,
+      3,
+      "INT"
+    ],
+    [
+      115,
+      916,
+      2,
+      970,
+      4,
+      "INT"
+    ],
+    [
+      116,
+      213,
+      0,
+      970,
+      5,
+      "INT"
+    ],
+    [
+      117,
+      388,
+      0,
+      971,
+      0,
+      "VAE"
+    ],
+    [
+      118,
+      916,
+      0,
+      971,
+      1,
+      "IMAGE"
+    ],
+    [
+      119,
+      387,
+      0,
+      971,
+      2,
+      "VAE"
+    ],
+    [
+      120,
+      906,
+      0,
+      971,
+      3,
+      "AUDIO"
+    ],
+    [
+      121,
+      970,
+      1,
+      972,
+      0,
+      "LATENT"
+    ],
+    [
+      122,
+      971,
+      0,
+      972,
+      1,
+      "LATENT"
+    ],
+    [
+      123,
+      973,
+      0,
+      972,
+      2,
+      "INT"
+    ],
+    [
+      124,
+      970,
+      0,
+      423,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      125,
+      972,
+      0,
+      435,
+      4,
+      "LATENT"
+    ],
+    [
+      126,
+      972,
+      1,
+      941,
+      2,
+      "INT"
+    ],
+    [
+      127,
+      941,
+      0,
+      904,
+      1,
+      "IMAGE"
+    ],
+    [
+      128,
+      972,
+      1,
+      942,
+      1,
+      "INT"
+    ],
+    [
+      129,
+      973,
+      0,
+      954,
+      1,
+      "INT"
     ]
   ],
   "groups": [],
