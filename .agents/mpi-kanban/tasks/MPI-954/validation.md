@@ -35,13 +35,23 @@ Gate A). The `main()` wrap (`d2379a38f`) only protects hops that START from a wr
   logic with the real module.
 - `node --test tests/portable-*.test.cjs` 21 pass / 1 skipped; `npm test` 2134 / 0 / 2 skipped.
 
-## Still owed: the real-hardware proof (Linux box, Fabio turns it on)
+## Real-hardware proof — Linux box, 2026-09-27 (`ssh linuxbox`, /bin/sh -> /usr/bin/dash)
 
-The POSIX before/after (a shell reading a file replaced by copy vs by rename) is skipped on
-Windows. On `ssh linuxbox`, with a real 2.0 update bundle built from this code:
+Three fresh extracts of the SHIPPED `CubricVision-linux-x64-v1.5.0.tar.gz`; in every leg the
+INSTALLED 1.5.0 launchers and applier do the applying. Bundle built on Windows with the real
+`stageUpdateBundle` from committed blobs (LF): payload = v1.5.0 `app/main.js` + the one heal line,
+`main/launcherHeal.cjs`, master's applier and master's wrapped launchers. CONTROL = the same
+bundle with the launchers moved back to the root and into files[] (the pre-fix shape).
+Kit: `scratchpad/mpi954-bundle.mjs`, `ab954-manual.sh`, `ab954-inapp.sh` (copies on the box
+under `~/mpi954/`).
 
-1. `~/mpi595/mpi595-ab-kit/ab-selfrewrite.sh` against a fresh v1.5.0 install: exit 0, and
-   `update/update-result.json` absent or `ok:true`.
-2. `update/pending-launchers/` exists after apply; the first 2.0 boot empties and removes it.
-3. The root `.sh` launchers are the 2.0 (wrapped) versions after boot, all +x.
-4. The manual path, `./update-from-zip.sh <bundle>`, exits 0 as well.
+| Leg | Path | Result |
+|---|---|---|
+| CONTROL | `./update-from-zip.sh <zip>` | applier OK, then `./update-from-zip.sh: 38: le: not found`, **exit 127** (the bug, reproduced) |
+| NEW | `./update-from-zip.sh <zip>` | **exit 0**; all four root launchers md5-identical to before (untouched); `update/pending-launchers/` holds the four, all `-rwxr-xr-x` |
+| NEW | `./update.sh` (in-app; only `update/fetch-release.cjs` stubbed to hand it the local zip) | **exit 0**, log ends `Update applied successfully.` / `Relaunching Cubric Vision...`, no `update-result.json` failure |
+| NEW | the relaunched app's boot (DISPLAY=:0, console session) | within 2 s: `pending-launchers/` gone; all four root launchers now the wrapped 2.0 versions, +x; `user-data/logs/app.log`: `[update] launcher heal: installed` x4 at 11:43:12Z, one second after the apply |
+
+**Not run: macOS** (no Mac on hand). Same mechanism (`.command` launchers, POSIX rename), same
+code path in `stageUpdateBundle` and the heal module, unit-tested; the release smoke of a macOS
+build is where it would show.

@@ -22,7 +22,7 @@ Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet*
   - [x] packages exist (MPI-781) · [x] app advertises them (MPI-831)
   - [ ] Gumroad products drafted, codes created (MadPony-Identity MPI-81, Fabio) — published ON release day
   - [ ] **MPI-872** redirects resolve — verified in a browser, landing on Gumroad with the discount
-- [ ] **A5 MPI-954** 1.x -> 2.0 launcher hop — fixed in `37e5eca77` (CI green); owes the Linux-box A/B (MPI-954 validation.md steps 1-4)
+- [x] **A5 MPI-954** 1.x -> 2.0 launcher hop — `37e5eca77`; PROVEN on the Linux box 2026-09-27 (control exit 127, fixed exit 0 on both paths, boot heal in 2 s). macOS not run (no Mac)
 - [ ] **A6 MPI-591** H3 in Extend Video — IN 2.0, Fabio finishes it in its own session, BEFORE B1 (watch: FL2VA needs a core newer than v0.34)
 - [x] **A7 MPI-952** SplatKit out of 2.0 (`b3c25a678`); Mickmumpitz stays for Outpaint
 - [x] Cleared: MPI-507/515 (rejected, MPI-734), MPI-575, MPI-522/523/527, MPI-873, MPI-708's gates 532/774/809/810/777
