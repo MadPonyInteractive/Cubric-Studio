@@ -5,7 +5,9 @@ and stays; its record is in `validation.md`. The CLI (old steps 2 and 3) is drop
 
 ## Current State
 
-**Next: MPI-947** (created 2026-09-26, `todo`/`research`): Settings > Connect an agent, with
+**MPI-947 in `doing` 2026-09-27 (session 593c46ac)**: research done (`tasks/MPI-947/research/connect-paths.md`),
+plan written, D1-D3 await Fabio. Memory `feedback_agent_access_uses_conventional_installs` updated on his yes.
+**Next: MPI-947** (created 2026-09-26): Settings > Connect an agent, with
 AUTOMATIC setup for Claude Desktop, Claude Code, Codex and Antigravity where provable, and the
 plain MCP URL + instructions for any other agent (Fabio: the 09-25 "conventional installs" rule
 was about staying open to any agent, not a ban on automation). Brief: `tasks/MPI-947/brief.md`.

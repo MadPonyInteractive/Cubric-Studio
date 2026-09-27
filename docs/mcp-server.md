@@ -91,12 +91,45 @@ users come in through Codex, which their plan includes. **Gemini CLI is not a ta
 stopped serving it to personal logins on 2026-06-18 (`IneligibleTierError`), and Antigravity
 replaced it.
 
+## Settings > Connect an agent (MPI-947)
+
+`routes/agentConnect.js` runs the per-client steps below for the user, one plate each in
+Settings (inline in `MpiSettings.js`: a Compound mounts Primitives only). `GET /agent-connect/status`
+detects each client and reads whether ours is installed; `POST /agent-connect/:id/connect|disconnect`
+acts and answers with the status after. Every file comes from `cubric-studio-agents` (the `.mcpb`
+from its latest release, the Antigravity folder from `main`), so connect needs internet.
+
+- Status reads `claude plugin list --json` / `codex plugin list --json`, **never
+  `claude mcp list`**: that one health-checks every server, i.e. pings the live app.
+- The CLIs are npm `.cmd` shims: `exec` with a shell and `windowsHide`, fixed literal
+  command lines only. Node refuses a `.cmd` without a shell (EINVAL).
+- Claude Desktop is found by `lstat` on the MSIX alias `%LOCALAPPDATA%\Microsoft\WindowsApps\claude-desktop.exe`:
+  `existsSync` says FALSE for it (stat gets EACCES on the reparse point). Installed = a folder
+  ending `cubric-studio` in `%LOCALAPPDATA%\Packages\Claude_*\LocalCache\Roaming\Claude\Claude Extensions\`:
+  MSIX virtualizes Claude's AppData, so **`%APPDATA%\Claude` does not exist outside the package**.
+  A process started from Claude (a Claude Code session in the desktop app, and any app IT
+  launches) sees the redirected view, so a test from there passes on the wrong path; list the
+  real view from a WMI-created process (`Win32_Process.Create`). No Disconnect button: the page
+  says where Claude's own Uninstall is.
+- "Last used" comes from the `clientInfo` a client sends on `initialize` (`routes/mcp.js`
+  `seenClients()`, in memory since launch). Names seen that match no known client are listed
+  as-is. The Claude Desktop bridge answers `initialize` itself when the app was closed, so it
+  shows only after its next connect.
+- **Platforms.** Windows is proven on a real machine. macOS and Linux branches exist but are
+  unrun on real hardware (the builds are blocked too): CLIs found by `command -v` with Homebrew,
+  `/usr/local/bin`, `~/.local/bin` and `~/.npm-global/bin` added to PATH (a Dock-launched Mac
+  app gets launchd's bare PATH); Claude Desktop at `/Applications/Claude.app`, extensions in
+  `~/Library/Application Support/Claude/Claude Extensions`, the `.mcpb` handed over by
+  `open -a` (Claude's `open-file` handler); no Claude Desktop on Linux; Antigravity found by
+  its `~/.gemini/antigravity` data folder on every OS. First Mac or Linux tester: check this page.
+- Research behind every path: `.agents/mpi-kanban/tasks/MPI-947/research/connect-paths.md`.
+
 ## Per client
 
 | Client | Connect | Catch |
 |---|---|---|
 | Claude Code | `claude plugin marketplace add https://github.com/MadPonyInteractive/cubric-studio-agents.git`, then `claude plugin install cubric-studio@cubric-studio` | the `owner/repo` shorthand clones over SSH and fails without a GitHub SSH key |
-| Claude Desktop | double-click `cubric-studio.mcpb` | tools deferred inside Claude Code sessions of the Desktop app |
+| Claude Desktop (Windows, macOS; none on Linux) | app: `claude-desktop.exe "<path>\cubric-studio.mcpb"` (macOS `open -a Claude`), Claude shows its own install screen. By hand: drag the file onto Claude's Settings > Extensions page | on Windows Claude registers NO `.mcpb` file type, so a double-click reaches it only if the user associated the type; tools deferred inside Claude Code sessions of the Desktop app |
 | Codex | `codex plugin marketplace add MadPonyInteractive/cubric-studio-agents`, then `codex plugin add cubric-studio@cubric-studio` | a bare `codex mcp add` is not enough, see below |
 | Antigravity (desktop) | copy the repo's `plugins/cubric-studio/` into `~/.gemini/config/plugins/`, restart | no install-from-GitHub documented; every tool call asks for approval by default |
 
@@ -113,7 +146,10 @@ cold-test record: `.agents/mpi-kanban/tasks/MPI-593/validation.md`.
 
 ## Testing
 
-- `node --test tests/mcp.test.cjs tests/card-view.test.cjs`.
+- `node --test tests/mcp.test.cjs tests/card-view.test.cjs tests/agent-connect.test.cjs`.
+- Connect / Disconnect live: launch the isolated instance with `CLAUDE_CONFIG_DIR` and
+  `CODEX_HOME` pointed at scratch folders; never press Antigravity or Claude Desktop there (they
+  are the user's real installs).
 - **Cold test**: a client with no Cubric context, one sentence, against an isolated instance
   (`APP_DOCUMENTS=<scratch> node scripts/launch-instance.mjs`; READY prints the port). The proof
   is the files on disk and how many landed, never the agent's report.

@@ -9,7 +9,8 @@
       "../mpi-ci",
       "../Cubric-Prompt",
       "../Cubric Studio Brand Assets",
-      "../ComfyUi-MpiNodes"
+      "../ComfyUi-MpiNodes",
+      "../cubric-studio-agents"
     ]
   },
   "hooks": {

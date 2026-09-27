@@ -112,6 +112,7 @@ app.use(userFlowRoutes);  // MPI-532
 app.use(deepinfraRoutes);  // MPI-851
 app.use(require('./routes/imageImport').router);  // MPI-943 — shrink a very large photo on import
 app.use(require('./routes/mcp'));  // MPI-593 — outside agents over MCP
+app.use(require('./routes/agentConnect'));  // MPI-947 — Settings > Connect an agent
 
 installShutdown(cancelAllDownloads);  // MPI-779
 

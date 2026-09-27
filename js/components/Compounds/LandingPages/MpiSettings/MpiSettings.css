@@ -75,6 +75,13 @@
     align-items: stretch;
 }
 
+/* MPI-947: the Connect an agent plates, one per agent app. */
+.mpi-settings__agents {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-2);
+}
+
 .mpi-settings__plate-main {
     flex: 1;
     min-width: 0;

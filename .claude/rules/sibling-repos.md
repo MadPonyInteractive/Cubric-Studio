@@ -5,13 +5,13 @@
 
 Cubric-Vision is **master** (has `.claude/`, kanban, jsconfig, CLAUDE.md). The siblings under
 `c:\AI\Mpi\` — `Cubric-Studio`, `MadPony-Identity`, `mpi-ci`, `Cubric-Prompt`,
-`Cubric Studio Brand Assets` — are reachable via `permissions.additionalDirectories` in
-`.claude/settings.json`, **deliberately NOT VS Code workspace folders.**
+`Cubric Studio Brand Assets`, `ComfyUi-MpiNodes`, `cubric-studio-agents` — are reachable via
+`permissions.additionalDirectories` in `.claude/settings.json`, **deliberately NOT VS Code
+workspace folders.** `cubric-studio-agents` is PUBLIC (the Claude Code / Codex / Antigravity
+plugin, the only copy since it left `mcp/listing/`; see `docs/mcp-server.md`): a push publishes.
 
 Related on-disk siblings in neither list: `CubricStudio_Redesign` (design playground,
-intentionally no git), `Cubric Studio (Website)` and `Cubric Studio (Docs)` (separate repos),
-and `cubric-studio-agents` (PUBLIC, the Claude Code / Codex / Antigravity plugin, the only copy
-since it left `mcp/listing/`; see `docs/mcp-server.md`).
+intentionally no git), `Cubric Studio (Website)` and `Cubric Studio (Docs)` (separate repos).
 
 ## Why, and do not undo it
 

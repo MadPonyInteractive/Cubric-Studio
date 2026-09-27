@@ -262,6 +262,19 @@ export const MpiSettings = ComponentFactory.create({
                         <div class="mpi-settings__plate-ctrl" id="mpiSettingsRestartEngineSlot"></div>
                     </div>
                 </section>
+
+                <section class="mpi-settings__section">
+                    <h3 class="mpi-settings__section-title">Connect an agent</h3>
+                    <span class="mpi-settings__hint">Let an AI agent on this computer make images and video here and read your projects. Connect sets it up through the agent's own add-ons; Disconnect removes it again.</span>
+                    <div class="mpi-settings__agents" id="mpiSettingsAgentsList"></div>
+                    <div class="mpi-settings__plate">
+                        <div class="mpi-settings__plate-main">
+                            <span class="mpi-settings__plate-label">Any other agent</span>
+                            <span class="mpi-settings__plate-desc" id="mpiSettingsAgentsUrl"></span>
+                        </div>
+                        <div class="mpi-settings__plate-ctrl" id="mpiSettingsAgentsCopySlot"></div>
+                    </div>
+                </section>
             </div>
         </div>`,
 
@@ -547,6 +560,94 @@ export const MpiSettings = ComponentFactory.create({
          * of the popup's mute: a user who ticked "Don't ask again" has said stop
          * asking, not stop offering, and this row is the place they were pointed at.
          */
+        /**
+         * MPI-947: one plate per agent app we know how to connect (routes/agentConnect.js),
+         * then the plain MCP address for any other agent. Built inline, not as its own
+         * component: this is a Compound, so it can mount Primitives only.
+         */
+        async function _initAgents(root) {
+            const list = qs('#mpiSettingsAgentsList', root);
+            const url = qs('#mpiSettingsAgentsUrl', root);
+            const copySlot = qs('#mpiSettingsAgentsCopySlot', root);
+            if (!list || !url || !copySlot) return;
+            list.replaceChildren(ce('span', { className: 'mpi-settings__hint', textContent: 'Looking for agents on this computer…' }));
+
+            let status;
+            try {
+                status = await (await fetch('/agent-connect/status')).json();
+            } catch (err) {
+                clientLogger.warn('settings', '[MpiSettings] agent status failed', err);
+                list.replaceChildren(ce('span', { className: 'mpi-settings__hint', textContent: 'Could not check which agents are installed.' }));
+                return;
+            }
+
+            url.textContent = `Add this MCP server address in your agent's settings: ${status.url}`;
+            copySlot.innerHTML = '';
+            const copy = MpiButton.mount(copySlot, { text: 'Copy address', variant: 'secondary', size: 'sm' });
+            copy.on('click', () => navigator.clipboard.writeText(status.url)
+                .then(() => { url.textContent = `Copied: ${status.url}`; })
+                .catch((err) => clientLogger.warn('settings', '[MpiSettings] copy failed', err)));
+
+            list.replaceChildren(...status.clients.map((client) => _agentPlate(client)));
+            if (status.others.length) {
+                const seen = status.others.map((o) => `${o.name} (${_ago(o.at)})`).join(', ');
+                list.append(ce('span', { className: 'mpi-settings__hint', textContent: `Also connected since the app started: ${seen}.` }));
+            }
+        }
+
+        function _ago(at) {
+            const min = Math.round((Date.now() - at) / 60_000);
+            return min < 1 ? 'just now' : min < 60 ? `${min} min ago` : `${Math.round(min / 60)} h ago`;
+        }
+
+        /** One agent's plate. Rebuilt whole after Connect / Disconnect from the answer's status. */
+        function _agentPlate(client, note) {
+            const desc = ce('span', { className: 'mpi-settings__plate-desc' });
+            const ctrl = ce('div', { className: 'mpi-settings__plate-ctrl' });
+            const plate = ce('div', { className: `mpi-settings__plate${client.connected ? ' mpi-settings__plate--on' : ''}` }, [
+                ce('div', { className: 'mpi-settings__plate-main' }, [
+                    ce('span', { className: 'mpi-settings__plate-label', textContent: client.name }), desc,
+                ]),
+                ctrl,
+            ]);
+
+            if (!client.detected) {
+                desc.textContent = `Not installed on this computer.${client.getIt ? ` ${client.getIt}` : ''}`;
+            } else if (client.connected) {
+                const used = client.lastSeen ? ` Last used ${_ago(client.lastSeen)}.` : '';
+                desc.textContent = `Connected${client.version ? ` (v${client.version})` : ''}.${used}`
+                    + (client.canDisconnect ? '' : ` To remove it, ${client.disconnectHint}`);
+            } else {
+                desc.textContent = 'Not connected.';
+            }
+            if (note) desc.textContent += ` ${note}`;
+
+            const action = !client.detected ? null
+                : !client.connected ? 'connect'
+                    : client.canDisconnect ? 'disconnect' : null;
+            if (!action) return plate;
+
+            const btn = MpiButton.mount(ctrl, {
+                text: action === 'connect' ? 'Connect' : 'Disconnect',
+                variant: action === 'connect' ? 'primary' : 'secondary',
+                size: 'sm',
+            });
+            btn.on('click', async () => {
+                btn.el.setDisabled(true);
+                desc.textContent = action === 'connect' ? 'Connecting…' : 'Disconnecting…';
+                let res;
+                try {
+                    res = await (await fetch(`/agent-connect/${client.id}/${action}`, { method: 'POST' })).json();
+                } catch (err) {
+                    res = { ok: false, error: { message: err.message } };
+                }
+                if (!res.ok) clientLogger.warn('settings', `[MpiSettings] ${action} ${client.id} failed`, res.error);
+                const next = _agentPlate(res.client || client, res.ok ? res.note : `Did not work: ${res.error?.message}`);
+                plate.replaceWith(next);
+            });
+            return plate;
+        }
+
         async function _initUpdate(root) {
             const section = qs('#mpiSettingsUpdateSection', root);
             const slot = qs('#mpiSettingsUpdateSlot', root);
@@ -631,6 +732,9 @@ export const MpiSettings = ComponentFactory.create({
 
             // ── Engine health (MPI-674) — only while the engine is degraded ──
             _initEngineHealth(root);
+
+            // ── MPI-947: Connect an agent ────────────────────────────────────
+            _initAgents(root);
 
             // ── Auto-start toggle ────────────────────────────────────────────
             _mountSwitchPlate('#mpiSettingsAutoStartSlot', Storage.getAutoStartComfy(),

@@ -46,6 +46,10 @@ const _jobs = new Map(); // jobId -> { done: promise of the answer (never reject
 // because this server is stateless; two clients with the same id in flight at once would
 // cross. Per-client sessions are the upgrade if that ever happens.
 const _inflight = new Map();
+// The clientInfo each agent sent on initialize, for Settings > Connect an agent (MPI-947).
+// ponytail: in memory, so it starts empty on every launch; a Claude Desktop bridge that
+// started before the app answered its own initialize and shows up only on its next connect.
+const _seen = new Map(); // clientInfo.name -> { name, version, at }
 
 /**
  * A tool call blocks the chat (Fabio, Claude Desktop, 2026-09-25): generate plus chained
@@ -544,6 +548,12 @@ router.post('/mcp', async (req, res) => {
     switch (method) {
         case 'initialize': {
             const asked = params?.protocolVersion;
+            const who = params?.clientInfo;
+            if (who?.name) {
+                const name = String(who.name).slice(0, 100);
+                _seen.set(name, { name, version: String(who.version ?? '').slice(0, 40), at: Date.now() });
+                logger.info('mcp', `initialize from ${name} ${who.version ?? ''}`);
+            }
             return res.json(rpcResult(id, {
                 protocolVersion: SUPPORTED_VERSIONS.includes(asked) ? asked : SUPPORTED_VERSIONS[0],
                 capabilities: { tools: {} },
@@ -573,3 +583,4 @@ router.get('/mcp', (_req, res) => res.status(405).end());
 router.delete('/mcp', (_req, res) => res.status(405).end());
 
 module.exports = router;
+module.exports.seenClients = () => [..._seen.values()];

@@ -31,6 +31,9 @@ const GUI_BINARY_CALLEES = new Set([
     // services/ollamaLifecycle.js starts the Ollama desktop app: zero visible
     // windows measured with and without the flag (MPI-728, 2026-09-13).
     'ollamaAppExe',
+    // routes/agentConnect.js hands Claude Desktop a .mcpb (MPI-947): a GUI app, which never
+    // gets a console; detached so quitting Cubric never takes Claude down with it.
+    'claudeDesktopExe',
 ]);
 
 /** Source files under DIRS, absolute. */
