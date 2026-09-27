@@ -57,10 +57,32 @@ test('crop: needs a ratio from the list, and the picture size', async () => {
     assert.equal(toolRun('crop', { ratio: '1:1' }, null).ok, false);
 });
 
+test('downscale: a megapixel count at the source proportions, through the resize op, even-sized', async () => {
+    const { toolRun } = await esm('js/shell/agentToolOps.js');
+    // 1 MP is ComfyUI's 1024 x 1024, as the History rail's MP family counts it (MPI-796).
+    const one = toolRun('downscale', {}, { w: 6000, h: 4000 });
+    assert.equal(one.operation, 'resize');
+    assert.deepEqual(one.injectionParams, { width: 1254, height: 836, keep_proportion: 'crop', crop_position: 'center', divisible_by: 2, upscale_method: 'lanczos' });
+    const half = toolRun('downscale', { megapixels: 0.5 }, { w: 4000, h: 4000 });
+    assert.equal(half.injectionParams.width, 724);
+    assert.equal(half.injectionParams.height, 724);
+});
+
+test('downscale: never enlarges, and needs a positive number and the picture size', async () => {
+    const { toolRun } = await esm('js/shell/agentToolOps.js');
+    const small = toolRun('downscale', { megapixels: 2 }, { w: 1024, h: 1024 });
+    assert.equal(small.ok, false);
+    assert.equal(small.code, 'ALREADY_SMALLER');
+    assert.match(small.message, /imageUpscale/);
+    assert.equal(toolRun('downscale', { megapixels: 0 }, { w: 4000, h: 4000 }).code, 'INVALID_FIELD');
+    assert.equal(toolRun('downscale', { megapixels: 'big' }, { w: 4000, h: 4000 }).code, 'INVALID_FIELD');
+    assert.equal(toolRun('downscale', { megapixels: 1 }, null).ok, false);
+});
+
 test('every tool names its op, a note and the one picture slot the universal op takes', async () => {
     const { AGENT_TOOL_OPS, toolOperation } = await esm('js/shell/agentToolOps.js');
     const { getCommand } = await esm('js/data/commandRegistry.js');
-    assert.deepEqual(AGENT_TOOL_OPS.map(t => t.op), ['imageUpscale', 'removeBackground', 'crop']);
+    assert.deepEqual(AGENT_TOOL_OPS.map(t => t.op), ['imageUpscale', 'removeBackground', 'crop', 'downscale']);
     for (const t of AGENT_TOOL_OPS) {
         assert.ok(t.note.length > 40, t.op);
         const runs = getCommand(toolOperation(t.op));

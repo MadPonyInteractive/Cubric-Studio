@@ -1,1 +1,2 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-904", "at": "2026-09-24T13:42:47+01:00", "actor": "claude", "column": "todo", "title": "Agent image tools: plain enlarge, background removal and crop"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-904", "at": "2026-09-27T11:13:02+01:00", "actor": "claude:5b8e4d8c", "from": "todo", "to": "done", "reason": "Folded into MPI-941 Phase 3; verified live by Fabio 2026-09-27 (MPI-941 validation.md)"}

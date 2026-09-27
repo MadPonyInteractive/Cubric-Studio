@@ -16,6 +16,11 @@ move this card to `doing` while MPI-817 is still open.
 | 6 | MPI-905 | Warn when the agent's model has under 64K context |
 | 7 | none (Fabio, 2026-09-27) | Clickable options: the agent's choices as buttons, not typed answers |
 | 8 | none (Fabio, 2026-09-27) | The spend line counts image analysis and prompt work as ONE "Agent" figure: "Agent · Generations" |
+| 9 | none (Fabio, 2026-09-27) | The agent cleans up after itself: cancels a run the user replaced, knows model strengths, crop takes a plain ratio |
+| 10 | MPI-955 (Fabio, 2026-09-27) | History's prompt box vanishes when the selected image model takes no image: no Cue, no Stop, no model picker |
+
+**Umbrella rule (Fabio, 2026-09-27): every new card this work spawns is added to this table and gets a
+phase, so nothing is orphaned or left behind.**
 
 The member cards stay on the board until their work lands here (umbrella rule). Their
 `task.json` descriptions hold the diagnosis; this plan holds the order and ownership.
@@ -206,7 +211,64 @@ Footprint: `services/agentLoop.mjs` (`_addSpend`, `look`), `routes/connector.js`
 **Verify:** a unit test that a `look` with usage adds to the agent bucket and emits `agent:spend`;
 then live: the Agent figure rises after a look.
 
-## Parallel Batch - Phase 4 and Phase 6
+### Phase 9 - the agent cleans up after itself (Fabio's Phase 3 live run, 2026-09-27)
+
+Found live in "Deepinfra model tests" (app.log [connector], 10:16-10:26). Fabio's standing constraint:
+tokens down. A fact lives in ONE home, and a line is paid for only when it applies; the always-on system
+prompt does not grow (10,093 of 10,150).
+
+1. **A run the user replaced keeps running.** 10:24:57 the WAKE turn re-sent `krea2Edit` on its own, 4 s
+   after its auto-look at edit_010; Fabio's "try Klein 9B" landed as `kleinEdit` at 10:25:08 and queued
+   behind it. Root cause: on a user turn the agent is never told that a job of its own is still running,
+   and `cancel_generation`'s description covers only "take it back". Fix: the user turn's opening lines
+   (`opening`, ~2390 `services/agentLoop.mjs`) get ONE line only while `_inflight` is non-empty, e.g.
+   `[Running now: krea2Edit on edit_010 (toolCallId X). If the user's new ask replaces it, cancel it first.]`.
+   Zero bytes on every other turn.
+2. **Model strengths live in the index, not in rules.** `js/data/modelConstants/modelPriority.js` IS the
+   index Fabio asked for: ranks per task plus `NOTES`, surfaced by `list_models` as `rank`, `best` and
+   `note` on each op. What it lacks is his knowledge:
+   - `krea2:krea2Edit` note says "strong on realism". Fabio: NOT a native editor (it re-renders); it keeps
+     an anime or stylised look better than kleinEdit. Rewrite the note to say so.
+   - Chroma is good at realistic SKIN detail when upscaling and detailing (Fabio). Every image task shares
+     ONE order (`IMAGE_ORDER`: krea2, klein-9b, chroma...), so chroma sits 3rd for `detail` and `upscale`
+     with no note. Add `chroma-flash:detail` / `:upscale` notes ("the pick for realistic skin detail");
+     ranking it FIRST for `detail` is Fabio's call, ask.
+   - ONE generic line, not per model, in the `list_models` header (`compactCatalogue` `detail`, paid only
+     when the agent lists models): a miss moves to the next rank for the task, never the same op again.
+   - Offer Fabio a pass where he dictates each model's strengths; `NOTES` takes them.
+3. **Crop cost two refusals** ("Generation not started" x2 before "Reading crop's settings"). Likely the
+   agent passed `ratio` top-level, as models take it, and the tool route refuses a named param on a tool.
+   The log does not record the refusal: confirm with a unit test first. If so, the tool takes a top-level
+   `ratio` as `fields.ratio` (code, zero tokens).
+
+Footprint: `services/agentLoop.mjs`, `js/data/modelConstants/modelPriority.js`, `routes/connector.js`,
+`js/shell/agentToolOps.js`, `tests/agent-loop.test.cjs`, `tests/model-priority.test.cjs`,
+`tests/agent-tool-ops.test.cjs`, `tests/agent-generation-relay.test.cjs`, `docs/agent-chat.md`.
+**Verify:** red-first unit tests (an in-flight job adds the line and a quiet turn does not; the notes and
+header reach the catalogue; a top-level ratio crops); budgets unchanged; then live: start an edit, and
+while it runs say "no, use Klein instead" (expect a cancel, then Klein alone).
+
+### Phase 10 - MPI-955: History's prompt box survives a text-to-image model (Fabio live, 2026-09-27)
+
+In an image card's History the Prompt tool was greyed out ("No prompt-driven ops available for this
+model"), so Fabio could not stop a running generation. `MpiGroupHistoryBlock` takes the gallery's selected
+image model (`resolveActiveModel('image')`); a model with no op that takes an image (likely a DeepInfra
+text-to-image model in that project) leaves `_hasPromptOps()` false, so the prompt box never mounts, and
+Cue/Stop and the model picker live inside it. Fix: image History offers only models that take an image, as
+video History already does with its i2v filter (`_promptModelFilter`, ~311), falling back to the first
+eligible model. Footprint: `js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js`, a new
+desktop spec. **Verify:** the spec selects a t2i-only image model, opens History, and finds the prompt box
+on the first eligible model; then live.
+
+## Parallel Batch - Phase 9 and Phase 10
+
+- **Phase 9** - Ownership: the Phase 9 footprint above. **Verify:** as Phase 9.
+- **Phase 10** - Ownership: `js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js`,
+  `tests/desktop/history-prompt-model.spec.js` (new). **Verify:** as Phase 10.
+
+Check live claims on `MpiGroupHistoryBlock.js` before dispatch.
+
+## Parallel Batch - Phase 4 and Phase 6 (DONE 2026-09-27)
 
 - **Phase 4** - Ownership: `services/agentLoop.mjs`, `tests/agent-loop.test.cjs` (or a new
   `tests/agent-look-clip.test.cjs`), `docs/agent-chat.md`.
@@ -279,6 +341,23 @@ check** (validation.md § Phase 3 has the brief: "upscale every card marked with
 checklist, close MPI-904 as folded in, then Phase 4 (clip look). If the live run sends "remove the
 background" to an edit model, reword the system prompt's Model rule at no net byte cost first.
 
+2026-09-27, session 5b8e4d8c: **`downscale` folded into Phase 3** on Fabio's word (a megapixel target,
+the rail's `resize` op at its MP size, refuses to enlarge; validation.md). Unit + desktop green,
+uncommitted, claim `5b8e4d8c-mpi941`. Same session: **Phase 3 VERIFIED by Fabio ("1")** on the one-run live
+brief (no Lingo, "next version", remove background via the tool, crop to square, downscale to 1 MP). MPI-904 and
+MPI-948 closed as folded in. **NEXT: Phase 4 (look sees clips)**, a Parallel Batch with Phase 6.
+
+Same session, later: **Phases 4 + 6 built by a parallel batch**, unit + desktop green, live check pending
+(validation.md). Fabio's live run of Phase 3 also found four agent problems (not cancelling a superseded
+run, re-trying a model that just missed, crop refusals, and History's prompt box vanishing with a t2i-only
+model selected): triaged, fix plan offered, waiting on his "go" before any of it is built.
+
+Same session, end: **Phases 4 and 6 VERIFIED by Fabio** (screenshots: a clip described from its frames;
+"1M context" on DeepSeek, "32K context" + the warning on Qwen 72B). MPI-905 closed as folded in. His Phase 3
+run's four problems became **Phase 9** (agent cleans up after itself) and **Phase 10 = new card MPI-955**
+(History prompt box), both approved ("go", with MPI-955 on the umbrella). **NEXT: the Parallel Batch
+Phase 9 + Phase 10**, then Phases 5, 7, 8. Ask Fabio before ranking Chroma first for `detail`.
+
 **Watch-only, carried from MPI-817 (no build unless it recurs):** the agent ending an Auto-mode
 turn on a question; a note generalising from two runs; a project note RESTATING a global one
 (Fabio's `characters.md` copied "3D cartoon (global preference)", so forgetting the global note left
@@ -341,3 +420,7 @@ the copy); Ollama's free cloud models (unconfirmed research); the `__ARG__` proj
 - 2026-09-27: the `docs/agent-chat.md` `generate` row still needs a one-line mention. MPI-944
   (1bef7b92) claimed the file after this card took it; message c95ee93e asks them to release it
   or add the row.
+- 2026-09-27 (5b8e4d8c): Phase 3 grew a `downscale` tool (megapixel target, Fabio). The `docs/agent-chat.md`
+  `generate` row now names all four tools. Phase 6 is NOT agentLoop-free as written: the "Test tool
+  use" probe is `AgentLoop.probe()`, so its `contextWindow` field is two lines there. The batch kept
+  ownership disjoint by leaving that edit to the orchestrator, after the Phase 4 worker finishes.

@@ -67,3 +67,12 @@
     color: var(--ink-1);
     font-size: var(--t-sm);
 }
+
+/* ── Probe result, under-floor warning (MPI-905) ────────────────────────────
+   Same selector as MpiRunpodSettings.css's warn hint (its own established
+   pattern for a hint line that needs attention); restated here so this
+   section's own "Test tool use" result colors correctly even on a page where
+   RunPod's sheet never loaded. */
+.mpi-settings__hint--warn {
+    color: var(--accent-warn);
+}

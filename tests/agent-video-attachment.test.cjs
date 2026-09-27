@@ -61,7 +61,7 @@ test('a referenced video registers like a card: generate takes it by url, make_g
     }
 
     assert.match(heard[0], /\[Attached video 1: Pony rears \(ref: i2v_006\.mp4\)/);
-    assert.match(heard[0], /look cannot open a video/);
+    assert.match(heard[0], /look reads it as sampled frames/);
     const ref = loop._resolveImage('i2v_006.mp4');
     assert.equal(ref.kind, 'result', 'not an attachment: generate would place it as a picture, and a reset would delete it');
     assert.equal(ref.path, clip);

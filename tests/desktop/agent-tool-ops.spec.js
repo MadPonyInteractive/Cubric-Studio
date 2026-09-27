@@ -55,6 +55,11 @@ test('a tool call with no modelId queues the rail\'s universal op on the source 
     expect(badRatio.error?.code).toBe('INVALID_FIELD');
     const noPicture = await post({ operation: 'imageUpscale', fields: {} });
     expect(noPicture.error?.code).toBe('MEDIA_REQUIRED');
+    // downscale reads the picture too (without it this is IMAGE_NOT_FOUND), and never enlarges.
+    // Its queued params are unit-tested: a 4th held POST below would wait forever for a socket
+    // (Chromium's 6 per host, 3 of them the app's event streams).
+    const bigger = await post({ operation: 'downscale', fields: { megapixels: 500 }, media });
+    expect(bigger.error?.code).toBe('ALREADY_SMALLER');
 
     const natural = await window.evaluate((u) => new Promise((resolve) => {
       const im = new Image();

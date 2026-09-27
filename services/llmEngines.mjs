@@ -113,13 +113,15 @@ const OLLAMA_BASE_URL = 'http://localhost:11434';
  * are ~4.0k tokens before the user types a word — so on the default the rules are
  * already being truncated, from the FRONT, silently. Measured 2026-09-19.
  *
- * 32,768 is chosen to fit any model a 16GB card can hold rather than to be generous:
- * the KV cache comes out of the same VRAM as the weights, and Ollama spills to system
- * RAM instead of failing, which reads as the agent simply being slow. It is deliberately
- * one number in one place. Raising it is safe on a bigger card; the compaction trigger
- * follows it automatically, because `_contextWindowFor` reports this same value.
+ * 65,536 is the floor the agent needs room to grow into (Fabio, 2026-09-24; MPI-905) — not
+ * a generous number, a minimum: the KV cache comes out of the same VRAM as the weights, and
+ * Ollama spills to system RAM instead of failing, which reads as the agent simply being slow.
+ * An 8B model's fp16 KV cache at 64K is ~9.4 GB, staying under 12 GB, so a local agent is a
+ * 20GB+ card's job anyway. It is deliberately one number in one place. Raising it further is
+ * safe on a bigger card; the compaction trigger follows it automatically, because
+ * `_contextWindowFor` reports this same value.
  */
-export const OLLAMA_AGENT_CONTEXT = 32_768;
+export const OLLAMA_AGENT_CONTEXT = 65_536;
 
 /** Ollama's default, which every non-agent job (enhance, describe) keeps. */
 const OLLAMA_DEFAULT_CONTEXT = 8_192;

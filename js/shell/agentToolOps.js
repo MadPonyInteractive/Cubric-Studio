@@ -16,12 +16,13 @@
  * `crop` is the `resize` op in its `crop` mode: the output is the largest rect of the ratio
  * inside the picture, at scale 1. ponytail: no box crop ("crop to her face") — it needs a
  * graph of its own; add it when a live run asks for one.
+ * `downscale` is the same op at the rail's MP family size, and refuses to enlarge.
  *
  * Pure: no DOM, no state. `agentDispatch._submitTool` does the dispatch.
  */
 
 import { DEPS } from '../data/modelConstants/dependencies.js';
-import { CROP_RATIOS } from '../utils/ratios.js';
+import { CROP_RATIOS, deriveResizeDims } from '../utils/ratios.js';
 
 const UPSCALERS = ['4x-NMKD-Siax', '4x-AnimeSharp'];
 const FACTORS = [1.5, 2, 3, 4];
@@ -62,10 +63,24 @@ export const AGENT_TOOL_OPS = [
         },
         media: MEDIA,
     },
+    {
+        op: 'downscale',
+        note: 'Shrink to a megapixel count, keeping the proportions, with no model and no prompt (1 MP = 1024x1024). fields: megapixels, 0.1 or more (default 1). It never enlarges: a picture already at or under it is refused; enlarging is imageUpscale.',
+        fields: {
+            megapixels: { min: 0.1, default: 1 },
+        },
+        media: MEDIA,
+    },
 ];
 
 /** The universal op each tool runs. */
-const RUNS = { imageUpscale: 'imageUpscale', removeBackground: 'removeBackground', crop: 'resize' };
+const RUNS = { imageUpscale: 'imageUpscale', removeBackground: 'removeBackground', crop: 'resize', downscale: 'resize' };
+
+/** Tools that need the source's pixel size (`agentDispatch._submitTool` decodes it). */
+export const TOOLS_NEEDING_SIZE = new Set(['crop', 'downscale']);
+
+const _even = (n) => Math.max(2, Math.floor(n / 2) * 2);
+const _resizeParams = (width, height, position = 'center') => ({ width, height, keep_proportion: 'crop', crop_position: position, divisible_by: 2, upscale_method: 'lanczos' });
 
 /** @returns {object|null} the tool entry for `op`, or null when it is not a tool. */
 export function agentToolOp(op) {
@@ -113,14 +128,21 @@ export function toolRun(op, fields = {}, natural = null) {
         if (!(natural?.w > 0 && natural?.h > 0)) return { ok: false, code: 'IMAGE_NOT_FOUND', message: 'The picture to crop could not be read.' };
         // The largest rect of the ratio inside the picture, even-sized for the graph.
         const wide = natural.w / natural.h > ratio;
-        const even = (n) => Math.max(2, Math.floor(n / 2) * 2);
-        const width = even(wide ? natural.h * ratio : natural.w);
-        const height = even(wide ? natural.h : natural.w / ratio);
-        return {
-            ok: true,
-            operation: RUNS[op],
-            injectionParams: { width, height, keep_proportion: 'crop', crop_position: position, divisible_by: 2, upscale_method: 'lanczos' },
-        };
+        const width = _even(wide ? natural.h * ratio : natural.w);
+        const height = _even(wide ? natural.h : natural.w / ratio);
+        return { ok: true, operation: RUNS[op], injectionParams: _resizeParams(width, height, position) };
+    }
+    if (op === 'downscale') {
+        const megapixels = Number(f.megapixels ?? 1);
+        if (!(megapixels >= 0.1)) return _bad(op, 'megapixels must be a number of 0.1 or more, e.g. 0.5, 1 or 2.');
+        if (!(natural?.w > 0 && natural?.h > 0)) return { ok: false, code: 'IMAGE_NOT_FOUND', message: 'The picture to downscale could not be read.' };
+        // The History rail's MP family (MPI-796): 1 MP = 1024 x 1024, proportions kept.
+        const dims = deriveResizeDims('megapixels', natural.w, natural.h, { megapixels });
+        if (dims.width >= natural.w) {
+            const mp = Math.round((natural.w * natural.h) / (1024 * 1024) * 100) / 100;
+            return { ok: false, code: 'ALREADY_SMALLER', message: `The picture is ${natural.w}x${natural.h} (${mp} MP), already at or under ${megapixels} MP, so it was left as it is. Enlarging is imageUpscale.` };
+        }
+        return { ok: true, operation: RUNS[op], injectionParams: _resizeParams(_even(dims.width), _even(dims.height)) };
     }
     return { ok: false, code: 'UNKNOWN_OPERATION', message: `"${op}" is not a tool.` };
 }

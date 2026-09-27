@@ -33,6 +33,11 @@ import {
 } from './llmEngines.mjs';
 import * as realTools from './agentTools.mjs';
 import { MAX_NOTES } from './agentMemory.mjs';
+import { viewFile as _viewClipFile } from './cardView.js';
+
+// A video or GIF ref (MPI-941 Phase 4): `look` samples it into ONE contact sheet instead of
+// sending it to the describer whole. Mirrors cardView.js's own MOVING set (not exported).
+const CLIP_EXT = /\.(mp4|webm|mov|mkv|m4v|gif)$/i;
 
 // ---------------------------------------------------------------------------
 // Tool definitions — OpenAI tools format
@@ -158,7 +163,7 @@ export const TOOL_DEFS = [
         type: 'function',
         function: {
             name: 'look',
-            description: 'Describe a still image the App state line lists. Optionally ask a specific question, crop to a region, or request a bounding box. It cannot open videos, folders or any other path.',
+            description: 'Describe an image, video or GIF the App state line lists (a clip as sampled frames). A crop or box is stills-only. It cannot open a folder or any other path.',
             parameters: {
                 type: 'object',
                 properties: {
@@ -581,9 +586,12 @@ export class AgentLoop {
      *        event carries it. `agentSessions.mjs` changes it when the conversation moves (D5).
      * @param {function} [opts.broadcast] (event, data) => void, the shared SSE stream.
      * @param {function} [opts.onProjectOpened] (loop, project, turn) => 'moved'|'carry'|null (D5).
+     * @param {function} [opts.viewFile] (absPath, {frames}) => {kind, data, ...} overrides cardView.viewFile
+     *        (MPI-941 Phase 4's clip sampling for `look`).
      */
-    constructor({ tools, resolveEndpoint, lookupContextWindow, sessionKey = '', broadcast, onProjectOpened } = {}) {
+    constructor({ tools, resolveEndpoint, lookupContextWindow, sessionKey = '', broadcast, onProjectOpened, viewFile } = {}) {
         this._tools = tools || realTools;
+        this._viewFile = viewFile || _viewClipFile;
         this._resolveEndpointOverride = resolveEndpoint || null;
         this._lookupContextWindowOverride = lookupContextWindow || null;
         this._contextWindows = new Map(); // `${profileId}\n${model}` -> number
@@ -797,6 +805,28 @@ export class AgentLoop {
     }
 
     /**
+     * MPI-941 Phase 4 — a video or GIF ref sampled into ONE contact sheet (cardView.viewFile),
+     * written to `cropDir()`, and THAT file goes to `_tools.look`: one vision call per clip,
+     * the same cost as a still. The sheet's own facts (frame count, duration, columns, times)
+     * open the question, so the describer reads a grid of frames rather than one photo.
+     */
+    async _describeClip(ref, question) {
+        let sheet;
+        try {
+            sheet = await this._viewFile(ref.path, { frames: 6 });
+        } catch (err) {
+            return { ok: false, error: { code: 'RUNTIME_ERROR', message: `Could not read "${path.basename(ref.path)}" as a clip: ${err.message}` } };
+        }
+        const cDir = this._tools.cropDir();
+        await fs.promises.mkdir(cDir, { recursive: true });
+        const sheetPath = path.join(cDir, `${crypto.randomUUID()}.webp`);
+        await fs.promises.writeFile(sheetPath, sheet.data);
+        const prefix = `This is a contact sheet of ${sheet.times.length} frames from a ${sheet.duration}s clip, `
+            + `${sheet.columns} per row, left to right then top to bottom, at ${sheet.times.join('s, ')}s.`;
+        return this._tools.look({ imagePath: sheetPath, question: question ? `${prefix} ${question}` : prefix });
+    }
+
+    /**
      * The plain description of a picture, made ONCE per card and kept in the card's sidecar
      * (Fabio, 2026-09-20: "if an image is described, it's described forever"). It dies with
      * the card, and it is the only record of what the describer said: live, a wrong pose in a
@@ -814,7 +844,7 @@ export class AgentLoop {
             _logLook(ref, kept, true);
             return { ok: true, output: { text: kept } };
         }
-        const r = await this._tools.look({ imagePath: ref.path });
+        const r = CLIP_EXT.test(ref.path) ? await this._describeClip(ref) : await this._tools.look({ imagePath: ref.path });
         // Awaited: the model's own look at a waited still arrives within the same turn.
         if (r?.ok && r.output?.text && ref.itemId) await this._tools.storeLook(ref.path, ref.itemId, r.output.text, r.output.describer).catch(() => {});
         _logLook(ref, r?.ok ? r.output?.text : `FAILED: ${r?.error?.message || 'no reason given'}`, false);
@@ -1545,7 +1575,7 @@ Duration rule: a clip defaults to 2 to 3 seconds: ONE continuous action fits. On
 
 Numbering rule: "picture 2", "image 2" or "2" in a message means that message's attached image 2, never an image from an earlier turn. Pass that attachment's id.
 
-Looking rule: before you comment on, judge or describe any image, call look on it. look takes only a ref the App state line lists; it cannot open a video, a folder or a path. If the describer refuses, say so and suggest the local ComfyUI describer (Settings > Remote > Language Models).
+Looking rule: before you comment on, judge or describe any image, call look on it. look takes only a ref the App state line lists; it cannot open a folder or a path. If the describer refuses, say so and suggest the local ComfyUI describer (Settings > Remote > Language Models).
 
 Shape rule: a generation from a picture crops it to the ratio, never letterboxes. Leave ratio out and the picture's own shape is used; only when the user asks for a ratio, say in one line before you generate that part of the picture will be cropped.
 
@@ -1565,7 +1595,7 @@ Docs rule: for a question about the app itself that you cannot answer, say so an
 
 Honest limits (I'm still a baby — this is my first version):
 - I never delete cards, media, notes or projects, and never look for a way. You can: a card from the gallery (right-click it, Delete, which removes its whole history), a project from the projects list on the landing page (right-click it, Delete project).
-- I cannot watch videos, see a GIF move or hear audio. I can only look at still images, so motion, flicker and pacing need your eye.
+- I hear no audio, and see a clip only as sampled frames, never the motion between them.
 - I cannot paint masks, or use the mask, paint, composite and transform tools myself. I can USE a mask you have painted: ask me for a change to one area and I will tell you what to paint.
 - I cannot move your view myself. The app opens where a result renders, unless you are mid-edit with a canvas tool or have a window open; then the result card in this chat takes you there.
 - I cannot control RunPod.
@@ -1942,6 +1972,11 @@ ${knowledgeIndex}`.trim();
                     return JSON.stringify({ ok: false, error: { code: 'IMAGE_NOT_FOUND', message: `Image reference not found: ${args.image}. Use an attachment id from this conversation, or the filePath of something you generated.` } });
                 }
                 if (!args.question && !args.crop && !args.box) return JSON.stringify(await this._lookOnce(ref));
+                // A clip's own question ("what happens?") is asked on its contact sheet, not the
+                // file itself; crop and box stay stills-only (a sheet's pixels are not the clip's).
+                if (args.question && !args.crop && !args.box && CLIP_EXT.test(ref.path)) {
+                    return JSON.stringify(await this._describeClip(ref, args.question));
+                }
                 const lookArgs = { imagePath: ref.path };
                 if (args.question) lookArgs.question = args.question;
                 if (args.crop) lookArgs.crop = args.crop;
@@ -2287,7 +2322,7 @@ ${knowledgeIndex}`.trim();
                     const poster = _posterUrl(att.filePath, att.itemId);
                     if (poster) stagedAttachments.push({ id: att.id, name: att.name, url: poster });
                     const card = att.groupId ? `A gallery card of this project (groupId ${att.groupId}): list_cards with that groupId reads the prompt that made it.` : 'A clip in this project.';
-                    contentParts.push({ type: 'text', text: `[Attached video ${i + 1}: ${att.name} (ref: ${att.id}). ${card} look cannot open a video: pass the ref to generate as media, or to make_gif.${att.itemId ? '' : ' It is not a gallery card yet, so make_gif cannot take it until list_cards returns it.'}]` });
+                    contentParts.push({ type: 'text', text: `[Attached video ${i + 1}: ${att.name} (ref: ${att.id}). ${card} look reads it as sampled frames; pass the ref to generate as media, or to make_gif.${att.itemId ? '' : ' It is not a gallery card yet, so make_gif cannot take it until list_cards returns it.'}]` });
                     continue;
                 }
                 if (att.id && att.filePath) {
@@ -2589,6 +2624,8 @@ ${knowledgeIndex}`.trim();
                 tools: hasToolCall,
                 model,
                 latencyMs,
+                // MPI-905: the window the agent compacts against; Settings warns under 64K.
+                contextWindow: await this._contextWindowFor(profileId, model, profile, key),
                 message: hasToolCall
                     ? `Connected. Model called a tool in ${latencyMs} ms.`
                     : `Connected, but this model did not call a tool. Tool use may not be supported.`,

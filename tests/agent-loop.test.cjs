@@ -1985,6 +1985,53 @@ describe('(k) a look is made once and kept with the card', () => {
         assert.equal(tools.calls.look.length, 1);
         assert.deepEqual(tools.calls.storeLook, []);
     });
+
+    // MPI-941 Phase 4 — `look` sees a video or GIF ref as a contact sheet of frames, sampled
+    // with `cardView.viewFile` and written to `cropDir()`, instead of refusing the ref outright.
+    test('look on a video ref samples ONE contact sheet and describes that, not the clip itself', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [call('l1', 'look', { image: 'clip_1' }), { text: 'Done.' }] });
+        withStore(tools);
+        loop._images.set('clip_1', { path: '/tmp/att_1.mp4', kind: 'attachment' });
+        const viewCalls = [];
+        loop._viewFile = async (filePath, opts) => {
+            viewCalls.push({ filePath, opts });
+            return {
+                kind: 'video', data: Buffer.from('fake-sheet-bytes'), mimeType: 'image/webp',
+                width: 640, height: 360, duration: 3.2,
+                times: [0.27, 0.8, 1.33, 1.87, 2.4, 2.93], columns: 3, hasAudio: true,
+            };
+        };
+        await loop.runTurn('What happens in this clip?', [], project, 'auto', 'deepinfra', 't-clip');
+
+        assert.equal(viewCalls.length, 1, 'the clip is sampled once');
+        assert.equal(viewCalls[0].filePath, '/tmp/att_1.mp4');
+        assert.equal(tools.calls.look.length, 1, 'one describe call, the same cost as a still');
+        const sent = tools.calls.look[0];
+        assert.notEqual(sent.imagePath, '/tmp/att_1.mp4', 'the sheet goes to describe, never the clip file');
+        assert.match(sent.imagePath, /\.webp$/);
+        assert.equal(sent.question,
+            'This is a contact sheet of 6 frames from a 3.2s clip, 3 per row, left to right then top to bottom, at 0.27s, 0.8s, 1.33s, 1.87s, 2.4s, 2.93s.');
+        assert.deepEqual(tools.calls.storeLook, [], 'an attachment has no sidecar to keep it in');
+    });
+
+    test('a question on a video ref rides the contact sheet, after the sheet\'s own facts', async () => {
+        const { loop, tools } = await makeLoop({ engineResponses: [
+            call('l1', 'look', { image: 'clip_1', question: 'Does the dog jump the fence?' }),
+            { text: 'Done.' },
+        ] });
+        withStore(tools);
+        loop._images.set('clip_1', { path: '/tmp/att_1.gif', kind: 'attachment' });
+        loop._viewFile = async () => ({
+            kind: 'video', data: Buffer.from('fake-sheet-bytes'), mimeType: 'image/webp',
+            width: 320, height: 240, duration: 1.5,
+            times: [0.19, 0.56, 0.94, 1.31], columns: 2, hasAudio: false,
+        });
+        await loop.runTurn('Look at the clip', [], project, 'auto', 'deepinfra', 't-clip-q');
+
+        assert.equal(tools.calls.look.length, 1, 'one describe call for the asked question too');
+        assert.equal(tools.calls.look[0].question,
+            'This is a contact sheet of 4 frames from a 1.5s clip, 2 per row, left to right then top to bottom, at 0.19s, 0.56s, 0.94s, 1.31s. Does the dog jump the fence?');
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -2692,12 +2739,14 @@ describe('(d) probe', () => {
                 toolCalls: [{ id: 'tc-probe', type: 'function', function: { name: 'list_models', arguments: '{}' } }],
             },
         ];
-        const { loop } = await makeLoop({ engineResponses });
+        const { loop } = await makeLoop({ engineResponses, contextWindow: 32_768 });
 
         const result = await loop.probe('deepinfra');
 
         assert.equal(result.ok, true);
         assert.equal(result.tools, true, 'tools should be true when model calls a tool');
+        // MPI-905: the window the agent compacts against, so Settings can warn under 64K.
+        assert.equal(result.contextWindow, 32_768);
         assert.equal(loop._fakeEngine.calls.length, 1, 'probe calls engine exactly once');
     });
 

@@ -429,7 +429,7 @@ const NAMED_PARAM_KEYS = ['ratio', 'qualityTier', 'turbo', 'styleSelect', 'styli
  *                              duration?, denoise?, batch?, seed?, media? }
  *       OR a Flow (MPI-658): { flowId, fields?, media? }
  *       OR a tool (MPI-904): { operation, fields?, media } with NO modelId: imageUpscale,
- *                              removeBackground or crop (js/shell/agentToolOps.js)
+ *                              removeBackground, crop or downscale (js/shell/agentToolOps.js)
  *       plus, on any:        { folderPath?, cardName?, requestId? }
  *
  * The two are not variants of one shape. A Flow has no model — it dispatches with

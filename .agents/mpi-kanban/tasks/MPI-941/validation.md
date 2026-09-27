@@ -122,3 +122,64 @@ first: (1) Lingo stood in "writing the prompt" for a run with no prompt: a tool 
 result on a card and its batch note now say it lands as the card's next version. npm test 2037 pass, 0 fail;
 agent-chat.spec 34/34 (one composer test flaked once, passed alone). NOT yet live-checked: those two fixes,
 removeBackground and crop.
+
+**Folded in (Fabio, 2026-09-27, session 5b8e4d8c): `downscale` to a megapixel count.** He asked whether the
+agent could "downscale all these images to a megapixel" the way import offers to. Not the import path
+(`mediaUploadService._askReduce`, Sharp at import, never a card version): the History rail's `resize` op at
+its MP-family size (`deriveResizeDims`, MPI-796; 1 MP = 1024x1024), like `crop`. fields.megapixels 0.1 or
+more (default 1). It never enlarges: a picture at or under the target is refused `ALREADY_SMALLER`, naming
+imageUpscale. Zero tool-schema and system-prompt bytes.
+**Unit, red first:** `tests/agent-tool-ops.test.cjs` two new cases failed for the right reason (no
+`downscale` op), now 8/8: 6000x4000 at 1 MP -> 1254x836 through `resize`, 0.5 MP on 4000x4000 -> 724x724,
+refusals for too-small, 0, "big" and no size. Full `npm test`: 2070 pass, 0 fail, 1 skipped. Lint clean.
+**Desktop:** `agent-tool-ops.spec.js` passes with a `downscale` at 500 MP refused `ALREADY_SMALLER` through
+the real route, which proves the renderer decoded the size (`TOOLS_NEEDING_SIZE`); proven to bite: with
+downscale removed from that set it FAILED (`IMAGE_NOT_FOUND`), green once restored. A 4th HELD POST in that
+spec never reaches the server: Chromium allows 6 sockets per host and 3 are the app's event streams, so the
+queued downscale params stay unit-tested only.
+**Live (Fabio): pending**, with the rest of Phase 3: "downscale these to 1 megapixel" on a few big cards.
+
+**VERIFIED by Fabio (2026-09-27): "1"** to the live brief covering every open Phase 3 item: no Lingo on a tool
+run, the agent saying results land as each card's next version, "remove the background of this one" going to
+the tool, not an edit model (so the Model rule was left unchanged), "crop this to square", and "downscale these
+to 1 megapixel". **Phase 3 is closed; MPI-904 closes as folded in.**
+
+## Phases 4 + 6 - parallel batch (session 5b8e4d8c, 2026-09-27)
+
+Two Sonnet workers, disjoint ownership; the orchestrator added Phase 6's two `probe()` lines to
+`agentLoop.mjs` after Phase 4 released it (Plan Drift).
+
+**Phase 4 - `look` sees clips.** A video or GIF ref goes through `cardView.viewFile(path, {frames: 6})`, the
+contact sheet is written to `cropDir()` as `.webp`, and THAT goes to the describer with "This is a contact
+sheet of N frames from a Ds clip, C per row, left to right then top to bottom, at ...s." first: one vision call
+per clip. Plain look and look-with-a-question both route there (`_lookOnce`, `case 'look'`); crop and box stay
+stills-only. Auto-look is unchanged (image results only). The three "cannot open a video" lines are reworded;
+"no audio" and "no motion between frames" kept. Budgets: system prompt 10,146 -> 10,093 of 10,150; tool
+schemas 17,180 -> 17,158 of 17,200 (orchestrator also dropped "a question" from the stills-only clause, which
+the code contradicted). **Unit, red first** (worker reverted both branches: "the clip is sampled once: 0 !== 1"
+and a question with no sheet prefix): two cases in `tests/agent-loop.test.cjs` (k); the attachment assertion in
+`tests/agent-video-attachment.test.cjs` follows the new wording.
+
+**Phase 6 - MPI-905, 64K floor.** `OLLAMA_AGENT_CONTEXT` 32,768 -> 65,536 (`services/llmEngines.mjs`, comment
+gives the ~9.4 GB fp16 KV-cache sum). `AgentLoop.probe()` now returns `contextWindow` (`_contextWindowFor`, the
+window the agent compacts against; red first: undefined !== 32768). "Test tool use" in `MpiLlmSettings` adds
+"<n>K context" and, under 64K, "Under 64K context: long chats will forget early turns sooner. Pick a model with
+64K or more." in `--accent-warn`. Ceiling: an endpoint that lists no window reads as the 32K fallback, which is
+what the agent compacts against anyway. Unit `tests/llm-agent-context.test.cjs`; desktop
+`tests/desktop/llm-settings-agent-probe.spec.js` (stubbed probe: 32768 warns, 131072 does not).
+
+**Batch checks (orchestrator):** `npm test` 2111 pass, 0 fail, 1 skipped on 2 of 3 runs; the first run had 1
+failure that did not reproduce (name lost; recorded as an unnamed flake, not as green). eslint clean on every
+touched file. Desktop: `llm-settings-agent-probe.spec.js` + `agent-tool-ops.spec.js` 2/2. `docs/agent-chat.md`
+updated (look row, probe shape, `ctx 65536`). Noticed: `npm run lint:components` fails on a PEER's
+`MpiGalleryBlock.js:1866` (`_cueAllDispatch` undefined), not ours.
+
+**Live (Fabio): pending.** (4) attach or point at a video card, ask "what happens in this clip?"; the
+answer should follow the frames. (6) Settings > Remote > the agent row > "Test tool use": the line shows the
+context size, and a model under 64K shows the yellow warning.
+
+**VERIFIED by Fabio (2026-09-27), screenshots.** (4) "What happens in this video?" on an imported street-dance
+clip: the answer followed the frames (a breakdancer in a ring of spectators, then the crowd scattering), and
+the agent said honestly it only knows what the frames show. (6) "Test tool use": DeepSeek-V4-Flash reads
+"1M context", no warning; Qwen2.5-72B reads "32K context · Under 64K context: ..." in the warn colour.
+**Phases 4 and 6 are closed; MPI-905 closes as folded in.**

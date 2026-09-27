@@ -70,7 +70,7 @@ import { downloadService } from '../services/downloadService.js';
 import { remoteEngineClient } from '../services/remoteEngineClient.js';
 import { state } from '../state.js';
 import { runGifJob, GIF_HANDLERS } from './gifJobs.js';
-import { AGENT_TOOL_OPS, agentToolOp, toolOperation, toolRun } from './agentToolOps.js';
+import { AGENT_TOOL_OPS, TOOLS_NEEDING_SIZE, agentToolOp, toolOperation, toolRun } from './agentToolOps.js';
 import { clientLogger } from '../services/clientLogger.js';
 
 let _source = null;
@@ -663,10 +663,10 @@ async function _submitTool(jobId, input = {}) {
     const resolved = resolveAgentMedia(toolOperation(operation), model, media);
     if (!resolved.ok) return _fail(jobId, resolved.code, resolved.message);
 
-    // ponytail: decodes the picture for its size, crop only; read the entry's
-    // pixelDimensions instead if a crop over hundreds of 16K photos proves slow.
+    // ponytail: decodes the picture for its size (crop, downscale); read the entry's
+    // pixelDimensions instead if one over hundreds of 16K photos proves slow.
     let natural = null;
-    if (operation === 'crop') {
+    if (TOOLS_NEEDING_SIZE.has(operation)) {
         try { natural = await _naturalSize(resolved.mediaItems[0].url); } catch { /* toolRun refuses it */ }
     }
     const run = toolRun(operation, fields, natural);

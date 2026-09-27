@@ -83,6 +83,14 @@ const BACKENDS  = [
 ];
 const DESCRIBERS = [REMOTE, COMFY];
 
+/**
+ * The agent's local floor (MPI-905). Mirrors `OLLAMA_AGENT_CONTEXT` in
+ * services/llmEngines.mjs — not imported, because renderer code cannot import a
+ * services/*.mjs Node module. A probed model under this window compacts (forgets
+ * early turns) sooner than the agent's own local machine ever would.
+ */
+const AGENT_CONTEXT_FLOOR = 65_536;
+
 export const MpiLlmSettings = ComponentFactory.create({
     name: 'MpiLlmSettings',
     css: ['js/components/Organisms/MpiLlmSettings/MpiLlmSettings.css'],
@@ -826,9 +834,22 @@ export const MpiLlmSettings = ComponentFactory.create({
             probeInst.on('click', async () => {
                 _setText(root, '#mpiSettingsAgentProbeResult', 'Testing… (one small request)');
                 const json = await _postJson('/agent/probe', { profileId, model: Storage.getAgentPrefs().model });
-                _setText(root, '#mpiSettingsAgentProbeResult', json?.ok
-                    ? [json.tools ? 'Tools: yes' : 'Tools: no', json.model, `${json.latencyMs} ms`, json.message].filter(Boolean).join(' · ')
-                    : _errorText(json));
+                if (!json?.ok) {
+                    _setText(root, '#mpiSettingsAgentProbeResult', _errorText(json));
+                    return;
+                }
+                const underFloor = typeof json.contextWindow === 'number' && json.contextWindow < AGENT_CONTEXT_FLOOR;
+                const line = [
+                    json.tools ? 'Tools: yes' : 'Tools: no',
+                    json.model,
+                    `${json.latencyMs} ms`,
+                    json.message,
+                    _windowLabel({ contextWindow: json.contextWindow }),
+                ].filter(Boolean).join(' · ');
+                const text = underFloor
+                    ? `${line} · Under 64K context: long chats will forget early turns sooner. Pick a model with 64K or more.`
+                    : line;
+                _setText(root, '#mpiSettingsAgentProbeResult', text, underFloor);
             });
         }
 
@@ -853,9 +874,11 @@ export const MpiLlmSettings = ComponentFactory.create({
             return `${code || 'Error'}: ${json.error?.message || 'the request failed.'}`;
         }
 
-        function _setText(root, selector, text) {
+        function _setText(root, selector, text, isWarn = false) {
             const node = qs(selector, root);
-            if (node) node.textContent = text;
+            if (!node) return;
+            node.textContent = text;
+            node.classList.toggle('mpi-settings__hint--warn', !!isWarn);
         }
 
         async function _getJson(url) {
