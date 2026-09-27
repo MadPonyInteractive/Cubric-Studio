@@ -1,0 +1,15 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-951",
+  "title": "2.1: drop the legacy CubricVision-* artifact names and delete the old CubricVision.exe",
+  "description": "Follow-up raised by MPI-708 Phase 3. 2.0 dual-publishes CubricVision-* beside CubricStudio-* and keeps the old exe on updated Windows installs (decision (c), Fabio 2026-09-17). 2.1 removes both: full bundles must carry RETIRED_PATHS, and mpi-ci drops the old-slug mapping. Do not start before 2.0 is public. Detail: brief.md.",
+  "column": "todo",
+  "maturity": "planned",
+  "status": "active",
+  "created_at": "2026-09-27T11:06:23+01:00",
+  "updated_at": "2026-09-27T11:06:23+01:00",
+  "links": {
+    "brief": "brief.md",
+    "events": "events.jsonl"
+  }
+}

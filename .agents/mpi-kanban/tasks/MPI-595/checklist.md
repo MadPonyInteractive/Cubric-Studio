@@ -1,202 +1,72 @@
 # MPI-595 — 2.0 gate checklist
 
-Tick order is Gate A → B → C → D. A gate that will not clear becomes a **known-issue line in
-the release notes** — never a silent omission. Reasoning per gate: `brief.md`.
+Refreshed 2026-09-27 (the 2026-09-26 list is in git history). Reasoning per item: `brief.md`.
+Order: A -> B -> C -> D. A gate that will not clear gets a **known-issue bullet**.
 
-**Retargeted 1.5 → 2.0 on 2026-08-26.** Every hard-coded count that was in this file has been
-removed rather than refreshed — they were five days old and every one was already wrong. Measure
-at pickup.
+## ON PICKUP (measure, never read counts from prose)
 
-## ON PICKUP (run first — this list replaces the numbers that used to be in `brief.md`)
+- [ ] `git rev-list --count v1.4.2..HEAD`, `git status --short`, `git log --oneline @{u}..HEAD`
+- [ ] `npm run release:check` (RED on 2026-09-27: stale smoke evidence + missing 1.6.x archival notes — both expected, see B1 and D)
+- [ ] `gh release list | head -3` — latest public is v1.5.0; nothing cut since
+- [ ] Who is in `doing`, and which files are claimed
 
-- [ ] `git rev-list --count $(git describe --tags --abbrev=0)..HEAD` and `git status --short` —
-      commits since the last tag, and what is dirty.
-- [ ] `git log --oneline @{u}..HEAD` — what is unpushed.
-- [ ] `npm run release:check`.
-- [ ] Bullet counts in `docs/releases/UNRELEASED.md` per section (`## Important changes`,
-      `## What's new`, `## Fixes`).
-- [ ] Board column counts, and **who is in `doing`** — a live peer session mid close-out changes
-      what is safe to touch.
-- [ ] `gh release list | head -3` — confirm the latest published tag and that nothing was cut in
-      between. New user-facing work goes to `UNRELEASED.md`, never into a frozen `RELEASE_NOTES`
-      entry.
-- [ ] Confirm the digit with Fabio: **2.0.0**, per the `UNRELEASED.md` header (2026-08-26). A
-      major skips a digit — do not let `mpi-version-bump` infer it from bullet shape.
+## Gate A — must fix
 
-## Gate A — must fix (code)
+- [x] **A1 MPI-806** RunPod REST v2 — app client + tests + watchdog source: Vision `97f729c5e`, mpi-ci `e62a9aa`
+  - [ ] Pod runtime watchdog `_self_stop` on v2 with a status check; `publish-runtime.sh dev` -> restart a Pod -> see it stop -> `promote` (Fabio's go; NEVER `stable`)
+  - [ ] Live app leg on v2: create / stop / start / delete a Pod, list + grow a volume (Fabio's go)
+  - [ ] 2.0 ships by ~2026-11-01
+- [x] **A2 MPI-516** vanished-prompt detector, with the re-read guard: `c3a0f839d`, CI green
+- [ ] **A3 MPI-736** colour: Fabio's eye on rounds 9 / 9b / 9c / 9d; Phase 2b `--accent-warn`
+- [ ] **A4 MPI-780** chain
+  - [x] packages exist (MPI-781) · [x] app advertises them (MPI-831)
+  - [ ] Gumroad products drafted, codes created (MadPony-Identity MPI-81, Fabio) — published ON release day
+  - [ ] **MPI-872** redirects resolve — verified in a browser, landing on Gumroad with the discount
+- [ ] **A5** 1.x -> 2.0 launcher hop on Linux/macOS: known-issue line or mitigation (Fabio)
+- [ ] **A6** H3 in Extend Video: ship the current arm, or drop it from `ltx-extend` for 2.0 (Fabio, before B1)
+- [ ] **A7** SplatKit + Mickmumpitz node packs: pull from the lock until MPI-623, or ship (Fabio, before B1)
+- [x] Cleared: MPI-507/515 (rejected, MPI-734), MPI-575, MPI-522/523/527, MPI-873, MPI-708's gates 532/774/809/810/777
+- [ ] Every A item that did not clear has its known-issue bullet
 
-> Re-verified 2026-08-26: every unticked box below is still `todo` and untouched since before
-> this card existed. Nothing here cleared in the retarget.
+## Gate B — must verify
 
-- [ ] **MPI-507** — PiD as four upscale-dropdown plugins (blocks MPI-515).
-- [ ] **MPI-515** — remove the `nvidia-pid` ModelDef. Dep entries stay.
-- [x] **MPI-531** — Flow authoring shape. **Done 2026-08-21**: zero `uiComponent` in
-      `flowsRegistry.js`, `MpiFlowHeadSwap` deleted by `64279953`. Port surface is now zero.
-- [x] **MPI-522** — CI-Windows dangling-symlink guard + its false-green test. **Done
-      2026-08-30 as OVERTAKEN**: both defects were fixed on 2026-08-11 by `07b8e8b2` under
-      MPI-542's id, which is why `overtaken-cards.py` never flagged it (it keys on the card's
-      own id). Re-ran: 8 pass, 0 skipped.
-- [x] **MPI-523** — in-place update refreshes the installed `update-manifest.json`. **Done
-      2026-08-30** (`daf6c70c`): the applier copies the manifest explicitly — it can never be
-      in its own `files[]`. Mutation-checked test, 798/798.
-- [x] **MPI-527** — the umbrella over both, closed with them. **Gate A's release-pipeline row
-      is clear.**
-- [ ] **The launchers rewrite themselves mid-run, and the 2.0 rename guarantees it fires.**
-      Found in MPI-709's 1.5.0 install-test leg (2026-09-08, evidence in that card's
-      `validation.md`). `update-from-zip.bat` is itself in the update bundle, and **cmd re-reads
-      a batch file at its byte offset between commands** — so when the applier replaced it
-      mid-execution, cmd resumed inside the NEW file, emitted
-      `'_EXECUBRIC_PORTABLE_ROOTCUBRIC_PORTABLE_ROOT~f1"' is not recognized`, and invoked the
-      applier a second time. Only the `fromVersion` guard stopped that second run from applying
-      a delta onto an already-updated install. Net effect there: a successful update ends in an
-      error and exit code 1.
-      - Windows in-app is **safe** and needs no fix: `main.js:1232` spawns
-        `update/win-update.cjs` through the app binary as node, and node reads the whole file at
-        load. MPI-387 made Windows skip `.bat` because Smart App Control blocks it.
-      - **Linux and macOS in-app are NOT safe**, and there it is the primary path: the same
-        `main.js:1232` spawns `update.sh` / `update.command`, and `sh` also reads scripts
-        incrementally. The 1.5.0 linux delta already shipped `update.sh` and
-        `update-from-zip.sh`.
-      - **Why 2.0 specifically:** the Cubric Studio rename changes every launcher filename, so
-        a 1.5.0 → 2.0 update replaces the running launcher on every platform by construction.
-        This stops being a latent risk and becomes the default path.
-      - Remedy is standard and small: wrap each launcher's body in a function invoked on the
-        last line, so the interpreter has parsed the whole file before any of it can be
-        replaced. Verify by updating a real Linux install in place, per MPI-559 phase 1.
-- [ ] **MPI-516** — port the three-signal destroyed-prompt detector, WITH its false-positive guard.
-- [ ] **MPI-575** — measure the LTX preview junk-frame path on a live foley/extend run, then fix.
-- [ ] **MPI-780** — paid Flows (umbrella): Head Swap and DramaBox leave the app and are sold
-      as `user_flows/` packages, which needs MPI-532's loader, then MPI-781 packages the two
-      (added 2026-09-16, Fabio: "it blocks 2.0"). The known-issue fallback below does not fit
-      this one: shipping the two inside the app gives them away for free. Ask Fabio.
+- [ ] **B1 smoke** (after A6 + A7):
+  - [ ] sync `node_lock.json` AND `python_deps.txt` into `c:\AI\Mpi\mpi-ci\cubric-vision-pod\`, re-measure the drift, commit there
+  - [ ] `node scripts/smoke-workflows.mjs --plan` immediately before, shown to Fabio
+  - [ ] DEV Pod image rebuilt at the lock (`/build-pod-image`), app restarted, Pod reports the pinned core
+  - [ ] matrix run incl. a VIDEO op; `smoke-evidence.json` fresh; `release:check` green on that line
+  - [ ] release Pod image PROMOTED (clean rebuild, never a renamed `-dev` tag)
+- [ ] **B2** Flows: a Flow leg in the smoke runner, or a notes line saying Flows are statically checked only
+- [ ] **B3** MPI-559 phase 1 on the Linux box + the launcher A/B through `update.sh` on a full 2.0 bundle
+- [ ] **B4** `npm test` and `npm run test:desktop` green
+- [x] **B5** MPI-656 Phase 1 — CLEARED by reading 2026-09-27: every YAML writer (`comfy.js:855/864/934`, `engine.js:671/678`) goes through `writeExtraModelPathsYaml` -> `setRoots`, so `model_roots.json` cannot drift from the YAML; the yaml-only seed and the both-equal rule are tested (`tests/model-roots.test.cjs:213,252`)
+- [x] **B6** MPI-710 — CLEARED by reading 2026-09-27: nothing load-bearing reads the installed top-level manifest (the applier keys its guard off package.json on purpose, `apply-update.cjs:88-100`; main, routes and updateChecker never read it). Stays a research card, not a gate
 
-      **This gate is a CHAIN, and 2.0 must not cut until all four links hold** (Fabio,
-      2026-09-20). The app half is finished and the rest is outside this repo, which is
-      exactly how it goes out of date unnoticed:
+## Gate C — decide / notes
 
-      - [x] **The packages exist** — MPI-781, built and validated, private repo
-            `MadPonyInteractive/Cubric-Flows`.
-      - [x] **The app advertises them** — MPI-831 phase 4 (`f31d7377`): a Get-it tile per
-            Flow in the Flow Library, hiding once the bought package installs. Nothing
-            further is needed here whatever Gumroad does.
-      - [ ] **The two Gumroad products are PUBLISHED, priced, with their 100-use 100%-off
-            codes created** — MadPony-Identity MPI-81, Fabio-only (Gumroad has no write API).
-            Drafted before the release, published ON release day: both manifests declare
-            `compat.minAppVersion 2.0.0`, so a buyer on 1.6.1 installs a disabled tile.
-      - [ ] **The two redirects RESOLVE — owned by MPI-872** (raised 2026-09-21; before that this link had no card at all) — `cubric.studio/flows/head-swap` and
-            `cubric.studio/flows/drama-box` must land on the coded Gumroad URLs. **THIS IS
-            THE WEAK LINK: it lives in `c:\AI\Mpi\Cubric Studio (Website)` and it is what the
-            shipped buttons actually open.** The
-            coded URL is deliberately NOT in the app — Cubric-Vision is public AGPL and a
-            committed code could be spent to zero by people who never run the app.
-            **Verify by loading both URLs in a browser and arriving at a Gumroad page with
-            the discount applied — not by reading config.** Until then the buttons 404.
+- [ ] Claim audit of `UNRELEASED.md` against **v1.5.0** (copy-review Gate 0)
+- [x] Coverage sweep 2026-09-27 (`ec7b81cb3`): agent panel, Connect an agent, GIF workspace, 16K + SVG. Dictation, MCP, mascots, local-only server were already there
+- [ ] **MPI-949 close-out**: the two Cue all bullets become stacks (949 replaces Cue all). Agent image tools (MPI-941) get their line at 941 close-out
+- [x] Rename section (`ec7b81cb3`), plus Vision -> Cubric Studio in four user-facing bullets
+- [ ] Known-issue lines: macOS · unsigned exe / SAC (MPI-616) · A5 if unmitigated · 1.5.0 installs lose the remote engine on 2026-11-15
+- [ ] MPI-543 / MPI-544 / MPI-569 in or out
+- [ ] Flow-list reconcile — LAST, once, at notes freeze (13 ids on 2026-09-27)
 
-      Failure mode this chain exists to stop: 2.0 ships, a user opens the Flow Library, sees
-      two things for sale, clicks Get it, and gets a 404 on our own domain. That is worse
-      than not advertising them at all.
-- [ ] Every Gate A card that did not clear has a known-issue bullet written.
+## Agent connection (MPI-593)
 
-## Gate B — must verify (no code expected)
+- [x] App `README.md` "Use it from your AI agent" section (`ec7b81cb3`, says it needs 2.0)
+- [x] `UNRELEASED.md` bullet — now points at Settings > Connect an agent
+- [ ] `.mcpb` home: agents-repo release only, or also `mpi-release` step 6
+- [ ] Claude Desktop directory submission AFTER 2.0 is live
+- [x] MPI-873 done
 
-- [x] **MPI-520** — **Done 2026-08-21** on evidence: `flowLtxExtend_001.mp4` is a real
-      app-dispatched output and the source clip of MPI-531's foley `/history` readback.
-- [x] **MPI-594** — **Done 2026-08-21** by session `87018060`: both preview assets shipped,
-      reuse-across-restart verified, 657/657. NSFW arm never run through the flow (by design).
-- [ ] **MPI-559 phase 1** — real Linux artifact, LOCAL engine provision, one model per family.
-      A RunPod run does not substitute.
-- [ ] `npm test` green.
-- [ ] `npm run test:desktop` green.
-- [ ] Engine pin in `dev_configs/node_lock.json` **compared against the last released tag** (do
-      not assume it is unchanged — that assumption is from 2026-08-21). Unchanged → no smoke
-      evidence owed; changed → smoke run + `dev_configs/smoke-evidence.json` present.
-- [ ] **THE PIN HAS CHANGED — the smoke is owed. MPI-649 bumped the engine `v0.31.0 → v0.34.0`
-      on 2026-08-28 and deliberately stopped at the free half.** `smoke-evidence.json` in the
-      tree still says `0.31.0`, so `release:check` will refuse the release until this clears.
-      Gates 6–9 of `docs/playbooks/bump-engine/README.md` all rent a RunPod GPU, which is why
-      they were parked here rather than paid for twice — run them as ONE block:
-      - [ ] Sync **both** files into `c:\AI\Mpi\mpi-ci\cubric-vision-pod\` — `node_lock.json`
-            AND `python_deps.txt` — and commit there with `git -C`.
-            **CORRECTED 2026-08-30 — the old note here ("`python_deps.txt` moved only its
-            provenance comment, zero package versions") is no longer true and was measured
-            again:** the Pod's copy is now missing real packages — `accelerate`,
-            `bitsandbytes`, `conformer`, `soundfile`'s new edge — and the Pod lock is behind on
-            **two whole nodes as well as core**: `ComfyUI_Fill-ChatterBox` and
-            `ComfyUI-MelodramaBox` (they arrived with MPI-607's Chatterbox/MelodramaBox work,
-            after this line was written). A lock-only sync would bake an engine whose nodes and
-            Python set disagree — the MPI-472 failure shape exactly. Re-measure the drift at
-            pickup; do not trust this list either.
-      - [ ] **TIMING — Fabio, 2026-08-30: do NOT smoke until the remaining models and Flows
-            have landed.** A matrix run now measures a model list that is still moving, and
-            every model added after it re-opens the gate. This is the same call MPI-649 made
-            ("if we're gonna do them, might as well do them when needed"). `release:check` stays
-            RED until then, by design — that is not a regression to chase, and the two failing
-            lines are the engine-pin mismatch and the stale evidence, nothing else.
-      - [ ] Re-run `node scripts/smoke-workflows.mjs --plan` **immediately before** the smoke —
-            both sync files are live working-tree state and a card landing in between re-drifts
-            them. `--plan` spends nothing and prints the matrix + volume size; show Fabio.
-      - [ ] Rebuild the **DEV** Pod image at the new lock (`/build-pod-image`), tag
-            `v<ver>-dev-<profile>`, bump ONLY `POD_IMAGE_VERSION_DEV`/`_CPU_DEV`. Then **restart
-            the default-profile app** — `routes/` does not hot-reload and a matrix driven by a
-            pre-edit app rents the OLD tag.
-      - [ ] Assert the Pod reports `0.34.0` before smoking anything.
-      - [ ] Run the matrix. **Must include a VIDEO op, not only an image op** — `av >=16.0.0 →
-            >=17.0.0` is a PyAV MAJOR bump and it is the one requirement line in the whole
-            v0.31.0→v0.34.0 diff that can break a video path (VideoHelperSuite, any
-            ffmpeg-backed node). That is the specific risk this smoke exists to retire.
-      - [ ] Promotion is **mandatory at this release, not optional**: ship the app at the new
-            pin while the released Pod image is still on the old one and every user gets a local
-            engine and a remote Pod on different ComfyUI versions, silently. A clean rebuild at
-            a real version — never a `-dev` tag renamed.
-      - Local half is **already green and needs no re-run**: see MPI-649's `validation.md`.
+## Gate D — hygiene at the cut
 
-## Gate C — must decide
-
-- [ ] Claim audit of every `UNRELEASED.md` bullet; every "used to / previously / no longer"
-      checked against `git show v1.4.2:<path>`. Watch the Flow trap the header names: a "fix" to
-      a Flow is not a fix to anything a user ever had.
-- [ ] **Flow-list reconcile — RUN THIS LAST, immediately before the notes freeze.** More Flows are
-      landing before 2.0 (Fabio, 2026-08-26), so any earlier pass is wasted work. Diff the flow ids
-      in `js/data/flowsRegistry.js` against the Flows named in `UNRELEASED.md`, then fix the count
-      sentence to match. Worked example of the drift, not the answer: on 2026-08-26 the notes named
-      eight and the registry held nine (`voice-changer`, in no bullet).
-- [ ] MPI-515's outcome recorded — shipped, or a known-issue line.
-- [ ] macOS: known-issue line carried forward, or macOS dropped from the claim surface.
-      - [ ] **DramaBox on Apple Silicon is UNVERIFIED** (MPI-607). Its text encoder is a 4-bit
-            Gemma-3-12B that needs `bitsandbytes`, and 0.50.2 ships exactly one Mac wheel:
-            `macosx_14_0_arm64`. A wheel is not a working backend, so whether nf4 runs on MPS
-            is unknown, and the wheel does not cover an arm64 Mac on macOS < 14. Answered by
-            the MPI-249 trip. If it fails there, the flow needs a platform gate before 2.0 -
-            none exists today (no `platform` field on a dep, no `process.platform` check in
-            any registry), and a Mac user would download 16.36 GB before finding out, which
-            reads as a broken app rather than an unsupported flow.
-- [ ] MPI-543 / MPI-544 / MPI-569 explicitly in or out.
-- [x] **2.0-specific: why is this a major?** — **ANSWERED 2026-08-26.** Flows make it major, on
-      audience not code. No migration/compat note owed. Flows open the app to a user who could not
-      use it before, and some of them exist nowhere else or only behind proprietary websites. That
-      pair is the release-body angle — see `brief.md` Gate C.
-- [ ] **Re-adjudicate the four "not in this release" cards for a 2.0 scope** (MPI-591, MPI-578,
-      MPI-532, MPI-573) — they were excluded from a 1.5, and MPI-573 has since gone `done`.
-
-## Agent connection (MPI-593) — `brief.md` § Agent connection
-
-- [ ] App `README.md` gets a "Use it from your AI agent" section linking `cubric-studio-agents`.
-- [ ] `UNRELEASED.md` bullet for the agent connection (MCP), claim-audited like the rest.
-- [ ] `.mcpb` home decided: agents-repo release only, or also `mpi-release` step 6.
-- [ ] Claude Desktop directory submission, AFTER 2.0 is live (reviewers test the released app).
-- [ ] MPI-873 (MPI-593 phase 4) in or out of 2.0.
-
-## Gate D — hygiene before the bump
-
-- [ ] Unpushed commits pushed.
-- [ ] Working tree committed by explicit pathspec — never `git add -A`.
-- [ ] `python scripts/overtaken-cards.py` run; every hit read before closing anything. Expect
-      hits: 350-plus commits have landed since this card was written.
-- [x] MPI-557 unblocked — **done 2026-08-21**, maturity `blocked` → `planned`.
-- [x] MPI-518's blocker reduced to GPU availability only — **done 2026-08-21**.
-- [ ] The loose Flow cards adopted into MPI-560, or MPI-560's "one place" claim corrected.
-      **Awaiting Fabio's go** — survivors are 586, 591, 557, 355. (594 and 567 are now `done`
-      and drop off this list.)
-- [ ] MPI-531 item 2 (`steps[].image`) rehomed into MPI-560 — it left MPI-531 on close and
-      has no owner. Cheap now, awkward once the next manifest format freezes.
-- [ ] `/mpi-version-bump` → **2.0.0**, then `/mpi-release`.
+- [ ] `validating` resolved: MPI-845, MPI-827, MPI-866, MPI-720
+- [ ] MPI-623 / 711 / 591 / 656 out of `doing`, or scoped into 2.0 explicitly
+- [ ] 1.6.0 / 1.6.1 / 1.6.2 `RELEASE_NOTES` entries + `.approved-1.6.*.json` deleted at the fold
+- [ ] MPI-708 Phase 3: dual-publish `CubricVision-*` at the cut (2.0 note done `ec7b81cb3`; 2.1 follow-up is **MPI-951**)
+- [ ] `python scripts/overtaken-cards.py`; unpushed pushed; commit by pathspec
+- [ ] `/mpi-version-bump` -> **2.0.0**, then `/mpi-release`
+- [ ] Release day: Gumroad live; Claude Desktop directory submission
+- [ ] After: MPI-603 R2/HF delete; MPI-612

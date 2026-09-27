@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-951", "at": "2026-09-27T11:06:23+01:00", "actor": "56a78131", "column": "todo", "title": "2.1: drop the legacy CubricVision-* artifact names and delete the old CubricVision.exe"}
