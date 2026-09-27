@@ -289,6 +289,10 @@ if (process.env.CUBRIC_E2E_USER_DATA) {
 // block above and BEFORE the first log write. (MPI-418)
 process.env.APP_USER_DATA = app.getPath('userData');
 
+// MPI-954: install the launchers the last update staged in update/pending-launchers/
+// (never in files[], so the applier cannot rewrite a running script). See the module.
+require('./main/launcherHeal.cjs').healPortableLaunchers(resolveMainPortableRoot(), logger);
+
 const STATE_FILE = path.join(app.getPath('userData'), 'window-state.json');
 const NOTIFICATION_ICON_PATH = path.join(__dirname, 'assets', 'mascot', 'happy.png');
 

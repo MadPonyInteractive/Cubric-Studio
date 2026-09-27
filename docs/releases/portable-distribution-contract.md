@@ -231,7 +231,7 @@ folder's README for the per-release restamp step and the extraction recipe.
 
 ### Delta update details (MPI-56)
 
-`scripts/build-portable.mjs --from-manifest <path>` emits a true delta bundle (only changed/added files). Diff is file-level SHA256 only — never binary delta (contract forbids it). A file is included iff its sha256 is absent or different vs baseline; paths gone from the new set go in `manifest.delete[]`. `delete[]` always excludes PRESERVE prefixes (engine/, models/, user-data/, Documents). `alwaysKeep` = update-manifest.json + connector-manifest.json + launchers. Omitting `--from-manifest` = FULL bundle (`fromVersion:null`, first-release safe).
+`scripts/build-portable.mjs --from-manifest <path>` emits a true delta bundle (only changed/added files). Diff is file-level SHA256 only — never binary delta (contract forbids it). A file is included iff its sha256 is absent or different vs baseline; paths gone from the new set go in `manifest.delete[]`. `delete[]` always excludes PRESERVE prefixes (engine/, models/, user-data/, Documents). `alwaysKeep` = update-manifest.json + connector-manifest.json + the launchers under `update/pending-launchers/`. Omitting `--from-manifest` = FULL bundle (`fromVersion:null`, first-release safe).
 
 **A bundle carries one more member than its `files[]` lists, and always will (MPI-523).**
 `createUpdateManifest` builds the file list, then writes the manifest into that same stage
@@ -679,8 +679,12 @@ Replace from update bundles:
 - `resources/`
 - The Electron runtime — under the app tree on Linux/macOS, at the portable root
   (`CubricStudio.exe` + dlls + `locales/`) on Windows
-- Root launcher scripts
-- Root update scripts
+- Root launcher and update scripts, **never through `files[]` (MPI-954)**: the bundle stages them
+  under `update/pending-launchers/` and the app moves them to the root at boot
+  (`main/launcherHeal.cjs`, `renameSync`, a new inode). The applier that runs an update is the one
+  already installed, and before 2.0 it wrote in place (`copyFileSync`, same inode): a shell
+  running that launcher resumed at its byte offset in the new file and a perfect update
+  reported FAILED. From 2.0 the applier itself writes temp + rename on POSIX too.
 - Connector manifest files
 - Update manifest files
 - App-owned release metadata

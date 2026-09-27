@@ -238,6 +238,30 @@ function restoreLauncherBits(portableRoot) {
   }
 }
 
+// MPI-954: on POSIX, write via a temp sibling then rename so the destination
+// gets a NEW inode. Any shell that was reading the old path keeps its open fd
+// on the old inode and is unaffected by the swap. fs.copyFileSync truncates and
+// rewrites the SAME inode — measured to corrupt a running sh script (MPI-954).
+// On Windows the surrounding try/evict/retry handles EBUSY from a running .exe,
+// so plain copyFileSync stays there. cmd.exe DOES re-read a running .bat by byte
+// offset (the original form of this bug), but no launcher reaches this function
+// any more: update bundles stage launchers under update/pending-launchers/ and the
+// app installs them at boot (main.js healPortableLaunchers), on every platform.
+function copyFileToTarget(source, target) {
+  if (process.platform === 'win32') {
+    fs.copyFileSync(source, target);
+    return;
+  }
+  const tmp = `${target}.cubric-update-tmp`;
+  try {
+    fs.copyFileSync(source, tmp);
+    fs.renameSync(tmp, target);
+  } catch (err) {
+    try { fs.rmSync(tmp, { force: true }); } catch { /* non-fatal cleanup */ }
+    throw err;
+  }
+}
+
 function copyManifestFile(bundleRoot, portableRoot, backupRoot, relPath) {
   const source = path.resolve(bundleRoot, ...relPath.split('/'));
   const target = assertInside(portableRoot, path.join(portableRoot, ...relPath.split('/')));
@@ -250,10 +274,10 @@ function copyManifestFile(bundleRoot, portableRoot, backupRoot, relPath) {
   backupExisting(portableRoot, backupRoot, relPath);
   fs.mkdirSync(path.dirname(target), { recursive: true });
   try {
-    fs.copyFileSync(source, target);
+    copyFileToTarget(source, target);
   } catch (err) {
     if (!isBusyError(err) || !evictBusyFile(target)) throw err;
-    fs.copyFileSync(source, target);
+    copyFileToTarget(source, target);
   }
   restoreExecBit(source, target, relPath);
 }

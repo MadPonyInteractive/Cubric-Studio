@@ -926,7 +926,7 @@ async function createUpdateManifest(stageRoot, opts, config, artifactKind = null
   return manifest;
 }
 
-async function stageUpdateBundle(fullStageRoot, updateStageRoot, opts, config) {
+export async function stageUpdateBundle(fullStageRoot, updateStageRoot, opts, config) {
   if (opts.clean && await pathExists(updateStageRoot)) {
     assertSafeClean(updateStageRoot);
     await fs.rm(updateStageRoot, { recursive: true, force: true });
@@ -951,9 +951,20 @@ async function stageUpdateBundle(fullStageRoot, updateStageRoot, opts, config) {
   }
   const bundledLaunchers = [config.start, config.withTerminalStart, config.update, config.updateFromZip]
     .filter(Boolean);
+  // MPI-954: stage launchers into update/pending-launchers/ rather than at the
+  // portable root.  The installed applier (which may be the pre-2.0 copyFileSync
+  // version) only processes entries listed in manifest.files[]; a launcher that
+  // is NOT in files[] survives untouched — the running shell keeps reading the
+  // old inode uninterrupted.  The 2.0 app installs the new versions at first
+  // boot via atomic renameSync (new inode — any open fd on the old file is
+  // unaffected).  This is the only lever that works for the 1.x -> 2.0 hop:
+  // nothing on the user's installed disk can change before the update runs.
+  const pendingLaunchersDir = path.join(updateStageRoot, 'update', 'pending-launchers');
+  await ensureDir(pendingLaunchersDir);
   for (const launcher of bundledLaunchers) {
-    await copyFileEnsured(path.join(fullStageRoot, launcher), path.join(updateStageRoot, launcher));
-    await makeExecutableIfNeeded(path.join(updateStageRoot, launcher));
+    const basename = path.basename(launcher);
+    await copyFileEnsured(path.join(fullStageRoot, launcher), path.join(pendingLaunchersDir, basename));
+    await makeExecutableIfNeeded(path.join(pendingLaunchersDir, basename));
   }
 
   // Delta: when a previous release's manifest is supplied, prune the freshly
@@ -976,7 +987,9 @@ async function stageUpdateBundle(fullStageRoot, updateStageRoot, opts, config) {
     // Always keep the manifest itself, the connector manifest (createUpdateManifest
     // re-reads + hashes it), and the launcher scripts the applier/runbook expect,
     // even when their bytes are unchanged from the baseline.
-    const alwaysKeep = [UPDATE_MANIFEST_REL, CONNECTOR_MANIFEST_REL, ...bundledLaunchers];
+    // MPI-954: launchers live under update/pending-launchers/ in the update bundle.
+    const pendingLauncherPaths = bundledLaunchers.map((l) => `update/pending-launchers/${path.basename(l)}`);
+    const alwaysKeep = [UPDATE_MANIFEST_REL, CONNECTOR_MANIFEST_REL, ...pendingLauncherPaths];
     delta = await applyDelta(updateStageRoot, baseline, alwaysKeep, RETIRED_PATHS[opts.platform] || []);
     console.log(
       `Delta update bundle: from ${delta.fromVersion ?? 'unknown'} -> ${opts.version}; `
