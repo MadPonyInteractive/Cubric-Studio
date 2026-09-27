@@ -40,6 +40,7 @@ Cubric Studio is a desktop application (Electron) that wraps [ComfyUI](https://g
 - `.mpi-canvas__stack` is sized to image-native px and moved/scaled via `style.transform = translate(x,y) scale(s)` — no `ctx.translate/scale` for image surfaces.
 - `canvas[data-role=base]` + `canvas[data-role=overlay]` — both image-native px; draw at `(0,0)` with no ctx transform.
 - `canvas[data-role=screen-ui]` — container px sibling (not inside stack); draws brush indicator and comparison slider UI.
+- Below half size (device px) the base and compare canvases each hide behind a `canvas[data-role=<role>-mip]` sibling: the same source redrawn one power-of-two level down with a mipmapped filter, in the native's CSS box (`_DisplayMip`, MPI-957). Chromium composites a CSS-downscaled canvas with bilinear and NO mipmaps, so an 8K image at fit aliased into moire; an `<img>` or a 2D `drawImage` mipmaps, and no `image-rendering` value helps. The native stays drawn and keeps its pixels for every reader. Pinned by `tests/desktop/canvas-downscale-quality.spec.js`.
 - Coord conversion: image-px = `(clientX - stackRect.left) / view.scale`.
 
 ## Key Architectural Invariants

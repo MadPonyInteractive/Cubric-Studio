@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-957",
+  "title": "Canvas aliases large images when zoomed out (moire at fit)",
+  "description": "MpiCanvas shows an 8K+ image CSS-downscaled ~10x at fit; Chromium composites with bilinear and no mipmaps, so fine detail aliases (dashed circles, 64 lines collapse to 3). Base and compare canvases both.",
+  "column": "doing",
+  "maturity": "validating",
+  "status": "active",
+  "created_at": "2026-09-27T13:54:20+01:00",
+  "updated_at": "2026-09-27T14:17:09+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

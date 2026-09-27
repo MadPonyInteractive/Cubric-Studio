@@ -115,6 +115,70 @@ const MAX_TEXTURE_SIZE = (() => {
     } catch { return 4096; }
 })();
 
+/**
+ * The display copy of an image-sized stack canvas while it is shown under half size (MPI-957).
+ *
+ * The stack holds its canvases at native px and scales them with CSS, and Chromium
+ * composites a canvas as a texture sampled with plain bilinear and NO mipmaps: shown
+ * under 1/2 it skips source pixels and fine detail beats into moire. Measured on an
+ * 8192px 1px grating at fit (~1/12): std 74 on the canvas, 0 for the same image as an
+ * <img> or through a 2D `drawImage`, both of which mipmap; no `image-rendering` value
+ * changes it. So below 1/2 the native canvas hides and this one shows the same source
+ * redrawn at the next power-of-two level down, leaving the compositor at most a 2x
+ * reduction. Display only: the native keeps its pixels for every reader, and this copy
+ * takes the native's CSS box, so no coordinate space moves.
+ */
+class _DisplayMip {
+    constructor(native) {
+        this.native = native;
+        this.canvas = document.createElement('canvas');
+        this.canvas.dataset.role = `${native.dataset.role}-mip`;
+        // Shown only under 1/2 scale, where auto pixel mode is smooth anyway — and a
+        // compare mip must not inherit a pixel-mode hint from a stack at a higher scale.
+        this.canvas.dataset.zoomMode = 'smooth';
+        this.canvas.style.position = 'absolute';
+        this.canvas.style.display = 'none';
+        this.ctx = this.canvas.getContext('2d');
+        native.after(this.canvas);
+    }
+
+    /**
+     * Call right after the native canvas is drawn and placed.
+     * @param {CanvasImageSource|null} src what the native was drawn from
+     * @param {number} devScale device px per native backing px
+     */
+    sync(src, devScale) {
+        const { native, canvas } = this;
+        const level = 2 ** Math.floor(Math.log2(1 / devScale));
+        const on = level >= 2 && _isDrawable(src) && native.width > 0 && native.style.display !== 'none';
+        native.style.visibility = on ? 'hidden' : '';
+        canvas.style.display = on ? '' : 'none';
+        if (!on) {
+            if (canvas.width) { canvas.width = 0; canvas.height = 0; }
+            return;
+        }
+        const w = Math.ceil(native.width / level);
+        const h = Math.ceil(native.height / level);
+        if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+        // Redrawn every sync, like the native. Once a source's mipmaps exist (~300ms the
+        // first time at 8K) this costs ~0.2ms against ~28ms for the native 8K redraw, and
+        // it keeps a video frame or an <img> reloaded in place current with no cache key.
+        this.ctx.clearRect(0, 0, w, h);
+        this.ctx.imageSmoothingQuality = 'high';
+        this.ctx.drawImage(src, 0, 0, w, h);
+        for (const k of ['left', 'top', 'width', 'height', 'clipPath']) canvas.style[k] = native.style[k];
+    }
+
+    destroy() {
+        this.canvas.width = 0;
+        this.canvas.height = 0;
+        this.canvas.remove();
+        this.canvas = null;
+        this.ctx = null;
+        this.native = null;
+    }
+}
+
 // ── Internal canvas engine ────────────────────────────────────────────────────
 // Not exported — consumers use MpiCanvas.mount() and talk to instance.el.*
 
@@ -140,6 +204,7 @@ class _CanvasCore {
         this.baseCanvas.style.left = '0';
         this.baseCtx = this.baseCanvas.getContext('2d');
         this.stackEl.appendChild(this.baseCanvas);
+        this._baseMip = new _DisplayMip(this.baseCanvas);
 
         // Compare canvas — the "after" media at ITS OWN native px, laid over the base by
         // CSS (MPI-956). It used to be drawn into the overlay, i.e. into the BEFORE image's
@@ -151,6 +216,7 @@ class _CanvasCore {
         this.compareCanvas.style.display = 'none';
         this.compareCtx = this.compareCanvas.getContext('2d');
         this.stackEl.appendChild(this.compareCanvas);
+        this._compareMip = new _DisplayMip(this.compareCanvas);
 
         // Overlay canvas — image native px. Mask/crop/grid (transparent).
         // image-rendering owned by styles/01_base.css (`html.pixel-mode-*` + stackEl data-zoom-mode).
@@ -329,6 +395,10 @@ class _CanvasCore {
         // this component holds after the layers themselves — drop them explicitly.
         this.undoStack?.destroy?.();
         this.comparison?.destroy?.();
+        this._baseMip?.destroy();
+        this._compareMip?.destroy();
+        this._baseMip = null;
+        this._compareMip = null;
         // Zero canvas dims before removal — forces Chromium to release GPU texture backing immediately
         for (const c of [this.baseCanvas, this.compareCanvas, this.overlayCanvas, this.screenUICanvas]) {
             if (c) { c.width = 0; c.height = 0; }
@@ -900,8 +970,8 @@ class _CanvasCore {
         const src = (this._beforeKind === 'video' && this._videoBefore)
             ? this._videoBefore
             : (this._processedBitmap || this.img);
-        if (!_isDrawable(src)) return;
-        ctx.drawImage(src, 0, 0, this.baseCanvas.width, this.baseCanvas.height);
+        if (_isDrawable(src)) ctx.drawImage(src, 0, 0, this.baseCanvas.width, this.baseCanvas.height);
+        this._baseMip.sync(src, (this.view.scale || 1) * (window.devicePixelRatio || 1));
     }
 
     /**
@@ -1044,6 +1114,7 @@ class _CanvasCore {
             // Free the backing store: at 8K it is 256 MB, and the History viewer outlives
             // every compare it shows.
             if (cc.width) { cc.width = 0; cc.height = 0; this._compareDrawn = null; }
+            this._compareMip.sync(null, 1);
             return;
         }
 
@@ -1086,6 +1157,7 @@ class _CanvasCore {
         // differs from the stack's whenever the two sides differ in resolution.
         const scale = (this.view.scale || 1) * compW / w;
         cc.dataset.zoomMode = scale >= AUTO_PIXEL_THRESHOLD ? 'pixel' : 'smooth';
+        this._compareMip.sync(imgAfter, scale * (window.devicePixelRatio || 1));
     }
 
     /** Recolor a mask layer's opaque pixels to `color`, via a scratch buffer so

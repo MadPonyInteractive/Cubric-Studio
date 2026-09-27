@@ -1,0 +1,3 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-957", "at": "2026-09-27T13:54:20+01:00", "actor": "claude", "column": "todo", "title": "Canvas aliases large images when zoomed out (moire at fit)"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-957", "at": "2026-09-27T13:54:39+01:00", "actor": "claude", "from": "todo", "to": "doing", "reason": "Investigation started: repro spec + root-cause measurement."}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-957", "at": "2026-09-27T14:17:09+01:00", "actor": "claude", "from": "doing", "to": "doing", "reason": "Fix shipped with regression spec; spec fails on HEAD (std 73.96), green with fix. Awaiting Fabio's eyes on a real large photo."}

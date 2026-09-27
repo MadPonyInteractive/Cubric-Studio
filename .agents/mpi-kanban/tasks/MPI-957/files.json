@@ -1,0 +1,1 @@
+{ "schema": "mpi-kanban/task-files/v1", "files": ["js/components/Primitives/MpiCanvas/MpiCanvas.js", "tests/desktop/canvas-downscale-quality.spec.js", "docs/PROJECT.md"] }
