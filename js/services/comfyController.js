@@ -278,11 +278,17 @@ function createEngine({ engine, alwaysLocal }) {
     /** @type {boolean} True only while the binary-preview WS is OPEN. Wrapper-health `ready` (ComfyUI up) is NOT the same as the preview WS being connected — accepting a generation before the WS is open hangs the job in STARTING with no prompt_id (MPI-73 Bug 1). */
     _wsReady: false,
 
-    /** @type {Map<string, ReturnType<typeof setInterval>>} REMOTE-only per-prompt /history poll backstop. The direct renderer→Pod terminal WS has no app-side keepalive, so RunPod's edge proxy reaps it idle during long sampling and the terminal `execution_success` is lost; the one-shot reconnect reconcile bails if it fires mid-stage and never re-arms. This interval re-runs `_reconcileFromHistory` every few seconds until the gen settles — a generation-lifetime backstop independent of WS health. */
+    /** @type {Map<string, ReturnType<typeof setInterval>>} Per-prompt /history+/queue poll backstop. Runs on both engines (MPI-516). Remote: recovers missed terminal WS events (RunPod edge proxy reaps idle sockets). Both: detects vanished prompts — absent from history AND queue while engine is answering (engine restart, queue wipe, worker OOM-kill). */
     _historyPollTimers: new Map(),
 
-    /** @type {number} Interval (ms) for the remote /history poll backstop. */
+    /** @type {number} Interval (ms) for the /history poll backstop. */
     _HISTORY_POLL_MS: 5000,
+
+    /** @type {Map<string, number>} Submission timestamp (ms) for each in-flight prompt. Used by the vanished-prompt detector to enforce the grace period. Set at registration; cleared at every settlement path. */
+    _promptStartTimes: new Map(),
+
+    /** @type {number} Grace period before the vanished-prompt detector can declare a prompt gone. Matches smoke-workflows.mjs ORPHAN_GRACE_MS. During this window a prompt may still be queued but not yet visible in /history. */
+    _ORPHAN_GRACE_MS: 30_000,
 
     /** @returns {boolean} Whether the preview WS is currently open. */
     isWsReady() {
@@ -1161,6 +1167,7 @@ function createEngine({ engine, alwaysLocal }) {
         this._promptRejectors.clear();
         this._promptResolvers.clear();
         this._pendingPromptMessages.clear();
+        this._promptStartTimes.clear();
         this._activePromptId = null;
         this._isRunning = false;
         this._wsReconnectAttempts = 0;
@@ -1246,6 +1253,7 @@ function createEngine({ engine, alwaysLocal }) {
             this._promptListeners.delete(promptId);
             this._promptRejectors.delete(promptId);
             this._promptResolvers.delete(promptId);
+            this._promptStartTimes.delete(promptId);
             if (this._activePromptId === promptId) this._activePromptId = null;
             this._isRunning = this._promptListeners.size > 0;
             clientLogger.warn('comfy', `Reconciled FAILED gen ${promptId} from /history`);
@@ -1304,39 +1312,125 @@ function createEngine({ engine, alwaysLocal }) {
         this._promptListeners.delete(promptId);
         this._promptRejectors.delete(promptId);
         this._promptResolvers.delete(promptId);
+        this._promptStartTimes.delete(promptId);
         if (this._activePromptId === promptId) this._activePromptId = null;
         this._isRunning = this._promptListeners.size > 0;
         resolve?.({ success: true, images: outputs });
     },
 
     /**
-     * REMOTE-only: start a generation-lifetime /history poll backstop for a prompt.
-     * The direct renderer→Pod terminal WS has no app-side keepalive, so RunPod's
-     * edge proxy reaps it idle during long sampling stretches and the terminal
-     * `execution_success` (broadcast=False, not replayed) is lost. The reconnect
-     * reconcile is one-shot and bails if it fires while the gen is still mid-stage,
-     * never re-arming — so a gen that finishes AFTER that single poll hangs forever
-     * even though the Pod is done. This interval re-runs `_reconcileFromHistory`
-     * until the resolver is consumed (by ANY path — live terminal, reconnect, or
-     * this poll). Idempotent: `_reconcileFromHistory` no-ops once settled.
+     * Start a generation-lifetime /history + /queue poll backstop for a prompt.
+     * Serves two purposes:
+     *
+     * (1) REMOTE missed-terminal recovery: RunPod's edge proxy reaps the direct
+     *     renderer→Pod WS idle during long sampling, so `execution_success`
+     *     (broadcast=False, not replayed) is lost. The reconnect reconcile is
+     *     one-shot and bails if the gen is still mid-stage; this interval keeps
+     *     re-running `_reconcileFromHistory` until the resolver is consumed.
+     *
+     * (2) Both engines — vanished-prompt detection (MPI-516): when a prompt
+     *     disappears from both /history AND /queue (engine restart, queue wipe,
+     *     Pod OOM-kill of the worker), `_reconcileFromHistory` alone cannot tell
+     *     "not in history yet" from "gone" and spins forever. After the
+     *     `_ORPHAN_GRACE_MS` window, `_checkVanishedPrompt` reads the queue
+     *     (and re-reads history as the MPI-450 guard) to detect the gone state
+     *     and reject the generation with a clear message.
+     *
+     * Idempotent: all settle paths no-op once the resolver is consumed.
      * @param {string} promptId
      * @private
      */
     _startHistoryPoll(promptId) {
-        if (this._alwaysLocal || !remoteEngineClient.isRemote()) return;
         if (this._historyPollTimers.has(promptId)) return;
-        const timer = setInterval(() => {
+        const timer = setInterval(async () => {
             // Settled by another path → stop polling.
             if (!this._promptResolvers.has(promptId)) { this._stopHistoryPoll(promptId); return; }
-            this._reconcileFromHistory(promptId, 'poll');
+            await this._reconcileFromHistory(promptId, 'poll');
+            // If reconcile did not settle it (prompt absent from history — normal for a
+            // still-running gen), also check for the vanished state: absent from BOTH
+            // history and queue while the engine is answering means the prompt is gone.
+            if (this._promptResolvers.has(promptId)) {
+                await this._checkVanishedPrompt(promptId);
+            }
         }, this._HISTORY_POLL_MS);
         this._historyPollTimers.set(promptId, timer);
     },
 
-    /** Stop the remote /history poll backstop for a prompt (idempotent). @param {string} promptId @private */
+    /** Stop the /history poll backstop for a prompt (idempotent). @param {string} promptId @private */
     _stopHistoryPoll(promptId) {
         const timer = this._historyPollTimers.get(promptId);
         if (timer) { clearInterval(timer); this._historyPollTimers.delete(promptId); }
+    },
+
+    /**
+     * Two-read vanished-prompt detector, ported from scripts/smoke-workflows.mjs
+     * `orphanReason()`.
+     *
+     * A prompt absent from /history is NORMALLY just still running (in the queue).
+     * But if it is absent from BOTH /history AND /queue while the engine is
+     * answering, the prompt is GONE — ComfyUI lost it because the engine restarted,
+     * the queue was wiped, or the worker was OOM-killed.
+     *
+     * Guard (MPI-450): re-read /history AFTER reading the queue. A prompt that
+     * finishes between the two reads is briefly absent from both snapshots; a
+     * failed re-read is "unknown" not "absent". Only a successful re-read that is
+     * ALSO empty is genuine evidence the prompt is gone.
+     *
+     * No-ops during the `_ORPHAN_GRACE_MS` window (submit→queue propagation) and
+     * whenever either HTTP read fails (engine not answering → no verdict).
+     * @param {string} promptId
+     * @private
+     */
+    async _checkVanishedPrompt(promptId) {
+        // Grace period: the prompt may still be propagating from /prompt ack to the queue.
+        const start = this._promptStartTimes.get(promptId) || 0;
+        if (Date.now() - start < this._ORPHAN_GRACE_MS) return;
+
+        // 1. Read the queue. A failed read is "unknown" → no verdict.
+        let queue;
+        try {
+            const qr = await fetch(`${this.httpBase()}/queue`);
+            if (!qr.ok) return;
+            queue = await qr.json();
+        } catch (_) { return; }
+
+        const inQueue = [...(queue.queue_running || []), ...(queue.queue_pending || [])]
+            .some(e => e?.[1] === promptId);
+        if (inQueue) return; // still running or pending → not gone
+
+        // 2. Re-read /history AFTER the queue — the MPI-450 guard.
+        // A prompt that finished between reads 1 and 2 is absent from BOTH at that
+        // instant; a failed re-read collapses "could not read" into "absent" — wrong.
+        // Only a successful re-read that is STILL empty is proof of absence.
+        let again;
+        try {
+            const hr = await fetch(`${this.httpBase()}/history/${promptId}`);
+            if (!hr.ok) return; // engine not answering → no verdict
+            again = await hr.json();
+        } catch (_) { return; }
+
+        if (again?.[promptId]) return; // appeared in history → normal completion in flight
+
+        // Absent from history AND queue, engine answering → the prompt is GONE.
+        // Re-check the resolver: a live terminal may have landed during the awaits.
+        if (!this._promptResolvers.has(promptId)) return;
+
+        const reject = this._promptRejectors.get(promptId);
+        this._stopHistoryPoll(promptId);
+        this._promptListeners.delete(promptId);
+        this._promptRejectors.delete(promptId);
+        this._promptResolvers.delete(promptId);
+        this._promptStartTimes.delete(promptId);
+        if (this._activePromptId === promptId) this._activePromptId = null;
+        this._isRunning = this._promptListeners.size > 0;
+        const elapsed = Math.round((Date.now() - start) / 1000);
+        const err = new Error(
+            'Generation lost — the prompt disappeared from the ComfyUI queue and history. '
+            + 'The engine may have restarted or the queue was cleared mid-generation.'
+        );
+        err.code = 'prompt_vanished';
+        clientLogger.warn('comfy', `Prompt ${promptId} vanished — absent from history and queue after ${elapsed}s`);
+        reject?.(err);
     },
 
     /**
@@ -1722,6 +1816,7 @@ function createEngine({ engine, alwaysLocal }) {
                         this._promptListeners.delete(promptId);
                         this._promptRejectors.delete(promptId);
                         this._promptResolvers.delete(promptId);
+                        this._promptStartTimes.delete(promptId);
                     }
                     if (this._activePromptId === promptId) this._activePromptId = null;
                     this._isRunning = this._promptListeners.size > 0;
@@ -1755,6 +1850,7 @@ function createEngine({ engine, alwaysLocal }) {
                         this._promptListeners.delete(promptId);
                         this._promptRejectors.delete(promptId);
                         this._promptResolvers.delete(promptId);
+                        this._promptStartTimes.delete(promptId);
                     }
                     if (this._activePromptId === promptId) this._activePromptId = null;
                     this._isRunning = this._promptListeners.size > 0;
@@ -1895,9 +1991,10 @@ function createEngine({ engine, alwaysLocal }) {
                     // replayed) can be settled from `/history` by `_reconcileFromHistory`
                     // (MPI-152).
                     this._promptResolvers.set(promptId, resolve);
-                    // REMOTE backstop: poll /history for the whole gen lifetime in
-                    // case the direct terminal WS is reaped and its terminal event
-                    // is lost (see _startHistoryPoll). Local relies on the WS only.
+                    // Record submission time for the vanished-prompt detector's grace period.
+                    this._promptStartTimes.set(promptId, Date.now());
+                    // Poll /history + /queue for the whole gen lifetime: missed-terminal
+                    // recovery (remote) and vanished-prompt detection (both engines).
                     this._startHistoryPoll(promptId);
                     if (onMessage) onMessage({ type: 'prompt_ack', prompt_id: promptId });
                     const pending = this._pendingPromptMessages.get(promptId) || [];
@@ -1909,6 +2006,7 @@ function createEngine({ engine, alwaysLocal }) {
                     this._stopHistoryPoll(promptId);
                     this._promptListeners.delete(promptId);
                     this._promptRejectors.delete(promptId);
+                    this._promptStartTimes.delete(promptId);
                 }
                 this._isRunning = this._promptListeners.size > 0;
                 reject(err);

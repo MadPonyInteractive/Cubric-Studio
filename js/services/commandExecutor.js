@@ -2467,6 +2467,18 @@ export function runCommand(payload) {
                 exec.onError?.(err);
                 return;
             }
+            // MPI-516: the prompt left ComfyUI's queue and history while the engine kept
+            // answering (engine restart, queue cleared, worker killed). The engine lost the
+            // job, not our code, so a warning toast, never the bug-reporter dialog.
+            if (err?.code === 'prompt_vanished') {
+                clientLogger.warn('comfy', `Prompt vanished — ${workingPayload.operation} / ${workingPayload.modelId}`);
+                Events.emit('ui:warning', {
+                    title: 'Generation lost',
+                    message: err.message,
+                });
+                exec.onError?.(err);
+                return;
+            }
             // Out-of-memory (system RAM or CUDA/VRAM). User-actionable — the inputs are
             // too large for the available memory, not a bug to report. Warning toast, not
             // the GitHub-report dialog. Covers Python MemoryError, torch CUDA OOM, and the
