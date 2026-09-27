@@ -35,8 +35,8 @@ member when the phase covering it lands, and say so in its card.
 | MPI-799 | Community Flow registry — public GitHub repo, submissions reviewed by MPI. **Open at 2.0 release**; needs Fabio's decisions | 7 |
 | MPI-831 | Flow Library: the **Third-party Flows** section, source badges, dimmed uninstalled tiles, and the two paid Gumroad tiles | 8 |
 | MPI-841 | The Flow Library **browses the registry** — a user discovers third-party Flows in the app, never on a website | 8 |
-| MPI-780 | **Umbrella**: the two PAID Flows — Head Swap and DramaBox leave the app (MPI-781, shipped) and sell as Gumroad packages. **Blocks 2.0**, gated as a four-link chain in MPI-595 Gate A | 8 |
-| MPI-872 | The `cubric.studio/flows/<id>` redirects — MPI-780 phase 3. Website repo. **Blocks 2.0**: the app's shipped Get-it buttons open these and they do not resolve yet | 8 |
+| MPI-780 | **Umbrella**: the two PAID Flows — Head Swap and DramaBox leave the app (MPI-781, shipped) and sell as Gumroad packages. **DONE 2026-09-27**: both products live, codes auto-applied, licence + refund policy in place (MadPony-Identity MPI-81) | 8 |
+| MPI-872 | The `cubric.studio/flows/<id>` redirects — MPI-780 phase 3. **REJECTED 2026-09-27**: Get it opens the plain Gumroad pages (`fe68f620d`), no redirect needed | 8 |
 | MPI-743 | A refused licence gate is a silent no-op — the tile just falls back to Install. Reaches a PAID buyer: Head Swap pulls the Klein 9B gate on first install | 8 |
 | MPI-828 | No licence attribution row in the Flow drawer — H3 §III.3.a / §IV.2 owe it on the surface where the model is PRESENTED, and a Flow user may never open the Model Library | 8 |
 
