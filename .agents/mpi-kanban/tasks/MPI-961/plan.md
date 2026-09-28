@@ -48,7 +48,9 @@
   and verified, card `validating` for Fabio's relaunch check - real 16K open now 6.5 s (was 37.1),
   Paint->Prompt 2.1 s, Prompt->Mask 4.3 s (MPI-963 `validation.md`). **Next: Phase 3** (display
   copy, canvas AND Prompt preview); what it must remove is the ~2.4-3.6 s 16K first paint per mount
-  and the Prompt preview's per-zoom-step re-decode.
+  and the Prompt preview's per-zoom-step re-decode. Fabio OK'd MPI-963 ("checked, all good");
+  `b7fee8b7c` went red on `stack-history.spec.js` (keyed on the original's filename in a row
+  `src`), fixed in `52ee9cbc6` - MPI-963 closes once that CI run is green.
 - **Headline:** (1) MPI-963's rows-load-originals is the biggest cost to OPEN and to Prompt<->tool
   swaps (16K idle open 37 s -> 5 s, 4K swaps 5 s -> 0.35 s with rows on thumbs). (2) Under GPU
   load, 16K pan/zoom/stroke fall to 2-6 fps because every tick runs a full `draw()` of the
