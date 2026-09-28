@@ -296,8 +296,14 @@ const POD_IMAGE_VERSION_CPU = 'v0.21.0';
 // The stable pair stays on v0.21.0 (ComfyUI 0.31.0) — a clean release-version rebuild at
 // ship time remains MANDATORY, or a 1.4.5 user gets a v0.34.0 local engine against a
 // 0.31.0 remote Pod, silently.
-const POD_IMAGE_VERSION_DEV = 'v0.23.0-dev';
-const POD_IMAGE_VERSION_CPU_DEV = 'v0.23.0-dev';
+// v0.24.0-dev (MPI-595 gate B1, the 2.0 smoke): SAME engine, v0.34.0. mpi-ci 5ba9eb8 synced
+// node_lock.json + python_deps.txt: ComfyUI-SplatKit left the bake (MPI-952) and MpiNodes moved
+// cff4c3b -> bc92a1b (MPI-591; code-only, so that half needed no rebuild). CI run 36408333772,
+// both legs pushed and pull-verified; cu130 printed `node-import smoke test OK` with post-node
+// torch 2.12.0+cu130. The cpu boot smoke was NOT run (Docker daemon down) — the smoke's CPU
+// install Pod boots this tag on RunPod instead.
+const POD_IMAGE_VERSION_DEV = 'v0.24.0-dev';
+const POD_IMAGE_VERSION_CPU_DEV = 'v0.24.0-dev';
 // 0.2.23 (MPI-169): add GET /wrapper/disk (du -sb of the mounted volume) so the
 // Settings volume bar can show truthful USED bytes — RunPod's API has no used-bytes.
 // R2-publish-only (publish-runtime.sh, no image rebuild). Degrades gracefully: an
