@@ -292,7 +292,7 @@ FLAG:    Read-only over the SET — no picker, no add, no clear. `el.refresh()` 
 ### MpiModelManager — the Model Library overlay (Organism — js/components/Organisms/MpiModelManager/MpiModelManager.js)
 EMITS:   (none — the hosted MpiOverlay owns its own `close` + `ui:close-all-popups` handling)
 LISTENS: `state:changed` `{ key: 's_installedModelIds' }` — re-renders the tile grid when install state changes
-         `remote:connection` `{ connected, phase, vramGb }` — engine switch → re-render + re-sync (drives VRAM table + Pause visibility)
+         `remote:connection` `{ connected, phase, vramGb, ramGb }` — engine switch → re-render + re-sync (drives VRAM table, the Fits my GPU filter (MPI-967) + Pause visibility). Dedupe compares all four, so a Pod RAM change alone still re-filters
          `download:progress` `{ modelId }` — patches that tile's inline state row in place (+ rebuilds the open detail if it's that model)
          `download:started` `{}` — full grid re-render (started tile shows progress bar; detail footer → Pause/Cancel)
          `download:paused` / `download:resumed` / `download:installing` `{ modelId }` — patch that tile in place
@@ -309,11 +309,39 @@ API:     `el.open()` — shows the hosted overlay + re-syncs installed state + o
          `el.destroy()` — tears down subscriptions, tiles, detail toggles, the uninstall dialog, and the hosted overlay
 PATTERN: MPI-215 — self-hosts `MpiOverlay(mountTarget:'body')` styled as a dark contact sheet. Lean tiles
          (Map by modelId, patched in place) split into Installed/Available × Image(4:5)/Video(16:9) sub-grids;
-         Media/Tier/search filters compose (shared `MpiFilterBar`, MPI-754). Clicking a tile opens a right-drawer detail panel (absolute child of
+         Media/Tier/Hardware/search filters compose (shared `MpiFilterBar`, MPI-754). Hardware = "Fits my GPU" (MPI-967):
+         `footprint.js` `fitsHardware()` on the ACTIVE GPU — `_activeVramGb()` / `_activeRamGb()`, this PC from
+         `/system/stats` or the connected Pod from `remote:connection`, with `_engine()` and its arch. Cloud models
+         ignore it, as they ignore Tier. Clicking a tile opens a right-drawer detail panel (absolute child of
          the overlay — stacks above it, reuses MpiSlideOver's CSS chrome, NOT its singleton) carrying description,
          arch toggles (MPI-200/209), inline VRAM→RAM table (MPI-168), disk, and
          Install/Update/Uninstall. Detail video autoplays; click → native `requestFullscreen()` (Escape exits FS only).
          Opened via `models:open` (shell mounts once + `el.open()`); also the project-page `Models` nav action + dev gallery.
+
+### MpiFlowLibrary — the Flow Library overlay (Organism — js/components/Organisms/MpiFlowLibrary/MpiFlowLibrary.js)
+EMITS:   (none — the hosted MpiOverlay owns its own `close`)
+GLOBAL EMITS:
+         `flow:open` `{ flowId }` — tile or drawer Open on an available flow, only inside a project's Gallery
+         `ui:info` — Open pressed outside the Gallery; flow uninstall with shared files kept / nothing freed
+         `ui:success` — flow uninstalled; third-party Flow package added
+         `ui:warning` — a dropped Flow package failed to install · `ui:error` — the Third-party Flows folder would not open
+LISTENS: `remote:connection` `{ connected, phase, vramGb, ramGb }` — MPI-967: the connected Pod replaces this PC for
+         the Fits my GPU filter (remote engine + arch; a Pod still connecting fits nothing). Re-renders only while that
+         filter is on and the specs moved. The shell feed re-emits every tick, so a library first mounted after the
+         connect catches up on the next one — the libraries mount lazily on first open
+         `state:changed` `{ key: 's_installedModelIds' }` — re-derives affected tile badges in place (`_patchAllAffected`)
+         `models:checked` — same patch; the only signal a flow-DEPS-only install flipped a flow to Ready (MPI-304)
+         `download:progress` `{ modelId }` — patches the open drawer's bar when the key is one of its flow's install keys
+         `download:started` / `download:complete` / `download:cancelled` — rebuild the open drawer only
+         `download:uninstalled` `{ modelId, removed, keptShared, keptModelFiles }` — toasts a FLOW uninstall; returns
+         early on any key that is not a `flow:` key (MpiModelManager owns models/plugins, MPI-682)
+         `ui:close-all-popups` — closes the detail drawer, except `reason: 'overlay-open'`
+API:     `el.open()` — shows the overlay + renders + one-shot `/system/stats` read (alias: `el.onOpen`)
+         `el.close()` — hides the overlay · `el.destroy()` — tears down subscriptions, tiles, drawer buttons, the
+         filter bar, the uninstall dialog and the hosted overlay
+PATTERN: Filters (Media/Type/Hardware/search, shared `MpiFilterBar`) narrow the grid only; the count, badge patches and
+         the drawer ignore them. A flow fits the Hardware filter when EVERY `requiredModels` slot has one candidate
+         that fits; a flow with no required models (audio Flows, Gumroad tiles) always passes.
 
 ### MpiNewProject
 EMITS:   `create` `{ name: string, location: string|null }`
