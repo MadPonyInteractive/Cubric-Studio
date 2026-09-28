@@ -46,7 +46,8 @@
 - **Mac users need macOS 14 (Sonoma) or later.** Some of the components the engine installs
   no longer build for older versions. Every M-series Mac can run it.
 
-- **FLUX.2 Klein is now FLUX.2 Klein 4B**, since Klein 9B arrived beside it.
+- **Head Swap and DramaBox are now paid Flow packages.** The Flow Library shows where to get
+  them; drop a package on the library to install it.
 
 - **Adding or removing a model folder now needs an engine restart.** There is a **Restart
   engine** button at the end of Settings → External Connections, and it waits for anything
@@ -60,9 +61,6 @@
 
 - **Krea 2 Inpaint is a lot better, and takes longer.** It now reads your picture as
   reference, so what comes back sits in the scene properly. Krea 2 and Krea 2 NSFW.
-
-- **The engine moves to ComfyUI 0.34.0.** It updates itself the first time you open this
-  version — a handful of small packages, not a reinstall, and no model is touched.
 
 - **NVIDIA PiD is staying.** Its Model Library tile no longer says it is marked for
   deprecation.
@@ -105,19 +103,12 @@
   - **Sound & Music** — sound effects, one-shots, instruments and instrumental music
 
   Each flow says which models it needs and installs them for you. Most run on a model the
-  Library already offers, so once you own it the flow costs you nothing extra.
+  Library already offers, so once you own it the flow costs you nothing extra. The Library has
+  filters, search and a count.
 
-- **FLUX.2 Klein now comes in two sizes.** The 9B card does the same seven things as 4B with
-  more detail and closer prompt following, traded against speed. It wants about 15GB of video
-  memory, so 4B stays the one to reach for on a 16GB card.
-
-- **Klein 9B brings seven styles of its own** — Storybook, Comic, Anime, Chibi, Doodle,
-  Vintage and Watercolour — on everything the card does. They are a different set from 4B's
-  eight, not the same styles carried across.
-
-- **Some models now ask you to accept their licence before they download.** Klein 9B is the
-  first: request access from the people who made it, paste a Hugging Face token, and Cubric Studio
-  unlocks the download. Free to use, and the pictures you make are yours to sell.
+- **Klein 9B now asks you to accept its licence before it downloads, like MiniMax H3.** Request
+  access from the people who made it, paste a Hugging Face token, and Cubric Studio unlocks the
+  download. Free to use, and the pictures you make are yours to sell.
 
 - **Klein inpaints properly now.** It samples with your mask as a real constraint and can see
   the picture underneath it, so what comes back sits in the light, style and perspective of
@@ -144,14 +135,16 @@
   version at the top with a button to install it, and the startup prompt now has a **Don't ask
   again** checkbox.
 
-- **MiniMax H3's Turbo mode is faster and cleaner**, and its speed weight is 1.4 GB smaller to
-  download. The full-quality 25-step mode is untouched.
+- **MiniMax H3's Turbo mode is faster and cleaner.** The full-quality 25-step mode is
+  untouched.
 
 - **MiniMax H3 Reference has its own Turbo weight now**, tuned for references — more
   cinematic shots, and sound that follows what you asked for more closely.
 
 - **Audio looks like audio.** An audio card is now a wide tile drawn with its own waveform,
   filling as it plays. Click anywhere on the wave to jump there.
+
+- **The gallery filters by kind: images, videos or audio.**
 
 - **The video trim bar shows the clip's sound.** The waveform is drawn behind the trim
   handles, so you can cut an in or out point on a word or a beat instead of guessing. Clips
@@ -163,12 +156,11 @@
 - **The cogwheel by the prompt shows the LoRAs your model is running** — name, strength, and a
   switch to mute one for the next run, without leaving the prompt you are working on.
 
-- **Cue all: run one operation over many pictures.** Select several gallery cards and press
-  Cue all: each card that fits the current operation becomes its own job on your current
-  prompt and settings.
+- **Stack: collect several cards into one.** Select cards and press Stack. Drop the stack on
+  the prompt box to run the current operation on every card in it.
 
 - **Selecting cards brings up a selection bar where the prompt box was.** It shows how many
-  cards are selected and holds everything that works on a selection: Cue all, Compare,
+  cards are selected and holds everything that works on a selection: Stack, Compare,
   Combine and Make GIF; a dot, square or triangle mark for every selected card in one click
   (or clear them); then Download, Archive and Delete. Close it with X or Esc.
 
@@ -181,6 +173,10 @@
   FLUX 2 Max, Nano Banana 2 Lite, Nano Banana 2, Nano Banana Pro, Seedance 1.5 Pro,
   Seedance 2.0, Wan 3.0, Veo 3.1 Fast and Veo 3.1.
 
+- **Nano Banana edits take up to four reference images.**
+
+- **The prompt box shows what a paid run costs before you press Cue.**
+
 - **Dictate instead of typing.** A mic on the prompt box and the Agent panel: click it and speak,
   or hold Ctrl+Space. Uses your DeepInfra key, about $0.0002 a minute. Turn on Settings, Audio,
   Dictate in English to have any language you speak written in English (about $0.00045 a minute).
@@ -188,13 +184,14 @@
 - **An agent inside the app.** Press Agent in the top bar (or A) and ask in plain words: it
   picks and installs models, runs generations and Flows, and looks at what it made. It asks
   before anything costs money. Runs on your own DeepInfra, OpenRouter or OpenAI key, or free
-  on Ollama.
+  on Ollama. Its panel is resizable, and it can use a mask you painted, outpaint, and make GIFs.
 
 - **Claude, Codex and Google Antigravity can drive Cubric Studio.** Ask for an image, a video
   or a GIF and it lands in your project. Settings > Connect an agent sets it up in one click.
 
 - **GIFs have their own workspace.** Make GIF from selected cards or GIF Maker from a clip, then
-  retime, trim and crop it, or cut the subject out of every frame onto transparency.
+  retime, trim and crop it, duplicate a frame from the strip, or cut the subject out of every
+  frame onto transparency.
 
 - **Big photos just work.** 16K images import, thumbnail and edit, and anything over 4K offers
   to shrink to a size every tool handles quickly. SVGs import as pictures too.
@@ -203,7 +200,8 @@
   and volume opens from the speaker button.
 
 - **The landing page has a new crew.** The five Cubric mascots stand on a lit stage with a
-  rotating quote. Hover one and it greets you; click it for a happy pose.
+  rotating quote. Hover one and it greets you; click it for a happy pose. The selected model's
+  mascot peeks over the prompt box, and plays on a card while it generates.
 
 - **Resize can shrink a picture by megapixels or by a fixed amount.** MP resizes to the
   megapixels you type, SCALE divides width and height by 1.5, 2, 3 or 4.
@@ -252,6 +250,14 @@
 - **Installing a model on a Pod no longer says the volume is full when most of it is already
   there.** The panel now shows how much of a model is on disk and how much is left.
 
+- **A renamed or moved project folder keeps its gallery.**
+
+- **Stop cancels only its own job, and a stopped cloud run keeps the result it already paid
+  for.**
+
+- **The engine refuses to start on a graphics driver too old for it, and says so** instead of
+  crashing.
+
 - **A model whose install was cut short can be installed again on a nearly full disk.** The
   leftover part-files now count as space the retry takes back, on a Pod and on your machine.
 
@@ -262,19 +268,8 @@
 - **Krea 2 Image to Image works on your whole picture** instead of a square cut out of the
   middle. Krea 2 and Krea 2 NSFW.
 
-- **Large videos and photos import properly.** Imports used to cap silently around 75 MB; a
-  474 MB 4K clip now lands in seconds, and anything that does fail says so.
-
-- **Phone videos no longer arrive on their side.** Portrait footage stays portrait.
-
 - **An import tells you it is happening.** A card with a spinner appears the moment you drop a
   file and turns into the finished item when it lands.
-
-- **MiniMax H3 installs far faster and takes 10 GB less disk.** Its largest file now comes
-  from our own servers at tens of megabytes a second instead of under one. Quality is unchanged.
-
-- **A half-installed model can give its disk space back.** **Remove files** now sits next to
-  Install whenever a model is holding files, and still keeps anything another model needs.
 
 - **A big download survives a shaky connection.** Retries are spent on attempts that make no
   progress, so a large model no longer runs out of them halfway through.
@@ -283,8 +278,6 @@
 
 - **Clicking away closes a panel now, wherever you are** — Settings, Hotkeys and About
   included. The Cue queue stays open on purpose, so you can keep prompting.
-
-- **No more terminal windows flashing open when Cubric Studio starts** on Windows.
 
 - **The colour picker no longer opens off the bottom of the screen.** It opens upward when
   there is no room below it.
@@ -305,8 +298,6 @@
   local engine install" clears itself once an engine is present.
 
 - **"Run locally" is honoured everywhere**, not just on the Cue button.
-
-- **Connecting to a cloud Pod no longer claims to have installed models it did not.**
 
 - **Live latent previews play everywhere they appear.** The History workspace showed nothing
   at all on a video run, and the minimised preview window sat on a single frame.
