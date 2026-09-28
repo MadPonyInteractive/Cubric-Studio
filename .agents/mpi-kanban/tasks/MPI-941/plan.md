@@ -18,6 +18,8 @@ move this card to `doing` while MPI-817 is still open.
 | 8 | none (Fabio, 2026-09-27) | The spend line counts image analysis and prompt work as ONE "Agent" figure: "Agent · Generations" |
 | 9 | none (Fabio, 2026-09-27) | The agent cleans up after itself: cancels a run the user replaced, knows model strengths, crop takes a plain ratio |
 | 10 | MPI-955 (Fabio, 2026-09-27) | History's prompt box vanishes when the selected image model takes no image: no Cue, no Stop, no model picker |
+| 11 | none (Fabio, 2026-09-28) | The Ollama agent picker says which local models were tested, and hides the ones that cannot call tools |
+| 12 | none (Fabio, 2026-09-28) | "Benchmark this model": the user runs our agent test suite on the model they picked |
 
 **Umbrella rule (Fabio, 2026-09-27): every new card this work spawns is added to this table and gets a
 phase, so nothing is orphaned or left behind.**
@@ -261,6 +263,38 @@ eligible model. Footprint: `js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHi
 desktop spec. **Verify:** the spec selects a t2i-only image model, opens History, and finds the prompt box
 on the first eligible model; then live.
 
+### Phase 11 - the Ollama agent picker is honest (Fabio live, 2026-09-28)
+
+Fabio, on the Ollama connection: the enhancement row carries "(recommended)", the agent row nothing, "as a user
+I would have no idea what to pick". Added on his "yes, add Phase 11". **Not a recommendation:** MPI-912
+(`validation.md` § 3-4) already ran `scripts/agent-test.mjs --preset ollama` and no local model met the bar
+(DeepSeek's 22/22 x3): gemma4:12b 14/22, ornith:9b 11/22, qwen3.5 9/22, gemma-4-abliterated:12b 2/22, all `--runs 1`
+on the 22-case suite. His 2026-09-26 picker rule (docs/llm.md § `agentTest`) is the shape: every tested model on top
+with its score and cost, no "(recommended)". Three parts:
+1. **Scores:** `agentTest` entries with `jobs: []` on the `ollama` table (`services/llmEngines.mjs`
+   `RECOMMENDED_REMOTE_MODELS`), re-measured on the CURRENT suite (it grew, and the Options rule is new), perChat $0.
+   Needs his GPU free: `npm run agent:test -- --preset ollama --model <tag> --runs 1` per model, under the GPU lease.
+2. **No tools, not listed:** a model whose Ollama `/api/show` capabilities lack `tools` cannot be the agent at all
+   (docs/agent-chat.md caveat: "the picker shows no way to tell them apart"). Filter it out of the agent row only.
+3. **Stale value:** the Ollama agent box showed `deepseek-ai/DeepSeek-V4-Flash-0731` (a DeepInfra id) while ornith:9b
+   ran. Find where the row reads its saved pick.
+Footprint: `services/llmEngines.mjs`, `routes/llm.js` (models + capabilities), `MpiLlmSettings` (agent row),
+`tests/llm-connection.test.cjs`. **Verify:** unit tests for the filter and the scored rows; then Fabio opens the
+Ollama agent row and sees scores on top, no tool-less models, and his real pick.
+
+### Phase 12 - "Benchmark this model" (Fabio, 2026-09-28)
+
+His idea: under Settings > Remote's "Test tool use" button, a "Benchmark this model" button with a line saying what it
+is, which runs our agent suite on the selected model and shows how many tests it passes. Feasible (answered "yes"):
+`scripts/agent-test.mjs` runs the REAL loop against FAKE tools and a captured models fixture, no app, no generation.
+Plan it first. Open points: (a) the harness and `tests/fixtures/agent/` are repo-only today; they must ship in the
+build (check the portable packaging's file list) and run server-side (a route streaming progress, not a child
+`npm run`); (b) money: a paid model's suite is about $0.06-0.36, so a spend card with the estimate before it runs;
+(c) time: a local model is 10-30 min and holds the GPU, so a progress line, a Stop, and the Phase 5 release rules;
+(d) the result: store it per connection+model and show it in the agent row the way `agentTest` scores show (Phase 11's
+display), marked as the user's own run; `--runs 1`, never presented as our certified 3-run bar. Reuse Phase 11's
+scored-row code; build 11 first.
+
 ## Parallel Batch - Phase 9 and Phase 10
 
 - **Phase 9** - Ownership: the Phase 9 footprint above. **Verify:** as Phase 9.
@@ -369,6 +403,28 @@ MPI-955 `validating`. **NEXT:** commit Phases 9 + 10 code, close MPI-955 once CI
 commit, done-gate), then Phase 5 (MPI-913, local Ollama holds VRAM), 7 (clickable options), 8 (one Agent
 spend figure). Noticed, not built: the agent claims a tool needs no GPU (the "with no model" tool notes).
 
+2026-09-27, session 2f2883e4: CI green on 6f4105a8c; **MPI-955 closed** (`8453482c4`, private index). **Phase 5
+(MPI-913) built and unit-green, uncommitted, claim `2f2883e4-mpi941`; MPI-913 in `doing`; live check pending**
+(MPI-913 validation.md has the brief). The agent's generate never blocked, so both halves were needed: release
+at dispatch AND a waiting line (Fabio picked the tighter copy) with the turn ending instead of a second round.
+Same session: **Phase 8 built and green** (one wrapper `_look` adds the describer's `costUsd` to `chatUsd`; the
+label reads "Agent"; full `npm test` 0 fail). **Phase 7 brief given to Fabio** (recommended: an `[options: A | B]`
+reply marker hidden like `[declined]`, buttons in the chat, net-zero system-prompt bytes). **NEXT:** his live
+check of 5 + 8 and his call on 7's shape; then build 7.
+2026-09-28, same session: **Phase 7 built and green** on Fabio's "go with the marker" (validation.md § Phase 7; system
+prompt 10,088, net -5). **All phases are built. NEXT:** Fabio's one live check of 5, 7 and 8; then tick them, close
+MPI-913 (after CI on its code commit), and close MPI-941 via `mpi-end-session`.
+Same day, later: **Phase 5 VERIFIED** (ornith:9b; Ollama's server.log shows no agent reload during the render) and a
+duplicate waiting line found and fixed (`_waitForGpu` draws only with no line open). **Phase 8 VERIFIED** on DeepInfra
+("Agent $0.006 · Generations $0.0005"). Phase 7's buttons NOT yet seen live: ornith:9b ignored the marker at a real
+fork, and the DeepInfra run had no fork. **Phase 11 added** (Fabio: "yes"). **NEXT:** Fabio's fork check on DeepInfra
+("make an image with SDXL"), Phase 11's go, and its scores need his GPU free.
+**Handoff (Fabio, 2026-09-28):** he said go on the score test, in a FRESH session. Phase 12 added (his benchmark button,
+answered "feasible"). **NEXT session:** (1) Phase 11 parts 2+3 (no GPU), then part 1's scores: `npm run agent:test --
+--preset ollama --model gemma4:12b --runs 1` and `ornith:9b`, ask Fabio first that the GPU is free; (2) plan Phase 12;
+(3) his Phase 7 fork check is still owed. Phases 5, 7, 8 + the duplicate-line fix are UNCOMMITTED at handoff time
+unless the handoff commit below took them.
+
 **Watch-only, carried from MPI-817 (no build unless it recurs):** the agent ending an Auto-mode
 turn on a question; a note generalising from two runs; a project note RESTATING a global one
 (Fabio's `characters.md` copied "3D cartoon (global preference)", so forgetting the global note left
@@ -400,8 +456,22 @@ the copy); Ollama's free cloud models (unconfirmed research); the `__ARG__` proj
   (`modelPriority.js`); `_modelTakesImage` (`MpiGroupHistoryBlock.js`); `docs/agent-chat.md`. Tests in
   `agent-loop.test.cjs`, `model-priority.test.cjs`, new `tests/desktop/history-prompt-model.spec.js`.
   `routes/connector.js`, `agentToolOps.js`, `agentDispatch.js` needed no change. Live check is Fabio's.
+- **Phase 5 code (2026-09-27, session 2f2883e4), uncommitted until handoff/close:** `_gpuJobs`, `_gpuWaitLine`,
+  `_waitForGpu`, `_gpuDrained`, `_releaseLlm`, `batch.billed`, the yield after a round and the turn-start wait
+  (`services/agentLoop.mjs`); `engineIsLocal()` (`services/agentTools.mjs`); `docs/agent-chat.md` row. Tests: `(m)`
+  in `agent-loop.test.cjs` (6). No `routes/llm.js` edit: `releaseOwnModels` is reused as is.
+- **Phase 8 code (2026-09-27, session 2f2883e4), uncommitted until handoff/close:** `_look` (`services/agentLoop.mjs`),
+  `costUsd` on `/llm/describe` (`routes/llm.js`) and `_describeImage` (`js/shell/agentDispatch.js`), "Agent" in
+  `_setSpend` (`MpiAgentChat.js`), `js/events.js` doc line. Test in the MPI-855 spend block.
+- **Phase 7 code (2026-09-28, session 2f2883e4), uncommitted until handoff/close:** Options rule + `_takeOptions`
+  (`services/agentLoop.mjs`), `_appendOptions` / `_optionBtns` (`MpiAgentChat.js` + `.css`), `docs/agent-chat.md`.
+  Tests: `Options:` in `agent-loop.test.cjs` (Route's limit assertion moved there), desktop `options:` in `agent-chat.spec.js`.
 
 ## Plan Drift
+
+- 2026-09-27 (session 2f2883e4): Phase 5's "check first" answered: the agent turn does NOT block on its generation,
+  so the waiting message is part of the fix, not optional. Footprint grew by `services/agentTools.mjs`
+  (`engineIsLocal`); `routes/llm.js` and the agent routes needed no edit.
 
 - 2026-09-27 (session 575c1f1a): Phase 9's Chroma item was corrected by Fabio mid-build after a live Krea
   test. Krea2 gives the better skin at low denoise; Chroma's advantage is that its denoise moves the

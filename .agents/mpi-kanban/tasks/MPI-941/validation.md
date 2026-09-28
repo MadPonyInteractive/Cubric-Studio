@@ -193,3 +193,34 @@ the agent said honestly it only knows what the frames show. (6) "Test tool use":
 
 **VERIFIED by Fabio (2026-09-27), screenshots, "Everything works".** (9.1) Klein 9B edit running, he typed "Can you please use krea": CANCELLING A GENERATION, "Cancelled, as you asked", then Krea 2 alone. (9.3) "I need this to be cropped to 8:5": STARTING GENERATION on the first call, no refusal (he then stopped it; his GPU was busy with another app). (10) History prompt box with Cue/Stop present. He ran none to the finish line (GPU in use elsewhere).
 **Noticed, not actioned (Fabio: not bothered):** the agent told him the crop "runs right on the local file without needing the GPU". False: tools go through the engine queue. Its source is the tool notes saying "with no model" (`js/shell/agentToolOps.js`). Rewording costs tool-schema bytes (17,158 of 17,200).
+
+## Phase 5 (MPI-913) and Phase 8 (session 2f2883e4, 2026-09-27)
+
+**Phase 5:** evidence in `.agents/mpi-kanban/tasks/MPI-913/validation.md` (`(m)` 6 tests, red first, one mutation).
+**Phase 8:** a `look`'s describer cost joins `chatUsd` through one wrapper, `_look` (`services/agentLoop.mjs`, all three
+describer call sites); `/llm/describe` returns `costUsd` from the provider's `usage.estimated_cost` (`routes/llm.js`), the
+renderer passes it on (`_describeImage`, `js/shell/agentDispatch.js`); the chat labels the figure "Agent" (`_setSpend`).
+The `chatUsd` key is kept (a rename touched events.js, tests and history for no user gain). Test: "every describer call adds
+its cost to the agent figure, never to generations", RED first (got 0), GREEN after.
+**Evidence:** `tests/agent-loop.test.cjs` 147 tests, 146 pass, 0 fail (1 live, env-gated). Full `npm test` 2171 tests, 2169 pass,
+0 fail. `npm run lint:components` exit 0.
+**Live check (Fabio), pending:** (5) agent on a local Ollama model, "make an image with SDXL": waiting line, GPU memory drops,
+Cosmo reports when it lands; type mid-render, the message waits. (8) agent on DeepInfra, attach a picture and ask what is in
+it: the header reads "Agent $x · Generations $y" and Agent rises after the look.
+
+## Phase 7 (session 2f2883e4, 2026-09-28)
+
+**Shape (Fabio: "go with the marker"):** an `Options rule` line has the model end a reply at a genuine fork with
+`[options: A | B]`; `_takeOptions` (`services/agentLoop.mjs`) cuts it from the shown text like `[declined]`, 2 to 4
+distinct choices ride on `agent:message` + the history entry, the context keeps the marker. Chat: `_appendOptions`
+(`MpiAgentChat.js` + `.css`), an MpiButton per choice, a click sends it via `_sendMessage`, any send disables the offer,
+a redraw opens only the latest reply's buttons.
+**Budget:** system prompt 10,093 -> 10,088 bytes (net -5): "at most three, always recommend one" moved from the Route rule
+into the Options rule (its test assertion moved with it), Voice's last sentence shortened (pinned phrase kept), and Honest
+limits lost "After a restart I only remember what I saved in the project's notes" (stale since global notes; the Memory rule
+says it right). Tool schemas untouched (17,158).
+**Evidence:** `Options: a fork ends on a marker...` RED first ("there is no Options rule"), GREEN after; budget test green.
+Desktop `options: only the latest reply offers buttons, and a click sends that choice once` GREEN, and RED with the
+`_appendOptions` call removed. Full `npm test` 2178 tests, 2176 pass, 0 fail. `agent-chat.spec.js` 34 passed. Lint exit 0.
+**Live check (Fabio), pending:** ask the agent something with a real fork (e.g. after a batch, "what next?"): buttons under
+its reply; one click continues the conversation with that choice.

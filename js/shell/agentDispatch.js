@@ -1445,7 +1445,8 @@ async function _describeImage(jobId, input = {}) {
     if (result.ok) {
         // `describer`: which vision model wrote this, kept beside the text in the card's
         // sidecar, because a description outlives the describer (Fabio, 2026-09-21).
-        return _report(jobId, { ok: true, output: { text: result.text, ...(result.model && { describer: result.model }) } });
+        // `costUsd`: what a Remote describer billed, for the agent's spend figure (MPI-941 Phase 8).
+        return _report(jobId, { ok: true, output: { text: result.text, ...(result.model && { describer: result.model }), ...(result.costUsd > 0 && { costUsd: result.costUsd }) } });
     }
     const code = result.errorCode || (result.cancelled ? 'CANCELLED' : 'RUNTIME_ERROR');
     const message = result.error || 'The description failed. See the app log for the cause.';

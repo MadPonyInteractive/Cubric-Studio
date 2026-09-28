@@ -452,6 +452,14 @@
     margin-top: var(--s-1);
 }
 
+/* The agent's choices under its reply (MPI-941 Phase 7) */
+.mpi-agent-chat__options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    margin-top: var(--s-2);
+}
+
 /* Result card. Sized BY its media, long side capped: a fixed landscape box with
    `object-fit: cover` cropped every portrait result (Fabio, 2026-09-24). */
 .mpi-agent-chat__result-card {

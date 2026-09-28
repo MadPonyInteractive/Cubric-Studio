@@ -351,6 +351,42 @@ test('confirm card Yes button calls POST /agent/confirm', async ({}, testInfo) =
   }
 });
 
+// MPI-941 Phase 7: the agent's choices are buttons; a click is the user's reply.
+test('options: only the latest reply offers buttons, and a click sends that choice once', async ({}, testInfo) => {
+  test.setTimeout(90000);
+  const { app, window, pageErrors } = await launchApp(testInfo);
+  try {
+    await installStubs(window);
+    await window.evaluate(() => {
+      window.__histories[''] = [
+        { kind: 'agent', id: 'a1', text: 'Earlier offer.', options: ['Old one', 'Old two'] },
+        { kind: 'user', id: 'u1', text: 'Old one' },
+        { kind: 'agent', id: 'a2', text: 'All six are upscaled. Want them renamed?', options: ['Rename them', 'Leave them'] },
+      ];
+    });
+    await bootAndMountChat(window, true);
+
+    const buttons = window.locator('#e2e-agent-host .mpi-agent-chat__options button');
+    await expect(buttons).toHaveText(['Rename them', 'Leave them']);
+
+    await buttons.first().click();
+    await window.waitForTimeout(300);
+    const sent = (await window.evaluate(() => window.__fetchCalls)).filter(c => c.url === '/agent/message');
+    expect(sent.map(c => c.body.text)).toEqual(['Rename them']);
+    await expect(buttons.first()).toBeDisabled();
+    await expect(buttons.last()).toBeDisabled();
+
+    // A new offer arrives live and is open again.
+    await window.evaluate(() => window.__fireSse('agent:message', { turnId: 't2', id: 'm2', text: 'Which names?', options: ['By date', 'By subject'] }));
+    await expect(window.locator('#e2e-agent-host [data-entry-id="m2"] .mpi-agent-chat__options button')).toHaveText(['By date', 'By subject']);
+    await expect(window.locator('#e2e-agent-host [data-entry-id="m2"] .mpi-agent-chat__options button').first()).toBeEnabled();
+
+    expect(pageErrors).toEqual([]);
+  } finally {
+    await closeApp(app);
+  }
+});
+
 test('SSE agent:error renders error line', async ({}, testInfo) => {
   test.setTimeout(90000);
   const { app, window, pageErrors } = await launchApp(testInfo);

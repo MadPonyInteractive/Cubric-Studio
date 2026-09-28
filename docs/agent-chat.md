@@ -333,6 +333,15 @@ Settings: the connection block tops Remote > Language Models; the Agent row is "
   One Ollama caveat the app still does not surface: only a model whose `/api/show` capabilities
   include `tools` can be the agent (`gemma-4-abliterated:12b` has it, `gemma3:12b` does not), and
   the picker shows no way to tell them apart.
+- **A local Ollama agent never shares the card with its own render** (MPI-913): on `ollama` with a
+  model that is not `-cloud`/`:cloud`, a job that is not billed (`_askSpend` answered null; a batch
+  carries `billed` from its one quote) while `engineIsLocal()` (no RunPod Pod) joins `_gpuJobs` and
+  frees the model (`releaseOwnModels`, once per answer). The turn then ends under Fabio's waiting line
+  (`GPU_WAIT_LABEL`, tool `gpu_wait`) instead of a second chat round, and skips compaction; a message
+  typed meanwhile waits in `runTurn` (`_waitForGpu`) until `_maybeDrained` runs, so it opens on the
+  finished note. A reset ends that wait and drops the message. A `wait: true` step frees the model
+  too and carries on once it lands. Trade-off: "cancel that" cannot reach a local agent mid-render;
+  the line points at the app's Stop.
 
 ## `look` coordinates
 
@@ -385,6 +394,14 @@ minor or a real, named person. Without it the recommended model declined a plain
 with no tool call: the stance came from each model's training. The `-nsfw` variants stay unranked
 (never `best`) but carry a note that an explicit adult request takes one when installed. Harness
 case `adult-request`.
+
+**Clickable options (MPI-941 Phase 7).** The Options rule has the model end a reply at a genuine fork
+(at most three choices, one recommended) with `[options: A | B]`. `_takeOptions` cuts it from what the
+user reads, as `[declined]` is; two to four distinct choices ride on `agent:message` and the history
+entry as `options`, and the model's context keeps its own marker. The chat draws them as buttons under
+the reply (`_appendOptions`); a click sends that choice as the user's message, and any send disables the
+offer, so typing still answers it. A redraw opens only the latest reply's buttons. The rule cost no
+bytes: the "at most three" limit moved in from the Route rule, and a stale restart line left Honest limits.
 
 **The Model rule names the TASK first, deliberately.** A rank attached to an op reads to the model as
 a rank attached to the WORK, and it will cross a task boundary to reach a 1: asked to redo an edit

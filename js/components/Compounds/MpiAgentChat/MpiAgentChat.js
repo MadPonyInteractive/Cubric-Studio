@@ -224,6 +224,7 @@ export const MpiAgentChat = ComponentFactory.create({
         let _loading = null;   // the history load in flight; events wait for it
         let _queued = [];      // [name, data] that arrived during that load
         const _buttons = [];   // confirm-card buttons, destroyed when the transcript is cleared
+        const _optionBtns = []; // the agent's choices still on offer (in `_buttons` too): a send retires them
 
         const ledgeRest  = qs('#ac-ledge-rest',    el);
         const ledgeWork  = qs('#ac-ledge-work',    el);
@@ -556,7 +557,8 @@ export const MpiAgentChat = ComponentFactory.create({
             const gen = Number(spend?.genUsd) || 0;
             const usd = v => `$${v > 0 && v < 0.01 ? Number(v.toPrecision(1)) : v.toFixed(2)}`;
             spendEl.classList.toggle('hide', !(chat > 0 || gen > 0));
-            spendEl.textContent = `Chat ${usd(chat)} · Generations ${usd(gen)}`;
+            // "Agent", not "Chat" (MPI-941 Phase 8): `chatUsd` also holds the looks' describer calls.
+            spendEl.textContent = `Agent ${usd(chat)} · Generations ${usd(gen)}`;
         }
 
         function _setWorking(working) {
@@ -652,7 +654,7 @@ export const MpiAgentChat = ComponentFactory.create({
          * Agent message entry — returns the container so SSE can append to it
          * if the same turnId+id pair arrives multiple times (unlikely but safe).
          */
-        function _appendMessage(text, id) {
+        function _appendMessage(text, id, options) {
             if (id && qs(`[data-entry-id="${CSS.escape(id)}"]`, transcript)) return null;
             const div = document.createElement('div');
             div.className = 'mpi-agent-chat__entry mpi-agent-chat__entry--message';
@@ -661,9 +663,27 @@ export const MpiAgentChat = ComponentFactory.create({
             md.className = 'mpi-md';
             renderMarkdownInto(md, text || '');
             div.appendChild(md);
+            if (options?.length) _appendOptions(div, options);
             transcript.appendChild(div);
             _scrollBottom();
             return div;
+        }
+
+        /**
+         * MPI-941 Phase 7 — the agent's choices (its Options rule marker) as buttons under its
+         * reply. A click sends that choice as the user's own message, so typing still works.
+         */
+        function _appendOptions(div, options) {
+            const row = document.createElement('div');
+            row.className = 'mpi-agent-chat__options';
+            for (const text of options) {
+                const btn = MpiButton.mount(document.createElement('div'), { text, variant: 'secondary', size: 'sm' });
+                btn.on('click', () => _sendMessage(text));
+                _buttons.push(btn);
+                _optionBtns.push(btn);
+                row.appendChild(btn.el);
+            }
+            div.appendChild(row);
         }
 
         /** Tool status line — label ONLY (never args.prompt). */
@@ -870,7 +890,7 @@ export const MpiAgentChat = ComponentFactory.create({
                     _setWorking(data.working);
                     break;
                 case 'agent:message':
-                    _appendMessage(data.text, data.id);
+                    _appendMessage(data.text, data.id, data.options);
                     // A no in words (the agent's Declining rule): the turn ends on heads-up, not answer.
                     if (data.declined) _turnFailed = true;
                     break;
@@ -934,6 +954,7 @@ export const MpiAgentChat = ComponentFactory.create({
 
         function _clear() {
             _buttons.splice(0).forEach((b) => b.destroy());
+            _optionBtns.length = 0;
             transcript.replaceChildren();
         }
 
@@ -1017,7 +1038,8 @@ export const MpiAgentChat = ComponentFactory.create({
                     if (entry.kind === 'user') {
                         _appendUser(entry.text || '', _stagedThumbs(entry.attachments), entry.id);
                     } else if (entry.kind === 'agent') {
-                        _appendMessage(entry.text || '', entry.id);
+                        // Only the latest reply's choices are still open (MPI-941 Phase 7).
+                        _appendMessage(entry.text || '', entry.id, entry === history.entries.at(-1) ? entry.options : null);
                     } else if (entry.kind === 'tool') {
                         _appendTool(entry.id || entry.tool, entry.label, entry.status);
                     } else if (entry.kind === 'result') {
@@ -1053,6 +1075,7 @@ export const MpiAgentChat = ComponentFactory.create({
         // ── Public sendMessage ─────────────────────────────────────────────────
         async function _sendMessage(text, attachments) {
             if (!text && (!attachments || !attachments.length)) return;
+            _optionBtns.splice(0).forEach((b) => b.el.setDisabled?.(true));
             _appendUser(text, attachments);
             _setWorking(true);
             try {

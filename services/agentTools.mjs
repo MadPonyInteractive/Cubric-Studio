@@ -17,6 +17,7 @@ import http from 'node:http';
 import path from 'path';
 import crypto from 'crypto';
 import fs from 'fs/promises';
+import { createRequire } from 'module';
 import logger from '../routes/logger.js';
 
 // ---------------------------------------------------------------------------
@@ -135,6 +136,15 @@ export async function generate(body) {
  */
 export async function quoteGeneration(body) {
     return _post('/connector/quote', body);
+}
+
+/**
+ * MPI-913 — does a ComfyUI job run on THIS PC's card, rather than on a RunPod Pod? Read in
+ * process, not over loopback: the loop asks per dispatch. Required lazily so importing this
+ * module (every agent-loop test does) never loads the remote stack.
+ */
+export function engineIsLocal() {
+    return !createRequire(import.meta.url)('../routes/remoteModels.js').isRemoteActive();
 }
 
 /** POST /connector/cancel { requestId } — stop a generation submitted under that requestId. */

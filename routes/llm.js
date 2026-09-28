@@ -565,7 +565,10 @@ router.post('/llm/describe', async (req, res) => {
         // vision model thought through its budget and answered EMPTY.
         const { engine } = chatEngineFor(profileId, key, profile.baseURL, profile);
         const data = await engine.chat({ model, messages });
-        res.json({ ok: true, text: String(data.text || '').trim(), backend: data.backend, model: data.model });
+        // MPI-941 Phase 8: the provider's own price for this call (DeepInfra sends it), so the
+        // agent's figure counts its looks. Absent on a provider that sends none.
+        const costUsd = Number(data.usage?.estimated_cost) || 0;
+        res.json({ ok: true, text: String(data.text || '').trim(), backend: data.backend, model: data.model, ...(costUsd > 0 && { costUsd }) });
     } catch (err) {
         // A 4xx that names image/vision input means the model is not a vision model.
         if (err.status >= 400 && err.status < 500) {

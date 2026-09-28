@@ -622,6 +622,12 @@ export class AgentLoop {
         // the conversation: a clip still rendering after a clear is still this session's.
         this._inflight = new Map();
         this._askedCancel = new Set(); // toolCallIds the USER took back, so settling is not a failure
+        // MPI-913: the in-flight jobs on THIS PC's GPU, and what waits for them to drain.
+        this._gpuJobs = new Set();
+        this._gpuLines = [];       // waiting lines drawn, turned done on the drain
+        this._gpuFree = null;      // resolves a turn waiting on the drain: true, or false on a reset
+        this._llm = null;          // this turn's engine when it is a local Ollama model, else null
+        this._llmReleased = false; // freed since the model last answered
 
         // What the model hears at the start of its next turn (finished generations). A
         // message pushed the moment a generation settles could land between a tool call and
@@ -654,14 +660,21 @@ export class AgentLoop {
     /**
      * MPI-855 — add to the session's spend and tell the chat. Chat is the provider's own
      * `usage.estimated_cost` (DeepInfra sends it on every reply; a provider that does not adds
-     * nothing); a generation is its card's `cost.usd`, already its batch share. ponytail: the
-     * `look` describer is not counted, it returns no usage; add it if its spend ever matters.
+     * nothing); a generation is its card's `cost.usd`, already its batch share. A `look`'s
+     * describer joins the chat bucket (`_look`), which the chat labels "Agent" (MPI-941 Phase 8).
      */
     _addSpend(kind, usd) {
         const v = Number(usd);
         if (!(v > 0)) return;
         this._spend = { ...this._spend, [kind]: this._spend[kind] + v };
         this._emit('agent:spend', this._spend);
+    }
+
+    /** Every describer call goes through here, so its cost joins the Agent figure (MPI-941 Phase 8). */
+    async _look(args) {
+        const r = await this._tools.look(args);
+        if (r?.ok) this._addSpend('chatUsd', r.output?.costUsd);
+        return r;
     }
 
     _emit(event, data) {
@@ -692,8 +705,47 @@ export class AgentLoop {
      * loses the wake, and `unfinished-generations.md` already covers what was asked for.
      */
     _maybeDrained() {
+        if (!this._gpuJobs.size) this._gpuDrained(true);
         if (this._inflight.size) return;
         this._emit('agent:drained', {});
+    }
+
+    /**
+     * MPI-913 — a local Ollama agent and its own render share one card, so the model is freed
+     * when the render is queued, and nothing loads it again until the render lands: the turn
+     * that queued it ends under a waiting line, and a message typed meanwhile waits here.
+     * Called at the END of a settle (via `_maybeDrained`), so a waiting turn opens on the note.
+     * `keep` puts the line in history: a turn-start line is drawn live only, because the user's
+     * own history entry is written after it and a redraw would put the line above their message.
+     */
+    _gpuWaitLine(turnId, keep) {
+        const id = crypto.randomUUID();
+        const entry = keep ? this._historyEntry('tool', { id, tool: 'gpu_wait', args: {}, status: 'started', label: GPU_WAIT_LABEL }) : null;
+        this._gpuLines.push({ turnId, id, entry });
+        this._emit('agent:tool', { turnId, id, tool: 'gpu_wait', status: 'started', label: GPU_WAIT_LABEL });
+    }
+
+    _waitForGpu(turnId) {
+        // One line says it: a line still open (the turn that queued the render drew it) covers
+        // this message too. A second copy under it read as a stutter (Fabio, live 2026-09-28).
+        if (!this._gpuLines.length) this._gpuWaitLine(turnId, false);
+        return new Promise((resolve) => { this._gpuFree = resolve; });
+    }
+
+    _gpuDrained(free) {
+        for (const l of this._gpuLines.splice(0)) {
+            if (l.entry) l.entry.status = 'done';
+            this._emit('agent:tool', { turnId: l.turnId, id: l.id, tool: 'gpu_wait', status: 'done', label: GPU_WAIT_LABEL });
+        }
+        this._gpuFree?.(free);
+        this._gpuFree = null;
+    }
+
+    /** Free the local agent model's VRAM, once per answer it gave. Never an error path. */
+    _releaseLlm() {
+        if (!this._llm || this._llmReleased) return;
+        this._llmReleased = true;
+        this._llm.releaseOwnModels().catch(() => { /* server gone or already empty: nothing held */ });
     }
 
     /**
@@ -776,6 +828,11 @@ export class AgentLoop {
             const boolean = this._pendingConfirm.kind === 'batch' || this._pendingConfirm.kind === 'spend';
             this._pendingConfirm.resolve(boolean ? false : 'declined');
         }
+        // MPI-913: a message waiting on the GPU belonged to the old conversation. Its lines go
+        // without a `done` frame, which would draw them into the cleared chat.
+        this._gpuLines = [];
+        this._gpuFree?.(false);
+        this._gpuFree = null;
         // Only this conversation's staged files: another project's chat still shows its own.
         const staged = [...this._images.values()].filter((i) => i.kind === 'attachment').map((i) => i.path);
         this._pendingConfirm = null;
@@ -845,7 +902,7 @@ export class AgentLoop {
         await fs.promises.writeFile(sheetPath, sheet.data);
         const prefix = `This is a contact sheet of ${sheet.times.length} frames from a ${sheet.duration}s clip, `
             + `${sheet.columns} per row, left to right then top to bottom, at ${sheet.times.join('s, ')}s.`;
-        return this._tools.look({ imagePath: sheetPath, question: question ? `${prefix} ${question}` : prefix });
+        return this._look({ imagePath: sheetPath, question: question ? `${prefix} ${question}` : prefix });
     }
 
     /**
@@ -866,7 +923,7 @@ export class AgentLoop {
             _logLook(ref, kept, true);
             return { ok: true, output: { text: kept } };
         }
-        const r = CLIP_EXT.test(ref.path) ? await this._describeClip(ref) : await this._tools.look({ imagePath: ref.path });
+        const r = CLIP_EXT.test(ref.path) ? await this._describeClip(ref) : await this._look({ imagePath: ref.path });
         // Awaited: the model's own look at a waited still arrives within the same turn.
         if (r?.ok && r.output?.text && ref.itemId) await this._tools.storeLook(ref.path, ref.itemId, r.output.text, r.output.describer).catch(() => {});
         _logLook(ref, r?.ok ? r.output?.text : `FAILED: ${r?.error?.message || 'no reason given'}`, false);
@@ -1195,13 +1252,13 @@ export class AgentLoop {
         // N-1 invisible queued jobs. The connector refuses BATCH_UNSUPPORTED on a model whose
         // images 2+ artefact, before anything is queued, and then it is the fan-out below.
         if (!cards) {
-            const batched = await this._runBatched(args, n, turnId, currentProject);
+            const batched = await this._runBatched(args, n, turnId, currentProject, spend !== null);
             if (batched) return batched;
         }
 
         const started = [];
         const refused = [];
-        const batch = this._newBatch(turnId, args, currentProject, cards ? 'card' : 'run');
+        const batch = this._newBatch(turnId, args, currentProject, cards ? 'card' : 'run', spend !== null);
         for (const [i, run] of runs.entries()) {
             // `wait` is dropped: awaiting each one would run fifty renders end to end inside a
             // single turn, and the fan-out exists precisely so the chat stays free meanwhile.
@@ -1248,7 +1305,7 @@ export class AgentLoop {
      * ponytail: an app close mid-batch leaves the whole list in the ledger, landed cards too;
      * split it per card if a requeue ever re-runs too much.
      */
-    _newBatch(turnId, args, project, unit) {
+    _newBatch(turnId, args, project, unit, billed = false) {
         const id = crypto.randomUUID();
         const what = _opLabel(args);
         const failed = [];
@@ -1281,6 +1338,7 @@ export class AgentLoop {
         };
         return {
             validated: false,
+            billed, // MPI-913: asked once for the batch, so each item knows where it runs
             start: (size = 1) => {
                 if (!started) this._trackUnfinished(project, args, 'running');
                 started += size;
@@ -1304,12 +1362,12 @@ export class AgentLoop {
      * when the FIRST is refused BATCH_UNSUPPORTED — the model cannot batch cleanly, nothing
      * was queued, and the caller fans out instead. Any other refusal is the answer.
      */
-    async _runBatched(args, n, turnId, currentProject) {
+    async _runBatched(args, n, turnId, currentProject, billed) {
         // ponytail: mirrors AGENT_BATCH_MAX in js/data/generationControls.js, which the
         // connector enforces; this loop imports nothing from js/data.
         const MAX = 4;
         let made = 0;
-        const batch = this._newBatch(turnId, args, currentProject, 'run');
+        const batch = this._newBatch(turnId, args, currentProject, 'run', billed);
         for (let i = 0; made < n; i++) {
             const size = Math.min(MAX, n - made);
             // A batch shares one seed; each further job steps it so they do not repeat.
@@ -1575,15 +1633,17 @@ export class AgentLoop {
 
 ${modeRules}
 
-Voice rule: write the reply, never the thinking behind it; the app already shows the user every step you take. Do not name a rule, a note, an op's description or a knowledge entry, do not justify a choice they have not questioned, and do not write your plan and then carry it out in the same message. Address them as "you", never as "the user". Where a rule asks you to say why, that is one short line, not a paragraph.
+Voice rule: write the reply, never the thinking behind it; the app already shows the user every step you take. Do not name a rule, a note, an op's description or a knowledge entry, do not justify a choice they have not questioned, and do not write your plan and then carry it out in the same message. Address them as "you", never as "the user". A why is one short line, not a paragraph.
 
 Content rule: the user is an adult on their own machine. Nudity and adult themes are allowed: write them as asked, never soften them. Never a minor, never a real, named person.
 
 Declining rule: when you cannot or will not do what was asked, start that reply with [declined]. The app hides it.
 
+Options rule: choices only at a genuine fork, at most three, always recommend one; end that reply with [options: Rename them | Leave them] and the app shows buttons.
+
 Model rule: first the TASK, then the model. A change to what is IN an existing picture, local or across the frame (remove, add or replace a thing, the background, light, time of day: "make it night"), is the edit task (kleinEdit, krea2Edit, qwenEdit, edit), not i2i, even when the named model's i2i ranks first; a restyle the user asks for ("make this anime") is i2i; a miss goes to the edit task, not another denoise. A head from one picture onto another is the Head Swap Flow, never an edit or a mask.The same picture on ANOTHER model ("this image but with <model>") is a RE-RUN: that model's text-to-image op with NO media, from the source's prompt (list_cards for a card; otherwise look at the picture, write it from what is there and say so in one line) rewritten to that model's guide. A model's name is never a style instruction; only an ask to change how THIS picture looks sends the picture. Ranks compare ops only within one task, and best: true marks the op to take: the lowest rank you can run here. No rank means unranked, not bad. Take another only when the user names a model or the op's note matches the ask, and then say which model and why in one line. Nothing installed fits: say so and offer install_model.
 
-Route rule: before an edit of an existing picture, answer this yourself: does the change stay inside ONE area? Light, sky, time of day, weather, season and style fall on the whole frame, and several asks in one message are ONE edit, never split. Not one area: run ONE whole-picture edit, ask nothing. One area with words that protect the rest ("only this", "without changing anything else"): ask for the mask, offer nothing else. One area with no such words: in ONE line give both routes (a mask is tighter; a whole-picture edit needs no painting and often lands), recommend one, and wait. At most three routes, only at a genuine fork, always recommend one. A mask also keeps the source's size and every pixel outside it, so offer one for a big photo or when an edit lost quality. When a result comes back wrong, change the op, the mask or the prompt, never add adjectives; details in app:masking.
+Route rule: before an edit of an existing picture, answer this yourself: does the change stay inside ONE area? Light, sky, time of day, weather, season and style fall on the whole frame, and several asks in one message are ONE edit, never split. Not one area: run ONE whole-picture edit, ask nothing. One area with words that protect the rest ("only this", "without changing anything else"): ask for the mask, offer nothing else. One area with no such words: in ONE line give both routes (a mask is tighter; a whole-picture edit needs no painting and often lands), recommend one, and wait. A mask also keeps the source's size and every pixel outside it, so offer one for a big photo or when an edit lost quality. When a result comes back wrong, change the op, the mask or the prompt, never add adjectives; details in app:masking.
 
 Masking rule: the user paints a mask, never you, and you never pick the area. Tell them: click the card in the gallery to open it, then pick the Mask tool from the toolbar down the left; when the App state line says they are already looking at the card, skip the first half. Never say "History". What they paint reaches your generation on its own, on the picture it was painted over. generate refuses a masked op until you have read app:masking, which says how to write the prompt for each op.
 
@@ -1621,7 +1681,6 @@ Honest limits (I'm still a baby — this is my first version):
 - I cannot paint masks, or use the mask, paint, composite and transform tools myself. I can USE a mask you have painted: ask me for a change to one area and I will tell you what to paint.
 - I cannot move your view myself. The app opens where a result renders, unless you are mid-edit with a canvas tool or have a window open; then the result card in this chat takes you there.
 - I cannot control RunPod.
-- After a restart I only remember what I saved in the project's notes.
 - I see only what the look tool reported. I never claim to have seen something I did not look at.
 - I cannot access generation history.
 ${knowledgeIndex}`.trim();
@@ -1856,8 +1915,9 @@ ${knowledgeIndex}`.trim();
                 // only learns whether it was REFUSED, so a gate after it has already cost
                 // the user money. A fan-out asked once for the whole batch in `_fanOut`; a
                 // local model is quoted `billed: false` and is never asked about at all.
+                let spend = null;
                 if (!opts.batch) {
-                    const spend = await this._askSpend(turnId, body, 1);
+                    spend = await this._askSpend(turnId, body, 1);
                     if (spend === false) {
                         return JSON.stringify({ ok: false, declined: true, code: 'SPEND_DECLINED', message: `The user said no to spending on this generation. Nothing was generated and nothing was billed. Ask what they would like instead; do not send it again unless they say so.` });
                     }
@@ -1896,6 +1956,12 @@ ${knowledgeIndex}`.trim();
                     await this._trackUnfinished(askedIn, args, 'running');
                 }
                 this._inflight.set(toolCallId, args.cardName || String(args.prompt || args.flowId || '').slice(0, 60) || _opLabel(args));
+                // MPI-913: a billed model runs in the cloud and a Pod on RunPod; anything else is
+                // a ComfyUI job on this PC's card, which a local agent model must not sit on.
+                if (!(opts.batch ? opts.batch.billed : spend !== null) && this._tools.engineIsLocal?.() === true) {
+                    this._gpuJobs.add(toolCallId);
+                    this._releaseLlm();
+                }
 
                 // One settle path, attached two ways. `wait` awaits it so the result is in
                 // hand before the tool returns; the default attaches it and returns
@@ -1904,6 +1970,7 @@ ${knowledgeIndex}`.trim();
                 const settle = async (r) => {
                     const ok = r && r.ok;
                     this._inflight.delete(toolCallId);
+                    this._gpuJobs.delete(toolCallId);
                     const cancelled = this._askedCancel.delete(toolCallId) && !ok;
                     if (ok && r.output?.filePath) this._registerResult(r.output.filePath, r.output.modelId, r.output.itemId);
                     if (ok && r.output?.groupId) this._groups.add(r.output.groupId);
@@ -1958,6 +2025,7 @@ ${knowledgeIndex}`.trim();
                 };
                 const settleThrow = (err) => {
                     this._inflight.delete(toolCallId);
+                    this._gpuJobs.delete(toolCallId);
                     this._askedCancel.delete(toolCallId);
                     if (opts.batch) {
                         opts.batch.settle(opts.label, { ok: false, error: { code: 'RUNTIME_ERROR', message: err.message } }, false, opts.batchSize || 1);
@@ -2020,7 +2088,7 @@ ${knowledgeIndex}`.trim();
                 if (args.question) lookArgs.question = args.question;
                 if (args.crop) lookArgs.crop = args.crop;
                 if (args.box) lookArgs.box = args.box;
-                const r = await this._tools.look(lookArgs);
+                const r = await this._look(lookArgs);
                 if (args.box && r?.ok && r.output?.box) {
                     // ponytail: every box param today is a head (Head Swap), so 0.6 of either
                     // side is "the whole person"; a Flow boxing something bigger needs its own bound.
@@ -2380,6 +2448,12 @@ ${knowledgeIndex}`.trim();
             // Then the project's notes (once per project) and what finished since last turn.
             // A carried request (D5) was asked in another conversation, which already opened this
             // project for it: unsaid, "open X" ran twice and the reply quoted the "From" prefix back.
+            // MPI-913: a local Ollama model would load beside a render of this conversation's
+            // own still on the card. Wait for it here, before the opening reads the notes, so
+            // this turn opens on what landed. A reset ends the wait and the message with it.
+            const onGpu = profileId === 'ollama' && !/[-:]cloud$/i.test(model);
+            if (onGpu && this._gpuJobs.size && !(await this._waitForGpu(turnId))) return;
+
             const handover = carried
                 ? '[Handed over: the user asked this in another conversation, which already opened this project for it. Do only what is left of the request; if opening this project was all of it, say it is open and ask what to make.]'
                 : '';
@@ -2415,6 +2489,7 @@ ${knowledgeIndex}`.trim();
             // chatEngineFor. `contextWindow` is null on every other preset, so the option
             // is absent there and nothing changes.
             const { engine, contextWindow: askFor } = chatEngineFor(profileId, key, profile.baseURL);
+            this._llm = onGpu ? engine : null;
             // MPI-891: the recommended entry's reasoning effort, so the model thinks in the
             // channel we never show instead of in its reply. Absent for every other model.
             const reasoningEffort = (RECOMMENDED_REMOTE_MODELS[profileId] || []).find((r) => r.id === model)?.reasoningEffort;
@@ -2427,6 +2502,7 @@ ${knowledgeIndex}`.trim();
             let carriedTo = null; // the project this request was handed to (D5)
             let noted = false;    // a write_memory ran this turn
             let nudged = false;   // the memory reminder already rode on a generate result
+            let yielded = false;  // ended early for a render on this card (MPI-913)
             for (;;) {
                 // Out of rounds: this call carries NO tools, so the model can only answer in
                 // words. Refusing the round instead ended the turn on a bare error one second
@@ -2436,6 +2512,7 @@ ${knowledgeIndex}`.trim();
                     ? { model, messages: [...this._messages, { role: 'system', content: OUT_OF_ROUNDS }], options: chatOptions }
                     : { model, messages: this._messages, tools: wake ? WAKE_TOOL_DEFS : TOOL_DEFS, options: chatOptions });
                 this._lastUsage = llmRes.usage;
+                this._llmReleased = false; // answering loaded it again
                 this._addSpend('chatUsd', llmRes.usage?.estimated_cost);
 
                 const toolCalls = outOfRounds ? null : llmRes.toolCalls;
@@ -2452,10 +2529,11 @@ ${knowledgeIndex}`.trim();
                     const raw = llmRes.text || '';
                     const stripped = raw.replace(/\[declined\]\s*/gi, '');
                     const declined = stripped !== raw;
-                    const msgText = declined ? stripped.trim() : raw;
+                    // The Options rule's marker goes the same way, and comes back as buttons (MPI-941 Phase 7).
+                    const { text: msgText, options } = _takeOptions(declined ? stripped.trim() : raw);
                     this._messages.push({ role: 'assistant', content: raw });
-                    const entry = this._historyEntry('agent', { text: msgText });
-                    this._emit('agent:message', { turnId, id: entry.id, text: msgText, ...(declined && { declined: true }) });
+                    const entry = this._historyEntry('agent', { text: msgText, ...(options && { options }) });
+                    this._emit('agent:message', { turnId, id: entry.id, text: msgText, ...(options && { options }), ...(declined && { declined: true }) });
                     break;
                 }
 
@@ -2560,11 +2638,21 @@ ${knowledgeIndex}`.trim();
                     break;
                 }
 
+                // MPI-913: a render of this turn's is on the card the model runs on. Another
+                // round would load the model beside it, so the turn ends under the waiting line
+                // and the wake reports what landed. A waited step has settled by now.
+                if (this._llm && this._gpuJobs.size) {
+                    this._messages.push({ role: 'assistant', content: GPU_YIELD });
+                    this._gpuWaitLine(turnId, true);
+                    yielded = true;
+                    break;
+                }
+
                 steps++;
             }
 
-            // Compaction check
-            if (this._shouldCompact()) {
+            // Compaction check. Not after a yield: compacting is a chat call too.
+            if (!yielded && this._shouldCompact()) {
                 await this._compact(turnId, { model, baseURL: profile.baseURL, key, profileId });
             }
         } catch (err) {
@@ -2765,6 +2853,30 @@ function _logLook(ref, text, cached) {
  */
 const LOOK_CACHED_LABEL = 'Fetching saved image description';
 const GENERATE_REFUSED_LABEL = 'Generation not started';
+
+/**
+ * MPI-913 — Fabio's copy (2026-09-27). A local Ollama agent and a render on the same card
+ * cannot share it: an idle LLM took a sub-10 s render past 3 minutes on 16 GB (MPI-14).
+ * GPU_YIELD is what the model's own context reads for the turn it ended early, kept apart
+ * so it does not learn to speak about itself in the third person.
+ */
+const GPU_WAIT_LABEL = 'A generation is running on your graphics card. Cosmo runs on the same card, so Cosmo waits for it to finish. Press Stop on the generation to talk now.';
+const GPU_YIELD = 'Started. I stay quiet while it renders, because I run on the same graphics card.';
+
+/**
+ * MPI-941 Phase 7 — the Options rule's `[options: A | B]`, cut out of the reply the user reads.
+ * Two to four distinct choices come back as buttons; one is no fork, so it gets none. A reply
+ * with no marker is returned untouched.
+ */
+function _takeOptions(text) {
+    let options = null;
+    const shown = text.replace(/\s*\[options:([^\]]*)\]/gi, (_, list) => {
+        const o = [...new Set(list.split('|').map((s) => s.trim()).filter(Boolean))].slice(0, 4);
+        if (o.length >= 2) options = o;
+        return '';
+    });
+    return shown === text ? { text, options } : { text: shown.trim(), options };
+}
 
 function _toolLabel(toolName, args) {
     switch (toolName) {

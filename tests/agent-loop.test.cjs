@@ -575,9 +575,35 @@ test('Route: one question, three answers, at most three routes, always recommend
     assert.match(r, /Not one area: run ONE whole-picture edit, ask nothing/);
     assert.match(r, /words that protect the rest.*ask for the mask, offer nothing else/);
     assert.match(r, /recommend one, and wait/);
-    assert.match(r, /At most three routes, only at a genuine fork, always recommend one/);
     assert.match(r, /never add adjectives/);
     assert.match(r, /keeps the source's size/);
+});
+
+// MPI-941 Phase 7 (Fabio, 2026-09-27): the agent's choices are buttons, not typed answers. The
+// "at most three, always recommend one" limit moved here from the Route rule, for every fork.
+test('Options: a fork ends on a marker the app turns into buttons, and the model keeps it', async () => {
+    const r = rule('Options');
+    assert.match(r, /only at a genuine fork, at most three, always recommend one/);
+    assert.match(r, /\[options: Rename them \| Leave them\]/);
+
+    const { loop, fakeRes } = await makeLoop({ engineResponses: [{ text: 'All six are upscaled. Want them renamed?\n[options: Rename them | Leave them]' }] });
+    await loop.runTurn('upscale them', [], { folderPath: '/p', name: 'P' }, 'auto', 'deepinfra', 'turn-options');
+    const msg = fakeRes.events.find((e) => e.event === 'agent:message').data;
+    assert.equal(msg.text, 'All six are upscaled. Want them renamed?', 'the user never reads the marker');
+    assert.deepEqual(msg.options, ['Rename them', 'Leave them']);
+    assert.deepEqual(loop.getHistory().entries.at(-1).options, ['Rename them', 'Leave them'], 'a redraw keeps the buttons');
+    assert.match(loop._messages.at(-1).content, /\[options: Rename them \| Leave them\]$/, 'the model keeps its own marker');
+
+    // One choice is no fork: the marker still goes, and no button comes with it.
+    const one = await makeLoop({ engineResponses: [{ text: 'Done. [options: Thanks]' }] });
+    await one.loop.runTurn('hi', [], { folderPath: '/p', name: 'P' }, 'auto', 'deepinfra', 'turn-one');
+    const single = one.fakeRes.events.find((e) => e.event === 'agent:message').data;
+    assert.equal(single.text, 'Done.');
+    assert.equal(single.options, undefined);
+
+    const plain = await makeLoop({ engineResponses: [{ text: 'Hello.' }] });
+    await plain.loop.runTurn('hi', [], { folderPath: '/p', name: 'P' }, 'auto', 'deepinfra', 'turn-plain-options');
+    assert.equal(plain.fakeRes.events.find((e) => e.event === 'agent:message').data.options, undefined);
 });
 
 test('Masking: the user paints, in the app\'s own words, and the prompt shape is gated on app:masking', () => {
@@ -757,6 +783,163 @@ test('a wake turn never carries the in-flight line, even if something were still
     loop._inflight.set('tc-x', 'krea2Edit');
     await loop.runTurn('', [], project, 'auto', 'deepinfra', 't-wake', { wake: true });
     assert.doesNotMatch(JSON.stringify(engine.calls[0].messages), /Running now:/);
+});
+
+// ---------------------------------------------------------------------------
+// MPI-913 (MPI-941 Phase 5): a local Ollama agent leaves the card to its own render
+// ---------------------------------------------------------------------------
+
+describe('(m) a local agent and its own render share one GPU', () => {
+    const GPU_WAIT = 'A generation is running on your graphics card. Cosmo runs on the same card, so Cosmo waits for it to finish. Press Stop on the generation to talk now.';
+    const project = { folderPath: '/project', name: 'Test' };
+    const gen = (id, args) => ({ text: '', toolCalls: [{ id, type: 'function', function: { name: 'generate', arguments: JSON.stringify(args) } }] });
+    const FOX = { modelId: 'test-model', operation: 't2i', prompt: 'A fox' };
+    const LANDED = { ok: true, output: { itemId: 'i1', groupId: 'g1', type: 'image', filePath: '/p/fox.png' } };
+
+    /** A loop on `profileId` whose generates are held until the test settles them. Both engines faked. */
+    async function gpuLoop({ responses, profileId = 'ollama', model = 'gemma3:12b', local = true, quote = null } = {}) {
+        const AgentLoop = await loadAgentLoop();
+        const tools = makeFakeTools({ quote });
+        tools.engineIsLocal = () => local;
+        const held = new Map();
+        tools.generate = (body) => {
+            tools.calls.generate.push(body);
+            return new Promise((resolve) => held.set(body.requestId, resolve));
+        };
+        const loop = new AgentLoop({
+            tools,
+            resolveEndpoint: async () => ({ profile: { id: profileId, name: profileId, baseURL: 'http://localhost:11434/v1' }, key: profileId === 'ollama' ? null : 'k' }),
+            lookupContextWindow: async () => 32_768,
+        });
+        const fakeRes = makeFakeRes();
+        loop.addSubscriber(fakeRes);
+        const engine = makeFakeEngine(responses);
+        const { DeepInfraEngine, OllamaEngine } = await import('../services/llmEngines.mjs');
+        const orig = [DeepInfraEngine.prototype.chat, OllamaEngine.prototype.chat, OllamaEngine.prototype.releaseOwnModels];
+        let released = 0;
+        DeepInfraEngine.prototype.chat = engine.chat;
+        OllamaEngine.prototype.chat = engine.chat;
+        OllamaEngine.prototype.releaseOwnModels = async () => { released++; };
+        const run = (text, turnId) => loop.runTurn(text, [], project, 'auto', profileId, turnId, { model });
+        return {
+            loop, tools, engine, fakeRes, held, run,
+            released: () => released,
+            waitLines: () => fakeRes.events.filter((e) => e.event === 'agent:tool' && e.data.label === GPU_WAIT),
+            restore: () => { [DeepInfraEngine.prototype.chat, OllamaEngine.prototype.chat, OllamaEngine.prototype.releaseOwnModels] = orig; },
+        };
+    }
+
+    test('a render on this GPU frees the model and ends the turn under a waiting line, done when it lands', async () => {
+        const t = await gpuLoop({ responses: [gen('g1', FOX), { text: 'On its way.' }] });
+        try {
+            await t.run('make a fox', 't1');
+            assert.equal(t.released(), 1, 'Ollama gives the card back once the render is queued');
+            assert.equal(t.engine.calls.length, 1, 'no second round: it would load the model beside the render');
+            const [line] = t.waitLines();
+            assert.ok(line, 'the chat says why Cosmo went quiet');
+            assert.equal(line.data.status, 'started');
+            assert.equal(t.loop._messages.at(-1).role, 'assistant', 'the context still closes on an assistant turn');
+
+            const [id] = t.held.keys();
+            t.held.get(id)(LANDED);
+            const done = await waitForEvent(t.fakeRes, (e) => e.event === 'agent:tool' && e.data.id === line.data.id && e.data.status === 'done');
+            assert.ok(done, 'the line turns done when the render lands');
+            assert.ok(await waitForEvent(t.fakeRes, (e) => e.event === 'agent:drained'), 'the wake still reports it');
+        } finally { t.restore(); }
+    });
+
+    test('a local batch frees the model once and ends the turn once, whatever its size', async () => {
+        const t = await gpuLoop({ responses: [gen('g1', { ...FOX, count: 5 }), { text: 'On their way.' }] });
+        try {
+            await t.run('five foxes', 't1');
+            assert.equal(t.held.size, 2, 'five runs as two batched jobs (4 + 1), under the batch card threshold');
+            assert.equal(t.released(), 1);
+            assert.equal(t.engine.calls.length, 1);
+            assert.equal(t.waitLines().length, 1);
+        } finally { t.restore(); }
+    });
+
+    test('a message typed during that render waits for it, then hears what landed', async () => {
+        const t = await gpuLoop({ responses: [gen('g1', FOX), { text: 'It landed.' }] });
+        try {
+            await t.run('make a fox', 't1');
+            const second = t.run('is it done?', 't2');
+            await new Promise((r) => setTimeout(r, 50));
+            assert.equal(t.engine.calls.length, 1, 'the model is not loaded while the render runs');
+            // Fabio, live 2026-09-28: the line twice, one under the other. The open one says it.
+            assert.equal(t.waitLines().length, 1, 'a message typed under an open line adds none');
+
+            const [id] = t.held.keys();
+            t.held.get(id)(LANDED);
+            await second;
+            assert.equal(t.engine.calls.length, 2);
+            const heard = t.loop._messages.filter((m) => m.role === 'user').at(-1).content;
+            assert.match(heard, /\[Generation finished: card g1/, 'the turn opens on what landed');
+            assert.match(heard, /is it done\?/);
+        } finally { t.restore(); }
+    });
+
+    test('a reset ends a waiting message instead of running it in the new conversation', async () => {
+        const t = await gpuLoop({ responses: [gen('g1', FOX), { text: 'never' }] });
+        try {
+            await t.run('make a fox', 't1');
+            const second = t.run('hello?', 't2');
+            await new Promise((r) => setTimeout(r, 50));
+            await t.loop.reset();
+            await second;
+            assert.equal(t.engine.calls.length, 1, 'the abandoned message never reaches the model');
+
+            // The render is still on the card: the new conversation's first message waits too,
+            // under a line of its own, because the old one went with the old conversation.
+            const third = t.run('hello again', 't3');
+            await new Promise((r) => setTimeout(r, 50));
+            assert.ok(t.waitLines().some((e) => e.data.turnId === 't3' && e.data.status === 'started'));
+            assert.equal(t.engine.calls.length, 1);
+            const [id] = t.held.keys();
+            t.held.get(id)(LANDED);
+            await third;
+            assert.equal(t.engine.calls.length, 2);
+        } finally { t.restore(); }
+    });
+
+    test('a waited step frees the model too, and the turn carries on once it lands', async () => {
+        const t = await gpuLoop({ responses: [gen('g1', { ...FOX, wait: true }), { text: 'Now animating.' }] });
+        try {
+            const turn = t.run('make a fox then animate it', 't1');
+            await new Promise((r) => setTimeout(r, 1200));
+            assert.equal(t.released(), 1);
+            assert.equal(t.engine.calls.length, 1);
+            const [id] = t.held.keys();
+            t.held.get(id)(LANDED);
+            await turn;
+            assert.equal(t.engine.calls.length, 2, 'the chain continues after the render');
+            assert.equal(t.waitLines().length, 0, 'nothing ran beside it, so nothing to explain');
+        } finally { t.restore(); }
+    });
+
+    test('no release and no early end: a hosted agent, an Ollama cloud model, a billed model, a Pod', async () => {
+        const cases = [
+            { name: 'DeepInfra agent', profileId: 'deepinfra', model: 'some/model' },
+            { name: 'Ollama cloud model', model: 'gpt-oss:120b-cloud' },
+            { name: 'billed model', quote: { billed: true, modelName: 'Cloud', count: 1, usd: 0.03, display: 'about $0.03' } },
+            { name: 'RunPod Pod', local: false },
+            { name: 'billed batch', args: { ...FOX, count: 2 }, quote: { billed: true, modelName: 'Cloud', count: 2, usd: 0.06, display: 'about $0.06' } },
+        ];
+        for (const c of cases) {
+            const t = await gpuLoop({ responses: [gen('g1', c.args || FOX), { text: 'On its way.' }], ...c });
+            try {
+                const turn = t.run('make a fox', 't1');
+                if (c.quote) {
+                    const card = await waitForEvent(t.fakeRes, (e) => e.event === 'agent:confirm');
+                    await t.loop.confirm(card.data.confirmId, true);
+                }
+                await turn;
+                assert.equal(t.released(), 0, `${c.name}: nothing to free`);
+                assert.equal(t.engine.calls.length, 2, `${c.name}: the turn replies as always`);
+                assert.equal(t.waitLines().length, 0, c.name);
+            } finally { t.restore(); }
+        }
+    });
 });
 
 // ---------------------------------------------------------------------------
@@ -3110,5 +3293,20 @@ describe('session spend (MPI-855)', () => {
         const { loop } = await makeLoop({ engineResponses: [{ text: 'Hello.', usage: { prompt_tokens: 10 } }] });
         await loop.runTurn('Hi', [], { folderPath: '/project', name: 'Test' }, 'auto', 'deepinfra', 'turn-free');
         assert.deepEqual(loop.getHistory().spend, { chatUsd: 0, genUsd: 0 });
+    });
+
+    // MPI-941 Phase 8 (Fabio, 2026-09-27): ONE agent figure. A look's describer call was counted
+    // nowhere (16 of them, a third of a cent, in the 2026-09-27 run); it joins the chat bucket.
+    test('every describer call adds its cost to the agent figure, never to generations', async () => {
+        const { loop, tools, fakeRes } = await makeLoop();
+        tools.look = async () => ({ ok: true, output: { text: 'A fox.', costUsd: 0.0002 } });
+        loop._images.set('r1', { path: '/p/fox.png', kind: 'result' });
+        const project = { folderPath: '/project', name: 'Test' };
+        await loop._executeTool('look', { image: 'r1' }, 't-look', project);
+        await loop._executeTool('look', { image: 'r1', question: 'what colour is it?' }, 't-look', project);
+        const spend = loop.getHistory().spend;
+        assert.ok(Math.abs(spend.chatUsd - 0.0004) < 1e-12, `both looks count, got ${spend.chatUsd}`);
+        assert.equal(spend.genUsd, 0);
+        assert.equal(fakeRes.events.filter((e) => e.event === 'agent:spend').pop().data.chatUsd, spend.chatUsd);
     });
 });
