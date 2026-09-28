@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-962", "at": "2026-09-28T10:18:49+01:00", "actor": "c72df5c7", "column": "todo", "title": "Big photos (umbrella): EXIF rotation and 16K performance"}
