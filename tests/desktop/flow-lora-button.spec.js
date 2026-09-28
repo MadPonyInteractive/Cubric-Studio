@@ -101,9 +101,8 @@ test('the run slide pairs a model dropdown with its cogwheel, and the cogwheel f
     // spec, which asserted the label alone.
     //
     // It is also what proves the button is WIRED at all: the frame mounts its own
-    // MpiModelSettings rather than emitting `ui:open-model-settings`, which is listened
-    // for by two workspace Blocks a flow opened from Landing does not have on screen — a
-    // bare emit would look identical from the outside and open nothing.
+    // MpiModelSettings, since a flow opened from Landing has no workspace Block on screen
+    // whose panel it could borrow.
     const opened = await window.evaluate(async () => {
       const { Events } = await import('/js/events.js');
       const { getFlowById, flowModelIds } = await import('/js/data/flowsRegistry.js');

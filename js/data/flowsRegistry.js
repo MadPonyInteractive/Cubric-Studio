@@ -236,9 +236,9 @@
  *                               nothing.
  *                               A `settings` action existed here and is GONE (MPI-608): it opened
  *                               the rack for the flow's single `settingsModel`, which cannot
- *                               express a flow with a model per phase. The cogwheel beside each
- *                               model selector in the slide-over replaces it — same panel, same
- *                               `ui:open-model-settings` event, addressed per phase.
+ *                               express a flow with a model per phase. The per-slot cogwheel on
+ *                               the run slide replaces it (MPI-638) — same panel, addressed per
+ *                               phase, mounted by MpiBaseFlow itself.
  *                               `enhance`
  *                               runs `op` on the `from` field's text and writes the result into
  *                               the `to` field. ONE declaration carries all three behaviours —

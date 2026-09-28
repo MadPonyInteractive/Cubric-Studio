@@ -70,17 +70,15 @@ and two buttons reading "LoRAs" would be unresolvable. MPI-638 moved the dropdow
 them, which removed that need — and with it the pressure to invent a sustainable name per flow.
 See [any-of-models.md](../any-of-models.md) § `label` is a DISAMBIGUATOR, not a name.
 
-## How the flow reaches the panel — and why it does NOT use the event
+## How the flow reaches the panel
 
 `MpiModelSettings` is also mounted by the **Blocks** (`MpiGalleryBlock`, `MpiGroupHistoryBlock`),
-one overlay each, opened by `ui:open-model-settings { modelId }` — the same ownership split
-`ui:open-model-picker` uses.
+one overlay each, opened from their model picker's settings button.
 
-**`MpiBaseFlow` does NOT use that event — it mounts its own `MpiModelSettings`.** The event is
-listened for by exactly those two components, and both are workspace Blocks; a flow opened
-from the landing page (`projectUI.js` "Flows", or the radial menu) has neither on screen, so
-an emit would land nowhere at all: no panel, no error, no log. Owning the instance also stops a
-Block's listener opening a *second* panel when a flow is running over one. The cogwheels are
+**`MpiBaseFlow` mounts its own `MpiModelSettings`.** A flow opened from the landing page
+(`projectUI.js` "Flows", or the radial menu) has neither Block on screen, so there is no panel
+to borrow. There is no event for it either: `ui:open-model-settings` lost its last emitter in
+MPI-638 and its listeners in MPI-969 — do not revive it for a flow. The cogwheels are
 gated on `state.currentProject`: a rack edits settings that live on the project, and a flow
 cannot run without one either — `generationService` bails on a null `currentProject`. (The model
 dropdown beside it is NOT gated — it needs no project.)

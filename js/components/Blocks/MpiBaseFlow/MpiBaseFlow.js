@@ -1644,12 +1644,10 @@ export const MpiBaseFlow = ComponentFactory.create({
          * so that wording is gone from the app with no descriptor edit at all — and the day
          * a two-slot flow ships, the label returns where it has something real to separate.
          *
-         * The `MpiModelSettings` overlay is mounted HERE rather than reached through
-         * `ui:open-model-settings`. That event is listened for by exactly two components,
-         * MpiGalleryBlock and MpiGroupHistoryBlock, and both are workspace Blocks — a flow
-         * opened from the landing page has neither on screen, so the emit would land
-         * nowhere at all: no panel, no error, no log. Owning the instance also stops a
-         * Block's listener opening a SECOND panel when a flow runs over one.
+         * The `MpiModelSettings` overlay is mounted HERE, not borrowed from a workspace
+         * Block: MpiGalleryBlock and MpiGroupHistoryBlock each own one, but a flow opened
+         * from the landing page has neither on screen. (The `ui:open-model-settings` event
+         * that once reached theirs is gone, MPI-969.)
          */
         function _paintModelSlots() {
             if (!_modelRowHost) return;

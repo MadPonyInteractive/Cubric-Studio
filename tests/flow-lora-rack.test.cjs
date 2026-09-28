@@ -106,24 +106,6 @@ test('a staged-LoRA model is skipped loudly, not injected in the wrong shape', (
     );
 });
 
-test('BOTH Blocks that own a settings overlay listen for the flow button', () => {
-    // The twin trap: each Block mounts its OWN MpiModelSettings, so a listener in
-    // only one of them leaves the button dead in the other workspace — and dead
-    // exactly the way this card's other bug was dead, with no error anywhere.
-    for (const p of [
-        'js/components/Blocks/MpiGalleryBlock/MpiGalleryBlock.js',
-        'js/components/Blocks/MpiGroupHistoryBlock/MpiGroupHistoryBlock.js',
-    ]) {
-        const src = read(p);
-        assert.match(
-            src,
-            /Events\.on\('ui:open-model-settings'/,
-            `${p} mounts a settings overlay, so it must open it for a Flow too`,
-        );
-        assert.match(src, /_settingsOverlay\.el\.open\(\{ modelId \}\)/, `${p} must open on the named model`);
-    }
-});
-
 test('the character sheet declares its rack on the SLOT, and its old button is gone', () => {
     const src = read('js/data/flowsRegistry.js');
     const flow = src.slice(src.indexOf("id: 'character-sheet'"));
@@ -209,12 +191,8 @@ test('the RUN slide carries the per-slot cogwheels, beside the output (MPI-613/6
     assert.match(src, /const multi = slots\.length > 1;/,
         'a slot label is a DISAMBIGUATOR: rendered only when the flow declares 2+ slots');
 
-    // The trap this placement must NOT inherit: `ui:open-model-settings` is listened for
-    // by exactly two components and both are workspace Blocks, so a flow opened from the
-    // landing page would emit into nothing at all — no panel, no error, no log. Owning
-    // the instance also stops a Block's listener opening a SECOND panel over a flow.
-    assert.ok(!/Events\.emit\('ui:open-model-settings'/.test(src),
-        'the flow frame must NOT reach the panel through the event — it mounts its own');
+    // The panel is the frame's own: a flow opened from the landing page has no workspace
+    // Block on screen to borrow one from.
     assert.match(src, /_loraSettings = MpiModelSettings\.mount\(/,
         'the frame owns its MpiModelSettings instance');
 

@@ -1,0 +1,2 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-969", "at": "2026-09-28T19:41:09+01:00", "actor": "6cdeb456-69d7-4adc-877d-351d0556d714", "column": "todo", "title": "Remove the dead ui:open-model-settings listeners"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-969", "at": "2026-09-28T19:41:28+01:00", "actor": "6cdeb456-69d7-4adc-877d-351d0556d714", "from": "todo", "to": "doing", "reason": "Fabio approved removal; emitter check done"}

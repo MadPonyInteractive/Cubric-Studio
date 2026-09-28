@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-969",
+  "title": "Remove the dead ui:open-model-settings listeners",
+  "description": "Nothing emits ui:open-model-settings since MPI-638 (4de052f7e); drop both Block listeners, the test that pins them, and the docs/rules that describe them. Fabio approved 2026-09-28.",
+  "column": "doing",
+  "maturity": "in-progress",
+  "status": "active",
+  "created_at": "2026-09-28T19:41:09+01:00",
+  "updated_at": "2026-09-28T19:41:28+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}
