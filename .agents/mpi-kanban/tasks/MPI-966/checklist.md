@@ -6,4 +6,4 @@
 - [x] Browser dev path (no Electron) unaffected - `_revealWhenLandingReady` returns when there is no `window.require`
 - [x] Verified on an isolated instance: no empty landing on reveal (validation.md)
 - [x] docs/DEVELOPMENT.md boot paragraph updated
-- [ ] Fabio confirms on his own launch
+- [x] Fabio confirms on his own launch (2026-09-28)

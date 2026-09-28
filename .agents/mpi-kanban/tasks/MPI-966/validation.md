@@ -30,6 +30,7 @@ up): reveal at 3.6 s with rows and clips ready, modal on top.
 - Desktop specs: electron-smoke, empty-state-mascots, fullscreen-titlebar, cancelled-mascot - 4/4 pass.
 - eslint clean on the four source files.
 
-## Remaining (human)
+## Human check
 
-Does the startup now look right on Fabio's own launch (cold, real profile)?
+Fabio restarted his own app on the fix (2026-09-28): "Worked great". Closed on that plus the
+evidence above.
