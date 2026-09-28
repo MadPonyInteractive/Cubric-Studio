@@ -188,6 +188,79 @@ test('updateVolume: PATCH /network-volumes/{id} with size', async () => {
   assert.deepEqual(req.body, { size: 80 });
 });
 
+// ── GPU catalogue (MPI-894: off GraphQL) ───────────────────────────────────────
+//
+// Payloads follow the openapi's GpuType / DataCenter schemas. The renderer reads the old
+// GraphQL shape, so the translation is what these pin down.
+
+const V2_GPUS = [
+  { id: 'NVIDIA GeForce RTX 5090', name: 'RTX 5090', memory: 32, secure: true, community: true,
+    price: { secure: 0.89, community: 0.69 }, availability: 'LOW',
+    dataCenters: [{ id: 'EU-RO-1', name: 'EU Romania 1', availability: 'HIGH' },
+      { id: 'US-TX-3', name: 'US Texas 3', availability: 'LOW' }] },
+  // Offered in EU-RO-1 (the DC call lists it) but absent from the CUDA-scoped call there.
+  { id: 'NVIDIA L4', name: 'L4', memory: 24, secure: true, community: false,
+    price: { secure: 0.43, community: 0 }, availability: 'NONE' },
+];
+const V2_DCS = [
+  { id: 'EU-RO-1', name: 'EU Romania 1', networkVolumeTypes: ['STANDARD'],
+    gpuAvailability: [{ id: 'NVIDIA GeForce RTX 5090', name: 'RTX 5090', availability: 'HIGH' },
+      { id: 'NVIDIA L4', name: 'L4', availability: 'HIGH' }] },
+  { id: 'US-TX-3', name: 'US Texas 3', networkVolumeTypes: [] },
+];
+
+/** Stub fetch by path; record every URL. */
+async function withCatalog(fn, status = 200) {
+  const real = globalThis.fetch;
+  const urls = [];
+  globalThis.fetch = async (url) => {
+    urls.push(String(url));
+    const body = String(url).includes('/catalog/gpus') ? { gpus: V2_GPUS } : { dataCenters: V2_DCS };
+    return new Response(JSON.stringify(body), { status });
+  };
+  try {
+    return { result: await fn(), urls };
+  } finally {
+    globalThis.fetch = real;
+  }
+}
+
+test('gpuTypes: GET /catalog/gpus scoped like a create, translated to the picker shape', async () => {
+  const { result, urls } = await withCatalog(() => client.gpuTypes('key'));
+  const u = new URL(urls[0]);
+  assert.equal(u.origin + u.pathname, `${BASE}/catalog/gpus`);
+  assert.equal(u.searchParams.get('include'), 'AVAILABILITY');
+  assert.equal(u.searchParams.get('product'), 'POD');
+  assert.equal(u.searchParams.get('cloud'), 'SECURE');
+  assert.equal(u.searchParams.get('minCudaVersion'), '13.0', 'stock must be scoped by the create\'s CUDA floor');
+  assert.deepEqual(result[0], {
+    id: 'NVIDIA GeForce RTX 5090', displayName: 'RTX 5090', memoryInGb: 32,
+    secureCloud: true, communityCloud: true, securePrice: 0.89,
+  });
+});
+
+test('availability: per-DC stock comes from the scoped gpus call, not the DC catalogue', async () => {
+  const { result, urls } = await withCatalog(() => client.availability('key'));
+  assert.equal(urls.length, 2);
+  assert.ok(urls.every(x => x.startsWith(BASE)), 'no call leaves REST v2');
+  const eu = result.dataCenters.find(d => d.id === 'EU-RO-1');
+  const tx = result.dataCenters.find(d => d.id === 'US-TX-3');
+  assert.equal(eu.storageSupport, true);
+  assert.equal(tx.storageSupport, false, 'no network volume types = no storage');
+  assert.deepEqual(eu.gpuAvailability.find(g => g.gpuTypeId === 'NVIDIA GeForce RTX 5090'),
+    { gpuTypeId: 'NVIDIA GeForce RTX 5090', available: true, stockStatus: 'High' });
+  assert.deepEqual(eu.gpuAvailability.find(g => g.gpuTypeId === 'NVIDIA L4'),
+    { gpuTypeId: 'NVIDIA L4', available: false, stockStatus: null },
+    'REGRESSION: a card the DC offers but no >=13.0 host has read as in stock');
+  assert.deepEqual(tx.gpuAvailability,
+    [{ gpuTypeId: 'NVIDIA GeForce RTX 5090', available: true, stockStatus: 'Low' }]);
+  assert.equal(result.gpuTypes.length, 2);
+});
+
+test('a refused catalogue read throws, so the route answers 502 instead of an empty picker', async () => {
+  await assert.rejects(withCatalog(() => client.availability('key'), 401), /http 401/);
+});
+
 // ── API key is never leaked ────────────────────────────────────────────────────
 
 test('API key appears only in Authorization header, never in URL or body', async () => {

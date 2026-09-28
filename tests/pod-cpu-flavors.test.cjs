@@ -115,13 +115,10 @@ const inStock = (available) => async () => [
   { id: 'EU-RO-1', gpuAvailability: [{ gpuTypeId: 'NVIDIA GeForce RTX 5090', available }] },
 ];
 
-test('a RAM-floor GPU create goes through REST, not GraphQL', async () => {
+test('a RAM-floor GPU create goes through REST', async () => {
   const specs = [];
-  let gql = 0;
-  client.createPodGraphql = async () => { gql += 1; return CREATED; };
   client.createPod = async (_key, spec) => { specs.push(spec); return CREATED; };
   await _createPodInternal('key', FLOOR_ARGS);
-  assert.equal(gql, 0, 'REGRESSION: a RAM-floor create went to GraphQL, which RunPod retires in early 2027');
   assert.equal(specs.length, 1);
   assert.equal(specs[0].minMemoryInGb, 80, 'the floor must travel on the REST spec');
 });

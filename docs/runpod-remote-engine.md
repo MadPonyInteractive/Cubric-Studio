@@ -14,6 +14,10 @@ existing generation contracts (single-dispatch Cue queue, title-based workflow i
 app-owned result capture, local project persistence) and swaps only the transport.
 Community Cloud is unsupported (unstable/limited for this use case).
 
+**Where the user drives it: the Remote slide-over** (top nav REMOTE → `MpiRemote`, which
+mounts `MpiRunpodSettings`), NOT Settings. MPI-751 moved it out of Settings on 2026-09-15; the
+component kept its old name, so "Settings" in a file name or an older card means this panel.
+
 ## 1. Topology (backend-proxy)
 
 - The renderer speaks **ComfyUI-shaped HTTP** to `/proxy/*` on `127.0.0.1:3000` (the
@@ -51,9 +55,10 @@ Community Cloud is unsupported (unstable/limited for this use case).
     filter (MPI-188). RunPod lands the Pod ONLY on a host whose driver supports at least that
     CUDA version; without it, placement is driver-roulette and a host with a driver too old
     for the image's CUDA/torch build crashes ComfyUI on boot ("RuntimeError: The NVIDIA
-    driver on your system is too old"). The floor is a property of the IMAGE (`podCudaFloor`
-    in `remotePodLifecycle.js`, NOT user input): the single cu130 image → `'13.0'`. N/A for
-    CPU download mode.
+    driver on your system is too old"). The floor is a property of the IMAGE
+    (`POD_CUDA_FLOOR` in `runpodRemote.js`, read by `podCudaFloor`; NOT user input): the
+    single cu130 image → `'13.0'`. N/A for CPU download mode. The picker's stock query uses
+    the SAME floor (§1 catalogue below), so a card reads in stock only where a create lands.
     **Never `allowedCudaVersions`.** On REST v2 that list matches EXACTLY ("a version no
     machine reports yields a capacity error rather than a fallback"). MPI-806 carried v1's
     `['13.0']` across 1:1, so from 2026-09-27 every GPU create was confined to hosts reporting
@@ -75,14 +80,26 @@ Community Cloud is unsupported (unstable/limited for this use case).
   `GET /proxy/view`, `/queue`.
 - Companion routers: `routes/remoteEngine.js` (key resolver, wrapper-token gen/store/clear,
   `waitForWrapperReady`, `proxyUrl`), `routes/runpodRemote.js` (RunPod REST `client` on
-  `https://api.runpod.io/v2` + GraphQL on `https://api.runpod.io/graphql` — MPI-806 migrated
-  from `rest.runpod.io/v1`, which retires 2026-11-15; **GraphQL retires early 2027** and still
-  feeds the picker catalogue `gpuTypes`/`dataCenters` — the 2.1 move, MPI-894), `routes/remoteModels.js` (model
-  status/install forwarding), `routes/downloadManager.js` (remote download SSE bridge).
+  `https://api.runpod.io/v2` ONLY — MPI-806 migrated from `rest.runpod.io/v1`, which retires
+  2026-11-15; MPI-894 moved the catalogue off GraphQL, which retires early 2027, and deleted
+  GraphQL entirely), `routes/remoteModels.js` (model status/install forwarding),
+  `routes/downloadManager.js` (remote download SSE bridge).
+- **GPU catalogue** (`GET /runpod/gpu-availability`, MPI-894): `GET /v2/catalog/gpus?include=
+  AVAILABILITY&product=POD&cloud=SECURE&minCudaVersion=13.0` + `GET /v2/catalog/datacenters?
+  include=GPU_AVAILABILITY`, translated in `runpodRemote.js` into the shape the renderer has
+  always read (`gpuTypes[]{id,displayName,memoryInGb,securePrice,secureCloud}`,
+  `dataCenters[]{id,name,storageSupport,gpuAvailability[]{gpuTypeId,available,stockStatus}}`,
+  v2 `HIGH/MEDIUM/LOW` → `High/Medium/Low`, `NONE` → unavailable). Per-DC stock comes from the
+  GPUS call's `dataCenters[]`, scoped like a create; the DC call only says which cards a DC
+  OFFERS (its own availability ignores cloud and CUDA). A card offered but absent from the
+  scoped call is listed unavailable, so auto-retry can still wait for it. **v2 has NO system
+  RAM or vCPU in the catalogue**, so the picker's RAM badge is gone (the create's
+  `gpu.minRamPerGpu` floor still guarantees RAM); the renderer's `?dataCenterId` is ignored.
+  A refused catalogue read throws → the route answers 502.
 
 ## 2. Pod lifecycle (create-on-Connect + STOP-on-quit, delete-fallback)
 
-- **Connect** (Settings or boot): saved `podId` → `POST /remote/pod/reconnect` (warm
+- **Connect** (Remote panel or boot): saved `podId` → `POST /remote/pod/reconnect` (warm
   resume); else `POST /remote/pod/create` (fresh on the picked GPU). Connect is gated on
   **both a GPU and a network volume** being selected.
 - **Reconnect:** availability pre-check on the saved GPU → if gone, DELETE the stuck Pod +
@@ -94,7 +111,7 @@ Community Cloud is unsupported (unstable/limited for this use case).
   **delete-on-quit** pref. OFF (default) = `stopPod` (EXITED, warm-resumable, no GPU bill);
   ON = delete every `cubric-vision` Pod. `main.js` teardown timeout is **30s** (a slow
   RunPod delete aborted at 8s once and left a Pod running).
-- **Disconnect** (Settings): 3-button popup — **Stop Pod** (stop warm), **Delete Pod**,
+- **Disconnect** (Remote panel): 3-button popup — **Stop Pod** (stop warm), **Delete Pod**,
   **Cancel**. Both stop/delete flip backend `_mode.active = false` (podId preserved) so
   `isRemoteActive()` returns false and local generation resumes.
 - **Untracked-death self-heal (MPI-239):** when a CONNECTED Pod dies with no user
@@ -180,7 +197,7 @@ Non-secret pref `deleteOnQuit` in `state.runpodConfig` (default OFF; normalizer 
 stageOnConnect, containerDiskGb, minRamGb }` (minRamGb = optional system-RAM floor, MPI-160;
 0 = none; stageOnConnect = warm all installed models on connect, MPI-329, default off). Pushed to
 backend `_mode` via `POST /remote/mode` on boot (`shell.js _initRemoteBoot`) and on checkbox
-toggle (`MpiSettings.js`). `main.js` stays pref-agnostic — it calls `/remote/pod/teardown`
+toggle (`MpiRunpodSettings.js`). `main.js` stays pref-agnostic — it calls `/remote/pod/teardown`
 and the backend branches. Backend `_mode = { active, podId, deleteOnQuit }` is server-owned.
 
 ## 4. Billing / race guardrails
@@ -262,15 +279,15 @@ difference between hunting for a 96 GB instance and taking whatever is in stock.
   ephemeral vs volume. Do NOT build a "claim a refund" affordance — no credits are coming.
 - **"Deploy when available" is CONSOLE-ONLY (GA 2026-06-18, re-checked 2026-07-25, MPI-349).**
   REST `POST /pods` has no queue / schedule / wait-for-capacity / subscription field, and we
-  create via REST + the GraphQL `podFindAndDeployOnDemand` fallback — nothing to hook. Our
+  create via REST only — nothing to hook. Our
   app-side equivalent is `autoRetry` (MPI-110): the picker lists out-of-stock cards and Connect
   polls until stock appears. Theirs is a real server-side reservation and would win the race,
   but it **bills the instant capacity appears even with the app closed** — so if the field ever
   lands in a schema, it gets its own pref + subscription window + explicit consent. Never fold
   it silently into `autoRetry`, which by construction can only bill while the app is open.
 - **Delete a volume only after deleting its attached Pod** — RunPod refuses to delete an
-  attached volume even when the Pod is EXITED. Settings deletes the tracked Pod first.
-- **Grow a volume from Settings (MPI-762).** `PATCH /runpod/volumes/:id` → REST
+  attached volume even when the Pod is EXITED. The Remote panel deletes the tracked Pod first.
+- **Grow a volume from the Remote panel (MPI-762).** `PATCH /runpod/volumes/:id` → REST
   `PATCH /network-volumes/{id}` with `{size}` only. RunPod refuses a size not larger than the
   current one (a volume never shrinks) and caps it at 4000 GB, so the field floors at the
   current size. A RUNNING Pod sees the new quota with no restart (user-observed on console
@@ -590,11 +607,11 @@ is committed).
 
 **DC-steer + bad-host maintenance detect (MPI-135)** — logic-verified, NOT live-verified (needs scarce card + maintenance host). Any-region ephemeral retries now call `_bestStockDcForGpu` (ranks `dataCenters[].gpuAvailability`) and pin `body.datacenter` to the best-stock DC instead of re-sending `dc=null`. Maintenance hosts: `getPod` machine object carries `maintenanceStart`/`maintenanceEnd`/`maintenanceNote`; both readiness polls early-return `'maintenance'` past the 30s grace → delete doomed Pod + dialog "Connect again for a fresh host". NO signal for stuck-pull-at-0 (no REST pull-progress field).
 
-**GraphQL↔REST GPU-id fallback (MPI-159)** — LIVE-VALIDATED 2026-06-29. REST `POST /pods` has a separate enum from the GraphQL catalogue; newer cards (RTX PRO 4500/4000 Blackwell) are in the catalogue but not the enum → 400 `gpuTypeIds/items/enum`. Fix: `_createPodInternal` falls back to `client.createPodGraphql` (`podFindAndDeployOnDemand`) whose `gpuTypeId` is a free string. REST stays primary; GraphQL-created Pods are managed by REST (shared id namespace). `_createRejectReason` now unwraps the top-level array body and classifies `gpuUnsupported:true` → honest copy + retry-loop break.
+**GPU-id enum reject (MPI-135/159)** — v1 REST `POST /pods` had a separate enum from the catalogue; newer cards (RTX PRO 4500/4000 Blackwell) 400'd `gpuTypeIds/items/enum`. MPI-159's GraphQL create fallback was DELETED in MPI-894: v2's `gpu.id` is a free string, so the enum lag cannot happen. `_createRejectReason` still unwraps a top-level array body, and the `gpuUnsupported:true` classification stays dormant for the same v1 wording.
 
 **Volume persists through Reset** — RunPod console "Reset" wipes container/ephemeral disk only; Uptime keeps climbing, volume usage stays full, models survive. Confirmed 2026-06-17. Clear volume via manual `rm` (wrapper/SSH) or destroy the network volume itself.
 
-**REST Pod shape on v2 (MPI-806, read off `api.runpod.io/v2/openapi.json` 2026-09-27)** — `status` replaces `desiredStatus`, enum PROVISIONING/STARTING/RUNNING/EXITED/ERROR/TERMINATED (ERROR counts as not-running beside EXITED/TERMINATED); `startedAt` replaces `lastStartedAt`; `cost` replaces `costPerHr`; `disk` replaces `containerDiskInGb`; `mounts.network[0].volumeId` replaces `networkVolumeId`; `gpu.memory` is total SYSTEM RAM, not VRAM; `runtime` is `{uptime, gpus[{util, memoryUtil}], cpu{util}, memory{util}}` and null unless RUNNING. **There is NO `machine` object on v2**, so the MPI-135 maintenance-host detect below reads nothing and never fires (degrades to the normal readiness watchdog). `gpu.id` on create is a free string, so the MPI-159 enum-lag 400 cannot happen on v2 and that GraphQL fallback goes dormant. NO image-pull progress field exists anywhere.
+**REST Pod shape on v2 (MPI-806, read off `api.runpod.io/v2/openapi.json` 2026-09-27)** — `status` replaces `desiredStatus`, enum PROVISIONING/STARTING/RUNNING/EXITED/ERROR/TERMINATED (ERROR counts as not-running beside EXITED/TERMINATED); `startedAt` replaces `lastStartedAt`; `cost` replaces `costPerHr`; `disk` replaces `containerDiskInGb`; `mounts.network[0].volumeId` replaces `networkVolumeId`; `gpu.memory` is total SYSTEM RAM, not VRAM; `runtime` is `{uptime, gpus[{util, memoryUtil}], cpu{util}, memory{util}}` and null unless RUNNING. **There is NO `machine` object on v2**, so the MPI-135 maintenance-host detect below reads nothing and never fires (degrades to the normal readiness watchdog). `gpu.id` on create is a free string, so the MPI-159 enum-lag 400 cannot happen on v2 (its GraphQL fallback is deleted, MPI-894). NO image-pull progress field exists anywhere.
 
 **Watchdog is a crash backstop, NOT an idle timer** — the Pod-side watchdog (`wrapper.py Watchdog`) resets on ANY authenticated traffic; `MpiMemoryMonitor` polls `/wrapper/stats` every 2s so the deadline never expires while the app is alive. It fires only when the app dies. Never add "stop Pod after N min idle while connected" — architecturally impossible without stopping the stats poll. Fixed 10-min backstop (`CUBRIC_IDLE_TIMEOUT_S=600`, not user-configurable). MPI-103 live-verified: Pod stayed up 57 min idle-with-app.
 

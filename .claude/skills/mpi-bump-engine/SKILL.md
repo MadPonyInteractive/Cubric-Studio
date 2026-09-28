@@ -82,7 +82,7 @@ node scripts/smoke-workflows.mjs --models klein-4b,qwen-edit
 ```
 
 **Always run `--plan` first and show the user the matrix and the volume size** before
-anything is rented. It needs the app running (`:3000`) and a RunPod key in Settings.
+anything is rented. It needs the app running (`:3000`) and a RunPod key saved in the Remote panel.
 
 What it does: resolves the smoke set from the registry → ensures a **320 GB volume in
 EU-RO-1** → installs on a CPU Pod → verifies → rents the first available of

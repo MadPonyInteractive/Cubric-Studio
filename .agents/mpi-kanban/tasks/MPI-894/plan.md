@@ -100,9 +100,18 @@ Both read `dev_configs/node_lock.json`; NEITHER writes it. A pin change is
 
 ## Current State
 
-2026-09-28 (MPI-595 session 909b66b4): phase 1b NOT started; card still `todo`. Next session:
-`beginImplementation` MPI-894 (todo -> doing, write `files.json`), then 1b per the design
-above, then the MPI-595 B1 smoke (its handoff chain carries the smoke procedure).
+2026-09-28 (session f3d8094a): **1b DONE + live-verified in Fabio's app, uncommitted.** The
+RunPod panel lives in the REMOTE slide-over since MPI-751 (docs said Settings; fixed).
+Card `doing`/`in-progress`, claim `f3d8094a-mpi894`. `client.gpuTypes`/`dataCenters`/
+`availability` now read `/v2/catalog/gpus` (scoped `include=AVAILABILITY&product=POD&cloud=
+SECURE&minCudaVersion=13.0`) + `/v2/catalog/datacenters?include=GPU_AVAILABILITY`, translated
+in `_toPickerGpu`/`_toPickerDcs`. `_graphql`, `createPodGraphql`, the MPI-159 fallback are
+deleted. `POD_CUDA_FLOOR` moved to `runpodRemote.js` (catalogue + create share it). Smoke
+`pickGpu` stamps `inStock` from EU-RO-1's `gpuAvailability`. Evidence: `validation.md`.
+Gotcha: per-DC stock comes from the GPUS call, never the DC catalogue's own `availability`
+(that ignores cloud + CUDA). Next: commit (handoff/end-session) -> MPI-595 B1 smoke with
+Fabio present. At 19:50 local EU-RO-1 had only RTX PRO 4000 on a CUDA-13+ host, which is not
+in the smoke's GPU_ORDER, so `pickGpu` stops before renting until stock changes (or --gpu).
 
 Already landed from that session, as the first slice of the v2 work: the **CUDA floor fix**.
 MPI-806 mapped v1's `allowedCudaVersions: ['13.0']` 1:1 onto v2, where that list matches
@@ -117,3 +126,7 @@ GraphQL `createPodGraphql` was deliberately NOT updated for it: 1b deletes it.
 
 - 2026-09-28: 1b pulled forward from 2.1 to before the 2.0 smoke; 1c added (picker overlay +
   image/video filter). Both Fabio's calls, same session.
+- 2026-09-28 (1b build): the DC call also asks `include=GPU_AVAILABILITY`, used ONLY as the
+  list of cards each DC offers. The openapi says a GPU's `dataCenters[]` is "omitted entirely
+  when the configuration is unavailable everywhere", so building per-DC lists from the gpus
+  call alone could drop a sold-out card from auto-retry's "will wait" list (MPI-110).

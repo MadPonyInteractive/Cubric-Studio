@@ -23,7 +23,7 @@ const {
   waitForWrapperReady,
   proxyUrl,
 } = require('./remoteEngine');
-const { client } = require('./runpodRemote');
+const { client, POD_CUDA_FLOOR } = require('./runpodRemote');
 const { checkOnline } = require('./netCheck');
 const { UA } = require('./remoteHeaders');
 const state = require('./remotePodState');
@@ -471,7 +471,8 @@ function podImageForCard(gpuTypeId) {
 // NVIDIA driver on your system is too old", seen live on a cu13.0 image landing
 // a 12.8-max host during MPI-187). The floor is a property of the IMAGE. MPI-189
 // collapsed to a SINGLE cu130 image, so the floor is a flat '13.0' for every GPU
-// card (the r580-driver floor cu130 needs).
+// card (the r580-driver floor cu130 needs). POD_CUDA_FLOOR lives in runpodRemote.js
+// because the catalogue's stock query uses the same floor (MPI-894).
 // A FLOOR, never `allowedCudaVersions`: REST v2 matches that list EXACTLY ("a
 // version no machine reports yields a capacity error rather than a fallback"),
 // so ['13.0'] shut out every 13.1+ host and answered "no longer any instances
@@ -479,7 +480,7 @@ function podImageForCard(gpuTypeId) {
 // N/A for CPU download mode (no CUDA on a CPU Pod).
 function podCudaFloor(gpuTypeId) {
   if (gpuTypeId === CPU_SENTINEL) return null;
-  return '13.0';
+  return POD_CUDA_FLOOR;
 }
 
 // --- lifecycle-private state --------------------------------------------------
@@ -957,34 +958,14 @@ async function _createPodInternal(key, { gpuTypeId, volumeId, datacenter, contai
       try { body = JSON.stringify(created.json); } catch (_) { body = String(created.json); }
       logger.warn('runpod', `createPod ${created.status}: no parseable reason; raw body=${(body || '{}').slice(0, 2000)}`);
     }
-    // MPI-135: a schema-400 naming gpuTypeIds/items/enum means RunPod's REST create
-    // endpoint does NOT recognise this GPU id — its createPod enum lags the GraphQL
-    // catalogue the picker lists from, so newer cards (e.g. "NVIDIA RTX PRO 4500
-    // Blackwell") show as pickable + in-stock yet can never deploy. This is NOT stock;
-    // tell the user to pick another card and flag it so the renderer can mark the card
-    // unsupported (gpuUnsupported) rather than looping them on a doomed retry.
+    // MPI-135: a schema-400 naming gpuTypeIds/items/enum means RunPod's create endpoint
+    // does NOT recognise this GPU id — v1's create enum lagged the catalogue, so newer
+    // cards (e.g. "NVIDIA RTX PRO 4500 Blackwell") showed as pickable + in-stock yet could
+    // never deploy. v2's gpu.id is a free string (MPI-894 deleted the MPI-159 GraphQL
+    // fallback that worked around the enum), so this is dormant unless v2 grows one. This
+    // is NOT stock; tell the user to pick another card and flag it so the renderer can mark
+    // the card unsupported (gpuUnsupported) rather than looping them on a doomed retry.
     const gpuEnumReject = created.status === 400 && /gpuTypeIds\/items\/enum/i.test(parsed || '');
-    // MPI-159: the card is genuinely absent from the REST create enum but the GraphQL
-    // catalogue (the picker's source) offers it — fall back to GraphQL create, which
-    // takes gpuTypeId as a free string and CAN deploy these cards (live-proven on
-    // RTX PRO 4500 Blackwell). REST manages the resulting Pod, so the post-create flow
-    // below is identical. Never for CPU download-mode (GraphQL create has no computeType).
-    if (gpuEnumReject && !noGpu) {
-      logger.info('runpod', `REST enum rejected ${gpuTypeId}; falling back to GraphQL create`);
-      const gql = await client.createPodGraphql(key, spec);
-      const gqlPodId = gql.json && gql.json.id;
-      if (gql.ok && gqlPodId) {
-        logger.info('runpod', `createPod GraphQL fallback -> podId=${gqlPodId}`);
-        return _afterPodCreated(key, gqlPodId, token, noGpu, { wait, timeoutMs });
-      }
-      // GraphQL ALSO failed. Surface its reason honestly: a true out-of-stock is
-      // retryable (let the shell retry loop see a stock-shaped message); only a real
-      // unsupported-card stays gpuUnsupported. RunPod GraphQL stock failures don't
-      // carry the REST enum marker, so they won't be misclassified as unsupported.
-      const gqlReason = _createRejectReason(gql.json) || 'GraphQL create failed';
-      logger.warn('runpod', `createPod GraphQL fallback failed: ${gqlReason}`);
-      return { ok: false, message: gqlReason, gpuUnsupported: false };
-    }
     const reason = gpuEnumReject
       ? `RunPod's deploy API doesn't support this GPU yet (its create list lags the catalogue). Pick a different card — this one can't be deployed even though it shows as available.`
       : (parsed
@@ -1003,11 +984,8 @@ async function _createPodInternal(key, { gpuTypeId, volumeId, datacenter, contai
   return _afterPodCreated(key, podId, token, noGpu, { wait, timeoutMs });
 }
 
-// Shared post-create flow for BOTH the REST primary path and the MPI-159 GraphQL
-// fallback. Whichever API created the Pod, REST manages it from here (shared id
-// namespace) — token keyed to the podId, single-Pod sweep, then ready-wait (or a
-// fast {starting} kickoff when wait:false). Extracted so the GraphQL path reuses
-// it verbatim instead of duplicating the wiring.
+// Post-create flow: token keyed to the podId, single-Pod sweep, then ready-wait (or a
+// fast {starting} kickoff when wait:false).
 async function _afterPodCreated(key, podId, token, noGpu, { wait, timeoutMs }) {
   // Running (billing) from here. Token keyed to the new podId; _startedPodId set
   // BEFORE the ready-wait so a timeout still lets teardown stop/delete it.

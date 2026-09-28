@@ -16,10 +16,9 @@ test.before(async () => {
     ({ selectGpu } = await import('../scripts/smoke-workflows.mjs'));
 });
 
-// Shape from the live /runpod/gpu-availability payload: stock is signalled by lowestPrice,
-// there is no stockStatus field.
-const stocked = (id, displayName) => ({ id, displayName, lowestPrice: { minMemory: 24 } });
-const dry = (id, displayName) => ({ id, displayName, lowestPrice: { minMemory: null } });
+// pickGpu stamps `inStock` from the run's data center (MPI-894); selectGpu reads only that.
+const stocked = (id, displayName) => ({ id, displayName, inStock: true });
+const dry = (id, displayName) => ({ id, displayName, inStock: false });
 
 test('picks the top preferred card when everything is in stock', () => {
     const { hit, rank } = selectGpu([

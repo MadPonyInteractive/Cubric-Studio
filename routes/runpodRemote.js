@@ -1,9 +1,10 @@
 /**
- * routes/runpodRemote.js — RunPod REST + GraphQL client and HTTP routes.
+ * routes/runpodRemote.js — RunPod REST client and HTTP routes.
  *
- * Backend client for the RunPod remote engine (MPI-64). Talks to:
- *   - REST  https://api.runpod.io/v2      — Pod / network-volume / template CRUD (MPI-806: migrated from rest.runpod.io/v1 which retires 2026-11-15)
- *   - GraphQL https://api.runpod.io/graphql — GPU catalog + data-center availability
+ * Backend client for the RunPod remote engine (MPI-64). Talks to REST
+ * https://api.runpod.io/v2 only — Pod / network-volume / template CRUD (MPI-806: migrated
+ * from rest.runpod.io/v1, which retires 2026-11-15) and the GPU + data-center catalogue
+ * (MPI-894: moved off GraphQL, which RunPod retires in early 2027).
  *
  * The user's API key is NEVER stored here and NEVER logged. It is fetched on demand
  * from the main process via the fork bridge (see getRunPodApiKey in remoteEngine.js),
@@ -31,7 +32,11 @@ const router = express.Router();
 const logger = require('./logger');
 
 const REST = 'https://api.runpod.io/v2';
-const GQL = 'https://api.runpod.io/graphql';
+
+// The lowest CUDA version the Pod image runs on (MPI-188/189: one cu130 image, r580
+// driver floor). Both the create (gpu.minCudaVersion) and the catalogue's stock query
+// use it, so a card reads as in stock only where a create can land.
+const POD_CUDA_FLOOR = '13.0';
 
 // Cloudflare fronts the RunPod proxy AND the API; default fetch UA can be blocked
 // (HTTP 403 error 1010). Send a browser UA on all calls. (Verified MPI-64.)
@@ -76,8 +81,8 @@ function sanitizePodJson(pod) {
   return out;
 }
 
-// Wrap a fetch so a thrown error never carries the key (GraphQL passes it in the
-// URL query, which would otherwise land in err.message -> app.log -> bug report).
+// Wrap a fetch so a thrown error never carries the key (a key that ever lands in a
+// URL would otherwise reach err.message -> app.log -> bug report).
 async function _safeFetch(url, opts) {
   try {
     return await fetch(url, opts);
@@ -88,27 +93,11 @@ async function _safeFetch(url, opts) {
   }
 }
 
-async function _graphql(apiKey, query, variables) {
-  // Key via Authorization header (NOT the URL) so it cannot leak through a URL in
-  // an error or log. RunPod GraphQL accepts the bearer header.
-  const res = await _safeFetch(GQL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'User-Agent': UA,
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({ query, variables: variables || {} }),
-  });
-  const json = await res.json();
-  return json;
-}
-
 // --- v1 → v2 spec translation ------------------------------------------------
 //
 // MPI-806: v2 pod-create body is nested (gpu/cpu/mounts objects) while the app
-// builds the spec in the flat v1 shape internally (shared with the GraphQL create
-// path). Translate at the REST boundary so every call site is unaffected.
+// builds the spec in the flat v1 shape internally. Translate at the REST boundary
+// so every call site is unaffected.
 //
 // v1 → v2 field renames:
 //   imageName            → image
@@ -152,6 +141,60 @@ function _toV2PodSpec(spec) {
   return body;
 }
 
+// --- GPU catalogue (MPI-894) -------------------------------------------------
+//
+// REST v2 /catalog/*, translated here into the shape the renderer has always read from
+// GraphQL, so no renderer file knows the API changed. Stock is asked with the SAME filters
+// a create sends (Secure Cloud, a Pod, the CUDA floor): a wider query reports stock on
+// hosts a create can never land on — the "listed, then refused" loop of MPI-595 B1.
+//
+// v2's catalogue has NO system RAM or vCPU (live openapi, 2026-09-28), so the picker's
+// per-DC RAM badge (`minMemory`) is gone; the create's gpu.minRamPerGpu floor still
+// guarantees RAM.
+const GPU_CATALOG = `/catalog/gpus?include=AVAILABILITY&product=POD&cloud=SECURE&minCudaVersion=${POD_CUDA_FLOOR}`;
+const DC_CATALOG = '/catalog/datacenters?include=GPU_AVAILABILITY';
+const STOCK = { HIGH: 'High', MEDIUM: 'Medium', LOW: 'Low' }; // v2 NONE = unavailable
+
+async function _catalog(apiKey, path, field) {
+  const r = await _rest(apiKey, 'GET', path);
+  if (!r.ok) throw new Error(`RunPod ${path.split('?')[0]} -> http ${r.status}`);
+  return (r.json && r.json[field]) || [];
+}
+
+function _toPickerGpu(g) {
+  return {
+    id: g.id,
+    displayName: g.name,
+    memoryInGb: g.memory,
+    secureCloud: g.secure,
+    communityCloud: g.community,
+    securePrice: g.price ? g.price.secure : null,
+  };
+}
+
+// Each DC's `gpuAvailability` as GraphQL shaped it. The DC catalogue says which cards a DC
+// OFFERS, but its availability is scoped by neither cloud nor CUDA; the level comes from the
+// gpus call, which is. A card offered there that the scoped call does not list has no host a
+// create could use: unavailable, yet still listed so auto-retry can wait for it (MPI-110).
+function _toPickerDcs(dcs, gpus) {
+  const levels = new Map(dcs.map((dc) => [dc.id, new Map((dc.gpuAvailability || []).map((a) => [a.id, 'NONE']))]));
+  for (const g of gpus) {
+    for (const d of g.dataCenters || []) {
+      if (levels.has(d.id)) levels.get(d.id).set(g.id, d.availability);
+    }
+  }
+  return dcs.map((dc) => ({
+    id: dc.id,
+    name: dc.name,
+    storageSupport: (dc.networkVolumeTypes || []).length > 0,
+    gpuAvailability: [...levels.get(dc.id)].map(([gpuTypeId, level]) => ({
+      gpuTypeId,
+      available: !!STOCK[level],
+      stockStatus: STOCK[level] || null,
+    })),
+  }));
+}
+
 // --- client functions (exported for remoteEngine.js + tests) ----------------
 
 const client = {
@@ -161,46 +204,22 @@ const client = {
     return { valid: r.ok, status: r.status };
   },
 
-  async gpuTypes(apiKey, dataCenterId) {
-    // `memoryInGb` is GPU VRAM. System/container RAM is NOT a GpuType field —
-    // it rides on the cheapest offering via `lowestPrice.minMemory` (GB). We
-    // flatten it to top-level `minMemory`/`minVcpu` so the picker reads it like
-    // `securePrice`.
-    //
-    // Without a `dataCenterId`, `lowestPrice` returns the GLOBAL floor across all
-    // clouds/DCs — which badly under-reports RAM (e.g. A4500 reads 29GB when the
-    // EU-RO-1 Secure-Cloud listing has 62GB). When a DC is selected we scope the
-    // input to that DC + `secureCloud:true`, so the RAM matches what the user
-    // actually rents. The no-DC global call is the back-compat fallback.
-    const priceInput = dataCenterId
-      ? `input:{gpuCount:1, dataCenterId:${JSON.stringify(dataCenterId)}, secureCloud:true}`
-      : `input:{gpuCount:1}`;
-    const q = `query { gpuTypes { id displayName memoryInGb secureCloud communityCloud securePrice
-      lowestPrice(${priceInput}) { minMemory minVcpu } } }`;
-    const d = await _graphql(apiKey, q);
-    const gpus = (d.data && d.data.gpuTypes) || [];
-    return gpus.map((g) => ({
-      ...g,
-      minMemory: (g.lowestPrice && typeof g.lowestPrice.minMemory === 'number') ? g.lowestPrice.minMemory : null,
-      minVcpu: (g.lowestPrice && typeof g.lowestPrice.minVcpu === 'number') ? g.lowestPrice.minVcpu : null,
-    }));
+  // `memoryInGb` is GPU VRAM.
+  async gpuTypes(apiKey) {
+    return (await _catalog(apiKey, GPU_CATALOG, 'gpus')).map(_toPickerGpu);
   },
 
   async dataCenters(apiKey) {
-    const q = `query { dataCenters { id name storageSupport
-      gpuAvailability { available gpuTypeId stockStatus } } }`;
-    const d = await _graphql(apiKey, q);
-    return (d.data && d.data.dataCenters) || [];
+    return (await client.availability(apiKey)).dataCenters;
   },
 
-  // Combined picker payload: Secure-Cloud GPUs with per-DC availability + stock.
-  // Pass `dataCenterId` to get per-DC RAM (lowestPrice scoped to that DC).
-  async availability(apiKey, dataCenterId) {
+  // Combined picker payload: GPUs + DCs with per-DC availability and stock.
+  async availability(apiKey) {
     const [gpus, dcs] = await Promise.all([
-      client.gpuTypes(apiKey, dataCenterId),
-      client.dataCenters(apiKey),
+      _catalog(apiKey, GPU_CATALOG, 'gpus'),
+      _catalog(apiKey, DC_CATALOG, 'dataCenters'),
     ]);
-    return { gpuTypes: gpus, dataCenters: dcs };
+    return { gpuTypes: gpus.map(_toPickerGpu), dataCenters: _toPickerDcs(dcs, gpus) };
   },
 
   async createPod(apiKey, spec) {
@@ -218,61 +237,6 @@ const client = {
       if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 2000 * (attempt + 1)));
     }
     return r;
-  },
-  // MPI-159: GraphQL create fallback for GPUs the REST create enum rejects (the
-  // REST `gpuTypeIds` enum lags the GraphQL catalogue the picker lists from, so a
-  // pickable card like "NVIDIA RTX PRO 4500 Blackwell" 400s on REST POST /pods).
-  // GraphQL `podFindAndDeployOnDemand` takes `gpuTypeId` as a FREE STRING (no enum)
-  // — the same id the picker already has — and the console uses this same mutation.
-  // REST manages the resulting Pod (shared id namespace), so only CREATE moves to
-  // GraphQL; get/start/stop/delete stay REST. Adapts the GraphQL shape ({data}|{errors},
-  // always HTTP 200) to the same {ok,status,json:{id}} the REST createPod returns, so
-  // the caller (_createPodInternal) treats both paths identically.
-  //
-  // `spec` is the REST POST /pods spec; this translates it to the GraphQL input shape:
-  //   gpuTypeIds:[id]→gpuTypeId, dataCenterIds:[dc]→dataCenterId, env obj→[{key,value}],
-  //   ports:['8889/http']→'8889/http' (comma-string), + cloudType:SECURE.
-  async createPodGraphql(apiKey, spec) {
-    const input = {
-      cloudType: 'SECURE',
-      name: spec.name,
-      imageName: spec.imageName,
-      gpuCount: spec.gpuCount || 1,
-      containerDiskInGb: spec.containerDiskInGb,
-      ports: Array.isArray(spec.ports) ? spec.ports.join(',') : spec.ports,
-      env: Object.entries(spec.env || {}).map(([key, value]) => ({ key, value: String(value) })),
-    };
-    if (Array.isArray(spec.gpuTypeIds) && spec.gpuTypeIds.length) input.gpuTypeId = spec.gpuTypeIds[0];
-    if (Array.isArray(spec.dataCenterIds) && spec.dataCenterIds.length) input.dataCenterId = spec.dataCenterIds[0];
-    if (spec.networkVolumeId) input.networkVolumeId = spec.networkVolumeId;
-    if (spec.volumeMountPath) input.volumeMountPath = spec.volumeMountPath;
-    if (typeof spec.volumeInGb === 'number') input.volumeInGb = spec.volumeInGb;
-    // MPI-160: system-RAM floor. Live-proven honored on this GraphQL mutation
-    // (200GB → SUPPLY_CONSTRAINT, 90/none → create). RunPod places only on a host
-    // with >= this much system RAM.
-    if (typeof spec.minMemoryInGb === 'number') input.minMemoryInGb = spec.minMemoryInGb;
-    // MPI-188: driver-floor placement filter. RunPod lands the Pod only on a host
-    // whose driver supports one of these CUDA versions — guards the "driver too
-    // old" ComfyUI boot crash. Threaded the same way as minMemoryInGb above.
-    if (Array.isArray(spec.allowedCudaVersions) && spec.allowedCudaVersions.length) {
-      input.allowedCudaVersions = spec.allowedCudaVersions;
-    }
-    const mutation = `mutation($input: PodFindAndDeployOnDemandInput!) {
-      podFindAndDeployOnDemand(input: $input) { id desiredStatus imageName machineId }
-    }`;
-    const d = await _graphql(apiKey, mutation, { input });
-    if (d && Array.isArray(d.errors) && d.errors.length) {
-      const message = d.errors.map((e) => (e && e.message) || String(e)).filter(Boolean).join('; ');
-      // HTTP-200 GraphQL error → present as a non-ok REST-shaped result so the caller's
-      // existing reject path reads it. 500 = generic server/stock; the message carries
-      // the real reason (out-of-stock vs unsupported) for _createRejectReason.
-      return { ok: false, status: 500, json: { error: message, errors: d.errors } };
-    }
-    const pod = d && d.data && d.data.podFindAndDeployOnDemand;
-    if (!pod || !pod.id) {
-      return { ok: false, status: 500, json: { error: 'GraphQL create returned no pod id' } };
-    }
-    return { ok: true, status: 200, json: { id: pod.id, desiredStatus: pod.desiredStatus } };
   },
   // MPI-806: v1 POST /pods/{id}/start → v2 POST /v2/pods/{id}/action {action:'start'}
   async startPod(apiKey, id) {
@@ -345,13 +309,10 @@ async function _withKey(res, handler) {
 router.get('/runpod/account/validate', (req, res) =>
   _withKey(res, async (key) => res.json(await client.validate(key))));
 
+// A `?dataCenterId` the renderer still sends is ignored: it scoped GraphQL's per-DC RAM
+// figure, which v2 does not have (MPI-894). Availability is per DC in the payload itself.
 router.get('/runpod/gpu-availability', (req, res) =>
-  _withKey(res, async (key) => {
-    // Optional ?dataCenterId scopes GPU RAM (lowestPrice) to that DC; omitted =
-    // global floor (back-compat). See gpuTypes() for why this matters.
-    const dcId = typeof req.query.dataCenterId === 'string' ? req.query.dataCenterId : undefined;
-    res.json(await client.availability(key, dcId));
-  }));
+  _withKey(res, async (key) => res.json(await client.availability(key))));
 
 router.post('/runpod/pods', (req, res) =>
   _withKey(res, async (key) => {
@@ -448,4 +409,4 @@ router.post('/runpod/templates', (req, res) =>
     res.status(r.ok ? 200 : r.status).json(r.json);
   }));
 
-module.exports = { router, client, setApiKeyResolver, redactSecret };
+module.exports = { router, client, setApiKeyResolver, redactSecret, POD_CUDA_FLOOR };

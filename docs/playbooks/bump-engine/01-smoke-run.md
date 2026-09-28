@@ -9,8 +9,8 @@ node scripts/smoke-workflows.mjs --plan     # resolve + print the matrix, spend 
 node scripts/smoke-workflows.mjs            # the real run
 ```
 
-Requires the app running on `:3000` (`CUBRIC_PORT` if moved) and a RunPod API key in
-Settings. The runner drives the app's own routes — `/runpod/gpu-availability`, the volume
+Requires the app running on `:3000` (`CUBRIC_PORT` if moved) and a RunPod API key saved
+in the Remote panel. The runner drives the app's own routes — `/runpod/gpu-availability`, the volume
 CRUD at `routes/runpodRemote.js`, `/remote/*` — so it writes no new API code and exercises
 the same path users hit.
 
@@ -307,7 +307,7 @@ the GPU half before renting anything** — it had still never executed at that p
 | Preflight compares the estimate to volume TOTAL, never FREE | `weights 300.5 GB · volume 350 GB` printed clean, then the fill died at **model 9 of 12** with `[Errno 28] No space left on device` after ~40 minutes and two rented Pods | check measured FREE bytes against the remaining requirement, with headroom, and refuse to rent otherwise. The estimate itself is guesswork — see MPI-482 |
 | GPU Pod created with no watchdog | a bare `/remote/pod/create` + a hard 20-minute `waitReady`; `die()` is `process.exit(1)` and deletes **nothing**, so a dead host cost 20 idle minutes and then **LEAKED A RENTED GPU**, billing until a human noticed | route it through `createPodWithRetry`, exactly like the CPU Pod. 2 attempts, not 3 — each attempt is billed GPU time |
 | `pickGpu` matched names by SUBSTRING | `'L4'` also matches **L40** and **L40S**, `'RTX 3090'` also matches **3090 Ti** — a pricier card rented silently. L4 sorting first in RunPod's array is luck, not logic | exact match on `displayName` |
-| `pickGpu`'s stock guard could NEVER fire | `g.stockStatus == null \|\| ...` — the payload has **no `stockStatus` field at all**, so the guard was always true and stock was never checked | use `lowestPrice` being non-null, measured as the real signal: MI300X reports nulls; L4/3090/4090 reported 55/30/31 |
+| `pickGpu`'s stock guard could NEVER fire | `g.stockStatus == null \|\| ...` — the payload has **no `stockStatus` field on a GPU type at all**, so the guard was always true and stock was never checked | the fix that followed (`lowestPrice` non-null) was a GLOBAL cheapest-offering figure, so a card with stock anywhere passed with none in EU-RO-1. Since MPI-894 `pickGpu` reads the run DC's `dataCenters[].gpuAvailability[].available` (scoped by the create's CUDA floor) |
 
 **EU-RO-1 flakiness is the datacenter, not the image — stop re-diagnosing it.** Five CPU
 Pods across two sessions reported `RUNNING` with a container that never started. Proven by
@@ -320,8 +320,8 @@ the boot watchdog exists to absorb it — it fired twice unattended and was righ
 coverage. Two of the four above are that shape. When you write a guard against a remote
 payload, `curl` the payload and confirm the field is actually in it.
 
-Related: the hero's GPU label comes from `cfg.gpuType` in Settings, not from the connected
-Pod, so a Pod created outside Settings (this runner) makes the status bar claim the last GPU
+Related: the hero's GPU label comes from `cfg.gpuType` in the Remote panel, not from the connected
+Pod, so a Pod created outside the Remote panel (this runner) makes the status bar claim the last GPU
 you picked. Cosmetic, and only reachable from here.
 
 ## The third pass — the release gate and the runner deadlocked each other (2026-08-08)

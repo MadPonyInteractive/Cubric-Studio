@@ -95,11 +95,11 @@ Fixed 2026-07-02 (`v0.10.4-cpu`), live-verified (Settings volume bar on a fresh 
 
 ### RunPod "Edit Pod" RECREATES the container — /root is wiped (MPI-197 side-find)
 
-Learned 2026-07-05 (live, twice). Editing a running Pod in the RunPod console (adding an exposed port, changing env) does NOT restart in place — it RECREATES the container: everything outside the network volume dies, including `/root` (re-downloaded models, side-launched processes, shell state). "Restart survives" claims apply only to in-place restarts (`/wrapper/restart-comfy`, container reboot). Need a new port/env on a debug pod → set it at CREATE time, or expect to re-download to container disk. Since MPI-204 the 8188 ComfyUI door auto-exposes at create in dev builds (`dev_mode` / `BUILD_HASH === 'dev'`) — no `.expose-comfy` marker needed; an "Open ComfyUI (dev)" link appears in RunPod Settings once the engine is ready.
+Learned 2026-07-05 (live, twice). Editing a running Pod in the RunPod console (adding an exposed port, changing env) does NOT restart in place — it RECREATES the container: everything outside the network volume dies, including `/root` (re-downloaded models, side-launched processes, shell state). "Restart survives" claims apply only to in-place restarts (`/wrapper/restart-comfy`, container reboot). Need a new port/env on a debug pod → set it at CREATE time, or expect to re-download to container disk. Since MPI-204 the 8188 ComfyUI door auto-exposes at create in dev builds (`dev_mode` / `BUILD_HASH === 'dev'`) — no `.expose-comfy` marker needed; an "Open ComfyUI (dev)" link appears in the Remote panel once the engine is ready.
 
 ## Volume "disk full" triage — measure before theorizing (MPI-221)
 
-The Settings volume bar (`GET /remote/pod/disk` → wrapper `du -sb /workspace`) can read far higher than the sum of models the Model Library *shows as installed* — and that gap is almost always **honest, real weights**, NOT a leak. MPI-221 chased a phantom 88 GB gap (138 GB used vs a "3 installed / 50 GB" library view) through failed-uninstall-orphan and output-dir-leak theories; **both were wrong**. The truth: the library screenshot was a **filtered view** (SIZE/MEDIA chips narrowing it), and the volume genuinely held LTX-2.3 Balanced + Wan 2.2 t2v/i2v/5B + SDXL + shared encoders/VAEs. The disk was simply full of models.
+The Remote panel's volume bar (`GET /remote/pod/disk` → wrapper `du -sb /workspace`) can read far higher than the sum of models the Model Library *shows as installed* — and that gap is almost always **honest, real weights**, NOT a leak. MPI-221 chased a phantom 88 GB gap (138 GB used vs a "3 installed / 50 GB" library view) through failed-uninstall-orphan and output-dir-leak theories; **both were wrong**. The truth: the library screenshot was a **filtered view** (SIZE/MEDIA chips narrowing it), and the volume genuinely held LTX-2.3 Balanced + Wan 2.2 t2v/i2v/5B + SDXL + shared encoders/VAEs. The disk was simply full of models.
 
 **Don't theorize — list the volume.** Wrapper `GET /wrapper/ls` (shipped MPI-221, wrapper ≥ 0.2.32, read-only, token-gated) returns per-top-level-dir `du` of `/workspace` **plus** a flat file walk of `mpi_models` with sizes. Reach it through the app's token-attached proxy: **`GET /remote/pod/ls` now SHIPS** (MPI-483, `routes/remotePodLifecycle.js`) — curl it, nothing to add or revert. It returns the wrapper's payload plus an `accounting` block comparing allocated blocks against apparent bytes. (Before MPI-483 this said to add the route temporarily and revert it; that is no longer true, and a Pod session on 2026-08-09 lost time to not having it.) That gives the exact file→GB breakdown in one shot. Diff it against the model registry's dep filenames to spot true orphans (there were only 2 zero-byte `Chroma…​.part.aria2` control files from a disk-full-killed install — trivial).
 
@@ -113,7 +113,7 @@ Provision a CPU-only Pod purely to install models onto the volume with **no GPU 
 then switch to a GPU Pod to generate (volume + models persist — Design A). Live-verified
 end-to-end 2026-06-15 (CPU Pod → download → switch to RTX 2000 Ada, models present, no re-download).
 
-- **Trigger:** the Settings GPU dropdown's first option, "No GPU — download only", sets
+- **Trigger:** the Remote panel's GPU dropdown's first option, "No GPU — download only", sets
   `runpodConfig.gpuType` to the sentinel `'__cpu__'`. It rides the existing gpuType field,
   Connect guard, persistence, and GPU-switch delete-and-recreate logic untouched.
 - **Create spec** (`_createPodInternal`, `routes/remotePodLifecycle.js`): sentinel → `computeType:'CPU'`
@@ -137,7 +137,7 @@ end-to-end 2026-06-15 (CPU Pod → download → switch to RTX 2000 Ada, models p
   copy ("pick another card"), which was a dead end on a Pod that has no card to pick.
 
   **Confirm scarcity in the console, and read it by SELECTABILITY, not by price** — one click
-  from Settings' "Open in RunPod console". Open `Deploy a Pod → CPU`, attach the network
+  from the Remote panel's "Open in RunPod console". Open `Deploy a Pod → CPU`, attach the network
   volume (that locks the region to the volume's DC), and try to *click* a card. RunPod keeps
   rendering the CPU grid with live per-hour pricing even when nothing can be deployed, so a
   priced card is NOT an available one; only the click settles it. That misread cost a wrong
@@ -160,7 +160,7 @@ end-to-end 2026-06-15 (CPU Pod → download → switch to RTX 2000 Ada, models p
   mirrors it via `remoteEngineClient.isDownloadOnly()`.
 - **Download mode has no ComfyUI / no preview WS**, so three "connected" gates branch on it:
   the hero connection feed ORs `noGpu` into its `comfy_ready` gate (`js/shell.js`); both connect
-  paths (Settings + boot reconnect) skip the WS handshake. Without these the hero painted
+  paths (Remote panel + boot reconnect) skip the WS handshake. Without these the hero painted
   `LOCAL · OFFLINE` and Connect hung at "Almost ready" even though the volume was live.
 - **Generation blocked:** `_ensureRemoteReady` throws `code:'pod_no_gpu'` + a `ui:info` toast; and
   `js/shell/projectUI.js` blocks entering the gallery (project open) in download mode via

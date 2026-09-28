@@ -69,7 +69,8 @@ const GPU_ORDER = ['RTX 5090', 'L4', 'RTX 3090', 'RTX 4090'];
 // wrapper's /remote/pod/stats (`total`) BOTH reported for it — the console's figure was 54,
 // and the app shows that same inflated field to users in the Pod specs badge.
 //
-// Do NOT size this off `/runpod/gpu-availability`'s `lowestPrice.minMemory`. That is the RAM
+// Do NOT size this off GraphQL's `lowestPrice.minMemory` (gone since MPI-894; v2's catalogue
+// has no RAM at all), should RunPod ever offer it again. That is the RAM
 // on a card's CHEAPEST offering, not the card's RAM, and reading it as the latter produced a
 // table saying RTX 5090 = 46 GB and RTX 4090 = 31 GB. The 5090 this op actually ran on placed
 // against an 80 GB floor, so that field is a floor across offerings and useless for capacity.
@@ -505,16 +506,15 @@ async function ensureVolume(gb) {
  * different cards at a different price — and 'RTX 3090' also matches 3090 Ti. L4 happening
  * to sort first in RunPod's array is luck, not logic, and luck silently rents the wrong
  * card.
- * Availability: the payload has NO stockStatus field, so the guard that used to sit here
- * (`g.stockStatus == null || ...`) could never fire and this function never actually
- * checked stock. The real signal in this response is `lowestPrice`: an unavailable type
- * reports nulls (measured 2026-08-08 — MI300X null, while L4/3090/4090 reported 55/30/31).
+ * Availability: `g.inStock`, set by pickGpu from THIS run's data center. It used to read
+ * GraphQL's `lowestPrice.minMemory` being non-null, which was a GLOBAL cheapest-offering
+ * figure — a card with stock anywhere passed even when EU-RO-1 had none (MPI-894).
  *
  * @returns {{hit: object|null, notes: string[]}} `hit` null when nothing is left to try.
  */
 export function selectGpu(gpus, exclude = []) {
     const named = (g) => `${g.displayName || g.id}`.toLowerCase();
-    const inStock = (g) => (g.lowestPrice && g.lowestPrice.minMemory != null);
+    const inStock = (g) => g.inStock === true;
     const notes = [];
     for (const want of GPU_ORDER) {
         const match = gpus.filter(g => named(g) === want.toLowerCase());
@@ -529,14 +529,15 @@ export function selectGpu(gpus, exclude = []) {
 async function pickGpu(volumeId, exclude = []) {
     if (opt('gpu')) return { id: opt('gpu'), displayName: opt('gpu') };
     const avail = await app('/runpod/gpu-availability');
-    const gpus = avail.gpuTypes || avail.gpus || [];
+    const dc = (avail.dataCenters || []).find(d => d.id === DATACENTER);
+    const stocked = new Set(((dc && dc.gpuAvailability) || []).filter(a => a.available).map(a => a.gpuTypeId));
+    const gpus = (avail.gpuTypes || []).map(g => ({ ...g, inStock: stocked.has(g.id) }));
     const { hit, notes, rank } = selectGpu(gpus, exclude);
     for (const n of notes) log(n);
     if (hit) { log(`  gpu: ${hit.displayName || hit.id} (preferred #${rank})`); return hit; }
-    const inStock = (g) => (g.lowestPrice && g.lowestPrice.minMemory != null);
     die(`no preferred GPU available in ${DATACENTER}. Wanted, in order: ${GPU_ORDER.join(' → ')}. `
         + (exclude.length ? `Already refused this run: ${exclude.join(', ')}. ` : '')
-        + `Types offered: ${gpus.map(g => `${g.displayName || g.id}${inStock(g) ? '' : ' (no stock)'}`).join(', ')}`);
+        + `Types offered: ${gpus.map(g => `${g.displayName || g.id}${g.inStock ? '' : ' (no stock)'}`).join(', ')}`);
 }
 
 // ── The app's own [download] warnings, surfaced inline ───────────────────────
