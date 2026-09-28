@@ -395,6 +395,12 @@ export const Storage = {
     const { model, mode } = normalizeAgentPrefs(v);
     set(STORAGE_KEYS.AGENT_PREFS, { models: withConnectionPick(get(STORAGE_KEYS.AGENT_PREFS, null)?.models, model), mode });
   },
+  // MPI-941 Phase 12: the user's own benchmark results on one connection, { [model]: result }.
+  getAgentBench: (profileId) => get(STORAGE_KEYS.AGENT_BENCH, null)?.[profileId] || {},
+  setAgentBench: (profileId, model, result) => {
+    const all = get(STORAGE_KEYS.AGENT_BENCH, null) || {};
+    set(STORAGE_KEYS.AGENT_BENCH, { ...all, [profileId]: { ...(all[profileId] || {}), [model]: result } });
+  },
   // A raw-key model pick kept per connection (the Remote enhance and describe rows).
   getConnectionPick: (key) => connectionPick(get(key, null)),
   setConnectionPick: (key, id) => set(key, withConnectionPick(get(key, null), id)),

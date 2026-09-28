@@ -103,6 +103,10 @@ export const STORAGE_KEYS = {
   // (Before the shared connection it also held `profileId`; LLM_CONNECTION reads that.)
   AGENT_PREFS: 'mpi_agent_prefs',
 
+  // MPI-941 Phase 12: the user's own "Benchmark this model" results —
+  // { [profileId]: { [model]: { passed, cases, runs: 1, perChat, suiteHash, at } } }. Shown on the agent row in place of our score.
+  AGENT_BENCH: 'mpi_agent_bench',
+
   // MPI-797: the agent panel's width in px, set by dragging its edge.
   AGENT_PANEL_WIDTH: 'mpi_agent_panel_width',
 
