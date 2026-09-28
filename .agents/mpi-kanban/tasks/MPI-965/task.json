@@ -1,0 +1,21 @@
+{
+  "schema": "mpi-kanban/task-card/v1",
+  "id": "MPI-965",
+  "title": "Community agent benchmark endpoint: users share Benchmark this model results (opt-in, anonymous)",
+  "description": "Fabio 2026-09-28, asked for during MPI-941 Phase 12 (the Benchmark this model button). The SERVER half: a Cloudflare Worker (e.g. bench.cubric.studio) plus a D1 table that accepts one anonymous record per opt-in run: provider + model id, suite hash (the suite grew 22 -> 26 cases; scores compare only within one suite), per-case pass/fail, runs, perChat cost, app version, and for local models GPU name + VRAM. NEVER prompts, replies, images, project names or paths. Self-reported, so: rate-limit per IP at the Worker, show only counts and medians (never certified), and keep our own 3-run agentTest scores separate. Later: a public leaderboard JSON (the website or a GitHub mirror), and the agent row showing a community median beside our score. NOT a GitHub token in the app (anyone extracts it); a prefilled GitHub issue link is at most a later extra. Needs Fabio Cloudflare account (set up WITH him). SAME JOB must update cubric.studio/privacy (it lists every outbound service; this makes it false). The app half (opt-in tickbox, the POST) is MPI-941 Phase 12 point (e); this card is the endpoint + storage + read side. Depends on Phase 12 existing first.",
+  "column": "todo",
+  "maturity": "idea",
+  "status": "active",
+  "created_at": "2026-09-28T11:09:23+01:00",
+  "updated_at": "2026-09-28T11:09:23+01:00",
+  "links": {
+    "brief": "brief.md",
+    "plan": "plan.md",
+    "checklist": "checklist.md",
+    "validation": "validation.md",
+    "files": "files.json",
+    "events": "events.jsonl",
+    "handoffs": "handoffs/",
+    "research": "research/"
+  }
+}

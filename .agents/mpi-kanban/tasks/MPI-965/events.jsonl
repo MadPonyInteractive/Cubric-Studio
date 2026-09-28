@@ -1,0 +1,1 @@
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-965", "at": "2026-09-28T11:09:23+01:00", "actor": "ab46115b", "column": "todo", "title": "Community agent benchmark endpoint: users share Benchmark this model results (opt-in, anonymous)"}

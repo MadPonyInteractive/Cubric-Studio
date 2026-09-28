@@ -5180,3 +5180,5 @@
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-964", "at": "2026-09-28T10:52:57+01:00", "actor": "claude", "from": "todo", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-964", "at": "2026-09-28T10:58:14+01:00", "actor": "claude", "from": "doing", "to": "doing"}
 {"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-964", "at": "2026-09-28T11:11:55+01:00", "actor": "claude", "from": "doing", "to": "done", "reason": "Fabio confirmed; CI green on fbb1888a0"}
+{"schema": "mpi-kanban/event/v1", "type": "task.moved", "id": "MPI-913", "at": "2026-09-28T10:22:57+01:00", "actor": "ab46115b", "from": "doing", "to": "done", "reason": "Verified live by Fabio 2026-09-28; CI green on 1c1c83574"}
+{"schema": "mpi-kanban/event/v1", "type": "task.created", "id": "MPI-965", "at": "2026-09-28T11:09:23+01:00", "actor": "ab46115b", "column": "todo", "title": "Community agent benchmark endpoint: users share Benchmark this model results (opt-in, anonymous)"}
