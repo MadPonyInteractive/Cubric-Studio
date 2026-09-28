@@ -202,8 +202,16 @@ NOTE:    `MpiAutoMaskThumbs` slot + Detect + Add / Subtract, shared by every det
 - **Mask tools never swap the viewer surface** (MPI-372). `swapToPreview()` belongs to `prompt` mode; calling it from a mask tool destroys the canvas mid-mask.
 - **A mask made outside a brush stroke must publish itself** — a chip pick, a shape commit, a text detection. Emit `mask-ready` or call `viewer.el.evaluateMask()`, or the op strip never unlocks.
 
+### MpiToolOptionsCrop (Organism — js/components/Organisms/MpiToolOptionsCrop/)
+EMITS:   `apply` `{ kind: 'image'|'video-save'|'video-snapshot', settings? }` — `image`/`video-save` carry `settings: { family, res_w, res_h, divisible_by, fill_color }`. Block passes them to `viewer.el.runCrop(settings)` (image) or `_handleCropSaveVideo(settings)` (video).
+         `ratio-change` `{ ratio }` — **stack mode only (MPI-949):** user picked a new ratio; clears every saved crop box. Never emitted in normal mode.
+GLOBAL EMITS: `settings:tool:update` `{ toolKey: 'crop', key, value }` — not in stack mode (stack crop is not persisted).
+LISTENS: (none)
+NOTE:    Stack mode forces RATIO family, hides the family row, never persists. Normal mode: RATIO/FREE/RESOLUTION; RESOLUTION is image-only. Divisible-by rounds DOWN in a stack (shrinks about the box centre), UP in normal.
+
 ### MpiToolOptionsResize (Organism — js/components/Organisms/MpiToolOptionsResize/)
-EMITS:   `apply` `{ params: { width, height, upscale_method, keep_proportion, pad_color, crop_position, divisible_by, flip, rotation } }` — full-resolution params; payload is intentionally minimal. The block always re-runs the workflow at full resolution via `startGeneration`; there is no fast-path / preview-URL reuse.
+EMITS:   `apply` `{ params: { width, height, upscale_method, keep_proportion, pad_color, crop_position, divisible_by, flip, rotation } }` — full-resolution params; payload is intentionally minimal.
+         `apply` (stack mode, MPI-949) `{ params: { rule: { kind: 'longEdge'|'percent', value: number }, ... } }` — sends a RULE, not W×H; each member resolves via `deriveResizeDims`. The block always re-runs the workflow at full resolution via `startGeneration`; there is no fast-path / preview-URL reuse.
 GLOBAL EMITS (via Events.emit, consumed by projectService):
          `settings:tool:update` `{ toolKey: 'resize', key, value }` — debounced per-control persistence to `project.toolSettings.resize`
 LISTENS: (none — read-only access to viewer via `viewer.el.getSourceElement()`)
@@ -243,6 +251,7 @@ HOTKEYS: `video.playPause` / `video.frame.back` / `video.frame.forward` / `video
 NOTE:    Internal `MpiTrimBar` uses `fps: 1` so range values are frame INDICES (integers). Bound on `attachViewer`, unbound on `detachViewer`/`destroy`.
 
 ### MpiFrameStrip (Organism — js/components/Organisms/MpiFrameStrip/MpiFrameStrip.js)
+Composes `MpiThumbStrip` (MPI-949) for the generic strip behaviour; `MpiFrameStrip` owns the GIF-specific contract. Events below are MpiFrameStrip's own interface, not MpiThumbStrip's.
 EMITS:   `frame-select`     `{ index: number }` — thumb clicked (navigates viewer to staged position)
          `selection-change` `{ indices: number[], viewerIndices: number[] }` — selected set changed; `indices` = staged positions, `viewerIndices` = viewer-order positions (masks are keyed by viewer order)
          `clear-frame-mask` `{ index: number, viewerIndex: number }` — right-click "Clear mask" on a thumb

@@ -179,6 +179,18 @@ API:     `el.setMode(mode)` — activate programmatically; re-activating current
          `el.getActiveMode()` — read current mode
 NOTE:    Radio behaviour: re-click active tool = no-op. `mask` is now a flat tool (no group/sub-modes). `disabled` tools render grayed, non-interactive, show `reason` as tooltip.
          Image Transform group contains `crop` and `resize`. Video Transform contains `crop` and `resizeVideo`. Both resize entries route to the same `MpiToolOptionsResize` compound via `TOOL_OPTIONS_REGISTRY`; the compound branches on `props.kind`.
+         **Stack modes (MPI-949):** `mode: 'imageStack'` = Prompt + Transform(Crop+Resize) + Upscale/RemoveBG; `mode: 'videoStack'` = Prompt + Transform(Resize) + Upscale/Interpolate. No Paint, Mask or Place in either stack mode. Mounted by `MpiGroupHistoryBlock` when `_stackId` is set.
+
+### MpiThumbStrip (Compound — js/components/Compounds/MpiThumbStrip/MpiThumbStrip.js, MPI-949)
+EMITS:   `thumb-select`     `{ index }` — click with no modifier
+         `selection-change` `{ indices }` — Ctrl/Shift changed the multi-selection
+         `scrub`            `{ index }` — mid-drag (pointer moving)
+         `scrub-end`        `{ index }` — pointer up after a scrub
+         `reorder`          `{ from, to }` — press-and-hold drag completed (only when `allowReorder` is true)
+         `menu-select`      `{ key, index, selection }` — context menu item picked
+LISTENS: `ui:context-menu` routed via `Events.emit` for right-click menus (Compound cannot import MpiContextMenu directly)
+API:     `el.setItems(items, { currentIndex })` (clears the selection, fires `selection-change`) · `el.setCurrentIndex(idx)` · `el.setSelection(indices)` · `el.getSelection()` · `el.repaintThumbs()` (re-runs `decorateThumb`) · `el.destroy()`
+NOTE:    Virtualised window: only the visible neighbourhood is in the DOM (`_ensureWindow`). Caller supplies `menuItems(index, selectedIndices)` and `decorateThumb(thumbEl, index)` as props. Mounted by `MpiFrameStrip` (GIF groups, `allowReorder: true`) and `MpiGroupHistoryBlock` stack mode (member strip, `allowReorder: false`).
 
 ### MpiOptionSelector
 EMITS:   `change` `{ value: string, def?: object }` — user picked a value (ratio/number/buttons variants)

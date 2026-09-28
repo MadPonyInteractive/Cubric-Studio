@@ -101,7 +101,7 @@ function onTop(window) {
 // a modal is a question, and navigating out orphans it). So the one test here with an
 // empty project was red in CI and green on every dev box, where the weights are.
 // Pin one plain flat model usable — `installed` alone makes it so (isModelUsable), and
-// gallery-cue-all.spec.js stubs the same one. A getter rather than an assignment: the
+// gallery-stack-run.spec.js pins one the same way. A getter rather than an assignment: the
 // boot sync re-writes `installed` from disk on every `models:checked`, and a pinned
 // property cannot be re-written, so there is no listener order to get right
 // (docs/testing-desktop-specs.md, trap 5).

@@ -278,6 +278,6 @@ id off `state` and use `getCardByGroupId`, never `list()[0].tempId`. And the gen
 wrapper carries no `data-group-id`; that lives on the ROW wrapper, so `closest()` from the card
 returns null.
 
-## Selection + Cue all -> its own doc
+## Selection + stacks -> their own docs
 
-Multi-select refresh, click order, and **Cue all** (one queued job per selected card, MPI-733) live in [gallery-selection.md](gallery-selection.md).
+Multi-select refresh, click order and the selection bar live in [gallery-selection.md](gallery-selection.md). **Stacks** (one card holding N cards, which replaced Cue all, MPI-949) live in [stacks.md](stacks.md).

@@ -1,10 +1,11 @@
 /**
- * cue-all-eligibility.test.cjs — MPI-733 Phase 1.
+ * cue-all-eligibility.test.cjs — MPI-733 Phase 1 (Cue all), kept for MPI-949 stacks.
  *
- * "Cue all" queues ONE job per selected gallery card, each carrying exactly one
- * media item. `selectCueAllTargets` is the pure half of that: given the
- * REMEMBERED op, the model, and the selected groups, it answers which cards the
- * op can actually consume and which get skipped.
+ * A Gallery stack run queues ONE job per member, each carrying exactly one
+ * media item (Cue all did the same per selected card, and never shipped).
+ * `selectCueAllTargets` is the pure half of that: given the op, the model, and
+ * the cards, it answers which cards the op can actually consume and which get
+ * skipped.
  *
  * What is locked here is the required-slot rule, because getting it wrong is
  * expensive in a way a UI bug is not: too permissive and the user spends N

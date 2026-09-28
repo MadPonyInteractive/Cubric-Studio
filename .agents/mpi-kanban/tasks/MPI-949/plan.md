@@ -158,10 +158,15 @@
   probe sizes -> pure `stackCropRects` (stackJobs.js) -> sequential `cropItem` -> fresh group ->
   `appendToHistory` -> `await updateGroup`; StatusBar progress; the member on screen re-shown.
 
+- [x] **Phase 6 docs** (2026-09-28, session c83e035c). NEW `docs/stacks.md` (184 lines), routed from
+  `docs/README.md`; `docs/gallery-selection.md` Cue-all section -> Stack + "which ops a stack can run";
+  `docs/gallery.md` pointer; stale Cue-all comments (`commandRegistry.js` JSDoc, three test comments).
+  `UNRELEASED.md` NOT edited: peer a447ff60 holds it and its rewrite already swaps Cue all for Stack;
+  message `77e907be` asks it to also name what an opened stack does.
+
 ## Remaining Work
 
-**Next action:** Phase 6 (auto): `docs/stacks.md`, `docs/gallery-selection.md`, `docs/gallery.md:281-283`,
-`UNRELEASED.md`, stale Cue-all comments; ASK Fabio before touching `.claude/rules/`. Phases 1-5 verified.
+**Next action:** `.claude/rules/` maps (Fabio's permission asked 2026-09-28), then `mpi-end-session`.
 The EXIF crop bug is filed as MPI-959 (not this card).
 
 ## Phase 1: Stack data foundation (auto) - DONE, see Completed

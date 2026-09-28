@@ -73,7 +73,7 @@ test('the card context menu is two separated groups, every row explaining itself
       return out;
     });
 
-    // Fine → irreversible: edit this card, touch files. Cue all, Compare, Combine and
+    // Fine → irreversible: edit this card, touch files. Stack, Compare, Combine and
     // Make GIF act on a selection and live on the selection bar (MPI-945).
     expect(rows.map(r => r.key)).toEqual([
       'rename', 'card-notes', 'describe',

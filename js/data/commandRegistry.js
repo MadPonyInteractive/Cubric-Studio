@@ -1849,13 +1849,14 @@ export function filterMediaInputsForModel(slots, model = null) {
  * `inpaint`/`detail` need no exclusion here: the Gallery mounts its PromptBox with
  * `canMask: false`, so a mask op is never the remembered op on this surface.
  *
- * Pure — no DOM, no dispatch, no generation import. The caller reads the operation from
- * `getSelectedOp(modelId)` (the user's real pick), never from the displayed op strip,
- * which force-drops to a text op on an empty box (MPI-388).
+ * Pure — no DOM, no dispatch, no generation import. The PromptBox asks it per op while a
+ * stack chip is staged (`_stackBlockedReason`), and the Gallery Block asks again at run
+ * time with the payload's op, since the run hotkey does not go through the op strip.
  *
- * @param {string|null} operation - the REMEMBERED op key, or null when nothing is picked
+ * @param {string|null} operation - the op key, or null when nothing is picked
  * @param {import('./modelRegistry.js').ModelDef|null} model - gates capability-bound slots
- * @param {Array<{id:string, type:string}>} groups - selected gallery groups, in selection order
+ * @param {Array<{id?:string, type:string}>} groups - the cards to feed it (a stack passes
+ *   `[{ type: stack.kind }]`)
  * @returns {{eligible: Array<Object>, skipped: Array<Object>, reason: string|null}}
  *   `eligible` in selection order; `reason` is set ONLY when nothing is eligible, and is
  *   `'no-operation'` (nothing picked, or a key that no longer exists), `'not-batchable'`
@@ -1881,8 +1882,8 @@ export function selectCueAllTargets(operation, model = null, groups = []) {
 }
 
 /**
- * Builds one Cue-all job's `mediaItems`: the staged chips with the batch card
- * substituted into the slot the user is varying.
+ * Builds one stack-run job's `mediaItems` (MPI-733 Cue all, now MPI-949 stacks): the
+ * staged chips with the batch card substituted into the slot the user is varying.
  *
  * WHICH slot that is comes from the prompt box, not from the op's declaration.
  * On `i2v_ms`, MPI-466's role pill toggles a lone image between `startFrame` and

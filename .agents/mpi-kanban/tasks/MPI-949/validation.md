@@ -152,3 +152,15 @@ Four workers; every report re-checked against the files by the orchestrator (dif
 - NOT covered by a spec (Fabio's check): the box feel with real photos, a ratio change re-seeding every
   member (D3), Ctrl-picked members only, a 16K member.
 - Fabio, 2026-09-28: checked in the app -> "1" (verified); asked for the EXIF card (MPI-959).
+
+## Phase 6 - docs (auto) - PASSED 2026-09-28
+
+- NEW docs/stacks.md (184 lines, <=200), routed from docs/README.md; docs/gallery-selection.md Cue-all
+  section rewritten to Stack; docs/gallery.md pointer; stale Cue-all comments in commandRegistry.js JSDoc
+  and three test comments. `grep -rn "cue-all|_cueAllDispatch|getCueContext" js/` -> nothing (exit 1).
+- Checked a doc claim in Node: no (model, op) pair accepts a video stack in the Gallery (video-eligible: []).
+- `npm test` -> 2179 tests, 2177 pass, 0 fail, 2 skipped. `npm run lint` + `npm run lint:components` -> clean.
+- Desktop, 9 specs (crop-resize-output, gallery-stack-run, gallery-stack, history-modes,
+  history-prompt-model, media-picker-to-history, stack-crop, stack-history, thumb-strip) -> 15/15 passed.
+- UNRELEASED.md held by live peer a447ff60 (its rewrite already swaps Cue all for Stack); message 77e907be.
+- .claude/rules/ edits: asked Fabio 2026-09-28, awaiting answer.

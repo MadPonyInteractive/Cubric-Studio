@@ -157,7 +157,10 @@
   switch to mute one for the next run, without leaving the prompt you are working on.
 
 - **Stack: collect several cards into one.** Select cards and press Stack. Drop the stack on
-  the prompt box to run the current operation on every card in it.
+  the prompt box to run the current operation on every card in it; the results arrive as a new
+  stack, under one queue row you can cancel at once. Open a stack to upscale or resize every
+  card together (crop and remove the background too, for pictures), or to step every card back
+  a version.
 
 - **Selecting cards brings up a selection bar where the prompt box was.** It shows how many
   cards are selected and holds everything that works on a selection: Stack, Compare,
