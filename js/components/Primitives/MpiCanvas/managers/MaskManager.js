@@ -926,7 +926,18 @@ export class MaskManager {
         if (!bg && !fg) {
             return this._toSourceScale(this.maskCanvas);
         }
+        return this._toSourceScale(this.getFlat(bg, fg, soft).canvas);
+    }
 
+    /**
+     * `getURL`'s flattened `bg`/`fg` canvas at the WORKING size, with the source px
+     * `_toSourceScale` would take it to. At 16K that scale is a 16384^2 PNG encode
+     * (1.4-4.6 s), so a caller that only shows the mask, or may never dispatch it, holds
+     * this and scales on demand (MPI-961).
+     * @returns {{canvas: HTMLCanvasElement, w: number, h: number}|null}
+     */
+    getFlat(bg, fg, soft = false) {
+        if (!this.maskCanvas) return null;
         const w = this.maskCanvas.width;
         const h = this.maskCanvas.height;
         const tempCanvas = document.createElement('canvas');
@@ -964,7 +975,7 @@ export class MaskManager {
         }
 
         tempCtx.putImageData(out, 0, 0);
-        return this._toSourceScale(tempCanvas);
+        return { canvas: tempCanvas, w: this._srcWidth || w, h: this._srcHeight || h };
     }
 
     /**

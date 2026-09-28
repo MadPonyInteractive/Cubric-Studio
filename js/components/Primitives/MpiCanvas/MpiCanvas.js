@@ -64,6 +64,7 @@ let _modeOwner = null;
  *   setMaskOpacity(opacity)
  *   clearMask()
  *   getMaskDataURL(bg, fg, soft)
+ *   getMaskCanvas(bg, fg, soft) — {canvas, w, h}: that mask at its working size + the source px
  *   setPointsMode(bool)       — point-prompt mode: clicks place SAM dots, not paint
  *   clearMaskPoints() / getMaskPointCount() / getPointsJSON()
  *   bakeAutoPicksInto('manual'|'subtract') — Add / Subtract the detected mask
@@ -91,7 +92,7 @@ import { CompositeManager }  from './managers/CompositeManager.js';
 import { drawBrushRing } from './managers/brushDab.js';
 import { UndoStack }         from './managers/UndoStack.js';
 import { InputController }   from './managers/InputController.js';
-import { accentHeat }        from '../../../utils/dom.js';
+import { accentHeat, on }    from '../../../utils/dom.js';
 
 const getCSSColor = (varName) => getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
 
@@ -146,8 +147,11 @@ class _DisplayMip {
      * Call right after the native canvas is drawn and placed.
      * @param {CanvasImageSource|null} src what the native was drawn from
      * @param {number} devScale device px per native backing px
+     * @param {boolean} [fresh] the native was just repainted. False (a pan, a zoom, a
+     *   mode switch — MPI-961) redraws only when the zoom moved to another level; the
+     *   box and clip are copied either way, since a compare clip moves with every pan.
      */
-    sync(src, devScale) {
+    sync(src, devScale, fresh = true) {
         const { native, canvas } = this;
         const level = 2 ** Math.floor(Math.log2(1 / devScale));
         const on = level >= 2 && _isDrawable(src) && native.width > 0 && native.style.display !== 'none';
@@ -159,13 +163,19 @@ class _DisplayMip {
         }
         const w = Math.ceil(native.width / level);
         const h = Math.ceil(native.height / level);
-        if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
-        // Redrawn every sync, like the native. Once a source's mipmaps exist (~300ms the
-        // first time at 8K) this costs ~0.2ms against ~28ms for the native 8K redraw, and
-        // it keeps a video frame or an <img> reloaded in place current with no cache key.
-        this.ctx.clearRect(0, 0, w, h);
-        this.ctx.imageSmoothingQuality = 'high';
-        this.ctx.drawImage(src, 0, 0, w, h);
+        const resized = canvas.width !== w || canvas.height !== h;
+        if (resized) { canvas.width = w; canvas.height = h; }
+        if (fresh || resized) {
+            // Reduced from the NATIVE, which holds exactly `src`'s pixels by now, not from
+            // `src` (MPI-961): the native is repainted only when its source changes, so a
+            // 16K <img> is no longer drawn every frame and Chromium drops its decode — a
+            // reduce at a scale it has not cached (the zoom crossing a level) re-decoded
+            // the original, ~2.4 s per crossing. A GPU canvas -> canvas reduce mipmaps too
+            // (a 16K 1px grating to 1/16: std 0, 13-135 ms) and never decodes.
+            this.ctx.clearRect(0, 0, w, h);
+            this.ctx.imageSmoothingQuality = 'high';
+            this.ctx.drawImage(native, 0, 0, w, h);
+        }
         for (const k of ['left', 'top', 'width', 'height', 'clipPath']) canvas.style[k] = native.style[k];
     }
 
@@ -205,6 +215,14 @@ class _CanvasCore {
         this.baseCtx = this.baseCanvas.getContext('2d');
         this.stackEl.appendChild(this.baseCanvas);
         this._baseMip = new _DisplayMip(this.baseCanvas);
+        // `_renderBase` skips an unchanged source (the compare layer too), so a GPU reset —
+        // which hands every canvas back blank, likeliest exactly when a 16K stack has filled
+        // VRAM — must repaint both.
+        this._offBaseRestored = on(this.baseCanvas, 'contextrestored', () => {
+            this._baseDrawn = null;
+            this._compareDrawn = null;
+            this.draw();
+        });
 
         // Compare canvas — the "after" media at ITS OWN native px, laid over the base by
         // CSS (MPI-956). It used to be drawn into the overlay, i.e. into the BEFORE image's
@@ -296,6 +314,7 @@ class _CanvasCore {
             { view: this.view, mask: this.mask, comparison: this.comparison, crop: this.crop, paint: this.paint, shape: this.shape, comp: this.comp, undo: this.undoStack },
             {
                 onDraw: () => { this._applyTransform(); this.draw(); },
+                onViewDraw: () => { this._applyTransform(); this.drawView(); },
                 onStrokeDraw: (box) => this.drawStroke(box),
                 onCursorDraw: () => { if (this.overlayCanvas.width) this._renderScreenUI(); },
                 onResetView: () => this.resetView(),
@@ -383,6 +402,9 @@ class _CanvasCore {
             this.resizeObserver.disconnect();
             this.resizeObserver = null;
         }
+        this._offBaseRestored?.();
+        this._offBaseRestored = null;
+        this._baseDrawn = null;
         this._stopComparePlayback();
         this._teardownBeforeVideo();
         this.input?.destroy?.();
@@ -600,6 +622,7 @@ class _CanvasCore {
             const ratio = Math.min(1, MAX_TEXTURE_SIZE / Math.max(w, h));
             const clampedW = Math.round(w * ratio);
             const clampedH = Math.round(h * ratio);
+            this._baseDrawn = null;
             this.baseCanvas.width  = clampedW;
             this.baseCanvas.height = clampedH;
             this.baseCanvas.style.width  = clampedW + 'px';
@@ -845,6 +868,7 @@ class _CanvasCore {
     }
 
     _sizeImageCanvases(width, height) {
+        this._baseDrawn = null;              // setting a width clears the canvas
         this.baseCanvas.width  = width;
         this.baseCanvas.height = height;
         this.baseCanvas.style.width  = width + 'px';
@@ -920,6 +944,22 @@ class _CanvasCore {
     }
 
     /**
+     * A pan or wheel-zoom tick (MPI-961): only the view moved, and the stack's CSS
+     * transform already carries that, so neither image-sized canvas is repainted — no
+     * pixel on base or overlay depends on the view (point dots and grid draw on the
+     * screen canvas for exactly this reason). A full `draw()` of a 16384^2 stack measured
+     * 189-322 ms to the next frame under GPU load against 13.4 ms for the transform alone,
+     * so a 16K pan ran at 2-6 fps while a local video generated.
+     */
+    drawView() {
+        const display = this._displayImage();
+        if (!display || !display.width || !this.baseCanvas.width) return;
+        this._baseMip.sync(this._baseSource(), (this.view.scale || 1) * (window.devicePixelRatio || 1), false);
+        this._drawComparisonLayer();
+        this._renderScreenUI();
+    }
+
+    /**
      * One brush move (MPI-787): repaint the overlay inside the box the stroke touched,
      * plus the screen UI for the ring. The base is skipped — a stroke never changes it.
      *
@@ -964,14 +1004,31 @@ class _CanvasCore {
         this._applyTransform();
     }
 
-    _renderBase() {
-        const ctx = this.baseCtx;
-        ctx.clearRect(0, 0, this.baseCanvas.width, this.baseCanvas.height);
-        const src = (this._beforeKind === 'video' && this._videoBefore)
+    _baseSource() {
+        return (this._beforeKind === 'video' && this._videoBefore)
             ? this._videoBefore
             : (this._processedBitmap || this.img);
+    }
+
+    /**
+     * Repaints only when the source or the canvas changed, like the compare layer's
+     * `_compareDrawn`; a video repaints every call, its frame moves. Every setter and every
+     * mode switch runs a full `draw()`, and at 16K each base repaint blocked the main thread
+     * 2.5-3.3 s (in `clearRect`) for pixels identical to the ones already there — twice on
+     * a Prompt -> Mask switch (MPI-961).
+     */
+    _renderBase() {
+        const src = this._baseSource();
+        const devScale = (this.view.scale || 1) * (window.devicePixelRatio || 1);
+        if (src === this._baseDrawn && this._beforeKind !== 'video') {
+            this._baseMip.sync(src, devScale, false);
+            return;
+        }
+        const ctx = this.baseCtx;
+        ctx.clearRect(0, 0, this.baseCanvas.width, this.baseCanvas.height);
         if (_isDrawable(src)) ctx.drawImage(src, 0, 0, this.baseCanvas.width, this.baseCanvas.height);
-        this._baseMip.sync(src, (this.view.scale || 1) * (window.devicePixelRatio || 1));
+        this._baseDrawn = src;
+        this._baseMip.sync(src, devScale);
     }
 
     /**
@@ -1071,23 +1128,19 @@ class _CanvasCore {
             ctx.globalAlpha = 1;
         }
 
-        // 2b. Point prompts — drawn above the mask so a dot stays visible on top
-        // of the region it produced.
-        if (this.mask.pointsMode && this.mask.points.length) this._drawMaskPoints();
-
-        // 3. Crop overlay draws on the SCREEN canvas (_renderScreenUI) — the
-        // rect may leave the image, which this image-sized canvas cannot show.
-
-        // 4. Grid
-        if (this.gridH > 1 || this.gridV > 1) {
-            this._drawGridOverlay();
-        }
+        // 3. Point prompts, the grid and the crop rect draw on the SCREEN canvas
+        // (_renderScreenUI): the crop rect may leave the image, and dots and grid keep a
+        // constant screen size, so drawn here they would depend on the zoom and every
+        // wheel tick would have to repaint this image-sized canvas (MPI-961).
         ctx.restore();
     }
 
     _renderScreenUI() {
         const ctx = this.screenUICtx;
         ctx.clearRect(0, 0, this.screenUICanvas.width, this.screenUICanvas.height);
+        if (this.gridH > 1 || this.gridV > 1) this._drawGridOverlay();
+        // Above the mask, so a dot stays visible on top of the region it produced.
+        if (this.mask.pointsMode && this.mask.points.length) this._drawMaskPoints();
         if (this.comparison.isComparisonMode) this._drawSliderUI();
         const display = this._displayImage();
         this.crop.drawScreen(ctx, this.view, display?.width || 0, display?.height || 0);
@@ -1126,7 +1179,8 @@ class _CanvasCore {
             cc.height = h;
             this._compareDrawn = null;
         }
-        if (this.comparison.afterKind === 'video' || this._compareDrawn !== imgAfter) {
+        const fresh = this.comparison.afterKind === 'video' || this._compareDrawn !== imgAfter;
+        if (fresh) {
             this.compareCtx.clearRect(0, 0, w, h);
             this.compareCtx.drawImage(imgAfter, 0, 0, w, h);
             this._compareDrawn = imgAfter;
@@ -1157,7 +1211,7 @@ class _CanvasCore {
         // differs from the stack's whenever the two sides differ in resolution.
         const scale = (this.view.scale || 1) * compW / w;
         cc.dataset.zoomMode = scale >= AUTO_PIXEL_THRESHOLD ? 'pixel' : 'smooth';
-        this._compareMip.sync(imgAfter, scale * (window.devicePixelRatio || 1));
+        this._compareMip.sync(imgAfter, scale * (window.devicePixelRatio || 1), fresh);
     }
 
     /** Recolor a mask layer's opaque pixels to `color`, via a scratch buffer so
@@ -1186,19 +1240,18 @@ class _CanvasCore {
     }
 
 
-    /** Point prompts. Overlay ctx is image-px, so divide by scale to keep the
-     *  dots a constant size on screen at any zoom. */
+    /** Point prompts, in screen px: a point is stack px, mapped through the view. */
     _drawMaskPoints() {
-        const ctx = this.overlayCtx;
+        const ctx = this.screenUICtx;
+        const { offsetX, offsetY } = this.view;
         const s = this.view.scale || 1;
-        const r = MASK_POINT_DRAW_R / s;
         const negative = accentHeat(ctx.canvas);
         ctx.save();
-        ctx.lineWidth = 2 / s;
+        ctx.lineWidth = 2;
         ctx.strokeStyle = MASK_POINT_RING;
         for (const p of this.mask.points) {
             ctx.beginPath();
-            ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+            ctx.arc(offsetX + p.x * s, offsetY + p.y * s, MASK_POINT_DRAW_R, 0, Math.PI * 2);
             ctx.fillStyle = p.positive ? MASK_POINT_POSITIVE : negative;
             ctx.fill();
             ctx.stroke();
@@ -1206,30 +1259,34 @@ class _CanvasCore {
         ctx.restore();
     }
 
+    /** Grid lines over the image, in screen px. */
     _drawGridOverlay() {
-        const ctx = this.overlayCtx;
+        const ctx = this.screenUICtx;
+        const { offsetX: x0, offsetY: y0 } = this.view;
         const scale = this.view.scale || 1;
         const display = this._displayImage();
+        const w = display.width * scale;
+        const h = display.height * scale;
         ctx.save();
         ctx.strokeStyle = GRID_LINE;
-        ctx.lineWidth = 2 / scale;
-        ctx.setLineDash([5 / scale, 5 / scale]);
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
         ctx.beginPath();
 
         for (let i = 1; i < this.gridH; i++) {
-            const y = (display.height / this.gridH) * i;
-            ctx.moveTo(0, y);
-            ctx.lineTo(display.width, y);
+            const y = y0 + (h / this.gridH) * i;
+            ctx.moveTo(x0, y);
+            ctx.lineTo(x0 + w, y);
         }
         for (let i = 1; i < this.gridV; i++) {
-            const x = (display.width / this.gridV) * i;
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, display.height);
+            const x = x0 + (w / this.gridV) * i;
+            ctx.moveTo(x, y0);
+            ctx.lineTo(x, y0 + h);
         }
         ctx.stroke();
 
         ctx.strokeStyle = GRID_LINE_SHADOW;
-        ctx.lineDashOffset = 5 / scale;
+        ctx.lineDashOffset = 5;
         ctx.stroke();
         ctx.restore();
     }
@@ -1672,6 +1729,7 @@ class _CanvasCore {
      */
     getUndoStats()          { return { depth: this.undoStack.depth, bytes: this.undoStack.bytes, lastEntryBytes: this.undoStack.lastEntryBytes }; }
     getMaskDataURL(bg = null, fg = null, soft = false) { return this.mask.getURL(bg, fg, soft); }
+    getMaskCanvas(bg, fg, soft = false) { return this.mask.getFlat(bg, fg, soft); }
     getManualURL()          { return this.mask.getManualURL(); }
     getSubtractURL()        { return this.mask.getSubtractURL(); }
     async setManualFromDataURL(url)   { await this.mask.setManualFromDataURL(url); this.draw(); }
@@ -1747,7 +1805,7 @@ export const MpiCanvas = ComponentFactory.create({
             'setMaskingMode','setBrushSize','setBrushType','setBrushPreset','flipMaskColor',
             'setMaskInverted','isMaskInverted',
             'setMaskBwView','isMaskBwView','setMaskPaintEnabled',
-            'setMaskOpacity','clearMask','getMaskDataURL',
+            'setMaskOpacity','clearMask','getMaskDataURL','getMaskCanvas',
             'getManualURL','getSubtractURL','setManualFromDataURL','setSubtractFromDataURL','setMaskBase',
             'setAutoPickMasks','setSelectedAutoPicks','clearAutoPicks','bakeAutoPicksInto',
             'beginMaskAdjust','previewMaskAdjust','applyMaskAdjust','endMaskAdjust','hasMaskAdjustPreview','fillMaskHoles',

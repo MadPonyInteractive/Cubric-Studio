@@ -163,3 +163,101 @@ rows + the first 16K canvas paint, both GPU-independent; the load-sensitive cost
   **2.0 s** (JPEG shrink-on-load), each output 1.2-1.3 MB.
 - So S1 (server display rendition) is the only source that opens the 32K; the renderer can still
   decode the 16K off-thread for the detail layer (D4).
+
+## Phase 2 (D3) - 2026-09-28, session 9bb6f112 (uncommitted on master `3f5771bd0`)
+
+### What changed
+
+- `MpiCanvas.drawView()`: a pan move and a wheel-zoom tick apply the stack's CSS transform, let
+  `_DisplayMip.follow` redraw the display copy only when the zoom crosses a level, re-place the
+  compare clip and redraw the screen canvas. Base and overlay are never touched. A bare wheel in a
+  brush tool (brush size) redraws only the ring. Mouseup, Space and every setter keep the full
+  `draw()`.
+- Mask point dots and the grid moved from the image-sized overlay to the screen canvas (constant
+  screen size, so they no longer tie the overlay to the zoom).
+- `swapToPreview` holds the mask at its WORKING size (`MaskManager.getFlat` /
+  `MpiCanvas.getMaskCanvas`, `_heldMask` in the viewer); the preview shows that copy and the
+  source-size PNG (`InpaintCropImproved` needs mask == image dims) is encoded once, by the first
+  `getCurrentMaskDataURL()` / `getMaskDataURLForEntry()` that asks - dispatch only.
+
+### Checks (all run 2026-09-28)
+
+- Unit: `node --test tests/crop-extend.test.cjs tests/eslint-tier-rule.test.cjs tests/layer-convert.test.cjs tests/mask-adjust.test.cjs tests/mask-tool-registry.test.cjs tests/paint-adjust.test.cjs`
+  -> 103/103 pass (same 103 on HEAD before the change). `npx eslint` on the 4 touched files: clean.
+- New spec `tests/desktop/canvas-pan-no-repaint.spec.js` (4096^2 image, Mask mode, counts every
+  `clearRect/drawImage/fillRect/putImageData` per canvas role): 10 Space-drag pan moves and a
+  wheel zoom across 1/2 scale make 0 calls on base and overlay; the view moved exactly 120 px;
+  the display copy hands over to the native past 1/2; a brush-size wheel makes 0 calls; a point dot
+  reads alpha 255 on the screen canvas and 0 on the overlay. PASS on the change; **FAILS on HEAD**
+  (`pan ticks repaint only the screen canvas`, base/overlay counts > 0) - run by swapping the 4
+  claimed files to their HEAD blobs and back (`scratchpad/head_check.py`, restore verified
+  byte-equal).
+- Desktop list: `npx playwright test --config=playwright.desktop.config.js` history-modes,
+  mask-colour, mask-persist-roundtrip, canvas-downscale-quality, compare-native-resolution,
+  crop-resize-output, stack-crop, gif-cutout, canvas-pan-no-repaint -> 16/16 pass
+  (`test-results/desktop/.last-run.json` status passed, 12:33).
+
+### Found while measuring, fixed in Phase 2 (D3: a mode switch repaints only what it changes)
+
+- The swap `clearRect` blocks were NOT a fresh overlay's first paint (Phase 1's guess): call trees
+  (`scratchpad/rig/attr.py` on the switch `.cpuprofile`s) put 2.5-3.3 s of `clearRect` in
+  `_renderBase < draw < set activeMode` (and `< setMaskInverted`, `< resetView`: twice on
+  Prompt -> Mask). Every setter and mode switch runs a full `draw()`, which repainted the unchanged
+  16K base. Fix: `_renderBase` repaints only when its source or the canvas changed (the compare
+  layer's `_compareDrawn` pattern; video always repaints; `_sizeImageCanvases`/`loadVideo` reset
+  it; a `contextrestored` listener on the base resets base + compare and redraws).
+- That exposed a decode cost: with the 16K `<img>` no longer drawn every frame, Chromium drops
+  its decode, and `_DisplayMip` reducing FROM THE SOURCE at a new level re-decoded it - wheel reps
+  crossing the 1/16 <-> 1/8 level fell to 1.7-2.1 fps with 2.4-2.5 s frames (run `after2`). Fix:
+  the display copy reduces from the NATIVE canvas (already holds the pixels), and `sync(src, s,
+  fresh=false)` redraws only on a level change while always copying box + clip. Experiment
+  (`scratchpad/rig/mipq.cjs`, GPU on): a 16384^2 1px grating canvas reduced canvas -> canvas to
+  1/16, 1/8, 1/4 reads std 0 with `low` and `high` (source std 127.5), 13-31 ms low / 71-135 ms
+  high. `canvas-downscale-quality` (software path) still green.
+
+### Rig re-measure, GPU IDLE, 16K rowfix (same rig, `ROWFIX=1`)
+
+nvidia-smi at start / end: `24 %, 1633 MiB` / `16 %, 4920 MiB` (Fabio's app + ComfyUI open, no
+job; lease free). Run `after3-idle-rowfix` (final code); `after2` = before the mip fix.
+
+| step | Phase 1 rowfix | after (after3) |
+|---|---|---|
+| open: pixels on screen | 5.0 s | 6.1 s (after2 5.5 s) |
+| open: longest main-thread block | 2.57 s | 2.80 s (after2 0.15 s - where the one 16K decode lands varies) |
+| Crop -> Mask | 45 ms | 32 ms |
+| Mask -> Paint | 0.38 s | **35 ms** |
+| Paint -> Prompt | 3.9 s (`toDataURL` 1.4 s) | **2.1 s** (`toDataURL` 57-66 ms, 0 long tasks) |
+| Prompt -> Mask | 5.5 s (one 2.76 s block) | 4.7 s (one 2.46 s block: the new canvas's first 16K paint, Phase 3) |
+| pan 3x3 s | 75 fps | 75 / 75 / 75 |
+| wheel 3x3 s | 75 fps | 75 / **33.7 / 38.5** (reps 2-3 cross a mip level every 4 ticks; max 240 / 80 ms) |
+| mask stroke 3x3 s | 74.3 / 54 / 56 (400-467 ms frames) | 75 / 75 / 75 |
+| stroke A/B, overlay backing 4096^2 (`after-idle`) | - | 75 / 75 / 75 (same as 16384^2 at idle) |
+| GPU dedicated: open / Mask / Mask again | 3556 / 3164 / **4591** MB | 2201 / 3218 / 3234 MB |
+
+The wheel reps that cross a level are below HEAD's idle 75 fps: each crossing is one GPU reduce of
+the 16K canvas. Busy numbers decide whether that needs a per-level cache.
+
+### Zoom IN (Fabio, live app after restart: "zooming in is terrible") - 2026-09-28
+
+The rig had only ever zoomed around fit (1/24 -> 1/12). New rig mode `zoomin` (`node perf.cjs
+zoomin 16k <tag>`, ROWFIX=1, GPU idle `21 %, 1128 MiB`): Space + wheel from fit to past 1x, one
+tick per frame, then the same zoom in PROMPT mode with a mask painted first.
+
+| surface | fit -> ~1x | worst frame | main-thread long tasks |
+|---|---|---|---|
+| canvas (Mask tool), after Phase 2 | 0.68-0.89 s, 39 ticks | 53-293 ms (at mip level changes) | 0 |
+| **Prompt preview** (`MpiMaskedImagePreview`: the ORIGINAL as two `<img>`, CSS transform) | **11.6 s**, 34 ticks | **2.69 s**, 10 stalls | **9.9 s** (`(program)` = native) |
+| Prompt preview, same zoom again (already rastered at that scale) | 0.45 s | 13.5 ms | 0 |
+
+Chromium re-rasters a transformed `<img>` at each new scale and re-decodes the 345 MB PNG to do
+it (~2.5 s a step). So Fabio's slow zoom is the Prompt preview, and its fix is the display copy
+(Phase 3): the preview must show the 4096 display copy too, not only the canvas. Not a Phase 2
+regression - the preview is untouched by Phase 2.
+
+### Rig re-measure, GPU BUSY
+
+Pending: needs the GPU. At 12:40 the GPU lease was held by a pod smoke
+(`smoke-workflows.mjs --flows all`, since 12:18) and local util sat ~30 %, so neither a clean idle
+nor Fabio's busy (local video) run could be taken. The rig now also runs the stroke A/B
+(`STROKE_AB=1`: same strokes with only the overlay backing shrunk to 4096^2) and a CPU profile +
+long-task total per stroke rep.

@@ -393,6 +393,80 @@ const PAGE_HELPERS = () => {
         });
         save();
 
+        // ── (z) MPI-961: zoom IN from fit to 2x (Space + wheel, one tick per frame), the
+        // gesture Fabio found slow. Every frame interval is kept with the scale it landed at,
+        // so a stall names the zoom where it happened (a mip level, or the native revealed).
+        if (mode === 'zoomin') {
+            for (let rep = 0; rep < 2; rep++) {
+                await win.evaluate(() => document.querySelector('.mpi-canvas').resetView());
+                await sleep(1500);
+                await win.keyboard.down('Space');
+                await cdp.send('Profiler.start');
+                const z = await win.evaluate(async () => {
+                    const P = window.__perf; const { x, y, el } = P.center(); const c = document.querySelector('.mpi-canvas');
+                    const q = (r) => c.querySelector(`canvas[data-role="${r}"]`);
+                    const ticks = [];
+                    let prev = await P.raf();
+                    const t0 = prev;
+                    for (let i = 0; i < 80 && c.scale < 2; i++) {
+                        el.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, clientX: x, clientY: y, bubbles: true, cancelable: true }));
+                        const t = await P.raf();
+                        ticks.push({ ms: +(t - prev).toFixed(1), s: +c.scale.toFixed(3), mip: q('base-mip').width, nat: q('base').style.visibility || 'shown' });
+                        prev = t;
+                    }
+                    const iv = ticks.map((k) => k.ms);
+                    return { ...P.stats(iv), totalMs: Math.round(prev - t0), ...P.window(t0, prev), slow: ticks.filter((k) => k.ms > 40) };
+                });
+                const { profile } = await cdp.send('Profiler.stop');
+                z.cpuTop = topSelf(profile, 8);
+                fs.writeFileSync(path.join(runDir, `zoomin-${rep}.cpuprofile`), JSON.stringify(profile));
+                await win.keyboard.up('Space');
+                (R.steps.zoomin = R.steps.zoomin || []).push(z);
+                save();
+                await sleep(1500);
+            }
+            // The same zoom in PROMPT mode (MpiMaskedImagePreview: the original as two <img>
+            // under a CSS transform), with a mask painted first so the tinted copy shows.
+            // rAF keeps ticking while the compositor re-rasters, so the screenshot that
+            // follows is timed too: it waits for a frame with the new raster.
+            await win.evaluate(async () => {
+                const P = window.__perf; const { x, y, el } = P.center();
+                el.dispatchEvent(new MouseEvent('mousedown', { button: 0, clientX: x, clientY: y, bubbles: true, cancelable: true }));
+                for (let i = 0; i < 20; i++) { window.dispatchEvent(new MouseEvent('mousemove', { clientX: x + i * 5, clientY: y, bubbles: true })); await P.raf(); }
+                window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+            });
+            R.steps.toPrompt = await timeSwitch('prompt', 'prompt');
+            await sleep(2000);
+            for (let rep = 0; rep < 2; rep++) {
+                const ts0 = now(); await viewerStd(win); const fitShot = now() - ts0;
+                await cdp.send('Profiler.start');
+                const z = await win.evaluate(async () => {
+                    const P = window.__perf;
+                    const pv = document.querySelector('.mpi-masked-preview');
+                    const b = pv.getBoundingClientRect();
+                    const x = b.left + b.width / 2, y = b.top + b.height / 2;
+                    const iv = [];
+                    let prev = await P.raf(); const t0 = prev;
+                    for (let i = 0; i < 34; i++) {
+                        pv.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, clientX: x, clientY: y, bubbles: true, cancelable: true }));
+                        const t = await P.raf(); iv.push(t - prev); prev = t;
+                    }
+                    const tf = document.querySelector('.mpi-masked-preview__stack')?.style.transform;
+                    return { ...P.stats(iv), totalMs: Math.round(prev - t0), ...P.window(t0, prev), transform: tf, masked: document.querySelector('#masked-img')?.style.display !== 'none' };
+                });
+                const { profile } = await cdp.send('Profiler.stop');
+                z.cpuTop = topSelf(profile, 8);
+                const ts = now(); z.std = await viewerStd(win); z.shotAfterZoomMs = now() - ts;
+                z.fitShotMs = fitShot;
+                (R.steps.zoominPrompt = R.steps.zoominPrompt || []).push(z);
+                save();
+                // back to fit: the preview resets on a double-click
+                await win.evaluate(() => document.querySelector('.mpi-masked-preview').dispatchEvent(new MouseEvent('dblclick', { bubbles: true })));
+                await sleep(2000);
+            }
+            return;
+        }
+
         // ── (b) one draw() in isolation
         R.steps.draw = await win.evaluate(async () => {
             const P = window.__perf; const c = document.querySelector('.mpi-canvas');
@@ -464,22 +538,56 @@ const PAGE_HELPERS = () => {
         await sleep(1000);
         save();
 
-        // ── (d) mask stroke, 3 x 3 s, one move per frame, a circle of r=120 screen px
-        R.steps.stroke = [];
-        for (let rep = 0; rep < 3; rep++) {
-            R.steps.stroke.push(await win.evaluate(async () => {
-                const P = window.__perf; const { x, y, el } = P.center(); const c = document.querySelector('.mpi-canvas');
-                el.dispatchEvent(new MouseEvent('mousedown', { button: 0, clientX: x + 120, clientY: y, bubbles: true, cancelable: true }));
-                const st = await P.drive(3000, (i) => {
-                    const a = i / 15;
-                    window.dispatchEvent(new MouseEvent('mousemove', { clientX: x + 120 * Math.cos(a), clientY: y + 120 * Math.sin(a), bubbles: true }));
+        // ── (d) mask stroke, 3 x 3 s, one move per frame, a circle of r=120 screen px.
+        // Each rep also carries its long-task total and a CPU profile's top self time, so
+        // a slow stroke says whether the main thread or the GPU side held the frame.
+        async function strokeReps() {
+            const out = [];
+            for (let rep = 0; rep < 3; rep++) {
+                await cdp.send('Profiler.start');
+                const r = await win.evaluate(async () => {
+                    const P = window.__perf; const { x, y, el } = P.center(); const c = document.querySelector('.mpi-canvas');
+                    el.dispatchEvent(new MouseEvent('mousedown', { button: 0, clientX: x + 120, clientY: y, bubbles: true, cancelable: true }));
+                    await P.raf(); await P.raf();
+                    const t0 = performance.now();
+                    const st = await P.drive(3000, (i) => {
+                        const a = i / 15;
+                        window.dispatchEvent(new MouseEvent('mousemove', { clientX: x + 120 * Math.cos(a), clientY: y + 120 * Math.sin(a), bubbles: true }));
+                    });
+                    const t1 = performance.now();
+                    window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+                    return { ...st, ...P.window(t0, t1), canUndo: c.canUndoMask() };
                 });
-                window.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
-                return { ...st, canUndo: c.canUndoMask() };
-            }));
-            await sleep(500);
+                const { profile } = await cdp.send('Profiler.stop');
+                r.cpuTop = topSelf(profile, 6);
+                out.push(r);
+                await sleep(500);
+            }
+            return out;
         }
+        R.steps.stroke = await strokeReps();
         save();
+
+        // ── (d2) MPI-961 stroke A/B: the SAME strokes with only the overlay's backing store
+        // shrunk to 4096^2 (its CSS box, the mask layers and every manager unchanged;
+        // drawStroke's k = W / img.width absorbs it). If the frame rate comes back, a 16K
+        // stroke's cost is the image-sized overlay itself, not the stroke code.
+        if (process.env.STROKE_AB === '1') {
+            const OV = '.mpi-canvas canvas[data-role="overlay"]';
+            R.steps.strokeOverlayDims = await win.evaluate((sel) => {
+                const o = document.querySelector(sel); const before = [o.width, o.height];
+                o.width = 4096; o.height = 4096; document.querySelector('.mpi-canvas').draw();
+                return { before, after: [o.width, o.height] };
+            }, OV);
+            await sleep(1500);
+            R.steps.strokeSmallOverlay = await strokeReps();
+            await win.evaluate((sel) => {
+                const o = document.querySelector(sel); const c = document.querySelector('.mpi-canvas');
+                o.width = c.querySelector('canvas[data-role="base"]').width; o.height = c.querySelector('canvas[data-role="base"]').height; c.draw();
+            }, OV);
+            await sleep(3000);
+            save();
+        }
 
         // ── (e) Mask -> Paint -> Prompt
         R.steps.switchToPaint = await timeSwitch('paint', 'paint');

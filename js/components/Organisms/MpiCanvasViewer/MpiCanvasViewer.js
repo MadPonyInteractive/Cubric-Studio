@@ -97,8 +97,35 @@ export const MpiCanvasViewer = ComponentFactory.create({
          */
         let _activeCropSize = null;
         let _hasMask = false;
-        /** Composite mask cache for active prompt-tool preview swap (canvas destroyed) */
+        /** Composite mask for the prompt-tool preview (canvas destroyed) — a `_heldMask`. */
         let _previewMaskCache = null;
+
+        /**
+         * A B/W mask held at its WORKING size while the live canvas is torn down
+         * (MPI-961). The graph needs it at the entry's own pixels — InpaintCropImproved
+         * asserts mask == image dims — but at 16K that scale is a 16384^2 PNG encode,
+         * 1.4-4.6 s, and it ran on every switch to Prompt. The preview stretches the mask
+         * to the image anyway (`mask-size: 100%`), so it takes the working copy, and the
+         * source-size encode runs once, when a dispatch asks for it.
+         * @param {{canvas: HTMLCanvasElement, w?: number, h?: number}} flat opaque B/W
+         *   at the working size; `w`/`h` the source px (absent = keep the working size)
+         */
+        function _heldMask({ canvas, w, h }) {
+            let full = null;
+            const preview = canvas.toDataURL('image/png');
+            return {
+                preview,
+                source() {
+                    if (full) return full;
+                    if (!w || !h || (w === canvas.width && h === canvas.height)) return (full = preview);
+                    const scaled = document.createElement('canvas');
+                    scaled.width = w;
+                    scaled.height = h;
+                    scaled.getContext('2d').drawImage(canvas, 0, 0, w, h);
+                    return (full = scaled.toDataURL('image/png'));
+                },
+            };
+        }
 
         function _maskKey(item) {
             const projectId = state.currentProject?.id;
@@ -132,8 +159,8 @@ export const MpiCanvasViewer = ComponentFactory.create({
             });
         }
 
-        // Build the baked mask (manual MINUS subtract) as a B/W PNG from TEMP layers.
-        // Returns null when there is no manual layer. Used to seed preview-mode mask
+        // Build the baked mask (manual MINUS subtract) as a B/W `_heldMask` from TEMP
+        // layers. Returns null when there is no manual layer. Used to seed preview-mode mask
         // after a history-entry switch (canvas torn down).
         //
         // THE TWIN of MaskManager._recomposite() — and it carried the same MPI-426
@@ -183,17 +210,10 @@ export const MpiCanvasViewer = ComponentFactory.create({
                 // Same contract as MaskManager.getURL(): the TEMP layers were written
                 // at the MASK_MAX_EDGE-capped working size, but InpaintCropImproved
                 // asserts mask dims == image dims, and this composite reaches the graph
-                // through _previewMaskCache → getCurrentMaskDataURL(). Scale back to the
-                // entry's own pixels; fall through unscaled if the item never recorded
+                // through _previewMaskCache → getCurrentMaskDataURL(). `source()` scales
+                // back to the entry's own pixels; unscaled if the item never recorded
                 // them (nothing to scale TO is not a reason to fail the mask).
-                const tw = item.pixelDimensions?.w;
-                const th = item.pixelDimensions?.h;
-                if (!tw || !th || (tw === w && th === h)) return out.toDataURL('image/png');
-                const scaled = document.createElement('canvas');
-                scaled.width = tw;
-                scaled.height = th;
-                scaled.getContext('2d').drawImage(out, 0, 0, tw, th);
-                return scaled.toDataURL('image/png');
+                return _heldMask({ canvas: out, w: item.pixelDimensions?.w, h: item.pixelDimensions?.h });
             } catch (err) {
                 console.warn('[MpiCanvasViewer] composite build failed:', err);
                 return null;
@@ -1160,7 +1180,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
                     }
                     const composite = await _buildCompositeFromTemp(item);
                     if (composite) {
-                        _previewInst.el.setMaskDataURL(composite);
+                        _previewInst.el.setMaskDataURL(composite.preview);
                         _previewMaskCache = composite;
                         _hasMask = true;
                     } else {
@@ -1223,7 +1243,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
 
         el.getCurrentMaskDataURL = () => {
             // Preview mode: live canvas is destroyed. Return cached composite.
-            if (_previewInst) return _previewMaskCache ?? null;
+            if (_previewInst) return _previewMaskCache?.source() ?? null;
             try {
                 if (_cv.el?.maskCanvas && hasMaskContent(_cv.el.maskCanvas)) {
                     return _cv.el.getMaskDataURL('black', 'white');
@@ -1242,7 +1262,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
                 const liveMask = el.getCurrentMaskDataURL();
                 if (liveMask) return liveMask;
             }
-            return await _buildCompositeFromTemp(item);
+            return (await _buildCompositeFromTemp(item))?.source() ?? null;
         };
 
         el.hasMaskForEntry = async (item) => {
@@ -1308,7 +1328,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
 
             if (_previewInst) {
                 _previewMaskCache = await _buildCompositeFromTemp(item);
-                if (_previewMaskCache) _previewInst.el.setMaskDataURL(_previewMaskCache);
+                if (_previewMaskCache) _previewInst.el.setMaskDataURL(_previewMaskCache.preview);
                 else _previewInst.el.clearMask();
                 _hasMask = !!_previewMaskCache;
             } else if (_cv.el?.setManualFromDataURL) {
@@ -2000,19 +2020,20 @@ export const MpiCanvasViewer = ComponentFactory.create({
             if (_previewInst) return;
             _setLoadingSpinner(true);
             try {
-                let maskDataUrl = _hasMask ? _cv.el.getMaskDataURL('black', 'white') : null;
+                const flat = _hasMask ? _cv.el.getMaskCanvas('black', 'white') : null;
+                let held = flat ? _heldMask(flat) : null;
                 const imageUrl    = _currentItem ? _resolveUrl(_currentItem.filePath) : null;
 
                 if (_currentItem) {
                     try { await _persistLayers(_currentItem); }
                     catch (err) { console.warn('[MpiCanvasViewer] persist on swapToPreview failed:', err); }
                     await _persistCurrentAutoPicks();
-                    if (!maskDataUrl) {
-                        maskDataUrl = await _buildCompositeFromTemp(_currentItem);
+                    if (!held) {
+                        held = await _buildCompositeFromTemp(_currentItem);
                     }
                 }
 
-                _previewMaskCache = maskDataUrl;
+                _previewMaskCache = held;
 
                 _cv.inst.el.destroy?.();
                 const wrap = qs('#canvas-wrap', el);
@@ -2023,7 +2044,7 @@ export const MpiCanvasViewer = ComponentFactory.create({
                 _previewInst = MpiMaskedImagePreview.mount(_previewWrap);
 
                 if (imageUrl) await _previewInst.el.loadImage(imageUrl);
-                if (maskDataUrl) _previewInst.el.setMaskDataURL(maskDataUrl);
+                if (held) _previewInst.el.setMaskDataURL(held.preview);
             } finally {
                 _setLoadingSpinner(false);
             }

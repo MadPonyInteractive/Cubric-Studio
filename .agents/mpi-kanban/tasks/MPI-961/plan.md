@@ -35,6 +35,15 @@
   `state/files/48110acd-mpi961.json`). Baseline GPU IDLE + GPU BUSY (Fabio's H3 video), the D2
   experiment and the MPI-963 rowfix control are all in `validation.md` (rig in `research/rig/`;
   run a scratch copy of it). **Next: Phase 2 (D3)** - see Plan Drift for its re-scoped target.
+- **Phase 2 (session 9bb6f112, claim `state/files/9bb6f112-mpi961-p2.json`):** code DONE, uncommitted
+  (`drawView`, dots/grid on the screen canvas, `_heldMask` lazy source-size mask); unit 103/103,
+  desktop list + new `canvas-pan-no-repaint.spec.js` 16/16, new spec proven red on HEAD
+  (`validation.md` § Phase 2). Also in: `_renderBase` skips an unchanged source (the swap
+  `clearRect` blocks were base repaints on mode setters) and `_DisplayMip` reduces from the
+  native canvas (else a level crossing re-decoded the 16K). Idle re-measure recorded. **Left:**
+  the GPU BUSY re-measure - `ROWFIX=1 STROKE_AB=1 node perf.cjs full 16k after-busy-rowfix` from
+  a scratch copy of `research/rig/` while Fabio runs a LOCAL video (no pod smoke on the lease). If
+  busy wheel crossings are slow, add a per-level mip cache.
 - **Headline:** (1) MPI-963's rows-load-originals is the biggest cost to OPEN and to Prompt<->tool
   swaps (16K idle open 37 s -> 5 s, 4K swaps 5 s -> 0.35 s with rows on thumbs). (2) Under GPU
   load, 16K pan/zoom/stroke fall to 2-6 fps because every tick runs a full `draw()` of the
@@ -115,7 +124,7 @@ inside the phase instead. MPI-959 / MPI-963 (umbrella Batch 1) are the parallel 
 
 ## Phase 2: Pan / zoom / tool switch without repainting the image (D3)
 
-- [ ] Split `onDraw` into a view-only path (transform, `_baseMip`/`_compareMip` sync, screen UI) and a
+- [x] Split `onDraw` into a view-only path (transform, `_baseMip`/`_compareMip` sync, screen UI) and a
   settle pass (overlay scale-dependent items). Find why a tool switch redraws for so long (Phase 1 e)
   and fix THAT cause - a full reload of the image is a different bug from a full `draw()`.
   **Verify:** the 6 `.cjs` suites importing `MpiCanvas.js`; desktop `history-modes`, `mask-colour`,
@@ -128,13 +137,18 @@ inside the phase instead. MPI-959 / MPI-963 (umbrella Batch 1) are the parallel 
 - [ ] Server rendition first (S1): sharp -> `<id>.display.webp` at `DISPLAY_MAX_EDGE`, cached beside
   the thumbs, made on first request, covered by the derivative GC and the delete paths. Unit test on a
   16K + a 32K fixture (sharp, `limitInputPixels: false`).
+- [ ] The History PROMPT preview (`MpiMaskedImagePreview`, both `<img>`) shows the display copy too:
+  zooming it re-decodes the 345 MB original at every new raster scale (fit -> 1x took 11.6 s,
+  10 stalls to 2.7 s; `validation.md` § Zoom IN). Same for `swapToPreview`'s image load.
 - [ ] Renderer: sweep every `this.img` / `_displayImage()` consumer and classify DIMENSIONS (keep natural
   size - managers, `k` factors, ViewManager fit, crop) vs DRAWABLE (draw the display copy). Size base +
   overlay (+ tint buffer, which follows the overlay) + compare to the display copy; both video twins.
   **Verify:** unit suites + the Phase 2 desktop list; a new spec with the cap forced to 1024 on a 2048
   fixture: crop / mask / paint / place outputs are byte-equal to the uncapped run (they read the
   original on the server), and the spec FAILS if a site draws the display copy where natural size is
-  needed; Phase 1 (a)(c)(d)(f) re-measured on 16K + 32K. **Fabio (user-ux):** 16K opens fast, pans,
+  needed; Phase 1 (a)(c)(d)(f) re-measured on 16K + 32K, GPU idle AND GPU busy (Fabio runs a local
+  video; this run also stands in for Phase 2's busy re-measure), plus the rig's `zoomin` mode
+  (canvas + Prompt preview). **Fabio (user-ux):** 16K opens fast, pans,
   masks and switches tools smoothly; the 32K opens.
 
 ## Phase 4: Detail layer (D4, D2 detail half) - user-ux checkpoint
@@ -171,6 +185,24 @@ inside the phase instead. MPI-959 / MPI-963 (umbrella Batch 1) are the parallel 
   16K - so the clip alone does not save it; find why in Phase 2 (profile a busy stroke).
 - 2026-09-28 (Phase 1): MPI-963 (umbrella member) should land BEFORE Phase 3 is measured - its
   rows cost dominates every 4K/16K number and would mask the display copy's effect.
+- 2026-09-28 (Phase 2 start, session 9bb6f112, Fabio "go"): D3's "overlay scale-dependent bits
+  re-render on SETTLE" is replaced by MOVING them - mask point dots and the grid (no live caller)
+  draw on the screen-UI canvas, so the overlay no longer depends on the view at all and a pan /
+  wheel tick (`drawView`) never touches base or overlay; no settle timer. `swapToPreview`'s
+  `toDataURL` is the mask scaled UP to the source (16384^2) and PNG-encoded on every switch to
+  Prompt; only dispatch needs that size, so the preview holds the working-size mask and the
+  source-size encode runs once, on the first dispatch that asks (tradeoff accepted: a Generate
+  from Prompt mode pays it at click time). The busy stroke is an A/B in the rig (overlay backing
+  16384^2 vs 4096^2) - diagnosis only; its fix is Phase 3's display copy if the A/B points there.
+- 2026-09-28 (Phase 2 close, Fabio): the separate Phase 2 GPU-BUSY re-measure is SKIPPED - Phase 3
+  moves the same numbers again, so ONE busy run after Phase 3 covers both (Phase 3's Verify now
+  carries it). Order from here (Fabio "go with that order"): MPI-963 (rows on thumbnails) FIRST,
+  then Phase 3 (display copy for the canvas AND the Prompt preview), then Phase 4.
+- 2026-09-28 (Phase 2, measured): Phase 1's "swap clearRect = fresh overlay's first paint" was
+  wrong - call trees put it in `_renderBase` under the mode setters (unchanged base repainted,
+  twice on Prompt -> Mask). Fixed here per D3 (repaint only on a source change), which forced the
+  display copy to reduce from the native canvas instead of the `<img>` (a level crossing had
+  started re-decoding the 16K, 2.4 s). What stays for Phase 3: one 16K first paint per mount.
 
 ## Verification
 

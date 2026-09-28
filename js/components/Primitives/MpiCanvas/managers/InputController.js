@@ -18,6 +18,7 @@ import { Hotkeys } from '../../../../managers/hotkeyManager.js';
 /**
  * @typedef {Object} InputOptions
  * @property {() => void} onDraw
+ * @property {() => void} onViewDraw - only the view moved (pan / zoom)
  * @property {(box: {x:number,y:number,w:number,h:number}) => void} onStrokeDraw - image-px box
  * @property {() => void} onCursorDraw
  * @property {() => void} onResetView
@@ -146,6 +147,8 @@ export class InputController {
                 if (this.options.onBrushSizeChange) {
                     this.options.onBrushSizeChange(wheelBrush.brushSize);
                 }
+                // Only the ring changed (MPI-961).
+                this.options.onCursorDraw();
             } else {
                 const zoomSpeed = 0.001;
                 const delta = -e.deltaY;
@@ -163,8 +166,8 @@ export class InputController {
 
                 view.offsetX = cx - imgX * view.scale;
                 view.offsetY = cy - imgY * view.scale;
+                this.options.onViewDraw();
             }
-            this.options.onDraw();
         };
         this.container.addEventListener('wheel', this._boundHandlers.wheel, { passive: false });
 
@@ -279,6 +282,7 @@ export class InputController {
             /** Image-px box a brush stroke touched on this move (MPI-787). */
             let dirty = null;
             let hoverOnly = false;
+            let viewOnly = false;
 
             if (comparison.isDraggingSlider) {
                 const containerW = this.container.getBoundingClientRect().width || 1;
@@ -304,6 +308,7 @@ export class InputController {
             } else if (this.isPanning) {
                 view.offsetX = e.clientX - this.startPanX;
                 view.offsetY = e.clientY - this.startPanY;
+                viewOnly = true;
             } else {
                 hoverOnly = true;
             }
@@ -313,9 +318,11 @@ export class InputController {
             // image-sized canvases edge to edge, which on a CPU-drawn canvas held a
             // 2960px mask stroke to ~21fps — and this listener is on WINDOW, so a bare
             // hover over any panel paid it too. A stroke changes only its own box; a
-            // hover changes only the cursor ring. Everything else keeps the full draw.
+            // hover changes only the cursor ring; a pan moves only the view (MPI-961).
+            // Everything else keeps the full draw.
             if (dirty) this.options.onStrokeDraw(dirty);
             else if (hoverOnly) this.options.onCursorDraw();
+            else if (viewOnly) this.options.onViewDraw();
             else this.options.onDraw();
         };
         window.addEventListener('mousemove', this._boundHandlers.mousemove);
