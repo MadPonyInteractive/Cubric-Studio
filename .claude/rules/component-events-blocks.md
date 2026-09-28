@@ -96,6 +96,7 @@ LISTENS: `workspace:inject-prompts` `{ positive, negative }` — sets textarea v
          `promptbox:generation-end` — clears generating state
          `assets:cleaned` `{ folderPath }` — project Cleanup wiped the preview-assets store; `clearMedia()`s all staged chips (emitted by projectUI after `/project/cleanup-assets`; also clears `state.promptMedia` there so an unmounted box doesn't restore dead chips)
          `state:changed` — updates Cue button label on `generationQueueCount` change; re-renders Cue/Loop label on `loopArmed` change; syncs the Agent/Prompt toggle + `mpi-prompt-box--agent-mode` class on `agentMode` change (MPI-774, `Events.onState('agentMode')` — cross-instance / cross-remount sync)
+         `generation:send-countdown` `{ id, seconds }` — MPI-958: Cue label reads "Sending in N" while `seconds > 0`, any id (the card's copy hides with card info off); `0` restores the Cue/Loop label
          Hotkeys `generation.run` (Ctrl+Enter) cue, `generation.stop` (Ctrl+Alt+Enter) stop, `generation.loop` (Ctrl+L) toggle `state.loopArmed` — all bound in setup
          (NOT `workspace:set-operation` — parent block validates op + calls `el.setOperation()`)
 NOTE:    Dictation mic (MPI-946) is wired by `attachDictation()` in `js/services/dictation.js`, not by this component: the service listens to `models:checked` (re-greys the mic when the DeepInfra key comes or goes), emits `ui:warning` on a failed take, and binds the `dictation.hold` / `dictation.release` / `dictation.release.space` hotkeys once for every attached box. Its insert fires a native `input` on the textarea, so the box saves by mode exactly as for typing.
@@ -127,7 +128,7 @@ LISTENS: `workspace:set-operation` `{ operation: string }` — syncs PromptBox o
          `generation:complete` `{ id, item, group, tempId, extraTempIds }` — removes all N placeholders, `setGroups` from state
          `generation:error` `{ id, tempId, extraTempIds }` — removes all N placeholders, restores group list
          `generation:cancelled` `{ id, tempId, extraTempIds }` — removes all N placeholders, restores group list
-         `generation:send-countdown` `{ id, seconds }` (MPI-940) — a cloud run's send window: `grid.el.setSendCountdown(t, seconds)` on the entry's `tempId` + `extraTempIds`, only for an id in `_myGenIds`. The card reads "Sending in N..."; `0` = sent, back to its name. Gallery only: a history-mode cloud run waits too but shows no countdown
+         `generation:send-countdown` `{ id, seconds }` (MPI-940) — a cloud run's send window: `grid.el.setSendCountdown(t, seconds)` on the entry's `tempId` + `extraTempIds`, only for an id in `_myGenIds`. The card reads "Sending in N..."; `0` = window over (sent or stopped), back to its name. Gallery only: a history-mode cloud run waits too but shows no countdown on a card (MpiPromptBox's Cue button still counts it)
 EMITS:   `tool:running`   `{ tool: 'groupHistory', type: string }` — fired on generation start
          `tool:idle`      `{ tool: 'groupHistory', type: string }` — fired on generation success
          `tool:cancelled` `{ tool: 'groupHistory' }` — fired on user cancel, error, or empty result

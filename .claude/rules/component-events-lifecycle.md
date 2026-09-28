@@ -18,7 +18,7 @@ Session-scoped singleton. Survives navigation. Keyed by uuid; multi-entry (batch
 | `generation:complete` | `{ id, item, group, tempId?, extraTempIds? }` | `generationService` emits after project mutation + `end()` |
 | `generation:error` | `{ id, tempId?, extraTempIds? }` | `generationService` emits after `end()` |
 | `generation:cancelled` | `{ id, tempId?, extraTempIds? }` | `generationService` or `activeGenerations.cancel()` emits after `end()` |
-| `generation:send-countdown` | `{ id, seconds }` | `cloudExecutor` (MPI-940), once a second through a cloud run's 3 s send window, then `seconds: 0` just before the POST. A Stop inside it aborts before anything is sent. `id` is the gen id (`activeGenerations` entry id) |
+| `generation:send-countdown` | `{ id, seconds }` | `cloudExecutor` (MPI-940), once a second through a cloud run's 3 s send window, then `seconds: 0` when the window ends, sent OR stopped (MPI-958). A Stop inside it aborts before anything is sent. `id` is the gen id (`activeGenerations` entry id) |
 
 **API:** `start({ scope, groupId, tempId, operation, modelId, placeholderGroup, extraTempIds, extraPlaceholders, exec })` → `{ id }` · `get(id)` · `list()` · `listFor(scope, groupId|null)` · `setPreview(id, url)` · `setPromptId(id, promptId)` · `end(id, { revokePreview })` · `cancel(id)` · `cancelAll()`
 
