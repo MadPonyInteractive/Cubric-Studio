@@ -31,8 +31,23 @@ test('Cue counts down the cloud send window, and its hold fill shows against the
 
         const name = `mpi958-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
         await window.evaluate(async ({ name, folderPath }) => {
-            const { createProject, openProject } = await import('/js/services/projectService.js');
-            const { navigate, PAGE_GALLERY } = await import('/js/router.js');
+            const [{ createProject, openProject }, { navigate, PAGE_GALLERY }, { state }, { Events }, { MODELS }] = await Promise.all([
+                import('/js/services/projectService.js'), import('/js/router.js'), import('/js/state.js'),
+                import('/js/events.js'), import('/js/data/modelRegistry.js'),
+            ]);
+            // The CI runner has no weights, and with none the gallery shows "No models
+            // installed" instead of a prompt box. Re-stubbed after every boot model sync
+            // (docs/testing-desktop-specs.md, trap 5), as gallery-stack-run.spec.js does.
+            const model = MODELS.find(m => m.id === 'klein-4b');
+            const stub = () => {
+                model.installed = true;
+                const ids = state.s_installedModelIds || [];
+                if (!ids.includes(model.id)) state.s_installedModelIds = [...ids, model.id];
+            };
+            stub();
+            Events.on('models:checked', stub);
+            state.s_selectedModelIdByType = { image: model.id, video: null };
+            state.s_lastSelectedMediaType = 'image';
             await openProject(await createProject(name, folderPath));
             navigate(PAGE_GALLERY);
         }, { name, folderPath: testInfo.outputPath('projects') });
