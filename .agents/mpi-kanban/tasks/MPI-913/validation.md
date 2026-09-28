@@ -33,3 +33,4 @@ typed mid-render loaded it again. So the release alone was not the fix; the wait
   local model). Expect the waiting line under the request, Task Manager GPU memory falling as the render starts,
   the line turning done and Cosmo reporting when it lands. Type while it renders: the message waits, then gets its
   answer.
+- **CI green on the code commit** `1c1c83574` (run 36400280803, Tests, success, 2026-09-28). Closed by session ab46115b.
