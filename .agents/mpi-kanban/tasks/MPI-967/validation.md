@@ -54,3 +54,7 @@ CI green on `ba3ed554a` (Tests run 36419523373) and on `c2fd63b2b`. MPI-968 land
 
 - `.claude/rules/component-events-primitives.md`: MpiModelManager `remote:connection` payload gains `ramGb` and drives the filter; PATTERN names the Hardware filter. New `MpiFlowLibrary` entry (it had none), every EMITS/LISTENS line read off `Events.on`/`Events.emit` in the file.
 - Found while mapping: `ui:open-model-settings` has had NO emitter since MPI-638 (`4de052f7e` removed the Flow Library cogwheel emit). Both Blocks still listen. Corrected in `component-events-blocks.md` (both Block entries) and `docs/events.md`. The listeners themselves are left in place.
+
+## Release note (Fabio, 2026-09-28)
+
+One line in `docs/releases/UNRELEASED.md` under What's new, Model Library only: Flows have never shipped, so the Flow side owes no entry.

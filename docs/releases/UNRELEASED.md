@@ -223,6 +223,8 @@
   Hover any entry and the status bar says what it does, including why a greyed-out one is
   unavailable.
 
+- **The Model Library can show only the models your GPU can run, or the RunPod GPU you rented.**
+
 ## Fixes
 
 > **A fix to a FLOW does not belong here for this release** — flows debut in this version, so
