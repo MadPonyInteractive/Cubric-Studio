@@ -109,6 +109,16 @@ published to `dev`); app polls dryRun (3 min cap, Stop ends it), gen sends `prio
 prefetch sends ONE request. Tests: `tests/pod-identity-hot-store.test.cjs`,
 `wrapper/test_hot_store_async.py`. **Next:** a paid live run (GPU Pod + a network volume -
 none exists), then `publish-runtime.sh promote` with MPI-595's release step.
+2026-09-29 later: Fabio APPROVED the live run (cap $0.60, ~$0.30 expected), restarted his app
+onto the new code, and OKed status GETs + one generation through it. The auto-mode classifier
+blocked every `:3000` call ("Production Reads") despite that; rules for it were added to the
+gitignored `.claude/settings.local.json` (3 Bash rules + one `autoMode.allow` line) and only
+load in a FRESH session. Test shape: the smoke runner posts straight to `/proxy/prompt`, so it
+exercises connect + stage-on-connect but NOT the per-gen preflight; add one real generation
+through the app (`/connector/generate` klein-4b t2i) while the GPU Pod is up. Check: badge/
+`/remote/pod/specs` names the rented card (Fabio's picker is RTX 2000 Ada), `/remote/comfy/status`
+`wrapperVersion` 0.2.45, app.log shows `stage-on-connect queued` once and no 524, the gen logs
+`hot-store: N file(s) on Pod disk`. Delete the Pod AND the test volume after.
 
 Findings (2026-09-28 late, from the MPI-595 smoke). Evidence: `%APPDATA%\Cubric Studio\logs\app.log`
 19:18-20:24Z.
