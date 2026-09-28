@@ -121,21 +121,21 @@ export const DEFAULT_RUNPOD_CONFIG = Object.freeze({
   // host with >= that much system RAM. 0 = no floor. Ignored for the CPU download
   // Pod and Any-region.
   //
-  // Defaulted to 80 (was 0 = place anywhere). Weights spill to system RAM on any
-  // consumer card. On 2026-09-05 minimax-h3/t2v_ms OOM-KILLED a 54 GB L4 (SIGKILL,
-  // `code -9`) at 128px/1 frame — staging a 25 GB text encoder and a 20 GB transformer
-  // at once — and PASSED on a host placed against an 80 GB floor. With no floor at all
-  // users were being placed on boxes with no chance.
+  // Defaulted to 62 (was 0 = place anywhere, then 80). Weights spill to system RAM on
+  // any consumer card; with no floor users were placed on boxes with no chance.
   //
-  // 80 and not 64 because THE ASK IS NOT THE READ: the floor filters on a figure that
-  // runs higher than what the container actually gets (that L4 advertised 62 and
-  // delivered 54). Asking 64 can therefore land ~56 — two GB above the box that died,
-  // on the SMALLEST job the runner can build. A real 768p generation has less room,
-  // not more.
+  // 62 and not 80 (Fabio, 2026-09-28: "62 passes the mark of most"): the 2.0 smoke ran
+  // EVERY op, H3 t2v/i2v/ref2v included, on a 5090 placed against a 60 GB floor that
+  // delivered 55.88 GiB — 51 pass, 0 fail. 80 excluded most of the hosts that pass. The
+  // old case for 80 was a 54 GB L4 that OOM-killed minimax-h3/t2v_ms on 2026-09-05
+  // (advertised 62, delivered 54); Fabio reads that as another fault, and no 768p H3 run
+  // was made to settle it. THE ASK IS NOT THE READ still holds: a 62 floor can deliver
+  // ~54-56.
   //
   // This is a TRADE: a floor that cannot be met returns "no host available" instead of
-  // a Pod. That is what autoRetry is for, and the settings hint says so.
-  minRamGb: 80,
+  // a Pod. That is what autoRetry is for, and the settings hint says so. A saved config
+  // keeps its stored value; only a fresh one takes this default.
+  minRamGb: 62,
 });
 
 // MPI-774: the in-app agent's endpoint profile and mode. `deepinfra` is the
